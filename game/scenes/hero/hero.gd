@@ -1719,7 +1719,9 @@ func _on_died(at: Vector2) -> void:
 		go_down(at)
 		return
 	var wounds: int = RunState.add_wound()
-	if wounds >= RunState.max_wounds():
+	# A party walking out cannot be killed out of the walk. See
+	# `RunState.run_may_be_lost` - they stand back up and keep holding.
+	if wounds >= RunState.max_wounds() and RunState.run_may_be_lost():
 		RunState.hero_deaths += 1
 		EventBus.hero_died.emit(at)
 		GameDirector.end_run(false)

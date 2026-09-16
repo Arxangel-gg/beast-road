@@ -1124,7 +1124,10 @@ func _build_nav_bar() -> void:
 		func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD)))
 	_nav_buttons.append(_add_icon_button(bar, "scope_town", "Town  (F2)",
 		func() -> void: scope_requested.emit(GameDirector.Scope.TOWN)))
-	_nav_buttons.append(_add_icon_button(bar, "scope_beast", "Beast  (F3)",
+	# **Yuri, not "Beast".** `V4_CONFORMANCE` asks that the beast scope name him
+	# rather than his species, and this button and the rebinding row are the
+	# only two places the interface names that view at all.
+	_nav_buttons.append(_add_icon_button(bar, "scope_beast", "Yuri  (F3)",
 		func() -> void: scope_requested.emit(GameDirector.Scope.BEAST)))
 
 	# Zoom stays in the column rather than somewhere tidier, because it is

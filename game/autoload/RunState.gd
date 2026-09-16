@@ -643,6 +643,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	# already paid for.
 	pen_companion_fell = false
 	momentum = 0.0
+	# A flag left set by a run that was abandoned mid-withdrawal would silence
+	# every road wave of the next one. Cleared with the rest of the run.
+	withdrawing = false
 	tower_health_restore.clear()
 	# A doctrine owed to a road that no longer exists is a board built onto
 	# the next run. Cleared beside the health it sits next to.
@@ -2381,6 +2384,35 @@ var pen_companion_fell: bool = false
 ## taken. Read by `Modifiers` into discovery keys only - see
 ## `Balance.MOMENTUM_PER_CROSSROAD` for why it may never reach a damage number.
 var momentum: float = 0.0
+
+
+## **True while the road behind the party is closing** (2026-09-16).
+##
+## Set for the length of the withdrawal that a return now runs, and read by
+## exactly two things: `WaveDirector._road_waves_allowed`, so an ordinary
+## formation cannot start underneath the last one, and `Withdrawal` itself.
+##
+## Run-scoped and never relayed. A guest runs no waves and settles no run, so
+## there is nothing for its copy to decide; the bodies reach it as the same
+## spawn facts every other body does.
+var withdrawing: bool = false
+
+
+## **May this run still end in defeat?**
+##
+## False for exactly as long as a withdrawal runs, and it is the same bound
+## `Balance.HOMECOMING_WALL_FLOOR` is, arriving through the other door: the town
+## cannot fall on the way out, and neither can the party. A Warden on their last
+## Wound who goes down during the walk out would otherwise lose the return they
+## had already chosen *and* the front it was about to bank - `bank_the_front` is
+## reached from `return_home` and from nowhere else, so a run that ends any other
+## way banks nothing.
+##
+## Asked at the two doors that end a run in defeat - a solo death past the last
+## Wound, and a co-op team wipe past it - rather than decided at either, so the
+## rule has one home and reversing it is one line.
+func run_may_be_lost() -> bool:
+	return not withdrawing
 
 ## **How hurt each restored tower should stand up.**
 ##

@@ -160,6 +160,16 @@ func _process(delta: float) -> void:
 ## and the wave it belonged to could never close because Preparation had stopped
 ## the director that owns closing it.
 func _road_waves_allowed() -> bool:
+	# **The withdrawal is the last formation this road sends.**
+	#
+	# It runs in ROAD_BATTLE on purpose - towers only fire and the hero is only
+	# active in command combat, so a withdrawal fought in a phase of its own
+	# would be a fight with the board switched off. The cost of borrowing the
+	# combat phase is that the ordinary wave clock is also happy, and would deal
+	# a full formation on top of the one that is closing the road. One refusal,
+	# in the one function that already owns "may a road wave start now".
+	if RunState.withdrawing:
+		return false
 	return RunState.phase == RunState.Phase.ROAD_BATTLE \
 		or RunState.phase == RunState.Phase.FINAL_ASCENT
 
@@ -341,6 +351,27 @@ func _begin_wave() -> void:
 		_last_archetype_id = archetype.id
 		RunState.record_wave_archetype(archetype.id)
 		EventBus.wave_archetype_started.emit(wave, archetype.id)
+
+
+## **One more body, closing the road behind a withdrawal.**
+##
+## Enqueued rather than spawned, so it arrives through `_spawn_next` and is
+## scaled by `_hp_scale`, `_damage_scale` and `_speed_scale` - the act's own
+## numbers, the same ones every other body on this road was dealt. That is the
+## bound rather than a convenience: a withdrawal that built its own bodies
+## would be a second difficulty curve beside the one `curve_report` measures,
+## and nothing would be tuning it.
+##
+## The road is chosen by `_weighted_lane`, the same picker every authored
+## formation uses - so a dark lane is likelier to be pressed and letting the
+## torches go out still costs something on the way out.
+##
+## The spacing is the caller's, because `Withdrawal` owns the ramp and the
+## queue drains as fast as it is fed. `BATTLEFIELD_MAX_ENEMIES` still applies,
+## inside `_spawn_next`, where it applies to everything else.
+func send_closing_body() -> void:
+	_spawn_queue.append(_spawn_entry(_weighted_lane([]), false, "",
+		1.0, 1.0, 1.0, 0.0))
 
 
 func _spawn_entry(lane: int, elite: bool, enemy_id: String, hp_scale: float,

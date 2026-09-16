@@ -110,7 +110,7 @@ requirements or establish production readiness.
 
 | Item | Target | Probe |
 |------|--------|-------|
-| Yuri named in the beast scope | not "the beast" | `manual` |
+| Yuri named in the beast scope | not "the beast" | `gate:res://tools/copy_check.tscn` |
 | Three authored regional factions | replaces provisional terrain | `count:factions >= 3` |
 | Jungle region | new terrain | `file:res://art/terrain/terrain_jungle.png` |
 | Desert region | new terrain | `file:res://art/terrain/terrain_desert.png` |

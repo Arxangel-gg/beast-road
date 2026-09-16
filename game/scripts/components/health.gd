@@ -40,6 +40,20 @@ var damage_scale: float = 1.0
 var deferred_fraction: float = 0.0
 var _deferred: float = 0.0
 
+## **A hard floor this pool may not be reduced past.** Zero is the ordinary
+## state and every unit in the game is at zero.
+##
+## Set on the town for the length of a withdrawal (2026-09-16), so that a party
+## who chose to turn for home always reaches home. Deliberately a property of
+## the pool rather than a branch at each blow: the town is struck by contact
+## damage, by ground strikes, by boss slams and by the earth, and a rule spelled
+## out at five call sites is a rule four of them will eventually forget.
+##
+## It is a floor and never a shield - the blow lands, it is reported, and every
+## effect downstream of `damaged` fires exactly as it did. What it cannot do is
+## finish the pool.
+var floor_hp: float = 0.0
+
 var _invulnerable_left: float = 0.0
 
 ## The length of the window currently running, so elapsed time can be derived.
@@ -113,7 +127,7 @@ func take_damage(amount: float, from: Vector2) -> bool:
 		var held: float = applied * clampf(deferred_fraction, 0.0, 1.0)
 		_deferred += held
 		applied -= held
-	current_hp = maxf(current_hp - applied, 0.0)
+	current_hp = maxf(current_hp - applied, maxf(floor_hp, 0.0))
 	damaged.emit(applied, from)
 	changed.emit(current_hp, max_hp)
 	if current_hp <= 0.0:

@@ -4437,12 +4437,131 @@ run resolved on the frame the card closed. The view now goes to the scope that
 actually carries the party home, the room drops away through the same duck an
 act boss uses, and the road is held for a moment before the run settles.
 
-**Deliberately not built: pressure during the walk out.** The document wants the
-road behind you closing and the threat rising while you leave. That is a
-gameplay change rather than a presentation one - it changes what a return
-*costs*, which is the number `homecoming_marks` is balanced against and the
-whole reason the pass is a decision at all. **It needs an owner ruling** and is
-recorded here rather than slipped in behind a juice pass.
+**The road behind you closes when you turn for home, as of 2026-09-16.** #41
+and #42 of the forwarded juice list wanted the threat rising while you leave,
+and it was parked rather than built because it changes what a return *costs* -
+which is the number `homecoming_marks` is balanced against and the whole reason
+the pass is a decision. **Owner ruling: "Yes pressure should rise against
+players who walk out of a run."**
+
+**A return no longer settles on the frame the card closes.** For
+`HOMECOMING_WITHDRAWAL_SECONDS` the road keeps sending bodies at the town,
+thickening as the beast pulls away, and the fortress the party is leaving holds
+the gate with exactly the board they built.
+
+**What it takes is the condition of the front they carry home**, and nothing
+else. `Expedition.compose` runs *after* the withdrawal, so the wall and every
+emplacement come home in whatever state the fight left them - the attrition
+ruling of 2026-09-15 pointed at the walk out. `homecoming_marks` is untouched,
+the Marks are paid in full, the eggs still hatch and the front is still banked.
+
+**Three designs were written for this and all three were refused. Each one's
+fatal flaw is now a bound**, which is why they are recorded rather than the
+winner alone:
+
+- **A last stand you could fail.** `bank_the_front` is called by extraction and
+  by nothing else, so extraction is the **only ratchet the expedition system
+  has** - "everything before the last extraction is banked, everything since is
+  at risk". Putting it behind a fight pins a player who cannot win one at their
+  last successful extraction for ever, and makes stopping for the evening while
+  hurt require winning, which is the opposite of what a ten-evening campaign is
+  for. So `Health.floor_hp` holds the town at `HOMECOMING_WALL_FLOOR` for the
+  length of a withdrawal: **a party who pressed Turn For Home always reaches
+  home.**
+
+  **The town was only one of the two doors, and the second was nearly missed.**
+  A Warden on their last Wound who goes down ends the run through
+  `Hero._on_died`, and a co-op pair through `CoopHeroes._on_team_wipe` - so the
+  wall could be held and the party killed out of the walk anyway, losing the
+  return they had already chosen *and* the front it was about to bank, since
+  `bank_the_front` is reached from `return_home` and from nowhere else.
+  `RunState.run_may_be_lost()` is the rule, asked at both doors and decided at
+  neither. Found by asking what else ends a run, rather than by anything
+  failing: the gate was green with the hole in it.
+- **A toll scaled by road walked since the last bank.** That is
+  `RunState.momentum` with the sign flipped and a larger coefficient, aimed at
+  the board and the wall - which `MOMENTUM_PER_CROSSROAD`'s own ruling forbids
+  it from touching, and which would make banking at the first fork strictly
+  correct. The withdrawal's bodies are **the act's own bodies at the act's own
+  scaling**, through `WaveDirector.send_closing_body`, so it is the road
+  pressing rather than a tax on having pushed.
+- **A hunter that chases you out.** The roster walks at 28-68 units against a
+  hero at 200, so a pursuer is a mechanic that **cannot fire** - it can never
+  land a blow on anybody holding a movement key, and raising its speed to match
+  makes it unavoidable for everyone. Nothing chases. The bodies walk at the
+  town, which cannot run.
+
+**It borrows ROAD_BATTLE rather than inventing a phase**, and that is load
+bearing rather than tidy: `Tower._process` and `Hero.set_active` both gate on
+`RunState.is_command_combat()`, which names ROAD_BATTLE, BOSS and FINAL_ASCENT
+and nothing else - so a withdrawal fought in a phase of its own is a fight with
+the board switched off and the hero inactive. The cost of borrowing it is that
+the ordinary wave clock is also happy, so `_road_waves_allowed` refuses while
+`RunState.withdrawing`: one refusal, in the one function that already owns "may
+a road wave start now".
+
+**And it fixed the door nobody was walking through.** `_ride_home` was reached
+from `_on_boss_defeated` and from nowhere else, so the departure beat added the
+same week silently never happened at the **fork** - which is the door a player
+uses far more often, since it is offered at every crossroad and the pass only at
+an act's end. Both doors walk out through the same function now.
+
+**Nothing new persists and nothing new crosses the wire.** The wall ratio and
+the tower health were already in the snapshot; `RunState.withdrawing` is
+run-scoped and cleared by `reset`; a guest runs no waves and settles no run, and
+the bodies reach it as the same spawn facts every other body does.
+
+**`homecoming_check` grew from 41 checks to 53, and the departure beat is gated
+for the first time.** `_ride_home` returns on its first line headless, so every
+line of it had been unreachable to every gate since the day it was written -
+`Run.withdrawal_test_seconds` is the documented seam, the same shape
+`MusicPlayer.test_slots` is. Five faults were planted and all five named: no
+floor (the town falls and the run ends as a *fall*), a run that may still be
+lost (the Warden is killed out of the walk), a flat ramp, a floor never
+released, and the front photographed before the fight rather than after.
+
+**A fifth plant taught something worth keeping.** Banking the front early while
+leaving the correct bank in place passed cleanly - because the later, correct
+call simply overwrote it. **A planted fault has to remove the correct behaviour,
+not merely add the wrong one beside it**, or it proves the gate blind when the
+gate was fine.
+
+**One dead assertion went with it.** `homecoming_check` held
+`_check(... or true, "held on the pass")`, which could never fail, so the gate
+counted a check it was not making. What it should have held is that the road
+does not advance underneath an open pass - the card's figures come from the act
+the boss fell in and the payout recomputes from `RunState.act` at settle time,
+and they agree only because turning for home returns before `resume_after_boss`
+increments it.
+
+**A conformance row marked `manual` because nobody thought of a probe, as of
+2026-09-16.** `V4_CONFORMANCE` §6 carried *"Yuri named in the beast scope | not
+'the beast'"* as a human-judgement row since it was written, and `gdd_audit.gd`
+named it in as many words as an example of a question a gate cannot decide.
+
+**Its target is not a judgement.** It is the literal words "not 'the beast'",
+and the interface names that view in exactly two places: the scope button on the
+HUD's nav bar and the row on the rebinding screen. Both are checkable.
+
+**And the row was open rather than merely unjudged.** Both said "Beast", so the
+only part of the game that names that view named his species. The beast scope
+itself has no player-facing text at all - Yuri appears in `beast_scope.gd` only
+in a code comment - which is exactly why reading the scope said the row was fine
+and nothing ever caught it.
+
+`copy_check` decides it now, and the audit is **47 of 47 automatable checks
+(100%)** with four human-judgement rows left rather than five.
+
+**And `copy_check` was on the guard bar only**, which is worse than it sounds:
+GDD §57 makes *"no unreviewed enslavement language ships"* a **release**
+requirement, and the gate enforcing it could not fail a tag. It is on both bars
+now. That is the third time this project has found a gate in one workflow and
+not the other, after `layout_check` and the phone shapes.
+
+**The lesson is about the word `manual`.** It is supposed to mean "a person has
+to read this", and it had come to mean "nobody thought of a probe" - which is a
+row that is never checked by anybody, wearing a label that says checking it is
+somebody else's job.
 
 ### The three escape hatches — and why there are only three
 

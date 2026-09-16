@@ -31,7 +31,7 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"war_horn", "label": "War horn"},
 	{"action": &"scope_battlefield", "label": "Battlefield"},
 	{"action": &"scope_town", "label": "Town"},
-	{"action": &"scope_beast", "label": "Beast"},
+	{"action": &"scope_beast", "label": "Yuri"},
 	{"action": &"spell_1", "label": "Ability 1"},
 	{"action": &"spell_2", "label": "Ability 2"},
 	{"action": &"spell_3", "label": "Ability 3"},

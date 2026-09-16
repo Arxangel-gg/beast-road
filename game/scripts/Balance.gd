@@ -602,6 +602,38 @@ const HOMECOMING_HUSH_DEPTH: float = 0.25
 
 const HOMECOMING_FROM_ACT: int = 1
 
+## **The withdrawal** (owner ruling, 2026-09-16: "pressure should rise against
+## players who walk out of a run"). Turning for home no longer settles the run
+## on the frame the card closes: the road behind the party closes, and the
+## fortress they are leaving holds the gate while the beast pulls away.
+##
+## How long the road presses. It is a formation, not a wave - long enough that
+## a thin board is felt, short enough that nobody is kept from a results screen
+## they have already chosen. [TUNE]
+const HOMECOMING_WITHDRAWAL_SECONDS: float = 16.0
+
+## The ramp, and the whole of "pressure *rises*": seconds between bodies at the
+## first moment of the withdrawal and at the last. The gap closes over the
+## window, so the last third is where a board is actually tested. [TUNE]
+const HOMECOMING_WITHDRAWAL_FIRST: float = 1.5
+const HOMECOMING_WITHDRAWAL_LAST: float = 0.4
+
+## **The wall may be worn to this and no further while a withdrawal runs.**
+##
+## This is the bound the whole feature rests on, and it is an anti-frustration
+## rule rather than a difficulty one. `bank_the_front` is called by extraction
+## and by nothing else, so extraction is the only ratchet the expedition system
+## has - "everything before the last extraction is banked, everything since is
+## at risk". A withdrawal that could be *failed* would put that ratchet behind
+## a fight, and a player who could not hold one would be pinned at their last
+## successful extraction for ever, replaying the same acts and losing them. It
+## would also mean that stopping for the evening while hurt requires winning,
+## which is the opposite of what the ten-evening campaign is for.
+##
+## So a player who presses Turn For Home always goes home. What the withdrawal
+## decides is the *condition* of the fortress they take with them. [TUNE]
+const HOMECOMING_WALL_FLOOR: float = 0.08
+
 const HERO_MAX_LEVEL: int = 100
 
 ## Runs per tier that `tools/level_curve.tscn` simulates. Reporting only.

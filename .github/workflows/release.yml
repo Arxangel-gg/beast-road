@@ -251,6 +251,11 @@ jobs:
           run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn
+          # **GDD SS57 is a release requirement**: "no unreviewed enslavement
+          # language ships". The gate that enforces it had been on the guard bar
+          # only, so it could not fail a tag - the same split that let a HUD
+          # overlap reach main behind layout_check.
+          run_godot_clean --headless --path game res://tools/copy_check.tscn
           run_godot_clean --headless --path game res://tools/save_backup_check.tscn
           run_godot_clean --headless --path game res://tools/user_dir_check.tscn
           run_godot_clean --headless --path game res://tools/leaderboard_check.tscn

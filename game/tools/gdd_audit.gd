@@ -190,7 +190,14 @@ static func _evaluate(row: Row, index: Dictionary) -> void:
 ##
 ## Reserved for rows where a gate genuinely decides the question. Where the
 ## answer needs somebody to read the words - whether a faction name borrows from
-## a franchise, whether the beast is addressed by name - the row stays `manual`.
+## a franchise - the row stays `manual`.
+##
+## **"Yuri named in the beast scope" used to be on that list and was wrong to
+## be** (2026-09-16). Its target is the literal words "not 'the beast'", which
+## is not a judgement, and the interface names that view in exactly two places -
+## so `copy_check` decides it. It had also been *open* the whole time it was
+## unjudged: both places said "Beast". A row marked `manual` because nobody
+## could think of a probe is a row nobody ever checks.
 ## A regex there would manufacture confidence rather than earn it.
 static func _probe_gate(row: Row, name: String) -> void:
 	# A run_tool gate is named with its argument - "run_tool.gd -- report" - so

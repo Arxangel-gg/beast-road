@@ -52,11 +52,12 @@ func _ready() -> void:
 	_scan_data("res://data")
 	_scan_seeder()
 	_check_the_role_noun_comes_from_content()
+	_check_the_beast_scope_names_yuri()
 	print("[copy] %d player-facing strings scanned" % _scanned)
 	for problem: String in _failures:
 		push_error(problem)
 	if _failures.is_empty():
-		print("[copy] PASS - no enslavement language in anything a player reads")
+		print("[copy] PASS - no enslavement language in anything a player reads, and the beast scope is Yuri's")
 	get_tree().quit(1 if not _failures.is_empty() else 0)
 
 
@@ -165,6 +166,48 @@ func _is_code(value: String) -> bool:
 ## is the reviewed word - it is the review *surface* being wrong. §57 asks that
 ## the wording be reviewable in one place, and it cannot be while the screens
 ## carry their own copy of it.
+## **The beast scope names Yuri, not "the beast".**
+##
+## `V4_CONFORMANCE` §6 has carried this as a `manual` row since it was written,
+## on the reasoning that whether a name reads *well* is a judgement. Its target
+## is not a judgement though - it is the literal words "not 'the beast'" - and
+## the interface names that view in exactly two places: the scope button on the
+## HUD nav bar and the row in the rebinding screen. Both are checkable, so the
+## row is a gate now.
+##
+## **It was genuinely open rather than merely unjudged.** Both said "Beast", so
+## the one part of the game that names that view named his species. The scope
+## itself has no text at all - Yuri appears in `beast_scope.gd` only in a code
+## comment - which is why reading the scope said the row was fine.
+##
+## Descriptive prose elsewhere is untouched and deliberately so: "the town rides
+## the beast" and "a crop grows as the beast walks" are the common noun doing its
+## job, and the glossary's "Yuri: the beast" is what teaches the name.
+func _check_the_beast_scope_names_yuri() -> void:
+	var places: Dictionary = {
+		"res://scenes/ui/hud.gd": "scope_beast",
+		"res://scripts/systems/key_bindings.gd": "&\"scope_beast\"",
+	}
+	for path: String in places:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			_failures.append("[copy] %s is missing, so nothing names the beast scope" % path)
+			continue
+		var named: bool = false
+		for line: String in file.get_as_text().split("
+"):
+			if not line.contains(String(places[path])):
+				continue
+			if line.contains("Yuri"):
+				named = true
+			elif line.contains("\"Beast") or line.contains("\"BEAST"):
+				_failures.append(("[copy] %s names the beast scope after his species"
+					% path) + " rather than after him: %s" % line.strip_edges())
+		if not named:
+			_failures.append(("[copy] %s no longer names the beast scope Yuri"
+				% path) + " - V4_CONFORMANCE asks that scope for his name")
+
+
 func _check_the_role_noun_comes_from_content() -> void:
 	for value: Variant in ContentDB.captives.values():
 		var who := value as CaptiveData

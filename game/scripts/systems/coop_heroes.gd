@@ -561,7 +561,9 @@ func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 func _on_team_wipe() -> void:
 	_wipe_announced = true
 	var wounds: int = RunState.add_wound()
-	if wounds >= RunState.max_wounds():
+	# Not during a withdrawal: see `RunState.run_may_be_lost`. The pair gets
+	# up and the party still reaches home.
+	if wounds >= RunState.max_wounds() and RunState.run_may_be_lost():
 		RunState.hero_deaths += 1
 		GameDirector.end_run(false)
 		return

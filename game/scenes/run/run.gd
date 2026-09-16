@@ -53,6 +53,16 @@ var _pending_boss_act: int = 0
 ## nobody to answer, so it pushes on without asking unless a gate says it
 ## will answer.
 var ask_homecoming: bool = DisplayServer.get_name() != "headless"
+
+## **How long a withdrawal runs headless.** Negative is the shipped answer:
+## no renderer means nobody is holding the gate, and a gate that felled a boss
+## would sit out sixteen seconds of a fight it is not watching.
+##
+## `homecoming_check` sets it, which is the whole reason it exists - the
+## departure beat has been completely ungated since it was written, because
+## `_ride_home` returns on its first line headless and no gate could reach a
+## line of it. The same documented seam `MusicPlayer.test_slots` is.
+var withdrawal_test_seconds: float = -1.0
 ## The phase the field was in when a rift gate was taken, so the road only
 ## resumes if it was moving.
 var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
@@ -748,26 +758,66 @@ func _ask_homecoming(act: int) -> bool:
 	return home
 
 
-## **Turning for home is a departure, not a cut.**
+## **The road behind the party closes before it leaves.**
 ##
-## #41 and #42 of the forwarded juice list called extraction the crown jewel, and
-## the objection was fair: turning for home is the largest decision in a run and
-## it resolved on the frame the card closed - a button, then a results screen.
+## Awaited by `_ride_home`, so both doors - the act's end pass and the fork -
+## walk out through the same fight. The snapshot is composed afterwards, in
+## `GameDirector.return_home`, which is what gives the withdrawal its teeth: the
+## wall and the emplacements come home in the condition this fight leaves them.
 ##
-## What is built here is the *departure beat*, with the pieces that already
-## exist: the view goes to the scope that actually carries the party home, the
-## room drops away, and the road is held for a moment before the run settles.
+## It borrows ROAD_BATTLE rather than inventing a phase. Towers only fire and
+## the hero is only active in command combat (`RunState.is_command_combat`), so
+## a withdrawal fought in a phase of its own would be a fight with the board
+## switched off - which is the mistake that would have been very easy to make
+## and impossible to see from the code that spawns the bodies.
+func _withdraw() -> void:
+	if battlefield == null or not is_instance_valid(battlefield):
+		return
+	var seconds: float = Balance.HOMECOMING_WITHDRAWAL_SECONDS
+	if DisplayServer.get_name() == "headless":
+		seconds = withdrawal_test_seconds
+		if seconds < 0.0:
+			return
+	var closing: Withdrawal = battlefield.withdrawal()
+	if closing == null or not is_instance_valid(closing):
+		return
+	# The crossroad modal left this true and `switch_scope` refuses while it is,
+	# which would hold the player on whatever they were looking at while their
+	# wall was being taken apart somewhere else.
+	_locked = false
+	switch_scope(GameDirector.Scope.BATTLEFIELD)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	battlefield.resume()
+	battlefield.begin_battle()
+	closing.begin(seconds)
+	await closing.finished
+	# Stilled before the departure beat, so the fortress that is photographed is
+	# the fortress the fight finished with rather than one still being chewed
+	# through a walk nobody is defending.
+	battlefield.suspend()
+
+
+## **Turning for home is a departure, not a cut** - and now a fight first.
 ##
-## **Deliberately not built: pressure during the walk out.** The document wants
-## the road behind you closing and the threat rising while you leave. That is a
-## gameplay change rather than a presentation one - it changes what a return
-## costs, which is the number `homecoming_marks` is balanced against and the
-## whole reason the pass is a decision. It needs an owner ruling, and it is
-## recorded here rather than slipped in behind a juice pass.
+## #41 and #42 of the forwarded juice list called extraction the crown jewel,
+## and the objection was fair: turning for home is the largest decision in a
+## run and it resolved on the frame the card closed - a button, then a results
+## screen. The departure beat answered half of that: the view goes to the scope
+## that actually carries the party home, the room drops away, and the road is
+## held for a moment before the run settles.
 ##
-## Host-only and never headless, inherited from `_homecoming_open`: a gate that
-## fells a boss must never hang on a walk nobody is watching.
+## **Pressure during the walk out was built on the owner's ruling of
+## 2026-09-16** - *"pressure should rise against players who walk out of a run"*
+## - which answers the question this function used to record as open. It is a
+## gameplay change rather than a presentation one, so what it may cost is bounded
+## in `Withdrawal` and in `Balance.HOMECOMING_WALL_FLOOR`: the road closes, the
+## fortress holds the gate, the front comes home in whatever condition the fight
+## left it, and `homecoming_marks` is untouched. A party who pressed Turn For
+## Home always reaches home.
+##
+## Host-only, inherited from `_homecoming_open` and from `extraction_open`.
 func _ride_home() -> void:
+	await _withdraw()
 	# **Nothing is held for an audience that is not there.** `homecoming_check`
 	# turns `ask_homecoming` on to answer the card, so without this the gate read
 	# the run as not having ended - it had, two and a half seconds later than the
@@ -855,6 +905,12 @@ var _pending_crossroad: int = -1
 ## return - so there is one definition of what turning for home means.
 func _on_extraction_chosen() -> void:
 	_locked = false
+	# **The same road home as the pass gives.** `_ride_home` was reached from
+	# `_on_boss_defeated` and from nowhere else, so the departure beat added on
+	# 2026-09-16 silently never happened at the fork - which is the door a player
+	# uses far more often, since it is offered at every crossroad and the pass
+	# only at an act's end.
+	await _ride_home()
 	GameDirector.return_home()
 
 

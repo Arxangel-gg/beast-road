@@ -65,6 +65,9 @@ var _fog: FogOfWar = null
 var _death_markers: DeathMarkers = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
+
+## Closes the road behind a party turning for home. See `Withdrawal`.
+var _withdrawal: Withdrawal = null
 var _wildlife: Wildlife = null
 var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
@@ -2726,6 +2729,7 @@ func _build_fog() -> void:
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
 	_build_death_markers()
 	_build_stragglers()
+	_build_withdrawal()
 
 
 func fog() -> FogOfWar:
@@ -2762,6 +2766,22 @@ func _build_stragglers() -> void:
 
 func stragglers() -> Stragglers:
 	return _stragglers
+
+
+## **The road closing behind a return.**
+##
+## Under the battlefield for the reason `Stragglers` and `DeathMarkers` are:
+## living here is what suspends it with the field (working rule 8) without
+## anything having to know it exists, and what frees it with the run.
+func _build_withdrawal() -> void:
+	_withdrawal = Withdrawal.new()
+	_withdrawal.battlefield = self
+	_withdrawal.director = wave_director
+	(entity_root if entity_root != null else self).add_child(_withdrawal)
+
+
+func withdrawal() -> Withdrawal:
+	return _withdrawal
 
 
 # --- Support towers (2026-09-14) ----------------------------------------------------------
