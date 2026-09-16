@@ -18,7 +18,17 @@ extends Node
 ## nothing.
 
 const OUT: String = "res://art/guide/"
-const SIZE := Vector2i(640, 360)
+## **How big a guide picture is written.**
+##
+## 640x360 until 2026-09-16, which is a three-times downscale off a 1920-wide
+## frame - and the owner's repeated note about these was that they are low
+## quality and need "more in game zoom". Half the complaint is the zoom, which is
+## per-shot; the other half is this, which is every shot at once. 960x540 is the
+## same 16:9 the Guide lays them out in, so nothing about the page moves.
+##
+## `docs/ASSET_MANIFEST.md` records the size of every one of them and
+## `asset_report` checks it, so this number and those rows move together.
+const SIZE := Vector2i(960, 540)
 
 var run: Run = null
 var _written: PackedStringArray = []
@@ -42,9 +52,11 @@ func _ready() -> void:
 	# --- The road, in Preparation ---------------------------------------------------
 	await _shot("preparation", func() -> void: GameDirector.set_build_mode(true))
 	GameDirector.set_build_mode(false)
-	await _shot("towers", func() -> void: _build_some(false))
-	await _shot("wells", func() -> void: _build_some(true))
-	await _shot("traps", func() -> void: _place_trap())
+	await _shot("towers", func() -> void: _build_some(false); _zoom(1.4))
+	# Zoomed: the owner asked for the wells "zoomed in in game more" with the
+	# interaction showing, and a well read across a whole battlefield is a speck.
+	await _shot("wells", func() -> void: _build_some(true); _zoom(1.7))
+	await _shot("traps", func() -> void: _place_trap(); _zoom(1.5))
 	await _shot("town", func() -> void: run.switch_scope(GameDirector.Scope.TOWN))
 	await _shot("act_track", func() -> void: run.switch_scope(GameDirector.Scope.BEAST))
 	_copy("act_track", "glossary_a")
@@ -52,7 +64,8 @@ func _ready() -> void:
 
 	# --- Water ----------------------------------------------------------------------------
 	var pond: Vector2 = _pond_centre()
-	await _shot("fishing", func() -> void: _stand_at(pond + Vector2(0.0, 120.0)))
+	await _shot("fishing", func() -> void:
+		_stand_at(pond + Vector2(0.0, 120.0)); _zoom(1.7))
 	await _shot("depth", func() -> void: _stand_at(pond + Vector2(0.0, 120.0)); _zoom(1.5))
 	_zoom(0.0)
 	await _shot("swimming", func() -> void: _stand_at(pond))
@@ -107,7 +120,10 @@ func _ready() -> void:
 	add_child(stash)
 	await _shot("stash", func() -> void: _stock_the_stash(); stash.open())
 	_copy("stash", "gear")
-	_copy("stash", "trading")
+	# **The Ledger is the Ledger, not the stash.** Reported by the owner as the
+	# trading picture being wrong; it was a photograph of a different screen.
+	await _shot("trading", func() -> void:
+		_screen_shot(func() -> Node: return ExchangeScreen.new(), "Exchange"))
 	await _shot("pantry", func() -> void: _pick_tab(stash, "Fish"))
 	stash.queue_free()
 	await _shot("controls", func() -> void: _open_settings("Controls"))
@@ -156,7 +172,9 @@ func _ready() -> void:
 	_copy("waves", "enemy_shots")
 	_copy("currencies", "crafts")
 	_copy("towers", "gathering")
-	_copy("stash", "forge")
+	# **And the Forge is the Forge.** Same fault, same answer.
+	await _shot("forge", func() -> void:
+		_screen_shot(func() -> Node: return SmithyScreen.new(), "Smithy"))
 	_copy("spells", "arcane")
 	_copy("preparation", "quartermaster")
 
@@ -329,6 +347,29 @@ func _open_coop() -> void:
 		return
 	var screen: Node = (scene as GDScript).new()
 	screen.name = "CoopShot"
+	add_child(screen)
+	if screen.has_method("open"):
+		screen.call("open")
+
+
+## **Stands one screen up on its own and photographs it.**
+##
+## Written because a great many Guide pictures were `_copy`s of a handful of base
+## shots - `gear`, `trading` and `forge` were all the same photograph of the
+## stash, and the owner reported each of them separately as showing the wrong
+## thing. They were not wrong so much as *absent*: a section about the Forge
+## illustrated with a picture of the stash is a picture of something else.
+##
+## A screen that can be built and opened needs no game state behind it, which is
+## what makes these the ones worth converting first.
+func _screen_shot(maker: Callable, tag: String) -> void:
+	for node: Node in get_children():
+		if node.name.ends_with("Shot"):
+			node.queue_free()
+	var screen: Node = maker.call()
+	if screen == null:
+		return
+	screen.name = tag + "Shot"
 	add_child(screen)
 	if screen.has_method("open"):
 		screen.call("open")

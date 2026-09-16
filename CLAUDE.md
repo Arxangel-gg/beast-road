@@ -4128,6 +4128,38 @@ to match it.
   panel. It is most of the screen now whatever is held, and the scroll takes up
   the slack, so the screen is the same shape every time it opens.
 
+**Half the Guide's pictures were photographs of something else, found
+2026-09-16.** The owner went through the Guide section by section and reported
+about fifteen images as showing the wrong thing: the bow "not really
+demonstrated", no boss in the boss picture, "nests and eggs not visible", the
+Forge picture "wrong on the resources tab", "trading and the Ledger bad".
+
+**They were not wrong so much as absent.** `guide_shots.gd` takes about
+twenty-eight photographs and then `_copy`s them into fifty-six files. `bow`,
+`boss_fight`, `fog`, `minimap` and `enemy_shots` are all literally the same
+`waves` picture; `gear`, `trading` and `forge` are all the same photograph of the
+stash. A section about the Forge illustrated with a picture of the stash is a
+picture of something else, and every one of those reports is that.
+
+**The resolution was the other half**, and it is one number for all of them.
+`SIZE` was 640x360 - a three-times downscale off a 1920-wide frame - which is
+most of "low quality" before any zoom is argued about. It is 960x540 now, the
+same 16:9 the Guide lays them out in, so nothing about the page moves.
+`ASSET_MANIFEST` records the size of every picture and `asset_report` checks it,
+so those fifty-six rows moved with it.
+
+**Converted so far: the Ledger and the Forge**, which are screens that need no
+game state behind them - `_screen_shot` stands one up alone and photographs it.
+Four more are zoomed rather than framed across a whole battlefield: the towers,
+the traps, the wells and the fishing.
+
+**The rest are still copies and are listed here rather than left implied**:
+`bow`, `boss_fight`, `enemy_shots`, `fog`, `minimap`, `attributes`, `nesting`,
+`hunted`, `arcane`, `quartermaster`, `sharing_fish`, `tower_paths`,
+`trap_levels`, `spirit_upkeep`, `gathering`, `crafts`, `gear`. Each needs a
+*state* driven rather than a screen opened - a boss on the field, an arrow in the
+air, a nest on the ground - which is a harness job apiece rather than one change.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
