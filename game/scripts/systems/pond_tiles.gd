@@ -67,10 +67,18 @@ static func shape(rng: RandomNumberGenerator, width: int, height: int) -> Array[
 	var cy: float = float(height - 1) * 0.5
 	var rx: float = maxf(float(width) * 0.5, 1.0)
 	var ry: float = maxf(float(height) * 0.5, 1.0)
+	# **Elongation.** A pond drawn on a field as wide as it is tall comes out
+	# round whatever its lobes do; a roll that stretches one axis against the
+	# other gives a region long channels as well as pools.
+	var stretch: float = rng.randf_range(0.72, 1.38)
+	rx = maxf(rx * stretch, 1.0)
+	ry = maxf(ry / stretch, 1.0)
+	# Up to five lobes, each free to sit further out. One to three on a
+	# near-circular field made blobs that were all recognisably the same blob.
 	var lobes: Array[Vector3] = []
-	for _lobe: int in rng.randi_range(1, 3):
-		lobes.append(Vector3(rng.randf_range(-rx * 0.45, rx * 0.45),
-			rng.randf_range(-ry * 0.45, ry * 0.45), rng.randf_range(0.5, 0.85)))
+	for _lobe: int in rng.randi_range(2, 5):
+		lobes.append(Vector3(rng.randf_range(-rx * 0.62, rx * 0.62),
+			rng.randf_range(-ry * 0.62, ry * 0.62), rng.randf_range(0.42, 0.92)))
 	var water: Dictionary = {}
 	for y: int in height:
 		for x: int in width:
@@ -81,7 +89,8 @@ static func shape(rng: RandomNumberGenerator, width: int, height: int) -> Array[
 				var lx: float = (float(x) - cx - lobe.x) / (rx * lobe.z)
 				var ly: float = (float(y) - cy - lobe.y) / (ry * lobe.z)
 				d = minf(d, lx * lx + ly * ly)
-			if d + rng.randf_range(-0.1, 0.1) < 0.82:
+			# A rougher edge, so the rim is bitten rather than drawn.
+			if d + rng.randf_range(-0.19, 0.19) < 0.82:
 				water[Vector2i(x, y)] = true
 	return _largest_body(water)
 

@@ -262,6 +262,9 @@ func _ready() -> void:
 	add_child(_coop_world)
 	# Everything the fire burns exists by now; see `_link_wildfire`.
 	_link_wildfire()
+	# **And what grows, last.** The water, the timber and the seams all cast
+	# an influence on the scatter, and every one of them is built above this.
+	_grow_the_foliage()
 	claim_effects()
 	# **A road started at a later act buys its board here**, once the field is
 	# standing and there are anchors to stand on. It spends through `try_build`
@@ -2167,6 +2170,55 @@ func refresh_terrain() -> void:
 	# failing, which is why the list is here rather than spread over signals.
 	if _treeline != null:
 		_treeline.scatter()
+	# **And the foliage last**, because what grows depends on what is standing
+	# there - the water, the timber and the seams are all laid above this.
+	#
+	# It used to scatter itself off `act_started`, which is the second path this
+	# function's own comment warns about, and it was not merely untidy: the
+	# foliage was laid *before* the ponds and the seams were dug, so nothing it
+	# grew could know where the water was.
+	_grow_the_foliage()
+
+
+## What grows, and what the places already laid do to it.
+##
+## A pond makes the ground lush out past its own rim; a stand of timber gathers
+## undergrowth; a seam is bare stone and clears it. The reaches and strengths are
+## rolled per place from the run's seed, so no two ponds wear the same collar.
+func _grow_the_foliage() -> void:
+	var trees: Foliage = foliage_node()
+	if trees == null or not is_instance_valid(trees):
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = RunState.run_seed ^ hash("lushness:" + RunState.terrain_id)
+	var cast: Array[Dictionary] = []
+	if _ponds != null:
+		for pond: Dictionary in _ponds.pond_rims():
+			var half: Vector2 = pond.get("half", Vector2.ZERO) as Vector2
+			var rim: float = maxf(half.x, half.y)
+			cast.append({
+				"at": pond.get("at", Vector2.ZERO),
+				# Outside the water: a collar grown over the pond hides it.
+				"inner": rim * Balance.POND_LUSH_INNER,
+				"reach": rim * rng.randf_range(
+					Balance.POND_LUSH_REACH.x, Balance.POND_LUSH_REACH.y),
+				"lift": rng.randf_range(Balance.POND_LUSH_LIFT.x,
+					Balance.POND_LUSH_LIFT.y),
+			})
+	if _gathering != null:
+		for node: Dictionary in _gathering.node_report():
+			var timber: bool = bool(node.get("timber", false))
+			cast.append({
+				"at": node.get("at", Vector2.ZERO),
+				# Clear at its foot, so the thing a Warden walks up to is visible.
+				"inner": Balance.NODE_CLEAR_FOOT,
+				"reach": (Balance.TIMBER_LUSH_REACH if timber
+					else Balance.SEAM_CLEAR_REACH) * rng.randf_range(0.75, 1.3),
+				"lift": Balance.TIMBER_LUSH_LIFT * rng.randf_range(0.7, 1.3)
+					if timber else -1.0,
+			})
+	trees.influences = cast
+	trees.scatter()
 
 
 func _setup_ground() -> void:

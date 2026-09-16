@@ -486,10 +486,26 @@ func _process(delta: float) -> void:
 
 func _ready() -> void:
 	scatter()
-	EventBus.act_started.connect(func(_a: int, _t: String) -> void: scatter())
+	# **No second path.** This used to re-scatter itself on `act_started`, which
+	# is exactly the second path `Battlefield.refresh_terrain`'s own comment
+	# warns about - and it was not merely untidy: the foliage was laid before
+	# the ponds and the seams were dug, so nothing it grew could know where
+	# the water was. The battlefield re-lays it with everything else regional.
 
 
 ## Rebuilds the whole scatter for the current terrain.
+## **Places that change what grows on them.**
+##
+## Each entry is `{"at": Vector2, "reach": float, "lift": float}`: a positive
+## lift gathers growth, a negative one clears it. A pond's collar of reeds, the
+## undergrowth around a stand of timber, the bare apron round a seam.
+##
+## Set by the battlefield before `scatter`, because the things that cast an
+## influence - the water, the seams - are laid by the battlefield and this system
+## has no business reaching for them.
+var influences: Array[Dictionary] = []
+
+
 func scatter() -> void:
 	# Cleared first: the nodes these point at are freed by the rebuild below, and
 	# a stale entry would be a freed sprite walked every frame.
@@ -581,11 +597,60 @@ func scatter() -> void:
 		var ground: bool = rng.randf() < Balance.FOLIAGE_GROUND_RATIO
 		_add_clump(point, style, rng, ground, span)
 		placed += 1
+	placed += _grow_around_influences(style, rng, span)
 	_clump_count = placed
 
 	for band: FoliageBand in _bands:
 		band.bake()
 	_shadow_layer.queue_redraw()
+
+
+## **A collar of growth around every place that casts one.**
+##
+## Placed rather than made likelier: biasing the acceptance odds of a scatter
+## spread over a 75-tile field would give a pond two or three extra plants, which
+## is a statistical hope rather than a bank. This puts a seeded count *around*
+## each influence, thinning with distance, so the collar is something you can
+## see - and a negative lift clears the ground instead, which is what a seam of
+## bare stone does to what was scattered on it.
+##
+## Ground cover is favoured near water and around timber: undergrowth is what
+## gathers at a waterline and under a stand, and a ring of full-height plants
+## would hide the thing the collar is meant to frame.
+func _grow_around_influences(style: Dictionary, rng: RandomNumberGenerator,
+		span: float) -> int:
+	var added: int = 0
+	for influence: Dictionary in influences:
+		var at: Vector2 = influence.get("at", Vector2.ZERO) as Vector2
+		var reach: float = float(influence.get("reach", 0.0))
+		var lift: float = float(influence.get("lift", 0.0))
+		if reach <= 1.0 or is_zero_approx(lift):
+			continue
+		if lift < 0.0:
+			# Bare ground is handled by `_is_clear` refusing it during the
+			# uniform pass, not by taking plants back off a baked mesh.
+			continue
+		# **An annulus, not a disc.** A collar grown from the centre out fills the
+		# thing it is meant to frame: the first cut buried the pond it was
+		# collaring under its own reeds. Growth starts outside the water's own
+		# extent and thins outward from there.
+		var inner: float = float(influence.get("inner", 0.0))
+		if inner >= reach:
+			continue
+		var band_area: float = reach * reach - inner * inner
+		var wanted: int = Graphics.scaled(
+			int(round(band_area * Balance.FOLIAGE_LUSH_PER_AREA * lift)), _scattered_at)
+		for _plant: int in wanted:
+			# Square-rooted across the band, so the count per unit of area is even
+			# rather than piling every plant on the inner edge.
+			var out: float = sqrt(lerpf(inner * inner, reach * reach, rng.randf()))
+			var point: Vector2 = at + Vector2.RIGHT.rotated(rng.randf() * TAU) * out
+			if not _is_clear(point):
+				continue
+			_add_clump(point, style, rng,
+				rng.randf() < Balance.FOLIAGE_LUSH_GROUND_RATIO, span)
+			added += 1
+	return added
 
 
 ## The density gate needs the number of plants represented by the batched draw
@@ -720,6 +785,15 @@ func _random_point(rng: RandomNumberGenerator) -> Vector2:
 func _is_clear(point: Vector2) -> bool:
 	if point.length() < Balance.TOWN_RADIUS + Balance.FOLIAGE_TOWN_MARGIN:
 		return false
+	# **Bare ground stays bare.** A seam is stone with an apron of scree round
+	# it, and an influence with a negative lift says so - refused here, with
+	# every other exclusion, rather than by unpicking a baked mesh afterwards.
+	for influence: Dictionary in influences:
+		if float(influence.get("lift", 0.0)) >= 0.0:
+			continue
+		var reach: float = float(influence.get("reach", 0.0))
+		if point.distance_to(influence.get("at", Vector2.ZERO) as Vector2) < reach:
+			return false
 	if grid == null:
 		return true
 	var tile: Vector2i = BattleGrid.world_to_tile(point)

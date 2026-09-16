@@ -2277,6 +2277,50 @@ const FISHING_EDGE_BAND: float = 0.6
 const FISHING_ROAD_CLEARANCE_TILES: int = 1
 const FISHING_SPAWN_CLEARANCE: float = 420.0
 const FISHING_TOWN_CLEARANCE: float = 420.0
+## **How much a pond may differ in size from its region's band** (owner,
+## 2026-09-16: "a random size they can be with appropriate ranges").
+##
+## The per-region bands in `Fishing.REGIONS` are two or three tiles wide, which
+## made every pond in a region very nearly the same pond. This multiplies them,
+## so a jungle holds pools and meres rather than five puddles off one die - and
+## the result is clamped, because a pond of two tiles is a puddle nothing lives
+## in and one of twenty is a lake with no bank to fish from. [TUNE]
+const POND_SCALE: Vector2 = Vector2(0.65, 1.75)
+const POND_TILES_MIN: int = 3
+const POND_TILES_MAX: int = 13
+
+## **How far past its own rim a pond makes the ground lush**, as a multiple of
+## the pond's half-extent, and how much denser the growth is at the water's edge.
+##
+## Water is the reason anything grows out here, so the collar of reeds and
+## undergrowth is what makes a pond read as part of the place rather than a blue
+## shape dropped on it. Rolled per pond inside this band, so no two wear the same
+## collar. [TUNE]
+## How many plants a collar holds per unit of its area, and how much of it is
+## ground cover. Undergrowth is what gathers at a waterline and under a stand; a
+## ring of full-height plants would hide the thing the collar is meant to frame.
+## [TUNE]
+const FOLIAGE_LUSH_PER_AREA: float = 0.00022
+const FOLIAGE_LUSH_GROUND_RATIO: float = 0.74
+
+## Where a pond's collar begins, as a multiple of the pond's own half-extent.
+## Just past the waterline: grown from the middle, a collar buries the thing it
+## is collaring, which is what the first cut of this photographed. [TUNE]
+const POND_LUSH_INNER: float = 1.05
+
+## And the bare step around a worked node, so the thing a Warden walks up to is
+## not behind a bush. [TUNE]
+const NODE_CLEAR_FOOT: float = 46.0
+
+const POND_LUSH_REACH: Vector2 = Vector2(1.35, 2.4)
+const POND_LUSH_LIFT: Vector2 = Vector2(0.55, 1.0)
+
+## The same, for the two things a Warden works. Timber gathers undergrowth around
+## it - a tree drops what a tree drops - and a seam is bare stone that clears it.
+const TIMBER_LUSH_REACH: float = 210.0
+const TIMBER_LUSH_LIFT: float = 0.6
+const SEAM_CLEAR_REACH: float = 170.0
+
 const FISHING_POND_SPACING: float = 96.0
 const FISHING_PLACEMENT_ATTEMPTS: int = 400
 

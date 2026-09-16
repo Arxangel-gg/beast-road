@@ -191,8 +191,15 @@ func scatter() -> void:
 	for _attempt: int in Balance.FISHING_PLACEMENT_ATTEMPTS:
 		if _ponds.size() >= wanted:
 			break
-		var width: int = rng.randi_range(widths.x, widths.y)
-		var height: int = rng.randi_range(heights.x, heights.y)
+		# **A pond rolls a size as well as a shape** (owner, 2026-09-16). The
+		# region's band is two or three tiles wide, so five ponds in a jungle came
+		# out very nearly one size; a scale on top of it gives a region pools a
+		# Warden can throw across and meres that take a walk to get round.
+		var scale: float = rng.randf_range(Balance.POND_SCALE.x, Balance.POND_SCALE.y)
+		var width: int = clampi(int(round(float(rng.randi_range(widths.x, widths.y)) * scale)),
+			Balance.POND_TILES_MIN, Balance.POND_TILES_MAX)
+		var height: int = clampi(int(round(float(rng.randi_range(heights.x, heights.y)) * scale)),
+			Balance.POND_TILES_MIN, Balance.POND_TILES_MAX)
 		var nodes: Array[Vector2i] = PondTiles.shape(rng, width, height)
 		if nodes.size() < 4:
 			continue
@@ -1274,6 +1281,18 @@ func stocked_count() -> int:
 
 
 ## Where the ponds are, for the gate and for anything that needs to avoid them.
+## Every pond as `{at, half}`: where it is and how far it reaches.
+##
+## `pond_positions` and `pond_extents` are two lists that have to stay in step,
+## which is fine for a caller that wants one of them and a trap for one that
+## wants both. Anything drawing a collar round a pond wants both.
+func pond_rims() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for pond: Dictionary in _ponds:
+		out.append({"at": pond["at"] as Vector2, "half": pond["half"] as Vector2})
+	return out
+
+
 func pond_positions() -> PackedVector2Array:
 	var out: PackedVector2Array = []
 	for pond: Dictionary in _ponds:

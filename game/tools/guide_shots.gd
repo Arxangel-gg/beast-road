@@ -136,7 +136,7 @@ func _ready() -> void:
 	# and further out is deeper water holding the rarer fish, so the picture for
 	# depth is the throw being aimed rather than a second photograph of the same
 	# shoreline.
-	var middle: Vector2 = _pond_aim(pond)
+	var middle: Vector2 = _pond_aim(pond, bank)
 	await _water_shot("fishing", bank, Fishing.State.WAITING, 1.0, middle)
 	await _water_shot("depth", bank, Fishing.State.CHARGING, 1.0, middle)
 	# **The reel is a state, not a place** (owner: "reeling in a fish screenshot
@@ -594,38 +594,57 @@ const SHORE_CLEAR: float = 92.0
 const CAST_IDEAL: float = 250.0
 
 
-## **A place to cast from**: clear dry ground, a good throw from the middle.
+## **A place to cast from**: clear dry ground, a throw away from the water.
 ##
 ## Both halves are the owner's (2026-09-16) - "well outside the pond's waters"
 ## and "casting the line into the center". Searched rather than offset, because a
-## pond is a blob of Wang tiles and every one is a different shape: the same
-## offset that is a bank on one is the middle of another.
+## pond is a blob of Wang tiles and every one is a different shape and, since
+## sizes vary, a different size: the same offset that is a bank on one is the
+## middle of another.
+##
+## **Measured to the water, not to the pond's middle.** The first cut asked for
+## ground a castable distance from the *centre*, which on a thirteen-tile pond is
+## underwater - so the search found nothing, fell back, and left the Warden out
+## of range charging a throw that could never leave.
 func _pond_bank(centre: Vector2) -> Vector2:
 	var best := Vector2.ZERO
 	var best_error: float = INF
-	for step: int in range(5, 30):
-		var out: float = float(step) * 10.0
-		if out < Balance.FISHING_CAST_MIN + 40.0 or out > Balance.FISHING_CAST_MAX - 40.0:
-			continue
+	for step: int in range(2, 46):
+		var out: float = float(step) * 20.0
 		for slice: int in 24:
 			var at: Vector2 = centre + Vector2.RIGHT.rotated(TAU * float(slice) / 24.0) * out
 			if not _dry_all_round(at, SHORE_CLEAR):
 				continue
-			var error: float = absf(out - CAST_IDEAL)
+			var swim: float = _reach_to_water(at, centre)
+			if swim >= INF or swim > Balance.FISHING_CAST_MAX * 0.8:
+				continue
+			var error: float = absf(swim - CAST_IDEAL * 0.45)
 			if error < best_error:
 				best_error = error
 				best = at
 	if best_error < INF:
 		return best
-	# Nothing on this pond has a clear bank at a castable distance. Fall back to
-	# the old rule - a body's width of dry ground - rather than to nothing.
-	for step: int in range(2, 30):
+	for step: int in range(2, 46):
 		var out: float = float(step) * 20.0
 		for slice: int in 16:
 			var at: Vector2 = centre + Vector2.RIGHT.rotated(TAU * float(slice) / 16.0) * out
-			if _dry_all_round(at, 34.0):
+			if _dry_all_round(at, 34.0) and _reach_to_water(at, centre) < INF:
 				return at
 	return centre + Vector2(0.0, 160.0)
+
+
+## How far the first water is, walking from `at` toward `towards`. `INF` when the
+## line reaches the far side without finding any.
+func _reach_to_water(at: Vector2, towards: Vector2) -> float:
+	var field: Battlefield = run.battlefield
+	var heading: Vector2 = (towards - at).normalized()
+	var span: float = at.distance_to(towards) + 64.0
+	var walked: float = 16.0
+	while walked < span:
+		if field.water_depth_at(at + heading * walked) > 0.05:
+			return walked
+		walked += 16.0
+	return INF
 
 
 ## Dry underfoot **and** dry for `reach` in every direction.
@@ -646,23 +665,26 @@ func _dry_all_round(at: Vector2, reach: float) -> bool:
 	return true
 
 
-## **The water the line is meant to land in**: the pond's middle, or the nearest
-## real water to it if the middle happens to be a tile the mask left dry.
+## **The water the line lands in**: as far toward the middle as a cast will
+## carry, which on a small pond is the middle and on a large one is as deep as
+## the line goes.
 ##
 ## A float that lands on dry ground is a *miss* - `Fishing._touch_down` says so -
-## so aiming at a point nobody checked was water would photograph the line coming
-## back empty.
-func _pond_aim(centre: Vector2) -> Vector2:
+## and one aimed past `FISHING_CAST_MAX` never leaves the hand at all.
+func _pond_aim(centre: Vector2, bank: Vector2) -> Vector2:
 	var field: Battlefield = run.battlefield
-	if field.water_depth_at(centre) > 0.05:
-		return centre
-	for step: int in range(1, 12):
-		var out: float = float(step) * 16.0
-		for slice: int in 12:
-			var at: Vector2 = centre + Vector2.RIGHT.rotated(TAU * float(slice) / 12.0) * out
-			if field.water_depth_at(at) > 0.05:
-				return at
-	return centre
+	var heading: Vector2 = (centre - bank).normalized()
+	var ceiling: float = minf(bank.distance_to(centre), Balance.FISHING_CAST_MAX * 0.86)
+	var best: Vector2 = centre
+	var found: bool = false
+	var walked: float = 24.0
+	while walked <= ceiling:
+		var at: Vector2 = bank + heading * walked
+		if field.water_depth_at(at) > 0.05:
+			best = at
+			found = true
+		walked += 14.0
+	return best if found else centre
 
 
 func _pond_centre() -> Vector2:

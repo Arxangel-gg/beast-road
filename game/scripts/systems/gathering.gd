@@ -570,6 +570,24 @@ func node_count() -> int:
 	return _nodes.size()
 
 
+## Every node as `{at, id, timber}`.
+##
+## What the ground around a node should do depends on which craft works it: a
+## stand of timber gathers undergrowth and a seam is bare stone. The craft is
+## authored on the node's own resource, so it is read from there rather than
+## guessed from the id.
+func node_report() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for node: Dictionary in _nodes:
+		var kind: GatherNodeData = ContentDB.gather_node(String(node["id"]))
+		out.append({
+			"at": node["at"] as Vector2,
+			"id": String(node["id"]),
+			"timber": kind != null and kind.craft == "woodcutter",
+		})
+	return out
+
+
 func node_positions() -> PackedVector2Array:
 	var out: PackedVector2Array = []
 	for node: Dictionary in _nodes:
