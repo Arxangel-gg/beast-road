@@ -23,6 +23,7 @@ Passing filenames limits the conversion to those inbox entries. This keeps a
 new recording batch from needlessly re-encoding every previously imported
 master while preserving the original no-argument full-inbox workflow.
 """
+import hashlib
 import io
 import os
 import re
@@ -197,15 +198,20 @@ def id_from_prompt_name(stem: str, ids: list) -> str:
     return ""
 
 
-## How many takes of one sound are kept.
+## How many takes of one sound are kept. Zero means all of them.
 #
-# **Three, and the rest are thrown away deliberately.** A generator hands back
-# four or more takes of every prompt and it is tempting to ship them all, but
-# variety in this game comes from two axes multiplied together: the sample, and
-# the per-play pitch drift every MIX row already carries. Three samples against a
-# 0.08 drift is more distinct outcomes than anybody can hear in a session, and
-# the fourth take is pure download.
-VARIATIONS_PER_SOUND = 3
+# **All of them, and the earlier cap was a bad trade.** This was three, on the
+# argument that variety is the sample multiplied by the per-play pitch drift and
+# the rest is download. The arithmetic says otherwise: every take of every sound
+# in the first batch was about 8 MB against a 139 MB soundtrack, so the cap was
+# optimising six percent of the audio while the other ninety-four sat untouched -
+# and it threw away variety that had already been paid for.
+#
+# A one-shot a player hears hundreds of times a run - a fishing reel, a swim
+# stroke, an enemy dying - is exactly where a fourth and fifth take stop being
+# redundant. Identical takes are still dropped, by content hash after
+# conversion, because a generator does sometimes hand back the same file twice.
+VARIATIONS_PER_SOUND = 0
 
 
 def install_generated_batch(ffmpeg, folder, manifest):
@@ -233,6 +239,7 @@ def install_generated_batch(ffmpeg, folder, manifest):
         batch.setdefault(sound, {}).setdefault(variation, []).append((stamp, entry))
 
     installed = []
+    seen_audio = {}
     for sound in sorted(batch):
         kind = kind_of(sound, manifest)
         if not kind:
@@ -242,29 +249,56 @@ def install_generated_batch(ffmpeg, folder, manifest):
         # looping beds addressed by an exact filename - `Ambience.BEDS` maps
         # "downpour" to one file - so installing `weather_downpour_1.ogg` would
         # leave the bed the game asks for missing, and the region silent.
-        wanted = VARIATIONS_PER_SOUND if kind == "sfx" else 1
-        # **A wildlife voice wants four.** `audio_verify` has required it of
-        # every species since they were recorded - an animal that vocalises
-        # often needs a longer loop than a one-shot fired once a run.
-        if sound.startswith("sfx_wildlife_"):
-            wanted = max(wanted, 4)
+        # **Every take, in variation order.** A generator hands back several takes
+        # per variation number; all of them are real alternatives and the number
+        # is only the order they were asked for.
+        #
+        # Music and ambience are the exception and take exactly one: they are
+        # single looping beds addressed by an exact filename - `Ambience.BEDS`
+        # maps "downpour" to one file - so `weather_downpour_1.ogg` would leave
+        # the bed the game asks for missing and the region silent.
         chosen = []
         for variation in sorted(batch[sound]):
-            chosen.append(sorted(batch[sound][variation])[0][1])
-            if len(chosen) >= wanted:
-                break
+            for _stamp, entry in sorted(batch[sound][variation]):
+                chosen.append(entry)
+        if kind != "sfx":
+            chosen = chosen[:1]
+        elif VARIATIONS_PER_SOUND > 0:
+            chosen = chosen[:VARIATIONS_PER_SOUND]
         out = os.path.join(AUDIO, kind)
         os.makedirs(out, exist_ok=True)
-        for index, entry in enumerate(chosen, 1):
-            name = sound if len(chosen) == 1 else "%s_%d" % (sound, index)
-            dst = os.path.join(out, name + ".ogg")
+        # **Numbered after the drop, not before it.** A duplicate removed
+        # mid-sequence would otherwise leave a hole - `sfx_x_1, _2, _4` - and a
+        # group naming a member with no file is a take that plays nothing.
+        kept = 0
+        single = (len(chosen) == 1)
+        for entry in chosen:
+            probe_name = sound if single else "%s_%d" % (sound, kept + 1)
+            dst = os.path.join(out, probe_name + ".ogg")
             code, err = convert(ffmpeg, os.path.join(folder, entry), dst, kind)
             if code != 0 or not os.path.exists(dst):
-                print("  x %s: %s" % (name, (err or "ffmpeg failed").splitlines()[-1]))
+                print("  x %s: %s" % (probe_name, (err or "ffmpeg failed").splitlines()[-1]))
                 continue
-            installed.append((name, kind, os.path.getsize(dst)))
-        print("  %-24s %-9s %d take%s" % (
-            sound, kind, len(chosen), "" if len(chosen) == 1 else "s"))
+            digest = hashlib.sha1(io.open(dst, "rb").read()).hexdigest()
+            if digest in seen_audio:
+                # The same take twice is not a variation. It happens: a
+                # generator re-offers an identical file under a new timestamp.
+                os.remove(dst)
+                continue
+            seen_audio[digest] = probe_name
+            kept += 1
+            installed.append((probe_name, kind, os.path.getsize(dst)))
+        # Anything left from a previous, longer import would be a group member
+        # this batch no longer has a file for.
+        stale = kept + 1
+        while os.path.exists(os.path.join(out, "%s_%d.ogg" % (sound, stale))):
+            os.remove(os.path.join(out, "%s_%d.ogg" % (sound, stale)))
+            leftover = os.path.join(out, "%s_%d.ogg.import" % (sound, stale))
+            if os.path.exists(leftover):
+                os.remove(leftover)
+            stale += 1
+        print("  %-24s %-9s %d take%s kept" % (
+            sound, kind, kept, "" if kept == 1 else "s"))
     return installed
 
 
