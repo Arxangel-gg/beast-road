@@ -787,9 +787,14 @@ func _build_resume_button() -> void:
 	var button := Button.new()
 	button.name = "Resume"
 	button.text = "Resume · %s" % Expedition.describe(front)
-	button.tooltip_text = ("%d fortifications standing, %d of them damaged. The "
-		+ "road will be alive again; what you built will not have moved.") % [
-		standing.x, standing.y]
+	# **The wall is on the card too.** It was not, and `fortifications` counts
+	# towers only - so the one thing a run is actually lost through was the one
+	# thing a player could not see before resuming. It matters more since the
+	# withdrawal (2026-09-16), which a wall can be worn by on the way out.
+	var wall: float = Expedition.wall_share(front)
+	button.tooltip_text = ("%d fortifications standing, %d of them damaged, the "
+		+ "gate at %d%%. The road will be alive again; what you built will not "
+		+ "have moved.") % [standing.x, standing.y, int(round(wall * 100.0))]
 	button.custom_minimum_size = new_run_button.custom_minimum_size
 	button.theme_type_variation = new_run_button.theme_type_variation
 	IconKit.on_button(button, "distance", 26)

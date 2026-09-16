@@ -237,6 +237,23 @@ static func mend(stored: Dictionary) -> Dictionary:
 
 ## How many towers the fortress holds, and how many of them are hurt. For the
 ## menu and for the repair screen.
+## **How much of the gate is still standing**, as a share.
+##
+## Separate from `fortifications` because that counts towers and the wall is not
+## one - it is a single ratio on the snapshot, and it is the thing a run is lost
+## through. It became worth showing on 2026-09-16, when turning for home started
+## running a withdrawal the wall can be worn by: a Warden picking their front
+## back up could not tell whether they were resuming behind a whole gate or a
+## broken one until the road was already under them.
+##
+## **Nothing between runs mends it**, which is a real gap rather than an
+## oversight being papered over: `repair_bill` and `mend` walk towers only, and
+## the wall is mended inside a run with Wood or through the Quartermaster. Worth
+## a decision if the Hold should ever sell that.
+static func wall_share(stored: Dictionary) -> float:
+	return clampf(float(stored.get("wall", 1.0)), 0.0, 1.0)
+
+
 static func fortifications(stored: Dictionary) -> Vector2i:
 	var standing: int = 0
 	var hurt: int = 0

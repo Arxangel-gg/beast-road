@@ -168,6 +168,18 @@ func _test_banking_and_coming_back() -> void:
 	_check(standing.y >= 1,
 		("the front banked no damaged fortification, so extraction is a free "
 			+ "repair and attrition stops existing"))
+	# **The wall comes home in the state it was left**, and is readable off the
+	# snapshot without a field. The menu's Resume card shows it from 2026-09-16,
+	# because `fortifications` counts towers and the wall is the thing a run is
+	# actually lost through - and the withdrawal added on the same day can wear
+	# it on the way out.
+	RunState.town_hp = RunState.town_max_hp * 0.4
+	var hurt: Dictionary = Expedition.compose(field)
+	_check(absf(Expedition.wall_share(hurt) - 0.4) < 0.02,
+		"a worn gate must come home worn (%.2f)" % Expedition.wall_share(hurt))
+	_check(Expedition.wall_share({}) == 1.0,
+		"and a snapshot with no wall reads as whole rather than as fallen")
+	RunState.town_hp = RunState.town_max_hp
 
 	await _leave(run)
 

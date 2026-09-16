@@ -4658,6 +4658,48 @@ Warden explicitly not being a prophesied savior, the lantern's reason, and Acts
 1-5 down to the verbatim act titles. That is the fifth forwarded document in a
 row to be roughly half a description of what already ships.
 
+**Twenty-three gates ran in guard and never at release, found 2026-09-16 by
+diffing the two lists instead of tripping over them.** Three had been found one
+at a time that day - `layout_check`, `copy_check`, `audio_verify` - each after
+something it guarded had already gone wrong. Diffing properly found twenty more,
+in about a minute:
+
+    grep -oE 'res://tools/[a-z_0-9]+\.tscn' .github/workflows/guard.yml | sort -u > /tmp/g
+    grep -oE 'res://tools/[a-z_0-9]+\.tscn' .github/workflows/release.yml | sort -u > /tmp/r
+    comm -23 /tmp/g /tmp/r      # in guard only: cannot fail a tag
+    comm -13 /tmp/g /tmp/r      # in release only: cannot fail a push
+
+Among the twenty-three: **the whole co-op layer** (`coop_check`,
+`coop_heroes_check`, `coop_world_check`, `webrtc_check`), **`save_round_trip_check`**
+- the save being the one thing git cannot restore - and **`exchange_check`**,
+which holds the Ledger's buy-versus-vendor bound against printing Marks forever.
+
+**The rule this settles: the release bar is a superset of guard's.** Release is
+the last thing that runs before something reaches a player. Guard is also not a
+guarantee that any given commit was checked - `cancel-in-progress` drops an
+in-flight run when a newer commit lands, which happened twice on 2026-09-16 - so
+a tag cut close behind a push can outrun the only run that would have covered
+it.
+
+**The five that stay release-only are deliberate and guard.yml's own header says
+why**: `balance_test`, `curve_report`, `soak` and `perf_check` are the
+judgement-heavy ones that are "legitimately red in the middle of a migration",
+and a check that is red for a week is one people stop reading. That asymmetry is
+the right direction; the other one was not.
+
+**Measured before it was argued**: the twenty-three cost about three minutes, off
+the sweep's own per-gate logs, against a release job with no `timeout-minutes`
+set at all.
+
+**And the Resume card shows the wall**, which it never did - `fortifications`
+counts towers and the wall is the thing a run is actually lost through. It
+matters from today because a withdrawal can wear it on the way out.
+`Expedition.wall_share` is the reader and `expedition_check` holds that a worn
+gate comes home worn. **Nothing between runs mends it**: `repair_bill` and `mend`
+walk towers only, and a wall is mended inside a run with Wood or through the
+Quartermaster. That is a real gap rather than an oversight, and it is a decision
+if the Hold should ever sell that repair.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

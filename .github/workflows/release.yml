@@ -260,6 +260,50 @@ jobs:
           run_godot_clean --headless --path game res://tools/user_dir_check.tscn
           run_godot_clean --headless --path game res://tools/leaderboard_check.tscn
           run_godot_clean --headless --path game res://tools/milestone_cinematic_check.tscn
+          # **The gates guard runs and this bar did not.**
+          #
+          # Three of these were found one at a time - layout_check, copy_check,
+          # audio_verify - and diffing the two lists properly found twenty more,
+          # including the whole co-op layer, the save round trip and the Ledger's
+          # arbitrage bound. The two lists are hand-written and neither was a
+          # superset.
+          #
+          # The rule is that this bar should be a superset of guard's: it is the
+          # last thing that runs before something reaches a player, and a gate is
+          # only as good as the last time somebody ran it.
+          #
+          # Guard is also not a guarantee that a given commit was ever checked -
+          # `cancel-in-progress` drops an in-flight run when a newer commit lands,
+          # which happened twice on 2026-09-16 - so a tag cut close behind a push
+          # can outrun the only run that would have covered it.
+          #
+          # Measured at about three minutes for the lot, against a job with no
+          # timeout set. The five gates that stay release-only are deliberate and
+          # are named in guard.yml's own header: balance, curve, soak and perf are
+          # judgement-heavy and legitimately red mid-migration.
+          run_godot_clean --headless --path game res://tools/companion_check.tscn
+          run_godot_clean --headless --path game res://tools/content_art_check.tscn
+          run_godot_clean --headless --path game res://tools/coop_check.tscn
+          run_godot_clean --headless --path game res://tools/coop_heroes_check.tscn
+          run_godot_clean --headless --path game res://tools/coop_world_check.tscn
+          run_godot_clean --headless --path game res://tools/crowd_check.tscn
+          run_godot_clean --headless --path game res://tools/evade_check.tscn
+          run_godot_clean --headless --path game res://tools/exchange_check.tscn
+          run_godot_clean --headless --path game res://tools/foliage_art_check.tscn
+          run_godot_clean --headless --path game res://tools/font_glyph_check.tscn
+          run_godot_clean --headless --path game res://tools/morale_check.tscn
+          run_godot_clean --headless --path game res://tools/night_check.tscn
+          run_godot_clean --headless --path game res://tools/omen_check.tscn
+          run_godot_clean --headless --path game res://tools/recap_check.tscn
+          run_godot_clean --headless --path game res://tools/road_card_check.tscn
+          run_godot_clean --headless --path game res://tools/save_round_trip_check.tscn
+          run_godot_clean --headless --path game res://tools/spell_strike_check.tscn
+          run_godot_clean --headless --path game res://tools/spirit_trait_check.tscn
+          run_godot_clean --headless --path game res://tools/state_shader_check.tscn
+          run_godot_clean --headless --path game res://tools/touch_check.tscn
+          run_godot_clean --headless --path game res://tools/trap_check.tscn
+          run_godot_clean --headless --path game res://tools/weather_check.tscn
+          run_godot_clean --headless --path game res://tools/webrtc_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
           # Long enough for waves to reach the torches. Snuffing has been silently
           # dead twice; it is not a thing to verify by looking at a screenshot.
