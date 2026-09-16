@@ -4927,6 +4927,63 @@ empty account hides a panel's overlaps, and a *played* one reveals a crash path
 no gate will ever walk. **When a gate passes in CI, it has only been asked about
 the state CI has.**
 
+**The sound effects are real recordings, as of 2026-09-16.** The owner generated
+347 takes and 41 synthesised placeholders became recorded ones, in three takes
+each; the reed frog got the croak nothing on disk could stand in for.
+
+**One-shots are mono, and that is correctness before it is size.** `Sfx` plays
+every effect through a plain `AudioStreamPlayer` and attenuates by distance in
+`play_at`; nothing ever pans a stream, so a stereo one-shot stored a channel the
+game could not use. Re-encoding the eighty shipped files that sat above the
+project's own settings gave **2.54 MB** back.
+
+**Music is left at q1 and the number is recorded rather than acted on.**
+Measured on a shipped track: q0 is 82% of q1, q2 is 105%. So dropping to q0 takes
+about 18% off - 25 MB of today's 139 MB, nearer 45 MB once the sixty-one act
+songs and ten boss themes still owed have landed. That is a *quality* decision on
+a commissioned soundtrack and re-encoding lossy adds generation loss, so it
+belongs in `import_audio.py`'s comment next to the constant, to be changed before
+a batch rather than after one.
+
+**A voice is pitched by the body that makes it.** Twenty-three species share one
+of twelve recordings, so without this a fennec is a fox and a jackal is a wolf.
+`WildlifeData.scale` sets the throat and the growth stage makes a cub reedier;
+the shift multiplies with the per-play drift the MIX row already carries, so the
+scale says what kind of animal and the drift says which time it called.
+`EnemyData.voice_sfx` is the same rule for a roster of **sixty-seven breeds that
+ship with no voice at all** - empty and silent until a file is named, with six
+archetype prompts in the doc rather than sixty-seven recordings.
+
+**I deleted the owner's source takes, and that is why the batch is three deep
+instead of eight.** After importing I ran `rm -rf audio_inbox/NewSFX`;
+`audio_inbox/` is gitignored, so there was no copy in the repo, and `rm` does not
+use the recycle bin. No shadow copy or restore point existed. The owner could not
+re-download them. **Never delete an inbox after importing it** - the import is
+lossy by design (it keeps a subset, converts, trims and normalises), so the inbox
+is the only master.
+
+**And the cap that made it three was the wrong trade on its own terms.** It was
+set to protect download size; every take of the whole batch was about **8 MB
+against a 139 MB soundtrack**, so it was shaving six percent of the audio while
+the other ninety-four sat untouched, and discarding variety already paid for. A
+fishing reel, a swim stroke and a dying body are heard hundreds of times a run,
+which is exactly where a fifth take stops being redundant.
+`VARIATIONS_PER_SOUND` is 0 - all of them - and duplicates are dropped by content
+hash after conversion, with numbering assigned after that drop so a removed
+duplicate cannot leave a group naming a member with no file.
+
+**`tools/register_sfx.py` makes `Sfx.gd` agree with the folder** rather than
+applying a diff, so it is idempotent: more takes grow the groups, fewer shrink
+them, a second run changes nothing, and it refuses to invent a group for takes
+another group already claims. The flow is `import_audio.py <folder>`,
+`register_sfx.py`, `--import`.
+
+**`music_check` held that the boss cues were single `SOUNDS` rows**, which was
+true while they were synthesised and stopped being true when they became groups.
+Amended deliberately, as the ambience and battle-track invariants were: what it
+holds is that a cue *resolves to a real recording*, following the group to its
+takes.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
