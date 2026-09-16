@@ -179,8 +179,16 @@ func _refit() -> void:
 	if _panel == null or _scroll == null:
 		return
 	var screen: Vector2 = get_viewport().get_visible_rect().size
-	_panel.custom_minimum_size = Vector2(minf(940.0,
-		screen.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
+	# **A height floor as well as a width.** The panel was free to be as short as
+	# its contents, so a filtered list with two pieces in it collapsed to a strip
+	# floating in the middle of the screen with Close under it - reported as a
+	# window "not properly sized", and as a Close button that reads as being at
+	# the top of the space rather than the bottom of a panel. A floor of most of
+	# the screen keeps the shape the same however many pieces are held, and the
+	# scroll inside it takes up the slack.
+	_panel.custom_minimum_size = Vector2(
+		minf(940.0, screen.x - Balance.UI_PANEL_MARGIN * 2.0),
+		minf(screen.y * 0.82, 860.0))
 	# **Measured, not guessed.** This reserved a flat 300 for "heading, note, the
 	# tool row and Close" - written when the filters were one row of three. They
 	# became a three-column grid of nine plus two sweep buttons on 2026-09-01 and
@@ -602,10 +610,24 @@ func _row(index: int) -> Container:
 	var stacked: bool = TouchInput.is_showing()
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 6)
+	# **They keep their own height rather than growing with the row.**
+	#
+	# An `HBoxContainer` child fills the box's height by default, and the box is
+	# as tall as the tallest thing in the row - which is the wrapped name. A name
+	# that wrapped to eight lines therefore produced buttons a hundred and twenty
+	# units tall, reported as a stash whose "internal elements" were wrong. The
+	# name may be as tall as it likes now; the buttons stay the size a button is.
+	actions.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if stacked:
 		actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
 		actions.custom_minimum_size.x = ACTION_WIDTH * 5.0
+		# **And the name keeps a readable measure.** Five actions at their full
+		# width are 660 units of a 940 panel; with the icon that left the name
+		# about two hundred, which is where the eight-line wrap came from. A
+		# floor here makes the row honest about what it needs - the panel is
+		# already free to be as wide as the screen allows.
+		label.custom_minimum_size.x = NAME_FLOOR
 	var outer: Container = row
 	if stacked:
 		var column := VBoxContainer.new()
@@ -707,6 +729,15 @@ func _row(index: int) -> Container:
 ## wrong for a list of ninety-six, where it leaves three rows visible on a phone.
 ## `ACTION_HEIGHT` is comfortably above the 44-48 both platform guidelines ask
 ## for, and `layout_check` reads the same meta rather than a copy of it.
+## **The narrowest a piece's name may be squeezed to on a desktop row.**
+##
+## Five actions at `ACTION_WIDTH` are 660 units of a 940-unit panel, and with the
+## icon that left a name about two hundred wide - so "Chainbroken Coalpaint Edge
+## - Weapon - Lv3 - +6 Might, +3 Vigour..." wrapped to eight lines and the row
+## stood a hundred and twenty units tall. A name is the thing the list exists to
+## be read for; it gets a measure. [TUNE]
+const NAME_FLOOR: float = 300.0
+
 const ACTION_WIDTH: float = 132.0
 const ACTION_HEIGHT: float = 40.0
 ## Horizontal frame padding for a row action, against the theme's 34. See

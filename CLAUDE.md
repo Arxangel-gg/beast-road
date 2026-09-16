@@ -4101,6 +4101,33 @@ hands whatever it is given to the shell, and these notes are text fetched off th
 network, so a `file://` or a handler URI in one is not something this window will
 run. The whole point of a launcher is that it is the trusted thing.
 
+**The stash is one shape, and its rows stop being eight lines tall, as of
+2026-09-16.** The owner sent three screenshots of it: "not properly sized nor its
+internal elements ... needs a strong polish overhaul", "bring the close button
+anchored to the bottom of the panels", and one captioned "this time it opened
+like this" - the same screen, a different shape.
+
+**Three faults, and the first explains the photographs.** Five row actions at
+`ACTION_WIDTH` are 660 units of a 940-unit panel; with the icon that left a
+piece's name about two hundred wide, so "Chainbroken Coalpaint Edge · Weapon ·
+Lv3 · +6 Might, +3 Vigour…" wrapped to **eight lines**. An `HBoxContainer` child
+fills the box's height and the box is as tall as its tallest child, so the row's
+buttons then stood a hundred and twenty units tall. That is the whole of "the
+internal elements are wrong": one narrow column, and everything else stretching
+to match it.
+
+- The actions **keep their own height** (`SIZE_SHRINK_CENTER`) rather than
+  growing with the row. The name may be as tall as it likes; a button stays the
+  size a button is.
+- The name gets a **floor** (`NAME_FLOOR`), because the name is the thing the
+  list exists to be read for.
+- The panel gets a **height floor**. It was free to be as short as its contents,
+  so a filtered list with two pieces collapsed into a strip floating mid-screen
+  with Close beneath it - which is both "not properly sized" and why the Close
+  button reads as sitting at the top of the space rather than the bottom of a
+  panel. It is most of the screen now whatever is held, and the scroll takes up
+  the slack, so the screen is the same shape every time it opens.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
