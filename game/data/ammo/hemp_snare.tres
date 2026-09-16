@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hemp_snare"
+display_name = "Hemp Snare"
+description = "A noose and a weight. Wear the thing down first; the rope is only the last part."
+family = "arrow"
+element = -1
+damage_scale = 0.0
+snares = true
+snare_strength = 1.0
+craft_batch = 6
+craft_cost = {
+"wood": 10
+}
+bulk = 1
+known_from_the_start = true

@@ -2181,8 +2181,15 @@ func pen_release(uid: String) -> bool:
 ## Refused during a run: what goes on the road is decided before leaving, which
 ## is what makes taking a favourite a decision with a cost rather than a swap
 ## made the moment one looks like dying.
-func pen_take(uid: String) -> bool:
-	if RunState.phase != RunState.Phase.ENDED:
+func pen_take(uid: String, freshly_caught: bool = false) -> bool:
+	# **The mid-run refusal, and the one thing that is allowed through it.**
+	#
+	# Swapping animals mid-run is the decision being made after the risk instead
+	# of before it, which is what the whole pen rests on. An animal *caught this
+	# minute* is not a swap: it came off the road, it was never safe in the pen,
+	# and putting it to work is the reason anybody threw a rope. It can only ever
+	# be made safer from there - see `pen_stand_down`.
+	if not freshly_caught and RunState.phase != RunState.Phase.ENDED:
 		return false
 	if uid.is_empty():
 		pen_taken = ""
@@ -2191,6 +2198,25 @@ func pen_take(uid: String) -> bool:
 	if penned(uid).is_empty():
 		return false
 	pen_taken = uid
+	save_game()
+	return true
+
+
+## **Put the one that is out back in the pen**, allowed at any time.
+##
+## Owner, 2026-09-16: a caught animal "can also be toggled off so that it can
+## stay protected in case it is low health and players dont want to risk it
+## dying so that they can take it to their pen".
+##
+## Not gated on the phase, unlike taking one out, and the asymmetry is the whole
+## point: this can only ever make an animal *safer*. The rule the pen is built
+## under is that you cannot duck the risk you already accepted by swapping to a
+## fresh animal mid-fight; standing one down accepts the loss of it for the rest
+## of the run instead, which is the opposite of ducking.
+func pen_stand_down() -> bool:
+	if pen_taken.is_empty():
+		return false
+	pen_taken = ""
 	save_game()
 	return true
 

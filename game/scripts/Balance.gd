@@ -8455,6 +8455,72 @@ const WILDLIFE_BOLT_DISTANCE: float = 460.0
 ## way to win a fight. A share of the animal's own pool a second, so a bear takes
 ## as long to come back from half as a rabbit does - the rate is respective to
 ## what it has, which is what "respective to each wildlife's max hp" means.
+## **Taking an animal alive** (owner, 2026-09-16). See `Taming` for the order
+## these apply in and why wearing an animal down is the whole shape of it.
+##
+## Whole and spent are the two ends: a healthy animal barely gives, a nearly
+## dead one mostly does. The curve is what makes the *last quarter* of a fight
+## where the odds move - straight, the correct play would be one swing and a
+## throw, and the wearing-down would be decoration.
+const TAME_CHANCE_WHOLE: float = 0.04
+const TAME_CHANCE_SPENT: float = 0.92
+const TAME_WEAR_CURVE: float = 2.1
+## Nothing is ever certain. A guaranteed catch is a catch nobody feels.
+const TAME_CHANCE_CEILING: float = 0.95
+## The same four-rung ladder the gear, the fish and the spirits use.
+const TAME_RARITY_SCALE: Array[float] = [1.0, 0.72, 0.42, 0.16]
+const TAME_SHINY_SCALE: float = 0.55
+## A frenzied animal barely notices a rope, which is the one place the
+## Wildblight makes something *easier*; a fleeing one is harder to seat a loop
+## on.
+const TAME_FRENZIED_SCALE: float = 1.35
+const TAME_FLEEING_SCALE: float = 0.7
+## What it arrives in the pen at, however nearly dead it was caught. Not zero:
+## an animal that lands in the pen already dying would be a capture that cost
+## the player the thing they caught.
+const TAME_MIN_HEALTH: float = 0.08
+## How far a failed throw frightens that species.
+const TAME_SCARE_RADIUS: float = 420.0
+
+## **The rope itself.** See `Lasso` - the loop is measured off the animal rather
+## than drawn at a constant, because a fixed radius sits inside a bear and
+## around a rabbit's postcode.
+const LASSO_Z: int = 30
+const LASSO_SPEED: float = 760.0
+const LASSO_RANGE: float = 560.0
+const LASSO_FLIGHT_SECONDS: float = 1.2
+## How hard it leads a moving animal. A rope thrown at a running deer and landing
+## behind it is a miss the player did not make.
+const LASSO_HOMING: float = 5.0
+const LASSO_CATCH_REACH: float = 46.0
+const LASSO_CLOSE_SECONDS: float = 0.28
+## The struggle: how many pulls, and how long each takes. The odds are settled
+## when the loop closes; this is how long the player does not know the answer.
+const LASSO_PULLS: int = 3
+const LASSO_PULL_SECONDS: float = 0.34
+const LASSO_SHAKE: float = 0.9
+## How the rope is drawn. The sag is the single cheapest thing that says "rope"
+## rather than "laser".
+const LASSO_ROPE: Color = Color(0.78, 0.66, 0.44)
+const LASSO_WIDTH: float = 2.6
+const LASSO_ROPE_STEPS: int = 14
+const LASSO_SAG: float = 0.22
+const LASSO_SHIVER: float = 3.0
+const LASSO_HAND_LIFT: float = 44.0
+## The loop: how much of the animal's own drawn size it takes, how flat it is
+## against the camera's angle, how far it leans onto the animal's facing, how
+## much wider it is open than closed, and how fast it spins in flight.
+const LASSO_LOOP_SHARE: float = 0.62
+const LASSO_LOOP_SQUASH: float = 0.45
+const LASSO_LOOP_LEAN: float = 0.22
+const LASSO_LOOP_OPEN: float = 1.5
+const LASSO_LOOP_BASE: float = 34.0
+const LASSO_SPIN: float = 9.0
+## How far off the throw's heading an animal may be and still be roped. Generous:
+## a rope is aimed by hand and the player is running. This is the cosine, so a
+## smaller number is a wider cone - 0.35 is about seventy degrees either side.
+const LASSO_AIM_COS: float = 0.35
+
 const WILDLIFE_REGEN_SHARE: float = 0.004
 ## How long it must go untouched before it starts mending faster, and how much
 ## faster it gets. The acceleration is what makes leaving a region and coming

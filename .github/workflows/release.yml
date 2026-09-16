@@ -148,6 +148,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/camps_check.tscn
           run_godot_clean --headless --path game res://tools/swim_check.tscn
           run_godot_clean --headless --path game res://tools/pond_fish_check.tscn
+          run_godot_clean --headless --path game res://tools/taming_check.tscn
           run_godot_clean --headless --path game res://tools/fog_check.tscn
           run_godot_clean --headless --path game res://tools/beast_tail_check.tscn
           run_godot_clean --headless --path game res://tools/parallax_cover_check.tscn

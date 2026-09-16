@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wardens_snare"
+display_name = "Warden's Snare"
+description = "Braided with silver and a word nobody says aloud. It settles where it is thrown."
+family = "arrow"
+element = -1
+damage_scale = 0.0
+snares = true
+snare_strength = 1.85
+craft_batch = 3
+craft_cost = {
+"iron_ore": 6,
+"ashwood_log": 8
+}
+bulk = 1
+known_from_the_start = false

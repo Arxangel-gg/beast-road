@@ -2035,6 +2035,56 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 
 ## Everything within `radius` of a point bolts from it. Fire, a funnel, the
 ## ground shaking - the animals do not stay to see what it was.
+## Every living animal's body, for anything that wants to aim at one. Dying and
+## already-dead records are left out: a rope thrown at a corpse is a rope the
+## player will believe missed.
+func living_sprites() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	for animal: Dictionary in _living:
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var sprite: Variant = animal.get("sprite")
+		if sprite != null and is_instance_valid(sprite as Object):
+			out.append(sprite as Node2D)
+	return out
+
+
+## **One animal's record, by the instance id of its sprite.**
+##
+## By id rather than by reference because a rope in the air outlives the animal
+## it was thrown at more often than not, and casting a freed object is an error
+## in itself in this engine - raised before any guard inside could run.
+func record_for_id(sprite_id: int) -> Dictionary:
+	for animal: Dictionary in _living:
+		var sprite: Variant = animal.get("sprite")
+		if sprite != null and is_instance_valid(sprite as Object) \
+				and (sprite as Object).get_instance_id() == sprite_id:
+			return animal
+	return {}
+
+
+## **Taken off the road alive**, which is not a death: no drop, no experience, no
+## wrath, no collection credit from here. `Taming` does the crediting, because
+## meeting an animal and keeping one are two different facts.
+##
+## Retired through `_retire` rather than by freeing the sprite, because freeing
+## one behind this system's back leaves `_living` pointing at a dead node and
+## every later tick casts it - a fault this project has already paid for once.
+func retire_by_id(sprite_id: int) -> bool:
+	for index: int in _living.size():
+		var sprite: Variant = _living[index].get("sprite")
+		if sprite == null or not is_instance_valid(sprite as Object):
+			continue
+		if (sprite as Object).get_instance_id() != sprite_id:
+			continue
+		var at: Vector2 = (sprite as Node2D).global_position
+		Vfx.ring(at, 70.0, Color(1.0, 0.92, 0.6, 0.7), 0.4, 3.0)
+		Vfx.spark(at, Color(1.0, 0.9, 0.62), 12, Vector2.UP, 210.0)
+		_retire(index)
+		return true
+	return false
+
+
 func scare_from(at: Vector2, radius: float) -> void:
 	for animal: Dictionary in _living:
 		var sprite := animal["sprite"] as Sprite2D

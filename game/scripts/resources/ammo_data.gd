@@ -46,6 +46,20 @@ extends GameData
 ## second currency. A quiver holds fewer bombs than arrows.
 @export_range(1, 8) var bulk: int = 1
 
+## **A snare takes an animal alive rather than killing it** (owner, 2026-09-16).
+##
+## Ammunition rather than a new system, and that is why taming needed no new
+## button: the pad is full - every face button, shoulder, stick, D-pad direction
+## and both triggers are spoken for - so a thing you nock and throw rides the
+## bow's own trigger, aim, cycle, counts and crafting.
+##
+## A snare deals no damage. `HeroArrow` is never built for one; `Lasso` is.
+@export var snares: bool = false
+
+## How much better than a plain rope this one is, as a multiplier on the chance.
+## The reason to craft a better snare rather than always throwing the first one.
+@export_range(0.05, 3.0, 0.05) var snare_strength: float = 1.0
+
 ## Starts known, without a blueprint. Exactly one ammunition should: a bow the
 ## player cannot feed is a bow they cannot evaluate.
 @export var known_from_the_start: bool = false

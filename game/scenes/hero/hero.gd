@@ -815,10 +815,16 @@ func move_speed() -> float:
 func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 	if field == null or ranged == null or not ranged.armed():
 		return
-	var arrow := HeroArrow.new()
-	arrow.launch(field, from + direction * Balance.HERO_ARROW_MUZZLE, direction,
-		ranged.weapon(), kind, damage_multiplier())
-	field.add_child(arrow)
+	# **A snare is thrown, not shot** (owner, 2026-09-16). Ammunition rather than
+	# a new system is what let taming reuse this trigger, this aim, the cycle
+	# button and the counts - the pad had no button left to give it.
+	if kind.snares:
+		_throw_a_snare(from, direction)
+	else:
+		var arrow := HeroArrow.new()
+		arrow.launch(field, from + direction * Balance.HERO_ARROW_MUZZLE, direction,
+			ranged.weapon(), kind, damage_multiplier())
+		field.add_child(arrow)
 	_facing = direction
 	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
 	# Locked like a sword swing, for the same reason: the loose has to survive
@@ -828,6 +834,44 @@ func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 	# art existed.
 	_lock_frames("shoot")
 	EventBus.hero_loosed.emit(from, direction, kind.id)
+
+
+## **The rope, aimed at the nearest animal in the throw's cone.**
+##
+## Aimed at an *animal* rather than flying straight, because a rope is thrown at
+## something rather than in a direction - and because nothing else in the game
+## answers to a lasso, a throw with no animal in front of it is simply a rope on
+## the ground rather than a refusal the player has to decode.
+func _throw_a_snare(from: Vector2, direction: Vector2) -> void:
+	var rope := Lasso.new()
+	rope.field = field
+	rope.thrower = self
+	var quarry: Node2D = _animal_in_front(from, direction)
+	rope.target_id = quarry.get_instance_id() if quarry != null else 0
+	field.add_child(rope)
+	rope.throw_from(from + direction * Balance.HERO_ARROW_MUZZLE, direction)
+
+
+## The animal nearest the line of the throw, inside the rope's reach and roughly
+## in front. Generous on angle: a rope is aimed by hand and the player is running.
+func _animal_in_front(from: Vector2, direction: Vector2) -> Node2D:
+	var best: Node2D = null
+	var nearest: float = Balance.LASSO_RANGE
+	var animals: Node = field.call("wildlife") if field != null 		and field.has_method("wildlife") else null
+	if animals == null or not animals.has_method("living_sprites"):
+		return null
+	for node: Node in animals.call("living_sprites") as Array[Node2D]:
+		if node == null or not is_instance_valid(node):
+			continue
+		var toward: Vector2 = node.global_position - from
+		var away: float = toward.length()
+		if away > nearest or away < 1.0:
+			continue
+		if direction.dot(toward / away) < Balance.LASSO_AIM_COS:
+			continue
+		nearest = away
+		best = node
+	return best
 
 
 ## Damage multiplier the attack chain applies to every swing.

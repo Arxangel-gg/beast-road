@@ -39,6 +39,11 @@ signal coop_partner_craft_levelled(seat: int, craft: String, level: int)
 ## line to show and the colour to show it in. Composed by the sender, because
 ## only the sender knows whether it was a fish, an ore or a log.
 signal coop_partner_worked(seat: int, icon: String, line: String, colour: Color)
+
+## **An animal was taken alive** (owner, 2026-09-16): its species, the name it
+## now has in the pen, and what it turned out to be. Emitted by `Taming` so the
+## pen, the journal and the party can each hear it without reaching into it.
+signal wildlife_tamed(species_id: String, pen_uid: String, rarity: int, shiny: bool)
 ## The legs gave out. Drawn and heard rather than only read off the bar.
 signal hero_winded()
 

@@ -2522,6 +2522,8 @@ labels.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `ammo_plain_arrow.png` | 128×128 | T | `#8A7B57` |
+| `ammo_hemp_snare.png` | 128×128 | T | `#8A7B57` |
+| `ammo_wardens_snare.png` | 128×128 | T | `#8A7B57` |
 | `ammo_ember_arrow.png` | 128×128 | T | `#B4471F` |
 | `ammo_rime_arrow.png` | 128×128 | T | `#6FA8C4` |
 | `ammo_barbed_arrow.png` | 128×128 | T | `#8A7B57` |

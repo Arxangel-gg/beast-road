@@ -511,6 +511,7 @@ jobs:
           # Ponds draw under the hero and the hero swims in them.
           check "swimming" --headless --path game res://tools/swim_check.tscn
           check "pond fish" --headless --path game res://tools/pond_fish_check.tscn
+          check "taming" --headless --path game res://tools/taming_check.tscn
           # The fog of war covers the road, the hero and the towers lift it,
           # walked ground stays known, the minimap darkens with the field's own
           # fog texture, and every dungeon stage is fresh discovery.
