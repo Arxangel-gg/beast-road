@@ -3885,6 +3885,37 @@ precisely the distortion it refuses. Zero at the root and all of it at the tip,
 because `BEAST_TAIL_LIFT` lines the seam up and was set by two separate reports
 about that seam.
 
+**A head-on body turns too, as of 2026-09-16, and the refusal narrows rather
+than reverses.** The owner reported a body "only facing 1 way like the ember
+shamans were... They need to be able to face where they're going and targeting
+properly."
+
+**There was no code bug, and that is the useful finding.** The flip works, and
+is *deliberately* off for `Facing.FRONT` - about thirty-eight of the roster -
+because mirroring head-on art is what produced the "facing backwards" reports of
+2026-09-13 and -14. The two reports are the two halves of one dilemma: art drawn
+square to the camera can neither mirror correctly nor turn.
+
+**What made the first answer wrong is that it treated every head-on sprite as a
+shield-bearer.** Mirroring the Rootshield moves its shield to the other arm and
+mirroring the Crown Herald sounds its horn out of the back of its head - those
+genuinely cannot flip. A bandit's sword changing hands reads as a man who turned
+round, and a symmetric brute does not change at all.
+
+So the refusal is now "a sprite carrying a **handed** prop" rather than "a sprite
+drawn head-on", and it is **derived rather than hand-kept**: `brace_chance` above
+zero already means the body has a shield, authored on sixteen breeds for the
+stagger work. Only the two horn-bearers needed `art_handed` saying out loud.
+**A symmetric sprite is unaffected either way**, so this can only add a turn
+where there was none.
+
+**And I went at this the wrong way first.** The response to the ember shaman was
+to regenerate it as a profile, and the owner stopped it: *"Ember shaman didn't
+need to be regenerated, it's this bug that's the issue."* They were right - one
+breed at a time is not an answer to thirty-eight, and the art was never the thing
+that was wrong. **Wildlife was already correct** and needed nothing: it flips
+toward its motion for every animal.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

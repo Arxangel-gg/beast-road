@@ -85,6 +85,26 @@ func is_promoted() -> bool:
 enum Facing { FRONT, RIGHT, LEFT }
 @export var art_facing: Facing = Facing.FRONT
 
+## **Whether mirroring this sprite would move a prop into the wrong hand.**
+##
+## A `FRONT` sprite is drawn square to the camera, so flipping it does not turn
+## it round - it swaps its own left and right. For most bodies that is harmless
+## or invisible: a bandit's sword changes hands and reads as having turned, and a
+## symmetric brute does not change at all. For a few it is the "facing backwards"
+## fault this project has been reported for repeatedly - a shield on the other
+## arm, a war horn sounding out of the back of a head.
+##
+## Those few are what this names, so that everything else may turn. **Mostly
+## derived rather than authored**: `brace_chance` above zero already means the
+## body carries a shield, which is the large half of the list. This is only for
+## the ones no existing field implies.
+@export var art_handed: bool = false
+
+
+## True when flipping this sprite would put something in the wrong hand.
+func art_is_handed() -> bool:
+	return art_handed or brace_chance > 0.0
+
 ## **What a blow lands on.** The sound, the sparks and the hitstop of a hit
 ## differ by it (the fifth forwarded list, 2026-09-14: "different feedback
 ## for flesh, armor, shields, stone, towers and bosses"): flesh takes the

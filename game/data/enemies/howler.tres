@@ -28,3 +28,4 @@ aura_strength = 0.22
 id = "howler"
 display_name = "Pack Howler"
 description = "A priority caller whose horn strengthens everything beside it."
+art_handed = true

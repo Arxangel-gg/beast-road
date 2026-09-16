@@ -2947,11 +2947,23 @@ func _update_sprite(delta: float = 0.0) -> void:
 	# is left alone rather than reset, so a road running straight up the screen
 	# does not blank it.
 	# A body running away faces the way it is running, like any other.
-	# **A front-facing sprite is never mirrored.** See `EnemyData.art_facing`:
-	# flipping art drawn head-on moves the props to the wrong hands and reads
-	# as a body turned away.
-	if data.art_facing != EnemyData.Facing.FRONT:
-		var faces_right: bool = data.art_facing == EnemyData.Facing.RIGHT
+	# **A body turns to face what it is walking at, unless turning would move a
+	# prop into the wrong hand.**
+	#
+	# This used to refuse every `FRONT` sprite, which is about thirty-eight of the
+	# roster, and the owner reported the result twice: bodies that never turn at
+	# all. The refusal was too broad. Mirroring art drawn head-on does not rotate
+	# it - it swaps its own left and right - and that is the "facing backwards"
+	# fault *only where something is handed*: a shield moves to the other arm, a
+	# war horn sounds out of the back of a head. A bandit's sword changing hands
+	# reads as a man who turned round, and a symmetric body does not change at
+	# all. `EnemyData.art_is_handed()` is the narrow refusal, mostly derived from
+	# the shield the stagger work already made every breed declare.
+	#
+	# A head-on sprite has no painted facing to preserve, so it is treated as
+	# drawn facing right: it flips when it goes left, like everything else.
+	if not (data.art_facing == EnemyData.Facing.FRONT and data.art_is_handed()):
+		var faces_right: bool = data.art_facing != EnemyData.Facing.LEFT
 		if (_state == State.WALKING or _state == State.ROUTED) \
 				and absf(_motion.x) > Balance.FACING_DEADZONE:
 			sprite.flip_h = (_motion.x < 0.0) == faces_right
