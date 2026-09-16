@@ -52,6 +52,9 @@ static func build(piece: Dictionary) -> HBoxContainer:
 
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", 14)
+	# The name wraps too: "Beastcalled Chainbroken Coalpaint Edge" is not short.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.custom_minimum_size = Vector2(180.0, 0.0)
 	title.text = "%s %s" % [Stash.rarity_name(piece),
 		Stash.display_name(piece, kind) if kind != null else "Unknown"]
 	title.add_theme_color_override("font_color",
@@ -61,6 +64,19 @@ static func build(piece: Dictionary) -> HBoxContainer:
 	var detail := Label.new()
 	detail.add_theme_font_size_override("font_size", 12)
 	detail.add_theme_color_override("font_color", Color("9d9484"))
+	# **It wraps, and that is a layout fix in three screens at once.**
+	#
+	# This line is a long join - slot, level, every bonus the piece carries, its
+	# price - and a Beastcalled piece at maximum level wears five bonuses. A
+	# `Label` that cannot wrap reports the whole of that as its *minimum* width,
+	# so every row using this was about eight hundred pixels wide at its
+	# narrowest and the Ledger's panel came out 917 on a 720-wide phone.
+	#
+	# Found by `exchange_render_check` on its first run; `layout_check` had never
+	# opened that screen. The stash and the trade table were carrying the same
+	# minimum and getting away with it because their panels are wider.
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.custom_minimum_size = Vector2(180.0, 0.0)
 	if kind == null:
 		detail.text = "gear this build does not know"
 	else:

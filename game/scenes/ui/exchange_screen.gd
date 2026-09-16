@@ -276,6 +276,16 @@ func _draw_board() -> void:
 		var line := Label.new()
 		line.add_theme_font_size_override("font_size", 12)
 		line.add_theme_color_override("font_color", Color("9d9484"))
+		# **It wraps.** The status is three long things joined - a price that
+		# reaches five figures, an estimate that can read "no caravan will meet
+		# this price", and a percentage - and a `Label` that cannot wrap reports
+		# the whole of that as its minimum width. Each row was therefore about
+		# eight hundred pixels wide at its narrowest, which pushed the panel to
+		# 917 on a 720-wide phone: `exchange_render_check` caught it on its
+		# first run, and `layout_check` never opened this screen.
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.custom_minimum_size = Vector2(160.0, 0.0)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var verb: String = "Selling for" if order.side == ExchangeMarket.Side.SELL \
 			else "Buying at"
 		if order.stage == ExchangeOrder.Stage.FILLED:
