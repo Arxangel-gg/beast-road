@@ -41,14 +41,56 @@ func _ready() -> void:
 	_test_the_ear()
 	_test_a_dropped_sound_decides_nothing()
 	await _test_the_field()
+	await _test_the_hush_hands_the_room_back()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[feel] PASS - %d checks: distance quietens and never decides, a "
 			+ "tower leans at what it will actually shoot, it rises once when "
-			+ "built, and a body remembers what finished it") % _checks)
+			+ "built, a body remembers what finished it, and the hush hands the "
+			+ "room back") % _checks)
 	else:
 		push_error("[feel] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **The quiet after a boss ducks the room and never touches the mix.**
+##
+## The failure worth gating is silent and permanent: a hush that is interrupted -
+## by a scene change, a gate tearing the audio down, a second boss - and never
+## resolves leaves the master fader at a tenth for the rest of the process, with
+## every slider on the settings screen still reading what the player chose. There
+## is no error, nothing sounds broken, and the game is simply quiet forever.
+func _test_the_hush_hands_the_room_back() -> void:
+	var was: Dictionary = MetaState.settings.duplicate(true)
+	MusicPlayer.end_hush()
+	_check(is_equal_approx(AudioBuses.hush_share(), 1.0),
+		"the room starts open (%.3f)" % AudioBuses.hush_share())
+
+	MusicPlayer.hush(Balance.BOSS_HUSH_SECONDS, Balance.BOSS_HUSH_DEPTH)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	_check(AudioBuses.hush_share() < 0.9,
+		"the room actually goes quiet (%.3f)" % AudioBuses.hush_share())
+	# **Never to nothing.** Total silence reads as the audio having crashed;
+	# the world should still be faintly there underneath.
+	_check(AudioBuses.hush_share() >= Balance.BOSS_HUSH_DEPTH - 0.001,
+		"the room is never taken away entirely (%.3f)" % AudioBuses.hush_share())
+
+	# **And a hush cut short still resolves.** This is the whole reason the check
+	# exists: everything that tears the audio down goes through `stop_immediately`
+	# and it must hand the room back.
+	MusicPlayer.stop_immediately()
+	_check(is_equal_approx(AudioBuses.hush_share(), 1.0),
+		"a hush cut short hands the room straight back (%.3f)"
+			% AudioBuses.hush_share())
+
+	# **It ducks; it does not mix.** Not one fader may have moved, or a player
+	# would find their music quieter after an act with the slider still saying
+	# otherwise.
+	for key: String in UserSettings.VOLUME_KEYS:
+		_check(is_equal_approx(float(MetaState.settings.get(key, -1.0)),
+			float(was.get(key, -1.0))),
+			"%s is exactly where the player left it" % key)
 
 
 ## **Headless, there is no ear, and that is load-bearing.**

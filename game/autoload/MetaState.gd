@@ -711,6 +711,13 @@ var settings: Dictionary = {
 	"ambience_volume": 0.9,
 	"weather_volume": 0.9,
 	"screen_shake": 1.0,
+	# The two comfort scales added 2026-09-16 beside the shake. Declared here or
+	# they are silently dropped - the loader rejects keys it does not already
+	# know, which is how a setting appears to save and reverts on next launch.
+	# Both default to 1, so the shipped game is exactly what it was and a save
+	# written before today reads as untouched.
+	"screen_flash": 1.0,
+	"damage_number_density": 1.0,
 	"beast_gait": 0.65,
 	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
 	# These keys must exist before load_save() merges persisted settings. The

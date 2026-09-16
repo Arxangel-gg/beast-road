@@ -66,6 +66,9 @@ var _players: Array[AudioStreamPlayer] = []
 var _active: int = 0
 var _current: String = ""
 var _tween: Tween
+## The post-boss duck, kept apart from the crossfade tween so that a hush and a
+## track change can happen at once without either killing the other.
+var _hush_tween: Tween
 
 ## The act's shuffled songs, as paths, and where in them we are. `_playlist_act`
 ## is what tells a scope change from an act change: the former resumes the
@@ -338,7 +341,53 @@ func _exit_tree() -> void:
 	OS.delay_msec(Balance.AUDIO_EXIT_SETTLE_MSEC)
 
 
+## **One second of near-total quiet, and then the room comes back.**
+##
+## From the forwarded juice list (#138), triaged as "trivial to build,
+## enormous". An act boss falling is the loudest moment in this game - the
+## flash, the slow, the shake, the drain, the full-screen card - and piling a
+## victory sting straight on top of all that is the one arrangement in which
+## none of it lands. Taking the room away first is what makes the release a
+## release.
+##
+## **It ducks and never mixes.** `AudioBuses` applies it on top of the player's
+## own faders, so nothing on the settings screen moves and a hush interrupted by
+## anything at all resolves back to exactly the mix they chose.
+##
+## Driven by a tween on this autoload because none of the three audio autoloads
+## ticks, and this is the one that already owns crossfades - a duck is the same
+## family of thing.
+func hush(seconds: float, depth: float) -> void:
+	if _hush_tween != null and _hush_tween.is_valid():
+		_hush_tween.kill()
+	# Down fast, hold, and back slowly. The drop has to be quicker than a
+	# listener can follow or it reads as a fault in the audio rather than as the
+	# world stopping; the return has to be slower than that or the release is a
+	# click.
+	var fall: float = minf(Balance.HUSH_FALL_SECONDS, seconds * 0.25)
+	var rise: float = maxf(seconds - fall, 0.05)
+	_hush_tween = create_tween()
+	_hush_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_hush_tween.tween_method(AudioBuses.set_hush, AudioBuses.hush_share(),
+		clampf(depth, 0.0, 1.0), fall)
+	_hush_tween.tween_interval(maxf(seconds - fall - rise, 0.0))
+	_hush_tween.tween_method(AudioBuses.set_hush, clampf(depth, 0.0, 1.0), 1.0,
+		rise).set_ease(Tween.EASE_IN)
+
+
+## Ends any hush at once and hands the room back. Called wherever the audio is
+## being torn down, so a gate or a scene change cannot leave the master fader
+## ducked for the rest of the process - which would be silent, permanent, and
+## attributed to anything but this.
+func end_hush() -> void:
+	if _hush_tween != null and _hush_tween.is_valid():
+		_hush_tween.kill()
+	_hush_tween = null
+	AudioBuses.set_hush(1.0)
+
+
 func stop_immediately() -> void:
+	end_hush()
 	_current = ""
 	_in_playlist = false
 	_boss_holding = false

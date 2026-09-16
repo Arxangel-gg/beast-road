@@ -1,0 +1,52 @@
+class_name BarName
+extends Control
+
+## **The two letters written on a pool bar, drawn rather than laid out.**
+##
+## A `Label` cannot do this job. `Control.size` is clamped to the combined
+## minimum size and a Label's minimum height comes from its font, so a Label
+## anchored to fill an eight-pixel bar is not eight pixels tall - it is as tall
+## as the font wants, and it hangs out of the bottom of its parent onto whatever
+## is underneath. "MP" was sitting across the SP bar, and `layout_check` was red
+## on main because the SP bar arrived without anybody running the gate.
+##
+## Two other fixes were tried and measured first, and both are worse:
+##
+##  - **Growing the bars to fit.** At 430 wide the pools column has no vertical
+##    room to give: taller bars pushed the whole top row down and produced six
+##    fresh overlaps in the act line, the boss readout and the city icon.
+##  - **Putting the name beside the bar.** A row is as tall as its tallest
+##    child, so the Label drove the row height exactly as it had driven its own,
+##    and the same six overlaps came back.
+##
+## A plain `Control` has no font-driven minimum, so this is exactly the rect it
+## is given. The glyphs may paint a pixel or two past a very thin bar, which is
+## what a name written on a bar looks like, and nothing in the layout can
+## collide with something that is not in the layout.
+
+var text: String = ""
+var font_size: int = 11
+var inset: float = 5.0
+var tint: Color = Color(0.96, 0.94, 0.90, 0.95)
+var outline: Color = Color(0.04, 0.03, 0.03, 0.85)
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Nothing may ask this to be bigger than the bar it names.
+	custom_minimum_size = Vector2.ZERO
+
+
+func _draw() -> void:
+	if text.is_empty():
+		return
+	var font: Font = get_theme_default_font()
+	if font == null:
+		return
+	# Sat on the bar's own middle rather than on a baseline, so a 7px bar and a
+	# 14px one both read as having the name on them.
+	var at := Vector2(inset, size.y * 0.5 + float(font_size) * 0.36)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+		font_size, 4, outline)
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, tint)

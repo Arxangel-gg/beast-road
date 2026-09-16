@@ -266,16 +266,40 @@ func _test_enemy_faces_its_travel() -> void:
 		_check(enemy.sprite.flip_h, "an attacking enemy must face what it is hitting")
 
 		victim.queue_free()
-	# And the rule the posing was hiding: a front-facing breed is never
-	# mirrored, whichever way it walks or looks.
+	# And the rule the posing was hiding, as amended on 2026-09-16: what may
+	# never be mirrored is a sprite carrying a **handed prop**, not every sprite
+	# drawn head-on.
+	#
+	# **This check held the older, wider rule and went red on main the day the
+	# narrowing landed** - which is the same shape as `curve_report`'s pressure
+	# band, where a bound recorded in prose disagreed with the number typed into
+	# a tool. The decision lives in `EnemyData.art_is_handed`, so the gate drives
+	# that rather than restating it.
 	data.art_facing = EnemyData.Facing.FRONT
+	data.art_handed = true
 	enemy.sprite.flip_h = false
 	enemy._state = Enemy.State.WALKING
 	enemy._target = null
 	enemy._motion = Vector2(-Balance.FACING_DEADZONE * 4.0, 0.0)
 	enemy._update_sprite()
 	_check(not enemy.sprite.flip_h,
-		"front-facing art must never be mirrored - it swaps the props into the wrong hands")
+		"head-on art with a handed prop must never be mirrored - it swaps the "
+			+ "shield onto the other arm and sounds the horn out of the back of "
+			+ "its head")
+
+	# **And the half the narrowing exists for.** A symmetric head-on breed - no
+	# shield, no horn - turns toward its travel like anything else. Before the
+	# amendment about thirty-eight of the roster could only ever face one way,
+	# which is what the owner reported. A build that kept the wide refusal passes
+	# the check above and fails this one.
+	data.art_handed = false
+	data.brace_chance = 0.0
+	enemy.sprite.flip_h = false
+	enemy._motion = Vector2(-Balance.FACING_DEADZONE * 4.0, 0.0)
+	enemy._update_sprite()
+	_check(enemy.sprite.flip_h,
+		"a symmetric head-on breed must turn toward its travel - refusing every "
+			+ "head-on sprite is what left most of the roster facing one way")
 	data.art_facing = posed
 	enemy.queue_free()
 	await get_tree().process_frame

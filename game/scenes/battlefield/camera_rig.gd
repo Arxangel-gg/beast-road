@@ -274,6 +274,16 @@ func _on_impact(at: Vector2, power: float) -> void:
 	# Squared, so the falloff reads as "that was over there" rather than as a
 	# flat rumble everywhere inside the radius.
 	var weight: float = clampf(power, 0.0, 1.0) * near * near
+	# **And by how much is already happening.** Distance has been in this
+	# function since it was written; what it could not answer is whether this
+	# blow is worth the player's attention against everything else on screen.
+	# A hard blow is a hazard and gives up very little; an ordinary one is the
+	# player's own fight and gives up more, so a wave of forty bodies stops
+	# rattling the picture into mush. Nothing about the damage moves.
+	var priority: int = JuiceDirector.Priority.HAZARD if power >= Balance.IMPACT_SHAKE_HEAVY \
+		else JuiceDirector.Priority.PLAYER
+	weight *= JuiceDirector.weight(priority)
+	JuiceDirector.note(priority)
 	_on_shake_requested(Balance.IMPACT_SHAKE_MAX * weight,
 		lerpf(Balance.IMPACT_SHAKE_SECONDS.x, Balance.IMPACT_SHAKE_SECONDS.y, weight),
 		away.normalized() if not away.is_zero_approx() else Vector2.ZERO)
@@ -281,7 +291,10 @@ func _on_impact(at: Vector2, power: float) -> void:
 
 func _on_shake_requested(magnitude: float, duration: float,
 		direction: Vector2 = Vector2.ZERO) -> void:
-	var scaled: float = magnitude * float(MetaState.settings.get("screen_shake", 1.0))
+	# The player's own comfort scale, asked for through the one place that reads
+	# it. It used to be a raw dictionary lookup with the key spelled out here,
+	# which is a second definition of a setting `UserSettings` already owns.
+	var scaled: float = magnitude * JuiceDirector.shake_scale()
 	if scaled <= 0.0 or duration <= 0.0:
 		return
 	if scaled < _shake_magnitude * (_shake_left / _shake_duration if _shake_duration > 0.0 else 0.0):

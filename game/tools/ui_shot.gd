@@ -69,6 +69,15 @@ func _ready() -> void:
 		run.town_panel.set("_mansion_page", 1)
 		run.town_panel.call("_refresh"))
 	run.town_panel.close()
+	# **The HUD itself**, which nothing photographed - and the three pool bars
+	# are drawn rather than laid out, so `layout_check` passing says only that
+	# they collide with nothing. A name that renders as nothing at all would
+	# pass that gate perfectly. Filled first, because an empty bar is a grey
+	# rectangle and says nothing about whether the letters arrived.
+	await _shot("hud", func() -> void:
+		run.hud.visible = true
+		EventBus.hero_mana_changed.emit(28.0, 40.0)
+		EventBus.hero_stamina_changed.emit(22.0, 40.0))
 	await _shot("pause", func() -> void: run.pause_ui.toggle())
 	run.pause_ui.set_showing(false)
 	get_tree().paused = false

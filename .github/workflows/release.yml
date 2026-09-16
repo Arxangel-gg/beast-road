@@ -159,6 +159,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/climate_check.tscn
           run_godot_clean --headless --path game res://tools/reaction_check.tscn
           run_godot_clean --headless --path game res://tools/hit_feel_check.tscn
+          run_godot_clean --headless --path game res://tools/juice_director_check.tscn
           run_godot_clean --headless --path game res://tools/debrief_check.tscn
           run_godot_clean --headless --path game res://tools/exploit_check.tscn
           run_godot_clean --headless --path game res://tools/budget_check.tscn
@@ -239,6 +240,14 @@ jobs:
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/menu_layout_check.tscn
+          # **The phone shapes, which the release bar was not checking at all.**
+          # `layout_check` has run in guard since 2026-08-25 and never here, so a
+          # HUD overlap could reach a tag as long as nobody pushed in between -
+          # and one did: the SP bar's name hung across the bar under it and sat
+          # on main until 2026-09-16. A gate is only as good as the last time
+          # somebody ran it, and the release is the last time anybody does.
+          run_godot_clean --headless --path game res://tools/layout_check.tscn -- --touch=on --viewport=430x932
+          run_godot_clean --headless --path game res://tools/layout_check.tscn -- --touch=on --viewport=1280x592
           run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn

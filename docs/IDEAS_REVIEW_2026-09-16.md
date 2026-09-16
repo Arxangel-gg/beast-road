@@ -51,7 +51,15 @@ again.
 
 ### Tier 1 — architecture that makes everything after it cheaper
 
-**1. The Juice Director (#200) and `JuiceProfile` (#199).**
+**1. The Juice Director (#200) and `JuiceProfile` (#199). BUILT 2026-09-16.**
+`JuiceDirector` is one number - a weight between an authored floor and one -
+that the places which finally decide a presentation multiply by. Priority order
+telegraph > hazard > boss > player > cosmetic; a telegraph is never damped and
+adds nothing to the load; nothing ever reaches nothing. The load is derived from
+a timestamp rather than ticked, so it needs no node and a gate can hand in its
+own clock. `juice_director_check` holds the bound. See CLAUDE.md.
+
+**The original note, kept because it is what the above was built against:**
 This is the one genuinely transformative item in the document and I agree with
 its own placement of it. Today every effect is emitted at its call site: `Enemy`
 decides its own sparks, `Tower` its own kick, `Meteor` its own rings. That is
@@ -70,7 +78,14 @@ never whether it happened.* Turn it off and the run is byte-identical. That is
 what `feel_check` already asserts for the sound, the lean and the death marks,
 and it is what keeps a presentation layer from becoming a gameplay layer.
 
-**2. Accessibility and budget as one set (#182–#195).**
+**2. Accessibility and budget as one set (#182–#195). PARTLY BUILT 2026-09-16.**
+The two missing comfort scales - screen flashes and damage-number density -
+joined the shake slider in `UserSettings`, as *scales* rather than switches, and
+all three are now read through `JuiceDirector` and nowhere else. The effect
+priority order exists and is enforced. Still outstanding: effect opacity under
+clutter, and explicit particle and decal budgets.
+
+**The original note, kept because it is what the above was built against:**
 Shake slider, flash intensity, damage-number density, effect opacity under
 clutter, VFX priority (telegraph > hazard > boss > player > cosmetic), particle
 and decal budgets. `Graphics` has the switches; what is missing is that they are
@@ -87,8 +102,11 @@ turning for home is the biggest decision in a run. It should be: beacon, music
 transition, pressure rising, the road behind you closing, and then a hard release
 when you are out. This is the single largest felt gain available.
 
-**4. Post-boss silence (#138).** One second of near-total quiet after a boss
-dies, before the victory release. Trivial to build, enormous.
+**4. Post-boss silence (#138). BUILT 2026-09-16.** A duck on the master bus on
+top of the player's own faders, never to nothing, down fast and back slowly,
+started before the `boss_defeated` signal so everything downstream arrives into
+the quiet rather than over it. `feel_check` holds that an interrupted hush hands
+the room back - the failure being silent and permanent otherwise.
 
 **5. Tower upgrade transformation (#23).** Placement already rises out of its own
 foundation (2026-09-14). Upgrading — the thing a player does forty times a run —

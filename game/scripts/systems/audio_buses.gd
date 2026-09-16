@@ -22,6 +22,30 @@ const AMBIENCE: String = "Ambience"
 const WEATHER: String = "Weather"
 
 
+## How much of the master fader is currently being let through, 0 to 1.
+##
+## **A duck on top of the player's own volumes rather than a change to them.**
+## The hush after a boss falls has to be able to take the room down to almost
+## nothing and hand it straight back, and it must not touch a single slider on
+## the way - a player who finds their music at 12% after an act would have no
+## idea why, and the settings screen would be telling them the truth about a
+## value nothing was using.
+static var _hush: float = 1.0
+
+
+## Lets the room back in, or takes it away. 1 is the game as mixed.
+static func set_hush(share: float) -> void:
+	var want: float = clampf(share, 0.0, 1.0)
+	if is_equal_approx(want, _hush):
+		return
+	_hush = want
+	apply_volumes()
+
+
+static func hush_share() -> float:
+	return _hush
+
+
 static func ensure() -> void:
 	if AudioServer.get_bus_index(WEATHER) >= 0:
 		return
@@ -45,7 +69,10 @@ static func apply_volumes() -> void:
 	var sfx: float = float(MetaState.settings.get("sfx_volume", 1.0))
 	var ambience: float = float(MetaState.settings.get("ambience_volume", 0.9))
 	var weather: float = float(MetaState.settings.get("weather_volume", 0.9))
-	_apply_bus(0, master)
+	# The duck rides on the master fader, so one multiply covers the music, the
+	# effects, the ambience and the weather at once - which is what "near-total
+	# quiet" means and what four separate fades would fail to keep in step.
+	_apply_bus(0, master * _hush)
 	_apply_bus(AudioServer.get_bus_index(MUSIC), music)
 	_apply_bus(AudioServer.get_bus_index(SFX), sfx)
 	_apply_bus(AudioServer.get_bus_index(AMBIENCE), ambience)

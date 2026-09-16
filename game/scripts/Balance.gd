@@ -9268,8 +9268,35 @@ const TRAP_UPGRADE_COST_SCALE: Array[float] = [0.0, 0.9, 1.35, 2.0, 3.0]
 ## tower firing on the far road rattled the screen exactly as hard as
 ## something hitting the hero. `EventBus.camera_impact` carries a position and
 ## a power instead, and the rig reads both. [TUNE]
+## The quiet after an act boss falls, and how far down it goes.
+##
+## From the forwarded juice list (#138). A boss falling is the loudest moment in
+## this game - flash, slow, shake, colour drain, full-screen card - and a
+## victory sting piled straight on top is the one arrangement in which none of
+## it lands. Taking the room away first is what makes the release a release.
+##
+## Not to zero: total silence reads as the audio having crashed, and the player
+## should still hear the world faintly under it. [TUNE]
+const BOSS_HUSH_SECONDS: float = 1.15
+const BOSS_HUSH_DEPTH: float = 0.12
+
+## How fast a hush falls. Quicker than a listener can follow, or the drop reads
+## as a fault in the audio rather than as the world stopping. [TUNE]
+const HUSH_FALL_SECONDS: float = 0.12
+
 const IMPACT_SHAKE_MAX: float = 11.0
 const IMPACT_SHAKE_MIN_POWER: float = 0.06
+
+## Where a blow stops being the player's own fight and starts being a hazard,
+## on the same 0..1 scale `camera_impact` carries.
+##
+## Read by `JuiceDirector` through the camera rig: above this a shake keeps
+## nearly all its weight however busy the screen is, because a meteor, a
+## collapse or a boss slam is the thing the player most needs to notice; below
+## it a shake gives ground so that forty bodies dying at once do not rattle the
+## picture into mush. It decides how hard something is *drawn*, never how hard
+## it hits. [TUNE]
+const IMPACT_SHAKE_HEAVY: float = 0.55
 const IMPACT_SHAKE_SECONDS: Vector2 = Vector2(0.1, 0.34)
 ## Full strength at the camera, nothing past this. A road is about 1400 units
 ## end to end, so a fight two roads away is felt faintly and no further.

@@ -150,6 +150,8 @@ func _build() -> void:
 	game.name = "Game"
 	game.add_theme_constant_override("separation", 14)
 	game.add_child(_shake_row())
+	game.add_child(_flash_row())
+	game.add_child(_number_density_row())
 	game.add_child(_gait_row())
 	game.add_child(_blood_vfx_row())
 	game.add_child(_separator())
@@ -307,6 +309,31 @@ func _shake_row() -> HBoxContainer:
 		UserSettings.number(UserSettings.SHAKE_KEY, 1.0),
 		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
 		func(v: float) -> void: UserSettings.set_value(UserSettings.SHAKE_KEY, v))
+
+
+## **How much the screen may flash.** The one effect in this game with a real
+## accessibility cost, and until 2026-09-16 the only answer available to
+## somebody it made ill was to stop playing. A scale rather than a switch,
+## because "less" is what most people who want this actually want.
+##
+## Capped at 1 rather than 1.5 like the shake: the flashes are authored at what
+## the art was graded for, and a control that lets a player make them *brighter*
+## is a control that can hurt somebody who reached for it to be helped.
+func _flash_row() -> HBoxContainer:
+	return _slider_row("Screen flashes", 0.0, 1.0, 0.05,
+		UserSettings.number(UserSettings.FLASH_KEY, 1.0),
+		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: UserSettings.set_value(UserSettings.FLASH_KEY, v))
+
+
+## **How many damage numbers.** A density rather than a switch: turned down, the
+## ordinary numbers thin out and the big ones - criticals and finishers - still
+## land, so what a player loses is clutter rather than information.
+func _number_density_row() -> HBoxContainer:
+	return _slider_row("Damage numbers", 0.0, 1.0, 0.05,
+		UserSettings.number(UserSettings.NUMBER_DENSITY_KEY, 1.0),
+		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: UserSettings.set_value(UserSettings.NUMBER_DENSITY_KEY, v))
 
 
 func _gait_row() -> HBoxContainer:

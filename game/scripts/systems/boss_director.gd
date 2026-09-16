@@ -180,6 +180,10 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 
 	_grant_rewards(act)
 	EventBus.camera_shake_requested.emit(22.0, 1.2)
+	# **And then the room goes quiet.** Before the signal, so the hush is already
+	# falling while everything downstream - the card, the sting, the act ending -
+	# arrives into it rather than over it.
+	MusicPlayer.hush(Balance.BOSS_HUSH_SECONDS, Balance.BOSS_HUSH_DEPTH)
 	EventBus.boss_defeated.emit(enemy_id, act)
 
 

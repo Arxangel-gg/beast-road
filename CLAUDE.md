@@ -4213,6 +4213,131 @@ marks are laid in *content* units, so without pinning the content scale every
 mark came out at about half the size it is in play, and was read as blood being
 too small when it was the picture that was shrunk.
 
+**Something decides what the screen is for, as of 2026-09-16.** The owner
+forwarded a two-hundred-item game-juice list and asked for it to be triaged for
+implementation, adaptation or rejection. `docs/IDEAS_REVIEW_2026-09-16.md` is the
+triage - about ninety of the two hundred are already built here under other
+names - and this is its Tier 1, which the document itself also put first.
+
+**Every effect in this game is emitted at its call site**, and that is correct:
+`Enemy` decides its own sparks, `Tower` its own kick, `Meteor` its own rings. It
+is why the game feels as it does. What no part of it could answer is **whether
+this is worth the player's attention against everything else happening**, and
+**whether a whole class of effect can be turned down**.
+
+`JuiceDirector` is one number - a weight between a floor and one - that the
+places which finally decide a presentation multiply by. It is not a second
+effects system and must never become one.
+
+**The bound is the one every feel change here is held to:** a director may change
+how something is *presented* and never whether it happened. Turn every scale to
+zero, fill the load to its ceiling, and the run is identical.
+
+**The priority order is the design**: telegraph, hazard, boss, player, cosmetic.
+A telegraph is never damped whatever else is on screen - a warning turned down
+under load is turned down at exactly the moment it is needed - and adds nothing
+to the load, so two warnings cannot crowd each other out. Everything below gives
+way in order, so what a busy frame loses is decoration rather than information.
+**And nothing ever reaches nothing**: every priority keeps an authored floor,
+because an effect that disappears under load reads as a bug rather than as
+restraint.
+
+**The load is derived rather than ticked**, which is what lets this be a static
+class with no node and no `_process`: a note records a load and a time, and a
+read decays from the elapsed time on the spot. That also makes it exactly
+reproducible for a gate, which hands in its own clock instead of waiting.
+
+**Two comfort scales joined the shake slider** (the accessibility half, #182-#195
+of the list): screen flashes and damage-number density. **Scales rather than
+switches, which is the part that was missing** - the graphics options could turn
+the fog off and the phenotypes off, and there was nothing at all to say to a
+player who wants *half* the flashing rather than none of it, so the only honest
+answer available to somebody made ill by it was to stop playing. Density is
+deliberately not a switch either: turned down, the ordinary numbers thin out and
+the criticals and finishers stay, so what is lost is clutter rather than
+information. Both default to 1, so the shipped game is exactly what it was.
+
+**The shake slider was already there and is now read in one place.** It had been
+a raw `MetaState.settings` lookup with the key spelled out in the camera rig - a
+second definition of a setting `UserSettings` already owned, and the shape that
+produced an Arcane node applying its reach at four of five call sites.
+
+**Three faults were planted to check the gate and the third one walked straight
+through it**, which is the part worth keeping. A telegraph that gives ground and
+a broken priority order were both named immediately. A director scaling *damage*
+was not - because the payout test summed total damage dealt to death, and that
+is the body's pool whatever a blow is worth. It measures **what one blow takes
+off and how many blows it takes** now, which are the two figures that actually
+move, and it then names the planted fault exactly.
+
+**And the gate twice passed having measured nothing at all.** `Enemy` has no
+`configure` and no `is_alive`; GDScript aborts the whole function on a call to
+one that does not exist, so the harness returned an empty dictionary, the
+comparison loop iterated it zero times, and the gate printed PASS. **A comparison
+of two nothings is the most dangerous shape a check can take**, and it now
+refuses to run on an empty result.
+
+**The room goes quiet when a boss falls, as of 2026-09-16.** #138 of the
+forwarded list, triaged as "trivial to build, enormous", and it is both.
+
+An act boss falling is the loudest moment in this game - the kill flash, the
+slow, a 22-magnitude shake, `boss_fall.gdshader` draining the colour and inking
+the field away, and a full-screen card. Piling a victory sting straight on top
+of all that is the one arrangement in which none of it lands. Taking the room
+away first is what makes the release a release.
+
+**It ducks and never mixes.** `AudioBuses` applies the hush on top of the
+player's own faders, on the master bus, so one multiply covers the music, the
+effects, the ambience and the weather at once - four separate fades would not
+stay in step - and not one slider on the settings screen moves.
+
+**Never to nothing**: total silence reads as the audio having crashed, so the
+world stays faintly there underneath. Down fast and back slowly, because a drop
+a listener can follow reads as a fault in the audio rather than as the world
+stopping, and a return that is quick is a click.
+
+**The failure worth gating is silent and permanent.** A hush interrupted and
+never resolved - by a scene change, a gate tearing the audio down, a second boss
+- leaves the master fader at a tenth for the rest of the process while every
+slider still reads what the player chose. Nothing errors, nothing sounds broken,
+and the game is simply quiet forever. `feel_check` cuts one short through
+`stop_immediately` and insists the room comes straight back; checked by removing
+that line, which it named.
+
+**A Label cannot be smaller than its font, and `layout_check` was red on main
+because of it, found 2026-09-16.** The pool bars wear their names - "HP", "MP",
+"SP" - written on the bar rather than beside it, because the top bar has no
+width to give. That is fine for the health bar and impossible for the two thin
+ones: **`Control.size` is clamped to the combined minimum size**, so a Label
+anchored to fill an eight-pixel bar is not eight pixels tall. It is as tall as
+its font wants, and it hangs out of the bottom of its parent onto whatever is
+underneath. "MP" was sitting across the SP bar.
+
+**Two fixes were tried and measured before the third.** *Growing the bars to
+fit*: at 430 wide the pools column has no vertical room to give, and taller bars
+pushed the whole top row down into six fresh overlaps in the act line, the boss
+readout and the city icon. *Putting the name beside the bar*: a row is as tall
+as its tallest child, so the Label drove the row height exactly as it had driven
+its own, and the same six overlaps came back. There is no height here and there
+is no width; the name cannot be a laid-out node at all.
+
+`BarName` is a plain `Control` with a `_draw`. A `Control` has no font-driven
+minimum, so it is exactly the rect it is given; the glyphs paint a pixel or two
+past a very thin bar, which is what a name written on a bar looks like, and
+nothing in the layout can collide with something that is not in the layout.
+
+**And the gate that would have caught it does not run at release.**
+`layout_check` has been in `guard.yml` since 2026-08-25 and was never in
+`release.yml`, so a HUD overlap could reach a tag as long as nobody pushed in
+between - and the SP bar's name sat on main for exactly that reason. Both phone
+shapes are on the release bar now. **A gate is only as good as the last time
+somebody ran it, and the release is the last time anybody does.**
+
+**`ui_shot` photographs the HUD now**, which nothing did. The names are *drawn*,
+so `layout_check` passing says only that they collide with nothing - a name that
+rendered as nothing at all would pass it perfectly. That is the same distinction
+`a-passing-art-gate-cannot-see-quality` records, arriving in the interface.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

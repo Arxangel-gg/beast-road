@@ -200,6 +200,11 @@ func _load_particle_art() -> void:
 func bind_world(node: Node2D) -> void:
 	world = node
 	_container = null
+	# A new world is a new screen, and the director's load is a fact about what
+	# is on *this* one. Without this, walking into a rift from a wave that had
+	# just killed forty bodies would arrive with every cosmetic effect damped and
+	# nothing on screen to explain why.
+	JuiceDirector.clear()
 	if node == null:
 		return
 	_container = Node2D.new()
@@ -275,6 +280,14 @@ func _track(node: Node) -> void:
 func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vector2.ZERO, speed: float = 260.0) -> void:
 	if world == null:
 		return
+	# **Sparks are the first thing a busy screen gives up**, and the most common
+	# effect in the game - every blow that lands throws some. Never to nothing:
+	# `JuiceDirector.FLOOR` keeps a fifth, because an effect that disappears
+	# under load reads as a bug rather than as restraint and the player must
+	# always be able to tell that the hit happened. Nothing about the hit moves.
+	count = maxi(1, int(round(float(count) * JuiceDirector.weight(
+		JuiceDirector.Priority.COSMETIC))))
+	JuiceDirector.note(JuiceDirector.Priority.COSMETIC)
 	for i: int in count:
 		var angle: float
 		if direction == Vector2.ZERO:
@@ -441,6 +454,12 @@ func _ring_bloom(line: Line2D, to_radius: float, colour: Color, life: float) -> 
 ## ones were receipts.
 func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> void:
 	if world == null or amount < 1.0:
+		return
+	# **How many numbers the player asked for.** A density rather than a switch,
+	# so somebody who finds the count overwhelming can thin the ordinary ones out
+	# and keep the criticals and finishers - which is fewer numbers rather than
+	# less information. At the default of 1 this costs a comparison.
+	if not JuiceDirector.wants_number(big):
 		return
 	var label := Label.new()
 	label.text = str(int(round(amount)))
@@ -1359,6 +1378,12 @@ func flash_at(at: Vector2, colour: Color, radius: float) -> void:
 
 ## Full-screen colour wash. Decays quadratically so it snaps rather than smears.
 func flash(colour: Color, peak: float, life: float) -> void:
+	# **How much flashing the player asked for.** The one effect in this game
+	# with a real accessibility cost, and until now the only answer available to
+	# somebody it made ill was to stop playing.
+	peak *= JuiceDirector.flash_scale()
+	if peak <= 0.0:
+		return
 	if peak <= _flash_peak * (_flash_left / maxf(_flash_total, 0.001)):
 		return
 	_flash.color = Color(colour.r, colour.g, colour.b, peak)

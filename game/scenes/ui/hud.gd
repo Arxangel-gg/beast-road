@@ -4889,16 +4889,14 @@ func _show_the_heal_saving(price: int) -> void:
 func _name_the_bar(bar: ProgressBar, name_text: String) -> void:
 	if bar == null:
 		return
-	var mark := Label.new()
+	# **Drawn rather than laid out.** A `Label` here is as tall as its font wants
+	# however small the bar is, so "MP" hung out of an eight-pixel bar and across
+	# the SP bar under it - see `BarName` for that and for the two fixes that
+	# were measured and rejected before this one.
+	var mark := BarName.new()
 	mark.text = name_text
-	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mark.set_anchors_preset(Control.PRESET_FULL_RECT)
-	mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	mark.offset_left = BAR_NAME_INSET
-	mark.add_theme_font_size_override("font_size", BAR_NAME_SIZE)
-	mark.add_theme_color_override("font_color", Color(0.96, 0.94, 0.90, 0.95))
-	mark.add_theme_constant_override("outline_size", 4)
-	mark.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.85))
+	mark.font_size = BAR_NAME_SIZE
+	mark.inset = BAR_NAME_INSET
 	bar.add_child(mark)
 
 

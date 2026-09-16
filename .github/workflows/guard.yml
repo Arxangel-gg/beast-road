@@ -546,6 +546,12 @@ jobs:
           # What a blow lands on: every breed names a hide, the landed signal
           # carries the one struck, and the sound, sparks and hitstop follow it.
           check "hit feel" --headless --path game res://tools/hit_feel_check.tscn
+          # The director may change how something is presented and never whether
+          # it happened. Holds the priority order, the floors, the comfort scales
+          # at both ends, and - driven rather than asserted - that a real body
+          # killed with every scale at zero takes the same blows and pays the
+          # same Gold as one killed with everything on.
+          check "juice director" --headless --path game res://tools/juice_director_check.tscn
           # The debrief says what the road paid whatever happened and what the
           # earth did: counted where each gain is banked and each event seen.
           check "debrief" --headless --path game res://tools/debrief_check.tscn

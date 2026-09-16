@@ -21,6 +21,24 @@ const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"
 const BLOOD_VFX_KEY: String = "blood_vfx"
 
+## Two more comfort scales, added 2026-09-16 out of the forwarded accessibility
+## notes (#182-#195), and put here rather than in `Graphics` because the shake
+## slider they belong beside already lives here.
+##
+## **Scales rather than switches**, which is the part that was missing. The
+## graphics options can turn the fog off and the phenotypes off, and there was
+## nothing at all to say to a player who wants *half* the flashing rather than
+## none of it - so the only honest answer available to somebody made ill by it
+## was to stop playing.
+##
+## Both run 0 to 1 and default to 1, so the shipped game is exactly what it was
+## and a save written before today reads as untouched. Read through
+## `JuiceDirector` and nowhere else, so a second place cannot honour one while a
+## third forgets it - the failure an Arcane node shipped with when its reach was
+## applied at four of five call sites.
+const FLASH_KEY: String = "screen_flash"
+const NUMBER_DENSITY_KEY: String = "damage_number_density"
+
 ## One key holding the whole graphics dictionary, rather than seven loose ones.
 const GRAPHICS_KEY: String = "graphics"
 const GAIT_KEY: String = "beast_gait"
