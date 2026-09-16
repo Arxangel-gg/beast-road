@@ -921,6 +921,19 @@ func _begin_behaviour() -> bool:
 			animator.squash(Balance.ANIM_HURT_SQUASH * 1.6)
 		_:
 			animator.squash(Balance.ANIM_HURT_SQUASH)
+	# **A boss's own beat weighs on the frame; anything else's does not.**
+	#
+	# `Priority.BOSS` was authored with a load of 0.45 and a floor of 0.68 and was
+	# named by nothing outside the gate - so the loudest fight in the game added
+	# nothing at all to the clutter the director measures, and cosmetic effects
+	# ran at full strength through exactly the moment that most needed reading.
+	#
+	# The tell itself is a telegraph and is never damped; what is noted here is
+	# that a boss is *doing something*, which is what the rest of the screen
+	# should give way to.
+	if data != null and data.category == EnemyData.Category.BOSS:
+		JuiceDirector.note(JuiceDirector.Priority.BOSS)
+	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
 	Vfx.ring(global_position, _behaviour_reach() * Balance.ENEMY_BEHAVIOUR_TELL_SHARE,
 		_behaviour_colour(), _behaviour_warning(), 3.0)
 	return true

@@ -199,6 +199,15 @@ ROWS = [
      "one small squirrel warning chatter, quick and restrained, isolated, no background"),
     ("sfx_wildlife_viper", "sfx", "sfx", "0.6s", "ElevenLabs",
      "one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background"),
+    # **The one species owed its own recording** (2026-09-16). Twenty-three mute
+    # species were given a voice by sharing one of the twelve on disk - a fennec
+    # takes the fox's, a jackal the wolf's - and nine more are declared silent on
+    # purpose in `wildlife_spawn_check.SILENT` because a crab does not make a
+    # noise. The reed frog is neither: it is loud, and nothing on disk croaks, so
+    # sharing a hiss or a bird call would be worse than the silence.
+    ("sfx_wildlife_frog", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "two or three croaks from one marsh frog, wet and rubbery with a throaty "
+     "rattle, close and dry with no pond ambience, no reverb, no insects"),
     ("sfx_wildlife_wolf", "sfx", "sfx", "1.0s", "ElevenLabs",
      "one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background"),
     # ---------------- act playlists (2026-09-11) ----------------
@@ -682,6 +691,15 @@ def named_by_the_game() -> dict:
             for number, line in enumerate(text.splitlines(), 1):
                 for match in literal.finditer(line):
                     if match.group(1) in NOT_SOUNDS:
+                        continue
+                    # **A prefix is not a sound.** Gates test membership with
+                    # things like `begins_with("sfx_wildlife_")` and
+                    # `contains('Sfx.play("sfx_companion_')`, and a trailing
+                    # underscore is what tells those apart from a real id - no
+                    # sound in this project ends in one. Without this the doc
+                    # opens with two invented sounds under "start here", which
+                    # is the worst place to put a false positive.
+                    if match.group(1).endswith("_"):
                         continue
                     found.setdefault(match.group(1), "%s:%d" % (
                         os.path.relpath(path, root).replace(os.sep, "/"), number))

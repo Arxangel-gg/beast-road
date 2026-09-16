@@ -585,8 +585,11 @@ func _raze(site: Dictionary) -> void:
 	MetaState.camps_razed += 1
 	Vfx.ring(centre, 170.0, Color(1.0, 0.7, 0.35, 0.85), 0.7, 6.0)
 	Vfx.spark(centre, Color("ffb56a"), 22, Vector2.UP, 220.0)
-	EventBus.camera_shake_requested.emit(6.0, 0.25)
-	Sfx.play("sfx_camp_razed")
+	# A camp is out on the outskirts and a razing is often nowhere near the
+	# player - the shake was flat too, which is the same fault the tower and the
+	# wildlife bite carried.
+	EventBus.camera_impact.emit(centre, 6.0)
+	Sfx.play_at("sfx_camp_razed", centre)
 	EventBus.camp_cleared.emit(lane, tier)
 	if tier == BattleGrid.CampTier.BARON:
 		site["state"] = State.RAZED

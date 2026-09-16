@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_clutter_rises_and_falls()
 	_test_nothing_ever_reaches_nothing()
 	_test_the_comfort_scales_reach_both_ends()
+	_test_every_priority_reaches_the_game()
 	await _test_the_payout_does_not_move()
 	JuiceDirector.clear()
 	MusicPlayer.stop_immediately()
@@ -44,6 +45,61 @@ func _ready() -> void:
 		% _checks + "telegraph never gives ground, the order holds at every "
 		+ "load, and a kill pays the same with every scale at zero")
 	get_tree().quit(0)
+
+
+## **Every priority the director authors is used by the game.**
+##
+## `TELEGRAPH` and `BOSS` carried a load and a floor each and were named by
+## nothing outside this file - so two fifths of "the priority order is the whole
+## design" was prose. The consequences were not symmetrical: a telegraph being
+## undamped was *accidentally* correct, because a warning that never asks the
+## director is never turned down; a boss adding no load was simply wrong, and the
+## loudest fight in the game ran cosmetic clutter at full strength.
+##
+## A source walk, because the fault is an omission and an enum cannot say which
+## of its members anybody uses.
+func _test_every_priority_reaches_the_game() -> void:
+	var seen: Dictionary = {}
+	for path: String in _shipping_scripts("res://"):
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		# **Comments do not count.** A docstring that names the symbol satisfies a
+		# plain search, so this check passed with the boss note deleted because
+		# the comment above it explained what the note was for. That is the same
+		# false positive `audio_verify` was given a comment-skip for this morning,
+		# in a gate written hours later.
+		for line: String in file.get_as_text().split("
+"):
+			if line.strip_edges().begins_with("#"):
+				continue
+			for name: String in JuiceDirector.Priority.keys():
+				if line.contains("Priority.%s" % name):
+					seen[name] = true
+	for name: String in JuiceDirector.Priority.keys():
+		_check(seen.has(name),
+			("JuiceDirector.Priority.%s is authored with a load and a floor and "
+				+ "named by nothing the game runs - the order is the design, and "
+				+ "a member nothing uses is a fifth of it that is only prose")
+				% name)
+
+
+## Every `.gd` the game ships, which is everything outside `tools/`.
+func _shipping_scripts(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	if root.ends_with("/tools"):
+		return found
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return found
+	for name: String in dir.get_directories():
+		if name.begins_with("."):
+			continue
+		found.append_array(_shipping_scripts(root.path_join(name)))
+	for name: String in dir.get_files():
+		if name.ends_with(".gd"):
+			found.append(root.path_join(name))
+	return found
 
 
 func _check(condition: bool, why: String) -> void:

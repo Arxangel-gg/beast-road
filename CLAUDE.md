@@ -4862,6 +4862,71 @@ the row builder left it passing - it tested the function and not the wiring.
 It builds the row the stash builds and reads the label back now, and with the
 call site removed it quotes the line the player would actually have seen.
 
+**A voice comes from the animal now, as of 2026-09-16.** `Sfx.play_at` has
+quietened by distance since 2026-09-15, and **every wildlife vocalisation and
+almost every companion sound was played flat** - so a wolf across the outskirts
+was exactly as loud as one at the Warden's feet. `sfx_companion_down` in that
+same file had used `play_at` since it was written and nothing else in it did.
+
+**It had to come with the voices.** Giving twenty-three mute species a voice an
+hour earlier made the road far noisier with sounds that did not attenuate, so the
+fix would have made the game worse without this.
+
+**And the count in the survey was 121, and 121 is not the number that should
+change.** A menu click, a purse, the Warden's own breath and a hero standing at
+the pond they are fishing are all correctly flat. Only the two files that make
+world sounds *away from the camera* were converted, and `feel_check` holds only
+those - a rule that every `Sfx.play` must carry a position would be the same
+mistake as reading a count as a fault list.
+
+**The gate found two sites I had missed**, including a second
+`sfx_companion_down` sitting next to the one that was already positional - which
+is the gate doing its job before the commit rather than after it. And
+`Wildlife._strike` was shaking the screen on the flat channel too, so an animal
+biting someone across the map rattled as hard as one underfoot: the same fault as
+the tower, in a third place that never learned about `camera_impact`.
+
+**Which sounds are positional, and which are deliberately not, as of
+2026-09-16.** The owner asked that everything needing direction play
+directionally per player, with the networking right. Both halves are recorded on
+`Sfx.play_group_at` so the policy sits beside the function rather than only here.
+
+**The rule is one question: can this happen somewhere the player is not?**
+Positional: a body, an animal, a companion, a tower, a torch, a camp razed, a
+rock landing, a death stone, a vault chest. Deliberately flat, each for a reason:
+the interface; anything the player is standing in (fishing is the clearest - the
+hero is *at* the pond); **a telegraph**, because
+`JuiceDirector.Priority.TELEGRAPH` exists to say a warning is never turned down
+and quietening one by distance contradicts that where it matters most; **the wall
+being hit** at +4 dB, because it is the loss condition and a player out at a far
+camp is exactly who needs to hear it; and announcements - a boss arriving, a fork
+opening, distant thunder - which come with a banner and are about the road rather
+than a place on it.
+
+**The networking was already right and is now written down.** Each machine calls
+`Sfx.listen_from` with **its own camera** every frame, so two players hear one
+event at the distance each is standing from it, and **nothing about sound crosses
+the wire**: `CoopRelay` and `CoopWorld` contain no `Sfx` call at all. A sound is
+the local consequence of a relayed *fact*. Sending the sound itself would double
+it on the host and desynchronise it everywhere else.
+
+**Three flat `camera_shake_requested` calls went with it** - the camp razing, the
+wildlife bite and the tower's destruction - all predating `camera_impact` and all
+shaking as hard from across the map as from underfoot.
+
+**And a companion freed mid-run printed an error every frame.**
+`Battlefield._process` did `hero.get("spirit") as Companion` and *then* checked
+`is_instance_valid` - but casting a freed object throws, so the guard never ran.
+Ninety-five errors in a short gate run, and a silent flood in play.
+
+**It is invisible to CI, which is the half worth keeping.** A clean profile has
+no bonded spirit, so nothing ever reaches that branch there: the sweep's log for
+`companion_check` has zero error lines and the same gate on the owner's account
+has ninety-five. That is `ci-profile-hides-state-dependent-ui` inverted - an
+empty account hides a panel's overlaps, and a *played* one reveals a crash path
+no gate will ever walk. **When a gate passes in CI, it has only been asked about
+the state CI has.**
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

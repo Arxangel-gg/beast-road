@@ -101,7 +101,7 @@ func _land() -> void:
 	_sprite.scale = Vector2.ONE * size
 	Vfx.dust(global_position, Color(0.5, 0.46, 0.42, 0.85), 4 + int(size * 3.0), 30.0 + 20.0 * size)
 	EventBus.camera_impact.emit(global_position, power)
-	Sfx.play("sfx_hit_stone", -9.0 + 4.0 * size)
+	Sfx.play_at("sfx_hit_stone", global_position, -9.0 + 4.0 * size)
 
 
 func landed() -> bool:

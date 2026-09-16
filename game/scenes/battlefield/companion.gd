@@ -139,9 +139,9 @@ func _ready() -> void:
 
 	Vfx.ring(global_position, 84.0, Color(data.colour, 0.75), 0.45, 4.0)
 	Vfx.spark(global_position, data.colour, 12, Vector2.UP, 210.0)
-	Sfx.play("sfx_companion_summon")
+	Sfx.play_at("sfx_companion_summon", global_position)
 	if not _vocal.is_empty():
-		Sfx.play(_vocal, -4.0)
+		Sfx.play_at(_vocal, global_position, -4.0)
 
 
 ## **The spirit at your shoulder is one animal, not the species.**
@@ -375,7 +375,7 @@ func _bite_wildlife(at: Vector2) -> void:
 	animals.call("wound_near", at, Balance.COMPANION_BITE_RADIUS, _swing_power())
 	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
 	_cooldown = data.attack_interval
-	Sfx.play("sfx_companion_strike")
+	Sfx.play_at("sfx_companion_strike", global_position)
 
 
 ## The damage this swing lands, personality included.
@@ -412,9 +412,12 @@ func _strike(quarry: Enemy) -> void:
 	# The bite's frames, where the species has them, over a lunge either way.
 	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
 	_frame_clock = 0.0
-	Sfx.play("sfx_companion_strike")
+	# **A spirit fights where it is standing**, which is often not where the
+	# Warden is - `sfx_companion_down` in this same file has used `play_at` since
+	# it was written, and every other sound the companion makes did not.
+	Sfx.play_at("sfx_companion_strike", global_position)
 	if not _vocal.is_empty():
-		Sfx.play(_vocal, -9.0)
+		Sfx.play_at(_vocal, global_position, -9.0)
 	if _sprite != null:
 		_sprite.position = (quarry.global_position - global_position).normalized() * 9.0
 
@@ -540,7 +543,7 @@ func _go_down() -> void:
 		_bar.visible = false
 	Vfx.ring(global_position, 92.0, Color(data.colour, 0.7), 0.5, 5.0)
 	Vfx.spark(global_position, data.colour, 18, Vector2.UP, 190.0)
-	Sfx.play("sfx_companion_down")
+	Sfx.play_at("sfx_companion_down", global_position)
 	EventBus.spirit_downed.emit(spirit_key, _recovering)
 
 
@@ -562,9 +565,9 @@ func _tick_recovery(delta: float) -> void:
 		_sprite.visible = true
 	Vfx.ring(global_position, 84.0, Color(data.colour, 0.8), 0.45, 4.0)
 	Vfx.spark(global_position, data.colour, 14, Vector2.UP, 200.0)
-	Sfx.play("sfx_companion_return")
+	Sfx.play_at("sfx_companion_return", global_position)
 	if not _vocal.is_empty():
-		Sfx.play(_vocal, -4.0)
+		Sfx.play_at(_vocal, global_position, -4.0)
 	EventBus.spirit_returned.emit(spirit_key)
 
 

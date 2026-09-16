@@ -76,10 +76,13 @@ func _land() -> void:
 	_fall = null
 	if drowned:
 		Vfx.sheet_burst(global_position, SPLASH_ART, 64.0, Color(0.9, 0.97, 1.0, 0.9))
-		Sfx.play("sfx_drown", Balance.DEATH_STONE_SOUND_DB)
+		Sfx.play_at("sfx_drown", global_position, Balance.DEATH_STONE_SOUND_DB)
 	else:
 		Vfx.dust(global_position, Color(0.5, 0.45, 0.38), 9, 52.0)
-		Sfx.play("sfx_hit_stone_1", Balance.DEATH_STONE_SOUND_DB)
+		# The stone lands where somebody fell, which in co-op is often not where
+		# this player is standing. Its `camera_impact` has been distance-weighted
+		# since it was written and its sound was not.
+		Sfx.play_at("sfx_hit_stone_1", global_position, Balance.DEATH_STONE_SOUND_DB)
 	EventBus.camera_impact.emit(global_position, Balance.DEATH_STONE_IMPACT)
 	var settle: Tween = create_tween()
 	var stood: Vector2 = Vector2.ONE * Balance.DEATH_STONE_SCALE

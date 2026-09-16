@@ -708,6 +708,35 @@ func play_at(id: String, at: Vector2, extra_db: float = 0.0) -> void:
 ## to `SFX_FAR_DB` by `SFX_FAR`, and no further - a floor rather than a curve
 ## running off to silence, because a distant tower should still be *there*.
 ## One of a group's takes, placed. The same `play_at` rules.
+## **Which sounds are positional, and which are deliberately not.**
+##
+## The rule is one question: *can this happen somewhere the player is not?*
+##
+## **Positional** - a body, an animal, a companion, a tower, a torch, a camp
+## being razed, a rock landing, a death stone, a chest in a vault. In co-op each
+## machine calls `listen_from` with **its own camera** every frame, so two
+## players hear the same event at the distance each of them is standing from it.
+##
+## **Deliberately flat**, and each for a reason rather than an oversight:
+##
+## - **The interface.** A click, a purse, a confirm. It happens at the player.
+## - **Anything the player is standing in.** Fishing is the clearest case - the
+##   hero is *at* the pond - and so are their own swing, their own draught and
+##   their own upgrade press.
+## - **A telegraph.** `EnemyGroundStrike._tell` warns about a blow that is about
+##   to land, and `JuiceDirector.Priority.TELEGRAPH` exists to say a warning is
+##   never turned down. Quietening one by distance would contradict that in the
+##   one place it matters most.
+## - **The wall being hit**, at +4 dB. It is the loss condition, and a player out
+##   at a far camp is exactly who needs to hear it.
+## - **An announcement**: a boss arriving, a fork opening, distant thunder. These
+##   come with a banner and are about the road rather than about a place on it.
+##
+## **Nothing about sound crosses the wire**, and nothing should: a sound is the
+## local consequence of a fact that was relayed. Sending the sound itself would
+## double it on the host and desynchronise it everywhere else.
+
+
 func play_group_at(group: String, at: Vector2, extra_db: float = 0.0) -> void:
 	if not _listening:
 		play_group(group, extra_db)

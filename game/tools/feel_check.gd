@@ -41,6 +41,7 @@ func _ready() -> void:
 	_test_the_ear()
 	_test_a_dropped_sound_decides_nothing()
 	await _test_the_field()
+	_test_a_voice_comes_from_where_it_is()
 	await _test_the_hush_hands_the_room_back()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -352,6 +353,41 @@ func _stand_a_body(field: Battlefield, at: Vector2) -> Enemy:
 	field.add_child(body)
 	body.global_position = at
 	return body
+
+
+## **A voice comes from the animal, not from the listener.**
+##
+## `play_at` exists, quietens by distance and hands its voice back past the
+## cutoff - and every wildlife vocalisation and almost every companion sound was
+## played flat, so a wolf across the outskirts was exactly as loud as one at the
+## Warden's feet. `sfx_companion_down` in that same file has used `play_at` since
+## it was written and nothing else in it did.
+##
+## It mattered more from 2026-09-16, when twenty-three species that had been mute
+## were given voices: that fix made the road far noisier with sounds that did not
+## attenuate, so it had to come with this one.
+##
+## **Narrowly scoped on purpose.** This is not a rule that every `Sfx.play` must
+## carry a position - most should not. A menu click, a purse, the Warden's own
+## breath and a hero standing at the pond they are fishing are all correctly
+## flat, and "121 unpositioned call sites" is a count rather than a fault list.
+## Only the two files that make world sounds away from the camera are held.
+func _test_a_voice_comes_from_where_it_is() -> void:
+	var watched: Dictionary = {
+		"res://scripts/systems/wildlife.gd": ["Sfx.play(kind.vocal_sfx"],
+		"res://scenes/battlefield/companion.gd": ["Sfx.play(_vocal",
+			"Sfx.play(\"sfx_companion_"],
+	}
+	for path: String in watched:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % path)
+			continue
+		var text: String = file.get_as_text()
+		for flat: String in (watched[path] as Array):
+			_check(not text.contains(flat),
+				("%s plays `%s` with no position, so it is as loud from across the "
+					+ "map as from underfoot") % [path, flat])
 
 
 func _check(condition: bool, why: String) -> void:

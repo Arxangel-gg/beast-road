@@ -44,7 +44,7 @@ func _ready() -> void:
 	# It lands: a thump, a ring and a spray, so the vault says the fight is won.
 	Vfx.ring(global_position, Balance.RAID_CHEST_GLOW, Balance.LOOT_GLOW_COLOUR, 0.6, 5.0)
 	Vfx.spark(global_position, Balance.LOOT_GLOW_COLOUR, 14, Vector2.UP, 220.0)
-	Sfx.play("sfx_loot_drop")
+	Sfx.play_at("sfx_loot_drop", global_position)
 
 
 func _process(delta: float) -> void:

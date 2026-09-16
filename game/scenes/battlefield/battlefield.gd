@@ -301,9 +301,20 @@ func _process(delta: float) -> void:
 	# 2026-09-13). `RunState` owns the larder and sends it home when the
 	# larder is empty; the field only says that time passed.
 	if hero != null and is_instance_valid(hero):
-		var spirit := hero.get("spirit") as Companion
-		if spirit != null and is_instance_valid(spirit) and spirit.data != null:
-			RunState.tick_spirit_upkeep(spirit.data, delta)
+		# **Validity before the cast, not after it.** `as Companion` on a freed
+		# object throws "Trying to cast a freed object" - the guard underneath it
+		# never ran. A spirit that has been beaten is freed while the hero still
+		# holds the reference, so this fired *every frame* for the rest of the run:
+		# 95 errors in a short gate, and a silent flood in play.
+		#
+		# It is invisible to CI because a clean profile has no bonded spirit, so
+		# nothing ever reaches this branch there - the inverse of the clean-profile
+		# lesson, where an empty account hides a panel that has overlaps.
+		var held: Variant = hero.get("spirit")
+		if held != null and is_instance_valid(held):
+			var spirit := held as Companion
+			if spirit != null and spirit.data != null:
+				RunState.tick_spirit_upkeep(spirit.data, delta)
 	# Dawn Bell's haste, counted here because this is the thing that freezes
 	# for a raid - a timer anywhere else would run through the pause, which is
 	# what working rule 8 exists to stop.

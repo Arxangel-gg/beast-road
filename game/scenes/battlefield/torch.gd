@@ -342,7 +342,7 @@ func relight() -> void:
 	Vfx.spark(at, Balance.TORCH_LIGHT_COLOUR, 12, Vector2.UP, 210.0)
 	Vfx.ring(at, 70.0, Color(Balance.TORCH_LIGHT_COLOUR, 0.7), 0.35, 3.0)
 	Vfx.flash_at(at, Balance.TORCH_LIGHT_COLOUR, 26.0)
-	Sfx.play("sfx_tower_build", -6.0)
+	Sfx.play_at("sfx_tower_build", at, -6.0)
 
 
 ## Held near a dead torch, the hero rekindles it. Deliberately not instant: it

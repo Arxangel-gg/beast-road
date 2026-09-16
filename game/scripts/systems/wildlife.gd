@@ -181,7 +181,9 @@ func rouse_species(species_id: String, toward: Vector2) -> void:
 	if not species_id.is_empty():
 		var kind: WildlifeData = ContentDB.wildlife_kinds.get(species_id, null) as WildlifeData
 		if kind != null and not kind.vocal_sfx.is_empty():
-			Sfx.play(kind.vocal_sfx, -2.0)
+			# From where the species was wronged - the nest that was robbed -
+			# rather than from the listener. `sprite` above is loop-local.
+			Sfx.play_at(kind.vocal_sfx, toward, -2.0)
 
 
 ## One animal by its serial, or an empty record.
@@ -916,7 +918,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	if bool(_living.back()["rabid"]):
 		_dress_as_rabid(sprite, kind)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play(kind.vocal_sfx, -3.0)
+		Sfx.play_at(kind.vocal_sfx, sprite.global_position, -3.0)
 
 
 ## One animal, one frame. False when it should be removed.
@@ -1683,7 +1685,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		if bool(animal.get("rabid", false)):
 			spirit.apply_poison(Balance.WILDLIFE_RABID_POISON_DPS, Balance.WILDLIFE_RABID_POISON_SECONDS)
 		if not kind.vocal_sfx.is_empty():
-			Sfx.play(kind.vocal_sfx, -4.0)
+			Sfx.play_at(kind.vocal_sfx, sprite.global_position, -4.0)
 		return
 	if not (quarry is Hero) and not (quarry is Enemy):
 		# Prey. Owner report: predators followed prey and never bit it. The bite
@@ -1704,7 +1706,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			Vfx.spark(quarry.global_position, Color("c4552e"), 5,
 				(quarry.global_position - sprite.global_position).normalized(), 150.0)
 			if not kind.vocal_sfx.is_empty():
-				Sfx.play(kind.vocal_sfx, -6.0)
+				Sfx.play_at(kind.vocal_sfx, sprite.global_position, -6.0)
 			return
 		return
 	# Softer early, at full strength later. A wolf pack costs 8 a bite and the
@@ -1732,9 +1734,13 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 				Balance.WILDLIFE_RABID_POISON_SECONDS)
 	Vfx.spark(quarry.global_position, Color("c4552e"), 6,
 		(quarry.global_position - from).normalized(), 190.0)
-	EventBus.camera_shake_requested.emit(3.0, 0.12)
+	# **Felt where it bit.** A flat 3.0 shook the screen as hard for an animal
+	# across the outskirts as for one at the player's feet - the same fault the
+	# tower's destruction carried, in a second place that never learned about
+	# `camera_impact`.
+	EventBus.camera_impact.emit(quarry.global_position, 3.0)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play(kind.vocal_sfx)
+		Sfx.play_at(kind.vocal_sfx, sprite.global_position)
 
 
 ## Whether anything alarming is close enough to matter.

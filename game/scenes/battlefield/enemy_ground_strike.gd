@@ -65,8 +65,16 @@ func _tell() -> void:
 	if _drawn:
 		return
 	_drawn = true
+	# **Registered as a telegraph.** `JuiceDirector.Priority.TELEGRAPH` carries a
+	# load of zero and a floor of one, so this changes nothing about what is
+	# drawn - and that is the point: the rule "a warning is never damped" was
+	# being kept by the warnings simply never asking the director, which is the
+	# same thing as not having the rule. Two of the five priorities were authored
+	# with loads and floors and named by nothing outside the gate.
+	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
 	if shape == Shape.CIRCLE:
-		Vfx.ring(global_position, reach, Color(tint, 0.5), _left, 5.0)
+		Vfx.ring(global_position, reach, Color(tint, 0.5),
+			_left * JuiceDirector.weight(JuiceDirector.Priority.TELEGRAPH), 5.0)
 	Sfx.play("sfx_spell_cast", -9.0)
 
 
