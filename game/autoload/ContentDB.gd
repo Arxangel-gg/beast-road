@@ -18,6 +18,8 @@ var terrains: Dictionary = {}
 var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
+## How a Warden outfits a road they did not walk (`ActStart`).
+var doctrines: Dictionary = {}
 var weathers: Dictionary = {}
 ## The earth's wrath: its events, its signs and the ground it leaves charged.
 var wrath_events: Dictionary = {}
@@ -118,6 +120,7 @@ func _ready() -> void:
 	buildings = _load_dir("res://data/buildings")
 	captives = _load_dir("res://data/captives")
 	wave_archetypes = _load_dir("res://data/waves")
+	doctrines = _load_dir("res://data/doctrines")
 	discipline_nodes = _load_dir("res://data/disciplines")
 	factions = _load_dir("res://data/factions")
 	roads = _load_dir("res://data/roads")
@@ -152,6 +155,10 @@ func _ready() -> void:
 		var tower := value as TowerData
 		if tower != null and tower.is_combination:
 			combinations.append(tower)
+
+
+func doctrine(id: String) -> DoctrineData:
+	return doctrines.get(id, null) as DoctrineData
 
 
 func tower(id: String) -> TowerData:

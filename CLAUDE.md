@@ -3757,6 +3757,83 @@ overlaps went unseen - and the same family as the camp lords in the road purse.
 **A model that reads state measures whatever state it was handed**, and it will
 not tell you which unless it is made to.
 
+**A road may begin at any act you have reached, as of 2026-09-16.** The owner
+asked whether players who reach an act should be able to start there
+selectively, and whether the resources should be chosen or preset. **Owner
+ruling: any act reached, and an authored baseline split into four doctrines.**
+
+**It is not the expedition, and keeping those apart is most of the design.** An
+expedition is *your* road, banked at a crossroad and picked up where you left it,
+damage and all. An act start is a *new* road that happens to begin further along:
+a different seed, a different world, an untouched wall. They are separate doors
+and neither consumes the other - the menu says so in as many words, because
+confusing them costs a player a banked front.
+
+**Why it earns its place now.** With 622 waves, a wiped expedition otherwise
+costs five hours of walking to stand where you were standing, and gear is "the
+reason to replay" (2026-09-01) - so being unable to go to the act that drops what
+you are hunting makes the hunt a formality.
+
+**Two doors already existed, and that is why this cost so little.**
+`Expedition.apply` knows how to put a road down before the field is built, and
+`try_build` knows how to buy a tower. So `ActStart.begin` puts the road down in
+exactly the place `Expedition.apply` is called, and the doctrine *spends* the
+baseline through the same function a player's own build calls. **The board an act
+start leaves is a board the road could have produced, at prices the road
+charges** - no second placement path, and no economy rule had to learn that act
+starts exist.
+
+**The budget is measured, never authored.** `curve_report` prints the purse at
+every wave, so what a Warden who walked to Act VII actually holds is a number the
+model already knows. `ACT_START_BUDGET` is read off that report **on a new
+account**, which is the account the band is held against. It is re-measured by
+hand rather than re-derived by the gate, deliberately: a gate that recomputed the
+purse would be a second copy of `curve_report`'s model, and two models of one
+thing is the fault this project keeps paying for.
+
+**"Shape, never size" is literally true rather than a convention.** Every
+doctrine spends the same budget and hands over whatever it does not spend, so
+`act_start_check` measures the whole outfit - what was built plus what is in the
+purse - against what it was given. No doctrine can be worth more than another by
+hoarding, and nothing is created at the door.
+
+**Nothing persists, and working rule 7 is untouched.** Which acts are open is
+*derived* from `best_distance`, a run statistic the save already keeps - a new
+key would have been a second answer to a question the save can already answer. So
+there is no migration and `SAVE_VERSION` did not move.
+
+**Three faults came out of building it and every one was mine.**
+
+- **Breadth was a share of the purse, so the card lied.** Bulwark favours the
+  Earth wardens, which are dear, so the widest doctrine in the game stood up a
+  *narrower* board than the balanced one. Sorting the choices by cost helped and
+  did not fix it, because a preference is worth more than a tie-break. **Breadth
+  names a count now** - `ACT_START_BOARD_MIN` to `_MAX` - and the element decides
+  only *which* towers stand there, which is what it was always meant to decide.
+  The gate holds the widest doctrine against every other, not merely against the
+  narrowest, because the first version of that check passed while the lie stood.
+- **The harness cleared the board after resetting the run**, so
+  `RunState.towers` was already empty and every previous doctrine's emplacements
+  stayed standing on the live field. Later doctrines then found no free anchors,
+  and the widest measured as the narrowest. The harness, not the feature - the
+  same shape as the quiet wave that "never ended".
+- **The screen put Close off the bottom of a landscape phone, twice.**
+  `UiMetrics` inflates a button to a thumb on a touch layout, so two stacked
+  buttons pin 240 pixels of a 430-tall screen before anything else gets a pixel.
+  The body scrolls and the buttons share one row now. A sideways
+  `ScrollContainer` for the act row was refused by `menu_check` for a better
+  reason than height: **every menu scroll surface shares one interaction
+  contract**, and disabling the axis `prepare_scroll` mandates breaks it. Ten
+  acts want to wrap, not scroll.
+
+**And `balance_reach_check` was right twice in one pass.** `ACT_START_SPEND_CEILING`
+was authored and read by nothing - the bound it described is real and is held by
+the gate *measuring* the outcome, which needs no constant, so it was deleted
+rather than wired. And naming `RESOURCE_PER_DISTANCE` in a comment took it off
+the unread list, which was the gate asking a fair question: the other three
+wallets are derived from the road's own trickle over the distance walked now,
+rather than from a share of a Gold figure they have nothing to do with.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

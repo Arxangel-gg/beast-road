@@ -839,6 +839,78 @@ const DAMAGE_SPREAD: float = 0.18
 const TOWER_SLOT_COUNT: int = 4
 
 # ==============================================================================
+# STARTING A ROAD AT A LATER ACT - owner ruling, 2026-09-15
+# ==============================================================================
+
+## **What a Warden who walked here would be holding.**
+##
+## One entry per act: the cumulative Gold a campaign has earned by the moment
+## that act opens. Act I is zero, because Act I *is* the walk and starting there
+## is simply a new run.
+##
+## **Measured, never authored.** `curve_report` prints the purse at every wave,
+## so what a player who walked to Act VII actually has is a number the model
+## already knows, and ten hand-typed numbers would be ten numbers that quietly
+## stop describing the game the next time the curve moves.
+##
+## **Re-measured by hand rather than re-derived by the gate**, and that is a
+## decision. `act_start_check` holds the *shape* - Act I free, every act dearer
+## than the one before it, and each worth at least an emplacement a road -
+## because a gate that recomputed the purse would be a second copy of
+## `curve_report`'s model, and two models of one thing is the fault this project
+## keeps paying for. When the curve moves, re-read the report and retype these.
+##
+## Read on **a new account**, which is the account the band is held against and
+## the harder case - see the note on `curve_report` reading the save. [TUNE]
+const ACT_START_BUDGET: Array[int] = [
+	0, 1051, 2539, 4636, 7370, 11057, 15760, 22453, 30181, 40235,
+]
+
+## **The wall and the road arrive whole, and that is not generosity.**
+##
+## A snapshot brings its damage home because extraction that healed the board
+## would make "leave the moment anything is damaged" the correct play. An act
+## *start* is not an extraction - nobody fought for this board - so there is no
+## attrition to preserve and a hurt wall would simply be a worse opening for no
+## decision.
+const ACT_START_WALL: float = 1.0
+
+## The narrowest and widest board a doctrine may ask for.
+##
+## **`DoctrineData.breadth` names a count between these**, rather than a
+## share of the purse. It was a share for two cuts, and what a share buys
+## depends on how dear the doctrine's favoured element is - so the widest
+## doctrine in the game stood up a narrower board than the balanced one,
+## because it favours the Earth wardens and they are expensive. A count is
+## what the card promises, so a count is what it asks for.
+##
+## The floor is thin cover on four roads; the ceiling is about what the
+## authored map has room for, and `try_build` refusing a taken spot is the
+## real limit either way. [TUNE]
+const ACT_START_BOARD_MIN: int = 6
+const ACT_START_BOARD_MAX: int = 44
+
+## The other three wallets, as a share of what the road would have trickled.
+##
+## Wood, Food and Stone come off distance walked rather than off kills, so they
+## are not in `curve_report`'s purse at all and a share of the Gold budget would
+## have been a share of something they have nothing to do with. `ActStart` takes
+## the trickle over the road actually walked to that act and keeps this much of
+## it - deliberately a fraction, because a Warden who walked there would have
+## spent most of it on repairs and tending along the way, and one arriving with a
+## full larder has skipped the part of the act that asks for one.
+##
+## There is deliberately no constant for "how much of the Gold budget a doctrine
+## must spend". That bound is held by `act_start_check` measuring what a doctrine
+## *ended up with* against what it was given, which needs no number to compare
+## against - and a tuning constant that exists only to be described in a comment
+## is the promise nobody keeps.
+const ACT_START_WOOD_SHARE: float = 0.22
+const ACT_START_FOOD_SHARE: float = 0.18
+const ACT_START_STONE_SHARE: float = 0.12
+
+
+# ==============================================================================
 # CROSSROADS — GDD §5
 # ==============================================================================
 

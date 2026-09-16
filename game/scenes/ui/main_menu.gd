@@ -6,6 +6,7 @@ const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
 const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
 const CodexScreenScript = preload("res://scenes/ui/codex_screen.gd")
 const PenScreenScript = preload("res://scenes/ui/pen_screen.gd")
+const ActStartScreenScript = preload("res://scenes/ui/act_start_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -24,6 +25,7 @@ var _coop: CanvasLayer
 var _chronicle: CanvasLayer
 var _codex: CanvasLayer
 var _pen: CanvasLayer
+var _act_start: CanvasLayer
 var _frame: MenuFrame = null
 ## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
 ## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
@@ -183,6 +185,7 @@ func _ready() -> void:
 	_build_codex_button()
 	_build_pen_button()
 	_build_resume_button()
+	_build_act_start_button()
 	_build_leaderboard_button()
 	_build_hold()
 	_build_guide_button()
@@ -654,6 +657,38 @@ func _build_pen_button() -> void:
 	_pen.visibility_changed.connect(func() -> void:
 		if not _pen.visible:
 			button.text = _pen_label()
+			button.grab_focus())
+
+
+## **A road that begins further along.**
+##
+## Offered only once a second act has actually been reached: a door promising
+## every act you have reached, shown to somebody who has reached one, is a door
+## that does nothing.
+func _build_act_start_button() -> void:
+	if new_run_button == null or ActStart.furthest_act() <= 1:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "ActStart"
+	button.text = "Start at an act \u00b7 up to Act %d" % ActStart.furthest_act()
+	button.tooltip_text = ("A new road beginning at an act you have reached, "
+		+ "outfitted on a doctrine of your choosing. Your banked front is not "
+		+ "touched.")
+	button.custom_minimum_size = new_run_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "pressure_arrow", 24)
+	column.add_child(button)
+	column.move_child(button, new_run_button.get_index() + 1)
+
+	_act_start = ActStartScreenScript.new()
+	add_child(_act_start)
+	button.pressed.connect(func() -> void:
+		_act_start.call("open"))
+	_act_start.visibility_changed.connect(func() -> void:
+		if not _act_start.visible:
 			button.grab_focus())
 
 

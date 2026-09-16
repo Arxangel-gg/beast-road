@@ -644,6 +644,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	pen_companion_fell = false
 	momentum = 0.0
 	tower_health_restore.clear()
+	# A doctrine owed to a road that no longer exists is a board built onto
+	# the next run. Cleared beside the health it sits next to.
+	pending_outfit.clear()
 	companion_sex.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
@@ -2386,6 +2389,18 @@ var momentum: float = 0.0
 ## the node can read once as it is built. Keyed by anchor, consumed by
 ## `Tower._ready`, and empty for every tower that was not restored.
 var tower_health_restore: Dictionary = {}
+
+## The doctrine a road started at a later act still owes its board to.
+##
+## **Read once and erased**, which is the pattern `tower_health_restore`
+## above already sets: a board built twice is a doctrine worth twice as
+## much, and a field can be stood up more than once in a process - a
+## re-sync, a guest's welcome, a gate that runs two runs.
+##
+## Run-scoped like everything else here. Nothing about starting at an act
+## reaches `MetaState`: which acts are open is derived from
+## `best_distance`, so working rule 7 is exactly where it was.
+var pending_outfit: Dictionary = {}
 ## The fraction of a Food unit the companion has eaten but not yet been
 ## charged, so a slow drain is a drain rather than a rounding error.
 var spirit_upkeep_carry: float = 0.0

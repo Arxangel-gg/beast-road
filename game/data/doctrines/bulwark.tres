@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DoctrineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/doctrine_data.gd" id="1_doc"]
+
+[resource]
+script = ExtResource("1_doc")
+id = "bulwark"
+display_name = "Bulwark"
+description = "You arrive behind a wall of emplacements. Every road is covered and none of it is deep - and there is little left in the purse to answer a surprise."
+board_share = 0.9
+breadth = 0.82
+favoured_element = "earth"
+favoured_role = "warden"

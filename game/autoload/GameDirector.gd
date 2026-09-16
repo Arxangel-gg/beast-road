@@ -270,7 +270,8 @@ func _play_intro() -> void:
 ## the wildlife, the foliage and everything else alive is rolled again - which
 ## is `refresh_terrain`, the one function everything regional already goes
 ## through.
-func start_run(requested_seed: int = 0, resume_front: bool = false) -> void:
+func start_run(requested_seed: int = 0, resume_front: bool = false,
+		from_act: int = 0, doctrine_id: String = "") -> void:
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	# The world is rolled and announced **before** the cinematic, not after.
 	#
@@ -293,6 +294,16 @@ func start_run(requested_seed: int = 0, resume_front: bool = false) -> void:
 	# a second thing that can drift.
 	if resume_front and MetaState.has_expedition():
 		Expedition.apply(MetaState.expedition)
+	# **Or the road opens at an act the Warden has already reached.**
+	#
+	# The same place, for the same reason: this is what was already true when
+	# the battlefield came up. The two are exclusive by construction - a front is
+	# *your* road picked up where you left it, and an act start is a new road
+	# that happens to begin further along - so resuming wins if both are asked
+	# for, because a banked front is a thing the player earned and an act start
+	# is always available.
+	elif from_act > 0:
+		ActStart.begin(from_act, doctrine_id)
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed)
 	# The party is playing, so it is not looking for anybody. The row goes now

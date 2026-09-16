@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DoctrineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/doctrine_data.gd" id="1_doc"]
+
+[resource]
+script = ExtResource("1_doc")
+id = "spire"
+display_name = "Spire"
+description = "Fewer emplacements, each of them taken up the ladder. One stretch of road is held by something that kills; the rest of the board is yours to finish."
+board_share = 0.88
+breadth = 0.16
+favoured_element = "fire"
+favoured_role = "sniper"

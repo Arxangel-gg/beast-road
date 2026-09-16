@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DoctrineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/doctrine_data.gd" id="1_doc"]
+
+[resource]
+script = ExtResource("1_doc")
+id = "measured"
+display_name = "Measured"
+description = "A board that covers the roads and a ladder that has been started. Nothing to be clever about and nothing obviously missing."
+board_share = 0.72
+breadth = 0.55
+favoured_element = ""
+favoured_role = ""

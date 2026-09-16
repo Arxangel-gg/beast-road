@@ -261,6 +261,14 @@ func _ready() -> void:
 	_coop_world.field = self
 	add_child(_coop_world)
 	claim_effects()
+	# **A road started at a later act buys its board here**, once the field is
+	# standing and there are anchors to stand on. It spends through `try_build`
+	# and `try_upgrade`, the same doors a player's own build goes through, so
+	# nothing about placement, price or the Forge's level cap had to learn that
+	# an act start exists. A guest never outfits: the board is the host's, and it
+	# arrives as the towers every guest is already told about.
+	if not RunState.pending_outfit.is_empty() and not Coop.is_guest():
+		ActStart.outfit(self)
 
 
 func _process(delta: float) -> void:

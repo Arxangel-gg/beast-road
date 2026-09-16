@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DoctrineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/doctrine_data.gd" id="1_doc"]
+
+[resource]
+script = ExtResource("1_doc")
+id = "warband"
+display_name = "Warband"
+description = "A thin defence and a heavy purse. The road is answered by the Warden until the Warden has decided what to build - and everything is still affordable."
+board_share = 0.52
+breadth = 0.62
+favoured_element = "air"
+favoured_role = "skirmisher"
