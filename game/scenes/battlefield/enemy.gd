@@ -450,6 +450,12 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	# **A mark that is born wearing a ward.** Through `guard`, the same door an
+	# anchor's shelter uses, so a guarded body turns one blow and is spent - and
+	# nothing had to learn that an affix can grant one.
+	for affix: EnemyAffixData in affixes:
+		if affix.spawn_guard > 0.0:
+			grant_guard(affix.spawn_guard)
 	if data == null or _field == null:
 		push_error("Enemy spawned without data or battlefield; setup() must run first.")
 		queue_free()
@@ -655,7 +661,7 @@ func damage_scale() -> float:
 
 
 func speed_scale() -> float:
-	return _speed_scale
+	return _speed_scale * (1.0 + aura_haste())
 
 
 ## Health as 0..1, which is what crosses the wire. A ratio rather than an
@@ -1032,6 +1038,32 @@ func _end_behaviour() -> void:
 
 
 ## Somebody standing behind this body, close enough to shelter or to hear a bell.
+## The strongest aura of a kind reaching this body from an ally standing near it.
+##
+## **The best rather than the sum**, which is the rule `_affix_best` already
+## follows one layer down: two marks multiplying would approach immunity, and a
+## body nothing can hurt is not a mark, it is a wall.
+func _ally_aura(field_name: StringName) -> float:
+	if _state == State.DYING or _field == null:
+		return 0.0
+	var best: float = 0.0
+	for other: Enemy in _allies_in(Balance.ENEMY_AURA_REACH):
+		if other == null or other.is_dying() or other.affixes.is_empty():
+			continue
+		for affix: EnemyAffixData in other.affixes:
+			if affix.aura_radius <= 0.0:
+				continue
+			if global_position.distance_to(other.global_position) > affix.aura_radius:
+				continue
+			best = maxf(best, float(affix.get(field_name)))
+	return best
+
+
+## How much faster this body moves for the company it keeps. Read by the walk.
+func aura_haste() -> float:
+	return clampf(_ally_aura(&"aura_speed"), 0.0, 0.6)
+
+
 func _allies_in(within: float) -> Array[Enemy]:
 	var out: Array[Enemy] = []
 	if _field == null:
@@ -1701,6 +1733,12 @@ func _strike() -> void:
 			struck.apply_slow(affix.on_hit_slow, affix.on_hit_slow_duration)
 		if affix.on_hit_burn_duration > 0.0 and struck != null:
 			struck.apply_burn(affix.on_hit_burn, affix.on_hit_burn_duration)
+		# **Mana lands on the person**, which is what makes this mark different
+		# from the two above: an enemy's target is nearly always a hero, and mana
+		# is worth everything to a caster and nothing at all to a swordhand. The
+		# same two axes the five shots vary along.
+		if affix.on_hit_mana_burn > 0.0 and _target is Hero:
+			(_target as Hero).burn_mana(affix.on_hit_mana_burn)
 	# Said out loud, so a guest can draw the blow it is not simulating. A puppet
 	# never runs this function, so without the announcement a ranged enemy on the
 	# other screen hurt people from across the field with nothing in between.
@@ -1906,6 +1944,11 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	# two sources multiplying would approach immunity, and an enemy nothing can
 	# hurt is not an affix, it is a wall.
 	incoming *= 1.0 - _affix_best(&"damage_resistance")
+	# **And whatever is standing over it.** An aura is a reason to kill one body
+	# before the others, which is the readable play morale already makes of a
+	# champion - and the best rather than the sum, because two of them
+	# multiplying would approach immunity.
+	incoming *= 1.0 - clampf(_ally_aura(&"aura_resistance"), 0.0, 0.35)
 	if not health.take_damage(incoming, from):
 		return false
 	# A Prism Warden banks a capped share of what it is given.
@@ -2353,6 +2396,29 @@ func _elemental_end() -> void:
 				Balance.IMPACT_FULL_SHARE * 0.35 * size)
 
 
+## **What falls with it, for the bodies around it.**
+##
+## The opposite decision to an aura: a body whose death mends its company is one
+## to leave for last, where a body whose life hastes its company is one to kill
+## first. Both exist so that "which of these do I hit" is a question with more
+## than one answer.
+##
+## It mends and never revives - `Health.heal` is the same door a Mason Shrine
+## uses, and stone that has fallen stays fallen.
+func _mend_the_company() -> void:
+	if _field == null or data == null:
+		return
+	for affix: EnemyAffixData in affixes:
+		if affix.death_mends_allies <= 0.0 or affix.aura_radius <= 0.0:
+			continue
+		for other: Enemy in _allies_in(affix.aura_radius):
+			if other == null or other.is_dying() or other.health == null:
+				continue
+			other.health.heal(other.health.max_hp * affix.death_mends_allies)
+		Vfx.ring(combat_origin(), affix.aura_radius,
+			Color(affix.mark_colour, 0.45), 0.5, 4.0)
+
+
 func _burst_on_death() -> void:
 	if _field == null:
 		return
@@ -2389,6 +2455,7 @@ func _on_died(_from: Vector2) -> void:
 			spoils *= Balance.ELITE_REWARD_SCALE
 	RunState.gain_kill_resources(int(round(spoils)))
 	_burst_on_death()
+	_mend_the_company()
 	_elemental_end()
 	# XP scales with the enemy's health rather than an authored per-enemy number,
 	# so an elite is worth more than a runner with no second table to maintain,

@@ -29,6 +29,8 @@ func _ready() -> void:
 			break
 	_check(breed != null, "a breed is needed")
 	_check(ContentDB.affixes.size() >= 4, "there must be affixes to wear")
+	_test_every_act_has_marks_of_its_own()
+	_test_every_mark_field_is_read()
 	if breed == null or ContentDB.affixes.is_empty():
 		_finish()
 		return
@@ -117,6 +119,79 @@ func _finish() -> void:
 	else:
 		printerr("[elite] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Every act meets marks of its own, and every field a mark can carry is read
+## by something.**
+##
+## Both halves are faults this project has already shipped. `from_act` was capped
+## at 3 on a ten-act road, so acts IV to X wore exactly the pool Act I did - the
+## fifth hardcoded three-act range found here, after the relic counter, the
+## Chronicle's `minimum_act`, the campaign tiers' boss table and
+## `wildlife_spawn_check`. And a field authored on a resource and read by nothing
+## is the `DisciplineEffects` lie in a second place: the mark draws, the codex
+## describes it, and it does nothing at all.
+func _test_every_act_has_marks_of_its_own() -> void:
+	var pool_at: Dictionary = {}
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var count: int = 0
+		for value: Variant in ContentDB.affixes.values():
+			var affix := value as EnemyAffixData
+			if affix != null and affix.from_act <= act:
+				count += 1
+		pool_at[act] = count
+		_check(count >= 4,
+			"act %d has %d marks to draw from, which is not a promotion system"
+				% [act, count])
+	# **And the pool grows.** A campaign where the last act draws from exactly
+	# what the first did is a campaign whose promotions stopped meaning anything
+	# two thirds of the way along - which is what the three-act cap did.
+	_check(int(pool_at[Balance.ACT_COUNT]) > int(pool_at[1]),
+		("act %d draws from the same %d marks as act 1, so the back of the "
+			+ "campaign wears nothing it has not already seen")
+			% [Balance.ACT_COUNT, int(pool_at[1])])
+	var newest: int = 0
+	for value: Variant in ContentDB.affixes.values():
+		var affix := value as EnemyAffixData
+		if affix != null:
+			newest = maxi(newest, affix.from_act)
+	_check(newest >= Balance.ACT_COUNT - 2,
+		("the latest mark in the game arrives in act %d of %d - the last acts "
+			+ "have nothing of their own") % [newest, Balance.ACT_COUNT])
+
+
+## Every field a mark may carry has to be read by some script other than the
+## resource that declares it. A grep is a weak proof of behaviour and a strong
+## proof of *wiring*, which is the half that goes silently false.
+func _test_every_mark_field_is_read() -> void:
+	var declared: PackedStringArray = []
+	var script := load("res://scripts/resources/enemy_affix_data.gd") as Script
+	for entry: Dictionary in script.get_script_property_list():
+		var name: String = String(entry.get("name", ""))
+		if name.is_empty() or name.begins_with("_") or name == "id" 				or name == "display_name" or name == "description" 				or name == "mark_colour" or name == "from_act" 				or name.ends_with(".gd"):
+			continue
+		if int(entry.get("usage", 0)) & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
+			continue
+		declared.append(name)
+	_check(declared.size() >= 10,
+		"only %d mark fields found, so this check is reading the wrong thing"
+			% declared.size())
+	var readers: PackedStringArray = [
+		"res://scenes/battlefield/enemy.gd",
+		"res://scenes/battlefield/companion.gd",
+		"res://scripts/systems/wave_director.gd",
+		"res://scripts/systems/camps.gd",
+	]
+	var body: String = ""
+	for path: String in readers:
+		if not FileAccess.file_exists(path):
+			continue
+		body += FileAccess.get_file_as_string(path)
+	for name: String in declared:
+		_check(body.contains(name),
+			("a mark may carry '%s' and nothing outside the resource reads it - "
+				+ "the mark draws, the codex describes it, and it does nothing")
+					% name)
 
 
 func _check(condition: bool, why: String) -> void:

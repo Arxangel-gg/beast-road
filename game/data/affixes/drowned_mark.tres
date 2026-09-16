@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "drowned_mark"
+display_name = "Drowned"
+description = "Cold, and slow to let go."
+health_scale = 1.15
+on_hit_slow = 0.62
+on_hit_slow_duration = 3.0
+mark_colour = Color(0.36, 0.58, 0.80, 1)
+from_act = 6

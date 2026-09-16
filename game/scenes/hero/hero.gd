@@ -891,6 +891,22 @@ func mana_regen() -> float:
 
 
 ## Pays for a cast. False, and nothing spent, when the pool cannot cover it.
+## **Mana taken rather than spent.**
+##
+## `spend_mana` refuses when the pool is short, because a spell either casts or
+## does not. Being robbed is the other thing: it takes what is there and leaves
+## the pool empty, which is what a hex - and now a mark - does to a caster.
+##
+## Worth nothing at all to a swordhand, which is the point of it: it is the one
+## threat in the game whose weight depends on who the player decided to be.
+func burn_mana(amount: float) -> void:
+	if amount <= 0.0 or mana <= 0.0:
+		return
+	mana = maxf(mana - amount, 0.0)
+	RunState.hero_mana = mana
+	EventBus.hero_mana_changed.emit(mana, mana_max())
+
+
 func spend_mana(cost: float) -> bool:
 	if cost <= 0.0:
 		return true

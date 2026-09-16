@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "riftsick"
+display_name = "Riftsick"
+description = "It takes the light with it when it goes."
+on_hit_mana_burn = 14.0
+death_blast_radius = 190.0
+death_blast_damage = 26.0
+mark_colour = Color(0.58, 0.36, 0.72, 1)
+from_act = 9

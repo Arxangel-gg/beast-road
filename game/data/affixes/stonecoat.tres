@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "stonecoat"
+display_name = "Stonecoat"
+description = "Whatever stands near it is harder to break."
+speed_scale = 0.88
+aura_radius = 220.0
+aura_resistance = 0.16
+mark_colour = Color(0.60, 0.62, 0.58, 1)
+from_act = 3

@@ -3484,6 +3484,42 @@ last wave to 1.09 - past what a best-case defence answers. They are 0.10 and
 0.14 now. The peak is still wanted; its *sharpness* is what had to give, which is
 the same conclusion that table's own comment reached the first time.
 
+**Marks for all ten acts, as of 2026-09-15.** The owner asked for *"more
+unique enemy behaviors and trait's and abilities etc for all acts"*, and the
+roster had **eight affixes with `from_act` capped at 3** - on a ten-act road. So
+acts IV to X drew from exactly the pool Act I did, and a promotion stopped
+meaning anything two thirds of the way along. **That is the fifth hardcoded
+three-act range this project has found**, after the relic counter, the
+Chronicle's `minimum_act`, the campaign tiers' boss table and
+`wildlife_spawn_check`.
+
+**Twenty-two marks now, spread from Act II to Act X**, and six new things a mark
+may do - each moving a number the fight already has:
+
+- **`spawn_guard`** - born wearing a ward, through the same `grant_guard` an
+  anchor's shelter uses. It has to be hit twice to be hit once.
+- **`on_hit_mana_burn`** - takes mana off a caster and is worth *nothing at all*
+  against a swordhand. The same two axes the five shots vary along, and the only
+  threat in the game whose weight depends on who the player decided to be.
+- **`aura_radius` with `aura_speed` and `aura_resistance`** - the bodies around
+  it move faster, or break harder. An aura is a **reason to kill this one
+  first**, which is the readable play morale already makes of a champion.
+- **`death_mends_allies`** - and the opposite decision: a body whose death mends
+  its company is one to leave for *last*. Both exist so that "which of these do
+  I hit" has more than one answer.
+
+**Auras take the best rather than the sum**, which is the rule `_affix_best`
+already follows a layer down: two marks multiplying would approach immunity, and
+a body nothing can hurt is not a mark, it is a wall.
+
+**And `elite_check` now holds both halves of what went wrong.** Every act must
+draw from a pool of its own and the pool must *grow* across the campaign - the
+three-act cap made the last act wear the first act's set. And **every field a
+mark may carry must be named by some script outside the resource**: a field
+authored and read by nothing is the `DisciplineEffects` lie in a second place -
+the mark draws, the codex describes it, and it does nothing. Checked by adding a
+field nothing reads, which the gate named.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

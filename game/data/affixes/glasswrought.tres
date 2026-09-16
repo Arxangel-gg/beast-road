@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "glasswrought"
+display_name = "Glasswrought"
+description = "It shrugs, and it is not fast about it."
+health_scale = 1.2
+speed_scale = 0.84
+damage_resistance = 0.22
+mark_colour = Color(0.70, 0.88, 0.92, 1)
+from_act = 4

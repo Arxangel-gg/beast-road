@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lastrites"
+display_name = "Last Rites"
+description = "Killing it is a gift to everything that was near it."
+aura_radius = 280.0
+death_mends_allies = 0.22
+mark_colour = Color(0.86, 0.90, 0.72, 1)
+from_act = 4

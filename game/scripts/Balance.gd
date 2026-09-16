@@ -1610,6 +1610,14 @@ const ENEMY_STORE_HALF_WIDTH: float = 46.0
 ## blow instead of the body, so the wave's total health is untouched and the
 ## ten-act curve reads the same.
 const ENEMY_ANCHOR_COVER: float = 190.0
+
+## How far out a body looks for an ally whose mark reaches it.
+##
+## The search radius, not the aura's own - each mark carries its own
+## `aura_radius` and is checked against it. This only bounds how many neighbours
+## are ever considered, which is what keeps an aura from being an every-body-asks-
+## every-body loop on a road of forty.
+const ENEMY_AURA_REACH: float = 420.0
 const ENEMY_ANCHOR_HALF_WIDTH: float = 54.0
 
 const ENEMY_CONTACT_INTERVAL: float = ENEMY_ATTACK_WINDUP + ENEMY_ATTACK_STRIKE \
