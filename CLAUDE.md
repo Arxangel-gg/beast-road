@@ -3649,11 +3649,11 @@ for a longer road.
 about ten formations and Act X from twenty-four, so one wave count is a
 procession at the front of the road and a campaign at the back. Act I is also
 the one act that opens with nothing built, and ninety minutes of it before a new
-player meets a boss is a tutorial nobody finishes. Measured after: **mean
-pressure 0.481-0.565** across party sizes against the 0.44-0.58 band, acts
-ramping 0.23 to 0.71, last wave 0.91, and the board finishing at **level 8** on a
-purse of 52,709 - so the ladder is nearly climbed on Normal and the last two
-rungs are what Nightmare and Hell are for.
+player meets a boss is a tutorial nobody finishes. Measured after, **on a new
+account**: mean pressure **0.479-0.563** across party sizes against the
+0.44-0.58 band, acts ramping 0.23 to 0.70, last wave 0.90, and the board
+finishing at **level 8** on a purse of 52,709 - so the ladder is nearly climbed
+on Normal and the last two rungs are what Nightmare and Hell are for.
 
 **`ACT_ROAD_DISTANCE` is the one place the shape of the campaign is stated**, and
 `act_end_distance` sums it. That is the whole change: a table the owner can dial.
@@ -3673,7 +3673,7 @@ mistake.** Setting the growth span to the old 79 waves reproduces the old
 campaign's difficulty spread over the new road - and measured **0.15** mean
 pressure, because threat stood still while a road eight times longer earned eight
 times the purse. `WAVE_GROWTH_REFERENCE_RUN` is how far the curve *climbs*,
-stated in waves of the old campaign, and it is 313 because a board that can now
+stated in waves of the old campaign, and it is 296 because a board that can now
 reach level 8 is about five times the capability the old road ever bought.
 
 **Per wave and not per unit of road, deliberately.** Expressing growth against
@@ -3719,6 +3719,43 @@ rather than off `SEGMENTS_PER_ACT`, which stopped being an act's length - and
 `balance_reach_check` immediately refused to let `CROSSROADS_PER_ACT` stay on its
 unread list once the road-card gate started reading it, which is that gate
 working exactly as intended.
+
+**`curve_report` reads the account, and a whole session was tuned against the
+wrong one, found 2026-09-15.** The release sweep measured mean pressure at 0.504
+where the same commit measured 0.481 by hand, and put four players outside the
+band. Neither number was wrong.
+
+**The report is perfectly deterministic** - three runs against one profile agree
+to the digit - and it reads the **save**. A levelled hero and worn gear are
+capability it counts, so the owner's account (level 81, 37 gear points, 32 towers)
+measures about **five percent easier** than a fresh one. The sweep points
+`APPDATA` at a scratch directory, so CI has always judged the band against a new
+account, and every measurement taken by hand this session judged it against the
+owner's.
+
+**The sweep's number is the one that matters**, for two reasons: it is the harder
+case, and it is the game a new player is handed. The span was re-solved against a
+new account and reads 0.479-0.563.
+
+**Printed rather than fixed.** Measuring a veteran's road is a legitimate thing to
+want; the failure was never knowing which one was on screen. `curve_report` now
+opens with the account it modelled - "measured on a NEW account" or "a PLAYED
+account", with the level, the gear points and the unlocked towers - and says
+plainly when the band below is held against a different one. **To measure the way
+the gate does, point the profile somewhere empty:**
+
+    APPDATA=/tmp/empty LOCALAPPDATA=/tmp/empty godot --headless --path game ...
+
+**The first cut of that line called a fresh profile "played"**, because it tested
+for no gear and no towers. A new account is not an empty one: it opens with eight
+towers unlocked and the run hands out a starting weapon, so those are never zero.
+It keys on the hero's level, which cannot be baseline above one.
+
+**This is the same family as the clean-profile lesson already in the memory
+directory** - a CI profile has no bonded spirit, so a panel never drew and its
+overlaps went unseen - and the same family as the camp lords in the road purse.
+**A model that reads state measures whatever state it was handed**, and it will
+not tell you which unless it is made to.
 
 ### The three escape hatches — and why there are only three
 

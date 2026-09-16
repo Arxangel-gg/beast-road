@@ -350,6 +350,41 @@ func _affordable_dps(earned: float) -> float:
 	return best
 
 
+## **Whose account this was measured on.**
+##
+## The report reads the save: a levelled hero and worn gear are capability it
+## counts, so the same commit measures about five percent easier on a played
+## account than on a new one. That is not a fault - a veteran really does have an
+## easier road - but it means **a number read here is only comparable to another
+## number read on the same account**, and the band is held by CI against a fresh
+## one.
+##
+## This was found by the release sweep of 2026-09-15 disagreeing with a local run
+## by 0.023, after a whole session of tuning against the owner's live save. The
+## sweep is right, because the sweep is what ships. Printed rather than fixed:
+## measuring a veteran's road is a legitimate thing to want, and the failure was
+## never knowing which one was on screen.
+##
+## To measure the way the gate does, point the profile somewhere empty:
+##
+##   APPDATA=/tmp/empty LOCALAPPDATA=/tmp/empty godot --headless --path game ...
+func _print_the_account() -> void:
+	var worn: int = 0
+	for points: int in MetaState.gear_attribute_points():
+		worn += points
+	# **Keyed on the hero's level and nothing else.** A new account is not an
+	# empty one - it opens with eight towers unlocked and the run hands out a
+	# starting weapon, so "no gear and no towers" is never true and the first cut
+	# of this line called a fresh profile played. A level above one cannot be
+	# baseline.
+	var fresh: bool = MetaState.hero_level <= 1
+	print(("[curve] measured on %s - hero level %d, %d gear points, %d towers "
+		+ "unlocked%s")
+		% ["a NEW account" if fresh else "a PLAYED account", MetaState.hero_level,
+			worn, MetaState.unlocked_towers.size(),
+			"" if fresh else "  <- the band below is held against a new one"])
+
+
 ## **Does every party size get the same game?**
 ##
 ## Judged on the *mean* pressure across the run, not the peak. The peak is
@@ -382,6 +417,7 @@ func _judge_party_scaling() -> int:
 	for index: int in means.size():
 		readout += "%d:%.3f  " % [index + 1, means[index]]
 	print("")
+	_print_the_account()
 	print("[curve] mean pressure by party size   %s spread %.0f%%" % [readout, spread])
 	var failed: int = 0
 	if spread > PARTY_SPREAD_LIMIT:

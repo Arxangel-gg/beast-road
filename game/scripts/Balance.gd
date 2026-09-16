@@ -3590,7 +3590,7 @@ const WAVE_SPEED_GROWTH: float = 0.19
 ## the tenth tower level, which is about five times the capability the old road
 ## ever reached - so the curve has to climb about that much further to stay the
 ## same fight. [TUNE]
-const WAVE_GROWTH_REFERENCE_RUN: float = 313.0
+const WAVE_GROWTH_REFERENCE_RUN: float = 296.0
 const WAVE_GROWTH_REFERENCE_ACT: float = 7.0
 
 
