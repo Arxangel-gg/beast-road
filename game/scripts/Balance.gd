@@ -7061,7 +7061,7 @@ const BEAST_TAIL_HARMONY_FLOOR: float = 0.72
 ## bulk reads brighter than it measures. This is the deliberate correction for
 ## that, and it is a constant rather than a derivation so that it is honest about
 ## being one.
-const BEAST_TAIL_SEAT: float = 0.80
+const BEAST_TAIL_SEAT: float = 1.0
 
 ## **How far up the tail is nudged from where the stub row puts it.**
 ##
@@ -7078,6 +7078,19 @@ const BEAST_TAIL_SEAT: float = 0.80
 ## dissolves over would pull the tail clear of the join it is supposed to hide
 ## inside.
 const BEAST_TAIL_LIFT: float = 12.0
+
+## **How far the far end of the tail settles, in the art's own pixels.**
+##
+## Owner, 2026-09-16: "bring yuri's tail end down just a very tiny bit and it
+## should finally be in place". Applied along the limb rather than to the whole
+## of it - zero at the root, all of it at the tip - because `BEAST_TAIL_LIFT`
+## above is what lines the *join* up and was set by two separate reports about
+## exactly that. Lowering the limb bodily would have bought the tip at the cost
+## of the seam.
+##
+## It is a droop rather than a rotation for the same reason the limb is a chain:
+## a hanging thing sags most where it is furthest from what holds it. [TUNE]
+const BEAST_TAIL_TIP_DROOP: float = 5.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
 # --- What the earth is doing, seen from the road (owner brief, 2026-09-15) ---
 #

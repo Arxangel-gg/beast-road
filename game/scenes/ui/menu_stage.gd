@@ -528,7 +528,14 @@ func _layout() -> void:
 		var grow: float = span.y * BEAST_HEIGHT / maxf(native, 1.0)
 		_beast.scale = Vector2.ONE * grow
 		_beast.position = span * BEAST_AT
-		_beast.modulate = _sampled_beast_tint()
+		var beast_grade: Color = _sampled_beast_tint()
+		_beast.modulate = beast_grade
+		# **The limb is told the same thing on the same frame.** It does not
+		# arrive down the modulate chain - measured - and a tail graded from a
+		# different value than the body it grows from is the fault this has
+		# been reported for seven times.
+		if _tail != null:
+			_tail.wear_grade(beast_grade)
 		if _shadow != null:
 			# Wider than the beast and very flat, sitting just under where its
 			# feet now end.

@@ -143,9 +143,16 @@ func _update_town_light() -> void:
 
 
 func _apply_beast_environment_tint() -> void:
-	if beast != null:
-		beast.modulate = Color.WHITE.lerp(_ground_tint(),
-			Balance.BEAST_ENVIRONMENT_TINT)
+	if beast == null:
+		return
+	var grade: Color = Color.WHITE.lerp(_ground_tint(),
+		Balance.BEAST_ENVIRONMENT_TINT)
+	beast.modulate = grade
+	# **And the limb is told the same thing on the same frame.** It does not
+	# arrive down the modulate chain, whatever the comment beside `_tail.modulate`
+	# used to claim - see `BeastTailSpline.wear_grade`.
+	if _tail != null:
+		_tail.wear_grade(grade)
 
 
 ## The ground the beast walks over, from the region's sidescroller tileset.
@@ -409,10 +416,13 @@ func _load_tail() -> void:
 	# The spline puts its own root on its origin, so the node simply goes where
 	# the body's stub is - see `_place_tail`.
 	_tail.position = Balance.BEAST_TAIL_ANCHOR
-	# **The tail was drawn darker than the hide it grows out of.** `modulate`
-	# is inherited from the beast, so the day tint and the environment grade
-	# already reach it; this multiplies on top and corrects only the difference
-	# the two assets were generated with. See `Balance.BEAST_TAIL_GRADE`.
+	# **It is not inherited, and this comment used to say that it was.**
+	#
+	# The claim here was "`modulate` is inherited from the beast, so the day tint
+	# and the environment grade already reach it". Photographed and sampled, the
+	# body wore (0.58, 0.473, 0.476) and the limb wore (1, 1, 1) - so the tail
+	# rendered grey and bright beside a warm dark animal, which is what was
+	# reported seven times. The grade is handed over in `_grade_the_beast` now.
 	_tail.modulate = Balance.BEAST_TAIL_GRADE
 	_tail.show_behind_parent = true
 	_place_tail()

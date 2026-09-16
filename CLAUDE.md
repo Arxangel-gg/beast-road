@@ -3834,6 +3834,57 @@ the unread list, which was the gate asking a fair question: the other three
 wallets are derived from the road's own trickle over the distance walked now,
 rather than from a share of a Gold figure they have nothing to do with.
 
+**The tail was never receiving the beast's grade, found 2026-09-16 on the
+seventh report.** The owner has reported Yuri's tail as not colour-graded like
+the body seven times, and six passes were spent on it. **Every one of those
+passes measured the two paintings. None of them measured the screen.**
+
+Photographed and sampled off the render:
+
+    body  modulate = (0.58, 0.473, 0.476)      warm, dark, strongly coloured
+    tail  modulate = (1, 1, 1)  self = (0.8, 0.8, 0.8)      flat grey
+
+The limb came out **+27% brighter than the hide and desaturated to 1.6% against
+its 4.8%** - a grey tail on a warm animal, which is exactly what was reported
+every time. And `beast_scope.gd` carried a comment asserting the opposite in as
+many words: *"`modulate` is inherited from the beast, so the day tint and the
+environment grade already reach it"*. It does not reach it. **That false comment
+is why six passes were spent tuning a ratio that was then multiplied by grey
+instead of by the beast's own grade** - including `BEAST_TAIL_SEAT`, an authored
+20% darkening added to answer "the tail reads lighter", which was treating the
+symptom of a missing grade.
+
+`BeastTailSpline.wear_grade` is handed the grade at the same moment the body is
+given it, in both scopes. Measured after: **+6.6% luminance and +2.9 saturation
+points**, against +26.7% and -3.2 before. The seat offset went back to 1.0,
+because with the grade applied its cause is gone and leaving it would be the
+same fault pointing the other way.
+
+**Two things it dragged out with it.** `_surface_mean` returned
+`get_luminance()`, so two colours of one brightness and different hues measured
+identical - and "not colour graded the same" is a hue complaint a greyscale
+scalar can never answer; it is per channel now, and it reads the whole limb
+against the whole rear of the body rather than a strip at the seam, which agreed
+within nine percent while the length of the tail did not. And **`menu_shot` had
+been printing "no tail sprite found" over a tail plainly on screen** since the
+tail became a spline: it cast to `Sprite2D` and a spline is a `Node2D`. A
+diagnostic lying about the one thing it exists to report is worse than no
+diagnostic, and it is why nobody caught the grading in a photograph.
+
+**The lesson is the one this project keeps relearning in new clothes.** A model
+of a thing is not the thing: the camp lords drifted a roster average, the curve
+report read the wrong account, and here six passes measured source art while the
+owner was looking at pixels on a screen. **When a report and the code disagree
+seven times, photograph the output and measure that.**
+
+**And the far end settles**, which was the other half of the same request. The
+droop is in the *rest pose* rather than in the walk - `beast_tail_check` holds
+that the chain at rest reproduces its rest pose exactly, which is what catches
+the wave distorting the art, so a droop added in the walk reads to that gate as
+precisely the distortion it refuses. Zero at the root and all of it at the tip,
+because `BEAST_TAIL_LIFT` lines the seam up and was set by two separate reports
+about that seam.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -63,27 +63,24 @@ func _ready() -> void:
 		print("[menu-shot] frame size %s visible=%s corner=%s"
 			% [str(control.size), str(control.visible),
 				str(ResourceLoader.exists(MenuFrame.CORNER_ART))])
-	var tail: Sprite2D = _find_tail(menu)
+	var tail: CanvasItem = _find_tail(menu)
 	if tail == null:
-		print("[menu-shot] no tail sprite found")
+		print("[menu-shot] no tail node found")
 	else:
+		var parent := tail.get_parent() as CanvasItem
+		print(("[menu-shot] tail %s self_modulate=%s modulate=%s | body "
+			+ "modulate=%s self=%s material=%s")
+			% [tail.get_class(), str(tail.self_modulate), str(tail.modulate),
+				str(parent.modulate) if parent != null else "-",
+				str(parent.self_modulate) if parent != null else "-",
+				str(parent.material != null) if parent != null else "-"])
+		# Where it is on screen, so a crop can be taken without hunting for a
+		# few dozen pixels in a 2560-wide photograph.
+		print("[menu-shot] tail at %s  ·  body at %s  ·  scale %s"
+			% [str((tail as Node2D).get_global_position().round()),
+				str((tail.get_parent() as Node2D).get_global_position().round()),
+				str(tail.get_global_transform().get_scale())])
 		var material := tail.material as ShaderMaterial
-		print("[menu-shot] tail pos %s offset %s size %s beast-modulate %s"
-			% [str(tail.position), str(tail.offset), str(tail.texture.get_size()),
-				str((tail.get_parent() as CanvasItem).modulate)])
-		# **Where to crop.** Every report about this join is about a few dozen
-		# pixels in a 2560-wide photograph, and finding them by eye costs more
-		# than printing them does. Global, after the parent's scale.
-		var body := tail.get_parent() as Sprite2D
-		var scale_at: Vector2 = tail.get_global_transform().get_scale()
-		var span: Vector2 = tail.texture.get_size() * scale_at
-		var top_left: Vector2 = tail.get_global_position() 			+ (tail.offset - tail.texture.get_size() * 0.5) * scale_at
-		print("[menu-shot] tail on screen %s to %s  ·  join at %s"
-			% [str(top_left.round()), str((top_left + span).round()),
-				str(tail.get_global_position().round())])
-		if body != null:
-			print("[menu-shot] body centre %s scale %s"
-				% [str(body.get_global_position().round()), str(scale_at)])
 		if material != null:
 			if feather >= 0.0:
 				material.set_shader_parameter("feather", feather)
@@ -105,11 +102,17 @@ func _ready() -> void:
 	get_tree().quit(0)
 
 
-func _find_tail(from: Node) -> Sprite2D:
+## **A `Node2D`, not a `Sprite2D`.**
+##
+## This cast to `Sprite2D` and so returned null for every run since the tail
+## became `BeastTailSpline` - a spline is a `Node2D` that draws slices. The tool
+## has been printing "no tail sprite found" over a tail that is plainly on
+## screen, which is a diagnostic lying about the one thing it exists to report.
+func _find_tail(from: Node) -> CanvasItem:
 	if from.name == &"Tail":
-		return from as Sprite2D
+		return from as CanvasItem
 	for child: Node in from.get_children():
-		var found: Sprite2D = _find_tail(child)
+		var found: CanvasItem = _find_tail(child)
 		if found != null:
 			return found
 	return null

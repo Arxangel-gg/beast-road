@@ -41,6 +41,10 @@ var sway: float = 1.0
 var wind: float = 0.0
 
 var _texture: Texture2D = null
+## The difference between the two paintings, measured once per pair.
+var _paint_match: Color = Color.WHITE
+## The grade the body is wearing, handed over by whoever grades it.
+var _grade: Color = Color.WHITE
 ## The painting's own centreline, in its own pixels: one point per slice
 ## boundary, from the root end to the tip.
 var _rest: PackedVector2Array = PackedVector2Array()
@@ -72,7 +76,7 @@ func adopt(texture: Texture2D) -> void:
 	if not _measured.has(key):
 		_measured[key] = _measure(texture)
 	var found: Dictionary = _measured[key]
-	_rest = found["centreline"]
+	_rest = _settled(found["centreline"])
 	_root = found["root"]
 	queue_redraw()
 
@@ -82,6 +86,35 @@ func adopt(texture: Texture2D) -> void:
 ## **Read off the art rather than authored**, for the same reason `BeastTail`
 ## reads the body's stub row off the body: a number written down here would be
 ## wrong the next time the tail is redrawn, and wrong silently.
+## **The far end of the limb settles, and the root does not move.**
+##
+## Owner, 2026-09-16: "bring yuri's tail end down just a very tiny bit and it
+## should finally be in place". Applied to the *rest pose* rather than to the
+## walk, for two reasons. It is a property of how the limb hangs rather than of
+## how it moves, so the slices should follow it and the whip should build on top
+## of it. And `beast_tail_check` holds that the chain at rest reproduces its rest
+## pose exactly - which is what catches the wave accidentally distorting the art
+## - so a droop added in the walk reads to that gate as exactly the distortion it
+## exists to refuse. Here the invariant keeps its teeth and the limb still hangs.
+##
+## Zero at the root and all of it at the tip, because that is what a hanging
+## thing does, and because `BEAST_TAIL_LIFT` lines the seam up and was set by two
+## separate reports about exactly that seam.
+static func _settled(centreline: PackedVector2Array) -> PackedVector2Array:
+	var count: int = centreline.size()
+	if count < 2 or Balance.BEAST_TAIL_TIP_DROOP == 0.0:
+		return centreline
+	var out := PackedVector2Array()
+	for index: int in count:
+		# The painting runs tip-first: index 0 is the far end, the last point is
+		# the root. So "how far from the root" counts down rather than up.
+		var from_root: float = 1.0 - float(index) / float(count - 1)
+		var point: Vector2 = centreline[index]
+		point.y += Balance.BEAST_TAIL_TIP_DROOP * from_root * from_root
+		out.append(point)
+	return out
+
+
 static func _measure(texture: Texture2D) -> Dictionary:
 	var image: Image = texture.get_image()
 	var centreline := PackedVector2Array()
@@ -149,14 +182,56 @@ func harmonise(body: Texture2D) -> void:
 	var key: String = "%s|%s" % [body.resource_path, _texture.resource_path]
 	if not _harmony.has(key):
 		_harmony[key] = _measure_harmony(body, _texture)
-	self_modulate = _harmony[key] as Color
+	_paint_match = _harmony[key] as Color
+	_apply_grade()
+
+
+## **The grade the body is wearing, handed over rather than inherited.**
+##
+## Reported seven times, and every previous pass measured the two paintings
+## instead of the screen. Photographed: the body's `modulate` was
+## (0.58, 0.473, 0.476) - warm, dark, strongly coloured - and the limb's was
+## (1, 1, 1) with a flat grey `self_modulate`, so it rendered **+27% brighter
+## than the hide and almost entirely desaturated**. A grey tail on a warm
+## animal.
+##
+## `beast_scope.gd` carried a comment asserting the opposite - "`modulate` is
+## inherited from the beast, so the day tint and the environment grade already
+## reach it" - and that belief is why four passes were spent tuning a ratio that
+## was then multiplied by grey. **Whatever the reason the chain does not carry
+## it, handing it over explicitly is one line and cannot be wrong about it.**
+##
+## Called wherever the body is given its own grade, so the two can never be set
+## from different values on the same frame.
+func wear_grade(grade: Color) -> void:
+	_grade = grade
+	_apply_grade()
+
+
+func _apply_grade() -> void:
+	self_modulate = Color(
+		_paint_match.r * _grade.r,
+		_paint_match.g * _grade.g,
+		_paint_match.b * _grade.b,
+		1.0)
 
 
 ## The ratio between the hide at the stub and the limb at its root.
+## **Per channel, not per luminance.**
+##
+## This returned one greyscale ratio, so two colours of the same brightness and
+## a different hue measured identical - and the owner's words were "not color
+## graded or tinted the same", which is a hue complaint a scalar can never
+## answer. Multiplying by a coloured ratio tints a grey limb toward the hide;
+## multiplying by a grey one only ever dims it.
+##
+## **And it reads the whole limb against the whole rear of the body**, not a
+## strip at the seam. The seam agreed within nine percent while the length of
+## the tail - which is nearly all of what anybody looks at - did not.
 static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
-	var hide: float = _surface_mean(body, 0.0, 0.34, 0.35, 1.0)
-	var limb: float = _surface_mean(tail, 0.62, 1.0, 0.0, 1.0)
-	if hide <= 0.001 or limb <= 0.001:
+	var hide: Color = _surface_mean(body, 0.0, 0.34, 0.0, 1.0)
+	var limb: Color = _surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
+	if hide.get_luminance() <= 0.001 or limb.get_luminance() <= 0.001:
 		return Color.WHITE
 	# **And then the offset the eye asked for.**
 	#
@@ -171,8 +246,14 @@ static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
 	# So `BEAST_TAIL_SEAT` is an authored offset rather than a derived one, and
 	# it is written down as such. If the art is ever redrawn far enough apart
 	# for the measurement to bite, it takes over and this only trims.
-	var ratio: float = clampf(hide / limb, Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0) 		* Balance.BEAST_TAIL_SEAT
-	return Color(ratio, ratio, ratio, 1.0)
+	var ratio: Color = Color(
+		clampf(hide.r / maxf(limb.r, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
+		clampf(hide.g / maxf(limb.g, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
+		clampf(hide.b / maxf(limb.b, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
+		1.0)
+	return Color(ratio.r * Balance.BEAST_TAIL_SEAT,
+		ratio.g * Balance.BEAST_TAIL_SEAT,
+		ratio.b * Balance.BEAST_TAIL_SEAT, 1.0)
 
 
 ## Mean brightness of the painted surface inside a box, ink held out.
@@ -181,13 +262,13 @@ static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
 ## limb carries more outline per unit of area than a flank does, and averaging
 ## the two together compares line weight rather than colour.
 static func _surface_mean(texture: Texture2D, from_x: float, to_x: float,
-		from_y: float, to_y: float) -> float:
+		from_y: float, to_y: float) -> Color:
 	var image: Image = texture.get_image()
 	if image == null or image.is_empty():
-		return 0.0
+		return Color.BLACK
 	var width: int = image.get_width()
 	var height: int = image.get_height()
-	var total: float = 0.0
+	var total := Vector3.ZERO
 	var count: int = 0
 	for y: int in range(int(float(height) * from_y), int(float(height) * to_y)):
 		for x: int in range(int(float(width) * from_x), int(float(width) * to_x)):
@@ -196,9 +277,12 @@ static func _surface_mean(texture: Texture2D, from_x: float, to_x: float,
 				continue
 			if at.r <= 0.05 and at.g <= 0.05 and at.b <= 0.05:
 				continue
-			total += at.get_luminance()
+			total += Vector3(at.r, at.g, at.b)
 			count += 1
-	return total / float(count) if count > 0 else 0.0
+	if count <= 0:
+		return Color.BLACK
+	total /= float(count)
+	return Color(total.x, total.y, total.z, 1.0)
 
 
 ## **The pose steps on the body's own beat** (owner, 2026-09-15: "change the FPS
