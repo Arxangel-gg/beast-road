@@ -99,7 +99,10 @@ func _test_the_camp_keeps_out_of_the_interface() -> void:
 			"a camp pitched at %0.3f of the width, outside its own band" % at)
 		var fire: Vector2 = camp.fire_at()
 		if fire != Vector2.ZERO:
-			_check(fire.x > span.x * 0.2 and fire.x < span.x * 0.8,
+			# Read off `Balance` rather than typed here: this bound *is* where the
+			# interface ends, and the two used to be able to disagree.
+			_check(fire.x > span.x * Balance.MENU_CAMP_CLEAR_OF_INTERFACE.x
+					and fire.x < span.x * Balance.MENU_CAMP_CLEAR_OF_INTERFACE.y,
 				"a campfire at %0.0f is under the interface" % fire.x)
 			_check(fire.y > span.y * 0.5 and fire.y < span.y,
 				"and a campfire at %0.0f is off the picture" % fire.y)

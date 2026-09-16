@@ -7552,10 +7552,15 @@ const MENU_CAMP_FAR_SCALE: float = 0.78
 const MENU_CAMP_CLIFF_LIFT: float = 0.07
 ## How wide the outcrop is against the figure standing on it.
 const MENU_CAMP_CLIFF_WIDTH: float = 4.6
-## How much darker the rock is than what stands on it. A foreground mass
-## between the viewer and the light is the one thing here that should be close
-## to a true silhouette.
-const MENU_CAMP_ROCK: float = 0.44
+## How much darker the rock is than what stands on it.
+##
+## **0.44 until 2026-09-16**, on the reasoning that a foreground mass between the
+## viewer and the light "should be close to a true silhouette". Photographed, it
+## is closer to *absent*: the owner reported the ledge's left edge fading out and
+## asked for it clearer, and in a shot with `cliff: true` the outcrop cannot be
+## told from the dark ground behind it at all. A foreground mass has to be read
+## as a mass before it can read as dark. [TUNE]
+const MENU_CAMP_ROCK: float = 0.60
 ## How far the outcrop is pushed toward the corner, as a share of its own
 ## width, so its far end runs off the screen rather than ending in mid-air.
 const MENU_CAMP_CLIFF_OFFSET: float = 0.34
@@ -7596,7 +7601,41 @@ const MENU_CAMP_TINT: float = 0.34
 ## Where along the bottom the camp may pitch, as a share of the screen's width
 ## in from whichever side it chose. Inside the interface on both sides: buttons
 ## down the left, the run statistics down the right.
-const MENU_CAMP_BAND: Vector2 = Vector2(0.3, 0.38)
+## **How many shafts of light rise off a showpiece fire.**
+##
+## Two until 2026-09-16, and they read as a pair rather than as light. Three,
+## each with its own reach, sway rate and flicker phase, is enough that the group
+## never falls into step - see `CampFire._draw`. [TUNE]
+const CAMP_FIRE_SHAFT_COUNT: int = 3
+
+## **Where along the bottom edge the camp is pitched**, as a fraction in from the
+## right.
+##
+## Was (0.3, 0.38), which put the vignette at 62-70% of the width - the middle
+## right rather than the corner, and the owner reported the ledge floating in the
+## scene with the campfire hanging off its edge. Nearer the corner the rock runs
+## off the screen instead of ending in mid-air, which is what makes it read as
+## foreground the scene is seen past. [TUNE]
+## Pulled back from 0.17-0.24 the same day it was set there: at 17% in from the
+## right the Warden stood *behind the run statistics*, which is the exact fault
+## the note above warns about. The rock still runs off the corner; the person
+## stands at its inland end, clear of the words.
+const MENU_CAMP_BAND: Vector2 = Vector2(0.26, 0.32)
+
+## **The stretch of the bottom edge the camp may use, clear of the interface.**
+##
+## `menu_camp_check` held this as a literal 0.2-0.8, which encoded "the run
+## statistics own the right fifth of the bottom". On 2026-09-16 the owner asked
+## for the ledge anchored into the bottom-right corner, so the statistics were
+## lifted 160px off the bottom and that fifth is now free - at which point the
+## literal in the gate was describing an interface that no longer exists.
+##
+## **Named here so the gate and the layout cannot disagree again.** A bound kept
+## in prose and enforced by a number typed into a tool is two places to change
+## and one place to forget, which this file has already paid for once with
+## `curve_report`'s pressure band. If the statistics ever move back down, this is
+## the one number that moves with them. [TUNE]
+const MENU_CAMP_CLEAR_OF_INTERFACE: Vector2 = Vector2(0.20, 0.88)
 ## How far down the screen the camp's ground is, as a share of its height.
 const MENU_CAMP_GROUND: float = 0.955
 ## Redraws a second. Nothing here moves except the flame, which is its own node.
@@ -8288,8 +8327,15 @@ const MENU_FRAME_SHADE: float = 0.62
 ## then do so"). It does: at full opacity the stone is a mask laid on the
 ## painting, and at three quarters the scene reads *through* the carving at its
 ## edges, which is what makes it a frame around a window rather than a picture
-## of a frame. Not lower - the vines and the studs stop being legible.
-const MENU_FRAME_ALPHA: float = 0.76
+## of a frame.
+##
+## **0.76 until 2026-09-16**, when the owner asked for it "slightly even more
+## semi transparent". The note here used to say "not lower - the vines and the
+## studs stop being legible", which was a guess written at the time rather than
+## something looked at; photographed at 0.68 the carving is still plainly stone
+## and the scene reads further through it. It is a *slight* step on purpose -
+## the studs are the first thing to go, and they go somewhere under 0.6.
+const MENU_FRAME_ALPHA: float = 0.68
 
 ## **Leaves off the hanging vines.** How long between one letting go, how many
 ## may be in the air, how big one is against the screen, and how often one falls

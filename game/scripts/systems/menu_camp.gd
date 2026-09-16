@@ -172,6 +172,12 @@ func _frame_of(key: String, offset: float) -> Texture2D:
 func _pitch() -> void:
 	var pose: int = Pose.MOUNTED if _rng.randf() < Balance.MENU_CAMP_MOUNTED_CHANCE \
 		else (Pose.SITTING if _rng.randf() < 0.55 else Pose.STANDING)
+	# **Rolled before the dictionary**, because the fire's side depends on it and
+	# a key cannot read its own literal. The fire goes inland when there is a
+	# ledge: the outcrop runs off the right of the screen, so the rock is to the
+	# figure's right and open air is to their left - and a fire rolled onto the
+	# left side was a fire burning off the edge, which is what was reported.
+	var on_a_cliff: bool = _rng.randf() < Balance.MENU_CAMP_CLIFF_CHANCE
 	_camp = {
 		# **Always the bottom-right corner** (owner, 2026-09-15: "the cliff is
 		# supposed to be in the bottom right corner, not out in the middle of
@@ -183,7 +189,7 @@ func _pitch() -> void:
 		"pose": pose,
 		# No cliff sometimes: the camp is then simply on the road, lower down
 		# and smaller, which reads as further away.
-		"cliff": _rng.randf() < Balance.MENU_CAMP_CLIFF_CHANCE,
+		"cliff": on_a_cliff,
 		# A mounted Warden *is* the horse, so a second one would be two horses.
 		"horse": pose != Pose.MOUNTED and _rng.randf() < Balance.MENU_CAMP_HORSE_CHANCE,
 		"fire": _rng.randf() < Balance.MENU_CAMP_FIRE_CHANCE or pose == Pose.SITTING,
@@ -203,7 +209,12 @@ func _pitch() -> void:
 		"lift": _rng.randf_range(0.0, 0.05),
 		# Which way the pieces face. The whole point is that they are looking at
 		# the beast, so the figure faces toward the middle of the screen.
-		"fire_side": 1.0 if _rng.randf() < 0.5 else -1.0,
+		# **Inland when there is a ledge under it** (owner, 2026-09-16: "the
+		# campfire by the firehorse and warden is off the edge of the cliff").
+		# The outcrop runs off the right of the screen, so the rock is to the
+		# figure's right and open air is to their left - a fire rolled onto the
+		# left side was a fire burning off the edge.
+		"fire_side": 1.0 if on_a_cliff else (1.0 if _rng.randf() < 0.5 else -1.0),
 		"phase": _rng.randf() * TAU,
 		# **The lantern, usually but not always** (owner's words). On the
 		# Warden when they are afoot, hanging off the horse when there is one -

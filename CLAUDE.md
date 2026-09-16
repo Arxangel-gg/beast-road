@@ -3916,6 +3916,43 @@ breed at a time is not an answer to thirty-eight, and the art was never the thin
 that was wrong. **Wildlife was already correct** and needed nothing: it flips
 toward its motion for every animal.
 
+**The menu camp moves into the corner it was always meant to be in, as of
+2026-09-16.** The owner: the campfire "is off the edge of the cliff and needs to
+all be moved further right", the ledge's left edge "shouldn't have such a fade
+out", and the whole outcrop should be "attached to the far right side of the
+screen on the bottom right anchored" as foreground parallax.
+
+**Three numbers, and each of them was describing an intention rather than the
+picture.** `MENU_CAMP_BAND` put the vignette at 62-70% of the width - the middle
+right rather than the corner. `MENU_CAMP_ROCK` darkened the outcrop to 0.44 on
+the reasoning that a foreground mass "should be close to a true silhouette";
+photographed, it was closer to *absent*, and indistinguishable from the dark
+ground behind it. And `fire_side` was rolled either way, so a fire could land on
+the open-air side of a ledge that runs off the right of the screen - which is
+exactly the fire hanging in space that was reported.
+
+**The first correction over-shot, and the gate caught it.** Pushed to 17% in from
+the right, the Warden stood behind the run statistics - the precise fault the
+note above `MENU_CAMP_BAND` warns about. `menu_camp_check` then refused the fire
+for being "under the interface".
+
+**And the fix for that was to move the interface, not the camp.** The statistics
+are text and the corner is what the owner asked for the rock to have, so they
+lift 160px off the bottom. **Which made the gate's own bound wrong**: it held the
+fire inside a literal 0.2-0.8 of the width, and that 0.8 *encoded* the statistics
+owning the right fifth. `MENU_CAMP_CLEAR_OF_INTERFACE` is that bound named in
+`Balance` and read by the gate, so the layout and the check cannot drift apart -
+the same failure `curve_report`'s pressure band shipped with once, where a bound
+lived in prose here and as a number typed into a tool.
+
+**The fire's shafts are three now, feathered, each its own length.** A
+`draw_colored_polygon` cannot have a soft edge - one colour for the whole shape
+is what a hard edge *is* - so each shaft is three quads with a colour per vertex:
+a core and a feather either side whose outer vertices are transparent. Each cone
+takes its reach, sway rate and flicker phase from its own irrational step through
+the fire's seed, so no two over one flame fall into step; the old pair shared a
+length and read as two wipers rather than as light.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

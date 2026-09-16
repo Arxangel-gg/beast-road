@@ -196,14 +196,54 @@ func _draw() -> void:
 		return
 	var tall: float = Balance.CAMP_FIRE_LIGHT_RADIUS * 0.62 * _glow_scale / maxf(scale.y, 0.01)
 	var wide: float = tall * 0.26
-	for side: int in 2:
-		var lean: float = sin(_clock * (0.7 + 0.31 * float(side)) + _seed + float(side) * 2.1)
-		var foot: float = wide * 0.24 * (1.0 if side == 0 else -1.0)
-		var head: Vector2 = Vector2(lean * wide * 0.5 + foot * 2.0, -tall * (0.85 + 0.15 * _flicker))
-		var wedge := PackedVector2Array([
-			Vector2(foot - wide * 0.16, -2.0),
-			Vector2(foot + wide * 0.16, -2.0),
-			head + Vector2(wide * 0.5, 0.0),
-			head + Vector2(-wide * 0.5, 0.0)])
-		var lit: float = 0.055 + 0.03 * _flicker
-		draw_colored_polygon(wedge, Color(1.0, 0.72, 0.36, lit))
+	for side: int in Balance.CAMP_FIRE_SHAFT_COUNT:
+		# **Every cone is its own.** The old pair shared a length and took their
+		# lean from the side index, so they swung as a matched pair - two wipers
+		# rather than light. Each offset is an irrational step through the fire's
+		# own seed, so no two shafts over one flame ever fall into step.
+		var own: float = _seed + float(side) * 2.399963
+		var spread: float = (float(side) - float(Balance.CAMP_FIRE_SHAFT_COUNT - 1) * 0.5) 			/ maxf(float(Balance.CAMP_FIRE_SHAFT_COUNT - 1), 1.0)
+		var reach: float = tall * (0.74 + 0.40 * fposmod(own * 0.618, 1.0))
+		# Its own flicker, at its own rate: a shaft that breathes with its
+		# neighbour is one wide shaft with a seam down it.
+		reach *= 0.88 + 0.12 * _flicker + 0.07 * sin(_clock * (0.9 + 0.27 * float(side)) + own * 1.7)
+		var lean: float = sin(_clock * (0.7 + 0.31 * float(side)) + own)
+		var foot: float = wide * 0.30 * spread * 2.0
+		var head: Vector2 = Vector2(lean * wide * 0.5 + foot * 1.6, -reach)
+		var lit: float = (0.055 + 0.03 * _flicker) 			* (1.0 - 0.25 * absf(spread))
+		_feathered_shaft(foot, wide * 0.17, head, wide * 0.5, lit)
+
+
+## One shaft, soft at both edges and fading out toward its head.
+##
+## **A `draw_colored_polygon` cannot have a soft edge**: one colour for the whole
+## shape is what a hard edge is, and the owner reported exactly that. A colour
+## *per vertex* can, so the shaft is three quads - a core, and a feather either
+## side whose outer vertices are fully transparent - and the light falls off
+## across the shaft instead of stopping at a line. The head vertices carry a
+## fraction of the foot's alpha, so it also thins out as it rises, which is what
+## a shaft of light in dusty air does.
+func _feathered_shaft(foot_x: float, foot_half: float, head: Vector2,
+		head_half: float, lit: float) -> void:
+	var tint := Color(1.0, 0.72, 0.36, 1.0)
+	var core := Color(tint, lit)
+	var edge := Color(tint, 0.0)
+	# The head keeps a little of the light so the fade is a gradient rather than
+	# a cut, and the very tip is gone.
+	var core_top := Color(tint, lit * 0.28)
+	for band: int in 3:
+		var from: float = float(band - 1)
+		var to: float = float(band)
+		# -1..0..1..2 across the three bands: the middle one is the core.
+		var a: float = foot_x + foot_half * (from - 0.5) * 2.0
+		var b: float = foot_x + foot_half * (to - 0.5) * 2.0
+		var c: float = head.x + head_half * (to - 0.5) * 2.0
+		var d: float = head.x + head_half * (from - 0.5) * 2.0
+		var left_lit: Color = edge if band == 0 else core
+		var right_lit: Color = edge if band == 2 else core
+		var left_top: Color = edge if band == 0 else core_top
+		var right_top: Color = edge if band == 2 else core_top
+		draw_polygon(
+			PackedVector2Array([Vector2(a, -2.0), Vector2(b, -2.0),
+				Vector2(c, head.y), Vector2(d, head.y)]),
+			PackedColorArray([left_lit, right_lit, right_top, left_top]))
