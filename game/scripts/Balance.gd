@@ -8349,6 +8349,11 @@ const RIFT_LOOP_CHANCE: float = 0.3
 ## walking distances that steer them are refreshed this often.
 const DUNGEON_SPAWN_MIN_TILES: int = 7
 const DUNGEON_FLOW_REFRESH: float = 0.2
+## How long the Guide's dungeon picture lets the place fill before the shutter.
+## Bodies are dealt on `DUNGEON_FIRST_SPAWN_DELAY` and then have to walk out of
+## the corridors they were dealt into, so this is that plus the walk.
+const GUIDE_DEEP_FRAMES: int = 260
+
 const DUNGEON_FIRST_SPAWN_DELAY: float = 1.5
 ## The collapse: seconds to reach the exit once the clock runs out, and the
 ## bite each second as a fraction of the hero's health.

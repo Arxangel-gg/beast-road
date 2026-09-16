@@ -473,12 +473,12 @@ func _ready() -> void:
 	# meantime is photographed inside the arena that is closing.
 	await _close_arena(run.raid, {"partial": true, "died": false, "kills": 14},
 		EventBus.raid_ended, 12.0)
-	await _shot("rifts", func() -> void:
-		field.suspend()
-		run.rift.visible = true
-		run.rift.process_mode = Node.PROCESS_MODE_INHERIT
-		run.rift.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
-		run.rift.activate())
+	# **Fast-forwarded to a real point in the deep** (owner: "dungeons should be
+	# fast forwarded to a random point in the dungeon with the natural mobs
+	# around the player"). It used to open the door and fire the shutter, which
+	# photographs an empty first stage on the frame it was built - the one state
+	# a player never sees.
+	await _deep_shot("rifts")
 	await _close_arena(run.rift, {"closed": true, "left": true},
 		EventBus.rift_ended, 12.0)
 
@@ -1551,6 +1551,78 @@ func _taming_shot() -> void:
 ## own door, with a real throw at it. A picture of a mechanic that was staged is
 ## a picture of a different mechanic - which is the whole reason this tool
 ## photographs the game rather than drawing the pictures.
+## **A picture taken well inside a dungeon.**
+##
+## Opened, wound forward to a stage past the first, and then *left alone* long
+## enough for the place to fill: bodies are dealt on `DUNGEON_FIRST_SPAWN_DELAY`
+## and steered out of the corridors they were dealt into, so a shutter fired on
+## the opening frame catches a maze with nobody in it. Which stage is the run's
+## own roll, so the picture is a different corner of a different maze each time
+## rather than the same staged tableau.
+##
+## Waited on real frames rather than driven: this tool runs windowed, so a frame
+## is a frame. The pond-fish gate has to drive its own clock because it is
+## headless, where frames pass no time at all.
+func _deep_shot(id: String) -> void:
+	if not _wanted(id):
+		return
+	await _settle()
+	run.battlefield.suspend()
+	run.rift.visible = true
+	run.rift.process_mode = Node.PROCESS_MODE_INHERIT
+	run.rift.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
+	run.rift.activate()
+	# A stage past the first, drawn from the run's own stream so the picture is
+	# not the same corner every time.
+	for _down: int in RunState.rng("guide").randi_range(1, 2):
+		run.rift.call("_begin_stage")
+	for _frame: int in Balance.GUIDE_DEEP_FRAMES:
+		await get_tree().process_frame
+	var among: Vector2 = _where_the_deep_is_busy()
+	if among != Vector2.INF:
+		_stand_at(among)
+	await _take(id, func() -> void: pass,
+		func() -> void:
+			var look: Vector2 = _nearest_body_in_the_deep()
+			if look != Vector2.INF:
+				_look_at(look))
+
+
+## Where the bodies actually are down here, so the Warden stands among them
+## rather than in whichever corridor the stage happened to start in.
+func _where_the_deep_is_busy() -> Vector2:
+	var total := Vector2.ZERO
+	var counted: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Node2D
+		if body == null or not is_instance_valid(body):
+			continue
+		total += body.global_position
+		counted += 1
+	if counted == 0:
+		return Vector2.INF
+	# A little off the middle of them: standing in the centre of a group puts
+	# half of it behind the Warden.
+	return total / float(counted) + Vector2(-110.0, 80.0)
+
+
+func _nearest_body_in_the_deep() -> Vector2:
+	var hero: Variant = run.rift.get("hero") if run.rift != null else null
+	var from: Vector2 = (hero as Node2D).global_position \
+		if hero != null and is_instance_valid(hero as Object) else Vector2.ZERO
+	var best: Vector2 = Vector2.INF
+	var nearest: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Node2D
+		if body == null or not is_instance_valid(body):
+			continue
+		var away: float = from.distance_to(body.global_position)
+		if away < nearest:
+			nearest = away
+			best = body.global_position
+	return best
+
+
 func _wound_the_nearest() -> Vector2:
 	var field: Battlefield = run.battlefield
 	var animals: Node = field.wildlife() if field != null else null
