@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "meteor"
+display_name = "Falling stones"
+title = "Falling stones"
+category = "The Earth"
+order = 60
+image = "res://art/guide/meteor.png"
+body = "A shadow grows on the ground, and then something arrives in it. The shadow is the warning - the only one you get, and the only one you need.
+
+What lands warms and burns the ground it strikes, which is charged earth for the Fire towers standing near it. Stones are drawn by fire: a road that leans hard on the Fire line will see more of them."

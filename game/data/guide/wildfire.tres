@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "wildfire"
+display_name = "Wildfires"
+title = "Wildfires"
+category = "The Earth"
+order = 57
+image = "res://art/guide/wildfire.png"
+body = "Fire spreads through the foliage, downwind, and it grows its own weather: a blaze heats the ground it burns on, and hot ground carries it further. It is bounded - only so many fires at once, and one blaze can only light so much before it can do nothing but burn down - but inside those bounds it will cross a field.
+
+A plant grows back with the next act. A woodcutting tree it reaches does not.
+
+A fire the land started costs you nothing: that is the cycle. A fire **you** started, with a Fire tower's shot or a spell, is counted against you plant by plant."

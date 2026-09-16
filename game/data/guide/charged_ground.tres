@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "charged_ground"
+display_name = "Charged ground"
+title = "Charged ground"
+category = "The Earth"
+order = 55
+image = "res://art/guide/charged_ground.png"
+body = "Every one of the earth's blows marks the ground it landed on. A lightning strike leaves a storm core; a blaze or a falling stone leaves burning earth; a flood at the knee leaves a basin; a quake leaves a fault.
+
+Towers of that element standing on that ground hit harder - strongest at the middle, falling away to the edge, for a while. The same charge over the same ground renews rather than stacks, and only so many can burn at once.
+
+This is the quiet reward for reading a disaster instead of only surviving it. The ground a storm passed over is the best ground an Air tower will ever stand on."

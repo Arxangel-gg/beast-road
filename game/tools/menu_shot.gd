@@ -80,6 +80,8 @@ func _ready() -> void:
 			% [str((tail as Node2D).get_global_position().round()),
 				str((tail.get_parent() as Node2D).get_global_position().round()),
 				str(tail.get_global_transform().get_scale())])
+		await RenderingServer.frame_post_draw
+		_compare_the_paint(tail, parent)
 		var material := tail.material as ShaderMaterial
 		if material != null:
 			if feather >= 0.0:
@@ -104,6 +106,119 @@ func _ready() -> void:
 
 ## **A `Node2D`, not a `Sprite2D`.**
 ##
+## **What the screen actually shows**, which is the only measurement that has
+## ever settled this.
+##
+## Seven passes compared the two *paintings* and an eighth compared the two
+## `modulate` properties, and all eight agreed the tail was fine while the owner
+## was looking at a grey limb on a warm animal. A child's own `modulate` always
+## reads white whatever its parent is doing to it at draw time, and source art
+## says nothing about what a shader or an inherited tint did to it afterwards.
+##
+## This reads the frame: the mean hue, luminance and saturation of the lit pixels
+## inside each node's own on-screen rectangle, and the gap between them.
+func _compare_the_paint(tail: CanvasItem, body: CanvasItem) -> void:
+	var frame: Image = get_viewport().get_texture().get_image()
+	# **Along the limb's own chain**, not a box on its origin. A spline draws
+	# away from its origin, so a square centred there is mostly sky - and sky is
+	# blue, which is why two runs with and without a deliberate fault reported
+	# byte-identical readings. Proven by exactly that: the measurement has to
+	# move when the thing it measures does.
+	var limb: Dictionary = _paint_along(frame, tail)
+	var hide: Dictionary = _paint_in(frame, _screen_rect(body))
+	if limb.is_empty() or hide.is_empty():
+		print("[menu-shot] paint: nothing lit to measure")
+		return
+	print("[menu-shot] paint  tail rgb(%3d,%3d,%3d) hue %5.1f sat %.3f lum %.3f"
+		% [int(limb["r"]), int(limb["g"]), int(limb["b"]),
+			limb["hue"], limb["sat"], limb["lum"]])
+	print("[menu-shot] paint  body rgb(%3d,%3d,%3d) hue %5.1f sat %.3f lum %.3f"
+		% [int(hide["r"]), int(hide["g"]), int(hide["b"]),
+			hide["hue"], hide["sat"], hide["lum"]])
+	var hue_gap: float = absf(fposmod(float(limb["hue"]) - float(hide["hue"]) + 180.0, 360.0) - 180.0)
+	print("[menu-shot] paint  gap: hue %.1f deg, lum %+.1f%%, sat %+.3f"
+		% [hue_gap,
+			(float(limb["lum"]) / maxf(float(hide["lum"]), 0.0001) - 1.0) * 100.0,
+			float(limb["sat"]) - float(hide["sat"])])
+
+
+## The paint on the limb itself, gathered in small discs along its chain.
+##
+## `BeastTailSpline.chain()` is where the thing is actually drawn, so this walks
+## it and samples around each link - which is paint rather than the night behind
+## it, and which moves when the limb's tint moves.
+func _paint_along(frame: Image, tail: CanvasItem) -> Dictionary:
+	if not tail.has_method("chain"):
+		return _paint_in(frame, _screen_rect(tail))
+	var links: PackedVector2Array = tail.call("chain") as PackedVector2Array
+	if links.is_empty():
+		return _paint_in(frame, _screen_rect(tail))
+	var to_screen: Transform2D = (tail as Node2D).get_global_transform()
+	print("[menu-shot] chain %d links, first %s last %s (screen)"
+		% [links.size(), str((to_screen * links[0]).round()),
+			str((to_screen * links[links.size() - 1]).round())])
+	var total := Vector3.ZERO
+	var lit: int = 0
+	for link: Vector2 in links:
+		var at: Vector2 = to_screen * link
+		for step: int in 81:
+			var dx: int = step % 9 - 4
+			var dy: int = step / 9 - 4
+			var x: int = int(at.x) + dx * 2
+			var y: int = int(at.y) + dy * 2
+			if x < 0 or y < 0 or x >= frame.get_width() or y >= frame.get_height():
+				continue
+			var pixel: Color = frame.get_pixel(x, y)
+			if pixel.r + pixel.g + pixel.b < 0.16:
+				continue
+			total += Vector3(pixel.r, pixel.g, pixel.b)
+			lit += 1
+	if lit == 0:
+		return {}
+	var mean: Vector3 = total / float(lit)
+	var paint := Color(mean.x, mean.y, mean.z)
+	return {
+		"r": mean.x * 255.0, "g": mean.y * 255.0, "b": mean.z * 255.0,
+		"hue": paint.h * 360.0, "sat": paint.s, "lum": paint.v, "lit": lit,
+	}
+
+
+## A node's rectangle on the screen, in pixels of the captured frame.
+func _screen_rect(item: CanvasItem) -> Rect2i:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var here: Vector2 = (item as Node2D).get_global_position()
+	var scale: Vector2 = item.get_global_transform().get_scale()
+	# A square around the node, sized by how big it is drawn. Generous enough to
+	# hold paint and small enough not to wander onto the sky.
+	var reach: float = maxf(40.0, 26.0 * maxf(scale.x, scale.y))
+	return Rect2i(Vector2i(maxf(here.x - reach, 0.0), maxf(here.y - reach, 0.0)),
+		Vector2i(minf(reach * 2.0, view.x), minf(reach * 2.0, view.y)))
+
+
+## The mean colour of the lit pixels in a rectangle, and its hue and saturation.
+##
+## Near-black pixels are skipped: both subjects stand against a night sky, and
+## averaging the sky in would report two very similar blacks and call it a match.
+func _paint_in(frame: Image, box: Rect2i) -> Dictionary:
+	var total := Vector3.ZERO
+	var lit: int = 0
+	for y: int in range(box.position.y, mini(box.end.y, frame.get_height())):
+		for x: int in range(box.position.x, mini(box.end.x, frame.get_width())):
+			var pixel: Color = frame.get_pixel(x, y)
+			if pixel.r + pixel.g + pixel.b < 0.16:
+				continue
+			total += Vector3(pixel.r, pixel.g, pixel.b)
+			lit += 1
+	if lit == 0:
+		return {}
+	var mean: Vector3 = total / float(lit)
+	var paint := Color(mean.x, mean.y, mean.z)
+	return {
+		"r": mean.x * 255.0, "g": mean.y * 255.0, "b": mean.z * 255.0,
+		"hue": paint.h * 360.0, "sat": paint.s, "lum": paint.v, "lit": lit,
+	}
+
+
 ## This cast to `Sprite2D` and so returned null for every run since the tail
 ## became `BeastTailSpline` - a spline is a `Node2D` that draws slices. The tool
 ## has been printing "no tail sprite found" over a tail that is plainly on

@@ -234,6 +234,75 @@ func _ready() -> void:
 	await _shot("night", func() -> void:
 		_apt_combat_post("night"); DayNight.call("_apply", 0.78),
 		func() -> void: _apt_combat_post("night"))
+	# **The torches**, which are what the night is *about* from a player's seat:
+	# a lane goes dark as its flames go out, and darkness is pressure rather than
+	# decoration. Taken at night for the same reason - a torch at noon is a post.
+	await _shot("torches", func() -> void: _apt_post("torches"),
+		func() -> void: _apt_post("torches"))
+	DayNight.call("_apply", 0.30)
+
+	# --- The sky, the ground, and the earth -------------------------------------------
+	#
+	# Eight systems the Guide had nothing to say about (owner, 2026-09-16), each
+	# driven through its own public door rather than by setting a state, so what
+	# is photographed is the event the game actually runs.
+	# **Through the bus the weather actually changes on.** Setting a field on the
+	# sky would leave every other listener - the climate, the wildfire's dryness,
+	# the flood - believing it was still clear.
+	await _weather_shot("weather", func() -> void:
+		EventBus.weather_changed.emit("downpour"), 90)
+	await _weather_shot("temperature", func() -> void:
+		var ground: Climate = run.battlefield.climate()
+		var hero: Hero = run.battlefield.hero
+		if ground != null and hero != null:
+			# A hot spot and a cold one either side, so the picture shows the
+			# *difference* rather than a number nobody is shown anyway.
+			ground.add_heat(hero.global_position + Vector2(-200.0, 0.0), 260.0, 26.0)
+			ground.add_wet(hero.global_position + Vector2(220.0, 40.0), 240.0, 0.9))
+	await _weather_shot("lightning", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		var hero: Hero = run.battlefield.hero
+		if sky != null and hero != null:
+			sky.strike_at(hero.global_position + Vector2(180.0, -120.0)))
+	await _weather_shot("flood", func() -> void:
+		RunState.flood = 0.85
+		var sky: WeatherSky = run.battlefield.sky()
+		if sky != null:
+			sky.set("_flood", 0.85))
+	RunState.flood = 0.0
+	await _weather_shot("wildfire", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		if sky != null:
+			sky.start_wildfire(), 240)
+	await _weather_shot("quake", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		if sky != null:
+			# **The warning, not the quake.** The line, the rising tremor and
+			# every animal running is the thing worth teaching; the shake itself
+			# is a frame of blur.
+			sky.warn_quake(0.85))
+	await _weather_shot("tornado", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		var hero: Hero = run.battlefield.hero
+		if sky != null and hero != null:
+			sky.spawn_tornado(hero.global_position + Vector2(-520.0, -180.0),
+				hero.global_position + Vector2(260.0, 60.0)), 120)
+	await _weather_shot("meteor", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		var hero: Hero = run.battlefield.hero
+		if sky != null and hero != null:
+			sky.drop_meteor(hero.global_position + Vector2(200.0, -60.0)))
+	await _weather_shot("charged_ground", func() -> void:
+		var sky: WeatherSky = run.battlefield.sky()
+		var hero: Hero = run.battlefield.hero
+		if sky != null and hero != null:
+			# A strike leaves a storm core; the towers of that element standing on
+			# it hit harder for a while. That charged ground is the picture.
+			sky.strike_at(hero.global_position + Vector2(120.0, -40.0)), 60)
+	await _weather_shot("wrath", func() -> void:
+		var hero: Hero = run.battlefield.hero
+		EventBus.wrath_warned.emit("unrest_2",
+			hero.global_position if hero != null else Vector2.ZERO, 4.0))
 	_copy("night", "glossary_c")
 	DayNight.call("_apply", 0.18)
 
@@ -1625,6 +1694,22 @@ func _capture(id: String) -> void:
 	_written.append(id)
 	print("[guide-shots] %s" % id)
 
+
+
+## **One picture of the sky, the ground or the earth's anger.**
+##
+## Settled, driven through the system's own door, and given `let_it_run` frames
+## to develop before the shutter - a wildfire on the frame it is lit is one
+## burning plant, and a funnel on the frame it is born is a smudge of dust.
+func _weather_shot(id: String, drive: Callable, let_it_run: int = 0) -> void:
+	if not _wanted(id):
+		return
+	await _settle()
+	_apt_post(id)
+	drive.call()
+	for _frame: int in let_it_run:
+		await get_tree().process_frame
+	await _shot(id, func() -> void: pass)
 
 
 ## **One water picture**: a clean screen, the rod taken, the pond driven to one

@@ -208,12 +208,24 @@ func wear_grade(grade: Color) -> void:
 	_apply_grade()
 
 
+## **The grade arrives by inheritance; only the paint match belongs here.**
+##
+## Eighth report, and this is the half the seventh got wrong. The limb *is* a
+## child of the body in both scopes, so the body's `modulate` already multiplies
+## it at draw time - and multiplying it again here graded the tail **twice**.
+##
+## What made that invisible is the same mistake in a new place: the previous pass
+## checked the tail's own `modulate` property, saw `(1, 1, 1)`, and concluded the
+## grade "does not arrive down the modulate chain". A child's own `modulate`
+## always reads white while the parent's is applied at draw. Measured off the
+## render instead: the tail came out **43% darker than the hide and at a fifth of
+## its saturation** - rgb(24, 23, 23) against rgb(49, 43, 34) - which is precisely
+## "not colour graded or tinted the same as the beast".
+##
+## So `_grade` is kept for `_measure_harmony` to reason about and is not
+## multiplied in. A model of a thing is not the thing: photograph it.
 func _apply_grade() -> void:
-	self_modulate = Color(
-		_paint_match.r * _grade.r,
-		_paint_match.g * _grade.g,
-		_paint_match.b * _grade.b,
-		1.0)
+	self_modulate = Color(_paint_match.r, _paint_match.g, _paint_match.b, 1.0)
 
 
 ## The ratio between the hide at the stub and the limb at its root.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "temperature"
+display_name = "Heat and wet ground"
+title = "Heat and wet ground"
+category = "The Earth"
+order = 51
+image = "res://art/guide/temperature.png"
+body = "The ground under the field keeps its own heat and its own wetness, and everything that touches it leaves a mark. A fire tower warms the ground it shoots over. A water tower cools and soaks it. Rain wets everything, a flood soaks it, a blaze dries it out and heats it further.
+
+You are never shown a number for this and there is never a grid on screen. What you see is the consequence: a crop only grows well on ground that suits it, a well evaporates faster somewhere hot, dry lightning will not take on soaked ground, and a wildfire spreads fastest through brush that has been baking under your own fire towers.
+
+That last one is worth knowing before you build. A wall of fire makes its own weather."

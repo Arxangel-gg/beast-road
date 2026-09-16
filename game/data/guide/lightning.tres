@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "lightning"
+display_name = "Lightning"
+title = "Lightning"
+category = "The Earth"
+order = 54
+image = "res://art/guide/lightning.png"
+body = "A strike comes out of a charged sky and takes whatever is standing under it. It chains further through a flood and hits a soaked body harder - water conducts, and the road knows it.
+
+A strike with no rain behind it is dry lightning, and dry lightning lights the brush. Under a heatwave it lights more of it.
+
+What it leaves behind is charged ground."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "quake"
+display_name = "Earthquakes"
+title = "Earthquakes"
+category = "The Earth"
+order = 58
+image = "res://art/guide/quake.png"
+body = "The ground hums before it moves. There is a line, a rising tremor, and every animal on the field breaks and runs - and then the shake. Nothing in this game arrives out of nowhere, and the warning is the part to learn: long enough to matter, short enough to cost you if you spend it deciding.
+
+A quake shakes the picture, the town, and the beast carrying it, and leaves a fault in the ground where it struck."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "wrath"
+display_name = "The earth's wrath"
+title = "The earth's wrath"
+category = "The Earth"
+order = 53
+image = "res://art/guide/wrath.png"
+body = "The road is alive and it keeps a ledger. Kill enough of what lives out here - and the rarer the animal, the sharper the cost - burn enough forest, fell enough timber, lean hard enough on one element, and the land begins to answer.
+
+You are never shown a number for this, and you never will be. What you get are signs: the birds go quiet, the ground will not settle, the sky goes strange. Each is said once, when the anger climbs a step. Learn them.
+
+A living legendary animal is an anchor - while one is out there the land is calmer, and hazards come more slowly. Killing it is a real reward, a real shock, and the loss of that calm for the rest of the run.
+
+Nothing you do reduces the anger. Only the absence of the things that raise it: leave the road quiet for a while and it eases, slowly."

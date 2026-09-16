@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "weather"
+display_name = "Weather"
+title = "Weather"
+category = "The Earth"
+order = 50
+image = "res://art/guide/weather.png"
+body = "The sky over the road changes: clear, a downpour, a heatwave, a duststorm, snowfall. It is not decoration. Rain soaks the ground and the bodies standing in it, and a soaked body takes lightning harder and freezes faster. A heatwave dries the brush until a stray spark is a wildfire. Wind pushes everything that walks - you, the enemy, the wildlife - and it averages to nothing over a run, so there is never a free ride in it, only a stretch where the road is with you or against you.
+
+The weather is the same for both players in co-op, and the host is the one who rolls it."

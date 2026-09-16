@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "tornado"
+display_name = "Tornadoes"
+title = "Tornadoes"
+category = "The Earth"
+order = 59
+image = "res://art/guide/tornado.png"
+body = "Dust streaks in across the field before the funnel is born, leaning with the wind. A funnel tears at what it crosses, towers included, and one that passes through a fire carries the fire with it.
+
+It is the disaster you can most genuinely dodge and most genuinely lose a road to. Watch where the dust is coming from, not where the funnel is."

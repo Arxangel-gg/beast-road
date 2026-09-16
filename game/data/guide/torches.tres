@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "torches"
+display_name = "Torchlight"
+title = "Torchlight"
+category = "The Earth"
+order = 52
+image = "res://art/guide/torches.png"
+body = "Every road is lit by torches, and they go out. A lane that has lost its flames is a lane you cannot read, with bodies in it you will not see until they are close.
+
+Night makes it sharper. The sun sets on its own clock as the beast walks, and the night brings more of them and harder. Relighting is Preparation work; walking a dark lane at midnight because you did not is how a wall falls."

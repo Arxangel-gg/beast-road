@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "flood"
+display_name = "Floods"
+title = "Floods"
+category = "The Earth"
+order = 56
+image = "res://art/guide/flood.png"
+body = "Water rises. At the ankle it is a nuisance; at the knee it slows everything that walks and takes the dash away entirely, and every body standing in it is soaked - which makes lightning worse for them and chill faster.
+
+You can still fight in it. You swing more slowly, not not at all: being unable to answer while the road keeps coming is a spectator seat, and this game does not hand those out.
+
+A flood at its height leaves a basin behind, which is charged ground for the Water towers standing in it."
