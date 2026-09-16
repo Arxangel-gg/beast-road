@@ -2210,7 +2210,12 @@ func nearest_hurt_ally() -> Hero:
 			continue
 		if who.health == null or who.health.is_dead:
 			continue
-		if who.health.current >= who.health.max_hp:
+		# **`current_hp`, not `current`.** Read as `current` since it was written,
+		# which GDScript resolves at *runtime* on a `Node` - so every call
+		# errored, `has_hurt_ally` was never true, and the Share button on a fish
+		# had never once appeared. Reported by the owner as "sharing a catch
+		# doesn't show the ability to share it".
+		if who.health.current_hp >= who.health.max_hp:
 			continue
 		var distance: float = who.global_position.distance_to(global_position)
 		if distance < best_distance:

@@ -51,6 +51,7 @@ func _ready() -> void:
 	_test_the_angler_only_fishes()
 	_test_the_meal_cap_holds()
 	_test_the_pantry_survives_a_round_trip()
+	await _test_a_fish_can_be_handed_to_somebody_hurt()
 
 	Sfx.stop_immediately()
 	Vfx.clear()
@@ -63,7 +64,7 @@ func _ready() -> void:
 		push_error("[fishing] FAIL - %d problem(s) across %d tests" % [_failures, _ran])
 		get_tree().quit(1)
 		return
-	print("[fishing] PASS - %d tests: ponds, the cast, the reel, the steady hand, the Angler, the meal cap and the pantry"
+	print("[fishing] PASS - %d tests: ponds, the cast, the reel, the steady hand, the Angler, the meal cap, the pantry and sharing a catch"
 		% _ran)
 	get_tree().quit(0)
 
@@ -520,6 +521,65 @@ func _test_the_pantry_survives_a_round_trip() -> void:
 	_check(MetaState.fish_count(kind.id) == 1,
 		"and the ones that do exist must")
 	MetaState.fish.clear()
+	_ran += 1
+
+
+## **A wounded player beside you is somebody to give a fish to.**
+##
+## `Stash` offers Share only while `Hero.has_hurt_ally` is true, on the grounds
+## that a button which always refuses teaches nothing - so the whole of that
+## feature rests on one predicate, and that predicate read `health.current` where
+## the field is `current_hp`. GDScript resolves a property on a `Node` at
+## runtime, so it compiled cleanly, errored on every single call and answered
+## null: no hero in any run has ever had an ally worth sharing with.
+##
+## Driven through the real `has_hurt_ally` with two real heroes rather than by
+## reading the constant back, because what failed was the *reading of a field*
+## and nothing that reads a constant could see it.
+func _test_a_fish_can_be_handed_to_somebody_hurt() -> void:
+	var scene: PackedScene = load("res://scenes/hero/hero.tscn") as PackedScene
+	var giver: Hero = scene.instantiate() as Hero
+	var taker: Hero = scene.instantiate() as Hero
+	add_child(giver)
+	add_child(taker)
+	# **In play, not merely in the tree.** `GROUP_ANY` is what the search walks,
+	# and a hero joins it by being made present - the same distinction that keeps
+	# a raid's hero out of the road's world. A probe that skipped this would be a
+	# gate asserting that two heroes standing nowhere cannot see each other.
+	giver.set_present(true)
+	taker.set_present(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	giver.global_position = Vector2.ZERO
+
+	# Whole, and standing right there: nobody to give anything to.
+	taker.global_position = Vector2(Balance.FISH_SHARE_RANGE * 0.4, 0.0)
+	_check(not giver.has_hurt_ally(),
+		"a hero at full health is not somebody to hand a fish to")
+
+	# Hurt, and standing right there: the button must appear.
+	taker.health.take_damage(taker.health.max_hp * 0.5, taker.global_position)
+	_check(taker.health.current_hp < taker.health.max_hp,
+		"the probe must actually be wounded, or this test proves nothing")
+	_check(giver.has_hurt_ally(),
+		"a wounded player within reach must be offered the fish - this is the "
+		+ "read that was silently erroring and never once said yes")
+	_check(giver.nearest_hurt_ally() == taker,
+		"and it must be that player rather than somebody else")
+
+	# Hurt, and too far away: out of reach is out of reach.
+	taker.global_position = Vector2(Balance.FISH_SHARE_RANGE * 2.5, 0.0)
+	_check(not giver.has_hurt_ally(),
+		"a wounded player out of reach must not be offered the fish")
+
+	# And never yourself, however hurt you are.
+	giver.health.take_damage(giver.health.max_hp * 0.6, giver.global_position)
+	taker.queue_free()
+	await get_tree().process_frame
+	_check(not giver.has_hurt_ally(),
+		"a hero alone must never be their own hurt ally")
+	giver.queue_free()
+	await get_tree().process_frame
 	_ran += 1
 
 

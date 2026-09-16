@@ -2929,50 +2929,51 @@ move frames for the species whose first art carried baked ground.
 
 The demonstration pictures the Guide shows beside each section, one per
 `GuideSectionData.image`. Not drawn: photographed from the real game by
-`tools/guide_shots.gd`, at 960×540, and re-taken whenever a screen changes.
+`tools/guide_shots.gd`, at 1280×720 downsampled from the screen's own
+resolution, and re-taken whenever a screen changes.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `account.png` | 960×540 | O | `#1E2E33` |
-| `act_track.png` | 960×540 | O | `#1E2E33` |
-| `bow.png` | 960×540 | O | `#1E2E33` |
-| `camps.png` | 960×540 | O | `#1E2E33` |
-| `mythic_trail.png` | 960×540 | O | `#1E2E33` |
-| `nesting.png` | 960×540 | O | `#1E2E33` |
-| `cards.png` | 960×540 | O | `#1E2E33` |
-| `controls.png` | 960×540 | O | `#1E2E33` |
-| `coop.png` | 960×540 | O | `#1E2E33` |
-| `crossroads.png` | 960×540 | O | `#1E2E33` |
-| `currencies.png` | 960×540 | O | `#1E2E33` |
-| `depth.png` | 960×540 | O | `#1E2E33` |
-| `fishing.png` | 960×540 | O | `#1E2E33` |
-| `forks.png` | 960×540 | O | `#1E2E33` |
-| `gear.png` | 960×540 | O | `#1E2E33` |
-| `glossary_a.png` | 960×540 | O | `#1E2E33` |
-| `glossary_b.png` | 960×540 | O | `#1E2E33` |
-| `glossary_c.png` | 960×540 | O | `#1E2E33` |
-| `healing.png` | 960×540 | O | `#1E2E33` |
-| `hud.png` | 960×540 | O | `#1E2E33` |
-| `loop.png` | 960×540 | O | `#1E2E33` |
-| `night.png` | 960×540 | O | `#1E2E33` |
-| `pantry.png` | 960×540 | O | `#1E2E33` |
-| `party_events.png` | 960×540 | O | `#1E2E33` |
-| `preparation.png` | 960×540 | O | `#1E2E33` |
-| `raids.png` | 960×540 | O | `#1E2E33` |
-| `reel.png` | 960×540 | O | `#1E2E33` |
-| `relics.png` | 960×540 | O | `#1E2E33` |
-| `rifts.png` | 960×540 | O | `#1E2E33` |
-| `spells.png` | 960×540 | O | `#1E2E33` |
-| `spirits.png` | 960×540 | O | `#1E2E33` |
-| `stash.png` | 960×540 | O | `#1E2E33` |
-| `summons.png` | 960×540 | O | `#1E2E33` |
-| `swimming.png` | 960×540 | O | `#1E2E33` |
-| `towers.png` | 960×540 | O | `#1E2E33` |
-| `town.png` | 960×540 | O | `#1E2E33` |
-| `trading.png` | 960×540 | O | `#1E2E33` |
-| `traps.png` | 960×540 | O | `#1E2E33` |
-| `waves.png` | 960×540 | O | `#1E2E33` |
-| `wells.png` | 960×540 | O | `#1E2E33` |
+| `account.png` | 1280×720 | O | `#1E2E33` |
+| `act_track.png` | 1280×720 | O | `#1E2E33` |
+| `bow.png` | 1280×720 | O | `#1E2E33` |
+| `camps.png` | 1280×720 | O | `#1E2E33` |
+| `mythic_trail.png` | 1280×720 | O | `#1E2E33` |
+| `nesting.png` | 1280×720 | O | `#1E2E33` |
+| `cards.png` | 1280×720 | O | `#1E2E33` |
+| `controls.png` | 1280×720 | O | `#1E2E33` |
+| `coop.png` | 1280×720 | O | `#1E2E33` |
+| `crossroads.png` | 1280×720 | O | `#1E2E33` |
+| `currencies.png` | 1280×720 | O | `#1E2E33` |
+| `depth.png` | 1280×720 | O | `#1E2E33` |
+| `fishing.png` | 1280×720 | O | `#1E2E33` |
+| `forks.png` | 1280×720 | O | `#1E2E33` |
+| `gear.png` | 1280×720 | O | `#1E2E33` |
+| `glossary_a.png` | 1280×720 | O | `#1E2E33` |
+| `glossary_b.png` | 1280×720 | O | `#1E2E33` |
+| `glossary_c.png` | 1280×720 | O | `#1E2E33` |
+| `healing.png` | 1280×720 | O | `#1E2E33` |
+| `hud.png` | 1280×720 | O | `#1E2E33` |
+| `loop.png` | 1280×720 | O | `#1E2E33` |
+| `night.png` | 1280×720 | O | `#1E2E33` |
+| `pantry.png` | 1280×720 | O | `#1E2E33` |
+| `party_events.png` | 1280×720 | O | `#1E2E33` |
+| `preparation.png` | 1280×720 | O | `#1E2E33` |
+| `raids.png` | 1280×720 | O | `#1E2E33` |
+| `reel.png` | 1280×720 | O | `#1E2E33` |
+| `relics.png` | 1280×720 | O | `#1E2E33` |
+| `rifts.png` | 1280×720 | O | `#1E2E33` |
+| `spells.png` | 1280×720 | O | `#1E2E33` |
+| `spirits.png` | 1280×720 | O | `#1E2E33` |
+| `stash.png` | 1280×720 | O | `#1E2E33` |
+| `summons.png` | 1280×720 | O | `#1E2E33` |
+| `swimming.png` | 1280×720 | O | `#1E2E33` |
+| `towers.png` | 1280×720 | O | `#1E2E33` |
+| `town.png` | 1280×720 | O | `#1E2E33` |
+| `trading.png` | 1280×720 | O | `#1E2E33` |
+| `traps.png` | 1280×720 | O | `#1E2E33` |
+| `waves.png` | 1280×720 | O | `#1E2E33` |
+| `wells.png` | 1280×720 | O | `#1E2E33` |
 
 ---
 
@@ -3064,22 +3065,22 @@ in step with the screens rather than leaving fifteen stale copies.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `fog.png` | 960×540 | O | `#2E3A33` |
-| `minimap.png` | 960×540 | O | `#2E3A33` |
-| `farming.png` | 960×540 | O | `#2E3A33` |
-| `tower_paths.png` | 960×540 | O | `#2E3A33` |
-| `trap_levels.png` | 960×540 | O | `#2E3A33` |
-| `spirit_upkeep.png` | 960×540 | O | `#2E3A33` |
-| `sharing_fish.png` | 960×540 | O | `#2E3A33` |
-| `boss_fight.png` | 960×540 | O | `#2E3A33` |
-| `hunted.png` | 960×540 | O | `#2E3A33` |
-| `attributes.png` | 960×540 | O | `#2E3A33` |
-| `enemy_shots.png` | 960×540 | O | `#2E3A33` |
-| `crafts.png` | 960×540 | O | `#2E3A33` |
-| `gathering.png` | 960×540 | O | `#2E3A33` |
-| `forge.png` | 960×540 | O | `#2E3A33` |
-| `arcane.png` | 960×540 | O | `#2E3A33` |
-| `quartermaster.png` | 960×540 | O | `#2E3A33` |
+| `fog.png` | 1280×720 | O | `#2E3A33` |
+| `minimap.png` | 1280×720 | O | `#2E3A33` |
+| `farming.png` | 1280×720 | O | `#2E3A33` |
+| `tower_paths.png` | 1280×720 | O | `#2E3A33` |
+| `trap_levels.png` | 1280×720 | O | `#2E3A33` |
+| `spirit_upkeep.png` | 1280×720 | O | `#2E3A33` |
+| `sharing_fish.png` | 1280×720 | O | `#2E3A33` |
+| `boss_fight.png` | 1280×720 | O | `#2E3A33` |
+| `hunted.png` | 1280×720 | O | `#2E3A33` |
+| `attributes.png` | 1280×720 | O | `#2E3A33` |
+| `enemy_shots.png` | 1280×720 | O | `#2E3A33` |
+| `crafts.png` | 1280×720 | O | `#2E3A33` |
+| `gathering.png` | 1280×720 | O | `#2E3A33` |
+| `forge.png` | 1280×720 | O | `#2E3A33` |
+| `arcane.png` | 1280×720 | O | `#2E3A33` |
+| `quartermaster.png` | 1280×720 | O | `#2E3A33` |
 
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 
