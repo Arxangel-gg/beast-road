@@ -5072,7 +5072,13 @@ const BLOOD_GROUND_LIFE: float = 600.0
 ## erased in one frame. [TUNE]
 const BLOOD_RAIN_WASH_MULTIPLIER: float = 5.0
 const BLOOD_HOLD: float = 0.45
-const BLOOD_GROUND_ALPHA: float = 0.5
+## **Raised 0.50 -> 0.68 on 2026-09-16**, and it is arithmetic rather than a
+## taste change. Marks used to be flat discs; they are feathered blobs now, and a
+## feathered blob at `BloodInk.CORE_SHARE` carries 0.68 of the colour a disc of
+## the same radius carried. Left at 0.50 the whole field came out a third
+## fainter for a reason nobody would have found later - the change was meant to
+## soften the *edge*, not to wash out the mark. [TUNE]
+const BLOOD_GROUND_ALPHA: float = 0.68
 
 ## Blobs per mark, and how far a blow throws them.
 ##
@@ -5081,6 +5087,29 @@ const BLOOD_GROUND_ALPHA: float = 0.5
 const BLOOD_BLOBS_MIN: int = 4
 const BLOOD_BLOBS_MAX: int = 9
 const BLOOD_THROW: float = 0.85
+
+## How far a thrown blob is drawn out along the direction it was thrown, as a
+## share of the throw itself.
+##
+## Blood that only pooled at the feet lands round; blood that was thrown lands as
+## a streak pointing the way it was going, and the further it went the longer the
+## streak. Expressing it as a share of the throw makes that one number rather
+## than two authored shapes - a blob that barely moved is still a pool, and the
+## outliers at the end of the spatter are the long ones.
+##
+## **0.55 was too much and the photograph said so**: at four times its own width
+## a blob stops reading as blood and starts reading as a feather, and a mark made
+## of five of them reads as five feathers rather than as one spatter. [TUNE]
+const BLOOD_STREAK: float = 0.22
+
+## How far a droplet still in the air is drawn out along its own velocity, as a
+## share of the distance it covers in a second.
+##
+## Same idea one layer up, and it is what replaced `draw_circle` in the burst: a
+## mote leaving a body at speed is a streak, the same mote about to land is very
+## nearly a bead, and the difference between them is its velocity rather than a
+## second kind of particle. [TUNE]
+const BLOOD_MOTE_STREAK: float = 0.010
 
 ## Fresh, and dried. The second is where a stain ends up, which is what makes an
 ## old mark read as old rather than merely faint.

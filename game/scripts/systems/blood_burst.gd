@@ -33,8 +33,11 @@ func configure(body_at: Vector2, ground_at: Vector2, direction: Vector2,
 			"arc": _rng.randf_range(Balance.VFX_BLOOD_ARC.x, Balance.VFX_BLOOD_ARC.y),
 			"age": -float(index) * 0.012,
 			"life": life,
-			"radius": size * _rng.randf_range(0.035, 0.075),
+			"radius": size * _rng.randf_range(0.055, 0.105),
 			"landed": false,
+			# Its own outline, rolled once, so a mote in flight keeps its shape
+			# for its whole arc rather than being re-lobed every frame.
+			"seed": _rng.randf() * 1000.0,
 		})
 	z_index = Balance.VFX_Z
 	queue_redraw()
@@ -64,19 +67,42 @@ func _all_landed() -> bool:
 	return true
 
 
+## **A mote is a streak, not a circle.**
+##
+## It used to be a `draw_circle` with a hard `draw_line` behind it - a perfectly
+## round bead in one flat colour, which is the same finding the ground pools, the
+## swim sheen and the menu campfire each paid for: one colour for the whole shape
+## *is* a hard edge, and nothing wet has one.
+##
+## Every mote is now a soft lobed blob drawn out along **its own velocity**, so
+## the streak shortens on its own as the arc flattens and the drop slows - one
+## number doing what a bead plus a trail were doing with two. The whole burst is
+## one `canvas_item_add_triangle_array`, which is fewer draw calls than the pair
+## it replaced rather than more.
 func _draw() -> void:
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
 	for drop: Dictionary in _drops:
 		if bool(drop["landed"]) or float(drop["age"]) < 0.0:
 			continue
-		var t: float = clampf(float(drop["age"]) / maxf(float(drop["life"]), 0.001),
-			0.0, 1.0)
-		var point: Vector2 = (drop["start"] as Vector2).lerp(drop["end"] as Vector2, t)
-		point.y -= sin(t * PI) * float(drop["arc"])
+		var life: float = maxf(float(drop["life"]), 0.001)
+		var t: float = clampf(float(drop["age"]) / life, 0.0, 1.0)
+		var point: Vector2 = _at(drop, t)
+		# Where it was a moment ago, so the streak follows the *arc* rather than
+		# the straight line between the ends - a mote at the top of its throw is
+		# travelling sideways while its start and end are far below it.
+		var before: Vector2 = _at(drop, maxf(t - 0.06, 0.0))
+		var velocity: Vector2 = (point - before) / maxf(minf(0.06, t) * life, 0.001)
 		var radius: float = float(drop["radius"]) * lerpf(1.0, 0.62, t)
 		var colour := Color(0.53, 0.055, 0.065, lerpf(0.96, 0.72, t))
-		draw_circle(point, radius, colour)
-		if t > 0.12:
-			var trail: Vector2 = ((drop["end"] as Vector2) \
-				- (drop["start"] as Vector2)).normalized()
-			draw_line(point - trail * radius * 1.8, point, Color(colour, colour.a * 0.5),
-				maxf(radius * 0.7, 1.0), true)
+		BloodInk.blob(points, colours, indices, point, radius, colour,
+			float(drop.get("seed", 0.0)), velocity * Balance.BLOOD_MOTE_STREAK)
+	BloodInk.paint(self, points, colours, indices)
+
+
+## Where a mote is at `t` of its life: along its throw, lifted by its arc.
+func _at(drop: Dictionary, t: float) -> Vector2:
+	var point: Vector2 = (drop["start"] as Vector2).lerp(drop["end"] as Vector2, t)
+	point.y -= sin(t * PI) * float(drop["arc"])
+	return point

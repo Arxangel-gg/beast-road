@@ -4160,6 +4160,59 @@ the traps, the wells and the fishing.
 *state* driven rather than a screen opened - a boss on the field, an arrow in the
 air, a nest on the ground - which is a harness job apiece rather than one change.
 
+**Blood stopped being circles, as of 2026-09-16.** The owner asked to "elevate
+the blood shaders on characters and vfx and game juice to maximum perfect
+aesthetically appealing polish". The shader on the *characters* was already the
+interesting one - blood is speckled onto individual texels rather than washed
+over the sprite, which is what stops it reading as a status effect. What had
+never been looked at is the blood on the ground and in the air.
+
+**Both canvases drew with `draw_circle`.** A perfectly round shape in one flat
+colour - which is the third time this project has paid for the same finding,
+after the swim sheen and the menu campfire: **one colour for the whole shape is
+what a hard edge *is***, and nothing wet has one. `BloodInk` is the shared
+answer, and it is the same technique both of those ended at - a fan of triangles
+with per-vertex colour, a solid middle, and a rim at zero alpha, handed to one
+`canvas_item_add_triangle_array`. It is **fewer** draw calls than the circles it
+replaced, not more, which matters because a busy wave lays down hundreds.
+
+**A splat is one pool and then satellites**, and that was the second photograph
+rather than the first idea. With every blob thrown from the same distribution a
+mark came out as four or five separate lumps with a hole in the middle - a
+scatter rather than a spatter. The first blob is now the pool the blow left,
+sitting where it landed; everything after it is what sprayed off, smaller the
+further it went and drawn out along the way it was going.
+
+**Feathering costs ink, and that had to be paid back deliberately.** A feathered
+blob carries about 0.68 of the colour a flat disc of the same radius did, so
+swapping the discs quietly took a third out of every mark on the field.
+`BLOOD_GROUND_ALPHA` went 0.50 to 0.68 - arithmetic, not taste. The change was
+meant to soften the edge, not to wash out the mark, and left alone it would have
+read as "blood is too faint now" with nothing pointing at the cause.
+
+**`BloodInk.MAX_LONG` is a cap in the painter rather than at each caller**,
+because the failure is the same wherever the stretch comes from: past about
+twice its width a blob stops reading as a drop of something and starts reading
+as a slash. The first cut of the airborne motes came out as claw marks across
+the screen. A caller may now hand over any velocity it likes and still get blood
+back.
+
+**And the gate could not see any of it.** `blood_vfx_check` asks whether a burst
+*exists*, which it did throughout - so every check passed for as long as the
+circles shipped. It drives `BloodInk.blob` directly now, which is the right
+seam: the blob is pure arithmetic over arrays, so its shape is measurable
+without rendering anything. Checked by putting the flat disc back, which it
+named by the rim's alpha.
+
+`blood_shot` is new and is the half a number cannot answer. Two things about
+building it are worth keeping, because both made a working feature photograph as
+a broken one. `BLOOD_GROUND_Z` is -3 so blood lies under what walks on it, which
+on a bare diagnostic plate puts it **behind the plate** - the first run
+photographed an empty rectangle. And the window is sized in pixels while the
+marks are laid in *content* units, so without pinning the content scale every
+mark came out at about half the size it is in play, and was read as blood being
+too small when it was the picture that was shrunk.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

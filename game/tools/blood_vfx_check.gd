@@ -52,6 +52,7 @@ func _ready() -> void:
 				found_at_target = true
 	_check(found_at_target, "hero blood must appear on the Warden named by the damage fact")
 	_test_persistent_blood()
+	_test_the_shape_of_a_blob()
 	_test_the_vignette_belongs_to_the_run()
 	await _test_the_title_screen_opens_clean()
 
@@ -93,6 +94,91 @@ func _ready() -> void:
 ## ground field parented into the effects layer gets evicted by the effect cap
 ## the moment a fight gets busy, and a stain driven from health does nothing at
 ## all if the material never attaches.
+## **What blood is shaped like**, which nothing could see before.
+##
+## Both blood canvases drew with `draw_circle` until 2026-09-16 - a perfectly
+## round shape in one flat colour - and every check in this file passed the whole
+## time, because they ask whether a burst *exists*, never what it looks like.
+## This drives `BloodInk.blob` directly, which is the right seam: it is pure
+## arithmetic over arrays, so the shape can be measured without rendering
+## anything, and the failure it guards is exactly the one that shipped.
+func _test_the_shape_of_a_blob() -> void:
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
+	var tone := Color(0.48, 0.06, 0.07, 0.5)
+	BloodInk.blob(points, colours, indices, Vector2.ZERO, 10.0, tone, 3.5)
+	_check(points.size() == 1 + BloodInk.RIM * 2,
+		"a blob is a middle and two rings: %d vertices" % points.size())
+	_check(indices.size() == BloodInk.RIM * 9,
+		"every rim step is three triangles: %d indices" % indices.size())
+
+	# **The edge is soft**, which is the whole of it. One colour for the whole
+	# shape *is* a hard edge, so the rim must reach zero while the middle does
+	# not - and a build that painted a flat disc reads here as a rim at full
+	# alpha.
+	var widest: float = 0.0
+	var narrowest: float = INF
+	for index: int in range(1, points.size()):
+		var away: float = points[index].length()
+		if index % 2 == 0:
+			_check(colours[index].a <= 0.001,
+				"the rim is transparent (%.3f)" % colours[index].a)
+			widest = maxf(widest, away)
+			narrowest = minf(narrowest, away)
+		else:
+			_check(colours[index].a > tone.a * 0.5,
+				"the core ring still carries the colour (%.3f)" % colours[index].a)
+	_check(colours[0].a >= tone.a - 0.001,
+		"the middle is at full strength (%.3f)" % colours[0].a)
+
+	# **And it is not a circle.** A lobed outline is what separates a pool of
+	# blood from a stamp, and a perfectly regular one measures as zero here.
+	_check(widest - narrowest > 10.0 * BloodInk.WOBBLE * 0.5,
+		"the outline is lobed rather than round (%.2f of %.2f)"
+			% [widest - narrowest, 10.0 * BloodInk.WOBBLE])
+
+	# **The same blob is the same shape every frame.** A mark that re-rolled its
+	# outline on each repaint shimmers while it dries, and `BloodField` repaints
+	# ten times a second for ten minutes.
+	var again := PackedVector2Array()
+	var again_colours := PackedColorArray()
+	var again_indices := PackedInt32Array()
+	BloodInk.blob(again, again_colours, again_indices, Vector2.ZERO, 10.0, tone, 3.5)
+	var identical: bool = true
+	for index: int in points.size():
+		if not points[index].is_equal_approx(again[index]):
+			identical = false
+	_check(identical, "the same seed draws the same outline")
+
+	# **A thrown mote is drawn out along the way it is going.** This is what
+	# replaced the bead-plus-trail pair, so a build that ignored the stretch
+	# would silently go back to round beads.
+	var long := PackedVector2Array()
+	var long_colours := PackedColorArray()
+	var long_indices := PackedInt32Array()
+	BloodInk.blob(long, long_colours, long_indices, Vector2.ZERO, 10.0, tone, 3.5,
+		Vector2(30.0, 0.0))
+	var reach_x: float = 0.0
+	var reach_y: float = 0.0
+	for point: Vector2 in long:
+		reach_x = maxf(reach_x, absf(point.x))
+		reach_y = maxf(reach_y, absf(point.y))
+	_check(reach_x > reach_y * 2.0,
+		"a streak is longer along its motion than across it (%.1f against %.1f)"
+			% [reach_x, reach_y])
+
+	# Nothing at all for a blob with no size or no colour, so a caller need not
+	# test before calling and an empty set cannot reach the canvas.
+	var empty := PackedVector2Array()
+	var empty_colours := PackedColorArray()
+	var empty_indices := PackedInt32Array()
+	BloodInk.blob(empty, empty_colours, empty_indices, Vector2.ZERO, 0.0, tone, 1.0)
+	BloodInk.blob(empty, empty_colours, empty_indices, Vector2.ZERO, 10.0,
+		Color(tone, 0.0), 1.0)
+	_check(empty.is_empty(), "a blob with no size or no colour draws nothing")
+
+
 func _test_persistent_blood() -> void:
 	var world: Node2D = Vfx.world
 	_check(world != null, "the ground field needs a world to live in")

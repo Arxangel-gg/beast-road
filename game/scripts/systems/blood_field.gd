@@ -46,17 +46,39 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	var count: int = rng.randi_range(Balance.BLOOD_BLOBS_MIN, Balance.BLOOD_BLOBS_MAX)
 	var along: Vector2 = heading.normalized() if heading.length_squared() > 0.001 \
 		else Vector2.from_angle(rng.randf() * TAU)
+	# **One mass, then satellites.** Photographed on 2026-09-16: with every blob
+	# thrown from the same distribution a mark came out as four or five separate
+	# lumps with a hole in the middle - a scatter rather than a spatter. The
+	# first blob is the pool the blow actually left, sitting where it landed and
+	# not drawn out at all; everything after it is what sprayed off, smaller the
+	# further it went.
 	for i: int in count:
-		# Most of the mark pools at the point of impact; the rest throws forward
+		var pool: bool = i == 0
+		# Most of the rest still lands near the impact; the tail throws forward
 		# along the blow. A perfectly radial splat reads as a stamp rather than
 		# as something that happened in a direction.
-		var throw: float = pow(rng.randf(), 2.0) * size * Balance.BLOOD_THROW
+		var throw: float = 0.0 if pool \
+			else pow(rng.randf(), 2.0) * size * Balance.BLOOD_THROW
 		var spread: float = rng.randf_range(-0.7, 0.7)
+		var wander: float = 0.06 if pool else 0.28
 		var offset: Vector2 = along.rotated(spread) * throw \
-			+ Vector2.from_angle(rng.randf() * TAU) * rng.randf() * size * 0.28
+			+ Vector2.from_angle(rng.randf() * TAU) * rng.randf() * size * wander
+		# The pool is the big one; a satellite falls away with its throw, hard
+		# enough that the far end of a spatter is specks rather than more lumps.
+		var far: float = clampf(throw / maxf(size * Balance.BLOOD_THROW, 0.01), 0.0, 1.0)
+		var radius: float = rng.randf_range(size * 0.30, size * 0.40) if pool \
+			else rng.randf_range(size * 0.09, size * 0.22) * (1.0 - far * 0.62)
 		blobs.append({
 			"at": offset,
-			"r": rng.randf_range(size * 0.10, size * 0.30) * (1.0 - throw / (size * 2.0) * 0.4),
+			"r": radius,
+			# The blob's own outline, rolled once. `BloodInk` derives the lobes
+			# from this, so a drying mark holds its shape rather than shimmering
+			# through a new one every repaint.
+			"seed": rng.randf() * 1000.0,
+			# Thrown blood lands as a streak pointing the way it was going; blood
+			# that only pooled lands round. The further it was thrown the longer
+			# the mark, which is one number rather than two authored shapes.
+			"long": along.rotated(spread * 0.5) * throw * Balance.BLOOD_STREAK,
 		})
 	_splats.append({
 		"at": at,
@@ -83,7 +105,9 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 	_splats.append({
 		"at": at,
 		"blobs": [{"at": Vector2.ZERO,
-			"r": maxf(radius * rng.randf_range(0.78, 1.22), 1.4)}],
+			"r": maxf(radius * rng.randf_range(0.78, 1.22), 1.4),
+			"seed": rng.randf() * 1000.0,
+			"long": Vector2.ZERO}],
 		"age": 0.0,
 		"life": Balance.BLOOD_GROUND_LIFE,
 		"tone": rng.randf(),
@@ -136,6 +160,9 @@ func _on_weather_changed(weather_id: String) -> void:
 
 
 func _draw() -> void:
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
 	for splat: Dictionary in _splats:
 		var life: float = maxf(float(splat["life"]), 0.01)
 		var t: float = clampf(float(splat["age"]) / life, 0.0, 1.0)
@@ -153,4 +180,10 @@ func _draw() -> void:
 		var origin: Vector2 = to_local(splat["at"] as Vector2)
 		for blob: Variant in (splat["blobs"] as Array):
 			var one: Dictionary = blob
-			draw_circle(origin + (one["at"] as Vector2), float(one["r"]), tone)
+			BloodInk.blob(points, colours, indices, origin + (one["at"] as Vector2),
+				float(one["r"]), tone, float(one.get("seed", 0.0)),
+				one.get("long", Vector2.ZERO) as Vector2)
+	# One draw call for the whole field, which is the reason this is a single
+	# node in the first place - a soft blob is three triangles a rim vertex, and
+	# spending a draw call each would undo that.
+	BloodInk.paint(self, points, colours, indices)
