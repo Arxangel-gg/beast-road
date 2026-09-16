@@ -53,6 +53,38 @@ var _only: PackedStringArray = []
 ## How many towers this run has put up, so each picture draws a different one.
 var _towers_built: int = 0
 
+## **What the current picture put on the field**, and how to take it off again.
+##
+## Owner, 2026-09-16: a boss, its projectiles and a sent predator were all still
+## standing in the photographs after theirs. Taking the boss off by name was the
+## shape of a fix that has to be written again for every next thing, so a shot
+## that stages something registers the way to unstage it and `_settle` empties
+## the list. Nothing has to know what the last picture did.
+var _staged: Array[Callable] = []
+
+
+## Registers a node to be taken off the field before the next picture.
+##
+## **The id is captured, not the node.** A lambda holding a freed object errors
+## at the *call* - "Lambda capture at index 0 was freed" - before its own body
+## runs, so guarding inside it does nothing; this project has paid for that once
+## already with three scopes following the sun through a lambda. An `int`
+## survives whatever happens to the thing it names.
+func _stage(node: Node) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var id: int = node.get_instance_id()
+	_staged.append(func() -> void:
+		var it: Object = instance_from_id(id)
+		if it != null and is_instance_valid(it):
+			(it as Node).queue_free())
+
+
+## Registers any way of taking something off, for things a `queue_free` cannot
+## honestly remove.
+func _stage_undo(undo: Callable) -> void:
+	_staged.append(undo)
+
 
 func _asked_for() -> PackedStringArray:
 	for arg: String in OS.get_cmdline_user_args():
@@ -781,6 +813,9 @@ func _stand_a_hurt_partner() -> void:
 	mate.global_position = hero.global_position + Vector2(-72.0, 14.0)
 	if mate.health != null:
 		mate.health.take_damage(mate.health.max_hp * 0.55, mate.global_position)
+	# A second Warden standing about in every later picture is the same fault the
+	# boss had; see `_stage`.
+	_stage(mate)
 
 
 ## The anchor of a tower that is actually standing, or a tile nothing is on.
@@ -1272,6 +1307,18 @@ func _send_a_hunter() -> Vector2:
 	var beast := (living[living.size() - 1] as Dictionary).get("sprite") as Node2D
 	if beast != null and is_instance_valid(beast):
 		beast.global_position = at
+	# **Retired through the system that owns it**, not by freeing its sprite.
+	#
+	# An animal is a *record* in `Wildlife._living` that happens to carry a
+	# sprite; freeing the sprite behind the system's back leaves the record
+	# pointing at a dead node, and every tick afterwards casts it - `threat_to`,
+	# `_quarry_for`, `_steered_direction` and `_retire` itself all errored on the
+	# savage for the rest of the run. `_retire` is the door that takes both away.
+	var index: int = living.size() - 1
+	_stage_undo(func() -> void:
+		var roster: Array = animals.get("_living") as Array
+		if roster != null and index >= 0 and index < roster.size():
+			animals.call("_retire", index))
 	return at
 
 
@@ -1508,18 +1555,29 @@ func _settle() -> void:
 			line.queue_free()
 		feed.set("_lines", [] as Array[Label])
 	_show_preparation_card(false)
-	# **A summoned boss outlives its picture.** It keeps standing on the road and
-	# its name and health bar keep the top of the screen, so the boss shot was
-	# titling every photograph after it. Taken off the field rather than killed:
-	# a death runs the act-end cinematics, and this is a photograph session.
-	# **Held as a Variant until it is known to be alive.** `_active` keeps
-	# pointing at the body after it is freed, and casting a freed object is an
-	# error in itself - so the check has to come before the cast, and the
-	# director's own handle is cleared so no later settle sees it again.
+	# **Everything the last picture staged.** A summoned boss keeps standing and
+	# keeps the top of the screen; a savage sent for the hunted picture is still
+	# hunting; a wounded partner is still standing about. Taken off rather than
+	# killed: a death runs the act-end cinematics, and this is a photograph
+	# session.
+	for undo: Callable in _staged:
+		undo.call()
+	_staged.clear()
 	var standing: Variant = run.boss_director.get("_active") if run.boss_director != null else null
 	if standing != null and is_instance_valid(standing):
 		(standing as Node).queue_free()
 		run.boss_director.set("_active", null)
+	# **And anything already in the air.** A boss's volley, a mortar's fall and a
+	# ground strike all outlive whatever threw them - deliberately, because a
+	# blow already thrown must land even if its thrower does not. True in a game,
+	# wrong in a photograph of the next section.
+	for group: StringName in [Enemy.SUMMON_GROUP, &"enemy_shots", &"ground_strikes"]:
+		for shot: Node in get_tree().get_nodes_in_group(group):
+			if is_instance_valid(shot):
+				shot.queue_free()
+	for node: Node in _walk(run.battlefield):
+		if node is EnemyProjectile or node is EnemyGroundStrike or node is HeroArrow:
+			node.queue_free()
 	if hud != null:
 		var bar: CanvasItem = hud.get("_boss_panel") as CanvasItem
 		if bar != null:

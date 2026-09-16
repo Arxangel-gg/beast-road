@@ -152,6 +152,14 @@ func _build() -> void:
 	column.add_child(close)
 
 
+## **Enrolled like every other screen.** `UiJuice` is what gives a control its
+## hover, focus and tap hologram; the HUD, the main menu and the crossroads all
+## call it, and the stash - the screen a player spends the most time in - was
+## inert. Additive and bounded, the same as everywhere else.
+func _dress() -> void:
+	UiJuice.enrol(get_tree(), self)
+
+
 func open() -> void:
 	visible = true
 	# **Refresh first, then fit.** `_refit` measures the column's other children
@@ -162,6 +170,7 @@ func open() -> void:
 	# was below the bottom edge. Reported from a phone as a stash with no way out.
 	_refresh()
 	_refit()
+	_dress()
 
 
 func hide_screen() -> void:
@@ -266,6 +275,51 @@ func _break_all(rarity: int) -> int:
 	return broken
 
 
+## **How tall a filter tab stands, and how big its mark is.**
+##
+## 36 units with a 13pt label was under what either platform guideline asks of a
+## touch target, on the screen a phone player spends most of their time in. The
+## *width* is what `menu_layout_check` guards - three columns of the widest
+## label - and none of this touches it. [TUNE]
+const TAB_HEIGHT: float = 46.0
+const TAB_ICON: int = 22
+
+
+## **The mark a slot filter wears**: a piece of gear that actually goes in it.
+##
+## Every kind already has authored art at `icons/ui/ui_<id>.png`, so the filter
+## for a slot can simply wear one of them. Drawn specially instead, a "helmet"
+## icon would be a ninth thing to keep in step with the eight helmets - and when
+## a slot is added the tab is right with nobody drawing anything.
+##
+## The pantry wears a fish for the same reason. `All` wears none: it is the
+## absence of a filter, and a mark for that is a mark for nothing.
+func _slot_mark(index: int) -> Texture2D:
+	if index == FILTER_PANTRY:
+		var caught: Array[FishData] = ContentDB.fish_sorted()
+		if caught.is_empty():
+			return null
+		return _art_at(caught[0].get_sprite_path())
+	if index < 0:
+		return null
+	# The roster is walked in a stable order so a slot's mark does not change
+	# between launches - a filter that wears a different sword each time is a
+	# filter a player cannot learn the shape of.
+	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	for kind: GearData in kinds:
+		if kind != null and kind.slot == index:
+			var art: Texture2D = _art_at(kind.get_sprite_path())
+			if art != null:
+				return art
+	return null
+
+
+## A texture, or null if the file is not there. A missing mark must never take
+## the screen with it.
+func _art_at(path: String) -> Texture2D:
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
 func _build_tools() -> void:
 	for child: Node in _tools.get_children():
 		_tools.remove_child(child)
@@ -298,9 +352,18 @@ func _build_tools() -> void:
 		tab.text = names[which]
 		tab.toggle_mode = true
 		tab.button_pressed = _filter == index
-		tab.custom_minimum_size = Vector2(0.0, 36.0)
+		tab.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
 		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tab.add_theme_font_size_override("font_size", 13)
+		tab.add_theme_font_size_override("font_size", 14)
+		# **The mark a filter wears is the gear it filters for.** See
+		# `_slot_mark`: drawn specially, it would be a ninth thing to keep in step
+		# with the eight helmets.
+		var mark: Texture2D = _slot_mark(index)
+		if mark != null:
+			tab.icon = mark
+			tab.expand_icon = true
+			tab.add_theme_constant_override("icon_max_width", TAB_ICON)
+			tab.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 		if index == FILTER_PANTRY:
 			tab.tooltip_text = ("Consumables. What came out of the ponds, and the "
 				+ "meals left this run.")
@@ -317,9 +380,9 @@ func _build_tools() -> void:
 		sweep.text = "Break all %s" % Stash.RARITY_NAMES[rarity]
 		sweep.tooltip_text = ("Breaks every unworn, un-upgraded %s piece for shards. "
 			+ "Never touches what you are wearing.") % Stash.RARITY_NAMES[rarity]
-		sweep.custom_minimum_size = Vector2(0.0, 36.0)
+		sweep.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sweep.add_theme_font_size_override("font_size", 13)
+		sweep.add_theme_font_size_override("font_size", 14)
 		# A full row each: "Break all Worn" beside a slot filter reads as another
 		# filter, and it is the one control on this screen that destroys things.
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -513,7 +576,30 @@ func _fish_row(kind: FishData) -> Container:
 
 ## Big enough that a 128px icon still reads at a glance, small enough that a
 ## full stash does not turn into a gallery.
-const ICON_SIZE: float = 44.0
+## **How tall an item card stands.** Room for the name, what it is, and up to
+## five bonus lines without the card growing under them.
+const CARD_HEIGHT: float = 104.0
+
+## What each bonus past the second adds to a card's height.
+const CARD_LINE: float = 19.0
+
+## The options a card's menu offers. Ids rather than indices, so adding one in
+## the middle cannot repoint the rest - the same trap `Role` and `Trigger` both
+## fell into when data indexed an enum by number.
+const MENU_EQUIP: int = 1
+const MENU_UPGRADE: int = 2
+const MENU_KEEP: int = 3
+const MENU_SELL: int = 4
+const MENU_BREAK: int = 5
+
+## The open menu, so a second press replaces it rather than stacking on it.
+var _menu: PopupMenu = null
+
+const ICON_SIZE: float = 72.0
+
+## How many bonuses a card lays across its width. One column left two thirds of
+## the plate empty and made a six-affix piece two hundred units tall.
+const CARD_COLUMNS: int = 2
 
 
 ## A row's own backing: every other one lifted, the one under the pointer
@@ -551,171 +637,283 @@ func _stripe(row: Control, index: int) -> Container:
 	return panel
 
 
+## **An item card.**
+##
+## Owner, 2026-09-16: Diablo IV's item cards in a scrollable list, and a menu when
+## you press one.
+##
+## The row used to carry five action buttons - `ACTION_WIDTH * 5` is 660 units of
+## a 940-unit panel - so the piece's own name got about two hundred and a
+## Beastcalled sword wrapped to eight lines. Widening the name and shrinking the
+## buttons trade against each other; taking the actions off the row is what
+## actually buys the space, and it gives each of them a full-width target in the
+## menu instead of a fifth of one.
 func _row(index: int) -> Container:
 	var piece: Dictionary = MetaState.stash[index]
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-
+	var tint: Color = Stash.rarity_colour(piece)
 	var is_worn: bool = int(MetaState.equipped.get(kind.slot if kind else -1, -1)) == index
 
-	# **The icon, which this list never had.** Every gear kind has authored art at
-	# `icons/ui/ui_<id>.png` - the same file the blade in the hero's hand is drawn
-	# from - and the stash showed none of it, so a screen full of loot read as a
-	# spreadsheet. Tinted by rarity so the tier is legible before the text is.
+	# The whole card is the button: "click on an item to open a dropdown menu".
+	# **As tall as what is printed on it.** A fixed height clipped the last bonus
+	# off anything with three or more, which is precisely the pieces worth
+	# reading - a `Button` does not grow with an anchored child, so the height is
+	# counted rather than hoped for.
+	var lines: int = 0
+	if kind != null:
+		lines = Stash.affixes(piece, kind).size() \
+			+ Stash.legendary_affixes(piece, kind).size()
+	# **Two to a row**, so the bonuses use the card's width instead of running
+	# down one narrow column beside two thirds of empty plate. A six-affix piece
+	# was two hundred units tall; it is three rows now.
+	var rows: int = int(ceil(float(lines) / float(CARD_COLUMNS)))
+	var card := Button.new()
+	card.custom_minimum_size = Vector2(0.0,
+		CARD_HEIGHT + float(maxi(rows - 1, 0)) * CARD_LINE)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("normal", _card_plate(tint, is_worn, 0.0))
+	card.add_theme_stylebox_override("hover", _card_plate(tint, is_worn, 0.34))
+	card.add_theme_stylebox_override("pressed", _card_plate(tint, is_worn, 0.5))
+	card.add_theme_stylebox_override("focus", _card_plate(tint, is_worn, 0.34))
+	card.tooltip_text = kind.description if kind != null else "Unknown"
+	card.pressed.connect(func() -> void: _open_item_menu(index, card))
+
+	var face := HBoxContainer.new()
+	face.add_theme_constant_override("separation", 12)
+	face.set_anchors_preset(Control.PRESET_FULL_RECT)
+	face.offset_left = 16.0
+	face.offset_right = -16.0
+	face.offset_top = 10.0
+	face.offset_bottom = -10.0
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(face)
+
+	# **The mark, in a recess.** Every gear kind has authored art at
+	# `icons/ui/ui_<id>.png` - the same file the blade in the hero's hand is
+	# drawn from - and framing it is what stops a list of loot reading as a
+	# spreadsheet with pictures in the margin.
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", _icon_recess(tint))
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var icon := TextureRect.new()
 	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if kind != null:
 		var art: String = kind.get_sprite_path()
 		if ResourceLoader.exists(art):
 			icon.texture = load(art) as Texture2D
-		icon.modulate = Stash.rarity_colour(piece).lerp(Color.WHITE, 0.45)
-		icon.tooltip_text = kind.description
-	row.add_child(icon)
+		icon.modulate = tint.lerp(Color.WHITE, 0.45)
+	frame.add_child(icon)
+	face.add_child(frame)
 
-	var label := Label.new()
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Wrapped for the same reason the note above it is: a row reads
-	# "Beastcalled Ashwalk Greaves - Boots - Lv47 - +3 Vigour, +2 Resolve",
-	# and unwrapped that is the row's *minimum* width, which the panel then
-	# grows to fit. Inside the scroll, so the extra height costs nothing.
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", 15)
-	if kind == null:
-		label.text = "Unknown"
-	else:
-		label.text = "%s %s  ·  %s  ·  Lv%d  ·  %s%s" % [
-			Stash.rarity_name(piece), kind.display_name, kind.slot_name(),
-			int(piece.get("level", 1)), GearRow.bonus_text(piece, kind),
-			"   ◆ worn" if is_worn else ""]
-		label.tooltip_text = kind.description
-		label.add_theme_color_override("font_color",
-			Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.35))
-	row.add_child(label)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	face.add_child(column)
 
-	# The actions in a box of their own, fixed width, each filling a share of
-	# it. Sized individually they were four different widths per row
-	# - "Sell 120" is wider than "Sell 12" - so every row started its buttons at
-	# a different x and a list of ninety-six read as ragged.
-	# **Stacked on a phone, side by side on a desktop.**
-	#
-	# The four actions share the row with the name on a wide screen, which is
-	# how a stash should read. On a phone the same layout gave each button 126
-	# units, of which 68 is the frame's own padding - so "Equip" rendered as
-	# "EQU" and "Break 11" as "BRE". A second line is the only thing that
-	# actually buys the width back.
-	var stacked: bool = TouchInput.is_showing()
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 6)
-	# **They keep their own height rather than growing with the row.**
-	#
-	# An `HBoxContainer` child fills the box's height by default, and the box is
-	# as tall as the tallest thing in the row - which is the wrapped name. A name
-	# that wrapped to eight lines therefore produced buttons a hundred and twenty
-	# units tall, reported as a stash whose "internal elements" were wrong. The
-	# name may be as tall as it likes now; the buttons stay the size a button is.
-	actions.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if stacked:
-		actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	else:
-		actions.custom_minimum_size.x = ACTION_WIDTH * 5.0
-		# **And the name keeps a readable measure.** Five actions at their full
-		# width are 660 units of a 940 panel; with the icon that left the name
-		# about two hundred, which is where the eight-line wrap came from. A
-		# floor here makes the row honest about what it needs - the panel is
-		# already free to be as wide as the screen allows.
-		label.custom_minimum_size.x = NAME_FLOOR
-	var outer: Container = row
-	if stacked:
-		var column := VBoxContainer.new()
-		column.add_theme_constant_override("separation", 4)
-		column.add_child(row)
-		column.add_child(actions)
-		outer = column
-	else:
-		row.add_child(actions)
+	var name_line := Label.new()
+	name_line.text = "%s %s" % [Stash.rarity_name(piece),
+		kind.display_name if kind != null else "Unknown"]
+	name_line.add_theme_font_size_override("font_size", 20)
+	name_line.add_theme_color_override("font_color", tint.lerp(Color("efe9dc"), 0.25))
+	name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(name_line)
 
-	var equip := Button.new()
-	equip.text = "Remove" if is_worn else "Equip"
-	_size_action(equip)
-	equip.disabled = kind == null
-	equip.pressed.connect(func() -> void:
-		if is_worn:
-			MetaState.equipped.erase(kind.slot)
-		else:
-			MetaState.equipped[kind.slot] = index
-		MetaState.save_game()
-		EventBus.stash_changed.emit()
-		_refresh())
-	actions.add_child(equip)
+	var what := Label.new()
+	what.text = "%s  ·  Level %d%s" % [
+		kind.slot_name() if kind != null else "-", int(piece.get("level", 1)),
+		"  ·  WORN" if is_worn else ""]
+	what.add_theme_font_size_override("font_size", 15)
+	what.add_theme_color_override("font_color", Color("8d968f"))
+	what.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(what)
 
+	# **The bonuses as rows.** A comma-separated tail on the end of the name is
+	# what made the name unreadable; a piece's numbers are what a player is
+	# comparing and they deserve their own lines.
+	if kind != null:
+		var said: Array[Label] = []
+		for affix: Dictionary in Stash.affixes(piece, kind):
+			var which: int = clampi(int(affix["attribute"]), 0,
+				ATTRIBUTE_NAMES.size() - 1)
+			said.append(_stat_line("+%d %s" % [int(affix["points"]),
+				ATTRIBUTE_NAMES[which]], tint))
+		for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
+			said.append(_stat_line(legend.line(), tint.lightened(0.2)))
+		var grid := GridContainer.new()
+		grid.columns = CARD_COLUMNS
+		grid.add_theme_constant_override("h_separation", 22)
+		grid.add_theme_constant_override("v_separation", 1)
+		grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for said_line: Label in said:
+			said_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(said_line)
+		column.add_child(grid)
+
+	# **The marker reads as a control**, on a plate of its own rather than as grey
+	# text at the far edge. Words rather than a glyph: no bundled font carries
+	# U+203A any more than it carries the hearts this screen already learned not
+	# to use, and a marker that renders as a box teaches nothing.
+	var tag := PanelContainer.new()
+	tag.add_theme_stylebox_override("panel", _icon_recess(tint))
+	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chevron := Label.new()
+	chevron.text = "OPTIONS"
+	chevron.add_theme_font_size_override("font_size", 14)
+	chevron.add_theme_color_override("font_color", tint.lerp(Color("cfd6d0"), 0.5))
+	chevron.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chevron.custom_minimum_size = Vector2(92.0, 0.0)
+	chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.add_child(chevron)
+	face.add_child(tag)
+	return _wrap_card(card)
+
+
+## A card sits in a plain container so the list's own layout is unchanged.
+func _wrap_card(card: Control) -> Container:
+	var holder := HBoxContainer.new()
+	holder.add_child(card)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return holder
+
+
+func _stat_line(text: String, tint: Color) -> Label:
+	var line := Label.new()
+	line.text = text
+	line.add_theme_font_size_override("font_size", 16)
+	line.add_theme_color_override("font_color", tint.lerp(Color("cfd6d0"), 0.55))
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return line
+
+
+## The plate a piece is printed on, edged in its rarity.
+##
+## A worn piece is edged brighter rather than labelled only: a stash of ninety-six
+## is scanned before any of the words are read.
+func _card_plate(tint: Color, worn: bool, lift: float) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.068, 0.074, 0.078, 0.94).lerp(
+		Color(tint.r, tint.g, tint.b, 0.94), 0.05 + lift * 0.10)
+	box.border_color = Color(tint.r, tint.g, tint.b,
+		(0.75 if worn else 0.42) + lift * 0.4)
+	box.border_width_left = 4
+	box.border_width_top = 1
+	box.border_width_bottom = 1
+	box.border_width_right = 1
+	box.set_corner_radius_all(6)
+	box.set_content_margin_all(2.0)
+	return box
+
+
+func _icon_recess(tint: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.03, 0.035, 0.038, 0.92)
+	box.border_color = Color(tint.r, tint.g, tint.b, 0.35)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(4)
+	box.set_content_margin_all(4.0)
+	return box
+
+
+## **What you can do with this piece**, as a menu the card opens.
+##
+## A `PopupMenu` rather than a panel this screen lays out: it knows where the
+## edges of the screen are, closes on a press elsewhere, and answers a pad and a
+## keyboard without any of that being written twice. The items carry the same
+## enabled state the buttons carried, so a Kept piece still cannot be sold by
+## accident.
+func _open_item_menu(index: int, near: Control) -> void:
+	if index < 0 or index >= MetaState.stash.size():
+		return
+	if _menu != null and is_instance_valid(_menu):
+		_menu.queue_free()
+	var piece: Dictionary = MetaState.stash[index]
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	var is_worn: bool = int(MetaState.equipped.get(kind.slot if kind else -1, -1)) == index
+	var marked: bool = Stash.is_favourite(piece)
 	var cost: Dictionary = Stash.upgrade_cost(piece)
-	var upgrade := Button.new()
+
+	var menu := PopupMenu.new()
+	menu.add_theme_font_size_override("font_size", 16)
+	_menu = menu
+	add_child(menu)
+
+	menu.add_item("Remove" if is_worn else "Equip", MENU_EQUIP)
+	menu.set_item_disabled(menu.get_item_index(MENU_EQUIP), kind == null)
 	if cost.is_empty():
-		upgrade.text = "Max"
-		upgrade.disabled = true
+		menu.add_item("Fully upgraded", MENU_UPGRADE)
+		menu.set_item_disabled(menu.get_item_index(MENU_UPGRADE), true)
 	else:
-		upgrade.text = "%d◇ %d◆" % [int(cost["shards"]), int(cost["marks"])]
-		upgrade.tooltip_text = "Upgrade to level %d: %d shards and %d marks." % [
-			int(piece.get("level", 1)) + 1, int(cost["shards"]), int(cost["marks"])]
-		upgrade.disabled = MetaState.shards < int(cost["shards"]) \
-			or MetaState.marks < int(cost["marks"])
-		upgrade.pressed.connect(func() -> void:
+		menu.add_item("Upgrade to level %d  ·  %d shards, %d marks" % [
+			int(piece.get("level", 1)) + 1, int(cost["shards"]), int(cost["marks"])],
+			MENU_UPGRADE)
+		menu.set_item_disabled(menu.get_item_index(MENU_UPGRADE),
+			MetaState.shards < int(cost["shards"]) or MetaState.marks < int(cost["marks"]))
+	menu.add_separator()
+	menu.add_item("Unmark as kept" if marked else "Mark as kept", MENU_KEEP)
+	menu.add_item("Sell  ·  %d marks" % Stash.sell_price(piece), MENU_SELL)
+	menu.set_item_disabled(menu.get_item_index(MENU_SELL), marked)
+	menu.add_item("Break for %d shards" % Stash.salvage_yield(piece), MENU_BREAK)
+	menu.set_item_disabled(menu.get_item_index(MENU_BREAK), marked)
+
+	menu.id_pressed.connect(func(id: int) -> void: _do_item_action(index, id))
+	menu.popup_hide.connect(func() -> void: menu.queue_free())
+	var at: Vector2 = near.get_screen_position() + Vector2(near.size.x * 0.4, near.size.y)
+	menu.popup(Rect2i(Vector2i(at), Vector2i(340, 0)))
+
+
+## One place every action a piece has is carried out, so the menu and anything
+## that ever drives it cannot disagree about what "sell" does.
+func _do_item_action(index: int, id: int) -> void:
+	if index < 0 or index >= MetaState.stash.size():
+		return
+	var piece: Dictionary = MetaState.stash[index]
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	match id:
+		MENU_EQUIP:
+			if kind == null:
+				return
+			if int(MetaState.equipped.get(kind.slot, -1)) == index:
+				MetaState.equipped.erase(kind.slot)
+			else:
+				MetaState.equipped[kind.slot] = index
+			MetaState.save_game()
+			EventBus.stash_changed.emit()
+		MENU_UPGRADE:
+			var cost: Dictionary = Stash.upgrade_cost(piece)
+			if cost.is_empty() or MetaState.shards < int(cost["shards"]) \
+					or MetaState.marks < int(cost["marks"]):
+				return
 			MetaState.shards -= int(cost["shards"])
 			MetaState.marks -= int(cost["marks"])
 			piece["level"] = int(piece.get("level", 1)) + 1
 			MetaState.save_game()
 			EventBus.stash_changed.emit()
 			Sfx.play("sfx_tower_upgrade")
-			_refresh())
-	_size_action(upgrade)
-	actions.add_child(upgrade)
-
-	# The mark, beside the actions it protects against rather than buried in a
-	# menu - it has to be one press from the thing it is guarding.
-	var marked: bool = Stash.is_favourite(piece)
-	var keep := Button.new()
-	# Words, not hearts. No bundled font has U+2665 or U+2661, so on Android
-	# both states drew the same empty box - and a two-state control whose
-	# states look identical is worse than no control.
-	keep.text = "Kept" if marked else "Keep"
-	keep.tooltip_text = ("Kept: bulk breaking will not take this."
-		if marked else "Mark as kept, so bulk breaking leaves it alone.")
-	_size_action(keep)
-	keep.pressed.connect(func() -> void:
-		Stash.set_favourite(piece, not Stash.is_favourite(piece))
-		MetaState.save_game()
-		EventBus.stash_changed.emit()
-		_refresh())
-	actions.add_child(keep)
-
-	var sell := Button.new()
-	sell.text = "Sell %d◆" % Stash.sell_price(piece)
-	sell.disabled = marked
-	if marked:
-		sell.tooltip_text = "Kept. Unmark it first."
-	_size_action(sell)
-	sell.pressed.connect(func() -> void:
-		MetaState.marks += Stash.sell_price(piece)
-		MetaState.drop_gear(index)
-		Sfx.play("sfx_tower_sell")
-		_refresh())
-	actions.add_child(sell)
-
-	var salvage := Button.new()
-	salvage.text = "Break %d◇" % Stash.salvage_yield(piece)
-	salvage.tooltip_text = "Breaks it for shards. Shards only buy upgrades."
-	_size_action(salvage)
-	salvage.pressed.connect(func() -> void:
-		MetaState.shards += Stash.salvage_yield(piece)
-		MetaState.drop_gear(index)
-		Sfx.play("sfx_relic_socket")
-		_refresh())
-	actions.add_child(salvage)
-	return outer
+		MENU_KEEP:
+			Stash.set_favourite(piece, not Stash.is_favourite(piece))
+			MetaState.save_game()
+			EventBus.stash_changed.emit()
+		MENU_SELL:
+			if Stash.is_favourite(piece):
+				return
+			MetaState.marks += Stash.sell_price(piece)
+			MetaState.drop_gear(index)
+			Sfx.play("sfx_tower_sell")
+		MENU_BREAK:
+			if Stash.is_favourite(piece):
+				return
+			MetaState.shards += Stash.salvage_yield(piece)
+			MetaState.drop_gear(index)
+			Sfx.play("sfx_relic_socket")
+	_refresh()
 
 
 ## One width and one height for all four row actions.

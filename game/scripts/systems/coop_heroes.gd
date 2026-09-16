@@ -151,8 +151,16 @@ func _claim_local_spawn(battlefield: Battlefield) -> void:
 
 ## One other player's body, by seat, or null.
 func body_for_slot(number: int) -> Hero:
-	var who: Hero = _bodies.get(number, null) as Hero
-	return who if who != null and is_instance_valid(who) else null
+	# **Checked before it is cast.** `_bodies` keeps pointing at a body after it
+	# is freed - a battlefield torn down, a scope rebuilt, anything that frees a
+	# hero without going through `_drop_body` - and **casting a freed object is
+	# an error in itself**, raised before `is_instance_valid` is ever reached. So
+	# every read of this seat errored once a body had gone, and a release gate
+	# fails on any ERROR line. The same shape as the boss director's `_active`.
+	var who: Variant = _bodies.get(number, null)
+	if who == null or not is_instance_valid(who):
+		return null
+	return who as Hero
 
 
 ## The first other player's body. **Legacy, and only for callers that genuinely
@@ -321,7 +329,8 @@ func _drop_body(number: int) -> void:
 		# forever, which is exactly what a hidden touch stick used to do.
 		driver.clear()
 	_inputs.erase(number)
-	var body: Hero = _bodies.get(number, null) as Hero
+	var standing: Variant = _bodies.get(number, null)
+	var body: Hero = standing as Hero if standing != null and is_instance_valid(standing) else null
 	if body != null and is_instance_valid(body):
 		body.queue_free()
 	_bodies.erase(number)

@@ -170,18 +170,23 @@ static func idle_shimmer(tree: SceneTree, dice: RandomNumberGenerator) -> void:
 	if float(material.get_shader_parameter("strength")) > 0.05:
 		return
 	material.set_shader_parameter("sweep", -0.4)
+	# Only the material, never the control - see `_tween_to`.
 	var tween: Tween = control.create_tween()
 	tween.tween_method(func(value: float) -> void:
-		if is_instance_valid(control):
-			material.set_shader_parameter("sweep", value),
+		material.set_shader_parameter("sweep", value),
 		-0.4, 1.4, Balance.UI_HOLO_SWEEP * Balance.UI_HOLO_IDLE_SLOW)
 	# A whisper of rim under it, and gone. Never the full hover strength.
 	_tween_to(control, material, Balance.UI_HOLO_IDLE_STRENGTH, Balance.UI_HOLO_RISE)
+	var shimmered: int = control.get_instance_id()
 	var fade: Tween = control.create_tween()
 	fade.tween_interval(Balance.UI_HOLO_SWEEP * Balance.UI_HOLO_IDLE_SLOW)
 	fade.tween_callback(func() -> void:
-		if is_instance_valid(control) and not control.has_focus():
-			_tween_to(control, material, 0.0, Balance.UI_HOLO_FALL))
+		var it: Object = instance_from_id(shimmered)
+		if it == null or not is_instance_valid(it):
+			return
+		var again := it as Control
+		if not again.has_focus():
+			_tween_to(again, material, 0.0, Balance.UI_HOLO_FALL))
 
 
 ## Pointed at, or focused. One sweep across, and the rim comes up and stays.
@@ -194,10 +199,12 @@ static func _on_noticed(control: Control) -> void:
 	# loop. A second hover before the first has finished restarts it, which is
 	# what a player flicking along a row of buttons should see.
 	material.set_shader_parameter("sweep", -0.4)
+	# **Only the material is captured.** A lambda holding a freed control errors
+	# at the call, before its own guard runs - see the note on `_tween_to`. A
+	# `ShaderMaterial` is reference-counted and cannot go out from under it.
 	var tween: Tween = control.create_tween()
 	tween.tween_method(func(value: float) -> void:
-		if is_instance_valid(control):
-			material.set_shader_parameter("sweep", value),
+		material.set_shader_parameter("sweep", value),
 		-0.4, 1.4, Balance.UI_HOLO_SWEEP)
 	# **And the button moves.** A hologram with a dead button under it is a
 	# decal; a pixel of lift is what makes it feel picked up.
@@ -222,23 +229,38 @@ static func _on_pressed(control: Control) -> void:
 	material.set_shader_parameter("flicker", 1.0)
 	var tween: Tween = control.create_tween()
 	tween.tween_method(func(value: float) -> void:
-		if is_instance_valid(control):
-			material.set_shader_parameter("flicker", value),
+		material.set_shader_parameter("flicker", value),
 		1.0, 0.0, Balance.UI_HOLO_TEAR)
 	_lift(control, -Balance.UI_HOLO_LIFT)
+	# This one genuinely needs the control back, so it takes the id: an `int`
+	# survives whatever happens to the thing it names.
+	var id: int = control.get_instance_id()
 	var back: Tween = control.create_tween()
 	back.tween_interval(Balance.UI_HOLO_TEAR)
 	back.tween_callback(func() -> void:
-		if is_instance_valid(control):
-			_lift(control, Balance.UI_HOLO_LIFT if control.has_focus() else 0.0))
+		var it: Object = instance_from_id(id)
+		if it == null or not is_instance_valid(it):
+			return
+		var again := it as Control
+		_lift(again, Balance.UI_HOLO_LIFT if again.has_focus() else 0.0))
 
 
+## **Only the material is captured, never the control.**
+##
+## A lambda holding a freed object errors at the *call* - "Lambda capture at
+## index 0 was freed" - before its own body runs, so an `is_instance_valid` guard
+## inside one does nothing at all. This project has paid for that once already,
+## with three scopes following the sun through a lambda.
+##
+## Nothing noticed here because the screens that enrol build their buttons once.
+## Point it at a list that rebuilds itself and every interrupted tween errors on
+## every remaining step. A `ShaderMaterial` is reference-counted, so writing to it
+## is safe whatever happens to the control it was on.
 static func _tween_to(control: Control, material: ShaderMaterial,
 		wanted: float, seconds: float) -> void:
 	var tween: Tween = control.create_tween()
 	tween.tween_method(func(value: float) -> void:
-		if is_instance_valid(control):
-			material.set_shader_parameter("strength", value),
+		material.set_shader_parameter("strength", value),
 		float(material.get_shader_parameter("strength")), wanted, seconds)
 
 
@@ -295,6 +317,12 @@ static func _follow_the_layout(control: Control) -> void:
 	if box == null or control.has_meta(WATCHED):
 		return
 	control.set_meta(WATCHED, true)
+	# **The id, not the control.** The container outlives its children, so this
+	# connection survives every row a rebuilding list frees - and a lambda
+	# holding a freed object errors at the call, before its own guard runs. That
+	# is what made the stash print four of these on every refresh.
+	var watched: int = control.get_instance_id()
 	box.sort_children.connect(func() -> void:
-		if is_instance_valid(control):
-			control.set_meta(APPLIED, 0.0))
+		var it: Object = instance_from_id(watched)
+		if it != null and is_instance_valid(it):
+			(it as Control).set_meta(APPLIED, 0.0))
