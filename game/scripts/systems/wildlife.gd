@@ -183,7 +183,7 @@ func rouse_species(species_id: String, toward: Vector2) -> void:
 		if kind != null and not kind.vocal_sfx.is_empty():
 			# From where the species was wronged - the nest that was robbed -
 			# rather than from the listener. `sprite` above is loop-local.
-			Sfx.play_at(kind.vocal_sfx, toward, -2.0)
+			Sfx.play_at(kind.vocal_sfx, toward, -2.0, voice_pitch(kind))
 
 
 ## One animal by its serial, or an empty record.
@@ -918,7 +918,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	if bool(_living.back()["rabid"]):
 		_dress_as_rabid(sprite, kind)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play_at(kind.vocal_sfx, sprite.global_position, -3.0)
+		Sfx.play_at(kind.vocal_sfx, sprite.global_position, -3.0,
+			voice_pitch(kind, float(_living.back().get("size", 1.0))))
 
 
 ## One animal, one frame. False when it should be removed.
@@ -1685,7 +1686,8 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		if bool(animal.get("rabid", false)):
 			spirit.apply_poison(Balance.WILDLIFE_RABID_POISON_DPS, Balance.WILDLIFE_RABID_POISON_SECONDS)
 		if not kind.vocal_sfx.is_empty():
-			Sfx.play_at(kind.vocal_sfx, sprite.global_position, -4.0)
+			Sfx.play_at(kind.vocal_sfx, sprite.global_position, -4.0,
+				voice_pitch(kind, float(animal.get("size", 1.0))))
 		return
 	if not (quarry is Hero) and not (quarry is Enemy):
 		# Prey. Owner report: predators followed prey and never bit it. The bite
@@ -1706,7 +1708,8 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			Vfx.spark(quarry.global_position, Color("c4552e"), 5,
 				(quarry.global_position - sprite.global_position).normalized(), 150.0)
 			if not kind.vocal_sfx.is_empty():
-				Sfx.play_at(kind.vocal_sfx, sprite.global_position, -6.0)
+				Sfx.play_at(kind.vocal_sfx, sprite.global_position, -6.0,
+					voice_pitch(kind, float(animal.get("size", 1.0))))
 			return
 		return
 	# Softer early, at full strength later. A wolf pack costs 8 a bite and the
@@ -1740,7 +1743,8 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# `camera_impact`.
 	EventBus.camera_impact.emit(quarry.global_position, 3.0)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play_at(kind.vocal_sfx, sprite.global_position)
+		Sfx.play_at(kind.vocal_sfx, sprite.global_position, 0.0,
+			voice_pitch(kind, float(animal.get("size", 1.0))))
 
 
 ## Whether anything alarming is close enough to matter.
@@ -3411,6 +3415,28 @@ func _plant_near(at: Vector2, reach: float) -> Vector2:
 ## hero. Preferred rather than required: if nothing is reachable the best
 ## far-from-everybody tree is still better than standing in the open holding
 ## the loot.
+## **What this animal's throat does to its voice.**
+##
+## Twenty-three species share one of the twelve recordings, so without this a
+## fennec is a fox and a jackal is a wolf. `scale` is the body, and a bigger body
+## is a lower voice; `size` is the growth stage, so a cub speaks higher than its
+## mother out of the same sample.
+##
+## Returned as a *shift* rather than applied here, because `Sfx.play_at` already
+## multiplies it by the per-play drift the MIX row authors - the scale says what
+## kind of animal, the drift says which time it called.
+static func voice_pitch(kind: WildlifeData, size: float = 1.0) -> float:
+	if kind == null:
+		return 0.0
+	var body: float = maxf(kind.scale, 0.05) * maxf(size, 0.05)
+	var ratio: float = clampf(pow(1.0 / body, Balance.WILDLIFE_VOICE_PITCH_POWER),
+		Balance.WILDLIFE_VOICE_PITCH_MIN, Balance.WILDLIFE_VOICE_PITCH_MAX)
+	# A young animal is smaller *and* reedier than its size alone implies.
+	if size < 0.999:
+		ratio *= 1.0 + Balance.WILDLIFE_VOICE_YOUNG_LIFT * (1.0 - clampf(size, 0.0, 1.0))
+	return ratio - 1.0
+
+
 func _hiding_spot(from: Vector2, kind: WildlifeData = null) -> Vector2:
 	var heroes: Array = get_tree().get_nodes_in_group(Hero.GROUP_ANY)
 	var clearance: float = maxf(kind.skittish_radius if kind != null else 0.0,

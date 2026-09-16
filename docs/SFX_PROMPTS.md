@@ -16,20 +16,18 @@ prompt below.
 ---
 
 
-## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (1)
+## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (0)
 
 These calls are already wired to arrivals and hostile strikes. Missing
 files remain safely silent; adding the named OGG enables them without a
 code change. Record these before the general backlog.
 
-| File | Length | Prompt |
-|---|---|---|
-| **`sfx_wildlife_frog.ogg`** | 0.8s | **two or three croaks from one marsh frog, wet and rubbery with a throaty rattle, close and dry with no pond ambience, no reverb, no insects** |
+All wildlife calls are present on disk.
 
 ---
 
 
-## STILL TO RECORD (134)
+## STILL TO RECORD (139)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -38,7 +36,12 @@ missing stream - so none of these block a build.
 
 | File | Folder | Length | Tool | Prompt |
 |---|---|---|---|---|
-| `sfx_wildlife_frog.ogg` | `sfx` | 0.8s | ElevenLabs | two or three croaks from one marsh frog, wet and rubbery with a throaty rattle, close and dry with no pond ambience, no reverb, no insects |
+| `sfx_enemy_call_horde.ogg` | `sfx` | 1.2s | ElevenLabs | one human war cry from a massed infantry line, hoarse and guttural, a single shout not a crowd, dry and close, no music, no reverb tail |
+| `sfx_enemy_call_beast.ogg` | `sfx` | 1.4s | ElevenLabs | one throaty predator roar from a large four-legged beast, wet and ragged at the end, animal not demonic, isolated, no background |
+| `sfx_enemy_call_horn.ogg` | `sfx` | 1.8s | ElevenLabs | one blast on a crude battle horn made of horn or bone, two rough notes falling, carrying over open ground, no orchestra, no reverb wash |
+| `sfx_enemy_call_wraith.ogg` | `sfx` | 1.6s | ElevenLabs | one cold hollow shriek from something not alive, breathy and tuneless with a glassy edge, restrained not screaming, isolated |
+| `sfx_enemy_call_siege.ogg` | `sfx` | 1.5s | ElevenLabs | one deep stone-throated bellow from something enormous and slow, heavy chest resonance, ending in a grinding rumble, no music |
+| `sfx_enemy_call_swarm.ogg` | `sfx` | 1.0s | ElevenLabs | one sharp chittering screech from a small fast pack creature, insectile and rattling, dry and close, no background |
 | `music_act01_06.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
 | `music_act05_05.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
 | `music_act05_06.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
@@ -175,13 +178,13 @@ missing stream - so none of these block a build.
 
 ---
 
-## PROMPTED BUT NEVER PLAYED (156)
+## PROMPTED BUT NEVER PLAYED (161)
 
 Prompts for sounds nothing in the game names by literal. Not a fault - a
 few are chosen from data rather than written into code - but worth a
 glance before recording one, in case it is for something that was cut.
 
-`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_wildlife_frog`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
+`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_enemy_call_beast`, `sfx_enemy_call_horde`, `sfx_enemy_call_horn`, `sfx_enemy_call_siege`, `sfx_enemy_call_swarm`, `sfx_enemy_call_wraith`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
 
 ---
 
@@ -1470,7 +1473,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 94 files
+## Sound effects - 100 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -1864,6 +1867,54 @@ one small squirrel warning chatter, quick and restrained, isolated, no backgroun
 
 ```text
 one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background.
+```
+
+### `sfx_enemy_call_horde`
+
+`game/audio/sfx/sfx_enemy_call_horde.ogg`  -  target length **1.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+one human war cry from a massed infantry line, hoarse and guttural, a single shout not a crowd, dry and close, no music, no reverb tail.
+```
+
+### `sfx_enemy_call_beast`
+
+`game/audio/sfx/sfx_enemy_call_beast.ogg`  -  target length **1.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+one throaty predator roar from a large four-legged beast, wet and ragged at the end, animal not demonic, isolated, no background.
+```
+
+### `sfx_enemy_call_horn`
+
+`game/audio/sfx/sfx_enemy_call_horn.ogg`  -  target length **1.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+one blast on a crude battle horn made of horn or bone, two rough notes falling, carrying over open ground, no orchestra, no reverb wash.
+```
+
+### `sfx_enemy_call_wraith`
+
+`game/audio/sfx/sfx_enemy_call_wraith.ogg`  -  target length **1.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+one cold hollow shriek from something not alive, breathy and tuneless with a glassy edge, restrained not screaming, isolated.
+```
+
+### `sfx_enemy_call_siege`
+
+`game/audio/sfx/sfx_enemy_call_siege.ogg`  -  target length **1.5s**  -  suggested tool: **ElevenLabs**
+
+```text
+one deep stone-throated bellow from something enormous and slow, heavy chest resonance, ending in a grinding rumble, no music.
+```
+
+### `sfx_enemy_call_swarm`
+
+`game/audio/sfx/sfx_enemy_call_swarm.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+one sharp chittering screech from a small fast pack creature, insectile and rattling, dry and close, no background.
 ```
 
 ### `sfx_wildlife_frog`

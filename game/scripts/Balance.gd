@@ -3639,6 +3639,43 @@ const ENEMY_THROW_WINDUP_SCALE: float = 1.8
 ## together are visibly two wolves, nowhere near enough to make one of them read
 ## as a rarity. `phenotype_check` refuses a species that authors past these.
 ## [TUNE]
+## **A voice is pitched by the body that makes it.**
+##
+## Twenty-three species share one of the twelve recorded voices - a fennec takes
+## the fox's, a jackal the wolf's, a marmot the squirrel's - which is the right
+## answer for a roster of fifty-one and the wrong one if they all come out
+## identical. `WildlifeData.scale` already says how big an animal is (0.62 for a
+## squirrel, 3.6 for a hollowhorn), so the same recording can be a fennec or a
+## wolf depending on the throat it came out of.
+##
+## The shift is `(1 / scale) ^ WILDLIFE_VOICE_PITCH_POWER`, clamped: bigger is
+## lower, smaller is higher, and the power is what keeps a hollowhorn from
+## sounding like a bass drum played at quarter speed. Clamped at both ends
+## because a pitch ratio that far from one stops sounding like the animal and
+## starts sounding like a broken sample.
+##
+## **It multiplies with the per-play drift already in every MIX row** rather
+## than replacing it: the scale decides what kind of throat, the drift decides
+## that this particular call is not the last one. [TUNE]
+## **How often a breed may speak**, across the whole field rather than per body.
+##
+## A wave is forty bodies and a call every time one of them noticed you would be
+## a wall of noise rather than a road. One voice at a time, this far apart, is
+## what makes a howl mean something arrived. [TUNE]
+const ENEMY_VOICE_GAP: float = 6.5
+
+## The same body-size rule the wildlife voices use, applied to a roster that
+## shares recordings even more heavily. See `WILDLIFE_VOICE_PITCH_POWER`.
+const ENEMY_VOICE_PITCH_POWER: float = 0.40
+
+const WILDLIFE_VOICE_PITCH_POWER: float = 0.45
+const WILDLIFE_VOICE_PITCH_MIN: float = 0.72
+const WILDLIFE_VOICE_PITCH_MAX: float = 1.45
+
+## How much higher a young animal speaks, at the smallest growth stage. A cub is
+## already drawn smaller; this is the same fact in its voice. [TUNE]
+const WILDLIFE_VOICE_YOUNG_LIFT: float = 0.18
+
 const PHENOTYPE_HUE_CEILING: float = 0.055
 const PHENOTYPE_LIGHT_CEILING: float = 0.22
 const PHENOTYPE_SATURATION_CEILING: float = 0.30

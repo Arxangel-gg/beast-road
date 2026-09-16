@@ -225,11 +225,29 @@ func _test_the_crossfade_is_a_crossfade() -> void:
 	_check(MusicPlayer.is_crossfading(), "and reports itself as one")
 
 
+## **The boss cues resolve to something playable.**
+##
+## This asked `SOUNDS.has(id)` and read the path back, which was right while each
+## cue was one synthesised file. Both are **groups of three recorded takes** as of
+## 2026-09-16, so the id is in `GROUPS` and deliberately not in `SOUNDS` - `play`
+## falls through to the group, which is the whole mechanism variations use.
+##
+## Amended rather than quietly relaxed, because a gate whose invariant is stale
+## agrees with the fault for ever: what it must hold is *resolves to a real
+## recording*, and it now follows the group to its takes to prove it.
 func _test_the_cues_are_registered() -> void:
 	for id: String in ["sfx_boss_stinger", "sfx_boss_fall"]:
-		_check(Sfx.SOUNDS.has(id), "the boss cue %s is not registered" % id)
-		_check(ResourceLoader.exists(String(Sfx.SOUNDS.get(id, ""))),
-			"the boss cue %s has no file at %s" % [id, str(Sfx.SOUNDS.get(id, ""))])
+		var takes: PackedStringArray = []
+		if Sfx.SOUNDS.has(id):
+			takes.append(id)
+		for option: Variant in (Sfx.GROUPS.get(id, []) as Array):
+			takes.append(String(option))
+		_check(not takes.is_empty(),
+			"the boss cue %s is neither a sound nor a group" % id)
+		for take: String in takes:
+			_check(ResourceLoader.exists(String(Sfx.SOUNDS.get(take, ""))),
+				"the boss cue %s take %s has no file at %s"
+					% [id, take, str(Sfx.SOUNDS.get(take, ""))])
 	_check(Balance.MUSIC_PLAYLIST_SLOTS >= 12, "the owner asked for twelve songs an act")
 	_check(Balance.MUSIC_BOSS_FADE > MusicPlayer.FADE_TIME, "a boss arrives slower than a scope change")
 

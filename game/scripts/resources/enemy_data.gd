@@ -46,6 +46,23 @@ enum Role {
 
 @export var category: Category = Category.BREED
 
+## **What this breed sounds like when it notices you**, as a `Sfx` id or group.
+##
+## Sixty-seven breeds ship and **not one of them has a voice**: an enemy makes an
+## impact noise when it is hit (chosen by its `hide`) and a death rattle when it
+## falls, and is otherwise silent from the far end of the road to the wall. The
+## roster is drawn with horns, megaphones and open jaws and none of it is heard.
+##
+## Empty is the shipped default and stays silent, so this grows the way the
+## soundtrack does - by dropping a file in and naming it here, with no code
+## change. `Sfx.play_at` is quiet about an id it does not have, so a breed can be
+## authored before its recording exists.
+@export var voice_sfx: String = ""
+
+## Seconds between one breed's calls, so a wave of forty does not become a wall
+## of noise. Zero uses `Balance.ENEMY_VOICE_GAP`.
+@export_range(0.0, 60.0) var voice_gap: float = 0.0
+
 
 ## **Whether this body is one of the fight's set pieces**, rather than one of
 ## the many.

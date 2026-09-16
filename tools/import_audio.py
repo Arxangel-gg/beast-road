@@ -53,6 +53,19 @@ TARGETS = {
 # is audible in a way a slightly softer string pad is not.
 QUALITY = {"music": 1, "ambience": 3, "sfx": 5}
 
+# **Measured on 2026-09-16, so the next size conversation starts from a number.**
+# Re-encoding one shipped 2-minute track at each setting, against its current
+# size: q0 is 82%, q1 is 96%, q2 is 105%. So dropping music to q0 would take
+# about 18% off - roughly 25 MB of today's 139 MB, and nearer 45 MB once the
+# sixty-one act songs and ten boss themes still to be written have landed.
+#
+# It is left at 1 deliberately. That saving is a *quality* decision on a
+# commissioned soundtrack rather than a technical one, and re-encoding an
+# existing lossy file adds generation loss on top of the setting - so the honest
+# move is to change this before a batch is imported, never afterwards. Everything
+# else in this file only ever removes waste: a one-shot's unusable second
+# channel, dead air, a file heavier than the setting beside it.
+
 
 def find_ffmpeg() -> str:
     exe = shutil.which("ffmpeg")
@@ -111,6 +124,13 @@ def convert(ffmpeg: str, src: str, dst: str, kind: str) -> tuple:
         "-af", ",".join(filters),
         "-c:a", "libvorbis", "-q:a", str(QUALITY[kind]),
         "-ar", "44100",
+        # **One-shots are mono, and that is correctness before it is size.**
+        # `Sfx` plays every effect through a plain `AudioStreamPlayer` and does
+        # its own distance attenuation in `play_at`; nothing ever pans a stream.
+        # A stereo one-shot therefore stores a second channel the game can never
+        # use, at roughly twice the bytes. Music and ambience stay stereo - they
+        # are beds and the width is the point.
+        *(["-ac", "1"] if kind == "sfx" else []),
         dst,
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -132,6 +152,122 @@ def duration(ffmpeg: str, path: str) -> float:
         return 0.0
 
 
+VARIATION = re.compile(r"^(.*?)[_ -]*#(\d+)-(\d+)$")
+
+
+def parse_generated(stem: str) -> tuple:
+    """`sfx_boss_fall_-_a_bo_#2-17895` -> ("sfx_boss_fall", 2, "17895").
+
+    **ElevenLabs names a file after the prompt, not after the sound**, so a batch
+    arrives as `<id>_-_<first words of the prompt>_#<variation>-<timestamp>.wav`.
+    The id is the part before the prompt text, which is recovered by matching the
+    longest known id that the stem starts with - guessing at the underscore would
+    cut `sfx_boss_fall` down to `sfx_boss`.
+
+    Returns ("", 0, "") for anything that is not a generated take, so an ordinary
+    hand-named file still imports exactly as it did.
+    """
+    match = VARIATION.match(stem)
+    if not match:
+        return ("", 0, "")
+    return (match.group(1), int(match.group(2)), match.group(3))
+
+
+def known_ids() -> list:
+    """Every sound id the prompts doc knows, longest first."""
+    ids = []
+    if os.path.exists(MANIFEST):
+        text = io.open(MANIFEST, encoding="utf-8").read()
+        ids = re.findall(r"^\|\s*`([a-z0-9_]+)`", text, re.M)
+    return sorted(set(ids), key=len, reverse=True)
+
+
+def id_from_prompt_name(stem: str, ids: list) -> str:
+    """The longest known id this generated filename begins with."""
+    cleaned = stem.rstrip("_- ")
+    for known in ids:
+        if cleaned == known:
+            return known
+        # Any non-id character may follow: a generator writes the prompt after
+        # the id, and one batch arrived with the extension typed into the prompt
+        # box as well ("sfx_wildlife_frog.og_#1-..."). Matching only on "_" lost
+        # that whole sound in silence.
+        if cleaned.startswith(known) and not cleaned[len(known):len(known) + 1].isalnum():
+            return known
+    return ""
+
+
+## How many takes of one sound are kept.
+#
+# **Three, and the rest are thrown away deliberately.** A generator hands back
+# four or more takes of every prompt and it is tempting to ship them all, but
+# variety in this game comes from two axes multiplied together: the sample, and
+# the per-play pitch drift every MIX row already carries. Three samples against a
+# 0.08 drift is more distinct outcomes than anybody can hear in a session, and
+# the fourth take is pure download.
+VARIATIONS_PER_SOUND = 3
+
+
+def install_generated_batch(ffmpeg, folder, manifest):
+    """A folder of generated takes -> numbered variations in the game.
+
+    Handles the shape a generator actually produces: several takes per prompt,
+    named after the prompt, with a variation number and a timestamp. Takes are
+    grouped by the sound they belong to, one kept per variation number (the
+    earliest, so a re-run of this is stable), and installed as `<id>_1.ogg` and
+    up when more than one survives.
+    """
+    ids = known_ids()
+    batch = {}
+    for entry in sorted(os.listdir(folder)):
+        stem, ext = os.path.splitext(entry)
+        if ext.lower() not in (".mp3", ".wav", ".ogg", ".flac", ".m4a"):
+            continue
+        prompt_stem, variation, stamp = parse_generated(stem)
+        if not prompt_stem:
+            prompt_stem, variation, stamp = stem, 1, ""
+        sound = id_from_prompt_name(prompt_stem, ids)
+        if not sound:
+            print("  ? cannot place %s" % entry)
+            continue
+        batch.setdefault(sound, {}).setdefault(variation, []).append((stamp, entry))
+
+    installed = []
+    for sound in sorted(batch):
+        kind = kind_of(sound, manifest)
+        if not kind:
+            print("  ? %s is not in the manifest" % sound)
+            continue
+        # **Only one-shots get variations.** Music and ambience are single
+        # looping beds addressed by an exact filename - `Ambience.BEDS` maps
+        # "downpour" to one file - so installing `weather_downpour_1.ogg` would
+        # leave the bed the game asks for missing, and the region silent.
+        wanted = VARIATIONS_PER_SOUND if kind == "sfx" else 1
+        # **A wildlife voice wants four.** `audio_verify` has required it of
+        # every species since they were recorded - an animal that vocalises
+        # often needs a longer loop than a one-shot fired once a run.
+        if sound.startswith("sfx_wildlife_"):
+            wanted = max(wanted, 4)
+        chosen = []
+        for variation in sorted(batch[sound]):
+            chosen.append(sorted(batch[sound][variation])[0][1])
+            if len(chosen) >= wanted:
+                break
+        out = os.path.join(AUDIO, kind)
+        os.makedirs(out, exist_ok=True)
+        for index, entry in enumerate(chosen, 1):
+            name = sound if len(chosen) == 1 else "%s_%d" % (sound, index)
+            dst = os.path.join(out, name + ".ogg")
+            code, err = convert(ffmpeg, os.path.join(folder, entry), dst, kind)
+            if code != 0 or not os.path.exists(dst):
+                print("  x %s: %s" % (name, (err or "ffmpeg failed").splitlines()[-1]))
+                continue
+            installed.append((name, kind, os.path.getsize(dst)))
+        print("  %-24s %-9s %d take%s" % (
+            sound, kind, len(chosen), "" if len(chosen) == 1 else "s"))
+    return installed
+
+
 def main() -> int:
     ffmpeg = find_ffmpeg()
     if not ffmpeg:
@@ -151,6 +287,14 @@ def main() -> int:
             skipped.append((entry, "must be a filename in audio_inbox/"))
             continue
         path = os.path.join(INBOX, entry)
+        if os.path.isdir(path):
+            # A folder is a generated batch: several takes per prompt, named
+            # after the prompt rather than after the sound.
+            print("BATCH %s" % entry)
+            for name, kind, after in install_generated_batch(ffmpeg, path, manifest):
+                installed.append((name, kind, 0, after, duration(ffmpeg,
+                    os.path.join(AUDIO, kind, name + ".ogg"))))
+            continue
         if not os.path.isfile(path):
             continue
         stem, ext = os.path.splitext(entry)

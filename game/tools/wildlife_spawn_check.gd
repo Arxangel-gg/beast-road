@@ -46,6 +46,7 @@ func _ready() -> void:
 
 	_test_rarity_coverage()
 	_test_every_species_is_voiced_or_declared_silent()
+	_test_a_voice_is_pitched_by_the_body()
 	_test_animation_coverage()
 	_test_ecology(wildlife)
 	_test_hoarders(wildlife)
@@ -355,10 +356,6 @@ const SILENT: Dictionary = {
 	"scorpion": "a scorpion is silent",
 	"reedback_terrapin": "a terrapin is silent",
 	"tortoise": "a tortoise is silent",
-	# **Owed a recording rather than silent.** A frog is loud and there is no
-	# croak among the twelve voices on disk; sharing a hiss or a bird call would
-	# be worse than saying nothing. Listed here so it is visible.
-	"reed_frog": "owed its own recording - a frog croaks and nothing on disk does",
 }
 
 
@@ -383,6 +380,55 @@ func _test_every_species_is_voiced_or_declared_silent() -> void:
 		if kind != null:
 			_check(kind.vocal_sfx.is_empty(),
 				"%s is declared silent and also has a voice" % str(id))
+
+
+## **A voice is pitched by the body that makes it.**
+##
+## Twenty-three species share one of the twelve recordings, so without this a
+## fennec is a fox and a jackal is a wolf - the sharing that makes a fifty-one
+## species roster affordable is also what makes them identical if nothing
+## separates them afterwards.
+##
+## Measured off `Wildlife.voice_pitch` rather than read back off the constants,
+## because what must hold is the *ordering*: bigger is lower, smaller is higher,
+## a cub is higher than its mother, and nothing ever leaves the clamp.
+func _test_a_voice_is_pitched_by_the_body() -> void:
+	var small: WildlifeData = null
+	var large: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind == null:
+			continue
+		if small == null or kind.scale < small.scale:
+			small = kind
+		if large == null or kind.scale > large.scale:
+			large = kind
+	_check(small != null and large != null, "the roster has a smallest and a largest")
+	if small == null or large == null:
+		return
+	var high: float = Wildlife.voice_pitch(small)
+	var low: float = Wildlife.voice_pitch(large)
+	_check(high > low,
+		("%s (scale %.2f) must speak higher than %s (scale %.2f): %.3f vs %.3f"
+			% [small.id, small.scale, large.id, large.scale, high, low]))
+	_check(low < 0.0 and high > 0.0,
+		"the shift straddles zero, so an average animal is unshifted (%.3f..%.3f)"
+			% [low, high])
+	# A cub out of the same throat is reedier than its mother.
+	_check(Wildlife.voice_pitch(large, 0.5) > Wildlife.voice_pitch(large, 1.0),
+		"a young %s must speak higher than a grown one" % large.id)
+	# Never outside the clamp, whatever is authored.
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind == null:
+			continue
+		for size: float in [0.4, 0.7, 1.0]:
+			var ratio: float = 1.0 + Wildlife.voice_pitch(kind, size)
+			_check(ratio >= Balance.WILDLIFE_VOICE_PITCH_MIN - 0.001
+				and ratio <= Balance.WILDLIFE_VOICE_PITCH_MAX * 1.2,
+				"%s at size %.1f pitches to %.3f, outside the clamp"
+					% [kind.id, size, ratio])
+	# And nothing may be pitched so far it stops sounding like the recording.
+	_check(Balance.WILDLIFE_VOICE_PITCH_MIN > 0.5 and Balance.WILDLIFE_VOICE_PITCH_MAX < 2.0,
+		"the clamp allows a ratio that no longer sounds like the animal")
 
 
 func _check(condition: bool, why: String) -> void:

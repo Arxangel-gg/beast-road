@@ -205,6 +205,31 @@ ROWS = [
     # purpose in `wildlife_spawn_check.SILENT` because a crab does not make a
     # noise. The reed frog is neither: it is loud, and nothing on disk croaks, so
     # sharing a hiss or a bird call would be worse than the silence.
+    # **Enemy voices** (2026-09-16). Sixty-seven breeds ship and not one has a
+    # voice: an enemy makes an impact noise when it is hit and a death rattle
+    # when it falls, and is silent from the far end of the road to the wall. The
+    # roster is drawn with horns, megaphones and open jaws and none of it is
+    # heard. Six archetypes rather than sixty-seven recordings, shared the way
+    # the wildlife voices are and pitched by each breed's own body radius, so a
+    # dragon and a bandit borrowing one roar do not come out the same monster.
+    ("sfx_enemy_call_horde", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one human war cry from a massed infantry line, hoarse and guttural, a "
+     "single shout not a crowd, dry and close, no music, no reverb tail"),
+    ("sfx_enemy_call_beast", "sfx", "sfx", "1.4s", "ElevenLabs",
+     "one throaty predator roar from a large four-legged beast, wet and ragged "
+     "at the end, animal not demonic, isolated, no background"),
+    ("sfx_enemy_call_horn", "sfx", "sfx", "1.8s", "ElevenLabs",
+     "one blast on a crude battle horn made of horn or bone, two rough notes "
+     "falling, carrying over open ground, no orchestra, no reverb wash"),
+    ("sfx_enemy_call_wraith", "sfx", "sfx", "1.6s", "ElevenLabs",
+     "one cold hollow shriek from something not alive, breathy and tuneless "
+     "with a glassy edge, restrained not screaming, isolated"),
+    ("sfx_enemy_call_siege", "sfx", "sfx", "1.5s", "ElevenLabs",
+     "one deep stone-throated bellow from something enormous and slow, heavy "
+     "chest resonance, ending in a grinding rumble, no music"),
+    ("sfx_enemy_call_swarm", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one sharp chittering screech from a small fast pack creature, insectile "
+     "and rattling, dry and close, no background"),
     ("sfx_wildlife_frog", "sfx", "sfx", "0.8s", "ElevenLabs",
      "two or three croaks from one marsh frog, wet and rubbery with a throaty "
      "rattle, close and dry with no pond ambience, no reverb, no insects"),

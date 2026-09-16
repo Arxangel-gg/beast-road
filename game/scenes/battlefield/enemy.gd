@@ -933,6 +933,7 @@ func _begin_behaviour() -> bool:
 	# should give way to.
 	if data != null and data.category == EnemyData.Category.BOSS:
 		JuiceDirector.note(JuiceDirector.Priority.BOSS)
+	speak()
 	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
 	Vfx.ring(global_position, _behaviour_reach() * Balance.ENEMY_BEHAVIOUR_TELL_SHARE,
 		_behaviour_colour(), _behaviour_warning(), 3.0)
@@ -1780,6 +1781,33 @@ func _strike() -> void:
 ## separated.
 func ignores_crowd() -> bool:
 	return data != null and not data.phase_thresholds.is_empty()
+
+
+## **This breed, speaking.** Silent unless it has been given a voice.
+##
+## One call across the whole field at a time (`Balance.ENEMY_VOICE_GAP`): a wave
+## is forty bodies, and a shout every time one of them noticed you is a wall of
+## noise rather than a road. A static clock rather than one per body, because
+## what has to be rationed is *the field*, not each enemy.
+##
+## Pitched by the body making it, the same way a wildlife voice is - the roster
+## shares recordings even more heavily than the animals do, so without this every
+## breed that borrows the same roar is the same monster.
+static var _last_voice_msec: int = 0
+
+
+func speak() -> void:
+	if data == null or data.voice_sfx.is_empty() or puppet:
+		return
+	var gap: float = data.voice_gap if data.voice_gap > 0.0 else Balance.ENEMY_VOICE_GAP
+	var now: int = Time.get_ticks_msec()
+	if now - _last_voice_msec < int(gap * 1000.0):
+		return
+	_last_voice_msec = now
+	var body: float = maxf(contact_radius() / maxf(Balance.ENEMY_BODY_RADIUS, 1.0), 0.05)
+	var shift: float = clampf(pow(1.0 / body, Balance.ENEMY_VOICE_PITCH_POWER),
+		Balance.WILDLIFE_VOICE_PITCH_MIN, Balance.WILDLIFE_VOICE_PITCH_MAX) - 1.0
+	Sfx.play_at(data.voice_sfx, global_position, 0.0, shift)
 
 
 func contact_radius() -> float:
