@@ -147,9 +147,15 @@ func _resolves(id: String, paths: Dictionary, depth: int) -> int:
 	return total
 
 
-## Every `play_group("x")` and `play_group_at("x")` in the project whose `x` is
-## not a key in `GROUPS`. Source text rather than behaviour, deliberately: the
-## failure is that nothing happens, and a gate cannot hear nothing.
+## Every literal sound name a caller passes to `Sfx`, checked against the tables.
+##
+## Source text rather than behaviour, deliberately: the failure is that *nothing
+## happens*, and a gate cannot hear nothing.
+##
+## `play_group` returns on an unknown key without even the `_blocked_missing`
+## tally, which is how four call sites went silent for the life of the project.
+## `play` is only slightly better - it counts the miss and returns - so a typo
+## there is silence with a number nobody reads. Both are walked.
 func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 	var bad: PackedStringArray = []
 	for path: String in _every_script("res://"):
@@ -163,7 +169,8 @@ func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 			# Its own docstring names a group that does not exist, on purpose.
 			if line.strip_edges().begins_with("#"):
 				continue
-			for call: String in ["play_group(\"", "play_group_at(\""]:
+			for call: String in ["play_group(\"", "play_group_at(\"",
+					"Sfx.play(\"", "Sfx.play_at(\""]:
 				var at: int = line.find(call)
 				if at < 0:
 					continue
@@ -172,10 +179,16 @@ func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 				if shut < 0:
 					continue
 				var named: String = line.substr(from, shut - from)
-				if named.is_empty() or Sfx.GROUPS.has(named):
+				if named.is_empty():
 					continue
-				bad.append(("%s:%d names the sound group \"%s\", which is not in "
-					+ "GROUPS - it plays nothing and says nothing")
+				# `play` resolves a sound first and falls back to a group of the
+				# same name, so either table satisfies it. `play_group` only reads
+				# GROUPS - but accepting both here costs nothing and keeps one
+				# walker: the failure being caught is a name nothing can resolve.
+				if Sfx.GROUPS.has(named) or Sfx.SOUNDS.has(named):
+					continue
+				bad.append(("%s:%d names the sound \"%s\", which is in neither "
+					+ "SOUNDS nor GROUPS - it plays nothing and says nothing")
 					% [path, line_number, named])
 	return bad
 
