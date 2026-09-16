@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "fire_whirl"
+display_name = "Fire whirls"
+title = "Fire whirls"
+category = "The Earth"
+order = 61
+image = "res://art/guide/fire_whirl.png"
+body = "A funnel that crosses a blaze picks the fire up and carries it. What was a fire on one side of the field becomes a fire wherever the funnel goes, and it lights what it passes on the way.
+
+It is the worst thing the sky can do to a wooden road, and it is also the most avoidable: the dust comes in before the funnel is born, and a fire you have already put distance between yourself and is a fire a funnel cannot hand to you."

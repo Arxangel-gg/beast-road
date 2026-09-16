@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "conductive_flood"
+display_name = "Water and lightning"
+title = "Water and lightning"
+category = "The Earth"
+order = 62
+image = "res://art/guide/conductive_flood.png"
+body = "Water conducts. A strike that lands in standing water chains further than it would on dry ground, and every body standing in that water is soaked - and a soaked body takes lightning harder.
+
+That cuts both ways and it is worth knowing which way it is cutting. A flooded lane full of enemies under a charged sky is the best thing that can happen to an Air tower. A flooded lane you are standing in is the worst place on the field.
+
+Soaked bodies also take chill faster, which is the other half of the same rule: water makes a body easier to freeze."

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "dry_lightning"
+display_name = "Dry lightning"
+title = "Dry lightning"
+category = "The Earth"
+order = 63
+image = "res://art/guide/dry_lightning.png"
+body = "A strike with no rain behind it does not put anything out - it starts something. Dry lightning lights the brush where it lands, and under a heatwave, with the ground baked and the foliage tinder, it lights more of it.
+
+This is the one weather combination that turns a clear sky into a worse threat than a storm. Rain is inconvenient; heat and a charged sky is a field of fuel waiting for a reason.
+
+A fire the sky starts costs you nothing with the land. It will still burn your woodcutting trees down, and those do not come back."

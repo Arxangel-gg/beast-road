@@ -353,15 +353,36 @@ func strike_at(at: Vector2) -> void:
 	EventBus.lightning_struck.emit(at, radius)
 
 
+## **Every bolt in the air, put out.**
+##
+## A strike is `Line2D`s under `Bolts` with a tween pointed at them rather than
+## anything the sky holds, so nothing that cleared the weather could ever have
+## cleared one. Used by the screenshot tool between pictures; a run never needs
+## it, because a bolt ends on its own.
+func clear_bolts() -> void:
+	if _bolts == null:
+		return
+	for line: Node in _bolts.get_children():
+		line.queue_free()
+
+
 ## The picture of a strike, on every machine that hears of one.
 func _on_lightning_seen(at: Vector2, radius: float) -> void:
 	RunState.note_earth("strikes")
 	_draw_bolt(at)
 	Vfx.flash(Balance.LIGHTNING_COLOUR, Balance.LIGHTNING_FLASH, 0.22)
+	Vfx.flash_at(at, Color.WHITE, 62.0)
 	Vfx.flash_at(at, Balance.LIGHTNING_COLOUR, 70.0)
+	# **Two rings, not one.** A fast tight one that is the blast leaving and a
+	# slow wide one that is the air answering: one ring alone reads as a
+	# decoration drawn at a radius, two read as something happening.
+	Vfx.ring(at, radius * 0.42, Color(1.0, 1.0, 1.0, 0.95), 0.18, 7.0)
 	Vfx.ring(at, radius, Color(Balance.LIGHTNING_COLOUR, 0.9), 0.4, 5.0)
+	Vfx.ring(at, radius * 1.45, Color(Balance.LIGHTNING_COLOUR, 0.28), 0.62, 2.5)
+	# Thrown *up* the channel: everything the strike touched leaves the ground.
+	Vfx.spark(at, Color.WHITE, 12, Vector2.UP, 520.0)
 	Vfx.spark(at, Balance.LIGHTNING_COLOUR, 18, Vector2.UP, 320.0)
-	Vfx.dust(at, Color(0.14, 0.12, 0.11), 8, 60.0)
+	Vfx.dust(at, Color(0.14, 0.12, 0.11), 12, 76.0)
 	EventBus.camera_impact.emit(at, 1.0)
 	# Thunder arrives after the light, by the distance: a strike across the
 	# field rolls in a moment later, one overhead is on top of the flash.
@@ -381,31 +402,102 @@ func _draw_bolt(at: Vector2) -> void:
 	if _bolts == null:
 		return
 	var top: Vector2 = at + Vector2(_rng.randf_range(-120.0, 120.0), -Balance.LIGHTNING_BOLT_HEIGHT)
-	var main: PackedVector2Array = _jagged(top, at, 12, 70.0)
-	# A wide, faint stroke under the bright one: the glow of the air the bolt
-	# passed through, which is what makes a line read as light.
-	var lines: Array[Line2D] = [_bolt_line(main, 26.0, 0.22), _bolt_line(main, 7.0, 1.0)]
-	# One or two branches off the main stroke, thinner and shorter.
-	for _b: int in 1 + (1 if _rng.randf() < 0.6 else 0):
+	var main: PackedVector2Array = _jagged(top, at, 16, 70.0)
+	# **A bloom stack**: a very wide, very faint outer glow, a mid glow, and a
+	# thin near-white core, all additive. One even stroke is a drawn line; three
+	# of falling width and rising heat is light.
+	var channel: Array[Line2D] = []
+	for step: int in Balance.LIGHTNING_BLOOM.size():
+		channel.append(_bolt_line(main, Balance.LIGHTNING_CORE_WIDTH * Balance.LIGHTNING_BLOOM[step],
+			Balance.LIGHTNING_BLOOM_ALPHA[step], false,
+			0.0 if step < Balance.LIGHTNING_BLOOM.size() - 1 else 0.75))
+	var lines: Array[Line2D] = channel.duplicate()
+	# Branches off the channel, thinner, dimmer and tapering to nothing.
+	for _b: int in 2 + (1 if _rng.randf() < 0.6 else 0):
 		var from_index: int = _rng.randi_range(3, main.size() - 4)
 		var from: Vector2 = main[from_index]
-		var to: Vector2 = from + Vector2(_rng.randf_range(-260.0, 260.0), _rng.randf_range(160.0, 420.0))
-		lines.append(_bolt_line(_jagged(from, to, 5, 40.0), 3.5, 0.7))
+		var to: Vector2 = from + Vector2(_rng.randf_range(-300.0, 300.0), _rng.randf_range(140.0, 440.0))
+		var fork: PackedVector2Array = _jagged(from, to, 6, 40.0)
+		lines.append(_bolt_line(fork, 12.0, 0.24, true))
+		lines.append(_bolt_line(fork, 3.4, 0.85, true, 0.5))
+	# The air the channel came down through, still glowing: a wide, faint column
+	# standing on the strike point, gone with the rest of it.
+	lines.append(_bolt_line(PackedVector2Array([at,
+		at + Vector2(0.0, -Balance.LIGHTNING_COLUMN_HEIGHT)]),
+		Balance.LIGHTNING_COLUMN_WIDTH, 0.13, true))
 	for line: Line2D in lines:
 		_bolts.add_child(line)
-	var fade: Tween = create_tween()
-	fade.tween_interval(0.05)
-	fade.tween_callback(func() -> void:
-		for line: Line2D in lines:
-			line.modulate.a = 0.35)
-	fade.tween_interval(0.04)
-	fade.tween_callback(func() -> void:
-		for line: Line2D in lines:
-			line.modulate.a = 1.0)
-	fade.tween_interval(0.06)
-	fade.tween_callback(func() -> void:
-		for line: Line2D in lines:
-			line.queue_free())
+	# **Held by id.** A tween callback may not capture a node in this project:
+	# the engine errors at the call before any guard inside the body runs.
+	var held := PackedInt32Array()
+	for line: Line2D in lines:
+		held.append(line.get_instance_id())
+	var trunk := PackedInt32Array()
+	for line: Line2D in channel:
+		trunk.append(line.get_instance_id())
+	var ground: Vector2 = at
+	var strobe: float = Balance.LIGHTNING_STROBE_SECONDS \
+		/ float(maxi(Balance.LIGHTNING_RETURN_STROKES, 1) * 2)
+	var flicker: Tween = create_tween()
+	# **A strike always finishes.** A tween stops while the tree is paused, so a
+	# bolt thrown into a frame that then pauses hangs in the air at whatever
+	# brightness it had reached - which is exactly what a screenshot tool does
+	# between pictures, and the owner photographed it. Suspending the *field* for
+	# a raid still freezes it, because that stops the sky rather than the tree.
+	flicker.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	for stroke: int in Balance.LIGHTNING_RETURN_STROKES:
+		flicker.tween_interval(strobe)
+		flicker.tween_callback(_dim_the_channel.bind(held, 0.28))
+		flicker.tween_interval(strobe)
+		# Each return stroke travels a slightly different path down the same
+		# channel, which is what a strike actually does and what stops this
+		# reading as one picture held up for a fifth of a second.
+		flicker.tween_callback(_strike_again.bind(held, trunk, ground))
+	flicker.tween_interval(strobe)
+	flicker.tween_callback(_dim_the_channel.bind(held, 0.18))
+	flicker.tween_interval(Balance.LIGHTNING_AFTERGLOW)
+	flicker.tween_callback(_put_the_channel_out.bind(held))
+
+
+## The width along a stroke: full where it leaves the cloud, `at_ground` of that
+## where it lands. A branch passes zero and so ends by running out.
+func _taper(at_ground: float) -> Curve:
+	var curve := Curve.new()
+	curve.add_point(Vector2(0.0, 1.0))
+	curve.add_point(Vector2(1.0, maxf(at_ground, 0.0)))
+	return curve
+
+
+func _dim_the_channel(held: PackedInt32Array, alpha: float) -> void:
+	for id: int in held:
+		var line: Variant = instance_from_id(id)
+		if line != null and is_instance_valid(line as Object):
+			(line as Line2D).modulate.a = alpha
+
+
+## Another return stroke: the trunk re-jags and brightens, the branches stay
+## where they were and stay dim - a second stroke rarely forks the same way.
+func _strike_again(held: PackedInt32Array, trunk: PackedInt32Array, ground: Vector2) -> void:
+	_dim_the_channel(held, 0.45)
+	var path := PackedVector2Array()
+	for id: int in trunk:
+		var line: Variant = instance_from_id(id)
+		if line == null or not is_instance_valid(line as Object):
+			continue
+		var stroke := line as Line2D
+		if path.is_empty():
+			path = _jagged(stroke.points[0], ground, 16, 52.0)
+		stroke.points = path
+		stroke.modulate.a = 1.0
+	if not path.is_empty():
+		Vfx.flash_at(ground, Balance.LIGHTNING_COLOUR, 46.0)
+
+
+func _put_the_channel_out(held: PackedInt32Array) -> void:
+	for id: int in held:
+		var line: Variant = instance_from_id(id)
+		if line != null and is_instance_valid(line as Object):
+			(line as Node).queue_free()
 
 
 func _jagged(from: Vector2, to: Vector2, steps: int, jitter: float) -> PackedVector2Array:
@@ -419,11 +511,18 @@ func _jagged(from: Vector2, to: Vector2, steps: int, jitter: float) -> PackedVec
 	return points
 
 
-func _bolt_line(points: PackedVector2Array, width: float, alpha: float) -> Line2D:
+## One stroke of the channel. `taper_out` runs the width to nothing at the far
+## end, which is how a branch should end - a branch that stops at full width
+## reads as a line somebody cut off.
+func _bolt_line(points: PackedVector2Array, width: float, alpha: float,
+		taper_out: bool = false, hot: float = 0.0) -> Line2D:
 	var line := Line2D.new()
 	line.points = points
 	line.width = width
-	line.default_color = Color(Balance.LIGHTNING_COLOUR, alpha)
+	# The core runs toward white: a channel's centre is hotter than its glow,
+	# and a bloom stack drawn all in one tint reads as one flat colour.
+	line.default_color = Color(Balance.LIGHTNING_COLOUR.lerp(Color.WHITE, hot), alpha)
+	line.width_curve = _taper(0.0 if taper_out else Balance.LIGHTNING_TAPER)
 	line.joint_mode = Line2D.LINE_JOINT_ROUND
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -661,6 +760,16 @@ func _drive_visuals(_delta: float) -> void:
 		_sheen_material.set_shader_parameter("level", _flood)
 		_sheen_material.set_shader_parameter("rain", clampf(RunState.rain_intensity, 0.0, 1.0))
 		_sheen_material.set_shader_parameter("refracts", Graphics.water_refraction())
+		# **The water runs with the wind and wears the hour.** Both are systems
+		# this game already has; the sheet simply did not know about either, so
+		# it ran on a fixed diagonal and glinted white at midnight.
+		_sheen_material.set_shader_parameter("flow",
+			RunState.wind * Balance.FLOOD_FLOW_SCALE)
+		# Lifted off the hour's own tint rather than set to it: at deep night that
+		# tint is nearly black, and a shore with no foam on it is a shore nobody
+		# can see. Water still goes blue-dark at midnight and gold at dusk.
+		_sheen_material.set_shader_parameter("sun_tint",
+			DayNight.tint.lerp(Color.WHITE, Balance.FLOOD_SUN_LIFT))
 
 
 # --- For the rest of the game, and the gate --------------------------------------------
@@ -1252,6 +1361,7 @@ func drop_meteor(at: Vector2 = Vector2.INF) -> Meteor:
 	stone.field = field
 	stone.wildfire = wildfire
 	stone.marks = marks
+	stone.pits = field.craters()
 	field.add_child(stone)
 	meteors += 1
 	RunState.note_earth("meteors")

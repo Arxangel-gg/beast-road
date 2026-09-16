@@ -367,6 +367,9 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 		"layer": layer,
 		"material": material,
 		"at": at,
+		# **A point that is actually in the water.** See `pond_positions`: the
+		# dig point is dry ground on a pond whose lobes fell to one side.
+		"heart": _deepest_of(layer, nodes),
 		"half": half,
 		"nodes": nodes,
 		"stock": Balance.FISHING_POND_STOCK,
@@ -1293,11 +1296,39 @@ func pond_rims() -> Array[Dictionary]:
 	return out
 
 
+## **Where each pond's water is** - not where it was dug.
+##
+## Every caller of this wants water: the rift gates keep clear of it, the minimap
+## marks it, the wildlife drinks from it, the gates cast into it. `pond["at"]` was
+## a fair answer while a pond was a rough circle around its dig point and stopped
+## being one when ponds gained shapes - two to five lobes at up to 62% of the
+## radius off-centre, one axis stretched against the other, a bitten rim, and then
+## only the largest connected body kept. A crescent's dig point is dry ground, and
+## `swim_check` read 0.00 depth standing in the middle of a pond.
 func pond_positions() -> PackedVector2Array:
 	var out: PackedVector2Array = []
 	for pond: Dictionary in _ponds:
-		out.append(pond["at"] as Vector2)
+		out.append(pond.get("heart", pond["at"]) as Vector2)
 	return out
+
+
+## The deepest node of a pond, in world space: the furthest point from any bank.
+##
+## The most defensible answer to "where is this pond" for a shape with arms - it
+## is in the water whatever the shape did, it is where a fish would be, and on a
+## round pond it is the middle, so nothing that was already right has moved.
+func _deepest_of(layer: TileMapLayer, nodes: Array[Vector2i]) -> Vector2:
+	if nodes.is_empty():
+		return layer.to_global(Vector2.ZERO)
+	var by_node: Dictionary = PondTiles.node_depths(nodes)
+	var best: Vector2i = nodes[0]
+	var deepest: float = -1.0
+	for node: Vector2i in nodes:
+		var here: float = float(by_node.get(node, 0.0))
+		if here > deepest:
+			deepest = here
+			best = node
+	return layer.to_global(PondTiles.node_px(best))
 
 
 ## The half-size of each pond, in the same order as `pond_positions`.

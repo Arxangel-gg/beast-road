@@ -135,12 +135,25 @@ func _test_ponds_sit_at_the_edge_off_the_roads_in_every_region() -> void:
 		_check(ponds.pond_count() >= mini(wanted, 2),
 			"%s asked for %d ponds and dug %d - the field has no room for water at its edge"
 				% [region.id, wanted, ponds.pond_count()])
-		var centres: PackedVector2Array = ponds.pond_positions()
-		var halves: PackedVector2Array = ponds.pond_extents()
+		# **Two different questions.** The clearance rule is written against the
+		# box a pond is dug in, so the geometry is asked of `pond_rims`, which
+		# carries that box. `pond_positions` answers "where is this pond's
+		# water", which is a different point on a lobed pond and is checked for
+		# the property it exists for, below.
+		var rims: Array[Dictionary] = ponds.pond_rims()
+		var hearts: PackedVector2Array = ponds.pond_positions()
 		var cells: PackedInt32Array = ponds.pond_cell_counts()
-		for index: int in centres.size():
-			var at: Vector2 = centres[index]
-			var half: Vector2 = halves[index]
+		for index: int in rims.size():
+			var at: Vector2 = rims[index]["at"]
+			var half: Vector2 = rims[index]["half"]
+			# A pond's position must be *in the pond*. It was the dig point
+			# until 2026-09-16, and `PondTiles.shape` puts two to five lobes off
+			# centre and keeps only the largest body - so a crescent's dig point
+			# is dry ground, and a hero standing on it did not swim.
+			_check(index < hearts.size()
+					and ponds.water_depth_at(hearts[index]) > Balance.SWIM_THRESHOLD,
+				"%s: the pond at %s reports a position that is not deep water"
+					% [region.id, str(at)])
 			_check(absf(at.x) + half.x <= reach and absf(at.y) + half.y <= reach,
 				"%s: a pond at %s reaches past the hero's own bounds" % [region.id, str(at)])
 			_check(at.length() >= Balance.FISHING_EDGE_BAND * (BattleGrid.HALF_EXTENT - BattleGrid.TILE * 2.0) * 0.98,

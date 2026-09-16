@@ -67,6 +67,7 @@ var _wildlife: Wildlife = null
 var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
 var _scorch: ScorchMarks = null
+var _craters: Craters = null
 var _zones: WrathZones = null
 var _climate: Climate = null
 var _regional_polish: CanvasLayer = null
@@ -550,6 +551,8 @@ func _setup_lighting() -> void:
 	_climate.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
 	add_child(_climate)
 	# The ground's memory and the fire that writes on it, under the sky.
+	_craters = Craters.new()
+	add_child(_craters)
 	_scorch = ScorchMarks.new()
 	_scorch.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
 	_scorch.z_index = Balance.SCORCH_Z
@@ -2170,6 +2173,21 @@ func refresh_terrain() -> void:
 	# failing, which is why the list is here rather than spread over signals.
 	if _treeline != null:
 		_treeline.scatter()
+	# **And the ground's memory of what the earth did to it.**
+	#
+	# `ScorchMarks` says in its own header that "refresh_terrain clears them when
+	# the road changes region, which is the same moment the foliage regrows" -
+	# and nothing ever called `clear`. So a ten-act run finished with ten acts of
+	# burn marks stacked on ground that had been re-laid nine times underneath
+	# them. Exactly the fault the comment at the top of this function warns
+	# about, in the one system whose documentation claimed to be handled here.
+	#
+	# The craters go with them: a hole in the Verdant Maw's road is not a hole in
+	# the Saltpan's, and "for the remainder of the act" is what was asked for.
+	if _scorch != null:
+		_scorch.clear()
+	if _craters != null:
+		_craters.clear()
 	# **And the foliage last**, because what grows depends on what is standing
 	# there - the water, the timber and the seams are all laid above this.
 	#
@@ -2198,8 +2216,13 @@ func _grow_the_foliage() -> void:
 			var rim: float = maxf(half.x, half.y)
 			cast.append({
 				"at": pond.get("at", Vector2.ZERO),
-				# Outside the water: a collar grown over the pond hides it.
-				"inner": rim * Balance.POND_LUSH_INNER,
+				# **Outside the water: a collar grown over the pond hides it.**
+				# Measured off the box's diagonal rather than its wider half,
+				# because a pond is dug anywhere inside that box and its corners
+				# are `hypot(half)` out - about forty percent further than
+				# `max(half)` on a square one. Lobes that fell into a corner
+				# were outside the hole and wore the collar.
+				"inner": half.length() * Balance.POND_LUSH_INNER,
 				"reach": rim * rng.randf_range(
 					Balance.POND_LUSH_REACH.x, Balance.POND_LUSH_REACH.y),
 				"lift": rng.randf_range(Balance.POND_LUSH_LIFT.x,
@@ -2773,6 +2796,12 @@ func foliage_node() -> Foliage:
 
 func scorch() -> ScorchMarks:
 	return _scorch
+
+
+## The holes the sky has punched in this region's road. Cleared with the scorch
+## when the region changes, which is what makes a crater last exactly the act.
+func craters() -> Craters:
+	return _craters
 
 
 ## The nearest standing tower to a point within `radius`, or null.

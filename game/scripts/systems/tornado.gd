@@ -204,40 +204,131 @@ func _die() -> void:
 	set_process(false)
 
 
-## The funnel: turning ellipses from a wide, faint top to a narrow, dark foot.
+## The funnel: a column of dust that fades into the air at every edge, with
+## debris winding up it and a pool of grit at its foot.
 func _draw() -> void:
-	var layers: int = 7
-	for index: int in layers:
-		var t: float = float(index) / float(layers - 1)
+	_draw_the_foot()
+	_draw_the_column()
+	_draw_the_streaks()
+
+
+## How far out the funnel reaches at a height, and how far the column leans
+## there. One function so the column, the streaks and the foot cannot disagree
+## about where the funnel is.
+func _reach_at(t: float) -> float:
+	return lerpf(Balance.TORNADO_WAKE * 0.5, Balance.TORNADO_AOE * 0.9, t)
+
+
+func _lean_at(t: float) -> float:
+	return sin(_spin * 0.7 + t * 4.0) * _reach_at(t) * 0.18
+
+
+## The dust of the funnel at a height and a place across it (-1 to 1).
+func _dust_at(t: float, across: float) -> Color:
+	# Dense through the middle, nothing at the silhouette: the shape has no
+	# edge, which is the whole difference from a stack of flat ellipses.
+	var solid: float = 1.0 - pow(absf(across), Balance.TORNADO_EDGE_FALLOFF)
+	# Dense at the foot where the funnel is packed with what it has picked up,
+	# thin at the top where it is only air. At 0.62 the first cut read as smoke
+	# against dark ground rather than as a column of dirt.
+	var alpha: float = lerpf(0.92, 0.2, t * t) * clampf(solid, 0.0, 1.0)
+	if burning():
+		# A fire whirl, lit from inside: hot and pale up the core, darker
+		# toward the edges where there is only smoke.
+		var heat: float = clampf(solid * 1.25, 0.0, 1.0)
+		return Color(lerpf(0.55, 1.0, heat), lerpf(0.16, lerpf(0.5, 0.82, t), heat),
+			lerpf(0.08, lerpf(0.1, 0.34, t), heat), alpha * 1.2)
+	# Thin dust at the edge catches more light than the packed core does.
+	var shade: float = lerpf(0.58, 0.19, clampf(solid, 0.0, 1.0)) + t * 0.16
+	return Color(shade, shade * 0.93, shade * 0.82, alpha)
+
+
+func _draw_the_column() -> void:
+	var rings: int = Balance.TORNADO_RINGS
+	var columns: int = Balance.TORNADO_COLUMNS
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for ring: int in rings:
+		var t: float = float(ring) / float(rings - 1)
+		var reach: float = _reach_at(t)
+		var lean: float = _lean_at(t)
 		var height: float = -Balance.TORNADO_HEIGHT * t
-		var width: float = lerpf(Balance.TORNADO_WAKE * 0.5, Balance.TORNADO_AOE * 0.9, t)
-		var sway: float = sin(_spin * 0.7 + t * 4.0) * width * 0.18
-		var alpha: float = lerpf(0.55, 0.16, t)
-		var shade: float = lerpf(0.28, 0.62, t)
-		var layer: PackedVector2Array = _funnel_layer(t, height, width, sway)
-		if layer.size() < 3:
-			continue
-		if burning():
-			# A fire whirl: lit from inside, brightest at the foot.
-			var glow: Color = Color(1.0, lerpf(0.45, 0.7, t), lerpf(0.12, 0.3, t), alpha * 1.15)
-			draw_colored_polygon(layer, glow)
-			continue
-		draw_colored_polygon(layer, Color(shade, shade * 0.92, shade * 0.8, alpha))
-	# The foot on the ground.
-	var foot: PackedVector2Array = PackedVector2Array()
-	for s: int in 16:
-		var angle: float = TAU * float(s) / 16.0
-		foot.append(Vector2(cos(angle), sin(angle) * 0.35) * Balance.TORNADO_WAKE * 0.7)
-	draw_colored_polygon(foot, Color(0.55, 0.22, 0.08, 0.6) if burning() else Color(0.2, 0.17, 0.13, 0.5))
+		for column: int in columns:
+			var across: float = lerpf(-1.0, 1.0, float(column) / float(columns - 1))
+			# The rim of a ring sits a little lower than its middle: the far
+			# side of a circle seen from above and slightly along.
+			var dip: float = (1.0 - absf(across)) * reach * 0.2
+			points.append(Vector2(lean + across * reach, height + dip))
+			colours.append(_dust_at(t, across))
+	var indices := PackedInt32Array()
+	for ring: int in rings - 1:
+		for column: int in columns - 1:
+			var a: int = ring * columns + column
+			indices.append_array([a, a + 1, a + columns,
+				a + 1, a + columns + 1, a + columns])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
 
 
-func _funnel_layer(t: float, height: float, width: float, sway: float) -> PackedVector2Array:
-	var points: PackedVector2Array = PackedVector2Array()
-	# A layer thinner than a pixel is no polygon; the caller skips an empty one.
-	if width < 2.0:
-		return points
-	var steps: int = 18
+## **Debris going round.** Six strands winding up the funnel, each tapering to
+## nothing at both ends and fading as it passes behind the column, so the thing
+## reads as turning. Built into one mesh rather than drawn strand by strand.
+func _draw_the_streaks() -> void:
+	var rings: int = Balance.TORNADO_RINGS
+	var half: float = Balance.TORNADO_STREAK_WIDTH * 0.5
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
+	var lit: bool = burning()
+	for strand: int in Balance.TORNADO_STREAKS:
+		var phase: float = TAU * float(strand) / float(Balance.TORNADO_STREAKS) + _spin * 1.6
+		var first: int = points.size()
+		for ring: int in rings:
+			var t: float = float(ring) / float(rings - 1)
+			var angle: float = phase + t * TAU * Balance.TORNADO_STREAK_TURNS
+			var reach: float = _reach_at(t)
+			var here := Vector2(_lean_at(t) + cos(angle) * reach * 0.86,
+				-Balance.TORNADO_HEIGHT * t + sin(angle) * reach * 0.2)
+			points.append(here + Vector2(0.0, -half))
+			points.append(here + Vector2(0.0, half))
+			# Bright as it comes round the near side, gone behind the column,
+			# and tapering away at the top and the foot.
+			var facing: float = clampf(sin(angle) * 0.5 + 0.5, 0.0, 1.0)
+			var ends: float = sin(t * PI)
+			var alpha: float = facing * ends * lerpf(0.55, 0.22, t)
+			var grit: Color = Color(1.0, 0.72, 0.36, alpha * 1.4) if lit \
+				else Color(0.74, 0.69, 0.58, alpha)
+			colours.append(grit)
+			colours.append(grit)
+			if ring > 0:
+				var a: int = first + (ring - 1) * 2
+				indices.append_array([a, a + 1, a + 2, a + 1, a + 3, a + 2])
+	if not indices.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
+
+
+## The grit at the foot: a pool that is thickest at its rim, where the funnel is
+## throwing the ground outward, and clear in the middle where the funnel stands.
+func _draw_the_foot() -> void:
+	var steps: int = 20
+	var reach: float = Balance.TORNADO_WAKE * (0.95 + sin(_spin * 2.1) * 0.06)
+	var lit: bool = burning()
+	var middle: Color = Color(0.62, 0.26, 0.09, 0.42) if lit else Color(0.22, 0.19, 0.15, 0.36)
+	var rim: Color = Color(0.9, 0.46, 0.16, 0.0) if lit else Color(0.5, 0.45, 0.37, 0.0)
+	var edge: Color = Color(0.86, 0.42, 0.14, 0.5) if lit else Color(0.46, 0.41, 0.34, 0.44)
+	var points := PackedVector2Array([Vector2.ZERO])
+	var colours := PackedColorArray([middle])
+	for band: int in 2:
+		for s: int in steps:
+			var angle: float = TAU * float(s) / float(steps) + _spin * 0.4
+			var out: float = reach * (0.66 if band == 0 else 1.0)
+			points.append(Vector2(cos(angle), sin(angle) * 0.36) * out)
+			colours.append(edge if band == 0 else rim)
+	var indices := PackedInt32Array()
 	for s: int in steps:
-		var angle: float = TAU * float(s) / float(steps) + _spin * (1.0 + t)
-		points.append(Vector2(sway + cos(angle) * width, height + sin(angle) * width * 0.28))
-	return points
+		var inner: int = 1 + s
+		var next_inner: int = 1 + (s + 1) % steps
+		indices.append_array([0, inner, next_inner])
+		var outer: int = 1 + steps + s
+		var next_outer: int = 1 + steps + (s + 1) % steps
+		indices.append_array([inner, outer, next_inner, outer, next_outer, next_inner])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)

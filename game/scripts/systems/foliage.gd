@@ -785,14 +785,25 @@ func _random_point(rng: RandomNumberGenerator) -> Vector2:
 func _is_clear(point: Vector2) -> bool:
 	if point.length() < Balance.TOWN_RADIUS + Balance.FOLIAGE_TOWN_MARGIN:
 		return false
-	# **Bare ground stays bare.** A seam is stone with an apron of scree round
-	# it, and an influence with a negative lift says so - refused here, with
-	# every other exclusion, rather than by unpicking a baked mesh afterwards.
+	# **Bare ground stays bare**, and there are two kinds of it.
+	#
+	# `inner` is a hole: nothing grows inside it whatever else the influence
+	# does to the ground around it. That is what keeps a pond's water clear of
+	# plants and a woodcutting tree's foot walkable - and it was not being
+	# honoured at all, because this loop skipped every influence whose lift was
+	# positive and **both** of the things that set an `inner` have one. Ponds
+	# have been growing plants in the water since influences were added.
+	#
+	# A negative lift is the second kind: a seam is stone with an apron of scree
+	# round it, bare for the influence's whole reach rather than only its hole.
 	for influence: Dictionary in influences:
+		var at: Vector2 = influence.get("at", Vector2.ZERO) as Vector2
+		var away: float = point.distance_to(at)
+		if away < float(influence.get("inner", 0.0)):
+			return false
 		if float(influence.get("lift", 0.0)) >= 0.0:
 			continue
-		var reach: float = float(influence.get("reach", 0.0))
-		if point.distance_to(influence.get("at", Vector2.ZERO) as Vector2) < reach:
+		if away < float(influence.get("reach", 0.0)):
 			return false
 	if grid == null:
 		return true

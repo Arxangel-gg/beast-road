@@ -259,21 +259,46 @@ func _ready() -> void:
 			# *difference* rather than a number nobody is shown anyway.
 			ground.add_heat(hero.global_position + Vector2(-200.0, 0.0), 260.0, 26.0)
 			ground.add_wet(hero.global_position + Vector2(220.0, 40.0), 240.0, 0.9))
+	# **The strike is thrown six frames before the shutter.** `_draw_bolt` fades
+	# its lines out over 0.15 seconds and `_take` waits seventy frames, so a bolt
+	# made in the drive is long gone by the time the picture is taken - which is
+	# why this picture has never had lightning in it.
 	await _weather_shot("lightning", func() -> void:
-		var sky: WeatherSky = run.battlefield.sky()
-		var hero: Hero = run.battlefield.hero
-		if sky != null and hero != null:
-			sky.strike_at(hero.global_position + Vector2(180.0, -120.0)))
+		EventBus.weather_changed.emit("downpour"), 60,
+		func() -> void:
+			var sky: WeatherSky = run.battlefield.sky()
+			var hero: Hero = run.battlefield.hero
+			if sky != null and hero != null:
+				var at: Vector2 = hero.global_position + Vector2(180.0, -120.0)
+				sky.strike_at(at)
+				_hush()
+				_look_at(at))
 	await _weather_shot("flood", func() -> void:
 		RunState.flood = 0.85
 		var sky: WeatherSky = run.battlefield.sky()
 		if sky != null:
 			sky.set("_flood", 0.85))
 	RunState.flood = 0.0
+	# **Lit at brush, and held until it is a blaze.** `start_wildfire` picks its
+	# own point anywhere on the field and refuses it unless unburnt brush is
+	# close, so on a Warden posted on a road it is a coin toss whether anything
+	# shows at all - which the owner photographed.
 	await _weather_shot("wildfire", func() -> void:
-		var sky: WeatherSky = run.battlefield.sky()
-		if sky != null:
-			sky.start_wildfire(), 240)
+		var fire: Wildfire = run.battlefield.wildfire()
+		var hero: Hero = run.battlefield.hero
+		var leaves: Foliage = run.battlefield.foliage_node()
+		if fire == null or hero == null or leaves == null:
+			return
+		var blaze: Vector2 = _brush_near(hero.global_position + Vector2(180.0, -60.0), 520.0)
+		if not blaze.is_finite():
+			return
+		for near: Dictionary in leaves.plants_near(blaze, 170.0):
+			fire.ignite_near(near["at"], 30.0, 1.0)
+		_wildfire_at = blaze, 420,
+		func() -> void: _look_at(_wildfire_at),
+		func() -> bool:
+			var fire: Wildfire = run.battlefield.wildfire()
+			return fire != null and fire.fire_count() >= 6)
 	await _weather_shot("quake", func() -> void:
 		var sky: WeatherSky = run.battlefield.sky()
 		if sky != null:
@@ -287,11 +312,25 @@ func _ready() -> void:
 		if sky != null and hero != null:
 			sky.spawn_tornado(hero.global_position + Vector2(-520.0, -180.0),
 				hero.global_position + Vector2(260.0, 60.0)), 120)
+	# **The moment it lands**, which is the one frame that carries the whole
+	# event: the blast rings leaving, the plume, and the crater it has just put
+	# in the road. A shutter at a fixed seventy frames fired mid-warning, before
+	# the stone was even drawn - `METEOR_WARNING` is 2.2 seconds and the stone
+	# shows for the last 0.55 of them.
+	_the_stone = 0
 	await _weather_shot("meteor", func() -> void:
 		var sky: WeatherSky = run.battlefield.sky()
 		var hero: Hero = run.battlefield.hero
-		if sky != null and hero != null:
-			sky.drop_meteor(hero.global_position + Vector2(200.0, -60.0)))
+		if sky == null or hero == null:
+			return
+		_meteor_at = hero.global_position + Vector2(210.0, -70.0)
+		var stone: Meteor = sky.drop_meteor(_meteor_at)
+		if stone != null:
+			_the_stone = stone.get_instance_id(), 300,
+		func() -> void: _look_at(_meteor_at),
+		func() -> bool:
+			var stone: Variant = instance_from_id(_the_stone) if _the_stone != 0 else null
+			return stone != null and is_instance_valid(stone as Object) 				and bool((stone as Meteor).get("_landed")))
 	await _weather_shot("charged_ground", func() -> void:
 		var sky: WeatherSky = run.battlefield.sky()
 		var hero: Hero = run.battlefield.hero
@@ -299,6 +338,55 @@ func _ready() -> void:
 			# A strike leaves a storm core; the towers of that element standing on
 			# it hit harder for a while. That charged ground is the picture.
 			sky.strike_at(hero.global_position + Vector2(120.0, -40.0)), 60)
+	# **Where two of them meet** (owner, 2026-09-16: "show that some elemental
+	# disasters can blend together"). Not a third system pretending to be one -
+	# each of these is a rule the game already runs, photographed at the moment it
+	# applies rather than after a guessed number of frames.
+	_the_whirl = 0
+	await _weather_shot("fire_whirl", _drive_a_fire_whirl, 900,
+		func() -> void:
+			var funnel: Tornado = _the_funnel()
+			if funnel != null:
+				_look_at(funnel.global_position),
+		func() -> bool:
+			# **Burning *and* near enough to photograph.** A funnel picks fire up
+			# `TORNADO_AOE` before it reaches the blaze, which on this bearing is
+			# off the top of the window; it is aimed past the fire toward the
+			# Warden, so a moment later it carries the fire into frame.
+			var funnel: Tornado = _the_funnel()
+			return funnel != null and funnel.burning() \
+				and funnel.global_position.distance_to(
+					run.battlefield.hero.global_position) < 430.0)
+	await _weather_shot("conductive_flood", func() -> void:
+		# Water conducts: a strike over standing water chains further, and every
+		# body in it is soaked and takes it harder.
+		RunState.flood = 0.9
+		var sky: WeatherSky = run.battlefield.sky()
+		if sky != null:
+			sky.set("_flood", 0.9), 70,
+		func() -> void:
+			var sky: WeatherSky = run.battlefield.sky()
+			var hero: Hero = run.battlefield.hero
+			if sky != null and hero != null:
+				var at: Vector2 = hero.global_position + Vector2(150.0, -90.0)
+				sky.strike_at(at)
+				_hush()
+				_look_at(at))
+	RunState.flood = 0.0
+	# Long enough for the brush to be properly alight and no longer: the heat
+	# veil deepens the whole time a heatwave stands, and at ten seconds it is a
+	# red wash over a picture nobody can read. The strike is **not** repeated at
+	# the shutter - every strike opens a storm core, and its full-screen banner
+	# is the charged-ground picture's subject standing over this one.
+	await _weather_shot("dry_lightning", _drive_dry_lightning, 420,
+		func() -> void: _look_at(_dry_at),
+		func() -> bool:
+			# A strike lights one plant. The picture is of brush *catching*, so
+			# it waits for the blaze to spread rather than for the strike to land
+			# - and stops as soon as it has, because the heat veil deepens for as
+			# long as a heatwave stands.
+			var fire: Wildfire = run.battlefield.wildfire()
+			return fire != null and fire.fire_count() >= 5)
 	await _weather_shot("wrath", func() -> void:
 		var hero: Hero = run.battlefield.hero
 		EventBus.wrath_warned.emit("unrest_2",
@@ -1208,6 +1296,187 @@ func _park_clear() -> void:
 	Input.warp_mouse(Vector2(view.x * 0.02, view.y * 0.5))
 
 
+## The funnel being driven through a blaze, held by **id**: a `Tornado` dies on
+## its own clock, and casting a freed object is an error in itself - raised
+## before `is_instance_valid` could ever run.
+var _the_whirl: int = 0
+## Where the dry strike is thrown, and how many fires the sky had lit before it.
+const _DRY_STRIKE := Vector2(170.0, -70.0)
+var _dry_fires: int = 0
+var _dry_at: Vector2 = Vector2.INF
+## Where the wildfire picture's blaze was lit.
+var _wildfire_at: Vector2 = Vector2.INF
+## The falling stone, held by id, and where it is coming down.
+var _the_stone: int = 0
+var _meteor_at: Vector2 = Vector2.INF
+
+
+## **The nearest thing that will actually burn.**
+##
+## Fire needs fuel and the Warden is posted on a road, so a point taken as an
+## offset from the hero is bare dirt about as often as not. This asks the foliage
+## itself, which is the same list `Wildfire.ignite_near` draws from, so a point it
+## returns is a point that catches.
+func _brush_near(want: Vector2, reach: float) -> Vector2:
+	var leaves: Foliage = run.battlefield.foliage_node()
+	if leaves == null:
+		return Vector2.INF
+	var stand: Array[Dictionary] = leaves.plants_near(want, reach)
+	if stand.is_empty():
+		return Vector2.INF
+	var best: Vector2 = Vector2.INF
+	var nearest: float = INF
+	for plant: Dictionary in stand:
+		var here: Vector2 = plant["at"]
+		var away: float = here.distance_to(want)
+		if away < nearest:
+			nearest = away
+			best = here
+	return best
+
+
+func _the_funnel() -> Tornado:
+	if _the_whirl == 0:
+		return null
+	var held: Variant = instance_from_id(_the_whirl)
+	if held == null or not is_instance_valid(held as Object):
+		return null
+	return held as Tornado
+
+
+## **A funnel driven through a blaze**, which is what a fire whirl is: `Tornado`
+## picks the fire up when there is heat within `TORNADO_AOE` of it and carries it
+## for `TORNADO_FIRE_SECONDS`, lighting what it passes.
+##
+## The blaze is lit where the funnel will cross rather than by `start_wildfire`,
+## which picks its own point somewhere on the field - a fire behind the camera is
+## a fire the picture cannot show. `ignite_near` lights the nearest unburnt plant
+## within its radius, so this widens the search until it finds one.
+func _drive_a_fire_whirl() -> void:
+	var sky: WeatherSky = run.battlefield.sky()
+	var hero: Hero = run.battlefield.hero
+	var fire: Wildfire = run.battlefield.wildfire()
+	if sky == null or hero == null or fire == null:
+		return
+	var blaze: Vector2 = _brush_near(hero.global_position + Vector2(-280.0, 0.0), 560.0)
+	if not blaze.is_finite():
+		return
+	# A stand rather than a plant: one burning fern is a spark, and `heat_at`
+	# has to read over `TORNADO_AOE` for the funnel to pick anything up.
+	for near: Dictionary in run.battlefield.foliage_node().plants_near(blaze, 190.0):
+		fire.ignite_near(near["at"], 30.0, 1.0)
+	# **Aimed through the blaze**, from beyond it, ending short of the Warden -
+	# so the funnel crosses the fire in frame instead of walking past it.
+	var along: Vector2 = (blaze - hero.global_position).normalized()
+	var funnel: Tornado = sky.spawn_tornado(blaze + along * 720.0, blaze - along * 200.0)
+	if funnel != null:
+		_the_whirl = funnel.get_instance_id()
+
+
+## **A strike with no rain behind it, under a heatwave.**
+##
+## `_dry_lightning` refuses on wet ground and then *rolls* `LIGHTNING_IGNITE_CHANCE`,
+## so one strike is a coin toss and a picture that rolls is not a picture. This
+## asks until it takes, the way `_let_a_wave_arrive` does - the sky's own
+## `wildfires` count is the answer, and `until` watches it.
+func _drive_dry_lightning() -> void:
+	var sky: WeatherSky = run.battlefield.sky()
+	var hero: Hero = run.battlefield.hero
+	if sky == null or hero == null:
+		return
+	EventBus.weather_changed.emit("heatwave")
+	RunState.rain_intensity = 0.0
+	sky.set("_rain", 0.0)
+	_dry_fires = sky.wildfires
+	# **At the brush, not at an offset.** `_dry_lightning` lights the nearest
+	# unburnt plant within `LIGHTNING_RADIUS`, and a Warden posted on a road has
+	# none - the first cut struck bare dirt forty times and lit nothing.
+	_dry_at = _brush_near(hero.global_position + _DRY_STRIKE, 560.0)
+	if not _dry_at.is_finite():
+		_dry_at = hero.global_position + _DRY_STRIKE
+	# The ground has to be tinder for the rule to apply at all, and a heatwave
+	# is what bakes it - given directly here rather than waited out over the
+	# minutes of road the climate would take to dry on its own.
+	var ground: Climate = run.battlefield.climate()
+	if ground != null:
+		ground.add_heat(_dry_at, 300.0, Balance.LIGHTNING_RADIUS * 3.0)
+		ground.add_wet(_dry_at, -0.25, Balance.LIGHTNING_RADIUS * 3.0)
+	for _ask: int in 40:
+		if sky.wildfires > _dry_fires:
+			break
+		sky.strike_at(_dry_at + Vector2(randf_range(-70.0, 70.0), randf_range(-50.0, 50.0)))
+
+
+## **A clear day again** (owner, 2026-09-16: "weather effects ie Flood etc must be
+## removed when moving on to screenshots unrelated").
+##
+## The eleven weather and wrath pictures each drive a *standing state* - a
+## downpour, a knee-deep flood, a blaze, a funnel - rather than putting a node on
+## the field, so `_stage` has nothing to free. They are put back through the
+## systems' own fields instead of by rebuilding the scope, because a rebuild
+## would re-roll every pond, seam and animal and make each picture a different
+## world, which is the opposite of what a Guide wants.
+func _clear_the_sky() -> void:
+	var field: Battlefield = run.battlefield
+	if field == null:
+		return
+	RunState.flood = 0.0
+	_hush()
+	var sky: WeatherSky = field.sky()
+	if sky != null:
+		# Every strike still in the air (owner, 2026-09-16: "lightning strike
+		# never got removed after its screenshots got taken").
+		sky.clear_bolts()
+		sky.set("_flood", 0.0)
+		sky.set("_charge", 0.0)
+		sky.set("_quake_warning_left", 0.0)
+		sky.set("_quake_pending", -1.0)
+		sky.set("_pending_tornado", {})
+		EventBus.weather_changed.emit("clear")
+	# **The funnels and the falling stones are children of the *field*.**
+	# `spawn_tornado` and `drop_meteor` both end in `field.add_child`, so the
+	# first cut of this walked the sky's children, found none, and left every
+	# funnel standing in the pictures that followed (owner, 2026-09-16).
+	for born: Node in field.get_children():
+		if born is Tornado or born is Meteor:
+			born.queue_free()
+	for funnel: Node in get_tree().get_nodes_in_group(Tornado.GROUP):
+		funnel.queue_free()
+	# **The blaze, put out through its own door.** A flood left standing soaks
+	# the ground and a soaked field will not take a fire, so without this the
+	# wildfire picture is a photograph of wet grass - which is the owner's "flood
+	# preventing wildfire".
+	var fire: Wildfire = field.get("_wildfire") as Wildfire
+	if fire != null and is_instance_valid(fire):
+		fire.call("_clear")
+	var charged: WrathZones = field.zones()
+	if charged != null:
+		charged.clear()
+	# And the ground's own heat and wet, which a heatwave or a flood leaves
+	# behind and which the next picture would otherwise be taken through.
+	var ground: Climate = field.climate()
+	if ground != null:
+		ground.reset()
+
+
+## **The card in the middle of the screen, taken down.**
+##
+## A storm core announces itself and every strike opens one, so a bolt thrown six
+## frames before the shutter puts "STORM CORE" across the picture it is the
+## subject of. The banner is a real thing the game says and it belongs in the
+## charged-ground picture; everywhere else it is somebody else's subject.
+func _hush() -> void:
+	var hud: HUD = run.hud if run != null else null
+	if hud == null:
+		return
+	var card: Variant = hud.get("_region_card")
+	if card != null and is_instance_valid(card as Object):
+		(card as CanvasItem).visible = false
+	var tween: Variant = hud.get("_region_tween")
+	if tween != null and (tween as Tween).is_valid():
+		(tween as Tween).kill()
+
+
 ## **The Warden looks at the subject, and so does the camera.**
 ##
 ## Owner, 2026-09-16: "have the player aim towards whatever it is focusing on for
@@ -1498,6 +1767,18 @@ func _walk(node: Node) -> Array[Node]:
 ## photographs of an ordinary wave.
 func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> void:
 	await _settle()
+	await _take(id, setup, just_before)
+
+
+## **The picture itself, with the clearing already done.**
+##
+## Split out of `_shot` because `_weather_shot` has to settle *before* it drives
+## the sky rather than after: the settle clears the sky (owner, 2026-09-16, so
+## that a standing flood does not prevent the next picture's wildfire), so a
+## second one between the drive and the shutter drained every flood, put out
+## every blaze and freed every funnel one frame after it was made. Every weather
+## picture was a photograph of a clear day.
+func _take(id: String, setup: Callable, just_before: Callable = Callable()) -> void:
 	setup.call()
 	get_tree().paused = false
 	var wanted: bool = _wanted(id)
@@ -1612,6 +1893,7 @@ func _settle() -> void:
 	var ponds: Fishing = run.battlefield.ponds() if run.battlefield != null else null
 	if ponds != null and ponds.is_fishing():
 		ponds.call("_abandon", "")
+	_clear_the_sky()
 	# **And the cursor.** See `_park_on_hero`: left where the desktop had it, it
 	# is an arbitrary shove in the frame of every battlefield picture.
 	_park_on_hero()
@@ -1701,15 +1983,37 @@ func _capture(id: String) -> void:
 ## Settled, driven through the system's own door, and given `let_it_run` frames
 ## to develop before the shutter - a wildfire on the frame it is lit is one
 ## burning plant, and a funnel on the frame it is born is a smudge of dust.
-func _weather_shot(id: String, drive: Callable, let_it_run: int = 0) -> void:
+## **One picture of the sky.**
+##
+## `drive` makes the standing state - a downpour, a knee-deep flood, a blaze -
+## and `let_it_run` gives it the frames it needs to look like itself. `until`, if
+## given, ends that wait the moment the thing being photographed has actually
+## happened, so a funnel is driven until it *is* carrying fire rather than for a
+## number of frames somebody guessed. `just_before` is for anything that does not
+## live long enough to be waited on: a bolt draws for nine frames and the shutter
+## is seventy away, so a strike made in `drive` has already gone out.
+func _weather_shot(id: String, drive: Callable, let_it_run: int = 0,
+		just_before: Callable = Callable(), until: Callable = Callable()) -> void:
 	if not _wanted(id):
 		return
 	await _settle()
 	_apt_post(id)
 	drive.call()
 	for _frame: int in let_it_run:
+		if until.is_valid() and bool(until.call()):
+			break
 		await get_tree().process_frame
-	await _shot(id, func() -> void: pass)
+	# **No second settle.** See `_take`: settling here would clear the sky that
+	# was just driven.
+	#
+	# The banner is taken down for every one of these but `charged_ground`,
+	# whose subject it *is*: a flood opens a basin and a strike opens a storm
+	# core, and each announces itself across the middle of somebody else's
+	# picture (owner, 2026-09-16).
+	if id != "charged_ground":
+		_hush()
+	await _take(id, func() -> void: _hush() if id != "charged_ground" else null,
+		just_before)
 
 
 ## **One water picture**: a clean screen, the rod taken, the pond driven to one

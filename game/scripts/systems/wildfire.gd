@@ -142,6 +142,12 @@ func _process(delta: float) -> void:
 	var scare: bool = _scare_timer <= 0.0
 	if scare:
 		_scare_timer = Balance.WILDFIRE_SCARE_TICK
+	# **Embers on the wind**, carried the way the spread is. A blaze shedding
+	# sparks downwind is the fire telling the player where it is going next.
+	_ember_timer -= delta
+	var embers: bool = _ember_timer <= 0.0
+	if embers:
+		_ember_timer = Balance.WILDFIRE_EMBER_TICK
 	for index: int in range(_fires.size() - 1, -1, -1):
 		var fire: Dictionary = _fires[index]
 		var at: Vector2 = fire["at"]
@@ -149,6 +155,12 @@ func _process(delta: float) -> void:
 		# the ground it burns on.
 		var soaked: float = ground.wetness_at(at) if ground != null else 0.0
 		fire["left"] = float(fire["left"]) - delta * (quench + soaked * Balance.CLIMATE_WET_QUENCH_FIRE)
+		if embers:
+			# Drawn on both machines: a guest sees the same fire going the same
+			# way, and nothing about it is read.
+			var carry: Vector2 = (RunState.wind * 0.6 + Vector2.UP).normalized()
+			Vfx.spark(at, Balance.FLAME_MID, Balance.WILDFIRE_EMBER_COUNT,
+				carry, Balance.WILDFIRE_EMBER_SPEED)
 		if not _mirror:
 			if ground != null:
 				ground.add_heat(at, Balance.CLIMATE_HEAT_PER_FIRE_SECOND * delta, Balance.CLIMATE_FIRE_RADIUS)
@@ -243,6 +255,11 @@ func _burn_out(index: int, drowned: bool) -> void:
 	if gathering != null:
 		gathering.burn_near(at, Balance.WILDFIRE_TREE_REACH)
 	Vfx.dust(at, Color(0.18, 0.16, 0.14), 8, 50.0)
+
+
+## Seconds until the next round of embers. One clock for every fire rather than
+## one each, so a field of blazes costs a single countdown.
+var _ember_timer: float = 0.0
 
 
 func _clear() -> void:

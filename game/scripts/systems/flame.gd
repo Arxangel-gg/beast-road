@@ -174,7 +174,50 @@ func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
 	var outline: PackedVector2Array = outline_for(layer, phase)
 	if outline.is_empty():
 		return
-	draw_colored_polygon(outline, colour)
+	_fill_the_tongue(outline, colour)
+
+
+## **A layer with no edge**, from the outline `outline_for` already builds.
+##
+## That outline is the left side up and the right side back down, so slice `i`
+## is `outline[i]` on one side and `outline[last - i]` on the other - which is
+## what lets this lay three columns through it: nothing at each silhouette, full
+## strength along the middle of the tongue. It also fades toward the tip and runs
+## toward white at the foot, so a layer is a *body of fire* rather than a shape
+## painted one colour.
+##
+## One `canvas_item_add_triangle_array` per layer, which is the same number of
+## draw calls as the `draw_colored_polygon` it replaces. That is deliberate: the
+## note above `outline_for` records this file at 14.8 ms of a 21.5 ms frame, and
+## soft edges are not worth buying a second time.
+func _fill_the_tongue(outline: PackedVector2Array, colour: Color) -> void:
+	var slices: int = outline.size() / 2
+	if slices < 2:
+		return
+	var last: int = outline.size() - 1
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for i: int in slices:
+		var left: Vector2 = outline[i]
+		var right: Vector2 = outline[last - i]
+		var u: float = float(i) / float(slices - 1)
+		# Hottest at the foot, thinning into the air at the tip.
+		var heat: Color = colour.lerp(Color(1.0, 1.0, 1.0, colour.a),
+			Balance.FLAME_BASE_HEAT * (1.0 - u))
+		heat.a = colour.a * (1.0 - Balance.FLAME_TIP_FADE * u * u)
+		var clear := Color(heat.r, heat.g, heat.b, 0.0)
+		points.append(left)
+		points.append((left + right) * 0.5)
+		points.append(right)
+		colours.append(clear)
+		colours.append(heat)
+		colours.append(clear)
+	var indices := PackedInt32Array()
+	for i: int in slices - 1:
+		var a: int = i * 3
+		indices.append_array([a, a + 1, a + 3, a + 1, a + 4, a + 3,
+			a + 1, a + 2, a + 4, a + 2, a + 5, a + 4])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
 
 
 ## The filled shape of one layer, or an empty array when there is nothing to

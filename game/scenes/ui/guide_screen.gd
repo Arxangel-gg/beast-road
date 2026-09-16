@@ -17,8 +17,15 @@ extends CanvasLayer
 
 signal closed()
 
+## **The tabs, in the order a player meets what is behind them.**
+##
+## "The Earth" was added on 2026-09-16 with the weather, the wrath and the six
+## disasters - eleven systems the Guide had nothing at all to say about. It sits
+## after The Road because it is what happens *to* a road, and `guide_check`
+## refuses a section whose category has no tab, which is what caught the eleven
+## arriving before this line did.
 const CATEGORY_ORDER: Array[String] = ["Lore & Story", "Basics", "Fighting", "Building",
-	"The Road", "Fishing & Water", "Healing", "Resources", "Items & Gear",
+	"The Road", "The Earth", "Fishing & Water", "Healing", "Resources", "Items & Gear",
 	"Companions", "Camps & Rifts", "Co-op", "Glossary", "Progress", "Achievements"]
 
 const PANEL_MAX_WIDTH: float = 1100.0

@@ -40,6 +40,16 @@ uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform sampler2D wet_tex : hint_default_black, filter_linear;
 uniform float puddle_from = 0.55;
 uniform float puddle_level = 0.5;
+// Which way the air is going, in UV. The same `RunState.wind` the wildfire
+// spreads on and the foliage leans with, so the field agrees with itself about
+// the weather (owner, 2026-09-16). Zero is the old fixed diagonal.
+uniform vec2 flow = vec2(0.0);
+// The hour's own light. Glints, foam and caustics are the sky lying on the
+// ground, so at dusk they are orange and at midnight they are nearly out.
+uniform vec4 sun_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+// How far the shore breathes in and out, in UV, and how fast.
+uniform float lap = 0.06;
+uniform float lap_rate = 0.55;
 
 float hash21(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -57,11 +67,14 @@ float vnoise(vec2 p) {
 	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-// The surface as a height: two crossing sheets and a slower swell under them.
+// The surface as a height: two crossing sheets and a slower swell under them,
+// all three carried downwind. Without `flow` the sheets travel on a fixed
+// diagonal, which reads as water running the same way whatever the sky does.
 float surface(vec2 uv, float t) {
-	float a = sin((uv.x + uv.y) * ripples + t * 1.6);
-	float b = sin((uv.x - uv.y * 0.6) * ripples * 0.71 - t * 1.1);
-	float c = sin((uv.x * 0.3 + uv.y) * ripples * 0.23 + t * 0.5);
+	vec2 w = uv - flow * t;
+	float a = sin((w.x + w.y) * ripples + t * 1.6);
+	float b = sin((w.x - w.y * 0.6) * ripples * 0.71 - t * 1.1);
+	float c = sin((w.x * 0.3 + w.y) * ripples * 0.23 + t * 0.5);
 	return a * 0.45 + b * 0.35 + c * 0.2;
 }
 
@@ -96,8 +109,9 @@ void fragment() {
 		// bottom. Fine and broken up by noise - at a coarser scale the first
 		// cut drew a diagonal lattice across the whole field - and faint,
 		// because it is a hint of water and not a pattern on it.
-		float ca = sin((UV.x + UV.y) * ripples * 1.7 + TIME * 1.2);
-		float cb = sin((UV.x - UV.y * 0.6) * ripples * 1.3 - TIME * 0.8);
+		vec2 cw = UV - flow * TIME;
+		float ca = sin((cw.x + cw.y) * ripples * 1.7 + TIME * 1.2);
+		float cb = sin((cw.x - cw.y * 0.6) * ripples * 1.3 - TIME * 0.8);
 		float caustic = pow(abs(ca * cb), 4.0) * vnoise(UV * cells * 3.0 + vec2(TIME * 0.08, 0.0));
 
 		// Rain rings: an expanding ring in a few of the cells, each on its
@@ -116,9 +130,14 @@ void fragment() {
 		}
 		float glint = (spec * 0.55 + rings * 0.55) * water;
 
-		// Foam where the water meets the ground: a soft, moving line along
-		// the shore, brightest at the very edge.
-		float shore = smoothstep(0.0, 0.5, water) * (1.0 - smoothstep(0.5, 1.0, water));
+		// Foam where the water meets the ground, and the shore **laps**: the
+		// band it covers breathes in and out on a slow clock broken up by
+		// noise, so the edge of the water moves the way an edge of water does
+		// rather than sitting at a fixed width with a pattern on it.
+		float tide = lap * sin(TIME * lap_rate
+			+ vnoise(UV * cells * 0.7) * 6.28);
+		float shore = smoothstep(0.0, 0.5 + tide, water)
+			* (1.0 - smoothstep(0.5 + tide, 1.0, water));
 		float foam = shore * (0.45 + 0.55 * vnoise(UV * cells * 6.0 + vec2(TIME * 0.35, -TIME * 0.2))) * 0.42;
 
 		float a = water * peak_alpha * (0.55 + 0.45 * here);
@@ -130,14 +149,20 @@ void fragment() {
 			vec2 off = n.xy * refraction * depth;
 			vec3 seen = texture(screen_tex, SCREEN_UV + off).rgb;
 			vec3 cooled = seen * mix(vec3(1.0), vec3(0.74, 0.86, 1.0), 0.5 + 0.5 * depth);
-			vec3 body = mix(cooled, tint.rgb, 0.12 + 0.3 * depth);
-			body *= 0.92 - 0.22 * depth;
-			body += vec3(caustic * (0.04 + 0.08 * depth));
-			COLOR = vec4(body + vec3(glint) + vec3(foam), max(a, water * (0.86 + 0.14 * depth)) + foam * 0.5);
+			// **Two ramps rather than one.** Shallow water keeps the ground's
+			// own colour and only deep water goes toward the tint; one mix
+			// doing both jobs made an ankle-deep puddle the same blue as a
+			// basin.
+			vec3 body = mix(cooled, tint.rgb, 0.08 + 0.42 * smoothstep(0.25, 1.0, depth));
+			body *= 0.94 - 0.26 * depth;
+			body += sun_tint.rgb * (caustic * (0.04 + 0.08 * depth));
+			COLOR = vec4(body + sun_tint.rgb * (glint + foam),
+				max(a, water * (0.86 + 0.14 * depth)) + foam * 0.5);
 		} else {
 			// Standing water darkens the ground it lies on and catches a
 			// little light on top: the tint sits under, the glint over.
-			COLOR = vec4(tint.rgb * 0.7 + vec3(glint + caustic * 0.08) + vec3(foam), a + glint + foam * 0.5);
+			COLOR = vec4(tint.rgb * 0.7 + sun_tint.rgb * (glint + caustic * 0.08 + foam),
+				a + glint + foam * 0.5);
 		}
 	}
 }

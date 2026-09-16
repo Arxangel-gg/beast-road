@@ -5582,6 +5582,12 @@ const TORCH_DARK_LANE_BIAS: float = 2.2
 const FLAME_MIN_INTENSITY: float = 0.02
 const FLAME_MIN_SIZE: float = 0.5
 
+## How much of a flame's colour is gone by the tip. A tongue that keeps full
+## strength to its point ends in a hard speck; real fire thins into the air.
+const FLAME_TIP_FADE: float = 0.62
+## How far the foot of a layer runs toward white. Fire is hottest where it is
+## burning, and a layer painted one colour top to bottom reads as a cut-out.
+const FLAME_BASE_HEAT: float = 0.34
 const FLAME_SEGMENTS: int = 9
 
 ## How fast the tongues travel up the flame. [TUNE]
@@ -7248,6 +7254,13 @@ const FLOOD_ANNOUNCE: float = 0.5
 ## The standing water's look: just over the ground and the roads, under
 ## everything that walks. Its tint and how opaque it is at full flood.
 const FLOOD_SHEEN_Z: int = -29
+## How fast the standing water travels downwind, as a share of the wind. The
+## sheet spans the whole field in UV, so a small number is a real drift.
+const FLOOD_FLOW_SCALE: float = 0.0009
+## How far the water's glints and foam are lifted off the hour's own tint. At
+## deep night that tint is nearly black and an unlifted shore has no foam on it
+## at all - water should go blue-dark at midnight, not invisible.
+const FLOOD_SUN_LIFT: float = 0.4
 const FLOOD_SHEEN_ALPHA: float = 0.42
 const FLOOD_TINT: Color = Color(0.36, 0.48, 0.62, 1.0)
 
@@ -7283,6 +7296,28 @@ const LIGHTNING_Z: int = 40
 const LIGHTNING_COLOUR: Color = Color(0.82, 0.9, 1.0)
 const LIGHTNING_BOLT_HEIGHT: float = 1500.0
 const LIGHTNING_FLASH: float = 0.55
+## How wide the channel is where it leaves the cloud, against where it grounds.
+## Even width is what makes a drawn line look drawn (owner, 2026-09-16).
+const LIGHTNING_TAPER: float = 0.3
+## The three strokes of the bloom stack, as multiples of the core's width, and
+## the alpha each is drawn at. Additive, so the faint wide one *is* the glow.
+const LIGHTNING_BLOOM: Array[float] = [9.0, 3.4, 1.0]
+const LIGHTNING_BLOOM_ALPHA: Array[float] = [0.1, 0.32, 1.0]
+const LIGHTNING_CORE_WIDTH: float = 6.0
+## How many return strokes travel the channel, and over how long. A strike is
+## several flashes down one path rather than one flash - the channel re-jags
+## between them, which is what stops it reading as a static drawing.
+const LIGHTNING_RETURN_STROKES: int = 3
+const LIGHTNING_STROBE_SECONDS: float = 0.21
+## How long the channel hangs at a low alpha after the last stroke. The part
+## that reads as brightness rather than as whiteness.
+const LIGHTNING_AFTERGLOW: float = 0.26
+## The glowing air the channel came down through: how tall the column standing
+## at the strike point is, and how wide. Very faint and very brief - it is what
+## makes a strike read as an event with a place rather than as a line that
+## reached the floor.
+const LIGHTNING_COLUMN_HEIGHT: float = 300.0
+const LIGHTNING_COLUMN_WIDTH: float = 84.0
 const THUNDER_SPEED: float = 900.0
 const THUNDER_NEAR: float = 900.0
 
@@ -7783,6 +7818,12 @@ const WILDFIRE_BURN_SECONDS: float = 26.0
 const WILDFIRE_SPREAD_TICK: float = 2.2
 const WILDFIRE_SPREAD_CHANCE: float = 0.55
 const WILDFIRE_SPREAD_RADIUS: float = 150.0
+## How often a burning plant sheds embers, and how many it throws. They ride the
+## wind the spread itself reads, so what drifts off a blaze is a picture of where
+## it is going next rather than decoration (owner, 2026-09-16).
+const WILDFIRE_EMBER_TICK: float = 0.55
+const WILDFIRE_EMBER_COUNT: int = 3
+const WILDFIRE_EMBER_SPEED: float = 130.0
 const WILDFIRE_WIND_SPREAD: float = 1.4
 const WILDFIRE_HOT_FROM: float = 30.0
 const WILDFIRE_HOT_SPREAD: float = 1.5
@@ -7821,6 +7862,21 @@ const TORNADO_SPEED: float = 120.0
 const TORNADO_WANDER: float = 0.9
 const TORNADO_WAKE: float = 84.0
 const TORNADO_AOE: float = 280.0
+## How the funnel is built: rings up its height and columns across each ring.
+## A ring is faint at its two silhouette edges and dense through the middle, so
+## the whole shape has no edge anywhere - which a stack of flat ellipses cannot.
+const TORNADO_RINGS: int = 13
+const TORNADO_COLUMNS: int = 11
+## How sharply a ring falls off toward its edges. Above one the middle holds its
+## density further out and only the last of the width fades, which is what a
+## column of dust looks like; at one it is a plain gradient and reads as fog.
+const TORNADO_EDGE_FALLOFF: float = 1.7
+## Debris carried round the vortex: how many streaks wind up the funnel, how
+## many turns each makes, and how wide they are drawn. These are what read as
+## rotation - a spinning shape with no marks on it looks still.
+const TORNADO_STREAKS: int = 6
+const TORNADO_STREAK_TURNS: float = 1.35
+const TORNADO_STREAK_WIDTH: float = 5.0
 const TORNADO_HEIGHT: float = 420.0
 const TORNADO_SPIN: float = 9.0
 const TORNADO_TOWER_DPS: float = 700.0
@@ -7850,6 +7906,47 @@ const METEOR_PUSH: float = 520.0
 const METEOR_FIRES: int = 3
 const METEOR_FLASH: float = 0.7
 const METEOR_SHAKE: float = 2.6
+## How wide the warning's dark centre is against the blast, and how far the
+## second ring starts out before it closes onto the first. The closing ring is
+## what tells a player *when* - a shadow that only grows says where.
+const METEOR_SHADOW_CORE: float = 0.42
+const METEOR_CLOSING_RING: float = 2.6
+## Sparks shed off the stone as it comes, and how far the ground under it is lit
+## in the last moments.
+const METEOR_TRAIL_SPARK_TICK: float = 0.06
+const METEOR_APPROACH_GLOW: float = 1.35
+
+## **Craters** (owner, 2026-09-16: "leave perfectly implemented polished craters
+## in their place for the remainder of the act"). Drawn geometry rather than a
+## stamp in the scorch image, and cleared where the scorch is - `refresh_terrain`
+## - so a hole lasts exactly the act, like the foliage it took with it.
+##
+## Read by nothing: no pathing, placement, targeting or damage asks whether
+## ground is cratered.
+const CRATER_Z: int = -18
+## The oldest goes when the field is full. A cap rather than a fade, because a
+## crater that healed over would be the one thing here that un-happened.
+const CRATER_MAX: int = 14
+## How far the raised lip stands outside the hole, as a share of its radius.
+const CRATER_RIM: float = 0.18
+## The camera looks down and slightly along, so a circle on the ground is an
+## ellipse on the screen. Every ring in this game uses the same squash.
+const CRATER_SQUASH: float = 0.55
+## Ejecta: how many rays of thrown dirt, and how far out they reach.
+const CRATER_RAYS: int = 11
+const CRATER_RAY_REACH: Vector2 = Vector2(1.35, 2.5)
+const CRATER_DEBRIS: int = 9
+## How long a fresh pit still has heat in its floor. After that it is stone and
+## the node stops redrawing entirely.
+const CRATER_GLOW_SECONDS: float = 9.0
+const CRATER_FLOOR: Color = Color(0.09, 0.075, 0.062, 0.93)
+const CRATER_EMBER: Color = Color(0.62, 0.23, 0.07, 0.95)
+const CRATER_WALL_DARK: Color = Color(0.13, 0.11, 0.09, 0.9)
+const CRATER_WALL_LIT: Color = Color(0.34, 0.29, 0.23, 0.88)
+const CRATER_RIM_DARK: Color = Color(0.17, 0.14, 0.11, 0.62)
+const CRATER_RIM_LIT: Color = Color(0.46, 0.41, 0.33, 0.66)
+const CRATER_EJECTA: Color = Color(0.26, 0.22, 0.17, 0.5)
+const CRATER_DEBRIS_TONE: Color = Color(0.22, 0.19, 0.16, 0.85)
 const METEOR_Z: int = 39
 
 ## Chain lightning: a strike arcs on to the nearest unstruck body within
@@ -8317,6 +8414,15 @@ const WILDLIFE_RABID_AURA: Color = Color(0.55, 1.0, 0.35, 0.55)
 const WILDLIFE_RABID_AURA_RADIUS: float = 70.0
 ## Shadows under animals: width against the sprite, and how a flier's differs.
 const WILDLIFE_SHADOW_WIDTH: float = 0.72
+## How much smaller and fainter a flier's shadow is at full height than when it
+## has settled, over the flight scale it is born with. The gap between an animal
+## and its shadow is the only thing on this field that says how high it is
+## (owner, 2026-09-16: "with tuning for their states").
+const WILDLIFE_SHADOW_AIRBORNE_SHRINK: float = 0.24
+const WILDLIFE_SHADOW_AIRBORNE_FADE: float = 0.34
+## How fast a shadow follows the animal up and down. Snapped, it flickers between
+## sizes every time a hovering moth twitches across the moving threshold.
+const WILDLIFE_SHADOW_EASE: float = 5.0
 const WILDLIFE_SHADOW_FLIGHT_ALPHA: float = 0.42
 const WILDLIFE_SHADOW_FLIGHT_SCALE: float = 0.7
 ## How far a flier banks into its heading, and how fast the bank follows.
@@ -8490,7 +8596,24 @@ const PREPARATION_PANEL_LIFT_TOUCH: float = 210.0
 ## The water over a swimmer: how deep its top edge feathers (pixels) and
 ## how wide the side feather is. [TUNE]
 const SWIM_COVER_FEATHER: float = 9.0
+## The **floor** on how far each end of the waterline fades, in units. The fade
+## is really `SWIM_COVER_SIDE_SHARE` of the band's half-width; this only matters
+## for a sprite small enough that the share comes out shorter than a few pixels.
 const SWIM_COVER_SIDE_FEATHER: float = 8.0
+## How much of each half of the waterline is fade, as a share (owner report,
+## 2026-09-16: "an abrupt cutoff at the ends making it appear low quality").
+##
+## At the old fixed eight units this was about three percent of a band over two
+## hundred units wide, so the line arrived at full strength and stopped dead.
+## A share fades with the sprite instead of with a number nobody can see.
+const SWIM_COVER_SIDE_SHARE: float = 0.4
+## How bright the glint travelling along the surface gets, over the highlight's
+## own alpha. Light on moving water, not a second line.
+const SWIM_COVER_GLINT: float = 0.5
+## How far the highlight reaches above and below the surface before it is clear.
+## A stroke with no falloff either side of it reads as a drawn line rather than
+## as light on water.
+const SWIM_COVER_SHEEN_REACH: float = 3.2
 ## The shore's fade beyond the tiles, in pixels, and its strength.
 const POND_SHORE_FADE: float = 44.0
 const POND_SHORE_FADE_ALPHA: float = 0.55

@@ -890,7 +890,16 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		size = float(_living[_living.size() - 1].get("size", size))
 	_apply_visual_anchor(sprite, kind, size, kind.flies, 0.0,
 		float(sprite.texture.get_height()) if sprite.texture != null else 0.0)
-	_cast_shadow(sprite, kind, size)
+	# Held on the animal rather than looked up by name every frame: `hold_level`
+	# runs per animal per frame, and a string lookup there is a string lookup
+	# times the population cap.
+	var cast_shadow: Sprite2D = _cast_shadow(sprite, kind, size)
+	_living[_living.size() - 1]["shadow"] = cast_shadow
+	_living[_living.size() - 1]["shadow_scale"] = \
+		cast_shadow.scale if cast_shadow != null else Vector2.ONE
+	_living[_living.size() - 1]["shadow_alpha"] = \
+		cast_shadow.modulate.a if cast_shadow != null else 1.0
+	_living[_living.size() - 1]["shadow_up"] = 0.0
 	if bool(_living.back()["rabid"]):
 		_dress_as_rabid(sprite, kind)
 	if not kind.vocal_sfx.is_empty():
@@ -1373,6 +1382,30 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 		sprite.rotation = wave * 0.006
 	_apply_visual_anchor(sprite, kind, float(animal["size"]), kind.flies and moving,
 		bob * Balance.WILDLIFE_STRIDE_LIFT, float(animal.get("ref_h", 0.0)))
+	_hold_the_shadow(animal, sprite, kind.flies and moving, delta)
+
+
+## **The shadow, level and beneath, at the size the animal's height earns.**
+##
+## Every rotation in this file lands on the sprite - a top-down flier turned onto
+## its heading, a banking one rolling, a dying one going over - and the shadow is
+## a child of that sprite, so all three carried it round with them. This undoes
+## the turn and answers the flier's height, and it is the one place that does, so
+## a rotation added later cannot forget about it.
+func _hold_the_shadow(animal: Dictionary, sprite: Sprite2D, airborne: bool,
+		delta: float) -> void:
+	var held: Variant = animal.get("shadow")
+	if held == null or not is_instance_valid(held as Object):
+		return
+	# Eased: a hovering moth crosses the moving threshold several times a second
+	# and a snapped shadow flickers between two sizes while it does.
+	var up: float = lerpf(float(animal.get("shadow_up", 0.0)), 1.0 if airborne else 0.0,
+		clampf(Balance.WILDLIFE_SHADOW_EASE * delta, 0.0, 1.0))
+	animal["shadow_up"] = up
+	ShadowKit.hold_level(held as Sprite2D, sprite,
+		animal.get("shadow_scale", Vector2.ONE) as Vector2,
+		float(animal.get("shadow_alpha", 1.0)), up,
+		Balance.WILDLIFE_SHADOW_AIRBORNE_SHRINK, Balance.WILDLIFE_SHADOW_AIRBORNE_FADE)
 
 
 ## Dying, shown rather than skipped.
@@ -2502,15 +2535,16 @@ func _bank(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delta: floa
 
 ## A contact shadow under the animal, sized to it; a flier's is paler and
 ## smaller, because the ground is further away (owner brief, 2026-09-12).
-func _cast_shadow(sprite: Sprite2D, kind: WildlifeData, size: float) -> void:
+func _cast_shadow(sprite: Sprite2D, kind: WildlifeData, size: float) -> Sprite2D:
 	if sprite.texture == null:
-		return
+		return null
 	var width: float = float(sprite.texture.get_width()) * Balance.WILDLIFE_SHADOW_WIDTH
 	if kind.flies:
 		width *= Balance.WILDLIFE_SHADOW_FLIGHT_SCALE
 	var shadow: Sprite2D = ShadowKit.add_contact_sized(sprite, width, 0.0)
 	if shadow != null and kind.flies:
 		shadow.modulate.a *= Balance.WILDLIFE_SHADOW_FLIGHT_ALPHA
+	return shadow
 
 
 ## The sickly light round a rabid animal, so the player knows before the bite.

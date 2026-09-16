@@ -187,6 +187,30 @@ static func add_contact_sized(target: Node2D, width: float,
 	return shadow
 
 
+## **A shadow is on the ground, whatever its caster is doing.**
+##
+## A contact shadow is a child of the thing casting it, which is what makes it
+## follow for free - and means it also inherits every rotation. A top-down flier
+## is turned through the whole circle onto its heading, so its shadow orbited it:
+## above the animal when it flew south, out to one side when it flew east (owner
+## report, 2026-09-16). A banking bird's tilted; a dying one's rolled onto its
+## side with the body.
+##
+## Given the inverse of the caster's rotation, a shadow stays level and under.
+## `height` is how far off the ground the caster is, 0 to 1: at height a shadow is
+## smaller and fainter, which is the only thing on this field that says a flier is
+## flying rather than walking.
+static func hold_level(shadow: Sprite2D, caster: Node2D, base_scale: Vector2,
+		base_alpha: float, height: float = 0.0,
+		shrink: float = 0.0, fade: float = 0.0) -> void:
+	if shadow == null or not is_instance_valid(shadow) or caster == null:
+		return
+	shadow.rotation = -caster.rotation
+	var up: float = clampf(height, 0.0, 1.0)
+	shadow.scale = base_scale * (1.0 - shrink * up)
+	shadow.modulate.a = base_alpha * (1.0 - fade * up)
+
+
 ## Below this, an occluder has no area worth triangulating. Half a pixel: large
 ## enough to catch a collapsed shape, small enough that nothing real is refused.
 const MIN_CASTER_EXTENT: float = 0.5
