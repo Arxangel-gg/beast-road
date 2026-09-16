@@ -620,6 +620,12 @@ jobs:
           check "feel" --headless --path game res://tools/feel_check.tscn
           check "stagger" --headless --path game res://tools/stagger_check.tscn
           check "gear set" --headless --path game res://tools/gear_set_check.tscn
+          # The stash drawn at the worst case it can be asked to draw: the top
+          # rarity at full level in every slot, and a complete set. The card
+          # sizes itself from a *count*, and a count is exactly the kind of
+          # thing that goes quietly wrong - at 104 the best gear in the game
+          # had its last row of bonuses drawn under its own border.
+          check "stash render" --headless --path game res://tools/stash_render_check.tscn
           check "pen" --headless --path game res://tools/pen_check.tscn
           check "expedition" --headless --path game res://tools/expedition_check.tscn
           check "wave library" --headless --path game res://tools/wave_library_check.tscn

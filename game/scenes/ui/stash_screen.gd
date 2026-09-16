@@ -578,10 +578,17 @@ func _fish_row(kind: FishData) -> Container:
 ## full stash does not turn into a gallery.
 ## **How tall an item card stands.** Room for the name, what it is, and up to
 ## five bonus lines without the card growing under them.
-const CARD_HEIGHT: float = 104.0
+## **How tall an item card stands**, and what each further row of bonuses adds.
+##
+## Measured rather than guessed: `stash_render_check` stands up the top rarity at
+## full level in every slot and compares what the card reserves against what the
+## content actually needs. At 104 the best gear in the game was **eight pixels
+## short** - its last row of bonuses drawn under its own border, with nothing to
+## say so, which is precisely the pieces a player cares about. [TUNE]
+const CARD_HEIGHT: float = 118.0
 
-## What each bonus past the second adds to a card's height.
-const CARD_LINE: float = 19.0
+## What each row of bonuses past the first adds to a card's height.
+const CARD_LINE: float = 21.0
 
 ## The options a card's menu offers. Ids rather than indices, so adding one in
 ## the middle cannot repoint the rest - the same trap `Role` and `Trigger` both
