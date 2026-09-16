@@ -953,6 +953,23 @@ func _build_top_bar() -> void:
 func _update_wave_preview() -> void:
 	if _wave_preview == null or battlefield == null or battlefield.wave_director == null:
 		return
+	# **A withdrawal says what it is and that it ends.**
+	#
+	# Turning for home drops the player into sixteen seconds of combat. The only
+	# thing that said so was a banner that clears after three, and this line - the
+	# one place the player looks to know what is coming - was showing the *next
+	# wave's* preview, which is a wave that will never arrive: the withdrawal
+	# suppresses road formations and the run ends when it does. So it was not
+	# merely silent, it was wrong.
+	#
+	# The count is what makes it a cost rather than a punishment: a player who can
+	# see the end of it spends their horn and their ultimate, and a player who
+	# cannot assumes the game has stopped giving them information.
+	if RunState.withdrawing and battlefield.withdrawal() != null:
+		var left: float = battlefield.withdrawal().seconds_left()
+		_wave_preview.text = ("TURNING FOR HOME  ·  the road behind you is closing"
+			+ "  ·  %d") % maxi(int(ceil(left)), 0)
+		return
 	_wave_preview.text = battlefield.wave_director.preview_text()
 	var goal: String = Chronicle.hud_text()
 	# Deed progress is secondary to a build decision or a region reveal. Yield

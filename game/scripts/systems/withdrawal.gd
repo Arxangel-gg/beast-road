@@ -121,6 +121,12 @@ func sent() -> int:
 	return _sent
 
 
+## Seconds of road still to hold, for the readout. Zero when nothing is running,
+## so a caller can ask without checking first.
+func seconds_left() -> float:
+	return maxf(_left, 0.0)
+
+
 func _process(delta: float) -> void:
 	_left -= delta
 	if _left <= 0.0:

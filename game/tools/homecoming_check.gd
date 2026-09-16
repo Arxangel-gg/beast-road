@@ -341,6 +341,13 @@ func _test_the_withdrawal_holds_the_wall() -> void:
 		"it is worn to the floor and no further (%.0f of %.0f)"
 			% [town.current_hp, town.max_hp])
 	_check(closing.sent() > 0, "bodies are sent at the town while it runs")
+	# **And it says how much is left.** The player is dropped into sixteen seconds
+	# of combat by a card; the banner clears after three, and the preview line was
+	# showing the next wave's forecast - a wave that never arrives, because a
+	# withdrawal suppresses road formations and the run ends when it ends.
+	_check(closing.seconds_left() > 0.0 and closing.seconds_left() <= 0.4,
+		"the withdrawal reports the road it has left to hold (%.2f)"
+			% closing.seconds_left())
 
 	# **And the party cannot be killed out of the walk either.**
 	#
