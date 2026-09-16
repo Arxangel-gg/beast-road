@@ -139,9 +139,36 @@ func _as_bbcode(notes: String) -> String:
 		# than a dash and costs nothing.
 		if line.begins_with("- ") or line.begins_with("* "):
 			line = "  · " + line.substr(2)
-		out.append(line)
-	return "
-".join(out)
+		out.append(_linkify(line))
+	return "\n".join(out)
+
+
+## **URLs become links, and Markdown links keep their words.**
+##
+## Order is the only subtle thing here: `[text](url)` is handled first, because
+## running the bare-address pass first would wrap the URL *inside* a Markdown
+## link and leave its brackets stranded around a tag.
+func _linkify(line: String) -> String:
+	var markdown := RegEx.new()
+	markdown.compile("\\[([^\\]]+)\\]\\((https?://[^\\s)]+)\\)")
+	var done: String = markdown.sub(line, "[url=$2]$1[/url]", true)
+	# And bare addresses - skipping any the pass above has already wrapped, which
+	# is what the lookbehind is for.
+	var bare := RegEx.new()
+	bare.compile("(?<![=\\]])(https?://[^\\s\\[\\]]+)")
+	return bare.sub(done, "[url=$1]$1[/url]", true)
+
+
+## **A click on a link opens it, and only if it is really a link.**
+##
+## `OS.shell_open` hands whatever it is given to the shell, and these notes are
+## text fetched off the network - a `file://` or a handler URI in one is not
+## something a launcher should be willing to run. The whole point of this window
+## is that it is the trusted thing, so it opens http and https and nothing else.
+func _on_note_link(meta: Variant) -> void:
+	var link: String = str(meta)
+	if link.begins_with("http://") or link.begins_with("https://"):
+		OS.shell_open(link)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -159,6 +186,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _ready() -> void:
+	# **Links in the notes are links** (owner, 2026-09-16). The panel already
+	# renders BBCode, so this is where a click goes - and `meta_underlined` is
+	# what makes one look like a link *before* it is clicked. A thing that only
+	# reveals it is clickable once you click it is not discoverable.
+	if notes_label != null:
+		notes_label.meta_clicked.connect(_on_note_link)
+		notes_label.meta_underlined = true
+		notes_label.meta_hover_started.connect(func(_m: Variant) -> void:
+			notes_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND)
+		notes_label.meta_hover_ended.connect(func(_m: Variant) -> void:
+			notes_label.mouse_default_cursor_shape = Control.CURSOR_ARROW)
+
 	# **The wordmark is the living thing on this window.**
 	#
 	# A carved border and hanging foliage were tried here over two passes and

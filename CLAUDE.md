@@ -4089,6 +4089,18 @@ plainly is a small fault and one mangled by a clever regex is a worse one.
 splices by index - a plain replace turns every marker on a line into an opening
 tag.
 
+**And the addresses in them are links** (owner, 2026-09-16: "make links in the
+launcher app work like a simple hyperlink click"). Three things make that behave
+the way a person expects rather than merely function. **Markdown links are
+wrapped before bare URLs**, because the bare pass run first eats the address out
+of the middle of a `[text](url)` and leaves its brackets stranded around a tag.
+**It looks like a link before it is clicked** - underlined, with a pointing
+cursor on hover - since a thing that only reveals it is clickable once you click
+it is not discoverable. And **only `http` and `https` open**: `OS.shell_open`
+hands whatever it is given to the shell, and these notes are text fetched off the
+network, so a `file://` or a handler URI in one is not something this window will
+run. The whole point of a launcher is that it is the trusted thing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
