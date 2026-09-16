@@ -312,6 +312,41 @@ func _test_the_wildfire() -> void:
 	for _i: int in 4:
 		_fire._process(0.5)
 	_check(body.health.current_hp < body_hp, "a body standing in the fire was not hurt")
+	# **And an animal standing in it burns too** (owner, 2026-09-16: "wildfires
+	# need to damage wildlife that walks through them too, and same for
+	# enemies"). The enemy half was gated and the wildlife half was not, so a
+	# broken `animals` wiring would have read as working - the fire scares
+	# animals away from itself, and an animal that is never in one is
+	# indistinguishable from one that cannot be hurt by one.
+	var beast: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind != null and not kind.mythic and not kind.is_hostile():
+			beast = kind
+			break
+	var animals: Wildlife = _field.wildlife()
+	_check(_fire.animals != null,
+		"the wildfire was never handed the wildlife, so it can never burn one")
+	if beast != null and animals != null:
+		# Placed with a stage, the way `wildlife_family_check` places one: an
+		# empty `born` leaves the record half-filled and the spawn refuses it.
+		var animal: Dictionary = animals.spawn_born(beast, seed_at,
+			{"stage": WildlifeFamilies.Stage.ADULT})
+		if animal.is_empty():
+			_check(false, "the harness could not stand an animal in the fire")
+		else:
+			# It will try to run - the blaze scares animals off itself - so it is
+			# pinned where it was put. An animal that flees before the first tick
+			# proves nothing about whether fire can hurt one.
+			var animal_hp: float = float(animal.get("hp", 0.0))
+			var pinned := animal.get("sprite") as Sprite2D
+			for _i: int in 4:
+				if is_instance_valid(pinned):
+					pinned.global_position = seed_at
+				_fire._process(0.5)
+			_check(float(animal.get("hp", 0.0)) < animal_hp,
+				("an animal standing in a wildfire kept all %.1f of its health - "
+					+ "the blaze reaches enemies and not the ecology")
+					% animal_hp)
 	if coil != null:
 		_check(coil.effective_damage() > calm * 1.05,
 			"a fire tower beside a wildfire deals %.1f against %.1f calm" % [coil.effective_damage(), calm])

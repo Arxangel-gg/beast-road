@@ -8078,6 +8078,19 @@ const WILDLIFE_FACE_DEADZONE: float = 0.3
 const WILDLIFE_FACE_HOLD: float = 0.28
 ## Fleeing: how far a bolt goes, away from what frightened it.
 const WILDLIFE_BOLT_DISTANCE: float = 460.0
+
+## **How long an animal answers a blow for, whatever the phase is.**
+##
+## Owner, 2026-09-16: a predator struck during Preparation "should still be able
+## to retaliate instead of just take it without fighting back and being easy free
+## farm".
+##
+## Preparation stops a predator *starting* a hunt - that rule answers a real
+## report, a wolf mauling a hero through the one phase that is meant to be safe -
+## and it never should have stopped one *answering* a blow. This is the window in
+## which a struck animal is allowed to, and it decays so that a predator left
+## alone goes back to being docile rather than remembering for ever. [TUNE]
+const WILDLIFE_PROVOKED_SECONDS: float = 8.0
 ## A hostile animal that takes a blow may break off and come back later.
 const WILDLIFE_HOSTILE_FLEE_CHANCE: float = 0.35
 const WILDLIFE_HOSTILE_REGROUP: Vector2 = Vector2(3.0, 7.0)

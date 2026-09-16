@@ -1432,7 +1432,12 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# They go docile and drift off rather than freezing. A predator that stops
 	# dead a body-length away has not disengaged in any way the player can read,
 	# and it is on top of them the instant the wave starts.
-	if RunState.is_preparation():
+	# **Unless somebody hit it.** The rule above is about a predator *choosing*
+	# to hunt in the quiet phase. An animal that has just been struck is not
+	# choosing anything, and one that drifts politely away while being cut down
+	# is a free carcass rather than a wild animal (owner, 2026-09-16).
+	animal["provoked"] = maxf(float(animal.get("provoked", 0.0)) - delta, 0.0)
+	if RunState.is_preparation() and float(animal.get("provoked", 0.0)) <= 0.0:
 		if int(animal["state"]) == State.STALKING 				or int(animal["state"]) == State.STRIKING:
 			return _break_off(animal, sprite)
 		_drift_from_town(animal, sprite)
@@ -1845,6 +1850,13 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		bar.visible = true
 		var full: float = kind.max_hp 			* (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
 		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
+	# **Struck by a person is a fact the phase does not get to overrule.**
+	#
+	# Set on the one funnel every wound goes through, so it cannot be written
+	# from two places and disagree. Preparation still stops a predator starting a
+	# hunt; this is what lets one finish a fight somebody else started.
+	if by_player:
+		animal["provoked"] = Balance.WILDLIFE_PROVOKED_SECONDS
 	var body_at: Vector2 = _visual_origin(sprite)
 	Vfx.spark(body_at, Color("c4552e"), 6,
 		Vector2.UP, 170.0)

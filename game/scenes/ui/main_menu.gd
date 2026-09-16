@@ -194,6 +194,8 @@ func _ready() -> void:
 	_build_version_label()
 	_dress_seed_row()
 
+	# Wired after every door has been built, so the watcher sees all of them.
+	_watch_the_doors()
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
 	_setup_stage()
@@ -201,6 +203,40 @@ func _ready() -> void:
 	_setup_front_leaves()
 	# Again, now that the lines this lays out exist.
 	_fit_menu.call_deferred()
+
+
+## **Every door in the Hold comes back to the Hold.**
+##
+## Owner, 2026-09-16: closing a section should reopen the room, "so that players
+## do not have to keep opening the Hold to go through each one".
+##
+## `HubScreen.suspend()` has said "remembering to come back" since it was built,
+## and `_focus_home()` is what comes back - but the two were joined by hand at
+## each door and only three of them ever got the line. The Stash, the Ledger, the
+## Pen, the Chronicle, the Codex and the Leaderboard all dropped the player onto
+## the front door instead.
+##
+## Wired once here rather than at each door, because a return that has to be
+## remembered at seven call sites is one that will be forgotten at the eighth.
+## Every screen the menu owns is a `CanvasLayer` child of it, so watching them
+## all catches the doors that exist and the ones added later.
+##
+## A front-door screen closing does nothing: `_focus_home` only reopens the room
+## when it is already visible or suspended.
+func _watch_the_doors() -> void:
+	for child: Node in get_children():
+		var screen := child as CanvasLayer
+		if screen == null or screen == _hub:
+			continue
+		if screen.visibility_changed.is_connected(_on_door_closed):
+			continue
+		screen.visibility_changed.connect(_on_door_closed.bind(screen))
+
+
+func _on_door_closed(screen: CanvasLayer) -> void:
+	if screen == null or screen.visible:
+		return
+	_focus_home()
 
 
 ## Where focus lands when a screen closes: the room if it is open, else the

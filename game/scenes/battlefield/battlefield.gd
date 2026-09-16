@@ -260,6 +260,8 @@ func _ready() -> void:
 	_coop_world.name = "CoopWorld"
 	_coop_world.field = self
 	add_child(_coop_world)
+	# Everything the fire burns exists by now; see `_link_wildfire`.
+	_link_wildfire()
 	claim_effects()
 	# **A road started at a later act buys its board here**, once the field is
 	# standing and there are anchors to stand on. It spends through `try_build`
@@ -553,14 +555,13 @@ func _setup_lighting() -> void:
 	_zones = WrathZones.new()
 	add_child(_zones)
 	_wildfire = Wildfire.new()
+	# **What it burns is wired in `_link_wildfire`, not here.** Two of the five
+	# things it needs are built later in this same `_ready`, and assigning them
+	# at this point handed it nulls for the life of every battlefield - see that
+	# function.
 	_wildfire.field = self
 	_wildfire.marks = _scorch
-	_wildfire.gathering = _gathering
-	_wildfire.animals = _wildlife
 	_wildfire.zones = _zones
-	for child: Node in get_children():
-		if child is Foliage:
-			_wildfire.foliage = child as Foliage
 	add_child(_wildfire)
 	_sky = WeatherSky.new()
 	_sky.field = self
@@ -1027,6 +1028,39 @@ func _build_ponds() -> void:
 ## In the sorted layer beside the foliage, and for the same reason: a deer in
 ## front of the hero should occlude them and one behind should not. It shares the
 ## foliage's grid because it obeys the same rule about where it may stand.
+
+
+## **Everything the wildfire burns, wired once everything exists.**
+##
+## Owner, 2026-09-16: "wildfires need to damage wildlife that walks through them
+## too". The enemy half worked and was gated; the wildlife half was wired, read
+## correctly, and had never once run.
+##
+## `Wildfire` is built in `_setup_lighting()`, which `_ready` calls fourth, and
+## it used to be handed all five of its references there. **Two of them are
+## assigned later in the same `_ready`** - `_wildlife` in `_build_wildlife()` and
+## `_gathering` further down still - so `animals` and `gathering` were null for
+## the life of every battlefield. A blaze could not burn an animal, and a felled
+## tree it reached grew back.
+##
+## **Nothing errored, which is why it survived being written and gated.** Every
+## use of those two is behind a null check, so a missing one is silently skipped
+## rather than loudly wrong - the same shape as a constant read by a function the
+## game never calls.
+##
+## One function, called after the systems exist, rather than five assignments at
+## a point in the sequence that happens to be too early: ordering that has to be
+## right in two places is ordering that will be wrong in one.
+func _link_wildfire() -> void:
+	if _wildfire == null:
+		return
+	_wildfire.animals = _wildlife
+	_wildfire.gathering = _gathering
+	for child: Node in get_children():
+		if child is Foliage:
+			_wildfire.foliage = child as Foliage
+
+
 func _build_wildlife() -> void:
 	var wildlife := Wildlife.new()
 	wildlife.name = "Wildlife"
