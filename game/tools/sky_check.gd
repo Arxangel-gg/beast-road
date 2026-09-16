@@ -172,6 +172,28 @@ func _test_snow_never_floods() -> void:
 	_weather("clear")
 
 
+## Leave the road holding nothing, and keep it that way.
+##
+## Suspending is what makes the clearing stick rather than tidiness. Freeing a
+## camp's bodies empties its mob list, `Camps._prune` reads that as the camp
+## being razed, and it stands a fresh set straight back up: measured 22 bodies
+## on the road, 0 one frame after `queue_free`, and **12 again on the next**.
+## A suspended field runs none of that, so nothing arrives between the clearing
+## and the strike.
+##
+## The wait is not tidiness either - `enemies_near` reads the group, and a node
+## freed this frame is still in it, so without the wait the chain still finds
+## the crowd this exists to remove.
+func _empty_the_road() -> void:
+	_field.suspend()
+	if _field.wave_director != null:
+		_field.wave_director.stop()
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		node.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
 ## A charged downpour strikes; a strike hurts what is under it and not what is
 ## not; and it never lands on the city.
 func _test_lightning() -> void:
@@ -189,8 +211,19 @@ func _test_lightning() -> void:
 		_check(_sky._pick_strike_point().length() >= Balance.LIGHTNING_TOWN_CLEARANCE,
 			"a strike point landed within the city's clearance")
 	# A strike, aimed: the body under it hurts, the body away from it does not.
+	#
+	# The road is emptied first, and that is what makes the distance below mean
+	# anything at all. `Sky._chain` *walks*: it moves to each body it strikes
+	# and hops again, up to `CHAIN_JUMPS + flood * CHAIN_FLOOD_JUMPS` times -
+	# ten at a full flood - so through a crowd its reach is ten arcs and not
+	# the one this distance is written against. The camps stand bodies 967 to
+	# 1161 units from this point, *inside* `far`, so at a high flood the arc
+	# walks the strike -> a camp body -> `far` and takes 28 HP off the body
+	# this check says must be untouched. Measured at one run in fifteen: which
+	# is why it passed here seven times running and lost on CI (v0.42.0).
 	var data: EnemyData = ContentDB.enemy("bogkin")
 	var at: Vector2 = Vector2(600.0, 600.0)
+	await _empty_the_road()
 	var near: Enemy = _field.spawn_enemy(data, 0, 1.0)
 	var far: Enemy = _field.spawn_enemy(data, 0, 1.0)
 	await get_tree().process_frame
@@ -207,6 +240,12 @@ func _test_lightning() -> void:
 	far.global_position = at + Vector2(maxf(Balance.LIGHTNING_RADIUS * 3.0,
 		Balance.CHAIN_RANGE * (1.0 + Balance.CHAIN_FLOOD_RANGE) * Balance.WET_CHAIN_RANGE + 200.0), 0.0)
 	await get_tree().process_frame
+	# Said out loud, because a body standing between the two puts the chain
+	# back within reach of `far`, and that fails as "a body three radii away
+	# was hurt" - which names the symptom and not the cause.
+	_check(get_tree().get_nodes_in_group(Enemy.GROUP).size() == 2,
+		"the strike wants the road to itself; %d bodies are standing"
+		% get_tree().get_nodes_in_group(Enemy.GROUP).size())
 	var near_hp: float = near.health.current_hp
 	var far_hp: float = far.health.current_hp
 	_sky.strike_at(at)
@@ -214,6 +253,7 @@ func _test_lightning() -> void:
 	_check(is_equal_approx(far.health.current_hp, far_hp), "a body three radii away was hurt")
 	near.queue_free()
 	far.queue_free()
+	_field.resume()
 	_dry()
 	await get_tree().process_frame
 

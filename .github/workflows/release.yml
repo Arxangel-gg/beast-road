@@ -81,17 +81,32 @@ jobs:
             godot "$@" 2>&1 | tee "$log"
             status=${PIPESTATUS[0]}
             set -e
-            if [ "$status" -ne 0 ] || grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$log"; then
+            # A check may declare noise it is allowed to emit, and exactly one
+            # does. `guard.yml` has had this since the WebRTC gate was written
+            # and the release bar never got it, so a runner with no route out
+            # sank an entire publish: `juice: Send failed, errno=101` is
+            # ENETUNREACH from an IPv6 candidate the machine has no path for,
+            # the connection succeeds over the routes that do work, and the
+            # harness exits 0 (v0.42.0). The rule that *any* warning fails a
+            # check stays absolute for this project's own code - suppressing
+            # this globally would be paying for one check out of every other
+            # check's pocket.
+            local scan="$log"
+            if [ -n "${IGNORE_WARNINGS:-}" ]; then
+              scan="$(mktemp)"
+              grep -v -E "$IGNORE_WARNINGS" "$log" > "$scan" || true
+            fi
+            if [ "$status" -ne 0 ] || grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$scan"; then
               echo "::group::Output of: godot $*"
               cat "$log"
               echo "::endgroup::"
-              detail=$(awk '/^(SCRIPT )?ERROR:|^WARNING:/ { printf "%s~", $0; if (++count == 8) exit }' "$log")
+              detail=$(awk '/^(SCRIPT )?ERROR:|^WARNING:/ { printf "%s~", $0; if (++count == 8) exit }' "$scan")
               # Tools under tools/ indent their own findings so an indented line
               # can never fail a clean run; that also hid them from the scan
               # above, so a failing tool annotated no reason at all. Only
               # consulted once the anchored scan has come back empty.
               if [ -z "$detail" ]; then
-                detail=$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { printf "%s~", $0; if (++count == 8) exit }' "$log")
+                detail=$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { printf "%s~", $0; if (++count == 8) exit }' "$scan")
               fi
               if [ -z "$detail" ]; then detail="exited $status with no error line"; fi
               echo "::error title=Godot validation::[$*] ${detail}"
@@ -311,7 +326,9 @@ jobs:
           run_godot_clean --headless --path game res://tools/touch_check.tscn
           run_godot_clean --headless --path game res://tools/trap_check.tscn
           run_godot_clean --headless --path game res://tools/weather_check.tscn
-          run_godot_clean --headless --path game res://tools/webrtc_check.tscn
+          # See the note in `run_godot_clean`: the ICE library describing the
+          # network it is standing in is not this project emitting a warning.
+          IGNORE_WARNINGS='juice:|rtc::impl' run_godot_clean --headless --path game res://tools/webrtc_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
           # Long enough for waves to reach the torches. Snuffing has been silently
           # dead twice; it is not a thing to verify by looking at a screenshot.
