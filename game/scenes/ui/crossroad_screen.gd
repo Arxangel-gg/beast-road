@@ -240,13 +240,45 @@ func _add_extraction_offer() -> void:
 	_extract_button.pressed.connect(_choose_extraction)
 	box.add_child(_extract_button)
 	var note := Label.new()
-	note.text = ("The wall, the towers and their damage are kept where they stand. "
-		+ "Come back to this act rather than to the first.")
+	# **It says that leaving is a fight now** (2026-09-16). The card used to end
+	# the paragraph on "kept where they stand", which was true when a return
+	# settled on the press; it now opens sixteen seconds of combat the wall can be
+	# worn by, and this card is the last thing a player reads before it.
+	note.text = ("The road behind you closes first - hold the gate while the beast "
+		+ "pulls away, and the front comes home in whatever state that fight "
+		+ "leaves it. You always reach home. Come back to this act rather than to "
+		+ "the first.")
 	note.add_theme_font_size_override("font_size", 16)
 	note.add_theme_color_override("font_color", Color("9a9384"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(note)
+	_add_momentum_line(box)
 	options_box.add_child(card)
+
+
+## **What pushing on has bought**, on the card where it is spent.
+##
+## Momentum is a real number: every fork passed without banking raises it, it
+## pays `kill_resources` and half as much `resource_rate`, and it is what decides
+## whether this card is offered at all (`Run.extraction_open`). It was shown to
+## the player **nowhere** - the only mention of it anywhere in the interface was
+## a code comment in this file.
+##
+## Here rather than on the HUD because this is the moment it means something: the
+## choice on this screen is bank it or keep pushing, and the number is the size of
+## what pushing has already earned.
+func _add_momentum_line(box: VBoxContainer) -> void:
+	var push: float = clampf(RunState.momentum, 0.0, Balance.MOMENTUM_MAX)
+	if push <= 0.0:
+		return
+	var line := Label.new()
+	line.text = ("Pushing on has paid you +%d%% from every body and +%d%% from the "
+		+ "road. Banking is what you are weighing it against.") % [
+		int(round(push * 100.0)), int(round(push * 50.0))]
+	line.add_theme_font_size_override("font_size", 15)
+	line.add_theme_color_override("font_color", Color("c2b48a"))
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(line)
 
 
 ## Taken once: the run is ending, and a second press while it settles would
