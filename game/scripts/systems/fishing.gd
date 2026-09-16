@@ -341,6 +341,25 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 	root.add_child(layer)
 	(host if host != null else self).add_child(root)
 
+	# **The fish themselves.** Stocked from `_roll_fish`, which is the same draw
+	# a cast makes - so what swims past is what could be landed. Its own seed,
+	# never the fishing stream: where a fish happens to be is decoration and
+	# drawing from the run's fishing rolls would move every cast made after it,
+	# which is the fault the pond plants already cost this project once.
+	var school := PondFish.new()
+	school.depth = depth
+	school.water = water_colour()
+	school.nodes = nodes
+	school.position = layer.position
+	root.add_child(school)
+	school.fill(RunState.run_seed ^ hash("pond_fish:%d" % _ponds.size()),
+		func() -> FishData: return _stock_fish())
+	# A named method with the pond bound, never a lambda: a connection made from
+	# one captures what it reads, and the engine errors at the call rather than
+	# inside any guard - which is why three scopes' `DayNight` handlers had to
+	# stop being lambdas on 2026-09-15.
+	school.splashed.connect(_on_fish_broke_the_surface.bind(_ponds.size()))
+
 	# The bubble patches: something below, in one or two places, drifting.
 	var spots: Array[Dictionary] = []
 	var wanted: int = rng.randi_range(Balance.FISHING_BUBBLE_SPOTS.x, Balance.FISHING_BUBBLE_SPOTS.y)
@@ -372,6 +391,7 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 		"heart": _deepest_of(layer, nodes),
 		"half": half,
 		"nodes": nodes,
+		"school": school,
 		"stock": Balance.FISHING_POND_STOCK,
 		"restock": 0.0,
 		"ripples": rings,
@@ -518,6 +538,23 @@ func _tick_spots(index: int, pond: Dictionary, delta: float) -> void:
 		if before.distance_to(goal) > 0.5 and bubbles.position.distance_to(goal) <= 0.5:
 			spot["node"] = spot["goal"]
 			_ripple_at(index, bubbles.global_position, 0.3)
+
+
+## A fish broke the surface. The school has no business reaching into the water
+## shader, so it says so and this puts the ring in.
+func _on_fish_broke_the_surface(at: Vector2, strength: float, index: int) -> void:
+	_ripple_at(index, at, strength * 0.7)
+
+
+## The school in a pond, or null. Held on the pond rather than looked up, and
+## asked through here so every caller gets the same "is it still there" check.
+func _school_of(index: int) -> PondFish:
+	if index < 0 or index >= _ponds.size():
+		return null
+	var held: Variant = _ponds[index].get("school")
+	if held == null or not is_instance_valid(held as Object):
+		return null
+	return held as PondFish
 
 
 ## A ring on a pond, at a world position. Eight slots, oldest overwritten.
@@ -823,6 +860,11 @@ func _splash_down() -> void:
 	_bob_in = _jitter.randf_range(Balance.FISHING_BOB_INTERVAL.x, Balance.FISHING_BOB_INTERVAL.y)
 	_announce_clock = 0.0
 	_ripple_at(_pond, _float_at, 1.0)
+	# **Everything near it notices.** Interested, or frightened off - by where it
+	# landed, which way the fish was looking and how practised the hand was.
+	var school: PondFish = _school_of(_pond)
+	if school != null:
+		school.line_landed(school.to_local(_float_at), _skill())
 	Vfx.sheet_burst(_float_at, SPLASH_ART, Balance.FISHING_SPLASH_SIZE)
 	Vfx.sheet_burst(_float_at, RIPPLE_ART, Balance.FISHING_SPLASH_SIZE * 1.4,
 		Color(1.0, 1.0, 1.0, 0.8), true)
@@ -892,6 +934,11 @@ func _startle_spot(index: int, which: int) -> void:
 	var spot: Dictionary = spots[which]
 	spot["alive"] = false
 	var bubbles: PondBubbles = spot["bubbles"] as PondBubbles
+	var school: PondFish = _school_of(index)
+	if school != null and bubbles != null and is_instance_valid(bubbles):
+		# Whatever was under the bubbles leaving is the same event as the pond
+		# emptying around it.
+		school.scatter_from(school.to_local(bubbles.global_position))
 	if bubbles != null and is_instance_valid(bubbles):
 		_ripple_at(index, bubbles.global_position, 0.8)
 		Vfx.sheet_burst(bubbles.global_position, RIPPLE_ART, Balance.FISHING_SPLASH_SIZE,
@@ -901,6 +948,18 @@ func _startle_spot(index: int, which: int) -> void:
 
 
 func _bite() -> void:
+	# **The fish that came to look is the fish on the hook.** Without this the
+	# school is scenery: a player watches a rare fish drift across their float
+	# and then lands a minnow, and every part of the AI reads as a lie. Bounded -
+	# the school was stocked from the same tables a cast draws from, so this can
+	# only ever swap in a species this pond could already have produced, and with
+	# nothing at the float the roll already made stands. The school runs headless
+	# too, so a gate drives the real thing rather than a version of it.
+	var school: PondFish = _school_of(_pond)
+	if school != null:
+		var came: FishData = school.claim_biter(school.to_local(_float_at))
+		if came != null:
+			_hooked = came
 	_state = State.BITE
 	_phase_total = Balance.FISHING_BITE_WINDOW \
 		* lerpf(1.0, Balance.FISHING_SKILL_BITE_CEILING, _skill())
@@ -1192,6 +1251,36 @@ func _hand_of(angler: Node2D) -> Vector2:
 ## rarer fish, and each only a little: every bonus scales with rarity so a
 ## Common is never *less* likely than it was, only less likely relative to the
 ## Rare beside it.
+## One fish for the school, drawn the way a cast draws but from the pond's own
+## stream. `_roll_fish` spends `RunState.rng("fishing")`, and what is swimming
+## about is decoration: spending the run's fishing rolls to decide it would move
+## every cast made afterwards. Same tables, same tilts, different dice.
+func _stock_fish() -> FishData:
+	var eligible: Array[FishData] = []
+	var weights: Array[float] = []
+	var total: float = 0.0
+	var top: float = float(maxi(FishData.Rarity.size() - 1, 1))
+	for kind: FishData in ContentDB.fish_sorted():
+		if not kind.lives_in(RunState.terrain_id):
+			continue
+		# A middling depth and no bubble bonus: a school is what an average
+		# corner of this pond holds, not what its best spot would give up.
+		var rank: float = float(kind.rarity) / top
+		var weight: float = maxf(kind.weight, 0.0) \
+			* (1.0 + 0.5 * Balance.FISHING_DEPTH_RARE_BONUS * rank)
+		eligible.append(kind)
+		weights.append(weight)
+		total += weight
+	if eligible.is_empty() or total <= 0.0:
+		return null
+	var target: float = _jitter.randf() * total
+	for index: int in eligible.size():
+		target -= weights[index]
+		if target <= 0.0:
+			return eligible[index]
+	return eligible[eligible.size() - 1]
+
+
 func _roll_fish(depth: float, in_spot: bool) -> FishData:
 	var eligible: Array[FishData] = []
 	var weights: Array[float] = []

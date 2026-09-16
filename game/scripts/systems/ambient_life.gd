@@ -14,6 +14,11 @@ const MAX_BUTTERFLY_FRAMES: int = 12
 
 var grid: BattleGrid = null
 var host: Node2D = null
+## **The places worth walking out to**, as `{at, kind}` where kind is "water",
+## "timber" or "seam". Handed over by the battlefield rather than looked up:
+## `AmbientLife` has no business holding a reference to the ponds or the seams
+## (working rule 5), and this is the same seam `RiftGates.avoid` uses.
+var work_places: Array[Dictionary] = []
 
 var _butterflies: Array[Dictionary] = []
 var _butterfly_frames: Array[Texture2D] = []
@@ -218,6 +223,19 @@ func _tick_butterfly(butterfly: Dictionary, delta: float) -> void:
 	sprite.rotation = travel.angle() + PI * 0.5
 
 
+## **Re-lit with the region.** The clusters hang over the treeline and over the
+## ponds, seams and timber, and every one of those is re-laid when the road
+## changes region - so built once in `_ready` they spent Acts II to X over trees
+## that were no longer there. Called from `refresh_terrain`, which is the one
+## function everything regional goes through.
+func relight(places: Array[Dictionary]) -> void:
+	work_places = places
+	if _fireflies != null and is_instance_valid(_fireflies):
+		_fireflies.queue_free()
+		_fireflies = null
+	_build_fireflies()
+
+
 func _build_fireflies() -> void:
 	_fireflies = Node2D.new()
 	_fireflies.name = "NightFireflies"
@@ -225,21 +243,64 @@ func _build_fireflies() -> void:
 	var total: int = Graphics.scaled(Balance.AMBIENT_FIREFLY_AMOUNT,
 		Graphics.foliage_scale())
 	var cluster_count: int = maxi(Balance.AMBIENT_FIREFLY_CLUSTER_COUNT, 1)
-	var tree_clusters: int = int(round(float(cluster_count) * Balance.AMBIENT_FIREFLY_TREE_BIAS))
+	# **The work first.** A pond, a seam and a stand of timber are the three
+	# reasons to cross the outskirts, so the light gathers there before it
+	# gathers anywhere else.
+	var work_clusters: int = 0
+	if not work_places.is_empty():
+		work_clusters = mini(int(round(float(cluster_count) * Balance.AMBIENT_FIREFLY_WORK_BIAS)),
+			work_places.size())
+	var tree_clusters: int = int(round(float(cluster_count - work_clusters)
+		* Balance.AMBIENT_FIREFLY_TREE_BIAS))
 	var trees: Array[Node] = get_tree().get_nodes_in_group("ambient_tree")
+	var each: int = maxi(int(ceil(float(total) / float(cluster_count))), 1)
+	# Shuffled rather than taken in order, so two ponds beside each other do not
+	# take every cluster between them.
+	var order: Array[int] = []
+	for index: int in work_places.size():
+		order.append(index)
+	for index: int in range(order.size() - 1, 0, -1):
+		var swap: int = _rng.randi_range(0, index)
+		var held: int = order[index]
+		order[index] = order[swap]
+		order[swap] = held
 	for index: int in cluster_count:
+		if index < work_clusters:
+			var place: Dictionary = work_places[order[index]]
+			var spread: Vector2 = Balance.AMBIENT_FIREFLY_CLUSTER_EXTENT \
+				* Balance.AMBIENT_FIREFLY_WORK_EXTENT
+			_build_firefly_cluster((place["at"] as Vector2)
+					+ Vector2(_rng.randf_range(-40.0, 40.0), _rng.randf_range(-30.0, 30.0)),
+				int(round(float(each) * Balance.AMBIENT_FIREFLY_WORK_DENSITY)),
+				spread, _light_over(String(place.get("kind", ""))), true)
+			continue
 		var at: Vector2 = _clear_point()
-		if index < tree_clusters and not trees.is_empty():
+		if index - work_clusters < tree_clusters and not trees.is_empty():
 			var tree := trees[_rng.randi_range(0, trees.size() - 1)] as Node2D
 			if tree != null:
 				at = tree.global_position + Vector2(_rng.randf_range(-90.0, 90.0),
 					_rng.randf_range(-55.0, 75.0))
 		if at == Vector2.INF:
 			continue
-		_build_firefly_cluster(at, maxi(int(ceil(float(total) / float(cluster_count))), 1))
+		_build_firefly_cluster(at, each)
 
 
-func _build_firefly_cluster(at: Vector2, amount: int) -> void:
+## The light over a place, shifted a little toward what is there. Small: the
+## place colours the glow rather than replacing it, or a field with a pond and a
+## seam in it reads as two different nights.
+func _light_over(kind: String) -> Color:
+	var toward: Color = Balance.AMBIENT_FIREFLY_WATER_TINT
+	match kind:
+		"timber":
+			toward = Balance.AMBIENT_FIREFLY_TIMBER_TINT
+		"seam":
+			toward = Balance.AMBIENT_FIREFLY_SEAM_TINT
+	return Color.WHITE.lerp(toward, Balance.AMBIENT_FIREFLY_PLACE_TINT)
+
+
+func _build_firefly_cluster(at: Vector2, amount: int,
+		spread: Vector2 = Balance.AMBIENT_FIREFLY_CLUSTER_EXTENT,
+		tint: Color = Color.WHITE, pool: bool = false) -> void:
 	var cluster := CPUParticles2D.new()
 	cluster.name = "FireflyCluster"
 	cluster.position = at
@@ -250,7 +311,7 @@ func _build_firefly_cluster(at: Vector2, amount: int) -> void:
 	cluster.preprocess = Balance.AMBIENT_FIREFLY_LIFETIME
 	cluster.local_coords = true
 	cluster.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	cluster.emission_rect_extents = Balance.AMBIENT_FIREFLY_CLUSTER_EXTENT
+	cluster.emission_rect_extents = spread
 	cluster.direction = Vector2.UP
 	cluster.spread = 180.0
 	cluster.initial_velocity_min = Balance.AMBIENT_FIREFLY_SPEED * 0.35
@@ -272,8 +333,29 @@ func _build_firefly_cluster(at: Vector2, amount: int) -> void:
 		Color(1.0, 0.83, 0.31, 0.78), Color(0.64, 0.94, 0.38, 0.0),
 	])
 	cluster.color_ramp = ramp
+	# The place's own light, over the ramp rather than inside it: one gradient
+	# shared by every cluster, shifted per cluster.
+	cluster.modulate = tint
 	cluster.z_index = 3
 	_fireflies.add_child(cluster)
+	if not pool:
+		return
+	# **The pool under it**, which is the half that carries at distance: a few
+	# moving specks are a texture and specks in a glow are a landmark. Drawn
+	# below the swarm and below anything standing there.
+	var glow := Sprite2D.new()
+	glow.name = "FireflyPool"
+	glow.texture = Flame.dot_texture()
+	glow.position = at
+	glow.scale = Vector2.ONE * (spread.x * Balance.AMBIENT_FIREFLY_POOL
+		/ maxf(float(Flame.dot_texture().width), 1.0)) * 2.0
+	glow.modulate = Color(tint.r, tint.g, tint.b, Balance.AMBIENT_FIREFLY_POOL_ALPHA)
+	var additive := CanvasItemMaterial.new()
+	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = additive
+	glow.z_index = -1
+	glow.z_as_relative = false
+	_fireflies.add_child(glow)
 
 
 func _on_night_changed(is_night: bool) -> void:
@@ -282,6 +364,11 @@ func _on_night_changed(is_night: bool) -> void:
 			var cluster := child as CPUParticles2D
 			if cluster != null:
 				cluster.emitting = is_night
+				continue
+			# The pool under a work cluster goes out with the swarm over it.
+			var glow := child as Sprite2D
+			if glow != null:
+				glow.visible = is_night
 	for butterfly: Dictionary in _butterflies:
 		var sprite := butterfly.get("sprite", null) as Sprite2D
 		if sprite != null:

@@ -41,9 +41,24 @@ func _ready() -> void:
 	# A pond.
 	var ponds: Fishing = _field.ponds()
 	if ponds != null and not ponds.pond_positions().is_empty():
-		var at: Vector2 = ponds.pond_positions()[0]
-		hero.global_position = at + Vector2(0.0, 150.0)
-		await _shoot("pond", 240)
+		# **The biggest one, close up.** The first pond dug is as often as not a
+		# four-tile puddle, and the things worth photographing here - the fish,
+		# the bubbles, the surface - are all small. Zoomed in as far as a player
+		# can go, because that is how anybody ever actually looks at a pond.
+		var spots: PackedVector2Array = ponds.pond_positions()
+		var cells: PackedInt32Array = ponds.pond_cell_counts()
+		var pick: int = 0
+		for index: int in spots.size():
+			if index < cells.size() and cells[index] > cells[pick]:
+				pick = index
+		var at: Vector2 = spots[pick]
+		hero.global_position = at + Vector2(0.0, 130.0)
+		var rig: Node = _field.camera
+		if rig != null:
+			rig.set("_wanted_zoom", Balance.CAMERA_ZOOM_BATTLEFIELD_MAX)
+		await _shoot("pond", 300)
+		if rig != null:
+			rig.set("_wanted_zoom", Balance.CAMERA_ZOOM_BATTLEFIELD)
 	# A rift gate.
 	var gates: Node = _field.get("_rifts")
 	if gates != null and gates.has_method("gate_positions"):

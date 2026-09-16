@@ -65,6 +65,8 @@ const MAX_ORPHAN_GROWTH: int = 64
 ## compile shaders and load textures, and none of that is what the budget is
 ## about.
 const WARMUP_SECONDS: float = 6.0
+## Whether the numbers were ever printed. See `_exit_tree`.
+var _reported: bool = false
 ## A distinct slot in the same storage backend as the real save. It is never
 ## loaded by the game and is removed immediately after timing, so the gate
 ## measures representative I/O without mutating the player's progression.
@@ -272,7 +274,25 @@ func _process(delta: float) -> void:
 
 # --- Reporting ---------------------------------------------------------------
 
+## **A run that ends takes this gate down with it.**
+##
+## Without towers the wall falls, the results screen changes the scene, and the
+## scene it replaces is *this* one - so the tool is freed mid-measurement and the
+## process exits 0 having printed no numbers at all. Which is a silent pass, and
+## a perf gate that can silently measure nothing is worse than no perf gate.
+##
+## CI always passes `--build`, so it never happens there; it happens the moment
+## anybody runs this by hand for longer than a defenceless road survives. Said
+## out loud and failed, rather than left to look like a clean run.
+func _exit_tree() -> void:
+	if _reported or not _fighting:
+		return
+	push_error("[perf] the run ended before %.0fs of combat had been measured - "
+		% _seconds + "nothing was reported. Pass --build, or a shorter --seconds.")
+
+
 func _report() -> void:
+	_reported = true
 	if not _fighting:
 		_failures.append("the run never left Preparation - nothing was measured")
 	_check_timing()

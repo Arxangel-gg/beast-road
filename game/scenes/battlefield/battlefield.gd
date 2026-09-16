@@ -68,6 +68,7 @@ var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
 var _scorch: ScorchMarks = null
 var _craters: Craters = null
+var _ambient: Node = null
 var _zones: WrathZones = null
 var _climate: Climate = null
 var _regional_polish: CanvasLayer = null
@@ -813,7 +814,29 @@ func _build_ambient_life() -> void:
 	ambient.name = "AmbientLife"
 	ambient.grid = grid
 	ambient.host = entity_root
+	_ambient = ambient
 	add_child(ambient)
+
+
+## **Where the light gathers** (owner, 2026-09-16: the fishing, mining and
+## woodcutting places should draw more fireflies).
+##
+## The three reasons to walk out into the outskirts, handed to `AmbientLife` as
+## plain positions. It is told rather than given a reference to the ponds and the
+## seams, which is working rule 5 and the same seam `RiftGates.avoid` uses - the
+## ambient layer has no business reaching into the systems it decorates.
+func _light_the_work() -> void:
+	if _ambient == null or not is_instance_valid(_ambient):
+		return
+	var places: Array[Dictionary] = []
+	if _ponds != null:
+		for at: Vector2 in _ponds.pond_positions():
+			places.append({"at": at, "kind": "water"})
+	if _gathering != null:
+		for node: Dictionary in _gathering.node_report():
+			places.append({"at": node.get("at", Vector2.ZERO),
+				"kind": "timber" if bool(node.get("timber", false)) else "seam"})
+	_ambient.call("relight", places)
 
 
 ## The wood beyond the field.
@@ -2188,6 +2211,13 @@ func refresh_terrain() -> void:
 		_scorch.clear()
 	if _craters != null:
 		_craters.clear()
+	# **And the fireflies, which had never been re-laid at all.** They gather
+	# over the treeline and over the ponds, seams and timber - every one of which
+	# this function has just re-laid - and they were built once in `_ready`, so
+	# from Act II onward every cluster hung over a tree that was not there any
+	# more. The fifth omission found in this list, and the comment at the top of
+	# it warns about exactly this.
+	_light_the_work()
 	# **And the foliage last**, because what grows depends on what is standing
 	# there - the water, the timber and the seams are all laid above this.
 	#

@@ -3147,6 +3147,27 @@ const AMBIENT_FIREFLY_FIELD_EXTENT: Vector2 = Vector2(1700.0, 1120.0)
 const AMBIENT_FIREFLY_CLUSTER_COUNT: int = 10
 const AMBIENT_FIREFLY_CLUSTER_EXTENT: Vector2 = Vector2(145.0, 96.0)
 const AMBIENT_FIREFLY_TREE_BIAS: float = 0.8
+## **How many clusters go to the places worth walking to** - a pond, a seam, a
+## stand of timber - before the ambient trees get any (owner, 2026-09-16). The
+## outskirts are large and dark and these are the three reasons to cross them;
+## the nodes' own glint answers "what is this" from arm's length and a drift of
+## light answers "there is something over there" from the road.
+const AMBIENT_FIREFLY_WORK_BIAS: float = 0.5
+## How much thicker a cluster over a work place is than one over a tree.
+const AMBIENT_FIREFLY_WORK_DENSITY: float = 1.45
+## How far a work cluster spreads, against the ambient extent. Tighter, so it
+## reads as *that place* rather than as a patch of night.
+const AMBIENT_FIREFLY_WORK_EXTENT: float = 0.62
+## The shift each kind of work puts in the light over it. Small on purpose - the
+## place should colour the glow, not replace it.
+const AMBIENT_FIREFLY_WATER_TINT: Color = Color(0.62, 0.86, 1.0)
+const AMBIENT_FIREFLY_TIMBER_TINT: Color = Color(0.74, 1.0, 0.6)
+const AMBIENT_FIREFLY_SEAM_TINT: Color = Color(1.0, 0.86, 0.62)
+const AMBIENT_FIREFLY_PLACE_TINT: float = 0.45
+## The pool of light under a work cluster: how wide against its extent, and how
+## bright. A few moving specks are a texture; specks in a glow are a landmark.
+const AMBIENT_FIREFLY_POOL: float = 2.1
+const AMBIENT_FIREFLY_POOL_ALPHA: float = 0.05
 const AMBIENT_FIREFLY_LIFETIME: float = 4.8
 const AMBIENT_FIREFLY_SPEED: float = 9.0
 const AMBIENT_FIREFLY_SIZE: float = 0.82
@@ -8051,6 +8072,81 @@ const GATHER_GLINT_RARITY_SPARKS: int = 2
 const GATHER_REACH_RING_SECONDS: float = 1.1
 const GATE_MOTE_SECONDS: float = 0.35
 const GATE_BREATHE_SECONDS: float = 3.2
+## **The fish that are actually in the pond** (owner, 2026-09-16). Decoration
+## with one named exception - a fish that came to look at the float is the fish
+## that bites - so none of these moves a number the fight or the economy reads.
+## See `PondFish`.
+const POND_FISH_Z: int = 2
+## A jumping fish is over the water and still under everything on the bank: the
+## pond root itself sits below the sorted layer, so this is only relative to the
+## water it is leaping out of.
+const POND_FISH_AIR_Z: int = 4
+const POND_FISH_PER_POND: Vector2i = Vector2i(3, 7)
+const POND_FISH_SCALE: float = 0.34
+const POND_FISH_SPEED: Vector2 = Vector2(13.0, 27.0)
+const POND_FISH_TURN: float = 1.1
+## How far ahead a fish looks for water, and the shallowest it will swim in.
+## Together these are the whole of "it cannot leave the pond": there is nothing
+## outside the water for it to steer toward.
+const POND_FISH_LOOK: float = 22.0
+const POND_FISH_MIN_DEPTH: float = 0.12
+## How many bearings it tries when it meets a bank. Few enough to be free, many
+## enough that a fish follows a shore round rather than bouncing off it.
+const POND_FISH_BEARINGS: int = 7
+## **How a fish is seen through water** - see `fish_underwater.gdshader`, which
+## does the grading a `modulate` cannot: toward a dark silhouette of the water's
+## own colour rather than merely dimmer. How far it is taken at full depth, how
+## dark that silhouette is, how much of the body is left, how strongly the
+## surface light plays over its back, and how far the body bends.
+##
+## The shallowest a fish is ever graded as, so one in a puddle still reads as
+## being in water rather than lying on it.
+const POND_FISH_MIN_GRADE: float = 0.3
+const POND_FISH_SILHOUETTE: float = 0.84
+const POND_FISH_SHADE: float = 0.4
+const POND_FISH_FADE: float = 0.6
+const POND_FISH_CAUSTIC: float = 0.34
+const POND_FISH_WOBBLE: float = 0.02
+## How much smaller a fish is drawn at full depth. Something a foot under water
+## is further away than something on the surface, and a school drawn at one size
+## at every depth reads as a sheet of stickers (owner, 2026-09-16). It also means
+## a fish rising to take the float visibly comes *up* as well as closer.
+const POND_FISH_DEPTH_SHRINK: float = 0.3
+## How far it rolls onto its heading. The art is a fish in profile, so a full
+## turn would stand it on its nose to swim north - which reads as a dead one.
+const POND_FISH_PITCH: float = 0.5
+## Feeding: how often a cruising fish settles to work one patch, and how tightly
+## it circles while it does.
+const POND_FISH_FEEDS: float = 0.35
+const POND_FISH_FEED_CIRCLE: float = 0.9
+## A jump: how often one is considered, how often it happens, how far and how
+## high it goes, and how long it is in the air.
+const POND_FISH_JUMP_EVERY: Vector2 = Vector2(9.0, 26.0)
+const POND_FISH_JUMP_CHANCE: float = 0.55
+const POND_FISH_JUMP_REACH: Vector2 = Vector2(26.0, 64.0)
+const POND_FISH_JUMP_HEIGHT: float = 26.0
+const POND_FISH_JUMP_SECONDS: Vector2 = Vector2(0.55, 0.95)
+## How many come down cleanly rather than in a flop, and what each looks like
+## doing it.
+const POND_FISH_ELEGANT: float = 0.55
+const POND_FISH_ARC_PITCH: float = 0.9
+const POND_FISH_FLOP_SPINS: float = 1.25
+## **The line.** How far a float is noticed; how near it has to land to be a
+## fright whatever else is true; and the three things that decide the rest -
+## a base share, what a float landing dead ahead adds, what an Angler's practice
+## adds, and how much a very near landing frightens.
+const POND_FISH_NOTICE: float = 150.0
+const POND_FISH_ON_ITS_HEAD: float = 16.0
+const POND_FISH_INTEREST: float = 0.45
+const POND_FISH_AHEAD_BONUS: float = 0.3
+const POND_FISH_SKILL_BONUS: float = 0.25
+const POND_FISH_NEAR_FRIGHT: float = 0.22
+const POND_FISH_CURIOUS_SECONDS: Vector2 = Vector2(4.0, 11.0)
+const POND_FISH_BOLT_SECONDS: Vector2 = Vector2(1.1, 2.4)
+const POND_FISH_BOLT_SCALE: float = 3.2
+## How close a curious fish must be to the float to be the one on the hook.
+const POND_FISH_AT_THE_FLOAT: float = 34.0
+
 const POND_SURFACE_SECONDS: Vector2 = Vector2(9.0, 16.0)
 ## Rubble where a tower stood, and how long it takes to settle into the ground.
 const DEBRIS_FADE_SECONDS: float = 14.0

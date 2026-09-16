@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_fish")
+art_top_down = true
 id = "sunglass_ray"
 display_name = "Sunglass Ray"
 description = "It lies flat under the sand of the shallows and takes the shape of the shade."

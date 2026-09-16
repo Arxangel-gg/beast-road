@@ -38,6 +38,9 @@ const KEY_WATER_REFRACTION: String = "graphics_water_refraction"
 const KEY_RANK_SHEEN: String = "graphics_rank_sheen"
 ## Seeded coats on the wildlife. A look and nothing else - see `Phenotype`.
 const KEY_PHENOTYPE: String = "graphics_phenotype"
+## The fish swimming in the ponds. A look and nothing else - see `PondFish`,
+## which says which single thing about them is read and why that is bounded.
+const KEY_POND_FISH: String = "graphics_pond_fish"
 const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
@@ -66,6 +69,7 @@ const KEY_MINIMAP: String = "minimap"
 
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
+const POND_FISH_GROUP: StringName = &"pond_fish"
 ## Nodes that read a display preference of their own and need telling when
 ## one changes. `apply_to_scene` calls `refresh_from_settings` on each.
 ## Without it the minimap switch in the video settings changed the saved
@@ -501,6 +505,11 @@ static func rank_sheen() -> bool:
 ## is the same bound the rank sheen and the fog are held to.
 static func phenotypes() -> bool:
 	return bool(_chosen.get(KEY_PHENOTYPE, true))
+
+
+## Whether the ponds have fish visibly swimming in them.
+static func pond_fish() -> bool:
+	return bool(_chosen.get(KEY_POND_FISH, true))
 
 
 ## Whether the minimap is shown. M toggles it in play as well.

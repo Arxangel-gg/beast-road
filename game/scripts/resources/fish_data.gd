@@ -23,6 +23,22 @@ enum Rarity { COMMON, UNCOMMON, RARE, LEGENDARY }
 
 @export var rarity: Rarity = Rarity.COMMON
 
+## **Which way the painting faces.** Every fish on the roster is drawn with its
+## head to the left, so this defaults to what the art actually is: a default that
+## matches the roster means no shipped file has to say anything and a wrongly
+## drawn new one is the only one that does.
+##
+## Read by `PondFish`, which mirrors a swimming fish onto its heading. It was
+## flipping as though the art faced right, so every fish in every pond swam
+## backwards until 2026-09-16.
+@export var art_faces_right: bool = false
+
+## Drawn from above with its nose north rather than in profile - the Sunglass Ray
+## is, and a ray genuinely is a top view. Mirroring one of these leaves it
+## pointing north whichever way it swims, which is the fault the moth and the
+## butterfly were reported for; `PondFish` turns it onto its heading instead.
+@export var art_top_down: bool = false
+
 ## Which regions this fish lives in, by terrain id. Empty means every water in
 ## the world holds it, which is how the two legendaries are authored.
 @export var regions: Array[String] = []
