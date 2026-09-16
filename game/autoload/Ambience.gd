@@ -66,7 +66,7 @@ func _ready() -> void:
 ## `bed_id` accepts a terrain id ("jungle") or a bed id. Unknown ids stop the bed
 ## rather than erroring, so a terrain without ambience is simply quiet.
 func play(bed_id: String) -> void:
-	var key: String = bed_id.trim_prefix("ambience_")
+	var key: String = resolved_bed(bed_id.trim_prefix("ambience_"))
 	if key == _current:
 		return
 	if not BEDS.has(key) or not ResourceLoader.exists(String(BEDS[key])):
@@ -84,6 +84,25 @@ func play(bed_id: String) -> void:
 	_player.play()
 	_tween = create_tween()
 	_tween.tween_property(_player, "volume_db", Balance.AMBIENCE_DB, FADE_TIME)
+
+
+## **The bed a region actually lies under.**
+##
+## Seven of the ten regions declare a bed whose file does not exist, and the
+## check above turns a missing file into `stop()` - so acts IV to X were played
+## in **silence** rather than falling back to anything. The music had a wrong
+## answer; this had no answer, and no gate read this table at all.
+##
+## A region names the nearest bed it should lie under on
+## `TerrainData.ambience_bed`, judged from the same character that decides its
+## battle track, so the two cannot disagree about whether a place is cold.
+func resolved_bed(key: String) -> String:
+	if BEDS.has(key) and ResourceLoader.exists(String(BEDS[key])):
+		return key
+	var here: TerrainData = ContentDB.terrain(key)
+	if here == null or here.ambience_bed.is_empty():
+		return key
+	return here.ambience_bed
 
 
 func stop() -> void:

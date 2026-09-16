@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_d8rxw")
 battle_music = "battle_jungle"
+ambience_bed = "jungle"
 boss_id = "drowned_choir"
 breed_id = "bogkin"
 enemy_ids = Array[String](["bogkin", "wolf_rider", "rootshield", "ember_shaman"])

@@ -4751,6 +4751,48 @@ is ever noticed is by somebody counting - and a count off the disk cannot go
 stale the way a note in this file can. The soundtrack grows by dropping a file
 in at `music_act%02d_%02d.ogg` and `music_boss_act%02d.ogg`.
 
+**Acts IV to X were played in silence, found 2026-09-16.** Not a wrong sound - no
+sound. `Ambience.BEDS` declares a bed for all ten regions and **seven of those
+files do not exist**, and `Ambience.play` turns a missing file into `stop()`. So
+seven of the ten regions had no ambience at all, and **no gate had ever read the
+ambience table**.
+
+That is worse than the battle track's version of the same gap, which at least had
+a wrong answer rather than no answer - and it is the kind of absence nothing can
+notice, because quiet is what ambience sounds like when it is working.
+`TerrainData.ambience_bed` names the nearest bed a region should lie under,
+judged from the same character that chose its battle track and **deliberately
+agreeing with it**: whatever decides a place sounds cold decides it sounds cold.
+`audio_verify` now walks every terrain and every weather bed and fails on a file
+that is not on disk.
+
+**And one recording in this project had been made, registered, mixed and played
+by nothing.** `sfx_wildfire` sat in `SOUNDS`, in `MIX` - with a `limit: 2,
+gap: 0.08` throttle *written for a call site that did not exist*, which is what
+stops a blaze lighting `WILDFIRE_MAX_LIT` plants from machine-gunning - while
+`wildfire.gd` held no audio at all.
+
+**It was already written down and acted on by nothing.** `docs/SFX_PROMPTS.md`
+has a "prompted but never played" section whose prose says *"Not a fault - a few
+are chosen from data rather than written into code"*. That is true of the other
+155 entries, which are music and ambience resolved by format string, and false of
+the one `sfx_` entry in the list. A note that explains away a list stops anybody
+reading the list.
+
+So `audio_verify` walks the **mirror** direction now: a caller naming a sound
+that does not exist was closed this morning, and a sound existing that no caller
+names is closed this afternoon. "Names" is deliberately generous - any literal in
+any `.gd` or `.tres`, plus membership of a group that is itself reached - because
+ids picked out of a data field are legitimate. Measured: with the wildfire call
+in, **zero** of 216 are unreachable; with it removed, exactly one.
+
+**The first version of that check was vacuous and I nearly shipped it.** It
+walked every `.gd` including `Sfx.gd`, so every sound was "named" by its own
+`SOUNDS` row and the answer was always zero. It reads clean and it proves
+nothing - the same shape as a comparison of two nothings. The declaration rows
+are skipped now, and the check was validated by removing the call rather than by
+reading its output.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

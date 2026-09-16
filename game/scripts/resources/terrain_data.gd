@@ -65,6 +65,20 @@ extends GameData
 ## rotation so a region nobody has judged is no worse off than it was.
 @export var battle_music: String = ""
 
+## **Which ambience bed this region lies under** when it has none of its own, as
+## a key in `Ambience.BEDS`.
+##
+## Seven of the ten regions declare a bed whose file does not exist, and
+## `Ambience.play` calls `stop()` on a missing file - so acts IV to X were not
+## falling back to anything, they were **silent**. That is worse than the battle
+## track's problem, which at least had a wrong answer rather than no answer, and
+## no gate read the ambience table at all.
+##
+## Authored with the same judgement as `battle_music` and deliberately agreeing
+## with it: the character that decides a region sounds cold is the character that
+## decides it sounds cold.
+@export var ambience_bed: String = ""
+
 @export var tile_size: int = 512
 
 ## The region's colour grade (2026-09-12): a tint multiplied over the whole

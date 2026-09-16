@@ -117,6 +117,16 @@ func _light(plant: Dictionary, generation: int = 0, by_player: bool = false) -> 
 	lit_count += 1
 	_blaze_lit += 1
 	Vfx.spark(at, Balance.FLAME_MID, 8, Vector2.UP, 160.0)
+	# **A wildfire makes a sound.** `sfx_wildfire` has been on disk, in `SOUNDS`
+	# and in `MIX` since the earth's wrath was built, and this system had no audio
+	# at all - the one recording in this project that was made, registered, mixed
+	# and played by nothing. Its mix row authors `limit: 2, gap: 0.08`, which is a
+	# throttle written for a call site that did not exist: it is what stops a
+	# blaze lighting `WILDFIRE_MAX_LIT` plants from machine-gunning crackles.
+	#
+	# Above the `_mirror` guard, so a guest hears its own fires too - it reaches
+	# this function through `_on_lit_elsewhere` and nothing new crosses the wire.
+	Sfx.play_at("sfx_wildfire", at)
 	if not _mirror:
 		EventBus.wildfire_lit.emit(at)
 

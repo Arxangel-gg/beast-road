@@ -125,6 +125,45 @@ func _ready() -> void:
 	for missing: String in _groups_callers_name_that_do_not_exist():
 		failures.append(missing)
 
+	# **And the mirror: a recording nothing can ever play.**
+	#
+	# The check above catches a caller naming a sound that does not exist. This
+	# catches a sound existing that no caller names - which is how `sfx_wildfire`
+	# sat recorded, registered and mixed for two days with `wildfire.gd` holding
+	# no audio at all. Its mix row even authors a throttle, written for a call
+	# site that was never made.
+	#
+	# It was already written down and acted on by nothing: SFX_PROMPTS.md has a
+	# "prompted but never played" section whose prose says "Not a fault - a few
+	# are chosen from data rather than written into code". True of the other 155
+	# entries, which are music and ambience resolved by format string; false of
+	# the one sfx_ entry in the list.
+	for lonely: String in _sounds_no_caller_can_reach():
+		failures.append(lonely)
+
+	# **And every region lies under a bed that exists.**
+	#
+	# Nothing had ever read this table. Seven of the ten regions declare a bed
+	# whose file is not on disk, and `Ambience.play` turns a missing file into
+	# `stop()` - so acts IV to X were played in silence. That is worse than the
+	# battle track's version of the same gap, which at least had a wrong answer
+	# rather than no answer, and it is the kind of absence nothing can notice:
+	# quiet is what ambience sounds like when it is working.
+	for terrain: Variant in ContentDB.terrains.values():
+		var region := terrain as TerrainData
+		if region == null:
+			continue
+		var bed: String = Ambience.resolved_bed(region.id)
+		if not Ambience.BEDS.has(bed):
+			failures.append("%s lies under \"%s\", which is not a bed" % [region.id, bed])
+			continue
+		if not ResourceLoader.exists(String(Ambience.BEDS[bed])):
+			failures.append(("%s lies under \"%s\", whose file is not on disk, so the "
+				+ "region is silent") % [region.id, bed])
+	for key: Variant in Ambience.WEATHER_BEDS:
+		if not ResourceLoader.exists(String(Ambience.WEATHER_BEDS[key])):
+			failures.append("the weather bed \"%s\" has no file" % str(key))
+
 	print("[audio] %d sounds, %d groups, %d mix rows"
 		% [paths.size(), Sfx.GROUPS.size(), Sfx.MIX.size()])
 	for problem: String in failures:
@@ -204,5 +243,78 @@ func _every_script(root: String) -> PackedStringArray:
 		found.append_array(_every_script(root.path_join(name)))
 	for name: String in dir.get_files():
 		if name.ends_with(".gd"):
+			found.append(root.path_join(name))
+	return found
+
+
+## Sound ids in `SOUNDS` that no caller anywhere names.
+##
+## "Names" is deliberately generous, because a strict reading would drown in
+## false positives: a literal on any line of any `.gd` or `.tres` counts, so ids
+## picked out of a data field or listed in a constant array are reached, and a
+## member of a group that is itself reached is reached too.
+##
+## `Sfx.gd`'s own declaration rows are skipped - a table row is not a caller, and
+## counting it makes the whole check vacuous, which is the first way I wrote it.
+func _sounds_no_caller_can_reach() -> PackedStringArray:
+	var named: Dictionary = {}
+	for path: String in _every_script("res://"):
+		_gather_named(path, named)
+	for path: String in _every_data("res://data"):
+		_gather_named(path, named)
+	# A group's members are reached when the group is.
+	var moved: bool = true
+	while moved:
+		moved = false
+		for group: Variant in Sfx.GROUPS:
+			if not named.has(String(group)):
+				continue
+			for option: Variant in (Sfx.GROUPS[group] as Array):
+				if not named.has(String(option)):
+					named[String(option)] = true
+					moved = true
+	var lonely: PackedStringArray = []
+	for id: Variant in Sfx.SOUNDS:
+		if not named.has(String(id)):
+			lonely.append(("the recording \"%s\" is registered and mixed and no caller "
+				+ "names it - it can never be heard") % str(id))
+	return lonely
+
+
+## Every `"sfx_..."` literal in one file, ignoring comments and, in `Sfx.gd`
+## itself, the table rows that declare rather than call.
+func _gather_named(path: String, into: Dictionary) -> void:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return
+	var declaring: bool = path.ends_with("autoload/Sfx.gd")
+	for line: String in file.get_as_text().split("
+"):
+		var trimmed: String = line.strip_edges()
+		if trimmed.begins_with("#"):
+			continue
+		if declaring and trimmed.begins_with("\"sfx_") and not trimmed.contains("["):
+			continue
+		var from: int = 0
+		while true:
+			var open: int = line.find("\"sfx_", from)
+			if open < 0:
+				break
+			var shut: int = line.find("\"", open + 1)
+			if shut < 0:
+				break
+			into[line.substr(open + 1, shut - open - 1)] = true
+			from = shut + 1
+
+
+func _every_data(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return found
+	for name: String in dir.get_directories():
+		found.append_array(_every_data(root.path_join(name)))
+	for name: String in dir.get_files():
+		if name.ends_with(".tres"):
 			found.append(root.path_join(name))
 	return found
