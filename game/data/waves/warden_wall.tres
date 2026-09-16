@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "warden_wall"
+display_name = "Warden Wall"
+description = "Shields first, and everything behind them is patient."
+lane_pattern = 1
+minimum_act = 6
+selection_weight = 0.86
+count_scale = 1.05
+hp_scale = 1.3
+speed_scale = 0.86
+signature_enemy_id = "warden"
+signature_role = 2
+signature_count_per_lane = 3

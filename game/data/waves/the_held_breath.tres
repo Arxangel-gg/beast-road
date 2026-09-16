@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "the_held_breath"
+display_name = "The Held Breath"
+description = "The road is empty and the light is wrong."
+lane_pattern = 0
+minimum_act = 8
+selection_weight = 0.26
+night_weight_multiplier = 1.6
+count_scale = 0.0
+calm = true

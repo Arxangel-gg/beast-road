@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "long_quiet"
+display_name = "The Long Quiet"
+description = "Nothing comes. Use it."
+lane_pattern = 0
+minimum_act = 5
+selection_weight = 0.34
+night_weight_multiplier = 0.4
+count_scale = 0.0
+calm = true

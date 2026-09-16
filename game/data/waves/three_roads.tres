@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "three_roads"
+display_name = "Three Roads"
+description = "Every gate at once, and none of them is the feint."
+lane_pattern = 3
+minimum_act = 7
+selection_weight = 0.9
+count_scale = 1.32
+speed_scale = 1.06
+spawn_spacing_scale = 0.78

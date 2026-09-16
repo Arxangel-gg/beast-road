@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "the_unbroken"
+display_name = "The Unbroken"
+description = "Nothing in it breaks, and there is a great deal of it."
+lane_pattern = 3
+minimum_act = 9
+selection_weight = 0.9
+count_scale = 1.38
+hp_scale = 1.32
+extra_elites = 2

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "quarry_line"
+display_name = "Quarry Line"
+description = "They walk past you. The emplacements are what they came for."
+lane_pattern = 2
+minimum_act = 3
+selection_weight = 0.9
+count_scale = 0.86
+hp_scale = 1.18
+signature_enemy_id = "siege_lizard"
+signature_role = 2
+signature_count_per_lane = 2

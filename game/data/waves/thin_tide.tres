@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "thin_tide"
+display_name = "Thin Tide"
+description = "More of them than the road has ever sent, and not one is a problem alone."
+lane_pattern = 3
+minimum_act = 3
+selection_weight = 0.85
+count_scale = 1.85
+hp_scale = 0.58
+damage_scale = 0.78
+spawn_spacing_scale = 0.62

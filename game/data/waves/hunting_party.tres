@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "hunting_party"
+display_name = "Hunting Party"
+description = "Four of them. Every one is somebody's champion."
+lane_pattern = 1
+minimum_act = 4
+selection_weight = 0.8
+count_scale = 0.42
+hp_scale = 1.55
+damage_scale = 1.2
+extra_elites = 2

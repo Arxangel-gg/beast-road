@@ -3382,13 +3382,28 @@ climbing. That is the exact failure measured on 2026-09-13 - "capability went
 flat from wave 48, the last third of the road paid for nothing" - three times
 longer.
 
-So a thousand waves needs one of: more build spots (the map is hand-authored), a
-longer tower ladder (a new power scale, refused eleven times), or **waves towers
-do not answer**. The third is the real answer, and it means the wave-type library
-*is* the thousand waves - siege, sabotage, caravan, rescue, holdout, ritual,
-hunt, calm. **Owner ruling, 2026-09-15: build the library first, then set the
-count by measuring what it supports.** A count set first and filled in later is
-how an act becomes a hundred repetitions of one loop.
+**Owner ruling, 2026-09-15: build the library first, then set the count by
+measuring what it supports.** A count set first and filled in later is how an act
+becomes a hundred repetitions of one loop.
+
+**And the measurement corrected the argument above, in the owner's favour.** The
+paragraph before this read "capability goes flat at wave 72, so the board is
+bought" and concluded that a thousand waves would leave two hundred with nothing
+to purchase. **That was wrong.** Flat capability at waves 72-73 is the model
+converting *breadth into depth* - it holds 40 emplacements at level **2**, and
+the ladder runs to **10**. Reading "flat" as "finished" is the mistake.
+
+Measured properly: the ten upgrade rungs cost **2,475 Gold a tower**, so a fully
+maxed board of forty is about **103,000 Gold** against the **5,846** a 79-wave
+campaign now earns - a **17.7x** gap. Income rises with the act, so the true
+figure is under a linear 1,400 waves and comfortably over a few hundred. **A
+thousand waves is approximately where a fully-upgraded board lands**, which is
+the number the owner proposed.
+
+So the blocker was never the economy. The library is still worth having - a
+hundred waves of one formation is a hundred repetitions whatever the purse is
+doing - but it is a *variety* requirement rather than a *headroom* one, and the
+wave count may rise as far as the content supports it.
 
 **Expedition persistence is built, and it is independent of all of that.** It
 works at 79 waves exactly as it would at a thousand.
@@ -3526,6 +3541,48 @@ mark may carry must be named by some script outside the resource**: a field
 authored and read by nothing is the `DisciplineEffects` lie in a second place -
 the mark draws, the codex describes it, and it does nothing. Checked by adding a
 field nothing reads, which the gate named.
+
+**The wave library reaches all ten acts, as of 2026-09-15.** Building it was
+the owner's ruling, and it turned out to be half built and capped:
+**`WaveArchetypeData.minimum_act` was `@export_range(1, 3)` on a ten-act road**,
+so acts IV to X drew from exactly the ten formations Act I did. **That is the
+sixth hardcoded three-act range in this project**, after the relic counter, the
+Chronicle's `minimum_act`, the campaign tiers' boss table, `wildlife_spawn_check`
+and the enemy affixes. Every one of them was silent: a range that is too small
+does not error, it simply never deals what nobody authored for the acts it
+excludes.
+
+**Most of the forwarded library was already expressible**, which is worth
+recording so it is not built twice. An elite hunt is `extra_elites` with a low
+`count_scale`; a horde is the reverse; a siege is a signature breed carrying
+`targets_towers`, which six breeds already do; a pincer, a false front and a
+delayed surge all exist. **Fourteen more formations** were authored across acts
+III to X out of that same vocabulary.
+
+**One kind was genuinely new: a wave with nothing in it.** `calm` sends no
+bodies. The road still advances, the clock still runs and the trickle still pays,
+and the player gets the stretch to build, gather, fish, work a seam or walk out
+to a camp - which is what the outskirts are for and the one thing a wave every
+ninety seconds leaves no room for.
+
+**Its price is the purse it does not earn.** A calm wave pays no kill income at
+all, so taking one costs a wave of income against a boss ramp that keeps
+climbing. That is what stops it being a strictly better wave, and the gate holds
+it.
+
+**It ends through the same door every wave ends through.** A wave closes when its
+queue is empty and nothing stands; a calm wave has an empty queue by
+construction, so it closes on the next tick and nothing had to learn that a wave
+can be quiet. **That is also the worst failure available here** - a wave with
+nothing in it that cannot end is a run that cannot continue - so
+`wave_library_check` drives a real director and fails if one is still running
+after three seconds.
+
+**And the first cut of that gate reported exactly that failure, wrongly.**
+`WaveDirector._process` returns on its first line while the director is stopped,
+and the gate had stopped it to clear the road before hand-ticking - so it
+measured nothing and called it a wave that never ends. The harness, not the
+director. A gate that drives a system by hand has to start it first.
 
 ### The three escape hatches — and why there are only three
 

@@ -243,6 +243,34 @@ func _begin_wave() -> void:
 	_preview_lanes.clear()
 	_preview_archetype = null
 
+	# **A wave with nothing in it.**
+	#
+	# The road still advances, the clock still runs, the trickle still pays - and
+	# nothing walks on. It is the stretch the player uses to build, gather, fish,
+	# work a seam or walk out to a camp, which is the whole reason the outskirts
+	# exist and the one thing a wave every ninety seconds leaves no room for.
+	#
+	# **Costing nothing to end is the point, and paying nothing is the price.** A
+	# calm wave earns no kill income at all, so taking one is a wave of purse the
+	# player does not get against a boss ramp that keeps climbing.
+	#
+	# The queue simply stays empty: the tick above closes a wave whose queue is
+	# empty with no bodies standing, so this ends on the next frame through the
+	# same door every other wave ends through. Nothing had to learn that a wave
+	# can be quiet.
+	if archetype != null and archetype.calm:
+		_spawn_timer = 0.0
+		_wave_active = true
+		# Everything an ordinary wave announces, because the HUD, the chronicle
+		# and the coach all read these and a quiet wave is still a wave. Said in
+		# the same order and with the same arguments, so nothing downstream has a
+		# second shape to handle.
+		EventBus.wave_started.emit(wave, lanes)
+		_last_archetype_id = archetype.id
+		RunState.record_wave_archetype(archetype.id)
+		EventBus.wave_archetype_started.emit(wave, archetype.id)
+		return
+
 	var per_lane: int = _archetype_wave_size(_act_wave, terrain, archetype, lanes.size())
 	var hp_multiplier: float = archetype.hp_scale if archetype != null else 1.0
 	var damage_multiplier: float = archetype.damage_scale if archetype != null else 1.0

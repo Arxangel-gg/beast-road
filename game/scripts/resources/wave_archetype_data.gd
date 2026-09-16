@@ -20,7 +20,12 @@ enum LanePattern {
 }
 
 @export var lane_pattern: LanePattern = LanePattern.ESCALATING
-@export_range(1, 3) var minimum_act: int = 1
+## The earliest act this formation may be dealt in.
+##
+## **Was capped at 3 on a ten-act road**, so acts IV to X drew from exactly the
+## pool Act I did and the back two thirds of the campaign never met a formation
+## of its own. Widened 2026-09-15; the sixth hardcoded three-act range found here.
+@export_range(1, 10) var minimum_act: int = 1
 @export var minimum_act_wave: int = 1
 @export var selection_weight: float = 1.0
 @export var night_weight_multiplier: float = 1.0
@@ -45,6 +50,24 @@ enum LanePattern {
 @export var delayed_adjacent_surge: bool = false
 @export var surge_delay: float = 0.0
 @export_range(0.1, 0.9) var false_front_fraction: float = 0.35
+
+## **A wave with nothing in it.**
+##
+## The "quiet before the storm" the forwarded list asked for, and the one thing
+## in that library this game could not already express. The road still advances,
+## the purse still earns off the trickle, and the player gets the stretch to
+## build, gather, fish, work a seam or walk out to a camp - which is the whole
+## reason the outskirts exist and the one thing a wave every ninety seconds
+## leaves no room for.
+##
+## **It is not free.** A calm wave pays no kill income at all, so taking one is
+## a wave of purse the player does not get - and against a boss ramp that keeps
+## climbing, a breather costs something real. That is what stops it being a
+## strictly better wave.
+##
+## Deliberately rare and deliberately late: `selection_weight` and
+## `minimum_act` carry that, not a special case here.
+@export var calm: bool = false
 
 
 func is_available(act: int, act_wave: int) -> bool:
