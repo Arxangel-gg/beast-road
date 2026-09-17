@@ -392,6 +392,52 @@ const RARITY_COLOURS: Array[Color] = [
 ]
 
 
+## **Best first, and the same answer every time.**
+##
+## Owner, 2026-09-17: *"add a sort button to the stash so that all gear can be
+## sorted in prioritized order of best to worst gear so that players can easily
+## quick sort their stash."*
+##
+## "Best" is `points` - what the piece is actually worth to the hero on the
+## capped attribute scale - because that is the number the game itself reads and
+## any other ranking here would be a second opinion about gear that could
+## disagree with the one that matters. Rarity, level and then the kind's own name
+## break the ties, so the order is **total**: two identical pieces cannot swap
+## places between one press and the next, which is what stops a tidy stash
+## shuffling itself every time it is opened.
+##
+## What is worn sorts to the very top regardless, because a piece you are
+## wearing is the one you look for first and the one you must never break by
+## accident.
+##
+## Returns a new array; nothing here writes a save.
+static func tidy(pieces: Array, worn: Array[String] = []) -> Array:
+	var out: Array = pieces.duplicate()
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_worn: bool = worn.has(String(a.get("uid", "")))
+		var b_worn: bool = worn.has(String(b.get("uid", "")))
+		if a_worn != b_worn:
+			return a_worn
+		var kind_a: GearData = ContentDB.gear(String(a.get("kind", "")))
+		var kind_b: GearData = ContentDB.gear(String(b.get("kind", "")))
+		var points_a: int = points(a, kind_a) if kind_a != null else -1
+		var points_b: int = points(b, kind_b) if kind_b != null else -1
+		if points_a != points_b:
+			return points_a > points_b
+		var rarity_a: int = int(a.get("rarity", 0))
+		var rarity_b: int = int(b.get("rarity", 0))
+		if rarity_a != rarity_b:
+			return rarity_a > rarity_b
+		var level_a: int = int(a.get("level", 1))
+		var level_b: int = int(b.get("level", 1))
+		if level_a != level_b:
+			return level_a > level_b
+		if String(a.get("kind", "")) != String(b.get("kind", "")):
+			return String(a.get("kind", "")) < String(b.get("kind", ""))
+		return String(a.get("uid", "")) < String(b.get("uid", "")))
+	return out
+
+
 static func rarity_colour(piece: Dictionary) -> Color:
 	return RARITY_COLOURS[clampi(int(piece.get("rarity", 0)), 0, RARITY_COLOURS.size() - 1)]
 

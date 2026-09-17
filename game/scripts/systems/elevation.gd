@@ -87,6 +87,11 @@ const FOOT_SHADE: float = 0.34
 ## the road as much as to the Hold.
 const SHORE_TINT: Color = Color(0.56, 0.62, 0.64)
 
+## How strongly the shelf's own ground is worn back over the pool's outer ring.
+## Enough that the sheet's rim stops being a line, not so much that the shore
+## disappears - a pool with no bank is a hole in the ground.
+const SHORE_BLEND: Color = Color(1.0, 1.0, 1.0, 0.62)
+
 ## One tile on a Wang sheet, and how many across it is.
 const TILE_PX: int = 64
 const SHEET_ACROSS: int = 4
@@ -592,6 +597,7 @@ func _draw_water() -> void:
 				_cell * 0.62, _water_tint, 0.60)
 		return
 	var lift: float = float(_standing(wet[0])) * _rise
+	var rim: Array[Rect2] = []
 	for j: int in _rows.size() + 1:
 		for i: int in columns() + 1:
 			# **Through the ponds' own index** rather than a second copy of the
@@ -615,6 +621,27 @@ func _draw_water() -> void:
 				Rect2(float(index % across) * float(tile),
 					float(index / across) * float(tile),
 					float(tile), float(tile)), SHORE_TINT)
+			# **The outermost tile is where the pond stops being a pond**, and
+			# a Wang sheet's own rim is a hard edge against whatever it was
+			# dropped on: the pond art is packed for the road's ground and the
+			# Hold's shelves are a different material. Owner, 2026-09-17: *"the
+			# ponds at the hold do not have smoothing transitions around the
+			# edges of the ground changes around its outer most border."*
+			#
+			# So every tile with dry corners gets the shelf's own ground worn
+			# back over it, feathered from the dry side - which is the same
+			# answer the paths and the bank lips are drawn with, and it needs no
+			# second painting.
+			if index != 15:
+				rim.append(where)
+	# Laid after the water, so the ground is worn back *over* the shore rather
+	# than under it. The shelf's own sheet, so a pool in the plaza is ringed by
+	# plaza and one in the lower yard by the valley floor.
+	var ground: Texture2D = _tiles.get(_standing(wet[0]), _soil) as Texture2D
+	if ground != null:
+		for patch: Rect2 in rim:
+			GroundWear.patch(_on.get_canvas_item(), ground,
+				patch.get_center(), _cell * 0.62, SHORE_BLEND, 0.72)
 
 
 ## **The flights, drawn one whole staircase at a time.**

@@ -49,6 +49,13 @@ const FILTER_PANTRY: int = -2
 ## the fish. A stash of ninety-six is not a list you read; it is one you search.
 var _filter: int = -1
 
+## **Which way the list is read.** By slot is the default and is what this
+## screen has always done - it answers "is any of this better than what I am
+## wearing in *this* place". Best-first answers "what is the best thing I own",
+## which is the question a full stash is actually opened with, and it is the one
+## the Sort button puts the store itself into.
+var _best_first: bool = false
+
 ## The last thing a bulk action had to say. Kept in a field rather than written
 ## straight to the label, because `_refresh` rewrites that label - the same trap
 ## that made every error message in the town sheet invisible.
@@ -225,6 +232,12 @@ func _sorted_indices() -> Array[int]:
 		if _filter >= 0 and (kind == null or int(kind.slot) != _filter):
 			continue
 		order.append(index)
+	# **Best first reads the store's own order**, which `MetaState.sort_stash`
+	# has just put into exactly that: sorting the view a second way here would
+	# be a second opinion about "best" that could disagree with the one every
+	# other reader of this list sees.
+	if _best_first:
+		return order
 	order.sort_custom(func(a: int, b: int) -> bool:
 		var one: Dictionary = MetaState.stash[a]
 		var two: Dictionary = MetaState.stash[b]
@@ -371,6 +384,40 @@ func _build_tools() -> void:
 			_filter = index
 			_refresh())
 		_tools.add_child(tab)
+
+	# **Sort.** Owner, 2026-09-17: *"add a sort button to the stash so that all
+	# gear can be sorted in prioritized order of best to worst gear so that
+	# players can easily quick sort their stash."*
+	#
+	# It tidies the *store* rather than the view, which is what makes it worth
+	# pressing: every other reader of this list - a bulk break, a trade offer, the
+	# Ledger - walks `MetaState.stash` by index, and after this they all walk it
+	# best first. The list then shows the store's own order, so the button visibly
+	# does the thing it says.
+	var tidy := Button.new()
+	tidy.text = "Sort  ·  best first" if not _best_first else "Sort  ·  by slot"
+	tidy.tooltip_text = ("Puts the whole stash in order, best first, and keeps "
+		+ "it that way. What you are wearing goes to the top.")
+	tidy.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
+	tidy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tidy.add_theme_font_size_override("font_size", 14)
+	tidy.pressed.connect(func() -> void:
+		if _best_first:
+			_best_first = false
+			_message = "Back to reading by slot."
+			_refresh()
+			return
+		# The same refusal breaking lives under, and for the same reason: an
+		# offer names a piece by uid while every other reader works by index,
+		# so reordering under an open trade is a race whose loser is gear.
+		if not MetaState.sort_stash():
+			_message = "Not while a trade is open."
+			_refresh()
+			return
+		_best_first = true
+		_message = "Sorted %d pieces, best first." % MetaState.stash.size()
+		_refresh())
+	_tools.add_child(tidy)
 
 	# Two thresholds rather than one "break everything": the first is chaff a
 	# player will never wear, the second is what a mid-run stash fills with. Both

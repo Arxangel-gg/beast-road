@@ -72,6 +72,12 @@ var _air: DungeonAir = null
 var _tremor_in: float = 0.0
 
 
+
+## The deep is under the ground, which is what makes its flights cut stone
+## rather than earth and its light the deep's own.
+func is_underground() -> bool:
+	return true
+
 func _ready() -> void:
 	super()
 	# Its own stream, so a rift's camp and a raid's are not the same shape.

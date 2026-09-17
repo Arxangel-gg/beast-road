@@ -1421,6 +1421,28 @@ func receive_gear(piece: Dictionary) -> Dictionary:
 	return {"stored": false, "shards": salvaged}
 
 
+
+## **Tidy the stash, best first, and remember it.**
+##
+## The one door, so the screen cannot sort one way while the Ledger, a trade or a
+## bulk break walks the list in another. It writes, because a sort a player has
+## to do again every launch is not a sort.
+##
+## Refused while a trade is open, for the reason breaking is: an offer names a
+## piece by `uid` but every other reader of this list works by *index*, and
+## reordering under an open offer is a race whose loser is somebody's gear.
+func sort_stash() -> bool:
+	if TradeBooth.is_trading():
+		return false
+	var worn: Array[String] = []
+	for slot: Variant in equipped:
+		var piece: Dictionary = equipped_piece(int(slot))
+		if not piece.is_empty():
+			worn.append(String(piece.get("uid", "")))
+	stash = Stash.tidy(stash, worn)
+	save_game()
+	return true
+
 ## Removes a piece, keeping the equipped indices pointing at the same gear.
 ##
 ## Indices shift when an element is removed from the middle of an array, so

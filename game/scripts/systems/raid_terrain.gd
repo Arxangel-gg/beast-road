@@ -45,7 +45,20 @@ const BAKE_PPU: float = 0.5
 ## because it is the same argument the plates were baked under - a few hundred
 ## nodes rebuilt every raid is the growth `perf_check` exists to catch.
 const FACE_ART: String = "res://art/raid/raid_cliff_face.png"
-const STAIR_ART: String = "res://art/raid/raid_stairs.png"
+## **The flights, and they are the Hold's.**
+##
+## Owner, 2026-09-17: *"the stair solution should also apply to dungeons with
+## the correct adaptations for each environment"*, and separately that the old
+## ones *"still suck"*. `art/raid/raid_stairs.png` was a 128x64 strip that every
+## camp and every rift shared and that the Hold was borrowing; the two pieces
+## here are the same staircases the Hold climbs.
+##
+## **The adaptation is the material rather than a second painting.** Earth for a
+## camp, which is cut into a hillside under the sky, and cut stone for a rift,
+## which is not. Each is then tinted to its own region exactly as the bank
+## already is, so ten regions cost two files rather than twenty.
+const STAIR_ART: String = "res://art/terrain/stair_earth_north.png"
+const DEEP_STAIR_ART: String = "res://art/terrain/stair_stone_north.png"
 ## How tall the face is, as a share of a tile. Two thirds reads as a step up a
 ## person's height without the face swallowing the ground below it.
 const FACE_SHARE: float = 0.72
@@ -199,14 +212,18 @@ class _EdgeLines extends Node2D:
 ## surface exactly as it would on the ground.
 class _Faces extends Node2D:
 	var layout: RaidLayout = null
+	## Whether this arena is under the ground, which decides which stone the
+	## flights are cut from. Set before the node enters the tree.
+	var underground: bool = false
 	var _bank: Texture2D = null
 	var _steps: Texture2D = null
 
 	func _ready() -> void:
 		if ResourceLoader.exists(FACE_ART):
 			_bank = load(FACE_ART) as Texture2D
-		if ResourceLoader.exists(STAIR_ART):
-			_steps = load(STAIR_ART) as Texture2D
+		var flight: String = DEEP_STAIR_ART if underground else STAIR_ART
+		if ResourceLoader.exists(flight):
+			_steps = load(flight) as Texture2D
 		texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 		add_to_group(Graphics.FILTER_GROUP)
 		# **Tinted to the region it is cut out of.** One bank is authored and
@@ -263,7 +280,16 @@ class _Faces extends Node2D:
 					var top_left: Vector2 = RaidLayout.tile_to_world(tile) 						+ Vector2(-RaidLayout.TILE, RaidLayout.TILE) * 0.5
 					var into := Rect2(top_left, Vector2(RaidLayout.TILE, tall))
 					if layout.cell_at(tile) == RaidLayout.Cell.RAMP and _steps != null:
-						draw_texture_rect_region(_steps, into,
+						# **Up over the lip as well as down the face.** The old
+						# strip was drawn into the face alone, so a ramp was a
+						# band of steps with the ledge's own ground cut off
+						# square above it. A flight covers the tile it starts on
+						# and the rise it crosses, which is what makes it read as
+						# climbing rather than as a texture on a wall.
+						var climb := Rect2(into.position.x,
+							into.position.y - RaidLayout.TILE,
+							into.size.x, into.size.y + RaidLayout.TILE)
+						draw_texture_rect_region(_steps, climb,
 							Rect2(0.0, 0.0, float(_steps.get_width()),
 								float(_steps.get_height())))
 					else:

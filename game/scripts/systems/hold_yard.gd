@@ -343,6 +343,27 @@ const ROUTES: Array[Dictionary] = [
 ## valley, falling into shadow - see `_fall_away`.
 const OVERSCAN: float = 620.0
 
+## **The cloth hung about the Hold**, on the wall it was meant to defend, over
+## the market, at the gate and either side of the grand stair.
+##
+## Each names a cell rather than a point, so a banner cannot be hung over a
+## cliff; the colours are the Hold's own - the Warden's red, the market's
+## faded awning, the smith's soot-dark - rather than a palette invented here.
+const BANNERS: Array[Dictionary] = [
+	{"cell": Vector2i(15, 6), "cloth": Color(0.52, 0.16, 0.14), "length": 118.0},
+	{"cell": Vector2i(22, 6), "cloth": Color(0.52, 0.16, 0.14), "length": 118.0},
+	{"cell": Vector2i(17, 10), "cloth": Color(0.44, 0.34, 0.12), "length": 92.0},
+	{"cell": Vector2i(21, 10), "cloth": Color(0.44, 0.34, 0.12), "length": 92.0},
+	{"cell": Vector2i(24, 12), "cloth": Color(0.46, 0.24, 0.12), "length": 84.0,
+		"exposure": 0.7},
+	{"cell": Vector2i(10, 12), "cloth": Color(0.22, 0.24, 0.30), "length": 84.0,
+		"exposure": 0.7},
+	{"cell": Vector2i(17, 18), "cloth": Color(0.52, 0.16, 0.14), "length": 76.0,
+		"width": 26.0},
+	{"cell": Vector2i(20, 18), "cloth": Color(0.52, 0.16, 0.14), "length": 76.0,
+		"width": 26.0},
+]
+
 const PADDOCK_AT: Vector2i = Vector2i(9, 22)
 
 ## **Far enough in that the last one is on the ground.** Photographed at
@@ -389,6 +410,16 @@ var _grass_at: Array[Vector2] = []
 ## The painted plants standing in the yard, kept so a re-scatter clears the
 ## last garden rather than growing a second one on top of it.
 var _plants: Array[Node] = []
+
+## The cloth and the fire, and the wind that moves both.
+##
+## A wind of the Hold's own rather than the road's: the road's belongs to a run
+## and this is not one. Slow, never still, and read by the banners, the embers
+## and the foliage so all three lean together - which is the whole difference
+## between a place with air in it and a set.
+var _banners: Array[HoldBanner] = []
+var _bonfire: HoldBonfire = null
+var _wind: Vector2 = Vector2.RIGHT
 ## The animal the Warden has taken out of the pen, walking with them.
 ##
 ## Owner brief, 2026-09-17: *"Players can still choose a companion to take
@@ -476,6 +507,8 @@ func _ready() -> void:
 	_build_heel()
 	_build_sky()
 	_build_fires()
+	_build_bonfire()
+	_build_banners()
 	set_process(true)
 
 
@@ -507,6 +540,13 @@ func lift_at(point: Vector2) -> float:
 ## so a flight passes at two thirds and a cliff is refused at sixteen. Nothing
 ## in this file knows where a stair is any more.
 func step_is_legal(from: Vector2, to: Vector2) -> bool:
+	# **The fire is a hole in the yard, not a hazard.** Nothing here burns
+	# anybody: the pit is simply ground the Hold refuses, which is the honest
+	# answer to "so players cannot go into it to accidentally burn themselves"
+	# and costs the run no rule at all.
+	if _bonfire != null and is_instance_valid(_bonfire) \
+			and _bonfire.refuses(to) and not _bonfire.refuses(from):
+		return false
 	return _land.step_is_legal(from, to) if _land != null else true
 
 
@@ -983,6 +1023,62 @@ func _follow_the_sun() -> void:
 ## light does nothing against a bright sky, so nothing here switches: what
 ## changes is that the `CanvasModulate` above stops washing it out. A fire
 ## that appeared at dusk would be a fire somebody lit, and nobody did.
+## **The fire in the middle of the square, and the stones that keep people out
+## of it** (owner, 2026-09-17). Its refusal is read by `step_is_legal`, so the
+## wall a player sees and the wall that stops them are the same number.
+func _build_bonfire() -> void:
+	_bonfire = HoldBonfire.new()
+	_bonfire.name = "Bonfire"
+	var at: Vector2 = _on_ground(at_cell(FIRE_AT))
+	_bonfire.position = at + Vector2(0.0, lift_at(at))
+	_actors.add_child(_bonfire)
+
+
+## Cloth on the wall, at the gate and over the market.
+##
+## Hung on the map rather than at authored points, so a banner cannot end up
+## over a cliff: each names a cell and the colour of whoever hung it.
+func _build_banners() -> void:
+	for entry: Dictionary in BANNERS:
+		var flag := HoldBanner.new()
+		var at: Vector2 = at_cell(entry["cell"] as Vector2i)
+		flag.position = at + Vector2(0.0, lift_at(at))
+		flag.cloth = entry["cloth"] as Color
+		flag.shade = (entry["cloth"] as Color).darkened(0.42)
+		flag.length = float(entry.get("length", 96.0)) * Balance.HOLD_BANNER_SCALE
+		flag.width = float(entry.get("width", 34.0)) * Balance.HOLD_BANNER_SCALE
+		flag.exposure = float(entry.get("exposure", 1.0))
+		# **No negative z.** A child drawn behind its parent is a child behind
+		# the ground as well, which this project has now paid for three times -
+		# a mount, a campfire and the Hold's own floor. The banners are actors
+		# in a y-sorted layer like everybody else, so one hung further up the
+		# yard is simply drawn first.
+		_actors.add_child(flag)
+		_banners.append(flag)
+
+
+## The Hold's own weather, turned once a frame and handed to everything that
+## answers it.
+##
+## **One wind, read by three things.** A banner with its own clock and embers
+## with theirs would be a yard where the cloth leans east while the smoke goes
+## west, which is worse than neither moving at all.
+func _turn_the_wind(delta: float) -> void:
+	_clock += 0.0
+	var turn: float = _clock * Balance.HOLD_WIND_SPEED
+	var gust: float = 1.0 + sin(_clock * 0.9) * Balance.HOLD_WIND_GUST
+	_wind = Vector2(cos(turn), sin(turn * 0.7) * 0.4) \
+		* Balance.HOLD_WIND_STRENGTH * gust
+	for flag: HoldBanner in _banners:
+		if is_instance_valid(flag):
+			flag.set_wind(_wind)
+	if _bonfire != null and is_instance_valid(_bonfire):
+		_bonfire.set_wind(_wind)
+	# The plants lean in it too, through the material every plant in the game
+	# shares - so the Hold's ferns answer the same wind its banners do.
+	RunState.wind = _wind
+
+
 func _build_fires() -> void:
 	_fires.clear()
 	_lights.clear()
@@ -1169,6 +1265,7 @@ func _process(delta: float) -> void:
 	for person: Dictionary in _residents:
 		_mind_the_stall(person, delta)
 	_tick_heel(delta)
+	_turn_the_wind(delta)
 	_breathe(delta)
 	_follow_the_sun()
 	_find_focus()

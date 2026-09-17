@@ -74,6 +74,16 @@ var _dressing: RaidDressing = null
 ## happened to give. This one follows `DayNight` exactly as the field's does:
 ## the sun's tint for a raid, the deep's for a rift (`DayNight.set_underground`).
 ## Visible only while the arena runs, so it never stands beside the field's.
+## **Whether this arena is under the ground.**
+##
+## False here and overridden by `RiftArena`, which is the same arena put to a
+## second use. Read where a camp and a rift want different *materials* rather
+## than different light - the flights are cut earth outdoors and cut stone in
+## the deep - so the two never have to be told apart twice.
+func is_underground() -> bool:
+	return false
+
+
 var _tint_node: CanvasModulate = null
 
 
@@ -522,6 +532,10 @@ func _build_camp() -> void:
 
 	var terrain := RaidTerrain.new()
 	terrain.layout = layout
+	# Which stone the flights are cut from. A rift is the same arena under the
+	# ground, and `is_underground` is what already separates the two everywhere
+	# else - the light, the tint and the dressing all ask it.
+	terrain.underground = is_underground()
 	terrain.z_index = Balance.RAID_TERRAIN_Z
 	_terrain_root.add_child(terrain)
 

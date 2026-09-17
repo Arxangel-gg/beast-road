@@ -10403,12 +10403,12 @@ const HOLD_NPC_WORK_FRAME_HZ: float = 4.5
 ## the hold"*. A single density is confetti; what makes a scatter read as a
 ## place is that the kept ground is kept and the ground nobody sweeps is
 ## reclaimed, so the yard fades into the valley rather than stopping at a line.
-const HOLD_FOLIAGE_INNER: float = 0.16
-const HOLD_FOLIAGE_OUTER: float = 0.86
+const HOLD_FOLIAGE_INNER: float = 0.22
+const HOLD_FOLIAGE_OUTER: float = 0.98
 
 ## How much of it is a painted plant rather than a tuft of grass. Grass is the
 ## filler between things; a fern is a thing.
-const HOLD_FOLIAGE_PLANT_SHARE: float = 0.42
+const HOLD_FOLIAGE_PLANT_SHARE: float = 0.58
 
 ## **Which plants grow where**, by the ground rather than by a roll.
 ##
@@ -10505,6 +10505,71 @@ const HOLD_BANK_SHADE: float = 0.62
 ## masonry.
 const HOLD_WALL_GREY: float = 0.72
 const HOLD_WALL_VALUE: float = 1.22
+
+
+## **The Hold has weather of its own, gently.**
+##
+## The road's wind is the run's and the Hold is not a run, so the yard turns its
+## own - slow, never still, and never strong enough to be a thing the player has
+## to think about. What it is *for* is that the banners, the embers and the
+## foliage all lean the same way at the same moment, which is the difference
+## between a place with air in it and a set.
+const HOLD_WIND_SPEED: float = 0.055
+const HOLD_WIND_STRENGTH: float = 0.72
+const HOLD_WIND_GUST: float = 0.34
+
+## How a hanging cloth answers it.
+##
+## `LEAN` is how far the free end is carried across the wind, `FLUTTER` the
+## ripple that runs down it and `WAVES` how many of those fit in its length.
+## Steps is how many segments the spline is cut into - enough that a bend reads
+## as cloth, few enough that a dozen banners are a dozen small triangle arrays.
+const HOLD_BANNER_STEPS: int = 9
+const HOLD_BANNER_LEAN: float = 26.0
+const HOLD_BANNER_FLUTTER: float = 7.0
+const HOLD_BANNER_RIPPLE_HZ: float = 2.4
+const HOLD_BANNER_WAVES: float = 3.1
+const HOLD_BANNER_GUST: float = 0.6
+
+## How big the cloth is against the yard it hangs in.
+##
+## Authored at a person's scale and then sized against the *place*: the Hold is
+## three and a half thousand units across, and a banner the height of a Warden
+## is a scrap on it. A banner is meant to be read from the far side of the
+## square, which is what a banner is for.
+const HOLD_BANNER_SCALE: float = 1.9
+
+## How far the post stands above the cloth, as a share of the cloth's own drop.
+## Enough that the banner is clearly hanging from something and not so much that
+## the pole is the subject.
+const HOLD_BANNER_POST_SHARE: float = 0.34
+
+## Where down the cloth the swallow tail is cut. Past this the hem climbs, so
+## the banner ends in two points rather than a straight line.
+const HOLD_BANNER_TAIL_AT: float = 0.62
+
+## How much of its width the cloth loses over that last stretch. Not all of it:
+## a banner that comes to a needle reads as a pennon on a lance rather than as
+## a standard hung in a square.
+const HOLD_BANNER_TAPER: float = 0.62
+
+## The pit in the middle of the square.
+##
+## `SQUASH` is the flattening every ring in this project is drawn with - the
+## camera looks down and slightly along - and it is used by the *refusal* as
+## well as the drawing, so the stones a player sees and the wall that stops them
+## are one figure.
+const HOLD_BONFIRE_SQUASH: float = 0.58
+const HOLD_BONFIRE_STONES: int = 14
+const HOLD_BONFIRE_EMBERS: int = 90
+const HOLD_BONFIRE_EMBER_HZ: float = 26.0
+const HOLD_BONFIRE_EMBER_RISE: Vector2 = Vector2(28.0, 64.0)
+const HOLD_BONFIRE_EMBER_LIFE: Vector2 = Vector2(1.1, 2.6)
+
+## How hard the wind carries an ember sideways. Well above one, because an
+## ember weighs nothing and the whole point of it is that a player reads the
+## wind's direction off the smoke.
+const HOLD_BONFIRE_EMBER_DRIFT: float = 52.0
 
 ## **What bare soil is, taken off the yard's own grass.**
 ##
