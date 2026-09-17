@@ -42,6 +42,7 @@ var _purse: Label
 var _result: Label
 var _close_button: Button
 var _art: TextureRect = null
+var _compare: GearCompare = null
 
 
 func _ready() -> void:
@@ -130,6 +131,17 @@ func _build() -> void:
 	# line, which is what `menu_layout_check` refused when it sat on its own
 	# above the shelf. Both of them are ways out of the list, so both are one
 	# row.
+	# **The comparison, over the shelf and never in front of the pointer.**
+	# Added to the screen rather than into the column, so it floats over the
+	# list instead of pushing it about - and `MOUSE_FILTER_IGNORE` throughout,
+	# because it is opened by a hover and a panel that ate the pointer would
+	# close itself the instant it appeared.
+	_compare = GearCompare.new()
+	_compare.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_compare.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_compare.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(_compare)
+
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 8)
 	column.add_child(bottom)
@@ -172,7 +184,9 @@ func open() -> void:
 	_close_button.grab_focus()
 
 
+## A card left open over a closed shop is a card that never closes.
 func hide_screen() -> void:
+	_hide_compare()
 	visible = false
 	closed.emit()
 
@@ -261,8 +275,29 @@ func _ware_row(piece: Dictionary, index: int) -> Container:
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	buy.disabled = MetaState.marks < asking
 	buy.pressed.connect(func() -> void: _buy(index))
+	# **The pad gets the same answer as the pointer**, which is `UiJuice`'s
+	# standing rule and the one that is always forgotten: a comparison wired to
+	# `mouse_entered` alone is a comparison for one of the three ways this game
+	# is played.
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.mouse_entered.connect(func() -> void: _compare_to_worn(piece))
+	row.mouse_exited.connect(func() -> void: _hide_compare())
+	buy.focus_entered.connect(func() -> void: _compare_to_worn(piece))
+	buy.focus_exited.connect(func() -> void: _hide_compare())
 	row.add_child(buy)
 	return row
+
+
+## Lays the hovered piece beside whatever is worn in its slot.
+func _compare_to_worn(piece: Dictionary) -> void:
+	if _compare == null or not is_instance_valid(_compare):
+		return
+	_compare.show_pair(piece)
+
+
+func _hide_compare() -> void:
+	if _compare != null and is_instance_valid(_compare):
+		_compare.hide_pair()
 
 
 func _buy(index: int) -> void:

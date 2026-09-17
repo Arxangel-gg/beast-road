@@ -681,6 +681,10 @@ jobs:
           # the road and from nothing in the sky, one function decides it,
           # a chase ends at the arch, and what is inside can walk out.
           check "sanctuary" --headless --path game res://tools/sanctuary_check.tscn
+          # The Market's comparison card: it reads the same affixes the
+          # hero does, never takes the pointer, names an empty slot, and
+          # refuses to call a trade an upgrade.
+          check "gear compare" --headless --path game res://tools/gear_compare_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the
