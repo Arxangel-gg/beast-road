@@ -8155,6 +8155,24 @@ const UI_HOLO_AMBIENT_SPREAD: float = 11.0
 ## surface. Still bounded, and still additive, so the bound the interface tint
 ## is held to survives: nothing here can make a reading harder to see.
 const UI_BAR_FLOW_CEILING: float = 0.22
+
+# --- the zoom ladder as one slider (owner, 2026-09-17) ----------------------
+#
+# *"The + and - zoom should also be changed to a slider that is aesthetic and
+# easy to use on all devices and also updates on pc with mousewheel scroll or
+# whenever the zoom gets updated."*
+#
+# The two buttons walked a *ladder* rather than a number: past the battlefield's
+# widest they stepped out to the town, and past the town to the walk. So the
+# slider spans the same ladder, and these are where the two scope stops sit on
+# it. Below the first is the walk, between them is the town, and everything
+# above the second is the battlefield's own band.
+#
+# **The scopes get the bottom sixth between them** because that is what they
+# are: two fixed views, not a range. Giving them half the travel would make the
+# part of the control a player actually uses - the fight - half as precise.
+const UI_ZOOM_TOWN_STOP: float = 0.08
+const UI_ZOOM_FIELD_STOP: float = 0.16
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 
@@ -10277,6 +10295,24 @@ const HOLD_IDLE_FPS: float = 2.4
 const UI_POOL_BAR_HEIGHT: float = 16.0
 ## What the health bar takes, since it is the one a player watches in a fight.
 const UI_POOL_BAR_HEIGHT_HEALTH: float = 26.0
+## What the wall takes. Between the thin pools and the hero's, because it is
+## the reading a run is actually *lost* through - and because at 16 it sat
+## thinner than the 28px icon beside it, which is half of why the two read as
+## being on different lines (owner, 2026-09-17).
+const UI_POOL_BAR_HEIGHT_TOWN: float = 22.0
+
+## The frame-rate readout's ink, and the two thresholds it changes at.
+##
+## **Graded rather than plain**, because a bare number tells a player nothing
+## about whether it is a good one. The thresholds are the frame budgets this
+## game is actually tuned to: `perf_check` measures against 60, and under 30 a
+## wave stops reading as motion.
+const UI_FPS_GOOD: Color = Color(0.62, 0.85, 0.58, 0.85)
+const UI_FPS_FAIR: Color = Color(0.92, 0.80, 0.42, 0.9)
+const UI_FPS_POOR: Color = Color(0.90, 0.42, 0.36, 0.95)
+const UI_FPS_FAIR_BELOW: int = 55
+const UI_FPS_POOR_BELOW: int = 30
+
 ## The cut the pools sit in. Darker than any plate, so a bar reads as a hollow
 ## rather than as a rectangle laid on top of one.
 const UI_POOL_TROUGH: String = "14120f"

@@ -17,6 +17,12 @@ signal scope_requested(scope: GameDirector.Scope)
 
 ## Zoom a step in or out. The HUD owns no camera; the run does.
 signal zoom_requested(steps: int)
+## Where on the zoom ladder the player has put the slider, 0 to 1.
+##
+## A *place* rather than a step, because that is what a slider says. The
+## stepped signal above stays: the mouse wheel, the keys and the pad all
+## still walk the ladder a notch at a time, and this readout follows them.
+signal zoom_set(share: float)
 
 ## Open the pause menu, for anything with no Escape key.
 signal pause_requested()
@@ -147,6 +153,19 @@ const NAV_ICON_PAD: float = 8.0
 const NAV_BAR_TOP: float = 104.0
 ## Where the minimap's top sits, under the spirit panel (2026-09-12).
 const MINIMAP_TOP: float = 162.0
+
+## Where the top bar's first line sits. Named because the frame-rate readout
+## moves it: a counter that sits *above* Wounds needs the row Wounds is in to be
+## a row lower, and a literal 16 inside one function cannot be put back.
+const TOP_BAR_TOP: float = 16.0
+
+## The frame-rate readout: where it sits, how tall it is, and how often it is
+## resampled. A quarter of a second is legible - at frame rate the digits change
+## faster than an eye resolves them - and still shows a hitch.
+const FPS_TOP: float = 12.0
+const FPS_HEIGHT: float = 22.0
+const FPS_SAMPLE_SECONDS: float = 0.25
+
 
 ## The command column, top left.
 ## The currency marks along the top edge.
@@ -466,6 +485,12 @@ var _last_stand_spent: bool = false
 
 
 var _minimap: Minimap = null
+var _zoom_slider: VSlider = null
+var _fps_label: Label = null
+var _fps_clock: float = 0.0
+## True while the slider is being written *from* the camera, so its own
+## signal does not bounce back and move the camera again.
+var _zoom_following: bool = false
 
 
 func _ready() -> void:
@@ -507,6 +532,7 @@ func _ready() -> void:
 		Sfx.play("sfx_ui_confirm", -3.0))
 	_build_party_feed()
 	_build_xp_bar()
+	_build_fps_readout()
 	_build_boss_bar()
 	_build_region_card()
 	_build_tutorial_coach()
@@ -646,6 +672,11 @@ func _process(delta: float) -> void:
 	_tick_health_trail(delta)
 	_tick_purse(delta)
 	_update_spirit_panel(delta)
+	# The zoom slider follows the camera rather than the other way round, so a
+	# wheel, a key, a pad or a scope button all move it. One float compare a
+	# frame, and it writes nothing when nothing has changed.
+	_refresh_zoom_slider()
+	_tick_fps(delta)
 	_tick_party_prompt(delta)
 	_tick_tooltip_picture(delta)
 	# A slow warm breath rather than a flash: the player is being told an
@@ -761,7 +792,7 @@ func _build_top_bar() -> void:
 	_top_bar = bar
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_left = 24.0
-	bar.offset_top = 16.0
+	bar.offset_top = TOP_BAR_TOP
 	bar.offset_right = -24.0
 	bar.add_theme_constant_override("separation", 32)
 	add_child(bar)
@@ -840,8 +871,25 @@ func _build_top_bar() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(spacer)
 
+	# **The wall's own bar, and the one a run is actually lost through.**
+	#
+	# Owner, 2026-09-17: *"the city base tower health needs to be in the same
+	# alignment as its icon so it needs to come down vertically to be at the
+	# same y value position, and possibly needs to be thicker as well."*
+	#
+	# Both halves have one cause. A `ProgressBar` in an `HBoxContainer`
+	# stretches to the row's height by default, and the row is as tall as the
+	# 28px icon - so a 16-unit bar was drawn 28 tall with its *fill* seated
+	# wherever the stylebox happened to put it, which is what read as sitting
+	# above the icon. Shrunk to its own height and centred, the two share a
+	# middle line by construction rather than by a number that has to be kept.
 	_town_bar = _make_bar(Color("8a5a3a"), TOWN_BAR_WIDTH)
-	bar.add_child(_bar_icon("city_health", "Town"))
+	_town_bar.custom_minimum_size = Vector2(TOWN_BAR_WIDTH,
+		Balance.UI_POOL_BAR_HEIGHT_TOWN)
+	_town_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var town_icon: Control = _bar_icon("city_health", "Town")
+	town_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.add_child(town_icon)
 	bar.add_child(_town_bar)
 
 	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
@@ -1005,6 +1053,161 @@ func _update_wave_preview() -> void:
 
 ## An icon if the art exists, the word if it does not. The fallback protects the
 ## HUD from a bad content import even though the production manifest is complete.
+## The zoom ladder, as one control.
+##
+## **It spans the whole ladder the two buttons walked**, not just the
+## battlefield's band: below `Balance.UI_ZOOM_FIELD_STOP` are the town and
+## the walk, which is exactly where the minus button used to take you. So
+## nothing that worked stops working, and the relationship between the three
+## views is visible instead of being a thing you find by pressing minus once
+## too often.
+##
+## **It follows rather than leads.** `_refresh_zoom_slider` writes the
+## slider from the camera every frame with `set_value_no_signal`, so the
+## wheel, the keys, a pad and a scope button all move it - which is the half
+## of the owner's ask that a slider usually gets wrong.
+func _build_zoom_slider(bar: Container) -> void:
+	var holder := CenterContainer.new()
+	holder.name = "ZoomHolder"
+	holder.mouse_filter = Control.MOUSE_FILTER_PASS
+	_zoom_slider = VSlider.new()
+	_zoom_slider.name = "ZoomSlider"
+	_zoom_slider.min_value = 0.0
+	_zoom_slider.max_value = 1.0
+	# Fine enough that a drag feels continuous and coarse enough that the two
+	# scope stops can be landed on deliberately.
+	_zoom_slider.step = 0.01
+	_zoom_slider.value = 1.0
+	_zoom_slider.focus_mode = Control.FOCUS_NONE
+	_zoom_slider.tooltip_text = ("Zoom. Drag, scroll the wheel, or press "
+		+ "the scope keys; the bottom of the travel steps out to the town "
+		+ "and then to Yuri.")
+	_zoom_slider.value_changed.connect(func(v: float) -> void:
+		if _zoom_following:
+			return
+		zoom_set.emit(v))
+	holder.add_child(_zoom_slider)
+	bar.add_child(holder)
+	_size_zoom_slider()
+
+
+## Tall enough to drag accurately, and a thumb's width on a touch layout.
+##
+## Measured off the nav column's own button size rather than written down:
+## the column is one width and a slider narrower than it would sit off
+## centre, while one taller than three buttons would push the pause button
+## off a landscape phone - which is the fault `ACTION_BUTTON_COUNT` already
+## caused once by being hand-kept.
+func _size_zoom_slider() -> void:
+	if _zoom_slider == null:
+		return
+	var side: float = NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE
+	_zoom_slider.custom_minimum_size = Vector2(side, side * 2.2)
+	_zoom_slider.set_meta(UiMetrics.SELF_SIZED, true)
+
+
+## Writes the camera's own answer onto the slider.
+##
+## `set_value_no_signal`, and a flag besides: a slider written from the thing
+## it controls will otherwise emit, be handled, and write back - which reads
+## as a zoom that drifts while nobody is touching it.
+func _refresh_zoom_slider() -> void:
+	if _zoom_slider == null or not is_instance_valid(_zoom_slider):
+		return
+	var want: float = _zoom_ladder_share()
+	if absf(_zoom_slider.value - want) < 0.005:
+		return
+	_zoom_following = true
+	_zoom_slider.set_value_no_signal(want)
+	_zoom_following = false
+
+
+## Where the game currently sits on the ladder.
+func _zoom_ladder_share() -> float:
+	var scope: int = int(GameDirector.current_scope)
+	if scope == GameDirector.Scope.BEAST:
+		return 0.0
+	if scope != GameDirector.Scope.BATTLEFIELD:
+		return Balance.UI_ZOOM_TOWN_STOP
+	if battlefield == null or not is_instance_valid(battlefield):
+		return 1.0
+	var rig := battlefield.camera as CameraRig
+	if rig == null:
+		return 1.0
+	var stop: float = Balance.UI_ZOOM_FIELD_STOP
+	return stop + rig.zoom_share() * (1.0 - stop)
+
+
+# --- the frame rate, and the road through the act (owner, 2026-09-17) --------
+
+## *"Add a toggleable FPS counter that appears in the top right corner of the
+## battlefield above Wounds if enabled and will show realtime frame rate."*
+##
+## **Above the top bar rather than inside it**, which is what "above Wounds"
+## asks for: the Wounds row is the rightmost thing in that bar, so a counter
+## beside it would be level with it rather than over it. The bar is pushed
+## down by exactly this readout's height while it is showing, and put back
+## when it is not - so the shipped layout, which is the one `layout_check`
+## measures at both phone shapes, is untouched unless a player asks for this.
+func _build_fps_readout() -> void:
+	_fps_label = _label("", 15)
+	_fps_label.name = "FrameRate"
+	_fps_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_fps_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fps_label.offset_top = FPS_TOP
+	_fps_label.visible = false
+	add_child(_fps_label)
+	_place_fps_readout()
+
+
+func _place_fps_readout() -> void:
+	if _fps_label == null:
+		return
+	# Clear of the scope column, like everything else that lives on this edge.
+	_fps_label.offset_right = -(nav_column_width() + 12.0)
+	_fps_label.offset_left = _fps_label.offset_right - 120.0
+	_fps_label.offset_bottom = _fps_label.offset_top + FPS_HEIGHT
+
+
+## Reads the setting, and moves the top bar out of the way while it is on.
+func _refresh_fps_readout() -> void:
+	var show_it: bool = Graphics.fps_shown()
+	if _fps_label != null:
+		_fps_label.visible = show_it
+		_place_fps_readout()
+	if _top_bar != null and is_instance_valid(_top_bar):
+		_top_bar.offset_top = TOP_BAR_TOP + (FPS_HEIGHT if show_it else 0.0)
+		_seat_journey_bar.call_deferred()
+
+
+## The live frame rate, sampled rather than read every frame.
+##
+## `Engine.get_frames_per_second()` is already an average, and printing it
+## sixty times a second makes a number that cannot be read - the digits change
+## faster than an eye resolves them. Four times a second is legible and is
+## still "realtime" in the sense the owner asked for: a hitch shows inside a
+## quarter of a second.
+func _tick_fps(delta: float) -> void:
+	if _fps_label == null or not _fps_label.visible:
+		return
+	_fps_clock += delta
+	if _fps_clock < FPS_SAMPLE_SECONDS:
+		return
+	_fps_clock = 0.0
+	var rate: int = int(round(Engine.get_frames_per_second()))
+	_fps_label.text = "%d FPS" % rate
+	# Green, amber, red against the frame budget the game is tuned to. A bare
+	# number tells a player nothing about whether it is a good one.
+	var ink: Color = Balance.UI_FPS_GOOD
+	if rate < Balance.UI_FPS_POOR_BELOW:
+		ink = Balance.UI_FPS_POOR
+	elif rate < Balance.UI_FPS_FAIR_BELOW:
+		ink = Balance.UI_FPS_FAIR
+	_fps_label.add_theme_color_override("font_color", ink)
+
+
 func _bar_icon(id: String, fallback: String) -> Control:
 	var icon: TextureRect = IconKit.rect(id, 28.0)
 	return icon if icon != null else _label(fallback)
@@ -1239,16 +1442,15 @@ func _build_nav_bar() -> void:
 
 	# Zoom stays in the column rather than somewhere tidier, because it is
 	# navigation too - and it is not optional: the whole field does not fit a
-	# phone screen at combat zoom. Glyphs rather than icons, because plus and
-	# minus are already universal and two more 128px assets would say less.
-	var zoom_out: Button = _add_icon_button(bar, "", "Zoom out",
-		func() -> void: zoom_requested.emit(-1))
-	zoom_out.text = "\u2212"
-	_nav_buttons.append(zoom_out)
-	var zoom_in: Button = _add_icon_button(bar, "", "Zoom in",
-		func() -> void: zoom_requested.emit(1))
-	zoom_in.text = "+"
-	_nav_buttons.append(zoom_in)
+	# phone screen at combat zoom.
+	#
+	# **One slider rather than a plus and a minus** (owner, 2026-09-17: *"The +
+	# and - zoom should also be changed to a slider that is aesthetic and easy
+	# to use on all devices"*). Two buttons ask a player to tap eleven times to
+	# cross the band, which on a phone is most of a wave; a slider crosses it
+	# in one drag. It is vertical because the column is, and because up meaning
+	# closer is the only arrangement that needs no label.
+	_build_zoom_slider(bar)
 
 	# The minimap, on a keyboard's column only (2026-09-12). A phone's column
 	# is already six thumb-sized targets and a seventh does not fit above the
@@ -1307,7 +1509,12 @@ func _fit_build_panel() -> void:
 		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
 		_build_panel.offset_right = -_build_panel_inset()
 	# Clear of the scope column's top, so the sheet never grows up behind it.
-	var room: float = maxf(span - lift - NAV_BAR_TOP, 160.0)
+	# **Clear of the spirit readout as well as the scope column** (owner,
+	# 2026-09-17: the build sheets must *"not be overlapping with the call
+	# spirit button"*). The sheet grows *upward* from the bottom right, and
+	# what is above it on that side is the readout with the Call button in it -
+	# so the ceiling is whichever of the two hangs lower.
+	var room: float = maxf(span - lift - _right_column_floor(), 160.0)
 	# **The content's height, not the panel's.**
 	#
 	# A ScrollContainer's own minimum is nearly nothing - that is what lets it
@@ -2809,7 +3016,12 @@ func _build_spirit_panel() -> void:
 	_spirit_panel.visible = false
 	add_child(_spirit_panel)
 	_spirit_label = _label("", 14)
-	_spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# **Centred over the button it belongs to** (owner, 2026-09-17: *"the
+	# spirit sent home text etc should be center aligned above the call spirit
+	# button instead of to the right alignment above the button"*). Right-
+	# aligned, it hung off one end of a button that is centred under it, which
+	# reads as two unrelated things stacked rather than as a caption.
+	_spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_spirit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# **A Label's minimum width is its whole text**, so "Uncommon Wolf Spirit -
 	# 15 Food a minute" made this wider than the panel holding it and it ran
@@ -5013,13 +5225,37 @@ func _build_minimap() -> void:
 	_refresh_minimap_visible()
 
 
+## The lowest point anything already occupies down the right-hand side.
+##
+## **Measured rather than written down.** `MINIMAP_TOP` was 162, which is a
+## hand-kept description of how tall the spirit readout happens to be - and
+## the readout is a label, a bar and a button in a `VBoxContainer`, so it is
+## as tall as its contents. On 2026-09-17 the owner reported the map and the
+## Call button overlapping, and the arithmetic says why: 108 down, plus a
+## caption, a bar and a thumb-sized button, reaches past 162 on every layout
+## and well past it on a touch one.
+##
+## This is the same fault `UI_TOP_BAR_GAP` was written to end, and the same
+## answer: ask the container how tall it is. One number, read by the map and
+## by both sheets, so the three can never disagree about where the right-hand
+## side is free.
+func _right_column_floor() -> float:
+	var floor_at: float = NAV_BAR_TOP
+	if _spirit_panel != null and is_instance_valid(_spirit_panel) \
+			and _spirit_panel.visible:
+		var tall: float = maxf(_spirit_panel.size.y,
+			_spirit_panel.get_combined_minimum_size().y)
+		floor_at = maxf(floor_at, _spirit_panel.offset_top + tall + SPIRIT_PANEL_GAP)
+	return maxf(floor_at, MINIMAP_TOP)
+
+
 func _place_minimap() -> void:
 	if _minimap == null:
 		return
 	var side: float = Balance.MINIMAP_SIZE_TOUCH if touch_ui() else Balance.MINIMAP_SIZE
 	_minimap.offset_right = -(NAV_STRIP + 10.0)
 	_minimap.offset_left = _minimap.offset_right - side
-	_minimap.offset_top = MINIMAP_TOP
+	_minimap.offset_top = _right_column_floor()
 	_minimap.offset_bottom = _minimap.offset_top + side
 
 
@@ -5050,6 +5286,7 @@ func _toggle_minimap() -> void:
 ## looked at rather than on the next one built.
 func refresh_from_settings() -> void:
 	_refresh_minimap_visible()
+	_refresh_fps_readout()
 
 
 ## Calls the spirit out or sends it home, and says why when it cannot.

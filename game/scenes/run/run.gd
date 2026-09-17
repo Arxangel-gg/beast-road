@@ -158,6 +158,7 @@ func _ready() -> void:
 	add_child(crisp_layer)
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
+	hud.zoom_set.connect(_on_zoom_set)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())
 	hud.horn_requested.connect(_on_horn_requested)
 	hud.raid_requested.connect(_on_raid_requested)
@@ -318,6 +319,38 @@ static func scrolls_under(hovered: Node) -> bool:
 			return true
 		at = at.get_parent()
 	return false
+
+
+## The slider's answer: a place on the ladder rather than a step along it.
+##
+## **The same ladder the buttons walked**, so the two ends still leave the
+## battlefield. Below `UI_ZOOM_FIELD_STOP` is the town and below
+## `UI_ZOOM_TOWN_STOP` is the walk, which is exactly where pressing minus once
+## too often used to take you - the control changed, the map did not.
+##
+## Read in one direction only: this moves the game, and `HUD` writes the slider
+## back from what the game then says. Two things writing one number is how a
+## zoom drifts while nobody is touching it.
+func _on_zoom_set(share: float) -> void:
+	if share < Balance.UI_ZOOM_TOWN_STOP:
+		if _scope != GameDirector.Scope.BEAST:
+			switch_scope(GameDirector.Scope.BEAST)
+		return
+	if share < Balance.UI_ZOOM_FIELD_STOP:
+		if _scope != GameDirector.Scope.TOWN:
+			if _scope == GameDirector.Scope.BEAST:
+				beast.set_zoomed_out(false)
+			switch_scope(GameDirector.Scope.TOWN)
+		return
+	if _scope != GameDirector.Scope.BATTLEFIELD:
+		if _scope == GameDirector.Scope.BEAST:
+			beast.set_zoomed_out(false)
+		switch_scope(GameDirector.Scope.BATTLEFIELD)
+	var rig := battlefield.camera as CameraRig
+	if rig == null:
+		return
+	var stop: float = Balance.UI_ZOOM_FIELD_STOP
+	rig.set_zoom_share((share - stop) / maxf(1.0 - stop, 0.0001))
 
 
 func _zoom_ladder(direction: int) -> void:

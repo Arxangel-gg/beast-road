@@ -103,6 +103,32 @@ func zoom_by(steps: int) -> bool:
 	return not is_equal_approx(before, _wanted_zoom)
 
 
+## Where the camera sits inside the band this device allows, from 0 (as far
+## out as it goes) to 1 (as close as it goes).
+##
+## **A share rather than a distance**, because the band itself differs: a phone
+## is held closer than a desktop, so the same number of units is a different
+## picture. A slider that moved a raw zoom would be a different control on
+## every device, and the owner asked for one that is *"easy to use on all
+## devices"*.
+func zoom_share() -> float:
+	var low: float = _zoom_floor()
+	var high: float = _zoom_ceiling()
+	if absf(high - low) < 0.0001:
+		return 1.0
+	return clampf((_wanted_zoom - low) / (high - low), 0.0, 1.0)
+
+
+## Puts the camera at a share of its band. Returns whether it moved, so a
+## caller can tell "already there" from "done".
+func set_zoom_share(share: float) -> bool:
+	var low: float = _zoom_floor()
+	var high: float = _zoom_ceiling()
+	var before: float = _wanted_zoom
+	_wanted_zoom = lerpf(low, high, clampf(share, 0.0, 1.0))
+	return not is_equal_approx(before, _wanted_zoom)
+
+
 func is_fully_zoomed_out() -> bool:
 	return _wanted_zoom <= _zoom_floor() + 0.001
 

@@ -44,6 +44,12 @@ const KEY_POND_FISH: String = "graphics_pond_fish"
 const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
+## Whether the frame rate is shown on the battlefield (owner, 2026-09-17).
+##
+## **Off by default.** A frame counter is a developer's readout: a player who
+## wants one knows to ask, and one nobody asked for teaches everybody else to
+## watch a number instead of the road.
+const KEY_FPS_SHOW: String = "graphics_fps_show"
 
 ## Lifts the night toward daylight, for players whose screen is darker than the
 ## one this was graded on.
@@ -486,6 +492,11 @@ static func _walk(from: Node, show_casters: bool) -> void:
 
 	for child: Node in from.get_children():
 		_walk(child, show_casters)
+
+
+## Whether to draw the frame rate. See `KEY_FPS_SHOW`.
+static func fps_shown() -> bool:
+	return bool(_chosen.get(KEY_FPS_SHOW, false))
 
 
 static func fps_cap() -> int:

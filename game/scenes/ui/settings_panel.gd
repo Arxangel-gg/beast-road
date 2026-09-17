@@ -543,6 +543,9 @@ func _build_video(column: VBoxContainer) -> void:
 		"Snaps the picture to one pixel grid, so the art and the effects drawn "
 		+ "over it read as one thing. Text is never snapped."))
 	column.add_child(_pixel_block_row())
+	column.add_child(_pref_toggle_row("Frame rate", Graphics.KEY_FPS_SHOW,
+		Graphics.fps_shown(),
+		"Shows the live frame rate in the top right of the battlefield."))
 	column.add_child(_pref_toggle_row("  ...over the interface",
 		Graphics.KEY_PIXEL_FILTER_UI, Graphics.pixel_filter_ui(),
 		"Takes the panels, buttons and icons onto the same grid as the world. "
