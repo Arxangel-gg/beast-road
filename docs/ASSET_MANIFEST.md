@@ -821,10 +821,21 @@ swings — a mount is movement and nothing else. See `MountData`.
 beside a Warden at 168×160 is the same scene as a horse beside a hunter.
 
 A mount's base sprite is what the paddock stands and what the field falls back
-to. **The eight-direction sheets are not manifest rows**, and that is the same
-rule the hero's own sheets follow: `mount_<id>_<state>.png` is a *packed* file
-built by a tool from generated frames, not an asset anybody draws, and
-`MountRig` treats a missing one as a stiller picture rather than as a hole.
+to. The eight-direction sheets are packed by `tools/pack_mount_frames.py`, rows
+= the eight facings in engine index order and columns = frames, which is the
+same packing the hero's own sheets use.
+
+**A sheet is listed here once it exists and never before**, which is the rule
+the hero's own sprint sheet already follows: it is named in
+`HeroAnimator.STATES`, is in neither this file nor the art folder, and
+`has_state` is simply false until
+somebody draws it. Listing an unpacked sheet would have the placeholder
+generator write a magenta one, which `MountRig` would then load and draw -
+and a magenta horse is worse than no horse, because the fallback that was
+built for exactly this case would never run.
+
+So the walk and gallop sheets appear in the table below as they are packed.
+An idle sheet is 192×1536: one frame, eight facings.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -832,6 +843,9 @@ built by a tool from generated frames, not an asset anybody draws, and
 | `mount_steppe_horse.png` | 192×192 | T | `#7A6448` |
 | `mount_ash_courser.png` | 192×192 | T | `#4A423E` |
 | `mount_terrace_stag.png` | 192×192 | T | `#5E5140` |
+| `mount_marsh_pony_idle.png` | 192×1536 | T | `#6B5A44` |
+| `mount_steppe_horse_idle.png` | 192×1536 | T | `#7A6448` |
+| `mount_terrace_stag_idle.png` | 192×1536 | T | `#5E5140` |
 
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 
