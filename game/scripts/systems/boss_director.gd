@@ -12,6 +12,11 @@ extends Node
 
 var _active: Enemy = null
 var _active_act: int = 0
+## The Gatekeeper, when a tier's summit owes one. Held so it can be cleaned up
+## with the boss rather than left standing on a road nobody is defending.
+var _escort: Enemy = null
+## The Gatekeeper's own breed. Named once rather than at three call sites.
+const GATEKEEPER_ID: String = "gatekeeper"
 var _defeated_acts: Array[int] = []
 var _active_phase: int = 0
 var _rng: RandomNumberGenerator
@@ -58,7 +63,46 @@ func summon(act: int) -> bool:
 
 	EventBus.boss_spawned.emit(data.id, act)
 	EventBus.camera_shake_requested.emit(18.0, 0.9)
+	_summon_the_gatekeeper_if_owed(act, lane)
 	return true
+
+
+## **A difficulty whose Gatekeeper is unbeaten fights him here.**
+##
+## The owner's own addition of 2026-09-17, and the thing that makes the ladder
+## a decision rather than a side quest: the Gatekeeper is paid for once on Act
+## 9 at a time the player chose, or once at the summit standing next to Kharok.
+## Beating him on a tier takes him off that tier's summit for good.
+##
+## **He arrives on a different road.** Both bodies walk at the town and neither
+## is a second health bar on the first: the fight is harder because the party
+## has to answer two lanes at once, which is the thing this defence is built
+## to be unable to do everywhere.
+##
+## Scaled as an Act 9 boss rather than a summit one. He is the encounter the
+## player declined, at the strength they declined it - not a second Chainmaker,
+## which would be a difficulty setting nobody chose.
+func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
+	if act < Balance.FINAL_ASCENT_ACT:
+		return
+	if not GatekeeperTrials.guards_the_summit(RunState.tier_id):
+		return
+	var keeper: EnemyData = null
+	for boss: EnemyData in ContentDB.enemies_of_category(EnemyData.Category.BOSS):
+		if boss.id == GATEKEEPER_ID:
+			keeper = boss
+			break
+	if keeper == null:
+		push_warning("BossDirector: the summit owes a Gatekeeper and none is authored")
+		return
+	var lane: int = (boss_lane + 1 + _rng.randi_range(0, Balance.LANE_COUNT - 2)) 		% Balance.LANE_COUNT
+	var trial_act: int = GatekeeperTrials.STAGE_ACTS[GatekeeperTrials.STAGES - 1]
+	_escort = battlefield.spawn_enemy(keeper, lane, _boss_scale(trial_act))
+	if _escort == null:
+		return
+	EventBus.boss_spawned.emit(keeper.id, act)
+	EventBus.preparation_warning.emit(
+		"THE GATE CAME WITH HIM  ·  the trial you did not take is standing on another road.")
 
 
 ## Bosses scale with accumulated horn use like everything else, so a run that
@@ -206,7 +250,7 @@ func _dismiss_summons() -> void:
 func _grant_rewards(act: int) -> void:
 	# 1. Hero ascension — a stat tier. Power and Ultimate discipline slots read
 	# the act gate directly; the Mansion chooses what occupies them.
-	RunState.hero_ascension += 1
+	RunState.bosses_felled += 1
 	RunState._sync_discipline_spells()
 
 	# 2. Boss core — permanent, always active, never socketed.

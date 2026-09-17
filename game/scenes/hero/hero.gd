@@ -777,14 +777,27 @@ func contact_radius() -> float:
 ## Resolve stands at exactly 1.0, which is where every hero stood before this.
 func _resolve_scale() -> float:
 	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
-	return 1.0 - minf(float(points) * Balance.HERO_RESOLVE_MITIGATION_PER_POINT,
+	var mitigation: float = minf(
+		float(points) * Balance.HERO_RESOLVE_MITIGATION_PER_POINT,
 		Balance.HERO_RESOLVE_MITIGATION_CAP)
+	# **And what the Gatekeeper's ladder bought** (owner ruling, 2026-09-17).
+	#
+	# Summed inside one `minf` against Resolve's own cap rather than multiplied
+	# after it, which is the whole safety of the re-cut: an ascended Warden with
+	# maxed Resolve stands at *one* ceiling rather than at the product of two,
+	# so the third scale can never take mitigation somewhere the second was
+	# already tuned to stop.
+	mitigation = minf(mitigation + minf(
+		float(MetaState.ascension) * Balance.ASCENSION_MITIGATION_PER_RANK,
+		Balance.ASCENSION_MITIGATION_CAP), Balance.HERO_RESOLVE_MITIGATION_CAP)
+	return 1.0 - mitigation
 
 
 ## And what a ward given to them is worth.
 func _resolve_ward_scale() -> float:
 	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
-	return 1.0 + minf(float(points) * Balance.HERO_RESOLVE_WARD_PER_POINT,
+	return 1.0 + minf(float(points) * Balance.HERO_RESOLVE_WARD_PER_POINT
+		+ float(MetaState.ascension) * Balance.ASCENSION_WARD_PER_RANK,
 		Balance.HERO_RESOLVE_WARD_CAP)
 
 
@@ -915,11 +928,11 @@ func _apply_permanent_bonuses() -> void:
 	var bonus: float = 0.0
 	if sanctum != null:
 		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
-	var ascension: float = float(RunState.hero_ascension) * Balance.ASCENSION_STAT_BONUS
+	var felled: float = float(RunState.bosses_felled) * Balance.BOSS_FELLED_VIGOUR
 	var wound_scale: float = maxf(1.0 - float(RunState.hero_wounds) \
 		* Balance.HERO_WOUND_HP_PENALTY, 0.4)
 	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) \
-		* (1.0 + bonus + ascension + _vigour_bonus()) * wound_scale
+		* (1.0 + bonus + felled + _vigour_bonus()) * wound_scale
 	if RunState.hero_hp >= 0.0:
 		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 	else:

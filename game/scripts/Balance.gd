@@ -2538,17 +2538,62 @@ const PROFESSION_MAX_LEVEL: int = 20
 const PROFESSION_XP_BASE: float = 30.0
 const PROFESSION_XP_CURVE: float = 1.35
 
-# --- The Gatekeeper's ascension (2026-09-11) ------------------------------------
+# --- Ascension: the third capped scale (2026-09-11, re-cut 2026-09-17) ---------
 #
-# Clearing the summit lets the Warden *ascend*: a rank, kept with the hero,
-# that the ending offers once per clear. **It is prestige and nothing else.**
-# The rank names the Warden, changes how they are drawn on the front door and
-# multiplies the leaderboard score - a number that is read, never played
-# against. It grants no level, no attribute, no card, no relic; levelling and
-# gear stay the only two scales the tiers are tuned against (working rule 7).
-const ASCENSION_MAX: int = 2
+# **It was prestige and it is now power.** Until 2026-09-17 a rank named the
+# Warden, drew them differently on the front door and multiplied a leaderboard
+# number - and granted nothing. The owner re-cut that: ascension must "empower
+# significantly" so that Nightmare is survivable after grinding its gear.
+#
+# **What did not change is the word *capped*.** This project has refused a
+# third power scale about a dozen times - spirit traits, discipline depth,
+# synergies, omens, fish, professions, materials, set bonuses - and not one of
+# those refusals was "three is too many". Every one was "an untuned scale is
+# unmeasurable". So this one has a ceiling, and `curve_report` models it.
+#
+# **A rank is bought from the Gatekeeper's ladder and nowhere else.** Four
+# rungs a difficulty, three difficulties, so twelve ranks exist and the twelfth
+# is a Warden who has cleared every trial on Hell. The old cap was 2 and the
+# old grant was one rank per summit clear; the summit still offers one, so a
+# player who never touches a trial still ascends at the pace they always did.
+const ASCENSION_MAX: int = 12
 const ASCENSION_SCORE_BONUS: float = 0.1
-const ASCENSION_TITLES: Array[String] = ["Warden", "Ascended Warden", "Gatekeeper's Warden"]
+## Every rank names the Warden. Twelve of them, so the title moves about as
+## often as the rank does rather than sticking at the top for nine of them.
+##
+## **None of these is possessive over a person.** "Gatekeeper's Warden" was the
+## old top title and it reads as a Warden the Gatekeeper owns, which is the
+## kind of sentence GDD section 57 exists to catch - a gate checks vocabulary
+## and a person has to catch the rest.
+const ASCENSION_TITLES: Array[String] = [
+	"Warden", "Tested", "Twice-Tested", "Thrice-Tested",
+	"Gate-Passed", "Ascended", "Twice-Ascended", "Thrice-Ascended",
+	"Chain-Cutter", "Unbound", "Roadsworn", "Worldstrider's Own",
+	"Warden of the Crown",
+]
+
+## **What a rank is worth, and why it is this and not damage.**
+##
+## Levelling and gear already sell damage and a bigger pool, and a third scale
+## selling the same thing is those two with extra steps - it would not change
+## how a road is played, only how fast it ends. What Nightmare actually kills a
+## Warden with is *attrition*: more bodies, harder blows, and a recovery
+## economy bounded by `FISH_MEALS_PER_RUN` and one well a road.
+##
+## So a rank buys **endurance**, on two numbers the game already resolves:
+## blows land a little softer, and wards are worth a little more. Both are the
+## Resolve attribute's own levers, which is deliberate - it means nothing
+## downstream learns that ascension exists, exactly as an omen or a Road Card
+## only moves a number `Modifiers` already carries.
+##
+## Mitigation is the one number here that is *capped rather than scaled*, for
+## the reason Resolve's is: uncapped it compounds with the pool and with
+## healing into something nobody is tuning. Twelve ranks reach
+## `ASCENSION_MITIGATION_CAP` and no further, and the cap is below Resolve's so
+## that a maxed Warden who also ascended is still inside one ceiling.
+const ASCENSION_MITIGATION_PER_RANK: float = 0.012
+const ASCENSION_MITIGATION_CAP: float = 0.12
+const ASCENSION_WARD_PER_RANK: float = 0.02
 
 ## How many fish may be eaten in one run.
 ##
@@ -4645,9 +4690,13 @@ const BEAST_SPEED_RECOVERY_PER_SEC: float = 0.010
 ## Grace granted by a Rift Step, so blinking through a wind-up works. [TUNE]
 const BLINK_IFRAMES: float = 0.25
 
-## Stat multiplier added per boss ascension. Acts 1 and 2 also grant a spell
-## slot; act 3's boss ends the run. [TUNE]
-const ASCENSION_STAT_BONUS: float = 0.18
+## Max-health multiplier added per act boss felled, within a run. [TUNE]
+##
+## **Renamed from `ASCENSION_STAT_BONUS` on 2026-09-17.** It never had
+## anything to do with `MetaState.ascension`, which is the persistent rank;
+## it is the hero growing across a campaign, spent with the run. The old
+## comment also still described the three-act game.
+const BOSS_FELLED_VIGOUR: float = 0.18
 
 ## Spells the hero starts a run with, drawn from the unlocked pool.
 const STARTING_SPELLS: int = 2

@@ -5047,6 +5047,34 @@ next to Kharok. Beating the Gatekeeper on a difficulty removes him from that
 difficulty's summit. Nightmare and Hell each run their own ladder and each
 extend the ascension tree.
 
+**And the summit does not move. Owner ruling, 2026-09-17 (a).** "The Act 10
+boss should be Kharok" was ambiguous against what ships, and the reading
+taken is the one that falsifies nothing.
+
+The campaign already has an eleventh act: `FINAL_ASCENT_ACT = ACT_COUNT + 1`,
+`cinematics/gatekeeper.tres` is act 10, and `cinematics/chainmaker.tres` and
+`summit.tres` are act 11 - so **Kharok is already the final boss** and the
+Gatekeeper is already the thing before him. What the owner wanted is the
+Gatekeeper *off the top of the road*, not Kharok moved down it.
+
+So: **Kharok stays at the Final Ascent. The Gatekeeper leaves Act 10 for the
+optional ladder** at Acts 3, 5, 7 and 9. Nothing is renumbered, no banked
+expedition breaks, and the two shipped cinematics that say the beacon and the
+Chainmaker wait above stay true.
+
+The literal reading was costed and refused: moving Kharok to Act 10 falsifies
+`summit.tres` ("Above waits the beacon, the Chainmaker, and the last chain")
+and `chainmaker.tres` ("Break him, and Yuri walks free"), and leaves
+`_summit_cleared()` with nothing to call it - a Final Ascent with no body in
+it. That is new art and a new boss to buy a renumbering nobody asked for.
+
+**And there are two things called ascension, which is why the new scale is not
+called that.** `RunState.hero_ascension` is run-scoped and *already grants
+power* - `+ASCENSION_STAT_BONUS` max HP a rank, incremented per boss by
+`boss_director.gd` - while `MetaState.ascension` is the persistent prestige
+rank capped at 2. The owner's third capped scale extends the *persistent* one;
+the run-scoped one is renamed rather than left to be confused with it, which
+is safe because it is reset by `RunState.reset` and never saved.
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

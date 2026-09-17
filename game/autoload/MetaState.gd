@@ -443,6 +443,18 @@ var ascension: int = 0
 ## tier is open.
 var tier_cleared: int = -1
 
+## **Which rungs of the Gatekeeper's ladder are climbed, per difficulty.**
+##
+## Tier id -> stages cleared, 0 to `GatekeeperTrials.STAGES`. Added
+## 2026-09-17 with the owner's ruling; the reasoning and the working-rule-7
+## argument live on `GatekeeperTrials`, which is the only thing that writes it.
+##
+## A statistic in shape, like `best_distance` and `rifts_closed`: it grants no
+## power of its own. What it decides is which trial is offered next and whether
+## the Gatekeeper stands at that tier's summit. Additive - absent reads as an
+## empty ladder, which is what a new account has.
+var gatekeeper: Dictionary = {}
+
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
 
@@ -962,6 +974,7 @@ func erase_progress() -> void:
 	hero_skill_points = 0
 	ascension = 0
 	tier_cleared = -1
+	gatekeeper = {}
 	last_tier_id = "normal"
 	profession_xp.clear()
 	materials.clear()
@@ -1148,6 +1161,16 @@ func _read_hero(hero: Dictionary) -> void:
 	ascension = clampi(int(hero.get("ascension", 0)), 0, Balance.ASCENSION_MAX)
 	hero_skill_points = maxi(int(hero.get("skill_points", 0)), 0)
 	tier_cleared = clampi(int(hero.get("tier_cleared", -1)), -1, 8)
+	# **A malformed row is dropped rather than trusted**, the rule the pen is
+	# read under: this list decides what the Gatekeeper does at a summit, and a
+	# tier id the game does not have would be a ladder nothing could ever
+	# finish.
+	gatekeeper = {}
+	for key: Variant in (hero.get("gatekeeper", {}) as Dictionary):
+		var tier_id: String = String(key)
+		if ContentDB.tiers.has(tier_id):
+			gatekeeper[tier_id] = clampi(
+				int((hero["gatekeeper"] as Dictionary)[key]), 0, GatekeeperTrials.STAGES)
 	last_tier_id = String(hero.get("last_tier", "normal"))
 	story_intro_seen = bool(hero.get("story_seen", false))
 
@@ -1379,6 +1402,23 @@ func ascend() -> int:
 	return ascension
 
 
+## **A rung of the Gatekeeper's ladder pays a rank.**
+##
+## Called by `GatekeeperTrials.record_cleared` and by nothing else, so the
+## ladder is the only door to the scale and `ascend()` - the summit's own
+## offer - stays exactly what it was.
+##
+## Saves nothing itself: the caller writes the ladder and the rank in one
+## `save_game`, because a rank banked without the rung that bought it would let
+## a player take the same trial twice.
+func grant_ascension_rank() -> int:
+	if ascension >= Balance.ASCENSION_MAX:
+		return ascension
+	ascension += 1
+	EventBus.warden_ascended.emit(ascension)
+	return ascension
+
+
 func record_tier_cleared(order: int) -> void:
 	if order > tier_cleared:
 		tier_cleared = order
@@ -1575,6 +1615,7 @@ func serialized_save() -> String:
 			"attributes": hero_attributes,
 			"attribute_points": hero_attribute_points,
 			"ascension": ascension,
+			"gatekeeper": gatekeeper,
 			"skill_points": hero_skill_points,
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,

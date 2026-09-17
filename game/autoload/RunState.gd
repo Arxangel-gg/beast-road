@@ -176,7 +176,14 @@ var trained_discipline_nodes: Array[String] = []
 var equipped_discipline_slots: Array[String] = []
 var discipline_offers: Array[String] = []
 var discipline_respec_uses: int = 0
-var hero_ascension: int = 0
+## How many act bosses this run has felled.
+##
+## **Renamed from `hero_ascension` on 2026-09-17**, because the owner's
+## third capped power scale is `MetaState.ascension` and two unrelated
+## things called ascension - one run-scoped and one persistent, both
+## granting power - is a confusion waiting to be shipped. Run-scoped and
+## reset below, so the rename touches no save.
+var bosses_felled: int = 0
 
 # --- Levelling ---------------------------------------------------------------
 #
@@ -582,7 +589,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	equipped_discipline_slots.fill("")
 	discipline_offers.clear()
 	discipline_respec_uses = 0
-	hero_ascension = 0
+	bosses_felled = 0
 	raid_keys = 0
 	weather_id = "clear"
 	rain_scale = 1.0
