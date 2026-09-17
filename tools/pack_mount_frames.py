@@ -71,18 +71,43 @@ def floor_of(frame: Image.Image) -> int:
     return -1 if box is None else box[3]
 
 
-def fit(frame: Image.Image) -> Image.Image:
-    """One frame on a CELL x CELL canvas, centred horizontally, feet at the
-    bottom of its own content. Never resampled: a mount is pixel art and a
-    resize is a repaint."""
-    if frame.size == (CELL, CELL):
-        return frame
-    if frame.width > CELL or frame.height > CELL:
-        raise SystemExit("frame is %dx%d, larger than the %d cell"
-                         % (frame.width, frame.height, CELL))
-    out = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
-    out.alpha_composite(frame, ((CELL - frame.width) // 2,
-                                (CELL - frame.height) // 2))
+def fit_all(frames):
+    """Every frame of one facing onto CELL x CELL canvases, through **one shared
+    transform**.
+
+    PixelLab hands back two canvas sizes: a rotation is 192 and a v3 animation
+    is padded to 252, so a frame often has to be cropped before it can be
+    packed. What must not happen is each frame being cropped to *its own*
+    content - that cancels exactly the motion the animation was generated for,
+    because a walk cycle moves the body within the frame and centring every
+    pose puts it back.
+
+    So the box is the union of every pose in the facing, applied to all of
+    them. That is the rule `install_boss_frames.py` settled on for the same
+    reason, and it is why this takes a whole facing rather than one image.
+
+    Never resampled: a mount is pixel art and a resize is a repaint.
+    """
+    boxes = [f.getbbox() for f in frames]
+    real = [b for b in boxes if b is not None]
+    if not real:
+        return [Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0)) for _ in frames]
+    union = (min(b[0] for b in real), min(b[1] for b in real),
+             max(b[2] for b in real), max(b[3] for b in real))
+    wide = union[2] - union[0]
+    tall = union[3] - union[1]
+    if wide > CELL or tall > CELL:
+        raise SystemExit("the poses of one facing span %dx%d, larger than the "
+                         "%d cell - that is a different animal, not a wider "
+                         "stride" % (wide, tall, CELL))
+    out = []
+    for frame in frames:
+        cropped = frame.crop(union)
+        cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
+        # Horizontally centred, and sitting on the cell's own floor: `align`
+        # then moves the whole facing onto the base's ground line together.
+        cell.alpha_composite(cropped, ((CELL - wide) // 2, CELL - tall))
+        out.append(cell)
     return out
 
 
@@ -216,7 +241,7 @@ def main() -> None:
     rows = []
     ground = None if args.base else ground_of_base(args.mount_id)
     for facing in FACINGS:
-        frames = [fit(fetch(url)) for url in by_facing[facing]]
+        frames = fit_all([fetch(url) for url in by_facing[facing]])
         if ground is None:
             ground = floor_of(frames[0])
         rows.append(align(frames, ground))
