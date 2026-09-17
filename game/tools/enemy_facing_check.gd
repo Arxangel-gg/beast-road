@@ -123,6 +123,9 @@ const ROSTER: Dictionary = {
 	"crevasse_stalker": 0, "crown_herald": 1, "drowned_choir": 1,
 	"ember_husk": 0, "ember_shaman": 0, "flake_runner": 1, "fog_lantern": 0,
 	"frost_herald": 2, "gate_sentinel": 1, "gatekeeper": 0, "glass_chanter": 0,
+	# The Last Anchor is a standing stone with a chain down its face:
+	# symmetric, square to the camera, and nothing about it is handed.
+	"last_anchor": 0,
 	"glass_colossus": 0, "glass_singer": 0, "glassborn": 1, "glassguard": 2,
 	"horde_drummer": 0, "horde_lancer": 2, "horde_shieldman": 1,
 	"horde_warlord": 0, "howler": 1, "ice_hauler": 0, "loam_lurker": 0,

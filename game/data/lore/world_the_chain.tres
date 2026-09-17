@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_the_chain"
+display_name = "The Chain"
+title = "The Chain"
+category = 0
+unlock_act = 0
+order = 8
+art = ""
+body = "Roadsong held still. A note struck and never allowed to finish, driven into something living, saying itself over and over for as long as the anchor at its far end stands.
+
+That is why the Host march and do not stop, and why the chain-magic runs down the world like veins rather than being carried by anybody. Nobody is holding the other end of it in their hand. It is a sentence the world keeps repeating.
+
+A chain is not a bond. A chain is put into a living thing from outside and cannot be refused, and it has an anchor somewhere else. A bond is two who could leave and do not, and there is nothing to cut."

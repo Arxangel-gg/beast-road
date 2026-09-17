@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_ascension"
+display_name = "Ascension"
+title = "Ascension"
+category = 0
+unlock_act = 0
+order = 11
+art = ""
+body = "What the Gate leaves in a Warden who stood in front of it and did not break.
+
+It is not a blessing and nothing was given. A person who has been tested by the thing Kharok made simply takes a blow better afterwards, and holds a ward longer, and keeps standing where they used to fall. The Gate would say it had measured them; the Warden would say their arm remembers.
+
+It goes as far as it goes and then stops. Past a certain point a person who cannot be moved is only another thing the chain is saying."

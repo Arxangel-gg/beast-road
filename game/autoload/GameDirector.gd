@@ -25,6 +25,14 @@ var current_scope: Scope = Scope.BATTLEFIELD
 ## True between run_started and run_ended.
 var run_active: bool = false
 
+## When the road was taken, on the wall clock.
+##
+## For the Market's shelf and for nothing else: the owner's vendor rule is
+## that a run of under two minutes does not count as a run, so something has
+## to know how long this one lasted. Wall clock rather than a frame counter
+## because the rule it feeds is a wall-clock rule - see `VendorStock`.
+var _road_taken_at: float = 0.0
+
 ## Whether this player's Preparation is currently a build phase or a fight.
 ##
 ## **Local to this machine, deliberately.** In co-op one player can be laying
@@ -67,7 +75,20 @@ func abandon_run(reason: String) -> void:
 	# put a phantom run on a leaderboard.
 	abandoned_reason = reason
 	run_active = false
+	_note_the_road_home()
 	goto_menu()
+
+
+## **The Market hears that a road was walked.**
+##
+## One place rather than at each door a run can leave by, because the rule it
+## feeds is about *whether a run happened* and there are three ways for one to
+## end. `VendorStock` owns what counts as a real road - the owner's two
+## minutes - and this only says how long this one was.
+func _note_the_road_home() -> void:
+	if _road_taken_at > 0.0:
+		VendorStock.note_run(Time.get_unix_time_from_system() - _road_taken_at)
+	_road_taken_at = 0.0
 
 
 ## Pauses or resumes for both players.
@@ -286,6 +307,7 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
 	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
+	_road_taken_at = Time.get_unix_time_from_system()
 	# **And if the Warden is going back to a front, the road is put down first.**
 	#
 	# After the reset and before the field is built, so the battlefield stands
@@ -430,6 +452,7 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	if not run_active:
 		return
 	run_active = false
+	_note_the_road_home()
 	# A run is one shared thing, so it ends for both. Announced before the
 	# summary is built: the guest has its own summary to build from its own
 	# RunState, and waiting would leave it standing in its town with no report.
@@ -535,10 +558,17 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
 	MetaState.total_enemies_killed += int(summary["kills"])
 	MetaState.highest_act = maxi(MetaState.highest_act, RunState.act)
-	# A run that reached its sixth wave taught everything the coach has to
-	# teach, whether or not the road reached a crossroad.
-	if RunState.wave_number >= 6:
-		MetaState.mark_tutorial_done()
+	# **The first run finishes the tutorial, and co-op opens on it.**
+	#
+	# Owner brief, 2026-09-17: "after their first real run unlocking coop".
+	# Here rather than at a wave count or a crossroad, because this is the one
+	# place a run is known to be *over* - and both of the old doors opened
+	# co-op in the middle of the road a player had not yet finished.
+	#
+	# However it ended. A road that beat the Warden taught them the same
+	# things the road that did not would have, and locking co-op behind a win
+	# would gate it on the one outcome a new player is least likely to have.
+	MetaState.mark_tutorial_done()
 	MetaState.check_achievements()
 	_bank_treasury_cache()
 	MetaState.save_game()

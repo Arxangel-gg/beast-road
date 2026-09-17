@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act11"
+display_name = "Act 11  ·  The Final Ascent"
+title = "Act 11  ·  The Final Ascent"
+category = 1
+unlock_act = 10
+order = 11
+art = ""
+body = "Above the last step there is no more road, only the stair the Gate was set to hold and the beacon at the top of it. Kharok is waiting there, and he is not a monster and never was: he was a Warden, one of the greatest, and he decided the world was killing people by changing and found a way to make it hold still. Everything after that followed from a thing he did to save one dying animal.
+
+The beacon breaks the chain. Every clan it holds goes free in the same moment, the Worldstriders that are left stop being hunted, and the last chain on Yuri comes off. Then the world starts moving again, which is the part Kharok could never accept and the whole of what the Warden is there to allow."

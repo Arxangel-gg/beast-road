@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "last_anchor"
+eyebrow = "Act X Boss  ·  The last thing holding the roads still"
+presentation = 1
+act = 10
+id = "last_anchor"
+display_name = "The Last Anchor"
+description = "Kharok drove them into the earth so the world would stop moving, and they did what they were made to do. This one is the last of them between the road and the Crown, and it has never once been asked to stand aside."

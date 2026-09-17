@@ -10096,3 +10096,90 @@ const GATHER_FALL_SECONDS: float = 0.85
 const GATHER_FALL_DEGREES: float = 78.0
 ## What a collapsing seam does instead: down, not over.
 const GATHER_CRUMBLE_DROP: float = 12.0
+
+
+# --- The Hold as a place (owner ruling, 2026-09-17) --------------------------
+#
+# The yard between runs: how many can stand in it, how fast a Warden crosses
+# it, and how often a position goes down the wire. None of it touches a run -
+# the Hold is where a run is not - so nothing here is in `curve_report`.
+
+## Seats. Four, which is the party the co-op layer already seats: a Hold is a
+## room that has not started a run, and letting more stand in one would be a
+## lobby that cannot all walk out together.
+const HOLD_SEATS: int = COOP_MAX_PLAYERS
+
+## How fast a Warden crosses the yard, in yard units a second. Brisk: the Hold
+## is a place to be somewhere rather than a place to travel, and a slow walk
+## across a lobby is a loading screen you operate by hand.
+const HOLD_WALK_SPEED: float = 330.0
+
+## How close is close enough to use something. Generous, because a hub that
+## needs precision is a hub people fight with.
+const HOLD_REACH: float = 120.0
+
+## How long one of the Hold's people stands still before an errand, and how
+## long a Warden nobody is driving stays put. Each figure rolls in this band on
+## its own clock, so a yard of four never reads as four copies of one loop.
+const HOLD_NPC_PAUSE: Vector2 = Vector2(2.6, 7.5)
+
+## How much grass is scattered on the yard. Decoration, on the yard's own dice.
+const HOLD_GRASS_TUFTS: int = 44
+
+## Where the Warden's feet are inside a hero cell, measured off the sheets: the
+## art does not reach the bottom of its own cell, and without this the figure
+## stands a thumb's width under the ground it is sorted against.
+const HOLD_WARDEN_FOOT: float = 12.0
+
+## How often a walked step is told to the other machines. A threshold on a
+## clock, for the reason the wind is relayed that way: a position at frame rate
+## is a clock wearing a threshold's clothes.
+const HOLD_RELAY_INTERVAL: float = 0.14
+
+
+# --- The Market's own wares (owner brief, 2026-09-17) ------------------------
+#
+# What the vendor in the Hold has on the shelf, and the rules that stop it
+# being re-rolled. The reasoning, the working-rule-7 argument and the bound
+# that buying is always dearer than selling live on `VendorStock`.
+
+## How long a shelf stands before it is swept, in seconds. **Wall clock**, so
+## quitting and relaunching the game changes nothing - which is the whole point
+## of the rule rather than a detail of it.
+const VENDOR_REFRESH_SECONDS: float = 600.0
+
+## How long a run has to have lasted to count as a run. The owner's own two
+## minutes: without it, "take the road, quit to the menu" is a refresh button.
+const VENDOR_RUN_MINIMUM_SECONDS: float = 120.0
+
+## Marks asked, against what the stash pays for the same piece. Over one, and
+## the gate reads the two prices rather than this number: below one, buy and
+## sell in a loop prints Marks for ever.
+const VENDOR_MARKUP: float = 2.35
+
+## How far below the best rarity the Warden has held the shelf may reach, and
+## how often it reaches one rung *above* it instead. Diablo's shape: mostly a
+## little behind you, rarely a step ahead, never a shortcut past the road.
+const VENDOR_RARITY_TRAIL: int = 2
+const VENDOR_BETTER_CHANCE: float = 0.12
+
+## How often a ware has already been taken up a level. Rare, because a shop
+## selling upgrades is a shop selling the Shards the player should be spending.
+const VENDOR_UPGRADED_CHANCE: float = 0.18
+
+## What the blacksmith charges to make a piece rather than the Warden making it
+## (owner brief, 2026-09-17: "an appropriate cost that is more expensive than
+## players smithing it themselves ... and even then there should be more to it
+## than just having enough gold").
+##
+## Two prices, not one. The **Marks** are the fee, and they are a multiple of
+## what the piece is worth rather than a flat sum, so commissioning a great
+## piece costs like a great piece. The **materials** are the demand: he will not
+## work from nothing, so a commission still wants a share of what the recipe
+## wanted - which keeps the mines and the timber on the road rather than making
+## Marks a way round them.
+const COMMISSION_MARK_MULTIPLE: float = 3.1
+const COMMISSION_MATERIAL_SHARE: float = 0.5
+## And he will not work for a stranger. The Forge has to have been used by this
+## Warden this many times before he will take a commission at all.
+const COMMISSION_SMITH_LEVEL: int = 2

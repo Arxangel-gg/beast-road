@@ -1,14 +1,12 @@
 class_name HubScreen
 extends CanvasLayer
-## The Hold: the standing hub (owner ruling, 2026-09-11).
+## The Hold: the standing hub (owner ruling, 2026-09-11), and a **place** you
+## walk in rather than a column of buttons (owner ruling, 2026-09-17).
 ##
 ## `IDEAS_REVIEW` §4 refused a hub as "the grammar of a map you hold, and this
 ## map walks", and that reading still stands for the *world* - the town rides
-## the beast and nothing here is a place on it. What the owner asked for is a
-## lobby: the one screen where a player meets other players, trades, reads the
-## Ledger, and sees who their Warden has become. So this is a view over things
-## the menu already had doors to, arranged as one room rather than a column of
-## buttons, with the Warden's card beside them.
+## the beast and nothing standing still may compete with it. A yard between
+## runs is not a place on the road, so the refusal does not reach it.
 ##
 ## **It owns no screen.** The menu builds the stash, the Ledger, the co-op
 ## screen and the rest exactly as before and hands their buttons to this room
@@ -16,10 +14,17 @@ extends CanvasLayer
 ## same handler, same focus return - so nothing that worked stops working,
 ## and the front door gets to be a front door.
 ##
-## Laid out the way the codex is: the card and the doors are the flexible part
-## and scroll, and the way out is always on screen - `menu_layout_check` holds
-## that at phone size, and the first draft of this failed it with the Close
-## button fourteen hundred pixels above the top of the screen.
+## **And now every one of those buttons is also a building.** `HoldYard` stands
+## one where each door is and presses that same button when the Warden walks up
+## to it, so the place and the list can never disagree about what is in the
+## Hold: they are the same buttons, read twice.
+##
+## **The list did not go away, and that is deliberate.** Walking is the Hold;
+## it is not a toll. The Warden's card carries every door as a row, so a player
+## on a phone, on a pad, or simply in a hurry reaches the stash in one press -
+## and `menu_layout_check` still holds that the way out is on screen at every
+## shape, which the first draft of this screen failed with the Close button
+## fourteen hundred pixels above the top of it.
 
 signal closed()
 
@@ -35,6 +40,10 @@ const PORTRAIT_ROW: int = 2
 const PORTRAIT_FPS: float = 8.0
 const RANK_TINTS: Array[Color] = [Color.WHITE, Color(1.0, 0.94, 0.8), Color(1.0, 0.86, 0.6)]
 
+## How much of the screen the yard is allowed to fill. The rest is the strip
+## the prompt and the way out live on.
+const YARD_SHARE: Vector2 = Vector2(0.98, 0.80)
+
 var _panel: PanelContainer
 var _scroll: ScrollContainer
 var _body: BoxContainer
@@ -44,11 +53,20 @@ var _close_button: Button
 var _first_button: Button = null
 var _portrait: TextureRect = null
 var _portrait_frames: int = 1
-var _portrait_clock: float = 0.0
 ## True while a door from this room is open over it. The room hides so the
 ## door's screen is on top, and comes back when the door closes.
 var _suspended: bool = false
 var _rename_edit: LineEdit = null
+
+var _yard: HoldYard = null
+var _session: HoldSession = null
+## The card and every door as a list, over the yard. Hidden until asked for.
+var _card_root: Control = null
+var _prompt: Label = null
+var _note: Label = null
+var _doors_button: Button = null
+var _public_button: Button = null
+var _note_left: float = 0.0
 
 
 func _ready() -> void:
@@ -59,17 +77,112 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	var back := ColorRect.new()
+	back.name = "Backdrop"
+	back.color = Color(0.04, 0.05, 0.05, 1.0)
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(back)
+
+	_yard = HoldYard.new()
+	add_child(_yard)
+	_yard.entered.connect(_on_entered)
+	_yard.walked.connect(_on_walked)
+
+	_session = HoldSession.new()
+	_session.yard = _yard
+	add_child(_session)
+	_session.note.connect(_say)
+	_session.seats_changed.connect(_refresh_bar)
+
+	_build_frame()
+	_build_panel()
+	_refit()
+
+
+## The strip over the yard: what the Hold is, what is in reach, and the handful
+## of things that are about the Hold itself rather than about a building in it.
+func _build_frame() -> void:
+	var frame := Control.new()
+	frame.name = "Frame"
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(frame)
+
+	var top := HBoxContainer.new()
+	top.name = "Top"
+	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	top.offset_left = 22.0
+	top.offset_right = -22.0
+	top.offset_top = 16.0
+	top.add_theme_constant_override("separation", 10)
+	frame.add_child(top)
+
+	var title := Label.new()
+	title.text = "THE HOLD"
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color("e8a33d"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	top.add_child(title)
+
+	_doors_button = _strip_button(top, "The Warden", _show_card)
+	_public_button = _strip_button(top, "Doors", _toggle_public)
+	_strip_button(top, "Invite", _invite)
+	_strip_button(top, "Find a Hold", _find)
+	_close_button = _strip_button(top, "Close", close)
+
+	_note = Label.new()
+	_note.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_note.offset_top = 58.0
+	_note.offset_left = 22.0
+	_note.offset_right = -22.0
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.add_theme_font_size_override("font_size", 15)
+	_note.add_theme_color_override("font_color", Color("9fd2b4"))
+	frame.add_child(_note)
+
+	_prompt = Label.new()
+	_prompt.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_prompt.offset_top = -66.0
+	_prompt.offset_bottom = -18.0
+	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_prompt.add_theme_font_size_override("font_size", 18)
+	_prompt.add_theme_color_override("font_color", Color("f2e6d0"))
+	_prompt.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	_prompt.add_theme_constant_override("outline_size", 6)
+	frame.add_child(_prompt)
+
+
+func _strip_button(row: HBoxContainer, text: String, on: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(0.0, 40.0)
+	button.focus_mode = Control.FOCUS_ALL
+	button.pressed.connect(on)
+	row.add_child(button)
+	return button
+
+
+func _build_panel() -> void:
+	_card_root = Control.new()
+	_card_root.name = "Card"
+	_card_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_card_root.visible = false
+	add_child(_card_root)
+
 	var dim := ColorRect.new()
 	dim.name = "Dim"
 	dim.color = Color(0.02, 0.03, 0.03, 0.78)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(dim)
+	_card_root.add_child(dim)
 
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(centre)
+	_card_root.add_child(centre)
 
 	_panel = PanelContainer.new()
 	_panel.name = "Hold"
@@ -81,14 +194,14 @@ func _build() -> void:
 	_panel.add_child(column)
 
 	var title := Label.new()
-	title.text = "THE HOLD"
+	title.text = "THE WARDEN"
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(title)
 
 	var note := Label.new()
-	note.text = ("Where the road's people meet. Companions, trade, the Ledger, and what the "
-		+ "Warden has become.")
+	note.text = ("Every door in the Hold, and what the Warden has become. Walk to a "
+		+ "building to use it, or take the row here.")
 	note.add_theme_font_size_override("font_size", 15)
 	note.add_theme_color_override("font_color", Color("8f9b98"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -118,18 +231,20 @@ func _build() -> void:
 	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body.add_child(_grid)
 
-	_close_button = Button.new()
-	_close_button.text = "Close"
-	_close_button.custom_minimum_size = Vector2(0.0, 44.0)
-	_close_button.pressed.connect(close)
-	column.add_child(_close_button)
-	_refit()
+	var back := Button.new()
+	back.text = "Back to the yard"
+	back.custom_minimum_size = Vector2(0.0, 44.0)
+	back.pressed.connect(_hide_card)
+	column.add_child(back)
 
 
 ## A door from the front door, moved into the room. The button keeps its
 ## handler and its focus return; only its parent changes - and the room steps
 ## aside when it is pressed, so the screen it opens is on top rather than
 ## underneath (owner report, 2026-09-12).
+##
+## It is also **bound to its building**, by the button's own name, so a door
+## added to the menu tomorrow is a door in the yard tomorrow.
 func adopt(button: Button) -> void:
 	if button == null:
 		return
@@ -140,6 +255,8 @@ func adopt(button: Button) -> void:
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(suspend)
 	_grid.add_child(button)
+	if _yard != null:
+		_yard.bind(button.name, button)
 	if _first_button == null:
 		_first_button = button
 
@@ -150,6 +267,8 @@ func suspend() -> void:
 		return
 	_suspended = true
 	visible = false
+	if _yard != null:
+		_yard.set_driving(false)
 
 
 func is_suspended() -> bool:
@@ -157,24 +276,54 @@ func is_suspended() -> bool:
 
 
 func _process(delta: float) -> void:
-	if not visible or _portrait == null or _portrait_frames <= 1:
+	if not visible:
 		return
-	_portrait_clock += delta * PORTRAIT_FPS
+	_tick_prompt()
+	if _note_left > 0.0:
+		_note_left -= delta
+		if _note_left <= 0.0 and _note != null:
+			_note.text = ""
+	if _portrait == null or _portrait_frames <= 1 or not _card_root.visible:
+		return
 	var atlas := _portrait.texture as AtlasTexture
 	if atlas == null:
 		return
-	var frame: int = int(_portrait_clock) % _portrait_frames
+	var frame: int = int(Time.get_ticks_msec() * 0.001 * PORTRAIT_FPS) % _portrait_frames
 	atlas.region.position.x = float(frame * HeroAnimator.CELL_W)
+
+
+func _tick_prompt() -> void:
+	if _prompt == null or _yard == null:
+		return
+	if _card_root != null and _card_root.visible:
+		_prompt.text = ""
+		return
+	var label: String = _yard.focus_label()
+	if label.is_empty():
+		_prompt.text = ("Tap where you want to stand" if TouchInput.is_showing()
+			else "Walk with the movement keys")
+		_prompt.modulate = Color(1.0, 1.0, 1.0, 0.45)
+		return
+	_prompt.modulate = Color.WHITE
+	_prompt.text = "%s   -   %s" % [label,
+		"tap again to enter" if TouchInput.is_showing() else "press Interact"]
 
 
 func open() -> void:
 	_suspended = false
 	_build_card()
 	visible = true
+	if _yard != null:
+		_yard.set_driving(true)
+	if _session != null:
+		_session.open()
+		_session.introduce()
+	_refresh_bar()
 	_refit()
 	_refit.call_deferred()
-	if _first_button != null and is_instance_valid(_first_button):
-		_first_button.grab_focus()
+	if _card_root != null and _card_root.visible:
+		if _first_button != null and is_instance_valid(_first_button):
+			_first_button.grab_focus()
 	else:
 		_close_button.grab_focus()
 
@@ -183,7 +332,89 @@ func close() -> void:
 	if not visible:
 		return
 	visible = false
+	if _yard != null:
+		_yard.set_driving(false)
+	if _session != null:
+		_session.close()
 	closed.emit()
+
+
+func _show_card() -> void:
+	if _card_root == null:
+		return
+	_build_card()
+	_card_root.visible = true
+	if _yard != null:
+		_yard.set_driving(false)
+	if _first_button != null and is_instance_valid(_first_button):
+		_first_button.grab_focus()
+	_refit()
+
+
+func _hide_card() -> void:
+	if _card_root == null:
+		return
+	_card_root.visible = false
+	if _yard != null:
+		_yard.set_driving(true)
+	_close_button.grab_focus()
+
+
+# ---------------------------------------------------------------- the session
+
+
+func _refresh_bar() -> void:
+	if _public_button == null:
+		return
+	var open_doors: bool = HoldSession.is_public()
+	_public_button.text = "Doors: open" if open_doors else "Doors: closed"
+	if _session != null and _session.occupied() > 1:
+		_public_button.text += "  (%d here)" % _session.occupied()
+
+
+func _toggle_public() -> void:
+	if _session == null:
+		return
+	_session.set_public(not HoldSession.is_public())
+	_refresh_bar()
+
+
+func _invite() -> void:
+	if _session == null:
+		return
+	var code: String = _session.invite()
+	if not code.is_empty():
+		DisplayServer.clipboard_set(code)
+
+
+func _find() -> void:
+	if _session != null:
+		_session.find()
+
+
+func _say(line: String) -> void:
+	if _note == null:
+		return
+	_note.text = line
+	_note_left = 6.0
+
+
+func _on_walked(at: Vector2, facing: Vector2) -> void:
+	if _session != null:
+		_session.report(at, facing)
+
+
+## A station the Warden walked up to. Most of them press their own button and
+## this only makes the sound; the ones with **no** button are the ones this
+## screen answers itself - the Warden's stone is the card, which is where the
+## rename and the professions live.
+func _on_entered(station: String) -> void:
+	UiSound.confirm()
+	if station == "card":
+		_show_card()
+
+
+# ---------------------------------------------------------------- the card
 
 
 ## The Warden's card: who they are on this account, read fresh on every open
@@ -361,10 +592,18 @@ func _bar_recess() -> StyleBoxFlat:
 ## Sized against the screen, like the codex: the panel takes most of the
 ## width, the scrolling body a share of the height, and on a screen held
 ## upright the card sits above the doors rather than beside them.
+##
+## The yard is fitted rather than scrolled: the whole Hold is visible at once
+## on every shape, which is what a lobby is for.
 func _refit() -> void:
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	if _yard != null:
+		var room: Vector2 = screen * YARD_SHARE
+		var fit: float = minf(room.x / HoldYard.YARD.x, room.y / HoldYard.YARD.y)
+		_yard.scale = Vector2.ONE * fit
+		_yard.position = Vector2(screen.x * 0.5, screen.y * 0.5 + screen.y * 0.03)
 	if _panel == null:
 		return
-	var screen: Vector2 = get_viewport().get_visible_rect().size
 	var portrait: bool = screen.y > screen.x
 	var width: float = minf(PANEL_MAX_WIDTH, screen.x * PANEL_SCREEN_SHARE)
 	_panel.custom_minimum_size = Vector2(width, 0.0)
@@ -376,9 +615,43 @@ func _refit() -> void:
 	_panel.reset_size()
 
 
+## Where a screen point lands in the yard. The yard is scaled rather than
+## scrolled, so this is one divide - and it is the only place the two
+## coordinate systems meet.
+func _yard_point(at: Vector2) -> Vector2:
+	if _yard == null or _yard.scale.x <= 0.0:
+		return Vector2.ZERO
+	return (at - _yard.position) / _yard.scale.x
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause"):
-		close()
+		if _card_root != null and _card_root.visible:
+			_hide_card()
+		else:
+			close()
 		get_viewport().set_input_as_handled()
+		return
+	if _card_root != null and _card_root.visible:
+		return
+	if event.is_action_pressed(&"interact"):
+		if _yard != null:
+			_yard.use_focus()
+		get_viewport().set_input_as_handled()
+		return
+	# A tap walks there; a tap on something already in reach opens it, which is
+	# the only way a thumb can both cross a yard and use a door in it.
+	var click := event as InputEventMouseButton
+	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if _yard == null:
+		return
+	var at: Vector2 = _yard_point(click.position)
+	var within: bool = _yard.warden_at().distance_to(at) <= Balance.HOLD_REACH
+	if within and not _yard.focus().is_empty():
+		_yard.use_focus()
+	else:
+		_yard.walk_toward(at)
+	get_viewport().set_input_as_handled()

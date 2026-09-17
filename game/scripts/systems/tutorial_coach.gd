@@ -188,10 +188,13 @@ func _fire(trigger: int) -> void:
 
 
 func _show(step: TutorialStepData) -> void:
-	# The first road walked to its crossroad is the tutorial run; co-op waits
-	# for it (owner brief, 2026-09-12).
-	if step.trigger == TutorialStepData.Trigger.CROSSROAD_REACHED:
-		MetaState.mark_tutorial_done()
+	# **Reaching a crossroad no longer finishes the tutorial.**
+	#
+	# It used to, and co-op opened on it - so a player who reached one fork
+	# could take somebody onto a road they had never finished. Owner brief,
+	# 2026-09-17: co-op waits for the first *run*, which is a thing that ends
+	# rather than a thing you pass. `GameDirector._settle_run` owns it now, in
+	# the one place a run is known to be over.
 	_label.text = step.body
 	_left = step.seconds
 	visible = true

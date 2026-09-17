@@ -517,6 +517,7 @@ Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `
 | `boss_glass_colossus.png` | 384×384 | T | `#6FA4C8` |
 | `boss_cinder_titan.png` | 384×384 | T | `#6B3320` |
 | `boss_gatekeeper.png` | 384×384 | T | `#78797B` |
+| `boss_last_anchor.png` | 384×384 | T | `#5E5A57` |
 
 > The seven added on 2026-09-11 are base sprites only. The four that shipped
 > before them also carry idle, move and attack sequences; a boss with no

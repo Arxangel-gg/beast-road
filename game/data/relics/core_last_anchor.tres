@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_mfp8t")
 is_boss_core = true
-source_act = 0
+source_act = 10
 effect_id = "hero_max_hp"
 effect_magnitude = 0.1
-id = "core_gatekeeper"
-display_name = "Core of the Gatekeeper"
-description = "Always active. Never socketed. The last door was carrying its own weight."
+id = "core_last_anchor"
+display_name = "Core of the Last Anchor"
+description = "Always active. Never socketed. Whatever held the roads still can be made to hold you together instead."

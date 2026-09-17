@@ -30,6 +30,18 @@ const SPACING: float = 74.0
 
 var _stage: Vector2 = Vector2(520.0, 260.0)
 var _animals: Array[Dictionary] = []
+## Whose animals these are, when they are not this account's.
+##
+## The Hold stands a pen for every seat (owner brief, 2026-09-17: *"the
+## ability to see other player's companions in their pens as well without
+## being able to interact with their companions"*), so this yard has to be
+## able to draw a roster it was handed rather than only the one on disk. Empty
+## means "read `MetaState.pen`", which is every other caller.
+##
+## **Handed, never fetched.** A stranger's pen arrives as presence down the
+## wire - a list of species - and nothing here asks another account for
+## anything or writes a line of one.
+var _roster: Array = []
 var _rng := RandomNumberGenerator.new()
 
 
@@ -56,7 +68,11 @@ func refresh() -> void:
 		if node != null and is_instance_valid(node):
 			node.queue_free()
 	_animals.clear()
-	for kept: Dictionary in MetaState.pen:
+	var keeping: Array = _roster if not _roster.is_empty() else MetaState.pen
+	for entry: Variant in keeping:
+		if not (entry is Dictionary):
+			continue
+		var kept: Dictionary = entry
 		var species: String = String(kept.get("species", ""))
 		var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
 		if kind == null:
@@ -179,6 +195,13 @@ func _choose(animal: Dictionary) -> void:
 		animal["pose"] = 2
 	animal["left"] = own.randf_range(Balance.PEN_POSE_SECONDS.x,
 		Balance.PEN_POSE_SECONDS.y)
+
+
+## Draws somebody else's animals instead of this account's. An empty list
+## gives the yard back to `MetaState.pen`.
+func stand_these(roster: Array) -> void:
+	_roster = roster
+	refresh()
 
 
 ## How many animals are standing in the yard. For the gate.

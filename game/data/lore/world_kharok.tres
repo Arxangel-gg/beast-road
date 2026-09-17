@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_kharok"
+display_name = "Kharok"
+title = "Kharok"
+category = 0
+unlock_act = 0
+order = 9
+art = ""
+body = "He was a Warden, and the histories that still name him call him one of the greatest. One defender, one Worldstrider, a town on its back: he believed in that the way people believe in weather.
+
+Then the migrations changed course all at once. Rivers moved. Valleys that had fed a people every year of living memory came up dry, and the beasts that carried those people walked into it because walking is what they do. Two of them met. One lay down. Kharok's own was opened from shoulder to hip and did not stop moving, because it could not.
+
+He decided the world was killing people by changing, and he found, at the top of it, a way to make the world hold still. The first chain was meant to save one dying animal. It worked. That is the part nobody tells properly."

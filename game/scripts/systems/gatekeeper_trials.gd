@@ -36,22 +36,18 @@ class_name GatekeeperTrials
 ## the road rather than a detour off it, and consecutive ones would let a
 ## player clear the whole thing before the campaign has taught them anything.
 ##
-## **All four are trials of the Gate, and none of them is the Gatekeeper.**
-## The owner's brief put "the gatekeeper himself" on Act 9, and that collides
-## with what ships: `last_terrace.tres` authors `boss_id = "gatekeeper"`, so he
-## is *already* Act 10's act boss and `story_act10.tres` tells the player so -
-## "the Gate of the Crown holds the last step, and the Gatekeeper has waited
-## longer than the Warden has been alive". An optional fight on Act 9 against a
-## body the road makes you fight on Act 10 is the same encounter twice.
+## **Three trials of the Gate, and then the Gatekeeper itself on Act 9.**
 ##
-## So the ladder tests you and Act 10 is where you meet him, which is what the
-## fiction already said. The mechanic the brief actually turns on is untouched:
-## clear all four rungs and he does not stand at the summit; leave any of them
-## and he is there beside Kharok.
+## This collided with what shipped and the owner ruled on it: `last_terrace`
+## authored `boss_id = "gatekeeper"`, so he was Act 10's act boss and an
+## optional Act 9 fight would have been the same encounter twice. The ruling
+## was to free him - **Act 10 gets a boss of its own, the Last Anchor**, and
+## the Gatekeeper comes down to Act 9 where the ladder ends.
 ##
-## **Flagged for the owner rather than assumed.** The alternative is a new Act
-## 10 boss - art, data and a rewritten act entry - to free the Gatekeeper for
-## Act 9, and that is a content decision rather than a wiring one.
+## So a Warden who climbs all four has *beaten the Gatekeeper*, and one who
+## does not meets him on the Last Terrace standing beside the Anchor - which
+## is the owner's own clause and is also where the fiction always had him: the
+## Terrace is the last step, and the last step is what he was set to hold.
 const STAGE_ACTS: Array[int] = [3, 5, 7, 9]
 
 ## How many rungs a tier's ladder has.

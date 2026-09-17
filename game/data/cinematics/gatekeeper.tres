@@ -6,9 +6,9 @@
 script = ExtResource("1")
 trigger = 1
 trigger_id = "gatekeeper"
-eyebrow = "Act X Boss  ·  Set at the last step and told to wait"
+eyebrow = "The Gate's Last Trial  ·  Set at the last step and told to wait"
 presentation = 1
-act = 10
+act = 9
 id = "gatekeeper"
 display_name = "The Gatekeeper"
 description = "Nobody came back to relieve it. It has held this stair through every war that walked up it, and yours is not the first."

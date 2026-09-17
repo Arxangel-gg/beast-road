@@ -180,6 +180,13 @@ enum Fact {
 	PARTNER_LEVELLED = 77,
 	PARTNER_CRAFT_LEVELLED = 78,
 	PARTNER_WORKED = 79,
+	## **The Hold as a place** (owner ruling, 2026-09-17). Presence and nothing
+	## else: who is standing in which seat, where they are, and who takes the
+	## Hold when the host goes. No save, stash, pen or piece of gear travels on
+	## any of them - see `HoldSession` for why that is the whole bound.
+	HOLD_SEATS = 80,
+	HOLD_MOVED = 81,
+	HOLD_HANDOVER = 82,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -257,6 +264,13 @@ enum Request {
 	WELCOME = 34,
 	## A guest pulled a crop: pay the run its Food, by crop id.
 	HARVEST_CROP = 33,
+	## A guest walked into the Hold and says who it is: a name and a title.
+	## The host decides which seat that is; a guest naming its own seat would
+	## be a guest seating itself.
+	HOLD_HELLO = 35,
+	## A guest's Warden moved in the Hold. The host re-announces it as a fact
+	## carrying the seat, so four machines agree about who walked.
+	HOLD_MOVE = 36,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -416,6 +430,9 @@ func _fact_bindings() -> Array:
 		["coop_partner_levelled", _on_partner_levelled],
 		["coop_partner_craft_levelled", _on_partner_craft_levelled],
 		["coop_partner_worked", _on_partner_worked],
+		["hold_seats", _on_hold_seats],
+		["hold_moved", _on_hold_moved],
+		["hold_handover", _on_hold_handover],
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
 		["coop_world_clock", _on_coop_world_clock],
@@ -493,6 +510,21 @@ func _on_partner_craft_levelled(seat: int, craft: String, level: int) -> void:
 
 func _on_partner_worked(seat: int, icon: String, line: String, colour: Color) -> void:
 	_relay(Fact.PARTNER_WORKED, [seat, icon, line, colour])
+
+
+## **The Hold** (2026-09-17). Presence, authored by the host: a guest asks to
+## move (`Request.HOLD_MOVE`) and is told where it now is, exactly as it is
+## told everything else about the world it is standing in.
+func _on_hold_seats(rows: Array) -> void:
+	_relay(Fact.HOLD_SEATS, [rows])
+
+
+func _on_hold_moved(seat: int, at: Vector2, facing: Vector2) -> void:
+	_relay(Fact.HOLD_MOVED, [seat, at, facing])
+
+
+func _on_hold_handover(who: String) -> void:
+	_relay(Fact.HOLD_HANDOVER, [who])
 
 
 func _on_wave_cleared(wave: int) -> void:
@@ -1059,6 +1091,15 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 3:
 				bus.coop_partner_craft_levelled.emit(int(args[0]),
 					String(args[1]), int(args[2]))
+		Fact.HOLD_SEATS:
+			if args.size() == 1 and args[0] is Array:
+				bus.hold_seats.emit(args[0] as Array)
+		Fact.HOLD_MOVED:
+			if args.size() == 3:
+				bus.hold_moved.emit(int(args[0]), args[1] as Vector2, args[2] as Vector2)
+		Fact.HOLD_HANDOVER:
+			if args.size() == 1:
+				bus.hold_handover.emit(String(args[0]))
 		Fact.PARTNER_WORKED:
 			if args.size() == 4 and args[3] is Color:
 				bus.coop_partner_worked.emit(int(args[0]), String(args[1]),

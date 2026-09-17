@@ -71,8 +71,14 @@ func summon(act: int) -> bool:
 ##
 ## The owner's own addition of 2026-09-17, and the thing that makes the ladder
 ## a decision rather than a side quest: the Gatekeeper is paid for once on Act
-## 9 at a time the player chose, or once at the summit standing next to Kharok.
-## Beating him on a tier takes him off that tier's summit for good.
+## 9 at a time the player chose, or once on the Last Terrace standing beside
+## the Last Anchor. Beating him on a tier takes him off that tier's Act 10 for
+## good.
+##
+## **Act 10 and not the Final Ascent**, which is the owner's own wording - "the
+## gatekeeper will appear along with the act 10 boss of that difficulty" - and
+## the fiction agrees: the Last Terrace *is* the last step, which is where he
+## was set to wait. Kharok is met alone above it either way.
 ##
 ## **He arrives on a different road.** Both bodies walk at the town and neither
 ## is a second health bar on the first: the fight is harder because the party
@@ -83,7 +89,7 @@ func summon(act: int) -> bool:
 ## player declined, at the strength they declined it - not a second Chainmaker,
 ## which would be a difficulty setting nobody chose.
 func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
-	if act < Balance.FINAL_ASCENT_ACT:
+	if act != Balance.ACT_COUNT:
 		return
 	if not GatekeeperTrials.guards_the_summit(RunState.tier_id):
 		return
@@ -96,6 +102,9 @@ func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
 		push_warning("BossDirector: the summit owes a Gatekeeper and none is authored")
 		return
 	var lane: int = (boss_lane + 1 + _rng.randi_range(0, Balance.LANE_COUNT - 2)) 		% Balance.LANE_COUNT
+	# Scaled as the Act 9 encounter that was declined rather than as a second
+	# act boss: he is the fight the player walked past, at the strength they
+	# walked past it.
 	var trial_act: int = GatekeeperTrials.STAGE_ACTS[GatekeeperTrials.STAGES - 1]
 	_escort = battlefield.spawn_enemy(keeper, lane, _boss_scale(trial_act))
 	if _escort == null:

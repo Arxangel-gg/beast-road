@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_first_cut"
+display_name = "The First Cut"
+title = "The First Cut"
+category = 0
+unlock_act = 0
+order = 12
+art = ""
+body = "Where the walk started, and it was not a plan.
+
+There was a valley with farmland in it, a wall that was never finished, and a Worldstrider asleep at the bottom of it with a stake driven through a chain into the ground beside his shoulder. Nobody there called it a prison. It was where the road had stopped, and after long enough a stopped road is simply where you live. Wardens were still trained there. The training had not had anywhere to go in a very long time.
+
+The Warden cut the stake. The valley lost its wall and its beast in the same hour, and the town that could move went with him. Everything since has been the search for the only thing that would make that worth doing."

@@ -274,7 +274,8 @@ func _build_hold() -> void:
 	_hub.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _hub.open())
 	_build_smithy_button(column)
-	for door: String in ["Stash", "Ledger", "Smithy", "Pen", "Chronicle", "Codex", "Leaderboard"]:
+	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Chronicle",
+			"Codex", "Leaderboard"]:
 		var found: Node = column.get_node_or_null(door)
 		if found is Button:
 			_hub.adopt(found as Button)
@@ -448,6 +449,7 @@ func _build_exchange_button(column: Node, stash_button: Button,
 		_focus_home())
 	button.pressed.connect(func() -> void: screen.open())
 	button.text = _ledger_caption()
+	_build_vendor_button(column, button)
 
 
 ## What the button says: silent when the board is empty, and counting when it is.
@@ -468,6 +470,35 @@ func _ledger_caption() -> String:
 	if standing > 0:
 		return "The Long Ledger  ·  %d standing" % standing
 	return "The Long Ledger"
+
+
+## **The Market** (owner brief, 2026-09-17): the vendor's own wares, with the
+## Long Ledger on the wall inside it.
+##
+## Built here and adopted into the Hold with the other doors, which is the
+## pattern every screen in that room follows: the menu owns the screen, the
+## room owns the button, and `HoldYard` stands a building where the button is.
+##
+## **The Ledger is pressed rather than reimplemented.** The shop asks for it
+## (`ledger_wanted`) and this presses the same button the Hold's own list
+## does, so there is exactly one path to that screen however a player reaches
+## it - and the shop steps aside first, so the Ledger is not opened over a
+## window nobody can see behind.
+func _build_vendor_button(column: Node, ledger_button: Button) -> void:
+	var button := Button.new()
+	button.name = "Vendor"
+	button.text = "The Market"
+	IconKit.on_button(button, "ledgerkeepers_seal", 24)
+	column.add_child(button)
+	column.move_child(button, ledger_button.get_index() + 1)
+
+	var screen := VendorScreen.new()
+	add_child(screen)
+	screen.closed.connect(_focus_home)
+	screen.ledger_wanted.connect(func() -> void:
+		screen.hide_screen()
+		ledger_button.pressed.emit())
+	button.pressed.connect(func() -> void: screen.open())
 
 
 ## The campaign tier, chosen before a run and shown with the hero it will be
@@ -564,15 +595,15 @@ func _build_coop_button() -> void:
 	_coop.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void:
 		if not MetaState.tutorial_done:
-			# Owner brief, 2026-09-12: a new player runs the road once before
-			# playing it with somebody. The button says so rather than hiding.
-			button.text = "Co-op  \u00b7  finish your first road"
+			# Owner brief, 2026-09-12, amended 2026-09-17: a run that *ends*
+			# is what opens it, however it ended. The button says so.
+			button.text = "Co-op  \u00b7  finish your first run"
 			return
 		_coop.open())
 	_refresh_coop_gate()
 
 
-## Co-op waits for the first road to reach a crossroad, and says so.
+## Co-op waits for the first run to end, and says so.
 func _refresh_coop_gate() -> void:
 	if _coop_button == null:
 		return

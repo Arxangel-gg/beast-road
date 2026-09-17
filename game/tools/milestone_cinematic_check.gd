@@ -10,7 +10,8 @@ extends Node
 const EXPECTED_IDS: Array[String] = [
 	"act10", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
 	"brinefather", "chainmaker", "cinder_titan", "drowned_choir", "gatekeeper",
-	"glass_colossus", "horde_warlord", "mirrorfang", "mistwarden", "rust_crown",
+	"glass_colossus", "horde_warlord", "last_anchor", "mirrorfang", "mistwarden",
+	"rust_crown",
 	"rustmother", "summit",
 ]
 

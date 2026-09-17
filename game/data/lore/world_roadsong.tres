@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_roadsong"
+display_name = "Roadsong"
+title = "Roadsong"
+category = 0
+unlock_act = 0
+order = 7
+art = ""
+body = "The world runs on one thing wearing four faces. Fire, water, earth and air are not four powers; they are one current running under the ground, and the old word for it is Roadsong.
+
+It moves. That is the whole of its nature, and it is why a Worldstrider can feel where to walk, why a relic holds anything at all, why the weather comes up the same routes every year, and why a tower can borrow enough of it to throw fire down a lane. Everything in this world that looks like magic is the same current, tapped somewhere different."

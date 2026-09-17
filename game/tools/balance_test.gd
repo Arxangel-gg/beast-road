@@ -1278,6 +1278,14 @@ func _test_tiers_and_persistence() -> void:
 	# persist. What changed is what a "run" is - a road put down and picked up
 	# rather than a second account - and `expedition_check` holds exactly that:
 	# banking and restoring a front must leave the account byte-identical.
+	#
+	# `vendor` is the Market's shelf (2026-09-17). It is the mildest block in
+	# this list: unowned gear on offer and the moment it was laid out, written
+	# down for one reason and it is the owner's own rule - a stock held only in
+	# memory is re-rolled by restarting the game, which is precisely the thing
+	# the vendor rule forbids. Nothing in it grants an attribute, a level, a
+	# currency or an unlock; buying one spends Marks and puts a piece in the
+	# stash, through the door gear has always arrived by.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1287,7 +1295,7 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
 				"spirits", "pantry", "professions", "materials", "pen",
-				"expedition"],
+				"expedition", "vendor"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

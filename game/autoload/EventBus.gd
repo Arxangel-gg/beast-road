@@ -976,3 +976,18 @@ signal party_event_prompt_closed()
 signal rift_collapsing(seconds: float)
 ## A stage's chest was opened: which stage, and how many pieces it held.
 signal rift_chest_opened(stage: int, pieces: int)
+
+
+# --- The Hold as a place (2026-09-17) ---------------------------------------
+#
+# Presence, and nothing else. A seat is a name, a title and somewhere to stand;
+# no save, stash, pen or piece of gear travels on any of these. The host
+# authors all three, which is why a guest asks to move rather than saying it
+# has (`CoopRelay.Request.HOLD_MOVE`).
+
+## Who is standing in the Hold: one row per seat, `[kind, name, title]`.
+signal hold_seats(rows: Array)
+## A seat moved, by seat number rather than by the figure drawing it.
+signal hold_moved(seat: int, at: Vector2, facing: Vector2)
+## The host is leaving and has named who takes the Hold.
+signal hold_handover(who: String)

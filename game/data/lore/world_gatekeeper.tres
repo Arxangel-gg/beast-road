@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_gatekeeper"
+display_name = "The Gatekeeper"
+title = "The Gatekeeper"
+category = 0
+unlock_act = 0
+order = 10
+art = ""
+body = "It was his closest companion, and the order it was given was to wait at the last step until somebody came to relieve it. Nobody has.
+
+The order is in it the way the chain is in everything else, which is why it has not simply walked down the stairs in all this time. What it does with the little room the order leaves it is test people. Three trials on the way up and then itself, and a Warden who stands all four is somebody it will step aside for - not because the order allows it, but because the order never said what to do about somebody worth letting past."

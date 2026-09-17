@@ -455,6 +455,21 @@ var tier_cleared: int = -1
 ## empty ladder, which is what a new account has.
 var gatekeeper: Dictionary = {}
 
+## **The Market's shelf**: what the vendor in the Hold has out, and when it
+## was laid there.
+##
+## Added 2026-09-17 with the owner's vendor ruling. It is written to the save
+## for one reason and it is the rule itself: a stock held in memory is
+## re-rolled by restarting the game, which is exactly the thing the brief
+## forbids. The reasoning and the working-rule-7 argument live on
+## `VendorStock`, which is the only thing that writes it.
+##
+## Nothing in here is the player's. It is unowned gear on a shelf and the
+## moment it was put there; buying one spends Marks and puts a piece in the
+## stash, through the door gear has always arrived by. Additive - absent
+## reads as a shelf that has never been stocked, which is a new account.
+var vendor: Dictionary = {}
+
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
 
@@ -975,6 +990,7 @@ func erase_progress() -> void:
 	ascension = 0
 	tier_cleared = -1
 	gatekeeper = {}
+	vendor = {}
 	last_tier_id = "normal"
 	profession_xp.clear()
 	materials.clear()
@@ -1661,6 +1677,9 @@ func serialized_save() -> String:
 		# The frontier. One snapshot, and an unreadable one is dropped on load
 		# rather than half-applied - half a fortress is worse than none, because
 		# the player cannot tell which half is missing.
+		# The Market's shelf. Unowned gear and the moment it was laid out, kept
+		# so that quitting the game is not a way to re-roll a shop.
+		"vendor": vendor,
 		"expedition": expedition,
 		"resource_cache": resource_cache,
 		"chronicle": {
@@ -1757,6 +1776,7 @@ func load_save() -> void:
 	_read_materials(data.get("materials", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_pen(data.get("pen", {}) as Dictionary)
+	vendor = data.get("vendor", {}) as Dictionary
 	var front: Dictionary = data.get("expedition", {}) as Dictionary
 	expedition = front if Expedition.is_readable(front) else {}
 	_read_social(data.get("social", {}) as Dictionary)
