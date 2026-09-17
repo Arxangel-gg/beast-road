@@ -8125,6 +8125,36 @@ const UI_HOLO_LINES: float = 42.0
 const UI_HOLO_IDLE_STRENGTH: float = 0.34
 const UI_HOLO_IDLE_SLOW: float = 2.1
 const UI_HOLO_IDLE_EVERY: Vector2 = Vector2(2.4, 6.5)
+
+## The standing animation on every plate and every button (owner, 2026-09-17:
+## *"I'd like the UI panels to not just be static but to have some sort of
+## shader over the panel that's aesthetically appealing and game juicy and
+## tasty and perfectly procedurally animated"*).
+##
+## **A third of the interactive ceiling, and that ratio is the decision.** The
+## hologram's job is to answer a hover; a plate that is always moving as
+## brightly as one that has just been touched makes the answer say nothing. So
+## the standing light has to be clearly present and clearly quieter, and
+## `ui_juice_check` holds it strictly under `UI_HOLO_CEILING` rather than at a
+## number typed into the gate.
+const UI_HOLO_AMBIENT_CEILING: float = 0.055
+
+## The window a control's own clock is offset inside.
+##
+## Unison is the failure here: eight panels breathing together reads as the
+## whole screen pulsing rather than as a surface with light on it, and this
+## project has paid for it twice - the town's buildings and the pen's animals
+## both had to be scattered after the fact. Wider than the slowest period in
+## the shader, so no two plates can land in step by arithmetic.
+const UI_HOLO_AMBIENT_SPREAD: float = 11.0
+
+## The most light a bar's flow may add over its own fill.
+##
+## Higher than a plate's, on purpose: a bar is a *reading*, so the light is
+## carrying information - where the value is - rather than decorating a
+## surface. Still bounded, and still additive, so the bound the interface tint
+## is held to survives: nothing here can make a reading harder to see.
+const UI_BAR_FLOW_CEILING: float = 0.22
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 

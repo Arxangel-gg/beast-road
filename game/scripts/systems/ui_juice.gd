@@ -26,6 +26,16 @@ extends RefCounted
 ## itself and a cached list of controls goes stale.
 
 const GROUP: StringName = &"ui_juiced"
+## Plates, which get the standing animation and none of the interaction.
+##
+## A second group rather than a flag on the first, because the two are enrolled
+## by different rules and dressed differently - a plate's skin goes *under* its
+## contents and a button's goes over them.
+const PLATE_GROUP: StringName = &"ui_juiced_plate"
+## Bars, whose fill is animated rather than their plate.
+const BAR_GROUP: StringName = &"ui_juiced_bar"
+const BAR_SHADER: String = "res://scripts/shaders/ui_bar.gdshader"
+const BAR_SKIN: StringName = &"BarSkin"
 const SHADER: String = "res://scripts/shaders/ui_hologram.gdshader"
 ## The overlay's name inside a control, so a second enrol finds it rather than
 ## stacking another one.
@@ -37,6 +47,9 @@ const TWEEN: StringName = &"holo_tween"
 const WATCHED: StringName = &"holo_watched"
 
 static var _shader: Shader = null
+static var _bar_shader: Shader = null
+## Walks the offsets so no two controls dressed in one pass share a clock.
+static var _phase: float = 0.0
 
 
 ## Give every button under `root` its hologram. Safe to call again.
@@ -46,17 +59,44 @@ static func enrol(tree: SceneTree, root: Node) -> void:
 		var control := node as Control
 		if control != null:
 			dress(control)
+	for node: Node in tree.get_nodes_in_group(PLATE_GROUP):
+		var plate := node as Control
+		if plate != null:
+			dress_plate(plate)
+	for node: Node in tree.get_nodes_in_group(BAR_GROUP):
+		var bar := node as ProgressBar
+		if bar != null:
+			dress_bar(bar)
 
 
+## **The "buttons only" rule was about interaction, and it still is.**
+##
+## This file used to say, in as many words, that *"a panel does not respond to
+## being pointed at, and a hologram over a whole panel is a tint by another
+## name"*. That reasoning is correct and unchanged: a plate gets no hover, no
+## focus and no press, because none of those happen to it.
+##
+## What the owner asked for on 2026-09-17 is a different thing - a *standing*
+## animation, which is a property of the surface rather than an answer to being
+## touched. So a plate is enrolled into its own group and given the ambient term
+## and nothing else.
+##
+## **Only `Panel` and `PanelContainer`**, never a box container. A skin added to
+## an `HBoxContainer` is not an overlay, it is another cell in the row - which
+## would silently re-lay every screen in the game.
 static func _gather(from: Node) -> void:
 	for child: Node in from.get_children():
-		# Buttons only. A panel does not respond to being pointed at, and a
-		# hologram over a whole panel is a tint by another name - which is
-		# `UiTint`'s job and is bounded there.
-		if child is BaseButton:
-			var control := child as Control
-			if not control.is_in_group(GROUP):
-				control.add_to_group(GROUP)
+		var control := child as Control
+		if control != null:
+			var want: StringName = &""
+			if child is BaseButton:
+				want = GROUP
+			elif child is PanelContainer or (child is Panel and not (child is Container)):
+				want = PLATE_GROUP
+			elif child is ProgressBar:
+				want = BAR_GROUP
+			if want != &"" and not control.is_in_group(want):
+				control.add_to_group(want)
 		_gather(child)
 
 
@@ -87,6 +127,100 @@ static func dress(control: Control) -> void:
 		button.button_down.connect(_on_pressed.bind(control))
 
 
+## A plate's standing animation: the same skin, under the contents, with the
+## interaction left off.
+##
+## **Under rather than over, which is the whole difference from a button.** A
+## `Button` draws its plate and its caption in one pass and has no child
+## controls, so a skin on top of it lights the plate. A `PanelContainer` holds a
+## whole screen's worth of labels, and an additive layer over those would lift
+## every glyph toward white - so the skin goes in at index 0, after the panel's
+## own `StyleBox` and before anything it contains.
+static func dress_plate(control: Control) -> void:
+	if control == null or not is_instance_valid(control):
+		return
+	if control.get_node_or_null(NodePath(SKIN)) != null:
+		return
+	var skin := ColorRect.new()
+	skin.name = SKIN
+	skin.color = Color.WHITE
+	skin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	skin.material = _material()
+	control.add_child(skin)
+	control.move_child(skin, 0)
+
+
+## A bar's fill, flowing rather than standing still.
+##
+## Owner, 2026-09-17: *"give the progressbars on the battlefield UIs an animated
+## game juicy procedural vfx shader effect so they're animated and not static"*.
+##
+## **The skin is told where the fill ends rather than being resized to it.** A
+## `ProgressBar` draws its fill by stretching a `StyleBox`, so there is no node
+## to attach anything to; a second rect resized every frame would be a layout
+## write per bar per frame. One uniform is not.
+static func dress_bar(bar: ProgressBar) -> void:
+	if bar == null or not is_instance_valid(bar):
+		return
+	if bar.get_node_or_null(NodePath(BAR_SKIN)) != null:
+		return
+	var skin := ColorRect.new()
+	skin.name = BAR_SKIN
+	skin.color = Color.WHITE
+	skin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	if _bar_shader == null and ResourceLoader.exists(BAR_SHADER):
+		_bar_shader = load(BAR_SHADER) as Shader
+	if _bar_shader == null:
+		skin.queue_free()
+		return
+	var material := ShaderMaterial.new()
+	material.shader = _bar_shader
+	material.set_shader_parameter("ceiling", Balance.UI_BAR_FLOW_CEILING)
+	material.set_shader_parameter("phase", _next_phase())
+	skin.material = material
+	bar.add_child(skin)
+	_tell_bar(bar, skin)
+	# Reads the bar rather than being told by whoever moves it, so a value set
+	# from any of the dozen places that move one still reaches the flow. The
+	# signal fires on assignment, so there is no per-frame cost.
+	if not bar.value_changed.is_connected(_on_bar_moved.bind(bar)):
+		bar.value_changed.connect(_on_bar_moved.bind(bar))
+
+
+static func _on_bar_moved(_value: float, bar: ProgressBar) -> void:
+	if bar == null or not is_instance_valid(bar):
+		return
+	_tell_bar(bar, bar.get_node_or_null(NodePath(BAR_SKIN)) as ColorRect)
+
+
+static func _tell_bar(bar: ProgressBar, skin: ColorRect) -> void:
+	if skin == null or not is_instance_valid(skin):
+		return
+	var material := skin.material as ShaderMaterial
+	if material == null:
+		return
+	var span: float = maxf(bar.max_value - bar.min_value, 0.0001)
+	material.set_shader_parameter("fill",
+		clampf((bar.value - bar.min_value) / span, 0.0, 1.0))
+	# The fill's own colour, so a health bar flows red and a mana bar blue
+	# without anybody keeping a second table of which bar is which.
+	var style: StyleBox = bar.get_theme_stylebox("fill")
+	var flat := style as StyleBoxFlat
+	if flat != null:
+		material.set_shader_parameter("tint", flat.bg_color)
+
+
+## The next control's clock offset. Walked rather than rolled, because a
+## random one can still deal two neighbours the same number and the failure
+## this prevents is exactly two plates in step.
+static func _next_phase() -> float:
+	_phase = fmod(_phase + Balance.UI_HOLO_AMBIENT_SPREAD * 0.379,
+		Balance.UI_HOLO_AMBIENT_SPREAD)
+	return _phase
+
+
 static func _material() -> ShaderMaterial:
 	if _shader == null:
 		_shader = load(SHADER) as Shader
@@ -101,6 +235,12 @@ static func _material() -> ShaderMaterial:
 	# this is the gate that holds the ceiling.
 	material.set_shader_parameter("ceiling", Balance.UI_HOLO_CEILING)
 	material.set_shader_parameter("lines", Balance.UI_HOLO_LINES)
+	# The standing animation, on every control this file dresses. Set rather than
+	# left to the shader's default for the same reason `ceiling` is: the gate
+	# reads it back off the material, and an unassigned uniform answers null.
+	material.set_shader_parameter("idle", 1.0)
+	material.set_shader_parameter("idle_ceiling", Balance.UI_HOLO_AMBIENT_CEILING)
+	material.set_shader_parameter("phase", _next_phase())
 	return material
 
 

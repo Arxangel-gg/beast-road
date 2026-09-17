@@ -57,6 +57,11 @@ var _rolling: bool = false
 
 
 func _ready() -> void:
+	# Every plate, button and bar on this screen gets the standing animation
+	# and the hover hologram (owner, 2026-09-17). **Deferred**, because a
+	# screen builds its own children further down this same function -
+	# enrolled here and now it would dress an empty `Control` and nothing else.
+	UiJuice.enrol.call_deferred(get_tree(), self)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	# A scrim between the art and the words. The summit is a bright sky and pale

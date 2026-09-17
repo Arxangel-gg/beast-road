@@ -58,6 +58,11 @@ var _leave_button: Button = null
 
 
 func _ready() -> void:
+	# Every plate, button and bar on this screen gets the standing animation
+	# and the hover hologram (owner, 2026-09-17). **Deferred**, because a
+	# screen builds its own children further down this same function -
+	# enrolled here and now it would dress an empty `Control` and nothing else.
+	UiJuice.enrol.call_deferred(get_tree(), self)
 	# One request, made now rather than mid-handshake: needing credentials
 	# during a connection would put a round trip inside the one thing that must
 	# not stall.
