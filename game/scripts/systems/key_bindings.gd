@@ -28,6 +28,12 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"move_right", "label": "Move right"},
 	{"action": &"attack", "label": "Attack"},
 	{"action": &"dash", "label": "Dash"},
+	# **Sprint had no key of its own until 2026-09-17**, and that is why the
+	# owner could not find it: it has been in the game since the stamina pool
+	# was built, as *holding* the dash button, and a control that appears in
+	# no settings screen is a control most players never learn about. It has
+	# a key now and the hold still works.
+	{"action": &"sprint", "label": "Sprint (hold)"},
 	{"action": &"war_horn", "label": "War horn"},
 	{"action": &"scope_battlefield", "label": "Battlefield"},
 	{"action": &"scope_town", "label": "Town"},
@@ -69,6 +75,17 @@ const REBINDABLE: Array[Dictionary] = [
 const PAD_BUTTONS: Dictionary = {
 	&"attack": JOY_BUTTON_X,
 	&"dash": JOY_BUTTON_A,
+	# **Sprint shares the dash button, and that is the honest binding.** The
+	# pad is full - every face, shoulder, stick, d-pad and misc button is
+	# spoken for - and holding A is both where a pad player's thumb already
+	# is and what sprint has meant since it was built. Sharing is precedented
+	# here: `interact` shares Y with `ride_on` for the same kind of reason.
+	#
+	# A *tap* of A therefore raises the sprint intent for one frame as well as
+	# dashing. It costs `HERO_STAMINA_DRAIN` of one frame - a fraction of a
+	# point - and the hero refuses to sprint unless it is actually moving, so
+	# the worst case is invisible.
+	&"sprint": JOY_BUTTON_A,
 	&"ride_on": JOY_BUTTON_Y,
 	&"tend": JOY_BUTTON_BACK,
 	&"war_horn": JOY_BUTTON_B,

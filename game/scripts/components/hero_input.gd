@@ -83,6 +83,20 @@ const HOLD_INTERACT: int = 1 << 10
 ## means "go faster" is the discoverable place for "keep going faster".
 const HOLD_DASH: int = 1 << 11
 
+## **The sprint key** (owner, 2026-09-17: *"how do players sprint? There
+## should be a toggle like shift on pc"*).
+##
+## A second intent rather than a second reading of the first, because the
+## two engage differently and one bit cannot say which arrived: the dash
+## button has to be *held past* `HERO_SPRINT_HOLD` so that a tap stays a
+## dash, and a key that exists only to sprint should do it on the press.
+##
+## **Bit 16, past both ranges on purpose.** Bits 2-7 are spell slots and
+## 8-11 are holds; the comment on `HOLD_REVIVE` records what happens when a
+## gap inside a range is reused, so this takes the next clear bit above
+## everything rather than the next tidy one.
+const HOLD_SPRINT: int = 1 << 16
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

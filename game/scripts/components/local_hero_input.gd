@@ -86,8 +86,14 @@ func held(mask: int) -> bool:
 	# a key, a pad button and a thumb.
 	if mask == HOLD_INTERACT:
 		return Input.is_action_pressed(&"interact")
-	# The sprint. The same key, pad button and thumb button the dash uses - the
-	# hero tells a tap from a hold, not this.
+	# **The sprint key** (2026-09-17). Its own action, so it can be found in the
+	# settings screen and moved - which is the half that was missing, not the
+	# sprint. On a pad it shares the dash button, so this reads true while A is
+	# down and the hero engages at once.
+	if mask == HOLD_SPRINT:
+		return Input.is_action_pressed(&"sprint")
+	# The dash button held. The older way in, and still the only one on a thumb:
+	# the hero tells a tap from a hold, not this.
 	if mask == HOLD_DASH:
 		return Input.is_action_pressed(&"dash")
 	# Held attack, for anything that wants to know the button is still down.
@@ -132,4 +138,6 @@ func snapshot(current_aim: Vector2) -> Array:
 		holds |= HOLD_INTERACT
 	if held(HOLD_DASH):
 		holds |= HOLD_DASH
+	if held(HOLD_SPRINT):
+		holds |= HOLD_SPRINT
 	return [move(), current_aim, buttons, holds]

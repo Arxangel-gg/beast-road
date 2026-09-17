@@ -877,7 +877,8 @@ func _build_top_bar() -> void:
 	# three apart by hue before it reads a letter.
 	_stamina_bar = _make_bar(Color(Balance.UI_STAMINA_GREEN), HERO_BAR_WIDTH)
 	_stamina_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 7.0)
-	_stamina_bar.tooltip_text = "Stamina. Hold the dash button to sprint; it comes back when you stop."
+	_stamina_bar.tooltip_text = ("Stamina. Sprint with %s, or by holding the "
+		+ "dash button; it comes back when you stop.") % KeyBindings.label_for(&"sprint")
 	_name_the_bar(_stamina_bar, "SP")
 	pools.add_child(_stamina_bar)
 	bar.add_child(pools)

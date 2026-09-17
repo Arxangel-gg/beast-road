@@ -1431,13 +1431,19 @@ func _tick_timers(delta: float) -> void:
 ## on the button is not running, and draining the pool for it would be the one
 ## way to be punished for nothing.
 func _tick_sprint(delta: float) -> void:
-	var down: bool = input != null and input.held(HeroInput.HOLD_DASH)
-	if down:
+	# **Two ways in, and they engage differently.** The dash button has to be
+	# held past `HERO_SPRINT_HOLD` so that a tap of it stays a dash; the
+	# sprint key exists only to sprint, so it takes effect on the press.
+	var dashing: bool = input != null and input.held(HeroInput.HOLD_DASH)
+	var asked: bool = input != null and input.held(HeroInput.HOLD_SPRINT)
+	if dashing:
 		_dash_held += delta
 	else:
 		_dash_held = 0.0
+	var down: bool = asked or dashing
+	var committed: bool = asked or _dash_held >= Balance.HERO_SPRINT_HOLD
 	var walking: bool = (velocity - _shoved).length() > 6.0
-	var may: bool = down and walking and _dash_held >= Balance.HERO_SPRINT_HOLD \
+	var may: bool = down and walking and committed \
 		and not _winded and not _swimming and is_alive() \
 		and _beast_stun_left <= 0.0 and not RunState.flood_over_knee()
 	if may and stamina > 0.0:
