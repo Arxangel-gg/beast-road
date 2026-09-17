@@ -98,16 +98,6 @@ func _build() -> void:
 	_note.add_theme_color_override("font_color", Color("b8ae98"))
 	column.add_child(_note)
 
-	# **The poster on the wall.** The Long Ledger is a wanted list for gear
-	# (owner's own image), so it reads as one and opens the real screen.
-	var ledger := Button.new()
-	ledger.name = "LedgerDoor"
-	ledger.text = "The Long Ledger  ·  what the roads are paying"
-	ledger.custom_minimum_size = Vector2(0.0, 52.0)
-	IconKit.on_button(ledger, "quiet_ledger", 24)
-	ledger.pressed.connect(func() -> void: ledger_wanted.emit())
-	column.add_child(ledger)
-
 	_scroll = ScrollContainer.new()
 	UiMetrics.prepare_scroll(_scroll, TouchInput.is_showing())
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -129,11 +119,31 @@ func _build() -> void:
 	_purse.add_theme_color_override("font_color", Color("e8d9a8"))
 	column.add_child(_purse)
 
+	# **The poster and the way out share the bottom row.** The Long Ledger is
+	# a wanted list for gear - the owner's own image - and it belongs on this
+	# screen; what it may not do is cost a landscape phone another 120-unit
+	# line, which is what `menu_layout_check` refused when it sat on its own
+	# above the shelf. Both of them are ways out of the list, so both are one
+	# row.
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 8)
+	column.add_child(bottom)
+
+	var ledger := Button.new()
+	ledger.name = "LedgerDoor"
+	ledger.text = "The Long Ledger"
+	ledger.custom_minimum_size = Vector2(0.0, 44.0)
+	ledger.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	IconKit.on_button(ledger, "quiet_ledger", 24)
+	ledger.pressed.connect(func() -> void: ledger_wanted.emit())
+	bottom.add_child(ledger)
+
 	_close_button = Button.new()
 	_close_button.text = "Close"
 	_close_button.custom_minimum_size = Vector2(0.0, 44.0)
+	_close_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_close_button.pressed.connect(hide_screen)
-	column.add_child(_close_button)
+	bottom.add_child(_close_button)
 
 
 func _picture(path: String) -> TextureRect:
@@ -281,5 +291,10 @@ func _refit() -> void:
 	var room: bool = screen.y >= HEADER_MIN_SCREEN
 	if _art != null:
 		_art.get_parent().visible = room
-	_scroll.custom_minimum_size = Vector2(0.0, maxf(200.0, screen.y * 0.42))
+	# Measured rather than a share of the screen: a flat 42% plus a header, a
+	# heading, two lines of copy, a result, a purse and a row of buttons is
+	# taller than a landscape phone, and the panel then hangs off the bottom.
+	_scroll.custom_minimum_size = Vector2(0.0, minf(screen.y * 0.42,
+		UiMetrics.scroll_room_measured(_scroll, _scroll.get_parent() as Control,
+			Balance.UI_PANEL_MARGIN)))
 	_panel.reset_size()

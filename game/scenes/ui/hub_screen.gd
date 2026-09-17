@@ -66,6 +66,7 @@ var _prompt: Label = null
 var _note: Label = null
 var _doors_button: Button = null
 var _public_button: Button = null
+var _bar: GridContainer = null
 var _note_left: float = 0.0
 ## The road out: the chooser the host presses, and the timed answer a guest is
 ## given when somebody else presses it.
@@ -115,28 +116,38 @@ func _build_frame() -> void:
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(frame)
 
-	var top := HBoxContainer.new()
+	# **A column rather than a row**, because five buttons and a title do not
+	# fit across a 430-wide phone - and what falls off the right-hand end of
+	# that row is Close, which is the one thing `menu_layout_check` exists to
+	# keep on screen. The grid wraps instead; `_refit` decides how far.
+	var top := VBoxContainer.new()
 	top.name = "Top"
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	top.offset_left = 22.0
 	top.offset_right = -22.0
 	top.offset_top = 16.0
-	top.add_theme_constant_override("separation", 10)
+	top.add_theme_constant_override("separation", 8)
 	frame.add_child(top)
 
 	var title := Label.new()
 	title.text = "THE HOLD"
 	title.add_theme_font_size_override("font_size", 26)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(title)
 
-	_doors_button = _strip_button(top, "The Warden", _show_card)
-	_public_button = _strip_button(top, "Doors", _toggle_public)
-	_strip_button(top, "Invite", _invite)
-	_strip_button(top, "Find a Hold", _find)
-	_close_button = _strip_button(top, "Close", close)
+	_bar = GridContainer.new()
+	_bar.name = "Bar"
+	_bar.columns = 5
+	_bar.add_theme_constant_override("h_separation", 8)
+	_bar.add_theme_constant_override("v_separation", 8)
+	_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(_bar)
+
+	_doors_button = _strip_button("The Warden", _show_card)
+	_public_button = _strip_button("Doors", _toggle_public)
+	_strip_button("Invite", _invite)
+	_strip_button("Find a Hold", _find)
+	_close_button = _strip_button("Close", close)
 
 	_note = Label.new()
 	_note.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -164,13 +175,14 @@ func _build_frame() -> void:
 	EventBus.party_run_offered.connect(_on_road_offered)
 
 
-func _strip_button(row: HBoxContainer, text: String, on: Callable) -> Button:
+func _strip_button(text: String, on: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0.0, 40.0)
+	button.custom_minimum_size = Vector2(0.0, 44.0)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(on)
-	row.add_child(button)
+	_bar.add_child(button)
 	return button
 
 
@@ -619,6 +631,16 @@ func _refit() -> void:
 		var fit: float = minf(room.x / HoldYard.YARD.x, room.y / HoldYard.YARD.y)
 		_yard.scale = Vector2.ONE * fit
 		_yard.position = Vector2(screen.x * 0.5, screen.y * 0.5 + screen.y * 0.03)
+	# **The bar wraps rather than shrinking**, which is the answer this
+	# project reached once already for the scope column: shrinking produced
+	# targets under the size a thumb needs, and that trades one layout fault
+	# for a worse one.
+	if _bar != null:
+		_bar.columns = 5 if screen.x >= 900.0 else (3 if screen.x >= 620.0 else 2)
+	if _road_panel != null:
+		var road: Control = _road_rows
+		if road != null:
+			road.custom_minimum_size = Vector2(minf(520.0, screen.x * 0.9), 0.0)
 	if _panel == null:
 		return
 	var portrait: bool = screen.y > screen.x

@@ -115,19 +115,31 @@ func _build() -> void:
 	_result.add_theme_color_override("font_color", Color("d8d2c4"))
 	column.add_child(_result)
 
+	# **The two ways to get a piece made share a row.** A landscape phone is
+	# 430 tall and `UiMetrics` inflates every button to a thumb, so each one
+	# on its own line is 120 units of a screen that has none to give - which
+	# is exactly what `menu_layout_check` refused when the commission was
+	# added under Strike. Side by side they are also the decision this screen
+	# is about: my hands or his.
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	column.add_child(actions)
+
 	_strike_button = Button.new()
 	_strike_button.text = "Strike"
 	_strike_button.custom_minimum_size = Vector2(0.0, 48.0)
+	_strike_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_strike_button.pressed.connect(_strike)
-	column.add_child(_strike_button)
+	actions.add_child(_strike_button)
 
 	# **And the other way to get a piece made** (owner brief, 2026-09-17). Beside
 	# Strike rather than behind a tab, because the decision it belongs to is the
 	# one being made on this screen: my hands or his.
 	_commission_button = Button.new()
-	_commission_button.custom_minimum_size = Vector2(0.0, 44.0)
+	_commission_button.custom_minimum_size = Vector2(0.0, 48.0)
+	_commission_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_commission_button.pressed.connect(_commission)
-	column.add_child(_commission_button)
+	actions.add_child(_commission_button)
 
 	_close_button = Button.new()
 	_close_button.text = "Close"
