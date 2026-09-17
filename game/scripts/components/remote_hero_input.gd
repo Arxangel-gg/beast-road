@@ -68,15 +68,15 @@ func quiet_for() -> float:
 	return _quiet_for
 
 
+func _read_hold(mask: int) -> bool:
+	return (_held & mask) != 0
+
+
 ## Forgets everything, without pretending the partner is still holding a key.
 ##
 ## Used when a partner leaves. A remote hero left holding its last move vector
 ## would walk into a wall forever, which is the same failure the touch controls
 ## had when a hidden stick kept its action pressed.
-func held(mask: int) -> bool:
-	return (_held & mask) != 0
-
-
 func clear() -> void:
 	_move = Vector2.ZERO
 	_aim = Vector2.ZERO
@@ -93,7 +93,7 @@ func aim(previous: Vector2) -> Vector2:
 	return _aim if _has_aim else previous
 
 
-func pressed(button: int) -> bool:
+func _read_press(button: int) -> bool:
 	if _pending & button == 0:
 		return false
 	# Consumed by reading, so one press produces one action however many frames

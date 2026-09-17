@@ -1286,6 +1286,17 @@ func _test_tiers_and_persistence() -> void:
 	# the vendor rule forbids. Nothing in it grants an attribute, a level, a
 	# currency or an unlock; buying one spends Marks and puts a piece in the
 	# stash, through the door gear has always arrived by.
+	#
+	# `stable` is the mounts this account has bought and which one is saddled
+	# (2026-09-17). It amends rule 7 by one list and one name, and the bound is
+	# written on `MountData`: **a mount is movement and nothing else.** Mounted,
+	# the Warden may not swing, cast, loose, gather, fish or take an egg, and
+	# the first press of attack puts them on their feet - so nothing under this
+	# key can reach a number in a fight. A gallop is held under
+	# `Balance.MOUNT_SPEED_CEILING`, which is what a sprint already reaches, so
+	# it is not new speed either; `mount_check` measures that rather than
+	# reading it back, and holds that buying one moves the Marks and nothing
+	# else.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1295,7 +1306,7 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
 				"spirits", "pantry", "professions", "materials", "pen",
-				"expedition", "vendor"],
+				"expedition", "vendor", "stable"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live
@@ -1307,6 +1318,14 @@ func _test_tiers_and_persistence() -> void:
 		# The exception has to stay an address book. A save that starts carrying
 		# power under this name would pass the check above and break the rule it
 		# exists to keep.
+		# The stable holds a list of ids and one name. A third field is where a
+		# level, a stat or a currency would arrive, so the shape is checked
+		# rather than trusted - the same guard the Chronicle and the address
+		# book carry above.
+		var stable: Dictionary = (parsed as Dictionary).get("stable", {}) as Dictionary
+		for key: Variant in stable.keys():
+			_check(String(key) in ["owned", "saddled"],
+				"unexpected stable save key \"%s\"" % key)
 		var social: Dictionary = (parsed as Dictionary).get("social", {}) as Dictionary
 		for key: Variant in social.keys():
 			_check(String(key) in ["play_code", "friends"],

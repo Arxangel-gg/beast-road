@@ -687,7 +687,7 @@ class HoldingInput extends LocalHeroInput:
 	func move() -> Vector2:
 		return Vector2.ZERO
 
-	func held(mask: int) -> bool:
+	func _read_hold(mask: int) -> bool:
 		return mask == HeroInput.HOLD_REVIVE
 
 

@@ -97,6 +97,18 @@ const HOLD_DASH: int = 1 << 11
 ## everything rather than the next tidy one.
 const HOLD_SPRINT: int = 1 << 16
 
+## **Getting on and off a mount** (owner, 2026-09-17).
+##
+## Bit 17, continuing above the two ranges for the reason recorded on
+## `HOLD_REVIVE`: bits 2-7 are spell slots, 8-11 are holds, and reusing a gap
+## inside either is how one intent once became another in silence.
+##
+## **It is never muted.** `muted` exists so that riding can refuse the swing,
+## the cast, the shot and the interact; a mount key that muted itself would
+## be a Warden who cannot get off, which is the one state this feature must
+## not be able to reach.
+const BUTTON_MOUNT: int = 1 << 17
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null
@@ -125,13 +137,51 @@ func aim(previous: Vector2) -> Vector2:
 	return previous
 
 
+## **Intentions this source is not allowed to express**, as a mask.
+##
+## Added 2026-09-17 for mounts, and the shape is the point rather than the
+## feature. Riding forbids a whole class of things - swinging, casting,
+## loosing, gathering, fishing, taking an egg, working a seam - and the
+## interact button alone is read at *eight* call sites, each of which does
+## `who.get("input") as HeroInput` and then asks. Adding a mounted test to
+## each of those is the failure this project has shipped twice: an Arcane
+## node whose reach was applied at four of five throws, and a spell scale
+## computed by hand at three call sites. So the refusal lives in the one
+## place every one of them already goes through.
+##
+## It is on the *source* rather than on the hero because that is what those
+## eight sites hold, and because a muted source packs a muted snapshot - so
+## a guest riding a horse sends no swing, and the host's copy of that hero
+## does not swing either, with nothing about mounts crossing the wire.
+var muted: int = 0
+
+
 ## Whether a button was pressed *this frame*. Edge-triggered, not held.
+##
+## Final on purpose - subclasses override `_pressed` instead. A virtual that
+## each subclass had to remember to filter is a filter that one of them
+## eventually forgets.
 func pressed(button: int) -> bool:
-	return false
+	if (button & muted) != 0:
+		return false
+	return _read_press(button)
 
 
 ## Whether something is being held down right now. Level, not edge.
-func held(_mask: int) -> bool:
+func held(mask: int) -> bool:
+	if (mask & muted) != 0:
+		return false
+	return _read_hold(mask)
+
+
+## What a real source actually reads. The base says nothing, deliberately:
+## a hero handed a source that does not answer stands still rather than
+## doing something arbitrary.
+func _read_press(_button: int) -> bool:
+	return false
+
+
+func _read_hold(_mask: int) -> bool:
 	return false
 
 

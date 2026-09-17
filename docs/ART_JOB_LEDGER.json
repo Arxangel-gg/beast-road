@@ -181,6 +181,20 @@
   "art/icons/ui/ui_wood": {
     "base": "3c805d3c-3672-40b7-8590-437ae1b74b72"
   },
+  "art/mounts/mount_ash_courser": {
+    "character": "69b41e41-725e-41a1-b6da-63558129b1e5",
+    "base": "0407158d-ded7-4dae-8c67-719dcedaa53e"
+  },
+  "art/mounts/mount_marsh_pony": {
+    "character": "937fe4d4-efd9-4e9b-bed7-f1bfdac17cf1",
+    "base": "1d381bd2-bf80-4049-bdb2-1d87fdeaaad3"
+  },
+  "art/mounts/mount_steppe_horse": {
+    "character": "1abf78cd-736e-411c-971d-a5bc25638178",
+    "base": "b0079fa9-e72d-475b-8cc8-d7a59a823644",
+    "walk_group": "e2065b89-9d14-4901-b9a2-a63f808b8cbe",
+    "gallop_group": "1093e34d-370c-4855-b2f7-4486af35d34b"
+  },
   "art/raid/dungeon_crystals": {
     "image": "faeda173-0d2c-41ed-92d1-591998e8e4b8"
   },

@@ -5215,6 +5215,109 @@ front. So `HoldSession.offer_run` puts the kind of road and its details to the
 party with a clock, exactly as `PartyEvents` puts a raid or a rift to them, and
 the host may go before it runs out. Alone, it simply goes.
 
+**There are mounts, and a mount is movement and nothing else, as of
+2026-09-17.** The owner asked for *"mounts that players can ride and the
+ability to get mounts from a vendor at the Hold with the right resources ...
+the most aesthetic solution in The Hold for it like a stable or something and
+animated horses with AI and a vendor at it. And mounts should also have sprint
+ability. But players need to dismount to fight and they dismount when they
+attack and start fighting where they dismounted."*
+
+**The owner's own dismount rule is what makes a mount safe**, and it is worth
+stating plainly because this project has refused a third power scale about a
+dozen times - spirit traits, discipline depth, synergies, omens, fish,
+professions, materials, set bonuses - and every one of those refusals was about
+a scale nobody was tuning. Mounted, the Warden may not swing, cast, loose,
+gather, fish, work a seam or take an egg, and **the first press of attack puts
+them on their feet where they stood and lets the swing through**. So a mount
+can never touch a number in a fight.
+
+**And it is not new speed either.** `MOUNT_SPEED_CEILING` *is*
+`HERO_SPRINT_SPEED` - the same constant, on purpose - so the fastest a Warden
+may cross the field is exactly what it was before mounts existed. What a mount
+buys is that speed **without spending SP** and without the Warden's own legs
+giving out, paid for by being unable to do anything else while it lasts. The
+horse carries its own wind with its own floor and its own recovery; the rider's
+SP is untouched, because a mount drinking from SP would make the pool the
+Warden sprints on a shared resource that nothing is tuning.
+
+**The whole refusal is one mask, in one place, and that is the interesting
+half.** The interact button alone is read at *eight* call sites - the ponds,
+the seams, the nests, the rift gates, the plots, the chest, the portal and a
+tower - and every one of them does `who.get("input") as HeroInput` and then
+asks. Adding a mounted test to each is the failure this project has shipped
+twice: an Arcane node whose reach was applied at four of five throws, and a
+spell scale computed by hand at three call sites. So `HeroInput.muted` sits on
+the source every one of them already holds, `pressed`/`held` filter through it,
+and subclasses override `_read_press`/`_read_hold` instead.
+
+It is also what makes co-op almost free: **a muted source packs a muted
+snapshot**, so a guest riding a horse sends no swing and the host's copy of
+that hero does not swing either. Getting on and off crosses as the mount button
+inside `HERO_INPUT` like any other intent. The one thing that genuinely cannot
+be worked out locally is *which* horse - that is the other account's saved
+choice, and `MetaState.saddled_mount()` read for somebody else's Warden returns
+this player's own. So the id travels (`Request.HERO_MOUNT`, and a sixth element
+on the state row the applier already tolerates) and the behaviour does not.
+
+**It amends working rule 7 by one list and one name.** `MetaState.stable` is
+`{owned: [...], saddled: ""}` and nothing else: no level, no stat, no currency,
+no unlock, and nothing the road can grow. Bought with **Marks and never
+materials** - a material is an input to the Smithy and nothing else
+(2026-09-13), and the run currencies reset, so the only honest price for a thing
+you keep is the account's own. Additive, like the pantry, the spirits, the
+materials and the pen before it: a save written before this has no `stable` key
+and reads back as a Warden on foot, which is what a new account is.
+`SAVE_VERSION` did not move.
+
+**The stable is a place in the Hold**, which is the owner's own clause. A barn
+west of the square, Halric standing at its gate, and a fenced paddock with five
+horses in it - **each on its own clock**, grazing where it stands and wandering
+somewhere new, so a paddock of five is never five copies of one animation. That
+is the argument `PenYard` was built under and the gate drives forty seconds and
+refuses a yard where every animal is doing the same thing. The saddled one
+waits at the rail nearest the gate, which is the only piece of information in
+the picture.
+
+**The door is a button adopted into the Hold like every other**, so the menu
+list and the walkable place cannot disagree about what is in it - they are the
+same buttons, read twice.
+
+`mount_check` (87 checks) holds the ceiling by **measuring `Hero.move_speed()`**
+rather than reading `MountData.gallop` back, drives the real `_tick_mount` with
+a real attack press to prove the dismount happens *and* that the press is not
+swallowed, galloping for three seconds and reading the Warden's SP back
+unchanged, and buys every mount in the stable to prove the purse is the only
+thing that moved. Three faults were planted and all three named.
+
+**Two things fell out of building it and both are ones this project already
+knows.** `MOUNT_DOWN_SECONDS` was authored and read by nothing, and
+`balance_reach_check` refused it - correctly, since getting *off* has to be
+instant or the swing that asked for it does not land. And the gate first
+reported a working gallop as broken twice over: once for setting `_galloping`
+by hand when the tick recomputes it, and once for calling `_tick_gallop`
+directly when it is the *outer* tick that counts the climb into the saddle
+down. Drive the door, not the flag, and drive the outermost one.
+
+**The art is not finished and the gap is named rather than left to be noticed.**
+The steppe horse and the marsh pony have their eight-direction base sheets; the
+walk and gallop sheets and the other two mounts were still generating when this
+was written. `MountRig` treats every missing sheet as a stiller picture rather
+than as a hole - a missing gallop falls back to the walk, a missing walk to the
+base painting - which is the same rule the Warden's own sprint sheet lives
+under. **And the Guide has no mount page yet**: a section needs a photograph on
+disk and `guide_shots` needs a window, which was not available.
+
+**The Ash Courser had to be drawn twice, and the reason is a knob worth
+knowing.** Generated with the steppe horse as a style image, it came out as the
+steppe horse: the transfer carried the *palette* along with the outline and the
+shading, and "smoke grey and charcoal" was overruled by the reference. Two
+mounts that look the same are one mount sold twice. `style_options` separates
+them - `color_palette: false` with `outline`, `shading` and `detail` left on -
+which is the right default whenever the reference and the subject are the same
+*kind* of thing in different colours.
+
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

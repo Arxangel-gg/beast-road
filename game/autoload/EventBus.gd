@@ -47,6 +47,14 @@ signal wildlife_tamed(species_id: String, pen_uid: String, rarity: int, shiny: b
 ## The legs gave out. Drawn and heard rather than only read off the bar.
 signal hero_winded()
 
+## The Warden got on or off a mount (owner brief, 2026-09-17). Said so the
+## action bar, the prompts and the gate can each hear it without reaching into
+## the hero - and so that nothing has to poll `is_mounted()` every frame to
+## notice. Carries the mount's id rather than the resource, because a signal
+## that hands out a `Resource` invites somebody to hold onto it.
+signal hero_mounted(mount_id: String)
+signal hero_dismounted()
+
 ## A line went into a pond, and how long it will be there.
 signal fishing_started(seconds: float)
 

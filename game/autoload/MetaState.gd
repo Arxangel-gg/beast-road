@@ -382,6 +382,27 @@ var pen: Array[Dictionary] = []
 ## companions were un-cut: what §54 refuses is a *roster* the player commands.
 var pen_taken: String = ""
 
+## **The mounts this account has bought, and the one that is saddled.**
+##
+## Added 2026-09-17 with the owner's mount brief. It amends working rule 7 by
+## one list and one name, and the bound is written on `MountData`: **a mount is
+## movement and nothing else.** Mounted, the Warden may not swing, cast, loose,
+## gather, fish or take an egg, and the first press of attack puts them on their
+## feet - so nothing here can reach a number in a fight. It grants no attribute,
+## no level, no currency and no unlock, and a gallop is held under
+## `Balance.MOUNT_SPEED_CEILING`, which is what a sprint already reaches.
+##
+## Additive, like the pantry, the spirits, the materials and the pen before it:
+## a save written before this has no `stable` key and reads back as a Warden who
+## owns no mount, which is what a new account is. `SAVE_VERSION` did not move
+## and there is no migration to get wrong.
+var mounts: Array[String] = []
+
+## The id of the mount that is saddled, or empty for on foot. One at a time,
+## for the reason the pen holds one animal: a stable of four is a collection
+## and a *string* of four is a roster.
+var mount_saddled: String = ""
+
 ## **The frontier the Warden can go back to.**
 ##
 ## One snapshot, written on a successful extraction and on nothing else. A wipe
@@ -1700,6 +1721,13 @@ func serialized_save() -> String:
 			"animals": pen,
 			"taken": pen_taken,
 		},
+		# The stable. A list of ids and the name of the one that is saddled -
+		# no stats, no levels and nothing the road can grow, because a mount is
+		# movement and nothing else.
+		"stable": {
+			"owned": mounts,
+			"saddled": mount_saddled,
+		},
 		# The frontier. One snapshot, and an unreadable one is dropped on load
 		# rather than half-applied - half a fortress is worse than none, because
 		# the player cannot tell which half is missing.
@@ -1815,6 +1843,7 @@ func adopt_save(data: Dictionary) -> void:
 	_read_materials(data.get("materials", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_pen(data.get("pen", {}) as Dictionary)
+	_read_stable(data.get("stable", {}) as Dictionary)
 	vendor = data.get("vendor", {}) as Dictionary
 	var front: Dictionary = data.get("expedition", {}) as Dictionary
 	expedition = front if Expedition.is_readable(front) else {}
@@ -2162,6 +2191,76 @@ func _read_pen(stored: Dictionary) -> void:
 		# road with a ghost on it.
 		taken = ""
 	pen_taken = taken
+
+
+## Reads the stable.
+##
+## **A mount the roster does not have is dropped rather than trusted**, which
+## is the same rule the pen applies to a species it cannot draw: a saddled id
+## with no `MountData` behind it is a hero riding nothing, and every reader
+## downstream would have to carry its own guard.
+func _read_stable(stored: Dictionary) -> void:
+	mounts.clear()
+	mount_saddled = ""
+	for row: Variant in (stored.get("owned", []) as Array):
+		var id: String = String(row)
+		if id.is_empty() or mounts.has(id):
+			continue
+		if ContentDB.mount(id) == null:
+			continue
+		mounts.append(id)
+	var saddled: String = String(stored.get("saddled", ""))
+	# A saddled name that is not owned is a dangling name, exactly as the pen's
+	# `taken` can be. Better an empty field than a Warden on a ghost.
+	mount_saddled = saddled if mounts.has(saddled) else ""
+
+
+## Whether this account owns a mount.
+func owns_mount(id: String) -> bool:
+	return mounts.has(id)
+
+
+## Buys a mount with Marks. The stable's one door, so the price, the refusal
+## and the write cannot disagree - the rule `PenScreen` follows for the same
+## reason.
+##
+## **Validates, then spends, then gives**, in that order and with no state
+## written before the last step, which is the order `Forge.commission` settled
+## on: a door that spent and then failed would cost the player Marks for
+## nothing.
+func buy_mount(id: String) -> bool:
+	var kind: MountData = ContentDB.mount(id)
+	if kind == null or mounts.has(id):
+		return false
+	if marks < kind.price:
+		return false
+	marks -= kind.price
+	mounts.append(id)
+	# The first one a Warden buys is saddled, because a stable that made you
+	# buy a horse and then press a second button to sit on it reads as the
+	# purchase not having worked.
+	if mount_saddled.is_empty():
+		mount_saddled = id
+	save_game()
+	return true
+
+
+## Saddles a mount, or unsaddles with an empty id. Refuses what is not owned.
+func saddle_mount(id: String) -> bool:
+	if not id.is_empty() and not mounts.has(id):
+		return false
+	if mount_saddled == id:
+		return false
+	mount_saddled = id
+	save_game()
+	return true
+
+
+## The mount the Warden rides, or null on foot.
+func saddled_mount() -> MountData:
+	if mount_saddled.is_empty():
+		return null
+	return ContentDB.mount(mount_saddled)
 
 
 ## A name for one animal, unique within this account's pen.

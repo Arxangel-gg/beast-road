@@ -78,6 +78,11 @@ var gear_affixes: Dictionary = {}
 ## Matched sets, by id. A piece belongs to one through its *kind*.
 var gear_sets: Dictionary = {}
 
+## Something to cross ground on (owner brief, 2026-09-17). See `MountData`:
+## a mount is movement and nothing else, bought from the Hold's stable with
+## Marks and left behind the moment the Warden swings.
+var mounts: Dictionary = {}
+
 ## The world's pages, the guide's sections and the account's achievements
 ## (owner brief, 2026-09-12). Data, like every string a player reads.
 var lore: Dictionary = {}
@@ -143,6 +148,7 @@ func _ready() -> void:
 	affixes = _load_dir("res://data/affixes")
 	gear_affixes = _load_dir("res://data/gear_affixes")
 	gear_sets = _load_dir("res://data/gear_sets")
+	mounts = _load_dir("res://data/mounts")
 	lore = _load_dir("res://data/lore")
 	guide_sections = _load_dir("res://data/guide")
 	achievements = _load_dir("res://data/achievements")
@@ -260,6 +266,28 @@ func achievements_sorted() -> Array[AchievementData]:
 
 ## Every legendary affix, in a stable order, so a roll from a uid lands on
 ## the same one on every machine and every launch.
+## One mount by id, or null. Null rather than a default, so a dangling name in
+## a save reads as a Warden on foot rather than as a Warden on whatever the
+## first file in the folder happened to be.
+func mount(id: String) -> MountData:
+	return mounts.get(id, null) as MountData
+
+
+## Every mount the stable may sell, cheapest first, then by id so the order is
+## the same on every machine - a dictionary's order is not a promise.
+func mounts_sorted() -> Array[MountData]:
+	var out: Array[MountData] = []
+	for value: Variant in mounts.values():
+		var one := value as MountData
+		if one != null:
+			out.append(one)
+	out.sort_custom(func(a: MountData, b: MountData) -> bool:
+		if a.order != b.order:
+			return a.order < b.order
+		return a.id < b.id)
+	return out
+
+
 ## Every set, in a stable order. Sorted because a dictionary's order is not a
 ## promise and two machines reading the same loadout must agree.
 func gear_sets_sorted() -> Array[GearSetData]:

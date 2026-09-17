@@ -10276,3 +10276,94 @@ const UI_PIXEL_FILTER_BLOCK: float = 3.0
 ## effect on a small window and almost nothing on a 4K one, so the grid is a
 ## share of the screen rather than a number of pixels.
 const UI_PIXEL_FILTER_REFERENCE_HEIGHT: float = 1080.0
+
+
+# --- Mounts (owner, 2026-09-17) ----------------------------------------------
+#
+# "I'd eventually also like to add mounts that players can ride and the ability
+# to get mounts from a vendor at the Hold with the right resources ... And
+# mounts should also have sprint ability. But players need to dismount to fight
+# and they dismount when they attack and start fighting where they dismounted."
+
+## **The ceiling on a gallop, as a multiple of the Warden's own walk.**
+##
+## Equal to `HERO_SPRINT_SPEED` on purpose rather than by coincidence: a mount
+## is meant to be the speed the Warden already had, bought *without* spending SP
+## and without their legs giving out, and paid for by being unable to swing,
+## cast, loose, gather, fish or take an egg while it lasts. A mount faster than a
+## sprint would be new speed, which is a scale nobody is tuning against - the
+## same objection spirit traits, discipline depth, omens, fish and set bonuses
+## have each been held to. `mount_check` measures every authored mount against
+## this rather than reading the figure off the resource.
+const MOUNT_SPEED_CEILING: float = HERO_SPRINT_SPEED
+
+## How long it takes to get up.
+##
+## **There is no matching figure for getting down, and that is the design.**
+## The owner's rule is that pressing attack dismounts and the fight starts
+## where you stood; a dismount the player waits even a fifth of a second for
+## is a swing that does not land, and they will read it as the button not
+## working. So getting off is instant and only getting on has a cost.
+## `MOUNT_DOWN_SECONDS` existed here for an afternoon and `balance_reach_check`
+## refused it - correctly, since nothing read it and nothing should.
+const MOUNT_UP_SECONDS: float = 0.45
+
+## How long after getting off before you may get back on.
+##
+## Without it, holding the mount key through a fight is a flicker between two
+## states several times a second. It is shorter than a swing, so it never costs
+## a player a blow they meant to land.
+const MOUNT_REMOUNT_DELAY: float = 0.6
+
+## How close something hostile may be before the Warden refuses to mount.
+##
+## Not a fairness rule - a mounted hero cannot fight, so mounting in a crowd
+## only ever hurts the player. It is there because doing it by accident in the
+## middle of a wave reads as the game disarming you.
+const MOUNT_DANGER_RANGE: float = 220.0
+
+## How far back from empty a mount's own wind has to come before it will gallop
+## again. The same shape as `HERO_SPRINT_FLOOR` and for the same reason: a pool
+## you can tap at zero is a speed setting rather than a resource.
+const MOUNT_WIND_FLOOR: float = 20.0
+## How long after the last gallop stride before the wind starts coming back.
+const MOUNT_WIND_REST: float = 0.5
+
+## How often a gallop kicks dirt off the hooves, in seconds.
+const MOUNT_DUST_INTERVAL: float = 0.1
+
+## How much the rider is lifted off the mount's own seat line, in world units,
+## on top of `MountData.seat`. A rider placed only by the share sits *in* the
+## saddle blanket rather than on it.
+const MOUNT_RIDER_LIFT: float = 4.0
+
+## How far the mount bobs as it moves, and how fast. Drawn rather than animated,
+## because the horse's own sheets are a walk cycle and a bob on top of one is
+## eight frames this project would otherwise have to generate twice.
+const MOUNT_BOB_HEIGHT: float = 3.0
+const MOUNT_BOB_RATE: float = 6.5
+
+## --- The stable at the Hold ---
+##
+## **Marks, and never materials.** A material is an input to the Smithy and
+## nothing else (2026-09-13), and the run currencies reset - so the only honest
+## price for a thing you keep between runs is the account's own, which is what
+## the stash, the Ledger and Orden's commission already take.
+
+## How many horses stand in the paddock at once. Enough that the yard reads as
+## a stable rather than as one animal in a field, few enough that each can keep
+## its own clock without the pen being a crowd.
+const STABLE_HORSES: int = 5
+## How big the paddock is, in the Hold's own units.
+const STABLE_PADDOCK: Vector2 = Vector2(520.0, 300.0)
+## How fast a loose horse wanders, and how long it stands between errands.
+const STABLE_WANDER_SPEED: float = 46.0
+const STABLE_PAUSE_MIN: float = 1.6
+const STABLE_PAUSE_MAX: float = 5.2
+## How long one of them spends grazing when it decides to. Long enough to be a
+## thing the animal is doing rather than a pose it passes through.
+const STABLE_GRAZE_MIN: float = 3.0
+const STABLE_GRAZE_MAX: float = 7.5
+## How often a paddock horse plays its own frame. Slower than a road animal,
+## because nothing in a paddock is in a hurry.
+const STABLE_IDLE_FPS: float = 3.0

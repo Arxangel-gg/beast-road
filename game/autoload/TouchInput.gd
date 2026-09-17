@@ -447,6 +447,38 @@ func revive_held() -> bool:
 	return _revive != null and _revive.visible and _revive.is_held()
 
 
+## **The mount intent, from anything that is not the keyboard.**
+##
+## The mount key is not rebindable and is not on the pad, for the reason in
+## the memory directory: every rebindable action needs a joypad button and
+## there is no free one. What a thumb and a pad reach instead is the action
+## bar's own Ride button, and this is where its press arrives - here rather
+## than on the HUD, because `LocalHeroInput` already asks this autoload for
+## the revive and the auto-attack, and one road for non-keyboard intent is
+## better than two.
+var _mount_asked_at: int = -1
+
+
+## Pressed the Ride button. Called by the action bar on every device, phone
+## or not - the button is on the bar at desktop sizes too.
+func ask_mount() -> void:
+	_mount_asked_at = Engine.get_physics_frames()
+
+
+## Whether Ride was pressed just now.
+##
+## **A window rather than a latch consumed by the first reader.** Two things
+## ask in the same frame - the hero itself, and on a guest the snapshot that
+## packs this frame's intent for the host - and a flag eaten by whichever
+## asked first would mount on one machine and not the other. Two physics
+## frames, because a button press is handled in `_input` and may land either
+## side of the tick that reads it.
+func mount_pressed() -> bool:
+	if _mount_asked_at < 0:
+		return false
+	return Engine.get_physics_frames() - _mount_asked_at <= 1
+
+
 ## How big a persistent touch button is. Sized from the shorter screen axis, so
 ## a tall viewport does not produce a button a quarter of the screen across.
 func button_side() -> float:

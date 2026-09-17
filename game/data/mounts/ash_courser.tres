@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+price = 620
+speed = 1.38
+gallop = 1.45
+stamina = 90.0
+stamina_drain = 26.0
+stamina_regen = 17.0
+art_scale = 1.04
+seat = 0.64
+order = 2
+id = "ash_courser"
+display_name = "Ash Courser"
+description = "Out of the Ashen Reach, where the ground is still warm. Quick over a short stretch, and it wants the stretch to be short."

@@ -104,6 +104,11 @@ func _ready() -> void:
 	EventBus.coop_party_event_away.connect(_on_party_away)
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_hero_state.connect(_on_hero_state)
+	# **Which horse, not whether.** Getting on already crosses as the mount
+	# button inside `HERO_INPUT`; what a machine cannot work out for somebody
+	# else is which animal that account saddled. See `Hero.told_mount`.
+	EventBus.hero_mounted.connect(_on_local_mounted)
+	EventBus.hero_dismounted.connect(_on_local_dismounted)
 	EventBus.coop_host_input.connect(_on_host_input)
 	EventBus.coop_hero_down.connect(_on_hero_down)
 	EventBus.coop_hero_revived.connect(_on_hero_revived)
@@ -664,6 +669,29 @@ func _on_host_input(slot: int, snapshot: Array) -> void:
 ## need no send path of their own - and the authority guard covers them for free.
 ## A guest that tried to author a position would be caught by the same check that
 ## catches one inventing a kill.
+## The local player got on. A guest tells the host; a host tells nobody here,
+## because its own id rides out on the next state packet anyway.
+func _on_local_mounted(mount_id: String) -> void:
+	_saddled[Coop.party().slot()] = mount_id
+	if not Coop.is_guest():
+		return
+	var relay: CoopRelay = Coop.relay()
+	if relay != null:
+		relay.request(CoopRelay.Request.HERO_MOUNT, [mount_id])
+
+
+func _on_local_dismounted() -> void:
+	# Deliberately *not* cleared. Which horse an account saddled is still true
+	# with the Warden standing beside it, and clearing it here would mean every
+	# remount raced a packet to decide what to draw.
+	pass
+
+
+## Which mount each seat rides, by slot. Presentation only - nothing reads it
+## but `Hero.wear_mount`, and a wrong entry costs a wrong painting.
+var _saddled: Dictionary = {}
+
+
 func _send_state() -> void:
 	var rows: Array = []
 	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
@@ -671,10 +699,22 @@ func _send_state() -> void:
 		if who == null:
 			continue
 		rows.append([number, who.global_position, who.aim_direction(),
-			_health_of(who), _mana_of(who)])
+			_health_of(who), _mana_of(who), _saddled_of(number)])
 	if rows.is_empty():
 		return
 	EventBus.coop_hero_state.emit(rows)
+
+
+## Which mount a seat is on, as an id.
+##
+## **Appended to the row rather than given a fact of its own**, because the
+## applier already tolerates a short row - it reads the fifth element only
+## `if row.size() > 4` - so an older build reads this as a row with no mount
+## on it rather than as a malformed packet.
+func _saddled_of(number: int) -> String:
+	if number == Coop.party().slot():
+		return MetaState.mount_saddled
+	return String(_saddled.get(number, ""))
 
 
 ## A hero's mana as a fraction of its own maximum.
@@ -719,15 +759,21 @@ func _on_hero_state(rows: Array) -> void:
 		if row == null or row.size() < 4:
 			continue
 		_apply_one_state(clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS),
-			row[1] as Vector2, float(row[3]), float(row[4]) if row.size() > 4 else -1.0)
+			row[1] as Vector2, float(row[3]),
+			float(row[4]) if row.size() > 4 else -1.0,
+			String(row[5]) if row.size() > 5 else "")
 
 
 ## One seat's authoritative position and health, on a guest.
-func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0) -> void:
+func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0,
+		mount_id: String = "") -> void:
 	var who: Hero = _hero_for_slot(number)
 	if who == null:
 		return
 	_apply_health(who, hp)
+	# Told for every seat including this player's own, which is harmless and
+	# self-correcting: the host is echoing back the id this machine sent it.
+	who.wear_mount(mount_id)
 	if mana >= 0.0:
 		who.mana = clampf(mana, 0.0, 1.0) * who.mana_max()
 	var own: bool = number == Coop.party().slot()
@@ -768,7 +814,17 @@ func _on_party_away(slot: int, away: bool) -> void:
 ## a slot carried inside the packet would be a guest naming which body it drives,
 ## and naming somebody else's is the whole reason the authority model exists.
 func _on_request(kind: int, args: Array, from: int) -> void:
-	if kind != CoopRelay.Request.HERO_INPUT or not Coop.is_host():
+	if not Coop.is_host():
+		return
+	if kind == CoopRelay.Request.HERO_MOUNT:
+		var seat: int = Coop.party().slot_for_peer(from)
+		if seat > 0 and args.size() >= 1:
+			_saddled[seat] = String(args[0])
+			var riding: Hero = _hero_for_slot(seat)
+			if riding != null:
+				riding.wear_mount(String(args[0]))
+		return
+	if kind != CoopRelay.Request.HERO_INPUT:
 		return
 	var number: int = Coop.party().slot_for_peer(from)
 	if number <= 0:

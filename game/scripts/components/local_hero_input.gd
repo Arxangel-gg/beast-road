@@ -50,7 +50,7 @@ func aim(previous: Vector2) -> Vector2:
 	return HeroInput.aim_at(from, hero.get_global_mouse_position(), previous)
 
 
-func pressed(button: int) -> bool:
+func _read_press(button: int) -> bool:
 	match button:
 		BUTTON_ATTACK:
 			return Input.is_action_just_pressed(&"attack")
@@ -71,10 +71,16 @@ func pressed(button: int) -> bool:
 		return Input.is_action_just_pressed(&"use_item")
 	if button == BUTTON_INTERACT:
 		return Input.is_action_just_pressed(&"interact")
+	# **The mount key** (2026-09-17). Not rebindable and not on the pad, for the
+	# reason recorded in the memory directory: every rebindable action needs a
+	# joypad button and there is no free one. What a thumb and a pad reach
+	# instead is the action bar's own Ride button, which presses this intent.
+	if button == BUTTON_MOUNT:
+		return Input.is_action_just_pressed(&"mount") or TouchInput.mount_pressed()
 	return false
 
 
-func held(mask: int) -> bool:
+func _read_hold(mask: int) -> bool:
 	if mask == HOLD_REVIVE:
 		# The touch button is asked as well as the key. There is no `revive`
 		# action a thumb can reach, so on a phone this was always false and a
@@ -126,7 +132,8 @@ func snapshot(current_aim: Vector2) -> Array:
 			buttons |= bit
 	# Packed like every other button, so a guest's shot is the host's shot. A
 	# ranged attack that only existed locally would fire on one screen.
-	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE, BUTTON_USE_ITEM, BUTTON_INTERACT]:
+	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE, BUTTON_USE_ITEM, BUTTON_INTERACT,
+			BUTTON_MOUNT]:
 		if pressed(bit):
 			buttons |= bit
 	var holds: int = 0

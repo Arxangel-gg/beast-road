@@ -809,6 +809,29 @@ merchant has both.
 | `merchant_alchemist.png` | 128×128 | T | `#4C6B45` |
 | `merchant_relic_peddler.png` | 128×128 | T | `#48557A` |
 | `merchant_quartermaster.png` | 128×128 | T | `#6B6258` |
+| `merchant_stabler.png` | 128×128 | T | `#6B5A3E` |
+
+### 5.5c Mounts — `res://art/mounts/`
+
+Something to cross ground on (owner brief, 2026-09-17). Bought at the Hold's
+stable with Marks, ridden on the road, and left behind the moment the Warden
+swings — a mount is movement and nothing else. See `MountData`.
+
+192×192, the size the ecology's own animals are drawn at, because a horse
+beside a Warden at 168×160 is the same scene as a horse beside a hunter.
+
+A mount's base sprite is what the paddock stands and what the field falls back
+to. **The eight-direction sheets are not manifest rows**, and that is the same
+rule the hero's own sheets follow: `mount_<id>_<state>.png` is a *packed* file
+built by a tool from generated frames, not an asset anybody draws, and
+`MountRig` treats a missing one as a stiller picture rather than as a hole.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `mount_marsh_pony.png` | 192×192 | T | `#6B5A44` |
+| `mount_steppe_horse.png` | 192×192 | T | `#7A6448` |
+| `mount_ash_courser.png` | 192×192 | T | `#4A423E` |
+| `mount_terrace_stag.png` | 192×192 | T | `#5E5140` |
 
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 

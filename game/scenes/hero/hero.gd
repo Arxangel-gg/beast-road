@@ -168,6 +168,45 @@ var _winded: bool = false
 var _stamina_said: float = -1.0
 var _mana_announce_left: float = 0.0
 
+## **Riding** (owner brief, 2026-09-17). What is saddled while the Warden is
+## up, null on foot; the bound is written on `MountData` and is one sentence -
+## **a mount is movement and nothing else.** Every number below is the mount's
+## own, so SP is untouched and nothing here can reach a blow.
+var _mount: MountData = null
+var _mount_rig: MountRig = null
+## Seconds left of getting on. The Warden is already mounted while this runs -
+## it is the climb, not a decision that can still be refused - so it may not
+## gate anything but the picture.
+var _mount_up_left: float = 0.0
+## Seconds before another mount is allowed. Without it, holding the key is a
+## flicker between two states several times a second.
+var _mount_wait: float = 0.0
+## The mount's own wind, its rest clock, and whether it has run itself out.
+## **Its own, not the Warden's.** A mount drinking from SP would make the pool
+## the Warden sprints on a shared resource, which is a coupling nobody asked
+## for and the tuning would have to answer for.
+var mount_wind: float = 0.0
+var _mount_wind_rest: float = 0.0
+var _mount_winded: bool = false
+var _mount_wind_said: float = -1.0
+var _galloping: bool = false
+var _mount_dust: float = 0.0
+## The last line said about refusing to mount, so it is said once rather than
+## sixty times a second while the key is held.
+var _mount_refused_said: float = 0.0
+## **Which mount a hero that is not this machine's player rides.**
+##
+## Riding itself needs no wire: the mount key is in the input snapshot, so a
+## partner's hero gets on at the same press on every machine. What a machine
+## cannot know is *which* horse, because that is the other account's saved
+## choice - and `MetaState.saddled_mount()` read for somebody else's Warden
+## returns this player's own. So the id travels and the behaviour does not,
+## which is the smallest thing that can cross here.
+##
+## Empty means "this account decides", which is every hero in a solo run and
+## this player's own hero in a shared one.
+var told_mount: String = ""
+
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
 var _attack_recoil_ready: bool = false
@@ -360,6 +399,12 @@ func _ready() -> void:
 	_swim_cover.name = "SwimCover"
 	_swim_cover.sprite = sprite
 	add_child(_swim_cover)
+
+	# The horse under the rider. Added before anything reads it, and drawn
+	# behind the sprite from every angle - see `MountRig`.
+	_mount_rig = MountRig.new()
+	_mount_rig.rider = sprite
+	add_child(_mount_rig)
 	# **The symbol that says what can be done here** (owner, 2026-09-16). Only
 	# over this machine's own Warden: a partner's prompt is their business, and
 	# a badge over an ally would be this screen guessing at another player's
@@ -435,6 +480,12 @@ func _physics_process(delta: float) -> void:
 	# is already happening and the bodies on the road do not stop.
 	if attack != null:
 		attack.drag = Balance.HERO_SWIM_ATTACK_DRAG if _swimming else 1.0
+	# **Before `can_fight` is asked**, because riding is what makes the answer
+	# no - and because the owner's rule is that pressing attack *dismounts* and
+	# the fight starts where you stood. A press read after the refusal would be
+	# a swing thrown away rather than a dismount.
+	_tick_mount(delta)
+
 	var combat_input: bool = can_fight()
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
@@ -736,6 +787,12 @@ func is_drowned() -> bool:
 ##
 ## The mode is per-player and local. See `GameDirector.build_mode`.
 func can_fight() -> bool:
+	# **Mounted, you may not fight** (owner, 2026-09-17). Answered first and
+	# unconditionally, before any phase is read, because this is the bound that
+	# makes a mount safe: it can never touch a number in a fight. The press that
+	# asked is not lost - `_tick_mount` has already turned it into a dismount.
+	if _mount != null:
+		return false
 	if RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID:
 		return true
 	# In a camp or a rift the fight is the whole of the place, whatever phase
@@ -824,7 +881,16 @@ func move_speed() -> float:
 	# Wading (2026-09-14). A multiplier rather than a bonus, so it cannot be
 	# summed away by Swiftness: water is water whoever is walking through it.
 	# A swimmer is already paying the water's price and does not pay it twice.
+	# **Riding replaces running rather than stacking with it.** A gallop on top
+	# of a sprint would be new speed, which is the third scale this project has
+	# refused a dozen times; a gallop *instead of* one is the speed the Warden
+	# already had, bought without SP and paid for by being unable to fight.
+	# `Balance.MOUNT_SPEED_CEILING` is `HERO_SPRINT_SPEED`, and `mount_check`
+	# measures every authored mount against it rather than reading the figure.
 	var running: float = Balance.HERO_SPRINT_SPEED if _sprinting else 1.0
+	if _mount != null:
+		running = minf(_mount.gallop if _galloping else _mount.speed,
+			Balance.MOUNT_SPEED_CEILING)
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * running \
 		* (1.0 if _swimming else RunState.flood_slow())
 
@@ -1431,6 +1497,12 @@ func _tick_timers(delta: float) -> void:
 ## on the button is not running, and draining the pool for it would be the one
 ## way to be punished for nothing.
 func _tick_sprint(delta: float) -> void:
+	# **A rider spends nothing** (owner brief, 2026-09-17). The gallop has its
+	# own wind on the mount, so returning here is what keeps SP out of it -
+	# without this the sprint key would drain both pools at once and the
+	# Warden would arrive winded from a journey they did not walk.
+	if _mount != null:
+		return
 	# **Two ways in, and they engage differently.** The dash button has to be
 	# held past `HERO_SPRINT_HOLD` so that a tap of it stays a dash; the
 	# sprint key exists only to sprint, so it takes effect on the press.
@@ -1466,6 +1538,310 @@ func _tick_sprint(delta: float) -> void:
 	if not is_equal_approx(stamina, _stamina_said):
 		_stamina_said = stamina
 		EventBus.hero_stamina_changed.emit(stamina, Balance.HERO_STAMINA_MAX)
+
+
+# --- Mounts ------------------------------------------------------------------
+
+## **What riding forbids**, as one mask.
+##
+## Handed to the hero's own input source, which is what every one of the eight
+## interact call sites already holds, so a gather, a cast, an egg and a fishing
+## line are all refused in one place. See `HeroInput.muted` for why it is there
+## rather than at each site.
+##
+## `BUTTON_MOUNT` is deliberately absent: a mount key that muted itself would be
+## a Warden who cannot get off. `HOLD_DASH` and `HOLD_SPRINT` are absent too,
+## because the gallop *is* the sprint - which is the owner's own clause.
+const MOUNTED_MUTE: int = HeroInput.BUTTON_ATTACK | HeroInput.HOLD_ATTACK \
+	| HeroInput.BUTTON_RANGED | HeroInput.BUTTON_AMMO_CYCLE \
+	| HeroInput.BUTTON_INTERACT | HeroInput.HOLD_INTERACT \
+	| HeroInput.BUTTON_DASH | HeroInput.HOLD_REVIVE
+
+
+## Getting on, staying on, galloping, and getting off.
+##
+## Run before `can_fight()` is asked, because a press of attack while mounted is
+## a *dismount* rather than a refusal - the owner's rule is that the Warden
+## dismounts when they attack and the fight starts where they stood, so the
+## press has to be seen before the mute swallows it.
+func _tick_mount(delta: float) -> void:
+	_mount_wait = maxf(_mount_wait - delta, 0.0)
+	_mount_up_left = maxf(_mount_up_left - delta, 0.0)
+	_mount_refused_said = maxf(_mount_refused_said - delta, 0.0)
+	if input == null:
+		return
+
+	if _mount != null:
+		# **The dismount, and the swing that asked for it.** Read through the raw
+		# source rather than through `pressed`, because the mask is what a rider
+		# is muted by and the point of this branch is to hear the muted button.
+		if _asked_to_fight():
+			dismount()
+			# Not consumed: the mute comes off in the same frame, so the press the
+			# player made lands as the swing they meant. The owner's words were
+			# "they dismount when they attack and start fighting where they
+			# dismounted".
+			return
+		if input.pressed(HeroInput.BUTTON_MOUNT):
+			dismount()
+			return
+		if not _may_stay_mounted():
+			dismount()
+			return
+		_tick_gallop(delta)
+		_drive_mount()
+		return
+
+	if input.pressed(HeroInput.BUTTON_MOUNT):
+		mount()
+
+
+## Whether the player asked to fight this frame, through any of the doors a
+## rider is muted on.
+##
+## **Asked of the raw source**, since `pressed`/`held` answer false for exactly
+## these bits while mounted. One function, so the list cannot drift from
+## `MOUNTED_MUTE` - which is the failure this project has shipped twice.
+func _asked_to_fight() -> bool:
+	if input == null or _beast_stun_left > 0.0:
+		return false
+	var was: int = input.muted
+	input.muted = 0
+	var asked: bool = input.pressed(HeroInput.BUTTON_ATTACK) \
+		or input.held(HeroInput.HOLD_ATTACK) \
+		or input.pressed(HeroInput.BUTTON_RANGED) \
+		or input.pressed(HeroInput.BUTTON_INTERACT)
+	if not asked:
+		for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+			if input.pressed(HeroInput.spell_button(slot)):
+				asked = true
+				break
+	input.muted = was
+	return asked
+
+
+## Gets on, if there is anything to get on and anywhere to do it.
+##
+## Every refusal says why at the feet rather than doing nothing, because a key
+## that silently does not work reads as a key that is not bound.
+func mount() -> bool:
+	if _mount != null or _mount_wait > 0.0 or not is_alive():
+		return false
+	var kind: MountData = _saddled()
+	if kind == null:
+		_refuse("No mount saddled")
+		return false
+	if _swimming or RunState.flood_over_knee():
+		_refuse("Too deep to ride")
+		return false
+	if _beast_stun_left > 0.0:
+		return false
+	# **Not a fairness rule.** A rider cannot fight, so mounting in a crowd only
+	# ever costs the player - this is here because doing it by accident in the
+	# middle of a wave reads as the game disarming you.
+	if _danger_near():
+		_refuse("Not with something this close")
+		return false
+	_mount = kind
+	_mount_up_left = Balance.MOUNT_UP_SECONDS
+	mount_wind = kind.stamina
+	_mount_winded = false
+	_galloping = false
+	_mount_wind_rest = 0.0
+	_mount_wind_said = -1.0
+	if input != null:
+		input.muted = MOUNTED_MUTE
+	# A channel or a swing already running is ended rather than left hanging:
+	# the rider is out of the fight from this frame, and a cast that finished in
+	# the saddle would be the one thing this feature must not allow.
+	attack.cancel()
+	spells.cancel_channel()
+	if _mount_rig != null:
+		_mount_rig.show_mount(kind)
+	Vfx.dust(global_position, Color(0.55, 0.49, 0.4), 6, 40.0)
+	Sfx.play_at("sfx_footstep_heavy", global_position, -4.0)
+	# **Only this machine's own player says so.** The signal carries no hero,
+	# so every listener would have to guess whose it was - and `CoopHeroes`
+	# would record a partner's horse under this player's seat. The same
+	# distinction `_say_wind` makes for the readout.
+	if is_local_player():
+		EventBus.hero_mounted.emit(kind.id)
+	_say_wind()
+	return true
+
+
+## Which mount this hero rides: the one it was told, or this account's own.
+func _saddled() -> MountData:
+	if not told_mount.is_empty():
+		return ContentDB.mount(told_mount)
+	return MetaState.saddled_mount()
+
+
+## A mirrored hero was told which horse it is on.
+##
+## Re-dresses a hero that is *already* up, because the state packet carrying
+## the id arrives twenty times a second while the press that mounted it
+## arrived on a frame - so without this the first moment of every partner's
+## ride is drawn with the wrong animal.
+func wear_mount(id: String) -> void:
+	if told_mount == id:
+		return
+	told_mount = id
+	if _mount == null or _mount_rig == null:
+		return
+	var kind: MountData = _saddled()
+	if kind == null:
+		dismount()
+		return
+	_mount = kind
+	_mount_rig.show_mount(kind)
+
+
+## Gets off, here, facing the way the Warden was going.
+##
+## Idempotent, because several things call it - the attack press, the mount
+## key, and every condition that ends a ride - and a dismount that fired twice
+## would pay its dust and its sound twice.
+func dismount() -> bool:
+	if _mount == null:
+		return false
+	_mount = null
+	_galloping = false
+	_mount_up_left = 0.0
+	_mount_wait = Balance.MOUNT_REMOUNT_DELAY
+	if input != null:
+		input.muted = 0
+	if _mount_rig != null:
+		_mount_rig.show_mount(null)
+	Vfx.dust(global_position, Color(0.55, 0.49, 0.4), 5, 34.0)
+	if is_local_player():
+		EventBus.hero_dismounted.emit()
+	_say_wind()
+	return true
+
+
+## Whether riding is still allowed at all.
+##
+## Checked every frame rather than hooked to each cause, for the reason
+## `DeathMarkers` watches heroes instead of listening for a death: every way of
+## ending a ride arrives through one of these facts, without a signal per path.
+func _may_stay_mounted() -> bool:
+	if not is_alive() or _downed:
+		return false
+	if _swimming or RunState.flood_over_knee():
+		return false
+	if _beast_stun_left > 0.0:
+		return false
+	return true
+
+
+## The mount's own wind. The same shape as the Warden's SP and a separate
+## pool: the horse gets tired, the rider does not.
+func _tick_gallop(delta: float) -> void:
+	var asked: bool = input.held(HeroInput.HOLD_SPRINT) \
+		or input.held(HeroInput.HOLD_DASH)
+	var moving: bool = (velocity - _shoved).length() > 6.0
+	var may: bool = asked and moving and not _mount_winded \
+		and _mount_up_left <= 0.0
+	if may and mount_wind > 0.0:
+		_galloping = true
+		mount_wind = maxf(mount_wind - _mount.stamina_drain * delta, 0.0)
+		_mount_wind_rest = Balance.MOUNT_WIND_REST
+		_kick_up_hooves(delta)
+		if mount_wind <= 0.0:
+			_mount_winded = true
+			_galloping = false
+	else:
+		_galloping = false
+		_mount_wind_rest = maxf(_mount_wind_rest - delta, 0.0)
+		if _mount_wind_rest <= 0.0 and mount_wind < _mount.stamina:
+			mount_wind = minf(mount_wind + _mount.stamina_regen * delta,
+				_mount.stamina)
+		if _mount_winded and mount_wind >= Balance.MOUNT_WIND_FLOOR:
+			_mount_winded = false
+	_say_wind()
+
+
+## Tells the readout, on change rather than sixty times a second - the rule the
+## Warden's own pools are announced under.
+##
+## **The same bar, not a second one.** A rider's SP bar shows the horse's wind
+## while they are up and their own the moment they are down, because the pool
+## under the thumb is whichever one the player is currently spending.
+func _say_wind() -> void:
+	if not is_local_player():
+		return
+	if _mount == null:
+		_stamina_said = -1.0
+		_mount_wind_said = -1.0
+		EventBus.hero_stamina_changed.emit(stamina, Balance.HERO_STAMINA_MAX)
+		return
+	if is_equal_approx(mount_wind, _mount_wind_said):
+		return
+	_mount_wind_said = mount_wind
+	EventBus.hero_stamina_changed.emit(mount_wind, _mount.stamina)
+
+
+## Dirt off the hooves while galloping, on its own clock. A puff a frame is a
+## solid cloud; this is four feet leaving the ground.
+func _kick_up_hooves(delta: float) -> void:
+	_mount_dust -= delta
+	if _mount_dust > 0.0:
+		return
+	_mount_dust = Balance.MOUNT_DUST_INTERVAL
+	var behind: Vector2 = global_position - velocity.normalized() * 20.0
+	Vfx.dust(behind, Color(0.55, 0.49, 0.4), 4, 34.0)
+
+
+## Points the mount and paces its legs. Presentation only.
+func _drive_mount() -> void:
+	if _mount_rig == null:
+		return
+	var own: Vector2 = velocity - _shoved
+	var speed: float = own.length()
+	_mount_rig.set_facing(_facing if speed <= 4.0 else own.normalized())
+	if speed > 4.0:
+		_mount_rig.set_speed_scale(speed / maxf(Balance.HERO_MOVE_SPEED, 1.0))
+		_mount_rig.play("gallop" if _galloping else "walk")
+	else:
+		_mount_rig.set_speed_scale(1.0)
+		_mount_rig.play("idle")
+
+
+## Something hostile within `MOUNT_DANGER_RANGE`.
+##
+## Asks the field's own enemy reader rather than the group, so a camp body
+## nothing is waiting on and a road body both count - what matters is whether
+## the Warden is about to need their hands.
+func _danger_near() -> bool:
+	if field == null or not field.has_method("enemies_near"):
+		return false
+	var close: Array = field.call("enemies_near", global_position,
+		Balance.MOUNT_DANGER_RANGE) as Array
+	return not close.is_empty()
+
+
+## Says why, once, at the feet.
+func _refuse(line: String) -> void:
+	if _mount_refused_said > 0.0:
+		return
+	_mount_refused_said = 1.4
+	Vfx.word(global_position + Vector2(0.0, -40.0), line, Color(0.9, 0.84, 0.6), 18)
+
+
+## Whether the Warden is up. Read by the HUD, the prompts and the gate.
+func is_mounted() -> bool:
+	return _mount != null
+
+
+## What they are riding, or null.
+func mounted_kind() -> MountData:
+	return _mount
+
+
+## Whether the mount is at a gallop right now.
+func is_galloping() -> bool:
+	return _galloping
 
 
 ## The legs gave out: forced to walk until the floor is back. Said out loud,
@@ -2139,7 +2515,12 @@ func _drive_frames() -> void:
 		# drops in the day it exists and nothing else changes. Until then a run is
 		# the walk driven faster with the engine's own lean, bounce and footfall
 		# squash on top - which is what those were built to supply.
-		frames.play("sprint" if _sprinting and frames.has_state("sprint") else "walk")
+		# **A rider sits.** The legs belong to the horse while the Warden is up,
+		# and a walk cycle on a mounted sprite is a person running on the spot
+		# in mid-air. The engine's lean and bounce still play on top, which is
+		# what gives a gallop its weight without a mounted sheet existing.
+		frames.play("idle" if _mount != null
+			else ("sprint" if _sprinting and frames.has_state("sprint") else "walk"))
 	else:
 		frames.play("idle")
 	# **The run's posture, from the engine.** The sheets are deliberately neutral

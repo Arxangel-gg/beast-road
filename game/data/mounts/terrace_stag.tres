@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mount_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+price = 900
+speed = 1.36
+gallop = 1.45
+stamina = 140.0
+stamina_drain = 20.0
+stamina_regen = 22.0
+art_scale = 1.08
+seat = 0.66
+order = 3
+id = "terrace_stag"
+display_name = "Terrace Stag"
+description = "The Last Terrace keeps a few of these and does not call them broken, only willing. It carries a Warden up cut stone the way a horse carries one over grass."

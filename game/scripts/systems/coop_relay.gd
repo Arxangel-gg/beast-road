@@ -280,6 +280,16 @@ enum Request {
 	HOLD_MOVE = 37,
 	## A guest answered the host's road offer: accepted, or not.
 	PARTY_RUN_REPLY = 38,
+	## **Which mount a guest's Warden is on** (2026-09-17). Sent on change and
+	## on nothing else, because it is a *choice* rather than an action: getting
+	## on and off already crosses as the mount button inside `HERO_INPUT`, so
+	## what travels here is only which animal to draw.
+	##
+	## **39, read off the whole table rather than its tail.** The three Hold
+	## requests above were authored at 35-37 by reading the end of this enum and
+	## collided with `TAKE_EGG`; `coop_check` named it immediately. The lesson is
+	## written there and obeyed here.
+	HERO_MOUNT = 39,
 }
 
 ## Facts that are *state announcements* rather than events.

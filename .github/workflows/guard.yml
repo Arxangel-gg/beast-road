@@ -663,6 +663,10 @@ jobs:
           # no purse - and a once-only flag that is never read back is a fault
           # this project has already shipped.
           check "walk" --headless --path game res://tools/tutorial_walk_check.tscn
+          # Mounts: a gallop is no faster than a sprint, a rider cannot
+          # fight, attacking gets them down and lets the swing through, and
+          # the stable spends Marks and creates nothing.
+          check "mount" --headless --path game res://tools/mount_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

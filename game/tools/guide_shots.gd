@@ -2274,10 +2274,10 @@ class SteadyHands extends HeroInput:
 	func aim(previous: Vector2) -> Vector2:
 		return previous
 
-	func pressed(button: int) -> bool:
+	func _read_press(button: int) -> bool:
 		return press & button != 0
 
-	func held(mask: int) -> bool:
+	func _read_hold(mask: int) -> bool:
 		return hold & mask != 0
 
 	func is_local() -> bool:

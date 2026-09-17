@@ -105,7 +105,11 @@ func _fit() -> void:
 	if _screen == null or _material == null:
 		return
 	var view: Vector2 = get_viewport().get_visible_rect().size
-	_screen.size = view
+	# **The rect is not assigned.** It is anchored `PRESET_FULL_RECT`, so the
+	# layout already gives it the whole viewport - and writing `size` on a
+	# Control whose opposite anchors differ makes Godot warn that it will be
+	# overridden after `_ready`, which every gate that stands up a run then
+	# prints. A warning is a failed gate on the release bar.
 	if _copy != null:
 		_copy.rect = Rect2(Vector2.ZERO, view)
 	_material.set_shader_parameter("viewport", view)

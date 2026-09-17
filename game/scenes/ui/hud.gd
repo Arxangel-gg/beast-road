@@ -263,6 +263,7 @@ var _horn_button: Button
 var _raid_button: Button
 var _repair_button: Button
 var _orders_button: Button
+var _ride_button: Button
 
 ## Build or Fight, during Preparation. Hidden outside it, because outside it
 ## there is nothing to build and the question does not arise.
@@ -338,7 +339,7 @@ static func _action_columns() -> int:
 		landscape = size.x > size.y
 	return ACTION_COLUMNS_WIDE if landscape or span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
 ## What `_build_action_bar` puts in the bar: Horn, Raid, Build, Repair, Orders,
-## Tend.
+## Heal, Ride.
 ##
 ## **Hand-kept, and it has to be**: `_action_band_height` is static and runs
 ## before the bar exists, so it cannot count children. That makes it exactly the
@@ -346,7 +347,7 @@ static func _action_columns() -> int:
 ## 2026-09-13 and this was left at five, so the band under-measured by a row and
 ## the nav column came down over an ability slot at phone-landscape size.
 ## `_build_action_bar` asserts the two agree now, so the next one fails loudly.
-const ACTION_BUTTON_COUNT: int = 6
+const ACTION_BUTTON_COUNT: int = 7
 ## The authored height of one, before a thumb grows it.
 const ACTION_BUTTON_HEIGHT: float = 54.0
 const ACTION_ROW_GAP: float = 8.0
@@ -1538,6 +1539,17 @@ func _build_action_bar(bar: Container) -> void:
 	_tend_progress.offset_top = -HEAL_SAVING_BAR_HEIGHT
 	_tend_button.add_child(_tend_progress)
 
+	# **Ride** (owner brief, 2026-09-17). The mount key is H and is not
+	# rebindable - the pad is full - so this is how a thumb and a pad get on a
+	# horse. It presses the *intent* rather than calling the hero, so a mount
+	# from the bar and a mount from the key take exactly the same road and
+	# cannot come to disagree about what mounting does.
+	_ride_button = _add_button(bar,
+		"Ride",
+		func() -> void: TouchInput.ask_mount())
+	_ride_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	IconKit.on_button(_ride_button, "distance", 22)
+
 	var charge_readout := VBoxContainer.new()
 	# 92 rather than 108: the bar ends where the spell slots begin, and the last
 	# widget in it was reaching seventeen pixels into the first slot.
@@ -1760,6 +1772,31 @@ func _update_orders_button(delta: float = 0.0) -> void:
 			String(NAMES.get(order, "an order")), price]
 
 
+## The Ride button: what it says, and whether it is there at all.
+##
+## **Hidden rather than greyed when nothing is saddled**, which is the
+## opposite of every other button on this bar and is deliberate. The others
+## are things every Warden can always eventually do and a greyed one teaches
+## that they exist; a mount is bought at the Hold's stable, so a permanently
+## dead button on a new account is clutter that never resolves. The band's
+## height is measured from `ACTION_BUTTON_COUNT` rather than from what is on
+## screen, so hiding one moves no layout.
+func _update_ride_button() -> void:
+	if _ride_button == null or battlefield == null:
+		return
+	var kind: MountData = MetaState.saddled_mount()
+	_ride_button.visible = kind != null
+	if kind == null:
+		return
+	var who: Hero = battlefield.hero
+	var up: bool = who != null and who.is_mounted()
+	_ride_button.text = _action_label("H", "DISMOUNT" if up else "RIDE")
+	_ride_button.disabled = who == null or not who.is_alive()
+	_ride_button.tooltip_text = ("Get down and fight where you stand." if up
+		else "Ride the %s. Mounted you cannot fight - attacking gets you down."
+			% kind.display_name)
+
+
 func _update_repair_button() -> void:
 	if _repair_button == null or battlefield == null or battlefield.town == null:
 		return
@@ -1769,6 +1806,7 @@ func _update_repair_button() -> void:
 		or not RunState.is_preparation()
 
 	_update_orders_button(_orders_delta)
+	_update_ride_button()
 
 	if _tend_button == null:
 		return

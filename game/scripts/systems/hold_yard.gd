@@ -84,6 +84,8 @@ const STATIONS: Array[Dictionary] = [
 		"label": "The Warden's Stone", "at": Vector2(60.0, 120.0)},
 	{"id": "road", "door": "", "art": "res://art/city/plot_locked.png",
 		"label": "The Road Out", "at": Vector2(-180.0, 430.0)},
+	{"id": "stable", "door": "Stable", "art": "res://art/city/building_granary_tier_02.png",
+		"label": "The Stable", "at": Vector2(-700.0, 90.0)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
 		"label": "The Gate", "at": Vector2(-420.0, 330.0)},
 ]
@@ -112,6 +114,10 @@ const RESIDENTS: Array[Dictionary] = [
 		"name": "Wren", "label": "Wren, who minds the pens",
 		"at": Vector2(660.0, -140.0), "beat": 96.0,
 		"yields_to": [], "aside": Vector2.ZERO},
+	{"id": "stabler", "door": "Stable", "art": "res://art/city/merchant_stabler.png",
+		"name": "Halric", "label": "Halric, who keeps the horses",
+		"at": Vector2(-640.0, 170.0), "beat": 78.0,
+		"yields_to": [], "aside": Vector2.ZERO},
 ]
 
 ## Names for the Wardens whose seats nobody has taken.
@@ -129,6 +135,12 @@ const SIM_NAMES: Array[String] = [
 ## The pens, down their own path: one per seat, gated, side by side, east of the
 ## square. Laid from a rule rather than a table so a Hold that ever seats more
 ## players simply gets more pens.
+## Where the horses stand: west of the square, in front of the stable and
+## clear of the gate at (-420, 330) and the road out at (-180, 430). The
+## paddock is `Balance.STABLE_PADDOCK` across, so it reaches x = -960 at the
+## far rail, which leaves the watchtower its corner.
+const PADDOCK_AT: Vector2 = Vector2(-700.0, 330.0)
+
 const PEN_FIRST: Vector2 = Vector2(180.0, 330.0)
 const PEN_SIZE: Vector2 = Vector2(250.0, 180.0)
 const PEN_GAP: float = 36.0
@@ -144,6 +156,11 @@ var _stations: Array[Dictionary] = []
 var _residents: Array[Dictionary] = []
 var _seats: Array[Dictionary] = []
 var _pens: Array[Dictionary] = []
+## The horses, in their field west of the square (owner brief, 2026-09-17:
+## *"the most aesthetic solution in The Hold for it like a stable or
+## something and animated horses with AI and a vendor at it"*). A picture of
+## the stock, read by nothing - see `StablePaddock`.
+var _paddock: StablePaddock = null
 var _grass_at: Array[Vector2] = []
 ## The animal the Warden has taken out of the pen, walking with them.
 ##
@@ -180,6 +197,7 @@ func _ready() -> void:
 	_build_stations()
 	_build_residents()
 	_build_pens()
+	_build_paddock()
 	_build_seats()
 	_build_heel()
 	set_process(true)
@@ -278,6 +296,23 @@ func _build_pens() -> void:
 		plate.add_theme_constant_override("outline_size", 4)
 		add_child(plate)
 		_pens.append({"at": at, "yard": pen, "plate": plate})
+
+
+## The paddock, in front of the stable and inside the fence it draws itself.
+##
+## Below the buildings in the actor layer so a Warden may walk behind the far
+## rail, exactly as they may walk behind a pen.
+func _build_paddock() -> void:
+	_paddock = StablePaddock.new()
+	_paddock.position = PADDOCK_AT
+	_actors.add_child(_paddock)
+	_paddock.set_stage(Balance.STABLE_PADDOCK)
+
+
+## The paddock, for the screen that re-reads it after a purchase and for the
+## gate. Null before `_ready`.
+func paddock() -> StablePaddock:
+	return _paddock
 
 
 # ---------------------------------------------------------------- the people
