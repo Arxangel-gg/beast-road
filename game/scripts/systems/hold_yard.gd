@@ -524,7 +524,11 @@ func _follow_the_sun() -> void:
 func _build_fires() -> void:
 	_fires.clear()
 	_lights.clear()
-	_stand_fire(FIRE_AT, Balance.HOLD_FIRE_REACH, Balance.HOLD_FIRE_ENERGY, 1.35)
+	# **Big enough to be the middle of the place.** Photographed at 1.35 it was a
+	# torch standing in the open; a campfire is the thing people gather at, and
+	# at this scale the yard has a centre after dark rather than merely a
+	# midpoint.
+	_stand_fire(FIRE_AT, Balance.HOLD_FIRE_REACH, Balance.HOLD_FIRE_ENERGY, 2.4)
 	for at: Vector2 in TORCHES:
 		_stand_fire(at, Balance.HOLD_TORCH_REACH, Balance.HOLD_TORCH_ENERGY, 0.7)
 
@@ -533,9 +537,13 @@ func _stand_fire(at: Vector2, reach: float, energy: float, size: float) -> void:
 	var flame := Flame.new()
 	flame.position = at
 	flame.scale = Vector2(size, size)
-	# Above the ground and below the people, so somebody standing in front of
-	# the fire is in front of it.
-	flame.z_index = -1
+	# **Left at zero, which is above the ground.** A node's children draw after
+	# its own `_draw`, so the default already puts a fire on top of the yard's
+	# painting; `z_index = -1` puts it *under* that painting and the fire is
+	# simply not there. The first night plates showed a dark yard with no fire in
+	# it - the same trap `mount_shot` records, where the same -1 photographed
+	# four Wardens sitting on nothing.
+	flame.z_index = 0
 	add_child(flame)
 	_fires.append(flame)
 
@@ -1010,11 +1018,45 @@ func _draw_pens() -> void:
 	for pen: Dictionary in _pens:
 		var at: Vector2 = pen["at"] as Vector2
 		var box := Rect2(at - PEN_SIZE * 0.5, PEN_SIZE)
-		draw_rect(box, Color(0.20, 0.21, 0.15, 0.55), true)
-		# **The near rail only.** A pen drawn as a closed rectangle puts a fence
-		# between the player and the animals they came to look at; the far side
-		# is the treeline behind it. The gate is the two missing posts in the
-		# middle, which is the whole of "there is a way in".
+		# **Trodden ground rather than a flat fill.** Photographed on
+		# 2026-09-17: four pens drawn as one translucent colour read as green
+		# boxes laid on the yard, which is most of what the owner meant by the
+		# Hold needing to be *"way more aesthetically appealing"*. The yard's own
+		# ground texture, darkened and worn toward the middle where the animals
+		# actually stand, is a *place* rather than a rectangle - and it costs one
+		# more textured rect, because the texture is already loaded.
+		if _ground != null:
+			draw_texture_rect(_ground, box, true, Color(0.52, 0.55, 0.44))
+		else:
+			draw_rect(box, Color(0.20, 0.21, 0.15, 0.55), true)
+		# The worn patch: earth the grass has gone from, softest at the rail and
+		# bare in the middle. Three rings rather than a gradient, because a
+		# gradient here is a texture and this is four ellipses.
+		for ring: int in 3:
+			var share: float = 0.58 - float(ring) * 0.16
+			draw_set_transform(box.get_center(), 0.0, Vector2(1.0, 0.62))
+			draw_circle(Vector2.ZERO, box.size.x * share,
+				Color(0.30, 0.25, 0.17, 0.16))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# **A far rail as well as a near one, and that is a correction.**
+		#
+		# The first cut drew the near side only, reasoning that a closed
+		# rectangle puts a fence between the player and the animals. Photographed,
+		# that is wrong in the other direction: a pen fenced on one edge reads as
+		# a rectangle of paint with a comb under it, and there is nothing to say
+		# where the pen *ends*. The far rail is drawn first and low, so it sits
+		# behind whatever is standing in the pen, and the near one in front.
+		var far_posts: int = 9
+		var far_span: float = box.size.x / float(far_posts)
+		for index: int in far_posts + 1:
+			var back := Vector2(box.position.x + far_span * float(index),
+				box.position.y)
+			_fence_post(back, 18.0, timber.darkened(0.25))
+			if index > 0:
+				_fence_rail(back - Vector2(far_span, 13.0),
+					back - Vector2(0.0, 13.0), timber.darkened(0.25))
+		# The gate is the two missing posts in the middle of the near rail,
+		# which is the whole of "there is a way in".
 		var posts: int = 9
 		var foot: float = box.position.y + box.size.y
 		var span: float = box.size.x / float(posts)

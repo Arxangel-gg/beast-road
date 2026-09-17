@@ -223,7 +223,26 @@ func _draw() -> void:
 	# to keep in step with a number in `Balance`.
 	var half: Vector2 = _stage * 0.5
 	var ground := Rect2(-half, _stage)
-	draw_rect(ground, Color(0.26, 0.29, 0.17, 0.55), true)
+	# **Worn ground rather than one flat colour.** Photographed on 2026-09-17:
+	# a paddock this size drawn as a single translucent rect is the largest flat
+	# rectangle in the Hold, and it reads as a green box the horses stand on top
+	# of. Three ellipses of bare earth where they actually walk, and tufts near
+	# the rail where grass survives, make it ground - the same treatment the pens
+	# got, for the same reason and at the same cost of nothing.
+	draw_rect(ground, Color(0.24, 0.27, 0.16, 0.60), true)
+	for ring: int in 3:
+		var share: float = 0.46 - float(ring) * 0.13
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.55))
+		draw_circle(Vector2.ZERO, _stage.x * share, Color(0.30, 0.24, 0.16, 0.26))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for tuft: int in 22:
+		var along: float = fmod(float(tuft) * 0.618034, 1.0)
+		var down: float = fmod(float(tuft) * 0.381966 + 0.29, 1.0)
+		var at := Vector2(-half.x + _stage.x * along, -half.y + _stage.y * down)
+		if at.length() < _stage.x * 0.26:
+			continue
+		draw_line(at, at + Vector2(1.0, -6.0), Color(0.33, 0.40, 0.23, 0.8), 1.5)
+		draw_line(at, at + Vector2(-2.0, -5.0), Color(0.29, 0.35, 0.21, 0.7), 1.5)
 	var rail := Color(0.40, 0.31, 0.21, 0.95)
 	draw_rect(ground, rail, false, 5.0)
 	# A second rail inside the first, the way a real fence has two bars. The gap

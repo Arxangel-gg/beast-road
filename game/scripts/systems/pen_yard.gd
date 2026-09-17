@@ -225,11 +225,38 @@ func advance(seconds: float, steps: int = 30) -> void:
 
 
 func _draw() -> void:
-	# The ground they are kept on. Drawn rather than an asset because it is a
-	# rectangle of earth behind a dozen sprites, and a painting of one would be
-	# a manifest row for something nobody looks at.
+	# The ground they are kept on.
+	#
+	# **It was one flat colour with a line round it, and photographed that is a
+	# green box.** Four of them side by side in the Hold is most of the width of
+	# the place, which is a large part of what the owner meant on 2026-09-17 by
+	# it needing to be *"way more aesthetically appealing"* - and it took a
+	# photograph to see, because a flat fill is perfectly correct code.
+	#
+	# Still drawn rather than an asset, for the reason written here before: it is
+	# earth behind a dozen sprites and a painting of one would be a manifest row
+	# for something nobody looks at. What changed is that it is now *worn* -
+	# darker where the animals stand and paler at the rail, with a scatter of dry
+	# tufts - which is three ellipses and a handful of marks rather than a
+	# texture.
 	var half: Vector2 = _stage * 0.5
-	draw_rect(Rect2(-half, _stage), Color(0.16, 0.19, 0.14), true)
+	draw_rect(Rect2(-half, _stage), Color(0.19, 0.21, 0.15), true)
+	for ring: int in 3:
+		var share: float = 0.52 - float(ring) * 0.15
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.6))
+		draw_circle(Vector2.ZERO, _stage.x * share, Color(0.27, 0.23, 0.16, 0.30))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# Tufts the animals have not eaten, from the stage's own size rather than a
+	# roll - a pen that re-scattered its grass every redraw would shimmer.
+	for tuft: int in 14:
+		var along: float = fmod(float(tuft) * 0.618034, 1.0)
+		var down: float = fmod(float(tuft) * 0.381966 + 0.13, 1.0)
+		var at := Vector2(-half.x + _stage.x * along, -half.y + _stage.y * down)
+		# Near the rail rather than in the middle, which is where grass survives.
+		if at.length() < _stage.x * 0.28:
+			continue
+		draw_line(at, at + Vector2(1.0, -5.0), Color(0.31, 0.38, 0.22, 0.75), 1.5)
+		draw_line(at, at + Vector2(-2.0, -4.0), Color(0.28, 0.34, 0.20, 0.7), 1.5)
 	draw_rect(Rect2(-half, _stage), Color(0.32, 0.29, 0.21), false, 3.0)
 	for animal: Dictionary in _animals:
 		var node := animal["node"] as Node2D

@@ -209,8 +209,13 @@ func _compose() -> void:
 		_table[index]["kind"] = Seat.SIMULATED
 		_table[index]["name"] = ""
 		_table[index]["peer"] = 0
-		_table[index]["pen"] = []
 		_table[index]["was_public"] = false
+		# A seat nobody is in still has animals in its paddock. See
+		# `_simulated_pen`: the Hold is meant to be somewhere people *are*.
+		# Keyed the way the yard names these seats, so the Warden called Marrow
+		# keeps Marrow's animals - `HoldYard` picks the name from the same
+		# expression, and two different keys would put one name over another's pen.
+		_table[index]["pen"] = _simulated_pen(MetaState.play_code + str(index))
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
@@ -406,6 +411,47 @@ static func _species_of(pen: Array) -> PackedStringArray:
 ## Turns that list back into something a pen can stand up. The names are the
 ## seat's own, so two Wardens keeping a fox each get two different foxes -
 ## `Phenotype` reads the name, and identical names would be identical animals.
+## What a simulated Warden keeps in their pen.
+##
+## The Hold's own ruling says it stands up *"with simulated Wardens in it:
+## pens filled, figures about the square"*, and the figures were built while
+## the pens were left as empty arrays - so every seat nobody was sitting in
+## had an empty paddock beside it, and four empty paddocks is most of the
+## width of this place. Photographed on 2026-09-17, which is the only way
+## anybody was ever going to notice: nothing errors, the pens simply have
+## nothing in them.
+##
+## **Derived from the name, never rolled.** The same Warden keeps the same
+## animals on every machine and on every visit, with no packet and nothing
+## saved - which is the rule a companion's sex, a spirit's temperament and a
+## coat pattern are all already under. A roll here would give one player a
+## different Hold from another's for no reason anybody could explain.
+##
+## **They are scenery and nothing reads them.** No bond, no collection credit,
+## no rarity that pays: a simulated seat holds no state worth forging, which
+## is the bound the whole seat design rests on.
+static func _simulated_pen(who: String) -> Array:
+	# **Never a mythic.** `IDEAS_REVIEW_2026-09-15` staged those as the rarest
+	# things in the game - one legend a run, found by a trail of evidence - and
+	# a Phoenix standing in a decorative paddock beside a seat nobody is even
+	# sitting in takes that away for the price of a scenery roll. Photographed on
+	# 2026-09-17 with one in it, which is the only way it would have been seen.
+	var kinds: Array[WildlifeData] = []
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind != null and not kind.mythic:
+			kinds.append(kind)
+	if kinds.is_empty() or who.is_empty():
+		return []
+	var species: Array = []
+	# Two or three, so the pens differ from each other at a glance without any
+	# of them reading as a menagerie.
+	var many: int = 2 + (who.hash() % 2)
+	for index: int in many:
+		var at: int = absi(hash(who + str(index))) % kinds.size()
+		species.append(kinds[at].id)
+	return _roster_from(who, species)
+
+
 static func _roster_from(who: String, species: Array) -> Array:
 	var out: Array = []
 	for index: int in species.size():
