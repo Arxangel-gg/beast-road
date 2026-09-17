@@ -149,6 +149,9 @@ func _ready() -> void:
 	# switch is on.
 	_crisp = CrispText.new()
 	_crisp.ui_filter_grid = _ui_pixels.grid()
+	# The world's grid gets the mask too, because a scope's own labels are drawn
+	# under it - which is the case the owner reported, the town's tier captions.
+	_crisp.world_filter_grid = _pixels.grid()
 	_crisp.world_roots = [battlefield, town, beast] as Array[Node]
 	_crisp.ui_roots = [hud] as Array[Node]
 	var crisp_layer := CanvasLayer.new()

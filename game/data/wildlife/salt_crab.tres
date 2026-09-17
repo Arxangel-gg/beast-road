@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 5
 breeds = true
 breeding_group = "salt_crab"
 litter_min = 3

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 1
 id = "bear"
 display_name = "Bear"
 description = "Whatever you were doing, do it somewhere else."

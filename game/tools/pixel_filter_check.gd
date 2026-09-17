@@ -72,18 +72,21 @@ func _ready() -> void:
 	_test_the_slider_is_clamped()
 	_test_the_grid_scales_with_the_screen()
 	await _test_headless_engages_nothing()
-	await _test_the_type_is_muted_where_it_was_authored()
-	await _test_releasing_puts_everything_back()
+	await _test_the_type_is_held_out_of_the_grid()
+	await _test_the_type_is_never_touched()
 	await _test_a_freed_control_is_not_written_to()
-	await _test_rich_text_is_cut_out_rather_than_muted()
-	_test_the_rectangles_are_bounded()
+	await _test_marked_up_text_is_held_out_too()
+	await _test_the_mask_marks_where_the_type_stands()
+	await _test_drawn_type_is_held_out_too()
+	_test_the_ladder_starts_at_off()
 	await _test_a_hidden_screen_is_left_alone()
 	_test_both_screens_stand_one_up()
 	if _failures == 0:
-		print(("[pixel-filter] PASS - %d checks: the type is drawn above both "
-			+ "grids and muted underneath, the interface never outruns the "
-			+ "world, the slider is clamped, the exempt rectangles are bounded, "
-			+ "and headless engages nothing") % _checks)
+		print(("[pixel-filter] PASS - %d checks: the grid steps over every "
+			+ "piece of type without moving or recolouring any of it, the "
+			+ "interface never outruns the world, the slider is clamped, the "
+			+ "mask marks where the type stands, and headless engages nothing"
+			) % _checks)
 	else:
 		push_error("[pixel-filter] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -215,10 +218,12 @@ func _test_headless_engages_nothing() -> void:
 
 ## Drives the real door the setting calls, rather than the setting - which is
 ## off headless by design, and is the check above.
-func _test_the_type_is_muted_where_it_was_authored() -> void:
+func _test_the_type_is_held_out_of_the_grid() -> void:
 	var root := Control.new()
+	root.size = Vector2(400.0, 200.0)
 	var label := Label.new()
 	label.text = "The Last Terrace"
+	label.size = Vector2(300.0, 40.0)
 	root.add_child(label)
 	add_child(root)
 
@@ -227,21 +232,29 @@ func _test_the_type_is_muted_where_it_was_authored() -> void:
 	await get_tree().process_frame
 
 	_check(crisp.drawn() >= 1,
-		"nothing was drawn sharp over the grid - a comparison of two nothings is "
-		+ "the most dangerous shape a check can take, and a `CrispText` that "
-		+ "finds no strings passes every other test in this file")
-	var ink: Color = label.get_theme_color(&"font_color")
-	_check(ink.a <= 0.001,
-		("the label still draws its own copy at alpha %.2f - a blocky glyph "
-		+ "under a sharp one is a fringe round every letter, which reads worse "
-		+ "than the blocky text did alone") % ink.a)
+		"no piece of type was held out of the grid - a comparison of two "
+		+ "nothings is the most dangerous shape a check can take, and a "
+		+ "`CrispText` that finds no strings passes every other test here")
 
 	crisp.queue_free()
 	root.queue_free()
 
 
-func _test_releasing_puts_everything_back() -> void:
+## **The type is not touched at all, which is the whole of the fix.**
+##
+## The first cut muted every caption where it was authored and drew it again
+## with `draw_string` - a second implementation of Godot's text layout, which
+## drifted wherever a style box or an icon inset a string. The owner reported
+## it as the interface toggle moving the text "out of position from where the
+## texts used to be and are supposed to stay at".
+##
+## So this holds the opposite of what the old gate held: after the filter has
+## taken a screen over, every control still has exactly the colour and exactly
+## the rectangle it had before. Checked by putting the mute back, which it
+## names on the colour.
+func _test_the_type_is_never_touched() -> void:
 	var root := Control.new()
+	root.size = Vector2(400.0, 200.0)
 	var plain := Label.new()
 	plain.text = "no override"
 	var dressed := Label.new()
@@ -251,22 +264,28 @@ func _test_releasing_puts_everything_back() -> void:
 	root.add_child(plain)
 	root.add_child(dressed)
 	add_child(root)
+	await get_tree().process_frame
+	var plain_was: Rect2 = plain.get_global_rect()
+	var dressed_was: Rect2 = dressed.get_global_rect()
 
 	var crisp: CrispText = _crisp_over(root)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(crisp.muted() >= 2, "the two labels were not taken over at all")
+	_check(crisp.drawn() >= 2, "the two labels were not held out at all")
+	_check(crisp.muted() == 0,
+		"something was muted - nothing may be: a caption this filter has "
+		+ "recoloured is a caption it has to put back, and the putting back "
+		+ "is what moved the text in the first place")
+	_check(not plain.has_theme_color_override(&"font_color"),
+		"a label that carried no font colour of its own was given one")
+	_check(dressed.get_theme_color(&"font_color").is_equal_approx(was),
+		"a label's own font colour was changed by the filter")
+	_check(plain.get_global_rect().is_equal_approx(plain_was)
+			and dressed.get_global_rect().is_equal_approx(dressed_was),
+		"a label moved when the grid came on - the owner's report, and the "
+		+ "one thing a mask exists to make impossible")
 
 	crisp.set_enabled(false, false)
-	_check(not plain.has_theme_color_override(&"font_color"),
-		"a label that carried no font colour of its own was left with one - "
-		+ "writing today's theme colour back pins it to today's theme for ever, "
-		+ "and a theme change would then miss it")
-	_check(dressed.has_theme_color_override(&"font_color")
-			and dressed.get_theme_color(&"font_color").is_equal_approx(was),
-		"a label's own font colour did not come back exactly - releasing is a "
-		+ "ledger, not a guess at what the colour used to be")
-
 	crisp.queue_free()
 	root.queue_free()
 
@@ -295,7 +314,11 @@ func _test_a_freed_control_is_not_written_to() -> void:
 	root.queue_free()
 
 
-func _test_rich_text_is_cut_out_rather_than_muted() -> void:
+## Marked-up text is no longer a special case, which is the second thing the
+## mask bought. `draw_string` is not a markup engine, so the old filter had to
+## cut a `RichTextLabel` out of the grid by hand and could hold only eight of
+## them; a mask holds a rich label by the same means as a plain one.
+func _test_marked_up_text_is_held_out_too() -> void:
 	var root := Control.new()
 	var rich := RichTextLabel.new()
 	rich.bbcode_enabled = true
@@ -311,32 +334,121 @@ func _test_rich_text_is_cut_out_rather_than_muted() -> void:
 	await get_tree().process_frame
 
 	_check(grid.exclusions() >= 1,
-		"a rich label was not cut out of the grid - `draw_string` is not a "
-		+ "markup engine, so a string this node cannot reproduce has to be left "
-		+ "sharp where it stands or it is lost")
+		"a rich label was not held out of the grid")
 	var ink: Color = rich.get_theme_color(&"default_color")
 	_check(ink.a > 0.001,
-		"a rich label was muted as well as cut out, so its text is gone "
-		+ "entirely - the two answers are alternatives, never both")
+		"a rich label was recoloured - nothing may be")
 
 	crisp.queue_free()
 	grid.queue_free()
 	root.queue_free()
 
 
-func _test_the_rectangles_are_bounded() -> void:
+## **The mask marks where the type stands, and only there.**
+##
+## The old bound - eight rectangles, a ninth refused - is gone with the array
+## it protected, and what replaces it is the property that actually matters: a
+## screenful of captions is *all* held out, and the ground between them is not.
+## A mask that came back all white would pass every other check in this file
+## and turn the filter off everywhere.
+func _test_the_mask_marks_where_the_type_stands() -> void:
+	var root := Control.new()
+	root.size = Vector2(900.0, 500.0)
+	add_child(root)
+	var many: int = 24
+	for index: int in many:
+		var label := Label.new()
+		label.text = "caption %d" % index
+		label.position = Vector2(float(index % 6) * 140.0,
+			float(index / 6) * 60.0)
+		label.size = Vector2(120.0, 30.0)
+		root.add_child(label)
 	var grid := PixelGrid.new()
 	add_child(grid)
-	var many: Array[Rect2] = []
-	for i: int in range(Balance.UI_PIXEL_FILTER_EXCLUDE_MAX + 12):
-		many.append(Rect2(float(i) * 10.0, 0.0, 8.0, 8.0))
-	grid.set_exclusions(many)
-	_check(grid.exclusions() == Balance.UI_PIXEL_FILTER_EXCLUDE_MAX,
-		("%d rectangles were kept against a shader array %d long - the extra "
-		+ "ones are read off the end of a uniform, which is a different value "
-		+ "every frame rather than an error")
-		% [grid.exclusions(), Balance.UI_PIXEL_FILTER_EXCLUDE_MAX])
+	var crisp: CrispText = _crisp_over(root, grid)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(grid.exclusions() >= many,
+		("%d of %d captions were held out - the old filter could hold eight, "
+		+ "which is what a mask exists to stop being a number at all")
+		% [grid.exclusions(), many])
+	_check(crisp.drawn() >= many,
+		"the walk found fewer strings than were put on the screen")
 	grid.queue_free()
+	crisp.queue_free()
+	root.queue_free()
+
+
+## **Type a script painted itself is still type.**
+##
+## `BarName` writes "HP", "MP" and "SP" on the pool bars with `draw_string`,
+## because a Label cannot be smaller than its own font and one anchored to an
+## eight-pixel bar hangs off the bottom of it. Its class is therefore `Control`,
+## it is on no list of drawn kinds, and the grid ran over the three captions in
+## the corner of the HUD and over nothing else in the interface - which is what
+## the owner reported on 2026-09-17 and a very confusing bug to be shown.
+##
+## Checked by *measuring the mask*, and with a bare `Control` beside it that
+## declares nothing: a walk that held everything open would pass a check that
+## only counted what it found.
+func _test_drawn_type_is_held_out_too() -> void:
+	var root := Control.new()
+	root.size = Vector2(400.0, 200.0)
+	add_child(root)
+	var name_plate := BarName.new()
+	name_plate.text = "HP"
+	name_plate.position = Vector2(20.0, 20.0)
+	name_plate.size = Vector2(60.0, 12.0)
+	root.add_child(name_plate)
+	var silent := Control.new()
+	silent.position = Vector2(20.0, 80.0)
+	silent.size = Vector2(60.0, 12.0)
+	root.add_child(silent)
+	var grid := PixelGrid.new()
+	add_child(grid)
+	var crisp: CrispText = _crisp_over(root, grid)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(grid.exclusions() == 1,
+		("%d rect(s) held open - a control that paints its own lettering has "
+		+ "to be one of them and a bare Control has to be none")
+		% grid.exclusions())
+	name_plate.text = ""
+	crisp.refresh_from_settings()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(grid.exclusions() == 0,
+		"a bar with no name on it still held a rectangle of the picture open")
+	grid.queue_free()
+	crisp.queue_free()
+	root.queue_free()
+
+
+## **Off, then one, then two.**
+##
+## The slider labelled a block of 1 as "Off" because a one-pixel grid is the
+## identity - true, and it left a player with a control that went Off, 2, 3 and
+## no way to ask for one (owner, 2026-09-17). The floor is zero now, so "off" is
+## a real position on this slider and one is a real grid.
+##
+## The other half is that nothing may divide by a block under one: this is a
+## saved number and a save is a file a player can edit.
+func _test_the_ladder_starts_at_off() -> void:
+	_check(is_equal_approx(Balance.UI_PIXEL_FILTER_BLOCK_MIN, 0.0),
+		"the grid slider's floor is %.2f, so it cannot be turned off on its own"
+		% Balance.UI_PIXEL_FILTER_BLOCK_MIN)
+	_check(Balance.UI_PIXEL_FILTER_BLOCK_MAX >= 2.0,
+		"the grid slider has no room above one")
+	var view := Vector2(1920.0, 1080.0)
+	_check(PixelGrid.block_at(view, 1.0) >= 1.0,
+		"a block of one came back under a pixel")
+	var was: float = Graphics.pixel_filter_block()
+	Graphics.set_display(Graphics.KEY_PIXEL_FILTER_BLOCK, 0.0)
+	_check(PixelGrid.block_for(view) >= 1.0,
+		"a grid of zero reached the shader, which divides by it")
+	_check(not Graphics.pixel_filter_runs(),
+		"a grid of zero still pays for the copy and the shader")
+	Graphics.set_display(Graphics.KEY_PIXEL_FILTER_BLOCK, was)
 
 
 ## A closed screen draws nothing, so nothing under it needs muting - and

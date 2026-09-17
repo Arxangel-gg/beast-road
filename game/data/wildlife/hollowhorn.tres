@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 1
 mythic = true
 trail_signs = PackedStringArray("hollowhorn_hoof", "hollowhorn_gouge", "hollowhorn_ash", "hollowhorn_stone", "hollowhorn_wallow")
 trail_first_act = 6
@@ -19,7 +20,7 @@ protection = 2
 id = "hollowhorn"
 display_name = "Hollowhorn"
 description = "Its horns are empty and something is still burning in them. The ground remembers where it stood."
-vocal_sfx = "sfx_wildlife_boar"
+vocal_sfx = "sfx_wildlife_hollowhorn"
 rarity = 3
 temperament = 2
 movement_style = 0

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 3
 breeds = true
 breeding_group = "viper"
 litter_min = 3

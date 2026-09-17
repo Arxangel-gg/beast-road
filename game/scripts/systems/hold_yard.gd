@@ -37,15 +37,19 @@ extends Node2D
 ## The yard in its own units. A shape rather than a resolution: it is fitted to
 ## whatever screen it is drawn on, so this decides the *proportions* of the
 ## place and nothing about how big anybody's Hold is.
-const YARD: Vector2 = Vector2(2200.0, 1040.0)
+## Derived from the map rather than authored beside it: a yard whose size
+## disagreed with the ground in it is the fault the two tables had.
+const YARD: Vector2 = Vector2(MAP_W * CELL, MAP_H * CELL)
 
 ## Where the road out is, and where the Warden stands when the Hold opens.
-const ENTRY: Vector2 = Vector2(0.0, 400.0)
+const ENTRY: Vector2i = Vector2i(18, 23)
 
 ## The ground the Hold stands on. The lore's Hold is a valley with farmland in
 ## it (see `world_first_cut`), which is the greenest ground the game owns.
 const GROUND_ART: String = "res://art/terrain/terrain_jungle.png"
 const GRASS_ART: String = "res://art/foliage/grass_jungle.png"
+const POND_ART: String = "res://art/battlefield/pond_tiles_jungle.png"
+const FOLIAGE_FORMAT: String = "res://art/foliage/plant_jungle_%s.png"
 
 ## What stands where, and which door it is.
 ##
@@ -63,31 +67,31 @@ const GRASS_ART: String = "res://art/foliage/grass_jungle.png"
 ## the south where the Warden came in.
 const STATIONS: Array[Dictionary] = [
 	{"id": "smithy", "door": "Smithy", "art": "res://art/city/building_forge.png",
-		"label": "The Furnace", "at": Vector2(-330.0, -150.0)},
+		"label": "The Furnace", "cell": Vector2i(9, 13)},
 	{"id": "anvil", "door": "Smithy", "art": "res://art/battlefield/smithy.png",
-		"label": "The Anvil", "at": Vector2(-150.0, 30.0)},
+		"label": "The Anvil", "cell": Vector2i(12, 14)},
 	{"id": "vendor", "door": "Vendor", "art": "res://art/city/building_market.png",
-		"label": "The Market", "at": Vector2(300.0, -150.0)},
+		"label": "The Market", "cell": Vector2i(23, 13)},
 	{"id": "ledger", "door": "Ledger", "art": "res://art/battlefield/camp_rack.png",
-		"label": "The Long Ledger", "at": Vector2(470.0, 30.0)},
+		"label": "The Long Ledger", "cell": Vector2i(32, 9)},
 	{"id": "stash", "door": "Stash", "art": "res://art/city/building_treasury.png",
-		"label": "The Stash", "at": Vector2(-760.0, -250.0)},
+		"label": "The Stash", "cell": Vector2i(11, 4)},
 	{"id": "chronicle", "door": "Chronicle", "art": "res://art/city/building_town_hall.png",
-		"label": "The Chronicle", "at": Vector2(-30.0, -330.0)},
+		"label": "The Chronicle", "cell": Vector2i(18, 3)},
 	{"id": "leaderboard", "door": "Leaderboard", "art": "res://art/city/building_watchtower.png",
-		"label": "The Board", "at": Vector2(-980.0, 60.0)},
+		"label": "The Board", "cell": Vector2i(5, 9)},
 	{"id": "codex", "door": "Codex", "art": "res://art/city/building_sanctum.png",
-		"label": "The Codex", "at": Vector2(760.0, -260.0)},
+		"label": "The Codex", "cell": Vector2i(25, 4)},
 	{"id": "pen", "door": "Pen", "art": "res://art/city/building_granary.png",
-		"label": "The Pens", "at": Vector2(560.0, -300.0)},
+		"label": "The Pens", "cell": Vector2i(12, 19)},
 	{"id": "card", "door": "", "art": "res://art/battlefield/war_totem.png",
-		"label": "The Warden's Stone", "at": Vector2(60.0, 120.0)},
+		"label": "The Warden's Stone", "cell": Vector2i(18, 9)},
 	{"id": "road", "door": "", "art": "res://art/city/plot_locked.png",
-		"label": "The Road Out", "at": Vector2(-180.0, 430.0)},
+		"label": "The Road Out", "cell": Vector2i(18, 24)},
 	{"id": "stable", "door": "Stable", "art": "res://art/city/building_granary_tier_02.png",
-		"label": "The Stable", "at": Vector2(-700.0, 90.0)},
+		"label": "The Stable", "cell": Vector2i(8, 20)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
-		"label": "The Gate", "at": Vector2(-420.0, 330.0)},
+		"label": "The Gate", "cell": Vector2i(22, 21)},
 ]
 
 ## The people who live here rather than pass through.
@@ -117,23 +121,23 @@ const RESIDENTS: Array[Dictionary] = [
 	{"id": "smith", "door": "Smithy", "art": "res://art/city/hold_smith.png",
 		"stall": "res://art/city/merchant_relic_peddler.png",
 		"name": "Orden", "label": "Orden, who keeps the fire in",
-		"at": Vector2(-250.0, -20.0), "beat": 70.0,
-		"yields_to": ["smithy", "anvil"], "aside": Vector2(-560.0, 60.0)},
+		"cell": Vector2i(11, 13), "beat": 70.0,
+		"yields_to": ["smithy", "anvil"], "aside": Vector2i(8, 15)},
 	{"id": "keeper", "door": "Vendor", "art": "res://art/city/hold_keeper.png",
 		"stall": "res://art/city/merchant_quartermaster.png",
 		"name": "Tessel", "label": "Tessel, who keeps the market",
-		"at": Vector2(330.0, -30.0), "beat": 84.0,
-		"yields_to": [], "aside": Vector2.ZERO},
+		"cell": Vector2i(24, 14), "beat": 84.0,
+		"yields_to": [], "aside": Vector2i(26, 15)},
 	{"id": "steward", "door": "Pen", "art": "res://art/city/hold_steward.png",
 		"stall": "res://art/city/merchant_alchemist.png",
 		"name": "Wren", "label": "Wren, who minds the pens",
-		"at": Vector2(660.0, -140.0), "beat": 96.0,
-		"yields_to": [], "aside": Vector2.ZERO},
+		"cell": Vector2i(15, 20), "beat": 96.0,
+		"yields_to": [], "aside": Vector2i(15, 20)},
 	{"id": "stabler", "door": "Stable", "art": "res://art/city/hold_stabler.png",
 		"stall": "res://art/city/merchant_stabler.png",
 		"name": "Halric", "label": "Halric, who keeps the horses",
-		"at": Vector2(-640.0, 170.0), "beat": 78.0,
-		"yields_to": [], "aside": Vector2.ZERO},
+		"cell": Vector2i(9, 21), "beat": 78.0,
+		"yields_to": [], "aside": Vector2i(9, 21)},
 ]
 
 ## Names for the Wardens whose seats nobody has taken.
@@ -162,11 +166,11 @@ const SIM_NAMES: Array[String] = [
 ## of each path and beside the two doors furthest from the centre, which is
 ## where a person actually needs to see. A ring of torches at even spacing
 ## reads as a decoration; lighting the places people walk reads as a camp.
-const FIRE_AT: Vector2 = Vector2(0.0, 40.0)
-const TORCHES: Array[Vector2] = [
-	Vector2(-330.0, 210.0), Vector2(330.0, 210.0),
-	Vector2(-680.0, 60.0), Vector2(700.0, 40.0),
-	Vector2(-120.0, -250.0), Vector2(160.0, -250.0),
+const FIRE_AT: Vector2i = Vector2i(17, 12)
+const TORCHES: Array[Vector2i] = [
+	Vector2i(11, 15), Vector2i(24, 15), Vector2i(18, 10),
+	Vector2i(8, 9), Vector2i(29, 9), Vector2i(12, 19),
+	Vector2i(26, 19), Vector2i(18, 22),
 ]
 
 ## **The Hold is cut into a hillside, and this is where the steps are.**
@@ -193,39 +197,173 @@ const TORCHES: Array[Vector2] = [
 ## that owns it. The raid camp reached the same conclusion on 2026-09-13 and
 ## this is its bank art, tinted, in a place with no tile grid to bake it into.
 ##
-## Ascending, and read from the top: a point above the first boundary is on
-## the highest shelf.
-const TERRACE_AT: Array[float] = [-200.0, 240.0]
-
-## Where the ground climbs rather than stands. Each names the boundary it
-## crosses and the stretch of it that is walkable, and the two on the lower
-## boundary are the gate ramp the road comes up and the stair down to the pens.
+## **The ground itself, painted rather than banded.**
 ##
-## **A stair is a decision about where people walk**, which is why there are
-## four rather than a boundary you may step over anywhere: the whole of what a
-## terrace adds is that the yard has ways through it.
-const STAIRS: Array[Dictionary] = [
-	{"at": -200.0, "from": -400.0, "to": -220.0},
-	{"at": -200.0, "from": 380.0, "to": 560.0},
-	{"at": 240.0, "from": -140.0, "to": 120.0},
-	{"at": 240.0, "from": 300.0, "to": 520.0},
+## Owner, 2026-09-17: the Hold must not be *"3 straight elevation steps that
+## stretch horizontally"* but a place laid out like Nahantu, big enough for
+## four Wardens to roam. The first cut was two tables - the y of each edge and
+## the stretch of each edge you were allowed to cross - and **every shape those
+## two can describe is a band across the screen**.
+##
+## A cell is `CELL` units. `.` is the valley floor, `1` and `2` are shelves,
+## `^ v < >` are flights climbing toward the arrow, `~` is water and a space is
+## hillside nobody walks on. A flight reads its own low and high side off its
+## neighbours, so the stairs and the ground cannot disagree - which is the whole
+## reason the two tables went.
+##
+## Painted by `tools/hold_map.py`: blobs for the shelves, then a flight cut into
+## the middle of every long run of boundary, then every pocket the road cannot
+## reach pruned back to hillside. Ground nobody can stand on is not ground, and
+## a stair authored where nobody walks strands a third of a yard while every
+## number in the table still reads as correct.
+const MAP: Array[String] = [
+	"                                      ",
+	"            2222222222222             ",
+	"         2222222222222222222          ",
+	"        222222222222222222222         ",
+	"        222222222222222222222         ",
+	"        222222222222222222222         ",
+	"          21111222222221111    22     ",
+	"   22222211111112222222111111222222   ",
+	"  .222222<111111122221111111>222222.  ",
+	"  .222222<111111222222111111>222222.  ",
+	" ..222222<111111222222111111>222222.. ",
+	" ..222222111111111^^^1111111112222... ",
+	" ....11111111111111111111111111...... ",
+	" ....11111111111111111111111~~~...... ",
+	" .....111111111111111111111~~~....... ",
+	" ......11111111111111111111.......... ",
+	" .........^^^..111111..^^^.>11111<... ",
+	"  ...............^^^.......>11111<..  ",
+	"  .........................>11111<..  ",
+	"   ...........................1....   ",
+	"    ..............................    ",
+	"    ..............................    ",
+	"     ............................     ",
+	"       ........................       ",
+	"         ....................         ",
+	"             ............             ",
 ]
 
-## The bank under a shelf's south edge - the raid's own, because one earth
-## face authored and used twice is one that cannot disagree with itself.
+const MAP_W: int = 38
+const MAP_H: int = 26
+const CELL: float = 96.0
+
+## The middle of a cell, in the flat plane everything else is placed in.
+##
+## Static, because the tables here are constants and a constant cannot call a
+## method - so every table holds *cells* and everything that reads one converts
+## through here. One conversion, so a place can never be authored in two
+## coordinate systems at once.
+static func at_cell(cell: Vector2i) -> Vector2:
+	return Vector2(-YARD.x * 0.5, -YARD.y * 0.5) \
+		+ (Vector2(cell) + Vector2(0.5, 0.5)) * CELL
+
 const BANK_ART: String = "res://art/raid/raid_cliff_face.png"
-const STAIR_ART: String = "res://art/raid/raid_stairs.png"
 
-const PADDOCK_AT: Vector2 = Vector2(-700.0, 330.0)
+## **The flights, and they are the same two pieces every place in the game
+## uses.** Owner, 2026-09-17: *"the stair solution should also apply to
+## dungeons with the correct adaptations for each environment"* - so one
+## staircase is drawn climbing away from the camera, one climbing across it,
+## and the side one is mirrored for the other direction. A staircase going
+## the other way is the same staircase.
+##
+## The adaptation is the tint, exactly as the bank's is: earth for a valley,
+## cut stone for a rift. A second painting per environment is a second thing
+## that can disagree with the first.
+const STAIR_NORTH_ART: String = "res://art/terrain/stair_earth_north.png"
+const STAIR_SIDE_ART: String = "res://art/terrain/stair_earth_east.png"
 
-const PEN_FIRST: Vector2 = Vector2(180.0, 330.0)
+## **The Wang sheets each shelf is laid with.**
+##
+## Owner, 2026-09-17: a shelf painted as a quad of one texture has a hard edge
+## by construction. The valley floor is the soil sheet; the plaza is turf laid
+## over it, and the sanctum behind the wall is an old flagstone courtyard laid
+## over the turf - so each shelf is a *different place* rather than the same
+## ground a rise higher, and every join between them is authored art.
+const TILE_ART: Array[String] = [
+	"",
+	"res://art/terrain/hold_turf.png",
+	"res://art/terrain/hold_flags.png",
+]
+
+## **Where the ground is worn through, and how wide.**
+##
+## A route is a spine the yard has been walked along for years, not a band
+## laid on a plan: the wobble is in the authored points rather than added,
+## so the same path is drawn every frame and none of it shimmers.
+##
+## A segment whose two ends stand on different shelves is not drawn at all -
+## that gap is where the stair is, and a strip stretched down a bank face
+## would be a path painted over a cliff.
+const ROUTES: Array[Dictionary] = [
+	# The road in, from the gate up the central flight to the plaza and on up the
+	# grand stair onto the promontory.
+	{"wide": 54.0, "cells": [
+		Vector2i(18, 24), Vector2i(18, 22), Vector2i(18, 20), Vector2i(18, 19),
+		Vector2i(18, 18), Vector2i(18, 17), Vector2i(18, 16), Vector2i(18, 15),
+		Vector2i(18, 14), Vector2i(18, 13), Vector2i(19, 12), Vector2i(19, 11),
+		Vector2i(19, 10)]},
+	# The plaza itself, west to east past the furnace, the anvil and the market.
+	{"wide": 50.0, "cells": [
+		Vector2i(7, 14), Vector2i(11, 13), Vector2i(15, 13), Vector2i(19, 12),
+		Vector2i(23, 13), Vector2i(26, 14)]},
+	# The two side flights down to the lower yard.
+	{"wide": 40.0, "cells": [
+		Vector2i(11, 14), Vector2i(11, 15), Vector2i(11, 16), Vector2i(11, 17),
+		Vector2i(11, 19)]},
+	{"wide": 40.0, "cells": [
+		Vector2i(24, 14), Vector2i(24, 15), Vector2i(24, 16), Vector2i(24, 18),
+		Vector2i(24, 20)]},
+	# Up the side stairs onto the two outcrops.
+	{"wide": 36.0, "cells": [
+		Vector2i(11, 9), Vector2i(10, 9), Vector2i(9, 9), Vector2i(8, 9),
+		Vector2i(6, 9)]},
+	{"wide": 36.0, "cells": [
+		Vector2i(26, 9), Vector2i(27, 9), Vector2i(28, 9), Vector2i(29, 9),
+		Vector2i(31, 9)]},
+	# The sanctum behind the wall: the Stash, the Chronicle and the Codex.
+	{"wide": 44.0, "cells": [
+		Vector2i(18, 8), Vector2i(18, 6), Vector2i(18, 5), Vector2i(18, 4),
+		Vector2i(14, 4), Vector2i(11, 4)]},
+	{"wide": 38.0, "cells": [
+		Vector2i(18, 4), Vector2i(22, 4), Vector2i(25, 4)]},
+	# Along the pens, and out to the stable and its paddock.
+	{"wide": 32.0, "cells": [
+		Vector2i(11, 19), Vector2i(14, 19), Vector2i(17, 19), Vector2i(20, 19),
+		Vector2i(23, 19)]},
+	{"wide": 34.0, "cells": [
+		Vector2i(11, 19), Vector2i(9, 20), Vector2i(9, 22)]},
+]
+
+## How far the ground keeps going past the walkable yard.
+##
+## The Warden is clamped to `YARD`; the *picture* is not, and a slab that
+## stops where the walking does is a diagram. What is out there is more
+## valley, falling into shadow - see `_fall_away`.
+const OVERSCAN: float = 620.0
+
+const PADDOCK_AT: Vector2i = Vector2i(9, 22)
+
+## **Far enough in that the last one is on the ground.** Photographed at
+## 2026-09-17: four pens from x=180 at 286 apart reach 1163, against a yard
+## half-width of 1100 - so Oyelle's pen had a rail and a bird hanging over
+## the void. A number that is right for three seats and wrong for four.
+const PEN_FIRST: Vector2i = Vector2i(12, 19)
 const PEN_SIZE: Vector2 = Vector2(250.0, 180.0)
 const PEN_GAP: float = 36.0
+
+## How many cells apart the pens stand, so they are laid on the map rather
+## than measured off each other in units the ground knows nothing about.
+const PEN_STEP: int = 3
 
 signal entered(station_id: String)
 ## The Warden walked somewhere. The session relays this; the yard does not.
 signal walked(at: Vector2, facing: Vector2)
 
+## The ground itself: the map, the height field, the banks and the flights.
+## Everything above it measures the flat plane and asks this where to draw.
+var _land: Elevation = null
 var _ground: Texture2D = null
 var _bank: Texture2D = null
 var _steps: Texture2D = null
@@ -247,6 +385,10 @@ var _pens: Array[Dictionary] = []
 ## the stock, read by nothing - see `StablePaddock`.
 var _paddock: StablePaddock = null
 var _grass_at: Array[Vector2] = []
+
+## The painted plants standing in the yard, kept so a re-scatter clears the
+## last garden rather than growing a second one on top of it.
+var _plants: Array[Node] = []
 ## The animal the Warden has taken out of the pen, walking with them.
 ##
 ## Owner brief, 2026-09-17: *"Players can still choose a companion to take
@@ -277,16 +419,50 @@ var _dash_rest: float = 0.0
 
 func _ready() -> void:
 	name = "HoldYard"
+	# **The paths and the worn patches read the ground in world coordinates**,
+	# so their UVs run well past one and the texture has to wrap. Left on the
+	# default this node clamps to the edge texel, and a whole route comes out
+	# as one flat smear of whatever colour happens to be on the right-hand
+	# column of the terrain sheet - which is a hard-edged rectangle again,
+	# arrived at from the other direction.
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	_rng.seed = hash("hold-yard")
 	if ResourceLoader.exists(GROUND_ART):
 		_ground = load(GROUND_ART) as Texture2D
 	if ResourceLoader.exists(BANK_ART):
 		_bank = load(BANK_ART) as Texture2D
-	if ResourceLoader.exists(STAIR_ART):
-		_steps = load(STAIR_ART) as Texture2D
+	if ResourceLoader.exists(STAIR_NORTH_ART):
+		_steps = load(STAIR_NORTH_ART) as Texture2D
+	var side: Texture2D = null
+	if ResourceLoader.exists(STAIR_SIDE_ART):
+		side = load(STAIR_SIDE_ART) as Texture2D
 	_earth = _earth_tint()
 	if ResourceLoader.exists(GRASS_ART):
 		_grass = load(GRASS_ART) as Texture2D
+	# **The ground goes in first and below everything.** It is a child rather
+	# than this node's own `_draw` so that the height field, the banks and the
+	# flights are one object a rift can stand up with its own kit - the owner's
+	# own "the stair solution should also apply to dungeons".
+	_land = Elevation.new()
+	_land.name = "Ground"
+	# Added so it is owned and freed with the yard, and hidden so its own `_draw`
+	# never runs: the Hold paints it into its own canvas instead, which is what
+	# puts the ground underneath everything drawn on it.
+	_land.visible = false
+	add_child(_land)
+	_land.set_map(PackedStringArray(MAP), CELL, Balance.HOLD_TERRACE_RISE)
+	_land.set_kit(_ground, _bank, _steps, side,
+		Color(1.0, 1.02, 0.94), _earth)
+	# The valley's own water, which is the jungle pond every Act I road digs:
+	# one authored sheet used twice cannot disagree with itself.
+	if ResourceLoader.exists(POND_ART):
+		_land.set_water(load(POND_ART) as Texture2D)
+	for level: int in TILE_ART.size():
+		var sheet: String = TILE_ART[level]
+		if sheet.is_empty() or not ResourceLoader.exists(sheet):
+			continue
+		_land.set_tiles(level, load(sheet) as Texture2D)
+	_land.set_overscan(OVERSCAN)
 	_actors = Node2D.new()
 	_actors.name = "Actors"
 	_actors.y_sort_enabled = true
@@ -307,88 +483,179 @@ func _ready() -> void:
 
 
 ## Which shelf a point stands on, counting up from the lower yard.
+## Which shelf a point stands on. Rounded, because the ground between two of
+## them is a flight and a flight is on both.
 func level_at(point: Vector2) -> int:
-	var level: int = TERRACE_AT.size()
-	for edge: float in TERRACE_AT:
-		if point.y >= edge:
-			level -= 1
-	return level
+	return int(round(_land.height_at(point))) if _land != null else 0
 
 
-## How far above the lower yard that point is drawn.
+## How far above its own place a point is drawn.
 ##
 ## **A rise, never a height.** A Warden's position stays in the flat plane -
 ## the reach, the focus, the dash, the pens and the relay are all measured
 ## there and none of them learned that the Hold has shelves. What a shelf
-## changes is where a thing is *drawn* and whether a step across an edge is
-## allowed, which is two small rules instead of a second coordinate system.
+## changes is where a thing is *drawn* and whether a step is allowed, which is
+## two small rules instead of a second coordinate system.
 func lift_at(point: Vector2) -> float:
-	return -float(level_at(point)) * Balance.HOLD_TERRACE_RISE
+	return _land.lift_at(point) if _land != null else 0.0
 
 
-## Whether a step from one point to another is one a person could take.
+## Whether a step is one a person could take.
 ##
-## Along a shelf, always. Across an edge, only on a stair - and only one shelf
-## at a time, which cannot happen with these boundaries but is asserted
-## anyway, because a table with two edges close together would otherwise let
-## a dash clear both.
+## **Slope, not stairs**, and that is the whole of what replaced the stair
+## table: `Elevation` allows a climb that is gentle for the distance it covers,
+## so a flight passes at two thirds and a cliff is refused at sixteen. Nothing
+## in this file knows where a stair is any more.
 func step_is_legal(from: Vector2, to: Vector2) -> bool:
-	var was: int = level_at(from)
-	var now: int = level_at(to)
-	if was == now:
-		return true
-	if absi(was - now) > 1:
-		return false
-	var edge: float = TERRACE_AT[TERRACE_AT.size() - maxi(was, now)]
-	for stair: Dictionary in STAIRS:
-		if not is_equal_approx(float(stair["at"]), edge):
-			continue
-		if to.x >= float(stair["from"]) and to.x <= float(stair["to"]) \
-				and from.x >= float(stair["from"]) and from.x <= float(stair["to"]):
-			return true
-	return false
+	return _land.step_is_legal(from, to) if _land != null else true
 
 
-## A step that gives ground rather than sticking.
-##
-## A Warden walking diagonally into a bank should slide along it, which is
-## what every collision in this game does and what stops an edge reading as
-## glue. Only the Y half of a step can ever be refused here - the boundaries
-## run east to west - so trying the sideways half is always the right retry.
+## A step that gives ground rather than sticking against a bank.
 func _slide(from: Vector2, to: Vector2) -> Vector2:
-	if step_is_legal(from, to):
-		return to
-	var sideways := Vector2(to.x, from.y)
-	if step_is_legal(from, sideways):
-		return sideways
-	return from
+	return _land.slide(from, to) if _land != null else to
 
+
+## The nearest ground to a point, for putting something down. A station or a
+## resident authored a cell into the hillside is invisible in a table.
+func _on_ground(at: Vector2) -> Vector2:
+	return _land.settle(at) if _land != null else at
 
 # ---------------------------------------------------------------- the place
 
 
+## **Foliage, scattered the way a place grows rather than the way dice fall.**
+##
+## Owner, 2026-09-17: *"ensure also procedural smart foliage scattering around
+## the hold"*. The first cut was `HOLD_GRASS_TUFTS` tufts of one sprite thrown
+## at a rectangle, which is a rectangle with confetti on it.
+##
+## Four rules, and each one is a thing about this place rather than a number:
+##
+## - **Nothing grows where people walk.** A candidate inside a route's own width
+##   is dropped, and so is one standing at a door or in a pen - read from the
+##   same tables the paths and the pens are drawn from, so the two can never
+##   disagree about where the traffic is.
+## - **It thickens toward the rim.** The middle of the square is kept and the
+##   ground at the edge of the map is not, so the yard fades into the valley it
+##   was cut out of rather than stopping at a line of grass.
+## - **The plant suits the ground it is on.** Ferns and creepers in the shade at
+##   the foot of a bank, tallgrass and shrubs out on the open floor, flowers
+##   only where the Hold is kept - which is what makes the middle read as tended
+##   and the outskirts as taken back.
+## - **And the same seed grows the same garden**, from the yard's own stream, so
+##   nothing shimmers between redraws and no run's dice are touched.
 func _scatter_grass() -> void:
-	# Clear of the path, so the yard reads as kept rather than abandoned. Its
-	# own dice, on the yard's own seed, because a tuft of grass is decoration
-	# and decoration never touches a run's stream.
 	_grass_at.clear()
-	for _index: int in Balance.HOLD_GRASS_TUFTS:
+	for plant: Node in _plants:
+		if is_instance_valid(plant):
+			plant.queue_free()
+	_plants.clear()
+	for _index: int in Balance.HOLD_GRASS_TUFTS * 3:
 		var at := Vector2(_rng.randf_range(-YARD.x * 0.5, YARD.x * 0.5),
 			_rng.randf_range(-YARD.y * 0.5, YARD.y * 0.5))
-		if absf(at.y - 120.0) < 80.0 or absf(at.x - ENTRY.x) < 90.0:
+		if not _is_open_ground(at):
 			continue
-		_grass_at.append(at)
+		# Thicker the further out it is: zero in the middle of the square and one
+		# at the rim.
+		var out: float = maxf(absf(at.x) / (YARD.x * 0.5),
+			absf(at.y) / (YARD.y * 0.5))
+		if _rng.randf() > lerpf(Balance.HOLD_FOLIAGE_INNER,
+				Balance.HOLD_FOLIAGE_OUTER, out):
+			continue
+		if _rng.randf() < Balance.HOLD_FOLIAGE_PLANT_SHARE:
+			_stand_plant(at, out)
+		else:
+			_grass_at.append(at)
 	# **Sorted by the ground rather than by the draw**, so a tuft on the shelf
 	# is drawn before the bank that falls in front of it.
 	_grass_at.sort_custom(func(a: Vector2, c: Vector2) -> bool: return a.y < c.y)
 
 
+## Whether a point is ground nothing else already has a claim on.
+func _is_open_ground(at: Vector2) -> bool:
+	if _land != null and not _land.is_ground(at):
+		return false
+	for route: Dictionary in ROUTES:
+		var wide: float = float(route["wide"]) + 26.0
+		var cells: Array = route["cells"] as Array
+		for index: int in cells.size() - 1:
+			var from: Vector2 = at_cell(cells[index] as Vector2i)
+			var to: Vector2 = at_cell(cells[index + 1] as Vector2i)
+			if _near_the_line(at, from, to) < wide:
+				return false
+	for station: Dictionary in STATIONS:
+		if at.distance_to(at_cell(station["cell"] as Vector2i)) < 130.0:
+			return false
+	for person: Dictionary in RESIDENTS:
+		if at.distance_to(at_cell(person["cell"] as Vector2i)) < 90.0:
+			return false
+	for index: int in Balance.HOLD_SEATS:
+		var pen: Vector2 = at_cell(PEN_FIRST + Vector2i(index * PEN_STEP, 0))
+		if absf(at.x - pen.x) < PEN_SIZE.x * 0.7 \
+			and absf(at.y - pen.y) < PEN_SIZE.y * 0.8:
+			return false
+	var paddock: Vector2 = at_cell(PADDOCK_AT)
+	if absf(at.x - paddock.x) < Balance.STABLE_PADDOCK.x * 0.7 \
+		and absf(at.y - paddock.y) < Balance.STABLE_PADDOCK.y * 0.8:
+		return false
+	return true
+
+
+## How far a point lies from a stretch of route.
+func _near_the_line(at: Vector2, from: Vector2, to: Vector2) -> float:
+	var way: Vector2 = to - from
+	var span: float = way.length_squared()
+	if span < 0.01:
+		return at.distance_to(from)
+	var along: float = clampf((at - from).dot(way) / span, 0.0, 1.0)
+	return at.distance_to(from + way * along)
+
+
+## One painted plant, chosen by the ground it is standing on.
+##
+## A plant with no art on disk is simply not stood up, which is the rule every
+## sprite in this project lives under: a missing file is a duller Hold, never a
+## hole and never an error.
+func _stand_plant(at: Vector2, out: float) -> void:
+	var shaded: bool = _land != null \
+		and _land.height_at(at + Vector2(0.0, -CELL)) > _land.height_at(at) + 0.5
+	var pool: Array[String] = Balance.HOLD_FOLIAGE_OPEN
+	if shaded:
+		pool = Balance.HOLD_FOLIAGE_SHADE
+	elif out < 0.42:
+		pool = Balance.HOLD_FOLIAGE_KEPT
+	var art: String = FOLIAGE_FORMAT % pool[_rng.randi() % pool.size()]
+	if not ResourceLoader.exists(art):
+		return
+	var texture: Texture2D = load(art) as Texture2D
+	if texture == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.centered = true
+	sprite.offset = Vector2(0.0, -float(texture.get_height()) * 0.5)
+	# The road's own stature rule, so a fern in the Hold is the size of a fern on
+	# the battlefield rather than whatever its canvas happens to be.
+	sprite.scale = Vector2.ONE * Foliage.painted_scale(texture) \
+		* _rng.randf_range(0.82, 1.14)
+	sprite.flip_h = _rng.randf() < 0.5
+	# It breathes, through the one material every plant in the game shares - so
+	# the Hold's ferns lean in the same wind the road's do.
+	sprite.material = Foliage.kind_material(Foliage.kind_of(art))
+	sprite.position = at + Vector2(0.0, lift_at(at))
+	_actors.add_child(sprite)
+	_plants.append(sprite)
+
+
 func _build_stations() -> void:
 	for entry: Dictionary in STATIONS:
-		var sprite: Sprite2D = _stand(String(entry["art"]), entry["at"] as Vector2)
+		var where: Vector2 = _on_ground(at_cell(entry["cell"] as Vector2i))
+		var sprite: Sprite2D = _stand(String(entry["art"]), where)
 		if sprite == null:
 			continue
 		var station: Dictionary = entry.duplicate(true)
+		station["at"] = where
 		station["node"] = sprite
 		station["button"] = null
 		# **Every building breathes on its own authored frames.** Owner,
@@ -409,7 +676,8 @@ func _build_residents() -> void:
 		var art: String = String(entry["art"])
 		if not ResourceLoader.exists(art):
 			art = String(entry.get("stall", ""))
-		var sprite: Sprite2D = _stand(art, entry["at"] as Vector2)
+		var where: Vector2 = _on_ground(at_cell(entry["cell"] as Vector2i))
+		var sprite: Sprite2D = _stand(art, where)
 		if sprite == null:
 			continue
 		var person: Dictionary = entry.duplicate(true)
@@ -425,9 +693,10 @@ func _build_residents() -> void:
 		# yard has shelves now, so a figure's node sits a terrace's rise above the
 		# ground it is standing on - and everything that measures reach, focus or
 		# a errand has to keep measuring the ground.
-		person["at"] = entry["at"] as Vector2
-		person["home"] = entry["at"] as Vector2
-		person["to"] = entry["at"] as Vector2
+		person["at"] = where
+		person["home"] = where
+		person["to"] = where
+		person["aside"] = _on_ground(at_cell(entry["aside"] as Vector2i))
 		person["clock"] = _rng.randf() * 10.0
 		person["left"] = _rng.randf_range(Balance.HOLD_NPC_PAUSE.x, Balance.HOLD_NPC_PAUSE.y)
 		person["stood_aside"] = false
@@ -438,6 +707,18 @@ func _build_residents() -> void:
 		# a hole - the rule `MountRig` lives under.
 		person["idle_frames"] = GameData.load_idle_frames(art)
 		person["walk_frames"] = GameData.load_move_frames(art)
+		# **A resident at their post is doing their job**, which is the half of
+		# "animate their states" that a walk and a breath cannot say: Orden
+		# swings a hammer, Maela stacks a crate, Bryn carries feed and Halric
+		# works a bridle. `load_state_frames` is the convention this project
+		# already has for a named state, so this needed no loader.
+		#
+		# It deliberately does *not* prepend the base sprite the way an idle
+		# does: the pinned last frame is the pose the loop closes on, exactly
+		# as a walk keeps its contact pose, and alternating a standing figure
+		# with a hammer swing reads as the sprite being swapped rather than
+		# animated.
+		person["work_frames"] = GameData.load_state_frames(art, "work")
 		# Its own phase, so four residents on one clock are not four copies of
 		# one loop - the argument `PenYard` and the paddock are both built under.
 		person["frame"] = _rng.randf() * 8.0
@@ -470,13 +751,21 @@ func _stand(art: String, at: Vector2) -> Sprite2D:
 ## theirs, and may touch nobody's but their own (owner, 2026-09-17).
 func _build_pens() -> void:
 	for index: int in Balance.HOLD_SEATS:
-		var at: Vector2 = PEN_FIRST + Vector2(
-			float(index) * (PEN_SIZE.x + PEN_GAP), 0.0)
+		# Laid on the map a fixed number of cells apart, so the pens stand on
+		# ground the ground agrees exists rather than at an offset measured in
+		# units nobody checked against it.
+		var at: Vector2 = _on_ground(at_cell(PEN_FIRST
+			+ Vector2i(index * PEN_STEP, 0)))
 		var pen := PenYard.new()
 		pen.name = "Pen%d" % index
 		pen.position = at
 		_actors.add_child(pen)
 		pen.set_stage(PEN_SIZE - Vector2(40.0, 52.0))
+		# The yard it is standing in, so it lays that rather than its own
+		# opaque floor: two nodes drawing one piece of ground is how the pens
+		# went back to being panes after the Hold had already stopped drawing
+		# them that way.
+		pen.set_ground(_ground)
 
 		var plate := Label.new()
 		plate.position = at + Vector2(-PEN_SIZE.x * 0.5, -PEN_SIZE.y * 0.5 - 30.0)
@@ -496,9 +785,12 @@ func _build_pens() -> void:
 ## rail, exactly as they may walk behind a pen.
 func _build_paddock() -> void:
 	_paddock = StablePaddock.new()
-	_paddock.position = PADDOCK_AT
+	_paddock.position = _on_ground(at_cell(PADDOCK_AT))
 	_actors.add_child(_paddock)
 	_paddock.set_stage(Balance.STABLE_PADDOCK)
+	# Standing in a yard rather than on a screen: it wears this ground instead
+	# of painting its own over it.
+	_paddock.stand_in_a_yard(_ground)
 
 
 ## The paddock, for the screen that re-reads it after a purchase and for the
@@ -516,7 +808,7 @@ func _build_seats() -> void:
 		_seats.append(_stand_warden(index))
 	_seats[0]["kind"] = HoldSession.Seat.LOCAL
 	_seats[0]["name"] = MetaState.player_name if not MetaState.player_name.is_empty() else "Oathless"
-	_seats[0]["at"] = ENTRY
+	_seats[0]["at"] = _on_ground(at_cell(ENTRY))
 	_place(_seats[0])
 	for index: int in range(1, _seats.size()):
 		_seats[index]["kind"] = HoldSession.Seat.SIMULATED
@@ -576,10 +868,12 @@ func _stand_warden(index: int) -> Dictionary:
 ## middle of an empty yard reads as a bug.
 func _somewhere(own: RandomNumberGenerator) -> Vector2:
 	if STATIONS.is_empty():
-		return ENTRY
+		return _on_ground(at_cell(ENTRY))
 	var pick: Dictionary = STATIONS[own.randi() % STATIONS.size()]
-	return (pick["at"] as Vector2) + Vector2(own.randf_range(-110.0, 110.0),
-		own.randf_range(90.0, 170.0))
+	# Settled onto real ground: the yard is a shape now, so a spot a hundred
+	# units south of a door can easily be over a bank or off the map.
+	return _on_ground(at_cell(pick["cell"] as Vector2i)
+		+ Vector2(own.randf_range(-110.0, 110.0), own.randf_range(90.0, 170.0)))
 
 
 func _place(seat: Dictionary) -> void:
@@ -696,8 +990,10 @@ func _build_fires() -> void:
 	# torch standing in the open; a campfire is the thing people gather at, and
 	# at this scale the yard has a centre after dark rather than merely a
 	# midpoint.
-	_stand_fire(FIRE_AT, Balance.HOLD_FIRE_REACH, Balance.HOLD_FIRE_ENERGY, 2.4)
-	for at: Vector2 in TORCHES:
+	_stand_fire(at_cell(FIRE_AT), Balance.HOLD_FIRE_REACH,
+		Balance.HOLD_FIRE_ENERGY, 2.4)
+	for cell: Vector2i in TORCHES:
+		var at: Vector2 = at_cell(cell)
 		_stand_fire(at, Balance.HOLD_TORCH_REACH, Balance.HOLD_TORCH_ENERGY, 0.7)
 
 
@@ -785,7 +1081,8 @@ func seats() -> int:
 
 
 func warden_at() -> Vector2:
-	return _seats[0]["at"] as Vector2 if not _seats.is_empty() else ENTRY
+	return _seats[0]["at"] as Vector2 if not _seats.is_empty() \
+		else _on_ground(at_cell(ENTRY))
 
 
 # ---------------------------------------------------------------- the doors
@@ -1020,12 +1317,31 @@ func _mind_the_stall(person: Dictionary, delta: float) -> void:
 			+ step.normalized() * Balance.HOLD_WALK_SPEED * 0.35 * delta)
 		sprite.flip_h = step.x < 0.0
 	person["at"] = at
+	# **What this person is doing, decided in one place.** A resident standing
+	# still on their own patch works; one crossing the yard walks; one who
+	# has been asked for the tools waits, and one the Warden has walked up
+	# to looks up from the bench. It reads the same three facts the movement
+	# above read, rather than a flag somebody else has to remember to set.
+	#
+	# **Standing still is the whole test, and there is deliberately no
+	# distance to home in it.** A resident wanders a little way around their
+	# own station between errands and never leaves it, so a radius here
+	# would be a second, weaker statement of a bound the movement already
+	# holds - and the first cut of it left Halric idle for ever at the far
+	# end of his own paddock.
+	var doing: StringName = &"idle"
+	if walking:
+		doing = &"walk"
+	elif not yielding \
+			and warden.distance_to(sprite.position) >= Balance.HOLD_REACH * 1.6:
+		doing = &"work"
+	person["doing"] = doing
 	# Breathing, at the rate the stalls' own people work: a sprite that is
 	# perfectly still beside a Warden that is animated reads as a cardboard cut
 	# out, and a bob is the whole of the difference at this size.
 	sprite.position = at + Vector2(0.0, lift_at(at)
 		+ sin(float(person["clock"]) * float(person["beat"]) * 0.02) * 0.9)
-	_play_resident(person, delta, walking)
+	_play_resident(person, delta, doing)
 
 
 ## A resident's own frames, idle or walking.
@@ -1034,21 +1350,33 @@ func _mind_the_stall(person: Dictionary, delta: float) -> void:
 ## what keeps a figure alive on the frame a loop happens to rest on, and it is
 ## the only motion a resident whose art is still the old stall painting has.
 ##
+## The work loop is the walk's convention rather than the idle's, for the same
+## reason: it is a cycle of its own and the standing pose is not part of it. A
+## resident with no work frames on disk falls back to breathing where they
+## stand, which is what all four of them did before the art arrived.
+##
 ## The walk sequence deliberately does *not* include the base sprite, which is
 ## the one place `load_move_frames` differs from `load_idle_frames`: the base is
 ## a person standing, and alternating it with a stride reads as the sprite being
 ## swapped rather than animated. That was reported once already, about a
 ## squirrel that "flashes, almost like it is not the same squirrel".
-func _play_resident(person: Dictionary, delta: float, walking: bool) -> void:
+func _play_resident(person: Dictionary, delta: float, doing: StringName) -> void:
 	var sprite := person["node"] as Sprite2D
 	if sprite == null:
 		return
-	var frames: Array = (person["walk_frames"] if walking
-		else person["idle_frames"]) as Array
+	var frames: Array = person["idle_frames"] as Array
+	var rate: float = Balance.HOLD_NPC_FRAME_HZ
+	if doing == &"walk":
+		frames = person["walk_frames"] as Array
+		rate = Balance.HOLD_NPC_WALK_FRAME_HZ
+	elif doing == &"work":
+		frames = person["work_frames"] as Array
+		rate = Balance.HOLD_NPC_WORK_FRAME_HZ
+		if frames.is_empty():
+			frames = person["idle_frames"] as Array
+			rate = Balance.HOLD_NPC_FRAME_HZ
 	if frames.is_empty():
 		return
-	var rate: float = (Balance.HOLD_NPC_WALK_FRAME_HZ if walking
-		else Balance.HOLD_NPC_FRAME_HZ)
 	person["frame"] = float(person["frame"]) + delta * rate
 	var at: int = int(person["frame"]) % frames.size()
 	var texture := frames[at] as Texture2D
@@ -1077,6 +1405,31 @@ func stood_aside(id: String) -> bool:
 	return false
 
 
+## What a resident is doing - `idle`, `walk` or `work`. For the gate.
+##
+## The state the yard *decided*, rather than one the gate recomputes from the
+## same three facts: a second copy of that rule would agree with the first
+## right up until somebody changed one of them.
+func doing(id: String) -> StringName:
+	for person: Dictionary in _residents:
+		if String(person["id"]) == id:
+			return person.get("doing", &"idle") as StringName
+	return &""
+
+
+## The frame a resident is drawing right now. For the gate.
+##
+## A state that is decided and drawn by nothing passes every walk of the art
+## folder there is - the `DisciplineEffects` lie in a fourth place - so the
+## gate reads the texture off the sprite rather than the flag off the record.
+func resident_frame(id: String) -> Texture2D:
+	for person: Dictionary in _residents:
+		if String(person["id"]) == id:
+			var sprite := person["node"] as Sprite2D
+			return null if sprite == null else sprite.texture
+	return null
+
+
 ## The buildings' own idle frames, each on its own clock.
 ##
 ## Slow: a forge that flickers at the rate a fire does reads as an alarm at
@@ -1103,7 +1456,8 @@ func _breathe(delta: float) -> void:
 ## What is in reach, nearest first. A building and its keeper answer the same
 ## door, so standing between them is never ambiguous about what happens.
 func _find_focus() -> void:
-	var warden: Vector2 = _seats[0]["at"] as Vector2 if not _seats.is_empty() else ENTRY
+	var warden: Vector2 = _seats[0]["at"] as Vector2 \
+		if not _seats.is_empty() else _on_ground(at_cell(ENTRY))
 	var best: String = ""
 	var nearest: float = Balance.HOLD_REACH
 	for person: Dictionary in _residents:
@@ -1146,19 +1500,55 @@ func walk_toward(at: Vector2) -> void:
 
 func _draw() -> void:
 	var half: Vector2 = YARD * 0.5
-	_draw_terraces(half)
-
-	# The paths. Drawn rather than tiled, for the reason the pen's ground is: it
-	# is bands of trodden earth under a dozen sprites, and a painting of one
-	# would be a manifest row for something nobody looks at.
+	# **The ground is painted into this canvas rather than onto its own.**
 	#
-	# **Each band is laid on the shelf it belongs to**, so a path that crosses
-	# an edge arrives at the stair rather than running through the bank.
-	var earth := Color(0.29, 0.24, 0.17, 0.55)
-	_lay_path(Rect2(-half.x + 60.0, 70.0, YARD.x - 120.0, 130.0), earth)
-	_lay_path(Rect2(ENTRY.x - 80.0, 70.0, 160.0, half.y - 70.0), earth)
-	_lay_path(Rect2(PEN_FIRST.x - 220.0, 190.0,
-		float(_pens.size()) * (PEN_SIZE.x + PEN_GAP) + 120.0, 90.0), earth)
+	# `Elevation` is a node so that a rift can stand one up with its own kit,
+	# but a child draws *after* its parent - so laid out as a child here it
+	# painted straight over the paths, the wall, the pens and every worn patch.
+	# Sinking it with a negative `z_index` instead put it behind the screen's
+	# own plate and the whole yard vanished, which is the second time a
+	# negative z has cost this project a feature.
+	#
+	# Handing it a canvas to paint into settles the order by saying it, which
+	# is also what a dungeon needs: the deep already has a tile layer and wants
+	# its banks and flights drawn into that rather than beside it.
+	if _land != null:
+		_land.paint(self)
+	# The ground is `_land`, a child, so it is under everything drawn here.
+	_fall_away(half)
+
+	# **The paths are routes now, not bands.** Photographed on 2026-09-17 the
+	# widest of them was a 130-unit rectangle across the whole yard with a hard
+	# edge down both sides, and at play zoom it read as a river of mud rather
+	# than as ground people walk on. That is the same fault the pens and the
+	# paddock each had, in the largest shape in the place.
+	#
+	# A route is a spine with a width, worn through to earth along the middle
+	# and fading into the grass at both rims - which is what a path *is*, and
+	# what a rectangle can never be, because one colour for the whole shape is
+	# exactly what a hard edge is.
+	for route: Dictionary in ROUTES:
+		var spine: Array = []
+		for cell: Variant in route["cells"] as Array:
+			spine.append(at_cell(cell as Vector2i))
+		_tread(spine, float(route["wide"]))
+
+	# **And the ground is worn where people actually stand.** A yard whose
+	# only bare earth is on its roads is a diagram of a yard: what says a
+	# place is used is the patch in front of every door and under the boots
+	# of somebody who has worked the same spot for years.
+	#
+	# Read off the stations and the residents rather than authored, so a
+	# station moved or added brings its own worn ground with it - the same
+	# argument the doors themselves are adopted under.
+	for station: Dictionary in _stations:
+		var door: Vector2 = station["at"] as Vector2
+		_scuff(door + Vector2(0.0, lift_at(door) + 14.0), 62.0,
+			Balance.HOLD_SOIL_TINT * Color(1.0, 1.0, 1.0, 0.62))
+	for person: Dictionary in _residents:
+		var post: Vector2 = person["home"] as Vector2
+		_scuff(post + Vector2(0.0, lift_at(post)), 44.0,
+			Balance.HOLD_SOIL_TINT * Color(1.0, 1.0, 1.0, 0.70))
 
 	_draw_wall(half)
 
@@ -1228,10 +1618,32 @@ func _draw() -> void:
 ## The Hold's own soil, normalised to its own brightness and then darkened -
 ## a face is the side the sun is not on. Normalising first is what stops a
 ## dark ground blacking the bank out and a bright one washing it white.
-func _earth_tint() -> Color:
+## **The stone the wall is built of, taken from the ground it stands on.**
+##
+## It was `Color(0.23, 0.22, 0.19)` with the walkway `lightened(0.16)` on top,
+## and photographed on 2026-09-17 that walkway was the single brightest thing in
+## the Hold - a pale grey band across the whole north edge of a yard painted in
+## muted olive. A hand-picked grey cannot know what light a place is in, which
+## is exactly why the bank has been tinted from the ground since it was built.
+##
+## So: the valley's own mean, pulled most of the way to grey because quarried
+## stone is not soil, and set to a value a little above the ground's - a wall
+## catches the sky and the ground does not. Every other shade in `_wall_length`
+## is relative to this one, so the whole structure moves with it.
+func _stone_tint() -> Color:
+	var mean: Color = _ground_mean()
+	var grey: float = (mean.r + mean.g + mean.b) / 3.0
+	var stone: Color = mean.lerp(Color(grey, grey, grey),
+		Balance.HOLD_WALL_GREY)
+	var value: float = maxf(maxf(stone.r, maxf(stone.g, stone.b)), 0.02)
+	return stone * (grey * Balance.HOLD_WALL_VALUE / value)
+
+
+## The average colour of the ground the Hold is painted on, absolutely rather
+## than normalised - the bank wants the hue and this wants the light as well.
+func _ground_mean() -> Color:
 	if _ground == null:
-		return Color(Balance.HOLD_BANK_SHADE, Balance.HOLD_BANK_SHADE,
-			Balance.HOLD_BANK_SHADE)
+		return Color(0.20, 0.19, 0.15)
 	var image: Image = _ground.get_image()
 	image.convert(Image.FORMAT_RGBA8)
 	image.resize(8, 8, Image.INTERPOLATE_BILINEAR)
@@ -1239,115 +1651,81 @@ func _earth_tint() -> Color:
 	for y: int in 8:
 		for x: int in 8:
 			total += image.get_pixel(x, y)
-	var mean: Color = total / 64.0
+	return total / 64.0
+
+
+func _earth_tint() -> Color:
+	if _ground == null:
+		return Color(Balance.HOLD_BANK_SHADE, Balance.HOLD_BANK_SHADE,
+			Balance.HOLD_BANK_SHADE)
+	var mean: Color = _ground_mean()
 	var lift: float = maxf(maxf(mean.r, maxf(mean.g, mean.b)), 0.08)
 	return Color(mean.r / lift, mean.g / lift, mean.b / lift) \
 		* Balance.HOLD_BANK_SHADE
 
 
-## **The highest shelf first, and each one painted down to the foot of the
-## yard.** What is under a slab of earth is more of the same earth, so a shelf
-## is a rectangle that runs off the bottom of the picture and the shelf in
-## front of it covers everything below its own bank. The banks then stack the
-## way ground does.
+## **The valley falls into shadow past the rim.**
 ##
-## The first cut ran this the other way round, so the top shelf painted over
-## every shelf below it: the Hold came out flat with one bank hanging in the
-## middle of it and the pens on the same plane as the square. Found by
-## photographing it, because every number in the table was right.
-func _draw_terraces(half: Vector2) -> void:
-	var edges: Array[float] = [-half.y]
-	edges.append_array(TERRACE_AT)
-	edges.append(half.y)
-	for band: int in edges.size() - 1:
-		var top: float = edges[band]
-		var lift: float = -float(edges.size() - 2 - band) * Balance.HOLD_TERRACE_RISE
-		var shelf := Rect2(-half.x, top + lift, YARD.x, half.y - top - lift)
-		if _ground != null:
-			draw_texture_rect(_ground, shelf, true, Color(0.72, 0.78, 0.68))
-		else:
-			draw_rect(shelf, Color(0.16, 0.19, 0.14), true)
-		if band == edges.size() - 2:
-			continue
-		_draw_bank(edges[band + 1], lift, half)
+## The ground now runs `OVERSCAN` past the yard, which stops the picture having
+## an edge; this is what stops it having a *seam* instead. Four feathered bands
+## lie along the four sides, clear where the Warden may walk and near-black out
+## at the overscan, so the Hold reads as a cut in a hillside with the light
+## falling off rather than as a lit rectangle with more ground beside it.
+##
+## Drawn in `_draw`, so it is under every actor: this is shade on the earth,
+## and a person standing in it is standing in it.
+##
+## A colour per vertex again, for the reason everything soft-edged here is: one
+## colour for the whole shape *is* a hard edge.
+func _fall_away(half: Vector2) -> void:
+	var clear := Color(0.0, 0.0, 0.0, 0.0)
+	var dark := Color(0.02, 0.03, 0.02, 0.92)
+	var out: float = OVERSCAN
+	# **The crest, not the plan.** The yard is a flat plane that is *drawn*
+	# lifted, so the top of the picture is a whole stack of rises above
+	# `-half.y` - a band laid at the flat edge sat well inside the ground and
+	# showed as a hard line across the sky end of the Hold.
+	var crest: float = -half.y - float(Elevation.LEVEL.size() - 1) \
+		* Balance.HOLD_TERRACE_RISE
+	var points: PackedVector2Array = []
+	var colours: PackedColorArray = []
+	var indices: PackedInt32Array = []
+	# Inside edge, outside edge - one band a side, sharing no vertices so the
+	# corners simply overlap and go darker, which is what a corner does.
+	var bands: Array[Array] = [
+		[Vector2(-half.x, crest), Vector2(half.x, crest),
+			Vector2(half.x, crest - out), Vector2(-half.x, crest - out)],
+		[Vector2(-half.x, half.y), Vector2(half.x, half.y),
+			Vector2(half.x, half.y + out), Vector2(-half.x, half.y + out)],
+		[Vector2(-half.x, crest - out), Vector2(-half.x, half.y + out),
+			Vector2(-half.x - out, half.y + out), Vector2(-half.x - out, crest - out)],
+		[Vector2(half.x, crest - out), Vector2(half.x, half.y + out),
+			Vector2(half.x + out, half.y + out), Vector2(half.x + out, crest - out)],
+	]
+	for band: Array in bands:
+		var base: int = points.size()
+		for corner: int in 4:
+			points.append(band[corner] as Vector2)
+			colours.append(clear if corner < 2 else dark)
+		indices.append_array([base, base + 1, base + 2,
+			base, base + 2, base + 3])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
+		indices, points, colours)
+
+## A trodden route, through the one definition three nodes here share.
+##
+## The spine is a plain `Array` of `Vector2` rather than a packed one because
+## `PackedVector2Array([...])` is **not a constant expression** in GDScript -
+## the same finding `PackedStringArray([...])` cost this project once already.
+func _tread(spine: Array, wide: float) -> void:
+	GroundWear.tread(get_canvas_item(), _ground, spine, wide,
+		Balance.HOLD_SOIL_TINT, lift_at)
 
 
-## One shelf's south face: the exposed earth under it, with steps cut into it
-## where a stair crosses.
-func _draw_bank(edge: float, lift: float, half: Vector2) -> void:
-	if _bank == null:
-		return
-	var rise: float = Balance.HOLD_TERRACE_RISE
-	var wide: float = float(_bank.get_width()) * 0.5
-	var high: float = float(_bank.get_height())
-	# **One slice a slice, at the size it was painted.** Photographed first at
-	# 110 units a slice against a 64-pixel half: the earth stretched by nearly
-	# two and the bank read as a smear rather than as soil. The same lesson the
-	# raid's own faces were rebuilt under, where a bank baked into a half-texel
-	# plate came out a coloured stripe.
-	var slice: float = wide
-	var along: float = -half.x
-	var index: int = 0
-	while along < half.x:
-		var span: float = minf(slice, half.x - along)
-		var into := Rect2(along, edge + lift, span, rise)
-		var middle: float = along + span * 0.5
-		var stepped: bool = false
-		for stair: Dictionary in STAIRS:
-			if not is_equal_approx(float(stair["at"]), edge):
-				continue
-			if middle >= float(stair["from"]) \
-					and middle <= float(stair["to"]):
-				stepped = true
-		if stepped and _steps != null:
-			draw_texture_rect_region(_steps, into,
-				Rect2(0.0, 0.0, float(_steps.get_width()),
-					float(_steps.get_height())), _earth)
-		else:
-			# Alternating halves of a two-slice band, so a bank two thousand units
-			# long is not one slice repeated twenty times.
-			draw_texture_rect_region(_bank, into,
-				Rect2(float(index % 2) * wide, 0.0, wide, high), _earth)
-		along += span
-		index += 1
-
-
-## A path laid on whatever shelves it crosses, one piece per shelf.
-func _lay_path(band: Rect2, ink: Color) -> void:
-	var cuts: Array[float] = [band.position.y]
-	for edge: float in TERRACE_AT:
-		if edge > band.position.y and edge < band.end.y:
-			cuts.append(edge)
-	cuts.append(band.end.y)
-	for piece: int in cuts.size() - 1:
-		var lift: float = lift_at(Vector2(band.position.x, cuts[piece] + 1.0))
-		var piece_rect := Rect2(band.position.x, cuts[piece] + lift, band.size.x,
-			cuts[piece + 1] - cuts[piece])
-		# **Earth rather than a wash.** A flat translucent rectangle across the
-		# widest part of the yard is the single largest shape in the Hold and it
-		# read as a pane of glass - the third time that has been photographed here,
-		# after the pens and the paddock. The ground's own texture, tinted to bare
-		# soil, is trodden ground.
-		if _ground != null:
-			draw_texture_rect(_ground, piece_rect, true,
-				Color(ink.r * 1.5, ink.g * 1.4, ink.b * 1.2, 1.0))
-		else:
-			draw_rect(piece_rect, ink, true)
-		# Where the grass gives out at the edges, so the path has a shoulder
-		# instead of a cut line. Its own irrational walk, so no two stretches of
-		# path wear through in the same places.
-		var scuffs: int = int(piece_rect.size.x / 90.0)
-		for scuff: int in scuffs:
-			var along: float = fmod(float(scuff) * 0.618034, 1.0) * piece_rect.size.x
-			var side: float = 1.0 if scuff % 2 == 0 else -1.0
-			var edge: float = (piece_rect.position.y if side < 0.0
-				else piece_rect.end.y)
-			var wide: float = 26.0 + fmod(float(scuff) * 0.381966, 1.0) * 46.0
-			draw_set_transform(Vector2(piece_rect.position.x + along, edge),
-				0.0, Vector2(1.0, 0.34))
-			draw_circle(Vector2.ZERO, wide, Color(ink.r, ink.g, ink.b, 0.30))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
+## A patch of ground worn bare - inside a pen, in front of a door, at the feet
+## of somebody who stands in one place all day.
+func _scuff(at: Vector2, wide: float, tint: Color) -> void:
+	GroundWear.patch(get_canvas_item(), _ground, at, wide, tint)
 
 ## The wall that was never finished (see `world_first_cut`): it runs out
 ## halfway across, which is the one thing about this place a player should be
@@ -1357,33 +1735,107 @@ func _lay_path(band: Rect2, ink: Color) -> void:
 ## flat grey bar across the top of the yard and read as an interface element
 ## laid over the painting - the same fault the pens and the paddock each had,
 ## in the one place a player looks to find out what this camp is.
-func _draw_wall(half: Vector2) -> void:
-	var stone := Color(0.34, 0.35, 0.33)
-	var top: float = -half.y + lift_at(Vector2(0.0, -half.y))
-	var built: float = YARD.x * 0.6
-	var tall: float = 52.0
-	var whole := Rect2(-half.x, top, built, tall)
-	draw_rect(whole, stone.darkened(0.25), true)
-	# Three courses of block, offset every other one, with the mortar showing
-	# between: that is what separates masonry from a filled rectangle at this
-	# size, and it costs a loop.
+## **A wall has a top and a side, and it stands where the ground says.**
+##
+## Photographed twice as a flat band of one thickness across the top of the
+## screen, which is why it has a lit walkway, a shadowed face under it and
+## merlons breaking the top line - the three things that separate masonry from a
+## ruled rectangle at this size.
+##
+## **And it is laid on the map rather than at an authored y.** The sanctum is a
+## blob now, so the wall follows its northern lip: every cell whose north
+## neighbour is hillside gets a course, which means a wall that can never sit in
+## front of the shelf it is meant to be defending. It runs out partway along,
+## because it was never finished (see `world_first_cut`).
+func _draw_wall(_half: Vector2) -> void:
+	var lip: Array[Vector2i] = []
+	for x: int in MAP_W:
+		for y: int in MAP_H:
+			if _mark(Vector2i(x, y)) != "2":
+				continue
+			if _mark(Vector2i(x, y - 1)) == " ":
+				lip.append(Vector2i(x, y))
+			break
+	if lip.is_empty():
+		return
+	var stone: Color = _stone_tint()
+	var cap: float = 20.0
+	var tall: float = 58.0
+	var built: int = int(float(lip.size()) * 0.62)
+	for index: int in lip.size():
+		var middle: Vector2 = at_cell(lip[index])
+		var top: float = middle.y - CELL * 0.5 + lift_at(middle)
+		var west: float = middle.x - CELL * 0.5
+		if index < built:
+			_wall_length(west, top, CELL, cap, tall, stone)
+			continue
+		# The broken end: courses falling away, each with its own lit walkway, so
+		# the wall runs out rather than stopping.
+		var lost: float = minf(float(index - built) * 11.0, cap + tall - 6.0)
+		var stub := Rect2(west + 8.0, top + lost, CELL - 16.0, cap + tall - lost)
+		draw_rect(stub, stone.darkened(0.42), true)
+		draw_rect(Rect2(stub.position.x, stub.position.y, stub.size.x,
+			minf(cap, stub.size.y)), stone.lightened(0.10), true)
+	var first: Vector2 = at_cell(lip[0])
+	var last: Vector2 = at_cell(lip[mini(built, lip.size() - 1)])
+	_wall_shadow(first.x - CELL * 0.5, last.x + CELL * 0.5,
+		first.y - CELL * 0.5 + lift_at(first) + cap + tall)
+
+
+## One cell of wall: merlons above, a lit walkway, and a shadowed face with its
+## courses showing.
+func _wall_length(west: float, top: float, span: float, cap: float,
+		tall: float, stone: Color) -> void:
+	var step: float = span * 0.5
+	var at: float = west
+	var tooth: int = int(absf(west) / step) % 3
+	while at < west + span - 1.0:
+		if tooth % 3 != 2:
+			var high: float = 22.0 + sin(at * 0.03) * 3.0
+			var merlon := Rect2(at + 4.0, top - high, step - 10.0, high + 4.0)
+			draw_rect(merlon, stone.darkened(0.30), true)
+			draw_rect(Rect2(merlon.position.x + 3.0, merlon.position.y + 3.0,
+				merlon.size.x - 6.0, merlon.size.y - 8.0),
+				stone.lightened(0.10), true)
+		at += step
+		tooth += 1
+	draw_rect(Rect2(west, top, span, cap), stone.lightened(0.16), true)
+	var face := Rect2(west, top + cap, span, tall)
+	draw_rect(face, stone.darkened(0.42), true)
 	var course: float = tall / 3.0
 	for row: int in 3:
-		var y: float = top + float(row) * course
-		var at: float = -half.x - (0.0 if row % 2 == 0 else 32.0)
-		while at < -half.x + built:
-			var block := Rect2(at + 3.0, y + 3.0, 58.0, course - 5.0)
-			var shade: float = 0.04 + 0.05 * float(int(absf(at) / 64.0) % 3)
-			draw_rect(block.intersection(whole), stone.lightened(shade), true)
-			at += 64.0
-	# The broken end: courses falling away, each with its own lit face.
-	for index: int in 5:
-		var rubble := Rect2(-half.x + built + float(index) * 66.0,
-			top, 46.0, tall - float(index) * 10.0)
-		draw_rect(rubble, stone.darkened(0.12), true)
-		draw_rect(Rect2(rubble.position.x + 3.0, rubble.position.y + 3.0,
-			40.0, maxf(rubble.size.y - 6.0, 4.0)), stone.lightened(0.05), true)
+		var y: float = face.position.y + float(row) * course
+		var along: float = west - (0.0 if row % 2 == 0 else 24.0)
+		while along < face.end.x:
+			var block := Rect2(along + 3.0, y + 3.0, 44.0, course - 5.0)
+			var shade: float = 0.03 + 0.04 * float(int(absf(along) / 48.0) % 3)
+			draw_rect(block.intersection(face), stone.darkened(0.30 - shade), true)
+			along += 48.0
 
+
+## What the map says is at a cell.
+func _mark(cell: Vector2i) -> String:
+	if cell.y < 0 or cell.y >= MAP.size():
+		return " "
+	var row: String = MAP[cell.y]
+	if cell.x < 0 or cell.x >= row.length():
+		return " "
+	return row[cell.x]
+
+
+## The line of shade the wall throws on the yard in front of it: strongest at
+## the foot and gone a stride out, which is what puts a standing thing on the
+## ground rather than on top of the picture.
+func _wall_shadow(west: float, east: float, foot: float) -> void:
+	var deep: float = 34.0
+	var dark := Color(0.0, 0.0, 0.0, 0.42)
+	var clear := Color(0.0, 0.0, 0.0, 0.0)
+	var points := PackedVector2Array([Vector2(west, foot), Vector2(east, foot),
+		Vector2(east, foot + deep), Vector2(west, foot + deep)])
+	var colours := PackedColorArray([dark, dark, clear, clear])
+	var indices := PackedInt32Array([0, 1, 2, 0, 2, 3])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
+		indices, points, colours)
 
 func _draw_pens() -> void:
 	var timber := Color(0.38, 0.29, 0.19)
@@ -1402,14 +1854,15 @@ func _draw_pens() -> void:
 		else:
 			draw_rect(box, Color(0.20, 0.21, 0.15, 0.55), true)
 		# The worn patch: earth the grass has gone from, softest at the rail and
-		# bare in the middle. Three rings rather than a gradient, because a
-		# gradient here is a texture and this is four ellipses.
-		for ring: int in 3:
-			var share: float = 0.58 - float(ring) * 0.16
-			draw_set_transform(box.get_center(), 0.0, Vector2(1.0, 0.62))
-			draw_circle(Vector2.ZERO, box.size.x * share,
-				Color(0.30, 0.25, 0.17, 0.16))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# bare in the middle.
+		#
+		# **It was three flat ellipses and they wiped the texture out.** The
+		# widest was 0.58 of the pen's *width* against a half-height of 90, so
+		# all three covered the whole box - a flat film at forty percent alpha
+		# over ground that had just been drawn as earth, which photographed as
+		# precisely the pane of glass the textured rect was added to stop.
+		_scuff(box.get_center(), box.size.x * 0.40,
+			Balance.HOLD_SOIL_TINT * Color(1.0, 1.0, 1.0, 0.94))
 		# **A far rail as well as a near one, and that is a correction.**
 		#
 		# The first cut drew the near side only, reasoning that a closed

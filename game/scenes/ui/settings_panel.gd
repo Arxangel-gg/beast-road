@@ -305,7 +305,7 @@ func _pixel_block_row() -> HBoxContainer:
 	return _slider_row("  Grid size", Balance.UI_PIXEL_FILTER_BLOCK_MIN,
 		Balance.UI_PIXEL_FILTER_BLOCK_MAX, 1.0, Graphics.pixel_filter_block(),
 		func(v: float) -> String:
-			return "Off" if v <= 1.0 else "%d px" % int(round(v)),
+			return "Off" if v < 1.0 else "%d px" % int(round(v)),
 		func(v: float) -> void:
 			Graphics.set_display(Graphics.KEY_PIXEL_FILTER_BLOCK, v))
 

@@ -258,14 +258,32 @@ static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
 	# So `BEAST_TAIL_SEAT` is an authored offset rather than a derived one, and
 	# it is written down as such. If the art is ever redrawn far enough apart
 	# for the measurement to bite, it takes over and this only trims.
-	var ratio: Color = Color(
-		clampf(hide.r / maxf(limb.r, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
-		clampf(hide.g / maxf(limb.g, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
-		clampf(hide.b / maxf(limb.b, 0.001), Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0),
-		1.0)
-	return Color(ratio.r * Balance.BEAST_TAIL_SEAT,
-		ratio.g * Balance.BEAST_TAIL_SEAT,
-		ratio.b * Balance.BEAST_TAIL_SEAT, 1.0)
+	# **The ratio, and then its own brightness taken back out of it.**
+	#
+	# What the limb is missing is the hide's *colour*, not its light: measured
+	# off the render on 2026-09-17 the limb sat at saturation 0.05 against the
+	# hide's 0.31, twenty-six degrees of hue apart, and the owner's words were
+	# "the darker mossy colorgrading and tint that the body gets". A raw ratio
+	# carries both, and carrying the light with it would lift a limb that hangs
+	# in its own shadow up to the brightness of a flank in the open.
+	#
+	# So the ratio is divided by its own luminance, which leaves pure chroma -
+	# a multiplier that turns the limb the hide's colour and cannot change how
+	# dark it is - and `BEAST_TAIL_VALUE_PULL` is the authored trim on top.
+	var raw := Vector3(hide.r / maxf(limb.r, 0.001),
+		hide.g / maxf(limb.g, 0.001),
+		hide.b / maxf(limb.b, 0.001))
+	var mean: float = maxf((raw.x + raw.y + raw.z) / 3.0, 0.001)
+	raw /= mean
+	var low: float = Balance.BEAST_TAIL_HARMONY_FLOOR
+	var high: float = Balance.BEAST_TAIL_HARMONY_CEILING
+	var pull: float = Balance.BEAST_TAIL_VALUE_PULL * Balance.BEAST_TAIL_SEAT
+	# And the authored chroma on top, which is the part the paintings cannot
+	# see: see `Balance.BEAST_TAIL_CHROMA`.
+	var chroma: Color = Balance.BEAST_TAIL_CHROMA
+	return Color(clampf(raw.x, low, high) * pull * chroma.r,
+		clampf(raw.y, low, high) * pull * chroma.g,
+		clampf(raw.z, low, high) * pull * chroma.b, 1.0)
 
 
 ## Mean brightness of the painted surface inside a box, ink held out.

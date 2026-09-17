@@ -849,6 +849,15 @@ Files: `hold_keeper_move_01.png` · `hold_keeper_move_02.png` · `hold_keeper_mo
 Files: `hold_steward_move_01.png` · `hold_steward_move_02.png` · `hold_steward_move_03.png` · `hold_steward_move_04.png` · `hold_steward_move_05.png` · `hold_steward_move_06.png` · `hold_steward_move_07.png` · `hold_steward_move_08.png`
 Files: `hold_stabler_move_01.png` · `hold_stabler_move_02.png` · `hold_stabler_move_03.png` · `hold_stabler_move_04.png` · `hold_stabler_move_05.png` · `hold_stabler_move_06.png` · `hold_stabler_move_07.png` · `hold_stabler_move_08.png`
 
+Six work poses each, which is the walk's convention rather than the idle's:
+the pinned last frame is the pose the loop closes on and the standing base is
+not part of the cycle. `GameData.load_state_frames(art, "work")` reads them.
+
+Files: `hold_smith_work_01.png` · `hold_smith_work_02.png` · `hold_smith_work_03.png` · `hold_smith_work_04.png` · `hold_smith_work_05.png` · `hold_smith_work_06.png`
+Files: `hold_keeper_work_01.png` · `hold_keeper_work_02.png` · `hold_keeper_work_03.png` · `hold_keeper_work_04.png` · `hold_keeper_work_05.png` · `hold_keeper_work_06.png`
+Files: `hold_steward_work_01.png` · `hold_steward_work_02.png` · `hold_steward_work_03.png` · `hold_steward_work_04.png` · `hold_steward_work_05.png` · `hold_steward_work_06.png`
+Files: `hold_stabler_work_01.png` · `hold_stabler_work_02.png` · `hold_stabler_work_03.png` · `hold_stabler_work_04.png` · `hold_stabler_work_05.png` · `hold_stabler_work_06.png`
+
 ### 5.5c Mounts — `res://art/mounts/`
 
 Something to cross ground on (owner brief, 2026-09-17). Bought at the Hold's
@@ -2966,6 +2975,7 @@ a hatched clutch and a robbed one both leave behind.
 | `sign_phoenix_pyre.png` | 96×64 | T | `#5A4A3A` |
 | `nest.png` | 96×64 | T | `#5A4A3A` |
 | `nest_empty.png` | 96×64 | T | `#5A4A3A` |
+| `nest_egg.png` | 96×96 | T | `#C8BFA6` |
 
 ### 5.16b Beast scope skylines — `res://art/beast/`
 

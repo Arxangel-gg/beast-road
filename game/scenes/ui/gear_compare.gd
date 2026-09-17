@@ -42,7 +42,7 @@ const CARD_WIDTH: float = 250.0
 
 var _held_card: VBoxContainer = null
 var _offered_card: VBoxContainer = null
-var _verdict: Label = null
+var _verdict: RichTextLabel = null
 
 
 func _ready() -> void:
@@ -70,9 +70,16 @@ func _build() -> void:
 	_offered_card = _card()
 	pair.add_child(_offered_card)
 
-	_verdict = Label.new()
-	_verdict.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_verdict.add_theme_font_size_override("font_size", 14)
+	# **A rich label, so each term carries its own colour.** One `font_color`
+	# for a line reading "+3 Might  -2 Focus" has to choose between two facts
+	# and paints the whole thing with whichever won.
+	_verdict = RichTextLabel.new()
+	_verdict.bbcode_enabled = true
+	_verdict.fit_content = true
+	_verdict.scroll_active = false
+	_verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_verdict.custom_minimum_size = Vector2(CARD_WIDTH * 2.0 + 10.0, 0.0)
+	_verdict.add_theme_font_size_override("normal_font_size", 14)
 	_verdict.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_verdict)
 
@@ -98,8 +105,14 @@ func show_pair(piece: Dictionary) -> void:
 	var held: Dictionary = MetaState.equipped_piece(int(offered.slot))
 	var held_kind: GearData = kinds.get(String(held.get("kind", "")), null) as GearData
 
-	_fill(_held_card, held, held_kind, "WORN")
-	_fill(_offered_card, piece, offered, "OFFERED")
+	# **Each card is told what the other one grants**, so every attribute line
+	# can say whether it is the better of the two. Owner, 2026-09-17: *"make the
+	# stats color coded red or green if they're more or less than what the other
+	# offers for easier viewing and clarity."*
+	var mine: Array[int] = _points(piece, offered)
+	var theirs: Array[int] = _points(held, held_kind)
+	_fill(_held_card, held, held_kind, "WORN", mine)
+	_fill(_offered_card, piece, offered, "OFFERED", theirs)
 	_say_the_difference(piece, offered, held, held_kind)
 	visible = true
 
@@ -110,7 +123,7 @@ func hide_pair() -> void:
 
 ## One card: the portrait, the name, what it is, and what it grants.
 func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
-		banner: String) -> void:
+		banner: String, against: Array[int]) -> void:
 	for child: Node in card.get_children():
 		child.queue_free()
 
@@ -165,10 +178,54 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 	for affix: Dictionary in Stash.affixes(piece, kind):
 		var which: int = clampi(int(affix["attribute"]), 0,
 			RunState.ATTRIBUTE_NAMES.size() - 1)
-		card.add_child(_stat_line("+%d %s" % [int(affix["points"]),
-			RunState.ATTRIBUTE_NAMES[which]], Color("c9c2b4")))
+		# **Against the same attribute on the other card, not against zero.**
+		# A card that painted every line green because the number is positive
+		# would be saying "this piece grants things", which the player can
+		# already see - what they came for is which of the two grants more.
+		var here: int = int(affix["points"])
+		var there: int = against[which] if which < against.size() else 0
+		var ink: Color = Color("c9c2b4")
+		if here > there:
+			ink = BETTER
+		elif here < there:
+			ink = WORSE
+		card.add_child(_stat_line("+%d %s" % [here,
+			RunState.ATTRIBUTE_NAMES[which]], ink))
+	# **An attribute the other card grants and this one does not is a loss, and
+	# it is invisible unless it is written down.** A worn piece with +4 Focus
+	# against an offered piece with none shows four lines against three, and
+	# nothing on the offered card ever says where the Focus went.
+	for which: int in against.size():
+		if against[which] <= 0 or _grants(piece, kind, which) > 0:
+			continue
+		card.add_child(_stat_line("0 %s" % RunState.ATTRIBUTE_NAMES[which],
+			WORSE))
 	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
 		card.add_child(_stat_line(legend.line(), Color("e8a33d")))
+
+
+## What a piece grants, attribute by attribute. The same door the hero reads,
+## so a card can never promise a point the Warden does not get.
+func _points(piece: Dictionary, kind: GearData) -> Array[int]:
+	var out: Array[int] = []
+	out.resize(RunState.ATTRIBUTE_NAMES.size())
+	out.fill(0)
+	if kind == null or piece.is_empty():
+		return out
+	for affix: Dictionary in Stash.affixes(piece, kind):
+		var which: int = clampi(int(affix["attribute"]), 0, out.size() - 1)
+		out[which] += int(affix["points"])
+	return out
+
+
+func _grants(piece: Dictionary, kind: GearData, which: int) -> int:
+	if kind == null or piece.is_empty():
+		return 0
+	var total: int = 0
+	for affix: Dictionary in Stash.affixes(piece, kind):
+		if int(affix["attribute"]) == which:
+			total += int(affix["points"])
+	return total
 
 
 func _stat_line(text: String, ink: Color) -> Label:
@@ -208,24 +265,24 @@ func _say_the_difference(offered: Dictionary, offered_kind: GearData,
 	for index: int in count:
 		if change[index] == 0:
 			continue
-		said.append("%+d %s" % [change[index], RunState.ATTRIBUTE_NAMES[index]])
+		# Each term wears its own colour, which is the whole reason this line is
+		# bbcode rather than a Label.
+		said.append("[color=#%s]%+d %s[/color]"
+			% [(BETTER if change[index] > 0 else WORSE).to_html(false),
+				change[index], RunState.ATTRIBUTE_NAMES[index]])
 		if change[index] > 0:
 			up += change[index]
 		else:
 			down -= change[index]
 
 	if said.is_empty():
-		_verdict.text = "the same, attribute for attribute"
-		_verdict.add_theme_color_override("font_color", SAME)
+		_verdict.text = "[center][color=#%s]the same, attribute for attribute[/color][/center]" 			% SAME.to_html(false)
 		return
-	_verdict.text = "  ·  ".join(said)
+	_verdict.text = "[center]%s[/center]" % "  ·  ".join(said)
 	# **Mixed is its own answer.** A piece that trades three Might for four
 	# Focus is not "better"; it is a different build, and colouring it green
 	# because the total rose would be the card making a decision the player is
 	# there to make.
-	var ink: Color = SAME
-	if up > 0 and down == 0:
-		ink = BETTER
-	elif down > 0 and up == 0:
-		ink = WORSE
-	_verdict.add_theme_color_override("font_color", ink)
+	# **Mixed needs no verdict colour any more**: every term already says which
+	# way it went, and a line-wide colour on top of that would be the card
+	# making the decision the player is there to make.

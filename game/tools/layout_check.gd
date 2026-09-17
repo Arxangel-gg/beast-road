@@ -44,12 +44,15 @@ var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
 var _touch_layout: bool = false
 var _dump: bool = false
+var _before_spirit: String = ""
+var _before_spirit_kept: bool = false
 var _before_settings: Dictionary = {}
 var _before_completed: Array[String] = []
 
 
 func _ready() -> void:
 	MetaState.hold_saves()
+	_before_spirit = MetaState.equipped_spirit
 	_before_settings = MetaState.settings.duplicate(true)
 	_before_completed = MetaState.completed_objectives.duplicate()
 	MetaState.completed_objectives.clear()
@@ -85,6 +88,20 @@ func _ready() -> void:
 		ScreenFit._fit()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
+	# **A spirit is equipped, because a clean profile has none.**
+	#
+	# The spirit readout sits in the top right and the build sheet, the road
+	# sheet and the minimap all hang off its lower edge. On a profile with no
+	# bond the panel is invisible, that edge is the bar's own top, and every one
+	# of them measures clear - which is why this gate was green while the owner
+	# was looking at a minimap sitting on the Call button and a build sheet over
+	# it. `ci-profile-hides-state-dependent-ui`, in the one screen it costs most.
+	#
+	# The *sent home* state deliberately, because it is the tallest: the panel
+	# then carries a caption and the Call button and no bar, which is the
+	# arrangement the owner screenshotted.
+	MetaState.equipped_spirit = "fox:0"
+	_before_spirit_kept = true
 	RunState.reset()
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
@@ -103,6 +120,19 @@ func _ready() -> void:
 	# looks at the resting screen never sees the busiest interface in the game -
 	# and reported a clean sweep while the panel it was meant to be checking was
 	# not on screen. Every reported layout fault so far has been in this panel.
+	# **The resting screen first, with the map on it.**
+	#
+	# The build sheet hides the minimap while it is open (`_refresh_minimap_visible`
+	# - the sheets own the right edge), so a gate that opens the sheet and never
+	# closes it can never see the map at all. That is the second half of why the
+	# owner was looking at a minimap on top of the Call button while this was
+	# green: no bonded spirit, and no frame with the map in it.
+	var resting: Array[Control] = _visible_widgets()
+	_notes.append("%d widgets at rest" % resting.size())
+	_check_overlap(resting)
+	_check_crowding(resting)
+	_check_on_screen(resting)
+
 	_open_build_panel(run)
 	for _f: int in 8:
 		await get_tree().process_frame
@@ -532,6 +562,8 @@ func _bail(code: int) -> void:
 		await get_tree().process_frame
 	MetaState.settings = _before_settings
 	MetaState.completed_objectives = _before_completed
+	if _before_spirit_kept:
+		MetaState.equipped_spirit = _before_spirit
 	get_tree().quit(code)
 
 

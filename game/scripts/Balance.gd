@@ -3861,6 +3861,26 @@ const NEST_SCALE: float = 1.0
 ## How long an emptied nest lingers before it fades.
 const NEST_SPENT_SECONDS: float = 6.0
 
+## **How the eggs themselves sit in the nest, and how big they are drawn.**
+##
+## Owner, 2026-09-17: *"taking an egg from a nest does not update the nest's
+## visuals to show until the nest is empty"* - which was exactly true. The nest
+## was one painting swapped for an empty one when the clutch reached zero, so a
+## player who took one of four saw nothing happen and had no way to know how
+## many were left except by pressing again.
+##
+## One egg sprite a remaining egg, clustered on the nest's own dice so a nest
+## of three is not three eggs in a row. `NEST_EGG_SPREAD` is in the nest art's
+## own pixels, which is what keeps the cluster inside the twigs at any scale.
+const NEST_EGG_SCALE: float = 0.42
+const NEST_EGG_SPREAD: Vector2 = Vector2(17.0, 8.0)
+const NEST_EGG_LIFT: float = 6.0
+
+## How strongly an egg wears the rarity of what is inside it. Faint: the rank
+## sheen on the living animal is the ladder a player reads rarity off, and an
+## egg shouting it would be a second, louder one that disagrees at a distance.
+const NEST_EGG_RARITY_TINT: float = 0.34
+
 const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
@@ -5030,11 +5050,27 @@ const BOSS_SPRITE_SCALE: float = 2.2
 ## point - a body in fog is not drawn at all, and the last one of a wave is
 ## routinely exactly there. All four are a drawing; nothing reads them. [TUNE]
 const STRAGGLER_Z: int = 44
-const STRAGGLER_PLUME_HEIGHT: float = 150.0
-const STRAGGLER_PLUME_WIDTH: float = 7.0
+## **How far above the body the mark floats, and how big it is.**
+##
+## This was a 150-unit warm-gold light column with a ring at its foot until
+## 2026-09-17 - which is a Diablo loot beacon, drawn over an enemy. The owner
+## reported it as *"those spire glows that are on enemies ... it doesn't make
+## sense for that spire glow effect to be on enemies. It needs to be on
+## collectable pickup drops only"*, and they were reading the game correctly:
+## `LootDrop` wears the real spire, in the same warm gold, and the two were
+## telling a player opposite things in one visual language.
+##
+## So the mark is a *chevron* now - a shape nothing on the ground ever wears -
+## in the hostile red the interface already uses for a threat. It points down
+## at the body rather than rising off it, which is the other half of not
+## reading as treasure: loot columns go up.
+const STRAGGLER_MARK_LIFT: float = 92.0
+const STRAGGLER_MARK_WIDE: float = 22.0
+const STRAGGLER_MARK_TALL: float = 15.0
+const STRAGGLER_MARK_THICK: float = 4.0
 const STRAGGLER_RING_RADIUS: float = 26.0
 const STRAGGLER_PULSE_HZ: float = 0.85
-const STRAGGLER_TONE: Color = Color(1.0, 0.82, 0.42, 0.7)
+const STRAGGLER_TONE: Color = Color(0.96, 0.36, 0.30, 0.82)
 
 const VFX_Z: int = 40
 
@@ -7432,6 +7468,33 @@ const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 ## inherits the day tint and the environment grade exactly as the body does,
 ## which is what "identically" has to mean. If the tail is ever redrawn, run
 ## the tool, not a number.
+## How much of the hide's *brightness* the limb takes, on top of its colour.
+##
+## The correction below is chroma-only by construction - it is normalised so
+## it cannot change how dark the limb is - because the limb being darker than
+## the hide is the art, and lifting it to match would flatten a limb that
+## hangs in its own shadow. This is the deliberate trim on top of that, and
+## it is authored rather than measured for the reason `BEAST_TAIL_SEAT` is:
+## four reports beat a histogram.
+const BEAST_TAIL_VALUE_PULL: float = 0.94
+
+## **And the chroma, measured off the render rather than off the paintings.**
+##
+## With the photograph finally being sampled in its own pixels (see
+## `menu_shot._frame_scale` - every earlier reading was taken at three quarters
+## of the way to where it meant to look) the limb and the hide agree on hue
+## within four degrees and on brightness within four percent. One thing does
+## not: **saturation, 0.42 on the limb against 0.55 on the hide**. That is the
+## whole of what nine reports have been pointing at, and it is a quarter rather
+## than the halves and quarters earlier passes chased after mis-sampling.
+##
+## It cannot come from the paintings, which match; it is what the stub's
+## cross-fade and the limb's own thinner ink do to it on the way to the screen.
+## So this is authored from the render's own numbers - the per-channel ratio of
+## hide to limb, normalised so it changes colour and not light - and written
+## down as such, exactly as `BEAST_TAIL_SEAT` is.
+const BEAST_TAIL_CHROMA: Color = Color(1.06, 1.0, 0.92)
+
 const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 
@@ -7452,7 +7515,23 @@ const BEAST_TAIL_WALK_SWAY: float = 1.9
 ## The darkest the tail may be pulled to meet the hide it grows from. A floor
 ## rather than a free ratio: a limb dragged past this stops reading as the same
 ## animal, and the paintings have never been more than a fifth apart.
-const BEAST_TAIL_HARMONY_FLOOR: float = 0.72
+## **How far the limb's paint may be pushed toward the hide's, either way.**
+##
+## This was a *floor* of 0.72 with a hard ceiling of 1.0, and the ceiling is
+## why nine reports about the tail's colour were never answered. The
+## correction is a per-channel ratio of hide to limb, and the limb's painting
+## is **darker** than the hide's - so every channel came out above one, every
+## channel clamped to exactly one, and `_paint_match` was pure white. The
+## whole harmony mechanism was inert on the shipped art, and measuring it off
+## the render is what said so: the limb read rgb(32, 32, 30) at saturation
+## 0.05 beside a hide at rgb(73, 56, 50) and saturation 0.31 - a grey tail on
+## a warm animal, which is what the owner has reported every time.
+##
+## A band rather than a ceiling, so the ratio may lift a channel as well as
+## drop one. Godot multiplies `self_modulate` and is perfectly happy above
+## one.
+const BEAST_TAIL_HARMONY_FLOOR: float = 0.55
+const BEAST_TAIL_HARMONY_CEILING: float = 2.2
 ## **The offset that answers the eye rather than the histogram.**
 ##
 ## The tail and the hide measure the same tone - mean, median and upper quartile
@@ -7477,7 +7556,7 @@ const BEAST_TAIL_SEAT: float = 1.0
 ## screen. `beast_tail_check` bounds it: a lift larger than the fade the stub
 ## dissolves over would pull the tail clear of the join it is supposed to hide
 ## inside.
-const BEAST_TAIL_LIFT: float = 12.0
+const BEAST_TAIL_LIFT: float = 10.0
 
 ## **How far the far end of the tail settles, in the art's own pixels.**
 ##
@@ -10309,6 +10388,62 @@ const HOLD_NPC_FRAME_HZ: float = 6.0
 ## How fast those frames play while the resident is actually walking somewhere.
 const HOLD_NPC_WALK_FRAME_HZ: float = 9.0
 
+## And the rate of the work itself - a hammer, a crate, a feed pail, a bridle.
+##
+## Slower than the walk and slower than the breath: a smith swinging six times
+## a second is a man in a panic, and the whole point of the loop is that the
+## Hold reads as a place where work is being done rather than one where people
+## are waiting for the player.
+const HOLD_NPC_WORK_FRAME_HZ: float = 4.5
+
+
+## **How thick the Hold's foliage is, from the middle of the square to the rim.**
+##
+## Owner, 2026-09-17: *"ensure also procedural smart foliage scattering around
+## the hold"*. A single density is confetti; what makes a scatter read as a
+## place is that the kept ground is kept and the ground nobody sweeps is
+## reclaimed, so the yard fades into the valley rather than stopping at a line.
+const HOLD_FOLIAGE_INNER: float = 0.16
+const HOLD_FOLIAGE_OUTER: float = 0.86
+
+## How much of it is a painted plant rather than a tuft of grass. Grass is the
+## filler between things; a fern is a thing.
+const HOLD_FOLIAGE_PLANT_SHARE: float = 0.42
+
+## **Which plants grow where**, by the ground rather than by a roll.
+##
+## Shade is the foot of a bank, where the sun does not reach; open is the floor
+## of the valley; kept is the ground close enough in that somebody weeds it -
+## which is what makes the middle read as tended and the outskirts as taken
+## back. Each names a suffix of `plant_jungle_%s.png`, so adding one is adding a
+## file (working rule 3).
+const HOLD_FOLIAGE_SHADE: Array[String] = ["fern", "creeper", "bush"]
+const HOLD_FOLIAGE_OPEN: Array[String] = ["tallgrass", "shrub", "bush", "fern"]
+const HOLD_FOLIAGE_KEPT: Array[String] = ["flower", "blossom", "shrub"]
+
+
+## **How close a Warden may look at the Hold.**
+##
+## The yard was *fitted* - the whole of it on screen whatever the shape - which
+## is right for a lobby and wrong for a place three and a half thousand units
+## across: at that size a person is a dozen pixels and none of the work anybody
+## did on the ground can be seen. Owner, 2026-09-17: *"players should still be
+## able to adjust their zoom in the hold and should still have the UI to do as
+## well with the slider."*
+##
+## One is the whole yard, and the ceiling is close enough to read a face. The
+## floor is a little under one so a player may pull back past the fit and see
+## the valley the Hold sits in.
+const HOLD_ZOOM_MIN: float = 0.85
+const HOLD_ZOOM_MAX: float = 3.4
+
+## Where the slider starts. Closer than the fit, because the first thing a
+## player should see is a place rather than a map of one.
+const HOLD_ZOOM_DEFAULT: float = 1.55
+
+## What one notch of the wheel is worth.
+const HOLD_ZOOM_STEP: float = 0.18
+
 ## How big the Hold's own people are drawn beside the Wardens they serve.
 ##
 ## Measured rather than chosen: a Warden fills 118 pixels of a 168x160 cell and
@@ -10344,14 +10479,45 @@ const HOLD_RESIDENT_SCALE: float = 0.78
 ## - which is how the raid's first ledges came out as a coloured stripe.
 const HOLD_TERRACE_RISE: float = 64.0
 
-## How close to a boundary counts as being on the stair that crosses it. A
-## Warden walking off the side of a ramp should meet the bank, not a doorway.
-const HOLD_STAIR_REACH: float = 26.0
+## `HOLD_STAIR_REACH` lived here and is gone, deliberately rather than by
+## oversight: it answered "how close to an edge counts as being on the stair",
+## which was a question only the old two-table layout could ask. `Elevation`
+## allows a step by its *slope*, so a flight is walkable because it is gentle
+## and a bank is not because it is not - and there is no reach to tune.
 
 ## How dark the Hold's earth banks are against the ground they are cut out of.
 ## A face is the side the sun is not on, which is the raid's own reasoning and
 ## its own constant; this is a second place rather than a second rule.
 const HOLD_BANK_SHADE: float = 0.62
+
+## **How far the Hold's wall is quarried stone rather than its own soil**, and
+## how much brighter than the ground it stands on.
+##
+## The wall used to be a hand-picked grey and photographed as the brightest
+## thing in the yard (owner, 2026-09-17: everything *"needs to be super
+## polished and right now it looks pretty ugly"*). A colour chosen without
+## reference to the ground cannot know what light the place is in, which is the
+## same reason the bank has been tinted from the ground since it was built.
+##
+## Most of the way to grey, because cut stone is not earth; and only a little
+## above the ground's own value, because this valley is shaded and a wall that
+## outshines everything in it reads as an interface element rather than as
+## masonry.
+const HOLD_WALL_GREY: float = 0.72
+const HOLD_WALL_VALUE: float = 1.22
+
+## **What bare soil is, taken off the yard's own grass.**
+##
+## A modulate multiplies, so earth cannot be made by darkening moss - that is
+## moss in shadow, and the first cut of the Hold's paths photographed as
+## exactly that: a faint smear nobody would read as a path. Red up and green
+## down is the whole difference between grass and the ground under it, and
+## Godot is perfectly happy with a channel above one.
+##
+## Shared by the paths, the pens and the paddock, because three places wearing
+## the same earth three slightly different colours is how a yard stops looking
+## like one yard.
+const HOLD_SOIL_TINT: Color = Color(1.35, 1.02, 0.66, 0.90)
 
 ## How much grass is scattered on the yard. Decoration, on the yard's own dice.
 const HOLD_GRASS_TUFTS: int = 44
@@ -10544,17 +10710,37 @@ const UI_CRISP_TEXT_LAYER: int = 25
 ## smaller block - and eight is the ceiling because past about six a 192px
 ## sprite starts losing the features it was drawn with, and a face that has
 ## stopped having eyes is not a stylistic choice.
-const UI_PIXEL_FILTER_BLOCK_MIN: float = 1.0
+## **Zero is off, one is a one-pixel grid, and that is the ladder.**
+##
+## This was a floor of 1 with the slider *labelling* 1 as "Off", because a
+## one-pixel block is arithmetically the identity - which is true and left the
+## player with a control that went Off, 2, 3, with no way to ask for one.
+## Owner, 2026-09-17: *"the pixelshader does not have a gridsize 1 option which
+## I would like it to have between the off and 2px values"*.
+##
+## So the floor is zero and *off is a real setting on this slider*, distinct
+## from the master switch: a player may leave the filter on for the world and
+## set the grid to nothing. Everything that divides by the block refuses below
+## one rather than trusting it, because this is a saved number and a save is a
+## file a player can edit.
+const UI_PIXEL_FILTER_BLOCK_MIN: float = 0.0
 const UI_PIXEL_FILTER_BLOCK_MAX: float = 8.0
 
-## How many rectangles a filter may be told to leave alone.
+## How coarse the mask that holds the type out of the grid is, in screen
+## pixels to one mask texel.
 ##
-## For the handful of things `CrispText` cannot redraw - a `RichTextLabel` is
-## marked-up text with its own layout engine, and `draw_string` is not that
-## engine. Eight because the fragment walks the list, and a bound small
-## enough to be walked is what keeps this one texture read and a short loop.
-## The gate refuses a ninth rather than letting one fall off the end unseen.
-const UI_PIXEL_FILTER_EXCLUDE_MAX: int = 8
+## **This replaced a bound of eight rectangles on 2026-09-17**, and the change
+## is why the owner's "the text gets misaligned and out of position" is gone.
+## The old filter took the eight things `CrispText` could not redraw and cut
+## them out of the grid; everything else it *muted and redrew*, which is a
+## second implementation of Godot's text layout and drifted wherever a style
+## box or an icon inset a caption. A mask has no bound and moves nothing.
+##
+## Four. A rectangle is grown outward to whole texels, so the cost is a few
+## unfiltered pixels of plate around each string rather than half a glyph
+## taken into the grid - and at a quarter of 1920 by 1080 the whole mask is
+## 130 KB of one channel, re-uploaded only when a rectangle actually moves.
+const UI_PIXEL_FILTER_MASK_GRAIN: int = 4
 
 
 # --- Mounts (owner, 2026-09-17) ----------------------------------------------

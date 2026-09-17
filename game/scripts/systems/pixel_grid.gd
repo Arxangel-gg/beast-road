@@ -35,12 +35,26 @@ var _copy: BackBufferCopy = null
 var _screen: ColorRect = null
 var _material: ShaderMaterial = null
 var _on: bool = false
-## Rectangles handed in by `CrispText` for the text it cannot redraw.
-var _exclude: Array[Rect2] = []
+## The mask `CrispText` stamps the type into, and the texture it lives in.
+var _mask: ImageTexture = null
+var _mask_rects: int = 0
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# **Anchors *and* offsets.** `set_anchors_preset` alone sets the anchors
+	# and then rewrites the offsets so the control keeps the rect it already
+	# has - and inside `_ready` the rect it already has is (0, 0, 0, 0),
+	# because no layout pass has run yet. It came out anchored full-rect with
+	# `offset_right = -1280`, which is a band exactly zero pixels wide.
+	#
+	# **So the whole filter drew nothing, everywhere, from the day it was
+	# written.** Measured on 2026-09-17 after the owner reported the grid as
+	# "not working like it used to" and the slider as doing nothing: the
+	# material had the right shader, the copy was running and `grid` moved
+	# 1 -> 2 -> 5 with the slider exactly as it should, and the rect wearing
+	# all of it measured `S: (0, 0)`. `pixel_filter_check` is headless and
+	# holds layer numbers and font colours, so it was green throughout.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	_fit()
@@ -55,7 +69,7 @@ func _build() -> void:
 
 	_screen = ColorRect.new()
 	_screen.name = "Screen"
-	_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_screen.visible = false
 	if ResourceLoader.exists(SHADER):
@@ -82,32 +96,43 @@ func enabled() -> bool:
 	return _on
 
 
-## The rectangles the grid leaves alone, from `CrispText`.
+## The ground the grid steps over: where the type is standing.
 ##
-## **Truncated here rather than at the caller**, because the bound belongs to the
-## shader's array and this is the only thing that knows about it. A ninth
-## rectangle would be dropped in silence otherwise, which is a `RichTextLabel`
-## quietly going blocky on one screen and nowhere else - exactly the kind of
-## absence nothing notices.
-func set_exclusions(rects: Array[Rect2]) -> void:
-	_exclude = rects.slice(0, Balance.UI_PIXEL_FILTER_EXCLUDE_MAX)
-	_push_exclusions()
-
-
-func exclusions() -> int:
-	return _exclude.size()
-
-
-func _push_exclusions() -> void:
-	if _material == null:
+## **A mask rather than a list of rectangles.** The first cut handed the shader
+## eight `vec4`s, which is eight captions on a screen that routinely has forty -
+## and the rest were taken over by `CrispText` and *redrawn*, which is where the
+## owner's "the text gets misaligned and out of position" came from. A mask has
+## no bound and moves nothing: the engine paints every string where it always
+## did, and these pixels are simply left alone.
+##
+## Owned here rather than at the caller so that one image serves both grids'
+## materials without either of them learning what a `Label` is.
+func set_text_mask(mask: Image, rects: int) -> void:
+	_mask_rects = rects
+	if mask == null:
+		_mask = null
+		if _material != null:
+			_material.set_shader_parameter("masking", false)
 		return
-	var packed: Array[Plane] = []
-	for rect: Rect2 in _exclude:
-		# A `vec4` uniform array takes Planes from GDScript: x, y, width, height.
-		packed.append(Plane(rect.position.x, rect.position.y,
-			rect.size.x, rect.size.y))
-	_material.set_shader_parameter("exclude", packed)
-	_material.set_shader_parameter("exclusions", packed.size())
+	# **Updated in place when it can be.** A new `ImageTexture` every time the
+	# type moves is an allocation and a fresh handle on the GPU every few
+	# frames; `update` re-uploads the same one.
+	if _mask != null and _mask.get_width() == mask.get_width() \
+			and _mask.get_height() == mask.get_height():
+		_mask.update(mask)
+	else:
+		_mask = ImageTexture.create_from_image(mask)
+	if _material != null:
+		_material.set_shader_parameter("text_mask", _mask)
+		_material.set_shader_parameter("masking", true)
+
+
+## How many pieces of type the mask is holding open. For the gate, which has
+## no screen to read and needs the difference between "protected the text" and
+## "protected nothing" - a comparison of two nothings being the most dangerous
+## shape a check can take.
+func exclusions() -> int:
+	return _mask_rects
 
 
 ## The grid, and the viewport it is measured in.
@@ -128,7 +153,6 @@ func _fit() -> void:
 	_material.set_shader_parameter("viewport", view)
 	_material.set_shader_parameter("grid", block_for(view))
 	_material.set_shader_parameter("strength", 1.0)
-	_push_exclusions()
 
 
 ## How big one block is on this screen.
@@ -140,7 +164,7 @@ func _fit() -> void:
 ## of it come out different widths - which reads as a seam across the screen
 ## rather than as pixel art.
 static func block_for(view: Vector2) -> float:
-	return block_at(view, Graphics.pixel_filter_block())
+	return maxf(block_at(view, Graphics.pixel_filter_block()), 1.0)
 
 
 ## The same arithmetic against a stated block, so a gate can ask what a setting

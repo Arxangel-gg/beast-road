@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 1
 coat_pattern = 2
 coat_pattern_strength = 0.30
 coat_pattern_scale = 5.0

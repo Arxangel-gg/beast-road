@@ -1,7 +1,35 @@
 {
+  "art/battlefield/nest_egg": {
+    "object": "1cfa9a27-639b-49ae-b208-9c5287e22bad",
+    "job": "ab68a5cb-ec10-4de7-8ea4-6da67aaa2e7b"
+  },
   "art/bosses/boss_last_anchor": {
     "base": "f6f06401-c9ce-4441-a827-0eee02ace57d",
     "character": "d028a7b4-9a40-42ea-917d-fd7bde428bce"
+  },
+  "art/city/hold_keeper": {
+    "image": "40439488-ce2d-4d98-982b-6984dd4b63e0",
+    "idle": "d819cab5-7ec3-4331-9ea7-063448291c5d",
+    "move": "1a123fa6-48e0-4b88-81a6-cd4649f359aa",
+    "work": "ad22dd69-42ba-438d-b5fc-842fa28b4baf"
+  },
+  "art/city/hold_smith": {
+    "image": "94177f64-3c9e-4ee4-92a6-dcebc8273342",
+    "idle": "6087183b-85a6-4283-81b2-b6d769a84641",
+    "move": "80135616-cfb9-4e82-b766-c04de66a6076",
+    "work": "c489fb2b-d544-4e4c-8291-3e06a1d5e6ab"
+  },
+  "art/city/hold_stabler": {
+    "image": "164c7f26-c56d-4251-b7fd-14a9eb43ee0b",
+    "idle": "54a2ee35-659d-4ed9-bd70-11eaf01ff8d7",
+    "move": "24f2e028-569c-4217-be54-102d9fee5d5d",
+    "work": "140a3eff-d8de-49d7-90e4-58e0458e2828"
+  },
+  "art/city/hold_steward": {
+    "image": "e224ca16-7766-4cc1-b34c-2dac2e2ca42b",
+    "idle": "58a9f068-30a8-4b8d-b2f6-b46844a745b9",
+    "move": "a3c36cc9-9fd0-4768-8a0a-2db448340c9c",
+    "work": "29c8287a-c68a-48a8-8367-84ee7bac7f19"
   },
   "art/city/merchant_stabler": {
     "image": "149ee5be-554f-4062-bce7-d30b4fae28f9"
@@ -381,25 +409,5 @@
   },
   "art/wildlife/wildlife_steppe_horse": {
     "idle": "174c5d51-7bc8-48c3-b671-c589003c293e"
-  },
-  "art/city/hold_smith": {
-    "image": "94177f64-3c9e-4ee4-92a6-dcebc8273342",
-    "idle": "6087183b-85a6-4283-81b2-b6d769a84641",
-    "move": "80135616-cfb9-4e82-b766-c04de66a6076"
-  },
-  "art/city/hold_keeper": {
-    "image": "40439488-ce2d-4d98-982b-6984dd4b63e0",
-    "idle": "d819cab5-7ec3-4331-9ea7-063448291c5d",
-    "move": "1a123fa6-48e0-4b88-81a6-cd4649f359aa"
-  },
-  "art/city/hold_steward": {
-    "image": "e224ca16-7766-4cc1-b34c-2dac2e2ca42b",
-    "idle": "58a9f068-30a8-4b8d-b2f6-b46844a745b9",
-    "move": "a3c36cc9-9fd0-4768-8a0a-2db448340c9c"
-  },
-  "art/city/hold_stabler": {
-    "image": "164c7f26-c56d-4251-b7fd-14a9eb43ee0b",
-    "idle": "54a2ee35-659d-4ed9-bd70-11eaf01ff8d7",
-    "move": "24f2e028-569c-4217-be54-102d9fee5d5d"
   }
 }

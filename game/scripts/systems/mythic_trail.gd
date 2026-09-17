@@ -186,7 +186,14 @@ func _read(sign: Dictionary) -> void:
 		# The same door the earth's own signs use, so a trail reads like the
 		# world telling you something rather than like a quest log.
 		EventBus.sky_warned.emit(kind.reading, kind.display_name)
-		Sfx.play("sfx_ui_confirm", -6.0)
+		# Its own recording rather than the interface's chime: a sign is read out
+		# on the road, at a place, and `sfx_wildlife_trail_sign` was registered
+		# and reached by nothing.
+		var node_at := sign.get("node") as Node2D
+		if node_at != null and is_instance_valid(node_at):
+			Sfx.play_group_at("sfx_wildlife_trail_sign", node_at.global_position, -3.0)
+		else:
+			Sfx.play_group("sfx_wildlife_trail_sign", -3.0)
 	var node := sign.get("node") as Node2D
 	if node != null and is_instance_valid(node):
 		# It stays on the ground - a trail you can look back along is a trail -

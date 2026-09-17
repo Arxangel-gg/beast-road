@@ -1350,11 +1350,21 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 	var flight := animal["fly"] as Array
 	var frames: Array = animal["idle"] as Array
 	var rate: float = Balance.WILDLIFE_IDLE_FRAME_RATE
+	var flying_now: bool = false
 	if moving:
 		var airborne: bool = kind.flies and not flight.is_empty()
+		flying_now = airborne
 		frames = flight if airborne else (animal["move"] as Array)
 		rate = Balance.WILDLIFE_FLIGHT_FRAME_RATE if airborne \
 			else Balance.WILDLIFE_MOVE_FRAME_RATE
+	# **The moment it leaves the ground**, and only that moment: two wingbeat
+	# recordings existed and were reached by nothing, and playing one every
+	# frame a bird is in the air would be a rotor rather than a wing.
+	if flying_now and not bool(animal.get("was_flying", false)):
+		var wing: String = kind.wing_sfx()
+		if not wing.is_empty():
+			Sfx.play_group_at(wing, sprite.global_position, -7.0)
+	animal["was_flying"] = flying_now
 	_bank(animal, sprite, kind, delta, moving)
 	if not frames.is_empty():
 		animal["frame_clock"] = float(animal["frame_clock"]) + delta * rate
@@ -1973,6 +1983,18 @@ func _mend(animal: Dictionary, kind: WildlifeData, delta: float) -> void:
 			bar.visible = false
 
 
+## The last sound it makes, and the sound of it landing.
+##
+## Two recordings rather than one: a body crying out and a body hitting the
+## ground are different events and a player hears both. Seven death families
+## and two falls were registered and reached by nothing before this.
+func _say_it_fell(kind: WildlifeData, animal: Dictionary, at: Vector2) -> void:
+	if kind == null:
+		return
+	Sfx.play_group_at(kind.death_sfx(), at, -1.0, voice_pitch(kind, float(animal.get("size", 1.0))))
+	Sfx.play_group_at(kind.fall_sfx(), at, -6.0)
+
+
 ## Health rather than a one-hit kill, because the owner asked for size to matter:
 ## a rabbit should die to a swing and a deer should take a few, which is the only
 ## way "larger gives more" is a decision rather than a lottery.
@@ -2008,6 +2030,20 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# there is no second place that could forget to reset it.
 	animal["calm"] = 0.0
 	var body_at: Vector2 = _visual_origin(sprite)
+	# **What the blow lands on, and what the animal says about it.**
+	#
+	# Five impact recordings and five cries had been made, registered and
+	# mixed and played by nothing at all: every animal in this game took a
+	# blow in silence. `WildlifeData.body` is what lets a fifty-one species
+	# roster pick between them without a branch per animal (working rule 3).
+	#
+	# The surface first and the cry under it, pitched by the throat making
+	# it - the same `voice_pitch` the vocalisations already use, so a fennec
+	# yelps higher than a bear and a cub higher than either.
+	Sfx.play_group_at(kind.hit_sfx(), body_at, -2.0)
+	var cry: String = kind.hurt_sfx()
+	if not cry.is_empty():
+		Sfx.play_group_at(cry, body_at, -4.0, voice_pitch(kind, float(animal.get("size", 1.0))))
 	Vfx.spark(body_at, Color("c4552e"), 6,
 		Vector2.UP, 170.0)
 	Vfx.blood(body_at, Vector2.UP,
@@ -2039,6 +2075,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		# experience, no encounter, nothing the player could farm by letting the
 		# wolves do the hunting.
 		Vfx.dust(sprite.global_position, Color("c4552e"), 8, 50.0)
+		_say_it_fell(kind, animal, sprite.global_position)
 		if _is_authority_with_company():
 			EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
 		animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
@@ -2063,6 +2100,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	var food: int = int(round(float(_rng.randi_range(kind.food_min, kind.food_max))
 		* bounty))
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
+	_say_it_fell(kind, animal, sprite.global_position)
 	if field != null and field.has_method("spawn_loot"):
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
 	if kind.hoards or not (animal.get("loot", []) as Array).is_empty():
@@ -2340,6 +2378,8 @@ func _rift_out(animal: Dictionary, sprite: Sprite2D) -> void:
 	var at: Vector2 = _visual_origin(sprite)
 	Vfx.ring(at, 70.0, Color("b48cff"), 0.45, 5.0)
 	Vfx.dust(sprite.global_position, Color("7a5cc4"), 12, 80.0)
+	# The thief leaving. Its own recording, registered and unplayed until now.
+	Sfx.play_group_at("sfx_wildlife_rift_out", at, -1.0)
 	animal["rifted"] = true
 
 
@@ -2646,6 +2686,9 @@ func _credit_encounter(animal: Dictionary, _how: SpiritBond.Kind) -> void:
 	if sprite != null and is_instance_valid(sprite) and not (result["bonded"] as Array).is_empty():
 		Vfx.ring(sprite.global_position, 96.0, Color(SpiritBond.tint(rarity, shiny), 0.8),
 			0.7, 6.0)
+		# The bond itself has a recording and had never been played: the ring at
+		# the animal's feet was the only thing that ever said it happened.
+		Sfx.play_group_at("sfx_wildlife_bond", sprite.global_position, 0.0)
 
 
 ## Offers a bond to a harmless animal the hero has got close to.
@@ -3200,7 +3243,9 @@ func _send_a_savage(kind: WildlifeData) -> void:
 	_make_savage(animal, kind, hero)
 	EventBus.preparation_warning.emit(
 		"Something large has taken an interest in your hunting.")
-	Sfx.play("sfx_chieftain_roar")
+	# **The species' own answer to being farmed**, which had its own recording
+	# and borrowed a chieftain's roar. A savage is an animal, not a warlord.
+	Sfx.play_group("sfx_wildlife_savage_arrival")
 
 
 ## Turns a freshly spawned animal into the thing the road sent.

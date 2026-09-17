@@ -31,9 +31,29 @@ var tint: Color = Color(0.96, 0.94, 0.90, 0.95)
 var outline: Color = Color(0.04, 0.03, 0.03, 0.85)
 
 
+## Where this control's lettering actually lands, for `CrispText`.
+##
+## The pixel grid steps over type by keeping a mask of every rectangle a string
+## is drawn in, and it finds those by class - which can only ever see the ones
+## Godot lays out. This one paints its own, so it says so; without this the grid
+## chewed the three pool captions in the corner of the HUD and nothing else in
+## the interface, which is a very confusing bug to be shown.
+##
+## The whole rect rather than the glyphs' own box: a name written on a bar is a
+## couple of letters in a strip a few pixels tall, and measuring the string to
+## the pixel would hold open a rectangle the same size anyway.
+func crisp_rects() -> Array[Rect2]:
+	if text.is_empty() or not is_visible_in_tree():
+		return []
+	return [get_global_rect()] as Array[Rect2]
+
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Anchors *and* offsets - see `PixelGrid._ready`. The bare call keeps the
+	# rect the control already has, which inside `_ready` is nothing at all,
+	# and this one paints from `size`.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# Nothing may ask this to be bigger than the bar it names.
 	custom_minimum_size = Vector2.ZERO
 

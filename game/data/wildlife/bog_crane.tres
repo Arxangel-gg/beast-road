@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-vocal_sfx = "sfx_wildlife_raven"
+body = 2
+vocal_sfx = "sfx_wildlife_bog_crane"
 breeds = true
 breeding_group = "bog_crane"
 litter_min = 2

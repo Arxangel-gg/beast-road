@@ -59,6 +59,11 @@ var _suspended: bool = false
 var _rename_edit: LineEdit = null
 
 var _yard: HoldYard = null
+
+## How far in the Warden has pulled the view, over the fit. See
+## `Balance.HOLD_ZOOM_MIN`.
+var _zoom: float = Balance.HOLD_ZOOM_DEFAULT
+var _zoom_slider: HSlider = null
 var _session: HoldSession = null
 ## The card and every door as a list, over the yard. Hidden until asked for.
 var _card_root: Control = null
@@ -175,6 +180,17 @@ func _build_frame() -> void:
 	_prompt.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	_prompt.add_theme_constant_override("outline_size", 6)
 	frame.add_child(_prompt)
+
+	# The zoom, in the bottom-left corner: the prompt owns the middle of that
+	# band and the Warden's own furniture the right of it.
+	var zoom_corner := MarginContainer.new()
+	zoom_corner.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	zoom_corner.offset_left = 22.0
+	zoom_corner.offset_top = -58.0
+	zoom_corner.offset_right = 282.0
+	zoom_corner.offset_bottom = -18.0
+	frame.add_child(zoom_corner)
+	_build_zoom(zoom_corner)
 
 	_build_road_panel(frame)
 	EventBus.party_run_offered.connect(_on_road_offered)
@@ -440,6 +456,78 @@ func _on_walked(at: Vector2, facing: Vector2) -> void:
 ## this only makes the sound; the ones with **no** button are the ones this
 ## screen answers itself - the Warden's stone is the card, which is where the
 ## rename and the professions live.
+## **The wheel and the pad move the same number the slider does.**
+##
+## One door for all three, so the slider can never say one thing while the view
+## shows another - the failure `HUD._refresh_zoom_slider` was written to avoid,
+## in the one other place this game has a zoom.
+func set_zoom(level: float) -> void:
+	var was: float = _zoom
+	_zoom = clampf(level, Balance.HOLD_ZOOM_MIN, Balance.HOLD_ZOOM_MAX)
+	if is_equal_approx(was, _zoom):
+		return
+	if _zoom_slider != null and not is_equal_approx(_zoom_slider.value, _zoom):
+		_zoom_slider.set_value_no_signal(_zoom)
+	_refit()
+
+
+## The wheel, in the one `_unhandled_input` this screen has: a second copy of a
+## Godot callback is silently the only one that runs, and this file already owns
+## the cancel key and the interact press.
+func _wheel_zoom(event: InputEvent) -> bool:
+	if _yard == null:
+		return false
+	var wheel := event as InputEventMouseButton
+	if wheel == null or not wheel.pressed:
+		return false
+	if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
+		set_zoom(_zoom + Balance.HOLD_ZOOM_STEP)
+		return true
+	if wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		set_zoom(_zoom - Balance.HOLD_ZOOM_STEP)
+		return true
+	return false
+
+
+## The slider, and the two buttons a thumb uses instead of a wheel.
+##
+## Vertical would match the HUD's, and this one is horizontal on purpose: the
+## Hold's own furniture runs along the bottom of the screen and a column here
+## would stand in the middle of the yard.
+func _build_zoom(into: Control) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	into.add_child(row)
+
+	var out := Button.new()
+	out.text = "-"
+	out.focus_mode = Control.FOCUS_NONE
+	out.custom_minimum_size = Vector2(34.0, 0.0)
+	out.pressed.connect(func() -> void:
+		set_zoom(_zoom - Balance.HOLD_ZOOM_STEP))
+	row.add_child(out)
+
+	_zoom_slider = HSlider.new()
+	_zoom_slider.min_value = Balance.HOLD_ZOOM_MIN
+	_zoom_slider.max_value = Balance.HOLD_ZOOM_MAX
+	_zoom_slider.step = 0.01
+	_zoom_slider.value = _zoom
+	_zoom_slider.custom_minimum_size = Vector2(150.0, 0.0)
+	_zoom_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_zoom_slider.tooltip_text = "How close the Hold is drawn"
+	_zoom_slider.value_changed.connect(func(level: float) -> void:
+		set_zoom(level))
+	row.add_child(_zoom_slider)
+
+	var closer := Button.new()
+	closer.text = "+"
+	closer.focus_mode = Control.FOCUS_NONE
+	closer.custom_minimum_size = Vector2(34.0, 0.0)
+	closer.pressed.connect(func() -> void:
+		set_zoom(_zoom + Balance.HOLD_ZOOM_STEP))
+	row.add_child(closer)
+
+
 func _on_entered(station: String) -> void:
 	UiSound.confirm()
 	if station == "card":
@@ -754,8 +842,23 @@ func _refit() -> void:
 	if _yard != null:
 		var room: Vector2 = screen * YARD_SHARE
 		var fit: float = minf(room.x / HoldYard.YARD.x, room.y / HoldYard.YARD.y)
+		fit *= _zoom
 		_yard.scale = Vector2.ONE * fit
-		_yard.position = Vector2(screen.x * 0.5, screen.y * 0.5 + screen.y * 0.03)
+		var middle := Vector2(screen.x * 0.5, screen.y * 0.5 + screen.y * 0.03)
+		# **Pulled in, the view follows the Warden.** A zoom that kept the
+		# yard centred would magnify whatever happens to be in the middle of
+		# the map, which is not where anybody is standing.
+		#
+		# Clamped so the edge of the yard never pulls inside the room it is
+		# drawn in: the valley continues past the map, but the *place* should
+		# not slide off the panel.
+		var away: Vector2 = -_yard.warden_at() * fit
+		var slack := Vector2(
+			maxf(HoldYard.YARD.x * fit * 0.5 - room.x * 0.5, 0.0),
+			maxf(HoldYard.YARD.y * fit * 0.5 - room.y * 0.5, 0.0))
+		_yard.position = middle + Vector2(
+			clampf(away.x, -slack.x, slack.x),
+			clampf(away.y, -slack.y, slack.y))
 	# **The bar wraps rather than shrinking**, which is the answer this
 	# project reached once already for the scope column: shrinking produced
 	# targets under the size a thumb needs, and that trades one layout fault
@@ -790,6 +893,9 @@ func _yard_point(at: Vector2) -> Vector2:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
+		return
+	if _wheel_zoom(event):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause"):
 		if _card_root != null and _card_root.visible:

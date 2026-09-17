@@ -37,34 +37,33 @@ uniform vec2 viewport = vec2(1920.0, 1080.0);
 // switch, but the fade is what lets it be turned on without a jump cut.
 uniform float strength : hint_range(0.0, 1.0) = 1.0;
 
-// Rectangles the grid is not applied to, in the same pixels `viewport` is in,
-// as (x, y, width, height).
+// **Where the type is, so the grid can step over it.**
 //
-// **For the things that cannot be redrawn sharp on top.** `CrispText` mutes a
-// string where it was authored and draws it again above this filter, which
-// works for anything `draw_string` can draw. A `RichTextLabel` is marked-up
-// text with its own layout engine - wrapping, inline colour, tables - and
-// `draw_string` is not that engine, so those are left out of the grid here
-// instead. The plate behind one is left sharp with it; that is the honest cost
-// and it is invisible in practice, because a rich label fills its own panel.
+// One channel, a quarter of the screen's resolution, white where a string is
+// standing. `CrispText` stamps it from the tree; nothing here knows what a
+// `Label` is.
 //
-// Walked rather than branched on: at eight the loop is shorter than the
-// texture read it guards, and a bound small enough to walk is what keeps this
-// pass cheap. `exclusions` says how many of the array are real.
-uniform vec4 exclude[8];
-uniform int exclusions = 0;
+// **This replaced eight rectangles and a redraw, on 2026-09-17.** The first cut
+// muted every caption where it was authored and drew it again above the filter
+// with `draw_string`, which is a second implementation of Godot's own text
+// layout - and it drifted exactly where a second implementation drifts: a
+// `Button` insets its caption by its style box and again by its icon, a `Label`
+// has its own vertical alignment, and neither was carried. The owner reported
+// it as the interface toggle causing "the text to get misaligned and out of
+// position from where the texts used to be and are supposed to stay at".
+//
+// A mask cannot drift, because nothing is drawn twice: the engine paints every
+// string exactly where it always did and the grid simply does not touch those
+// pixels. It also has no bound - the eight-rectangle array could not hold a
+// screenful of captions - and it covers a `RichTextLabel`, a `TextEdit` and a
+// button with an icon in it by the same means as everything else.
+uniform sampler2D text_mask : hint_default_black, filter_nearest;
+uniform bool masking = false;
 
 void fragment() {
 	vec2 at = SCREEN_UV * viewport;
-	// Inside any exempt rectangle the picture passes through untouched.
-	bool keep = false;
-	for (int i = 0; i < exclusions; i++) {
-		vec4 r = exclude[i];
-		if (at.x >= r.x && at.y >= r.y && at.x < r.x + r.z && at.y < r.y + r.w) {
-			keep = true;
-		}
-	}
-	if (keep) {
+	// Where the type is, the picture passes through untouched.
+	if (masking && texture(text_mask, SCREEN_UV).r > 0.5) {
 		COLOR = texture(screen_tex, SCREEN_UV);
 	} else {
 		// The centre of the block this fragment falls in. Sampling the centre

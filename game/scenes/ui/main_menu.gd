@@ -389,6 +389,7 @@ func _setup_pixel_grids() -> void:
 	_crisp = CrispText.new()
 	_crisp.name = "CrispText"
 	_crisp.ui_filter_grid = _ui_grid
+	_crisp.world_filter_grid = _world_grid
 	_crisp.ui_roots = [self] as Array[Node]
 	add_child(_crisp)
 	_refresh_pixel_grids()

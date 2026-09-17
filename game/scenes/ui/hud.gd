@@ -485,6 +485,10 @@ var _last_stand_spent: bool = false
 
 
 var _minimap: Minimap = null
+
+## The floor the right column was last laid out against. See
+## `_refit_right_column`.
+var _right_floor_was: float = -1.0
 var _zoom_slider: VSlider = null
 var _fps_label: Label = null
 var _fps_clock: float = 0.0
@@ -3059,6 +3063,9 @@ func _update_spirit_panel(delta: float) -> void:
 		return
 	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
 	_refresh_spirit_button()
+	# Whatever this tick does to the panel's shape, the map and the sheet under
+	# it are put back under its lower edge. See `_refit_right_column`.
+	_refit_right_column()
 	# **Ambient information yields to an active decision.** On a landscape
 	# phone there is not room for both this and the build panel, and the two
 	# overlapped - the spirit readout is something to glance at, while the
@@ -5239,6 +5246,18 @@ func _build_minimap() -> void:
 ## answer: ask the container how tall it is. One number, read by the map and
 ## by both sheets, so the three can never disagree about where the right-hand
 ## side is free.
+## The lowest edge anything in the right column has to start under.
+##
+## **Re-asked every frame rather than read once**, which is the whole of the
+## owner's report on 2026-09-17: *"you didn't bring the minimap down lower so
+## that it doesn't overlap the send home spirit button"*, and the same of the
+## build and trap sheets. The arithmetic here was always right; what was wrong
+## is *when* it was asked. The spirit readout is hidden on the frame the HUD is
+## built and appears later - the moment a bond is equipped, and again when the
+## spirit is sent home and the panel grows a caption and the Call button - and
+## nothing re-placed the map or re-fitted the sheet when it did. So both sat at
+## the floor an *empty* column had, which is `MINIMAP_TOP`, which is inside the
+## button.
 func _right_column_floor() -> float:
 	var floor_at: float = NAV_BAR_TOP
 	if _spirit_panel != null and is_instance_valid(_spirit_panel) \
@@ -5247,6 +5266,23 @@ func _right_column_floor() -> float:
 			_spirit_panel.get_combined_minimum_size().y)
 		floor_at = maxf(floor_at, _spirit_panel.offset_top + tall + SPIRIT_PANEL_GAP)
 	return maxf(floor_at, MINIMAP_TOP)
+
+
+## Puts the map and any open sheet back under the column's floor when it has
+## moved. Called every frame from the spirit readout's own tick, because that
+## is the thing whose shape moves it.
+##
+## Cheap: a float compare, and the two placements only run on the frames the
+## floor actually changes - which is when a bond is equipped, when a spirit is
+## called or sent home, and when the screen is resized.
+func _refit_right_column() -> void:
+	var floor_at: float = _right_column_floor()
+	if is_equal_approx(floor_at, _right_floor_was):
+		return
+	_right_floor_was = floor_at
+	_place_minimap()
+	if _build_panel != null and _build_panel.visible:
+		_fit_build_panel()
 
 
 func _place_minimap() -> void:

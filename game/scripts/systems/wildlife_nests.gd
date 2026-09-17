@@ -91,6 +91,10 @@ func lay(kind: WildlifeData, at: Vector2, clutch: Array[Dictionary],
 		"left": kind.incubation_distance if kind.incubation_distance > 0.0 \
 			else Balance.NEST_INCUBATION_DISTANCE,
 	})
+	_dress(_nests[_nests.size() - 1])
+	# **The sound of a clutch being laid**, which had been recorded, registered
+	# and mixed and played by nobody since the ecology was built.
+	Sfx.play_group_at("sfx_wildlife_nest_lay", at)
 	EventBus.wildlife_nested.emit(kind.id, clutch.size(), at)
 	if not Coop.is_guest():
 		EventBus.coop_wildlife_nested.emit(kind.id, clutch.size(), at)
@@ -125,8 +129,65 @@ func _hatch(index: int) -> void:
 	if families != null and kind != null and not Coop.is_guest():
 		families.hatch(kind, at, nest["clutch"] as Array[Dictionary],
 			int(nest["family"]))
+	# The clutch opening, which is the third of the ecology's own recordings
+	# that had never been played.
+	Sfx.play_group_at("sfx_wildlife_egg_hatch", at)
 	_empty(nest)
 	_nests.remove_at(index)
+
+
+## The eggs themselves, one sprite each, on top of the nest they are in.
+##
+## **Rebuilt rather than reduced.** A clutch is at most a handful, so freeing
+## the lot and laying them again is cheaper to read than tracking which sprite
+## belonged to which egg - and it is the only version that cannot drift out of
+## step with the clutch after a hatch, a theft and a guest's relayed count.
+##
+## Owner, 2026-09-17: *"taking an egg from a nest does not update the nest's
+## visuals to show until the nest is empty"*. It does now, one egg at a time.
+func _dress(nest: Dictionary) -> void:
+	var sprite := nest.get("sprite") as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	for old_egg: Node in sprite.get_children():
+		old_egg.queue_free()
+	var art: Texture2D = _art("res://art/battlefield/nest_egg.png")
+	if art == null:
+		return
+	var clutch: Array = nest.get("clutch", []) as Array
+	var kind := nest.get("kind") as WildlifeData
+	# The cluster is the nest's own arrangement rather than a roll: the same
+	# nest looks the same on both machines and after a reload, and nothing here
+	# touches the run's stream (`decoration-needs-its-own-rng-stream`).
+	var seed_at: int = absi(hash(str(nest.get("at", Vector2.ZERO))))
+	for index: int in clutch.size():
+		var egg := Sprite2D.new()
+		egg.texture = art
+		egg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		egg.scale = Vector2.ONE * Balance.NEST_EGG_SCALE
+		var spin: float = float((seed_at >> (index * 3)) % 360) * 0.0174533
+		egg.position = Vector2(cos(spin) * Balance.NEST_EGG_SPREAD.x,
+			sin(spin) * Balance.NEST_EGG_SPREAD.y - Balance.NEST_EGG_LIFT)
+		# Later eggs sit a hair in front, so a cluster reads as a pile rather
+		# than as sprites at one depth.
+		egg.z_index = index
+		egg.rotation = sin(spin * 1.7) * 0.22
+		egg.modulate = _egg_tint(clutch[index] as Dictionary, kind)
+		sprite.add_child(egg)
+
+
+## What colour an egg is: its own shell, tinted a little toward the rarity of
+## what is inside it and lifted if it is going to hatch a shiny.
+func _egg_tint(egg: Dictionary, kind: WildlifeData) -> Color:
+	var rank: int = int(egg.get("rarity", kind.rarity if kind != null else 0))
+	var colours: Array[Color] = Balance.RANK_SHEEN_RARITY_COLOURS
+	if colours.is_empty():
+		return Color.WHITE
+	var tone: Color = colours[clampi(rank, 0, colours.size() - 1)]
+	var ink: Color = Color.WHITE.lerp(tone, Balance.NEST_EGG_RARITY_TINT)
+	if bool(egg.get("shiny", false)):
+		ink = ink.lightened(0.22)
+	return ink
 
 
 ## The nest stays on the ground, emptied. A hatched nest and a robbed one look
@@ -135,6 +196,10 @@ func _empty(nest: Dictionary) -> void:
 	var sprite := nest.get("sprite") as Sprite2D
 	if sprite == null or not is_instance_valid(sprite):
 		return
+	# The eggs go with the clutch, so the spent painting is not wearing the
+	# eggs that are no longer in it while it fades.
+	for egg: Node in sprite.get_children():
+		egg.queue_free()
 	var spent: Texture2D = _art("res://art/battlefield/nest_empty.png")
 	if spent != null:
 		sprite.texture = spent
@@ -200,7 +265,13 @@ func _rob(index: int, who: Node2D) -> void:
 	MetaState.record_spirit_encounter(kind.id,
 		int(egg.get("rarity", kind.rarity)), bool(egg.get("shiny", false)), "")
 	Vfx.spark(nest["at"] as Vector2, Color(0.95, 0.92, 0.80), 8, Vector2.UP, 140.0)
-	Sfx.play("sfx_ui_confirm", -5.0)
+	# **The nest shows what is left in it.** One egg leaving a clutch of four
+	# used to change nothing on screen until the last one went.
+	_dress(nest)
+	# Its own recording rather than the interface's confirm chime: taking an
+	# egg happens out on the road, at a place, and `sfx_wildlife_egg_take` had
+	# been sitting registered and unplayed since it was made.
+	Sfx.play_group_at("sfx_wildlife_egg_take", nest["at"] as Vector2)
 	RunState.note_kept("eggs", 1.0)
 	# **And it goes in the pack.** An egg that reaches home bonds its variant
 	# outright; a run that falls loses it. That is the proposal's steal-and-be-

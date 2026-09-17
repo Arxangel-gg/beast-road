@@ -214,6 +214,94 @@ func roll_weight(act: int) -> float:
 ## a missing file is a supported silent state until the prompt is generated.
 @export var vocal_sfx: String = ""
 
+## **What kind of body this is, for every sound that is not its voice.**
+##
+## Five hurt recordings, seven death recordings and five impact recordings had
+## been made, registered and mixed - and read by nothing at all, because
+## `WildlifeData` had no way to say which of them an animal wanted. Fifty-one
+## species took a blow in silence and died in silence. Found on 2026-09-17 by
+## fixing `audio_verify`'s unreachable-sound check, which had been skipping the
+## `GROUPS` table's own rows and so counted every recording as reached by its
+## own declaration.
+##
+## **Appended, never inserted.** A `.tres` stores an enum by number, and this
+## project has twice shipped content pointing at the wrong member because
+## somebody added one in the middle - `Role` and `Trigger` both did it.
+enum Body {SMALL_BEAST, LARGE_BEAST, BIRD, REPTILE, AMPHIBIAN, CHITIN, SHELL}
+
+@export var body: Body = Body.SMALL_BEAST
+
+## The cry when a blow lands, or "" for a body that has no voice to cry with.
+##
+## The armoured two are deliberately silent: a beetle and a tortoise are
+## already declared voiceless in `wildlife_spawn_check.SILENT`, and giving one
+## a yelp because a table had a row for it is how a scorpion ends up sounding
+## like a marten.
+func hurt_sfx() -> String:
+	match body:
+		Body.LARGE_BEAST:
+			return "sfx_wildlife_hurt_large_beast"
+		Body.BIRD:
+			return "sfx_wildlife_hurt_bird"
+		Body.REPTILE:
+			return "sfx_wildlife_hurt_reptile"
+		Body.AMPHIBIAN:
+			return "sfx_wildlife_hurt_amphibian"
+		Body.CHITIN, Body.SHELL:
+			return ""
+	return "sfx_wildlife_hurt_small_beast"
+
+
+## The last sound it makes. Every body has one, including the armoured two -
+## a shell cracking is not a cry.
+func death_sfx() -> String:
+	match body:
+		Body.LARGE_BEAST:
+			return "sfx_wildlife_death_large_beast"
+		Body.BIRD:
+			return "sfx_wildlife_death_bird"
+		Body.REPTILE:
+			return "sfx_wildlife_death_reptile"
+		Body.AMPHIBIAN:
+			return "sfx_wildlife_death_amphibian"
+		Body.CHITIN:
+			return "sfx_wildlife_death_chitin"
+		Body.SHELL:
+			return "sfx_wildlife_death_shell"
+	return "sfx_wildlife_death_small_beast"
+
+
+## What a blow *lands on*, which is the surface rather than the animal. The
+## same distinction `EnemyData.hide` draws for the roster.
+func hit_sfx() -> String:
+	match body:
+		Body.BIRD:
+			return "sfx_wildlife_hit_feather"
+		Body.REPTILE, Body.AMPHIBIAN:
+			return "sfx_wildlife_hit_scale"
+		Body.CHITIN:
+			return "sfx_wildlife_hit_chitin"
+		Body.SHELL:
+			return "sfx_wildlife_hit_shell"
+	return "sfx_wildlife_hit_fur"
+
+
+## The sound of it coming down. A deer-sized body lands differently from a
+## marten, and nothing between them is worth a third recording.
+func fall_sfx() -> String:
+	return "sfx_wildlife_fall_heavy" if body == Body.LARGE_BEAST \
+		else "sfx_wildlife_fall_light"
+
+
+## The wingbeat when it leaves the ground, or "" for anything that cannot.
+func wing_sfx() -> String:
+	if body == Body.BIRD:
+		return "sfx_wildlife_wing_large" if scale >= 1.0 \
+			else "sfx_wildlife_wing_small"
+	if body == Body.CHITIN:
+		return "sfx_wildlife_wing_small"
+	return ""
+
 ## Drawn size, as a multiple of the sprite's own pixels.
 ##
 ## Judge these against the hero, not against each other: the hero is 128px of art

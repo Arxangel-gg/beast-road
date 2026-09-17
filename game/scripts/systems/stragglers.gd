@@ -102,22 +102,29 @@ func _draw() -> void:
 		# stragglers do not pulse in lockstep and read as one interface element.
 		var beat: float = 0.5 + 0.5 * sin(_life * Balance.STRAGGLER_PULSE_HZ * TAU
 			+ float(id % 17))
-		var height: float = Balance.STRAGGLER_PLUME_HEIGHT * (0.92 + 0.08 * beat)
 		var tone: Color = Balance.STRAGGLER_TONE
-		tone.a *= 0.55 + 0.45 * beat
-		# A column that fades out at the top rather than stopping: a hard-ended
-		# bar reads as a UI element standing on the road, and this is meant to
-		# read as light coming off the body.
-		var steps: int = 5
-		for step: int in steps:
-			var low: float = float(step) / float(steps)
-			var high: float = float(step + 1) / float(steps)
-			var band: Color = tone
-			band.a *= 1.0 - low
-			draw_line(at + Vector2(0.0, -height * low),
-				at + Vector2(0.0, -height * high), band,
-				Balance.STRAGGLER_PLUME_WIDTH * (1.0 - low * 0.55), true)
-		# A small ring at the feet, so the plume has somewhere to stand and the
-		# body is findable once the player is close enough to see it.
+		tone.a *= 0.62 + 0.38 * beat
+		# **A chevron pointing down at the body**, bobbing on its own breath.
+		#
+		# Not a column: a column of warm light over a body is the loot beacon a
+		# drop wears, and two opposite meanings in one visual language is worse
+		# than no marker at all. A downward mark in a hostile colour cannot be
+		# mistaken for something to pick up.
+		var lift: float = Balance.STRAGGLER_MARK_LIFT + 6.0 * beat
+		var tip := at + Vector2(0.0, -lift)
+		var wide: float = Balance.STRAGGLER_MARK_WIDE * 0.5
+		var tall: float = Balance.STRAGGLER_MARK_TALL
+		var thick: float = Balance.STRAGGLER_MARK_THICK
+		# Drawn twice: a dark backing a shade wider, so the mark reads against a
+		# pale road as well as a dark one. The same trick every figure's outline
+		# in this game uses, and it costs two more lines.
+		var shade := Color(0.05, 0.03, 0.03, tone.a * 0.75)
+		for pass_at: int in 2:
+			var ink: Color = shade if pass_at == 0 else tone
+			var fat: float = thick + (2.0 if pass_at == 0 else 0.0)
+			draw_line(tip + Vector2(-wide, -tall), tip, ink, fat, true)
+			draw_line(tip, tip + Vector2(wide, -tall), ink, fat, true)
+		# And a ring at the feet, so the body is findable once the player is
+		# close enough to see it through the canopy.
 		draw_arc(at, Balance.STRAGGLER_RING_RADIUS * (0.9 + 0.1 * beat), 0.0, TAU,
-			20, Color(tone, tone.a * 0.7), 2.0, true)
+			24, Color(tone, tone.a * 0.55), 2.0, true)

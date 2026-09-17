@@ -44,6 +44,10 @@ var _animals: Array[Dictionary] = []
 var _roster: Array = []
 var _rng := RandomNumberGenerator.new()
 
+## The earth under them, when somebody has handed one over. Null on the pen
+## screen, where this node is the only thing drawing a floor.
+var _soil: Texture2D = null
+
 
 func _ready() -> void:
 	set_process(true)
@@ -54,6 +58,22 @@ func _ready() -> void:
 func set_stage(size: Vector2) -> void:
 	_stage = size
 	_settle_places()
+	queue_redraw()
+
+
+## **The ground it is standing on, when it is standing on some.**
+##
+## On the pen *screen* there is nothing behind this node, so it paints its own
+## earth and draws a rail round it. In the **Hold** there is a whole yard
+## behind it, and painting an opaque rectangle over that yard is what made
+## four pens read as green panes laid on the painting - the fault the Hold's
+## own `_draw_pens` had already been fixed for, undone one node further in
+## because two things were drawing the same ground and only one of them knew.
+##
+## Handed in rather than loaded, so this node still knows nothing about where
+## it is standing.
+func set_ground(texture: Texture2D) -> void:
+	_soil = texture
 	queue_redraw()
 
 
@@ -181,6 +201,7 @@ func _tick(animal: Dictionary, delta: float) -> void:
 func _choose(animal: Dictionary) -> void:
 	var own := animal["rng"] as RandomNumberGenerator
 	var roll: float = own.randf()
+	var was: int = int(animal.get("pose", 0))
 	# Mostly standing about, sometimes off somewhere, occasionally lying down.
 	# A pen where everything is always moving reads as agitated rather than kept.
 	if roll < 0.45:
@@ -195,6 +216,20 @@ func _choose(animal: Dictionary) -> void:
 		animal["pose"] = 2
 	animal["left"] = own.randf_range(Balance.PEN_POSE_SECONDS.x,
 		Balance.PEN_POSE_SECONDS.y)
+	# **A pen you can hear.** Two recordings were made for exactly this - one
+	# for an animal cropping at the ground and one for one settling down - and
+	# both were registered, mixed and played by nothing. Only on a *change* of
+	# pose, so a yard of twelve is a sound now and then rather than a murmur.
+	var now: int = int(animal["pose"])
+	if now == was:
+		return
+	var node := animal.get("node") as Node2D
+	if node == null or not is_instance_valid(node):
+		return
+	if now == 0:
+		Sfx.play_group_at("sfx_pen_graze", node.global_position, -8.0)
+	elif now == 2:
+		Sfx.play_group_at("sfx_pen_settle", node.global_position, -8.0)
 
 
 ## Draws somebody else's animals instead of this account's. An empty list
@@ -240,12 +275,21 @@ func _draw() -> void:
 	# tufts - which is three ellipses and a handful of marks rather than a
 	# texture.
 	var half: Vector2 = _stage * 0.5
-	draw_rect(Rect2(-half, _stage), Color(0.19, 0.21, 0.15), true)
-	for ring: int in 3:
-		var share: float = 0.52 - float(ring) * 0.15
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.6))
-		draw_circle(Vector2.ZERO, _stage.x * share, Color(0.27, 0.23, 0.16, 0.30))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var standing: bool = _soil == null
+	if standing:
+		draw_rect(Rect2(-half, _stage), Color(0.19, 0.21, 0.15), true)
+		for ring: int in 3:
+			var share: float = 0.52 - float(ring) * 0.15
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.6))
+			draw_circle(Vector2.ZERO, _stage.x * share,
+				Color(0.27, 0.23, 0.16, 0.30))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		# Standing in a yard somebody else painted: the wear is worn into
+		# *their* earth, feathered, and nothing opaque goes over it.
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		GroundWear.patch(get_canvas_item(), _soil, Vector2.ZERO,
+			_stage.x * 0.42, Balance.HOLD_SOIL_TINT, 0.56)
 	# Tufts the animals have not eaten, from the stage's own size rather than a
 	# roll - a pen that re-scattered its grass every redraw would shimmer.
 	for tuft: int in 14:
@@ -257,7 +301,11 @@ func _draw() -> void:
 			continue
 		draw_line(at, at + Vector2(1.0, -5.0), Color(0.31, 0.38, 0.22, 0.75), 1.5)
 		draw_line(at, at + Vector2(-2.0, -4.0), Color(0.28, 0.34, 0.20, 0.7), 1.5)
-	draw_rect(Rect2(-half, _stage), Color(0.32, 0.29, 0.21), false, 3.0)
+	# The rail round it, and only where nothing else has drawn one: the Hold
+	# puts real posts and rails on three sides of every pen, and a stroked
+	# rectangle inside those is the outline of a widget.
+	if standing:
+		draw_rect(Rect2(-half, _stage), Color(0.32, 0.29, 0.21), false, 3.0)
 	for animal: Dictionary in _animals:
 		var node := animal["node"] as Node2D
 		if node == null or not is_instance_valid(node):

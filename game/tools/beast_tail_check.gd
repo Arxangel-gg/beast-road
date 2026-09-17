@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_the_stub_fades_and_the_tail_does_not()
 	_test_the_tail_wears_the_hide()
 	_test_the_tail_is_lit_where_it_hangs()
+	_test_the_correction_is_not_inert()
 	_test_the_tail_is_graded_by_the_body()
 	_test_the_spline_is_anchored_and_alive()
 	_test_the_tail_is_drawn_in_the_same_ink()
@@ -80,6 +81,43 @@ func _ready() -> void:
 ## the tail parented somewhere else, a `self_modulate` on it (which multiplies
 ## on top of a grade the body never asked for), or a material (which is *not*
 ## inherited, so anything the body's shader does the tail would not).
+## **The correction is not a no-op.**
+##
+## `_measure_harmony` clamped every channel of its hide-to-limb ratio to at
+## most 1.0 - and the limb's painting is *darker* than the hide's, so every
+## channel came out above one, every channel clamped to exactly one, and
+## `_paint_match` was pure white. The whole mechanism was inert on the shipped
+## art and nine reports about the tail's colour could not be answered by
+## touching any of its constants, because none of them reached the screen.
+##
+## An inert correction is worse than no correction: it is a knob that looks
+## like it does something. So the gate refuses a paint match that is exactly
+## white, which is the one value that means nothing is being applied.
+func _test_the_correction_is_not_inert() -> void:
+	var frames: Array[String] = _tail_frames()
+	var bodies: Array[String] = _body_frames()
+	if frames.is_empty() or bodies.is_empty():
+		_check(false, "no tail or body frames to measure the correction on")
+		return
+	var limb := BeastTailSpline.new()
+	limb.adopt(load(frames[0]) as Texture2D)
+	limb.harmonise(load(bodies[0]) as Texture2D)
+	var match_at: Color = limb.self_modulate
+	_check(not match_at.is_equal_approx(Color.WHITE),
+		("the limb's paint correction is exactly white (%s), which is a knob that "
+			+ "looks like it works and reaches nothing - the clamp that made it so "
+			+ "cost nine reports about this limb's colour") % str(match_at))
+	# And bounded, so a redraw that moved the two paintings far apart cannot
+	# multiply the limb into something that is not an animal.
+	var low: float = Balance.BEAST_TAIL_HARMONY_FLOOR * 0.5
+	var high: float = Balance.BEAST_TAIL_HARMONY_CEILING * 1.5
+	_check(match_at.r >= low and match_at.r <= high
+			and match_at.g >= low and match_at.g <= high
+			and match_at.b >= low and match_at.b <= high,
+		"the limb's paint correction left its own band: %s" % str(match_at))
+	limb.free()
+
+
 func _test_the_tail_is_graded_by_the_body() -> void:
 	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
 		var file := FileAccess.open(screen, FileAccess.READ)

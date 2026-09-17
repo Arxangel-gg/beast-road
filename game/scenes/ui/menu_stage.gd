@@ -91,7 +91,9 @@ var _grade: ColorRect = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Anchors *and* offsets - see `PixelGrid._ready`. The bare call keeps the
+	# rect the control already has, which inside `_ready` is nothing at all.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# **The whole stage sits below the interface, and it has to say so itself.**
 	# Tree order puts it under the logo and the buttons, which is right until
 	# something inside it wants a `z_index` - `z_index` sorts across the entire

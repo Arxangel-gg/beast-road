@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 6
 amphibious = true
 water_seconds = Vector2(24, 60)
 land_seconds = Vector2(20, 60)

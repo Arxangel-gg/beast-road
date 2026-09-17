@@ -13,6 +13,13 @@ extends Node
 ## A scene rather than a SceneTree script: it reads the Sfx autoload, and a
 ## SceneTree script replaces the main loop so no autoload exists there.
 
+## The functions on a resource that answer "which recording". Named rather
+## than found, because "a method returning a String that looks like an id" is
+## a guess and this is a list somebody can read.
+const SOUND_HELPERS: Array[String] = [
+	"hurt_sfx", "death_sfx", "hit_sfx", "fall_sfx", "wing_sfx",
+]
+
 func _ready() -> void:
 	var failures: PackedStringArray = []
 	var paths: Dictionary = Sfx.SOUNDS
@@ -294,6 +301,7 @@ func _sounds_no_caller_can_reach() -> PackedStringArray:
 	var named: Dictionary = {}
 	for path: String in _every_script("res://"):
 		_gather_named(path, named)
+	_gather_called_helpers(named)
 	for path: String in _every_data("res://data"):
 		_gather_named(path, named)
 	# A group's members are reached when the group is.
@@ -315,23 +323,114 @@ func _sounds_no_caller_can_reach() -> PackedStringArray:
 	return lonely
 
 
+## **A resource that maps an id to a sound is a table, not a caller.**
+##
+## `WildlifeData.death_sfx()` is a `match` over seven recording names. Every
+## one of those names is a literal in a `.gd` file, so the walk above counts
+## them as reached - whether or not anything ever calls the function. Checked
+## by planting the fault: with `Wildlife` no longer playing a death cry at
+## all, this gate passed, which is the `DisciplineEffects` lie in a third
+## place.
+##
+## So the literals inside a resource's sound helper only count when the helper
+## itself is called from somewhere that is not the resource. A grep is a weak
+## proof of behaviour and a strong proof of *wiring*, which is the half that
+## goes silently false.
+func _gather_called_helpers(named: Dictionary) -> void:
+	var elsewhere: Dictionary = {}
+	for path: String in _every_script("res://"):
+		if path.begins_with("res://scripts/resources/"):
+			continue
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		for line: String in file.get_as_text().split("\n"):
+			if line.strip_edges().begins_with("#"):
+				continue
+			for helper: Variant in SOUND_HELPERS:
+				if line.contains(String(helper) + "("):
+					elsewhere[String(helper)] = true
+	for path: String in _every_script("res://scripts/resources"):
+		var body := FileAccess.open(path, FileAccess.READ)
+		if body == null:
+			continue
+		var taking: String = ""
+		for line: String in body.get_as_text().split("\n"):
+			var trimmed: String = line.strip_edges()
+			if trimmed.begins_with("func "):
+				taking = ""
+				for helper: Variant in SOUND_HELPERS:
+					if trimmed.begins_with("func " + String(helper) + "("):
+						taking = String(helper)
+				continue
+			if taking.is_empty() or not elsewhere.has(taking):
+				continue
+			if trimmed.begins_with("#"):
+				continue
+			var from: int = 0
+			while true:
+				var open: int = line.find("\"sfx_", from)
+				if open < 0:
+					break
+				var shut: int = line.find("\"", open + 1)
+				if shut < 0:
+					break
+				named[line.substr(open + 1, shut - open - 1)] = true
+				from = shut + 1
+
+
 ## Every `"sfx_..."` literal in one file, ignoring comments and, in `Sfx.gd`
 ## itself, the table rows that declare rather than call.
 func _gather_named(path: String, into: Dictionary) -> void:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return
-	var declaring: bool = path.ends_with("autoload/Sfx.gd")
+	# A resource under `scripts/resources` is a table of names exactly as
+	# `Sfx.gd` is: it says what a thing is *called*, and something else has to
+	# call it. Its literals arrive through `_gather_called_helpers` instead.
+	if path.begins_with("res://scripts/resources/"):
+		return
+	var is_table: bool = path.ends_with("autoload/Sfx.gd")
+	# **Every `const ... Dictionary` block is a declaration, not a caller.**
+	#
+	# The first cut skipped a line that began with `"sfx_` *and had no bracket*,
+	# meaning to skip the `SOUNDS` rows. A `GROUPS` row is
+	# `"sfx_x": ["sfx_x_1", ...]` - it has a bracket, so it was kept, so every
+	# group and every take in it counted as "named" by its own table row. The
+	# check was therefore vacuous for anything that has a group, which is nearly
+	# every recording in the project: **500 sounds across 62 families - the whole
+	# of the ecology's hurt, death, hit, fall, wing, egg, nest and blight cues,
+	# and thirty species' own voices - were registered, mixed and played by
+	# nobody, and this said zero.**
+	#
+	# That is the same shape as a comparison of two nothings, one step further
+	# in: the skip was written against one table's *shape* rather than against
+	# what a table *is*. Blocks now, by name.
+	var declaring: bool = false
 	for line: String in file.get_as_text().split("
 "):
 		var trimmed: String = line.strip_edges()
 		if trimmed.begins_with("#"):
 			continue
-		if declaring and trimmed.begins_with("\"sfx_") and not trimmed.contains("["):
-			continue
+		if is_table:
+			if trimmed.begins_with("const SOUNDS") \
+					or trimmed.begins_with("const GROUPS") \
+					or trimmed.begins_with("const MIX"):
+				declaring = true
+				continue
+			if declaring:
+				if trimmed == "}":
+					declaring = false
+				continue
+		# **Every quoted literal, not only the ones beginning `sfx_`.**
+		#
+		# Not every group carries the prefix - `swing_light` is one - so a scan
+		# keyed on `"sfx_` never saw the call that reaches it and reported both
+		# of its takes as unplayable. Recording every literal costs a dictionary
+		# of strings nobody asks about and cannot miss a name.
 		var from: int = 0
 		while true:
-			var open: int = line.find("\"sfx_", from)
+			var open: int = line.find("\"", from)
 			if open < 0:
 				break
 			var shut: int = line.find("\"", open + 1)

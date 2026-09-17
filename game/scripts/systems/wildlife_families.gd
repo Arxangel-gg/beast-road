@@ -836,6 +836,13 @@ func _try_sicken(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, natur
 		outbreaks_this_act += 1
 	animal["blight"] = Blight.WARNING
 	animal["blight_left"] = _rng().randf_range(Balance.WILDBLIGHT_WARNING_SECONDS.x, Balance.WILDBLIGHT_WARNING_SECONDS.y)
+	# **The three states are heard as well as seen.** A symbol over an
+	# unsettled idle is the tell, and it is a tell a player has to be looking
+	# at; the three recordings for it had been registered and mixed and played
+	# by nothing since the blight was built.
+	var where: Sprite2D = animal.get("sprite") as Sprite2D
+	if where != null and is_instance_valid(where):
+		Sfx.play_group_at("sfx_wildlife_blight_warning", where.global_position, -2.0)
 	_drop_courtship(animal, Court.NONE)
 	_show_blight_icon(animal, true)
 	if wild.is_authority_with_company():
@@ -860,6 +867,7 @@ func _frenzy(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
 	_show_blight_icon(animal, false)
 	wild.dress_frenzied(animal, sprite, kind)
 	Vfx.ring(sprite.global_position, 80.0, Color(Balance.WILDLIFE_RABID_AURA, 0.9), 0.5, 4.0)
+	Sfx.play_group_at("sfx_wildlife_blight_frenzy", sprite.global_position, 1.0)
 	if not kind.vocal_sfx.is_empty():
 		Sfx.play_at(kind.vocal_sfx, sprite.global_position, 2.0,
 			Wildlife.voice_pitch(kind, float(animal.get("size", 1.0))))
@@ -875,6 +883,7 @@ func _collapse(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void
 	animal["state"] = Wildlife.State.SETTLED
 	animal["goal"] = sprite.global_position
 	Vfx.dust(sprite.global_position, Color(0.5, 0.7, 0.4), 6, 30.0)
+	Sfx.play_group_at("sfx_wildlife_blight_collapse", sprite.global_position, -1.0)
 	if wild.is_authority_with_company():
 		EventBus.coop_wildlife_family.emit(int(animal["net_id"]), Word.BLIGHT, Blight.COLLAPSING)
 

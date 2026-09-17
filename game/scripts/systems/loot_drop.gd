@@ -50,6 +50,18 @@ var _glow: Sprite2D
 var _plate: Label = null
 var _beacon: Sprite2D
 var _orbiters: Array[Sprite2D] = []
+## The side of the blank quad the spire is drawn on, in its own pixels.
+## Small on purpose: nothing samples it, so its only job is to exist.
+const QUAD: float = 8.0
+
+## One white quad for every drop in the game. Built once and kept, because
+## a fresh `ImageTexture` per drop is an allocation and a GPU handle for a
+## thing that is the same eight-by-eight white square every time.
+static var _quad: ImageTexture = null
+
+## The width this drop's spire was built at, rarity included.
+var _beacon_wide: float = Balance.LOOT_BEACON_WIDTH
+
 var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
 var _glow_size: float = Balance.LOOT_GLOW_SIZE
 var _material: ShaderMaterial = null
@@ -237,8 +249,12 @@ func _process(delta: float) -> void:
 				1.0 - gap / maxf(Balance.LOOT_PLATE_FADE_RANGE, 1.0), 0.0, 1.0)
 		var beam_pulse: float = 0.88 + 0.12 * sin(_life * 2.1)
 		_beacon.modulate.a = Balance.LOOT_BEACON_ALPHA * beam_pulse
-		_beacon.scale.x = Balance.LOOT_BEACON_WIDTH * (0.92 + 0.08 * beam_pulse) \
-			/ maxf(float(_beacon.texture.get_width()), 1.0)
+		# **Pulsed around the width this drop was built at**, not around the
+		# base one. Recomputing from `LOOT_BEACON_WIDTH` threw the rarity
+		# multiplier away on the first tick, so an Oathbound spire was born
+		# wide and was the same width as a copper coin's a frame later - the
+		# one thing about it a player was supposed to be able to read.
+		_beacon.scale.x = _beacon_wide * (0.92 + 0.08 * beam_pulse) / QUAD
 	for index: int in _orbiters.size():
 		var mote: Sprite2D = _orbiters[index]
 		var angle: float = _life * Balance.LOOT_ORBIT_SPEED \
@@ -267,6 +283,17 @@ func _process(delta: float) -> void:
 ## icon and can disappear into a similarly coloured road; these two motes and a
 ## narrow vertical glow change the silhouette around it, which remains readable
 ## on Low quality and at the fully zoomed-out camera.
+## A blank white quad. See `_build_attention_fx`: the spire's shape is the
+## shader's, and anything in the texture multiplies into it.
+static func _blank_quad() -> ImageTexture:
+	if _quad == null:
+		var white: Image = Image.create_empty(int(QUAD), int(QUAD), false,
+			Image.FORMAT_RGBA8)
+		white.fill(Color.WHITE)
+		_quad = ImageTexture.create_from_image(white)
+	return _quad
+
+
 func _build_attention_fx() -> void:
 	var light: Texture2D = LightKit.falloff_texture()
 	if light == null:
@@ -276,15 +303,23 @@ func _build_attention_fx() -> void:
 	# flared foot and motes climbing it, and scales all three by how rare the
 	# drop is - so an Oathbound piece is findable across a field of foliage and
 	# a copper coin is a candle. See `loot_beacon.gdshader`.
+	#
+	# **And the quad it is drawn on is blank, which it was not.** The beacon
+	# wore `LightKit.falloff_texture()` - a radial falloff - and a canvas
+	# shader's `COLOR` arrives already multiplied by the sampled texture. So
+	# the carefully tapered column was multiplied by a stretched ellipse: the
+	# foot pinched, the core lost its heat and the motes climbed into a fade
+	# that was not the shader's. Owner, 2026-09-17: *"a low quality unpolished
+	# eyesore"*. On a blank white quad the shader is the only thing shaping it.
 	var rich: float = _richness()
 	var tall: float = Balance.LOOT_BEACON_HEIGHT 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_HEIGHT, rich)
 	var wide: float = Balance.LOOT_BEACON_WIDTH 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_WIDTH, rich)
 	_beacon = Sprite2D.new()
 	_beacon.name = "PickupBeacon"
-	_beacon.texture = light
+	_beacon.texture = _blank_quad()
 	_beacon.modulate = Color(_glow_colour, Balance.LOOT_BEACON_ALPHA)
-	_beacon.scale = Vector2(wide / maxf(float(light.get_width()), 1.0),
-		tall / maxf(float(light.get_height()), 1.0))
+	_beacon_wide = wide
+	_beacon.scale = Vector2(wide / QUAD, tall / QUAD)
 	_beacon.position.y = -tall * 0.30
 	_beacon.z_index = -1
 	if DisplayServer.get_name() != "headless":

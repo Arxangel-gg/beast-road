@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 6
 breeds = true
 breeding_group = "tortoise"
 litter_min = 2

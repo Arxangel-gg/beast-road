@@ -46,6 +46,10 @@ const SPACING: float = 150.0
 const TURF_ART: String = "res://art/terrain/terrain_jungle.png"
 
 var _turf: Texture2D = null
+
+## Whether this is the only floor under the horses. False in the Hold, where
+## the yard behind it is the ground and this only wears it.
+var _standing: bool = true
 var _stage: Vector2 = Balance.STABLE_PADDOCK
 var _horses: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
@@ -62,6 +66,15 @@ func _ready() -> void:
 
 
 ## How big the paddock is. Set before or after `refresh`; either re-lays it.
+## Told that the ground it is drawn on belongs to somebody else, so it wears
+## that rather than painting over it. See `_draw`.
+func stand_in_a_yard(soil: Texture2D) -> void:
+	_standing = false
+	if soil != null:
+		_turf = soil
+	queue_redraw()
+
+
 func set_stage(size: Vector2) -> void:
 	_stage = size
 	_settle_places()
@@ -227,6 +240,10 @@ func _choose(horse: Dictionary) -> void:
 
 
 func _draw() -> void:
+	# The patches read the turf in world coordinates, so the sheet has to wrap
+	# rather than clamp - left on the default, every UV past one comes back as
+	# the edge column and the wear is one flat smear.
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	# The fence: four rails around the ground, drawn rather than tiled, because a
 	# paddock is a rectangle and a tileset for one would be four corners of art
 	# to keep in step with a number in `Balance`.
@@ -244,15 +261,25 @@ func _draw() -> void:
 	# this size it is the largest rectangle in the Hold - it read as a pane of
 	# green glass with horses standing on it. The ground the rest of the place
 	# is painted with, worn toward the middle, is earth.
-	if _turf != null:
-		draw_texture_rect(_turf, ground, true, Color(0.50, 0.53, 0.40))
-	else:
-		draw_rect(ground, Color(0.24, 0.27, 0.16, 0.60), true)
-	for ring: int in 3:
-		var share: float = 0.46 - float(ring) * 0.13
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.55))
-		draw_circle(Vector2.ZERO, _stage.x * share, Color(0.30, 0.24, 0.16, 0.26))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# **And nothing opaque goes over a yard somebody else painted.** Standing
+	# on the stable screen this node is the only floor there is, so it lays
+	# one; standing in the Hold there is a whole terraced yard behind it, and
+	# a darkened rectangle over that is a rectangle however well it is
+	# textured - which is what the third photograph of this place showed,
+	# after two passes that had each made the *inside* of it better.
+	if _standing:
+		if _turf != null:
+			draw_texture_rect(_turf, ground, true, Color(0.50, 0.53, 0.40))
+		else:
+			draw_rect(ground, Color(0.24, 0.27, 0.16, 0.60), true)
+	# **And the wear is feathered, which the third pass is about.** Three flat
+	# ellipses laid over a textured rect is still a flat film over a textured
+	# rect: the widest of them was 0.46 of the paddock's *width* against a
+	# half-height well under that, so all three covered the whole ground and
+	# the texture underneath was washed straight back out. `GroundWear` is the
+	# one definition the Hold's paths, its pens and this all wear now.
+	GroundWear.patch(get_canvas_item(), _turf, Vector2.ZERO, _stage.x * 0.34,
+		Balance.HOLD_SOIL_TINT, 0.52)
 	for tuft: int in 22:
 		var along: float = fmod(float(tuft) * 0.618034, 1.0)
 		var down: float = fmod(float(tuft) * 0.381966 + 0.29, 1.0)

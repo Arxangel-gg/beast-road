@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 1
 coat_pattern = 1
 coat_pattern_strength = 0.26
 coat_pattern_scale = 6.0
@@ -23,7 +24,7 @@ young_id = "stag_young"
 id = "stag"
 display_name = "Pale Stag"
 description = "Moss on its back and no fear in it. Older than the road."
-vocal_sfx = "sfx_wildlife_deer"
+vocal_sfx = "sfx_wildlife_stag"
 rarity = 3
 temperament = 0
 movement_style = 0

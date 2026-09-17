@@ -79,6 +79,7 @@ func _ready() -> void:
 	_test_the_residents_stand_on_nothing()
 	_test_the_shelves_are_walkable()
 	_test_the_smith_gives_up_the_anvil()
+	_test_the_residents_work_at_their_posts()
 	_test_the_seats_are_the_sessions()
 	_test_the_shelf_refreshes_by_rule()
 	_test_buying_never_prints_marks()
@@ -91,7 +92,8 @@ func _ready() -> void:
 			+ "carries their own pavement, the smith "
 			+ "stands aside, seats are the session's, the shelf keeps its stock "
 			+ "across a restart, buying is always dearer than selling, and a "
-			+ "commission costs more and teaches nothing") % _checks)
+			+ "commission costs more and teaches nothing, and everybody in "
+			+ "it is working at their own post") % _checks)
 	else:
 		push_error("[hold] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -214,99 +216,118 @@ func _slab_rows(picture: Image) -> int:
 ## Every shelf in the Hold can be walked on and off.
 ##
 ## Owner, 2026-09-17: the Hold wants *"multi-elevations and platforms designed
-## for each area"*. What makes that a place rather than a picture is the step
-## rule - a Warden cannot walk up an earth bank - and **the step rule is also
-## the way to strand somebody**: a shelf whose stair is authored outside the
-## stretch of edge people actually use is a shelf you can see and never reach,
-## and every number in the layout table agrees it is fine.
+## for each area"*, laid out like Nahantu rather than as three bands. What makes
+## that a place rather than a picture is the step rule - a Warden cannot walk up
+## an earth bank - and **the step rule is also the way to strand somebody**: a
+## shelf with no flight onto it is a shelf you can see and never reach, and
+## every character in the map still reads as perfectly good ground.
 ##
 ## This project has already paid for that exact failure once, with ponds dug
-## where nobody could fish them and a clearance ring that refused every corner.
-## So this walks the yard the way a Warden does rather than reading the table:
-## a flood fill from the road out, over a grid finer than the narrowest stair,
-## and then every station has to have been reached.
+## where nobody could fish them. So this walks the yard the way a Warden does
+## rather than reading the map: a flood fill from the road out over the real
+## `step_is_legal`, and then every station, every resident and every pen has to
+## have been reached.
 func _test_the_shelves_are_walkable() -> void:
 	var yard: HoldYard = _stand_a_yard()
 
-	# Each stair crosses an edge the table actually has, and lies inside the yard.
-	for stair: Dictionary in HoldYard.STAIRS:
-		var edge: float = float(stair["at"])
-		_check(HoldYard.TERRACE_AT.has(edge),
-			"a stair crosses y=%.0f, which is not an edge between two shelves" % edge)
-		var from: float = float(stair["from"])
-		var to: float = float(stair["to"])
-		_check(to - from >= STAIR_MIN_WIDE,
-			("a stair at y=%.0f is %.0f units wide - narrower than %.0f and a "
-				+ "Warden walking along the edge can miss it entirely")
-				% [edge, to - from, STAIR_MIN_WIDE])
-		_check(from > -HoldYard.YARD.x * 0.5 and to < HoldYard.YARD.x * 0.5,
-			"a stair at y=%.0f runs off the side of the yard" % edge)
+	# The map is rectangular. A ragged one has its right-hand edge wherever the
+	# shortest line happened to stop, which is a shape nobody authored.
+	_check(HoldYard.MAP.size() == HoldYard.MAP_H,
+		"the map is %d rows against MAP_H %d"
+		% [HoldYard.MAP.size(), HoldYard.MAP_H])
+	var ragged: int = 0
+	for row: String in HoldYard.MAP:
+		if row.length() != HoldYard.MAP_W:
+			ragged += 1
+	_check(ragged == 0, "%d rows are not %d cells wide" % [ragged, HoldYard.MAP_W])
 
-	# A bank is a bank. Two points either side of an edge, well away from every
-	# stair, must refuse each other - measured rather than assumed, because a
-	# step rule that always returns true is a Hold with no shelves in it and
-	# every other check here would still pass.
-	for edge: float in HoldYard.TERRACE_AT:
-		var open: float = _away_from_every_stair(edge)
-		var above := Vector2(open, edge - 30.0)
-		var below := Vector2(open, edge + 30.0)
-		_check(yard.level_at(above) != yard.level_at(below),
-			"the ground either side of y=%.0f is the same shelf" % edge)
-		_check(not yard.step_is_legal(below, above),
-			("a Warden walked up the bank at y=%.0f at x=%.0f, where there is no "
-				+ "stair - the shelves are a picture rather than a place")
-				% [edge, open])
-		_check(not yard.step_is_legal(above, below),
-			"a Warden walked off the bank at y=%.0f into thin air" % edge)
+	# Every flight joins exactly two levels one apart, with ground at both ends.
+	# A flight whose high side is not higher is a staircase to nowhere, and it
+	# draws perfectly.
+	var flights: int = 0
+	for y: int in HoldYard.MAP_H:
+		for x: int in HoldYard.MAP_W:
+			var cell := Vector2i(x, y)
+			var ch: String = _mark(cell)
+			if not Elevation.WAY.has(ch):
+				continue
+			flights += 1
+			var way: Vector2i = Elevation.WAY[ch]
+			var low: String = _mark(cell + way)
+			var high: String = _mark(cell - way)
+			_check(Elevation.LEVEL.has(low) and Elevation.LEVEL.has(high)
+					and int(Elevation.LEVEL[high]) == int(Elevation.LEVEL[low]) + 1,
+				"the flight at %d,%d climbs from %s to %s" % [x, y, low, high])
+	_check(flights >= 6,
+		"the Hold has %d flight cells - a place with no stairs is one shelf"
+		% flights)
 
-	# And a stair is a way through.
-	for stair: Dictionary in HoldYard.STAIRS:
-		var edge: float = float(stair["at"])
-		var middle: float = (float(stair["from"])
-			+ float(stair["to"])) * 0.5
-		_check(yard.step_is_legal(Vector2(middle, edge + 30.0),
-				Vector2(middle, edge - 30.0)),
-			"the stair at y=%.0f, x=%.0f cannot be climbed" % [edge, middle])
+	# A bank is a bank. Two points either side of a cliff, nowhere near a flight,
+	# must refuse each other - measured rather than assumed, because a step rule
+	# that always says yes is a flat Hold that passes every other check here.
+	var cliffs: int = 0
+	var climbed: int = 0
+	for y: int in HoldYard.MAP_H - 1:
+		for x: int in HoldYard.MAP_W:
+			var above := Vector2i(x, y)
+			var below := Vector2i(x, y + 1)
+			if not Elevation.LEVEL.has(_mark(above)) 					or not Elevation.LEVEL.has(_mark(below)):
+				continue
+			if int(Elevation.LEVEL[_mark(above)]) 					<= int(Elevation.LEVEL[_mark(below)]):
+				continue
+			cliffs += 1
+			var top: Vector2 = HoldYard.at_cell(above)
+			var foot: Vector2 = HoldYard.at_cell(below)
+			if yard.step_is_legal(foot, top):
+				climbed += 1
+	_check(cliffs > 0, "the Hold has no cliffs in it at all")
+	_check(climbed == 0,
+		"%d of %d cliffs can be walked straight up - the shelves are a picture"
+		% [climbed, cliffs])
+
+	# And a flight is a way through, driven the way a Warden takes one.
+	var shut: int = 0
+	for y: int in HoldYard.MAP_H:
+		for x: int in HoldYard.MAP_W:
+			var cell := Vector2i(x, y)
+			if not Elevation.WAY.has(_mark(cell)):
+				continue
+			var way: Vector2i = Elevation.WAY[_mark(cell)]
+			var foot: Vector2 = HoldYard.at_cell(cell + way)
+			var top: Vector2 = HoldYard.at_cell(cell - way)
+			var middle: Vector2 = HoldYard.at_cell(cell)
+			if not (yard.step_is_legal(foot, middle)
+					and yard.step_is_legal(middle, top)):
+				shut += 1
+	_check(shut == 0, "%d flights cannot be climbed" % shut)
 
 	# The whole yard, walked from the road out.
 	var reached: Dictionary = _walk_the_yard(yard)
-	for station: Dictionary in HoldYard.STATIONS:
-		var at: Vector2 = station["at"] as Vector2
+	for id: String in yard.station_ids():
+		var at: Vector2 = yard.station_at(id)
 		_check(reached.has(_cell(at)),
 			("%s is on ground no Warden can walk to from the road - it stands on a "
-				+ "shelf with no stair onto it") % String(station["label"]))
+				+ "shelf with no flight onto it") % id)
 	for person: Dictionary in HoldYard.RESIDENTS:
-		var at: Vector2 = person["at"] as Vector2
+		var at: Vector2 = HoldYard.at_cell(person["cell"] as Vector2i)
 		_check(reached.has(_cell(at)),
 			"%s stands where nobody can reach them" % String(person["name"]))
 	for index: int in yard.pens():
-		var pen: Vector2 = HoldYard.PEN_FIRST + Vector2(
-			float(index) * (HoldYard.PEN_SIZE.x + HoldYard.PEN_GAP), 0.0)
+		var pen: Vector2 = HoldYard.at_cell(HoldYard.PEN_FIRST
+			+ Vector2i(index * HoldYard.PEN_STEP, 0))
 		_check(reached.has(_cell(pen)),
 			"pen %d is on ground no Warden can walk to" % index)
 	yard.queue_free()
 
 
-## The furthest point on an edge from any stair that crosses it.
-func _away_from_every_stair(edge: float) -> float:
-	var best: float = 0.0
-	var best_gap: float = -1.0
-	var step: float = 40.0
-	var x: float = -HoldYard.YARD.x * 0.5 + 60.0
-	while x < HoldYard.YARD.x * 0.5 - 60.0:
-		var gap: float = 1.0e9
-		for stair: Dictionary in HoldYard.STAIRS:
-			if not is_equal_approx(float(stair["at"]), edge):
-				continue
-			gap = minf(gap, minf(absf(x - float(stair["from"])),
-				absf(x - float(stair["to"]))))
-			if x >= float(stair["from"]) and x <= float(stair["to"]):
-				gap = -1.0
-		if gap > best_gap:
-			best_gap = gap
-			best = x
-		x += step
-	return best
+## What the map says is at a cell.
+func _mark(cell: Vector2i) -> String:
+	if cell.y < 0 or cell.y >= HoldYard.MAP.size():
+		return " "
+	var row: String = HoldYard.MAP[cell.y]
+	if cell.x < 0 or cell.x >= row.length():
+		return " "
+	return row[cell.x]
 
 
 ## Which cell of the walking grid a point falls in.
@@ -320,7 +341,7 @@ func _cell(at: Vector2) -> Vector2i:
 func _walk_the_yard(yard: HoldYard) -> Dictionary:
 	var half: Vector2 = HoldYard.YARD * 0.5
 	var seen: Dictionary = {}
-	var queue: Array[Vector2i] = [_cell(HoldYard.ENTRY)]
+	var queue: Array[Vector2i] = [_cell(HoldYard.at_cell(HoldYard.ENTRY))]
 	seen[queue[0]] = true
 	var ways: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0),
 		Vector2i(0, 1), Vector2i(0, -1)]
@@ -432,6 +453,77 @@ func _test_the_smith_gives_up_the_anvil() -> void:
 	yard.advance(1.0, 10)
 	_check(not yard.stood_aside("smith"),
 		"and he goes back to it once the Warden leaves")
+	yard.queue_free()
+
+
+## **Everybody in the Hold is doing their job.**
+##
+## The owner asked for the residents to be *"set up perfectly and polished for
+## their AI behaviors"*, and a walk and a breath are not that: four people
+## standing about a fortified shelter while nothing is made is a lobby with
+## scenery in it. Each of them has a work loop now - a hammer, a crate, a feed
+## pail, a bridle - and it plays while they are at their own post and nobody
+## is asking for their tools.
+##
+## **Three ways this can be a lie, and all three are checked here.** The
+## frames can be missing from disk, which `_test_the_residents_stand_on_nothing`
+## would not see because it walks the idle and the walk. The state can be
+## decided and drawn by nothing, which is the `DisciplineEffects` lie and is
+## why the texture is read off the sprite rather than the flag off the record.
+## And the loop can be *one frame long* - a cycle that never advances is a
+## still picture wearing an animation's name - so the gate counts the distinct
+## frames a second of work actually draws.
+func _test_the_residents_work_at_their_posts() -> void:
+	for person: Dictionary in HoldYard.RESIDENTS:
+		var art: String = String(person["art"])
+		var who: String = String(person["id"])
+		var frames: Array[Texture2D] = GameData.load_state_frames(art, "work")
+		_check(frames.size() >= 3,
+			"%s has a work loop on disk (%d frames)" % [who, frames.size()])
+	var yard: HoldYard = _stand_a_yard()
+	# Well away from every station, so nobody is standing aside and nobody is
+	# being looked up at: this is the Hold as it stands when the Warden is not
+	# in it, which is most of the time it is drawn.
+	yard.stand_warden(Vector2(-1400.0, 900.0))
+	yard.advance(0.2, 20)
+	for person: Dictionary in HoldYard.RESIDENTS:
+		var who: String = String(person["id"])
+		_check(yard.doing(who) == &"work",
+			"%s works at their own post with the Warden away (%s)"
+			% [who, yard.doing(who)])
+		var wanted: Dictionary = {}
+		for texture: Texture2D in GameData.load_state_frames(
+				String(person["art"]), "work"):
+			wanted[texture.resource_path] = true
+		var seen: Dictionary = {}
+		var stranger: String = ""
+		for step: int in range(30):
+			yard.advance(1.0 / 30.0, 1)
+			var texture: Texture2D = yard.resident_frame(who)
+			if texture == null:
+				continue
+			seen[texture.resource_path] = true
+			if not wanted.has(texture.resource_path):
+				stranger = texture.resource_path
+		# **Not merely that the sprite changed.** The first cut counted
+		# distinct frames, and a build where the work state was decided and
+		# drawn by nothing passed it perfectly: the resident fell through to
+		# the idle loop, which also turns over four frames a second. What the
+		# state has to produce is *its own* art.
+		_check(stranger.is_empty(),
+			"and %s draws its work frames while working, not %s"
+			% [who, stranger.get_file()])
+		_check(seen.size() >= 3,
+			"and the loop actually turns over - %s drew %d frames in a second"
+			% [who, seen.size()])
+	# And the work stops when somebody wants the tools, which is the other half
+	# of the behaviour the anvil test holds: a smith who kept hammering while
+	# the Warden stood at his anvil would be standing aside in the record and
+	# swinging on screen.
+	yard.stand_warden(yard.station_at("anvil"))
+	yard.advance(0.2, 20)
+	_check(yard.doing("smith") != &"work",
+		"and Orden stops hammering when the Warden comes to the anvil")
 	yard.queue_free()
 
 

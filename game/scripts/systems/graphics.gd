@@ -554,6 +554,16 @@ static func pixel_filter_ui() -> bool:
 	return pixel_filter() and bool(_chosen.get(KEY_PIXEL_FILTER_UI, false))
 
 
+## Whether the filter has anything to do at all.
+##
+## A block under one is the identity - every screen pixel is its own block - so
+## running the copy, the shader and the mask for it is paying the whole cost of
+## the feature to change nothing. Asked here rather than at each of the three
+## places that used to compare the number themselves.
+static func pixel_filter_runs() -> bool:
+	return pixel_filter() and pixel_filter_block() >= 1.0
+
+
 ## How big one block is, at `Balance.UI_PIXEL_FILTER_REFERENCE_HEIGHT`.
 ##
 ## Clamped on the way out rather than trusted, because this is a saved number

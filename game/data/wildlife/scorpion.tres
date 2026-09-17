@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+body = 5
 coat_hue_spread = 0.028
 coat_light_spread = 0.12
 coat_saturation_spread = 0.16
