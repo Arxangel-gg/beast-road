@@ -1977,6 +1977,24 @@ func has_expedition() -> bool:
 	return Expedition.is_readable(expedition)
 
 
+## **Give the banked road up.**
+##
+## Called when a Warden takes a fresh road or starts at an act rather than
+## resuming (owner ruling, 2026-09-17). Deliberately *not* called when a run
+## ends badly: a wipe leaves the front where it was, which is the whole of the
+## anti-frustration rule, and a door that quietly cleared it on a loss would
+## make pushing deeper horrifying rather than exciting.
+##
+## Saves immediately. A front cleared in memory and still on disk comes back on
+## the next launch, and a player who took a fresh road would be offered the
+## campaign they had just abandoned.
+func clear_expedition() -> void:
+	if expedition.is_empty():
+		return
+	expedition = {}
+	save_game()
+
+
 ## **Mend every damaged fortification on the banked front.**
 ##
 ## Returns why it could not, or "" on success. Validate, then spend, then mend -

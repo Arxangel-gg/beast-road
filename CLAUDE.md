@@ -4984,6 +4984,69 @@ Amended deliberately, as the ambience and battle-track invariants were: what it
 holds is that a cue *resolves to a real recording*, following the group to its
 takes.
 
+**Three owner rulings of 2026-09-17, recorded before anything is built on
+them.** Two of them re-cut bounds this file states outright, which is exactly
+what the table at the top of §1 exists to make visible the second time.
+
+**1. The Hold becomes a place, and it is populated by simulation with real
+players taking those places.** This file has said three times that there is
+nothing more a hub could honestly do without accounts - and that objection is
+about *authority*, not about presence, which is what the ruling exploits.
+
+The Hold stands up with simulated Wardens in it: pens filled, figures about
+the square. A player who arrives - invited, or matched the way the co-op
+lobby search already matches - **takes the place of one of them**, and that
+seat's pen, companions and everything else become genuinely theirs. Four
+seats, so three guests.
+
+- **Private by default for every new account**, toggled from inside the Hold
+  by its own interactable. Only a private hold's host may invite.
+- **A public hold is matchable**: a player searching joins any hold that is
+  not full, through the same path the co-op search uses.
+- **A seat freed by somebody leaving makes the hold matchable again.**
+- **Being in one hold is not being in a party.** A run still needs a party,
+  which is what stops somebody being dragged onto a road they did not choose.
+- **The host may hand the hold to another player**, and when a host leaves
+  with some of the party the hold migrates to somebody staying - preferring a
+  player whose own hold was public, because they have already said they do not
+  mind strangers.
+
+**The bound is the one co-op already lives under: the host is the authority
+and nothing a guest says is trusted.** A seat is presence, not an account. No
+stranger's save, stash, pen contents or gear may ever be written by anybody
+but its owner, and a simulated Warden holds no state worth forging. The
+existing rule stands unchanged - **the Ledger still publishes prices and never
+pieces**, because that one *is* about authority.
+
+**2. Ascension is a third capped power scale, tuned against Nightmare.** This
+file records ascension as "prestige and nothing else ... no level, no
+attribute, no card and no relic - levelling and gear stay the only two
+scales". The owner has re-cut that: ascension must "empower significantly" so
+that Nightmare is survivable after grinding its gear.
+
+**What does not change is the word *capped*.** This project has refused a
+third scale perhaps a dozen times - spirit traits, discipline depth,
+synergies, omens, fish, professions, materials, set bonuses - and every one of
+those refusals was about a scale *nobody was tuning*. The objection was never
+"three is too many"; it was "an untuned one is unmeasurable". So ascension
+gets its own ladder with its own ceiling, and **`curve_report` models three
+scales instead of two**, with Nightmare and Hell re-measured assuming the
+player holds the ascension a tier expects. An ascension rank that is not in
+that model is the thing that stays forbidden.
+
+**3. The Gatekeeper is an opt-in ladder, and skipping it costs you at the
+summit.** Trials open on Acts 3, 5 and 7, each unlocked by clearing the one
+before, and the Gatekeeper himself is fought on Act 9. All four are optional
+and no act requires them.
+
+**What makes them worth taking is the owner's own addition: a difficulty whose
+Gatekeeper has not been beaten fights him *alongside* the Act 10 boss.** So
+the ladder is not a side quest with a reward bolted on - it is the choice
+between paying four times on the way up or once, at the worst possible moment,
+next to Kharok. Beating the Gatekeeper on a difficulty removes him from that
+difficulty's summit. Nightmare and Hell each run their own ladder and each
+extend the ascension tree.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

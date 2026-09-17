@@ -48,8 +48,31 @@ const ART: Array[String] = [
 ## share of its own height; and how much of the time it is beating at all.
 ## A soarer's tenth means it holds its wings nine tenths of the way across.
 const BEATS: Array[float] = [3.4, 4.6, 2.1, 1.5, 2.4]
-const BOB: Array[float] = [0.18, 0.55, 0.06, 0.04, 0.12]
+const BOB: Array[float] = [0.22, 0.60, 0.10, 0.05, 0.16]
 const BEATING: Array[float] = [0.85, 1.0, 0.22, 0.12, 0.6]
+## **The undulation is not the wingbeat, and tying them together is what made
+## the birds read as vibrating.**
+##
+## `BOB` was multiplied by `sin(beat)`, so a toucan rose and fell 0.55 of its
+## own height **4.6 times a second**. Nothing flies like that. A bounding bird
+## climbs over a *burst* of beats and falls through the glide that follows, so
+## the body's cycle is slower than the wings by a large factor - about a
+## second, against a fifth of one.
+##
+## So the rise and fall runs on its own clock at `UNDULATE` beats a second, and
+## the wings contribute only `BEAT_LIFT` - the small push of the downstroke,
+## which is real and is a few percent of a body rather than half of one. The
+## amplitudes in `BOB` went *up* slightly and the motion is far calmer, because
+## a slow wave of 0.6 is a flight path and a fast one of 0.55 is a vibration.
+const UNDULATE: Array[float] = [0.9, 1.1, 0.35, 0.22, 0.7]
+const BEAT_LIFT: float = 0.035
+## A soaring bird is not a still bird. Hawks and eagles hold their wings out
+## most of the time (`BEATING` 0.22 and 0.12), which with one soar frame left
+## them a texture that did not move at all - read as "some of the birds do not
+## even have enough animation frames". They bank instead: a slow roll about
+## their own heading, widest for the species that soar most.
+const BANK: Array[float] = [0.04, 0.03, 0.13, 0.17, 0.08]
+const BANK_RATE: Array[float] = [0.5, 0.6, 0.27, 0.19, 0.4]
 ## How often each species turns up, relative to the others, and how many come
 ## at once. Ravens travel together; an eagle does not.
 ## **And the phoenix, at one crossing in eighty.** Owner, 2026-09-15: "all
@@ -167,6 +190,10 @@ func _launch() -> void:
 			"speed": speed * _rng.randf_range(0.94, 1.06),
 			"depth": depth,
 			"beat": _rng.randf() * TAU,
+			# Their own phases, so a flock of four ravens does not rise and
+			# fall as one body.
+			"swell": _rng.randf() * TAU,
+			"bank": _rng.randf() * TAU,
 			# A soarer is not beating most of the time; this is the clock that
 			# decides when it decides to.
 			"flurry": 0.0,
@@ -231,6 +258,8 @@ func _pick() -> int:
 func _fly(bird: Dictionary, delta: float) -> void:
 	var species: int = int(bird["species"])
 	bird["beat"] = float(bird["beat"]) + delta * BEATS[species] * TAU
+	bird["swell"] = float(bird["swell"]) + delta * UNDULATE[species] * TAU
+	bird["bank"] = float(bird["bank"]) + delta * BANK_RATE[species] * TAU
 	bird["until"] = float(bird["until"]) - delta
 	if float(bird["until"]) <= 0.0:
 		bird["until"] = _rng.randf_range(1.5, 4.0)
@@ -304,11 +333,16 @@ func _draw() -> void:
 			continue
 		var wide: float = _size_of(float(bird["depth"]))
 		var tall: float = wide * float(texture.get_height()) / maxf(float(texture.get_width()), 1.0)
-		# The undulation. A toucan's flight path visibly rises and falls with
-		# the beat and a soaring eagle's does not, and at this size that bob is
-		# most of what tells the two apart.
-		var bob: float = sin(phase) * tall * BOB[species] * (1.0 if beating else 0.25)
-		var at: Vector2 = Vector2(bird["at"]) + Vector2(0.0, bob)
+		# The undulation, on its own clock rather than the wings'. A toucan's
+		# flight path visibly rises and falls and a soaring eagle's does not,
+		# and at this size that is most of what tells the two apart - but the
+		# body's wave is about a second long where a wingbeat is a fifth of
+		# one, and driving it from `phase` made every flapper vibrate.
+		var swell: float = sin(float(bird["swell"])) * tall * BOB[species]
+		# The downstroke's own small push, which is the part that *is* the
+		# wingbeat - a few percent of a body, not half of one.
+		var kick: float = sin(phase) * tall * BEAT_LIFT * (1.0 if beating else 0.0)
+		var at: Vector2 = Vector2(bird["at"]) + Vector2(0.0, swell + kick)
 		# Further birds are dimmer as well as smaller: haze, and the only thing
 		# that makes a flat sky read as deep.
 		var haze: float = lerpf(1.0, Balance.MENU_BIRD_FAR_FADE, float(bird["depth"]))
@@ -319,7 +353,11 @@ func _draw() -> void:
 		# *should* be flipped - a bird in profile is symmetrical about its own
 		# axis, which is exactly the condition `art_facing` exists to record.
 		var facing: float = 1.0 if Vector2(bird["heading"]).x >= 0.0 else -1.0
-		draw_set_transform(at, Vector2(bird["heading"]).angle() * facing,
+		# A slow roll about its own heading. A soarer holds one pose for most
+		# of its crossing, so without this an eagle is a texture that does not
+		# move; with it, it is a bird riding the air.
+		var bank: float = sin(float(bird["bank"])) * BANK[species]
+		draw_set_transform(at, Vector2(bird["heading"]).angle() * facing + bank,
 			Vector2(facing, 1.0))
 		draw_texture_rect(texture, Rect2(-wide * 0.5, -tall * 0.5, wide, tall),
 			false, shade)

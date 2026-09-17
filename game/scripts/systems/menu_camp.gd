@@ -552,10 +552,42 @@ static func surface_of(texture: Texture2D) -> float:
 
 
 ## One piece, standing on `ground`, mirrored to face the middle.
+## How much empty canvas a sprite carries below its lowest opaque pixel, as
+## a share of its height. Cached per texture: `_draw` runs every frame and
+## reading an image there would be a file's worth of work per prop per frame.
+static var _base_gap: Dictionary = {}
+
+
+static func _gap_below(texture: Texture2D) -> float:
+	var key: int = int(texture.get_rid().get_id())
+	if not _base_gap.has(key):
+		var image: Image = texture.get_image()
+		if image == null:
+			return 0.0
+		var used: Rect2i = image.get_used_rect()
+		var height: float = maxf(float(image.get_height()), 1.0)
+		_base_gap[key] = (height - float(used.position.y + used.size.y)) / height
+	return float(_base_gap[key])
+
+
+## **A prop stands on its own lowest pixel, not on the bottom of its file.**
+##
+## The owner reported the cliff's props floating. `draw_texture_rect` puts
+## the *canvas* bottom on the ground line, and eight of the eleven props
+## carry four to twelve pixels of empty canvas under their art - the pillar
+## twelve of its seventy-two, a sixth of its own height - so each one hung
+## that far above the rock it was standing on.
+##
+## Measured off the texture rather than authored per prop, so a new prop is
+## right without anybody knowing this exists, and the three that were
+## already flush are unmoved. The Warden, the horse and the lantern all sit
+## at zero, which is why the report was about the props.
 func _blit(texture: Texture2D, ground: Vector2, wide: float, tall: float,
 		facing: float, tint: Color) -> void:
+	var sink: float = tall * _gap_below(texture)
 	draw_set_transform(ground, 0.0, Vector2(facing, 1.0))
-	draw_texture_rect(texture, Rect2(-wide * 0.5, -tall, wide, tall), false, tint)
+	draw_texture_rect(texture, Rect2(-wide * 0.5, -tall + sink, wide, tall),
+		false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

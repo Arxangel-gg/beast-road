@@ -2889,13 +2889,55 @@ func _build_rank_mark() -> void:
 			else Balance.RANK_TINT_STRENGTH * 0.6)
 
 
+## How far the painted body sits from the middle of its own canvas, in node
+## units, signed for the way the sprite is currently facing.
+##
+## Cached per breed: it reads the texture's alpha, which is far too expensive
+## to do per spawn, and there are fifteen breeds with an aura in the whole
+## game. `get_used_rect` is the opaque bounds; half the canvas is where the
+## sprite's origin is.
+static var _body_centre: Dictionary = {}
+
+
+func _body_offset_x() -> float:
+	if sprite == null or sprite.texture == null or data == null:
+		return 0.0
+	if not _body_centre.has(data.id):
+		var image: Image = sprite.texture.get_image()
+		if image == null:
+			return 0.0
+		var used: Rect2i = image.get_used_rect()
+		_body_centre[data.id] = (float(used.position.x) + float(used.size.x) * 0.5
+			- float(image.get_width()) * 0.5)
+	var offset: float = float(_body_centre[data.id]) * sprite.scale.x
+	return -offset if sprite.flip_h else offset
+
+
 func _build_aura_readout() -> void:
 	if data.aura_radius <= 0.0:
 		return
 	var ring := Line2D.new()
-	# **Centred on the body, not the feet.** Depth sorting moved the node down to
-	# the ground contact point; a ring drawn at local zero since then has sat a
-	# sprite-height below the thing it describes.
+	ring.name = "AuraRing"
+	# **Centred on the body, not the feet, and not on the canvas either.**
+	#
+	# Depth sorting moved the node down to the ground contact point, so a ring
+	# drawn at local zero sat a sprite-height below the thing it described -
+	# that was the vertical half, fixed when the readout was written.
+	#
+	# The horizontal half went unnoticed until the owner reported the ember
+	# shaman "not properly anchored in the middle of their circle range". A
+	# sprite is drawn centred on its *canvas*, and the painted body is not
+	# always in the middle of it: measured across the fifteen breeds that carry
+	# an aura, most sit within a few pixels but the ember shaman's body spans
+	# x 25..132 of a 192-wide canvas, so its ring stood seventeen pixels to the
+	# right of the creature it belonged to.
+	#
+	# Derived from the art rather than authored per breed, so the fourteen
+	# smaller offsets are corrected too and a new breed needs nobody to
+	# remember this.
+	# The points are built around the node; the horizontal offset rides on
+	# `position` so the one place that follows the flip is the one place that
+	# sets it. Both, and a breed turning round would move twice.
 	var centre := Vector2(0.0, -_depth_lift)
 	# The radius is the reach, so the circle and the rule are the same number.
 	var shown: float = attack_reach() if data.role == EnemyData.Role.HOWLER 		else data.aura_radius
@@ -2906,6 +2948,7 @@ func _build_aura_readout() -> void:
 	ring.width = 2.0
 	ring.default_color = Color(0.95, 0.42, 0.22, 0.22)
 	ring.z_index = -1
+	ring.position.x = _body_offset_x()
 	add_child(ring)
 
 
@@ -3010,6 +3053,12 @@ func _update_sprite(delta: float = 0.0) -> void:
 			sprite.flip_h = (_motion.x < 0.0) == faces_right
 		elif _target != null and is_instance_valid(_target):
 			sprite.flip_h = (_target.global_position.x < global_position.x) == faces_right
+	# The ring follows the flip: a mirrored sprite puts its body on the other
+	# side of the canvas, so a fixed offset would be wrong by twice itself the
+	# moment the breed turned round.
+	var ring := get_node_or_null("AuraRing") as Line2D
+	if ring != null:
+		ring.position.x = _body_offset_x()
 
 	_advance_walk_frames(delta)
 

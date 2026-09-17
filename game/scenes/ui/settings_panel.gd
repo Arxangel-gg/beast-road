@@ -512,6 +512,9 @@ func _build_video(column: VBoxContainer) -> void:
 		"The region's tint and vignette over the whole picture."))
 	column.add_child(_pref_toggle_row("Minimap", Graphics.KEY_MINIMAP, Graphics.minimap_shown(),
 		"The field at a glance. M toggles it in play."))
+	column.add_child(_pref_toggle_row("Trampled foliage", Graphics.KEY_FOLIAGE_TRAMPLE,
+		Graphics.foliage_trample(),
+		"Plants are laid over by whatever walks through them, and spring back."))
 	column.add_child(_pref_toggle_row("Wildlife coats", Graphics.KEY_PHENOTYPE,
 		Graphics.phenotypes(),
 		"Every animal is a slightly different animal of its kind."))

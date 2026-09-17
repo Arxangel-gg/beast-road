@@ -81,6 +81,7 @@ var _fires: Array[Sprite2D] = []
 var _fireflies: MenuFireflies = null
 var _elements: MenuElements = null
 var _birds: MenuBirds = null
+var _dragon: MenuDragon = null
 var _camp: MenuCamp = null
 var _camp_fire: CampFire = null
 var _logo_glow: Sprite2D = null
@@ -106,6 +107,7 @@ func _ready() -> void:
 	_build_mist()
 	_build_gate_lights()
 	_build_fires()
+	_build_dragon()
 	_build_beast()
 	_build_fireflies()
 	_build_elements()
@@ -888,6 +890,19 @@ func _build_camp() -> void:
 
 ## The birds. Behind the beast in tree order, so one crossing the arch passes
 ## behind the thing whose size the arch exists to state.
+## **Behind the beast, which is the whole of the scale.**
+##
+## Built before `_build_beast` so tree order puts it further back, for the
+## same reason and by the same means the birds are built after it: the
+## backdrop is one opaque texture, so anything meant to read as *distant*
+## has to be in front of the painting and behind the subject. A `z_index`
+## would sort across the whole scene, which is the mistake the birds made
+## once and flew where nobody could see them.
+func _build_dragon() -> void:
+	_dragon = MenuDragon.new()
+	add_child(_dragon)
+
+
 func _build_birds() -> void:
 	_birds = MenuBirds.new()
 	_birds.name = "Birds"
@@ -1002,6 +1017,14 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 			var tall: float = span.y * Balance.MENU_CAMP_FIGURE * Balance.MENU_CAMP_FIRE_SIZE
 			_camp_fire.scale = Vector2.ONE * (tall
 				/ maxf(float(_camp_fire.texture.get_height()), 1.0))
+	if _dragon != null:
+		_dragon.position = Vector2.ZERO
+		_dragon.resize(span)
+		# Shaded against the band of sky it crosses, like the birds - a shape
+		# this large graded off the wrong part of the sky is the most visible
+		# version of a mistake this menu has already made three times.
+		_dragon.set_tint(_backdrop_near(Vector2(0.5,
+			(Balance.MENU_DRAGON_BAND.x + Balance.MENU_DRAGON_BAND.y) * 0.5)))
 	if _birds != null:
 		_birds.position = Vector2.ZERO
 		_birds.resize(span)

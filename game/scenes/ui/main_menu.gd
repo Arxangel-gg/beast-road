@@ -722,6 +722,11 @@ func _build_act_start_button() -> void:
 	_act_start = ActStartScreenScript.new()
 	add_child(_act_start)
 	button.pressed.connect(func() -> void:
+		# The same cost and the same question: an act start is a new road, so
+		# it gives up the banked one exactly as a fresh run does.
+		if not _arm(button, "Give up the front? · press again"):
+			return
+		_disarm()
 		_act_start.call("open"))
 	_act_start.visibility_changed.connect(func() -> void:
 		if not _act_start.visible:
@@ -824,9 +829,10 @@ func _build_resume_button() -> void:
 			else:
 				mend.text = refused)
 	# The fresh run says what it costs, because it is the one press here that
-	# throws away a campaign.
-	new_run_button.tooltip_text = ("A new expedition from Act I. Your banked "
-		+ "front stays where it is until you extract from a new one.")
+	# throws away a campaign - and since 2026-09-17 it really does throw it
+	# away rather than leaving it banked, so it asks first.
+	new_run_button.tooltip_text = ("A new expedition from Act I. This gives up "
+		+ "the front you have banked.")
 	button.grab_focus()
 
 
@@ -847,7 +853,48 @@ func _mend_bill_text() -> String:
 	return "Timber and ore to put the fortress right: " + ", ".join(parts)
 
 
+## **The press that gives up a campaign asks once.**
+##
+## A banked front is hours of road, and taking a fresh one now clears it
+## (owner ruling, 2026-09-17), so the button arms rather than fires: the first
+## press says what it is about to cost and the second does it. A two-press
+## button rather than a dialog because the menu has no confirmation component
+## and one press away from the answer is the whole requirement - a modal would
+## be a new screen to lay out, theme and test on a phone for one question.
+##
+## Disarmed by leaving the button, so a press, a change of mind and a press on
+## something else later cannot add up to a lost campaign.
+var _armed: Button = null
+
+
+func _arm(button: Button, cost: String) -> bool:
+	if not MetaState.has_expedition():
+		return true
+	if _armed == button:
+		return true
+	_disarm()
+	_armed = button
+	button.set_meta("label", button.text)
+	button.text = cost
+	if not button.mouse_exited.is_connected(_disarm):
+		button.mouse_exited.connect(_disarm)
+		button.focus_exited.connect(_disarm)
+	return false
+
+
+func _disarm() -> void:
+	if _armed == null or not is_instance_valid(_armed):
+		_armed = null
+		return
+	if _armed.has_meta("label"):
+		_armed.text = String(_armed.get_meta("label"))
+	_armed = null
+
+
 func _start_run() -> void:
+	if not _arm(new_run_button, "Give up the front? · press again"):
+		return
+	_disarm()
 	var requested: int = 0
 	var entered: String = seed_input.text.strip_edges()
 	if not entered.is_empty():

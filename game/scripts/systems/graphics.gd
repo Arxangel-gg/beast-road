@@ -66,6 +66,11 @@ const KEY_SMOOTHING: String = "display_smoothing"
 const KEY_FOG: String = "fog_of_war"
 const KEY_GRADE: String = "color_grade"
 const KEY_MINIMAP: String = "minimap"
+## Plants laid over by whatever walks through them (2026-09-17). A look and
+## nothing else - `TrampleField` is read by the foliage shader and by no
+## number in the game - so a weak machine can have the whole thing back for
+## a small image and a texture sample, and the run is identical without it.
+const KEY_FOLIAGE_TRAMPLE: String = "foliage_trample"
 
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
@@ -487,6 +492,11 @@ static func grade_enabled() -> bool:
 ## wants the whole road visible turns it off in the video settings.
 static func fog_of_war() -> bool:
 	return bool(_chosen.get(KEY_FOG, true))
+
+
+## Whether foliage is laid over by what walks through it. On by default.
+static func foliage_trample() -> bool:
+	return bool(_chosen.get(KEY_FOLIAGE_TRAMPLE, true))
 
 
 ## Whether elites, rare animals and shinies wear their rank in light.

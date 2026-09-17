@@ -62,6 +62,7 @@ var _day_tint_node: CanvasModulate = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
+var _trample: TrampleField = null
 var _death_markers: DeathMarkers = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
@@ -2195,6 +2196,14 @@ func refresh_terrain() -> void:
 	# And the camps, which close the forks again with the act.
 	if _camps != null:
 		_camps.scatter()
+	# **And the trample field goes back to the materials.** `Foliage` makes a
+	# canopy material per region and a wind material per painted kind, so an
+	# act change builds materials this field has never been handed to - and
+	# plants in the new region would stand up straight through a running hero
+	# while the old region's reacted. Exactly the omission the note above
+	# warns about, in a system three days younger than the note.
+	if _trample != null:
+		_trample.publish_to(Foliage.every_material())
 	# **And the trees and seams, which are regional in both directions** - an
 	# Ironbark is a Rustwood tree and a Star-Iron fall belongs to the Glass
 	# Fields. Added 2026-09-13 with the crafts, and it is the same fault the
@@ -2738,6 +2747,25 @@ func _build_fog() -> void:
 	_fog.wildlife = _wildlife
 	add_child(_fog)
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
+	_build_trample()
+
+
+## **Plants give way to whatever walks through them.**
+##
+## Built beside the fog because it is the same idea - one small image over
+## the field, stamped on the CPU and read in a shader - and held to the same
+## bound: it is drawn, never read, so turning it off changes no number.
+##
+## Published to `Foliage.every_material()` rather than to the two obvious
+## ones, because a canopy and a per-kind material are foliage too and a
+## parameter handed to half of them is ferns reacting while bushes do not.
+func _build_trample() -> void:
+	if not Graphics.foliage_trample():
+		return
+	_trample = TrampleField.new()
+	_trample.half_extent = BattleGrid.HALF_EXTENT
+	add_child(_trample)
+	_trample.publish_to(Foliage.every_material())
 	_build_death_markers()
 	_build_stragglers()
 	_build_withdrawal()

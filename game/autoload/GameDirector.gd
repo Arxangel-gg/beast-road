@@ -302,8 +302,25 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# that happens to begin further along - so resuming wins if both are asked
 	# for, because a banked front is a thing the player earned and an act start
 	# is always available.
-	elif from_act > 0:
-		ActStart.begin(from_act, doctrine_id)
+	else:
+		if from_act > 0:
+			ActStart.begin(from_act, doctrine_id)
+		# **A road not resumed is a road given up.** Owner ruling, 2026-09-17:
+		# taking a fresh road, *or* starting at an act, clears the banked front
+		# there and then rather than leaving it until the next extraction.
+		#
+		# Both doors, which is why this sits in the `else` rather than beside
+		# one of them: an act start is as much a decision to stop walking the
+		# banked road as a fresh run is.
+		#
+		# It narrows the anti-frustration rule rather than reversing it. That
+		# rule is "a wipe does not clear the front" - everything before the last
+		# extraction is banked, everything since is at risk - and it is
+		# untouched: a run that *ends badly* still leaves the front standing.
+		# What is no longer true is that a front survives being deliberately
+		# walked away from, and the press that does it asks first, because five
+		# hours of road is not a thing to lose to a misclick.
+		MetaState.clear_expedition()
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed)
 	# The party is playing, so it is not looking for anybody. The row goes now

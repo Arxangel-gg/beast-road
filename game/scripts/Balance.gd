@@ -7869,6 +7869,32 @@ const MENU_BIRD_CEILING: int = 12
 ## How much of its colour a far bird keeps. Haze, and the only thing that makes
 ## a flat sky read as deep.
 const MENU_BIRD_FAR_FADE: float = 0.45
+
+
+## **The dragon that crosses the menu sky.**
+##
+## Rarer than the phoenix the birds already hide - that is one crossing in
+## eighty, this is minutes of sitting on the menu - because the brief was a
+## *rare chance*, and a thing seen every visit is scenery.
+##
+## Wide as a fifth of the screen's height against the birds' 3.4%, and it
+## takes eleven seconds to cross where a bird takes two or three. The scale
+## is most of the effect and the *slowness* is the rest: something that large
+## moving at a swallow's apparent speed reads as a nearby swallow.
+const MENU_DRAGON_SIZE: float = 0.20
+const MENU_DRAGON_SECONDS: float = 11.0
+## Seconds between crossings, rolled per crossing.
+const MENU_DRAGON_GAP: Vector2 = Vector2(150.0, 420.0)
+## Where in the frame it flies, as a share of height from the top. Kept well
+## above the horizon: the beast fills the lower half, and a dragon crossing
+## behind its legs reads as standing on the ground rather than flying.
+const MENU_DRAGON_BAND: Vector2 = Vector2(0.14, 0.33)
+## How far it sinks over the crossing, as a share of height. A long glide
+## rather than a slide, and all the animation a silhouette this size needs.
+const MENU_DRAGON_SAG: float = 0.035
+## How dark against the sky. A silhouette, never a hole cut in the picture -
+## the mistake the menu's birds, its Warden and its vines each made once.
+const MENU_DRAGON_ALPHA: float = 0.52
 ## The sky luminance below which a bird stops being a silhouette and starts
 ## catching the light instead. Below this a near-black shape on a near-black
 ## sky is simply not there, which is what the first cut of the birds was: the
@@ -9150,6 +9176,31 @@ const FOG_FEATHER: float = 110.0
 const FOG_SEEN_THRESHOLD: int = 90
 ## The veil's darkness over ground never seen, and over ground seen and left.
 const FOG_UNEXPLORED_ALPHA: float = 0.93
+
+
+## **Plants laid over by whatever walks through them.**
+##
+## How far a fully trampled tip is pushed, in world units. Read by the
+## foliage shader through `TrampleField` and by nothing else: it moves no
+## body, blocks no shot and hides nothing, so `Graphics.KEY_FOLIAGE_TRAMPLE`
+## switches it off with the run byte for byte identical.
+##
+## Weighted by the square of height exactly as the wind is, so the root stays
+## where it grew - a plant that slid sideways would read as scenery coming
+## loose rather than as grass being walked through.
+const FOLIAGE_TRAMPLE_REACH: float = 26.0
+## How long a laid plant takes to stand back up, as an exponential time
+## constant in seconds. Long enough to leave a visible wake behind a running
+## hero, short enough that a wave's worth of bodies does not flatten a region
+## for the rest of the act.
+const FOLIAGE_TRAMPLE_SPRING: float = 0.85
+## How wide one body lays the ground, in world units. A little over a body
+## radius: the point is the plants beside your feet, not a crop circle.
+const FOLIAGE_TRAMPLE_RADIUS: float = 54.0
+## How far something must move between stamps to lay anything down. Without
+## it a body standing still in long grass keeps pressing the same texel and
+## the plants never come back up under it.
+const FOLIAGE_TRAMPLE_MIN_STEP: float = 1.5
 const FOG_EXPLORED_ALPHA: float = 0.5
 ## How far each thing of the party's can see.
 const FOG_VISION_HERO: float = 640.0

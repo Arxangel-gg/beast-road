@@ -184,17 +184,40 @@ def known_ids() -> list:
 
 
 def id_from_prompt_name(stem: str, ids: list) -> str:
-    """The longest known id this generated filename begins with."""
+    """The known id this generated filename names, or "" if it cannot say.
+
+    Three shapes, because a generator names a file after the *prompt*:
+
+    1. The id exactly.
+    2. The id followed by prompt text. Any non-id character may follow - one
+       batch arrived with the extension typed into the prompt box as well
+       ("sfx_wildlife_frog.og_#1-..."), and matching only on "_" lost that
+       whole sound in silence.
+    3. **A truncation of the id.** ElevenLabs cuts the name at twenty
+       characters, so `sfx_enemy_call_wraith` arrives as
+       `sfx_enemy_call_wrait` - the id with its tail missing. Nothing starts
+       with that, so 474 files of an 1127-file batch, 42% of it, were dropped
+       with one "? cannot place" line each and no other sign. Every id in this
+       project longer than twenty characters was unreachable by this function.
+
+    A truncation is only accepted when it fits **exactly one** known id.
+    `sfx_wildlife_blight` is a truncation of the warning, the frenzy and the
+    collapse alike, and guessing between them would put the sound of an animal
+    sickening on the moment it dies. Those come back "" and are reported, which
+    is what sent somebody to look at the timestamps.
+    """
     cleaned = stem.rstrip("_- ")
     for known in ids:
         if cleaned == known:
             return known
-        # Any non-id character may follow: a generator writes the prompt after
-        # the id, and one batch arrived with the extension typed into the prompt
-        # box as well ("sfx_wildlife_frog.og_#1-..."). Matching only on "_" lost
-        # that whole sound in silence.
         if cleaned.startswith(known) and not cleaned[len(known):len(known) + 1].isalnum():
             return known
+    truncated = [known for known in ids if known.startswith(cleaned)]
+    if len(truncated) == 1:
+        return truncated[0]
+    if len(truncated) > 1:
+        print("  ? %s is a truncation of %d ids (%s) - rename the file to the "
+              "one it is" % (cleaned, len(truncated), ", ".join(sorted(truncated)[:4])))
     return ""
 
 
@@ -288,6 +311,24 @@ def install_generated_batch(ffmpeg, folder, manifest):
             seen_audio[digest] = probe_name
             kept += 1
             installed.append((probe_name, kind, os.path.getsize(dst)))
+        # **A sound that became a group must lose its single file.**
+        #
+        # A batch that installs `sfx_air_shot_1..3` leaves the earlier
+        # `sfx_air_shot.ogg` sitting beside them, registered by nothing and
+        # shipping in the build - `register_sfx.py` rebuilds SOUNDS from the
+        # folder and writes the group, so the single row goes and the file
+        # does not. Three of them survived the 2026-09-17 batch that way and
+        # `audio_verify` named all three: "on disk and in no table, so nothing
+        # can ever play it". Worse than dead weight if the row ever came back,
+        # because `play` finds a stream before it looks for a group.
+        if kept > 1:
+            orphan = os.path.join(out, sound + ".ogg")
+            if os.path.exists(orphan):
+                os.remove(orphan)
+                if os.path.exists(orphan + ".import"):
+                    os.remove(orphan + ".import")
+                print("  - %s.ogg removed: it is a group of %d now"
+                      % (sound, kept))
         # Anything left from a previous, longer import would be a group member
         # this batch no longer has a file for.
         stale = kept + 1

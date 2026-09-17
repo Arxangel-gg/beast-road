@@ -1,11 +1,5 @@
 """Make Sfx.gd agree with what is actually in game/audio/sfx.
 
-Run this after `tools/import_audio.py`:
-
-    python tools/import_audio.py NewSFX
-    python tools/register_sfx.py
-    <godot> --headless --path game --import
-
 Idempotent by construction: it reads the folder and rewrites SOUNDS, GROUPS and
 PLACEHOLDERS to match, rather than applying a diff. Run it after any import -
 a batch with more takes than last time grows the groups, a batch with fewer
@@ -20,7 +14,7 @@ import io
 import os
 import re
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = r"E:\Arxangel\GameDev\BeastRoad"
 SFX_GD = os.path.join(ROOT, "game", "autoload", "Sfx.gd")
 SFX_DIR = os.path.join(ROOT, "game", "audio", "sfx")
 
@@ -102,16 +96,29 @@ for row in re.findall(r'^\t"(sfx_[a-z0-9_]+)": "res://audio/sfx/([a-z0-9_]+)\.og
         dropped += 1
 
 # PLACEHOLDERS: only ids that are still a single synthesised file.
-block = re.search(r"const PLACEHOLDERS: Array\[String\] = \[\n(.*?)\n\]\n", raw, re.S)
+#
+# **Both spellings are matched, and an empty list is written empty.** The
+# first cut matched only the multi-line form and built its replacement by
+# joining rows - so on 2026-09-17, when the last placeholder became a real
+# recording, it wrote a bare comma between the brackets, which is a parse
+# error rather than an empty array. Writing the empty list on one line then
+# stopped the old pattern matching at all, so the script would have quietly
+# given up maintaining this list for ever after. Both failures are one
+# shape: a template that only ever considered the non-empty case.
+PH = (r"const PLACEHOLDERS: Array\[String\] = "
+      r"(\[\]|\[\n.*?\n\])\n")
+block = re.search(PH, raw, re.S)
 if block:
     ids = re.findall(r'"([a-z0-9_]+)"', block.group(1))
     still = [i for i in ids if i not in grouped]
-    lines = ["\t" + ", ".join('"%s"' % i for i in still[n:n + 3]) + ","
-             for n in range(0, len(still), 3)]
-    body = "\n".join(lines).rstrip(",")
-    raw = (raw[:block.start()]
-           + "const PLACEHOLDERS: Array[String] = [\n%s,\n]\n" % body
-           + raw[block.end():])
+    if still:
+        rows = ["\t" + ", ".join('"%s"' % i for i in still[k:k + 3]) + ","
+                for k in range(0, len(still), 3)]
+        filled = "const PLACEHOLDERS: Array[String] = [\n%s\n]\n" % (
+            "\n".join(rows).rstrip(","))
+    else:
+        filled = "const PLACEHOLDERS: Array[String] = []\n"
+    raw = raw[:block.start()] + filled + raw[block.end():]
 
 io.open(SFX_GD, "w", encoding="utf-8", newline="").write(raw)
 print("groups on disk: %d" % len(grouped))

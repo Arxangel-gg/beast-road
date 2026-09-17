@@ -187,6 +187,18 @@ uniform float wind_bias = 0.0;
 // hardcoded to 0.5 and read by nothing, which is why there is no new vertex
 // attribute here - and this decides how far that number is allowed to push.
 uniform float phase_jitter = 0.0;
+// **What has walked through here.** RG is the direction it was laid,
+// signed around 0.5; B is how hard. Stamped on the CPU by `TrampleField`
+// a few times a second and read bilinearly, so a body crossing a clump
+// lays it over and it springs back behind them.
+//
+// A texture rather than a uniform per mover because `Foliage` shares one
+// material across every plant of a kind - there is no per-plant parameter
+// to write, and a material per plant is the cost this file exists to
+// avoid. Unset, `trample_reach` is zero and the sampler is never read.
+uniform sampler2D trample : hint_default_transparent, filter_linear;
+uniform float trample_extent = 1.0;
+uniform float trample_reach = 0.0;
 
 void vertex() {
 	// Root to tip. Zero at the base means the plant stays where it grew.
@@ -207,6 +219,15 @@ void vertex() {
 	// Displacement grows with the square of height: the tip whips, the middle
 	// bends, the base does not move at all.
 	VERTEX.x += lean * up * up * sway_reach;
+	// Laid over by whatever came through. Same height weighting as the wind:
+	// the tip goes over, the root does not move, so a trampled plant is bent
+	// rather than sliding out of the ground it grew in.
+	if (trample_reach > 0.0) {
+		vec2 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+		vec2 uv = world / (trample_extent * 2.0) + vec2(0.5);
+		vec3 laid = texture(trample, uv).rgb;
+		VERTEX += (laid.rg - vec2(0.5)) * 2.0 * laid.b * trample_reach * up * up;
+	}
 }
 """
 
@@ -233,6 +254,26 @@ static var _idle_cache: Dictionary = {}
 var _animated: Array[Dictionary] = []
 var _idle_clock: float = 0.0
 var _idle_frame: int = 0
+
+
+## **Every shared foliage material there is.**
+##
+## There are four kinds of them - the blades, the painted plants, one per
+## region's canopy and one per painted kind - and anything handing a
+## parameter to *the foliage* has to reach all four or it reaches some
+## plants and not others. `TrampleField` publishes through this, so a
+## fifth cache added later is one line here rather than a bug where ferns
+## react and bushes do not.
+static func every_material() -> Array:
+	var out: Array = []
+	for one: Variant in [wind_material(), painted_material()]:
+		if one != null:
+			out.append(one)
+	for cache: Dictionary in [_canopy_materials, _kind_materials]:
+		for key: Variant in cache:
+			if cache[key] != null:
+				out.append(cache[key])
+	return out
 
 
 ## One material for every blade in the game.
