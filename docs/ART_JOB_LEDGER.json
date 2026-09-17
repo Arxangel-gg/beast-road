@@ -1,4 +1,8 @@
 {
+  "art/bosses/boss_last_anchor": {
+    "base": "f6f06401-c9ce-4441-a827-0eee02ace57d",
+    "character": "d028a7b4-9a40-42ea-917d-fd7bde428bce"
+  },
   "art/crops/crop_barley": {
     "strip": "b9d6d3ef-995b-49e4-8484-d3ee7089e443"
   },
