@@ -235,6 +235,190 @@ ROWS = [
      "rattle, close and dry with no pond ambience, no reverb, no insects"),
     ("sfx_wildlife_wolf", "sfx", "sfx", "1.0s", "ElevenLabs",
      "one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background"),
+    # ---------------- wildlife: the twenty-nine that share a voice (2026-09-17) ----------------
+    # Fifty-one species speak with thirteen recordings, so a fennec is a fox
+    # and a jackal is a wolf. `Wildlife.voice_pitch` separates them by body
+    # scale and that is all it can do - every species at scale 2.2 and above
+    # sits on the same 0.72 floor, so the bear, the stag, the moonstag, the
+    # hollowhorn, the griffon and the phoenix are pitched identically and only
+    # the recording can tell them apart. These are the voices of their own.
+    #
+    # `vocal_sfx` is NOT repointed at these until the files land:
+    # `wildlife_spawn_check` asserts every voice resolves to a real sound, so
+    # naming one early turns twenty-nine green checks red for no gain.
+    # the five mythics - each has worn an ordinary animal's voice since it was authored
+    ("sfx_wildlife_moonstag", "sfx", "sfx", "1.3s", "ElevenLabs",
+     "one long rising cry from a huge old sika stag, airy and "
+     "breath-heavy rather than a clean elk bugle, ending in a rough low "
+     "breath, an animal throat not a choir, no reverb, no background — "
+     "record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_griffon", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one big eagle's ringing scream tearing straight down into a large "
+     "cat's chest growl in one breath, a real heavy animal with chest "
+     "resonance and audible grain rather than pure sub-bass, not a "
+     "dragon and not a cinematic monster roar, close and dry, no wing "
+     "loop, no background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_glimmerfox", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one bright fox cry sounding two pitches at once in one throat, a "
+     "clear high call with a second rougher tone beating against it, an "
+     "animal throat and never a synth or a human voice, dry and close, "
+     "no reverb, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_wildlife_hollowhorn", "sfx", "sfx", "1.3s", "ElevenLabs",
+     "one huge horned bull bellow pushed out of a deep chest, bison-like "
+     "and territorial with real body resonance and a rough throat rasp "
+     "over it so it still carries in a busy mix, a faint hollow woody "
+     "colour to the throat rather than any metallic ring, an animal "
+     "throat and never a horn blast, brass instrument or cinematic "
+     "monster roar, close and dry, no reverb, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_phoenix", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one large eagle-sized bird's full-chested scream with a fine "
+     "bright ember crackle riding on the voice, the bird is the sound "
+     "and the fire is only a grain in its throat, not a flame whoosh and "
+     "not a magic effect, close and dry, no fire ambience, no reverb — "
+     "record 4 takes, saved as _1.._4; they rotate"),
+
+    # canids and cats that shared the wolf and the fox
+    ("sfx_wildlife_ash_hound", "sfx", "sfx", "1.1s", "ElevenLabs",
+     "one hoarse hound bay breaking into a dry snarl, scorched rasping "
+     "throat, open and carrying where a wolf growl is closed and low, a "
+     "single call and never a run of baying, not a hellhound, no fire "
+     "crackle, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_wildlife_jackal", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one golden jackal yelp-call from a single animal, a short rising "
+     "nasal whine snapping into two clipped yelps, brighter and yappier "
+     "than a wolf, never a howl and never a pack chorus, dry and close, "
+     "no background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_screestalker", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one short cough-growl from a low heavy-shouldered predator, chesty "
+     "and grating with a coarse grain in the throat, no bark and no "
+     "resolution at the end, an animal and not a monster, isolated, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_dune_fennec", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one fennec fox chirp-squeak running straight into a quick churr, "
+     "high and excitable from a small desert canid, enough throat behind "
+     "it to carry rather than a thin bird chirp, close and dry, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_lynx", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one solitary forest lynx yowl, hoarse and voiced with a rasp right "
+     "through it, a wild cat throat and never a human cry or a housecat "
+     "meow, no spit, isolated with no forest ambience — record 4 takes, "
+     "saved as _1.._4; they rotate"),
+    ("sfx_wildlife_snow_lynx", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one hard chuff from a heavy mountain cat breaking straight into a "
+     "clipped snarl, blunt and unvoiced at the front with the snarl "
+     "carrying it, restrained and not a big-cat roar, isolated, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+
+    # hoofed animals that shared the deer bark
+    ("sfx_wildlife_steppe_horse", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one aggressive stallion squeal breaking into a hard nasal snort, "
+     "equine and ragged, not a pig squeal and not a hollywood rearing "
+     "whinny, close and dry, no hoofbeats, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_cliff_goat", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one wild mountain goat alarm bleat, nasal and wavering with a "
+     "rough buzzing edge, wary rather than a comedy screaming goat, "
+     "close and dry, no herd, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+    ("sfx_wildlife_frost_elk", "sfx", "sfx", "1.3s", "ElevenLabs",
+     "one short elk bugle, a rising reedy throat whistle breaking into "
+     "one chuffing grunt, a wapiti not a brass horn and not a monster, "
+     "close and dry, no valley echo, no background — record 4 takes, "
+     "saved as _1.._4; they rotate"),
+    ("sfx_wildlife_stag", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one red deer stag rutting roar, a rasping chest bellow, grainy "
+     "throughout rather than a clean low rumble, not a lion and not a "
+     "fantasy monster, close and dry, no forest reverb, no background — "
+     "record 4 takes, saved as _1.._4; they rotate"),
+
+    # birds that shared the raven croak
+    ("sfx_wildlife_barkjack_woodpecker", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "one short dry woodpecker drum burst on dead wood, a fast woody "
+     "rattle of knocks that dies away on its own with no call after it, "
+     "not an axe or a hammer strike, close and dry, no forest ambience, "
+     "no reverb — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_bog_crane", "sfx", "sfx", "1.3s", "ElevenLabs",
+     "one common crane bugle, a loud rolling trumpeting call with a hard "
+     "rattling burr from a long coiled windpipe, a bird's throat and not "
+     "a brass instrument or music, one bird calling once and not a pair "
+     "duetting, close and dry, no marsh ambience, no reverb — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_copper_pheasant", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one loud two-part pheasant crow, a harsh splitting shout with a "
+     "hard break between the notes and a metallic ring to it, shouted "
+     "and strident rather than croaked, one crow and nothing after it, "
+     "no wing flutter, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_heron", "sfx", "sfx", "1.1s", "ElevenLabs",
+     "one long harsh grey heron squawk, a strangled tearing fraaank that "
+     "starts loud and drags downward with a ragged break in it, drawn "
+     "out and nasal rather than a short clean croak, close and dry, no "
+     "water ambience, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_ptarmigan", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one dry rasping ptarmigan croak running into a short clattering "
+     "cackle, low and mechanical, a bird's throat rather than a human "
+     "belch, one utterance with no second call, close and dry, no wind, "
+     "no background — record 4 takes, saved as _1.._4; they rotate"),
+
+    # small mammals that shared the badger, the squirrel and the rabbit
+    ("sfx_wildlife_barkfang_wolverine", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one continuous wolverine threat growl, low and grinding with a "
+     "gravelly rattle riding on the breath, a stocky real animal and "
+     "never a film-trailer monster, no jaw snap, no background — record "
+     "4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_marsh_otter", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one short rising otter chirp-squeak, breathy and squeezed from a "
+     "real animal throat rather than a blown or synthetic whistle, no "
+     "splash, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_wildlife_oreback_pangolin", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "one blunt pangolin warning huff with a hard dry clatter of scales "
+     "in it, a single forceful push of breath rather than a sustained "
+     "hiss, close and cutting enough to sit in a battlefield mix, no "
+     "digging, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_wildlife_hedgehog", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one short hedgehog alarm huff-snort, small and nasal with a hard "
+     "pressured edge rather than a thin squeak, close and dry, no "
+     "snuffling loop, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_steppe_marmot", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one piercing marmot alarm chirp, a single harsh shrieked note "
+     "forced through the throat rather than a blown whistle, hard-edged "
+     "and abrupt, no echo, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+    ("sfx_wildlife_snow_hare", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one harsh hare distress scream, open-throated and grainy with a "
+     "rasping break in it, loud and close rather than a soft squeak, no "
+     "thump, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+
+    # reptiles that shared the viper hiss and the boar snort
+    ("sfx_wildlife_glass_lizard", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one short lizard huff, a single clipped open-mouthed puff of air "
+     "with a faint dry rasp at the back of the throat rather than a "
+     "sustained sibilant snake hiss, small and breathy and close, no "
+     "scale rustle, no reverb, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+    ("sfx_wildlife_saltpan_monitor", "sfx", "sfx", "1.1s", "ElevenLabs",
+     "one long slow monitor lizard threat hiss, a broad open-mouthed "
+     "rush of air pushed out of a big chest with a rough guttural edge "
+     "under it, far bigger and slower than a thin snake warning, a real "
+     "reptile and not a dinosaur or cinematic monster hiss, close and "
+     "dry, no scale rustle, no reverb, no background — record 4 takes, "
+     "saved as _1.._4; they rotate"),
+    ("sfx_wildlife_mireback_alligator", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one low alligator bellow, a single chesty resonant rumble with a "
+     "rough throat rasp over it so it still carries in a busy mix, "
+     "heavy-bodied rather than subsonic, a real bull gator and not a "
+     "dinosaur or cinematic monster roar, close and dry, no water "
+     "splash, no reverb, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+
     # ---------------- act playlists (2026-09-11) ----------------
     # Twelve songs an act, shuffled and played end to end by MusicPlayer. A
     # slot without a file is simply not in the shuffle, so these can be
