@@ -122,38 +122,35 @@ def fit_all(frames):
     return out
 
 
-def align(frames, ground: int):
-    """Every frame translated so its content sits on the same ground line.
+def check_span(frames, facing: str) -> None:
+    """Refuses a facing whose poses sit on wildly different ground lines.
 
-    **The line is the cell's own bottom edge**, which is what makes a sheet
-    independent of everything else: the reader puts the content's floor on the
-    node, so a walk and a gallop packed on different days still stand on the
-    same ground, and there is no base painting to read - which is what let the
-    Ash Courser's magenta placeholder poison this once.
+    **This used to move them, and that was wrong.** `fit_all` already crops a
+    whole facing through one box and sets the *union's* bottom on the cell
+    floor, which is the shared ground line - and which deliberately leaves each
+    individual pose where it belongs *within* the cycle. A gallop is a bound:
+    all four feet leave the ground, so an airborne frame's lowest pixel is
+    genuinely higher than a planted one's. Forcing every frame's own floor down
+    to the cell edge is exactly the instruction "never leave the ground", and it
+    flattened every gallop packed before this.
+
+    The terrace stag is what said so. Its bound needed a 31-pixel correction and
+    the old assertion refused it as "a different pose, not a wandering foot" -
+    which was true, and the pose was right and the correction was the mistake.
+
+    What is still worth refusing is a facing whose poses do not belong to one
+    cycle at all: something that has drifted a whole body length is a different
+    animal, not a longer stride.
     """
-    out = []
-    worst = 0
-    for frame in frames:
-        floor = floor_of(frame)
-        if floor < 0:
-            out.append(frame)
-            continue
-        shift = ground - floor
-        worst = max(worst, abs(shift))
-        if shift == 0:
-            out.append(frame)
-            continue
-        moved = Image.new("RGBA", frame.size, (0, 0, 0, 0))
-        moved.alpha_composite(frame, (0, shift))
-        out.append(moved)
-    # A correction bigger than an eighth of the cell is not a wandering foot,
-    # it is a different pose - and silently sliding one into line would hide
-    # the real problem. The same assertion `install_boss_frames.py` makes.
-    if worst > CELL // 8:
-        raise SystemExit("a frame needed a %d px correction to reach the ground "
-                         "line; that is a different pose, not a wandering foot"
-                         % worst)
-    return out
+    floors = [floor_of(f) for f in frames]
+    real = [f for f in floors if f >= 0]
+    if not real:
+        return
+    spread = max(real) - min(real)
+    if spread > CELL // 2:
+        raise SystemExit("%s's poses span %d px of ground line, over half the "
+                         "%d cell - that is not one cycle"
+                         % (facing, spread, CELL))
 
 
 def expand(url: str, count: int):
@@ -250,7 +247,8 @@ def main() -> None:
     rows = []
     for facing in FACINGS:
         frames = fit_all([fetch(url) for url in by_facing[facing]])
-        rows.append(align(frames, CELL))
+        check_span(frames, facing)
+        rows.append(frames)
         print("  %-11s %d frame(s)" % (facing, len(rows[-1])), file=sys.stderr)
 
     path = pack(args.mount_id, args.state, rows)

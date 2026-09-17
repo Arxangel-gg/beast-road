@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "mounts"
+display_name = "Mounts and the stable"
+title = "Mounts and the stable"
+category = "Basics"
+order = 18
+image = "res://art/guide/mounts.png"
+body = "A mount is something to cross ground on, and nothing else. Halric keeps four at the Hold's stable and sells them for Marks. Mounted, you cannot swing, cast, loose, gather, fish or take an egg - and the first press of attack puts you on your feet where you stood, so the fight starts where you dismounted. A gallop is no faster than a sprint; what it saves you is the breath, because the horse carries its own wind and your SP is untouched. Press H, or Ride on the action bar. You will not mount with something hostile close by, and deep water takes you off."

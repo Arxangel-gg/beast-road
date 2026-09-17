@@ -36,6 +36,12 @@ const CELL_W: int = 224
 const CELL_H: int = 224
 const DIRECTION_COUNT: int = 8
 
+## The animal drawn a second time over its rider's legs. See the shader for
+## why this is one sprite twice rather than a second painting.
+const OVERLAY_SHADER: String = "res://scripts/shaders/mount_overlay.gdshader"
+## How far the fade takes to close, as a share of the sprite's rect.
+const OVERLAY_FEATHER: float = 0.10
+
 ## What each state plays at, and whether it repeats. A gallop is the walk sheet
 ## driven faster when no gallop sheet exists, for the same reason the Warden's
 ## sprint falls back to the walk: a missing sheet must not be a missing feature.
@@ -83,6 +89,10 @@ var _rider_height: float = 0.0
 var _content_width: float = 0.0
 var _lean: float = 0.0
 var _seat_across: float = 0.0
+## The animal's near side, drawn above the rider. Only ever stood up when
+## there *is* a rider: a horse in a paddock has no legs to hide.
+var _over: Sprite2D = null
+var _over_material: ShaderMaterial = null
 ## How far up the Warden has climbed, 0 at the stirrup and 1 in the saddle.
 ##
 ## `Balance.MOUNT_UP_SECONDS` was a clock with nothing on the end of it: the
@@ -104,6 +114,23 @@ func _ready() -> void:
 	_sprite.centered = true
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_sprite)
+
+	# **Above the rider**, which is the whole point: the rig itself sits at
+	# z -1 so the animal is behind the person, and this one copy of it comes
+	# back over their legs. Two, because one sprite cannot be both behind a
+	# thing and in front of it.
+	_over = Sprite2D.new()
+	_over.name = "MountNearSide"
+	_over.centered = true
+	_over.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_over.z_index = 2
+	_over.visible = false
+	if ResourceLoader.exists(OVERLAY_SHADER):
+		_over_material = ShaderMaterial.new()
+		_over_material.shader = load(OVERLAY_SHADER) as Shader
+		_over_material.set_shader_parameter("feather", OVERLAY_FEATHER)
+		_over.material = _over_material
+	add_child(_over)
 	visible = false
 
 
@@ -287,6 +314,35 @@ func _process(delta: float) -> void:
 	_apply_seat(lift)
 
 
+## Copies the body onto the near-side overlay, and tells it where the saddle
+## is.
+##
+## Copied rather than shared, because a `Sprite2D` is one node with one
+## region: the same frame has to be submitted twice to be drawn at two
+## depths. Everything that decides *which* frame stays in one place above -
+## this only mirrors it, so the two can never come to disagree about which
+## way the horse is facing.
+func _drive_near_side(anchor: float) -> void:
+	if _over == null:
+		return
+	# No rider, no legs to hide - a paddock horse pays nothing for this.
+	if rider == null or not is_instance_valid(rider) or _kind == null:
+		_over.visible = false
+		return
+	_over.visible = visible
+	_over.texture = _sprite.texture
+	_over.region_enabled = _sprite.region_enabled
+	_over.region_rect = _sprite.region_rect
+	_over.offset = _sprite.offset
+	_over.position = _sprite.position
+	_over.scale = _sprite.scale
+	_over.flip_h = _sprite.flip_h
+	_over.modulate = _sprite.modulate
+	if _over_material != null:
+		_over_material.set_shader_parameter("anchor",
+			clampf(anchor, 0.0, 1.0 - OVERLAY_FEATHER))
+
+
 ## How tall the mount is drawn, in world units. The seat is a share of it.
 func _height() -> float:
 	if _kind == null:
@@ -341,6 +397,14 @@ func _apply_seat(lift: float = 0.0) -> void:
 	# `mount_shot` photographed on all four mounts. A rider straddles: the hips
 	# are at the saddle and the legs hang behind the barrel.
 	var saddle: float = floor_gap + _height() * _kind.seat
+	# **The same number the rider is lifted by, handed to the fade.** The near
+	# side closes at the saddle, so the anchor is the saddle's own height read
+	# down from the top of whatever rect the sprite is drawing - the cell for a
+	# sheet, the painting for the fallback. Derived here rather than in the
+	# shader so the two cannot disagree about where the rider is sitting.
+	var rect: float = float(CELL_H) if not _sheets.is_empty() \
+		else (float(_base.get_height()) if _base != null else float(CELL_H))
+	_drive_near_side(1.0 - saddle / maxf(rect * _kind.art_scale, 1.0))
 	# Re-measured while the rider is still climbing, because the hero's own
 	# animator may not have put a frame on the sprite when the mount was shown -
 	# a rider measured at zero would be seated as if they were all legs.
