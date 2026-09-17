@@ -74,6 +74,15 @@ var _shadow: Sprite2D = null
 var _content_height: float = 0.0
 var _content_floor: float = 0.0
 var _seat_applied: float = 0.0
+## How tall the rider is drawn, in their own pixels. Measured once from the
+## sprite they are on, because the Warden's sheet cell is a good deal taller
+## than the Warden.
+var _rider_height: float = 0.0
+## How wide the animal is drawn, for the seat's horizontal offset, and which
+## way it is currently pointing along the screen's x.
+var _content_width: float = 0.0
+var _lean: float = 0.0
+var _seat_across: float = 0.0
 ## How far up the Warden has climbed, 0 at the stirrup and 1 in the saddle.
 ##
 ## `Balance.MOUNT_UP_SECONDS` was a clock with nothing on the end of it: the
@@ -111,6 +120,7 @@ func show_mount(kind: MountData) -> void:
 		visible = false
 		_cast_shadow(null)
 		_seat(0.0)
+		_seat_sideways(0.0)
 		return
 	for state: String in STATES:
 		var path: String = "res://art/mounts/mount_%s_%s.png" % [kind.id, state]
@@ -126,8 +136,10 @@ func show_mount(kind: MountData) -> void:
 		visible = false
 		_cast_shadow(null)
 		_seat(0.0)
+		_seat_sideways(0.0)
 		return
 	_measure(kind)
+	_measure_rider()
 	_sprite.region_enabled = not _sheets.is_empty()
 	# **Un-mirrored when there are sheets.** `set_facing` only ever writes
 	# `flip_h` for the single-painting fallback, so a mount swapped from one
@@ -152,6 +164,7 @@ func show_mount(kind: MountData) -> void:
 ## height, which is the old behaviour rather than a hole.
 func _measure(kind: MountData) -> void:
 	_content_height = float(CELL_H)
+	_content_width = float(CELL_W)
 	_content_floor = 0.0
 	# A packed sheet needs no measuring: the packer put the feet on the cell's
 	# bottom edge and the animal is as tall as it is. Only the single-painting
@@ -165,6 +178,7 @@ func _measure(kind: MountData) -> void:
 	if used.size.y <= 0:
 		return
 	_content_height = float(used.size.y)
+	_content_width = float(used.size.x)
 	# How much empty canvas sits under the hooves, which is what the cell's
 	# bottom edge is being placed at.
 	_content_floor = float(picture.get_height() - used.end.y)
@@ -193,6 +207,9 @@ func set_facing(direction: Vector2) -> void:
 		return
 	var step: float = TAU / float(DIRECTION_COUNT)
 	_direction = posmod(int(round(direction.angle() / step)), DIRECTION_COUNT)
+	# Which way along the screen the animal is pointing, for the saddle's own
+	# offset. Normalised so a body coming straight at the camera leans nowhere.
+	_lean = direction.normalized().x
 	if _sheets.is_empty():
 		# The fallback painting has one facing, so it is mirrored - which is
 		# safe here in a way it is not for the roster, because a horse carries
@@ -277,9 +294,38 @@ func _height() -> float:
 	return _content_height * _kind.art_scale
 
 
+## How tall the rider actually is, measured off whatever sprite they are.
+##
+## The hero's cell is 160 and the Warden inside it is 99, so seating by the
+## cell would put them half a body too high. Measured once per mount rather
+## than per frame: a hero does not change size.
+func _measure_rider() -> void:
+	_rider_height = 0.0
+	if rider == null or not is_instance_valid(rider) or rider.texture == null:
+		return
+	var picture: Image = rider.texture.get_image()
+	if picture == null:
+		return
+	# **The cell, never the sheet.** The Warden is drawn from an eight-row
+	# `HeroAnimator` sheet, so `texture` is 1512x1280 and its used rect is very
+	# nearly all of it - which made the rider measure about 1270 tall, put their
+	# hips 571 up, and seat them at the horse's feet. It was invisible because
+	# the tool that photographed this used a single painting instead of the real
+	# Warden; the owner spotted the wrong sprite and the bug was behind it.
+	var cell: Rect2i = Rect2i(Vector2i.ZERO, picture.get_size())
+	if rider.region_enabled:
+		cell = Rect2i(rider.region_rect)
+		cell = cell.intersection(Rect2i(Vector2i.ZERO, picture.get_size()))
+	if cell.size.x <= 0 or cell.size.y <= 0:
+		return
+	var used: Rect2i = picture.get_region(cell).get_used_rect()
+	_rider_height = float(used.size.y) * absf(rider.scale.y)
+
+
 func _apply_seat(lift: float = 0.0) -> void:
 	if _kind == null:
 		_seat(0.0)
+		_seat_sideways(0.0)
 		return
 	# **From the hooves up, and the hooves are now on the node.** The sprite
 	# itself is dropped by whatever margin sits under the animal, so the seat is
@@ -289,15 +335,41 @@ func _apply_seat(lift: float = 0.0) -> void:
 	# **Eased rather than linear**, and out of a cubic: a rider who rose at a
 	# constant rate reads as an elevator. Fast off the ground and settling into
 	# the seat is what swinging a leg over looks like at this size.
+	# **The saddle meets the rider's hips, not their boots.** A hero sprite is
+	# drawn from the feet up, so lifting by the saddle's own height put the
+	# whole Warden above the horse with a gap under them - which is what
+	# `mount_shot` photographed on all four mounts. A rider straddles: the hips
+	# are at the saddle and the legs hang behind the barrel.
+	var saddle: float = floor_gap + _height() * _kind.seat
+	# Re-measured while the rider is still climbing, because the hero's own
+	# animator may not have put a frame on the sprite when the mount was shown -
+	# a rider measured at zero would be seated as if they were all legs.
+	if _rider_height <= 0.0 or _climb < 1.0:
+		_measure_rider()
+	var hips: float = _rider_height * Balance.MOUNT_RIDER_HIP
 	var risen: float = 1.0 - pow(1.0 - _climb, 3.0)
-	_seat((-(floor_gap + _height() * _kind.seat + Balance.MOUNT_RIDER_LIFT)
-		+ lift) * risen)
+	_seat((-(maxf(saddle - hips, 0.0) + Balance.MOUNT_RIDER_LIFT) + lift) * risen)
+	# Behind the withers, along whichever way the animal is pointing.
+	_seat_sideways(-_lean * _content_width * _kind.art_scale
+		* Balance.MOUNT_SEAT_BACK * risen)
 
 
 ## Writes the rider's lift, and takes it away again on the way down.
 ##
 ## Remembered rather than assumed, because the hero's sprite may carry an offset
 ## of its own one day and clearing this to zero would quietly take that with it.
+## The same as `_seat`, across. Its own applied value, so the two channels can
+## be put back independently and neither can be left behind when the Warden
+## gets down.
+func _seat_sideways(x: float) -> void:
+	if rider == null or not is_instance_valid(rider):
+		return
+	if is_equal_approx(x, _seat_across):
+		return
+	rider.offset.x += x - _seat_across
+	_seat_across = x
+
+
 func _seat(y: float) -> void:
 	# **Validity, not just null.** `_exit_tree` calls this to put the rider
 	# back down, and a hero being freed frees its sprite too - touching a
@@ -311,6 +383,16 @@ func _seat(y: float) -> void:
 	_seat_applied = y
 
 
+## The sprite the animal is drawn on.
+##
+## Handed out so the paddock can put a coat on it - a phenotype is a material
+## on the sprite, and the alternative was `StablePaddock` standing its own
+## sprite and reimplementing the sheets, which is two readers of one packing
+## and one of them eventually reading it wrong.
+func body() -> Sprite2D:
+	return _sprite
+
+
 ## How far into the saddle the Warden has climbed, 0 to 1. For the gate: a
 ## climb stuck at zero leaves the rider standing at the horse's feet for the
 ## whole ride, which is visible in play and invisible to every number.
@@ -320,3 +402,4 @@ func climbed() -> float:
 
 func _exit_tree() -> void:
 	_seat(0.0)
+	_seat_sideways(0.0)

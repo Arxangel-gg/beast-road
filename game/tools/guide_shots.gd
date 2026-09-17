@@ -599,6 +599,18 @@ func _ready() -> void:
 	# **And the Forge is the Forge.** Same fault, same answer.
 	await _shot("forge", func() -> void:
 		_screen_shot(func() -> Node: return SmithyScreen.new(), "Smithy"))
+	# **The stable**, which needs no game state behind it either: Halric's
+	# counter stands up alone and says what a mount is and is not. The picture a
+	# mount page wants is the shop rather than a horse on a road - what a player
+	# reading that page needs to recognise is the door.
+	await _shot("mounts", func() -> void:
+		if MetaState.mounts.is_empty():
+			var stock: Array[MountData] = ContentDB.mounts_sorted()
+			if not stock.is_empty():
+				MetaState.mounts.append(stock[0].id)
+				MetaState.mount_saddled = stock[0].id
+		MetaState.marks = maxi(MetaState.marks, 900)
+		_screen_shot(func() -> Node: return StableScreen.new(), "Stable"))
 	for node: Node in get_children():
 		if node.name.ends_with("Shot"):
 			node.queue_free()

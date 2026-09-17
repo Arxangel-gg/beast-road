@@ -860,6 +860,8 @@ An idle sheet is 224×1792 (one frame, eight facings); a walk or a gallop is
 | `mount_marsh_pony_walk.png` | 2016×1792 | T | `#6B5A44` |
 | `mount_marsh_pony_gallop.png` | 2016×1792 | T | `#6B5A44` |
 | `mount_ash_courser_walk.png` | 2016×1792 | T | `#4A423E` |
+| `mount_ash_courser_gallop.png` | 2016×1792 | T | `#4A423E` |
+| `mount_terrace_stag_walk.png` | 2016×1792 | T | `#5E5140` |
 
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 

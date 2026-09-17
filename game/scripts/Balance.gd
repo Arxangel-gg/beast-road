@@ -10338,6 +10338,35 @@ const MOUNT_HOOF_PITCH: float = -0.2
 ## How often a gallop kicks dirt off the hooves, in seconds.
 const MOUNT_DUST_INTERVAL: float = 0.1
 
+## **How far behind the middle the saddle sits, as a share of the animal's
+## drawn width.**
+##
+## Only ever felt in profile, and that is why it needed a photograph. Head-on
+## the saddle is directly under the rider and nothing is wrong; from the side
+## it sits behind the withers, and a rider placed at the mount's own origin is
+## sitting on its neck. `mount_shot`'s turning plate showed the Warden over the
+## shoulder with the saddle plainly empty behind them.
+##
+## Applied along the facing rather than as a fixed sign, so it reverses with
+## the animal and is exactly zero when it is coming at you - which is the only
+## way one number can serve eight directions.
+const MOUNT_SEAT_BACK: float = 0.12
+
+## **Where the rider's own weight sits, as a share of how tall they are drawn.**
+##
+## `MountData.seat` says where the saddle is on the *animal*. What was missing
+## is where the saddle should meet the *person*: a hero sprite is drawn from
+## the feet up, so seating them by their origin puts their boots on the saddle
+## and leaves the whole Warden floating above the horse. `mount_shot`
+## photographed exactly that on all four mounts.
+##
+## A rider straddles. Their hips are at the saddle and their legs hang down
+## either side of the barrel, hidden behind it at this camera - so the lift is
+## the saddle's height *minus* how far up the rider their hips are. 0.45 of a
+## 99-pixel Warden is about 45, against a saddle at about 100, which is the
+## figure the photograph settled on.
+const MOUNT_RIDER_HIP: float = 0.45
+
 ## How much the rider is lifted off the mount's own seat line, in world units,
 ## on top of `MountData.seat`. A rider placed only by the share sits *in* the
 ## saddle blanket rather than on it.

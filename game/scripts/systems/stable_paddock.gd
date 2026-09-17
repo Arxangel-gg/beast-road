@@ -27,13 +27,11 @@ const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
 ## gate rather than out in the field. A plate would be a label on an animal; a
 ## horse standing where a horse waits for somebody is the place saying it.
 
-## What a horse is drawn from when its own painting is not on disk.
-##
-## The steppe horse has been in the roster since the ecology reached Act X, and
-## a paddock drawn with it is a paddock of real horses rather than of magenta
-## placeholders - which matters because this is scenery: a missing painting here
-## must degrade to a stiller picture, never to a hole in the Hold (CLAUDE.md §4).
-const FALLBACK_ART: String = "res://art/wildlife/wildlife_steppe_horse.png"
+## **The fallback lives on `MountRig` now**, not here. A missing painting has
+## to degrade to a stiller picture rather than to a hole in the Hold
+## (CLAUDE.md §4), and having two places decide what that picture is would be
+## two answers to one question - which is how a paddock ends up drawing a
+## different animal from the one the Warden rides.
 
 ## Whose authored coat spreads a paddock horse is dressed from. See `_stand`.
 const COAT_SOURCE: String = "steppe_horse"
@@ -83,21 +81,24 @@ func refresh() -> void:
 
 
 ## One horse, with its own art, its own coat and its own clock.
+##
+## **A `MountRig` rather than a bare sprite**, and that is the fix for a real
+## miss rather than a tidy-up. The first cut reached for
+## `GameData.load_idle_frames` - the `_idle_01` convention every *structure* and
+## animal in this game uses - and a mount does not have those: its art is an
+## eight-facing sheet per state. So every lookup came back empty, and the
+## paddock was static sprites sliding around a field. The owner asked for
+## *animated* horses with AI.
+##
+## The rig already reads those sheets, turns a body onto its heading, paces the
+## legs against how fast it is going and casts the pool it stands in. A paddock
+## horse is the same animal the Warden rides, doing the same things, which is
+## also why it cannot drift from what a ride looks like.
 func _stand(kind: MountData, index: int) -> Dictionary:
-	var sprite := Sprite2D.new()
-	sprite.name = "Horse%d" % index
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.centered = true
-	var base: String = kind.get_sprite_path()
-	if not ResourceLoader.exists(base):
-		base = FALLBACK_ART
-	var texture: Texture2D = load(base) as Texture2D if ResourceLoader.exists(base) else null
-	sprite.texture = texture
-	if texture != null:
-		# Feet on the point, so the paddock can sort by Y and a horse may stand
-		# behind the rail rather than through it.
-		sprite.offset = Vector2(0.0, -float(texture.get_height()) * 0.5)
-	sprite.scale = Vector2.ONE * kind.art_scale
+	var rig := MountRig.new()
+	rig.name = "Horse%d" % index
+	add_child(rig)
+	rig.show_mount(kind)
 	# **Its own coat, off its own place in the line**, so two of the same kind in
 	# one field are two horses rather than one horse drawn twice. Same bound as
 	# every phenotype in the game: nothing reads it, and `PHENOTYPE_HUE_CEILING`
@@ -106,22 +107,18 @@ func _stand(kind: MountData, index: int) -> Dictionary:
 	# Dressed from the steppe horse's own `WildlifeData` rather than from a set
 	# of spreads typed in here. It is a real horse in the roster with authored
 	# spreads somebody judged for a horse, and borrowing them is one number to
-	# tune instead of two - the alternative was a second coat table that would
-	# quietly stop agreeing with the first.
+	# tune instead of two.
 	var coat := ContentDB.wildlife_kinds.get(COAT_SOURCE, null) as WildlifeData
-	if coat != null:
-		Phenotype.dress(ActorPolishScript.attach(sprite), coat,
+	var skin: Sprite2D = rig.body()
+	if coat != null and skin != null:
+		Phenotype.dress(ActorPolishScript.attach(skin), coat,
 			absi(hash(kind.id + str(index))))
-	add_child(sprite)
 	var own := RandomNumberGenerator.new()
 	own.seed = absi(hash("stable:" + kind.id + str(index)))
 	return {
 		"id": kind.id,
 		"kind": kind,
-		"node": sprite,
-		"idle": GameData.load_idle_frames(base),
-		"move": GameData.load_move_frames(base),
-		"base": texture,
+		"node": rig,
 		"rng": own,
 		"pose": 0,
 		"left": own.randf_range(Balance.STABLE_PAUSE_MIN, Balance.STABLE_PAUSE_MAX),
@@ -169,35 +166,33 @@ func _process(delta: float) -> void:
 ## Graze, wander, stand. Each on its own clock, which at five animals is enough
 ## that no two are ever doing the same thing.
 func _tick(horse: Dictionary, delta: float) -> void:
-	var node := horse["node"] as Sprite2D
-	if node == null or not is_instance_valid(node):
+	var rig := horse["node"] as MountRig
+	if rig == null or not is_instance_valid(rig):
 		return
 	horse["clock"] = float(horse["clock"]) + delta
 	horse["left"] = float(horse["left"]) - delta
 	if float(horse["left"]) <= 0.0:
 		_choose(horse)
-	var pose: int = int(horse["pose"])
-	var frames: Array = horse["move"] as Array if pose == 1 else horse["idle"] as Array
-	if pose == 1:
-		var step: Vector2 = (horse["to"] as Vector2) - node.position
+	if int(horse["pose"]) == 1:
+		var step: Vector2 = (horse["to"] as Vector2) - rig.position
 		if step.length() > 4.0:
-			node.position += step.normalized() * Balance.STABLE_WANDER_SPEED * delta
-			node.flip_h = step.x < 0.0
+			var way: Vector2 = step.normalized()
+			rig.position += way * Balance.STABLE_WANDER_SPEED * delta
+			rig.set_facing(way)
+			# Paced against the walk the rig was authored at, so a paddock horse
+			# ambling reads slower than one the Warden is riding. The same scale
+			# the field drives it with.
+			rig.set_speed_scale(Balance.STABLE_WANDER_SPEED
+				/ maxf(Balance.HERO_MOVE_SPEED, 1.0) * 3.0)
+			rig.play("walk")
 		else:
 			horse["left"] = 0.0
-	var texture: Texture2D = horse["base"] as Texture2D
-	if not frames.is_empty():
-		# The base is frame zero and the authored frames follow it, which is the
-		# structure-idle convention every animated thing in this game uses.
-		var step: int = int(float(horse["clock"]) * Balance.STABLE_IDLE_FPS) \
-			% (frames.size() + 1)
-		if step > 0:
-			texture = frames[step - 1] as Texture2D
-	node.texture = texture
-	# A slow shift of weight. Grazing animals dip; the one at the rail does not,
-	# because it is waiting rather than eating.
-	if pose == 0:
-		node.position.y = (horse["home"] as Vector2).y \
+	else:
+		rig.set_speed_scale(1.0)
+		rig.play("idle")
+		# A slow shift of weight. Grazing animals dip; the one at the rail does
+		# not, because it is waiting rather than eating.
+		rig.position.y = (horse["home"] as Vector2).y \
 			+ sin(float(horse["clock"]) * 1.1) * 0.5
 
 
