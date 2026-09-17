@@ -216,6 +216,12 @@ class _Sheltering extends Battlefield:
 	func town_node() -> Node2D:
 		if _core == null:
 			_core = Node2D.new()
+			# **Owned, not merely made.** A `Node2D` that is never added to a tree
+			# and never freed is a leaked `CanvasItem`, which the sweep reports as
+			# DIRTY rather than as a failure - a gate that leaks is a gate people
+			# learn to ignore the colour of. Parented here so freeing the field
+			# takes it too.
+			add_child(_core)
 		_core.global_position = walls_at
 		return _core
 

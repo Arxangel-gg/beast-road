@@ -40,6 +40,7 @@ const EXEMPT_SCREENS: Array[String] = [
 	"milestone_cinematic.gd",  # rich text and a fade, no plates
 	"story_intro.gd",      # the same, four panels of it
 	"audio_debug.gd",      # a developer readout, never shipped
+	"gear_compare.gd",     # a card the Market opens; enrolled with its screen
 	"hud.gd",              # enrols itself beside the tint, not at _ready
 ]
 
