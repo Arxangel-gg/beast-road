@@ -667,6 +667,11 @@ jobs:
           # fight, attacking gets them down and lets the swing through, and
           # the stable spends Marks and creates nothing.
           check "mount" --headless --path game res://tools/mount_check.tscn
+          # The Gatekeeper's ladder and the third capped power scale it pays:
+          # rungs climb in order and per difficulty, an unbeaten Gatekeeper
+          # holds that difficulty's summit, and a rank moves survival and
+          # nothing else, inside one ceiling with Resolve.
+          check "ascension" --headless --path game res://tools/ascension_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

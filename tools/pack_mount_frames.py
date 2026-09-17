@@ -117,12 +117,19 @@ def expand(url: str, count: int):
     """`.../south/0.png?t=123` becomes frames 0 to count-1 under the same
     folder. PixelLab numbers an animation's frames by index, so the whole state
     is one URL plus a count."""
-    match = re.match(r"^(.*/)(\d+)(\.png.*)$", url)
+    # **Non-greedy head, and the digit width is kept.** PixelLab names an
+    # animation's frames two ways - `.../south/0.png?t=123` from the frame URLs
+    # and `.../south/frame_000.png` inside a character zip - so the number is not
+    # always the whole basename. Anchoring the run of digits immediately before
+    # `.png` finds the right one in both, because a uuid earlier in the path is
+    # not followed by the extension.
+    match = re.match(r"^(.*?)(\d+)(\.png(?:\?.*)?)$", url)
     if match is None:
         raise SystemExit("%r does not end in a numbered frame, so --frames has "
                          "nothing to count from" % url)
-    head, _index, tail = match.groups()
-    return ["%s%d%s" % (head, n, tail) for n in range(count)]
+    head, index, tail = match.groups()
+    width = len(index)
+    return ["%s%s%s" % (head, str(n).zfill(width), tail) for n in range(count)]
 
 
 def ground_of_base(mount_id: str):

@@ -82,6 +82,15 @@ var _players: int = 1
 ## Whether to model the returning player's bonded spirit. Off by default: the
 ## curve is tuned for a first run, which has none.
 var _with_companion: bool = false
+## **The third capped scale** (owner ruling, 2026-09-17). Negative means
+## "read the account", which is what every other input to this model does;
+## `--ascension=N` points it at a rank instead.
+##
+## **This is how Nightmare and Hell are re-measured.** A Warden arriving at
+## Nightmare has climbed Normal's ladder, so they hold `GatekeeperTrials.STAGES`
+## ranks; one arriving at Hell has climbed two. `expected_rank_for_tier` says
+## so rather than a number being typed into a run script.
+var _ascension: int = -1
 var _body_scale: float = 0.0
 
 
@@ -89,6 +98,8 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--players="):
 			_players = maxi(int(argument.split("=")[1]), 1)
+		elif argument.begins_with("--ascension="):
+			_ascension = clampi(int(argument.split("=")[1]), 0, Balance.ASCENSION_MAX)
 		elif argument == "--companion":
 			_with_companion = true
 		# An override, so a scaling value can be swept without editing Balance
@@ -203,8 +214,24 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# is 88.9 - **two hundred and thirty-two per cent of the hero**. It is off by
 	# default because a first run has no companion and the curve is tuned for
 	# that player; `--companion` reports the returning one.
-	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) * float(_players) \
-		+ _companion_dps() * float(_players) \
+	# **And the third capped scale, on the half of capability it actually
+	# touches** (owner ruling, 2026-09-17: *"`curve_report` models three scales
+	# instead of two"*).
+	#
+	# Ascension moves what the Warden *survives* rather than what they deal, so
+	# it is applied to the hero and the spirit at their shoulder and to nothing
+	# else: a tower's uptime is not improved by the person standing near it. A
+	# hero who takes `1 - m` of the damage has `1 / (1 - m)` of the effective
+	# health, and sustained contribution scales with how long they stand -
+	# which is the honest reading of a mitigation number in a model that has no
+	# deaths in it.
+	#
+	# **The figure is read through the same constants the hero reads**, so a
+	# re-tune of the ladder moves this too rather than leaving a number behind.
+	var standing: float = ascension_uptime(ascension_rank())
+	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) \
+			* float(_players) * standing \
+		+ _companion_dps() * float(_players) * standing \
 		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE)
 
 	return {
@@ -215,6 +242,46 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
 	}
+
+
+## Which ascension rank this run of the report is modelling.
+##
+## The account's own unless `--ascension=` says otherwise, which is the same
+## rule the hero level and the gear points follow: this model measures the
+## profile it was handed, and says which one that was.
+func ascension_rank() -> int:
+	if _ascension >= 0:
+		return _ascension
+	return clampi(MetaState.ascension, 0, Balance.ASCENSION_MAX)
+
+
+## What a rank is worth as sustained uptime.
+##
+## **Derived from the constants the hero applies, never typed in.** The hero
+## sums ascension's mitigation inside Resolve's own ceiling; this model has no
+## Resolve in it, so the ceiling that binds here is ascension's own - which is
+## deliberately the lower of the two, so modelling it alone can never report a
+## Warden tougher than the game allows.
+static func ascension_uptime(rank: int) -> float:
+	var mitigation: float = minf(float(rank) * Balance.ASCENSION_MITIGATION_PER_RANK,
+		minf(Balance.ASCENSION_MITIGATION_CAP, Balance.HERO_RESOLVE_MITIGATION_CAP))
+	return 1.0 / maxf(1.0 - mitigation, 0.01)
+
+
+## The rank a Warden arriving at a campaign tier is expected to hold.
+##
+## **Derived from the ladder rather than authored on the tier.** A Warden who
+## has cleared the tiers before this one has climbed each of their Gatekeeper
+## ladders, and each rung pays a rank - so what they hold is the number of
+## rungs behind them. Nothing new is stored and no tier gains a field; if the
+## ladder ever changes length, this moves with it.
+static func expected_rank_for_tier(tier_id: String) -> int:
+	var before: int = 0
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		if tier.id == tier_id:
+			break
+		before += 1
+	return clampi(before * GatekeeperTrials.STAGES, 0, Balance.ASCENSION_MAX)
 
 
 ## The hero's own sustained damage, as a floor.
@@ -385,7 +452,11 @@ func _print_the_account() -> void:
 	# against towers and hero damage, and what ascension moves is what the hero
 	# survives. Re-solving Nightmare and Hell against a ranked Warden is a
 	# measurement that has not been taken, and it is the remaining balance task.
-	var ranked: String = "" if MetaState.ascension <= 0 else ("  <- and %d ascension rank(s), which this model does not carry" % MetaState.ascension)
+	var rank: int = ascension_rank()
+	var source: String = "the account's own" if _ascension < 0 else "asked for"
+	var ranked: String = "" if rank <= 0 else (
+		"  <- carrying %d ascension rank(s), %s, worth %.1f%% hero uptime"
+			% [rank, source, (ascension_uptime(rank) - 1.0) * 100.0])
 	print(("[curve] measured on %s - hero level %d, %d gear points, %d towers "
 		+ "unlocked%s")
 		% ["a NEW account" if fresh else "a PLAYED account", MetaState.hero_level,
