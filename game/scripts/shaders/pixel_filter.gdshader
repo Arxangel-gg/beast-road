@@ -37,12 +37,41 @@ uniform vec2 viewport = vec2(1920.0, 1080.0);
 // switch, but the fade is what lets it be turned on without a jump cut.
 uniform float strength : hint_range(0.0, 1.0) = 1.0;
 
+// Rectangles the grid is not applied to, in the same pixels `viewport` is in,
+// as (x, y, width, height).
+//
+// **For the things that cannot be redrawn sharp on top.** `CrispText` mutes a
+// string where it was authored and draws it again above this filter, which
+// works for anything `draw_string` can draw. A `RichTextLabel` is marked-up
+// text with its own layout engine - wrapping, inline colour, tables - and
+// `draw_string` is not that engine, so those are left out of the grid here
+// instead. The plate behind one is left sharp with it; that is the honest cost
+// and it is invisible in practice, because a rich label fills its own panel.
+//
+// Walked rather than branched on: at eight the loop is shorter than the
+// texture read it guards, and a bound small enough to walk is what keeps this
+// pass cheap. `exclusions` says how many of the array are real.
+uniform vec4 exclude[8];
+uniform int exclusions = 0;
+
 void fragment() {
 	vec2 at = SCREEN_UV * viewport;
-	// The centre of the block this fragment falls in. Sampling the centre rather
-	// than the corner is what stops the grid drifting half a block when the
-	// viewport is an odd number of blocks wide.
-	vec2 block = (floor(at / grid) + 0.5) * grid;
-	vec2 uv = mix(at, block, strength) / viewport;
-	COLOR = texture(screen_tex, uv);
+	// Inside any exempt rectangle the picture passes through untouched.
+	bool keep = false;
+	for (int i = 0; i < exclusions; i++) {
+		vec4 r = exclude[i];
+		if (at.x >= r.x && at.y >= r.y && at.x < r.x + r.z && at.y < r.y + r.w) {
+			keep = true;
+		}
+	}
+	if (keep) {
+		COLOR = texture(screen_tex, SCREEN_UV);
+	} else {
+		// The centre of the block this fragment falls in. Sampling the centre
+		// rather than the corner is what stops the grid drifting half a block
+		// when the viewport is an odd number of blocks wide.
+		vec2 block = (floor(at / grid) + 0.5) * grid;
+		vec2 uv = mix(at, block, strength) / viewport;
+		COLOR = texture(screen_tex, uv);
+	}
 }

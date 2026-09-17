@@ -29,6 +29,9 @@ var _pen: CanvasLayer
 var _stable: StableScreen = null
 var _act_start: CanvasLayer
 var _frame: MenuFrame = null
+var _world_grid: PixelGrid = null
+var _ui_grid: PixelGrid = null
+var _crisp: CrispText = null
 ## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
 ## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
 var _hub: HubScreen
@@ -210,6 +213,7 @@ func _ready() -> void:
 		new_run_button.grab_focus()
 	_setup_stage()
 	_setup_frame()
+	_setup_pixel_grids()
 	_setup_front_leaves()
 	# Again, now that the lines this lays out exist.
 	_fit_menu.call_deferred()
@@ -349,6 +353,64 @@ func _setup_stage() -> void:
 ## the words in a corner - it did exactly that on the first pass, over the run
 ## statistics. Input is ignored as well as ordered, because a decoration that
 ## could swallow TAKE THE ROAD is the worst trade in the project.
+## The pixel grid on the title screen (owner, 2026-09-17: *"Make sure the main
+## menu is also properly affected by the pixelshader if toggled on, including
+## the extra toggle for UI elements too not including text."*).
+##
+## **Bands in the tree rather than layers**, which is the one thing that makes
+## this screen different from a run. In a run the scopes, the HUD and the type
+## are already three `CanvasLayer`s and a filter simply takes a number between
+## them. Here the painted beast, the carved border, the wordmark, the buttons
+## and the statistics are all children of one `Control`, drawn in tree order -
+## so what goes *between* the art and the buttons is a sibling at the right
+## index. `PixelGrid` is a `Control` for exactly this.
+##
+## Inserted rather than appended, and the indices are read off the nodes they
+## have to sit between rather than written down: `_setup_frame` already moves
+## the border by reading `Stage`'s index, and a second hand-kept ordering is a
+## second thing to get wrong the next time somebody adds a node here.
+func _setup_pixel_grids() -> void:
+	# So a video preference changed from the title screen's own settings panel
+	# reaches the screen underneath it rather than only the saved file.
+	add_to_group(Graphics.SETTINGS_GROUP)
+	_world_grid = PixelGrid.new()
+	_world_grid.name = "PixelGridWorld"
+	add_child(_world_grid)
+	var title: Node = get_node_or_null("Title")
+	if title != null:
+		move_child(_world_grid, title.get_index() + 1)
+
+	# The interface's own grid goes last, so everything pressable is under it.
+	_ui_grid = PixelGrid.new()
+	_ui_grid.name = "PixelGridUI"
+	add_child(_ui_grid)
+
+	# And the type above both, which is the whole of "except for text".
+	_crisp = CrispText.new()
+	_crisp.name = "CrispText"
+	_crisp.ui_filter_grid = _ui_grid
+	_crisp.ui_roots = [self] as Array[Node]
+	add_child(_crisp)
+	_refresh_pixel_grids()
+
+
+## Both grids answer the video settings, and are told together because the
+## interface's only means anything under the world's.
+func _refresh_pixel_grids() -> void:
+	if _world_grid != null:
+		_world_grid.set_enabled(Graphics.pixel_filter())
+	if _ui_grid != null:
+		_ui_grid.set_enabled(Graphics.pixel_filter_ui())
+	if _crisp != null:
+		_crisp.set_enabled(Graphics.pixel_filter(), Graphics.pixel_filter_ui())
+
+
+## `Graphics.apply_to_scene` calls this on every node in its group when a video
+## preference changes, so the switch reaches the title screen while it is open.
+func refresh_from_settings() -> void:
+	_refresh_pixel_grids()
+
+
 func _setup_frame() -> void:
 	var art: Node = get_node_or_null("Art")
 	_frame = MenuFrame.new()

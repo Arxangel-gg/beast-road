@@ -3,128 +3,95 @@ extends CanvasLayer
 
 ## **One grid for the whole world** (owner, 2026-09-17).
 ##
-## The brief: *"can you apply a pixel art shader to the whole screen? One that is
-## perfectly polished and optimized, and also include it in the settings toggle,
-## in hopes that this will give a more cohesive look to the whole game."*
+## The first brief: *"can you apply a pixel art shader to the whole screen? One
+## that is perfectly polished and optimized, and also include it in the settings
+## toggle, in hopes that this will give a more cohesive look to the whole game."*
 ##
 ## **What it is actually fixing.** The sprites are pixel art on their own grid;
 ## everything the engine draws beside them - blood fans, flame cones, the fog's
-## soft edge, a bar's fill, a ring at a telegraph - is drawn at device
-## resolution and sits on no grid at all. That is two materials in one frame, and
-## snapping the finished picture to a single grid is what puts them on the same
-## one.
+## soft edge, a bar's fill, a ring at a telegraph - is drawn at device resolution
+## and sits on no grid at all. That is two materials in one frame, and snapping
+## the finished picture to a single grid is what puts them on the same one.
 ##
-## **It goes over the world and under the interface**, and that is the decision
-## in this file. A filter over everything would quantise the type as well, and
-## the owner asked for bigger, clearer battlefield text in the same breath -
-## making the letters blocky would take that back. So it sits at
-## `Balance.UI_PIXEL_FILTER_LAYER`, above every scope and below the HUD.
+## **Where it sits is the whole of what it covers, and there are two of it.** A
+## screen filter pixelates what was drawn below it and cannot touch what is drawn
+## above, so one at `Balance.UI_PIXEL_FILTER_LAYER` takes every scope and leaves
+## the HUD alone, and a second at `UI_PIXEL_FILTER_UI_LAYER` takes the HUD too
+## when the owner's second switch asks for it: *"a toggle in the settings for
+## whether the pixelshader should also affect UI panel windows, buttons, and
+## images etc as well except for text."*
 ##
-## **Optimised where the cost actually is.** A fullscreen pass is one texture
-## read and two floors, which is nothing; the expensive half is the
-## `BackBufferCopy`, and that is switched *off* rather than left running when the
-## setting is off. Turned off, this node copies nothing, draws nothing and costs
-## a hidden `ColorRect`.
+## **Two instances rather than one that moves**, because they answer to two
+## preferences and a player may want the first without the second. One node
+## hopping between layer 15 and layer 24 would be one switch pretending to be
+## two.
 ##
-## **It changes no number.** Nothing reads it, nothing asks it anything, and the
-## run is identical with it on or off - the bound the fog of war, the phenotypes
-## and the trampled foliage are all held to, which is what makes it safe to give
-## away on a weak machine.
+## **Neither of them ever takes the type.** `CrispText` sits above both and
+## redraws every string sharp, having muted the copy underneath - a blocky glyph
+## under a sharp one is a fringe rather than a letter. What it cannot redraw it
+## hands back here as an exempt rectangle.
 ##
-## **Never headless.** There is no frame to copy, and `flood_sheen` learned that
-## the same way: a screen-reading shader with no screen is a black rectangle over
-## the game.
+## The grid itself is `PixelGrid`, which is a `Control` so that the main menu -
+## one tree drawing in order, with no layers to sit between - can put the same
+## thing between its painted art and its buttons.
 
-const SHADER: String = "res://scripts/shaders/pixel_filter.gdshader"
+## Which switch this filter answers to, and therefore what it is over.
+enum Covers {WORLD, INTERFACE}
 
-var _copy: BackBufferCopy = null
-var _screen: ColorRect = null
-var _material: ShaderMaterial = null
-var _on: bool = false
+var covers: Covers = Covers.WORLD
+
+var _grid: PixelGrid = null
 
 
 func _ready() -> void:
-	name = "PixelFilter"
-	layer = Balance.UI_PIXEL_FILTER_LAYER
+	name = "PixelFilter" if covers == Covers.WORLD else "PixelFilterUI"
+	layer = Balance.UI_PIXEL_FILTER_LAYER if covers == Covers.WORLD 		else Balance.UI_PIXEL_FILTER_UI_LAYER
 	# So the switch in the video settings reaches it while the game is running,
 	# rather than changing a saved value and nothing on screen - which is how a
 	# setting reads as broken, and is why this group exists.
 	add_to_group(Graphics.SETTINGS_GROUP)
-	_build()
+	_grid = PixelGrid.new()
+	_grid.name = "Grid"
+	add_child(_grid)
 	refresh_from_settings()
-	get_viewport().size_changed.connect(_fit)
-
-
-func _build() -> void:
-	_copy = BackBufferCopy.new()
-	_copy.name = "Copy"
-	_copy.copy_mode = BackBufferCopy.COPY_MODE_DISABLED
-	add_child(_copy)
-
-	_screen = ColorRect.new()
-	_screen.name = "Screen"
-	_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_screen.visible = false
-	if ResourceLoader.exists(SHADER):
-		_material = ShaderMaterial.new()
-		_material.shader = load(SHADER) as Shader
-		_screen.material = _material
-	add_child(_screen)
-	_fit()
 
 
 ## Reads the setting. Named to match the other display preferences, because
 ## `Graphics.apply_to_scene` calls this on every node that has it.
 func refresh_from_settings() -> void:
-	set_enabled(Graphics.pixel_filter())
+	set_enabled(Graphics.pixel_filter() if covers == Covers.WORLD 		else Graphics.pixel_filter_ui())
 
 
 func set_enabled(on: bool) -> void:
-	_on = on and _material != null
-	if _copy != null:
-		# **The copy is the cost, so the copy is what stops.** Leaving it in
-		# `COPY_MODE_VIEWPORT` and hiding the rect would pay for a full screen
-		# read every frame to feed a shader nobody is running.
-		_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT if _on \
-			else BackBufferCopy.COPY_MODE_DISABLED
-	if _screen != null:
-		_screen.visible = _on
-	_fit()
+	if _grid != null:
+		_grid.set_enabled(on)
 
 
 func enabled() -> bool:
-	return _on
+	return _grid != null and _grid.enabled()
 
 
-## The grid, and the viewport it is measured in.
-##
-## The block is stated in pixels rather than in UV because a grid that is square
-## in UV is a rectangle of blocks on any window that is not square.
-func _fit() -> void:
-	if _screen == null or _material == null:
-		return
-	var view: Vector2 = get_viewport().get_visible_rect().size
-	# **The rect is not assigned.** It is anchored `PRESET_FULL_RECT`, so the
-	# layout already gives it the whole viewport - and writing `size` on a
-	# Control whose opposite anchors differ makes Godot warn that it will be
-	# overridden after `_ready`, which every gate that stands up a run then
-	# prints. A warning is a failed gate on the release bar.
-	if _copy != null:
-		_copy.rect = Rect2(Vector2.ZERO, view)
-	_material.set_shader_parameter("viewport", view)
-	_material.set_shader_parameter("grid", block_for(view))
-	_material.set_shader_parameter("strength", 1.0)
+## The band itself, for `CrispText` to hand its exempt rectangles to. Valid
+## from the moment this node is added to a tree, since `add_child` runs
+## `_ready` there and then.
+func grid() -> PixelGrid:
+	return _grid
 
 
-## How big one block is on this screen.
-##
-## **A share of the height rather than a flat number.** A three-pixel block is a
-## strong effect on a 720-tall window and almost invisible on a 4K one, so the
-## same setting would be two different games. Rounded to a whole number because
-## a fractional grid puts one block edge on a half pixel and the rows either
-## side of it come out different widths - which reads as a seam across the
-## screen rather than as pixel art.
+func set_exclusions(rects: Array[Rect2]) -> void:
+	if _grid != null:
+		_grid.set_exclusions(rects)
+
+
+func exclusions() -> int:
+	return _grid.exclusions() if _grid != null else 0
+
+
+## Kept on this class as well as on `PixelGrid`, because the gate and the
+## settings readout both ask whichever of the two they can see.
 static func block_for(view: Vector2) -> float:
-	var share: float = view.y / Balance.UI_PIXEL_FILTER_REFERENCE_HEIGHT
-	return maxf(round(Balance.UI_PIXEL_FILTER_BLOCK * share), 1.0)
+	return PixelGrid.block_for(view)
+
+
+static func block_at(view: Vector2, want: float) -> float:
+	return PixelGrid.block_at(view, want)

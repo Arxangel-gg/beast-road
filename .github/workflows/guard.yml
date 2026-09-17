@@ -672,6 +672,11 @@ jobs:
           # holds that difficulty's summit, and a rank moves survival and
           # nothing else, inside one ceiling with Resolve.
           check "ascension" --headless --path game res://tools/ascension_check.tscn
+          # The pixel grid, and the one thing it must never take: the type is
+          # drawn above both grids and muted underneath, the interface's grid
+          # never outruns the world's, the slider is clamped, the exempt
+          # rectangles are bounded, and headless engages nothing.
+          check "pixel filter" --headless --path game res://tools/pixel_filter_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

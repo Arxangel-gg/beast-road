@@ -78,6 +78,22 @@ const KEY_FOLIAGE_TRAMPLE: String = "foliage_trample"
 ## under the interface, nothing reads it, and the run is identical without it.
 const KEY_PIXEL_FILTER: String = "pixel_filter"
 
+## Whether that grid also covers the interface - the plates, the buttons, the
+## icons and the art on them, but never the type (owner, 2026-09-17).
+##
+## **Off by default**, deliberately. The world's grid has shipped and been
+## played; this one changes the look of every screen in the game, and a
+## preference that rearranges the interface on somebody who never asked for
+## it is a preference imposed rather than offered.
+const KEY_PIXEL_FILTER_UI: String = "pixel_filter_ui"
+
+## How coarse the grid is, in blocks at the reference height.
+##
+## A number rather than a switch because the right answer is a taste: the
+## owner asked for *"resolutions lower but mostly higher than this"*, so the
+## shipped 3.0 sits near the bottom of a range that runs to 8.
+const KEY_PIXEL_FILTER_BLOCK: String = "pixel_filter_block"
+
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
 const POND_FISH_GROUP: StringName = &"pond_fish"
@@ -517,6 +533,26 @@ static func pixel_filter() -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
 	return bool(_chosen.get(KEY_PIXEL_FILTER, true))
+
+
+## Whether the interface is snapped to that same grid. **Never without the
+## world's**: a sharp world under a blocky interface is the incoherence this
+## whole feature exists to remove, pointing the other way. So the world's
+## switch is the master and this one only ever narrows it.
+static func pixel_filter_ui() -> bool:
+	return pixel_filter() and bool(_chosen.get(KEY_PIXEL_FILTER_UI, false))
+
+
+## How big one block is, at `Balance.UI_PIXEL_FILTER_REFERENCE_HEIGHT`.
+##
+## Clamped on the way out rather than trusted, because this is a saved number
+## and a save is a file a player can edit: a grid of zero divides by nothing
+## and a grid of four hundred is one colour over the whole screen.
+static func pixel_filter_block() -> float:
+	var want: float = float(_chosen.get(KEY_PIXEL_FILTER_BLOCK,
+		Balance.UI_PIXEL_FILTER_BLOCK))
+	return clampf(want, Balance.UI_PIXEL_FILTER_BLOCK_MIN,
+		Balance.UI_PIXEL_FILTER_BLOCK_MAX)
 
 
 ## Whether elites, rare animals and shinies wear their rank in light.

@@ -287,6 +287,24 @@ func _slider_row(text: String, minimum: float, maximum: float, step: float,
 	return row
 
 
+## How coarse the pixel grid is (owner, 2026-09-17: *"a slider for it in
+## settings so that resolutions lower but mostly higher than this are also
+## included and able to be set"*).
+##
+## **Read out in blocks rather than in a made-up resolution.** The obvious
+## label is "640x360", and it would be a lie on every window that is not
+## 1080 tall: the grid is a *share* of the height, so the same setting is a
+## different pixel count on a different screen. One block is a number that
+## means the same thing everywhere.
+func _pixel_block_row() -> HBoxContainer:
+	return _slider_row("  Grid size", Balance.UI_PIXEL_FILTER_BLOCK_MIN,
+		Balance.UI_PIXEL_FILTER_BLOCK_MAX, 1.0, Graphics.pixel_filter_block(),
+		func(v: float) -> String:
+			return "Off" if v <= 1.0 else "%d px" % int(round(v)),
+		func(v: float) -> void:
+			Graphics.set_display(Graphics.KEY_PIXEL_FILTER_BLOCK, v))
+
+
 func _volume_row(spec: Dictionary) -> HBoxContainer:
 	var key: String = String(spec["key"])
 	var row: HBoxContainer = _slider_row(String(spec["label"]), 0.0, 1.0, 0.05,
@@ -517,8 +535,13 @@ func _build_video(column: VBoxContainer) -> void:
 		"Plants are laid over by whatever walks through them, and spring back."))
 	column.add_child(_pref_toggle_row("Pixel grid", Graphics.KEY_PIXEL_FILTER,
 		Graphics.pixel_filter(),
-		"Snaps the world to one pixel grid, so the art and the effects drawn over "
-		+ "it read as one thing. The interface stays sharp."))
+		"Snaps the picture to one pixel grid, so the art and the effects drawn "
+		+ "over it read as one thing. Text is never snapped."))
+	column.add_child(_pixel_block_row())
+	column.add_child(_pref_toggle_row("  ...over the interface",
+		Graphics.KEY_PIXEL_FILTER_UI, Graphics.pixel_filter_ui(),
+		"Takes the panels, buttons and icons onto the same grid as the world. "
+		+ "Needs the grid above to be on."))
 	column.add_child(_pref_toggle_row("Wildlife coats", Graphics.KEY_PHENOTYPE,
 		Graphics.phenotypes(),
 		"Every animal is a slightly different animal of its kind."))

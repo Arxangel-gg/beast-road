@@ -27,6 +27,8 @@ extends Node
 
 ## The whole-screen pixel grid, over the world and under the HUD.
 var _pixels: PixelFilter = null
+var _ui_pixels: PixelFilter = null
+var _crisp: CrispText = null
 
 ## The guided valley, or null on a real road.
 var _walk: TutorialWalk = null
@@ -134,6 +136,26 @@ func _ready() -> void:
 	# node covers all three and a raid or a rift inherits it by existing.
 	_pixels = PixelFilter.new()
 	add_child(_pixels)
+	# And a second one over the interface, on its own switch (owner,
+	# 2026-09-17). Above the HUD rather than below it, which is the only
+	# difference between the two - see `PixelFilter.Covers`.
+	_ui_pixels = PixelFilter.new()
+	_ui_pixels.covers = PixelFilter.Covers.INTERFACE
+	add_child(_ui_pixels)
+	# The type, above both grids. It is handed the world scopes explicitly
+	# because their labels are parented into the world and are therefore under
+	# the world's grid - the town's tier captions are what the owner reported as
+	# illegible - and the HUD, whose text it only takes over while the second
+	# switch is on.
+	_crisp = CrispText.new()
+	_crisp.ui_filter_grid = _ui_pixels.grid()
+	_crisp.world_roots = [battlefield, town, beast] as Array[Node]
+	_crisp.ui_roots = [hud] as Array[Node]
+	var crisp_layer := CanvasLayer.new()
+	crisp_layer.name = "CrispTextLayer"
+	crisp_layer.layer = Balance.UI_CRISP_TEXT_LAYER
+	crisp_layer.add_child(_crisp)
+	add_child(crisp_layer)
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())

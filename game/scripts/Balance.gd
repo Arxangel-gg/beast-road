@@ -10277,6 +10277,47 @@ const UI_PIXEL_FILTER_BLOCK: float = 3.0
 ## share of the screen rather than a number of pixels.
 const UI_PIXEL_FILTER_REFERENCE_HEIGHT: float = 1080.0
 
+## Which layer the *interface's* pixel filter sits on: above the HUD at 20,
+## below the crisp type. Owner, 2026-09-17: *"a toggle in the settings for
+## whether the pixelshader should also affect UI panel windows, buttons, and
+## images etc as well except for text."*
+##
+## **Two filters rather than one taller one**, because they answer to two
+## different switches: the world's grid is the setting that has always
+## existed and the interface's is new, and a player may want the first
+## without the second. One filter moved up and down between two layers would
+## be one switch pretending to be two.
+const UI_PIXEL_FILTER_UI_LAYER: int = 24
+
+## Where the type is drawn, above both filters.
+##
+## **A filter pixelates what was drawn below it and nothing above it**, so
+## the whole of "except for text" is one layer number. `CrispText` mutes each
+## string where it was authored and draws it again up here - muted rather than
+## left alone, because a blocky copy under a sharp one is a fringe round every
+## letter rather than a clean glyph.
+const UI_CRISP_TEXT_LAYER: int = 25
+
+## What the grid slider may be set to. Owner, 2026-09-17: *"a slider for it in
+## settings so that resolutions lower but mostly higher than this are also
+## included and able to be set."*
+##
+## One is the floor because a grid of one *is* the screen - there is no
+## smaller block - and eight is the ceiling because past about six a 192px
+## sprite starts losing the features it was drawn with, and a face that has
+## stopped having eyes is not a stylistic choice.
+const UI_PIXEL_FILTER_BLOCK_MIN: float = 1.0
+const UI_PIXEL_FILTER_BLOCK_MAX: float = 8.0
+
+## How many rectangles a filter may be told to leave alone.
+##
+## For the handful of things `CrispText` cannot redraw - a `RichTextLabel` is
+## marked-up text with its own layout engine, and `draw_string` is not that
+## engine. Eight because the fragment walks the list, and a bound small
+## enough to be walked is what keeps this one texture read and a short loop.
+## The gate refuses a ninth rather than letting one fall off the end unseen.
+const UI_PIXEL_FILTER_EXCLUDE_MAX: int = 8
+
 
 # --- Mounts (owner, 2026-09-17) ----------------------------------------------
 #
