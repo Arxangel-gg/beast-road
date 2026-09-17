@@ -5318,6 +5318,97 @@ which is the right default whenever the reference and the subject are the same
 *kind* of thing in different colours.
 
 
+**The third capped scale is measured rather than merely capped, as of
+2026-09-17.** The owner's ascension ruling earlier the same day came with a
+price attached, in its own words: *"`curve_report` models three scales instead
+of two, with Nightmare and Hell re-measured assuming the player holds the
+ascension a tier expects. An ascension rank that is not in that model is the
+thing that stays forbidden."*
+
+**Half of it had been built.** The scale exists, is capped, and is summed
+*inside* Resolve's ceiling rather than multiplied after it - which is the whole
+safety of the re-cut, because an ascended Warden with maxed Resolve then stands
+at one ceiling rather than at the product of two. What did not exist was the
+model: `curve_report` printed *"which this model does not carry"*, which is the
+forbidden half in as many words.
+
+**It carries it now**, applied to the half of capability it actually touches.
+Ascension moves what the Warden *survives*, so it scales the hero and the
+spirit at their shoulder and nothing else - a tower's uptime is not improved by
+the person standing near it. A hero taking `1 - m` of the damage has `1 / (1 -
+m)` of the effective health, and sustained contribution scales with how long
+they stand. `expected_rank_for_tier` derives what a Warden arriving at a
+difficulty holds from the *ladder* rather than from a field on the tier -
+Nightmare is 4, Hell is 8 - so the day a rung is added the expectation moves
+with it.
+
+**And the measurement said something worth acting on.** Carrying the rank moved
+the band by **0.002**. That is true, and it is not the answer: pressure is
+threat over *capability*, a model with no deaths in it, and the owner asked
+whether Nightmare is **survivable**. Those are two questions and the first
+cannot answer the second.
+
+So the report prints the second as a readout beside the band: **how many blows
+from the body that act sends the Warden can take**, act by act. It reads 5.7 in
+Act I falling to 1.0 by Act X, and a full ladder lifts that floor by 13.6% -
+which is where a rank is actually spent. Blows rather than seconds, because
+seconds need an arrival rate and that is a second model of the road. It prints
+and fails nothing, like the purse column, because giving it a verdict would be
+that second model with an opinion.
+
+**The line says which hero it is**, and that is not decoration. "1.0 blows"
+printed bare is the misreading this file keeps recording: it is `HERO_MAX_HP` -
+no levels, no Vigour, no gear - exactly as `_hero_dps` models a naked combo.
+Levelling and gear are the two capped scales that carry a real Warden past Act
+X; what the readout shows is the floor ascension lifts.
+
+**Nothing gated the ladder or the scale at all**, which for a system with an
+owner ruling, a new save key and a *power scale* is the gap this project gates
+hardest. `ascension_check` (118 checks with the mount's) holds that rungs climb
+in order and only in order - at the door that *writes* as well as the one that
+offers, because a relayed or replayed message never reaches `may_enter` - that
+each difficulty climbs its own, that an unbeaten Gatekeeper holds that
+difficulty's summit, that the record alone pays nothing, and that a rank moves
+survival and nothing else. Measured on a real hero through `Health.damage_scale`
+rather than read off the constants, because reading them back would pass on a
+build where the hero applied them twice.
+
+**Its first run failed, and the reason is one this file has recorded twice.** It
+read 12.8% against a 12.0% cap, because it was measuring the owner's live save:
+mitigation is a *sum*, so existing Resolve points make ascension's share a
+larger fraction of what is left. Resolve is zeroed for the measurement and the
+*difference* is taken rather than the ratio - the quantity the cap bounds is the
+mitigation added. A model that reads state measures whatever state it was
+handed, and it will not tell you which unless it is made to.
+
+Three faults were planted and all three named: one ladder shared across every
+difficulty, mitigation escaping the shared ceiling to 54.4% against Resolve's
+40%, and a rank granting a health pool.
+
+**And the mount animations had to be generated twice, which is a technique
+worth keeping.** PixelLab's *template* animations (`walk-8-frames`,
+`running-8-frames`) re-render the whole sprite: the steppe horse came back with
+its bedroll and saddlebags **gone from every frame**, the saddle changing colour
+between frames, detached artefacts in the air and almost no leg motion. That is
+the same failure `tools/lock_tower_frames.py` exists for, and the sheets were
+*worse than the base painting* - so they were deleted rather than shipped.
+
+**`mode: "v3"` with an `action_description` is the answer**, and one direction
+was piloted before forty-eight more were bought. The v3 walk keeps the bedroll,
+keeps the tack, cycles the legs properly and leaves no artefacts.
+
+Two things about packing it. v3 pads the canvas to **252** where a rotation is
+192, so frames have to be cropped - and **the crop is the union of every pose in
+a facing, never each frame's own**, because cropping a pose to its own content
+cancels exactly the motion the animation was generated for. That is the rule
+`install_boss_frames.py` settled on, for the same reason. And the ground line
+comes from the installed base painting, so every sheet agrees with every other -
+**unless this run is writing that base**, which it was for the Ash Courser,
+where the file on disk was still the magenta placeholder whose "ground line" is
+the bottom of the canvas. The tool refused a 27px shove downward and was right
+to.
+
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
