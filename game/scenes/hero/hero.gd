@@ -2107,6 +2107,12 @@ func _on_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_died(at: Vector2) -> void:
+	# **Off the horse first.** `_physics_process` returns on its first line for
+	# a hero who is not standing, so `_tick_mount` - which is what ends every
+	# other ride - never runs again after this frame. Without this a corpse is
+	# drawn sitting on a horse and its input stays muted, and a revive brings
+	# the Warden back still mounted and still unable to swing.
+	dismount()
 	# Asked by *effect*, never by id. The hero's question is "do I hold anything
 	# that stops a death"; what a Draught is happens to be the answer today and
 	# a second revive item is now a file rather than another branch here.
@@ -2144,6 +2150,9 @@ func _on_died(at: Vector2) -> void:
 func go_down(at: Vector2) -> void:
 	if _downed:
 		return
+	# Same reason as `_on_died`: a downed hero is not alive, so the tick that
+	# ends a ride stops running.
+	dismount()
 	_downed = true
 	_revive_progress = 0.0
 	_collapse(at)

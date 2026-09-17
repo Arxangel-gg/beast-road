@@ -365,6 +365,24 @@ func _test_the_field() -> void:
 		"the water came up over the knee and the Warden stayed in the saddle")
 	who.set("_swimming", false)
 
+	# --- A hero who falls comes off ------------------------------------------
+	#
+	# **The one ending `_tick_mount` cannot reach.** `_physics_process` returns
+	# on its first line for a hero who is not standing, so the tick that ends
+	# every other ride stops running the frame they fall. Left alone, the corpse
+	# is drawn on a horse and its input stays muted - so the revive brings back a
+	# Warden who cannot swing. Found by asking what else stops the tick rather
+	# than by anything failing: the gate was green with the hole in it.
+	who.set("_mount_wait", 0.0)
+	who.set("_swimming", false)
+	_check(who.mount(), "the Warden refused to mount before the death test")
+	who.go_down(who.global_position)
+	_check(not who.is_mounted(),
+		"a Warden who went down is still drawn sitting on a horse")
+	_check(who.input == null or who.input.muted == 0,
+		"a Warden who went down kept a muted input, so a revive brings back "
+			+ "somebody who cannot swing")
+
 	await _leave(run)
 
 
