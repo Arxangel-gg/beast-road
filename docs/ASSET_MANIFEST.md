@@ -2500,6 +2500,8 @@ a non-square target just letterboxes the art and shrinks it.
 | `ui_slot.png` | 128×128 | T | `#232F33` |
 | `ui_bar_fill.png` | 128×16 | T | `#C4552E` |
 | `ui_bar_back.png` | 128×16 | T | `#141C1F` |
+| `ui_bar_frame.png` | 24×24 | T | `#6B6257` |
+| `ui_bar_gloss.png` | 4×32 | T | `#FFFFFF` |
 | `ui_logo.png` | 1024×512 | T | `#E8A33D` |
 | `ui_app_icon.png` | 512×512 | T | `#181A1C` |
 | `ui_app_icon_192.png` | 192×192 | T | `#181A1C` |

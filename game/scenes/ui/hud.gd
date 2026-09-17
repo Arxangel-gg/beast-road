@@ -791,7 +791,14 @@ func _build_top_bar() -> void:
 	var journey_bar := HBoxContainer.new()
 	_journey_bar = journey_bar
 	journey_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	# **Seated under the top bar rather than at a number.** This was a hardcoded
+	# 52, which is a hand-kept description of how tall another container happens
+	# to be - and the moment the pools grew (2026-09-17) the act line came down
+	# onto the distance icons, which `layout_check` refused. It is measured now,
+	# so the strip can be any height it likes.
 	journey_bar.position = Vector2(24.0, 52.0)
+	bar.resized.connect(_seat_journey_bar)
+	_seat_journey_bar.call_deferred()
 	journey_bar.add_theme_constant_override("separation", 20)
 	add_child(journey_bar)
 	var distance_row: HBoxContainer = IconKit.labelled("distance", "0", 15, 21)
@@ -830,6 +837,9 @@ func _build_top_bar() -> void:
 	bar.add_child(_town_bar)
 
 	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
+	# The one bar a player watches in a fight, so it is the tall one.
+	_hero_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH,
+		Balance.UI_POOL_BAR_HEIGHT_HEALTH)
 	# **The bite that is about to be taken** (#74 of the forwarded juice list).
 	# The enemy bars have had this since they were written - `HealthBar` drains a
 	# `_trail_ratio` at `HEALTH_BAR_TRAIL_RATE` - and the hero's, the one bar the
@@ -844,6 +854,9 @@ func _build_top_bar() -> void:
 	_hero_trail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hero_trail.visible = false
 	_hero_bar.add_child(_hero_trail)
+	# **Under the frame and the sheen**, which `_make_bar` added first. A trail
+	# drawn over the frame reads as a crack across it.
+	_hero_bar.move_child(_hero_trail, 0)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
 
 	# Health over mana, in the width health had alone. The top bar is already
@@ -864,7 +877,6 @@ func _build_top_bar() -> void:
 	# Water tower's, the chill readout's and the co-op ally tint, so the one bar
 	# a caster watches looked like four other things on the same screen.
 	_mana_bar = _make_bar(Color(Balance.UI_MANA_INDIGO), HERO_BAR_WIDTH)
-	_mana_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 8.0)
 	_mana_bar.tooltip_text = "Mana. Spells draw on it; Focus deepens it and refills it faster."
 	_name_the_bar(_mana_bar, "MP")
 	pools.add_child(_mana_bar)
@@ -872,11 +884,10 @@ func _build_top_bar() -> void:
 	# under the health: the top bar has no width to give, and three thin bars in
 	# one column is what `layout_check` has room for at 430 wide.
 	#
-	# Green, and deliberately a green nothing else on this screen uses: health is
-	# cyan-through-red and mana is indigo, so a glance at the column tells the
-	# three apart by hue before it reads a letter.
+	# Light gold (owner, 2026-09-17), and deliberately a colour nothing else in
+	# this column uses: health is cyan-through-red and mana is indigo, so a
+	# glance tells the three apart by hue before it reads a letter.
 	_stamina_bar = _make_bar(Color(Balance.UI_STAMINA_GREEN), HERO_BAR_WIDTH)
-	_stamina_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 7.0)
 	_stamina_bar.tooltip_text = ("Stamina. Sprint with %s, or by holding the "
 		+ "dash button; it comes back when you stop.") % KeyBindings.label_for(&"sprint")
 	_name_the_bar(_stamina_bar, "SP")
@@ -998,24 +1009,93 @@ func _bar_icon(id: String, fallback: String) -> Control:
 ## `ui_bar_back.png` could never appear no matter what the theme said. Tinting a
 ## textured fill keeps the art's vertical shading, which is what makes a bar look
 ## lit rather than filled in.
+## The pools' frame and sheen, authored by `tools/build_bar_frames.py` at the
+## size they are drawn. Nine-patch margins match that file's own.
+const POOL_FRAME_ART: String = "res://art/ui/ui_bar_frame.png"
+const POOL_GLOSS_ART: String = "res://art/ui/ui_bar_gloss.png"
+const POOL_FRAME_MARGIN: int = 6
+
+## **A pool bar: a trough cut into the plate, an exact fill, a sheen and a
+## frame over the lot** (owner, 2026-09-17: *"elevate those bars, they should
+## have aesthetically appealing pixelart frames and be polished for production
+## release not look like they're prototype like they do now"*).
+##
+## **The fill is a flat colour now, and that is the answer to the other half
+## of the report.** It used to be the theme's `ui_bar_fill.png` tinted by
+## `modulate_color`, and that art is a saturated orange ramp whose blue channel
+## runs between 0.17 and 0.24 - so a bar asked for indigo could not be indigo,
+## whatever it was multiplied by. `_multiply_for` corrected the ramp's *mean*
+## and could not correct its *range*, which is why the mana bar was reported as
+## still not indigo after it was already 'fixed'. A flat box is the colour it
+## was given, at every texel, and cannot drift when somebody repaints the ramp.
+##
+## The sheen is a white alpha gradient laid over the fill rather than a tint
+## multiplied into it: adding light keeps the hue, multiplying grey removes it.
 func _make_bar(colour: Color, width: float) -> ProgressBar:
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(width, 22.0)
+	bar.custom_minimum_size = Vector2(width, Balance.UI_POOL_BAR_HEIGHT)
 	bar.max_value = 1.0
 	bar.value = 1.0
 	bar.show_percentage = false
 
-	var fill: StyleBox = bar.get_theme_stylebox("fill", "ProgressBar")
-	if fill is StyleBoxTexture:
-		var tinted: StyleBoxTexture = (fill as StyleBoxTexture).duplicate()
-		tinted.modulate_color = _multiply_for(colour)
-		bar.add_theme_stylebox_override("fill", tinted)
-	else:
-		var flat := StyleBoxFlat.new()
-		flat.bg_color = colour
-		bar.add_theme_stylebox_override("fill", flat)
+	var trough := StyleBoxFlat.new()
+	trough.bg_color = Color(Balance.UI_POOL_TROUGH)
+	trough.set_corner_radius_all(2)
+	bar.add_theme_stylebox_override("background", trough)
+
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = colour
+	fill.set_corner_radius_all(2)
+	# A lit top edge and a darker foot, so the pool has a thickness rather than
+	# being a stripe of paint. One pixel each: at sixteen units tall, two is a
+	# quarter of the bar.
+	fill.border_width_top = 1
+	fill.border_width_bottom = 1
+	fill.border_color = colour.lightened(0.35)
+	bar.add_theme_stylebox_override("fill", fill)
+
+	_dress_bar(bar, colour)
 	return bar
 
+
+## The sheen and the frame, as children over the fill.
+##
+## Children rather than more styleboxes because a `ProgressBar` has exactly two
+## and both are spoken for - and because the frame has to be drawn *over* the
+## fill while the fill is drawn over the background, which two styleboxes
+## cannot express.
+func _dress_bar(bar: ProgressBar, colour: Color) -> void:
+	var gloss := TextureRect.new()
+	gloss.name = "Gloss"
+	if ResourceLoader.exists(POOL_GLOSS_ART):
+		gloss.texture = load(POOL_GLOSS_ART) as Texture2D
+	gloss.set_anchors_preset(Control.PRESET_FULL_RECT)
+	gloss.offset_left = 2.0
+	gloss.offset_right = -2.0
+	gloss.offset_top = 2.0
+	gloss.offset_bottom = -2.0
+	gloss.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	gloss.stretch_mode = TextureRect.STRETCH_SCALE
+	gloss.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Additive, so it can only add light. A sheen that multiplied would darken
+	# the pool it is meant to catch the eye with - the rule `UiTint` is held to.
+	gloss.modulate = Color(1.0, 1.0, 1.0, Balance.UI_POOL_GLOSS)
+	bar.add_child(gloss)
+
+	var frame := NinePatchRect.new()
+	frame.name = "Frame"
+	if ResourceLoader.exists(POOL_FRAME_ART):
+		frame.texture = load(POOL_FRAME_ART) as Texture2D
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.patch_margin_left = POOL_FRAME_MARGIN
+	frame.patch_margin_right = POOL_FRAME_MARGIN
+	frame.patch_margin_top = POOL_FRAME_MARGIN
+	frame.patch_margin_bottom = POOL_FRAME_MARGIN
+	# The centre is transparent in the art; drawing it would paint over the pool.
+	frame.draw_center = false
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(frame)
 
 ## **What to multiply the fill art by so the bar comes out the colour it was
 ## asked for.**
@@ -2348,6 +2428,15 @@ func _refresh_quiver() -> void:
 	IconKit.resize_labelled(_quiver_row, kind.id,
 		TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() else TOP_BAR_ICON)
 	_quiver_label.text = "%d  %s" % [RunState.ammo_count(kind.id), kind.display_name]
+
+
+## Puts the journey line directly under the top strip, whatever that strip is
+## currently tall. Called when it resizes, which is every layout change.
+func _seat_journey_bar() -> void:
+	if _journey_bar == null or _top_bar == null:
+		return
+	_journey_bar.position = Vector2(24.0,
+		_top_bar.offset_top + maxf(_top_bar.size.y, 24.0) + Balance.UI_TOP_BAR_GAP)
 
 
 func _size_top_bar() -> void:

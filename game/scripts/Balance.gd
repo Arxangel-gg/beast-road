@@ -5746,10 +5746,20 @@ const FLAME_OFFSCREEN_MARGIN: float = 320.0
 ## It was `5b8fd9`, within a few percent of the Water tower's tint, the chill
 ## readout and the co-op ally colour - so the bar a caster watches looked like
 ## four other things on the same screen. Indigo is nothing else's. [TUNE]
-const UI_MANA_INDIGO: String = "6a5acd"
-## SP. A green nothing else on this screen uses, so the three pools in the
-## column are told apart by hue before a letter is read.
-const UI_STAMINA_GREEN: String = "5fbf6a"
+## **It was `6a5acd` until 2026-09-17 and the owner reported it as still not
+## indigo, twice.** They were right: that is slate blue - hue 248, saturation
+## 0.56 - and it reads as periwinkle beside a cyan health bar. This is hue
+## 258 at saturation 0.71, which is the colour the word means. [TUNE]
+const UI_MANA_INDIGO: String = "6a3fd8"
+## SP, light gold (owner, 2026-09-17). Nothing else in the pools column uses
+## it - health is cyan through red and mana is indigo - so the three are told
+## apart by hue before a letter is read, which was the green's job and is now
+## this. Gold also happens to be the interface's own accent, which is the
+## right family for the bar that says how much running is left in the legs.
+##
+## The name keeps `GREEN` so that nothing reading it has to be found and
+## renamed in the same change as a colour report; it is a *value* that moved.
+const UI_STAMINA_GREEN: String = "e8cf7a"
 ## **Health as a state, not a length** (owner, 2026-09-16). Cyan while it is
 ## whole, through amber, to red as it empties - and under the critical share it
 ## pulses, so a player whose eyes are on the field catches it without reading it.
@@ -10223,3 +10233,28 @@ const PARTY_ROAD_ANSWER_SECONDS: float = 20.0
 ## a forge that flickers at the rate a fire does reads as an alarm at this size,
 ## and a Hold is somewhere you stand about in rather than something happening.
 const HOLD_IDLE_FPS: float = 2.4
+
+
+# --- The pool bars (owner, 2026-09-17) ---------------------------------------
+#
+# "Elevate those bars, they should have aesthetically appealing pixelart frames
+# and be polished for production release not look like they're prototype."
+
+## How tall a pool bar is by default. The health bar sets its own above this and
+## the two thin ones sat at seven and eight units, which is under what a bevel
+## needs to read as a bevel - a frame round a seven-pixel bar is three pixels of
+## frame and one of pool.
+const UI_POOL_BAR_HEIGHT: float = 16.0
+## What the health bar takes, since it is the one a player watches in a fight.
+const UI_POOL_BAR_HEIGHT_HEALTH: float = 26.0
+## The cut the pools sit in. Darker than any plate, so a bar reads as a hollow
+## rather than as a rectangle laid on top of one.
+const UI_POOL_TROUGH: String = "14120f"
+## How strong the sheen over a full pool is. Additive, so it may only add light.
+const UI_POOL_GLOSS: float = 0.5
+
+## The gap under the top strip, before the journey line. The strip's height is
+## whatever its tallest child is - the pools column - so the line below it is
+## measured rather than written down. It was a hardcoded 52 until the pools grew
+## on 2026-09-17 and the act name came down onto the distance icons.
+const UI_TOP_BAR_GAP: float = 8.0
