@@ -10210,3 +10210,9 @@ const WALK_WAVE_BODIES: int = 6
 ## The ending is the one moment in the Walk that is not a lesson; cutting
 ## straight off the back of it into a loading screen throws it away.
 const WALK_ENDING_SECONDS: float = 13.0
+
+## How long the rest of a party has to answer when the host puts a road to them
+## (owner brief, 2026-09-17). Long enough to read what kind of road it is and
+## short enough that one seat away from the keyboard does not hold the rest in
+## a yard - and a road nobody answers goes anyway when it runs out.
+const PARTY_ROAD_ANSWER_SECONDS: float = 20.0

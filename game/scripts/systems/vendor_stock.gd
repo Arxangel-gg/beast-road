@@ -90,7 +90,12 @@ static func is_due() -> bool:
 	var shelf: Dictionary = _shelf()
 	if bool(shelf.get("owed", false)):
 		return true
-	if not (shelf.get("stock", []) is Array) or (shelf["stock"] as Array).is_empty():
+	# **Read through `get` both times.** A shelf that has never been stocked has
+	# no `stock` key at all, and indexing a missing key on a Dictionary is an
+	# error rather than a null - so the guard that was meant to catch that case
+	# was the line that threw on it, on the very first look of a new account.
+	var stock: Variant = shelf.get("stock", [])
+	if not (stock is Array) or (stock as Array).is_empty():
 		return true
 	return seconds_left() <= 0.0
 

@@ -187,6 +187,9 @@ enum Fact {
 	HOLD_SEATS = 80,
 	HOLD_MOVED = 81,
 	HOLD_HANDOVER = 82,
+	## **The host is taking the party out** (2026-09-17): the kind of road, the
+	## act it opens at, a line describing it, and the seconds to answer in.
+	PARTY_RUN_OFFER = 83,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -271,6 +274,8 @@ enum Request {
 	## A guest's Warden moved in the Hold. The host re-announces it as a fact
 	## carrying the seat, so four machines agree about who walked.
 	HOLD_MOVE = 36,
+	## A guest answered the host's road offer: accepted, or not.
+	PARTY_RUN_REPLY = 37,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -433,6 +438,7 @@ func _fact_bindings() -> Array:
 		["hold_seats", _on_hold_seats],
 		["hold_moved", _on_hold_moved],
 		["hold_handover", _on_hold_handover],
+		["party_run_offered", _on_party_run_offered],
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
 		["coop_world_clock", _on_coop_world_clock],
@@ -525,6 +531,11 @@ func _on_hold_moved(seat: int, at: Vector2, facing: Vector2) -> void:
 
 func _on_hold_handover(who: String) -> void:
 	_relay(Fact.HOLD_HANDOVER, [who])
+
+
+func _on_party_run_offered(kind: int, act: int, detail: String,
+		seconds: float) -> void:
+	_relay(Fact.PARTY_RUN_OFFER, [kind, act, detail, seconds])
 
 
 func _on_wave_cleared(wave: int) -> void:
@@ -1100,6 +1111,10 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.HOLD_HANDOVER:
 			if args.size() == 1:
 				bus.hold_handover.emit(String(args[0]))
+		Fact.PARTY_RUN_OFFER:
+			if args.size() == 4:
+				bus.party_run_offered.emit(int(args[0]), int(args[1]),
+					String(args[2]), float(args[3]))
 		Fact.PARTNER_WORKED:
 			if args.size() == 4 and args[3] is Color:
 				bus.coop_partner_worked.emit(int(args[0]), String(args[1]),

@@ -77,6 +77,7 @@ func _ready() -> void:
 	EventBus.hold_moved.connect(_on_moved_told)
 	EventBus.hold_handover.connect(_on_handover_told)
 	EventBus.coop_request_received.connect(_on_request)
+	set_process(true)
 
 
 # ------------------------------------------------------------------ the policy
@@ -360,6 +361,11 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			if args.size() < 2:
 				return
 			EventBus.hold_moved.emit(slot, args[0] as Vector2, args[1] as Vector2)
+		CoopRelay.Request.PARTY_RUN_REPLY:
+			if args.is_empty():
+				return
+			_answers[slot] = bool(args[0])
+			EventBus.party_run_replied.emit(slot, bool(args[0]))
 
 
 ## Guest side: say who I am, once my seat is known.
@@ -454,3 +460,84 @@ func _on_handover_told(who: String) -> void:
 
 func handed_to() -> String:
 	return _handed_to
+
+
+# ---------------------------------------------------------------- the road out
+#
+# Owner brief, 2026-09-17: *"From the hold itself players should be able to form
+# parties with other players to go on a run with if they so choose, or a player
+# can also go on a run solo as well from the hold too, while still being able to
+# go on runs from the main menu without going into the hold as well ... once the
+# host is ready to start the run, they will prompt the rest of the party that
+# the run is a continue run with the appropriate details about the run and the
+# rest of the party will be given a timed chance to accept to join the host on
+# their continued run. The host is also able to choose to do a new run or start
+# from an act as well with their party besides just continuing a run."*
+#
+# **A proposal rather than a departure**, which is the shape `PartyEvents`
+# already put raids and rifts to a party in: the host owns the run, and a road
+# is the one decision that costs everybody the next hour. A continued run in
+# particular is *somebody else's* banked front, so the party is told which kind
+# of road it is, where it opens, and how long they have to answer.
+#
+# **The host decides when it is not unanimous**, exactly as it does for a raid,
+# and a road nobody answers goes anyway once the clock runs out - a party left
+# standing in a yard because one seat walked away from the keyboard is worse
+# than a road one player did not want.
+
+## What kind of road is being offered. Appended to, never inserted: the wire
+## carries it by number.
+enum Road { FRESH, CONTINUE, ACT_START }
+
+## Who has answered, by seat. Host side, cleared when an offer opens.
+var _answers: Dictionary = {}
+var _offer: int = -1
+var _offer_left: float = 0.0
+
+
+## Host side: put a road to the party. Returns false when there is nobody to
+## ask, which is the solo case and is the caller's cue to simply go.
+func offer_run(kind: int, act: int, detail: String) -> bool:
+	if not Coop.is_host() or occupied() < 2:
+		return false
+	_answers.clear()
+	_offer = kind
+	_offer_left = Balance.PARTY_ROAD_ANSWER_SECONDS
+	EventBus.party_run_offered.emit(kind, act, detail,
+		Balance.PARTY_ROAD_ANSWER_SECONDS)
+	return true
+
+
+## Guest side: yes or no to the road that was put to us.
+func reply(accepted: bool) -> void:
+	if not Coop.is_guest():
+		return
+	var line: CoopRelay = Coop.relay()
+	if line != null:
+		line.request(CoopRelay.Request.PARTY_RUN_REPLY, [accepted])
+
+
+## Whether every seat has answered. Host side.
+func everyone_answered() -> bool:
+	return _answers.size() >= maxi(occupied() - 1, 0)
+
+
+## Who said yes, by seat. Host side.
+func accepted_seats() -> Array[int]:
+	var out: Array[int] = []
+	for key: Variant in _answers:
+		if bool(_answers[key]):
+			out.append(int(key))
+	return out
+
+
+func offer_seconds_left() -> float:
+	return _offer_left
+
+
+func _process(delta: float) -> void:
+	if _offer < 0:
+		return
+	_offer_left = maxf(_offer_left - delta, 0.0)
+	if _offer_left <= 0.0 or everyone_answered():
+		_offer = -1

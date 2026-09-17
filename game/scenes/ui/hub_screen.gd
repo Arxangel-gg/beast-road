@@ -67,6 +67,12 @@ var _note: Label = null
 var _doors_button: Button = null
 var _public_button: Button = null
 var _note_left: float = 0.0
+## The road out: the chooser the host presses, and the timed answer a guest is
+## given when somebody else presses it.
+var _road_panel: PanelContainer = null
+var _road_rows: VBoxContainer = null
+var _answer_left: float = 0.0
+var _answer_line: Label = null
 
 
 func _ready() -> void:
@@ -153,6 +159,9 @@ func _build_frame() -> void:
 	_prompt.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	_prompt.add_theme_constant_override("outline_size", 6)
 	frame.add_child(_prompt)
+
+	_build_road_panel(frame)
+	EventBus.party_run_offered.connect(_on_road_offered)
 
 
 func _strip_button(row: HBoxContainer, text: String, on: Callable) -> Button:
@@ -283,6 +292,12 @@ func _process(delta: float) -> void:
 		_note_left -= delta
 		if _note_left <= 0.0 and _note != null:
 			_note.text = ""
+	if _answer_left > 0.0:
+		_answer_left -= delta
+		if _answer_line != null and is_instance_valid(_answer_line):
+			_answer_line.text = "%d seconds to answer" % int(ceil(_answer_left))
+		if _answer_left <= 0.0:
+			_hide_road()
 	if _portrait == null or _portrait_frames <= 1 or not _card_root.visible:
 		return
 	var atlas := _portrait.texture as AtlasTexture
@@ -412,6 +427,8 @@ func _on_entered(station: String) -> void:
 	UiSound.confirm()
 	if station == "card":
 		_show_card()
+	elif station == "road":
+		_show_road()
 
 
 # ---------------------------------------------------------------- the card
@@ -655,3 +672,155 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		_yard.walk_toward(at)
 	get_viewport().set_input_as_handled()
+
+
+# ------------------------------------------------------------- the road out
+#
+# Owner brief, 2026-09-17: a party is formed in the Hold and taken out from
+# it, or a Warden goes alone; and when the host takes a party onto a road the
+# rest are told what kind of road it is and given a clock to answer in.
+#
+# **Three roads, and they are the three the front door already offers**, which
+# is deliberate: the Hold is a second way to the same doors rather than a
+# second set of rules. Continuing is offered only when there is a front to
+# continue, and an act start only when the account has reached one.
+
+
+func _build_road_panel(frame: Control) -> void:
+	_road_panel = PanelContainer.new()
+	_road_panel.name = "Road"
+	_road_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_road_panel.visible = false
+	frame.add_child(_road_panel)
+
+	_road_rows = VBoxContainer.new()
+	_road_rows.add_theme_constant_override("separation", 8)
+	_road_rows.custom_minimum_size = Vector2(520.0, 0.0)
+	_road_panel.add_child(_road_rows)
+
+
+## The host's own press: what kind of road, and who is coming.
+func _show_road() -> void:
+	if _road_panel == null:
+		return
+	_clear_road()
+	_answer_left = 0.0
+	_road_line("THE ROAD OUT", 20, Color("e8a33d"))
+	if Coop.is_guest():
+		_road_line("The Hold's host takes the road. You will be asked.", 15,
+			Color("b8ae98"))
+		_road_button("Close", _hide_road)
+		_road_panel.visible = true
+		return
+	if MetaState.has_expedition():
+		var front: Dictionary = MetaState.expedition
+		_road_button("Continue  ·  %s" % Expedition.describe(front),
+			func() -> void: _take_the_road(HoldSession.Road.CONTINUE,
+				int(front.get("act", 1)), Expedition.describe(front)))
+	var furthest: int = ActStart.furthest_act()
+	if furthest > 1:
+		_road_button("Start at Act %d" % furthest,
+			func() -> void: _take_the_road(HoldSession.Road.ACT_START, furthest,
+				"a fresh road opening at Act %d" % furthest))
+	_road_button("Take the Road  ·  a new expedition",
+		func() -> void: _take_the_road(HoldSession.Road.FRESH, 1,
+			"a new expedition from Act I"))
+	_road_button("Close", _hide_road)
+	_road_panel.visible = true
+
+
+## **Alone, it simply goes. With a party, it asks first.**
+##
+## The host owns the run - that has not changed - but a road is the one
+## decision in this game that costs everybody the next hour, and a continued
+## run is somebody else's banked front. So the party is told which kind of road
+## it is and given a clock, exactly as a raid or a rift is put to them.
+func _take_the_road(kind: int, act: int, detail: String) -> void:
+	if _session != null and _session.offer_run(kind, act, detail):
+		_clear_road()
+		_road_line("Asking the party...", 17, Color("e8a33d"))
+		_road_line(detail, 15, Color("b8ae98"))
+		_answer_left = Balance.PARTY_ROAD_ANSWER_SECONDS
+		_answer_line = _road_line("", 14, Color("9fd2b4"))
+		_road_button("Go now", func() -> void: _begin_road(kind, act))
+		return
+	_begin_road(kind, act)
+
+
+func _begin_road(kind: int, act: int) -> void:
+	_hide_road()
+	close()
+	match kind:
+		HoldSession.Road.CONTINUE:
+			GameDirector.start_run(0, true)
+		HoldSession.Road.ACT_START:
+			GameDirector.start_run(0, false, act, "")
+		_:
+			GameDirector.start_run()
+
+
+## A guest being asked. The clock is the host's and is shown rather than kept:
+## a prompt with no visible end reads as a prompt that is waiting for you
+## rather than one that is about to answer itself.
+func _on_road_offered(kind: int, _act: int, detail: String, seconds: float) -> void:
+	if _road_panel == null or Coop.is_host():
+		return
+	if not visible:
+		open()
+	_clear_road()
+	_road_line("THE HOST IS TAKING THE ROAD", 18, Color("e8a33d"))
+	_road_line(_road_words(kind), 16, Color("f2e6d0"))
+	_road_line(detail, 15, Color("b8ae98"))
+	_answer_left = seconds
+	_answer_line = _road_line("", 14, Color("9fd2b4"))
+	_road_button("Come along", func() -> void:
+		if _session != null:
+			_session.reply(true)
+		_hide_road())
+	_road_button("Stay in the Hold", func() -> void:
+		if _session != null:
+			_session.reply(false)
+		_hide_road())
+	_road_panel.visible = true
+
+
+func _road_words(kind: int) -> String:
+	match kind:
+		HoldSession.Road.CONTINUE:
+			return "A run they had already begun, picked up where they left it."
+		HoldSession.Road.ACT_START:
+			return "A fresh road opening further along than Act I."
+		_:
+			return "A new expedition, from the beginning."
+
+
+func _clear_road() -> void:
+	_answer_line = null
+	for child: Node in _road_rows.get_children():
+		_road_rows.remove_child(child)
+		child.queue_free()
+
+
+func _hide_road() -> void:
+	_answer_left = 0.0
+	_answer_line = null
+	if _road_panel != null:
+		_road_panel.visible = false
+
+
+func _road_line(text: String, size: int, colour: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", colour)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_road_rows.add_child(label)
+	return label
+
+
+func _road_button(text: String, on: Callable) -> void:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.pressed.connect(on)
+	_road_rows.add_child(button)

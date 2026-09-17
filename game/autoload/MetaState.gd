@@ -1782,7 +1782,19 @@ func load_save() -> void:
 		data = migrate_save(data, text)
 		if data.is_empty():
 			return
+	adopt_save(data)
 
+
+## **Reads an account out of a parsed save**, which is everything `load_save`
+## does once the file has been read, its version judged and any migration
+## applied.
+##
+## Split out 2026-09-17 so a gate can drive a *restart* rather than describe
+## one. The Market's shelf is written to disk for exactly one reason - the
+## owner's rule that closing and reopening the game must not re-roll a shop -
+## and a check for that which re-implements the load is a check of a copy. The
+## loader is the thing under test, so the loader is the thing called.
+func adopt_save(data: Dictionary) -> void:
 	var unlocked: Dictionary = data.get("unlocked", {}) as Dictionary
 	unlocked_towers = _string_array(unlocked.get("towers", []))
 	_seed_starting_roster()

@@ -655,6 +655,14 @@ jobs:
           check "wave library" --headless --path game res://tools/wave_library_check.tscn
           check "journey" --headless --path game res://tools/journey_check.tscn
           check "act start" --headless --path game res://tools/act_start_check.tscn
+          # The Hold as a place, the Market's shelf and Orden's commission:
+          # every station presses a door that exists, the shelf keeps its
+          # stock across a restart, and buying is always dearer than selling.
+          check "hold" --headless --path game res://tools/hold_check.tscn
+          # The Walk pays its ledger once and moves no statistic, no level and
+          # no purse - and a once-only flag that is never read back is a fault
+          # this project has already shipped.
+          check "walk" --headless --path game res://tools/tutorial_walk_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

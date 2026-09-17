@@ -82,6 +82,8 @@ const STATIONS: Array[Dictionary] = [
 		"label": "The Pens", "at": Vector2(560.0, -300.0)},
 	{"id": "card", "door": "", "art": "res://art/battlefield/war_totem.png",
 		"label": "The Warden's Stone", "at": Vector2(60.0, 120.0)},
+	{"id": "road", "door": "", "art": "res://art/city/plot_locked.png",
+		"label": "The Road Out", "at": Vector2(-180.0, 430.0)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
 		"label": "The Gate", "at": Vector2(-420.0, 330.0)},
 ]

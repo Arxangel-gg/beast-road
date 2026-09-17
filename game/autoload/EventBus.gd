@@ -1009,3 +1009,16 @@ signal walk_stop_done(stop_id: String)
 signal walk_chain_cut()
 ## The Walk ended, by the chain or by the skip.
 signal walk_ended(finished: bool)
+
+
+## **The host is taking the party out** (owner brief, 2026-09-17): which kind
+## of road, what it is, and how long the rest of the party has to answer.
+##
+## A proposal rather than a departure. The host owns the run, but a road is
+## the one decision in this game that costs everybody the next hour, and a
+## continued run in particular is *somebody else's* banked front - so the
+## party is told what it is and given a clock, exactly as a raid or a rift is
+## put to them.
+signal party_run_offered(kind: int, act: int, detail: String, seconds: float)
+## A seat answered. Host side.
+signal party_run_replied(slot: int, accepted: bool)
