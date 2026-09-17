@@ -247,7 +247,13 @@ func _apply_seat(lift: float = 0.0) -> void:
 ## Remembered rather than assumed, because the hero's sprite may carry an offset
 ## of its own one day and clearing this to zero would quietly take that with it.
 func _seat(y: float) -> void:
-	if rider == null or is_equal_approx(y, _seat_applied):
+	# **Validity, not just null.** `_exit_tree` calls this to put the rider
+	# back down, and a hero being freed frees its sprite too - touching a
+	# freed object throws in Godot, which is the fault `Battlefield._process`
+	# shipped once with a companion and flooded the log with.
+	if rider == null or not is_instance_valid(rider):
+		return
+	if is_equal_approx(y, _seat_applied):
 		return
 	rider.offset.y += y - _seat_applied
 	_seat_applied = y
