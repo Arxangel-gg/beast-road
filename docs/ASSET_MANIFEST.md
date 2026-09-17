@@ -1428,7 +1428,7 @@ Files: `relic_01.png` … `relic_80.png`, plus `relic_core_drowned_choir.png`,
 `relic_core_mistwarden.png`, `relic_core_rustmother.png`,
 `relic_core_brinefather.png`, `relic_core_horde_warlord.png`,
 `relic_core_glass_colossus.png`, `relic_core_cinder_titan.png`,
-`relic_core_gatekeeper.png`.
+`relic_core_gatekeeper.png`, `relic_core_last_anchor.png`.
 
 > One core an act, and there are ten acts. Seven of them were missing until
 > 2026-09-13, which meant seven acts paid no core at all - the reward is

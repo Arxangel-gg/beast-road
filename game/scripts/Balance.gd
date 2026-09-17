@@ -10399,6 +10399,10 @@ const STABLE_PAUSE_MAX: float = 5.2
 ## thing the animal is doing rather than a pose it passes through.
 const STABLE_GRAZE_MIN: float = 3.0
 const STABLE_GRAZE_MAX: float = 7.5
-## How often a paddock horse plays its own frame. Slower than a road animal,
-## because nothing in a paddock is in a hurry.
-const STABLE_IDLE_FPS: float = 3.0
+## **There is no paddock frame rate here any more**, and that is the paddock
+## being built properly rather than a constant going missing. A paddock horse
+## is a `MountRig` now - the same rig the Warden rides - so its frames are
+## paced by that one table and by how fast the animal is actually walking. A
+## second rate here would be a second opinion about how a horse moves, and the
+## two would drift. `balance_reach_check` refused it the moment it stopped
+## being read, which is that gate doing its job.

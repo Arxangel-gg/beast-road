@@ -172,6 +172,11 @@
   "art/enemies/enemy_wolf_rider": {
     "move": "78493cb3-92cd-4a7b-b366-dd5e57509826"
   },
+  "art/icons/relics/relic_core_last_anchor.png": {
+    "image": "fdc9493f-fc7d-50c6-b13b-83ca09c63082",
+    "job": "45491302-c93a-472b-932a-0a1c20754eca",
+    "note": "broken iron anchor-spike wrapped in chain, styled from relic_core_gatekeeper"
+  },
   "art/icons/ui/ui_food": {
     "base": "ce7a1603-7aff-4446-810f-3141db9abd71"
   },
@@ -189,18 +194,18 @@
     "first_frame": "a5ae163b-d3dd-5f0a-8d60-a32587aee3ce"
   },
   "art/mounts/mount_marsh_pony": {
-    "character": "937fe4d4-efd9-4e9b-bed7-f1bfdac17cf1",
-    "base": "1d381bd2-bf80-4049-bdb2-1d87fdeaaad3"
+    "base": "1d381bd2-bf80-4049-bdb2-1d87fdeaaad3",
+    "character": "937fe4d4-efd9-4e9b-bed7-f1bfdac17cf1"
   },
   "art/mounts/mount_steppe_horse": {
-    "character": "1abf78cd-736e-411c-971d-a5bc25638178",
     "base": "b0079fa9-e72d-475b-8cc8-d7a59a823644",
-    "walk_group": "e2065b89-9d14-4901-b9a2-a63f808b8cbe",
-    "gallop_group": "1093e34d-370c-4855-b2f7-4486af35d34b"
+    "character": "1abf78cd-736e-411c-971d-a5bc25638178",
+    "gallop_group": "1093e34d-370c-4855-b2f7-4486af35d34b",
+    "walk_group": "e2065b89-9d14-4901-b9a2-a63f808b8cbe"
   },
   "art/mounts/mount_terrace_stag": {
-    "character": "19d58ace-38d6-42b9-aa38-5a32d2452fa6",
-    "base": "edcec1e4-f701-4b8e-a09b-7892c21dce09"
+    "base": "edcec1e4-f701-4b8e-a09b-7892c21dce09",
+    "character": "19d58ace-38d6-42b9-aa38-5a32d2452fa6"
   },
   "art/raid/dungeon_crystals": {
     "image": "faeda173-0d2c-41ed-92d1-591998e8e4b8"
