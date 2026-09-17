@@ -1782,8 +1782,17 @@ func _say_wind() -> void:
 	EventBus.hero_stamina_changed.emit(mount_wind, _mount.stamina)
 
 
-## Dirt off the hooves while galloping, on its own clock. A puff a frame is a
-## solid cloud; this is four feet leaving the ground.
+## Dirt off the hooves while galloping, and the hooves themselves, on one
+## clock. A puff a frame is a solid cloud; this is four feet leaving the
+## ground, and it should be heard as well as seen.
+##
+## **The Warden's own heavy footfall, pitched down.** There is no hoofbeat
+## recording and inventing an id would name a sound that does not exist -
+## which `audio_verify` refuses, correctly, and which is how every loot sound
+## in this game was silent for months. A heavy boot on dirt dropped a fifth
+## is close enough to carry a gallop, and the day a real hoofbeat is recorded
+## it replaces one group name here. Positional, because a horse can gallop
+## somewhere the camera is not - see the policy on `Sfx.play_group_at`.
 func _kick_up_hooves(delta: float) -> void:
 	_mount_dust -= delta
 	if _mount_dust > 0.0:
@@ -1791,6 +1800,8 @@ func _kick_up_hooves(delta: float) -> void:
 	_mount_dust = Balance.MOUNT_DUST_INTERVAL
 	var behind: Vector2 = global_position - velocity.normalized() * 20.0
 	Vfx.dust(behind, Color(0.55, 0.49, 0.4), 4, 34.0)
+	Sfx.play_group_at("sfx_footstep_dirt", global_position,
+		Balance.MOUNT_HOOF_DB, Balance.MOUNT_HOOF_PITCH)
 
 
 ## Points the mount and paces its legs. Presentation only.

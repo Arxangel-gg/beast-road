@@ -846,6 +846,7 @@ An idle sheet is 192×1536: one frame, eight facings.
 | `mount_marsh_pony_idle.png` | 192×1536 | T | `#6B5A44` |
 | `mount_steppe_horse_idle.png` | 192×1536 | T | `#7A6448` |
 | `mount_terrace_stag_idle.png` | 192×1536 | T | `#5E5140` |
+| `mount_ash_courser_idle.png` | 192×1536 | T | `#4A423E` |
 
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 

@@ -51,6 +51,12 @@ ART = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 
 
 def fetch(url: str) -> Image.Image:
+    # **A local path is read as a local path.** PixelLab hands out frame URLs
+    # for an animation and a *zip* for a whole character, so both routes have
+    # to arrive here - and a file:// URL on Windows is a drive letter away from
+    # working on the first try every time.
+    if not url.startswith("http"):
+        return Image.open(url).convert("RGBA")
     # **A User-Agent, because the store refuses the default one.** Backblaze
     # answers urllib's `Python-urllib/3.x` with 403 and the same URL with 200
     # from curl, which reads as an expired link rather than as a blocked client.
@@ -194,8 +200,14 @@ def main() -> None:
     # jumps a few pixels the moment it starts walking, which reads as the mount
     # popping rather than as a foot wandering. The base is the master, the way
     # `lock_tower_frames.py` makes a tower's base the master for its frames.
+    # **A base this run is about to write is not a master yet.** The one on
+    # disk before then is the manifest placeholder - a full magenta square,
+    # whose "ground line" is the bottom of the canvas - and aligning real
+    # frames to that shoves every one of them down by twenty-odd pixels. The
+    # assertion in `align` caught exactly that, which is the assertion
+    # working; this is the cause.
     rows = []
-    ground = ground_of_base(args.mount_id)
+    ground = None if args.base else ground_of_base(args.mount_id)
     for facing in FACINGS:
         frames = [fit(fetch(url)) for url in by_facing[facing]]
         if ground is None:

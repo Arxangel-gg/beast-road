@@ -10329,6 +10329,12 @@ const MOUNT_WIND_FLOOR: float = 20.0
 ## How long after the last gallop stride before the wind starts coming back.
 const MOUNT_WIND_REST: float = 0.5
 
+## What a hoofbeat is, until one is recorded: the Warden's own heavy footfall
+## on dirt, louder and pitched down. See `Hero._kick_up_hooves` for why it is
+## an existing group rather than a new id.
+const MOUNT_HOOF_DB: float = 2.0
+const MOUNT_HOOF_PITCH: float = -0.2
+
 ## How often a gallop kicks dirt off the hooves, in seconds.
 const MOUNT_DUST_INTERVAL: float = 0.1
 
