@@ -8202,6 +8202,41 @@ const UI_LOCKED_DIM: float = 0.62
 const UI_LOCKED_INK: Color = Color(0.10, 0.09, 0.12, 1.0)
 const UI_LOCKED_EDGE: Color = Color(0.42, 0.45, 0.55, 1.0)
 
+# --- the Hold after dark (owner, 2026-09-17) --------------------------------
+#
+# *"There should be a time of day at the hold matched to the Host's time of
+# day ... a campfire and torches for lighting when it's night time, it should
+# be a beautiful cozy aesthetic and have the right kind of vibes."*
+
+## How dark the Hold is allowed to get.
+##
+## **Lighter than the road, deliberately.** The battlefield's night is a
+## difficulty setting - it hides what is walking at you - and the Hold's is a
+## mood. A player is reading a stash here, and a shop they have to squint at
+## is the interface tint's failure arriving through the scenery.
+const HOLD_NIGHT_FLOOR: float = 0.46
+
+## How far the campfire and each torch throw, and how bright.
+##
+## The fire reaches further than a torch and is the only thing here anybody
+## sits at, which is what makes the square the middle of the place after dark
+## rather than merely its centre on a map.
+const HOLD_FIRE_REACH: float = 420.0
+const HOLD_FIRE_ENERGY: float = 1.15
+const HOLD_TORCH_REACH: float = 210.0
+const HOLD_TORCH_ENERGY: float = 0.72
+
+## How hard the Warden may dash in the Hold, and how long they may not again.
+##
+## Owner, 2026-09-17: *"Players should still be able to right click dash in
+## the Hold."* Shorter than the road's, and with no stamina attached: there is
+## nothing here to escape, so a dash is a way of crossing a square rather than
+## a resource, and charging SP for it would be a cost with nothing on the
+## other side of it.
+const HOLD_DASH_DISTANCE: float = 190.0
+const HOLD_DASH_SECONDS: float = 0.18
+const HOLD_DASH_REST: float = 0.55
+
 # --- the zoom ladder as one slider (owner, 2026-09-17) ----------------------
 #
 # *"The + and - zoom should also be changed to a slider that is aesthetic and

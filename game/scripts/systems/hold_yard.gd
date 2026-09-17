@@ -139,6 +139,20 @@ const SIM_NAMES: Array[String] = [
 ## clear of the gate at (-420, 330) and the road out at (-180, 430). The
 ## paddock is `Balance.STABLE_PADDOCK` across, so it reaches x = -960 at the
 ## far rail, which leaves the watchtower its corner.
+## The fire in the middle of the square, and the torches down the paths.
+##
+## **Placed against what is already here rather than scattered.** The fire is
+## in the open middle where nothing else stands; the torches are at the mouth
+## of each path and beside the two doors furthest from the centre, which is
+## where a person actually needs to see. A ring of torches at even spacing
+## reads as a decoration; lighting the places people walk reads as a camp.
+const FIRE_AT: Vector2 = Vector2(0.0, 40.0)
+const TORCHES: Array[Vector2] = [
+	Vector2(-330.0, 210.0), Vector2(330.0, 210.0),
+	Vector2(-680.0, 60.0), Vector2(700.0, 40.0),
+	Vector2(-120.0, -250.0), Vector2(160.0, -250.0),
+]
+
 const PADDOCK_AT: Vector2 = Vector2(-700.0, 330.0)
 
 const PEN_FIRST: Vector2 = Vector2(180.0, 330.0)
@@ -180,6 +194,14 @@ var _clock: float = 0.0
 ## Off while a door is open over the Hold, so the Warden does not walk away
 ## under a screen nobody can see them through.
 var _driving: bool = true
+## The sky over the Hold, and the fires under it.
+var _sky: CanvasModulate = null
+var _fires: Array[Node2D] = []
+var _lights: Array[PointLight2D] = []
+## A dash in progress, and the rest after one.
+var _dash_left: float = 0.0
+var _dash_way: Vector2 = Vector2.ZERO
+var _dash_rest: float = 0.0
 
 
 func _ready() -> void:
@@ -200,6 +222,8 @@ func _ready() -> void:
 	_build_paddock()
 	_build_seats()
 	_build_heel()
+	_build_sky()
+	_build_fires()
 	set_process(true)
 
 
@@ -459,6 +483,71 @@ func _build_heel() -> void:
 
 ## It follows rather than sticks: a sprite pinned to the Warden's hip reads
 ## as an attachment, and a few units of lag reads as an animal.
+## The Hold's own light, following the sun.
+##
+## Owner, 2026-09-17: *"There should be a time of day at the hold matched to
+## the Host's time of day."*
+##
+## **Its own `CanvasModulate`, visible only while the Hold is**, which is
+## exactly what `RaidArena._tint_node` does and for the reason written there:
+## the only other one in the game belongs to the battlefield and is hidden
+## with it, so a place without one is played in whatever light the last scope
+## happened to leave behind.
+##
+## **Floored well above the road's night.** The battlefield's dark is a
+## difficulty setting; this one is a mood, and a player reading a stash must
+## not have to squint at it - which is the interface tint's bound arriving
+## through the scenery.
+func _build_sky() -> void:
+	_sky = CanvasModulate.new()
+	_sky.name = "HoldSky"
+	add_child(_sky)
+	_follow_the_sun()
+
+
+func _follow_the_sun() -> void:
+	if _sky == null or not is_instance_valid(_sky):
+		return
+	var tint: Color = DayNight.tint
+	# Lifted toward white by the floor rather than clamped per channel, so the
+	# *hue* of the hour survives - a Hold at dusk is warm and a Hold at midnight
+	# is blue, and both are readable.
+	_sky.color = tint.lerp(Color.WHITE, Balance.HOLD_NIGHT_FLOOR)
+
+
+## The fire in the square and the torches down the paths.
+##
+## **Lit always, seen at night.** A `Flame` costs the same at noon and the
+## light does nothing against a bright sky, so nothing here switches: what
+## changes is that the `CanvasModulate` above stops washing it out. A fire
+## that appeared at dusk would be a fire somebody lit, and nobody did.
+func _build_fires() -> void:
+	_fires.clear()
+	_lights.clear()
+	_stand_fire(FIRE_AT, Balance.HOLD_FIRE_REACH, Balance.HOLD_FIRE_ENERGY, 1.35)
+	for at: Vector2 in TORCHES:
+		_stand_fire(at, Balance.HOLD_TORCH_REACH, Balance.HOLD_TORCH_ENERGY, 0.7)
+
+
+func _stand_fire(at: Vector2, reach: float, energy: float, size: float) -> void:
+	var flame := Flame.new()
+	flame.position = at
+	flame.scale = Vector2(size, size)
+	# Above the ground and below the people, so somebody standing in front of
+	# the fire is in front of it.
+	flame.z_index = -1
+	add_child(flame)
+	_fires.append(flame)
+
+	# `LightKit` rather than a hand-rolled `PointLight2D`: it owns the falloff
+	# texture, the additive blend that lights a sprite instead of washing it out,
+	# and the flicker driver. A second copy of any of those is a torch here that
+	# behaves unlike every torch on the road.
+	var light: PointLight2D = LightKit.add_light(flame,
+		Color(1.0, 0.86, 0.66), reach, energy, 0.18)
+	_lights.append(light)
+
+
 func _tick_heel(delta: float) -> void:
 	if _heel == null or not is_instance_valid(_heel):
 		return
@@ -608,12 +697,25 @@ func _process(delta: float) -> void:
 		_mind_the_stall(person, delta)
 	_tick_heel(delta)
 	_breathe(delta)
+	_follow_the_sun()
 	_find_focus()
 	queue_redraw()
 
 
 func _drive_warden(delta: float) -> void:
 	var seat: Dictionary = _seats[0]
+	# **The dash first, because it overrides where the player is pointing.**
+	# Owner, 2026-09-17: *"Players should still be able to right click dash in
+	# the Hold."* It is the same press the road reads, so nobody has to learn a
+	# second one - and it spends nothing, because there is nothing here to
+	# escape and a cost with nothing on the other side of it is just a tax.
+	_dash_rest = maxf(_dash_rest - delta, 0.0)
+	if _dash_left > 0.0:
+		_dash_left = maxf(_dash_left - delta, 0.0)
+		_step(seat, _dash_way, delta,
+			Balance.HOLD_DASH_DISTANCE / Balance.HOLD_DASH_SECONDS)
+		_relay(delta)
+		return
 	var way := Vector2.ZERO
 	if _driving:
 		way = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
@@ -625,6 +727,17 @@ func _drive_warden(delta: float) -> void:
 				way = step.normalized()
 			else:
 				_walk_to = Vector2.INF
+	if _driving and _dash_rest <= 0.0 and Input.is_action_just_pressed(&"dash"):
+		# Dashing where they are pointing, or where they are facing if they are
+		# standing still - a dash that went nowhere because no key was down is a
+		# press that did nothing.
+		_dash_way = way if way.length_squared() > 0.01 \
+			else (seat["facing"] as Vector2)
+		if _dash_way.length_squared() > 0.01:
+			_dash_left = Balance.HOLD_DASH_SECONDS
+			_dash_rest = Balance.HOLD_DASH_REST
+			_walk_to = Vector2.INF
+			Sfx.play_group("sfx_dash")
 	_step(seat, way, delta, Balance.HOLD_WALK_SPEED)
 	_relay(delta)
 
