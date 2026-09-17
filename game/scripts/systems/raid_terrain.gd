@@ -69,6 +69,16 @@ const FACE_SHADE: float = 0.82
 
 var layout: RaidLayout = null
 
+## Whether this arena is under the ground, which decides which stone the flights
+## are cut from: earth under the sky, cut stone below it.
+##
+## **It lives here as well as on `_Faces` because the arena can only reach this
+## node.** `raid_arena.gd` sets `terrain.underground` before the tree is
+## entered; without this declaration GDScript writes a dynamic property on the
+## outer node, nothing errors, and the inner class keeps its own default - which
+## is exactly what happened, so every rift was cutting earth steps into rock.
+var underground: bool = false
+
 var _surface: Sprite2D
 var _edges: Node2D
 
@@ -98,6 +108,7 @@ func _ready() -> void:
 	# plates were baked under.
 	var faces := _Faces.new()
 	faces.layout = layout
+	faces.underground = underground
 	add_child(faces)
 
 	_edges = _EdgeLines.new()

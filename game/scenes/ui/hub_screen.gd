@@ -332,7 +332,12 @@ func _process(delta: float) -> void:
 		_zoom_now = lerpf(_zoom_now, _zoom, ease)
 		if absf(_zoom_now - _zoom) < 0.002:
 			_zoom_now = _zoom
-		_refit()
+	# **The view follows the Warden every frame, not only while the zoom is
+	# moving.** Smoothing the zoom moved the only `_refit` call into the branch
+	# above, so once it settled the camera stopped following - the Hold looked
+	# locked to the map instead of to the player, which is what the owner
+	# reported. Following is a handful of assignments; it belongs outside.
+	_refit()
 	if not visible:
 		return
 	_tick_prompt()

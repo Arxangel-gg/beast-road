@@ -121,6 +121,26 @@ func _stand(kind: MountData, index: int) -> Dictionary:
 	rig.name = "Horse%d" % index
 	add_child(rig)
 	rig.show_mount(kind)
+	# **Back to zero, because there is nobody to hide behind.**
+	#
+	# `MountRig` sets `z_index = -1` so the animal draws behind the person on
+	# it - correct when the rig is a sibling of a rider. Here it is a child of a
+	# node that *draws ground*, and a child at a negative z goes under its
+	# parent's own `_draw`: every horse in the paddock was being painted over by
+	# the paddock's earth. The stable stood five animals and showed none of
+	# them, which is what the owner reported.
+	#
+	# This is the third time a negative z has cost this project a feature, after
+	# a mount on the road and the Hold's own campfire. The rule is the same
+	# every time: a negative z is not "behind the thing beside me", it is
+	# "behind my parent as well".
+	#
+	# **One above, not zero.** Zero was tried first and changed nothing: this
+	# node is y-sorted, so a horse standing up-field of the paddock's origin
+	# still sorted before the paddock's own drawing and went under the earth
+	# patch anyway. A horse in a paddock is above the paddock's dirt and below
+	# everything else, which is exactly one.
+	rig.z_index = 1
 	# **Its own coat, off its own place in the line**, so two of the same kind in
 	# one field are two horses rather than one horse drawn twice. Same bound as
 	# every phenotype in the game: nothing reads it, and `PHENOTYPE_HUE_CEILING`
