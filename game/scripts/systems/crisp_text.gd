@@ -152,10 +152,13 @@ func _gather() -> void:
 	_strings.clear()
 	var exempt: Array[Rect2] = []
 
-	for root: Node in world_roots:
+	# `Variant` loop variables, because a typed one casts on assignment - so a
+	# root freed while this was watching it would throw here, before `_walk`
+	# could guard it. Same reason the walk and the release both take one.
+	for root: Variant in world_roots:
 		_walk(root, exempt)
 	if _ui:
-		for root: Node in ui_roots:
+		for root: Variant in ui_roots:
 			_walk(root, exempt)
 
 	if ui_filter_grid != null and is_instance_valid(ui_filter_grid):
