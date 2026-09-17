@@ -62,7 +62,13 @@ var _yard: HoldYard = null
 
 ## How far in the Warden has pulled the view, over the fit. See
 ## `Balance.HOLD_ZOOM_MIN`.
+##
+## **Two numbers, because a zoom is a move rather than a setting.** `_zoom` is
+## where the slider says to be and `_zoom_now` is where the view has got to;
+## the gap is closed in `_process` at the same rate the battlefield's camera
+## settles at, so the two places this game zooms feel like one game.
 var _zoom: float = Balance.HOLD_ZOOM_DEFAULT
+var _zoom_now: float = Balance.HOLD_ZOOM_DEFAULT
 var _zoom_slider: HSlider = null
 var _session: HoldSession = null
 ## The card and every door as a list, over the yard. Hidden until asked for.
@@ -318,6 +324,15 @@ func is_suspended() -> bool:
 
 
 func _process(delta: float) -> void:
+	# The view eases onto the zoom the slider asks for. Exponential rather than
+	# linear, so it moves fastest when it is furthest away and settles without
+	# a stop - and it costs a `_refit` only while it is actually moving.
+	if not is_equal_approx(_zoom_now, _zoom):
+		var ease: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)
+		_zoom_now = lerpf(_zoom_now, _zoom, ease)
+		if absf(_zoom_now - _zoom) < 0.002:
+			_zoom_now = _zoom
+		_refit()
 	if not visible:
 		return
 	_tick_prompt()
@@ -468,7 +483,6 @@ func set_zoom(level: float) -> void:
 		return
 	if _zoom_slider != null and not is_equal_approx(_zoom_slider.value, _zoom):
 		_zoom_slider.set_value_no_signal(_zoom)
-	_refit()
 
 
 ## The wheel, in the one `_unhandled_input` this screen has: a second copy of a
@@ -911,7 +925,7 @@ func _refit() -> void:
 	if _yard != null:
 		var room: Vector2 = screen * YARD_SHARE
 		var fit: float = minf(room.x / HoldYard.YARD.x, room.y / HoldYard.YARD.y)
-		fit *= _zoom
+		fit *= _zoom_now
 		_yard.scale = Vector2.ONE * fit
 		var middle := Vector2(screen.x * 0.5, screen.y * 0.5 + screen.y * 0.03)
 		# **Pulled in, the view follows the Warden.** A zoom that kept the

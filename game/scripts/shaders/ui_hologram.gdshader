@@ -90,7 +90,30 @@ vec3 ambient_light(vec2 uv, float t) {
 	float grain = sin(uv.x * 37.0 + t * 0.37) * sin(uv.y * 23.0 - t * 0.29);
 	grain = 0.5 + 0.5 * grain;
 
-	return vec3(sheen * 0.55 + rim * breath * 0.7 + grain * 0.10);
+	// **A light that travels round the edge**, which is the one thing here a
+	// player actually notices. Owner, 2026-09-17: the panels and buttons were
+	// *"not seeing enough of it if any"* - and the reason is that a sheen
+	// crossing a dark plate at five percent additive is, correctly, almost
+	// nothing. An edge is where a control's shape is, so light moving along one
+	// reads at a fraction of the brightness a surface wash would need.
+	//
+	// The perimeter as one coordinate: along the top, down the right, back
+	// along the bottom, up the left. `fract` closes the loop, so the light
+	// leaves one corner and arrives at the next without a seam.
+	float around = uv.x * 0.25;
+	if (uv.y > uv.x && uv.y > 1.0 - uv.x) {
+		around = 0.5 + (1.0 - uv.x) * 0.25;   // the bottom, right to left
+	} else if (uv.x > uv.y && uv.x > 1.0 - uv.y) {
+		around = 0.25 + uv.y * 0.25;          // the right, top to bottom
+	} else if (uv.x < uv.y) {
+		around = 0.75 + (1.0 - uv.y) * 0.25;  // the left, bottom to top
+	}
+	float runner = fract(t * 0.077);
+	float gap = abs(fract(around - runner + 0.5) - 0.5);
+	float travel = exp(-pow(gap / 0.085, 2.0)) * rim;
+
+	return vec3(sheen * 0.55 + rim * breath * 0.7 + grain * 0.10
+		+ travel * 1.35);
 }
 
 void fragment() {

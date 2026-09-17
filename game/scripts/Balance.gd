@@ -1131,7 +1131,16 @@ const CAMERA_TOUCH_ZOOM_GAIN: float = 1.55
 
 
 const CAMERA_ZOOM_STEP: float = 0.10
-const CAMERA_ZOOM_LERP_SPEED: float = 12.0
+## How fast the view settles on a new zoom.
+##
+## Owner, 2026-09-17: *"zoom changes should lerp smoothly and aesthetically and
+## with polish instead of being instant jerk changes wherever zoom happens
+## including battlefield and the Hold"*. Twelve is nearly instant - about a
+## fifteenth of a second to cross ninety percent of the gap - so a notch of the
+## wheel read as a jump rather than as a move. Six is a beat a person can
+## follow, which is what makes it read as the camera pulling back rather than
+## as the picture changing size.
+const CAMERA_ZOOM_LERP_SPEED: float = 6.0
 
 ## Camera lag. Lower is snappier, higher is floatier.
 const CAMERA_SMOOTHING_SPEED: float = 8.0
@@ -8218,7 +8227,13 @@ const UI_HOLO_LIFT: float = 2.0
 ## stops being light on a plate and becomes a wash over the words, which is the
 ## one failure this whole effect is bounded against; `ui_juice_check` reads it
 ## off the material rather than from here.
-const UI_HOLO_CEILING: float = 0.16
+## **Raised from 0.16 on 2026-09-17.** The owner reported the panels and
+## buttons as *"not seeing enough of it if any"*, and they were right: an
+## additive layer at a sixth of full brightness over this game's dark plates is
+## almost nothing. The bound is unchanged and is the thing that makes raising it
+## safe - additive can only ever *add* light, so no glyph on any plate can lose
+## contrast however far this goes.
+const UI_HOLO_CEILING: float = 0.24
 ## Scanlines across a control's height.
 const UI_HOLO_LINES: float = 42.0
 ## The idle shimmer: how lit a button gets when it catches the light on its
@@ -8240,7 +8255,7 @@ const UI_HOLO_IDLE_EVERY: Vector2 = Vector2(2.4, 6.5)
 ## the standing light has to be clearly present and clearly quieter, and
 ## `ui_juice_check` holds it strictly under `UI_HOLO_CEILING` rather than at a
 ## number typed into the gate.
-const UI_HOLO_AMBIENT_CEILING: float = 0.055
+const UI_HOLO_AMBIENT_CEILING: float = 0.105
 
 ## The window a control's own clock is offset inside.
 ##
@@ -10744,6 +10759,85 @@ const HOLD_GRASS_WIND: float = 7.0
 const HOLD_GRASS_PART_REACH: float = 96.0
 const HOLD_GRASS_PART_LEAN: float = 20.0
 const HOLD_GRASS_RECOVER: float = 0.42
+
+
+## **The lawn itself, which is a shader rather than a thing standing up.**
+##
+## Owner, 2026-09-17, twice: the grass was not showing, and *"if there's a
+## better way that you think would work better ... do a shader effect on the
+## grass areas"*. There is. A tuft field is the right answer for near detail and
+## the wrong one for *coverage*: carpeting a yard this size needs tens of
+## thousands of quads, and at play zoom each is a few pixels. A shader pays once
+## per screen pixel, so the density is free and there is no scatter to see
+## through. The tufts stand in the carpet rather than being it.
+##
+## `BLADE` is how big one blade is in world units - smaller is finer and costs
+## exactly the same. `SWAY` is how far the tips are carried and `RIPPLE` how
+## fast a gust crosses the field.
+const HOLD_TURF_BLADE: float = 3.4
+const HOLD_TURF_SWAY: float = 1.6
+const HOLD_TURF_RIPPLE: float = 0.9
+const HOLD_TURF_STRENGTH: float = 0.34
+
+## The two ends of a blade. Taken from the turf sheet's own palette rather than
+## chosen, so the carpet belongs to the ground it is laid on - the rule the
+## bank's tint, the Hold's wall and the mount's dust are all measured under.
+const HOLD_TURF_TIP: Color = Color(0.40, 0.50, 0.25)
+const HOLD_TURF_ROOT: Color = Color(0.12, 0.18, 0.10)
+
+
+## **Riding in the Hold.**
+##
+## Owner, 2026-09-17: *"players should also be able to ride their own mounts in
+## the Hold as well"*.
+##
+## The road's own bound is untouched and is the reason this is safe:
+## `MOUNT_SPEED_CEILING` *is* `HERO_SPRINT_SPEED`, so a mount is never new speed
+## - and in the Hold there is nothing to fight, no SP to spend and nothing to
+## outrun, so what a mount buys here is the size of the place. The yard is three
+## and a half thousand units across; crossing it at a walk is the one thing
+## about the Hold that gets worse the better it looks.
+const HOLD_MOUNT_SPEED: float = 1.72
+
+## The bonfire moved west off the grand stair (owner, 2026-09-17: it *"is a
+## little too close to the stairs and should be put in a more appropriate
+## placement"*). Still on the square and still the middle of the place people
+## stand in, clear of the stair, the anvil and the central road.
+const HOLD_FIRE_CELL: Vector2i = Vector2i(15, 14)
+
+
+## **What a mount leaves on the ground.**
+##
+## Owner, 2026-09-17: a trail *"matching the ground of the area they walk and
+## affecting it more if they're sprinting"*, and a dismount that carries its own
+## speed into the ground *"including dirt clouds matching the ground's color"*.
+##
+## The colour is *sampled* from the ground rather than authored, so nobody has
+## to keep a dust table in step with ten regions - see `GroundMarks`.
+const MOUNT_MARK_LIFE: float = 0.62
+const MOUNT_MARK_PUFFS: int = 3
+const MOUNT_MARK_DRAG: float = 3.4
+const MOUNT_MARK_ALPHA: float = 0.42
+
+## How often a hoof falls, per unit of ground covered. Distance rather than
+## time, so a trail is the same density at any speed and a gallop simply lays
+## more of it.
+const MOUNT_MARK_EVERY: float = 46.0
+
+## **The dismount.** How much of the speed a rider was carrying goes into the
+## ground, how high the hop is at full tilt, and how long it takes.
+##
+## The bounce is small on purpose: a Warden stepping off a walking horse should
+## barely register, and one stepping off a gallop should visibly land. What
+## scales is the *impact*, not the control - nothing here takes a frame of input
+## away, because a dismount that stunned you would be a cost the road never
+## agreed to.
+const MOUNT_LAND_HOP: float = 26.0
+const MOUNT_LAND_TIME: float = 0.34
+
+## How much brighter the dust is than the ground it came off. Dust in the air
+## catches light the earth does not, and matched exactly it reads as a hole.
+const MOUNT_MARK_LIFT: float = 1.45
 
 ## **Where the dwellings stand.** On the lower yard and the two outcrops, clear
 ## of the square: the Hold is a shelter camp, and where people sleep is not

@@ -840,6 +840,17 @@ A resident whose frames are missing is a stiller picture, never a hole.
 | `hold_steward.png` | 160×160 | T | `#3E5A42` |
 | `hold_stabler.png` | 160×160 | T | `#7A4A3A` |
 
+
+### 5.5b-iii The Hold's residents' frames — `res://art/city/`
+
+All 160×160, type T, placeholder colour `#6B5A3E`.
+
+**A `Files:` listing needs a section of its own.** These lived under the
+table above, and a section that carries a table has no prose default - so the
+parser had no size to give them and dropped all sixty-eight in silence. The
+asset report called them orphans on disk, which is the same fault seen from
+the other end: a frame that is *declared* nowhere is a frame nothing checks.
+
 Files: `hold_smith_idle_01.png` · `hold_smith_idle_02.png` · `hold_smith_idle_03.png`
 Files: `hold_keeper_idle_01.png` · `hold_keeper_idle_02.png` · `hold_keeper_idle_03.png`
 Files: `hold_steward_idle_01.png` · `hold_steward_idle_02.png` · `hold_steward_idle_03.png`
@@ -857,62 +868,6 @@ Files: `hold_smith_work_01.png` · `hold_smith_work_02.png` · `hold_smith_work_
 Files: `hold_keeper_work_01.png` · `hold_keeper_work_02.png` · `hold_keeper_work_03.png` · `hold_keeper_work_04.png` · `hold_keeper_work_05.png` · `hold_keeper_work_06.png`
 Files: `hold_steward_work_01.png` · `hold_steward_work_02.png` · `hold_steward_work_03.png` · `hold_steward_work_04.png` · `hold_steward_work_05.png` · `hold_steward_work_06.png`
 Files: `hold_stabler_work_01.png` · `hold_stabler_work_02.png` · `hold_stabler_work_03.png` · `hold_stabler_work_04.png` · `hold_stabler_work_05.png` · `hold_stabler_work_06.png`
-
-**The banners** (owner, 2026-09-17). The sprite is the *pattern*; the shape is cut
-by `HoldBanner`'s own mesh, which is what guarantees every flag in the Hold shares
-one outline however many devices are drawn - a silhouette a generator has to match
-is a silhouette that will drift. Full-bleed cloth with no pole and no transparency:
-the taper, the sway and the fold are all the spline's.
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `banner_chain.png` | 96×192 | O | `#4A1E1A` |
-| `banner_stag.png` | 96×192 | O | `#2E3A24` |
-| `banner_forge.png` | 96×192 | O | `#2A2622` |
-| `banner_lantern.png` | 96×192 | O | `#2C3440` |
-| `banner_harvest.png` | 96×192 | O | `#4A3A1E` |
-
-**The dwelling kit** (owner, 2026-09-17: *"buildings should have modular tilesets
-as well and be procedurally generatable for slight variations"*). Six parts and a
-grammar rather than a painted house: `HoldHouse` picks a width, puts the door 
-somewhere along it, windows in some of the rest, lays the roof over the whole and
-sets a chimney on the ridge - all from one seed, so a house is the same house 
-every visit. Every piece is drawn **straight on from the front** with a slight 
-top-down angle; never an isometric corner (§5.6's perspective rule).
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `house_wall.png` | 64×96 | T | `#4A4034` |
-| `house_door.png` | 64×96 | T | `#42382C` |
-| `house_window.png` | 64×96 | T | `#4A4034` |
-| `house_roof.png` | 64×64 | T | `#3A3026` |
-| `house_roof_end.png` | 64×64 | T | `#3A3026` |
-| `house_chimney.png` | 32×64 | T | `#4E4A46` |
-
-### 5.5d The Hold's ground and its flights — `res://art/terrain/`
-
-The shelves are **Wang sheets on a dual grid** - a 4x4 of 64px tiles indexed by
-its corners, upper terrain first, the same rule `PondTiles` and `DungeonTiles` read
-- so the rim of a shelf is authored transition art rather than the edge of a 
-rectangle. Packed by `tools/install_hold_tiles.py` and then brought into this 
-game's palette by `tools/grade_to_ground.py`: every sheet a generator hands over
-arrives at roughly twice the brightness and twice the colour of the ground it has
-to sit beside.
-
-The flights are **two pieces used everywhere**, one climbing away from the camera
-and one climbing across it, mirrored for the other direction - a staircase going
-the other way is the same staircase. Earth under the sky and cut stone underground
-(owner, 2026-09-17: the stair solution applies to dungeons with the correct 
-adaptations), and each is tinted to its own region exactly as the bank is.
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `hold_turf.png` | 256×256 | O | `#3A4A2C` |
-| `hold_flags.png` | 256×256 | O | `#4A4740` |
-| `stair_earth_north.png` | 96×96 | T | `#5A5344` |
-| `stair_earth_east.png` | 96×96 | T | `#5A5344` |
-| `stair_stone_north.png` | 96×96 | T | `#54565A` |
-| `stair_stone_east.png` | 96×96 | T | `#54565A` |
 
 ### 5.5c Mounts — `res://art/mounts/`
 
@@ -1028,6 +983,64 @@ Files: `building_woodcutter_tier_02.png`
 Files: `building_woodcutter_tier_02_idle_01.png` … `building_woodcutter_tier_02_idle_03.png`
 Files: `building_woodcutter_tier_03.png`
 Files: `building_woodcutter_tier_03_idle_01.png` … `building_woodcutter_tier_03_idle_03.png`
+
+### 5.5e The Hold's cloth and its dwelling kit — `res://art/city/`
+
+**The banners** (owner, 2026-09-17). The sprite is the *pattern*; the shape is cut
+by `HoldBanner`'s own mesh, which is what guarantees every flag in the Hold shares
+one outline however many devices are drawn - a silhouette a generator has to match
+is a silhouette that will drift. Full-bleed cloth with no pole and no transparency:
+the taper, the sway and the fold are all the spline's.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `banner_chain.png` | 96×192 | O | `#4A1E1A` |
+| `banner_stag.png` | 96×192 | O | `#2E3A24` |
+| `banner_forge.png` | 96×192 | O | `#2A2622` |
+| `banner_lantern.png` | 96×192 | O | `#2C3440` |
+| `banner_harvest.png` | 96×192 | O | `#4A3A1E` |
+
+**The dwelling kit** (owner, 2026-09-17: *"buildings should have modular tilesets
+as well and be procedurally generatable for slight variations"*). Six parts and a
+grammar rather than a painted house: `HoldHouse` picks a width, puts the door 
+somewhere along it, windows in some of the rest, lays the roof over the whole and
+sets a chimney on the ridge - all from one seed, so a house is the same house 
+every visit. Every piece is drawn **straight on from the front** with a slight 
+top-down angle; never an isometric corner (§5.6's perspective rule).
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `house_wall.png` | 64×96 | T | `#4A4034` |
+| `house_door.png` | 64×96 | T | `#42382C` |
+| `house_window.png` | 64×96 | T | `#4A4034` |
+| `house_roof.png` | 64×64 | T | `#3A3026` |
+| `house_roof_end.png` | 64×64 | T | `#3A3026` |
+| `house_chimney.png` | 32×64 | T | `#4E4A46` |
+
+### 5.5f The Hold's ground and its flights — `res://art/terrain/`
+
+The shelves are **Wang sheets on a dual grid** - a 4x4 of 64px tiles indexed by
+its corners, upper terrain first, the same rule `PondTiles` and `DungeonTiles` read
+- so the rim of a shelf is authored transition art rather than the edge of a 
+rectangle. Packed by `tools/install_hold_tiles.py` and then brought into this 
+game's palette by `tools/grade_to_ground.py`: every sheet a generator hands over
+arrives at roughly twice the brightness and twice the colour of the ground it has
+to sit beside.
+
+The flights are **two pieces used everywhere**, one climbing away from the camera
+and one climbing across it, mirrored for the other direction - a staircase going
+the other way is the same staircase. Earth under the sky and cut stone underground
+(owner, 2026-09-17: the stair solution applies to dungeons with the correct 
+adaptations), and each is tinted to its own region exactly as the bank is.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `hold_turf.png` | 256×256 | O | `#3A4A2C` |
+| `hold_flags.png` | 256×256 | O | `#4A4740` |
+| `stair_earth_north.png` | 96×96 | T | `#5A5344` |
+| `stair_earth_east.png` | 96×96 | T | `#5A5344` |
+| `stair_stone_north.png` | 96×96 | T | `#54565A` |
+| `stair_stone_east.png` | 96×96 | T | `#54565A` |
 
 ### 5.6 Beast — `res://art/beast/`
 

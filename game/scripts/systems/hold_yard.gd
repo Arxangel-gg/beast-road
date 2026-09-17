@@ -49,6 +49,7 @@ const ENTRY: Vector2i = Vector2i(18, 23)
 const GROUND_ART: String = "res://art/terrain/terrain_jungle.png"
 const GRASS_ART: String = "res://art/foliage/grass_jungle.png"
 const POND_ART: String = "res://art/battlefield/pond_tiles_jungle.png"
+const TURF_SHADER: String = "res://scripts/shaders/hold_grass.gdshader"
 const FOLIAGE_FORMAT: String = "res://art/foliage/plant_jungle_%s.png"
 const PROP_FORMAT: String = "res://art/foliage/prop_%s.png"
 
@@ -176,7 +177,7 @@ const SIM_NAMES: Array[String] = [
 ## of each path and beside the two doors furthest from the centre, which is
 ## where a person actually needs to see. A ring of torches at even spacing
 ## reads as a decoration; lighting the places people walk reads as a camp.
-const FIRE_AT: Vector2i = Vector2i(17, 12)
+const FIRE_AT: Vector2i = Balance.HOLD_FIRE_CELL
 const TORCHES: Array[Vector2i] = [
 	Vector2i(11, 15), Vector2i(24, 15), Vector2i(18, 10),
 	Vector2i(8, 9), Vector2i(29, 9), Vector2i(12, 19),
@@ -421,6 +422,27 @@ var _grass_at: Array[Vector2] = []
 ## `HoldGrass`, which is also where a blade learns to give way to a boot.
 var _grass_field: HoldGrass = null
 
+## The lawn: one quad over the whole yard with `hold_grass.gdshader` on it, laid
+## between the ground and everything standing on it. See `Balance.HOLD_TURF_BLADE`.
+var _turf: ColorRect = null
+
+## What the hooves leave behind. One node for every mark in the yard - see
+## `GroundMarks`, which also samples the colour off the ground it is laid on.
+var _marks: GroundMarks = null
+
+## How far the Warden has ridden since the last hoof fall, so a trail is laid by
+## distance rather than by a clock and is the same density at any speed.
+var _hoof_left: float = 0.0
+
+## The little hop a rider takes when they come off a moving horse, and how fast
+## they were going when they did.
+var _land_left: float = 0.0
+var _land_hard: float = 0.0
+
+## One reading per sheet. Measuring an image every hoof fall would be a resize
+## and sixteen pixel reads forty times a second.
+var _ground_means: Dictionary = {}
+
 ## The painted plants standing in the yard, kept so a re-scatter clears the
 ## last garden rather than growing a second one on top of it.
 var _plants: Array[Node] = []
@@ -515,6 +537,10 @@ func _ready() -> void:
 			continue
 		_land.set_tiles(level, load(sheet) as Texture2D)
 	_land.set_overscan(OVERSCAN)
+	# **The lawn goes down before anything stands on it.** A child draws after
+	# its parent, so a quad added here is over the ground this node paints and
+	# under everything in `_actors` - which is the order grass is actually in.
+	_build_turf()
 	_actors = Node2D.new()
 	_actors.name = "Actors"
 	_actors.y_sort_enabled = true
@@ -528,6 +554,13 @@ func _ready() -> void:
 	_build_heel()
 	_build_sky()
 	_build_fog()
+	_marks = GroundMarks.new()
+	_marks.name = "Marks"
+	_marks.ground = _ground_colour
+	# Under the actors and over the ground: dust settles on the earth and people
+	# walk through it.
+	_actors.add_child(_marks)
+	_actors.move_child(_marks, 0)
 	_build_fires()
 	_build_bonfire()
 	_build_banners()
@@ -958,6 +991,21 @@ func _stand_warden(index: int) -> Dictionary:
 	root.add_child(animator)
 	animator.play("idle")
 
+	# **The Warden's own mount, if they have one saddled.** Owner, 2026-09-17.
+	# Only the player's seat: the other three are presence rather than accounts,
+	# and `MetaState.saddled_mount()` read for somebody else's Warden returns
+	# this player's own - which is the same reason the road relays a mount's id
+	# rather than working it out locally.
+	var rig: MountRig = null
+	if index == 0:
+		var saddled: MountData = MetaState.saddled_mount()
+		if saddled != null:
+			rig = MountRig.new()
+			rig.rider = sprite
+			root.add_child(rig)
+			rig.show_mount(saddled)
+			rig.visible = false
+
 	var tag := Label.new()
 	tag.position = Vector2(-90.0, -float(HeroAnimator.CELL_H) - 6.0)
 	tag.custom_minimum_size = Vector2(180.0, 0.0)
@@ -977,6 +1025,8 @@ func _stand_warden(index: int) -> Dictionary:
 		"node": root,
 		"sprite": sprite,
 		"animator": animator,
+		"rig": rig,
+		"riding": false,
 		"tag": tag,
 		"at": home,
 		"to": home,
@@ -1092,6 +1142,83 @@ func _build_heel() -> void:
 ##
 ## Most of it is already explored on arrival: this is home. A Hold that opened
 ## black would be a fog that punishes rather than one that lights.
+## The lawn, and the mask that says where it grows.
+##
+## **One texel a cell.** Grass grows on the valley floor and on the plaza and
+## nowhere else - not on the flagstone sanctum, not on water, not on the
+## hillside - and sampling that mask linearly is what gives the lawn a soft
+## boundary instead of the cell grid. The shader is told *where*, never *what*:
+## it has no idea a sanctum exists.
+func _build_turf() -> void:
+	if not ResourceLoader.exists(TURF_SHADER):
+		return
+	var across: int = MAP_W
+	var down: int = MAP_H
+	var mask := Image.create(across, down, false, Image.FORMAT_L8)
+	for y: int in down:
+		for x: int in across:
+			var ch: String = _mark(Vector2i(x, y))
+			# Level 2 is cut stone and grows nothing; water and hillside grow
+			# nothing either. A flight is earth and stone, so it gets a little.
+			var grows: float = 0.0
+			if ch == "1":
+				grows = 1.0
+			elif ch == ".":
+				# The valley floor is mossy stone rather than lawn: it carries
+				# grass, thinly, the way ground nobody tends does.
+				grows = 0.55
+			elif Elevation.WAY.has(ch):
+				grows = 0.25
+			# **Nothing grows where people walk.** Read off the same routes the
+			# paths are drawn from, so the lawn and the trodden earth cannot
+			# disagree about where the traffic is - grass over a path is the
+			# single clearest way to say a place is not used.
+			if grows > 0.0 and not _is_off_the_routes(at_cell(Vector2i(x, y))):
+				grows *= 0.08
+			mask.set_pixel(x, y, Color(grows, grows, grows))
+	var material := ShaderMaterial.new()
+	material.shader = load(TURF_SHADER) as Shader
+	material.set_shader_parameter("cover", ImageTexture.create_from_image(mask))
+	material.set_shader_parameter("world_origin",
+		Vector2(-YARD.x * 0.5, -YARD.y * 0.5))
+	material.set_shader_parameter("world_size", YARD)
+	material.set_shader_parameter("blade", Balance.HOLD_TURF_BLADE)
+	material.set_shader_parameter("sway", Balance.HOLD_TURF_SWAY)
+	material.set_shader_parameter("ripple", Balance.HOLD_TURF_RIPPLE)
+	material.set_shader_parameter("tip", Balance.HOLD_TURF_TIP)
+	material.set_shader_parameter("root", Balance.HOLD_TURF_ROOT)
+	material.set_shader_parameter("strength", Balance.HOLD_TURF_STRENGTH
+		* Graphics.foliage_scale())
+	_turf = ColorRect.new()
+	_turf.name = "Turf"
+	_turf.color = Color.WHITE
+	_turf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# **The quad is the flat plane, not the drawn one.** The lawn is laid on the
+	# ground and the ground is drawn lifted per shelf; laying the carpet at the
+	# lift as well would slide it off the shelf it belongs to. Every shelf is
+	# lifted from the same plane, so one quad over the plane is right for all of
+	# them - which is also why this needs no knowledge of the terraces at all.
+	_turf.position = Vector2(-YARD.x * 0.5, -YARD.y * 0.5
+		- float(Elevation.LEVEL.size()) * Balance.HOLD_TERRACE_RISE)
+	_turf.size = YARD + Vector2(0.0,
+		float(Elevation.LEVEL.size()) * Balance.HOLD_TERRACE_RISE)
+	_turf.material = material
+	add_child(_turf)
+
+
+## Whether a point is clear of every route. The paths' own widths, so the lawn
+## and the trodden earth read the same table.
+func _is_off_the_routes(at: Vector2) -> bool:
+	for route: Dictionary in ROUTES:
+		var wide: float = float(route["wide"]) + 18.0
+		var cells: Array = route["cells"] as Array
+		for index: int in cells.size() - 1:
+			if _near_the_line(at, at_cell(cells[index] as Vector2i),
+					at_cell(cells[index + 1] as Vector2i)) < wide:
+				return false
+	return true
+
+
 func _build_fog() -> void:
 	if not Graphics.fog_of_war():
 		return
@@ -1121,6 +1248,37 @@ func _who_is_walking() -> Array:
 		var at: Vector2 = person["at"] as Vector2
 		feet.append(at + Vector2(0.0, lift_at(at)))
 	return feet
+
+
+## What colour the ground is at a point, for anything that has to match it.
+##
+## Read off the sheet the shelf is actually laid with rather than a table: the
+## plaza is turf, the sanctum is flagstone and the lower yard is the valley
+## floor, and a dust colour that knew about only one of them would be wrong in
+## two thirds of the Hold.
+func _ground_colour(at: Vector2) -> Color:
+	var level: int = level_at(at)
+	var sheet: Texture2D = _ground
+	if level >= 0 and level < TILE_ART.size():
+		var named: String = TILE_ART[level]
+		if not named.is_empty() and ResourceLoader.exists(named):
+			sheet = load(named) as Texture2D
+	if sheet == null:
+		return Color(0.46, 0.42, 0.34)
+	if not _ground_means.has(sheet):
+		var image: Image = sheet.get_image()
+		image.convert(Image.FORMAT_RGBA8)
+		image.resize(4, 4, Image.INTERPOLATE_BILINEAR)
+		var total := Color(0.0, 0.0, 0.0)
+		for y: int in 4:
+			for x: int in 4:
+				total += image.get_pixel(x, y)
+		# Lifted and warmed: dust in the air catches light that the ground it
+		# came off does not.
+		var mean: Color = (total / 16.0) * Balance.MOUNT_MARK_LIFT
+		_ground_means[sheet] = Color(minf(mean.r, 1.0), minf(mean.g, 1.0),
+			minf(mean.b, 1.0))
+	return _ground_means[sheet] as Color
 
 
 func _fog_sources() -> Array:
@@ -1267,6 +1425,8 @@ func _turn_the_wind(delta: float) -> void:
 		_bonfire.set_wind(_wind)
 	if _grass_field != null and is_instance_valid(_grass_field):
 		_grass_field.set_wind(_wind)
+	if _turf != null and is_instance_valid(_turf) and _turf.material != null:
+		(_turf.material as ShaderMaterial).set_shader_parameter("wind", _wind)
 	# The plants lean in it too, through the material every plant in the game
 	# shares - so the Hold's ferns answer the same wind its banners do.
 	RunState.wind = _wind
@@ -1502,8 +1662,85 @@ func _drive_warden(delta: float) -> void:
 			_dash_rest = Balance.HOLD_DASH_REST
 			_walk_to = Vector2.INF
 			Sfx.play_group("sfx_dash")
-	_step(seat, way, delta, Balance.HOLD_WALK_SPEED)
+	# **Mounting, with the same press the road reads**, so nobody learns a
+	# second one. There is nothing here to fight, so none of the road's reasons
+	# to be put on your feet apply - what a mount buys in the Hold is the size
+	# of the place, and the yard is three and a half thousand units across.
+	if _driving and Input.is_action_just_pressed(&"mount"):
+		_toggle_ride(seat, way)
+	var riding: bool = bool(seat.get("riding", false))
+	var speed: float = Balance.HOLD_WALK_SPEED \
+		* (Balance.HOLD_MOUNT_SPEED if riding else 1.0)
+	_step(seat, way, delta, speed)
+	_tick_ride(seat, way, delta, speed)
 	_relay(delta)
+
+
+## **On and off, and what the ground makes of it.**
+##
+## Coming off carries whatever was being carried: the dismount's dirt and its
+## little hop are both scaled by how fast the horse was going, which is the
+## owner's *"continued force to impact on the ground"*. Nothing is taken away
+## from the player for it - no stun, no slow - because a dismount that cost
+## control would be a price the road never agreed to either.
+func _toggle_ride(seat: Dictionary, way: Vector2) -> void:
+	var rig: MountRig = seat.get("rig", null) as MountRig
+	if rig == null or not is_instance_valid(rig):
+		return
+	var riding: bool = bool(seat.get("riding", false))
+	seat["riding"] = not riding
+	rig.visible = not riding
+	if riding:
+		# Down, carrying the speed it was doing.
+		var at: Vector2 = seat["at"] as Vector2
+		_land_hard = clampf(float(seat.get("gait", 0.0)), 0.0, 1.0)
+		_land_left = Balance.MOUNT_LAND_TIME
+		if _marks != null and is_instance_valid(_marks):
+			_marks.impact(at + Vector2(0.0, lift_at(at)),
+				way.normalized() if way.length_squared() > 0.01
+					else (seat["facing"] as Vector2), _land_hard)
+		Sfx.play_group_at("sfx_hit_stone", at, -6.0)
+	else:
+		Sfx.play_group("sfx_ui_confirm")
+
+
+## The trail, the gait and the landing hop, once a frame.
+func _tick_ride(seat: Dictionary, way: Vector2, delta: float,
+		speed: float) -> void:
+	var moving: bool = way.length_squared() > 0.01
+	# How hard it is going, 0 at a stand and 1 at the fastest the Hold allows -
+	# the figure the trail and the dismount are both scaled by.
+	var gait: float = 0.0
+	if moving:
+		gait = clampf(speed / (Balance.HOLD_WALK_SPEED
+			* Balance.HOLD_MOUNT_SPEED), 0.0, 1.0)
+	seat["gait"] = gait
+	var rig: MountRig = seat.get("rig", null) as MountRig
+	if rig != null and is_instance_valid(rig) and bool(seat.get("riding", false)):
+		rig.set_facing(seat["facing"] as Vector2)
+		rig.play("gallop" if moving else "idle")
+	# **Laid by distance rather than by a clock**, so a trail is the same
+	# density at any speed and a gallop simply lays more of it.
+	if bool(seat.get("riding", false)) and moving and _marks != null \
+			and is_instance_valid(_marks):
+		_hoof_left -= speed * delta
+		if _hoof_left <= 0.0:
+			_hoof_left = Balance.MOUNT_MARK_EVERY
+			var at: Vector2 = seat["at"] as Vector2
+			_marks.hoof(at + Vector2(0.0, lift_at(at)),
+				way.normalized(), gait)
+	# The landing hop. A half-sine, so it returns exactly to rest rather than
+	# leaving the Warden a pixel off the ground - the rule the tower's upgrade
+	# swell is drawn under.
+	if _land_left > 0.0:
+		_land_left = maxf(_land_left - delta, 0.0)
+		var node := seat["node"] as Node2D
+		if node != null:
+			var share: float = _land_left / maxf(Balance.MOUNT_LAND_TIME, 0.01)
+			var hop: float = sin(share * PI) * Balance.MOUNT_LAND_HOP \
+				* _land_hard
+			var at: Vector2 = seat["at"] as Vector2
+			node.position = at + Vector2(0.0, lift_at(at) - hop)
 
 
 ## A walked step is sent on a threshold and a clock, never every frame - the
