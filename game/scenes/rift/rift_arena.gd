@@ -32,7 +32,11 @@ extends RaidArena
 ## `RaidArena`; overrides the layout, the clock, the windows, the ending, the
 ## reward and where bodies walk.
 
-enum Kind { RIFT, DUNGEON }
+## **TRIAL is appended, never inserted.** `RiftGates` stores a kind on each
+## gate and the co-op relay carries one as a number, so a member added in the
+## middle silently repoints every gate and every message that names one - the
+## fault `Role` and `Trigger` each shipped once.
+enum Kind { RIFT, DUNGEON, TRIAL }
 
 var kind: Kind = Kind.RIFT
 var _stage: int = 0

@@ -623,8 +623,28 @@ func _apply_rift_reward(reward: Dictionary) -> void:
 	var at: Vector2 = reward.get("at", Vector2.ZERO)
 	var stages: int = int(reward.get("stages", 0))
 	if bool(reward.get("died", false)):
-		EventBus.preparation_warning.emit("Lost in the rift. The Wound is yours to carry.")
+		EventBus.preparation_warning.emit(
+			"The Gate is not answered today." if int(reward.get("kind", 0))
+			== RiftArena.Kind.TRIAL
+			else "Lost in the rift. The Wound is yours to carry.")
 		return
+	# **A trial that was stood is a rung climbed.**
+	#
+	# Recorded here, in the one place a rift's outcome is applied, rather than
+	# in the arena - the arena is the fight and this is what the fight was
+	# worth, and a guest's outcome arrives through this same function as a fact
+	# from the host. `record_cleared` refuses anything out of order, so a
+	# replayed or relayed message cannot climb the ladder twice.
+	#
+	# It still pays what a rift pays below: the trial is a detour off the same
+	# road and the rule is that a detour pays what the road already pays. What
+	# it adds is the rank, which is the only door to the third scale.
+	if int(reward.get("kind", 0)) == RiftArena.Kind.TRIAL:
+		var rung: int = GatekeeperTrials.stage_for_act(RunState.act)
+		if GatekeeperTrials.record_cleared(RunState.tier_id, rung):
+			EventBus.preparation_warning.emit(
+				"THE GATE IS ANSWERED  ·  %s  ·  rung %d of %d."
+				% [MetaState.warden_title(), rung, GatekeeperTrials.STAGES])
 	var value: int = int(reward.get("resources", 0))
 	RunState.gain_currency(RunState.GOLD, int(round(value * 0.55)))
 	RunState.gain_currency(RunState.FOOD, int(round(value * 0.30)))

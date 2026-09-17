@@ -17,6 +17,31 @@ extends Node2D
 
 const RIFT_ART: String = "res://art/battlefield/rift_gate.png"
 const DUNGEON_ART: String = "res://art/battlefield/dungeon_mouth.png"
+## **The trial wears the rift's arch.** It is a way through to somewhere else,
+## which is what that art already says, and it is told apart by its colour and
+## its prompt rather than by a second painting - the alternative is a sprite
+## commissioned to say a thing two existing channels already say.
+const TRIAL_ART: String = RIFT_ART
+
+
+static func _art_for(kind: int) -> String:
+	if kind == RiftArena.Kind.DUNGEON:
+		return DUNGEON_ART
+	return TRIAL_ART if kind == RiftArena.Kind.TRIAL else RIFT_ART
+
+
+static func _node_name_for(kind: int) -> String:
+	if kind == RiftArena.Kind.DUNGEON:
+		return "DungeonMouth"
+	return "TrialGate" if kind == RiftArena.Kind.TRIAL else "RiftGate"
+
+
+static func _prompt_for(kind: int) -> String:
+	if kind == RiftArena.Kind.DUNGEON:
+		return "Descend into the dungeon"
+	if kind == RiftArena.Kind.TRIAL:
+		return "Stand the Gate's trial"
+	return "Enter the rift"
 const FRAME_RATE: float = 6.0
 
 var grid: BattleGrid = null
@@ -48,12 +73,20 @@ func scatter() -> void:
 	var wanted: Array[int] = [RiftArena.Kind.RIFT]
 	if RunState.act % Balance.DUNGEON_EVERY_ACTS == 0:
 		wanted.append(RiftArena.Kind.DUNGEON)
+	# **And the Gate's own trial, when this act offers the rung this tier owes.**
+	#
+	# Dug here rather than announced, because a trial is a detour the player
+	# chooses exactly as a rift is - and `may_enter` is asked rather than the
+	# act being tested, so a ladder already finished on this difficulty digs
+	# nothing and Acts 3, 5, 7 and 9 look like any other act.
+	if GatekeeperTrials.may_enter(RunState.act, RunState.tier_id):
+		wanted.append(RiftArena.Kind.TRIAL)
 	# Anchored on the band's open tiles, as the ponds are; see `Fishing.band_tiles`.
 	var anchors: Array[Vector2i] = Fishing.band_tiles(grid, Balance.RIFT_GATE_EDGE_BAND)
 	if anchors.is_empty():
 		return
 	for kind: int in wanted:
-		var art: String = RIFT_ART if kind == RiftArena.Kind.RIFT else DUNGEON_ART
+		var art: String = _art_for(kind)
 		if not ResourceLoader.exists(art):
 			continue
 		for _attempt: int in 220:
@@ -72,7 +105,7 @@ const FOOTPRINT: Vector2i = Vector2i(2, 2)
 ## champion has fallen. Not placed by the scatter: it is the reward for a
 ## thing the player did, and it goes where the thing happened.
 func dig_at(kind: int, at: Vector2) -> void:
-	var art: String = RIFT_ART if kind == RiftArena.Kind.RIFT else DUNGEON_ART
+	var art: String = _art_for(kind)
 	if not ResourceLoader.exists(art):
 		return
 	_dig(kind, at, load(art) as Texture2D)
@@ -105,7 +138,7 @@ func _is_good_ground(at: Vector2) -> bool:
 
 func _dig(kind: int, at: Vector2, art: Texture2D) -> void:
 	var root := Node2D.new()
-	root.name = "RiftGate" if kind == RiftArena.Kind.RIFT else "DungeonMouth"
+	root.name = _node_name_for(kind)
 	root.global_position = at
 	var sprite := Sprite2D.new()
 	sprite.texture = art
@@ -139,7 +172,7 @@ func _process(delta: float) -> void:
 		_set_prompt("", "")
 		return
 	var kind: int = int(_gates[near]["kind"])
-	_set_prompt("Enter the rift" if kind == RiftArena.Kind.RIFT else "Descend into the dungeon",
+	_set_prompt(_prompt_for(kind),
 		"ENTER")
 	var source := angler.get("input") as HeroInput
 	if source != null and source.pressed(HeroInput.BUTTON_INTERACT):
