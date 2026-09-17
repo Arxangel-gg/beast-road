@@ -371,10 +371,20 @@ func _stand_a_body(field: Battlefield, at: Vector2) -> Enemy:
 ## carry a position - most should not. A menu click, a purse, the Warden's own
 ## breath and a hero standing at the pond they are fishing are all correctly
 ## flat, and "121 unpositioned call sites" is a count rather than a fault list.
-## Only the two files that make world sounds away from the camera are held.
+## Only the files that make world sounds away from the camera are held.
+##
+## **It said "the two files" and there were three.** `wildlife_families.gd`
+## announces a birth and a Wildblight frenzy - both at a place on the field,
+## both with the position already in hand - and both were flat, so a birth
+## across the outskirts was as loud as one underfoot. It was missed because
+## the first pass went looking in the files named after the things that make
+## noise, and a birth is made by the *families* system rather than by the
+## animal. Found by reading the call sites while surveying what wildlife plays,
+## not by anything failing.
 func _test_a_voice_comes_from_where_it_is() -> void:
 	var watched: Dictionary = {
 		"res://scripts/systems/wildlife.gd": ["Sfx.play(kind.vocal_sfx"],
+		"res://scripts/systems/wildlife_families.gd": ["Sfx.play(kind.vocal_sfx"],
 		"res://scenes/battlefield/companion.gd": ["Sfx.play(_vocal",
 			"Sfx.play(\"sfx_companion_"],
 	}

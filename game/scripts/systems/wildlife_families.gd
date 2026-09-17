@@ -672,10 +672,11 @@ func hatch(kind: WildlifeData, at: Vector2, clutch: Array[Dictionary],
 func _announce_birth(cub: Dictionary, kind: WildlifeData, rarity: int, shiny: bool, at: Vector2) -> void:
 	Vfx.dust(at, Color(0.55, 0.5, 0.35), 5, 28.0)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play(kind.vocal_sfx, -9.0)
+		Sfx.play_at(kind.vocal_sfx, at, -9.0,
+			Wildlife.voice_pitch(kind, stage_scale(0) * float(cub.get("size", 1.0))))
 	if rarity > int(kind.rarity):
 		Vfx.ring(at, 60.0, Color(SpiritBond.tint(rarity, false), 0.75), 0.6, 3.0)
-		Sfx.play("sfx_ui_confirm", -6.0)
+		Sfx.play_at("sfx_ui_confirm", at, -6.0)
 	if shiny:
 		Vfx.spark(at, Balance.SPIRIT_SHINY_COLOUR, 10, Vector2.UP, 120.0)
 
@@ -860,7 +861,8 @@ func _frenzy(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
 	wild.dress_frenzied(animal, sprite, kind)
 	Vfx.ring(sprite.global_position, 80.0, Color(Balance.WILDLIFE_RABID_AURA, 0.9), 0.5, 4.0)
 	if not kind.vocal_sfx.is_empty():
-		Sfx.play(kind.vocal_sfx, 2.0)
+		Sfx.play_at(kind.vocal_sfx, sprite.global_position, 2.0,
+			Wildlife.voice_pitch(kind, float(animal.get("size", 1.0))))
 	if wild.is_authority_with_company():
 		EventBus.coop_wildlife_family.emit(int(animal["net_id"]), Word.BLIGHT, Blight.FRENZIED)
 	EventBus.wildlife_blighted.emit(kind.id, sprite.global_position)

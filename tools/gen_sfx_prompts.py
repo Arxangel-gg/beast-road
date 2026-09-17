@@ -419,6 +419,216 @@ ROWS = [
      "splash, no reverb, no background — record 4 takes, saved as "
      "_1.._4; they rotate"),
 
+    # ---------------- wildlife: the blow, the cry and the end (2026-09-17) ----------------
+    # `Wildlife._wound` is the one funnel every wound goes through and it made
+    # NO SOUND AT ALL - it flashed the sprite, threw sparks, bled, dropped the
+    # loot and killed the animal in silence. Nor did the Wildblight, the nests,
+    # the eggs, the bond, the rift a raccoon escapes through, or the pen at the
+    # Hold. Three more events played somebody else's sound: the over-farm elite
+    # roared with `sfx_chieftain_roar`, a HUMAN warlord's battle cry, and both
+    # the mythic trail and the egg theft played `sfx_ui_confirm`, a menu click.
+    #
+    # Shared by class and pitched by body, the way the voices are: one
+    # recording covers sixteen small mammals across a 1.37x pitch spread. The
+    # pitch spread each class must survive is recorded beside it in
+    # `docs/SFX_PROMPTS.md`.
+    #
+    # **Restraint is the brief and it is a requirement rather than taste.** A
+    # player kills dozens of animals a run and hundreds across a campaign, so
+    # nothing here may be drawn out, wet or agonised: a hurt cry releases and a
+    # death cry stops dead partway through the note, and that difference is
+    # also the only thing telling the pair apart.
+    # a blow landing, by what the body is covered in - `_wound` made no sound at all
+    ("sfx_wildlife_hit_fur", "sfx", "sfx", "0.2s", "ElevenLabs",
+     "one blade striking a badger-sized furred animal, a short blunt "
+     "thump muffled by thick fur, dull and dry rather than wet, no "
+     "animal cry, no reverb, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+    ("sfx_wildlife_hit_feather", "sfx", "sfx", "0.2s", "ElevenLabs",
+     "one blade striking a crow-sized bird, a dry papery burst of "
+     "feathers over a light hollow body, not wet or meaty, no bird call, "
+     "no wing flapping, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_hit_scale", "sfx", "sfx", "0.2s", "ElevenLabs",
+     "one blade striking the overlapping scales of a large lizard, a "
+     "hard dry clipped knock with a faint rasp under it, firm and not "
+     "metallic, no hiss, no ring, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+    ("sfx_wildlife_hit_shell", "sfx", "sfx", "0.25s", "ElevenLabs",
+     "one blade striking a hard animal shell, a blunt hollow knock that "
+     "does not sink in, closer to dry hardwood than to metal with no "
+     "ring, no crack, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_hit_chitin", "sfx", "sfx", "0.18s", "ElevenLabs",
+     "one blade striking the hard shell of a large beetle, a tiny dry "
+     "clipped tick with a little brittle body behind it, small but not "
+     "thin, no crunch, no squelch, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+
+    # hurt: struck and still alive, so the animal then flees. It RELEASES.
+    ("sfx_wildlife_hurt_small_beast", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one short sharp yelp from a marten-sized mammal taking a sudden "
+     "blow, the shock of it rather than pain, a single clean cry that "
+     "releases on its own instead of stopping dead mid-voice, "
+     "mid-register with a little chest behind it and never a thin "
+     "squeal, an animal throat and never a human voice, no whimper "
+     "afterwards, no impact thud, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+    ("sfx_wildlife_hurt_large_beast", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "one short winded grunt forced out of a deer-sized animal taking a "
+     "blow to the flank, chest-driven and startled, ending as the breath "
+     "runs out rather than stopping dead mid-voice, a real animal and "
+     "never a cinematic monster roar, no drawn-out cry, no impact thud, "
+     "no background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_hurt_bird", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one harsh startled squawk from a heron-sized bird taking a sudden "
+     "blow, a single rough call with a scrape of breath in it that "
+     "releases rather than stopping dead mid-voice, mid-register and "
+     "never a shrill scream, one call and not a flurry, no wing flaps, "
+     "no impact thud, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_hurt_reptile", "sfx", "sfx", "0.35s", "ElevenLabs",
+     "one hard rush of breath forced out of a monitor-lizard-sized "
+     "reptile taking a blow to the body, flat and voiceless with a short "
+     "dry throat rattle closing it, not a sustained warning hiss and not "
+     "a cry, dry and close, no impact thud, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_hurt_amphibian", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one short frog distress squall, a single bright open-throated cry "
+     "with real throat body behind it and never a thin whistle, a frog "
+     "throat and never a human scream, startled rather than comic, "
+     "releasing as the air runs out instead of stopping dead mid-voice, "
+     "no croak, no pond ambience, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+
+    # death: the same throat, CUT OFF mid-note. That is the whole separation.
+    ("sfx_wildlife_death_small_beast", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one short sharp yelp from a marten-sized animal that stops dead "
+     "partway through the note, an animal throat not a person, nothing "
+     "after the cut, no whimper, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+    ("sfx_wildlife_death_large_beast", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one chest-deep grunting cry from a deer-sized animal cut off "
+     "abruptly partway through, a real animal and not a cinematic "
+     "monster roar, no rattle, no gurgle, no body fall, isolated with no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_death_bird", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one clipped crow-sized bird call that stops halfway through a "
+     "single note, cut off rather than fading out, no wing flaps, no "
+     "flock, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_wildlife_death_reptile", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one dry hiss from a medium-sized reptile that drops away and runs "
+     "out of air, stopping abruptly rather than trailing off, no rattle, "
+     "no long wheeze, no bite impact, no background — record 4 takes, "
+     "saved as _1.._4; they rotate"),
+    ("sfx_wildlife_death_amphibian", "sfx", "sfx", "0.35s", "ElevenLabs",
+     "one rubbery throaty frog croak cut off partway through, a shade "
+     "fuller and deeper than a small tree frog, close and dry, no croak "
+     "after it, no pond ambience, no insects, no reverb — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+
+    # the nine voiceless species still die, and every body still lands
+    ("sfx_wildlife_death_shell", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "one hard empty-sounding shell giving way under a last blow, a dry "
+     "splintering crack inward and a short settle of fragments, like "
+     "breaking a dry husk, nothing wet, no cry, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_death_chitin", "sfx", "sfx", "0.35s", "ElevenLabs",
+     "one small insect body collapsing under a last blow, a brief dry "
+     "brittle crunch that stops at once, clean and papery rather than "
+     "wet or squelching, no voice, no background — record 4 takes, saved "
+     "as _1.._4; they rotate"),
+    ("sfx_wildlife_fall_light", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one small limp animal body dropping onto packed earth, a single "
+     "soft dull thud with a faint rustle after it, one impact only, no "
+     "bounce, no cry, no background — record 4 takes, saved as _1.._4; "
+     "they rotate"),
+    ("sfx_wildlife_fall_heavy", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one large animal body collapsing onto packed earth, a heavy "
+     "soft-bodied thud with weight behind it and a low dusty settle "
+     "after, a real animal and not a deep sub-bass boom, no cry, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+
+    # the Wildblight, silent since it was built
+    ("sfx_wildlife_blight_warning", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one laboured unsteady breath from a mid-sized animal with a faint "
+     "dry rattle in it, ill and weakening rather than threatening, not a "
+     "growl and not a monster, close and dry, no music sting, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_blight_frenzy", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one strained cry from a mid-sized animal pushed past what its "
+     "throat can hold so that it cracks and cuts off partway through, "
+     "grain and breath still in it, not a human scream and not a "
+     "cinematic monster roar, no background — record 4 takes, saved as "
+     "_1.._4; they rotate"),
+    ("sfx_wildlife_blight_collapse", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one long tired exhale from a mid-sized animal as the last of the "
+     "fight goes out of it, quiet and finished rather than a death "
+     "throe, no whimper and no death rattle, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+
+    # nests and eggs - the theft played a menu click
+    ("sfx_wildlife_nest_lay", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one small clutch of eggs settling into a nest, a short shuffle of "
+     "down and dry grass with a single dull knock of shell against "
+     "shell, soft and close, no bird call, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_egg_take", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one smooth egg lifted clear of a nest, dry grass and down giving "
+     "way slowly and the shell sliding free, careful and furtive rather "
+     "than triumphant, no shell knock, no chime or music sting, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_egg_hatch", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one small bird egg cracking open, fine brittle shell splitting "
+     "with one thin chirp from inside at the end, close and over "
+     "quickly, not a large creature hatching, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+
+    # events that were silent or wearing somebody else's sound
+    ("sfx_wildlife_savage_arrival", "sfx", "sfx", "1.4s", "ElevenLabs",
+     "one heavy chest bellow from a large animal announcing itself, "
+     "resonance from the ribcage rather than a throaty snarl, powerful "
+     "but not a cinematic monster roar and falling away rather than "
+     "sustained, dry and close, no human voice, no reverb tail, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_trail_sign", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one small close crumble of damp earth and grit collapsing into a "
+     "fresh animal print and settling, dry and hushed with a definite "
+     "start, no chime, no musical tone, no background — record 4 takes, "
+     "saved as _1.._4; they rotate"),
+    ("sfx_wildlife_bond", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one calm animal breath easing out through the nose with a soft low "
+     "contented rumble in the chest under it, close and dry and "
+     "unhurried, no growl, no human voice, no chime, no fanfare, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_rift_out", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one short dry rip of heavy cloth torn and released in a single "
+     "snap, small in scale and quick, no synth sweep, no choir, no "
+     "reverb tail, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+
+    # wings, and the pen at the Hold, which has never made a sound
+    ("sfx_wildlife_wing_small", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one quick dry papery flutter of moth wings lifting off, tiny with "
+     "almost no air moved, no insect buzz, no background — record 4 "
+     "takes, saved as _1.._4; they rotate"),
+    ("sfx_wildlife_wing_large", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "three or four heavy wingbeats as a large bird flushes up from the "
+     "ground, real air moved and feathers under strain, one burst that "
+     "ends rather than repeating, no bird call, no wind whoosh, no "
+     "background — record 4 takes, saved as _1.._4; they rotate"),
+    ("sfx_pen_graze", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one soft tear of grass cropped close to the ground with a short "
+     "quiet chew after it, close and domestic, no animal call, no hoof "
+     "steps, no background — record 4 takes, saved as _1.._4; they "
+     "rotate"),
+    ("sfx_pen_settle", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one animal lowering its body weight into dry straw, the straw "
+     "compressing under it and a short breath out through the nose, soft "
+     "and domestic, no human voice, no hoof stamp, no background — "
+     "record 4 takes, saved as _1.._4; they rotate"),
+
     # ---------------- act playlists (2026-09-11) ----------------
     # Twelve songs an act, shuffled and played end to end by MusicPlayer. A
     # slot without a file is simply not in the shuffle, so these can be
