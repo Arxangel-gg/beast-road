@@ -5409,6 +5409,41 @@ the bottom of the canvas. The tool refused a 27px shove downward and was right
 to.
 
 
+**Photograph what ships, not a stand-in, as of 2026-09-17.** `mount_shot` was
+written because every rule a mount has is a number and **the seat is not** -
+how high the rider sits, whether the hooves are on the ground the Warden was
+standing on, whether the horse turns with its rider. It built its rider out of
+`hero_base.png`, an older single painting, and the owner caught it at a glance:
+*"ours has the lantern"*.
+
+**The wrong sprite was hiding a bug in the real one.** `MountRig` measures the
+rider to find where their hips are, and **a region-enabled sprite's `texture`
+is the whole sheet** - the Warden is eight rows of `hero_idle.png` at
+1512x1280. So in play it measured the rider as about 1270 tall, put the hips
+571 up, and seated them at the horse's feet. A stand-in cannot fail the way the
+real thing fails.
+
+Three things the photographs settled that no number could, in order:
+
+- **Every mount floated.** A base painting has margin below the hooves and the
+  reader placed the texture's *bottom edge* on the node. True of all four.
+- **The rider was seated by their boots.** A hero sprite is drawn from the feet
+  up, so lifting by the saddle's own height left the whole Warden above the
+  horse with a gap under them. A rider straddles: `MOUNT_RIDER_HIP`.
+- **In profile they sat on the neck.** The saddle is behind the withers from
+  the side and directly under the rider head-on, so `MOUNT_SEAT_BACK` is
+  applied *along the facing* - reversing with the animal and exactly zero when
+  it is coming at you, which is how one number serves eight directions.
+
+**And a shared transform is not the same as a shared ground line.** The packer
+crops a whole facing through one box - right, and what preserves the motion -
+and then *also* pushed every frame's own floor down to the cell edge, which is
+the instruction "never leave the ground". A gallop is a bound. The terrace
+stag's needed a 31px correction and the assertion refused it as "a different
+pose, not a wandering foot": true, and **the pose was right and the correction
+was the mistake**. Every gallop packed before that had been flattened.
+
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
