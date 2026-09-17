@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vu077")
+voice_sfx = "sfx_enemy_call_swarm"
 stagger_tolerance = 2.0
 behaviour = 2
 behaviour_warning = 0.55

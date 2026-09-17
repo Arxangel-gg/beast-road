@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_wraith"
 stagger_tolerance = 4.8
 shot = 1
 shot_range = 600

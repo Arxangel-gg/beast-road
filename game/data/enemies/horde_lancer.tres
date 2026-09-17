@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
 stagger_tolerance = 4.8
 thrown_shot_id = "thrown_javelin"
 thrown_range = 196.0

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
 stagger_tolerance = 1.0
 hide = 1
 category = 2

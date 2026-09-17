@@ -164,6 +164,40 @@ func _ready() -> void:
 		if not ResourceLoader.exists(String(Ambience.WEATHER_BEDS[key])):
 			failures.append("the weather bed \"%s\" has no file" % str(key))
 
+	# **Every breed on the road has a voice, and it is one that exists.**
+	#
+	# Six enemy archetypes were recorded, registered and mixed - beast, horde,
+	# horn, siege, swarm and wraith - and on 2026-09-17 *not one of sixty-eight
+	# breeds named any of them*. `Enemy.speak` was fully built: pitched by the
+	# body making it, rationed across the field so a wave is not a wall of
+	# noise, positional, and called from the behaviour tell. It returned on its
+	# first line every time, because `voice_sfx` was empty everywhere. The whole
+	# roster was mute and nothing could have said so.
+	#
+	# That is `sfx_wildfire` at sixty-eight times the scale - a recording made,
+	# registered, mixed and played by nobody - and the answer is the one this
+	# file has now reached three times: walk the *content* against the table,
+	# not the table against itself.
+	var mute: PackedStringArray = []
+	var breeds: Array = ContentDB.enemies.values()
+	breeds.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.id < b.id)
+	for breed: EnemyData in breeds:
+		if breed == null:
+			continue
+		if breed.voice_sfx.is_empty():
+			mute.append(breed.id)
+		elif not paths.has(breed.voice_sfx) \
+				and not Sfx.GROUPS.has(breed.voice_sfx):
+			# **Parenthesised.** `%` binds tighter than `+`, so without these the
+			# format is applied to the last fragment alone - one `%s` against two
+			# arguments, which is an error rather than a message.
+			failures.append(("breed \"%s\" names a voice that is neither a sound "
+				+ "nor a group: %s") % [breed.id, breed.voice_sfx])
+	if not mute.is_empty():
+		failures.append(("%d breed(s) have no voice at all, so `Enemy.speak` "
+			+ "returns on its first line for them and they are silent on the "
+			+ "road: %s") % [mute.size(), ", ".join(mute)])
+
 	print("[audio] %d sounds, %d groups, %d mix rows"
 		% [paths.size(), Sfx.GROUPS.size(), Sfx.MIX.size()])
 	for problem: String in failures:

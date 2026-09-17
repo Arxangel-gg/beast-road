@@ -393,10 +393,29 @@ func _test_the_riders_throw_on_the_way_in() -> void:
 		_check(not bool(rider.get("_throwing")),
 			("%s struck without spending the throw, so its next swing would "
 				+ "loose another javelin") % breed.id)
+		# **Waited on, but not blindly, and this cost the gate three checks
+		# without telling anybody.** Three seconds of real frames is three
+		# seconds of the road: a tower can shoot the probe, an animal can bite
+		# it, it can reach the wall and be spent. When it was, `rider.get(...)`
+		# below hit a freed instance - and GDScript *aborts the whole function*
+		# on that, so the last three checks in this test silently never ran
+		# while the gate printed PASS. That is the same shape as a comparison
+		# of two nothings, and the same family as the freed-companion cast.
+		#
+		# So the wait ends the moment the javelin has landed, which is all it
+		# was ever waiting for, and the probe surviving is a check rather than
+		# an assumption.
+		var taken: float = 0.0
 		for _frame: int in 180:
 			hero.health._invulnerable_left = 0.0
 			await get_tree().process_frame
-		var taken: float = hero.health.max_hp - hero.health.current_hp
+			taken = hero.health.max_hp - hero.health.current_hp
+			if taken > 0.0 or not is_instance_valid(rider):
+				break
+		_check(is_instance_valid(rider),
+			("%s was taken off the field before its javelin could be measured "
+				+ "- the road reached the probe, so the checks below were never "
+				+ "asked") % breed.id)
 		_check(taken > 0.0,
 			"%s let a javelin go and nothing arrived - a silent dud" % breed.id)
 		# **Softer than the blow it opens with.** The share is well under one and
@@ -409,10 +428,12 @@ func _test_the_riders_throw_on_the_way_in() -> void:
 				% [breed.id, taken, breed.contact_damage])
 		# And it is spent on release rather than on the attempt, so a rider
 		# broken mid-throw has not lost its javelin.
-		_check(float(rider.get("_throw_cooldown")) > 0.0,
+		_check(is_instance_valid(rider)
+				and float(rider.get("_throw_cooldown")) > 0.0,
 			"%s threw and started no cooldown, so it can throw every wind-up"
 				% breed.id)
-		rider.queue_free()
+		if is_instance_valid(rider):
+			rider.queue_free()
 		await get_tree().process_frame
 
 	# **Never in melee.** The same body inside its own reach must have nothing

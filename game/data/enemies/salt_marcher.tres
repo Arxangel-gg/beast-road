@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_horde"
 stagger_tolerance = 4.6
 art_facing = 1
 id = "salt_marcher"

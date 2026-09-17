@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_a3xbi")
+voice_sfx = "sfx_enemy_call_wraith"
 stagger_tolerance = 1.0
 category = 2
 role = 1
