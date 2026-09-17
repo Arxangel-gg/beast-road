@@ -519,8 +519,9 @@ Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `
 | `boss_gatekeeper.png` | 384×384 | T | `#78797B` |
 | `boss_last_anchor.png` | 384×384 | T | `#5E5A57` |
 
-> The seven added on 2026-09-11 are base sprites only. The four that shipped
-> before them also carry idle, move and attack sequences; a boss with no
+> The seven added on 2026-09-11 and the Last Anchor (2026-09-17) are base
+> sprites only. The four that shipped before them also carry idle, move and
+> attack sequences; a boss with no
 > authored sequence holds its pose, which the frame loader already handles.
 > Declaring frames that have not been drawn would fail the art report, so they
 > are not declared until they exist.

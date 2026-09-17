@@ -10216,3 +10216,8 @@ const WALK_ENDING_SECONDS: float = 13.0
 ## short enough that one seat away from the keyboard does not hold the rest in
 ## a yard - and a road nobody answers goes anyway when it runs out.
 const PARTY_ROAD_ANSWER_SECONDS: float = 20.0
+
+## How fast the Hold's buildings play their own idle frames. Slow on purpose:
+## a forge that flickers at the rate a fire does reads as an alarm at this size,
+## and a Hold is somewhere you stand about in rather than something happening.
+const HOLD_IDLE_FPS: float = 2.4

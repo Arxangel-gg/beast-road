@@ -209,6 +209,16 @@ func _build_stations() -> void:
 		var station: Dictionary = entry.duplicate(true)
 		station["node"] = sprite
 		station["button"] = null
+		# **Every building breathes on its own authored frames.** Owner,
+		# 2026-09-17: *"anything that would be better animated at the hold
+		# should be"*. The city buildings have carried three idle frames each
+		# since they were drawn and the Hold was the one place standing them
+		# still, so this is art the game already owns being used twice.
+		station["base"] = sprite.texture
+		station["idle"] = GameData.load_idle_frames(String(entry["art"]))
+		# Its own phase, off its own id: a square where five buildings pulse
+		# together reads as one animation rather than as a place.
+		station["clock"] = float(absi(hash(String(entry["id"]))) % 997) * 0.01
 		_stations.append(station)
 
 
@@ -562,6 +572,7 @@ func _process(delta: float) -> void:
 	for person: Dictionary in _residents:
 		_mind_the_stall(person, delta)
 	_tick_heel(delta)
+	_breathe(delta)
 	_find_focus()
 	queue_redraw()
 
@@ -697,6 +708,29 @@ func stood_aside(id: String) -> bool:
 		if String(person["id"]) == id:
 			return bool(person.get("stood_aside", false))
 	return false
+
+
+## The buildings' own idle frames, each on its own clock.
+##
+## Slow: a forge that flickers at the rate a fire does reads as an alarm at
+## this size, and a Hold is somewhere you stand about in. A station with no
+## frames on disk simply keeps its base, which is what every one of them did
+## before this.
+func _breathe(delta: float) -> void:
+	for station: Dictionary in _stations:
+		var frames: Array = station.get("idle", []) as Array
+		if frames.is_empty():
+			continue
+		var sprite := station["node"] as Sprite2D
+		if sprite == null:
+			continue
+		station["clock"] = float(station["clock"]) + delta
+		# The base is frame zero, so a three-frame sheet is a four-step loop
+		# that returns to the pose the building was drawn in.
+		var step: int = int(float(station["clock"]) * Balance.HOLD_IDLE_FPS) \
+			% (frames.size() + 1)
+		sprite.texture = (station["base"] as Texture2D) if step == 0 \
+			else frames[step - 1] as Texture2D
 
 
 ## What is in reach, nearest first. A building and its keeper answer the same
