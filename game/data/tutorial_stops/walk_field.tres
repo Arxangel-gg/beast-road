@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_field"
+display_name = "Field"
+order = 3
+anchor = "road"
+along = 0.20
+radius = 120.0
+done = 0
+count = 1
+instruction = "Most of what lives out here will not touch you. Walk near it and it goes."
+instruction_two = ""
+aside = "The animals stayed when the people left. Whatever the Host is, it walks past a field."
+seconds = 11.0
+opens = ""

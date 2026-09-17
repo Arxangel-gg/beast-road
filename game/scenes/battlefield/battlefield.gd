@@ -991,6 +991,7 @@ func gathering() -> Gathering:
 	return _gathering
 
 
+
 ## The ground the gates and the camps have already claimed.
 ##
 ## The water is *not* in here - it is `_taken_water`, as rectangles, because a

@@ -276,6 +276,13 @@ func _tick_charge(delta: float) -> void:
 ## last strike left behind - so strikes come rarely from a steady rain and in
 ## bursts once one has landed, which is what a storm does.
 func _hazard() -> float:
+	# **The valley is quiet.** Nothing in the earth's events is phase-gated -
+	# not the quake, the funnel, the meteor, the blaze or the dragon - and the
+	# Walk is a guided night in a farmland with a chained beast at the end of
+	# it. "Unlikely because wrath opens at its floor" is a coin toss wearing a
+	# gate's clothes, and this project has shipped four of those.
+	if RunState.walking:
+		return 0.0
 	if _weather == null or _weather.lightning_rate <= 0.0:
 		return 0.0
 	var over: float = (intensity() - Balance.LIGHTNING_MIN_INTENSITY) \
@@ -1023,6 +1030,10 @@ func _on_act_started(_act: int, _terrain: String) -> void:
 
 ## Whether the earth answers this frame, and how.
 func _tick_wrath_events(delta: float) -> void:
+	# The valley is quiet - see `_hazard`. Every event below rolls off the
+	# anger rather than off the lightning rate, so it needs its own line.
+	if RunState.walking:
+		return
 	var anger: float = wrath()
 	# Lifted by the legendary shock, calmed by every anchor standing.
 	var boost: float = hazard_boost()

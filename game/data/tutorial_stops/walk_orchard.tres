@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_orchard"
+display_name = "Orchard"
+order = 10
+anchor = "road"
+along = 0.66
+radius = 120.0
+done = 0
+count = 1
+instruction = "It has been behind you since the field. Feed it and it stays."
+instruction_two = "One at a time, and it eats. A companion costs Food for as long as you keep it, and it goes home when the larder is empty."
+aside = "Bonding is not catching. You will not own it. It walks where you walk while it wants to, and it is better at finding things than you are."
+seconds = 11.0
+opens = ""

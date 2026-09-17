@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_cut"
+display_name = "Cut"
+order = 5
+anchor = "trunk"
+along = 0.00
+radius = 120.0
+done = 2
+count = 1
+instruction = "Walk up to the trunk and press Interact to start swinging. Walking away stops you."
+instruction_two = "Wood is what mends a wall. Timber is what a forge wants, and it keeps between runs."
+aside = "Nobody has felled in here in a season. The hold had stopped building anything, which is how you can tell what they thought was coming."
+seconds = 11.0
+opens = ""

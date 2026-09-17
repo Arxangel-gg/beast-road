@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_fence"
+display_name = "Fence"
+order = 4
+anchor = "road"
+along = 0.28
+radius = 120.0
+done = 1
+count = 1
+instruction = "Attack swings. Three swings chain and the third is the heavy one. Dash, and nothing can touch you in the middle of one."
+instruction_two = "Your health comes back on its own between fights. Go all the way down and you carry a Wound instead, and a Wound stays until something mends it. You are not the loss condition. Losing you is expensive."
+aside = "That one is sick and it is not getting better. Putting it down is the kindest thing anyone has done in this field all season."
+seconds = 11.0
+opens = ""

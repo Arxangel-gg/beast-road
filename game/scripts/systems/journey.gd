@@ -42,6 +42,13 @@ func _process(delta: float) -> void:
 	if not _running or _crossroad_pending:
 		return
 
+	# **He is chained to the valley floor and cannot take a step**, which is the
+	# whole ending of the Walk. A road that advanced underneath it would move
+	# the act on, call a boss, open a crossroad and finish the tutorial for the
+	# player - so the walk is the one state in which the beast does not walk.
+	if RunState.walking:
+		return
+
 	# The horn plants the beast's feet: no distance, so no resources and no
 	# construction. That is the horn's immediate, legible cost (GDD §6.1).
 	if RunState.horn_active:

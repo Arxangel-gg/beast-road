@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_doors"
+display_name = "Doors"
+order = 12
+anchor = "road"
+along = 0.78
+radius = 120.0
+done = 0
+count = 1
+instruction = "The stash keeps what you find. The codex keeps what you have learned about the world. The chronicle keeps what you have done. None of the three is lost when a run is."
+instruction_two = ""
+aside = "These three doors are the only things in the valley that will still be yours tomorrow. Where you find them again is called the Hold."
+seconds = 11.0
+opens = ""

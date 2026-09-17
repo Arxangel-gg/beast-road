@@ -95,7 +95,8 @@ static func forge(wood_id: String, ore_id: String, gem_id: String) -> Dictionary
 
 ## The piece itself: a kind off the same tables, at a rarity the gem and the
 ## smith argued for.
-static func _strike(wood_id: String, ore_id: String, gem_id: String) -> Dictionary:
+static func _strike(wood_id: String, ore_id: String, gem_id: String,
+		hands: int = -1) -> Dictionary:
 	var wood: MaterialData = ContentDB.material(wood_id)
 	var ore: MaterialData = ContentDB.material(ore_id)
 	var gem: MaterialData = ContentDB.material(gem_id)
@@ -118,8 +119,11 @@ static func _strike(wood_id: String, ore_id: String, gem_id: String) -> Dictiona
 	var rarity: int = Balance.FORGE_BASE_RARITY
 	var gem_odds: float = Balance.FORGE_GEM_RARITY_CHANCE[clampi(gem.rarity, 0,
 		Balance.FORGE_GEM_RARITY_CHANCE.size() - 1)]
-	var share: float = float(MetaState.profession_level("smith") - 1) \
-		/ maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
+	# Whose practice argued for the rarity. The Warden's own unless somebody
+	# else is at the anvil - a commission is struck by Orden, and his hands are
+	# middling rather than masterful (`COMMISSION_SMITH_SKILL`).
+	var skill: int = hands if hands > 0 else MetaState.profession_level("smith")
+	var share: float = float(skill - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
 	var odds: float = clampf(gem_odds + share * Balance.FORGE_SKILL_RARITY_CHANCE, 0.0, 0.95)
 	var steps: int = mini(gem.rarity + 1, Balance.FORGE_MAX_RARITY_STEPS)
 	for _rung: int in steps:
@@ -157,3 +161,104 @@ static func rung_odds(gem_id: String) -> float:
 	return clampf(Balance.FORGE_GEM_RARITY_CHANCE[clampi(gem.rarity, 0,
 		Balance.FORGE_GEM_RARITY_CHANCE.size() - 1)]
 		+ share * Balance.FORGE_SKILL_RARITY_CHANCE, 0.0, 0.95)
+
+
+# --- The commission ----------------------------------------------------------
+#
+# Owner brief, 2026-09-17: *"if players are lacking resources necessary to make
+# an item they could speak to the blacksmith and ask him to make it for them so
+# they don't have to smith it themselves, however there should be an appropriate
+# cost that is more expensive than players smithing it themselves ... and even
+# then there should be more to it than just having enough gold for it but doing
+# so should be a bit more demanding as well."*
+#
+# **He supplies the stock; the Warden supplies the gem.** Wood and ore are what
+# somebody who has not been out to the seams is short of, and they are what a
+# blacksmith has. The gem is the rare thing that decides the rarity, and a gem
+# bought with Marks would be the failure `exchange_check` exists to prevent on
+# the other side of the economy.
+#
+# **And the demanding half is not the fee.** A commission teaches the Warden
+# nothing - no Smith experience is paid - and it comes off Orden's ordinary
+# stock, so the piece is the level ordinary timber makes. Marks cannot buy
+# practice and cannot buy good stock; they buy a piece today.
+
+
+## What Orden asks in Marks. Scaled by what he is being asked to make, so
+## commissioning a great piece costs like a great piece.
+static func commission_fee(gem_id: String) -> int:
+	var gem: MaterialData = ContentDB.material(gem_id)
+	if gem == null:
+		return 0
+	var reach: int = clampi(Balance.FORGE_BASE_RARITY + gem.rarity + 1, 0,
+		Stash.RARITY_MARKS.size() - 1)
+	return maxi(int(round(float(Stash.RARITY_MARKS[reach])
+		* Balance.COMMISSION_MARK_MULTIPLE)), 1)
+
+
+## Everything that can refuse a commission, in one place, so the screen and the
+## gate ask the same question. Returns "" when Orden would take the work.
+static func commission_refusal(gem_id: String) -> String:
+	var gem: MaterialData = ContentDB.material(gem_id)
+	if gem == null or gem.kind != MaterialData.Kind.GEM:
+		return "Orden wants a gem to set. He has stock; he has no stones."
+	if MetaState.material_count(gem_id) < Balance.FORGE_GEM_COST:
+		return "No %s to give him." % gem.display_name
+	if MetaState.profession_level("smith") < Balance.COMMISSION_SMITH_LEVEL:
+		return ("Orden works for smiths. Strike something yourself first - a "
+			+ "Smith of %d will do." % Balance.COMMISSION_SMITH_LEVEL)
+	var fee: int = commission_fee(gem_id)
+	if MetaState.marks < fee:
+		return "Orden asks %d Marks. You have %d." % [fee, MetaState.marks]
+	if MetaState.stash.size() >= Balance.STASH_CAPACITY:
+		return "The stash is full. Nothing may be forged into nowhere."
+	return ""
+
+
+## The stock Orden works from: the commonest wood and the commonest ore the
+## world has. Read off the content rather than named here, so a region added
+## later cannot leave him working from something that does not exist.
+static func commission_stock() -> Array[String]:
+	var wood: String = ""
+	var ore: String = ""
+	var wood_rarity: int = 99
+	var ore_rarity: int = 99
+	for kind: MaterialData in ContentDB.materials_sorted():
+		if kind.kind == MaterialData.Kind.WOOD and kind.rarity < wood_rarity:
+			wood_rarity = kind.rarity
+			wood = kind.id
+		elif kind.kind == MaterialData.Kind.ORE and kind.rarity < ore_rarity:
+			ore_rarity = kind.rarity
+			ore = kind.id
+	return [wood, ore]
+
+
+## Asks Orden to make it. Returns the piece, or a dictionary carrying `error`.
+##
+## **Validate, then spend, then make**, the order `forge` commits in and for the
+## same reason: the gem is the scarce half of the price, and a commission that
+## ate one on a race nobody can reproduce is worse than one that refuses.
+static func commission(gem_id: String) -> Dictionary:
+	var refused: String = commission_refusal(gem_id)
+	if not refused.is_empty():
+		return {"error": refused}
+	var stock: Array[String] = commission_stock()
+	if stock[0].is_empty() or stock[1].is_empty():
+		return {"error": "Orden's stock is empty."}
+	var fee: int = commission_fee(gem_id)
+	if not MetaState.spend_material(gem_id, Balance.FORGE_GEM_COST):
+		return {"error": "The gem was gone."}
+	if MetaState.marks < fee:
+		MetaState.gain_material(gem_id, Balance.FORGE_GEM_COST)
+		return {"error": "The Marks were gone."}
+	MetaState.marks -= fee
+	# His hands, his stock, and **no experience for the Warden**: a commission
+	# is a piece bought rather than a piece learnt.
+	var piece: Dictionary = _strike(stock[0], stock[1], gem_id,
+		Balance.COMMISSION_SMITH_SKILL)
+	if not MetaState.take_gear(piece):
+		MetaState.gain_material(gem_id, Balance.FORGE_GEM_COST)
+		MetaState.marks += fee
+		return {"error": "The stash is full."}
+	MetaState.save_game()
+	return piece

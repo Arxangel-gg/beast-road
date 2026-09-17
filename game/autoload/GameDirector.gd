@@ -363,6 +363,56 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	_change(RUN_SCENE)
 
 
+## **The Walk: the guided valley, and its own door.**
+##
+## Owner brief, 2026-09-17. It is deliberately *not* `start_run`, and the
+## reason is what that function does on the way past: it clears a banked
+## expedition, consumes the Treasury cache and the Sigil bundle, withdraws the
+## party from the lobby and stamps the road's clock. A veteran replaying the
+## tutorial from the Hold would lose five hours of road to it, silently.
+##
+## So the Walk resets the run state - it needs a purse, a town and a field -
+## and then takes none of those steps. `RunState.walking` is set after the
+## reset, because the reset clears it.
+func start_walk() -> void:
+	RunState.reset(false, 0)
+	RunState.walking = true
+	# The valley is not a run: nothing about it is announced to a partner, the
+	# lobby row stays up, and the road's clock is not started - so the Market's
+	# shelf is not swept by walking the tutorial either.
+	run_active = true
+	current_scope = Scope.BATTLEFIELD
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	_change(RUN_SCENE)
+
+
+## Leaves the valley. `finished` is true when the chain was cut rather than
+## when the Walk was put down.
+##
+## The ledger is paid by whoever called this - the chain beat or the skip -
+## through `TutorialGrants.award`, which is guarded and pays once. This door
+## only closes the valley, so a Walk that is abandoned mid-stop cannot pay by
+## accident on the way out.
+func end_walk(finished: bool) -> void:
+	if not RunState.walking:
+		return
+	RunState.walking = false
+	run_active = false
+	EventBus.walk_ended.emit(finished)
+	# **A first walk runs straight onto the road**, which is what the valley is
+	# for: the chain comes off and the beast takes a step, and stopping at a
+	# menu in between is the one cut that would waste it.
+	#
+	# **A replay does not**, and that is the reason the two doors exist at all:
+	# `start_run` clears a banked expedition, and a veteran walking the valley
+	# again from the Hold must not lose five hours of road to a tutorial.
+	if finished and MetaState.runs_started <= 0:
+		start_run()
+		return
+	goto_menu()
+
+
 ## Ends the run, pays out unlocks, and records statistics. `victory` is true
 ## only after completing the Final Ascent ending.
 func end_run(victory: bool) -> void:
@@ -449,6 +499,15 @@ func _hatch_what_was_carried(home: bool) -> Array[String]:
 
 
 func _settle_run(victory: bool, returned: bool = false) -> void:
+	# **The Walk is not a run and may never settle as one.**
+	#
+	# Everything below this line is an account-level write: statistics, Tools,
+	# a Sigil, Chronicle objectives, the leaderboard, the Treasury cache and a
+	# save. The tutorial promises that none of it happens, and the honest place
+	# to keep that promise is the first line of the function that would break
+	# it rather than at each of the places a run can end.
+	if RunState.walking:
+		return
 	if not run_active:
 		return
 	run_active = false

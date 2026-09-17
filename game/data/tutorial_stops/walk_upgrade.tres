@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_upgrade"
+display_name = "Upgrade"
+order = 16
+anchor = "build"
+along = 0.00
+radius = 120.0
+done = 0
+count = 1
+instruction = "Upgrade it. Ten levels, and it gets dearer every rung."
+instruction_two = "At the fifth it takes a path - fewer and harder, or more and faster. You pick once and it keeps it."
+aside = ""
+seconds = 11.0
+opens = ""

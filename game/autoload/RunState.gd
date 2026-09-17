@@ -43,6 +43,23 @@ var act: int = 1
 var segment: int = 0
 var terrain_id: String = ""
 
+## **True while the Warden is walking the tutorial valley.**
+##
+## The Walk is the battlefield with an authored layout and a scripted
+## director, entered through its own door (`GameDirector.start_walk`) rather
+## than through `start_run` - which clears a banked expedition, eats the
+## Treasury cache and withdraws the party from the lobby, none of which a
+## tutorial may do to a veteran replaying it.
+##
+## Everything that reads this reads it to be **quiet**: no earth, no camps, no
+## arrivals, no scatter, no settled run, no statistics. Nothing reads it to
+## behave *differently* in a way a player could exploit, because nothing the
+## Walk grants comes out of the run - see `TutorialGrants` for the ledger.
+##
+## Run-scoped and never saved: a Walk quit halfway grants nothing and is
+## offered again from the start.
+var walking: bool = false
+
 var phase: Phase = Phase.PREPARATION
 var active_road_id: String = ""
 var active_road_difficulty_id: String = ""
@@ -522,6 +539,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	for _lane: int in Balance.LANE_COUNT:
 		forks_open.append(false)
 	terrain_id = ""
+	walking = false
 	phase = Phase.PREPARATION
 	active_road_id = ""
 	active_road_difficulty_id = ""

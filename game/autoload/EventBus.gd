@@ -991,3 +991,21 @@ signal hold_seats(rows: Array)
 signal hold_moved(seat: int, at: Vector2, facing: Vector2)
 ## The host is leaving and has named who takes the Hold.
 signal hold_handover(who: String)
+
+
+# --- The Walk: the guided valley (owner brief, 2026-09-17) -------------------
+#
+# The tutorial is the battlefield with an authored layout and a scripted
+# director. These are its own signals rather than the coach's: `TutorialStepData`
+# indexes its triggers by number out of twenty shipped `.tres` files, and this
+# project has already shifted twelve of those by one by adding a member in the
+# middle. The Walk grows nothing.
+
+## A stop on the Walk was reached. Never emitted in a real run.
+signal walk_stop_reached(stop_id: String)
+## A stop's objective was met.
+signal walk_stop_done(stop_id: String)
+## The chain parted. The one beat the beast scope listens for.
+signal walk_chain_cut()
+## The Walk ended, by the chain or by the skip.
+signal walk_ended(finished: bool)

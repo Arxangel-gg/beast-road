@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_fork"
+display_name = "Fork"
+order = 13
+anchor = "road"
+along = 0.84
+radius = 120.0
+done = 0
+count = 1
+instruction = "Two ways up. One is short and pays little. The other is longer, there are sick ones in it, and it pays better."
+instruction_two = "Read both, then pick. The road asks you this at every crossroad and it never asks twice."
+aside = "Either way comes out in the same place. That is usually true. It is not always true."
+seconds = 11.0
+opens = ""

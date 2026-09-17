@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_hold"
+display_name = "Hold"
+order = 17
+anchor = "town"
+along = 0.00
+radius = 120.0
+done = 11
+count = 1
+instruction = "The wave button starts it. On the road it is RIDE ON - going early pays extra Gold, and the breather ends by itself if you do not press it."
+instruction_two = "Command builds while you fight. Spend it along the bottom - orders work during a wave, which is when building does not."
+aside = "Coalpaint. Outriders, not the column."
+seconds = 11.0
+opens = ""

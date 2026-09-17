@@ -584,6 +584,22 @@ var achievements: Array[String] = []
 ## (owner brief: new players run through the tutorial before co-op unlocks).
 var tutorial_done: bool = false
 
+## **Whether the Walk has been walked**, by finishing it or by skipping it.
+##
+## Added 2026-09-17 with the tutorial. It is the guard on `TutorialGrants`,
+## which pays one blueprint, one Common bond, one fish, a little timber and
+## copper and a little craft practice - and a guard that fails open pays all
+## of that **every launch**. This project has shipped exactly that fault once:
+## a once-only flag that was written and never read back handed out a free
+## sword on every start. So it is written here *and* parsed below, and the
+## Walk's own gate round-trips it.
+##
+## Under `stats`, beside `tutorial_done`, so no top-level save key is added
+## and `balance_test`'s allowlist is untouched. Additive: absent reads false,
+## which is a new account - and an account that has played is kept out of the
+## tutorial by `runs_started` rather than by this.
+var tutorial_walk_done: bool = false
+
 
 ## One read for every statistic an achievement may name. Unknown keys read
 ## zero, so a misspelt key can never unlock - `guide_check` refuses them.
@@ -642,6 +658,15 @@ func mark_tutorial_done() -> void:
 	if tutorial_done:
 		return
 	tutorial_done = true
+	save_game()
+
+
+## The valley walked, or skipped. Said once, and it is the guard the whole
+## reward ledger hangs on - see `TutorialGrants`.
+func mark_walk_done() -> void:
+	if tutorial_walk_done:
+		return
+	tutorial_walk_done = true
 	save_game()
 
 
@@ -1015,6 +1040,7 @@ func erase_progress() -> void:
 	coop_runs = 0
 	achievements.clear()
 	tutorial_done = false
+	tutorial_walk_done = false
 	runs_won = 0
 	best_distance = 0.0
 	total_enemies_killed = 0
@@ -1702,6 +1728,7 @@ func serialized_save() -> String:
 			"coop_runs": coop_runs,
 			"achievements": achievements,
 			"tutorial_done": tutorial_done,
+			"tutorial_walk_done": tutorial_walk_done,
 		},
 		"board": {
 			"name": player_name,
@@ -1803,6 +1830,7 @@ func load_save() -> void:
 	coop_runs = maxi(int(stats.get("coop_runs", 0)), 0)
 	achievements = _unique_string_array(stats.get("achievements", []))
 	tutorial_done = bool(stats.get("tutorial_done", false))
+	tutorial_walk_done = bool(stats.get("tutorial_walk_done", false))
 
 	_read_settings(data.get("settings", {}) as Dictionary)
 

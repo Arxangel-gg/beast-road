@@ -431,6 +431,7 @@ var _boss_name: Label
 var _boss_bar: ProgressBar
 var _boss_id: String = ""
 var _tutorial: TutorialCoach
+var _walk_card: WalkCard = null
 var _region_card: VBoxContainer
 var _region_kicker: Label
 var _region_title: Label
@@ -3618,6 +3619,18 @@ func announce(kicker: String, title: String, note: String = "") -> void:
 func _build_tutorial_coach() -> void:
 	_tutorial = TutorialCoach.new()
 	add_child(_tutorial)
+	# **The Walk owns the card while it runs**, and the coach is silent: two
+	# things teaching at once in the same corner is neither of them teaching.
+	if RunState.walking:
+		_tutorial.visible = false
+		_tutorial.process_mode = Node.PROCESS_MODE_DISABLED
+		_walk_card = WalkCard.new()
+		add_child(_walk_card)
+
+
+## The Walk's card, or null outside the valley.
+func walk_card() -> WalkCard:
+	return _walk_card
 
 
 func _build_boss_bar() -> void:

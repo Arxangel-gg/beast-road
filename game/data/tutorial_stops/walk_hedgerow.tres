@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_hedgerow"
+display_name = "Hedgerow"
+order = 2
+anchor = "road"
+along = 0.10
+radius = 120.0
+done = 0
+count = 1
+instruction = "M for the map. What you have seen stays on it; what you are looking at now is the only part that is live."
+instruction_two = ""
+aside = "The long shape closing the east end of the valley is not a hill."
+seconds = 11.0
+opens = ""

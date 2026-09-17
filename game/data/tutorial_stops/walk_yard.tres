@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_yard"
+display_name = "Yard"
+order = 1
+anchor = "road"
+along = 0.00
+radius = 120.0
+done = 0
+count = 1
+instruction = "Walk with the movement keys, or the left stick. The lantern lights itself when the light goes."
+instruction_two = ""
+aside = "Nobody has lit the wall lamps in a while. There was nobody left to walk them."
+seconds = 11.0
+opens = ""

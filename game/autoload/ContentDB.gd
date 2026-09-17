@@ -47,6 +47,10 @@ var materials: Dictionary = {}
 ## First-run coach prompts. Content because the strings are player-facing and
 ## CLAUDE.md keeps those out of scripts.
 var tutorial_steps: Dictionary = {}
+## The Walk's stops. Its own folder and its own resource, because
+## `TutorialStepData.Trigger` is indexed by number out of twenty shipped
+## files and must not grow a member.
+var tutorial_stops: Dictionary = {}
 var discipline_nodes: Dictionary = {}
 var factions: Dictionary = {}
 var roads: Dictionary = {}
@@ -127,6 +131,7 @@ func _ready() -> void:
 	road_difficulties = _load_dir("res://data/road_difficulties")
 	items = _load_dir("res://data/items")
 	tutorial_steps = _load_dir("res://data/tutorial")
+	tutorial_stops = _load_dir("res://data/tutorial_stops")
 	milestone_cinematics = _load_dir("res://data/cinematics")
 	chronicle_objectives = _load_dir("res://data/objectives")
 	run_challenges = _load_dir("res://data/challenges")

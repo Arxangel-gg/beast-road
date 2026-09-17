@@ -668,6 +668,12 @@ func _tilted_weight(kind: WildlifeData, wildness: float) -> float:
 ## No predator arrives before wave one; later breathers retain the living-world
 ## pressure the travelling party has already encountered.
 func _hostile_arrivals_allowed() -> bool:
+	# **Nothing hunts the Warden in the valley.** The Walk teaches that most of
+	# what lives out here is harmless by being a place where that is true; a
+	# wolf arriving during the lesson about harmless animals would teach the
+	# opposite of the sentence on the card.
+	if RunState.walking:
+		return false
 	return not (RunState.is_preparation() and RunState.wave_number == 0)
 
 

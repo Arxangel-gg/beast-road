@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_anchor"
+display_name = "Anchor"
+order = 18
+anchor = "town"
+along = 0.00
+radius = 120.0
+done = 0
+count = 1
+instruction = "Cut the chain. Hold Interact, the same button you have been pressing all night."
+instruction_two = ""
+aside = "That was the front of it. They will come back with the rest of it, and the wall you just held will not hold twice."
+seconds = 11.0
+opens = ""

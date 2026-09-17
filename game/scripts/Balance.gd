@@ -10167,19 +10167,46 @@ const VENDOR_BETTER_CHANCE: float = 0.12
 ## selling upgrades is a shop selling the Shards the player should be spending.
 const VENDOR_UPGRADED_CHANCE: float = 0.18
 
-## What the blacksmith charges to make a piece rather than the Warden making it
-## (owner brief, 2026-09-17: "an appropriate cost that is more expensive than
-## players smithing it themselves ... and even then there should be more to it
-## than just having enough gold").
+## **What Orden charges to make a piece for you** (owner brief, 2026-09-17:
+## "if players are lacking resources necessary to make an item they could
+## speak to the blacksmith and ask him to make it for them ... there should be
+## an appropriate cost that is more expensive than players smithing it
+## themselves ... and even then there should be more to it than just having
+## enough gold").
 ##
-## Two prices, not one. The **Marks** are the fee, and they are a multiple of
-## what the piece is worth rather than a flat sum, so commissioning a great
-## piece costs like a great piece. The **materials** are the demand: he will not
-## work from nothing, so a commission still wants a share of what the recipe
-## wanted - which keeps the mines and the timber on the road rather than making
-## Marks a way round them.
+## **He supplies the stock and you supply the gem**, which is the whole shape
+## of it. Wood and ore are what a Warden who has not been out to the seams is
+## short of, and they are what he has; the gem is the rare thing that decides
+## the rarity, and letting Marks buy one would be the failure `exchange_check`
+## exists to prevent on the other side of the economy.
+##
+## **His stock is ordinary**, so a commissioned piece comes off the anvil at
+## the level ordinary timber and ordinary ore make - which is the cost that
+## cannot be paid in Marks. A Warden who wants a better piece goes and fells a
+## better tree.
 const COMMISSION_MARK_MULTIPLE: float = 3.1
-const COMMISSION_MATERIAL_SHARE: float = 0.5
-## And he will not work for a stranger. The Forge has to have been used by this
-## Warden this many times before he will take a commission at all.
+## Whose hands strike it. A middling smith: below this a Warden does better by
+## asking him, above it they do better themselves, which is what makes the
+## commission a decision rather than a strictly better forge.
+const COMMISSION_SMITH_SKILL: int = 5
+## And he will not work for a stranger. The Warden has to have lit their own
+## forge this often before he will take a commission at all.
 const COMMISSION_SMITH_LEVEL: int = 2
+
+
+# --- The Walk: the guided valley (owner brief, 2026-09-17) -------------------
+
+## Which road the valley is walked up. One lane, because the Walk is a narrow
+## guided path and a player who can wander onto three other roads is a player
+## who is not being guided.
+const WALK_LANE: int = 0
+
+## How long the Walk's own scripted wave is held for before it counts as held.
+## A short one: the lesson is that a wall and a tower answer a line of bodies,
+## and a long fight teaches nothing the first one did not.
+const WALK_WAVE_BODIES: int = 6
+
+## How long the valley is held after the chain parts, before the road opens.
+## The ending is the one moment in the Walk that is not a lesson; cutting
+## straight off the back of it into a loading screen throws it away.
+const WALK_ENDING_SECONDS: float = 13.0

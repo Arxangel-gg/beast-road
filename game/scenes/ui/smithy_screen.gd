@@ -38,6 +38,7 @@ var _scroll: ScrollContainer
 var _rows: VBoxContainer
 var _close_button: Button
 var _strike_button: Button = null
+var _commission_button: Button = null
 var _result: Label = null
 var _art: TextureRect = null
 
@@ -120,6 +121,14 @@ func _build() -> void:
 	_strike_button.pressed.connect(_strike)
 	column.add_child(_strike_button)
 
+	# **And the other way to get a piece made** (owner brief, 2026-09-17). Beside
+	# Strike rather than behind a tab, because the decision it belongs to is the
+	# one being made on this screen: my hands or his.
+	_commission_button = Button.new()
+	_commission_button.custom_minimum_size = Vector2(0.0, 44.0)
+	_commission_button.pressed.connect(_commission)
+	column.add_child(_commission_button)
+
 	_close_button = Button.new()
 	_close_button.text = "Close"
 	_close_button.custom_minimum_size = Vector2(0.0, 44.0)
@@ -197,6 +206,10 @@ func _refresh() -> void:
 		_rows.add_child(_line("Nothing in the store yet. Chop a tree or break a "
 			+ "seam out past the roads and bring it back."))
 		_strike_button.disabled = true
+		# **Orden still has stock even when the Warden has none**, which is the
+		# whole reason a commission exists - so his offer is refreshed here too
+		# rather than only on the branch where the store has something in it.
+		_refresh_commission()
 		_result.text = ""
 		return
 
@@ -209,6 +222,7 @@ func _refresh() -> void:
 
 	var refused: String = Forge.refusal(_wood, _ore, _gem)
 	_strike_button.disabled = not refused.is_empty()
+	_refresh_commission()
 	if refused.is_empty():
 		var odds: int = int(round(Forge.rung_odds(_gem) * 100.0))
 		var gem: MaterialData = ContentDB.material(_gem)
@@ -218,6 +232,37 @@ func _refresh() -> void:
 			odds, steps, "" if steps == 1 else "s"]
 	else:
 		_result.text = refused
+
+
+## **Orden's own offer**, read off the same functions the press spends, so the
+## button and the anvil cannot disagree about what he is asking.
+func _refresh_commission() -> void:
+	if _commission_button == null:
+		return
+	var refused: String = Forge.commission_refusal(_gem)
+	_commission_button.disabled = not refused.is_empty()
+	var fee: int = Forge.commission_fee(_gem)
+	if refused.is_empty():
+		_commission_button.text = "Ask Orden to make it  ·  %d Marks and the gem" % fee
+		_commission_button.tooltip_text = ("He works from his own stock, so it comes off the anvil at the level ordinary timber makes - and you learn nothing from a piece somebody else struck.")
+	else:
+		_commission_button.text = "Ask Orden to make it"
+		_commission_button.tooltip_text = refused
+
+
+func _commission() -> void:
+	var made: Dictionary = Forge.commission(_gem)
+	if made.has("error"):
+		UiSound.deny()
+		_result.text = String(made["error"])
+		_refresh()
+		return
+	UiSound.confirm()
+	var kind := ContentDB.gear_kinds.get(String(made.get("kind", "")), null) as GearData
+	Sfx.gear_arrived(int(made.get("rarity", 0)))
+	_result.text = "Orden sets the stone and hands you %s %s." % [
+		Stash.rarity_name(made), kind.display_name if kind != null else "a piece"]
+	_refresh()
 
 
 func _add_choices(kind: int) -> void:

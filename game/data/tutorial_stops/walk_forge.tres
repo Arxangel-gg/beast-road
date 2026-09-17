@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_forge"
+display_name = "Forge"
+order = 7
+anchor = "seam"
+along = 0.00
+radius = 120.0
+done = 2
+count = 1
+instruction = "The seam breaks the same way the trunk fell. Ore keeps, like timber, and the two of them are what a forge is for."
+instruction_two = "Four things a run spends. Gold off the dead buys towers. Wood and Food come out of the ground and pay for repair and for tending. Stone pays for the heavy work. All four go when the run goes."
+aside = "The smith left her plans nailed to the post. She did not take them, which tells you how fast she went."
+seconds = 11.0
+opens = ""

@@ -184,6 +184,7 @@ func _ready() -> void:
 	_build_chronicle_button()
 	_build_codex_button()
 	_build_pen_button()
+	_build_walk_button()
 	_build_resume_button()
 	_build_act_start_button()
 	_build_leaderboard_button()
@@ -197,7 +198,13 @@ func _ready() -> void:
 	# Wired after every door has been built, so the watcher sees all of them.
 	_watch_the_doors()
 	stats_label.text = _summary()
-	new_run_button.grab_focus()
+	# **A player who has never played has one correct press**, and it is not
+	# New run. The walk takes focus when it is offered and nothing else does.
+	var walk: Node = new_run_button.get_parent().get_node_or_null("WalkValley")
+	if walk is Button:
+		(walk as Button).grab_focus()
+	else:
+		new_run_button.grab_focus()
 	_setup_stage()
 	_setup_frame()
 	_setup_front_leaves()
@@ -275,7 +282,7 @@ func _build_hold() -> void:
 	button.pressed.connect(func() -> void: _hub.open())
 	_build_smithy_button(column)
 	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Chronicle",
-			"Codex", "Leaderboard"]:
+			"Codex", "Leaderboard", "WalkAgain"]:
 		var found: Node = column.get_node_or_null(door)
 		if found is Button:
 			_hub.adopt(found as Button)
@@ -804,6 +811,52 @@ func _build_chronicle_button() -> void:
 			ContentDB.chronicle_objectives.size()]
 		button.grab_focus())
 	button.pressed.connect(func() -> void: _chronicle.open())
+
+
+## **The Walk** (owner brief, 2026-09-17): the guided valley.
+##
+## Offered on the front door **only to an account that has never taken a**
+## **road**, and that test is derived rather than stored: a flag defaulting
+## false would send every existing account - the owner's at level 81 included
+## - to the tutorial on the next launch. It sits above everything, because a
+## player who has never played is the one person on this screen with no other
+## correct press.
+##
+## It is always in the Hold as well, for anybody who wants it again. Both go
+## through `start_walk`, never `start_run`, which is the whole reason the two
+## doors exist - see `GameDirector.start_walk`.
+func _build_walk_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	_build_walk_door(column)
+	if not TutorialGrants.should_offer():
+		return
+	var button := Button.new()
+	button.name = "WalkValley"
+	button.text = "Walk the valley"
+	button.tooltip_text = ("One night in the last hold, west to east, learning what a Warden does - and it ends with the chain coming off.")
+	button.custom_minimum_size = new_run_button.custom_minimum_size
+	button.theme_type_variation = new_run_button.theme_type_variation
+	IconKit.on_button(button, "distance", 26)
+	column.add_child(button)
+	column.move_child(button, new_run_button.get_index())
+	button.pressed.connect(func() -> void: GameDirector.start_walk())
+
+
+## The same valley, from the Hold, for ever. It grants nothing the second
+## time - `TutorialGrants.award` is guarded - and it shows the instructions
+## without the asides, because a player walking it again wants the rules and
+## not the story a second time.
+func _build_walk_door(column: Node) -> void:
+	var door := Button.new()
+	door.name = "WalkAgain"
+	door.text = "Walk the valley again"
+	IconKit.on_button(door, "distance", 24)
+	column.add_child(door)
+	door.pressed.connect(func() -> void: GameDirector.start_walk())
 
 
 ## **Back to the front.**

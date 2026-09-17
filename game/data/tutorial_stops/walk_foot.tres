@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_foot"
+display_name = "Foot"
+order = 14
+anchor = "road"
+along = 0.92
+radius = 120.0
+done = 0
+count = 1
+instruction = "Four roads climb him and they are the only way up. Anything that wants the town has to walk one of them."
+instruction_two = "The wall is the run. Let enough through and it comes down, and when it comes down you are finished - not hurt, finished."
+aside = "There is a town up there. Soil settled on him, then water, then people, and none of them ever climbed back down."
+seconds = 11.0
+opens = ""

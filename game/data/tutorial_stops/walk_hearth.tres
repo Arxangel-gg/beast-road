@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_hearth"
+display_name = "Hearth"
+order = 9
+anchor = "road"
+along = 0.60
+radius = 120.0
+done = 0
+count = 1
+instruction = "Spells sit on 1 to 4. Casting spends mana, and it comes back on its own, slowly."
+instruction_two = "Focus is what deepens the pool, fills it faster, sharpens what you cast and shortens the wait. Everything a caster is, is that one attribute."
+aside = "Fire, water, stone and air. The hold kept a little of each in this stone and nobody here could have told you why it works."
+seconds = 11.0
+opens = ""

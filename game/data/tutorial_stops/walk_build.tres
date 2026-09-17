@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TutorialStopData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_stop_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "walk_build"
+display_name = "Build"
+order = 15
+anchor = "build"
+along = 0.00
+radius = 120.0
+done = 9
+count = 1
+instruction = "Click open ground beside a road, pick an element, pick a tower off the list. It costs Gold, which is why you killed for it."
+instruction_two = "You can only build while he is standing still. Stone does not set on a walking beast, and once he is moving, what you have built is what you have."
+aside = "They built the hold's wall in a summer. You have got until he walks."
+seconds = 11.0
+opens = ""

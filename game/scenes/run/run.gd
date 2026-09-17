@@ -25,6 +25,9 @@ extends Node
 @export var pause_ui: PauseMenu
 @export var town_panel: TownPanel
 
+## The guided valley, or null on a real road.
+var _walk: TutorialWalk = null
+
 var _scope: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
 
 ## Set while a raid or crossroad has taken over, so scope switching is refused
@@ -112,6 +115,16 @@ func _ready() -> void:
 		town_panel.open_merchant(merchant_id)
 		town.set_view_inset(town_panel.docked_width()))
 	town_panel.closed.connect(func() -> void: town.set_view_inset(0.0))
+	# **The Walk, when the Warden is walking the valley** (owner brief,
+	# 2026-09-17). Stood up here because this is where the battlefield and the
+	# HUD are both in scope, and the Walk needs one to place its stops and the
+	# other to say them.
+	if RunState.walking:
+		_walk = TutorialWalk.new()
+		_walk.field = battlefield
+		_walk.card = hud.walk_card()
+		add_child(_walk)
+		_walk.finished.connect(_on_walk_finished)
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())
@@ -1350,3 +1363,13 @@ func _show_the_fallen(boss_id: String, act: int) -> void:
 	add_child(card)
 	await card.play(boss, act)
 	card.queue_free()
+
+
+## **The chain parted.** The valley is over.
+##
+## A beat of quiet first: the ending is the one moment in the Walk that is not
+## a lesson, and cutting straight to a loading screen off the back of it would
+## throw the whole thing away.
+func _on_walk_finished() -> void:
+	await get_tree().create_timer(Balance.WALK_ENDING_SECONDS).timeout
+	GameDirector.end_walk(true)
