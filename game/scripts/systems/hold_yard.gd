@@ -994,19 +994,26 @@ func _draw_pens() -> void:
 		var at: Vector2 = pen["at"] as Vector2
 		var box := Rect2(at - PEN_SIZE * 0.5, PEN_SIZE)
 		draw_rect(box, Color(0.20, 0.21, 0.15, 0.55), true)
+		# **The near rail only.** A pen drawn as a closed rectangle puts a fence
+		# between the player and the animals they came to look at; the far side
+		# is the treeline behind it. The gate is the two missing posts in the
+		# middle, which is the whole of "there is a way in".
 		var posts: int = 9
+		var foot: float = box.position.y + box.size.y
+		var span: float = box.size.x / float(posts)
+		var last: Vector2 = Vector2.INF
 		for index: int in posts + 1:
-			var along: float = float(index) / float(posts)
-			var top: Vector2 = Vector2(box.position.x + box.size.x * along, box.position.y)
-			# The gate: the two middle posts of the near rail are missing, which
-			# is the whole of "there is a way in".
 			var gate: bool = index >= 4 and index <= 5
-			draw_line(top, top + Vector2(0.0, box.size.y), timber, 3.0)
+			var here := Vector2(box.position.x + span * float(index), foot)
 			if not gate:
-				draw_line(Vector2(top.x, box.position.y + box.size.y),
-					Vector2(top.x + box.size.x / float(posts),
-						box.position.y + box.size.y), timber, 3.0)
-		draw_line(box.position, box.position + Vector2(box.size.x, 0.0), timber, 3.0)
+				# A post's height wanders a little, from its own place rather than
+				# from a roll: a fence of identical posts is a comb.
+				var tall: float = 26.0 + sin(here.x * 0.07) * 3.0
+				_fence_post(here, tall, timber)
+				if last != Vector2.INF:
+					_fence_rail(last - Vector2(0.0, 20.0), here - Vector2(0.0, 20.0),
+						timber)
+			last = here if not gate else Vector2.INF
 
 
 func _focus_point() -> Vector2:
@@ -1021,13 +1028,89 @@ func _focus_point() -> Vector2:
 	return Vector2.INF
 
 
+## A shadow with a soft edge, which is the whole of what was wrong with it.
+##
+## Owner, 2026-09-17: *"shadows need to be improved at the hold."*
+##
+## **`draw_circle` cannot have a soft edge**, because one colour for the
+## whole shape *is* a hard edge - the third time this project has paid for
+## that finding, after the swim sheen, the menu campfire and the blood. So it
+## is a fan of triangles with a colour per vertex: solid at the middle,
+## transparent at the rim, handed to one `canvas_item_add_triangle_array`.
+## That is one draw call rather than one per shadow, and it is *fewer* than
+## the circles it replaces.
+##
+## Flattened, because the camera looks down and slightly along - a true circle
+## at the feet reads as a hoop standing up, which is the reasoning the set
+## aura is drawn under.
 func _shadow(at: Vector2, wide: float, tall: float) -> void:
-	# Flattened, because the camera looks down and slightly along - a true
-	# circle at the feet reads as a hoop standing up. The same reasoning the set
-	# aura is drawn under.
-	draw_set_transform(at, 0.0, Vector2(1.0, tall / maxf(wide, 1.0)))
-	draw_circle(Vector2.ZERO, wide, Color(0.0, 0.0, 0.0, 0.26))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var steps: int = 14
+	var points: PackedVector2Array = []
+	var colours: PackedColorArray = []
+	var indices: PackedInt32Array = []
+	var middle := Color(0.0, 0.0, 0.0, 0.30)
+	var rim := Color(0.0, 0.0, 0.0, 0.0)
+	points.append(at)
+	colours.append(middle)
+	for step: int in steps + 1:
+		var angle: float = TAU * float(step) / float(steps)
+		points.append(at + Vector2(cos(angle) * wide, sin(angle) * tall))
+		colours.append(rim)
+	for step: int in steps:
+		indices.append_array([0, step + 1, step + 2])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
+		indices, points, colours)
+
+
+## A fence post and the rails either side of it, with a thickness.
+##
+## Owner, 2026-09-17: *"assets made so that pens can have proper fences."*
+##
+## **Drawn rather than generated, and that is the launcher's lesson applied.**
+## Two passes were spent there laying the menu's own textures flat, and the
+## owner's verdict was that they *"just lower the quality and polish"* -
+## because the menu's frame gets its look from a shader and a wobble, and
+## copying the art without the machinery reads flatter than the thing it
+## copied. A fence is posts, rails, a lit side and a shadow; all four are
+## arithmetic, and arithmetic that moves beats a texture that does not.
+func _fence_post(foot: Vector2, tall: float, timber: Color) -> void:
+	var wide: float = 5.0
+	var head: Vector2 = foot - Vector2(0.0, tall)
+	# The shadow first, so the post stands on it.
+	_shadow(foot, wide * 1.8, wide * 0.7)
+	# The body, with the left face lit and the right in shade: one light in
+	# this place and it is overhead and a little to the left, which is the
+	# same direction the ledges' banks are shaded from on the road.
+	draw_colored_polygon(PackedVector2Array([
+		head - Vector2(wide * 0.5, 0.0), head + Vector2(0.0, 0.0),
+		foot + Vector2(0.0, 0.0), foot - Vector2(wide * 0.5, 0.0)]),
+		timber.lightened(0.18))
+	draw_colored_polygon(PackedVector2Array([
+		head, head + Vector2(wide * 0.5, 0.0),
+		foot + Vector2(wide * 0.5, 0.0), foot]),
+		timber.darkened(0.22))
+	# A cap, so the top is an end rather than a cut.
+	draw_line(head - Vector2(wide * 0.6, 0.0), head + Vector2(wide * 0.6, 0.0),
+		timber.lightened(0.34), 2.0)
+
+
+## The rails between two posts, sagging a little.
+##
+## The sag is what stops a fence reading as a diagram: a rail fixed at both
+## ends and left for a season does not stay straight, and two of them at
+## different sags say more about the place than a third rail would.
+func _fence_rail(left: Vector2, right: Vector2, timber: Color) -> void:
+	for rung: int in 2:
+		var up: float = 0.62 - float(rung) * 0.34
+		var sag: float = 2.0 + float(rung) * 1.5
+		var from := Vector2(left.x, left.y - up * 10.0)
+		var to := Vector2(right.x, right.y - up * 10.0)
+		var middle := (from + to) * 0.5 + Vector2(0.0, sag)
+		# Three segments rather than a curve: at this size a quadratic and two
+		# straight lines through the same midpoint are the same picture, and one
+		# of them costs nothing.
+		draw_line(from, middle, timber.darkened(0.08), 3.0)
+		draw_line(middle, to, timber.darkened(0.08), 3.0)
 
 
 # ---------------------------------------------------------------- for the gate

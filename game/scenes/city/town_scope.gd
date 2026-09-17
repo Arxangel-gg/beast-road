@@ -199,6 +199,7 @@ func _make_plot(data: BuildingData) -> Node2D:
 	button.tooltip_text = data.display_name
 	button.pressed.connect(func() -> void: plot_selected.emit(data.id))
 	root.add_child(button)
+	_answer_the_pointer(button, sprite)
 
 	var label := Label.new()
 	label.name = "Tier"
@@ -290,6 +291,52 @@ func _refresh_merchants() -> void:
 		_dress_merchant(id, node)
 
 
+## A building that knows it is being pointed at.
+##
+## Owner, 2026-09-17: *"buildings in the town should have hover fx and
+## indicators and game juice vfx."*
+##
+## **The sprite answers, not the button.** The hit area is an invisible flat
+## `Button` laid over the art, so lighting *it* would light a rectangle; what a
+## player is pointing at is the building. So the hover reaches across to the
+## `Sprite2D` and lifts it - a lift is safe here for the exact reason it is not
+## safe on an interface control: a `Node2D` in a scene is positioned by its
+## owner rather than by a container, and nothing re-sorts it behind our back.
+##
+## **A rise and a light, not a glow.** The building comes up a few units and
+## brightens; a coloured halo would be a second language beside the one the
+## interface already speaks, and this scope is painted rather than lit.
+##
+## The pad gets the same answer as the pointer, which is `UiJuice`'s standing
+## rule - a hover wired only to the mouse is a feature for one of the three
+## ways this game is played.
+func _answer_the_pointer(button: Button, sprite: Sprite2D) -> void:
+	if button == null or sprite == null:
+		return
+	var noticed := func(on: bool) -> void:
+		if not is_instance_valid(sprite):
+			return
+		var tween: Tween = sprite.create_tween()
+		tween.set_parallel(true)
+		tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tween.tween_property(sprite, "position:y",
+			-Balance.TOWN_HOVER_LIFT if on else 0.0, Balance.TOWN_HOVER_RISE)
+		tween.tween_property(sprite, "modulate",
+			Color(1.0, 1.0, 1.0, 1.0).lightened(Balance.TOWN_HOVER_LIGHT) if on
+			else Color.WHITE, Balance.TOWN_HOVER_RISE)
+	button.mouse_entered.connect(func() -> void: noticed.call(true))
+	button.mouse_exited.connect(func() -> void: noticed.call(false))
+	button.focus_entered.connect(func() -> void: noticed.call(true))
+	button.focus_exited.connect(func() -> void: noticed.call(false))
+	# A press says so on the ground rather than on the sprite, because the
+	# sprite is already answering the hover and two things moving one property
+	# is the sway-and-wobble bug the tower's own file has shipped once.
+	button.button_down.connect(func() -> void:
+		if is_instance_valid(sprite):
+			Vfx.ring(sprite.global_position, Balance.TOWN_HOVER_RING,
+				Color(0.91, 0.78, 0.42, 0.65), Balance.TOWN_HOVER_RISE))
+
+
 func _make_merchant(data: MerchantData) -> Node2D:
 	var root := Node2D.new()
 	root.name = "merchant_%s" % data.id
@@ -308,6 +355,7 @@ func _make_merchant(data: MerchantData) -> Node2D:
 	button.tooltip_text = data.display_name
 	button.pressed.connect(func() -> void: merchant_selected.emit(data.id))
 	root.add_child(button)
+	_answer_the_pointer(button, sprite)
 
 	var label := Label.new()
 	label.name = "Tag"

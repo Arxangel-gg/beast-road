@@ -8237,6 +8237,19 @@ const HOLD_DASH_DISTANCE: float = 190.0
 const HOLD_DASH_SECONDS: float = 0.18
 const HOLD_DASH_REST: float = 0.55
 
+## How a town building answers being pointed at (owner, 2026-09-17: *"buildings
+## in the town should have hover fx and indicators and game juice vfx"*).
+##
+## **Small on purpose.** Eight buildings on a ring, each a 192px sprite: a lift
+## big enough to read as a jump makes the ring wobble as the pointer crosses
+## it. Six units and a tenth of a lightening is a building that noticed you,
+## which is all a hover has to say.
+const TOWN_HOVER_LIFT: float = 6.0
+const TOWN_HOVER_LIGHT: float = 0.10
+const TOWN_HOVER_RISE: float = 0.14
+## The ring a press leaves on the ground, in world units.
+const TOWN_HOVER_RING: float = 92.0
+
 # --- the zoom ladder as one slider (owner, 2026-09-17) ----------------------
 #
 # *"The + and - zoom should also be changed to a slider that is aesthetic and
