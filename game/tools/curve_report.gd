@@ -378,11 +378,19 @@ func _print_the_account() -> void:
 	# of this line called a fresh profile played. A level above one cannot be
 	# baseline.
 	var fresh: bool = MetaState.hero_level <= 1
+	# **And the third scale, since 2026-09-17.** Ascension is a capped ladder of
+	# its own now rather than prestige, so an account carrying ranks measures a
+	# different game again - the same trap the gear points and the hero level
+	# were printed for. It is not *modelled* here: this report measures the road
+	# against towers and hero damage, and what ascension moves is what the hero
+	# survives. Re-solving Nightmare and Hell against a ranked Warden is a
+	# measurement that has not been taken, and it is the remaining balance task.
+	var ranked: String = "" if MetaState.ascension <= 0 else ("  <- and %d ascension rank(s), which this model does not carry" % MetaState.ascension)
 	print(("[curve] measured on %s - hero level %d, %d gear points, %d towers "
 		+ "unlocked%s")
 		% ["a NEW account" if fresh else "a PLAYED account", MetaState.hero_level,
 			worn, MetaState.unlocked_towers.size(),
-			"" if fresh else "  <- the band below is held against a new one"])
+			("" if fresh else "  <- the band below is held against a new one") + ranked])
 
 
 ## **Does every party size get the same game?**

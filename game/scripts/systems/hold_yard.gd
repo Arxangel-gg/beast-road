@@ -145,6 +145,16 @@ var _residents: Array[Dictionary] = []
 var _seats: Array[Dictionary] = []
 var _pens: Array[Dictionary] = []
 var _grass_at: Array[Vector2] = []
+## The animal the Warden has taken out of the pen, walking with them.
+##
+## Owner brief, 2026-09-17: *"Players can still choose a companion to take
+## with them on an expedition and when they do that companion starts
+## following them from the pen and will go with the player as they move
+## around the hold, including onto their next run."* It is a picture of
+## `MetaState.pen_taken` and reads nothing: the pen decides who is out, and
+## this draws whoever that is at the Warden's heel.
+var _heel: Sprite2D = null
+var _heel_at: Vector2 = Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _focus: String = ""
 var _walk_to: Vector2 = Vector2.INF
@@ -171,6 +181,7 @@ func _ready() -> void:
 	_build_residents()
 	_build_pens()
 	_build_seats()
+	_build_heel()
 	set_process(true)
 
 
@@ -367,6 +378,53 @@ func _relabel() -> void:
 					if kind != HoldSession.Seat.EMPTY else "")
 
 
+## The animal out of the pen, if there is one. Rebuilt rather than hidden
+## when the pen changes, because which creature it is is the whole point.
+func _build_heel() -> void:
+	if _heel != null and is_instance_valid(_heel):
+		_heel.queue_free()
+	_heel = null
+	var uid: String = MetaState.pen_taken
+	if uid.is_empty():
+		return
+	var species: String = ""
+	for kept: Variant in MetaState.pen:
+		if kept is Dictionary and String((kept as Dictionary).get("uid", "")) == uid:
+			species = String((kept as Dictionary).get("species", ""))
+	var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
+	if kind == null:
+		return
+	var art: String = kind.get_sprite_path()
+	if not ResourceLoader.exists(art):
+		return
+	_heel = Sprite2D.new()
+	_heel.name = "Companion"
+	_heel.texture = load(art) as Texture2D
+	_heel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_heel.centered = true
+	_heel.offset = Vector2(0.0, -float(_heel.texture.get_height()) * 0.5)
+	_heel.scale = Vector2.ONE * clampf(kind.scale * 0.8, 0.6, 2.2)
+	# Its own coat, off its own name: the fox at your heel is the fox in the
+	# pen, which is what `Phenotype` is for.
+	Phenotype.dress(ActorPolish.attach(_heel), kind, absi(hash(uid)))
+	_heel_at = warden_at() + Vector2(-70.0, 30.0)
+	_heel.position = _heel_at
+	_actors.add_child(_heel)
+
+
+## It follows rather than sticks: a sprite pinned to the Warden's hip reads
+## as an attachment, and a few units of lag reads as an animal.
+func _tick_heel(delta: float) -> void:
+	if _heel == null or not is_instance_valid(_heel):
+		return
+	var want: Vector2 = warden_at() + Vector2(-70.0, 30.0)
+	var step: Vector2 = want - _heel_at
+	if step.length() > 26.0:
+		_heel_at += step.normalized() * Balance.HOLD_WALK_SPEED * 0.92 * delta
+		_heel.flip_h = step.x < 0.0
+	_heel.position = _heel_at
+
+
 # ---------------------------------------------------------------- the seats
 
 
@@ -503,6 +561,7 @@ func _process(delta: float) -> void:
 		_drift(_seats[index], delta)
 	for person: Dictionary in _residents:
 		_mind_the_stall(person, delta)
+	_tick_heel(delta)
 	_find_focus()
 	queue_redraw()
 
@@ -729,6 +788,8 @@ func _draw() -> void:
 		var sprite := person["node"] as Sprite2D
 		if sprite != null:
 			_shadow(sprite.position, 22.0, 8.0)
+	if _heel != null and is_instance_valid(_heel):
+		_shadow(_heel.position, 18.0, 7.0)
 	for seat: Dictionary in _seats:
 		if int(seat["kind"]) == HoldSession.Seat.EMPTY:
 			continue

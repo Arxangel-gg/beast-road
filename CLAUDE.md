@@ -5075,6 +5075,146 @@ power* - `+ASCENSION_STAT_BONUS` max HP a rank, incremented per boss by
 rank capped at 2. The owner's third capped scale extends the *persistent* one;
 the run-scoped one is renamed rather than left to be confused with it, which
 is safe because it is reset by `RunState.reset` and never saved.
+**Act X gets a boss of its own, and the Final Ascent opener moved with him,
+as of 2026-09-17.** Freeing the Gatekeeper for the ladder left the Last Terrace
+without an act boss, so **the Last Anchor** stands on it: one of the spikes
+Kharok drove into the earth to hold the roads still, and the last one between
+the road and the Crown. Enemy, cinematic, boss core and relic, with a
+placeholder sprite until real art is drawn.
+
+**And `summit.tres` was waiting on the wrong body falling.** The Final Ascent
+opener triggers on the *last act's boss* being defeated, and that was authored
+as `gatekeeper` - which after the ruling is an optional fight on Act 9 rather
+than the last act's boss. `milestone_cinematic_check` derives the last boss from
+the terrain data rather than naming it, so it caught this the moment the terrain
+changed, which is the whole reason that check is derived.
+
+**The canon is in the Guide.** Roadsong, the Chain, Kharok, the Gatekeeper,
+Ascension, the first cut, and the Final Ascent as the story's last chapter - the
+entries the triage of `ChatGPT_More_Ideas_6.md` found were worth having as words
+in existing fields. The game shipped three sentences about Kharok and no origin
+at all; that was the largest gap in the canon and it is closed at the cost of
+prose.
+
+**The Hold is a place you walk in, as of 2026-09-17.** The owner's ruling, in
+their own words: *"an actual map that players can jump into"* with a central
+square, a forge a blacksmith works, a vendor's shop with the Long Ledger inside
+it, pens down a path, and every other door as something you walk up to.
+
+**Every station is a button that already worked.** `HubScreen.adopt` has kept
+each door's own handler since the room was built; `HoldYard` stands a building
+where that door is and presses the same button when the Warden walks up to it.
+So the place and the list cannot disagree about what is in the Hold - they are
+the same buttons, read twice - and a door added to the menu tomorrow gets a
+building tomorrow without a second list to edit. **The list did not go away**:
+walking is the Hold, not a toll, and the Warden's stone opens a card carrying
+every door as a row along with the rename and the professions.
+
+**Presence is relayed and nothing else is.** `HoldSession` seats four through
+the co-op session the lobby already hosts and finds with; a seat is a name, a
+title, a place to stand and - so a Warden can see other people's companions over
+a fence - a list of species. No save, stash, pen or piece of gear travels, a
+guest *asks* to move rather than saying it has, and each player's Market is
+their own and never crosses the wire.
+
+**Migration is a re-gather rather than a seamless transfer, and that is a
+transport fact rather than a preference.** `Coop.host_room()` must `leave()`
+before it can ask for a code, so a successor cannot hand its code back down a
+wire it has already dropped. The host names one before it goes - preferring a
+player whose own Hold was public, which is the owner's own clause - and
+everybody else is told who took it.
+
+**The Market keeps its own shelf, and it is written to the save.** That is the
+owner's anti-abuse rule rather than a convenience - *"so that players do not
+just keep closing their game and reopening it to keep spam refreshing the
+vendor"* - and a stock held only in memory is re-rolled by restarting. Ten
+minutes on the **wall** clock or a road of at least two minutes, whichever comes
+first; the same eight things are on the shelf after a relaunch with the same
+time left on them. Rarity trails what the Warden has actually held and only
+rarely steps a rung ahead of it, and `VENDOR_MARKUP` is over one so buy-and-sell
+can never print Marks - the bound `exchange_check` already holds over the
+Ledger, in a second place.
+
+**It amends working rule 7 and it is the mildest amendment in this file.**
+`MetaState.vendor` holds gear that is **not the player's**: unowned pieces on a
+shelf and the moment they were laid there. Nothing in it grants an attribute, a
+level, a currency or an unlock, and buying one spends Marks and puts a piece in
+the stash through the door gear has always arrived by. Additive; absent reads as
+a shelf that has never been stocked, which is a new account.
+
+**And the blacksmith supplies the stock while the Warden supplies the gem.** The
+owner asked for a commission that costs *more* than smithing it yourself and is
+*more demanding than having enough gold*. Both halves: the fee is Marks scaled
+by what he is being asked to make, and the demanding half is that a commission
+**teaches nothing** - no Smith experience is paid - and comes off his ordinary
+stock, so the piece is the level ordinary timber makes. Marks cannot buy
+practice and cannot buy good stock. A gem bought with Marks would have been the
+failure `exchange_check` exists to prevent, so he never sells one.
+
+**The Walk, as of 2026-09-17.** The tutorial the owner asked for: a guided
+valley, RuneScape's tutorial island by way of the last human hold, eighteen
+stops, and an ending where the Warden cuts the chain off Yuri.
+
+**It is the battlefield with a scripted director, not a second game.** Every
+system it teaches is the shipped one - the ponds are `Fishing`, the trunks are
+`Gathering`, the swing is `HeroAttack`, the build panel is the build panel. A
+bespoke tutorial scene is a second copy of each to keep in step, and this
+project has paid for that four times over.
+
+**Its own door, and that is load-bearing.** `start_run` clears a banked
+expedition, consumes the Treasury cache and the Sigil bundle, withdraws the
+party from the lobby and stamps the road's clock; a veteran replaying the
+tutorial from the Hold would lose five hours of road to it, silently. So
+`GameDirector.start_walk` resets the run state and takes none of those steps,
+`RunState.walking` is set for its duration, and **`_settle_run` returns on its
+first line while it is true** - which is also what keeps the Walk from writing a
+statistic, paying a Tool, publishing a score or opening co-op at its own ending.
+A first walk runs straight onto the road; a replay returns to the menu, for the
+expedition reason above.
+
+**Stops are placed against the field's own landmarks rather than at authored
+cells.** A hand-typed grid coordinate is a number nobody can check without
+looking at the screen, and this project's record is full of placement faults
+that every number agreed about and a photograph refused - a pond dug where
+nobody could reach it, a newborn fifteen hundred units off the edge. So a stop
+names a *kind of place* - the road at a share of its length, a pond, a trunk, a
+seam, a build anchor, the town - and the Walk asks the live field where that is.
+It cannot resolve to unreachable ground, because the ground it resolves to is
+ground the field already built. **A bespoke valley blueprint is still worth
+having**; when one is drawn, the stops need no edit.
+
+**One ledger, paid once, at the chain or at the skip.** A blueprint that is
+first in the Tools ladder's own sort order, one Common bond, one fish, a little
+timber and ore, a little craft practice. No Gold, no level, no spell, no gear,
+no statistic and no tower unlock - each refused for a reason written beside it
+on `TutorialGrants`, and the sharpest is that granting one spell would *narrow*
+the starting pair to one and make the gift a cut. **A skipper is paid exactly
+what a walker earns**: opting out of an optional system must not cost power,
+which is the bound every optional system here is held to.
+
+**It amends working rule 7 by one boolean.** `stats.tutorial_walk_done` sits
+beside `tutorial_done`, so no top-level save key is added and `balance_test`'s
+allowlist is untouched. It is written **and parsed**, because a once-only flag
+that is serialized and never read back fires every launch - this project has
+shipped that fault and it handed out a free sword each time. Whether the Walk is
+*offered* is derived from `runs_started` rather than stored, because a flag
+defaulting false would send every existing account to the tutorial on its next
+launch.
+
+**And the valley is quiet.** Nothing in the earth's events was ever phase-gated,
+so the quake, the funnel, the meteor and the blaze each get their own line;
+nothing hunts the Warden; and the beast does not walk, because he is chained to
+the ground and a road advancing underneath the tutorial would call a boss and
+finish it for the player. "Unlikely because wrath opens at its floor" is a coin
+toss wearing a gate's clothes, and this project has shipped four of those.
+
+**A party takes the road from the Hold, and is asked first.** The host owns the
+run - that has not changed - but a road is the one decision in this game that
+costs everybody the next hour, and a *continued* run is somebody else's banked
+front. So `HoldSession.offer_run` puts the kind of road and its details to the
+party with a clock, exactly as `PartyEvents` puts a raid or a rift to them, and
+the host may go before it runs out. Alone, it simply goes.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
