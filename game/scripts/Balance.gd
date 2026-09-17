@@ -10201,10 +10201,12 @@ const COMMISSION_SMITH_LEVEL: int = 2
 ## who is not being guided.
 const WALK_LANE: int = 0
 
-## How long the Walk's own scripted wave is held for before it counts as held.
-## A short one: the lesson is that a wall and a tower answer a line of bodies,
-## and a long fight teaches nothing the first one did not.
-const WALK_WAVE_BODIES: int = 6
+## **There is no constant for the Walk's wave, and that is deliberate.**
+## An earlier draft authored one for a scripted queue; the Walk uses the
+## shipped director instead - the player presses the wave button and the
+## road's own opening wave walks on - so a number describing a queue nobody
+## builds is a promise nobody keeps. `balance_reach_check` named it, which is
+## that gate doing exactly what it is for.
 
 ## How long the valley is held after the chain parts, before the road opens.
 ## The ending is the one moment in the Walk that is not a lesson; cutting

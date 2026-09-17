@@ -270,12 +270,16 @@ enum Request {
 	## A guest walked into the Hold and says who it is: a name and a title.
 	## The host decides which seat that is; a guest naming its own seat would
 	## be a guest seating itself.
-	HOLD_HELLO = 35,
+	## **35 is `TAKE_EGG`'s.** These three were authored at 35-37 by reading the
+	## tail of this enum rather than all of it, and `coop_check` named the
+	## collision immediately - which is the gate written after the last one
+	## doing its job. Read the whole table, not the end of it.
+	HOLD_HELLO = 36,
 	## A guest's Warden moved in the Hold. The host re-announces it as a fact
 	## carrying the seat, so four machines agree about who walked.
-	HOLD_MOVE = 36,
+	HOLD_MOVE = 37,
 	## A guest answered the host's road offer: accepted, or not.
-	PARTY_RUN_REPLY = 37,
+	PARTY_RUN_REPLY = 38,
 }
 
 ## Facts that are *state announcements* rather than events.
