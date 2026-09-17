@@ -25,6 +25,9 @@ extends Node
 @export var pause_ui: PauseMenu
 @export var town_panel: TownPanel
 
+## The whole-screen pixel grid, over the world and under the HUD.
+var _pixels: PixelFilter = null
+
 ## The guided valley, or null on a real road.
 var _walk: TutorialWalk = null
 
@@ -125,6 +128,12 @@ func _ready() -> void:
 		_walk.card = hud.walk_card()
 		add_child(_walk)
 		_walk.finished.connect(_on_walk_finished)
+	# **One pixel grid over every scope** (owner, 2026-09-17). Added here rather
+	# than to each scope because it is one pass over the finished frame: the
+	# battlefield, the town and the walk all draw into the same viewport, so one
+	# node covers all three and a raid or a rift inherits it by existing.
+	_pixels = PixelFilter.new()
+	add_child(_pixels)
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())

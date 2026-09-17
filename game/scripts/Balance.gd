@@ -10258,3 +10258,21 @@ const UI_POOL_GLOSS: float = 0.5
 ## measured rather than written down. It was a hardcoded 52 until the pools grew
 ## on 2026-09-17 and the act name came down onto the distance icons.
 const UI_TOP_BAR_GAP: float = 8.0
+
+
+# --- The pixel grid (owner, 2026-09-17) --------------------------------------
+
+## Which layer the whole-screen pixel filter sits on: above every scope, below
+## the HUD at 20. Over the world and under the type, because the same brief
+## asked for bigger and clearer battlefield text and a quantised letter is
+## neither.
+const UI_PIXEL_FILTER_LAYER: int = 15
+
+## How big one block is, at `UI_PIXEL_FILTER_REFERENCE_HEIGHT`. Three is a grid
+## a player sees without being able to count it; at one it does nothing and past
+## about six the sprites start losing features they were drawn with.
+const UI_PIXEL_FILTER_BLOCK: float = 3.0
+## The height that block was chosen against. A flat block size is a strong
+## effect on a small window and almost nothing on a 4K one, so the grid is a
+## share of the screen rather than a number of pixels.
+const UI_PIXEL_FILTER_REFERENCE_HEIGHT: float = 1080.0

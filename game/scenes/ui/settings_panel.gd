@@ -515,6 +515,10 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_pref_toggle_row("Trampled foliage", Graphics.KEY_FOLIAGE_TRAMPLE,
 		Graphics.foliage_trample(),
 		"Plants are laid over by whatever walks through them, and spring back."))
+	column.add_child(_pref_toggle_row("Pixel grid", Graphics.KEY_PIXEL_FILTER,
+		Graphics.pixel_filter(),
+		"Snaps the world to one pixel grid, so the art and the effects drawn over "
+		+ "it read as one thing. The interface stays sharp."))
 	column.add_child(_pref_toggle_row("Wildlife coats", Graphics.KEY_PHENOTYPE,
 		Graphics.phenotypes(),
 		"Every animal is a slightly different animal of its kind."))

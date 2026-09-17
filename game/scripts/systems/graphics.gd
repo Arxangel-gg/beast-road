@@ -71,6 +71,12 @@ const KEY_MINIMAP: String = "minimap"
 ## number in the game - so a weak machine can have the whole thing back for
 ## a small image and a texture sample, and the run is identical without it.
 const KEY_FOLIAGE_TRAMPLE: String = "foliage_trample"
+## **One grid over the whole world** (owner, 2026-09-17). The finished frame is
+## snapped to a single block size, so the sprites' own pixels and everything
+## the engine draws beside them - blood, flame, rings, fills - read as one
+## material instead of two. A look and nothing else: it is over the world and
+## under the interface, nothing reads it, and the run is identical without it.
+const KEY_PIXEL_FILTER: String = "pixel_filter"
 
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
@@ -497,6 +503,20 @@ static func fog_of_war() -> bool:
 ## Whether foliage is laid over by what walks through it. On by default.
 static func foliage_trample() -> bool:
 	return bool(_chosen.get(KEY_FOLIAGE_TRAMPLE, true))
+
+
+## Whether the frame is snapped to one pixel grid. On by default: it is the
+## look the art was drawn for, and the setting is there for anybody who
+## prefers the soft edges - and for a machine that would rather not pay for a
+## screen copy.
+##
+## **Never headless**, where there is no frame to copy. `flood_sheen` is under
+## the same rule and for the same reason: a screen-reading shader with nothing
+## to read draws a black rectangle over the game.
+static func pixel_filter() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	return bool(_chosen.get(KEY_PIXEL_FILTER, true))
 
 
 ## Whether elites, rare animals and shinies wear their rank in light.
