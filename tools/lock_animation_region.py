@@ -39,6 +39,14 @@ def main() -> None:
         action="store_true",
         help="translate each generated frame so its alpha-foot matches the base",
     )
+    parser.add_argument(
+        "--vertical-only",
+        action="store_true",
+        help=(
+            "with --align-ground, correct the foot line and leave the "
+            "horizontal placement alone"
+        ),
+    )
     args = parser.parse_args()
     if not args.allow and not args.align_ground:
         parser.error("provide --allow, --align-ground, or both")
@@ -57,9 +65,19 @@ def main() -> None:
             generated_box = generated.getchannel("A").getbbox()
             if base_box is None or generated_box is None:
                 raise SystemExit(f"{frame_path}: cannot align an empty alpha silhouette")
-            base_center = (base_box[0] + base_box[2] - 1) // 2
-            generated_center = (generated_box[0] + generated_box[2] - 1) // 2
-            offset = (base_center - generated_center, base_box[3] - generated_box[3])
+            # **Horizontal centring is right for a still and wrong for a
+            # walk.** It lines up the silhouette's bounding box, and an
+            # arm swinging forward moves that box without moving the
+            # body - so a stride cycle comes back jittering sideways by
+            # a pixel or two a frame. --vertical-only corrects the foot
+            # line, which is the drift the animator actually produces,
+            # and leaves the pose alone.
+            shift_x = 0
+            if not args.vertical_only:
+                base_center = (base_box[0] + base_box[2] - 1) // 2
+                generated_center = (generated_box[0] + generated_box[2] - 1) // 2
+                shift_x = base_center - generated_center
+            offset = (shift_x, base_box[3] - generated_box[3])
             aligned = Image.new("RGBA", base.size)
             aligned.alpha_composite(generated, offset)
             generated = aligned

@@ -5444,6 +5444,75 @@ pose, not a wandering foot": true, and **the pose was right and the correction
 was the mistake**. Every gallop packed before that had been flattened.
 
 
+**The Hold is cut into a hillside, and its people stand on the ground, as of
+2026-09-17.** The owner asked for *"a tileset environment with multi-elevations
+and platforms designed for each area and a thoughtful and carefully planned
+outline for the Hold's layout and design"*, so that the place reads as *"a
+fortified shelter camp"*, and reported that *"some of the characters are static
+and have ground included in their images"*.
+
+**Both halves of that were answered by photographing the Hold, and the second
+one had already been answered wrongly from a model.** `hold_shot` did not exist
+until the day before; the residents' report was first met by measuring the
+*hero and enemy* sprites, finding no baked ground there, and saying so with a
+figure attached. The subject was the four `art/city/merchant_*.png` paintings,
+which are **dioramas on a round cobblestone plinth** - right for a travelling
+stall you walk up to and look at, and wrong for somebody who walks. The Hold
+was drawing four figures each standing on its own private disc of pavement and
+sliding it about the yard.
+
+So the residents have paintings of their own, with nothing under the boots, and
+an idle and a walk apiece; the merchants keep their plinths for the road and
+for the shop panels, where they belong. **A plinth turns out to be measurable**
+and `hold_check` measures it: ground is continuous and legs are not, so what
+separates them is *how many rows from the bottom are solid all the way across
+the silhouette* - 39 to 43 for the dioramas, zero for a person. Counting opaque
+pixels at the foot does not separate them at all and failed all eight files on
+its first run, which is why the constant is derived from a measurement rather
+than chosen.
+
+**Three shelves, and the plan is the layout that was already there.** The shelf
+under the unfinished wall holds the Stash, the Chronicle, the Codex and the pen
+house; the square in the middle holds the forge, the market, the anvil, the
+Ledger, the stable and the Warden's Stone; the lower yard is the pens and the
+road out, so a Warden coming home *climbs into* the Hold. Four stairs cross the
+two edges.
+
+**Every edge runs east to west, and that is not a shortcut.** The camera looks
+down and slightly along, so a south-facing bank is the only face a player can
+ever see and a north one would be drawn behind the shelf that owns it. The raid
+camp reached that conclusion on 2026-09-13, and this is its bank art tinted to
+the Hold's own soil - one earth face authored and used twice cannot disagree
+with itself.
+
+**A rise, never a height, which is the whole implementation.** A Warden's
+position stays in the flat plane: the reach, the focus ring, the pens, the dash
+and the relay are all measured there and none of them learned that the Hold has
+shelves. What a shelf changes is where a thing is *drawn* (`lift_at`) and
+whether a step across an edge is allowed (`step_is_legal`, with `_slide` giving
+ground sideways rather than sticking). The dash goes through the same function,
+which is the one way a rule like this gets quietly skipped.
+
+**The failure worth gating is a shelf you can see and never reach.** A stair
+authored outside the stretch of edge people actually use strands a whole third
+of the Hold, and every number in the table agrees it is fine - the same failure
+as the ponds dug where nobody could fish them. So `hold_check` *walks* the yard
+from the road out on a grid finer than the narrowest stair and insists every
+station, every resident and every pen was reached; it also plants a foot either
+side of each bank, well away from any stair, and refuses a build where the
+climb is allowed - because a step rule that always says yes is a flat Hold that
+passes every other check here.
+
+**Three things in that pass were found by the photograph and by nothing else.**
+The shelves were drawn lowest-first, so the top one painted over every shelf
+below it and the Hold came out flat with one bank hanging in the middle of it.
+The bank was drawn untinted, which laid the road's orange soil across a green
+valley. And the paths, the paddock and the pens were each a flat translucent
+rectangle - the largest shapes in the place, reading as panes of glass laid on
+the painting. All three are the same lesson in three costumes: **a model of a
+thing is not the thing.**
+
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

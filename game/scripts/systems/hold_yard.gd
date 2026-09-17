@@ -101,20 +101,36 @@ const STATIONS: Array[Dictionary] = [
 ## player wants to use it the blacksmith will back away from interacting with
 ## those and keep sharpening a sword or an axe and pacing around randomly
 ## procedurally until he is free to use the anvil and furnace again."*
+##
+## **`art` is theirs and `stall` is the shop's, and that separation is the whole
+## of a bug the owner reported.** Until 2026-09-17 these four pointed straight at
+## `art/city/merchant_*.png`, which are the travelling merchant's *stalls*: each
+## one is a diorama with a round cobblestone plinth, a table, a handcart or a
+## pair of barrels painted into it. That is right on a shop panel and on a road
+## stall, and wrong on a person who walks - the Hold drew four figures each
+## standing on its own private disc of pavement, sliding it about the yard.
+##
+## So the residents have their own paintings now, with nothing under the boots,
+## and `stall` is what they fall back to if one is missing - a figure on a
+## plinth is a worse Hold than it should be, and no figure at all is not a Hold.
 const RESIDENTS: Array[Dictionary] = [
-	{"id": "smith", "door": "Smithy", "art": "res://art/city/merchant_relic_peddler.png",
+	{"id": "smith", "door": "Smithy", "art": "res://art/city/hold_smith.png",
+		"stall": "res://art/city/merchant_relic_peddler.png",
 		"name": "Orden", "label": "Orden, who keeps the fire in",
 		"at": Vector2(-250.0, -20.0), "beat": 70.0,
 		"yields_to": ["smithy", "anvil"], "aside": Vector2(-560.0, 60.0)},
-	{"id": "keeper", "door": "Vendor", "art": "res://art/city/merchant_quartermaster.png",
+	{"id": "keeper", "door": "Vendor", "art": "res://art/city/hold_keeper.png",
+		"stall": "res://art/city/merchant_quartermaster.png",
 		"name": "Tessel", "label": "Tessel, who keeps the market",
 		"at": Vector2(330.0, -30.0), "beat": 84.0,
 		"yields_to": [], "aside": Vector2.ZERO},
-	{"id": "steward", "door": "Pen", "art": "res://art/city/merchant_alchemist.png",
+	{"id": "steward", "door": "Pen", "art": "res://art/city/hold_steward.png",
+		"stall": "res://art/city/merchant_alchemist.png",
 		"name": "Wren", "label": "Wren, who minds the pens",
 		"at": Vector2(660.0, -140.0), "beat": 96.0,
 		"yields_to": [], "aside": Vector2.ZERO},
-	{"id": "stabler", "door": "Stable", "art": "res://art/city/merchant_stabler.png",
+	{"id": "stabler", "door": "Stable", "art": "res://art/city/hold_stabler.png",
+		"stall": "res://art/city/merchant_stabler.png",
 		"name": "Halric", "label": "Halric, who keeps the horses",
 		"at": Vector2(-640.0, 170.0), "beat": 78.0,
 		"yields_to": [], "aside": Vector2.ZERO},
@@ -153,6 +169,53 @@ const TORCHES: Array[Vector2] = [
 	Vector2(-120.0, -250.0), Vector2(160.0, -250.0),
 ]
 
+## **The Hold is cut into a hillside, and this is where the steps are.**
+##
+## Owner, 2026-09-17: *"a tileset environment with multi-elevations and
+## platforms designed for each area and a thoughtful and carefully planned
+## outline for the Hold's layout and design"*, so that the place reads as *"a
+## fortified shelter camp"*. A camp on one flat rectangle is a car park.
+##
+## Three shelves, and the plan is the layout that was already here rather than
+## a new one laid over it:
+##
+## - **The shelf**, under the unfinished wall, holds the things worth putting
+##   behind stone: the Stash, the Chronicle, the Codex and the pen house.
+## - **The square** is the middle, where the forge, the market, the anvil, the
+##   Ledger, the stable, the board and the Warden's Stone are, and where the
+##   people stand.
+## - **The lower yard** is the pens and the road out - the ground you arrive
+##   on, so a Warden coming home *climbs into* the Hold.
+##
+## **Every boundary runs east to west, and that is not a shortcut.** The
+## camera looks down and slightly along, so a south-facing bank is the only
+## face a player can ever see; a north one would be drawn behind the shelf
+## that owns it. The raid camp reached the same conclusion on 2026-09-13 and
+## this is its bank art, tinted, in a place with no tile grid to bake it into.
+##
+## Ascending, and read from the top: a point above the first boundary is on
+## the highest shelf.
+const TERRACE_AT: Array[float] = [-200.0, 240.0]
+
+## Where the ground climbs rather than stands. Each names the boundary it
+## crosses and the stretch of it that is walkable, and the two on the lower
+## boundary are the gate ramp the road comes up and the stair down to the pens.
+##
+## **A stair is a decision about where people walk**, which is why there are
+## four rather than a boundary you may step over anywhere: the whole of what a
+## terrace adds is that the yard has ways through it.
+const STAIRS: Array[Dictionary] = [
+	{"at": -200.0, "from": -400.0, "to": -220.0},
+	{"at": -200.0, "from": 380.0, "to": 560.0},
+	{"at": 240.0, "from": -140.0, "to": 120.0},
+	{"at": 240.0, "from": 300.0, "to": 520.0},
+]
+
+## The bank under a shelf's south edge - the raid's own, because one earth
+## face authored and used twice is one that cannot disagree with itself.
+const BANK_ART: String = "res://art/raid/raid_cliff_face.png"
+const STAIR_ART: String = "res://art/raid/raid_stairs.png"
+
 const PADDOCK_AT: Vector2 = Vector2(-700.0, 330.0)
 
 const PEN_FIRST: Vector2 = Vector2(180.0, 330.0)
@@ -164,6 +227,14 @@ signal entered(station_id: String)
 signal walked(at: Vector2, facing: Vector2)
 
 var _ground: Texture2D = null
+var _bank: Texture2D = null
+var _steps: Texture2D = null
+## What colour the Hold's earth is, so one authored bank belongs to this
+## valley. Computed once from the ground the yard is painted with, exactly
+## as the raid tints its ledges to the region they are cut out of - a bank
+## left untinted is the road's orange soil laid across a green valley, which
+## is what the first plate showed.
+var _earth: Color = Color(0.62, 0.62, 0.62)
 var _grass: Texture2D = null
 var _actors: Node2D = null
 var _stations: Array[Dictionary] = []
@@ -209,6 +280,11 @@ func _ready() -> void:
 	_rng.seed = hash("hold-yard")
 	if ResourceLoader.exists(GROUND_ART):
 		_ground = load(GROUND_ART) as Texture2D
+	if ResourceLoader.exists(BANK_ART):
+		_bank = load(BANK_ART) as Texture2D
+	if ResourceLoader.exists(STAIR_ART):
+		_steps = load(STAIR_ART) as Texture2D
+	_earth = _earth_tint()
 	if ResourceLoader.exists(GRASS_ART):
 		_grass = load(GRASS_ART) as Texture2D
 	_actors = Node2D.new()
@@ -227,6 +303,67 @@ func _ready() -> void:
 	set_process(true)
 
 
+# ------------------------------------------------------------- the terraces
+
+
+## Which shelf a point stands on, counting up from the lower yard.
+func level_at(point: Vector2) -> int:
+	var level: int = TERRACE_AT.size()
+	for edge: float in TERRACE_AT:
+		if point.y >= edge:
+			level -= 1
+	return level
+
+
+## How far above the lower yard that point is drawn.
+##
+## **A rise, never a height.** A Warden's position stays in the flat plane -
+## the reach, the focus, the dash, the pens and the relay are all measured
+## there and none of them learned that the Hold has shelves. What a shelf
+## changes is where a thing is *drawn* and whether a step across an edge is
+## allowed, which is two small rules instead of a second coordinate system.
+func lift_at(point: Vector2) -> float:
+	return -float(level_at(point)) * Balance.HOLD_TERRACE_RISE
+
+
+## Whether a step from one point to another is one a person could take.
+##
+## Along a shelf, always. Across an edge, only on a stair - and only one shelf
+## at a time, which cannot happen with these boundaries but is asserted
+## anyway, because a table with two edges close together would otherwise let
+## a dash clear both.
+func step_is_legal(from: Vector2, to: Vector2) -> bool:
+	var was: int = level_at(from)
+	var now: int = level_at(to)
+	if was == now:
+		return true
+	if absi(was - now) > 1:
+		return false
+	var edge: float = TERRACE_AT[TERRACE_AT.size() - maxi(was, now)]
+	for stair: Dictionary in STAIRS:
+		if not is_equal_approx(float(stair["at"]), edge):
+			continue
+		if to.x >= float(stair["from"]) and to.x <= float(stair["to"]) \
+				and from.x >= float(stair["from"]) and from.x <= float(stair["to"]):
+			return true
+	return false
+
+
+## A step that gives ground rather than sticking.
+##
+## A Warden walking diagonally into a bank should slide along it, which is
+## what every collision in this game does and what stops an edge reading as
+## glue. Only the Y half of a step can ever be refused here - the boundaries
+## run east to west - so trying the sideways half is always the right retry.
+func _slide(from: Vector2, to: Vector2) -> Vector2:
+	if step_is_legal(from, to):
+		return to
+	var sideways := Vector2(to.x, from.y)
+	if step_is_legal(from, sideways):
+		return sideways
+	return from
+
+
 # ---------------------------------------------------------------- the place
 
 
@@ -241,6 +378,9 @@ func _scatter_grass() -> void:
 		if absf(at.y - 120.0) < 80.0 or absf(at.x - ENTRY.x) < 90.0:
 			continue
 		_grass_at.append(at)
+	# **Sorted by the ground rather than by the draw**, so a tuft on the shelf
+	# is drawn before the bank that falls in front of it.
+	_grass_at.sort_custom(func(a: Vector2, c: Vector2) -> bool: return a.y < c.y)
 
 
 func _build_stations() -> void:
@@ -266,16 +406,41 @@ func _build_stations() -> void:
 
 func _build_residents() -> void:
 	for entry: Dictionary in RESIDENTS:
-		var sprite: Sprite2D = _stand(String(entry["art"]), entry["at"] as Vector2)
+		var art: String = String(entry["art"])
+		if not ResourceLoader.exists(art):
+			art = String(entry.get("stall", ""))
+		var sprite: Sprite2D = _stand(art, entry["at"] as Vector2)
 		if sprite == null:
 			continue
 		var person: Dictionary = entry.duplicate(true)
+		# **Sized against the Warden rather than against the canvas.**
+		# Photographed on 2026-09-17: at their drawn size the four of them stood
+		# a head over the players they serve, which reads as a yard of giants
+		# with four small heroes in it. One scale for all four, chosen so the
+		# tallest sits level with a Warden, so they still differ in height the
+		# way people do.
+		sprite.scale = Vector2.ONE * Balance.HOLD_RESIDENT_SCALE
 		person["node"] = sprite
+		# **A flat point of their own, separate from where they are drawn.** The
+		# yard has shelves now, so a figure's node sits a terrace's rise above the
+		# ground it is standing on - and everything that measures reach, focus or
+		# a errand has to keep measuring the ground.
+		person["at"] = entry["at"] as Vector2
 		person["home"] = entry["at"] as Vector2
 		person["to"] = entry["at"] as Vector2
 		person["clock"] = _rng.randf() * 10.0
 		person["left"] = _rng.randf_range(Balance.HOLD_NPC_PAUSE.x, Balance.HOLD_NPC_PAUSE.y)
 		person["stood_aside"] = false
+		# **The same convention every other animated thing in this project
+		# uses**, so the art drops in by name and no manifest row or loader is
+		# invented for the Hold: `_idle_01` beside the base, `_move_01` beside
+		# it. A resident with no frames on disk is a stiller picture rather than
+		# a hole - the rule `MountRig` lives under.
+		person["idle_frames"] = GameData.load_idle_frames(art)
+		person["walk_frames"] = GameData.load_move_frames(art)
+		# Its own phase, so four residents on one clock are not four copies of
+		# one loop - the argument `PenYard` and the paddock are both built under.
+		person["frame"] = _rng.randf() * 8.0
 		_residents.append(person)
 
 
@@ -292,7 +457,10 @@ func _stand(art: String, at: Vector2) -> Sprite2D:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.centered = true
 	sprite.offset = Vector2(0.0, -float(texture.get_height()) * 0.5)
-	sprite.position = at
+	# Standing on its own shelf. The point handed in is the ground it occupies,
+	# which is what everything else measures against; the node is where that
+	# ground is drawn.
+	sprite.position = at + Vector2(0.0, lift_at(at))
 	_actors.add_child(sprite)
 	return sprite
 
@@ -535,7 +703,7 @@ func _build_fires() -> void:
 
 func _stand_fire(at: Vector2, reach: float, energy: float, size: float) -> void:
 	var flame := Flame.new()
-	flame.position = at
+	flame.position = at + Vector2(0.0, lift_at(at))
 	flame.scale = Vector2(size, size)
 	# **Left at zero, which is above the ground.** A node's children draw after
 	# its own `_draw`, so the default already puts a fire on top of the yard's
@@ -781,16 +949,22 @@ func _drift(seat: Dictionary, delta: float) -> void:
 
 ## One figure moving: the frames, the facing, and the edge of the yard.
 func _step(seat: Dictionary, way: Vector2, delta: float, speed: float) -> void:
-	var at: Vector2 = seat["at"] as Vector2
+	var was: Vector2 = seat["at"] as Vector2
+	var at: Vector2 = was
 	if way.length_squared() > 0.01:
 		at += way.normalized() * speed * delta
 		seat["facing"] = way.normalized()
 	at.x = clampf(at.x, -YARD.x * 0.5 + 40.0, YARD.x * 0.5 - 40.0)
 	at.y = clampf(at.y, -YARD.y * 0.5 + 40.0, YARD.y * 0.5 - 40.0)
+	# The shelves. A step that would walk off a bank gives ground sideways
+	# instead of sticking, and a dash goes through here too - so a Warden
+	# cannot dash up an earth face, which is the one way a rule like this gets
+	# quietly skipped.
+	at = _slide(was, at)
 	seat["at"] = at
 	var node := seat["node"] as Node2D
 	if node != null:
-		node.position = at
+		node.position = at + Vector2(0.0, lift_at(at))
 	var animator := seat["animator"] as HeroAnimator
 	if animator == null:
 		return
@@ -828,7 +1002,7 @@ func _mind_the_stall(person: Dictionary, delta: float) -> void:
 			cos(float(person["clock"]) * 0.53) * 22.0)
 	elif warden.distance_to(sprite.position) < Balance.HOLD_REACH * 1.6:
 		person["to"] = home
-		sprite.flip_h = warden.x < sprite.position.x
+		sprite.flip_h = warden.x < (person["at"] as Vector2).x
 	else:
 		person["left"] = float(person["left"]) - delta
 		if float(person["left"]) <= 0.0:
@@ -836,13 +1010,50 @@ func _mind_the_stall(person: Dictionary, delta: float) -> void:
 				Balance.HOLD_NPC_PAUSE.y)
 			person["to"] = home + Vector2(_rng.randf_range(-70.0, 70.0),
 				_rng.randf_range(-40.0, 40.0))
-	var step: Vector2 = (person["to"] as Vector2) - sprite.position
-	if step.length() > 4.0:
-		sprite.position += step.normalized() * Balance.HOLD_WALK_SPEED * 0.35 * delta
+	var at: Vector2 = person["at"] as Vector2
+	var step: Vector2 = (person["to"] as Vector2) - at
+	var walking: bool = step.length() > 4.0
+	if walking:
+		# Through the same shelf rule the Warden walks under, so a resident on an
+		# errand cannot stroll up a bank the player has to find the stair for.
+		at = _slide(at, at
+			+ step.normalized() * Balance.HOLD_WALK_SPEED * 0.35 * delta)
+		sprite.flip_h = step.x < 0.0
+	person["at"] = at
 	# Breathing, at the rate the stalls' own people work: a sprite that is
 	# perfectly still beside a Warden that is animated reads as a cardboard cut
 	# out, and a bob is the whole of the difference at this size.
-	sprite.position.y += sin(float(person["clock"]) * float(person["beat"]) * 0.02) * 0.05
+	sprite.position = at + Vector2(0.0, lift_at(at)
+		+ sin(float(person["clock"]) * float(person["beat"]) * 0.02) * 0.9)
+	_play_resident(person, delta, walking)
+
+
+## A resident's own frames, idle or walking.
+##
+## **The bob stays.** It is not a substitute for frames that have arrived - it is
+## what keeps a figure alive on the frame a loop happens to rest on, and it is
+## the only motion a resident whose art is still the old stall painting has.
+##
+## The walk sequence deliberately does *not* include the base sprite, which is
+## the one place `load_move_frames` differs from `load_idle_frames`: the base is
+## a person standing, and alternating it with a stride reads as the sprite being
+## swapped rather than animated. That was reported once already, about a
+## squirrel that "flashes, almost like it is not the same squirrel".
+func _play_resident(person: Dictionary, delta: float, walking: bool) -> void:
+	var sprite := person["node"] as Sprite2D
+	if sprite == null:
+		return
+	var frames: Array = (person["walk_frames"] if walking
+		else person["idle_frames"]) as Array
+	if frames.is_empty():
+		return
+	var rate: float = (Balance.HOLD_NPC_WALK_FRAME_HZ if walking
+		else Balance.HOLD_NPC_FRAME_HZ)
+	person["frame"] = float(person["frame"]) + delta * rate
+	var at: int = int(person["frame"]) % frames.size()
+	var texture := frames[at] as Texture2D
+	if texture != null and sprite.texture != texture:
+		sprite.texture = texture
 
 
 ## Whether the Warden is at one of the tools this person works.
@@ -899,7 +1110,11 @@ func _find_focus() -> void:
 		var sprite := person["node"] as Sprite2D
 		if sprite == null:
 			continue
-		var away: float = warden.distance_to(sprite.position)
+		# **The flat point, never the drawn one.** A resident on a different shelf
+		# from the Warden is drawn up to a terrace's rise away from where it is
+		# standing, and `HOLD_REACH` is only twice that - so measuring reach off
+		# the sprite would make the market unusable from the square.
+		var away: float = warden.distance_to(person["at"] as Vector2)
 		if away < nearest:
 			nearest = away
 			best = String(person["id"])
@@ -911,7 +1126,7 @@ func _find_focus() -> void:
 		# whose door was never adopted is a building with nothing in it.
 		if station["button"] == null and not String(station["door"]).is_empty():
 			continue
-		var away: float = warden.distance_to(node.position + Vector2(0.0, 40.0))
+		var away: float = warden.distance_to((station["at"] as Vector2) + Vector2(0.0, 40.0))
 		if away < nearest:
 			nearest = away
 			best = String(station["id"])
@@ -931,36 +1146,26 @@ func walk_toward(at: Vector2) -> void:
 
 func _draw() -> void:
 	var half: Vector2 = YARD * 0.5
-	var rect := Rect2(-half, YARD)
-	if _ground != null:
-		draw_texture_rect(_ground, rect, true, Color(0.72, 0.78, 0.68))
-	else:
-		draw_rect(rect, Color(0.16, 0.19, 0.14), true)
+	_draw_terraces(half)
 
 	# The paths. Drawn rather than tiled, for the reason the pen's ground is: it
 	# is bands of trodden earth under a dozen sprites, and a painting of one
 	# would be a manifest row for something nobody looks at.
+	#
+	# **Each band is laid on the shelf it belongs to**, so a path that crosses
+	# an edge arrives at the stair rather than running through the bank.
 	var earth := Color(0.29, 0.24, 0.17, 0.55)
-	draw_rect(Rect2(-half.x + 60.0, 70.0, YARD.x - 120.0, 130.0), earth, true)
-	draw_rect(Rect2(ENTRY.x - 80.0, 70.0, 160.0, half.y - 70.0), earth, true)
-	draw_rect(Rect2(PEN_FIRST.x - 220.0, 190.0,
-		float(_pens.size()) * (PEN_SIZE.x + PEN_GAP) + 120.0, 90.0), earth, true)
+	_lay_path(Rect2(-half.x + 60.0, 70.0, YARD.x - 120.0, 130.0), earth)
+	_lay_path(Rect2(ENTRY.x - 80.0, 70.0, 160.0, half.y - 70.0), earth)
+	_lay_path(Rect2(PEN_FIRST.x - 220.0, 190.0,
+		float(_pens.size()) * (PEN_SIZE.x + PEN_GAP) + 120.0, 90.0), earth)
 
-	# The wall that was never finished (see `world_first_cut`): it runs out
-	# halfway across, which is the one thing about this place a player should be
-	# able to read without being told.
-	var stone := Color(0.34, 0.35, 0.33)
-	draw_rect(Rect2(-half.x, -half.y, YARD.x * 0.6, 52.0), stone, true)
-	draw_rect(Rect2(-half.x, -half.y, YARD.x * 0.6, 52.0),
-		stone.darkened(0.35), false, 3.0)
-	for index: int in 5:
-		var broken := Rect2(-half.x + YARD.x * 0.6 + float(index) * 66.0,
-			-half.y, 46.0, 52.0 - float(index) * 10.0)
-		draw_rect(broken, stone.darkened(0.1), true)
+	_draw_wall(half)
 
 	_draw_pens()
 
-	for at: Vector2 in _grass_at:
+	for flat: Vector2 in _grass_at:
+		var at: Vector2 = flat + Vector2(0.0, lift_at(flat))
 		if _grass != null:
 			draw_texture(_grass, at - _grass.get_size() * Vector2(0.5, 1.0),
 				Color(1.0, 1.0, 1.0, 0.85))
@@ -984,7 +1189,10 @@ func _draw() -> void:
 		var seat: Dictionary = _seats[index]
 		if int(seat["kind"]) == HoldSession.Seat.EMPTY:
 			continue
-		var stood: Vector2 = seat["at"] as Vector2
+		# The ground under them, which on a shelf is the shelf's surface rather
+		# than the yard's floor.
+		var flat: Vector2 = seat["at"] as Vector2
+		var stood: Vector2 = flat + Vector2(0.0, lift_at(flat))
 		_shadow(stood, 24.0, 9.0)
 		# **The same colour this Warden is everywhere else** (owner, 2026-09-17:
 		# *"the players/playerNPCs should still have their color assigned vfx"*).
@@ -1006,6 +1214,7 @@ func _draw() -> void:
 	# icon, because the thing being pointed at is a place to stand.
 	var lit: Vector2 = _focus_point()
 	if lit != Vector2.INF:
+		lit += Vector2(0.0, lift_at(lit))
 		var pulse: float = 0.55 + 0.25 * sin(_clock * 3.4)
 		draw_arc(lit, Balance.HOLD_REACH * 0.5, 0.0, TAU, 40,
 			Color(0.91, 0.64, 0.24, pulse), 3.0)
@@ -1013,6 +1222,169 @@ func _draw() -> void:
 
 ## A fence a post at a time, with a gate on the path side: a rectangle of line
 ## reads as a diagram, and the gap is what says which side you walk in from.
+## The shelves themselves: the ground of each, and the earth bank under its
+## south edge.
+##
+## The Hold's own soil, normalised to its own brightness and then darkened -
+## a face is the side the sun is not on. Normalising first is what stops a
+## dark ground blacking the bank out and a bright one washing it white.
+func _earth_tint() -> Color:
+	if _ground == null:
+		return Color(Balance.HOLD_BANK_SHADE, Balance.HOLD_BANK_SHADE,
+			Balance.HOLD_BANK_SHADE)
+	var image: Image = _ground.get_image()
+	image.convert(Image.FORMAT_RGBA8)
+	image.resize(8, 8, Image.INTERPOLATE_BILINEAR)
+	var total := Color(0.0, 0.0, 0.0)
+	for y: int in 8:
+		for x: int in 8:
+			total += image.get_pixel(x, y)
+	var mean: Color = total / 64.0
+	var lift: float = maxf(maxf(mean.r, maxf(mean.g, mean.b)), 0.08)
+	return Color(mean.r / lift, mean.g / lift, mean.b / lift) \
+		* Balance.HOLD_BANK_SHADE
+
+
+## **The highest shelf first, and each one painted down to the foot of the
+## yard.** What is under a slab of earth is more of the same earth, so a shelf
+## is a rectangle that runs off the bottom of the picture and the shelf in
+## front of it covers everything below its own bank. The banks then stack the
+## way ground does.
+##
+## The first cut ran this the other way round, so the top shelf painted over
+## every shelf below it: the Hold came out flat with one bank hanging in the
+## middle of it and the pens on the same plane as the square. Found by
+## photographing it, because every number in the table was right.
+func _draw_terraces(half: Vector2) -> void:
+	var edges: Array[float] = [-half.y]
+	edges.append_array(TERRACE_AT)
+	edges.append(half.y)
+	for band: int in edges.size() - 1:
+		var top: float = edges[band]
+		var lift: float = -float(edges.size() - 2 - band) * Balance.HOLD_TERRACE_RISE
+		var shelf := Rect2(-half.x, top + lift, YARD.x, half.y - top - lift)
+		if _ground != null:
+			draw_texture_rect(_ground, shelf, true, Color(0.72, 0.78, 0.68))
+		else:
+			draw_rect(shelf, Color(0.16, 0.19, 0.14), true)
+		if band == edges.size() - 2:
+			continue
+		_draw_bank(edges[band + 1], lift, half)
+
+
+## One shelf's south face: the exposed earth under it, with steps cut into it
+## where a stair crosses.
+func _draw_bank(edge: float, lift: float, half: Vector2) -> void:
+	if _bank == null:
+		return
+	var rise: float = Balance.HOLD_TERRACE_RISE
+	var wide: float = float(_bank.get_width()) * 0.5
+	var high: float = float(_bank.get_height())
+	# **One slice a slice, at the size it was painted.** Photographed first at
+	# 110 units a slice against a 64-pixel half: the earth stretched by nearly
+	# two and the bank read as a smear rather than as soil. The same lesson the
+	# raid's own faces were rebuilt under, where a bank baked into a half-texel
+	# plate came out a coloured stripe.
+	var slice: float = wide
+	var along: float = -half.x
+	var index: int = 0
+	while along < half.x:
+		var span: float = minf(slice, half.x - along)
+		var into := Rect2(along, edge + lift, span, rise)
+		var middle: float = along + span * 0.5
+		var stepped: bool = false
+		for stair: Dictionary in STAIRS:
+			if not is_equal_approx(float(stair["at"]), edge):
+				continue
+			if middle >= float(stair["from"]) \
+					and middle <= float(stair["to"]):
+				stepped = true
+		if stepped and _steps != null:
+			draw_texture_rect_region(_steps, into,
+				Rect2(0.0, 0.0, float(_steps.get_width()),
+					float(_steps.get_height())), _earth)
+		else:
+			# Alternating halves of a two-slice band, so a bank two thousand units
+			# long is not one slice repeated twenty times.
+			draw_texture_rect_region(_bank, into,
+				Rect2(float(index % 2) * wide, 0.0, wide, high), _earth)
+		along += span
+		index += 1
+
+
+## A path laid on whatever shelves it crosses, one piece per shelf.
+func _lay_path(band: Rect2, ink: Color) -> void:
+	var cuts: Array[float] = [band.position.y]
+	for edge: float in TERRACE_AT:
+		if edge > band.position.y and edge < band.end.y:
+			cuts.append(edge)
+	cuts.append(band.end.y)
+	for piece: int in cuts.size() - 1:
+		var lift: float = lift_at(Vector2(band.position.x, cuts[piece] + 1.0))
+		var piece_rect := Rect2(band.position.x, cuts[piece] + lift, band.size.x,
+			cuts[piece + 1] - cuts[piece])
+		# **Earth rather than a wash.** A flat translucent rectangle across the
+		# widest part of the yard is the single largest shape in the Hold and it
+		# read as a pane of glass - the third time that has been photographed here,
+		# after the pens and the paddock. The ground's own texture, tinted to bare
+		# soil, is trodden ground.
+		if _ground != null:
+			draw_texture_rect(_ground, piece_rect, true,
+				Color(ink.r * 1.5, ink.g * 1.4, ink.b * 1.2, 1.0))
+		else:
+			draw_rect(piece_rect, ink, true)
+		# Where the grass gives out at the edges, so the path has a shoulder
+		# instead of a cut line. Its own irrational walk, so no two stretches of
+		# path wear through in the same places.
+		var scuffs: int = int(piece_rect.size.x / 90.0)
+		for scuff: int in scuffs:
+			var along: float = fmod(float(scuff) * 0.618034, 1.0) * piece_rect.size.x
+			var side: float = 1.0 if scuff % 2 == 0 else -1.0
+			var edge: float = (piece_rect.position.y if side < 0.0
+				else piece_rect.end.y)
+			var wide: float = 26.0 + fmod(float(scuff) * 0.381966, 1.0) * 46.0
+			draw_set_transform(Vector2(piece_rect.position.x + along, edge),
+				0.0, Vector2(1.0, 0.34))
+			draw_circle(Vector2.ZERO, wide, Color(ink.r, ink.g, ink.b, 0.30))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## The wall that was never finished (see `world_first_cut`): it runs out
+## halfway across, which is the one thing about this place a player should be
+## able to read without being told.
+##
+## **Courses rather than a rectangle.** Photographed on 2026-09-17 it was a
+## flat grey bar across the top of the yard and read as an interface element
+## laid over the painting - the same fault the pens and the paddock each had,
+## in the one place a player looks to find out what this camp is.
+func _draw_wall(half: Vector2) -> void:
+	var stone := Color(0.34, 0.35, 0.33)
+	var top: float = -half.y + lift_at(Vector2(0.0, -half.y))
+	var built: float = YARD.x * 0.6
+	var tall: float = 52.0
+	var whole := Rect2(-half.x, top, built, tall)
+	draw_rect(whole, stone.darkened(0.25), true)
+	# Three courses of block, offset every other one, with the mortar showing
+	# between: that is what separates masonry from a filled rectangle at this
+	# size, and it costs a loop.
+	var course: float = tall / 3.0
+	for row: int in 3:
+		var y: float = top + float(row) * course
+		var at: float = -half.x - (0.0 if row % 2 == 0 else 32.0)
+		while at < -half.x + built:
+			var block := Rect2(at + 3.0, y + 3.0, 58.0, course - 5.0)
+			var shade: float = 0.04 + 0.05 * float(int(absf(at) / 64.0) % 3)
+			draw_rect(block.intersection(whole), stone.lightened(shade), true)
+			at += 64.0
+	# The broken end: courses falling away, each with its own lit face.
+	for index: int in 5:
+		var rubble := Rect2(-half.x + built + float(index) * 66.0,
+			top, 46.0, tall - float(index) * 10.0)
+		draw_rect(rubble, stone.darkened(0.12), true)
+		draw_rect(Rect2(rubble.position.x + 3.0, rubble.position.y + 3.0,
+			40.0, maxf(rubble.size.y - 6.0, 4.0)), stone.lightened(0.05), true)
+
+
 func _draw_pens() -> void:
 	var timber := Color(0.38, 0.29, 0.19)
 	for pen: Dictionary in _pens:
@@ -1080,10 +1452,10 @@ func _focus_point() -> Vector2:
 		return Vector2.INF
 	for person: Dictionary in _residents:
 		if String(person["id"]) == _focus:
-			return (person["node"] as Sprite2D).position
+			return person["at"] as Vector2
 	for station: Dictionary in _stations:
 		if String(station["id"]) == _focus:
-			return (station["node"] as Node2D).position
+			return station["at"] as Vector2
 	return Vector2.INF
 
 
@@ -1196,7 +1568,7 @@ func stand_warden(at: Vector2) -> void:
 func station_at(id: String) -> Vector2:
 	for station: Dictionary in _stations:
 		if String(station["id"]) == id:
-			return (station["node"] as Node2D).position + Vector2(0.0, 70.0)
+			return (station["at"] as Vector2) + Vector2(0.0, 70.0)
 	return Vector2.INF
 
 

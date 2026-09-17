@@ -39,6 +39,13 @@ const COAT_SOURCE: String = "steppe_horse"
 ## How far apart two horses try to settle.
 const SPACING: float = 150.0
 
+## The earth the Hold is painted on, so the paddock is a patch of the same
+## ground rather than a shape laid over it. Read by name rather than handed
+## in, because a paddock with a different floor from the yard around it is
+## exactly the pane of glass this replaced.
+const TURF_ART: String = "res://art/terrain/terrain_jungle.png"
+
+var _turf: Texture2D = null
 var _stage: Vector2 = Balance.STABLE_PADDOCK
 var _horses: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
@@ -48,6 +55,8 @@ func _ready() -> void:
 	name = "StablePaddock"
 	y_sort_enabled = true
 	_rng.seed = hash("hold-stable")
+	if ResourceLoader.exists(TURF_ART):
+		_turf = load(TURF_ART) as Texture2D
 	refresh()
 	set_process(true)
 
@@ -229,7 +238,16 @@ func _draw() -> void:
 	# of. Three ellipses of bare earth where they actually walk, and tufts near
 	# the rail where grass survives, make it ground - the same treatment the pens
 	# got, for the same reason and at the same cost of nothing.
-	draw_rect(ground, Color(0.24, 0.27, 0.16, 0.60), true)
+	# **The yard's own earth rather than a colour laid over it.**
+	# Photographed again on 2026-09-17 after the first pass: three ellipses of
+	# wear over a flat translucent fill is still a flat translucent fill, and at
+	# this size it is the largest rectangle in the Hold - it read as a pane of
+	# green glass with horses standing on it. The ground the rest of the place
+	# is painted with, worn toward the middle, is earth.
+	if _turf != null:
+		draw_texture_rect(_turf, ground, true, Color(0.50, 0.53, 0.40))
+	else:
+		draw_rect(ground, Color(0.24, 0.27, 0.16, 0.60), true)
 	for ring: int in 3:
 		var share: float = 0.46 - float(ring) * 0.13
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.55))
@@ -243,15 +261,62 @@ func _draw() -> void:
 			continue
 		draw_line(at, at + Vector2(1.0, -6.0), Color(0.33, 0.40, 0.23, 0.8), 1.5)
 		draw_line(at, at + Vector2(-2.0, -5.0), Color(0.29, 0.35, 0.21, 0.7), 1.5)
-	var rail := Color(0.40, 0.31, 0.21, 0.95)
-	draw_rect(ground, rail, false, 5.0)
-	# A second rail inside the first, the way a real fence has two bars. The gap
-	# is what makes it read as a fence rather than as a border.
-	draw_rect(Rect2(-half + Vector2(0.0, 12.0), _stage - Vector2(0.0, 12.0)),
-		Color(0.34, 0.26, 0.18, 0.75), false, 3.0)
-	# The gate, north side, where the stabler stands.
-	draw_line(Vector2(-40.0, -half.y), Vector2(40.0, -half.y),
-		Color(0.55, 0.45, 0.30, 0.95), 6.0)
+	# **Posts and rails, not an outline.** A rectangle of line reads as a
+	# diagram - the pens learned that the same day and this is the same fence
+	# built the same way: uprights with a thickness and a lit side, two bars
+	# between them, and the gate is the pair of posts that are missing.
+	var timber := Color(0.42, 0.32, 0.22)
+	var posts: int = maxi(4, int(_stage.x / 90.0))
+	var span: float = _stage.x / float(posts)
+	for index: int in posts + 1:
+		var x: float = -half.x + span * float(index)
+		var gate: bool = absf(x) < 44.0
+		# The far rail first and low, so a horse standing at the back of the
+		# paddock is in front of it rather than behind a plank.
+		if not gate:
+			_post(Vector2(x, -half.y), 18.0, timber.darkened(0.25))
+			if index > 0:
+				_rail(Vector2(x - span, -half.y - 13.0), Vector2(x, -half.y - 13.0),
+					timber.darkened(0.25))
+	for index: int in posts + 1:
+		var x: float = -half.x + span * float(index)
+		_post(Vector2(x, half.y), 30.0, timber)
+		if index > 0:
+			_rail(Vector2(x - span, half.y - 22.0), Vector2(x, half.y - 22.0), timber)
+			_rail(Vector2(x - span, half.y - 10.0), Vector2(x, half.y - 10.0),
+				timber.darkened(0.12))
+	# The two sides, which are short enough to be posts alone.
+	for side: int in 2:
+		var x: float = -half.x if side == 0 else half.x
+		var down: int = maxi(2, int(_stage.y / 90.0))
+		var drop: float = _stage.y / float(down)
+		for index: int in down:
+			var y: float = -half.y + drop * float(index + 1)
+			_post(Vector2(x, y), 26.0, timber.darkened(0.06))
+			_rail(Vector2(x, y - drop - 18.0), Vector2(x, y - 18.0),
+				timber.darkened(0.18))
+
+
+## One upright with a thickness and a lit face - the pens' own post, because a
+## fence drawn two different ways in one yard is two fences.
+func _post(foot: Vector2, tall: float, timber: Color) -> void:
+	var wide: float = 5.0
+	var head: Vector2 = foot - Vector2(0.0, tall)
+	draw_colored_polygon(PackedVector2Array([
+		head - Vector2(wide * 0.5, 0.0), head,
+		foot, foot - Vector2(wide * 0.5, 0.0)]), timber.lightened(0.18))
+	draw_colored_polygon(PackedVector2Array([
+		head, head + Vector2(wide * 0.5, 0.0),
+		foot + Vector2(wide * 0.5, 0.0), foot]), timber.darkened(0.22))
+	draw_line(head - Vector2(wide * 0.5, 0.0), head + Vector2(wide * 0.5, 0.0),
+		timber.lightened(0.3), 1.5)
+
+
+## A bar between two posts, with its own underside.
+func _rail(from: Vector2, to: Vector2, timber: Color) -> void:
+	draw_line(from, to, timber, 4.0)
+	draw_line(from + Vector2(0.0, 2.0), to + Vector2(0.0, 2.0),
+		timber.darkened(0.3), 1.5)
 
 
 ## How many horses are standing. For the gate.

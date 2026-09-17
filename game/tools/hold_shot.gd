@@ -83,6 +83,10 @@ func _ready() -> void:
 	await _frame("pens", 0.95, Vector2(420.0, 300.0))
 	await _frame("figures", 1.20, Vector2(-300.0, 0.0))
 	await _frame("square", 0.70, Vector2(0.0, 40.0))
+	# The shelf edge at the top of the square, close enough to see whether the
+	# bank is earth with grass hanging over it or a coloured stripe, and whether
+	# the stairs are cut into it rather than laid on top.
+	await _frame("terrace", 1.05, Vector2(-40.0, -200.0))
 	get_tree().quit(0)
 
 

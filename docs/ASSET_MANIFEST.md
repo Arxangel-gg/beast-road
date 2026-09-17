@@ -811,6 +811,44 @@ merchant has both.
 | `merchant_quartermaster.png` | 128×128 | T | `#6B6258` |
 | `merchant_stabler.png` | 128×128 | T | `#6B5A3E` |
 
+### 5.5b-ii The Hold's residents — `res://art/city/`
+
+The four people who live in the Hold, drawn as people rather than as shops.
+
+**They are not the merchants above, and that is the point.** The Hold reused
+the merchant paintings until 2026-09-17, and every one of those has a round
+cobblestone plinth baked into it — right for a stall you walk up to and look
+at, wrong for somebody who walks: the yard drew four figures each standing on
+its own private disc of pavement and sliding it about. The owner reported it
+as characters that *"have ground included in their images"*. Nothing beneath
+the boots here, and the merchants keep their plinths for the road and for the
+shop panels, where they belong.
+
+160×160, close to the Warden's own 168×160 cell, because these four stand
+beside the players in the square and a resident drawn at the merchants' 128
+reads as a smaller species.
+
+Base plus three continuation poses for the idle, and eight for the walk — the
+same convention `GameData.load_idle_frames` and `load_move_frames` read
+everywhere else, so the art drops in by name and the Hold invented no loader.
+A resident whose frames are missing is a stiller picture, never a hole.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `hold_smith.png` | 160×160 | T | `#6B5A3E` |
+| `hold_keeper.png` | 160×160 | T | `#6B6258` |
+| `hold_steward.png` | 160×160 | T | `#3E5A42` |
+| `hold_stabler.png` | 160×160 | T | `#7A4A3A` |
+
+Files: `hold_smith_idle_01.png` · `hold_smith_idle_02.png` · `hold_smith_idle_03.png`
+Files: `hold_keeper_idle_01.png` · `hold_keeper_idle_02.png` · `hold_keeper_idle_03.png`
+Files: `hold_steward_idle_01.png` · `hold_steward_idle_02.png` · `hold_steward_idle_03.png`
+Files: `hold_stabler_idle_01.png` · `hold_stabler_idle_02.png` · `hold_stabler_idle_03.png`
+Files: `hold_smith_move_01.png` · `hold_smith_move_02.png` · `hold_smith_move_03.png` · `hold_smith_move_04.png` · `hold_smith_move_05.png` · `hold_smith_move_06.png` · `hold_smith_move_07.png` · `hold_smith_move_08.png`
+Files: `hold_keeper_move_01.png` · `hold_keeper_move_02.png` · `hold_keeper_move_03.png` · `hold_keeper_move_04.png` · `hold_keeper_move_05.png` · `hold_keeper_move_06.png` · `hold_keeper_move_07.png` · `hold_keeper_move_08.png`
+Files: `hold_steward_move_01.png` · `hold_steward_move_02.png` · `hold_steward_move_03.png` · `hold_steward_move_04.png` · `hold_steward_move_05.png` · `hold_steward_move_06.png` · `hold_steward_move_07.png` · `hold_steward_move_08.png`
+Files: `hold_stabler_move_01.png` · `hold_stabler_move_02.png` · `hold_stabler_move_03.png` · `hold_stabler_move_04.png` · `hold_stabler_move_05.png` · `hold_stabler_move_06.png` · `hold_stabler_move_07.png` · `hold_stabler_move_08.png`
+
 ### 5.5c Mounts — `res://art/mounts/`
 
 Something to cross ground on (owner brief, 2026-09-17). Bought at the Hold's

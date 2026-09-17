@@ -34,6 +34,40 @@ extends Node
 ## - **The blacksmith never gives up the anvil.** The owner asked for exactly
 ##   that behaviour by name.
 
+## How deep a solid slab a figure may end in before it is standing on ground
+## rather than on its own boots.
+##
+## **Measured rather than guessed, and the first guess was wrong.** Counting
+## opaque pixels at the foot does not separate them at all - boots apart are
+## about half the figure's widest row, and so is a plinth, so the four dioramas
+## read 0.69-0.72 against the residents' 0.53-0.60 and the check failed all
+## eight. What does separate them is that **ground is continuous and legs are
+## not**: the merchants' paintings end in 39 to 43 rows that are solid from one
+## edge of the silhouette to the other, and every resident drawn for the Hold
+## ends in zero. Twelve is clear of both by a mile.
+const SLAB_ROWS_MAX: int = 12
+
+## What counts as solid across the silhouette, rather than a gap between two
+## boots that a soft edge has nearly closed.
+const SLAB_FILL: float = 0.95
+
+## What counts as painted rather than as a soft edge.
+const ALPHA_FLOOR: float = 0.12
+
+## How far a frame's foot line may sit from the base's. The animator
+## re-renders the whole sprite, so this is drift rather than a pose; two pixels
+## is the same tolerance `enemy_walk_check` holds the roster to.
+const FOOT_DRIFT: int = 2
+
+## How fine the walk that proves the Hold is reachable. Finer than the
+## narrowest stair, or the flood fill would step straight over one and report
+## a shelf as stranded that a player walks onto every visit.
+const WALK_GRID: float = 40.0
+
+## How wide a stair has to be to be one. Below this a Warden walking along an
+## edge crosses the whole opening inside a single frame's step.
+const STAIR_MIN_WIDE: float = 150.0
+
 var _failures: int = 0
 var _checks: int = 0
 
@@ -42,6 +76,8 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_the_yard_is_a_place()
 	_test_every_station_has_a_door()
+	_test_the_residents_stand_on_nothing()
+	_test_the_shelves_are_walkable()
 	_test_the_smith_gives_up_the_anvil()
 	_test_the_seats_are_the_sessions()
 	_test_the_shelf_refreshes_by_rule()
@@ -50,7 +86,9 @@ func _ready() -> void:
 	_test_the_commission_costs_more()
 	MetaState.resume_saves()
 	if _failures == 0:
-		print(("[hold] PASS - %d checks: every station presses a door, the smith "
+		print(("[hold] PASS - %d checks: every station presses a door, every "
+			+ "shelf can be walked on and off, nobody "
+			+ "carries their own pavement, the smith "
 			+ "stands aside, seats are the session's, the shelf keeps its stock "
 			+ "across a restart, buying is always dearer than selling, and a "
 			+ "commission costs more and teaches nothing") % _checks)
@@ -77,6 +115,232 @@ func _stand_a_yard() -> HoldYard:
 		add_child(button)
 		yard.bind(door, button)
 	return yard
+
+
+## Nobody in the Hold carries their own pavement.
+##
+## **This is the owner's report, turned into arithmetic.** On 2026-09-17 they
+## wrote that *"some of the characters are static and have ground included in
+## their images"*, and it was answered by measuring the *hero and enemy* art,
+## finding no baked ground there, and saying so with a figure attached. The
+## four people in the Hold were the subject, and every one of them was a
+## travelling merchant's painting: a diorama on a round cobblestone plinth,
+## drawn for a stall you walk up to and look at, sliding about a yard.
+##
+## **A plinth is measurable and I did not think to measure it.** A person
+## standing on nothing ends in two boots - a narrow fraction of their own
+## widest span. A person standing on a disc of pavement ends in the disc,
+## which is as wide as they are or wider. So the bottom row against the widest
+## row separates the two without anybody having to look, and it is the check
+## that would have caught this the day the Hold was built.
+##
+## The rest is what an animated figure needs and a still one does not: frames
+## on disk, the same canvas as the base, and a foot line that does not wander
+## - the animator re-renders the whole sprite, so a walk drifts vertically
+## unless somebody puts it back.
+func _test_the_residents_stand_on_nothing() -> void:
+	for person: Dictionary in HoldYard.RESIDENTS:
+		var art: String = String(person["art"])
+		var who: String = String(person["id"])
+		var painted: bool = ResourceLoader.exists(art)
+		_check(painted, "%s has no painting of its own at %s" % [who, art])
+		if not painted:
+			continue
+		var base: Image = (load(art) as Texture2D).get_image()
+		var slab: int = _slab_rows(base)
+		_check(slab <= SLAB_ROWS_MAX,
+			("%s ends in %d solid row(s) - that is a plinth or a patch of ground "
+				+ "baked into the painting, and it slides about the yard with them. A "
+				+ "person ends in boots with a gap between them.") % [who, slab])
+
+		var idle: Array[Texture2D] = GameData.load_idle_frames(art)
+		var walk: Array[Texture2D] = GameData.load_move_frames(art)
+		_check(idle.size() >= 2,
+			"%s has %d idle frame(s), so it is a still painting with a bob on it"
+				% [who, idle.size()])
+		_check(walk.size() >= 4,
+			"%s has %d walk frame(s), so it slides when it crosses the yard"
+				% [who, walk.size()])
+		var floor_y: int = _foot_line(base)
+		for frame: Texture2D in (idle + walk):
+			var picture: Image = frame.get_image()
+			var same: bool = picture.get_size() == base.get_size()
+			_check(same, "a frame of %s is %s against a base of %s" % [who,
+				str(picture.get_size()), str(base.get_size())])
+			if not same:
+				continue
+			_check(absi(_foot_line(picture) - floor_y) <= FOOT_DRIFT,
+				("a frame of %s stands %d pixel(s) off the base's foot line, so the "
+					+ "figure sinks into the ground and rises out of it as it plays")
+					% [who, _foot_line(picture) - floor_y])
+
+
+## The lowest row with anything in it.
+func _foot_line(picture: Image) -> int:
+	for y: int in range(picture.get_height() - 1, -1, -1):
+		for x: int in picture.get_width():
+			if picture.get_pixel(x, y).a > ALPHA_FLOOR:
+				return y
+	return -1
+
+
+## How many rows up from the bottom are solid all the way across the
+## silhouette - the height of whatever slab the figure is ending in.
+##
+## Ground is continuous. Legs are not. A cobblestone plinth is forty rows of
+## unbroken pavement; a person is two boots with daylight between them, and
+## stops being solid on the first row above the soles.
+func _slab_rows(picture: Image) -> int:
+	var deep: int = 0
+	for y: int in range(_foot_line(picture), -1, -1):
+		var first: int = -1
+		var last: int = -1
+		var painted: int = 0
+		for x: int in picture.get_width():
+			if picture.get_pixel(x, y).a <= ALPHA_FLOOR:
+				continue
+			painted += 1
+			last = x
+			if first < 0:
+				first = x
+		if first < 0:
+			break
+		if float(painted) / float(last - first + 1) < SLAB_FILL:
+			break
+		deep += 1
+	return deep
+
+
+## Every shelf in the Hold can be walked on and off.
+##
+## Owner, 2026-09-17: the Hold wants *"multi-elevations and platforms designed
+## for each area"*. What makes that a place rather than a picture is the step
+## rule - a Warden cannot walk up an earth bank - and **the step rule is also
+## the way to strand somebody**: a shelf whose stair is authored outside the
+## stretch of edge people actually use is a shelf you can see and never reach,
+## and every number in the layout table agrees it is fine.
+##
+## This project has already paid for that exact failure once, with ponds dug
+## where nobody could fish them and a clearance ring that refused every corner.
+## So this walks the yard the way a Warden does rather than reading the table:
+## a flood fill from the road out, over a grid finer than the narrowest stair,
+## and then every station has to have been reached.
+func _test_the_shelves_are_walkable() -> void:
+	var yard: HoldYard = _stand_a_yard()
+
+	# Each stair crosses an edge the table actually has, and lies inside the yard.
+	for stair: Dictionary in HoldYard.STAIRS:
+		var edge: float = float(stair["at"])
+		_check(HoldYard.TERRACE_AT.has(edge),
+			"a stair crosses y=%.0f, which is not an edge between two shelves" % edge)
+		var from: float = float(stair["from"])
+		var to: float = float(stair["to"])
+		_check(to - from >= STAIR_MIN_WIDE,
+			("a stair at y=%.0f is %.0f units wide - narrower than %.0f and a "
+				+ "Warden walking along the edge can miss it entirely")
+				% [edge, to - from, STAIR_MIN_WIDE])
+		_check(from > -HoldYard.YARD.x * 0.5 and to < HoldYard.YARD.x * 0.5,
+			"a stair at y=%.0f runs off the side of the yard" % edge)
+
+	# A bank is a bank. Two points either side of an edge, well away from every
+	# stair, must refuse each other - measured rather than assumed, because a
+	# step rule that always returns true is a Hold with no shelves in it and
+	# every other check here would still pass.
+	for edge: float in HoldYard.TERRACE_AT:
+		var open: float = _away_from_every_stair(edge)
+		var above := Vector2(open, edge - 30.0)
+		var below := Vector2(open, edge + 30.0)
+		_check(yard.level_at(above) != yard.level_at(below),
+			"the ground either side of y=%.0f is the same shelf" % edge)
+		_check(not yard.step_is_legal(below, above),
+			("a Warden walked up the bank at y=%.0f at x=%.0f, where there is no "
+				+ "stair - the shelves are a picture rather than a place")
+				% [edge, open])
+		_check(not yard.step_is_legal(above, below),
+			"a Warden walked off the bank at y=%.0f into thin air" % edge)
+
+	# And a stair is a way through.
+	for stair: Dictionary in HoldYard.STAIRS:
+		var edge: float = float(stair["at"])
+		var middle: float = (float(stair["from"])
+			+ float(stair["to"])) * 0.5
+		_check(yard.step_is_legal(Vector2(middle, edge + 30.0),
+				Vector2(middle, edge - 30.0)),
+			"the stair at y=%.0f, x=%.0f cannot be climbed" % [edge, middle])
+
+	# The whole yard, walked from the road out.
+	var reached: Dictionary = _walk_the_yard(yard)
+	for station: Dictionary in HoldYard.STATIONS:
+		var at: Vector2 = station["at"] as Vector2
+		_check(reached.has(_cell(at)),
+			("%s is on ground no Warden can walk to from the road - it stands on a "
+				+ "shelf with no stair onto it") % String(station["label"]))
+	for person: Dictionary in HoldYard.RESIDENTS:
+		var at: Vector2 = person["at"] as Vector2
+		_check(reached.has(_cell(at)),
+			"%s stands where nobody can reach them" % String(person["name"]))
+	for index: int in yard.pens():
+		var pen: Vector2 = HoldYard.PEN_FIRST + Vector2(
+			float(index) * (HoldYard.PEN_SIZE.x + HoldYard.PEN_GAP), 0.0)
+		_check(reached.has(_cell(pen)),
+			"pen %d is on ground no Warden can walk to" % index)
+	yard.queue_free()
+
+
+## The furthest point on an edge from any stair that crosses it.
+func _away_from_every_stair(edge: float) -> float:
+	var best: float = 0.0
+	var best_gap: float = -1.0
+	var step: float = 40.0
+	var x: float = -HoldYard.YARD.x * 0.5 + 60.0
+	while x < HoldYard.YARD.x * 0.5 - 60.0:
+		var gap: float = 1.0e9
+		for stair: Dictionary in HoldYard.STAIRS:
+			if not is_equal_approx(float(stair["at"]), edge):
+				continue
+			gap = minf(gap, minf(absf(x - float(stair["from"])),
+				absf(x - float(stair["to"]))))
+			if x >= float(stair["from"]) and x <= float(stair["to"]):
+				gap = -1.0
+		if gap > best_gap:
+			best_gap = gap
+			best = x
+		x += step
+	return best
+
+
+## Which cell of the walking grid a point falls in.
+func _cell(at: Vector2) -> Vector2i:
+	return Vector2i(int(floor(at.x / WALK_GRID)), int(floor(at.y / WALK_GRID)))
+
+
+## Every cell a Warden can reach from the road out, walking the yard's own
+## step rule. A breadth-first walk rather than a reading of the table, because
+## the table is the thing being checked.
+func _walk_the_yard(yard: HoldYard) -> Dictionary:
+	var half: Vector2 = HoldYard.YARD * 0.5
+	var seen: Dictionary = {}
+	var queue: Array[Vector2i] = [_cell(HoldYard.ENTRY)]
+	seen[queue[0]] = true
+	var ways: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0),
+		Vector2i(0, 1), Vector2i(0, -1)]
+	while not queue.is_empty():
+		var cell: Vector2i = queue.pop_back()
+		var here := Vector2((float(cell.x) + 0.5) * WALK_GRID,
+			(float(cell.y) + 0.5) * WALK_GRID)
+		for way: Vector2i in ways:
+			var next: Vector2i = cell + way
+			if seen.has(next):
+				continue
+			var there := Vector2((float(next.x) + 0.5) * WALK_GRID,
+				(float(next.y) + 0.5) * WALK_GRID)
+			if absf(there.x) > half.x - 40.0 or absf(there.y) > half.y - 40.0:
+				continue
+			if not yard.step_is_legal(here, there):
+				continue
+			seen[next] = true
+			queue.append(next)
+	return seen
 
 
 func _test_the_yard_is_a_place() -> void:

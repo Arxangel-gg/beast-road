@@ -10292,6 +10292,67 @@ const HOLD_REACH: float = 120.0
 ## its own clock, so a yard of four never reads as four copies of one loop.
 const HOLD_NPC_PAUSE: Vector2 = Vector2(2.6, 7.5)
 
+## How fast one of the Hold's residents plays its own frames, in frames a
+## second. Slower than a walk cycle on the road, because a figure standing at a
+## stall is breathing rather than travelling.
+##
+## **The residents were single still paintings until 2026-09-17**, and each of
+## those paintings had a round cobblestone plinth baked into it - drawn for the
+## travelling merchant's stall, where a diorama is right, and reused for the
+## Hold, where a person walks. The owner reported it as *"some of the characters
+## are static and have ground included in their images"* and was exactly right;
+## it was answered first by measuring the *hero and enemy* art, finding no baked
+## ground there, and saying so. A photograph of the four merchant files settled
+## it in one look.
+const HOLD_NPC_FRAME_HZ: float = 6.0
+
+## How fast those frames play while the resident is actually walking somewhere.
+const HOLD_NPC_WALK_FRAME_HZ: float = 9.0
+
+## How big the Hold's own people are drawn beside the Wardens they serve.
+##
+## Measured rather than chosen: a Warden fills 118 pixels of a 168x160 cell and
+## the four residents were drawn 135 to 152 tall, so at their own size the
+## market keeper stood a head over the player. One scale for all four, set so
+## the tallest of them sits level with a Warden rather than over one - which
+## keeps them differing in height the way people do.
+const HOLD_RESIDENT_SCALE: float = 0.78
+
+## How far one of the Hold's terraces stands above the one below it, in yard
+## units of screen rise.
+##
+## Owner, 2026-09-17: *"a tileset environment with multi-elevations and
+## platforms designed for each area and a thoughtful and carefully planned
+## outline for the Hold's layout and design"* - and the reason it is worth
+## having is the sentence beside it: the Hold should feel like *"a fortified
+## shelter camp"*. A camp on one flat rectangle is a car park.
+##
+## **This is a rise rather than a height, and the distinction is the whole
+## implementation.** A Warden's position stays in the flat plane - the pens,
+## the focus ring, the dash, the relay and every distance in this file are
+## measured there and none of them learned that the Hold has levels. What a
+## level changes is where a thing is *drawn*, and whether a step across a
+## boundary is allowed. That is the raid camp's answer (2026-09-13) in a place
+## with no tile grid to bake it into.
+##
+## Lifting the node rather than only its sprite is also what keeps the sorting
+## right for free: the yard sorts by Y, and something standing higher up is
+## something further away, so it draws behind. Sized against the bank art it
+## is drawn with, which is 64 pixels tall.
+## **Sixty-four because that is how tall the bank is painted.** The face is
+## drawn into exactly this many units, so any other number stretches the earth
+## - which is how the raid's first ledges came out as a coloured stripe.
+const HOLD_TERRACE_RISE: float = 64.0
+
+## How close to a boundary counts as being on the stair that crosses it. A
+## Warden walking off the side of a ramp should meet the bank, not a doorway.
+const HOLD_STAIR_REACH: float = 26.0
+
+## How dark the Hold's earth banks are against the ground they are cut out of.
+## A face is the side the sun is not on, which is the raid's own reasoning and
+## its own constant; this is a second place rather than a second rule.
+const HOLD_BANK_SHADE: float = 0.62
+
 ## How much grass is scattered on the yard. Decoration, on the yard's own dice.
 const HOLD_GRASS_TUFTS: int = 44
 
