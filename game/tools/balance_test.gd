@@ -1325,7 +1325,16 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["level", "xp", "attributes", "attribute_points",
 				"skill_points", "tier_cleared", "last_tier", "story_seen",
 				# The Gate's rank (2026-09-11): prestige, capped, and read by the board.
-				"ascension"],
+				"ascension",
+				# Which rungs of the Gatekeeper's ladder are climbed, per difficulty
+				# (2026-09-17). A *statistic* in shape, like `best_distance` and
+				# `rifts_closed`: it grants nothing by itself. What it decides is
+				# which trial is offered next and whether the Gatekeeper stands at
+				# that tier's summit; the power the ladder pays out is `ascension`,
+				# which is on this list above with its own cap. It could not be
+				# derived - no existing statistic records which optional detours were
+				# taken on which difficulty.
+				"gatekeeper"],
 				"unexpected hero save key \"%s\" - only the amendment's fields persist" % key)
 
 	# The migration every existing player will actually hit: a v3 save has no hero
