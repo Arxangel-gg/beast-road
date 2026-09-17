@@ -45,7 +45,18 @@ FACINGS = [
     "north-east",
 ]
 
-CELL = 192
+# **224, not the 192 a mount's base painting is drawn at.**
+#
+# A gallop reaches further than a walk: the steppe horse's union of poses spans
+# 193 wide against a 192 cell, and the assertion below refused it rather than
+# clipping a hoof - which is the assertion working. A sheet cell is not an asset
+# size, it is the room the widest pose needs, so it is the one to move. Antlers
+# at a gallop will want the rest of it.
+CELL = 224
+
+## The size a mount's single base painting is drawn at, which is every other
+## sprite's size in this game and what the manifest records.
+BASE = 192
 ART = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "game", "art", "mounts")
 
@@ -112,7 +123,14 @@ def fit_all(frames):
 
 
 def align(frames, ground: int):
-    """Every frame translated so its content sits on the same ground line."""
+    """Every frame translated so its content sits on the same ground line.
+
+    **The line is the cell's own bottom edge**, which is what makes a sheet
+    independent of everything else: the reader puts the content's floor on the
+    node, so a walk and a gallop packed on different days still stand on the
+    same ground, and there is no base painting to read - which is what let the
+    Ash Courser's magenta placeholder poison this once.
+    """
     out = []
     worst = 0
     for frame in frames:
@@ -155,15 +173,6 @@ def expand(url: str, count: int):
     head, index, tail = match.groups()
     width = len(index)
     return ["%s%s%s" % (head, str(n).zfill(width), tail) for n in range(count)]
-
-
-def ground_of_base(mount_id: str):
-    """Where the installed base painting's feet are, or None when there is no
-    base yet."""
-    path = os.path.join(ART, "mount_%s.png" % mount_id)
-    if not os.path.exists(path):
-        return None
-    return floor_of(Image.open(path).convert("RGBA"))
 
 
 def pack(mount_id: str, state: str, rows) -> str:
@@ -239,22 +248,32 @@ def main() -> None:
     # assertion in `align` caught exactly that, which is the assertion
     # working; this is the cause.
     rows = []
-    ground = None if args.base else ground_of_base(args.mount_id)
     for facing in FACINGS:
         frames = fit_all([fetch(url) for url in by_facing[facing]])
-        if ground is None:
-            ground = floor_of(frames[0])
-        rows.append(align(frames, ground))
+        rows.append(align(frames, CELL))
         print("  %-11s %d frame(s)" % (facing, len(rows[-1])), file=sys.stderr)
 
     path = pack(args.mount_id, args.state, rows)
     print(path)
 
     if args.base:
+        # **The base painting keeps its own 192**, which is the size the manifest
+        # and every other sprite in this game are drawn at. Only the sheet cell
+        # grew, and only because a pose needed the room.
         south = rows[FACINGS.index("south")][0]
-        base = os.path.join(ART, "mount_%s.png" % args.mount_id)
-        south.save(base)
-        print(base)
+        box = south.getbbox()
+        base = Image.new("RGBA", (BASE, BASE), (0, 0, 0, 0))
+        if box is not None:
+            content = south.crop(box)
+            if content.width > BASE or content.height > BASE:
+                raise SystemExit("the south pose is %dx%d, larger than the %d "
+                                 "base canvas" % (content.width, content.height,
+                                                  BASE))
+            base.alpha_composite(content, ((BASE - content.width) // 2,
+                                           BASE - content.height))
+        path = os.path.join(ART, "mount_%s.png" % args.mount_id)
+        base.save(path)
+        print(path)
 
 
 if __name__ == "__main__":

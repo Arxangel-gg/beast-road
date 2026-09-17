@@ -25,8 +25,15 @@ extends Node2D
 ## a fourth channel nothing else on the hero touches, so the seat and the juice
 ## cannot fight.
 
-const CELL_W: int = 192
-const CELL_H: int = 192
+## **The sheet cell, which is bigger than a mount's base painting.**
+##
+## A gallop reaches further than a walk - the steppe horse's widest pose spans
+## 193 - so the cell is the room the widest pose needs rather than an asset
+## size. `tools/pack_mount_frames.py` writes them at exactly this and puts
+## every pose's feet on the cell's own bottom edge, which is why the reader
+## below can put the hooves on the node without measuring anything.
+const CELL_W: int = 224
+const CELL_H: int = 224
 const DIRECTION_COUNT: int = 8
 
 ## What each state plays at, and whether it repeats. A gallop is the walk sheet
@@ -146,6 +153,9 @@ func show_mount(kind: MountData) -> void:
 func _measure(kind: MountData) -> void:
 	_content_height = float(CELL_H)
 	_content_floor = 0.0
+	# A packed sheet needs no measuring: the packer put the feet on the cell's
+	# bottom edge and the animal is as tall as it is. Only the single-painting
+	# fallback has margin to account for.
 	if _base == null:
 		return
 	var picture: Image = _base.get_image()
@@ -221,9 +231,14 @@ func _process(delta: float) -> void:
 	_bob += delta * Balance.MOUNT_BOB_RATE * _speed_scale
 	var lift: float = -absf(sin(_bob)) * Balance.MOUNT_BOB_HEIGHT * _speed_scale
 	if _sheets.is_empty():
+		# **Dropped by the empty canvas under the animal.** A base painting has
+		# margin below the hooves, so placing the texture's bottom edge on the
+		# node left the horse floating that far above the ground the Warden is
+		# standing on - true of every mount and visible in exactly one place, a
+		# screenshot nobody had taken.
 		_sprite.texture = _base
 		_sprite.offset = Vector2(0.0, -float(_base.get_height()) * 0.5)
-		_sprite.position = Vector2(0.0, lift)
+		_sprite.position = Vector2(0.0, lift + _content_floor * _kind.art_scale)
 		_apply_seat(lift)
 		return
 	if _state.is_empty() or not _sheets.has(_state):
@@ -245,8 +260,11 @@ func _process(delta: float) -> void:
 	_sprite.region_rect = Rect2(
 		float(int(_frame) * CELL_W), float(_direction * CELL_H),
 		float(CELL_W), float(CELL_H))
-	# The cell's feet sit at the node, which is the hero's ground contact, so
-	# the horse stands where the Warden was standing rather than half in it.
+	# **The cell's bottom edge is the ground line**, by construction: the packer
+	# puts every pose's feet there. So placing the texture's bottom on the node
+	# stands the horse exactly where the Warden was standing, with nothing to
+	# measure and nothing that can drift between a walk and a gallop packed on
+	# different days.
 	_sprite.offset = Vector2(0.0, -float(CELL_H) * 0.5)
 	_sprite.position = Vector2(0.0, lift)
 	_apply_seat(lift)
@@ -263,10 +281,11 @@ func _apply_seat(lift: float = 0.0) -> void:
 	if _kind == null:
 		_seat(0.0)
 		return
-	# From the hooves up: the empty canvas under the animal first, then the
-	# share of the animal itself. Measured from the cell's bottom edge, which
-	# is where the sprite is anchored.
-	var floor_gap: float = _content_floor * _kind.art_scale
+	# **From the hooves up, and the hooves are now on the node.** The sprite
+	# itself is dropped by whatever margin sits under the animal, so the seat is
+	# a share of the animal and nothing else - adding the margin here as well
+	# would count it twice.
+	var floor_gap: float = 0.0
 	# **Eased rather than linear**, and out of a cubic: a rider who rose at a
 	# constant rate reads as an elevator. Fast off the ground and settling into
 	# the seat is what swinging a leg over looks like at this size.

@@ -835,7 +835,15 @@ and a magenta horse is worse than no horse, because the fallback that was
 built for exactly this case would never run.
 
 So the walk and gallop sheets appear in the table below as they are packed.
-An idle sheet is 192×1536: one frame, eight facings.
+**A sheet cell is 224 and a base painting is 192**, and the difference is the
+room a pose needs rather than an inconsistency: a gallop reaches further than a
+walk - the steppe horse's widest spans 193 - and the packer refused to clip a
+hoof, which is the assertion working. Every pose's feet sit on the cell's own
+bottom edge, so a walk and a gallop packed on different days stand on the same
+ground with nothing to measure.
+
+An idle sheet is 224×1792 (one frame, eight facings); a walk or a gallop is
+2016×1792 (nine frames - a reference pose and eight animated).
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -843,10 +851,13 @@ An idle sheet is 192×1536: one frame, eight facings.
 | `mount_steppe_horse.png` | 192×192 | T | `#7A6448` |
 | `mount_ash_courser.png` | 192×192 | T | `#4A423E` |
 | `mount_terrace_stag.png` | 192×192 | T | `#5E5140` |
-| `mount_marsh_pony_idle.png` | 192×1536 | T | `#6B5A44` |
-| `mount_steppe_horse_idle.png` | 192×1536 | T | `#7A6448` |
-| `mount_terrace_stag_idle.png` | 192×1536 | T | `#5E5140` |
-| `mount_ash_courser_idle.png` | 192×1536 | T | `#4A423E` |
+| `mount_marsh_pony_idle.png` | 224×1792 | T | `#6B5A44` |
+| `mount_steppe_horse_idle.png` | 224×1792 | T | `#7A6448` |
+| `mount_terrace_stag_idle.png` | 224×1792 | T | `#5E5140` |
+| `mount_ash_courser_idle.png` | 224×1792 | T | `#4A423E` |
+| `mount_steppe_horse_walk.png` | 2016×1792 | T | `#7A6448` |
+| `mount_steppe_horse_gallop.png` | 2016×1792 | T | `#7A6448` |
+| `mount_marsh_pony_walk.png` | 2016×1792 | T | `#6B5A44` |
 
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 
