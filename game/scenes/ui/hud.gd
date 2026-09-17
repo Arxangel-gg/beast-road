@@ -113,7 +113,7 @@ const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 
 ## The ability's mark, inside its slot. Larger under a thumb for the same reason
 ## everything else is: it is being read at arm's length on a small screen.
-const SPELL_ICON_SIZE: float = 26.0
+const SPELL_ICON_SIZE: float = 32.0
 const SPELL_ICON_TOUCH_SIZE: float = 46.0
 
 ## Gap between the spell bar and the screen edge.
@@ -129,8 +129,8 @@ const BOTTOM_BAND: float = SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN
 ## system - where you are, and what you do while you are there - and a player
 ## should not have to learn that they are different sizes to know they are
 ## different things.
-const NAV_ICON_SIZE: float = 58.0
-const NAV_ICON_ART: int = 38
+const NAV_ICON_SIZE: float = 66.0
+const NAV_ICON_ART: int = 46
 const NAV_TOUCH_ICON_SIZE: float = 92.0
 const NAV_TOUCH_ICON_ART: int = 72
 
@@ -150,7 +150,14 @@ const MINIMAP_TOP: float = 162.0
 
 ## The command column, top left.
 ## The currency marks along the top edge.
-const TOP_BAR_ICON: float = 28.0
+# **The desktop sizes were raised on 2026-09-17** (owner: *"elevate all UI
+# aspects on the battlefield to be easier to read and bigger with bigger icons
+# too"*). The touch numbers below them had been sized for a thumb at arm's
+# length and were already generous; the desktop ones had not been looked at
+# since the strip was built, and a 15-point figure beside a 21-pixel icon is
+# a readout you lean in for. Every one of these is measured by `layout_check`
+# at four window shapes, which is what makes raising them safe to do at all.
+const TOP_BAR_ICON: float = 34.0
 const TOP_BAR_ICON_TOUCH: float = 44.0
 const TOP_BAR_FONT_TOUCH: int = 34
 const TOP_BAR_FONT_MIN: int = 19
@@ -741,7 +748,7 @@ func _fit_centred(control: Control, half: float) -> void:
 		(control as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
-func _label(text: String, size: int = 18) -> Label:
+func _label(text: String, size: int = 21) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -777,7 +784,7 @@ func _build_top_bar() -> void:
 	_currency_labels.clear()
 	_currency_rows.clear()
 	for id: String in RunState.CURRENCIES:
-		var resource_row: HBoxContainer = IconKit.labelled(id, "0", 17, 24)
+		var resource_row: HBoxContainer = IconKit.labelled(id, "0", 20, 30)
 		resource_row.tooltip_text = RunState.currency_name(id)
 		bar.add_child(resource_row)
 		_currency_labels[id] = IconKit.label_of(resource_row)
@@ -801,8 +808,8 @@ func _build_top_bar() -> void:
 	_seat_journey_bar.call_deferred()
 	journey_bar.add_theme_constant_override("separation", 20)
 	add_child(journey_bar)
-	var distance_row: HBoxContainer = IconKit.labelled("distance", "0", 15, 21)
-	var wave_row: HBoxContainer = IconKit.labelled("wave", "0", 15, 21)
+	var distance_row: HBoxContainer = IconKit.labelled("distance", "0", 18, 26)
+	var wave_row: HBoxContainer = IconKit.labelled("wave", "0", 18, 26)
 	for row: HBoxContainer in [distance_row, wave_row]:
 		journey_bar.add_child(row)
 	# The quiver, shown only once there is one.
@@ -2441,7 +2448,15 @@ func _seat_journey_bar() -> void:
 
 func _size_top_bar() -> void:
 	if _top_bar != null:
-		_top_bar.add_theme_constant_override("separation", 24 if touch_ui() else 32)
+		# **The separation gives way before the contents do.** The strip is one
+		# row and its items got bigger on 2026-09-17; on a narrow window the
+		# currency figures then ran into the pools column, which `layout_check`
+		# refused. Closing the gaps buys back more than a hundred units across six
+		# items and costs nothing a player can name - and it is measured off the
+		# same room the touch sizes already read, rather than a second rule.
+		var gaps: float = _top_bar_room()
+		var apart: int = maxi(int(round((24.0 if touch_ui() else 32.0) * gaps)), 10)
+		_top_bar.add_theme_constant_override("separation", apart)
 	var mark: float = TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() 		else TOP_BAR_ICON
 	for id: Variant in _currency_rows.keys():
 		IconKit.resize_labelled(_currency_rows[id] as Node, String(id), mark)
@@ -4483,7 +4498,7 @@ const REGION_NOTE_WIDTH: float = 560.0
 ## 34pt against the 11pt sentence it used to hide inside. The urgent window is
 ## the last stretch where a player can still act on the number - shorter and it
 ## is a jump-scare, longer and the red stops meaning anything.
-const PREPARATION_CLOCK_SIZE: int = 34
+const PREPARATION_CLOCK_SIZE: int = 38
 const PREPARATION_URGENT_SECONDS: float = 5.0
 
 ## The saving bar under the Heal button: how tall, and the two ends of it.
@@ -4493,7 +4508,7 @@ const PREPARATION_URGENT_SECONDS: float = 5.0
 ## named for their meaning rather than their colour so it stays one edit.
 ## Where a pool's name sits on its own bar, and how big it is.
 const BAR_NAME_INSET: float = 5.0
-const BAR_NAME_SIZE: int = 11
+const BAR_NAME_SIZE: int = 13
 
 const HEAL_SAVING_BAR_HEIGHT: float = 4.0
 const HEAL_SAVING_FAR: Color = Color(0.26, 0.45, 0.85, 0.95)
