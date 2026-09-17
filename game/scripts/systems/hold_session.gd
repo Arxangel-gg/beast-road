@@ -72,7 +72,7 @@ func _ready() -> void:
 	_table.resize(Balance.HOLD_SEATS)
 	for index: int in _table.size():
 		_table[index] = {"peer": 0, "name": "", "title": "",
-			"kind": Seat.SIMULATED, "pen": []}
+			"kind": Seat.SIMULATED, "pen": [], "was_public": false}
 	EventBus.hold_seats.connect(_on_seats_told)
 	EventBus.hold_moved.connect(_on_moved_told)
 	EventBus.hold_handover.connect(_on_handover_told)
@@ -210,6 +210,7 @@ func _compose() -> void:
 		_table[index]["name"] = ""
 		_table[index]["peer"] = 0
 		_table[index]["pen"] = []
+		_table[index]["was_public"] = false
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
@@ -354,6 +355,8 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			if args.size() > 2 and args[2] is Array:
 				_table[slot]["pen"] = _roster_from(String(_table[slot]["name"]),
 					args[2] as Array)
+			if args.size() > 3:
+				_table[slot]["was_public"] = bool(args[3])
 			_publish_table()
 			_draw_table()
 			note.emit("%s walked in." % String(_table[slot]["name"]))
@@ -374,8 +377,15 @@ func introduce() -> void:
 		return
 	var line: CoopRelay = Coop.relay()
 	if line != null:
+		# **And whether their own doors are open.** The host prefers an
+		# ex-public host when it hands the Hold on, which is the owner's own
+		# clause - and a preference read off a field nobody ever writes is the
+		# `DisciplineEffects` lie in a fourth place. It is presence like the
+		# rest: a fact about the speaker's own settings, trusted for nothing
+		# but which of them gets asked first.
 		line.request(CoopRelay.Request.HOLD_HELLO,
-			[_my_name(), MetaState.warden_title(), _species_of(MetaState.pen)])
+			[_my_name(), MetaState.warden_title(), _species_of(MetaState.pen),
+				is_public()])
 
 
 ## **A pen on the wire is a list of species and nothing else.**
