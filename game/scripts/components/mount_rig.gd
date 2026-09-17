@@ -51,6 +51,21 @@ var _frames_in_state: int = 1
 var _direction: int = 2
 var _speed_scale: float = 1.0
 var _bob: float = 0.0
+## The pool the horse stands in. Its own, because the rider's was measured off
+## the hero's sprite at `_ready` and stays at the Warden's feet - which is
+## right, and leaves the animal underneath them standing on nothing. On a
+## field where every torch, tower and rabbit casts one, that reads as the
+## horse floating.
+var _shadow: Sprite2D = null
+## How tall the animal actually is, in its own pixels, and how far its feet
+## sit above the bottom of the cell. **Measured off the art rather than
+## assumed from the canvas**, because a 192 cell holds a horse of about 150
+## with headroom above it - so a seat taken as a share of the *cell* puts the
+## rider a hand's width out of the saddle, and nothing but a photograph would
+## ever say so. This project has spent six passes on exactly that mistake with
+## Yuri's tail; measure the output.
+var _content_height: float = 0.0
+var _content_floor: float = 0.0
 var _seat_applied: float = 0.0
 
 
@@ -78,6 +93,7 @@ func show_mount(kind: MountData) -> void:
 	_state = ""
 	if kind == null:
 		visible = false
+		_cast_shadow(null)
 		_seat(0.0)
 		return
 	for state: String in STATES:
@@ -92,13 +108,54 @@ func show_mount(kind: MountData) -> void:
 		# moves faster and looks the same, which is a content gap rather than a
 		# fault - and an error here would print once a frame.
 		visible = false
+		_cast_shadow(null)
 		_seat(0.0)
 		return
+	_measure(kind)
 	_sprite.region_enabled = not _sheets.is_empty()
 	_sprite.scale = Vector2.ONE * kind.art_scale
 	visible = true
+	_cast_shadow(kind)
 	_apply_seat()
 	play("idle")
+
+
+## Reads the animal's own extent out of its base painting.
+##
+## Once per mount, on the painting rather than on a sheet cell, because every
+## mount has a base painting by convention (CLAUDE.md §4) and it is the same
+## animal drawn the same size. An unreadable image leaves the cell's own
+## height, which is the old behaviour rather than a hole.
+func _measure(kind: MountData) -> void:
+	_content_height = float(CELL_H)
+	_content_floor = 0.0
+	if _base == null:
+		return
+	var picture: Image = _base.get_image()
+	if picture == null:
+		return
+	var used: Rect2i = picture.get_used_rect()
+	if used.size.y <= 0:
+		return
+	_content_height = float(used.size.y)
+	# How much empty canvas sits under the hooves, which is what the cell's
+	# bottom edge is being placed at.
+	_content_floor = float(picture.get_height() - used.end.y)
+
+
+## The pool under the hooves, sized from the art rather than from a constant,
+## so a pony's is smaller than a warhorse's without anybody authoring two.
+func _cast_shadow(kind: MountData) -> void:
+	if _shadow != null and is_instance_valid(_shadow):
+		_shadow.queue_free()
+	_shadow = null
+	if kind == null:
+		return
+	var wide: float = float(CELL_W) if not _sheets.is_empty() \
+		else (float(_base.get_width()) if _base != null else 0.0)
+	# The node sits at the hero's ground contact, so the ground is zero here.
+	_shadow = ShadowKit.add_contact_sized(self,
+		wide * kind.art_scale * Balance.SHADOW_WIDTH, 0.0)
 
 
 ## Which way it is pointing. Same index order as `HeroAnimator`, because the
@@ -171,16 +228,18 @@ func _process(delta: float) -> void:
 func _height() -> float:
 	if _kind == null:
 		return 0.0
-	var tall: float = float(CELL_H) if not _sheets.is_empty() \
-		else (float(_base.get_height()) if _base != null else 0.0)
-	return tall * _kind.art_scale
+	return _content_height * _kind.art_scale
 
 
 func _apply_seat(lift: float = 0.0) -> void:
 	if _kind == null:
 		_seat(0.0)
 		return
-	_seat(-(_height() * _kind.seat + Balance.MOUNT_RIDER_LIFT) + lift)
+	# From the hooves up: the empty canvas under the animal first, then the
+	# share of the animal itself. Measured from the cell's bottom edge, which
+	# is where the sprite is anchored.
+	var floor_gap: float = _content_floor * _kind.art_scale
+	_seat(-(floor_gap + _height() * _kind.seat + Balance.MOUNT_RIDER_LIFT) + lift)
 
 
 ## Writes the rider's lift, and takes it away again on the way down.

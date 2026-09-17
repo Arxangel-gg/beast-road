@@ -27,6 +27,7 @@ never a repaint - a generated pixel is never invented here.
 import argparse
 import io
 import os
+import re
 import sys
 import urllib.request
 
@@ -106,6 +107,27 @@ def align(frames, ground: int):
     return out
 
 
+def expand(url: str, count: int):
+    """`.../south/0.png?t=123` becomes frames 0 to count-1 under the same
+    folder. PixelLab numbers an animation's frames by index, so the whole state
+    is one URL plus a count."""
+    match = re.match(r"^(.*/)(\d+)(\.png.*)$", url)
+    if match is None:
+        raise SystemExit("%r does not end in a numbered frame, so --frames has "
+                         "nothing to count from" % url)
+    head, _index, tail = match.groups()
+    return ["%s%d%s" % (head, n, tail) for n in range(count)]
+
+
+def ground_of_base(mount_id: str):
+    """Where the installed base painting's feet are, or None when there is no
+    base yet."""
+    path = os.path.join(ART, "mount_%s.png" % mount_id)
+    if not os.path.exists(path):
+        return None
+    return floor_of(Image.open(path).convert("RGBA"))
+
+
 def pack(mount_id: str, state: str, rows) -> str:
     """rows is a list of eight lists of frames, in engine facing order."""
     columns = max(len(row) for row in rows)
@@ -135,6 +157,12 @@ def main() -> None:
     parser.add_argument("--base", action="store_true",
                         help="also write the single base painting from the "
                              "south facing's first frame")
+    parser.add_argument("--frames", type=int, default=0,
+                        help="expand each URL ending /0.png into /0..N-1.png. "
+                             "PixelLab names an animation's frames by index "
+                             "under one folder, so eight URLs a state become "
+                             "one - and a hand-pasted list of sixty-four is a "
+                             "list with a typo in it.")
     args = parser.parse_args()
 
     by_facing = {}
@@ -145,7 +173,13 @@ def main() -> None:
         facing = facing.strip()
         if facing not in FACINGS:
             raise SystemExit("%r is not one of %s" % (facing, ", ".join(FACINGS)))
-        by_facing[facing] = [u for u in urls.split(",") if u]
+        listed = [u for u in urls.split(",") if u]
+        if args.frames > 0:
+            if len(listed) != 1:
+                raise SystemExit("--frames expands one URL per facing, got %d "
+                                 "for %s" % (len(listed), facing))
+            listed = expand(listed[0], args.frames)
+        by_facing[facing] = listed
 
     missing = [f for f in FACINGS if f not in by_facing]
     if missing:
@@ -153,8 +187,15 @@ def main() -> None:
                          "nothing at all when the mount turns that way"
                          % ", ".join(missing))
 
+    # **One ground line for every state, taken from the base painting.**
+    #
+    # Aligning each sheet to its own first frame makes each sheet internally
+    # consistent and lets the *sheets* disagree with each other - so the horse
+    # jumps a few pixels the moment it starts walking, which reads as the mount
+    # popping rather than as a foot wandering. The base is the master, the way
+    # `lock_tower_frames.py` makes a tower's base the master for its frames.
     rows = []
-    ground = None
+    ground = ground_of_base(args.mount_id)
     for facing in FACINGS:
         frames = [fit(fetch(url)) for url in by_facing[facing]]
         if ground is None:
