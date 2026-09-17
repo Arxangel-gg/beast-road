@@ -244,6 +244,84 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	}
 
 
+## **How long the Warden stands, act by act.**
+##
+## A *readout*, like the purse column: it prints and it fails nothing. That is
+## deliberate and it is the honest shape for this number, because the band
+## above measures whether the defence can kill a wave and this measures
+## whether the person can be killed by one - two different questions, and
+## giving the second one a pass/fail would be a second model with an opinion.
+##
+## **It exists because the owner's ascension ruling asked a question the
+## pressure curve cannot answer.** *"Ascension must empower significantly so
+## that Nightmare is survivable after grinding its gear"* is a sentence about
+## surviving, and pressure is threat over *capability* - a model with no deaths
+## in it. Carrying the rank moved the band by 0.002, which is true and is not
+## the answer: what a rank buys is here instead, where it is worth 13.6%.
+##
+## Blows, not seconds. A figure in seconds would need an arrival rate, which is
+## a second model of the road; how many hits the Warden can take from the body
+## that act sends is read straight off the numbers the wave already has.
+func _print_survival() -> void:
+	var rank: int = ascension_rank()
+	var contact: float = _mean_contact_damage()
+	if contact <= 0.0:
+		return
+	var line: PackedStringArray = []
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var row: Dictionary = _last_row_of_act(act)
+		if row.is_empty():
+			continue
+		var blow: float = contact * float(row["damage"])
+		var pool: float = Balance.HERO_MAX_HP * ascension_uptime(rank)
+		line.append("%d:%.1f" % [act, pool / maxf(blow, 0.01)])
+	var plain: float = Balance.HERO_MAX_HP / maxf(contact
+		* float(_rows[_rows.size() - 1]["damage"]), 0.01)
+	var held: float = plain * ascension_uptime(rank)
+	print("[curve] blows survived by act, BASE pool   %s"
+		% " ".join(line))
+	print(("[curve] at the end of the road that body takes a base Warden down in "
+		+ "%.1f blows, %.1f at rank %d (+%.0f%%)")
+		% [plain, held, rank, (ascension_uptime(rank) - 1.0) * 100.0])
+	# **A floor, and it has to say so.** This is `HERO_MAX_HP` - a Warden with
+	# no levels, no Vigour and no gear - exactly as `_hero_dps` models a naked
+	# combo. Levelling and gear are the two capped scales the campaign is tuned
+	# against and they are what carry a real Warden through Act X; printing
+	# "1.0 blows" without saying which hero is the misreading this project keeps
+	# recording, so the line says it rather than leaving it to be inferred.
+	print(("[curve]   ^ the base pool only. Levelling, Vigour and gear are the "
+		+ "two capped scales that carry a real Warden past act %d; what this "
+		+ "shows is the floor ascension lifts and by how much.")
+		% Balance.ACT_COUNT)
+
+
+## The average blow a body that walks the road lands.
+##
+## Read from the roster the same way the Gold figure is, and over the same
+## enemies - the ones that *actually walk on*. Camp lords are several times a
+## road body and never take a route; averaging them in is the 143% error this
+## report already paid for once.
+func _mean_contact_damage() -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var enemy := value as EnemyData
+		if enemy == null or not _walks_the_road(enemy):
+			continue
+		total += enemy.contact_damage
+		count += 1
+	return total / float(maxi(count, 1))
+
+
+## The last wave modelled in an act, or an empty dictionary.
+func _last_row_of_act(act: int) -> Dictionary:
+	var found: Dictionary = {}
+	for row: Dictionary in _rows:
+		if int(row["act"]) == act:
+			found = row
+	return found
+
+
 ## Which ascension rank this run of the report is modelling.
 ##
 ## The account's own unless `--ascension=` says otherwise, which is the same
@@ -497,6 +575,7 @@ func _judge_party_scaling() -> int:
 		readout += "%d:%.3f  " % [index + 1, means[index]]
 	print("")
 	_print_the_account()
+	_print_survival()
 	print("[curve] mean pressure by party size   %s spread %.0f%%" % [readout, spread])
 	var failed: int = 0
 	if spread > PARTY_SPREAD_LIMIT:
