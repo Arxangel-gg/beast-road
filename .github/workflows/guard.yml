@@ -677,6 +677,10 @@ jobs:
           # never outruns the world's, the slider is clamped, the exempt
           # rectangles are bounded, and headless engages nothing.
           check "pixel filter" --headless --path game res://tools/pixel_filter_check.tscn
+          # Inside the walls: the city hides a Warden from every body on
+          # the road and from nothing in the sky, one function decides it,
+          # a chase ends at the arch, and what is inside can walk out.
+          check "sanctuary" --headless --path game res://tools/sanctuary_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

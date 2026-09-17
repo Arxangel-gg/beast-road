@@ -1657,6 +1657,18 @@ func _foe_stands(foe: Node2D) -> bool:
 	# enemy stood in the open swinging at nothing. Reported 2026-09-13 as
 	# "enemies get stuck targeting something invisible", and it is the same
 	# fault `Hero.set_present` was written for, one layer further out.
+	# **Inside the walls is out of the fight** (owner, 2026-09-17: *"players
+	# are hidden to enemies and wildlife while within the city base"*). Asked
+	# here rather than at the picker, because this is the funnel both the
+	# choosing and the *keeping* of a target go through - a rule written only
+	# at selection would let a body that was already chasing somebody follow
+	# them in, which is the exact behaviour being removed.
+	#
+	# The body is not left with nothing to do: `_pick_target` falls through to
+	# the town, which is what the owner asked for in the same breath - *"enemies
+	# will attack the base instead"*.
+	if _field != null and _field.inside_city(foe.global_position):
+		return false
 	var who := foe as Hero
 	if who != null:
 		return who.is_alive() and who.is_in_group(Hero.GROUP_ANY)

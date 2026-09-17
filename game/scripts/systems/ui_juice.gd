@@ -130,12 +130,21 @@ static func dress(control: Control) -> void:
 ## A plate's standing animation: the same skin, under the contents, with the
 ## interaction left off.
 ##
-## **Under rather than over, which is the whole difference from a button.** A
-## `Button` draws its plate and its caption in one pass and has no child
-## controls, so a skin on top of it lights the plate. A `PanelContainer` holds a
-## whole screen's worth of labels, and an additive layer over those would lift
-## every glyph toward white - so the skin goes in at index 0, after the panel's
-## own `StyleBox` and before anything it contains.
+## **Appended, never inserted, and that is the whole of what this learned.**
+##
+## The first cut put the skin at index 0 - after the panel's own `StyleBox` and
+## before its contents - on the reasoning that an additive layer over a screen
+## of labels lifts every glyph toward white. The reasoning is sound and the
+## placement was not: **a `PanelContainer` is a single-child container**, and
+## screens read `_panel.get_child(0)` to find their column. Inserting made the
+## skin that column, so the Ledger measured its scroll room against a
+## `ColorRect` and grew a 2050-unit panel in a 1950-unit screen.
+## `menu_layout_check` named it.
+##
+## Over the contents is safe on this file's own stated bound: the layer is
+## additive and capped at `UI_HOLO_AMBIENT_CEILING`, so it can only add light -
+## about five percent of it - and no glyph can lose contrast. It is exactly
+## what a `Button` already does to its own caption.
 static func dress_plate(control: Control) -> void:
 	if control == null or not is_instance_valid(control):
 		return
@@ -148,7 +157,6 @@ static func dress_plate(control: Control) -> void:
 	skin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	skin.material = _material()
 	control.add_child(skin)
-	control.move_child(skin, 0)
 
 
 ## A bar's fill, flowing rather than standing still.
@@ -428,6 +436,25 @@ static func _tween_to(control: Control, material: ShaderMaterial,
 ## the layout wants it and nothing of ours is on it any more.
 static func _lift(control: Control, by: float) -> void:
 	if control == null or not is_instance_valid(control):
+		return
+	# **A control a container owns is never moved.**
+	#
+	# Writing `position` on a laid-out child is a fight with the thing that laid
+	# it out, and the container does not always win it back before something
+	# else reads the rect. Measured, 2026-09-17: enrolling the Chronicle broke
+	# four of its own interaction checks at once - a pin click stopped clearing
+	# the selection, the final pin stopped being wholly visible, the scrollbar
+	# stopped being found, and a selection stopped surviving a reopen. Disabling
+	# the enrol made all four pass; this is the one line inside it that touches
+	# anything but a shader uniform.
+	#
+	# **The juice is almost all still there.** The light, the sweep and the tear
+	# are shader parameters and happen everywhere; what a container's child gives
+	# up is two pixels of travel. A button that answers a press by lighting up is
+	# worth more than one that answers by moving and takes the screen's behaviour
+	# with it - the bound every feel change here is held to: nothing about what
+	# the thing *does* may move.
+	if control.get_parent() is Container:
 		return
 	var wanted: float = clampf(by, -Balance.UI_HOLO_LIFT, Balance.UI_HOLO_LIFT)
 	_follow_the_layout(control)

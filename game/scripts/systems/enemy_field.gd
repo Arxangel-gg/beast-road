@@ -333,5 +333,17 @@ func step_is_legal(_from: Vector2, _to: Vector2) -> bool:
 	return true
 
 
+## Whether a point is inside the city's walls.
+##
+## **False everywhere by default, and that is the honest answer here**: a
+## raid camp and a rift have no city in them, so nothing in an arena is ever
+## sheltered and nothing has to learn that a sanctuary exists. The
+## battlefield overrides it. Owner, 2026-09-17 - see
+## `Balance.CITY_SANCTUARY_RADIUS` for the whole rule and for the one thing
+## it deliberately does not stop.
+func inside_city(_at: Vector2) -> bool:
+	return false
+
+
 func spawn_ground_zone(_at: Vector2, _dps: float, _duration: float, _radius: float) -> void:
 	pass

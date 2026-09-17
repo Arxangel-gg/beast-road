@@ -560,18 +560,42 @@ const CRAFT_MARKS: Dictionary = {
 }
 
 ## How big a craft's mark is drawn, and how tall its bar is inside its frame.
-const CRAFT_MARK: int = 22
+## How big a craft's mark is drawn.
+##
+## **Forty-four rather than twenty-two** (owner, 2026-09-17: *"the icons need
+## to be larger and each profession should have appropriate room"*). At 22 the
+## mark was smaller than the words beside it, which makes it punctuation; at
+## 44 it is the thing the eye lands on and the name confirms it.
+const CRAFT_MARK: int = 44
+## A rung's own pip inside an opened card. Smaller than the craft's mark, so
+## the card still reads as one thing with a list under it.
+const CRAFT_RUNG: int = 20
 const CRAFT_BAR: float = 10.0
 
 
+## One craft, as a card that can be opened.
+##
+## Owner, 2026-09-17: *"Professions should show a current/max level info
+## detail for each so that players know what their current level is for each
+## out of the maximum level cap"*, and *"the ability to expand it to show more
+## details about what the player has unlocked for that profession and see
+## locked disabled dim entries for what's still locked."*
+##
+## **What a craft opens is derived, never authored here.** The ladder comes
+## from the gather nodes that craft actually works, and the level each rung
+## wants is asked of `Balance.gather_level_for` - the same function the road
+## asks when it decides whether to dig one. So the card cannot promise a seam
+## the field then refuses, which is the shape of fault this project has paid
+## for in the Ledger's prices and in a discipline node no seed could offer. A
+## craft with no nodes shows no ladder rather than an invented one.
 func _profession_row(id: String) -> void:
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 3)
+	var card := VBoxContainer.new()
+	card.add_theme_constant_override("separation", 4)
 
 	# **The name line carries the mark**, so the eye finds the craft before it
 	# reads the words - five identical rows of text is a spreadsheet.
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 6)
+	head.add_theme_constant_override("separation", 10)
 	var mark: Texture2D = IconKit.sized(String(CRAFT_MARKS.get(id, "")), CRAFT_MARK) \
 		if CRAFT_MARKS.has(id) else null
 	if mark != null:
@@ -583,15 +607,31 @@ func _profession_row(id: String) -> void:
 		badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		head.add_child(badge)
 
-	var label := Label.new()
+	var level: int = MetaState.profession_level(id)
 	var progress: Vector2 = MetaState.profession_progress(id)
-	label.text = "%s  ·  level %d  ·  %d / %d" % [id.capitalize(),
-		MetaState.profession_level(id), int(progress.x), int(progress.y)]
-	label.add_theme_font_size_override("font_size", 14)
+	var label := Label.new()
+	# **Out of the cap, which is the half that was missing.** "level 3" says
+	# nothing about whether that is early or nearly done; "3 / 20" says both.
+	label.text = "%s  \u00b7  level %d / %d" % [id.capitalize(), level,
+		Balance.PROFESSION_MAX_LEVEL]
+	label.add_theme_font_size_override("font_size", 15)
 	label.add_theme_color_override("font_color", Color("c9c2b4"))
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(label)
-	row.add_child(head)
+
+	var ladder: Array[Dictionary] = _craft_ladder(id, level)
+	var more: Button = null
+	if not ladder.is_empty():
+		more = Button.new()
+		more.toggle_mode = true
+		more.text = "\u25be"
+		more.focus_mode = Control.FOCUS_NONE
+		more.custom_minimum_size = Vector2(38.0, 0.0)
+		more.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		more.tooltip_text = "What this craft has opened, and what it has not."
+		head.add_child(more)
+	card.add_child(head)
 
 	# **The bar sits in a recess rather than on the card.** A bare bar on a flat
 	# panel has no edge of its own, so an empty one is invisible and a full one
@@ -608,8 +648,88 @@ func _profession_row(id: String) -> void:
 	bar.value = progress.x
 	bar.show_percentage = false
 	pad.add_child(bar)
-	row.add_child(frame)
-	_card.add_child(row)
+	card.add_child(frame)
+
+	var count := Label.new()
+	count.text = ("%d / %d to the next" % [int(progress.x), int(progress.y)]) \
+		if level < Balance.PROFESSION_MAX_LEVEL else "mastered"
+	count.add_theme_font_size_override("font_size", 12)
+	count.add_theme_color_override("font_color", Color("8d968f"))
+	card.add_child(count)
+
+	if more != null:
+		var detail: VBoxContainer = _craft_detail(ladder)
+		detail.visible = false
+		card.add_child(detail)
+		more.toggled.connect(func(on: bool) -> void:
+			detail.visible = on
+			more.text = "\u25b4" if on else "\u25be")
+	_card.add_child(card)
+
+
+## What this craft opens, rung by rung, and which rungs are still shut.
+##
+## Read off the gather nodes the craft actually works, grouped by rarity, and
+## asked of the same function the road asks - so the two cannot drift.
+func _craft_ladder(id: String, level: int) -> Array[Dictionary]:
+	var wanted: Dictionary = {}
+	for node: GatherNodeData in ContentDB.gather_nodes_sorted():
+		if node.craft != id:
+			continue
+		var rarity: int = clampi(node.rarity, 0,
+			Balance.GATHER_LEVEL_SHARE_BY_RARITY.size() - 1)
+		var at: int = Balance.gather_level_for(rarity, node.min_level)
+		# The *easiest* example of each rarity, because that is the rung: a
+		# player wants to know when Rare seams open, not when the hardest
+		# particular one does.
+		if not wanted.has(rarity) or at < int(wanted[rarity]):
+			wanted[rarity] = at
+	var rungs: Array[Dictionary] = []
+	var bands: Array = wanted.keys()
+	bands.sort()
+	for rarity: int in bands:
+		rungs.append({
+			"rarity": rarity,
+			"at": int(wanted[rarity]),
+			"open": level >= int(wanted[rarity]),
+		})
+	return rungs
+
+
+## The opened card: one line a rung, the shut ones dimmed and silhouetted.
+func _craft_detail(ladder: Array[Dictionary]) -> VBoxContainer:
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 2)
+	for rung: Dictionary in ladder:
+		var rarity: int = int(rung["rarity"])
+		var open_now: bool = bool(rung["open"])
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 8)
+
+		var pip := TextureRect.new()
+		pip.custom_minimum_size = Vector2(CRAFT_RUNG, CRAFT_RUNG)
+		pip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pip.texture = IconKit.sized("iron_ore", CRAFT_RUNG)
+		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(pip)
+
+		var words := Label.new()
+		words.text = "%s seams  \u00b7  %s" % [
+			Balance.SPIRIT_RARITY_NAMES[clampi(rarity, 0,
+				Balance.SPIRIT_RARITY_NAMES.size() - 1)],
+			"open" if open_now else ("level %d" % int(rung["at"]))]
+		words.add_theme_font_size_override("font_size", 13)
+		words.add_theme_color_override("font_color",
+			Color("c9c2b4") if open_now else Color("7d8479"))
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(words)
+
+		# The one door for "you have not got this yet": dimmed, silhouetted and,
+		# where there is a button, genuinely disabled. See `UiLocked`.
+		UiLocked.set_locked(line, not open_now, pip, null)
+		list.add_child(line)
+	return list
 
 
 ## The recess a craft's bar sits in: dark, with a lit edge on the side the light

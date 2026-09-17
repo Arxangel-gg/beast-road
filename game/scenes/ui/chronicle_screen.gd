@@ -80,6 +80,10 @@ func _build() -> void:
 	_close_button.custom_minimum_size = Vector2(0.0, 44.0)
 	_close_button.pressed.connect(hide_screen)
 	column.add_child(_close_button)
+	# The way out stays at the bottom of the window whatever is above it.
+	# See `UiPanels.pin_last_to_bottom` for why this is a spacer rather than a
+	# size flag on the list.
+	UiPanels.pin_last_to_bottom(column)
 
 
 func open() -> void:

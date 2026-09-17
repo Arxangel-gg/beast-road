@@ -1207,6 +1207,37 @@ func town_position() -> Vector2:
 	return town.global_position if town != null else Vector2.ZERO
 
 
+## Inside the walls (owner, 2026-09-17).
+##
+## **One function, asked by everything.** Targeting asks it through
+## `Enemy._foe_stands`, movement through `step_is_legal`, and the wildlife
+## through `_quarry_for` and its own step. A second copy of this rule is how
+## one of them ends up sheltering a hero the other is still walking at.
+func inside_city(at: Vector2) -> bool:
+	var core: Node2D = town_node()
+	if core == null or not is_instance_valid(core):
+		return false
+	return at.distance_to(core.global_position) <= Balance.CITY_SANCTUARY_RADIUS
+
+
+## Nothing hostile walks in.
+##
+## **Refuses entering, never leaving.** A body that somehow starts inside -
+## spawned there by a gate, shoved in by a crowd, standing there when the
+## town was rebuilt - has to be able to get out, and a rule that only asked
+## about the destination would pin it there for the rest of the run. So the
+## step is refused only when it crosses *in*.
+##
+## This is the door the enemies already came to: a route ends at the gate
+## ring and a body at the gate hits the gate, so a marching body was never
+## trying to walk in. What this stops is the one that broke off to chase a
+## Warden and followed them through the arch.
+func step_is_legal(from: Vector2, to: Vector2) -> bool:
+	if inside_city(to) and not inside_city(from):
+		return false
+	return super(from, to)
+
+
 func town_node() -> Node2D:
 	return town
 

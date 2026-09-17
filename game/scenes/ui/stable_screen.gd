@@ -208,20 +208,8 @@ func _stall(kind: MountData) -> Container:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var art: String = kind.get_sprite_path()
-	if not ResourceLoader.exists(art):
-		art = FALLBACK_ART
-	if ResourceLoader.exists(art):
-		icon.texture = load(art) as Texture2D
-	# A horse you do not own is a horse in somebody else's field.
-	icon.modulate = Color.WHITE if owned else Color(0.72, 0.70, 0.66)
-	row.add_child(icon)
+	var stall: Control = _paddock_window(kind, owned)
+	row.add_child(stall)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 2)
@@ -261,8 +249,18 @@ func _stall(kind: MountData) -> Container:
 	act.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not owned:
 		act.text = "%d Marks" % kind.price
-		act.disabled = MetaState.marks < kind.price
+		# **Dimmed, silhouetted and genuinely disabled, together** (owner,
+		# 2026-09-17). Three states that have to agree: a row that looks dead
+		# and still answers a press is the worse failure, because a player who
+		# finds one stops trusting the rest of the screen. `UiLocked` is the one
+		# door, so the stable, the forge and the professions cannot drift.
+		#
+		# "Locked" here is *unaffordable*, not unowned: an unowned horse you can
+		# pay for is the whole shop, and silhouetting that would hide the thing
+		# being sold.
+		var afford: bool = MetaState.marks >= kind.price
 		act.pressed.connect(func() -> void: _buy(kind))
+		UiLocked.set_locked(row, not afford, null, act)
 	elif saddled:
 		act.text = "Saddled"
 		act.disabled = true
@@ -271,6 +269,94 @@ func _stall(kind: MountData) -> Container:
 		act.pressed.connect(func() -> void: _saddle(kind))
 	row.add_child(act)
 	return row
+
+
+## One horse in its stall, alive.
+##
+## Owner, 2026-09-17: *"Mounts at the vendor in the UI also need idle
+## animations while they're either facing southwest or south east for easy
+## viewing and max aesthetic appeal. If a mount is locked it should just be
+## the silhouette, still idle animated."*
+##
+## **The real `MountRig`, not a second drawing of one.** The rig already
+## knows which sheet a state uses, how many frames it holds, how to fall back
+## when one is missing, and where the animal's feet are - four things this
+## screen would otherwise have to learn and then keep in step. A picture of a
+## horse that disagrees with the horse is the fault this project has paid for
+## in the mount photographs already.
+##
+## **South-east, which is the owner's own choice and also the readable one.**
+## A three-quarter view shows the barrel, the legs and the head at once,
+## where a profile hides the chest and a head-on hides the gait. It faces
+## *into* the row, so the animal looks toward the words describing it rather
+## than out of the panel.
+##
+## **A `Control` with a `Node2D` in it rather than a `SubViewport`.** Five
+## viewports on one screen is five render targets to hold a horse each; a
+## canvas item parented to a Control draws in the Control's own canvas for
+## nothing. The rig is scaled to the stall rather than the stall to the rig,
+## because a Beastcalled draught horse and a marsh pony are painted at
+## different heights and a shelf where the rows are different sizes reads as
+## broken rather than as varied.
+func _paddock_window(kind: MountData, owned: bool) -> Control:
+	var stall := Control.new()
+	stall.custom_minimum_size = Vector2(ART_SIZE * 1.6, ART_SIZE)
+	stall.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	stall.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stall.clip_contents = true
+
+	var rig := MountRig.new()
+	stall.add_child(rig)
+
+	# **Dressed once it is in a tree, never before.** `_ready` is what builds the
+	# rig's own sprite, and a node added to a `Control` that is not itself in the
+	# tree yet has not had one - `show_mount` then assigns `region_enabled` on a
+	# null sprite, which is what `menu_layout_check` caught here four times over.
+	# The stall is returned to a caller that adds it, so everything about the
+	# animal waits for the frame after that.
+	stall.resized.connect(_seat_rig.bind(stall, rig, kind))
+	_dress_rig.call_deferred(stall, rig, kind, owned)
+	return stall
+
+
+## Shows the animal, points it, starts it, and locks it if it is not yours.
+##
+## Deferred out of `_paddock_window` for the reason written there: none of this
+## can happen until the rig has had `_ready`.
+func _dress_rig(stall: Control, rig: MountRig, kind: MountData,
+		owned: bool) -> void:
+	if rig == null or not is_instance_valid(rig) or not rig.is_inside_tree():
+		return
+	rig.show_mount(kind)
+	# South-east: x right, y down. The rig reads a heading rather than an index,
+	# so this is the same call the field makes and no table of directions is
+	# kept in two places.
+	rig.set_facing(Vector2(1.0, 1.0).normalized())
+	rig.play("idle")
+	# Its own pace, so a shelf of five is five animals rather than one drawn
+	# five times - the rule the paddock and the pen are both built under.
+	rig.set_speed_scale(randf_range(0.82, 1.18))
+	# A horse you have not bought is a shape in somebody else's field.
+	UiLocked.silhouette(rig.body(), not owned)
+	_seat_rig(stall, rig, kind)
+
+
+## Puts the animal on the floor of its stall at a size that fits it.
+func _seat_rig(stall: Control, rig: MountRig, kind: MountData) -> void:
+	if stall == null or not is_instance_valid(stall) \
+			or rig == null or not is_instance_valid(rig):
+		return
+	var room: Vector2 = stall.size
+	if room.x <= 1.0 or room.y <= 1.0:
+		return
+	# The cell is the rig's own, so a repack of the sheets moves this too.
+	var drawn: float = float(MountRig.CELL_H) * maxf(kind.art_scale, 0.01)
+	var fit: float = clampf(room.y / maxf(drawn, 1.0), 0.05, 1.0)
+	rig.scale = Vector2(fit, fit)
+	# Feet near the bottom of the stall rather than the middle: the rig draws
+	# from the ground up, which is what lets a tall horse and a pony share a
+	# floor instead of sharing a centre line.
+	rig.position = Vector2(room.x * 0.5, room.y * 0.94)
 
 
 func _buy(kind: MountData) -> void:

@@ -2718,6 +2718,30 @@ const LANE_SPAWN_RADIUS: float = 900.0
 ## Radius of the town core. Enemies that reach it deal damage. [TUNE]
 const TOWN_RADIUS: float = 160.0
 
+## The ground inside the walls, where nothing hostile may go and nobody
+## hostile may look (owner, 2026-09-17).
+##
+## *"The city base at the center of the battlefield should be a place where
+## players should not get attacked from enemies if they are inside the city
+## base ... enemies should not try to keep walking into the city base, once
+## they reach its walls around its perimeter then they should begin attacking
+## the city base from there ... No wildlife or enemies are able to enter the
+## city base either ... And players are hidden to enemies and wildlife while
+## within the city base."*
+##
+## **A little wider than the core the enemies already hit**, so the wall has
+## a thickness: at exactly `TOWN_RADIUS` a body standing on the line is both
+## inside and in reach, and the answer to "am I safe" changes with a pixel of
+## drift. A ring the Warden can stand in and read is what was asked for.
+##
+## **What it is not** is cover from the sky. The owner was explicit: *"They
+## are however not immune to weather effects while in the city base and
+## disasters can still inflict upon the players in the city base."* So
+## `EnemyGroundStrike.strike_the_players` does not read this and must never
+## start - a quake does not care where you are standing, and a sanctuary that
+## stopped one would make the whole of the earth's wrath a thing you sit out.
+const CITY_SANCTUARY_RADIUS: float = TOWN_RADIUS * 1.35
+
 ## How close to the Town Hall a perfect dodge has to be for `vigil` to pay. [TUNE]
 ##
 ## The node's authored sentence is "Perfect dodges near the Town Hall grant
@@ -8156,6 +8180,28 @@ const UI_HOLO_AMBIENT_SPREAD: float = 11.0
 ## is held to survives: nothing here can make a reading harder to see.
 const UI_BAR_FLOW_CEILING: float = 0.22
 
+# --- what you have not got yet (owner, 2026-09-17) --------------------------
+#
+# *"Disabled buttons and dimming the selection for any locked materials should
+# be applied all throughout our game where applicable perfectly and polished."*
+
+## How far a locked row is taken down.
+##
+## **Dim, never nearly gone.** A row at a fifth is a row a player cannot read,
+## and the whole point of showing a locked thing is that they can see what they
+## are working toward. Just under two thirds is clearly inactive beside a live
+## row and still legible on its own.
+const UI_LOCKED_DIM: float = 0.62
+
+## The body and the edge of a silhouette.
+##
+## The edge exists because the plates this is drawn on are near-black, and a
+## near-black shape on them is nothing at all - the rim is what makes the
+## outline read. Cool rather than warm, so a silhouette never reads as a thing
+## that is merely in shadow and might light up.
+const UI_LOCKED_INK: Color = Color(0.10, 0.09, 0.12, 1.0)
+const UI_LOCKED_EDGE: Color = Color(0.42, 0.45, 0.55, 1.0)
+
 # --- the zoom ladder as one slider (owner, 2026-09-17) ----------------------
 #
 # *"The + and - zoom should also be changed to a slider that is aesthetic and
@@ -9915,6 +9961,23 @@ const GATHER_DISTANCE_BY_RARITY: Array[float] = [0.0, 0.45, 0.62, 0.78]
 ## `PROFESSION_MAX_LEVEL`. Read together with each node's own `min_level`,
 ## whichever is higher.
 const GATHER_LEVEL_SHARE_BY_RARITY: Array[float] = [0.0, 0.15, 0.35, 0.60]
+
+
+## How practised a Warden has to be to work a node of this rarity.
+##
+## **Extracted so the screen and the field agree.** `Gathering._eligible`
+## computed this inline, and the Hold's profession card needs the same answer
+## to say what is still locked - two copies of it is a shop that promises a
+## seam the road then refuses, which is the shape of fault this project has
+## paid for in the Ledger's prices and the Quartermaster's.
+##
+## The node's own floor and the rarity's share of the ladder, whichever asks
+## more, so an authored `min_level` can always raise a requirement and never
+## quietly lower one.
+static func gather_level_for(rarity: int, min_level: int = 1) -> int:
+	var band: int = clampi(rarity, 0, GATHER_LEVEL_SHARE_BY_RARITY.size() - 1)
+	return maxi(min_level, 1 + int(round(
+		GATHER_LEVEL_SHARE_BY_RARITY[band] * float(PROFESSION_MAX_LEVEL - 1))))
 
 ## The band a node may be dug in, as a share of the half-extent. Same shape as
 ## `FISHING_EDGE_BAND` and for the same reason: the middle is the city's.

@@ -59,7 +59,8 @@ func _ready() -> void:
 	await _test_the_sweep_is_an_answer_and_not_a_loop()
 	await _test_a_hover_never_leaves_its_layout_place()
 	await _test_a_plate_animates_without_being_touched()
-	await _test_a_plate_never_lights_its_own_contents()
+	await _test_dressing_a_plate_leaves_its_contents_first()
+	await _test_a_container_child_is_never_moved()
 	await _test_a_bar_flows_only_where_it_is_filled()
 	_test_no_two_controls_share_a_clock()
 	_test_every_screen_enrols()
@@ -232,26 +233,69 @@ func _test_a_plate_animates_without_being_touched() -> void:
 		+ "it the answer to being touched is invisible") % [ambient, hot])
 
 
-## The plate's skin goes *under* its contents.
+## Dressing a plate does not change what its first child is.
 ##
-## A `PanelContainer` holds a whole screen's worth of labels. An additive layer
-## over those lifts every glyph toward white, which is the one failure `UiTint`
-## and this file are both bounded against - and it is invisible in a screenshot
-## of a dark screen, so it has to be a number rather than a look.
-func _test_a_plate_never_lights_its_own_contents() -> void:
+## **The fault this replaces was mine and it shipped for an hour.** The skin
+## was inserted at index 0 so it would sit under the contents; a
+## `PanelContainer` is a single-child container, and every screen that reads
+## `_panel.get_child(0)` to find its column then found a `ColorRect` instead -
+## the Ledger measured its scroll room against it and grew a panel taller than
+## the screen, with Close off the bottom. `menu_layout_check` named it.
+##
+## Over the contents is safe on this file's own bound: additive, capped, and
+## exactly what a `Button` already does to its own caption.
+func _test_dressing_a_plate_leaves_its_contents_first() -> void:
 	var plate := PanelContainer.new()
-	var inside := Label.new()
-	inside.text = "a reading"
+	var inside := VBoxContainer.new()
+	inside.name = "Column"
 	plate.add_child(inside)
 	_root.add_child(plate)
 	UiJuice.enrol(get_tree(), _root)
 	await get_tree().process_frame
 
+	_check(plate.get_child(0) == inside,
+		"dressing a plate moved something in front of its column, so every screen "
+		+ "that reads `get_child(0)` now measures against the wrong node")
 	var skin: ColorRect = UiJuice.skin_of(plate)
-	_check(skin != null and skin.get_index() < inside.get_index(),
-		"a plate's skin is drawn after its contents, so every label under "
-		+ "it is lit toward white - the skin belongs at index 0, after the "
-		+ "panel's own StyleBox and before anything it holds")
+	_check(skin != null and skin.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"a plate's skin swallows input, so the screen under it cannot be used")
+
+## A control a container owns keeps the place the container put it.
+##
+## **This shipped and broke four things in one screen.** The press lift writes
+## `position`, which on a laid-out child is a fight with the thing that laid it
+## out - and the container does not always win it back before something else
+## reads the rect. Enrolling the Chronicle stopped a pin click clearing the
+## selection, stopped the final pin being wholly visible, stopped the scrollbar
+## being found and stopped a selection surviving a reopen. `menu_layout_check`
+## named all four; disabling the enrol fixed all four; this one line inside it
+## is the only one that touches anything but a shader uniform.
+##
+## Driven through the real press rather than by calling `_lift`, because the
+## wiring is the half that was wrong.
+func _test_a_container_child_is_never_moved() -> void:
+	var box := VBoxContainer.new()
+	var inside := Button.new()
+	inside.text = "Untrack"
+	box.add_child(inside)
+	_root.add_child(box)
+	UiJuice.enrol(get_tree(), _root)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var seated: Vector2 = inside.position
+	inside.button_down.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(inside.position.is_equal_approx(seated),
+		("a button in a container moved from %s to %s when pressed - a lift on "
+		+ "a laid-out child is a layout write, and it takes the screen's own "
+		+ "behaviour with it") % [seated, inside.position])
+
+	# And the light still answers, so the juice was not thrown out with it.
+	_check(UiJuice.strength_of(inside) > 0.0,
+		"a pressed button in a container lit up not at all, so refusing the "
+		+ "lift took the whole response with it rather than the two pixels")
 
 
 ## A bar's flow stops where its fill does.

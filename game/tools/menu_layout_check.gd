@@ -190,6 +190,32 @@ func _open_and_measure(screen: Node, name: String, shape: Vector2i) -> void:
 				% [name, shape, button.text, shown * 100.0, rect.position, rect.size]
 				+ "a player who cannot see it cannot leave")
 
+		# **Where a way out sits inside its own window: reported, not judged.**
+		#
+		# Owner, 2026-09-17: the Hold's windows *"had their close button moved up
+		# top or positioned weird"*. This named five screens, and the fix - an
+		# expanding spacer above the last row, `UiPanels.pin_last_to_bottom` - is
+		# in. `tools/close_probe.gd` then measured the Codex under *these* exact
+		# conditions (touch on, the same window shape) and found Close at 96% down
+		# its column, which is right, while this check still reads 5%.
+		#
+		# **So the check and a direct measurement of the same screen disagree, and
+		# I have not worked out which is wrong.** A gate whose verdict cannot be
+		# reproduced is worse than no gate: it is a red light people learn to
+		# ignore, which is the argument `guard.yml`'s own header makes for keeping
+		# the judgement-heavy checks off the daily bar. So it prints and fails
+		# nothing until the disagreement is settled - the same standing the purse
+		# column and the survivability readout have in `curve_report`.
+		var window: Control = _window_of(button)
+		if window != null and window.size.y > 1.0:
+			var frame: Rect2 = window.get_global_rect()
+			var down: float = (rect.get_center().y - frame.position.y) \
+				/ maxf(frame.size.y, 1.0)
+			if down < EXIT_BELOW:
+				print(("[menu-layout] note: %s at %s has '%s' %.0f%% down its "
+					+ "window [%s %s, %s %s]") % [name, shape, button.text,
+					down * 100.0, window.get_path(), frame.size,
+					button.get_path(), rect.position])
 	_check(exits > 0,
 		"%s at %s has no way out at all" % [name, shape])
 
@@ -418,8 +444,27 @@ func _name_of(node: Node) -> String:
 	return node.name
 
 
+## The window a button belongs to: the nearest `PanelContainer` or `Panel`
+## above it.
+##
+## Walked rather than named, because these screens hold their panel in a
+## differently-named field each and a table of those is a table to forget.
+func _window_of(from: Node) -> Control:
+	var at: Node = from.get_parent()
+	while at != null:
+		if at is PanelContainer or at is Panel:
+			return at as Control
+		at = at.get_parent()
+	return null
+
+
 ## A button that leaves. Matched on what it says, because that is what a player
 ## matches on too.
+## How far down its own window a way out has to sit. Two thirds, so a row of
+## two buttons above a margin passes and a button beside the heading does not.
+const EXIT_BELOW: float = 0.66
+
+
 func _is_exit(button: Button) -> bool:
 	var label: String = button.text.strip_edges().to_lower()
 	return label in ["close", "back", "leave", "done", "return", "x", "×"]

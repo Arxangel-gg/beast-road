@@ -118,8 +118,9 @@ func _roll_node(at: Vector2, rng: RandomNumberGenerator) -> GatherNodeData:
 		# And practised enough. The node's own floor and the rarity's share of
 		# the ladder, whichever asks more.
 		var level: int = MetaState.profession_level(kind.craft)
-		var wanted: int = maxi(kind.min_level, 1 + int(round(
-			Balance.GATHER_LEVEL_SHARE_BY_RARITY[rarity] * float(Balance.PROFESSION_MAX_LEVEL - 1))))
+		# Asked rather than recomputed, so the Hold's profession card and the
+		# road cannot disagree about what a craft has earned.
+		var wanted: int = Balance.gather_level_for(rarity, kind.min_level)
 		if level < wanted:
 			continue
 		var weight: float = maxf(kind.weight, 0.0) * kind.region_weight(RunState.terrain_id)

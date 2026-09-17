@@ -1083,7 +1083,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		var step: Vector2 = direction * speed * burst * delta
 		if step.length() > toward.length():
 			step = toward
-		sprite.global_position += step
+		_walk_step(sprite, step)
 		# Facing from motion, against the *art's own* direction rather than a
 		# guess. The sprites are drawn facing left, the flip was written for
 		# right-facing art, and the result was six species walking backwards.
@@ -1553,7 +1553,7 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		* kind.speed * kind.charge_speed_scale * delta
 	if step.length() > distance:
 		step = toward
-	sprite.global_position += step
+	_walk_step(sprite, step)
 	animal["heading"] = toward.normalized()
 	_face(animal, sprite, kind, step, delta)
 	_animate(animal, sprite, delta, true)
@@ -1596,6 +1596,34 @@ func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
 ##
 ## A territorial animal only answers inside its own ground; a predator reaches as
 ## far as it can see. Same number, two meanings - see `aggro_radius`.
+## Whether a point is inside the city's walls, if there are any here.
+##
+## Asked of the field rather than answered locally: the battlefield has a
+## town and an arena does not, and a second copy of that arithmetic is how
+## the wildlife ends up sheltering somebody the enemies are still hunting.
+func _sheltered(at: Vector2) -> bool:
+	var arena: EnemyField = field as EnemyField
+	if arena == null or not is_instance_valid(arena):
+		return false
+	return arena.inside_city(at)
+
+
+## Moves an animal, and never into the city.
+##
+## Owner, 2026-09-17: *"No wildlife or enemies are able to enter the city
+## base either."* One function for all three places an animal steps - the
+## walk, the charge and the swim - because three copies of a refusal is two
+## that will not be fixed the next time the first one is.
+##
+## **Refuses entering, never leaving**, for the reason `step_is_legal` gives:
+## an animal that somehow starts inside has to be able to get out.
+func _walk_step(sprite: Node2D, step: Vector2) -> void:
+	var to: Vector2 = sprite.global_position + step
+	if _sheltered(to) and not _sheltered(sprite.global_position):
+		return
+	sprite.global_position = to
+
+
 func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
 		rabid: bool = false, truce: bool = false, angered: bool = false) -> Node2D:
 	var best: Node2D = null
@@ -1609,6 +1637,13 @@ func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
 	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
 		var hero := node as Hero
 		if hero == null or not hero.is_alive():
+			continue
+		# **A predator loses you at the gate** (owner, 2026-09-17: *"If players
+		# enter the city base while being chased by wildlife predators, the
+		# predators will leave the player alone once they enter the city base"*).
+		# Asked every time quarry is chosen rather than once at the start of a
+		# hunt, so a chase that follows somebody to the wall ends there.
+		if _sheltered(hero.global_position):
 			continue
 		var distance: float = at.distance_to(hero.global_position)
 		if distance < best_distance:
@@ -2885,7 +2920,7 @@ func _swim_step(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
 	var speed: float = kind.speed * kind.swim_speed_scale * urgency \
 		* WildlifeFamilies.speed_scale(animal)
 	var step: Vector2 = direction * speed * delta
-	sprite.global_position += step
+	_walk_step(sprite, step)
 	animal["heading"] = direction
 	_face(animal, sprite as Sprite2D, kind, step, delta)
 	_animate(animal, sprite, delta, true)
