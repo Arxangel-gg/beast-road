@@ -39,9 +39,31 @@ extends Node2D
 var length: float = 96.0
 var width: float = 34.0
 
-## The two colours of the cloth: the lit face and the shadowed fold.
+## **The cloth itself, painted.** Owner, 2026-09-17: *"the banners should use
+## pixelart assets ... with varieties and procedural variations, and still use
+## the spline sway procedurally for the wind animations, and it should be just
+## the flag for the banner in the pixelart sprites"*.
+##
+## So the sprite is the *pattern* and this node is the *shape*: the strip below
+## carries the texture down its own length, and the taper that makes a pennant
+## is cut by the mesh rather than painted into the art. That is what guarantees
+## every banner in the Hold shares one outline however many devices are drawn -
+## a silhouette the generator has to match is a silhouette that will drift, and
+## six flags with six slightly different hems is worse than none.
+##
+## Without a texture it falls back to the two colours below, which is what it
+## drew before there was art: a missing file is a plainer banner, never a hole.
+var art: Texture2D = null
+
+## The two colours of the cloth: the lit face and the shadowed fold. Read when
+## there is no painting, and used to tint one when there is.
 var cloth: Color = Color(0.52, 0.16, 0.14)
 var shade: Color = Color(0.30, 0.09, 0.08)
+
+## A small shift of its own, so two banners wearing the same painting are not
+## the same banner. Multiplied into the cloth, which can only ever darken or
+## warm it - a hue rotation here would undo the grade the art was given.
+var weathering: Color = Color.WHITE
 
 ## The pole it hangs from, or nothing for a cloth hung on a wall.
 var pole: bool = true
@@ -141,25 +163,40 @@ func _draw() -> void:
 	var points: PackedVector2Array = []
 	var colours: PackedColorArray = []
 	var indices: PackedInt32Array = []
+	var uvs: PackedVector2Array = []
 	for step: int in steps + 1:
 		var down: float = float(step) / float(steps)
-		# **The fold has to be worth seeing.** The first cut varied the shade
-		# by a fifth and photographed as a flat slab of colour; a cloth in a
-		# wind is light down one bank of the ripple and dark down the next,
-		# and that contrast is the only thing telling a player it has a
-		# surface at all.
+		# **The fold has to be worth seeing.** A cloth in a wind is light down
+		# one bank of the ripple and dark down the next, and that shading is
+		# the only thing telling a player it has a surface - so it is applied
+		# as a *tint* over the painting rather than instead of it.
 		var dim: float = 0.5 + 0.5 * cos(_clock * Balance.HOLD_BANNER_RIPPLE_HZ
 			+ _phase + down * Balance.HOLD_BANNER_WAVES)
-		# It also darkens toward the free end, which is cloth hanging away
-		# from the light rather than a gradient for its own sake.
+		if art != null:
+			var lit: float = lerpf(Balance.HOLD_BANNER_FOLD_DARK, 1.0, dim)
+			# Darkening toward the free end as well: cloth hanging away from
+			# the light, rather than a gradient for its own sake.
+			lit *= 1.0 - down * Balance.HOLD_BANNER_HEM_SHADE
+			var fold := Color(weathering.r * lit, weathering.g * lit,
+				weathering.b * lit, 1.0)
+			points.append(left[step])
+			colours.append(fold)
+			uvs.append(Vector2(0.0, down))
+			points.append(right[step])
+			colours.append(fold)
+			uvs.append(Vector2(1.0, down))
+			continue
 		var deep: Color = shade.darkened(down * 0.22)
 		points.append(left[step])
 		colours.append(deep.lerp(cloth, dim))
+		uvs.append(Vector2(0.0, down))
 		points.append(right[step])
 		colours.append(cloth.lerp(deep, 0.25 + dim * 0.55))
+		uvs.append(Vector2(1.0, down))
 	for step: int in steps:
 		var base: int = step * 2
 		indices.append_array([base, base + 1, base + 2,
 			base + 1, base + 3, base + 2])
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
-		indices, points, colours)
+		indices, points, colours, uvs, PackedInt32Array(),
+		PackedFloat32Array(), RID() if art == null else art.get_rid())

@@ -491,6 +491,15 @@ var gatekeeper: Dictionary = {}
 ## reads as a shelf that has never been stocked, which is a new account.
 var vendor: Dictionary = {}
 
+## **The Hold's pond**: how many fish have come out of it and when the window
+## opened. `{taken: int, since: float}` on the Unix clock.
+##
+## Written to the save for the reason the shelf above is - a window kept only in
+## memory is one a player resets by quitting to the menu. It holds a count and a
+## timestamp and nothing else: no fish, no currency, no unlock, so working rule
+## 7 is exactly where it was.
+var hold_pond: Dictionary = {}
+
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
 
@@ -1037,6 +1046,7 @@ func erase_progress() -> void:
 	tier_cleared = -1
 	gatekeeper = {}
 	vendor = {}
+	hold_pond = {}
 	last_tier_id = "normal"
 	profession_xp.clear()
 	materials.clear()
@@ -1422,6 +1432,48 @@ func receive_gear(piece: Dictionary) -> Dictionary:
 
 
 
+## How many more fish the Hold's pond will give up right now.
+##
+## **The window opens on the first catch rather than running on a schedule**, so
+## a Warden who fishes once and leaves is not punished for having started the
+## clock at a bad moment - and one who empties it waits the full interval from
+## when they emptied it.
+##
+## `now` is handed in rather than read, so a gate can drive the clock instead of
+## waiting ten minutes for it.
+func hold_pond_left(now: float = -1.0) -> int:
+	var clock: float = Time.get_unix_time_from_system() if now < 0.0 else now
+	var since: float = float(hold_pond.get("since", 0.0))
+	if clock - since >= Balance.HOLD_POND_WINDOW:
+		return Balance.HOLD_POND_CATCHES
+	return maxi(Balance.HOLD_POND_CATCHES
+		- int(hold_pond.get("taken", 0)), 0)
+
+
+## How long until the pond has anything left, in seconds. Zero when it has.
+func hold_pond_wait(now: float = -1.0) -> float:
+	if hold_pond_left(now) > 0:
+		return 0.0
+	var clock: float = Time.get_unix_time_from_system() if now < 0.0 else now
+	return maxf(Balance.HOLD_POND_WINDOW
+		- (clock - float(hold_pond.get("since", 0.0))), 0.0)
+
+
+## Take one, if there is one. The single door, so the prompt, the catch and the
+## gate cannot disagree about whether the pond is empty.
+func hold_pond_take(now: float = -1.0) -> bool:
+	var clock: float = Time.get_unix_time_from_system() if now < 0.0 else now
+	if hold_pond_left(clock) <= 0:
+		return false
+	var since: float = float(hold_pond.get("since", 0.0))
+	if clock - since >= Balance.HOLD_POND_WINDOW:
+		hold_pond = {"since": clock, "taken": 1}
+	else:
+		hold_pond["taken"] = int(hold_pond.get("taken", 0)) + 1
+	save_game()
+	return true
+
+
 ## **Tidy the stash, best first, and remember it.**
 ##
 ## The one door, so the screen cannot sort one way while the Ledger, a trade or a
@@ -1756,6 +1808,7 @@ func serialized_save() -> String:
 		# The Market's shelf. Unowned gear and the moment it was laid out, kept
 		# so that quitting the game is not a way to re-roll a shop.
 		"vendor": vendor,
+		"hold_pond": hold_pond,
 		"expedition": expedition,
 		"resource_cache": resource_cache,
 		"chronicle": {
@@ -1867,6 +1920,7 @@ func adopt_save(data: Dictionary) -> void:
 	_read_pen(data.get("pen", {}) as Dictionary)
 	_read_stable(data.get("stable", {}) as Dictionary)
 	vendor = data.get("vendor", {}) as Dictionary
+	hold_pond = data.get("hold_pond", {}) as Dictionary
 	var front: Dictionary = data.get("expedition", {}) as Dictionary
 	expedition = front if Expedition.is_readable(front) else {}
 	_read_social(data.get("social", {}) as Dictionary)

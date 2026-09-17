@@ -50,6 +50,7 @@ const GROUND_ART: String = "res://art/terrain/terrain_jungle.png"
 const GRASS_ART: String = "res://art/foliage/grass_jungle.png"
 const POND_ART: String = "res://art/battlefield/pond_tiles_jungle.png"
 const FOLIAGE_FORMAT: String = "res://art/foliage/plant_jungle_%s.png"
+const PROP_FORMAT: String = "res://art/foliage/prop_%s.png"
 
 ## What stands where, and which door it is.
 ##
@@ -90,6 +91,15 @@ const STATIONS: Array[Dictionary] = [
 		"label": "The Road Out", "cell": Vector2i(18, 24)},
 	{"id": "stable", "door": "Stable", "art": "res://art/city/building_granary_tier_02.png",
 		"label": "The Stable", "cell": Vector2i(8, 20)},
+	# **The pond, which is a place rather than a door.** Owner, 2026-09-17:
+	# *"players can also only fish for up to 3 fish every 10 minutes at their
+	# Hold's pond."* It has no button to press because there is no screen: the
+	# Hold answers it itself, exactly as the Warden's Stone and the road out do.
+	#
+	# Standing on the shore rather than in the water: the pool is not walkable,
+	# so the reeds mark the one edge of it a person can reach.
+	{"id": "pond", "door": "", "art": "res://art/foliage/prop_reeds.png",
+		"label": "The Pond", "cell": Vector2i(26, 14)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
 		"label": "The Gate", "cell": Vector2i(22, 21)},
 ]
@@ -411,6 +421,10 @@ var _grass_at: Array[Vector2] = []
 ## last garden rather than growing a second one on top of it.
 var _plants: Array[Node] = []
 
+## The scattered things that carry idle frames of their own, ticked together so
+## a yard of them is not a yard of `_process` callbacks.
+var _breathers: Array[Sprite2D] = []
+
 ## The cloth and the fire, and the wind that moves both.
 ##
 ## A wind of the Hold's own rather than the road's: the road's belongs to a run
@@ -590,6 +604,7 @@ func _scatter_grass() -> void:
 		if is_instance_valid(plant):
 			plant.queue_free()
 	_plants.clear()
+	_breathers.clear()
 	for _index: int in Balance.HOLD_GRASS_TUFTS * 3:
 		var at := Vector2(_rng.randf_range(-YARD.x * 0.5, YARD.x * 0.5),
 			_rng.randf_range(-YARD.y * 0.5, YARD.y * 0.5))
@@ -602,7 +617,9 @@ func _scatter_grass() -> void:
 		if _rng.randf() > lerpf(Balance.HOLD_FOLIAGE_INNER,
 				Balance.HOLD_FOLIAGE_OUTER, out):
 			continue
-		if _rng.randf() < Balance.HOLD_FOLIAGE_PLANT_SHARE:
+		if _rng.randf() < Balance.HOLD_PROP_SHARE:
+			_stand_prop(at, out)
+		elif _rng.randf() < Balance.HOLD_FOLIAGE_PLANT_SHARE:
 			_stand_plant(at, out)
 		else:
 			_grass_at.append(at)
@@ -649,6 +666,41 @@ func _near_the_line(at: Vector2, from: Vector2, to: Vector2) -> float:
 		return at.distance_to(from)
 	var along: float = clampf((at - from).dot(way) / span, 0.0, 1.0)
 	return at.distance_to(from + way * along)
+
+
+## One of the things a place accumulates, chosen by how far out it is.
+##
+## Close in is what a camp puts down - a cairn, a signpost, split wood; far out
+## is what the valley left and nobody has cleared. That split is the whole of
+## why this is not one list: a wreck in the middle of the square says nobody
+## lives here and a signpost at the treeline says nothing at all.
+func _stand_prop(at: Vector2, out: float) -> void:
+	var pool: Array[String] = Balance.HOLD_PROPS_WILD if out > 0.52 \
+		else Balance.HOLD_PROPS_KEPT
+	var art: String = PROP_FORMAT % pool[_rng.randi() % pool.size()]
+	if not ResourceLoader.exists(art):
+		return
+	var texture: Texture2D = load(art) as Texture2D
+	if texture == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.centered = true
+	sprite.offset = Vector2(0.0, -float(texture.get_height()) * 0.5)
+	sprite.scale = Vector2.ONE * _rng.randf_range(0.86, 1.18)
+	sprite.flip_h = _rng.randf() < 0.5
+	# A prop with idle frames of its own breathes; one without simply stands.
+	# Mushrooms are the only shared prop that carries them, and a scatter that
+	# refused to animate what it could would be leaving motion on the disk.
+	var frames: Array[Texture2D] = GameData.load_idle_frames(art)
+	if frames.size() > 1:
+		sprite.set_meta("idle_frames", frames)
+		sprite.set_meta("idle_clock", _rng.randf() * 9.0)
+		_breathers.append(sprite)
+	sprite.position = at + Vector2(0.0, lift_at(at))
+	_actors.add_child(sprite)
+	_plants.append(sprite)
 
 
 ## One painted plant, chosen by the ground it is standing on.
@@ -708,6 +760,16 @@ func _build_stations() -> void:
 		# Its own phase, off its own id: a square where five buildings pulse
 		# together reads as one animation rather than as a place.
 		station["clock"] = float(absi(hash(String(entry["id"]))) % 997) * 0.01
+		# **You can see through what you are standing behind.** Owner,
+		# 2026-09-17: *"some buildings may have ceilings that fade when players
+		# enter them"*. These are single paintings rather than a shell and a
+		# roof, so what fades is the structure - which is what the town core has
+		# done since it was built, and against a yard that sorts by Y it reads
+		# as walking *into* a building rather than behind one.
+		var fade := Occluder.new()
+		fade.sprite = sprite
+		fade.behind_margin = Balance.HOLD_OCCLUDE_MARGIN
+		sprite.add_child(fade)
 		_stations.append(station)
 
 
@@ -1026,6 +1088,26 @@ func _follow_the_sun() -> void:
 ## **The fire in the middle of the square, and the stones that keep people out
 ## of it** (owner, 2026-09-17). Its refusal is read by `step_is_legal`, so the
 ## wall a player sees and the wall that stops them are the same number.
+## The scattered props that have frames, each on its own clock.
+##
+## One loop here rather than a `_process` on each: a yard holds dozens of these
+## and a script per mushroom is dozens of callbacks for a thing nobody clicks.
+func _breathe_the_scatter(delta: float) -> void:
+	for sprite: Sprite2D in _breathers:
+		if not is_instance_valid(sprite):
+			continue
+		var frames: Array = sprite.get_meta("idle_frames", []) as Array
+		if frames.is_empty():
+			continue
+		var clock: float = float(sprite.get_meta("idle_clock", 0.0)) \
+			+ delta * Balance.HOLD_IDLE_FPS
+		sprite.set_meta("idle_clock", clock)
+		var step: int = int(clock) % frames.size()
+		var texture := frames[step] as Texture2D
+		if texture != null and sprite.texture != texture:
+			sprite.texture = texture
+
+
 func _build_bonfire() -> void:
 	_bonfire = HoldBonfire.new()
 	_bonfire.name = "Bonfire"
@@ -1045,6 +1127,17 @@ func _build_banners() -> void:
 		flag.position = at + Vector2(0.0, lift_at(at))
 		flag.cloth = entry["cloth"] as Color
 		flag.shade = (entry["cloth"] as Color).darkened(0.42)
+		# **The painting, and a weathering of its own.** Which cloth a banner
+		# wears is decided by where it hangs rather than rolled, so the Hold
+		# looks the same every visit; the weathering is drawn from the same
+		# place, so two banners sharing a device are still two banners.
+		var pick: int = absi(hash(entry["cell"])) % Balance.HOLD_BANNER_ART.size()
+		var painted: String = Balance.HOLD_BANNER_ART[pick]
+		if ResourceLoader.exists(painted):
+			flag.art = load(painted) as Texture2D
+		var worn: float = 1.0 - float(absi(hash(entry["cell"]) >> 8) % 100) \
+			* 0.01 * Balance.HOLD_BANNER_WEATHER
+		flag.weathering = Color(worn, worn * 0.99, worn * 0.96)
 		flag.length = float(entry.get("length", 96.0)) * Balance.HOLD_BANNER_SCALE
 		flag.width = float(entry.get("width", 34.0)) * Balance.HOLD_BANNER_SCALE
 		flag.exposure = float(entry.get("exposure", 1.0))
@@ -1266,6 +1359,7 @@ func _process(delta: float) -> void:
 		_mind_the_stall(person, delta)
 	_tick_heel(delta)
 	_turn_the_wind(delta)
+	_breathe_the_scatter(delta)
 	_breathe(delta)
 	_follow_the_sun()
 	_find_focus()

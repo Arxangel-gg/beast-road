@@ -1297,6 +1297,13 @@ func _test_tiers_and_persistence() -> void:
 	# it is not new speed either; `mount_check` measures that rather than
 	# reading it back, and holds that buying one moves the Marks and nothing
 	# else.
+	# `hold_pond` is a count and a timestamp: how many fish have come out of the
+	# Hold's pond and when that window opened (owner, 2026-09-17 - "up to 3 fish
+	# every 10 minutes"). It holds no fish, no currency and no unlock, so it
+	# adds nothing to working rule 7's list; what it exists for is that a window
+	# kept only in memory is one a player resets by quitting to the menu, which
+	# would put an unbounded supply of the game's only persistent consumable
+	# behind a loading screen.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1306,7 +1313,7 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
 				"spirits", "pantry", "professions", "materials", "pen",
-				"expedition", "vendor", "stable"],
+				"expedition", "vendor", "stable", "hold_pond"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

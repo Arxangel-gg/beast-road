@@ -10553,6 +10553,77 @@ const HOLD_BANNER_TAIL_AT: float = 0.62
 ## a standard hung in a square.
 const HOLD_BANNER_TAPER: float = 0.62
 
+## **The cloths the Hold hangs**, and the fold shading laid over them.
+##
+## Painted rather than coloured, with the taper cut by the mesh - see
+## `HoldBanner.art`. Six devices and a per-banner weathering are what stop a row
+## of them reading as one flag repeated, which is the same argument the pens'
+## animals and the paddock's horses are each given their own clock under.
+const HOLD_BANNER_ART: Array[String] = [
+	"res://art/city/banner_chain.png",
+	"res://art/city/banner_stag.png",
+	"res://art/city/banner_forge.png",
+	"res://art/city/banner_lantern.png",
+	"res://art/city/banner_harvest.png",
+]
+
+## How dark the deepest part of a fold goes, and how much the free end loses.
+## Both are multiplied into the painting, so neither can invent a colour the
+## cloth was not painted in.
+const HOLD_BANNER_FOLD_DARK: float = 0.62
+const HOLD_BANNER_HEM_SHADE: float = 0.14
+
+## How far a single banner may be weathered off the painting it shares. Small:
+## this is sun and soot on one cloth against another, not a second dye lot.
+const HOLD_BANNER_WEATHER: float = 0.16
+
+
+## **The things a place accumulates**, scattered the way the plants are.
+##
+## Owner, 2026-09-17: *"the hold needs more world building"*. A yard with
+## buildings and nothing else in it is a plan of a yard; what says people live
+## here is the wood they have not burnt yet, the stones somebody piled, the
+## wreck nobody has cleared. Each names a `prop_%s.png` that already ships, so
+## this is art the game owns being used twice rather than a manifest row.
+##
+## Split by where they belong: kept ground gets what a camp puts down, the
+## outskirts get what the valley left behind.
+const HOLD_PROPS_KEPT: Array[String] = ["cairn", "signpost", "log", "stump"]
+const HOLD_PROPS_WILD: Array[String] = ["boulder", "rock", "driftwood",
+	"wreckage", "bones", "stump", "burrow"]
+
+## How much of the scatter is a prop rather than a plant or a tuft.
+const HOLD_PROP_SHARE: float = 0.14
+
+## How far a structure fades while a Warden stands behind it, and how much room
+## above its foot counts as behind.
+##
+## Owner, 2026-09-17: *"some buildings may have ceilings that fade when players
+## enter them"*. The Hold's buildings are single paintings rather than a shell
+## and a roof, so what fades is the whole structure - which is the same answer
+## the town core has used since it was built, and it reads as walking *into* a
+## building rather than behind one because the yard sorts by Y.
+const HOLD_OCCLUDE_MARGIN: float = 46.0
+
+
+## **What the Hold's own pond will give up, and how often.**
+##
+## Owner, 2026-09-17: *"players can also only fish for up to 3 fish every 10
+## minutes at their Hold's pond."*
+##
+## The bound matters more than the number. The pantry persists and
+## `FISH_MEALS_PER_RUN` is the one thing standing between a deep larder and a
+## Warden who cannot be killed - so a pond in the *hub*, fished standing still
+## with no road walking past and nothing hunting you, is the one place that cap
+## could be farmed around. Three an interval is a snack between runs; without a
+## cap it is an unbounded supply of the game's only persistent consumable.
+##
+## **Ten minutes on the wall clock, and it is written down**, for the reason the
+## Market's shelf is: a window held only in memory is a window a player resets
+## by quitting to the menu and coming back.
+const HOLD_POND_CATCHES: int = 3
+const HOLD_POND_WINDOW: float = 600.0
+
 ## The pit in the middle of the square.
 ##
 ## `SQUASH` is the flattening every ring in this project is drawn with - the

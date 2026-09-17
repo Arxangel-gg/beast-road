@@ -85,6 +85,7 @@ func _ready() -> void:
 	_test_buying_never_prints_marks()
 	_test_the_shelf_trails_the_warden()
 	_test_the_commission_costs_more()
+	_test_the_pond_is_bounded()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[hold] PASS - %d checks: every station presses a door, every "
@@ -92,7 +93,8 @@ func _ready() -> void:
 			+ "carries their own pavement, the smith "
 			+ "stands aside, seats are the session's, the shelf keeps its stock "
 			+ "across a restart, buying is always dearer than selling, and a "
-			+ "commission costs more and teaches nothing, and everybody in "
+			+ "commission costs more and teaches nothing, the pond gives up "
+			+ "three and then goes quiet, and everybody in "
 			+ "it is working at their own post") % _checks)
 	else:
 		push_error("[hold] FAIL - %d problem(s)" % _failures)
@@ -525,6 +527,55 @@ func _test_the_residents_work_at_their_posts() -> void:
 	_check(yard.doing("smith") != &"work",
 		"and Orden stops hammering when the Warden comes to the anvil")
 	yard.queue_free()
+
+
+## **The Hold's pond gives up three and then goes quiet.**
+##
+## Owner, 2026-09-17: *"players can also only fish for up to 3 fish every 10
+## minutes at their Hold's pond."*
+##
+## The cap is the only thing standing between a hub pond and an unbounded supply
+## of the game's one persistent consumable - `FISH_MEALS_PER_RUN` is what keeps
+## a full larder from making a Warden unkillable, and a pond in the one place
+## nothing is hunting you is exactly how that would be farmed around.
+##
+## Driven through the real door with the clock handed in, rather than by reading
+## the constants back: a window that never actually closes and one that never
+## opens both read as perfectly correct numbers.
+func _test_the_pond_is_bounded() -> void:
+	var was: Dictionary = MetaState.hold_pond.duplicate(true)
+	MetaState.hold_pond = {}
+	var now: float = 1000.0
+	_check(MetaState.hold_pond_left(now) == Balance.HOLD_POND_CATCHES,
+		"a pond nobody has fished offers %d" % MetaState.hold_pond_left(now))
+	var taken: int = 0
+	for _try: int in Balance.HOLD_POND_CATCHES + 3:
+		if MetaState.hold_pond_take(now):
+			taken += 1
+	_check(taken == Balance.HOLD_POND_CATCHES,
+		"the pond gave up %d fish in one window against a cap of %d"
+		% [taken, Balance.HOLD_POND_CATCHES])
+	_check(MetaState.hold_pond_left(now) == 0,
+		"an emptied pond still says it has fish in it")
+	_check(MetaState.hold_pond_wait(now) > 0.0,
+		"an emptied pond reports no wait at all")
+	# A moment before the window is up it is still quiet, and a moment after it
+	# is full again. Both ends, because a window that closes early is a cap that
+	# does not cap and one that never opens is a pond nobody fishes twice.
+	_check(MetaState.hold_pond_left(now + Balance.HOLD_POND_WINDOW - 1.0) == 0,
+		"the window opened early")
+	_check(MetaState.hold_pond_left(now + Balance.HOLD_POND_WINDOW + 1.0)
+			== Balance.HOLD_POND_CATCHES,
+		"the window never opened again")
+	# And the pond is somewhere a Warden can actually stand.
+	var yard: HoldYard = _stand_a_yard()
+	var shore: Vector2 = yard.station_at("pond")
+	_check(shore != Vector2.INF, "the Hold has no pond to fish")
+	if shore != Vector2.INF:
+		_check(_walk_the_yard(yard).has(_cell(shore)),
+			"the pond stands on ground no Warden can walk to")
+	yard.queue_free()
+	MetaState.hold_pond = was
 
 
 ## Seats are presence and the session owns them. Driven through the same door

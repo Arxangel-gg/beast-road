@@ -534,6 +534,75 @@ func _on_entered(station: String) -> void:
 		_show_card()
 	elif station == "road":
 		_show_road()
+	elif station == "pond":
+		_fish_the_pond()
+
+
+## **One cast at the Hold's pond.**
+##
+## Owner, 2026-09-17: *"players can also only fish for up to 3 fish every 10
+## minutes at their Hold's pond."*
+##
+## Deliberately not the road's fishing. `Fishing` is a cast, a wait, a hook and
+## a reel held in a band, and all of that is built on the tension of standing
+## still on a battlefield while a wave walks past - a hub has none of that, so
+## the same minigame here would be the skill without the risk. What the Hold's
+## pond is instead is a *small standing supply*: walk over, take what it has,
+## come back later.
+##
+## **The cap is the whole of it.** `FISH_MEALS_PER_RUN` is the one thing between
+## a deep larder and a Warden who cannot be killed, and an uncapped pond in the
+## one place nothing is hunting you is the way round it. Three, then the pond is
+## quiet for ten minutes, written to the save so quitting to the menu does not
+## reset the window.
+func _fish_the_pond() -> void:
+	if MetaState.hold_pond_left() <= 0:
+		var wait: float = MetaState.hold_pond_wait()
+		_note.text = "The pond is quiet. Try again in about %d minutes." \
+			% maxi(int(ceil(wait / 60.0)), 1)
+		return
+	var caught: FishData = _pond_catch()
+	if caught == null:
+		_note.text = "Nothing is rising."
+		return
+	# **The larder is asked before the pond is charged.** A full pantry that
+	# still spent one of the three would be a cast the player paid for and did
+	# not get, which is the shape of bug nobody reports and everybody feels.
+	if MetaState.fish_total() >= Balance.FISH_STASH_CAPACITY:
+		_note.text = "The larder is full."
+		return
+	if not MetaState.hold_pond_take():
+		return
+	MetaState.take_fish(caught.id)
+	var left: int = MetaState.hold_pond_left()
+	_note.text = "%s. %s" % [caught.display_name,
+		("The pond has %d left." % left) if left > 0
+			else "That is the pond emptied for now."]
+	UiSound.confirm()
+
+
+## What is in the Hold's pond.
+##
+## The common end of the same roster the road fishes, weighted by `roll_weight`
+## exactly as a pond on the battlefield is - so the Hold is a *quiet* pond
+## rather than a second table of fish that could drift from the first. Nothing
+## rare rises here: what makes the rare fish worth having is the road.
+func _pond_catch() -> FishData:
+	var pool: Array[FishData] = []
+	var weight: float = 0.0
+	for kind: FishData in ContentDB.fish_sorted():
+		if int(kind.rarity) > Balance.HOLD_POND_RARITY_CEILING:
+			continue
+		pool.append(kind)
+		weight += maxf(kind.roll_weight, 0.01)
+	if pool.is_empty():
+		return null
+	var roll: float = randf() * weight
+	for kind: FishData in pool:
+		roll -= maxf(kind.roll_weight, 0.01)
+		if roll <= 0.0:
+			return kind
+	return pool[pool.size() - 1]
 
 
 # ---------------------------------------------------------------- the card
