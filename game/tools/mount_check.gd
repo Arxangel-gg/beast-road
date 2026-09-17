@@ -378,6 +378,31 @@ func _test_the_field() -> void:
 		"the water came up over the knee and the Warden stayed in the saddle")
 	who.set("_swimming", false)
 
+	# --- The climb into the saddle ------------------------------------------
+	#
+	# `MOUNT_UP_SECONDS` was a clock with nothing on the end of it until the
+	# rider was given a climb to spend it on. A climb stuck at zero leaves the
+	# Warden standing at the horse's feet for the whole ride - plain in play and
+	# invisible to every number in this file, which is what a check is for.
+	var rig := who.get_node_or_null("MountRig") as MountRig
+	_check(rig != null, "the hero must carry a mount rig")
+	if rig != null:
+		who.set("_mount_wait", 0.0)
+		if not who.is_mounted():
+			who.mount()
+		_check(rig.climbed() < 1.0,
+			"the Warden was in the saddle on the frame they pressed the key")
+		for _frame: int in 90:
+			await get_tree().process_frame
+		_check(rig.climbed() >= 1.0,
+			"a second and a half after mounting the climb is %.2f of the way up"
+				% rig.climbed())
+		# Back on their feet, so the test after this one starts where it expects
+		# to. A harness that leaves state behind is the fault that made the act
+		# doctrines measure the widest board as the narrowest.
+		who.dismount()
+		who.set("_mount_wait", 0.0)
+
 	# --- A hero who falls comes off ------------------------------------------
 	#
 	# **The one ending `_tick_mount` cannot reach.** `_physics_process` returns

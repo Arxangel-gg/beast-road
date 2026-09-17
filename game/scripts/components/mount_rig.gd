@@ -67,6 +67,15 @@ var _shadow: Sprite2D = null
 var _content_height: float = 0.0
 var _content_floor: float = 0.0
 var _seat_applied: float = 0.0
+## How far up the Warden has climbed, 0 at the stirrup and 1 in the saddle.
+##
+## `Balance.MOUNT_UP_SECONDS` was a clock with nothing on the end of it: the
+## rider was teleported into the seat on the frame the key was pressed and the
+## time was spent doing nothing anybody could see. The climb is that time
+## drawn. Getting *off* has no counterpart on purpose - the owner's rule is
+## that attacking dismounts and the fight starts where you stood, so a
+## dismount anybody waits for is a swing that does not land.
+var _climb: float = 1.0
 
 
 func _ready() -> void:
@@ -116,6 +125,7 @@ func show_mount(kind: MountData) -> void:
 	_sprite.scale = Vector2.ONE * kind.art_scale
 	visible = true
 	_cast_shadow(kind)
+	_climb = 0.0
 	_apply_seat()
 	play("idle")
 
@@ -198,6 +208,9 @@ func _process(delta: float) -> void:
 	# **The bob is drawn rather than animated**, for the reason the sheets are
 	# kept neutral: a rise and fall baked into eight frames is eight frames this
 	# project has to generate twice, and the engine can do it for a sine.
+	# The climb first, because the seat is measured from it.
+	if _climb < 1.0:
+		_climb = minf(_climb + delta / maxf(Balance.MOUNT_UP_SECONDS, 0.01), 1.0)
 	_bob += delta * Balance.MOUNT_BOB_RATE * _speed_scale
 	var lift: float = -absf(sin(_bob)) * Balance.MOUNT_BOB_HEIGHT * _speed_scale
 	if _sheets.is_empty():
@@ -239,7 +252,12 @@ func _apply_seat(lift: float = 0.0) -> void:
 	# share of the animal itself. Measured from the cell's bottom edge, which
 	# is where the sprite is anchored.
 	var floor_gap: float = _content_floor * _kind.art_scale
-	_seat(-(floor_gap + _height() * _kind.seat + Balance.MOUNT_RIDER_LIFT) + lift)
+	# **Eased rather than linear**, and out of a cubic: a rider who rose at a
+	# constant rate reads as an elevator. Fast off the ground and settling into
+	# the seat is what swinging a leg over looks like at this size.
+	var risen: float = 1.0 - pow(1.0 - _climb, 3.0)
+	_seat((-(floor_gap + _height() * _kind.seat + Balance.MOUNT_RIDER_LIFT)
+		+ lift) * risen)
 
 
 ## Writes the rider's lift, and takes it away again on the way down.
@@ -257,6 +275,13 @@ func _seat(y: float) -> void:
 		return
 	rider.offset.y += y - _seat_applied
 	_seat_applied = y
+
+
+## How far into the saddle the Warden has climbed, 0 to 1. For the gate: a
+## climb stuck at zero leaves the rider standing at the horse's feet for the
+## whole ride, which is visible in play and invisible to every number.
+func climbed() -> float:
+	return _climb
 
 
 func _exit_tree() -> void:
