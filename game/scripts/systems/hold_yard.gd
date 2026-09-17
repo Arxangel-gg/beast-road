@@ -417,6 +417,10 @@ var _pens: Array[Dictionary] = []
 var _paddock: StablePaddock = null
 var _grass_at: Array[Vector2] = []
 
+## The field itself. One node and one draw call for the lot - see
+## `HoldGrass`, which is also where a blade learns to give way to a boot.
+var _grass_field: HoldGrass = null
+
 ## The painted plants standing in the yard, kept so a re-scatter clears the
 ## last garden rather than growing a second one on top of it.
 var _plants: Array[Node] = []
@@ -454,6 +458,9 @@ var _clock: float = 0.0
 var _driving: bool = true
 ## The sky over the Hold, and the fires under it.
 var _sky: CanvasModulate = null
+
+## The Hold's own fog. See `Balance.HOLD_FOG_WARDEN`.
+var _fog: FogOfWar = null
 var _fires: Array[Node2D] = []
 var _lights: Array[PointLight2D] = []
 ## A dash in progress, and the rest after one.
@@ -520,9 +527,11 @@ func _ready() -> void:
 	_build_seats()
 	_build_heel()
 	_build_sky()
+	_build_fog()
 	_build_fires()
 	_build_bonfire()
 	_build_banners()
+	_build_houses()
 	set_process(true)
 
 
@@ -605,7 +614,7 @@ func _scatter_grass() -> void:
 			plant.queue_free()
 	_plants.clear()
 	_breathers.clear()
-	for _index: int in Balance.HOLD_GRASS_TUFTS * 3:
+	for _index: int in Balance.HOLD_GRASS_BLADES:
 		var at := Vector2(_rng.randf_range(-YARD.x * 0.5, YARD.x * 0.5),
 			_rng.randf_range(-YARD.y * 0.5, YARD.y * 0.5))
 		if not _is_open_ground(at):
@@ -623,9 +632,21 @@ func _scatter_grass() -> void:
 			_stand_plant(at, out)
 		else:
 			_grass_at.append(at)
-	# **Sorted by the ground rather than by the draw**, so a tuft on the shelf
-	# is drawn before the bank that falls in front of it.
-	_grass_at.sort_custom(func(a: Vector2, c: Vector2) -> bool: return a.y < c.y)
+	# **One node for the whole field.** It was a sprite drawn per tuft in this
+	# node's own `_draw`, which is fine for a hundred and is the frame for a few
+	# thousand - and a hundred tufts on a yard this size is what the owner meant
+	# by bare. `HoldGrass` is one triangle array, and it is also where a blade
+	# learns to give way to a boot.
+	if _grass_field == null:
+		_grass_field = HoldGrass.new()
+		_grass_field.name = "Grass"
+		_grass_field.sheet = _grass
+		_grass_field.walkers = _who_is_walking
+		_actors.add_child(_grass_field)
+	var lifted: Array[Vector2] = []
+	for flat: Vector2 in _grass_at:
+		lifted.append(flat + Vector2(0.0, lift_at(flat)))
+	_grass_field.set_field(lifted)
 
 
 ## Whether a point is ground nothing else already has a claim on.
@@ -1062,6 +1083,62 @@ func _build_heel() -> void:
 ## difficulty setting; this one is a mood, and a player reading a stash must
 ## not have to squint at it - which is the interface tint's bound arriving
 ## through the scenery.
+## **The fog, and the things that hold it open.**
+##
+## The Warden carries a lantern's worth of it; every station and every fire
+## holds its own doorway lit, which is the owner's "essentials lit up". What is
+## left dim is the hillside between them, which is what gives a yard this size
+## a middle and an edge.
+##
+## Most of it is already explored on arrival: this is home. A Hold that opened
+## black would be a fog that punishes rather than one that lights.
+func _build_fog() -> void:
+	if not Graphics.fog_of_war():
+		return
+	_fog = FogOfWar.new()
+	_fog.half_extent = maxf(YARD.x, YARD.y) * 0.5 + OVERSCAN
+	_fog.cell = CELL
+	_fog.sources = _fog_sources
+	add_child(_fog)
+	_fog.prime_explored(maxf(YARD.x, YARD.y) * 0.5 * Balance.HOLD_FOG_KNOWN)
+
+
+## What can see, and how far. Read rather than registered, so a station added
+## tomorrow lights its own door without anybody remembering this.
+## Everybody standing in the yard, for the grass to lean away from.
+##
+## The seats rather than only the player: in a Hold with four Wardens in it,
+## grass that parted for one of them and stood up through the other three would
+## be worse than grass that never moved.
+func _who_is_walking() -> Array:
+	var feet: Array = []
+	for seat: Dictionary in _seats:
+		if int(seat.get("kind", 0)) == HoldSession.Seat.EMPTY:
+			continue
+		var at: Vector2 = seat["at"] as Vector2
+		feet.append(at + Vector2(0.0, lift_at(at)))
+	for person: Dictionary in _residents:
+		var at: Vector2 = person["at"] as Vector2
+		feet.append(at + Vector2(0.0, lift_at(at)))
+	return feet
+
+
+func _fog_sources() -> Array:
+	var seen: Array = []
+	for seat: Dictionary in _seats:
+		if int(seat.get("kind", 0)) == HoldSession.Seat.EMPTY:
+			continue
+		seen.append({"at": seat["at"] as Vector2,
+			"radius": Balance.HOLD_FOG_WARDEN})
+	for station: Dictionary in _stations:
+		seen.append({"at": station["at"] as Vector2,
+			"radius": Balance.HOLD_FOG_STATION})
+	seen.append({"at": at_cell(FIRE_AT), "radius": Balance.HOLD_FOG_FIRE})
+	for cell: Vector2i in TORCHES:
+		seen.append({"at": at_cell(cell), "radius": Balance.HOLD_FOG_FIRE * 0.6})
+	return seen
+
+
 func _build_sky() -> void:
 	_sky = CanvasModulate.new()
 	_sky.name = "HoldSky"
@@ -1072,7 +1149,14 @@ func _build_sky() -> void:
 func _follow_the_sun() -> void:
 	if _sky == null or not is_instance_valid(_sky):
 		return
-	var tint: Color = DayNight.tint
+	# **The Hold's own grade on top of the sun's.** Owner, 2026-09-17: *"the
+	# Hold needs more color grading and tint applied to assets"*. A hub cut
+	# into a shaded valley reads warmer and deeper than the open road, and this
+	# is the one place that can be said once for every asset in it - the
+	# buildings, the cloth, the people and the props all hang under this node.
+	var tint: Color = DayNight.tint * Balance.HOLD_GRADE
+	tint = Color(tint.r, tint.g, tint.b).lerp(
+		Color(tint.r, tint.g, tint.b) * Balance.HOLD_GRADE_DEPTH, 0.5)
 	# Lifted toward white by the floor rather than clamped per channel, so the
 	# *hue* of the hour survives - a Hold at dusk is warm and a Hold at midnight
 	# is blue, and both are readable.
@@ -1114,6 +1198,20 @@ func _build_bonfire() -> void:
 	var at: Vector2 = _on_ground(at_cell(FIRE_AT))
 	_bonfire.position = at + Vector2(0.0, lift_at(at))
 	_actors.add_child(_bonfire)
+
+
+## **Where people in the Hold actually live**, assembled part by part.
+##
+## Each takes its seed from its own cell, so the same six houses come back every
+## visit and no two of them are the same house - the rule the pens' animals and
+## the paddock's horses are each given a clock under.
+func _build_houses() -> void:
+	for cell: Vector2i in Balance.HOLD_HOUSES:
+		var house := HoldHouse.new()
+		house.seed_value = absi(hash(cell))
+		var at: Vector2 = _on_ground(at_cell(cell))
+		house.position = at + Vector2(0.0, lift_at(at))
+		_actors.add_child(house)
 
 
 ## Cloth on the wall, at the gate and over the market.
@@ -1167,6 +1265,8 @@ func _turn_the_wind(delta: float) -> void:
 			flag.set_wind(_wind)
 	if _bonfire != null and is_instance_valid(_bonfire):
 		_bonfire.set_wind(_wind)
+	if _grass_field != null and is_instance_valid(_grass_field):
+		_grass_field.set_wind(_wind)
 	# The plants lean in it too, through the material every plant in the game
 	# shares - so the Hold's ferns answer the same wind its banners do.
 	RunState.wind = _wind
@@ -1745,13 +1845,7 @@ func _draw() -> void:
 
 	_draw_pens()
 
-	for flat: Vector2 in _grass_at:
-		var at: Vector2 = flat + Vector2(0.0, lift_at(flat))
-		if _grass != null:
-			draw_texture(_grass, at - _grass.get_size() * Vector2(0.5, 1.0),
-				Color(1.0, 1.0, 1.0, 0.85))
-		else:
-			draw_circle(at, 7.0, Color(0.22, 0.3, 0.18, 0.7))
+	# The tufts are `HoldGrass`, a node of their own - see `_scatter_grass`.
 
 	# Shadows, on the ground under everybody rather than on each sprite: a
 	# shadow belongs to the earth, and drawing it here is also what keeps it

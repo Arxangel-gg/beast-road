@@ -257,6 +257,19 @@ func _walk(from: Variant, into: Array[Rect2]) -> void:
 		#
 		# A method rather than another class name: anything that draws its own
 		# lettering can say where, and nothing here has to know what it is.
+		# **A TabContainer's tabs are drawn by a child nothing walks to.** The
+		# strip of tab labels belongs to an internal `TabBar` that is not in
+		# `get_children()`, so the grid ran straight over the words on the
+		# settings screen's tabs and over nothing else on it - which is the
+		# owner's report of 2026-09-17, and the same shape as `BarName`.
+		#
+		# The bar's own rect rather than the container's: a `TabContainer` is as
+		# big as the page inside it, and holding *that* open would take the
+		# whole settings screen out of the grid.
+		elif control is TabContainer:
+			var bar: TabBar = (control as TabContainer).get_tab_bar()
+			if bar != null and is_instance_valid(bar) 					and bar.is_visible_in_tree():
+				into.append(bar.get_global_rect())
 		elif control.has_method("crisp_rects"):
 			for rect: Variant in control.call("crisp_rects"):
 				into.append(rect as Rect2)

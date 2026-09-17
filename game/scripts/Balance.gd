@@ -10624,6 +10624,137 @@ const HOLD_OCCLUDE_MARGIN: float = 46.0
 const HOLD_POND_CATCHES: int = 3
 const HOLD_POND_WINDOW: float = 600.0
 
+## The rarest fish the Hold's pond will give up.
+##
+## Nothing rare rises in a hub. What makes the good fish worth having is that
+## you went out on the road and stood still for one while a wave walked past; a
+## pond you can visit between runs handing over a Legendary would make that
+## whole system optional.
+const HOLD_POND_RARITY_CEILING: int = 1
+
+
+## **The dwellings the Hold assembles**, part by part.
+##
+## Owner, 2026-09-17: *"buildings should have modular tilesets as well and be
+## procedurally generatable for slight variations in them"*. Six pieces and a
+## grammar - see `HoldHouse` - so a house is a width, a door somewhere along it,
+## windows in some of the rest, and a chimney on the ridge.
+##
+## A bay is one wall segment at the size the yard draws it. Three to five of
+## them: two is a shed and six is a hall, and the Hold has a hall already.
+const HOLD_HOUSE_BAY: float = 86.0
+const HOLD_HOUSE_WALL: float = 130.0
+const HOLD_HOUSE_ROOF: float = 112.0
+const HOLD_HOUSE_BAYS: Vector2i = Vector2i(3, 5)
+const HOLD_HOUSE_SCALE: float = 1.35
+
+## How often a bay that is not the door has a window in it. Under a half, so a
+## wall still reads as a wall: a dwelling with a window in every bay is an inn.
+const HOLD_HOUSE_WINDOW_CHANCE: float = 0.42
+
+## How far the thatch oversails the wall at each end, as a share of one bay. An
+## eave is the whole difference between a roof and a lid.
+const HOLD_HOUSE_OVERHANG: float = 0.22
+
+## How far down the roof the chimney is seated, so its foot is buried in the
+## thatch rather than balanced on the ridge line.
+const HOLD_HOUSE_CHIMNEY_SEAT: float = 0.34
+
+## How far each piece overlaps the one beside it, as a share of a bay.
+##
+## A generated panel keeps a little transparent margin at its edges however
+## firmly the prompt says the timber runs off them, so panels laid exactly
+## edge-to-edge show a seam of grass between every one - photographed on the
+## first six houses. An overlap cannot be seen; a gap is the building falling
+## apart.
+const HOLD_HOUSE_LAP: float = 0.06
+
+## How far the thatch is seated down onto the wall's head. A roof balanced above
+## its own wall with daylight under the eave is a hat.
+const HOLD_HOUSE_SEAT: float = 0.22
+
+
+## **The Hold's own fog, and what holds it open.**
+##
+## Owner, 2026-09-17: *"more aesthetic lighting and visuals and fog of war with
+## the essentials lit up by the fog of war"*.
+##
+## `FogOfWar` is generic by construction - the battlefield hands it the grid's
+## extent and the road's vision, a rift hands the arena's and the hero alone -
+## so the Hold hands it the yard's extent, the Warden, and **every station and
+## every fire**. That is the "essentials lit up": the doors a player came here
+## to press are never in the dark, and what the fog actually hides is the
+## hillside between them.
+##
+## It is the fog's own bound one more time: **it hides and never helps.** Nothing
+## in the Hold reads it - not the focus, not a resident's errand, not a step -
+## and `Graphics.KEY_FOG` turns it off with no number moving.
+const HOLD_FOG_WARDEN: float = 560.0
+const HOLD_FOG_STATION: float = 300.0
+const HOLD_FOG_FIRE: float = 340.0
+
+## How much of the yard is already explored when a Warden arrives.
+##
+## This is their *home*: a Hold that opened black and had to be walked would be
+## a fog that punishes rather than one that lights. What the fog does here is
+## keep the far hillside dim and pull the eye to what is lit.
+const HOLD_FOG_KNOWN: float = 0.86
+
+## **How the Hold's own light falls.**
+##
+## The yard already had a `CanvasModulate` following the sun. What it did not
+## have is a grade of its own: a hub cut into a shaded valley reads warmer and
+## deeper than the open road, and every asset in it - the buildings, the cloth,
+## the people, the props - should sit in that one light rather than each in the
+## light of the sheet it was painted on.
+const HOLD_GRADE: Color = Color(1.06, 0.99, 0.88)
+const HOLD_GRADE_DEPTH: float = 0.82
+
+
+## **The grass in the Hold.**
+##
+## Owner, 2026-09-17: *"highly aesthetically appealing natural appearing grass
+## that is also highly optimized ... and should react to players walking through
+## the grass with proper procedural animation"*, and that the yard was *"too
+## bare"*.
+##
+## Thousands of tufts in **one** triangle array - see `HoldGrass` - so the count
+## is a look rather than a frame budget. The old `HOLD_GRASS_TUFTS` was 140
+## sprites drawn one at a time; this is the number a field needs.
+const HOLD_GRASS_BLADES: int = 3400
+
+## How big one tuft stands, and how it moves.
+##
+## `SWAY` is its own idle breath, `WIND` how much of the yard's wind reaches it.
+## The breath is per-tuft and the wind is shared, which is what makes a field
+## ripple rather than pulse.
+const HOLD_GRASS_WIDE: float = 34.0
+const HOLD_GRASS_TALL: float = 30.0
+const HOLD_GRASS_SWAY: float = 2.4
+const HOLD_GRASS_SWAY_HZ: float = 1.7
+const HOLD_GRASS_WIND: float = 7.0
+
+## **How it gives way.** `REACH` is how close somebody has to be, `LEAN` how far
+## a tuft at their feet is pushed, and `RECOVER` how long it takes to stand back
+## up once they have gone.
+##
+## The recovery is what makes this read as grass rather than as a force field: a
+## tuft that snapped upright the instant somebody stepped off it is a switch,
+## and a real blade takes a moment.
+const HOLD_GRASS_PART_REACH: float = 96.0
+const HOLD_GRASS_PART_LEAN: float = 20.0
+const HOLD_GRASS_RECOVER: float = 0.42
+
+## **Where the dwellings stand.** On the lower yard and the two outcrops, clear
+## of the square: the Hold is a shelter camp, and where people sleep is not
+## where they trade. Cells rather than points, so a house cannot be built on a
+## cliff - and `hold_check` walks the yard afterwards to prove nobody was walled
+## in.
+const HOLD_HOUSES: Array[Vector2i] = [
+	Vector2i(6, 19), Vector2i(13, 22), Vector2i(21, 22), Vector2i(27, 21),
+	Vector2i(5, 11), Vector2i(31, 12),
+]
+
 ## The pit in the middle of the square.
 ##
 ## `SQUASH` is the flattening every ring in this project is drawn with - the

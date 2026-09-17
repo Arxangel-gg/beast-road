@@ -546,7 +546,10 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_pref_toggle_row("Frame rate", Graphics.KEY_FPS_SHOW,
 		Graphics.fps_shown(),
 		"Shows the live frame rate in the top right of the battlefield."))
-	column.add_child(_pref_toggle_row("  ...over the interface",
+	# **"PX Over UI" rather than "...over the interface"** (owner, 2026-09-17).
+	# A row that continues the sentence above it only reads as one while the two
+	# are next to each other, and this list wraps on a phone.
+	column.add_child(_pref_toggle_row("  PX Over UI",
 		Graphics.KEY_PIXEL_FILTER_UI, Graphics.pixel_filter_ui(),
 		"Takes the panels, buttons and icons onto the same grid as the world. "
 		+ "Needs the grid above to be on."))
