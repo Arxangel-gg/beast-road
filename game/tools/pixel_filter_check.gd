@@ -58,18 +58,26 @@ var _failures: int = 0
 var _checks: int = 0
 
 
+## **Every test that yields is awaited.**
+##
+## Five of these stand a control up and need a frame or two before `CrispText`
+## has walked it. Called without `await`, a coroutine returns to `_ready` at its
+## first yield and `get_tree().quit()` runs before any of them finish - so the
+## gate printed PASS having measured only the arithmetic. Found by planting the
+## missing mute and watching it walk straight through, which is the whole
+## reason a gate is validated with a real fault rather than read.
 func _ready() -> void:
 	_test_the_order_of_the_layers()
 	_test_the_interface_never_outruns_the_world()
 	_test_the_slider_is_clamped()
 	_test_the_grid_scales_with_the_screen()
-	_test_headless_engages_nothing()
-	_test_the_type_is_muted_where_it_was_authored()
-	_test_releasing_puts_everything_back()
-	_test_a_freed_control_is_not_written_to()
-	_test_rich_text_is_cut_out_rather_than_muted()
+	await _test_headless_engages_nothing()
+	await _test_the_type_is_muted_where_it_was_authored()
+	await _test_releasing_puts_everything_back()
+	await _test_a_freed_control_is_not_written_to()
+	await _test_rich_text_is_cut_out_rather_than_muted()
 	_test_the_rectangles_are_bounded()
-	_test_a_hidden_screen_is_left_alone()
+	await _test_a_hidden_screen_is_left_alone()
 	_test_both_screens_stand_one_up()
 	if _failures == 0:
 		print(("[pixel-filter] PASS - %d checks: the type is drawn above both "

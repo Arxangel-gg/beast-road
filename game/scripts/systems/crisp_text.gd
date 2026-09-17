@@ -162,14 +162,19 @@ func _gather() -> void:
 		ui_filter_grid.set_exclusions(exempt)
 
 
-func _walk(from: Node, exempt: Array[Rect2]) -> void:
+## Takes a `Variant` for the same reason the release does: a root freed while
+## this was watching it cannot be typed as a `Node` without throwing on the spot.
+func _walk(from: Variant, exempt: Array[Rect2]) -> void:
 	if from == null or not is_instance_valid(from):
+		return
+	var node: Node = from as Node
+	if node == null:
 		return
 	# This node's own children are the sharp copies. Walking into them would
 	# have it take over the text it is itself drawing.
-	if from == self:
+	if node == self:
 		return
-	var control: Control = from as Control
+	var control: Control = node as Control
 	if control != null:
 		if not control.is_visible_in_tree():
 			# A hidden branch draws nothing, so nothing under it needs muting -
@@ -183,7 +188,7 @@ func _walk(from: Node, exempt: Array[Rect2]) -> void:
 			return
 		if DRAWN.has(kind):
 			_take(control)
-	for child: Node in from.get_children():
+	for child: Node in node.get_children():
 		_walk(child, exempt)
 
 
@@ -277,10 +282,15 @@ func _mute(control: Control) -> void:
 ## Puts every muted control back exactly as it was found.
 func _release() -> void:
 	for row: Dictionary in _muted:
-		var control: Control = row["control"] as Control
-		if control == null or not is_instance_valid(control):
-			# Freed while muted. Nothing to put back, and writing to it would be
-			# the freed-object cast that flooded `companion_check` with errors.
+		# **Validity before the cast, never after it.** `as Control` on a freed
+		# object throws on the spot, so a guard written *under* the cast never
+		# runs - which is the ninety-five-errors-a-frame flood `companion_check`
+		# found, and which this file shipped again until the gate caught it.
+		var held: Variant = row["control"]
+		if held == null or not is_instance_valid(held):
+			continue
+		var control: Control = held as Control
+		if control == null:
 			continue
 		var was: Dictionary = row["was"] as Dictionary
 		for key: String in was:
