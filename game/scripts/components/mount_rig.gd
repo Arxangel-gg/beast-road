@@ -122,6 +122,13 @@ func show_mount(kind: MountData) -> void:
 		return
 	_measure(kind)
 	_sprite.region_enabled = not _sheets.is_empty()
+	# **Un-mirrored when there are sheets.** `set_facing` only ever writes
+	# `flip_h` for the single-painting fallback, so a mount swapped from one
+	# that had no sheets to one that has them would keep whichever way the
+	# last fallback happened to be facing - and eight authored rows mirrored
+	# is the 'facing backwards' report this project has answered seven times.
+	if not _sheets.is_empty():
+		_sprite.flip_h = false
 	_sprite.scale = Vector2.ONE * kind.art_scale
 	visible = true
 	_cast_shadow(kind)
@@ -205,12 +212,12 @@ func set_speed_scale(scale: float) -> void:
 func _process(delta: float) -> void:
 	if not visible or _sprite == null or _kind == null:
 		return
-	# **The bob is drawn rather than animated**, for the reason the sheets are
-	# kept neutral: a rise and fall baked into eight frames is eight frames this
-	# project has to generate twice, and the engine can do it for a sine.
 	# The climb first, because the seat is measured from it.
 	if _climb < 1.0:
 		_climb = minf(_climb + delta / maxf(Balance.MOUNT_UP_SECONDS, 0.01), 1.0)
+	# **The bob is drawn rather than animated**, for the reason the sheets are
+	# kept neutral: a rise and fall baked into eight frames is eight frames this
+	# project has to generate twice, and the engine can do it for a sine.
 	_bob += delta * Balance.MOUNT_BOB_RATE * _speed_scale
 	var lift: float = -absf(sin(_bob)) * Balance.MOUNT_BOB_HEIGHT * _speed_scale
 	if _sheets.is_empty():
@@ -220,6 +227,14 @@ func _process(delta: float) -> void:
 		_apply_seat(lift)
 		return
 	if _state.is_empty() or not _sheets.has(_state):
+		# **The seat is applied before giving up on the frame.** A mount whose
+		# `idle` sheet is missing while another state's exists plays nothing on
+		# the frame it is mounted, and returning here without seating the rider
+		# left them standing at the horse's feet for the whole ride - the exact
+		# failure `mount_check.climbed()` was added to catch, reachable only
+		# through a partial art pass, which is the thing this class is built to
+		# survive.
+		_apply_seat(lift)
 		return
 	var config: Dictionary = STATES[_state] as Dictionary
 	_frame += delta * float(config["fps"]) * _speed_scale
