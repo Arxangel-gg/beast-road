@@ -19,6 +19,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	RunState.reset()
 	_test_the_roster_is_warm()
+	_test_the_saddled_mount_is_warm()
 	_test_the_shaders_load()
 	await _test_the_field_warms_itself()
 	MetaState.resume_saves()
@@ -99,6 +100,60 @@ func _test_the_roster_is_warm() -> void:
 			if not _warm(frame):
 				cold.append(frame)
 	_check(cold.is_empty(), "%d tower frames are cold after the warm-up, e.g. %s" % [cold.size(), cold[0] if not cold.is_empty() else ""])
+
+
+## **The horse the Warden can call up on a frame's notice.**
+##
+## A mount's three sheets are the largest single thing a player can ask this
+## game to draw without warning - nothing reaches for them until the mount key
+## is pressed, and a press mid-wave is a disk load in the middle of whatever
+## they pressed it to get away from. That is the stutter this whole class was
+## built for, arriving through a door it did not know about.
+func _test_the_saddled_mount_is_warm() -> void:
+	var stock: Array[MountData] = ContentDB.mounts_sorted()
+	_check(not stock.is_empty(), "the stable must have something in it")
+	if stock.is_empty():
+		return
+	var kind: MountData = stock[0]
+	var was_owned: Array[String] = MetaState.mounts.duplicate()
+	var was_saddled: String = MetaState.mount_saddled
+	MetaState.mounts = [kind.id] as Array[String]
+	MetaState.mount_saddled = kind.id
+
+	# **Driven through `warm_act`, which is the door the field opens**, rather
+	# than by calling the mount's own helper. The first cut called the helper
+	# and a planted fault - taking the call out of `warm_act` entirely - walked
+	# straight through it: it was testing the function and not the wiring, which
+	# is the failure this project has now made four times and written down
+	# three.
+	RosterWarmup.warm_act(RunState.act, RunState.terrain_id)
+	var cold: Array[String] = []
+	var wanted: Array[String] = [kind.get_sprite_path()]
+	for state: String in MountRig.STATES:
+		wanted.append("res://art/mounts/mount_%s_%s.png" % [kind.id, state])
+	for path: String in wanted:
+		# A sheet that is not drawn yet is not cold, it is absent - `MountRig`
+		# falls back to a stiller picture, which is the rule the whole art
+		# pipeline runs on.
+		if ResourceLoader.exists(path) and not _warm(path):
+			cold.append(path)
+	_check(cold.is_empty(),
+		"%d of the saddled mount's sheets are cold after the warm-up, e.g. %s"
+			% [cold.size(), cold[0] if not cold.is_empty() else ""])
+
+	# **And nobody else's horse.** The stable may hold four and the Warden rides
+	# one; warming the rest is three sheets of somebody else's animal held for
+	# the length of a run.
+	if stock.size() > 1:
+		var other: MountData = stock[1]
+		MetaState.mount_saddled = kind.id
+		var theirs: String = "res://art/mounts/mount_%s_gallop.png" % other.id
+		if ResourceLoader.exists(theirs):
+			_check(not _warm(theirs),
+				"a mount nobody saddled was warmed: %s" % theirs)
+
+	MetaState.mounts = was_owned
+	MetaState.mount_saddled = was_saddled
 
 
 func _test_the_shaders_load() -> void:

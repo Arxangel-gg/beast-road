@@ -54,7 +54,51 @@ static func warm_act(act: int, terrain_id: String) -> int:
 		var tower := value as TowerData
 		if tower != null:
 			loaded += _warm_body(tower.get_sprite_path(), false)
+	loaded += warm_saddled_mount()
 	return loaded
+
+
+## **The horse the Warden is carrying the key to.**
+##
+## A mount's three sheets are the largest single thing a player can ask this
+## game to draw on a frame's notice - an idle, a walk and a gallop, each eight
+## facings - and nothing else reaches for them until the mount key is pressed.
+## Left cold, the first press of that key is a disk load in the middle of
+## whatever the player pressed it to get away from, which is exactly the
+## stutter `perf_check` found in every first wave of every act on 2026-09-14
+## and the reason this class exists at all.
+##
+## **Only the saddled one.** The stable may hold four and the Warden rides one;
+## warming the rest is three sheets of somebody else's horse in memory for the
+## length of a run. Saddling a different mount happens at the Hold, between
+## runs, where a load costs nobody anything.
+static func warm_saddled_mount() -> int:
+	var kind: MountData = MetaState.saddled_mount()
+	if kind == null:
+		return 0
+	var loaded: int = 0
+	loaded += _warm_frame(kind.get_sprite_path())
+	for state: String in MountRig.STATES:
+		loaded += _warm_frame("res://art/mounts/mount_%s_%s.png"
+			% [kind.id, state])
+	return loaded
+
+
+## One texture, if it is there. A missing sheet is a mount that falls back to
+## a stiller picture rather than a hole - see `MountRig` - so it is not an
+## error here either.
+static func _warm_frame(path: String) -> int:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return 0
+	var texture: Resource = load(path)
+	if texture == null:
+		return 0
+	# **Kept, not merely loaded.** `warmed` is what holds the reference: a
+	# texture loaded and dropped on the next line is collected immediately and
+	# the load happens again the moment anybody asks - so the warm-up would
+	# have cost a disk read and bought nothing. `warmup_check` named it.
+	warmed[path] = texture
+	return 1
 
 
 ## One body's frames: the base, the idle, the walk, the attack, and for the
