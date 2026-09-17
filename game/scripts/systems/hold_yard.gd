@@ -972,10 +972,27 @@ func _draw() -> void:
 			_shadow(sprite.position, 22.0, 8.0)
 	if _heel != null and is_instance_valid(_heel):
 		_shadow(_heel.position, 18.0, 7.0)
-	for seat: Dictionary in _seats:
+	for index: int in _seats.size():
+		var seat: Dictionary = _seats[index]
 		if int(seat["kind"]) == HoldSession.Seat.EMPTY:
 			continue
-		_shadow(seat["at"] as Vector2, 24.0, 9.0)
+		var stood: Vector2 = seat["at"] as Vector2
+		_shadow(stood, 24.0, 9.0)
+		# **The same colour this Warden is everywhere else** (owner, 2026-09-17:
+		# *"the players/playerNPCs should still have their color assigned vfx"*).
+		# Read off `Balance.PARTY_COLOURS` by seat rather than rolled here, so the
+		# blue Warden in the Hold is the blue Warden on the road - a second table
+		# of colours is how one of them ends up disagreeing.
+		var mine: Color = Balance.PARTY_COLOURS[index % Balance.PARTY_COLOURS.size()]
+		# Flattened for the reason every ring at the feet in this game is: the
+		# camera looks down and slightly along, and a true circle reads as a hoop
+		# standing up. It breathes on the seat's own clock so four Wardens are
+		# four marks rather than one drawn four times.
+		var breath: float = 0.42 + 0.14 * sin(_clock * 1.7 + float(index) * 1.9)
+		draw_set_transform(stood, 0.0, Vector2(1.0, 0.36))
+		draw_arc(Vector2.ZERO, 30.0, 0.0, TAU, 28,
+			Color(mine.r, mine.g, mine.b, breath), 2.5)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# What is in reach, marked on the ground. A ring rather than a floating
 	# icon, because the thing being pointed at is a place to stand.
