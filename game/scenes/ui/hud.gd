@@ -3649,12 +3649,33 @@ func _spell_in_slot(slot: int) -> SpellData:
 	return ContentDB.spells.get(RunState.equipped_spells[slot], null) as SpellData
 
 
+## Casts what is in the slot - or says where a slot is filled from.
+##
+## **An empty slot used to do nothing at all**, silently, which is what the
+## owner reported on 2026-09-18 as magic having *"no way of using them"*. The
+## route was always there - train a node on the Sanctum's Abilities page, slot
+## it, and it appears here - but a bar that answers a press with silence
+## teaches the player that the feature is missing rather than that it is
+## somewhere else. The press now names the door.
 func _cast(slot: int) -> void:
+	if _spell_in_slot(slot) == null \
+		and RunState.discipline_node_in_slot(slot) == null:
+		_say_where_abilities_live()
+		return
 	# The body, exactly as `hero.gd` casts from. This passed the feet, so the
 	# same spell cast from the touch bar and from the keyboard originated a
 	# body-height apart and picked up slightly different targets.
 	if _hero != null and _hero.is_alive():
 		_hero.spells.try_cast(slot, _hero.aim_direction(), _hero.combat_origin())
+
+
+## Where a Warden fills an empty ability slot, said once and in one place.
+func _say_where_abilities_live() -> void:
+	var where: String = "Sanctum · Abilities, during Preparation"
+	if not RunState.is_preparation():
+		where = "Sanctum · Abilities, in Preparation"
+	_report("Empty slot. Train and slot an ability at the %s." % where)
+	Sfx.play("sfx_ui_deny", -4.0)
 
 
 func _update_spell_bar() -> void:
