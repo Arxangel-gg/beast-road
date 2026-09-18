@@ -105,8 +105,18 @@ func _ready() -> void:
 	# `from_pen` separates is exactly that: the creature in the pen is alive and
 	# the summoned one is not. Its footprint comes off the species it actually
 	# is, so a raised badger and a raised bear are not the same weight.
-	if from_pen:
-		Footfalls.register_animal(self, ContentDB.wildlife_kind(data.wildlife_id), 1.0)
+	# **Every companion marks the ground, raised or summoned.** Owner,
+	# 2026-09-18: *"Companions also must produce the moving ground vfx!"* The
+	# first cut gave a summoned spirit nothing, on the reading that a spirit
+	# has no body - `FOOTFALL_MASS_BY_HIDE` gives one a mass of zero and that
+	# rule still stands for the *roster*, where it separates a wight from a
+	# golem. A companion at your shoulder is a different question and the
+	# owner has answered it: it walks, so it scuffs. A summoned one is lighter
+	# rather than weightless, which keeps the distinction visible without
+	# making it invisible.
+	var bulk: float = 1.0 if from_pen else Balance.FOOTFALL_SPIRIT_MASS
+	Footfalls.register_animal(self, ContentDB.wildlife_kind(data.wildlife_id),
+		bulk)
 	_left = data.duration
 	if not spirit_key.is_empty():
 		# No clock. A spirit stays until it is beaten, unequipped or replaced.

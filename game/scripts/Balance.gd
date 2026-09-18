@@ -9707,8 +9707,23 @@ const CURRENCY_YIELD_SCALE: Dictionary = {
 ## So: one per player, a price of its own rather than its role's, and a heal
 ## that starts small and grows with the levels the player pays for. Early is
 ## where it mattered most, and early is where it is now weakest.
-const WELL_BUILD_GOLD: int = 420
-const WELL_BUILD_STONE: int = 60
+## **What a well costs, and why it is cheap and slow rather than dear and
+## quick.**
+##
+## Owner, 2026-09-18: *"It's too expensive to buy a healing well, price it
+## more appropriately, but also make it fill slower for its lower levels
+## appropriately so that it's not abused but rather used properly such that
+## it can just allow early weaker players to manage survival further into
+## the game."*
+##
+## The two halves are one decision. Price is what stops a struggling player
+## reaching the recovery economy at all, and *rate* is what stops a well
+## being stood next to and farmed - so the price comes down to roughly what
+## a Warden tower costs and the level-one draught comes slower to pay for
+## it. A player who invests gets the old cadence back by about level four,
+## which is the shape the level scaling already had (2026-09-13).
+const WELL_BUILD_GOLD: int = 250
+const WELL_BUILD_STONE: int = 40
 const WELL_LIMIT_PER_PLAYER: int = 1
 ## What a level-one well draws, as a share of what it used to. The scaling
 ## with level (`WELL_HEAL_PER_LEVEL`) is unchanged, so a player who invests
@@ -10398,6 +10413,16 @@ const HOLD_SEATS: int = COOP_MAX_PLAYERS
 ## is a place to be somewhere rather than a place to travel, and a slow walk
 ## across a lobby is a loading screen you operate by hand.
 const HOLD_WALK_SPEED: float = 330.0
+## How much faster a Warden moves in the Hold holding sprint, on foot or in
+## the saddle.
+##
+## **It spends no SP**, which is the owner's own clause (2026-09-18): SP is
+## the road's resource and rations a crossing that matters. Nothing in the
+## Hold is chasing anybody, so the pool has nothing to be a decision about -
+## and a hub this wide that insists on a walk is its own size working against
+## it. The same multiplier as the road's sprint, so the Hold is not quietly
+## the fastest place in the game.
+const HOLD_SPRINT_SPEED: float = HERO_SPRINT_SPEED
 
 ## How close is close enough to use something. Generous, because a hub that
 ## needs precision is a hub people fight with.
@@ -10943,6 +10968,13 @@ const FOOTFALL_MASS_MOUNT: float = 2.6
 ## What a hide is worth. Plate and stone drive their weight into the ground;
 ## flesh does not, and a spirit has none - it never registers at all.
 const FOOTFALL_MASS_BY_HIDE: Array[float] = [1.0, 1.45, 1.9, 0.0]
+## What a *summoned* companion weighs, against a raised one at one.
+##
+## The hide table above gives a spirit zero and that is right for the roster,
+## where it separates a wight from a golem. A companion is the owner's own
+## exception (2026-09-18): it walks beside you, so it marks the ground - a
+## summoned one lightly, a raised one like the animal it is.
+const FOOTFALL_SPIRIT_MASS: float = 0.55
 
 ## **Where the dwellings stand.** On the lower yard and the two outcrops, clear
 ## of the square: the Hold is a shelter camp, and where people sleep is not
@@ -11141,7 +11173,10 @@ const UI_PIXEL_FILTER_LAYER: int = 15
 ## How big one block is, at `UI_PIXEL_FILTER_REFERENCE_HEIGHT`. Three is a grid
 ## a player sees without being able to count it; at one it does nothing and past
 ## about six the sprites start losing features they were drawn with.
-const UI_PIXEL_FILTER_BLOCK: float = 3.0
+## Owner, 2026-09-18: *"Default pixelshader size for all players should be
+## 1px on the slider"* - the slider stays for now as a dev control and may
+## come out of the settings screen when the game is released.
+const UI_PIXEL_FILTER_BLOCK: float = 1.0
 ## The height that block was chosen against. A flat block size is a strong
 ## effect on a small window and almost nothing on a 4K one, so the grid is a
 ## share of the screen rather than a number of pixels.

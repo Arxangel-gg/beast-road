@@ -1741,7 +1741,17 @@ func _drive_warden(delta: float) -> void:
 	if _driving and Input.is_action_just_pressed(&"mount"):
 		_toggle_ride(seat, way)
 	var riding: bool = bool(seat.get("riding", false))
-	var speed: float = Balance.HOLD_WALK_SPEED \
+	# **Sprinting here costs nothing.** Owner, 2026-09-18: *"Players should
+	# also be able to sprint with shift etc without using sp in the Hold, same
+	# with riding their mount in the hold and sprinting with it."* SP is the
+	# road's resource and exists to make crossing a battlefield a decision;
+	# there is nothing here to ration it against, and a hub three and a half
+	# thousand units across that makes you walk is the size working against
+	# the place. The Warden's own pool is never read and never spent.
+	var running: float = 1.0
+	if _driving and Input.is_action_pressed(&"sprint"):
+		running = Balance.HOLD_SPRINT_SPEED
+	var speed: float = Balance.HOLD_WALK_SPEED * running \
 		* (Balance.HOLD_MOUNT_SPEED if riding else 1.0)
 	_step(seat, way, delta, speed)
 	_tick_ride(seat, way, delta, speed)

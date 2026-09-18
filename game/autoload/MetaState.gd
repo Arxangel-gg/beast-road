@@ -1486,12 +1486,39 @@ func hold_pond_take(now: float = -1.0) -> bool:
 func sort_stash() -> bool:
 	if TradeBooth.is_trading():
 		return false
+	# **What is worn is remembered by name before the order changes.**
+	#
+	# `equipped` maps a slot to a *stash index*, so re-ordering the stash
+	# re-equips the Warden unless the indices are moved with the pieces. The
+	# function directly below this one carries that warning in as many words -
+	# *"it silently re-equips a different sword"* - and this one shipped
+	# ignoring it: pressing Sort scrambled the whole loadout, and the Market's
+	# comparison card then read the wrong slot's gear, which is how the owner
+	# found it.
+	#
+	# A uid is the one name a piece keeps across a re-order, which is why it
+	# exists (a trade has to name a piece rather than a position).
+	var by_slot: Dictionary = {}
 	var worn: Array[String] = []
 	for slot: Variant in equipped:
 		var piece: Dictionary = equipped_piece(int(slot))
-		if not piece.is_empty():
-			worn.append(String(piece.get("uid", "")))
+		if piece.is_empty():
+			continue
+		var uid: String = String(piece.get("uid", ""))
+		worn.append(uid)
+		by_slot[int(slot)] = uid
 	stash = Stash.tidy(stash, worn)
+	# And found again afterwards. A piece whose uid has gone - which nothing
+	# should be able to do here, since tidy only re-orders - takes its slot
+	# off rather than leaving it pointing at a stranger.
+	var moved: Dictionary = {}
+	for slot: Variant in by_slot:
+		var wanted: String = String(by_slot[slot])
+		for index: int in stash.size():
+			if String((stash[index] as Dictionary).get("uid", "")) == wanted:
+				moved[int(slot)] = index
+				break
+	equipped = moved
 	save_game()
 	return true
 
