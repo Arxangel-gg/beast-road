@@ -4362,9 +4362,23 @@ func _refresh_build_panel() -> void:
 					cost - RunState.currency(RunState.GOLD)), 13))
 		else:
 			_build_list.add_child(_label("Fully upgraded.", 14))
+		# **Asked before the stone comes down.** Owner, 2026-09-18: a sale
+		# says what leaves and what arrives and can be cancelled. A tower is
+		# the one of the three that is also a *position* - the anchor is gone
+		# with it and a wave may be walking - so it is the one a misclick
+		# costs most.
 		var sell: Button = _add_button(_build_list, "Sell", func() -> void:
-			_report(battlefield.try_sell(anchor))
-			_refresh_build_panel())
+			var back: int = battlefield.sell_refund(anchor)
+			var what: TowerData = RunState.tower_at(anchor)
+			var named: String = what.display_name if what != null else "this tower"
+			var panel: SaleConfirm = SaleConfirm.ask(self, "Dismantle",
+				"%s  ·  level %d" % [named, RunState.level_at(anchor)],
+				"%d Gold" % back, Balance.UI_CONFIRM_CAPTION)
+			panel.decided.connect(func(yes: bool) -> void:
+				if not yes:
+					return
+				_report(battlefield.try_sell(anchor))
+				_refresh_build_panel()))
 		# Every other button in this panel carries a mark; one bare label in the
 		# column reads as an unfinished row rather than as a different action.
 		IconKit.on_button(sell, "resource", 22)

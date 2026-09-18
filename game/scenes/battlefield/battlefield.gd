@@ -1968,6 +1968,21 @@ static func upgrade_cost_of(level: int) -> int:
 	return maxi(int(round(float(base) * scale)), 1)
 
 
+## What dismantling the tower at `anchor` would hand back in Gold.
+##
+## **Read off the same arithmetic the sale uses**, so the figure a player is
+## shown before they confirm and the figure they are paid afterwards cannot
+## disagree - which is the rule the homecoming card is written under too.
+func sell_refund(anchor: Vector2i) -> int:
+	var tower_data: TowerData = RunState.tower_at(anchor)
+	if tower_data == null:
+		return 0
+	var spent: int = build_cost_of(tower_data)
+	for l: int in range(1, RunState.level_at(anchor)):
+		spent += upgrade_cost_of(l)
+	return int(round(float(spent) * Balance.TOWER_SELL_REFUND))
+
+
 func try_sell(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Selling is locked until Preparation."

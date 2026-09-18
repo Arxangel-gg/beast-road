@@ -972,19 +972,48 @@ func _do_item_action(index: int, id: int) -> void:
 			Stash.set_favourite(piece, not Stash.is_favourite(piece))
 			MetaState.save_game()
 			EventBus.stash_changed.emit()
+		# **Both of these destroy a piece, so both ask first** (owner,
+		# 2026-09-18). A stash of a hundred and sixty rows is exactly where
+		# the wrong one gets clicked, and neither Marks nor Shards buy a
+		# particular piece back.
 		MENU_SELL:
 			if Stash.is_favourite(piece):
 				return
-			MetaState.marks += Stash.sell_price(piece)
-			MetaState.drop_gear(index)
-			Sfx.play("sfx_tower_sell")
+			_ask_then(piece, kind, "Sell",
+				"%d Marks" % Stash.sell_price(piece),
+				func() -> void:
+					MetaState.marks += Stash.sell_price(piece)
+					MetaState.drop_gear(index)
+					Sfx.play("sfx_tower_sell")
+					_refresh())
+			return
 		MENU_BREAK:
 			if Stash.is_favourite(piece):
 				return
-			MetaState.shards += Stash.salvage_yield(piece)
-			MetaState.drop_gear(index)
-			Sfx.play("sfx_relic_socket")
+			_ask_then(piece, kind, "Break for parts",
+				"%d Shards" % Stash.salvage_yield(piece),
+				func() -> void:
+					MetaState.shards += Stash.salvage_yield(piece)
+					MetaState.drop_gear(index)
+					Sfx.play("sfx_relic_socket")
+					_refresh())
+			return
 	_refresh()
+
+
+## Puts the trade to the player and runs `then` only if they agree.
+##
+## The piece is named in full and in its rarity colour, because that is the
+## one thing that tells a player they clicked the row they meant to.
+func _ask_then(piece: Dictionary, kind: GearData, title: String,
+	getting: String, then: Callable) -> void:
+	var named: String = Stash.display_name(piece, kind) if kind != null \
+			else "this piece"
+	var panel: SaleConfirm = SaleConfirm.ask(self, title, named, getting,
+		Stash.rarity_colour(piece))
+	panel.decided.connect(func(yes: bool) -> void:
+		if yes:
+			then.call())
 
 
 ## One width and one height for all four row actions.

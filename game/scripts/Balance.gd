@@ -11224,6 +11224,26 @@ const UI_CRISP_TEXT_LAYER: int = 25
 ## set the grid to nothing. Everything that divides by the block refuses below
 ## one rather than trusting it, because this is a saved number and a save is a
 ## file a player can edit.
+## ## **Asking before anything a player owns is destroyed.**
+##
+## Owner, 2026-09-18: a sale must say *"what the player is giving up and what
+## they're getting in exchange"* and must be cancellable. See `SaleConfirm`,
+## which is one panel shared by the three doors that destroy something -
+## selling a piece, breaking one, and dismantling a tower.
+##
+## Above every screen, because it is asking about the row underneath it.
+const UI_CONFIRM_Z: int = 4096
+const UI_CONFIRM_WIDTH: float = 520.0
+const UI_CONFIRM_PADDING: float = 18.0
+## A thumb-sized answer either way: this is the one press in the game that
+## cannot be taken back, so neither button may be a target somebody misses.
+const UI_CONFIRM_BUTTON_HEIGHT: float = 48.0
+const UI_CONFIRM_HEADING: Color = Color(0.86, 0.72, 0.38)
+const UI_CONFIRM_CAPTION: Color = Color(0.56, 0.58, 0.54)
+## What arrives is green, which is the ledger colour the Market's comparison
+## card already uses for a gain - one meaning for one colour.
+const UI_CONFIRM_GAIN: Color = Color(0.58, 0.84, 0.54)
+
 const UI_PIXEL_FILTER_BLOCK_MIN: float = 0.0
 const UI_PIXEL_FILTER_BLOCK_MAX: float = 8.0
 
