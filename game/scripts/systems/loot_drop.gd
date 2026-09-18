@@ -63,6 +63,11 @@ static var _quad: ImageTexture = null
 var _beacon_wide: float = Balance.LOOT_BEACON_WIDTH
 
 var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
+## How far up the rarity ladder this drop is, 0 to 1. What its light is scaled
+## by, so a Beastcalled sword lights the ground and a copper coin barely does.
+var _rank: float = 0.0
+## The real light this drop casts. See `_light_the_drop`.
+var _lamp: PointLight2D = null
 var _glow_size: float = Balance.LOOT_GLOW_SIZE
 var _material: ShaderMaterial = null
 var _taken: bool = false
@@ -116,6 +121,8 @@ func setup_gear(piece: Dictionary, from: Vector2) -> void:
 		Balance.GEAR_RARITY_COLOURS.size() - 1)
 	_glow_colour = Balance.GEAR_RARITY_COLOURS[rarity]
 	_glow_colour.a = 0.58
+	var rungs: float = maxf(float(Balance.GEAR_RARITY_COLOURS.size() - 1), 1.0)
+	_rank = float(rarity) / rungs
 	_glow_size = Balance.GEAR_DROP_GLOW_SIZE
 	var angle: float = randf() * TAU
 	_velocity = Vector2.RIGHT.rotated(angle) * randf_range(
@@ -124,6 +131,7 @@ func setup_gear(piece: Dictionary, from: Vector2) -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	_light_the_drop()
 	_sprite = Sprite2D.new()
 	# World art where it exists, the currency's UI icon otherwise.
 	#
@@ -191,10 +199,55 @@ func _ready() -> void:
 	pop.tween_property(self, "scale", Vector2.ONE, Balance.LOOT_POP_TIME * 0.4)
 
 
+## **A drop lights the ground it is lying on.**
+##
+## Owner, 2026-09-18: *"All pickup drops need artificial glow like the
+## torchlights, but should be scaled and color coded by rarity ... Healing
+## items should be extra evident as they're essential to player survival and
+## should even pulse."*
+##
+## The drop already knew its colour - the rarity's own ink, or the healing
+## orb's - and drew a shader and a beacon with it. What it never had is a
+## *light*: the difference between a bright sprite and something that makes
+## the earth around it brighter, which is why a torch reads across this game's
+## road at night and a dropped sword did not.
+##
+## **Rarity scales it and never colours it twice.** The colour is the one the
+## sprite already wears, so the light and the drop can never disagree about
+## what rarity a piece is; what the rank buys is reach and strength.
+func _light_the_drop() -> void:
+	var reach: float = lerpf(Balance.LOOT_LIGHT_RADIUS_MIN,
+		Balance.LOOT_LIGHT_RADIUS_MAX, _rank)
+	var strength: float = lerpf(Balance.LOOT_LIGHT_ENERGY_MIN,
+		Balance.LOOT_LIGHT_ENERGY_MAX, _rank)
+	if _healing():
+		# Essential to survival, so it is the brightest thing on the floor
+		# whatever it cost to drop - and the only one that pulses.
+		reach = Balance.LOOT_LIGHT_RADIUS_MAX * Balance.LOOT_LIGHT_HEAL_SCALE
+		strength = Balance.LOOT_LIGHT_ENERGY_MAX * Balance.LOOT_LIGHT_HEAL_SCALE
+	_lamp = LightKit.add_light(self, Color(_glow_colour.r, _glow_colour.g,
+		_glow_colour.b, 1.0), reach, strength)
+
+
+## Whether this is a drop a hurt player needs to see from across the road.
+func _healing() -> bool:
+	return currency == Balance.HEALING_ORB_ID \
+		or currency == Balance.MENDER_SPARK_ID
+
+
 func _process(delta: float) -> void:
 	if _taken:
 		return
 	_life += delta
+	# **The pulse, on the healing drops only.** A breath rather than a blink:
+	# something flashing on a battlefield reads as a hazard, and this is the
+	# opposite of one.
+	if _lamp != null and is_instance_valid(_lamp) and _healing():
+		_lamp.energy = Balance.LOOT_LIGHT_ENERGY_MAX \
+			* Balance.LOOT_LIGHT_HEAL_SCALE \
+			* (1.0 - Balance.LOOT_LIGHT_PULSE_DEPTH \
+				+ Balance.LOOT_LIGHT_PULSE_DEPTH \
+				* absf(sin(_life * Balance.LOOT_LIGHT_PULSE_RATE)))
 	# The *nearest* hero, not the one holding the hero group.
 	#
 	# That group answers "which hero does the HUD describe", which is this

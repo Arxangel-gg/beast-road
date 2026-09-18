@@ -546,6 +546,26 @@ const GEAR_TIER_ODDS_CEILING: float = 2.2
 ## screen-pixel arithmetic these come from.
 const GEAR_DROP_ICON_SIZE: float = 76.0
 const GEAR_DROP_GLOW_SIZE: float = 168.0
+## ## **What a drop lights, and how hard.**
+##
+## Owner, 2026-09-18: pickups want *"artificial glow like the torchlights,
+## but ... scaled and color coded by rarity"*, with healing *"extra evident"*
+## and pulsing. The colour is never one of these numbers - it is the drop's
+## own `_glow_colour`, so a light and the sprite under it cannot disagree
+## about a rarity. What the rank buys is reach and strength.
+const LOOT_LIGHT_RADIUS_MIN: float = 46.0
+const LOOT_LIGHT_RADIUS_MAX: float = 132.0
+const LOOT_LIGHT_ENERGY_MIN: float = 0.42
+const LOOT_LIGHT_ENERGY_MAX: float = 1.05
+## A healing drop takes the top of both ladders and a little more, because a
+## player who needs one is the player least able to go looking for it.
+const LOOT_LIGHT_HEAL_SCALE: float = 1.18
+## The breath on a healing drop. A *breath* rather than a blink - something
+## flashing on a battlefield reads as a hazard, and this is the opposite of
+## one - so the depth is under a third and the rate is slow.
+const LOOT_LIGHT_PULSE_DEPTH: float = 0.28
+const LOOT_LIGHT_PULSE_RATE: float = 2.4
+
 const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
 	Color("b486d9"), Color("e8b85c"), Color("e0663f"), Color("f4efd9")]
