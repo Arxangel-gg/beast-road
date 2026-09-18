@@ -5289,7 +5289,14 @@ func _place_minimap() -> void:
 	if _minimap == null:
 		return
 	var side: float = Balance.MINIMAP_SIZE_TOUCH if touch_ui() else Balance.MINIMAP_SIZE
-	_minimap.offset_right = -(NAV_STRIP + 10.0)
+	# **Asked, not assumed** - the same correction `_place_spirit_panel`
+	# carries and for the same reason: the bar wraps to two columns on a
+	# short screen, and a map placed against the constant is a map the
+	# second column is drawn over. Floored at the old constant, because in
+	# landscape one column is narrower than 140 and moving the map right to
+	# meet it would walk it off the edge.
+	_minimap.offset_right = -maxf(nav_column_width() + 10.0,
+		NAV_STRIP + 10.0)
 	_minimap.offset_left = _minimap.offset_right - side
 	_minimap.offset_top = _right_column_floor()
 	_minimap.offset_bottom = _minimap.offset_top + side

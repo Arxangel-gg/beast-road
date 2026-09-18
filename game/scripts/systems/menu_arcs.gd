@@ -101,11 +101,18 @@ func _strike() -> void:
 
 ## Make one happen on purpose, between two given points. For the frame, which
 ## knows where its joints are, and for the gate.
-func strike_between(from: Vector2, to: Vector2) -> void:
+## Strikes one arc between two points.
+##
+## `told_seed` is the documented seam a gate drives this through - the same
+## shape as `MusicPlayer.test_slots` and `Run.withdrawal_test_seconds`. Left
+## at -1 the arc rolls its own, which is what the menu does; handed a number
+## the bolt is reproducible, which is the only way to check a property of
+## *every* bolt rather than of whichever one today happened to roll.
+func strike_between(from: Vector2, to: Vector2, told_seed: int = -1) -> void:
 	_live.append({
 		"from": from,
 		"to": to,
-		"seed": _rng.randi(),
+		"seed": _rng.randi() if told_seed < 0 else told_seed,
 		"life": Balance.MENU_ARC_SECONDS,
 		"left": Balance.MENU_ARC_SECONDS,
 	})
@@ -146,7 +153,13 @@ func _path_of(arc: Dictionary) -> PackedVector2Array:
 		for index: int in points.size() - 1:
 			deeper.append(points[index])
 			var middle: Vector2 = (points[index] + points[index + 1]) * 0.5
-			deeper.append(middle + sideways * dice.randf_range(-push, push))
+			# Magnitude first, then a sign, rather than a range about zero:
+			# see `Balance.MENU_ARC_JAG_FLOOR`.
+			var bend: float = dice.randf_range(
+				push * Balance.MENU_ARC_JAG_FLOOR, push)
+			if dice.randf() < 0.5:
+				bend = -bend
+			deeper.append(middle + sideways * bend)
 		deeper.append(points[points.size() - 1])
 		points = deeper
 		push *= 0.5

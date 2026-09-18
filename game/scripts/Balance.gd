@@ -6657,6 +6657,17 @@ const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
 ## Portrait menus can enlarge text without shrinking the combat HUD canvas. [TUNE]
 const UI_PORTRAIT_MENU_WIDTH: float = 900.0
+## Above this canvas width the stash shows its filters three across; at or
+## below it, two.
+##
+## **A thumb-sized button does not get smaller, so the grid gets narrower.**
+## Three inflated buttons measure exactly `UI_PORTRAIT_MENU_WIDTH`, leaving
+## nothing for the scroll's padding or the panel's margins - so the stash came
+## out 992 wide on a 900 canvas and took its Close button off the bottom of the
+## display with it. Shrinking was tried for the scope column on 2026-09-13 and
+## reverted: it trades a layout fault for 49px targets under the 92px a thumb
+## needs, which is the worse of the two.
+const UI_STASH_WIDE_FILTERS: float = 1000.0
 const UI_TOUCH_MIN_FONT_SIZE: int = 26
 const UI_TOUCH_PANEL_SCALE: float = 1.10
 const UI_TOUCH_GAP_SCALE: float = 1.28
@@ -9360,6 +9371,17 @@ const MENU_ARC_SECONDS: float = 0.19
 ## its own length, before the displacement starts halving. A tenth is lightning;
 ## much more is a scribble and much less is a wire.
 const MENU_ARC_JAG: float = 0.11
+## The least a bolt may bend, as a share of the push above.
+##
+## **A bolt always bends; which way is the random part.** Displacement drawn
+## symmetrically about zero rolls a nearly-straight arc every so often - and
+## a straight bolt is not a quieter bolt, it is a glowing wire, which is the
+## one thing the constant above says it must not be. It shipped because it is
+## rare, and the gate guarding it was a coin toss for the same reason: five
+## clean runs by hand, then a failure inside a sweep. The sign stays random
+## and the magnitude gets a floor - the answer the footfall puffs are floored
+## under, and the scattered volley before them.
+const MENU_ARC_JAG_FLOOR: float = 0.38
 ## The average gap between arcs along the frame's joints and off the title.
 const MENU_ARC_FRAME_EVERY: float = 1.9
 const MENU_ARC_TITLE_EVERY: float = 1.35

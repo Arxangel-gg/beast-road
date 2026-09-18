@@ -92,6 +92,16 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	const STEP: float = 1.0 / 60.0
+	# **Let the lean arrive before sampling rest.** `sprite.position` is the
+	# fire kick plus the lean toward whatever this tower would shoot at, and
+	# the lean eases in over several frames. A `home` taken before it lands
+	# makes the settled position read as displaced for ever by however far
+	# the tower leaned - which is a property of whether anything happened to
+	# be in range, so this passed by hand and failed inside a sweep at 0.51
+	# against half a pixel. The idle breathe and sway are not in this; they
+	# go to `scale` and `rotation`.
+	for _lean_in: int in 30:
+		tower.call("_tick_step_wobble", STEP)
 	var home: Vector2 = tower.sprite.position
 	tower.kick(tower.origin() + Vector2(200.0, 0.0))
 	tower.call("_tick_step_wobble", STEP)

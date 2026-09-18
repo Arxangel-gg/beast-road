@@ -277,12 +277,25 @@ func _say_the_difference(offered: Dictionary, offered_kind: GearData,
 
 	if said.is_empty():
 		_verdict.text = "[center][color=#%s]the same, attribute for attribute[/color][/center]" 			% SAME.to_html(false)
+		_verdict.add_theme_color_override("default_color", SAME)
 		return
 	_verdict.text = "[center]%s[/center]" % "  ·  ".join(said)
+	# **Unambiguous gets a line, a trade does not.** Every term already
+	# says which way it went; what a line-wide colour adds is the one thing
+	# a player wants at a glance and the card can honestly say - that this
+	# is better in every respect, or worse in every respect. A mixed piece
+	# keeps the neutral ink, because naming a winner there is the decision
+	# the player came to make.
+	var tone: Color = SAME
+	if down == 0 and up > 0:
+		tone = BETTER
+	elif up == 0 and down > 0:
+		tone = WORSE
+	_verdict.add_theme_color_override("default_color", tone)
 	# **Mixed is its own answer.** A piece that trades three Might for four
 	# Focus is not "better"; it is a different build, and colouring it green
 	# because the total rose would be the card making a decision the player is
 	# there to make.
-	# **Mixed needs no verdict colour any more**: every term already says which
-	# way it went, and a line-wide colour on top of that would be the card
-	# making the decision the player is there to make.
+	# **A trade keeps the neutral ink**, which is the half of that sentence
+	# which survives: a line-wide green over a trade would be the card making
+	# the decision the player is there to make.

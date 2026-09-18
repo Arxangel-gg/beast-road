@@ -170,26 +170,29 @@ func _total(affixes: Array[Dictionary]) -> int:
 	return sum
 
 
-## The verdict's colour, which is the card's whole opinion in one value.
+## The verdict's colour, which is the card's overall opinion in one value.
+##
+## The line is a `RichTextLabel` so each stat term can wear its own red or
+## green; `default_color` is what the line as a whole is painted in, which a
+## coloured term overrides and the neutral cases do not.
 func _verdict_ink() -> Color:
-	var found: Label = _find_verdict(_card)
+	var found: RichTextLabel = _find_verdict(_card)
 	if found == null:
 		_check(false, "the card has no verdict line at all")
 		return Color.BLACK
-	return found.get_theme_color(&"font_color")
+	return found.get_theme_color(&"default_color")
 
 
-func _find_verdict(from: Node) -> Label:
-	# The verdict is the one centred label that is a direct grandchild rather
-	# than part of a card, so it is found by walking rather than by an index -
-	# an index here would break the first time a row is added above it.
+func _find_verdict(from: Node) -> RichTextLabel:
+	# The verdict is the one rich line on the card, so it is found by walking
+	# rather than by an index - an index here would break the first time a row
+	# was added above it.
 	for child: Node in from.get_children():
-		var label := child as Label
-		if label != null and label.horizontal_alignment \
-				== HORIZONTAL_ALIGNMENT_CENTER and not label.text.is_empty():
-			return label
-		var deeper: Label = _find_verdict(child)
-		if deeper != null and child is VBoxContainer and child.name != "":
+		var line := child as RichTextLabel
+		if line != null and not line.text.is_empty():
+			return line
+		var deeper: RichTextLabel = _find_verdict(child)
+		if deeper != null:
 			return deeper
 	return null
 

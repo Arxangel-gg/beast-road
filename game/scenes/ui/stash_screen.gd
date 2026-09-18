@@ -150,6 +150,11 @@ func _build() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 4)
 	inner.add_child(_list)
+	# **And again whenever the window changes shape.** Every other screen
+	# here connects this; the stash did not, so it kept the shape it was
+	# built at - on a phone that left the panel at its 940-wide minimum with
+	# the way out below the bottom of the display.
+	get_viewport().size_changed.connect(_refit)
 	_refit()
 
 	var close := Button.new()
@@ -202,6 +207,18 @@ func _refit() -> void:
 	# the top of the space rather than the bottom of a panel. A floor of most of
 	# the screen keeps the shape the same however many pieces are held, and the
 	# scroll inside it takes up the slack.
+	# **The filters wrap rather than shrink.** `UiMetrics` inflates a button
+	# to a thumb on a touch layout, so three columns of them measure 900 -
+	# exactly the portrait canvas - and with the scroll's padding and the
+	# panel's margins on top the panel came out 992 wide on a 900 canvas, with
+	# the way out pushed off the bottom along with it. Shrinking the buttons is
+	# the answer tried and reverted for the scope column on 2026-09-13: it
+	# trades a layout fault for undersized thumb targets, which is worse. Two
+	# columns of full-size buttons fit, and the grid is a `GridContainer`
+	# precisely so that this is one assignment.
+	if _tools != null:
+		_tools.columns = TOOL_COLUMNS if screen.x >= Balance.UI_STASH_WIDE_FILTERS \
+			else TOOL_COLUMNS - 1
 	_panel.custom_minimum_size = Vector2(
 		minf(940.0, screen.x - Balance.UI_PANEL_MARGIN * 2.0),
 		minf(screen.y * 0.82, 860.0))
