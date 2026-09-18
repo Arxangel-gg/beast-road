@@ -33,6 +33,10 @@ extends Node2D
 ## where it is standing.
 var ground: Callable = Callable()
 
+## How quickly what was thrown gives up its speed. A property rather than the
+## constant, because a boot's scuff settles faster than a hoof's throw.
+var drag: float = Balance.MOUNT_MARK_DRAG
+
 var _marks: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
 var _clock: float = 0.0
@@ -50,7 +54,9 @@ func hoof(at: Vector2, way: Vector2, hard: float) -> void:
 	var count: int = int(round(lerpf(1.0, float(Balance.MOUNT_MARK_PUFFS),
 		clampf(hard, 0.0, 1.0))))
 	for _index: int in count:
-		_mark(at, -way * lerpf(20.0, 110.0, hard), hard, false)
+		_mark(at, -way * lerpf(20.0, 110.0, hard),
+			_rng.randf_range(7.0, 15.0) * lerpf(0.7, 1.35, hard),
+			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA)
 
 
 ## **A rider hitting the ground**, carrying whatever they were doing.
@@ -64,11 +70,41 @@ func impact(at: Vector2, way: Vector2, hard: float) -> void:
 	for index: int in count:
 		var angle: float = TAU * float(index) / float(count)
 		var out := Vector2(cos(angle), sin(angle) * 0.5)
-		_mark(at, out * lerpf(40.0, 190.0, hard) - way * 40.0, hard, true)
+		_mark(at, out * lerpf(40.0, 190.0, hard) - way * 40.0,
+			_rng.randf_range(7.0, 15.0) * 1.6 * lerpf(0.7, 1.35, hard),
+			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA)
 
 
-func _mark(at: Vector2, way: Vector2, hard: float, heavy: bool) -> void:
-	var tint: Color = Color(0.46, 0.42, 0.34)
+## **The general case, which a hoof fall and a landing are both shapes of.**
+##
+## Added for the footfalls of 2026-09-17 - every body on the field scuffs the
+## ground it moves over - and the hoof and the landing were re-expressed through
+## it rather than left beside it. One painter, three callers: a second copy of
+## this arithmetic is how one of them ends up disagreeing with the ground.
+func scuff(at: Vector2, way: Vector2, size: float, life: float,
+		alpha: float) -> void:
+	_mark(at, way, size, life, alpha)
+
+
+## How many marks are alive. Read by a driver that has to bound them.
+func live() -> int:
+	return _marks.size()
+
+
+## Drops the oldest marks until no more than `keep` are alive.
+##
+## **A cap rather than a hope.** Two hundred bodies at a run is two hundred
+## strides a second, and every live mark is drawn every frame. The oldest go
+## first, which is also the least visible - a mark near the end of its life is
+## already nearly transparent.
+func bound(keep: int) -> void:
+	if _marks.size() > keep:
+		_marks = _marks.slice(_marks.size() - keep)
+
+
+func _mark(at: Vector2, way: Vector2, size: float, life: float,
+		alpha: float) -> void:
+	var tint: Color = Balance.GROUND_TONE_FALLBACK
 	if ground.is_valid():
 		var found: Variant = ground.call(at)
 		if found is Color:
@@ -77,10 +113,10 @@ func _mark(at: Vector2, way: Vector2, hard: float, heavy: bool) -> void:
 		"at": at + Vector2(_rng.randf_range(-6.0, 6.0),
 			_rng.randf_range(-4.0, 4.0)),
 		"way": way * _rng.randf_range(0.7, 1.3),
-		"left": Balance.MOUNT_MARK_LIFE * _rng.randf_range(0.7, 1.25),
-		"full": Balance.MOUNT_MARK_LIFE,
-		"size": _rng.randf_range(7.0, 15.0) * (1.6 if heavy else 1.0)
-			* lerpf(0.7, 1.35, hard),
+		"left": life * _rng.randf_range(0.7, 1.25),
+		"full": life,
+		"size": size,
+		"alpha": alpha,
 		"tint": tint,
 	})
 
@@ -96,7 +132,7 @@ func _process(delta: float) -> void:
 		# Dirt thrown up slows quickly and then hangs: the drag is what stops a
 		# puff reading as a bullet.
 		mark["way"] = (mark["way"] as Vector2) * (1.0 - delta
-			* Balance.MOUNT_MARK_DRAG)
+			* drag)
 		mark["at"] = (mark["at"] as Vector2) + (mark["way"] as Vector2) * delta
 		live.append(mark)
 	_marks = live
@@ -117,7 +153,7 @@ func _draw() -> void:
 		var size: float = float(mark["size"]) * lerpf(1.7, 0.7, share)
 		var tint: Color = mark["tint"] as Color
 		var middle := Color(tint.r, tint.g, tint.b,
-			share * Balance.MOUNT_MARK_ALPHA)
+			share * float(mark.get("alpha", Balance.MOUNT_MARK_ALPHA)))
 		var rim := Color(tint.r, tint.g, tint.b, 0.0)
 		var at: Vector2 = mark["at"] as Vector2
 		var base: int = points.size()

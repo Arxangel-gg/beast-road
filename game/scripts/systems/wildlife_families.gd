@@ -165,6 +165,9 @@ func _apply_stage(animal: Dictionary, kind: WildlifeData, announce: bool) -> voi
 	var sprite := animal.get("sprite", null) as Sprite2D
 	if sprite != null and is_instance_valid(sprite):
 		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
+		# A fawn scuffs less earth than a stag, and this is the one place a body
+		# here changes size.
+		Footfalls.register_animal(sprite, kind, float(animal["size"]))
 		_swap_young_frames(animal, kind)
 	# A pool that grows with the body, keeping the share it had.
 	var full_before: float = kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal.get("elite", false)) else 1.0) \

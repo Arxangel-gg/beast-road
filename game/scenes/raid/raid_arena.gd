@@ -21,6 +21,7 @@ extends EnemyField
 @export var camera: Camera2D
 
 var _death_markers: DeathMarkers = null
+var _footfalls: Footfalls = null
 
 
 ## Takes ownership of the effect world while the camp is open. The battlefield
@@ -105,7 +106,49 @@ func _ready() -> void:
 	_death_markers = DeathMarkers.new()
 	_death_markers.scope = self
 	(entity_root if entity_root != null else self).add_child(_death_markers)
+	# **A camp and a maze scuff too.** The group a body registers with is the
+	# whole tree's, so without a painter of its own an arena would have bodies
+	# that leave nothing - the battlefield's is suspended with the battlefield
+	# (working rule 8) and correctly never ticks while a raid runs.
+	_footfalls = Footfalls.new()
+	_footfalls.name = "Footfalls"
+	_footfalls.ground = ground_colour
+	_footfalls.watching = _watched_point
+	_footfalls.z_index = Balance.FOOTFALL_Z
+	(entity_root if entity_root != null else self).add_child(_footfalls)
 	set_process(false)
+
+
+## The sheet this arena's floor is laid with, or nothing for a camp, which wears
+## the region's own ground.
+##
+## **A virtual rather than a test for `RiftArena`.** A base class naming its own
+## subclass is a cycle, and `is_underground()` already established the shape:
+## the arena that knows the answer overrides it.
+func floor_art() -> String:
+	return ""
+
+
+## What colour the floor is here: cut rock under the ground, the region's own
+## earth in a camp. Read off the sheet the place is actually laid with, which is
+## the rule `GroundTone` exists to keep in one place.
+func ground_colour(_at: Vector2) -> Color:
+	var laid: String = floor_art()
+	if not laid.is_empty():
+		var deep: Color = GroundTone.at_path(laid)
+		if deep != Balance.GROUND_TONE_FALLBACK:
+			return deep
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain == null:
+		return Balance.GROUND_TONE_FALLBACK
+	return GroundTone.at_path(terrain.get_sprite_path())
+
+
+## The point the view is centred on, for anything that culls by what can be seen.
+func _watched_point() -> Vector2:
+	if hero != null and is_instance_valid(hero):
+		return hero.global_position
+	return Vector2.ZERO
 
 
 func death_markers() -> DeathMarkers:

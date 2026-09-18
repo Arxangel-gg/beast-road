@@ -64,6 +64,7 @@ var _camps: Camps = null
 var _fog: FogOfWar = null
 var _trample: TrampleField = null
 var _death_markers: DeathMarkers = null
+var _footfalls: Footfalls = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
 
@@ -2780,6 +2781,21 @@ func _build_fog() -> void:
 	add_child(_fog)
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
 	_build_trample()
+	# **Out of `_build_trample`, where these three were unreachable.**
+	#
+	# That function returns on its first line when `Graphics.foliage_trample()`
+	# is off, and these were written after the return - so a player who turned
+	# one graphics option off silently lost the death stones, the straggler
+	# plumes, and `Withdrawal`, which is not decoration at all: it is the road
+	# pressing on a party who pressed Turn For Home, and it carries the floor
+	# that guarantees they reach it. Nothing errored and nothing could have.
+	#
+	# Found while adding a fourth thing to the same list, which is the argument
+	# for reading a function before appending to it.
+	_build_death_markers()
+	_build_stragglers()
+	_build_withdrawal()
+	_build_footfalls()
 
 
 ## **Plants give way to whatever walks through them.**
@@ -2798,9 +2814,54 @@ func _build_trample() -> void:
 	_trample.half_extent = BattleGrid.HALF_EXTENT
 	add_child(_trample)
 	_trample.publish_to(Foliage.every_material())
-	_build_death_markers()
-	_build_stragglers()
-	_build_withdrawal()
+
+
+## **Everything that moves scuffs the road.**
+##
+## Under the sorted layer with the death stones, so a puff lies under the body
+## that threw it and freezes with the field for a raid (working rule 8) without
+## having to know that raids exist.
+##
+## It is handed the two things it cannot work out for itself - what colour the
+## ground is here, and where the camera is looking - and knows nothing else
+## about the battlefield.
+func _build_footfalls() -> void:
+	_footfalls = Footfalls.new()
+	_footfalls.name = "Footfalls"
+	_footfalls.ground = ground_colour
+	_footfalls.watching = _watched_point
+	_footfalls.z_index = Balance.FOOTFALL_Z
+	(entity_root if entity_root != null else self).add_child(_footfalls)
+
+
+## What colour the earth is at a point.
+##
+## The road where there is a road and the region's own ground everywhere else,
+## read off the sheets the field is actually painted with rather than from a
+## table - so a Saltpan scuff is pale and a Rustwood one is red without anybody
+## authoring ten colours. `GroundTone` caches the reading, so this costs a tile
+## lookup.
+func ground_colour(at: Vector2) -> Color:
+	if grid != null and grid.cell_at(BattleGrid.world_to_tile(at)) == BattleGrid.Cell.ROAD:
+		var road: String = PATH_TILE_REGION_FORMAT % [RunState.terrain_id, 15]
+		if not ResourceLoader.exists(road):
+			road = PATH_TILE_FORMAT % 15
+		var paved: Color = GroundTone.at_path(road)
+		if paved != Balance.GROUND_TONE_FALLBACK:
+			return paved
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain == null:
+		return Balance.GROUND_TONE_FALLBACK
+	return GroundTone.at_path(terrain.get_sprite_path())
+
+
+## The point the view is centred on, for anything that culls by what can be
+## seen. The Warden when there is one, the town when there is not.
+func _watched_point() -> Vector2:
+	var who: Hero = hero
+	if who != null and is_instance_valid(who):
+		return who.global_position
+	return Vector2.ZERO
 
 
 func fog() -> FogOfWar:

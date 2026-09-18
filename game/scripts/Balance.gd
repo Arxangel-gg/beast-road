@@ -10839,6 +10839,89 @@ const MOUNT_LAND_TIME: float = 0.34
 ## catches light the earth does not, and matched exactly it reads as a hole.
 const MOUNT_MARK_LIFT: float = 1.45
 
+## **What colour the ground is, shared by everything that has to match it.**
+##
+## `MOUNT_MARK_LIFT` is this number under an older name and the mount's dust
+## still reads it; `GroundTone` is the same reading for the whole game, so the
+## Hold, the road, a camp and a maze cannot disagree about the colour of the
+## earth somebody is standing on.
+const GROUND_TONE_LIFT: float = MOUNT_MARK_LIFT
+## Plain earth, for a place with no sheet to read. A caller never has to check.
+const GROUND_TONE_FALLBACK: Color = Color(0.46, 0.42, 0.34)
+
+
+## ## **Every moving thing scuffs the ground it moves over.**
+##
+## Owner, 2026-09-17: *"Moving for all characters from players to enemies to
+## wildlife should also generate ground vfx with perfect game juice and it should
+## be tuned for each character's size and mass and speed including the dirt
+## clouds etc which should be tuned for the color of the ground under where it
+## occurred."*
+##
+## **It is a picture and nothing else.** No scuff is read by targeting, pathing,
+## collision, spawning or reward; `Graphics.particle_scale()` scales it to
+## nothing and `JuiceDirector` damps it under load, which is the bound every
+## decoration in this project is held to - the fog, the phenotypes, the set aura
+## and the Hold's own grass.
+##
+## **Three numbers per body, each derived from what that body already declares**
+## rather than authored in a table here: how wide its foot is, what it weighs
+## against an ordinary road body, and how fast it can go. A rabbit flat out and a
+## boss ambling cover the same ground a second; what separates them is that the
+## rabbit is at its own ceiling and the boss is not, which is why the effort is
+## measured against each body's *own* top speed rather than against one figure.
+
+## How often the driver looks at who has moved. Fifteen times a second: a stride
+## is a fifth of a second at a run, so nothing is missed, and a busy wave of two
+## hundred bodies costs fifteen passes rather than sixty.
+const FOOTFALL_HZ: float = 15.0
+## How far a body may be from what the camera is watching and still scuff. Beyond
+## this nobody can see a puff the size of a boot, so nothing is laid - which is
+## what keeps a field of two hundred bodies costing what the dozen on screen do.
+const FOOTFALL_VIEW: float = 1500.0
+## How far a body walks between scuffs, as a share of its own footprint. A big
+## body takes long strides, so this is what stops a boss laying six times the
+## marks of a runner merely for being six times as wide.
+const FOOTFALL_STRIDE: float = 1.9
+## Below this share of its own top speed a body is strolling and leaves nothing.
+## Standing still must lay nothing at all, and a body nudged by the crowd grid or
+## breathing on the spot is not walking.
+const FOOTFALL_MOVING: float = 0.18
+## The most marks alive at once, over everything. A cap rather than a hope: a
+## hundred bodies sprinting is a hundred strides a second, and the painter draws
+## every live mark every frame. The oldest go first, so what is dropped is what
+## was already nearly invisible.
+const FOOTFALL_MAX_MARKS: int = 220
+## How many puffs one stride throws, at a dead run, for a body of ordinary mass.
+## Scaled by mass and by effort, and floored at one - a scuff of nothing is not a
+## quieter scuff, it is a missing one.
+const FOOTFALL_PUFFS: int = 3
+## How hard a stride throws its dust back along the way it came, from a walk to a
+## flat run, in world units a second.
+const FOOTFALL_THROW: Vector2 = Vector2(26.0, 120.0)
+## How long a scuff hangs, and how quickly what was thrown gives up its speed.
+## Shorter-lived than a hoof mark: a boot lifts less earth than a shod hoof.
+const FOOTFALL_LIFE: float = 0.46
+const FOOTFALL_DRAG: float = 4.2
+## How opaque the thickest part of a scuff is. Well under the mount's, because
+## this is every body on the field rather than one horse.
+const FOOTFALL_ALPHA: float = 0.30
+## How big one puff is against the footprint that threw it.
+const FOOTFALL_PUFF_SIZE: float = 0.42
+## Where the dust lies. Above the blood, which is on the ground itself, and
+## below everything that walks - a puff drawn over a body is smoke rather than
+## something a boot kicked up.
+const FOOTFALL_Z: int = BLOOD_GROUND_Z + 1
+
+## What each kind of body weighs, against an ordinary road body at one. Read by
+## the one line in each body that registers it, so a breed, an animal or a mount
+## carries the mass its own data implies rather than a number typed beside it.
+const FOOTFALL_MASS_HERO: float = 1.0
+const FOOTFALL_MASS_MOUNT: float = 2.6
+## What a hide is worth. Plate and stone drive their weight into the ground;
+## flesh does not, and a spirit has none - it never registers at all.
+const FOOTFALL_MASS_BY_HIDE: Array[float] = [1.0, 1.45, 1.9, 0.0]
+
 ## **Where the dwellings stand.** On the lower yard and the two outcrops, clear
 ## of the square: the Hold is a shelter camp, and where people sleep is not
 ## where they trade. Cells rather than points, so a house cannot be built on a

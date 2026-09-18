@@ -424,6 +424,14 @@ func wildlife() -> Array[WildlifeData]:
 	return out
 
 
+## One species by id. The list above answers "all of them" and every caller
+## that wanted one was walking it; a raised companion has to ask for its own
+## species by name to know how big the animal it is, which is a lookup rather
+## than a scan.
+func wildlife_kind(id: String) -> WildlifeData:
+	return wildlife_kinds.get(id, null) as WildlifeData
+
+
 func terrain(id: String) -> TerrainData:
 	return terrains.get(id, null) as TerrainData
 

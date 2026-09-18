@@ -97,6 +97,16 @@ func _ready() -> void:
 		queue_free()
 		return
 	add_to_group(GROUP)
+	# **A raised animal scuffs the ground; a spirit does not.**
+	#
+	# That is the hide rule of the roster in a second place rather than a new
+	# one - `Balance.FOOTFALL_MASS_BY_HIDE` gives a spirit a mass of zero, and a
+	# thing with no body leaves no dust however fast it crosses the yard. What
+	# `from_pen` separates is exactly that: the creature in the pen is alive and
+	# the summoned one is not. Its footprint comes off the species it actually
+	# is, so a raised badger and a raised bear are not the same weight.
+	if from_pen:
+		Footfalls.register_animal(self, ContentDB.wildlife_kind(data.wildlife_id), 1.0)
 	_left = data.duration
 	if not spirit_key.is_empty():
 		# No clock. A spirit stays until it is beaten, unequipped or replaced.

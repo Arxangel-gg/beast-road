@@ -747,6 +747,9 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# Born with its sack `hoard_chance` of the time. Rolled on both machines
 	# from the same stream like the rabid roll above; the host's word arrives
 	# as a fact as well, so a guest that rolled differently is corrected.
+	# What this animal plants on the ground (owner, 2026-09-17). Re-read when it
+	# grows, in `WildlifeFamilies._apply_stage`.
+	Footfalls.register_animal(sprite, kind, 1.0)
 	var innate: bool = kind.hoards and _rng.randf() < kind.hoard_chance
 	if innate:
 		_hang_sack(sprite, kind)

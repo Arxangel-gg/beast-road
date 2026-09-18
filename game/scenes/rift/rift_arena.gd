@@ -90,6 +90,11 @@ func _ready() -> void:
 	add_child(_air)
 
 
+## The rock a maze is cut out of. What the dust down here is the colour of.
+func floor_art() -> String:
+	return DungeonTiles.art_for(kind)
+
+
 ## Opens a rift of `which` kind, entered from `from` on the battlefield.
 func open(which: Kind, from: Vector2) -> void:
 	kind = which

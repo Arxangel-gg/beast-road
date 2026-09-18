@@ -405,6 +405,7 @@ func _ready() -> void:
 	_mount_rig = MountRig.new()
 	_mount_rig.rider = sprite
 	add_child(_mount_rig)
+	_mark_tread()
 	# **The symbol that says what can be done here** (owner, 2026-09-16). Only
 	# over this machine's own Warden: a partner's prompt is their business, and
 	# a badge over an ally would be this screen guessing at another player's
@@ -1643,6 +1644,7 @@ func mount() -> bool:
 		_refuse("Not with something this close")
 		return false
 	_mount = kind
+	_mark_tread()
 	_mount_up_left = Balance.MOUNT_UP_SECONDS
 	mount_wind = kind.stamina
 	_mount_winded = false
@@ -1702,10 +1704,26 @@ func wear_mount(id: String) -> void:
 ## Idempotent, because several things call it - the attack press, the mount
 ## key, and every condition that ends a ride - and a dismount that fired twice
 ## would pay its dust and its sound twice.
+## **What the Warden plants on the ground, for the dust it throws up.**
+##
+## Owner, 2026-09-17: movement should scuff the earth *"tuned for each
+## character's size and mass and speed"*. All three are numbers this hero
+## already carries, so none of them is authored here - and a rider is the one
+## case where all three change at once, which is why this is re-read on
+## mounting and on getting off rather than only once.
+func _mark_tread() -> void:
+	var riding: bool = _mount != null
+	Footfalls.register(self,
+		Balance.HERO_BODY_RADIUS * (1.5 if riding else 1.0),
+		Balance.FOOTFALL_MASS_MOUNT if riding else Balance.FOOTFALL_MASS_HERO,
+		Balance.HERO_MOVE_SPEED * Balance.HERO_SPRINT_SPEED)
+
+
 func dismount() -> bool:
 	if _mount == null:
 		return false
 	_mount = null
+	_mark_tread()
 	_galloping = false
 	_mount_up_left = 0.0
 	_mount_wait = Balance.MOUNT_REMOUNT_DELAY

@@ -446,6 +446,18 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 	_damage_scale = hp_scale if damage_scale < 0.0 else damage_scale
 	_speed_scale = speed_scale
 	_route = field.lane_route(lane_index)
+	# **What this body plants on the ground**, for the dust its stride throws up
+	# (owner, 2026-09-17). Every one of the three numbers is derived from what
+	# the breed already declares rather than authored beside it: its own contact
+	# radius is the footprint, its hide is the weight - plate and stone drive
+	# into the earth, flesh does not, and a spirit has a mass of zero and so is
+	# never registered at all - and its own walking speed is what its effort is
+	# measured against. So a breed added tomorrow scuffs correctly without
+	# anybody remembering this file.
+	Footfalls.register(self, contact_radius(),
+		Balance.FOOTFALL_MASS_BY_HIDE[clampi(int(data.hide), 0,
+			Balance.FOOTFALL_MASS_BY_HIDE.size() - 1)] if data != null else 1.0,
+		maxf(data.move_speed if data != null else 1.0, 1.0) * maxf(speed_scale, 0.2))
 
 
 func _ready() -> void:
