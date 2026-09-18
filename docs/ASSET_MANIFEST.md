@@ -1974,6 +1974,8 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 
 `ui_element_fire.png` · `ui_element_water.png` · `ui_element_earth.png` ·
 `ui_element_air.png` · `ui_resource.png` · `ui_blueprint.png` ·
+`ui_attr_might.png` · `ui_attr_vigour.png` · `ui_attr_swiftness.png` ·
+`ui_attr_focus.png` · `ui_attr_resolve.png` ·
 `ui_relic.png` · `ui_war_horn.png` · `ui_raid_charge.png` ·
 `ui_distance.png` · `ui_city_health.png` · `ui_pressure_arrow.png` ·
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·

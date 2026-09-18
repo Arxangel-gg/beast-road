@@ -80,8 +80,8 @@ func impact(at: Vector2, way: Vector2, hard: float) -> void:
 ## it rather than left beside it. One painter, three callers: a second copy of
 ## this arithmetic is how one of them ends up disagreeing with the ground.
 func scuff(at: Vector2, way: Vector2, size: float, life: float,
-		alpha: float, drag: float) -> void:
-	_mark(at, way, size, life, alpha, drag)
+		alpha: float, drag: float, tint: Color = Color(0, 0, 0, 0)) -> void:
+	_mark(at, way, size, life, alpha, drag, tint)
 
 
 ## How many marks are alive. Read by a driver that has to bound them.
@@ -101,9 +101,13 @@ func bound(keep: int) -> void:
 
 
 func _mark(at: Vector2, way: Vector2, size: float, life: float,
-		alpha: float, drag: float) -> void:
+		alpha: float, drag: float, told: Color = Color(0, 0, 0, 0)) -> void:
+	# **A told colour wins.** The ground is the right answer for dust and the
+	# wrong one for a leaf, which is the colour of the plant it came off.
 	var tint: Color = Balance.GROUND_TONE_FALLBACK
-	if ground.is_valid():
+	if told.a > 0.01:
+		tint = told
+	elif ground.is_valid():
 		var found: Variant = ground.call(at)
 		if found is Color:
 			tint = found as Color

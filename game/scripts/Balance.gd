@@ -11029,6 +11029,29 @@ const FOOTFALL_MASS_BY_HIDE: Array[float] = [1.0, 1.45, 1.9, 0.0]
 ## summoned one lightly, a raised one like the animal it is.
 const FOOTFALL_SPIRIT_MASS: float = 0.55
 
+## ## **Running through a plant sends leaves up.**
+##
+## Owner, 2026-09-18: *"Sprinting into foliage should send some small leaves
+## flying and falling and fading out ... including if it occurs because of
+## wildlife or enemies."*
+##
+## A *sprint*, not a walk: somebody strolling past a fern does not strip it,
+## so the threshold sits well above `FOOTFALL_MOVING`. And the colour is never
+## one of these numbers - it is read off the plant that was hit, because ten
+## regions grow eighty plants and a green authored here would be wrong in most
+## of them.
+const FOLIAGE_BURST_EFFORT: float = 0.72
+## How close a plant has to be to the footfall to shed anything.
+const FOLIAGE_BURST_REACH: float = 58.0
+const FOLIAGE_BURST_LEAVES: int = 5
+## Up and forward, then falling: a leaf is lighter than dust, so it is thrown
+## harder, lives longer and gives up its speed far more slowly.
+const FOLIAGE_BURST_THROW: float = 150.0
+const FOLIAGE_BURST_LIFE: float = 0.95
+const FOLIAGE_BURST_DRAG: float = 1.5
+const FOLIAGE_BURST_SIZE: float = 5.0
+const FOLIAGE_BURST_ALPHA: float = 0.62
+
 ## **Where the dwellings stand.** On the lower yard and the two outcrops, clear
 ## of the square: the Hold is a shelter camp, and where people sleep is not
 ## where they trade. Cells rather than points, so a house cannot be built on a
@@ -11285,6 +11308,14 @@ const UI_CRISP_TEXT_LAYER: int = 25
 ## selling a piece, breaking one, and dismantling a tower.
 ##
 ## Above every screen, because it is asking about the row underneath it.
+## How big an attribute's mark is beside a stat line.
+##
+## Owner, 2026-09-18: icons *"sized perfectly for everywhere appropriately
+## for where they are to be referenced"*. Beside 13pt text this is small on
+## purpose - a card of five attributes must stay the height of its words, not
+## grow to five icon heights.
+const UI_ATTRIBUTE_ICON: float = 17.0
+
 const UI_CONFIRM_Z: int = 4096
 const UI_CONFIRM_WIDTH: float = 520.0
 const UI_CONFIRM_PADDING: float = 18.0

@@ -189,7 +189,7 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 			ink = BETTER
 		elif here < there:
 			ink = WORSE
-		card.add_child(_stat_line("+%d %s" % [here,
+		card.add_child(_attribute_line(which, "+%d %s" % [here,
 			RunState.ATTRIBUTE_NAMES[which]], ink))
 	# **An attribute the other card grants and this one does not is a loss, and
 	# it is invisible unless it is written down.** A worn piece with +4 Focus
@@ -198,8 +198,8 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 	for which: int in against.size():
 		if against[which] <= 0 or _grants(piece, kind, which) > 0:
 			continue
-		card.add_child(_stat_line("0 %s" % RunState.ATTRIBUTE_NAMES[which],
-			WORSE))
+		card.add_child(_attribute_line(which,
+			"0 %s" % RunState.ATTRIBUTE_NAMES[which], WORSE))
 	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
 		card.add_child(_stat_line(legend.line(), Color("e8a33d")))
 
@@ -226,6 +226,39 @@ func _grants(piece: Dictionary, kind: GearData, which: int) -> int:
 		if int(affix["attribute"]) == which:
 			total += int(affix["points"])
 	return total
+
+
+## One attribute line, with its own mark beside it.
+##
+## Owner, 2026-09-18: every stat wants an icon *"sized perfectly for ...
+## where they are to be referenced"*. Here that is beside 13pt text, so the
+## mark is small and the row stays the height of its words - a card of five
+## attributes must not grow to five icon heights.
+##
+## `which` of -1 is a line that is not an attribute (a legendary affix), and
+## gets no mark rather than a blank space where one would be.
+func _attribute_line(which: int, text: String, ink: Color) -> Control:
+	var art: Texture2D = IconKit.attribute(which) if which >= 0 else null
+	if art == null:
+		return _stat_line(text, ink)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 5)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mark := TextureRect.new()
+	mark.texture = art
+	mark.custom_minimum_size = Vector2(Balance.UI_ATTRIBUTE_ICON,
+		Balance.UI_ATTRIBUTE_ICON)
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Tinted with the line's own verdict, so the mark says better or worse
+	# along with the words rather than beside them in a different language.
+	mark.modulate = ink
+	row.add_child(mark)
+	row.add_child(_stat_line(text, ink))
+	return row
 
 
 func _stat_line(text: String, ink: Color) -> Label:

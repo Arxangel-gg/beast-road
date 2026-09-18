@@ -19,6 +19,29 @@ const UI_DIR: String = "res://art/icons/ui/"
 static var _cache: Dictionary = {}
 
 
+## The icon for one of the five attributes.
+##
+## Owner, 2026-09-18: *"All stats need appropriate icons sized perfectly for
+## everywhere appropriately for where they are to be referenced in UIs."*
+##
+## **One function, so every screen draws the same mark for Might.** The name
+## is derived from `RunState.ATTRIBUTE_NAMES` rather than from a table here -
+## a sixth attribute would otherwise need remembering twice, which is how the
+## discipline names ended up in three screens at once.
+static func attribute(which: int) -> Texture2D:
+	if which < 0 or which >= RunState.ATTRIBUTE_NAMES.size():
+		return null
+	return ui("attr_%s" % RunState.ATTRIBUTE_NAMES[which].to_lower())
+
+
+## The same icon at a size, for a row that has to line up with its neighbours.
+static func attribute_sized(which: int, pixels: int) -> Texture2D:
+	if which < 0 or which >= RunState.ATTRIBUTE_NAMES.size():
+		return null
+	return sized("attr_%s" % RunState.ATTRIBUTE_NAMES[which].to_lower(),
+		pixels)
+
+
 static func ui(id: String) -> Texture2D:
 	if _cache.has(id):
 		return _cache[id]

@@ -264,6 +264,62 @@ var _idle_frame: int = 0
 ## plants and not others. `TrampleField` publishes through this, so a
 ## fifth cache added later is one line here rather than a bug where ferns
 ## react and bushes do not.
+## **The colour of the nearest plant to `at`, or nothing if none is close.**
+##
+## Owner, 2026-09-18: *"Sprinting into foliage should send some small leaves
+## flying and falling and fading out and other color matching game juice vfx
+## ... including if it occurs because of wildlife or enemies."*
+##
+## **Colour-matching means reading the plant, not a table.** Ten regions grow
+## eighty different plants; a green authored here would be wrong in most of
+## them, which is the same argument `GroundTone` settles for the dust. The mean
+## is taken off the plant's own art and cached per texture, so a burst costs a
+## distance test.
+##
+## Returns a transparent colour when nothing is near, so a caller can throw
+## nothing without asking twice.
+func leaf_near(at: Vector2, within: float) -> Color:
+	var best: float = within * within
+	var found: Sprite2D = null
+	for plant: Sprite2D in _painted_plants:
+		if plant == null or not is_instance_valid(plant):
+			continue
+		var gap: float = plant.global_position.distance_squared_to(at)
+		if gap < best:
+			best = gap
+			found = plant
+	if found == null or found.texture == null:
+		return Color(0.0, 0.0, 0.0, 0.0)
+	return _leaf_tint(found.texture)
+
+
+## The mean colour of one plant's art, cached by texture.
+##
+## Only the opaque texels count: a plant is mostly empty canvas, and averaging
+## the transparent part gives a wash of nothing rather than the leaf colour.
+static func _leaf_tint(art: Texture2D) -> Color:
+	if _leaf_tints.has(art):
+		return _leaf_tints[art] as Color
+	var image: Image = art.get_image()
+	var tint := Color(0.36, 0.48, 0.24, 1.0)
+	if image != null:
+		image.convert(Image.FORMAT_RGBA8)
+		image.resize(8, 8, Image.INTERPOLATE_BILINEAR)
+		var total := Color(0.0, 0.0, 0.0, 0.0)
+		var seen: float = 0.0
+		for y: int in 8:
+			for x: int in 8:
+				var texel: Color = image.get_pixel(x, y)
+				if texel.a < 0.35:
+					continue
+				total += Color(texel.r, texel.g, texel.b, 0.0)
+				seen += 1.0
+		if seen > 0.0:
+			tint = Color(total.r / seen, total.g / seen, total.b / seen, 1.0)
+	_leaf_tints[art] = tint
+	return tint
+
+
 static func every_material() -> Array:
 	var out: Array = []
 	for one: Variant in [wind_material(), painted_material()]:
@@ -484,6 +540,8 @@ var _shadow_layer: FoliageShadowLayer = null
 
 ## Painted plants, held individually because each sorts on its own.
 var _painted_plants: Array[Sprite2D] = []
+## The mean colour of each painted plant, worked out once. See `leaf_near`.
+static var _leaf_tints: Dictionary = {}
 
 ## Where a painted plant's origin sits inside its art, as a fraction of height.
 ## Just above the bottom edge, matching the treeline, so a plant and a tree and a

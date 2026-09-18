@@ -65,6 +65,11 @@ var ground: Callable = Callable()
 ## nothing and everything is considered, which is what a gate wants.
 var watching: Callable = Callable()
 
+## The colour of the nearest plant to a point, or a transparent colour when
+## nothing is near. Handed in like `ground`, so this file knows nothing about
+## foliage - a scope with no plants hands in nothing and throws no leaves.
+var leaves: Callable = Callable()
+
 var _marks: GroundMarks = null
 var _seen: Dictionary = {}
 var _clock: float = 0.0
@@ -198,6 +203,16 @@ func _walk(elapsed: float) -> void:
 func _step(at: Vector2, way: Vector2, tread: Vector3, effort: float,
 		weight: float) -> void:
 	var mass: float = tread.y
+	# **Running through a plant sends leaves up.** Owner, 2026-09-18, and it is
+	# a *sprint* rather than a walk that does it: somebody strolling past a
+	# fern does not strip it. The colour is read off the plant that was hit,
+	# not authored - ten regions grow eighty plants and a green chosen here
+	# would be wrong in most of them, which is the argument `GroundTone`
+	# already settles for the dust.
+	if effort > Balance.FOLIAGE_BURST_EFFORT and leaves.is_valid():
+		var found: Variant = leaves.call(at, Balance.FOLIAGE_BURST_REACH)
+		if found is Color and (found as Color).a > 0.01:
+			_leaf_burst(at, way, effort, weight, found as Color)
 	var count: int = int(round(lerpf(1.0, float(Balance.FOOTFALL_PUFFS), effort)
 		* clampf(mass, 0.5, 2.6) * weight))
 	# **Floored at one while the effect is on at all.** A scuff of nothing is not
@@ -214,6 +229,25 @@ func _step(at: Vector2, way: Vector2, tread: Vector3, effort: float,
 			Balance.FOOTFALL_LIFE,
 			Balance.FOOTFALL_ALPHA * clampf(weight, 0.0, 1.0),
 			Balance.FOOTFALL_DRAG)
+
+
+## A few leaves knocked loose, thrown up and forward and falling back.
+##
+## Laid into the same painter the dust is, because a leaf at this size *is* a
+## small drifting mark - what separates it is that it is lighter, lives longer
+## and gives up its speed slowly, so it hangs and falls rather than settling
+## where the boot was.
+func _leaf_burst(at: Vector2, way: Vector2, effort: float, weight: float,
+	tint: Color) -> void:
+	var count: int = maxi(int(round(float(Balance.FOLIAGE_BURST_LEAVES)
+		* effort * weight)), 1)
+	for index: int in count:
+		var spread: float = float(index) / float(maxi(count, 1)) - 0.5
+		var up: Vector2 = (way + Vector2(spread, -1.0)).normalized()
+		_marks.scuff(at, up * Balance.FOLIAGE_BURST_THROW * effort,
+			Balance.FOLIAGE_BURST_SIZE * clampf(weight, 0.4, 1.0),
+			Balance.FOLIAGE_BURST_LIFE, Balance.FOLIAGE_BURST_ALPHA * weight,
+			Balance.FOLIAGE_BURST_DRAG, tint)
 
 
 ## How many marks are alive. For the gate, which measures rather than asserts.

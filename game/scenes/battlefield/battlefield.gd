@@ -2847,8 +2847,20 @@ func _build_footfalls() -> void:
 	_footfalls.name = "Footfalls"
 	_footfalls.ground = ground_colour
 	_footfalls.watching = _watched_point
+	_footfalls.leaves = _leaf_near
 	_footfalls.z_index = Balance.FOOTFALL_Z
 	(entity_root if entity_root != null else self).add_child(_footfalls)
+
+
+## The colour of the nearest plant to a point, for the leaves a sprint throws.
+##
+## Handed to the footfalls rather than reached for, so that file never learns
+## what foliage is - the same seam `ground` already goes through.
+func _leaf_near(at: Vector2, within: float) -> Color:
+	var trees: Foliage = foliage_node()
+	if trees == null or not is_instance_valid(trees):
+		return Color(0.0, 0.0, 0.0, 0.0)
+	return trees.leaf_near(at, within)
 
 
 ## What colour the earth is at a point.
