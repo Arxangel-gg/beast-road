@@ -914,6 +914,9 @@ func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 		arrow.launch(field, from + direction * Balance.HERO_ARROW_MUZZLE, direction,
 			ranged.weapon(), kind, damage_multiplier())
 		field.add_child(arrow)
+		# The ring is the arrow's own travel, read off the arrow rather than
+		# from a constant beside it (owner, 2026-09-18).
+		EventBus.ranged_shot_fired.emit(from, arrow.travel)
 	_facing = direction
 	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
 	# Locked like a sword swing, for the same reason: the loose has to survive

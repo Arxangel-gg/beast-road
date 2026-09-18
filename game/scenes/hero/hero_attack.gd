@@ -278,6 +278,65 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 	EventBus.hero_swing_started.emit(_step, _swing_origin)
 
 
+## Which blow of the chain the next swing would be.
+##
+## Each step has its own reach and arc, so a tell drawn at the wrong one marks
+## the wrong bodies - and the step is private, which is why this exists.
+func next_step() -> int:
+	return _step
+
+
+## **Who the next swing would land on**, asked before it is thrown.
+##
+## Owner, 2026-09-18: the bodies *"a player is within range of hitting with
+## their next melee attack"* should be highlighted - and only those, aimed
+## where the player is aiming.
+##
+## **It is the strike's own rule, lifted rather than copied.** A highlight
+## computed a second way is a promise the swing does not keep: it would mark a
+## body the blow misses, or miss one the blow lands on, and a tell that lies
+## about the blow is worse than no tell. So `_strike` now asks this too, and
+## the two cannot disagree about reach, arc, or what counts as a body.
+##
+## `step` is which blow of the chain is next, since each has its own reach and
+## arc. Wildlife is included because the owner asked for it and because a
+## swing genuinely hits it.
+func would_hit(origin: Vector2, aim: Vector2, step: int) -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	var at: int = clampi(step, 0, Balance.HERO_ATTACK_RANGE.size() - 1)
+	var reach: float = Balance.HERO_ATTACK_RANGE[at] * reach_scale()
+	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[at] * 0.5)
+	# **The tread group is every walking body in the game** - it was built for
+	# the ground VFX and it is exactly the roll call this needs, so wildlife
+	# needs no group of its own. The player's own are filtered below.
+	var seen: Dictionary = {}
+	for group: StringName in [Enemy.GROUP, Footfalls.GROUP]:
+		for node: Node in get_tree().get_nodes_in_group(group):
+			var body := node as Node2D
+			if body == null or not is_instance_valid(body):
+				continue
+			if body is Hero or body is Companion or body is MountRig:
+				continue
+			if seen.has(body.get_instance_id()):
+				continue
+			var enemy := body as Enemy
+			if enemy != null and enemy.is_dying():
+				continue
+			var middle: Vector2 = enemy.combat_origin() if enemy != null \
+				else body.global_position
+			var wide: float = enemy.contact_radius() if enemy != null \
+				else Balance.ENEMY_BODY_RADIUS
+			var to: Vector2 = middle - origin
+			var distance: float = to.length()
+			if distance > reach + wide:
+				continue
+			if distance > 0.001 and absf(aim.angle_to(to)) > half_arc:
+				continue
+			seen[body.get_instance_id()] = true
+			out.append(body)
+	return out
+
+
 func _strike() -> void:
 	var reach: float = Balance.HERO_ATTACK_RANGE[_step] * reach_scale()
 	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[_step] * 0.5)

@@ -65,6 +65,7 @@ var _fog: FogOfWar = null
 var _trample: TrampleField = null
 var _death_markers: DeathMarkers = null
 var _footfalls: Footfalls = null
+var _tells: CombatTells = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
 
@@ -2811,6 +2812,7 @@ func _build_fog() -> void:
 	_build_stragglers()
 	_build_withdrawal()
 	_build_footfalls()
+	_build_combat_tells()
 
 
 ## **Plants give way to whatever walks through them.**
@@ -2877,6 +2879,33 @@ func _watched_point() -> Vector2:
 	if who != null and is_instance_valid(who):
 		return who.global_position
 	return Vector2.ZERO
+
+
+## **The two tells combat draws.** Under the sorted layer with the footfalls,
+## so a ring lies on the ground rather than over the bodies standing on it,
+## and it freezes with the field for a raid (working rule 8) without knowing
+## raids exist.
+func _build_combat_tells() -> void:
+	_tells = CombatTells.new()
+	_tells.name = "CombatTells"
+	_tells.hero = _would_be_hit
+	(entity_root if entity_root != null else self).add_child(_tells)
+
+
+## Who the Warden's next swing would land on.
+##
+## **Asked of the swing rather than worked out here.** `HeroAttack.would_hit`
+## is the function `_strike` uses, so the mark and the blow cannot disagree
+## about reach, arc, or which step of the chain is next - and a tell that lies
+## about the blow is worse than no tell.
+func _would_be_hit() -> Array:
+	var who: Hero = hero
+	if who == null or not is_instance_valid(who) or not who.is_alive():
+		return []
+	if who.attack == null or not who.can_fight():
+		return []
+	return who.attack.would_hit(who.combat_origin(), who.aim_direction(),
+		who.attack.next_step())
 
 
 func fog() -> FogOfWar:

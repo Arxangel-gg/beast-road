@@ -177,6 +177,13 @@ signal ammo_changed(ammo_id: String, held: int)
 ## The hero loosed a shot. Presentation only - sound, and a co-op partner's
 ## screen showing an arrow leave a bow it cannot see the ammunition of.
 signal hero_loosed(from: Vector2, direction: Vector2, ammo_id: String)
+## A shot was taken from `from` that reaches `reach`. Read by `CombatTells`,
+## which shows the circle for a few seconds and lets it fade.
+##
+## Separate from `hero_loosed` because the reach is the *weapon's* and that
+## signal carries the ammunition - and a ring drawn at a guessed number is a
+## telegraph that lies, which this project has already paid for once.
+signal ranged_shot_fired(from: Vector2, reach: float)
 
 ## The trigger came down on an empty quiver. Said out loud, because a button
 ## that does nothing reads as broken rather than as empty.

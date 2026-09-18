@@ -3519,6 +3519,39 @@ const HERO_ARROW_MUZZLE: float = 38.0
 ## desktop it confirms that the shot really does leave along the cursor, which
 ## is the thing that was wrong. Short on purpose: a full-range laser reads as a
 ## targeting weapon rather than as a bow being drawn.
+## ## **The two tells combat draws: what a swing would hit, and how far a shot
+## reaches.** See `CombatTells`.
+##
+## Owner, 2026-09-18. Both are pictures: nothing reads them, no number moves,
+## and `Graphics.particle_scale()` takes them away entirely.
+##
+## Above the ground and below the bodies, so a ring lies on the earth rather
+## than over the things standing on it.
+const COMBAT_TELL_Z: int = -1
+## How long a ring stays after its shooter last fired, and how much of that is
+## spent fading. A ring that starts fading the instant it opens reads as a
+## mistake rather than as a timer.
+const RANGE_RING_HOLD: float = 2.6
+const RANGE_RING_FADE: float = 0.8
+const RANGE_RING_WIDTH: float = 3.0
+const RANGE_RING_SEGMENTS: int = 48
+## Flattened, because the camera looks down and slightly along and a true
+## circle on the ground reads as a hoop standing up.
+const RANGE_RING_SQUASH: float = 0.58
+const RANGE_RING_HERO: Color = Color(0.72, 0.86, 0.96, 0.62)
+const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.42)
+
+## The mark on a body the next swing would land on. Warm, so it cannot be
+## mistaken for the cool range rings, and it *breathes* rather than sitting
+## still - a sticker reads as part of the art.
+const MELEE_TELL_COLOUR: Color = Color(0.96, 0.74, 0.42, 0.78)
+const MELEE_TELL_WIDTH: float = 2.6
+## How far outside the body the ring sits, so it frames rather than covers.
+const MELEE_TELL_SWELL: float = 1.34
+## Never all the way off: a mark that vanishes between frames is a flicker.
+const MELEE_TELL_PULSE: float = 0.26
+const MELEE_TELL_RATE: float = 4.2
+
 const HERO_AIM_GUIDE_LENGTH: float = 230.0
 const HERO_AIM_GUIDE_START: float = 46.0
 const HERO_AIM_GUIDE_WIDTH: float = 5.0
