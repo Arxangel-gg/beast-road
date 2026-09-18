@@ -120,6 +120,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/ui_tint_check.tscn
           run_godot_clean --headless --path game res://tools/loot_art_check.tscn
           run_godot_clean --headless --path game res://tools/blood_vfx_check.tscn
+          run_godot_clean --headless --path game res://tools/footfall_check.tscn
           run_godot_clean --headless --path game res://tools/recovery_polish_check.tscn
           run_godot_clean --headless --path game res://tools/coop_lobby_check.tscn
           # Anything meaning "a person is standing here" must see all four of

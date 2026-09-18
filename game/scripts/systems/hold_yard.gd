@@ -429,6 +429,8 @@ var _turf: ColorRect = null
 ## What the hooves leave behind. One node for every mark in the yard - see
 ## `GroundMarks`, which also samples the colour off the ground it is laid on.
 var _marks: GroundMarks = null
+## Where everybody's feet were last frame, for `_tick_treads`.
+var _treads: Dictionary = {}
 
 ## How far the Warden has ridden since the last hoof fall, so a trail is laid by
 ## distance rather than by a clock and is the same density at any speed.
@@ -441,7 +443,6 @@ var _land_hard: float = 0.0
 
 ## One reading per sheet. Measuring an image every hoof fall would be a resize
 ## and sixteen pixel reads forty times a second.
-var _ground_means: Dictionary = {}
 
 ## The painted plants standing in the yard, kept so a re-scatter clears the
 ## last garden rather than growing a second one on top of it.
@@ -1263,22 +1264,15 @@ func _ground_colour(at: Vector2) -> Color:
 		var named: String = TILE_ART[level]
 		if not named.is_empty() and ResourceLoader.exists(named):
 			sheet = load(named) as Texture2D
-	if sheet == null:
-		return Color(0.46, 0.42, 0.34)
-	if not _ground_means.has(sheet):
-		var image: Image = sheet.get_image()
-		image.convert(Image.FORMAT_RGBA8)
-		image.resize(4, 4, Image.INTERPOLATE_BILINEAR)
-		var total := Color(0.0, 0.0, 0.0)
-		for y: int in 4:
-			for x: int in 4:
-				total += image.get_pixel(x, y)
-		# Lifted and warmed: dust in the air catches light that the ground it
-		# came off does not.
-		var mean: Color = (total / 16.0) * Balance.MOUNT_MARK_LIFT
-		_ground_means[sheet] = Color(minf(mean.r, 1.0), minf(mean.g, 1.0),
-			minf(mean.b, 1.0))
-	return _ground_means[sheet] as Color
+	# **The reading itself lives in one place now.** This function used to carry
+	# its own four-by-four mean and its own cache, and when the battlefield and
+	# the arenas needed the same answer on 2026-09-17 the obvious thing was to
+	# write it again there - which would have been two answers to "what colour is
+	# the earth somebody is standing on", drifting apart the first time either
+	# was tuned. `GroundTone` is this code, moved rather than copied. What stays
+	# here is the part that is genuinely the Hold's: *which sheet* is under this
+	# point, which no other scope has shelves to ask about.
+	return GroundTone.of(sheet)
 
 
 func _fog_sources() -> Array:
@@ -1334,6 +1328,83 @@ func _follow_the_sun() -> void:
 ##
 ## One loop here rather than a `_process` on each: a yard holds dozens of these
 ## and a script per mushroom is dozens of callbacks for a thing nobody clicks.
+## **The people in the Hold scuff the ground they walk on too.**
+##
+## Owner, 2026-09-17: the dust should be thrown by *"all characters"*. Everywhere
+## else in the game that is `Footfalls`, which watches a node group - and the
+## Hold has no nodes to watch. Its Wardens and its residents are **records**,
+## drawn by this file's own `_draw`, which is what makes the place cheap enough
+## to carry four seats, six houses, a lawn and a bonfire at once.
+##
+## So the measurement is the same and the enumeration is local: travel since the
+## last frame, a stride's worth at a time, laid into the very array the hooves
+## are already in. It walks the same two lists `_who_is_walking` walks - the
+## seats and the residents - rather than calling it, because a scuff needs to
+## know *which* walker it belongs to across frames and that function hands back
+## anonymous points.
+func _tick_treads(delta: float) -> void:
+	if _marks == null or delta <= 0.0:
+		return
+	var weight: float = Graphics.particle_scale() 		* JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
+	if weight <= 0.01:
+		return
+	var stride: float = Balance.HERO_BODY_RADIUS * Balance.FOOTFALL_STRIDE
+	var top: float = Balance.HOLD_WALK_SPEED
+	for index: int in _seats.size():
+		var seat: Dictionary = _seats[index]
+		if int(seat.get("kind", 0)) == HoldSession.Seat.EMPTY:
+			continue
+		# **A rider lays no boot marks.** The horse is already laying hoof marks
+		# through `_tick_ride`, and both at once reads as somebody dragging their
+		# feet beside a galloping animal.
+		if bool(seat.get("riding", false)):
+			_treads.erase("s%d" % index)
+			continue
+		_one_walker("s%d" % index, seat["at"] as Vector2, stride,
+			top * Balance.HOLD_MOUNT_SPEED, delta, weight)
+	for index: int in _residents.size():
+		_one_walker("r%d" % index, _residents[index]["at"] as Vector2, stride,
+			top, delta, weight)
+	_marks.bound(Balance.FOOTFALL_MAX_MARKS)
+
+
+## One walker's travel since the last frame, a stride's worth at a time.
+##
+## Keyed by a string rather than by position in a list, because a seat emptying
+## renumbers everybody after it - and a walker that changes key arrives looking
+## like somebody who has just teleported across the yard, which empties a whole
+## journey into one scuff.
+func _one_walker(key: String, at: Vector2, stride: float, top: float, delta: float,
+		weight: float) -> void:
+	var was: Variant = _treads.get(key)
+	if not (was is Array):
+		_treads[key] = [at, 0.0]
+		return
+	var last: Vector2 = (was as Array)[0] as Vector2
+	var gone: float = last.distance_to(at)
+	var effort: float = clampf(gone / delta / maxf(top, 1.0), 0.0, 1.0)
+	if effort < Balance.FOOTFALL_MOVING:
+		_treads[key] = [at, 0.0]
+		return
+	var carried: float = float((was as Array)[1]) + gone
+	var way: Vector2 = (at - last).normalized()
+	var floor_at: Vector2 = at + Vector2(0.0, lift_at(at))
+	while carried >= stride:
+		carried -= stride
+		var puffs: int = maxi(int(round(lerpf(1.0,
+			float(Balance.FOOTFALL_PUFFS), effort) * weight)), 1)
+		for _puff: int in puffs:
+			_marks.scuff(floor_at,
+				-way * lerpf(Balance.FOOTFALL_THROW.x,
+					Balance.FOOTFALL_THROW.y, effort),
+				Balance.HERO_BODY_RADIUS * Balance.FOOTFALL_PUFF_SIZE
+					* lerpf(0.7, 1.25, effort) * clampf(weight, 0.4, 1.0),
+				Balance.FOOTFALL_LIFE,
+				Balance.FOOTFALL_ALPHA * clampf(weight, 0.0, 1.0),
+				Balance.FOOTFALL_DRAG)
+	_treads[key] = [at, carried]
+
+
 func _breathe_the_scatter(delta: float) -> void:
 	for sprite: Sprite2D in _breathers:
 		if not is_instance_valid(sprite):
@@ -1618,6 +1689,7 @@ func _process(delta: float) -> void:
 	for person: Dictionary in _residents:
 		_mind_the_stall(person, delta)
 	_tick_heel(delta)
+	_tick_treads(delta)
 	_turn_the_wind(delta)
 	_breathe_the_scatter(delta)
 	_breathe(delta)

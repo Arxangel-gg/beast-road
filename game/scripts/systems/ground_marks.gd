@@ -33,10 +33,6 @@ extends Node2D
 ## where it is standing.
 var ground: Callable = Callable()
 
-## How quickly what was thrown gives up its speed. A property rather than the
-## constant, because a boot's scuff settles faster than a hoof's throw.
-var drag: float = Balance.MOUNT_MARK_DRAG
-
 var _marks: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
 var _clock: float = 0.0
@@ -56,7 +52,8 @@ func hoof(at: Vector2, way: Vector2, hard: float) -> void:
 	for _index: int in count:
 		_mark(at, -way * lerpf(20.0, 110.0, hard),
 			_rng.randf_range(7.0, 15.0) * lerpf(0.7, 1.35, hard),
-			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA)
+			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA,
+			Balance.MOUNT_MARK_DRAG)
 
 
 ## **A rider hitting the ground**, carrying whatever they were doing.
@@ -72,7 +69,8 @@ func impact(at: Vector2, way: Vector2, hard: float) -> void:
 		var out := Vector2(cos(angle), sin(angle) * 0.5)
 		_mark(at, out * lerpf(40.0, 190.0, hard) - way * 40.0,
 			_rng.randf_range(7.0, 15.0) * 1.6 * lerpf(0.7, 1.35, hard),
-			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA)
+			Balance.MOUNT_MARK_LIFE, Balance.MOUNT_MARK_ALPHA,
+			Balance.MOUNT_MARK_DRAG)
 
 
 ## **The general case, which a hoof fall and a landing are both shapes of.**
@@ -82,8 +80,8 @@ func impact(at: Vector2, way: Vector2, hard: float) -> void:
 ## it rather than left beside it. One painter, three callers: a second copy of
 ## this arithmetic is how one of them ends up disagreeing with the ground.
 func scuff(at: Vector2, way: Vector2, size: float, life: float,
-		alpha: float) -> void:
-	_mark(at, way, size, life, alpha)
+		alpha: float, drag: float) -> void:
+	_mark(at, way, size, life, alpha, drag)
 
 
 ## How many marks are alive. Read by a driver that has to bound them.
@@ -103,7 +101,7 @@ func bound(keep: int) -> void:
 
 
 func _mark(at: Vector2, way: Vector2, size: float, life: float,
-		alpha: float) -> void:
+		alpha: float, drag: float) -> void:
 	var tint: Color = Balance.GROUND_TONE_FALLBACK
 	if ground.is_valid():
 		var found: Variant = ground.call(at)
@@ -117,6 +115,11 @@ func _mark(at: Vector2, way: Vector2, size: float, life: float,
 		"full": life,
 		"size": size,
 		"alpha": alpha,
+		# **Carried by the mark, not by this node.** A shod hoof throws earth
+		# that keeps going and a boot scuffs dust that stops almost at once, and
+		# one painter now serves both - the Hold lays hoof marks and footfalls
+		# into the same array.
+		"drag": drag,
 		"tint": tint,
 	})
 
@@ -132,7 +135,7 @@ func _process(delta: float) -> void:
 		# Dirt thrown up slows quickly and then hangs: the drag is what stops a
 		# puff reading as a bullet.
 		mark["way"] = (mark["way"] as Vector2) * (1.0 - delta
-			* drag)
+			* float(mark.get("drag", Balance.MOUNT_MARK_DRAG)))
 		mark["at"] = (mark["at"] as Vector2) + (mark["way"] as Vector2) * delta
 		live.append(mark)
 	_marks = live

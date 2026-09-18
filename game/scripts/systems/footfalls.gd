@@ -121,7 +121,6 @@ func _ready() -> void:
 	_marks = GroundMarks.new()
 	_marks.name = "Marks"
 	_marks.ground = ground
-	_marks.drag = Balance.FOOTFALL_DRAG
 	add_child(_marks)
 	set_process(true)
 
@@ -213,7 +212,8 @@ func _step(at: Vector2, way: Vector2, tread: Vector3, effort: float,
 			tread.x * Balance.FOOTFALL_PUFF_SIZE * lerpf(0.7, 1.25, effort)
 				* sqrt(mass) * clampf(weight, 0.4, 1.0),
 			Balance.FOOTFALL_LIFE,
-			Balance.FOOTFALL_ALPHA * clampf(weight, 0.0, 1.0))
+			Balance.FOOTFALL_ALPHA * clampf(weight, 0.0, 1.0),
+			Balance.FOOTFALL_DRAG)
 
 
 ## How many marks are alive. For the gate, which measures rather than asserts.

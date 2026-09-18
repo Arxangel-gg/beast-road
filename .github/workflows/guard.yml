@@ -294,6 +294,7 @@ jobs:
           # never ordinary hit readability, and the effect must spawn at the
           # replicated impact position rather than at the local hero.
           check "blood VFX" --headless --path game res://tools/blood_vfx_check.tscn
+          check "footfalls" --headless --path game res://tools/footfall_check.tscn
           # Rare recovery stays bounded and run-local; its co-op contract, real
           # art, shader resources and the two-minute blood memory ship together.
           check "recovery and shader polish" --headless --path game res://tools/recovery_polish_check.tscn

@@ -5512,6 +5512,76 @@ rectangle - the largest shapes in the place, reading as panes of glass laid on
 the painting. All three are the same lesson in three costumes: **a model of a
 thing is not the thing.**
 
+**Everything that moves scuffs the ground it moves over, as of 2026-09-17.**
+The owner: *"Moving for all characters from players to enemies to wildlife
+should also generate ground vfx with perfect game juice and it should be tuned
+for each character's size and mass and speed including the dirt clouds etc which
+should be tuned for the color of the ground under where it occurred."*
+
+**One watcher, not a call site per mover, and that is the whole design.** Five
+things in this game walk - a Warden, a body, an animal, a companion and a horse
+- and each moves through code of its own: a state machine, a shove from the
+crowd grid, a dash, knockback. Emitting a scuff at each is the failure this
+project has now shipped three times, after an Arcane node applying its reach at
+four of five throws, a spell scale recomputed by hand at three sites, and the
+interact button read at eight. `Footfalls` measures **travel** instead, which
+covers every way a body can move by construction - including the ways nobody
+thought of, which is why a body knocked back throws dirt with nothing having
+wired knockback to anything. `DeathMarkers` settled this shape first, watching
+whether each hero is standing rather than listening for a death.
+
+**Three numbers a body, each derived from what it already declares.** Its own
+contact radius is the footprint, its hide is the weight - `FOOTFALL_MASS_BY_HIDE`
+gives plate and stone more and a **spirit zero**, so a summoned companion leaves
+nothing while a raised one leaves what its species weighs - and its own walking
+speed is what effort is measured against. A rabbit flat out and a boss ambling
+cover the same ground in a second; the rabbit is at its limit. So a breed, an
+animal or a mount added tomorrow scuffs correctly with nobody editing that file.
+
+**The colour is read, never authored.** `GroundTone` is the mean of the sheet
+the floor is actually painted with, lifted because dust in the air catches light
+the earth does not: the road where there is a road, the region's ground
+elsewhere, cut rock in a maze. It is `hold_yard._ground_colour`'s own reading
+**moved rather than copied** - the first cut left the Hold with its own mean and
+its own cache, which would have been two answers to "what colour is the earth
+here" drifting apart the first time either was tuned.
+
+**The bound is every decoration's.** Nothing reads a scuff. `Graphics.particle_scale()`
+scales it to nothing, `JuiceDirector` damps it as COSMETIC, and the run is
+identical either way. One pass at `FOOTFALL_HZ` over the bodies within
+`FOOTFALL_VIEW` of what the camera watches, one triangle array for every live
+mark, and a hard cap of `FOOTFALL_MAX_MARKS` - so two hundred bodies cost what
+the dozen on screen do.
+
+**The Hold lays its own, and that is a consequence of what the Hold is.** Its
+Wardens and residents are *records* drawn by one `_draw`, not nodes, which is
+what makes four seats, six houses, a lawn and a bonfire affordable at once - so
+there is nothing for a group to watch. `HoldYard._tick_treads` does the same
+measurement over the same two lists, into the array the hooves are already laid
+in. A rider lays no boot marks; the horse is already marking.
+
+**And three systems were unreachable with one graphics option off.**
+`_build_death_markers`, `_build_stragglers` and `_build_withdrawal` were all
+called from inside `_build_trample`, *after* its `if not Graphics.foliage_trample():
+return`. So a player who turned foliage trample off silently lost the death
+stones, the straggler plumes, and `Withdrawal` - which is not decoration at all:
+it is the road pressing on a party who pressed Turn For Home, and it carries the
+floor that guarantees they reach it. Nothing errored and nothing could have.
+**Found while adding a fourth thing to the same list**, which is the argument for
+reading a function before appending to it.
+
+`footfall_check` drives the real node with puppets rather than real bodies - the
+subject is the driver, and a real body brings a route and a director that would
+move it for reasons this gate has no opinion about - and it **counts what the
+painter produced** rather than reading the constants back. It holds that
+standing still and drifting under the threshold lay nothing, that zero mass
+never joins the group, that the hide table names every hide, that a heavier body
+and a faster one each throw more, that sixty bodies at a run stay inside the cap
+*and actually reach it*, and that the regions do not all read as one colour. The
+last test is a source walk, because the failure it catches is an **omission**: a
+body that never registers is silently dustless for ever with every other check
+on the page green.
+
 
 ### The three escape hatches — and why there are only three
 
