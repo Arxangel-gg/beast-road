@@ -102,10 +102,21 @@ func _test_standing_still_lays_nothing() -> void:
 	_march(feet, body, Vector2.ZERO, 0.0, 20)
 	_check(feet.live_marks() == 0,
 		"a body standing still must lay nothing, laid %d" % feet.live_marks())
-	_march(feet, body, Vector2.RIGHT, 100.0 * Balance.FOOTFALL_MOVING * 0.5, 20)
+	# **Long enough that a build with no threshold would certainly scuff.**
+	#
+	# The first cut drifted for twenty frames, which at half the threshold covers
+	# twelve units against a stride of forty-two - so it laid nothing whether the
+	# guard was there or not, and passed with the guard deleted. Caught by
+	# planting exactly that fault. The drift now covers several strides' worth of
+	# ground, so the only thing that can keep it at zero is the threshold itself.
+	var drift: float = 100.0 * Balance.FOOTFALL_MOVING * 0.5
+	var stride: float = Balance.ENEMY_BODY_RADIUS * Balance.FOOTFALL_STRIDE
+	var frames: int = int(ceil(stride * 4.0 / (drift / Balance.FOOTFALL_HZ)))
+	_march(feet, body, Vector2.RIGHT, drift, frames)
 	_check(feet.live_marks() == 0,
-		("a body drifting under the moving threshold must lay nothing, laid %d")
-			% feet.live_marks())
+		("a body drifting under the moving threshold must lay nothing over %d "
+			+ "strides of ground, laid %d")
+			% [4, feet.live_marks()])
 	feet.get_parent().queue_free()
 	body.queue_free()
 
