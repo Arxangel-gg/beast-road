@@ -5299,6 +5299,27 @@ by hand when the tick recomputes it, and once for calling `_tick_gallop`
 directly when it is the *outer* tick that counts the climb into the saddle
 down. Drive the door, not the flag, and drive the outermost one.
 
+**That paragraph was stale and is corrected here rather than overwritten, as of
+2026-09-18.** All four mounts have idle, walk *and* gallop sheets on disk; they
+landed after it was written and nothing updated it. **The Stable's horses are
+still motionless and the reason is not the screen** - the owner reported it twice
+and both times the code was doing exactly what it was told.
+
+Measured off the files rather than reasoned about:
+
+    mount_*_idle.png    224 x 1792    8 directions x 1 frame
+    mount_*_walk.png   2016 x 1792    8 directions x 9 frames
+
+**An idle sheet holds one frame per direction, so `play("idle")` has nothing to
+play.** The rig, the south-east facing and the per-row speed scale are all
+correct; the state is a still painting by construction. The fix is art and
+nothing else: eight-direction *idle* animations for the four mounts, generated
+with `mode: "v3"` and an `action_description` (the template animations strip the
+tack - see below), cropped by the union of each facing rather than per frame.
+
+The original note, kept because its caveat about missing sheets is what sent two
+sessions looking in the wrong place:
+
 **The art is not finished and the gap is named rather than left to be noticed.**
 The steppe horse and the marsh pony have their eight-direction base sheets; the
 walk and gallop sheets and the other two mounts were still generating when this
