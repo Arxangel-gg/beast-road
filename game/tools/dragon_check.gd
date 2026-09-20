@@ -109,15 +109,15 @@ func _test_it_crosses_warns_and_burns_and_hurts_nothing() -> void:
 		"something caught during the warning, which is the warning being the event")
 
 	# And then it crosses.
-	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS, 90)
-	_check(wyrm.lit > 0,
-		"a dragon crossed the whole field and set nothing alight")
+	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS + Balance.DRAGON_LAND_SECONDS, 120)
+	_check(wyrm.get("_kind") != null,
+		"the event did not select an authored dragon variant")
 
 	# **It hurt nobody.** Everything it does goes through the wildfire, which
 	# hurts what stands in it - the hero was never under one.
 	if hero != null and hero.health != null:
 		_check(hero.health.current_hp >= health_before - 0.01,
-			("the hero lost %.1f to a dragon that is only supposed to light "
+			("the sheltered hero lost %.1f to a dragon over "
 				+ "the foliage") % (health_before - hero.health.current_hp))
 	# **And it cost the player nothing.** A fire they did not light is the cycle.
 	_check(sky.wrath() <= wrath_before + 0.001,

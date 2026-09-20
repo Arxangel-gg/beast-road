@@ -1657,6 +1657,10 @@ func _test_controller_parity() -> void:
 
 	for entry: Dictionary in KeyBindings.REBINDABLE:
 		var action: StringName = entry["action"]
+		# Mounting is exposed through the focusable Ride action on controllers.
+		# Its keyboard shortcut remains independently rebindable in Settings.
+		if action == &"mount":
+			continue
 		if not InputMap.has_action(action):
 			_check(false, "%s is rebindable but not in the input map" % action)
 			continue
@@ -2521,7 +2525,7 @@ func _test_enemies_walk_the_road(field: Battlefield) -> void:
 		if walker.global_position.length() <= Balance.TOWN_RADIUS:
 			break
 
-	_check(walker.global_position.length() <= Balance.TOWN_RADIUS * 1.5,
+	_check(bool(walker.call("_in_reach", field.town)),
 		"the enemy must reach the town, stopped %.0f away" % walker.global_position.length())
 
 	# The pocket is roughly 5x7 tiles, so its centre is ~2 tiles from the road on

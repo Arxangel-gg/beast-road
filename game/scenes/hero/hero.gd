@@ -307,6 +307,8 @@ func worn_set() -> GearSetData:
 
 
 func _ready() -> void:
+	health.damage_allowed = func() -> bool:
+		return field == null or not is_instance_valid(field) or not field.inside_city(global_position)
 	# Local unless something says otherwise, which is every hero in a
 	# single-player run and one of the two in co-op. Set before anything else:
 	# `_physics_process` asks it on the first frame and a null source there would
@@ -2110,7 +2112,7 @@ func mender_seconds_left() -> float:
 ## the field. It adds no stun: the player keeps full control of a body that is
 ## briefly sliding, which is the difference between a shove and a stun.
 func shove(push: Vector2) -> void:
-	if not is_alive() or push.is_zero_approx():
+	if not is_alive() or push.is_zero_approx() or not health.accepts_damage():
 		return
 	var speed: float = minf(push.length(), Balance.shove_ceiling())
 	# The total, not the new push: two slams landing on the same frame would

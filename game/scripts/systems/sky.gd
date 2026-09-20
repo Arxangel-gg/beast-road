@@ -90,6 +90,7 @@ var events_enabled: bool = true
 var _sheen: ColorRect = null
 var _sheen_material: ShaderMaterial = null
 var _bolts: Node2D = null
+var _visual_rng := RandomNumberGenerator.new()
 
 ## The earth's wrath. A floor that only rises for the run and a heat that
 ## decays; hidden, sensed. See Balance under THE EARTH'S WRATH.
@@ -117,6 +118,7 @@ func _ready() -> void:
 	_phases = Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)
 	_mirror = Coop.is_guest()
 	_build_sheen()
+	_visual_rng.seed = RunState.run_seed ^ 0xB017
 	_bolts = Node2D.new()
 	_bolts.name = "Bolts"
 	_bolts.z_index = Balance.LIGHTNING_Z
@@ -130,6 +132,8 @@ func _ready() -> void:
 	EventBus.wildlife_killed.connect(_on_wildlife_killed)
 	EventBus.coop_earthquake.connect(_on_earthquake_seen)
 	EventBus.earthquake.connect(_on_earthquake_seen)
+	EventBus.world_hazard.connect(_on_world_hazard)
+	EventBus.coop_world_hazard.connect(_on_world_hazard)
 	EventBus.coop_tornado_spawned.connect(_on_tornado_elsewhere)
 	EventBus.coop_meteor_incoming.connect(_on_meteor_elsewhere)
 	EventBus.coop_wrath_warned.connect(_on_warned_elsewhere)
@@ -378,18 +382,18 @@ func _on_lightning_seen(at: Vector2, radius: float) -> void:
 	RunState.note_earth("strikes")
 	_draw_bolt(at)
 	Vfx.flash(Balance.LIGHTNING_COLOUR, Balance.LIGHTNING_FLASH, 0.22)
-	Vfx.flash_at(at, Color.WHITE, 62.0)
-	Vfx.flash_at(at, Balance.LIGHTNING_COLOUR, 70.0)
+	Vfx.flash_at(at, Color.WHITE, 62.0, true)
+	Vfx.flash_at(at, Balance.LIGHTNING_COLOUR, 70.0, true)
 	# **Two rings, not one.** A fast tight one that is the blast leaving and a
 	# slow wide one that is the air answering: one ring alone reads as a
 	# decoration drawn at a radius, two read as something happening.
-	Vfx.ring(at, radius * 0.42, Color(1.0, 1.0, 1.0, 0.95), 0.18, 7.0)
-	Vfx.ring(at, radius, Color(Balance.LIGHTNING_COLOUR, 0.9), 0.4, 5.0)
-	Vfx.ring(at, radius * 1.45, Color(Balance.LIGHTNING_COLOUR, 0.28), 0.62, 2.5)
+	Vfx.ring(at, radius * 0.42, Color(1.0, 1.0, 1.0, 0.95), 0.18, 7.0, true)
+	Vfx.ring(at, radius, Color(Balance.LIGHTNING_COLOUR, 0.9), 0.4, 5.0, true)
+	Vfx.ring(at, radius * 1.45, Color(Balance.LIGHTNING_COLOUR, 0.28), 0.62, 2.5, true)
 	# Thrown *up* the channel: everything the strike touched leaves the ground.
-	Vfx.spark(at, Color.WHITE, 12, Vector2.UP, 520.0)
-	Vfx.spark(at, Balance.LIGHTNING_COLOUR, 18, Vector2.UP, 320.0)
-	Vfx.dust(at, Color(0.14, 0.12, 0.11), 12, 76.0)
+	Vfx.spark(at, Color.WHITE, 12, Vector2.UP, 520.0, true)
+	Vfx.spark(at, Balance.LIGHTNING_COLOUR, 18, Vector2.UP, 320.0, true)
+	Vfx.dust(at, Color(0.14, 0.12, 0.11), 12, 76.0, true)
 	EventBus.camera_impact.emit(at, 1.0)
 	# Thunder arrives after the light, by the distance: a strike across the
 	# field rolls in a moment later, one overhead is on top of the flash.
@@ -400,7 +404,9 @@ func _on_lightning_seen(at: Vector2, radius: float) -> void:
 	if wait <= 0.05:
 		Sfx.play(clip, 0.0)
 	else:
-		get_tree().create_timer(wait).timeout.connect(func() -> void: Sfx.play(clip, 0.0))
+		var thunder: Tween = create_tween()
+		thunder.tween_interval(wait)
+		thunder.tween_callback(Sfx.play.bind(clip, 0.0))
 
 
 ## A jagged line from the sky to the ground, with a branch or two, for a few
@@ -408,7 +414,7 @@ func _on_lightning_seen(at: Vector2, radius: float) -> void:
 func _draw_bolt(at: Vector2) -> void:
 	if _bolts == null:
 		return
-	var top: Vector2 = at + Vector2(_rng.randf_range(-120.0, 120.0), -Balance.LIGHTNING_BOLT_HEIGHT)
+	var top: Vector2 = at + Vector2(_visual_rng.randf_range(-120.0, 120.0), -Balance.LIGHTNING_BOLT_HEIGHT)
 	var main: PackedVector2Array = _jagged(top, at, 16, 70.0)
 	# **A bloom stack**: a very wide, very faint outer glow, a mid glow, and a
 	# thin near-white core, all additive. One even stroke is a drawn line; three
@@ -420,10 +426,10 @@ func _draw_bolt(at: Vector2) -> void:
 			0.0 if step < Balance.LIGHTNING_BLOOM.size() - 1 else 0.75))
 	var lines: Array[Line2D] = channel.duplicate()
 	# Branches off the channel, thinner, dimmer and tapering to nothing.
-	for _b: int in 2 + (1 if _rng.randf() < 0.6 else 0):
-		var from_index: int = _rng.randi_range(3, main.size() - 4)
+	for _b: int in 2 + (1 if _visual_rng.randf() < 0.6 else 0):
+		var from_index: int = _visual_rng.randi_range(3, main.size() - 4)
 		var from: Vector2 = main[from_index]
-		var to: Vector2 = from + Vector2(_rng.randf_range(-300.0, 300.0), _rng.randf_range(140.0, 440.0))
+		var to: Vector2 = from + Vector2(_visual_rng.randf_range(-300.0, 300.0), _visual_rng.randf_range(140.0, 440.0))
 		var fork: PackedVector2Array = _jagged(from, to, 6, 40.0)
 		lines.append(_bolt_line(fork, 12.0, 0.24, true))
 		lines.append(_bolt_line(fork, 3.4, 0.85, true, 0.5))
@@ -436,10 +442,11 @@ func _draw_bolt(at: Vector2) -> void:
 		_bolts.add_child(line)
 	# **Held by id.** A tween callback may not capture a node in this project:
 	# the engine errors at the call before any guard inside the body runs.
-	var held := PackedInt32Array()
+	# Godot instance IDs are 64-bit. Narrowing them leaves every cleanup lookup empty.
+	var held := PackedInt64Array()
 	for line: Line2D in lines:
 		held.append(line.get_instance_id())
-	var trunk := PackedInt32Array()
+	var trunk := PackedInt64Array()
 	for line: Line2D in channel:
 		trunk.append(line.get_instance_id())
 	var ground: Vector2 = at
@@ -475,7 +482,7 @@ func _taper(at_ground: float) -> Curve:
 	return curve
 
 
-func _dim_the_channel(held: PackedInt32Array, alpha: float) -> void:
+func _dim_the_channel(held: PackedInt64Array, alpha: float) -> void:
 	for id: int in held:
 		var line: Variant = instance_from_id(id)
 		if line != null and is_instance_valid(line as Object):
@@ -484,7 +491,7 @@ func _dim_the_channel(held: PackedInt32Array, alpha: float) -> void:
 
 ## Another return stroke: the trunk re-jags and brightens, the branches stay
 ## where they were and stay dim - a second stroke rarely forks the same way.
-func _strike_again(held: PackedInt32Array, trunk: PackedInt32Array, ground: Vector2) -> void:
+func _strike_again(held: PackedInt64Array, trunk: PackedInt64Array, ground: Vector2) -> void:
 	_dim_the_channel(held, 0.45)
 	var path := PackedVector2Array()
 	for id: int in trunk:
@@ -497,10 +504,10 @@ func _strike_again(held: PackedInt32Array, trunk: PackedInt32Array, ground: Vect
 		stroke.points = path
 		stroke.modulate.a = 1.0
 	if not path.is_empty():
-		Vfx.flash_at(ground, Balance.LIGHTNING_COLOUR, 46.0)
+		Vfx.flash_at(ground, Balance.LIGHTNING_COLOUR, 46.0, true)
 
 
-func _put_the_channel_out(held: PackedInt32Array) -> void:
+func _put_the_channel_out(held: PackedInt64Array) -> void:
 	for id: int in held:
 		var line: Variant = instance_from_id(id)
 		if line != null and is_instance_valid(line as Object):
@@ -513,7 +520,7 @@ func _jagged(from: Vector2, to: Vector2, steps: int, jitter: float) -> PackedVec
 		var t: float = float(index) / float(steps)
 		var along: Vector2 = from.lerp(to, t)
 		if index > 0 and index < steps:
-			along += Vector2(_rng.randf_range(-jitter, jitter), _rng.randf_range(-jitter * 0.4, jitter * 0.4))
+			along += Vector2(_visual_rng.randf_range(-jitter, jitter), _visual_rng.randf_range(-jitter * 0.4, jitter * 0.4))
 		points.append(along)
 	return points
 
@@ -530,6 +537,7 @@ func _bolt_line(points: PackedVector2Array, width: float, alpha: float,
 	# and a bloom stack drawn all in one tint reads as one flat colour.
 	line.default_color = Color(Balance.LIGHTNING_COLOUR.lerp(Color.WHITE, hot), alpha)
 	line.width_curve = _taper(0.0 if taper_out else Balance.LIGHTNING_TAPER)
+	line.antialiased = true
 	line.joint_mode = Line2D.LINE_JOINT_ROUND
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -1064,11 +1072,17 @@ func _tick_wrath_events(delta: float) -> void:
 
 ## The ground shakes: everything alive is hurt by the magnitude, and the
 ## screen with it.
-func quake(magnitude: float) -> void:
+func quake(magnitude: float, selected: Array[String] = []) -> void:
 	quakes += 1
 	_quake_magnitude = clampf(magnitude, 0.0, 1.0)
 	_quake_left = Balance.QUAKE_SECONDS
-	if field != null and not _mirror:
+	var patterns: Array[String] = []
+	if not _mirror:
+		patterns = selected.duplicate() if not selected.is_empty() else earth_patterns(_rng, RunState.wrath)
+		for pattern: String in patterns:
+			if pattern != "quake":
+				_open_earth_paths(pattern, _quake_magnitude / float(patterns.size()))
+	if field != null and not _mirror and patterns.has("quake"):
 		var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 		for enemy: Enemy in field.enemies_near(Vector2.ZERO, INF):
@@ -1076,7 +1090,7 @@ func quake(magnitude: float) -> void:
 		var hero_pool: float = 100.0
 		if field.hero != null and field.hero.health != null:
 			hero_pool = field.hero.health.max_hp
-		EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.QUAKE_HERO_SHARE * _quake_magnitude,
+		EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.QUAKE_HERO_SHARE * _quake_magnitude / float(patterns.size()),
 			"earthquake", func(_where: Vector2) -> bool: return true)
 		# Every tower standing is shaken; a chip by the magnitude, never a fall.
 		for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
@@ -1087,6 +1101,8 @@ func quake(magnitude: float) -> void:
 		if animals != null:
 			animals.wound_within(Vector2.ZERO, INF, Balance.QUAKE_WILDLIFE_DAMAGE * _quake_magnitude, false)
 			animals.scare_from(Vector2.ZERO, INF)
+	if field != null and not _mirror:
+		# Every earth pattern leaves the same persistent seismic resource zone.
 		# The fault it opens: charged ground for the earth towers, and a
 		# line of cracks across it that stays.
 		var fault: Vector2 = _pick_strike_point(_zone_rng)
@@ -1329,8 +1345,9 @@ func _on_tornado_elsewhere(at: Vector2, target: Vector2, seconds: float) -> void
 ## The line it flies is drawn from the sky's own stream so both machines could
 ## agree on it - though only the host ever lights anything, and a guest draws
 ## the same shadow from the warning it is told.
-func send_dragon(from: Vector2 = Vector2.INF, to: Vector2 = Vector2.INF) -> DragonPass:
-	if field == null or _dragon != null:
+func send_dragon(from: Vector2 = Vector2.INF, to: Vector2 = Vector2.INF,
+		plan: Dictionary = {}) -> DragonPass:
+	if field == null or is_instance_valid(_dragon):
 		return null
 	if not from.is_finite() or not to.is_finite():
 		var span: float = BattleGrid.HALF_EXTENT * 1.6
@@ -1343,9 +1360,13 @@ func send_dragon(from: Vector2 = Vector2.INF, to: Vector2 = Vector2.INF) -> Drag
 	wyrm.from = from
 	wyrm.to = to
 	wyrm.field = field
+	wyrm.authored_plan = plan
 	wyrm.wildfire = wildfire
 	field.add_child(wyrm)
 	_dragon = wyrm
+	wyrm.tree_exited.connect(func() -> void: _dragon = null)
+	if not _mirror:
+		EventBus.world_hazard.emit("dragon", wyrm.encounter_plan())
 	dragons += 1
 	RunState.note_earth("dragons")
 	# Warned the way a quake is, on every machine, and every animal runs.
@@ -1423,13 +1444,7 @@ func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
 		next.take_damage(worth * next.shock_scale(), here, 0.0)
 		carrier = next
 		chain_arcs += 1
-		var arc: Line2D = _bolt_line(_jagged(here, to, 6, 22.0), 4.0, 0.9)
-		if _bolts != null:
-			_bolts.add_child(arc)
-			var fade: Tween = create_tween()
-			fade.tween_interval(0.12)
-			fade.tween_callback(arc.queue_free)
-		Vfx.flash_at(to, Balance.LIGHTNING_COLOUR, 34.0)
+		EventBus.world_hazard.emit("chain", {"from": here, "to": to})
 		here = to
 	var animals: Wildlife = field.wildlife()
 	if animals != null and flood > 0.0:
@@ -1438,3 +1453,80 @@ func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
 
 ## For the gate: how many arcs the last strikes threw.
 var chain_arcs: int = 0
+
+
+static func earth_patterns(random: RandomNumberGenerator, wrath: float) -> Array[String]:
+	var anger: float = clampf(wrath / maxf(Balance.WRATH_CAP, 1.0), 0.0, 1.0)
+	var roll: float = random.randf()
+	var triples: float = Balance.EARTH_TRIPLE_CHANCE + anger * Balance.EARTH_TRIPLE_WRATH_BONUS
+	var doubles: float = Balance.EARTH_DOUBLE_CHANCE + anger * Balance.EARTH_DOUBLE_WRATH_BONUS
+	var count: int = 3 if roll < triples else (2 if roll < triples + doubles else 1)
+	var available: Array[String] = ["quake", "fissure", "trail"]
+	var chosen: Array[String] = []
+	for index: int in count:
+		var pick: int = random.randi_range(0, available.size() - 1)
+		chosen.append(available[pick])
+		available.remove_at(pick)
+	return chosen
+
+
+func _open_earth_paths(mode: String, strength: float) -> void:
+	if field == null:
+		return
+	for index: int in Balance.EARTH_PATTERN_COUNT:
+		var start: Vector2 = _pick_strike_point(_zone_rng)
+		var aim: Vector2 = Vector2.RIGHT.rotated(_zone_rng.randf() * TAU)
+		var heroes: Array[Hero] = field.heroes()
+		if not heroes.is_empty():
+			var who: Hero = heroes[index % heroes.size()]
+			if who != null and who.is_alive() and not field.inside_city(who.global_position):
+				start = who.global_position - aim * Balance.EARTH_PATTERN_LENGTH * 0.5
+		var finish: Vector2 = start + aim * Balance.EARTH_PATTERN_LENGTH
+		EventBus.world_hazard.emit("ground", {
+			"mode": mode, "from": start, "to": finish,
+			"width": Balance.EARTH_PATTERN_WIDTH,
+			"warning": Balance.EARTH_PATTERN_WARNING,
+			"travel": Balance.EARTH_TRAIL_SECONDS if mode == "trail" else 0.1,
+			"share": Balance.EARTH_PATTERN_HERO_SHARE * strength / float(Balance.EARTH_PATTERN_COUNT),
+			"tower_damage": Balance.EARTH_PATTERN_TOWER_DAMAGE * strength,
+			"tint": Color(0.84, 0.57, 0.24), "blame": "earthquake"})
+
+
+func _on_world_hazard(kind: String, payload: Dictionary) -> void:
+	if field == null:
+		return
+	if kind == "dragon":
+		if _mirror:
+			send_dragon(payload["from"] as Vector2, payload["to"] as Vector2, payload)
+		return
+	if kind == "chain":
+		_draw_chain(payload["from"] as Vector2, payload["to"] as Vector2)
+		return
+	if kind != "ground":
+		return
+	var hazard := GroundHazard.new()
+	hazard.field = field
+	hazard.plan = payload.duplicate(true)
+	hazard.mirror = _mirror
+	field.add_child(hazard)
+
+
+## One committed hop, with a cool halo and hot core that fade together.
+func _draw_chain(from: Vector2, to: Vector2) -> void:
+	if _bolts == null:
+		return
+	var path: PackedVector2Array = _jagged(from, to, 6, 22.0)
+	for layer: int in Balance.LIGHTNING_BLOOM.size():
+		var arc: Line2D = _bolt_line(path,
+			Balance.CHAIN_CORE_WIDTH * Balance.LIGHTNING_BLOOM[layer],
+			Balance.LIGHTNING_BLOOM_ALPHA[layer], false,
+			0.85 if layer == Balance.LIGHTNING_BLOOM.size() - 1 else 0.0)
+		_bolts.add_child(arc)
+		# Bound to the line, so clearing the effect also cancels its tween.
+		var fade: Tween = arc.create_tween()
+		fade.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		fade.tween_interval(Balance.CHAIN_FLASH_HOLD)
+		fade.tween_property(arc, "modulate:a", 0.0, Balance.CHAIN_FLASH_FADE)
+		fade.tween_callback(arc.queue_free)
+	Vfx.flash_at(to, Balance.LIGHTNING_COLOUR, 34.0, true)
+	Vfx.spark(to, Balance.LIGHTNING_COLOUR.lightened(0.5), 5, (to - from).normalized(), 160.0, true)

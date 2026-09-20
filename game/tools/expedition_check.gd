@@ -119,6 +119,7 @@ func _test_momentum_stays_out_of_the_fight() -> void:
 func _test_banking_and_coming_back() -> void:
 	var before_account: Array = [MetaState.hero_level, MetaState.stash.size(),
 		MetaState.unlocked_towers.size()]
+	print("[expedition] opening original field")
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(run)
 	for _frame: int in 20:
@@ -157,6 +158,9 @@ func _test_banking_and_coming_back() -> void:
 	var purse: int = RunState.currency(RunState.GOLD)
 
 	# --- Banked ---------------------------------------------------------------
+	RunState.building_tiers["forge"] = 3
+	RunState.held_items["repair_kit"] = 2
+	RunState.wrath = Balance.WRATH_CAP
 	var snapshot: Dictionary = Expedition.compose(field)
 	_check(Expedition.is_readable(snapshot), "a live field composed an unreadable front")
 	_check(int(snapshot.get("act", 0)) == 3 and int(snapshot.get("wave", 0)) == 27,
@@ -181,6 +185,7 @@ func _test_banking_and_coming_back() -> void:
 		"and a snapshot with no wall reads as whole rather than as fallen")
 	RunState.town_hp = RunState.town_max_hp
 
+	print("[expedition] closing original field")
 	await _leave(run)
 
 	# --- And put back down ----------------------------------------------------
@@ -201,6 +206,28 @@ func _test_banking_and_coming_back() -> void:
 		("the hurt emplacement came back at %.2f having left at %.2f - a fortress "
 			+ "that heals on extraction is a fortress nobody has to mend")
 			% [restored, hurt_ratio])
+
+	_check(int(RunState.building_tiers.get("forge", 0)) == 3,
+		"city progression did not survive the checkpoint")
+	_check(int(RunState.held_items.get("repair_kit", 0)) == 2,
+		"run inventory did not survive the checkpoint")
+	_check(RunState.wrath == 0.0 and RunState.tremor == 0.0,
+		"returning to a checkpoint retained earth wrath")
+	# Records alone passed the old gate while the actual field was empty.
+	var resumed: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	print("[expedition] opening restored field")
+	add_child(resumed)
+	print("[expedition] restored field ready")
+	for frame: int in 3:
+		await get_tree().process_frame
+	for anchor: Vector2i in anchors:
+		var tower: Tower = resumed.battlefield.tower_at_anchor(anchor)
+		_check(tower != null and tower.is_visible_in_tree(),
+			"saved tower did not materialize visibly on its original plot")
+	var rebuilt: Tower = resumed.battlefield.tower_at_anchor(anchors[0])
+	_check(rebuilt != null and absf(rebuilt.health_ratio() - hurt_ratio) < 0.02,
+		"live restored tower lost its saved damage")
+	await _leave(resumed)
 
 	# **And the account is exactly where it was.** An expedition carries the road.
 	var after_account: Array = [MetaState.hero_level, MetaState.stash.size(),

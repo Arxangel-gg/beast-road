@@ -1376,9 +1376,20 @@ func _read_board(data: Dictionary) -> void:
 ## The piece worn in a slot, or an empty dictionary.
 func equipped_piece(slot: int) -> Dictionary:
 	var index: int = int(equipped.get(slot, -1))
-	if index < 0 or index >= stash.size():
-		return {}
-	return stash[index]
+	if index >= 0 and index < stash.size():
+		var kind: GearData = ContentDB.gear(String(stash[index].get("kind", "")))
+		if kind != null and int(kind.slot) == slot:
+			return stash[index]
+	# Older saves can retain shuffled slot indices. Only search worn pieces;
+	# an unrelated item in the stash must never masquerade as equipped gear.
+	for worn: Variant in equipped.values():
+		var at: int = int(worn)
+		if at < 0 or at >= stash.size():
+			continue
+		var kind: GearData = ContentDB.gear(String(stash[at].get("kind", "")))
+		if kind != null and int(kind.slot) == slot:
+			return stash[at]
+	return {}
 
 
 ## Attribute points every equipped piece grants, one entry per attribute.

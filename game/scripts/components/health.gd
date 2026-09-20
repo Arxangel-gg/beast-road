@@ -54,6 +54,13 @@ var _deferred: float = 0.0
 ## finish the pool.
 var floor_hp: float = 0.0
 
+## A scope-owned protection rule, evaluated at impact rather than on a timer.
+var damage_allowed: Callable = Callable()
+
+
+func accepts_damage() -> bool:
+	return not damage_allowed.is_valid() or bool(damage_allowed.call())
+
 var _invulnerable_left: float = 0.0
 
 ## The length of the window currently running, so elapsed time can be derived.
@@ -99,7 +106,7 @@ func add_invulnerability(seconds: float) -> void:
 ## whether to play an impact — a swing that hits an i-framing target should not
 ## shake the screen.
 func take_damage(amount: float, from: Vector2) -> bool:
-	if is_dead or amount <= 0.0:
+	if is_dead or amount <= 0.0 or not accepts_damage():
 		return false
 	if is_invulnerable():
 		# Said out loud rather than swallowed. See `evaded`.
@@ -165,7 +172,7 @@ func settle_deferred(from: Vector2 = Vector2.ZERO) -> float:
 	var owed: float = _deferred
 	_deferred = 0.0
 	deferred_fraction = 0.0
-	if is_dead or owed <= 0.0:
+	if is_dead or owed <= 0.0 or not accepts_damage():
 		return 0.0
 	current_hp = maxf(current_hp - owed, 0.0)
 	damaged.emit(owed, from)
@@ -180,7 +187,7 @@ func settle_deferred(from: Vector2 = Vector2.ZERO) -> float:
 ## invulnerability. Ordinary combat must use `take_damage`; this is for an owner
 ## such as the wave watchdog that has already proved the encounter cannot move.
 func kill(from: Vector2) -> void:
-	if is_dead:
+	if is_dead or not accepts_damage():
 		return
 	_shield = 0.0
 	shield_changed.emit(0.0)

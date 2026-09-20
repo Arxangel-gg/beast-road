@@ -250,6 +250,7 @@ func _test_wrath_leans_the_weather() -> void:
 
 ## The ground shakes and everything alive is hurt by it.
 func _test_the_quake() -> void:
+	_field.hero.global_position = _field.city_bounds().end + Vector2(180.0, 180.0)
 	var body: Enemy = _body(Vector2(700.0, 700.0))
 	await get_tree().process_frame
 	var body_hp: float = body.health.current_hp
@@ -257,7 +258,7 @@ func _test_the_quake() -> void:
 	await _clear_towers()
 	var wall: Tower = _build("grit_sling", _pocket(0))
 	var before: int = _sky.quakes
-	_sky.quake(1.0)
+	_sky.quake(1.0, ["quake"])
 	_check(_sky.quakes == before + 1, "the quake was not counted")
 	_check(body.health.current_hp < body_hp, "the quake did not hurt a body")
 	if wall != null and is_instance_valid(wall):
@@ -285,6 +286,9 @@ func _test_the_wildfire() -> void:
 	var seed_at: Vector2 = Vector2.INF
 	var stand: Vector2 = Vector2.INF
 	for candidate: Dictionary in foliage.plants_near(Vector2.ZERO, BattleGrid.CORE_HALF_EXTENT * 1.4):
+		# Fire damage needs a legal place for a body to stand after city deflection.
+		if _field.city_bounds().grow(180.0).has_point(candidate["at"] as Vector2):
+			continue
 		var around: Array[Dictionary] = foliage.plants_near(candidate["at"] as Vector2,
 			Balance.WILDFIRE_SPREAD_RADIUS * 0.8)
 		if around.size() < 3:
@@ -306,6 +310,7 @@ func _test_the_wildfire() -> void:
 	_check(_fire.fire_count() == 1, "one plant lit means one fire (%d)" % _fire.fire_count())
 	# A body standing in it burns; a fire tower near it heats.
 	var body: Enemy = _body(seed_at)
+	body.set_process(false)
 	await get_tree().process_frame
 	var body_hp: float = body.health.current_hp
 	_fire.set("_mirror", false)

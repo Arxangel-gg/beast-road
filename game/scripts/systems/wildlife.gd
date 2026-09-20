@@ -834,6 +834,20 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	bar.visible = elite
 	bar.modulate = Balance.WILDLIFE_ELITE_TINT if elite else Color.WHITE
 	sprite.add_child(bar)
+	# **The bar stays level however the animal is turned.** Owner, 2026-09-20:
+	# a flier *"should keep HP bar level even if they rotate in flight"*.
+	#
+	# It is a child of the sprite so that it follows the body for free, and a
+	# child inherits every rotation its parent takes - and this file rotates a
+	# lot: a top-down flier is turned onto its heading, a banking roll is added
+	# in flight, and a death roll spins the whole thing. A readout tipped on
+	# its side is a readout nobody can read.
+	#
+	# `top_level` takes it out of the parent's transform entirely, which is
+	# why `_tick_bar` then has to place it in world space - one place, so a
+	# rotation added later cannot forget about it, which is the rule this file
+	# already states about rotations landing on the sprite.
+	bar.top_level = true
 
 	# **Rolled once, here, and never again.** A shiny is decided when the animal
 	# is placed, so nothing the player does to one already on the field can
@@ -936,6 +950,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	var sprite := animal["sprite"] as Sprite2D
 	if sprite == null or not is_instance_valid(sprite):
 		return false
+	# Idle animals and newly born animals must clear the base too.
+	_walk_step(sprite, Vector2.ZERO)
 	var kind := animal["data"] as WildlifeData
 
 	# Asked before the dying check, and only while the animal is still whole: a
@@ -1023,6 +1039,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	# alone is slowly coming back, and a long-lived one that was hurt early in a
 	# region should not still be at a sliver when the road leaves it.
 	_mend(animal, kind, delta)
+	_carry_bar(animal, kind)
 
 	# A thief decides its own frames: the loot it saw, the cover it runs to,
 	# the plant it digs at. The host decides; a guest's puppet is walked by
@@ -1632,8 +1649,22 @@ func _sheltered(at: Vector2) -> bool:
 ## an animal that somehow starts inside has to be able to get out.
 func _walk_step(sprite: Node2D, step: Vector2) -> void:
 	var to: Vector2 = sprite.global_position + step
-	if _sheltered(to) and not _sheltered(sprite.global_position):
-		return
+	var battlefield := field as Battlefield
+	if battlefield != null:
+		var padding: float = Balance.CITY_BODY_CLEARANCE
+		if sprite is Sprite2D:
+			var visual := sprite as Sprite2D
+			padding = Battlefield.sprite_clearance(sprite.global_position, visual, padding)
+		var outside: Vector2 = battlefield.deflect_from_city(to, padding)
+		if outside != to:
+			var away: Vector2 = (outside - battlefield.city_bounds().get_center()).normalized()
+			to = outside + away * step.length()
+			for animal: Dictionary in _living:
+				if animal.get("sprite") == sprite:
+					animal["goal"] = to + away * Balance.WILDLIFE_RELOCATE_DISTANCE
+					animal["home"] = to
+					animal["heading"] = away
+					break
 	sprite.global_position = to
 
 
@@ -1959,6 +1990,24 @@ func projectile_bodies(at: Vector2, radius: float) -> Array[Dictionary]:
 ## is what makes it respective to each species - a bear and a rabbit take the
 ## same time to come back from half, which is the only version of this that does
 ## not quietly make big animals unkillable or small ones invulnerable.
+## Puts a health bar back over the animal it belongs to.
+##
+## Needed because the bar is `top_level` - see where it is built. It buys a
+## readout that never tips with the body, and costs this: a position rather
+## than a free ride on the parent's transform.
+static func _carry_bar(animal: Dictionary, kind: WildlifeData) -> void:
+	var bar := animal.get("bar", null) as ProgressBar
+	if bar == null or not is_instance_valid(bar) or not bar.visible:
+		return
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var size: float = float(animal.get("size", 1.0))
+	bar.global_position = sprite.global_position + Vector2(
+		-Balance.WILDLIFE_BAR_WIDTH * 0.5,
+		-Balance.WILDLIFE_BAR_LIFT * kind.scale * size)
+
+
 func _mend(animal: Dictionary, kind: WildlifeData, delta: float) -> void:
 	var hp: float = float(animal.get("hp", 0.0))
 	if hp <= 0.0 or float(animal.get("dying", 0.0)) > 0.0:

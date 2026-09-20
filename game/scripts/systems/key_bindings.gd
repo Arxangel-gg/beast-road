@@ -34,6 +34,7 @@ const REBINDABLE: Array[Dictionary] = [
 	# no settings screen is a control most players never learn about. It has
 	# a key now and the hold still works.
 	{"action": &"sprint", "label": "Sprint (hold)"},
+	{"action": &"mount", "label": "Mount / dismount"},
 	{"action": &"war_horn", "label": "War horn"},
 	{"action": &"scope_battlefield", "label": "Battlefield"},
 	{"action": &"scope_town", "label": "Town"},

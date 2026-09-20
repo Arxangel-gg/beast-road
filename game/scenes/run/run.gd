@@ -841,7 +841,7 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 func extraction_open() -> bool:
 	return ask_homecoming and not Coop.is_guest() and crossroad_ui != null \
 		and RunState.act >= Balance.HOMECOMING_FROM_ACT \
-		and RunState.momentum > 0.0
+		and RunState.wave_number > 0
 
 
 func _homecoming_open(act: int) -> bool:

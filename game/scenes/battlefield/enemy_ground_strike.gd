@@ -128,7 +128,7 @@ static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 		if not bool(covers.call(who.global_position)):
 			continue
 		var health: Health = Health.of(who)
-		if health == null:
+		if health == null or not health.accepts_damage():
 			continue
 		if not blame.is_empty():
 			RunState.note_blow(blame, amount)

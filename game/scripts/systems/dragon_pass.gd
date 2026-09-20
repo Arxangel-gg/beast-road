@@ -1,33 +1,10 @@
 class_name DragonPass
 extends Node2D
 
-## Something enormous crosses the sky, and what it passes over catches.
-##
-## **Owner brief, 2026-09-15:** dragons breathing fire in their land and flying
-## states, affecting the environment, and world events the map knows about.
-## `docs/IDEAS_REVIEW_2026-09-15.md` triaged the forwarded proposal and put
-## dragons *after* the trail, as **a world-event system rather than a creature**:
-## "the document is right that they should be the rarest thing in the game and
-## that the map should know one is there". This is that event.
-##
-## **It is the earth's, not a fight.** A pass is rolled beside the quake, the
-## tornado, the meteor and the wildfire, off the same hidden wrath, and it obeys
-## the same two rules those do:
-##
-## - **It is telegraphed.** The line is said and every animal on the field bolts
-##   before the shadow arrives. A blow from nowhere is the thing the forwarded
-##   notes warned against and the thing every event here is built against.
-## - **It moves only numbers the earth already has.** The dragon never strikes
-##   anything: everything it does goes through `Wildfire.ignite_near` and
-##   `Climate.add_heat`, so the fire it leaves behaves exactly as the earth's own
-##   lightning fire does - it spreads by dryness, it is bounded by
-##   `WILDFIRE_MAX_FIRES`, and it costs the player no wrath, because a fire they
-##   did not light is the cycle rather than the debt.
-##
-## **And no new wire numbers.** The warning travels on `wrath_warned`, which the
-## quake and the tornado already use, and every plant it lights travels as
-## `coop_wildfire_lit`, which the wildfire already sends. A guest draws the
-## shadow from the same warning and burns the same plants when told.
+## Host-authored dragon encounters: curved flight, optional landing, then departure.
+## Route-derived presentation is deterministic; committed breath paths travel through
+## EventBus so guests draw the host's warnings without applying damage themselves.
+## Variant weights, colors and fire behavior belong to EnemyData resources.
 
 const ART: String = "res://art/vfx/dragon_overhead.png"
 
@@ -38,8 +15,22 @@ var wildfire: Wildfire = null
 
 ## How many plants this pass set alight. For the gate.
 var lit: int = 0
+var rarity: int = 0
+var authored_plan: Dictionary = {}
 
 var _art: Texture2D = null
+var _ground_art: Texture2D = null
+var _kind: EnemyData = null
+var _random := RandomNumberGenerator.new()
+var _curve: Vector2 = Vector2.ZERO
+var _landing: Vector2 = Vector2.ZERO
+var _will_land: bool = false
+var _land_left: float = -1.0
+var _landed: bool = false
+var _has_landed: bool = false
+var _height: float = 0.0
+var _heading: Vector2 = Vector2.RIGHT
+
 var _left: float = 0.0
 var _flying: bool = false
 var _since_fire: float = 0.0
@@ -52,6 +43,48 @@ func _ready() -> void:
 	z_index = Balance.DRAGON_Z
 	_mirror = Coop.is_guest()
 	_left = Balance.DRAGON_WARNING_SECONDS
+	# The transmitted route defines the same presentation on every machine.
+	_random.seed = hash(str(from) + str(to) + str(RunState.run_seed))
+	var variants: Array[EnemyData] = []
+	var weight: float = 0.0
+	for value: Variant in ContentDB.enemies.values():
+		var candidate := value as EnemyData
+		if candidate != null and candidate.dragon_event_weight > 0.0:
+			variants.append(candidate)
+			weight += candidate.dragon_event_weight
+	variants.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.id < b.id)
+	var rare_roll: float = _random.randf()
+	for index: int in Balance.DRAGON_RARITY_WEIGHTS.size():
+		rare_roll -= Balance.DRAGON_RARITY_WEIGHTS[index]
+		if rare_roll <= 0.0:
+			rarity = index
+			break
+	var pick: float = _random.randf() * weight
+	for candidate: EnemyData in variants:
+		pick -= candidate.dragon_event_weight
+		if pick <= 0.0:
+			_kind = candidate
+			break
+	if _kind != null and ResourceLoader.exists(_kind.get_sprite_path()):
+		_ground_art = load(_kind.get_sprite_path()) as Texture2D
+	_curve = (to - from).normalized().orthogonal() * _random.randf_range(
+		-Balance.DRAGON_CURVE_WIDTH, Balance.DRAGON_CURVE_WIDTH)
+	_will_land = _random.randf() < Balance.DRAGON_LAND_CHANCE
+	_landing = from.lerp(to, 0.5) + _curve
+	if field != null:
+		var clearance: float = _ground_art.get_size().length() * Balance.DRAGON_SCALE * 0.5 if _ground_art != null else Balance.DRAGON_FIRE_RADIUS
+		_landing = field.deflect_from_city(_landing, clearance)
+		_will_land = _will_land and absf(_landing.x) < BattleGrid.HALF_EXTENT and absf(_landing.y) < BattleGrid.HALF_EXTENT and field.water_depth_at(_landing) <= 0.0
+	if not authored_plan.is_empty():
+		_kind = ContentDB.enemy(String(authored_plan.get("variant", "")))
+		rarity = clampi(int(authored_plan.get("rarity", 0)), 0, Balance.DRAGON_RARITY_WEIGHTS.size() - 1)
+		_landing = authored_plan.get("landing", _landing) as Vector2
+		_will_land = bool(authored_plan.get("land", false))
+		_curve = authored_plan.get("curve", _curve) as Vector2
+		if _kind != null and ResourceLoader.exists(_kind.get_sprite_path()):
+			_ground_art = load(_kind.get_sprite_path()) as Texture2D
+	_height = Balance.DRAGON_HEIGHT
+	_heading = (to - from).normalized()
 	if ResourceLoader.exists(ART):
 		_art = load(ART) as Texture2D
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -61,6 +94,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _landed:
+		_land_left -= delta
+		_since_fire += delta
+		if _since_fire >= Balance.DRAGON_FIRE_INTERVAL:
+			_since_fire = 0.0
+			_breathe()
+		if _land_left <= 0.0:
+			_landed = false
+		queue_redraw()
+		return
 	_left -= delta
 	if not _flying:
 		if _left <= 0.0:
@@ -74,7 +117,22 @@ func _process(delta: float) -> void:
 		return
 	var travelled: float = 1.0 - clampf(_left / maxf(Balance.DRAGON_PASS_SECONDS,
 		0.01), 0.0, 1.0)
-	global_position = from.lerp(to, travelled)
+	var before: Vector2 = global_position
+	# Two curved legs meet at a checked landing point, with a smooth descent.
+	if travelled <= 0.5:
+		global_position = from.lerp(_landing, travelled * 2.0) + _curve * sin(travelled * TAU) * 0.35
+	else:
+		global_position = _landing.lerp(to, (travelled - 0.5) * 2.0) - _curve * sin(travelled * TAU) * 0.35
+	_heading = (global_position - before).normalized()
+	if _will_land:
+		_height = Balance.DRAGON_HEIGHT * clampf(absf(travelled - 0.5) * 6.0, 0.0, 1.0)
+		if travelled >= 0.5 and not _has_landed:
+			_has_landed = true
+			_landed = true
+			_land_left = Balance.DRAGON_LAND_SECONDS
+			_left = Balance.DRAGON_PASS_SECONDS * 0.5
+			global_position = _landing
+			_height = 0.0
 	_since_fire += delta
 	if _since_fire >= Balance.DRAGON_FIRE_INTERVAL:
 		_since_fire = 0.0
@@ -91,18 +149,31 @@ func _process(delta: float) -> void:
 ## one when told. A guest that burned on its own would be a second opinion about
 ## which forest is on fire.
 func _breathe() -> void:
-	if _mirror or wildfire == null:
+	if _mirror or _random.randf() > Balance.DRAGON_BREATH_CHANCE:
 		return
-	if wildfire.ignite_near(global_position, Balance.DRAGON_FIRE_RADIUS,
-			Balance.DRAGON_FIRE_CHANCE, false):
-		lit += 1
-	# And the ground under it remembers the heat, which is what makes the fire
-	# it leaves spread the way a hot day's does.
+	var target: Vector2 = global_position + _heading * Balance.DRAGON_BREATH_REACH
 	if field != null:
-		var weather: Climate = field.climate()
-		if weather != null:
-			weather.add_heat(global_position, Balance.DRAGON_HEAT,
-				Balance.DRAGON_FIRE_RADIUS * 1.4)
+		var nearest: float = Balance.DRAGON_BREATH_REACH
+		for hero: Hero in field.heroes():
+			if hero == null or not hero.is_alive() or field.inside_city(hero.global_position):
+				continue
+			var distance: float = global_position.distance_to(hero.global_position)
+			if distance < nearest:
+				nearest = distance
+				target = hero.global_position
+	var tint: Color = _kind.dragon_breath_tint if _kind != null else Color(1.0, 0.4, 0.12)
+	EventBus.world_hazard.emit("ground", {
+		"mode": "breath", "from": global_position, "to": target,
+		"origin": global_position - Vector2(0.0, _height),
+		"width": Balance.DRAGON_BREATH_WIDTH, "warning": Balance.DRAGON_BREATH_WARNING,
+		"travel": 0.35, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
+		"tower_damage": 0.0, "tint": tint,
+		"blame": _kind.display_name if _kind != null else "dragon"})
+	if wildfire != null and (_kind == null or _kind.dragon_ignites):
+		if wildfire.ignite_near(target, Balance.DRAGON_FIRE_RADIUS, Balance.DRAGON_FIRE_CHANCE, false):
+			lit += 1
+		if field != null and field.climate() != null:
+			field.climate().add_heat(target, Balance.DRAGON_HEAT, Balance.DRAGON_FIRE_RADIUS * 1.4)
 
 
 ## The shadow first, then the thing casting it.
@@ -113,8 +184,8 @@ func _breathe() -> void:
 func _draw() -> void:
 	if _art == null:
 		return
-	var size: Vector2 = _art.get_size() * Balance.DRAGON_SCALE
-	var turn: float = (to - from).angle() + PI * 0.5
+	var size: Vector2 = _art.get_size() * Balance.DRAGON_SCALE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_SIZE_STEP)
+	var turn: float = _heading.angle() + PI * 0.5
 	if not _flying:
 		# The warning: the shadow alone, growing in as it comes out of the sun.
 		var coming: float = 1.0 - clampf(_left / maxf(
@@ -122,8 +193,13 @@ func _draw() -> void:
 		_shadow(size, turn, coming * 0.55)
 		return
 	_shadow(size, turn, 0.55)
-	draw_set_transform(Vector2(0.0, -Balance.DRAGON_HEIGHT), turn, Vector2.ONE)
-	draw_texture_rect(_art, Rect2(-size * 0.5, size), false)
+	if _landed and _ground_art != null:
+		var ground_size: Vector2 = _ground_art.get_size() * Balance.DRAGON_SCALE
+		draw_texture_rect(_ground_art, Rect2(Vector2(-ground_size.x * 0.5, -ground_size.y), ground_size), false)
+		return
+	draw_set_transform(Vector2(0.0, -_height), turn, Vector2.ONE)
+	draw_texture_rect(_art, Rect2(-size * 0.5, size), false,
+		_kind.dragon_breath_tint.lightened(0.65) if _kind != null else Color.WHITE)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -138,6 +214,12 @@ func _shadow(size: Vector2, turn: float, strength: float) -> void:
 func advance(seconds: float, steps: int = 40) -> void:
 	var step: float = seconds / maxf(float(steps), 1.0)
 	for _tick: int in steps:
-		if not is_instance_valid(self):
+		if not is_instance_valid(self) or is_queued_for_deletion():
 			return
 		_process(step)
+
+
+func encounter_plan() -> Dictionary:
+	return {"from": from, "to": to, "landing": _landing, "land": _will_land,
+		"curve": _curve, "variant": _kind.id if _kind != null else "",
+		"rarity": rarity}

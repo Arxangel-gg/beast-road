@@ -324,10 +324,12 @@ func _paddock_window(kind: MountData, owned: bool) -> Control:
 ## Deferred out of `_paddock_window` for the reason written there: none of this
 ## can happen until the rig has had `_ready`.
 func _dress_rig(stall: Control, rig: MountRig, kind: MountData,
-		owned: bool) -> void:
+		_owned: bool) -> void:
 	if rig == null or not is_instance_valid(rig) or not rig.is_inside_tree():
 		return
 	rig.show_mount(kind)
+	# Mounts normally sit behind their rider; shop previews must clear the panel.
+	rig.z_index = 1
 	# South-east: x right, y down. The rig reads a heading rather than an index,
 	# so this is the same call the field makes and no table of directions is
 	# kept in two places.
@@ -336,8 +338,8 @@ func _dress_rig(stall: Control, rig: MountRig, kind: MountData,
 	# Its own pace, so a shelf of five is five animals rather than one drawn
 	# five times - the rule the paddock and the pen are both built under.
 	rig.set_speed_scale(randf_range(0.82, 1.18))
-	# A horse you have not bought is a shape in somebody else's field.
-	UiLocked.silhouette(rig.body(), not owned)
+	# Buyers need to see the animal; ownership is shown by the purchase button.
+	UiLocked.silhouette(rig.body(), false)
 	_seat_rig(stall, rig, kind)
 
 

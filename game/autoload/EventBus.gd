@@ -1037,3 +1037,7 @@ signal walk_ended(finished: bool)
 signal party_run_offered(kind: int, act: int, detail: String, seconds: float)
 ## A seat answered. Host side.
 signal party_run_replied(slot: int, accepted: bool)
+
+## Host-authored environmental paths; guests render the same committed warning.
+signal world_hazard(kind: String, payload: Dictionary)
+signal coop_world_hazard(kind: String, payload: Dictionary)

@@ -284,6 +284,14 @@ func _ready() -> void:
 	# an influence on the scatter, and every one of them is built above this.
 	_grow_the_foliage()
 	claim_effects()
+	# Restored records predate these signal connections. Materialize them once.
+	for anchor: Vector2i in RunState.towers:
+		_on_tower_changed(anchor)
+	for tile: Vector2i in RunState.traps:
+		_on_trap_changed(tile)
+	for tile: Vector2i in RunState.barricades:
+		_on_barricade_changed(tile)
+
 	# **A road started at a later act buys its board here**, once the field is
 	# standing and there are anchors to stand on. It spends through `try_build`
 	# and `try_upgrade`, the same doors a player's own build goes through, so
@@ -1219,7 +1227,42 @@ func inside_city(at: Vector2) -> bool:
 	var core: Node2D = town_node()
 	if core == null or not is_instance_valid(core):
 		return false
-	return at.distance_to(core.global_position) <= Balance.CITY_SANCTUARY_RADIUS
+	return city_bounds().has_point(at)
+
+
+func city_bounds() -> Rect2:
+	if town != null and town.sprite != null and town.sprite.texture != null:
+		return town.sprite.global_transform * town.sprite.get_rect()
+	return Rect2(town_position() - Vector2.ONE * Balance.CITY_SANCTUARY_RADIUS,
+		Vector2.ONE * Balance.CITY_SANCTUARY_RADIUS * 2.0)
+
+
+func deflect_from_city(at: Vector2, padding: float = 0.0) -> Vector2:
+	var bounds: Rect2 = city_bounds().grow(padding)
+	if not bounds.has_point(at):
+		return at
+	var offsets: Array[float] = [at.x - bounds.position.x, bounds.end.x - at.x,
+		at.y - bounds.position.y, bounds.end.y - at.y]
+	var edge: int = 0
+	for index: int in offsets.size():
+		if offsets[index] < offsets[edge]:
+			edge = index
+	match edge:
+		0: at.x = bounds.position.x - 1.0
+		1: at.x = bounds.end.x + 1.0
+		2: at.y = bounds.position.y - 1.0
+		3: at.y = bounds.end.y + 1.0
+	return at
+
+
+static func sprite_clearance(at: Vector2, visual: Sprite2D, minimum: float) -> float:
+	if visual == null or visual.texture == null:
+		return minimum
+	# Actors stand at their feet; half the texture size misses the lifted head.
+	var rect: Rect2 = visual.global_transform * visual.get_rect()
+	var reach := Vector2(maxf(absf(rect.position.x - at.x), absf(rect.end.x - at.x)),
+		maxf(absf(rect.position.y - at.y), absf(rect.end.y - at.y)))
+	return maxf(minimum, reach.length())
 
 
 ## Nothing hostile walks in.

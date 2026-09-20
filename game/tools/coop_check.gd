@@ -510,6 +510,11 @@ func _test_cosmetic_signals_stay_home() -> void:
 ## meaningfully disagree. `coop_world_check.tscn` covers what a mirrored enemy
 ## does; this covers that the facts describing one arrive intact.
 func _test_world_facts_cross_the_wire() -> void:
+	_guest_bus.coop_world_hazard.connect(func(kind: String, payload: Dictionary) -> void:
+		_guest_world.append(["hazard", kind, payload]))
+	var hazard: Dictionary = {"from": Vector2(25, 40), "to": Vector2(300, 150),
+		"tint": Color(0.8, 0.5, 0.2), "mode": "trail", "warning": 1.8}
+	_host_bus.world_hazard.emit("ground", hazard)
 	_guest_bus.coop_enemy_spawned.connect(
 		func(net_id: int, data_id: String, lane: int, at: Vector2,
 				hp: float, dmg: float, spd: float, oath_pursuer: bool) -> void:
@@ -528,10 +533,10 @@ func _test_world_facts_cross_the_wire() -> void:
 	_host_bus.coop_enemy_batch.emit([[41, Vector2(280.0, -100.0), 0.5]])
 	_host_bus.coop_tower_state.emit(Vector2i(3, 4), "ember_spire", 2)
 	_host_bus.coop_enemy_removed.emit(41)
-	await _settle(func() -> bool: return _guest_world.size() >= 4)
+	await _settle(func() -> bool: return _guest_world.size() >= 5)
 
-	_check(_guest_world.size() >= 4,
-		"all four world facts must arrive, got %d" % _guest_world.size())
+	_check(_guest_world.size() >= 5,
+		"all five world facts must arrive, got %d" % _guest_world.size())
 	var spawned: Array = _row("spawned")
 	_check(not spawned.is_empty(), "an enemy spawn must cross")
 	if not spawned.is_empty():
@@ -558,6 +563,11 @@ func _test_world_facts_cross_the_wire() -> void:
 		and String(tower[2]) == "ember_spire" and int(tower[3]) == 2,
 		"a tower placement must cross with its anchor, kind and tier")
 	_check(not _row("removed").is_empty(), "a retirement must cross")
+
+	var received_hazard: Array = _row("hazard")
+	_check(received_hazard.size() == 3 and String(received_hazard[1]) == "ground"
+		and received_hazard[2] == hazard,
+		"ground warnings must cross with their committed geometry, timing and tint")
 
 
 ## A refusal goes to the one who asked, and only the host may send one.

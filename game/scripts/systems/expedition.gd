@@ -1,42 +1,122 @@
 class_name Expedition
 extends RefCounted
 
-## A frontier the Warden can come back to.
-##
-## **Owner brief, 2026-09-15:** *"if a player successfully extracts, they will be
-## able to start the next run fresh from there with the same resources they had
-## when they left that run ... all of the towers and their placements will be
-## restored including their levels and basically loading that world state back,
-## except for the wildlife and foliage etc, kinda resetting it clean and ready to
-## be tried again."*
-##
-## **Two layers, and the split is the whole design.**
-##
-## - **Persistent**: the seed, the act, the wave, every tower with its level, its
-##   chosen path and *how damaged it is*, the run's currencies, the wall, and how
-##   far the party pushed without banking. This is what makes a fortress the
-##   physical history of a campaign.
-## - **Regenerated**: the wildlife, the foliage, the corpses, the drops, the
-##   weather and every other living thing. `Battlefield.refresh_terrain` already
-##   is that half - it is the one function everything regional goes through - so
-##   coming back is the road being alive again rather than a battlefield frozen
-##   in amber since Tuesday.
-##
-## **What it does *not* carry is the reason this is not a second save game.**
-## Nothing here reaches `MetaState`'s own rules: no hero level, no gear, no
-## attribute, no unlock. Working rule 7's list is untouched. An expedition is the
-## *road* put down and picked up again - a run that was paused rather than a
-## second account - and everything the account owns is still owned by the
-## account.
-##
-## **Versioned, because a snapshot is a promise about a generator.** `VERSION`
-## rises when the shape of what is stored changes in a way an old snapshot could
-## not honestly be read into; an expedition from before that is retired rather
-## than half-applied, which is the same argument `Phenotype.VERSION` makes.
+## Successful extraction checkpoints the fortress and explicit run-local progress.
+## Version 1 snapshots without the optional progress block remain readable.
+## Wildlife and foliage regenerate; weather, hazards and earth wrath start clean.
+## Account progression remains in MetaState and is never rolled back by a resume.
 
-## The shape of a stored expedition. Raise it when an old one could no longer be
-## read into the current game without lying about what it restores.
 const VERSION: int = 1
+
+## Explicit run-local checkpoint schema; account progression stays in MetaState.
+const STATE_KEYS: Array[String] = [
+	"segment",
+	"terrain_id",
+	"active_road_id",
+	"active_road_difficulty_id",
+	"beast_speed",
+	"taken_omens",
+	"pending_omens",
+	"road_cards",
+	"pending_road_cards",
+	"pending_road_relics",
+	"forks_open",
+	"road_history",
+	"kill_resource_remainder",
+	"crossroad_rerolls_left",
+	"blueprints",
+	"market_trades_remaining",
+	"merchant_visits",
+	"market_service_act",
+	"market_service_id",
+	"town_max_hp",
+	"building_tiers",
+	"construction",
+	"captives",
+	"captive_assignments",
+	"socketed_relics",
+	"held_relics",
+	"boss_cores",
+	"traps",
+	"barricades",
+	"equipped_spells",
+	"trained_discipline_nodes",
+	"equipped_discipline_slots",
+	"discipline_offers",
+	"discipline_respec_uses",
+	"bosses_felled",
+	"raid_keys",
+	"quartermaster_orders",
+	"hero_hp",
+	"hero_mana",
+	"meals_eaten",
+	"hero_wounds",
+	"hero_max_wounds_bonus",
+	"held_items",
+	"ammo",
+	"ranged_id",
+	"ammo_id",
+	"carried_eggs",
+	"companion_sex",
+	"spirit_called",
+	"spirit_full_left",
+	"spirit_upkeep_carry",
+	"war_horn_uses",
+	"command",
+	"last_stand_used",
+	"enemies_killed",
+	"hero_deaths",
+	"raids_completed",
+	"chieftains_taken",
+	"run_time_seconds",
+	"planning_time_seconds",
+	"resources_earned",
+	"resources_spent",
+	"currency_earned",
+	"currency_spent",
+	"towers_built",
+	"traps_laid",
+	"barricades_raised",
+	"tower_upgrades",
+	"towers_sold",
+	"towers_lost",
+	"town_damage_taken",
+	"town_hits_taken",
+	"peak_lane_pressure",
+	"wave_archetype_counts",
+	"command_earned",
+	"command_orders_used",
+	"wounds_suffered",
+	"hearthmends_used",
+	"kept",
+	"seeds",
+	"last_scar_offered", "last_scar_pending", "last_scar_active", "last_scar_resolved",
+	"last_scar_failed", "last_scar_pursuer_spawned", "last_scar_pursuer_defeated",
+	"last_scar_min_town_ratio", "mender_sparks_claimed_by_act", "mender_eligible_elites_by_act",
+	"chronicle_host_progress", "raid_charge", "tower_haste_left",
+	"tower_haste_scale", "pen_companion_fell",
+
+]
+
+
+static func _capture_progress() -> String:
+	var progress: Dictionary = {}
+	for key: String in STATE_KEYS:
+		progress[key] = RunState.get(key)
+	# Variant encoding preserves Vector2i map keys and typed arrays through JSON.
+	return Marshalls.variant_to_base64(progress)
+
+
+static func _restore_progress(encoded: String) -> void:
+	if encoded.is_empty():
+		return
+	var decoded: Variant = Marshalls.base64_to_variant(encoded)
+	if not decoded is Dictionary:
+		return
+	for key: String in STATE_KEYS:
+		if decoded.has(key) and typeof(decoded[key]) == typeof(RunState.get(key)):
+			RunState.set(key, decoded[key])
+
 
 
 ## **Take a photograph of the road as it stands.**
@@ -73,6 +153,7 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		purse[id] = RunState.currency(id)
 	return {
 		"version": VERSION,
+		"progress": _capture_progress(),
 		"seed": RunState.run_seed,
 		"act": RunState.act,
 		"wave": RunState.wave_number,
@@ -126,6 +207,14 @@ static func apply(stored: Dictionary) -> bool:
 	if not is_readable(stored):
 		return false
 	RunState.set_seed(int(stored.get("seed", 0)))
+	_restore_progress(String(stored.get("progress", "")))
+	RunState.wrath = 0.0
+	RunState.ember = 0.0
+	RunState.gale = 0.0
+	RunState.tide = 0.0
+	RunState.tremor = 0.0
+	RunState.earth_events.clear()
+	RunState.tower_health_restore.clear()
 	RunState.act = int(stored.get("act", 1))
 	RunState.wave_number = int(stored.get("wave", 1))
 	RunState.distance_travelled = float(stored.get("distance", 0.0))
@@ -152,6 +241,21 @@ static func apply(stored: Dictionary) -> bool:
 	# a wall that healed on extraction is a wall nobody ever has to mend.
 	RunState.town_hp = RunState.town_max_hp \
 		* clampf(float(stored.get("wall", 1.0)), 0.05, 1.0)
+	# **The Warden comes back rested.** Owner, 2026-09-20: a resumed run
+	# starts *"with full health and 0/3 wounds"*.
+	#
+	# The *front* keeps its scars - that is the attrition ruling, and it is why
+	# the wall above comes back as worn as it was banked - but a person is not
+	# a fortification. An expedition is an evening's break in one road, and a
+	# Warden who stopped for the night on two wounds and came back on two would
+	# be paying for having stopped. `-1.0` is the sentinel `hearthmend` already
+	# uses for "fill on the next read", so this adds no second way to say full.
+	RunState.hero_hp = -1.0
+	RunState.hero_mana = -1.0
+	RunState.hero_wounds = 0
+	EventBus.hero_wounds_changed.emit(RunState.hero_wounds,
+		RunState.max_wounds())
+	Modifiers.rebuild()
 	return true
 
 
@@ -200,6 +304,24 @@ static func repair_bill(stored: Dictionary) -> Dictionary:
 			_cheapest(MaterialData.Kind.WOOD), 0)) + units
 		bill[_cheapest(MaterialData.Kind.ORE)] = int(bill.get(
 			_cheapest(MaterialData.Kind.ORE), 0)) + maxi(1, units / 2)
+	# **And the gate, which this used to walk straight past.**
+	#
+	# The note on `wall_share` called that a real gap and said it was a
+	# decision if the Hold should ever sell the repair. Owner, 2026-09-20:
+	# it should - a resumed run is supposed to come back to a mended
+	# fortress, *"so that its fires get put out and appears fully
+	# repaired"*, and the wall is the thing a run is actually lost through.
+	#
+	# Priced off the wall's own health rather than off a tower's Gold, since
+	# it has no build cost to take a share of.
+	var gate: float = 1.0 - wall_share(stored)
+	if gate > 0.001:
+		var units: int = maxi(1, int(round(Balance.TOWN_MAX_HP * gate
+			* Balance.FORTIFY_REPAIR_PER_HEALTH)))
+		bill[_cheapest(MaterialData.Kind.WOOD)] = int(bill.get(
+			_cheapest(MaterialData.Kind.WOOD), 0)) + units
+		bill[_cheapest(MaterialData.Kind.ORE)] = int(bill.get(
+			_cheapest(MaterialData.Kind.ORE), 0)) + maxi(1, units / 2)
 	return bill
 
 
@@ -232,6 +354,11 @@ static func mend(stored: Dictionary) -> Dictionary:
 		row["health"] = 1.0
 		towers[index] = row
 	out["towers"] = towers
+	# The gate too, which is what puts the fires out when the front is
+	# picked back up: the town's damage stage is read off its health, and
+	# `TownCore._rebuild_fires` is rebuilt rather than added to precisely so
+	# that healing it clears them.
+	out["wall"] = 1.0
 	return out
 
 
@@ -246,10 +373,12 @@ static func mend(stored: Dictionary) -> Dictionary:
 ## back up could not tell whether they were resuming behind a whole gate or a
 ## broken one until the road was already under them.
 ##
-## **Nothing between runs mends it**, which is a real gap rather than an
-## oversight being papered over: `repair_bill` and `mend` walk towers only, and
-## the wall is mended inside a run with Wood or through the Quartermaster. Worth
-## a decision if the Hold should ever sell that.
+## **The Hold mends it now** (owner, 2026-09-20). This note used to say nothing
+## between runs did, and named it a decision waiting to be taken; it has been.
+## `repair_bill` prices the gate off its own health - it has no build cost to
+## take a share of - and `mend` sets it whole, which is what puts the fires out
+## when the front is picked back up. Inside a run it is still mended with Wood
+## or through the Quartermaster.
 static func wall_share(stored: Dictionary) -> float:
 	return clampf(float(stored.get("wall", 1.0)), 0.0, 1.0)
 

@@ -3963,3 +3963,14 @@ for a long time.
 
 If a stage's kill question fails, every asset made for it is wasted. That is
 the whole reason for this order.
+
+
+### Readable UI font — September 19, 2026
+
+`game/fonts/AtkinsonHyperlegibleNext-Variable.ttf` is the completed variable UI
+font (weights 200–800), used at 500 for body text and 700 for button/display text.
+Source: Google Fonts `ofl/atkinsonhyperlegiblenext`; license bundled alongside as
+`AtkinsonHyperlegibleNext-OFL.txt` (SIL Open Font License 1.1).
+Existing Cinzel titles and Alegreya symbol fallback remain bundled.
+No new raster placeholders: stable previews reuse the eight-direction mount sheets;
+dragon events reuse the existing overhead and per-variant enemy paintings.

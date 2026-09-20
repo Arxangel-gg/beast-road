@@ -25,18 +25,11 @@ extends RefCounted
 
 const ART: String = "res://art/ui/"
 const OUTPUT: String = "res://ui_theme.tres"
-const BODY_FONT: String = "res://fonts/Alegreya-Variable.ttf"
+const BODY_FONT: String = "res://fonts/AtkinsonHyperlegibleNext-Variable.ttf"
 ## Carved Roman capitals, for everything the game says loudly.
 ##
-## Was Alegreya Sans SC, which is a fine face and a neutral one - it said
-## "interface" where the rest of the game says "a city on the back of a walking
-## animal". Cinzel is inscriptional: it reads as cut into something, which is the
-## register the titles, the act names and the buttons want.
-##
-## The body face stays Alegreya. A display face is read a few words at a time and
-## can afford character; body text is read for minutes and cannot, and swapping
-## both at once is how a game ends up beautiful and unreadable.
-const DISPLAY_FONT: String = "res://fonts/Cinzel-Variable.ttf"
+## A readable interface face with a real bold weight for buttons.
+const DISPLAY_FONT: String = "res://fonts/AtkinsonHyperlegibleNext-Variable.ttf"
 
 # --- Palette -----------------------------------------------------------------
 # Kept identical to the previous hand-authored theme: the art changes, the
@@ -63,9 +56,19 @@ static func build() -> Dictionary:
 	if body_font == null:
 		problems.append("missing %s" % BODY_FONT)
 	else:
+		var body_weight := FontVariation.new()
+		body_weight.base_font = body_font
+		body_weight.variation_opentype = {"wght": 500}
+		body_font = body_weight
 		theme.default_font = body_font
 	if display_font == null:
 		problems.append("missing %s" % DISPLAY_FONT)
+
+	if display_font != null:
+		var heading_weight := FontVariation.new()
+		heading_weight.base_font = display_font
+		heading_weight.variation_opentype = {"wght": 700}
+		display_font = heading_weight
 
 	# --- Buttons -------------------------------------------------------------
 	#

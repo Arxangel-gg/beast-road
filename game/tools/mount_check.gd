@@ -117,17 +117,12 @@ func _test_the_bounds_are_authored() -> void:
 			"a rider can still reach door %d - gathering, fishing, shooting and "
 				% door + "swinging are all one refusal or none")
 	# **Not rebindable, and that is the decision rather than an omission.**
-	# `balance_test` requires a controller binding for every rebindable action
-	# and the pad is full - every face, shoulder, stick, dpad and misc button
-	# already does something. So the mount key follows the minimap's precedent:
-	# a key, and a button in the bar that a thumb and a pad can reach. Asserted
-	# here so that adding it to the list fails with a reason rather than with
-	# "Mount has no controller binding" from a gate three files away.
+	# Keyboard binding is editable; controllers retain the focusable Ride action.
 	_check(InputMap.has_action(&"mount"), "the mount key must be in the input map")
+	var mount_rebindable: bool = false
 	for row: Dictionary in KeyBindings.REBINDABLE:
-		_check(StringName(row.get("action", &"")) != &"mount",
-			"the mount key is not rebindable - the pad has no button left to "
-				+ "give it, and the action bar's Ride button is how a pad mounts")
+		mount_rebindable = mount_rebindable or StringName(row.get("action", &"")) == &"mount"
+	_check(mount_rebindable, "mount must appear in Settings key bindings")
 
 	# The gallop is the sprint key, which is the owner's own clause, so it may
 	# not be muted.

@@ -2770,6 +2770,7 @@ const TOWN_RADIUS: float = 160.0
 ## start - a quake does not care where you are standing, and a sanctuary that
 ## stopped one would make the whole of the earth's wrath a thing you sit out.
 const CITY_SANCTUARY_RADIUS: float = TOWN_RADIUS * 1.35
+const CITY_BODY_CLEARANCE: float = 24.0
 
 ## How close to the Town Hall a perfect dodge has to be for `vigil` to pay. [TUNE]
 ##
@@ -3903,7 +3904,12 @@ const MOMENTUM_MAX: float = 0.60
 ## tower's Gold price in materials per point of health. Paid in wood and ore,
 ## because the mines are the between-runs economy and a fortress that weathers
 ## over hundreds of waves is the reason to work them.
-const FORTIFY_REPAIR_PER_HEALTH: float = 0.035
+## Owner, 2026-09-20: mending *"prior to a resumed run should be more
+## affordable"*. Halved. Attrition is still real - a worn front still costs
+## something to put right, which is the whole reason the withdrawal wears it -
+## but a bill that makes resuming worse than starting fresh is a bill that
+## deletes the feature it is attached to.
+const FORTIFY_REPAIR_PER_HEALTH: float = 0.017
 
 const PEN_CAPACITY: int = 12
 
@@ -3970,7 +3976,7 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## there is no reason to have walked; the hero grows across ten acts too, and
 ## `curve_report` is where the two are read against each other. [TUNE]
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.0, 1.20, 1.36, 1.58, 1.74, 1.90, 2.00, 2.12, 2.22, 2.32,
+	1.0, 1.12, 1.36, 1.58, 1.74, 1.90, 2.00, 2.12, 2.22, 2.32,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -4135,11 +4141,17 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## to make a finale out of what was actually its middle. Corrected, that put
 ## the final wave at 0.90 against 72 bodies, which is a wall rather than a
 ## climax, and the top two acts came back down. [TUNE]
+## **Eased across the board** (owner, 2026-09-20: enemies *"scale to too much
+## health and damage and need to be nerfed a bit"*). Both ladders keep their
+## *shape* - a late act is still meaningfully harder than an early one - and
+## only their height comes down, which is the same distinction the wave growth
+## rates were scaled under rather than re-tuned. Act X health falls 2.28 to
+## 1.94 and its damage 1.28 to 1.18.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.30, 1.46, 1.68, 1.82, 1.96, 2.04, 2.14, 2.22, 2.28,
+	1.0, 1.15, 1.34, 1.50, 1.60, 1.70, 1.76, 1.84, 1.90, 1.94,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
-	1.0, 1.12, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28,
+	1.0, 1.04, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18,
 ]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
@@ -4884,7 +4896,7 @@ static func boss_slam_ceiling(act: int) -> float:
 
 
 const BOSS_ACT_SCALE: Array[float] = [
-	1.25, 2.10, 3.20, 4.20, 5.30, 6.50, 7.80, 9.20, 10.70, 12.30,
+	1.25, 1.90, 3.20, 4.20, 5.30, 6.50, 7.80, 9.20, 10.70, 12.30,
 ]
 
 ## Boss-phase reinforcements use the current wave curve, softened so the boss
@@ -8440,11 +8452,11 @@ const WRATH_RAIN_SURGE: float = 0.35
 ## flat one on the animals - and the shake. [TUNE]
 const QUAKE_RATE: float = 1.0 / 240.0
 const QUAKE_SECONDS: float = 3.2
-const QUAKE_HERO_SHARE: float = 0.18
+const QUAKE_HERO_SHARE: float = 0.06
 const QUAKE_ENEMY_DAMAGE: float = 90.0
 const QUAKE_WILDLIFE_DAMAGE: float = 40.0
 ## A strong quake chips every tower standing; nothing falls to one alone.
-const QUAKE_TOWER_DAMAGE: float = 45.0
+const QUAKE_TOWER_DAMAGE: float = 15.0
 const QUAKE_SHAKE: float = 26.0
 
 ## Wildfire: a hazard of `WILDFIRE_RATE * wrath * dryness`; a fire tower's hit
@@ -9775,8 +9787,14 @@ const CURRENCY_YIELD_SCALE: Dictionary = {
 ## a Warden tower costs and the level-one draught comes slower to pay for
 ## it. A player who invests gets the old cadence back by about level four,
 ## which is the shape the level scaling already had (2026-09-13).
-const WELL_BUILD_GOLD: int = 250
-const WELL_BUILD_STONE: int = 40
+## **Cheaper a second time** (owner, 2026-09-20: *"still too expensive and
+## should be even more affordable"*). 420/60 to 250/40 on 2026-09-18 and now
+## to 150/25 - a little under a Warden tower, which is the point: a player who
+## cannot hold the line should be able to *reach* the recovery economy, and the
+## thing that stops it being farmed is the slow level-one draught rather than
+## the price.
+const WELL_BUILD_GOLD: int = 150
+const WELL_BUILD_STONE: int = 25
 const WELL_LIMIT_PER_PLAYER: int = 1
 ## What a level-one well draws, as a share of what it used to. The scaling
 ## with level (`WELL_HEAL_PER_LEVEL`) is unchanged, so a player who invests
@@ -11476,3 +11494,35 @@ const STABLE_GRAZE_MAX: float = 7.5
 ## second rate here would be a second opinion about how a horse moves, and the
 ## two would drift. `balance_reach_check` refused it the moment it stopped
 ## being read, which is that gate doing its job.
+
+# September 19 release repair: readable, bounded environmental patterns. [TUNE]
+const EARTH_DOUBLE_CHANCE: float = 0.12
+const EARTH_DOUBLE_WRATH_BONUS: float = 0.18
+const EARTH_TRIPLE_CHANCE: float = 0.02
+const EARTH_TRIPLE_WRATH_BONUS: float = 0.06
+const EARTH_PATTERN_COUNT: int = 3
+const EARTH_PATTERN_LENGTH: float = 720.0
+const EARTH_PATTERN_WIDTH: float = 24.0
+const EARTH_PATTERN_WARNING: float = 1.8
+const EARTH_TRAIL_SECONDS: float = 2.8
+const EARTH_PATTERN_HERO_SHARE: float = 0.08
+const EARTH_PATTERN_TOWER_DAMAGE: float = 12.0
+const EARTH_PATTERN_FADE: float = 1.2
+const EARTH_PATTERN_DUST_INTERVAL: float = 0.12
+const EARTH_DEBRIS_BURSTS: int = 6
+const DRAGON_CURVE_WIDTH: float = 360.0
+const DRAGON_LAND_CHANCE: float = 0.45
+const DRAGON_LAND_SECONDS: float = 5.0
+const DRAGON_BREATH_CHANCE: float = 0.55
+const DRAGON_BREATH_WARNING: float = 1.5
+const DRAGON_BREATH_REACH: float = 560.0
+const DRAGON_BREATH_WIDTH: float = 38.0
+const DRAGON_BREATH_HERO_SHARE: float = 0.10
+const MOUNT_IDLE_BREATH_AMOUNT: float = 0.012
+const MOUNT_IDLE_BREATH_RATE: float = 1.8
+const DRAGON_RARITY_WEIGHTS: Array[float] = [0.75, 0.20, 0.045, 0.005]
+const DRAGON_RARITY_SIZE_STEP: float = 0.06
+const DRAGON_RARITY_DAMAGE_STEP: float = 0.08
+const CHAIN_CORE_WIDTH: float = 3.2
+const CHAIN_FLASH_HOLD: float = 0.04
+const CHAIN_FLASH_FADE: float = 0.18

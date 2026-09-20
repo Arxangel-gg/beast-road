@@ -125,6 +125,7 @@ func hide_pair() -> void:
 func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 		banner: String, against: Array[int]) -> void:
 	for child: Node in card.get_children():
+		card.remove_child(child)
 		child.queue_free()
 
 	var head := Label.new()

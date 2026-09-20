@@ -63,6 +63,7 @@ var _frame: float = 0.0
 var _frames_in_state: int = 1
 var _direction: int = 2
 var _speed_scale: float = 1.0
+var _breath: float = 0.0
 var _bob: float = 0.0
 ## The pool the horse stands in. Its own, because the rider's was measured off
 ## the hero's sprite at `_ready` and stays at the Warden's feet - which is
@@ -274,6 +275,11 @@ func _process(delta: float) -> void:
 	# project has to generate twice, and the engine can do it for a sine.
 	_bob += delta * Balance.MOUNT_BOB_RATE * _speed_scale
 	var lift: float = -absf(sin(_bob)) * Balance.MOUNT_BOB_HEIGHT * _speed_scale
+	_breath += delta * Balance.MOUNT_IDLE_BREATH_RATE * _speed_scale
+	var inhale: float = sin(_breath) * Balance.MOUNT_IDLE_BREATH_AMOUNT if _state == "idle" else 0.0
+	_sprite.scale = Vector2(1.0 - inhale * 0.3, 1.0 + inhale) * _kind.art_scale
+	if _state == "idle":
+		lift = 0.0
 	if _sheets.is_empty():
 		# **Dropped by the empty canvas under the animal.** A base painting has
 		# margin below the hooves, so placing the texture's bottom edge on the

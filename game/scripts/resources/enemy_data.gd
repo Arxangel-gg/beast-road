@@ -403,3 +403,9 @@ func get_sprite_path() -> String:
 			return GameData.derive_path("bosses", "boss_", visual_id)
 		_:
 			return GameData.derive_path("enemies", "enemy_", visual_id)
+
+
+## Ambient dragon events use authored variants instead of name-based branches.
+@export var dragon_event_weight: float = 0.0
+@export var dragon_breath_tint: Color = Color(1.0, 0.4, 0.12)
+@export var dragon_ignites: bool = false

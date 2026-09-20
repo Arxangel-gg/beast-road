@@ -24,3 +24,7 @@ move_speed = 31.00
 body_radius = 56.00
 knockback_resistance = 0.97
 resource_value = 42
+
+dragon_event_weight = 3.0
+dragon_breath_tint = Color(0.45, 0.8, 1, 1)
+dragon_ignites = false

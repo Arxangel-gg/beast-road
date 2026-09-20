@@ -26,6 +26,7 @@ extends Node
 ## reason `night_check` refuses to run there. Reading the cmap needs neither.
 
 const FACES: PackedStringArray = [
+	"res://fonts/AtkinsonHyperlegibleNext-Variable.ttf",
 	"res://fonts/Cinzel-Variable.ttf",
 	"res://fonts/Alegreya-Variable.ttf",
 	"res://fonts/AlegreyaSansSC-Bold.ttf",

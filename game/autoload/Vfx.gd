@@ -277,7 +277,7 @@ func _track(node: Node) -> void:
 
 ## A burst of shards flying outward. `direction` biases the spray; pass ZERO for
 ## an even burst.
-func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vector2.ZERO, speed: float = 260.0) -> void:
+func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vector2.ZERO, speed: float = 260.0, finish_when_paused: bool = false) -> void:
 	if world == null:
 		return
 	# **Sparks are the first thing a busy screen gives up**, and the most common
@@ -302,6 +302,8 @@ func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vect
 		shard.width = randf_range(2.0, 4.0)
 		shard.default_color = colour
 		shard.z_index = Balance.VFX_Z
+		if finish_when_paused:
+			shard.process_mode = Node.PROCESS_MODE_ALWAYS
 		_track(shard)
 		shard.global_position = at
 
@@ -353,7 +355,7 @@ func _spark_mote(shard: Line2D, tip: Vector2, colour: Color, life: float) -> voi
 
 
 ## An expanding ring. Reads as force in a way a flash does not.
-func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, width: float = 4.0) -> void:
+func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, width: float = 4.0, finish_when_paused: bool = false) -> void:
 	if world == null:
 		return
 	var line := Line2D.new()
@@ -363,6 +365,8 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, widt
 	line.default_color = colour
 	line.width = width
 	line.z_index = Balance.VFX_Z
+	if finish_when_paused:
+		line.process_mode = Node.PROCESS_MODE_ALWAYS
 	_track(line)
 	line.global_position = at
 
@@ -652,7 +656,7 @@ func rays(at: Vector2, colour: Color, count: int = 8, radius: float = 60.0,
 
 ## Low, soft puffs that anchor impacts to the ground. These are translucent
 ## octagons rather than opaque particles, keeping busy lanes readable.
-func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0) -> void:
+func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0, finish_when_paused: bool = false) -> void:
 	if world == null:
 		return
 	for i: int in count:
@@ -665,6 +669,8 @@ func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0) -> v
 		puff.polygon = points
 		puff.color = Color(colour.r, colour.g, colour.b, minf(colour.a, 0.42))
 		puff.z_index = Balance.VFX_Z - 1
+		if finish_when_paused:
+			puff.process_mode = Node.PROCESS_MODE_ALWAYS
 		_track(puff)
 		var direction := Vector2.RIGHT.rotated(TAU * float(i) / float(maxi(count, 1)) \
 			+ randf_range(-0.35, 0.35))
@@ -1356,7 +1362,7 @@ func blood(at: Vector2, direction: Vector2, size: float,
 	burst.global_position = at
 
 
-func flash_at(at: Vector2, colour: Color, radius: float) -> void:
+func flash_at(at: Vector2, colour: Color, radius: float, finish_when_paused: bool = false) -> void:
 	if world == null:
 		return
 	var blob := Polygon2D.new()
@@ -1366,6 +1372,8 @@ func flash_at(at: Vector2, colour: Color, radius: float) -> void:
 	blob.polygon = points
 	blob.color = Color(colour.lerp(Color.WHITE, 0.6), 0.85)
 	blob.z_index = Balance.VFX_Z
+	if finish_when_paused:
+		blob.process_mode = Node.PROCESS_MODE_ALWAYS
 	_track(blob)
 	blob.global_position = at
 

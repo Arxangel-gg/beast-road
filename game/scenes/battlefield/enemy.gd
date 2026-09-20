@@ -582,6 +582,10 @@ func _process(delta: float) -> void:
 
 	if not _knockback.is_zero_approx():
 		global_position = _bounced(global_position + _knockback * delta)
+	var battlefield := _field as Battlefield
+	if battlefield != null:
+		var clearance: float = Battlefield.sprite_clearance(global_position, sprite, contact_radius())
+		global_position = battlefield.deflect_from_city(global_position, clearance)
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite(delta)
@@ -1709,8 +1713,36 @@ func attack_reach() -> float:
 ## where the node has sat since depth sorting moved it - to the nearest point of
 ## the target. A big target is in reach when the circle reaches its edge, which
 ## is what the circle looks like it means.
+func _target_gap(target: Node2D) -> float:
+	var battlefield := _field as Battlefield
+	if battlefield != null and target == battlefield.town_node():
+		var bounds: Rect2 = battlefield.city_bounds()
+		var at: Vector2 = global_position
+		var edge := Vector2(clampf(at.x, bounds.position.x, bounds.end.x),
+			clampf(at.y, bounds.position.y, bounds.end.y))
+		# **The distance to the sprite's edge, with nothing subtracted from it.**
+		#
+		# Owner, 2026-09-20: bodies attacked the city *"from too far away
+		# including melee enemies"*. This took off `sprite_clearance`, which is
+		# the whole *sprite's* diagonal half-extent - about 135 units on a 192px
+		# body, because it measures to the corner of the painting, and a
+		# painting includes a lifted head, a banner and a raised arm. None of
+		# that is where the body stands.
+		#
+		# It was also counted twice: `attack_reach()` already adds this body's
+		# own `contact_radius()`, exactly as the ordinary branch below leaves
+		# the *target's* radius to the gap and the *attacker's* to the reach.
+		# So a melee breed stood off the wall by its range, plus its radius,
+		# plus a hundred and thirty-five units of picture.
+		#
+		# `edge` is already the nearest point on the city's own sprite, so the
+		# distance to it is the whole answer.
+		return maxf(at.distance_to(edge), 0.0)
+	return combat_origin().distance_to(target.global_position) - _field.target_radius(target)
+
+
 func _in_reach(target: Node2D) -> bool:
-	var gap: float = combat_origin().distance_to(target.global_position) 		- _field.target_radius(target)
+	var gap: float = _target_gap(target)
 	return gap <= attack_reach()
 
 
@@ -1723,8 +1755,7 @@ func _strike() -> void:
 		return
 	# Re-checked at the moment of the blow, slightly generously: stepping out
 	# during the wind-up is supposed to work, but not by a single pixel.
-	var gap: float = combat_origin().distance_to(_target.global_position) \
-		- _field.target_radius(_target)
+	var gap: float = _target_gap(_target)
 	if gap > attack_reach() * 1.15:
 		return
 	# An animal has no Health node - the wildlife system owns those numbers - so
@@ -3399,7 +3430,7 @@ func _may_throw_on_the_way_in() -> bool:
 		return false
 	if not is_instance_valid(_target):
 		return false
-	var gap: float = combat_origin().distance_to(_target.global_position) 		- _field.target_radius(_target)
+	var gap: float = _target_gap(_target)
 	return gap > attack_reach() and gap <= data.thrown_range
 
 

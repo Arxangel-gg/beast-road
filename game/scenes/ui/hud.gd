@@ -209,7 +209,14 @@ const COMMAND_BAR_TOP: float = 104.0
 ## that each clears the one above it. Touch grows the resource bar into the
 ## centre of the top edge, so everything below shifts by roughly one row rather
 ## than one element being nudged and the collision moving down to the next.
-const BOSS_TRACK_TOP: float = 14.0
+## Owner, 2026-09-20: the resource row is *"overlapped by the Act boss distance
+## progress bar at the top"*. The note above already records this collision and
+## solved it for touch only, by dropping the track to 78 - and the desktop row
+## has since grown its own icons and a rolling purse, so the same thing happens
+## there. 14 put the label's cap height straight through the counters, and 46
+## still clipped them by fifteen pixels - `layout_check` named the pair, which
+## is the measurement this was set from rather than a guess.
+const BOSS_TRACK_TOP: float = 62.0
 const BOSS_TRACK_TOUCH_TOP: float = 78.0
 const MESSAGE_TOP: float = 90.0
 const MESSAGE_TOUCH_TOP: float = 130.0

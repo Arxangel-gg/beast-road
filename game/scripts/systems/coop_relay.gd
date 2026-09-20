@@ -190,6 +190,7 @@ enum Fact {
 	## **The host is taking the party out** (2026-09-17): the kind of road, the
 	## act it opens at, a line describing it, and the seconds to answer in.
 	PARTY_RUN_OFFER = 83,
+	WORLD_HAZARD = 84,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -459,6 +460,7 @@ func _fact_bindings() -> Array:
 		["coop_sky_clock", _on_coop_sky_clock],
 		["lightning_struck", _on_lightning_struck],
 		["earthquake", _on_earthquake],
+		["world_hazard", _on_world_hazard],
 		["wildfire_lit", _on_wildfire_lit],
 		["tornado_spawned", _on_tornado_spawned],
 		["tornado_moved", _on_tornado_moved],
@@ -833,6 +835,10 @@ func _on_coop_sky_clock(rain_scale: float, flood: float, charge: float, temperat
 
 func _on_lightning_struck(at: Vector2, radius: float) -> void:
 	_relay(Fact.LIGHTNING, [at, radius])
+
+
+func _on_world_hazard(kind: String, payload: Dictionary) -> void:
+	_relay(Fact.WORLD_HAZARD, [kind, payload])
 
 
 func _on_earthquake(magnitude: float, seconds: float) -> void:
@@ -1272,6 +1278,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.LIGHTNING:
 			if args.size() == 2:
 				bus.coop_lightning.emit(args[0] as Vector2, float(args[1]))
+		Fact.WORLD_HAZARD:
+			if args.size() == 2 and args[1] is Dictionary:
+				bus.coop_world_hazard.emit(String(args[0]), args[1] as Dictionary)
 		Fact.EARTHQUAKE:
 			if args.size() == 2:
 				bus.coop_earthquake.emit(float(args[0]), float(args[1]))

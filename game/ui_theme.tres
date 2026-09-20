@@ -1,18 +1,18 @@
 [gd_resource type="Theme" format=3 uid="uid://d3uflolullnn4"]
 
-[ext_resource type="FontFile" uid="uid://cox0ao2pi2uj7" path="res://fonts/Cinzel-Variable.ttf" id="1_5y56j"]
+[ext_resource type="FontFile" path="res://fonts/AtkinsonHyperlegibleNext-Variable.ttf" id="1_5y56j"]
 [ext_resource type="Texture2D" uid="uid://beg6kjl1xc2m4" path="res://art/ui/ui_button.png" id="1_g7fvb"]
 [ext_resource type="Texture2D" uid="uid://jammigjuh5lb" path="res://art/ui/ui_button_hover.png" id="2_tpf0h"]
 [ext_resource type="Texture2D" uid="uid://ck07q1m1ebs5x" path="res://art/ui/ui_bar_fill.png" id="3_5y56j"]
 [ext_resource type="Texture2D" uid="uid://bklrbjtcgs53l" path="res://art/ui/ui_bar_back.png" id="4_g4wr8"]
 [ext_resource type="Texture2D" uid="uid://bsottve1xmm02" path="res://art/ui/ui_panel.png" id="5_wgsb3"]
 [ext_resource type="Texture2D" uid="uid://dbge7ifidjfvt" path="res://art/ui/ui_panel_dark.png" id="6_uo360"]
-[ext_resource type="FontFile" uid="uid://84jri52mp7bw" path="res://fonts/Alegreya-Variable.ttf" id="7_g4wr8"]
+[ext_resource type="FontFile" path="res://fonts/AtkinsonHyperlegibleNext-Variable.ttf" id="7_g4wr8"]
 
 [sub_resource type="FontVariation" id="FontVariation_display_bold"]
 base_font = ExtResource("1_5y56j")
 variation_opentype = {
-2003265652: 600
+2003265652: 700
 }
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5y56j"]
