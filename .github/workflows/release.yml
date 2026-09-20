@@ -156,6 +156,8 @@ jobs:
           run_godot_clean --headless --path game res://tools/rift_check.tscn
           run_godot_clean --headless --path game res://tools/dungeon_check.tscn
           run_godot_clean --headless --path game res://tools/homecoming_check.tscn
+          run_godot_clean --headless --path game res://tools/release_repair_check.tscn
+          run_godot_clean --headless --path game res://tools/lightning_lifetime_check.tscn
           run_godot_clean --headless --path game res://tools/rejoin_check.tscn
           run_godot_clean --headless --path game res://tools/farming_check.tscn
           run_godot_clean --headless --path game res://tools/party_events_check.tscn

@@ -504,6 +504,8 @@ jobs:
           # The road home: the pass after an act's boss, its stakes, and the
           # return it pays in full.
           check "the road home" --headless --path game res://tools/homecoming_check.tscn
+          check "the repaired front" --headless --path game res://tools/release_repair_check.tscn
+          check "a bolt outlives nothing" --headless --path game res://tools/lightning_lifetime_check.tscn
           # The welcome: a guest whose field has just stood up is told the run
           # as it stands, so a drop can be followed by a rejoin.
           check "rejoin" --headless --path game res://tools/rejoin_check.tscn
