@@ -32,16 +32,56 @@ func _ready() -> void:
 	var outer: Vector2 = bounds.end + Vector2(180.0, 180.0)
 	hero.global_position = outer
 	_check(hero.health.take_damage(1.0, outer), "sanctuary leaked outside the base")
-	var enemy: Enemy = field.spawn_enemy(ContentDB.enemies.values()[0] as EnemyData, 0, 1.0)
-	if enemy != null:
+	# **Every breed, not whichever one the dictionary happens to hand over
+	# first.** The first cut took `values()[0]` and asserted it could still
+	# reach the wall - and passed only because that breed was a ranged one with
+	# 210 units of reach. Every melee breed in the game was standing 136 units
+	# out and swinging at nothing, which is the fault the owner photographed.
+	# A guarantee is a property of every breed or it is not a guarantee.
+	var shortest: float = 0.0
+	var narrowest: String = ""
+	var probed: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null:
+			continue
+		var enemy: Enemy = field.spawn_enemy(breed, 0, 1.0)
+		if enemy == null:
+			continue
+		probed += 1
+		# Dropped on the middle of the base, which is the one position no body
+		# may hold: it is the repair, not the walk, that is being measured.
 		enemy.global_position = bounds.get_center()
 		enemy.call("_process", 0.01)
-		_check(not bounds.has_point(enemy.global_position), "enemy stayed inside the base")
-		_check(not bounds.intersects(enemy.sprite.global_transform * enemy.sprite.get_rect()),
-			"enemy artwork overlaps the base despite legal feet")
-		_check(bool(enemy.call("_in_reach", field.town)), "excluded enemy cannot attack the city edge")
+		_check(not bounds.has_point(enemy.global_position),
+			"%s stayed inside the base" % breed.id)
+		# **The feet, never the painting.** The owner's rule of 2026-09-20 is
+		# that a body walks up to the point of colliding with the base's sprite
+		# and deflects off it, so its art may overlap the base exactly as a
+		# soldier standing at a wall overlaps the wall. Holding the *sprite*
+		# clear instead is what pushed every breed out beyond its own arm.
+		_check(not bounds.grow(enemy.contact_radius() * 0.5).has_point(
+			enemy.global_position),
+			"%s put its feet inside the base" % breed.id)
+		# And the whole point of standing there: it can hit what it came for.
+		var gap: float = float(enemy.call("_target_gap", field.town))
+		var reach: float = enemy.attack_reach()
+		if narrowest == "" or reach - gap < shortest:
+			shortest = reach - gap
+			narrowest = "%s (gap %0.1f, reach %0.1f)" % [breed.id, gap, reach]
+		_check(bool(enemy.call("_in_reach", field.town)),
+			"%s is turned away further than it can swing: gap %0.1f against a reach of %0.1f"
+				% [breed.id, gap, reach])
+		enemy.queue_free()
+	_check(probed > 20, "the harness must walk the roster (%d breeds)" % probed)
+	print("[release-repair] tightest breed at the wall: %s" % narrowest)
+	var lone: Enemy = field.spawn_enemy(ContentDB.enemies.values()[0] as EnemyData, 0, 1.0)
+	if lone != null:
+		lone.global_position = bounds.get_center()
+		lone.call("_process", 0.01)
 		hero.global_position = bounds.get_center()
-		_check(not bool(enemy.call("_foe_stands", hero)), "enemy can target a sheltered hero")
+		_check(not bool(lone.call("_foe_stands", hero)), "enemy can target a sheltered hero")
+		lone.queue_free()
 	var wildlife: Wildlife = field.wildlife()
 	if wildlife != null:
 		var kind: WildlifeData = null

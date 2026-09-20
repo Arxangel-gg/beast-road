@@ -5637,13 +5637,45 @@ town was rebuilt - and declines to repair them. The deflection **is** that
 repair. Scoping it to knockback on the duplicate theory left a body standing on
 the base, which `release_repair_check` refused by name.
 
-**`sprite_clearance` is the right padding there and the wrong number in
-`_target_gap`**, and the difference is which bodies each one reaches. The
-deflection only ever acts on a body *already inside the rect*; one that walked up
-honestly stops where its route ends and is never touched by it, so it cannot park
-a breed beyond its own arm. The gap is measured for every siege in the game.
+**`sprite_clearance` is the wrong number in both places, and the sentence that
+stood here for an hour was wrong.** It said the deflection *"only ever acts on a
+body already inside the rect, so it cannot park a breed beyond its own arm"*. It
+can, and it did. `deflect_from_city` **grows** the rect by the padding before it
+tests it, so the padding is not a margin applied to bodies already inside - it is
+**the distance at which every body is turned away**. At 135 units a breed that
+walked up honestly was teleported back out on every frame and stood there for the
+rest of the run.
 
-**What actually needed moving was a gate's frame.** `enemy_behaviour_check` stood
+The owner photographed it: three Ember Shamans that would not come closer, one of
+them shooting the wall from where it stood. A shaman reaches `aura_radius 185 +
+contact_radius 25` = 210, which clears 136; every melee breed reaches
+`ENEMY_ATTACK_RANGE 62 + contact_radius` = about 84, which does not. **So the
+whole roster's melee could not land a blow on the city, and only the ranged
+breeds appeared to work** - which is why it read as "some enemies are stuck" and
+not as "the siege is broken".
+
+The padding is `contact_radius()` now: feet at the edge, art free to overlap, and
+the owner's rule in as many words - *"walk up to the point of colliding to
+deflect off of the city base's sprite ... and attacking it from ranged if the
+enemy is ranged, but only from once the city base's sprite is within the enemy's
+attack range"*.
+
+**Two things I assumed and measured instead, both wrong.** The town's 512x512
+texture looked like it must be mostly transparent padding inflating
+`city_bounds()`; its art fills 477 of the 512, so that was not it. And
+`step_is_legal` does stop a body at the wall on its own - enemies consult it at
+three call sites - so the walk was never the problem and the repair was doing all
+of the damage.
+
+**And the gate could not have caught it, because it asked one breed.**
+`release_repair_check` took `ContentDB.enemies.values()[0]` and asserted it could
+still reach the wall, which passed only because that breed happened to be ranged.
+It walks the whole roster now and prints the tightest margin at the wall. **A
+guarantee is a property of every breed or it is not a guarantee** - the same
+lesson as the 24 fixed roads, the scattered volley and the four-act sample that
+shared a period.
+
+**What also needed moving was a gate's frame.****What actually needed moving was a gate's frame.** `enemy_behaviour_check` stood
 its two probes on the field origin, which is the town, so the repair shoved them
 off it and out of line and a working shield read as a broken one. Where the
 probes stand is incidental to what that test measures - a shield redirects rather
