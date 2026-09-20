@@ -678,7 +678,19 @@ const PARTY_SPREAD_LIMIT: float = 22.0
 ##
 ## **A band recorded in prose and enforced by a number in another file is two
 ## places to change and one place to forget.** This is the one that decides.
-const PARTY_PRESSURE_FLOOR: float = 0.44
+##
+## **The floor moved again 2026-09-20**, from 0.44, with the owner's report
+## that *"all enemies scale to too much health and damage and need to be nerfed
+## a bit"*. The act ladders came down - health 2.28 to 1.94 by Act X, damage
+## 1.28 to 1.18 - and solo mean pressure with them, 0.479 to 0.417. The ceiling
+## is deliberately left where it is: a nerf cannot make the road harder, so
+## lowering the top would be inventing a bound nobody asked for.
+##
+## Measured on an empty profile, which is the account the band is held against.
+## A played one read the same figure to the digit here, so the warning above the
+## band was noise this time rather than a distortion - worth knowing, because it
+## is not always.
+const PARTY_PRESSURE_FLOOR: float = 0.40
 const PARTY_PRESSURE_CEILING: float = 0.58
 
 

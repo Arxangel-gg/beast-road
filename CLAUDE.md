@@ -5604,6 +5604,79 @@ body that never registers is silently dustless for ever with every other check
 on the page green.
 
 
+**The city was besieged from a hundred units of picture away, and then not at
+all, as of 2026-09-20.** The owner's biggest report of that batch: enemies
+*"attack the city base from too far away including melee enemies"*, and the
+constraint beside it - they must *"still not be able to walk over the city
+base's sprite ... but rather simply stay outside of it and attack it from where
+they can reach it"*.
+
+**Both halves were one number in two places, and it is `sprite_clearance`.**
+That is the whole *sprite's* diagonal half-extent - about 135 units on a 192px
+body, because it measures to the corner of a painting, and a painting includes a
+lifted head, a banner and a raised arm. None of that is where the body stands.
+
+- `_target_gap` **subtracted** it from the distance to the city, so a melee
+  breed stood off the wall by its range, plus its own radius, plus that picture.
+  It was counted twice besides: `attack_reach()` already adds this body's
+  `contact_radius()`, exactly as the ordinary branch leaves the *target's*
+  radius to the gap and the *attacker's* to the reach. `edge` is already the
+  nearest point on the city's own sprite, so the distance to it is the whole
+  answer.
+- `_process` **padded a deflection** with it, every body every frame. At 135
+  against a melee reach of `ENEMY_ATTACK_RANGE + contact_radius()` - about 84 -
+  a body is held beyond its own arm and besieges nothing. The first fault made
+  them swing from too far out; this one would have stopped them swinging at all.
+
+**And the deflection is not a second copy of a rule that already had an owner**
+- which is what it looked like, and the wrong reading cost a gate, so both halves
+are recorded. `Battlefield.step_is_legal` refuses a step that crosses *in* and
+deliberately never refuses one going out; its own note lists the ways a body ends
+up inside anyway - spawned there, shoved by the crowd, standing there when the
+town was rebuilt - and declines to repair them. The deflection **is** that
+repair. Scoping it to knockback on the duplicate theory left a body standing on
+the base, which `release_repair_check` refused by name.
+
+**`sprite_clearance` is the right padding there and the wrong number in
+`_target_gap`**, and the difference is which bodies each one reaches. The
+deflection only ever acts on a body *already inside the rect*; one that walked up
+honestly stops where its route ends and is never touched by it, so it cannot park
+a breed beyond its own arm. The gap is measured for every siege in the game.
+
+**What actually needed moving was a gate's frame.** `enemy_behaviour_check` stood
+its two probes on the field origin, which is the town, so the repair shoved them
+off it and out of line and a working shield read as a broken one. Where the
+probes stand is incidental to what that test measures - a shield redirects rather
+than reduces - so the frame moved and the invariant did not. **That distinction
+is the whole licence for touching a gate**: amending an invariant makes every
+later run agree with the bug, and amending a harness does not.
+
+**The pressure band moved with the nerf, 0.44 to 0.40.** The owner asked that
+*"all enemies scale to too much health and damage"* come down; the act ladders
+did - health 2.28 to 1.94 by Act X, damage 1.28 to 1.18 - and solo mean pressure
+went 0.479 to 0.417. That is `curve_report` judging the re-tune against the game
+it replaced, which is **the same failure recorded when the band last moved on
+2026-09-15**: a bound written in prose here and enforced by a constant in a tool
+is two places to change and one place to forget, and the constant is the one that
+decides. The ceiling is deliberately unmoved - a nerf cannot make the road
+harder, so lowering the top would invent a bound nobody asked for.
+
+**And the first fork stopped offering a road nobody had walked.**
+`extraction_open` was reading `RunState.wave_number > 0`, true from the first
+wave, against a docstring that says the opposite in as many words. `momentum` is
+the reading that answers it, and `_open_crossroad` raises it *after* computing
+the offer precisely so the first fork sees zero. Momentum also rides the
+expedition snapshot, so a resumed road remembers how many forks it passed
+without banking.
+
+**Two gates were run by nothing**: `release_repair_check` and
+`lightning_lifetime_check` each had a `.tscn` and no workflow line, so neither
+could fail a push or a tag. That is the fourth costume of the guard/release
+split, after `layout_check`, `copy_check` and `audio_verify` - and the answer is
+still to **diff the two lists rather than trip over them**. Both are on both bars
+now, and the diff reads clean in the direction that matters: release is a
+superset of guard, with only the five judgement-heavy reports release-only.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

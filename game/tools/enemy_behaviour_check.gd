@@ -144,9 +144,19 @@ func _test_a_shield_redirects_rather_than_reduces() -> void:
 	if shield == null or behind == null:
 		return
 	# The blow comes from the left; the shield stands to the left of the body.
-	var from: Vector2 = Vector2(-400.0, 0.0)
-	behind.global_position = Vector2(0.0, 0.0)
-	shield.global_position = Vector2(-120.0, 0.0)
+	#
+	# **Stood clear of the city, deliberately.** The field's origin is the town,
+	# and a body standing on the base is put back outside it by
+	# `Enemy._process` - which is correct, is the owner's own rule of
+	# 2026-09-20, and is gated by `release_repair_check`. Two probes shoved off
+	# it are two probes out of line, and this test is geometric: it read a
+	# working shield as a broken one for exactly that reason. What it measures
+	# is the redirect, never where the redirect happens, so the frame moves and
+	# the invariant does not.
+	var anchor: Vector2 = _field.city_bounds().end + Vector2(900.0, 900.0)
+	var from: Vector2 = anchor + Vector2(-400.0, 0.0)
+	behind.global_position = anchor
+	shield.global_position = anchor + Vector2(-120.0, 0.0)
 	shield.call("_enter", Enemy.State.COMMIT, 5.0)
 	shield.data.behaviour = EnemyData.Behaviour.ANCHOR
 	await get_tree().process_frame

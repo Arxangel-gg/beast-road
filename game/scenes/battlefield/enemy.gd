@@ -582,9 +582,29 @@ func _process(delta: float) -> void:
 
 	if not _knockback.is_zero_approx():
 		global_position = _bounced(global_position + _knockback * delta)
+	# **A body standing on the base is put back outside it.**
+	#
+	# **Not a second copy of `step_is_legal`**, which is what this looked like
+	# and is worth writing down because the wrong reading cost a gate.
+	# `step_is_legal` refuses a step that crosses *in* and deliberately never
+	# refuses one going out - its own note lists the ways a body ends up inside
+	# anyway: spawned there, shoved there by the crowd, standing there when the
+	# town was rebuilt. It declines to repair those. This is the repair, and the
+	# two answer different questions.
+	#
+	# **Padded by the painting rather than by the footprint**, which is the one
+	# place in this file where that is the right number. The owner's rule of
+	# 2026-09-20 is about the *sprite*: a body may not overlap the base's art.
+	# It is safe here and nowhere else because it only ever acts on a body that
+	# is already inside the rect - one that walked up honestly stops where its
+	# route ends and is never touched by this - so it cannot park a breed beyond
+	# its own reach. `_target_gap` measures the same fight and must *not* use it:
+	# 135 units of picture subtracted there is what made melee besiege the city
+	# from across the square.
 	var battlefield := _field as Battlefield
 	if battlefield != null:
-		var clearance: float = Battlefield.sprite_clearance(global_position, sprite, contact_radius())
+		var clearance: float = Battlefield.sprite_clearance(global_position, sprite,
+			contact_radius())
 		global_position = battlefield.deflect_from_city(global_position, clearance)
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
