@@ -1111,8 +1111,10 @@ const TOWER_SLOT_COUNT: int = 4
 ##
 ## Read on **a new account**, which is the account the band is held against and
 ## the harder case - see the note on `curve_report` reading the save. [TUNE]
+## Re-read 2026-09-21 off `curve_report`'s purse column at the first wave of
+## each act, on the road of that date (an eighth longer, reference height 330).
 const ACT_START_BUDGET: Array[int] = [
-	0, 1051, 2539, 4636, 7370, 11057, 15760, 22453, 30181, 40235,
+	0, 1184, 2773, 5141, 8159, 12269, 17660, 25028, 33680, 45006,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
@@ -4169,7 +4171,11 @@ const WAVE_SPEED_GROWTH: float = 0.19
 ## the tenth tower level, which is about five times the capability the old road
 ## ever reached - so the curve has to climb about that much further to stay the
 ## same fight. [TUNE]
-const WAVE_GROWTH_REFERENCE_RUN: float = 296.0
+## Raised 296 -> 330 with the road of 2026-09-21: an eighth more waves an act
+## and a 58-wave summit earn a purse the same climb no longer answers - the
+## board reached level 8 either way, and solo mean pressure read 0.375 against
+## a floor of 0.40. Height and length are separate knobs; this is the height.
+const WAVE_GROWTH_REFERENCE_RUN: float = 330.0
 const WAVE_GROWTH_REFERENCE_ACT: float = 7.0
 
 

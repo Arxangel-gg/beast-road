@@ -1056,23 +1056,36 @@ func _test_loot_and_weather() -> void:
 	_check(RunState.currency(RunState.GOLD) > before,
 		"a kill must pay its resources whether or not loot is collected")
 
-	# A drop pays on collection, and only once.
+	# A drop pays on collection, and only once. A drop falls as pieces since
+	# 2026-09-21, so every piece thrown from the spot is collected and it is
+	# the *pieces* that must sum to the amount - the split may never create or
+	# lose Gold, which is the same invariant one node used to carry alone.
 	var banked: int = RunState.currency(RunState.GOLD)
-	field.spawn_loot(RunState.GOLD, 25, Vector2(300.0, 0.0))
-	var drops: Array[Node] = get_tree().get_nodes_in_group(LootDrop.GROUP)
-	_check(drops.size() >= 1, "spawn_loot must produce a drop")
-	if drops.is_empty():
+	var spot := Vector2(300.0, 0.0)
+	field.spawn_loot(RunState.GOLD, 25, spot)
+	var pieces: Array[LootDrop] = []
+	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
+		var piece := node as LootDrop
+		if piece != null and piece.currency == RunState.GOLD \
+				and piece.global_position.distance_to(spot) < 60.0:
+			pieces.append(piece)
+	_check(not pieces.is_empty(), "spawn_loot must produce a drop")
+	if pieces.is_empty():
 		return
-	var drop := drops[drops.size() - 1] as LootDrop
-	drop.call("_collect")
+	for piece: LootDrop in pieces:
+		piece.call("_collect")
 	_check(RunState.currency(RunState.GOLD) == banked + 25,
-		"collecting a drop must pay exactly its amount")
+		"collecting a drop must pay exactly its amount (%+d over %d pieces)"
+			% [RunState.currency(RunState.GOLD) - banked, pieces.size()])
 	await get_tree().process_frame
 	# The approved pickup dissolve deliberately leaves a brief visual shell. It
 	# must be inert immediately, then disappear when that presentation finishes.
-	drop.call("_collect")
+	for piece: LootDrop in pieces:
+		if is_instance_valid(piece):
+			piece.call("_collect")
 	_check(RunState.currency(RunState.GOLD) == banked + 25,
 		"a dissolving drop must not pay a second time")
+	var drop: LootDrop = pieces[pieces.size() - 1]
 	await get_tree().create_timer(Balance.LOOT_PICKUP_DISSOLVE_TIME + 0.05).timeout
 	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion(),
 		"a collected drop must retire when its pickup dissolve ends")
@@ -1701,12 +1714,16 @@ func _test_enemy_roles() -> void:
 		"Burrower must emerge inside the outer defence")
 	var regular_ids: Dictionary = {}
 	var elite_ids: Dictionary = {}
+	# Floors rather than exact counts since 2026-09-21: how many breeds each act
+	# fields is `Balance.ACT_UNIQUE_ENEMIES`, held exactly by `roster_check`.
+	# What this keeps is the launch shape - a region is never thinner than the
+	# four regulars and two elites the game shipped with.
 	for terrain: TerrainData in [ContentDB.terrain("jungle"),
 			ContentDB.terrain("desert"), ContentDB.terrain("snow")]:
-		_check(terrain != null and terrain.enemy_ids.size() == 4,
-			"every region must ship four regular enemy roles")
-		_check(terrain != null and terrain.elite_ids.size() == 2,
-			"every region must ship two regional elites")
+		_check(terrain != null and terrain.enemy_ids.size() >= 4,
+			"every region must ship at least four regular enemy roles")
+		_check(terrain != null and terrain.elite_ids.size() >= 2,
+			"every region must ship at least two regional elites")
 		if terrain == null:
 			continue
 		for id: String in terrain.enemy_ids:
@@ -1720,8 +1737,9 @@ func _test_enemy_roles() -> void:
 			_check(elite != null and elite.category == EnemyData.Category.ELITE \
 					and ResourceLoader.exists(elite.get_sprite_path()),
 				"regional elite '%s' needs elite data and production art" % id)
-	_check(regular_ids.size() == 12 and elite_ids.size() == 6,
-		"launch roster must contain twelve unique regulars and six unique elites")
+	_check(regular_ids.size() >= 12 and elite_ids.size() >= 6,
+		"launch roster must contain at least twelve unique regulars and six unique elites (%d, %d)"
+			% [regular_ids.size(), elite_ids.size()])
 
 	# **Every act pays its boss core.** The grant was written as "award it if
 	# the relic exists", and the id was assembled from the boss's name, so the

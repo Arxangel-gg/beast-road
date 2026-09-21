@@ -1098,6 +1098,7 @@ density (`Balance.GROUND_UNITS_PER_TEXEL`).
 | `terrain_glass_fields.png` | 512×512 | O | `#486E94` |
 | `terrain_ashen_reach.png` | 512×512 | O | `#3E3836` |
 | `terrain_last_terrace.png` | 512×512 | O | `#606264` |
+| `terrain_crown.png` | 512×512 | O | `#606264` |
 
 ### 5.7b Foliage — `res://art/foliage/`
 
@@ -2250,7 +2251,7 @@ All 128×128, type T, placeholder colour `#3E6C74`.
 `pond_tiles_jungle.png` · `pond_tiles_desert.png` · `pond_tiles_snow.png` ·
 `pond_tiles_hollow_marches.png` · `pond_tiles_rustwood.png` · `pond_tiles_saltpan.png` ·
 `pond_tiles_iron_steppe.png` · `pond_tiles_glass_fields.png` · `pond_tiles_ashen_reach.png` ·
-`pond_tiles_last_terrace.png`
+`pond_tiles_last_terrace.png` · `pond_tiles_crown.png`
 
 **The water is a tilemap now (2026-09-11), not a picture.** One sixteen-tile
 Wang sheet per region, 32px tiles drawn at twice size, in canonical corner
@@ -3096,6 +3097,7 @@ a canopy and the Last Terrace's a flight of terraces.
 | `skyline_glass_fields.png` | 512×122 | T | `#1A1A20` |
 | `skyline_ashen_reach.png` | 512×89 | T | `#1A1A20` |
 | `skyline_last_terrace.png` | 495×128 | T | `#1A1A20` |
+| `skyline_crown.png` | 501×116 | T | `#1A1A20` |
 
 ### 5.17 The beast's tail — `res://art/beast/`
 
