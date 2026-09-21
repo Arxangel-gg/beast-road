@@ -6,10 +6,8 @@
 script = ExtResource("1")
 price = 900
 speed = 1.36
-gallop = 1.45
-stamina = 140.0
-stamina_drain = 20.0
-stamina_regen = 22.0
+gallop = 1.95
+sprint_drain = 16.0
 art_scale = 1.08
 seat = 0.66
 order = 3

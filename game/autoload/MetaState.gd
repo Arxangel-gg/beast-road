@@ -390,7 +390,8 @@ var pen_taken: String = ""
 ## gather, fish or take an egg, and the first press of attack puts them on their
 ## feet - so nothing here can reach a number in a fight. It grants no attribute,
 ## no level, no currency and no unlock, and a gallop is held under
-## `Balance.MOUNT_SPEED_CEILING`, which is what a sprint already reaches.
+## `Balance.MOUNT_GALLOP_CEILING` and `MOUNT_GALLOP_RANGE` (owner re-cut,
+## 2026-09-21: faster than a sprint, and it spends the rider's SP).
 ##
 ## Additive, like the pantry, the spirits, the materials and the pen before it:
 ## a save written before this has no `stable` key and reads back as a Warden who

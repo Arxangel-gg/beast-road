@@ -185,14 +185,9 @@ var _mount_wait: float = 0.0
 ## the ring the HUD draws for it shows for this and never for the ordinary
 ## remount delay - see `Balance.MOUNT_HURT_COOLDOWN`.
 var _mount_thrown_left: float = 0.0
-## The mount's own wind, its rest clock, and whether it has run itself out.
-## **Its own, not the Warden's.** A mount drinking from SP would make the pool
-## the Warden sprints on a shared resource, which is a coupling nobody asked
-## for and the tuning would have to answer for.
-var mount_wind: float = 0.0
-var _mount_wind_rest: float = 0.0
-var _mount_winded: bool = false
-var _mount_wind_said: float = -1.0
+## Whether the mount is at a gallop. **A gallop spends the rider's SP** (owner,
+## 2026-09-21), at `MountData.sprint_drain` a second, through the same
+## `_tick_stamina` a sprint on foot goes through - one pool, one winded rule.
 var _galloping: bool = false
 var _mount_dust: float = 0.0
 ## The last line said about refusing to mount, so it is said once rather than
@@ -889,15 +884,14 @@ func move_speed() -> float:
 	# summed away by Swiftness: water is water whoever is walking through it.
 	# A swimmer is already paying the water's price and does not pay it twice.
 	# **Riding replaces running rather than stacking with it.** A gallop on top
-	# of a sprint would be new speed, which is the third scale this project has
-	# refused a dozen times; a gallop *instead of* one is the speed the Warden
-	# already had, bought without SP and paid for by being unable to fight.
-	# `Balance.MOUNT_SPEED_CEILING` is `HERO_SPRINT_SPEED`, and `mount_check`
-	# measures every authored mount against it rather than reading the figure.
+	# of a sprint would multiply two rates nobody tuned together; a gallop
+	# *instead of* one is the mount's own authored rate, held under
+	# `Balance.MOUNT_GALLOP_CEILING`, which `mount_check` measures through this
+	# function rather than reading off the resource.
 	var running: float = Balance.HERO_SPRINT_SPEED if _sprinting else 1.0
 	if _mount != null:
 		running = minf(_mount.gallop if _galloping else _mount.speed,
-			Balance.MOUNT_SPEED_CEILING)
+			Balance.MOUNT_GALLOP_CEILING)
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * running \
 		* (1.0 if _swimming else RunState.flood_slow())
 
@@ -1507,15 +1501,25 @@ func _tick_timers(delta: float) -> void:
 ## on the button is not running, and draining the pool for it would be the one
 ## way to be punished for nothing.
 func _tick_sprint(delta: float) -> void:
-	# **A rider spends nothing** (owner brief, 2026-09-17). The gallop has its
-	# own wind on the mount, so returning here is what keeps SP out of it -
-	# without this the sprint key would drain both pools at once and the
-	# Warden would arrive winded from a journey they did not walk.
+	# **A rider's pool is ticked from `_tick_mount`**, once a frame, at the
+	# mount's own rate - not here as well, or the sprint key would drain it
+	# twice for one stride.
 	if _mount != null:
 		return
+	_tick_stamina(delta)
+
+
+## One pool, on foot or in the saddle (owner, 2026-09-21: a mounted sprint
+## spends SP). The mount decides the rate and the dust; everything else - the
+## floor, the rest before it comes back, the winded rule - is the same rule so
+## that a rider who spends it all arrives winded exactly as a runner does.
+func _tick_stamina(delta: float) -> void:
+	var mounted: bool = _mount != null
 	# **Two ways in, and they engage differently.** The dash button has to be
 	# held past `HERO_SPRINT_HOLD` so that a tap of it stays a dash; the
-	# sprint key exists only to sprint, so it takes effect on the press.
+	# sprint key exists only to sprint, so it takes effect on the press. In the
+	# saddle there is no dash to keep a tap for, so the button is a gallop on
+	# the press.
 	var dashing: bool = input != null and input.held(HeroInput.HOLD_DASH)
 	var asked: bool = input != null and input.held(HeroInput.HOLD_SPRINT)
 	if dashing:
@@ -1523,20 +1527,30 @@ func _tick_sprint(delta: float) -> void:
 	else:
 		_dash_held = 0.0
 	var down: bool = asked or dashing
-	var committed: bool = asked or _dash_held >= Balance.HERO_SPRINT_HOLD
+	var committed: bool = asked or mounted or _dash_held >= Balance.HERO_SPRINT_HOLD
 	var walking: bool = (velocity - _shoved).length() > 6.0
+	# Yuri's footfall stops a runner and not a rider - the horse is what keeps
+	# its feet - and the climb into the saddle has to finish before it runs.
 	var may: bool = down and walking and committed \
 		and not _winded and not _swimming and is_alive() \
-		and _beast_stun_left <= 0.0 and not RunState.flood_over_knee()
+		and not RunState.flood_over_knee() \
+		and (mounted or _beast_stun_left <= 0.0) \
+		and (not mounted or _mount_up_left <= 0.0)
+	var rate: float = _mount.sprint_drain if mounted else Balance.HERO_STAMINA_DRAIN
 	if may and stamina > 0.0:
-		_sprinting = true
-		stamina = maxf(stamina - Balance.HERO_STAMINA_DRAIN * delta, 0.0)
+		_sprinting = not mounted
+		_galloping = mounted
+		stamina = maxf(stamina - rate * delta, 0.0)
 		_stamina_rest = Balance.HERO_STAMINA_REGEN_DELAY
-		_kick_up_dust(delta)
+		if mounted:
+			_kick_up_hooves(delta)
+		else:
+			_kick_up_dust(delta)
 		if stamina <= 0.0:
 			_give_out()
 	else:
 		_sprinting = false
+		_galloping = false
 		_stamina_rest = maxf(_stamina_rest - delta, 0.0)
 		if _stamina_rest <= 0.0 and stamina < Balance.HERO_STAMINA_MAX:
 			stamina = minf(stamina + Balance.HERO_STAMINA_REGEN * delta,
@@ -1657,11 +1671,8 @@ func mount() -> bool:
 	_mount = kind
 	_mark_tread()
 	_mount_up_left = Balance.MOUNT_UP_SECONDS
-	mount_wind = kind.stamina
-	_mount_winded = false
 	_galloping = false
-	_mount_wind_rest = 0.0
-	_mount_wind_said = -1.0
+	_sprinting = false
 	if input != null:
 		input.muted = MOUNTED_MUTE
 	# A channel or a swing already running is ended rather than left hanging:
@@ -1675,11 +1686,9 @@ func mount() -> bool:
 	Sfx.play_at("sfx_footstep_heavy", global_position, -4.0)
 	# **Only this machine's own player says so.** The signal carries no hero,
 	# so every listener would have to guess whose it was - and `CoopHeroes`
-	# would record a partner's horse under this player's seat. The same
-	# distinction `_say_wind` makes for the readout.
+	# would record a partner's horse under this player's seat.
 	if is_local_player():
 		EventBus.hero_mounted.emit(kind.id)
-	_say_wind()
 	return true
 
 
@@ -1745,7 +1754,6 @@ func dismount() -> bool:
 	Vfx.dust(global_position, Color(0.55, 0.49, 0.4), 5, 34.0)
 	if is_local_player():
 		EventBus.hero_dismounted.emit()
-	_say_wind()
 	return true
 
 
@@ -1799,51 +1807,12 @@ func _may_stay_mounted() -> bool:
 	return true
 
 
-## The mount's own wind. The same shape as the Warden's SP and a separate
-## pool: the horse gets tired, the rider does not.
+## The gallop, which is the sprint in the saddle: the same pool at the mount's
+## own rate. Ticked from `_tick_mount` so that the climb into the saddle is
+## counted down first - see `mount_check` on why the outer tick is the one to
+## drive.
 func _tick_gallop(delta: float) -> void:
-	var asked: bool = input.held(HeroInput.HOLD_SPRINT) \
-		or input.held(HeroInput.HOLD_DASH)
-	var moving: bool = (velocity - _shoved).length() > 6.0
-	var may: bool = asked and moving and not _mount_winded \
-		and _mount_up_left <= 0.0
-	if may and mount_wind > 0.0:
-		_galloping = true
-		mount_wind = maxf(mount_wind - _mount.stamina_drain * delta, 0.0)
-		_mount_wind_rest = Balance.MOUNT_WIND_REST
-		_kick_up_hooves(delta)
-		if mount_wind <= 0.0:
-			_mount_winded = true
-			_galloping = false
-	else:
-		_galloping = false
-		_mount_wind_rest = maxf(_mount_wind_rest - delta, 0.0)
-		if _mount_wind_rest <= 0.0 and mount_wind < _mount.stamina:
-			mount_wind = minf(mount_wind + _mount.stamina_regen * delta,
-				_mount.stamina)
-		if _mount_winded and mount_wind >= Balance.MOUNT_WIND_FLOOR:
-			_mount_winded = false
-	_say_wind()
-
-
-## Tells the readout, on change rather than sixty times a second - the rule the
-## Warden's own pools are announced under.
-##
-## **The same bar, not a second one.** A rider's SP bar shows the horse's wind
-## while they are up and their own the moment they are down, because the pool
-## under the thumb is whichever one the player is currently spending.
-func _say_wind() -> void:
-	if not is_local_player():
-		return
-	if _mount == null:
-		_stamina_said = -1.0
-		_mount_wind_said = -1.0
-		EventBus.hero_stamina_changed.emit(stamina, Balance.HERO_STAMINA_MAX)
-		return
-	if is_equal_approx(mount_wind, _mount_wind_said):
-		return
-	_mount_wind_said = mount_wind
-	EventBus.hero_stamina_changed.emit(mount_wind, _mount.stamina)
+	_tick_stamina(delta)
 
 
 ## Dirt off the hooves while galloping, and the hooves themselves, on one
@@ -1926,6 +1895,7 @@ func _give_out() -> void:
 		return
 	_winded = true
 	_sprinting = false
+	_galloping = false
 	EventBus.hero_winded.emit()
 	Vfx.word(global_position + Vector2(0.0, -46.0), "Winded",
 		Color(0.85, 0.82, 0.7), 20)

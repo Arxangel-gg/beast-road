@@ -14,16 +14,14 @@ extends GameData
 ## loose, gather, fish or take an egg, and the first press of attack puts them on
 ## their feet where they stand. So a mount can never touch a number in a fight.
 ##
-## **And it is not new speed either.** `gallop` is capped at what a sprint
-## already reaches (`Balance.MOUNT_SPEED_CEILING`), so the fastest a Warden may
-## cross the field is exactly what it was before mounts existed. What a mount
-## buys is that speed *without spending SP* and without the Warden's own legs
-## giving out - paid for by being unable to do anything else while it lasts.
-## `mount_check` measures the ceiling rather than reading it.
-##
-## **Its stamina is its own.** A mount that drank from SP would make the pool the
-## Warden sprints on a shared resource, which is a coupling nobody asked for and
-## the tuning would have to answer for. The horse gets tired; the rider does not.
+## **And it is faster than the Warden on foot, as of 2026-09-21.** The first
+## cut held a gallop under what a sprint already reached and gave the horse a
+## wind of its own, so a mount was the speed the Warden had without the SP.
+## The owner re-cut both: a mount gallops past a sprint, and a mounted sprint
+## **spends the rider's SP**, at a rate authored per mount. The bound that makes
+## that safe is on `Balance.MOUNT_GALLOP_CEILING` and `MOUNT_GALLOP_RANGE`, and
+## `mount_check` measures both through `Hero.move_speed()` and the real tick.
+## A rider who spends the pool arrives winded, exactly as a runner does.
 
 ## What the stable asks for it, in Marks.
 ##
@@ -33,15 +31,17 @@ extends GameData
 ## Orden's commission all already take.
 @export var price: int = 400
 
-## How fast this mount walks, against the Warden's own walk.
+## How fast this mount walks, against the Warden's own walk. Spends nothing;
+## what a walk in the saddle costs is being unable to fight.
 @export_range(1.0, 3.0) var speed: float = 1.35
-## How fast it gallops. Held under `MOUNT_SPEED_CEILING` by the gate, because a
-## mount is the speed the Warden already had rather than a new one.
+## How fast it gallops, against the Warden's own walk. Held under
+## `Balance.MOUNT_GALLOP_CEILING` by the gate, and above a sprint - a horse
+## slower than the Warden's own legs is one nobody would buy.
 @export_range(1.0, 3.0) var gallop: float = 1.9
-## How long it can gallop for, and how fast it gets its wind back.
-@export var stamina: float = 100.0
-@export var stamina_drain: float = 24.0
-@export var stamina_regen: float = 18.0
+## SP a second while galloping. The rider's pool, not the horse's: tuned against
+## `gallop` so that a full pool carries this mount no further than
+## `Balance.MOUNT_GALLOP_RANGE`, and further than the Warden's own sprint.
+@export var sprint_drain: float = 17.0
 
 ## How big it is drawn, against its own art. A pony is not a warhorse.
 @export_range(0.5, 2.0) var art_scale: float = 1.0

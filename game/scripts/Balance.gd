@@ -11060,10 +11060,9 @@ const HOLD_TURF_ROOT: Color = Color(0.12, 0.18, 0.10)
 ## Owner, 2026-09-17: *"players should also be able to ride their own mounts in
 ## the Hold as well"*.
 ##
-## The road's own bound is untouched and is the reason this is safe:
-## `MOUNT_SPEED_CEILING` *is* `HERO_SPRINT_SPEED`, so a mount is never new speed
-## - and in the Hold there is nothing to fight, no SP to spend and nothing to
-## outrun, so what a mount buys here is the size of the place. The yard is three
+## In the Hold there is nothing to fight, no SP to spend and nothing to outrun,
+## so what a mount buys here is the size of the place; the road's own ceiling is
+## `MOUNT_GALLOP_CEILING` and this is under it. The yard is three
 ## and a half thousand units across; crossing it at a walk is the one thing
 ## about the Hold that gets worse the better it looks.
 const HOLD_MOUNT_SPEED: float = 1.72
@@ -11543,15 +11542,34 @@ const UI_PIXEL_FILTER_MASK_GRAIN: int = 4
 
 ## **The ceiling on a gallop, as a multiple of the Warden's own walk.**
 ##
-## Equal to `HERO_SPRINT_SPEED` on purpose rather than by coincidence: a mount
-## is meant to be the speed the Warden already had, bought *without* spending SP
-## and without their legs giving out, and paid for by being unable to swing,
-## cast, loose, gather, fish or take an egg while it lasts. A mount faster than a
-## sprint would be new speed, which is a scale nobody is tuning against - the
-## same objection spirit traits, discipline depth, omens, fish and set bonuses
-## have each been held to. `mount_check` measures every authored mount against
-## this rather than reading the figure off the resource.
-const MOUNT_SPEED_CEILING: float = HERO_SPRINT_SPEED
+## **Re-cut by the owner, 2026-09-21: mounts are faster than the Warden on
+## foot, and a mounted sprint spends SP at the mount's own rate.** This constant
+## *was* `HERO_SPRINT_SPEED`, on purpose, so that a mount bought sprint speed
+## without the SP cost rather than any new speed; the mount carried its own
+## wind and the rider's pool was untouched. Both halves are gone, and the bound
+## that replaces them is written here before the code rather than implied by it.
+##
+## What is being traded away is not damage - a mount still cannot swing, cast,
+## loose, gather, fish or work a seam, and the first press of attack puts the
+## rider on their feet, so `curve_report` still models no movement at all. What
+## is traded is **how fast a Warden can be anywhere on the field**, which with
+## four roads is a real defensive number. So a gallop is bounded twice:
+##
+## - **in speed**, by this ceiling, measured through `Hero.move_speed()` rather
+##   than read off the resource;
+## - **in reach**, by `MOUNT_GALLOP_RANGE`: how far one full pool of SP may carry
+##   a galloping mount. Every mount's `gallop` and `sprint_drain` are tuned
+##   against each other under it, so a faster animal is a thirstier one and no
+##   mount is a free crossing of the map.
+##
+## A gallop and a sprint are the same pool, so a rider who spends it all arrives
+## winded - that is the owner's ruling and it is the price of the speed.
+const MOUNT_GALLOP_CEILING: float = 2.2
+## How far a full pool of SP carries a galloping mount, in units, at most. The
+## Warden's own sprint covers about 1,500 (`HERO_MOVE_SPEED * HERO_SPRINT_SPEED *
+## HERO_STAMINA_MAX / HERO_STAMINA_DRAIN`); a mount must beat that or there is no
+## reason to be on it, and may not reach this.
+const MOUNT_GALLOP_RANGE: float = 2600.0
 
 ## How long it takes to get up.
 ##
@@ -11596,12 +11614,6 @@ const MOUNT_HURT_COOLDOWN: float = 6.0
 ## middle of a wave reads as the game disarming you.
 const MOUNT_DANGER_RANGE: float = 220.0
 
-## How far back from empty a mount's own wind has to come before it will gallop
-## again. The same shape as `HERO_SPRINT_FLOOR` and for the same reason: a pool
-## you can tap at zero is a speed setting rather than a resource.
-const MOUNT_WIND_FLOOR: float = 20.0
-## How long after the last gallop stride before the wind starts coming back.
-const MOUNT_WIND_REST: float = 0.5
 
 ## What a hoofbeat is, until one is recorded: the Warden's own heavy footfall
 ## on dirt, louder and pitched down. See `Hero._kick_up_hooves` for why it is

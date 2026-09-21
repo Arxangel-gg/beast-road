@@ -17,22 +17,30 @@ extends Node
 ## about a scale nobody was tuning. A mount is safe from that objection only for
 ## as long as three things stay true, and each of them is checkable:
 ##
-## - **It is not new speed.** A gallop may not exceed what a sprint already
-##   reaches. **Measured through `Hero.move_speed()`** rather than read off the
-##   resource, because the resource is what a careless edit changes and the
-##   function is what the game actually uses. A gate that read `MountData.gallop`
-##   back would pass on a build where the hero multiplied it a second time.
+## - **It is bounded speed.** A gallop outruns a sprint (owner re-cut,
+##   2026-09-21) and may not exceed `Balance.MOUNT_GALLOP_CEILING`. **Measured
+##   through `Hero.move_speed()`** rather than read off the resource, because the
+##   resource is what a careless edit changes and the function is what the game
+##   actually uses. A gate that read `MountData.gallop` back would pass on a
+##   build where the hero multiplied it a second time.
 ## - **It cannot fight.** Mounted, the Warden may not swing, cast, loose, gather,
 ##   fish or take an egg - and the whole of that refusal lives in one mask, so
 ##   what this checks is that the mask covers the doors and that `can_fight()`
 ##   answers no before any phase is read.
-## - **It spends the horse's wind and never the Warden's SP.** A mount drinking
-##   from SP would make the pool the Warden sprints on a shared resource, which
-##   is a coupling nobody asked for.
+## - **It spends the rider's SP, at the mount's own rate, and no further than
+##   `MOUNT_GALLOP_RANGE` on a pool.** This invariant *was* the opposite - "the
+##   horse's wind and never the Warden's SP" - and was amended deliberately on
+##   2026-09-21 when the owner ruled that a mounted sprint costs SP. Amending a
+##   gate's invariant is the one change that makes every later run agree with
+##   the bug it was built to catch, so it is recorded in CLAUDE.md and here.
+##   What replaces it is measured: the drain through the real tick against the
+##   authored rate, an unsprinted mount spending nothing, and a rider who
+##   empties the pool arriving winded and refused a gallop until the floor.
 ##
 ## **The ways this goes wrong:**
 ##
-## - **A gallop that outruns a sprint.** Then a mount is a movement upgrade, and
+## - **A gallop past the ceiling, or a pool that carries it past the range.**
+##   Then a mount is a free crossing of the map, and
 ##   every distance in this game - aggro, reach, the gap between roads - was
 ##   tuned against a Warden who could not cross ground that fast.
 ## - **A rider who can swing.** Then the dismount rule is decoration and a mount
@@ -61,9 +69,10 @@ func _ready() -> void:
 	await _test_the_paddock()
 	MetaState.resume_saves()
 	if _failures == 0:
-		print(("[mount] PASS - %d checks: a gallop is no faster than a sprint, a "
-			+ "rider cannot fight, attacking gets them down and lets the swing "
-			+ "through, SP is untouched, and the stable never creates") % _checks)
+		print(("[mount] PASS - %d checks: a gallop is bounded in speed and reach, "
+			+ "a rider cannot fight, attacking gets them down and lets the swing "
+			+ "through, a gallop spends SP at its own rate, and the stable never "
+			+ "creates") % _checks)
 	else:
 		push_error("[mount] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -79,33 +88,50 @@ func _test_the_bounds_are_authored() -> void:
 	_check(stock.size() >= 2,
 		"a stable with %d mount in it is a slot rather than a stable" % stock.size())
 	for kind: MountData in stock:
-		_check(kind.gallop <= Balance.MOUNT_SPEED_CEILING + 0.001,
-			("%s gallops at %.2f against a ceiling of %.2f - a mount faster than "
-				+ "a sprint is new speed, which is a scale nobody is tuning")
-				% [kind.id, kind.gallop, Balance.MOUNT_SPEED_CEILING])
-		_check(kind.gallop >= kind.speed,
-			"%s gallops slower than it walks" % kind.id)
+		_check(kind.gallop <= Balance.MOUNT_GALLOP_CEILING + 0.001,
+			("%s gallops at %.2f against a ceiling of %.2f - a mount past the "
+				+ "ceiling is a free crossing of the map, which every distance in "
+				+ "this game was tuned against nobody having")
+				% [kind.id, kind.gallop, Balance.MOUNT_GALLOP_CEILING])
+		_check(kind.gallop > Balance.HERO_SPRINT_SPEED,
+			("%s gallops at %.2f and the Warden sprints at %.2f - a horse the "
+				+ "rider's own legs beat is one nobody would buy")
+				% [kind.id, kind.gallop, Balance.HERO_SPRINT_SPEED])
+		_check(kind.gallop > kind.speed,
+			"%s gallops no faster than it walks" % kind.id)
+		# **Reach, tuned against speed.** How far one full pool carries this
+		# animal at a gallop: over the Warden's own sprint or the mount is
+		# pointless, under the range or it is a free crossing.
+		var reach: float = Balance.HERO_MOVE_SPEED * kind.gallop \
+			* Balance.HERO_STAMINA_MAX / maxf(kind.sprint_drain, 0.001)
+		var on_foot: float = Balance.HERO_MOVE_SPEED * Balance.HERO_SPRINT_SPEED \
+			* Balance.HERO_STAMINA_MAX / Balance.HERO_STAMINA_DRAIN
+		_check(reach <= Balance.MOUNT_GALLOP_RANGE,
+			("%s carries a full pool %.0f units against a range of %.0f - its "
+				+ "gallop and its drain are not tuned against each other")
+				% [kind.id, reach, Balance.MOUNT_GALLOP_RANGE])
+		_check(reach > on_foot,
+			("%s carries a full pool %.0f units and the Warden's own legs carry "
+				+ "it %.0f - there is no reason to be on it") % [kind.id, reach, on_foot])
 		_check(kind.speed > 1.0,
 			"%s is no faster than walking, so there is no reason to be on it"
 				% kind.id)
 		_check(kind.price > 0, "%s is free" % kind.id)
-		_check(kind.stamina > 0.0 and kind.stamina_drain > 0.0,
-			("%s has no wind to spend, so its gallop is a speed setting rather "
+		_check(kind.sprint_drain > 0.0,
+			("%s spends no SP to gallop, so its gallop is a speed setting rather "
 				+ "than a resource") % kind.id)
-		_check(kind.stamina_regen > 0.0,
-			"%s never gets its wind back, so it gallops once a run" % kind.id)
 		_check(not kind.display_name.is_empty(),
 			"%s has no name to sell it under" % kind.id)
 		_check(ResourceLoader.exists(kind.get_sprite_path()),
 			"%s has no painting at %s" % [kind.id, kind.get_sprite_path()])
 
-	# **The ceiling is the sprint, and that is the design rather than a
-	# coincidence.** If somebody ever raises one without the other, a mount
-	# quietly becomes faster or slower than the thing it is defined against.
-	_check(is_equal_approx(Balance.MOUNT_SPEED_CEILING, Balance.HERO_SPRINT_SPEED),
-		("the mount ceiling is %.2f and a sprint is %.2f - they are the same "
-			+ "number on purpose") % [Balance.MOUNT_SPEED_CEILING,
-			Balance.HERO_SPRINT_SPEED])
+	# **The ceiling is above the sprint and stated**, which is the whole of the
+	# 2026-09-21 re-cut: a mount is faster than the Warden on foot, by a number
+	# written in `Balance` rather than implied by whichever mount is fastest.
+	_check(Balance.MOUNT_GALLOP_CEILING > Balance.HERO_SPRINT_SPEED,
+		("the mount ceiling is %.2f and a sprint is %.2f - a ceiling under the "
+			+ "sprint makes every mount a slower way to run")
+			% [Balance.MOUNT_GALLOP_CEILING, Balance.HERO_SPRINT_SPEED])
 
 	# **The mute must not contain the way out.**
 	_check(Hero.MOUNTED_MUTE & HeroInput.BUTTON_MOUNT == 0,
@@ -265,9 +291,13 @@ func _test_the_field() -> void:
 	var galloping: float = who.move_speed()
 	who.set("_galloping", false)
 
-	_check(galloping <= sprinting + 0.01,
-		("a gallop moves at %.1f against a sprint's %.1f - a mount is the speed "
-			+ "the Warden already had, not a new one") % [galloping, sprinting])
+	_check(galloping > sprinting,
+		("a gallop moves at %.1f against a sprint's %.1f - a mount is faster than "
+			+ "the Warden on foot, or it is not worth Marks") % [galloping, sprinting])
+	_check(galloping <= walking * Balance.MOUNT_GALLOP_CEILING + 0.01,
+		("a gallop moves at %.1f against a walk of %.1f and a ceiling of x%.2f - "
+			+ "the hero is applying something the gate did not author")
+			% [galloping, walking, Balance.MOUNT_GALLOP_CEILING])
 	_check(riding > walking,
 		"riding at %.1f is no faster than walking at %.1f" % [riding, walking])
 	_check(galloping > riding,
@@ -284,10 +314,16 @@ func _test_the_field() -> void:
 	_check(not who.input.held(HeroInput.HOLD_ATTACK),
 		"a mounted Warden's held attack still reads true")
 
-	# --- SP is the Warden's and the wind is the horse's -----------------------
+	# --- A gallop spends SP at the mount's own rate ---------------------------
+	#
+	# **Amended 2026-09-21.** This block used to hold that galloping left the
+	# Warden's SP exactly where it was; the owner ruled the other way. What it
+	# holds now is the *rate*: the drop over a measured stretch of the real
+	# tick against what the mount authored, so a hero draining at the runner's
+	# rate, or twice, or not at all, is named rather than passed.
+	who.stamina = Balance.HERO_STAMINA_MAX
+	who.set("_winded", false)
 	var sp_before: float = who.stamina
-	var wind_before: float = who.mount_wind
-	_check(wind_before > 0.0, "a freshly mounted horse has no wind")
 	# **Asked for through the real input, not set by hand.** `_tick_gallop`
 	# decides whether the horse is running from the sprint key and the hero's
 	# own velocity, so setting `_galloping` and calling it simply had the
@@ -309,23 +345,67 @@ func _test_the_field() -> void:
 		who.call("_tick_mount", 0.1)
 	_check(who.is_galloping(),
 		"the sprint key was down and moving and the horse never galloped")
-	_check(who.mount_wind < wind_before,
-		"three seconds of galloping spent no wind at all (%.1f -> %.1f)"
-			% [wind_before, who.mount_wind])
-	_check(is_equal_approx(who.stamina, sp_before),
-		("galloping took the Warden's SP from %.1f to %.1f - a mount's wind is "
-			+ "its own") % [sp_before, who.stamina])
+	# Thirty ticks of a tenth; the first few are the climb into the saddle
+	# (`MOUNT_UP_SECONDS`), which spends nothing. So the stretch actually run
+	# is three seconds less the climb, and the drop is that stretch at the
+	# mount's own rate - measured to within a tick either side.
+	var steed: MountData = who.mounted_kind()
+	var ran: float = 3.0 - Balance.MOUNT_UP_SECONDS
+	var expected: float = steed.sprint_drain * ran
+	var dropped: float = sp_before - who.stamina
+	_check(dropped > 0.0,
+		"three seconds of galloping spent no SP at all (%.1f -> %.1f)"
+			% [sp_before, who.stamina])
+	_check(absf(dropped - expected) <= steed.sprint_drain * 0.15,
+		("galloping on %s spent %.1f SP over %.2f s against an authored %.1f a "
+			+ "second (expected about %.1f) - the rate the stable sells is not "
+			+ "the rate the hero pays") % [steed.id, dropped, ran, steed.sprint_drain, expected])
 
-	# And it comes back.
-	var spent: float = who.mount_wind
-	who.velocity = Vector2.ZERO
+	# **A walk in the saddle spends nothing.** The key up, still moving: SP
+	# rests and comes back, exactly as it does on foot.
+	var spent: float = who.stamina
 	reins.hold = 0
-	for _rest: int in 80:
+	for _walk: int in 20:
 		who.call("_tick_mount", 0.1)
+	_check(not who.is_galloping(), "the key came up and the horse kept galloping")
+	_check(who.stamina >= spent,
+		"a mount walking with the key up drained SP (%.1f -> %.1f)"
+			% [spent, who.stamina])
+	who.velocity = Vector2.ZERO
+	for _rest: int in 40:
+		who.call("_tick_mount", 0.1)
+	_check(who.stamina > spent,
+		"a rider standing still got none of their SP back (%.1f -> %.1f)"
+			% [spent, who.stamina])
+
+	# **Spend it all and you arrive winded**, and winded refuses the gallop
+	# until the floor - the runner's rule, on the same pool, so a rider cannot
+	# gallop what their legs could not run.
+	who.stamina = 0.5
+	who.velocity = Vector2(200.0, 0.0)
+	reins.hold = HeroInput.HOLD_SPRINT
+	for _last: int in 3:
+		who.call("_tick_mount", 0.1)
+	_check(bool(who.get("_winded")), "the pool ran out in the saddle and the rider is not winded")
+	_check(not who.is_galloping(), "winded, and the horse is still at a gallop")
+	who.stamina = Balance.HERO_SPRINT_FLOOR * 0.5
+	for _refused: int in 5:
+		who.call("_tick_mount", 0.1)
+	_check(not who.is_galloping(),
+		"a winded rider under the floor was allowed to gallop on the key alone")
+	who.stamina = Balance.HERO_SPRINT_FLOOR + 1.0
+	reins.hold = 0
+	who.call("_tick_mount", 0.1)
+	_check(not bool(who.get("_winded")), "SP came back over the floor and the rider stayed winded")
+	reins.hold = HeroInput.HOLD_SPRINT
+	for _again: int in 3:
+		who.call("_tick_mount", 0.1)
+	_check(who.is_galloping(), "over the floor with the key down, the horse would not gallop")
+	who.stamina = Balance.HERO_STAMINA_MAX
+	who.set("_winded", false)
+	reins.hold = 0
+	who.call("_tick_mount", 0.1)
 	who.input = hands
-	_check(who.mount_wind > spent,
-		"a horse standing still got none of its wind back (%.1f -> %.1f)"
-			% [spent, who.mount_wind])
 
 	# --- The dismount, and the swing it lets through --------------------------
 	#

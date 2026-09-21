@@ -225,13 +225,14 @@ func _stall(kind: MountData) -> Container:
 	column.add_child(name_line)
 
 	var what := Label.new()
-	# **Percentages of a walk rather than raw multipliers**, and the gallop
-	# stated against the sprint the player already has, because "1.45" means
-	# nothing and "as fast as a sprint" is the whole design.
-	what.text = "Walk +%d%%  ·  Gallop +%d%%  ·  Wind %d" % [
+	# **Percentages of a walk rather than raw multipliers**, because "1.85"
+	# means nothing and "nearly twice your walk" is a thing a buyer can weigh -
+	# and what a gallop costs the rider's own SP a second, because that is the
+	# other half of the price (owner, 2026-09-21).
+	what.text = "Walk +%d%%  ·  Gallop +%d%%  ·  %d SP a second" % [
 		int(round((kind.speed - 1.0) * 100.0)),
-		int(round((minf(kind.gallop, Balance.MOUNT_SPEED_CEILING) - 1.0) * 100.0)),
-		int(round(kind.stamina))]
+		int(round((minf(kind.gallop, Balance.MOUNT_GALLOP_CEILING) - 1.0) * 100.0)),
+		int(round(kind.sprint_drain))]
 	what.add_theme_font_size_override("font_size", 14)
 	what.add_theme_color_override("font_color", Color("8d968f"))
 	column.add_child(what)

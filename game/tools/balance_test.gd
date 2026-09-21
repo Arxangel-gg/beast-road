@@ -1306,10 +1306,10 @@ func _test_tiers_and_persistence() -> void:
 	# the Warden may not swing, cast, loose, gather, fish or take an egg, and
 	# the first press of attack puts them on their feet - so nothing under this
 	# key can reach a number in a fight. A gallop is held under
-	# `Balance.MOUNT_SPEED_CEILING`, which is what a sprint already reaches, so
-	# it is not new speed either; `mount_check` measures that rather than
-	# reading it back, and holds that buying one moves the Marks and nothing
-	# else.
+	# `Balance.MOUNT_GALLOP_CEILING` in speed and `MOUNT_GALLOP_RANGE` in reach
+	# and spends the rider's SP (owner, 2026-09-21); `mount_check` measures
+	# both rather than reading them back, and holds that buying one moves the
+	# Marks and nothing else.
 	# `hold_pond` is a count and a timestamp: how many fish have come out of the
 	# Hold's pond and when that window opened (owner, 2026-09-17 - "up to 3 fish
 	# every 10 minutes"). It holds no fish, no currency and no unlock, so it

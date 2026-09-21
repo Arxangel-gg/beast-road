@@ -6073,6 +6073,45 @@ without a 410** - the download answered 423 the whole time, so the staging
 loop waited on jobs that would never finish. The queue's own message says to
 submit fewer at once; twenty in flight is the ceiling, not the target.
 
+**Mounts are faster than the Warden on foot, and a gallop spends SP, as of
+2026-09-21.** Owner ruling, recorded in `docs/NEXT_SESSION_PLAN.md` before it
+was built: *"a mount is faster than the Warden on foot, a mounted sprint does
+spend SP, the rate differs per mount, and every mount gets its own tuned walk
+and sprint speeds."* That re-cuts two sentences this file wrote down
+deliberately on 2026-09-17 - `MOUNT_SPEED_CEILING` *is* `HERO_SPRINT_SPEED`,
+and *"the rider's SP is untouched"* - so it is recorded here rather than
+quietly built.
+
+**The bound was written before the code, because the old one is gone.** What a
+mount trades is not damage - the dismount-on-attack rule is untouched, a rider
+still cannot swing, cast, loose, gather, fish or work a seam, and
+`curve_report` still models no movement - but **how fast a Warden can be
+anywhere on the field**, which with four roads is a defensive number. So a
+gallop is bounded twice and both are stated in `Balance`: `MOUNT_GALLOP_CEILING`
+(2.2 of a walk) in speed, and `MOUNT_GALLOP_RANGE` (2,600 units) in how far one
+full pool of SP may carry it. Every mount's `gallop` and `sprint_drain` are
+tuned against each other under the range and above the Warden's own sprint
+(about 1,500 units a pool), so a faster animal is a thirstier one: the marsh
+pony gallops at 1.70 for 14 SP a second, the steppe horse 1.85 for 17, the
+terrace stag 1.95 for 16, and the ash courser 2.10 for 24 - quick, and it wants
+the stretch to be short.
+
+**One pool, one winded rule.** The mount's own wind (`mount_wind`, its floor
+and its rest) is gone: `Hero._tick_stamina` is the sprint on foot and the
+gallop in the saddle, differing only in the rate and the dust, so a rider who
+spends it all arrives winded exactly as a runner does and is refused a gallop
+until `HERO_SPRINT_FLOOR`. A walk in the saddle still spends nothing; what it
+costs is being unable to fight.
+
+**`mount_check`'s invariant was amended deliberately.** It held *"galloping
+took the Warden's SP ... a mount's wind is its own"*, and amending a gate's
+invariant is the one change that makes every later run agree with the bug it
+was built to catch - so what replaces it is measured rather than asserted: the
+drop over a stretch of the real tick against the mount's authored rate (a hero
+draining at the runner's rate was planted and named), an unsprinted mount
+spending nothing, the pool coming back at rest, and the winded refusal. The
+stable's card says the rate: *"Gallop +85% · 17 SP a second"*.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

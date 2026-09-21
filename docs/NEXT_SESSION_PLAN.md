@@ -43,8 +43,7 @@ picture inside an emptying ring, visible for that clock only, and the co-op
 mirror throws on the same drop. `mount_check` is 119 checks; both planted
 faults named.
 
-**Still owed from the owner's mount ruling below:** faster mounts, a mounted
-sprint that costs SP, per-mount rates. Untouched by the patch.
+**The owner's mount ruling below shipped later the same day.**
 
 ## P1 - the HUD tells you the town is dying
 
@@ -98,6 +97,12 @@ The fog's bound applies to both: they may read and may never feed the AI.
 ## Owner rulings that re-cut a recorded bound
 
 ### Mounts are faster, and a mounted sprint costs SP
+
+**Shipped 2026-09-21.** `MOUNT_GALLOP_CEILING` 2.2 and `MOUNT_GALLOP_RANGE` 2,600 are
+the stated bounds, each mount has its own walk, gallop and SP drain tuned under them,
+the mount's own wind pool is gone, and `mount_check` measures the drain through the
+real tick (134 checks; the runner's-rate fault was planted and named). The reasoning
+below is what it was built against.
 
 This re-cuts **two** sentences this project wrote down deliberately:
 
