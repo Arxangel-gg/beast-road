@@ -116,8 +116,19 @@ func _fit() -> void:
 	var forced: Variant = MetaState.settings.get(TOUCH_LAYOUT_KEY, null)
 	var touch_layout: bool = DisplayServer.is_touchscreen_available() if forced == null \
 		else bool(forced)
+	# **The player's own size on top of the fit** (2026-09-21). The fit is
+	# what a small screen needs; the scale is what a person wants, and the two
+	# multiply so neither has to know about the other. `factor_for` stays pure
+	# and the layout gates, which run at the default of one, measure the game
+	# exactly as they did.
 	window.content_scale_factor = factor_for(Vector2(window.size), base_size(),
-		touch_layout, _menu_layout)
+		touch_layout, _menu_layout) * UserSettings.ui_scale()
+
+
+## Re-fits the window now. For the interface-size slider, which is the one
+## setting that changes what the fit should be while the window has not moved.
+func refit() -> void:
+	_fit()
 
 
 ## The size the project is authored against.

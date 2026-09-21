@@ -207,9 +207,60 @@ const DEFAULT_PRESET: String = PRESET_HIGH
 const DEFAULT_PRESET_WEB: String = PRESET_MEDIUM
 
 
+## **The first launch picks a preset for the machine it is on** (2026-09-21,
+## roadmap §7.2: "performance auto-detect on first launch, choosing a preset
+## rather than starting everyone at High"). High is still the answer for a
+## discrete card, for the reason above `DEFAULT_PRESET`; what changed is that an
+## integrated chip is not handed the most expensive version of the game and
+## left to find the settings screen, and a software renderer is handed the
+## cheapest. A player who has ever chosen a preset is never second-guessed:
+## this is only read when the save holds no choice.
+##
+## Adapter names rather than benchmarks, because a benchmark on the first
+## frame is a stutter on the first frame, and the names are stable enough to
+## be a table. Kept short on purpose - a list that tried to know every card
+## would be wrong about the next one - and asked once, since `preset()` is
+## read on every switch and a driver string is not free to fetch.
+const INTEGRATED_GPU_MARKS: Array[String] = ["intel", "uhd graphics",
+	"hd graphics", "iris", "radeon(tm) graphics", "radeon graphics", "vega "]
+const SOFTWARE_GPU_MARKS: Array[String] = ["llvmpipe", "swiftshader",
+	"microsoft basic", "softpipe", "warp"]
+static var _machine_preset: String = ""
+
+
+## Pure, so a gate can ask it about machines nobody is sitting at.
+static func preset_for_machine(adapter: String, web: bool, mobile: bool) -> String:
+	if web:
+		return DEFAULT_PRESET_WEB
+	if mobile:
+		return PRESET_LOW
+	var name: String = adapter.to_lower()
+	if name.is_empty():
+		return DEFAULT_PRESET
+	for mark: String in SOFTWARE_GPU_MARKS:
+		if name.contains(mark):
+			return PRESET_LOW
+	for mark: String in INTEGRATED_GPU_MARKS:
+		if name.contains(mark):
+			return PRESET_MEDIUM
+	return DEFAULT_PRESET
+
+
 ## The preset a save with no graphics block starts on.
 static func default_preset() -> String:
-	return DEFAULT_PRESET_WEB if OS.has_feature("web") else DEFAULT_PRESET
+	if _machine_preset.is_empty():
+		_machine_preset = preset_for_machine(RenderingServer.get_video_adapter_name(),
+			OS.has_feature("web"), OS.has_feature("mobile"))
+	return _machine_preset
+
+
+## What the settings screen says under the presets, so an automatic choice is
+## visible rather than silent. Empty where there is no adapter to name.
+static func machine_note() -> String:
+	var adapter: String = RenderingServer.get_video_adapter_name().strip_edges()
+	if adapter.is_empty():
+		return ""
+	return "Chosen for this machine: %s" % adapter
 
 
 ## The live settings, held here rather than read from the save.

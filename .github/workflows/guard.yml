@@ -509,6 +509,7 @@ jobs:
           check "loot falls as pieces" --headless --path game res://tools/loot_juice_check.tscn
           check "every act fields its roster" --headless --path game res://tools/roster_check.tscn
           check "the clock has one owner" --headless --path game res://tools/game_speed_check.tscn
+          check "a quit says what it costs and a preset fits the machine" --headless --path game res://tools/qol_check.tscn
           check "the wall is said out loud" --headless --path game res://tools/town_alert_check.tscn
           check "a bolt outlives nothing" --headless --path game res://tools/lightning_lifetime_check.tscn
           # The welcome: a guest whose field has just stood up is told the run

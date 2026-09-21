@@ -10,6 +10,11 @@ extends CanvasLayer
 
 var _settings: SettingsPanel
 var _settings_button: Button
+## What a quit costs, said above the button that would do it. See
+## `_on_menu_pressed`.
+var _warning: Label
+var _confirming: bool = false
+var _menu_text: String = ""
 
 
 func _ready() -> void:
@@ -28,8 +33,10 @@ func _ready() -> void:
 	# button that does not quit, directly above the one that does.
 	IconKit.on_button(resume_button, "pressure_arrow", 24)
 	IconKit.on_button(menu_button, "close", 24)
+	_menu_text = menu_button.text
 
 	_build_settings()
+	_build_warning()
 	# **Grown from the centre, and bounded by the screen.** Reported as the pause
 	# menu sitting low and running off the bottom of a phone. `anchors_preset = 8`
 	# in a `.tscn` writes the anchors and nothing else - the grow directions stay
@@ -40,13 +47,90 @@ func _ready() -> void:
 	UiMetrics.centre_panel(panel)
 	get_viewport().size_changed.connect(func() -> void: UiMetrics.centre_panel(panel))
 	resume_button.pressed.connect(toggle)
-	menu_button.pressed.connect(func() -> void:
-		# Leaving unpauses the other player as well: quitting is not a reason to
-		# leave somebody frozen on a battlefield they can no longer act on. The
-		# session ending is what they are told about next.
-		GameDirector.set_paused(false)
-		Coop.leave()
-		GameDirector.goto_menu())
+	menu_button.pressed.connect(_on_menu_pressed)
+
+
+## **Leaving is said before it is done** (2026-09-21, roadmap §7.2: "a player
+## who quits mid-act should be *told* what they will lose"). A road banks only
+## when the party turns for home at a crossroad, so a quit from here abandons
+## everything since that bank - and the button said "Abandon the road" without
+## saying what the road was worth. The first press explains and becomes the
+## confirmation; the second press leaves. Reopening the pause menu resets it,
+## so a confirmation never waits silently for a later press.
+func _on_menu_pressed() -> void:
+	var cost: String = leaving_costs()
+	if _confirming or cost.is_empty():
+		_leave()
+		return
+	_confirming = true
+	if _warning != null:
+		_warning.text = cost
+		_warning.visible = true
+	menu_button.text = "Leave anyway"
+	UiMetrics.centre_panel(panel)
+
+
+func _leave() -> void:
+	# Leaving unpauses the other player as well: quitting is not a reason to
+	# leave somebody frozen on a battlefield they can no longer act on. The
+	# session ending is what they are told about next.
+	GameDirector.set_paused(false)
+	Coop.leave()
+	GameDirector.goto_menu()
+
+
+func _reset_confirm() -> void:
+	_confirming = false
+	if _warning != null:
+		_warning.visible = false
+	if not _menu_text.is_empty():
+		menu_button.text = _menu_text
+
+
+## What a quit from here costs, as a sentence, or empty when it costs nothing.
+##
+## Static and pure over the run state, so `quit_warning_check` can ask it about
+## roads nobody is standing on. A guest's road is the host's - nothing of
+## theirs is banked or lost - and the Walk and an ended run cost nothing.
+static func leaving_costs() -> String:
+	if not GameDirector.run_active or RunState.walking \
+			or RunState.phase == RunState.Phase.ENDED:
+		return ""
+	if Coop.is_guest():
+		return ("The road is the host's to keep. Leaving costs you nothing "
+			+ "banked, and the party plays on without you.")
+	var here: String = "Act %d, wave %d" % [RunState.act, RunState.wave_number]
+	var banked: Dictionary = MetaState.expedition
+	if Expedition.is_readable(banked):
+		var at: String = "Act %d, wave %d" % [int(banked.get("act", 1)),
+			int(banked.get("wave", 1))]
+		var same_road: bool = int(banked.get("seed", -1)) == RunState.run_seed
+		var lost: int = RunState.wave_number - int(banked.get("wave", 1))
+		if same_road and lost > 0:
+			return ("Leaving now loses %d wave%s of road since you last turned "
+				% [lost, "" if lost == 1 else "s"]
+				+ "for home at %s. Resume will start there, not at %s." % [at, here])
+		return ("Your road is banked at %s. Leaving loses whatever has happened "
+			% at + "since that crossroad.")
+	return ("Nothing of this road is banked. Leaving now loses all of it - %s, "
+		% here + "and everything built. Turn for home at a crossroad to bank a "
+		+ "road before you stop.")
+
+
+## The line above the leave button, hidden until a press asks for it. A Label
+## rather than a dialog, so the answer stands where the question was asked.
+func _build_warning() -> void:
+	_warning = Label.new()
+	_warning.name = "LeaveWarning"
+	_warning.visible = false
+	_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_warning.custom_minimum_size = Vector2(340.0, 0.0)
+	_warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warning.add_theme_font_size_override("font_size", 14)
+	_warning.add_theme_color_override("font_color", Color("e8a33d"))
+	var box: Node = menu_button.get_parent()
+	box.add_child(_warning)
+	box.move_child(_warning, menu_button.get_index())
 
 
 ## Settings reachable from the pause screen, not only from the title.
@@ -119,6 +203,7 @@ func toggle() -> void:
 ## both need something to resume from. Owner's decision, 2026-08-25.
 func set_showing(showing: bool) -> void:
 	panel.visible = showing
+	_reset_confirm()
 	# Re-measured on every open. The settings button is added at runtime and the
 	# touch pass can grow all three, so the panel this centres is not the one the
 	# scene file described.

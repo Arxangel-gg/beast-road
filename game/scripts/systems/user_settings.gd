@@ -39,6 +39,13 @@ const BLOOD_VFX_KEY: String = "blood_vfx"
 const FLASH_KEY: String = "screen_flash"
 const NUMBER_DENSITY_KEY: String = "damage_number_density"
 
+## How big the interface is drawn, as a multiplier on `ScreenFit`'s own fit
+## (2026-09-21). Bounded, because a scale of three on a desktop is a screen
+## with one button on it and a scale of a half is a screen nobody can read.
+const UI_SCALE_KEY: String = "ui_scale"
+const UI_SCALE_MIN: float = 0.8
+const UI_SCALE_MAX: float = 1.5
+
 ## One key holding the whole graphics dictionary, rather than seven loose ones.
 const GRAPHICS_KEY: String = "graphics"
 const GAIT_KEY: String = "beast_gait"
@@ -58,6 +65,11 @@ static func number(key: String, fallback: float) -> float:
 	return float(MetaState.settings.get(key, fallback))
 
 
+## The interface size, clamped - a save may hold anything.
+static func ui_scale() -> float:
+	return clampf(number(UI_SCALE_KEY, 1.0), UI_SCALE_MIN, UI_SCALE_MAX)
+
+
 ## Writes a setting and makes it take effect immediately. Saving is left to the
 ## caller: a slider being dragged fires this on every frame of the drag, and
 ## rewriting the save file sixty times a second is how you corrupt one.
@@ -69,6 +81,8 @@ static func set_value(key: String, new_value: Variant) -> void:
 		# Reached only from the settings buttons, so there is a live user gesture
 		# to spend - which is what the web needs in order to go fullscreen at all.
 		apply_display(true)
+	elif key == UI_SCALE_KEY:
+		ScreenFit.refit()
 
 
 ## Everything the settings control, applied at once. Called after the save file

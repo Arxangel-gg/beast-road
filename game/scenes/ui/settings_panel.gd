@@ -327,6 +327,20 @@ func _volume_row(spec: Dictionary) -> HBoxContainer:
 	return row
 
 
+## **How big the interface is drawn** (2026-09-21, roadmap §7.2: "pixel type
+## at 1080p and at 4K are different experiences"). A multiplier on the fit
+## `ScreenFit` already computes for a small screen, so a phone's enlargement
+## and a player's own taste compose rather than fight; the window is re-fitted
+## the moment the slider moves, which is what makes it a setting rather than a
+## promise about the next launch.
+func _ui_scale_row() -> HBoxContainer:
+	return _slider_row("Interface size", UserSettings.UI_SCALE_MIN,
+		UserSettings.UI_SCALE_MAX, 0.05,
+		UserSettings.number(UserSettings.UI_SCALE_KEY, 1.0),
+		func(v: float) -> String: return "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: UserSettings.set_value(UserSettings.UI_SCALE_KEY, v))
+
+
 func _shake_row() -> HBoxContainer:
 	return _slider_row("Screen shake", 0.0, 1.5, 0.05,
 		UserSettings.number(UserSettings.SHAKE_KEY, 1.0),
@@ -514,6 +528,10 @@ func _tutorial_row() -> HBoxContainer:
 func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_label("Quality", 20))
 	column.add_child(_preset_row())
+	# The automatic first choice, said rather than silent (2026-09-21).
+	var note: String = Graphics.machine_note()
+	if not note.is_empty():
+		column.add_child(_label(note, 13))
 
 	_quality_switches = []
 	column.add_child(_toggle_row("Torch shadows", Graphics.KEY_CAST_SHADOWS,
@@ -559,6 +577,7 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
 	column.add_child(_touch_row())
+	column.add_child(_ui_scale_row())
 	column.add_child(_separator())
 	column.add_child(_colourblind_row())
 	column.add_child(_colourblind_preview())
