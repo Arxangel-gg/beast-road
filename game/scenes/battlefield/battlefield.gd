@@ -1504,20 +1504,62 @@ func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 	# many on screen as the run actually paid out.
 	if Coop.is_guest():
 		return
-	var drop := LootDrop.new()
-	drop.setup(currency, amount, at)
-	if Coop.is_host() and Coop.partner_present():
-		_loot_net_id += 1
-		drop.net_id = _loot_net_id
-		EventBus.coop_loot_spawned.emit(drop.net_id, currency, amount, at)
-	(_feedback_root if _feedback_root != null else self).add_child(drop)
+	# **Pieces, not a stack** (owner, 2026-09-21). `LootDrop.split` is the one
+	# place that divides and the pieces sum to the amount exactly; the first
+	# piece leads the batch and carries its light. Each piece is its own wire
+	# fact so a guest mirrors the same handful, thrown the same way by the same
+	# net id.
+	_make_room_for_loot()
+	var values: PackedInt32Array = LootDrop.split(currency, amount)
+	for index: int in values.size():
+		var drop := LootDrop.new()
+		drop.setup(currency, values[index], at)
+		drop.lead = index == 0
+		drop.siblings = values.size()
+		if Coop.is_host() and Coop.partner_present():
+			_loot_net_id += 1
+			drop.net_id = _loot_net_id
+			EventBus.coop_loot_spawned.emit(drop.net_id, currency, values[index], at,
+				drop.lead)
+		(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
+## Keeps the field under `LOOT_FIELD_MAX` drops by paying the oldest plain
+## piece out where it lies, which is what expiry would have done to it a little
+## later. Bounds the node count under a busy wave without a reward ever being
+## lost - a cap that deleted a coin would be the exploit gate's complaint in
+## reverse.
+func _make_room_for_loot() -> void:
+	var drops: Array[Node] = get_tree().get_nodes_in_group(LootDrop.GROUP)
+	var over: int = drops.size() + 1 - Balance.LOOT_FIELD_MAX
+	while over > 0:
+		var oldest: LootDrop = null
+		var oldest_life: float = -1.0
+		for node: Node in drops:
+			var drop := node as LootDrop
+			if drop == null or not is_instance_valid(drop) or drop.puppet \
+					or drop.player_dropped or drop.is_taken():
+				continue
+			if not drop.gear.is_empty() or not drop.blueprint.is_empty():
+				continue
+			if not RunState.CURRENCIES.has(drop.currency):
+				continue
+			if drop.age() > oldest_life:
+				oldest_life = drop.age()
+				oldest = drop
+		if oldest == null:
+			return
+		oldest.call("_collect", hero)
+		over -= 1
 
 
 ## Puts a mirrored coin on a guest's field. Draws only; the host banks it.
-func mirror_loot(net_id: int, currency: String, amount: int, at: Vector2) -> void:
+func mirror_loot(net_id: int, currency: String, amount: int, at: Vector2,
+		lead: bool = true) -> void:
 	var drop := LootDrop.new()
 	drop.setup(currency, amount, at)
 	drop.net_id = net_id
+	drop.lead = lead
 	drop.puppet = true
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RecoveryDropData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/recovery_drop_data.gd" id="1_orb"]
+
+[resource]
+script = ExtResource("1_orb")
+pickup_line = "QUIVER  ·  +%d arrows"
+broken_line = "QUIVER  ·  your quiver is full"
+active_status = ""
+id = "quiver"
+display_name = "Quiver"
+description = "A bundle of what the dead were throwing. Fills the bow you carry, as far as the quiver holds."

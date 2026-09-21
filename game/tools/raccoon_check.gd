@@ -189,7 +189,11 @@ func _test_it_takes_the_richest_and_hides() -> void:
 	_clear_loot()
 	var at: Vector2 = Vector2(1000.0, 1000.0)
 	var animal: Dictionary = _raccoon_at(at)
-	_field.spawn_loot(RunState.GOLD, 20, at + Vector2(90.0, 0.0))
+	# One piece's worth of Gold, on purpose: a larger amount falls as several
+	# pieces (2026-09-21), and this test is about the choice between a coin and
+	# a piece of gear, not about how many coins there are.
+	_field.spawn_loot(RunState.GOLD, int(Balance.LOOT_PIECE_VALUE[RunState.GOLD]),
+		at + Vector2(90.0, 0.0))
 	var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), 0, RunState.rng("gear"))
 	_field.spawn_gear(piece, at + Vector2(-260.0, 0.0))
 	await get_tree().process_frame
@@ -300,14 +304,16 @@ func _test_it_drops_everything_it_took() -> void:
 	_animals.call("_wound", index, animal, 100000.0, true)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	# The Gold comes back as pieces (2026-09-21), so what is held is that the
+	# pieces sum to what was taken - not that one node carries it all.
 	var gold_back: int = 0
 	var gear_back: int = 0
 	for drop: LootDrop in _drops():
-		if drop.currency == RunState.GOLD and drop.amount == 33:
-			gold_back += 1
+		if drop.currency == RunState.GOLD:
+			gold_back += drop.amount
 		if not drop.gear.is_empty():
 			gear_back += 1
-	_check(gold_back == 1, "the stolen Gold did not come back (%d)" % gold_back)
+	_check(gold_back == 33, "the stolen Gold did not come back whole (%d of 33)" % gold_back)
 	_check(gear_back == 1, "the stolen piece did not come back (%d)" % gear_back)
 	_clear_loot()
 	_clear_animals()

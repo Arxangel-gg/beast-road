@@ -5819,6 +5819,67 @@ ruled out for the enemies by arithmetic rather than by measurement - 27 units a
 second at 0.72 decaying at 900 is a fifth of a unit of travel - which is a
 computation, and is recorded as one.
 
+**Loot falls as pieces, and a pickup is one thing you walk to, as of
+2026-09-21.** The owner: pickups *"should fall and bounce on the ground and
+scatter in high quantities instead of as stacks so that the player can enjoy
+picking up each individual item ... more pickups should drop more often but
+maybe in less total quantity to balance it out"*.
+
+**A drop is split, tossed and landed before it can be taken.** `LootDrop.split`
+deals an amount into pieces by `LOOT_PIECE_VALUE`, at most `LOOT_PIECES_MAX`,
+and **the pieces sum to the amount exactly** - a piece is never created and
+never lost, which `exploit_check` holds by collecting every piece of a drop and
+reading the purse. Each piece is thrown (`LOOT_TOSS_LIFT_*`, `LOOT_GRAVITY`),
+bounces and settles, and **may not be collected or magnetised until it has
+landed once** - the first cut let a hero standing under a kill take the piece
+on the frame it was thrown, and the toss was never seen. The node never leaves
+the ground plane; only the picture does, so nothing about range or reach moves.
+
+**Attention belongs to the lead of a batch worth announcing.** Nine coins are
+one thing to walk to: the spire and the motes go on the lead piece of a batch
+worth `LOOT_BEACON_MIN_VALUE` or more, and never on each coin of a handful -
+or a wave's worth of pieces is a forest of spires. Gear, blueprints and every
+recovery keep their own.
+
+**Three more things to pick up.** A **coin pouch** off elites and bosses,
+which lands as one thing and spills on pickup into the four currencies,
+gold-heavy, in at most `COIN_POUCH_PIECES_MAX` handfuls; a **quiver**, which
+pays ammunition for whatever bow the Warden carries and is not dropped for a
+Warden without one; and a **mana orb**, a fraction of the pool. Every
+recovery still expires rather than pays - working rule 7 is untouched, and
+the pouch's pieces pay through the same door every piece pays through, so a
+pouch is paid once and never created from nothing.
+
+**The rate moved the way the owner asked**: drops on more kills
+(`LOOT_DROP_CHANCE`) for a smaller share of the kill (`LOOT_BONUS_SHARE`),
+elites and crates scaled to match. `LOOT_FIELD_MAX` bounds the nodes on the
+field by paying the oldest plain piece out rather than deleting it. In co-op
+each piece is its own fact with its own `net_id` and a lead flag; the relay
+still accepts the old four-argument shape.
+
+**Three harnesses assumed a drop is one node and were amended, deliberately.**
+`raccoon_check` counted drops and matched one Gold amount (it sums the pieces
+now), `regression_check` asked a one-Gold piece for a spire (it asks the lead
+of a batch worth announcing, and holds the inverse), and `exploit_check`
+collected at a one-unit radius. Recorded because amending a gate's invariant
+is the one change that makes every later run agree with the bug.
+
+**And two of the new gate's own checks were coin tosses.** The toss is drawn
+from the piece's own dice, and the gate held its peak against a literal 40
+when the weakest toss peaked at 25 - it passed about four rolls in five. The
+weakest toss now clears `LOOT_CATCH_HEIGHT` by construction (`LOOT_TOSS_LIFT_MIN`
+310) and the gate holds the *derived* minimum; the slide was held against a
+literal 160 when the constants can throw about 200, and is held against
+their own arithmetic now. `recovery_drop_check` waited ninety *frames* for a
+crate that has to land first, and headless runs far above sixty a second - it
+waits seconds. `loot_juice_check` reads 50 checks, four runs in a row.
+
+**One thing is not settled.** `coop_ui_check` - the two-process gate run by
+hand, on neither bar - reported nine failures on this machine during a
+parallel batch, most of them the guest failing to open the co-op screen at
+all, which is not loot. It has not been re-run alone and should be, before
+the next co-op change is trusted.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

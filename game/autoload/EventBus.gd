@@ -700,7 +700,7 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 signal coop_hero_state(rows: Array)
 
 ## The host dropped loot and gave it an identity.
-signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2)
+signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2, lead: bool)
 
 ## That loot was picked up — on the host's say-so.
 signal coop_loot_taken(net_id: int)

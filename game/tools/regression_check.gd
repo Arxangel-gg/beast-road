@@ -142,14 +142,30 @@ func _test_loot_reads_at_range() -> void:
 	_check(Balance.LOOT_ORBIT_COUNT >= 2 and Balance.LOOT_BEACON_HEIGHT
 			> Balance.LOOT_ICON_SIZE,
 		"pickups must carry animated orbiters and a beacon taller than the icon")
+	# Amended 2026-09-21, deliberately: a drop falls as pieces now, and the
+	# spire and the motes belong to the *lead* of a batch worth announcing -
+	# nine coins are one thing to walk to, not nine spires. The invariant this
+	# test held is unchanged for that piece: it must still read at range.
 	var drop := LootDrop.new()
-	drop.setup(RunState.GOLD, 1, Vector2(1200.0, 1200.0))
+	drop.lead = true
+	drop.siblings = 1
+	drop.setup(RunState.GOLD, Balance.LOOT_BEACON_MIN_VALUE, Vector2(1200.0, 1200.0))
 	_run.battlefield.entity_root.add_child(drop)
 	_check(drop._orbiters.size() == Balance.LOOT_ORBIT_COUNT,
-		"a live pickup must build every configured attention mote")
+		"a live pickup worth announcing must build every configured attention mote")
 	_check(drop._beacon != null,
-		"a live pickup must build its vertical attention beacon")
+		"a live pickup worth announcing must build its vertical attention beacon")
 	drop.queue_free()
+	# And the inverse: a single small coin in a handful carries no spire, or a
+	# wave's worth of pieces is a forest of them.
+	var coin := LootDrop.new()
+	coin.lead = false
+	coin.siblings = 9
+	coin.setup(RunState.GOLD, 1, Vector2(1200.0, 1260.0))
+	_run.battlefield.entity_root.add_child(coin)
+	_check(coin._orbiters.is_empty() and coin._beacon == null,
+		"a plain piece of a handful must not carry the batch's beacon")
+	coin.queue_free()
 
 
 ## The attack step is allowed to close distance, never to cross a target. A

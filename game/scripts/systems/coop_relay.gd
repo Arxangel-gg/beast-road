@@ -604,8 +604,8 @@ func _on_coop_barricade_state(tile: Vector2i, barricade_id: String,
 
 
 func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
-		at: Vector2) -> void:
-	_relay(Fact.LOOT_SPAWNED, [net_id, currency, amount, at])
+		at: Vector2, lead: bool = true) -> void:
+	_relay(Fact.LOOT_SPAWNED, [net_id, currency, amount, at, lead])
 
 
 func _on_coop_loot_taken(net_id: int) -> void:
@@ -1218,9 +1218,12 @@ func _replay(kind: int, args: Array) -> void:
 				bus.boss_phase_changed.emit(String(args[0]), int(args[1]),
 					String(args[2]))
 		Fact.LOOT_SPAWNED:
-			if args.size() == 4:
+			# Five since the pieces (2026-09-21): the fifth says whether this
+			# piece leads its batch. Four is still read, as a lead.
+			if args.size() == 4 or args.size() == 5:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),
-					int(args[2]), args[3] as Vector2)
+					int(args[2]), args[3] as Vector2,
+					bool(args[4]) if args.size() == 5 else true)
 		Fact.LOOT_TAKEN:
 			if args.size() == 1:
 				bus.coop_loot_taken.emit(int(args[0]))

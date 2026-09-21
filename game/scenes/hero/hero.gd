@@ -2114,6 +2114,39 @@ func drink_healing_orb(points: float) -> void:
 ## Separate from the orb because the two are different objects with different
 ## costs - an orb is found, a well is built - and a player should be able to
 ## tell which one just healed them from the colour and the line alone.
+## A mana orb: a share of the pool, never past the pool. The floating number
+## is what was actually gained, which at a full pool is nothing - and nothing
+## is said, because a number saying zero reads as a fault.
+func drink_mana_orb(fraction: float) -> void:
+	if not is_alive() or fraction <= 0.0:
+		return
+	var before: float = mana
+	mana = minf(mana + mana_max() * fraction, mana_max())
+	var gained: int = int(round(mana - before))
+	if gained <= 0:
+		return
+	EventBus.hero_mana_changed.emit(mana, mana_max())
+	Vfx.number(combat_origin(), float(gained), Balance.MANA_ORB_COLOUR, false)
+	var drop := ContentDB.recovery_drops.get(Balance.MANA_ORB_ID, null) as RecoveryDropData
+	if drop != null and not drop.pickup_line.is_empty():
+		EventBus.preparation_warning.emit(drop.pickup_line % gained)
+
+
+## A quiver: ammunition for whatever the bow is loaded with, as much as fits.
+func take_quiver(shots: int) -> void:
+	if shots <= 0 or RunState.ammo_id.is_empty():
+		return
+	var taken: int = RunState.gain_ammo(RunState.ammo_id, shots)
+	var drop := ContentDB.recovery_drops.get(Balance.QUIVER_ID, null) as RecoveryDropData
+	if taken <= 0:
+		if drop != null and not drop.broken_line.is_empty():
+			EventBus.preparation_warning.emit(drop.broken_line)
+		return
+	Vfx.number(combat_origin(), float(taken), Balance.QUIVER_COLOUR, false)
+	if drop != null and not drop.pickup_line.is_empty():
+		EventBus.preparation_warning.emit(drop.pickup_line % taken)
+
+
 func drink_from_well(points: float) -> void:
 	if health == null or health.is_dead or points <= 0.0:
 		return

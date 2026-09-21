@@ -2622,6 +2622,8 @@ func _on_died(_from: Vector2) -> void:
 	_drop_blueprint()
 	_drop_healing_orb()
 	_drop_supply_crate()
+	_drop_quiver()
+	_drop_mana_orb()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 		if _field != null and _field.has_method("try_spawn_mender_spark"):
@@ -2695,6 +2697,13 @@ func _drop_loot() -> void:
 	if tier != null:
 		share *= tier.loot_scale
 	var amount: int = maxi(1, int(round(share)))
+	# **An elite leaves a pouch, not a coin** (owner, 2026-09-21). It lands as
+	# one thing and spills into pieces when it is taken, which is the second
+	# scatter the player gets to watch. A plain body's bonus falls as pieces
+	# straight away - `spawn_loot` does the cutting.
+	if elite:
+		_field.spawn_loot(Balance.COIN_POUCH_ID, amount, global_position)
+		return
 	var currency: String = RunState.CURRENCIES[
 		RunState.rng("combat").randi_range(0, RunState.CURRENCIES.size() - 1)]
 	_field.spawn_loot(currency, amount, global_position)
@@ -2779,6 +2788,43 @@ func crate_value() -> int:
 ## low-frequency hunt: breeds can surprise, elites are meaningful prospects and
 ## bosses always leave a piece. A separate deterministic stream means adding a
 ## cosmetic spark or changing attack variance cannot rewrite the stash reward.
+## A quiver, off a breed that carries something to throw, for a Warden who
+## carries something to loose (owner, 2026-09-21: "more loot variety").
+##
+## Never dropped for a Warden without a bow: a pickup that pays nothing is a
+## pickup that teaches the player to stop picking things up. Rolled on the
+## recovery stream, like the orb, for the reason written above it.
+func _drop_quiver() -> void:
+	if _field == null or not _field.has_method("spawn_loot") or puppet:
+		return
+	if data.role != EnemyData.Role.HOWLER and data.thrown_shot_id.is_empty():
+		return
+	if RunState.ranged_id.is_empty() or RunState.ammo_id.is_empty():
+		return
+	if RunState.rng("recovery").randf() > Balance.QUIVER_DROP_CHANCE:
+		return
+	var shots: int = RunState.rng("recovery").randi_range(Balance.QUIVER_SHOTS_MIN,
+		Balance.QUIVER_SHOTS_MAX)
+	_field.spawn_loot(Balance.QUIVER_ID, shots, global_position)
+
+
+## The healing orb's blue twin: a share of the mana pool, bounded by the pool.
+## Carried as a percentage rather than a number, because the pool is the
+## Warden's and the drop should not have to know how deep it is.
+func _drop_mana_orb() -> void:
+	if _field == null or not _field.has_method("spawn_loot") or puppet:
+		return
+	var chance: float = Balance.MANA_ORB_BREED_CHANCE
+	match data.category:
+		EnemyData.Category.ELITE:
+			chance = Balance.MANA_ORB_ELITE_CHANCE
+		EnemyData.Category.BOSS:
+			chance = Balance.MANA_ORB_BOSS_CHANCE
+	if RunState.rng("recovery").randf() > chance:
+		return
+	_field.spawn_loot(Balance.MANA_ORB_ID, Balance.MANA_ORB_PERCENT, global_position)
+
+
 func _drop_gear() -> void:
 	if _field == null or not (_field is Battlefield) \
 			or not _field.has_method("spawn_gear"):

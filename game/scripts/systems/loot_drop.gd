@@ -72,6 +72,25 @@ var _glow_size: float = Balance.LOOT_GLOW_SIZE
 var _material: ShaderMaterial = null
 var _taken: bool = false
 
+## Pieces and the toss (owner, 2026-09-21).
+##
+## A kill's bonus falls as several things rather than one coin carrying a
+## number. `lead` is the first piece of a batch - the only plain piece that
+## carries a lamp, a spire and a plate, so nine coins are not nine lights -
+## and `siblings` is how many fell together. The toss is drawn, never moved:
+## `_height` is how far above the ground the picture is, and the node itself
+## stays in the ground plane so the magnet, the pickup and the thief all
+## measure where the piece will land.
+var lead: bool = true
+var siblings: int = 1
+var _height: float = 0.0
+var _lift: float = 0.0
+var _bounces: int = 0
+var _settled: bool = false
+## How hard this kind is thrown across the ground, as a range of
+## `LOOT_SCATTER_SPEED`; rolled in `_ready`, once the net id is known.
+var _scatter: Vector2 = Vector2(0.4, 1.0)
+
 const LOOT_SHADER: String = "res://scripts/shaders/loot_polish.gdshader"
 
 
@@ -81,9 +100,7 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 	position = from
 	# Thrown clear of the corpse so a pack that dies together does not leave one
 	# stacked pile that reads as a single coin.
-	var angle: float = randf() * TAU
-	_velocity = Vector2.RIGHT.rotated(angle) * randf_range(
-		Balance.LOOT_SCATTER_SPEED * 0.4, Balance.LOOT_SCATTER_SPEED)
+	_scatter = Vector2(0.4, 1.0)
 	if currency == Balance.MENDER_SPARK_ID:
 		_glow_colour = Color(0.44, 0.96, 0.62, 0.72)
 		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
@@ -95,6 +112,14 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
 	elif currency == Balance.SUPPLY_CRATE_ID:
 		_glow_colour = Balance.SUPPLY_CRATE_COLOUR
+		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	elif currency == Balance.COIN_POUCH_ID:
+		_glow_colour = Balance.COIN_POUCH_COLOUR
+		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	elif currency == Balance.QUIVER_ID:
+		_glow_colour = Balance.QUIVER_COLOUR
+	elif currency == Balance.MANA_ORB_ID:
+		_glow_colour = Balance.MANA_ORB_COLOUR
 		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
 
 
@@ -110,8 +135,7 @@ func setup_blueprint(plan_id: String, from: Vector2) -> void:
 		Balance.GEAR_RARITY_COLOURS.size() - 1)]
 	_glow_colour.a = 0.62
 	_glow_size = Balance.GEAR_DROP_GLOW_SIZE
-	_velocity = Vector2.RIGHT.rotated(randf() * TAU) * randf_range(
-		Balance.LOOT_SCATTER_SPEED * 0.55, Balance.LOOT_SCATTER_SPEED * 1.15)
+	_scatter = Vector2(0.55, 1.15)
 
 
 func setup_gear(piece: Dictionary, from: Vector2) -> void:
@@ -124,14 +148,14 @@ func setup_gear(piece: Dictionary, from: Vector2) -> void:
 	var rungs: float = maxf(float(Balance.GEAR_RARITY_COLOURS.size() - 1), 1.0)
 	_rank = float(rarity) / rungs
 	_glow_size = Balance.GEAR_DROP_GLOW_SIZE
-	var angle: float = randf() * TAU
-	_velocity = Vector2.RIGHT.rotated(angle) * randf_range(
-		Balance.LOOT_SCATTER_SPEED * 0.55, Balance.LOOT_SCATTER_SPEED * 1.15)
+	_scatter = Vector2(0.55, 1.15)
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	_light_the_drop()
+	_roll_toss()
+	if _wants_lamp():
+		_light_the_drop()
 	_sprite = Sprite2D.new()
 	# World art where it exists, the currency's UI icon otherwise.
 	#
@@ -179,12 +203,13 @@ func _ready() -> void:
 	glow.z_index = -1
 	add_child(glow)
 	_glow = glow
-	_build_attention_fx()
-	_build_name_plate()
+	if _wants_attention():
+		_build_attention_fx()
+	if lead:
+		_build_name_plate()
 
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
-	Sfx.play_group("sfx_loot_drop")
 
 	# **It arrives, rather than being there.** The scatter already threw drops
 	# clear of the corpse, but each one appeared at full size with no moment of
@@ -232,13 +257,21 @@ func _light_the_drop() -> void:
 ## Whether this is a drop a hurt player needs to see from across the road.
 func _healing() -> bool:
 	return currency == Balance.HEALING_ORB_ID \
-		or currency == Balance.MENDER_SPARK_ID
+		or currency == Balance.MENDER_SPARK_ID \
+		or currency == Balance.MANA_ORB_ID
+
+
+## The kinds that are earned by going and getting them, and so expire rather
+## than paying out: the two heals, the mana orb and the quiver.
+func _recovery() -> bool:
+	return _healing() or currency == Balance.QUIVER_ID
 
 
 func _process(delta: float) -> void:
 	if _taken:
 		return
 	_life += delta
+	_tick_toss(delta)
 	# **The pulse, on the healing drops only.** A breath rather than a blink:
 	# something flashing on a battlefield reads as a hazard, and this is the
 	# opposite of one.
@@ -257,7 +290,11 @@ func _process(delta: float) -> void:
 	if hero != null and is_instance_valid(hero):
 		var to_hero: Vector2 = hero.global_position - global_position
 		var distance: float = to_hero.length()
-		if distance <= Balance.LOOT_COLLECT_RANGE:
+		# **Not before it has landed once.** A piece leaving the corpse passes
+		# through the catch height on its way up, and a hero standing on the
+		# corpse would take it before the toss was ever seen.
+		if distance <= Balance.LOOT_COLLECT_RANGE and _bounces > 0 \
+				and _height <= Balance.LOOT_CATCH_HEIGHT:
 			_collect(hero as Hero)
 			return
 		# Once homing, always homing. Without the latch a drop at the edge of the
@@ -269,26 +306,37 @@ func _process(delta: float) -> void:
 		# flies to the player, so the trait widens the net without changing who
 		# gets paid - which matters in co-op, where each machine already homes
 		# loot to its own hero.
-		if _homing or distance <= Balance.LOOT_MAGNET_RANGE 				or _noticed_by_companion():
+		# **Not while it is still in the air.** A piece is thrown, lands and
+		# bounces before the magnet may take it, or the toss is never seen.
+		if _bounces > 0 and (_homing or distance <= Balance.LOOT_MAGNET_RANGE \
+				or _noticed_by_companion()):
 			_homing = true
+			_height = maxf(_height - Balance.LOOT_MAGNET_SPEED * delta, 0.0)
 			_velocity = _velocity.move_toward(
 				to_hero.normalized() * Balance.LOOT_MAGNET_SPEED,
 				Balance.LOOT_MAGNET_ACCELERATION * delta)
 
-	if not _homing:
+	# Drag only on the ground: a piece in the air keeps its arc.
+	if not _homing and _height <= 0.0:
 		_velocity = _velocity.move_toward(Vector2.ZERO, Balance.LOOT_DRAG * delta)
 	position += _velocity * delta
 
 	# A small hover, so a coin lying on a busy road is still findable.
 	if _sprite != null:
-		_sprite.position.y = sin(_life * Balance.LOOT_BOB_SPEED) * Balance.LOOT_BOB_HEIGHT
+		var bob: float = sin(_life * Balance.LOOT_BOB_SPEED) * Balance.LOOT_BOB_HEIGHT \
+			if _settled else 0.0
+		_sprite.position.y = -_height + bob
 	# The pool breathes out of phase with the hover, which reads as a thing
 	# glinting rather than as a sprite being scaled.
 	if _glow != null:
 		var pulse: float = 1.0 + sin(_life * Balance.LOOT_GLOW_SPEED) * 0.16
-		_glow.scale = Vector2.ONE * (_glow_size * pulse
+		# The pool shrinks under a piece in the air, which is what says it is
+		# in the air: the glow is the shadow it throws.
+		var shrink: float = 1.0 / (1.0 + _height / 120.0)
+		_glow.scale = Vector2.ONE * (_glow_size * pulse * shrink
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 	if _beacon != null:
+		_beacon.visible = _bounces > 0
 		var spire: ShaderMaterial = _beacon.material as ShaderMaterial
 		if spire != null:
 			spire.set_shader_parameter("clock", _life)
@@ -310,6 +358,7 @@ func _process(delta: float) -> void:
 		_beacon.scale.x = _beacon_wide * (0.92 + 0.08 * beam_pulse) / QUAD
 	for index: int in _orbiters.size():
 		var mote: Sprite2D = _orbiters[index]
+		mote.visible = _bounces > 0
 		var angle: float = _life * Balance.LOOT_ORBIT_SPEED \
 			+ TAU * float(index) / float(maxi(_orbiters.size(), 1))
 		mote.position = Vector2(cos(angle) * Balance.LOOT_ORBIT_RADIUS.x,
@@ -321,13 +370,22 @@ func _process(delta: float) -> void:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
 		# already earned by killing the thing teaches a player to stop fighting
 		# and stand on the road hoovering, which is worse than either extreme.
-		if currency == Balance.MENDER_SPARK_ID 				or currency == Balance.HEALING_ORB_ID:
+		if _recovery():
 			# **Recoveries expire; they are not paid out.** Everything else is a
 			# reward already earned by the kill, and taking it back would teach
 			# the player to stop fighting and hoover. A heal is different: it is
 			# earned by *going and getting it*, and one that arrived by itself
 			# would remove the only decision an orb poses.
 			_expire_special()
+		elif currency == Balance.COIN_POUCH_ID:
+			# A pouch nobody reached pays as Gold rather than spilling: pieces
+			# born at expiry would each live another lifetime.
+			_taken = true
+			if net_id != 0:
+				EventBus.coop_loot_taken.emit(net_id)
+			RunState.gain_currency(RunState.GOLD, amount)
+			EventBus.loot_collected.emit(RunState.GOLD, amount, global_position)
+			_dissolve_and_free()
 		else:
 			_collect(hero as Hero)
 
@@ -468,7 +526,7 @@ func collect_mirrored() -> void:
 		return
 	_taken = true
 	_pickup_sound()
-	if currency == Balance.MENDER_SPARK_ID or currency == Balance.HEALING_ORB_ID:
+	if _recovery():
 		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 		_burst()
 	elif gear.is_empty() and amount > 0:
@@ -488,8 +546,10 @@ func steal_worth() -> float:
 	if not gear.is_empty():
 		return 2.0 + float(int(gear.get("rarity", 0)))
 	if not blueprint.is_empty() or currency == Balance.SUPPLY_CRATE_ID \
-			or currency == Balance.HEALING_ORB_ID or currency == Balance.MENDER_SPARK_ID:
+			or _recovery():
 		return 0.0
+	if currency == Balance.COIN_POUCH_ID:
+		return float(amount) / 40.0
 	if amount <= 0 or currency.is_empty():
 		return 0.0
 	return float(amount) / (40.0 if currency == RunState.GOLD else 120.0)
@@ -529,6 +589,20 @@ func _collect(who: Hero = null) -> void:
 		# seconds is still worth what the thing that died was worth.
 		if who != null and is_instance_valid(who):
 			who.drink_healing_orb(float(amount))
+		_pickup_sound()
+		Vfx.ring(global_position, _glow_size * 0.6, _glow_colour, 0.36, 4.0)
+		_burst()
+	elif currency == Balance.COIN_POUCH_ID:
+		_spill_pouch(who)
+	elif currency == Balance.QUIVER_ID:
+		if who != null and is_instance_valid(who):
+			who.take_quiver(amount)
+		_pickup_sound()
+		Vfx.ring(global_position, _glow_size * 0.5, _glow_colour, 0.3, 4.0)
+		_burst()
+	elif currency == Balance.MANA_ORB_ID:
+		if who != null and is_instance_valid(who):
+			who.drink_mana_orb(float(amount) / 100.0)
 		_pickup_sound()
 		Vfx.ring(global_position, _glow_size * 0.6, _glow_colour, 0.36, 4.0)
 		_burst()
@@ -587,6 +661,170 @@ func _collect(who: Hero = null) -> void:
 ## twitches constantly and teaches the player to ignore it. Rays start at Fine,
 ## the flash at Runed, and the camera moves for Oathbound and nothing else in
 ## this system - so when it does move, it means one thing.
+## How an amount falls apart into pieces, and the one place that divides.
+##
+## A currency is cut at about `LOOT_PIECE_VALUE` a piece and never into more
+## than `LOOT_PIECES_MAX`; the remainder rides on the first pieces so the sum
+## is exactly the amount and no piece is worth nothing. A recovery, a crate and
+## a pouch are one thing and are not cut - a pouch is what cuts *itself* when
+## it is taken.
+static func split(currency_id: String, total: int) -> PackedInt32Array:
+	var out: PackedInt32Array = []
+	if total <= 0:
+		return out
+	var per: int = maxi(int(Balance.LOOT_PIECE_VALUE.get(currency_id, 0)), 0)
+	if per <= 0:
+		out.append(total)
+		return out
+	var pieces: int = clampi(int(ceil(float(total) / float(per))), 1,
+		Balance.LOOT_PIECES_MAX)
+	var each: int = total / pieces
+	var extra: int = total - each * pieces
+	for index: int in pieces:
+		out.append(each + (1 if index < extra else 0))
+	return out
+
+
+## The throw off the corpse, decided once the piece knows its wire identity.
+##
+## **Seeded by `net_id` when there is one**, so the host's coin and the guest's
+## mirror of it fly the same arc and land in the same place - a mirror that
+## rolled its own toss would show the guest a coin vanishing a body-length from
+## where it lay. Alone, or on a piece nobody mirrors, the toss is the
+## decoration's own dice rather than the run's stream, for the reason every
+## decoration here draws its own: adding a roll to a named stream moves every
+## roll after it.
+func _roll_toss() -> void:
+	var dice := RandomNumberGenerator.new()
+	if net_id != 0:
+		dice.seed = net_id
+	else:
+		dice.randomize()
+	var angle: float = dice.randf() * TAU
+	_velocity = Vector2.RIGHT.rotated(angle) * dice.randf_range(
+		Balance.LOOT_SCATTER_SPEED * _scatter.x, Balance.LOOT_SCATTER_SPEED * _scatter.y)
+	_lift = dice.randf_range(Balance.LOOT_TOSS_LIFT_MIN, Balance.LOOT_TOSS_LIFT_MAX)
+	_height = 0.0
+	_bounces = 0
+	_settled = false
+
+
+## Up, down, bounce, settle. The node never moves off the ground plane; only
+## the picture does.
+func _tick_toss(delta: float) -> void:
+	if _settled or _homing:
+		return
+	_lift -= Balance.LOOT_GRAVITY * delta
+	_height += _lift * delta
+	if _height > 0.0:
+		return
+	_height = 0.0
+	var landing_speed: float = -_lift
+	if landing_speed > Balance.LOOT_SETTLE_LIFT:
+		_lift = landing_speed * Balance.LOOT_BOUNCE
+		_velocity *= Balance.LOOT_BOUNCE_DRAG
+	else:
+		_lift = 0.0
+		_settled = true
+	_bounces += 1
+	if _bounces == 1:
+		_on_landed()
+
+
+## The first time a piece hits the ground: a puff of the ground's own colour
+## and the drop sound, positional, throttled by its mix row so a pouch's
+## fourteen coins are not fourteen knocks.
+func _on_landed() -> void:
+	var field: Node = get_parent()
+	while field != null and not field.has_method("ground_colour"):
+		field = field.get_parent()
+	var tone: Color = Color(0.5, 0.45, 0.4)
+	if field != null:
+		tone = field.call("ground_colour", global_position)
+	Vfx.dust(global_position, tone.lightened(0.15), Balance.LOOT_LAND_DUST, 16.0)
+	Sfx.play_group_at("sfx_loot_drop", global_position)
+
+
+## Whether this piece carries a real light. One per batch of plain pieces, and
+## every recovery, pouch, blueprint and piece of gear.
+func _wants_lamp() -> bool:
+	if not gear.is_empty() or not blueprint.is_empty() or _recovery():
+		return true
+	if currency == Balance.COIN_POUCH_ID or currency == Balance.SUPPLY_CRATE_ID:
+		return true
+	return lead
+
+
+## Whether this piece gets a spire and orbiting motes: anything that is not a
+## plain piece, and the lead of a batch worth announcing.
+func _wants_attention() -> bool:
+	if not gear.is_empty() or not blueprint.is_empty() or _recovery():
+		return true
+	if currency == Balance.COIN_POUCH_ID or currency == Balance.SUPPLY_CRATE_ID:
+		return true
+	return lead and amount * siblings >= Balance.LOOT_BEACON_MIN_VALUE
+
+
+## A pouch coming apart: its worth dealt into pieces of the four currencies,
+## gold-heavy, each thrown from where the pouch lay. The pieces then pay the
+## way every piece pays, so a pouch is never paid twice and never created from
+## nothing - what it spills is exactly what it carried.
+func _spill_pouch(who: Hero) -> void:
+	var field: Node = get_parent()
+	while field != null and not field.has_method("spawn_loot"):
+		field = field.get_parent()
+	_pickup_sound()
+	Vfx.ring(global_position, _glow_size * 0.85, Balance.COIN_POUCH_COLOUR, 0.42, 5.0)
+	Vfx.spark(global_position, Balance.COIN_POUCH_COLOUR, 14, Vector2.UP, 260.0)
+	Vfx.rays(global_position, Balance.COIN_POUCH_COLOUR, 10, 74.0, randf() * TAU)
+	_burst()
+	if field == null or amount <= 0:
+		return
+	var gold: int = int(round(float(amount) * Balance.COIN_POUCH_GOLD_SHARE))
+	var rest: int = amount - gold
+	var others: Array[String] = []
+	for id: String in RunState.CURRENCIES:
+		if id != RunState.GOLD:
+			others.append(id)
+	var rng: RandomNumberGenerator = RunState.rng("recovery")
+	if gold > 0:
+		field.call("spawn_loot", RunState.GOLD, gold, global_position)
+	# The other three are dealt in at most `COIN_POUCH_PIECES_MAX` handfuls,
+	# each at least two pieces' worth. Without the bound a boss's pouch spills
+	# one handful per few units of Food and the node count is the pouch's worth;
+	# with it the handfuls grow instead.
+	var handfuls: int = Balance.COIN_POUCH_PIECES_MAX
+	while rest > 0 and not others.is_empty() and handfuls > 0:
+		var which: String = others[rng.randi_range(0, others.size() - 1)]
+		var least: int = maxi(int(Balance.LOOT_PIECE_VALUE.get(which, 4)) * 2, 1)
+		var slice: int = mini(rest, maxi(least, ceili(float(rest) / float(handfuls))))
+		field.call("spawn_loot", which, slice, global_position)
+		rest -= slice
+		handfuls -= 1
+	if who != null and is_instance_valid(who):
+		EventBus.preparation_warning.emit("COIN POUCH  ·  it spills")
+
+
+## How far above the ground the picture is, whether it has come to rest, and
+## how many times it has landed. For the gate.
+func toss_height() -> float:
+	return _height
+
+
+func has_settled() -> bool:
+	return _settled
+
+
+## Seconds since it fell. The field pays the oldest plain piece out when it
+## needs room.
+func age() -> float:
+	return _life
+
+
+func bounces() -> int:
+	return _bounces
+
+
 func _celebrate_gear() -> void:
 	var rarity: int = clampi(int(gear.get("rarity", 0)), 0,
 		Balance.GEAR_PICKUP_RING.size() - 1)

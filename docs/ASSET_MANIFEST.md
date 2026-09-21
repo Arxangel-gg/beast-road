@@ -1467,6 +1467,9 @@ green at all.
 | `loot_mender_spark.png` | 48×48 | T | `#79D9A0` |
 | `loot_healing_orb.png` | 48×48 | T | `#E64857` |
 | `loot_supply_crate.png` | 48×48 | T | `#7A5B3C` |
+| `loot_mana_orb.png` | 48×48 | T | `#5C9EFA` |
+| `loot_quiver.png` | 48×48 | T | `#B89E6B` |
+| `loot_coin_pouch.png` | 48×48 | T | `#F2C75C` |
 
 ### 5.8d Sidescroller ground — `res://art/bg/`
 

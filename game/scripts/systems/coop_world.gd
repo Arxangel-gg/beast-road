@@ -321,12 +321,12 @@ func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
 
 
 func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
-		at: Vector2) -> void:
+		at: Vector2, lead: bool = true) -> void:
 	if not Coop.is_guest():
 		return
 	var battlefield := field as Battlefield
 	if battlefield != null:
-		battlefield.mirror_loot(net_id, currency, amount, at)
+		battlefield.mirror_loot(net_id, currency, amount, at, lead)
 
 
 ## The host says that coin was picked up. Guest side.

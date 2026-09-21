@@ -172,14 +172,99 @@ const DISCIPLINE_MAX_TRAINED: int = 6
 # game that had just been balanced. A bonus can only add.
 
 ## Share of a kill's resources dropped again as collectable loot. [TUNE]
-const LOOT_BONUS_SHARE: float = 0.45
+## **Halved on 2026-09-21 while the chance below doubled**, so the expected
+## bonus is what it was and it arrives twice as often in half the size - the
+## owner's "more pickups should drop more often but maybe in less total
+## quantity". `SUPPLY_CRATE_VALUE_SCALE` doubled with it so a crate is worth
+## what a crate was.
+const LOOT_BONUS_SHARE: float = 0.22
 
 ## Chance a kill drops anything at all. Below one so drops are an event rather
 ## than a constant stream of coins to walk over. [TUNE]
-const LOOT_DROP_CHANCE: float = 0.27
+const LOOT_DROP_CHANCE: float = 0.55
 
 ## An elite or boss always drops, and drops more.
-const LOOT_ELITE_MULTIPLIER: float = 3.0
+const LOOT_ELITE_MULTIPLIER: float = 5.0
+
+# --- Pieces and the toss (owner, 2026-09-21) --------------------------------
+#
+# "Pickups should fall and bounce on the ground and scatter in high quantities
+# instead of as stacks so that the player can enjoy picking up each individual
+# item that has dropped." So a bonus falls as several things rather than one
+# coin carrying a number, each thrown up off the corpse, landing, bouncing and
+# settling before the magnet is allowed to take it.
+#
+# **The pieces sum exactly to the amount** - `LootDrop.split` is the one place
+# that divides, and `exploit_check` collects every piece and reads the purse
+# back - and a piece is never worth nothing. The node stays in the ground plane
+# the whole time: the height is drawn, so the magnet, the pickup radius and the
+# thief all measure where a coin will land rather than where it is in the air.
+
+## Roughly how much one piece of each currency is worth; the count is the
+## amount over this, capped, and the remainder rides on the first pieces.
+const LOOT_PIECE_VALUE: Dictionary = {"gold": 3, "wood": 4, "food": 4, "stone": 4}
+## The most pieces one drop may become. Nine is a handful on the ground and a
+## bounded number of nodes per kill.
+const LOOT_PIECES_MAX: int = 9
+## How hard a piece is thrown upward, units a second, and the gravity it
+## falls under. The weakest toss peaks at LIFT_MIN^2 / (2 * GRAVITY), and that
+## must clear `LOOT_CATCH_HEIGHT` or a hero standing under a kill takes a piece
+## before it has visibly left the corpse - the first cut's 230 peaked at 25 and
+## the gate held it against a literal 40, so it passed on the dice about four
+## rolls in five. `loot_juice_check` holds the derived minimum now.
+const LOOT_TOSS_LIFT_MIN: float = 310.0
+const LOOT_TOSS_LIFT_MAX: float = 400.0
+const LOOT_GRAVITY: float = 1040.0
+## What a bounce keeps of the fall, and what the slide across the ground keeps
+## of its speed each time it lands.
+const LOOT_BOUNCE: float = 0.46
+const LOOT_BOUNCE_DRAG: float = 0.58
+## Landing slower than this, a piece stops bouncing and settles.
+const LOOT_SETTLE_LIFT: float = 50.0
+## A piece this close to the ground can be caught by a hero standing under it.
+const LOOT_CATCH_HEIGHT: float = 40.0
+## A plain piece worth less than this shows no spire and no orbiting motes; the
+## first piece of a batch is the one that announces the batch.
+const LOOT_BEACON_MIN_VALUE: int = 10
+## How many drops the field will hold before the oldest plain piece pays itself
+## out to make room. Bounds the node count under a busy wave without ever
+## losing a reward.
+const LOOT_FIELD_MAX: int = 180
+## Dust thrown by a landing, per piece, on its first bounce only.
+const LOOT_LAND_DUST: int = 3
+
+## A coin pouch: what an elite or a boss drops instead of one large coin. It
+## lands as one thing and spills into pieces when it is taken, which is a second
+## scatter the player gets to watch.
+const COIN_POUCH_ID: String = "coin_pouch"
+## The most handfuls of Wood, Food and Stone a pouch deals when it spills; each
+## handful then falls as pieces like any other drop. A bound on nodes per pouch,
+## never on its worth - a richer pouch deals bigger handfuls.
+const COIN_POUCH_PIECES_MAX: int = 14
+## The share of a pouch that is Gold; the rest is dealt among the other three.
+const COIN_POUCH_GOLD_SHARE: float = 0.6
+const COIN_POUCH_COLOUR: Color = Color(0.95, 0.78, 0.36, 0.86)
+
+## A quiver, off the breeds that carry something to throw. Pays ammunition for
+## whatever the Warden's bow is loaded with, and nothing at all to a Warden
+## without a bow - it is not dropped for one.
+const QUIVER_ID: String = "quiver"
+const QUIVER_DROP_CHANCE: float = 0.16
+const QUIVER_SHOTS_MIN: int = 4
+const QUIVER_SHOTS_MAX: int = 9
+const QUIVER_COLOUR: Color = Color(0.72, 0.62, 0.42, 0.85)
+
+## A mana orb: the healing orb's blue twin, a share of the pool the Warden
+## already has and never a point more than the pool holds. Worth everything to
+## a caster and nothing to a swordhand, which is the same two axes the hex shot
+## and the mana-burn mark vary along.
+const MANA_ORB_ID: String = "mana_orb"
+const MANA_ORB_BREED_CHANCE: float = 0.03
+const MANA_ORB_ELITE_CHANCE: float = 0.18
+const MANA_ORB_BOSS_CHANCE: float = 0.8
+## Share of maximum mana one orb restores, as a percentage carried on the drop.
+const MANA_ORB_PERCENT: int = 14
+const MANA_ORB_COLOUR: Color = Color(0.36, 0.62, 0.98, 0.88)
 
 ## Distance at which a drop starts flying to the hero.
 ##
@@ -1575,7 +1660,7 @@ const SUPPLY_CRATE_ORB_SHARE: float = 0.3
 
 ## Currency in a crate, as a multiple of what the same body's ordinary bonus
 ## drop would have been. The crate is rarer, so each spill is worth more.
-const SUPPLY_CRATE_VALUE_SCALE: float = 1.8
+const SUPPLY_CRATE_VALUE_SCALE: float = 3.6
 
 ## Colour of the break, and of the crate's glow on the ground.
 const SUPPLY_CRATE_COLOUR: Color = Color(0.85, 0.70, 0.38, 0.85)

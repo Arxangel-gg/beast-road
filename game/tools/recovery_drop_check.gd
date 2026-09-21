@@ -165,8 +165,13 @@ func _test_an_orb_actually_heals() -> void:
 	var drop := (load("res://scripts/systems/loot_drop.gd") as GDScript).new() as Node2D
 	drop.call("setup", Balance.HEALING_ORB_ID, 40, Vector2(12.0, 0.0))
 	field.add_child(drop)
-	for _f: int in 90:
+	# Seconds, not frames: a drop is thrown and has to land before a hero may
+	# take it (2026-09-21), and headless runs far above sixty frames a second,
+	# so ninety frames covered a fraction of the toss.
+	var waited: float = 0.0
+	while waited < 3.0:
 		await get_tree().process_frame
+		waited += get_process_delta_time()
 		if hero.health.current_hp > hurt:
 			break
 	_checked += 1
@@ -198,8 +203,10 @@ func _test_a_crate_actually_spills() -> void:
 	var crate := (load("res://scripts/systems/loot_drop.gd") as GDScript).new() as Node2D
 	crate.call("setup", Balance.SUPPLY_CRATE_ID, 9, Vector2(12.0, 0.0))
 	field.add_child(crate)
-	for _f: int in 90:
+	var waited: float = 0.0
+	while waited < 3.0:
 		await get_tree().process_frame
+		waited += get_process_delta_time()
 		if not is_instance_valid(crate) or crate.is_queued_for_deletion():
 			break
 	var spilled: Array[Dictionary] = field.spawned
