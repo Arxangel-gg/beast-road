@@ -6044,6 +6044,24 @@ const UI_HEALTH_BLINK_HZ: float = 2.6
 ## disappears at the moment it matters most.
 const UI_HEALTH_BLINK_DEPTH: float = 0.45
 
+## **The wall, said out loud** (2026-09-21). A blow on the town flashes its bar
+## for this long, and the banner names the road it came from - at most once
+## per cooldown, or a siege is a banner that never leaves. Under the critical
+## share the bar pulses as the hero's does. Bodies inside `TOWN_ALERT_NEAR` of
+## the town tint its icon and say so once, polled rather than counted a frame.
+const TOWN_ALERT_FLASH_SECONDS: float = 0.6
+const TOWN_ALERT_COOLDOWN: float = 8.0
+const TOWN_ALERT_CRITICAL_SHARE: float = 0.3
+const TOWN_ALERT_NEAR: float = 320.0
+const TOWN_ALERT_POLL_HZ: float = 4.0
+## The sanctuary is the town's own footprint, where no road body can see or
+## touch a Warden (2026-09-17) - said once on entering, in combat, and not
+## again for this long. Discovered rather than said, it read as a bug.
+const SANCTUARY_SAY_COOLDOWN: float = 25.0
+## The fast-forward, solo only (see `GameSpeed`). Two rather than three: the
+## opening waves are a teaching stretch and 3x turns them into a slideshow.
+const GAME_SPEED_FAST: float = 2.0
+
 ## The preparation clock, from plenty of time to none.
 ##
 ## Read from the corner of the eye while the player is placing a tower, so it

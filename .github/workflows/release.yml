@@ -160,6 +160,8 @@ jobs:
           run_godot_clean --headless --path game res://tools/enemy_siege_check.tscn
           run_godot_clean --headless --path game res://tools/loot_juice_check.tscn
           run_godot_clean --headless --path game res://tools/roster_check.tscn
+          run_godot_clean --headless --path game res://tools/game_speed_check.tscn
+          run_godot_clean --headless --path game res://tools/town_alert_check.tscn
           run_godot_clean --headless --path game res://tools/lightning_lifetime_check.tscn
           run_godot_clean --headless --path game res://tools/rejoin_check.tscn
           run_godot_clean --headless --path game res://tools/farming_check.tscn

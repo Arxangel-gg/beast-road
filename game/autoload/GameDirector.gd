@@ -249,7 +249,7 @@ func goto_splash() -> void:
 func goto_menu() -> void:
 	run_active = false
 	get_tree().paused = false
-	Engine.time_scale = 1.0
+	GameSpeed.reset()
 	CursorKit.use_default()
 	# **The session ends with the run.**
 	#
@@ -359,7 +359,7 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	run_active = true
 	current_scope = Scope.BATTLEFIELD
 	get_tree().paused = false
-	Engine.time_scale = 1.0
+	GameSpeed.reset()
 	_change(RUN_SCENE)
 
 
@@ -383,7 +383,7 @@ func start_walk() -> void:
 	run_active = true
 	current_scope = Scope.BATTLEFIELD
 	get_tree().paused = false
-	Engine.time_scale = 1.0
+	GameSpeed.reset()
 	_change(RUN_SCENE)
 
 

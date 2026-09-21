@@ -27,7 +27,7 @@ func _process(_delta: float) -> void:
 	if Time.get_ticks_msec() < _until_ms:
 		return
 	_until_ms = 0
-	Engine.time_scale = 1.0
+	GameSpeed.restore()
 
 
 func _on_requested(duration: float) -> void:
@@ -44,4 +44,4 @@ func _on_requested(duration: float) -> void:
 func _exit_tree() -> void:
 	if _until_ms != 0:
 		_until_ms = 0
-		Engine.time_scale = 1.0
+		GameSpeed.restore()

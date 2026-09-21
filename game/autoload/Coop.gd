@@ -390,6 +390,12 @@ func is_host() -> bool:
 	return _state != State.CONNECTING and _state != State.CONNECTED
 
 
+## No session at all - not hosting, not joined, not dialling. The one state in
+## which the clock is nobody else's business (`GameSpeed`).
+func is_alone() -> bool:
+	return _state == State.OFFLINE
+
+
 ## True only for the joined second player.
 func is_guest() -> bool:
 	return _state == State.CONNECTED

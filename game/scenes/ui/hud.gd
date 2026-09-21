@@ -261,6 +261,20 @@ var _wave: Label
 var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
+## The wall said out loud (2026-09-21): a flash on a blow, a banner naming the
+## road, a pulse under the critical share, and a tint while bodies stand at the
+## gate. Polled rather than counted a frame; said once per cooldown.
+var _town_icon: Control = null
+var _town_alert_left: float = 0.0
+var _town_alert_said: float = 0.0
+var _town_critical: bool = false
+var _town_clock: float = 0.0
+var _town_poll: float = 0.0
+var _town_threatened: bool = false
+## The sanctuary readout and the fast-forward, from the same date.
+var _sanctuary_inside: bool = false
+var _sanctuary_said: float = 0.0
+var _speed_button: Button = null
 var _hero_bar: ProgressBar
 ## The pale bite left behind when health drops, and where it is draining to.
 var _hero_trail: ColorRect = null
@@ -565,6 +579,7 @@ func _ready() -> void:
 			_refresh_build_panel())
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
+	EventBus.town_struck.connect(_on_town_struck)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.hero_mana_changed.connect(_on_hero_mana)
 	EventBus.hero_stamina_changed.connect(_on_hero_stamina)
@@ -689,6 +704,8 @@ func _process(delta: float) -> void:
 		_blink_clock = 0.0
 	_tick_health_trail(delta)
 	_tick_purse(delta)
+	_tick_town_alert(delta)
+	_tick_sanctuary(delta)
 	_update_spirit_panel(delta)
 	# The zoom slider follows the camera rather than the other way round, so a
 	# wheel, a key, a pad or a scope button all move it. One float compare a
@@ -907,6 +924,7 @@ func _build_top_bar() -> void:
 	_town_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var town_icon: Control = _bar_icon("city_health", "Town")
 	town_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_town_icon = town_icon
 	bar.add_child(town_icon)
 	bar.add_child(_town_bar)
 
@@ -1862,8 +1880,17 @@ func _build_party_feed() -> void:
 ## a LineEdit with focus eats the key before an unhandled handler ever sees it,
 ## so the second Enter would never reach this.
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"toggle_minimap") and not (_chat_box != null and is_instance_valid(_chat_box) and _chat_box.visible):
+	var chatting: bool = _chat_box != null and is_instance_valid(_chat_box) and _chat_box.visible
+	if event.is_action_pressed(&"toggle_minimap") and not chatting:
 		_toggle_minimap()
+		get_viewport().set_input_as_handled()
+		return
+	# The fast-forward, on a hard key like the climate view: the pad is full,
+	# so it is not rebindable, and a key in the chat box is a letter.
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.physical_keycode == KEY_P \
+			and not chatting:
+		_toggle_game_speed()
 		get_viewport().set_input_as_handled()
 		return
 	if not _chat_available():
@@ -2658,6 +2685,17 @@ func _build_preparation_panel() -> void:
 	_ride_on_button.add_theme_font_size_override("font_size", 12)
 	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ride_on_button.tooltip_text = "Begin the next wave. Leaving during the first 10 seconds earns bonus Gold; waiting is always safe."
+	# The fast-forward, beside the button that starts the road (2026-09-21).
+	# Hidden on a touch layout for now: the column has no room on a landscape
+	# phone, and the key it wears is a keyboard's.
+	_speed_button = _add_button(column, "1x", func() -> void: _toggle_game_speed())
+	_speed_button.set_meta(UiMetrics.SELF_SIZED, true)
+	_speed_button.custom_minimum_size.y = 26.0
+	_speed_button.add_theme_font_size_override("font_size", 11)
+	_speed_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_speed_button.tooltip_text = "Run the road at double speed. P toggles it. Alone only - a partner's clock is the host's."
+	_speed_button.visible = not touch_ui()
+	_refresh_speed_button()
 
 
 
@@ -4962,7 +5000,109 @@ func _on_distance(total: float, to_crossroad: float) -> void:
 
 
 func _on_town_health(current: float, maximum: float) -> void:
-	_town_bar.value = current / maximum if maximum > 0.0 else 0.0
+	var share: float = current / maximum if maximum > 0.0 else 0.0
+	_town_bar.value = share
+	_town_critical = share > 0.0 and share < Balance.TOWN_ALERT_CRITICAL_SHARE
+
+
+# --- The wall, said out loud (2026-09-21) -------------------------------------
+#
+# "I didn't know I was losing" is the first-hour complaint the roadmap put
+# first, and the town bar answered a blow with nothing: no flash, no word, no
+# direction. The banner names the road the blow came from, read off where it
+# landed against the town's centre, because the four roads face four ways and
+# a player defending the east gate wants to know it is the west one falling.
+
+func _on_town_struck(from: Vector2) -> void:
+	_town_alert_left = Balance.TOWN_ALERT_FLASH_SECONDS
+	if _town_alert_said > 0.0:
+		return
+	_town_alert_said = Balance.TOWN_ALERT_COOLDOWN
+	_show_message("THE WALL IS UNDER ATTACK  ·  from the %s" % _road_name_toward(from))
+
+
+func _road_name_toward(from: Vector2) -> String:
+	var centre: Vector2 = battlefield.town_position() if battlefield != null else Vector2.ZERO
+	var toward: Vector2 = from - centre
+	if absf(toward.x) >= absf(toward.y):
+		return "EAST road" if toward.x > 0.0 else "WEST road"
+	return "SOUTH road" if toward.y > 0.0 else "NORTH road"
+
+
+func _tick_town_alert(delta: float) -> void:
+	if _town_bar == null:
+		return
+	_town_clock += delta
+	if _town_alert_said > 0.0:
+		_town_alert_said -= delta
+	if _town_alert_left > 0.0:
+		_town_alert_left -= delta
+		var share: float = clampf(_town_alert_left / Balance.TOWN_ALERT_FLASH_SECONDS, 0.0, 1.0)
+		_town_bar.modulate = Color(1.0, 1.0 - 0.6 * share, 1.0 - 0.7 * share)
+	elif _town_critical:
+		var pulse: float = 0.5 + 0.5 * sin(_town_clock * TAU * Balance.UI_HEALTH_BLINK_HZ)
+		_town_bar.modulate = Color(1.0, 1.0 - 0.5 * pulse, 1.0 - 0.5 * pulse)
+	elif _town_bar.modulate != Color.WHITE:
+		_town_bar.modulate = Color.WHITE
+	# Bodies at the gate: polled, because a count over every body a frame is a
+	# frame spent on a readout.
+	_town_poll -= delta
+	if _town_poll > 0.0 or battlefield == null:
+		return
+	_town_poll = 1.0 / Balance.TOWN_ALERT_POLL_HZ
+	var near: int = battlefield.enemies_near(battlefield.town_position(), Balance.TOWN_ALERT_NEAR).size()
+	var threatened: bool = near > 0
+	if threatened and not _town_threatened and _town_alert_said <= 0.0:
+		_town_alert_said = Balance.TOWN_ALERT_COOLDOWN
+		_show_message("BODIES AT THE GATE")
+	_town_threatened = threatened
+	if _town_icon != null:
+		_town_icon.modulate = Color(1.0, 0.72, 0.4) if threatened else Color.WHITE
+
+
+## For the gate: whether the wall reads as critical, and as threatened.
+func town_alert_state() -> Dictionary:
+	return {"critical": _town_critical, "threatened": _town_threatened,
+		"flashing": _town_alert_left > 0.0, "cooldown": _town_alert_said}
+
+
+# --- The sanctuary, said on entering --------------------------------------------
+#
+# The town's own footprint is where no road body can see or touch a Warden
+# (owner, 2026-09-17), and it grew from a circle to the whole sprite in
+# v0.47.0 without a word on screen - so a player standing on it watched bodies
+# ignore them and read it as "enemies never attack". Said once on the way in,
+# in combat, and not again for a while.
+
+func _tick_sanctuary(delta: float) -> void:
+	if _sanctuary_said > 0.0:
+		_sanctuary_said -= delta
+	if battlefield == null or _hero == null or not is_instance_valid(_hero):
+		return
+	var inside: bool = battlefield.inside_city(_hero.global_position)
+	if inside and not _sanctuary_inside and _sanctuary_said <= 0.0 \
+			and RunState.is_command_combat():
+		_sanctuary_said = Balance.SANCTUARY_SAY_COOLDOWN
+		_show_message("SANCTUARY  ·  the road cannot see you here")
+	_sanctuary_inside = inside
+
+
+# --- The fast-forward -------------------------------------------------------------
+
+func _toggle_game_speed() -> void:
+	if not GameSpeed.allowed():
+		_show_message("The road runs at one speed with company on it")
+		_refresh_speed_button()
+		return
+	GameSpeed.set_fast(not GameSpeed.is_fast())
+	_refresh_speed_button()
+
+
+func _refresh_speed_button() -> void:
+	if _speed_button == null:
+		return
+	_speed_button.text = "2x  ·  P" if GameSpeed.is_fast() else "1x  ·  P"
+	_speed_button.visible = not touch_ui() and GameSpeed.allowed()
 
 
 func _on_hero_health(current: float, maximum: float) -> void:

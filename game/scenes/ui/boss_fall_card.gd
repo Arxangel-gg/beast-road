@@ -120,7 +120,7 @@ func play(boss: EnemyData, act: int) -> void:
 	Sfx.play("sfx_boss_fall")
 	Engine.time_scale = Balance.BOSS_FALL_SLOW
 	await _wait(Balance.BOSS_FALL_SLOW_SECONDS)
-	Engine.time_scale = 1.0
+	GameSpeed.restore()
 	# 2. The wipe takes the field.
 	await _sweep(0.0, 1.0, Balance.BOSS_FALL_WIPE_SECONDS)
 	# 3. The card is held.

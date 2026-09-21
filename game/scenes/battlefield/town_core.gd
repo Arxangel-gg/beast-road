@@ -366,6 +366,7 @@ func _update_smoke(fires: int) -> void:
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	EventBus.town_struck.emit(from)
 	RunState.town_damage_taken += amount
 	RunState.town_hits_taken += 1
 	# Damage to the town slows the beast, which slows construction. That chain

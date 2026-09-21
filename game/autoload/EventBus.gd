@@ -502,6 +502,8 @@ signal torch_state_changed(lane: int, lit: bool)
 
 ## An enemy reached the town and did damage.
 signal town_damaged(amount: float, current_hp: float, max_hp: float)
+## Where a blow on the town came from, so the HUD can name the road (2026-09-21).
+signal town_struck(from: Vector2)
 
 ## The town's health changed for any reason.
 signal town_health_changed(current_hp: float, max_hp: float)

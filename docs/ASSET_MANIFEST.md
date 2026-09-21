@@ -2506,7 +2506,7 @@ thing casting it, and the same painting serves as both.
 | `dragon_overhead_stone.png` | 192×192 | T | `#6E3226` |
 | `dragon_overhead_storm.png` | 192×192 | T | `#6E3226` |
 
-Wing-beat frames, three a variant, by the flight convention (`_fly_NN`):
+Wing-beat frames, three a variant, by the flight convention. All 192×192, type T, placeholder colour `#6E3226`.
 
 Files: `dragon_overhead_fire_fly_01.png` · `dragon_overhead_fire_fly_02.png` · `dragon_overhead_fire_fly_03.png`
 Files: `dragon_overhead_frost_fly_01.png` · `dragon_overhead_frost_fly_02.png` · `dragon_overhead_frost_fly_03.png`
@@ -3315,6 +3315,13 @@ All node idle frames are 96×96. Nine nodes carry three each:
 | `node_duskstone_geode_idle_01.png` | 96×96 | O | `#3A3128` |
 | `node_duskstone_geode_idle_02.png` | 96×96 | O | `#3A3128` |
 | `node_duskstone_geode_idle_03.png` | 96×96 | O | `#3A3128` |
+
+### 5.32 The Walk's chain — `res://art/battlefield/`
+
+The prop the tutorial's last stop is worked against (2026-09-21): an iron stake with a run of
+chain, stood a little below the town. All 128×128, type T, placeholder colour `#3A3128`.
+
+Files: `walk_chain.png`
 
 ### 5.32 Materials of 2026-09-13 — `res://art/icons/ui/`
 

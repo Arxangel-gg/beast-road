@@ -1,33 +1,42 @@
 {
   "art/battlefield/nest_egg": {
-    "object": "1cfa9a27-639b-49ae-b208-9c5287e22bad",
-    "job": "ab68a5cb-ec10-4de7-8ea4-6da67aaa2e7b"
+    "job": "ab68a5cb-ec10-4de7-8ea4-6da67aaa2e7b",
+    "object": "1cfa9a27-639b-49ae-b208-9c5287e22bad"
+  },
+  "art/battlefield/pond_tiles_crown": {
+    "tileset": "73b3c133-027b-4238-a9df-201d7cd72b10"
+  },
+  "art/battlefield/walk_chain": {
+    "image": "fb34febf-cc8b-4b56-9ff4-52149643ed1b"
+  },
+  "art/beast/skyline_crown": {
+    "image": "3e154a7b-befd-4a80-b269-f84a686b1d0f"
   },
   "art/bosses/boss_last_anchor": {
     "base": "f6f06401-c9ce-4441-a827-0eee02ace57d",
     "character": "d028a7b4-9a40-42ea-917d-fd7bde428bce"
   },
   "art/city/hold_keeper": {
-    "image": "40439488-ce2d-4d98-982b-6984dd4b63e0",
     "idle": "d819cab5-7ec3-4331-9ea7-063448291c5d",
+    "image": "40439488-ce2d-4d98-982b-6984dd4b63e0",
     "move": "1a123fa6-48e0-4b88-81a6-cd4649f359aa",
     "work": "ad22dd69-42ba-438d-b5fc-842fa28b4baf"
   },
   "art/city/hold_smith": {
-    "image": "94177f64-3c9e-4ee4-92a6-dcebc8273342",
     "idle": "6087183b-85a6-4283-81b2-b6d769a84641",
+    "image": "94177f64-3c9e-4ee4-92a6-dcebc8273342",
     "move": "80135616-cfb9-4e82-b766-c04de66a6076",
     "work": "c489fb2b-d544-4e4c-8291-3e06a1d5e6ab"
   },
   "art/city/hold_stabler": {
-    "image": "164c7f26-c56d-4251-b7fd-14a9eb43ee0b",
     "idle": "54a2ee35-659d-4ed9-bd70-11eaf01ff8d7",
+    "image": "164c7f26-c56d-4251-b7fd-14a9eb43ee0b",
     "move": "24f2e028-569c-4217-be54-102d9fee5d5d",
     "work": "140a3eff-d8de-49d7-90e4-58e0458e2828"
   },
   "art/city/hold_steward": {
-    "image": "e224ca16-7766-4cc1-b34c-2dac2e2ca42b",
     "idle": "58a9f068-30a8-4b8d-b2f6-b46844a745b9",
+    "image": "e224ca16-7766-4cc1-b34c-2dac2e2ca42b",
     "move": "a3c36cc9-9fd0-4768-8a0a-2db448340c9c",
     "work": "29c8287a-c68a-48a8-8367-84ee7bac7f19"
   },
@@ -74,6 +83,12 @@
   "art/enemies/elite_wolf_standard_bearer": {
     "move": "5c3394b5-3a73-4360-a41f-91d6d8d38a24"
   },
+  "art/enemies/enemy_anchor_cantor": {
+    "attack": "f0c2a078-7b42-4377-8ec4-049c1d998c2f",
+    "base": "5b26fa5f-5ce4-4384-ad6c-8cf512d626f4",
+    "idle": "8210e7c1-1787-4b88-abc8-6e3d5aeb4ac9",
+    "move": "de8abf2f-ac1a-4962-8d8e-1b615fcb83a4"
+  },
   "art/enemies/enemy_ash_caller": {
     "move": "4348c0c4-d4cb-4ccc-8c10-b7863d523c09"
   },
@@ -82,6 +97,24 @@
   },
   "art/enemies/enemy_brine_drowned": {
     "move": "9e51ec5c-eed1-4b38-a028-ff835e7344c5"
+  },
+  "art/enemies/enemy_canopy_stalker": {
+    "attack": "922f35d5-867a-479b-b873-4a1e6b0bfb54",
+    "base": "5aacb241-24bf-42f5-8dfa-125f1bd47776",
+    "idle": "aeeb09be-2f1f-4e5f-87e3-a7927361134b",
+    "move": "97d18fe3-2399-4641-a760-b9f47d1f95a8"
+  },
+  "art/enemies/enemy_chain_lancer": {
+    "attack": "f734750d-99d8-4469-9a5d-5457559fdad4",
+    "base": "43ee06ac-8b06-4993-b66e-0b15e37c1aac",
+    "idle": "d8db1db2-66a5-4b1a-9f09-ed4f88ff5bff",
+    "move": "af6e87e2-c848-479d-8f30-e5819be8a4aa"
+  },
+  "art/enemies/enemy_chain_warden": {
+    "attack": "102ef4bc-12a9-4fa3-86cc-8824707a599d",
+    "base": "2a23510d-03a2-45af-9d2d-9f39ea96e3a5",
+    "idle": "7b6625e9-afe2-4ccf-a2c9-135d223710cd",
+    "move": "d0b7c349-e237-4bce-a913-689aab6233d4"
   },
   "art/enemies/enemy_choir_cantor": {
     "move": "f8a903b1-91ed-46b9-a074-67450048131e"
@@ -104,6 +137,12 @@
   "art/enemies/enemy_dune_burrower": {
     "move": "96f56fcd-1184-46d7-8332-3256a2379e9d"
   },
+  "art/enemies/enemy_dune_reaver": {
+    "attack": "4674d1ef-6c78-45e4-996e-e9c9bdbc8eb4",
+    "base": "0a8c4e68-aada-4831-ac42-4f6654b2d211",
+    "idle": "f215a2c8-6c1c-40db-9eee-f4b2277dee64",
+    "move": "6bf7607a-3103-4e5e-9578-fc203eb3c5aa"
+  },
   "art/enemies/enemy_ember_husk": {
     "move": "91de3bc7-d236-4fd8-ba9f-ca308b4b6d10"
   },
@@ -125,6 +164,12 @@
   "art/enemies/enemy_gate_sentinel": {
     "move": "5af8944e-cb87-4d11-9bb3-5262e592ea69"
   },
+  "art/enemies/enemy_gear_grinder": {
+    "attack": "1d7fdd10-af8c-4817-aba1-c40b57721ac9",
+    "base": "84cb43d2-cf07-4015-b069-489f06a2db2a",
+    "idle": "8ee4d7ee-d108-48b6-9313-e4baf9c53fc5",
+    "move": "9a077b70-56fe-4889-b37c-84b022c677c9"
+  },
   "art/enemies/enemy_glass_chanter": {
     "move": "186fee58-0164-4cb7-8ed3-767a7c50029d"
   },
@@ -143,6 +188,12 @@
   "art/enemies/enemy_horde_lancer": {
     "move": "a5146f8a-e827-4e23-b530-ab8a84482a1b"
   },
+  "art/enemies/enemy_horde_marksman": {
+    "attack": "4113ef36-e2c6-4c6f-bbbf-c03c9d13d3c7",
+    "base": "e3b3b769-dd5a-45d9-aad5-a1b7bb1d1fda",
+    "idle": "67abcdb5-b4a6-48b0-b78b-5fc8a174fb02",
+    "move": "d0ce07b0-dd05-4166-8d40-8f6cbf206b3d"
+  },
   "art/enemies/enemy_horde_shieldman": {
     "move": "0651888d-6d03-4e4f-9c84-08e4641b9724"
   },
@@ -152,8 +203,20 @@
   "art/enemies/enemy_loam_lurker": {
     "move": "08c0508d-6e13-43cc-a853-d424ab59f875"
   },
+  "art/enemies/enemy_marsh_piper": {
+    "attack": "e2c00630-8e17-4418-af46-985cf41c3011",
+    "base": "2461e616-7de8-4149-be33-3025b0d5417c",
+    "idle": "8e515d14-6cbc-48d8-8280-1b2cacd93080",
+    "move": "3cc4ae69-74a4-4295-807a-f28ef9215258"
+  },
   "art/enemies/enemy_mire_shambler": {
     "move": "466f9aaa-7051-41d5-8857-e8562caab011"
+  },
+  "art/enemies/enemy_prism_lancer": {
+    "attack": "121a4a7c-8a1a-4619-8534-646c11577c79",
+    "base": "2df3fe60-34a5-424f-884a-913e04ee355f",
+    "idle": "638b1860-53e0-4ffd-824f-59ddb3132363",
+    "move": "501c472c-87fb-4966-a4ed-bc44e408e9f5"
   },
   "art/enemies/enemy_prism_warden": {
     "move": "de83469e-1339-4f4e-ac26-1274eeeb63c6"
@@ -182,8 +245,20 @@
   "art/enemies/enemy_scale_rider": {
     "move": "25693f98-23aa-4773-9acb-44e77b6255a2"
   },
+  "art/enemies/enemy_shackle_brute": {
+    "attack": "e2a94785-ad40-4943-bc53-02d76aa77f22",
+    "base": "0e4fc301-8a64-46c3-b95a-366bad95898c",
+    "idle": "2d226446-f58c-40ce-97aa-9e185d7b7cf6",
+    "move": "8113f939-fe43-4a40-baa7-d0933decac5c"
+  },
   "art/enemies/enemy_shard_wight": {
     "move": "60d60ad2-cc26-4456-a0e5-66a13aed6202"
+  },
+  "art/enemies/enemy_slag_brute": {
+    "attack": "8f0859ad-c934-4697-a9d2-9f1ab397a48d",
+    "base": "2cc42d98-1a20-4953-95d7-70363d9ffeef",
+    "idle": "3432b22f-ae53-4539-8637-7e283c4b665e",
+    "move": "fc900be5-9514-45ad-a0ed-7db85e253506"
   },
   "art/enemies/enemy_snowhide_brute": {
     "move": "ae613fe7-59c5-49f6-ab05-377894ddcdae"
@@ -191,8 +266,26 @@
   "art/enemies/enemy_stair_runner": {
     "move": "885ae502-cc12-41c9-8ab1-076f96d8f560"
   },
+  "art/enemies/enemy_stair_warder": {
+    "attack": "7ee880f4-bd2b-48cb-8934-cb43ccbc5979",
+    "base": "fe645b67-6034-4a9a-9e8b-6d1e06f92b5f",
+    "idle": "006adc11-b578-43bc-b433-0f621798be59",
+    "move": "871a7f50-d862-4a7a-8ede-d1a73e0a65d3"
+  },
   "art/enemies/enemy_storm_caller": {
     "move": "ef13497a-7efa-4b7c-9d38-8a9f1707025c"
+  },
+  "art/enemies/enemy_thorn_archer": {
+    "attack": "4538fa96-256f-46cc-b4ad-cd86b94bd97e",
+    "base": "0c768679-f86b-462e-a898-63a57b450461",
+    "idle": "39eddae0-86b0-4f8f-9a51-24ae74530cd0",
+    "move": "dbb0e5a9-f345-4f09-8ffa-50f7277e5d60"
+  },
+  "art/enemies/enemy_tide_lurcher": {
+    "attack": "36ca54fb-efad-434f-a47d-0132f2f0af46",
+    "base": "49f78422-39b9-414b-b45a-a251ec68c141",
+    "idle": "4eb969b3-6fbf-45a6-ad94-b5d6d45edacb",
+    "move": "c61fd6a0-a312-4ce3-80a9-4a0b3a64164c"
   },
   "art/enemies/enemy_veiled_skirmisher": {
     "move": "6d5f8238-e7db-46cb-970a-ed02ffed92c2"
@@ -264,6 +357,9 @@
   },
   "art/raid/dungeon_tiles_rift": {
     "tileset": "106b2253-f151-4d3a-9411-2b9f5c5a1067"
+  },
+  "art/terrain/terrain_crown": {
+    "image": "93cc6b5d-6809-4f1d-aed9-d6186621c820"
   },
   "art/towers/tower_ash_thrower": {
     "attack": "89c74f3c-7184-4306-95da-554703ce7b86",
@@ -351,6 +447,22 @@
   },
   "art/vfx/death_stone": {
     "image": "c6e89521-e982-4510-9f6b-fd2202da6d93"
+  },
+  "art/vfx/dragon_overhead_fire": {
+    "base": "506de88c-bcc1-48c5-a0f6-681efc9c3891",
+    "fly": "2f3983c2-d0d8-4456-9b2c-2bb1573a860d"
+  },
+  "art/vfx/dragon_overhead_frost": {
+    "base": "f305de95-f1fe-4177-9b0a-2126fe0c30cf",
+    "fly": "e3d8a933-497d-4cc3-b3c3-b368d313499d"
+  },
+  "art/vfx/dragon_overhead_stone": {
+    "base": "3baf335e-5e14-4d54-b836-88c01e81a9e3",
+    "fly": "cbf0c649-6211-44e9-88bc-5b5e8950c041"
+  },
+  "art/vfx/dragon_overhead_storm": {
+    "base": "aeb848a3-b473-4f4f-b60b-d35a303e11d3",
+    "fly": "8d2bef31-fa49-4f8c-ae81-b71135969e64"
   },
   "art/vfx/heart": {
     "image": "fdba38f5-5da0-418a-b6c6-4628d1dac2f9"
