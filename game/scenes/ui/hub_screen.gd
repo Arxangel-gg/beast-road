@@ -651,6 +651,8 @@ func _build_card() -> void:
 	portrait.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	# The rank is a warmth on the same Warden rather than a different picture.
 	portrait.modulate = RANK_TINTS[clampi(MetaState.ascension, 0, RANK_TINTS.size() - 1)]
+	# And the dye is the same Warden in different cloth (2026-09-21).
+	WardenLook.dress(portrait, WardenLook.mine())
 	_card.add_child(portrait)
 
 	var name_row := HBoxContainer.new()
@@ -677,6 +679,13 @@ func _build_card() -> void:
 		_build_card())
 	_card.add_child(_rename_edit)
 
+	# **The look** (owner, 2026-09-21: character customization, bounded to how
+	# the Warden looks and nothing else). Two dyes, previewed on the portrait
+	# above as the slider moves, saved through `MetaState.set_look` so the
+	# clamp lives in one place.
+	_card.add_child(_look_row("Cloak", WardenLook.KEY_CLOAK))
+	_card.add_child(_look_row("Sash", WardenLook.KEY_SASH))
+
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
 		_line("Ascended %d of %d times" % [MetaState.ascension, Balance.ASCENSION_MAX], Color("b8ae98"))
@@ -700,6 +709,31 @@ func _build_card() -> void:
 	_card.add_child(spacer)
 	_line("%d runs  ·  %d won  ·  %d rift stages closed" % [MetaState.runs_started,
 		MetaState.runs_won, MetaState.rifts_closed], Color("8f9b98"))
+
+
+func _look_row(text: String, key: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var label := Label.new()
+	label.text = text
+	label.custom_minimum_size = Vector2(56.0, 0.0)
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", Color("8d968f"))
+	row.add_child(label)
+	var slider := HSlider.new()
+	slider.name = "Look%s" % key.capitalize()
+	slider.min_value = -WardenLook.RANGE
+	slider.max_value = WardenLook.RANGE
+	slider.step = 0.02
+	slider.value = float(WardenLook.mine().get(key, 0.0))
+	slider.custom_minimum_size = Vector2(180.0, 24.0)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(func(v: float) -> void:
+		MetaState.set_look(key, v)
+		if _portrait != null:
+			WardenLook.dress(_portrait, WardenLook.mine()))
+	row.add_child(slider)
+	return row
 
 
 func _toggle_rename() -> void:

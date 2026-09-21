@@ -205,6 +205,9 @@ var _mount_refused_said: float = 0.0
 ## Empty means "this account decides", which is every hero in a solo run and
 ## this player's own hero in a shared one.
 var told_mount: String = ""
+## How this Warden is dyed (2026-09-21). This machine's own reads the save;
+## a mirrored partner's arrives on the state row. See `WardenLook`.
+var look: Dictionary = WardenLook.plain()
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
@@ -1719,6 +1722,16 @@ func wear_mount(id: String) -> void:
 	_mount_rig.show_mount(kind)
 
 
+## Told how a partner is dyed. Presentation only: nothing reads `look`.
+func wear_look(row: Variant) -> void:
+	var wanted: Dictionary = WardenLook.unpack(row)
+	if WardenLook.same(wanted, look):
+		return
+	look = wanted
+	if _blood_tried and sprite != null:
+		WardenLook.dress(sprite, look)
+
+
 ## Gets off, here, facing the way the Warden was going.
 ##
 ## Idempotent, because several things call it - the attack press, the mount
@@ -2542,6 +2555,11 @@ func _update_sprite(_delta: float) -> void:
 	if not _blood_tried:
 		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
+		# The dye goes on with the material it lives in. The local player's
+		# is the save's; a mirror keeps whatever it was told before this ran.
+		if is_local_player():
+			look = WardenLook.mine()
+		WardenLook.dress(sprite, look)
 	BloodStain.drive(_blood, health.ratio(), _delta)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)

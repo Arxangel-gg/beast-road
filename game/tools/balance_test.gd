@@ -1326,7 +1326,7 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
 				"spirits", "pantry", "professions", "materials", "pen",
-				"expedition", "vendor", "stable", "hold_pond"],
+				"expedition", "vendor", "stable", "hold_pond", "look"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

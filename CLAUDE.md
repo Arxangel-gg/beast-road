@@ -6172,6 +6172,61 @@ went through the conversation. `MountRig` plays the idle at 3.5 frames a second
 rather than six, because a breath over five frames at six a second read as a
 horse shivering.
 
+**The Warden has a look, as of 2026-09-21, and it is a dye and nothing
+else.** Owner ruling (`docs/NEXT_SESSION_PLAN.md`): character customization is
+approved, and its bound was written before the code - **it may change nothing
+but how the Warden looks.** No attribute, no stat, no unlock, no currency,
+nothing the road can grow. This project has refused a third power scale a
+dozen times, and a cosmetic that reached a number would be one arriving
+through a settings screen.
+
+**Two dyes rather than a paper doll, and that is the budget decision the plan
+asked for.** The Warden is eight directions of idle, walk, sprint, dash, death
+and four attack sheets, and the PixelLab character they came from no longer
+exists, so every *drawn* option is every sheet again - the one thing here that
+could eat the art budget. A dye is `warden_look.gdshaderinc`: a hue turn on the
+teal-steel band the cloak and armour are painted in, and another on the
+saturated red the sash and banner are painted in, keyed on hue bands with soft
+edges so bone, the lantern's orange, the gold trim and the plain greys stay
+what they are. It reaches every frame of every sheet for free.
+
+**One include, two shaders, because a sprite has one material.** The hero on
+the road already wears `blood_stain.gdshader`, so the dye lives inside it and
+is applied before the rim, the burn and the stain, which read over dyed cloth
+as they read over painted cloth. The Hold's figures and the Warden card's
+portrait wear nothing, so they wear `warden_look.gdshader`, which includes the
+same file - two copies of one recolour would drift the first time either was
+tuned. `WardenLook.dress` sets the uniforms on whichever of the two a sprite
+wears, gives a *plain* Warden no material at all, and never replaces another
+material, which is `BloodStain.attach`'s own rule.
+
+**It amends working rule 7 by two numbers.** `MetaState.look` is
+`{cloak, sash}`, each a hue turn clamped to half the wheel; additive, so a save
+without it is the painted Warden, which is also what a new account is.
+`SAVE_VERSION` did not move. On the wire it is two numbers by value: a
+partner's look rides the state row as a seventh element behind the mount, and
+the Hold's seat rows and the hello carry it the same way, so a machine draws
+the Warden it was told about and never a guess - and its own seat is never
+overwritten by the echo of what it sent, because a slider still moving would be
+fought by its own packet.
+
+`warden_look_check` (36 checks) holds the bound by dressing a real hero and
+reading every attribute, the speed, the pool and the damage back through the
+same functions the fight reads; the save round trip through the real loader on
+the save's own JSON; a packet that is short, long or not an array drawing the
+painted Warden rather than erroring; and the three sprites - one wearing the
+blood shader, one wearing nothing, one wearing somebody else's material.
+**Headless cannot compile a shader**, so the wiring is read off the source, and
+the dye has been photographed on nothing yet: `hold_shot` and `mount_shot` are
+where it will be seen.
+
+**Not built, deliberately:** the co-op party portrait on the HUD still draws
+the painted Warden for a partner - it is configured by slot and colour before
+the partner's look has arrived, and the fix is to dress it from the mirrored
+hero's `look` when it changes. And a *drawn* option (a hood down, a different
+weapon) is still every sheet again; if one is ever bought, pilot one direction
+first, as the mount idles were.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

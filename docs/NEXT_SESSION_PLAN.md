@@ -136,6 +136,12 @@ measured through `Hero.move_speed()` rather than read off a constant.
 
 ### Character customization - approved, and it needs a bound first
 
+**Built 2026-09-21 as a dye**: two hue turns on the painted Warden (cloak, sash)
+through one shader include, persisted as `MetaState.look`, relayed by value,
+previewed on the Warden card. `warden_look_check` (36) holds the bound by dressing
+a real hero and reading every number back. Drawn options stay unbought for the
+reason below.
+
 A new persistent axis under working rule 7. Before a line of code: **what may a
 customization change?** The answer that keeps it safe is *nothing but how the
 Warden looks* - no attribute, no stat, no unlock, no currency. Additive save key,

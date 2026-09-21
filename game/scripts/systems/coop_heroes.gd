@@ -706,10 +706,20 @@ func _send_state() -> void:
 		if who == null:
 			continue
 		rows.append([number, who.global_position, who.aim_direction(),
-			_health_of(who), _mana_of(who), _saddled_of(number)])
+			_health_of(who), _mana_of(who), _saddled_of(number), _look_of(number, who)])
 	if rows.is_empty():
 		return
 	EventBus.coop_hero_state.emit(rows)
+
+
+## How a seat's Warden is dyed, as two numbers. **Appended to the row**
+## like the mount before it, because the applier reads the seventh element
+## only `if row.size() > 6`, so an older build reads this as a row with no
+## dye on it rather than as a malformed packet.
+func _look_of(number: int, who: Hero) -> Array:
+	if number == Coop.party().slot():
+		return WardenLook.pack(WardenLook.mine())
+	return WardenLook.pack(who.look)
 
 
 ## Which mount a seat is on, as an id.
@@ -768,16 +778,21 @@ func _on_hero_state(rows: Array) -> void:
 		_apply_one_state(clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS),
 			row[1] as Vector2, float(row[3]),
 			float(row[4]) if row.size() > 4 else -1.0,
-			String(row[5]) if row.size() > 5 else "")
+			String(row[5]) if row.size() > 5 else "",
+			row[6] if row.size() > 6 and row[6] is Array else [])
 
 
 ## One seat's authoritative position and health, on a guest.
 func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0,
-		mount_id: String = "") -> void:
+		mount_id: String = "", look_row: Array = []) -> void:
 	var who: Hero = _hero_for_slot(number)
 	if who == null:
 		return
 	_apply_health(who, hp)
+	# Somebody else's dye, never this player's own: the echo of what this
+	# machine sent would overwrite a slider it is still moving.
+	if number != Coop.party().slot() and not look_row.is_empty():
+		who.wear_look(look_row)
 	# Told for every seat including this player's own, which is harmless and
 	# self-correcting: the host is echoing back the id this machine sent it.
 	who.wear_mount(mount_id)

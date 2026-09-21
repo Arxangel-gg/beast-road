@@ -72,7 +72,7 @@ func _ready() -> void:
 	_table.resize(Balance.HOLD_SEATS)
 	for index: int in _table.size():
 		_table[index] = {"peer": 0, "name": "", "title": "",
-			"kind": Seat.SIMULATED, "pen": [], "was_public": false}
+			"kind": Seat.SIMULATED, "pen": [], "was_public": false, "look": []}
 	EventBus.hold_seats.connect(_on_seats_told)
 	EventBus.hold_moved.connect(_on_moved_told)
 	EventBus.hold_handover.connect(_on_handover_told)
@@ -220,6 +220,7 @@ func _compose() -> void:
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
 	_table[0]["pen"] = MetaState.pen
+	_table[0]["look"] = WardenLook.pack(WardenLook.mine())
 	var slot: int = 1
 	for peer: int in multiplayer.get_peers():
 		if slot >= _table.size():
@@ -242,7 +243,7 @@ func _publish_table() -> void:
 	var rows: Array = []
 	for seat: Dictionary in _table:
 		rows.append([int(seat["kind"]), String(seat["name"]), String(seat["title"]),
-			_species_of(seat.get("pen", []) as Array)])
+			_species_of(seat.get("pen", []) as Array), seat.get("look", []) as Array])
 	EventBus.hold_seats.emit(rows)
 
 
@@ -265,6 +266,8 @@ func _on_seats_told(rows: Array) -> void:
 		_table[index]["title"] = String(fields[2])
 		if fields.size() > 3 and fields[3] is Array and index != _mine:
 			_table[index]["pen"] = _roster_from(String(fields[1]), fields[3] as Array)
+		if fields.size() > 4 and fields[4] is Array and index != _mine:
+			_table[index]["look"] = WardenLook.pack(WardenLook.unpack(fields[4]))
 	_draw_table()
 
 
@@ -283,12 +286,14 @@ func _draw_table() -> void:
 			_figure[index] = 0
 			yard.set_seat(0, Seat.LOCAL, _my_name(), MetaState.warden_title())
 			yard.set_pen(0, MetaState.pen)
+			yard.set_look(0, WardenLook.pack(WardenLook.mine()))
 			continue
 		if next >= yard.seats():
 			break
 		_figure[index] = next
 		yard.set_seat(next, kind, String(seat["name"]), String(seat["title"]))
 		yard.set_pen(next, seat.get("pen", []) as Array)
+		yard.set_look(next, seat.get("look", []) as Array)
 		next += 1
 	seats_changed.emit()
 
@@ -362,6 +367,8 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 					args[2] as Array)
 			if args.size() > 3:
 				_table[slot]["was_public"] = bool(args[3])
+			if args.size() > 4 and args[4] is Array:
+				_table[slot]["look"] = WardenLook.pack(WardenLook.unpack(args[4]))
 			_publish_table()
 			_draw_table()
 			note.emit("%s walked in." % String(_table[slot]["name"]))
@@ -390,7 +397,7 @@ func introduce() -> void:
 		# but which of them gets asked first.
 		line.request(CoopRelay.Request.HOLD_HELLO,
 			[_my_name(), MetaState.warden_title(), _species_of(MetaState.pen),
-				is_public()])
+				is_public(), WardenLook.pack(WardenLook.mine())])
 
 
 ## **A pen on the wire is a list of species and nothing else.**

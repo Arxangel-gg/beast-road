@@ -276,10 +276,8 @@ long.
 
 - ~~**Mount speeds and SP drain.**~~ **Built 2026-09-21** under `MOUNT_GALLOP_CEILING`
   and `MOUNT_GALLOP_RANGE`; see CLAUDE.md.
-- **Character customization.** Approved. Bound: it may change *nothing but how
-  the Warden looks*. Pilot one option on one direction before buying a batch —
-  a paper-doll across eight directions and four sheets is the one thing that
-  could eat the art budget.
+- ~~**Character customization.**~~ **Built 2026-09-21 as a dye** (cloak and sash
+  hue turns), which reaches every sheet for free; drawn options stay unbought.
 - **Save slots.** The only thing git cannot restore. `SAVE_VERSION` moves and
   `save_backup_check` runs by hand.
 - **Should the Hold sell wall repair?** `repair_bill` walks towers only.

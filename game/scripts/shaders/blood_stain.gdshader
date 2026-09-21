@@ -4,6 +4,7 @@ shader_type canvas_item;
 // has not been promoted wears this material rather than that one, so the state a
 // player reads off a body has to live in both - see the include's header.
 #include "res://scripts/shaders/actor_state.gdshaderinc"
+#include "res://scripts/shaders/warden_look.gdshaderinc"
 
 // Blood on a character, as speckle rather than tint.
 //
@@ -53,6 +54,12 @@ void fragment() {
 	float outline = max(around - COLOR.a, 0.0) * outline_strength;
 	if (COLOR.a <= 0.001 && outline > 0.001) {
 		COLOR = vec4(outline_colour.rgb, outline * outline_colour.a);
+	}
+	// The Warden's dye, on the body and before anything that happens to it -
+	// a rim, a burn, a stain - so those read over the dyed cloth as they read
+	// over the painted cloth. A body with no dye is untouched in one branch.
+	if (COLOR.a > 0.001) {
+		COLOR.rgb = warden_look(COLOR.rgb);
 	}
 	vec2 gradient = vec2(left_a - right_a, up_a - down_a);
 	if (COLOR.a > 0.001 && length(gradient) > 0.001 && impact_strength > 0.001) {

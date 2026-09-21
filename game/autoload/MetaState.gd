@@ -404,6 +404,13 @@ var mounts: Array[String] = []
 ## and a *string* of four is a roster.
 var mount_saddled: String = ""
 
+## How the Warden is dyed (2026-09-21): `WardenLook.KEY_CLOAK` and `KEY_SASH`
+## to a hue turn each. The bound is one sentence - **a look changes nothing but
+## how the Warden looks** - and `warden_look_check` dresses a real hero and
+## reads every attribute back. Additive: a save without it is the painted
+## Warden, which is also what a new account is.
+var look: Dictionary = {}
+
 ## **The frontier the Warden can go back to.**
 ##
 ## One snapshot, written on a successful extraction and on nothing else. A wipe
@@ -703,6 +710,18 @@ func mark_walk_done() -> void:
 
 ## Renames the Warden. The name is cleaned the way the board cleans it, so a
 ## name that cannot be posted cannot be worn either.
+## One dye on the Warden. The Hold's card is the only caller; clamped here
+## rather than there, so a second caller cannot write a value the shader was
+## never authored for.
+func set_look(key: String, value: float) -> void:
+	if not WardenLook.KEYS.has(key):
+		return
+	var cleaned: Dictionary = WardenLook.clean(look)
+	cleaned[key] = clampf(value, -WardenLook.RANGE, WardenLook.RANGE)
+	look = cleaned
+	save_game()
+
+
 func rename_player(wanted: String) -> void:
 	var cleaned: String = Score.clean_name(wanted)
 	if cleaned == player_name:
@@ -1841,6 +1860,8 @@ func serialized_save() -> String:
 			"owned": mounts,
 			"saddled": mount_saddled,
 		},
+		# The Warden's dye: two numbers and nothing that reaches a fight.
+		"look": WardenLook.clean(look),
 		# The frontier. One snapshot, and an unreadable one is dropped on load
 		# rather than half-applied - half a fortress is worse than none, because
 		# the player cannot tell which half is missing.
@@ -1959,6 +1980,7 @@ func adopt_save(data: Dictionary) -> void:
 	_read_pen(data.get("pen", {}) as Dictionary)
 	_read_stable(data.get("stable", {}) as Dictionary)
 	vendor = data.get("vendor", {}) as Dictionary
+	look = WardenLook.clean(data.get("look", {}))
 	hold_pond = data.get("hold_pond", {}) as Dictionary
 	var front: Dictionary = data.get("expedition", {}) as Dictionary
 	expedition = front if Expedition.is_readable(front) else {}

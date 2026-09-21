@@ -1566,6 +1566,16 @@ func set_seat(index: int, kind: int, who: String, title: String = "") -> void:
 	_relabel()
 
 
+## How a seat's Warden is dyed: this machine's own off the save, a stranger's
+## as the host said. A simulated seat is the painted Warden.
+func set_look(index: int, row: Array) -> void:
+	if index < 0 or index >= _seats.size():
+		return
+	var animator := _seats[index].get("animator") as HeroAnimator
+	if animator != null and animator.sprite != null:
+		WardenLook.dress(animator.sprite, WardenLook.unpack(row))
+
+
 ## What is kept in a seat's pen. This machine's own comes off the save; a
 ## stranger's is what the host was told, and is drawn and never touched.
 func set_pen(index: int, roster: Array) -> void:
