@@ -5979,6 +5979,60 @@ anything"* still means the account. `tutorial_walk_check` drives every verb
 through its real signal on a real Walk, and named a planted Walk that stopped
 listening for arrows.
 
+**The clock has one owner, as of 2026-09-21.** The roadmap's first genre
+expectation: *"a ten-and-a-half-hour tower-defence campaign without a
+fast-forward is a pacing complaint in every review"*, and there was none.
+What there was is why it had to be built as an *owner* rather than a toggle:
+`Engine.time_scale` was written by the hitstop, the boss-fall slow and three
+doors in `GameDirector`, and every one of them put it back to the literal
+`1.0` when it was done - so a 2x laid beside them would have been undone by
+the first blow that landed. `GameSpeed` holds the base rate; everything that
+borrows the clock gives it back through `restore()`, every run and walk opens
+through `reset()`, and `game_speed_check` walks the source for the literal so
+the next door cannot write it.
+
+**Solo only, and that is a fact about the wire.** A guest's world is facts on
+the host's clock; a host that is merely listening may be joined. Any session
+at all holds the road at one speed, and the button says why. It is `P` and a
+button beside RIDE ON, hidden on a touch layout for now - the column has no
+room on a landscape phone and the key it wears is a keyboard's.
+
+**The wall is said out loud, as of the same date.** *"I didn't know I was
+losing"* was the first-hour complaint the roadmap put first, and the town bar
+answered a blow with nothing. A blow flashes the bar and the banner names the
+road it came from - read off where it landed against the town's centre, because
+four roads face four ways and a player defending the east gate wants to know
+it is the west one falling - at most once per `TOWN_ALERT_COOLDOWN`, or a
+siege is a banner that never leaves. Under the critical share the bar pulses
+as the hero's does; bodies inside `TOWN_ALERT_NEAR` tint its icon and are said
+once, polled rather than counted a frame. `EventBus.town_struck` carries the
+position `TownCore` already had and threw away.
+
+**And the sanctuary is said on entering.** The town's own footprint is where no
+road body can see or touch a Warden (owner, 2026-09-17), and it grew from a
+circle to the whole sprite in v0.47.0 without a word on screen - so a player
+standing on it watched bodies ignore them and read it as "enemies never
+attack". It is said once on the way in, in combat, and not again for a while.
+`town_alert_check` reads all of it back off the real HUD's own banner.
+
+**The animator paints its own light, and the fix is the prompt, not the
+scrubber.** Six of fourteen strike sheets came back with slash trails, bursts
+and arcs painted into the air - the same bright-blob artefact the menu Warden
+shipped with, now on purpose because the words "slash", "swing" and "strike"
+are effect words to the model. A prompt that *forbade* effects in capitals
+changed nothing. **Describing the motion of the body alone, with no combat
+noun** - "the figure twists its torso, both arms sweeping across the body at
+waist height" - came back clean on all five. `tools/scrub_animation_frames.py`
+carries the menu scrubber's rule for any sheet as a backstop; it found nothing
+to erase on the shipped roster, which is the measurement that says the prompt
+did the work. The game draws its own hit effects, and a strike painted into the
+sprite is a strike that plays twice.
+
+**Three walks sat in PixelLab's queue for an hour and were marked failed
+without a 410** - the download answered 423 the whole time, so the staging
+loop waited on jobs that would never finish. The queue's own message says to
+submit fewer at once; twenty in flight is the ceiling, not the target.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -37,7 +37,8 @@ everything has read nothing.
 Final Ascent → win/lose → payout → menu. Expeditions put the road down and pick
 it up. Co-op seats four. The Hold is a place you walk in.
 
-**161 gates** run at release, 159 at guard, and the release bar is a superset.
+**164 gates** run at release, 162 at guard, and the release bar is a superset
+(`roster_check`, `game_speed_check` and `town_alert_check` joined on 2026-09-21).
 Roughly 29,000 assertions in `balance_test` alone.
 
 **And almost nobody has played it.** That gap — between "the gates are green"
@@ -50,7 +51,7 @@ nothing on this list closes it except §6.
 
 | | What | Why it blocks |
 |---|---|---|
-| 1 | ~~**Enemies never attack** (v0.47.1)~~ **Shipped in v0.47.2.** | Traced, and the mechanism above was not it: siege breeds arrived at the wall holding a tower target they could never reach and stood there. One rule in `_pick_target`, gated by `enemy_siege_check` across all 68 breeds. "Not the player" was not reproduced; the sanctuary rect grew in v0.47.0 and is unsaid on screen (P1). |
+| 1 | ~~**Enemies never attack** (v0.47.1)~~ **Shipped in v0.47.2.** | Traced, and the mechanism above was not it: siege breeds arrived at the wall holding a tower target they could never reach and stood there. One rule in `_pick_target`, gated by `enemy_siege_check` across all 68 breeds. "Not the player" was not reproduced; the sanctuary rect grew in v0.47.0 and was unsaid on screen - **said on entering since 2026-09-21** (`town_alert_check`). |
 | 2 | ~~**Mounts thrown by Yuri's footfall**~~ **Shipped in v0.47.2.** | Dismount on health lost, `MOUNT_HURT_COOLDOWN`, the horse's picture in an emptying ring on the ride button, the co-op mirror throwing on the same drop. |
 
 Both shipped 2026-09-21. The rest of this document is unchanged by them.
@@ -100,7 +101,13 @@ Nothing fails on any of these. They are only ever found by counting.
 
 ## 5. More enemies — the owner's ruling, sized
 
-**Target: 8–14 breeds an act across all 11 acts.**
+**Target: 8–14 breeds an act across all 11 acts.** **Shipped 2026-09-21 as the
+owner's own table instead: 8 in Act I rising by one to 17 on the Terrace and 19 at the
+summit (`Balance.ACT_UNIQUE_ENEMIES`), fourteen new breeds, the four road breeds no
+region had ever listed, an authored `veteran_ids` per terrain, and `roster_check` (702)
+holding every act to its count exactly and driving the real director's draw. The
+Final Ascent is a full eleventh act on the Crown's own ground. The curve was re-measured
+on a new account afterwards.** What follows is the sizing that was written before it.
 
 Measured: each region names **4–5** (`enemy_ids` on `TerrainData`), across 10
 regions, out of **68** enemy resources including bosses, elites, camp breeds and
@@ -149,10 +156,10 @@ absence a reviewer will name in the first paragraph.
 
 ### 7.1 Almost certainly required
 
-- **Game speed control (1× / 2× / pause).** A ten-and-a-half-hour tower-defence
-  campaign without a fast-forward is a pacing complaint in every review. Nothing
-  in the record mentions one. **Check whether it exists before building it** —
-  this project has twice built something it already had.
+- ~~**Game speed control (1× / 2× / pause).**~~ **Built 2026-09-21**: `GameSpeed`
+  owns the clock's base rate, 2x on `P` and a button beside RIDE ON, solo only,
+  and every borrower of the clock restores through it (`game_speed_check`).
+  Pause already existed.
 - **Tower targeting priority** (first / last / strongest / closest). A standard
   expectation of the genre; no mention anywhere. With 61 towers and ten levels,
   its absence reads as depth withheld.
@@ -308,7 +315,7 @@ anticipation audio on telegraphs.
 Each numbered block ends with a published build.
 
 1. **P0 regressions** (§2).
-2. **Town alert + imminent-damage indicators** (P1).
+2. ~~**Town alert + imminent-damage indicators** (P1).~~ **Built 2026-09-21** (`town_alert_check`).
 3. **Mobile**: mount control, `layout_check` overlaps, then performance.
 4. **Mounts properly**: per-mount speeds and SP, `mount_check`'s invariant
    amended deliberately.
@@ -338,7 +345,7 @@ A release is production-ready when all of these are true:
 - [ ] At least three people who did not build it have played the first hour and
       their first-hour complaints have been answered or consciously accepted.
 - [ ] Every act has music and every boss has a theme.
-- [ ] Every act draws from 8–14 breeds.
+- [x] Every act draws from 8–14 breeds - 8 to 19, by the owner's table (2026-09-21).
 - [ ] No placeholder art ships.
 - [ ] The mix has been heard in play by a person.
 - [ ] Minimum spec is stated and met on a machine that meets it.

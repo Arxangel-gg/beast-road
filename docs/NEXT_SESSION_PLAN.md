@@ -48,6 +48,11 @@ sprint that costs SP, per-mount rates. Untouched by the patch.
 
 ## P1 - the HUD tells you the town is dying
 
+**Shipped 2026-09-21.** A blow flashes the town bar and the banner names the road it
+came from; under the critical share the bar pulses; bodies at the gate tint the icon and
+are said once; the sanctuary is said on entering. `town_alert_check` reads it back off
+the real HUD. The reasoning below is what it was built against.
+
 The screenshot reporting the attack bug shows the town at 24% with nothing on
 screen saying so. Two readouts, neither of which changes a number:
 
@@ -146,6 +151,12 @@ run **by hand** before any release that changes it.
 ---
 
 ## More enemies: 8-14 an act across all 11 acts
+
+**Shipped 2026-09-21 as the owner's own table** - 8 in Act I, +1 an act to 17, 19 at
+the summit - with fourteen new breeds, `TerrainData.veteran_ids`, the Final Ascent as a
+full act on the Crown, and `roster_check`. The same session shipped loot as pieces, the
+dragon polish, the Walk's verbs, the fast-forward and the wall alert. The sizing below is
+what it was built against.
 
 **Measured, not estimated.** Each region names **4-5** breeds today (`enemy_ids`
 on `TerrainData`), across 10 regions, out of 68 enemy `.tres` including bosses,
