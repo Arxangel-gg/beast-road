@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 4.2
+hide = 2
+art_facing = 1
+behaviour = 2
+behaviour_warning = 0.50
+behaviour_seconds = 0.40
+behaviour_recovery = 1.20
+behaviour_reach = 320.00
+behaviour_power = 0.00
+behaviour_interval = 6.50
+id = "prism_lancer"
+display_name = "Prism Lancer"
+description = "Light goes in. Something else comes out the point."
+role = 1
+max_hp = 110.0
+contact_damage = 16.0
+move_speed = 80.0
+body_radius = 26.0
+knockback_resistance = 0.20
+resource_value = 3

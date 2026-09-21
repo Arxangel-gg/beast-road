@@ -7,6 +7,11 @@ extends Node2D
 ## Variant weights, colors and fire behavior belong to EnemyData resources.
 
 const ART: String = "res://art/vfx/dragon_overhead.png"
+## Each variant's own overhead painting, with `_fly_NN` wing-beat frames
+## beside it by the same convention every flyer uses. A variant without one
+## flies as the shared painting tinted, which is what every dragon was until
+## 2026-09-21 - so a missing file is a duller dragon, never a missing one.
+const VARIANT_ART_FORMAT: String = "res://art/vfx/dragon_overhead_%s.png"
 
 var from: Vector2 = Vector2.ZERO
 var to: Vector2 = Vector2.ZERO
@@ -35,6 +40,15 @@ var _left: float = 0.0
 var _flying: bool = false
 var _since_fire: float = 0.0
 var _mirror: bool = false
+
+# Presentation only: nothing below reads any of these.
+var _wing_frames: Array[Texture2D] = []
+var _idle_frames: Array[Texture2D] = []
+var _attack_frames: Array[Texture2D] = []
+var _own_art: bool = false
+var _clock: float = 0.0
+var _attack_left: float = 0.0
+var _touched_down: bool = false
 
 
 func _ready() -> void:
@@ -65,8 +79,7 @@ func _ready() -> void:
 		if pick <= 0.0:
 			_kind = candidate
 			break
-	if _kind != null and ResourceLoader.exists(_kind.get_sprite_path()):
-		_ground_art = load(_kind.get_sprite_path()) as Texture2D
+	_load_ground_art()
 	_curve = (to - from).normalized().orthogonal() * _random.randf_range(
 		-Balance.DRAGON_CURVE_WIDTH, Balance.DRAGON_CURVE_WIDTH)
 	_will_land = _random.randf() < Balance.DRAGON_LAND_CHANCE
@@ -81,12 +94,10 @@ func _ready() -> void:
 		_landing = authored_plan.get("landing", _landing) as Vector2
 		_will_land = bool(authored_plan.get("land", false))
 		_curve = authored_plan.get("curve", _curve) as Vector2
-		if _kind != null and ResourceLoader.exists(_kind.get_sprite_path()):
-			_ground_art = load(_kind.get_sprite_path()) as Texture2D
+		_load_ground_art()
 	_height = Balance.DRAGON_HEIGHT
 	_heading = (to - from).normalized()
-	if ResourceLoader.exists(ART):
-		_art = load(ART) as Texture2D
+	_load_wings()
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	global_position = from
 	Sfx.play("sfx_thunder_far", -2.0)
@@ -94,6 +105,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_clock += delta
+	_attack_left = maxf(_attack_left - delta, 0.0)
 	if _landed:
 		_land_left -= delta
 		_since_fire += delta
@@ -102,6 +115,7 @@ func _process(delta: float) -> void:
 			_breathe()
 		if _land_left <= 0.0:
 			_landed = false
+			_take_off()
 		queue_redraw()
 		return
 	_left -= delta
@@ -133,6 +147,7 @@ func _process(delta: float) -> void:
 			_left = Balance.DRAGON_PASS_SECONDS * 0.5
 			global_position = _landing
 			_height = 0.0
+			_touch_down()
 	_since_fire += delta
 	if _since_fire >= Balance.DRAGON_FIRE_INTERVAL:
 		_since_fire = 0.0
@@ -162,6 +177,7 @@ func _breathe() -> void:
 				nearest = distance
 				target = hero.global_position
 	var tint: Color = _kind.dragon_breath_tint if _kind != null else Color(1.0, 0.4, 0.12)
+	_attack_left = Balance.DRAGON_BREATH_WARNING + 0.35
 	EventBus.world_hazard.emit("ground", {
 		"mode": "breath", "from": global_position, "to": target,
 		"origin": global_position - Vector2(0.0, _height),
@@ -181,10 +197,16 @@ func _breathe() -> void:
 ## Drawn rather than lit: a real light of this size on a field that already
 ## carries a hundred torches is a frame nobody can afford, and a shadow is what
 ## a player actually reads as something passing over.
+##
+## **The shadow settles.** In the air it is the whole silhouette, soft and wide
+## on the ground beneath; as the body comes down it draws in under the feet,
+## and a landed dragon stands in a contact shadow rather than under a copy of
+## itself. A shadow that stayed at flight size on the ground read as a second
+## dragon lying beside the first, which is the report this answers.
 func _draw() -> void:
 	if _art == null:
 		return
-	var size: Vector2 = _art.get_size() * Balance.DRAGON_SCALE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_SIZE_STEP)
+	var size: Vector2 = flying_size()
 	var turn: float = _heading.angle() + PI * 0.5
 	if not _flying:
 		# The warning: the shadow alone, growing in as it comes out of the sun.
@@ -192,14 +214,17 @@ func _draw() -> void:
 			Balance.DRAGON_WARNING_SECONDS, 0.01), 0.0, 1.0)
 		_shadow(size, turn, coming * 0.55)
 		return
-	_shadow(size, turn, 0.55)
+	_shadow(size * shadow_scale(), turn, 0.55)
 	if _landed and _ground_art != null:
-		var ground_size: Vector2 = _ground_art.get_size() * Balance.DRAGON_SCALE
-		draw_texture_rect(_ground_art, Rect2(Vector2(-ground_size.x * 0.5, -ground_size.y), ground_size), false)
+		var ground_size: Vector2 = landed_size()
+		draw_texture_rect(landed_frame(), Rect2(Vector2(-ground_size.x * 0.5, -ground_size.y), ground_size), false)
 		return
 	draw_set_transform(Vector2(0.0, -_height), turn, Vector2.ONE)
-	draw_texture_rect(_art, Rect2(-size * 0.5, size), false,
+	# A variant painted in its own colours is drawn as painted; the shared
+	# painting is tinted toward the breath, which is all it ever had to say.
+	var tint: Color = Color.WHITE if _own_art else (
 		_kind.dragon_breath_tint.lightened(0.65) if _kind != null else Color.WHITE)
+	draw_texture_rect(wing_frame(), Rect2(-size * 0.5, size), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -208,6 +233,114 @@ func _shadow(size: Vector2, turn: float, strength: float) -> void:
 	draw_texture_rect(_art, Rect2(-size * 0.5, size), false,
 		Color(0.0, 0.0, 0.0, clampf(strength, 0.0, 1.0)))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## The rarity step is the same on the ground as in the air: a Cairnwyrm that
+## was a fifth larger overhead used to land at the common size.
+func rarity_scale() -> float:
+	return 1.0 + float(rarity) * Balance.DRAGON_RARITY_SIZE_STEP
+
+
+func flying_size() -> Vector2:
+	return _art.get_size() * Balance.DRAGON_SCALE * rarity_scale() if _art != null else Vector2.ZERO
+
+
+func landed_size() -> Vector2:
+	return _ground_art.get_size() * Balance.DRAGON_SCALE * rarity_scale() if _ground_art != null else Vector2.ZERO
+
+
+## How much of its flight silhouette the shadow keeps, by height: whole at
+## `DRAGON_HEIGHT`, `DRAGON_SHADOW_REST` of it on the ground.
+func shadow_scale() -> float:
+	var aloft: float = clampf(_height / maxf(Balance.DRAGON_HEIGHT, 1.0), 0.0, 1.0)
+	return lerpf(Balance.DRAGON_SHADOW_REST, 1.0, aloft)
+
+
+## The wing beat: frame zero is the painting, the rest its `_flight` frames.
+func wing_frame() -> Texture2D:
+	if _wing_frames.size() <= 1:
+		return _art
+	var index: int = int(_clock * Balance.DRAGON_WING_HZ) % _wing_frames.size()
+	return _wing_frames[index]
+
+
+## On the ground it breathes on its idle frames and strikes on its attack
+## frames - the same sheets a camp lord of the same kind fights on.
+func landed_frame() -> Texture2D:
+	if _attack_left > 0.0 and _attack_frames.size() > 1:
+		var swing: float = 1.0 - _attack_left / (Balance.DRAGON_BREATH_WARNING + 0.35)
+		var index: int = clampi(int(swing * float(_attack_frames.size())), 0, _attack_frames.size() - 1)
+		return _attack_frames[index]
+	if _idle_frames.size() <= 1:
+		return _ground_art
+	return _idle_frames[int(_clock * Balance.DRAGON_LANDED_IDLE_HZ) % _idle_frames.size()]
+
+
+## Which frame the landed body is showing, for the gate: -1 in the air.
+func landed_frame_index() -> int:
+	if not _landed:
+		return -1
+	if _attack_left > 0.0 and _attack_frames.size() > 1:
+		return 100 + _attack_frames.find(landed_frame())
+	return _idle_frames.find(landed_frame())
+
+
+func wing_frame_count() -> int:
+	return _wing_frames.size()
+
+
+func _load_ground_art() -> void:
+	_ground_art = null
+	_idle_frames.clear()
+	_attack_frames.clear()
+	if _kind == null or not ResourceLoader.exists(_kind.get_sprite_path()):
+		return
+	var base: String = _kind.get_sprite_path()
+	_ground_art = load(base) as Texture2D
+	# A loaded sequence already carries the painting as frame zero.
+	_idle_frames = GameData.load_idle_frames(base)
+	_attack_frames = GameData.load_attack_frames(base)
+
+
+func _load_wings() -> void:
+	_art = null
+	_own_art = false
+	_wing_frames.clear()
+	if _kind != null:
+		var own: String = VARIANT_ART_FORMAT % _kind.id.trim_prefix("dragon_")
+		if ResourceLoader.exists(own):
+			_art = load(own) as Texture2D
+			_own_art = true
+			_wing_frames = GameData.load_flight_frames(own)
+	if _art == null and ResourceLoader.exists(ART):
+		_art = load(ART) as Texture2D
+
+
+## The landing is felt: dust the colour of the ground it came down on, a
+## knock weighted by distance like every other blow, and the animal's own
+## voice. Presentation only, on every machine, from the same deterministic
+## descent.
+func _touch_down() -> void:
+	_touched_down = true
+	var tone: Color = Color(0.5, 0.45, 0.4)
+	if field != null:
+		tone = field.ground_colour(_landing)
+	Vfx.dust(_landing, tone.lightened(0.15), 16, landed_size().x * 0.45)
+	Vfx.ring(_landing, landed_size().x * 0.55, Color(tone.r, tone.g, tone.b, 0.5), 0.5, 5.0)
+	EventBus.camera_impact.emit(_landing, Balance.DRAGON_LAND_IMPACT)
+	Sfx.play_group_at("sfx_hit_stone", _landing, 2.0)
+	Sfx.play_group_at("sfx_enemy_call_beast", _landing, 3.0)
+
+
+func _take_off() -> void:
+	var tone: Color = Color(0.5, 0.45, 0.4)
+	if field != null:
+		tone = field.ground_colour(_landing)
+	Vfx.dust(global_position, tone.lightened(0.1), 10, landed_size().x * 0.5)
+
+
+func has_touched_down() -> bool:
+	return _touched_down
 
 
 ## Drive the whole pass by hand. For the gate, which has no minutes to spend.

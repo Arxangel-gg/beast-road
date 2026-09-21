@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_wraith"
+stagger_tolerance = 4.8
+hide = 3
+art_facing = 1
+shot = 3
+shot_range = 640
+shot_ids = PackedStringArray("hex_crawl")
+aura_radius = 200.0
+aura_strength = 0.10
+id = "marsh_piper"
+display_name = "Marsh Piper"
+description = "The tune is for the lights, not for you. The lights are for you."
+role = 3
+max_hp = 62.0
+contact_damage = 7.0
+move_speed = 44.0
+body_radius = 24.0
+knockback_resistance = 0.00
+resource_value = 4

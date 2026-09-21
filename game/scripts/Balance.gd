@@ -11334,6 +11334,23 @@ const WALK_LANE: int = 0
 ## straight off the back of it into a loading screen throws it away.
 const WALK_ENDING_SECONDS: float = 13.0
 
+## **The valley's chest** (2026-09-21). The build stop said "It costs Gold,
+## which is why you killed for it" on a road that opens with none and one
+## scripted kill behind it, so the stop could not be finished by anybody who
+## did as they were told. Each of the two stops that ask for a purchase opens
+## with enough in every wallet to make it: the cheapest starter tower, then
+## the first rung of the ladder. Run-scoped, like everything in the valley -
+## the Walk's run is never settled, so nothing here reaches the account.
+const WALK_BUILD_PURSE: int = 220
+const WALK_UPGRADE_PURSE: int = 110
+## The chain: how long Interact is held to part it, from how near, how far
+## below the town it stands so it is not drawn under the town's own art, and
+## the knock the camera feels when it gives.
+const WALK_CHAIN_SECONDS: float = 2.5
+const WALK_CHAIN_REACH: float = 150.0
+const WALK_CHAIN_STANDOFF: float = 300.0
+const WALK_CHAIN_IMPACT: float = 12.0
+
 ## How long the rest of a party has to answer when the host puts a road to them
 ## (owner brief, 2026-09-17). Long enough to read what kind of road it is and
 ## short enough that one seat away from the keyboard does not hold the rest in
@@ -11674,6 +11691,14 @@ const MOUNT_IDLE_BREATH_RATE: float = 1.8
 const DRAGON_RARITY_WEIGHTS: Array[float] = [0.75, 0.20, 0.045, 0.005]
 const DRAGON_RARITY_SIZE_STEP: float = 0.06
 const DRAGON_RARITY_DAMAGE_STEP: float = 0.08
+## Presentation of the pass (2026-09-21): the wing beat and the landed idle
+## are frame rates over the variant's own sheets; the shadow keeps this share
+## of its flight silhouette on the ground; the landing knocks the camera with
+## this weight through `camera_impact`, scaled by distance like every blow.
+const DRAGON_WING_HZ: float = 6.0
+const DRAGON_LANDED_IDLE_HZ: float = 4.0
+const DRAGON_SHADOW_REST: float = 0.45
+const DRAGON_LAND_IMPACT: float = 11.0
 const CHAIN_CORE_WIDTH: float = 3.2
 const CHAIN_FLASH_HOLD: float = 0.04
 const CHAIN_FLASH_FADE: float = 0.18

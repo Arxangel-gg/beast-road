@@ -50,6 +50,7 @@ func _ready() -> void:
 	_test_the_account_is_unmoved()
 	_test_the_walk_never_settles()
 	_test_it_is_offered_only_to_a_new_account()
+	await _test_the_verbs_finish_their_stops()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[walk] PASS - %d checks: %d stops in order and finishable, the "
@@ -101,6 +102,10 @@ func _test_the_stops_are_walkable() -> void:
 	# **Every objective is one something in the game actually emits.** A stop
 	# waiting on a signal nothing sends is a Walk that stops there for ever, and
 	# nothing about it errors: the card simply never changes.
+	# A mirror of `TutorialWalk._listen`, kept by hand on purpose: a list the
+	# gate read off the Walk would pass with the Walk's list wrong. The four
+	# verbs joined on 2026-09-21, and `_test_the_verbs_finish_their_stops`
+	# drives each of them through its real signal below.
 	var wired: Array[int] = [
 		TutorialStopData.Done.ENTERED,
 		TutorialStopData.Done.KILLED,
@@ -108,6 +113,11 @@ func _test_the_stops_are_walkable() -> void:
 		TutorialStopData.Done.CAUGHT,
 		TutorialStopData.Done.BUILT,
 		TutorialStopData.Done.WAVE_HELD,
+		TutorialStopData.Done.LOOSED,
+		TutorialStopData.Done.CAST,
+		TutorialStopData.Done.BONDED,
+		TutorialStopData.Done.UPGRADED,
+		TutorialStopData.Done.CHAIN_CUT,
 	]
 	for stop: TutorialStopData in stops:
 		_check(wired.has(stop.done),
@@ -244,9 +254,80 @@ func _test_it_is_offered_only_to_a_new_account() -> void:
 	MetaState.tutorial_walk_done = walked
 
 
-func _check(condition: bool, why: String) -> void:
+## **The verbs finish their stops** (2026-09-21). Twelve of the eighteen stops
+## finished on arrival, and four of them did so while telling the player to do
+## a thing - loose, cast, upgrade, cut the chain - so the Walk taught the words
+## and never the deed. Driven through the real signals on a real Walk, because
+## the `wired` list above is a claim and this is the proof: remove a line from
+## `_listen` and the stop it served stands here for ever.
+func _test_the_verbs_finish_their_stops() -> void:
+	RunState.reset()
+	var walk := TutorialWalk.new()
+	add_child(walk)
+	await get_tree().process_frame
+	var stops: Array[TutorialStopData] = _stops()
+	var tower_id: String = ""
+	for value: Variant in ContentDB.towers.values():
+		var tower := value as TowerData
+		if tower != null:
+			tower_id = tower.id
+			break
+	for kind: int in [TutorialStopData.Done.LOOSED, TutorialStopData.Done.CAST,
+			TutorialStopData.Done.UPGRADED, TutorialStopData.Done.CHAIN_CUT]:
+		var index: int = -1
+		for i: int in stops.size():
+			if stops[i].done == kind:
+				index = i
+				break
+		if not _check(index >= 0, "a stop finishes on kind %d" % kind):
+			continue
+		var stop: TutorialStopData = stops[index]
+		walk.set("_index", index - 1)
+		walk.call("_advance")
+		_check(walk.index() == index, "the walk stands at %s" % stop.id)
+		match kind:
+			TutorialStopData.Done.LOOSED:
+				_check(not RunState.ranged_id.is_empty()
+						and RunState.ammo_count(RunState.ammo_id) >= stop.count,
+					"the butts lend a bow and enough arrows to finish (%s, %d)"
+						% [RunState.ranged_id, RunState.ammo_count(RunState.ammo_id)])
+				for _shot: int in stop.count - 1:
+					EventBus.hero_loosed.emit(Vector2.ZERO, Vector2.RIGHT, RunState.ammo_id)
+				_check(walk.index() == index,
+					"%s wants %d arrows and is not finished by %d" % [stop.id, stop.count, stop.count - 1])
+				EventBus.hero_loosed.emit(Vector2.ZERO, Vector2.RIGHT, RunState.ammo_id)
+			TutorialStopData.Done.CAST:
+				EventBus.spell_cast.emit("ember_fall", 0, Vector2.ZERO)
+			TutorialStopData.Done.UPGRADED:
+				var gold_before: int = RunState.currency(RunState.GOLD)
+				_check(gold_before >= Balance.TOWER_UPGRADE_COSTS[0],
+					"the upgrade stop opens with the first rung's price in the purse (%d)" % gold_before)
+				var anchor := Vector2i(3, 3)
+				RunState.set_tower(anchor, tower_id, 1)
+				EventBus.tower_changed.emit(anchor)
+				_check(walk.index() == index, "placing a tower is not upgrading one")
+				RunState.set_tower(anchor, tower_id, 2)
+				EventBus.tower_changed.emit(anchor)
+			TutorialStopData.Done.CHAIN_CUT:
+				var chain: WalkChain = walk.chain()
+				if _check(chain != null, "a chain stands at the anchor"):
+					chain.work(Balance.WALK_CHAIN_SECONDS * 0.5)
+					_check(not chain.is_cut() and walk.index() == index,
+						"half the hold does not part the chain")
+					chain.work(Balance.WALK_CHAIN_SECONDS * 0.6)
+					_check(chain.is_cut(), "the whole hold parts it")
+		var finished: bool = walk.index() > index
+		_check(finished, "%s finished on its verb (index %d)" % [stop.id, walk.index()])
+	walk.queue_free()
+	RunState.reset()
+	for _frame: int in 4:
+		await get_tree().process_frame
+
+
+func _check(condition: bool, why: String) -> bool:
 	_checks += 1
 	if condition:
-		return
+		return true
 	_failures += 1
 	push_error("[walk] " + why)
+	return false

@@ -48,6 +48,10 @@ var _tally: int = 0
 ## Instructions only, on a second walk.
 var _replay: bool = false
 var _clock: float = 0.0
+## The last level seen at each anchor, so a build and an upgrade can be told
+## apart on the one signal both arrive on.
+var _levels: Dictionary = {}
+var _chain: WalkChain = null
 
 
 func _ready() -> void:
@@ -88,10 +92,31 @@ func _listen() -> void:
 		_tick_objective(TutorialStopData.Done.GATHERED))
 	EventBus.fish_caught.connect(func(_id: String, _food: int) -> void:
 		_tick_objective(TutorialStopData.Done.CAUGHT))
-	EventBus.tower_changed.connect(func(_anchor: Vector2i) -> void:
-		_tick_objective(TutorialStopData.Done.BUILT))
+	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.wave_cleared.connect(func(_wave: int) -> void:
 		_tick_objective(TutorialStopData.Done.WAVE_HELD))
+	# The verbs (2026-09-21): a stop that tells the player to loose, cast or
+	# upgrade used to finish when they arrived, which taught the words and not
+	# the thing. Each is the signal the game already emits for it.
+	EventBus.hero_loosed.connect(func(_from: Vector2, _direction: Vector2, _ammo: String) -> void:
+		_tick_objective(TutorialStopData.Done.LOOSED))
+	EventBus.spell_cast.connect(func(_spell: String, _slot: int, _at: Vector2) -> void:
+		_tick_objective(TutorialStopData.Done.CAST))
+	EventBus.spirit_bonded.connect(func(_key: String) -> void:
+		_tick_objective(TutorialStopData.Done.BONDED))
+
+
+## Built and upgraded are one signal, told apart by the level: a tower the
+## Walk has not seen at this anchor is a build, one it has seen at a lower
+## level is an upgrade, and a sale is neither.
+func _on_tower_changed(anchor: Vector2i) -> void:
+	var level: int = RunState.level_at(anchor)
+	var before: int = int(_levels.get(anchor, 0))
+	_levels[anchor] = level
+	if level > 0 and before == 0:
+		_tick_objective(TutorialStopData.Done.BUILT)
+	elif level > before and before > 0:
+		_tick_objective(TutorialStopData.Done.UPGRADED)
 
 # ---------------------------------------------------------------- the stops
 
@@ -124,9 +149,74 @@ func _advance() -> void:
 		_finish()
 		return
 	_at = _place(stop)
+	_open(stop)
 	EventBus.walk_stop_reached.emit(stop.id)
 	if card != null:
 		card.say(stop.instruction, "" if _replay else stop.aside, stop.seconds)
+
+
+## What a stop needs standing or in hand before it can be finished the way it
+## says (2026-09-21): a bow at the butts, a purse where a purchase is asked,
+## the chain at the anchor. Run-scoped every one - the Walk's run is never
+## settled - so "nothing here grants anything" still means the account.
+func _open(stop: TutorialStopData) -> void:
+	match stop.done:
+		TutorialStopData.Done.LOOSED:
+			_lend_bow()
+		TutorialStopData.Done.BUILT:
+			RunState.gain_every_currency(Balance.WALK_BUILD_PURSE)
+		TutorialStopData.Done.UPGRADED:
+			RunState.gain_every_currency(Balance.WALK_UPGRADE_PURSE)
+		TutorialStopData.Done.CHAIN_CUT:
+			_stand_chain()
+
+
+## The starting-kit bow and a quiver of what fits it, exactly as the armoury
+## hands them over - so the thing the butts teach is the thing the road sells.
+func _lend_bow() -> void:
+	if RunState.ranged_id.is_empty():
+		var ids: Array = ContentDB.ranged_weapons.keys()
+		ids.sort()
+		for id: Variant in ids:
+			var weapon := ContentDB.ranged_weapons[id] as RangedWeaponData
+			if weapon != null and weapon.starting_kit:
+				RunState.ranged_id = weapon.id
+				break
+	if RunState.ranged_id.is_empty():
+		return
+	var fits: Array[AmmoData] = RunState.ammo_for_weapon(RunState.ranged_id)
+	if fits.is_empty():
+		return
+	var still_good: bool = false
+	for kind: AmmoData in fits:
+		if kind.id == RunState.ammo_id:
+			still_good = true
+	if not still_good:
+		RunState.ammo_id = fits[0].id
+	RunState.gain_ammo(RunState.ammo_id, Balance.RANGED_STARTING_SHOTS)
+	EventBus.ammo_changed.emit(RunState.ammo_id, RunState.ammo_count(RunState.ammo_id))
+
+
+## The chain stands a little below the town so it is not drawn under the
+## town's own art, and its parting is what finishes the stop. Stood under the
+## field when there is one and under the Walk when there is not, so the wiring
+## exists either way and a gate can work it by hand.
+func _stand_chain() -> void:
+	_at += Vector2(0.0, Balance.WALK_CHAIN_STANDOFF)
+	_chain = WalkChain.new()
+	_chain.field = field
+	var battlefield := field as Battlefield
+	if battlefield != null and battlefield.entity_root != null:
+		battlefield.entity_root.add_child(_chain)
+	else:
+		add_child(_chain)
+	_chain.global_position = _at
+	_chain.cut.connect(func() -> void:
+		_tick_objective(TutorialStopData.Done.CHAIN_CUT))
+
+
+func chain() -> WalkChain:
+	return _chain
 
 
 ## **Where a stop is, asked of the field rather than typed into a file.**

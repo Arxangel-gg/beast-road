@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 1.8
+hide = 2
+art_facing = 1
+behaviour = 1
+behaviour_warning = 0.80
+behaviour_seconds = 3.00
+behaviour_recovery = 1.40
+behaviour_reach = 230.00
+behaviour_power = 0.00
+behaviour_interval = 10.00
+id = "slag_brute"
+display_name = "Slag Brute"
+description = "It cooled around whatever it was holding. It is still holding it."
+role = 2
+max_hp = 270.0
+contact_damage = 20.0
+move_speed = 32.0
+body_radius = 36.0
+knockback_resistance = 0.50
+resource_value = 5

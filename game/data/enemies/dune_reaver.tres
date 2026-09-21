@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 4.4
+hide = 1
+art_facing = 0
+id = "dune_reaver"
+display_name = "Dune Reaver"
+description = "The Waste does not bury its dead. It arms them."
+role = 0
+max_hp = 70.0
+contact_damage = 11.0
+move_speed = 48.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 3

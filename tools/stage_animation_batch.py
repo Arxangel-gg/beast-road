@@ -67,6 +67,14 @@ def main() -> None:
                     with urlopen(url, timeout=60) as response:
                         target.write_bytes(response.read())
                 except HTTPError as error:
+                    # 423: still rendering. 410: PixelLab dropped the job (a GPU
+                    # worker failure, not charged) - it has to be resubmitted,
+                    # and one dropped job must not abort the other nineteen in
+                    # the batch, which is what raising here did on 2026-09-21.
+                    if error.code == 410:
+                        print(f"FAILED (resubmit): {asset} {sequence} job {job['job_id']}")
+                        pending = True
+                        break
                     if error.code != 423:
                         raise
                     print(f"Still processing: {asset}")

@@ -39,6 +39,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_it_is_authored_and_rare()
 	await _test_it_crosses_warns_and_burns_and_hurts_nothing()
+	await _test_it_is_seen_as_the_thing_it_is()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[dragon] PASS - %d checks: warned before it arrives, burns "
@@ -134,6 +135,86 @@ func _test_it_crosses_warns_and_burns_and_hurts_nothing() -> void:
 	run.queue_free()
 	for _frame: int in 12:
 		await get_tree().process_frame
+
+
+## **It is seen as the thing it is** (2026-09-21). Presentation, and gated
+## because every one of these was true in the code and false on the screen:
+## the landed body was the base painting standing still while its idle and
+## attack sheets sat on disk, the shadow stayed at flight size under a body on
+## the ground, a rare wyrm landed at the common size, and all four variants
+## flew as one painting tinted.
+func _test_it_is_seen_as_the_thing_it_is() -> void:
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	field.resume()
+	var variants: Array[EnemyData] = []
+	for value: Variant in ContentDB.enemies.values():
+		var data := value as EnemyData
+		if data != null and data.dragon_event_weight > 0.0:
+			variants.append(data)
+	variants.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.id < b.id)
+	_check(variants.size() >= 4, "four wyrms are authored (%d)" % variants.size())
+	for data: EnemyData in variants:
+		var own: String = DragonPass.VARIANT_ART_FORMAT % data.id.trim_prefix("dragon_")
+		_check(ResourceLoader.exists(own), "%s flies as its own painting (%s)" % [data.id, own])
+		var beats: int = GameData.load_flight_frames(own).size()
+		_check(beats >= 2, "%s beats its wings (%d flight frames)" % [data.id, beats])
+		_check(GameData.load_idle_frames(data.get_sprite_path()).size() >= 2
+				and GameData.load_attack_frames(data.get_sprite_path()).size() >= 2,
+			"%s breathes and strikes on frames of its own on the ground" % data.id)
+	if variants.is_empty():
+		run.queue_free()
+		return
+	var common: DragonPass = _land_one(field, variants[0], 0)
+	var rare: DragonPass = _land_one(field, variants[0], Balance.DRAGON_RARITY_WEIGHTS.size() - 1)
+	_check(common.has_touched_down() and rare.has_touched_down(), "both wyrms landed")
+	_check(rare.landed_size().x > common.landed_size().x * 1.05,
+		"a rare wyrm lands larger than a common one (%.0f against %.0f)"
+			% [rare.landed_size().x, common.landed_size().x])
+	_check(common.shadow_scale() < 0.6,
+		"a landed wyrm's shadow settles under it (%.2f of its flight silhouette)" % common.shadow_scale())
+	# Breaths held off, so what is read is the idle and not a strike that a
+	# landing happened to trigger.
+	common.set("_since_fire", -30.0)
+	common.set("_attack_left", 0.0)
+	var first: int = common.landed_frame_index()
+	common.advance(0.4, 8)
+	var second: int = common.landed_frame_index()
+	_check(first >= 0 and second >= 0 and first != second,
+		"a landed wyrm breathes on its own frames (frame %d, then %d)" % [first, second])
+	common.set("_attack_left", Balance.DRAGON_BREATH_WARNING)
+	_check(common.landed_frame_index() >= 100,
+		"a breath on the ground is struck on the attack frames (%d)" % common.landed_frame_index())
+	common.set("_landed", false)
+	common.set("_height", Balance.DRAGON_HEIGHT)
+	_check(common.shadow_scale() > 0.95, "in the air the shadow is the whole silhouette")
+	common.queue_free()
+	rare.queue_free()
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+
+
+## A wyrm of a chosen kind and rarity, driven by hand to its landing.
+func _land_one(field: Battlefield, kind: EnemyData, rarity: int) -> DragonPass:
+	var wyrm := DragonPass.new()
+	wyrm.from = Vector2(-2000.0, 0.0)
+	wyrm.to = Vector2(2000.0, 0.0)
+	wyrm.field = field
+	wyrm.authored_plan = {"variant": kind.id, "rarity": rarity,
+		"landing": Vector2(0.0, 900.0), "land": true, "curve": Vector2.ZERO}
+	field.add_child(wyrm)
+	# A little past the midpoint: the step that crosses from the warning into
+	# the flight spends its remainder on nothing, so an exact sum lands short.
+	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS * 0.5 + 0.6, 80)
+	return wyrm
 
 
 func _check(condition: bool, why: String) -> void:

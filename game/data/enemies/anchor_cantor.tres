@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_wraith"
+stagger_tolerance = 3.3
+hide = 3
+art_facing = 0
+shot = 3
+shot_range = 700
+shot_ids = PackedStringArray("hex_crawl", "long_lance")
+aura_radius = 240.0
+aura_strength = 0.20
+id = "anchor_cantor"
+display_name = "Anchor Cantor"
+description = "It sings the chain tight. Stop the song and the chain remembers it was iron."
+role = 3
+max_hp = 140.0
+contact_damage = 10.0
+move_speed = 40.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 4

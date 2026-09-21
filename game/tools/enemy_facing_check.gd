@@ -135,6 +135,21 @@ const ROSTER: Dictionary = {
 	"scale_rider": 1, "shard_wight": 1, "siege_lizard": 1, "snowhide_brute": 0,
 	"stair_runner": 1, "steppehorde": 0, "storm_caller": 0, "warden": 0,
 	"white_maw_giant": 0, "wolf_rider": 1, "wolf_standard_bearer": 1,
+	# The fourteen of 2026-09-21, read off `facing_sheet.py --enemies`.
+	"thorn_archer": 1,
+	"canopy_stalker": 1,
+	"dune_reaver": 0,
+	"marsh_piper": 1,
+	"gear_grinder": 0,
+	"tide_lurcher": 2,
+	"horde_marksman": 1,
+	"prism_lancer": 1,
+	"slag_brute": 1,
+	"stair_warder": 1,
+	"chain_warden": 1,
+	"chain_lancer": 1,
+	"anchor_cantor": 0,
+	"shackle_brute": 1,
 }
 
 ## And the same record for the animals, for the same reason.

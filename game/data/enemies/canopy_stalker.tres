@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_beast"
+stagger_tolerance = 4.6
+hide = 0
+art_facing = 1
+behaviour = 2
+behaviour_warning = 0.50
+behaviour_seconds = 0.38
+behaviour_recovery = 1.10
+behaviour_reach = 300.00
+behaviour_power = 0.00
+behaviour_interval = 6.00
+id = "canopy_stalker"
+display_name = "Canopy Stalker"
+description = "It was above you the whole time."
+role = 1
+max_hp = 58.0
+contact_damage = 12.0
+move_speed = 96.0
+body_radius = 24.0
+knockback_resistance = 0.05
+resource_value = 3

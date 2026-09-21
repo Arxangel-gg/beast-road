@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 2.0
+hide = 2
+art_facing = 1
+targets_towers = true
+id = "shackle_brute"
+display_name = "Shackle Brute"
+description = "Whatever it was chained to, it brought with it."
+role = 0
+max_hp = 210.0
+contact_damage = 18.0
+move_speed = 30.0
+body_radius = 36.0
+knockback_resistance = 0.50
+resource_value = 4

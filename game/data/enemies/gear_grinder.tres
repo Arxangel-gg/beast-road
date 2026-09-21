@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 2.4
+hide = 1
+art_facing = 0
+targets_towers = true
+id = "gear_grinder"
+display_name = "Gear Grinder"
+description = "Built to take walls apart. Nobody told it the war was over."
+role = 0
+max_hp = 150.0
+contact_damage = 14.0
+move_speed = 30.0
+body_radius = 32.0
+knockback_resistance = 0.40
+resource_value = 4

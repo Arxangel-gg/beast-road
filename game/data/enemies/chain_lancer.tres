@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 4.2
+hide = 1
+art_facing = 1
+thrown_shot_id = "thrown_javelin"
+thrown_range = 200.0
+thrown_interval = 6.00
+thrown_share = 0.45
+behaviour = 2
+behaviour_warning = 0.50
+behaviour_seconds = 0.40
+behaviour_recovery = 1.10
+behaviour_reach = 300.00
+behaviour_power = 0.00
+behaviour_interval = 6.50
+id = "chain_lancer"
+display_name = "Chainlancer"
+description = "The javelin comes back on its chain. So does the lancer."
+role = 1
+max_hp = 110.0
+contact_damage = 16.0
+move_speed = 86.0
+body_radius = 26.0
+knockback_resistance = 0.15
+resource_value = 3

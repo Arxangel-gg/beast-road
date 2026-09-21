@@ -216,6 +216,20 @@ this state and that is correct — both hands are on the bow.
 | `enemy_gate_sentinel.png` | 192×192 | T | `#7A7C80` |
 | `enemy_stair_runner.png` | 192×192 | T | `#7A7C80` |
 | `enemy_crown_herald.png` | 192×192 | T | `#7A7C80` |
+| `enemy_thorn_archer.png` | 192×192 | T | `#7A7C80` |
+| `enemy_canopy_stalker.png` | 192×192 | T | `#7A7C80` |
+| `enemy_dune_reaver.png` | 192×192 | T | `#7A7C80` |
+| `enemy_marsh_piper.png` | 192×192 | T | `#7A7C80` |
+| `enemy_gear_grinder.png` | 192×192 | T | `#7A7C80` |
+| `enemy_tide_lurcher.png` | 192×192 | T | `#7A7C80` |
+| `enemy_horde_marksman.png` | 192×192 | T | `#7A7C80` |
+| `enemy_prism_lancer.png` | 192×192 | T | `#7A7C80` |
+| `enemy_slag_brute.png` | 192×192 | T | `#7A7C80` |
+| `enemy_stair_warder.png` | 192×192 | T | `#7A7C80` |
+| `enemy_chain_warden.png` | 192×192 | T | `#7A7C80` |
+| `enemy_chain_lancer.png` | 192×192 | T | `#7A7C80` |
+| `enemy_anchor_cantor.png` | 192×192 | T | `#7A7C80` |
+| `enemy_shackle_brute.png` | 192×192 | T | `#7A7C80` |
 | `enemy_cinder_runner.png` | 192×192 | T | `#4A6B4F` |
 | `enemy_glass_chanter.png` | 192×192 | T | `#6B8A9E` |
 | `enemy_salt_marcher.png` | 192×192 | T | `#6B8A9E` |
@@ -291,6 +305,20 @@ Files: `enemy_wyvern_gale_idle_01.png` · `enemy_wyvern_gale_idle_02.png` · `en
 Files: `enemy_gate_sentinel_idle_01.png` · `enemy_gate_sentinel_idle_02.png` · `enemy_gate_sentinel_idle_03.png`
 Files: `enemy_stair_runner_idle_01.png` · `enemy_stair_runner_idle_02.png` · `enemy_stair_runner_idle_03.png`
 Files: `enemy_crown_herald_idle_01.png` · `enemy_crown_herald_idle_02.png` · `enemy_crown_herald_idle_03.png`
+Files: `enemy_thorn_archer_idle_01.png` · `enemy_thorn_archer_idle_02.png` · `enemy_thorn_archer_idle_03.png`
+Files: `enemy_canopy_stalker_idle_01.png` · `enemy_canopy_stalker_idle_02.png` · `enemy_canopy_stalker_idle_03.png`
+Files: `enemy_dune_reaver_idle_01.png` · `enemy_dune_reaver_idle_02.png` · `enemy_dune_reaver_idle_03.png`
+Files: `enemy_marsh_piper_idle_01.png` · `enemy_marsh_piper_idle_02.png` · `enemy_marsh_piper_idle_03.png`
+Files: `enemy_gear_grinder_idle_01.png` · `enemy_gear_grinder_idle_02.png` · `enemy_gear_grinder_idle_03.png`
+Files: `enemy_tide_lurcher_idle_01.png` · `enemy_tide_lurcher_idle_02.png` · `enemy_tide_lurcher_idle_03.png`
+Files: `enemy_horde_marksman_idle_01.png` · `enemy_horde_marksman_idle_02.png` · `enemy_horde_marksman_idle_03.png`
+Files: `enemy_prism_lancer_idle_01.png` · `enemy_prism_lancer_idle_02.png` · `enemy_prism_lancer_idle_03.png`
+Files: `enemy_slag_brute_idle_01.png` · `enemy_slag_brute_idle_02.png` · `enemy_slag_brute_idle_03.png`
+Files: `enemy_stair_warder_idle_01.png` · `enemy_stair_warder_idle_02.png` · `enemy_stair_warder_idle_03.png`
+Files: `enemy_chain_warden_idle_01.png` · `enemy_chain_warden_idle_02.png` · `enemy_chain_warden_idle_03.png`
+Files: `enemy_chain_lancer_idle_01.png` · `enemy_chain_lancer_idle_02.png` · `enemy_chain_lancer_idle_03.png`
+Files: `enemy_anchor_cantor_idle_01.png` · `enemy_anchor_cantor_idle_02.png` · `enemy_anchor_cantor_idle_03.png`
+Files: `enemy_shackle_brute_idle_01.png` · `enemy_shackle_brute_idle_02.png` · `enemy_shackle_brute_idle_03.png`
 
 ### 5.2b Enemy attack frames — `res://art/enemies/`
 
@@ -369,6 +397,20 @@ Files: `enemy_wyvern_gale_attack_01.png` · `enemy_wyvern_gale_attack_02.png` ·
 Files: `enemy_gate_sentinel_attack_01.png` · `enemy_gate_sentinel_attack_02.png` · `enemy_gate_sentinel_attack_03.png` · `enemy_gate_sentinel_attack_04.png`
 Files: `enemy_stair_runner_attack_01.png` · `enemy_stair_runner_attack_02.png` · `enemy_stair_runner_attack_03.png` · `enemy_stair_runner_attack_04.png`
 Files: `enemy_crown_herald_attack_01.png` · `enemy_crown_herald_attack_02.png` · `enemy_crown_herald_attack_03.png` · `enemy_crown_herald_attack_04.png`
+Files: `enemy_thorn_archer_attack_01.png` · `enemy_thorn_archer_attack_02.png` · `enemy_thorn_archer_attack_03.png` · `enemy_thorn_archer_attack_04.png`
+Files: `enemy_canopy_stalker_attack_01.png` · `enemy_canopy_stalker_attack_02.png` · `enemy_canopy_stalker_attack_03.png` · `enemy_canopy_stalker_attack_04.png`
+Files: `enemy_dune_reaver_attack_01.png` · `enemy_dune_reaver_attack_02.png` · `enemy_dune_reaver_attack_03.png` · `enemy_dune_reaver_attack_04.png`
+Files: `enemy_marsh_piper_attack_01.png` · `enemy_marsh_piper_attack_02.png` · `enemy_marsh_piper_attack_03.png` · `enemy_marsh_piper_attack_04.png`
+Files: `enemy_gear_grinder_attack_01.png` · `enemy_gear_grinder_attack_02.png` · `enemy_gear_grinder_attack_03.png` · `enemy_gear_grinder_attack_04.png`
+Files: `enemy_tide_lurcher_attack_01.png` · `enemy_tide_lurcher_attack_02.png` · `enemy_tide_lurcher_attack_03.png` · `enemy_tide_lurcher_attack_04.png`
+Files: `enemy_horde_marksman_attack_01.png` · `enemy_horde_marksman_attack_02.png` · `enemy_horde_marksman_attack_03.png` · `enemy_horde_marksman_attack_04.png`
+Files: `enemy_prism_lancer_attack_01.png` · `enemy_prism_lancer_attack_02.png` · `enemy_prism_lancer_attack_03.png` · `enemy_prism_lancer_attack_04.png`
+Files: `enemy_slag_brute_attack_01.png` · `enemy_slag_brute_attack_02.png` · `enemy_slag_brute_attack_03.png` · `enemy_slag_brute_attack_04.png`
+Files: `enemy_stair_warder_attack_01.png` · `enemy_stair_warder_attack_02.png` · `enemy_stair_warder_attack_03.png` · `enemy_stair_warder_attack_04.png`
+Files: `enemy_chain_warden_attack_01.png` · `enemy_chain_warden_attack_02.png` · `enemy_chain_warden_attack_03.png` · `enemy_chain_warden_attack_04.png`
+Files: `enemy_chain_lancer_attack_01.png` · `enemy_chain_lancer_attack_02.png` · `enemy_chain_lancer_attack_03.png` · `enemy_chain_lancer_attack_04.png`
+Files: `enemy_anchor_cantor_attack_01.png` · `enemy_anchor_cantor_attack_02.png` · `enemy_anchor_cantor_attack_03.png` · `enemy_anchor_cantor_attack_04.png`
+Files: `enemy_shackle_brute_attack_01.png` · `enemy_shackle_brute_attack_02.png` · `enemy_shackle_brute_attack_03.png` · `enemy_shackle_brute_attack_04.png`
 Files: `enemy_wolf_rider_attack_01.png` · `enemy_wolf_rider_attack_02.png` · `enemy_wolf_rider_attack_03.png` · `enemy_wolf_rider_attack_04.png`
 
 
@@ -501,6 +543,20 @@ All 192×192, type T, placeholder colour `#7A7C80`.
 Files: `enemy_gate_sentinel_move_01.png` · `enemy_gate_sentinel_move_02.png` · `enemy_gate_sentinel_move_03.png` · `enemy_gate_sentinel_move_04.png` · `enemy_gate_sentinel_move_05.png` · `enemy_gate_sentinel_move_06.png` · `enemy_gate_sentinel_move_07.png` · `enemy_gate_sentinel_move_08.png`
 Files: `enemy_stair_runner_move_01.png` · `enemy_stair_runner_move_02.png` · `enemy_stair_runner_move_03.png` · `enemy_stair_runner_move_04.png` · `enemy_stair_runner_move_05.png` · `enemy_stair_runner_move_06.png` · `enemy_stair_runner_move_07.png` · `enemy_stair_runner_move_08.png`
 Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `enemy_crown_herald_move_03.png` · `enemy_crown_herald_move_04.png` · `enemy_crown_herald_move_05.png` · `enemy_crown_herald_move_06.png` · `enemy_crown_herald_move_07.png` · `enemy_crown_herald_move_08.png`
+Files: `enemy_thorn_archer_move_01.png` · `enemy_thorn_archer_move_02.png` · `enemy_thorn_archer_move_03.png` · `enemy_thorn_archer_move_04.png` · `enemy_thorn_archer_move_05.png` · `enemy_thorn_archer_move_06.png` · `enemy_thorn_archer_move_07.png` · `enemy_thorn_archer_move_08.png`
+Files: `enemy_canopy_stalker_move_01.png` · `enemy_canopy_stalker_move_02.png` · `enemy_canopy_stalker_move_03.png` · `enemy_canopy_stalker_move_04.png` · `enemy_canopy_stalker_move_05.png` · `enemy_canopy_stalker_move_06.png` · `enemy_canopy_stalker_move_07.png` · `enemy_canopy_stalker_move_08.png`
+Files: `enemy_dune_reaver_move_01.png` · `enemy_dune_reaver_move_02.png` · `enemy_dune_reaver_move_03.png` · `enemy_dune_reaver_move_04.png` · `enemy_dune_reaver_move_05.png` · `enemy_dune_reaver_move_06.png` · `enemy_dune_reaver_move_07.png` · `enemy_dune_reaver_move_08.png`
+Files: `enemy_marsh_piper_move_01.png` · `enemy_marsh_piper_move_02.png` · `enemy_marsh_piper_move_03.png` · `enemy_marsh_piper_move_04.png` · `enemy_marsh_piper_move_05.png` · `enemy_marsh_piper_move_06.png` · `enemy_marsh_piper_move_07.png` · `enemy_marsh_piper_move_08.png`
+Files: `enemy_gear_grinder_move_01.png` · `enemy_gear_grinder_move_02.png` · `enemy_gear_grinder_move_03.png` · `enemy_gear_grinder_move_04.png` · `enemy_gear_grinder_move_05.png` · `enemy_gear_grinder_move_06.png` · `enemy_gear_grinder_move_07.png` · `enemy_gear_grinder_move_08.png`
+Files: `enemy_tide_lurcher_move_01.png` · `enemy_tide_lurcher_move_02.png` · `enemy_tide_lurcher_move_03.png` · `enemy_tide_lurcher_move_04.png` · `enemy_tide_lurcher_move_05.png` · `enemy_tide_lurcher_move_06.png` · `enemy_tide_lurcher_move_07.png` · `enemy_tide_lurcher_move_08.png`
+Files: `enemy_horde_marksman_move_01.png` · `enemy_horde_marksman_move_02.png` · `enemy_horde_marksman_move_03.png` · `enemy_horde_marksman_move_04.png` · `enemy_horde_marksman_move_05.png` · `enemy_horde_marksman_move_06.png` · `enemy_horde_marksman_move_07.png` · `enemy_horde_marksman_move_08.png`
+Files: `enemy_prism_lancer_move_01.png` · `enemy_prism_lancer_move_02.png` · `enemy_prism_lancer_move_03.png` · `enemy_prism_lancer_move_04.png` · `enemy_prism_lancer_move_05.png` · `enemy_prism_lancer_move_06.png` · `enemy_prism_lancer_move_07.png` · `enemy_prism_lancer_move_08.png`
+Files: `enemy_slag_brute_move_01.png` · `enemy_slag_brute_move_02.png` · `enemy_slag_brute_move_03.png` · `enemy_slag_brute_move_04.png` · `enemy_slag_brute_move_05.png` · `enemy_slag_brute_move_06.png` · `enemy_slag_brute_move_07.png` · `enemy_slag_brute_move_08.png`
+Files: `enemy_stair_warder_move_01.png` · `enemy_stair_warder_move_02.png` · `enemy_stair_warder_move_03.png` · `enemy_stair_warder_move_04.png` · `enemy_stair_warder_move_05.png` · `enemy_stair_warder_move_06.png` · `enemy_stair_warder_move_07.png` · `enemy_stair_warder_move_08.png`
+Files: `enemy_chain_warden_move_01.png` · `enemy_chain_warden_move_02.png` · `enemy_chain_warden_move_03.png` · `enemy_chain_warden_move_04.png` · `enemy_chain_warden_move_05.png` · `enemy_chain_warden_move_06.png` · `enemy_chain_warden_move_07.png` · `enemy_chain_warden_move_08.png`
+Files: `enemy_chain_lancer_move_01.png` · `enemy_chain_lancer_move_02.png` · `enemy_chain_lancer_move_03.png` · `enemy_chain_lancer_move_04.png` · `enemy_chain_lancer_move_05.png` · `enemy_chain_lancer_move_06.png` · `enemy_chain_lancer_move_07.png` · `enemy_chain_lancer_move_08.png`
+Files: `enemy_anchor_cantor_move_01.png` · `enemy_anchor_cantor_move_02.png` · `enemy_anchor_cantor_move_03.png` · `enemy_anchor_cantor_move_04.png` · `enemy_anchor_cantor_move_05.png` · `enemy_anchor_cantor_move_06.png` · `enemy_anchor_cantor_move_07.png` · `enemy_anchor_cantor_move_08.png`
+Files: `enemy_shackle_brute_move_01.png` · `enemy_shackle_brute_move_02.png` · `enemy_shackle_brute_move_03.png` · `enemy_shackle_brute_move_04.png` · `enemy_shackle_brute_move_05.png` · `enemy_shackle_brute_move_06.png` · `enemy_shackle_brute_move_07.png` · `enemy_shackle_brute_move_08.png`
 
 ### 5.3 Bosses — `res://art/bosses/`
 
@@ -2445,6 +2501,17 @@ thing casting it, and the same painting serves as both.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `dragon_overhead.png` | 192×192 | T | `#6E3226` |
+| `dragon_overhead_fire.png` | 192×192 | T | `#6E3226` |
+| `dragon_overhead_frost.png` | 192×192 | T | `#6E3226` |
+| `dragon_overhead_stone.png` | 192×192 | T | `#6E3226` |
+| `dragon_overhead_storm.png` | 192×192 | T | `#6E3226` |
+
+Wing-beat frames, three a variant, by the flight convention (`_fly_NN`):
+
+Files: `dragon_overhead_fire_fly_01.png` · `dragon_overhead_fire_fly_02.png` · `dragon_overhead_fire_fly_03.png`
+Files: `dragon_overhead_frost_fly_01.png` · `dragon_overhead_frost_fly_02.png` · `dragon_overhead_frost_fly_03.png`
+Files: `dragon_overhead_stone_fly_01.png` · `dragon_overhead_stone_fly_02.png` · `dragon_overhead_stone_fly_03.png`
+Files: `dragon_overhead_storm_fly_01.png` · `dragon_overhead_storm_fly_02.png` · `dragon_overhead_storm_fly_03.png`
 
 ### 5.17c Death markers — `res://art/vfx/`
 

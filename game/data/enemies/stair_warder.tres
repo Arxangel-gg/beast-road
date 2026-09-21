@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 1.5
+hide = 1
+art_facing = 1
+brace_chance = 0.50
+behaviour = 1
+behaviour_warning = 0.75
+behaviour_seconds = 3.20
+behaviour_recovery = 1.30
+behaviour_reach = 220.00
+behaviour_power = 0.00
+behaviour_interval = 9.50
+id = "stair_warder"
+display_name = "Stair Warder"
+description = "Every step of the stair has a name. It knows all of them and yours is not on the list."
+role = 2
+max_hp = 260.0
+contact_damage = 18.0
+move_speed = 33.0
+body_radius = 34.0
+knockback_resistance = 0.50
+resource_value = 5
