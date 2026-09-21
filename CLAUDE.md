@@ -6216,9 +6216,11 @@ same functions the fight reads; the save round trip through the real loader on
 the save's own JSON; a packet that is short, long or not an array drawing the
 painted Warden rather than erroring; and the three sprites - one wearing the
 blood shader, one wearing nothing, one wearing somebody else's material.
-**Headless cannot compile a shader**, so the wiring is read off the source, and
-the dye has been photographed on nothing yet: `hold_shot` and `mount_shot` are
-where it will be seen.
+**Headless cannot compile a shader**, so the wiring is read off the source and
+`look_shot` photographs four Wardens on a plate - painted, cloak dyed, sash
+dyed, both. Read on the renderer: the cloak dye turns the steel and the cloak
+and leaves the banner, the lantern and the bone; the sash dye turns the banner
+and the sash and leaves the rest. The bands are right.
 
 **Not built, deliberately:** the co-op party portrait on the HUD still draws
 the painted Warden for a partner - it is configured by slot and colour before
