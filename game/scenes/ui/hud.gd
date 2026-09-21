@@ -374,6 +374,10 @@ static func _action_columns() -> int:
 ## the nav column came down over an ability slot at phone-landscape size.
 ## `_build_action_bar` asserts the two agree now, so the next one fails loudly.
 const ACTION_BUTTON_COUNT: int = 7
+## The throw ring on the ride button: its diameter and how far in from the
+## button's right edge it sits. Inside the button on purpose - see the build.
+const RIDE_RING_SIZE: float = 34.0
+const RIDE_RING_INSET: float = 6.0
 ## The authored height of one, before a thumb grows it.
 const ACTION_BUTTON_HEIGHT: float = 54.0
 const ACTION_ROW_GAP: float = 8.0
@@ -429,6 +433,9 @@ var _spell_buttons: Array[Button] = []
 var _spell_icons: Array[TextureRect] = []
 var _spell_labels: Array[Label] = []
 var _spell_cooldowns: Array[Label] = []
+## The ring on the ride button while a thrown rider waits. See
+## `MountCooldownRing` for what it draws and `_update_ride_button` for when.
+var _ride_cooldown: MountCooldownRing = null
 var _spell_bar: HBoxContainer
 var _bottom_row: HBoxContainer
 
@@ -1767,6 +1774,21 @@ func _build_action_bar(bar: Container) -> void:
 		func() -> void: TouchInput.ask_mount())
 	_ride_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_ride_button, "distance", 22)
+	# **The throw's cooldown, on the button it closes** (owner, 2026-09-21). A
+	# child of the button rather than a widget of its own, so it takes no room
+	# from a bar the phone layouts measure by `ACTION_BUTTON_COUNT`, and it is
+	# anchored by offsets rather than a preset because a preset set from code
+	# leaves a zero rect - the pixel filter was lost to exactly that once.
+	_ride_cooldown = MountCooldownRing.new()
+	_ride_cooldown.anchor_left = 1.0
+	_ride_cooldown.anchor_right = 1.0
+	_ride_cooldown.anchor_top = 0.5
+	_ride_cooldown.anchor_bottom = 0.5
+	_ride_cooldown.offset_left = -RIDE_RING_SIZE - RIDE_RING_INSET
+	_ride_cooldown.offset_right = -RIDE_RING_INSET
+	_ride_cooldown.offset_top = -RIDE_RING_SIZE * 0.5
+	_ride_cooldown.offset_bottom = RIDE_RING_SIZE * 0.5
+	_ride_button.add_child(_ride_cooldown)
 
 	var charge_readout := VBoxContainer.new()
 	# 92 rather than 108: the bar ends where the spell slots begin, and the last
@@ -2008,11 +2030,28 @@ func _update_ride_button() -> void:
 		return
 	var who: Hero = battlefield.hero
 	var up: bool = who != null and who.is_mounted()
-	_ride_button.text = _action_label("H", "DISMOUNT" if up else "RIDE")
-	_ride_button.disabled = who == null or not who.is_alive()
+	# **The ring shows for the throw and for nothing else.** Read off the
+	# hero's own clock every frame rather than toggled by a signal, for the
+	# reason `DeathMarkers` watches instead of listens: every way that clock
+	# can end - a dismount, a death, a run ending - arrives here without a
+	# wire per path.
+	var thrown: float = who.mount_cooldown_ratio() if who != null else 0.0
+	var waiting: bool = thrown > 0.0 and who != null and who.is_alive()
+	if _ride_cooldown != null:
+		if waiting and not _ride_cooldown.visible:
+			_ride_cooldown.show_for(kind)
+		_ride_cooldown.visible = waiting
+		_ride_cooldown.ratio = thrown
+		if waiting:
+			_ride_cooldown.queue_redraw()
+	_ride_button.text = _action_label("H", "DISMOUNT" if up
+		else ("THROWN" if waiting else "RIDE"))
+	_ride_button.disabled = who == null or not who.is_alive() or waiting
 	_ride_button.tooltip_text = ("Get down and fight where you stand." if up
+		else ("Thrown from the saddle. The %s takes you back in %d s."
+			% [kind.display_name, ceili(who.mount_cooldown_left())] if waiting
 		else "Ride the %s. Mounted you cannot fight - attacking gets you down."
-			% kind.display_name)
+			% kind.display_name))
 
 
 func _update_repair_button() -> void:

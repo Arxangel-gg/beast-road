@@ -181,6 +181,10 @@ var _mount_up_left: float = 0.0
 ## Seconds before another mount is allowed. Without it, holding the key is a
 ## flicker between two states several times a second.
 var _mount_wait: float = 0.0
+## Seconds left of the price for being caught in the saddle. Its own clock, so
+## the ring the HUD draws for it shows for this and never for the ordinary
+## remount delay - see `Balance.MOUNT_HURT_COOLDOWN`.
+var _mount_thrown_left: float = 0.0
 ## The mount's own wind, its rest clock, and whether it has run itself out.
 ## **Its own, not the Warden's.** A mount drinking from SP would make the pool
 ## the Warden sprints on a shared resource, which is a coupling nobody asked
@@ -1572,6 +1576,7 @@ const MOUNTED_MUTE: int = HeroInput.BUTTON_ATTACK | HeroInput.HOLD_ATTACK \
 ## press has to be seen before the mute swallows it.
 func _tick_mount(delta: float) -> void:
 	_mount_wait = maxf(_mount_wait - delta, 0.0)
+	_mount_thrown_left = maxf(_mount_thrown_left - delta, 0.0)
 	_mount_up_left = maxf(_mount_up_left - delta, 0.0)
 	_mount_refused_said = maxf(_mount_refused_said - delta, 0.0)
 	if input == null:
@@ -1640,7 +1645,8 @@ func mount() -> bool:
 	if _swimming or RunState.flood_over_knee():
 		_refuse("Too deep to ride")
 		return false
-	if _beast_stun_left > 0.0:
+	if _mount_thrown_left > 0.0:
+		_refuse("Thrown - %d s" % ceili(_mount_thrown_left))
 		return false
 	# **Not a fairness rule.** A rider cannot fight, so mounting in a crowd only
 	# ever costs the player - this is here because doing it by accident in the
@@ -1743,17 +1749,52 @@ func dismount() -> bool:
 	return true
 
 
+## Off the horse because something hit the rider, and the saddle closed for
+## `Balance.MOUNT_HURT_COOLDOWN`.
+##
+## Called by `_on_damaged` on the machine that decided the blow, and by the
+## co-op mirror when it is told the health went down - one function, so the
+## authority and the mirror cannot disagree about what being hit costs. On foot
+## already it costs nothing: a Warden who was not riding is not thrown.
+func throw_from_saddle() -> bool:
+	if _mount == null:
+		return false
+	dismount()
+	_mount_thrown_left = Balance.MOUNT_HURT_COOLDOWN
+	_mount_refused_said = 0.0
+	_refuse("Thrown from the saddle")
+	return true
+
+
+## Seconds before a thrown rider may mount again; zero when they may.
+func mount_cooldown_left() -> float:
+	return _mount_thrown_left
+
+
+## How much of the throw's cooldown is still to run, 1 when just thrown and 0
+## when the saddle is open. What the HUD's ring draws, and the only thing it
+## draws for.
+func mount_cooldown_ratio() -> float:
+	if Balance.MOUNT_HURT_COOLDOWN <= 0.0:
+		return 0.0
+	return clampf(_mount_thrown_left / Balance.MOUNT_HURT_COOLDOWN, 0.0, 1.0)
+
+
 ## Whether riding is still allowed at all.
 ##
 ## Checked every frame rather than hooked to each cause, for the reason
 ## `DeathMarkers` watches heroes instead of listening for a death: every way of
 ## ending a ride arrives through one of these facts, without a signal per path.
+## **Yuri's footfall is not one of these facts.** It was: `_beast_stun_left`
+## is set by every step the beast takes, and a rider was thrown four times a
+## minute by the ground they were riding on - the same fault the fishing line
+## paid for once, where the shove never settled under a stillness threshold.
+## What ends a ride now is a blow (`_on_damaged`), and that is the owner's rule
+## of 2026-09-21: dismount on damage, then a cooldown.
 func _may_stay_mounted() -> bool:
 	if not is_alive() or _downed:
 		return false
 	if _swimming or RunState.flood_over_knee():
-		return false
-	if _beast_stun_left > 0.0:
 		return false
 	return true
 
@@ -1999,6 +2040,13 @@ func _apply_attack_impulse(direction: Vector2, distance: float,
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
+	# **A blow that lands throws the rider** (owner, 2026-09-21). Health lost,
+	# not merely a hit: a ward that swallowed the whole blow emits `damaged`
+	# with nothing taken, and the co-op mirror - which learns of a blow only as
+	# a lower health fraction - could never agree about one of those. Both
+	# machines see the same drop, so both throw.
+	if amount > 0.0:
+		throw_from_saddle()
 	if _mender_left > 0.0 and _mender_grace_left <= 0.0:
 		_mender_left = 0.0
 		var recovery: Resource = ContentDB.recovery_drop(Balance.MENDER_SPARK_ID)

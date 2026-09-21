@@ -373,6 +373,102 @@ func _test_the_field() -> void:
 		"the water came up over the knee and the Warden stayed in the saddle")
 	who.set("_swimming", false)
 
+	# --- What throws a rider, and what does not (owner, 2026-09-21) ---------
+	#
+	# **Yuri's footfall does not.** `_may_stay_mounted` used to refuse the
+	# saddle while `_beast_stun_left` ran, and every step of the beast sets
+	# that, so a rider was thrown four times a minute by the ground under them
+	# - the same fault the fishing line paid for, where the shove never settled
+	# under a stillness threshold. Driven through the real signal and the real
+	# tick, the way `structure_check` sends a stray step on purpose.
+	who.set("_mount_wait", 0.0)
+	who.set("_mount_thrown_left", 0.0)
+	_check(who.mount(), "the Warden refused to mount before the footfall test")
+	EventBus.beast_step_landed.emit(Vector2(14.0, 5.0), 1.0)
+	_check(float(who.get("_beast_stun_left")) > 0.0,
+		"the footfall did not stun the Warden, so this test measures nothing")
+	for _tick: int in 6:
+		who.call("_tick_mount", 0.016)
+	_check(who.is_mounted(), "Yuri's footfall threw the Warden from the saddle")
+
+	# **A blow does**, through the real health component, and the saddle then
+	# closes for `MOUNT_HURT_COOLDOWN` - refusing out loud, and opening again
+	# on its own.
+	var hp_before_blow: float = who.health.current_hp
+	_check(who.health.take_damage(5.0, who.global_position + Vector2(40.0, 0.0)),
+		"the probe's blow did not land, so the throw cannot be measured")
+	_check(who.health.current_hp < hp_before_blow, "the blow took no health")
+	_check(not who.is_mounted(), "a blow that landed left the Warden in the saddle")
+	_check(who.mount_cooldown_left() > 0.0
+		and is_equal_approx(who.mount_cooldown_left(), Balance.MOUNT_HURT_COOLDOWN),
+		"the throw did not start the cooldown (%.2f)" % who.mount_cooldown_left())
+	_check(who.mount_cooldown_ratio() > 0.99,
+		"a rider just thrown reads a ratio of %.2f rather than one" % who.mount_cooldown_ratio())
+	who.set("_mount_wait", 0.0)
+	_check(not who.mount(), "the Warden mounted while thrown")
+	# And a blow to somebody on foot costs nothing: the cooldown is a price for
+	# being caught riding, not a tax on being hit.
+	who.set("_mount_thrown_left", 0.0)
+	who.health.take_damage(5.0, who.global_position + Vector2(40.0, 0.0))
+	_check(who.mount_cooldown_left() == 0.0,
+		"a blow to a Warden on foot started the mount cooldown")
+	# The clock runs down through the real tick and the saddle opens.
+	who.set("_mount_thrown_left", Balance.MOUNT_HURT_COOLDOWN)
+	var ticks: int = int(ceil(Balance.MOUNT_HURT_COOLDOWN / 0.1)) + 2
+	for _tick: int in ticks:
+		who.call("_tick_mount", 0.1)
+	_check(who.mount_cooldown_left() == 0.0 and who.mount_cooldown_ratio() == 0.0,
+		"the cooldown never ran out (%.2f left)" % who.mount_cooldown_left())
+	who.set("_mount_wait", 0.0)
+	_check(who.mount(), "the saddle stayed closed after the cooldown ran out")
+	who.dismount()
+
+	# **The mirror throws on the same fact.** A guest's Warden never runs
+	# `_on_damaged` - health arrives as a fraction and is assigned - so the
+	# throw has to be read off the drop, in `CoopHeroes._apply_health`. Driven
+	# on a bare instance of the applier, which reads nothing but the hero.
+	who.set("_mount_wait", 0.0)
+	who.set("_mount_thrown_left", 0.0)
+	who.health.revive()
+	_check(who.mount(), "the Warden refused to mount before the mirror test")
+	var mirror := CoopHeroes.new()
+	mirror.call("_apply_health", who, 1.0)
+	_check(who.is_mounted(), "a health report that took nothing threw the rider")
+	mirror.call("_apply_health", who, 0.6)
+	_check(not who.is_mounted(), "a mirrored drop in health left the Warden in the saddle")
+	_check(who.mount_cooldown_left() > 0.0, "the mirrored throw started no cooldown")
+	mirror.free()
+	who.set("_mount_thrown_left", 0.0)
+	who.set("_mount_wait", 0.0)
+
+	# **The ring shows for the throw and only for the throw.** Read off the
+	# real HUD in the run's tree, driven through the same refresh the frame
+	# calls, and then asked again after the clock runs out - a ring that could
+	# be turned on but never off would pass a check that only looked once.
+	var hud: HUD = _find_hud(run)
+	_check(hud != null, "the run stood up no HUD to draw the ring on")
+	if hud != null:
+		var ring := hud.get("_ride_cooldown") as Control
+		_check(ring != null, "the HUD carries no ride cooldown ring")
+		if ring != null:
+			hud.call("_update_ride_button")
+			_check(not ring.visible, "the ring shows with no cooldown running")
+			_check(who.mount(), "the Warden refused to mount before the ring test")
+			who.health.take_damage(5.0, who.global_position + Vector2(40.0, 0.0))
+			hud.call("_update_ride_button")
+			_check(ring.visible, "a thrown rider's ring is not showing")
+			_check(hud.get("_ride_button").disabled,
+				"the ride button is pressable while the rider is thrown")
+			for _tick: int in ticks:
+				who.call("_tick_mount", 0.1)
+			hud.call("_update_ride_button")
+			_check(not ring.visible, "the ring is still showing after the cooldown ran out")
+			_check(not hud.get("_ride_button").disabled,
+				"the ride button stayed disabled after the cooldown ran out")
+	who.set("_mount_thrown_left", 0.0)
+	who.set("_mount_wait", 0.0)
+	who.health.revive()
+
 	# --- The climb into the saddle ------------------------------------------
 	#
 	# `MOUNT_UP_SECONDS` was a clock with nothing on the end of it until the
@@ -473,6 +569,16 @@ class PressedInput extends HeroInput:
 
 	func is_local() -> bool:
 		return true
+
+
+func _find_hud(root: Node) -> HUD:
+	if root is HUD:
+		return root as HUD
+	for child: Node in root.get_children():
+		var found: HUD = _find_hud(child)
+		if found != null:
+			return found
+	return null
 
 
 func _leave(run: Run) -> void:

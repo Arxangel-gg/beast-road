@@ -1607,6 +1607,36 @@ func _biting_back() -> Node2D:
 
 
 func _pick_target() -> Node2D:
+	var chosen: Node2D = _choose_target()
+	# **A body at the gate hits the gate, whatever it was walking at.**
+	#
+	# Traced on the owner's own banked front, 2026-09-21: the Dune Burrowers
+	# walked the road to the wall carrying the tower in their lane as their
+	# target - the road is not optional, so they never left it to reach the
+	# tower - and stood there for three minutes in WALKING, thirty-one units
+	# from the base, being walked in and deflected out on every frame. That is
+	# the "stood against the base, nothing swinging" the owner photographed on
+	# v0.47.1. The hero branch has held this rule since 2026-09-12 ("a hero
+	# merely *near* used to take the target from a wall already in reach");
+	# the tower, grudge and taunt branches never did, and a siege breed is the
+	# one that arrives with a target it cannot reach.
+	#
+	# Applied once, here, rather than in each branch, so the next branch added
+	# to `_choose_target` cannot forget it. It does not touch a camp body,
+	# which never marches on the town, and it never *takes* a target away
+	# from something in reach - it only ever answers the town for a body that
+	# is in reach of the town and of nothing it was aiming at.
+	if chosen == null or is_camp_mob() or _field == null:
+		return chosen
+	var town: Node2D = _field.town_node()
+	if town == null or chosen == town or not is_instance_valid(chosen):
+		return chosen
+	if _in_reach(chosen) or not _in_reach(town):
+		return chosen
+	return town
+
+
+func _choose_target() -> Node2D:
 	var animal: Node2D = _biting_back()
 	if animal != null:
 		return animal

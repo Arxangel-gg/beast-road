@@ -603,6 +603,13 @@ func _apply_health(who: Hero, fraction: float) -> void:
 	var wanted: float = maxf(clampf(fraction, 0.0, 1.0) * who.health.max_hp, 1.0)
 	if is_equal_approx(who.health.current_hp, wanted):
 		return
+	# **A mirror learns of a blow as a lower number, and that is the blow.**
+	# The authority throws a rider in `Hero._on_damaged`, which never fires
+	# here - health arrives as a fraction and is assigned. So the drop is read
+	# for what it is, and the same function is called, so the host's copy of a
+	# guest and the guest's own Warden get off the horse on the same fact.
+	if wanted < who.health.current_hp - 0.5:
+		who.throw_from_saddle()
 	who.health.current_hp = wanted
 	who.health.changed.emit(who.health.current_hp, who.health.max_hp)
 

@@ -78,6 +78,21 @@ func _ready() -> void:
 		run.hud.visible = true
 		EventBus.hero_mana_changed.emit(28.0, 40.0)
 		EventBus.hero_stamina_changed.emit(22.0, 40.0))
+	# The ride button with a thrown rider's ring on it (2026-09-21). The
+	# owner's account has a mount; a fresh one has none and the button is
+	# hidden, so one is saddled here for the picture.
+	await _shot("hud_thrown", func() -> void:
+		var stock: Array[MountData] = ContentDB.mounts_sorted() 			if ContentDB.has_method("mounts_sorted") else []
+		if stock.is_empty():
+			return
+		MetaState.mounts.clear()
+		MetaState.mounts.append(stock[0].id)
+		MetaState.mount_saddled = stock[0].id
+		var who: Hero = run.battlefield.hero
+		who.set("_mount_wait", 0.0)
+		who.mount()
+		who.health.take_damage(5.0, who.global_position + Vector2(40.0, 0.0))
+		run.hud.call("_update_ride_button"))
 	await _shot("pause", func() -> void: run.pause_ui.toggle())
 	run.pause_ui.set_showing(false)
 	get_tree().paused = false

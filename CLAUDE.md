@@ -5709,6 +5709,116 @@ still to **diff the two lists rather than trip over them**. Both are on both bar
 now, and the diff reads clean in the direction that matters: release is a
 superset of guard, with only the five judgement-heavy reports release-only.
 
+**"Enemies never attack anything" was six bodies aimed at a tower, and the
+loop everyone suspected was not the cause, as of 2026-09-21.** The report on
+v0.47.1: a body stood against the base, the town at 24%, nothing swinging -
+"not the base, not the player, nothing." The plan left for this session named a
+mechanism and, to its credit, said not to believe it: `step_is_legal` refuses
+the ungrown rect while `deflect_from_city` grows it by the padding, so a body
+walks in and is teleported out on every frame and never settles into a swing.
+
+**Traced before anything was changed, five ways.** One body hand-driven with
+the field frozen; one body with the whole field live; four breeds against a
+hero on the road; the real director for four minutes on a new account; and the
+real director on a copy of the owner's own banked front (Act II, wave 58,
+twelve towers, wall at 51%). Every ordinary body walked up and struck: the town
+went 1250 to 0 on the fresh account and 641 to 0 on the owner's, the hero at
+176 units was hit by all four Act I breeds. **And every Dune Burrower in the
+owner's wave stood at the wall for three minutes in WALKING, thirty-one units
+off the base, aimed at a tower.**
+
+**The road is not optional, and that is why a siege breed arrives with a
+target it cannot reach.** `_walk` follows the route whatever the body is
+looking at - that rule is what keeps a column on the bends - so a breed that
+`targets_towers` picks the nearest tower in its lane, walks past it, and reaches
+the wall still holding it. The hero branch of `_pick_target` has said "a body
+at the gate hits the gate" since 2026-09-12; the tower, grudge and taunt
+branches never did, and the tower branch has had no reach condition since
+2026-08-13. **So this was not a v0.47 regression.** It stood at the 216-unit
+circle before the rect and at the rect after it, and nothing in either release
+changed what it did; what v0.47.1 changed is that a melee body now stops a
+body-length off the base rather than ninety units out, which is what made the
+one that never swung look like the one that could not.
+
+**The loop is real and it is not the fault.** A body that walks up honestly
+stops the moment it is in reach - eighty-four units off the rect - and the
+padding is twenty-two, so the deflection never fires for it. It fires only for
+a body that keeps walking at the wall, which is a body whose target is not the
+wall. Fix the target and the loop has nothing to run on.
+
+**One rule, applied once.** `_pick_target` now wraps `_choose_target`: a body
+in reach of the town and of nothing it was aiming at answers the town. It never
+takes a target away from something in reach, it never touches a camp body, and
+it is in the wrapper rather than in each branch so that the next branch added
+cannot forget it. Measured on the owner's front after: the burrowers at the wall
+in RECOVER and STRIKE aimed at the town; the town fell at 55 s rather than 165.
+
+**"Not the player" was not reproduced and is recorded as such.** Four breeds
+attacked a hero standing on the road at 176 units within three seconds. What
+did change in v0.47.0 is the sanctuary: `inside_city` went from a 216-unit
+circle to the sprite's own 512-unit square, so a Warden within 256 of the town -
+362 at a corner - is invisible and immune to every body on the road, by the
+owner's own rule of 2026-09-17. A player defending at the gate is standing in
+it. That is the design working at a larger radius, and it should be said on
+screen rather than discovered.
+
+**`enemy_siege_check` (246 checks)** walks all sixty-eight breeds up the road
+by hand until each strikes the town, stands every siege breed at the gate with a
+tower in its lane beyond its arm and insists it swings at the wall, and keeps
+`structure_check`'s invariant that the tower is preferred from the spawn and
+beside it. Planted: the wrapper returning what was chosen names all six siege
+breeds. Five things the gate taught on the way, each a harness fault and each
+one this project has met before in other clothes:
+
+- **A boss's blow ends the run.** Walking the roster hand-driven, a giant took
+  the town to zero, `TownCore._on_died` called `end_run`, and forty breeds after
+  it were measured on a run that had ended - "aiming at nothing". `floor_hp`
+  holds the town at half; it is the door the withdrawal already uses.
+- **A share of a route is not a distance.** Routes differ threefold in length,
+  so "a fifth of the way in" put one marcher a minute further out than another
+  and the slow ones ran out of budget. Bodies stand a fixed distance back from
+  the wall now.
+- **A lane's routes end at any of the four gates.** A body draws its route at
+  spawn from the run's stream, so the probe's "unreachable tower" was reachable
+  on one run and not on the next - a coin toss wearing a gate's clothes, the
+  fifth here. The tower is placed clear of every gate for every siege arm.
+- **A tower stands ninety-six units off its tile's centre**, and a body
+  measures reach from its combat origin, a hundred units above a giant's feet.
+  Both were read off the built tower and the ticked body rather than computed,
+  because the first cut computed them and passed the giant.
+- **Shots are children of the field, not of the entity root.**
+
+**And a mount was thrown by the ground it rode on.** `_may_stay_mounted`
+refused the saddle while `_beast_stun_left` ran, and every footfall of Yuri's
+sets that - the fault the fishing line paid for once, where a shove never
+settled under a stillness threshold. Read straight off the code and then driven:
+one `beast_step_landed` and six ticks, off the horse. **What ends a ride now is
+a blow** (owner, 2026-09-21): `_on_damaged` throws the rider when health was
+lost, the saddle closes for `Balance.MOUNT_HURT_COOLDOWN`, and `mount()` says
+so out loud. **Health lost, not a hit**, because a ward that swallowed the whole
+blow emits `damaged` with nothing taken, and the co-op mirror - which learns of
+a blow only as a lower fraction in `CoopHeroes._apply_health` - could never
+agree about one of those. The mirror throws on the drop through the same
+`throw_from_saddle`, so the host's copy of a guest and the guest's own Warden get
+off on the same fact. `MountCooldownRing` is a child of the ride button that
+draws the horse's own south-east idle cell inside an emptying arc, read off
+`mount_cooldown_ratio` every frame and visible for that clock and no other -
+the ordinary 0.6 s remount delay would be a ring flashing on every voluntary
+dismount. `mount_check` (119 checks) drives all of it and both planted faults
+were named. The owner's other mount ruling - faster, and a sprint that costs SP
+- is untouched by this patch and still owed.
+
+**Two things worth keeping from how this was found.** A report and a headless
+harness disagreed four times in a row, and what settled it was neither reading
+the code again nor doubting the owner: it was running the owner's *own save*
+through the real director and dumping every body. `enemy_siege_trace` is that
+harness, kept as a diagnostic rather than a gate - `--mode=hand|engine|hero|
+full|resume`, the last against whatever save the profile holds - so the next
+"they never attack" starts from a dump rather than from a theory. And the beast's footfall was
+ruled out for the enemies by arithmetic rather than by measurement - 27 units a
+second at 0.72 decaying at 900 is a fifth of a unit of travel - which is a
+computation, and is recorded as one.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

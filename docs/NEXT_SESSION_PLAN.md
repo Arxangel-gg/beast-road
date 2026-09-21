@@ -6,50 +6,45 @@ item has to be built *against*.
 
 ---
 
-## P0 - two regressions, both mine, both shipped
+## P0 - shipped in v0.47.2 (2026-09-21), and what it turned out to be
 
 ### 1. Enemies never attack anything
 
-Reported on v0.47.1 with a screenshot: a body stood against the base, the town
-at 24%, nothing swinging - "not the base, not the player, nothing."
+**Traced first, and the leading mechanism was not the cause.** Five traces on
+HEAD - a body hand-driven, a body on the live field, four breeds against a
+hero, the real director on a fresh account, and the real director on a copy of
+the owner's own banked front - all showed the ordinary breeds walking up and
+striking. What stood at the wall and never swung was **every Dune Burrower in
+the wave**: a siege breed picks the nearest tower in its lane, the road is not
+optional so it never leaves the route to reach it, and it arrives at the wall
+still holding a target it cannot reach. `_pick_target`'s tower branch had no
+reach condition since 2026-08-13; only the hero branch said "a body at the gate
+hits the gate". The walk-in/teleport-out loop is real but only ever runs for a
+body whose target is not the wall, and a body that walks up honestly stops at
+its reach, well outside the padding.
 
-**Leading mechanism, to be traced before it is believed.** `step_is_legal`
-refuses a step into `city_bounds()` **ungrown**. `deflect_from_city` **grows**
-that rect by its padding before testing it. The two therefore disagree by
-exactly the padding: a body walks legally to the rect edge, the deflection sees
-it inside the *grown* rect and teleports it back out, and next frame it walks in
-again. **Walk in, teleport out, every frame** - and a body repositioned every
-frame never settles into an attack.
+**Fix:** one rule in `_pick_target` - in reach of the town and of nothing it
+was aiming at, the town. **Gate:** `enemy_siege_check` (246 checks, on both
+bars) walks all 68 breeds to a strike and stands every siege breed at the gate.
+Planted, it names all six.
 
-That retro-explains the first report rather than contradicting it: at 135 units
-of padding the same loop ran further out, and only breeds whose reach exceeded
-the loop could still hit the wall. **One bug, two costumes** - the distance was
-fixed and the loop was left.
-
-**The fix is that one boundary owns this.** The deflection uses the same rect
-`step_is_legal` refuses, unpadded, so a body standing at the edge is not inside
-and nothing shoves it. `release_repair_check`'s "feet inside" assertion was
-written against the padded version and moves with it.
-
-**Trace first.** Reading this code has produced two wrong theories already this
-week; one log of state transitions with positions is what settled the raccoon.
-And "there are some others that are that way as well" is the useful half of the
-report - anything the boundary loop does not explain is a second bug.
+**Not reproduced:** "not the player". Four breeds attacked a hero on the road
+at 176 units. What changed in v0.47.0 is the sanctuary rect: a Warden within
+256 of the town (362 at a corner) is invisible and immune by the owner's own
+rule. That should be said on screen - see P1.
 
 ### 2. A mount is thrown by Yuri's footfall
 
-`_beast_impulse` shoves the hero on every step of the beast, and the mount path
-reads that as movement or as a hit. Fishing paid for this exact fault once -
-`Hero.own_speed` exists because the shove never settles under a stillness
-threshold - so the mount should read the corrected figure rather than raw
-velocity.
+Read straight off the code: `_may_stay_mounted` refused the saddle while
+`_beast_stun_left` ran, which every footfall sets. **Now:** a blow that takes
+health throws the rider (`Hero.throw_from_saddle`), the saddle closes for
+`MOUNT_HURT_COOLDOWN` (6 s), the ride button reads THROWN with the horse's own
+picture inside an emptying ring, visible for that clock only, and the co-op
+mirror throws on the same drop. `mount_check` is 119 checks; both planted
+faults named.
 
-**What the owner wants instead:** dismount on *damage*, and the mount then goes
-on cooldown. A UI icon with a progress ring, visible **only while on cooldown**.
-
-Publish both as one patch before anything else is started.
-
----
+**Still owed from the owner's mount ruling below:** faster mounts, a mounted
+sprint that costs SP, per-mount rates. Untouched by the patch.
 
 ## P1 - the HUD tells you the town is dying
 

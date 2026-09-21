@@ -50,10 +50,10 @@ nothing on this list closes it except §6.
 
 | | What | Why it blocks |
 |---|---|---|
-| 1 | **Enemies never attack** (v0.47.1) | The game is unplayable. `step_is_legal` refuses entry to the ungrown city rect while `deflect_from_city` grows it by its padding, so a body walks in legally, is teleported out every frame and never settles into an attack. Trace it; do not assume it. |
-| 2 | **Mounts thrown by Yuri's footfall** | Should dismount on *damage*, then cooldown, with an icon and a progress ring visible only while on cooldown. |
+| 1 | ~~**Enemies never attack** (v0.47.1)~~ **Shipped in v0.47.2.** | Traced, and the mechanism above was not it: siege breeds arrived at the wall holding a tower target they could never reach and stood there. One rule in `_pick_target`, gated by `enemy_siege_check` across all 68 breeds. "Not the player" was not reproduced; the sanctuary rect grew in v0.47.0 and is unsaid on screen (P1). |
+| 2 | ~~**Mounts thrown by Yuri's footfall**~~ **Shipped in v0.47.2.** | Dismount on health lost, `MOUNT_HURT_COOLDOWN`, the horse's picture in an emptying ring on the ride button, the co-op mirror throwing on the same drop. |
 
-Nothing else starts until those ship.
+Both shipped 2026-09-21. The rest of this document is unchanged by them.
 
 ---
 

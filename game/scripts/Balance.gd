@@ -11403,6 +11403,24 @@ const MOUNT_UP_SECONDS: float = 0.45
 ## a player a blow they meant to land.
 const MOUNT_REMOUNT_DELAY: float = 0.6
 
+## How long a rider thrown by a blow waits before the saddle takes them back
+## (owner, 2026-09-21: *"dismount on damage, and the mount then goes on
+## cooldown"*).
+##
+## **Its own clock rather than `MOUNT_REMOUNT_DELAY`**, and the reason is what
+## the two are for. The remount delay stops a held key flickering between two
+## states and is shorter than a swing so it never costs a blow; this is a
+## *price*, paid for being caught in the saddle, and it is the only thing that
+## stops a rider taking a hit, getting straight back on and galloping off as if
+## nothing had landed. The HUD shows a ring for exactly this clock and for
+## nothing else - a ring flashing for six tenths of a second on every voluntary
+## dismount would be noise wearing a warning's clothes.
+##
+## And it is what replaced the footfall. `_may_stay_mounted` used to refuse the
+## saddle while `_beast_stun_left` ran, and Yuri's every step sets that, so a
+## rider was thrown four times a minute by the ground they were riding on.
+const MOUNT_HURT_COOLDOWN: float = 6.0
+
 ## How close something hostile may be before the Warden refuses to mount.
 ##
 ## Not a fairness rule - a mounted hero cannot fight, so mounting in a crowd
