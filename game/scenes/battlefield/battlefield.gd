@@ -2828,6 +2828,15 @@ func all_towers() -> Array[Tower]:
 ## Pressure is how much of a lane's threat is close to the town, so a lane full
 ## of enemies that just spawned reads calmer than one about to break.
 func _update_pressure() -> void:
+	# **The host reads the road; a guest is told.** Lane pressure is a
+	# host-authored fact (`CoopRelay.Fact.LANE_PRESSURE`) and the guest's HUD is
+	# fed from the wire. A guest that also measured its own copy of the field
+	# emitted the same signal, the relay refused it as a guest authoring a fact,
+	# and the refusal printed an error on every tick of this timer for the whole
+	# run. Two readings of one road would also disagree, because the guest's
+	# bodies are mirrors that arrive a packet late.
+	if Coop.is_guest():
+		return
 	var counts: Array[float] = []
 	counts.resize(Balance.LANE_COUNT)
 	counts.fill(0.0)

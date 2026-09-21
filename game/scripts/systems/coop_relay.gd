@@ -617,8 +617,15 @@ func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
 	_relay(Fact.GEAR_DROPPED, [net_id, piece, at, by_a_player])
 
 
-func _on_coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
-	_relay(Fact.WILDLIFE_SPAWNED, [net_id, kind_id, at])
+## Four arguments, because the signal has four. This handler was written
+## with three and the shiny flag was added to the signal later; Godot reported
+## "expected 3 argument(s), but called with 4" on the host *every spawn* and
+## relayed nothing, so a guest saw an empty road. `coop_check` walks every
+## binding against its signal's arity now, because an arity mismatch errors on
+## the sender and is silent on the receiver - the worst shape a fault can take.
+func _on_coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2,
+		shiny: bool) -> void:
+	_relay(Fact.WILDLIFE_SPAWNED, [net_id, kind_id, at, shiny])
 
 
 func _on_coop_wildlife_family(net_id: int, word: int, value: int) -> void:
@@ -1080,9 +1087,9 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_hero_state.emit(args[0] as Array)
 		Fact.WILDLIFE_SPAWNED:
-			if args.size() == 3:
+			if args.size() == 4:
 				bus.coop_wildlife_spawned.emit(int(args[0]), String(args[1]),
-					args[2] as Vector2)
+					args[2] as Vector2, bool(args[3]))
 		Fact.WILDLIFE_BATCH:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_wildlife_batch.emit(args[0] as Array)

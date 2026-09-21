@@ -60,8 +60,8 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(func(id: String, at: Vector2) -> void:
 		_heard.append(["enemy_died", id, at]))
 	EventBus.coop_enemy_spawned.connect(
-		func(net_id: int, data_id: String, lane: int, at: Vector2,
-				hp: float, dmg: float, spd: float) -> void:
+		func(net_id: int, data_id: String, lane: int, _at: Vector2,
+				_hp: float, _dmg: float, _spd: float, _pursuer: bool) -> void:
 			_heard.append(["spawned", net_id, data_id, lane]))
 	EventBus.coop_tower_state.connect(
 		func(anchor: Vector2i, id: String, level: int) -> void:

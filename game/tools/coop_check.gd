@@ -111,6 +111,7 @@ func _ready() -> void:
 
 	_build_two_sessions()
 	_test_every_wire_number_is_its_own()
+	_test_every_binding_matches_its_signal()
 	_test_the_shipping_singleton()
 	await _test_offline_is_its_own_authority()
 	await _test_host_and_join()
@@ -1240,6 +1241,45 @@ func _test_every_wire_number_is_its_own() -> void:
 				seen[value] = String(key)
 		_check(seen.size() == table.size(),
 			"%s: %d names share %d numbers" % [label, table.size(), seen.size()])
+
+
+## Every relay binding takes exactly the arguments its signal carries.
+##
+## `_on_coop_wildlife_spawned` took three while the signal had grown a fourth,
+## and Godot's answer was an error on the *sender* every spawn and silence on
+## the receiver - a guest saw an empty road while every co-op gate stayed green,
+## because each of them drives the signals either side of the relay and none
+## fired this one through it. An arity is a thing a gate can walk, so this walks
+## the whole table against the bus rather than testing the one that broke.
+##
+## The receive arms are held the other way round: an arm re-emits the signal
+## with the count it accepts, so a signal that grows an argument fails the
+## emit at runtime rather than here - which is why the sending side is the one
+## a count can catch, and why the arm was corrected by hand alongside it.
+func _test_every_binding_matches_its_signal() -> void:
+	var relay: CoopRelay = _host.call("relay")
+	_check(relay != null and relay.bus != null,
+		"the host session must hold a relay bound to a bus")
+	if relay == null or relay.bus == null:
+		return
+	var arity: Dictionary = {}
+	for info: Dictionary in relay.bus.get_signal_list():
+		arity[String(info["name"])] = (info["args"] as Array).size()
+	var walked: int = 0
+	for entry: Array in relay._fact_bindings():
+		var name: String = String(entry[0])
+		var handler := entry[1] as Callable
+		_check(arity.has(name),
+			"the relay binds '%s', which is not a signal on the bus" % name)
+		if not arity.has(name):
+			continue
+		var wants: int = handler.get_argument_count()
+		_check(wants == int(arity[name]),
+			"%s carries %d argument(s) and %s takes %d: every emission errors on "
+				% [name, int(arity[name]), String(handler.get_method()), wants]
+				+ "the sender and the fact never leaves the machine")
+		walked += 1
+	_check(walked >= 40, "the relay's binding table must be walked, saw %d" % walked)
 
 
 func _check(condition: bool, why: String) -> void:

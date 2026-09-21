@@ -5874,23 +5874,51 @@ their own arithmetic now. `recovery_drop_check` waited ninety *frames* for a
 crate that has to land first, and headless runs far above sixty a second - it
 waits seconds. `loot_juice_check` reads 50 checks, four runs in a row.
 
-**One thing is not settled, and it predates this session.** `coop_ui_check`
-is the two-process gate launched by `tools/coop_ui.sh` and run by hand, on
-neither bar. Its first failure was the harness: a fresh account is sent to
-the tutorial before co-op opens (2026-09-12), so on the scratch profile the
-Co-op button offered the coach and "pressing it must open the co-op screen"
-failed by design of the menu - the gate marks the account as having done its
-tutorial now, and the **host passes every check**. The guest still fails four:
-it does not see the host's wildlife, a tend it asks for does not come back, a
-tower it asks for does not appear, and after being downed, revived and wiped
-it carries full walking velocity and moves nowhere. **The same four fail
-identically on v0.47.2 in a worktree**, so they are not this session's, and
-they were not seen before because nobody ran the script. The fork vote, the
-seed, the loot and the host's damage all reach the guest, so the wire is up;
-what is broken is either the guest's requests after the run begins or a
-timing the two processes on one machine cannot meet. It is the first thing
-to trace before the next co-op change, with `tools/coop_ui.sh` and the two
-logs it leaves in `$TMPDIR`.
+**The guest's four failures were one real fault and one frozen harness, found
+2026-09-21.** `coop_ui_check` is the two-process gate launched by
+`tools/coop_ui.sh`, run by hand and on neither bar. Its host passed and its
+guest failed four checks: no wildlife seen, a tend and a tower asked for and
+not answered, and a hero carrying full walking velocity after a wipe and moving
+nowhere. Identical on v0.47.2, so older than that release.
+
+**The wildlife was the relay's arity.** `coop_wildlife_spawned` grew a fourth
+argument - the shiny flag - and `CoopRelay._on_coop_wildlife_spawned` kept
+three, so Godot printed *"expected 3 argument(s), but called with 4"* on the
+host at **every spawn** and relayed nothing; the receive arm accepted three
+and would have dropped a four-element fact besides. An arity mismatch errors
+on the sender and is silent on the receiver, which is the worst shape a fault
+can take, and every co-op gate drove the signals either side of the relay
+without firing this one through it. `coop_check` walks the whole binding table
+against the bus's signal list now, and named the planted three-argument
+handler. The same walk over every *lambda* connected to an EventBus signal
+found one more, in `coop_live_check` itself: its enemy-spawn listener took
+seven of eight, so the live harness had been red for as long as the pursuer
+flag has existed.
+
+**The other three were the harness measuring a suspended field.** The guest
+asks for a road and the host grants it - and then `_on_road_chosen` deals the
+road cards and keeps the battlefield suspended under the draft until one is
+kept. Nobody in the harness took a card, so both machines sat at the crossroad
+with every hero absent from the world: the host's mirror of the guest stood at
+one position with stale velocity, `_send_state` never ticked, the tend the host
+did perform (0.50 to 0.84 on its copy) never crossed, and the guest's own
+Warden was corrected every packet toward a copy that could not move. Traced by
+printing both sides every two seconds rather than by reading the code again -
+the code was right. The guest asks for a card now, through the screen's own
+`_send_road_card`, and both sides assert the field resumed.
+
+**And the tend check was measuring a fiction.** It set the guest's own hero to
+40% locally and waited for it to rise. A guest hero's health is the host's to
+say - it arrives as a fraction of the host's mirror twenty times a second - so
+that number was one the host had never seen. It reads the host-authored wound
+the wipe respawn left and asks for a rise above it.
+
+**Also found on the way:** a guest was measuring lane pressure off its own
+field and the relay refused it as a guest authoring a fact, an error line per
+tick for the whole run; `_update_pressure` returns on a guest, whose HUD is fed
+from the wire. And the host script finished before the guest's requests
+arrived, so the guest now says it is done on the chat channel and the host
+waits for that. Both two-process harnesses pass clean on this machine.
 
 **Eleven acts, and every act names its roster, as of 2026-09-21.** The owner:
 *"11 acts with more waves per act and 8-19 enemies per act, with each act

@@ -74,10 +74,11 @@ save backup, co-op with rejoin.
 **Real but unproven:** co-op over the internet at length; Nightmare and Hell;
 the web build; the APK; anything on a machine weaker than a 3070 Ti.
 
-**Known and open (found 2026-09-21, predates v0.48.0):** `tools/coop_ui.sh`, the
-two-process co-op gate, passes on the host and fails four guest checks - no wildlife
-seen, a tend and a tower asked for and not answered, a hero pinned in place after a
-wipe. Identical on v0.47.2. Trace this before the next co-op change; see CLAUDE.md.
+**Closed 2026-09-21:** the two-process co-op gate's four guest failures. One was
+real - the wildlife spawn fact was relayed with three of its four arguments and never
+left the host - and three were the harness measuring a field still suspended under
+the road-card draft. `coop_check` walks every relay binding against its signal's
+arity now; `tools/coop_ui.sh` and `tools/coop_live.sh` both pass clean.
 
 **Not real:** music for five of ten acts; boss themes anywhere; enemy voices;
 the Act X boss sprite; mount idle animation; a mount page in the Guide.

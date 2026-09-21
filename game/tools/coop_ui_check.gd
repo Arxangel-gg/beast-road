@@ -25,7 +25,13 @@ var _entered_run: bool = false
 
 ## What the host says, and what the guest heard it say.
 const HOST_SAID: String = "pulling to the north road"
+## Said by the guest when its last check has run. The host waits for it before
+## leaving, because a host that finished its own script first took the seat the
+## guest's tend, build and revive requests were addressed to - three failures
+## that read as co-op faults and were the harness quitting early.
+const GUEST_DONE: String = "guest done"
 var _heard_chat: String = ""
+var _guest_done: bool = false
 var _heard_from: int = 0
 var _notices: int = 0
 
@@ -98,6 +104,9 @@ func _ready() -> void:
 		# from the same signal, and counting that would prove nothing.
 		var relay: CoopRelay = Coop.relay()
 		if relay != null and relay.is_replaying():
+			if text == GUEST_DONE:
+				_guest_done = true
+				return
 			_heard_chat = text
 			_heard_from = slot)
 	EventBus.party_notice.connect(func(_slot: int, _text: String) -> void:
@@ -476,6 +485,30 @@ func _enter_run_in_place(role: String) -> void:
 			% RunState.active_road_id)
 		_check(_saw_partner_pointer,
 			"the host must see where the guest's cursor is while the fork is up")
+		# **The draft the road opens, closed by the guest's request.** The field
+		# stays suspended under the card panel, so a harness that stopped at the
+		# road measured every later check - tending, building, walking off a
+		# wipe - on a frozen field, and read three co-op faults that were the
+		# crossroad still being open on both machines.
+		await _until(func() -> bool:
+			return RunState.pending_road_cards.is_empty() and not fork.is_open())
+		_check(RunState.pending_road_cards.is_empty() and not fork.is_open(),
+			"the host must settle the road card when the guest asks for one")
+		_check(RunState.road_cards.size() == 1,
+			"and hold the card the guest asked for, holding %d"
+				% RunState.road_cards.size())
+		_check(not field.is_suspended(),
+			"the field must resume on the host once the crossroad is done")
+		print("[coop-ui] host settled the road card and the road resumed")
+		# The guest tends, builds and walks off a wipe *after* the fork, and every
+		# one of those is a request addressed to this seat. Leaving before they
+		# arrive answers nothing and reads as three co-op faults on the other log.
+		# Three wait budgets, because the guest's own checks each wait one.
+		var patience: int = Time.get_ticks_msec() + int(PORT_WAIT * 3000.0)
+		while Time.get_ticks_msec() < patience and not _guest_done:
+			await get_tree().process_frame
+		_check(_guest_done,
+			"the host must hear the guest finish before it leaves the party")
 		await _hold(2.0)
 	else:
 		# Drive the local hero, which is what gets sampled and sent.
@@ -584,6 +617,27 @@ func _enter_run_in_place(role: String) -> void:
 		print("[coop-ui] guest asked for '%s' and the host granted it"
 			% RunState.active_road_id)
 
+		# **The card draft, from the side that asks.** It follows the road on
+		# the same screen, and the field on both machines stays suspended until
+		# one card is kept - which is why every check below this one used to
+		# measure a frozen hero and call it a co-op fault.
+		await _until(func() -> bool:
+			return fork.is_open() and not RunState.pending_road_cards.is_empty())
+		_check(not RunState.pending_road_cards.is_empty(),
+			"the guest must be dealt the road cards the host drew")
+		if not RunState.pending_road_cards.is_empty():
+			var card: String = RunState.pending_road_cards[0]
+			fork._send_road_card(card, "")
+			_check(not RunState.pending_road_cards.is_empty(),
+				"a guest's card click must not take the card by itself - it asks")
+			await _until(func() -> bool: return RunState.pending_road_cards.is_empty())
+			_check(RunState.road_cards.has(card),
+				"the guest must hold the card it asked for once the host answers")
+			print("[coop-ui] guest asked for card '%s' and the host granted it" % card)
+		await _until(func() -> bool: return not field.is_suspended())
+		_check(not field.is_suspended(),
+			"the field must resume on the guest once the crossroad is done")
+
 		# Projectiles: the tower's and the ranged enemy's. Counted by watching
 		# rather than sampling - a shot exists for a fraction of a second, and a
 		# single reading would miss every one of them and prove nothing.
@@ -617,17 +671,26 @@ func _enter_run_in_place(role: String) -> void:
 		# the balance corrected back a moment later while the healing landed on a
 		# body the host had never healed - so the button did nothing at all, and
 		# was reported as exactly that. It has to be a request.
+		#
+		# **This hero's health is the host's to say.** It arrives as a fraction of
+		# the host's mirror twenty times a second, so wounding it here would be a
+		# fiction the next packet erased - the first cut did exactly that and then
+		# waited on a number the host had never seen. The wipe respawn left the
+		# party at `HERO_WOUND_REVIVE_HP`, which is a wound the host knows about.
 		if RunState.can_build_now() and mine.health != null:
-			mine.health.current_hp = mine.health.max_hp * 0.4
+			var was: float = mine.health.current_hp / mine.health.max_hp
+			_check(was < 0.9,
+				"the wipe must have left the guest hurt enough to tend, at %.0f%%"
+					% (was * 100.0))
 			var before: int = RunState.currency(RunState.FOOD)
 			field.try_tend_hero()
 			await _until(func() -> bool:
-				return mine.health.current_hp > mine.health.max_hp * 0.45)
-			_check(mine.health.current_hp > mine.health.max_hp * 0.45,
-				"the guest must be able to tend its own hero, still at %.0f%%"
-					% (mine.health.current_hp / mine.health.max_hp * 100.0))
-			print("[coop-ui] guest tended itself to %.0f%%, Food %d -> %d"
-				% [mine.health.current_hp / mine.health.max_hp * 100.0,
+				return mine.health.current_hp / mine.health.max_hp > was + 0.1)
+			_check(mine.health.current_hp / mine.health.max_hp > was + 0.1,
+				"the guest must be able to tend its own hero, %.0f%% -> %.0f%%"
+					% [was * 100.0, mine.health.current_hp / mine.health.max_hp * 100.0])
+			print("[coop-ui] guest tended itself %.0f%% -> %.0f%%, Food %d -> %d"
+				% [was * 100.0, mine.health.current_hp / mine.health.max_hp * 100.0,
 					before, RunState.currency(RunState.FOOD)])
 
 		# **The guest builds, and the host has to be the one who does it.**
@@ -679,6 +742,11 @@ func _enter_run_in_place(role: String) -> void:
 				% went + "velocity %.0f" % mine.velocity.length())
 		print("[coop-ui] guest walked %.1f at velocity %.0f after the wipe"
 			% [went, mine.velocity.length()])
+		# Told to the host as a chat line, which is the one guest-authored thing
+		# already on the wire; a moment for the packet to flush before this side
+		# quits and takes the peer with it.
+		EventBus.coop_chat.emit(Coop.party().slot(), GUEST_DONE)
+		await _hold(1.5)
 
 
 ## A stick held right, so the guest has something to send.
