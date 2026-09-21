@@ -5880,6 +5880,105 @@ parallel batch, most of them the guest failing to open the co-op screen at
 all, which is not loot. It has not been re-run alone and should be, before
 the next co-op change is trusted.
 
+**Eleven acts, and every act names its roster, as of 2026-09-21.** The owner:
+*"11 acts with more waves per act and 8-19 enemies per act, with each act
+progressively increasing in +1 count of the total unique enemies each
+consecutive act, with act 1 having 8 unique enemies ... and act 11 having 19"*.
+
+**The eleventh act was already there and was not an act.** `FINAL_ASCENT_ACT`
+has been `ACT_COUNT + 1` since the ten-act road, with Kharok at its top - and
+it was 400 units on the Terrace's own ground with the Terrace's own roster,
+about seven waves. It is an act now: `data/terrains/crown.tres` at act 11 with
+a summit floor, a horizon strip and a pond sheet of its own, the roster every
+road behind it sent, and `FINAL_ASCENT_DISTANCE` 3200 - about 58 waves,
+shorter than the Terrace because a climax is a peak and not a plateau.
+**Nothing was renumbered**: acts 1-10 keep their ids, every banked expedition
+still means what it meant, and `act_end_distance(11)` is where the summit is.
+Entering the ascent changes the region exactly as a boss falling does, and
+`act_started` is said for it, which `resume_after_boss` deliberately never did
+past `ACT_COUNT`.
+
+**A roster is a countable list now.** `TerrainData.veteran_ids` names the
+breeds from other roads that walk this one at the invader chance, replacing
+the old draw from a random earlier region's whole pool - so a wolf rider is
+on the Steppe because it belongs there, not because its region came first.
+`Balance.ACT_UNIQUE_ENEMIES` is the owner's table, 8 to 17 by one a step and
+19 at the summit: the two endpoints the owner named do not meet at +1 over
+eleven acts (that reaches 18), so the table is the rule to the Terrace and the
+summit takes the owner's own figure. One number to change if that reading is
+wrong. `roster_check` (702) holds every act to its entry **exactly**, every
+body to its base painting and its idle, walk and attack frames, every veteran
+to a home on another road, and **drives the real director's draw** three
+thousand times an act to prove the list is what the dice reach - listing a
+breed is not fielding it.
+
+**Fourteen breeds joined the road**, one or two a region and four for the
+Crown: Thorn Archer and Canopy Stalker (Verdant Maw), Dune Reaver (Waste),
+Marsh Piper (Marches), Gear Grinder (Rustwood), Tide Lurcher (Saltpan), Horde
+Marksman (Steppe), Prism Lancer (Glass Fields), Slag Brute (Ashen Reach),
+Stair Warder (Terrace), and Kharok's own Chainwarden, Chainlancer, Anchor
+Cantor and Shackle Brute. The four road breeds no region had ever listed -
+Crevasse Stalker, Frost Herald, Glass Chanter, Loam Lurker - walk the regions
+they were drawn for. Every stat sits inside its role's neighbours and every
+kill value on the roster average, because **a roster average drifts as the
+roster grows** and `curve_report` refused a batch authored below it once.
+
+**Generated with a shipped sprite as the style image and the palette left
+off**, which matched the painterly roster on the first pilot - the technique
+is in the memory directory. Seven of the first twenty animation jobs came
+back **410**: PixelLab's GPU worker dropped them, unbilled, and the staging
+tool aborted the whole batch on the first one. It skips and names them now.
+
+**The road is an eighth longer and the curve is re-measured.** Every act's
+road grew by an eighth (`ACT_ROAD_DISTANCE`), which with the summit lowered
+solo mean pressure to 0.375 against a floor of 0.40 - a longer road earns a
+purse the same climb no longer answers. **Height and length are separate
+knobs**: `WAVE_GROWTH_REFERENCE_RUN` went 296 to 330 and the curve reads
+0.414 solo, 0.487 for four, acts 0.22 to 0.58, on a new account.
+`ACT_START_BUDGET` was re-read off the purse column. `balance_test` held the
+launch roster to exact counts and a drop to one node; both are floors now.
+
+**The wyrm is seen as the thing it is, as of the same date.** The owner:
+*"Dragons need more polish and bug fixes."* Four things were true in the code
+and false on the screen: every variant flew as one painting tinted toward its
+breath; a landed wyrm was the base painting standing still while its idle and
+attack sheets sat on disk unread; the shadow stayed at flight size under a body
+on the ground and read as a second dragon lying beside the first; and a rare
+wyrm - a fifth larger overhead - landed at the common size. Each variant has
+its own overhead painting and `_fly_NN` wing-beat frames now, the landed body
+breathes and strikes on its own sheets, the shadow settles to
+`DRAGON_SHADOW_REST` of its silhouette as the body comes down, the rarity step
+is the same on the ground as in the air, and the landing is felt: dust the
+colour of the ground, a knock through `camera_impact` weighted by distance
+like every blow, the animal's own voice. **Presentation only** - nothing
+downstream reads any of it, and a variant without its own painting flies as
+the shared one tinted, which is what every dragon was. `dragon_check` lands a
+common and a rare wyrm by hand and reads the size, the shadow and the frames
+back.
+
+**The Walk's verbs finish their stops, as of the same date.** The owner: *"The
+game's tutorial needs to be completed and polished."* Twelve of eighteen stops
+finished on arrival, and four of them did so while telling the player to *do*
+a thing - loose an arrow, cast, upgrade, cut the chain - so the valley taught
+the words and never the deed. Each finishes on the signal the game already
+emits (`hero_loosed`, `spell_cast`, `tower_changed` read for a level that
+rose, and the chain's own `cut`), which is `_listen`'s rule: a Walk that
+thinks an arrow flew and a hero that does not is not a state it can reach.
+
+**Three things had to stand before the verbs could.** The butts lend the
+starting-kit bow and a quiver, exactly as the armoury hands them over; the
+build stop said *"It costs Gold, which is why you killed for it"* on a road
+that opens with none and one scripted kill behind it, so the two purchase
+stops open with the valley's chest (`WALK_BUILD_PURSE`, `WALK_UPGRADE_PURSE`);
+and the last stop said *"Cut the chain. Hold Interact"* with nothing to hold
+it against, so `WalkChain` stands `WALK_CHAIN_STANDOFF` below the town, reads
+the same `HeroInput` every worked thing reads, sparks while it is held, gives
+ground while it is not, and parts after `WALK_CHAIN_SECONDS`. All of it is
+run-scoped - the Walk's run is never settled - so *"nothing here grants
+anything"* still means the account. `tutorial_walk_check` drives every verb
+through its real signal on a real Walk, and named a planted Walk that stopped
+listening for arrows.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
