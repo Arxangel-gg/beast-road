@@ -126,7 +126,9 @@ func _ready() -> void:
 	var act: int = 1
 	for wave: int in range(1, MAX_WAVES + 1):
 		var now_act: int = 1
-		while now_act < Balance.ACT_COUNT \
+		# To the summit: the ascent is an act since 2026-09-21, with its own
+		# terrain and roster, and `act_end_distance` knows where it ends.
+		while now_act < Balance.FINAL_ASCENT_ACT \
 				and distance >= Balance.act_end_distance(now_act):
 			now_act += 1
 		if now_act != act:
@@ -141,7 +143,7 @@ func _ready() -> void:
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
 		distance += cycle * Balance.BEAST_BASE_SPEED
-		if distance >= Balance.JOURNEY_TOTAL_DISTANCE:
+		if distance >= Balance.act_end_distance(Balance.FINAL_ASCENT_ACT):
 			break
 
 	_print_table()
@@ -268,7 +270,7 @@ func _print_survival() -> void:
 	if contact <= 0.0:
 		return
 	var line: PackedStringArray = []
-	for act: int in range(1, Balance.ACT_COUNT + 1):
+	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
 		var row: Dictionary = _last_row_of_act(act)
 		if row.is_empty():
 			continue
@@ -623,7 +625,7 @@ func _judge_escalation() -> int:
 		counts[act] = int(counts.get(act, 0)) + 1
 	var means: Array[float] = []
 	var readout: String = ""
-	for act: int in range(1, Balance.ACT_COUNT + 1):
+	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
 		if not counts.has(act):
 			continue
 		var mean: float = float(totals[act]) / float(counts[act])
@@ -631,7 +633,7 @@ func _judge_escalation() -> int:
 		readout += "%d:%.2f " % [act, mean]
 	print("")
 	print("[curve] mean pressure by act   %s" % readout)
-	if means.size() < Balance.ACT_COUNT:
+	if means.size() < Balance.FINAL_ASCENT_ACT:
 		return 0
 
 	var failed: int = 0
@@ -725,7 +727,7 @@ func _mean_pressure_for(count: int) -> float:
 		# were then reporting two different campaigns, and the party means were
 		# the wrong one.
 		var now: int = 1
-		while now < Balance.ACT_COUNT and distance >= Balance.act_end_distance(now):
+		while now < Balance.FINAL_ASCENT_ACT and distance >= Balance.act_end_distance(now):
 			now += 1
 		if now != act:
 			act = now
@@ -738,7 +740,7 @@ func _mean_pressure_for(count: int) -> float:
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
 		distance += cycle * Balance.BEAST_BASE_SPEED
-		if distance >= Balance.JOURNEY_TOTAL_DISTANCE:
+		if distance >= Balance.act_end_distance(Balance.FINAL_ASCENT_ACT):
 			break
 	director.free()
 	_players = was

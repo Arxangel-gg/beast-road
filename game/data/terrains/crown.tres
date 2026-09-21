@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+battle_music = "battle_snow"
+ambience_bed = "snow"
+breed_id = "gate_sentinel"
+enemy_ids = Array[String](["gate_sentinel", "stair_runner", "crown_herald", "ice_hauler"])
+elite_ids = Array[String](["warden", "white_maw_giant", "siege_lizard"])
+veteran_ids = Array[String](["prism_warden", "glass_singer", "horde_shieldman", "horde_lancer", "rust_hulk", "cinder_hound", "ash_caller", "storm_caller", "glassguard", "snowhide_brute", "frost_herald", "bell_priest"])
+act = 11
+favoured_element = 2
+favoured_element_bonus = 0.30
+enemy_hp_regen = 0.00
+bonus_chain_targets = 0
+wave_size_multiplier = 1.16
+wave_interval_multiplier = 0.92
+boss_id = "chainmaker"
+id = "crown"
+display_name = "The Crown of the World"
+grade_tint = Color(0.92, 0.97, 1.06, 1)
+grade_saturation = 0.94
+grade_contrast = 1.08
+grade_lift = 0.04
+grade_vignette = 0.30

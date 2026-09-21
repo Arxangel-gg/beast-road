@@ -16,6 +16,15 @@ extends GameData
 @export var enemy_ids: Array[String] = []
 @export var elite_ids: Array[String] = []
 
+## Breeds native to *another* road that walk this one at the act's invader
+## chance (`Balance.WAVE_INVADER_CHANCE`), instead of the old draw from a random
+## earlier region's whole pool. Authored, so an act's roster is a countable list
+## rather than whatever the dice reached, and so a veteran arrives because it
+## belongs here (a wolf rider on the Steppe) rather than because its region
+## came first. A region with none keeps the old draw. Natives, elites and
+## veterans together are what `Balance.ACT_UNIQUE_ENEMIES` counts.
+@export var veteran_ids: Array[String] = []
+
 ## Which act this terrain belongs to, 1-based.
 @export var act: int = 1
 

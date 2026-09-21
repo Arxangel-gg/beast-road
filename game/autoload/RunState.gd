@@ -2328,8 +2328,16 @@ func final_ascent_target() -> float:
 
 
 ## Leaves the campaign behind and starts the climb.
+##
+## The ascent has ground of its own since 2026-09-21 (`terrains/crown.tres`,
+## authored at `FINAL_ASCENT_ACT`), so the road changes region here exactly as
+## `Journey.resume_after_boss` changes it between acts. A build without that
+## terrain keeps the Terrace underfoot, which is what the ascent always was.
 func begin_final_ascent() -> void:
 	act = Balance.FINAL_ASCENT_ACT
+	var summit: TerrainData = ContentDB.terrain_for_act(Balance.FINAL_ASCENT_ACT)
+	if summit != null:
+		terrain_id = summit.id
 	set_phase(Phase.FINAL_ASCENT)
 
 

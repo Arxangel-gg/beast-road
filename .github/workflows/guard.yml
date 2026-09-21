@@ -507,6 +507,7 @@ jobs:
           check "the repaired front" --headless --path game res://tools/release_repair_check.tscn
           check "every body at the wall hits the wall" --headless --path game res://tools/enemy_siege_check.tscn
           check "loot falls as pieces" --headless --path game res://tools/loot_juice_check.tscn
+          check "every act fields its roster" --headless --path game res://tools/roster_check.tscn
           check "a bolt outlives nothing" --headless --path game res://tools/lightning_lifetime_check.tscn
           # The welcome: a guest whose field has just stood up is told the run
           # as it stands, so a drop can be followed by a rejoin.

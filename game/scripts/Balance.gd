@@ -957,8 +957,15 @@ const SEGMENT_DISTANCE: float = 560.0
 ## persistence is for**: the road is put down at a crossroad and picked up next
 ## time, so a ten-hour campaign is ten evenings and never a ten-hour sitting.
 ## [TUNE]
+##
+## **Lengthened by an eighth on 2026-09-21** (owner: "more waves per act"),
+## and the Final Ascent became a full act of its own beside it - see
+## `FINAL_ASCENT_DISTANCE`. The per-wave growth rates are scaled by
+## `waves_in_run()`, so a longer road climbs to the same height over more
+## steps; what a longer act buys is more of the library dealt and a purse that
+## reaches further up the tower ladder. Re-measured on a new account after.
 const ACT_ROAD_DISTANCE: Array[float] = [
-	2000.0, 2340.0, 2670.0, 3060.0, 3450.0, 3890.0, 4340.0, 4840.0, 5340.0, 5890.0,
+	2240.0, 2620.0, 2990.0, 3430.0, 3860.0, 4360.0, 4860.0, 5420.0, 5980.0, 6600.0,
 ]
 
 ## Roughly how much road one wave cycle covers, at the beast's own speed.
@@ -974,10 +981,12 @@ const WAVE_ROAD_DISTANCE: float = 55.6
 ## a crop's ripening measured against "an act", and nothing that decides where an
 ## act ends. **Never use this for a boundary**: that is `act_end_distance`, and
 ## computing a boundary a second way is the fault this file has already paid for.
-const ACT_DISTANCE: float = 3782.0
+const ACT_DISTANCE: float = 4236.0
 
-## 10 acts. Filling this bar is the win condition (GDD §2, decision 1).
-const JOURNEY_TOTAL_DISTANCE: float = 37820.0
+## 10 acts. Filling this bar is the win condition (GDD §2, decision 1). The
+## Final Ascent lies beyond it: `RunState.final_ascent_target()` is this plus
+## `FINAL_ASCENT_DISTANCE`, and `act_end_distance(FINAL_ASCENT_ACT)` agrees.
+const JOURNEY_TOTAL_DISTANCE: float = 42360.0
 
 
 ## Where the given act ends and its boss walks in.
@@ -993,6 +1002,11 @@ static func act_end_distance(act: int) -> float:
 	var total: float = 0.0
 	for index: int in mini(act, ACT_ROAD_DISTANCE.size()):
 		total += ACT_ROAD_DISTANCE[index]
+	# The ascent is the act past the table, and it ends at the summit - the
+	# same number `RunState.final_ascent_target()` reads, so a model walking
+	# acts by this function reaches the Chainmaker where the walk does.
+	if act > ACT_COUNT:
+		total += FINAL_ASCENT_DISTANCE
 	return total
 
 
@@ -1002,16 +1016,38 @@ static func act_start_distance(act: int) -> float:
 
 ## The Final Ascent (GDD v4 §"Final Ascent - Crown of the World").
 ##
-## A short authored climb after Act III rather than a fourth act: no crossroads,
-## no fork, one road to the summit. v4 budgets 6-8 minutes for the ascent and the
-## Chainmaker together, and 600 is about two segments of walking with the boss at
-## the end of it. [TUNE]
-const FINAL_ASCENT_DISTANCE: float = 400.0
+## One road to the summit: no crossroads, no fork, and the Chainmaker at the end
+## of it. It was 400 units - about seven waves on the Last Terrace's own ground
+## and roster, which v4 budgeted as "6-8 minutes for the ascent and the
+## Chainmaker together" on a seventy-minute campaign. **On a twelve-hour road
+## that is a corridor, not an act**, and the owner asked for eleven acts
+## (2026-09-21). So the ascent is an act now: about 58 waves on the Crown's own
+## terrain (`data/terrains/crown.tres`, act `FINAL_ASCENT_ACT`) with the roster
+## every road behind it sent - shorter than the Terrace, because a climax is
+## a peak and not a plateau. It is still not in `ACT_ROAD_DISTANCE`: the
+## per-act tables clamp to their last entry and the ascent inherits Act X's
+## scaling, which is what "everything the road taught, at once" means. [TUNE]
+const FINAL_ASCENT_DISTANCE: float = 3200.0
 
 ## The act index the ascent reports. One past ACT_COUNT on purpose: every
 ## per-act table clamps to its last entry, so the ascent inherits the last act's
 ## scaling rather than needing one more column in each of them.
 const FINAL_ASCENT_ACT: int = ACT_COUNT + 1
+
+## How many different breeds each act fields, Act I first and the Final Ascent
+## last - the owner's ruling of 2026-09-21: "act 1 having 8 unique enemies
+## ... each consecutive act +1 ... act 11 having 19". Those two endpoints do
+## not meet at one a step over eleven acts (that reaches 18), so the table is
+## the +1 rule to the Terrace and the summit takes the owner's own figure:
+## the Crown is where every road's veterans converge, and two more than the
+## Terrace is what "everything that hunted you" costs. One number to change
+## if that reading is wrong.
+##
+## A breed counts once for the act it walks in, native, elite or veteran
+## (`TerrainData.enemy_ids`, `elite_ids`, `veteran_ids`), and `roster_check`
+## holds every act to its entry exactly - a pool larger than the table is a
+## pool nobody re-read, and one smaller is a promise nobody kept.
+const ACT_UNIQUE_ENEMIES: Array[int] = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19]
 
 ## Beast walking speed in distance units per second. At full speed this is
 ## ~15 min per act, ~45 min per run. [TUNE]
@@ -4139,11 +4175,17 @@ const WAVE_GROWTH_REFERENCE_ACT: float = 7.0
 
 ## About how many waves fit in the whole campaign, at the beast's own pace.
 static func waves_in_run() -> float:
-	return maxf(JOURNEY_TOTAL_DISTANCE / maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
+	# The ascent counts: it is the top of the curve, and a growth rate that
+	# reached the reference height at the Terrace and kept climbing for another
+	# fifty waves would put the summit above anything `curve_report` measures.
+	return maxf((JOURNEY_TOTAL_DISTANCE + FINAL_ASCENT_DISTANCE)
+		/ maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
 
 
 ## And about how many fit in one act.
 static func waves_in_act(act: int) -> float:
+	if act > ACT_COUNT:
+		return maxf(FINAL_ASCENT_DISTANCE / maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
 	var index: int = clampi(act - 1, 0, ACT_ROAD_DISTANCE.size() - 1)
 	return maxf(ACT_ROAD_DISTANCE[index] / maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
 
@@ -7929,7 +7971,7 @@ const SKY_TEMPERATURE_EASE: float = 0.06
 const SKY_REGION_TEMPERATURE: Dictionary = {
 	"jungle": 3.0, "desert": 8.0, "snow": -10.0, "hollow_marches": -1.0,
 	"rustwood": 0.0, "saltpan": 6.0, "iron_steppe": -2.0, "glass_fields": 2.0,
-	"ashen_reach": 5.0, "last_terrace": -4.0,
+	"ashen_reach": 5.0, "last_terrace": -4.0, "crown": -9.0,
 }
 ## The wells in the heat. Above `WELL_HEAT_FROM` a well refills slower by this
 ## much per degree; above `WELL_EVAPORATE_FROM` it loses this many seconds of

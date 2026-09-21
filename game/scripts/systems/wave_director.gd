@@ -667,6 +667,13 @@ func _pick_enemy(elite: bool) -> EnemyData:
 	var invader_chance: float = Balance.WAVE_INVADER_CHANCE[clampi(RunState.act - 1,
 		0, Balance.WAVE_INVADER_CHANCE.size() - 1)]
 	if RunState.act > 1 and _rng.randf() < invader_chance:
+		# An authored veteran list first (2026-09-21): the act's roster is then a
+		# countable thing, and a veteran walks this road because it belongs on
+		# it. A region without one keeps the old draw from an earlier road.
+		if terrain != null and not terrain.veteran_ids.is_empty():
+			var listed: Array[EnemyData] = _enemy_pool(terrain.veteran_ids)
+			if not listed.is_empty():
+				return listed[_rng.randi_range(0, listed.size() - 1)]
 		var previous: TerrainData = ContentDB.terrain_for_act(_rng.randi_range(1, RunState.act - 1))
 		if previous != null:
 			var veterans: Array[EnemyData] = _enemy_pool(previous.enemy_ids)

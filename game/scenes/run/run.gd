@@ -1358,6 +1358,10 @@ func _on_command_requested(order_id: String, anchor: Vector2i) -> void:
 func _begin_final_ascent() -> void:
 	RunState.begin_final_ascent()
 	journey.resume_after_boss()
+	# The ascent is an act (2026-09-21): the music, the ambience, the grade, the
+	# sky, the wave clock and the coach all learn of an act from this signal,
+	# and `resume_after_boss` deliberately stops announcing past `ACT_COUNT`.
+	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 	battlefield.refresh_terrain()
 	_enter_preparation(false)
 	EventBus.preparation_warning.emit(
