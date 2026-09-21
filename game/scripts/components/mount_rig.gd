@@ -46,7 +46,10 @@ const OVERLAY_FEATHER: float = 0.10
 ## driven faster when no gallop sheet exists, for the same reason the Warden's
 ## sprint falls back to the walk: a missing sheet must not be a missing feature.
 const STATES: Dictionary = {
-	"idle": {"fps": 6.0, "loop": true},
+	# **3.5, not 6.** An idle is a breath and a tail swish over five frames
+	# (2026-09-21): at six a second the loop closed in under a second and read
+	# as a horse shivering. The walk and the gallop are legs and want the rate.
+	"idle": {"fps": 3.5, "loop": true},
 	"walk": {"fps": 11.0, "loop": true},
 	"gallop": {"fps": 16.0, "loop": true},
 }

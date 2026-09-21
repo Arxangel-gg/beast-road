@@ -162,6 +162,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/roster_check.tscn
           run_godot_clean --headless --path game res://tools/game_speed_check.tscn
           run_godot_clean --headless --path game res://tools/qol_check.tscn
+          run_godot_clean --headless --path game res://tools/pad_focus_check.tscn
           run_godot_clean --headless --path game res://tools/town_alert_check.tscn
           run_godot_clean --headless --path game res://tools/lightning_lifetime_check.tscn
           run_godot_clean --headless --path game res://tools/rejoin_check.tscn
