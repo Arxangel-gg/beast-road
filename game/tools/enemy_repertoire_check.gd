@@ -49,6 +49,9 @@ const EXPECTED: Dictionary = {
 	# ordinary casters: a camp breed is harder than a road body and is not a
 	# champion.
 	"camp_shaman": 3,
+	# The four shooters of 2026-09-21, two apiece: a road caster on the pattern
+	# of the Ember Shaman, and the gate named each the moment it was authored.
+	"thorn_archer": 2, "marsh_piper": 2, "horde_marksman": 2, "anchor_cantor": 3,
 }
 
 ## Distances the draw is measured at, **as a share of the breed's own reach**.

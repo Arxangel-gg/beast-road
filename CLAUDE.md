@@ -5917,7 +5917,7 @@ Crown: Thorn Archer and Canopy Stalker (Verdant Maw), Dune Reaver (Waste),
 Marsh Piper (Marches), Gear Grinder (Rustwood), Tide Lurcher (Saltpan), Horde
 Marksman (Steppe), Prism Lancer (Glass Fields), Slag Brute (Ashen Reach),
 Stair Warder (Terrace), and Kharok's own Chainwarden, Chainlancer, Anchor
-Cantor and Shackle Brute. The four road breeds no region had ever listed -
+Cantor and Ballast Brute. The four road breeds no region had ever listed -
 Crevasse Stalker, Frost Herald, Glass Chanter, Loam Lurker - walk the regions
 they were drawn for. Every stat sits inside its role's neighbours and every
 kill value on the roster average, because **a roster average drifts as the

@@ -6,6 +6,7 @@
 script = ExtResource("1_enemy")
 voice_sfx = "sfx_enemy_call_siege"
 stagger_tolerance = 1.8
+brace_chance = 0.35
 hide = 2
 art_facing = 1
 behaviour = 1
