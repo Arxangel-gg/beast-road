@@ -80,8 +80,10 @@ left the host - and three were the harness measuring a field still suspended und
 the road-card draft. `coop_check` walks every relay binding against its signal's
 arity now; `tools/coop_ui.sh` and `tools/coop_live.sh` both pass clean.
 
-**Not real:** music for five of ten acts; boss themes anywhere; enemy voices;
-the Act X boss sprite; mount idle animation; a mount page in the Guide.
+**Not real:** music for five of ten acts; boss themes anywhere; enemy voices.
+(The Act X boss sprite, the mount idles and the Guide's mount page were listed
+here on 2026-09-21 and were already on disk or landed that day - hash the folder
+before believing a list.)
 
 ---
 
@@ -96,10 +98,12 @@ Nothing fails on any of these. They are only ever found by counting.
   archetype prompts are already written in `docs/SFX_PROMPTS.md`.
 - **The reed frog** is owed a recording nothing on disk can honestly stand in
   for.
-- **The Last Anchor** (Act X boss) is a placeholder sprite.
-- **Mount idle sheets**: four mounts, eight directions, `mode: "v3"` with an
-  `action_description` — the template animations strip the tack.
-- **A Guide page for mounts**, which needs a photograph from `guide_shots`.
+- ~~**The Last Anchor** (Act X boss) is a placeholder sprite.~~ Real art with
+  idle, move and attack frames is on disk; the line above was stale when written.
+- ~~**Mount idle sheets**~~ **Shipped 2026-09-21**: four mounts, eight
+  directions, five frames, `mode: "v3"` with an `action_description`.
+- ~~**A Guide page for mounts**~~ `data/guide/mounts.tres` and its photograph
+  already existed.
 - **Mix levels have never been heard in play.** 347 takes authored expecting to
   be audible and verified by nobody.
 
@@ -166,15 +170,11 @@ absence a reviewer will name in the first paragraph.
   owns the clock's base rate, 2x on `P` and a button beside RIDE ON, solo only,
   and every borrower of the clock restores through it (`game_speed_check`).
   Pause already existed.
-- **Tower targeting priority** (first / last / strongest / closest). A standard
-  expectation of the genre; no mention anywhere. With 61 towers and ten levels,
-  its absence reads as depth withheld.
-- **Next-wave preview.** `wave_foresight` exists as a *modifier*, which implies
-  a readout; whether the composition of the coming wave is shown is unverified.
-- **Colourblind support.** Nine gear rarities, four elements, charged ground,
-  rank sheens and status effects are all communicated by colour, and there is no
-  palette option in the record. This is both an accessibility failure and a
-  readability one.
+- ~~**Tower targeting priority**~~ **Already built**: `RunState.cycle_target_priority`,
+  clicked on the tower's own card in the build list (verified 2026-09-21).
+- ~~**Next-wave preview.**~~ **Already built**: the HUD's wave preview label.
+- ~~**Colourblind support.**~~ **Already built**: the colourblind modes and their
+  preview on the settings screen, applied in-place by `Palette`.
 - **Onboarding by gating rather than by teaching.** The strongest fix for "I
   don't know what I'm doing" is not more tutorial steps — it is **not offering
   thirty systems in Act I.** Professions, mounts, the Ledger, the market, rifts
@@ -185,19 +185,18 @@ absence a reviewer will name in the first paragraph.
 
 - **A difficulty below Normal**, or assist toggles. There is Normal, Nightmare
   and Hell, and nothing for someone bouncing off Act II.
-- **Text size / UI scale option.** Pixel type at 1080p and at 4K are different
-  experiences.
+- ~~**Text size / UI scale option.**~~ **Built 2026-09-21**: the interface-size
+  slider (`qol_check`).
 - **Photosensitivity**: the flash scale exists — surface it in first-run
   options rather than burying it.
-- **Controller completeness.** The pad is full, and whether *every* screen —
-  stash, forge, Hold, crossroads, market — is fully navigable by pad is
-  unverified. One sweep would answer it.
+- ~~**Controller completeness.**~~ **Gated 2026-09-21**: `pad_focus_check` walks
+  every screen's focus ring both ways, on both bars.
 - **Ultrawide and 4K layout.** The HUD is anchored; 21:9 has never been
   photographed.
-- **Performance auto-detect** on first launch, choosing a Graphics preset rather
-  than starting everyone at High.
-- **Quit-mid-act clarity.** Expeditions bank at crossroads, about every ten
-  waves. A player who quits mid-act should be *told* what they will lose.
+- ~~**Performance auto-detect**~~ **Built 2026-09-21**: `Graphics.preset_for_machine`,
+  said on the settings screen, never overriding a saved choice.
+- ~~**Quit-mid-act clarity.**~~ **Built 2026-09-21**: the pause menu says what a
+  quit costs since the last banked crossroad and asks twice.
 - **Build templates.** With 61 towers, "repeat my last board" is real quality of
   life on a second run.
 - **Steam Deck / handheld decision.** A 2D game at 16.6 ms on a 3070 Ti will not
@@ -275,11 +274,8 @@ long.
 
 ## 9. Decisions waiting on the owner
 
-- **Mount speeds and SP drain.** Ruled: mounts are faster, a mounted sprint
-  spends SP, rates differ per mount. The **new bound must be written before the
-  code** because the old one (`MOUNT_SPEED_CEILING == HERO_SPRINT_SPEED`, SP
-  untouched) is gone. What is being traded is how fast a Warden can be anywhere
-  on the field, which with four roads is a defensive number.
+- ~~**Mount speeds and SP drain.**~~ **Built 2026-09-21** under `MOUNT_GALLOP_CEILING`
+  and `MOUNT_GALLOP_RANGE`; see CLAUDE.md.
 - **Character customization.** Approved. Bound: it may change *nothing but how
   the Warden looks*. Pilot one option on one direction before buying a batch —
   a paper-doll across eight directions and four sheets is the one thing that
@@ -322,11 +318,12 @@ Each numbered block ends with a published build.
 
 1. **P0 regressions** (§2).
 2. ~~**Town alert + imminent-damage indicators** (P1).~~ **Built 2026-09-21** (`town_alert_check`).
-3. **Mobile**: mount control, `layout_check` overlaps, then performance.
-4. **Mounts properly**: per-mount speeds and SP, `mount_check`'s invariant
-   amended deliberately.
-5. **Genre expectations**: game speed, tower targeting, wave preview,
-   colourblind palette (§7.1) — verify each exists before building it.
+3. **Mobile**: ~~mount control~~ (the Ride button already asks `TouchInput`),
+   ~~`layout_check` overlaps~~ (green at both phone shapes, 2026-09-21), then
+   performance.
+4. ~~**Mounts properly**~~ **Built 2026-09-21.**
+5. ~~**Genre expectations**~~ All four existed; verified 2026-09-21. The three
+   §7.2 gaps that did not (quit clarity, auto preset, interface size) are built.
 6. **Enemies, region by region** (§5), curve re-measured after.
 7. **Audio content**: act music, boss themes, enemy voices (§4).
 8. **Onboarding**, once §5 and §7.1 have landed and the first hour can be

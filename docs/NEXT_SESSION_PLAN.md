@@ -66,10 +66,10 @@ The fog's bound applies to both: they may read and may never feed the AI.
 
 ## P2 - mobile
 
-- **A mount control**, which phones have no way to reach today.
-- **The overlap pass.** `layout_check` already drives both phone shapes, so
-  these are measurable rather than a matter of taste. Run it and fix what it
-  names.
+- ~~**A mount control**~~ The Ride button on the action bar calls
+  `TouchInput.ask_mount()`; this line was stale when written.
+- ~~**The overlap pass.**~~ `layout_check` is green at 430x932 and 1280x592
+  (2026-09-21) and on the release bar.
 - **Performance.** Its own session with `perf_check` and `perf_bisect`; the
   desktop frame is 16.6 ms on a 3070 Ti with no headroom, so a phone needs a
   real budget rather than a hope.

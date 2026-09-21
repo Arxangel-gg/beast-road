@@ -6112,6 +6112,66 @@ draining at the runner's rate was planted and named), an unsprinted mount
 spending nothing, the pool coming back at rest, and the winded refusal. The
 stable's card says the rate: *"Gallop +85% · 17 SP a second"*.
 
+**Three things between the systems, and a pad that can reach every screen,
+as of 2026-09-21.** The roadmap's "not yet considered" list (§7.1-7.2) was
+checked before anything on it was built, and most of §7.1 already existed
+under other names: tower targeting is `RunState.cycle_target_priority`, the
+wave preview is a HUD label, the colourblind modes are on the settings screen,
+and the flash and damage-number scales joined the shake slider on 2026-09-16.
+What was genuinely missing is built and gated by `qol_check` (32) and
+`pad_focus_check` (42), both on both bars:
+
+- **Leaving is said before it is done.** A road banks only when the party
+  turns for home at a crossroad, so a quit from the pause menu abandons
+  everything since that bank - and the button said "Abandon the road" without
+  saying what the road was worth. `PauseMenu.leaving_costs` is the sentence,
+  pure over the run state: nothing banked, banked *n* waves ago on this road,
+  banked at this very wave, a bank from another road, a guest (whose road is
+  the host's), the Walk and an ended run each get the right one. The first
+  press shows it and turns the button into the confirmation; the second
+  leaves; reopening the pause menu forgets it, so a stale "leave anyway" never
+  waits for a later press.
+- **A preset chosen for the machine.** `Graphics.preset_for_machine` is pure
+  over the adapter name: a discrete card starts on High for the reason above
+  `DEFAULT_PRESET`, an integrated chip on Medium, a software renderer on Low,
+  the web on Medium whatever the card, a phone on Low. **A saved choice is never
+  second-guessed** - it is read only when the save holds none - and the settings
+  screen says what was chosen and for what, so the automatic choice is visible
+  rather than silent. Names rather than a benchmark, because a benchmark on the
+  first frame is a stutter on the first frame.
+- **The interface has a size.** `UserSettings.UI_SCALE_KEY` multiplies the fit
+  `ScreenFit` already computes for a small screen, so a phone's enlargement and
+  a player's taste compose rather than fight, and the window is re-fitted the
+  moment the slider moves. Bounded 0.8 to 1.5 and clamped on read, because a
+  save may hold anything.
+- **Every screen can be walked with a pad.** The pad was full and every action
+  had a button, and whether every *screen* could be navigated by focus alone
+  had never been asked. `pad_focus_check` stands up every screen with a
+  no-argument `open()`, the main menu, the pause menu and the settings, and
+  follows the engine's own `find_next_valid_focus` ring from the first
+  focusable control until it closes - which is what a D-pad press does - both
+  ways round. Every visible, enabled, focusable control has to be on it. A
+  planted `focus_next` loop on the pause menu was named. **Its first cut
+  reported the vendor's Ledger door as unreachable and was wrong**: the walk's
+  budget was twice the count of controls the gate had collected, and the
+  engine's ring also walks click-focus controls the gate does not count, so
+  the budget ran out before the far end. The budget is a constant now and the
+  walk ends when the ring closes.
+
+**The mounts have idles, as of the same date.** Each of the four is eight
+directions of five frames - the rotation as frame 0, so the loop closes on the
+base, then four generated - bought as `animate_character` in `mode: "v3"`
+with an `action_description` that names only what the body does (a breath, an
+ear, a tail, a slight dip of the head, hooves planted, tack in place), which is
+the recorded lesson from the walk cycles: the template animations strip the
+tack. One direction was piloted and photographed before the other thirty-one
+were bought, at about four generations a direction. The character zip's
+`download` endpoint hands back every frame by folder, and
+`tools/pack_mount_frames.py` reads a local path as a local path, so no frame
+went through the conversation. `MountRig` plays the idle at 3.5 frames a second
+rather than six, because a breath over five frames at six a second read as a
+horse shivering.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
