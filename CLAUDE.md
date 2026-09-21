@@ -5874,11 +5874,23 @@ their own arithmetic now. `recovery_drop_check` waited ninety *frames* for a
 crate that has to land first, and headless runs far above sixty a second - it
 waits seconds. `loot_juice_check` reads 50 checks, four runs in a row.
 
-**One thing is not settled.** `coop_ui_check` - the two-process gate run by
-hand, on neither bar - reported nine failures on this machine during a
-parallel batch, most of them the guest failing to open the co-op screen at
-all, which is not loot. It has not been re-run alone and should be, before
-the next co-op change is trusted.
+**One thing is not settled, and it predates this session.** `coop_ui_check`
+is the two-process gate launched by `tools/coop_ui.sh` and run by hand, on
+neither bar. Its first failure was the harness: a fresh account is sent to
+the tutorial before co-op opens (2026-09-12), so on the scratch profile the
+Co-op button offered the coach and "pressing it must open the co-op screen"
+failed by design of the menu - the gate marks the account as having done its
+tutorial now, and the **host passes every check**. The guest still fails four:
+it does not see the host's wildlife, a tend it asks for does not come back, a
+tower it asks for does not appear, and after being downed, revived and wiped
+it carries full walking velocity and moves nowhere. **The same four fail
+identically on v0.47.2 in a worktree**, so they are not this session's, and
+they were not seen before because nobody ran the script. The fork vote, the
+seed, the loot and the host's damage all reach the guest, so the wire is up;
+what is broken is either the guest's requests after the run begins or a
+timing the two processes on one machine cannot meet. It is the first thing
+to trace before the next co-op change, with `tools/coop_ui.sh` and the two
+logs it leaves in `$TMPDIR`.
 
 **Eleven acts, and every act names its roster, as of 2026-09-21.** The owner:
 *"11 acts with more waves per act and 8-19 enemies per act, with each act

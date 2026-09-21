@@ -82,6 +82,11 @@ func _ready() -> void:
 	# edits the account must never be able to write it to the player's disk.
 	# See `save_guard_check`, which finds these by reading them.
 	MetaState.hold_saves()
+	# A new account is sent to the tutorial before co-op opens (2026-09-12), so
+	# on the scratch profile every sweep runs on, the Co-op button offered the
+	# coach rather than the screen and this gate's first check failed by
+	# design of the menu. The account under test has done its tutorial.
+	MetaState.tutorial_done = true
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--role="):
 			_role = argument.split("=")[1]
