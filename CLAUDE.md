@@ -6861,6 +6861,23 @@ it was told to, a body that does not move is struck, and a body that steps out
 of the crests takes less than one that does not. Planted the old instantaneous
 blow and the gate named it - *"stepping out of the crests bought nothing"*.
 
+**And the other earth patterns break the same way.** The fissure and the
+trail were a translucent bar with two hard straight edges for a warning and
+three polylines for a split - photographed by `sky_shot`, where two of them
+crossing the field came out as a pair of gold rectangles. They are drawn in
+the language the crest settled on now: the warning is hairline cracks
+reaching out from the line and a dark seam growing along it, never a filled
+bar, because a translucent rectangle over grass is the one shape that reads
+as a user interface rather than as earth; and the split is slabs either side
+of that seam. **The breath is untouched** - it is a cone of fire rather than
+earth and is the one mode there that is not a crack.
+
+**Each aftershock is heard from where it left.** The break itself keeps its
+flat `sfx_quake`, which is an announcement and belongs everywhere at once; a
+later crest is a thing happening at a place, so it is quieter and goes
+through `play_at`, which attenuates by distance from what the camera is
+watching.
+
 **Nothing new persists and nothing new is a power scale.** The wave is
 run-scoped and dies with its last crest; `EventBus.earthquake` grew the
 epicentre and the crest count so a guest draws the same wave in the same place,
@@ -6891,6 +6908,95 @@ failing, which is the argument for a restore living next to the thing it
 restores. `coop_heroes_check` drives the real `suspend` and `resume` - a test
 that called `set_present` by hand would pass with the omission still in place -
 and the planted original named it twice.
+
+**Several Wardens on one machine, and the first of them is the file that was
+already there, as of 2026-09-22.** The owner: *"save slots per profile are
+desirable."*
+
+**A slot is an ordinary save in the ordinary format, in a file of its own.**
+There is no second schema, no new save key, no migration and no
+`SAVE_VERSION` bump - because a slot is not a new *kind* of thing to persist.
+It is the same account written somewhere else, so working rule 7's list is
+exactly what it was and `balance_test`'s top-level allowlist is untouched.
+
+**The bound is one sentence: slot 0 is `MetaState.SAVE_PATH` itself, by name
+and byte for byte.** A player's save is the one thing in this project git
+cannot restore, so slots were built to *add* files rather than to move one: an
+existing account **is** slot 0 by derivation, the first launch after this reads
+exactly the file the last launch before it wrote, and nothing is renamed,
+copied or migrated to make that true. The same reasoning pins the user
+directory one level up, and it fails the same way if it is ever got wrong - no
+error, no warning, a fresh account on the menu.
+
+Slot 1 onward is `beast_road_save_1.json` and so on, and **every name in the
+family comes out of one derivation**: `slot_path` for the save,
+`slot_backup_path` and `slot_unreadable_path` for the two backups, which on
+slot 0 resolve to the historic names players' disks already carry. The
+version-backup rule - one copy per version, never overwritten, the first copy
+is the valuable one - now holds **per slot**, because two Wardens hitting the
+same mismatch are two files worth keeping.
+
+**Which slot is active lives outside every slot**, in `beast_road_save.slot`.
+A pointer written *into* a save would be a fact about the machine living in a
+file that belongs to one Warden, so switching would have to write two files to
+stay consistent and a half-written pair would open the wrong account. **Missing,
+empty, truncated, not an object or out of range all mean slot 0** - which is
+what every player who has never seen this feature has, and they must land on
+the historic save and notice nothing at all.
+
+**Out of range is malformed rather than clampable, and `save_slot_check` caught
+that on its first run.** The first cut clamped the pointer into range, so a file
+naming slot 999 - written by a build with more slots, or edited by hand - opened
+the *last* slot and quietly handed the player somebody else's Warden instead of
+the save they had.
+
+**A slot may only change between runs**, which is `pen_take`'s rule and a
+sharper version of its reasoning: a road is banked at a crossroad, so switching
+Warden mid-run abandons a front the player never chose to give up - silently,
+because the other slot's menu looks entirely ordinary afterwards. `use_slot` and
+`erase_slot` both refuse outside `Phase.ENDED`, and both refuse while saves are
+held, since switching is a write by definition and a gate's scratch account must
+never be the thing that lands in a slot.
+
+**Resetting a slot is `adopt_save({})` rather than a list of fields**, and that
+is load bearing. Every `_read_*` helper clears before it reads, so an empty save
+*is* the empty account - by construction, for whatever the save carries today
+and whatever is added to it next. A hand-written list would be a second opinion
+about what a slot contains, and the first block somebody forgot to add to it
+would leak one Warden's pen, stable or pantry into the next one. The code is
+written so that cannot happen rather than merely checked for.
+
+**Preferences carry across and three "settings" do not.** Volume, display mode
+and key bindings are facts about the person and the machine; wiping somebody's
+bindings because they made a second Warden would be a second, unasked-for
+destruction. But the starting weapon, the tutorial and the milestone cinematics
+are *account progress wearing a preference's clothes* - without clearing them a
+second Warden begins unarmed and untaught. `_clear_account_progress_settings`
+is the one owner of that list, shared with `erase_progress` so the two cannot
+drift.
+
+**The picker is on the front door rather than in the Hold**, deliberately,
+though every other account door moved into the room in 2026-09-11. The Hold is a
+room *this* Warden owns - their stash, their pen, their forge - so choosing
+which Warden to be from inside it is the wrong way round. **Erase is not offered
+for the first slot**: throwing that account away is `Erase progress` in
+Settings, a different door with its own confirmation that does not leave the
+game pointing at a file it has just deleted.
+
+**`save_slot_check` (117 checks) drives the real doors through a documented
+seam.** `MetaState.slot_root` is `SAVE_PATH` in a shipping game and is moved to
+a fixture by that gate alone - so the doors under test are the real `use_slot`,
+`erase_slot`, `load_save` and `save_game`, and a developer's own Wardens are not
+merely protected by the save hold, they are not on any path the gate can reach.
+Ten faults were planted and all ten named, including the one a driven test
+cannot see: **a source walk over `MetaState.gd` holding that no shipping path
+names a save outside the derivation**, because a call site left on a fixed path
+writes one Warden over another's file while every other check stays green.
+
+**And the new-account check passed vacuously at first**, for the reason this
+project has recorded before: a CI profile *is* a new account, so switching away
+from it reads "new" whether or not anything resets. The Warden being left is
+made a played one first.
 
 ### The three escape hatches — and why there are only three
 
@@ -6923,6 +7029,13 @@ starting fresh, and never overwrites an existing backup — the first copy is th
 valuable one, and a player bouncing between builds would otherwise lose the
 original on the third launch. Verified by
 `res://tools/save_backup_check.tscn`.
+
+Save slots (2026-09-22) did not move that file and must never move it. An
+existing account **is** slot 0, derived rather than migrated, and every later
+slot is a new file beside it; the backup rule above holds per slot, under names
+that resolve to exactly these on slot 0. `res://tools/save_slot_check.tscn`
+holds the historic path as a literal — if it ever fails on that line, the line
+is not what needs changing.
 
 That check is **not** in CI: a discarded save legitimately emits a warning, and
 the release gate fails on any warning. **Run it by hand before any release that

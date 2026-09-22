@@ -46,6 +46,7 @@ class Ring:
 	var struck: Dictionary = {}
 	var fissured: bool = false
 	var wounded_the_animals: bool = false
+	var announced: bool = false
 
 
 var field: Battlefield = null
@@ -76,7 +77,6 @@ var _elapsed: float = 0.0
 var _warned: float = 0.0
 var _dust_in: float = 0.0
 var _sheet_in: float = 0.0
-var _opened: bool = false
 var _ripple: ColorRect = null
 var _ripple_material: ShaderMaterial = null
 var _reach: float = 0.0
@@ -147,6 +147,16 @@ func _process(delta: float) -> void:
 			continue
 		ring.radius = age * Balance.QUAKE_WAVE_SPEED
 		ring.alive = ring.radius <= _reach
+		if ring.alive and not ring.announced:
+			ring.announced = true
+			# **Each crest is heard leaving, from where it left.** The break
+			# itself is `_on_earthquake_seen`'s flat `sfx_quake` - that one is
+			# an announcement and belongs everywhere at once. An aftershock is
+			# a thing happening at a place, so it is quieter and positional,
+			# through the door that attenuates by distance from what the
+			# camera is watching.
+			if ring != _rings[0]:
+				Sfx.play_at("sfx_quake", at, Balance.QUAKE_AFTERSHOCK_DB)
 		if ring.alive:
 			running = true
 			if not mirror:

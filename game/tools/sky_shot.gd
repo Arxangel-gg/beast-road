@@ -127,6 +127,17 @@ func _ready() -> void:
 	# all was a coin toss - two runs of this tool in a row photographed a
 	# wave and then an empty field, which is a diagnostic that cannot be
 	# trusted either way.
+	# A fissure first: the other earth pattern, drawn in the same language
+	# the wave settled on, with its warning and then its split.
+	_sky.quake(0.9, ["fissure"], hero.global_position)
+	# **Past the warning, not inside it.** `EARTH_PATTERN_WARNING` is 1.8
+	# seconds and the first cut waited forty frames, so the "split" picture
+	# was the warning photographed twice.
+	await _shoot("fissure_warned", 40)
+	await _shoot("fissure_split", 90)
+	for _f: int in 90:
+		await get_tree().process_frame
+
 	_sky.quake(1.0, ["quake"], hero.global_position + Vector2(-120.0, 40.0))
 	await _shoot("quake_split", 6)
 	await _shoot("quake_rolling", 40)

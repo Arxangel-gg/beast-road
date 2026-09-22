@@ -8737,6 +8737,9 @@ const QUAKE_RIPPLE_LAYER: int = 3
 ## a second beat long enough to read as the earth splitting and too short to
 ## be a second warning. [TUNE]
 const QUAKE_SPLIT_SECONDS: float = 0.42
+## How much quieter an aftershock is than the break that sent it. Well under
+## the first, because the first is the announcement. [TUNE]
+const QUAKE_AFTERSHOCK_DB: float = -7.0
 
 ## Wildfire: a hazard of `WILDFIRE_RATE * wrath * dryness`; a fire tower's hit
 ## lights a plant near its target with `WILDFIRE_TOWER_CHANCE`. A burning
@@ -11926,6 +11929,15 @@ const DRAGON_WING_HZ: float = 6.0
 const DRAGON_LANDED_IDLE_HZ: float = 4.0
 const DRAGON_SHADOW_REST: float = 0.45
 const DRAGON_LAND_IMPACT: float = 11.0
+## **How many Wardens one machine may keep** (owner, 2026-09-22).
+##
+## Four, which is the number a card layout reads at a glance and the number a
+## household plausibly wants. It is a *cap on files*, not on anything the road
+## grants: every slot is an ordinary account on the same two capped scales, so
+## raising this makes the game no easier and lowering it would strand files
+## nothing could reach. Slot 0 is the historic save - see `MetaState.slot_path`.
+const SAVE_SLOTS: int = 4
+
 const CHAIN_CORE_WIDTH: float = 3.2
 const CHAIN_FLASH_HOLD: float = 0.04
 const CHAIN_FLASH_FADE: float = 0.18

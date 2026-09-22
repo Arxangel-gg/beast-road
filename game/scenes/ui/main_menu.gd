@@ -7,6 +7,7 @@ const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
 const CodexScreenScript = preload("res://scenes/ui/codex_screen.gd")
 const PenScreenScript = preload("res://scenes/ui/pen_screen.gd")
 const ActStartScreenScript = preload("res://scenes/ui/act_start_screen.gd")
+const SaveSlotScreenScript = preload("res://scenes/ui/save_slot_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -28,6 +29,9 @@ var _pen: CanvasLayer
 ## The stable's counter. See `_build_stable_button`.
 var _stable: StableScreen = null
 var _act_start: CanvasLayer
+## The Wardens this machine keeps (owner, 2026-09-22). See
+## `_build_slot_button`.
+var _slots: SaveSlotScreen = null
 var _frame: MenuFrame = null
 var _world_grid: PixelGrid = null
 var _ui_grid: PixelGrid = null
@@ -193,6 +197,7 @@ func _ready() -> void:
 	_build_walk_button()
 	_build_resume_button()
 	_build_act_start_button()
+	_build_slot_button()
 	_build_leaderboard_button()
 	_build_hold()
 	_build_guide_button()
@@ -592,9 +597,7 @@ func _build_tier_row() -> void:
 	# than in the column; `_fit_menu` places it.
 	_warden_label = Label.new()
 	_warden_label.name = "Warden"
-	_warden_label.text = "%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level]
-	if MetaState.hero_attribute_points > 0:
-		_warden_label.text += "  ·  %d unspent" % MetaState.hero_attribute_points
+	_warden_label.text = _warden_line()
 	_warden_label.add_theme_font_size_override("font_size", 16)
 	_warden_label.add_theme_color_override("font_color", Color("d8cfb4"))
 	_warden_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -886,6 +889,85 @@ func _build_act_start_button() -> void:
 	_act_start.visibility_changed.connect(func() -> void:
 		if not _act_start.visible:
 			button.grab_focus())
+
+
+## The Wardens, on the front door rather than in the Hold.
+##
+## **Every other account door moved into the Hold** and this one deliberately
+## did not. The Hold is a room *this* Warden owns - their stash, their pen,
+## their forge - so choosing which Warden to be from inside it is the wrong way
+## round, and a player whose slot is not the one they meant would have to walk
+## into somebody else's room to leave it.
+##
+## Always present, even on an account that has only ever had one. A picker that
+## appeared once a second save existed would be a feature nobody could find the
+## first time, because finding it is what makes the second one.
+func _build_slot_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Wardens"
+	button.text = _slot_label()
+	button.tooltip_text = ("Several Wardens on one machine, each with their own "
+		+ "level, gear and banked road. Only between roads.")
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "spirit", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+
+	_slots = SaveSlotScreenScript.new()
+	_slots.name = "Wardens"
+	add_child(_slots)
+	button.pressed.connect(func() -> void: _slots.open())
+	_slots.visibility_changed.connect(func() -> void:
+		if not _slots.visible:
+			button.text = _slot_label()
+			button.grab_focus())
+	# **The whole front door is built again when the Warden changes**, rather
+	# than each label being patched: the statistics, the stable, the pen and
+	# the resume card are all a different account's now, and *which buttons
+	# exist* moves too - see `GameDirector.reopen_the_menu`. `MetaState` says
+	# when, so nothing has to remember to ask.
+	#
+	# **A named method, never a lambda.** `MetaState` is an autoload and
+	# outlives this scene, and a lambda's connection belongs to no object Godot
+	# can drop - so every later switch would fire on a freed capture and print
+	# "Lambda capture at index 0 was freed". Guarding inside the lambda does not
+	# help; the engine complains at the call, before the body runs. Three scopes
+	# in this project shipped that exact fault following `DayNight`.
+	MetaState.slot_changed.connect(_on_slot_changed)
+
+
+## A slot change rebuilds the front door rather than patching it - see
+## `GameDirector.reopen_the_menu` for why a label refresh is not enough.
+func _on_slot_changed(_index: int) -> void:
+	GameDirector.reopen_the_menu()
+
+
+## What the door says: which Warden, because that is the one fact a player
+## wants before opening it - the same reasoning the stable's door names what is
+## saddled and the Ledger's counts standing orders.
+func _slot_label() -> String:
+	var summary: Dictionary = MetaState.slot_summary(MetaState.slot())
+	var named: String = String(summary.get("name", "")).strip_edges()
+	if named.is_empty():
+		return "Wardens  ·  %d of %d" % [MetaState.slot() + 1, Balance.SAVE_SLOTS]
+	return "Wardens  ·  %s" % named
+
+
+## The Warden's own line, bottom centre. One function because the line is read
+## twice - once when it is built and again when the Warden changes - and two
+## copies of it would drift the first time either was edited.
+func _warden_line() -> String:
+	var line: String = "%s  ·  level %d" % [MetaState.warden_title(),
+		MetaState.hero_level]
+	if MetaState.hero_attribute_points > 0:
+		line += "  ·  %d unspent" % MetaState.hero_attribute_points
+	return line
 
 
 ## "Pen · 3 / 12", so the cap is visible before the screen is opened - a full

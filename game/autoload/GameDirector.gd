@@ -726,6 +726,23 @@ func _bank_treasury_cache() -> void:
 		MetaState.resource_cache[id] = mini(RunState.currency(id), cap)
 
 
+## **Builds the front door again**, for a change that alters what is on it
+## rather than what it says.
+##
+## Switching Warden is the one of those (2026-09-22). A slot change moves the
+## statistics, the stable, the pen, the resume card and the Marks, and it also
+## moves which buttons *exist*: the act-start door is only built for an account
+## that has reached Act II and the stash only once there is gear, so a menu that
+## re-read its labels would still be showing the previous Warden's doors. A
+## partial refresh is the failure the labels' own comment warns about, one layer
+## up - so the whole screen is built again from the account that is now live.
+##
+## Deferred by `_change`, which is what makes it safe to call from the handler
+## inside the screen being replaced.
+func reopen_the_menu() -> void:
+	_change(MENU_SCENE)
+
+
 func _change(path: String) -> void:
 	# Deferred: this is routinely called from a signal handler inside the scene
 	# being torn down, and changing scenes from inside one is a crash.

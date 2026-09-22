@@ -475,6 +475,12 @@ jobs:
           # which is how a played account was handed a free weapon on every
           # launch for weeks without anything failing.
           check "save round trip" --headless --path game res://tools/save_round_trip_check.tscn
+          # Several Wardens on one machine, and slot 0 is the file that was
+          # already there. Everything about save slots is downstream of that
+          # one fact: a rename, a shared path or a switch that does not clear
+          # the account costs somebody a save, which is the only loss in this
+          # project that neither git nor a re-import can undo.
+          check "save slots" --headless --path game res://tools/save_slot_check.tscn
           # An extension with no library for a platform the game ships to
           # constructs happily and then fails at runtime, on that platform
           # only. WebRTC shipped without an Android binary and co-op could

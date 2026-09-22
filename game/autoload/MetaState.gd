@@ -11,16 +11,23 @@ extends Node
 
 const SAVE_PATH: String = "user://beast_road_save.json"
 
-## Where a save of an unrecognised version is preserved before the game starts
-## fresh. One per version, so a player who tries several builds keeps a copy of
-## each rather than each overwriting the last.
-const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
+## What a save of an unrecognised version is preserved under before the game
+## starts fresh. One per version, so a player who tries several builds keeps a
+## copy of each rather than each overwriting the last - and **one per slot**,
+## because two Wardens hitting the same mismatch are two files worth keeping.
+##
+## A suffix rather than a whole path since slots arrived (2026-09-22). Every
+## name in this family now comes out of one derivation - `slot_backup_path` -
+## so a slot cannot be backed up under another slot's name; on slot 0 it
+## resolves to `user://beast_road_save.v<N>.bak.json`, which is the name the
+## backups already on players' disks have.
+const SAVE_BACKUP_SUFFIX: String = ".v%d.bak.json"
 
-## Where a save this build cannot even *parse* is preserved before the account
-## starts fresh. Stamped with the time rather than a version, because a broken
-## file has no version to read - and each one is kept, since the second corrupt
-## copy tells support something the first did not.
-const SAVE_UNREADABLE_BACKUP_PATH: String = "user://beast_road_save.unreadable.%d.bak.json"
+## The same, for a save this build cannot even *parse*. Stamped with the time
+## rather than a version, because a broken file has no version to read - and
+## each one is kept, since the second corrupt copy tells support something the
+## first did not.
+const SAVE_UNREADABLE_SUFFIX: String = ".unreadable.%d.bak.json"
 
 ## The sibling a save is written to before it replaces the real one. See
 ## `write_text_atomically` for why the save is never written in place.
@@ -28,6 +35,39 @@ const SAVE_TEMP_SUFFIX: String = ".tmp"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
 const SAVE_VERSION: int = 7
+
+# --- Save slots ---------------------------------------------------------------
+#
+# **Several Wardens on one machine** (owner, 2026-09-22: "save slots per profile
+# are desirable"). A slot is an *ordinary save in the ordinary format*, written
+# to a file of its own beside the first one. There is no second schema, no new
+# key and no version bump, because a slot is not a new kind of thing to persist
+# - it is the same account written somewhere else.
+#
+# **Slot 0 is `SAVE_PATH` itself, by name and byte for byte**, and that is the
+# whole safety of this feature. A player's save is the one thing in this project
+# git cannot restore (CLAUDE.md, "the three escape hatches"), so the historic
+# file is not renamed, not moved and not copied into a new layout: an existing
+# account simply *is* slot 0, and the first launch after this reads exactly the
+# file the last launch before it wrote. The same reasoning pins the user
+# directory one level up - see `user_dir_check`.
+
+## **The one place every slot's filename comes from**, and the documented seam
+## `save_slot_check` drives the real doors through.
+##
+## It is `SAVE_PATH` in a shipping game and nothing but that gate ever assigns
+## it. The gate points it at a fixture *before* it writes anything, which is
+## what lets it exercise `use_slot`, `erase_slot` and the per-slot backup rule
+## for real rather than against a copy - and with the root moved, a developer's
+## own Wardens are not merely protected by the save hold, they are not on any
+## path the gate can reach. The same trade `_back_up_save`'s `test_path` already
+## makes, one level up.
+var slot_root: String = SAVE_PATH
+
+## Which slot this session is playing. Never written into a save - see
+## `slot_pointer_path`. The doors are down beside `save_game`, which is the one
+## thing they are all about.
+var _slot: int = 0
 
 ## Terrain ids as they were before v4's regions were adopted. A save records
 ## which terrains a player has unlocked *by id*, so renaming the content renames
@@ -46,6 +86,13 @@ const TERRAIN_RENAMES_V3: Dictionary = {
 ## The save file was written or loaded.
 signal save_written()
 signal save_loaded()
+
+## The session changed Warden, or a slot was thrown away. The front door
+## re-reads itself from these rather than being told what changed, for the
+## reason every screen here re-reads: a screen that patched one row is a screen
+## that can disagree with the account.
+signal slot_changed(index: int)
+signal slot_erased(index: int)
 
 # --- Unlock pool: ids only, never state ---
 ## Base towers the account may build. Seeded with the eight the game shipped
@@ -1128,14 +1175,11 @@ func erase_progress() -> void:
 	completed_objectives.clear()
 	_seed_starting_roster()
 	# Cleared before re-seeding: somebody erasing their progress is asking for a
-	# first run, and a first run starts with a weapon in hand.
-	settings[STARTING_GEAR_KEY] = false
+	# first run, and a first run starts with a weapon in hand, has not been
+	# taught the game and has not seen the cinematics. The same three keys a new
+	# slot clears, through the same function so the two cannot drift.
+	_clear_account_progress_settings()
 	_seed_starting_gear()
-	# The tutorial comes back too. It is a preference and the rest of the
-	# preferences are kept, but somebody erasing their progress is asking for a
-	# first run, and a first run includes being shown how the game works.
-	settings["tutorial_seen"] = false
-	settings[MILESTONE_CINEMATICS_SEEN_KEY] = []
 	# And the opening cinematic, for the same reason: somebody erasing their
 	# progress is asking for a first run, and a first run starts with the story.
 	story_intro_seen = false
@@ -1214,6 +1258,10 @@ func earn_next_roster_tower() -> String:
 
 
 func _ready() -> void:
+	# **Which Warden, before anything is read.** A missing or malformed pointer
+	# is slot 0, so a player who has never seen this feature reads the historic
+	# file on this launch exactly as they did on the last one.
+	_slot = read_slot_pointer()
 	load_save()
 	_wire_statistics()
 	_seed_starting_roster()
@@ -1726,11 +1774,261 @@ func saves_held() -> bool:
 	return _saves_held > 0
 
 
+## Which Warden is being played, for the screens and the gate.
+func slot() -> int:
+	return _slot
+
+
+## Where slot `index` lives, derived and never stored.
+##
+## Slot 0 returns the base untouched, which with the shipping root is the
+## historic `user://beast_road_save.json`. Every later slot takes the same name
+## with its number on the end, so the whole set sorts together in a support
+## folder and a player can tell at a glance which file is which.
+##
+## Clamped rather than trusted: an index from a malformed pointer or a screen
+## that has drifted must not be able to name a file outside the cap. The doors
+## below refuse an out-of-range index outright; this is the floor under them.
+static func slot_file(index: int, base: String) -> String:
+	if index <= 0:
+		return base
+	return "%s_%d.%s" % [base.get_basename(), index, base.get_extension()]
+
+
+func slot_path(index: int) -> String:
+	return slot_file(clampi(index, 0, Balance.SAVE_SLOTS - 1), slot_root)
+
+
+## Where a save of an unrecognised version is kept, per slot.
+##
+## Slot 0 resolves to the historic `user://beast_road_save.v<N>.bak.json`,
+## which is the name the backups on players' disks already have.
+func slot_backup_path(index: int, version: int) -> String:
+	return slot_path(index).get_basename() + SAVE_BACKUP_SUFFIX % version
+
+
+## Where a save this build cannot parse is kept, per slot. Slot 0 resolves to
+## the historic `user://beast_road_save.unreadable.<stamp>.bak.json`.
+func slot_unreadable_path(index: int, stamp: int) -> String:
+	return slot_path(index).get_basename() + SAVE_UNREADABLE_SUFFIX % stamp
+
+
+## Which slot is active, kept **outside every slot**.
+##
+## A pointer written *into* a save would be a fact about the machine living in a
+## file that belongs to one Warden: switching would then have to write two files
+## to stay consistent, and a half-written pair would open the wrong account. So
+## it is its own tiny file, and it carries nothing else.
+##
+## **Anything it cannot read means slot 0.** Missing, empty, truncated, not an
+## object, out of range - every one of those is what a player who has never seen
+## this feature has, and they must land on the historic save and notice nothing
+## at all.
+func slot_pointer_path() -> String:
+	return "%s.slot" % slot_root.get_basename()
+
+
+func read_slot_pointer() -> int:
+	var text: String = read_committed_text(slot_pointer_path())
+	if text.is_empty():
+		return 0
+	# Through the instance parser, which is silent on bad input: a pointer
+	# somebody has hand-edited is a condition this handles, not an engine
+	# failure, and every gate in this project fails on an ERROR line.
+	var parsed: Dictionary = parse_save_text(text)
+	var index: int = int(parsed.get("slot", 0))
+	# **Out of range is malformed, not clampable**, and `save_slot_check` caught
+	# this the first time it ran: clamping a pointer reading 999 opened the
+	# *last* slot, so a file written by a build with more slots than this one -
+	# or edited by hand - would quietly hand the player somebody else's Warden
+	# instead of the historic save. Every unreadable pointer means slot 0.
+	if index < 0 or index >= Balance.SAVE_SLOTS:
+		return 0
+	return index
+
+
+## Held saves cover the pointer too: a gate that has scribbled on the account
+## must not be able to change which Warden the player's next launch opens.
+func _write_slot_pointer() -> void:
+	if _saves_held > 0:
+		return
+	if not write_text_atomically(slot_pointer_path(),
+			JSON.stringify({"slot": _slot}, "\t")):
+		push_warning("MetaState: could not write the slot pointer: %s"
+			% slot_pointer_path())
+
+
+## **Switches Warden**: the one being left is written whole, then the one being
+## joined is read.
+##
+## Refused during a run, which is the rule and the reasoning `pen_take` already
+## carries: a road is banked at a crossroad, so switching mid-run would abandon
+## a front the player never chose to give up - silently, because the other
+## slot's menu looks perfectly ordinary. `Phase.ENDED` is "between runs" here
+## exactly as it is there.
+##
+## Refused while saves are held, for the reason above the pointer: switching is
+## a write by definition, and a gate's scratch account must never be the thing
+## that gets written into a slot.
+##
+## Returns whether the session is now on `index` - so asking for the slot you
+## are already on succeeds and does nothing, and an index this build has no slot
+## for fails.
+func use_slot(index: int) -> bool:
+	if index < 0 or index >= Balance.SAVE_SLOTS:
+		return false
+	if RunState.phase != RunState.Phase.ENDED:
+		return false
+	if _saves_held > 0:
+		return false
+	if index == _slot:
+		return true
+	save_game()
+	_slot = index
+	_write_slot_pointer()
+	_adopt_new_account()
+	load_save()
+	# The tail of `_ready`, in the same order and for the same reasons: a slot
+	# that has never been played is a new account and gets what a new account
+	# gets, and the slot just loaded may carry different preferences.
+	_seed_starting_roster()
+	_seed_starting_gear()
+	UserSettings.apply_all()
+	slot_changed.emit(_slot)
+	return true
+
+
+## Everything a slot holds, back to what a new account holds.
+##
+## `adopt_save({})` rather than a list of fields, and that is load bearing:
+## every `_read_*` helper clears before it reads, so an empty save *is* the
+## empty account - by construction, for whatever the save carries today and
+## whatever is added to it next. A hand-written list would be a second opinion
+## about what a slot contains, and the first block somebody forgot to add to it
+## would leak one Warden's pen, stable or pantry into the next one. That is
+## precisely the failure `save_slot_check` exists to catch, so the code is
+## written so it cannot happen rather than merely checked for.
+func _adopt_new_account() -> void:
+	adopt_save({})
+	_clear_account_progress_settings()
+
+
+## The three settings keys that are account progress wearing a preference's
+## clothes, cleared whenever an account starts over.
+##
+## `settings` is deliberately *kept* across a slot change - volume, display mode
+## and key bindings are facts about the person and the machine, and resetting
+## somebody's bindings because they made a second Warden would be a second,
+## unasked-for destruction (the reasoning `erase_progress` already gives). These
+## three are not preferences: the starting weapon is a gift an account gets
+## once, and the tutorial and the milestone cinematics are things a new Warden
+## has not seen. Without this a second Warden would begin unarmed and untaught,
+## which is the opposite of a new account.
+##
+## One function so the two callers cannot disagree about which keys those are.
+func _clear_account_progress_settings() -> void:
+	settings[STARTING_GEAR_KEY] = false
+	settings["tutorial_seen"] = false
+	settings[MILESTONE_CINEMATICS_SEEN_KEY] = []
+
+
+## Enough to draw a card for a slot, without loading it over the live account.
+##
+## **Read from the file, except the slot being played.** A file is what a slot
+## *is*; the active one is read from the live account instead, because its file
+## is whatever the last `save_game` wrote and may be a few seconds behind - and
+## a picker that showed the player a card they can see is wrong about themselves
+## is worse than no picker. A brand new account that has not written yet is the
+## sharp case: from its file it would read "Empty" while being stood in.
+##
+## `played` is the file's own modified time rather than a field in the save.
+## Storing it would be a new thing to persist, a new thing to migrate and a new
+## thing to be wrong; the filesystem already knows, and it cannot drift.
+func slot_summary(index: int) -> Dictionary:
+	var out: Dictionary = {
+		"index": index,
+		"exists": false,
+		"current": false,
+		"name": "",
+		"level": 0,
+		"marks": 0,
+		"act": 0,
+		"ascension": 0,
+		"played": 0,
+	}
+	if index < 0 or index >= Balance.SAVE_SLOTS:
+		return out
+	var path: String = slot_path(index)
+	out["current"] = index == _slot
+	out["played"] = int(FileAccess.get_modified_time(path)) \
+		if FileAccess.file_exists(path) else 0
+	if index == _slot:
+		out["exists"] = true
+		out["name"] = player_name
+		out["level"] = hero_level
+		out["marks"] = marks
+		out["act"] = ActStart.furthest_act()
+		out["ascension"] = ascension
+		return out
+	var data: Dictionary = parse_save_text(read_committed_text(path))
+	if data.is_empty():
+		return out
+	out["exists"] = true
+	var hero: Dictionary = data.get("hero", {}) as Dictionary
+	var stash_block: Dictionary = data.get("stash", {}) as Dictionary
+	var stats_block: Dictionary = data.get("stats", {}) as Dictionary
+	out["name"] = String((data.get("board", {}) as Dictionary).get("name", ""))
+	out["level"] = clampi(int(hero.get("level", 1)), 1, Balance.HERO_MAX_LEVEL)
+	out["marks"] = maxi(int(stash_block.get("marks", 0)), 0)
+	out["ascension"] = clampi(int(hero.get("ascension", 0)), 0, Balance.ASCENSION_MAX)
+	# The furthest act, derived from the statistic the save already keeps rather
+	# than stored - the same reading `ActStart.furthest_act` takes of the live
+	# account, so a card and the act picker cannot disagree.
+	out["act"] = _act_reached(float(stats_block.get("best_distance", 0.0)))
+	return out
+
+
+func _act_reached(distance: float) -> int:
+	var reached: int = 1
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		if distance >= Balance.act_start_distance(act):
+			reached = act
+	return clampi(reached, 1, Balance.ACT_COUNT)
+
+
+## **Throws a slot away**, file and backups, and touches nothing else.
+##
+## Refused for the slot being played and refused during a run: erasing the
+## account you are standing in is `erase_progress`, which is a different door
+## with a different confirmation, and erasing any slot mid-run is the same
+## objection `use_slot` makes.
+##
+## The temporary sibling goes with it. Left behind, `read_committed_text` would
+## adopt it on the next read and the slot would come back from the dead holding
+## whatever the last interrupted write contained.
+func erase_slot(index: int) -> bool:
+	if index <= 0 or index >= Balance.SAVE_SLOTS or index == _slot:
+		return false
+	if RunState.phase != RunState.Phase.ENDED:
+		return false
+	if _saves_held > 0:
+		return false
+	var path: String = slot_path(index)
+	for doomed: String in [path, path + SAVE_TEMP_SUFFIX]:
+		if FileAccess.file_exists(doomed):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(doomed))
+	slot_erased.emit(index)
+	return true
+
+
 func save_game() -> void:
 	if _saves_held > 0:
 		return
-	if not write_text_atomically(SAVE_PATH, serialized_save()):
-		push_warning("MetaState: could not write the save: %s" % SAVE_PATH)
+	# `slot_path` and nothing else: the one derivation, so a Warden cannot be
+	# written to a file another Warden is read from.
+	var path: String = slot_path(_slot)
+	if not write_text_atomically(path, serialized_save()):
+		push_warning("MetaState: could not write the save: %s" % path)
 		return
 	save_written.emit()
 
@@ -1809,10 +2107,14 @@ static func parse_save_text(text: String) -> Dictionary:
 ## Never overwrites: each copy is stamped, so a player whose file breaks twice
 ## keeps both. Returns "" if nothing could be written, which the caller reports
 ## rather than treating as success.
-static func back_up_unreadable(text: String, test_path: String = "") -> String:
+func back_up_unreadable(text: String, test_path: String = "") -> String:
 	var path: String = test_path
 	if path.is_empty():
-		path = SAVE_UNREADABLE_BACKUP_PATH % int(Time.get_unix_time_from_system())
+		# Per slot, like the versioned backup beside it: two Wardens whose files
+		# break are two files worth keeping, and one naming scheme would have
+		# the second overwrite nothing and the support copy name the wrong
+		# account.
+		path = slot_unreadable_path(_slot, int(Time.get_unix_time_from_system()))
 	if FileAccess.file_exists(path):
 		return path
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
@@ -1941,9 +2243,10 @@ func serialized_save() -> String:
 
 
 func load_save() -> void:
-	var text: String = read_committed_text(SAVE_PATH)
+	var path: String = slot_path(_slot)
+	var text: String = read_committed_text(path)
 	if text.is_empty():
-		if FileAccess.file_exists(SAVE_PATH):
+		if FileAccess.file_exists(path):
 			push_warning("MetaState: the save is empty; starting fresh.")
 		return
 
@@ -1976,7 +2279,7 @@ func load_save() -> void:
 	if found_version != SAVE_VERSION and not MIGRATABLE_VERSIONS.has(found_version):
 		_back_up_save(text, found_version)
 		push_warning("MetaState: save version %d is not %d; kept a copy at %s and started fresh."
-			% [found_version, SAVE_VERSION, SAVE_BACKUP_PATH % found_version])
+			% [found_version, SAVE_VERSION, slot_backup_path(_slot, found_version)])
 		return
 	if found_version != SAVE_VERSION:
 		data = migrate_save(data, text)
@@ -2132,7 +2435,8 @@ func unlock_building(id: String) -> bool:
 func _back_up_save(text: String, version: int, test_path: String = "") -> bool:
 	# The override exists only so the regression gate can prove byte preservation
 	# in an isolated fixture. Shipping callers always use the versioned path.
-	var path: String = test_path if not test_path.is_empty() else SAVE_BACKUP_PATH % version
+	var path: String = test_path if not test_path.is_empty() \
+		else slot_backup_path(_slot, version)
 	if FileAccess.file_exists(path):
 		return true
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)

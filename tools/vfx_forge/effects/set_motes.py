@@ -21,10 +21,15 @@ SPEC = {
 # the noise, so without a table the takes would be one picture rendered three
 # times - the seed reaches an effect through the noise field and this one has
 # none of it.
+#
+# **As many rows as the highest `variants` ever asked for.** A table indexed
+# by the seed repeats the moment the take count passes its length, silently -
+# the render succeeds and writes a file identical to one already on disk.
 TAKES = (
     (12, 0.62, 8, 0.40),
     (9, 0.66, 6, 0.355),
     (14, 0.575, 10, 0.43),
+    (11, 0.595, 7, 0.385),
 )
 
 

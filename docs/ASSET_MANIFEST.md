@@ -2653,6 +2653,7 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_burst.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_burst_01.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_burst_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_burst_03.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_funnel_debris.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_funnel_debris_01.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_funnel_debris_02.png` | 1920×96 | T | `#FFFFFF` |
@@ -2680,9 +2681,11 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_level_up.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_level_up_01.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_level_up_02.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_level_up_03.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_meteor_bloom.png` | 2560×128 | T | `#FFFFFF` |
 | `forge_meteor_bloom_01.png` | 2560×128 | T | `#FFFFFF` |
 | `forge_meteor_bloom_02.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_meteor_bloom_03.png` | 2560×128 | T | `#FFFFFF` |
 | `forge_meteor_trail.png` | 1536×128 | T | `#FFFFFF` |
 | `forge_meteor_trail_01.png` | 1536×128 | T | `#FFFFFF` |
 | `forge_meteor_trail_02.png` | 1536×128 | T | `#FFFFFF` |
@@ -2694,6 +2697,7 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_portal_rift.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_portal_rift_01.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_portal_rift_02.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_portal_rift_03.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_quake_dust.png` | 2560×128 | T | `#FFFFFF` |
 | `forge_quake_dust_01.png` | 2560×128 | T | `#FFFFFF` |
 | `forge_quake_dust_02.png` | 2560×128 | T | `#FFFFFF` |
@@ -2701,12 +2705,15 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_rarity_burst.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_rarity_burst_01.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_rarity_burst_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rarity_burst_03.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_rune_flare.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_rune_flare_01.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_rune_flare_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rune_flare_03.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_set_motes.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_set_motes_01.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_set_motes_02.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_set_motes_03.png` | 2304×96 | T | `#FFFFFF` |
 | `forge_shot_bolt.png` | 768×64 | T | `#FFFFFF` |
 | `forge_shot_bolt_01.png` | 768×64 | T | `#FFFFFF` |
 | `forge_shot_bolt_02.png` | 768×64 | T | `#FFFFFF` |
@@ -2714,12 +2721,15 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_shot_hex.png` | 1024×64 | T | `#FFFFFF` |
 | `forge_shot_hex_01.png` | 1024×64 | T | `#FFFFFF` |
 | `forge_shot_hex_02.png` | 1024×64 | T | `#FFFFFF` |
+| `forge_shot_hex_03.png` | 1024×64 | T | `#FFFFFF` |
 | `forge_shot_lance.png` | 1152×96 | T | `#FFFFFF` |
 | `forge_shot_lance_01.png` | 1152×96 | T | `#FFFFFF` |
 | `forge_shot_lance_02.png` | 1152×96 | T | `#FFFFFF` |
+| `forge_shot_lance_03.png` | 1152×96 | T | `#FFFFFF` |
 | `forge_shot_lob.png` | 896×64 | T | `#FFFFFF` |
 | `forge_shot_lob_01.png` | 896×64 | T | `#FFFFFF` |
 | `forge_shot_lob_02.png` | 896×64 | T | `#FFFFFF` |
+| `forge_shot_lob_03.png` | 896×64 | T | `#FFFFFF` |
 | `forge_shot_spray.png` | 768×64 | T | `#FFFFFF` |
 | `forge_shot_spray_01.png` | 768×64 | T | `#FFFFFF` |
 | `forge_shot_spray_02.png` | 768×64 | T | `#FFFFFF` |
@@ -2731,6 +2741,7 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_ward.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_ward_01.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_ward_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_ward_03.png` | 1536×96 | T | `#FFFFFF` |
 
 ### 5.18b Shared particle art — `res://art/vfx/`
 

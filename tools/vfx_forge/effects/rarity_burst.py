@@ -16,10 +16,17 @@ SPEC = {
 # The arms, how fat each set is at its root, and the glints riding out on
 # them. There is no noise anywhere in this effect, so the seed reaches it
 # through this table or it does not reach it at all.
+#
+# **As many rows as the highest `variants` ever asked for.** A table indexed
+# by the seed repeats the moment the take count passes its length, and the
+# repeat is silent - the render succeeds and writes a file identical to one
+# already on disk. `forge_check` caught exactly that when the catalogue went
+# to four takes each, which is what that check is for.
 TAKES = (
     (4, 0.22, 0.30, 8, 0.055),
     (8, 0.15, 0.20, 12, 0.045),
     (4, 0.27, 0.35, 6, 0.065),
+    (6, 0.19, 0.26, 10, 0.050),
 )
 
 
