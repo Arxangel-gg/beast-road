@@ -27,6 +27,10 @@ extends Node2D
 ## costs nothing is how a screen and a field stay agreed.
 const RE_READ: float = 0.75
 
+## How many segments the ring is drawn with. Enough that it reads as a curve
+## at the zoom the camera actually uses rather than as a polygon.
+const RING_STEPS: int = 40
+
 var _set: GearSetData = null
 var _clock: float = 0.0
 var _ask_in: float = 0.0
@@ -80,18 +84,28 @@ func _draw() -> void:
 		/ maxf(Balance.GEAR_SET_AURA_PERIOD, 0.1))
 	var radius: float = Balance.GEAR_SET_AURA_RADIUS * (0.92 + 0.08 * breath)
 	var tint: Color = _set.aura_colour
+	var flat: float = Balance.GEAR_SET_AURA_FLATTEN
 	# The ring itself, faint, on the ground rather than around the body: a halo
 	# at chest height reads as a status effect, and this is not one.
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 36,
+	#
+	# **A polyline rather than `draw_arc`**, because an arc is a true circle
+	# and this is a shape lying on the ground. Drawn as one it stood up like a
+	# hoop around the Warden's knees while the motes rode the flattened
+	# ellipse below it - two halves of one ring disagreeing about which way
+	# the ground faces. Seen in `set_aura_shot` and by nothing else.
+	var hoop := PackedVector2Array()
+	for step: int in RING_STEPS + 1:
+		var edge: float = TAU * float(step) / float(RING_STEPS)
+		hoop.append(Vector2(cos(edge) * radius, sin(edge) * radius * flat))
+	draw_polyline(hoop,
 		Color(tint.r, tint.g, tint.b, tint.a * (0.18 + 0.12 * breath)),
 		2.0, true)
-	# And the motes going round it. Flattened, because the camera looks down and
-	# slightly along and a true circle at the feet reads as a hoop standing up.
+	# And the motes going round it, on that same ellipse.
 	var count: int = maxi(3, int(round(6.0 * Graphics.particle_scale())))
 	for index: int in count:
 		var turn: float = TAU * float(index) / float(count) \
 			+ _clock * 0.9
-		var at := Vector2(cos(turn) * radius, sin(turn) * radius * 0.42)
+		var at := Vector2(cos(turn) * radius, sin(turn) * radius * flat)
 		var lit: float = 0.45 + 0.55 * (0.5 + 0.5 * sin(turn * 2.0 + _clock * 2.2))
 		draw_circle(at, 2.4 * (0.7 + 0.3 * breath),
 			Color(tint.r, tint.g, tint.b, tint.a * lit))

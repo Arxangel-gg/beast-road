@@ -9216,6 +9216,15 @@ const GEAR_SET_CEILING: float = 0.14
 ## the wearer. Presentation: nothing reads it.
 const GEAR_SET_AURA_PERIOD: float = 2.3
 const GEAR_SET_AURA_RADIUS: float = 46.0
+## How flat the ring at the wearer's feet is drawn.
+##
+## The camera looks down and slightly along, so a true circle laid on the
+## ground reads as a hoop standing up - which `SetAura._draw` said in as many
+## words while drawing its arc as a true circle and its motes on this
+## ellipse, so the two halves of one ring disagreed. Photographed by
+## `set_aura_shot`; no gate could see it. Named here because two places read
+## it and a figure typed into both is a figure that drifts.
+const GEAR_SET_AURA_FLATTEN: float = 0.42
 
 
 ## Where a hero's nameplate sits above the feet, in co-op. [TUNE]

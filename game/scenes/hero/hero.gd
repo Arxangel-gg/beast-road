@@ -339,7 +339,13 @@ func _ready() -> void:
 	# knows what is worn.
 	_set_aura = SetAura.new()
 	add_child(_set_aura)
-	_set_aura.position.y = -_depth_lift
+	# **Not lifted**, unlike the three lines above it. Those put back a
+	# *centre-authored* part that the depth shift moved; this node's own
+	# coordinates are the ground, which is what the shift just made the origin.
+	# Lifting it put the ring at the sprite's middle - 68.8 units up - which is
+	# both behind the body at `z_index = -1` and the exact thing `SetAura._draw`
+	# says it is not ("a halo at chest height reads as a status effect").
+	# Photographed by `set_aura_shot`; no gate could see it.
 
 	# NOT added to the group here. There are two Hero instances - one in the
 	# battlefield, one in the raid - and if both join the group then
