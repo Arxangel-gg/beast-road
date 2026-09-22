@@ -194,6 +194,32 @@ Add them **region by region, gated each time**, never as one batch of forty.
 
 ---
 
+## Where 2026-09-21 (evening) left it
+
+**Shipped and tagged v0.49.0** on a 169/169 release sweep: the co-op guest fix
+(wildlife relay arity, lane pressure, the harness taking its road card), the mount
+ruling (faster, SP-costed, `MOUNT_GALLOP_CEILING`/`_RANGE`), the mount idles, the
+quit warning, the machine preset, the interface size, the pad walk, the Warden's
+look (dye), the boss phase tempo, and the icon-rect fix the 4K layout shape found.
+The boss tempo, the icon fix and the 4K/ultrawide shapes landed **after** the tag
+and are on main unswept; run `tools/sweep.sh <scratch> release` before v0.50.0.
+
+**Still open, in the order to take them:**
+
+1. **Save slots per profile** - waiting on the owner (§9 of the roadmap). Moves
+   `SAVE_VERSION`; `save_backup_check` by hand.
+2. **Photosensitivity on first run** - surface the flash and shake scales on the
+   first launch rather than in a settings tab. Small; needs a first-run moment.
+3. **Build templates** ("repeat my last board") - QoL; the act-start doctrines
+   already spend a budget through `try_build`, which is the door to reuse.
+4. **The lobby portrait wears the painted Warden** for a partner: a look only
+   crosses in the state row and the Hold's seat rows, so the matchmaking card
+   would need it in the party roster. Deliberately not built.
+5. **Mobile performance, minimum spec, the Deck decision** - need hardware or the
+   owner.
+6. **Content owed** (§4 of the roadmap): act VI-X music, boss themes, enemy
+   voices, the reed frog.
+
 ## Standing lessons that apply to all of the above
 
 - A guarantee is a property of every breed, road, act and region, or it is not a
