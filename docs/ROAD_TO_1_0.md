@@ -37,11 +37,11 @@ everything has read nothing.
 Final Ascent → win/lose → payout → menu. Expeditions put the road down and pick
 it up. Co-op seats four. The Hold is a place you walk in.
 
-**170 gates** run at release (as `tools/sweep.sh` derives them), 156 at guard, and the release bar is a superset
+**173 gates** run at release (as `tools/sweep.sh` derives them), 171 at guard, and the release bar is a superset
 (`roster_check`, `game_speed_check`, `town_alert_check`, `qol_check`,
-`pad_focus_check`, `warden_look_check`, `forge_check` and the 4K and ultrawide
-layout shapes joined on 2026-09-21; **v0.49.0** was tagged on a 169/169 sweep
-that day and **v0.50.0** on the next). Roughly 34,000 assertions in
+`pad_focus_check`, `warden_look_check`, `forge_check`, `resource_reach_check`
+and the 4K and ultrawide layout shapes joined on 2026-09-21; **v0.49.0** was
+tagged on a 169/169 sweep that day and **v0.50.0** on a 173/173 sweep the next). Roughly 34,000 assertions in
 `balance_test` alone.
 
 **And almost nobody has played it.** That gap — between "the gates are green"
