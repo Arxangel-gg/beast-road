@@ -40,6 +40,15 @@ var _stand := Vector2.ZERO
 
 
 func _ready() -> void:
+	# **On the real battlefield rather than a plate**, because a plate cannot
+	# answer the one question a plate raised: the ring draws at `z_index = -1`
+	# and a plate at zero hid it outright. Terrain, roads and the treeline are
+	# all below a y-sorted hero, so -1 should sit on the ground and above them -
+	# should, which is not the same as does.
+	for arg: String in OS.get_cmdline_user_args():
+		if arg == "--field":
+			await _on_the_road()
+			return
 	get_window().size = PANEL
 	# One content unit to one pixel, for the reason `blood_shot` records: a
 	# photograph at half scale is a model of the thing rather than the thing.
@@ -174,3 +183,58 @@ func _blit(sheet: Image, row: int) -> void:
 		frame.convert(sheet.get_format())
 	sheet.blit_rect(frame, Rect2i(Vector2i.ZERO, PANEL),
 		Vector2i(0, PANEL.y * row))
+
+
+## The aura where it is actually played: a Warden standing on a built road.
+##
+## Cropped around the hero off the **canvas transform** rather than the world
+## position, which is the coordinate mistake the tail probe and the shot plate
+## each made once - a camera makes the two disagree.
+func _on_the_road() -> void:
+	const FIELD := Vector2i(1280, 720)
+	const CROP := Vector2i(420, 360)
+	get_window().size = FIELD
+	get_viewport().set_content_scale_size(FIELD)
+	MetaState.hold_saves()
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene) 		.instantiate() as Run
+	add_child(run)
+	for _frame: int in 30:
+		await get_tree().process_frame
+	var hero: Hero = run.battlefield.hero if run.battlefield != null else null
+	if hero == null:
+		push_error("[set-aura] no hero on the field")
+		get_tree().quit(1)
+		return
+	var target: GearSetData = _a_set_worth_photographing()
+	MetaState.equipped = {}
+	for member: String in target.members:
+		var kind: GearData = ContentDB.gear(member)
+		if kind == null:
+			continue
+		MetaState.receive_gear(Stash.make(member, 0, 1))
+		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
+	Modifiers.rebuild()
+	await get_tree().create_timer(SetAura.RE_READ + SETTLE_AT).timeout
+	await RenderingServer.frame_post_draw
+	var frame: Image = get_viewport().get_texture().get_image()
+	var at: Vector2 = hero.get_viewport_transform() * hero.global_position
+	var box := Rect2i(Vector2i(at) - CROP / 2, CROP)
+	box = box.intersection(Rect2i(Vector2i.ZERO, frame.get_size()))
+	var crop: Image = frame.get_region(box)
+	crop.resize(box.size.x * 2, box.size.y * 2, Image.INTERPOLATE_NEAREST)
+	var path: String = ProjectSettings.globalize_path("user://set_aura_field.png")
+	crop.save_png(path)
+	# The whole frame beside the crop, because a 2x magnified corner of a field
+	# is a model of the field: the first field run showed hard-edged blocks in
+	# the ground and there was no way to tell a terrain seam from a fog cell
+	# from a crop.
+	frame.save_png(ProjectSettings.globalize_path("user://set_aura_whole.png"))
+	print("[set-aura] field: %s at %s -> %s" % [
+		"nothing" if hero.worn_set() == null else hero.worn_set().id, at, path])
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+	get_tree().quit(0)
