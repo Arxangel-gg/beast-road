@@ -7520,6 +7520,51 @@ four of the five faults above were invisible to every number in the project.
 When a system's whole purpose is something a player looks at, photograph it
 before believing it works.
 
+**A frame of the interface may repaint itself and may never rebuild itself, as
+of 2026-09-22.** The release sweep's third failure was
+`perf_check`: *"node count still climbing after warm-up (+190.7%, budget
++6.0%)"*, with the frame time, the hitch count and the orphan count all clean.
+
+**It was the sheet clock added hours earlier.** `Run._process` emits
+`preparation_changed` on **every frame** of a breather, `_paint_sheet_clocks`
+called `_dress_bar(bar, tint)`, and `_dress_bar` only ever *adds* a sheen and a
+frame. Four nodes a frame for the length of a thirty-second breather - measured
+at **7,264 children on each of the two clock bars**, 12,416 of the run's 12,514
+node growth, against every other bucket in the census moving by forty or less.
+
+**And the same line was a no-op for its stated purpose.** `_dress_bar` never
+read the `colour` it was handed, so the bar had never changed with urgency
+either; only the label's font did. An argument nothing reads is what made a
+constructor helper look like a re-skin, which is how the call came to be written
+at all. The parameter is gone, `_dress_bar` refuses a bar it has already
+dressed, and the clock mutates the `StyleBoxFlat` the bar already owns - which
+adds no node and finally does what the line was written to do.
+
+**The gate for it is deterministic and the report is not, which is the right
+split.** `perf_check` is one of the five judgement-heavy release-only reports,
+its verdict here was a **coin toss** - `RunState.reset()` rolls a fresh seed, the
+leak only runs during a *timed* breather, and 45 seconds contained one about one
+run in three (measured: -0.1%, +0.2%, then +190.7%). So the invariant lives in
+`preparation_check`, which drives `EventBus.preparation_changed` two dozen times
+against the real HUD and reads `bar.get_child_count()` back. Driving the signal
+rather than the painter is the point: a test that called `_paint_sheet_clocks`
+would prove the function and not the wiring, which is the mistake the set-piece
+row label already cost this project once.
+
+**And a growth failure names its culprit now.** `perf_check` sampled one scalar,
+so "+190.7%" was unactionable and diagnosing it needed a separate census harness
+written from scratch. It takes a per-script histogram beside the scalar once a
+second - **after the frame has been charged**, so an O(n) walk over eighteen
+thousand nodes cannot invent a hitch in the frame it is measuring - and the
+failure line ends with the three biggest movers.
+
+**Why nothing else could have seen it.** The leaked nodes are hidden,
+non-processing `Control`s: they cost no frame time, they are not orphans, and
+they are children of a panel the player need never open. `layout_check` measures
+rectangles, `preparation_check` drove the painter exactly **once** - which
+proves the clock reads right and can never see a leak that needs two calls - and
+no other gate in the project counts nodes at all.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

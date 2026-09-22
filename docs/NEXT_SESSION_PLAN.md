@@ -216,8 +216,10 @@ of Blender 4.5 (`tools/vfx_forge`, `Vfx.forge_burst`, `forge_check`).
 
 **Still open, in the order to take them:**
 
-1. **Save slots per profile** - waiting on the owner (§9 of the roadmap). Moves
-   `SAVE_VERSION`; `save_backup_check` by hand.
+1. ~~**Save slots per profile**~~ **Built 2026-09-22** (`MetaState.slot_path`,
+   `save_slot_check`, 117 checks, on both bars). It did **not** move
+   `SAVE_VERSION` and did not move the historic file: an existing account *is*
+   slot 0 by derivation, and every later slot is a new file beside it.
 2. **Photosensitivity on first run** - surface the flash and shake scales on the
    first launch rather than in a settings tab. Small; needs a first-run moment.
 3. **Build templates** ("repeat my last board") - QoL; the act-start doctrines
@@ -239,3 +241,37 @@ of Blender 4.5 (`tools/vfx_forge`, `Vfx.forge_burst`, `forge_check`).
 - Trace before theorising when a state machine misbehaves.
 - The release bar is a superset of guard's. Diff the two lists before a tag.
 - Never delete an inbox after importing it.
+
+
+## Where 2026-09-22 left it
+
+Three faults that every number in the project was blind to, all found by the
+release sweep and by photographing output rather than by reading code:
+
+- **A property read off a resource that does not declare it**, twice
+  (`found.colour`, `breed.is_boss`). One had made the full-set aura draw nothing
+  at all for days while `gear_set_check` stayed green.
+- **The set aura was drawn at chest height, behind the body**, and its ring was
+  a true circle standing up like a hoop while its own motes rode a flattened
+  ellipse. `set_aura_shot` is the picture; there were forty-seven shot tools and
+  not one of them photographed the one visual sets were ever asked for.
+- **The sheet clock rebuilt itself every frame.** `_paint_sheet_clocks` called
+  `_dress_bar`, which only ever adds - four nodes a frame for a thirty-second
+  breather, 7,264 children on each clock bar - and the `colour` it was handed
+  was never read, so the urgency tint had never reached the bar either.
+  `preparation_check` holds it deterministically now and `perf_check`'s growth
+  failure names its culprit instead of printing a bare percentage.
+
+**Still open, in the order to take them:**
+
+1. **Photosensitivity on first run** - roadmap §7.2. Small; needs a first-run
+   moment that does not interrupt the Walk offer, the story intro or the slot
+   picker.
+2. **Build templates** ("repeat my last board") - QoL; the act-start doctrines
+   already spend a budget through `try_build`, which is the door to reuse.
+3. **The lobby portrait wears a partner's dyed Warden.** A look crosses only in
+   the hero state row and the Hold's seat rows, so the lobby - which is before a
+   run exists - cannot know one yet.
+4. **Mobile performance, minimum spec, the Deck decision** - need hardware or
+   the owner.
+5. **Content owed**: act VI-X music, boss themes, enemy voices, the reed frog.

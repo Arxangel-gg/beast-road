@@ -209,6 +209,63 @@ func _test_both_sheets_carry_the_clock() -> void:
 		_check(bar.max_value == 1.0, "a sheet clock must be a share, not seconds")
 		_check(not (row["line"] as Label).text.is_empty(),
 			"a sheet clock says nothing")
+	await _test_painting_the_clock_builds_nothing(clocks)
+
+
+## **A frame of the interface may repaint itself and may never rebuild itself.**
+##
+## `Run._process` emits `preparation_changed` on **every frame** of a breather,
+## so whatever the clock does when it is painted, it does thirty seconds' worth
+## of times at sixty a second. It used to call `_dress_bar`, which only ever
+## adds a sheen and a frame - four nodes a frame, measured at 7,264 children on
+## each of the two clock bars, and `perf_check` failed at +190.7% naming no
+## culprit at all.
+##
+## Driven through `EventBus.preparation_changed` rather than by calling the
+## painter, because the painter is not what a run calls: a test that reached
+## for `_paint_sheet_clocks` would prove the function and not the wiring, which
+## is the mistake the set-piece row label already cost this project once.
+##
+## It also holds the half the leak was hiding: the tint has never reached the
+## bar, because `_dress_bar` did not read the colour it was handed. Urgent
+## seconds must actually turn the fill.
+func _test_painting_the_clock_builds_nothing(clocks: Array) -> void:
+	_check(clocks.size() == 2,
+		("exactly two sheet clocks are expected, found %d - per-frame work in "
+			+ "the painter multiplies with this list") % clocks.size())
+	var before: Array[int] = []
+	for entry: Variant in clocks:
+		before.append(((entry as Dictionary)["bar"] as ProgressBar).get_child_count())
+	# A whole breather's worth of paints, counted down so every branch of the
+	# tint is taken on the way past.
+	var paints: int = 24
+	for step: int in paints:
+		var left: float = Balance.PREPARATION_BETWEEN_WAVES 			* (1.0 - float(step) / float(paints))
+		EventBus.preparation_changed.emit(maxf(left, 0.05), true)
+		await get_tree().process_frame
+	for index: int in clocks.size():
+		var bar := ((clocks[index] as Dictionary)["bar"] as ProgressBar)
+		_check(bar.get_child_count() == before[index],
+			("painting a sheet clock %d times grew its bar from %d children to "
+				+ "%d - the interface is rebuilding itself, not repainting")
+				% [paints, before[index], bar.get_child_count()])
+
+	# And the colour the paint has always claimed to set.
+	#
+	# **Read without waiting a frame.** `_paint_sheet_clocks` runs inside the
+	# emit, and `Run._process` emits its own value on the very next frame - so
+	# a check that awaited one would read the run's twenty-odd seconds rather
+	# than the half-second it just asked about. The first cut did exactly that
+	# and reported a working tint as broken.
+	EventBus.preparation_changed.emit(0.5, true)
+	for entry: Variant in clocks:
+		var fill := (entry as Dictionary).get("fill") as StyleBoxFlat
+		_check(fill != null, "a sheet clock has no fill to tint")
+		if fill != null:
+			_check(fill.bg_color.is_equal_approx(Balance.UI_CLOCK_URGENT),
+				("a sheet clock's bar stayed %s with half a second left, "
+					+ "rather than the urgent %s")
+					% [fill.bg_color, Balance.UI_CLOCK_URGENT])
 
 
 ## **Hidden where there is no deadline.** Only the between-wave breather is

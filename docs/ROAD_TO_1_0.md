@@ -191,17 +191,19 @@ absence a reviewer will name in the first paragraph.
 - ~~**Text size / UI scale option.**~~ **Built 2026-09-21**: the interface-size
   slider (`qol_check`).
 - **Photosensitivity**: the flash scale exists — surface it in first-run
-  options rather than burying it.
+  options rather than burying it. **Still open**, and with build templates the
+  last of §7.2 that is.
 - ~~**Controller completeness.**~~ **Gated 2026-09-21**: `pad_focus_check` walks
   every screen's focus ring both ways, on both bars.
-- **Ultrawide and 4K layout.** The HUD is anchored; 21:9 has never been
-  photographed.
+- ~~**Ultrawide and 4K layout.**~~ **Built 2026-09-21**: `layout_check` and
+  `road_sheet_check` run at 3840x2160, 3440x1440 and 2560x1080 on both bars.
+  The 4K shape found a real overlap on its first run (`IconKit.rect`).
 - ~~**Performance auto-detect**~~ **Built 2026-09-21**: `Graphics.preset_for_machine`,
   said on the settings screen, never overriding a saved choice.
 - ~~**Quit-mid-act clarity.**~~ **Built 2026-09-21**: the pause menu says what a
   quit costs since the last banked crossroad and asks twice.
 - **Build templates.** With 61 towers, "repeat my last board" is real quality of
-  life on a second run.
+  life on a second run. **Still open.**
 - **Steam Deck / handheld decision.** A 2D game at 16.6 ms on a 3070 Ti will not
   run on a Deck as it stands. Decide explicitly rather than discover it.
 

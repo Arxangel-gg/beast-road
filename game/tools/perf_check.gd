@@ -105,6 +105,8 @@ var _textures_last: float = 0.0
 var _sample_left: float = 1.0
 var _nodes: Array[float] = []
 var _orphans: Array[float] = []
+## One census a second beside the scalar, so a leak can be named.
+var _census: Array[Dictionary] = []
 var _memory: Array[float] = []
 
 var _failures: PackedStringArray = []
@@ -266,6 +268,13 @@ func _process(delta: float) -> void:
 		_nodes.append(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 		_orphans.append(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
 		_memory.append(Performance.get_monitor(Performance.MEMORY_STATIC))
+		# **Taken after the frame has been charged**, so an O(n) walk over
+		# eighteen thousand nodes cannot invent a hitch in the frame it is
+		# measuring. It is what lets a growth failure name its culprit: the
+		# scalar above says a leak exists and can never say what leaked, and
+		# diagnosing the one that shipped on 2026-09-22 needed a separate
+		# census harness written from scratch to answer it.
+		_census.append(_node_census())
 
 	if _elapsed - _fight_started - WARMUP_SECONDS >= _seconds:
 		set_process(false)
@@ -428,8 +437,10 @@ func _check_growth() -> void:
 	_notes.append("memory   %+.1f%%" % ((memory_ratio - 1.0) * 100.0))
 
 	if node_ratio - 1.0 > MAX_NODE_GROWTH:
-		_failures.append("node count still climbing after warm-up (%+.1f%%, budget %+.1f%%)"
-			% [(node_ratio - 1.0) * 100.0, MAX_NODE_GROWTH * 100.0])
+		var movers: Array[String] = _biggest_movers(3)
+		_failures.append("node count still climbing after warm-up (%+.1f%%, budget %+.1f%%)%s"
+			% [(node_ratio - 1.0) * 100.0, MAX_NODE_GROWTH * 100.0,
+				"" if movers.is_empty() else " - " + ", ".join(movers)])
 	if orphan_rise > float(MAX_ORPHAN_GROWTH):
 		_failures.append("orphaned nodes rose by %.0f, budget is %d - something is being "
 			% [orphan_rise, MAX_ORPHAN_GROWTH] + "removed from the tree without being freed")
@@ -527,6 +538,43 @@ func _kill_lights() -> void:
 			light.enabled = false
 			killed += 1
 	print("[perf] lights disabled: %d" % killed)
+
+
+## How many nodes of each kind stand in the tree right now.
+##
+## Keyed by script basename where there is one and by class otherwise, because
+## "NinePatchRect" names a leak far less usefully than "sheet_clock" would -
+## and both are more useful than a percentage.
+func _node_census() -> Dictionary:
+	var out: Dictionary = {}
+	for node: Node in _all_nodes(get_tree().root):
+		var script := node.get_script() as Script
+		var key: String = node.get_class()
+		if script != null and not script.resource_path.is_empty():
+			key = script.resource_path.get_file().get_basename()
+		out[key] = int(out.get(key, 0)) + 1
+	return out
+
+
+## The kinds that grew most between the first and the last census, biggest
+## first, as "name +n" strings.
+func _biggest_movers(most: int) -> Array[String]:
+	if _census.size() < 2:
+		return []
+	var first: Dictionary = _census[0]
+	var last: Dictionary = _census[_census.size() - 1]
+	var moved: Array = []
+	for key: Variant in last.keys():
+		var rise: int = int(last[key]) - int(first.get(key, 0))
+		if rise > 0:
+			moved.append({"key": String(key), "rise": rise})
+	moved.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["rise"]) > int(b["rise"]))
+	var out: Array[String] = []
+	for entry: Variant in moved.slice(0, most):
+		out.append("%s +%d" % [(entry as Dictionary)["key"],
+			(entry as Dictionary)["rise"]])
+	return out
 
 
 func _all_nodes(from: Node) -> Array[Node]:

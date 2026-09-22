@@ -1359,7 +1359,7 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 	fill.border_color = colour.lightened(0.35)
 	bar.add_theme_stylebox_override("fill", fill)
 
-	_dress_bar(bar, colour)
+	_dress_bar(bar)
 	return bar
 
 
@@ -1369,7 +1369,16 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 ## and both are spoken for - and because the frame has to be drawn *over* the
 ## fill while the fill is drawn over the background, which two styleboxes
 ## cannot express.
-func _dress_bar(bar: ProgressBar, colour: Color) -> void:
+## **One-shot.** It only ever adds, so calling it twice doubles the dressing -
+## which is exactly what happened when the sheet clock started calling it per
+## frame to re-tint a bar: four nodes a frame for the length of a thirty-second
+## breather, measured at 7,264 children on each of the two clock bars. The
+## refusal lives here rather than as a rule every future caller has to
+## remember, and the old unused `colour` argument is gone because an argument
+## nothing reads is what made this look like a re-skin.
+func _dress_bar(bar: ProgressBar) -> void:
+	if bar.has_node("Gloss") or bar.has_node("Frame"):
+		return
 	var gloss := TextureRect.new()
 	gloss.name = "Gloss"
 	if ResourceLoader.exists(POOL_GLOSS_ART):
@@ -2748,8 +2757,16 @@ func _build_sheet_clock(into: Control) -> Dictionary:
 	box.add_child(bar)
 	into.add_child(box)
 	into.move_child(box, 0)
-	_sheet_clocks.append({"box": box, "line": line, "bar": bar})
-	return {"box": box, "line": line, "bar": bar}
+	# **The fill it was built with, held rather than looked up.** The clock
+	# re-tints on every frame of a breather, and the only honest way to do that
+	# is to mutate the stylebox the bar already owns - `_make_bar` gives every
+	# bar a `StyleBoxFlat.new()` of its own, so this recolours one bar.
+	var fill: StyleBoxFlat = null
+	if bar.has_theme_stylebox_override("fill"):
+		fill = bar.get_theme_stylebox("fill") as StyleBoxFlat
+	var entry := {"box": box, "line": line, "bar": bar, "fill": fill}
+	_sheet_clocks.append(entry)
+	return entry
 
 
 ## Paints every sheet clock. Called from `_on_preparation_changed`, so the
@@ -2777,7 +2794,14 @@ func _paint_sheet_clocks(seconds_left: float) -> void:
 			tint = Balance.UI_CLOCK_URGENT
 		elif Balance.preparation_early_gold(seconds_left) <= Balance.PREPARATION_EARLY_GOLD_FLOOR:
 			tint = Balance.UI_CLOCK_SOON
-		_dress_bar(bar, tint)
+		# **Repaint, never rebuild.** This was `_dress_bar(bar, tint)`, which adds
+		# a sheen and a frame and removes nothing - and never read the colour it
+		# was handed, so the bar has never changed with urgency either. Mutating
+		# the fill does what the line was written to do and adds no node.
+		var fill := entry.get("fill") as StyleBoxFlat
+		if fill != null:
+			fill.bg_color = tint
+			fill.border_color = tint.lightened(0.35)
 		line.text = "%0.0f seconds before the road moves" % ceilf(seconds_left)
 		line.add_theme_color_override("font_color", tint)
 
