@@ -7446,6 +7446,80 @@ has to be driven is the geometry the build sheet produces: a box in the card's
 own column, at the card's own height. Checked by removing the lift, which it
 then named with both rectangles.
 
+**A property read off a resource that does not declare it, twice, as of
+2026-09-22.** The release sweep read 178/181 and two of the three were the same
+shape. GDScript only refuses an unknown property at parse time when the
+receiver's static type is known; through a variable typed loosely enough - or a
+resource fetched out of a Dictionary - the check defers to runtime, and the
+runtime error fires only on the frame that line runs. `script_check` loads every
+script and does not run them.
+
+**`set_aura.gd` read `found.colour`** where `GearSetData` declares
+`aura_colour`. The error aborted `_look()` **before** it assigned `_set` and set
+`visible`, so the ring of motes at a finished set's feet had not drawn at all
+since the forge catalogue landed. `gear_set_check` said so in as many words -
+*"a hero in a whole set shows nothing"* - and nothing else could have.
+
+**`wildlife_family_check` read `breed.is_boss`** where `EnemyData` carries a
+`Category`. The abort returned null, `_stand_a_body_near` handed back nothing,
+and **the whole third section of the courtship test had never run once**: a
+companion with something to answer is busy.
+
+**With it running, the section after it failed**, and that half is the more
+useful lesson. The harness freed the probe body and waited **three frames**;
+headless runs far above sixty a second, so the companion was still 0.95s into
+the cooldown its own `attack_interval` authored when the next line asked whether
+it was free. `_let_the_swing_finish` waits the companion's own swing window and
+cooldown, **in seconds**. That is the same fault `enemy_shot_check` paid for
+once, and the answer is the same: a wait counted in frames is a wait in whatever
+the machine felt like giving.
+
+**Found by making the check say which of five conditions was holding it.**
+`may_court` answers one bool over five, and a gate that only ever printed *"it
+is not free"* sends the next session reading the state machine instead of the
+state. `_why_it_will_not_court` names the timer, which turned that into
+*"mid-swing, swing cooldown 0.95s"* and ended the question in one run.
+
+**The ring at the feet was at chest height, behind the body, as of the same
+date.** Forty-seven shot tools and not one photographed the set aura - which is
+the whole of what the owner asked sets for (*"wearing a full set should have a
+visual vfx game juicy effect on players"*). `gear_set_check` proves `worn_set()`
+answers and the node ticks; that is the **wiring**, and it stayed green through
+two separate faults that made the feature invisible.
+
+`set_aura_shot` is the picture: three panels of one Warden - nothing worn, the
+moment the set completes, settled. Two real faults fell out of it and neither is
+a number.
+
+**The ring was drawn 68.8 units above the ground.** `Hero._ready` shifts the
+body down onto its own feet so the Y sorter has ground contact as its key, and
+lifts every *centre-authored* part back up by the same amount to keep the
+picture - the sprite, the collider, the health bar. The aura was lifted with
+them, which put the ring at the sprite's middle: behind the body at
+`z_index = -1`, and the exact thing `SetAura._draw`'s own comment refuses. The
+aura's coordinates **are** the ground, so it is not lifted.
+
+**And the ring stood up like a hoop.** `draw_arc` is a true circle, while the
+motes rode an ellipse flattened by 0.42 - two halves of one ring disagreeing
+about which way the ground faces, with the comment above the motes explaining
+the very mistake the line above it was making. The ring is a polyline on that
+same ellipse now and the flattening is `Balance.GEAR_SET_AURA_FLATTEN`, read by
+both.
+
+**Three faults in the tool itself, every one found by looking at its output.**
+The blits raced - `_blit` awaits a frame, so an un-awaited call resolves onto a
+changed stage and the third panel saved before it landed. The Warden settles
+68.8 below where it is placed, so the ring framed off the bottom edge until the
+offset was **read off the settled body** rather than guessed twice. And the
+plate sat at z 0 in front of an aura at z -1, photographing an empty floor -
+the same z-order trap that has already cost this project a mount and a campfire.
+
+**The lesson is the one already written here in other clothes.** A gate that
+asks whether a thing is *wired* cannot tell you whether it is *visible*, and
+four of the five faults above were invisible to every number in the project.
+When a system's whole purpose is something a player looks at, photograph it
+before believing it works.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -51,7 +51,14 @@ const LAYOUT_PATH: String = "res://data/maps/battlefield_layout.json"
 const CORE_SIZE: int = 45
 ## Tiles laid beyond the core on every side.
 const OUTSKIRTS: int = 21
-## The whole field. 75x75 tiles at 64 units is a 4800x4800 world.
+## The whole field. 87x87 tiles at 64 units is a 5568x5568 world - three and
+## a half times the authored core's area.
+##
+## **This said 75x75 and 4800x4800 until 2026-09-22**, which was true while
+## `OUTSKIRTS` was 15 and stopped being true when it went to 21 on
+## 2026-09-14. Nothing failed, because the figure is derived and only the
+## prose was wrong - and `grid_check` had the same stale number asserted
+## outright, which is how it sat red for ten days.
 const SIZE: int = CORE_SIZE + OUTSKIRTS * 2
 const TILE: float = 64.0
 
