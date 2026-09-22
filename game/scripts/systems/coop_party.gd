@@ -30,6 +30,17 @@ class Seat extends RefCounted:
 	## why everything kills them.
 	var cleared: int = -1
 
+	## How this player's Warden is dyed, as the two numbers `WardenLook.pack`
+	## gives - or empty for the painted Warden.
+	##
+	## **The lobby is before a run**, so the hero state row that carries a
+	## look on the road does not exist yet; without this the matchmaking card
+	## drew every partner painted whatever they had chosen. It travels in the
+	## guest's own hello beside the tier, and back out on the roster, both of
+	## which already tolerate a short row - so a party spanning two builds
+	## degrades to the painted Warden rather than to an empty roster.
+	var look: Array = []
+
 	func colour() -> Color:
 		return Balance.PARTY_COLOURS[clampi(slot - 1, 0,
 			Balance.PARTY_COLOURS.size() - 1)]
@@ -159,6 +170,9 @@ func open(host_name: String) -> void:
 	host.slot = 1
 	host.peer = 1
 	host.name = _clean(host_name)
+	# The host declares nothing to itself, so its own dye is read here - without
+	# it the roster it publishes carries three dyes and a painted host.
+	host.look = WardenLook.pack(WardenLook.mine())
 	_seats[1] = host
 	roster_changed.emit()
 
@@ -194,11 +208,14 @@ func unseat(peer_id: int) -> void:
 
 
 ## Records what a player says they have cleared. Host side.
-func declare(peer_id: int, cleared: int) -> void:
+func declare(peer_id: int, cleared: int, look: Array = []) -> void:
 	for occupant: Variant in _seats.values():
 		var person := occupant as Seat
 		if person != null and person.peer == peer_id:
 			person.cleared = clampi(cleared, -1, 8)
+			# Cleaned on arrival rather than trusted: a packet may hold anything,
+			# and `unpack` answers the painted Warden for whatever it cannot read.
+			person.look = WardenLook.pack(WardenLook.unpack(look))
 			roster_changed.emit()
 			return
 
@@ -243,7 +260,10 @@ func to_wire() -> Array:
 		# needs no rule about which row is the host's, and a launcher-updated
 		# desktop beside an instantly-updated browser cannot silently play two
 		# different games on one socket: the guest reads it and leaves.
-		rows.append([person.slot, person.peer, person.name, person.cleared, build])
+		# The sixth column is that player's dye. Appended, like the two before
+		# it, so an older guest reads a row without one as the painted Warden.
+		rows.append([person.slot, person.peer, person.name, person.cleared,
+			build, person.look])
 	return rows
 
 
@@ -282,6 +302,8 @@ func _on_roster(rows: Array) -> void:
 		# Four was the shape before builds were declared; a row without one is a
 		# host from before this handshake, which is itself a mismatch.
 		host_build = String(row[4]) if row.size() > 4 else ""
+		person.look = WardenLook.pack(WardenLook.unpack(
+			row[5] if row.size() > 5 else []))
 		_seats[number] = person
 		if person.peer == own_peer:
 			_own_slot = number

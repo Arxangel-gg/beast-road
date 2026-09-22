@@ -364,6 +364,7 @@ func _physics_process(delta: float) -> void:
 	_tick_revives(delta)
 	if Coop.is_guest():
 		_send_input(relay)
+		_tell_them_my_dye(relay, delta)
 	else:
 		# The host sends its input too, not only its position. A mirrored hero
 		# with no input has no velocity, and every animation in this game is
@@ -687,6 +688,54 @@ func _on_local_mounted(mount_id: String) -> void:
 		relay.request(CoopRelay.Request.HERO_MOUNT, [mount_id])
 
 
+## How often a guest repeats its dye, in seconds. Slow, because a look cannot
+## change during a run - it is set in the Hold - so this is an *arrival*
+## message rather than a stream, and the only reason to repeat it at all is
+## that the host's mirror of this hero may not have existed when the first one
+## was sent, and that a rejoining guest has to say it again.
+const LOOK_INTERVAL: float = 4.0
+
+var _look_timer: float = 0.0
+var _look_said: Array = []
+
+
+## Says it on the first tick and then rarely, and only when it has changed.
+##
+## Repeating rather than sending once, because the host's mirror of this hero
+## is built from a spawn the guest does not control the timing of - a single
+## packet that arrived first would be applied to nothing and lost in silence.
+## Compared against what was last said, so a settled party sends nothing.
+func _tell_them_my_dye(relay: CoopRelay, delta: float) -> void:
+	_look_timer -= delta
+	if _look_timer > 0.0:
+		return
+	_look_timer = LOOK_INTERVAL
+	var row: Array = WardenLook.pack(WardenLook.mine())
+	if row == _look_said:
+		return
+	_look_said = row.duplicate()
+	_on_local_look_changed(row)
+
+
+## A guest telling the party how its own Warden is dyed.
+##
+## **The one thing about a look that cannot be worked out locally.** The dye is
+## two numbers on the *other* account's save, and `WardenLook.mine()` read for
+## somebody else's Warden returns this player's own - the same argument the
+## mount id travels under. So it is sent, once, when it changes.
+##
+## Without it `_look_of` packed a `Hero.look` the host had never written, which
+## is `WardenLook.plain()` forever: the host drew every guest painted, and with
+## three players relayed that plain row on, so each guest saw the other painted
+## too. Only the host's own dye ever reached anybody.
+func _on_local_look_changed(row: Array) -> void:
+	if not Coop.is_guest():
+		return
+	var relay: CoopRelay = Coop.relay()
+	if relay != null:
+		relay.request(CoopRelay.Request.HERO_LOOK, [row])
+
+
 func _on_local_dismounted() -> void:
 	# Deliberately *not* cleared. Which horse an account saddled is still true
 	# with the Warden standing beside it, and clearing it here would mean every
@@ -837,6 +886,16 @@ func _on_party_away(slot: int, away: bool) -> void:
 ## and naming somebody else's is the whole reason the authority model exists.
 func _on_request(kind: int, args: Array, from: int) -> void:
 	if not Coop.is_host():
+		return
+	if kind == CoopRelay.Request.HERO_LOOK:
+		# Attributed by the peer it arrived on, never by a slot in the packet -
+		# a guest naming which body it dresses is the whole reason the
+		# authority model exists. `wear_look` cleans whatever it is given.
+		var dyed: int = Coop.party().slot_for_peer(from)
+		if dyed > 0 and args.size() >= 1:
+			var worn: Hero = _hero_for_slot(dyed)
+			if worn != null:
+				worn.wear_look(args[0])
 		return
 	if kind == CoopRelay.Request.HERO_MOUNT:
 		var seat: int = Coop.party().slot_for_peer(from)

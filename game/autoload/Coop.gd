@@ -186,7 +186,8 @@ func _on_coop_request(kind: int, args: Array, from: int) -> void:
 			line.refuse(from, CoopRelay.Request.DECLARE_TIER, reason)
 		_drop_peer.call_deferred(from)
 		return
-	party().declare(from, int(args[0]))
+	party().declare(from, int(args[0]),
+		(args[2] as Array) if args.size() > 2 and args[2] is Array else [])
 
 
 ## A guest whose declaration was refused has been told why; it leaves rather
@@ -286,8 +287,11 @@ func _declare_tier() -> void:
 		return
 	var line: CoopRelay = relay()
 	if line != null:
+		# **And the dye**, because the lobby draws a Warden before a run exists
+		# and the hero state row that carries a look on the road does not.
 		line.request(CoopRelay.Request.DECLARE_TIER,
-			[MetaState.tier_cleared, BuildInfo.VERSION])
+			[MetaState.tier_cleared, BuildInfo.VERSION,
+				WardenLook.pack(WardenLook.mine())])
 
 
 ## Why this party cannot play the run's chosen tier, or "" if it can.

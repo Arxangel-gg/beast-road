@@ -23,8 +23,15 @@ var _elapsed: float = 0.0
 var _built: bool = false
 
 
+## `look` is the two numbers `WardenLook.pack` gives, or empty for the painted
+## Warden - a partner's from the roster, this machine's from its own save.
+##
+## **The lobby drew every Warden painted** until 2026-09-22, including the local
+## player's own, whose dye needs no wire at all. `coop_lobby_check` asserts the
+## atlas region and the seat colour, and a dyed portrait and a painted one have
+## identical regions - so nothing could see it.
 func configure(slot: int, player_name: String, colour: Color,
-		colour_name: String, is_local: bool) -> void:
+		colour_name: String, is_local: bool, look: Array = []) -> void:
 	_ensure_built()
 	_frame = posmod((slot - 1) * 2, _frame_count)
 	_name_label.text = "%s%s" % [player_name, "  ·  you" if is_local else ""]
@@ -32,6 +39,11 @@ func configure(slot: int, player_name: String, colour: Color,
 	_name_label.add_theme_color_override("font_color", colour.lightened(0.18))
 	_colour_label.add_theme_color_override("font_color", colour)
 	_portrait.modulate = Color.WHITE.lerp(colour, Balance.PARTY_TINT_STRENGTH)
+	# The dye under the seat tint, which is the order the road draws them in.
+	# The shader reads its bands off the painting rather than off the tinted
+	# colour, so the mask does not move with the seat - see `warden_look`.
+	WardenLook.dress(_portrait, WardenLook.mine() if is_local
+		else WardenLook.unpack(look))
 
 	var card := StyleBoxFlat.new()
 	card.bg_color = Color(0.025, 0.035, 0.04, 0.96)

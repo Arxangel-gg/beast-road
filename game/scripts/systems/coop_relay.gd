@@ -296,6 +296,18 @@ enum Request {
 	## off its own content, as it does for a fish, a crop and an egg. 40, read
 	## off the whole table.
 	GATHER_SIDE = 40,
+	## A guest's dye, as the two numbers `WardenLook.pack` gives.
+	##
+	## **A guest's look reached nobody before this.** It rides the *host-
+	## authored* state row, and `_on_hero_state` returns unless this machine
+	## is a guest - so the host never applied one, `_look_of` then packed a
+	## `Hero.look` the host had never written, and every guest was drawn
+	## painted on every other machine. Only the host's own dye ever travelled.
+	##
+	## A choice rather than an action, exactly like `HERO_MOUNT` beside it, and
+	## attributed by the peer it arrived on rather than by a slot in the
+	## packet. 41, read off the whole table rather than its tail.
+	HERO_LOOK = 41,
 }
 
 ## Facts that are *state announcements* rather than events.

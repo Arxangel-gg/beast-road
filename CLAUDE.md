@@ -7637,6 +7637,68 @@ over 14 files. It is the right answer and it is a change that can stop the
 *game* loading rather than only a gate, so it wants its own pass with its own
 sweep rather than riding on this one.
 
+**The dye was built correct in isolation and broken in company, as of
+2026-09-22.** CLAUDE.md recorded one gap here - *"the co-op party portrait on
+the HUD still draws the painted Warden for a partner"* - and a survey found the
+prose wrong about where and the gap the smallest of three. There is **no party
+portrait on the HUD at all**; `CoopPartyPortrait` is only ever built by the
+pre-run lobby. `warden_look_check`, `coop_check` and `coop_heroes_check` were
+all green throughout.
+
+**The party tint destroyed the dye, and that is the one that mattered.**
+Measured on the real south idle frame, band weight against the painting: Red
+lost its cloak entirely and grew its sash **1299%**; Blue lost its sash; and
+**Yellow and Green lost both** - the dye did nothing whatsoever for half the
+seats. `Hero._apply_party_colour` lerps `sprite.modulate` 46% toward the seat
+colour, `COLOR` already carries modulate when `fragment()` opens, and the bands
+select by *hue*, so the mask moved with the seat. `warden_look(rgb, art)` reads
+its bands off `texture(TEXTURE, UV)` and applies the turn to `COLOR`: what a
+pixel **is** comes from the art, what is done to it comes from the state - the
+separation `blood_stain.gdshader` already insists on for the blood. Solo was
+never affected, because the tint only shows in company.
+
+**A guest's dye reached nobody.** It rides the *host-authored* state row and
+`_on_hero_state` returns unless this machine is a guest, so the host never wrote
+a mirrored hero's `look`; `_look_of` then packed a `Hero.look` that was
+`WardenLook.plain()` forever. The host drew every guest painted and relayed that
+plain row on, so with three players each guest saw the other painted too. Only
+the host's own dye ever travelled. `Request.HERO_LOOK` carries it, attributed by
+the peer the packet arrived on - never by a slot inside it - exactly as
+`HERO_MOUNT` beside it, and repeated on a slow clock because the host's mirror
+of a guest is built from a spawn the guest does not control the timing of.
+
+**And the lobby is before a run**, so no hero state row exists there at all. The
+dye travels in the guest's own hello beside the tier and comes back out on the
+roster, both of which already tolerate a short row - so a party spanning two
+builds degrades to the painted Warden rather than to an empty roster. The local
+card needed no wire and was painted too.
+
+**Nothing could have caught any of it, and the reasons are each a lesson
+already in this file.** Headless never compiles a shader, so
+`warden_look_check` greps the source - and greps for the *old* signature.
+`look_shot` is the photograph that would have shown it and it stood four
+Wardens with **no session**, so the party tint had never once been in a picture;
+it has a second row now, the same dye under all four seat tints.
+`coop_lobby_check` asserts the atlas region and the seat colour, and a dyed
+portrait and a painted one have identical regions.
+
+**Three faults in writing those pictures, each worth keeping.** `wear_look`
+takes a *packed row* and a dictionary unpacks to the painted Warden by design,
+so the first run photographed four undyed Wardens and read as the bug still
+being there. `_apply_party_colour` runs every frame and writes the tint back to
+white when alone, so a tint set beside a live hero is gone before the frame is
+drawn. And the lobby's `_update_party_view` returns unless
+`Coop.is_networked()`, so a party seated locally draws nothing - the cards are
+photographed on a plate, configured exactly as the lobby configures them.
+
+**And I made the fault class I had spent the day fixing, inside its own gate.**
+The first cut of the dye test wrote `partner.slot = slot`, which `Hero` does not
+declare - a runtime error that aborted the whole test, so it **passed with its
+subject removed**. That gate carries the same stamp guard `hold_check` learned
+this morning. The harness also seated only the guest, which took slot 1, and
+`_hero_for_slot` answers the *local* hero for `party.slot()` - so it dressed
+this machine's own Warden, which reads exactly like the wire not working.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

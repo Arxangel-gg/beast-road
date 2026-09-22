@@ -480,7 +480,7 @@ func _update_party_view() -> void:
 		# The colour name remains written out because a colour alone is no use to
 		# a player who cannot distinguish two of the swatches.
 		portrait.configure(seat.slot, seat.name, seat.colour(),
-			seat.colour_name(), seat.slot == Coop.party().slot())
+			seat.colour_name(), seat.slot == Coop.party().slot(), seat.look)
 		lineup.add_child(portrait)
 
 

@@ -58,6 +58,12 @@ func _ready() -> void:
 	await _test_the_field_can_see_both_heroes()
 	await _test_a_suspend_gives_every_hero_back()
 	await _test_going_down_costs_nothing_until_both_do()
+	await _test_a_guests_dye_reaches_the_party()
+	# A test that aborted must not read as a test that passed: a GDScript
+	# runtime error stops the function it is in and nothing else, which is how
+	# the first cut of the dye test above passed with its subject removed.
+	_check(_reached_dye,
+		"the dye test aborted partway - every check it had not made is unmade")
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -255,12 +261,85 @@ func _test_a_battlefield_built_mid_session_finds_its_partner() -> void:
 	await get_tree().process_frame
 
 
+## **A guest's dye reaches the party.**
+##
+## It rides the *host-authored* state row, and `_on_hero_state` returns unless
+## this machine is a guest - so the host never wrote a mirrored hero's `look`,
+## `_look_of` packed a `Hero.look` that was `WardenLook.plain()` forever, and
+## the host drew every guest painted. With three players the host then relayed
+## that plain row on, so each guest saw the other painted too. Only the host's
+## own dye ever travelled anywhere.
+##
+## Driven through the host's own `_on_request`, attributed by the peer the
+## packet arrived on, because that attribution *is* the fix: a slot carried
+## inside the packet would be a guest naming which body it dresses.
+func _test_a_guests_dye_reaches_the_party() -> void:
+	var heroes: Node = _field.get_node_or_null("CoopHeroes")
+	var partner: Hero = _field.partner_hero()
+	if heroes == null or partner == null:
+		_check(false, "the harness needs a partner to dye")
+		return
+	var party: CoopParty = Coop.party()
+	# **This machine first.** `seat` hands out the lowest free slot, and
+	# `_hero_for_slot` answers the *local* hero for `party.slot()` - so a
+	# harness that seated only the guest gave it slot 1 and dressed this
+	# machine's own Warden, which reads exactly like the wire not working.
+	var _mine: int = party.seat(1, "Host")
+	var peer: int = 4242
+	var slot: int = party.seat(peer, "Dyed")
+	_check(slot > 0 and slot != party.slot(),
+		("the harness seated the guest in slot %d against this machine's %d")
+			% [slot, party.slot()])
+	if slot <= 0 or slot == party.slot():
+		party.unseat(peer)
+		party.unseat(1)
+		return
+	# **The mirror this machine holds of that seat**, registered the way the
+	# host registers one. The first cut of this wrote `partner.slot = slot`,
+	# which `Hero` does not declare - a runtime error that aborted the whole
+	# test, so it passed with the fault planted. That is the very fault class
+	# this session has spent the day fixing, committed inside its own gate.
+	var bodies: Dictionary = heroes.get("_bodies") as Dictionary
+	bodies[slot] = partner
+	_check(heroes.call("body_for_slot", slot) == partner,
+		"the harness failed to seat the partner as that slot's body")
+	_check(WardenLook.is_plain(partner.look),
+		"a partner starts painted, which is what the wire has to change")
+	heroes.call("_on_request", CoopRelay.Request.HERO_LOOK,
+		[[0.3, -0.2]], peer)
+	_check(not WardenLook.is_plain(partner.look),
+		("a guest's dye never reached the host's mirror - it draws every "
+			+ "partner painted, and relays that on to the other guests"))
+	_check(is_equal_approx(float(partner.look.get("cloak", 0.0)), 0.3)
+		and is_equal_approx(float(partner.look.get("sash", 0.0)), -0.2),
+		"the dye arrived as %s rather than the two numbers sent" % str(partner.look))
+	# And the row the host packs for everybody else now carries it, which is
+	# what reaches a third player.
+	var packed: Array = heroes.call("_look_of", slot, partner) as Array
+	_check(packed.size() == 2 and is_equal_approx(float(packed[0]), 0.3),
+		("the host packs %s for that seat - a third player would still see it "
+			+ "painted") % str(packed))
+	# A packet from a peer in no seat dresses nobody.
+	partner.wear_look([0.3, -0.2])
+	heroes.call("_on_request", CoopRelay.Request.HERO_LOOK, [[0.9, 0.9]], 9999)
+	_check(is_equal_approx(float(partner.look.get("cloak", 0.0)), 0.3),
+		"a packet from an unseated peer dressed somebody's Warden")
+	party.unseat(peer)
+	party.unseat(1)
+	partner.wear_look([])
+	_reached_dye = true
+
+
 func _spawn_partner() -> Hero:
 	var heroes: Node = _field.get_node_or_null("CoopHeroes")
 	if heroes == null:
 		_check(false, "the battlefield must build its CoopHeroes system")
 		return null
 	return heroes.call("spawn_partner") as Hero
+
+
+## Whether the dye test reached its own last line. See the guard in `_ready`.
+var _reached_dye: bool = false
 
 
 func _check(condition: bool, why: String) -> void:
