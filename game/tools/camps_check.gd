@@ -50,6 +50,7 @@ func _ready() -> void:
 		for _frame: int in 4:
 			await get_tree().process_frame
 		_test_the_camps_stand(camps, grid)
+		_test_the_fire_warms_and_the_rain_puts_it_out(camps)
 		await _test_a_fork_opens(camps, grid, field)
 		await _test_the_war_camp(camps, grid, field)
 		# **Last, because it thins a camp to prove waking does not refill it**,
@@ -72,6 +73,86 @@ func _ready() -> void:
 		return
 	print("[camps] PASS - %d checks: the camps, the fork, the respawn and the war camp" % _checked)
 	get_tree().quit(0)
+
+
+## **A camp's fire warms the bodies round it, and rain puts it out** (owner,
+## 2026-09-22).
+##
+## Measured through `Enemy.aura_haste` and a real blow rather than by reading
+## the constants back: a warmth applied at one of the two doors would pass any
+## check that read `Balance`, which is the shape an Arcane node once shipped
+## in with its reach applied at four of five throws.
+func _test_the_fire_warms_and_the_rain_puts_it_out(camps: Camps) -> void:
+	var mobs: Array = camps.mobs_of(0, BattleGrid.CampTier.EASY)
+	var body: Enemy = null
+	for mob: Variant in mobs:
+		var enemy := mob as Enemy
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
+			body = enemy
+			break
+	if body == null:
+		_check(false, "a camp must have a body to warm")
+		return
+
+	RunState.weather_id = "clear"
+	camps.call("_on_weather_changed", "clear")
+	_check(body.camp_warmth, "a camp standing in clear weather is warmed by its fire")
+	var hasted: float = body.aura_haste()
+	_check(hasted >= Balance.CAMP_FIRE_WARMTH_SPEED - 0.001,
+		"and the warmth reaches the walk, read %.3f" % hasted)
+
+	# A blow lands softer while the fire burns. Measured twice on the same body
+	# with a pool it cannot die out of, because the quantity that moves is what
+	# one blow takes off.
+	body.health.max_hp = 100000.0
+	body.health.current_hp = 100000.0
+	var before: float = body.health.current_hp
+	body.take_damage(1000.0, body.global_position + Vector2.LEFT * 40.0, 0.0)
+	var warm_blow: float = before - body.health.current_hp
+
+	var wet: String = _a_rainy_weather()
+	if wet.is_empty():
+		_check(false, "some weather in the game must rain")
+		return
+	RunState.weather_id = wet
+	camps.call("_on_weather_changed", wet)
+	_check(not body.camp_warmth, "rain puts the fire out and the warmth with it")
+	_check(body.aura_haste() < Balance.CAMP_FIRE_WARMTH_SPEED - 0.001,
+		"and the walk is its own again")
+	body.health.current_hp = 100000.0
+	before = body.health.current_hp
+	body.take_damage(1000.0, body.global_position + Vector2.LEFT * 40.0, 0.0)
+	var cold_blow: float = before - body.health.current_hp
+	_check(cold_blow > warm_blow + 0.5,
+		"a blow lands harder on a cold camp: %.1f warm against %.1f cold"
+			% [warm_blow, cold_blow])
+
+	# A dust storm is dry. The fire stays lit, which is the half of the rule a
+	# check that only tested rain would miss.
+	var dry: String = _a_dusty_weather()
+	if not dry.is_empty():
+		RunState.weather_id = dry
+		camps.call("_on_weather_changed", dry)
+		_check(body.camp_warmth, "a dust storm is dry and leaves the fire burning")
+
+	RunState.weather_id = "clear"
+	camps.call("_on_weather_changed", "clear")
+
+
+func _a_rainy_weather() -> String:
+	for id: Variant in ContentDB.weathers.keys():
+		var weather := ContentDB.weathers[id] as WeatherData
+		if weather != null and int(weather.precipitation) == int(WeatherData.Precipitation.RAIN):
+			return String(id)
+	return ""
+
+
+func _a_dusty_weather() -> String:
+	for id: Variant in ContentDB.weathers.keys():
+		var weather := ContentDB.weathers[id] as WeatherData
+		if weather != null and int(weather.precipitation) == int(WeatherData.Precipitation.DUST):
+			return String(id)
+	return ""
 
 
 func _test_the_camps_stand(camps: Camps, grid: BattleGrid) -> void:

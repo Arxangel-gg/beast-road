@@ -9583,6 +9583,27 @@ const MENU_ELEMENT_EVERY: float = 21.0
 const MENU_ELEMENT_SECONDS: float = 4.2
 ## How fast the storm's chain hops while one is crossing.
 const MENU_ELEMENT_STORM_EVERY: float = 0.34
+## **What a camp's fire is worth to the bodies around it** (owner,
+## 2026-09-22: a camp's firepit should "slightly empower the camp mobs while
+## lit"), and what puts it out.
+##
+## **Both numbers move something the fight already has**, which is the bound
+## every addition here is held to: the haste is the same figure a champion's
+## `aura_speed` feeds and the toughness the same one `aura_resistance` feeds,
+## taken as the *better* of the two rather than summed - two multipliers that
+## stack approach a body nothing can hurt, which is the rule `_affix_best`
+## already follows a layer down.
+##
+## **Small on purpose.** A camp is a detour worth taking; it is not a second
+## boss. A tenth of a step and a twelfth off a blow is enough that a player
+## notices the fire and has a reason to fight the camp in the rain, which is
+## the whole readable play this buys.
+const CAMP_FIRE_WARMTH_SPEED: float = 0.10
+const CAMP_FIRE_WARMTH_RESIST: float = 0.08
+## Rain and snow douse a firepit. A dust storm does not - it is dry, and a
+## camp in one should still be lit. [TUNE]
+const CAMP_FIRE_DOUSED_BY: Array[int] = [1, 2]
+
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0

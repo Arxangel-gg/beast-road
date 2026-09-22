@@ -1132,9 +1132,21 @@ func _ally_aura(field_name: StringName) -> float:
 	return best
 
 
-## How much faster this body moves for the company it keeps. Read by the walk.
+## **Whether this body is standing by a lit camp fire.** Set by `Camps` when
+## a camp stands up and whenever its fire goes out or comes back, and by
+## nothing else: a body that asks the weather itself would be a second opinion
+## about a fact the camp already owns.
+##
+## Read in exactly the two places an ally's aura is read, and taken as the
+## *better* of the two rather than added - see `Balance.CAMP_FIRE_WARMTH_SPEED`.
+var camp_warmth: bool = false
+
+
+## How much faster this body moves for the company it keeps, or for the fire
+## it is standing by. Read by the walk.
 func aura_haste() -> float:
-	return clampf(_ally_aura(&"aura_speed"), 0.0, 0.6)
+	var warmth: float = Balance.CAMP_FIRE_WARMTH_SPEED if camp_warmth else 0.0
+	return clampf(maxf(_ally_aura(&"aura_speed"), warmth), 0.0, 0.6)
 
 
 func _allies_in(within: float) -> Array[Enemy]:
@@ -2124,7 +2136,9 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	# before the others, which is the readable play morale already makes of a
 	# champion - and the best rather than the sum, because two of them
 	# multiplying would approach immunity.
-	incoming *= 1.0 - clampf(_ally_aura(&"aura_resistance"), 0.0, 0.35)
+	var shelter: float = Balance.CAMP_FIRE_WARMTH_RESIST if camp_warmth else 0.0
+	incoming *= 1.0 - clampf(maxf(_ally_aura(&"aura_resistance"), shelter),
+		0.0, 0.35)
 	if not health.take_damage(incoming, from):
 		return false
 	# A Prism Warden banks a capped share of what it is given.

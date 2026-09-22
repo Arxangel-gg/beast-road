@@ -49,6 +49,7 @@ var _prop_art: Dictionary = {}
 
 func _ready() -> void:
 	EventBus.rift_ended.connect(_on_rift_ended)
+	EventBus.weather_changed.connect(_on_weather_changed)
 	EventBus.coop_camp_state.connect(_on_coop_camp_state)
 	EventBus.coop_fork_opened.connect(_on_coop_fork_opened)
 	for kind: String in PROP_KINDS:
@@ -339,7 +340,8 @@ func _sleep_camps() -> void:
 			# those as champions recorded a camp of nothing - which woke empty
 			# and was razed on the next frame, paying the player for a camp
 			# they never fought.
-			if tier == BattleGrid.CampTier.BARON and enemy.rank != Enemy.Rank.COMMON 					and not champion:
+			if tier == BattleGrid.CampTier.BARON \
+					and enemy.rank != Enemy.Rank.COMMON and not champion:
 				champion = true
 			else:
 				standing += 1
@@ -365,7 +367,12 @@ func _wake_camps() -> void:
 
 ## A camp's fire, out or burning. The glow goes with it, because a cold fire
 ## under a warm pool of light is worse than either.
+##
+## **And the bodies around it are told.** A fire that only looked warm would
+## be scenery; what makes it worth noticing is that the camp fights a little
+## better while it burns - see `Balance.CAMP_FIRE_WARMTH_SPEED`.
 func _cool_fires(site: Dictionary, cold: bool) -> void:
+	site["cold"] = cold
 	for prop: Variant in (site.get("props", []) as Array):
 		var fire := prop as CampFire
 		if fire == null or not is_instance_valid(fire):
@@ -375,6 +382,52 @@ func _cool_fires(site: Dictionary, cold: bool) -> void:
 		var glow: CanvasItem = fire.get_node_or_null("Glow") as CanvasItem
 		if glow != null:
 			glow.visible = not cold
+	_warm_mobs(site)
+
+
+## Hands every standing body in this camp the fire's warmth, or takes it away.
+##
+## A camp with no firepit at all warms nobody, which is read off the props
+## rather than off the tier: a camp is warmed by a fire that exists, and the
+## day a tier is authored without one it is cold without anybody remembering
+## this function.
+func _warm_mobs(site: Dictionary) -> void:
+	var warm: bool = not bool(site.get("cold", false)) and _has_fire(site)
+	for mob: Variant in (site.get("mobs", []) as Array):
+		var enemy := mob as Enemy
+		if enemy != null and is_instance_valid(enemy):
+			enemy.camp_warmth = warm
+
+
+func _has_fire(site: Dictionary) -> bool:
+	for prop: Variant in (site.get("props", []) as Array):
+		if prop is CampFire and is_instance_valid(prop as Node):
+			return true
+	return false
+
+
+## **Rain and snow put a camp's fire out** (owner, 2026-09-22: the firepits
+## should be *"extinguishable by the weather"*).
+##
+## Read off `RunState.weather_id`, which is the run's own fact and is already
+## relayed, rather than off the sky node - a guest reading its own sky would
+## be a second opinion about whether a camp is lit, and the warmth is a number
+## in a fight. A dust storm is dry and leaves the fire burning.
+func _weather_douses() -> bool:
+	var weather: WeatherData = ContentDB.weather(RunState.weather_id)
+	if weather == null:
+		return false
+	return Balance.CAMP_FIRE_DOUSED_BY.has(int(weather.precipitation))
+
+
+## The weather changed, so every living camp's fire is asked again. Sleeping
+## and razed camps are already cold and stay that way.
+func _on_weather_changed(_weather_id: String) -> void:
+	var douses: bool = _weather_douses()
+	for site: Dictionary in _sites:
+		if int(site["state"]) != State.ALIVE or site.has("rested"):
+			continue
+		_cool_fires(site, douses)
 
 
 # --- Standing a camp up --------------------------------------------------------
@@ -411,6 +464,11 @@ func _stand_up(site: Dictionary, bring_back: int = -1,
 		if body != null:
 			mobs.append(body)
 	site["mobs"] = mobs
+	# **Lit or doused, decided here rather than left to the next weather
+	# change.** A camp that stood up in the rain would otherwise burn until the
+	# sky happened to change, which is the same shape as a constant nothing
+	# reads: correct on most roads and wrong on the one that matters.
+	_cool_fires(site, _weather_douses())
 	_announce(site)
 	if bool(site["razed_once"]):
 		EventBus.camp_respawned.emit(lane, tier)
