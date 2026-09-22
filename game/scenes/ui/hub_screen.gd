@@ -33,6 +33,13 @@ const PANEL_SCREEN_SHARE: float = 0.94
 const BODY_SCREEN_SHARE: float = 0.52
 const BODY_SCREEN_SHARE_PORTRAIT: float = 0.66
 const PORTRAIT_SIZE: float = 128.0
+## Drawn above anything the yard sorts. A rider's overlay is z 2.
+const CHROME_Z: int = 100
+## The card's inset from its carved frame, and the width its left column keeps
+## so a profession row with its train button never pushes the doors' grid.
+const CARD_INSET: int = 18
+const CARD_INSET_TOP: int = 12
+const CARD_COLUMN_WIDTH: float = 340.0
 ## The Warden's own idle sheet - the current art, not the old reference
 ## (owner report, 2026-09-12). The south row, cycled.
 const PORTRAIT_SHEET: String = "res://art/hero/hero_idle.png"
@@ -73,6 +80,10 @@ var _zoom_slider: HSlider = null
 var _session: HoldSession = null
 ## The card and every door as a list, over the yard. Hidden until asked for.
 var _card_root: Control = null
+## The strip, the note, the prompt, the zoom and the road panel: everything
+## that is the room's own interface rather than the room. Hidden while a door
+## is open over the yard.
+var _frame: Control = null
 var _prompt: Label = null
 var _note: Label = null
 var _doors_button: Button = null
@@ -93,7 +104,13 @@ func _ready() -> void:
 	# screen builds its own children further down this same function -
 	# enrolled here and now it would dress an empty `Control` and nothing else.
 	UiJuice.enrol.call_deferred(get_tree(), self)
-	layer = 90
+	# **Under every door, on purpose** (owner, 2026-09-21: the Chronicle, the
+	# Market, the Ledger, the Stash, the Forge, the Pen, the Stable, the Codex and
+	# the board all opened over the front door's painting rather than over the
+	# Hold). The doors sit on layers 64 to 92, and this room sat on 90 - so it
+	# had to hide itself when a door opened, and what a player saw behind the
+	# Chronicle was the menu. At 50 the room is the backdrop to all of them.
+	layer = 50
 	visible = false
 	_build()
 	get_viewport().size_changed.connect(_refit)
@@ -128,8 +145,13 @@ func _build() -> void:
 func _build_frame() -> void:
 	var frame := Control.new()
 	frame.name = "Frame"
+	_frame = frame
 	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# **Above the yard's animals.** A rider's overlay sits at z 2 and the
+	# paddock is y-sorted, so the chrome and the card - z 0, drawn later - had
+	# horses walking over them (photographed 2026-09-21).
+	frame.z_index = CHROME_Z
 	add_child(frame)
 
 	# **A column rather than a row**, because five buttons and a title do not
@@ -218,6 +240,7 @@ func _build_panel() -> void:
 	_card_root.name = "Card"
 	_card_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_card_root.visible = false
+	_card_root.z_index = CHROME_Z
 	add_child(_card_root)
 
 	var dim := ColorRect.new()
@@ -237,9 +260,20 @@ func _build_panel() -> void:
 	_panel.set_meta(UiMetrics.SELF_SIZED, true)
 	centre.add_child(_panel)
 
+	# **A margin inside the frame.** The panel's carved frame has an inner lip,
+	# and the card's text sat flush against the panel's edge under it - the
+	# owner's screenshot read "Narden" and "'lay code" where the first glyph was
+	# under the bevel. The frame is art; the margin is what keeps words off it.
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_left", CARD_INSET)
+	inset.add_theme_constant_override("margin_right", CARD_INSET)
+	inset.add_theme_constant_override("margin_top", CARD_INSET_TOP)
+	inset.add_theme_constant_override("margin_bottom", CARD_INSET_TOP)
+	_panel.add_child(inset)
+
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
-	_panel.add_child(column)
+	inset.add_child(column)
 
 	var title := Label.new()
 	title.text = "THE WARDEN"
@@ -309,12 +343,22 @@ func adopt(button: Button) -> void:
 		_first_button = button
 
 
-## Hides the room for a door, remembering to come back.
+## Steps aside for a door, remembering to come back.
+##
+## **The room stays on screen** (owner, 2026-09-21). It used to hide itself,
+## which left every door opening over the front door's painting; now the yard
+## stays as the backdrop and only the chrome - the strip, the card, the
+## prompts - goes, so the Chronicle opens over the Hold. The Warden stops
+## being driven and the room stops reading input, because a click through a
+## door's dim must not walk anybody about underneath it.
 func suspend() -> void:
-	if not visible:
+	if not visible or _suspended:
 		return
 	_suspended = true
-	visible = false
+	if _frame != null:
+		_frame.visible = false
+	if _card_root != null:
+		_card_root.visible = false
 	if _yard != null:
 		_yard.set_driving(false)
 
@@ -381,6 +425,8 @@ func open() -> void:
 	_suspended = false
 	_build_card()
 	visible = true
+	if _frame != null:
+		_frame.visible = true
 	if _yard != null:
 		_yard.set_driving(true)
 	if _session != null:
@@ -1000,7 +1046,7 @@ func _refit() -> void:
 	_scroll.custom_minimum_size = Vector2(0.0, maxf(240.0, screen.y * share))
 	_body.vertical = portrait
 	_grid.columns = 1 if portrait else 2
-	_card.custom_minimum_size = Vector2(0.0, 0.0) if portrait else Vector2(300.0, 0.0)
+	_card.custom_minimum_size = Vector2(0.0, 0.0) if portrait else Vector2(CARD_COLUMN_WIDTH, 0.0)
 	_panel.reset_size()
 
 
@@ -1014,7 +1060,7 @@ func _yard_point(at: Vector2) -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or _suspended:
 		return
 	if _wheel_zoom(event):
 		get_viewport().set_input_as_handled()
