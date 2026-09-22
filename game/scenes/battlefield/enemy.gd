@@ -1938,6 +1938,12 @@ func boss_phase() -> int:
 	return _boss_phase
 
 
+## How much sooner a boss in this phase slams and throws. One in phase zero;
+## see `Balance.BOSS_PHASE_TEMPO`.
+func _phase_tempo() -> float:
+	return 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * float(maxi(_boss_phase, 0)))
+
+
 func apply_boss_phase(phase: int) -> void:
 	_boss_phase = maxi(phase, _boss_phase)
 	if _boss_phase <= 0:
@@ -3412,7 +3418,7 @@ func _tick_boss_abilities(delta: float) -> void:
 ## lie about where the blow lands.
 func _begin_slam() -> void:
 	_slam_tell = Balance.BOSS_SLAM_TELL
-	_slam_left = data.boss_slam_interval
+	_slam_left = data.boss_slam_interval * _phase_tempo()
 	Vfx.ring(global_position, data.boss_slam_radius,
 		Balance.BOSS_SLAM_TELL_COLOUR, Balance.BOSS_SLAM_TELL, 5.0)
 	Sfx.play("sfx_boss_stinger", -6.0)
@@ -3467,7 +3473,7 @@ func _land_slam() -> void:
 ## bosses throw things - and so a shot the player dodges is dodged the same
 ## way every other shot in the game is.
 func _throw_volley(quarry: Node2D) -> void:
-	_volley_left = data.boss_volley_interval
+	_volley_left = data.boss_volley_interval * _phase_tempo()
 	var damage: float = data.contact_damage * data.boss_volley_damage * _damage_scale \
 		* _enemy_damage_scale()
 	if _boss_phase > 0:

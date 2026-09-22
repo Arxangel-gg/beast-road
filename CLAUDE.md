@@ -6229,6 +6229,19 @@ hero's `look` when it changes. And a *drawn* option (a hood down, a different
 weapon) is still every sheet again; if one is ever bought, pilot one direction
 first, as the mount idles were.
 
+**A boss quickens as it breaks, as of 2026-09-21.** The roadmap (§7.4) called
+the bosses "sponges with two moves" and proposed a behaviour change at half
+health. Half of that was stale: every one of the twelve already has phases -
+thresholds, names, reinforcements, a speed bonus and a damage bonus - and the
+codex describes them. What was true is that the slam and the volley kept the
+same clock through every phase, so a boss at a third of its health fought
+exactly as it did at full with less health left. `Balance.BOSS_PHASE_TEMPO`
+shortens both waits by a share per phase entered. **A rate the fight already
+has**, which is the bound every boss ability is held to - the slam is the same
+slam and the volley the same volley, sooner - and `boss_reach_check` measures
+it on a real body through the two doors that set the clocks, because a tempo
+applied at one of them would pass any check that read the constant.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

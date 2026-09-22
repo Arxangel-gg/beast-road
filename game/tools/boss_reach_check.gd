@@ -234,6 +234,7 @@ func _test_a_slam_actually_throws_the_player() -> void:
 			_check(false, "the roster no longer has %s to measure" % ident)
 			continue
 		travelled[ident] = await _throw_the_hero(field, hero, boss)
+	await _test_a_boss_quickens_as_it_breaks(field, hero)
 	run.queue_free()
 	await get_tree().process_frame
 
@@ -255,6 +256,47 @@ func _test_a_slam_actually_throws_the_player() -> void:
 	_check(heavy > light * 1.6,
 		"the heaviest slam threw %.1f and the lightest %.1f - too close to be"
 			% [heavy, light] + " reading `boss_slam_knockback` at all")
+
+
+## **A boss in a later phase slams and throws sooner** (2026-09-21), and by
+## the authored share rather than by whatever a phase happens to do. Measured
+## on a real body through the real doors - `_begin_slam` and `_throw_volley`
+## set the clocks - because a tempo applied at one of the two would pass any
+## check that read the constant.
+func _test_a_boss_quickens_as_it_breaks(field: Battlefield, hero: Hero) -> void:
+	var boss: EnemyData = ContentDB.enemy("gatekeeper")
+	if boss == null:
+		_check(false, "the roster no longer has the gatekeeper to measure")
+		return
+	var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) \
+		.instantiate() as Enemy
+	enemy.setup(boss, RunState.act, field, 1.0, 1.0, 1.0)
+	field.add_child(enemy)
+	enemy.global_position = hero.global_position + Vector2.LEFT * 300.0
+	enemy.call("_begin_slam")
+	var rested: float = float(enemy.get("_slam_left"))
+	enemy.call("_throw_volley", hero)
+	var rested_volley: float = float(enemy.get("_volley_left"))
+	_check(is_equal_approx(rested, boss.boss_slam_interval),
+		"in phase zero the slam waits its authored %.1f s, waited %.1f"
+			% [boss.boss_slam_interval, rested])
+	enemy.apply_boss_phase(2)
+	enemy.call("_begin_slam")
+	var pressed: float = float(enemy.get("_slam_left"))
+	enemy.call("_throw_volley", hero)
+	var pressed_volley: float = float(enemy.get("_volley_left"))
+	var expected: float = 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * 2.0)
+	_check(is_equal_approx(pressed / maxf(rested, 0.001), expected),
+		"two phases in, the slam should wait %.2f of its clock, waits %.2f"
+			% [expected, pressed / maxf(rested, 0.001)])
+	_check(is_equal_approx(pressed_volley / maxf(rested_volley, 0.001), expected),
+		"two phases in, the volley should wait %.2f of its clock, waits %.2f"
+			% [expected, pressed_volley / maxf(rested_volley, 0.001)])
+	_check(pressed < rested and pressed > rested * 0.5,
+		"a pressed boss should be sooner and never twice as fast, %.1f against %.1f"
+			% [pressed, rested])
+	enemy.queue_free()
+	await get_tree().process_frame
 
 
 ## One slam, landed on a hero standing still, and how far it moved them.

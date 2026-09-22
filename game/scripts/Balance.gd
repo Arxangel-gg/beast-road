@@ -10188,6 +10188,18 @@ const BOSS_VOLLEY_SPEED: float = 430.0
 ## How much closer than its slam radius a boss has to be before it bothers.
 const BOSS_SLAM_COMMIT: float = 0.85
 
+## **A boss quickens as it breaks** (2026-09-21, roadmap §7.4: "a behaviour
+## change at half health ... stays inside the existing bound if it only moves
+## rates and patterns the fight already has"). Every boss already has phases -
+## thresholds, names, reinforcements, a speed and a damage bonus - and its slam
+## and its volley kept the same clock through all of them, so the fight at a
+## third of its health was the fight at full with less health left. Each phase
+## a boss enters shortens the wait between its slams and between its volleys
+## by this share. The slam is the same slam and the volley the same volley,
+## sooner: a rate the fight already has, which is the bound every boss ability
+## is held to. `boss_reach_check` measures it on a real body.
+const BOSS_PHASE_TEMPO: float = 0.22
+
 ## What a slam does besides damage: it throws you.
 ##
 ## `EnemyData.boss_slam_knockback` was authored with a 260 default on

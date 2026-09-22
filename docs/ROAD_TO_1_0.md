@@ -222,9 +222,9 @@ None of this exists and all of it is required to *sell* the game:
 
 ### 7.4 Worth considering, lower priority
 
-- **Boss phases.** Eleven bosses each have a slam and a volley. A behaviour
-  change at half health is a large perceived-quality win and stays inside the
-  existing bound if it only moves rates and patterns the fight already has.
+- ~~**Boss phases.**~~ Every boss already had phases with reinforcements and
+  bonuses (the line above was stale); **as of 2026-09-21 the slam and volley
+  clocks shorten per phase** (`BOSS_PHASE_TEMPO`, measured by `boss_reach_check`).
 - **Modding.** Everything is `.tres`; the story is nearly free and is a
   marketing angle. Out of scope for 1.0, worth not foreclosing.
 - **New Game+ clarity.** Ascension, Nightmare and Hell exist; whether they read
