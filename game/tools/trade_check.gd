@@ -216,7 +216,9 @@ func _test_the_wire_round_trips() -> void:
 func _test_deliverability_refuses_every_way_it_can_fail() -> void:
 	var kind: String = _any_gear_kind()
 	var held: Array = [Stash.make(kind, 1), Stash.make(kind, 2), Stash.make(kind, 3)]
-	var equipped: Dictionary = {0: 2}
+	# Slot -> the worn piece's **uid**, which is how `MetaState.equipped` has
+	# been keyed since 2026-09-22; a position here would name nothing.
+	var equipped: Dictionary = {0: int((held[2] as Dictionary)["uid"])}
 	var cap: int = 10
 
 	# The ordinary case first, so a blanket refusal cannot pass this test.
@@ -520,7 +522,7 @@ func _test_every_row_carries_its_own_action() -> void:
 		MetaState.stash.append(Stash.make(id, 1))
 	MetaState.equipped = {}
 	var worn: GearData = ContentDB.gear(kinds[0])
-	MetaState.equipped[worn.slot] = 0
+	MetaState.equip(worn.slot, 0)
 
 	var trade: TradeSession = _open()
 	# Straight onto the session, behind the screen's back.

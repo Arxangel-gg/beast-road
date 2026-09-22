@@ -187,7 +187,7 @@ func _test_wearing_one() -> void:
 		if kind == null:
 			continue
 		MetaState.receive_gear(Stash.make(member, 0, 1))
-		MetaState.equipped[kind.slot] = MetaState.stash.size() - 1
+		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
 		worn += 1
 		Modifiers.rebuild()
 		_check(Modifiers.set_pieces_worn(target.id) == worn,

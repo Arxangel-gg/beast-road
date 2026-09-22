@@ -109,10 +109,29 @@ func discipline_name() -> String:
 
 
 func is_slot_unlocked(act: int) -> bool:
-	match role:
-		Role.POWER:
-			return act >= 2
-		Role.ULTIMATE:
-			return act >= 3
-		_:
-			return true
+	return slot_is_unlocked(slot_index(), act)
+
+
+## **The act a slot opens in**, and the one rule for it.
+##
+## Attack and Defense are open from the first road; Power opens in Act II and
+## Ultimate in Act III - which is to say **after the Act I boss and after the
+## Act II boss**, since an act begins when its predecessor's boss falls.
+##
+## The Mansion carried its own copy of this as `slot < 2 or RunState.act >= slot`,
+## which is the same rule written twice, and its label read *"unlocks after the
+## Act 2 boss"* for a slot that opens after the Act *one* boss. The owner read
+## the label and reported the slot as locked an act too long (2026-09-22). A
+## slot names the boss that opens it through `slot_opens_after_boss` now, and
+## there is one rule rather than two.
+static func slot_is_unlocked(slot: int, act: int) -> bool:
+	return act >= slot_opens_at_act(slot)
+
+
+static func slot_opens_at_act(slot: int) -> int:
+	return maxi(slot, 1)
+
+
+## The act whose **boss** has to fall before this slot opens.
+static func slot_opens_after_boss(slot: int) -> int:
+	return maxi(slot_opens_at_act(slot) - 1, 0)

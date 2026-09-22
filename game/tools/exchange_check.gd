@@ -191,7 +191,7 @@ func _test_listing_moves_a_piece_rather_than_copying_it() -> void:
 		"the ledger is not holding the piece that left the stash")
 
 	# Worn gear cannot be listed: it would be worn and gone at once.
-	MetaState.equipped = {int((ContentDB.gear(kind) as GearData).slot): 0}
+	MetaState.equip(int((ContentDB.gear(kind) as GearData).slot), 0)
 	_checked += 1
 	_check(not Exchange.post_sale(0, 100).is_empty(),
 		"worn gear was listed, so the hero is wearing something a caravan has")

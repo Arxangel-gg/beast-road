@@ -363,7 +363,7 @@ func _draw_stash(trade: TradeSession) -> void:
 		rows += 1
 		var uid: int = Stash.uid(piece)
 		var on_table: bool = table.has(uid)
-		var worn: bool = int(MetaState.equipped.get(kind.slot, -1)) == index
+		var worn: bool = MetaState.is_equipped_index(index)
 
 		# **A row with a button on it, not a row inside a button.**
 		#

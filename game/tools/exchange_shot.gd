@@ -38,7 +38,7 @@ func _ready() -> void:
 	MetaState.equipped = {}
 	var worn: GearData = ContentDB.gear(kinds[1])
 	if worn != null:
-		MetaState.equipped[worn.slot] = 1
+		MetaState.equip(worn.slot, 1)
 	MetaState.marks = 4200
 	MetaState.exchange_orders = []
 	Exchange.call("_adopt_save")

@@ -6458,6 +6458,75 @@ one this found:
     comm -13 guard release   # in release only
     comm -23 all-gates release   # on neither - the network gates by design, and this
 
+**Equipped gear is named rather than numbered, as of 2026-09-22.** Owner:
+*"breaking or selling or picking up new items can cause equipped gear to get
+unequipped"*. `MetaState.equipped` mapped a slot to a stash **index**, and an
+index moves whenever anything leaves the stash or it is re-ordered - so every
+one of those doors had to re-derive the whole map by hand, and a door that
+forgot re-equipped a different sword in silence. `drop_gear`'s own comment had
+said so for months: *"it silently re-equips a different sword"*.
+
+**It keys by the piece's own `uid` now**, which is the one thing a piece keeps
+across a removal, a sort and a trade, and is why the uid exists. The shifting
+problem does not exist to be got wrong: `drop_gear` and `sort_stash` are each
+four lines shorter, and `equipped_index`, `is_equipped_index` and `equip` are
+the three doors every screen asks through - none of them knows how the map is
+keyed. A save written before this holds positions; a stored value that is a
+real uid is read as one and anything else is converted once, so `SAVE_VERSION`
+did not move.
+
+**One gate's invariant was amended and it is recorded.** `release_repair_check`
+asked that a *scrambled* map still recover the right piece for a slot, because
+the old `equipped_piece` searched the other worn entries for something of the
+right kind. Keyed by uid it refuses instead and the slot reads empty, which
+answers the same question - can a scrambled map dress the Warden in another
+slot's gear - more strongly than recovery did. Six harnesses that wrote
+`equipped[slot] = index` were amended, which is a harness change and not an
+invariant one.
+
+**And the lowest rarity is Rough.** A rarity called *Worn* beside gear that is
+*being worn*, under a button that breaks "all Worn" and breaks neither, is one
+word doing two opposite jobs - the owner's words: *"it does not add up"*. The
+equipped state is called **Equipped** in every screen, the stash row says so,
+and `trade_check` has refused the word "Worn" on an equipped row since the
+trade window was built.
+
+**The ability slots say which boss opens them, as of the same date.** Owner:
+*"Power ability for the 3rd slot is still locked until after the Act 2 Boss but
+it should become available after the Act 1 Boss"*. **The gate was already
+right** - Power opens in Act II, which is after the Act I boss - and the label
+was not: the Mansion carried its own copy of the rule (`slot < 2 or act >=
+slot`) and printed *"unlocks after the Act 2 boss"* for a slot that opens after
+the Act one boss. The owner read the label. `DisciplineNodeData.slot_is_unlocked`
+is the one rule now and `slot_opens_after_boss` is what the copy names, in
+roman numerals like every other act on screen. **Recorded because the fix is a
+sentence rather than a number**, and a session that had trusted the report over
+the code would have moved a gate that was correct.
+
+**A breed throws its own shot at the wall, as of the same date.** Owner: *"they
+do not use their unique projectiles but seem to all attack the base using the
+same projectile"*. True, and one line: `_loose_a_shot` fell back to `BOLT`
+*and* to no painting when the target was not a person, so every breed in the
+game threw the roster's plain unpainted rune at the gate. The **kind** still
+falls back - an area blow resolves on heroes and their spirits alone, so a
+mortar aimed at the gate would hit nothing and a siege breed would stop being
+able to besiege - and the **look** no longer does.
+
+**The winded breath is not the hurt cry, as of the same date.** Spending a pool
+is not taking a blow, and `_give_out` played `sfx_hero_hurt`; a game that says
+the same thing for both has taught the player to ignore the one that matters.
+
+**The hundredth level is a season, as of the same date.** Owner: *"the
+perpetual player level should not accumulate xp so quickly ... a longer process
+similar to the Diablo series but tuned for our game"*. They reached the cap in
+about a hundred runs. The ladder was 480,000 XP and is **2.40 million**: the
+exponent went to 2.0 and the base down to 7.3, which is what keeps the opening
+intact - leaving level 5 costs 183 against 167 and level 10 costs 730 against
+447, while level 70 is 35,770 against 7,087. The note this replaces argued 2.0
+away with *"the last ten levels cost more than the first ninety"*; measured,
+they are 89,385 against 238,965, so the objection was arithmetic and the
+arithmetic disagreed with it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -468,11 +468,10 @@ func _publish() -> void:
 	changed.emit()
 
 
+## Asked of `MetaState` rather than read off its map: `equipped` keys by the
+## piece's own uid since 2026-09-22 and nothing outside it should know that.
 func _is_equipped(index: int) -> bool:
-	for slot: Variant in MetaState.equipped:
-		if int(MetaState.equipped[slot]) == index:
-			return true
-	return false
+	return MetaState.is_equipped_index(index)
 
 
 ## Whether a piece described by the other machine could exist at all.

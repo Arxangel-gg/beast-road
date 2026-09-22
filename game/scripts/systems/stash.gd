@@ -32,7 +32,11 @@ extends RefCounted
 ## beast with, and what the beast itself has answered to is the last thing on
 ## the ladder.
 const RARITY_NAMES: Array[String] = [
-	"Worn", "Sound", "Fine", "Runed", "Oathbound", "Chainbroken", "Beastcalled",
+	# **"Rough" rather than "Worn"** (owner, 2026-09-22): a *rarity* called Worn
+	# beside gear that is *being worn*, and a "break all Worn" button that
+	# breaks neither, is one word doing two opposite jobs. The equipped state
+	# is called Equipped everywhere now and this is the battered rung.
+	"Rough", "Sound", "Fine", "Runed", "Oathbound", "Chainbroken", "Beastcalled",
 ]
 
 ## Multiplier on a kind's base points, per rarity.

@@ -244,7 +244,7 @@ static func deliverable(stash: Array, equipped: Dictionary, given: Array,
 			return "A piece on the table is no longer in the stash."
 		if not Stash.same_gear(stash[index] as Dictionary, piece):
 			return "A piece on the table has changed since it was offered."
-		if _worn_at(equipped, index):
+		if _worn_uid(equipped, uid):
 			return "A piece on the table is being worn."
 	var after: int = stash.size() - given.size() + incoming
 	if after > capacity:
@@ -252,9 +252,12 @@ static func deliverable(stash: Array, equipped: Dictionary, given: Array,
 	return ""
 
 
-static func _worn_at(equipped: Dictionary, index: int) -> bool:
+## `equipped` maps a slot to the worn piece's **uid** (2026-09-22), so a
+## piece on the table is checked by its own name rather than by where it
+## happens to sit.
+static func _worn_uid(equipped: Dictionary, uid: int) -> bool:
 	for slot: Variant in equipped:
-		if int(equipped[slot]) == index:
+		if int(equipped[slot]) == uid:
 			return true
 	return false
 

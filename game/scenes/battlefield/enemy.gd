@@ -3607,11 +3607,21 @@ func _loose_a_shot(damage: float) -> void:
 	# it, whatever its breed. An area blow resolves on heroes and spirits only
 	# (see `EnemyGroundStrike`), so a mortar aimed at the gate would hit nothing
 	# at all - a siege breed would quietly stop being able to besiege.
+	# **A shot is chosen for its look whatever it is aimed at, and only its
+	# *kind* falls back.** An area blow resolves on heroes and their spirits
+	# alone (see `EnemyGroundStrike`), so a mortar aimed at the gate would hit
+	# nothing and a siege breed would quietly stop being able to besiege -
+	# that fallback is right and stays. What was wrong is that the *painting*
+	# fell back with it: every breed in the game threw the roster's plain
+	# unpainted rune at the wall, which is the owner's report of 2026-09-22
+	# that "they all attack the base using the same projectile".
 	var at_a_person: bool = _target is Hero or _target is Companion
-	var chosen: EnemyShotData = _choose_a_shot() if at_a_person else null
-	var shot: int = data.shot if at_a_person else EnemyData.Shot.BOLT
+	var chosen: EnemyShotData = _choose_a_shot()
+	var shot: int = data.shot
 	if chosen != null:
 		shot = int(chosen.kind)
+	if not at_a_person:
+		shot = EnemyData.Shot.BOLT
 	_shot_paint = chosen
 	# Said out loud with the shot's name, so a guest can draw the blow it is
 	# not simulating in the breed's own head and colours.

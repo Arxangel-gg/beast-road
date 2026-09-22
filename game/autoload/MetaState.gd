@@ -536,6 +536,22 @@ var friends: Array = []
 var stash: Array = []
 
 ## Equipped pieces, keyed by GearData.Slot. Values are indices into `stash`.
+## Which piece is worn in each slot: **slot -> the piece's own `uid`**.
+##
+## **It was a stash *index* until 2026-09-22**, and the owner reported the
+## consequence: *"breaking or selling or picking up new items can cause
+## equipped gear to get unequipped"*. An index moves whenever anything leaves
+## the stash or the stash is re-ordered, so every one of those doors had to
+## re-derive the whole map - `drop_gear` shifted them by hand, `sort_stash`
+## remembered uids and found them again, the break-all sweep collected indices
+## before it started removing - and a door that forgot silently re-equipped a
+## different sword. `drop_gear`'s own comment said so in as many words: *"it
+## silently re-equips a different sword"*.
+##
+## A uid is the one thing a piece keeps across a removal, a sort and a trade,
+## which is why it exists. With this keyed by uid the shifting problem does not
+## exist to be got wrong: nothing has to be re-derived, and the two doors that
+## used to do it are four lines shorter.
 var equipped: Dictionary = {}
 
 ## The account's currency, and what salvage yields.
@@ -1165,7 +1181,7 @@ func _seed_starting_gear() -> void:
 		# Equipped, not merely owned: the decision was that the first fight shows
 		# a weapon, and one sitting in the stash shows nothing.
 		if not equipped.has(GearData.Slot.WEAPON):
-			equipped[GearData.Slot.WEAPON] = stash.size() - 1
+			equipped[GearData.Slot.WEAPON] = Stash.uid(stash[stash.size() - 1])
 	settings[STARTING_GEAR_KEY] = true
 
 
@@ -1355,11 +1371,18 @@ func _read_stash(data: Dictionary) -> void:
 		if stash.size() >= Balance.STASH_CAPACITY:
 			break
 
+	# **Read as names, and a save written before 2026-09-22 holds positions.**
+	# A stored value that is a real uid in this stash is one; anything else is
+	# read as the index it was and converted once. Additive, so `SAVE_VERSION`
+	# did not move and there is no migration to get wrong.
 	equipped = {}
 	for key: Variant in (data.get("equipped", {}) as Dictionary):
-		var index: int = int((data["equipped"] as Dictionary)[key])
-		if index >= 0 and index < stash.size():
-			equipped[int(key)] = index
+		var value: int = int((data["equipped"] as Dictionary)[key])
+		var uid: int = value if Stash.index_of(stash, value) >= 0 else 0
+		if uid == 0 and value >= 0 and value < stash.size():
+			uid = Stash.uid(stash[value] as Dictionary)
+		if uid != 0:
+			equipped[int(key)] = uid
 
 
 ## The leaderboard block, bounded on the way in.
@@ -1395,21 +1418,48 @@ func _read_board(data: Dictionary) -> void:
 
 ## The piece worn in a slot, or an empty dictionary.
 func equipped_piece(slot: int) -> Dictionary:
-	var index: int = int(equipped.get(slot, -1))
-	if index >= 0 and index < stash.size():
-		var kind: GearData = ContentDB.gear(String(stash[index].get("kind", "")))
-		if kind != null and int(kind.slot) == slot:
-			return stash[index]
-	# Older saves can retain shuffled slot indices. Only search worn pieces;
-	# an unrelated item in the stash must never masquerade as equipped gear.
-	for worn: Variant in equipped.values():
-		var at: int = int(worn)
-		if at < 0 or at >= stash.size():
-			continue
-		var kind: GearData = ContentDB.gear(String(stash[at].get("kind", "")))
-		if kind != null and int(kind.slot) == slot:
-			return stash[at]
-	return {}
+	var index: int = equipped_index(slot)
+	return stash[index] as Dictionary if index >= 0 else {}
+
+
+## Where the piece worn in a slot sits in the stash right now, or -1.
+##
+## Looked up by name every time rather than cached: the whole point of keying
+## `equipped` by uid is that the position is derived and can never go stale.
+## A piece that has left the stash, or one whose kind does not belong in this
+## slot, reads as nothing worn rather than as a stranger.
+func equipped_index(slot: int) -> int:
+	var uid: int = int(equipped.get(slot, 0))
+	if uid == 0:
+		return -1
+	var index: int = Stash.index_of(stash, uid)
+	if index < 0:
+		return -1
+	var kind: GearData = ContentDB.gear(String((stash[index] as Dictionary).get("kind", "")))
+	return index if kind != null and int(kind.slot) == slot else -1
+
+
+## Whether the piece at this stash position is being worn. The one question
+## the six screens that grey out a row, refuse a trade or skip a sweep ask,
+## so none of them has to know how `equipped` is keyed.
+func is_equipped_index(index: int) -> bool:
+	if index < 0 or index >= stash.size():
+		return false
+	var uid: int = int((stash[index] as Dictionary).get("uid", 0))
+	return uid != 0 and equipped.values().has(uid)
+
+
+## Wears the piece at a stash position, or takes the slot off with -1.
+## **The one door**, so a screen cannot write a position into a map of names.
+func equip(slot: int, index: int) -> void:
+	if index < 0:
+		equipped.erase(slot)
+	elif index < stash.size():
+		equipped[slot] = Stash.uid(stash[index] as Dictionary)
+	else:
+		return
+	save_game()
+	EventBus.stash_changed.emit()
 
 
 ## Attribute points every equipped piece grants, one entry per attribute.
@@ -1517,59 +1567,32 @@ func hold_pond_take(now: float = -1.0) -> bool:
 func sort_stash() -> bool:
 	if TradeBooth.is_trading():
 		return false
-	# **What is worn is remembered by name before the order changes.**
-	#
-	# `equipped` maps a slot to a *stash index*, so re-ordering the stash
-	# re-equips the Warden unless the indices are moved with the pieces. The
-	# function directly below this one carries that warning in as many words -
-	# *"it silently re-equips a different sword"* - and this one shipped
-	# ignoring it: pressing Sort scrambled the whole loadout, and the Market's
-	# comparison card then read the wrong slot's gear, which is how the owner
-	# found it.
-	#
-	# A uid is the one name a piece keeps across a re-order, which is why it
-	# exists (a trade has to name a piece rather than a position).
-	var by_slot: Dictionary = {}
+	# **Nothing has to be remembered any more.** `equipped` keys by uid since
+	# 2026-09-22, so re-ordering the stash moves no piece's name and the map
+	# is still true afterwards. This used to note every worn uid, re-order,
+	# and hunt each one down again - and the version before *that* shipped
+	# without doing it at all, which scrambled the whole loadout on a press.
 	var worn: Array[String] = []
 	for slot: Variant in equipped:
-		var piece: Dictionary = equipped_piece(int(slot))
-		if piece.is_empty():
-			continue
-		var uid: String = String(piece.get("uid", ""))
-		worn.append(uid)
-		by_slot[int(slot)] = uid
+		worn.append(str(int(equipped[slot])))
 	stash = Stash.tidy(stash, worn)
-	# And found again afterwards. A piece whose uid has gone - which nothing
-	# should be able to do here, since tidy only re-orders - takes its slot
-	# off rather than leaving it pointing at a stranger.
-	var moved: Dictionary = {}
-	for slot: Variant in by_slot:
-		var wanted: String = String(by_slot[slot])
-		for index: int in stash.size():
-			if String((stash[index] as Dictionary).get("uid", "")) == wanted:
-				moved[int(slot)] = index
-				break
-	equipped = moved
 	save_game()
 	return true
 
-## Removes a piece, keeping the equipped indices pointing at the same gear.
-##
-## Indices shift when an element is removed from the middle of an array, so
-## anything equipped after the removed slot has to move down with it. Getting
-## this wrong does not fail loudly - it silently re-equips a different sword.
+## Removes a piece. What was worn stays worn, because `equipped` names pieces
+## rather than positions - see the field's own note.
 func drop_gear(index: int) -> Dictionary:
 	if index < 0 or index >= stash.size():
 		return {}
 	var piece: Dictionary = stash[index]
+	var uid: int = int(piece.get("uid", 0))
 	stash.remove_at(index)
-	var moved: Dictionary = {}
-	for slot: Variant in equipped:
-		var at: int = int(equipped[slot])
-		if at == index:
-			continue
-		moved[int(slot)] = at - 1 if at > index else at
-	equipped = moved
+	# **Only the piece that left takes its slot off**, and every other slot is
+	# untouched: `equipped` names pieces rather than positions since
+	# 2026-09-22, so nothing shifts under it.
+	for slot: Variant in equipped.keys():
+		if int(equipped[slot]) == uid:
+			equipped.erase(slot)
 	save_game()
 	EventBus.stash_changed.emit()
 	return piece

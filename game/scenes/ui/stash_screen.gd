@@ -276,9 +276,8 @@ func _sorted_indices() -> Array[int]:
 ## than filtered afterwards - a bulk action that can strip the hero is a bulk
 ## action nobody presses.
 func _break_all(rarity: int) -> int:
-	var worn: Array[int] = []
-	for slot: Variant in MetaState.equipped:
-		worn.append(int(MetaState.equipped[slot]))
+	# Asked of `MetaState` by position rather than collected from the map: the
+	# map keys by uid since 2026-09-22 and a screen must not know that.
 	# Held across the sweep. `drop_gear` writes the save on every removal, so
 	# breaking sixty pieces was sixty full serialisations of the whole account
 	# - and sixty chances for a crash to land mid-write.
@@ -286,7 +285,7 @@ func _break_all(rarity: int) -> int:
 	var broken: int = 0
 	var gained: int = 0
 	for index: int in range(MetaState.stash.size() - 1, -1, -1):
-		if worn.has(index):
+		if MetaState.is_equipped_index(index):
 			continue
 		var piece: Dictionary = MetaState.stash[index]
 		# Asked of `Stash` rather than decided here. A marked piece is never
@@ -442,7 +441,7 @@ func _build_tools() -> void:
 	for rarity: int in 2:
 		var sweep := Button.new()
 		sweep.text = "Break all %s" % Stash.RARITY_NAMES[rarity]
-		sweep.tooltip_text = ("Breaks every unworn, un-upgraded %s piece for shards. "
+		sweep.tooltip_text = ("Breaks every unequipped, un-upgraded %s piece for shards. "
 			+ "Never touches what you are wearing.") % Stash.RARITY_NAMES[rarity]
 		sweep.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -505,7 +504,7 @@ func _refresh() -> void:
 			parts.append("+%d %s" % [worn[index], ATTRIBUTE_NAMES[index]])
 	_note.text = "%d of %d held%s  ·  full-stash drops auto-break into Shards" % [
 		MetaState.stash.size(), Balance.STASH_CAPACITY,
-		"  ·  worn: " + ", ".join(parts) if not parts.is_empty() else ""]
+		"  ·  equipped: " + ", ".join(parts) if not parts.is_empty() else ""]
 	if not _message.is_empty():
 		_note.text += "   ·   " + _message
 		_message = ""
@@ -723,7 +722,7 @@ func _row(index: int) -> Container:
 	var piece: Dictionary = MetaState.stash[index]
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
 	var tint: Color = Stash.rarity_colour(piece)
-	var is_worn: bool = int(MetaState.equipped.get(kind.slot if kind else -1, -1)) == index
+	var is_worn: bool = MetaState.is_equipped_index(index)
 
 	# The whole card is the button: "click on an item to open a dropdown menu".
 	# **As tall as what is printed on it.** A fixed height clipped the last bonus
@@ -799,7 +798,7 @@ func _row(index: int) -> Container:
 	var what := Label.new()
 	what.text = "%s  ·  Level %d%s" % [
 		kind.slot_name() if kind != null else "-", int(piece.get("level", 1)),
-		"  ·  WORN" if is_worn else ""]
+		"  ·  EQUIPPED" if is_worn else ""]
 	what.add_theme_font_size_override("font_size", 15)
 	what.add_theme_color_override("font_color", Color("8d968f"))
 	what.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -907,7 +906,7 @@ func _open_item_menu(index: int, near: Control) -> void:
 		_menu.queue_free()
 	var piece: Dictionary = MetaState.stash[index]
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-	var is_worn: bool = int(MetaState.equipped.get(kind.slot if kind else -1, -1)) == index
+	var is_worn: bool = MetaState.is_equipped_index(index)
 	var marked: bool = Stash.is_favourite(piece)
 	var cost: Dictionary = Stash.upgrade_cost(piece)
 
@@ -951,12 +950,10 @@ func _do_item_action(index: int, id: int) -> void:
 		MENU_EQUIP:
 			if kind == null:
 				return
-			if int(MetaState.equipped.get(kind.slot, -1)) == index:
-				MetaState.equipped.erase(kind.slot)
-			else:
-				MetaState.equipped[kind.slot] = index
-			MetaState.save_game()
-			EventBus.stash_changed.emit()
+			# Through the one door: `MetaState.equip` names the piece rather
+			# than its position, saves and says so.
+			MetaState.equip(kind.slot,
+				-1 if MetaState.is_equipped_index(index) else index)
 		MENU_UPGRADE:
 			var cost: Dictionary = Stash.upgrade_cost(piece)
 			if cost.is_empty() or MetaState.shards < int(cost["shards"]) \

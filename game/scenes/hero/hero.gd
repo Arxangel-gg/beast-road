@@ -1913,7 +1913,13 @@ func _give_out() -> void:
 	Vfx.word(global_position + Vector2(0.0, -46.0), "Winded",
 		Color(0.85, 0.82, 0.7), 20)
 	Vfx.dust(global_position, Color(0.52, 0.46, 0.38), 8, 46.0)
-	Sfx.play_at("sfx_hero_hurt", global_position, -8.0)
+	# **Not the hurt cry** (owner, 2026-09-22: "running out of stamina
+	# shouldn't make the same sound as the player getting hurt"). Spending a
+	# pool is not taking a blow, and a game that says the same thing for both
+	# has taught the player to ignore the one that matters. The swim exit is
+	# the gasp already on disk; `docs/SFX_PROMPTS.md` lists a dedicated
+	# `sfx_hero_winded` as owed, the way the reed frog's croak was.
+	Sfx.play_at("sfx_swim_exit", global_position, Balance.HERO_WINDED_DB)
 
 
 ## Dust off the heels while running, on its own clock rather than every frame -

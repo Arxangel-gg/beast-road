@@ -740,17 +740,34 @@ const HOMECOMING_WITHDRAWAL_LAST: float = 0.4
 const HOMECOMING_WALL_FLOOR: float = 0.08
 
 const HERO_MAX_LEVEL: int = 100
+## How loud the Warden's winded breath is. Under the blows it is heard beside,
+## because it is information about a pool rather than about damage.
+const HERO_WINDED_DB: float = -13.0
 
 ## Runs per tier that `tools/level_curve.tscn` simulates. Reporting only.
 const LEVEL_CURVE_RUNS_PER_TIER: int = 3
 
 ## XP needed to leave level L is HERO_XP_BASE * L^HERO_XP_CURVE.
 ##
-## Superlinear so late levels are earned rather than collected, but well under
-## quadratic: at 2.0 the last ten levels cost more than the first ninety and the
-## curve stops paying out exactly when the player most needs it to. [TUNE]
-const HERO_XP_BASE: float = 17.0
-const HERO_XP_CURVE: float = 1.42
+## **Quadratic, and five times the road it used to be** (owner, 2026-09-22:
+## "the perpetual player level should not accumulate xp so quickly ... a longer
+## process similar to the Diablo series but tuned for our game"). The owner
+## reached the cap in about a hundred runs at 17.0 / 1.42, which is 480,000 XP
+## over the whole ladder; this is 2.40 million, so the hundredth level is a
+## season rather than a month.
+##
+## **The exponent went up and the base came down**, which is what keeps the
+## opening intact: leaving level 5 costs 183 against the old 167 and level 10
+## costs 730 against 447, so a new Warden's first evening is the evening it
+## was. It is the far end that grew - level 70 is 35,770 against 7,087, and
+## level 99 is 71,547 against 11,594.
+##
+## The note this replaces argued 2.0 away: *"at 2.0 the last ten levels cost
+## more than the first ninety"*. Measured, they do not - the last ten are
+## 89,385 against the first ninety's 238,965, which is 27% - so the objection
+## was arithmetic and the arithmetic says otherwise. [TUNE]
+const HERO_XP_BASE: float = 7.3
+const HERO_XP_CURVE: float = 2.0
 
 ## XP a kill is worth, per point of the enemy's maximum health.
 ##

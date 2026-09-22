@@ -95,7 +95,7 @@ func _test_the_difference_is_measured_not_printed() -> void:
 	MetaState.equipped.clear()
 	MetaState.stash.clear()
 	MetaState.stash.append(poor)
-	MetaState.equipped[int(kind.slot)] = 0
+	MetaState.equip(int(kind.slot), 0)
 	_card.show_pair(rich)
 	_check(_verdict_ink().is_equal_approx(GearCompare.BETTER),
 		"a strictly better piece was not called better, so the card is not "
@@ -104,7 +104,7 @@ func _test_the_difference_is_measured_not_printed() -> void:
 	# And the other way round, which a sign error would pass the first test on.
 	MetaState.stash.clear()
 	MetaState.stash.append(rich)
-	MetaState.equipped[int(kind.slot)] = 0
+	MetaState.equip(int(kind.slot), 0)
 	_card.show_pair(poor)
 	_check(_verdict_ink().is_equal_approx(GearCompare.WORSE),
 		"a strictly worse piece was not called worse - a comparison that reads "
@@ -130,7 +130,7 @@ func _test_a_trade_is_not_an_upgrade() -> void:
 		return
 	MetaState.stash.clear()
 	MetaState.stash.append(worn)
-	MetaState.equipped[int(kind.slot)] = 0
+	MetaState.equip(int(kind.slot), 0)
 	_card.show_pair(offered)
 	_check(not _verdict_ink().is_equal_approx(GearCompare.BETTER),
 		"a piece worth exactly as much was called better. A trade is a different "

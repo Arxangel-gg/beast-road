@@ -1464,7 +1464,7 @@ func _test_stash_economy() -> void:
 	MetaState.take_gear(Stash.make(kinds[1].id, 1))
 	MetaState.take_gear(Stash.make(kinds[2].id, 2))
 	var third: Dictionary = MetaState.stash[2].duplicate()
-	MetaState.equipped[ContentDB.gear(String(third["kind"])).slot] = 2
+	MetaState.equip(ContentDB.gear(String(third["kind"])).slot, 2)
 	MetaState.drop_gear(0)
 	var still: Dictionary = MetaState.equipped_piece(
 		ContentDB.gear(String(third["kind"])).slot)
@@ -1482,7 +1482,7 @@ func _test_stash_economy() -> void:
 	if mighty != null:
 		var base: int = RunState.attribute(RunState.Attribute.MIGHT)
 		MetaState.take_gear(Stash.make(mighty.id, 3))
-		MetaState.equipped[mighty.slot] = 0
+		MetaState.equip(mighty.slot, 0)
 		_check(RunState.attribute(RunState.Attribute.MIGHT) > base,
 			"equipped gear must reach the hero's attributes")
 

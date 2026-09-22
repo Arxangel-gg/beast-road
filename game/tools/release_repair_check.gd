@@ -139,19 +139,26 @@ func _test_slots() -> void:
 		if kind == null or seen.has(kind.slot):
 			continue
 		seen[kind.slot] = true
-		MetaState.equipped[kind.slot] = MetaState.stash.size()
 		MetaState.stash.append(Stash.make(kind.id, 1, 1))
+		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
 	for slot: Variant in MetaState.equipped:
 		var piece: Dictionary = MetaState.equipped_piece(int(slot))
 		_check(ContentDB.gear(String(piece["kind"])).slot == int(slot), "comparison selected the wrong slot")
 	var slots: Array = MetaState.equipped.keys()
 	if slots.size() >= 2:
-		var first: int = int(MetaState.equipped[slots[0]])
+		var first: Variant = MetaState.equipped[slots[0]]
 		MetaState.equipped[slots[0]] = MetaState.equipped[slots[1]]
 		MetaState.equipped[slots[1]] = first
-		var recovered: Dictionary = MetaState.equipped_piece(int(slots[0]))
-		_check(ContentDB.gear(String(recovered["kind"])).slot == int(slots[0]),
-			"legacy shuffled equipment displayed another slot")
+		# **A slot holding another slot's piece shows nothing rather than a
+		# stranger**, and that is an amendment recorded rather than quiet.
+		# Before 2026-09-22 `equipped` held stash *positions* and
+		# `equipped_piece` searched the other worn entries for something of the
+		# right kind, so a scrambled map recovered and this asked that it did.
+		# Keyed by uid it refuses instead, which answers the same question -
+		# "can a scrambled map dress the Warden in the wrong slot's gear" -
+		# more strongly than recovery ever did.
+		_check(MetaState.equipped_piece(int(slots[0])).is_empty(),
+			"a slot holding another slot's piece must show nothing at all")
 
 
 func _test_hazard(field: Battlefield, hero: Hero, at: Vector2) -> void:

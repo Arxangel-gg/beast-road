@@ -704,12 +704,13 @@ func _mansion_hero(tier: int) -> void:
 	_note("Four slots. What sits in one is cast from the combat bar.")
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		var equipped: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
-		var unlocked: bool = slot < 2 or RunState.act >= slot
+		var unlocked: bool = DisciplineNodeData.slot_is_unlocked(slot, RunState.act)
 		var what: String = "empty  —  choose"
 		if equipped != null:
 			what = equipped.display_name
 		elif not unlocked:
-			what = "unlocks after the Act %d boss" % slot
+			what = "unlocks after the Act %s boss" % _roman(
+				DisciplineNodeData.slot_opens_after_boss(slot))
 		var row := _row("%s  ·  %s" % [SLOT_NAMES[slot], what], 48.0)
 		if equipped != null and ResourceLoader.exists(equipped.get_sprite_path()):
 			UiMetrics.row_icon(row, load(equipped.get_sprite_path()), 32)
