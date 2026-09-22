@@ -62,7 +62,7 @@ func _look() -> void:
 		# eight a second for as long as the set is worn.
 		if found != null and _set == null:
 			Vfx.forge_play("set_motes", global_position,
-				Balance.SET_AURA_ARRIVAL_REACH, found.colour)
+				Balance.SET_AURA_ARRIVAL_REACH, found.aura_colour)
 		_set = found
 		visible = wanted
 		queue_redraw()

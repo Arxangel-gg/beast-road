@@ -323,11 +323,11 @@ func _test_a_companion_may_court_and_may_be_refused() -> void:
 		var paired: bool = await _watch_for_pair(spirit, 180)
 		_check(not paired, "and a busy companion courts nothing")
 		busy.queue_free()
-		for _frame: int in 3:
-			await get_tree().process_frame
+		await _let_the_swing_finish(spirit)
 
 	# 4. AND THEN IT COURTS. Same species, opposite sexes, nothing to do.
-	_check(spirit.may_court(), "with the road quiet it is free to be courted")
+	_check(spirit.may_court(), "with the road quiet it is free to be courted (%s)"
+		% _why_it_will_not_court(spirit))
 	var courted: bool = await _watch_for_pair(spirit, 3000)
 	_check(courted, "a companion must court a wild animal of its own kind")
 	if courted:
@@ -389,11 +389,50 @@ func _stand_a_companion(kind: WildlifeData, key: String) -> Companion:
 	return spirit
 
 
+## Waits out the swing the probe body provoked, in **seconds**.
+##
+## This was three frames, and three frames is nothing: headless runs far above
+## sixty a second, so the companion was still 0.95s into the cooldown its own
+## `attack_interval` authored when the next line asked whether it was free.
+## That is the same fault `enemy_shot_check` paid for once - a wait counted in
+## frames is a wait in whatever the machine felt like giving.
+##
+## The figure is the companion's own numbers rather than a typed constant, so a
+## slower companion is waited out correctly without anybody editing this file.
+func _let_the_swing_finish(spirit: Companion) -> void:
+	var window: float = Balance.COMPANION_STRIKE_FRAMES_SECONDS
+	if spirit != null and spirit.data != null:
+		window += spirit.data.attack_interval
+	await get_tree().create_timer(window + 0.25).timeout
+
+
+## Why a companion is refusing to court, named rather than left to be guessed.
+##
+## `may_court` answers one bool over five conditions, so a gate that only ever
+## printed "it is not free" sent the last session reading the state machine
+## instead of the state. Every failure here should say which of the five.
+func _why_it_will_not_court(spirit: Companion) -> String:
+	if spirit == null:
+		return "there is no companion"
+	var said: Array[String] = []
+	if not spirit.is_alive():
+		said.append("it is down")
+	if float(spirit.get("_recovering")) > 0.0:
+		said.append("recovering for %.1fs" % float(spirit.get("_recovering")))
+	if float(spirit.get("_striking_left")) > 0.0:
+		said.append("mid-swing")
+	if float(spirit.get("_cooldown")) > 0.0:
+		said.append("swing cooldown %.2fs" % float(spirit.get("_cooldown")))
+	if String(spirit.spirit_key).is_empty():
+		said.append("no spirit key")
+	return "free" if said.is_empty() else ", ".join(said)
+
+
 ## An ordinary body near enough to occupy a companion.
 func _stand_a_body_near(at: Vector2) -> Enemy:
 	for value: Variant in ContentDB.enemies.values():
 		var breed := value as EnemyData
-		if breed == null or breed.is_boss:
+		if breed == null or breed.category != EnemyData.Category.BREED:
 			continue
 		var body: Enemy = _field.spawn_enemy(breed, 0, 9999.0, 1.0, 0.0, false)
 		if body == null:
