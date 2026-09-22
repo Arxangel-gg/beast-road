@@ -155,6 +155,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/fishing_check.tscn
           run_godot_clean --headless --path game res://tools/rift_check.tscn
           run_godot_clean --headless --path game res://tools/dungeon_check.tscn
+          run_godot_clean --headless --path game --script res://tools/raid_layout_check.gd
           run_godot_clean --headless --path game res://tools/homecoming_check.tscn
           run_godot_clean --headless --path game res://tools/release_repair_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_siege_check.tscn
@@ -171,6 +172,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/party_events_check.tscn
           run_godot_clean --headless --path game res://tools/guide_check.tscn
           run_godot_clean --headless --path game res://tools/gear_affix_check.tscn
+          run_godot_clean --headless --path game --script res://tools/grid_check.gd
           run_godot_clean --headless --path game res://tools/camps_check.tscn
           run_godot_clean --headless --path game res://tools/swim_check.tscn
           run_godot_clean --headless --path game res://tools/pond_fish_check.tscn
@@ -294,6 +296,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=430x932
           run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=1280x592
           run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --viewport=3840x2160
+          run_godot_clean --headless --path game res://tools/preparation_check.tscn
           run_godot_clean --headless --path game res://tools/layout_check.tscn -- --viewport=3440x1440
           run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn

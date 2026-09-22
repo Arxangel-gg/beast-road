@@ -128,6 +128,15 @@ func _is_active() -> bool:
 	# towers down and fighting off whatever wandered in - and a grid overlay that
 	# swallows the left mouse button during the fight half would make the second
 	# one impossible. See `GameDirector.build_mode`.
+	# **And a beat after the wave closes, nothing at all** (owner,
+	# 2026-09-22). Asked here rather than inside `can_build_now` because that
+	# question is also asked by the Quartermaster, by tower repair, by selling
+	# and by the crossroad path - none of which the player is clicking the
+	# ground for, and all of which would be refused for a second for no
+	# reason. This is the one gate on the click path, so one test here covers
+	# every way a sheet opens.
+	if RunState.build_grace_left() > 0.0:
+		return false
 	return _field != null and _field.grid != null and RunState.can_build_now() 		and GameDirector.build_mode
 
 

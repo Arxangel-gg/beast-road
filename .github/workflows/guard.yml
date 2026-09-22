@@ -344,6 +344,7 @@ jobs:
           check "road sheet (phone)"    --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=430x932
           check "road sheet (landscape)" --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=1280x592
           check "road sheet (4K)"       --headless --path game res://tools/road_sheet_check.tscn -- --viewport=3840x2160
+          check "preparation"           --headless --path game res://tools/preparation_check.tscn
           check "layout (ultrawide)" --headless --path game res://tools/layout_check.tscn         -- --viewport=3440x1440
           # The bugs the owner reported on 2026-08-24, held so they stay fixed.
           # Every one of them was a quiet failure rather than a crash - an enemy
@@ -522,6 +523,10 @@ jobs:
           # entry, a vault at a real depth, bodies that appear on floor and are
           # steered by the maze rather than into rock.
           check "dungeon maze" --headless --path game res://tools/dungeon_check.tscn
+          # Every camp a raid can generate over 300 seeds: nothing stranded, the
+          # arrival point standable, and a key for every locked chest. Also a
+          # `--script` tool, and on neither bar for the same reason.
+          check "raid camps" --headless --path game --script res://tools/raid_layout_check.gd
           # The road home: the pass after an act's boss, its stakes, and the
           # return it pays in full.
           check "the road home" --headless --path game res://tools/homecoming_check.tscn
@@ -551,6 +556,15 @@ jobs:
           # A legendary affix moves a key Modifiers resolves, by a bounded
           # amount, deterministically from the piece's own name.
           check "gear affixes" --headless --path game res://tools/gear_affix_check.tscn
+          # The ground everything above stands on: the authored core inside the
+          # outskirts, the border sealed but for the fork legs, and every route
+          # - near *and* far - road the whole way to the gate ring.
+          #
+          # A `--script` SceneTree tool rather than a scene, which is the only
+          # reason it was on neither bar: both gate lists are hand-kept and both
+          # were read as lists of `.tscn`. It had been red since the outskirts
+          # landed on 2026-09-12, asserting a 45x45 map with one spawn a road.
+          check "battlefield grid" --headless --path game --script res://tools/grid_check.gd
           # The camps on the outskirts: three a road, camp-mode bodies, the
           # fork that both razed camps open, the respawn, and the war camp's
           # dungeon mouth.

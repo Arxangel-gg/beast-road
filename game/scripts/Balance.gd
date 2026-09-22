@@ -1812,6 +1812,18 @@ const PREPARATION_MIN_SECONDS: float = 0.0
 ## `balance_test._test_preparation_envelope` holds both ends of this. [TUNE]
 const PREPARATION_BETWEEN_WAVES: float = 30.0
 
+## **How long after a wave closes before a build sheet may open** (owner,
+## 2026-09-22). A wave ends synchronously - the director closes it, the run
+## opens the breather and the cursor goes live inside one frame - so a player
+## still swinging at the last body opens a build sheet with the click that was
+## meant for it.
+##
+## **The Preparation clock does not start until it has passed**, which is the
+## owner's own reading: *"for 1 second after a wave ends before preparation
+## starts counting"*. So the second is not taken out of the player's thirty.
+## [TUNE]
+const BUILD_GRACE_SECONDS: float = 1.0
+
 ## Gold for riding on the instant a between-wave breather opens. [TUNE]
 const PREPARATION_EARLY_GOLD_MAX: int = 10
 
@@ -10150,9 +10162,34 @@ const CURRENCY_YIELD_SCALE: Dictionary = {
 ## cannot hold the line should be able to *reach* the recovery economy, and the
 ## thing that stops it being farmed is the slow level-one draught rather than
 ## the price.
+## **How many wells a Warden may stand at once, and how much dearer each one
+## is than the last** (owner, 2026-09-22: *"players should also be able to
+## only build up to 3 healing wells"*, and *"make each consecutive healing
+## well more expensive to purchase"*).
+##
+## The 2026-09-13 note says why there is a cap at all: one well answered the
+## whole recovery economy - the Tonic, the rations, the pantry and the wounds
+## - and a second made that answer permanent. Pricing it as itself bought back
+## the first of those; a ceiling and a rising price buy back the rest, and
+## they are the two halves of one decision rather than two knobs.
+##
+## The step is geometric, which is the shape this project already uses for
+## "you may keep buying this and it keeps costing more" - the Quartermaster's
+## standing orders. At 1.8 the three cost 150, 270 and 485 Gold and 25, 45 and
+## 80 Stone: the first is what it always was, the second is a real purchase,
+## and the third is a decision about the act rather than about the wave.
+##
+## **A well that falls or is sold frees its place**, so the cap is a count of
+## what is standing rather than of what has ever been built.
+##
+## The ceiling itself is `WELL_LIMIT_PER_PLAYER`, which has existed since
+## 2026-09-13 and was one; it is three now. **Deliberately not a second
+## constant** - a cap with two names is a cap that disagrees with itself the
+## first time one of them moves. [TUNE]
+const WELL_PRICE_STEP: float = 1.8
 const WELL_BUILD_GOLD: int = 150
 const WELL_BUILD_STONE: int = 25
-const WELL_LIMIT_PER_PLAYER: int = 1
+const WELL_LIMIT_PER_PLAYER: int = 3
 ## What a level-one well draws, as a share of what it used to. The scaling
 ## with level (`WELL_HEAL_PER_LEVEL`) is unchanged, so a player who invests
 ## gets most of it back - the free early answer is what has gone.

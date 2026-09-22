@@ -244,19 +244,26 @@ func get_sprite_path() -> String:
 ## scales it. Splitting them means "which element" and "which role" are two
 ## decisions rather than one, and it is why a mono-Fire build is a pure Gold sink
 ## while a mono-Earth build is cheap in Gold and exhausts the quarry instead.
-func build_cost() -> int:
+func build_cost(already_standing: int = 0) -> int:
 	if is_combination:
 		return Balance.TOWER_COMBO_BUILD_COST
 	# The well is priced as itself, not as its role. It answers the recovery
 	# economy rather than a lane, and at a Warden's price it answered it for
-	# nothing (2026-09-13).
+	# nothing (2026-09-13). **And each one after the first is dearer than the
+	# last** (owner, 2026-09-22), by the same geometric step the Quartermaster
+	# prices its standing orders with - which is the shape this project
+	# already uses for "you may keep buying this, and it keeps costing more".
 	if is_well():
-		return Balance.WELL_BUILD_GOLD
+		return _rounded(float(Balance.WELL_BUILD_GOLD)
+			* pow(Balance.WELL_PRICE_STEP, maxi(already_standing, 0)))
 	var gold: int = Balance.TOWER_ROLE_GOLD[int(role)]
-	var scaled: float = float(gold) * Balance.TOWER_ELEMENT_GOLD_SCALE[int(element)]
-	# Rounded to the nearest 5. Prices a player has to read at a glance should
-	# not end in 3.
-	return maxi(int(round(scaled / 5.0)) * 5, 5)
+	return _rounded(float(gold) * Balance.TOWER_ELEMENT_GOLD_SCALE[int(element)])
+
+
+## Rounded to the nearest 5. Prices a player has to read at a glance should
+## not end in 3.
+static func _rounded(amount: float) -> int:
+	return maxi(int(round(amount / 5.0)) * 5, 5)
 
 
 ## Everything this tower costs to place, as a currency dictionary.
@@ -264,13 +271,23 @@ func build_cost() -> int:
 ## The single place a build price is decided, so the HUD quote and the actual
 ## charge cannot disagree - they were two separate sums before and only one of
 ## them knew about Stone.
-func build_cost_table() -> Dictionary:
-	var cost: Dictionary = {RunStateCurrency.GOLD: build_cost()}
+## `already_standing` is how many of this kind the player already has, which
+## only the well reads. **Passed in rather than looked up**, because this
+## class is loaded by the headless tools where no autoload exists - the same
+## reason `RunStateCurrency` is declared at the bottom of this file rather
+## than reached through `RunState`. Every caller hands over
+## `RunState.wells_standing()`, so there is still exactly one place a build
+## price is decided.
+func build_cost_table(already_standing: int = 0) -> Dictionary:
+	var cost: Dictionary = {RunStateCurrency.GOLD: build_cost(already_standing)}
 	if is_combination:
 		cost[RunStateCurrency.STONE] = Balance.TOWER_COMBO_STONE_COST
 		return cost
 	if is_well():
-		cost[RunStateCurrency.STONE] = Balance.WELL_BUILD_STONE
+		# The quarry escalates with the purse: a third well is a commitment
+		# in both wallets or it is not a commitment.
+		cost[RunStateCurrency.STONE] = _rounded(float(Balance.WELL_BUILD_STONE)
+			* pow(Balance.WELL_PRICE_STEP, maxi(already_standing, 0)))
 		return cost
 	var secondary: String = Balance.TOWER_ELEMENT_SECONDARY[int(element)]
 	var amount: int = Balance.TOWER_ELEMENT_SECONDARY_COST[int(element)]

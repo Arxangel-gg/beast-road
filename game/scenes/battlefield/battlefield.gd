@@ -1792,11 +1792,14 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 		if not allowed:
 			return "Nothing beside this tile fuses into %s." % tower_data.display_name
 
-	# **One well.** It answers the whole recovery economy - the Tonic, the
+	# **Three wells.** One answers the whole recovery economy - the Tonic, the
 	# rations, the pantry and the wounds - and a second made that answer
-	# permanent. Reported 2026-09-13 as a well that "does more than enough".
-	if tower_data.is_well() and _wells_standing() >= Balance.WELL_LIMIT_PER_PLAYER:
-		return "One well is all a road can draw from."
+	# permanent, which is why the ceiling was one from 2026-09-13. The owner
+	# raised it to three on 2026-09-22 and paid for it in the other direction:
+	# each one after the first is dearer than the last (`WELL_PRICE_STEP`), so
+	# a third is a decision about the act rather than about the wave.
+	if tower_data.is_well() and RunState.wells_standing() >= Balance.WELL_LIMIT_PER_PLAYER:
+		return "%d wells is all a road can draw from." % Balance.WELL_LIMIT_PER_PLAYER
 
 	var build_cost: Dictionary = cost_of(tower_data)
 	if not RunState.can_afford_cost(build_cost):
@@ -2067,7 +2070,17 @@ func try_upgrade(anchor: Vector2i) -> String:
 ## what the purchase will charge.
 static func build_cost_of(tower_data: TowerData) -> int:
 	var scale: float = maxf(1.0 + Modifiers.value(Modifiers.BUILD_COST), 0.25)
-	return maxi(int(round(float(tower_data.build_cost()) * scale)), 1)
+	return maxi(int(round(float(tower_data.build_cost(_already_standing(tower_data))) * scale)), 1)
+
+
+## How many of this kind the road already holds, which only the well reads.
+##
+## Asked here rather than inside `TowerData` because that class is loaded by
+## the headless `--script` tools, where no autoload exists - the same reason
+## it declares its own currency ids at the bottom of the file. So the count
+## is handed in, and both the quote and the charge hand in the same one.
+static func _already_standing(tower_data: TowerData) -> int:
+	return RunState.wells_standing() if tower_data.is_well() else 0
 
 
 ## Everything a tower costs to place, after relics. One function, so the price
@@ -2077,9 +2090,10 @@ static func build_cost_of(tower_data: TowerData) -> int:
 static func cost_of(tower_data: TowerData) -> Dictionary:
 	var scale: float = maxf(1.0 + Modifiers.value(Modifiers.BUILD_COST), 0.25)
 	var cost: Dictionary = {}
-	for key: Variant in tower_data.build_cost_table():
+	var table: Dictionary = tower_data.build_cost_table(_already_standing(tower_data))
+	for key: Variant in table:
 		var id: String = String(key)
-		var amount: int = int(tower_data.build_cost_table()[key])
+		var amount: int = int(table[key])
 		# Relics discount Gold only. A build-cost relic that also halved Stone
 		# would quietly undo the point of a scarce second currency.
 		cost[id] = maxi(int(round(float(amount) * scale)), 1) if id == RunState.GOLD else amount
@@ -3274,13 +3288,3 @@ func _vision_sources() -> Array:
 	return out
 
 
-## How many wells stand on the field now. The limit is per road rather than
-## per player: in co-op the party shares one, for the same reason one player
-## sharing it with themselves was already too much.
-func _wells_standing() -> int:
-	var found: int = 0
-	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
-		var tower := node as Tower
-		if tower != null and is_instance_valid(tower) and tower.data != null 	and tower.data.is_well():
-			found += 1
-	return found

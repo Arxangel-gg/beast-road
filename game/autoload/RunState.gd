@@ -1641,6 +1641,57 @@ func can_build_now() -> bool:
 	return is_preparation()
 
 
+## **How many wells stand on the road right now.**
+##
+## Read off `towers` rather than by walking the Tower group, so there is one
+## answer and it is the run's own: an entry leaves this dictionary when a well
+## is sold *and* when one is destroyed (`clear_tower`), which is exactly what
+## "a well that falls frees its place" has to mean. It is also the only shape
+## a `static` price function and the build sheet can both reach.
+##
+## Per road rather than per player: in co-op the party shares the allowance,
+## for the same reason one player sharing it with themselves was already too
+## much (2026-09-13).
+func wells_standing() -> int:
+	var found: int = 0
+	for anchor: Variant in towers:
+		var kind: TowerData = tower_at(anchor as Vector2i)
+		if kind != null and kind.is_well():
+			found += 1
+	return found
+
+
+## **The moment a build sheet may open again**, as a msec stamp.
+##
+## Owner, 2026-09-22: *"add a 1 second grace period so that players cannot
+## open a build menu for 1 second after a wave ends ... so that players can
+## for example stop spam attacking whatever they were attacking"*. A wave
+## closes synchronously - `wave_cleared` is emitted inside `WaveDirector._process`,
+## `Run._enter_wave_breather` runs in the same frame, and both `can_build_now()`
+## and `GameDirector.build_mode` become true inside that one emit. The very
+## next mouse release opens a sheet, and a player still swinging at the last
+## body gets one they did not ask for.
+##
+## **Deliberately not folded into `can_build_now()`.** That question is asked
+## by the Quartermaster, by tower repair, by selling and by the crossroad
+## path, none of which the player is clicking the ground for; a grace there
+## would refuse all of them for a second for no reason. It is asked beside it,
+## at the one gate on the click path (`PlacementCursor._is_active`).
+var build_grace_until_msec: int = 0
+
+
+## Arms the grace. Called where Preparation opens *after a wave*, and nowhere
+## else: a crossroad, an act start and the opening breather are not moments
+## anybody is mid-swing in.
+func arm_build_grace() -> void:
+	build_grace_until_msec = Time.get_ticks_msec() + int(Balance.BUILD_GRACE_SECONDS * 1000.0)
+
+
+## Seconds of grace left, or zero. Read by the cursor and by the run's clock.
+func build_grace_left() -> float:
+	return maxf(float(build_grace_until_msec - Time.get_ticks_msec()) / 1000.0, 0.0)
+
+
 func is_command_combat() -> bool:
 	return phase == Phase.ROAD_BATTLE or phase == Phase.BOSS \
 		or phase == Phase.FINAL_ASCENT

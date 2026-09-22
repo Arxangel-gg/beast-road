@@ -553,6 +553,10 @@ var _boss_label: Label
 
 ## The road action bar, so the scope handler can hide it away from the road.
 var _action_row: Container = null
+## The clocks at the top of the two build sheets. A list rather than two
+## fields, so a third sheet costs one call and no new painter.
+var _sheet_clocks: Array[Dictionary] = []
+
 var _preparation_panel: PanelContainer
 var _preparation_label: Label
 var _preparation_clock: Label
@@ -2406,6 +2410,7 @@ func _build_road_panel() -> void:
 	heading.add_child(_road_title)
 	_road_heading = heading
 	frame.add_child(heading)
+	_build_sheet_clock(frame)
 
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, touch_ui())
@@ -2593,6 +2598,7 @@ func _build_tower_panel() -> void:
 	heading.add_child(_build_title)
 	_build_heading = heading
 	frame.add_child(heading)
+	_build_sheet_clock(frame)
 
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, touch_ui())
@@ -2717,6 +2723,65 @@ func _show_build_tooltip(text: String, near: Control, picture: String = "") -> v
 
 
 ## Pulls the box back inside the viewport once its height is known.
+## **How long is left to prepare, at the top of whichever sheet is open**
+## (owner, 2026-09-22). A player deciding what to build is looking at the
+## sheet, not at the card in the middle of the bottom of the screen, and the
+## thing that decides whether there is time for one more tower is the clock.
+##
+## One builder for both sheets, so they cannot drift: a bar, and a line
+## reading the seconds. Fed from `preparation_changed`, which the run emits
+## every frame, so nothing here counts anything of its own.
+##
+## **It is hidden when there is no deadline**, which is most of the ways into
+## Preparation: only the between-wave breather is timed, and the crossroad's,
+## the boss's and the opening breather leave the clock at zero. A bar reading
+## empty where there is no clock at all would be a lie about the one thing it
+## exists to say.
+func _build_sheet_clock(into: Control) -> Dictionary:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	var line: Label = _label("", 13)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(line)
+	var bar: ProgressBar = _make_bar(Color("e8a33d"), 0.0)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(bar)
+	into.add_child(box)
+	into.move_child(box, 0)
+	_sheet_clocks.append({"box": box, "line": line, "bar": bar})
+	return {"box": box, "line": line, "bar": bar}
+
+
+## Paints every sheet clock. Called from `_on_preparation_changed`, so the
+## sheets and the card are always saying the same thing.
+func _paint_sheet_clocks(seconds_left: float) -> void:
+	var whole: float = maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01)
+	var share: float = clampf(seconds_left / whole, 0.0, 1.0)
+	var timed: bool = seconds_left > 0.0
+	for entry: Dictionary in _sheet_clocks:
+		var box := entry["box"] as Control
+		if box == null or not is_instance_valid(box):
+			continue
+		box.visible = timed
+		if not timed:
+			continue
+		var bar := entry["bar"] as ProgressBar
+		var line := entry["line"] as Label
+		bar.value = share
+		# **The colours the card's own clock already uses**, read from the
+		# same two questions `_paint_the_clock` asks - a player who has
+		# learned one has learned the other, and a second opinion about when
+		# a countdown is urgent is a second opinion the player has to hold.
+		var tint: Color = Balance.UI_CLOCK_EASY
+		if seconds_left <= PREPARATION_URGENT_SECONDS:
+			tint = Balance.UI_CLOCK_URGENT
+		elif Balance.preparation_early_gold(seconds_left) <= Balance.PREPARATION_EARLY_GOLD_FLOOR:
+			tint = Balance.UI_CLOCK_SOON
+		_dress_bar(bar, tint)
+		line.text = "%0.0f seconds before the road moves" % ceilf(seconds_left)
+		line.add_theme_color_override("font_color", tint)
+
+
 func _clamp_build_tooltip(row_top: float) -> void:
 	if _build_tooltip == null or not _build_tooltip.visible:
 		return
@@ -2726,8 +2791,38 @@ func _clamp_build_tooltip(row_top: float) -> void:
 	var lowest: float = maxf(screen_height - _build_tooltip.size.y - BUILD_TOOLTIP_GAP,
 		BUILD_TOOLTIP_GAP)
 	var top: float = clampf(row_top, BUILD_TOOLTIP_GAP, lowest)
+	top = _tooltip_clear_of_preparation(top, lowest)
 	_build_tooltip.offset_top = top
 	_build_tooltip.offset_bottom = top
+
+
+## **Above the Preparation card, never behind it** (owner, 2026-09-22: *"if a
+## tooltip were to appear beneath the preparation widget, it should actually
+## appear just above it instead"*).
+##
+## The two are siblings on this CanvasLayer and the card is added after the
+## box, so the card is drawn *over* it: a tooltip that lands on the card is
+## simply not readable, and nothing here ever knew the card existed. The box
+## is pinned to the right edge and the card is centred on the bottom, and at
+## 1920x1080 they share about 260 units of width while the build sheet's rows
+## sit exactly at the card's height - so this was not an edge case.
+##
+## Lifted rather than pushed down: below the card is the bottom of the screen
+## and the combat band. If lifting would take the box off the top, it stays
+## where the ordinary clamp put it - a box half behind the card still shows
+## its first lines, and one off the top shows nothing at all.
+func _tooltip_clear_of_preparation(top: float, lowest: float) -> float:
+	if _preparation_panel == null or not _preparation_panel.visible:
+		return top
+	var card: Rect2 = _preparation_panel.get_global_rect()
+	if card.size.y <= 0.0:
+		return top
+	var box := Rect2(_build_tooltip.global_position.x, top,
+		maxf(_build_tooltip.size.x, BUILD_TOOLTIP_WIDTH), _build_tooltip.size.y)
+	if not box.intersects(card):
+		return top
+	var lifted: float = card.position.y - _build_tooltip.size.y - BUILD_TOOLTIP_GAP
+	return lifted if lifted >= BUILD_TOOLTIP_GAP else clampf(top, BUILD_TOOLTIP_GAP, lowest)
 
 
 func _hide_build_tooltip() -> void:
@@ -3223,6 +3318,7 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
 	_preparation_label.text = _preparation_text(seconds_left, reward)
 	_paint_the_clock(seconds_left)
+	_paint_sheet_clocks(seconds_left)
 
 
 ## What the breather says it is doing. Three states, because the countdown has
@@ -5069,16 +5165,27 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	# knew about the secondary currency each element draws on.
 	var cost_map: Dictionary = Battlefield.cost_of(tower)
 	var affordable: bool = RunState.can_afford_cost(cost_map)
+	# **A well says how many of its three are standing, and dims at the
+	# third** (owner, 2026-09-22). The refusal has existed since 2026-09-13
+	# and was only ever shown *after* the press, on the message line: the row
+	# quoted a full price, took the click, and answered that a road can draw
+	# from no more. A row that cannot be bought should say so before it is
+	# pressed, which is the rule every unaffordable row already follows.
+	var standing: int = RunState.wells_standing() if tower.is_well() else 0
+	var capped: bool = tower.is_well() and standing >= Balance.WELL_LIMIT_PER_PLAYER
 
 	var button := Button.new()
 	button.text = tower.display_name
+	if tower.is_well():
+		button.text = "%s  %d/%d" % [tower.display_name, standing,
+			Balance.WELL_LIMIT_PER_PLAYER]
 	button.custom_minimum_size = Vector2(0.0, BUILD_ROW_HEIGHT)
 	button.icon = IconKit.element_sized(tower.element, 26)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
 
-	_attach_price(button, cost_map, affordable)
-	button.disabled = not affordable
+	_attach_price(button, cost_map, affordable and not capped)
+	button.disabled = not affordable or capped
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	button.pressed.connect(func() -> void:
 		Sfx.play("sfx_tower_build", -4.0)
@@ -5094,6 +5201,12 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	# the place the panel reserves for answers.
 	var blurb: String = "%s  ·  %s\nCost: %s" % [TowerData.element_name(tower.element),
 		tower.description, RunState.format_cost(cost_map)]
+	if tower.is_well():
+		# The price climbs with each one standing, so the row says what the
+		# *next* one costs and why it is dearer than the last.
+		blurb += "\n%d of %d standing.  " % [standing, Balance.WELL_LIMIT_PER_PLAYER]
+		blurb += "Sell one, or lose one, to draw another." if capped \
+			else "Every well is dearer than the one before it."
 	# The figures box *and* the footer, which an earlier version deliberately
 	# avoided because both carried the same sentence. They no longer do: the
 	# footer says what the tower is for, the box gives the numbers. Two

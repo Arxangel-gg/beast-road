@@ -219,6 +219,14 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
+	# **The clock waits out the grace.** The owner's own reading of it:
+	# *"for 1 second after a wave ends before preparation starts counting"* -
+	# so the second the player spends finishing their swing is not taken out
+	# of their thirty. The clock holds at full and the sheets refuse to open,
+	# and then both start together.
+	if RunState.build_grace_left() > 0.0:
+		EventBus.preparation_changed.emit(_preparation_left, true)
+		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
 	EventBus.preparation_changed.emit(_preparation_left, true)
 	# The clock starts the wave itself now. It used to be a reward window that
@@ -1169,6 +1177,13 @@ func _enter_wave_breather(wave: int) -> bool:
 	if _breather or wave <= _breather_after_wave:
 		return false
 	_breather = true
+	# **A second before any of this is the player's.** The wave closed inside
+	# this very frame, so somebody still swinging at the last body is about to
+	# release a mouse button on open ground - and that release opened a build
+	# sheet they did not ask for. Armed here and nowhere else: a crossroad, an
+	# act start and the opening breather are not moments anybody is mid-swing
+	# in.
+	RunState.arm_build_grace()
 	RunState.begin_preparation_trade()
 	_breather_after_wave = wave
 	RunState.set_phase(RunState.Phase.PREPARATION)

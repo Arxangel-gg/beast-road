@@ -11,9 +11,21 @@
 # cannot disagree with CI about what CI runs, so the list is read out of it
 # every time.
 #
-# It parses two shapes:
+# It takes the whole call, whatever shape it is:
 #   guard.yml    check "some name" --headless --path game res://tools/x.tscn
 #   release.yml  run_godot_clean --headless --path game res://tools/x.tscn
+#
+# **Including the `--script` tools**, which are gates too:
+#   check "battlefield grid" --headless --path game --script res://tools/x.gd
+#   run_godot_clean --headless --path game --script res://tools/run_tool.gd -- audit
+#
+# That has always been true — everything after the keyword is handed to Godot —
+# and this comment used to name only the two `.tscn` shapes, which read as a
+# statement that a `--script` line was invisible here. It cost a session:
+# `grid_check` and `raid_layout_check` are `--script` tools, they were on
+# neither workflow, and the first move planned to fix that was to teach this
+# parser a shape it already knew. A comment that understates a tool is the same
+# fault as one that overstates it — both send somebody to the wrong place.
 #
 # **It runs against an isolated profile.** `APPDATA` is pointed at the scratch
 # directory, so a gate that writes to `user://` cannot touch the player's real
@@ -72,8 +84,15 @@ run_one() {
     name="$(printf '%s' "$raw" | sed -E 's/^"([^"]*)".*/\1/')"
     args="$(printf '%s' "$raw" | sed -E 's/^"[^"]*"[[:space:]]*//')"
   else
-    name="$(printf '%s' "$raw" | grep -oE 'res://tools/[a-z_]+' | head -1)"
+    # release.yml has no human name, so it is read off the script being run.
+    # `run_tool.gd` is three different gates depending on its subcommand, and
+    # naming them all "run_tool" makes the summary say which one failed only by
+    # accident of ordering — so the subcommand after `--` joins the name.
+    name="$(printf '%s' "$raw" | grep -oE 'res://tools/[a-z_0-9]+' | head -1)"
     [ -z "$name" ] && name="godot"
+    local sub
+    sub="$(printf '%s' "$raw" | sed -nE 's/.* -- +([a-z0-9-]+).*/\1/p')"
+    [ -n "$sub" ] && name="$name -- $sub"
     args="$raw"
   fi
   local slug log status verdict why

@@ -7277,6 +7277,175 @@ on a real road tile and hovers the *last* row, which is a barricade, because
 the empty tooltip was half of what was reported and an unhovered sheet does not
 draw the box at all.
 
+**A gate can be on neither bar because of its file extension, found
+2026-09-22.** The three-line diff that finds the guard/release splits has a
+third line - *on neither bar* - and it had never been run against the **shape**
+of a gate rather than its name. Both workflow gate lists are hand-kept and both
+are overwhelmingly `res://tools/x.tscn`; two gates are `--script` SceneTree
+tools and were in neither list. `raid_layout_check` was green throughout.
+**`grid_check` had been red since 2026-09-12**, with 34 failures, for ten days
+of pushes and four releases.
+
+**It was stale rather than broken, and all 34 were stale.** It asserted the map
+as it was the day before the outskirts landed:
+
+- *"the grid must be 45x45 at 64 units."* The **authored core** is 45x45; it is
+  pasted at an offset inside a field of `SIZE`, which is 87 and not the 75 the
+  outskirts note above records - `OUTSKIRTS` grew from 15 to 21 on 2026-09-14
+  and the prose did not. What replaces it does not restate `SIZE`'s own
+  definition, which would assert nothing: it holds that the layout on disk is
+  `CORE_SIZE` square, that the core actually arrived with its town and its
+  corridors, and that **every tile the outskirts template can address lands on
+  the field** - `_put` drops an out-of-bounds write in silence, so a tuned
+  constant that ran off the edge would simply not exist, with nothing said.
+- *"sealing the border must leave the twelve spawn tiles as road", found 24.*
+  Twelve was one three-wide mouth a lane. Each lane forks into two legs that
+  reach the edge, so the figure is `LANE_COUNT * 2 * ROAD_WIDTH_TILES` -
+  **derived, because a hand-typed 45 is what put this file a design behind.**
+  The hand-picked sample tile went with it: the ring is swept, so a seal that
+  missed a stretch cannot hide in the tiles nobody looked at.
+- *"a route must end at the town", 32 times.* It deliberately does not, since
+  the owner's report of 2026-09-12. Named off the lattice rather than off the
+  256 units it happens to be: the last point must be one of the town node's own
+  lattice neighbours, and the town's tile may appear nowhere on the route.
+
+**Three assertions were re-scoped, which is an amendment rather than a repair.**
+The open-ground fraction and the two-towers-abreast count now measure the
+**authored core**. They were written about the authored map's four-tile gaps and
+had come to read over a field 3.7 times the area they were sized for, where the
+outskirts drown the signal: 4,566 places for two towers against a floor of 200
+is a number that can no longer go wrong. Scoped to the core it reads 641. A
+loose field-wide floor stays beside them, answering the different question of
+whether the template has grown over everything.
+
+**And `far_routes` is walked.** It is half the road network - the legs every
+wave uses once a lane's two camps have fallen - it is a product of `BattleGrid`,
+and no gate in the project had ever asked whether it was road the whole way. It
+is, and every far route ends at the gate ring too. The near routes are walked
+from step 1 and the far ones from step 0, because a near route begins in the
+trees and crosses open ground to reach the corridor, which is the ambush working
+rather than a hole in the road.
+
+**The plant found a blind spot in the new gate, which is what plants are for.**
+The third fault planted - the war camp's template range pushed past the edge -
+**passed**. The range came out empty, the camp record described no tiles, and
+"none of its tiles are the wrong cell" was true of no tiles at all: a comparison
+of two nothings, which this project has shipped before. A camp must name ground
+before it can name the right ground, and with that check added the fault is
+named on all four lanes. The other two plants - the gate-ring truncation removed,
+and the fork legs stopped one tile short of the edge - were named immediately.
+
+**The sweep needed no parser change, and that is the recurring shape of this
+mistake.** `tools/sweep.sh` hands everything after the keyword to Godot and has
+always run the `--script` lines; three guard gates and three release gates are
+already of that shape. What was wrong is its own header comment, which named
+only the two `.tscn` shapes and so read as a statement that a `--script` line
+was invisible to it. **A comment that understates a tool is the same fault as
+one that overstates it** - `menu_shot` printing "no tail sprite found" over a
+tail plainly on screen is the same lesson - and the first move planned here was
+to teach the parser a shape it already knew. Corrected, and release-side gates
+now carry their subcommand in the name, so three `run_tool.gd` lines are told
+apart in the summary.
+
+**The diff to run before a tag has three lines and the third is the one that
+found this**, over `res://tools/[a-z_0-9]+\.(tscn|gd)` rather than `.tscn`
+alone. It now reads clean: nothing guard-only, the five judgement-heavy reports
+release-only as `guard.yml`'s own header intends, and on neither bar only the
+five two-process network harnesses - which are run by hand by design - and
+`tool_leak_check`, a `RefCounted` helper that `run_tool.gd -- tool-leak` uses
+and which is on both bars.
+
+**Four things about the breather, as of 2026-09-22.** The owner asked for a
+tooltip that never hides behind the Preparation card, a countdown on the build
+sheets, a grace period after a wave, and three wells rather than one with each
+dearer than the last.
+
+**A wave ends inside one frame, and that is why the grace is needed.** The
+director closes the wave, emits `wave_cleared` *synchronously*, `Run._on_wave_cleared`
+runs in that same frame, `_enter_wave_breather` sets PREPARATION, and
+`GameDirector` flips build mode back on inside that one emit. From that
+instant `PlacementCursor._is_active()` is true, so the next mouse release
+opens a build sheet - and a player still swinging at the last body releases
+that button on open ground. The owner's words: *"players can for example stop
+spam attacking whatever they were attacking"*.
+
+**The grace is asked beside `can_build_now`, never inside it**, and
+`preparation_check` holds that with a source walk. That question is also asked
+by the Quartermaster, by tower repair, by selling and by the crossroad path,
+none of which is a click on the ground; folding a grace into it would refuse
+all of them for a second for no reason. It is asked at
+`PlacementCursor._is_active`, which the survey confirms is the **only** phase
+gate on the click path - so one test there covers both sheets and every way
+either of them opens.
+
+**And the clock waits the second out rather than spending it**, which is the
+owner's own reading: *"for 1 second after a wave ends before preparation
+starts counting"*. The thirty seconds are still thirty.
+
+**The sheets carry the clock now.** A player deciding what to build is looking
+at the sheet, not at the card in the middle of the bottom of the screen, and
+the thing that decides whether there is time for one more tower is the
+countdown. One builder for both sheets, fed from the same `preparation_changed`
+the card is fed from, wearing the same two colours the card's own clock wears -
+a second opinion about when a countdown is urgent is a second opinion the
+player has to hold.
+
+**It is hidden where there is no deadline**, which is three of the four ways
+into Preparation: only the between-wave breather is timed, and the crossroad's,
+the boss's and the opening breather leave the clock at zero. A bar reading
+empty where there is no clock at all would be a lie about the one thing it
+exists to say.
+
+**The tooltip is lifted above the Preparation card.** The box and the card are
+siblings on one CanvasLayer and the card is added *after* it, so a box that
+lands on the card is drawn behind it and cannot be read at all - and
+`_clamp_build_tooltip` clamped only against the top and bottom of the screen
+and knew about nothing else in the HUD. At 1920x1080 the two share about 260
+units of width while the build sheet's rows sit at exactly the card's height,
+so this was the common case rather than an edge case.
+
+Lifted rather than pushed down, because below the card is the bottom of the
+screen and the combat band; and if lifting would take the box off the top it
+stays where the ordinary clamp put it, because a box half behind the card
+still shows its first lines and one off the top shows nothing.
+
+**Three wells, and each one dearer than the last.** The cap is not new -
+`WELL_LIMIT_PER_PLAYER` has existed since 2026-09-13 and was **one**, for the
+reason recorded there: one well answers the whole recovery economy and a
+second made that answer permanent. The owner raised it to three and the other
+half of the decision pays for it: `WELL_PRICE_STEP` is 1.8, so the three cost
+150, 270 and 485 Gold and 25, 45 and 80 Stone. The first is what it always
+was, the second is a purchase, and the third is a decision about the act
+rather than about the wave.
+
+**The count is the run's own record rather than a walk of the Tower group.**
+`RunState.wells_standing()` reads `towers`, which loses an entry when a well
+is sold *and* when one is destroyed - which is exactly what "a well that falls
+frees its place" has to mean. It is also the only shape a `static` price
+function and the build sheet can both reach.
+
+**The price is handed in, not looked up.** `TowerData.build_cost(already_standing)`
+takes the count as an argument because that class is loaded by the headless
+`--script` tools where no autoload exists - the same reason it declares its own
+currency ids at the bottom of the file. Both the quote and the charge go
+through `Battlefield.cost_of`, so there is still exactly one place a build
+price is decided.
+
+**And the row says so before the click.** The refusal existed since
+2026-09-13 and was only ever shown *after* the press, on the message line: the
+row quoted a full price, took the click, and then said no. It reads
+`Healing Well 2/3` now and dims at three, which is the rule every unaffordable
+row already followed.
+
+**The gate's own tooltip check was wrong first, and the shape is worth
+keeping.** It handed the Preparation card itself to `_show_build_tooltip` as
+the hovered control - and `_panel_of` walks up from whatever it is given to the
+first `PanelContainer`, which *was* the card, so the box was placed to the left
+of it, never overlapped it, and the check passed with the lift removed. What
+has to be driven is the geometry the build sheet produces: a box in the card's
+own column, at the card's own height. Checked by removing the lift, which it
+then named with both rectangles.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
