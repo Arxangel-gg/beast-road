@@ -23,6 +23,9 @@ signal dismissed()
 signal skip_asked()
 
 const WIDTH: float = 380.0
+## The card's height, and the air kept between its foot and the HUD's own band.
+const HEIGHT: float = 226.0
+const BOTTOM_AIR: float = 16.0
 const FADE: float = 0.22
 
 var _instruction: Label = null
@@ -42,12 +45,20 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	offset_left = 24.0
 	offset_right = 24.0 + WIDTH
+	# **Above the HUD's command row, by the HUD's own measure.** The card sat
+	# 24px off the bottom edge, and the bottom edge is where the ability slots
+	# and the action buttons live - so the first thing the valley said was
+	# written across the first thing it asked the player to press (owner,
+	# 2026-09-21). `HUD.bottom_reserve` is the one number the HUD measures its
+	# own band by, on a desktop and on a phone, so the two cannot drift apart.
+	#
 	# Both offsets. With a bottom preset the top offset is measured from the
 	# bottom edge too, so leaving it at zero describes a box running from the
 	# bottom of the screen upwards past its own top - which is how the coach's
 	# card ended up in the top-left corner twice.
-	offset_top = -250.0
-	offset_bottom = -24.0
+	var clear: float = HUD.bottom_reserve() + BOTTOM_AIR
+	offset_top = -(clear + HEIGHT)
+	offset_bottom = -clear
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 	var column := VBoxContainer.new()

@@ -7684,54 +7684,6 @@ const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 19.0)
 ## the tail on the body is `BEAST_TAIL_ANCHOR`'s job, not this one.
 const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 
-## What the tail is multiplied by over the hide it grows out of: nothing.
-##
-## **This was a gain twice, measured twice, and wrong twice** (owner, third
-## report, 2026-09-14). The first cut darkened the tail to match the stub's
-## brightness at the join; the second pushed it green on the reasoning that the
-## tail read as grey stone against mossy olive. Both were defensible readings of
-## a render and both had to fail, because a single multiplier cannot turn one
-## distribution of colours into another: the tail's palette was 88% the hide's
-## brightness *and* bluer *and* had a different spread, and any gain that fixed
-## one of those moved the other two.
-##
-## The tail's pixels are painted in the hide's own distribution now -
-## `tools/match_tail_palette.py`, a channel-by-channel histogram match against
-## the body's stub, haunch, belly and rear legs, one mapping across every frame
-## so the walk and the idle still agree. `beast_tail_check` measures the result
-## against the same region of the body and refuses a tail that has drifted. So
-## this is white, and it stays white: the tail is a child of the beast and
-## inherits the day tint and the environment grade exactly as the body does,
-## which is what "identically" has to mean. If the tail is ever redrawn, run
-## the tool, not a number.
-## How much of the hide's *brightness* the limb takes, on top of its colour.
-##
-## The correction below is chroma-only by construction - it is normalised so
-## it cannot change how dark the limb is - because the limb being darker than
-## the hide is the art, and lifting it to match would flatten a limb that
-## hangs in its own shadow. This is the deliberate trim on top of that, and
-## it is authored rather than measured for the reason `BEAST_TAIL_SEAT` is:
-## four reports beat a histogram.
-const BEAST_TAIL_VALUE_PULL: float = 0.94
-
-## **And the chroma, measured off the render rather than off the paintings.**
-##
-## With the photograph finally being sampled in its own pixels (see
-## `menu_shot._frame_scale` - every earlier reading was taken at three quarters
-## of the way to where it meant to look) the limb and the hide agree on hue
-## within four degrees and on brightness within four percent. One thing does
-## not: **saturation, 0.42 on the limb against 0.55 on the hide**. That is the
-## whole of what nine reports have been pointing at, and it is a quarter rather
-## than the halves and quarters earlier passes chased after mis-sampling.
-##
-## It cannot come from the paintings, which match; it is what the stub's
-## cross-fade and the limb's own thinner ink do to it on the way to the screen.
-## So this is authored from the render's own numbers - the per-channel ratio of
-## hide to limb, normalised so it changes colour and not light - and written
-## down as such, exactly as `BEAST_TAIL_SEAT` is.
-const BEAST_TAIL_CHROMA: Color = Color(1.06, 1.0, 0.92)
-
-const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 
 ## **How hard the tail whips**, as an angle accumulated down its own length.
@@ -7748,36 +7700,6 @@ const BEAST_TAIL_HZ: float = 30.0
 ## How much harder the tail works on the march than at rest. A walking beast
 ## swings its tail; a standing one lets it hang and breathe.
 const BEAST_TAIL_WALK_SWAY: float = 1.9
-## The darkest the tail may be pulled to meet the hide it grows from. A floor
-## rather than a free ratio: a limb dragged past this stops reading as the same
-## animal, and the paintings have never been more than a fifth apart.
-## **How far the limb's paint may be pushed toward the hide's, either way.**
-##
-## This was a *floor* of 0.72 with a hard ceiling of 1.0, and the ceiling is
-## why nine reports about the tail's colour were never answered. The
-## correction is a per-channel ratio of hide to limb, and the limb's painting
-## is **darker** than the hide's - so every channel came out above one, every
-## channel clamped to exactly one, and `_paint_match` was pure white. The
-## whole harmony mechanism was inert on the shipped art, and measuring it off
-## the render is what said so: the limb read rgb(32, 32, 30) at saturation
-## 0.05 beside a hide at rgb(73, 56, 50) and saturation 0.31 - a grey tail on
-## a warm animal, which is what the owner has reported every time.
-##
-## A band rather than a ceiling, so the ratio may lift a channel as well as
-## drop one. Godot multiplies `self_modulate` and is perfectly happy above
-## one.
-const BEAST_TAIL_HARMONY_FLOOR: float = 0.55
-const BEAST_TAIL_HARMONY_CEILING: float = 2.2
-## **The offset that answers the eye rather than the histogram.**
-##
-## The tail and the hide measure the same tone - mean, median and upper quartile
-## within three percent - and the owner has reported the limb as lighter four
-## times regardless. A limb hanging in open air beside a mass shadowed by its own
-## bulk reads brighter than it measures. This is the deliberate correction for
-## that, and it is a constant rather than a derivation so that it is honest about
-## being one.
-const BEAST_TAIL_SEAT: float = 1.0
-
 ## **How far up the tail is nudged from where the stub row puts it.**
 ##
 ## The stub row is read off the body frame's own pixels and is exactly right

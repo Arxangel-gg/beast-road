@@ -50,6 +50,7 @@ func _ready() -> void:
 	_test_the_account_is_unmoved()
 	_test_the_walk_never_settles()
 	_test_it_is_offered_only_to_a_new_account()
+	_test_the_card_clears_the_command_row()
 	await _test_the_verbs_finish_their_stops()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -260,6 +261,28 @@ func _test_it_is_offered_only_to_a_new_account() -> void:
 ## and never the deed. Driven through the real signals on a real Walk, because
 ## the `wired` list above is a claim and this is the proof: remove a line from
 ## `_listen` and the stop it served stands here for ever.
+## **The card's foot clears the HUD's command row.** It sat 24px off the bottom
+## edge, which is where the ability slots and the action buttons live, so the
+## valley's first instruction was written across the first thing it asked the
+## player to press (owner, 2026-09-21). Held against `HUD.bottom_reserve`, the
+## one number the HUD measures its own band by, rather than against a figure
+## typed here.
+func _test_the_card_clears_the_command_row() -> void:
+	var card := WalkCard.new()
+	add_child(card)
+	var band: float = HUD.bottom_reserve()
+	_check(band > 0.0, "the HUD reserves a bottom band at all (%.0f)" % band)
+	_check(card.offset_bottom <= -band,
+		"the Walk card's foot (%.0f from the bottom) clears the HUD's %.0f band"
+			% [-card.offset_bottom, band])
+	_check(card.offset_top < card.offset_bottom,
+		"the Walk card grows upward from its foot (%.0f above %.0f)"
+			% [-card.offset_top, -card.offset_bottom])
+	_check(card.offset_bottom - card.offset_top >= 200.0,
+		"the Walk card keeps room for its instruction, its progress and its buttons")
+	card.queue_free()
+
+
 func _test_the_verbs_finish_their_stops() -> void:
 	RunState.reset()
 	var walk := TutorialWalk.new()

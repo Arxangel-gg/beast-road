@@ -148,11 +148,8 @@ func _apply_beast_environment_tint() -> void:
 	var grade: Color = Color.WHITE.lerp(_ground_tint(),
 		Balance.BEAST_ENVIRONMENT_TINT)
 	beast.modulate = grade
-	# **And the limb is told the same thing on the same frame.** It does not
-	# arrive down the modulate chain, whatever the comment beside `_tail.modulate`
-	# used to claim - see `BeastTailSpline.wear_grade`.
-	if _tail != null:
-		_tail.wear_grade(grade)
+	# The tail is a child of the beast and inherits this at draw. It wears
+	# nothing of its own - see `beast_tail_spline.gd`, ninth report.
 
 
 ## The ground the beast walks over, from the region's sidescroller tileset.
@@ -404,8 +401,6 @@ func _load_tail() -> void:
 	_tail.name = "Tail"
 	_tail.adopt(frames[0])
 	_tail.frame_time = 1.0 / maxf(Balance.BEAST_IDLE_FRAME_RATE, 1.0)
-	if beast.texture != null:
-		_tail.harmonise(beast.texture)
 	# **The tail carries no material and is never scaled to fit.** It is drawn
 	# whole and placed; the beast's own stub is the end that dissolves into it.
 	# See `beast_stub_fade.gdshader` (owner's correction, 2026-09-13).
@@ -416,14 +411,11 @@ func _load_tail() -> void:
 	# The spline puts its own root on its origin, so the node simply goes where
 	# the body's stub is - see `_place_tail`.
 	_tail.position = Balance.BEAST_TAIL_ANCHOR
-	# **It is not inherited, and this comment used to say that it was.**
-	#
-	# The claim here was "`modulate` is inherited from the beast, so the day tint
-	# and the environment grade already reach it". Photographed and sampled, the
-	# body wore (0.58, 0.473, 0.476) and the limb wore (1, 1, 1) - so the tail
-	# rendered grey and bright beside a warm dark animal, which is what was
-	# reported seven times. The grade is handed over in `_grade_the_beast` now.
-	_tail.modulate = Balance.BEAST_TAIL_GRADE
+	# **Nothing is set on the limb's colour, on purpose.** A child's own
+	# `modulate` reads white whatever its parent does to it at draw, and the
+	# pass that read it that way graded the tail twice. The paintings agree at
+	# the join (`tools/grade_tail_to_stub.py`) and the body's grade reaches the
+	# limb by inheritance, which `beast_tail_check` holds.
 	_tail.show_behind_parent = true
 	_place_tail()
 	_tail.texture_filter = beast.texture_filter

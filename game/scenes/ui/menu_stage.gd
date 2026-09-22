@@ -350,8 +350,6 @@ func _build_beast() -> void:
 		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_tail.adopt(painting)
 		_tail.frame_time = Balance.MENU_BEAST_FRAME_TIME
-		if not _frames.is_empty():
-			_tail.harmonise(_frames[0])
 		# **No material on the tail.** It is drawn whole and simply placed; the
 		# beast's own stub is what dissolves into it (`_fade_the_stub`). A
 		# shader here also cost the tail the scene tint, because assigning to
@@ -534,12 +532,8 @@ func _layout() -> void:
 		_beast.position = span * BEAST_AT
 		var beast_grade: Color = _sampled_beast_tint()
 		_beast.modulate = beast_grade
-		# **The limb is told the same thing on the same frame.** It does not
-		# arrive down the modulate chain - measured - and a tail graded from a
-		# different value than the body it grows from is the fault this has
-		# been reported for seven times.
-		if _tail != null:
-			_tail.wear_grade(beast_grade)
+		# The tail is a child of the beast and inherits this at draw. It wears
+		# nothing of its own - see `beast_tail_spline.gd`, ninth report.
 		if _shadow != null:
 			# Wider than the beast and very flat, sitting just under where its
 			# feet now end.

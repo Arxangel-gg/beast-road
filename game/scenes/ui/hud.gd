@@ -388,6 +388,16 @@ static func _action_columns() -> int:
 ## the nav column came down over an ability slot at phone-landscape size.
 ## `_build_action_bar` asserts the two agree now, so the next one fails loudly.
 const ACTION_BUTTON_COUNT: int = 7
+## The side padding of an action button, in place of the theme's 34px.
+##
+## **Seven buttons at the theme's padding do not fit beside four ability slots
+## on a 1920 screen.** The theme pads every button 34px a side, which is right
+## for a menu and is 476px of air across this row; with the seventh action (the
+## ride button, 2026-09-17) the row wanted 1996 of 1920 and the fourth ability
+## slot went off the right edge (owner, 2026-09-21: "Skill 4 is cutoff on the
+## bottom right"). `layout_check` measures the row with a mount saddled now, so
+## the next button to arrive fails the gate rather than the screen.
+const ACTION_BUTTON_PAD: float = 18.0
 ## The throw ring on the ride button: its diameter and how far in from the
 ## button's right edge it sits. Inside the button on purpose - see the build.
 const RIDE_RING_SIZE: float = 34.0
@@ -1836,6 +1846,24 @@ func _build_action_bar(bar: Container) -> void:
 	assert(buttons == ACTION_BUTTON_COUNT,
 		"ACTION_BUTTON_COUNT is %d and the action bar has %d buttons"
 			% [ACTION_BUTTON_COUNT, buttons])
+	for child: Node in bar.get_children():
+		if child is Button:
+			_slim(child as Button)
+
+
+## Takes an action button's side padding down to `ACTION_BUTTON_PAD`, the way
+## `_square_off` does for the nav column: a Control cannot be smaller than its
+## own style demands, so the theme's padding decides the width and no minimum
+## size can win it back.
+func _slim(button: Button) -> void:
+	for state: String in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var box: StyleBox = button.get_theme_stylebox(state)
+		if box == null:
+			continue
+		var slim: StyleBox = box.duplicate()
+		slim.content_margin_left = ACTION_BUTTON_PAD
+		slim.content_margin_right = ACTION_BUTTON_PAD
+		button.add_theme_stylebox_override(state, slim)
 
 
 ## The party feed, and the line a player types into.
@@ -3513,6 +3541,15 @@ static func _spell_slot_size() -> Vector2:
 
 static func _bottom_band_height() -> float:
 	return _spell_slot_size().y + _bottom_row_inset() + _action_band_height()
+
+
+## How much of the bottom edge the command row owns, for anything else that
+## anchors there. The Walk's card reads it so its foot clears the ability slots
+## on every layout rather than on the one it was authored against; a second
+## measurement of the same band in another file is the kind of number that
+## drifts.
+static func bottom_reserve() -> float:
+	return _bottom_band_height()
 
 
 ## How much vertical room the action buttons need.

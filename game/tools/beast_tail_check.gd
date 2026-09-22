@@ -29,6 +29,15 @@ extends Node
 ## art instead of trusting the numbers: where the root row actually is, whether
 ## the ramp has body to hide behind, and whether the shader still multiplies by
 ## the colour it is handed.
+##
+## 4. **The colour was argued about between the painting and the screen for
+##    eight passes** - a modulate, a self_modulate, a harmony, a chroma, a
+##    value pull, a seat - and the ninth (2026-09-21) measured the paintings:
+##    the tail's root was painted a sixth darker than the stub it continues,
+##    and the runtime darkened it further on purpose. The root is painted to
+##    the stub now (`tools/grade_tail_to_stub.py`) and the limb wears nothing
+##    of its own, so "graded the same" is inheritance and cannot drift. This
+##    holds both halves: the file, and the absence of any runtime knob.
 
 ## How far the measured root row may sit from the authored fraction, as a
 ## fraction of the tail's height. Four of ninety-six pixels: tight enough to
@@ -45,77 +54,137 @@ func _ready() -> void:
 	_test_the_stub_fade_has_tail_behind_it()
 	_test_the_body_carries_a_stub_that_far()
 	_test_the_stub_fades_and_the_tail_does_not()
-	_test_the_tail_wears_the_hide()
-	_test_the_tail_is_lit_where_it_hangs()
-	_test_the_correction_is_not_inert()
+	_test_the_tail_continues_the_stub()
+	_test_the_lift_stays_in_the_join()
+	_test_the_tail_wears_nothing_of_its_own()
 	_test_the_tail_is_graded_by_the_body()
 	_test_the_spline_is_anchored_and_alive()
 	_test_the_tail_is_drawn_in_the_same_ink()
 	MetaState.resume_saves()
 	if _failures.is_empty():
 		print("[beast-tail] PASS - %d checks: root row, stub fade, stub reach, "
-			% _checks + "tint, and the tail is painted in the hide's own colours")
+			% _checks + "and the tail continues the stub in the file and wears nothing at runtime")
 	else:
 		for failure: String in _failures:
 			push_error("[beast-tail] " + failure)
 	get_tree().quit(1 if not _failures.is_empty() else 0)
 
 
+## **The tail continues the stub, in the file.**
+##
+## The stub is the leftmost 42 columns of every body frame (the hind leg starts
+## at 44) and the root is the rightmost share of every tail frame; the two are
+## the same surface painted twice, and the join shader cross-fades one into the
+## other. Compared per channel on surface pixels with the ink held out, because
+## a thin limb is more outline than a haunch is and a mean over both compares
+## line weight rather than colour. Tight at the root, where the seam is; looser
+## over the whole limb, whose tip is legitimately in its own shadow.
+const STUB_COLUMNS: float = 42.0
+const ROOT_SHARE: float = 0.30
+const ROOT_TOLERANCE_PER_CHANNEL: float = 0.06
+const LIMB_LUMINANCE_TOLERANCE: float = 0.15
 
 
-## **Whatever is done to the body happens to the tail, by construction.**
-##
-## Owner, 2026-09-15: "ensure you do whatever the colour grading and tinting you
-## applied to the beast body to also happen to the tail end attachment". It
-## already does, and the mechanism is the only reason: the tail is a *child* of
-## the beast sprite, so Godot multiplies the body's `modulate` into it - the
-## menu's sampled backdrop tint, the scope's ground tint, the day's colour, all
-## of it, without either screen having to remember the tail exists.
-##
-## That is a load-bearing piece of tree shape and nothing was holding it. A tail
-## re-parented to the scope to fix a sorting problem would keep drawing in the
-## right place and quietly stop being graded, which is a fault nobody would
-## connect to the change that caused it.
-##
-## Three ways the chain breaks, all of them one line of somebody's refactor:
-## the tail parented somewhere else, a `self_modulate` on it (which multiplies
-## on top of a grade the body never asked for), or a material (which is *not*
-## inherited, so anything the body's shader does the tail would not).
-## **The correction is not a no-op.**
-##
-## `_measure_harmony` clamped every channel of its hide-to-limb ratio to at
-## most 1.0 - and the limb's painting is *darker* than the hide's, so every
-## channel came out above one, every channel clamped to exactly one, and
-## `_paint_match` was pure white. The whole mechanism was inert on the shipped
-## art and nine reports about the tail's colour could not be answered by
-## touching any of its constants, because none of them reached the screen.
-##
-## An inert correction is worse than no correction: it is a knob that looks
-## like it does something. So the gate refuses a paint match that is exactly
-## white, which is the one value that means nothing is being applied.
-func _test_the_correction_is_not_inert() -> void:
+func _test_the_tail_continues_the_stub() -> void:
+	var body: Texture2D = load("res://art/beast/beast_idle_00.png") as Texture2D
 	var frames: Array[String] = _tail_frames()
-	var bodies: Array[String] = _body_frames()
-	if frames.is_empty() or bodies.is_empty():
-		_check(false, "no tail or body frames to measure the correction on")
+	if body == null or frames.is_empty():
+		_check(false, "no body or tail frames to compare at the join")
 		return
+	var stub: Color = BeastTailSpline._surface_mean(body,
+		0.0, STUB_COLUMNS / float(body.get_width()), 0.0, 1.0)
+	_check(stub.get_luminance() > 0.05, "the body's stub must be painted to compare against")
+	for path: String in frames:
+		var tail: Texture2D = load(path) as Texture2D
+		if tail == null:
+			_check(false, "%s will not load" % path)
+			continue
+		var root: Color = BeastTailSpline._surface_mean(tail, 1.0 - ROOT_SHARE, 1.0, 0.0, 1.0)
+		var worst: float = 0.0
+		for channel: int in 3:
+			var ratio: float = root[channel] / maxf(stub[channel], 0.001)
+			worst = maxf(worst, absf(ratio - 1.0))
+		_check(worst <= ROOT_TOLERANCE_PER_CHANNEL,
+			("%s roots at rgb(%.0f, %.0f, %.0f) against a stub of rgb(%.0f, %.0f, %.0f) "
+				+ "- %.0f%% off on its worst channel; run tools/grade_tail_to_stub.py")
+				% [path.get_file(), root.r * 255.0, root.g * 255.0, root.b * 255.0,
+					stub.r * 255.0, stub.g * 255.0, stub.b * 255.0, worst * 100.0])
+		var whole: Color = BeastTailSpline._surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
+		var lum: float = whole.get_luminance() / maxf(stub.get_luminance(), 0.001)
+		_check(absf(lum - 1.0) <= LIMB_LUMINANCE_TOLERANCE,
+			"%s is %.2fx the stub's brightness over its whole length" % [path.get_file(), lum])
+
+
+## **And the lift stays inside the join it hides in.** A tail nudged further
+## up than the stub dissolves over comes out from under the flank, which is
+## the seam the overlap and the fade exist to bury.
+func _test_the_lift_stays_in_the_join() -> void:
+	_check(Balance.BEAST_TAIL_LIFT >= 0.0
+			and Balance.BEAST_TAIL_LIFT <= Balance.BEAST_STUB_FADE_PX,
+		("the tail lift is %.1f against a stub fade of %.1f: past that the root "
+			+ "leaves the body") % [Balance.BEAST_TAIL_LIFT, Balance.BEAST_STUB_FADE_PX])
+	# Read by both scopes, or one of them hangs the tail where the other does
+	# not - the fault that put the menu and the walk a few pixels apart before.
+	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
+		var file := FileAccess.open(screen, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % screen)
+			continue
+		_check(file.get_as_text().contains("BEAST_TAIL_LIFT"),
+			"%s does not read BEAST_TAIL_LIFT, so the two views hang the tail differently"
+				% screen)
+
+
+## **Nothing between the painting and the screen, and that is checked rather
+## than trusted.** Every one of the eight earlier passes added a knob here -
+## `wear_grade`, `harmonise`, a `_paint_match`, `BEAST_TAIL_GRADE`, a chroma,
+## a value pull, a seat - and every knob was a second way for the limb to
+## disagree with the hide. A live limb under a graded parent must carry white
+## for both of its own colours and no material, and no scope may set any of
+## them: with the paintings agreeing at the join, inheritance is the whole
+## mechanism and a knob is a way to break it.
+func _test_the_tail_wears_nothing_of_its_own() -> void:
+	var painting: Texture2D = load("res://art/beast/beast_tail_idle_00.png") as Texture2D
+	if painting == null:
+		_check(false, "the tail painting is needed to stand a limb up")
+		return
+	var body := Sprite2D.new()
+	body.modulate = Color(0.25, 0.5, 0.75)
+	add_child(body)
 	var limb := BeastTailSpline.new()
-	limb.adopt(load(frames[0]) as Texture2D)
-	limb.harmonise(load(bodies[0]) as Texture2D)
-	var match_at: Color = limb.self_modulate
-	_check(not match_at.is_equal_approx(Color.WHITE),
-		("the limb's paint correction is exactly white (%s), which is a knob that "
-			+ "looks like it works and reaches nothing - the clamp that made it so "
-			+ "cost nine reports about this limb's colour") % str(match_at))
-	# And bounded, so a redraw that moved the two paintings far apart cannot
-	# multiply the limb into something that is not an animal.
-	var low: float = Balance.BEAST_TAIL_HARMONY_FLOOR * 0.5
-	var high: float = Balance.BEAST_TAIL_HARMONY_CEILING * 1.5
-	_check(match_at.r >= low and match_at.r <= high
-			and match_at.g >= low and match_at.g <= high
-			and match_at.b >= low and match_at.b <= high,
-		"the limb's paint correction left its own band: %s" % str(match_at))
-	limb.free()
+	limb.adopt(painting)
+	body.add_child(limb)
+	_check(limb.self_modulate.is_equal_approx(Color.WHITE),
+		"a live limb carries a self_modulate of %s" % str(limb.self_modulate))
+	_check(limb.modulate.is_equal_approx(Color.WHITE),
+		"a live limb carries a modulate of %s" % str(limb.modulate))
+	_check(limb.material == null, "a live limb carries a material")
+	body.queue_free()
+	var spline := FileAccess.open("res://scripts/systems/beast_tail_spline.gd", FileAccess.READ)
+	if spline == null:
+		_check(false, "the spline script is missing")
+	else:
+		var code: String = spline.get_as_text()
+		for knob: String in ["self_modulate =", "modulate =", "wear_grade", "harmonise", "_paint_match"]:
+			_check(not code.contains(knob),
+				"beast_tail_spline.gd has grown a colour knob again: `%s`" % knob)
+	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
+		var file := FileAccess.open(screen, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % screen)
+			continue
+		var code: String = file.get_as_text()
+		for knob: String in ["_tail.modulate", "_tail.self_modulate", "_tail.material =",
+				"_tail.harmonise", "_tail.wear_grade"]:
+			_check(not code.contains(knob),
+				"%s sets the tail's colour or material itself: `%s`" % [screen.get_file(), knob])
+	var balance := FileAccess.open("res://scripts/Balance.gd", FileAccess.READ)
+	if balance != null:
+		var code: String = balance.get_as_text()
+		for knob: String in ["BEAST_TAIL_GRADE", "BEAST_TAIL_CHROMA", "BEAST_TAIL_VALUE_PULL",
+				"BEAST_TAIL_SEAT", "BEAST_TAIL_HARMONY"]:
+			_check(not code.contains(knob),
+				"Balance has grown a runtime tail-colour constant again: %s" % knob)
 
 
 func _test_the_tail_is_graded_by_the_body() -> void:
@@ -132,8 +201,6 @@ func _test_the_tail_is_graded_by_the_body() -> void:
 		_check(not code.contains("_tail.self_modulate"),
 			("%s sets self_modulate on the tail, which lands on top of the body's "
 				+ "own grade rather than with it") % screen)
-
-
 
 
 ## **The spline is anchored at the body and alive at the tip.**
@@ -363,52 +430,6 @@ func _test_the_stub_fades_and_the_tail_does_not() -> void:
 				% screen.get_file())
 
 
-## The tail is painted in the same colours as the hide it grows out of.
-##
-## **Three reports, two wrong gains** (owner, 2026-09-14). The tail was
-## generated on its own and its palette was 88% the hide's brightness, bluer,
-## and spread differently; a `modulate` cannot fix a distribution, and two
-## measured attempts proved it. `tools/match_tail_palette.py` rewrites the
-## pixels instead, and this is what holds it there: the tail's pooled colour
-## against the body's stub, haunch, belly and rear legs - the same region the
-## tool matched against - on mean brightness and on the two channel ratios
-## that carry the hue. Compared as art, before any tint, because that is where
-## the difference lived and where the fix was made.
-##
-## `BEAST_TAIL_GRADE` is held at white alongside, so a future "small
-## correction" cannot quietly reintroduce the gain that failed twice.
-func _test_the_tail_wears_the_hide() -> void:
-	_check(Balance.BEAST_TAIL_GRADE.is_equal_approx(Color.WHITE),
-		"BEAST_TAIL_GRADE is %s: the tail is matched in its pixels now, and a gain "
-			% str(Balance.BEAST_TAIL_GRADE)
-			+ "on top of that is the thing that was wrong twice")
-	var hide: Array[float] = _pooled_colour(_body_frames(), true)
-	var tail: Array[float] = _pooled_colour(_tail_frames(), false)
-	if hide.is_empty() or tail.is_empty():
-		_check(false, "could not read the body or the tail frames to compare them")
-		return
-	# Mean luminance, R/G and B/G. Tolerances wide enough for pixel-art
-	# quantisation and narrow enough to have caught the tail that shipped:
-	# it sat at 0.93 of the hide's brightness and 0.985 of its B/G.
-	var lum_ratio: float = tail[0] / maxf(hide[0], 0.001)
-	_check(absf(lum_ratio - 1.0) <= HIDE_LUMINANCE_TOLERANCE,
-		"the tail is %.2fx the hide's brightness; run tools/match_tail_palette.py"
-			% lum_ratio)
-	_check(absf(tail[1] - hide[1]) <= HIDE_RATIO_TOLERANCE,
-		"the tail's R/G is %.3f against the hide's %.3f" % [tail[1], hide[1]])
-	_check(absf(tail[2] - hide[2]) <= HIDE_RATIO_TOLERANCE,
-		"the tail's B/G is %.3f against the hide's %.3f" % [tail[2], hide[2]])
-
-
-const HIDE_LUMINANCE_TOLERANCE: float = 0.06
-const HIDE_RATIO_TOLERANCE: float = 0.02
-## How far the tail may sit from the hide's brightness at its own height.
-## Wider than the palette tolerance because this is a lighting match and the
-## tail's own modelling legitimately moves it either way - and narrow enough to
-## have caught what shipped, which stood at 1.115 against the low band while
-## every palette number agreed. It reads 1.042 now.
-const LOW_BAND_TOLERANCE: float = 0.08
-
 ## At or below this in every channel, a pixel is ink rather than hide. The same
 ## number `tools/match_tail_palette.py` separates on, and for the same reason.
 const INK: float = 12.0 / 255.0
@@ -502,112 +523,3 @@ func _body_frames() -> Array[String]:
 	return out
 
 
-## [mean luminance, R/G, B/G] over the *surface* of the given frames. For the
-## body, only the hide at the join - the lower left of the canvas, which is the
-## stub, the haunch, the belly and the rear legs and none of the town.
-##
-## **Ink is left out, because a mean over line and surface together measures
-## the shape rather than the colour.** A tail is a thin limb and is therefore a
-## bigger share of outline than a haunch is; counted in, that reads as a tail
-## 0.89 times the hide's brightness however exactly its hide is matched. The
-## ink is checked separately, and by the thing that actually matters about it -
-## that it is there, and that it is the body's ink.
-func _pooled_colour(paths: Array[String], hide_only: bool) -> Array[float]:
-	var total := Vector3.ZERO
-	var count: int = 0
-	for path: String in paths:
-		var texture: Texture2D = load(path) as Texture2D
-		if texture == null:
-			continue
-		var image: Image = texture.get_image()
-		if image == null:
-			continue
-		var x_to: int = int(float(image.get_width()) * 0.375) if hide_only else image.get_width()
-		var y_from: int = image.get_height() / 2 if hide_only else 0
-		for y: int in range(y_from, image.get_height()):
-			for x: int in range(0, x_to):
-				var at: Color = image.get_pixel(x, y)
-				if at.a >= 0.5 and not (at.r <= INK and at.g <= INK and at.b <= INK):
-					total += Vector3(at.r, at.g, at.b)
-					count += 1
-	if count == 0:
-		return []
-	var mean: Vector3 = total / float(count)
-	var lum: float = 0.2126 * mean.x + 0.7152 * mean.y + 0.0722 * mean.z
-	return [lum, mean.x / maxf(mean.y, 0.001), mean.z / maxf(mean.y, 0.001)]
-
-
-## **The tail is lit like the part of the animal it hangs from, not like its
-## back.** Owner, three reports ending 2026-09-15: the tail "is not matching the
-## colour grading and tint of the body it's attached to".
-##
-## The palette was not the fault, and four passes at it are the evidence. The
-## tail's surface sits within three percent of the hide's on all three channels,
-## on R/G, on B/G, on its share of moss and on its ink - the check above holds
-## every one of those and they were all already true. What was wrong is simpler
-## and nothing was looking at it: the beast is lit from above, its hide runs
-## from 64 across the back at row 120 down to 47 at the feet, and **the tail
-## hangs from row 142 to row 238 painted at 63** - the brightness of the back,
-## on the lowest limb of the animal. A limb lit by a different sun is exactly
-## what that report describes, and no hue match can answer it.
-##
-## So the reference here is the hide's **low band** rather than the whole
-## animal, which is the correction the art needed and the gate needed with it.
-func _test_the_tail_is_lit_where_it_hangs() -> void:
-	var low: float = _band_luminance(_body_frames(), 0.62, 1.0)
-	var back: float = _band_luminance(_body_frames(), 0.3, 0.55)
-	var tail: float = _band_luminance(_tail_frames(), 0.0, 1.0)
-	if low <= 0.0 or back <= 0.0 or tail <= 0.0:
-		_check(false, "could not read a light profile off the frames")
-		return
-	_check(back > low,
-		("the beast must be lit from above for any of this to mean anything: "
-			+ "back %.3f against low %.3f") % [back, low])
-	_check(tail <= back,
-		("the tail hangs at the beast's feet and must not be lit like its back: "
-			+ "%.3f against %.3f - run tools/seat_tail_light.py") % [tail, back])
-	var ratio: float = tail / maxf(low, 0.001)
-	_check(absf(ratio - 1.0) <= LOW_BAND_TOLERANCE,
-		("the tail is %.2fx the hide's brightness at its own height (%.3f against "
-			+ "%.3f) - run tools/seat_tail_light.py") % [ratio, tail, low])
-
-	# **And the lift stays inside the join it hides in.** A tail nudged further
-	# up than the stub dissolves over comes out from under the flank, which is
-	# the seam the overlap and the fade exist to bury.
-	_check(Balance.BEAST_TAIL_LIFT >= 0.0
-			and Balance.BEAST_TAIL_LIFT <= Balance.BEAST_STUB_FADE_PX,
-		("the tail lift is %.1f against a stub fade of %.1f: past that the root "
-			+ "leaves the body") % [Balance.BEAST_TAIL_LIFT, Balance.BEAST_STUB_FADE_PX])
-	# Read by both scopes, or one of them hangs the tail where the other does
-	# not - the fault that put the menu and the walk a few pixels apart before.
-	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
-		var file := FileAccess.open(screen, FileAccess.READ)
-		if file == null:
-			_check(false, "%s is missing" % screen)
-			continue
-		_check(file.get_as_text().contains("BEAST_TAIL_LIFT"),
-			"%s does not read BEAST_TAIL_LIFT, so the two views hang the tail differently"
-				% screen)
-
-
-## Mean surface luminance over a band of a frame's height, ink held out. The
-## band is a fraction so the body and the tail can be asked the same question
-## despite being different canvases.
-func _band_luminance(paths: Array[String], from: float, to: float) -> float:
-	var total: float = 0.0
-	var count: int = 0
-	for path: String in paths:
-		var texture: Texture2D = load(path) as Texture2D
-		if texture == null:
-			continue
-		var image: Image = texture.get_image()
-		if image == null:
-			continue
-		var height: int = image.get_height()
-		for y: int in range(int(float(height) * from), mini(int(float(height) * to), height)):
-			for x: int in image.get_width():
-				var at: Color = image.get_pixel(x, y)
-				if at.a >= 0.5 and not (at.r <= INK and at.g <= INK and at.b <= INK):
-					total += at.get_luminance()
-					count += 1
-	return total / float(count) if count > 0 else 0.0

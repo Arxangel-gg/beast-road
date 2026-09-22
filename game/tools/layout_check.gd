@@ -46,6 +46,10 @@ var _touch_layout: bool = false
 var _dump: bool = false
 var _before_spirit: String = ""
 var _before_spirit_kept: bool = false
+var _before_mounts: Array[String] = []
+var _before_saddled: String = ""
+## The seventh action button only shows when the account has a horse.
+const MOUNT: String = "steppe_horse"
 var _before_settings: Dictionary = {}
 var _before_completed: Array[String] = []
 
@@ -102,6 +106,16 @@ func _ready() -> void:
 	# arrangement the owner screenshotted.
 	MetaState.equipped_spirit = "fox:0"
 	_before_spirit_kept = true
+	# **And a mount is saddled, for the same reason.** The ride button is the
+	# seventh action, shown only when the account owns a horse, and a clean
+	# profile owns none - so the widest bar the game draws was never measured,
+	# and the fourth ability slot went off the right edge of a 1920 screen
+	# while this was green (owner, 2026-09-21: "Skill 4 is cutoff on the
+	# bottom right").
+	_before_mounts = MetaState.mounts.duplicate()
+	_before_saddled = MetaState.mount_saddled
+	MetaState.mounts = [MOUNT]
+	MetaState.mount_saddled = MOUNT
 	RunState.reset()
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
@@ -129,6 +143,7 @@ func _ready() -> void:
 	# green: no bonded spirit, and no frame with the map in it.
 	var resting: Array[Control] = _visible_widgets()
 	_notes.append("%d widgets at rest" % resting.size())
+	_note_the_bottom_row(run)
 	_check_overlap(resting)
 	_check_crowding(resting)
 	_check_on_screen(resting)
@@ -172,6 +187,30 @@ func _ready() -> void:
 		push_error(problem)
 	print("[layout] %s" % ("PASS" if _failures.is_empty() else "FAIL"))
 	_bail(1 if not _failures.is_empty() else 0)
+
+
+## What the command row wants against what it has, part by part. The fourth
+## ability slot went off the right edge of a 1920 screen the day the seventh
+## action button arrived, and nothing said which of the two halves had grown.
+func _note_the_bottom_row(run: Node) -> void:
+	var hud: Node = run.get("hud")
+	var row: Control = hud.get("_bottom_row") as Control if hud != null else null
+	if row == null:
+		return
+	var parts: PackedStringArray = []
+	for child: Node in row.get_children():
+		var control := child as Control
+		if control == null or not control.visible:
+			continue
+		var inner: PackedStringArray = []
+		for grandchild: Node in control.get_children():
+			var button := grandchild as Button
+			if button != null and button.visible:
+				inner.append("%s %.0f" % [button.text.strip_edges(), button.get_combined_minimum_size().x])
+		parts.append("%s %.0f%s" % [control.name, control.get_combined_minimum_size().x,
+			" [" + ", ".join(inner) + "]" if not inner.is_empty() else ""])
+	_notes.append("bottom row wants %.0f of %.0f: %s"
+		% [row.get_combined_minimum_size().x, row.size.x, "; ".join(parts)])
 
 
 ## A touch layout is only real if the controls themselves grew. Measuring the
@@ -566,6 +605,8 @@ func _bail(code: int) -> void:
 	MetaState.completed_objectives = _before_completed
 	if _before_spirit_kept:
 		MetaState.equipped_spirit = _before_spirit
+		MetaState.mounts = _before_mounts
+		MetaState.mount_saddled = _before_saddled
 	get_tree().quit(code)
 
 

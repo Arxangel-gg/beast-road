@@ -1,14 +1,15 @@
 extends Node
 
-## Renders the beast scope so the walk and the ground can be looked at.
-## Diagnostic only, never a gate.
+## Renders the beast scope so the walk, the ground and the tail can be looked
+## at. Diagnostic only, never a gate.
 ##
 ##   godot --path game res://tools/beast_shot.tscn -- --act=2
 ##
-## Each act has its own sky and its own ground tileset, and only the first one is
-## reachable without playing to it - so the other two shipped unlooked-at twice.
-
-const TERRAINS: Array[String] = ["jungle", "desert", "snow"]
+## Each act has its own sky and its own ground, and only the first one is
+## reachable without playing to it - so the others shipped unlooked-at twice.
+## `TailProbe` reads the tail against the hide at the join off the frame, the
+## same reading `menu_shot` takes, because the owner reported the tail's grade
+## in both scopes and a probe in one of them measured half of the complaint.
 
 func _ready() -> void:
 	RunState.reset()
@@ -16,9 +17,11 @@ func _ready() -> void:
 	var act: int = 1
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--act="):
-			act = clampi(int(argument.trim_prefix("--act=")), 1, TERRAINS.size())
+			act = clampi(int(argument.trim_prefix("--act=")), 1, Balance.FINAL_ASCENT_ACT)
 	RunState.act = act
-	RunState.terrain_id = TERRAINS[act - 1]
+	var terrain: TerrainData = ContentDB.terrain_for_act(act)
+	if terrain != null:
+		RunState.terrain_id = terrain.id
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(run)
 	for _f: int in 8:
@@ -32,9 +35,26 @@ func _ready() -> void:
 		run.hud.visible = false
 	for _f: int in 20:
 		await get_tree().process_frame
+	var tail: CanvasItem = TailProbe.find_tail(run)
+	if tail == null:
+		print("[beast] no tail node found")
+	else:
+		var body := tail.get_parent() as CanvasItem
+		print("[beast] tail self_modulate=%s modulate=%s material=%s | body modulate=%s material=%s"
+			% [str(tail.self_modulate), str(tail.modulate), str(tail.material != null),
+				str(body.modulate) if body != null else "-",
+				str(body.material != null) if body != null else "-"])
+		print("[beast] tail on screen at %s  ·  body at %s  ·  scale %s"
+			% [str(tail.get_global_transform_with_canvas().origin.round()),
+				str(body.get_global_transform_with_canvas().origin.round()) if body != null else "-",
+				str(tail.get_global_transform_with_canvas().get_scale())])
+		await RenderingServer.frame_post_draw
+		TailProbe.report(get_viewport(), tail, "beast")
 	var path: String = "user://beast_shot_act%d.png" % act
 	get_viewport().get_texture().get_image().save_png(path)
 	print("[beast] act %d (%s) -> %s" % [act, RunState.terrain_id,
 		ProjectSettings.globalize_path(path)])
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
+	for _f: int in 6:
+		await get_tree().process_frame
 	get_tree().quit(0)

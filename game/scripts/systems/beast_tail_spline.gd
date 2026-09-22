@@ -26,10 +26,20 @@ extends Node2D
 ## painting, so the tail renders pixel for pixel as it always did, and the
 ## motion is a deviation from that rather than a different tail.
 ##
-## **It carries no material and is a child of the body**, which is how every
-## tint the beast is given reaches it - see `beast_tail_check`. A shader here
-## would take the scene's colour off it, which this project has already paid
-## for once.
+## **It carries no material, no modulate and no self_modulate of its own, and
+## it is a child of the body** - which is how every tint the beast is given
+## reaches it, and the *only* way it does. See `beast_tail_check`.
+##
+## **Ninth report (2026-09-21), and the first answered in the file.** Eight
+## passes argued about what happens between the painting and the screen - a
+## modulate, a self_modulate, a shader, a per-channel harmony, a chroma, a
+## value pull, a seat - and the owner kept seeing a limb that was not the
+## animal it hung from. Measured on the paintings, surface only: the tail's
+## root was painted a sixth darker than the stub it continues, and the runtime
+## then darkened it a further six percent on purpose. `tools/grade_tail_to_stub.py`
+## paints the root to the stub's own colour and brightness, and nothing here
+## multiplies anything: with the paintings agreeing at the join, "graded the
+## same" is true by construction and cannot drift with a constant.
 
 ## How many slices the painting is cut into. Enough that the bend reads as a
 ## curve rather than as a fan; few enough that the whole tail is forty quads.
@@ -41,10 +51,6 @@ var sway: float = 1.0
 var wind: float = 0.0
 
 var _texture: Texture2D = null
-## The difference between the two paintings, measured once per pair.
-var _paint_match: Color = Color.WHITE
-## The grade the body is wearing, handed over by whoever grades it.
-var _grade: Color = Color.WHITE
 ## The painting's own centreline, in its own pixels: one point per slice
 ## boundary, from the root end to the tip.
 var _rest: PackedVector2Array = PackedVector2Array()
@@ -151,139 +157,6 @@ func _process(delta: float) -> void:
 	if _time - _drawn_at >= 1.0 / maxf(Balance.BEAST_TAIL_HZ, 1.0):
 		_drawn_at = _time
 		queue_redraw()
-
-
-## **Match the hide the limb grows out of, measured rather than painted.**
-##
-## Owner, four reports ending 2026-09-15: the tail "is still lighter than the
-## body's colour grading and tint, it's not receiving whatever custom thing is
-## going on there for the body's colour grading".
-##
-## Every *render-time* grade does reach it - the modulate chain carries the
-## scene tint, the day, the fog - and that has been checked. What does not
-## reach it is the one thing no chain can carry: the two paintings are
-## different paintings, and the tail's own mid-tones sit above the hide's at
-## the place they meet. Four passes over the pixels narrowed that and never
-## closed it, because a pass over a whole limb cannot know which end of it is
-## against which part of the body.
-##
-## So it is closed here, by measurement, once per pair of textures: the mean
-## surface brightness of the body's stub against the mean of the tail's root,
-## applied as a `self_modulate` on the limb. Whatever either painting is, they
-## meet at the same tone - and if either is ever redrawn, the number follows on
-## its own rather than needing a fifth pass.
-##
-## **Only ever darkening.** Brightening a limb to meet a hide is how a tail ends
-## up glowing in a night scene, and two earlier attempts at a gain were wrong in
-## exactly that direction.
-func harmonise(body: Texture2D) -> void:
-	if body == null or _texture == null:
-		return
-	var key: String = "%s|%s" % [body.resource_path, _texture.resource_path]
-	if not _harmony.has(key):
-		_harmony[key] = _measure_harmony(body, _texture)
-	_paint_match = _harmony[key] as Color
-	_apply_grade()
-
-
-## **The grade the body is wearing, handed over rather than inherited.**
-##
-## Reported seven times, and every previous pass measured the two paintings
-## instead of the screen. Photographed: the body's `modulate` was
-## (0.58, 0.473, 0.476) - warm, dark, strongly coloured - and the limb's was
-## (1, 1, 1) with a flat grey `self_modulate`, so it rendered **+27% brighter
-## than the hide and almost entirely desaturated**. A grey tail on a warm
-## animal.
-##
-## `beast_scope.gd` carried a comment asserting the opposite - "`modulate` is
-## inherited from the beast, so the day tint and the environment grade already
-## reach it" - and that belief is why four passes were spent tuning a ratio that
-## was then multiplied by grey. **Whatever the reason the chain does not carry
-## it, handing it over explicitly is one line and cannot be wrong about it.**
-##
-## Called wherever the body is given its own grade, so the two can never be set
-## from different values on the same frame.
-func wear_grade(grade: Color) -> void:
-	_grade = grade
-	_apply_grade()
-
-
-## **The grade arrives by inheritance; only the paint match belongs here.**
-##
-## Eighth report, and this is the half the seventh got wrong. The limb *is* a
-## child of the body in both scopes, so the body's `modulate` already multiplies
-## it at draw time - and multiplying it again here graded the tail **twice**.
-##
-## What made that invisible is the same mistake in a new place: the previous pass
-## checked the tail's own `modulate` property, saw `(1, 1, 1)`, and concluded the
-## grade "does not arrive down the modulate chain". A child's own `modulate`
-## always reads white while the parent's is applied at draw. Measured off the
-## render instead: the tail came out **43% darker than the hide and at a fifth of
-## its saturation** - rgb(24, 23, 23) against rgb(49, 43, 34) - which is precisely
-## "not colour graded or tinted the same as the beast".
-##
-## So `_grade` is kept for `_measure_harmony` to reason about and is not
-## multiplied in. A model of a thing is not the thing: photograph it.
-func _apply_grade() -> void:
-	self_modulate = Color(_paint_match.r, _paint_match.g, _paint_match.b, 1.0)
-
-
-## The ratio between the hide at the stub and the limb at its root.
-## **Per channel, not per luminance.**
-##
-## This returned one greyscale ratio, so two colours of the same brightness and
-## a different hue measured identical - and the owner's words were "not color
-## graded or tinted the same", which is a hue complaint a scalar can never
-## answer. Multiplying by a coloured ratio tints a grey limb toward the hide;
-## multiplying by a grey one only ever dims it.
-##
-## **And it reads the whole limb against the whole rear of the body**, not a
-## strip at the seam. The seam agreed within nine percent while the length of
-## the tail - which is nearly all of what anybody looks at - did not.
-static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
-	var hide: Color = _surface_mean(body, 0.0, 0.34, 0.0, 1.0)
-	var limb: Color = _surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
-	if hide.get_luminance() <= 0.001 or limb.get_luminance() <= 0.001:
-		return Color.WHITE
-	# **And then the offset the eye asked for.**
-	#
-	# The measurement above closes a gap when there is one. On today's art there
-	# is not: mean, median and upper quartile of the hide's haunch and the
-	# limb's surface agree within three percent, checked six ways. The owner has
-	# still reported the tail as lighter four times, and four reports beat a
-	# histogram - a limb hanging in open air beside a mass that is shadowed by
-	# its own bulk reads brighter than the numbers say it is, because there is
-	# nothing around it to compare against.
-	#
-	# So `BEAST_TAIL_SEAT` is an authored offset rather than a derived one, and
-	# it is written down as such. If the art is ever redrawn far enough apart
-	# for the measurement to bite, it takes over and this only trims.
-	# **The ratio, and then its own brightness taken back out of it.**
-	#
-	# What the limb is missing is the hide's *colour*, not its light: measured
-	# off the render on 2026-09-17 the limb sat at saturation 0.05 against the
-	# hide's 0.31, twenty-six degrees of hue apart, and the owner's words were
-	# "the darker mossy colorgrading and tint that the body gets". A raw ratio
-	# carries both, and carrying the light with it would lift a limb that hangs
-	# in its own shadow up to the brightness of a flank in the open.
-	#
-	# So the ratio is divided by its own luminance, which leaves pure chroma -
-	# a multiplier that turns the limb the hide's colour and cannot change how
-	# dark it is - and `BEAST_TAIL_VALUE_PULL` is the authored trim on top.
-	var raw := Vector3(hide.r / maxf(limb.r, 0.001),
-		hide.g / maxf(limb.g, 0.001),
-		hide.b / maxf(limb.b, 0.001))
-	var mean: float = maxf((raw.x + raw.y + raw.z) / 3.0, 0.001)
-	raw /= mean
-	var low: float = Balance.BEAST_TAIL_HARMONY_FLOOR
-	var high: float = Balance.BEAST_TAIL_HARMONY_CEILING
-	var pull: float = Balance.BEAST_TAIL_VALUE_PULL * Balance.BEAST_TAIL_SEAT
-	# And the authored chroma on top, which is the part the paintings cannot
-	# see: see `Balance.BEAST_TAIL_CHROMA`.
-	var chroma: Color = Balance.BEAST_TAIL_CHROMA
-	return Color(clampf(raw.x, low, high) * pull * chroma.r,
-		clampf(raw.y, low, high) * pull * chroma.g,
-		clampf(raw.z, low, high) * pull * chroma.b, 1.0)
 
 
 ## Mean brightness of the painted surface inside a box, ink held out.

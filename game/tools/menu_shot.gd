@@ -6,10 +6,12 @@ extends Node
 ##   godot --path game res://tools/menu_shot.tscn -- --tag=before
 ##   godot --path game res://tools/menu_shot.tscn -- --tag=fat --feather=0.6
 ##
-## The tail is a separate sprite joined to a generated body frame, and every
+## The tail is a separate painting joined to a generated body frame, and every
 ## fault reported about it so far - an offset root, a feather on the wrong end,
-## a tip that does not match the body's colour - is invisible to every gate in
-## the project and obvious in one picture.
+## a limb that does not match the body's colour - is invisible to every gate in
+## the project and obvious in one picture. `TailProbe` reads the tail against
+## the hide at the join off the frame, and the same probe reads the beast scope
+## in `beast_shot`, because the owner reported both.
 ##
 ## `--feather` and `--root` push the join shader's uniforms so the fade can be
 ## exaggerated until which end it is on is not a matter of opinion.
@@ -36,10 +38,9 @@ func _ready() -> void:
 			root = float(argument.trim_prefix("--root="))
 		elif argument.begins_with("--force-grade="):
 			# **The decisive test for "does the tail get the body's grade".**
-			# Nine reports and three passes have argued about inheritance from the
-			# code. Painting the body a colour nothing else in the scene is and
-			# then measuring the limb settles it in one run: if the tail comes
-			# back red, the grade reaches it; if it stays grey, it does not.
+			# Painting the body a colour nothing else in the scene is and then
+			# measuring the limb settles it in one run: if the tail comes back
+			# that colour, the grade reaches it. Three numbers, `r,g,b`.
 			forced = argument.trim_prefix("--force-grade=")
 	var menu: Node = (load("res://scenes/ui/main_menu.tscn") as PackedScene).instantiate()
 	add_child(menu)
@@ -73,7 +74,7 @@ func _ready() -> void:
 				str(ResourceLoader.exists(MenuFrame.CORNER_ART))])
 	if not forced.is_empty():
 		var parts: PackedStringArray = forced.split(",")
-		var beast: CanvasItem = _find_beast(menu)
+		var beast: CanvasItem = TailProbe.find_body(menu)
 		# **Stop the stage first.** It re-grades the beast every frame from the
 		# sky, so a forced colour is gone before the next photograph and the probe
 		# measures the ordinary grade while claiming to measure a forced one.
@@ -87,14 +88,15 @@ func _ready() -> void:
 			for _f: int in 4:
 				await get_tree().process_frame
 
-	var tail: CanvasItem = _find_tail(menu)
+	var tail: CanvasItem = TailProbe.find_tail(menu)
 	if tail == null:
 		print("[menu-shot] no tail node found")
 	else:
 		var parent := tail.get_parent() as CanvasItem
-		print(("[menu-shot] tail %s self_modulate=%s modulate=%s | body "
+		print(("[menu-shot] tail %s self_modulate=%s modulate=%s material=%s | body "
 			+ "modulate=%s self=%s material=%s")
 			% [tail.get_class(), str(tail.self_modulate), str(tail.modulate),
+				str(tail.material != null),
 				str(parent.modulate) if parent != null else "-",
 				str(parent.self_modulate) if parent != null else "-",
 				str(parent.material != null) if parent != null else "-"])
@@ -105,16 +107,17 @@ func _ready() -> void:
 				str((tail.get_parent() as Node2D).get_global_position().round()),
 				str(tail.get_global_transform().get_scale())])
 		await RenderingServer.frame_post_draw
-		_compare_the_paint(tail, parent)
-		var material := tail.material as ShaderMaterial
+		TailProbe.report(get_viewport(), tail, "menu-shot")
+		# The join shader lives on the body: the tail is drawn whole and the
+		# beast's own stub is what dissolves into it.
+		var material := parent.material as ShaderMaterial if parent != null else null
 		if material != null:
 			if feather >= 0.0:
-				material.set_shader_parameter("feather", feather)
+				material.set_shader_parameter("fade_px", feather)
 			if root >= 0.0:
 				material.set_shader_parameter("root_at", root)
-			print("[menu-shot] feather %s root_at %s"
-				% [str(material.get_shader_parameter("feather")),
-					str(material.get_shader_parameter("root_at"))])
+			print("[menu-shot] fade_px %s"
+				% str(material.get_shader_parameter("fade_px")))
 		for _f: int in 4:
 			await get_tree().process_frame
 	var path: String = "user://menu_shot_%s.png" % tag
@@ -126,166 +129,6 @@ func _ready() -> void:
 	for _f: int in 10:
 		await get_tree().process_frame
 	get_tree().quit(0)
-
-
-## **A `Node2D`, not a `Sprite2D`.**
-##
-## **What the screen actually shows**, which is the only measurement that has
-## ever settled this.
-##
-## Seven passes compared the two *paintings* and an eighth compared the two
-## `modulate` properties, and all eight agreed the tail was fine while the owner
-## was looking at a grey limb on a warm animal. A child's own `modulate` always
-## reads white whatever its parent is doing to it at draw time, and source art
-## says nothing about what a shader or an inherited tint did to it afterwards.
-##
-## This reads the frame: the mean hue, luminance and saturation of the lit pixels
-## inside each node's own on-screen rectangle, and the gap between them.
-func _compare_the_paint(tail: CanvasItem, body: CanvasItem) -> void:
-	var frame: Image = get_viewport().get_texture().get_image()
-	# **Along the limb's own chain**, not a box on its origin. A spline draws
-	# away from its origin, so a square centred there is mostly sky - and sky is
-	# blue, which is why two runs with and without a deliberate fault reported
-	# byte-identical readings. Proven by exactly that: the measurement has to
-	# move when the thing it measures does.
-	var limb: Dictionary = _paint_along(frame, tail)
-	var hide: Dictionary = _paint_in(frame, _screen_rect(body, frame))
-	if limb.is_empty() or hide.is_empty():
-		print("[menu-shot] paint: nothing lit to measure")
-		return
-	print("[menu-shot] paint  tail rgb(%3d,%3d,%3d) hue %5.1f sat %.3f lum %.3f"
-		% [int(limb["r"]), int(limb["g"]), int(limb["b"]),
-			limb["hue"], limb["sat"], limb["lum"]])
-	print("[menu-shot] paint  body rgb(%3d,%3d,%3d) hue %5.1f sat %.3f lum %.3f"
-		% [int(hide["r"]), int(hide["g"]), int(hide["b"]),
-			hide["hue"], hide["sat"], hide["lum"]])
-	var hue_gap: float = absf(fposmod(float(limb["hue"]) - float(hide["hue"]) + 180.0, 360.0) - 180.0)
-	print("[menu-shot] paint  gap: hue %.1f deg, lum %+.1f%%, sat %+.3f"
-		% [hue_gap,
-			(float(limb["lum"]) / maxf(float(hide["lum"]), 0.0001) - 1.0) * 100.0,
-			float(limb["sat"]) - float(hide["sat"])])
-
-
-## The paint on the limb itself, gathered in small discs along its chain.
-##
-## `BeastTailSpline.chain()` is where the thing is actually drawn, so this walks
-## it and samples around each link - which is paint rather than the night behind
-## it, and which moves when the limb's tint moves.
-func _paint_along(frame: Image, tail: CanvasItem) -> Dictionary:
-	if not tail.has_method("chain"):
-		return _paint_in(frame, _screen_rect(tail, frame))
-	var links: PackedVector2Array = tail.call("chain") as PackedVector2Array
-	if links.is_empty():
-		return _paint_in(frame, _screen_rect(tail, frame))
-	var to_screen: Transform2D = (tail as Node2D).get_global_transform()
-	print("[menu-shot] chain %d links, first %s last %s (screen)"
-		% [links.size(), str((to_screen * links[0]).round()),
-			str((to_screen * links[links.size() - 1]).round())])
-	var grain: Vector2 = _frame_scale(frame)
-	var total := Vector3.ZERO
-	var lit: int = 0
-	for link: Vector2 in links:
-		var at: Vector2 = (to_screen * link) * grain
-		for step: int in 81:
-			var dx: int = step % 9 - 4
-			var dy: int = step / 9 - 4
-			var x: int = int(at.x) + dx * 2
-			var y: int = int(at.y) + dy * 2
-			if x < 0 or y < 0 or x >= frame.get_width() or y >= frame.get_height():
-				continue
-			var pixel: Color = frame.get_pixel(x, y)
-			if pixel.r + pixel.g + pixel.b < 0.16:
-				continue
-			total += Vector3(pixel.r, pixel.g, pixel.b)
-			lit += 1
-	if lit == 0:
-		return {}
-	var mean: Vector3 = total / float(lit)
-	var paint := Color(mean.x, mean.y, mean.z)
-	return {
-		"r": mean.x * 255.0, "g": mean.y * 255.0, "b": mean.z * 255.0,
-		"hue": paint.h * 360.0, "sat": paint.s, "lum": paint.v, "lit": lit,
-	}
-
-
-## A node's rectangle on the screen, in pixels of the captured frame.
-## **The photograph is not in the game's own units, and nine reports were
-## measured as though it were.**
-##
-## `get_viewport().get_texture().get_image()` comes back at the *window's*
-## resolution, and the project draws at a content scale under it - so on this
-## machine the frame is 2560x1440 while every node's global position is in a
-## 1920x1080 space. Every sample this file has ever taken was therefore read
-## at three quarters of the way to where it meant to look: the limb's colour
-## was measured off the sky behind it, and the hide's off whatever the beast's
-## bounding box happened to contain.
-##
-## That is the same trap `blood_shot` records - the window in pixels and the
-## subject in content units - and it is why six passes could not settle a
-## question that is one multiplication away from being answerable.
-func _frame_scale(frame: Image) -> Vector2:
-	var view: Vector2 = get_viewport().get_visible_rect().size
-	if view.x <= 0.0 or view.y <= 0.0:
-		return Vector2.ONE
-	return Vector2(float(frame.get_width()) / view.x,
-		float(frame.get_height()) / view.y)
-
-
-func _screen_rect(item: CanvasItem, frame: Image) -> Rect2i:
-	var grain: Vector2 = _frame_scale(frame)
-	var view: Vector2 = Vector2(frame.get_width(), frame.get_height())
-	var here: Vector2 = (item as Node2D).get_global_position() * grain
-	var scale: Vector2 = item.get_global_transform().get_scale() * grain
-	# A square around the node, sized by how big it is drawn. Generous enough to
-	# hold paint and small enough not to wander onto the sky.
-	var reach: float = maxf(40.0, 26.0 * maxf(scale.x, scale.y))
-	return Rect2i(Vector2i(maxf(here.x - reach, 0.0), maxf(here.y - reach, 0.0)),
-		Vector2i(minf(reach * 2.0, view.x), minf(reach * 2.0, view.y)))
-
-
-## The mean colour of the lit pixels in a rectangle, and its hue and saturation.
-##
-## Near-black pixels are skipped: both subjects stand against a night sky, and
-## averaging the sky in would report two very similar blacks and call it a match.
-func _paint_in(frame: Image, box: Rect2i) -> Dictionary:
-	var total := Vector3.ZERO
-	var lit: int = 0
-	for y: int in range(box.position.y, mini(box.end.y, frame.get_height())):
-		for x: int in range(box.position.x, mini(box.end.x, frame.get_width())):
-			var pixel: Color = frame.get_pixel(x, y)
-			if pixel.r + pixel.g + pixel.b < 0.16:
-				continue
-			total += Vector3(pixel.r, pixel.g, pixel.b)
-			lit += 1
-	if lit == 0:
-		return {}
-	var mean: Vector3 = total / float(lit)
-	var paint := Color(mean.x, mean.y, mean.z)
-	return {
-		"r": mean.x * 255.0, "g": mean.y * 255.0, "b": mean.z * 255.0,
-		"hue": paint.h * 360.0, "sat": paint.s, "lum": paint.v, "lit": lit,
-	}
-
-
-## This cast to `Sprite2D` and so returned null for every run since the tail
-## became `BeastTailSpline` - a spline is a `Node2D` that draws slices. The tool
-## has been printing "no tail sprite found" over a tail that is plainly on
-## screen, which is a diagnostic lying about the one thing it exists to report.
-func _find_tail(from: Node) -> CanvasItem:
-	if from.name == &"Tail":
-		return from as CanvasItem
-	for child: Node in from.get_children():
-		var found: CanvasItem = _find_tail(child)
-		if found != null:
-			return found
-	return null
-
-
-## The body the tail hangs off: the tail's own parent, which is the one
-## definition that cannot disagree with the scene.
-func _find_beast(from: Node) -> CanvasItem:
-	var tail: CanvasItem = _find_tail(from)
-	return tail.get_parent() as CanvasItem if tail != null else null
 
 
 func _find_named(from: Node, named: String) -> Node:
