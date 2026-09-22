@@ -78,11 +78,6 @@ func grid() -> PixelGrid:
 	return _grid
 
 
-func set_exclusions(rects: Array[Rect2]) -> void:
-	if _grid != null:
-		_grid.set_exclusions(rects)
-
-
 func exclusions() -> int:
 	return _grid.exclusions() if _grid != null else 0
 

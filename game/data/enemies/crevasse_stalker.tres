@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
 
 [resource]
+script = ExtResource("1_enemy_data")
 behaviour = 2
 behaviour_warning = 0.6
 behaviour_seconds = 0.45
@@ -10,7 +11,6 @@ behaviour_recovery = 1.2
 behaviour_reach = 330.0
 behaviour_power = 0.0
 behaviour_interval = 8.0
-script = ExtResource("1_enemy_data")
 voice_sfx = "sfx_enemy_call_swarm"
 stagger_tolerance = 3.9
 id = "crevasse_stalker"

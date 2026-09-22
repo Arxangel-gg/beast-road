@@ -7565,6 +7565,78 @@ rectangles, `preparation_check` drove the painter exactly **once** - which
 proves the clock reads right and can never see a leak that needs two calls - and
 no other gate in the project counts nodes at all.
 
+**My premise was wrong and the measurement is the useful part, as of
+2026-09-22.** I recorded the two property faults above as *"GDScript only
+refuses an unknown property at parse time when the receiver's static type is
+known"*, and set an audit going on that theory. It came back with the theory
+falsified: `found` in `set_aura.gd` **was** exactly typed
+(`var found: GearSetData = ...`). Measured in a standalone probe project on
+4.7.1 - an unknown property *or method* on a precisely-typed script class is a
+**runtime** error, always, because `unsafe_property_access` and
+`unsafe_method_access` are warnings that default to off and this project sets
+neither. So the fault class is not "loosely typed receivers"; it is **every
+member access in the codebase**, and `script_check` can never see one.
+
+Reproduced the compiler's own verdict: on a scratch copy with both warnings at
+error, `script_check` flags 477 sites in 100 scripts, of which exactly **five**
+name a member the class genuinely lacks. An independent source walk found the
+same five and nothing else, validated by overlaying the two already-fixed files.
+
+**Three of the five were shipping, and all three were player-facing.**
+
+- **The Hold's pond has never produced a fish.** `hub_screen.gd` read
+  `kind.roll_weight` on a `FishData`, which declares `weight`; `roll_weight`
+  belongs to `WildlifeData` and is a *function* there. `_pond_catch` threw on
+  its first loop iteration and returned null, so every cast on every account
+  since it was written answered *"Nothing is rising."* - a fault that apologises
+  politely is the worst shape one can take.
+- **The Hold's "Start at an act" door hid the Hold and opened nothing.**
+  `_road_act_start` assigned `act_start.take_the_road`, which `ActStartScreen`
+  did not declare, so the assignment threw and aborted the function **after**
+  `_hide_road()` and `suspend()` had already run. Invisible because that button
+  is built only for an account that has passed Act I, and a CI profile never
+  has - `a-passing-ci-gate-was-only-asked-about-ci-state`, in a third costume.
+- **Two breeds ship as plain walkers.** `crevasse_stalker.tres` and
+  `loam_lurker.tres` carry seven `behaviour_*` lines **above** the `script =`
+  line, where Godot applies them to a scriptless Resource and drops them in
+  silence. Loaded and read back: `behaviour = 0` where the file says 2. The
+  anchor-on-the-script-line rule, paid for a third time - and
+  `enemy_behaviour_check` skips a breed whose behaviour is NONE, so a dropped
+  behaviour takes the breed out of the gate's own sample.
+
+**And two gates were holding nothing.** `camps_check` guarded on
+`gates.has_method("count")` for a method `RiftGates` has never had, so `before`
+was always -1 and *"a dungeon mouth opens on its ground"* had never once run -
+the `or true` shape again, wearing a defensive guard's clothes.
+`discipline_check` read `node.slot` on a `DisciplineNodeData` that has
+`slot_index()`; unreachable today, and a landmine for the day somebody authors
+the synergy that guard exists to refuse. `PixelFilter.set_exclusions` was an
+orphan wrapper whose only possible effect was to throw, and is deleted.
+
+**The gate for the two that shipped is that something now drives them.**
+`hold_check` fishes the Hold's pond twenty times through the screen's own
+`_pond_catch`, and presses the act-start door **on an account given a road
+behind it**. Both were invisible for the same reason: nothing had ever driven
+them.
+
+**And my own new test passed while aborting, which is the finding to keep.** A
+GDScript runtime error stops the function it happens in and nothing else - so
+planting the act-start fault made `hold_check` lose three checks and still print
+**PASS**. A count of checks is not a proof that they ran. Each of those tests
+stamps its own name as its last statement now, and `_run` accounts for every
+stamp; with the fault back it names `'act_start_door' never reached its end`.
+That is the comparison-of-two-nothings shape one layer out, and it will be true
+of any gate in this project whose test calls a function that can throw.
+
+**Not taken, and recorded so it is a decision rather than an omission.** The
+audit's own first recommendation is to set `gdscript/warnings/unsafe_property_access=2`
+in `project.godot`, which makes the compiler do this walk for ever. It flags 176
+sites today; 148 of them are one pattern (EventBus reached through a
+`Node`-typed receiver in `coop_relay.gd` and `coop_check.gd`) and 28 are spread
+over 14 files. It is the right answer and it is a change that can stop the
+*game* loading rather than only a gate, so it wants its own pass with its own
+sweep rather than riding on this one.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

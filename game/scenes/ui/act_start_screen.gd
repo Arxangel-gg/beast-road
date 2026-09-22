@@ -30,6 +30,20 @@ var _close_button: Button
 var _act: int = 1
 var _doctrine_id: String = ""
 
+## **Who takes the road, when somebody other than the front door asked.**
+##
+## The Hold assigns this so the party is put the question over the room
+## rather than over a dimmed nothing, and clears it again as it fires. It was
+## assigned there and declared nowhere, so the assignment threw and aborted
+## `_road_act_start` *after* it had hidden the room - the Hold's "Start at an
+## act" door hid the Hold and opened nothing at all. Unreachable to every
+## gate, because the button is only built for an account that has passed Act
+## I and a CI profile never has.
+##
+## Unset - the main menu's path - means start the run directly, which is what
+## this screen has always done.
+var take_the_road: Callable = Callable()
+
 
 func _ready() -> void:
 	# Every plate, button and bar on this screen gets the standing animation and
@@ -241,6 +255,10 @@ func _begin() -> void:
 	if not ActStart.may_start(_act):
 		return
 	close()
+	# Asked rather than taken, when somebody is holding the question open.
+	if take_the_road.is_valid():
+		take_the_road.call(_act, _doctrine_id)
+		return
 	# Act I is an ordinary new run; there is no road behind it to outfit.
 	if _act <= 1:
 		GameDirector.start_run()

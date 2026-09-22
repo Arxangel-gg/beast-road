@@ -251,13 +251,17 @@ func _test_a_fork_opens(camps: Camps, grid: BattleGrid, field: Battlefield) -> v
 func _test_the_war_camp(camps: Camps, grid: BattleGrid, field: Battlefield) -> void:
 	var lane: int = 0
 	var gates: RiftGates = field.rift_gates()
-	var before: int = gates.count() if gates != null and gates.has_method("count") else -1
+	# **No `has_method` guard.** There was one, for a `count()` `RiftGates` has
+	# never had, so `before` was always -1 and the assertion below it has never
+	# once run - a check that cannot execute cannot fail, which is the shape
+	# `homecoming_check`'s `or true` already cost this project.
+	var before: int = gates.gate_positions().size() if gates != null else -1
 	_fell(camps.mobs_of(lane, BattleGrid.CampTier.BARON))
 	camps._process(0.1)
 	_check(camps.state_of(lane, BattleGrid.CampTier.BARON) == Camps.State.RAZED, "the war camp razed stays down")
 	_check(_war_camps.size() == 1 and int(_war_camps[0][0]) == lane, "and says so")
 	if before >= 0:
-		_check(gates.count() == before + 1, "a dungeon mouth opens on its ground")
+		_check(gates.gate_positions().size() == before + 1, "a dungeon mouth opens on its ground")
 	_check(MetaState.war_camps_razed >= 1, "the statistic counts it")
 	camps._process(Balance.CAMP_RESPAWN_SECONDS[BattleGrid.CampTier.BARON] * 2.0)
 	_check(camps.state_of(lane, BattleGrid.CampTier.BARON) == Camps.State.RAZED, "it does not stand while the dungeon is open")

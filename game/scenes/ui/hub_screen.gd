@@ -662,12 +662,12 @@ func _pond_catch() -> FishData:
 		if int(kind.rarity) > Balance.HOLD_POND_RARITY_CEILING:
 			continue
 		pool.append(kind)
-		weight += maxf(kind.roll_weight, 0.01)
+		weight += maxf(kind.weight, 0.01)
 	if pool.is_empty():
 		return null
 	var roll: float = randf() * weight
 	for kind: FishData in pool:
-		roll -= maxf(kind.roll_weight, 0.01)
+		roll -= maxf(kind.weight, 0.01)
 		if roll <= 0.0:
 			return kind
 	return pool[pool.size() - 1]

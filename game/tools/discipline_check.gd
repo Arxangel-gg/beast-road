@@ -270,7 +270,7 @@ func _can_hold_together(data: SynergyData) -> bool:
 			# Read from the trained list, so the slot does not constrain it.
 			if not _effect_is_slot_bound(effect_id):
 				continue
-			var slot: int = int(node.slot)
+			var slot: int = node.slot_index()
 			if slot_used.has(slot) and slot_used[slot] != effect_id:
 				return false
 			slot_used[slot] = effect_id

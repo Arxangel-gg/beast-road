@@ -69,6 +69,8 @@ const WALK_GRID: float = 40.0
 const STAIR_MIN_WIDE: float = 150.0
 
 var _failures: int = 0
+## Which tests reached their own last line. See the loop in `_run`.
+var _reached: Dictionary = {}
 var _checks: int = 0
 
 
@@ -88,6 +90,17 @@ func _ready() -> void:
 	_test_the_shelf_trails_the_warden()
 	_test_the_commission_costs_more()
 	_test_the_pond_is_bounded()
+	# **A test that aborted must not read as a test that passed.** A GDScript
+	# runtime error - which is what every fault in this batch was - stops the
+	# function it happens in and nothing else. So planting the act-start fault
+	# made this gate lose three checks and still print PASS, which is the
+	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
+	# below stamps its own name as its last statement, and every stamp is
+	# accounted for here.
+	for stage: String in ["pond_fish", "act_start_door"]:
+		_check(_reached.has(stage),
+			("'%s' never reached its end - it aborted partway, and every check "
+				+ "it had not made yet is a check nobody made") % stage)
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[hold] PASS - %d checks: every station presses a door, every "
@@ -578,6 +591,99 @@ func _test_the_pond_is_bounded() -> void:
 			"the pond stands on ground no Warden can walk to")
 	yard.queue_free()
 	MetaState.hold_pond = was
+	_test_the_pond_gives_up_a_fish()
+
+
+## **And something rises.** The test above drives the pond's *budget* - how many
+## casts a window allows and when it opens again - and every one of those checks
+## was green while `_pond_catch` threw on its first loop iteration and returned
+## null, so the Hold's pond had never produced a fish on any account since it was
+## written. `_fish_the_pond` catches that as "Nothing is rising." and says so
+## politely, which is the worst shape a fault can take.
+##
+## Driven through the screen's own catch rather than by re-deriving the roll,
+## because the fault was a member access inside it - a test that rolled its own
+## fish would have passed with the bug in place, which is the `GearRow.set_text`
+## mistake this project has already made once.
+func _test_the_pond_gives_up_a_fish() -> void:
+	# Built rather than loaded: the Hold is a `CanvasLayer` the menu constructs
+	# in code (`main_menu.gd:281`), and there is no scene to instantiate.
+	var hub := HubScreen.new()
+	add_child(hub)
+	var pool: Array = ContentDB.fish_sorted()
+	_check(not pool.is_empty(), "there are no fish for the Hold's pond to hold")
+	if pool.is_empty():
+		hub.queue_free()
+		return
+	# Twenty casts, because the roll is weighted and one null is a fault whether
+	# it happens on the first cast or the twentieth.
+	var caught: int = 0
+	var names: Dictionary = {}
+	for _cast: int in 20:
+		var fish: FishData = hub.call("_pond_catch") as FishData
+		if fish != null:
+			caught += 1
+			names[fish.id] = true
+			_check(int(fish.rarity) <= Balance.HOLD_POND_RARITY_CEILING,
+				("the Hold's pond gave up %s at rarity %d, over its ceiling of "
+					+ "%d - the rare fish are the road's")
+					% [fish.id, int(fish.rarity), Balance.HOLD_POND_RARITY_CEILING])
+	_check(caught == 20,
+		"the Hold's pond gave up a fish on %d of 20 casts" % caught)
+	_check(names.size() > 1,
+		("the Hold's pond returned the same fish on every one of 20 casts (%s) "
+			+ "- the weighting reaches nothing") % ", ".join(names.keys()))
+	hub.queue_free()
+	_reached["pond_fish"] = true
+	_test_the_act_start_door_opens_the_room()
+
+
+## **The door the CI profile could never press.**
+##
+## "Start at an act" is only built for an account that has passed Act I
+## (`hub_screen.gd`, inside `if furthest > 1:`), and a scratch profile is a new
+## account - so no gate had ever rendered that button, let alone pressed it.
+## `_road_act_start` assigned `act_start.take_the_road`, which `ActStartScreen`
+## did not declare; the assignment threw and aborted the function **after**
+## `_hide_road()` and `suspend()` had run, so the Hold hid its own frame, card
+## and yard and opened nothing at all.
+##
+## That is the recorded lesson in a third costume: when a gate passes in CI, it
+## has only been asked about the state CI has. The account is given a road
+## behind it here, which is the whole point.
+func _test_the_act_start_door_opens_the_room() -> void:
+	var kept: float = MetaState.best_distance
+	MetaState.best_distance = Balance.act_start_distance(4) + 10.0
+	_check(ActStart.furthest_act() > 1,
+		"the harness failed to give the account a road behind it")
+	var hub := HubScreen.new()
+	add_child(hub)
+	var screen := ActStartScreen.new()
+	add_child(screen)
+	screen.visible = false
+	hub.act_start = screen
+	hub.visible = true
+
+	hub.call("_road_act_start")
+	_check(screen.visible,
+		("the Hold's act-start door left the screen closed - and the room "
+			+ "suspended behind it, which is a Warden looking at nothing"))
+	_check(screen.take_the_road.is_valid(),
+		("the Hold did not hand the act-start screen anywhere to hand the road "
+			+ "back to, so the party would never be asked"))
+	# And the screen hands it back rather than starting a run behind the
+	# party's back. Driven through the screen's own Begin path.
+	var handed: Array = []
+	screen.take_the_road = func(act: int, doctrine: String) -> void:
+		handed.append([act, doctrine])
+	screen.call("_begin")
+	_check(handed.size() == 1,
+		("the act-start screen began a road without handing it back (%d hands)")
+			% handed.size())
+	screen.queue_free()
+	hub.queue_free()
+	MetaState.best_distance = kept
+	_reached["act_start_door"] = true
 
 
 ## Seats are presence and the session owns them. Driven through the same door
