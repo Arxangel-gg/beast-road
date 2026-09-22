@@ -100,7 +100,16 @@ const ROOT_SHARE: float = 0.30
 ## has stopped being the same animal in the other direction.
 const ROOT_SHADE_FLOOR: float = 0.68
 const ROOT_SHADE_CEILING: float = 0.94
-const LIMB_LUMINANCE_TOLERANCE: float = 0.22
+## **And the whole limb, against the same stub.** A band rather than a match,
+## and below one for the same reason the root is: the limb hangs where the
+## body is dark. Widened on 2026-09-22 when the colour match moved from a flat
+## gain (`grade_tail_to_stub.py`, retired) to a per-channel histogram match
+## against the hide (`match_tail_palette.py`), which brings the body's moss
+## and the body's deep crevices with it - and a distribution with the hide's
+## share of near-black in it measures darker than one without, which is the
+## point of having it.
+const LIMB_SHADE_FLOOR: float = 0.62
+const LIMB_SHADE_CEILING: float = 1.05
 
 
 func _test_the_tail_continues_the_stub() -> void:
@@ -141,8 +150,9 @@ func _test_the_tail_continues_the_stub() -> void:
 				% [path.get_file(), shade, ROOT_SHADE_FLOOR, ROOT_SHADE_CEILING])
 		var whole: Color = BeastTailSpline._surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
 		var lum: float = whole.get_luminance() / stub_lum
-		_check(absf(lum - 1.0) <= LIMB_LUMINANCE_TOLERANCE,
-			"%s is %.2fx the stub's brightness over its whole length" % [path.get_file(), lum])
+		_check(lum >= LIMB_SHADE_FLOOR and lum <= LIMB_SHADE_CEILING,
+			("%s is %.2fx the stub's brightness over its whole length, outside "
+				+ "%.2f-%.2f") % [path.get_file(), lum, LIMB_SHADE_FLOOR, LIMB_SHADE_CEILING])
 
 
 ## **And the lift stays inside the join it hides in.** A tail nudged further

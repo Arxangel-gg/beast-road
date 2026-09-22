@@ -6527,6 +6527,48 @@ away with *"the last ten levels cost more than the first ninety"*; measured,
 they are 89,385 against 238,965, so the objection was arithmetic and the
 arithmetic disagreed with it.
 
+**The tail, eleventh report, and the answer was the distribution and where the
+limb hangs, as of 2026-09-22.** The owner sent a two-scope crop with the fault
+circled in their own words: *"the tail attachment is lighter than the body
+segment and has less contrast and grading and tinting"*. Three things had to be
+true at once and each earlier pass had only one of them.
+
+**A gain cannot add moss.** The pass before this matched the tail's *mean* to
+the stub's with one per-channel multiplier. A multiplier moves a distribution;
+it cannot give a bare limb the body's green moss cast or its near-black
+crevices, and those are most of what the eye is comparing. `match_tail_palette.py`
+- the histogram match written for exactly this and partly undone since - maps
+the tail's per-channel distribution onto the hide's with the ink held out, and
+brings the moss and the dark end with it. `grade_tail_to_stub.py` is retired:
+two tools claiming one job is how one of them ends up wrong.
+
+**And a limb is compared with the part of the body it hangs beside.** The
+Worldstrider's back is pale plated stone and its haunch and belly are deep
+shadow under hanging vine; the tail leaves the haunch and hangs at the height
+of the belly, so matching it to the animal's *average* leaves it visibly pale.
+`seat_tail_in_shadow.py` grades it into that shadow, hardest at the root,
+easing to the tip, luminance only.
+
+**The mechanism was never the fault, and that is now provable rather than
+argued.** `beast_shot --force-grade` paints the body a colour nothing else in
+the scene is: with the body forced red the tail comes back exactly as red, so
+the grade reaches the limb through the parent's `modulate` and always did.
+Eleven passes argued about that chain from one property at a time;
+`TailProbe.say_the_chain` prints every `modulate`, `self_modulate` and material
+up the tree, which is the reading that would have ended it.
+
+**Two gate invariants were amended and both are recorded in the file.** The
+root is held *below* the stub in a band rather than matched to it, and the
+whole limb likewise - a distribution carrying the hide's share of near-black
+measures darker than one without, which is the point of having it.
+
+**The lesson, and it is the one this project keeps paying for.** Every pass
+before this measured a statistic and reported success; the owner rejected the
+claim four times. What settled it was a magnified crop of the render beside
+the owner's own screenshot, and then handing the pictures back rather than the
+conclusion. **When a report and a measurement disagree more than twice, stop
+measuring and start showing.**
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
