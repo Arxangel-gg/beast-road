@@ -43,6 +43,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_a_snapshot_is_refused_or_whole()
 	_test_momentum_stays_out_of_the_fight()
+	_test_a_worn_gate_is_offered_a_mend()
 	await _test_banking_and_coming_back()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -53,6 +54,56 @@ func _ready() -> void:
 	else:
 		push_error("[expedition] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A worn gate is a front that needs mending** (owner, 2026-09-22: the Hold
+## should sell the repair *"if a successful extract is available to continue
+## its run and it requires mending"*).
+##
+## Both screens asked `fortifications().y`, which counts **towers**, while
+## `repair_bill` has priced the gate since 2026-09-20 - so a front that came
+## home behind a broken wall with every emplacement whole was offered no mend
+## anywhere, and the purchase that would have worked was never reached. The
+## question is the bill's, and this holds the four corners of it.
+func _test_a_worn_gate_is_offered_a_mend() -> void:
+	var whole: Dictionary = {
+		"seed": 1, "act": 2, "wave": 9, "wall": 1.0, "towers": [],
+		"currencies": {}, "momentum": 0.0,
+	}
+	_check(not Expedition.needs_mending(whole),
+		"a whole front is not offered a mend")
+
+	var worn: Dictionary = whole.duplicate(true)
+	worn["wall"] = 0.42
+	_check(Expedition.needs_mending(worn),
+		"a worn gate with no towers at all must still want mending")
+	_check(Expedition.hurt_summary(worn).contains("gate"),
+		"and the button must say it is the gate, said '%s'"
+			% Expedition.hurt_summary(worn))
+	_check(Expedition.fortifications(worn).y == 0,
+		"the tower count is zero here, which is exactly why it cannot be the "
+			+ "question")
+
+	# And the mend puts it right, which is what clears the fires on the way
+	# back in - see `Expedition.wall_share`.
+	var mended: Dictionary = Expedition.mend(worn)
+	_check(is_equal_approx(Expedition.wall_share(mended), 1.0),
+		"mending must set the gate whole, left at %.2f"
+			% Expedition.wall_share(mended))
+	_check(not Expedition.needs_mending(mended),
+		"and a mended front is not offered one again")
+
+	# A hurt tower and a whole gate says towers, and both says both.
+	var tower: Dictionary = whole.duplicate(true)
+	tower["towers"] = [{"kind": "ember_spire", "level": 1, "health": 0.5,
+		"anchor": Vector2i(1, 1), "path": 0}]
+	_check(Expedition.hurt_summary(tower).contains("tower"),
+		"a hurt tower is named, said '%s'" % Expedition.hurt_summary(tower))
+	var pair: Dictionary = tower.duplicate(true)
+	pair["wall"] = 0.6
+	_check(Expedition.hurt_summary(pair).contains("tower")
+			and Expedition.hurt_summary(pair).contains("gate"),
+		"and both are named together, said '%s'" % Expedition.hurt_summary(pair))
 
 
 ## **Whole or refused.** Half a fortress is worse than none.

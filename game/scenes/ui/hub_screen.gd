@@ -1153,10 +1153,13 @@ func _show_road() -> void:
 	# on the front door: a fortress that comes home damaged and can only be put
 	# right from the main menu is one a player in the Hold cannot mend at all
 	# (owner, 2026-09-22).
-	if MetaState.has_expedition():
-		var damaged: int = Expedition.fortifications(MetaState.expedition).y
-		if damaged > 0:
-			_road_button("Mend the front  ·  %d damaged" % damaged, _mend_the_front)
+	# **Offered when the bill says so, never when a tower count does.** The
+	# gate is the thing a run is lost through and `repair_bill` has priced it
+	# since 2026-09-20; asking `fortifications().y` hid the button for every
+	# front that came home behind a broken wall with its board intact.
+	if MetaState.has_expedition() and Expedition.needs_mending(MetaState.expedition):
+		_road_button("Mend the front  ·  %s"
+			% Expedition.hurt_summary(MetaState.expedition), _mend_the_front)
 	var furthest: int = ActStart.furthest_act()
 	if furthest > 1:
 		_road_button("Start at an act  ·  up to Act %d" % furthest, _road_act_start)

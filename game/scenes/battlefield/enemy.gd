@@ -1787,10 +1787,22 @@ func _foe_stands(foe: Node2D) -> bool:
 ## aura *is* its reach - the circle was always what the player was reading.
 func attack_reach() -> float:
 	if data.role != EnemyData.Role.HOWLER:
+		# A melee arm reaches from the body's surface, so the attacker's own
+		# radius belongs in the reach exactly as the target's belongs in the
+		# gap. Right for an arm, and wrong for a shot.
 		return Balance.ENEMY_ATTACK_RANGE + contact_radius()
+	# **A ranged breed reaches exactly as far as it is authored to, and not
+	# one unit past it** (owner, 2026-09-22: ranged enemies should strike the
+	# base "from their proper ranged attack distances, not beyond").
+	#
+	# It carried `+ contact_radius()` as well, which is the melee convention
+	# applied to a projectile: a shot leaves the body and flies its own
+	# range, so a shaman authored at 185 struck from 210. Small, and it
+	# contradicted the paragraph above it - "one number now, drawn and
+	# obeyed" - because the readout ring reads this function, so the circle
+	# a player stands outside was 25 units wide of the resource's own number.
 	var authored: float = data.aura_radius
-	return (authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE) \
-		+ contact_radius()
+	return authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE
 
 
 ## Whether the ring touches the target.
@@ -3151,7 +3163,8 @@ func _build_aura_readout() -> void:
 	# sets it. Both, and a breed turning round would move twice.
 	var centre := Vector2(0.0, -_depth_lift)
 	# The radius is the reach, so the circle and the rule are the same number.
-	var shown: float = attack_reach() if data.role == EnemyData.Role.HOWLER 		else data.aura_radius
+	var shown: float = attack_reach() if data.role == EnemyData.Role.HOWLER \
+		else data.aura_radius
 	var points: PackedVector2Array = []
 	for i: int in 49:
 		points.append(centre + Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * shown)

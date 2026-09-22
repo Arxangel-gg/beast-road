@@ -383,6 +383,36 @@ static func wall_share(stored: Dictionary) -> float:
 	return clampf(float(stored.get("wall", 1.0)), 0.0, 1.0)
 
 
+## **Whether the front is worth mending, asked in one place.**
+##
+## Owner, 2026-09-22: the Hold should sell the repair *"if a successful
+## extract is available to continue its run and it requires mending"*. Both
+## halves of that were nearly right and the second was wrong: `repair_bill`
+## has priced the gate since 2026-09-20, but both screens offered the button
+## only when `fortifications().y` was above zero - which counts **towers**.
+##
+## So a front that came home behind a battered gate with every emplacement
+## whole could not be mended from anywhere, while the purchase that would
+## have mended it worked perfectly if it were ever reached. The bill is the
+## question now, and it already knows about the wall.
+static func needs_mending(stored: Dictionary) -> bool:
+	return not repair_bill(stored).is_empty()
+
+
+## What is hurt out there, for the button that offers to put it right. Named
+## rather than counted, because "3 damaged" beside a whole board and a ruined
+## gate is the same sentence that hid this for two days.
+static func hurt_summary(stored: Dictionary) -> String:
+	var towers: int = fortifications(stored).y
+	var gate: float = 1.0 - wall_share(stored)
+	var parts: PackedStringArray = []
+	if towers > 0:
+		parts.append("%d tower%s" % [towers, "" if towers == 1 else "s"])
+	if gate > 0.001:
+		parts.append("the gate at %d%%" % int(round(wall_share(stored) * 100.0)))
+	return " and ".join(parts)
+
+
 static func fortifications(stored: Dictionary) -> Vector2i:
 	var standing: int = 0
 	var hurt: int = 0

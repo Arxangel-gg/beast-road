@@ -1012,10 +1012,13 @@ func _build_resume_button() -> void:
 	# **And the bill for what is broken out there**, offered only when something
 	# is. A fortress that comes home damaged and cannot be mended would be a
 	# fortress that only ever gets worse.
-	if standing.y > 0:
+	# Asked of the bill rather than of the tower count - see
+	# `Expedition.needs_mending`. A worn gate above a whole board is a front
+	# that needs mending and could not be offered one.
+	if Expedition.needs_mending(front):
 		var mend := Button.new()
 		mend.name = "Mend"
-		mend.text = "Mend the front \u00b7 %d damaged" % standing.y
+		mend.text = "Mend the front · %s" % Expedition.hurt_summary(front)
 		mend.tooltip_text = _mend_bill_text()
 		mend.custom_minimum_size = new_run_button.custom_minimum_size
 		mend.theme_type_variation = settings_button.theme_type_variation
