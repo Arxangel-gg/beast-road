@@ -215,8 +215,14 @@ func _compose() -> void:
 		# Keyed the way the yard names these seats, so the Warden called Marrow
 		# keeps Marrow's animals - `HoldYard` picks the name from the same
 		# expression, and two different keys would put one name over another's pen.
-		_table[index]["pen"] = _simulated_pen(MetaState.play_code + str(index))
-		_table[index]["look"] = _simulated_look(MetaState.play_code + str(index))
+		# **The yard's key, never a second spelling of it.** The name is drawn
+		# from `HoldYard.sim_key`, and a pen drawn from a different string puts
+		# one Warden's animals behind another's fence - which the note above
+		# warns about and which a per-visit salt would otherwise have caused.
+		var who: String = yard.sim_key(index) if yard != null \
+			else MetaState.play_code + str(index)
+		_table[index]["pen"] = _simulated_pen(who)
+		_table[index]["look"] = _simulated_look(who)
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()

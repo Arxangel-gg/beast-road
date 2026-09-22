@@ -10666,6 +10666,11 @@ const HOLD_REACH: float = 120.0
 ## How long one of the Hold's people stands still before an errand, and how
 ## long a Warden nobody is driving stays put. Each figure rolls in this band on
 ## its own clock, so a yard of four never reads as four copies of one loop.
+## How long a simulated Warden waits between one gesture and the next where it
+## stopped - a swing at the forge, a turn toward whoever it walked up to. Long
+## enough that the Hold reads as people going about their business rather than
+## as a workshop floor. [TUNE]
+const HOLD_NPC_WORK_GAP: Vector2 = Vector2(2.4, 5.2)
 const HOLD_NPC_PAUSE: Vector2 = Vector2(2.6, 7.5)
 
 ## How fast one of the Hold's residents plays its own frames, in frames a

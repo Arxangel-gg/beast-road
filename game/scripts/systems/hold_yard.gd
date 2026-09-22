@@ -486,6 +486,8 @@ var _sky: CanvasModulate = null
 var _fog: FogOfWar = null
 var _fires: Array[Node2D] = []
 var _lights: Array[PointLight2D] = []
+## The shadows, the window light and the embers. See `HoldGlow`.
+var _glow: HoldGlow = null
 ## A dash in progress, and the rest after one.
 var _dash_left: float = 0.0
 var _dash_way: Vector2 = Vector2.ZERO
@@ -562,10 +564,19 @@ func _ready() -> void:
 	# walk through it.
 	_actors.add_child(_marks)
 	_actors.move_child(_marks, 0)
+	# **The Hold's light and its air.** Built after the stations so it has
+	# windows to light, and before the fires so it has something to throw
+	# embers over.
+	_glow = HoldGlow.new()
+	_actors.add_child(_glow)
+	_actors.move_child(_glow, 1)
+	_glow.light_stations(_stations)
 	_build_fires()
 	_build_bonfire()
 	_build_banners()
 	_build_houses()
+	if _glow != null:
+		_glow.over_fires(_fires)
 	set_process(true)
 
 
@@ -959,8 +970,31 @@ func paddock() -> StablePaddock:
 # ---------------------------------------------------------------- the people
 
 
+## **A different crowd every visit** (owner, 2026-09-22: the Wardens in the
+## Hold *"need random procedural variations for each visit"*).
+##
+## Keyed on the play code alone, the same three strangers with the same three
+## pens and the same two dyes stood in the same Hold for the life of the
+## account. The salt is drawn once when the yard is built and every simulated
+## thing hangs off it, so a visit is a crowd rather than a photograph.
+##
+## **One key, asked for rather than recomputed.** The name, the pen and the
+## dye are all drawn from this string, and `HoldSession` asks the yard for it
+## rather than building its own - two spellings of it is how the Warden called
+## Marrow ends up standing over somebody else's animals, which the note on
+## `_simulated_pen` already warns about.
+func sim_key(index: int) -> String:
+	# Built before `_build_seats` has run - a caller asking early gets a
+	# stable key rather than an empty one.
+	return "%s:%s:%d" % [MetaState.play_code, _visit, index]
+
+
 func _build_seats() -> void:
 	_seats.clear()
+	# Not the run's stream: this is decoration, and a draw on a named stream
+	# moves every roll after it. The clock is the salt, which is also what
+	# makes it different on the next visit.
+	_visit = str(Time.get_ticks_usec())
 	for index: int in Balance.HOLD_SEATS:
 		_seats.append(_stand_warden(index))
 	_seats[0]["kind"] = HoldSession.Seat.LOCAL
@@ -970,9 +1004,29 @@ func _build_seats() -> void:
 	for index: int in range(1, _seats.size()):
 		_seats[index]["kind"] = HoldSession.Seat.SIMULATED
 		_seats[index]["name"] = SIM_NAMES[
-			absi(hash(MetaState.play_code + str(index))) % SIM_NAMES.size()]
+			absi(hash(sim_key(index))) % SIM_NAMES.size()]
+		# Its own wandering is seeded from the visit too, so two visits are not
+		# the same three people walking the same three errands.
+		var own := _seats[index]["rng"] as RandomNumberGenerator
+		if own != null:
+			own.seed = absi(hash("hold-seat:" + sim_key(index)))
 		_place(_seats[index])
 	_relabel()
+
+
+## What a simulated Warden is up to where it stopped. See `_errand`.
+enum Errand {
+	## Standing and looking at it: the fire, the paddock rail.
+	WATCH,
+	## Working: one swing of the heavy sheet, every few seconds.
+	WORK,
+	## Beside somebody: turned to face them, and they turn back.
+	TALK,
+}
+
+
+## The salt every simulated thing in this visit is drawn from. See `sim_key`.
+var _visit: String = "0"
 
 
 ## A Warden: the hero's own sheets, a name over their head, and their own clock.
@@ -1034,7 +1088,55 @@ func _stand_warden(index: int) -> Dictionary:
 		"facing": Vector2.DOWN,
 		"rng": own,
 		"left": own.randf_range(Balance.HOLD_NPC_PAUSE.x, Balance.HOLD_NPC_PAUSE.y),
+		"doing": Errand.WATCH,
+		"busy": 0.0,
 	}
+
+
+## What a simulated Warden does where it stopped.
+##
+## **Presentation, and read by nothing.** A swing at the forge deals no damage,
+## makes nothing and presses no door - it is the same distinction `PenYard` is
+## drawn under, and turning every one of these off would leave the Hold
+## identical apart from three figures standing still.
+func _busy(seat: Dictionary, delta: float) -> void:
+	seat["busy"] = float(seat["busy"]) - delta
+	if float(seat["busy"]) > 0.0:
+		return
+	var own := seat["rng"] as RandomNumberGenerator
+	match int(seat["doing"]):
+		Errand.WORK:
+			var animator := seat["animator"] as HeroAnimator
+			if animator != null:
+				# The heavy sheet, which is what the Warden's own work swing
+				# uses: at this size an axe into a trunk and a hammer onto an
+				# anvil are the same body doing the same thing.
+				animator.play("attack_3", true)
+			seat["busy"] = own.randf_range(Balance.HOLD_NPC_WORK_GAP.x,
+				Balance.HOLD_NPC_WORK_GAP.y)
+		Errand.TALK:
+			# **Both of them turn.** One figure facing another who is facing
+			# away is somebody being ignored; the pair reads as a conversation
+			# only when the other looks back, so the nearest other simulated
+			# Warden is turned round too - never a real seat, whose facing is
+			# its own machine's to say.
+			var at: Vector2 = seat["at"] as Vector2
+			var best: Dictionary = {}
+			var near: float = 260.0
+			for index: int in range(1, _seats.size()):
+				var other: Dictionary = _seats[index]
+				if other == seat or int(other["kind"]) != HoldSession.Seat.SIMULATED:
+					continue
+				var gap: float = ((other["at"] as Vector2) - at).length()
+				if gap < near:
+					near = gap
+					best = other
+			if not best.is_empty():
+				best["facing"] = (at - (best["at"] as Vector2)).normalized()
+			seat["busy"] = own.randf_range(Balance.HOLD_NPC_WORK_GAP.x,
+				Balance.HOLD_NPC_WORK_GAP.y)
+		_:
+			seat["busy"] = 1.0
 
 
 ## Somewhere a Warden might plausibly be standing: in front of one of the
@@ -1055,15 +1157,32 @@ func _stand_warden(index: int) -> Dictionary:
 ## built under, and standing at the anvil is the whole of what presence looks
 ## like.
 func _somewhere(own: RandomNumberGenerator) -> Vector2:
+	return _errand(own)["at"] as Vector2
+
+
+## The same choice, saying what kind of thing was chosen.
+##
+## **What arriving means differs by errand** (owner, 2026-09-22: they should
+## *"try to do things like to certain interactables ... or other NPCs and
+## interact with them"*). At a station a Warden works - one swing of the heavy
+## sheet, which is exactly what `Hero.play_work_swing` uses for an axe into a
+## trunk. Beside somebody they turn to face them. At the fire and the rail they
+## simply stand, because that is what standing at a fire looks like.
+##
+## Still only presence: nothing here presses a button, opens a door or writes
+## anything, which is the bound the seats were built under.
+func _errand(own: RandomNumberGenerator) -> Dictionary:
 	var roll: float = own.randf()
-	if roll < 0.30 and not _pens.is_empty():
+	if roll < 0.26 and not _pens.is_empty():
 		var pen: Dictionary = _pens[own.randi() % _pens.size()]
-		return _on_ground((pen["at"] as Vector2)
-			+ Vector2(own.randf_range(-70.0, 70.0), own.randf_range(70.0, 120.0)))
-	if roll < 0.44:
-		return _on_ground(at_cell(FIRE_AT)
-			+ Vector2(own.randf_range(-110.0, 110.0), own.randf_range(40.0, 110.0)))
-	if roll < 0.62:
+		return {"at": _on_ground((pen["at"] as Vector2)
+			+ Vector2(own.randf_range(-70.0, 70.0), own.randf_range(70.0, 120.0))),
+			"doing": Errand.WATCH}
+	if roll < 0.40:
+		return {"at": _on_ground(at_cell(FIRE_AT)
+			+ Vector2(own.randf_range(-110.0, 110.0), own.randf_range(40.0, 110.0))),
+			"doing": Errand.WATCH}
+	if roll < 0.60:
 		var people: Array[Vector2] = []
 		for other: Dictionary in _residents:
 			people.append(other["home"] as Vector2)
@@ -1071,16 +1190,18 @@ func _somewhere(own: RandomNumberGenerator) -> Vector2:
 			if int(_seats[index]["kind"]) != HoldSession.Seat.EMPTY:
 				people.append(_seats[index]["at"] as Vector2)
 		if not people.is_empty():
-			return _on_ground(people[own.randi() % people.size()]
-				+ Vector2(own.randf_range(-90.0, 90.0), own.randf_range(30.0, 80.0)))
+			return {"at": _on_ground(people[own.randi() % people.size()]
+				+ Vector2(own.randf_range(-90.0, 90.0), own.randf_range(30.0, 80.0))),
+				"doing": Errand.TALK}
 	if STATIONS.is_empty():
-		return _on_ground(at_cell(ENTRY))
+		return {"at": _on_ground(at_cell(ENTRY)), "doing": Errand.WATCH}
 	var pick: Dictionary = STATIONS[own.randi() % STATIONS.size()]
 	# Close enough to the door to read as *at* it. Settled onto real ground,
 	# because the yard is a shape and a spot south of a door is easily over a
 	# bank or off the map.
-	return _on_ground(at_cell(pick["cell"] as Vector2i)
-		+ Vector2(own.randf_range(-52.0, 52.0), own.randf_range(72.0, 104.0)))
+	return {"at": _on_ground(at_cell(pick["cell"] as Vector2i)
+		+ Vector2(own.randf_range(-52.0, 52.0), own.randf_range(72.0, 104.0))),
+		"doing": Errand.WORK}
 
 
 func _place(seat: Dictionary) -> void:
@@ -1595,7 +1716,7 @@ func set_seat(index: int, kind: int, who: String, title: String = "") -> void:
 	_seats[index]["name"] = who
 	_seats[index]["title"] = title
 	if kind == HoldSession.Seat.SIMULATED and who.is_empty():
-		_seats[index]["name"] = SIM_NAMES[absi(hash("sim%d" % index)) % SIM_NAMES.size()]
+		_seats[index]["name"] = SIM_NAMES[absi(hash(sim_key(index))) % SIM_NAMES.size()]
 	_relabel()
 
 
@@ -1607,6 +1728,21 @@ func set_look(index: int, row: Array) -> void:
 	var animator := _seats[index].get("animator") as HeroAnimator
 	if animator != null and animator.sprite != null:
 		WardenLook.dress(animator.sprite, WardenLook.unpack(row))
+
+
+## A seat's own record, so a gate can drive one rather than assert a constant.
+func seat_state(index: int) -> Dictionary:
+	if index < 0 or index >= _seats.size():
+		return {}
+	return _seats[index]
+
+
+## A seat's own sprite, for anything that needs to read what it is wearing.
+func seat_sprite(index: int) -> Sprite2D:
+	if index < 0 or index >= _seats.size():
+		return null
+	var animator := _seats[index].get("animator") as HeroAnimator
+	return animator.sprite if animator != null else null
 
 
 ## What is kept in a seat's pen. This machine's own comes off the save; a
@@ -1889,7 +2025,10 @@ func _drift(seat: Dictionary, delta: float) -> void:
 		seat["left"] = float(seat["left"]) - delta
 		if float(seat["left"]) <= 0.0:
 			var own := seat["rng"] as RandomNumberGenerator
-			seat["to"] = _somewhere(own)
+			var errand: Dictionary = _errand(own)
+			seat["to"] = errand["at"]
+			seat["doing"] = errand["doing"]
+			seat["busy"] = 0.0
 			seat["left"] = own.randf_range(Balance.HOLD_NPC_PAUSE.x,
 				Balance.HOLD_NPC_PAUSE.y)
 		# **Arrived, it looks at what it walked to.** A figure that stops
@@ -1898,6 +2037,7 @@ func _drift(seat: Dictionary, delta: float) -> void:
 		var gap: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
 		if gap.length() <= 12.0:
 			seat["facing"] = Vector2.UP if absf(gap.x) < 1.0 else gap.normalized()
+			_busy(seat, delta)
 	var step: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
 	var way: Vector2 = step.normalized() if step.length() > 12.0 else Vector2.ZERO
 	_step(seat, way, delta, Balance.HOLD_WALK_SPEED * 0.72)
@@ -1925,6 +2065,12 @@ func _step(seat: Dictionary, way: Vector2, delta: float, speed: float) -> void:
 	if animator == null:
 		return
 	animator.set_facing(seat["facing"] as Vector2)
+	# **A one-shot is left to finish.** Standing still asks for "idle" every
+	# frame, which over a gesture requested on the same tick is a swing that
+	# never draws a frame of itself. Walking cancels it, which is right: a
+	# figure that walks off mid-swing has changed its mind.
+	if way.length_squared() <= 0.01 and animator.mid_gesture():
+		return
 	animator.play("walk" if way.length_squared() > 0.01 else "idle")
 
 

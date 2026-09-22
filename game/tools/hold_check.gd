@@ -81,6 +81,8 @@ func _ready() -> void:
 	_test_the_smith_gives_up_the_anvil()
 	_test_the_residents_work_at_their_posts()
 	_test_the_seats_are_the_sessions()
+	_test_the_warden_wears_their_own_dye()
+	await _test_the_crowd_changes_and_does_things()
 	_test_the_shelf_refreshes_by_rule()
 	_test_buying_never_prints_marks()
 	_test_the_shelf_trails_the_warden()
@@ -591,6 +593,109 @@ func _test_the_seats_are_the_sessions() -> void:
 	_check(yard.seat_kind(1) == HoldSession.Seat.EMPTY,
 		"and empties when the session says so")
 	yard.queue_free()
+
+
+## **The dye the Warden chose is on the Warden in the room** (owner,
+## 2026-09-22: *"player's custom colours set in the Hold do not appear on the
+## player in the Hold"*).
+##
+## The card dressed its own portrait and nothing else, so a slider changed the
+## picture on the card while the figure walking about stayed the painted
+## Warden. Read off the sprite's own material rather than off the save, because
+## the fault was entirely between the two: the number was written correctly and
+## reached no sprite.
+func _test_the_warden_wears_their_own_dye() -> void:
+	var was: Dictionary = MetaState.look.duplicate(true)
+	var yard: HoldYard = _stand_a_yard()
+
+	# **Driven through the session, not through the yard.** The fault was a
+	# missing *call*, and a gate that calls `set_look` itself proves the
+	# painter works while the screen still never asks it to - which is the
+	# shape this project has shipped twice.
+	var session := HoldSession.new()
+	session.yard = yard
+	add_child(session)
+
+	MetaState.set_look(WardenLook.KEY_CLOAK, 0.33)
+	MetaState.set_look(WardenLook.KEY_SASH, -0.21)
+	session.my_look_changed()
+	var worn: Dictionary = _dye_on(yard, 0)
+	_check(is_equal_approx(float(worn.get("cloak", 0.0)), 0.33)
+			and is_equal_approx(float(worn.get("sash", 0.0)), -0.21),
+		"the Warden in the room wears the dye the card set, wears %s" % str(worn))
+
+	# A stranger wears what the host said, and never this machine's own.
+	yard.set_look(1, PackedFloat32Array([-0.4, 0.15]))
+	var theirs: Dictionary = _dye_on(yard, 1)
+	_check(is_equal_approx(float(theirs.get("cloak", 0.0)), -0.4),
+		"a stranger wears the dye the host sent, wears %s" % str(theirs))
+	_check(not is_equal_approx(float(theirs.get("cloak", 0.0)),
+			float(worn.get("cloak", 0.0))),
+		"and never this machine's own")
+
+	session.queue_free()
+	yard.queue_free()
+	MetaState.look = was
+
+
+## **A different crowd every visit, doing things** (owner, 2026-09-22).
+##
+## Two yards stood one after the other must not be the same three strangers,
+## and a simulated Warden that has walked to a station must eventually swing.
+## The errand is driven rather than the constant read: a `doing` written into
+## the seat and looked at by nobody is the shape this project keeps shipping.
+func _test_the_crowd_changes_and_does_things() -> void:
+	var first: HoldYard = _stand_a_yard()
+	var second: HoldYard = _stand_a_yard()
+	# **The windows are lit** (owner, 2026-09-22: the Hold lacked lighting).
+	# Counted off the yard's own glow rather than off `HoldGlow.LIT`, because
+	# a table naming ten stations proves nothing about whether any of them was
+	# handed a lamp.
+	var glow := first.get("_glow") as HoldGlow
+	_check(glow != null and glow.lit() >= 8,
+		"the Hold's buildings must light their windows, lit %d"
+			% (glow.lit() if glow != null else -1))
+	var differs: bool = false
+	for index: int in range(1, mini(first.seats(), second.seats())):
+		if first.sim_key(index) != second.sim_key(index):
+			differs = true
+	_check(differs, "two visits must not draw the same crowd")
+	_check(not first.sim_key(1).is_empty(), "a simulated seat must have a key")
+
+	# A station errand, forced, and then driven until the swing.
+	var seat: Dictionary = first.call("seat_state", 1) as Dictionary
+	_check(not seat.is_empty(), "a simulated seat must be readable")
+	if not seat.is_empty():
+		seat["kind"] = HoldSession.Seat.SIMULATED
+		seat["doing"] = HoldYard.Errand.WORK
+		seat["busy"] = 0.0
+		seat["to"] = seat["at"]
+		var animator := seat["animator"] as HeroAnimator
+		var swung: bool = false
+		for _step: int in 90:
+			first.call("_drift", seat, 0.05)
+			if animator != null and String(animator.get("_state")).begins_with("attack"):
+				swung = true
+				break
+		_check(swung, "a Warden standing at a station must work at it")
+
+	second.queue_free()
+	first.queue_free()
+	await get_tree().process_frame
+
+
+## What a seat's figure is actually painted with.
+func _dye_on(yard: HoldYard, index: int) -> Dictionary:
+	var sprite: Sprite2D = yard.call("seat_sprite", index) as Sprite2D
+	if sprite == null:
+		return {}
+	var material := sprite.material as ShaderMaterial
+	if material == null:
+		return {}
+	return {
+		"cloak": float(material.get_shader_parameter("look_cloak")),
+		"sash": float(material.get_shader_parameter("look_sash")),
+	}
 
 
 ## Whether two things in the yard open the same screen. A station's own id

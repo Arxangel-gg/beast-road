@@ -137,6 +137,16 @@ func current_state() -> String:
 	return _state
 
 
+## Whether a one-shot is still running. Anything driving this animator from a
+## movement state has to ask, or it plays "idle" over a swing every frame -
+## which is how the Hold's simulated Wardens stood at the forge doing nothing
+## while the swing was requested on the tick (found 2026-09-22).
+func mid_gesture() -> bool:
+	if _state.is_empty() or not STATES.has(_state):
+		return false
+	return _playing and not bool((STATES[_state] as Dictionary)["loop"])
+
+
 func _process(delta: float) -> void:
 	if sprite == null or _state.is_empty() or not _sheets.has(_state):
 		return
