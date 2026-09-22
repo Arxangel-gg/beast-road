@@ -3,6 +3,10 @@ extends Node
 ## Eight towers an element, and the five that made it eight do what they say.
 ##
 ## The owner's brief (2026-09-14): the roster to eight an element with the
+## ten fusions kept - and (2026-09-22) to ten an element. The count lives in
+## `Balance.TOWERS_PER_ELEMENT` rather than here, because a number typed into
+## a gate is a number that stops describing the game the day somebody adds a
+## tower, and this is the second time it has had to move.
 ## ten fusions kept; a Flash Kiln that shows its hand before a short-reach
 ## burst; a Bellows Forge whose window hastes the towers round it and never
 ## stacks into a standing gift; a Stillwater Mirror that swallows a bounded
@@ -51,7 +55,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print("[tower-support] PASS - %d checks: eight an element, and the five measured on the field" % _checks)
+		print("[tower-support] PASS - %d checks: %d an element, and the five measured on the field"
+			% [_checks, Balance.TOWERS_PER_ELEMENT])
 	else:
 		push_error("[tower-support] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -77,8 +82,8 @@ func _test_the_roster_is_eight_an_element() -> void:
 			fusions += 1
 	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
 			TowerData.Element.EARTH, TowerData.Element.AIR]:
-		_check(int(per.get(element, 0)) == 8,
-			"%s has %d base towers, not eight" % [TowerData.element_name(element), int(per.get(element, 0))])
+		_check(int(per.get(element, 0)) == Balance.TOWERS_PER_ELEMENT,
+			"%s has %d base towers, not ten" % [TowerData.element_name(element), int(per.get(element, 0))])
 	_check(fusions == 10, "ten fusions, not %d" % fusions)
 	for id: String in ["flash_kiln", "bellows_forge", "stillwater_mirror", "mason_shrine", "wind_relay"]:
 		_check(MetaState.ROSTER_UNLOCK_ORDER.has(id), "%s must be earnable: it is not in the unlock order" % id)
@@ -88,6 +93,27 @@ func _test_the_roster_is_eight_an_element() -> void:
 
 ## Each of the five has a name, a description, art on disk, and the fields
 ## its mechanic reads; a support fires nothing.
+## **The weakest gun among the Wardens that are not supports.**
+##
+## Measured off the roster rather than written down: the roster grows, and a
+## number typed into a gate is a number that stops describing the game the
+## first time somebody adds a tower. Wardens because that is the role every
+## support sits in, so the comparison is against its own neighbours.
+func _dps(tower: TowerData) -> float:
+	return tower.damage / maxf(tower.attack_interval, 0.01)
+
+
+func _warden_floor() -> float:
+	var least: float = 1e9
+	for tower: TowerData in ContentDB.base_towers():
+		if tower.role != TowerData.Role.WARDEN or tower.is_support() or tower.is_well():
+			continue
+		if tower.damage <= 0.0 or tower.attack_interval <= 0.0:
+			continue
+		least = minf(least, _dps(tower))
+	return least if least < 1e8 else 1.0
+
+
 func _test_the_five_are_authored_whole() -> void:
 	var kinds: Dictionary = {}
 	for id: String in ["flash_kiln", "bellows_forge", "stillwater_mirror", "mason_shrine", "wind_relay"]:
@@ -106,7 +132,23 @@ func _test_the_five_are_authored_whole() -> void:
 			"%s has its three idle and three attack frames (loaded %d and %d)" % [id, idle, attack])
 		if tower.is_support():
 			kinds[int(tower.support)] = true
-			_check(tower.damage <= 0.0, "%s works for its neighbours and fires nothing" % id)
+			# **Amended 2026-09-22, and the old invariant is recorded rather
+			# than replaced.** It read `tower.damage <= 0.0` - *"works for its
+			# neighbours and fires nothing"* - which was true and is no longer
+			# what the game wants: the owner ruled that every tower must deal
+			# some damage, the healing well excepted. What must still hold is
+			# the reason that assertion existed, which is that a support is a
+			# support and not a gun: its shot is well under the Warden band it
+			# sits in, so the thing it is bought for is still the thing it
+			# does. `TOWER_SUPPORT_DAMAGE_SHARE` is that bound, and the check
+			# is a share of the band rather than a number typed here.
+			_check(tower.damage > 0.0,
+				"%s deals no damage at all; every tower must (owner, 2026-09-22)" % id)
+			_check(_dps(tower) <= _warden_floor() * Balance.TOWER_SUPPORT_DAMAGE_SHARE,
+				"%s fires at %.1f dps, past %.1f - a support that out-shoots the "
+					% [id, _dps(tower),
+						_warden_floor() * Balance.TOWER_SUPPORT_DAMAGE_SHARE]
+					+ "weakest gun in its own role has stopped being a support")
 			_check(tower.role == TowerData.Role.WARDEN, "%s is a Warden" % id)
 		match int(tower.support):
 			TowerData.Support.HASTE:

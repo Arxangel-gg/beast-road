@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trap_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "caltrop_drift"
+display_name = "Caltrop Drift"
+description = "Iron thorns strewn wide. It covers more road than anything else you can lay, and every one of them is a scratch."
+triggers = 8
+arm_seconds = 1.4
+damage = 26.0
+radius = 280.0
+knockback = 0.0
+slow_factor = 0.72
+slow_duration = 1.6
+burn_dps = 0.0
+burn_duration = 0.0
+cost = {"gold": 45, "wood": 55}
+colour = Color(0.72, 0.66, 0.52, 1)

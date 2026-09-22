@@ -232,6 +232,16 @@ func refresh_modifiers() -> void:
 		# wears armour for it (owner brief, 2026-09-14).
 		_health.flat_damage_reduction = _field.lane_armour(lane()) \
 			+ (Balance.TAUNT_TOWER_ARMOUR if data.taunts else 0.0)
+		# **And every tower takes less of every blow** (owner, 2026-09-22).
+		# Here rather than in `hurt()` because `hurt()` is only the *world's*
+		# door - a body swinging at a tower and a shot landing on one both go
+		# straight to `Health.take_damage`, so a multiplier in `hurt()` would
+		# have covered four of the six things that damage a tower.
+		#
+		# Re-applied here rather than set once in `_ready`, because
+		# `Health.reset` puts the scale back to one and this function is what
+		# every other mitigation on a tower is already re-read through.
+		_health.damage_scale = Balance.TOWER_DAMAGE_TAKEN_SCALE
 
 
 func _on_weather_changed(_id: String) -> void:
@@ -259,12 +269,26 @@ func _process(delta: float) -> void:
 	_cooldown -= delta * rate
 	_tick_storm(delta)
 	_tick_heat(delta)
-	# A support tower works on its own clock and never shoots; a puppet's
-	# copy runs too, because what it changes is what the guest sees and the
-	# guest's towers are told their shots anyway.
+	# A support tower works on its own clock; a puppet's copy runs too,
+	# because what it changes is what the guest sees and the guest's towers
+	# are told their shots anyway.
+	#
+	# **And then it falls through and shoots** (owner, 2026-09-22: *"all
+	# towers need to deal some kind of damage ... except for the healing
+	# well"*). This `return` was unconditional, which is why authoring
+	# `damage` on a support tower did nothing at all: the silence was in the
+	# code, not in the data, and every field below - the wind-up, the
+	# cooldown, `_acquire_targets`, `_fire` - was unreachable for four of the
+	# forty-two towers.
+	#
+	# Conditional on the damage rather than deleted, so a support authored
+	# with none is still silent by construction and the next one costs no
+	# thought. Nothing further down the firing path ever asks whether a tower
+	# is a support, so falling through needed no other change.
 	if data.is_support():
 		_tick_support(delta)
-		return
+		if data.damage <= 0.0:
+			return
 	# Shutters open: the shot leaves when the wind-up ends, at whatever is in
 	# reach then, so a body that walks out of the cone is spared and one that
 	# walks in is not.

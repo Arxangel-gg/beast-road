@@ -43,15 +43,20 @@ const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 ## Frame drawn behind each spell slot.
 const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 
-## Build panel geometry.
+## Build panel geometry, shared by the two right-hand sheets.
 ##
-## One column of eight, down the right-hand side. Each tower is one line — mark,
-## name, price — because that is all a tower needs to be chosen between: the
-## description belongs in the footer, and a card tall enough to hold one is a
-## card that forces the list to scroll.
+## One column down the right-hand side. Each row is one line - mark, name,
+## price - because that is all a tower or a trap needs to be chosen between:
+## the description belongs in the footer, and a card tall enough to hold one is
+## a card that forces the list to scroll.
 ##
-## Nothing here is a scroll container. Eight rows at 44 plus the heading, footer
-## and close button come to ~600 of the 1080 the UI is laid out in.
+## **Both sheets scroll, and neither scrolls its own chrome.** This said
+## "nothing here is a scroll container" and gave the arithmetic for eight rows
+## fitting in 1080 - which stopped being true when the build sheet learned to
+## scroll, and again when the roster grew toward ten towers an element. The
+## heading, the hover footer and the Close button sit outside the scroll; only
+## the list moves under them. See `_fit_right_sheet`, which is where the height
+## is decided for both.
 ## Wide enough for the element rail and the towers it pulls out beside it.
 const BUILD_PANEL_WIDTH: float = 560.0
 
@@ -73,9 +78,21 @@ const BUILD_PANEL_MARGIN: float = 34.0
 
 ## How far the build sheet's lower edge sits above the combat row.
 ##
-## The command panel's old bottom edge, inherited on purpose: that gap was
-## already tuned to clear the bottom band without wasting the space.
-const BUILD_PANEL_LIFT: float = 164.0
+## **Air above the combat row, and nothing else.** This was 164 and the reason
+## written here was that it inherited *"the command panel's old bottom edge"* -
+## the command panel used to sit above the bottom right, directly over the
+## space the sheets need. It has been anchored top left since the day
+## `_build_command_panel` says it moved *"to free that space"*, and nothing
+## freed it: 164 units of screen went on clearing a panel that is no longer
+## there, on every desktop, on both sheets, for as long as the roster has been
+## growing. Recovered rather than left, because the owner's report of
+## 2026-09-22 is that the build sheet *"should fit more of the list"* and this
+## is where the list's room went.
+##
+## What is left is the gap anything keeps off the ability bar, which is the
+## bar's own height (`_bottom_band_height`, added on top of this) plus enough
+## air that the sheet's Close button does not read as part of the row under it.
+const BUILD_PANEL_LIFT: float = 40.0
 
 ## The same, for a thumb.
 ##
@@ -85,6 +102,23 @@ const BUILD_PANEL_LIFT: float = 164.0
 ## lands on it. Cleared rather than narrowed: the box is what a player reads to
 ## decide whether to press Ride On, so it wins the space.
 const BUILD_PANEL_TOUCH_LIFT: float = 24.0
+
+## How much clear air a right-hand sheet keeps under the right column's floor.
+##
+## `_right_column_floor` already adds `SPIRIT_PANEL_GAP` to the readout's lower
+## edge, and a sheet topped at exactly that floor is ten units under the Call
+## button - which reads as one crowded mass and is under the eighteen the
+## layout gate asks between two panels. Named here rather than typed into the
+## gate, because a bound written in one place and enforced from another is two
+## places to change and one place to forget.
+const RIGHT_SHEET_GAP: float = 14.0
+
+## The least a right-hand sheet may be squeezed to.
+##
+## A screen short enough to need this gets a sheet that scrolls rather than a
+## sheet that vanishes: a list with nothing showing is indistinguishable from a
+## sheet that failed to open.
+const RIGHT_SHEET_MIN_HEIGHT: float = 160.0
 
 ## The hover figures box, which sits *beside* the build panel rather than over it.
 ##
@@ -414,11 +448,20 @@ var _top_bar: HBoxContainer
 ## has to decide whether it is on screen.
 var _lane_ring: Control
 var _build_panel: PanelContainer
+## The whole sheet: fixed heading, scrolling list, fixed footer and Close.
+var _build_frame: VBoxContainer
 var _build_scroll: ScrollContainer
 var _build_column: VBoxContainer
+var _build_close: Button
+var _build_heading: HBoxContainer
 
 ## The road sheet: traps and barricades, for the tile that was clicked.
 var _road_panel: PanelContainer
+var _road_frame: VBoxContainer
+var _road_scroll: ScrollContainer
+var _road_column: VBoxContainer
+var _road_close: Button
+var _road_heading: HBoxContainer
 var _road_list: VBoxContainer
 var _road_title: Label
 var _road_tile: Vector2i = Vector2i.ZERO
@@ -799,6 +842,7 @@ func _refit_banners() -> void:
 		if control != null and is_instance_valid(control):
 			_fit_centred(control, float(pair[1]))
 	_fit_build_panel()
+	_fit_road_panel()
 	_place_preparation_panel()
 
 
@@ -1528,53 +1572,209 @@ func _build_nav_bar() -> void:
 
 ## How far above the bottom edge the build sheet's lower rim sits.
 func _build_panel_lift() -> float:
-	var base: float = BUILD_PANEL_TOUCH_LIFT if touch_ui() else BUILD_PANEL_LIFT
-	return base + _bottom_band_height()
+	return _sheet_air() + _bottom_band_height()
+
+
+## The least air a sheet keeps off the very bottom of the screen.
+##
+## The lift above is this plus the whole combat row, which is what a sheet
+## takes when there is room for it. This is what it keeps when there is not:
+## a landscape phone is 777 units of logical height with the right column
+## owning the top 271 and the combat row the bottom 392, which leaves 114 for
+## a sheet whose heading, footer and Close button alone are 217. Something has
+## to be covered, and the combat row is the right thing - the sheets only open
+## in Preparation, and `TouchInput.set_actions_visible(false)` has already
+## taken the action buttons off the screen while one is up. The spirit
+## readout's Call button is live and stays uncovered.
+func _sheet_air() -> float:
+	return BUILD_PANEL_TOUCH_LIFT if touch_ui() else BUILD_PANEL_LIFT
 
 
 ## Holds the build sheet inside the screen, scrolling its contents if it cannot.
 ##
 ## Called wherever the sheet is shown or rebuilt, because its height is decided
-## by its contents and those change - eight towers, one upgrade, or a road with
+## by its contents and those change - ten towers, one upgrade, or a road with
 ## nothing on it.
 func _fit_build_panel() -> void:
-	if _build_panel == null or _build_scroll == null or _build_column == null:
+	_fit_right_sheet(_build_panel, _build_frame, _build_scroll, _build_column,
+		[_build_heading], [_build_detail, _build_close])
+
+
+## The same, for the road sheet.
+##
+## It had none, and that is the whole of the owner's report on 2026-09-22 that
+## the trap menu is *"top right anchored"* and *"overlapping the spirit
+## companion UI"*. It was never top-right anchored: it hangs from the bottom
+## right exactly as the build sheet does and grows *upward*, and with ten rows
+## in it the top edge reached about y=136 against a right-column floor near 206.
+## A sheet that grows upward with no ceiling is a sheet that eventually grows
+## through whatever is above it, and what is above it is the Call button.
+func _fit_road_panel() -> void:
+	_fit_right_sheet(_road_panel, _road_frame, _road_scroll, _road_column,
+		[_road_heading], [_road_close])
+
+
+## Holds one of the two right-hand sheets inside the screen, scrolling its
+## contents if it cannot.
+##
+## **One function rather than two copies**, because the rule the two sheets obey
+## is the same rule: hang from the bottom right, never grow past the right
+## column's floor, and scroll whatever will not fit between the two. Written
+## twice it would be right twice today and right once after the next time
+## anything in that corner moves - which is exactly how the road sheet came to
+## have no ceiling while the build sheet had one.
+func _fit_right_sheet(panel: PanelContainer, frame: Control,
+		scroll: ScrollContainer, column: Control,
+		above: Array, below: Array) -> void:
+	if panel == null or frame == null or scroll == null or column == null:
 		return
 	var screen: Vector2 = get_viewport().get_visible_rect().size
 	var span: float = screen.y
-	var lift: float = _build_panel_lift()
 	# **Across the bottom when the screen is tall, down the side when it is
 	# wide.** A right-hand sheet needs a column of screen beside the field, and a
 	# phone held upright has not got one: the sheet and anything centred - an act
 	# announcement, a wave banner - are simply in the same place. Held sideways
 	# there is room for both, which is where it started.
 	if screen.y > screen.x:
-		_build_panel.offset_left = BUILD_PANEL_MARGIN
-		_build_panel.offset_right = -BUILD_PANEL_MARGIN - nav_column_width()
+		# **Both offsets are measured from the right edge**, because the sheet
+		# is anchored `PRESET_BOTTOM_RIGHT` and that puts `anchor_left` at 1.0
+		# as well as `anchor_right`. This branch wrote `offset_left = 34` - a
+		# left margin against a right anchor - which placed the sheet's left
+		# edge thirty-four units *past* the right edge of the screen. Both
+		# sheets were therefore drawn entirely off an upright phone, with a
+		# width collapsed to whatever their contents demanded, and no layout
+		# gate could see it: `layout_check` skips a widget that does not
+		# intersect the viewport at all, on the reasonable grounds that it is
+		# usually a panel waiting to slide in.
+		panel.offset_left = -(screen.x - BUILD_PANEL_MARGIN)
+		panel.offset_right = -(BUILD_PANEL_MARGIN + nav_column_width())
 	else:
-		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
-		_build_panel.offset_right = -_build_panel_inset()
+		panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+		panel.offset_right = -_build_panel_inset()
 	# Clear of the scope column's top, so the sheet never grows up behind it.
 	# **Clear of the spirit readout as well as the scope column** (owner,
 	# 2026-09-17: the build sheets must *"not be overlapping with the call
 	# spirit button"*). The sheet grows *upward* from the bottom right, and
 	# what is above it on that side is the readout with the Call button in it -
 	# so the ceiling is whichever of the two hangs lower.
-	var room: float = maxf(span - lift - _right_column_floor(), 160.0)
-	# **The content's height, not the panel's.**
+	# **The ceiling is the column's floor, and it does not move.** Everything
+	# else here gives way to it, because what is above the sheet is the Call
+	# button and a `PanelContainer` over it stops it taking clicks.
+	var ceiling: float = _right_column_floor() + RIGHT_SHEET_GAP
+	var lift: float = _build_panel_lift()
+	# **Not floored.** A minimum applied here defeats the ceiling rather than
+	# protecting the sheet: on a landscape phone the room in the sheet's proper
+	# place is about 76 units, and a floor of 160 simply places a 160-unit
+	# sheet 84 units up through the Call button. The floor belongs on the
+	# height in the branch below, where the sheet has already been moved down
+	# to make the space it is being given.
+	var room: float = span - lift - ceiling
+	# The most the sheet could have if it came down over the combat row.
+	var most: float = maxf(span - _sheet_air() - ceiling, RIGHT_SHEET_MIN_HEIGHT)
+	# **The chrome's height plus the list's, not the panel's.**
 	#
 	# A ScrollContainer's own minimum is nearly nothing - that is what lets it
-	# scroll - so asking the panel how tall it wants to be now answers "barely
-	# any", and the sheet collapsed to zero with its list spilling out below.
-	# The column inside still knows its real height.
-	var frame: float = 0.0
-	var style: StyleBox = _build_panel.get_theme_stylebox("panel")
+	# scroll - so asking the panel how tall it wants to be answers "barely any",
+	# and the sheet collapsed to zero with its list spilling out below. The
+	# frame around it knows how tall the heading, the footer and the Close
+	# button are; the column inside the scroll knows how tall the list is. The
+	# height at which nothing has to scroll is the first plus however much
+	# taller the list is than the near-nothing already counted for the scroll.
+	var inset: float = 0.0
+	var style: StyleBox = panel.get_theme_stylebox("panel")
 	if style != null:
-		frame = style.get_minimum_size().y
-	var wanted: float = _build_column.get_combined_minimum_size().y + frame
-	var height: float = minf(wanted, room)
-	_build_panel.offset_top = -(lift + height)
-	_build_panel.offset_bottom = -lift
+		inset = style.get_minimum_size().y
+	# **The Close button is fixed where there is room for it and scrolls where
+	# there is not**, and that is a concession to one shape rather than a
+	# preference. A close control the player has to scroll a list to reach is
+	# the one control on a panel that must always be under the cursor - so on
+	# every ordinary screen it sits outside the scroll with the heading and the
+	# footer. But a thumb-sized button is 120 units, and a landscape phone
+	# leaves a sheet about 185: the right column owns the top of that screen
+	# and the combat row the bottom. Fixed there, the panel cannot be as short
+	# as its room, and `Control.size` is clamped to the combined minimum size -
+	# so it grows past its offsets, and hanging from the bottom that means
+	# growing *upward*, through the readout the ceiling exists to protect.
+	#
+	# The old sheet scrolled its whole chrome, heading included. This scrolls
+	# only the button, and only where the alternative is covering the Call
+	# button or the ability slots.
+	var gap: float = float(frame.get_theme_constant("separation"))
+	var cost: float = 0.0
+	for part: Variant in above + below:
+		var piece := part as Control
+		if piece != null:
+			cost += piece.get_combined_minimum_size().y + gap
+	var chrome: float = frame.get_combined_minimum_size().y
+	var was_fixed: bool = _chrome_is_fixed(frame, above, below)
+	var chrome_fixed: float = chrome if was_fixed else chrome + cost
+	var fixed: bool = inset + chrome_fixed <= room
+	if fixed != was_fixed:
+		_seat_chrome(frame, scroll, column, above, below, fixed)
+		chrome = chrome_fixed if fixed else chrome_fixed - cost
+	var shortfall: float = maxf(column.get_combined_minimum_size().y
+		- scroll.get_combined_minimum_size().y, 0.0)
+	var wanted: float = inset + chrome + shortfall
+	# What the sheet cannot be smaller than whatever it is told: the frame, the
+	# heading, the footer and - where it is fixed - the Close button. The list
+	# is not in it; that is what the scroll is for.
+	var least: float = inset + chrome
+	if least <= room:
+		# **The ordinary case: take the room, and scroll the list.** A list
+		# longer than the sheet is what a ScrollContainer is for, and moving
+		# the sheet down to fit one would put its Close button on an ability
+		# slot - which is what the 4K shape caught the first time this was
+		# written the other way round.
+		panel.offset_top = -(lift + minf(wanted, room))
+		panel.offset_bottom = -lift
+		return
+	# **The chrome alone does not fit, so the sheet comes down rather than
+	# up.** `Control.size` is clamped to the combined minimum size, so a panel
+	# whose heading, footer and Close button are taller than the room it is
+	# given does not shrink - it grows past its offsets, and hanging from the
+	# bottom that means growing *upward*, through the spirit readout. Lowering
+	# it keeps the one edge that matters and spends the combat row instead,
+	# which the sheets have already hidden the action buttons off.
+	var height: float = clampf(wanted, maxf(least, RIGHT_SHEET_MIN_HEIGHT), most)
+	var dropped: float = maxf(span - height - ceiling, _sheet_air())
+	panel.offset_top = -(dropped + height)
+	panel.offset_bottom = -dropped
+
+
+## Whether a sheet's chrome is currently outside its scroll.
+func _chrome_is_fixed(frame: Control, above: Array, below: Array) -> bool:
+	for part: Variant in above + below:
+		var piece := part as Control
+		if piece != null:
+			return piece.get_parent() == frame
+	return true
+
+
+## Moves a sheet's chrome between its frame and its scrolled column.
+##
+## `above` is what sits over the list - the heading - and `below` is what sits
+## under it: the hover footer and the Close button, in that order. Both keep
+## their order and their side of the list in either seating, so the sheet reads
+## the same whichever branch it took; the only difference is whether they move
+## when the list is scrolled.
+func _seat_chrome(frame: Control, scroll: ScrollContainer, column: Control,
+		above: Array, below: Array, fixed: bool) -> void:
+	for part: Variant in above:
+		var piece := part as Control
+		if piece == null:
+			continue
+		piece.reparent(frame if fixed else column)
+		piece.get_parent().move_child(piece, 0)
+	if fixed:
+		# The scroll goes back under the heading and over the footer.
+		frame.move_child(scroll, above.size())
+	for part: Variant in below:
+		var piece := part as Control
+		if piece == null:
+			continue
+		piece.reparent(frame if fixed else column)
+		var into: Node = piece.get_parent()
+		into.move_child(piece, into.get_child_count() - 1)
 
 
 ## How far in from the right edge the build sheet has to start.
@@ -1978,9 +2178,7 @@ func _on_build_mode_changed(building: bool) -> void:
 	if building and RunState.can_build_now():
 		return
 	_close_build_panel()
-	if _road_panel != null:
-		_road_panel.visible = false
-		_refresh_minimap_visible()
+	_close_road_panel()
 
 
 ## The pointer says which click you are about to make.
@@ -2187,9 +2385,17 @@ func _build_road_panel() -> void:
 	_refresh_minimap_visible()
 	add_child(_road_panel)
 
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
-	_road_panel.add_child(column)
+	# **Heading fixed, list scrolling, Close fixed.**
+	#
+	# The build sheet put all three inside its scroll, so on a short panel the
+	# player had to scroll past the list to reach the button that closes it -
+	# and the heading, which is the only thing saying *which* road this is,
+	# scrolled away first. The road sheet had no scroll at all: ten rows simply
+	# grew the panel upward through the spirit readout.
+	var frame := VBoxContainer.new()
+	frame.add_theme_constant_override("separation", 10)
+	_road_frame = frame
+	_road_panel.add_child(frame)
 
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 8)
@@ -2198,16 +2404,30 @@ func _build_road_panel() -> void:
 		heading.add_child(icon)
 	_road_title = _label("The road", 22)
 	heading.add_child(_road_title)
-	column.add_child(heading)
+	_road_heading = heading
+	frame.add_child(heading)
+
+	var scroll := ScrollContainer.new()
+	UiMetrics.prepare_scroll(scroll, touch_ui())
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_scroll = scroll
+	frame.add_child(scroll)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_road_column = column
+	scroll.add_child(column)
 
 	_road_list = VBoxContainer.new()
 	_road_list.add_theme_constant_override("separation", 8)
 	_road_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(_road_list)
 
-	var close: Button = _add_button(column, "Close",
-		func() -> void: _road_panel.visible = false)
+	var close: Button = _add_button(frame, "Close",
+		func() -> void: _close_road_panel())
 	IconKit.on_button(close, "close", 22)
+	_road_close = close
 
 
 ## Opens it on one tile, listing what may be put there.
@@ -2220,6 +2440,23 @@ func _open_road_panel(tile: Vector2i) -> void:
 	_road_panel.visible = true
 	_refresh_minimap_visible()
 	_refresh_road_panel()
+	# Deferred for the same reason the build sheet's is: a container's real
+	# height is not known until it has been laid out with the rows just added.
+	_fit_road_panel.call_deferred()
+
+
+## Shuts the road sheet and puts the map back.
+##
+## A function rather than `visible = false` at each of the four places that
+## close it, because three of those four remembered to bring the minimap back
+## and the sheet's own Close button did not - so closing the trap menu by the
+## button it offers left the map hidden for the rest of the run. One door.
+func _close_road_panel() -> void:
+	if _road_panel == null:
+		return
+	_road_panel.visible = false
+	_hide_build_tooltip()
+	_refresh_minimap_visible()
 
 
 func _refresh_road_panel() -> void:
@@ -2249,7 +2486,8 @@ func _refresh_road_panel() -> void:
 					"Level %d: harder, wider, and rebuilt to full triggers." % (level + 1),
 					cost,
 					func() -> void: _report(battlefield.try_upgrade_trap(_road_tile)),
-					standing.get_sprite_path(), _trap_tooltip(standing))
+					standing.get_sprite_path(),
+					_trap_tooltip(standing, level + 1))
 	else:
 		for trap: TrapData in ContentDB.trap_kinds():
 			_add_road_row(trap.display_name, trap.description, trap.cost,
@@ -2262,8 +2500,11 @@ func _refresh_road_panel() -> void:
 			_add_road_row(barricade.display_name, barricade.description,
 				barricade.cost,
 				func() -> void: _report(battlefield.try_raise_barricade(
-					_road_tile, barricade)))
+					_road_tile, barricade)),
+				barricade.get_sprite_path(), _barricade_tooltip(barricade))
 	UiMetrics.apply_touch_tree(_road_panel, touch_ui())
+	UiMetrics.prepare_scroll(_road_scroll, touch_ui())
+	_fit_road_panel()
 
 
 ## One offer on the road sheet.
@@ -2282,21 +2523,24 @@ func _add_road_row(name: String, description: String, cost: Dictionary,
 	row.mouse_exited.connect(func() -> void: _hide_build_tooltip())
 
 
-## The build panel: everything visible at once, no scrolling in either axis.
+## The build panel: a fixed heading, a scrolling list, a fixed footer and Close.
 ##
-## It used to be a 336x480 box with a ScrollContainer in it. Eight towers, each
-## a button plus a wrapped description, come to roughly 530px of content — so
-## choosing a tower meant scrolling a list during a wave, and the two towers at
-## the bottom were effectively hidden.
+## It used to be a 336x480 box whose every row carried its own wrapped
+## description, which is what made the list too tall to read: the descriptions
+## are in the footer now, for whichever tower the cursor is over, so a row's
+## height is constant however long its text is. The element rail is the other
+## half of the same answer - the roster is far too long for one column, so the
+## sheet offers four elements and opens one element's towers beside the rail.
 ##
-## The fix is not a taller box. It is that a vertical list was the wrong shape
-## for eight items: two columns of four fit in less height than four of eight,
-## and the descriptions do not belong in the list at all. They now appear in a
-## fixed footer for whichever tower the cursor is over, which keeps the panel's
-## height constant no matter how long the text is.
+## **It scrolls, and its chrome does not.** A sheet that grows upward from the
+## bottom right has no ceiling of its own, and ten towers an element on a phone
+## reached past the top of the screen; `_fit_right_sheet` gives it one and the
+## list takes up the slack. The heading, the footer and the Close button are
+## outside that scroll, because a close control the player has to scroll a list
+## to reach is the one control on a panel that must always be under the cursor.
 ##
-## The panel has no fixed height. Anchors pinned to one line with GROW_BOTH make
-## a Control size to its own content, so the upgrade view and the build view can
+## The panel has no fixed height: hung from one line with GROW_DIRECTION_BEGIN
+## it sizes to its own content, so the upgrade view and the build view can
 ## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
@@ -2328,18 +2572,17 @@ func _build_tower_panel() -> void:
 	# and the first two elements could not be reached at all. A list that does
 	# not fit has to scroll; the alternative is a list with items nobody can
 	# press.
-	var scroll := ScrollContainer.new()
-	UiMetrics.prepare_scroll(scroll, touch_ui())
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_build_scroll = scroll
-	_build_panel.add_child(scroll)
-	_size_build_scrollbar()
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_build_column = column
-	scroll.add_child(column)
+	# **Heading fixed, list scrolling, footer and Close fixed.**
+	#
+	# All four used to live inside the scroll, so on a sheet too short for its
+	# list the player had to scroll the list to reach the button that closes it,
+	# and the heading - the only thing naming what is being built - was the
+	# first thing to scroll away. A close control you have to go looking for is
+	# the one control on a panel that must always be under the cursor.
+	var frame := VBoxContainer.new()
+	frame.add_theme_constant_override("separation", 10)
+	_build_frame = frame
+	_build_panel.add_child(frame)
 
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 8)
@@ -2348,7 +2591,21 @@ func _build_tower_panel() -> void:
 		heading.add_child(heading_icon)
 	_build_title = _label("Build", 22)
 	heading.add_child(_build_title)
-	column.add_child(heading)
+	_build_heading = heading
+	frame.add_child(heading)
+
+	var scroll := ScrollContainer.new()
+	UiMetrics.prepare_scroll(scroll, touch_ui())
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_build_scroll = scroll
+	frame.add_child(scroll)
+	_size_build_scrollbar()
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_build_column = column
+	scroll.add_child(column)
 
 	_build_list = VBoxContainer.new()
 	_build_list.add_theme_constant_override("separation", 8)
@@ -2373,10 +2630,11 @@ func _build_tower_panel() -> void:
 	_build_detail.max_lines_visible = BUILD_DETAIL_LINES
 	_build_detail.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_build_detail.add_theme_color_override("font_color", Color("aebcb8"))
-	column.add_child(_build_detail)
+	frame.add_child(_build_detail)
 
-	var close: Button = _add_button(column, "Close", func() -> void: _close_build_panel())
+	var close: Button = _add_button(frame, "Close", func() -> void: _close_build_panel())
 	IconKit.on_button(close, "close", 22)
+	_build_close = close
 
 	_build_side_tooltip()
 
@@ -4001,14 +4259,10 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_state_label.offset_top = STATE_LABEL_TOUCH_TOP if showing else STATE_LABEL_TOP
 	if _xp_band != null:
 		_xp_band.offset_top = -_xp_bar_height()
-	if _build_panel != null:
-		# Hung from the bottom in both layouts, so the touch sheet growing taller
-		# moves its top edge rather than pushing its footer into the combat row.
-		var lift: float = -_build_panel_lift()
-		_build_panel.offset_top = lift
-		_build_panel.offset_bottom = lift
-		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
-		_build_panel.offset_right = -_build_panel_inset()
+	# **The sheets are not placed here.** They were, by hand, in four lines that
+	# were a second copy of what `_fit_right_sheet` does at the end of this same
+	# function - and a second copy of a layout rule is how one of them ends up
+	# wrong. The road sheet was never in that copy at all.
 	if _wave_preview != null:
 		_wave_preview.offset_top = 214.0 if showing else 158.0
 		_fit_centred(_wave_preview, 360.0 if showing else 420.0)
@@ -4017,16 +4271,31 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		# bottom band rather than a third of the way up the screen.
 		_preparation_panel.offset_bottom = -(_bottom_band_height() + Balance.PREPARATION_PANEL_LIFT)
 		_preparation_panel.offset_top = _preparation_panel.offset_bottom - 116.0
+	# **The command panel is anchored top left**, and these two lines wrote
+	# bottom-right offsets onto it: `offset_top = -276` against `PRESET_TOP_LEFT`
+	# puts the whole panel 276 units *above* the top of the screen. This function
+	# runs from `_ready` on every launch, desktop included, immediately after
+	# `_build_command_panel` places it correctly - so the Command meter, the
+	# target readout and the order buttons have been off-screen in every combat
+	# phase since the panel moved out of the bottom right. Nothing errored and
+	# nothing could: `layout_check` ignores widgets *entirely* outside the
+	# viewport, on the grounds that they are usually a panel waiting to slide in.
+	#
+	# Re-placed where it lives rather than deleted, because this function's job
+	# is to re-lay for the new layout and the panel does want re-laying: its
+	# contents grow under a thumb.
 	if _command_panel != null:
-		_command_panel.offset_top = -276.0 - _bottom_band_height()
-		_command_panel.offset_bottom = -164.0 - _bottom_band_height()
+		_command_panel.offset_top = COMMAND_BAR_TOP
+		_command_panel.offset_bottom = COMMAND_BAR_TOP
 
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
 	_place_preparation_panel()
 	_size_build_controls(_build_panel)
+	_size_build_controls(_road_panel)
 	_size_build_scrollbar()
 	_fit_build_panel()
+	_fit_road_panel()
 	_size_top_bar()
 	# **Last, not first.** The navigation column's width moves with the
 	# controls, and the spirit readout is placed against it - asked before
@@ -4315,9 +4584,7 @@ func _aimed_tower() -> Vector2i:
 ## put two panels over each other in the same corner, which is not a stacking
 ## order anybody chose.
 func _open_build_panel(anchor: Vector2i) -> void:
-	if _road_panel != null:
-		_road_panel.visible = false
-		_refresh_minimap_visible()
+	_close_road_panel()
 	# Cleared before the selection moves, or the previous tower keeps its ring.
 	_show_selected_range(false)
 	_selected = anchor
@@ -4603,9 +4870,12 @@ func _size_build_controls(root: Node) -> void:
 
 
 func _size_build_scrollbar() -> void:
-	if _build_scroll == null:
-		return
-	UiMetrics.prepare_scroll(_build_scroll, touch_ui())
+	if _build_scroll != null:
+		UiMetrics.prepare_scroll(_build_scroll, touch_ui())
+	# The road sheet scrolls too, since 2026-09-22. Both here, because a
+	# scrollbar sized for a mouse under a thumb is the same fault on either.
+	if _road_scroll != null:
+		UiMetrics.prepare_scroll(_road_scroll, touch_ui())
 
 
 ## Shows what the next level actually buys, before the player commits.
@@ -4736,10 +5006,12 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 ## cursor is over.
 ## The build menu's element rail, and the towers it pulls out beside it.
 ##
-## The roster is sixteen towers. As one column that is a scroll, and a scroll is
-## where a player stops reading - so the panel offers four elements and picking
-## one opens just that element's towers next to it. Two steps, and they are the
-## two the roster is already organised around: the element, then the role in it.
+## The roster is forty towers and still growing. As one column that is a long
+## scroll, and a long scroll is where a player stops reading - so the panel
+## offers four elements and picking one opens just that element's towers next
+## to it. Two steps, and they are the two the roster is already organised
+## around: the element, then the role in it. One element's list is short enough
+## to read whole, and scrolls only where the screen is too short to show it.
 func _element_rail(anchor: Vector2i) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -5457,19 +5729,56 @@ func _on_spirit_bonded(bond_key: String) -> void:
 
 
 ## The numbers behind a trap, for its hover tooltip.
-func _trap_tooltip(trap: TrapData) -> String:
+##
+## `level` is the level the figures describe: 1 for a trap being laid, and the
+## level being *bought* on the Raise row. That row quoted the authored numbers
+## under copy promising "harder, wider" - so a player was told what the next
+## level cost and shown, as its figures, exactly what the trap already did.
+func _trap_tooltip(trap: TrapData, level: int = 1) -> String:
+	var step: int = clampi(level - 1, 0, Balance.TRAP_MAX_LEVEL - 1)
+	var damage: float = trap.damage * Balance.TRAP_LEVEL_DAMAGE[step]
+	var radius: float = trap.radius * Balance.TRAP_LEVEL_RADIUS[step]
+	var triggers: int = trap.triggers + Balance.TRAP_LEVEL_TRIGGERS[step]
 	var lines: PackedStringArray = []
-	if trap.damage > 0.0:
-		lines.append("Damage %d" % int(round(trap.damage)))
+	if damage > 0.0:
+		lines.append("Damage %d" % int(round(damage)))
 	if trap.burn_dps > 0.0:
 		lines.append("Burns %d/s for %.0fs" % [int(round(trap.burn_dps)), trap.burn_duration])
 	if trap.slow_factor < 1.0:
 		lines.append("Slows to %d%% for %.0fs" % [int(round(trap.slow_factor * 100.0)), trap.slow_duration])
 	if trap.knockback > 0.0:
 		lines.append("Knockback %d" % int(round(trap.knockback)))
-	lines.append("Radius %d  ·  %d triggers  ·  arms in %.0fs" % [int(round(trap.radius)),
-		trap.triggers, trap.arm_seconds])
+	lines.append("Radius %d  ·  %d triggers  ·  arms in %.0fs" % [int(round(radius)),
+		triggers, trap.arm_seconds])
 	lines.append("Cost: %s" % RunState.format_cost(trap.cost))
+	return "\n".join(lines)
+
+
+## The numbers behind a barricade, for its hover tooltip.
+##
+## **There was none at all**, and that is the whole of the owner's report of
+## 2026-09-22 that *"the Iron hoarding and stake line do not have the full
+## tooltips on hover like the rest of the traps"*. `_add_road_row` takes a
+## picture and a figures block as optional arguments; the trap loop passed both
+## and the barricade loop passed neither, so the two walls showed a bare
+## sentence and no image while the traps beside them showed a picture and five
+## lines of figures. Nothing was missing from `BarricadeData` - it has carried
+## `max_hp`, `slow_factor` and a working `get_sprite_path` since it was
+## written, and both sprites are on disk. What was missing is this function and
+## two arguments at one call site.
+func _barricade_tooltip(barricade: BarricadeData) -> String:
+	var lines: PackedStringArray = []
+	lines.append("Holds %d damage" % int(round(barricade.max_hp)))
+	if barricade.slow_factor < 1.0:
+		lines.append("Slows what hits it to %d%%"
+			% int(round(barricade.slow_factor * 100.0)))
+	# **Said out loud, because it is what a barricade is most often misread as.**
+	# `BarricadeData`'s own header opens with it: there is no pathfinder, so a
+	# wall is an obstacle to break rather than a maze piece, and a player who
+	# lays one expecting a detour has spent Stone on the opposite of what they
+	# wanted.
+	lines.append("Stands until it is broken · it reroutes nothing")
+	lines.append("Cost: %s" % RunState.format_cost(barricade.cost))
 	return "\n".join(lines)
 
 
@@ -5541,6 +5850,12 @@ func _refit_right_column() -> void:
 	_place_minimap()
 	if _build_panel != null and _build_panel.visible:
 		_fit_build_panel()
+	# **And the road sheet.** It was left out when this was written, so the trap
+	# menu was the one thing on the right-hand side that never learned the floor
+	# had moved - and the floor moves the moment a spirit is equipped or sent
+	# home, which is when the readout grows its Call button.
+	if _road_panel != null and _road_panel.visible:
+		_fit_road_panel()
 
 
 func _place_minimap() -> void:

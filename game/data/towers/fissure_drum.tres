@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 1
+ambient = 5
+shot_tint = Color(0.8, 0.68, 0.5, 1)
+juice_scale = 1.5
+role = 1
+element = 2
+damage = 38.0
+attack_interval = 2.0
+attack_range = 330.0
+aoe_radius = 130.0
+knockback = 90.0
+max_hp = 640.0
+ground_zone_dps = 9.0
+ground_zone_duration = 3.5
+id = "fissure_drum"
+display_name = "Fissure Drum"
+description = "Siege. Drops a shell that opens the ground and leaves it open. Earth hit hard and left nothing behind; this one makes the place itself the problem."

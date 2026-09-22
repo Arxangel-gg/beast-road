@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 1
+shot_tint = Color(1, 0.62, 0.3, 1)
+juice_scale = 0.85
+role = 0
+element = 0
+damage = 9.0
+attack_interval = 0.55
+attack_range = 320.0
+extra_targets = 2
+burn_dps = 3.0
+burn_duration = 2.0
+id = "sear_coil"
+display_name = "Sear Coil"
+description = "Skirmisher. Throws a burning arc that jumps to two more. Fire had nothing that chained: this is the answer to a road that arrives in threes rather than in ones."

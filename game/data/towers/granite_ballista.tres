@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 5
+shot_tint = Color(0.78, 0.72, 0.62, 1)
+juice_scale = 1.35
+role = 2
+element = 2
+damage = 64.0
+attack_interval = 2.3
+attack_range = 600.0
+extra_targets = 1
+knockback = 70.0
+max_hp = 520.0
+id = "granite_ballista"
+display_name = "Granite Ballista"
+description = "Sniper. A stone bolt heavy enough to go through the body it hits and into the one behind it. Slow, and it does not care how many are in the way."

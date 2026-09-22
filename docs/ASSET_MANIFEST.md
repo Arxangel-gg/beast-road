@@ -700,6 +700,14 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_stillwater_mirror.png` | Frost | `#7FA6BF` |
 | `tower_mason_shrine.png` | Stone | `#7A6E5C` |
 | `tower_wind_relay.png` | Storm | `#9B8FC4` |
+| `tower_sear_coil.png` | Fire | `#C4552E` |
+| `tower_kindlers_eye.png` | Fire | `#C4552E` |
+| `tower_brinespitter.png` | Frost | `#7FA6BF` |
+| `tower_frostpoint.png` | Frost | `#7FA6BF` |
+| `tower_fissure_drum.png` | Stone | `#7A6E5C` |
+| `tower_granite_ballista.png` | Stone | `#7A6E5C` |
+| `tower_downburst.png` | Storm | `#9B8FC4` |
+| `tower_lodestone_mast.png` | Storm | `#9B8FC4` |
 
 ### 5.4b Tower idle frames — `res://art/towers/`
 
@@ -749,6 +757,14 @@ Files: `tower_bellows_forge_idle_01.png` … `tower_bellows_forge_idle_03.png`
 Files: `tower_stillwater_mirror_idle_01.png` … `tower_stillwater_mirror_idle_03.png`
 Files: `tower_mason_shrine_idle_01.png` … `tower_mason_shrine_idle_03.png`
 Files: `tower_wind_relay_idle_01.png` … `tower_wind_relay_idle_03.png`
+Files: `tower_sear_coil_idle_01.png` … `tower_sear_coil_idle_03.png`
+Files: `tower_kindlers_eye_idle_01.png` … `tower_kindlers_eye_idle_03.png`
+Files: `tower_brinespitter_idle_01.png` … `tower_brinespitter_idle_03.png`
+Files: `tower_frostpoint_idle_01.png` … `tower_frostpoint_idle_03.png`
+Files: `tower_fissure_drum_idle_01.png` … `tower_fissure_drum_idle_03.png`
+Files: `tower_granite_ballista_idle_01.png` … `tower_granite_ballista_idle_03.png`
+Files: `tower_downburst_idle_01.png` … `tower_downburst_idle_03.png`
+Files: `tower_lodestone_mast_idle_01.png` … `tower_lodestone_mast_idle_03.png`
 
 ### 5.4c Tower firing frames — `res://art/towers/`
 
@@ -797,6 +813,14 @@ Files: `tower_bellows_forge_attack_01.png` … `tower_bellows_forge_attack_03.pn
 Files: `tower_stillwater_mirror_attack_01.png` … `tower_stillwater_mirror_attack_03.png`
 Files: `tower_mason_shrine_attack_01.png` … `tower_mason_shrine_attack_03.png`
 Files: `tower_wind_relay_attack_01.png` … `tower_wind_relay_attack_03.png`
+Files: `tower_sear_coil_attack_01.png` … `tower_sear_coil_attack_03.png`
+Files: `tower_kindlers_eye_attack_01.png` … `tower_kindlers_eye_attack_03.png`
+Files: `tower_brinespitter_attack_01.png` … `tower_brinespitter_attack_03.png`
+Files: `tower_frostpoint_attack_01.png` … `tower_frostpoint_attack_03.png`
+Files: `tower_fissure_drum_attack_01.png` … `tower_fissure_drum_attack_03.png`
+Files: `tower_granite_ballista_attack_01.png` … `tower_granite_ballista_attack_03.png`
+Files: `tower_downburst_attack_01.png` … `tower_downburst_attack_03.png`
+Files: `tower_lodestone_mast_attack_01.png` … `tower_lodestone_mast_attack_03.png`
 Files: `tower_rime_lance_attack_01.png` … `tower_rime_lance_attack_03.png`
 Files: `tower_shard_thrower_attack_01.png` … `tower_shard_thrower_attack_03.png`
 Files: `tower_steam_burst_attack_01.png` … `tower_steam_burst_attack_03.png`
@@ -3718,6 +3742,31 @@ was a side-view torch on a road seen from above, which is the
 | `trap_rime_sigil_idle_02.png` | 64×64 | T | `#6E667A` |
 | `trap_rime_sigil_idle_03.png` | 64×64 | T | `#6E667A` |
 | `trap_rime_sigil_idle_04.png` | 64×64 | T | `#6E667A` |
+
+### 5.34 The eighth trap — `res://art/traps/`
+
+The Caltrop Drift (owner brief, 2026-09-22: *"traps and the trap menu also
+need 1 more option to total 10 different traps"* — eight traps and the two
+barricades are the ten rows the menu lists). Iron thorns strewn over a
+stretch of churned earth: the widest reach of any trap and the weakest
+bite, which is the one corner of the set nothing occupied.
+
+**Five idle frames rather than four**, which is a consequence of how the
+loop was made rather than a preference. The animation was generated with
+its last frame pinned to the base sprite, which is what makes a cycle close
+on its own pose; the pinned frame is then a duplicate of the base and is
+dropped, and what is left of a six-frame generation is five. Dropping a
+sixth as well would have the loop jump back to rest from halfway through
+the sweep.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `trap_caltrop_drift.png` | 64×64 | T | `#6E667A` |
+| `trap_caltrop_drift_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_caltrop_drift_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_caltrop_drift_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_caltrop_drift_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_caltrop_drift_idle_05.png` | 64×64 | T | `#6E667A` |
 
 ### 5.26 Butterflies — `res://art/wildlife/`
 

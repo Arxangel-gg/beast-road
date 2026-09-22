@@ -3097,6 +3097,40 @@ const TOWER_MAX_LEVEL: int = 10
 ## Every emplacement is a structure now, not only Bulwarks. Specialist blockers
 ## override this in their TowerData; ordinary towers inherit it. [TUNE]
 const TOWER_BASE_MAX_HP: float = 520.0
+## **What a tower actually takes of what it is dealt** (owner, 2026-09-22:
+## *"towers should take less damage from all sources and everything needs to
+## be balanced"*).
+##
+## It is applied as `Health.damage_scale` on the tower rather than inside
+## `Tower.hurt`, and that is the whole reason it works: `hurt()` is the
+## *world's* door - the tornado, the meteor, the ground wave and the earth's
+## cracks - and **enemy melee and enemy shots bypass it entirely**, reaching
+## `Health.take_damage` directly. A multiplier in `hurt()` would have answered
+## "less from all sources" by covering four of the six.
+##
+## It sits after the flat armour and its twenty-percent floor, so a Bastion's
+## plate and this compound the way a hero's armour and Resolve do. [TUNE]
+const TOWER_DAMAGE_TAKEN_SCALE: float = 0.62
+## **How hard a support tower may shoot, against the weakest gun in its own
+## role** (owner, 2026-09-22: *"all towers need to deal some kind of damage
+## ... except for the healing well"*).
+##
+## The four supports fired nothing at all until that ruling, and the reason
+## was good: a Bellows Forge that out-shoots an Ashen Censer is not a support,
+## it is a gun that also helps. So the ruling is honoured and the reason is
+## kept as a ceiling - a support may deal damage, and less of it than the
+## quietest Warden that is only a gun. `tower_support_check` measures the
+## floor off the roster rather than reading a number, so the bound moves when
+## the roster does. [TUNE]
+const TOWER_SUPPORT_DAMAGE_SHARE: float = 0.62
+## **How many base towers each element has** (owner, 2026-09-22: *"every one
+## of the 4 tower elements should have 10 different tower types each total"*).
+##
+## Named rather than left implicit because `tower_support_check` asserts it
+## exactly, over all four elements: the roster may not drift to nine of one
+## and eleven of another, which is what "ten types each" means and is not
+## something a total would catch. It was eight from 2026-09-14 until this.
+const TOWERS_PER_ELEMENT: int = 10
 const TOWER_REPAIR_FRACTION: float = 0.34
 const TOWER_REPAIR_WOOD_COST: int = 32
 ## What a run may reach with no Forge. Three rather than two because the levels
@@ -8825,7 +8859,21 @@ const TORNADO_STREAK_TURNS: float = 1.35
 const TORNADO_STREAK_WIDTH: float = 5.0
 const TORNADO_HEIGHT: float = 420.0
 const TORNADO_SPIN: float = 9.0
-const TORNADO_TOWER_DPS: float = 700.0
+## **What a funnel takes off a tower it is standing on**, per second.
+##
+## It was 700, which with a 1.4-second pass through the 84-unit wake is 980
+## damage - more than every tower in the roster holds except the Bastion. A
+## funnel therefore deleted every emplacement on the road it crossed, in one
+## pass, with nothing the player could do about it (owner, 2026-09-22: *"tornadoes
+## especially do too much damage to towers and need tower damage nerfed"*).
+##
+## At 150, with `TOWER_DAMAGE_TAKEN_SCALE` on top, a straight pass costs a
+## base tower about 25% of its pool and a funnel that *parks* on one fells it
+## in about six seconds. That is the shape the change is for: losing a tower
+## to a funnel becomes something you watched happen and could have answered,
+## rather than something that had already happened. `wrath_check` holds both
+## ends of it. [TUNE]
+const TORNADO_TOWER_DPS: float = 150.0
 const TORNADO_WAKE_DPS: float = 120.0
 const TORNADO_AOE_DPS: float = 18.0
 const TORNADO_HERO_SHARE_PER_SECOND: float = 0.06
@@ -8844,7 +8892,13 @@ const METEOR_WARNING: float = 2.2
 const METEOR_FALL: float = 0.55
 const METEOR_FALL_FROM: Vector2 = Vector2(900.0, 1400.0)
 const METEOR_RADIUS: float = 230.0
-const METEOR_TOWER_DAMAGE: float = 520.0
+## **And a stone is no longer a one-shot.** 520 is exactly `TOWER_BASE_MAX_HP`,
+## so a meteor - which deliberately *hunts* towers (`sky.gd` aims it at one) -
+## deleted any emplacement that had not authored a bigger pool. At 240, with
+## the scale on top, it takes about 28% and two stones fell a tower, which is
+## a telegraphed blow that costs rather than a telegraphed blow that erases.
+## [TUNE]
+const METEOR_TOWER_DAMAGE: float = 240.0
 const METEOR_ENEMY_DAMAGE: float = 260.0
 const METEOR_HERO_SHARE: float = 0.35
 const METEOR_WILDLIFE_DAMAGE: float = 120.0

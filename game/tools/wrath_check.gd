@@ -525,7 +525,25 @@ func _test_the_rain_puts_fire_out() -> void:
 	await get_tree().process_frame
 
 
-## A funnel tears down the tower in its wake and hurts what stands near it.
+## **A funnel that passes costs a tower; a funnel that stands fells it.**
+##
+## **This invariant was amended on 2026-09-22 and the old one is recorded
+## here rather than quietly replaced.** It read *"the funnel walked over a
+## tower and left it standing"* - a funnel crossing the 84-unit wake in 1.4
+## seconds had to fell a 610-hp grit_sling, which required at least 436 tower
+## DPS and is why `TORNADO_TOWER_DPS` was 700. The owner reported the
+## consequence: a single pass deleted every emplacement on a road, in one and
+## a half seconds, with nothing the player could do about it.
+##
+## What replaces it holds *both* ends, which the old one did not:
+##
+## - a straight pass **hurts** the tower and **does not fell it** - so the
+##   nerf cannot be undone by raising the constant back;
+## - a funnel **parked** on the tower fells it inside twelve seconds - so the
+##   nerf cannot be taken any further either, and a tornado stays a thing you
+##   lose a tower to if you leave it alone.
+##
+## The body beside the path is unchanged: it must be hurt and not killed.
 func _test_the_tornado() -> void:
 	await _clear_towers()
 	var at: Vector2 = _pocket(1)
@@ -538,6 +556,7 @@ func _test_the_tornado() -> void:
 	var bystander: Enemy = _body(tower.global_position + Vector2(0.0, Balance.TORNADO_AOE * 0.8), 40.0)
 	await get_tree().process_frame
 	var bystander_hp: float = bystander.health.current_hp
+	var whole: float = tower.health_ratio()
 	var before: int = _sky.tornadoes
 	var funnel: Tornado = _sky.spawn_tornado(tower.global_position + Vector2(-Balance.TORNADO_SPEED * 3.0, 0.0),
 		tower.global_position + Vector2(Balance.TORNADO_SPEED * 3.0, 0.0), 40.0)
@@ -548,12 +567,32 @@ func _test_the_tornado() -> void:
 	# not measuring, and with it on the funnel missed one run in three.
 	funnel.wander = 0.0
 	var seconds: float = 0.0
-	while tower != null and is_instance_valid(tower) and tower.is_vulnerable() and seconds < 12.0:
+	while seconds < 7.0:
 		funnel._process(0.1)
 		seconds += 0.1
-	_check(funnel.towers_felled >= 1, "the funnel walked over a tower and left it standing")
+	_check(tower != null and is_instance_valid(tower) and tower.is_vulnerable(),
+		"one pass of a funnel deleted a tower outright, which is what the "
+			+ "2026-09-22 nerf exists to stop")
+	if tower == null or not is_instance_valid(tower):
+		return
+	var after_pass: float = tower.health_ratio()
+	_check(after_pass < whole,
+		"the funnel walked over a tower and cost it nothing (%.2f)" % after_pass)
 	_check(bystander.health.current_hp < bystander_hp and bystander.health.current_hp > 0.0,
 		"a body beside the funnel's path was not hurt, or was killed outright")
+
+	# **And a funnel that stands on it does fell it.** Parked by putting it
+	# back on the tower after every tick: what is being measured is the
+	# damage, and the walk is the other half of the test above.
+	var parked: float = 0.0
+	while tower != null and is_instance_valid(tower) and tower.is_vulnerable() and parked < 12.0:
+		funnel.at = tower.global_position
+		funnel.position = funnel.at
+		funnel._process(0.1)
+		parked += 0.1
+	_check(funnel.towers_felled >= 1,
+		"a funnel parked on a tower for twelve seconds left it standing")
+
 	funnel.seconds_left = 0.0
 	funnel._process(0.1)
 	await get_tree().process_frame

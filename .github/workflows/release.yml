@@ -287,6 +287,13 @@ jobs:
           # icons stretched under the boss line on the runs where the weather
           # carried its temperature. Desktop shapes nobody had photographed.
           run_godot_clean --headless --path game res://tools/layout_check.tscn -- --viewport=3840x2160
+          # The two right-hand sheets, opened at four shapes. See guard.yml:
+          # `layout_check` never opens the trap menu and cannot see a panel
+          # placed entirely off the screen.
+          run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --viewport=1920x1080
+          run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=430x932
+          run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=1280x592
+          run_godot_clean --headless --path game res://tools/road_sheet_check.tscn -- --viewport=3840x2160
           run_godot_clean --headless --path game res://tools/layout_check.tscn -- --viewport=3440x1440
           run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn

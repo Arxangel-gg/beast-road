@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 8
+shot_tint = Color(0.85, 0.9, 1, 1)
+juice_scale = 1.0
+role = 3
+element = 3
+damage = 8.0
+attack_interval = 0.9
+attack_range = 300.0
+aoe_radius = 180.0
+extra_targets = 2
+taunts = true
+max_hp = 780.0
+lane_armour_bonus = 4.0
+id = "lodestone_mast"
+display_name = "Lodestone Mast"
+description = "Warden. Pulls the road onto itself and answers with a standing crackle, and the stone it is sunk in shelters every tower sharing its lane."

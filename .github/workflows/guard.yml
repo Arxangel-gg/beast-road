@@ -334,6 +334,16 @@ jobs:
           # stretched under the boss line on the runs where the weather label
           # carried its temperature. Desktop shapes nobody had photographed.
           check "layout (4K)" --headless --path game res://tools/layout_check.tscn                -- --viewport=3840x2160
+          # The two right-hand sheets, opened. `layout_check` opens the build
+          # sheet and has never opened the trap menu, and it is blind by
+          # construction to a panel placed *entirely* off the screen - which is
+          # what both sheets were on an upright phone, and what the command
+          # panel was in every combat phase. Four shapes, because the squeeze
+          # that matters is a landscape phone.
+          check "road sheet"            --headless --path game res://tools/road_sheet_check.tscn -- --viewport=1920x1080
+          check "road sheet (phone)"    --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=430x932
+          check "road sheet (landscape)" --headless --path game res://tools/road_sheet_check.tscn -- --touch=on --viewport=1280x592
+          check "road sheet (4K)"       --headless --path game res://tools/road_sheet_check.tscn -- --viewport=3840x2160
           check "layout (ultrawide)" --headless --path game res://tools/layout_check.tscn         -- --viewport=3440x1440
           # The bugs the owner reported on 2026-08-24, held so they stay fixed.
           # Every one of them was a quiet failure rather than a crash - an enemy

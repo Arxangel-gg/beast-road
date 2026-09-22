@@ -28,7 +28,20 @@ func _ready() -> void:
 	_check(tower.get("_damage_flames").size() >= 2,
 		"tower silhouette did not produce smart damage-fire anchors")
 
-	health.take_damage(health.max_hp * 0.58, Vector2.ZERO)
+	# **Hurt until it is hurt, rather than by a figure.** This read
+	# `max_hp * 0.58` and then asserted the tower was burning, which is a
+	# statement about the *ratio* wearing a damage figure's clothes - and it
+	# stopped being true on 2026-09-22 when `TOWER_DAMAGE_TAKEN_SCALE` made a
+	# tower take 62% of what it is dealt. The invariant is unchanged: a
+	# heavily damaged tower shows flames. What changed is that the harness
+	# now drives the tower to the state it is asking about instead of
+	# assuming an amount produces it.
+	var swings: int = 0
+	while health.ratio() > 0.42 and swings < 40:
+		health.take_damage(health.max_hp * 0.2, Vector2.ZERO)
+		swings += 1
+	_check(health.ratio() <= 0.42,
+		"the harness could not drive the tower down to 42%% (%.2f)" % health.ratio())
 	await get_tree().process_frame
 	_check(tower.needs_repair(), "damaged tower did not become repairable")
 	var burning: int = 0

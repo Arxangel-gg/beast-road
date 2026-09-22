@@ -165,6 +165,47 @@ func _test_every_style_lands_the_same_hit() -> void:
 		return
 	_field.wave_director.stop()
 	_field.sky().events_enabled = false
+	# **And the road stops too.**
+	#
+	# Five rounds of up to twelve hundred frames each is minutes of game
+	# time, and the beast walks through all of it: on 2026-09-22 the fourth
+	# round crossed a `SEGMENT_DISTANCE` boundary, the crossroad opened, the
+	# battlefield suspended itself, and the last two towers were measured on
+	# a frozen field - reported as a tower that would not fire at a body
+	# standing well inside its reach.
+	#
+	# It had nothing to do with the towers. What made it appear was adding a
+	# tenth tower to each element, which moved which tower each style picks
+	# and shifted the timing by a second or two - so the gate had been one
+	# authored tower away from this since the day it was written.
+	if _run.journey != null:
+		_run.journey.stop()
+	# **And the Warden cannot be killed while this runs.**
+	#
+	# The hero stands on a live road for the whole of it, and the road has an
+	# ecology on it. On 2026-09-22 a badger mauled the harness hero to death
+	# in the middle of the fourth round - `last_blow` read *"Badger for 10"* -
+	# the run settled, the battlefield suspended, and the last two towers were
+	# measured on a frozen field. It was reported as a tower that would not
+	# fire at a body standing well inside its reach, which is exactly the
+	# probe-dies-mid-measurement lesson this project keeps relearning, with
+	# the probe being the Warden rather than the target.
+	#
+	# Taken out of the world rather than made unkillable, through the door
+	# `Battlefield.suspend` already uses: a hero nothing can find is a hero
+	# nothing hunts, and this gate has no opinion about the Warden at all.
+	# **And the town cannot fall while this runs**, which is the door the
+	# withdrawal and `enemy_siege_check` already use. Five rounds of up to
+	# twelve hundred frames is minutes of game time on a live road: on
+	# 2026-09-22 a body reached the gate in the middle of the fourth round,
+	# the run settled, the battlefield suspended, and the last two towers
+	# were measured on a frozen field - reported as a tower that would not
+	# fire at a body standing well inside its reach. Nothing about the towers
+	# was wrong, and the gate had been one authored tower away from this
+	# since the day it was written: adding a tenth tower to each element
+	# moved which tower the lob style picks and shifted the timing.
+	if _field.town != null and _field.town.health != null:
+		_field.town.health.floor_hp = _field.town.health.max_hp * 0.5
 	var breed: EnemyData = ContentDB.enemy("bogkin")
 	if breed == null:
 		_check(false, "the harness needs a breed to shoot at")
@@ -202,6 +243,12 @@ func _test_every_style_lands_the_same_hit() -> void:
 		if body == null:
 			continue
 		body.global_position = tower.origin() + Vector2(tower.effective_range() * 0.8, 0.0)
+		# **A frame for the field to notice where it is.** The body is
+		# teleported after it is spawned, and what a tower asks is the crowd
+		# grid rather than the node - so on the frame of the move it can be
+		# in the bucket it was spawned into and invisible to a tower standing
+		# next to it. Three of the five rounds happened to work anyway.
+		await get_tree().process_frame
 		RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 		# Preparation freezes the effect root and the Ride button thaws it; the
 		# harness thaws it itself, without starting the waves.
@@ -248,7 +295,17 @@ func _test_every_style_lands_the_same_hit() -> void:
 			_check(float(record["peak"]) <= 0.001, "%s: only a lob leaves the ground" % data.id)
 		body.queue_free()
 		RunState.set_phase(RunState.Phase.PREPARATION)
-		_field.try_sell(anchor)
+		# **The sell is checked, and the field is left empty.** These rounds
+		# share a field, so a tower that outlives its own round shoots the
+		# next round's body and a shot that outlives it is read as the next
+		# tower's. Both were silent: the sell's refusal was thrown away, and
+		# the effect root was never emptied.
+		_check(_field.try_sell(anchor).is_empty(),
+			"%s: the harness must be able to sell it again" % data.id)
+		for leftover: Node in _field.effect_root.get_children():
+			if leftover is Projectile:
+				leftover.queue_free()
+		await get_tree().process_frame
 		await get_tree().process_frame
 		lane = (lane + 1) % 4
 

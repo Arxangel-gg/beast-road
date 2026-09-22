@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 9
+shot_tint = Color(1, 0.8, 0.45, 1)
+juice_scale = 1.25
+role = 2
+element = 0
+damage = 48.0
+attack_interval = 2.6
+attack_range = 590.0
+max_hp = 390.0
+ground_zone_dps = 12.0
+ground_zone_duration = 4.0
+id = "kindlers_eye"
+display_name = "Kindler's Eye"
+description = "Sniper. Lights the ground where it strikes and leaves it burning. What it is really for is the second body walking through the place the first one died."

@@ -144,6 +144,17 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	# The five of 2026-09-14, to eight an element: the towers that work for
 	# their neighbours, after every gun, and the kiln with them.
 	"flash_kiln", "mason_shrine", "stillwater_mirror", "wind_relay", "bellows_forge",
+	# The eight of 2026-09-22, to ten an element (owner: *"every one of the 4
+	# tower elements should have 10 different tower types each"*). Two a side,
+	# each filling the role that element was thinnest in and each a
+	# combination the roster did not have: Fire had no chain and no ground
+	# fire, Water no spray and no freeze worth building for, Earth nothing
+	# that left the ground open and nothing that pierced, Air no shell and
+	# nothing that held a lane.
+	"sear_coil", "brinespitter",
+	"fissure_drum", "downburst",
+	"kindlers_eye", "frostpoint",
+	"granite_ballista", "lodestone_mast",
 	# The well is last on purpose. It is the only tower that does not shoot, and
 	# a player offered one before they have learned what a road costs them will
 	# read it as a worse gun rather than as a trade.

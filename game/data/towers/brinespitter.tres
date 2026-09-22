@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 3
+shot_tint = Color(0.7, 0.88, 1, 1)
+juice_scale = 0.9
+role = 0
+element = 1
+damage = 7.0
+attack_interval = 0.5
+attack_range = 300.0
+slow_factor = 0.9
+slow_duration = 1.0
+freeze_chance = 0.08
+id = "brinespitter"
+display_name = "Brinespitter"
+description = "Skirmisher. A fan of cold brine rather than a bolt, so it wets a whole rank at once and now and then one of them stops dead."

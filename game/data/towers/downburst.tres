@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 1
+ambient = 7
+shot_tint = Color(0.82, 0.93, 1, 1)
+juice_scale = 1.4
+role = 1
+element = 3
+damage = 28.0
+attack_interval = 1.55
+attack_range = 360.0
+aoe_radius = 150.0
+knockback = 180.0
+id = "downburst"
+display_name = "Downburst"
+description = "Siege. Slams a column of air onto the road and throws everything under it backwards. Air had no shell of its own; this one does its damage by moving the fight rather than by ending it."

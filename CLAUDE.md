@@ -6998,6 +6998,285 @@ project has recorded before: a CI profile *is* a new account, so switching away
 from it reads "new" whether or not anything resets. The Warden being left is
 made a played one first.
 
+**Towers take less of everything, and everything on the board now shoots, as
+of 2026-09-22.** The owner: *"reduce the amount of damage that towers take
+from natural disasters. Tornadoes especially do too much damage to towers and
+need tower damage nerfed. Towers should take less damage from all sources and
+everything needs to be balanced"*, and *"all towers need to deal some kind of
+damage ... except for the healing well"*.
+
+**The tornado complaint was right by a wide margin, and the arithmetic is
+worth keeping.** `TORNADO_TOWER_DPS` was 700 flat, with no act scaling and no
+falloff inside the wake. A funnel crosses its own 84-unit wake in 1.4 seconds,
+so **a single straight pass delivered 980 damage** - more than every tower in
+the roster holds except the Bastion. A funnel therefore deleted every
+emplacement on the road it crossed, in a second and a half, and the player
+could neither see it coming nor answer it. The meteor was the same shape
+quieter: `METEOR_TOWER_DAMAGE` was 520, which is exactly `TOWER_BASE_MAX_HP`,
+so a stone that **deliberately hunts towers** one-shot any of them that had not
+authored a bigger pool.
+
+**The nerf is one scale and two constants.** The scale is
+`TOWER_DAMAGE_TAKEN_SCALE`, applied as `Health.damage_scale` on the tower
+rather than inside `Tower.hurt` - and that is the whole reason it answers the
+ask. `hurt()` is the *world's* door: the tornado, the meteor, the ground wave
+and the earth's cracks. **Enemy melee and enemy shots bypass it entirely**,
+reaching `Health.take_damage` directly, so a multiplier in `hurt()` would have
+answered "less from all sources" by covering four of the six. It sits after
+the flat armour and its twenty-percent floor, so a Bastion's plate and this
+compound the way a hero's armour and Resolve do.
+
+**And the tornado's invariant was amended, which is recorded rather than done
+quietly.** `wrath_check` asserted *"the funnel walked over a tower and left it
+standing"* - which required at least 436 tower DPS and is *why* the constant
+was 700. A gate can hold a fault in place; this one did. What replaces it
+holds **both** ends, which the old one did not: a straight pass must hurt the
+tower and must **not** fell it, and a funnel **parked** on one must fell it
+inside twelve seconds. So the nerf cannot be undone by raising the constant
+back, and it cannot be taken further either. Planted the original pair - 700
+DPS and no scale - and the gate named it.
+
+**Every tower deals damage now, and the silence was in the code rather than in
+the data.** `Tower._process` read `if data.is_support(): _tick_support(delta);
+return`, an unconditional return that sat *before* the wind-up, the cooldown,
+`_acquire_targets` and `_fire`. So authoring `damage` on a Bellows Forge did
+nothing at all: four of the forty-two towers could not shoot whatever their
+resource said. The return is conditional on the damage now, so a support
+authored with none is still silent by construction and nothing further down the
+firing path had to learn that supports exist.
+
+**The reason the old assertion existed is kept as a ceiling.** A Bellows Forge
+that out-shoots an Ashen Censer is not a support, it is a gun that also helps -
+so `TOWER_SUPPORT_DAMAGE_SHARE` bounds a support at 62% of the weakest pure
+gun in its own role, and `tower_support_check` **measures that floor off the
+roster** rather than reading a number, so the bound moves when the roster does.
+The four land at 3.3 to 3.6 dps against an Ember Spire's 26.7. Both ends are
+planted and named: a support with no damage, and one firing at 16.7.
+
+**The well is untouched**, which the owner exempted and which two gates already
+require - `healing_well_check` says *"a well that also shoots is a gun"* in as
+many words, and a well is gated one branch further down by `is_well()`.
+
+**Ten towers an element, as of the same date.** The owner asked for ten types
+per element; there were eight. The eight new ones are two a side, each filling
+the role that element was thinnest in and **each a combination the roster did
+not have** rather than a bigger number - which is the rule the 2026-09-11 batch
+was authored under and the only thing that makes a tenth tower worth meeting.
+
+Fire had no chain and nothing that left fire on the ground: the **Sear Coil**
+and the **Kindler's Eye**. Water had no spray and no freeze worth building
+for: the **Brinespitter** and **Frostpoint**. Earth left nothing behind and
+pierced nothing: the **Fissure Drum** and the **Granite Ballista**. Air had no
+shell of its own and nothing that held a lane: the **Downburst** and the
+**Lodestone Mast**, which is the first air tower that taunts and the first that
+grants lane armour.
+
+**`Balance.TOWERS_PER_ELEMENT` is the count and the gate reads it.** The
+assertion was a literal eight, walked over all four elements - so the roster
+could not drift to nine of one and eleven of another, which is what "ten types
+each" means and is not something a total would catch. It has now had to move
+twice, so it is a named number rather than a figure typed into a gate.
+
+**Two harnesses had to learn about the scale and neither invariant moved.**
+`structure_check` hurt a tower by `max_hp * 0.58` and then asserted it was
+burning, which is a statement about the *ratio* wearing a damage figure's
+clothes; it drives the tower down to the ratio it is asking about now.
+
+**And `tower_juice_check` failed for a reason that had nothing to do with
+towers.** It reported two of the five shot styles as not landing - one tower
+"would not fire at a body in reach" standing 322 units away with a range of
+402. What had actually happened is that **the town fell in the middle of the
+fourth round**: five rounds of up to twelve hundred frames each is minutes of
+game time on a live road, a body reached the gate, the run settled, the
+battlefield suspended itself, and the last two towers were measured on a
+frozen field.
+
+It took six bisections to find, and every one of them pointed at the wrong
+thing - the knockback, the ambient air, the shot style, the sell, the crowd
+grid. What found it was **printing the state** rather than reasoning about it:
+one line carrying the phase, the suspend flag and the neighbour count said
+`phase=5 susp=true`, and `run_ended`'s own summary then named the blow. The
+first culprit that trace named was a *badger* - `last_blow` read "Badger for
+10" - which was a second, independent way for the same gate to die, and was
+also real.
+
+**The gate had been one authored tower away from this since the day it was
+written.** Nothing about the eight new towers is wrong; adding a tenth tower
+to each element moved which tower the lob style picks, which shifted the
+timing by a second or two. `floor_hp` holds the town at half for the gate's
+duration now, which is the door the homecoming withdrawal and
+`enemy_siege_check` already use - and the gate checks its own sell and clears
+the air between rounds, because rounds that share a field must not share
+anything else.
+
+**The trap menu is ten offers that fit on the screen, as of 2026-09-22.** The
+owner's report: traps need *"1 more option to total 10"*, the Iron Hoarding and
+the Stake Line *"do not have the full tooltips on hover like the rest of the
+traps"*, and the whole menu *"needs to be bottom right anchored without
+overlapping the bottom or right UIs. It's currently top right anchored seemingly
+and overlapping the spirit companion UI."*
+
+**It was already bottom-right anchored, and the report was still exactly
+right.** The road sheet hangs from the bottom right and grows *upward*, the
+same as the build sheet - and unlike the build sheet it had no ceiling and no
+fit function at all. Ten rows pushed its top edge to about y=136 against a
+right-column floor near 206, so it grew straight through the spirit readout,
+whose Call button is `MOUSE_FILTER_STOP` and stopped taking clicks. "Top right
+anchored" is what a sheet growing past the top of its room looks like from the
+outside.
+
+**`_fit_right_sheet` is one function and both sheets call it.** Two copies of a
+layout rule is how one of them ends up wrong, and this is the case: three
+functions re-fitted the build sheet when the screen or the column's floor moved
+- `_refit_banners`, `_refit_right_column` and the touch pass - and not one of
+them named the road sheet. The road sheet has a `ScrollContainer` now as well,
+so a list too long for the screen scrolls rather than growing off it.
+
+**The tenth offer is the eighth trap: the Caltrop Drift.** Eight traps and the
+two barricades are the ten rows the menu lists. What makes it distinct is
+**reach**: 280 units against the 150 the widest trap managed, for the weakest
+bite in the set, plus a short stumble rather than a stop. Every other trap
+answers a place; this one answers a *stretch*. `TrapData` needed no new field,
+which is working rule 3 doing its job - the trap is a file.
+
+**And it carries a Gold price on purpose.** The obvious way to make it distinct
+was to price it in Wood alone, the way the Stake Line is - and that would
+quietly have re-cut the opening envelope. `STARTING_WOOD` is 180 and
+`STARTING_GOLD` is 0, and the reasoning above the Gold constant is that zero
+Gold means zero towers *because every tower carries a Gold price*. A Wood-only
+defence makes Wood into tower capital by a side door and hands the player a
+laid road on the opening frame, which is the one thing §448's teaching
+obligation is protecting. If a Gold-free trap is ever wanted, that is a
+decision about the opening rather than a price.
+
+**The barricades' tooltips were a call site, not data.** `_add_road_row` takes
+a picture and a figures block as optional arguments; the trap loop passed both
+and the barricade loop passed neither, so the two walls showed a bare sentence
+and no image beside seven traps showing a picture and five lines of numbers.
+`BarricadeData` has carried `max_hp`, `slow_factor` and a working
+`get_sprite_path` since it was written and both sprites are on disk. What was
+missing is `_barricade_tooltip` and two arguments. **An argument that defaults
+to empty is the shape of omission nothing can see** - not a type checker, not a
+layout measurement, not `asset_report` - which is why the gate drives the row's
+own `mouse_entered` rather than calling the builder.
+
+The Raise row had a smaller version of the same fault: it promised "Level %d:
+harder, wider" and quoted the trap's *level-one* numbers as its figures.
+`_trap_tooltip` takes the level being bought now.
+
+**Three faults were found by opening the sheets rather than by reading them,
+and every one was invisible to `layout_check`.**
+
+- **Both sheets were drawn entirely off the right edge of an upright phone.**
+  The portrait branch of the fit wrote `offset_left = BUILD_PANEL_MARGIN` - a
+  *left* margin against `PRESET_BOTTOM_RIGHT`, which puts `anchor_left` at 1.0
+  as well as `anchor_right` - so the sheet's left edge landed thirty-four units
+  past the right edge of the screen with its width collapsed to whatever its
+  contents demanded. Measured at 430x932: x=1713 of 1680.
+- **The command panel sat 276 units above the top of the screen, in every
+  combat phase, on every launch.** `_build_command_panel` anchors it top left
+  and says it moved there to free the bottom right for these sheets;
+  `_on_touch_layout_changed` still wrote the bottom-right offsets it used to
+  have, and that function runs from `_ready` on a desktop as well as on touch.
+- **`BUILD_PANEL_LIFT` was 164 to clear that same panel**, and had been since
+  before it moved. A hundred and sixty-four units of screen were spent clearing
+  something that was not there, on every desktop, on both sheets, for as long
+  as the roster has been growing. It is 40 now: air above the ability bar and
+  nothing else.
+
+**`layout_check` could see none of the three, and the reason is one line in
+it** - a widget *entirely* outside the viewport is skipped, on the reasonable
+grounds that it is usually a panel waiting to slide in. So a panel placed fully
+off the screen is the one placement fault that gate is blind to by
+construction, and all three were exactly that. The other half is that it had
+never opened the road sheet: **a sheet nothing opens is a sheet nothing
+measures**, which is the same finding as traps and barricades shipping
+unreachable before the sheet existed at all.
+
+**The chrome came out of the scroll, and it goes back in where it will not
+fit.** The heading, the hover footer and the Close button were inside the build
+sheet's `ScrollContainer`, so on a sheet too short for its list the player had
+to scroll the list to reach the button that closes it and the heading - the
+only thing naming what is being built - was the first thing to scroll away.
+Outside the scroll they cannot scroll away, and that is how both sheets are
+laid out on every ordinary screen.
+
+**The price is that `Control.size` is clamped to the combined minimum size**, so
+a panel whose chrome is taller than the room it is given does not shrink - it
+grows past its offsets, and hanging from the bottom that means growing
+*upward*, through the readout the ceiling exists to protect. A landscape phone
+is 777 units of logical height with the right column owning the top 271 and the
+combat row the bottom 308, and a thumb-sized Close button alone is 120. So
+`_seat_chrome` puts the chrome back inside the scroll on exactly the screens
+that have no room for it, which is what every sheet did before this. The order
+never changes - heading, list, footer, Close - so the sheet reads the same
+either way; what changes is whether those three move when the list is scrolled.
+
+**The gate holds reachability rather than seating**, for that reason: a Close
+button outside the scroll must be inside the panel's frame, one inside the
+scroll must be the last thing in the list and the list must actually scroll to
+it, and on a desktop shape - which has room several times over - it must be the
+fixed one. A rule that always takes the same branch is a rule nothing is
+testing.
+
+**What is left on a landscape phone is recorded rather than solved.** With the
+spirit readout up, that shape leaves the road sheet about 76 units and it
+scrolls nearly everything. That is the true room under the ceiling, and it is a
+large improvement on what it replaced - the sheet had no ceiling at all and
+grew through the readout without bound - but it is not good. The three ways out
+are all decisions: cover the Call button, cover the combat row, or have the
+readout step aside while a sheet is open the way the minimap already does. The
+third is the most promising and it needs the owner, because it softens a ruling
+they made on 2026-09-17.
+
+**`road_sheet_check` is the gate, on both bars, at four shapes.** It holds the
+row count against `ContentDB` rather than against a number - with a floor of
+ten under it, because everything else there counts rows against what
+`ContentDB` loaded and a trap whose resource silently failed to load makes
+those two agree with each other and both be wrong. It drives every row's own
+`mouse_entered` and reads the figures box back, holds Close reachable, turns
+the window upright and insists both sheets were re-laid, and checks the command
+panel is on the screen when it is shown. Three
+harness faults in writing it are worth keeping, because each made a working
+feature read as broken or a broken one read as fine:
+
+- **The box was not cleared between hovers**, so a row that opens no figures
+  box at all read as explained by the *previous* row's numbers - it quoted a
+  barricade's figures at four element-rail buttons. A rail pick buys nothing
+  and carries its own `tooltip_text`; demanding a price of one is demanding a
+  price of a folder. What is not allowed is a row that explains itself nowhere.
+- **The element rail's picks are toggles**, so pressing the element that is
+  already open closes it. The gate opens the build sheet more than once, and
+  the second pass measured the four-row rail with nothing on it - a list that
+  fits any screen and proves nothing.
+- **Making the window shorter measures nothing.** The project stretches
+  `canvas_items`, so shrinking a window's height leaves the logical viewport
+  exactly as tall and a stale sheet still fits by accident: the first cut read
+  the same rectangle before and after and called it a pass. It turns the window
+  *upright* now, which is a shape the sheets answer differently on purpose.
+
+**One allowance is written into that gate deliberately.** A build-sheet row
+with no picture fails only when more rows lack one than there are towers whose
+art is not yet on disk. A row that was never given a picture is this gate's
+business; art that has not been drawn yet is the asset manifest's, and a gate
+that is red for somebody else's half-finished change is a gate people stop
+reading. The allowance is counted from disk, so it shrinks to nothing on its
+own the day the art lands.
+
+**And the road sheet's own Close button left the minimap hidden.** The sheets
+hide the map while they are open, and three of the four paths that close the
+road sheet put it back; the button the sheet itself offers did not.
+`_close_road_panel` is the one door now.
+
+**`road_sheet_shot` is the picture, and it is a diagnostic rather than a
+gate.** The gate measures rectangles and cannot see whether an eighth trap's
+art belongs beside the seven that shipped or whether ten rows read as a list a
+person chooses from - and this project has paid several times over for the
+difference between a number agreeing and a picture agreeing. It opens the sheet
+on a real road tile and hovers the *last* row, which is a barricade, because
+the empty tooltip was half of what was reported and an unhovered sheet does not
+draw the box at all.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

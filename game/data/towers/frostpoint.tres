@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 4
+shot_tint = Color(0.75, 0.95, 1, 1)
+juice_scale = 1.2
+role = 2
+element = 1
+damage = 58.0
+attack_interval = 2.2
+attack_range = 585.0
+max_hp = 400.0
+freeze_chance = 0.22
+id = "frostpoint"
+display_name = "Frostpoint"
+description = "Sniper. One long needle of ice, and about one body in five simply stops where it stood. The far end of the road, answered by taking the biggest thing on it out of the walk."
