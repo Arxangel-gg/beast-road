@@ -15,9 +15,19 @@ func _ready() -> void:
 	RunState.reset()
 	GameDirector.run_active = true
 	var act: int = 1
+	var forced: String = ""
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--act="):
 			act = clampi(int(argument.trim_prefix("--act=")), 1, Balance.FINAL_ASCENT_ACT)
+		elif argument.begins_with("--force-grade="):
+			# **The decisive test for "does the body's grade reach the tail".**
+			# Paint the body a colour nothing else in the scene is and look: if
+			# the limb comes back that colour, the chain carries it and the
+			# argument is about the paintings; if it does not, the chain is the
+			# fault. `menu_shot` has carried the same flag since the seventh
+			# report and the scope had no equivalent, which is why eleven
+			# passes argued about the scope from numbers alone.
+			forced = argument.trim_prefix("--force-grade=")
 	RunState.act = act
 	var terrain: TerrainData = ContentDB.terrain_for_act(act)
 	if terrain != null:
@@ -35,6 +45,20 @@ func _ready() -> void:
 		run.hud.visible = false
 	for _f: int in 20:
 		await get_tree().process_frame
+	if not forced.is_empty():
+		var parts: PackedStringArray = forced.split(",")
+		var painted: CanvasItem = TailProbe.find_body(run)
+		# Stopped first: the scope re-grades the beast every frame from the
+		# ground, so a forced colour is gone before the photograph.
+		var scope: Node = run.get_node_or_null("BeastScope")
+		if scope != null:
+			scope.set_process(false)
+			scope.set_physics_process(false)
+		if painted != null and parts.size() >= 3:
+			painted.modulate = Color(float(parts[0]), float(parts[1]), float(parts[2]))
+			print("[beast] body forced to %s" % str(painted.modulate))
+			for _f: int in 6:
+				await get_tree().process_frame
 	var tail: CanvasItem = TailProbe.find_tail(run)
 	if tail == null:
 		print("[beast] no tail node found")
@@ -48,6 +72,7 @@ func _ready() -> void:
 			% [str(tail.get_global_transform_with_canvas().origin.round()),
 				str(body.get_global_transform_with_canvas().origin.round()) if body != null else "-",
 				str(tail.get_global_transform_with_canvas().get_scale())])
+		TailProbe.say_the_chain(tail, "beast")
 		await RenderingServer.frame_post_draw
 		TailProbe.report(get_viewport(), tail, "beast")
 	var path: String = "user://beast_shot_act%d.png" % act

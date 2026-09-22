@@ -81,8 +81,26 @@ func _ready() -> void:
 ## over the whole limb, whose tip is legitimately in its own shadow.
 const STUB_COLUMNS: float = 42.0
 const ROOT_SHARE: float = 0.30
-const ROOT_TOLERANCE_PER_CHANNEL: float = 0.06
-const LIMB_LUMINANCE_TOLERANCE: float = 0.15
+## **The band the root may sit in, against the stub it continues**, and it is
+## a band *below* one rather than a match - which is an amendment recorded
+## rather than made quietly (2026-09-22, tenth report).
+##
+## `grade_tail_to_stub.py` paints the root to the stub's own colour, and after
+## it the two paintings agreed to within one percent on mean, spread and
+## saturation - and a magnified crop of the render still showed a seam. What
+## no global statistic can see is *which part of the body the limb leaves*:
+## the Worldstrider's back is pale plated stone and its haunch is deep shadow
+## under hanging vine, and the tail comes out of the haunch painted at the
+## brightness of the back. `seat_tail_in_shadow.py` grades it into that
+## shadow, hardest at the root and easing to the tip, so the root is
+## deliberately darker than the stub now.
+##
+## Both ends are held: a root brighter than the stub is the fault this has
+## been reported for ten times, and one darker than the floor is a limb that
+## has stopped being the same animal in the other direction.
+const ROOT_SHADE_FLOOR: float = 0.68
+const ROOT_SHADE_CEILING: float = 0.94
+const LIMB_LUMINANCE_TOLERANCE: float = 0.22
 
 
 func _test_the_tail_continues_the_stub() -> void:
@@ -100,17 +118,29 @@ func _test_the_tail_continues_the_stub() -> void:
 			_check(false, "%s will not load" % path)
 			continue
 		var root: Color = BeastTailSpline._surface_mean(tail, 1.0 - ROOT_SHARE, 1.0, 0.0, 1.0)
-		var worst: float = 0.0
+		# **The colour, still matched.** The shadow grade is luminance only, so
+		# the two must still agree on where their light sits between the
+		# channels - a root that has drifted in hue is a tail somebody has
+		# tinted, which is what failed here twice.
+		var stub_lum: float = maxf(stub.get_luminance(), 0.001)
+		var root_lum: float = maxf(root.get_luminance(), 0.001)
 		for channel: int in 3:
-			var ratio: float = root[channel] / maxf(stub[channel], 0.001)
-			worst = maxf(worst, absf(ratio - 1.0))
-		_check(worst <= ROOT_TOLERANCE_PER_CHANNEL,
-			("%s roots at rgb(%.0f, %.0f, %.0f) against a stub of rgb(%.0f, %.0f, %.0f) "
-				+ "- %.0f%% off on its worst channel; run tools/grade_tail_to_stub.py")
-				% [path.get_file(), root.r * 255.0, root.g * 255.0, root.b * 255.0,
-					stub.r * 255.0, stub.g * 255.0, stub.b * 255.0, worst * 100.0])
+			var mine: float = root[channel] / root_lum
+			var theirs: float = stub[channel] / stub_lum
+			_check(absf(mine - theirs) <= 0.06,
+				("%s roots in a different colour from the stub it continues "
+					+ "(channel %d, %.3f against %.3f); run tools/grade_tail_to_stub.py")
+					% [path.get_file(), channel, mine, theirs])
+		# And the light, seated in the haunch's shadow rather than matched.
+		var shade: float = root_lum / stub_lum
+		_check(shade >= ROOT_SHADE_FLOOR and shade <= ROOT_SHADE_CEILING,
+			("%s roots at %.2f of the stub's brightness, outside %.2f-%.2f - "
+				+ "above it the limb is the pale back leaving a dark haunch, which "
+				+ "is the seam; below it, it has stopped being the same animal. "
+				+ "Run tools/seat_tail_in_shadow.py")
+				% [path.get_file(), shade, ROOT_SHADE_FLOOR, ROOT_SHADE_CEILING])
 		var whole: Color = BeastTailSpline._surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
-		var lum: float = whole.get_luminance() / maxf(stub.get_luminance(), 0.001)
+		var lum: float = whole.get_luminance() / stub_lum
 		_check(absf(lum - 1.0) <= LIMB_LUMINANCE_TOLERANCE,
 			"%s is %.2fx the stub's brightness over its whole length" % [path.get_file(), lum])
 

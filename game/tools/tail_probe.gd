@@ -82,6 +82,26 @@ static func report(viewport: Viewport, tail: CanvasItem, label: String) -> Dicti
 	return {"hue": hue_gap, "lum": lum_gap, "sat": sat_gap}
 
 
+## **Every colour either of them is multiplied by, all the way up.**
+##
+## Eleven passes argued about the tail's grade from one property at a time,
+## and the one that mattered was never printed. `modulate` is inherited by a
+## child and `self_modulate` is not, so a body with a dark `self_modulate` is
+## a body darker than its own tail with nothing in either node's `modulate` to
+## say so - and any ancestor can do the same thing one layer further up.
+static func say_the_chain(tail: CanvasItem, label: String) -> void:
+	var node: Node = tail
+	var depth: int = 0
+	while node != null and depth < 10:
+		var item := node as CanvasItem
+		if item != null:
+			print("[%s] chain %d %-22s modulate=%s self=%s material=%s visible=%s"
+				% [label, depth, item.name, str(item.modulate), str(item.self_modulate),
+					str(item.material != null), str(item.visible)])
+		node = node.get_parent()
+		depth += 1
+
+
 static func _say(label: String, what: String, paint: Dictionary) -> void:
 	print("[%s] paint  %s rgb(%3d,%3d,%3d) hue %5.1f sat %.3f lum %.3f  (%d px)"
 		% [label, what, int(paint["r"]), int(paint["g"]), int(paint["b"]),
