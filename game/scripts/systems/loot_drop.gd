@@ -499,6 +499,14 @@ func _pickup_sound() -> void:
 func _burst() -> void:
 	Vfx.spark(global_position, _glow_colour, Balance.LOOT_TAKE_SPARKS,
 		Vector2.UP, Balance.LOOT_TAKE_SPEED)
+	# **A star for a piece worth stopping for**, and for nothing else. A
+	# forged sheet on every coin of a nine-piece handful is a forest, which
+	# is the same argument the beacon is already held to - so the bar is the
+	# rarity, and a Rough sword gets the sparks it always got. It says what
+	# arrived and reads nothing: the piece was banked before this ran.
+	if not gear.is_empty() 			and int(gear.get("rarity", 0)) >= Balance.LOOT_FORGE_RARITY_FROM:
+		Vfx.forge_play("rarity_burst", global_position,
+			Balance.LOOT_FORGE_REACH, _glow_colour)
 
 
 ## Whichever hero is closest, of however many there are.

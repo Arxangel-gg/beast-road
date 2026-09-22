@@ -93,6 +93,13 @@ func _process(delta: float) -> void:
 	if _dust_timer <= 0.0:
 		_dust_timer = 0.28
 		Vfx.dust(at, Color(0.42, 0.36, 0.28), 5, Balance.TORNADO_WAKE)
+		# **The debris caught in it**, on the wake's own clock. The sheet is
+		# the one looping effect in the catalogue - it comes back round to
+		# where it started - which is what lets it be played over and over
+		# while the funnel stands rather than reading as a repeated blow.
+		# Upright, because a funnel lying on its side is not a funnel.
+		Vfx.forge_play("funnel_debris", at, Balance.TORNADO_AOE * 1.6,
+			Color(0.78, 0.7, 0.58, 0.8))
 	_howl_timer -= delta
 	if _howl_timer <= 0.0:
 		_howl_timer = 2.4

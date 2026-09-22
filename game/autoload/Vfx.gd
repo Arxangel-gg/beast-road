@@ -65,38 +65,106 @@ const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
 ## for the finisher, embers for a death in a burning region.
 const HIT_CUT_ART: String = "res://art/vfx/cut.png"
 const HIT_BURST_ART: String = "res://art/vfx/burst.png"
-## **The forge's sheet** (2026-09-21, `tools/vfx_forge`): sixteen cells of a
-## shock ring that runs outward and frays, rendered in Blender from one node
-## graph and packed left to right, white on transparent so one sheet serves
-## every element through its tint. `forge_burst` plays it.
-const FORGE_BURST_ART: String = "res://art/vfx/forge_burst.png"
-## **The variants of that sheet** (owner, 2026-09-22: the forged effects
-## should *"have variations and more procedural in-game variation"*).
+## **The forge's catalogue** (2026-09-21, `tools/vfx_forge`; grown to
+## twenty-four effects on 2026-09-22 at the owner's asking for *"a great
+## amount of the best varieties"*). Each effect is a row of cells rendered in
+## Blender from one node graph and packed left to right, white on transparent
+## so one sheet serves every element through its tint.
+const FORGE_ART_FORMAT: String = "res://art/vfx/forge_%s.png"
+const FORGE_TAKE_FORMAT: String = "res://art/vfx/forge_%s_%02d.png"
+## How many takes of one effect may exist. A take is the same effect with its
+## noise sampled somewhere else, so the pool grows by rendering a file and
+## shrinks by deleting one - a missing take is simply not in it, which is the
+## rule the music playlist and the mount sheets already live under.
+const FORGE_TAKES_MAX: int = 8
+
+## How a sheet may be turned, which is a property of what it is a picture of.
 ##
-## Rendered by `tools/vfx_forge/forge.py burst --variants 3`, which moves where
-## the one noise lookup samples - so each sheet is the same ring frayed
-## somewhere else rather than a recolour, which the game can already do for
-## itself. Variant zero keeps the plain name, so nothing that loaded a sheet
-## before this had to learn anything.
+## - `FREE` is anything radial: a ring, a star, a splash. A free spin costs
+##   nothing and is most of what stops forty impacts being one picture.
+## - `UPRIGHT` is anything that knows where the ground is - a flame that
+##   rises, an ellipse lying on the floor, a column of light. Turned, it lies
+##   on its side; so it is flipped left to right instead, which a symmetric
+##   ground shape does not mind.
+## - `AIMED` is anything directional: a beam's terminus, a lance, a trail.
+##   It is turned to the angle the caller gives it, so a horizontal flip
+##   would reverse the very thing it is drawn to point along - it is flipped
+##   vertically instead.
 ##
-## **A missing variant is simply not in the pool.** The list is filtered on
-## first use, so the sheet count grows by rendering a file and shrinks by
-## deleting one, and a half-finished art pass degrades rather than errors -
-## the same rule the music playlist and the mount sheets live under.
-const FORGE_BURST_VARIANTS: Array[String] = [
-	"res://art/vfx/forge_burst.png",
-	"res://art/vfx/forge_burst_01.png",
-	"res://art/vfx/forge_burst_02.png",
-]
-## How far a burst may be turned and how much its size may wander, so two
-## impacts in the same place are not the same picture twice. Decoration's own
-## dice, never the run's stream. [TUNE]
+## The flip is *derived* from the turn rather than authored beside it. Two
+## columns saying one thing is two chances to disagree, and which axis is
+## safe follows from which axis carries the meaning.
+enum ForgeTurn { FREE, UPRIGHT, AIMED }
+
+## Every effect the forge renders, and how it may be played.
+##
+## **The frame count is deliberately not in here.** A sheet is a row of
+## squares, so its cell count is its width over its height and the file
+## already knows - a hand-kept count beside a file that can be re-rendered
+## with a different one is exactly the number this project has watched drift
+## before. `forge_check` walks this table against the folder in both
+## directions: an effect here with no sheet is a call that draws nothing, and
+## a sheet on disk named by nothing here is an effect nobody can play.
+const FORGE_CATALOGUE: Dictionary = {
+	"burst": ForgeTurn.FREE,
+	"hit_fire": ForgeTurn.UPRIGHT,
+	"hit_water": ForgeTurn.FREE,
+	"hit_earth": ForgeTurn.FREE,
+	"hit_air": ForgeTurn.FREE,
+	"hit_physical": ForgeTurn.FREE,
+	"nova": ForgeTurn.FREE,
+	"ward": ForgeTurn.FREE,
+	"beam_end": ForgeTurn.AIMED,
+	"meteor_bloom": ForgeTurn.UPRIGHT,
+	"meteor_trail": ForgeTurn.AIMED,
+	"shot_bolt": ForgeTurn.FREE,
+	"shot_spray": ForgeTurn.FREE,
+	"shot_lob": ForgeTurn.UPRIGHT,
+	"shot_lance": ForgeTurn.AIMED,
+	"shot_hex": ForgeTurn.FREE,
+	"portal_rift": ForgeTurn.FREE,
+	"rune_flare": ForgeTurn.FREE,
+	"level_up": ForgeTurn.UPRIGHT,
+	"rarity_burst": ForgeTurn.FREE,
+	"set_motes": ForgeTurn.UPRIGHT,
+	"slam_impact": ForgeTurn.FREE,
+	"quake_dust": ForgeTurn.UPRIGHT,
+	"funnel_debris": ForgeTurn.UPRIGHT,
+}
+
+## Which forged hit an element gets. The five are authored rather than derived
+## from the element name because `physical` is not an element at all - it is
+## what a sword does - and because a sixth element added tomorrow should fail
+## the gate rather than silently draw nothing.
+const FORGE_HIT_BY_ELEMENT: Dictionary = {
+	"fire": "hit_fire",
+	"water": "hit_water",
+	"earth": "hit_earth",
+	"air": "hit_air",
+	"physical": "hit_physical",
+}
+
+## How far a freely-turned sheet may be spun and how much any sheet's size may
+## wander, so two impacts in the same place are not the same picture twice.
+## Decoration's own dice, never the run's stream. [TUNE]
 const FORGE_SPIN: float = TAU
 const FORGE_SIZE_JITTER: float = 0.12
+## How far an aimed sheet may wander off the angle it was given. Small: the
+## point of an aimed sheet is that it points along the blow, and a beam
+## terminus a quarter-turn off its beam is worse than one that never varies.
+const FORGE_AIM_WANDER: float = 0.10
+## How wide each forged sheet is drawn where the caller has no radius of its
+## own to name. An impact does - it is given one - so its reach is a multiple
+## of that rather than a width. [TUNE]
+const FORGE_IMPACT_REACH: float = 1.7
+const FORGE_SWING_REACH: float = 96.0
+const FORGE_LEVEL_REACH: float = 180.0
+const FORGE_RUNE_REACH: float = 150.0
 
-var _forge_sheets: Array[String] = []
+## The take pool for each effect, built on first use and never rebuilt.
+var _forge_sheets: Dictionary = {}
 var _forge_dice := RandomNumberGenerator.new()
-const FORGE_BURST_FRAMES: int = 16
+var _forge_seeded: bool = false
 const EMBERS_ART: String = "res://art/vfx/embers.png"
 ## Regions whose dead go up in embers rather than dust.
 const EMBER_TERRAINS: Array[String] = ["ashen_reach", "rustwood"]
@@ -1300,7 +1368,9 @@ func _on_hero_loosed(from: Vector2, direction: Vector2, _ammo_id: String) -> voi
 func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	if world == null:
 		return
-	var path: String = IMPACT_ART_FORMAT % TowerData.element_name(element).to_lower()
+	var named: String = TowerData.element_name(element).to_lower()
+	forge_hit(named, at, size * FORGE_IMPACT_REACH, colour)
+	var path: String = IMPACT_ART_FORMAT % named
 	if not ResourceLoader.exists(path):
 		return
 	var burst := Sprite2D.new()
@@ -1323,6 +1393,15 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	tween.tween_property(burst, "modulate:a", 0.0, 0.26).set_delay(0.06)
 	_play_burst_frames(burst, path)
 	tween.chain().tween_callback(burst.queue_free)
+	# **And the forged hit for that element, from here rather than from the
+	# thirty places that deal an elemental blow.** Each of the five behaves
+	# the way its element does - fire flares upward and dies, water splashes
+	# into a ring of droplets, earth throws chunks, air is a ring leaving,
+	# steel is a hard star - which is the owner's *"hit vfx for everything,
+	# including elements which behave properly for each element"*. Layered
+	# over the painted impact for the same reason the painted impact is
+	# layered over the sparks: one picture doing all the work reads as a
+	# decal. Nothing downstream learns it happened.
 
 
 ## A drawn burst at a point: any authored frame sequence, played once.
@@ -1330,67 +1409,133 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 ## `impact` is this for the four elements; this is the general one, for the
 ## splash a cast makes, the rings a bite spreads, the sparks a blow throws.
 ## Additive for light on water and on steel, mixed for water itself.
-## **A forged burst, played once.** The first effect out of `tools/vfx_forge`
-## (docs/VFX_FORGE.md): a plane, one material, sixteen frames of a shock ring
-## with a swirl in it, tinted here rather than rendered four times. Additive,
-## because everything this game draws as light is. Decoration under every
-## decoration's bound: scaled away by `Graphics.particle_scale`, damped by
-## `JuiceDirector` as COSMETIC, read by nothing - `forge_check` holds that a
-## density of zero plays nothing at all.
-##
-## `size` is the diameter the ring reaches at full spread, which is what an
-## impact wants to name; the cell is drawn at that size and the ring grows
-## inside it.
+## **A forged burst, played once.** The plain door onto the catalogue, kept
+## because it is what three call sites already ask for.
 func forge_burst(at: Vector2, size: float, tint: Color = Color.WHITE) -> void:
+	forge_play("burst", at, size, tint)
+
+
+## **The forged hit for an element.** One door, so the thirty places that deal
+## an elemental blow do not each have to know which sheet that is - and so a
+## sixth element arrives as a row in one table rather than as a branch.
+##
+## Silently draws nothing for an element the table does not name, exactly as
+## `impact` silently draws nothing for an element with no art: a missing
+## picture must cost what it cost before there was one.
+func forge_hit(element_name: String, at: Vector2, size: float,
+		tint: Color = Color.WHITE) -> void:
+	var effect: String = String(FORGE_HIT_BY_ELEMENT.get(element_name.to_lower(), ""))
+	if effect.is_empty():
+		return
+	forge_play(effect, at, size, tint)
+
+
+## **Plays one sheet out of the forge**, once, at a point.
+##
+## Every effect in `tools/vfx_forge/effects` reaches the game through here.
+## A take is chosen at random, the sheet is turned by what it is a picture of
+## (`ForgeTurn`), flipped along whichever axis carries no meaning, and its
+## size wandered - so a road of forty impacts is forty pictures rather than
+## one stamped forty times. Owner, 2026-09-22: *"use each randomly and also
+## maybe flip them randomly ... and give them random rotations when spawned"*.
+##
+## Decoration under every decoration's bound: scaled away by
+## `Graphics.particle_scale`, damped by `JuiceDirector` as COSMETIC, drawn on
+## its own dice rather than the run's stream, and **read by nothing** -
+## `forge_check` holds that a density of zero plays nothing at all and that a
+## co-op guest is told no sheet.
+##
+## `size` is the width the effect reaches, which is what a caller wants to
+## name; the cell is drawn at that size and the effect plays inside it.
+## `aim` is the angle an `AIMED` sheet is laid along and is ignored by the
+## others - a beam terminus has to point back up its beam, and a ring does
+## not care.
+func forge_play(effect: String, at: Vector2, size: float,
+		tint: Color = Color.WHITE, aim: float = 0.0) -> void:
 	if world == null:
 		return
 	if Graphics.particle_scale() <= 0.0:
 		return
-	var sheet: String = _a_forge_sheet()
+	if not FORGE_CATALOGUE.has(effect):
+		return
+	var sheet: String = _a_forge_sheet(effect)
 	if sheet.is_empty():
 		return
+	var texture: Texture2D = load(sheet) as Texture2D
+	if texture == null:
+		return
+	# **The cell count is the sheet's own shape.** A row of squares is as many
+	# cells as its width over its height, so re-rendering an effect with more
+	# frames needs no edit here - and there is no count to drift out of step
+	# with the file, which is a fault this project has already paid for.
+	var tall: int = maxi(texture.get_height(), 1)
+	var cells: int = maxi(texture.get_width() / tall, 1)
+
 	var weight: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
+	var turn: int = int(FORGE_CATALOGUE[effect])
 	var burst := Sprite2D.new()
-	burst.texture = load(sheet)
-	# **Turned, and never quite the same size.** One sheet played at one
-	# rotation is the same picture every impact; the sheet is radial, so a
-	# free spin costs nothing and reads as a different blow. Neither touches
-	# a number - the ring is drawn at the diameter the caller named, jittered
-	# by a tenth, and nothing reads where it lands.
-	burst.rotation = _forge_dice.randf() * FORGE_SPIN
-	burst.hframes = FORGE_BURST_FRAMES
+	burst.texture = texture
+	burst.hframes = cells
 	burst.frame = 0
 	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	burst.add_to_group(Graphics.FILTER_GROUP)
 	burst.modulate = Color(tint.r, tint.g, tint.b, tint.a * minf(1.0, weight))
 	burst.z_index = Balance.VFX_Z
+
+	match turn:
+		ForgeTurn.FREE:
+			burst.rotation = _forge_roll() * FORGE_SPIN
+			burst.flip_h = _forge_roll() < 0.5
+			burst.flip_v = _forge_roll() < 0.5
+		ForgeTurn.UPRIGHT:
+			# Left to right only. The ground is down and the flame goes up;
+			# a vertical flip would hang both from the ceiling.
+			burst.flip_h = _forge_roll() < 0.5
+		ForgeTurn.AIMED:
+			burst.rotation = aim + _forge_dice.randf_range(
+				-FORGE_AIM_WANDER, FORGE_AIM_WANDER)
+			# Across the aim, never along it.
+			burst.flip_v = _forge_roll() < 0.5
+
 	var glow := CanvasItemMaterial.new()
 	glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	burst.material = glow
 	_track(burst)
 	burst.global_position = at
-	var cell: float = float(burst.texture.get_width()) / float(FORGE_BURST_FRAMES)
 	var wander: float = 1.0 + _forge_dice.randf_range(
 		-FORGE_SIZE_JITTER, FORGE_SIZE_JITTER)
-	burst.scale = Vector2.ONE * (size / maxf(cell, 1.0)) 		* (0.7 + 0.3 * weight) * wander
-	var life: float = float(FORGE_BURST_FRAMES) / Balance.VFX_FORGE_FRAME_RATE
+	burst.scale = Vector2.ONE * (size / float(tall)) * (0.7 + 0.3 * weight) * wander
+	var life: float = float(cells) / Balance.VFX_FORGE_FRAME_RATE
 	var tween: Tween = burst.create_tween()
-	tween.tween_property(burst, "frame", FORGE_BURST_FRAMES - 1, life)
+	tween.tween_property(burst, "frame", cells - 1, life)
 	tween.tween_callback(burst.queue_free)
 
 
-## One of the forged sheets, at random. Filtered once: a variant nobody
-## rendered is not in the pool, and the pool is never empty while the original
-## sheet is on disk.
-func _a_forge_sheet() -> String:
-	if _forge_sheets.is_empty():
+func _forge_roll() -> float:
+	return _forge_dice.randf()
+
+
+## The takes of one effect, found once. A take nobody rendered is not in the
+## pool, and the pool is empty only when the effect has no sheet at all - so
+## a half-finished art pass degrades rather than errors.
+func _a_forge_sheet(effect: String) -> String:
+	if not _forge_seeded:
+		_forge_seeded = true
 		_forge_dice.seed = absi(hash("vfx-forge"))
-		for path: String in FORGE_BURST_VARIANTS:
+	if not _forge_sheets.has(effect):
+		var found: Array[String] = []
+		var plain: String = FORGE_ART_FORMAT % effect
+		if ResourceLoader.exists(plain):
+			found.append(plain)
+		for take: int in range(1, FORGE_TAKES_MAX + 1):
+			var path: String = FORGE_TAKE_FORMAT % [effect, take]
 			if ResourceLoader.exists(path):
-				_forge_sheets.append(path)
-	if _forge_sheets.is_empty():
+				found.append(path)
+		_forge_sheets[effect] = found
+	var pool: Array = _forge_sheets[effect] as Array
+	if pool.is_empty():
 		return ""
-	return _forge_sheets[_forge_dice.randi() % _forge_sheets.size()]
+	return String(pool[_forge_dice.randi() % pool.size()])
 
 
 func sheet_burst(at: Vector2, path: String, size: float, tint: Color = Color.WHITE,
@@ -1590,6 +1735,11 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2, hide: int = 0
 	if hero != null:
 		aim = hero.aim_direction()
 	var finisher: bool = chain_step >= Balance.HERO_CHAIN_LENGTH - 1
+	# Steel, which is the hide-less case the four elements do not cover: a
+	# hard radial star rather than a flare or a splash. Bigger on the
+	# finisher, which is the only thing the chain step changes about it.
+	forge_hit("physical", at, FORGE_SWING_REACH * (1.45 if finisher else 1.0),
+		Color(1.0, 0.94, 0.82))
 
 	# What the blow landed on colours the sparks: flesh a warm spray, armour
 	# bright steel with more of them and a ring, stone grey chips and dust,
@@ -1809,6 +1959,9 @@ func _on_hero_levelled(level: int, _attribute_points: int, _skill_points: int) -
 	var at: Vector2 = _hero_position()
 	rays(at, Color(1.0, 0.85, 0.42), 10, 96.0)
 	spark(at, Color(1.0, 0.9, 0.6), 14, Vector2.UP, 190.0)
+	# Columns of light out of the ground and a ring at the feet. Upright, so
+	# it is never turned - what it is a picture of knows where down is.
+	forge_play("level_up", at, FORGE_LEVEL_REACH, Color(1.0, 0.88, 0.52))
 	word(at + Vector2(0.0, -70.0), "LEVEL %d" % level, Color(1.0, 0.88, 0.5), 30)
 
 
@@ -1832,6 +1985,8 @@ func _hero_position() -> Vector2:
 
 func _on_relic_socketed(_relic_id: String) -> void:
 	flash(Color(0.68, 0.5, 1.0), 0.14, 0.3)
+	forge_play("rune_flare", _hero_position(), FORGE_RUNE_REACH,
+		Color(0.78, 0.62, 1.0))
 
 
 func _on_horn(_duration: float) -> void:

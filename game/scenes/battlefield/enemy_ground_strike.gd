@@ -84,10 +84,18 @@ func _land() -> void:
 	if shape == Shape.CIRCLE:
 		Vfx.ring(global_position, reach, Color(tint, 0.82), 0.28, 6.0)
 		Vfx.dust(global_position, Color(tint.r * 0.5, tint.g * 0.45, tint.b * 0.4), 10, reach * 0.6)
+		# **The mortar's own sheet, at the radius the telegraph promised.** A
+		# flat ellipse lying on the ground, which is what tells a lob from a
+		# bolt at a glance - and never a second reach: the ring above is
+		# drawn from `reach` and so is this.
+		Vfx.forge_play("shot_lob", global_position, reach * 2.0, Color(tint, 0.85))
 	else:
 		var tip: Vector2 = global_position + aim * reach
 		Vfx.spark(tip, tint, 8, aim, 220.0)
 		Vfx.flash_at(global_position + aim * reach * 0.5, Color(tint, 0.5), half_width * 2.0)
+		# And the lance's, laid along the line it was thrown down.
+		Vfx.forge_play("shot_lance", global_position + aim * reach * 0.5,
+			reach, Color(tint, 0.85), aim.angle())
 	strike_the_players(get_tree(), damage, blamed_on, func(at: Vector2) -> bool:
 		return _covers(at), knockback, global_position)
 

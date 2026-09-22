@@ -1,13 +1,22 @@
-"""A meteor landing: a heavy, slow bloom of light and debris off the ground.
+"""A meteor landing: a heavy, slow bloom of fire off the ground.
 
-The biggest sheet in the set, and the only one with a ground under it. A flash
-burns out into a wide low dome, a skirt runs outward along the floor, and
-debris is thrown on a real ballistic arc - up, over, and still coming down on
-the last cell, which is why the debris is not killed with everything else.
+The biggest sheet in the set, and the only one with a ground under it. A
+flash burns out into a rising dome, tongues of fire climb out of the top of
+it, a skirt runs outward along the floor, and debris is thrown on a real
+ballistic arc - up, over, and still coming down on the last cell, which is
+why the debris is not killed with everything else.
 
-Three squashed distances do the work. The radial coordinate the forge hands
-out is a circle, and a circle cannot be a dome, a floor skirt or a lofted
-handful of rubble.
+**The first cut read as a flat lens and the reason was one number.** The dome
+was measured on `hypot(x, (y - floor) * 1.08)`, which scales y *up* - so the
+shape reached less far vertically than horizontally and came out wider than
+it was tall. Stacked on a skirt that is deliberately flatter still, the pair
+read as an eye. A bloom is taller than it is wide, so the dome's y is scaled
+*down*, and what makes it a bloom rather than a dome is that fire leaves the
+top of it.
+
+Four squashed distances do the work. The radial coordinate the forge hands
+out is a circle, and a circle cannot be a rising dome, a floor skirt or a
+lofted handful of rubble.
 """
 
 SPEC = {
@@ -17,12 +26,19 @@ SPEC = {
     "why": "a meteor, a boulder or any heavy body landing on the ground",
 }
 
-# Where the ground is, in object space. Everything here is built off it,
-# and it sits just under the middle of the cell rather than near the bottom:
-# the impact point is what the game lays this sheet on, so it belongs on the
-# centre. A floor near the bottom edge leaves a quarter of every cell dead and
-# hangs the bloom above wherever it was drawn.
-_FLOOR = -0.10
+# Where the ground is, in object space. Everything here is built off it, and
+# it sits below the middle of the cell rather than on it: a bloom goes up, so
+# what is above the floor needs most of the room. The impact point is what
+# the game lays this sheet on, and `Vfx` draws the cell centred on that - so
+# the floor a little below centre is the impact point standing a little below
+# the middle of its own picture, which is correct.
+_FLOOR = -0.26
+# Taller than wide, which is the whole difference between a bloom and a
+# saucer. Below one stretches the vertical reach.
+_RISE = 0.66
+# And flat to the floor, so the skirt runs out along the ground rather than
+# being a second ring in the air.
+_LAID = 2.6
 
 
 def build(f):
@@ -43,47 +59,57 @@ def build(f):
     # Torn rather than ruled: a bloom cut off by a straight line reads as a
     # sprite sitting on a shelf.
     over = f.math("GREATER_THAN", f.y,
-                  f.math("ADD", _FLOOR, f.math("MULTIPLY", f.noise_fac, 0.14)))
+                  f.math("ADD", _FLOOR, f.math("MULTIPLY", f.noise_fac, 0.12)))
 
-    # Wider than it is tall, which is the whole difference between a dome and
-    # a ball. Squashing above one divides the vertical reach.
-    lofted = f.math("MULTIPLY", f.math("SUBTRACT", f.y, _FLOOR), 1.08)
+    above = f.math("SUBTRACT", f.y, _FLOOR)
+    lofted = f.math("MULTIPLY", above, _RISE)
     dome_r = hyp(f.x, lofted)
-    # Flat to the floor, so the skirt runs out along the ground rather than
-    # being a second ring in the air.
-    laid = f.math("MULTIPLY", f.math("SUBTRACT", f.y, _FLOOR), 2.6)
+    laid = f.math("MULTIPLY", above, _LAID)
     skirt_r = hyp(f.x, laid)
 
     # The fireball. It *expands* and is burnt away rather than starting at
     # full width and shrinking: a solid disc on the first cell holds more lit
-    # pixels than anything that follows it, so the sheet peaks on frame one
-    # and every cell after it is a decay.
+    # pixels than anything that follows it, so the sheet would peak on frame
+    # one and every cell after it would be a decay.
     #
-    # Deliberately not held above the floor either. Clipped, it leaves the
-    # impact point itself transparent - a black mouth under the brightest part
-    # of the sheet - because nothing else reaches inside the skirt.
-    flash = f.both(inside(dome_r, f.grow(0.42, 0.16)),
+    # Deliberately not clipped to above the floor either. Clipped, it leaves
+    # the impact point itself transparent - a black mouth under the brightest
+    # part of the sheet - because nothing else reaches inside the skirt.
+    flash = f.both(inside(dome_r, f.grow(0.40, 0.16)),
                    f.grain(f.math("MULTIPLY", f.age, 1.15)))
 
-    # The dome: a shell that runs outward with a hollow chasing it, held to
-    # 0.92 so its flanks stay inside the cell. It reaches full width at about
-    # four fifths of the life, which is where the sheet should be biggest -
-    # growing to the last cell would put the peak under the dissolve.
-    crown = f.math("MINIMUM", f.grow(0.86, 0.20), 0.92)
-    # The hollow has to chase the crown *closely*, or the shell is thick
-    # enough to be 75% of a filled dome and the whole thing reads as a mound
-    # of earth rather than as light thrown off one.
-    hollow = f.math("MULTIPLY", f.math("POWER", f.age, 1.15), 0.74)
+    # The dome: a shell running outward with a hollow chasing it closely. Left
+    # thick it is 75% of a filled dome and reads as a mound of earth rather
+    # than as light thrown off one.
+    crown = f.math("MINIMUM", f.grow(0.84, 0.20), 0.90)
+    hollow = f.math("MULTIPLY", f.math("POWER", f.age, 1.15), 0.72)
     dome = f.both(f.both(between(dome_r, hollow, crown), over),
                   f.grain(f.math("ADD", 0.16, f.math("MULTIPLY", f.age, 0.40))))
+
+    # **Tongues leaving the top of it**, which is what makes this a bloom
+    # rather than a dome. `lobes` is the outline itself - pointed at the tip
+    # and joined at the root - so these are flames rather than the wedges
+    # `spokes` would give, which are widest where a flame is thinnest.
+    #
+    # They are measured on the dome's own metric and reach past its crown, so
+    # they leave the shell rather than sitting on top of it, and they are
+    # held above the floor so none of them licks downward into the ground.
+    tongue_reach = f.math("MULTIPLY", f.math("ADD", crown, 0.26),
+                          f.math("ADD", 0.52, f.math("MULTIPLY",
+                                                     f.lobes(7, 2.6, f.phase(3.1)), 0.62)))
+    tongues = f.both(
+        f.both(between(dome_r, f.math("MULTIPLY", crown, 0.72), tongue_reach), over),
+        # Thinning as they climb, and gone by the last third: fire that is
+        # still standing when the dust has settled reads as a bonfire.
+        f.grain(f.math("ADD", 0.22, f.math("MULTIPLY", f.math("POWER", f.age, 1.4), 0.46))))
 
     # The one part that is *not* clipped to above the floor. A ground ring
     # under this camera is an ellipse around the impact, so half of it lies in
     # front of the point - which is also what fills the bottom of the cell.
-    # Thin and broken from the first cell. Left thick it is a solid plate
+    # Thin and broken from the first cell; left thick it is a solid plate
     # under the dome and the pair read as a saucer rather than as a blow.
-    skirt = f.both(ring(skirt_r, f.grow(0.62, 0.26),
-                        f.math("SUBTRACT", 0.075, f.math("MULTIPLY", f.age, 0.03))),
+    skirt = f.both(ring(skirt_r, f.grow(0.60, 0.26),
+                        f.math("SUBTRACT", 0.070, f.math("MULTIPLY", f.age, 0.028))),
                    f.grain(f.math("ADD", 0.26, f.math("MULTIPLY", f.age, 0.30))))
 
     # A real arc: up hard, over, and falling back by the last cells. Read off
@@ -96,10 +122,10 @@ def build(f):
     rubble_r = hyp(f.math("MULTIPLY", f.x, 0.62),
                    f.math("SUBTRACT", f.y, f.math("ADD", _FLOOR, lift)))
     # Not killed with the rest: the brief for this shape is debris still
-    # coming down on the last cell, so it carries the sheet's tail alone.
-    # A shell rather than a filled ball, so the chunks ride the outside of
-    # the throw where there is dark behind them. Inside the ball they sit over
-    # the lit dome and cannot be told from it.
+    # coming down on the last cell, so it carries the sheet's tail alone. A
+    # shell rather than a filled ball, so the chunks ride the outside of the
+    # throw where there is dark behind them; inside the ball they sit over the
+    # lit dome and cannot be told from it.
     #
     # The bar stays under about 0.64. Measured on this noise, a threshold past
     # that passes nothing at all, so a debris field authored to thin out up to
@@ -110,6 +136,6 @@ def build(f):
                     f.grain(f.math("ADD", 0.44, f.math("MULTIPLY", f.age, 0.16))))
 
     alive = f.grain(f.math("MULTIPLY", f.math("POWER", f.age, 2.6), 0.72))
-    mask = f.either(f.both(f.either(flash, dome, skirt), alive), rubble)
+    mask = f.either(f.both(f.either(flash, dome, tongues, skirt), alive), rubble)
     return f.Look(mask=mask,
-                  tone=f.lit(flash, 0.45, dome, 0.20, skirt, 0.14))
+                  tone=f.lit(flash, 0.45, dome, 0.20, tongues, 0.16, skirt, 0.12))

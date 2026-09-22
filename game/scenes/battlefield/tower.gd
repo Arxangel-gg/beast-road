@@ -1082,6 +1082,12 @@ func _on_destroyed(_from: Vector2) -> void:
 	# player's feet - the thing `camera_impact` was built to stop on 2026-09-13,
 	# in a place that never learned about it.
 	EventBus.camera_impact.emit(origin(), 9.0)
+	# **The plain forged shock**, which is what a structure coming apart is:
+	# not an element landing on something, but the thing itself going. In the
+	# tower's own colour, so a Fire spire and a Water well do not break
+	# identically.
+	Vfx.forge_burst(origin(), Balance.TOWER_BREAK_FORGE_REACH,
+		Color(TowerData.element_colour(data.element), 0.85))
 	_leave_rubble()
 	RunState.towers_lost += 1
 	# **Broken, not sold.** Told apart here because nothing downstream can tell

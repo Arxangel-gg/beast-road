@@ -55,8 +55,14 @@ func _process(delta: float) -> void:
 			_spark_in = Balance.METEOR_TRAIL_SPARK_TICK
 			var fall: float = 1.0 - _left / Balance.METEOR_FALL
 			var from: Vector2 = Vector2(Balance.METEOR_FALL_FROM.x, -Balance.METEOR_FALL_FROM.y)
-			Vfx.spark(global_position + from.lerp(Vector2.ZERO, fall),
-				Color(1.0, 0.66, 0.28), 3, -from.normalized(), 180.0)
+			var along: Vector2 = global_position + from.lerp(Vector2.ZERO, fall)
+			Vfx.spark(along, Color(1.0, 0.66, 0.28), 3, -from.normalized(), 180.0)
+			# **The trail, laid along the way it is coming.** An aimed sheet,
+			# so it is turned onto the descent rather than spun - a streak at
+			# a random angle is a streak that is not a trail. Same clock as
+			# the sparks, for the same reason.
+			Vfx.forge_play("meteor_trail", along, Balance.METEOR_RADIUS * 0.9,
+				Color(1.0, 0.72, 0.36), (-from).angle())
 	if _left <= 0.0:
 		_land()
 
@@ -157,6 +163,11 @@ func _land() -> void:
 	Vfx.spark(at, Color(1.0, 0.7, 0.35), 30, Vector2.UP, 420.0)
 	Vfx.spark(at, Color(0.44, 0.36, 0.28), 18, Vector2.UP, 240.0)
 	Vfx.dust(at, Color(0.32, 0.26, 0.2), 26, Balance.METEOR_RADIUS * 1.3)
+	# And the bloom off the ground, at the radius the three rings are drawn
+	# at. The biggest sheet in the catalogue, and the only one with a floor
+	# under it - which is what this is a picture of.
+	Vfx.forge_play("meteor_bloom", at, Balance.METEOR_RADIUS * 2.2,
+		Color(1.0, 0.76, 0.46))
 	EventBus.camera_impact.emit(at, Balance.METEOR_SHAKE)
 	Sfx.play("sfx_meteor_impact", 0.0)
 	if marks != null:

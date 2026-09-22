@@ -1427,6 +1427,16 @@ const MIX: Dictionary = {
 	"sfx_ui_click_1":            {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
 	"sfx_ui_click_2":            {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
 	"sfx_ui_click_3":            {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
+	# **The two that fire without being asked.** A hover goes off every time a
+	# cursor crosses a button and a menu is a grid of them, so both carry their
+	# level in the table rather than only at a call site - which is what let a
+	# second call site play them at zero for as long as there were two.
+	#
+	# `limit` and `gap` matter as much as the level here: dragging a cursor
+	# across a row of eight buttons is eight sounds inside a second, and
+	# without the throttle they arrive as a rattle rather than as feedback.
+	"sfx_ui_hover":              {"db": -17.0, "pitch": 0.06, "limit": 1, "gap": 0.06},
+	"sfx_ui_click":              {"db": -6.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
 	"sfx_ui_confirm":            {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
 	"sfx_ui_deny":               {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.08},
 	"sfx_ui_hover_1":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
@@ -1747,42 +1757,22 @@ func _ready() -> void:
 	EventBus.hero_respawned.connect(func(_at: Vector2) -> void:
 		play("sfx_construction_done", -8.0))
 
-	# Buttons are created in code all over the HUD and the panels, so wiring them
-	# individually would mean remembering to do it in every new screen. One hook
-	# on node_added covers every button in the game, including future ones.
-	get_tree().node_added.connect(_on_node_added)
-	_wire_existing_buttons(get_tree().root)
+	# **Buttons are `UiSound`'s, and this file no longer has an opinion.**
+	#
+	# Both autoloads hooked every button in the game on `node_added` - this one
+	# guarding with `is_connected` against its own method, `UiSound` with a
+	# meta flag against its own - and neither knew about the other. So a button
+	# played its hover **twice**: once at `UiSound.HOVER_DB` and once here at
+	# zero, and its click twice likewise. A menu is nothing but buttons, which
+	# is why the owner heard it there first (2026-09-22: the menu's procedural
+	# random sounds are too loud).
+	#
+	# `UiSound` was already the complete answer - it connects `node_added`
+	# itself and walks the existing tree in its own `_ready` - so the fix is a
+	# deletion rather than a delegation, and there is no autoload-ordering
+	# question left to get wrong.
 
 	apply_volume()
-
-
-func _on_node_added(node: Node) -> void:
-	var button := node as BaseButton
-	if button == null:
-		return
-	if not button.pressed.is_connected(_on_button_pressed):
-		button.pressed.connect(_on_button_pressed.bind(button))
-	if not button.mouse_entered.is_connected(_on_button_hover):
-		button.mouse_entered.connect(_on_button_hover)
-
-
-func _wire_existing_buttons(node: Node) -> void:
-	_on_node_added(node)
-	for child: Node in node.get_children():
-		_wire_existing_buttons(child)
-
-
-## A disabled button that still clicks is a lie, so a refused press gets the
-## deny sound instead.
-func _on_button_pressed(button: BaseButton) -> void:
-	if button.disabled:
-		play("sfx_ui_deny")
-	else:
-		play("sfx_ui_click")
-
-
-func _on_button_hover() -> void:
-	play("sfx_ui_hover")
 
 
 ## Live counters, for diagnosing "why is nothing playing".

@@ -38,12 +38,31 @@ extends Node
 ## The lesson is the one already written down twice: a constant read only by a
 ## model the game never runs is exactly as dead as one nothing reads, and far
 ## harder to see, because every report built on it says the feature works.
+##
+## **And it printed a tier multiplier it did not apply.** Every line of the
+## report named `xp x2.4` and `xp x5.0` beside the tier, and the walk paid the
+## health scale alone - so the two tiers that exist to be worth grinding were
+## modelled at a fifth and a half of what they pay. A figure printed beside a
+## number that does not use it is the most convincing kind of wrong.
 
 var _level: int = 1
 var _xp: float = 0.0
 var _attribute_points: int = 0
 var _skill_points: int = 0
 var _kills: int = 0
+## Every point of XP the road paid out, including what a capped hero threw
+## away. `_xp` cannot answer "how much is a campaign worth" once the cap is
+## reached - it reads zero for the ninth campaign exactly as it would for a
+## campaign that paid nothing - and that is the number the curve is solved
+## against.
+var _earned: float = 0.0
+## Which wave of the very first campaign each early level landed on. The
+## opening is the half of this curve that must **not** move - a new Warden's
+## first evening is the evening it was - and "the ladder is five times
+## taller" says nothing about it either way. A level's cost in XP is not its
+## cost in road, because the road's own income climbs beside it.
+var _opening: Dictionary = {}
+var _wave_of_run: int = 0
 
 
 func _ready() -> void:
@@ -62,9 +81,12 @@ func _ready() -> void:
 		print("[level] --- %s (hp x%.1f, xp x%.1f), expects %s at its bosses ---"
 			% [tier.display_name, tier.hp_scale, tier.xp_scale, str(tier.boss_levels)])
 		for _run_index: int in Balance.LEVEL_CURVE_RUNS_PER_TIER:
+			var before: float = _earned
 			await _walk_campaign(director)
-			print("[level]   after a clear: level %d, %d attribute points, %d skill"
-				% [_level, _attribute_points, _skill_points])
+			print("[level]   after clear %d: level %d, %d attribute points, %d skill"
+				% [_run_index + 1, _level, _attribute_points, _skill_points])
+			print("[level]     the campaign paid %.0f XP; %.0f earned in all"
+				% [_earned - before, _earned])
 	_report()
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -80,11 +102,22 @@ func _walk_campaign(director: WaveDirector) -> void:
 	# regions reported a three-act campaign for as long as one existed, and
 	# would have gone on doing it silently after the road grew to ten.
 	var walked: int = 0
+	# **The tier pays twice and the model only counted once.** `_hp_scale`
+	# already carries `tier.hp_scale`, so a Hell body walked in here with the
+	# right health - and `Enemy._on_died` then multiplies the payout by
+	# `tier.xp_scale` a second time, which this never did. So Nightmare was
+	# modelled at 42% of what it pays and Hell at 20%, and the one tool that
+	# answers "how many campaigns is the climb" was answering it for a game
+	# where the harder tiers are barely worth running. Asked of the tier
+	# rather than written down, exactly as the health scale is.
+	var tier: CampaignTierData = RunState.tier()
+	var tier_xp: float = tier.xp_scale if tier != null else 1.0
 	for act: int in Balance.FINAL_ASCENT_ACT:
 		var ground: TerrainData = ContentDB.terrain_for_act(act + 1)
 		var waves: int = int(round(Balance.waves_in_act(act + 1)))
 		for wave: int in waves:
 			walked += 1
+			_wave_of_run = walked
 			RunState.act = act + 1
 			RunState.terrain_id = ground.id if ground != null else "jungle"
 			RunState.wave_number = walked
@@ -96,7 +129,7 @@ func _walk_campaign(director: WaveDirector) -> void:
 			var health: float = Balance.ENEMY_MAX_HP * scale
 			for _enemy: int in pack:
 				_kills += 1
-				_award(health * Balance.HERO_XP_PER_HP)
+				_award(health * Balance.HERO_XP_PER_HP * tier_xp)
 			if wave == waves - 1:
 				print("[level]   act %d done: level %d  (%d waves, pack %d, hp x%.1f)"
 					% [act + 1, _level, waves, pack, scale])
@@ -105,6 +138,17 @@ func _walk_campaign(director: WaveDirector) -> void:
 func _report() -> void:
 	print("[level] ends at %d of %d after %d kills"
 		% [_level, Balance.HERO_MAX_LEVEL, _kills])
+	var ladder: float = 0.0
+	for level: int in range(1, Balance.HERO_MAX_LEVEL):
+		ladder += Balance.HERO_XP_BASE * pow(float(level), Balance.HERO_XP_CURVE)
+	print("[level] the ladder to %d is %.0f XP; the road paid %.0f"
+		% [Balance.HERO_MAX_LEVEL, ladder, _earned])
+	var opening: PackedStringArray = []
+	for level: int in [2, 5, 10, 20, 30]:
+		opening.append("L%d wave %s" % [level,
+			str(_opening.get(level, "never"))])
+	print("[level] the opening, on the very first campaign: %s"
+		% ", ".join(opening))
 	print("[level] %d attribute points, %d skill points, %d of 24 discipline nodes"
 		% [_attribute_points, _skill_points,
 			Balance.DISCIPLINE_MAX_TRAINED
@@ -127,6 +171,7 @@ func _report() -> void:
 			float(_attribute_points) * Balance.HERO_FOCUS_COMMAND_PER_POINT * 100.0])
 
 func _award(amount: float) -> void:
+	_earned += amount
 	_xp += amount
 	while _level < Balance.HERO_MAX_LEVEL:
 		var needed: float = Balance.HERO_XP_BASE \
@@ -135,6 +180,8 @@ func _award(amount: float) -> void:
 			break
 		_xp -= needed
 		_level += 1
+		if not _opening.has(_level):
+			_opening[_level] = _wave_of_run
 		_attribute_points += 1
 		if _level % Balance.HERO_SKILL_POINT_EVERY == 0:
 			_skill_points += 1

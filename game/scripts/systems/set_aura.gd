@@ -56,6 +56,13 @@ func _look() -> void:
 	var found: GearSetData = Modifiers.completed_set()
 	var wanted: bool = found != null and Graphics.particle_scale() > 0.0
 	if found != _set or wanted != visible:
+		# **The moment it completes, once.** The ring of motes at the feet is
+		# what a finished set *is*; this is the beat it arrives on, and it
+		# fires only on the change - a sheet played every re-read would be
+		# eight a second for as long as the set is worn.
+		if found != null and _set == null:
+			Vfx.forge_play("set_motes", global_position,
+				Balance.SET_AURA_ARRIVAL_REACH, found.colour)
 		_set = found
 		visible = wanted
 		queue_redraw()

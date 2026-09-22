@@ -3521,7 +3521,8 @@ func _land_slam() -> void:
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
 	# The forged shock at the slam's own radius: the picture of the blow the
 	# ring above already promised, never a second reach.
-	Vfx.forge_burst(global_position, data.boss_slam_radius * 2.0, Color(1.0, 0.72, 0.42, 0.8))
+	Vfx.forge_play("slam_impact", global_position,
+		data.boss_slam_radius * 2.0, Color(1.0, 0.72, 0.42, 0.8))
 	# Through the one function that knows what "everything of the player's"
 	# means. This had its own copy until the ranged shots needed the same
 	# answer, and two copies of that rule is how one of them forgets about

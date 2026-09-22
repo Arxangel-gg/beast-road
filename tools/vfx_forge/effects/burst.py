@@ -24,10 +24,15 @@ def build(f):
 
     core = f.disc(f.shrink(0.55, 1.0))
 
+    # **The bar has to stay inside the field's own range.** These ran 0.62 to
+    # 0.82 on a field that passes nothing above about 0.64, so the embers
+    # this effect is described as throwing were absent from roughly the
+    # second cell onward - and the lit curve cannot see a missing part, only
+    # a smaller total. Measured while authoring the catalogue; see `f.grain`.
     embers = f.both(
-        f.both(f.grain(f.math("ADD", 0.62, f.math("MULTIPLY", f.age, 0.2))),
+        f.both(f.grain(f.math("ADD", 0.42, f.math("MULTIPLY", f.age, 0.21))),
                f.disc(f.grow(1.5, 0.15))),
-        f.before(0.92))
+        f.before(0.94))
 
     # A second, fainter ring at two thirds of the reach, so the shock has a
     # wake. It starts late, which is what makes it read as trailing.

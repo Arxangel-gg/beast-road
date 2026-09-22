@@ -18,16 +18,6 @@ SPEC = {
     "why": "the hit on an air tower's shot, a gust spell and a body knocked back",
 }
 
-def _phase(f):
-    """This take's own arrangement, 0..1.
-
-    The seed reaches an effect only through the noise field, so anything not
-    broken up by the swirl renders identically on every take - the first cut
-    of the clean hit wrote four byte-identical sheets. A golden-ratio step
-    off the seed turns the takes into different arrangements as well as
-    different grain, and never repeats a spacing.
-    """
-    return (f.seed * 0.6180339887) % 1.0
 
 
 
@@ -45,9 +35,9 @@ def build(f):
                        f.math("ADD", front, 0.02))
     # Each take winds the spiral a little tighter or looser and starts it
     # somewhere else, so two air hits on one body are not one picture twice.
-    tight = 2.30 + (_phase(f) - 0.5) * 0.80
+    tight = 2.30 + (f.phase() - 0.5) * 0.80
     streaks = f.both(trail, f.spokes(7, 0.13, f.math(
-        "ADD", f.math("MULTIPLY", f.r, tight), _phase(f) * 6.28318531 / 7.0)))
+        "ADD", f.math("MULTIPLY", f.r, tight), f.phase() * 6.28318531 / 7.0)))
 
     # A second, fainter front in the wake, so the shock reads as a wave
     # rather than as one line. It starts late, which is what makes it trail.

@@ -468,8 +468,11 @@ func _impact() -> void:
 	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
 		Color(colour, 0.7), 0.22, 3.0)
 	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH * _tier_scale())
-	Vfx.forge_burst(global_position, Balance.PROJECTILE_IMPACT_RING * 2.4 * _tier_scale(),
-		Color(colour, 0.6))
+	# **The forged sheet is `impact`'s now.** It played the generic shock here
+	# and the element's own hit from in there, which is two sheets on every
+	# tower shot in a lane - twice the sprites for a picture nobody can tell
+	# apart from one. The element's is the better of the two, because it is
+	# the one that says which tower fired.
 	# A lob lands: dust off the ground and a tremor weighted by distance from
 	# the camera, through the same door every blow in the game uses.
 	if _shot == TowerData.Shot.LOB:

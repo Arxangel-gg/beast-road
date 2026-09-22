@@ -25,26 +25,9 @@ SPEC = {
 CHIPS = [(0.78, 0.46), (-0.34, 0.72), (-0.86, 0.18)]
 CHIP_FALL = 0.62
 
-def _phase(f):
-    """This take's own arrangement, 0..1.
-
-    The seed reaches an effect only through the noise field, so anything not
-    broken up by the swirl renders identically on every take - the first cut
-    of the clean hit wrote four byte-identical sheets. A golden-ratio step
-    off the seed turns the takes into different arrangements as well as
-    different grain, and never repeats a spacing.
-    """
-    return (f.seed * 0.6180339887) % 1.0
 
 
 
-def _squashed(f, by, drop=0.0):
-    """The forge's radius and angle on a frame whose y is scaled, so a disc
-    drawn there lands here as a low ellipse: dust lies on the ground."""
-    y = f.math("MULTIPLY", f.math("ADD", f.y, drop), by)
-    r = f.math("SQRT", f.math("ADD", f.math("MULTIPLY", f.x, f.x),
-                              f.math("MULTIPLY", y, y)))
-    return r, f.math("ARCTAN2", y, f.x)
 
 
 def _shard(f, vx, vy, half):
@@ -66,7 +49,7 @@ def build(f):
 
     # The block that was struck: notched rather than round, and shrinking
     # away as the pieces leave it.
-    core = f.both(f.disc(f.shrink(0.32, 0.70)), f.spokes(7, 0.68, _phase(f) * 6.28318531 / 7.0))
+    core = f.both(f.disc(f.shrink(0.32, 0.70)), f.spokes(7, 0.68, f.phase() * 6.28318531 / 7.0))
 
     # Rubble. It flies out hard, decelerates and stops - `throw` reaching one
     # is the moment the pieces land, and nothing moves after that.
@@ -75,20 +58,20 @@ def build(f):
     thick = f.math("SUBTRACT", 0.28, f.math("MULTIPLY", f.age, 0.12))
     wedges = f.both(
         f.both(f.ring_gap(f.math("SUBTRACT", outer, thick), outer),
-               f.spokes(5, 0.34, 0.4 + _phase(f) * 6.28318531 / 5.0)),
+               f.spokes(5, 0.34, 0.4 + f.phase() * 6.28318531 / 5.0)),
         # Crumbling is what takes the rubble away, so it goes to gravel
         # before it goes to nothing rather than fading as whole blocks.
         f.grain(f.math("ADD", f.math("MULTIPLY", f.age, 0.54), 0.10)))
 
     half = f.math("SUBTRACT", 0.20, f.math("MULTIPLY", f.age, 0.155))
-    spin = (_phase(f) - 0.5) * 1.30
+    spin = (f.phase() - 0.5) * 1.30
     flung = [(vx * math.cos(spin) - vy * math.sin(spin),
               vx * math.sin(spin) + vy * math.cos(spin)) for vx, vy in CHIPS]
     chips = f.either(*[_shard(f, vx, vy, half) for vx, vy in flung])
 
     # Dust lies low and settles. It is the last thing left, which is why its
     # threshold climbs more slowly than the rubble's.
-    f.r, f.angle = _squashed(f, 2.10, 0.22)
+    f.r, f.angle = f.squashed(2.10, 0.22)
     dust = f.both(f.disc(f.grow(0.62, 0.22)),
                   f.grain(f.math("ADD", f.math("MULTIPLY", f.age, 0.52), 0.20)))
     f.r, f.angle = flat_r, flat_angle

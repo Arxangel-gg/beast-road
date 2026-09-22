@@ -4695,10 +4695,66 @@ set at all.
 counts towers and the wall is the thing a run is actually lost through. It
 matters from today because a withdrawal can wear it on the way out.
 `Expedition.wall_share` is the reader and `expedition_check` holds that a worn
-gate comes home worn. **Nothing between runs mends it**: `repair_bill` and `mend`
-walk towers only, and a wall is mended inside a run with Wood or through the
-Quartermaster. That is a real gap rather than an oversight, and it is a decision
-if the Hold should ever sell that repair.
+gate comes home worn. **This paragraph went on to say nothing between runs
+mended it, and named that a decision waiting to be taken.** It has been taken -
+see below - and the sentence is corrected here rather than left standing,
+because this file is the first thing every session reads. Inside a run the wall
+is still mended with Wood or through the Quartermaster.
+
+**The Hold sells the gate repair, as of 2026-09-22.** The owner: *"The Hold
+should sell wall repairs if a successful extract is available to continue its
+run and it requires mending."* Both halves of that were nearly true and the
+second was wrong. `repair_bill` had priced the gate since 2026-09-20 - but both
+screens offered the Mend button on `fortifications().y`, which counts **towers**
+- so a front that came home behind a battered gate with every emplacement whole
+was offered no repair anywhere, while the purchase that would have mended it
+worked perfectly if it were ever reached. `Expedition.needs_mending` is the one
+question now, and it asks the bill.
+
+**In Marks, and that is what "sell" means here.** The emplacements stay on
+timber and ore - the mines are the between-runs economy and a tower has a Gold
+price to take a share of. The wall has neither, and the Hold *sells*: the Hold
+sells for Marks, which is the stable's rule and is itself working rule 7's bound
+that a material is an input to the Smithy and nothing else. A run currency was
+never available, because it resets - the repair would be free on the first frame
+of the next road.
+
+**The bound is that it must be dearer than letting the run go, and the
+interesting half is which direction is dangerous.** There is no Marks printer
+here and there could not be: the transaction consumes Marks and produces a
+mended wall, paying out no currency, no gear and no level - `expedition_check`
+serializes the whole save either side and holds it byte-identical but for the
+Marks. What *is* available is the opposite. `return_home` banks the front **and**
+pays `homecoming_marks` in full, and the withdrawal of 2026-09-16 is what wears
+the gate on the way out - so a whole gate priced under one return would be
+attrition refunded out of the payout the withdrawal itself earned, and the
+2026-09-15 ruling that a damaged fortification comes back damaged would survive
+only as a figure on the Resume card.
+
+So `FORTIFY_GATE_MARKS_SHARE` is **above one**, and the price is a share of what
+a return from that front pays, per point of wall missing. A gate that fell to
+the withdrawal's floor costs more than the road that broke it earned; a lightly
+worn one costs a little, so nobody is ever choosing between an unaffordable bill
+and abandoning a campaign.
+
+**The snapshot's own act and tier, never the ambient ones.** `loot_scale` runs
+1.0 to 3.6, so a price that read `RunState.tier()` - whatever was last played -
+would quote a Hell front at Normal rates the moment a Warden opened the menu
+after a Normal run, and *low* is the failure direction this bound exists to
+close. `Expedition.homecoming_worth` writes that arithmetic out a second time
+rather than calling `Run.homecoming_marks`, because `Expedition` is reached from
+`MetaState` and `Run` reaches back into it - one shared function across that
+edge is a cyclic reference bought for a line. The two are held against each
+other instead, over every act and every tier, which is what sharing a function
+was ever for. Planted with the tier dropped, the gate named it on Nightmare act
+1: 57 Marks against a 180 payout.
+
+**And the price is on the screen before anything is spent.** `Expedition.bill_text`
+is the one place it is written - both halves and what the Warden is holding
+against each - because there are two doors onto this purchase and they had
+already drifted: the front door carried the bill in a tooltip and the Hold's
+button carried no price at all. A sale with no price on it is the Forge's own
+rule broken.
 
 **A glacier was playing the desert battle track, found 2026-09-16.** Counted
 rather than assumed: the act playlists hold **11, 24, 24, 13 and 4** songs for
@@ -6519,13 +6575,61 @@ the same thing for both has taught the player to ignore the one that matters.
 **The hundredth level is a season, as of the same date.** Owner: *"the
 perpetual player level should not accumulate xp so quickly ... a longer process
 similar to the Diablo series but tuned for our game"*. They reached the cap in
-about a hundred runs. The ladder was 480,000 XP and is **2.40 million**: the
-exponent went to 2.0 and the base down to 7.3, which is what keeps the opening
-intact - leaving level 5 costs 183 against 167 and level 10 costs 730 against
-447, while level 70 is 35,770 against 7,087. The note this replaces argued 2.0
-away with *"the last ten levels cost more than the first ninety"*; measured,
-they are 89,385 against 238,965, so the objection was arithmetic and the
-arithmetic disagreed with it.
+about a hundred runs. The ladder was 480,000 XP and is **1.52 billion**:
+`HERO_XP_CURVE` is **3.5** and `HERO_XP_BASE` **7.0**, so the exponent carries
+the whole change and the base is within a rounding error of where it started.
+
+**This paragraph said 2.40 million until later the same day, and every figure
+in it was honest arithmetic about a game nobody plays.** The first cut was
+tuned against `tools/level_curve.gd`, which hard-coded ten waves an act over
+ten acts - a hundred waves and two and a half hours - against a real campaign
+of **819 waves and about 12.7 hours**. The same tool printed each tier's
+`xp_scale` beside a walk that never applied it, so Nightmare was modelled at
+42% of what it pays and Hell at 20%. Between them the road pays some fifty
+times what the tool believed. Measured against the corrected model, the
+"season" ladder was **one Normal campaign, capping in Act VII of eleven** -
+four acts with nothing left to earn, and eight further campaigns worth nothing
+at all. Recorded rather than quietly overwritten, for the reason the
+starting-gold paragraph was: this file is the first thing every session reads,
+and the most convincing kind of wrong is a number correctly derived from a
+broken model.
+
+**The tiers are the specification, and nobody had been reading them.** Each
+declares the level its own bosses expect, and the curve is solved into those
+bands rather than into a figure anyone chose:
+
+| | reached | the tier's own bosses expect |
+|---|---|---|
+| one Normal clear | 34 | 30 at Normal's last |
+| three Normal clears | 44 | 45 at Nightmare's first |
+| the Nightmare tier | 70 | 70 at Nightmare's last |
+| two Hell clears | 95 | 94 at Hell's last |
+| three Hell clears | **100** | — |
+
+So the hundredth level spans all three difficulties and is earned in Hell,
+which is what the ascension ladder and the Hell gear are for.
+
+**What it costs is the middle of the opening, and that is arithmetic rather
+than a preference.** The first level still arrives on the first wave - leaving
+level 1 costs 7 XP and wave 1 pays 24 - and level 5 lands on wave 13. But
+level 10 moves from wave 15 to **wave 74**, the middle of Act II. A road whose
+income climbs eight hundredfold from first wave to last pays only **a tenth of
+a percent** of a campaign's XP in Act I, so no ladder long enough to span nine
+campaigns puts level 10 inside it. The exponent was pushed as high as the far
+end tolerates for exactly this reason - a steeper curve makes the low levels
+*cheaper* relative to the top - and past about 3.6 the top stops being
+reachable at all: at 4.0 three whole Hell campaigns reach only 87. 3.5 is the
+corner of that trade, not a round number that looked nice.
+
+**And `balance_test` had two enormous awards typed into it**, 50,000 and
+50,000,000, which were obviously enormous against 2.4 million and are a tenth
+of one level against 1.52 billion. The gate duly reported the level cap as
+broken when what was stale was its own arithmetic. Both are read off
+`RunState.hero_xp_for_level` now, so the next re-tune cannot break them - the
+invariants (one award crosses every level it earns, the cap is a ceiling) never
+moved, and a harness that encodes today's numbers is a harness that fails on
+tomorrow's. Checked by making one award resolve a single level, which the gate
+named.
 
 **The tail, eleventh report, and the answer was the distribution and where the
 limb hangs, as of 2026-09-22.** The owner sent a two-scope crop with the fault
@@ -6568,6 +6672,113 @@ claim four times. What settled it was a magnified crop of the render beside
 the owner's own screenshot, and then handing the pictures back rather than the
 conclusion. **When a report and a measurement disagree more than twice, stop
 measuring and start showing.**
+
+**The forge is a catalogue, a window, and twenty-four effects in the game, as
+of 2026-09-22.** The owner asked for *"not just a few forge vfx sheets ... a
+great amount of the best varieties and polish for all that we can make ...
+give them variations and make several takes of sheets for each one and use
+each randomly and also maybe flip them randomly ... and give them random
+rotations when spawned"*, with hit effects per element, and for the whole
+thing to become *"a full standalone app ... with an aesthetically appealing
+smart dark mode fully featured GUI so that I can also try previewing the shots
+and rendering sprite sheets within our app"*.
+
+**An effect is a file now**, which is working rule 3 applied to art. The pilot
+wrote its one effect as a branch inside `render.py` - right for one and wrong
+for thirty, because two people cannot author two effects in one `if/elif`.
+`forge_kit.py` holds the scene and the shapes (`grow`, `band`, `lobes`,
+`grain`, `squashed`, `rise`, `phase`...), `effects/<id>.py` declares a `SPEC`
+and a `build(f)`, and `forge.py` discovers the folder. Eighty-five sheets
+across twenty-four effects.
+
+**One door, and the variety is at the door rather than in the files.**
+`Vfx.forge_play` picks a take at random, turns the sheet, flips it, and
+wanders its size - so a road of forty impacts is forty pictures rather than
+one stamped forty times. **Which axis may be flipped is derived from how the
+sheet may be turned**, never authored beside it: two columns saying one thing
+is two chances to disagree, and what is safe follows from what carries the
+meaning. A radial sheet spins and flips either way; one that knows where the
+ground is never turns and mirrors left to right; one drawn along a direction
+is laid on the aim it is given and mirrors top to bottom.
+
+**And the cell count is read off the sheet.** A row of squares is as many
+cells as its width over its height, so an effect re-rendered at a different
+length simply is that length - there is no number in the game to drift out of
+step with the file, which is a fault this project has paid for twice.
+
+**The bound has not moved**: a sheet is decoration. Scaled away by
+`Graphics.particle_scale`, damped by `JuiceDirector` as COSMETIC, drawn on its
+own dice rather than the run's stream, and read by nothing. And the line
+`VFX_FORGE.md` §3 draws still holds - **a telegraph is drawn at the blow's own
+radius and stays procedural**, so the warning and the damage cannot disagree.
+Every sheet laid where a telegraph already promised something is laid at that
+same number.
+
+**Every element has a hit and it behaves the way that element does** - fire
+flares upward and dies, water splashes into a ring of droplets, earth throws
+chunks, air is a ring leaving, steel is a hard star. They are played from
+`Vfx.impact`, which is the one place that already knows which element landed,
+so the thirty call sites that deal an elemental blow needed no edit at all.
+
+**`forge_check` went from 3 ways to be a lie to 687 checks**, and two of them
+are the ones no person can do. **Every sheet on disk must be an effect the
+catalogue names** - a file that ships, was paid for in render time, and can
+never be played is the `DisciplineEffects` lie in the art layer - and **every
+effect must be played by something**, read off the source with the two
+catalogue literals cut out so a row cannot name itself. Four faults were
+planted and all four named: an upright sheet spun, a call site removed, a take
+that is pixel-for-pixel another take, and a sheet with no effect.
+
+Three of its own checks were wrong first and each is a shape worth knowing.
+A cell size held against one effect's 96 failed nine honest sheets rendered at
+64 and 128 - **an effect declares its own size, so what is worth holding is
+that the cells are square**. An "is this cell empty" bar held as an absolute
+count failed at 64 for the same reason, and is a share of the cell now. And
+comparing takes by their **lit-pixel total** failed three honest ones for
+colliding on a single integer; comparing the pixels catches exactly the
+failure the check is for - a seed that reaches nothing downstream - with no
+false positives.
+
+**Two effects were rebuilt because a photograph said so and no number did.**
+`funnel_debris` was drawn entirely on the radial coordinate, which is a plan
+view, so however it was chopped it came out a wheel of dashes; it is a stack
+of five ellipses now, rising and widening, which is what a funnel is from a
+camera that looks down and slightly along. `meteor_bloom` scaled its dome's
+`y` *up*, making it wider than it was tall, and over an even flatter skirt the
+pair read as an eye; the dome is taller than wide now and fire leaves the top
+of it. Both were found on a contact sheet of all twenty-four and by nothing
+else, which is the rule §5 of `VFX_FORGE.md` set before the tool was built.
+
+**The window is `forge_app/`**, its own Godot project beside the launcher and
+for the launcher's reason: it ships to nobody and must not be able to break
+the game by existing. It lists the catalogue by asking the forge, renders
+without freezing, and **plays the result the way the game will** - tinted,
+additive, at `Balance.VFX_FORGE_FRAME_RATE`, over a plate the colour of the
+road, with a contact strip of every cell under it. That last part is the whole
+reason it exists: a lit-pixel count says nothing about what an effect looks
+like moving, and a tool that renders a sheet and cannot show it playing is a
+slower command line. Its theme is derived in code from three colours, so
+changing the app's mood is changing three values rather than forty boxes.
+
+Three faults in that window are the same fault in three costumes, and all
+three were found by photographing it. A status label that wraps by default,
+given no width in a row with an expanding spacer, wrapped to **one character a
+line** and made the header four hundred pixels tall. Clipping it then
+truncated it to nothing. And a contact strip anchored to its panel came out
+1372 pixels wide in an 830-pixel one, because **`Control.size` is clamped to a
+container's combined minimum** - so the share each cell may have is worked out
+first and becomes its minimum.
+
+**A menu button played its sound twice, as of the same date.** The owner
+reported the menu's random sounds as too loud. Both `Sfx` and `UiSound` hooked
+every button in the game on `node_added` - each guarding against its own
+handler and neither knowing about the other - so a hover played at
+`UiSound.HOVER_DB` *and* at zero, and a click likewise. A menu is nothing but
+buttons, which is why it was heard there first. `UiSound` was already the
+complete answer and has the better rule besides (a disabled button does not
+answer the cursor), so the fix is a deletion; the levels moved into `Sfx.MIX`,
+where a level belongs, because a level at a call site is a level the next call
+site does not know about.
 
 ### The three escape hatches — and why there are only three
 

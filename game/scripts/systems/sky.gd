@@ -1136,8 +1136,17 @@ func _tick_quake(delta: float) -> void:
 		_tremor_timer = 0.3
 		var around: Vector2 = field.hero.global_position if field != null and field.hero != null else Vector2.ZERO
 		for _i: int in 3:
-			Vfx.dust(around + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * 420.0,
-				Color(0.36, 0.3, 0.24), 4, 40.0 + 30.0 * _quake_magnitude)
+			var spot: Vector2 = around + Vector2(_rng.randf_range(-1.0, 1.0),
+				_rng.randf_range(-1.0, 1.0)) * 420.0
+			Vfx.dust(spot, Color(0.36, 0.3, 0.24), 4,
+				40.0 + 30.0 * _quake_magnitude)
+			# The forged dust with it: a ring of grit lifting and settling,
+			# upright because it knows where the ground is. Drawn on the
+			# tremor's own clock, which is already three a second, and read
+			# by nothing - the quake's damage is `_hurt`'s.
+			Vfx.forge_play("quake_dust", spot,
+				Balance.QUAKE_FORGE_REACH * (0.7 + 0.5 * _quake_magnitude),
+				Color(0.68, 0.58, 0.46, 0.7))
 		EventBus.camera_shake_requested.emit(_quake_magnitude * Balance.QUAKE_SHAKE * 0.6, 0.35)
 
 

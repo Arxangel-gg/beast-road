@@ -111,6 +111,11 @@ func dig_at(kind: int, at: Vector2) -> void:
 	_dig(kind, at, load(art) as Texture2D)
 	Vfx.ring(at, 120.0, Color(0.6, 0.85, 0.7, 0.8), 0.7, 5.0)
 	Vfx.spark(at, Color("9fe8b8"), 18, Vector2.UP, 200.0)
+	# The aperture tearing open. A looping sheet played once here, because
+	# what this marks is the tear rather than the standing gate - the gate's
+	# own motes are `_tick_gate`'s.
+	Vfx.forge_play("portal_rift", at, Balance.RIFT_GATE_FORGE_REACH,
+		Color(0.62, 0.88, 0.74))
 
 
 func _is_good_ground(at: Vector2) -> bool:

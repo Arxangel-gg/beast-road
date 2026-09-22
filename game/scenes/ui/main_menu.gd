@@ -1022,7 +1022,12 @@ func _build_resume_button() -> void:
 		mend.tooltip_text = _mend_bill_text()
 		mend.custom_minimum_size = new_run_button.custom_minimum_size
 		mend.theme_type_variation = settings_button.theme_type_variation
-		IconKit.on_button(mend, "wood", 24)
+		# Timber unless there is no timber in it. A front whose board is whole
+		# and whose gate is down is a Marks purchase, and a button wearing a
+		# log for it says the wrong currency before the tooltip says the right
+		# one - which is the case that had no button at all until 2026-09-22.
+		IconKit.on_button(mend, "wood" if not Expedition.repair_bill(front).is_empty()
+			else "marks", 24)
 		column.add_child(mend)
 		column.move_child(mend, button.get_index() + 1)
 		mend.pressed.connect(func() -> void:
@@ -1040,21 +1045,12 @@ func _build_resume_button() -> void:
 	button.grab_focus()
 
 
-## What mending the front would cost, written out. Read off the same bill the
-## purchase spends, so the tooltip and the till cannot disagree.
+## What mending the front would cost, written out. Read off the same two
+## functions the purchase spends, so the tooltip and the till cannot disagree -
+## and off `Expedition` rather than written out here, because the Hold offers
+## the same purchase and two copies of a price is how one of them goes stale.
 func _mend_bill_text() -> String:
-	var bill: Dictionary = Expedition.repair_bill(MetaState.expedition)
-	if bill.is_empty():
-		return "Nothing out there is damaged."
-	var parts: PackedStringArray = []
-	var ids: Array = bill.keys()
-	ids.sort()
-	for id: Variant in ids:
-		var kind: MaterialData = ContentDB.materials.get(String(id), null) as MaterialData
-		var held: int = int(MetaState.materials.get(String(id), 0))
-		parts.append("%d %s (you have %d)" % [int(bill[id]),
-			String(id) if kind == null else kind.display_name, held])
-	return "Timber and ore to put the fortress right: " + ", ".join(parts)
+	return Expedition.bill_text(MetaState.expedition)
 
 
 ## **The press that gives up a campaign asks once.**

@@ -21,22 +21,12 @@ SPEC = {
 
 PI = 3.14159265
 
-def _phase(f):
-    """This take's own arrangement, 0..1.
-
-    The seed reaches an effect only through the noise field, so anything not
-    broken up by the swirl renders identically on every take - the first cut
-    of the clean hit wrote four byte-identical sheets. A golden-ratio step
-    off the seed turns the takes into different arrangements as well as
-    different grain, and never repeats a spacing.
-    """
-    return (f.seed * 0.6180339887) % 1.0
 
 
 
 def build(f):
-    spin = _phase(f) * 6.28318531 / 9.0
-    curl = 1.30 + (_phase(f) - 0.5) * 0.50
+    spin = f.phase() * 6.28318531 / 9.0
+    curl = 1.30 + (f.phase() - 0.5) * 0.50
     # Fire leaves the ground, so the whole crown climbs off the impact point,
     # and x is squeezed so the crown is taller than it is wide.
     lifted = f.rise(0.34)

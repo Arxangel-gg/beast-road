@@ -15,6 +15,20 @@ enum Kind { BOLT, SPRAY, HEX }
 ## Set before the shot enters the tree. BOLT is what every shot was until
 ## 2026-09-13, so a caller that sets nothing gets exactly the old behaviour.
 var kind: int = Kind.BOLT
+
+## Which forged sheet each kind lands under. Authored rather than derived
+## from the enum's name so a fourth kind fails `forge_check` by not being
+## here, rather than silently drawing the bolt.
+##
+## **Three, not five.** `EnemyShotData.Kind` has five, and a mortar and a
+## lance resolve as `EnemyGroundStrike` rather than as a flying shot - they
+## land where they were aimed, which is the whole reason they are a separate
+## node. Their sheets are played there.
+const _FORGED_BY_KIND: Dictionary = {
+	Kind.BOLT: "shot_bolt",
+	Kind.SPRAY: "shot_spray",
+	Kind.HEX: "shot_hex",
+}
 ## How much mana a HEX takes off whoever it reaches.
 var mana_burn: float = 0.0
 
@@ -217,8 +231,13 @@ func _land_the_look() -> void:
 	Vfx.ring(global_position, radius, Color(tint, 0.66), 0.34, 5.0)
 	Vfx.flash_at(global_position, Color(core_tint, 0.72),
 		Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 2.2 * head_scale)
-	# And the forged shock, in the shot's own core colour.
-	Vfx.forge_burst(global_position, radius * 2.2, Color(core_tint, 0.85))
+	# **And the forged sheet for this kind of shot**, in its own core colour.
+	# Five kinds, five sheets: a bolt's clean ring, a spray's speckled cloud,
+	# a mortar's flat ellipse on the ground, a lance's streak along its line,
+	# a hex's slow churn. It is the shape of the blow being drawn, never its
+	# size - the damage was dealt above and nothing here reads it.
+	Vfx.forge_play(_FORGED_BY_KIND.get(kind, "shot_bolt"), global_position,
+		radius * 2.2, Color(core_tint, 0.85), _direction.angle())
 
 
 ## **The picture, and only the picture.** The sway and the spin are applied to

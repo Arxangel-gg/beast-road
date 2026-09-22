@@ -269,7 +269,11 @@ static func describe(stored: Dictionary) -> String:
 	return where if named.is_empty() else "%s · %s" % [named, where]
 
 
-## **What it costs to mend everything that is hurt**, as material ids to counts.
+## **What it costs to mend the emplacements**, as material ids to counts.
+##
+## The gate is not in here and is not an omission: it is sold by the Hold for
+## Marks, and `gate_price` is that half. See its note for why the bill has two
+## currencies in it.
 ##
 ## Priced off each tower's own Gold cost and how much health it is missing, so a
 ## battered Bulwark costs more to put right than a scratched Barrow Stake, and a
@@ -304,25 +308,62 @@ static func repair_bill(stored: Dictionary) -> Dictionary:
 			_cheapest(MaterialData.Kind.WOOD), 0)) + units
 		bill[_cheapest(MaterialData.Kind.ORE)] = int(bill.get(
 			_cheapest(MaterialData.Kind.ORE), 0)) + maxi(1, units / 2)
-	# **And the gate, which this used to walk straight past.**
-	#
-	# The note on `wall_share` called that a real gap and said it was a
-	# decision if the Hold should ever sell the repair. Owner, 2026-09-20:
-	# it should - a resumed run is supposed to come back to a mended
-	# fortress, *"so that its fires get put out and appears fully
-	# repaired"*, and the wall is the thing a run is actually lost through.
-	#
-	# Priced off the wall's own health rather than off a tower's Gold, since
-	# it has no build cost to take a share of.
-	var gate: float = 1.0 - wall_share(stored)
-	if gate > 0.001:
-		var units: int = maxi(1, int(round(Balance.TOWN_MAX_HP * gate
-			* Balance.FORTIFY_REPAIR_PER_HEALTH)))
-		bill[_cheapest(MaterialData.Kind.WOOD)] = int(bill.get(
-			_cheapest(MaterialData.Kind.WOOD), 0)) + units
-		bill[_cheapest(MaterialData.Kind.ORE)] = int(bill.get(
-			_cheapest(MaterialData.Kind.ORE), 0)) + maxi(1, units / 2)
 	return bill
+
+
+## **What a return from this front pays**, in Marks. The stake the gate's price
+## is measured against.
+##
+## This is `Run.homecoming_marks(act, true)` for the snapshot's own act and
+## tier, and it is written out here rather than called because `Expedition` is
+## reached from `MetaState`, an autoload, and `Run` is a scene script that
+## reaches back into it - one arithmetic shared across that edge is a cyclic
+## reference to buy a line. So the two are held against each other instead:
+## `expedition_check` walks every act and every tier and fails the moment they
+## disagree, which is the thing sharing a function was ever for.
+##
+## **The snapshot's tier and not the ambient one.** `Run.homecoming_marks` asks
+## `RunState.tier()`, which between runs is whatever was last played; reading
+## that here would price a Hell front at Normal rates the moment a Warden
+## looked at the menu after a Normal run, and the price being *low* is the
+## failure direction this whole bound exists to close.
+static func homecoming_worth(stored: Dictionary) -> int:
+	var earned: float = float(Balance.RUN_MARKS_REWARD) \
+		* float(maxi(int(stored.get("act", 1)), 1))
+	var tier: CampaignTierData = ContentDB.tier(String(stored.get("tier", "")))
+	if tier != null:
+		earned *= tier.loot_scale
+	return maxi(1, int(round(earned)))
+
+
+## **What the Hold charges to put the gate back up**, in Marks. Zero when the
+## wall is whole, which is also what "no repair is offered" means.
+##
+## Owner, 2026-09-22: the Hold should sell this *"if a successful extract is
+## available to continue its run and it requires mending"*. The note on
+## `wall_share` had called it a real gap and left it as a decision waiting to
+## be taken; it has been taken.
+##
+## **Marks rather than timber**, unlike the emplacements: the Hold sells, and
+## the Hold sells for Marks (the stable's rule, and working rule 7's bound that
+## a material is an input to the Smithy and nothing else). It also means the
+## purchase touches nothing that resets - a run currency would make the repair
+## free on the first frame of the next road.
+##
+## **Dearer than letting the run go, and that is the gated half.** There is no
+## Marks printer to guard here and there could not be: the transaction consumes
+## Marks and produces a mended wall, paying out no currency, no gear and no
+## level. The failure available is the other one - a price so low that
+## attrition stops meaning anything. `return_home` banks the front *and* pays
+## in full, so a whole gate that cost less than one return would be a
+## withdrawal refunded out of its own payout, and the 2026-09-15 ruling that a
+## damaged fortification comes back damaged would survive only as a sentence.
+static func gate_price(stored: Dictionary) -> int:
+	var missing: float = 1.0 - wall_share(stored)
+	if missing <= 0.001:
+		return 0
+	return maxi(1, int(ceil(float(homecoming_worth(stored)) * missing
+		* Balance.FORTIFY_GATE_MARKS_SHARE)))
 
 
 ## The commonest material of a kind: mending wants the plentiful stuff, never
@@ -344,6 +385,13 @@ static func _cheapest(kind: int) -> String:
 ## All or nothing because a partial mend is a bill the player cannot read: they
 ## spend, and the fortress is still broken somewhere they cannot see until they
 ## are standing in it.
+##
+## **It may only restore, and never improve.** Every write in here is a `1.0` -
+## nothing is added, no level rises, no purse moves, no act advances, and
+## nothing new is written to the save: a mended front is the front that was
+## banked with its damage taken off. A repair that handed over a tower level
+## would be a Marks-priced power scale the acts were never tuned against, which
+## is the bound every purchase in this project is held to.
 static func mend(stored: Dictionary) -> Dictionary:
 	var out: Dictionary = stored.duplicate(true)
 	var towers: Array = out.get("towers", []) as Array
@@ -373,12 +421,12 @@ static func mend(stored: Dictionary) -> Dictionary:
 ## back up could not tell whether they were resuming behind a whole gate or a
 ## broken one until the road was already under them.
 ##
-## **The Hold mends it now** (owner, 2026-09-20). This note used to say nothing
+## **The Hold sells the repair now** (owner, 2026-09-20, and again on
+## 2026-09-22 with the Marks price attached). This note used to say nothing
 ## between runs did, and named it a decision waiting to be taken; it has been.
-## `repair_bill` prices the gate off its own health - it has no build cost to
-## take a share of - and `mend` sets it whole, which is what puts the fires out
-## when the front is picked back up. Inside a run it is still mended with Wood
-## or through the Quartermaster.
+## `gate_price` is what it costs and `mend` sets it whole, which is what puts
+## the fires out when the front is picked back up. Inside a run it is still
+## mended with Wood or through the Quartermaster.
 static func wall_share(stored: Dictionary) -> float:
 	return clampf(float(stored.get("wall", 1.0)), 0.0, 1.0)
 
@@ -393,10 +441,14 @@ static func wall_share(stored: Dictionary) -> float:
 ##
 ## So a front that came home behind a battered gate with every emplacement
 ## whole could not be mended from anywhere, while the purchase that would
-## have mended it worked perfectly if it were ever reached. The bill is the
-## question now, and it already knows about the wall.
+## have mended it worked perfectly if it were ever reached.
+##
+## **One question over both halves of the bill**, which is the point of it
+## being a function: the gate is priced in Marks and the emplacements in
+## timber, and a screen asking either one on its own is the same fault again
+## wearing the other currency.
 static func needs_mending(stored: Dictionary) -> bool:
-	return not repair_bill(stored).is_empty()
+	return not repair_bill(stored).is_empty() or gate_price(stored) > 0
 
 
 ## What is hurt out there, for the button that offers to put it right. Named
@@ -411,6 +463,34 @@ static func hurt_summary(stored: Dictionary) -> String:
 	if gate > 0.001:
 		parts.append("the gate at %d%%" % int(round(wall_share(stored) * 100.0)))
 	return " and ".join(parts)
+
+
+## **What the whole purchase costs, written out**, both halves and what the
+## Warden is holding against each.
+##
+## Lives here rather than on a screen because there are two screens - the front
+## door and the Hold - and they were already one sentence apart: the Hold
+## offered the button with no price on it at all. A bill written twice is a
+## bill that disagrees with the till the first time either currency moves.
+##
+## Read off the same two functions the purchase spends, for the same reason.
+static func bill_text(stored: Dictionary) -> String:
+	var bill: Dictionary = repair_bill(stored)
+	var marks: int = gate_price(stored)
+	if bill.is_empty() and marks <= 0:
+		return "Nothing out there is damaged."
+	var parts: PackedStringArray = []
+	if marks > 0:
+		parts.append("%d Marks for the gate (you have %d)"
+			% [marks, MetaState.marks])
+	var ids: Array = bill.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind: MaterialData = ContentDB.materials.get(String(id), null) as MaterialData
+		var held: int = int(MetaState.materials.get(String(id), 0))
+		parts.append("%d %s (you have %d)" % [int(bill[id]),
+			String(id) if kind == null else kind.display_name, held])
+	return "To put the fortress right: " + ", ".join(parts)
 
 
 static func fortifications(stored: Dictionary) -> Vector2i:

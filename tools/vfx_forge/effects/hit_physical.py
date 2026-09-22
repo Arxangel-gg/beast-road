@@ -30,15 +30,6 @@ SPARKS = [(26, 0.95), (78, 1.05), (137, 0.80), (195, 1.00), (258, 0.88),
           (312, 1.02)]
 
 
-def _phase(f):
-    """This take's own arrangement, 0..1.
-
-    The seed reaches an effect only through the noise field, and this one
-    touches no noise at all, so without it every take renders the same
-    picture: the first cut wrote three byte-identical sheets. A golden-ratio
-    step never repeats a spacing.
-    """
-    return (f.seed * 0.6180339887) % 1.0
 
 
 
@@ -76,7 +67,7 @@ def build(f):
     # Six, seven or eight needles by take. Arrangement is the only thing a
     # clean effect can vary, so the count carries most of it here.
     points = 6 + int(f.seed) % 3
-    spin = _phase(f) * 6.28318531 / points
+    spin = f.phase() * 6.28318531 / points
 
     # Out hard and back to nothing well before the sheet ends, so the star is
     # spent by its own arithmetic and nothing is cut off between two cells.
@@ -101,8 +92,8 @@ def build(f):
     rad = f.math("SUBTRACT", 0.15, f.math("MULTIPLY", f.age, 0.145))
     # Turned as a set and then each nudged off its own place, so a take is a
     # different scatter rather than the same scatter rotated.
-    flung = [(deg + _phase(f) * 360.0 + (index * 137.508) % 23.0 - 11.5,
-              reach * (0.88 + ((index * 0.6180339887 + _phase(f)) % 1.0) * 0.24))
+    flung = [(deg + f.phase() * 360.0 + (index * 137.508) % 23.0 - 11.5,
+              reach * (0.88 + ((index * 0.6180339887 + f.phase()) % 1.0) * 0.24))
              for index, (deg, reach) in enumerate(SPARKS)]
     sparks = f.either(*[_spark(f, deg, reach, rad) for deg, reach in flung])
 

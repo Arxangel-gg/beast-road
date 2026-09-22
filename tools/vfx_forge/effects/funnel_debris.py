@@ -1,16 +1,22 @@
-"""Debris caught in a tornado: pieces orbiting the throat and climbing it.
+"""Debris caught in a tornado: a cone of it, orbiting the throat and climbing.
 
-**It is built out of geometry rather than out of the noise field, and that is
-the loop rather than a preference.** The forge drifts its noise slice with the
-age so a grain never repeats, which is right for a blow that plays once and
-wrong for the only effect here that has to come back round to where it
-started. Every term is periodic in the raw age, so the last cell is the cell
-before the first and the sheet can be played for as long as the funnel stands.
+**The first cut was drawn in plan and read as a plan.** Every term was built
+on `f.r`, the radial coordinate in the plane, which is a circle seen from
+directly overhead - so however the arms were chopped and sheared the result
+was a wheel of dashes rather than a funnel. Photographed on a contact sheet
+beside the rest of the catalogue, it was the one effect nobody could name.
 
-What keeps geometry from reading as a woven basket is shape and shear: an arm
-is far thinner than its pieces are long, so debris is a streak drawn out along
-where it is going rather than a tile, and every cut is skewed by the radius it
-crosses. A skew carries no clock, so it costs the loop nothing.
+What a funnel is, from a camera that looks down and slightly along, is a
+**stack of ellipses**: narrow and low at the throat, wider and higher up the
+column, each one turning. Five of them are enough for the eye to join into a
+cone, and each is chopped into debris by an angular cut that shears with its
+own height so no two ranks line up.
+
+**Every term is periodic in the raw age**, which is the loop rather than a
+preference: the forge drifts its noise slice with the age so grain can never
+come back to where it started, and this is the only effect here that has to.
+It is played over and over for as long as the funnel stands. So it uses no
+noise at all, and its variety comes from `f.phase()` instead.
 """
 
 TWO_PI = 6.283185
@@ -23,104 +29,107 @@ SPEC = {
     "why": "a tornado's funnel, and anything else that orbits and lifts while it stands",
 }
 
+# The cone, in object space. The throat sits below the middle of the cell and
+# the mouth near the top, because what the sheet is laid on is the ground the
+# funnel is standing on.
+FLOOR = -0.78
+TOP = 0.86
+# How flat a ring lies. The camera looks down and slightly along, so an orbit
+# is an ellipse about a third as tall as it is wide; a true circle at any
+# height reads as a hoop standing up.
+SQUASH = 3.1
+# How wide the column is at the throat and at the mouth.
+THROAT = 0.16
+MOUTH = 0.74
+# How many ranks of debris are stacked up it.
+RANKS = 5
 
-def _turning_cut(f, count, duty, shear, turn):
-    """`count` angular cuts, skewed outward by `shear` and turning with time.
 
-    Advancing by `count` phases over the life is exactly one revolution, which
-    is what makes the cut periodic whatever the count.
+def _ring(f, height, turn_rate, cuts, duty, lead, spin, thick):
+    """One rank of debris orbiting at a given height up the cone.
+
+    `height` runs 0 at the throat to 1 at the mouth. The ellipse's radius and
+    its centre both follow it, which is what makes the stack a cone rather
+    than a cylinder.
     """
-    walk = f.math("ADD", f.math("MULTIPLY", f.angle, INV_TWO_PI * count),
-                  f.math("MULTIPLY", f.r, shear))
-    return f.math("LESS_THAN",
-                  f.math("FRACT", f.math("ADD", walk, turn)), duty)
+    at_y = FLOOR + (TOP - FLOOR) * height
+    reach = THROAT + (MOUTH - THROAT) * height
+    # The ellipse: y measured from this rank's own centre and scaled, so a
+    # circle of `reach` lands as a wide flat orbit.
+    dy = f.math("MULTIPLY", f.math("SUBTRACT", f.y, at_y), SQUASH)
+    er = f.math("SQRT", f.math("ADD", f.math("MULTIPLY", f.x, f.x),
+                               f.math("MULTIPLY", dy, dy)))
+    band = f.math("LESS_THAN",
+                  f.math("ABSOLUTE", f.math("SUBTRACT", er, reach)), thick)
+
+    # Chopped into pieces that travel round it. Advancing by a whole number of
+    # phases over the life is exactly one revolution, so the last cell draws
+    # what the first cell drew.
+    ang = f.math("ARCTAN2", dy, f.x)
+    walk = f.math("ADD", f.math("MULTIPLY", ang, INV_TWO_PI * cuts),
+                  f.math("MULTIPLY", f.raw_age, float(cuts) * turn_rate * spin))
+    chopped = f.math("LESS_THAN",
+                     f.math("FRACT", f.math("ADD", walk, lead)), duty)
+
+    # **The near half only.** A rank drawn all the way round is a hoop; the
+    # far side of a real orbit is behind the column and the eye does not see
+    # it. Faded rather than cut - the pieces thin out as they go round the
+    # back, which is what reads as depth.
+    near = f.math("GREATER_THAN", dy, f.math("MULTIPLY", er, -0.55))
+    return f.both(f.both(band, chopped), f.either(near, f.math("LESS_THAN",
+        f.math("FRACT", f.math("MULTIPLY", walk, 2.0)), 0.30)))
 
 
-def _arm(f, count, inner, reach, thick, cuts, duty, shear, spin, lead):
-    """One family of spiral arms, chopped into debris.
-
-    `spin` is 1 or -1: which way the funnel turns. Either way the pattern
-    advances a whole number of phases over the life, so a take that turns the
-    other way loops exactly as the first does.
-    """
-    turn = f.math("MULTIPLY", f.raw_age, float(count) * spin)
-    phase = f.math("FRACT", f.math("ADD",
-                                   f.math("ADD", f.math("MULTIPLY", f.angle,
-                                                        INV_TWO_PI * count), lead),
-                                   turn))
-    along = f.math("ADD", inner, f.math("MULTIPLY", phase, reach))
-    # The arm is fatter in some quarters than others. Static, so the debris
-    # swells and shrinks as it orbits through it rather than pulsing.
-    swell = f.math("ADD", 0.72,
-                   f.math("MULTIPLY",
-                          f.math("ABSOLUTE",
-                                 f.math("SINE", f.math("ADD",
-                                                       f.math("MULTIPLY", f.angle, 2.5),
-                                                       f.math("MULTIPLY", f.r, 3.0)))),
-                          0.46))
-    wide = f.math("MULTIPLY", thick, swell)
-    arm = f.math("LESS_THAN", f.math("ABSOLUTE", f.math("SUBTRACT", f.r, along)), wide)
-    chop = _turning_cut(f, cuts, duty, shear,
-                        f.math("MULTIPLY", f.raw_age, float(cuts) * spin))
-    return f.both(arm, chop)
-
-
-def _climbing(f, phase, stripe, spin):
-    """A rank of debris lifting up the funnel and sliding across it.
-
-    The lift wraps at the top, and nothing has to hide the wrap: at either end
-    of the climb the rank sits past the throat's own reach and is clipped away
-    by it, so it leaves the frame before it jumps.
-    """
-    high = f.math("FRACT", f.math("ADD", f.raw_age, phase))
-    lifted = f.rise(1.9, of=high)
-    # Thicker at the middle of the climb than at its ends, so a rank swells
-    # as it comes round the near side rather than switching on.
-    away = f.math("ABSOLUTE", f.math("SUBTRACT", high, 0.5))
-    thick = f.math("SUBTRACT", 0.10, f.math("MULTIPLY", away, 0.12))
-    # The rank is bowed rather than ruled: a straight line of debris across
-    # the funnel reads as a ruler, and what this is is the near edge of an
-    # orbit, which curves away at both sides.
-    bow = f.math("MULTIPLY", f.math("MULTIPLY", f.x, f.x), 0.34)
-    rank = f.math("LESS_THAN",
-                  f.math("ABSOLUTE",
-                         f.math("SUBTRACT", f.math("ADD", lifted, 0.95), bow)),
-                  thick)
-    # The swing is the orbit seen from the side: pieces cross to the far side
-    # and back once, which is a full turn without anything rotating.
-    swing = f.math("MULTIPLY",
-                   f.math("SINE", f.math("MULTIPLY", f.raw_age, TWO_PI)), 0.45 * spin)
-    cut = f.math("FRACT", f.math("ADD",
-                                 f.math("MULTIPLY", f.math("ADD", f.x, swing), 6.0),
-                                 stripe))
-    return f.both(f.both(rank, f.math("LESS_THAN", cut, 0.44)),
-                  f.both(f.disc(0.90), f.math("GREATER_THAN", f.r, 0.20)))
+def _wall(f, spin, lead):
+    """The column itself: a faint taper between the throat and the mouth, so
+    the debris is hanging on something rather than floating in a stack."""
+    # How wide the cone is at this height.
+    height = f.math("DIVIDE", f.math("SUBTRACT", f.y, FLOOR), TOP - FLOOR)
+    wide = f.math("ADD", THROAT,
+                  f.math("MULTIPLY", f.math("MAXIMUM", height, 0.0),
+                         MOUTH - THROAT))
+    inside = f.math("LESS_THAN", f.math("ABSOLUTE", f.x), wide)
+    # Only its two flanks, which is all that is lit on a hollow column.
+    flank = f.math("GREATER_THAN", f.math("ABSOLUTE", f.x),
+                   f.math("MULTIPLY", wide, 0.74))
+    within = f.both(f.math("GREATER_THAN", f.y, FLOOR),
+                    f.math("LESS_THAN", f.y, TOP))
+    # Streaked, and the streaks travel up: a wall of solid light is a cone of
+    # paint, and what a funnel is made of is moving.
+    lifted = f.math("SUBTRACT", f.y, f.math("MULTIPLY", f.raw_age, TOP - FLOOR))
+    streak = f.math("LESS_THAN",
+                    f.math("FRACT", f.math("ADD",
+                                           f.math("MULTIPLY", lifted, 3.0 * spin),
+                                           lead)), 0.42)
+    return f.both(f.both(inside, flank), f.both(within, streak))
 
 
 def build(f):
-    # Every other effect here takes its variety from the noise slice the take
+    # Every other effect here takes its variety from the noise slice its take
     # is given. This one uses no noise at all, so four takes of it would have
-    # been four identical files. The take's own seed decides the geometry
-    # instead, in plain arithmetic rather than in nodes - and every one of
-    # these is either a constant offset or a whole number of phases, so no
-    # take loses the loop.
+    # been four identical files; the take's own phase decides the geometry
+    # instead. Every one of these is a constant offset or a whole number of
+    # phases, so no take loses the loop.
     take = int(f.seed)
     spin = 1.0 if take % 2 == 0 else -1.0
-    lead = (f.seed * 0.6180339) % 1.0
-    heavy_cuts = 7 + take % 3
-    light_cuts = 12 + (take * 2) % 4
-    shear = 1.4 + ((f.seed * 0.37) % 1.0) * 0.9
+    lead = f.phase()
+    cuts = 6 + take % 4
 
-    # A wider throat than the debris needs, so the eye reads as a hole rather
-    # than as a gap between pieces.
-    throat = f.both(f.disc(0.92), f.math("GREATER_THAN", f.r, 0.20))
-
-    heavy = f.both(_arm(f, 2, 0.16, 0.70, 0.050, heavy_cuts, 0.58,
-                        shear, spin, lead), throat)
-    light = f.both(_arm(f, 3, 0.24, 0.60, 0.032, light_cuts, 0.50,
-                        -shear - 0.7, spin, lead * 0.5), throat)
-
-    mask = f.either(heavy, light,
-                    _climbing(f, 0.0, lead, spin),
-                    _climbing(f, 0.5, lead + 0.37, spin))
-    return f.Look(mask=mask, tone=f.lit(heavy, 0.24))
+    parts = [_wall(f, spin, lead)]
+    for rank in range(RANKS):
+        height = float(rank) / float(RANKS - 1)
+        # A rank higher up the cone is wider, so it needs more pieces to read
+        # as the same debris, and it turns more slowly - which is what the eye
+        # reads as the column leaning away.
+        parts.append(_ring(
+            f, height,
+            1.0 + 0.4 * (1.0 - height),
+            cuts + rank * 2,
+            0.38 + 0.10 * height,
+            lead + 0.21 * float(rank),
+            spin,
+            0.030 + 0.016 * height))
+    mask = f.either(*parts)
+    # Brighter low, where the debris is dense and the light is caught.
+    low = f.math("LESS_THAN", f.y, FLOOR + (TOP - FLOOR) * 0.4)
+    return f.Look(mask=mask, tone=f.lit(f.both(mask, low), 0.28))

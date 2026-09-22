@@ -17,8 +17,16 @@ extends Node
 
 ## Hover is deliberately well below the click. It fires whenever the cursor
 ## crosses anything, so at click volume a row of buttons becomes a machine gun.
-const HOVER_DB: float = -17.0
-const CLICK_DB: float = -5.0
+## **Zero, because the level lives in `Sfx.MIX` now.**
+##
+## It lived here, and `Sfx`'s own auto-hook did not know about it and played
+## the same sounds at full volume beside these - so a button wired by both was
+## heard twice, loudly. A level in the mix table is one answer whoever asks,
+## which is the point of that table. Kept as constants rather than deleted so
+## a screen that wants one of these *quieter than usual* still has somewhere
+## to say so.
+const HOVER_DB: float = 0.0
+const CLICK_DB: float = 0.0
 
 ## Marks a button as already wired, so a node re-entering the tree - which the
 ## HUD's panels do constantly - cannot stack a second connection on it.

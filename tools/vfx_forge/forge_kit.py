@@ -159,8 +159,67 @@ class Forge:
     # allowed; an effect that reaches past them for something *three* effects
     # want is a helper missing from here.
 
+    def phase(self, of=1.0):
+        """**This take's own arrangement**, 0..1, as a plain float.
+
+        The seed reaches an effect only through the noise field, so anything
+        that is clean geometry rather than broken-up grain renders
+        *identically* on every take: the first cut of the clean spark hit
+        wrote four byte-identical sheets, verified by hash. A golden-ratio
+        step off the seed turns the takes into different arrangements as well
+        as different grain, and never repeats a spacing.
+
+        Spend it on where things are, not on how bright they are: a rotation,
+        a scatter, a count, a tightness. `of` scales the result.
+        """
+        return ((self.seed * 0.6180339887) % 1.0) * of
+
+    def squashed(self, by, drop=0.0):
+        """The radius and angle on a frame whose y is scaled.
+
+        A circle drawn there lands as an ellipse `by` times as low, which is
+        what a ring on the ground looks like under a camera that is tilted
+        rather than straight overhead - the camera this game has. `drop`
+        sinks its centre. Returns `(radius, angle)`.
+        """
+        y = self.math("MULTIPLY", self.math("ADD", self.y, drop), by)
+        r = self.math("SQRT", self.math("ADD", self.math("MULTIPLY", self.x, self.x),
+                                        self.math("MULTIPLY", y, y)))
+        return r, self.math("ARCTAN2", y, self.x)
+
+    def lobes(self, count, sharpness=2.0, turn=0.0):
+        """A radius that varies with the angle: petals, tongues, spikes.
+
+        **Not `spokes`, and the difference matters.** A spoke is a wedge, so
+        it is *widest at the tip* - which cannot draw a flame or a spark,
+        both of which are pointed at the tip and joined at the root. This is
+        the outline itself: `count` lobes, each raised to `sharpness` so a
+        higher power is a thinner point.
+
+        Returns the radius the outline reaches at this angle; compare it with
+        `f.r` to fill the shape.
+        """
+        turned = self.math("ADD", self.angle, turn)
+        wave = self.math("ABSOLUTE",
+                         self.math("COSINE", self.math("MULTIPLY", turned,
+                                                       float(count) * 0.5)))
+        return self.math("POWER", wave, float(sharpness))
+
     def grain(self, above, source=None):
-        """Where the noise is high enough. The hard threshold, by name."""
+        """Where the noise is high enough. The hard threshold, by name.
+
+        **The usable range is about 0.30 to 0.62.** The field sits near 0.5
+        with little spread, so a bar under about 0.2 passes everything and
+        does nothing - the first flame rendered as a solid sunburst because
+        of it - and a bar over about 0.64 passes nothing at all, which is a
+        part of an effect that is simply absent. Measured while tuning this
+        batch: 0.52 leaves about 45% of the field, 0.60 about 25%, 0.66
+        empties the cell.
+
+        To erode an edge rather than speckle it, bias and gain the field
+        first - `(noise - 0.28) * 0.70` - rather than subtracting from it
+        raw.
+        """
         return self.math("GREATER_THAN", source or self.noise_fac, above)
 
     def hole(self, below, source=None):

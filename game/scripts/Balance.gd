@@ -749,25 +749,49 @@ const LEVEL_CURVE_RUNS_PER_TIER: int = 3
 
 ## XP needed to leave level L is HERO_XP_BASE * L^HERO_XP_CURVE.
 ##
-## **Quadratic, and five times the road it used to be** (owner, 2026-09-22:
-## "the perpetual player level should not accumulate xp so quickly ... a longer
-## process similar to the Diablo series but tuned for our game"). The owner
-## reached the cap in about a hundred runs at 17.0 / 1.42, which is 480,000 XP
-## over the whole ladder; this is 2.40 million, so the hundredth level is a
-## season rather than a month.
+## **The exponent is the whole of this constant and the base is almost
+## unchanged**, which is the shape the owner asked for: "the perpetual player
+## level should not accumulate xp so quickly ... a longer process similar to
+## the Diablo series but tuned for our game" (2026-09-22). Leaving level 1
+## still costs 7 XP and wave 1 of a new road still pays 24, so the first level
+## still arrives on the first wave. What grew is everything above it.
 ##
-## **The exponent went up and the base came down**, which is what keeps the
-## opening intact: leaving level 5 costs 183 against the old 167 and level 10
-## costs 730 against 447, so a new Warden's first evening is the evening it
-## was. It is the far end that grew - level 70 is 35,770 against 7,087, and
-## level 99 is 71,547 against 11,594.
+## **The previous pair, 7.3 / 2.0, was solved against a model that measured an
+## eighth of the game.** `tools/level_curve.gd` hard-coded ten waves an act
+## over ten acts - a hundred waves and two and a half hours - against a real
+## campaign of 819 waves and about 12.7 hours, and it also printed each tier's
+## `xp_scale` beside a walk that never applied it. So the road paid some fifty
+## times what the tool believed, and one Normal clear took a Warden from 1 to
+## 100 with four acts still to walk. Both faults are fixed in that file; this
+## is the re-tune against the corrected reading, and it is recorded rather
+## than quietly overwritten because the arithmetic in the note it replaces
+## was perfectly sound about a game nobody plays.
 ##
-## The note this replaces argued 2.0 away: *"at 2.0 the last ten levels cost
-## more than the first ninety"*. Measured, they do not - the last ten are
-## 89,385 against the first ninety's 238,965, which is 27% - so the objection
-## was arithmetic and the arithmetic says otherwise. [TUNE]
-const HERO_XP_BASE: float = 7.3
-const HERO_XP_CURVE: float = 2.0
+## **The tiers are the specification, and they are met almost exactly.** Each
+## declares the level its own bosses expect, and those bands are what this is
+## solved into rather than a figure anyone chose:
+##
+##   one Normal clear   -> 34   (Normal's last boss expects 30)
+##   three Normal       -> 44   (Nightmare's first boss expects 45)
+##   the Nightmare tier -> 70   (Nightmare's last boss expects 70)
+##   two Hell clears    -> 95   (Hell's last boss expects 94)
+##   three Hell clears  -> 100
+##
+## So the hundredth level spans all three difficulties and is earned in Hell,
+## which is what makes the ascension ladder and the Hell gear worth holding.
+##
+## **What this does cost is the middle of the opening, and it is unavoidable
+## rather than a preference.** Level 10 lands on wave 74 of the first campaign
+## where it used to land on wave 15 - about the middle of Act II rather than
+## Act I. A road whose income climbs eight hundredfold from first wave to last
+## pays only a tenth of a percent of a campaign's XP in Act I, so any ladder
+## long enough to span nine campaigns puts level 10 past it. The exponent was
+## pushed as high as the far end tolerates for exactly this reason: a steeper
+## curve makes the low levels *cheaper* relative to the top, and past about
+## 3.6 the top stops being reachable at all - at 4.0 three Hell campaigns
+## reach only 87. 3.5 is the corner of that trade. [TUNE]
+const HERO_XP_BASE: float = 7.0
+const HERO_XP_CURVE: float = 3.5
 
 ## XP a kill is worth, per point of the enemy's maximum health.
 ##
@@ -3255,6 +3279,34 @@ const VFX_ART_FRAME_RATE: float = 12.0
 ## half a second. Faster than the painted impacts because a shock ring that
 ## lingers reads as a stain rather than a blow.
 const VFX_FORGE_FRAME_RATE: float = 30.0
+
+## **What a forged spell sheet is drawn at.** A spell with a tiny blast still
+## wants a picture a person can see, so the reach has a floor; everything
+## above it is the spell's own radius, which is the number the telegraph and
+## the damage already share. [TUNE]
+const SPELL_FORGE_MIN_REACH: float = 70.0
+## How often a beam draws its terminus, and how wide. **On a clock rather
+## than every frame**: a sheet a frame is sixty sprites a second for as long
+## as the channel runs, and a beam already draws its own line. [TUNE]
+const SPELL_BEAM_END_INTERVAL: float = 0.12
+const SPELL_BEAM_END_SHARE: float = 0.55
+
+## **What the rest of the forged catalogue is drawn at**, where the caller has
+## no radius of its own to hand over. Each is a width in world units, so a
+## sheet is the size of the thing it is a picture of rather than the size of
+## the cell it was rendered in. [TUNE]
+##
+## `LOOT_FORGE_RARITY_FROM` is the bar a piece has to clear to get a star at
+## all: a forged sheet on every coin of a nine-piece handful is a forest, and
+## what this effect is for is saying *stop, that one matters*.
+const LOOT_FORGE_RARITY_FROM: int = 3
+const LOOT_FORGE_REACH: float = 130.0
+const SET_AURA_ARRIVAL_REACH: float = 190.0
+const RIFT_GATE_FORGE_REACH: float = 210.0
+const QUAKE_FORGE_REACH: float = 150.0
+## What a tower breaking is drawn at. Wider than the tower, because what is
+## being drawn is the shock rather than the stone. [TUNE]
+const TOWER_BREAK_FORGE_REACH: float = 230.0
 ## How large a drawn hit sheet is played, in world units, at the chain's fast
 ## steps; the finisher plays it larger. [TUNE]
 const VFX_HIT_SHEET_SIZE: float = 72.0
@@ -4066,6 +4118,32 @@ const MOMENTUM_MAX: float = 0.60
 ## but a bill that makes resuming worse than starting fresh is a bill that
 ## deletes the feature it is attached to.
 const FORTIFY_REPAIR_PER_HEALTH: float = 0.017
+
+## **What the Hold charges to mend the gate**, as a share of what a return from
+## that front pays, per point of wall missing. Owner, 2026-09-22: *"The Hold
+## should sell wall repairs if a successful extract is available to continue
+## its run and it requires mending."*
+##
+## **In Marks, and not in timber**, unlike the emplacements above. The Hold
+## *sells* this - the owner's own word - and the Hold sells for Marks: that is
+## the stable's rule, and the reason it is the stable's rule is working rule 7's
+## bound that a material is an input to the Smithy and nothing else. The wall
+## also has no build cost to take a share of, which is why its price has to be
+## anchored to something other than itself.
+##
+## **Above one, and that is the bound rather than the number.** `return_home`
+## banks the front *and* pays `homecoming_marks` in full, and the withdrawal of
+## 2026-09-16 is what wears the gate on the way out - so a whole-gate repair
+## cheaper than one return would mean the withdrawal's only cost is refundable
+## out of the payout the withdrawal itself earns. Attrition would still be
+## drawn on the Resume card and would mean nothing, which is the 2026-09-15
+## ruling deleted by a price rather than by a decision.
+##
+## It scales with how much of the gate is missing, so nobody is ever choosing
+## between an unaffordable bill and abandoning a campaign: a lightly worn gate
+## costs a little, and a gate that fell to the withdrawal's floor costs more
+## than the road that broke it earned. [TUNE]
+const FORTIFY_GATE_MARKS_SHARE: float = 1.25
 
 const PEN_CAPACITY: int = 12
 

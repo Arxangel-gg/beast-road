@@ -2619,19 +2619,118 @@ placement, the same way it does in the ground tiles.
 
 ### 5.18e Forged sheets — `res://art/vfx/`
 
-Rendered rather than generated (2026-09-21): `tools/vfx_forge/forge.py`
-builds one node graph in Blender 4.5 headless - a frame turned into an age, a
-radial coordinate, noise through a hard threshold, a swirl toward the middle,
-emission whose alpha is the mask - renders it frame by frame on a transparent
-film and packs the frames left to right into one row. White on transparent,
-tinted once per use by `Vfx.forge_burst`, so one sheet serves every element.
-Sixteen cells of 96. Re-render with `python tools/vfx_forge/forge.py burst`.
+Rendered rather than generated (2026-09-21; grown to the whole catalogue on
+2026-09-22): `tools/vfx_forge/forge.py` builds one node graph in Blender 4.5
+headless - a frame turned into an age, a radial coordinate, noise through a
+hard threshold, a swirl toward the middle, emission whose alpha is the mask -
+renders it frame by frame on a transparent film and packs the frames left to
+right into one row. White on transparent, tinted once per use by
+`Vfx.forge_play`, so one sheet serves every element.
+
+**An effect is a file** (`tools/vfx_forge/effects/<id>.py`), which is working
+rule 3 applied to art: the catalogue in `Vfx.FORGE_CATALOGUE` and that folder
+are the same list, and `forge_check` walks the folder of sheets against it in
+both directions. Each effect declares its own cell size and frame count in its
+`SPEC`, so the sizes below differ on purpose - a meteor landing is not a
+mortar shot - and the **cell count is read off the sheet** rather than written
+down anywhere.
+
+The numbered files are *takes*: the same effect with its noise sampled
+somewhere else, chosen at random per play and then flipped and turned. Add one
+by re-rendering with a higher `--variants`; a take nobody rendered is simply
+not in the pool.
+
+Re-render everything with `python tools/vfx_forge/forge.py --all`, one effect
+with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
+`forge_app/`.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
+| `forge_beam_end.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_beam_end_01.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_beam_end_02.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_beam_end_03.png` | 1344×96 | T | `#FFFFFF` |
 | `forge_burst.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_burst_01.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_burst_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_funnel_debris.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_funnel_debris_01.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_funnel_debris_02.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_funnel_debris_03.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_hit_air.png` | 640×64 | T | `#FFFFFF` |
+| `forge_hit_air_01.png` | 640×64 | T | `#FFFFFF` |
+| `forge_hit_air_02.png` | 640×64 | T | `#FFFFFF` |
+| `forge_hit_air_03.png` | 640×64 | T | `#FFFFFF` |
+| `forge_hit_earth.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_earth_01.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_earth_02.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_earth_03.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_fire.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_fire_01.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_fire_02.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_fire_03.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_physical.png` | 512×64 | T | `#FFFFFF` |
+| `forge_hit_physical_01.png` | 512×64 | T | `#FFFFFF` |
+| `forge_hit_physical_02.png` | 512×64 | T | `#FFFFFF` |
+| `forge_hit_physical_03.png` | 512×64 | T | `#FFFFFF` |
+| `forge_hit_water.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_water_01.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_water_02.png` | 768×64 | T | `#FFFFFF` |
+| `forge_hit_water_03.png` | 768×64 | T | `#FFFFFF` |
+| `forge_level_up.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_level_up_01.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_level_up_02.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_meteor_bloom.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_meteor_bloom_01.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_meteor_bloom_02.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_meteor_trail.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_meteor_trail_01.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_meteor_trail_02.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_meteor_trail_03.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_nova.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_nova_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_nova_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_nova_03.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_portal_rift.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_portal_rift_01.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_portal_rift_02.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_quake_dust.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_quake_dust_01.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_quake_dust_02.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_quake_dust_03.png` | 2560×128 | T | `#FFFFFF` |
+| `forge_rarity_burst.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rarity_burst_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rarity_burst_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rune_flare.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rune_flare_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_rune_flare_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_set_motes.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_set_motes_01.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_set_motes_02.png` | 2304×96 | T | `#FFFFFF` |
+| `forge_shot_bolt.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_bolt_01.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_bolt_02.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_bolt_03.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_hex.png` | 1024×64 | T | `#FFFFFF` |
+| `forge_shot_hex_01.png` | 1024×64 | T | `#FFFFFF` |
+| `forge_shot_hex_02.png` | 1024×64 | T | `#FFFFFF` |
+| `forge_shot_lance.png` | 1152×96 | T | `#FFFFFF` |
+| `forge_shot_lance_01.png` | 1152×96 | T | `#FFFFFF` |
+| `forge_shot_lance_02.png` | 1152×96 | T | `#FFFFFF` |
+| `forge_shot_lob.png` | 896×64 | T | `#FFFFFF` |
+| `forge_shot_lob_01.png` | 896×64 | T | `#FFFFFF` |
+| `forge_shot_lob_02.png` | 896×64 | T | `#FFFFFF` |
+| `forge_shot_spray.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_spray_01.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_spray_02.png` | 768×64 | T | `#FFFFFF` |
+| `forge_shot_spray_03.png` | 768×64 | T | `#FFFFFF` |
+| `forge_slam_impact.png` | 2304×128 | T | `#FFFFFF` |
+| `forge_slam_impact_01.png` | 2304×128 | T | `#FFFFFF` |
+| `forge_slam_impact_02.png` | 2304×128 | T | `#FFFFFF` |
+| `forge_slam_impact_03.png` | 2304×128 | T | `#FFFFFF` |
+| `forge_ward.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_ward_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_ward_02.png` | 1536×96 | T | `#FFFFFF` |
 
 ### 5.18b Shared particle art — `res://art/vfx/`
 

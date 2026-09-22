@@ -28,30 +28,9 @@ THROWN = [
 FALL = 0.80
 FROM_Y = -0.08
 
-def _phase(f):
-    """This take's own arrangement, 0..1.
-
-    The seed reaches an effect only through the noise field, so anything not
-    broken up by the swirl renders identically on every take - the first cut
-    of the clean hit wrote four byte-identical sheets. A golden-ratio step
-    off the seed turns the takes into different arrangements as well as
-    different grain, and never repeats a spacing.
-    """
-    return (f.seed * 0.6180339887) % 1.0
 
 
 
-def _squashed(f, by, drop=0.0):
-    """The forge's radius and angle on a frame whose y is scaled.
-
-    A circle drawn there lands here as an ellipse `by` times as low, which is
-    what a ring of water on the ground looks like under a camera that is
-    tilted rather than straight overhead. `drop` sinks its centre.
-    """
-    y = f.math("MULTIPLY", f.math("ADD", f.y, drop), by)
-    r = f.math("SQRT", f.math("ADD", f.math("MULTIPLY", f.x, f.x),
-                              f.math("MULTIPLY", y, y)))
-    return r, f.math("ARCTAN2", y, f.x)
 
 
 def _droplet(f, vx, vy, rad):
@@ -76,7 +55,7 @@ def build(f):
 
     # The rim: water running out along the ground, drawn low and sitting
     # under the middle so the droplets have somewhere to go.
-    f.r, f.angle = _squashed(f, 1.75, 0.16)
+    f.r, f.angle = f.squashed(1.75, 0.16)
     thin = f.math("SUBTRACT", 0.13, f.math("MULTIPLY", f.age, 0.07))
     rim = f.both(f.band(f.grow(0.66, 0.16), thin, 0.05),
                  # It breaks up as it spreads rather than ending on a hoop.
@@ -84,7 +63,7 @@ def build(f):
 
     # The column straight up out of the hole. Narrow and brief: the crown is
     # what the eye keeps, and a tall shape that lingers reads as a geyser.
-    f.r, f.angle = _squashed(f, 0.32, -0.04)
+    f.r, f.angle = f.squashed(0.32, -0.04)
     # It shoots up and drops back rather than standing at full height on the
     # first cell: water is thrown by the blow, it is not already in the air
     # when the blow lands. Past the half period the sine goes negative, which
@@ -105,7 +84,7 @@ def build(f):
     # Turned a little either way rather than all the way round: the crown
     # has to keep going up, so a take is a different scatter and never a
     # different direction.
-    spin = (_phase(f) - 0.5) * 0.85
+    spin = (f.phase() - 0.5) * 0.85
     turned = [(vx * math.cos(spin) - vy * math.sin(spin),
                vx * math.sin(spin) + vy * math.cos(spin)) for vx, vy in THROWN]
     drops = f.either(*[_droplet(f, vx, vy, rad) for vx, vy in turned])

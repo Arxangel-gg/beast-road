@@ -100,28 +100,108 @@ blast, and scaling it down is a lie about the reach.
 
 ## 4. The forge, as a tool
 
-`tools/vfx_forge/` — a Python package driven headless:
+**Built, and it is three things**: a Python package, a command line, and a
+window.
 
-    blender --background --python tools/vfx_forge/render.py -- <effect_id>
+    python tools/vfx_forge/forge.py list           # what exists
+    python tools/vfx_forge/forge.py burst          # one effect
+    python tools/vfx_forge/forge.py --all          # the catalogue
+    python tools/vfx_forge/forge.py nova --frames 20 --size 128 --variants 4
 
-**Primitives** (the "five nodes", each a function returning a node group):
-`timing(frames, easing)`, `sharp_mask(texture, threshold, roughness)`,
-`swirl(rate, falloff)`, `emit(colour, back_colour)`, `age_attribute()`.
+Blender is found by the `BLENDER` variable, or at the usual install path. The
+command line drives `blender --background --python tools/vfx_forge/render.py`;
+nothing about the graph lives in Blender's own file format, so there is no
+`.blend` in the repository and no binary to merge.
 
-**An effect is a declarative file**, not a `.blend`: layers, each naming a
-primitive, its parameters and its slice of the timeline. Adding an effect means
-adding a file — working rule 3, applied to art.
+### 4a. An effect is a file
 
-**Render settings, fixed and shared:**
-- Orthographic camera at the game's own angle
-- `Film > Transparent`, RGBA PNG
-- No anti-aliasing beyond one sample tier, so edges stay graphic
-- Power-of-two frame cells, packed left to right, single row
-- Output to the manifest path derived from the effect id, exactly as every other
-  asset path in this project is
+`tools/vfx_forge/effects/<id>.py`, declaring what it is and how to build it:
 
-**Colour is a parameter**, so one definition yields the four elemental variants
-from one graph and they cannot drift apart.
+    SPEC = {"frames": 16, "size": 96, "variants": 3,
+            "why": "one line on what this is for"}
+
+    def build(f):
+        ring = f.band(f.grow(1.25), 0.24, 0.07)
+        return f.Look(mask=ring, tone=f.lit(ring, 0.5))
+
+Working rule 3 applied to art: **adding an effect means adding a file.** The
+pilot wrote its one effect as a branch inside `render.py`, which was right for
+one and wrong for thirty — two people cannot author two effects in one
+`if/elif`, and a thirty-branch chain is the hardcoded stat table that rule
+exists to refuse.
+
+`build` is handed a `Forge` and returns a `Look`: a mask socket that becomes
+the alpha and a tone socket that becomes the grey. Everything else — the
+camera, the film, the keyframed clock, the radial coordinate, the angle, the
+swirl, the noise, the emission — is `forge_kit.py` and is identical for every
+effect, so no two can disagree about what a frame or a radius means.
+
+**The toolbox is shapes, not maths nodes**: `grow`, `shrink`, `band`, `disc`,
+`ring_gap`, `spokes`, `lobes`, `wedge`, `grain`, `hole`, `rise`, `squashed`,
+`before`, `after`, `both`, `either`, `lit`, `phase`. What belongs in the kit is
+anything two effects would otherwise write twice; a helper one effect wants
+belongs in that effect's file.
+
+Two things about it that cost a render pass each to learn:
+
+- **`grain`'s usable range is about 0.30 to 0.62.** The noise field sits near
+  0.5 with little spread, so a bar under about 0.2 passes everything — the
+  first flame rendered as a solid sunburst — and a bar over about 0.64 passes
+  nothing at all, which is a part of an effect that is simply *absent* with no
+  number anywhere going wrong.
+- **`phase()` is where a take's variety comes from when there is no noise.**
+  The seed reaches an effect only through the noise lookup, so anything built
+  out of clean geometry renders byte-identical takes. Spend `phase()` on
+  *where things are* — a rotation, a scatter, a count — never on how bright
+  they are.
+
+### 4b. The window
+
+`forge_app/` is a standalone Godot project: a dark-mode GUI that lists the
+catalogue, renders an effect or all of them without freezing, and **plays the
+result back the way the game will** — tinted, additive, at
+`Balance.VFX_FORGE_FRAME_RATE`, over a plate the colour of the road, with a
+contact strip of every cell underneath.
+
+That last part is the whole reason it exists. A lit-pixel count says nothing
+about what an effect looks like moving, and two of the catalogue passed every
+numeric rule while rendering as a cog and a sunburst. A tool that renders a
+sheet and cannot show it playing is a slower command line.
+
+It is its own project, beside the launcher and for the launcher's reason: it
+ships to nobody and must not be able to break the game by existing. What it
+shares with the game is the Python half, which is the part doing the work.
+
+### 4c. How a sheet reaches the game
+
+`Vfx.FORGE_CATALOGUE` names every effect and how it may be turned;
+`Vfx.forge_play(effect, at, size, tint, aim)` is the one door. Every sheet is
+white on transparent and tinted once per use, so **one sheet serves every
+element** and a colour is never rendered twice.
+
+A play picks a take at random, turns the sheet by what it is a picture of,
+flips it along whichever axis carries no meaning, and wanders its size:
+
+| Turn | What it is | Turned | Flipped |
+|---|---|---|---|
+| `FREE` | anything radial — a ring, a star, a splash | any angle | either axis |
+| `UPRIGHT` | anything that knows where the ground is | never | left to right |
+| `AIMED` | anything directional — a beam end, a lance, a trail | to the aim | top to bottom |
+
+The flip is *derived* from the turn rather than authored beside it: two
+columns saying one thing is two chances to disagree, and which axis is safe
+follows from which axis carries the meaning.
+
+**The cell count is read off the sheet** — a row of squares is as many cells
+as its width over its height — so re-rendering an effect at a different length
+needs no edit in the game, and there is no count to drift out of step with the
+file.
+
+`forge_check` walks all of it: every effect has a sheet, **every sheet has an
+effect** (the mirror direction, for the file that ships and can never be
+played), the takes are pixel-for-pixel different, every effect is played by
+something, every turn policy is obeyed on the sprites the player actually
+stands up, and a density of zero plays nothing at all.
 
 ---
 

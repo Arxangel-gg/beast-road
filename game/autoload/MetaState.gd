@@ -2305,17 +2305,29 @@ func clear_expedition() -> void:
 ## in that order and with the whole bill checked first, which is the rule the
 ## forge is built under: a mend that ate half a player's timber and then found
 ## it was short of ore is worse than one that refuses.
+##
+## **Two currencies, one till.** The emplacements are timber and ore; the gate
+## is Marks, because the Hold sells that repair (owner, 2026-09-22) and the
+## Hold sells for Marks. Both are checked before either is spent, which matters
+## more here than at the forge: Marks are the scarce half and a door that ate
+## them and then found the timber short would cost a player the expensive thing
+## for nothing.
 func mend_expedition() -> String:
 	if not has_expedition():
 		return "There is no front to mend."
 	var bill: Dictionary = Expedition.repair_bill(expedition)
-	if bill.is_empty():
+	var price: int = Expedition.gate_price(expedition)
+	if bill.is_empty() and price <= 0:
 		return "Nothing out there is damaged."
 	for id: Variant in bill:
 		if int(materials.get(String(id), 0)) < int(bill[id]):
 			return "Not enough %s." % String(id).replace("_", " ")
+	if marks < price:
+		return "The Hold wants %d Marks for the gate; you have %d." \
+			% [price, marks]
 	for id: Variant in bill:
 		spend_material(String(id), int(bill[id]))
+	marks -= price
 	expedition = Expedition.mend(expedition)
 	save_game()
 	return ""

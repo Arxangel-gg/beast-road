@@ -946,6 +946,18 @@ func _test_damage_states_are_reversible() -> void:
 	_check(burning == 0, "a fully repaired town must not still be on fire (%d fires)" % burning)
 
 
+## What it costs to climb from level 1 to `level`, read off the real ladder.
+##
+## `RunState.hero_xp_for_level` rather than the constants, so this cannot
+## disagree with what `gain_hero_xp` actually charges - which is the whole
+## point of deriving it.
+func _ladder_cost(level: int) -> float:
+	var total: float = 0.0
+	for step: int in range(1, maxi(level, 1)):
+		total += RunState.hero_xp_for_level(step)
+	return total
+
+
 ## Levelling has to grow the hero, stop at the cap, and persist only through the
 ## dedicated capped hero schema introduced by the 2026-08-20 owner amendment.
 func _test_hero_levelling() -> void:
@@ -963,7 +975,15 @@ func _test_hero_levelling() -> void:
 	MetaState.hero_xp = 0.0
 
 	# One enormous award must resolve every level it crosses, not just one.
-	RunState.gain_hero_xp(50000.0)
+	#
+	# **Asked of the ladder rather than typed.** These two awards were 50,000
+	# and 50,000,000, which were "obviously enormous" against a ladder of 2.4
+	# million and are a tenth of one level against the 1.52 billion the curve
+	# became on 2026-09-22. The gate then reported the level cap as broken when
+	# what was stale was its own arithmetic. What is being tested is that a
+	# single award crosses many levels and that the cap holds, and neither is a
+	# statement about any particular number of points.
+	RunState.gain_hero_xp(_ladder_cost(25))
 	_check(RunState.hero_level > 20,
 		"a large award must resolve every level it crosses, reached %d" % RunState.hero_level)
 	var xp_label: Label = _run.hud.get("_xp_label") as Label
@@ -985,14 +1005,16 @@ func _test_hero_levelling() -> void:
 		== int(RunState.hero_level / Balance.HERO_SKILL_POINT_EVERY),
 		"a skill point every %d levels" % Balance.HERO_SKILL_POINT_EVERY)
 
-	# The cap is a ceiling, not a soft target.
-	RunState.gain_hero_xp(50000000.0)
+	# The cap is a ceiling, not a soft target. Twice the whole ladder, so the
+	# award is enormous however the curve is tuned.
+	var whole_ladder: float = _ladder_cost(Balance.HERO_MAX_LEVEL)
+	RunState.gain_hero_xp(whole_ladder * 2.0)
 	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
 		"levelling must stop at %d, reached %d"
 			% [Balance.HERO_MAX_LEVEL, RunState.hero_level])
 	_check(xp_label != null and xp_label.text.contains("MAX"),
 		"the XP strip must communicate the level cap")
-	RunState.gain_hero_xp(50000000.0)
+	RunState.gain_hero_xp(whole_ladder * 2.0)
 	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
 		"a capped hero must not level again")
 

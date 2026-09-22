@@ -31,6 +31,9 @@ extends Node
 ##   cannot tell which half is missing.
 ## - **Free repairs.** If extraction healed the fortifications, the correct play
 ##   is to leave the moment anything is damaged and attrition stops existing.
+##   The Hold sells the gate repair from 2026-09-22, which is the same failure
+##   arriving with a price tag on it: cheap enough and attrition is refunded
+##   out of the payout the withdrawal that caused it already earned.
 ## - **Momentum reaching a fight.** It is bought by refusing to save; if it moved
 ##   `hero_damage` or `tower_damage`, `curve_report` would be measuring a game
 ##   that only exists for players who never bank.
@@ -44,12 +47,14 @@ func _ready() -> void:
 	_test_a_snapshot_is_refused_or_whole()
 	_test_momentum_stays_out_of_the_fight()
 	_test_a_worn_gate_is_offered_a_mend()
+	_test_the_hold_sells_the_gate_repair()
 	await _test_banking_and_coming_back()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[expedition] PASS - %d checks: a front is banked whole or "
 			+ "refused whole, the fortress comes back as hurt as it was left, "
-			+ "the account is untouched, and momentum never reaches a fight")
+			+ "the gate's repair is dearer than the run it broke, the account "
+			+ "is untouched, and momentum never reaches a fight")
 			% _checks)
 	else:
 		push_error("[expedition] FAIL - %d problem(s)" % _failures)
@@ -104,6 +109,151 @@ func _test_a_worn_gate_is_offered_a_mend() -> void:
 	_check(Expedition.hurt_summary(pair).contains("tower")
 			and Expedition.hurt_summary(pair).contains("gate"),
 		"and both are named together, said '%s'" % Expedition.hurt_summary(pair))
+
+
+## **The Hold sells the gate repair** (owner, 2026-09-22), and this holds the
+## four ways that sale can be wrong.
+##
+## Driven through `MetaState.mend_expedition` rather than through the pure
+## functions, because the failure worth catching is a till: a price that reads
+## correctly on a screen and a door that charges something else.
+##
+## **The bound that needs arguing is which direction is dangerous.** There is
+## no Marks printer available here and there could not be - the transaction
+## consumes Marks and produces a mended wall, paying out no currency, no gear
+## and no level. What is available is the opposite: `return_home` banks the
+## front *and* pays `homecoming_marks` in full, and the withdrawal of
+## 2026-09-16 is what wears the gate on the way out. So a whole gate cheaper
+## than one return is a withdrawal refunded out of its own payout, and the
+## 2026-09-15 ruling that a damaged fortification comes back damaged survives
+## only as a sentence on the Resume card.
+##
+## Held against the **real** `Run.homecoming_marks` for every act and every
+## tier, rather than against the constant: `Expedition.homecoming_worth`
+## writes that arithmetic out a second time to stay off `Run`'s dependency
+## chain, and two copies of one sum is precisely what a gate is for.
+func _test_the_hold_sells_the_gate_repair() -> void:
+	var kept_front: Dictionary = MetaState.expedition
+	var kept_marks: int = MetaState.marks
+	var kept_tier: String = RunState.tier_id
+
+	var front: Dictionary = {
+		"version": Expedition.VERSION, "seed": 7, "act": 4, "wave": 31,
+		"wall": 1.0, "towers": [], "purse": {}, "momentum": 0.0,
+		"tier": "normal",
+	}
+
+	# --- A whole gate is not for sale -----------------------------------------
+	MetaState.expedition = front.duplicate(true)
+	MetaState.marks = 100000
+	_check(Expedition.gate_price(front) == 0,
+		"a whole gate was priced at %d Marks" % Expedition.gate_price(front))
+	_check(not Expedition.needs_mending(front),
+		"a whole front was offered a repair")
+	var refused_whole: String = MetaState.mend_expedition()
+	_check(not refused_whole.is_empty(),
+		"the Hold sold a repair for a fortress with nothing wrong with it")
+	_check(MetaState.marks == 100000,
+		"and it took %d Marks for it" % (100000 - MetaState.marks))
+
+	# --- Dearer than letting the run go, on every road there is ---------------
+	#
+	# Every act and every tier, because a guarantee is a property of all of
+	# them or it is not a guarantee - and `loot_scale` runs 1.0 to 3.6, so a
+	# price that ignored the tier would invert on Hell and nowhere else.
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		RunState.tier_id = tier.id
+		for act: int in range(1, Balance.ACT_COUNT + 2):
+			var fallen: Dictionary = front.duplicate(true)
+			fallen["act"] = act
+			fallen["tier"] = tier.id
+			fallen["wall"] = 0.0
+			var paid: int = Run.homecoming_marks(act, true)
+			_check(Expedition.homecoming_worth(fallen) == paid,
+				("the price's model of the payout drifted from the payout on "
+					+ "%s act %d: %d against %d")
+					% [tier.id, act, Expedition.homecoming_worth(fallen), paid])
+			_check(Expedition.gate_price(fallen) > paid,
+				("a fallen gate on %s act %d costs %d Marks against the %d a "
+					+ "return pays - attrition refunded out of its own payout")
+					% [tier.id, act, Expedition.gate_price(fallen), paid])
+	RunState.tier_id = kept_tier
+
+	# --- Short of Marks: refuses, and spends nothing --------------------------
+	var worn: Dictionary = front.duplicate(true)
+	worn["wall"] = Balance.HOMECOMING_WALL_FLOOR
+	var price: int = Expedition.gate_price(worn)
+	_check(price > 0, "a gate at the withdrawal's floor wants no mending")
+	_check(Expedition.needs_mending(worn),
+		"a worn gate above a whole board is not offered a mend")
+	_check(Expedition.bill_text(worn).contains("Marks"),
+		"the bill must say what the gate costs, said '%s'"
+			% Expedition.bill_text(worn))
+
+	MetaState.expedition = worn.duplicate(true)
+	MetaState.marks = price - 1
+	var refused: String = MetaState.mend_expedition()
+	_check(not refused.is_empty(),
+		"the Hold mended the gate for a Warden who could not pay for it")
+	_check(MetaState.marks == price - 1,
+		"a refused repair still took Marks: %d against %d"
+			% [MetaState.marks, price - 1])
+	_check(absf(Expedition.wall_share(MetaState.expedition)
+			- Balance.HOMECOMING_WALL_FLOOR) < 0.001,
+		"a refused repair still mended the gate")
+
+	# --- Paid for: the gate, the Marks, and nothing else ----------------------
+	#
+	# "Byte-identical" is taken literally: the whole save is serialized either
+	# side, the two things the purchase is allowed to move are put back, and
+	# the strings are compared. A repair that quietly handed over a tower
+	# level, a currency or an unlock shows up as a diff and as nothing else.
+	MetaState.expedition = worn.duplicate(true)
+	MetaState.marks = price + 13
+	var before: String = MetaState.serialized_save()
+	var paid_ok: String = MetaState.mend_expedition()
+	_check(paid_ok.is_empty(), "a Warden who could pay was refused: '%s'" % paid_ok)
+	_check(MetaState.marks == 13,
+		"the gate cost %d Marks against the %d it was priced at"
+			% [price + 13 - MetaState.marks, price])
+	_check(is_equal_approx(Expedition.wall_share(MetaState.expedition), 1.0),
+		"the gate was paid for and came back at %.2f"
+			% Expedition.wall_share(MetaState.expedition))
+	_check(not Expedition.needs_mending(MetaState.expedition),
+		"a mended front was offered the repair again")
+	MetaState.marks = price + 13
+	MetaState.expedition = worn.duplicate(true)
+	_check(MetaState.serialized_save() == before,
+		"mending the gate moved something in the account other than the Marks")
+
+	# --- Restores, never improves ---------------------------------------------
+	#
+	# Compared against the same snapshot with its damage taken off by hand, so
+	# the assertion is "exactly these fields moved" rather than "the wall is
+	# whole" - which is the half that would miss a repair granting a level.
+	var battered: Dictionary = front.duplicate(true)
+	battered["wall"] = 0.3
+	battered["towers"] = [
+		{"x": 3, "y": 4, "kind": _a_tower(), "level": 2, "path": 0,
+			"priority": 0, "health": 0.25},
+		{"x": 9, "y": 2, "kind": _a_tower(), "level": 1, "path": 0,
+			"priority": 0, "health": 1.0},
+	]
+	var expected: Dictionary = battered.duplicate(true)
+	expected["wall"] = 1.0
+	for row: Variant in (expected["towers"] as Array):
+		(row as Dictionary)["health"] = 1.0
+	_check(JSON.stringify(Expedition.mend(battered)) == JSON.stringify(expected),
+		("mending changed more than the damage:\n  %s\n  %s")
+			% [JSON.stringify(Expedition.mend(battered)), JSON.stringify(expected)])
+	_check(Expedition.gate_price(battered) > 0
+			and not Expedition.repair_bill(battered).is_empty(),
+		"the battered front must want both halves of the bill, so this is "
+			+ "measuring a real repair")
+
+	MetaState.expedition = kept_front
+	MetaState.marks = kept_marks
+	RunState.tier_id = kept_tier
 
 
 ## **Whole or refused.** Half a fortress is worse than none.
@@ -232,6 +382,13 @@ func _test_banking_and_coming_back() -> void:
 	var hurt: Dictionary = Expedition.compose(field)
 	_check(absf(Expedition.wall_share(hurt) - 0.4) < 0.02,
 		"a worn gate must come home worn (%.2f)" % Expedition.wall_share(hurt))
+	# And a gate that came home worn off a real field is one the Hold will
+	# sell a repair for. Asked of the gate's own price rather than of
+	# `needs_mending`, which the damaged emplacements above would answer on
+	# their own - the wall is the half that had no purchase at all.
+	_check(Expedition.gate_price(hurt) > 0,
+		"a gate that came home at %d%% was offered no repair"
+			% int(round(Expedition.wall_share(hurt) * 100.0)))
 	_check(Expedition.wall_share({}) == 1.0,
 		"and a snapshot with no wall reads as whole rather than as fallen")
 	RunState.town_hp = RunState.town_max_hp

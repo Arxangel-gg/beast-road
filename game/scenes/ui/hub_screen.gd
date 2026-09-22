@@ -1160,6 +1160,13 @@ func _show_road() -> void:
 	if MetaState.has_expedition() and Expedition.needs_mending(MetaState.expedition):
 		_road_button("Mend the front  ·  %s"
 			% Expedition.hurt_summary(MetaState.expedition), _mend_the_front)
+		# **And what it costs, which this button never said.** The front door
+		# has carried the bill in a tooltip since the purchase existed; a
+		# walkable Hold has no hover, so the price is a line under the button.
+		# A sale with no price on it is the Forge's own rule broken - the odds
+		# are drawn before anything is spent, or it is a slot machine.
+		_road_line(Expedition.bill_text(MetaState.expedition), 13,
+			Color("b8ae98"))
 	var furthest: int = ActStart.furthest_act()
 	if furthest > 1:
 		_road_button("Start at an act  ·  up to Act %d" % furthest, _road_act_start)

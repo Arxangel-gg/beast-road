@@ -506,6 +506,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			# it landed the hero that much up-screen on every Rift Step.
 			blink_requested.emit(_foot(origin) + aim * _reach(spell))
 		SpellData.Kind.NOVA:
+			_forged("nova", origin, spell)
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
 			# **Blood Remembers.** Asked here rather than in `_rider`, because it
 			# is a passive with no `spell_id` of its own - the Tempest is simply
@@ -517,11 +518,13 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 		SpellData.Kind.DRAIN:
 			_drain(origin, aim, spell, power)
 		SpellData.Kind.SHOCKWAVE:
+			_forged("slam_impact", origin, spell)
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
 			EventBus.camera_shake_requested.emit(10.0, 0.35)
 		SpellData.Kind.VEIL:
 			veil_requested.emit(spell.duration, spell.speed_bonus)
 		SpellData.Kind.WARD:
+			_forged("ward", origin, spell)
 			_ward_lane = _lane_at(origin)
 			_ward_left = spell.duration
 			# **Unbroken Oath.** A ward that shields the lane shields what is
@@ -540,6 +543,18 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 				Balance.SPELL_METEOR_DELAY)
 		SpellData.Kind.VOLLEY:
 			_volley(_foot(origin) + aim * _reach(spell), spell, power)
+
+
+## **The forged sheet for a spell**, in the spell's own element.
+##
+## One helper rather than the same three lines at five call sites: which
+## element a spell is decides how its sheet is tinted, and a reach worked out
+## per call site is a reach that is wrong at one of them. It is the last
+## thing each branch does with the cast and nothing reads it - the bound
+## every feel change in this project is held to.
+func _forged(effect: String, at: Vector2, spell: SpellData) -> void:
+	var wide: float = maxf(spell.effect_radius, Balance.SPELL_FORGE_MIN_REACH) * 2.0
+	Vfx.forge_play(effect, at, wide, TowerData.element_colour(spell.element))
 
 
 ## Calls a companion in beside the hero.
@@ -615,6 +630,10 @@ func _tick_falling(delta: float) -> void:
 			float(strike["knockback"]), at)
 		Vfx.ring(at, float(strike["radius"]),
 			Balance.SPELL_STRIKE_LANDED_COLOUR, 0.30, 7.0)
+		# The bloom, at the radius the ring already promised and never a
+		# second reach - the bound every telegraphed blow here is held to.
+		Vfx.forge_play("meteor_bloom", at, float(strike["radius"]) * 2.2,
+			Balance.SPELL_STRIKE_LANDED_COLOUR)
 		EventBus.camera_shake_requested.emit(6.0, 0.18)
 		_falling.remove_at(index)
 
@@ -672,6 +691,10 @@ func _drain(origin: Vector2, aim: Vector2, spell: SpellData, power: float) -> vo
 		heal_requested.emit(dealt * spell.lifesteal)
 
 
+## When the beam's terminus is next drawn. Run-scoped and read by nothing.
+var _beam_spark: float = 0.0
+
+
 func _tick_beam(delta: float, origin: Vector2) -> void:
 	if _beam_spell == null:
 		return
@@ -685,6 +708,17 @@ func _tick_beam(delta: float, origin: Vector2) -> void:
 		var point: Vector2 = origin + _beam_aim * (reach * float(i + 1) / float(steps))
 		for enemy: Enemy in field.enemies_near(point, reach * 0.28):
 			enemy.take_damage(tick_damage, origin, 0.0)
+	# **Where the beam ends, a few times a second rather than every frame.**
+	# An aimed sheet laid along the beam's own angle, so the spray it throws
+	# runs back up the beam instead of into the ground it is burning. On its
+	# own clock because a sheet a frame is sixty sprites a second, and this
+	# is decoration - `Graphics.particle_scale` takes it away entirely.
+	_beam_spark -= delta
+	if _beam_spark <= 0.0:
+		_beam_spark = Balance.SPELL_BEAM_END_INTERVAL
+		Vfx.forge_play("beam_end", origin + _beam_aim * reach,
+			reach * Balance.SPELL_BEAM_END_SHARE,
+			TowerData.element_colour(_beam_spell.element), _beam_aim.angle())
 
 
 ## Which lane a point belongs to, by angle. Used by Bulwark Ward.
