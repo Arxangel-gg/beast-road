@@ -6242,6 +6242,24 @@ slam and the volley the same volley, sooner - and `boss_reach_check` measures
 it on a real body through the two doors that set the clocks, because a tempo
 applied at one of them would pass any check that read the constant.
 
+**The 4K shape found an overlap that 1080p only sometimes has, as of
+2026-09-21.** Roadmap §7.2: "ultrawide and 4K layout ... 21:9 has never been
+photographed." `layout_check` was run at 3440x1440, 2560x1080 and 3840x2160,
+and 4K failed **one run in three**: a currency icon of the top bar, 34 by 62,
+sixteen pixels under "Act 1 boss in 2240 distance". The height is the pools
+column - three bars and their gaps are 62, so the bar is 62, so every box
+child fills it, including a 34px icon whose *picture* stayed centred at 34
+while its *rect* did not. The intermittence is the weather label: it reads
+"Clear" or "Clear · 24°" depending on whether the sky's temperature had
+arrived by the time the gate measured, and the longer one shoves the currency
+rows fifty pixels right, under the boss line's left edge. Nothing about 4K
+caused it; 1080p has the same logical width and the same dice, and the sweep's
+1080p runs had passed by luck. `IconKit.rect` gives every icon
+`SIZE_SHRINK_CENTER` vertically now - its own square, whatever row it sits in
+- the overlap reporter prints both rects' sizes, and the 4K and ultrawide
+shapes run on both bars. **A size in a report is what told this apart from a
+placement fault**; the position alone read as the boss line being too high.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

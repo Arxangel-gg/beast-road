@@ -281,6 +281,11 @@ jobs:
           # somebody ran it, and the release is the last time anybody does.
           run_godot_clean --headless --path game res://tools/layout_check.tscn -- --touch=on --viewport=430x932
           run_godot_clean --headless --path game res://tools/layout_check.tscn -- --touch=on --viewport=1280x592
+          # 4K and ultrawide, since 2026-09-21: the 4K shape found the currency
+          # icons stretched under the boss line on the runs where the weather
+          # carried its temperature. Desktop shapes nobody had photographed.
+          run_godot_clean --headless --path game res://tools/layout_check.tscn -- --viewport=3840x2160
+          run_godot_clean --headless --path game res://tools/layout_check.tscn -- --viewport=3440x1440
           run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn
