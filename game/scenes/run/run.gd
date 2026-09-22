@@ -1409,6 +1409,14 @@ func _summit_cleared() -> void:
 
 func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	_locked = true
+	# **The board is recorded before anything is torn down.** A template is the
+	# last board a player actually stood up, and this is the last frame on which
+	# one exists - a guest records nothing, because the board is the host's and
+	# a guest that kept one would be keeping somebody else's decisions.
+	if not Coop.is_guest() and not RunState.walking:
+		var shape: Dictionary = BuildTemplate.compose(battlefield)
+		if not shape.is_empty():
+			MetaState.build_template = shape
 	RunState.set_phase(RunState.Phase.ENDED)
 	journey.stop()
 	battlefield.suspend()

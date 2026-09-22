@@ -7741,6 +7741,53 @@ and that gate's `_collect` filters on `is_visible_in_tree()` - so a screen that
 is never stood up contributes no checks and no failures. 42 checks became 45,
 and 48 with the comfort card.
 
+**A board can be stood up again, as of 2026-09-22.** `docs/ROAD_TO_1_0.md`
+§7.2: *"With 61 towers, 'repeat my last board' is real quality of life on a
+second run."* Forty emplacements placed one click at a time are forty clicks the
+player has already made, over a campaign that is ten evenings long.
+
+**It is a shopping list and never a purse.** Every emplacement goes through
+`Battlefield.try_build` and `try_upgrade` at the price the road charges, which
+is the argument `ActStart.outfit` is built on and the reason no economy rule had
+to learn that templates exist. The quote on the button reads the same two
+functions the purchase charges, so the number shown and the number taken cannot
+drift. Anything the purse, the board or the Forge refuses is simply not bought
+and is said in the refusing door's own words - a board that ran out of Gold in
+silence is a button that did half of what it promised and told nobody.
+
+**Anchors are core-relative, and that is the load-bearing decision.** The
+authored 45x45 core is byte-identical on every seed, but `BattleGrid._init`
+rolls `camp_side` from the layout seed and the outskirts it lays differ with it.
+`Expedition.compose` stores *absolute* tiles and gets away with it only because
+`Expedition.apply` restores the same seed first; a template is applied to a
+different seed by definition, so copying that shape would put emplacements on
+ground the new run may have laid as road - **silently**, because an unbuilt
+tower looks exactly like open ground. A recorded tower outside the core is
+dropped when the board is composed rather than failing when it is applied.
+
+**It amends working rule 7 by one key, and it is a shape rather than a
+resource.** `MetaState.build_template` holds a place, a kind, a level, a path
+and a targeting priority per emplacement - every one of them something the
+player bought once and would buy again. No hero level, no gear, no attribute,
+no unlock, no currency, no seed and no wall. `balance_test` names the key with
+that reasoning and walks the keys a *row* may carry, because a template quietly
+becoming a second expedition is what a top-level allowlist alone cannot see.
+Additive: absent reads as no template, which is what a new account is, so
+`SAVE_VERSION` did not move.
+
+**Recorded where the board last existed**, on the frame a run ends and before
+anything is torn down - and never by a guest, because the board is the host's
+and a guest keeping one would be keeping somebody else's decisions. Two passes
+on the way back up, ordinary towers then fusions, because a fusion needs its
+neighbours standing before it can be offered at all.
+
+`build_template_check` (58) replays a board **on a seed it never saw**, found by
+walking forward from the recording seed until `camp_side` mirrors. Both faults
+that matter were planted and both named: absolute tiles, which it names with the
+coordinates, and an applier that writes `RunState.towers` directly, which it
+names as *"quoted 305 Gold and took 175"* and as a board stood up with an empty
+purse.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

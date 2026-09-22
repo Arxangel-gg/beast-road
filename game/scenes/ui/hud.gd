@@ -2363,6 +2363,49 @@ func _update_repair_button() -> void:
 		_tend_button.modulate = Color.WHITE
 
 
+## **"Rebuild last board."** With sixty-one towers a board is forty clicks the
+## player has already made once, and the campaign is ten evenings long.
+##
+## It is a shopping list rather than a purse: every emplacement goes through
+## `Battlefield.try_build` at the price the road charges, so nothing here can
+## give anything away. What is refused is said in the refusing door's own words.
+##
+## Dimmed rather than hidden when it cannot be afforded, because a row that
+## vanishes is a row a player never learns exists - and the price is on it.
+func _offer_the_last_board(column: VBoxContainer) -> void:
+	var stored: Dictionary = MetaState.build_template
+	var line: String = BuildTemplate.say(stored)
+	if line.is_empty():
+		return
+	var price: int = BuildTemplate.quote(stored)
+	var rows: Array = BuildTemplate.rows_of(stored)
+	var affordable: bool = RunState.can_afford_cost({RunState.GOLD: price})
+	var button: Button = _add_button(column, line, func() -> void:
+		var landed: Dictionary = BuildTemplate.apply(battlefield, stored)
+		var refused: Array = landed.get("refused", []) as Array
+		if refused.is_empty():
+			_report("The board is back up: %d towers." % int(landed.get("built", 0)))
+		else:
+			# The first refusal by name rather than a count, because "three
+			# could not be placed" sends a player looking at forty tiles.
+			_report("%d up. %s" % [int(landed.get("built", 0)), String(refused[0])])
+		_refresh_build_panel())
+	button.disabled = not affordable
+	IconKit.on_button(button, "gold")
+	var figures: String = ("Rebuild last board
+Cost: %d Gold
+Towers: %d"
+		+ "
+Placed where they stood, at the road's own prices. Anything that "
+		+ "will not fit is left, and said.") % [price, rows.size()]
+	if not affordable:
+		figures += "
+More Gold is needed than the purse holds."
+	button.mouse_entered.connect(func() -> void:
+		_show_build_tooltip(figures, button))
+	button.mouse_exited.connect(_hide_build_tooltip)
+
+
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -4939,6 +4982,7 @@ func _refresh_build_panel() -> void:
 	var offers: Array[Dictionary] = RunState.combinations_for_tile(anchor)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", BUILD_ROW_GAP)
+	_offer_the_last_board(column)
 
 	for option: Dictionary in offers:
 		var combo: TowerData = option["tower"]

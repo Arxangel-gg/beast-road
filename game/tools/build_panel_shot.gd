@@ -27,6 +27,21 @@ func _ready() -> void:
 				break
 		if anchor != Vector2i.ZERO:
 			break
+	# **A board behind the player**, so the "Rebuild last board" row is in the
+	# picture. It is only offered to somebody who has finished a run, which a
+	# shot tool on a fresh account is not - and a row that only ever appears on
+	# a veteran's screen is a row nobody photographs.
+	var kind: TowerData = ContentDB.unlocked_base_towers().front() as TowerData
+	if kind != null:
+		var lane: int = 0
+		for _made: int in 6:
+			var spot: Vector2i = field.free_anchor_near(lane, 8)
+			lane = (lane + 1) % maxi(Balance.LANE_COUNT, 1)
+			field.try_build(spot, kind)
+		MetaState.build_template = BuildTemplate.compose(field)
+		for key: Variant in RunState.towers.keys():
+			field.try_sell(key as Vector2i)
+		RunState.gain_every_currency(9999)
 	run.hud.call("_open_build_panel", anchor)
 	run.hud.set("_build_element", TowerData.Element.WATER)
 	run.hud.call("_refresh_build_panel")

@@ -1348,7 +1348,18 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
 				"spirits", "pantry", "professions", "materials", "pen",
-				"expedition", "vendor", "stable", "hold_pond", "look"],
+				"expedition", "vendor", "stable", "hold_pond", "look",
+				# The last board a player stood up (2026-09-22). A **shape**
+				# rather than a resource: a place, a kind, a level, a path and a
+				# targeting priority per emplacement, every one of which the
+				# player bought once and would buy again - and every one bought
+				# back at the price the road charges, through the same
+				# `try_build` a click uses. It grants no level, no gear, no
+				# attribute, no unlock and no currency, so rule 7's list is
+				# exactly where it was. The row shape is checked below, because
+				# a template quietly becoming a second expedition is what a
+				# top-level allowlist alone cannot see.
+				"build_template"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live
@@ -1373,6 +1384,20 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["play_code", "friends"],
 				"the social block must hold addresses and nothing else, found \"%s\""
 					% key)
+		# A template row may hold a place, a kind, a level, a path and a
+		# priority. A purse, a seed, a wall or a relic under this name would
+		# pass the top-level check above and break the rule it exists to keep -
+		# the same guard the Chronicle, the stable and the address book carry.
+		var shape: Dictionary = (parsed as Dictionary).get("build_template",
+			{}) as Dictionary
+		for key: Variant in shape.keys():
+			_check(String(key) == "rows",
+				"unexpected build-template save key \"%s\"" % key)
+		for entry: Variant in (shape.get("rows", []) as Array):
+			for key: Variant in (entry as Dictionary).keys():
+				_check(String(key) in BuildTemplate.ROW_KEYS,
+					("a build-template row carries \"%s\" - a template is a "
+						+ "shape, never a resource") % key)
 		var board: Dictionary = (parsed as Dictionary).get("board", {}) as Dictionary
 		for key: Variant in board.keys():
 			_check(String(key) in ["name", "best", "pending"],

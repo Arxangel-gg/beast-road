@@ -502,6 +502,19 @@ var look: Dictionary = {}
 ## no frontier, which is what a new account is. `SAVE_VERSION` did not move.
 var expedition: Dictionary = {}
 
+## The last board a player stood up, so they can stand it up again.
+##
+## **A shape, never a resource.** A row is a place, a kind, a level, a path
+## and a targeting priority - all things the player bought once and would buy
+## again - and every emplacement it names is bought at the price the road
+## charges through `Battlefield.try_build`. No hero level, no gear, no
+## attribute, no unlock, no currency: working rule 7's list is exactly where
+## it was. See `BuildTemplate`, which owns the shape and the coordinate space.
+##
+## Additive: absent reads as no template, which is what a new account is, so
+## `SAVE_VERSION` did not move and there is no migration to get wrong.
+var build_template: Dictionary = {}
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -2220,6 +2233,7 @@ func serialized_save() -> String:
 		"vendor": vendor,
 		"hold_pond": hold_pond,
 		"expedition": expedition,
+		"build_template": build_template,
 		"resource_cache": resource_cache,
 		"chronicle": {
 			"completed": completed_objectives,
@@ -2335,6 +2349,10 @@ func adopt_save(data: Dictionary) -> void:
 	hold_pond = data.get("hold_pond", {}) as Dictionary
 	var front: Dictionary = data.get("expedition", {}) as Dictionary
 	expedition = front if Expedition.is_readable(front) else {}
+	# Dropped rather than trusted if it names a tower this build no longer has,
+	# which is `Expedition.is_readable`'s own rule and `_read_pen`'s.
+	var board_shape: Dictionary = data.get("build_template", {}) as Dictionary
+	build_template = board_shape if BuildTemplate.is_readable(board_shape) else {}
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
