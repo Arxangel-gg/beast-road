@@ -1859,6 +1859,14 @@ func _on_hero_damaged(amount: float, from: Vector2, at: Vector2) -> void:
 	var hero: Hero = Hero.nearest_on_field(get_tree(), at)
 	blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE,
 		hero.global_position if hero != null else Vector2.INF)
+	# **The blow the player most needs to feel.** Every elemental impact in
+	# the game has had a forged hit since the catalogue landed and the one
+	# landing on the Warden had none. A hard star at the point of contact -
+	# radial, so it is spun freely and takes no aim; the direction is
+	# already carried by the sparks and the blood above it. The last thing
+	# this handler does, and read by nothing: the damage was taken before
+	# the signal was emitted.
+	forge_hit("physical", at, FORGE_SWING_REACH, Color(1.0, 0.72, 0.62))
 	flash(Color(0.75, 0.1, 0.08), Balance.VFX_HURT_FLASH, 0.28)
 
 
