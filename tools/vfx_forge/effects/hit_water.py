@@ -28,6 +28,18 @@ THROWN = [
 FALL = 0.80
 FROM_Y = -0.08
 
+def _phase(f):
+    """This take's own arrangement, 0..1.
+
+    The seed reaches an effect only through the noise field, so anything not
+    broken up by the swirl renders identically on every take - the first cut
+    of the clean hit wrote four byte-identical sheets. A golden-ratio step
+    off the seed turns the takes into different arrangements as well as
+    different grain, and never repeats a spacing.
+    """
+    return (f.seed * 0.6180339887) % 1.0
+
+
 
 def _squashed(f, by, drop=0.0):
     """The forge's radius and angle on a frame whose y is scaled.
@@ -73,14 +85,30 @@ def build(f):
     # The column straight up out of the hole. Narrow and brief: the crown is
     # what the eye keeps, and a tall shape that lingers reads as a geyser.
     f.r, f.angle = _squashed(f, 0.32, -0.04)
-    column = f.both(f.disc(f.shrink(0.17, 0.42)), f.before(0.40))
+    # It shoots up and drops back rather than standing at full height on the
+    # first cell: water is thrown by the blow, it is not already in the air
+    # when the blow lands. Past the half period the sine goes negative, which
+    # is clamped to nothing - so the column ends on its own arithmetic and
+    # needs no cut, and the sheet opens on a rise instead of a dip.
+    # The phase is held at half a turn rather than allowed to run on: left
+    # free it wraps past a full turn by the last cell and the sine comes back
+    # positive, which grew a second column on the frame that must be empty.
+    spout = f.math("SINE", f.math("MINIMUM", f.math(
+        "MULTIPLY", f.age, math.pi / 0.44), math.pi))
+    column = f.disc(f.math("MULTIPLY", spout, 0.21))
 
     f.r, f.angle = flat_r, flat_angle
 
     # Drops shrink to nothing rather than being cut, so the last cell empties
     # on its own arithmetic and nothing pops when the node is freed.
     rad = f.math("SUBTRACT", 0.24, f.math("MULTIPLY", f.age, 0.185))
-    drops = f.either(*[_droplet(f, vx, vy, rad) for vx, vy in THROWN])
+    # Turned a little either way rather than all the way round: the crown
+    # has to keep going up, so a take is a different scatter and never a
+    # different direction.
+    spin = (_phase(f) - 0.5) * 0.85
+    turned = [(vx * math.cos(spin) - vy * math.sin(spin),
+               vx * math.sin(spin) + vy * math.cos(spin)) for vx, vy in THROWN]
+    drops = f.either(*[_droplet(f, vx, vy, rad) for vx, vy in turned])
 
     # The strike: a round flash that dissolves in the swirl.
     burst = f.both(f.disc(f.shrink(0.34, 0.62)),

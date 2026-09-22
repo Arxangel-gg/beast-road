@@ -28,8 +28,9 @@ def _still_field(f):
     grid.inputs[2].default_value = f.seed * 5.117
     noise = f.new("ShaderNodeTexNoise", "StillNoise")
     f.links.new(grid.outputs[0], noise.inputs["Vector"])
-    # Tighter than the shared field, so a mark is a pock and not a patch.
-    noise.inputs["Scale"].default_value = 5.5
+    # Coarser than the shared field looks at this cell size: cut finer than
+    # this the marks stop reading as pellet holes and become a fizz.
+    noise.inputs["Scale"].default_value = 3.8
     noise.inputs["Detail"].default_value = 2.0
     noise.inputs["Roughness"].default_value = 0.5
     return noise.outputs["Fac"]
@@ -60,13 +61,13 @@ def build(f):
     # The bar each shell cuts the field at climbs slowly: the field is tight
     # about its middle, so a tenth on the bar is most of the speckle and a
     # fast rate is a volley that vanishes between two cells rather than frays.
-    near = _pocks(f, field, 0.440, 0.00, 0.32, -0.1, 0.12, 0.62)
+    near = _pocks(f, field, 0.405, 0.00, 0.38, -0.1, 0.12, 0.62)
     mid = _pocks(f, field, 0.450, 0.26, 0.58, 0.13, 0.42, 0.60)
     far = _pocks(f, field, 0.492, 0.50, 0.88, 0.26, 0.60, 0.42)
 
     # One solid pellet at the point of aim, so the scatter has an origin to be
     # a scatter from, and so the first cell is not a handful of specks.
-    seed = f.disc(f.shrink(0.34, 0.85))
+    seed = f.disc(f.shrink(0.36, 0.72))
 
     mask = f.either(near, mid, far, seed)
     return f.Look(mask=mask, tone=f.lit(seed, 0.4, near, 0.2, far, 0.12))

@@ -322,10 +322,20 @@ func _process(delta: float) -> void:
 		# nothing ever reaches this branch there - the inverse of the clean-profile
 		# lesson, where an empty account hides a panel that has overlaps.
 		var held: Variant = hero.get("spirit")
+		var spirit: Companion = null
 		if held != null and is_instance_valid(held):
-			var spirit := held as Companion
+			spirit = held as Companion
 			if spirit != null and spirit.data != null:
 				RunState.tick_spirit_upkeep(spirit.data, delta)
+		# **And the ecology is told who is standing here.** A companion may be
+		# courted by a wild animal of its own kind (owner, 2026-09-22), which
+		# the families machine answers by keeping a record that mirrors this
+		# node - so it needs the node, and it needs to be told the frame it
+		# goes away as much as the frame it arrives.
+		if _wildlife != null and is_instance_valid(_wildlife):
+			var families: WildlifeFamilies = _wildlife.families()
+			if families != null:
+				families.companion = spirit
 	# Dawn Bell's haste, counted here because this is the thing that freezes
 	# for a raid - a timer anywhere else would run through the pause, which is
 	# what working rule 8 exists to stop.

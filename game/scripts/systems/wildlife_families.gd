@@ -44,6 +44,24 @@ var _act_seen: int = -1
 ## The companion a wild animal may court, when one is out and idle.
 var companion: Companion = null
 
+## **The companion's stand-in in the courtship machine.**
+##
+## Owner, 2026-09-22. The note this replaces said a companion could not court
+## *"because the courtship machine pairs two wildlife records and a companion
+## is a node"*, and recorded it rather than half-building it. The answer is
+## one record: a dictionary shaped exactly like an animal's, refreshed from
+## the node every frame, carrying the companion's own sprite so every part of
+## the machine that reads a position, shows a heart or measures a distance
+## works on it unchanged.
+##
+## What it is *not* is an animal. It never joins `wild.living()`, so it is in
+## no population cap, no predator's search, no wrath ledger and no reward -
+## it is only ever offered to the search and ticked.
+var _mate_record: Dictionary = {}
+
+## A reserved id no animal can hold: `Wildlife` counts its own up from one.
+const COMPANION_ID: int = -7
+
 
 func _init(wildlife: Wildlife) -> void:
 	wild = wildlife
@@ -247,6 +265,8 @@ func tick(_delta: float) -> void:
 		outbreaks_this_act = 0
 	if companion != null and not is_instance_valid(companion):
 		companion = null
+	_refresh_companion_record()
+	_tick_companion_courtship(_delta)
 
 
 ## One animal, one frame. True when this drove the animal and the rest of
@@ -272,7 +292,7 @@ func _tick_familiarity(animal: Dictionary, sprite: Sprite2D, delta: float) -> vo
 	if known.is_empty():
 		return
 	for id: Variant in known.keys():
-		var other: Dictionary = wild.animal_by_id(int(id))
+		var other: Dictionary = _by_id(int(id))
 		var apart: bool = true
 		if not other.is_empty():
 			var mate := other.get("sprite", null) as Sprite2D
@@ -345,7 +365,7 @@ func _tick_courtship(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, d
 			_begin_pair(animal, partner)
 			return false
 		Court.APPROACHING:
-			var mate: Dictionary = wild.animal_by_id(int(animal["partner"]))
+			var mate: Dictionary = _by_id(int(animal["partner"]))
 			if mate.is_empty():
 				_drop_courtship(animal, Court.NONE, Balance.WILDLIFE_COURT_RETRY)
 				return false
@@ -370,7 +390,7 @@ func _tick_courtship(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, d
 				return true
 			# The one who sought decides for both; the other mirrors.
 			if int(animal.get("sex", 0)) == Sex.FEMALE:
-				var mate: Dictionary = wild.animal_by_id(int(animal["partner"]))
+				var mate: Dictionary = _by_id(int(animal["partner"]))
 				var accept: float = Balance.WILDLIFE_COURT_ACCEPT \
 					+ familiarity(animal, int(animal["partner"])) * Balance.WILDLIFE_COURT_FAMILIAR_BONUS
 				if not mate.is_empty() and rarity_of(mate) != rarity_of(animal):
@@ -396,7 +416,7 @@ func _tick_courtship(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, d
 			if float(animal["court_left"]) > 0.0:
 				return true
 			var father: int = int(animal["partner"])
-			var mate: Dictionary = wild.animal_by_id(father)
+			var mate: Dictionary = _by_id(father)
 			_bump_familiarity(animal, father, Balance.WILDLIFE_FAMILIARITY_PER_SUCCESS)
 			if not mate.is_empty():
 				_bump_familiarity(mate, int(animal["net_id"]), Balance.WILDLIFE_FAMILIARITY_PER_SUCCESS)
@@ -438,7 +458,14 @@ func _seek_partner(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> 
 	var best_gap: float = Balance.WILDLIFE_COURT_RADIUS
 	var familiar: Dictionary = {}
 	var familiar_gap: float = Balance.WILDLIFE_COURT_RADIUS
-	for other: Dictionary in wild.living():
+	# **The companion is offered to the search, never put in the population.**
+	# It is one extra candidate here and nowhere else: not in `living()`, so
+	# no predator hunts it, no cap counts it and no wrath is owed for it.
+	var pool: Array[Dictionary] = wild.living()
+	if animal != _mate_record and companion_is_courtable():
+		pool = pool.duplicate()
+		pool.append(_mate_record)
+	for other: Dictionary in pool:
 		if other == animal or not compatible(animal, other):
 			continue
 		var other_kind := other["data"] as WildlifeData
@@ -499,7 +526,7 @@ func _drop_courtship(animal: Dictionary, to: int, cooldown: float = 0.0) -> void
 		animal["state"] = Wildlife.State.SETTLED
 	_show_heart(animal, false)
 	if partner != 0:
-		var mate: Dictionary = wild.animal_by_id(partner)
+		var mate: Dictionary = _by_id(partner)
 		if not mate.is_empty() and int(mate.get("partner", 0)) == int(animal["net_id"]):
 			mate["partner"] = 0
 			if int(mate.get("court", Court.NONE)) != Court.OUTCOME:
@@ -526,7 +553,7 @@ func _interrupted(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> b
 		return true
 	if wild.frightened_at(sprite.global_position, kind):
 		return true
-	var mate: Dictionary = wild.animal_by_id(int(animal.get("partner", 0)))
+	var mate: Dictionary = _by_id(int(animal.get("partner", 0)))
 	if mate.is_empty() or float(mate.get("dying", 0.0)) > 0.0 or is_sick(mate):
 		return true
 	var other := mate.get("sprite", null) as Sprite2D
@@ -577,7 +604,7 @@ func dress_courting(animal: Dictionary, partner_id: int) -> void:
 ## population's cap, beside the mother, from the two parents' rarities and
 ## shines. The father is whoever she mated with, present or not.
 func _give_birth(mother: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
-	var father: Dictionary = wild.animal_by_id(int(mother.get("litter_by", 0)))
+	var father: Dictionary = _by_id(int(mother.get("litter_by", 0)))
 	var father_rarity: int = rarity_of(father) if not father.is_empty() else rarity_of(mother)
 	var father_shiny: bool = bool(father.get("shiny", false)) if not father.is_empty() else false
 	var litter: int = _rng().randi_range(kind.litter_min, kind.litter_max)
@@ -766,7 +793,7 @@ func _tick_young(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, _delt
 	var parents: Array = animal.get("parents", [])
 	var parent: Dictionary = {}
 	for id: Variant in parents:
-		parent = wild.animal_by_id(int(id))
+		parent = _by_id(int(id))
 		if not parent.is_empty():
 			break
 	if parent.is_empty():
@@ -961,6 +988,139 @@ func dress_blight(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, stat
 
 
 # --- The companion at the shoulder ----------------------------------------------------------
+
+## Every animal by id, the companion included.
+##
+## One door rather than `wild.animal_by_id` at eight call sites: a wild animal
+## paired with the companion looks its partner up every frame through
+## `_interrupted`, and a lookup that could not answer would drop the pair on
+## the frame after it formed.
+func _by_id(id: int) -> Dictionary:
+	if id == COMPANION_ID:
+		return _mate_record
+	return wild.animal_by_id(id)
+
+
+## Brings the stand-in level with the node, once a frame.
+##
+## **Its `state` is how the machine is told the companion is busy.**
+## `_can_court` already refuses anything not SETTLED, GRAZING or COURTING, so
+## a companion that is fighting, hurt or away is refused by the rule that
+## already exists rather than by a second one written beside it.
+func _refresh_companion_record() -> void:
+	if Coop.is_guest():
+		_mate_record = {}
+		return
+	var one: Companion = companion
+	if one == null or not is_instance_valid(one) or one.spirit_key.is_empty():
+		if not _mate_record.is_empty():
+			_release_companion()
+		_mate_record = {}
+		return
+	var species: String = SpiritBond.species_of(one.spirit_key)
+	var kind: WildlifeData = ContentDB.wildlife_kinds.get(species, null) as WildlifeData
+	var sprite: Sprite2D = one.get("_sprite") as Sprite2D
+	if kind == null or not kind.breeds or sprite == null or not is_instance_valid(sprite):
+		if not _mate_record.is_empty():
+			_release_companion()
+		_mate_record = {}
+		return
+	if _mate_record.is_empty() or _mate_record.get("key", "") != one.spirit_key:
+		_mate_record = {
+			"net_id": COMPANION_ID,
+			"key": one.spirit_key,
+			"court": Court.NONE,
+			"partner": 0,
+			"court_cooldown": 0.0,
+			"born_act": -1,
+			"stage": Stage.ADULT,
+			"size": 1.0,
+			"ref_h": 48.0,
+			"hp": 1.0,
+			"dying": 0.0,
+			"familiar": {},
+		}
+	# Refreshed rather than rebuilt, so a courtship in progress survives the
+	# frame. Everything here is read off the node and owned by nobody else.
+	_mate_record["data"] = kind
+	_mate_record["sprite"] = sprite
+	_mate_record["rarity"] = SpiritBond.rarity_of(one.spirit_key)
+	_mate_record["shiny"] = SpiritBond.shiny_of(one.spirit_key)
+	_mate_record["sex"] = companion_sex(one.spirit_key)
+	_mate_record["hp"] = 1.0 if one.is_alive() else 0.0
+	# SETTLED only while it is genuinely free; anything else reads to
+	# `_can_court` as an animal that is busy.
+	_mate_record["state"] = Wildlife.State.SETTLED if one.may_court() \
+		else Wildlife.State.STALKING
+	if int(_mate_record.get("court", Court.NONE)) != Court.NONE:
+		_mate_record["state"] = Wildlife.State.COURTING
+
+
+## The companion's own courtship tick, through the same machine every animal
+## uses - so the stages, the interruptions, the appraisal and the birth are
+## one implementation rather than two that drift.
+func _tick_companion_courtship(delta: float) -> void:
+	if _mate_record.is_empty():
+		return
+	var kind := _mate_record["data"] as WildlifeData
+	var sprite := _mate_record["sprite"] as Sprite2D
+	_tick_courtship(_mate_record, sprite, kind, delta)
+	# **The court state, never the tick's return.** `_tick_courtship` answers
+	# "did I drive this animal, skip the rest of its tick" - and it answers
+	# *false* while APPROACHING, precisely because a wild animal still has to
+	# be walked to its goal by the wildlife tick afterwards. Reading it as
+	# "is it courting" let go of the companion on the one stage where it most
+	# needs somewhere to walk to.
+	_steer_companion()
+
+
+## Walks the companion to whoever it is courting, and lets it go when it is
+## not. A destination and nothing else: the companion's own brain decides
+## whether to obey, and a body to fight always out-ranks this.
+func _steer_companion() -> void:
+	var one: Companion = companion
+	if one == null or not is_instance_valid(one):
+		return
+	var court: int = int(_mate_record.get("court", Court.NONE))
+	if court == Court.NONE or court == Court.OUTCOME or court == Court.COOLDOWN:
+		one.courting_at = Vector2.INF
+		return
+	var mate: Dictionary = _by_id(int(_mate_record.get("partner", 0)))
+	var other := mate.get("sprite", null) as Sprite2D
+	if mate.is_empty() or other == null or not is_instance_valid(other):
+		one.courting_at = Vector2.INF
+		return
+	# **Meet in the middle while approaching, then stand.** The wild half of
+	# the pair walks to the midpoint (see `Court.APPROACHING`), so a companion
+	# that walked all the way to the animal would arrive as the animal arrived
+	# where the companion had been, and the two would trade places for ever.
+	# Once they are assessing or mating, standing still is the behaviour.
+	if court == Court.APPROACHING:
+		one.courting_at = other.global_position.lerp(one.global_position, 0.45)
+	else:
+		one.courting_at = one.global_position
+
+
+## Lets the companion go and clears whatever it was paired with, for the
+## frame it is dismissed, replaced or goes down.
+func _release_companion() -> void:
+	var mate: Dictionary = _by_id(int(_mate_record.get("partner", 0)))
+	if not mate.is_empty():
+		_drop_courtship(mate, Court.NONE, Balance.WILDLIFE_COURT_RETRY)
+	if companion != null and is_instance_valid(companion):
+		companion.courting_at = Vector2.INF
+
+
+## Whether the companion is standing here and free to be courted by a wild
+## animal of its own kind. Read by `_seek_partner`.
+func companion_is_courtable() -> bool:
+	if _mate_record.is_empty():
+		return false
+	if int(_mate_record.get("court", Court.NONE)) != Court.NONE:
+		return false
+	var kind := _mate_record["data"] as WildlifeData
+	return _can_court(_mate_record, kind)
+
 
 ## The sex of the spirit a bond key summons: decided once a run, from the
 ## run's seed and the key, so dismissing, re-equipping and reconnecting all

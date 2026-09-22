@@ -305,10 +305,46 @@ func _physics_process(delta: float) -> void:
 	_tick_poison(delta)
 
 
+## **Where a wild animal of its own kind is waiting**, or `Vector2.INF`.
+##
+## Owner, 2026-09-22: a companion may court a wild animal *"only if they're
+## the same species and proper opposite genders, and the player's companion is
+## not actively targeting anything or busy with anything"*.
+##
+## Set by `WildlifeFamilies`, read here, and **always beneath the fight**: it
+## is consulted after the threat to the owner and after the quarry, so the
+## first body that needs answering ends the courtship by simply out-ranking
+## it. Nothing about a companion's numbers changes while it courts - this is a
+## destination and a stand, and the animal it walks to is the one that bears.
+var courting_at: Vector2 = Vector2.INF
+
+
+## Whether it is free to be asked. Every clause is "it has nothing else to do".
+##
+## `spirit_key` is the line between a bonded or raised companion and a *spell*
+## summon: a wolf called for twenty seconds courting anything is absurd, and
+## that flag is already what separates the two everywhere else in this file.
+func may_court() -> bool:
+	if data == null or not is_alive() or _recovering > 0.0:
+		return false
+	if spirit_key.is_empty():
+		return false
+	if _striking_left > 0.0 or _cooldown > 0.0:
+		return false
+	if _threat_to_owner() != Vector2.INF:
+		return false
+	return _nearest_enemy() == null
+
+
 ## Where it wants to be: on top of something to hit, or near its summoner.
 func _goal(quarry: Enemy) -> Vector2:
 	if quarry != null:
 		return quarry.global_position
+	# Beneath the fight and above the follow: a companion with nothing to
+	# answer goes to the animal it is courting, and stops following its
+	# owner about while it does.
+	if courting_at != Vector2.INF:
+		return courting_at
 	if owner_hero != null and is_instance_valid(owner_hero):
 		var behind: Vector2 = global_position - owner_hero.global_position
 		if behind.length() < 1.0:

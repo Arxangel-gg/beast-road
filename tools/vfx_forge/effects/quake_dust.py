@@ -20,7 +20,13 @@ def build(f):
     # Slower than the eased age and slower than linear: dust does not leap.
     roll = f.math("POWER", f.raw_age, 1.25)
 
-    outer = f.grow(0.72, 0.22, of=roll)
+    # The take's own seed, spent on the shape as well as on the noise slice.
+    take = int(f.seed)
+    billows = 3 + take % 2
+    turn = (f.seed * 1.874) % 6.283185
+    spread = 0.66 + ((f.seed * 0.618) % 1.0) * 0.14
+
+    outer = f.grow(spread, 0.22, of=roll)
     # The body narrows as it spreads, so the cloud is a rim from the third
     # cell on rather than a growing disc.
     body = f.math("SUBTRACT", 0.30, f.math("MULTIPLY", roll, 0.21))
@@ -34,7 +40,8 @@ def build(f):
 
     # Three slow billows rather than nine: an even count of narrow gaps reads
     # as the teeth of a pinwheel, and this has to read as weather.
-    lobes = f.spokes(3, 0.90, turn=f.math("MULTIPLY", roll, 0.6))
+    lobes = f.spokes(billows, 0.90,
+                     turn=f.math("ADD", f.math("MULTIPLY", roll, 0.6), turn))
 
     cloud = f.both(f.both(f.ring_gap(inner, outer), f.both(thinning, pinholes)), lobes)
 

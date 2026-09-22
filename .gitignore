@@ -106,3 +106,7 @@ art_inbox/Pixellab/
 # Editor lock artefacts: Windows leaves a ~-prefixed copy of a DLL it could
 # not replace while the editor had it open.
 ~*
+
+# Python bytecode from the VFX forge and the other tools.
+__pycache__/
+*.pyc

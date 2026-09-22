@@ -25,17 +25,19 @@ def build(f):
     # rather than being clipped, so there is no seam to see.
     lean = f.math("MULTIPLY",
                   f.math("DIVIDE", f.x, f.math("MAXIMUM", f.r, 0.02)), 0.54)
-    # The bar rises, so the spray thins into droplets as it flies. It has to
-    # start well above the lean: set any lower, the bar along the axis never
-    # reaches the noise at all and the splash stays a solid lune for its whole
-    # life, which is what the cut before this one did.
-    bar = f.math("ADD", 0.84, f.math("MULTIPLY", f.age, 0.32))
+    # The bar rises with *distance* as much as with age, which is what makes
+    # this spray rather than a shape. Held flat it is solid to the last cell
+    # and reads as a lune; raised on age alone it is uniformly thin and reads
+    # as static. Rising outward, the root stays dense and the tips are
+    # droplets - the gradient every thrown thing has.
+    bar = f.math("ADD", f.math("ADD", 0.60, f.math("MULTIPLY", f.age, 0.12)),
+                 f.math("MULTIPLY", f.r, 0.52))
     sprayed = f.math("GREATER_THAN", f.math("ADD", f.noise_fac, lean), bar)
 
     # The point the beam is standing on. It holds for the first third and then
     # burns down rather than switching off, because a terminus that vanishes
     # reads as the beam having stopped rather than as the splash leaving.
-    hot = f.math("SUBTRACT", 0.27, f.math("MULTIPLY", f.age, 0.20))
+    hot = f.math("SUBTRACT", 0.20, f.math("MULTIPLY", f.age, 0.15))
     point = f.both(f.disc(hot), f.grain(f.math("MULTIPLY", f.age, 1.05)))
 
     # A radial star at the impact, which is rotation-safe where the spray is
@@ -49,7 +51,11 @@ def build(f):
 
     # The body of the splash, leaving the point as its near edge opens.
     reach = f.grow(0.74, 0.18)
-    near = f.math("MULTIPLY", f.math("POWER", f.age, 1.5), 0.62)
+    # Torn rather than cut: the root boundary is where the spray left the
+    # point, and a clean arc there reads as a shape somebody drew.
+    near = f.math("MULTIPLY",
+                  f.math("MULTIPLY", f.math("POWER", f.age, 1.5), 0.68),
+                  f.math("ADD", 0.70, f.math("MULTIPLY", f.noise_fac, 0.70)))
     body = f.both(sprayed, f.ring_gap(near, reach))
 
     # Filaments running past the body's own front: a splash is droplet trails
@@ -68,6 +74,6 @@ def build(f):
                       f.math("ADD", bar, 0.02))),
         f.ring_gap(f.math("MULTIPLY", hot, 0.6), tip))
 
-    alive = f.grain(f.math("MULTIPLY", f.math("POWER", f.age, 2.0), 0.62))
+    alive = f.grain(f.math("MULTIPLY", f.math("POWER", f.age, 1.7), 0.61))
     mask = f.both(f.either(point, star, body, threads), alive)
     return f.Look(mask=mask, tone=f.lit(point, 0.45, star, 0.26, body, 0.16))

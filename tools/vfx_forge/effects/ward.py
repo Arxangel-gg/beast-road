@@ -69,7 +69,14 @@ def build(f):
                               f.math("SUBTRACT", 1.0, form), 0.52))),
         # A few flecks missing, drifting with the swirl. Without them the
         # standing shell is an inert icon for eight cells.
-        f.hole(0.74))
+        #
+        # The bar has to bite to move anything. At 0.74 the forge's noise
+        # passes about all of the shell - the field sits near 0.5 with little
+        # spread - so the holes were a handful of pixels and their drift
+        # changed 0, 2 and 20 pixels across cells 9 to 12. Measured: the
+        # plateau was frozen for four cells, which is the exact icon this
+        # line exists to prevent.
+        f.hole(0.63))
 
     # A continuous hoop behind the panels, peeling inward off the shell rather
     # than switching on, which is why it rides the lock clock. It condenses on
