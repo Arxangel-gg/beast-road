@@ -381,6 +381,20 @@ var pen: Array[Dictionary] = []
 ## One at a time, which is the same bound `equipped_spirit` has had since the
 ## companions were un-cut: what §54 refuses is a *roster* the player commands.
 var pen_taken: String = ""
+## **Whether the animal taken out of the pen is already at the Warden's
+## shoulder when the road begins.**
+##
+## A bonded *spirit* is called, and calling costs a meal - that is what makes
+## the Wheat Farm a decision. A **raised animal** is not called: the player
+## walked to the pen between runs and took that creature out, which is the
+## decision, and asking them to pay a meal to see the thing they chose is
+## asking twice. The owner took three ravens out and none of them appeared
+## (2026-09-22: *"I can't even take one along with me as it doesn't appear on
+## the battlefield either"*).
+##
+## Not saved: it is derived from `pen_take` and cleared with it, so there is
+## no second answer to "is an animal out" on disk.
+var spirit_walks_out: bool = false
 
 ## **The mounts this account has bought, and the one that is saddled.**
 ##
@@ -2351,6 +2365,7 @@ func _read_pen(stored: Dictionary) -> void:
 		# road with a ghost on it.
 		taken = ""
 	pen_taken = taken
+	spirit_walks_out = not taken.is_empty()
 
 
 ## Reads the stable.
@@ -2578,6 +2593,7 @@ func pen_take(uid: String, freshly_caught: bool = false) -> bool:
 		return false
 	if uid.is_empty():
 		pen_taken = ""
+		spirit_walks_out = false
 		save_game()
 		return true
 	if penned(uid).is_empty():

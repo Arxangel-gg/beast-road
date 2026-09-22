@@ -870,6 +870,12 @@ func _build_act_start_button() -> void:
 
 	_act_start = ActStartScreenScript.new()
 	add_child(_act_start)
+	# **The Hold takes the road through this same screen**, rather than the
+	# three buttons of its own it used to carry - which passed no doctrine at
+	# all, so `ActStart.begin` refused and the run opened at Act I however
+	# high an act was chosen (owner, 2026-09-22). One screen, two callers.
+	if _hub != null:
+		_hub.act_start = _act_start
 	button.pressed.connect(func() -> void:
 		# The same cost and the same question: an act start is a new road, so
 		# it gives up the banked one exactly as a fresh run does.

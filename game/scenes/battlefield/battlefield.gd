@@ -2888,6 +2888,8 @@ func _build_fog() -> void:
 	_fog.sources = _vision_sources
 	_fog.hide_groups = [Enemy.GROUP, LootDrop.GROUP]
 	_fog.wildlife = _wildlife
+	# The fog of *this* place: see `FogOfWar.scope`.
+	_fog.scope = self
 	add_child(_fog)
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
 	_build_trample()
@@ -3043,6 +3045,9 @@ func _build_stragglers() -> void:
 	# Battlefield extends EnemyField, so the field it watches is this node.
 	_stragglers.field = self
 	_stragglers.director = wave_director
+	# The same question the melee tell asks, asked once: a marked body the
+	# next swing would land on wears gold rather than red.
+	_stragglers.hero = _would_be_hit
 	(entity_root if entity_root != null else self).add_child(_stragglers)
 
 

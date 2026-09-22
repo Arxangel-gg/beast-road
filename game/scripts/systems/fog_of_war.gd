@@ -27,6 +27,21 @@ var cell: float = BattleGrid.TILE
 var sources: Callable = Callable()
 ## Groups whose members are hidden while the fog covers them.
 var hide_groups: Array[StringName] = []
+## **The only part of the tree this fog may hide**, and it is load-bearing
+## rather than tidy.
+##
+## `_hide_the_unseen` walks `get_nodes_in_group`, which is the *whole tree* -
+## so a raid or a rift arena's fog reached every body still standing on the
+## battlefield, found them nowhere near the arena's hero, and set them
+## invisible. The owner's report of 2026-09-22: *"once players return from a
+## raid or dungeon the enemies that were on the map have their visuals off and
+## are hidden"*. Each stage of a dungeon stands a fresh fog up, so the one that
+## hid them was routinely not the one still alive to put them back.
+##
+## A fog is the fog *of a place*. Left null it hides nothing, which is the
+## safe direction: a fog that forgot its scope stops hiding rather than
+## starts hiding somebody else's road.
+var scope: Node = null
 ## The wildlife system, which hides its own animals (they are not nodes of a group).
 var wildlife: Node = null
 
@@ -230,6 +245,9 @@ func _hide_the_unseen() -> void:
 		for node: Node in tree.get_nodes_in_group(group):
 			var item: CanvasItem = node as CanvasItem
 			if item == null or not is_instance_valid(item):
+				continue
+			# Not mine to hide. See `scope`.
+			if scope == null or not scope.is_ancestor_of(item):
 				continue
 			var seen: bool = sees((item as Node2D).global_position) if item is Node2D else true
 			if seen:

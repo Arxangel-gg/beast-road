@@ -216,6 +216,7 @@ func _compose() -> void:
 		# keeps Marrow's animals - `HoldYard` picks the name from the same
 		# expression, and two different keys would put one name over another's pen.
 		_table[index]["pen"] = _simulated_pen(MetaState.play_code + str(index))
+		_table[index]["look"] = _simulated_look(MetaState.play_code + str(index))
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
@@ -269,6 +270,21 @@ func _on_seats_told(rows: Array) -> void:
 		if fields.size() > 4 and fields[4] is Array and index != _mine:
 			_table[index]["look"] = WardenLook.pack(WardenLook.unpack(fields[4]))
 	_draw_table()
+
+
+## **This machine's Warden changed its dye.** Redraws the figure standing in
+## the room and tells the party, so the person walking about wears what the
+## card shows. The card used to dress only its own portrait, which is why the
+## owner set a colour and saw the painted Warden keep walking (2026-09-22).
+func my_look_changed() -> void:
+	if _mine >= 0 and _mine < _table.size():
+		_table[_mine]["look"] = WardenLook.pack(WardenLook.mine())
+	if yard != null:
+		yard.set_look(0, WardenLook.pack(WardenLook.mine()))
+	if Coop.is_host():
+		_publish_table()
+	else:
+		introduce()
 
 
 ## Lays the table onto the yard's figures: this machine's seat is the one it
@@ -437,6 +453,25 @@ static func _species_of(pen: Array) -> PackedStringArray:
 ## **They are scenery and nothing reads them.** No bond, no collection credit,
 ## no rarity that pays: a simulated seat holds no state worth forging, which
 ## is the bound the whole seat design rests on.
+## **A dye of its own for a Warden nobody is sitting in**, derived from the
+## same key its name and its pen are, so the figure called Marrow is the same
+## Marrow every visit and the four of them are four people rather than four
+## copies of the painted Warden (owner, 2026-09-22: *"other NPC players in the
+## Hold should also have random variations of their own procedurally"*).
+##
+## Inside `WardenLook.RANGE` like any dye a player could set, and nothing but
+## a dye: a simulated Warden holds no state worth forging, which is the bound
+## the whole seat idea rests on.
+static func _simulated_look(who: String) -> Array:
+	if who.is_empty():
+		return []
+	var cloak: float = (float(absi(hash(who + "cloak")) % 1000) / 999.0 * 2.0 - 1.0) \
+		* WardenLook.RANGE
+	var sash: float = (float(absi(hash(who + "sash")) % 1000) / 999.0 * 2.0 - 1.0) \
+		* WardenLook.RANGE
+	return WardenLook.pack({WardenLook.KEY_CLOAK: cloak, WardenLook.KEY_SASH: sash})
+
+
 static func _simulated_pen(who: String) -> Array:
 	# **Never a mythic.** `IDEAS_REVIEW_2026-09-15` staged those as the rarest
 	# things in the game - one legend a run, found by a trail of evidence - and
@@ -452,9 +487,24 @@ static func _simulated_pen(who: String) -> Array:
 	var species: Array = []
 	# Two or three, so the pens differ from each other at a glance without any
 	# of them reading as a menagerie.
-	var many: int = 2 + (who.hash() % 2)
+	#
+	# **No two the same within a pen**, which the first cut did not promise:
+	# it drew each slot independently from the same list, so a pen of three
+	# ravens was one roll in a few hundred per seat and the owner had four
+	# such pens on screen at once (2026-09-22). A pen of one animal three
+	# times reads as a bug rather than as a collection.
+	var many: int = 2 + (absi(who.hash()) % 2)
+	var used: Dictionary = {}
 	for index: int in many:
 		var at: int = absi(hash(who + str(index))) % kinds.size()
+		# Walk on from a collision rather than re-rolling: a fixed step over a
+		# list that cannot be empty always terminates, and a re-roll loop on a
+		# short list might not.
+		var tries: int = 0
+		while used.has(at) and tries < kinds.size():
+			at = (at + 1) % kinds.size()
+			tries += 1
+		used[at] = true
 		species.append(kinds[at].id)
 	return _roster_from(who, species)
 

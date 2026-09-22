@@ -1040,14 +1040,47 @@ func _stand_warden(index: int) -> Dictionary:
 ## Somewhere a Warden might plausibly be standing: in front of one of the
 ## buildings rather than anywhere in the rectangle. A figure standing in the
 ## middle of an empty yard reads as a bug.
+## **Where a simulated Warden goes next, and it is an errand rather than a
+## wander** (owner, 2026-09-22: *"the players should occasionally also try to
+## do things like to certain interactables on the Hold's map or other NPCs and
+## interact with them"*).
+##
+## Four kinds of destination, weighted: a station's door, the paddock rail,
+## the fire, and somebody else - another seat or a resident. The old version
+## drew a station every time and stood a hundred and thirty units south of it,
+## which reads as milling about rather than as going to the forge.
+##
+## Still only a *place*: nothing here presses a button, opens a door or writes
+## anything. A simulated Warden is presence, which is the bound the seats were
+## built under, and standing at the anvil is the whole of what presence looks
+## like.
 func _somewhere(own: RandomNumberGenerator) -> Vector2:
+	var roll: float = own.randf()
+	if roll < 0.30 and not _pens.is_empty():
+		var pen: Dictionary = _pens[own.randi() % _pens.size()]
+		return _on_ground((pen["at"] as Vector2)
+			+ Vector2(own.randf_range(-70.0, 70.0), own.randf_range(70.0, 120.0)))
+	if roll < 0.44:
+		return _on_ground(at_cell(FIRE_AT)
+			+ Vector2(own.randf_range(-110.0, 110.0), own.randf_range(40.0, 110.0)))
+	if roll < 0.62:
+		var people: Array[Vector2] = []
+		for other: Dictionary in _residents:
+			people.append(other["home"] as Vector2)
+		for index: int in range(1, _seats.size()):
+			if int(_seats[index]["kind"]) != HoldSession.Seat.EMPTY:
+				people.append(_seats[index]["at"] as Vector2)
+		if not people.is_empty():
+			return _on_ground(people[own.randi() % people.size()]
+				+ Vector2(own.randf_range(-90.0, 90.0), own.randf_range(30.0, 80.0)))
 	if STATIONS.is_empty():
 		return _on_ground(at_cell(ENTRY))
 	var pick: Dictionary = STATIONS[own.randi() % STATIONS.size()]
-	# Settled onto real ground: the yard is a shape now, so a spot a hundred
-	# units south of a door can easily be over a bank or off the map.
+	# Close enough to the door to read as *at* it. Settled onto real ground,
+	# because the yard is a shape and a spot south of a door is easily over a
+	# bank or off the map.
 	return _on_ground(at_cell(pick["cell"] as Vector2i)
-		+ Vector2(own.randf_range(-110.0, 110.0), own.randf_range(90.0, 170.0)))
+		+ Vector2(own.randf_range(-52.0, 52.0), own.randf_range(72.0, 104.0)))
 
 
 func _place(seat: Dictionary) -> void:
@@ -1859,6 +1892,12 @@ func _drift(seat: Dictionary, delta: float) -> void:
 			seat["to"] = _somewhere(own)
 			seat["left"] = own.randf_range(Balance.HOLD_NPC_PAUSE.x,
 				Balance.HOLD_NPC_PAUSE.y)
+		# **Arrived, it looks at what it walked to.** A figure that stops
+		# facing whichever way it happened to be walking reads as one that
+		# lost interest; one that turns to the anvil reads as one using it.
+		var gap: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
+		if gap.length() <= 12.0:
+			seat["facing"] = Vector2.UP if absf(gap.x) < 1.0 else gap.normalized()
 	var step: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
 	var way: Vector2 = step.normalized() if step.length() > 12.0 else Vector2.ZERO
 	_step(seat, way, delta, Balance.HOLD_WALK_SPEED * 0.72)

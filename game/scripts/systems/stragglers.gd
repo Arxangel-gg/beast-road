@@ -38,6 +38,13 @@ var director: WaveDirector = null
 var _clock: float = 0.0
 var _marked: Array[int] = []
 var _life: float = 0.0
+## **What the next swing would land on**, the same callable `CombatTells`
+## reads. A marked body inside it turns gold: the mark stops meaning only
+## "this one is left" and starts meaning "and you can hit it from here",
+## which is the owner's own request (2026-09-22) and costs no second query -
+## the field already answers this question once a frame for the melee tell.
+var hero: Callable = Callable()
+var _in_reach: Dictionary = {}
 
 
 func _ready() -> void:
@@ -54,6 +61,7 @@ func _process(delta: float) -> void:
 	# Only redrawn while something is marked: a plume is rare and the canvas
 	# should cost nothing on the ninety-nine waves that never reach a tail.
 	if not _marked.is_empty():
+		_read_reach()
 		queue_redraw()
 
 
@@ -92,6 +100,21 @@ func _gather() -> void:
 		queue_redraw()
 
 
+## Which of the marked bodies the next swing would reach. Asked once a frame
+## for the whole set rather than per body per draw pass.
+func _read_reach() -> void:
+	_in_reach.clear()
+	if not hero.is_valid():
+		return
+	var found: Variant = hero.call()
+	if not (found is Array):
+		return
+	for entry: Variant in found as Array:
+		var body := entry as Node2D
+		if body != null and is_instance_valid(body):
+			_in_reach[body.get_instance_id()] = true
+
+
 func _draw() -> void:
 	for id: int in _marked:
 		var body := instance_from_id(id) as Node2D
@@ -102,7 +125,13 @@ func _draw() -> void:
 		# stragglers do not pulse in lockstep and read as one interface element.
 		var beat: float = 0.5 + 0.5 * sin(_life * Balance.STRAGGLER_PULSE_HZ * TAU
 			+ float(id % 17))
-		var tone: Color = Balance.STRAGGLER_TONE
+		# **Gold in reach, hostile out of it.** The mark answers two questions
+		# with one drawing: where the last body is, and whether walking is
+		# still part of the answer. Gold is the colour every "you may act on
+		# this" in the game already uses.
+		var within: bool = _in_reach.has(id)
+		var tone: Color = Balance.STRAGGLER_TONE_REACHED if within \
+			else Balance.STRAGGLER_TONE
 		tone.a *= 0.62 + 0.38 * beat
 		# **A chevron pointing down at the body**, bobbing on its own breath.
 		#
@@ -110,7 +139,13 @@ func _draw() -> void:
 		# drop wears, and two opposite meanings in one visual language is worse
 		# than no marker at all. A downward mark in a hostile colour cannot be
 		# mistaken for something to pick up.
-		var lift: float = Balance.STRAGGLER_MARK_LIFT + 6.0 * beat
+		# **Above this body's own head**, not a constant: a camp lord is three
+		# times a runner and one number put the chevron inside the big ones.
+		var crown: float = Balance.STRAGGLER_MARK_LIFT
+		var creature := body as Enemy
+		if creature != null:
+			crown = creature.art_top_offset() + Balance.STRAGGLER_MARK_CLEAR
+		var lift: float = crown + 6.0 * beat
 		var tip := at + Vector2(0.0, -lift)
 		var wide: float = Balance.STRAGGLER_MARK_WIDE * 0.5
 		var tall: float = Balance.STRAGGLER_MARK_TALL
@@ -124,7 +159,38 @@ func _draw() -> void:
 			var fat: float = thick + (2.0 if pass_at == 0 else 0.0)
 			draw_line(tip + Vector2(-wide, -tall), tip, ink, fat, true)
 			draw_line(tip, tip + Vector2(wide, -tall), ink, fat, true)
-		# And a ring at the feet, so the body is findable once the player is
-		# close enough to see it through the canopy.
-		draw_arc(at, Balance.STRAGGLER_RING_RADIUS * (0.9 + 0.1 * beat), 0.0, TAU,
-			24, Color(tone, tone.a * 0.55), 2.0, true)
+		# **A ring on the ground at the feet**, so the body is findable once the
+		# player is close enough to see it through the canopy.
+		#
+		# Flattened, because the camera looks down and slightly along and a
+		# true circle at the feet reads as a hoop standing up - the same
+		# reason the set aura and the range rings are ellipses - and sized
+		# from the body's own width rather than from one number, so it rings
+		# a giant and a runner alike. Both were reported (2026-09-22:
+		# "placement and alignment and anchoring needs to be polished").
+		var ring: float = Balance.STRAGGLER_RING_RADIUS
+		if creature != null:
+			ring = maxf(creature.contact_radius() * Balance.STRAGGLER_RING_SPREAD,
+				Balance.STRAGGLER_RING_MIN)
+		ring *= 0.9 + 0.1 * beat
+		_ground_ring(at, ring, Color(tone, tone.a * 0.6),
+			Balance.STRAGGLER_RING_WIDTH)
+		if within:
+			# A glow under whatever the swing would reach: a second, wider,
+			# fainter ring rather than a brighter one, so it reads as light
+			# off the ground instead of as a thicker line.
+			_ground_ring(at, ring * 1.35, Color(tone, tone.a * 0.28),
+				Balance.STRAGGLER_RING_WIDTH * 2.2)
+
+
+## An ellipse on the ground, drawn as a closed polyline.
+func _ground_ring(at: Vector2, radius: float, tint: Color, width: float) -> void:
+	if radius <= 1.0 or tint.a <= 0.004:
+		return
+	var points: PackedVector2Array = PackedVector2Array()
+	var steps: int = 26
+	for step: int in steps + 1:
+		var angle: float = float(step) / float(steps) * TAU
+		points.append(at + Vector2(cos(angle) * radius,
+			sin(angle) * radius * Balance.STRAGGLER_RING_SQUASH))
+	draw_polyline(points, tint, width, true)

@@ -2983,6 +2983,21 @@ func _apply_category_scale() -> void:
 			- (Balance.HEALTH_BAR_RANK_LIFT if rank != Rank.COMMON else 0.0)
 
 
+## **How far above this body's origin its painting reaches**, which is the top
+## of its head rather than a number somebody typed.
+##
+## The node sits at the feet and the sprite is drawn `_depth_lift` above them,
+## so the art's top is that plus half its drawn height. Anything hung over a
+## body - a marker, a plume, a shout - asks this rather than assuming, because
+## a giant and a runner are three times apart and one constant cannot be right
+## for both (owner, 2026-09-22: the straggler chevron "needs its height
+## adjusted to ensure it's properly above the highest part of the sprite").
+func art_top_offset() -> float:
+	if sprite == null or sprite.texture == null:
+		return _depth_lift + 48.0
+	return _depth_lift + float(sprite.texture.get_height()) * absf(sprite.scale.y) * 0.5
+
+
 ## Centre-authored combat position, kept separate from the feet used for depth.
 ## Projectiles, blood and hit reactions all originate here.
 func combat_origin() -> Vector2:

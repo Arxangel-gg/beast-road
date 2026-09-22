@@ -49,6 +49,7 @@ func _ready() -> void:
 	await _test_a_lit_torch_shows_its_road()
 	await _test_towers_give_vision()
 	await _test_bodies_in_the_fog_are_not_drawn()
+	await _test_a_fog_hides_only_its_own_scope()
 	await _test_the_minimap_reads_the_same_fog()
 	_test_the_toggle_exists()
 	await _test_every_dungeon_stage_is_fresh()
@@ -197,6 +198,63 @@ func _test_bodies_in_the_fog_are_not_drawn() -> void:
 			hidden += 1
 	_check(shown == 0 or hidden >= 0, "the fog must not hide what the party can see")
 
+
+## **The fog hides its own place and nobody else's** (owner, 2026-09-22:
+## *"once players return from a raid or dungeon the enemies that were on the
+## map have their visuals off and are hidden"*).
+##
+## `_hide_the_unseen` walks `get_nodes_in_group`, which is the whole tree - so
+## a raid or rift arena's fog found every body still standing on the
+## battlefield, decided it could not see them, and set them invisible. Each
+## dungeon stage stands a fresh fog up, so the one that hid them was routinely
+## not the one still alive to put them back.
+##
+## Two halves, and the first is what makes the second mean anything: a fog must
+## still hide what is in its own scope, and must leave everything else alone
+## both while it lives and when it is freed.
+func _test_a_fog_hides_only_its_own_scope() -> void:
+	var fog: FogOfWar = _fog()
+	var field: Battlefield = _run.battlefield
+	if fog == null or field == null:
+		_check(false, "the run must have a field and a fog")
+		return
+	_check(fog.scope == field, "the field's fog must be scoped to the field")
+	var breeds: Array = ContentDB.enemies.values()
+	if breeds.is_empty():
+		_check(false, "the roster must have a breed to stand up")
+		return
+	var body := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+	body.setup(breeds[0] as EnemyData, 0, field, 1.0, 1.0, 1.0)
+	field.add_child(body)
+	body.global_position = Vector2(BattleGrid.HALF_EXTENT - 40.0,
+		BattleGrid.HALF_EXTENT - 40.0)
+	await _settle()
+	_check(not fog.sees(body.global_position),
+		"the harness needs a corner of the field the party cannot see")
+	_check(not body.visible,
+		"a body of this field's own, out in the fog, must not be drawn")
+
+	# A second fog, of somewhere else entirely - which is what an arena is.
+	var elsewhere := Node2D.new()
+	field.get_parent().add_child(elsewhere)
+	var other := FogOfWar.new()
+	other.half_extent = fog.half_extent
+	other.cell = fog.cell
+	other.hide_groups = [Enemy.GROUP, LootDrop.GROUP]
+	other.scope = elsewhere
+	other.sources = func() -> Array: return []
+	elsewhere.add_child(other)
+	body.global_position = field.hero.global_position + Vector2(24.0, 0.0)
+	other.call("_tick")
+	await _settle()
+	_check(body.visible,
+		"a second place's fog must not hide this field's bodies while it lives")
+	elsewhere.queue_free()
+	await _settle()
+	_check(body.visible,
+		"and must not leave them hidden when it goes - which is what a raid did")
+	body.queue_free()
+	await _settle()
 
 ## The minimap draws against the fog's own texture rather than a second copy.
 ## Two sources of truth would drift, and the drift would be a map that says

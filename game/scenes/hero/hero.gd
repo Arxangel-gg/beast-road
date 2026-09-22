@@ -2831,11 +2831,20 @@ func _refresh_spirit() -> void:
 	# is not a stronger spirit - the same variant, the same rarity, the same
 	# power scale - it is *that creature*, and the difference is that it does not
 	# come back if it goes down.
+	# **A raised animal is already out; a bonded spirit is called.** Taking a
+	# creature out of the pen *is* the call - it was made between runs, at the
+	# pen, deliberately - so it walks the road from the first frame. A bonded
+	# spirit still costs a meal to call, which is what keeps the Wheat Farm a
+	# decision, and the owner took three ravens out and saw none of them
+	# (2026-09-22).
 	var raised: Dictionary = MetaState.pen_companion()
 	var wanted: String = ""
-	if RunState.spirit_called:
-		wanted = SpiritBond.key(String(raised.get("species", "")),
-			int(raised.get("rarity", 0)), bool(raised.get("shiny", false))) 			if not raised.is_empty() else MetaState.equipped_spirit
+	if not raised.is_empty():
+		if RunState.spirit_called or MetaState.spirit_walks_out:
+			wanted = SpiritBond.key(String(raised.get("species", "")),
+				int(raised.get("rarity", 0)), bool(raised.get("shiny", false)))
+	elif RunState.spirit_called:
+		wanted = MetaState.equipped_spirit
 	var from_pen: bool = not raised.is_empty() and not wanted.is_empty()
 	if spirit != null and is_instance_valid(spirit):
 		if spirit.spirit_key == wanted and spirit.field == field 				and spirit.from_pen == from_pen:

@@ -5309,8 +5309,23 @@ const STRAGGLER_MARK_WIDE: float = 22.0
 const STRAGGLER_MARK_TALL: float = 15.0
 const STRAGGLER_MARK_THICK: float = 4.0
 const STRAGGLER_RING_RADIUS: float = 26.0
+## How far the ring stands off the body's own contact radius, the floor under
+## it for the smallest bodies, how flat it lies and how heavy its line is.
+## Flattened for the reason every ground ring in this game is: the camera
+## looks down and slightly along.
+const STRAGGLER_RING_SPREAD: float = 1.45
+const STRAGGLER_RING_MIN: float = 22.0
+const STRAGGLER_RING_SQUASH: float = 0.46
+const STRAGGLER_RING_WIDTH: float = 2.4
+## Air between the top of a body's painting and the chevron over it.
+const STRAGGLER_MARK_CLEAR: float = 26.0
 const STRAGGLER_PULSE_HZ: float = 0.85
 const STRAGGLER_TONE: Color = Color(0.96, 0.36, 0.30, 0.82)
+## **And the same mark in gold once the next swing would reach it** (owner,
+## 2026-09-22). Red says "still standing, and it is over there"; gold says
+## "and you are close enough". The colour every actionable thing in this game
+## already wears.
+const STRAGGLER_TONE_REACHED: Color = Color(1.0, 0.82, 0.36, 0.92)
 
 const VFX_Z: int = 40
 

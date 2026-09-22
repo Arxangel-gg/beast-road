@@ -93,6 +93,9 @@ var _note_left: float = 0.0
 ## The road out: the chooser the host presses, and the timed answer a guest is
 ## given when somebody else presses it.
 var _road_panel: PanelContainer = null
+## The menu's own act-start screen, handed over rather than rebuilt. See
+## `_road_act_start`.
+var act_start: ActStartScreen = null
 var _road_rows: VBoxContainer = null
 var _answer_left: float = 0.0
 var _answer_line: Label = null
@@ -776,6 +779,14 @@ func _look_row(text: String, key: String) -> HBoxContainer:
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.value_changed.connect(func(v: float) -> void:
 		MetaState.set_look(key, v)
+		# **And the person standing in the room**, not only the portrait on
+		# the card. The card dressed its own picture and nothing else, so the
+		# owner set a colour and watched the painted Warden keep walking
+		# (2026-09-22).
+		if _session != null:
+			_session.my_look_changed()
+		elif _yard != null:
+			_yard.set_look(0, WardenLook.pack(WardenLook.mine()))
 		if _portrait != null:
 			WardenLook.dress(_portrait, WardenLook.mine()))
 	row.add_child(slider)
@@ -1138,11 +1149,17 @@ func _show_road() -> void:
 		_road_button("Continue  ·  %s" % Expedition.describe(front),
 			func() -> void: _take_the_road(HoldSession.Road.CONTINUE,
 				int(front.get("act", 1)), Expedition.describe(front)))
+	# **Mending is offered where the front is**, which is here as much as it is
+	# on the front door: a fortress that comes home damaged and can only be put
+	# right from the main menu is one a player in the Hold cannot mend at all
+	# (owner, 2026-09-22).
+	if MetaState.has_expedition():
+		var damaged: int = Expedition.fortifications(MetaState.expedition).y
+		if damaged > 0:
+			_road_button("Mend the front  ·  %d damaged" % damaged, _mend_the_front)
 	var furthest: int = ActStart.furthest_act()
 	if furthest > 1:
-		_road_button("Start at Act %d" % furthest,
-			func() -> void: _take_the_road(HoldSession.Road.ACT_START, furthest,
-				"a fresh road opening at Act %d" % furthest))
+		_road_button("Start at an act  ·  up to Act %d" % furthest, _road_act_start)
 	_road_button("Take the Road  ·  a new expedition",
 		func() -> void: _take_the_road(HoldSession.Road.FRESH, 1,
 			"a new expedition from Act I"))
@@ -1156,26 +1173,59 @@ func _show_road() -> void:
 ## decision in this game that costs everybody the next hour, and a continued
 ## run is somebody else's banked front. So the party is told which kind of road
 ## it is and given a clock, exactly as a raid or a rift is put to them.
-func _take_the_road(kind: int, act: int, detail: String) -> void:
+func _take_the_road(kind: int, act: int, detail: String,
+		doctrine: String = "") -> void:
 	if _session != null and _session.offer_run(kind, act, detail):
 		_clear_road()
 		_road_line("Asking the party...", 17, Color("e8a33d"))
 		_road_line(detail, 15, Color("b8ae98"))
 		_answer_left = Balance.PARTY_ROAD_ANSWER_SECONDS
 		_answer_line = _road_line("", 14, Color("9fd2b4"))
-		_road_button("Go now", func() -> void: _begin_road(kind, act))
+		_road_button("Go now", func() -> void: _begin_road(kind, act, doctrine))
 		return
-	_begin_road(kind, act)
+	_begin_road(kind, act, doctrine)
 
 
-func _begin_road(kind: int, act: int) -> void:
+## **Which act, and outfitted how** - the menu's screen, opened from here.
+##
+## The Hold used to offer one button reading "Start at Act N" and start the
+## run with no doctrine, which `ActStart.begin` refuses outright: the act was
+## never set and the road opened at Act I in silence. A second list of road
+## buttons was always going to disagree with the one on the front door; this
+## is the same screen, and it hands the act *and* the doctrine back so the
+## party is still asked before anybody goes.
+func _road_act_start() -> void:
+	if act_start == null:
+		return
+	_hide_road()
+	suspend()
+	act_start.take_the_road = func(act: int, doctrine: String) -> void:
+		act_start.take_the_road = Callable()
+		# Back into the room before the party is asked, so the question is
+		# put over the Hold rather than over a dimmed nothing. `open` is what
+		# lifts a suspend - see `suspend`, which is one direction only.
+		open()
+		_take_the_road(HoldSession.Road.ACT_START, act,
+			"a fresh road opening at Act %d" % act, doctrine)
+	act_start.open()
+
+
+## Puts the banked front right, off the same bill the main menu spends.
+func _mend_the_front() -> void:
+	var refused: String = MetaState.mend_expedition()
+	_show_road()
+	if not refused.is_empty():
+		_road_line(refused, 14, Color("d98b6a"))
+
+
+func _begin_road(kind: int, act: int, doctrine: String = "") -> void:
 	_hide_road()
 	close()
 	match kind:
 		HoldSession.Road.CONTINUE:
 			GameDirector.start_run(0, true)
 		HoldSession.Road.ACT_START:
-			GameDirector.start_run(0, false, act, "")
+			GameDirector.start_run(0, false, act, doctrine)
 		_:
 			GameDirector.start_run()
 
