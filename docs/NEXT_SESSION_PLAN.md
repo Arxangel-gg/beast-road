@@ -262,16 +262,35 @@ release sweep and by photographing output rather than by reading code:
   `preparation_check` holds it deterministically now and `perf_check`'s growth
   failure names its culprit instead of printing a bare percentage.
 
-**Still open, in the order to take them:**
+**And then the three remaining buildable items on roadmap §7.2, all built:**
 
-1. **Photosensitivity on first run** - roadmap §7.2. Small; needs a first-run
-   moment that does not interrupt the Walk offer, the story intro or the slot
-   picker.
-2. **Build templates** ("repeat my last board") - QoL; the act-start doctrines
-   already spend a budget through `try_build`, which is the door to reuse.
-3. **The lobby portrait wears a partner's dyed Warden.** A look crosses only in
-   the hero state row and the Hold's seat rows, so the lobby - which is before a
-   run exists - cannot know one yet.
-4. **Mobile performance, minimum spec, the Deck decision** - need hardware or
+- **Photosensitivity on first run.** `ComfortCard`, offered before the story
+  intro, writing nothing unless a slider moved and storing no "seen" flag.
+  It dragged out two more faults: the beast scope read the shake setting raw
+  and unclamped past 1.0, and `SaveSlotScreen` had never had its focus ring
+  walked.
+- **Build templates.** `BuildTemplate`, recorded on the frame a run ends and
+  replayed through `try_build` at the road's own prices, with anchors stored
+  core-relative because `camp_side` is seeded.
+- **The partner's dyed Warden.** Three faults rather than the one recorded: the
+  party tint destroyed the dye for half the seats, a guest's dye reached
+  nobody, and the lobby drew every Warden painted.
+
+**Still open, and none of it is code:**
+
+1. **Mobile performance, minimum spec, the Deck decision** - need hardware or
    the owner.
-5. **Content owed**: act VI-X music, boss themes, enemy voices, the reed frog.
+2. **Content owed**: act VI-X music, boss themes, enemy voices, the reed frog.
+   `music_check` and `audio_verify` print the counts every run rather than
+   leaving them to somebody's memory.
+3. **Onboarding by gating** (roadmap §7.1) and **a difficulty below Normal**
+   (§7.2) are both design decisions and both the owner's. The second is sized:
+   a fourth `CampaignTierData` at `order = -1` opens beside Normal rather than
+   after it, but `Stash.roll` gates gear kinds on `min_tier > tier_order`, so a
+   negative order silently drops every kind unless it is clamped at that door;
+   and `GatekeeperTrials.total_rungs` multiplies by the tier count, so a fourth
+   tier would raise `ASCENSION_MAX` - a *third power scale* growing because an
+   easier difficulty was added. Both are answerable; neither should be answered
+   without the owner.
+4. **§7.3 commercial** - store presence, a demo, the privacy note, leaderboard
+   integrity, localisation readiness.

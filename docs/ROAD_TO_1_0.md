@@ -190,9 +190,9 @@ absence a reviewer will name in the first paragraph.
   and Hell, and nothing for someone bouncing off Act II.
 - ~~**Text size / UI scale option.**~~ **Built 2026-09-21**: the interface-size
   slider (`qol_check`).
-- **Photosensitivity**: the flash scale exists — surface it in first-run
-  options rather than burying it. **Still open**, and with build templates the
-  last of §7.2 that is.
+- ~~**Photosensitivity**~~ **Built 2026-09-22**: `ComfortCard`, offered once
+  before the story intro, writing nothing unless a slider moved and storing no
+  "seen" flag (`comfort_card_check`, on both bars).
 - ~~**Controller completeness.**~~ **Gated 2026-09-21**: `pad_focus_check` walks
   every screen's focus ring both ways, on both bars.
 - ~~**Ultrawide and 4K layout.**~~ **Built 2026-09-21**: `layout_check` and
@@ -202,8 +202,9 @@ absence a reviewer will name in the first paragraph.
   said on the settings screen, never overriding a saved choice.
 - ~~**Quit-mid-act clarity.**~~ **Built 2026-09-21**: the pause menu says what a
   quit costs since the last banked crossroad and asks twice.
-- **Build templates.** With 61 towers, "repeat my last board" is real quality of
-  life on a second run. **Still open.**
+- ~~**Build templates.**~~ **Built 2026-09-22**: `BuildTemplate`, recorded when
+  a run ends and replayed through `try_build` at the road's own prices, anchors
+  stored core-relative because `camp_side` is seeded (`build_template_check`).
 - **Steam Deck / handheld decision.** A 2D game at 16.6 ms on a 3070 Ti will not
   run on a Deck as it stands. Decide explicitly rather than discover it.
 
