@@ -39,6 +39,32 @@ const BLOOD_VFX_KEY: String = "blood_vfx"
 const FLASH_KEY: String = "screen_flash"
 const NUMBER_DENSITY_KEY: String = "damage_number_density"
 
+## The three comfort scales, as one table, in the order to present them.
+##
+## **One definition, because there are two screens that draw them now**: the
+## settings panel and the first-run card. A player made ill by flashing should
+## not have to already know that a Game tab exists, and the moment a second
+## screen restates a key, a range and a step is the moment the two can
+## disagree - the failure an Arcane node shipped with when its reach was
+## applied at four of five call sites, and the shake slider shipped with when
+## the beast scope read it raw and unclamped past 1.0.
+##
+## The shake reaches 1.5 and the other two stop at 1. The flashes are authored
+## at what the art was graded for, so a control that let a player make them
+## *brighter* is a control that can hurt somebody who reached for it to be
+## helped.
+const COMFORT_ROWS: Array[Dictionary] = [
+	{"key": SHAKE_KEY, "label": "Screen shake", "minimum": 0.0,
+		"maximum": 1.5, "step": 0.05, "default": 1.0,
+		"note": "How much a blow moves the camera."},
+	{"key": FLASH_KEY, "label": "Screen flashes", "minimum": 0.0,
+		"maximum": 1.0, "step": 0.05, "default": 1.0,
+		"note": "How bright the game is allowed to go, all at once."},
+	{"key": NUMBER_DENSITY_KEY, "label": "Damage numbers", "minimum": 0.0,
+		"maximum": 1.0, "step": 0.05, "default": 1.0,
+		"note": "Turned down, the small ones thin out and the big ones stay."},
+]
+
 ## How big the interface is drawn, as a multiplier on `ScreenFit`'s own fit
 ## (2026-09-21). Bounded, because a scale of three on a desktop is a screen
 ## with one button on it and a scale of a half is a screen nobody can read.

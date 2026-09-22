@@ -3286,5 +3286,3 @@ func _vision_sources() -> Array:
 			out.append({"at": torch.global_position,
 				"radius": Balance.FOG_VISION_TORCH * torch.light_strength()})
 	return out
-
-

@@ -536,6 +536,7 @@ jobs:
           check "every act fields its roster" --headless --path game res://tools/roster_check.tscn
           check "the clock has one owner" --headless --path game res://tools/game_speed_check.tscn
           check "a quit says what it costs and a preset fits the machine" --headless --path game res://tools/qol_check.tscn
+          check "the comfort card writes nothing unless a slider moved" --headless --path game res://tools/comfort_card_check.tscn
           check "every screen can be walked with a pad" --headless --path game res://tools/pad_focus_check.tscn
           check "a look changes nothing but the picture" --headless --path game res://tools/warden_look_check.tscn
           check "the wall is said out loud" --headless --path game res://tools/town_alert_check.tscn

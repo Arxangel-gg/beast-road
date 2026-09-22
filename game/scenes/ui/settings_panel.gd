@@ -341,36 +341,31 @@ func _ui_scale_row() -> HBoxContainer:
 		func(v: float) -> void: UserSettings.set_value(UserSettings.UI_SCALE_KEY, v))
 
 
-func _shake_row() -> HBoxContainer:
-	return _slider_row("Screen shake", 0.0, 1.5, 0.05,
-		UserSettings.number(UserSettings.SHAKE_KEY, 1.0),
-		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
-		func(v: float) -> void: UserSettings.set_value(UserSettings.SHAKE_KEY, v))
-
-
-## **How much the screen may flash.** The one effect in this game with a real
-## accessibility cost, and until 2026-09-16 the only answer available to
-## somebody it made ill was to stop playing. A scale rather than a switch,
-## because "less" is what most people who want this actually want.
+## The three comfort rows, built from `UserSettings.COMFORT_ROWS`.
 ##
-## Capped at 1 rather than 1.5 like the shake: the flashes are authored at what
-## the art was graded for, and a control that lets a player make them *brighter*
-## is a control that can hurt somebody who reached for it to be helped.
+## **From the table rather than beside it**, so that if the table is wrong this
+## screen is wrong too - immediately and visibly. The first-run card reads the
+## same table, and two screens each holding their own copy of a key, a range and
+## a step is two screens that can disagree about what a slider does.
+func _comfort_row(row: Dictionary) -> HBoxContainer:
+	var key: String = String(row["key"])
+	return _slider_row(String(row["label"]), float(row["minimum"]),
+		float(row["maximum"]), float(row["step"]),
+		UserSettings.number(key, float(row["default"])),
+		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: UserSettings.set_value(key, v))
+
+
+func _shake_row() -> HBoxContainer:
+	return _comfort_row(UserSettings.COMFORT_ROWS[0])
+
+
 func _flash_row() -> HBoxContainer:
-	return _slider_row("Screen flashes", 0.0, 1.0, 0.05,
-		UserSettings.number(UserSettings.FLASH_KEY, 1.0),
-		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
-		func(v: float) -> void: UserSettings.set_value(UserSettings.FLASH_KEY, v))
+	return _comfort_row(UserSettings.COMFORT_ROWS[1])
 
 
-## **How many damage numbers.** A density rather than a switch: turned down, the
-## ordinary numbers thin out and the big ones - criticals and finishers - still
-## land, so what a player loses is clutter rather than information.
 func _number_density_row() -> HBoxContainer:
-	return _slider_row("Damage numbers", 0.0, 1.0, 0.05,
-		UserSettings.number(UserSettings.NUMBER_DENSITY_KEY, 1.0),
-		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
-		func(v: float) -> void: UserSettings.set_value(UserSettings.NUMBER_DENSITY_KEY, v))
+	return _comfort_row(UserSettings.COMFORT_ROWS[2])
 
 
 func _gait_row() -> HBoxContainer:

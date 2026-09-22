@@ -7699,6 +7699,48 @@ this morning. The harness also seated only the guest, which took slot 1, and
 `_hero_for_slot` answers the *local* hero for `party.slot()` - so it dressed
 this machine's own Warden, which reads exactly like the wire not working.
 
+**The comfort scales are offered before the first road, as of 2026-09-22.**
+`docs/ROAD_TO_1_0.md` §7.2: *"the flash scale exists - surface it in first-run
+options rather than burying it."* All three existed and all three were four
+clicks deep in Settings, on a tab nobody has a reason to open before they have
+seen the thing that would send them there.
+
+**The whole risk of showing a card to everybody is in one sentence: it must not
+change everybody's save.** `comfort_card_check` serializes the whole account
+either side of an untouched card and insists the two are byte-identical, and
+that check had to be strengthened before it was worth anything - on a clean
+profile the settings already hold what the card would write, so a card that set
+every value on open produced an identical save and the first cut passed with the
+fault planted in it. The settings are moved off their defaults first, the card's
+own `_touched` is read back, and each value is read after the open.
+
+**And it stores no flag saying it has been seen.** `_read_settings` drops
+undeclared keys, so a flag has to join the defaults - and then every save on the
+machine grows a key on its next write, for players who never opened this.
+Whether to offer it is *derived* from `runs_started`, as `Graphics.default_preset`
+and `TutorialGrants.should_offer` are, which also re-arms correctly after
+`Erase progress` and for a second Warden in a new slot.
+
+**`UserSettings.COMFORT_ROWS` is the one definition**, and the settings panel
+builds from it too - so if the table is wrong that screen is wrong immediately
+and visibly. Two screens each holding their own copy of a key, a range and a
+step is the failure an Arcane node's reach shipped with.
+
+**Which the shake slider had already shipped with.** `beast_scope` read
+`SHAKE_KEY` raw off `MetaState.settings`, twice, while every other consumer went
+through `JuiceDirector.shake_scale()`, which clamps to 1. The slider's maximum
+is 1.5, so a player who turned shake **up** got 1.5x on the walk and 1.0x on the
+road - and, worse for the purpose of a comfort card, a player turning it *down*
+was obeyed in only one of the two scopes. Both values are legal floats and
+nothing errored. `comfort_card_check` holds it with a source walk, because the
+fault is an *omission*: a raw read added beside this one is silently unclamped.
+
+**And `SaveSlotScreen` had never had its focus ring walked.** It was added on
+2026-09-22 with a no-argument `open()` and not to `pad_focus_check._screens`,
+and that gate's `_collect` filters on `is_visible_in_tree()` - so a screen that
+is never stood up contributes no checks and no failures. 42 checks became 45,
+and 48 with the comfort card.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

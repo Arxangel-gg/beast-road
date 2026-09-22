@@ -274,6 +274,28 @@ func goto_menu() -> void:
 ## failed for a reason that had anything to do with what they were testing.
 ##
 ## This is the door a *player* comes through. Tools do not use it.
+## The three comfort scales, once, before a Warden's first road.
+##
+## **Derived from `runs_started`, never stored** - see `ComfortCard`. One door
+## rather than a condition at each entry point, because `start_run` is reached
+## from the front door, the Hold, an act start, a resumed front and a party.
+##
+## Returns at once where there is no screen: a run that waited here would hang
+## every gate that starts one, which is the rule `RiftArena._finish` already
+## follows for its collapse.
+func _offer_comfort() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if not ComfortCard.should_offer():
+		return
+	var card := ComfortCard.new()
+	card.name = "ComfortCard"
+	get_tree().root.add_child(card)
+	card.open()
+	await card.closed
+	card.queue_free()
+
+
 func _play_intro() -> void:
 	if StoryIntro.already_seen():
 		return
@@ -350,6 +372,10 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# remembers is a table full of games nobody can join.
 	Coop.directory().withdraw()
 
+	# **Before the intro, which is the brightest eighteen seconds in the game.**
+	# Offering the comfort scales after it would be offering them to somebody
+	# who has already had the thing they needed them for.
+	await _offer_comfort()
 	await _play_intro()
 
 	# Consuming Treasury carry-over is a real transaction. Persist it now so a

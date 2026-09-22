@@ -904,7 +904,13 @@ func _update_step_shake(delta: float, strength: float) -> void:
 	if camera == null:
 		return
 	var quake: float = _omens.quake_shake() if _omens != null else 0.0
-	var shaking: float = float(MetaState.settings.get(UserSettings.SHAKE_KEY, 1.0))
+	# **Through the one door**, like every other consumer of this setting.
+	# It was read raw off `MetaState.settings` here and clamped everywhere
+	# else, and the slider's maximum is 1.5 - so a player who turned shake up
+	# got 1.5x on the walk and 1.0x on the battlefield, and a player turning
+	# it *down* for comfort was obeyed in only one of the two scopes. Both
+	# values are legal floats, so nothing errored.
+	var shaking: float = JuiceDirector.shake_scale()
 	if beast != null:
 		var rock: float = quake * Balance.BEAST_QUAKE_SHAKE * shaking
 		_quake_offset = Vector2(_rng.randf_range(-rock, rock),
@@ -925,7 +931,7 @@ func _update_step_shake(delta: float, strength: float) -> void:
 	_step_shake_left = maxf(_step_shake_left - delta, 0.0)
 	var falloff: float = _step_shake_left / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01)
 	var setting: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65) \
-		* float(MetaState.settings.get(UserSettings.SHAKE_KEY, 1.0))
+		* JuiceDirector.shake_scale()
 	var amount: float = Balance.BEAST_STEP_SHAKE * falloff * setting * strength
 	camera.offset = Vector2(_rng.randf_range(-amount, amount),
 		_rng.randf_range(-amount, amount))
