@@ -26,8 +26,33 @@ const SECTIONS: Array[Dictionary] = [
 	{"title": "Weather", "kind": "weather", "source": "weathers"},
 ]
 
+## **Which page is open.** `TAB_ALL` is everything in one list, the way the
+## Codex has always read; `TAB_SPIRITS` is the journal on its own; anything
+## else is an act number and shows only what walks that road.
+##
+## Owner, 2026-09-22: *"a tab for all, or tabs for each act, and a tab for
+## Wildlife Spirits"*. Both, because they answer different questions - "what
+## have I met" wants the whole book and "what am I about to meet" wants one
+## act - and the journal wants a page because it is the only section a player
+## opens to *do* something rather than to read.
+const TAB_ALL: int = 0
+const TAB_SPIRITS: int = -1
+
 var _heading: Label
 var _note: Label
+var _tab: int = TAB_ALL
+var _tab_bar: HFlowContainer
+## **What the player is looking for** (owner, 2026-09-22: *"also add a search
+## for the codex"*). Folded to lower case once here rather than at every
+## comparison, and matched against a name, a description and the section it
+## sits in - so "howler" finds the role and "burns" finds the affix that does.
+##
+## It narrows whatever page is open rather than replacing it: a search that
+## silently jumped to All would lose the act the player had chosen, and a
+## search that only looked at one act would read as broken. The heading says
+## which it is.
+var _search: String = ""
+var _search_edit: LineEdit = null
 var _rows: VBoxContainer
 var _close_button: Button
 var _panel: PanelContainer
@@ -55,7 +80,7 @@ func _ready() -> void:
 const ART_SIZE: float = 96.0
 const ROW_PAD_X: int = 16
 const ROW_PAD_Y: int = 12
-const ROW_GAP: int = 10
+const ROW_GAP: int = 12
 const FONT_HEADING: int = 26
 const FONT_NOTE: int = 15
 const FONT_NAME: int = 20
@@ -64,6 +89,17 @@ const FONT_BODY: int = 15
 ## The widest the panel is allowed to be, and the share of the screen it may take
 ## on anything narrower. A fixed 940 was wider than a phone in portrait, so the
 ## panel ran off both edges of the one platform that needed the care most.
+## **What a tab and the search box are worth on a thumb.** The touch pass
+## grows every `BaseButton` to `UI_TOUCH_MIN_TARGET_HEIGHT`, which for thirteen
+## tabs is three rows of 92 - two hundred and seventy units of a phone held
+## sideways, and the Codex's panel then stood 913 tall in a 775 screen with the
+## way out off the bottom of it. They are sized here instead and marked
+## `SELF_SIZED`, so the pass grows the type and leaves the box; the same number
+## is declared as their touch floor so the layout gates hold them to what they
+## were designed for rather than to the general one.
+const TAB_HEIGHT: float = 34.0
+const TAB_TOUCH_HEIGHT: float = 52.0
+
 const PANEL_MAX_WIDTH: float = 1040.0
 const PANEL_SCREEN_SHARE: float = 0.94
 const LIST_SCREEN_SHARE: float = 0.56
@@ -137,6 +173,8 @@ func _build() -> void:
 	_note.add_theme_font_size_override("font_size", FONT_NOTE)
 	_note.add_theme_color_override("font_color", Color("b8ae98"))
 	column.add_child(_note)
+	column.add_child(_build_tab_bar())
+	column.add_child(_build_search())
 
 	var scroll := ScrollContainer.new()
 	_scroll = scroll
@@ -170,11 +208,26 @@ func _build() -> void:
 
 
 func open() -> void:
+	# **Followed rather than fitted once.** A phone rotated with the Codex open
+	# kept the panel the old shape had given it, and on the short shape that
+	# put the way out off the bottom of the screen. A named method rather than
+	# a lambda, for the reason `enemy_shot_check` paid for: a lambda's capture
+	# is freed with the screen and every later resize errors on nothing.
+	var view: Viewport = get_viewport()
+	if view != null and not view.size_changed.is_connected(_on_view_resized):
+		view.size_changed.connect(_on_view_resized)
 	visible = true
 	_refresh()
 	_refit()
 	_refit.call_deferred()
 	_close_button.grab_focus()
+
+
+func _on_view_resized() -> void:
+	if not visible:
+		return
+	_refit()
+	_refit.call_deferred()
 
 
 func _refit() -> void:
@@ -221,19 +274,47 @@ func _refresh() -> void:
 	_note.text = ("Everything the road has shown you. What you have not met yet "
 		+ "is listed but not described - finding it is the description.")
 
-	for section: Dictionary in SECTIONS:
-		var kind: String = String(section["kind"])
-		var table: Dictionary = ContentDB.get(String(section["source"]))
-		_rows.add_child(_section_heading("%s  ·  %d / %d" % [
-			String(section["title"]), MetaState.seen_count(kind), table.size()]))
-		var ids: Array = table.keys()
-		ids.sort()
-		for id: Variant in ids:
-			var entry := table[id] as GameData
-			if entry != null:
+	_style_tabs()
+	if _search_edit != null:
+		_search_edit.custom_minimum_size.y = 			TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
+	if _tab == TAB_SPIRITS:
+		_note.text = ("Every animal the road can bond. What one eats is what "
+			+ "it costs to keep at your shoulder, and a rarer spirit is a "
+			+ "stronger one and eats like it.")
+		_build_spirit_journal()
+	else:
+		if _tab != TAB_ALL:
+			_note.text = ("What walks Act %s. Anything with no act of its "
+				+ "own - a camp's own breeds, the wyrms - is on the whole "
+				+ "book's page.") % _roman(_tab)
+		var hits: int = 0
+		for section: Dictionary in SECTIONS:
+			var kind: String = String(section["kind"])
+			var table: Dictionary = ContentDB.get(String(section["source"]))
+			var ids: Array = table.keys()
+			ids.sort()
+			var shown: Array[GameData] = []
+			for id: Variant in ids:
+				var entry := table[id] as GameData
+				if entry != null and _belongs(kind, entry, _tab) \
+						and _matches(kind, entry, String(section["title"])):
+					shown.append(entry)
+			if shown.is_empty():
+				continue
+			hits += shown.size()
+			# **Counted over what is on the page, not over the book.** The
+			# heading above already carries the book's own total; repeating it
+			# beside a filtered list printed "Breeds · 45 / 9".
+			var found: int = 0
+			for entry: GameData in shown:
+				if MetaState.has_seen(kind, entry.id):
+					found += 1
+			_rows.add_child(_section_heading("%s  ·  %d / %d" % [
+				String(section["title"]), found, shown.size()]))
+			for entry: GameData in shown:
 				_rows.add_child(_entry_row(kind, entry))
-
-	_build_spirit_journal()
+		if hits == 0:
+			_rows.add_child(_nothing_found())
 
 	# Applied once over the finished list rather than per row: it walks the tree
 	# and is not free, and every row is in place by now.
@@ -331,6 +412,157 @@ func _section_heading(text: String) -> Label:
 	return label
 
 
+## **Which page an entry belongs on**, and an entry with no act of its own is
+## on the whole book's page only.
+##
+## Read off the content rather than authored a second time: a breed belongs to
+## an act because that act's terrain names it in `enemy_ids`, `veteran_ids` or
+## `boss_id`, which is the same list the wave director draws from. A camp's own
+## breeds and the wyverns are named by no terrain, so they are on `TAB_ALL` -
+## which is correct rather than a gap: they are not what walks that road.
+func _belongs(kind: String, entry: GameData, tab: int) -> bool:
+	if tab == TAB_ALL:
+		return true
+	match kind:
+		"enemy":
+			var terrain: TerrainData = ContentDB.terrain_for_act(tab)
+			if terrain == null:
+				return false
+			return terrain.enemy_ids.has(entry.id) \
+				or terrain.veteran_ids.has(entry.id) \
+				or terrain.boss_id == entry.id
+		"affix":
+			var mark := entry as EnemyAffixData
+			return mark != null and mark.from_act <= tab
+		"wildlife":
+			var animal := entry as WildlifeData
+			if animal == null:
+				return false
+			# An empty list is a preference for nowhere in particular, which
+			# means everywhere - `roll_weight`'s own reading of it.
+			return animal.acts.is_empty() or animal.acts.has(tab)
+		_:
+			# Weather is the same weather on every road.
+			return true
+
+
+## The tabs, built once. Styled on every refresh so the open one reads as open.
+func _build_tab_bar() -> HFlowContainer:
+	_tab_bar = HFlowContainer.new()
+	_tab_bar.add_theme_constant_override("h_separation", 6)
+	_tab_bar.add_theme_constant_override("v_separation", 6)
+	_add_tab("All", TAB_ALL)
+	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
+		_add_tab(_roman(act), act)
+	_add_tab("Spirits", TAB_SPIRITS)
+	return _tab_bar
+
+
+func _add_tab(text: String, which: int) -> void:
+	var button := Button.new()
+	button.text = text
+	button.name = "Tab%d" % which
+	button.set_meta(&"tab", which)
+	button.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
+	button.set_meta(UiMetrics.SELF_SIZED, true)
+	button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, TAB_TOUCH_HEIGHT)
+	button.focus_mode = Control.FOCUS_ALL
+	button.pressed.connect(func() -> void:
+		if _tab == which:
+			return
+		_tab = which
+		_refresh()
+		# Back to the top: a page changed under a scroll left half way down is
+		# a page that looks empty.
+		if _scroll != null:
+			_scroll.scroll_vertical = 0)
+	_tab_bar.add_child(button)
+
+
+func _style_tabs() -> void:
+	if _tab_bar == null:
+		return
+	for child: Node in _tab_bar.get_children():
+		var button := child as Button
+		if button == null:
+			continue
+		var open: bool = int(button.get_meta(&"tab", TAB_ALL)) == _tab
+		button.add_theme_color_override("font_color",
+			Color("f2dfa8") if open else Color("8d8579"))
+		# **Not disabled.** Greying the open tab is the one styling that reads
+		# as "this page is unavailable" - exactly backwards. It is lit instead,
+		# and pressing it again costs nothing because `_add_tab` returns early.
+		button.modulate = Color(1.16, 1.10, 0.96) if open else Color(0.82, 0.82, 0.84)
+		# Sized here rather than at build: whether this is a thumb or a mouse is
+		# read on every refresh, and a rotation may answer it differently.
+		button.custom_minimum_size.y = TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
+
+
+## **The search box.** Narrows the open page; it does not replace it.
+func _build_search() -> HBoxContainer:
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+
+	var label := Label.new()
+	label.text = "Search"
+	label.add_theme_font_size_override("font_size", FONT_NOTE)
+	label.add_theme_color_override("font_color", Color("9b917f"))
+	line.add_child(label)
+
+	_search_edit = LineEdit.new()
+	_search_edit.placeholder_text = "a name, a word in a description, a section"
+	_search_edit.clear_button_enabled = true
+	_search_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_search_edit.custom_minimum_size.y = TAB_HEIGHT
+	_search_edit.set_meta(UiMetrics.SELF_SIZED, true)
+	_search_edit.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, TAB_TOUCH_HEIGHT)
+	# Every keystroke, rather than on submit: a book of 160 entries is searched
+	# by typing three letters and reading, and a search that needs Enter is one
+	# a player tries once.
+	_search_edit.text_changed.connect(func(text: String) -> void:
+		_search = text.strip_edges().to_lower()
+		_refresh()
+		if _scroll != null:
+			_scroll.scroll_vertical = 0)
+	line.add_child(_search_edit)
+	return line
+
+
+## Whether an entry answers what was typed. Empty matches everything, which is
+## what makes the field cost nothing to leave alone.
+func _matches(kind: String, entry: GameData, section: String) -> bool:
+	if _search.is_empty():
+		return true
+	if entry.display_name.to_lower().contains(_search) \
+			or section.to_lower().contains(_search) \
+			or entry.id.to_lower().contains(_search):
+		return true
+	# The description and the detail line only once the thing has been met -
+	# otherwise a search reads out the text of entries the page is deliberately
+	# withholding, which is the one thing an unfound row must not do.
+	if not MetaState.has_seen(kind, entry.id):
+		return false
+	return entry.description.to_lower().contains(_search) \
+		or _detail_for(kind, entry).to_lower().contains(_search)
+
+
+## Said out loud, because an empty list under a search box reads as a fault.
+func _nothing_found() -> Label:
+	var label := Label.new()
+	label.text = "Nothing here answers to \"%s\"." % _search
+	label.add_theme_font_size_override("font_size", FONT_BODY)
+	label.add_theme_color_override("font_color", Color("9b917f"))
+	return label
+
+
+## An act as the road writes it. A table rather than the general algorithm,
+## for the reason `boss_fall_card._roman` gives.
+func _roman(act: int) -> String:
+	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
+		"VI", "VII", "VIII", "IX", "X", "XI"]
+	return NUMERALS[clampi(act - 1, 0, NUMERALS.size() - 1)]
+
+
 ## One line. Found entries name themselves and say what they are; the rest show
 ## only that they exist.
 func _entry_row(kind: String, entry: GameData) -> PanelContainer:
@@ -360,6 +592,11 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# **Its own square, whatever the row is doing.** A `TextureRect` in an
+	# `HBoxContainer` fills the box's height by default, so a row whose text
+	# ran to four lines drew a 96-wide frame 150 tall around a sprite centred
+	# in it - the frame no longer fitted the slot, which is what it is for.
+	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	# Every entry gets an edge, found or not: a silhouette in a frame reads as
 	# a portrait waiting to be filled in, and one without reads as missing art.
 	FrameKit.hang(art)
@@ -436,11 +673,17 @@ func _build_spirit_journal() -> void:
 		% [bonded, total]))
 	_rows.add_child(_spirit_note())
 
+	var hits: int = 0
 	for kind: WildlifeData in species:
+		if not _matches("wildlife", kind, "Wildlife Spirits"):
+			continue
+		hits += 1
 		_rows.add_child(_spirit_species_row(kind))
 		if _spirit_open == kind.id:
 			for variant: String in SpiritBond.variants_of(kind.id):
 				_rows.add_child(_spirit_variant_row(kind, variant))
+	if hits == 0:
+		_rows.add_child(_nothing_found())
 
 
 func _spirit_note() -> Label:
@@ -453,8 +696,18 @@ func _spirit_note() -> Label:
 	return label
 
 
-## One species, closed: how far along it is, and whether anything is equipped.
-func _spirit_species_row(kind: WildlifeData) -> Button:
+## **One species, read like every other page of the Codex** (owner,
+## 2026-09-22: the spirits should be *"similar to the rest of the codex having
+## the idle animation ... as well as their description and stats and unique
+## traits"*).
+##
+## It was a one-line button with a 30px icon beside four-line entries with
+## animated art, which read as a list bolted onto a book. It is the same
+## panel the breeds get now: the animal's own idle cycle, its own description,
+## what it is worth as a companion, and what it eats at every rarity - with
+## the whole thing still a button, because opening it is how the variants are
+## reached.
+func _spirit_species_row(kind: WildlifeData) -> PanelContainer:
 	var bonded: int = 0
 	var met: int = 0
 	var equipped: bool = false
@@ -465,24 +718,158 @@ func _spirit_species_row(kind: WildlifeData) -> Button:
 			met += 1
 		if MetaState.equipped_spirit == variant:
 			equipped = true
-	var row := Button.new()
-	row.text = "%s%s  ·  %d of 8 bonded%s" % [
-		"v " if _spirit_open == kind.id else "> ", kind.display_name, bonded,
-		"  ·  WALKING WITH YOU" if equipped else ""]
-	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	row.custom_minimum_size.y = 42.0
-	UiMetrics.wrap_row(row)
+
+	# **A panel with a button laid over it, rather than a button with the
+	# content anchored inside one.** A `Button` is not a `Container`, so an
+	# anchored child neither sizes it nor is clipped by it - the first cut of
+	# this row was 120px tall by construction and the upkeep ladder hung off
+	# the bottom of it, drawn and unreadable. A `PanelContainer` takes its
+	# height from the tallest child's minimum, which is the text column; the
+	# button contributes none and simply covers the row to be pressed.
+	var panel := PanelContainer.new()
+	var skin := StyleBoxFlat.new()
+	skin.bg_color = Color(1.0, 1.0, 1.0, 0.028) if met > 0 else Color(0.0, 0.0, 0.0, 0.10)
+	skin.border_color = Color(0.86, 0.72, 0.42, 0.16 if met > 0 else 0.06)
+	skin.set_border_width_all(1)
+	skin.set_corner_radius_all(6)
+	skin.content_margin_left = ROW_PAD_X
+	skin.content_margin_right = ROW_PAD_X
+	skin.content_margin_top = ROW_PAD_Y
+	skin.content_margin_bottom = ROW_PAD_Y
+	panel.add_theme_stylebox_override("panel", skin)
+
+	var inside := HBoxContainer.new()
+	inside.add_theme_constant_override("separation", 18)
+	inside.alignment = BoxContainer.ALIGNMENT_CENTER
+	inside.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(inside)
+
+	var art := TextureRect.new()
+	art.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	FrameKit.hang(art)
+	var path: String = kind.get_sprite_path()
+	if ResourceLoader.exists(path):
+		art.texture = load(path)
+		if met == 0:
+			art.modulate = Color(0.0, 0.0, 0.0, 0.55)
+		var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+		if frames.size() >= 1:
+			_animated.append({"rect": art, "frames": frames, "phase": _animated.size()})
+	inside.add_child(art)
+
+	var text := VBoxContainer.new()
+	text.add_theme_constant_override("separation", 5)
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inside.add_child(text)
+
+	var title := Label.new()
+	title.add_theme_font_size_override("font_size", FONT_NAME)
 	if met == 0:
-		# Never seen at all. Named, because knowing the animal exists is what
-		# makes looking for it a thing to do - but nothing else is given away.
-		row.text = "> %s  ·  not yet met" % kind.display_name
-		row.add_theme_color_override("font_color", Color("6d6556"))
-	if ResourceLoader.exists(kind.get_sprite_path()) and met > 0:
-		UiMetrics.row_icon(row, load(kind.get_sprite_path()), 30)
-	row.pressed.connect(func() -> void:
+		# Named, because knowing the animal exists is what makes looking for it
+		# a thing to do - and nothing else is given away.
+		title.text = "%s %s  ·  not yet met" % [
+			"v" if _spirit_open == kind.id else ">", kind.display_name]
+		title.add_theme_color_override("font_color", Color("6d6556"))
+	else:
+		title.text = "%s %s  ·  %d of 8 bonded%s" % [
+			"v" if _spirit_open == kind.id else ">", kind.display_name, bonded,
+			"  ·  WALKING WITH YOU" if equipped else ""]
+		title.add_theme_color_override("font_color", Color("efe3c6"))
+	text.add_child(title)
+
+	if met > 0:
+		var body := Label.new()
+		body.text = kind.description
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_theme_font_size_override("font_size", FONT_BODY)
+		body.add_theme_color_override("font_color", Color("9d9484"))
+		text.add_child(body)
+
+		var facts := Label.new()
+		facts.text = _spirit_facts(kind)
+		facts.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		facts.add_theme_font_size_override("font_size", FONT_BODY)
+		facts.add_theme_color_override("font_color", Color("8fa89a"))
+		text.add_child(facts)
+
+		var fed := Label.new()
+		fed.text = _spirit_upkeep_line(kind)
+		fed.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		fed.add_theme_font_size_override("font_size", FONT_BODY)
+		fed.add_theme_color_override("font_color", Color("c9a86a"))
+		text.add_child(fed)
+
+	var press := Button.new()
+	press.flat = true
+	press.focus_mode = Control.FOCUS_ALL
+	press.tooltip_text = "Open %s" % kind.display_name
+	press.pressed.connect(func() -> void:
 		_spirit_open = "" if _spirit_open == kind.id else kind.id
 		_refresh())
-	return row
+	panel.add_child(press)
+	return panel
+
+
+## What the animal is, as a companion: what it brings and what makes it its
+## own. Read off its own resource rather than authored twice.
+func _spirit_facts(kind: WildlifeData) -> String:
+	var facts: PackedStringArray = [
+		"%d health" % int(kind.max_hp),
+		"%d damage" % int(kind.damage),
+		"%d speed" % int(kind.speed),
+	]
+	var traits: PackedStringArray = []
+	if kind.mythic:
+		traits.append("a legend, and only ever found at the end of its trail")
+	if kind.is_hostile():
+		traits.append("hunts")
+	else:
+		traits.append("harmless until it is cornered")
+	if kind.flies:
+		traits.append("flies")
+	if kind.amphibious:
+		traits.append("takes to water")
+	if kind.lays_eggs:
+		traits.append("lays")
+	elif kind.breeds:
+		traits.append("bears live young")
+	if kind.steals:
+		traits.append("steals what is left on the ground")
+	if kind.hoards:
+		# `hoard_chance` defaults to one, so reading it alone made every animal
+		# in the book a loot goblin - `hoards` is the flag that decides.
+		traits.append("carries a sack worth taking")
+	if kind.group_max > 1:
+		traits.append("moves in %d to %d" % [kind.group_min, kind.group_max])
+	var line: String = "  ·  ".join(facts)
+	if not traits.is_empty():
+		line += "\n" + "  ·  ".join(traits)
+	return line
+
+
+## **What it eats, at every rarity.** The one number a player weighs a
+## companion by that was nowhere on screen - and until 2026-09-22 it did not
+## vary by rarity at all, which is what the owner asked be tuned.
+##
+## Read through `RunState.spirit_upkeep` on the species' own companion form, so
+## the page and the larder cannot disagree about what a bear costs.
+func _spirit_upkeep_line(kind: WildlifeData) -> String:
+	var form: CompanionData = SpiritBond.companion_form(kind,
+		SpiritBond.key(kind.id, 0, false))
+	if form == null:
+		return ""
+	var parts: PackedStringArray = []
+	for rarity: int in Balance.SPIRIT_RARITY_NAMES.size():
+		parts.append("%s %.1f" % [Balance.SPIRIT_RARITY_NAMES[rarity],
+			RunState.spirit_upkeep(form, rarity)])
+	return "Eats a minute:  " + "  ·  ".join(parts) + "   (a meal to call)"
 
 
 ## One variant, open: its progress, and the button that equips it.

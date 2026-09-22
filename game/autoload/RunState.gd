@@ -2501,14 +2501,26 @@ var spirit_upkeep_carry: float = 0.0
 var spirit_full_left: float = 0.0
 
 
-## What this spirit eats a minute, from its own size. A bear eats like a bear.
-func spirit_upkeep(kind: CompanionData) -> float:
+## What this spirit eats a minute: its own size, and its own rarity.
+##
+## A bear eats like a bear, and a Legendary eats like the stronger animal it
+## is - see `Balance.COMPANION_UPKEEP_BY_RARITY`. The rarity is read off the
+## equipped bond rather than off the form, because the form is the species and
+## the rarity is the *variant*; `rarity` may be handed in so the Codex can
+## print the whole ladder for a species nobody has bonded yet.
+func spirit_upkeep(kind: CompanionData, rarity: int = -1) -> float:
 	if kind == null:
 		return Balance.COMPANION_UPKEEP_PER_MINUTE
 	var share: float = 1.0
 	for step: Vector2 in Balance.COMPANION_UPKEEP_BY_SCALE:
 		if kind.scale >= step.x:
 			share = step.y
+	var rank: int = rarity
+	if rank < 0:
+		rank = SpiritBond.rarity_of(MetaState.equipped_spirit) \
+			if not MetaState.equipped_spirit.is_empty() else 0
+	var table: Array[float] = Balance.COMPANION_UPKEEP_BY_RARITY
+	share *= table[clampi(rank, 0, table.size() - 1)]
 	return Balance.COMPANION_UPKEEP_PER_MINUTE * share
 
 

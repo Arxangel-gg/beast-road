@@ -9943,6 +9943,21 @@ const COMPANION_UPKEEP_PER_MINUTE: float = 9.0
 const COMPANION_UPKEEP_BY_SCALE: Array[Vector2] = [
 	Vector2(0.7, 0.55), Vector2(1.0, 1.0), Vector2(1.4, 1.7), Vector2(2.0, 2.4),
 ]
+## **And by what it is, not only how big it is** (owner, 2026-09-22: the
+## Codex should show "their food consumption rates each including for each
+## rarity as they should all be tuned properly for all").
+##
+## A spirit's power comes entirely from its variant's rarity - that is the
+## whole of `SPIRIT_APEX_POWER` and the reason a Legendary fox is worth
+## hunting - and until this it cost exactly what a Common of the same species
+## cost to keep. A rarer spirit is a stronger spirit and eats like one, which
+## is the only lever the recovery economy has on it: it takes no attribute, no
+## level and no capped scale, only Food, which resets with the run.
+##
+## Gentle on purpose. The point is that the best companion has an upkeep you
+## notice, not that keeping one is a second economy - at the top it is a third
+## again on a rate of nine a minute. One entry per `SPIRIT_RARITY_NAMES`. [TUNE]
+const COMPANION_UPKEEP_BY_RARITY: Array[float] = [1.0, 1.12, 1.24, 1.36]
 ## How far a companion will go from its owner to answer a threat, and how
 ## wide its bite lands on an animal.
 const COMPANION_GUARD_RANGE: float = 520.0
