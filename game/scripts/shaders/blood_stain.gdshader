@@ -59,7 +59,7 @@ void fragment() {
 	// a rim, a burn, a stain - so those read over the dyed cloth as they read
 	// over the painted cloth. A body with no dye is untouched in one branch.
 	if (COLOR.a > 0.001) {
-		COLOR.rgb = warden_look(COLOR.rgb);
+		COLOR.rgb = warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb);
 	}
 	vec2 gradient = vec2(left_a - right_a, up_a - down_a);
 	if (COLOR.a > 0.001 && length(gradient) > 0.001 && impact_strength > 0.001) {

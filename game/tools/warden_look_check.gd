@@ -155,13 +155,34 @@ func _test_the_shader_is_wired() -> void:
 	var blood_text: String = FileAccess.get_file_as_string(BloodStain.SHADER_PATH)
 	_check(blood_text.contains("warden_look.gdshaderinc"),
 		"the hero's blood shader must include the dye")
-	_check(blood_text.contains("warden_look(COLOR.rgb)"),
-		"and call it on the body")
+	# **And handed the painting as well as the colour**, which is an amendment
+	# and is recorded rather than quiet. This grepped for `warden_look(COLOR.rgb)`
+	# - the old one-argument form - and was green while the dye was being
+	# destroyed by the party tint: `Hero._apply_party_colour` lerps
+	# `sprite.modulate` 46% toward the seat colour, `COLOR` already carries
+	# modulate when `fragment()` opens, and the bands select by *hue*, so seat 1
+	# lost its cloak band entirely. The bands are read off `texture(TEXTURE, UV)`
+	# now and the turn applied to `COLOR`, so what a pixel *is* comes from the
+	# art and what is done to it comes from the state.
+	for path: String in [BloodStain.SHADER_PATH, WardenLook.SHADER_PATH]:
+		var text: String = FileAccess.get_file_as_string(path)
+		_check(text.contains("warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb)"),
+			("%s must call the dye with the painting as well as the colour - "
+				+ "bands read off a tinted colour are bands that move with the "
+				+ "seat") % path.get_file())
 	var include_text: String = FileAccess.get_file_as_string(
 		"res://scripts/shaders/warden_look.gdshaderinc")
 	_check(include_text.contains("uniform float look_cloak")
 		and include_text.contains("uniform float look_sash"),
 		"the include must declare both dyes")
+	# The mask must come from `art` and the turn from `hsv`: a build that read
+	# either from the other is the fault this amendment exists to refuse.
+	_check(include_text.contains("vec3 mask = look_to_hsv(art);")
+		and include_text.contains("hsv.x = fract(hsv.x"),
+		("the include must take its bands from the painting and its turn from "
+			+ "the colour"))
+	_check(not include_text.contains("smoothstep(0.43, 0.47, hsv.x)"),
+		"the cloak band is still read off the tinted colour")
 
 
 ## **The bound.** A real hero, dressed, and every number it carries read

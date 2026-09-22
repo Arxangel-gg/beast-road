@@ -7,6 +7,6 @@ shader_type canvas_item;
 
 void fragment() {
 	if (COLOR.a > 0.001) {
-		COLOR.rgb = warden_look(COLOR.rgb);
+		COLOR.rgb = warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb);
 	}
 }

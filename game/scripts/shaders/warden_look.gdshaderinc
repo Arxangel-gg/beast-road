@@ -43,21 +43,37 @@ vec3 look_to_rgb(vec3 c) {
 	return c.z * mix(k.xxx, clamp(p - k.xxx, 0.0, 1.0), c.y);
 }
 
-vec3 warden_look(vec3 rgb) {
+// `art` is the painting; `rgb` is what has already been done to it.
+//
+// **The bands are read off the art and the turn is applied to the colour**, and
+// keeping those two apart is the whole of this function being correct in
+// company. `Hero._apply_party_colour` sets `sprite.modulate` to a 46% lerp
+// toward the seat colour in co-op, `COLOR` already carries modulate when
+// `fragment()` opens, and these bands select by *hue* - so read off the tinted
+// colour, seat 1 (Red) lost its cloak band entirely and grew its sash band by
+// 364%, which smears the sash dye across the steel and makes the cloak dye do
+// nothing at all. Measured over the real south idle frame; only seat 2 (Blue)
+// survived. Solo was never affected, because the tint only shows with a party.
+//
+// It is the same separation `blood_stain.gdshader` already insists on for the
+// blood: what a pixel *is* comes from the art, what is done to it comes from
+// the state.
+vec3 warden_look(vec3 rgb, vec3 art) {
 	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005) {
 		return rgb;
 	}
+	vec3 mask = look_to_hsv(art);
 	vec3 hsv = look_to_hsv(rgb);
 	// The teal-steel band: hue 160 to 225 degrees, anything with a little colour
 	// in it. Bone and the plain greys have none and stay bone and grey.
-	float cloak = smoothstep(0.43, 0.47, hsv.x) * (1.0 - smoothstep(0.60, 0.64, hsv.x))
-		* smoothstep(0.10, 0.18, hsv.y);
+	float cloak = smoothstep(0.43, 0.47, mask.x) * (1.0 - smoothstep(0.60, 0.64, mask.x))
+		* smoothstep(0.10, 0.18, mask.y);
 	// The red band: within a few degrees of zero, either side of the wrap, and
 	// saturated. The lantern's orange (hue 20 to 40) and the leather (hue 20,
 	// less saturated) are outside it.
-	float red = 1.0 - smoothstep(0.035, 0.055, hsv.x);
-	float wrapped = smoothstep(0.94, 0.96, hsv.x);
-	float sash = max(red, wrapped) * smoothstep(0.45, 0.60, hsv.y);
+	float red = 1.0 - smoothstep(0.035, 0.055, mask.x);
+	float wrapped = smoothstep(0.94, 0.96, mask.x);
+	float sash = max(red, wrapped) * smoothstep(0.45, 0.60, mask.y);
 	hsv.x = fract(hsv.x + look_cloak * cloak + look_sash * sash);
 	return look_to_rgb(hsv);
 }
