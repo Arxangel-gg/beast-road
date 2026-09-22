@@ -16,4 +16,3 @@ instruction = "Click open ground beside a road, pick an element, pick a tower of
 instruction_two = "You can only build while he is standing still. Stone does not set on a walking beast, and once he is moving, what you have built is what you have."
 aside = "They built the hold's wall in a summer. You have got until he walks."
 seconds = 11.0
-opens = ""

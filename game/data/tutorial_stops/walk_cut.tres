@@ -16,4 +16,3 @@ instruction = "Walk up to the trunk and press Interact to start swinging. Walkin
 instruction_two = "Wood is what mends a wall. Timber is what a forge wants, and it keeps between runs."
 aside = "Nobody has felled in here in a season. The hold had stopped building anything, which is how you can tell what they thought was coming."
 seconds = 11.0
-opens = ""

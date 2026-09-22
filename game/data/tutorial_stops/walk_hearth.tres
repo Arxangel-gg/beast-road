@@ -16,4 +16,3 @@ instruction = "Spells sit on 1 to 4. Casting spends mana, and it comes back on i
 instruction_two = "Focus is what deepens the pool, fills it faster, sharpens what you cast and shortens the wait. Everything a caster is, is that one attribute."
 aside = "Fire, water, stone and air. The hold kept a little of each in this stone and nobody here could have told you why it works."
 seconds = 11.0
-opens = ""

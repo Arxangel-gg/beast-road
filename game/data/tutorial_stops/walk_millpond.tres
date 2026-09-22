@@ -16,4 +16,3 @@ instruction = "Hold Interact to cast. The longer you hold, the further it goes. 
 instruction_two = "Keep the line in the band while it fights. Too tight and it snaps, too slack and it is gone - and what you land keeps between runs."
 aside = "The wheel has not turned in a while. The fish did not mind."
 seconds = 11.0
-opens = ""

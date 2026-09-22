@@ -6443,6 +6443,21 @@ white emission renders the grey AgX invents and the game's tint lands on
 that; and a keyframed Value node is the clock, because a driver needs the
 expression sandbox and a keyframe needs nothing.
 
+**A gate on neither bar, found 2026-09-22 by the same diff that finds the
+splits.** `resource_reach_check` - every authored resource field is read by
+something or written down as not, the data-layer twin of
+`balance_reach_check` - had a `.tscn`, a commit, and no line in either
+workflow, so it could fail nothing. Run by hand it was red: the Walk's stop
+data authored `opens`, "the gate this stop unbars", on all eighteen stops as
+`""`, and nothing read it. Deleted rather than wired, because every stop left
+it empty and the Walk gates its stops by order. The gate is on both bars now.
+The diff worth running before every tag is three lines, and the third is the
+one this found:
+
+    comm -23 guard release   # in guard only
+    comm -13 guard release   # in release only
+    comm -23 all-gates release   # on neither - the network gates by design, and this
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

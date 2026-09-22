@@ -717,6 +717,7 @@ jobs:
           # honest: a shot changes the shape of a blow, never its size.
           check "enemy shots" --headless --path game res://tools/enemy_shot_check.tscn
           check "vfx forge" --headless --path game res://tools/forge_check.tscn
+          check "resource reach" --headless --path game res://tools/resource_reach_check.tscn
           # Woodcutting, mining and the forge: a new account holds nothing, nodes
           # stand outside the city's square, and the forge only ever makes gear.
           check "gathering" --headless --path game res://tools/gathering_check.tscn

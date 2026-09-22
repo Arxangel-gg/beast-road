@@ -16,4 +16,3 @@ instruction = "Walk with the movement keys, or the left stick. The lantern light
 instruction_two = ""
 aside = "Nobody has lit the wall lamps in a while. There was nobody left to walk them."
 seconds = 11.0
-opens = ""

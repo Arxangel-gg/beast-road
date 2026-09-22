@@ -201,8 +201,18 @@ Add them **region by region, gated each time**, never as one batch of forty.
 ruling (faster, SP-costed, `MOUNT_GALLOP_CEILING`/`_RANGE`), the mount idles, the
 quit warning, the machine preset, the interface size, the pad walk, the Warden's
 look (dye), the boss phase tempo, and the icon-rect fix the 4K layout shape found.
-The boss tempo, the icon fix and the 4K/ultrawide shapes landed **after** the tag
-and are on main unswept; run `tools/sweep.sh <scratch> release` before v0.50.0.
+The boss tempo, the icon fix and the 4K/ultrawide shapes landed **after** the tag.
+
+**And then the owner's batch of the same evening, all built and gated** (v0.50.0):
+Yuri's tail answered in the file after nine reports (`grade_tail_to_stub.py`,
+every runtime knob gone); the Walk card above the HUD's band; seven action
+buttons beside four slots at 1920 (`layout_check` saddles a mount); the Arcane
+opening with Act II (`DISCIPLINE_OPENS_AT_ACT`); seams shedding Stone and gems
+with a level-scaled take (`GATHER_BONUS_*`, `Request.GATHER_SIDE`); the nine
+road wardens at 64% and every boss at 72% of their health; eighty-six per-breed
+shots with drawn heads, a partner's screen wearing the same one, and the
+systematic walk (`enemy_shot_check`, 894); and the VFX forge's first effect out
+of Blender 4.5 (`tools/vfx_forge`, `Vfx.forge_burst`, `forge_check`).
 
 **Still open, in the order to take them:**
 

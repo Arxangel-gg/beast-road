@@ -16,4 +16,3 @@ instruction = "Two ways up. One is short and pays little. The other is longer, t
 instruction_two = "Read both, then pick. The road asks you this at every crossroad and it never asks twice."
 aside = "Either way comes out in the same place. That is usually true. It is not always true."
 seconds = 11.0
-opens = ""

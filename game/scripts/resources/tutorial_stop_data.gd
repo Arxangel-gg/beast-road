@@ -72,6 +72,3 @@ enum Done {
 ## How long a line stands before the next may replace it.
 @export var seconds: float = 9.0
 
-## The gate this stop unbars, or "". Gating is by path rather than by invisible
-## wall: a stile, an unbarred door, a plank across the race.
-@export var opens: String = ""
