@@ -59,6 +59,27 @@ const MAX_HITCHES_PER_MINUTE: float = 3.0
 ## battlefield, so the count legitimately rises and then plateaus. What matters
 ## is whether it is *still* rising once the game has settled.
 const MAX_NODE_GROWTH: float = 0.06
+
+## The road this report measures, unless `--seed=` names another.
+##
+## **Measured at 45, 90 and 150 seconds on this seed: the window is one
+## continuous ROAD_BATTLE.** A wave is about ninety seconds of road, so the
+## release's 45s never contains a between-wave breather at all - which is
+## where the 2026-09-22 node leak lived, and why that leak reached a release
+## bar the gate for it was already on. Tripling the release job to buy a
+## breather is the wrong trade: `preparation_check` holds the interface's
+## per-frame work deterministically in about a second, on both bars. What
+## this report owes instead is to **say which phases it watched**, so that
+## 'nothing grew' is never read as 'nothing can grow'.
+##
+## **Fixed, because a report whose verdict is a draw is not a report.** This
+## called `RunState.reset()` with no seed, so every run rolled a different
+## road - and the node-growth leak of 2026-09-22 only ran during a *timed*
+## Preparation breather, which a 45-second window contained about one run in
+## three. The gate was right, intermittently, for as long as that took to
+## notice. Frame time varies with the formation drawn too, so the same
+## argument covers the whole report: measure one road and re-measure it.
+const DEFAULT_SEED: int = 20260922
 const MAX_ORPHAN_GROWTH: int = 64
 
 ## Warm-up excluded from every measurement. The first frames build the scope,
@@ -107,6 +128,9 @@ var _nodes: Array[float] = []
 var _orphans: Array[float] = []
 ## One census a second beside the scalar, so a leak can be named.
 var _census: Array[Dictionary] = []
+var _seed: int = DEFAULT_SEED
+## Every run phase the measured window actually saw, in order.
+var _phases_seen: Array[String] = []
 var _memory: Array[float] = []
 
 var _failures: PackedStringArray = []
@@ -115,7 +139,9 @@ var _notes: PackedStringArray = []
 
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--seconds="):
+		if argument.begins_with("--seed="):
+			_seed = int(argument.split("=")[1])
+		elif argument.begins_with("--seconds="):
 			_seconds = float(argument.split("=")[1])
 		elif argument.begins_with("--checkpoint="):
 			# CI uses user:// to exercise the shipped storage backend. Sandboxed
@@ -174,7 +200,7 @@ func _ready() -> void:
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
 	Engine.max_fps = 0
 
-	RunState.reset()
+	RunState.reset(false, _seed)
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
 	add_child(load("res://scenes/run/run.tscn").instantiate())
@@ -275,6 +301,13 @@ func _process(delta: float) -> void:
 		# diagnosing the one that shipped on 2026-09-22 needed a separate
 		# census harness written from scratch to answer it.
 		_census.append(_node_census())
+		# **What the window actually watched.** A report that only ever sees
+		# one wave is how a leak that lives in the breather shipped; naming the
+		# phases is what lets a reader tell 'nothing grew' from 'the half that
+		# grows was never on screen'.
+		var phase: String = RunState.Phase.keys()[RunState.phase]
+		if _phases_seen.is_empty() or _phases_seen[_phases_seen.size() - 1] != phase:
+			_phases_seen.append(phase)
 
 	if _elapsed - _fight_started - WARMUP_SECONDS >= _seconds:
 		set_process(false)
@@ -434,6 +467,15 @@ func _check_growth() -> void:
 	_notes.append("nodes    %.0f -> %.0f  (%+.1f%% between the first and last third)"
 		% [_head_average(_nodes), _tail_average(_nodes), (node_ratio - 1.0) * 100.0])
 	_notes.append("orphans  %+.0f" % orphan_rise)
+	# Said beside the growth figure rather than only on a failure, because "the
+	# window saw ROAD_BATTLE and nothing else" is the reading that turns a clean
+	# result into a question.
+	_notes.append("phases   seed %d watched %s" % [_seed,
+		"nothing" if _phases_seen.is_empty() else " -> ".join(_phases_seen)])
+	if not _phases_seen.has("PREPARATION"):
+		_notes.append("         growth judged on combat only - a between-wave "
+			+ "breather needs about 150s of road, and the interface's own "
+			+ "per-frame work is held by preparation_check on both bars")
 	_notes.append("memory   %+.1f%%" % ((memory_ratio - 1.0) * 100.0))
 
 	if node_ratio - 1.0 > MAX_NODE_GROWTH:
