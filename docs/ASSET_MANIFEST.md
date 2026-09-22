@@ -1752,7 +1752,7 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_tortoise.png` · `wildlife_jackal.png` · `wildlife_scorpion.png` ·
 `wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
 `wildlife_snow_lynx.png` · `wildlife_frost_elk.png`
-`wildlife_mireback_alligator.png` · `wildlife_saltpan_monitor.png` · `wildlife_reedback_terrapin.png`
+`wildlife_mireback_alligator.png` · `wildlife_saltpan_tusker.png` · `wildlife_reedback_terrapin.png`
 `wildlife_barkjack_woodpecker.png` · `wildlife_barkfang_wolverine.png` · `wildlife_oreback_pangolin.png` · `wildlife_screestalker.png`
 
 **The Moonstag is the first mythic (2026-09-15)**, and is never scattered: the
@@ -1865,7 +1865,7 @@ Files: `wildlife_boar_idle_01.png` · `wildlife_boar_idle_02.png` · `wildlife_b
 Files: `wildlife_viper_idle_01.png` · `wildlife_viper_idle_02.png` · `wildlife_viper_idle_03.png` · `wildlife_viper_idle_04.png`
 Files: `wildlife_wolf_idle_01.png` · `wildlife_wolf_idle_02.png` · `wildlife_wolf_idle_03.png` · `wildlife_wolf_idle_04.png`
 Files: `wildlife_mireback_alligator_idle_01.png` · `wildlife_mireback_alligator_idle_02.png` · `wildlife_mireback_alligator_idle_03.png`
-Files: `wildlife_saltpan_monitor_idle_01.png` · `wildlife_saltpan_monitor_idle_02.png` · `wildlife_saltpan_monitor_idle_03.png`
+Files: `wildlife_saltpan_tusker_idle_01.png` · `wildlife_saltpan_tusker_idle_02.png` · `wildlife_saltpan_tusker_idle_03.png`
 Files: `wildlife_reedback_terrapin_idle_01.png` · `wildlife_reedback_terrapin_idle_02.png` · `wildlife_reedback_terrapin_idle_03.png`
 Files: `wildlife_barkjack_woodpecker_idle_01.png` · `wildlife_barkjack_woodpecker_idle_02.png` · `wildlife_barkjack_woodpecker_idle_03.png`
 Files: `wildlife_barkfang_wolverine_idle_01.png` · `wildlife_barkfang_wolverine_idle_02.png` · `wildlife_barkfang_wolverine_idle_03.png`
@@ -1941,7 +1941,7 @@ Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png` · `wildlife_s
 Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png` · `wildlife_heron_move_03.png` · `wildlife_heron_move_04.png` · `wildlife_heron_move_05.png` · `wildlife_heron_move_06.png` · `wildlife_heron_move_07.png`
 Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png` · `wildlife_hedgehog_move_08.png`
 Files: `wildlife_mireback_alligator_move_01.png` · `wildlife_mireback_alligator_move_02.png` · `wildlife_mireback_alligator_move_03.png` · `wildlife_mireback_alligator_move_04.png` · `wildlife_mireback_alligator_move_05.png` · `wildlife_mireback_alligator_move_06.png` · `wildlife_mireback_alligator_move_07.png` · `wildlife_mireback_alligator_move_08.png`
-Files: `wildlife_saltpan_monitor_move_01.png` · `wildlife_saltpan_monitor_move_02.png` · `wildlife_saltpan_monitor_move_03.png` · `wildlife_saltpan_monitor_move_04.png` · `wildlife_saltpan_monitor_move_05.png` · `wildlife_saltpan_monitor_move_06.png` · `wildlife_saltpan_monitor_move_07.png` · `wildlife_saltpan_monitor_move_08.png`
+Files: `wildlife_saltpan_tusker_move_01.png` · `wildlife_saltpan_tusker_move_02.png` · `wildlife_saltpan_tusker_move_03.png` · `wildlife_saltpan_tusker_move_04.png` · `wildlife_saltpan_tusker_move_05.png` · `wildlife_saltpan_tusker_move_06.png` · `wildlife_saltpan_tusker_move_07.png` · `wildlife_saltpan_tusker_move_08.png`
 Files: `wildlife_reedback_terrapin_move_01.png` · `wildlife_reedback_terrapin_move_02.png` · `wildlife_reedback_terrapin_move_03.png` · `wildlife_reedback_terrapin_move_04.png` · `wildlife_reedback_terrapin_move_05.png` · `wildlife_reedback_terrapin_move_06.png` · `wildlife_reedback_terrapin_move_07.png` · `wildlife_reedback_terrapin_move_08.png`
 Files: `wildlife_barkjack_woodpecker_move_01.png` · `wildlife_barkjack_woodpecker_move_02.png` · `wildlife_barkjack_woodpecker_move_03.png` · `wildlife_barkjack_woodpecker_move_04.png` · `wildlife_barkjack_woodpecker_move_05.png` · `wildlife_barkjack_woodpecker_move_06.png` · `wildlife_barkjack_woodpecker_move_07.png` · `wildlife_barkjack_woodpecker_move_08.png`
 Files: `wildlife_barkfang_wolverine_move_01.png` · `wildlife_barkfang_wolverine_move_02.png` · `wildlife_barkfang_wolverine_move_03.png` · `wildlife_barkfang_wolverine_move_04.png` · `wildlife_barkfang_wolverine_move_05.png` · `wildlife_barkfang_wolverine_move_06.png` · `wildlife_barkfang_wolverine_move_07.png` · `wildlife_barkfang_wolverine_move_08.png`
@@ -1990,7 +1990,7 @@ Files: `wildlife_badger_attack_01.png` … `wildlife_badger_attack_05.png`
 Files: `wildlife_hawk_attack_01.png` … `wildlife_hawk_attack_05.png`
 Files: `wildlife_griffon_attack_01.png` … `wildlife_griffon_attack_05.png`
 Files: `wildlife_mireback_alligator_attack_01.png` … `wildlife_mireback_alligator_attack_06.png`
-Files: `wildlife_saltpan_monitor_attack_01.png` … `wildlife_saltpan_monitor_attack_06.png`
+Files: `wildlife_saltpan_tusker_attack_01.png` … `wildlife_saltpan_tusker_attack_06.png`
 Files: `wildlife_barkfang_wolverine_attack_01.png` … `wildlife_barkfang_wolverine_attack_06.png`
 Files: `wildlife_screestalker_attack_01.png` … `wildlife_screestalker_attack_06.png`
 Files: `wildlife_hollowhorn_attack_01.png` … `wildlife_hollowhorn_attack_05.png`

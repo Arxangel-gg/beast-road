@@ -2847,7 +2847,8 @@ func _refresh_spirit() -> void:
 		wanted = MetaState.equipped_spirit
 	var from_pen: bool = not raised.is_empty() and not wanted.is_empty()
 	if spirit != null and is_instance_valid(spirit):
-		if spirit.spirit_key == wanted and spirit.field == field 				and spirit.from_pen == from_pen:
+		if spirit.spirit_key == wanted and spirit.field == field \
+				and spirit.from_pen == from_pen:
 			return
 		spirit.dismiss()
 		spirit = null

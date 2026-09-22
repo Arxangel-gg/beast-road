@@ -763,7 +763,7 @@ func _row(index: int) -> Container:
 	# drawn from - and framing it is what stops a list of loot reading as a
 	# spreadsheet with pictures in the margin.
 	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", _icon_recess(tint))
+	frame.add_theme_stylebox_override("panel", _icon_recess(tint, is_worn))
 	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var icon := TextureRect.new()
@@ -867,26 +867,44 @@ func _stat_line(text: String, tint: Color) -> Label:
 ##
 ## A worn piece is edged brighter rather than labelled only: a stash of ninety-six
 ## is scanned before any of the words are read.
+## **What a piece you are wearing looks like** (owner, 2026-09-22: as well as
+## the rename, *"add extra indicators or highlights around the item slot"*).
+##
+## It differed from an unworn card by a border alpha of 0.75 against 0.42,
+## which in a list of forty cards in rarity colours is not a difference anybody
+## reads. A worn card is now framed on all four sides in gold rather than in
+## its own rarity, and sits on a warmer plate: gold is the one colour in this
+## screen that means nothing else, so it cannot be confused with a rarity, and
+## a frame all the way round reads at a glance where a thicker left edge does
+## not.
+const WORN_GOLD: Color = Color(0.94, 0.78, 0.40)
+
+
 func _card_plate(tint: Color, worn: bool, lift: float) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
+	var edge: Color = WORN_GOLD if worn else tint
 	box.bg_color = Color(0.068, 0.074, 0.078, 0.94).lerp(
-		Color(tint.r, tint.g, tint.b, 0.94), 0.05 + lift * 0.10)
-	box.border_color = Color(tint.r, tint.g, tint.b,
-		(0.75 if worn else 0.42) + lift * 0.4)
-	box.border_width_left = 4
-	box.border_width_top = 1
-	box.border_width_bottom = 1
-	box.border_width_right = 1
+		Color(edge.r, edge.g, edge.b, 0.94),
+		(0.13 if worn else 0.05) + lift * 0.10)
+	box.border_color = Color(edge.r, edge.g, edge.b,
+		(0.92 if worn else 0.42) + lift * 0.4)
+	box.border_width_left = 5 if worn else 4
+	box.border_width_top = 2 if worn else 1
+	box.border_width_bottom = 2 if worn else 1
+	box.border_width_right = 2 if worn else 1
 	box.set_corner_radius_all(6)
 	box.set_content_margin_all(2.0)
 	return box
 
 
-func _icon_recess(tint: Color) -> StyleBoxFlat:
+## The well the icon sits in. Rung in gold on a worn piece, so the indicator
+## reaches the part of the card a player is actually looking at.
+func _icon_recess(tint: Color, worn: bool = false) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(0.03, 0.035, 0.038, 0.92)
-	box.border_color = Color(tint.r, tint.g, tint.b, 0.35)
-	box.set_border_width_all(1)
+	var edge: Color = WORN_GOLD if worn else tint
+	box.border_color = Color(edge.r, edge.g, edge.b, 0.80 if worn else 0.35)
+	box.set_border_width_all(2 if worn else 1)
 	box.set_corner_radius_all(4)
 	box.set_content_margin_all(4.0)
 	return box

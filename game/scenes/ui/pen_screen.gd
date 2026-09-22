@@ -136,12 +136,20 @@ func refresh() -> void:
 	for child: Node in _list.get_children():
 		child.queue_free()
 	var kept: int = MetaState.pen.size()
-	_note.text = ("%d of %d kept. One goes with you; the rest wait here. An "
-		+ "animal that falls on the road does not come back - what it taught "
-		+ "you does.") % [kept, Balance.PEN_CAPACITY]
+	# **Where animals come from is said on the page** (owner, 2026-09-22:
+	# *"there is no clear way to understand how to obtain wildlife for our pen
+	# or how to take one with us"*). Both ways, and the one rule about taking
+	# one out, because a screen that lists what you have and never says how to
+	# get any is a screen a player with an empty pen cannot use.
+	_note.text = ("%d of %d kept. Wear an animal down on the road and throw a "
+		+ "snare to take it alive, or carry an egg home and raise what hatches. "
+		+ "One goes with you; the rest wait here. Choose before you set out - "
+		+ "the pen cannot be changed mid-run. An animal that falls on the road "
+		+ "does not come back; what it taught you does.") 		% [kept, Balance.PEN_CAPACITY]
 	if kept == 0:
 		var empty := Label.new()
-		empty.text = "Nothing raised yet. Carry an egg home and see what it becomes."
+		empty.text = ("Nothing raised yet. Hurt an animal badly and snare it, or "
+			+ "take an egg from a nest and walk it home.")
 		empty.add_theme_color_override("font_color", Color("7d8a86"))
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_list.add_child(empty)

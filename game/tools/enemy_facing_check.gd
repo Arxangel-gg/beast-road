@@ -184,7 +184,7 @@ const WILDLIFE_FACING: Dictionary = {
 	# The three amphibious reptiles (2026-09-16). Read off a contact sheet of
 	# all three walk cycles beside the roster they sit in: every frame is a
 	# right-facing profile, which is this project's wildlife convention.
-	"mireback_alligator": true, "saltpan_monitor": true, "reedback_terrapin": true,
+	"mireback_alligator": true, "saltpan_tusker": true, "reedback_terrapin": true,
 	# The four that keep to the timber and the seams (2026-09-16). Contact
 	# sheeted before being recorded; the woodpecker was regenerated because the
 	# first one came out clinging to a trunk, which is a vertical pose and would
