@@ -53,7 +53,7 @@ func _test_every_disaster_reaches_the_road() -> void:
 	_check(omens.anything(), "a wildfire must reach the road")
 	await _quiet(omens)
 
-	EventBus.earthquake.emit(0.7, 4.0)
+	EventBus.earthquake.emit(0.7, 4.0, Vector2.ZERO, 1)
 	_check(omens.anything(), "a quake must reach the road")
 	_check(omens.quake_shake() > 0.0, "and it must shake something")
 	await _quiet(omens)
@@ -88,7 +88,7 @@ func _test_a_readout_changes_nothing() -> void:
 	EventBus.tornado_moved.emit(Vector2(12.0, 12.0), true)
 	for _lit: int in 12:
 		EventBus.wildfire_lit.emit(Vector2(5.0, 5.0))
-	EventBus.earthquake.emit(1.0, 6.0)
+	EventBus.earthquake.emit(1.0, 6.0, Vector2.ZERO, 1)
 	EventBus.lightning_struck.emit(Vector2(3.0, 3.0), 90.0)
 	EventBus.meteor_incoming.emit(Vector2(4.0, 4.0))
 	for _frame: int in 20:
@@ -109,7 +109,7 @@ func _test_a_readout_changes_nothing() -> void:
 func _test_nothing_stays_on_screen_for_ever() -> void:
 	var omens: BeastOmens = _omens()
 	EventBus.tornado_spawned.emit(Vector2.ZERO, Vector2.ONE, 2.0)
-	EventBus.earthquake.emit(0.9, 1.0)
+	EventBus.earthquake.emit(0.9, 1.0, Vector2.ZERO, 1)
 	EventBus.lightning_struck.emit(Vector2.ZERO, 50.0)
 	EventBus.meteor_incoming.emit(Vector2.ZERO)
 	for _lit: int in int(Balance.BEAST_OMEN_FIRE_MAX) + 4:
@@ -131,12 +131,12 @@ func _test_nothing_stays_on_screen_for_ever() -> void:
 ## the operator flinching; the beast is standing on the ground that is moving.
 func _test_a_quake_moves_the_world_and_the_beast() -> void:
 	var omens: BeastOmens = _omens()
-	EventBus.earthquake.emit(1.0, 5.0)
+	EventBus.earthquake.emit(1.0, 5.0, Vector2.ZERO, 1)
 	_check(omens.quake_shake() > 0.5,
 		"a full quake must read as a full shake (%0.3f)" % omens.quake_shake())
 	_check(omens.quake_shake() <= 1.0,
 		"and never more than one, whatever the magnitude (%0.3f)" % omens.quake_shake())
-	EventBus.earthquake.emit(9.0, 5.0)
+	EventBus.earthquake.emit(9.0, 5.0, Vector2.ZERO, 1)
 	_check(omens.quake_shake() <= 1.0,
 		"a magnitude of nine must still clamp (%0.3f)" % omens.quake_shake())
 	# The scope reads this and applies it to both; the constant is what bounds

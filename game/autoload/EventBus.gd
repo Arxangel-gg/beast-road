@@ -837,8 +837,16 @@ signal sky_warned(line: String, title: String)
 signal coop_sky_clock(rain_scale: float, flood: float, charge: float, temperature: float)
 
 ## The earth shook. Everyone draws it; the host has already applied it.
-signal earthquake(magnitude: float, seconds: float)
-signal coop_earthquake(magnitude: float, seconds: float)
+## **Where it broke, and how many crests it sends** (2026-09-22). A quake
+## used to be a magnitude and a duration, which is everything a camera shake
+## needs and nothing a ground wave does: `GroundWave` rolls rings out from an
+## epicentre, so the epicentre has to travel or a guest draws the wave in the
+## wrong place. Widened rather than joined by a second signal, because two
+## facts for one event is a guest that can receive one without the other -
+## and `coop_check` walks every binding against this file, which is what
+## makes widening safe.
+signal earthquake(magnitude: float, seconds: float, at: Vector2, rings: int)
+signal coop_earthquake(magnitude: float, seconds: float, at: Vector2, rings: int)
 
 ## A plant caught fire here. A guest lights its own nearest plant.
 signal wildfire_lit(at: Vector2)

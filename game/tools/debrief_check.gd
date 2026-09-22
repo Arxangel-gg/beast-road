@@ -144,7 +144,7 @@ func _test_the_earth_is_counted_where_it_is_seen() -> void:
 	# Seen, not done: the handlers every machine runs when it is told.
 	EventBus.lightning_struck.emit(Vector2(400.0, 400.0), 100.0)
 	EventBus.lightning_struck.emit(Vector2(-400.0, 400.0), 100.0)
-	EventBus.earthquake.emit(0.5, 1.0)
+	EventBus.earthquake.emit(0.5, 1.0, Vector2.ZERO, 1)
 	_check(int(RunState.earth_events.get("strikes", 0)) == 2, "two strikes seen and %d counted" % int(RunState.earth_events.get("strikes", 0)))
 	_check(int(RunState.earth_events.get("quakes", 0)) == 1, "a quake seen and %d counted" % int(RunState.earth_events.get("quakes", 0)))
 	sky.queue_free()

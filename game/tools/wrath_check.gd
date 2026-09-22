@@ -47,6 +47,7 @@ func _ready() -> void:
 		_test_strain_and_the_wind()
 		_test_wrath_leans_the_weather()
 		await _test_the_quake()
+		await _test_the_wave_travels()
 		await _test_the_wildfire()
 		await _test_the_rain_puts_fire_out()
 		await _test_the_tornado()
@@ -249,25 +250,127 @@ func _test_wrath_leans_the_weather() -> void:
 
 
 ## The ground shakes and everything alive is hurt by it.
+##
+## **The harness had to learn that a quake arrives rather than happening.**
+## Until 2026-09-22 the blow was dealt to the whole field on the frame
+## `quake()` was called, so reading the health back on the next line was a
+## fair question; `GroundWave` rolls crests out from an epicentre and strikes
+## each body as a front reaches it, which takes a couple of seconds. The
+## *invariant* has not moved - a quake hurts bodies, chips a tower without
+## felling it, hurts the hero without killing them outright, and leaves a
+## fault - so what changed here is only how long the gate waits, which is a
+## harness change and not an amendment.
 func _test_the_quake() -> void:
 	_field.hero.global_position = _field.city_bounds().end + Vector2(180.0, 180.0)
-	var body: Enemy = _body(Vector2(700.0, 700.0))
+	var body: Enemy = _body(Vector2(700.0, 700.0), 1.0)
 	await get_tree().process_frame
+	_make_it_endure(body)
 	var body_hp: float = body.health.current_hp
 	var hero_hp: float = _field.hero.health.current_hp
 	await _clear_towers()
 	var wall: Tower = _build("grit_sling", _pocket(0))
+	var marks_before: int = _sky.marks.stamp_count() if _sky.marks != null else 0
 	var before: int = _sky.quakes
 	_sky.quake(1.0, ["quake"])
 	_check(_sky.quakes == before + 1, "the quake was not counted")
-	_check(body.health.current_hp < body_hp, "the quake did not hurt a body")
+	await _let_the_wave_run()
+	_check(is_instance_valid(body) and body.health.current_hp < body_hp,
+		"the quake did not hurt a body")
 	if wall != null and is_instance_valid(wall):
 		_check(wall.health_ratio() < 1.0 and wall.is_vulnerable(),
 			"the quake should chip a standing tower and never fell it (%.2f)" % wall.health_ratio())
 	_check(_field.hero.health.current_hp < hero_hp, "the quake did not hurt the hero")
 	_check(_field.hero.health.current_hp > 0.0, "a full quake killed a full hero outright")
+	if _sky.marks != null:
+		_check(_sky.marks.stamp_count() > marks_before,
+			"the wave left no cracks where its own front passed")
 	body.queue_free()
 	await get_tree().process_frame
+
+
+## **The wave comes from somewhere, and standing still costs more than
+## moving.** The bound the ground wave was built under: every crest carries
+## the old blow divided by the crest count and reaches past the far corner,
+## so a body that does not move takes exactly the old total - and a body that
+## steps out of a crest takes less. Measured on two bodies of the same breed
+## with the same pool, one held at the epicentre's ring and one walked out of
+## it, rather than read off the constants.
+func _test_the_wave_travels() -> void:
+	# **Nothing left over from the last quake.** A wave crosses the whole
+	# grid, which takes longer than the test before this waits, so
+	# `_the_wave` was handing back that test's wave and the gate was
+	# measuring an epicentre nobody had asked for.
+	await _clear_waves()
+	await _clear_towers()
+	_field.hero.global_position = _field.city_bounds().end + Vector2(900.0, 900.0)
+	var still: Enemy = _body(Vector2(-900.0, 0.0))
+	var mover: Enemy = _body(Vector2(900.0, 0.0))
+	await get_tree().process_frame
+	_make_it_endure(still)
+	_make_it_endure(mover)
+	var pool: float = still.health.current_hp
+	_sky.quake(1.0, ["quake"], Vector2(1.0, 0.0))
+	var wave: GroundWave = _the_wave()
+	_check(wave != null, "a quake with a quake pattern in it opened no wave")
+	if wave == null:
+		return
+	_check(wave.at == Vector2(1.0, 0.0),
+		"the wave broke at %s rather than where the warning said" % wave.at)
+	_check(wave.rings >= 1, "a full quake sent no crest at all")
+	# The mover is carried outward faster than the front, so it is never
+	# inside a crest after the first. It cannot avoid the first: the wave is
+	# born under it, which is the honest floor - a quake is not dodgeable,
+	# only readable.
+	var ran: float = 0.0
+	while ran < 6.0 and is_instance_valid(wave):
+		await get_tree().process_frame
+		ran += get_process_delta_time()
+		if is_instance_valid(mover):
+			mover.global_position += Vector2(Balance.QUAKE_WAVE_SPEED * 1.4, 0.0) 				* get_process_delta_time()
+	_check(still.health.current_hp < pool, "the crest passed the still body and did not strike it")
+	_check(mover.health.current_hp > still.health.current_hp,
+		"stepping out of the crests bought nothing: %.0f against %.0f"
+			% [mover.health.current_hp, still.health.current_hp])
+	still.queue_free()
+	mover.queue_free()
+	await get_tree().process_frame
+
+
+## Frees every wave still crossing the field, so the next test starts on
+## ground nothing is rolling over.
+func _clear_waves() -> void:
+	for child: Node in _field.get_children():
+		var wave := child as GroundWave
+		if wave != null:
+			_field.remove_child(wave)
+			wave.queue_free()
+	await get_tree().process_frame
+
+
+## Waits out the crests, or six seconds, whichever is sooner.
+func _let_the_wave_run() -> void:
+	var waited: float = 0.0
+	while waited < 6.0:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+		if _the_wave() == null and waited > 0.2:
+			return
+
+
+## A pool nothing on the field can empty inside a measurement.
+func _make_it_endure(body: Enemy) -> void:
+	if body == null or not is_instance_valid(body) or body.health == null:
+		return
+	body.health.max_hp = 1000000.0
+	body.health.current_hp = 1000000.0
+
+
+func _the_wave() -> GroundWave:
+	for child: Node in _field.get_children():
+		var wave := child as GroundWave
+		if wave != null and is_instance_valid(wave):
+			return wave
+	return null
 
 
 ## A plant catches, hurts what stands in it, heats the fire towers, spreads,
@@ -722,6 +825,12 @@ func _test_the_quake_is_telegraphed() -> void:
 	_check(_sky.quakes == quakes, "halfway through the warning the ground broke")
 	_step(Balance.QUAKE_WARNING_SECONDS * 0.5 + 1.0)
 	_check(_sky.quakes == quakes + 1, "the warning ran out and the quake did not come")
+	# **The fault arrives with the wave rather than with the break.** It is
+	# laid where the first crest's own front was strongest, which is a couple
+	# of seconds out - and `_step` drives the sky by hand, which never ticks
+	# a wave living under the battlefield. The invariant is the one it always
+	# was: a quake leaves a fault. Only the moment moved.
+	await _let_the_wave_run()
 	if ground != null:
 		_check(ground.opened == opened + 1, "the quake left no fault")
 		ground.clear()

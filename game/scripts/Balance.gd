@@ -8671,6 +8671,73 @@ const QUAKE_WILDLIFE_DAMAGE: float = 40.0
 const QUAKE_TOWER_DAMAGE: float = 15.0
 const QUAKE_SHAKE: float = 26.0
 
+## **The ground wave** (owner, 2026-09-22: the earth's ground disaster was
+## *"a low quality ... starting solution"*). A quake used to be one number
+## dealt to everything on the field on one frame; it is rings of broken
+## ground rolling out from an epicentre now, and a body is struck once per
+## ring as the front reaches it.
+##
+## **The total is unchanged and the bound is that it may only fall.** Each
+## ring carries the old amount divided by the ring count and every ring
+## reaches past the far corner, so anything that does not move - every tower,
+## most of the road - takes exactly what it always took. What reading the
+## wave buys a Warden is the rings they step out of. [TUNE]
+##
+## `QUAKE_WAVE_SPEED` is the one number that decides whether that reading is
+## possible at all: at 900 a crest crosses a road in about two seconds, which
+## is enough to run out of and not enough to stroll out of. A hero runs at
+## 200 and sprints faster, so outrunning a front is never the answer -
+## stepping out of its path is.
+const QUAKE_WAVE_SPEED: float = 900.0
+const QUAKE_CREST_WIDTH: float = 150.0
+## How far past the grid's own half-extent a ring runs. Above one on purpose:
+## a ring that stopped at the edge would miss the corners, and a body the
+## wave never reached would be taking less than the old blow - which is the
+## bound, in the direction nobody asked for.
+const QUAKE_WAVE_REACH_SHARE: float = 1.65
+## How many crests a quake sends, at full anger, and how far apart they are.
+const QUAKE_RINGS_MAX: int = 3
+const QUAKE_AFTERSHOCK_GAP: float = 0.85
+## What a crest is still worth at the far edge of its run. The wave runs out
+## of ground rather than stopping dead, which is also what makes the far side
+## of the field a real place to stand.
+const QUAKE_EDGE_SHARE: float = 0.55
+## The shove a crest gives whoever it passes under. A shove and never a stun:
+## the player keeps control of a body that is briefly sliding.
+const QUAKE_HERO_KNOCKBACK: float = 260.0
+const QUAKE_ENEMY_KNOCKBACK: float = 190.0
+## The epicentre's own telegraph: how far the cracks reach before it breaks
+## and how often the ground puffs while they open.
+const QUAKE_TELL_RADIUS: float = 210.0
+const QUAKE_TELL_INTERVAL: float = 0.22
+## Dust and forged sheets along a running crest. On their own clocks, because
+## a puff a frame is a wall of sprites and this is decoration.
+const QUAKE_DUST_INTERVAL: float = 0.10
+const QUAKE_DUST_PER_TICK: int = 5
+const QUAKE_SHEET_INTERVAL: float = 0.16
+## How round the crest is drawn, and where along its run it leaves cracks.
+const QUAKE_CREST_SEGMENTS: int = 72
+## How much of a crest's circumference is actually drawn. **Under one on
+## purpose and this is the whole look**: a continuous ring at any alpha reads
+## as a painted donut laid on the field, and broken ground is chunks with
+## gaps between them. Photographed at 1.0 before it was set here. [TUNE]
+const QUAKE_CREST_FILL: float = 0.62
+const QUAKE_FISSURE_AT: float = 0.45
+const QUAKE_FISSURE_ARMS: int = 4
+## The screen-reading ripple: how wide the bent band is in screen heights and
+## how far it moves the frame under it. Small - this is earth rather than
+## water, and a ground that sloshes reads as a bug.
+const QUAKE_RIPPLE_CREST: float = 0.055
+const QUAKE_RIPPLE_STRENGTH: float = 0.017
+## Above the world and well under the HUD's 20, so the bent ground never
+## bends a button.
+const QUAKE_RIPPLE_LAYER: int = 3
+## How long the ground is open at the epicentre before the first crest
+## leaves it. Short: the hum is the telegraph and this is the break itself -
+## a second beat long enough to read as the earth splitting and too short to
+## be a second warning. [TUNE]
+const QUAKE_SPLIT_SECONDS: float = 0.42
+
 ## Wildfire: a hazard of `WILDFIRE_RATE * wrath * dryness`; a fire tower's hit
 ## lights a plant near its target with `WILDFIRE_TOWER_CHANCE`. A burning
 ## plant lasts `WILDFIRE_BURN_SECONDS`, tries to spread every tick to a

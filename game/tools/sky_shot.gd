@@ -118,9 +118,19 @@ func _ready() -> void:
 	for _f: int in 40:
 		await get_tree().process_frame
 
-	# The ground shaking.
-	_sky.quake(1.0)
-	await _shoot("quake", 12)
+	# **The ground wave, three times as it crosses.** One frame of a quake
+	# said nothing when a quake was one instant; now it is crests rolling out
+	# from a place, so the reading that matters is the same wave at the
+	# split, halfway out, and at the far edge.
+	# **The pattern is named, not rolled.** `quake()` with nothing selected
+	# draws its patterns from the wrath, so whether there is a ground wave at
+	# all was a coin toss - two runs of this tool in a row photographed a
+	# wave and then an empty field, which is a diagnostic that cannot be
+	# trusted either way.
+	_sky.quake(1.0, ["quake"], hero.global_position + Vector2(-120.0, 40.0))
+	await _shoot("quake_split", 6)
+	await _shoot("quake_rolling", 40)
+	await _shoot("quake_spent", 60)
 
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
 	get_tree().quit(0)

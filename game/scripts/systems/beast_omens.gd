@@ -88,7 +88,8 @@ func _on_wildfire(_at: Vector2) -> void:
 	_fires = minf(_fires + 1.0, Balance.BEAST_OMEN_FIRE_MAX)
 
 
-func _on_earthquake(magnitude: float, seconds: float) -> void:
+func _on_earthquake(magnitude: float, seconds: float, _at: Vector2 = Vector2.ZERO,
+		_rings: int = 1) -> void:
 	_quake_left = maxf(_quake_left, seconds)
 	_quake_magnitude = maxf(_quake_magnitude, magnitude)
 

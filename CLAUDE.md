@@ -6780,6 +6780,94 @@ answer the cursor), so the fix is a deletion; the levels moved into `Sfx.MIX`,
 where a level belongs, because a level at a call site is a level the next call
 site does not know about.
 
+**The earth's wave comes from a place and travels, as of 2026-09-22.** The
+owner: the ground-wave disaster was *"a low quality and unaesthetically
+appealing and low game juice starting solution that needs to be made ready
+for production ready release with better vfx and game juice and appeal and
+game play mechanics"*. Every word of that was earned, and **the worst of it
+was not the picture**.
+
+**An earthquake was one number, everywhere, on one frame.** Every hero, every
+enemy, every tower and every animal on the field took their share at the
+instant it broke, through a filter reading `func(_where): return true`. There
+was nowhere to be, nothing arriving and nothing to read. The only thing on
+screen was a camera shake, three dust puffs near whoever was watching, and a
+fault crack stamped at a point drawn from a stream nobody had watched - so the
+crack in the ground had no relationship to anything that had happened.
+
+**`GroundWave` is the answer and it is a gameplay change first.** The ground
+splits at an epicentre, the split is shown while the earth hums, and one to
+three crests roll outward across the whole field at `QUAKE_WAVE_SPEED`. A body
+is struck **once per ring, as the front reaches it** - so the blow arrives from
+somewhere, and where you are standing when it does is a decision.
+
+**The bound is that a wave may only ever be gentler than the old number was,
+never harder.** Each crest carries the old total divided by the crest count and
+every crest reaches *past* the far corner of the grid, so anything that does
+not move - every tower, most of the road - takes exactly what it always took.
+What reading it buys a Warden is the crests they step out of and nothing else:
+no crest strikes twice, none strikes harder than its share, and the sum is
+fixed before the first one is born. That is what lets `curve_report` still be
+read against the same numbers, and it is why the shove a crest gives is a
+`Hero.shove` rather than a stun - the player keeps control of a body that is
+briefly sliding.
+
+**The epicentre is an argument now, not a private variable**, with
+`Vector2.INF` meaning "pick one" - the origin could not be the sentinel because
+the origin is the town and a quake under the town is a legal quake.
+`warn_quake` picks the place and hums *there*, so the telegraph says where as
+well as when; a telegraph that says only when is half a telegraph. And the
+fault the quake leaves is laid along the first crest's own front at the
+distance it was strongest, which is ground the player watched open.
+
+**The ground itself bends.** `quake_ripple.gdshader` is `flood_sheen`'s
+technique put to the other use: it reads the frame beneath it and displaces it
+by up to three travelling rings, so the earth swells in front of a crest and
+dips behind it. Never headless, where there is no frame to copy, and
+`Graphics.KEY_WATER_REFRACTION` turns it off at the same cost as the flood's.
+
+**The crest was drawn four times and every reading is worth keeping**, because
+all four are the same lesson in different clothes. At the fissure's own alphas
+it was a pale hairline nobody could see from the distance a quake is actually
+watched. Drawn solid and bright it became an enormous flat donut laid over the
+field - one colour all the way through, which is the failure the forge's first
+flame had. Drawn as broken polylines it read as a ring of fence panels, because
+a polyline has one width and two flat ends. What earth breaking looks like is
+**slabs with gaps between them**, each tapering to a point at both ends and
+ragged along its outer edge, each on its own radius - so a piece is a polygon
+now, and `QUAKE_CREST_FILL` being under one is as much of the look as anything
+that is drawn.
+
+**And the diagnostic was a coin toss for two of those runs.** `sky_shot` called
+`quake(1.0)` with no patterns named, and `quake()` with nothing selected draws
+its patterns from the wrath - so whether there was a ground wave at all was a
+roll. Two runs in a row photographed a wave and then an empty field. It names
+`["quake"]` now. **That is the sixth time this project has shipped a check
+whose verdict was a coin toss**, and the answer is the same every time: a
+diagnostic that cannot be trusted either way is worse than none.
+
+**Three gate amendments are recorded rather than quiet**, and all three are
+harness changes rather than invariants. `wrath_check` read the health back on
+the line after `quake()`, which was a fair question when a quake was an
+instant and is not one now; it waits out the crests. Its probe was then shot
+dead by a tower during that wait and the gate read that as a wave that struck
+nobody - **the probe-that-dies-mid-measurement lesson, again**, answered with
+a pool nothing on the field can empty. And `_the_wave` was handing back the
+*previous* test's wave, because a crest crosses the whole grid and takes longer
+than the test before it waits.
+
+What is new as an invariant is `_test_the_wave_travels`: the wave breaks where
+it was told to, a body that does not move is struck, and a body that steps out
+of the crests takes less than one that does not. Planted the old instantaneous
+blow and the gate named it - *"stepping out of the crests bought nothing"*.
+
+**Nothing new persists and nothing new is a power scale.** The wave is
+run-scoped and dies with its last crest; `EventBus.earthquake` grew the
+epicentre and the crest count so a guest draws the same wave in the same place,
+and a guest's copy hurts nobody. The relay tolerates a two-argument fact from a
+build that predates this, which reads as one crest at the middle of the field -
+exactly what that build drew.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -853,8 +853,9 @@ func _on_world_hazard(kind: String, payload: Dictionary) -> void:
 	_relay(Fact.WORLD_HAZARD, [kind, payload])
 
 
-func _on_earthquake(magnitude: float, seconds: float) -> void:
-	_relay(Fact.EARTHQUAKE, [magnitude, seconds])
+func _on_earthquake(magnitude: float, seconds: float, at: Vector2 = Vector2.ZERO,
+		rings: int = 1) -> void:
+	_relay(Fact.EARTHQUAKE, [magnitude, seconds, at, rings])
 
 
 func _on_wildfire_lit(at: Vector2) -> void:
@@ -1301,7 +1302,13 @@ func _replay(kind: int, args: Array) -> void:
 				bus.coop_world_hazard.emit(String(args[0]), args[1] as Dictionary)
 		Fact.EARTHQUAKE:
 			if args.size() == 2:
-				bus.coop_earthquake.emit(float(args[0]), float(args[1]))
+				# Three and four both arrive: a build that predates the ground
+				# wave sends two numbers, and a quake with no epicentre is one
+				# at the middle of the field with a single crest, which is
+				# exactly what that build drew.
+				bus.coop_earthquake.emit(float(args[0]), float(args[1]),
+					args[2] as Vector2 if args.size() > 2 else Vector2.ZERO,
+					int(args[3]) if args.size() > 3 else 1)
 		Fact.WILDFIRE_LIT:
 			if args.size() == 1:
 				bus.coop_wildfire_lit.emit(args[0] as Vector2)

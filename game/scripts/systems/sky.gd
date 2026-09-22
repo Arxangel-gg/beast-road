@@ -99,6 +99,14 @@ var _wrath_heat: float = 0.0
 ## A quake in progress: seconds left and how hard.
 var _quake_left: float = 0.0
 var _quake_magnitude: float = 0.0
+## **Where the last one broke and how many crests it sent.** Decided by the
+## host when the ground is warned, so the hum points at the place the wave
+## will come from - a telegraph that says *when* and not *where* is half a
+## telegraph. Both travel on `earthquake`; `rings` of zero is the host
+## saying there is no wave in this one at all, which is what a quake made of
+## fissures and breath alone is.
+var _quake_at: Vector2 = Vector2.INF
+var _quake_rings: int = 0
 var _tremor_timer: float = 0.0
 ## For the gate.
 var quakes: int = 0
@@ -1072,8 +1080,17 @@ func _tick_wrath_events(delta: float) -> void:
 
 ## The ground shakes: everything alive is hurt by the magnitude, and the
 ## screen with it.
-func quake(magnitude: float, selected: Array[String] = []) -> void:
+## **Where it breaks is an argument, not a private variable.**
+##
+## `warn_quake` sets it so the hum and the wave agree; anything calling this
+## without a warning behind it - an omen, a gate - may name a place, and
+## `Vector2.INF` means "pick one". A sentinel rather than the origin, because
+## the origin is the town and a quake under the town is a legal quake.
+func quake(magnitude: float, selected: Array[String] = [],
+		epicentre: Vector2 = Vector2.INF) -> void:
 	quakes += 1
+	if epicentre.is_finite():
+		_quake_at = epicentre
 	_quake_magnitude = clampf(magnitude, 0.0, 1.0)
 	_quake_left = Balance.QUAKE_SECONDS
 	var patterns: Array[String] = []
@@ -1082,29 +1099,24 @@ func quake(magnitude: float, selected: Array[String] = []) -> void:
 		for pattern: String in patterns:
 			if pattern != "quake":
 				_open_earth_paths(pattern, _quake_magnitude / float(patterns.size()))
+	# **The blow is the wave's now, and the wave arrives.**
+	#
+	# Until 2026-09-22 this dealt one number to every hero, every enemy,
+	# every tower and every animal on the field on the frame it broke, with
+	# a filter reading `func(_where): return true`. There was nowhere to be
+	# and nothing to read. `GroundWave` rolls crests out from a place
+	# instead, striking each body once as the front reaches it - and each
+	# crest carries the old total divided by the crest count, so anything
+	# that does not move takes exactly what it always took.
+	_quake_rings = 0
 	if field != null and not _mirror and patterns.has("quake"):
-		var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
-			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
-		for enemy: Enemy in field.enemies_near(Vector2.ZERO, INF):
-			enemy.take_damage(Balance.QUAKE_ENEMY_DAMAGE * act_scale * _quake_magnitude, enemy.global_position, 0.0)
-		var hero_pool: float = 100.0
-		if field.hero != null and field.hero.health != null:
-			hero_pool = field.hero.health.max_hp
-		EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.QUAKE_HERO_SHARE * _quake_magnitude / float(patterns.size()),
-			"earthquake", func(_where: Vector2) -> bool: return true)
-		# Every tower standing is shaken; a chip by the magnitude, never a fall.
-		for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
-			var tower := node as Tower
-			if tower != null and is_instance_valid(tower) and tower.is_vulnerable():
-				tower.hurt(Balance.QUAKE_TOWER_DAMAGE * _quake_magnitude, tower.global_position)
-		var animals: Wildlife = field.wildlife()
-		if animals != null:
-			animals.wound_within(Vector2.ZERO, INF, Balance.QUAKE_WILDLIFE_DAMAGE * _quake_magnitude, false)
-			animals.scare_from(Vector2.ZERO, INF)
-	if field != null and not _mirror:
-		# Every earth pattern leaves the same persistent seismic resource zone.
-		# The fault it opens: charged ground for the earth towers, and a
-		# line of cracks across it that stays.
+		_open_the_ground_wave(patterns.size())
+	# **The fault is the wave's to leave**, at the distance its own front was
+	# strongest (`GroundWave._leave_the_fault`). It used to be stamped at a
+	# point drawn from this stream, so the crack in the ground had no
+	# relationship to anything the player had watched happen. A quake that
+	# sends no `quake` pattern still leaves one, here, as it always did.
+	if field != null and not _mirror and not patterns.has("quake"):
 		var fault: Vector2 = _pick_strike_point(_zone_rng)
 		if zones != null:
 			zones.open("seismic_fault", fault, Balance.ZONE_FAULT_RADIUS)
@@ -1114,14 +1126,71 @@ func quake(magnitude: float, selected: Array[String] = []) -> void:
 				marks.stamp(fault + along * (float(step) - 2.0) * Balance.ZONE_FAULT_RADIUS * 0.3,
 					34.0, 0.35 * _quake_magnitude)
 	if not _mirror:
-		EventBus.earthquake.emit(_quake_magnitude, Balance.QUAKE_SECONDS)
+		EventBus.earthquake.emit(_quake_magnitude, Balance.QUAKE_SECONDS,
+			_quake_at, _quake_rings)
 
 
-func _on_earthquake_seen(magnitude: float, seconds: float) -> void:
+## **Stands the wave up, and divides the old blow between its crests.**
+##
+## `shares` is how many patterns this quake is sending, which is the divisor
+## the instantaneous blow already used - so the arithmetic here is exactly
+## the arithmetic that was there, split one more time by the crest count and
+## then paid out as each front arrives. Anything that does not move is caught
+## by every crest and takes the same total; a Warden who steps out of one
+## takes less, and nothing can take more.
+func _open_the_ground_wave(shares: int) -> void:
+	var count: int = maxi(shares, 1)
+	_quake_rings = clampi(1 + int(round(_quake_magnitude
+		* float(Balance.QUAKE_RINGS_MAX - 1))), 1, Balance.QUAKE_RINGS_MAX)
+	if not _quake_at.is_finite():
+		# A quake called with no warning behind it and no place named still
+		# needs somewhere to break.
+		_quake_at = _pick_strike_point(_rng)
+	var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
+		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
+	var hero_pool: float = 100.0
+	if field.hero != null and field.hero.health != null:
+		hero_pool = field.hero.health.max_hp
+	var per_ring: float = 1.0 / float(_quake_rings)
+
+	var wave := GroundWave.new()
+	wave.field = field
+	wave.mirror = false
+	wave.marks = marks
+	wave.zones = zones
+	wave.hero_share = (Balance.QUAKE_HERO_SHARE * _quake_magnitude
+		/ float(count) * per_ring)
+	wave.enemy_damage = (Balance.QUAKE_ENEMY_DAMAGE * act_scale
+		* _quake_magnitude * per_ring)
+	wave.tower_damage = Balance.QUAKE_TOWER_DAMAGE * _quake_magnitude * per_ring
+	wave.wildlife_damage = (Balance.QUAKE_WILDLIFE_DAMAGE * _quake_magnitude
+		* per_ring)
+	wave.configure(_quake_at, _quake_magnitude, _quake_rings,
+		Balance.QUAKE_SPLIT_SECONDS)
+	field.add_child(wave)
+	# The hero pool is what `strike_the_players` measured a share against, and
+	# `GroundWave` measures it against each hero's own - which is the same
+	# number for one Warden and fairer for four.
+	if hero_pool <= 0.0:
+		wave.hero_share = 0.0
+
+
+func _on_earthquake_seen(magnitude: float, seconds: float,
+		at: Vector2 = Vector2.ZERO, rings: int = 0) -> void:
 	RunState.note_earth("quakes")
 	if _mirror:
 		_quake_magnitude = magnitude
 		_quake_left = seconds
+		# **The guest draws the wave and hurts nobody.** Every share is left
+		# at zero, so the rings roll, the ground bends and the dust flies
+		# while the host's own copy decides who was actually struck - the
+		# rule every one of the earth's events is relayed under.
+		if rings > 0 and field != null:
+			var seen := GroundWave.new()
+			seen.field = field
+			seen.mirror = true
+			seen.configure(at, magnitude, rings, Balance.QUAKE_SPLIT_SECONDS)
+			field.add_child(seen)
 	EventBus.camera_shake_requested.emit(magnitude * Balance.QUAKE_SHAKE, seconds)
 	Sfx.play("sfx_quake", 0.0)
 
@@ -1204,7 +1273,11 @@ func warn_quake(magnitude: float) -> void:
 	_quake_pending = clampf(magnitude, 0.0, 1.0)
 	_quake_warning_left = Balance.QUAKE_WARNING_SECONDS
 	_warn_tremor_timer = 0.0
-	_tell("quake", Vector2.ZERO, Balance.QUAKE_WARNING_SECONDS)
+	# **The place, chosen now.** It used to hum at the origin because a quake
+	# had no place; the wave does, so the warning names it and the epicentre
+	# a player backs away from is the one the crests leave.
+	_quake_at = _pick_strike_point(_rng) if field != null else Vector2.ZERO
+	_tell("quake", _quake_at, Balance.QUAKE_WARNING_SECONDS)
 
 
 ## The wind rises at the edge before the funnel is born there.
