@@ -17,9 +17,21 @@ extends Node2D
 ## **Drawn as a silhouette, which is a rule rather than a saving.** `DragonPass`
 ## and `BeastOmens` both already refuse the painting at distance - "from that
 ## distance a person sees a shape blotting out the light, and a hundred and
-## ninety pixels of detail at that size is detail nobody can resolve". The same
-## art, the same treatment, so the thing a player meets on the menu and the
-## thing that crosses the road are recognisably one animal.
+## ninety pixels of detail at that size is detail nobody can resolve".
+##
+## **But it is a side-on painting now, and that was the fault** (owner,
+## 2026-09-22: the menu dragon *"is facing the wrong way and is in the wrong
+## orientation ... it should be a sidescroller flying animated dragon"*). It
+## borrowed `dragon_overhead.png`, which is drawn looking straight down so
+## that one painting serves as both the shadow on the ground and the thing
+## casting it - correct for the road's `DragonPass`, and wrong in a sky seen
+## from the side, where a top-down animal has no facing at all and reads as a
+## shape pasted on. `dragon_flight.png` is the same animal in profile with a
+## wingbeat, and the road keeps the overhead one.
+##
+## **A missing flight sheet falls back to the overhead painting** rather than
+## to nothing: a half-finished art pass degrades, which is the rule the mount
+## sheets and the music playlist already live under.
 ##
 ## **Behind the beast, and that is what sells the scale.** It is built before
 ## `_build_beast` so the tree puts it further back, and it crosses slowly: a
@@ -31,9 +43,16 @@ extends Node2D
 ## and is never asked anything - the bound the fireflies, the birds and the
 ## camp are all held to.
 
-const ART: String = "res://art/vfx/dragon_overhead.png"
+const ART: String = "res://art/vfx/dragon_flight.png"
+## What it flew as before the profile was drawn. Only reached if the flight
+## sheet is not on disk.
+const FALLBACK_ART: String = "res://art/vfx/dragon_overhead.png"
 
 var _texture: Texture2D = null
+## The wingbeat, if the flight sheet brought one. Empty is a still painting,
+## which is exactly what this was.
+var _frames: Array[Texture2D] = []
+var _beat: float = 0.0
 var _span: Vector2 = Vector2(1920.0, 1080.0)
 var _rng := RandomNumberGenerator.new()
 var _wait: float = 0.0
@@ -46,8 +65,10 @@ var _tint: Color = Color(0.1, 0.09, 0.12, 0.5)
 func _ready() -> void:
 	name = "MenuDragon"
 	_rng.randomize()
-	if ResourceLoader.exists(ART):
-		_texture = load(ART) as Texture2D
+	var path: String = ART if ResourceLoader.exists(ART) else FALLBACK_ART
+	if ResourceLoader.exists(path):
+		_texture = load(path) as Texture2D
+		_frames = GameData.load_idle_frames(path)
 	# Never immediately: a dragon on the first frame of the first launch is a
 	# mascot rather than a rare thing.
 	_wait = _rng.randf_range(Balance.MENU_DRAGON_GAP.x, Balance.MENU_DRAGON_GAP.y)
@@ -77,6 +98,7 @@ func _process(delta: float) -> void:
 			return
 		_begin()
 		return
+	_beat += delta
 	_crossing += delta / maxf(Balance.MENU_DRAGON_SECONDS, 0.5)
 	if _crossing >= 1.0:
 		_crossing = -1.0
@@ -123,6 +145,13 @@ func _draw() -> void:
 	var shade := Color(_tint.r, _tint.g, _tint.b, _tint.a * edge)
 	var facing: float = 1.0 if _rightward else -1.0
 	draw_set_transform(Vector2(x, y), 0.0, Vector2(facing, 1.0))
-	draw_texture_rect(_texture, Rect2(-wide * 0.5, -tall * 0.5, wide, tall),
+	# **Slow.** A wingbeat at a bird's rate on a shape this size is a bat; the
+	# whole effect is the contrast between how slowly this crosses and how
+	# fast the swallows do, and the wings have to agree with that.
+	var sheet: Texture2D = _texture
+	if not _frames.is_empty():
+		var step: int = int(_beat * Balance.MENU_DRAGON_BEAT_RATE)
+		sheet = _frames[step % _frames.size()]
+	draw_texture_rect(sheet, Rect2(-wide * 0.5, -tall * 0.5, wide, tall),
 		false, shade)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

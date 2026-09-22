@@ -2501,6 +2501,12 @@ thing casting it, and the same painting serves as both.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `dragon_overhead.png` | 192×192 | T | `#6E3226` |
+| `dragon_flight.png` | 160×96 | T | `#6E3226` |
+| `dragon_flight_idle_01.png` | 160×96 | T | `#6E3226` |
+| `dragon_flight_idle_02.png` | 160×96 | T | `#6E3226` |
+| `dragon_flight_idle_03.png` | 160×96 | T | `#6E3226` |
+| `dragon_flight_idle_04.png` | 160×96 | T | `#6E3226` |
+| `dragon_flight_idle_05.png` | 160×96 | T | `#6E3226` |
 | `dragon_overhead_fire.png` | 192×192 | T | `#6E3226` |
 | `dragon_overhead_frost.png` | 192×192 | T | `#6E3226` |
 | `dragon_overhead_stone.png` | 192×192 | T | `#6E3226` |

@@ -6267,15 +6267,24 @@ const FLAME_LICK: float = 0.34
 const FLAME_BREATH: float = 0.26
 
 ## Colours, hottest first. Drawn additively and nested, so the overlap blooms.
+##
+## **Deepened rather than brightened** (owner, 2026-09-22: the animated fires
+## *"need to have higher contrast and be darker"*). Drawn additively, three
+## light colours nested inside each other read as one pale orange mass: the
+## body carried almost as much light as the core, so there was very little
+## range between the outside of the flame and the middle of it. Taking the
+## body and the mid down widens that range without touching the core, which is
+## what "higher contrast and darker" is - a fire with a dark edge and a hot
+## heart rather than a uniformly bright one. [TUNE]
 const FLAME_CORE: Color = Color(1.00, 0.96, 0.80)
-const FLAME_MID: Color = Color(1.00, 0.62, 0.18)
-const FLAME_BODY: Color = Color(0.90, 0.24, 0.06)
+const FLAME_MID: Color = Color(0.98, 0.50, 0.10)
+const FLAME_BODY: Color = Color(0.62, 0.13, 0.03)
 
 ## Soft glow behind the flame: radius as a multiple of flame size, and strength.
 ## This replaces the old halo polygon, whose fourteen straight sides were plainly
 ## visible as a disc. [TUNE]
 const FLAME_GLOW_SCALE: float = 4.2
-const FLAME_GLOW_ALPHA: float = 0.34
+const FLAME_GLOW_ALPHA: float = 0.26
 
 ## Embers. A real particle system, so they inherit spread, damping and a colour
 ## ramp rather than being hand-tweened one at a time. [TUNE]
@@ -8259,6 +8268,10 @@ const MENU_DRAGON_GAP: Vector2 = Vector2(150.0, 420.0)
 const MENU_DRAGON_BAND: Vector2 = Vector2(0.14, 0.33)
 ## How far it sinks over the crossing, as a share of height. A long glide
 ## rather than a slide, and all the animation a silhouette this size needs.
+## How fast the menu dragon's wings beat, in frames a second. Slow, because
+## the whole effect is the contrast between how slowly something that size
+## crosses and how fast the swallows do - see `MenuDragon`. [TUNE]
+const MENU_DRAGON_BEAT_RATE: float = 4.0
 const MENU_DRAGON_SAG: float = 0.035
 ## How dark against the sky. A silhouette, never a hole cut in the picture -
 ## the mistake the menu's birds, its Warden and its vines each made once.

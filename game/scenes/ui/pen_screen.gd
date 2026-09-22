@@ -141,11 +141,9 @@ func refresh() -> void:
 	# or how to take one with us"*). Both ways, and the one rule about taking
 	# one out, because a screen that lists what you have and never says how to
 	# get any is a screen a player with an empty pen cannot use.
-	_note.text = ("%d of %d kept. Wear an animal down on the road and throw a "
-		+ "snare to take it alive, or carry an egg home and raise what hatches. "
-		+ "One goes with you; the rest wait here. Choose before you set out - "
-		+ "the pen cannot be changed mid-run. An animal that falls on the road "
-		+ "does not come back; what it taught you does.") 		% [kept, Balance.PEN_CAPACITY]
+	_note.text = ("%d of %d kept. Snare a worn-down animal, or raise an egg "
+		+ "carried home. One goes with you, chosen before you set out; an "
+		+ "animal that falls does not come back.") % [kept, Balance.PEN_CAPACITY]
 	if kept == 0:
 		var empty := Label.new()
 		empty.text = ("Nothing raised yet. Hurt an animal badly and snare it, or "
@@ -258,9 +256,14 @@ func _refit() -> void:
 	if _stage != null:
 		# The heading, the note, the list and the button, plus the panel's own
 		# margins - measured as a share so a theme change cannot strand it.
+		#
+		# **The floor is 70 rather than 110**, because the note gained a line
+		# when it started saying where animals come from and on a landscape
+		# phone there is no room to spare: the yard is the one thing here that
+		# can be smaller without anything becoming unreadable.
 		var kept_back: float = tall * 0.52 + 96.0
 		_stage.custom_minimum_size = Vector2(wide - 48.0,
-			clampf(tall - kept_back, 110.0, 300.0))
+			clampf(tall - kept_back, 70.0, 300.0))
 
 
 ## The yard, for the gate.
