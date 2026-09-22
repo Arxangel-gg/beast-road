@@ -303,9 +303,11 @@ func _check_overlap(widgets: Array[Control]) -> void:
 				continue
 			reported[pair] = true
 			found += 1
-			_failures.append("overlap: %s%s at %s over %s%s at %s by %.0fx%.0f" % [
-				_path_of(a), _describe(a), a.get_global_rect().position,
-				_path_of(b), _describe(b), b.get_global_rect().position,
+			# Sizes as well as positions: an intermittent overlap at 4K read as a
+			# placement fault until the size said the icon was twice its height.
+			_failures.append("overlap: %s%s at %s size %s over %s%s at %s size %s by %.0fx%.0f" % [
+				_path_of(a), _describe(a), a.get_global_rect().position, a.get_global_rect().size,
+				_path_of(b), _describe(b), b.get_global_rect().position, b.get_global_rect().size,
 				shared.size.x, shared.size.y])
 	_notes.append("overlap: %d" % found)
 

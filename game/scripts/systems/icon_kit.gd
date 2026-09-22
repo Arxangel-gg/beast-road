@@ -78,6 +78,14 @@ static func rect(id: String, size: float, tint: Color = Color.WHITE) -> TextureR
 	icon.custom_minimum_size = Vector2(size, size)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# **Its own square, whatever row it sits in** (2026-09-21). A box child
+	# fills the box's height by default, so a 34px mark in a row made 62 tall
+	# by the pools column owned a 34x62 rect - drawn centred and invisible, but
+	# reaching 16px under the boss line, which `layout_check` refused at 4K on
+	# the runs where the weather label happened to carry its temperature and
+	# shove the currency rows under it. The picture never stretched; the rect
+	# did, and the rect is what a layout collides with.
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.modulate = tint
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return icon
