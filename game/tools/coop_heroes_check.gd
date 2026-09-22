@@ -56,6 +56,7 @@ func _ready() -> void:
 	# Before the revive test, which deliberately ends the run on its third wipe
 	# and leaves nothing standing to be found.
 	await _test_the_field_can_see_both_heroes()
+	await _test_a_suspend_gives_every_hero_back()
 	await _test_going_down_costs_nothing_until_both_do()
 
 	if _run != null and is_instance_valid(_run):
@@ -358,6 +359,64 @@ func _test_going_down_costs_nothing_until_both_do() -> void:
 ##
 ## The distinction is worth keeping and worth testing, because both halves are
 ## reasonable-looking calls that mean opposite things.
+## **A partner comes back from a raid.**
+##
+## `suspend` takes every hero on the field out of the world so nothing walks
+## over one while the scope is frozen, and `resume` used to put back only the
+## *local* hero - so in co-op a partner was removed from `GROUP_ANY` by the
+## first raid or crossroad and never returned to it, for the rest of the run.
+## Nothing errors: an absent hero is simply something no body targets, no
+## revive finds and no tower defends, and the player sees a partner who has
+## quietly stopped being part of the fight.
+##
+## Driven through the real doors rather than by setting the flag, because
+## what went wrong is an *omission from a restore* and a test that calls
+## `set_present` by hand passes with the omission still in place.
+func _test_a_suspend_gives_every_hero_back() -> void:
+	_field = _run.get("battlefield") as Battlefield
+	if _field == null or _field.hero == null:
+		_check(false, "the harness needs a battlefield")
+		return
+	var partner: Hero = _field.partner_hero()
+	if partner == null:
+		partner = _spawn_partner()
+	if partner == null:
+		return
+	await get_tree().process_frame
+	_check(partner.is_in_group(Hero.GROUP_ANY),
+		"the partner must be in the world before the raid")
+
+	_field.suspend()
+	await get_tree().process_frame
+	_check(not partner.is_in_group(Hero.GROUP_ANY),
+		"a suspended scope must take the partner out of the world too")
+	_check(not _field.hero.is_in_group(Hero.GROUP_ANY),
+		"and the local hero with them")
+
+	_field.resume()
+	await get_tree().process_frame
+	_check(partner.is_in_group(Hero.GROUP_ANY),
+		"the partner never came back from the raid")
+	_check(_field.hero.is_in_group(Hero.GROUP_ANY),
+		"and neither did the local hero")
+	_check(_field.nearest_hero(partner.global_position) != null,
+		"nothing on the road can find a hero after a raid")
+
+	# And a hero who is away on an event of its own stays away: absence
+	# outliving a suspend is correct in exactly that one case.
+	_field.set_hero_away(true)
+	_field.suspend()
+	await get_tree().process_frame
+	_field.resume()
+	await get_tree().process_frame
+	_check(not _field.hero.is_in_group(Hero.GROUP_ANY),
+		"a hero away on its own event must not be put back by a resume")
+	_check(partner.is_in_group(Hero.GROUP_ANY),
+		"but the partner who stayed on the road must be")
+	_field.set_hero_away(false)
+	await get_tree().process_frame
+
+
 func _test_the_field_can_see_both_heroes() -> void:
 	_field = _run.get("battlefield") as Battlefield
 	if _field == null or _field.hero == null:

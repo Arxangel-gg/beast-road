@@ -42,6 +42,10 @@ var _coop_heroes: CoopHeroes = null
 ## and no phase change puts it back until it returns.
 var _hero_away: bool = false
 
+## The heroes `suspend` took out of the world, by instance id, so `resume`
+## puts back exactly those. See `suspend`.
+var _absent_while_suspended: PackedInt64Array = PackedInt64Array()
+
 ## Enemies and towers, made to agree on two machines. Inert when playing alone.
 var _coop_world: CoopWorld = null
 
@@ -360,7 +364,23 @@ func suspend() -> void:
 		# anything can reach: it stood in `GROUP_ANY` at this scope's origin for
 		# the whole of the other scope, and wildlife walked over and mauled it.
 		hero.set_present(false)
+	# **Who was taken out of the world, so exactly those go back.**
+	#
+	# `suspend` made every hero on the field absent and `resume` put back
+	# only the local one - so in co-op a partner was removed from
+	# `GROUP_ANY` by the first raid or crossroad and never returned to it,
+	# for the rest of the run. Nothing errors: an absent hero is simply
+	# something no body targets, no wave counts and no tower defends, and
+	# the player sees a partner who has stopped being part of the fight.
+	#
+	# Remembered rather than recomputed, because the party may have changed
+	# while the scope was frozen and putting back somebody who was already
+	# away is the same fault pointing the other way.
+	_absent_while_suspended.clear()
 	for body: Hero in heroes():
+		if body == null or not is_instance_valid(body):
+			continue
+		_absent_while_suspended.append(body.get_instance_id())
 		body.set_present(false)
 	process_mode = Node.PROCESS_MODE_DISABLED
 	visible = false
@@ -370,6 +390,16 @@ func resume() -> void:
 	if not _suspended:
 		return
 	_suspended = false
+	for id: int in _absent_while_suspended:
+		var body := instance_from_id(id) as Hero
+		if body == null or not is_instance_valid(body):
+			continue
+		# The local hero stays out if it is away on an event of its own -
+		# the one case where absence outlives the suspend.
+		if body == hero and _hero_away:
+			continue
+		body.set_present(true)
+	_absent_while_suspended.clear()
 	if hero != null and not _hero_away:
 		hero.set_present(true)
 	process_mode = Node.PROCESS_MODE_INHERIT

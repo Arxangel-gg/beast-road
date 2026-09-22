@@ -6868,6 +6868,30 @@ and a guest's copy hurts nobody. The relay tolerates a two-argument fact from a
 build that predates this, which reads as one crest at the middle of the field -
 exactly what that build drew.
 
+**A partner never came back from a raid, found 2026-09-22.** `Battlefield.suspend`
+takes every hero on the field out of the world so nothing walks over one while
+the scope is frozen - the rule added when wildlife mauled a hero standing at a
+suspended scope's origin. **`resume` put back only the local hero.**
+
+So in co-op a partner was removed from `GROUP_ANY` by the first raid, rift or
+crossroad and never returned to it, for the rest of the run. Nothing errors and
+nothing looks broken: an absent hero is simply something no body targets, no
+revive finds and no tower defends, and what the player sees is a partner who
+has quietly stopped being part of the fight.
+
+**Remembered rather than recomputed.** `suspend` keeps the ids of exactly the
+heroes it took out and `resume` puts back exactly those - the party may have
+changed while the scope was frozen, and putting back somebody who was already
+away is the same fault pointing the other way. The one case where absence
+outlives a suspend is a hero away on an event of its own (`set_hero_away`),
+which is checked by name.
+
+Found by reading the two functions beside each other rather than by anything
+failing, which is the argument for a restore living next to the thing it
+restores. `coop_heroes_check` drives the real `suspend` and `resume` - a test
+that called `set_present` by hand would pass with the omission still in place -
+and the planted original named it twice.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
