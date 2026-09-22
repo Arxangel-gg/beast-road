@@ -288,11 +288,11 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	var node: Dictionary = _nodes[_working]
 	var level: int = MetaState.profession_level(kind.craft)
 	var share: float = float(level - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
-	var amount: int = kind.material_per_swing
-	var lucky: bool = _roll.randf() < share * Balance.GATHER_SKILL_DOUBLE_CHANCE
-	if lucky:
-		amount *= 2
+	var extra: int = _extra_from_practice(share)
+	var amount: int = kind.material_per_swing + extra
+	var lucky: bool = extra > 0
 	MetaState.gain_material(kind.material_id, amount)
+	var sides: PackedStringArray = _pay_the_sides(kind, share)
 	var before: int = MetaState.profession_level(kind.craft)
 	var after: int = MetaState.gain_profession_xp(kind.craft, kind.xp_per_swing)
 	if after > before:
@@ -312,7 +312,7 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	EventBus.camera_impact.emit(at, Balance.GATHER_LUCKY_SHAKE if lucky \
 		else Balance.GATHER_SWING_SHAKE)
 	_recoil(_working, -back)
-	_say_the_take(at, kind, amount, lucky)
+	_say_the_take(at, kind, amount, lucky, sides)
 
 	_nodes[_working]["left"] = int(node["left"]) - 1
 	var left: int = int(_nodes[_working]["left"])
@@ -327,6 +327,49 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 		"")
 
 
+## One more of the material for every roll that lands. See
+## `Balance.GATHER_BONUS_ROLLS`: bounded by the rolls, widened by practice.
+func _extra_from_practice(share: float) -> int:
+	var chance: float = Balance.GATHER_BONUS_CHANCE + share * Balance.GATHER_BONUS_CHANCE_SKILL
+	var extra: int = 0
+	for _roll_index: int in Balance.GATHER_BONUS_ROLLS:
+		if _roll.randf() < chance:
+			extra += 1
+	return extra
+
+
+## **What else came off the node**: the run currency it sheds and, rarely, the
+## rarer material inside it. Returns what was paid, named, for the readout.
+##
+## The currency is the *run's*, and the run is the host's to pay out: a guest
+## asks by node id and never by amount (`Request.GATHER_SIDE`) - the rule the
+## fish, the crop and the egg are already asked under - and asks only when its
+## own roll landed, so the host pays what the node says and never more often
+## than a swing. The material is that player's own store and never crosses.
+func _pay_the_sides(kind: GatherNodeData, share: float) -> PackedStringArray:
+	var paid: PackedStringArray = []
+	var lift: float = 1.0 + share * Balance.GATHER_SIDE_SKILL_LIFT
+	if not kind.currency_id.is_empty() and kind.currency_chance > 0.0 \
+			and _roll.randf() < kind.currency_chance * lift:
+		_pay_currency(kind)
+		paid.append("+%d %s" % [kind.currency_per_swing, kind.currency_id.capitalize()])
+	if not kind.bonus_material_id.is_empty() and kind.bonus_chance > 0.0 \
+			and _roll.randf() < kind.bonus_chance * lift:
+		MetaState.gain_material(kind.bonus_material_id, 1)
+		var found: MaterialData = ContentDB.material(kind.bonus_material_id)
+		paid.append("+1 %s" % (found.display_name if found != null else kind.bonus_material_id))
+	return paid
+
+
+func _pay_currency(kind: GatherNodeData) -> void:
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.GATHER_SIDE, [kind.id])
+		return
+	RunState.gain_currency(kind.currency_id, kind.currency_per_swing)
+
+
 ## **What the swing paid, said out loud.**
 ##
 ## `EventBus.gathered` has carried this since the crafts were built and nothing
@@ -335,7 +378,7 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 ## own colour, and a swing the craft doubled says so in a bigger one: that roll
 ## is the only place practice is visible, and it was invisible.
 func _say_the_take(at: Vector2, kind: GatherNodeData, amount: int,
-		lucky: bool) -> void:
+		lucky: bool, sides: PackedStringArray = PackedStringArray()) -> void:
 	var material: MaterialData = ContentDB.material(kind.material_id)
 	var named: String = material.display_name if material != null \
 		else kind.display_name
@@ -349,6 +392,18 @@ func _say_the_take(at: Vector2, kind: GatherNodeData, amount: int,
 	if lucky:
 		Vfx.ring(at, 64.0, Color(colour, 0.7), 0.32, 3.0)
 		Sfx.play("sfx_relic_socket", -7.0)
+	# The sides, stacked above the take in their own colours: a run currency in
+	# the pale stone-and-timber grey the HUD counts them in, a found gem in
+	# gold with the ring a lucky swing gets - it is the rarer thing.
+	for index: int in sides.size():
+		var side: String = sides[index]
+		var gem: bool = not side.ends_with("Stone") and not side.ends_with("Wood")
+		Vfx.word(at + Vector2(0.0, -50.0 - 22.0 * float(index)), side,
+			Color(0.95, 0.80, 0.40) if gem else Color(0.82, 0.80, 0.74),
+			Balance.GATHER_LUCKY_WORD_SIZE if gem else Balance.GATHER_WORD_SIZE)
+		if gem:
+			Vfx.ring(at, 72.0, Color(0.95, 0.80, 0.40, 0.7), 0.36, 3.0)
+			Sfx.play("sfx_relic_socket", -5.0)
 
 
 ## The node is spent. It goes grey and comes back on its own clock, so a region

@@ -2350,6 +2350,18 @@ const ENEMY_ROUT_COLOUR: Color = Color(0.98, 0.92, 0.62, 1.0)
 ## returning early rather than a wilderness that stays dead. [TUNE]
 const WILDLIFE_HUSH_SECONDS: float = 210.0
 
+## **The act an account must have reached before a discipline opens**, indexed
+## by `DisciplineNodeData.Discipline`. Owner, 2026-09-21: "players can unlock
+## the magic discipline in the hero mansion after beating the Act 1 boss and
+## unlocking act 2". The three melee trees open at once; the Arcane waits for
+## the act that beating the first boss unlocks - so a new Warden learns to
+## walk at things before they learn to point at them, and the tree's fourth
+## column is something the road hands over rather than a fourth thing to read
+## on the first visit. Read against the furthest act the account has reached
+## *or* the act the run is in, so the run that fells the first boss opens it
+## on the spot. A discipline past the end of this table opens at once.
+const DISCIPLINE_OPENS_AT_ACT: Array[int] = [1, 1, 1, 2]
+
 ## --- Discipline effects -------------------------------------------------------
 ##
 ## The nodes carry their own magnitudes in `effect_value`; these are the shape
@@ -10361,8 +10373,24 @@ const GATHER_STILL_SPEED: float = 14.0
 ## of the time and a node gives one more swing than it otherwise would.
 const GATHER_SKILL_SPEED_FLOOR: float = 0.60
 const GATHER_SKILL_BONUS_SWINGS: int = 2
-## And a practised hand sometimes takes two from one swing.
-const GATHER_SKILL_DOUBLE_CHANCE: float = 0.22
+## **And a practised hand takes more from one swing, by rolls rather than by a
+## double.** Owner, 2026-09-21: "chances to gain increased quantities each
+## mining action with randomness that is also scaled by the player's mining
+## level. Same with woodcutting and other professions." A swing rolls
+## `GATHER_BONUS_ROLLS` times for one more of the material, each roll at
+## `GATHER_BONUS_CHANCE` for a novice rising by `GATHER_BONUS_CHANCE_SKILL` at
+## the cap - so a novice's swing is mostly its authored take and a master's is
+## a spread, and the most any swing can ever pay is the authored take plus the
+## rolls. This replaces a flat one-in-five double that practice only unlocked.
+## A craft touches nothing but its own craft (2026-09-11); this *is* the craft.
+## `gathering_check` measures the spread and the ceiling by swinging.
+const GATHER_BONUS_ROLLS: int = 3
+const GATHER_BONUS_CHANCE: float = 0.06
+const GATHER_BONUS_CHANCE_SKILL: float = 0.30
+## How far practice lifts a node's side chances - a seam's Stone, an ore's gem
+## (`GatherNodeData.currency_chance`, `bonus_chance`): at the cap each chance
+## is this much more than authored.
+const GATHER_SIDE_SKILL_LIFT: float = 0.75
 
 ## A worked-out node comes back, on its own clock, so a region is not a fixed
 ## budget the player empties in Act I and then walks past for nine acts.

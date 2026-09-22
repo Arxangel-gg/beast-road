@@ -94,8 +94,12 @@ func _process(delta: float) -> void:
 	if _showing:
 		eased = 1.0 + Balance.INTERACT_BADGE_OVERSHOOT * sin(_out * PI) * (1.0 - _out)
 		eased *= _out
-	_icon.scale = Vector2.ONE * (Balance.INTERACT_BADGE_SIZE
-		/ maxf(float(_icon.texture.get_width()), 1.0)) * eased
+	# The badge fades *out* after its symbol is taken away - a prompt with no
+	# button, such as a seam mid-swing, leaves it showing nothing - so the
+	# texture may be null for the length of the fade. Found by the gathering
+	# gate swinging eight hundred times (2026-09-21).
+	var width: float = float(_icon.texture.get_width()) if _icon.texture != null else 1.0
+	_icon.scale = Vector2.ONE * (Balance.INTERACT_BADGE_SIZE / maxf(width, 1.0)) * eased
 	# A slow bob, so the symbol is alive without being an animation anybody has
 	# to watch.
 	var bob: float = sin(_clock * Balance.INTERACT_BADGE_BOB_RATE) * Balance.INTERACT_BADGE_BOB

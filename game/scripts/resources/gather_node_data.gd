@@ -27,6 +27,21 @@ extends GameData
 ## What comes out of it, by `MaterialData.id`, and how much per swing.
 @export var material_id: String = ""
 @export_range(1, 12) var material_per_swing: int = 1
+## **What else the node gives up**, beside its material (owner, 2026-09-21:
+## "appropriate chances for all of the resources they should provide, which
+## should also include stone"). A run currency - a seam sheds Stone, a trunk
+## sheds Wood - on a chance per swing, and a rarer material on a smaller one:
+## a gem out of an ore seam, resin amber out of a bloodpine. Both chances are
+## lifted by practice (`Balance.GATHER_SIDE_SKILL_LIFT`). Empty means the node
+## gives only its material, which is what every node did before this. The
+## currency is a run currency and resets with the run; the material persists
+## under the bound every material is held to - an input to the Smithy and
+## nothing else.
+@export var currency_id: String = ""
+@export_range(0.0, 1.0) var currency_chance: float = 0.0
+@export_range(1, 12) var currency_per_swing: int = 1
+@export var bonus_material_id: String = ""
+@export_range(0.0, 1.0) var bonus_chance: float = 0.0
 
 ## How many swings it holds before it is worked out.
 @export_range(1, 24) var swings: int = 4

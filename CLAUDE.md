@@ -6260,6 +6260,98 @@ caused it; 1080p has the same logical width and the same dice, and the sweep's
 shapes run on both bars. **A size in a report is what told this apart from a
 placement fault**; the position alone read as the boss line being too high.
 
+**The tail is answered in the file, as of 2026-09-21 (ninth report).** Eight
+passes argued about what happens between the painting and the screen - a
+modulate, a self_modulate, a shader, a per-channel harmony, a chroma, a value
+pull, a seat - and the owner kept seeing a limb that was not the animal it
+hung from. Measured on the paintings, surface only, ink held out: **the tail's
+root was painted a sixth darker than the stub it continues** (rgb 60/64/52
+against 71/77/59), and the runtime then darkened it a further six percent on
+purpose, on the theory that a low-hanging limb should read darker.
+`tools/grade_tail_to_stub.py` paints every tail frame's root to the stub's own
+colour and brightness, and **nothing at runtime touches the limb's colour any
+more**: `wear_grade`, `harmonise`, `_paint_match`, `BEAST_TAIL_GRADE`,
+`_CHROMA`, `_VALUE_PULL`, `_SEAT` and the harmony band are all gone. The tail
+is a child of the body and inherits its grade, which is the whole mechanism
+and cannot drift with a constant. `beast_tail_check` holds both halves - the
+file, and the absence of any knob - and `TailProbe` reads both scopes off the
+frame in `menu_shot` and `beast_shot`.
+
+**Two things the probe got wrong first, both coordinate mistakes.** The
+spline's chain is in the *painting's* pixels with the root at `root_in_art`,
+and the node's origin is that root - walked as local coordinates it read 52
+lit pixels of night sky as the tail. And screen space is the canvas
+transform, never the world: the menu has no camera so the two agree there,
+the beast scope has one and the first reading found nothing lit at all. A
+model of a thing is not the thing, and a *probe* of a thing is only as good
+as its frame.
+
+**The Walk's card clears the command row, and seven actions fit beside four
+slots, as of the same date.** The card sat 24px off the bottom edge, where
+the ability slots live; its foot reads `HUD.bottom_reserve` now, the one
+number the HUD measures its own band by. And the seventh action button (the
+ride, 2026-09-17) pushed the bottom row to 1996 of 1920 and the fourth
+ability slot off the screen - unseen by `layout_check` because a clean
+profile owns no horse. The action buttons wear 18px of side padding in place
+of the theme's 34, the gate saddles a mount, and it prints what the row wants
+by part so the next button to arrive names itself.
+
+**The Arcane opens with Act II, as of 2026-09-21.** Owner: "players can
+unlock the magic discipline in the hero mansion after beating the Act 1 boss
+and unlocking act 2". `Balance.DISCIPLINE_OPENS_AT_ACT` is the table, read
+through one door - `RunState.discipline_is_open`, asked by
+`eligible_discipline_nodes` - against the furthest act the account has reached
+*or* the act the run is in, so the run that fells the first boss opens it on
+the spot and an account that has reached Act II keeps it open on a new road.
+The three melee trees open at once. **It is an unlock, never power**: the
+nodes are the same nodes on the same capped scales, and what a new Warden is
+spared is a fourth column to read on the first visit. The Mansion page says
+what opens the tree and when. `discipline_check` drives the door in Act I, in
+the run that reaches Act II, and on an account that has.
+
+**A seam sheds Stone and a trunk sheds Wood, and practice widens the take
+without unbounding it, as of the same date.** Owner: "appropriate chances for
+all of the resources they should provide, which should also include stone,
+and there should be chances to gain increased quantities each mining action
+with randomness that is also scaled by the player's mining level. Same with
+woodcutting and other professions." `GatherNodeData` names a run currency
+with a chance and an amount and, for the ore seams and the bloodpine, a rarer
+material on a smaller one - a gem out of copper, resin amber out of pine.
+The flat one-in-five double is gone: a swing rolls `GATHER_BONUS_ROLLS` times
+for one more of its material, at a chance that rises with the craft, so a
+novice's swing is mostly its authored take and a master's is a spread, and
+**the most any swing can pay is the authored take plus the rolls**.
+
+**The bounds are the ones every craft and every wire already carry.** The
+currency is the run's and resets with it; the material is still an input to
+the Smithy and nothing else; a guest's Stone is asked of the host **by node
+id, never by amount** (`Request.GATHER_SIDE`), and only when its own roll
+landed, so the host pays what the node says and never more often than a
+swing. `gathering_check` swings a real seam four hundred times at level one
+and at the cap and reads the store and the purse back: novice 474 ore, 238
+Stone, 19 gems; master 837, 480, 30 - more of everything, and never past the
+ceiling.
+
+**The sponges came down, as of the same date.** Owner: "Some enemies have
+absurdly high amounts of health ... such as the Siege Lizard enemies in act 2
+... Scale those higher HP enemies including act bosses down to be more
+reasonable." A road warden at 250 base was 785 by the middle of Act II once
+the act and wave ladders had multiplied it - thirteen seconds of uninterrupted
+hitting for a Warden of that level, several to a wave, and it hits towers. The
+nine road wardens above 100 are at 64% of what they were (a 300 is 190, the
+Siege Lizard's 250 is 160) and every act boss at 72% (the Chainmaker 16,000 to
+11,500, the Act I boss 6,400 to 4,600). Camp lords are untouched: a dragon is
+worth the detour.
+
+**And `curve_report` read 0.413 before and 0.413 after, to the digit** - which
+is worth knowing rather than reassuring. The report's threat is the act and
+wave ladders over the roster's *count*; it earns Gold from every breed's kill
+value and reads no breed's health at all. So a body's own pool is a thing the
+report cannot see, exactly as a boss fight is, and the sponge the owner met was
+never going to show in it. Where it does show is `balance_test`,
+`roster_check`, `elite_check`, `boss_reach_check` and `enemy_siege_check`, all
+green after the cut.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

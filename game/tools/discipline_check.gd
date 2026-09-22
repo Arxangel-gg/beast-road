@@ -60,6 +60,7 @@ func _ready() -> void:
 	_test_every_effect_is_accounted_for()
 	_test_every_node_can_be_offered()
 	_test_the_points_are_spent_freely()
+	_test_the_arcane_waits_for_the_second_act()
 
 	var power: DisciplineNodeData = ContentDB.discipline_node("marrow_drain")
 	RunState.trained_discipline_nodes.append(power.id)
@@ -679,6 +680,63 @@ func _body(into: EnemyField, wanted: Callable) -> Enemy:
 
 
 ## `_check` that also answers, so a guard clause can read as one line.
+## **The Arcane opens with the second act, and the three melee trees do not
+## wait** (owner, 2026-09-21: "unlock the magic discipline in the hero mansion
+## after beating the Act 1 boss and unlocking act 2"). Driven through the one
+## door - `eligible_discipline_nodes` - on a fresh account standing in Act I,
+## then in the run that reaches Act II, then on an account that has reached it
+## before; the table read back would pass with the door ignoring it.
+func _test_the_arcane_waits_for_the_second_act() -> void:
+	var before_act: int = RunState.act
+	var before_best: float = MetaState.best_distance
+	var before_trained: Array = RunState.trained_discipline_nodes.duplicate()
+	RunState.trained_discipline_nodes.clear()
+	RunState.building_tiers["sanctum"] = 3
+	MetaState.best_distance = 0.0
+	RunState.act = 1
+	var arcane: int = DisciplineNodeData.Discipline.ARCANE
+	_check(not RunState.discipline_is_open(arcane),
+		"on a new account in Act I the Arcane is closed")
+	_check(RunState.discipline_is_open(DisciplineNodeData.Discipline.BLOOD)
+			and RunState.discipline_is_open(DisciplineNodeData.Discipline.HOLY)
+			and RunState.discipline_is_open(DisciplineNodeData.Discipline.BERSERK),
+		"and the three melee trees are open at once")
+	_check(_arcane_nodes_open() == 0,
+		"so no Arcane node is offered in Act I (%d were)" % _arcane_nodes_open())
+	_check(_melee_nodes_open() >= 9,
+		"while the melee trees offer their first tier (%d nodes)" % _melee_nodes_open())
+	RunState.act = 2
+	_check(_arcane_nodes_open() >= 3,
+		"the run that reaches Act II opens the Arcane on the spot (%d nodes)"
+			% _arcane_nodes_open())
+	RunState.act = 1
+	MetaState.best_distance = Balance.act_start_distance(2)
+	_check(_arcane_nodes_open() >= 3,
+		"and an account that has reached Act II keeps it open on a new road (%d nodes)"
+			% _arcane_nodes_open())
+	_check(RunState.discipline_opens_at(arcane) == 2,
+		"the Mansion's copy names Act II (%d)" % RunState.discipline_opens_at(arcane))
+	MetaState.best_distance = before_best
+	RunState.act = before_act
+	RunState.trained_discipline_nodes.assign(before_trained)
+
+
+func _arcane_nodes_open() -> int:
+	var count: int = 0
+	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+		if node.discipline == DisciplineNodeData.Discipline.ARCANE:
+			count += 1
+	return count
+
+
+func _melee_nodes_open() -> int:
+	var count: int = 0
+	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+		if node.discipline != DisciplineNodeData.Discipline.ARCANE:
+			count += 1
+	return count
+
+
 func _checked(condition: bool, failure: String) -> bool:
 	_check(condition, failure)
 	return condition

@@ -16,3 +16,6 @@ weight = 0.80
 regions = Array[String](["snow", "iron_steppe", "last_terrace"])
 id = "ashwood"
 display_name = "Ashwood"
+currency_id = "wood"
+currency_chance = 0.50
+currency_per_swing = 2

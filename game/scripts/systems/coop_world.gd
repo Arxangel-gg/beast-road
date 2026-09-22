@@ -613,6 +613,15 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 				if robbed != null:
 					RunState.gain_currency(RunState.FOOD,
 						randi_range(robbed.food_min, robbed.food_max))
+		CoopRelay.Request.GATHER_SIDE:
+			# A guest's swing shed a node's run currency - Stone off a seam,
+			# Wood off a trunk. Named by node, so the amount is read off the
+			# host's own content; the material the swing paid is that player's
+			# own store and never crosses.
+			if args.size() >= 1:
+				var seam: GatherNodeData = ContentDB.gather_node(String(args[0]))
+				if seam != null and not seam.currency_id.is_empty():
+					RunState.gain_currency(seam.currency_id, seam.currency_per_swing)
 		CoopRelay.Request.LAND_FISH:
 			# A guest landed a fish. The fish itself is already in that player's
 			# own account and never crosses the wire; only the Food is the

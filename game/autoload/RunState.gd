@@ -787,6 +787,8 @@ func eligible_discipline_nodes() -> Array[DisciplineNodeData]:
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
 		if node.mansion_tier > mansion_tier or trained_discipline_nodes.has(node.id):
 			continue
+		if not discipline_is_open(node.discipline):
+			continue
 		# **Depth in the node's own discipline, which is what makes this a tree.**
 		# The Mansion tier says what the *building* has unlocked; this says what
 		# the player has committed to. Without it all thirty nodes were available
@@ -801,6 +803,25 @@ func eligible_discipline_nodes() -> Array[DisciplineNodeData]:
 			continue
 		out.append(node)
 	return out
+
+
+## Whether a discipline's nodes may be offered or trained at all - see
+## `Balance.DISCIPLINE_OPENS_AT_ACT`. The one door, so the draft, the training
+## and the Mansion page cannot disagree about what is open.
+func discipline_is_open(discipline: int) -> bool:
+	var table: Array[int] = Balance.DISCIPLINE_OPENS_AT_ACT
+	if discipline < 0 or discipline >= table.size():
+		return true
+	var reached: int = maxi(ActStart.furthest_act(), act)
+	return reached >= table[discipline]
+
+
+## The act a closed discipline opens at, for the Mansion's copy.
+func discipline_opens_at(discipline: int) -> int:
+	var table: Array[int] = Balance.DISCIPLINE_OPENS_AT_ACT
+	if discipline < 0 or discipline >= table.size():
+		return 1
+	return table[discipline]
 
 
 func refresh_discipline_offers() -> void:

@@ -16,3 +16,6 @@ weight = 0.35
 regions = Array[String]([])
 id = "frost_geode"
 display_name = "Frost Geode"
+currency_id = "stone"
+currency_chance = 0.35
+currency_per_swing = 2

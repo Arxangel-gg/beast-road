@@ -291,6 +291,11 @@ enum Request {
 	## collided with `TAKE_EGG`; `coop_check` named it immediately. The lesson is
 	## written there and obeyed here.
 	HERO_MOUNT = 39,
+	## A guest's swing shed a node's run currency - Stone off a seam, Wood off
+	## a trunk. Named by node id, never by amount; the host reads the amount
+	## off its own content, as it does for a fish, a crop and an egg. 40, read
+	## off the whole table.
+	GATHER_SIDE = 40,
 }
 
 ## Facts that are *state announcements* rather than events.

@@ -16,3 +16,6 @@ weight = 0.50
 regions = Array[String](["glass_fields", "saltpan"])
 id = "glasswillow"
 display_name = "Glasswillow"
+currency_id = "wood"
+currency_chance = 0.50
+currency_per_swing = 2

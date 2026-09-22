@@ -213,6 +213,15 @@ func _heading(text: String) -> Label:
 	return _line(text.to_upper(), 16, Color("e8a33d"))
 
 
+## An act as the road writes it. A table rather than the general algorithm,
+## for the reason `boss_fall_card._roman` gives: eleven entries is smaller and
+## clearer than the arithmetic for a range that stops at eleven.
+func _roman(act: int) -> String:
+	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
+		"VI", "VII", "VIII", "IX", "X", "XI"]
+	return NUMERALS[clampi(act - 1, 0, NUMERALS.size() - 1)]
+
+
 func _note(text: String) -> void:
 	actions.add_child(_line(text, 15))
 
@@ -758,6 +767,12 @@ func _mansion_training(tier: int) -> void:
 		deepest = maxi(deepest, int(depth.get(which, 0)))
 	for which: int in tree_names.size():
 		var have: int = int(depth.get(which, 0))
+		# A tree the road has not opened yet says so, and says what opens it -
+		# a fourth column that is simply absent reads as a tree with three.
+		if not RunState.discipline_is_open(which):
+			_note("%s  ·  opens when Act %s is reached: the boss before it has to fall" % [
+				tree_names[which], _roman(RunState.discipline_opens_at(which))])
+			continue
 		var locked: int = 0
 		var open_now: int = 0
 		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():

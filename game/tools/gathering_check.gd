@@ -362,6 +362,7 @@ func _test_a_new_act_relays_the_ground() -> void:
 	# The same standing battlefield answers the readout questions, rather than
 	# a second one being built for them.
 	await _test_the_work_says_what_it_did(field, patch)
+	_test_a_swing_pays_what_the_node_holds(patch)
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -507,6 +508,89 @@ func _test_the_work_says_what_it_did(field: Battlefield, patch: Gathering) -> vo
 	# Put the seam back the way it was found, since the harness lives on.
 	seam["cooldown"] = 0.0
 
+
+
+## **A swing pays the node's sides, and practice widens the take without
+## unbounding it** (owner, 2026-09-21: "appropriate chances for all of the
+## resources they should provide, which should also include stone, and there
+## should be chances to gain increased quantities each mining action with
+## randomness that is also scaled by the player's mining level"). Measured by
+## driving the real `_land_a_swing` a few hundred times on a copper seam at
+## level one and at the cap, against the store and the purse read before and
+## after - never by reading the chances back, which would pass with the rolls
+## wired to nothing. A novice sees the sides rarely and never more copper than
+## the rolls allow; a master sees more of everything and still never past the
+## ceiling. The Stone goes through `RunState.gain_currency`, so the trim at the
+## door applies to it exactly as to a crate.
+const SWINGS: int = 400
+
+
+func _test_a_swing_pays_what_the_node_holds(patch: Gathering) -> void:
+	var seam: GatherNodeData = ContentDB.gather_node("copper_seam")
+	if seam == null or patch.node_count() <= 0:
+		_check(false, "the copper seam and a dug patch are needed to swing at")
+		return
+	_check(seam.currency_id == RunState.STONE and seam.currency_chance > 0.0,
+		"a copper seam sheds Stone")
+	_check(not seam.bonus_material_id.is_empty() and seam.bonus_chance > 0.0
+			and ContentDB.material(seam.bonus_material_id) != null,
+		"a copper seam holds a gem the store knows")
+	var held: bool = MetaState.profession_xp.has(seam.craft)
+	var before_xp: float = float(MetaState.profession_xp.get(seam.craft, 0.0))
+	var novice: Dictionary = _swing_away(patch, seam, true)
+	MetaState.gain_profession_xp(seam.craft, int(MetaState.profession_xp_to_cap()) + 500)
+	_check(MetaState.profession_level(seam.craft) == Balance.PROFESSION_MAX_LEVEL,
+		"the miner reached the cap for the measurement")
+	var master: Dictionary = _swing_away(patch, seam, false)
+	if held:
+		MetaState.profession_xp[seam.craft] = before_xp
+	else:
+		MetaState.profession_xp.erase(seam.craft)
+	var ceiling: float = float(seam.material_per_swing + Balance.GATHER_BONUS_ROLLS)
+	_check(float(novice["ore"]) / float(SWINGS) >= float(seam.material_per_swing),
+		"a novice's swing pays at least the authored take (%.2f a swing)"
+			% (float(novice["ore"]) / float(SWINGS)))
+	_check(float(master["ore"]) > float(novice["ore"]) * 1.15,
+		"a master takes more ore from the same seam: %d against %d over %d swings"
+			% [master["ore"], novice["ore"], SWINGS])
+	_check(float(master["ore"]) / float(SWINGS) <= ceiling,
+		"and never past the authored take plus the rolls (%.2f of %.0f a swing)"
+			% [float(master["ore"]) / float(SWINGS), ceiling])
+	_check(int(master["stone"]) > 0,
+		"a master's seam sheds Stone (%d over %d swings)" % [master["stone"], SWINGS])
+	_check(int(master["stone"]) > int(novice["stone"]),
+		"and more of it than a novice's: %d against %d" % [master["stone"], novice["stone"]])
+	_check(int(master["gem"]) >= 1,
+		"a master finds the gem in a copper seam now and then (%d over %d swings)"
+			% [master["gem"], SWINGS])
+	_check(int(novice["gem"]) <= int(master["gem"]),
+		"and no more often than a master: %d against %d" % [novice["gem"], master["gem"]])
+	print("[gathering] copper seam over %d swings: novice %d ore %d stone %d gem; master %d ore %d stone %d gem"
+		% [SWINGS, novice["ore"], novice["stone"], novice["gem"],
+			master["ore"], master["stone"], master["gem"]])
+
+
+## Drives the real swing `SWINGS` times against node zero and returns what the
+## store and the purse gained. A novice is held at nothing, because four hundred
+## swings of practice would otherwise make a journeyman of the measurement.
+func _swing_away(patch: Gathering, seam: GatherNodeData, novice: bool) -> Dictionary:
+	var nodes: Array = patch.get("_nodes") as Array
+	patch.set("_working", 0)
+	var ore_before: int = MetaState.material_count(seam.material_id)
+	var gem_before: int = MetaState.material_count(seam.bonus_material_id)
+	var stone_before: int = RunState.currency(seam.currency_id)
+	for _swing: int in SWINGS:
+		# Kept one swing from spent, so the node is never worked out and the
+		# respawn clock never starts underneath the measurement.
+		(nodes[0] as Dictionary)["left"] = 5
+		if novice:
+			MetaState.profession_xp[seam.craft] = 0.0
+		patch.call("_land_a_swing", seam)
+	return {
+		"ore": MetaState.material_count(seam.material_id) - ore_before,
+		"gem": MetaState.material_count(seam.bonus_material_id) - gem_before,
+		"stone": RunState.currency(seam.currency_id) - stone_before,
+	}
 
 func _test_the_forge_validates_before_it_spends() -> void:
 	MetaState.erase_progress()
