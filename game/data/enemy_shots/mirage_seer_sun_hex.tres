@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "mirage_seer_sun_hex"
+display_name = "Sun Hex"
+description = "A slow sun that follows and takes your mana."
+kind = 3
+near = 155.0
+far = 508.0
+weight = 2.00
+stray_weight = 0.50
+tint = Color(1.000, 0.847, 0.416, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.227, 0.165, 0.031, 1.000)
+head = 9
+head_scale = 1.20
+spin = 2.00
+wobble = 6.00
+pace = 0.90

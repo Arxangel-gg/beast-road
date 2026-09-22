@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "howler_pack_spray"
+display_name = "Pack Spray"
+description = "Three barks in a fan. Spread out."
+kind = 1
+near = 0.0
+far = 360.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.878, 0.478, 0.290, 1.000)
+core_tint = Color(1.000, 0.941, 0.847, 1.000)
+shell_tint = Color(0.227, 0.078, 0.031, 1.000)
+head = 2
+head_scale = 0.90
+trail_scale = 0.90
+pace = 1.10

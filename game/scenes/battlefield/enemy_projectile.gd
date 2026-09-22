@@ -25,6 +25,14 @@ var mana_burn: float = 0.0
 var tint: Color = Balance.ENEMY_PROJECTILE_COLOUR
 var core_tint: Color = Balance.ENEMY_PROJECTILE_CORE_COLOUR
 var shell_tint: Color = Balance.ENEMY_PROJECTILE_SHELL_COLOUR
+## The head's shape and motion, from `EnemyShotData` (2026-09-21). Pictures
+## only: the node flies its path whatever the head is doing.
+var head: int = EnemyShotData.Head.RUNE
+var head_scale: float = 1.0
+var spin: float = 0.0
+var wobble: float = 0.0
+var trail_scale: float = 1.0
+var pace_scale: float = 1.0
 
 var _target: Node2D = null
 var _destination: Vector2 = Vector2.ZERO
@@ -65,7 +73,7 @@ func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
 	_trail = Line2D.new()
 	_trail.top_level = true
-	_trail.width = Balance.ENEMY_PROJECTILE_WIDTH
+	_trail.width = Balance.ENEMY_PROJECTILE_WIDTH * trail_scale
 	_trail.default_color = Color(shell_tint, 0.90)
 	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -74,7 +82,7 @@ func _ready() -> void:
 
 	_filament = Line2D.new()
 	_filament.top_level = true
-	_filament.width = Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH
+	_filament.width = Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH * trail_scale
 	_filament.default_color = Color(core_tint, 0.88)
 	_filament.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_filament.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -84,7 +92,7 @@ func _ready() -> void:
 	var glow := Sprite2D.new()
 	glow.texture = LightKit.falloff_texture()
 	glow.modulate = Color(tint, 0.72)
-	glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE
+	glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE * sqrt(head_scale)
 	add_child(glow)
 	LightKit.add_light(self, tint,
 		Balance.ENEMY_PROJECTILE_LIGHT_RADIUS, Balance.ENEMY_PROJECTILE_LIGHT_ENERGY)
@@ -156,7 +164,7 @@ func _process(delta: float) -> void:
 
 ## How fast this one flies, against the baseline.
 func _pace() -> float:
-	return Balance.ENEMY_SHOT_HEX_SPEED if kind == Kind.HEX else 1.0
+	return (Balance.ENEMY_SHOT_HEX_SPEED if kind == Kind.HEX else 1.0) * pace_scale
 
 
 func _impact() -> void:
@@ -174,38 +182,162 @@ func _impact() -> void:
 			if who != null:
 				who.mana = maxf(who.mana - mana_burn, 0.0)
 				EventBus.hero_mana_changed.emit(who.mana, who.mana_max())
-	Vfx.spark(global_position, core_tint,
-		Balance.ENEMY_PROJECTILE_IMPACT_SPARKS,
-		-_direction, 180.0)
-	Vfx.ring(global_position, Balance.ENEMY_PROJECTILE_BLAST_RADIUS * 0.58,
-		Color(core_tint, 0.82), 0.20, 2.5)
-	Vfx.ring(global_position, Balance.ENEMY_PROJECTILE_BLAST_RADIUS,
-		Color(tint, 0.66), 0.34, 5.0)
-	Vfx.flash_at(global_position, Color(core_tint, 0.72),
-		Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 2.2)
+	_land_the_look()
 	queue_free()
 
 
+## **What the head does when it lands** - the same blow, dressed by its shape.
+## A stone throws dust and no sparks; a flame throws its embers upward; a
+## shard shatters into many fast, bright slivers; a skull leaves slow dark
+## wisps; the rest burst as every shot always has. Nothing here reads back.
+func _land_the_look() -> void:
+	var sparks: int = Balance.ENEMY_PROJECTILE_IMPACT_SPARKS
+	var radius: float = Balance.ENEMY_PROJECTILE_BLAST_RADIUS * sqrt(head_scale)
+	match head:
+		EnemyShotData.Head.STONE:
+			Vfx.dust(global_position, Color(shell_tint.lightened(0.35), 0.8), 7, radius * 0.8)
+			Vfx.spark(global_position, shell_tint.lightened(0.2), 5, -_direction, 120.0)
+		EnemyShotData.Head.FLAME:
+			Vfx.spark(global_position, core_tint, sparks + 6, Vector2.UP, 150.0)
+			Vfx.spark(global_position, tint, 6, -_direction, 90.0)
+		EnemyShotData.Head.SHARD:
+			Vfx.spark(global_position, core_tint, sparks + 10, -_direction, 260.0)
+			Vfx.spark(global_position, Color.WHITE.lerp(tint, 0.4), 6, Vector2.ZERO, 200.0)
+		EnemyShotData.Head.SKULL:
+			Vfx.spark(global_position, shell_tint.lightened(0.15), sparks, Vector2.UP, 46.0)
+			Vfx.spark(global_position, core_tint, 4, -_direction, 120.0)
+		EnemyShotData.Head.LEAF:
+			Vfx.spark(global_position, core_tint, sparks - 4, Vector2.DOWN, 70.0)
+		EnemyShotData.Head.GEAR, EnemyShotData.Head.BELL:
+			Vfx.spark(global_position, core_tint, sparks, -_direction, 220.0)
+			Vfx.ring(global_position, radius * 1.3, Color(tint, 0.55), 0.42, 3.0)
+		_:
+			Vfx.spark(global_position, core_tint, sparks, -_direction, 180.0)
+	Vfx.ring(global_position, radius * 0.58, Color(core_tint, 0.82), 0.20, 2.5)
+	Vfx.ring(global_position, radius, Color(tint, 0.66), 0.34, 5.0)
+	Vfx.flash_at(global_position, Color(core_tint, 0.72),
+		Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 2.2 * head_scale)
+	# And the forged shock, in the shot's own core colour.
+	Vfx.forge_burst(global_position, radius * 2.2, Color(core_tint, 0.85))
+
+
+## **The picture, and only the picture.** The sway and the spin are applied to
+## the drawing's transform, never to `global_position`, so a shot that wobbles
+## still hits exactly where it flies - the bound every tower shot style is held
+## to, in the other direction.
 func _draw() -> void:
 	var pulse: float = sin(_life * Balance.ENEMY_PROJECTILE_PULSE_SPEED) * 0.5 + 0.5
-	var head: float = Balance.ENEMY_PROJECTILE_HEAD_RADIUS
-	draw_circle(Vector2.ZERO, head * (1.55 + pulse * 0.16),
-		Color(tint, 0.12 + pulse * 0.08))
-	var shell := PackedVector2Array([
-		Vector2(head * 1.35, 0.0), Vector2(0.0, -head),
-		Vector2(-head * 1.05, 0.0), Vector2(0.0, head)])
-	draw_colored_polygon(shell, shell_tint)
-	var edge := PackedVector2Array([shell[0], shell[1], shell[2], shell[3], shell[0]])
-	draw_polyline(edge, Color(tint, 0.92), 1.8, true)
-	draw_circle(Vector2(head * 0.12, 0.0), head * (0.42 + pulse * 0.08),
-		core_tint)
-	var spin: float = _life * Balance.ENEMY_PROJECTILE_PULSE_SPEED * 0.55
-	draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS, spin,
-		spin + PI * 0.72, 12, Color(core_tint, 0.78),
-		Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
-	draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS, spin + PI,
-		spin + PI * 1.72, 12, Color(tint, 0.68),
-		Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
+	var size: float = Balance.ENEMY_PROJECTILE_HEAD_RADIUS * head_scale
+	# Drawn in the node's own frame, which already faces the flight: a sway is
+	# across the path, so it is the local y.
+	var sway: Vector2 = Vector2(0.0, sin(_life * 11.0) * wobble)
+	var turn: float = _life * spin * TAU
+	draw_circle(sway, size * (1.55 + pulse * 0.16), Color(tint, 0.12 + pulse * 0.08))
+	draw_set_transform(sway, turn, Vector2.ONE)
+	match head:
+		EnemyShotData.Head.ORB:
+			draw_circle(Vector2.ZERO, size * 1.05, shell_tint)
+			draw_arc(Vector2.ZERO, size * 1.05, 0.0, TAU, 20, Color(tint, 0.9), 1.6, true)
+			draw_circle(Vector2(size * 0.15, -size * 0.15), size * (0.5 + pulse * 0.08), core_tint)
+		EnemyShotData.Head.DART:
+			var dart := PackedVector2Array([
+				Vector2(size * 2.4, 0.0), Vector2(size * 0.6, -size * 0.55),
+				Vector2(-size * 1.6, -size * 0.3), Vector2(-size * 1.9, 0.0),
+				Vector2(-size * 1.6, size * 0.3), Vector2(size * 0.6, size * 0.55)])
+			draw_colored_polygon(dart, shell_tint)
+			draw_polyline(_closed(dart), Color(tint, 0.95), 1.5, true)
+			draw_line(Vector2(size * 2.2, 0.0), Vector2(-size * 1.2, 0.0), core_tint, 2.0, true)
+		EnemyShotData.Head.SHARD:
+			var shard := PackedVector2Array([
+				Vector2(size * 1.7, 0.0), Vector2(size * 0.3, -size * 0.9),
+				Vector2(-size * 0.9, -size * 0.5), Vector2(-size * 1.3, size * 0.2),
+				Vector2(-size * 0.2, size * 0.95), Vector2(size * 0.8, size * 0.5)])
+			draw_colored_polygon(shard, shell_tint)
+			draw_polyline(_closed(shard), Color(core_tint, 0.95), 1.6, true)
+			draw_line(shard[1], shard[4], Color(core_tint, 0.7), 1.2, true)
+			draw_circle(Vector2(size * 0.3, 0.0), size * 0.3, Color.WHITE.lerp(core_tint, 0.4))
+		EnemyShotData.Head.STONE:
+			var stone := PackedVector2Array()
+			for index: int in 8:
+				var angle: float = float(index) / 8.0 * TAU
+				var bump: float = 0.85 + 0.25 * sin(float(index) * 2.7 + 0.8)
+				stone.append(Vector2(cos(angle), sin(angle)) * size * 1.15 * bump)
+			draw_colored_polygon(stone, shell_tint)
+			draw_polyline(_closed(stone), shell_tint.darkened(0.45), 2.0, true)
+			draw_circle(Vector2(-size * 0.2, -size * 0.25), size * 0.35, shell_tint.lightened(0.25))
+		EnemyShotData.Head.SKULL:
+			draw_circle(Vector2(size * 0.1, -size * 0.1), size * 1.0, shell_tint.lightened(0.55))
+			draw_rect(Rect2(-size * 0.5, size * 0.55, size * 1.0, size * 0.55), shell_tint.lightened(0.45))
+			draw_circle(Vector2(size * 0.45, -size * 0.25), size * 0.3, core_tint)
+			draw_circle(Vector2(-size * 0.25, -size * 0.25), size * 0.3, core_tint)
+			draw_line(Vector2(-size * 0.4, size * 0.75), Vector2(size * 0.4, size * 0.75),
+				shell_tint.darkened(0.3), 1.5, true)
+		EnemyShotData.Head.LEAF:
+			var leaf := PackedVector2Array()
+			for index: int in 12:
+				var t: float = float(index) / 12.0 * TAU
+				leaf.append(Vector2(cos(t) * size * 1.9, sin(t) * size * 0.75))
+			draw_colored_polygon(leaf, shell_tint)
+			draw_polyline(_closed(leaf), Color(tint, 0.9), 1.4, true)
+			draw_line(Vector2(size * 1.7, 0.0), Vector2(-size * 1.7, 0.0), core_tint, 1.6, true)
+		EnemyShotData.Head.BOLA:
+			draw_line(Vector2(-size * 1.4, 0.0), Vector2(size * 1.4, 0.0), shell_tint.lightened(0.3), 2.2, true)
+			draw_circle(Vector2(size * 1.4, 0.0), size * 0.65, shell_tint)
+			draw_circle(Vector2(-size * 1.4, 0.0), size * 0.65, shell_tint)
+			draw_arc(Vector2(size * 1.4, 0.0), size * 0.65, 0.0, TAU, 12, Color(tint, 0.9), 1.4, true)
+			draw_arc(Vector2(-size * 1.4, 0.0), size * 0.65, 0.0, TAU, 12, Color(tint, 0.9), 1.4, true)
+		EnemyShotData.Head.FLAME:
+			var flick: float = 1.0 + sin(_life * 27.0) * 0.18
+			var flame := PackedVector2Array([
+				Vector2(size * 1.1, 0.0), Vector2(size * 0.2, -size * 0.8 * flick),
+				Vector2(-size * 1.4 * flick, -size * 0.35), Vector2(-size * 2.2 * flick, 0.0),
+				Vector2(-size * 1.4 * flick, size * 0.35), Vector2(size * 0.2, size * 0.8 * flick)])
+			draw_colored_polygon(flame, Color(tint, 0.9))
+			draw_circle(Vector2(size * 0.35, 0.0), size * (0.55 + pulse * 0.1), core_tint)
+			draw_circle(Vector2(size * 0.5, 0.0), size * 0.25, Color.WHITE.lerp(core_tint, 0.3))
+		EnemyShotData.Head.RING:
+			draw_arc(Vector2.ZERO, size * 1.2, 0.0, TAU, 24, shell_tint, size * 0.55, true)
+			draw_arc(Vector2.ZERO, size * 1.2, 0.0, TAU, 24, Color(tint, 0.95), size * 0.22, true)
+			draw_circle(Vector2.ZERO, size * (0.3 + pulse * 0.1), core_tint)
+		EnemyShotData.Head.BELL:
+			var bell := PackedVector2Array([
+				Vector2(size * 0.9, -size * 1.1), Vector2(size * 1.3, size * 0.4),
+				Vector2(size * 1.3, size * 0.8), Vector2(-size * 1.3, size * 0.8),
+				Vector2(-size * 1.3, size * 0.4), Vector2(-size * 0.9, -size * 1.1)])
+			draw_colored_polygon(bell, shell_tint)
+			draw_polyline(_closed(bell), Color(tint, 0.95), 1.6, true)
+			draw_circle(Vector2(0.0, -size * 1.1), size * 0.35, shell_tint)
+			draw_circle(Vector2(0.0, size * 0.85), size * 0.3, core_tint)
+		EnemyShotData.Head.GEAR:
+			for index: int in 8:
+				var angle: float = float(index) / 8.0 * TAU
+				var tooth: Vector2 = Vector2(cos(angle), sin(angle)) * size * 1.25
+				draw_rect(Rect2(tooth - Vector2.ONE * size * 0.28, Vector2.ONE * size * 0.56), shell_tint)
+			draw_circle(Vector2.ZERO, size * 1.05, shell_tint)
+			draw_arc(Vector2.ZERO, size * 1.05, 0.0, TAU, 20, Color(tint, 0.9), 1.6, true)
+			draw_circle(Vector2.ZERO, size * 0.4, core_tint)
+			draw_circle(Vector2.ZERO, size * 0.18, shell_tint)
+		_:
+			var shell := PackedVector2Array([
+				Vector2(size * 1.35, 0.0), Vector2(0.0, -size),
+				Vector2(-size * 1.05, 0.0), Vector2(0.0, size)])
+			draw_colored_polygon(shell, shell_tint)
+			draw_polyline(_closed(shell), Color(tint, 0.92), 1.8, true)
+			draw_circle(Vector2(size * 0.12, 0.0), size * (0.42 + pulse * 0.08), core_tint)
+			var rune_spin: float = _life * Balance.ENEMY_PROJECTILE_PULSE_SPEED * 0.55
+			draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS * head_scale, rune_spin,
+				rune_spin + PI * 0.72, 12, Color(core_tint, 0.78),
+				Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
+			draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS * head_scale, rune_spin + PI,
+				rune_spin + PI * 1.72, 12, Color(tint, 0.68),
+				Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+static func _closed(points: PackedVector2Array) -> PackedVector2Array:
+	var out: PackedVector2Array = points.duplicate()
+	out.append(points[0])
+	return out
 
 
 static func _trail_taper() -> Curve:

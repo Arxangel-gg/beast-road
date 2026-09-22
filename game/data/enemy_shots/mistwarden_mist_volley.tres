@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "mistwarden_mist_volley"
+display_name = "Mist Volley"
+description = "What the boss throws in a burst."
+kind = 0
+near = 0.0
+far = 0.0
+weight = 1.00
+stray_weight = 0.25
+tint = Color(0.812, 0.914, 0.639, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.169, 0.239, 0.118, 1.000)
+head = 1
+head_scale = 1.40
+wobble = 6.00
+trail_scale = 1.30
+pace = 0.90

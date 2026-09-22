@@ -33,3 +33,4 @@ boss_volley_damage = 0.153
 boss_volley_shots = 3
 boss_volley_interval = 5.2
 boss_volley_range = 900.0
+volley_shot_id = "mistwarden_mist_volley"

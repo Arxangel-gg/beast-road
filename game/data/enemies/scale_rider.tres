@@ -4,7 +4,7 @@
 script = ExtResource("1_enemy")
 voice_sfx = "sfx_enemy_call_beast"
 stagger_tolerance = 4.5
-thrown_shot_id = "thrown_javelin"
+thrown_shot_id = "scale_rider_scale_javelin"
 thrown_range = 188.0
 thrown_interval = 6.0
 thrown_share = 0.60

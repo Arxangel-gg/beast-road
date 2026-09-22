@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "horde_marksman_hunting_arrow"
+display_name = "Hunting Arrow"
+description = "A heavier broadhead, thrown at the middle distance."
+kind = 0
+near = 175.0
+far = 574.0
+weight = 2.00
+stray_weight = 0.50
+tint = Color(0.918, 0.875, 0.722, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.227, 0.188, 0.125, 1.000)
+head = 2
+head_scale = 1.30
+trail_scale = 1.00
+pace = 1.05

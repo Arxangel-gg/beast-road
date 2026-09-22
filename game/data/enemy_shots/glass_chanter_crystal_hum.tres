@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "glass_chanter_crystal_hum"
+display_name = "Crystal Hum"
+description = "A ringing note that follows and takes your mana."
+kind = 3
+near = 150.0
+far = 492.0
+weight = 1.50
+stray_weight = 0.40
+tint = Color(0.788, 0.643, 1.000, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.165, 0.102, 0.290, 1.000)
+head = 9
+head_scale = 1.00
+spin = 3.00
+wobble = 5.00

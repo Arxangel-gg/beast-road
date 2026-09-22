@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "horde_drummer_rally_bolt"
+display_name = "Rally Bolt"
+description = "A beat thrown straight down the road."
+kind = 0
+near = 400.0
+far = 0.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.820, 0.604, 0.306, 1.000)
+core_tint = Color(1.000, 0.941, 0.753, 1.000)
+shell_tint = Color(0.227, 0.157, 0.063, 1.000)
+head = 1
+head_scale = 1.00
+trail_scale = 1.00
+pace = 1.10

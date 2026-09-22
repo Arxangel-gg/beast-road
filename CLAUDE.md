@@ -6352,6 +6352,97 @@ never going to show in it. Where it does show is `balance_test`,
 `roster_check`, `elite_check`, `boss_reach_check` and `enemy_siege_check`, all
 green after the cut.
 
+**Every ranged breed throws shots of its own, as of 2026-09-21.** Owner:
+"Enemies should not be reusing the same projectiles as each other, each enemy
+should have its own unique projectiles ... ranged enemies are to have multiple
+variations of ranged projectiles and ranged attacks each tuned for that enemy
+... max perfect polished ultra juicy". Twelve shared files served twenty-four
+breeds; a Fog Lantern and a Mirage Seer threw the same `snap_bolt`. There are
+eighty-six now, every one named for its breed and owned by exactly one: three
+to five a shooter across at least two kinds, a thrown opener apiece for the
+four riders, and a volley shot for each of the twelve bosses
+(`EnemyData.volley_shot_id`), all generated from one table
+(`shots_data.py` in the session's scratch, recorded here because the *choices*
+are what matter: a region's palette, a head that is the thing thrown).
+
+**What makes them look their own is drawn, never flown.** `EnemyShotData`
+carries a `head` - orb, dart, shard, stone, skull, leaf, bola, flame, ring,
+bell, gear, or the rune every shot used to be - with a size, a spin, a sway
+off the path, a trail weight and a pace; `EnemyProjectile._draw` paints the
+head on the drawing's own transform, so a shot that sways still hits exactly
+where it flies, and `_land_the_look` dresses the landing by the head (a stone
+throws dust, a flame its embers upward, a shard shatters into slivers, a skull
+leaves slow dark wisps). **The bound is the tower shots' bound in the other
+direction: a look is never a fact.** The blow is the same blow, and `pace` is
+bounded either side of one as the hex already was - slower is more dodgeable
+and faster less, which is the shape of a blow and not its size.
+
+**The systematic walk the owner asked for is `enemy_shot_check`
+(894 checks).** Every shot every breed owns - its repertoire, its opener, its
+volley - is thrown for real by a body of that breed through the same dispatch
+the fight uses (`Enemy.loose_named_shot`, the documented seam) at a hero with
+a known pool and then at the wall, and the damage is read back: something
+lands, never more than the strike, and the wall is hurt by whatever is aimed
+at it. Thirty-five breeds, eighty-six shots. It also holds the ownership -
+named for the breed, owned once, a shooter with fewer than three or of one
+kind, two of a breed's own shots that look alike, a boss volleying in the
+plain rune - and `enemy_repertoire_check`'s "every shot a colour apart from
+every other" was **amended deliberately**: that held twelve shared files and
+cannot hold eighty-six, so what it holds now is that a breed's *own* shots
+never look alike, and two breeds a region apart may fairly fly the same ember.
+
+**Three harness faults came out of the walk and each is one this project has
+met before.** A live body picks its own target every tick and walks its route,
+so each breed's first shot landed and every later one was thrown at the town
+from wherever the body had walked - sixteen "silent duds" that were the
+harness measuring a body that had changed its mind; the probe is held still and
+re-aimed before every shot. Headless runs far above sixty frames a second, so
+"240 frames" was under a second of game time and a slow hex could not cross
+180 units in it; the waits are in seconds. And a fan's other two pellets landed
+during the *next* shot's measurement, which then "took 500 from a strike of
+300"; the air is settled between shots.
+
+**And a partner's screen wears the same head.** The strike fact carries the
+shot's name now (`enemy_struck` and `Fact.ENEMY_STRUCK` grew a third element,
+read off this machine's own content on arrival), so a guest's mirror of a
+Fog Lantern throws a lantern and never the roster's plain rune; the picture is
+a bolt whatever the kind, because a guest resolves no ground blow.
+`shots_shot` photographs the twelve heads on a plate, and the first plate had
+seven of them standing off it - a shot configured before it had a parent took
+its local origin for a global one - which is the same coordinate mistake the
+tail probe made an hour earlier, in a third costume.
+
+**The VFX forge is built, and it made one effect, as of 2026-09-21.** Owner:
+"If you are able to use the blender method outlined in the docs/VFX_FORGE.md
+to make the sprite sheets for our juiciest vfx and bring them into our game
+and integrate everything". `tools/vfx_forge/forge.py` drives Blender 4.5
+headless through `render.py`: one plane under an orthographic camera and one
+material that is the whole effect - the document's five nodes, a frame turned
+into an age, a radial coordinate, noise through a hard threshold, a swirl
+toward the middle, emission whose alpha is the mask - rendered frame by frame
+on a transparent film and packed into one row. **The pilot §5 asked for and
+no more**: the burst, sixteen cells of 96, white on transparent, at the enemy
+shot impact, the boss slam and the tower shot impact through `Vfx.forge_burst`,
+tinted once per use so one sheet serves every element.
+
+**The line the document draws is kept.** A sheet is drawn where an effect's
+size is decoration; every telegraph is still drawn at the blow's own radius,
+and the forged shock at a slam is laid at the radius the ring already promised
+- never a second reach. `forge_check` holds the sheet at its declared size
+with lit cells that fray away, a player that frees itself and draws nothing
+at a density of zero, and the three call sites; `forge_shot` photographs it
+beside the painted burst, which is the only judgement §5 allows. Read on the
+plate: the painted burst is a star and the forged one is a ring with a swirl
+in it, both hard-edged and flat-lit, and under the sparks and the flash it
+joins it reads as a wave leaving the blow rather than as a second game. More
+effects are a file each in `render.py` (the eligible list is §3); none was
+bought beyond the pilot.
+
+**Two things about Blender worth keeping.** `Standard` view transform, or a
+white emission renders the grey AgX invents and the game's tint lands on
+that; and a keyframed Value node is the clock, because a driver needs the
+expression sandbox and a keyframe needs nothing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

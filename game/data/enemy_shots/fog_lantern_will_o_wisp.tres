@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "fog_lantern_will_o_wisp"
+display_name = "Will-o'-the-Wisp"
+description = "A wisp that wanders after you and drinks your mana. Outrun it."
+kind = 3
+near = 135.0
+far = 443.0
+weight = 2.00
+stray_weight = 0.50
+tint = Color(0.722, 1.000, 0.604, 1.000)
+core_tint = Color(0.957, 1.000, 0.910, 1.000)
+shell_tint = Color(0.122, 0.227, 0.078, 1.000)
+head = 1
+head_scale = 1.30
+wobble = 10.00
+trail_scale = 1.40
+pace = 0.90

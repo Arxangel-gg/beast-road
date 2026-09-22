@@ -33,3 +33,4 @@ boss_volley_damage = 0.219
 boss_volley_shots = 4
 boss_volley_interval = 4.0
 boss_volley_range = 880.0
+volley_shot_id = "mirrorfang_mirror_volley"

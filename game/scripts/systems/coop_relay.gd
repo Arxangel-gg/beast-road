@@ -735,8 +735,8 @@ func _on_coop_road_card_chosen(card_id: String, dropped: String) -> void:
 	_relay(Fact.ROAD_CARD_CHOSEN, [card_id, dropped])
 
 
-func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
-	_relay(Fact.ENEMY_STRUCK, [net_id, at])
+func _on_coop_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
+	_relay(Fact.ENEMY_STRUCK, [net_id, at, shot_id])
 
 
 func _on_coop_party_roster(rows: Array) -> void:
@@ -1205,8 +1205,11 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 2:
 				bus.coop_party_event_away.emit(int(args[0]), bool(args[1]))
 		Fact.ENEMY_STRUCK:
-			if args.size() == 2:
-				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2)
+			# The third element names the shot thrown (2026-09-21), so a guest
+			# draws the breed's own head rather than the roster's plain rune.
+			if args.size() >= 2:
+				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2,
+					String(args[2]) if args.size() >= 3 else "")
 		Fact.PARTY_ROSTER:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_party_roster.emit(args[0] as Array)

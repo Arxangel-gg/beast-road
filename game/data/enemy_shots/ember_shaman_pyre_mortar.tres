@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "ember_shaman_pyre_mortar"
+display_name = "Pyre Mortar"
+description = "A gout of fire that falls where you were standing. Leave the circle."
+kind = 2
+near = 320.0
+far = 0.0
+weight = 3.00
+stray_weight = 0.50
+tint = Color(0.910, 0.318, 0.165, 1.000)
+core_tint = Color(1.000, 0.765, 0.416, 1.000)
+shell_tint = Color(0.227, 0.047, 0.024, 1.000)
+head = 0
+blast_radius = 140.00
+tell_delay = 1.10

@@ -1,8 +1,13 @@
 # The VFX forge — stylised effect sheets out of Blender
 
-A design note, not a built system. Blender **4.5** is installed. Written
-2026-09-21 after the owner forwarded a technique (Good Good, TikTok) for
-stylised effects in geometry and shader nodes.
+Written 2026-09-21 after the owner forwarded a technique (Good Good, TikTok)
+for stylised effects in geometry and shader nodes. **Built the same day, as
+the pilot §5 asks for**: `tools/vfx_forge/forge.py` drives Blender 4.5
+headless through `render.py`, renders one effect as a single-row sheet and
+writes it to `game/art/vfx/forge_<effect>.png`; `Vfx.forge_burst` plays it
+tinted; `forge_check` holds the sheet, the player and the decoration bound;
+`forge_shot` photographs it beside the painted burst. One effect so far - the
+burst - at the enemy shot impact, the boss slam and the tower shot impact.
 
 ---
 

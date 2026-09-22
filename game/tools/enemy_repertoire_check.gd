@@ -30,28 +30,16 @@ extends Node
 
 ## How many shots a breed of each standing should know. The owner's table.
 const EXPECTED: Dictionary = {
-	"ember_shaman": 2,
-	"storm_caller": 3, "fog_lantern": 3, "bell_priest": 3, "choir_cantor": 3,
+	# **Every breed owns its own shots since 2026-09-21** (owner: "each enemy
+	# should have its own unique projectiles ... multiple variations"), so the
+	# floor is three for a road caster and the elites and champions carry four
+	# or five. `enemy_shot_check` holds the ownership; this holds the count.
+	"ember_shaman": 3, "thorn_archer": 3, "marsh_piper": 3, "horde_marksman": 3,
+	"storm_caller": 4, "fog_lantern": 3, "bell_priest": 3, "choir_cantor": 3,
 	"glass_singer": 4, "glass_chanter": 4, "ash_caller": 4, "crown_herald": 4,
-	"mirage_seer": 5, "drowned_choir": 5,
-	# Added 2026-09-14. These three had the HOWLER role and **no repertoire at
-	# all**, so they threw the one bolt every shooter threw before repertoires
-	# existed - which is what the owner was seeing when they reported the
-	# variety as missing. The two elites get three, since the brief allowed up
-	# to five for elites and champions.
+	"mirage_seer": 5, "drowned_choir": 5, "anchor_cantor": 3,
 	"howler": 3, "wolf_standard_bearer": 3, "horde_drummer": 3,
-	# Added 2026-09-15 with the camp lords. The storm dragon is the only one
-	# of the eight that throws; it gets four, which is what the brief allows
-	# a champion, and the gate named it the moment it was authored without
-	# one.
-	"dragon_storm": 4,
-	# The camp-only shooter, added the same day. Three, like the road's
-	# ordinary casters: a camp breed is harder than a road body and is not a
-	# champion.
-	"camp_shaman": 3,
-	# The four shooters of 2026-09-21, two apiece: a road caster on the pattern
-	# of the Ember Shaman, and the gate named each the moment it was authored.
-	"thorn_archer": 2, "marsh_piper": 2, "horde_marksman": 2, "anchor_cantor": 3,
+	"dragon_storm": 4, "camp_shaman": 3,
 }
 
 ## Distances the draw is measured at, **as a share of the breed's own reach**.
@@ -262,15 +250,15 @@ func _test_every_shooter_has_a_repertoire() -> void:
 		"only %d shooters found; the roster should be full of them" % shooters)
 
 
-## **A shot the player cannot tell apart from another shot is one shot.**
+## **A look is a breed's own, and a breed's shots look unlike each other.**
 ##
-## Five shapes shipped on 2026-09-13 and eight of the ten authored shots left
-## `tint` fully transparent, which means "keep the roster default" - so a stone
-## mortar, a snap bolt, a hex and two lances all flew in the same grey-blue. The
-## mechanics varied and the screen did not, and the owner reported the variety
-## as missing. It was there; it was invisible.
+## This held every shot in the pool a colour apart from every other while the
+## pool was twelve shared files. Since 2026-09-21 every breed owns its shots -
+## eighty-odd files - and two breeds a region apart may fairly fly the same
+## ember; what has to stay true is *within* a breed, where two shots of one
+## kind with one head and one colour are a single shot drawn twice. Amended
+## deliberately, and the ownership itself is held by `enemy_shot_check`.
 func _test_every_shot_looks_like_itself() -> void:
-	var seen: Array[Color] = []
 	for value: Variant in ContentDB.enemy_shots.values():
 		var shot := value as EnemyShotData
 		if shot == null:
@@ -278,11 +266,18 @@ func _test_every_shot_looks_like_itself() -> void:
 		_check(shot.tint.a > 0.0,
 			("%s leaves its tint transparent, so it flies in whatever colour "
 				+ "every other shot flies in") % shot.id)
-		for other: Color in seen:
-			# Not a hue apart, just far enough that two shots crossing the same
-			# lane are two things rather than one thing twice.
-			var apart: float = absf(shot.tint.r - other.r) 				+ absf(shot.tint.g - other.g) + absf(shot.tint.b - other.b)
-			_check(apart > 0.18,
-				("%s flies in a colour another shot already uses - they are "
-					+ "the same shot as far as the player is concerned") % shot.id)
-		seen.append(shot.tint)
+	for id: Variant in EXPECTED:
+		var breed: EnemyData = ContentDB.enemy(String(id))
+		if breed == null:
+			continue
+		var seen: Array[EnemyShotData] = []
+		for shot: EnemyShotData in breed.repertoire():
+			for other: EnemyShotData in seen:
+				var apart: float = absf(shot.tint.r - other.tint.r) + absf(shot.tint.g - other.tint.g) \
+					+ absf(shot.tint.b - other.tint.b)
+				_check(int(shot.kind) != int(other.kind) or int(shot.head) != int(other.head)
+						or apart > 0.18,
+					("%s throws %s and %s, which are the same kind, the same head and "
+						+ "the same colour - one shot drawn twice") % [id, other.id, shot.id])
+			seen.append(shot)
+

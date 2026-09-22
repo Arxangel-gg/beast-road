@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "choir_cantor_drowning_hymn"
+display_name = "Drowning Hymn"
+description = "A slow drowned voice that follows you and takes your mana."
+kind = 3
+near = 140.0
+far = 459.0
+weight = 1.50
+stray_weight = 0.40
+tint = Color(0.490, 0.424, 0.769, 1.000)
+core_tint = Color(0.851, 0.816, 1.000, 1.000)
+shell_tint = Color(0.133, 0.102, 0.271, 1.000)
+head = 5
+head_scale = 1.10
+wobble = 7.00

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "anchor_cantor_anchor_hex"
+display_name = "Anchor Hex"
+description = "A weight that follows you and takes your mana."
+kind = 3
+near = 175.0
+far = 574.0
+weight = 2.00
+stray_weight = 0.50
+tint = Color(0.604, 0.498, 0.831, 1.000)
+core_tint = Color(0.937, 0.902, 1.000, 1.000)
+shell_tint = Color(0.118, 0.086, 0.220, 1.000)
+head = 5
+head_scale = 1.10
+wobble = 6.00
+pace = 0.90

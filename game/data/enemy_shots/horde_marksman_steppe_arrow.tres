@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "horde_marksman_steppe_arrow"
+display_name = "Steppe Arrow"
+description = "A long arrow, fast and flat. Sidestep it."
+kind = 0
+near = 350.0
+far = 0.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.820, 0.604, 0.306, 1.000)
+core_tint = Color(1.000, 0.957, 0.816, 1.000)
+shell_tint = Color(0.180, 0.118, 0.047, 1.000)
+head = 2
+head_scale = 1.10
+trail_scale = 0.80
+pace = 1.30

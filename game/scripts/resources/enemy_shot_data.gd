@@ -51,6 +51,32 @@ enum Kind { BOLT, SPRAY, LOB, HEX, LANCE }
 ## transparent, the projectile keeps the roster's own colours.
 @export var tint: Color = Color(0.0, 0.0, 0.0, 0.0)
 @export var core_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
+## **What the head of a flying shot is shaped like, and how it moves.**
+##
+## Owner, 2026-09-21: "Enemies should not be reusing the same projectiles as
+## each other, each enemy should have its own unique projectiles ... each tuned
+## for that enemy". Every breed owns its own shot files now (`enemy_shot_check`
+## refuses one shared by two), and what makes them *look* their own is here:
+## a head drawn from one of these shapes, at a size, spinning or not, swaying
+## off its path or not, with a trail of its own weight, at its own pace. All of
+## it is a picture - the node stays on its path, a sway is drawn and never
+## flown, and the blow is the same blow - which is the bound every tower shot
+## style is held to. `RUNE` is what every shot looked like before this.
+enum Head { RUNE, ORB, DART, SHARD, STONE, SKULL, LEAF, BOLA, FLAME, RING, BELL, GEAR }
+@export var head: Head = Head.RUNE
+@export_range(0.4, 3.0) var head_scale: float = 1.0
+## Turns a second the drawn head makes. Zero flies point-first.
+@export_range(-6.0, 6.0) var spin: float = 0.0
+## How far the picture sways either side of the path, in pixels.
+@export_range(0.0, 24.0) var wobble: float = 0.0
+## The shell behind the head and the trail; left clear, the roster's own.
+@export var shell_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
+## The trail's weight against the roster's.
+@export_range(0.3, 2.5) var trail_scale: float = 1.0
+## How fast it flies against the roster's baseline. Bounded either side of
+## one: slower is more dodgeable and faster is less, and both are the *shape*
+## of a blow rather than its size, exactly as a hex is already slower.
+@export_range(0.6, 1.4) var pace: float = 1.0
 
 ## **What a LOB or a LANCE does differently from the next one.**
 ##

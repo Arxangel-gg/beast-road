@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "fog_lantern_fog_spray"
+display_name = "Fog Spray"
+description = "Three motes of fog in a fan."
+kind = 1
+near = 0.0
+far = 243.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.373, 0.659, 0.627, 1.000)
+core_tint = Color(0.875, 0.988, 0.961, 1.000)
+shell_tint = Color(0.071, 0.200, 0.188, 1.000)
+head = 1
+head_scale = 0.80
+wobble = 3.00
+trail_scale = 0.80

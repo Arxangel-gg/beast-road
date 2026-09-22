@@ -3234,6 +3234,10 @@ const PROJECTILE_ART_SCALE: float = 0.40
 ## a shimmer. Slow enough to read the flicker, fast enough that a shot crossing
 ## the screen in half a second still shows most of the cycle.
 const VFX_ART_FRAME_RATE: float = 12.0
+## How fast a forged sheet plays (`Vfx.forge_burst`): sixteen cells in about
+## half a second. Faster than the painted impacts because a shock ring that
+## lingers reads as a stain rather than a blow.
+const VFX_FORGE_FRAME_RATE: float = 30.0
 ## How large a drawn hit sheet is played, in world units, at the chain's fast
 ## steps; the finisher plays it larger. [TUNE]
 const VFX_HIT_SHEET_SIZE: float = 72.0

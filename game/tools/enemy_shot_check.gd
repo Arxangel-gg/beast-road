@@ -45,6 +45,8 @@ func _ready() -> void:
 	RunState.phase = RunState.Phase.ROAD_BATTLE
 
 	_test_every_shot_is_authored_somewhere()
+	_test_every_breed_owns_its_shots()
+	await _test_every_breed_hits_what_it_may()
 	await _test_each_shot_lands_and_none_exceeds_its_strike()
 	await _test_a_blow_outlives_its_thrower()
 	_test_the_tell_matches_the_blow()
@@ -60,8 +62,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print(("[enemy-shots] PASS - %d checks: five shots and a thrown opener, each "
-			+ "lands, none exceeds its strike")
+		print(("[enemy-shots] PASS - %d checks: five kinds, every breed's own shots "
+			+ "walked against a hero and the wall, each lands, none exceeds its strike")
 			% _checks)
 	else:
 		push_error("[enemy-shots] FAIL - %d problem(s)" % _failures)
@@ -235,6 +237,211 @@ func _test_the_tell_matches_the_blow() -> void:
 	_check(not bool(line.call("_covers", Vector2(301.0, 0.0))), "and nothing past its reach")
 	_check(not bool(line.call("_covers", Vector2(-10.0, 0.0))), "and nothing behind the thrower")
 	line.free()
+
+
+## **Every breed owns its shots, every shot is owned once, and every shooter
+## carries a real repertoire** (owner, 2026-09-21: "Enemies should not be
+## reusing the same projectiles as each other, each enemy should have its own
+## unique projectiles ... ranged enemies are to have multiple variations of
+## ranged projectiles and ranged attacks each tuned for that enemy").
+##
+## Twelve shared files served twenty-four breeds until this; a Fog Lantern and
+## a Mirage Seer threw the same `snap_bolt`. A shot is named for its breed now
+## and named by exactly one, a shooter knows at least three of at least two
+## kinds, and no two of a breed's own shots look alike - the same kind with the
+## same head has to fly in a colour clearly its own, or the "variation" is one
+## shot drawn twice. A boss that throws a volley wears a shot of its own too.
+func _test_every_breed_owns_its_shots() -> void:
+	var owners: Dictionary = {}
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null:
+			continue
+		var mine: PackedStringArray = PackedStringArray()
+		for id: String in breed.shot_ids:
+			mine.append(id)
+		if not breed.thrown_shot_id.is_empty():
+			mine.append(breed.thrown_shot_id)
+		if not breed.volley_shot_id.is_empty():
+			mine.append(breed.volley_shot_id)
+		for id: String in mine:
+			_check(ContentDB.enemy_shots.has(id),
+				"%s names %s, which is not a shot on disk" % [breed.id, id])
+			_check(not owners.has(id) or String(owners[id]) == breed.id,
+				"%s is thrown by both %s and %s - each breed owns its own"
+					% [id, String(owners.get(id, "")), breed.id])
+			owners[id] = breed.id
+			_check(id.begins_with(breed.id + "_"),
+				"%s throws %s, which is not named for it" % [breed.id, id])
+		if breed.boss_volley_shots > 0:
+			_check(not breed.volley_shot_id.is_empty(),
+				"%s throws a volley in the roster's plain rune" % breed.id)
+		if breed.role != EnemyData.Role.HOWLER:
+			continue
+		_check(breed.shot_ids.size() >= 3,
+			"%s shoots for a living and knows %d shots; three is the floor"
+				% [breed.id, breed.shot_ids.size()])
+		var kinds: Dictionary = {}
+		var seen: Array[EnemyShotData] = []
+		for id: String in breed.shot_ids:
+			var shot := ContentDB.enemy_shots.get(id) as EnemyShotData
+			if shot == null:
+				continue
+			kinds[int(shot.kind)] = true
+			for other: EnemyShotData in seen:
+				var alike: bool = int(other.kind) == int(shot.kind) \
+					and int(other.head) == int(shot.head) \
+					and absf(other.tint.r - shot.tint.r) + absf(other.tint.g - shot.tint.g) \
+						+ absf(other.tint.b - shot.tint.b) <= 0.18
+				_check(not alike,
+					"%s throws %s and %s, which look alike - one shot drawn twice"
+						% [breed.id, other.id, shot.id])
+			seen.append(shot)
+		_check(kinds.size() >= 2,
+			"%s knows %d shots of one kind - the verb that answers them never changes"
+				% [breed.id, breed.shot_ids.size()])
+	for id: Variant in ContentDB.enemy_shots.keys():
+		_check(owners.has(id), "%s is thrown by nobody" % String(id))
+
+
+## **Every shot every breed owns lands on what it may hit** - the systematic
+## walk the owner asked for ("all enemies need to be tested to have the right
+## ranges, the right amount of attacks and variations, and ensuring that all of
+## their attacks are able to hit all of the targets that they're allowed to
+## target"). A real body of each breed, its repertoire thrown shot by shot
+## through the same dispatch the fight uses (`loose_named_shot`), at a hero
+## with a known pool and then at the wall - and the damage read back. Held to
+## the bound every shot is held to: something lands, and never more than the
+## strike it was rolled from.
+func _test_every_breed_hits_what_it_may() -> void:
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	GameDirector.run_active = true
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero if field != null else null
+	var town: Node2D = field.town_node() if field != null else null
+	if hero == null or hero.health == null or town == null:
+		_check(false, "the harness needs a hero and a town on a battlefield")
+		run.queue_free()
+		return
+	hero.health.max_hp = 100000.0
+	var wall: Health = Health.of(town)
+	if wall != null:
+		wall.max_hp = 100000.0
+		wall.current_hp = wall.max_hp
+	const STRIKE: float = 300.0
+	var breeds: int = 0
+	var shots: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or not breed.throws_something() and breed.volley_shot_id.is_empty():
+			continue
+		var mine: PackedStringArray = PackedStringArray()
+		for id: String in breed.shot_ids:
+			mine.append(id)
+		if not breed.thrown_shot_id.is_empty():
+			mine.append(breed.thrown_shot_id)
+		if not breed.volley_shot_id.is_empty():
+			mine.append(breed.volley_shot_id)
+		if mine.is_empty():
+			continue
+		breeds += 1
+		var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+		enemy.setup(breed, 0, field, 1.0, 1.0, 1.0)
+		field.add_child(enemy)
+		# **Held still, and re-aimed before every shot.** A live body picks its
+		# own target every tick and walks its route; the first cut let it, so
+		# each breed's first shot landed and every later one was thrown at the
+		# town from wherever the body had walked to - sixteen "silent duds" that
+		# were the harness measuring a body that had changed its mind.
+		enemy.set_process(false)
+		enemy.set_physics_process(false)
+		enemy.global_position = hero.global_position + Vector2.RIGHT * 180.0
+		for id: String in mine:
+			shots += 1
+			enemy.set("_target", hero)
+			hero.health.current_hp = hero.health.max_hp
+			hero.mana = hero.mana_max()
+			# **Nothing of the last shot may still be in the air.** A fan's other
+			# two pellets and a bolt that landed late were counted against the
+			# next shot, which then "took 500 from a strike of 300".
+			await _settle(field)
+			hero.health.current_hp = hero.health.max_hp
+			var thrown: bool = bool(enemy.loose_named_shot(id, STRIKE))
+			_check(thrown, "%s refused to throw its own %s" % [breed.id, id])
+			if not thrown:
+				continue
+			# **Seconds, not frames.** Headless runs far above sixty a second, so
+			# 240 frames is under a second of game time and a slow hex needs
+			# more than that to cross 180 units.
+			var taken: float = 0.0
+			var waited: float = 0.0
+			while waited < 4.0:
+				hero.health._invulnerable_left = 0.0
+				await get_tree().process_frame
+				waited += get_process_delta_time()
+				taken = hero.health.max_hp - hero.health.current_hp
+				if taken > 0.0 and waited > 0.2:
+					break
+			_check(taken > 0.0,
+				"%s's %s landed nothing on a hero at 220 units - a silent dud" % [breed.id, id])
+			_check(taken <= STRIKE + 0.5,
+				"%s's %s took %.1f from a strike of %.1f - a shot may change the shape of a blow and never its size"
+					% [breed.id, id, taken, STRIKE])
+		# And the wall: whatever it throws, aimed at the gate it must hurt the gate.
+		if wall != null and not breed.shot_ids.is_empty():
+			enemy.set("_target", town)
+			enemy.global_position = town.global_position + Vector2.RIGHT * 300.0
+			wall.current_hp = wall.max_hp
+			var last: String = breed.shot_ids[breed.shot_ids.size() - 1]
+			await _settle(field)
+			wall.current_hp = wall.max_hp
+			if bool(enemy.loose_named_shot(last, STRIKE)):
+				var hurt: float = 0.0
+				var waited: float = 0.0
+				while waited < 4.0:
+					await get_tree().process_frame
+					waited += get_process_delta_time()
+					hurt = wall.max_hp - wall.current_hp
+					if hurt > 0.0 and waited > 0.2:
+						break
+				_check(hurt > 0.0,
+					"%s aimed %s at the wall and the wall was not hurt - the bolt fallback is gone"
+						% [breed.id, last])
+		await _settle(field)
+		if is_instance_valid(enemy):
+			enemy.queue_free()
+		await get_tree().process_frame
+	_check(breeds >= 24, "the walk should cover the whole ranged roster, covered %d" % breeds)
+	print("[enemy-shots] walked %d breeds and %d shots against a hero and the wall" % [breeds, shots])
+	if wall != null:
+		wall.current_hp = wall.max_hp
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+	GameDirector.run_active = false
+
+
+## Waits until no hostile shot or ground blow is left under the field, so one
+## shot's remains are never counted against the next. Bounded, because a shot
+## that never lands is a fault the walk should report rather than wait on.
+func _settle(field: Battlefield) -> void:
+	var waited: float = 0.0
+	while waited < 4.0:
+		var flying: bool = false
+		for child: Node in field.get_children():
+			if child is EnemyProjectile or child is EnemyGroundStrike:
+				flying = true
+				break
+		if not flying:
+			return
+		await get_tree().process_frame
+		waited += get_process_delta_time()
 
 
 ## A live shooter on the field, aimed at `at`, throwing `shot`.

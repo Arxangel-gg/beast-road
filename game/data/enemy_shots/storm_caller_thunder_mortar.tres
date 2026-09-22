@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "storm_caller_thunder_mortar"
+display_name = "Thunder Mortar"
+description = "A thunderhead breaks where you stood. Leave the circle."
+kind = 2
+near = 310.0
+far = 0.0
+weight = 2.00
+stray_weight = 0.40
+tint = Color(0.541, 0.612, 1.000, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.039, 0.063, 0.188, 1.000)
+head = 0
+blast_radius = 145.00
+tell_delay = 1.15

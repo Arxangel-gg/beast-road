@@ -33,3 +33,4 @@ boss_volley_damage = 1.0
 boss_volley_shots = 3
 boss_volley_interval = 6.0
 boss_volley_range = 900.0
+volley_shot_id = "chainmaker_chain_volley"

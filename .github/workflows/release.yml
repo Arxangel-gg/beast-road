@@ -232,6 +232,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/enemy_behaviour_check.tscn
           run_godot_clean --headless --path game res://tools/attribute_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_shot_check.tscn
+          run_godot_clean --headless --path game res://tools/forge_check.tscn
           run_godot_clean --headless --path game res://tools/gathering_check.tscn
           run_godot_clean --headless --path game res://tools/tutorial_check.tscn
           run_godot_clean --headless --path game res://tools/music_check.tscn

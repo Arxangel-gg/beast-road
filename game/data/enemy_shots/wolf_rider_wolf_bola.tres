@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "wolf_rider_wolf_bola"
+display_name = "Wolf Bola"
+description = "A bola whirled and let go on the way in."
+kind = 0
+near = 0.0
+far = 0.0
+weight = 1.00
+stray_weight = 0.25
+tint = Color(0.541, 0.416, 0.290, 1.000)
+core_tint = Color(0.910, 0.784, 0.604, 1.000)
+shell_tint = Color(0.165, 0.102, 0.063, 1.000)
+head = 7
+head_scale = 1.10
+spin = 4.00
+trail_scale = 0.80
+pace = 1.00

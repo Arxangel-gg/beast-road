@@ -2611,6 +2611,20 @@ placement, the same way it does in the ground tiles.
 | `pool_earth.png` | 128×128 | T | `#B07A3E` |
 | `pool_air.png` | 128×128 | T | `#BFE6F0` |
 
+### 5.18e Forged sheets — `res://art/vfx/`
+
+Rendered rather than generated (2026-09-21): `tools/vfx_forge/forge.py`
+builds one node graph in Blender 4.5 headless - a frame turned into an age, a
+radial coordinate, noise through a hard threshold, a swirl toward the middle,
+emission whose alpha is the mask - renders it frame by frame on a transparent
+film and packs the frames left to right into one row. White on transparent,
+tinted once per use by `Vfx.forge_burst`, so one sheet serves every element.
+Sixteen cells of 96. Re-render with `python tools/vfx_forge/forge.py burst`.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `forge_burst.png` | 1536×96 | T | `#FFFFFF` |
+
 ### 5.18b Shared particle art — `res://art/vfx/`
 
 The two shapes the whole game is built out of. A caller count across the effects

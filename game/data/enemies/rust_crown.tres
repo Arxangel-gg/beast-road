@@ -33,3 +33,4 @@ boss_volley_damage = 0.159
 boss_volley_shots = 4
 boss_volley_interval = 5.4
 boss_volley_range = 880.0
+volley_shot_id = "rust_crown_avalanche_volley"

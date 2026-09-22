@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "choir_cantor_brine_fan"
+display_name = "Brine Fan"
+description = "A fan of salt water. Spread out."
+kind = 1
+near = 0.0
+far = 252.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.373, 0.816, 0.847, 1.000)
+core_tint = Color(0.910, 0.984, 1.000, 1.000)
+shell_tint = Color(0.071, 0.247, 0.271, 1.000)
+head = 1
+head_scale = 0.80
+wobble = 4.00

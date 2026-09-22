@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "ash_caller_heat_shimmer"
+display_name = "Heat Shimmer"
+description = "A slow wobbling heat that follows and takes your mana. Outrun it."
+kind = 3
+near = 175.0
+far = 574.0
+weight = 1.50
+stray_weight = 0.40
+tint = Color(1.000, 0.612, 0.290, 1.000)
+core_tint = Color(1.000, 0.945, 0.784, 1.000)
+shell_tint = Color(0.353, 0.173, 0.055, 1.000)
+head = 1
+head_scale = 1.20
+wobble = 8.00
+trail_scale = 1.30

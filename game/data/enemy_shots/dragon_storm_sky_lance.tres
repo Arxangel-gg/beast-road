@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "dragon_storm_sky_lance"
+display_name = "Sky Lance"
+description = "A longer, slower stroke of lightning."
+kind = 4
+near = 400.0
+far = 0.0
+weight = 2.00
+stray_weight = 0.40
+tint = Color(0.878, 0.941, 1.000, 1.000)
+core_tint = Color(1.000, 1.000, 1.000, 1.000)
+shell_tint = Color(0.039, 0.118, 0.227, 1.000)
+head = 0
+blast_radius = 900.00
+tell_delay = 1.00

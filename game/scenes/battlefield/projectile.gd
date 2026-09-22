@@ -468,6 +468,8 @@ func _impact() -> void:
 	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
 		Color(colour, 0.7), 0.22, 3.0)
 	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH * _tier_scale())
+	Vfx.forge_burst(global_position, Balance.PROJECTILE_IMPACT_RING * 2.4 * _tier_scale(),
+		Color(colour, 0.6))
 	# A lob lands: dust off the ground and a tremor weighted by distance from
 	# the camera, through the same door every blow in the game uses.
 	if _shot == TowerData.Shot.LOB:

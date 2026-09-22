@@ -32,3 +32,4 @@ boss_volley_damage = 0.102
 boss_volley_shots = 3
 boss_volley_interval = 5.5
 boss_volley_range = 820.0
+volley_shot_id = "brinefather_brine_volley"

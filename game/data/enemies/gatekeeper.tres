@@ -33,3 +33,4 @@ boss_volley_damage = 0.085
 boss_volley_shots = 2
 boss_volley_interval = 7.0
 boss_volley_range = 760.0
+volley_shot_id = "gatekeeper_gate_volley"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "marsh_piper_bog_bolt"
+display_name = "Bog Bolt"
+description = "A clot of marsh water, thrown straight."
+kind = 0
+near = 320.0
+far = 0.0
+weight = 3.00
+stray_weight = 0.60
+tint = Color(0.373, 0.498, 0.227, 1.000)
+core_tint = Color(0.847, 0.941, 0.627, 1.000)
+shell_tint = Color(0.094, 0.165, 0.047, 1.000)
+head = 1
+head_scale = 1.00
+trail_scale = 1.10

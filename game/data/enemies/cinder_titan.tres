@@ -33,3 +33,4 @@ boss_volley_damage = 0.049
 boss_volley_shots = 4
 boss_volley_interval = 5.0
 boss_volley_range = 860.0
+volley_shot_id = "cinder_titan_cinder_volley"

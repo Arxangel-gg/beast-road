@@ -33,3 +33,4 @@ boss_volley_damage = 0.038
 boss_volley_shots = 6
 boss_volley_interval = 4.6
 boss_volley_range = 940.0
+volley_shot_id = "glass_colossus_glass_volley"

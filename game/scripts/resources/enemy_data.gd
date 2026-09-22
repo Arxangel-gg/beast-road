@@ -334,6 +334,16 @@ func thrown_shot() -> EnemyShotData:
 ## Whether this breed ever throws anything at all - as a Howler, or on the way
 ## in. Asked rather than `role == HOWLER` wherever the question is "does this
 ## thing have an answer at range", so a javelin does not have to be a role.
+## The volley's own shot, or null for the roster's plain one.
+func volley_shot() -> EnemyShotData:
+	if volley_shot_id.is_empty():
+		return null
+	var path: String = SHOT_PATH % volley_shot_id
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as EnemyShotData
+
+
 func throws_something() -> bool:
 	return role == Role.HOWLER or thrown_shot() != null
 
@@ -385,6 +395,11 @@ func repertoire() -> Array[EnemyShotData]:
 @export_range(0, 12) var boss_volley_shots: int = 0
 @export_range(0.0, 30.0) var boss_volley_interval: float = 5.0
 @export_range(0.0, 2400.0) var boss_volley_range: float = 900.0
+## The shot a boss's volley wears - its head, its colours, its trail. The
+## volley's damage, count, spread and range are the fields above; this is only
+## what the burst looks like, so a boss whose volley is authored and whose
+## shot is not throws the roster's plain rune.
+@export var volley_shot_id: String = ""
 
 
 ## Whether this body has anything a boss does. Asked rather than

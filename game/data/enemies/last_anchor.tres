@@ -34,3 +34,4 @@ boss_volley_damage = 0.084
 boss_volley_shots = 2
 boss_volley_interval = 8.0
 boss_volley_range = 700.0
+volley_shot_id = "last_anchor_anchor_volley"

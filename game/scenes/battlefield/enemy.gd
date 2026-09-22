@@ -729,16 +729,36 @@ func set_mirror_interval(seconds: float) -> void:
 ## and reports the result as health in the next batch. What it adds is the part
 ## the guest could not derive - a shot leaving a ranged enemy, and the punch that
 ## makes a melee swing read as a swing rather than as damage appearing.
-func strike_remote(at: Vector2) -> void:
+func strike_remote(at: Vector2, shot_id: String = "") -> void:
 	if _state == State.DYING or _field == null or data == null:
 		return
 	if animator != null:
 		animator.punch((at - global_position).normalized(), 1.1)
-	if data.role != EnemyData.Role.HOWLER:
+	if data.role != EnemyData.Role.HOWLER and shot_id.is_empty():
 		return
-	var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
+	# **Wearing the shot the host threw** (2026-09-21): the name crosses with
+	# the fact and the look is read off this machine's own content, so a
+	# partner's screen shows the breed's own head and never a guess. The
+	# picture is a bolt whatever the kind - a guest resolves no ground blow.
+	_shot_paint = _shot_named(shot_id)
+	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+	_paint(shot)
 	shot.configure_toward(at, combat_origin())
 	_field.add_child(shot)
+
+
+## One of this breed's own shots by name, or null.
+func _shot_named(id: String) -> EnemyShotData:
+	if data == null or id.is_empty():
+		return null
+	for entry: EnemyShotData in data.repertoire():
+		if entry != null and entry.id == id:
+			return entry
+	if data.thrown_shot() != null and data.thrown_shot().id == id:
+		return data.thrown_shot()
+	if data.volley_shot() != null and data.volley_shot().id == id:
+		return data.volley_shot()
+	return null
 
 
 ## Which of the four combat states this is in, for the wire.
@@ -1864,10 +1884,11 @@ func _strike() -> void:
 	# Said out loud, so a guest can draw the blow it is not simulating. A puppet
 	# never runs this function, so without the announcement a ranged enemy on the
 	# other screen hurt people from across the field with nothing in between.
-	if net_id != 0:
-		EventBus.enemy_struck.emit(net_id, _target.global_position)
 	if data.role == EnemyData.Role.HOWLER:
+		# Says `enemy_struck` itself, once it knows which shot it chose.
 		_loose_a_shot(damage)
+	elif net_id != 0:
+		EventBus.enemy_struck.emit(net_id, _target.global_position, "")
 		return
 	if _target is Companion:
 		(_target as Companion).take_damage(damage, combat_origin())
@@ -3455,6 +3476,9 @@ func _land_slam() -> void:
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
+	# The forged shock at the slam's own radius: the picture of the blow the
+	# ring above already promised, never a second reach.
+	Vfx.forge_burst(global_position, data.boss_slam_radius * 2.0, Color(1.0, 0.72, 0.42, 0.8))
 	# Through the one function that knows what "everything of the player's"
 	# means. This had its own copy until the ranged shots needed the same
 	# answer, and two copies of that rule is how one of them forgets about
@@ -3484,10 +3508,13 @@ func _throw_volley(quarry: Node2D) -> void:
 	# more shots spreads a volley out instead of multiplying it.
 	damage = minf(damage, Balance.boss_volley_shot_ceiling(RunState.act, shots))
 	var aim: Vector2 = (quarry.global_position - combat_origin()).normalized()
+	# A boss's volley wears the boss's own shot (`EnemyData.volley_shot_id`).
+	_shot_paint = data.volley_shot()
 	for index: int in shots:
 		var share: float = 0.0 if shots <= 1 \
 			else (float(index) / float(shots - 1) - 0.5) * 2.0
-		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
+		var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+		_paint(shot)
 		# Aimed at a point rather than at the body, so a fan is a fan: a
 		# volley that all homed on the same target would be one shot drawn
 		# three times.
@@ -3560,7 +3587,7 @@ func _let_the_javelin_go() -> void:
 	if _target is Hero:
 		RunState.note_blow(promoted_name(), damage)
 	if net_id != 0:
-		EventBus.enemy_struck.emit(net_id, _target.global_position)
+		EventBus.enemy_struck.emit(net_id, _target.global_position, shot.id)
 	_shot_paint = shot
 	match int(shot.kind):
 		EnemyData.Shot.SPRAY:
@@ -3586,6 +3613,33 @@ func _loose_a_shot(damage: float) -> void:
 	if chosen != null:
 		shot = int(chosen.kind)
 	_shot_paint = chosen
+	# Said out loud with the shot's name, so a guest can draw the blow it is
+	# not simulating in the breed's own head and colours.
+	if net_id != 0 and _target != null and is_instance_valid(_target):
+		EventBus.enemy_struck.emit(net_id, _target.global_position,
+			chosen.id if chosen != null else "")
+	_loose_by_kind(shot, damage)
+
+
+## **One named shot, thrown for real** - the seam `enemy_shot_check` walks
+## every breed's repertoire through, so that each shot a breed owns is fired
+## at a body and read back rather than trusted from its file. The same
+## dispatch `_loose_a_shot` uses, minus the draw; false if the breed does not
+## own a shot by that name. At a wall or a tower it throws a bolt, as the
+## ordinary path does - an area blow resolves on people.
+func loose_named_shot(id: String, damage: float) -> bool:
+	if data == null or _field == null:
+		return false
+	var chosen: EnemyShotData = _shot_named(id)
+	if chosen == null:
+		return false
+	var at_a_person: bool = _target is Hero or _target is Companion
+	_shot_paint = chosen
+	_loose_by_kind(int(chosen.kind) if at_a_person else EnemyData.Shot.BOLT, damage)
+	return true
+
+
+func _loose_by_kind(shot: int, damage: float) -> void:
 	match shot:
 		EnemyData.Shot.SPRAY:
 			_loose_a_fan(damage)
@@ -3635,15 +3689,31 @@ func _choose_a_shot() -> EnemyShotData:
 func _loose_a_bolt(damage: float, at: Node2D, kind: int) -> EnemyProjectile:
 	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
 	shot.kind = kind
-	# A fire bolt is this and nothing else: the projectile is drawn from
-	# constants rather than from art, so painting one costs no sprite.
-	if _shot_paint != null and _shot_paint.has_tint():
-		shot.tint = _shot_paint.tint
-		shot.core_tint = _shot_paint.core_tint if _shot_paint.core_tint.a > 0.0 \
-			else _shot_paint.tint
+	_paint(shot)
 	shot.configure(at, damage, combat_origin())
 	_field.add_child(shot)
 	return shot
+
+
+## **A shot wears what its file says**, and nothing else. The projectile is
+## drawn from these numbers rather than from art, so painting a breed's own
+## bolt costs no sprite; one function so a bolt, a fan and a boss volley
+## cannot dress differently from the same file.
+func _paint(shot: EnemyProjectile) -> void:
+	if _shot_paint == null:
+		return
+	if _shot_paint.has_tint():
+		shot.tint = _shot_paint.tint
+		shot.core_tint = _shot_paint.core_tint if _shot_paint.core_tint.a > 0.0 \
+			else _shot_paint.tint
+		shot.shell_tint = _shot_paint.shell_tint if _shot_paint.shell_tint.a > 0.0 \
+			else _shot_paint.tint.darkened(0.72)
+	shot.head = int(_shot_paint.head)
+	shot.head_scale = _shot_paint.head_scale
+	shot.spin = _shot_paint.spin
+	shot.wobble = _shot_paint.wobble
+	shot.trail_scale = _shot_paint.trail_scale
+	shot.pace_scale = _shot_paint.pace
 
 
 ## A fan. The strike is **divided** between the shots rather than fired once
@@ -3659,6 +3729,7 @@ func _loose_a_fan(damage: float) -> void:
 			else (float(index) / float(shots - 1) - 0.5) * 2.0 * span
 		var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
 		shot.kind = EnemyProjectile.Kind.SPRAY
+		_paint(shot)
 		# Aimed at a *point* rather than at the body: three shots that all
 		# homed on one target would be one shot drawn three times.
 		shot.configure_toward(combat_origin() + aim.rotated(offset) * _throw_range(),

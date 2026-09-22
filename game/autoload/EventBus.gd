@@ -292,10 +292,10 @@ signal coop_last_scar_resolved(success: bool, reason: String, maximum_wounds: in
 ## player chooses for themselves, so this never crosses the wire.
 ## One enemy landed a blow, and where it aimed it. Carries the net id so a
 ## mirrored copy can be found; emitted only for enemies that have one.
-signal enemy_struck(net_id: int, at: Vector2)
+signal enemy_struck(net_id: int, at: Vector2, shot_id: String)
 
 ## The host's enemy landed a blow, for the guest to draw. Cosmetic only.
-signal coop_enemy_struck(net_id: int, at: Vector2)
+signal coop_enemy_struck(net_id: int, at: Vector2, shot_id: String)
 
 signal build_mode_changed(building: bool)
 

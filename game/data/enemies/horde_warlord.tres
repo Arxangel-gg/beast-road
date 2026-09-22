@@ -33,3 +33,4 @@ boss_volley_damage = 0.088
 boss_volley_shots = 3
 boss_volley_interval = 5.0
 boss_volley_range = 820.0
+volley_shot_id = "horde_warlord_warlord_volley"

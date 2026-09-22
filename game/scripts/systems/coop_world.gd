@@ -431,19 +431,19 @@ func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 ##
 ## Same reasoning as a tower's shot and the same shape: the guest cannot derive
 ## it, because a puppet resolves nothing and never runs the strike at all.
-func _on_enemy_struck(net_id: int, at: Vector2) -> void:
+func _on_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
 	if not _is_authority_with_company():
 		return
-	EventBus.coop_enemy_struck.emit(net_id, at)
+	EventBus.coop_enemy_struck.emit(net_id, at, shot_id)
 
 
 ## The host's enemy swung, so ours plays it. Guest side.
-func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
+func _on_coop_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
 	if not Coop.is_guest():
 		return
 	var enemy: Enemy = _puppets.get(net_id, null) as Enemy
 	if enemy != null and is_instance_valid(enemy):
-		enemy.strike_remote(at)
+		enemy.strike_remote(at, shot_id)
 
 
 # --- The welcome (2026-09-14) --------------------------------------------------------

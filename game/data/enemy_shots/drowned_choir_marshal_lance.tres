@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "drowned_choir_marshal_lance"
+display_name = "Marshal's Lance"
+description = "A line of the pack's charge. Step off it."
+kind = 4
+near = 140.0
+far = 459.0
+weight = 2.00
+stray_weight = 0.40
+tint = Color(0.878, 0.416, 0.353, 1.000)
+core_tint = Color(1.000, 0.941, 0.878, 1.000)
+shell_tint = Color(0.180, 0.031, 0.031, 1.000)
+head = 0
+blast_radius = 660.00
+tell_delay = 0.90

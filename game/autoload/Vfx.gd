@@ -65,6 +65,12 @@ const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
 ## for the finisher, embers for a death in a burning region.
 const HIT_CUT_ART: String = "res://art/vfx/cut.png"
 const HIT_BURST_ART: String = "res://art/vfx/burst.png"
+## **The forge's sheet** (2026-09-21, `tools/vfx_forge`): sixteen cells of a
+## shock ring that runs outward and frays, rendered in Blender from one node
+## graph and packed left to right, white on transparent so one sheet serves
+## every element through its tint. `forge_burst` plays it.
+const FORGE_BURST_ART: String = "res://art/vfx/forge_burst.png"
+const FORGE_BURST_FRAMES: int = 16
 const EMBERS_ART: String = "res://art/vfx/embers.png"
 ## Regions whose dead go up in embers rather than dust.
 const EMBER_TERRAINS: Array[String] = ["ashen_reach", "rustwood"]
@@ -1298,6 +1304,44 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 ## `impact` is this for the four elements; this is the general one, for the
 ## splash a cast makes, the rings a bite spreads, the sparks a blow throws.
 ## Additive for light on water and on steel, mixed for water itself.
+## **A forged burst, played once.** The first effect out of `tools/vfx_forge`
+## (docs/VFX_FORGE.md): a plane, one material, sixteen frames of a shock ring
+## with a swirl in it, tinted here rather than rendered four times. Additive,
+## because everything this game draws as light is. Decoration under every
+## decoration's bound: scaled away by `Graphics.particle_scale`, damped by
+## `JuiceDirector` as COSMETIC, read by nothing - `forge_check` holds that a
+## density of zero plays nothing at all.
+##
+## `size` is the diameter the ring reaches at full spread, which is what an
+## impact wants to name; the cell is drawn at that size and the ring grows
+## inside it.
+func forge_burst(at: Vector2, size: float, tint: Color = Color.WHITE) -> void:
+	if world == null or not ResourceLoader.exists(FORGE_BURST_ART):
+		return
+	if Graphics.particle_scale() <= 0.0:
+		return
+	var weight: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
+	var burst := Sprite2D.new()
+	burst.texture = load(FORGE_BURST_ART)
+	burst.hframes = FORGE_BURST_FRAMES
+	burst.frame = 0
+	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	burst.add_to_group(Graphics.FILTER_GROUP)
+	burst.modulate = Color(tint.r, tint.g, tint.b, tint.a * minf(1.0, weight))
+	burst.z_index = Balance.VFX_Z
+	var glow := CanvasItemMaterial.new()
+	glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	burst.material = glow
+	_track(burst)
+	burst.global_position = at
+	var cell: float = float(burst.texture.get_width()) / float(FORGE_BURST_FRAMES)
+	burst.scale = Vector2.ONE * (size / maxf(cell, 1.0)) * (0.7 + 0.3 * weight)
+	var life: float = float(FORGE_BURST_FRAMES) / Balance.VFX_FORGE_FRAME_RATE
+	var tween: Tween = burst.create_tween()
+	tween.tween_property(burst, "frame", FORGE_BURST_FRAMES - 1, life)
+	tween.tween_callback(burst.queue_free)
+
+
 func sheet_burst(at: Vector2, path: String, size: float, tint: Color = Color.WHITE,
 		additive: bool = false, rotation_radians: float = 0.0) -> void:
 	if world == null or not ResourceLoader.exists(path):

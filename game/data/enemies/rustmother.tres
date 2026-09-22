@@ -33,3 +33,4 @@ boss_volley_damage = 0.074
 boss_volley_shots = 5
 boss_volley_interval = 4.4
 boss_volley_range = 900.0
+volley_shot_id = "rustmother_rust_volley"
