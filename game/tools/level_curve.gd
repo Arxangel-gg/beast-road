@@ -19,12 +19,25 @@ extends Node
 ## Reporting only, never a gate. The right curve is a judgement about pacing, and
 ## a red build is the wrong way to hold an opinion about pacing.
 
-const WAVES_PER_ACT: int = 10
-
-## What one act costs in wall-clock minutes, for the hours-of-play line.
-## `Balance.BEAST_SPEED`'s own comment is the source: about fifteen minutes
-## an act at full walking speed. [TUNE]
-const MINUTES_PER_ACT: int = 15
+## **How long a run is, asked of `Balance` rather than written down here.**
+##
+## This file held `WAVES_PER_ACT = 10` and `MINUTES_PER_ACT = 15`, which were
+## true of a three-act road and had been wrong since the campaign became 622
+## waves and then longer. Ten waves an act over ten acts is a hundred waves
+## against a road of about eight hundred, and two and a half hours against
+## about twelve - so the one tool that answers "how long is the climb to a
+## hundred" was modelling **an eighth of the game**, and the XP curve was
+## tuned against it.
+##
+## `Balance.waves_in_act` and `waves_in_run` are what the wave growth itself
+## is scaled by, so this now asks the same question the game asks. And an
+## hour is arithmetic rather than an estimate: `WAVE_ROAD_DISTANCE`'s own
+## comment says one unit of road is one second at `BEAST_BASE_SPEED`, so the
+## road's length *is* the run's length in seconds.
+##
+## The lesson is the one already written down twice: a constant read only by a
+## model the game never runs is exactly as dead as one nothing reads, and far
+## harder to see, because every report built on it says the feature works.
 
 var _level: int = 1
 var _xp: float = 0.0
@@ -66,12 +79,15 @@ func _walk_campaign(director: WaveDirector) -> void:
 	# Read from the content rather than named here. A hand-written list of three
 	# regions reported a three-act campaign for as long as one existed, and
 	# would have gone on doing it silently after the road grew to ten.
-	for act: int in Balance.ACT_COUNT:
+	var walked: int = 0
+	for act: int in Balance.FINAL_ASCENT_ACT:
 		var ground: TerrainData = ContentDB.terrain_for_act(act + 1)
-		for wave: int in WAVES_PER_ACT:
+		var waves: int = int(round(Balance.waves_in_act(act + 1)))
+		for wave: int in waves:
+			walked += 1
 			RunState.act = act + 1
 			RunState.terrain_id = ground.id if ground != null else "jungle"
-			RunState.wave_number = act * WAVES_PER_ACT + wave + 1
+			RunState.wave_number = walked
 			director._act_wave = wave + 1
 			var per_lane: int = director._archetype_wave_size(
 				wave + 1, ContentDB.terrain(RunState.terrain_id), null, Balance.LANE_COUNT)
@@ -81,9 +97,9 @@ func _walk_campaign(director: WaveDirector) -> void:
 			for _enemy: int in pack:
 				_kills += 1
 				_award(health * Balance.HERO_XP_PER_HP)
-			if wave == WAVES_PER_ACT - 1:
-				print("[level]   act %d done: level %d  (pack %d, hp x%.1f)"
-					% [act + 1, _level, pack, scale])
+			if wave == waves - 1:
+				print("[level]   act %d done: level %d  (%d waves, pack %d, hp x%.1f)"
+					% [act + 1, _level, waves, pack, scale])
 
 
 func _report() -> void:
@@ -93,12 +109,15 @@ func _report() -> void:
 		% [_attribute_points, _skill_points,
 			Balance.DISCIPLINE_MAX_TRAINED
 				+ int(_level / Balance.HERO_DISCIPLINE_CAP_EVERY)])
-	# A run is as long as the road is: fifteen minutes an act, which was 45
-	# minutes when there were three acts and is two and a half hours at ten.
-	var minutes: int = Balance.ACT_COUNT * MINUTES_PER_ACT
-	print("[level] %.1f hours of play at %d minutes a run"
-		% [float(Balance.LEVEL_CURVE_RUNS_PER_TIER * 3 * minutes) / 60.0,
-			minutes])
+	# A run is exactly as long as the road is, because one unit of road is one
+	# second at the beast's base speed - see `WAVE_ROAD_DISTANCE`.
+	var run_hours: float = (Balance.JOURNEY_TOTAL_DISTANCE
+		+ Balance.FINAL_ASCENT_DISTANCE) / 3600.0
+	var runs: int = Balance.LEVEL_CURVE_RUNS_PER_TIER * ContentDB.tiers_sorted().size()
+	print("[level] a campaign is %.0f waves and about %.1f hours"
+		% [Balance.waves_in_run(), run_hours])
+	print("[level] %.0f hours of play over %d campaigns"
+		% [float(runs) * run_hours, runs])
 	# A single-attribute build's ceiling: the number that decides whether
 	# levelling is a nice bonus or the thing that carries the run.
 	print("[level] all-in: Might +%.0f%%  Vigour +%.0f%%  Swiftness +%.0f%% move  Focus +%.0f%% command"

@@ -142,7 +142,12 @@ func _test_blade_sweep() -> void:
 	if kind == null:
 		return
 	MetaState.stash = [Stash.make(kind.id, 0)]
-	MetaState.equipped = {GearData.Slot.WEAPON: 0}
+	# **Equipped by the piece's own name.** `equipped` keyed a slot to a stash
+	# *position* until 2026-09-22, and a position moves whenever anything leaves
+	# the stash - which is the bug that re-equipped a different sword. Keyed by
+	# `uid`, a literal 0 here is "no piece", so the gate dressed a Warden in
+	# nothing and then read the swing of an empty hand.
+	MetaState.equip(GearData.Slot.WEAPON, 0)
 	Vfx.clear()
 	await get_tree().process_frame
 
@@ -389,9 +394,13 @@ func _test_the_gear_signature() -> void:
 	var top: int = Stash.RARITY_NAMES.size() - 1
 	for rarity: int in Stash.RARITY_NAMES.size():
 		MetaState.stash = [{
-			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "gate-%d" % rarity,
+			"kind": weapon.id, "rarity": rarity, "level": 1, # **A numeric name.** `Stash.uid` returns an `int`, so a string like
+			# "gate-0" reads back as zero - which `equipped_index` treats as
+			# "no piece", so the gate dressed a Warden in nothing for at
+			# least one rarity and read the swing of an empty hand.
+			"uid": 90100 + rarity,
 		}]
-		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		MetaState.equip(GearData.Slot.WEAPON, 0)
 		var worn: Dictionary = Vfx.worn_signature()
 		_check(not worn.is_empty(), "a worn weapon must have a signature")
 		if worn.is_empty():
@@ -449,9 +458,9 @@ func _test_a_blow_costs_the_same_whatever_is_worn() -> void:
 	var taken: Array[float] = []
 	for rarity: int in [0, Stash.RARITY_NAMES.size() - 1]:
 		MetaState.stash = [{
-			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "blow-%d" % rarity,
+			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": 90200 + rarity,
 		}]
-		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		MetaState.equip(GearData.Slot.WEAPON, 0)
 		# The effects are what is under test, so they are driven for real: the
 		# signal the field emits, with a world bound, on a known hide.
 		var before: int = _sprites().size() + _line_trails()
@@ -466,9 +475,9 @@ func _test_a_blow_costs_the_same_whatever_is_worn() -> void:
 	var points: Array[int] = []
 	for rarity: int in [0, Stash.RARITY_NAMES.size() - 1]:
 		MetaState.stash = [{
-			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "blow-%d" % rarity,
+			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": 90200 + rarity,
 		}]
-		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		MetaState.equip(GearData.Slot.WEAPON, 0)
 		var granted: Array[int] = MetaState.gear_attribute_points()
 		var sum: int = 0
 		for value: int in granted:
@@ -484,9 +493,9 @@ func _test_a_blow_costs_the_same_whatever_is_worn() -> void:
 		var by_stash: int = 0
 		MetaState.stash = [{
 			"kind": weapon.id, "rarity": Stash.RARITY_NAMES.size() - 1,
-			"level": 1, "uid": "blow-top",
+			"level": 1, "uid": 90300,
 		}]
-		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		MetaState.equip(GearData.Slot.WEAPON, 0)
 		by_stash = Stash.points(MetaState.stash[0] as Dictionary, weapon)
 		_check(points[1] <= by_stash,
 			("a worn piece must grant no more than its own `Stash.points`: "

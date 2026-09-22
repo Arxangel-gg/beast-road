@@ -394,14 +394,23 @@ func _cool_fires(site: Dictionary, cold: bool) -> void:
 func _warm_mobs(site: Dictionary) -> void:
 	var warm: bool = not bool(site.get("cold", false)) and _has_fire(site)
 	for mob: Variant in (site.get("mobs", []) as Array):
+		# **Validity before the cast, never after.** `as Enemy` on a freed
+		# object *throws* - the guard behind it never runs - and this list
+		# holds bodies that have died until `_prune` next walks it, so every
+		# weather change after a camp took a casualty printed an error per
+		# corpse. That is the trap already recorded against
+		# `Battlefield._process` and a freed companion; I wrote it again an
+		# hour after reading the note.
+		if not is_instance_valid(mob):
+			continue
 		var enemy := mob as Enemy
-		if enemy != null and is_instance_valid(enemy):
+		if enemy != null:
 			enemy.camp_warmth = warm
 
 
 func _has_fire(site: Dictionary) -> bool:
 	for prop: Variant in (site.get("props", []) as Array):
-		if prop is CampFire and is_instance_valid(prop as Node):
+		if is_instance_valid(prop) and prop is CampFire:
 			return true
 	return false
 
