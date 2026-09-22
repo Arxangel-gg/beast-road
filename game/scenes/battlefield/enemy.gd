@@ -1789,7 +1789,8 @@ func attack_reach() -> float:
 	if data.role != EnemyData.Role.HOWLER:
 		return Balance.ENEMY_ATTACK_RANGE + contact_radius()
 	var authored: float = data.aura_radius
-	return (authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE) 		+ contact_radius()
+	return (authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE) \
+		+ contact_radius()
 
 
 ## Whether the ring touches the target.

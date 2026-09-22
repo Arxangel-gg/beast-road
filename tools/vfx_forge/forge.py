@@ -33,6 +33,11 @@ def main() -> int:
     parser.add_argument("--frames", type=int)
     parser.add_argument("--size", type=int)
     parser.add_argument("--out")
+    # **How many sheets of this effect to render** (owner, 2026-09-22: the
+    # forged effects should "have variations and more procedural in-game
+    # variation"). Variant 0 keeps the plain file name, so nothing that
+    # already loads a sheet has to learn about this; the rest are numbered.
+    parser.add_argument("--variants", type=int, default=1)
     args = parser.parse_args()
     spec = EFFECTS[args.effect]
     frames = args.frames or spec["frames"]
@@ -40,11 +45,19 @@ def main() -> int:
     if not os.path.exists(BLENDER):
         print("blender not found at %s (set BLENDER)" % BLENDER)
         return 2
+    for variant in range(max(args.variants, 1)):
+        code = _render(args, frames, size, variant)
+        if code != 0:
+            return code
+    return 0
+
+
+def _render(args, frames: int, size: int, variant: int) -> int:
     with tempfile.TemporaryDirectory(prefix="forge_") as work:
         work = work.replace("\\", "/")
         result = subprocess.run(
             [BLENDER, "--background", "--python", os.path.join(HERE, "render.py"), "--",
-             args.effect, work, str(frames), str(size)],
+             args.effect, work, str(frames), str(size), str(variant)],
             capture_output=True, text=True)
         tail = "\n".join(result.stdout.splitlines()[-6:])
         if result.returncode != 0:
@@ -64,7 +77,10 @@ def main() -> int:
             sheet.paste(frame, (index * size, 0))
             alpha = frame.getchannel("A")
             lit.append(sum(1 for a in alpha.getdata() if a > 24))
-        out = args.out or os.path.join(ROOT, "game", "art", "vfx", "forge_%s.png" % args.effect)
+        # Variant 0 keeps the plain name. A caller that asked for one sheet
+        # gets exactly the file it always got.
+        name = "forge_%s.png" % args.effect if variant == 0             else "forge_%s_%02d.png" % (args.effect, variant)
+        out = args.out or os.path.join(ROOT, "game", "art", "vfx", name)
         sheet.save(out)
         print("forge: %s -> %s (%dx%d, %d frames; lit pixels per frame %s)"
               % (args.effect, out, sheet.size[0], sheet.size[1], frames, lit))

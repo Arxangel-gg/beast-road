@@ -22,6 +22,7 @@ var _checks: int = 0
 func _ready() -> void:
 	MetaState.hold_saves()
 	_test_the_sheet_is_on_disk_at_its_size()
+	_test_the_variants_are_variants()
 	await _test_the_player_plays_it_once_and_gives_way()
 	_test_the_forge_is_wired_where_it_says()
 	MetaState.resume_saves()
@@ -42,6 +43,41 @@ func _check(condition: bool, why: String) -> void:
 	_checks += 1
 	if not condition:
 		_failures.append(why)
+
+
+## **The variants differ from each other and from the original** (owner,
+## 2026-09-22: the forged effects should have variations).
+##
+## Compared cell by cell rather than by file size: three renders of the same
+## graph with the seed ignored would be byte-identical files, and three
+## renders with the seed *applied to nothing downstream* would be three
+## different files that draw the same picture. What is measured is the middle
+## cell, which is where the noise break-up actually shows - the first two
+## cells are the same on purpose, because the ring has not frayed yet.
+func _test_the_variants_are_variants() -> void:
+	var pool: Array[String] = []
+	for path: String in Vfx.FORGE_BURST_VARIANTS:
+		if ResourceLoader.exists(path):
+			pool.append(path)
+	_check(pool.size() >= 2, "the forge must render more than one sheet, found %d"
+		% pool.size())
+	var seen: Array[int] = []
+	for path: String in pool:
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			_check(false, "%s will not load" % path)
+			continue
+		_check(texture.get_height() == CELL and texture.get_width() == CELL * Vfx.FORGE_BURST_FRAMES,
+			"%s is not %d cells of %d" % [path, Vfx.FORGE_BURST_FRAMES, CELL])
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		# Late rather than middle: the graph's seed moves the noise lookup, and
+		# what it moves is where the ring frays - which is the back half.
+		var late: int = _lit(image, Vfx.FORGE_BURST_FRAMES - 4)
+		_check(not seen.has(late),
+			"%s draws the same picture as another variant (%d lit)" % [path, late])
+		seen.append(late)
 
 
 func _test_the_sheet_is_on_disk_at_its_size() -> void:

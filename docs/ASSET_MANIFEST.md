@@ -2624,6 +2624,8 @@ Sixteen cells of 96. Re-render with `python tools/vfx_forge/forge.py burst`.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `forge_burst.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_burst_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_burst_02.png` | 1536×96 | T | `#FFFFFF` |
 
 ### 5.18b Shared particle art — `res://art/vfx/`
 

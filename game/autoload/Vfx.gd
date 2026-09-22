@@ -70,6 +70,32 @@ const HIT_BURST_ART: String = "res://art/vfx/burst.png"
 ## graph and packed left to right, white on transparent so one sheet serves
 ## every element through its tint. `forge_burst` plays it.
 const FORGE_BURST_ART: String = "res://art/vfx/forge_burst.png"
+## **The variants of that sheet** (owner, 2026-09-22: the forged effects
+## should *"have variations and more procedural in-game variation"*).
+##
+## Rendered by `tools/vfx_forge/forge.py burst --variants 3`, which moves where
+## the one noise lookup samples - so each sheet is the same ring frayed
+## somewhere else rather than a recolour, which the game can already do for
+## itself. Variant zero keeps the plain name, so nothing that loaded a sheet
+## before this had to learn anything.
+##
+## **A missing variant is simply not in the pool.** The list is filtered on
+## first use, so the sheet count grows by rendering a file and shrinks by
+## deleting one, and a half-finished art pass degrades rather than errors -
+## the same rule the music playlist and the mount sheets live under.
+const FORGE_BURST_VARIANTS: Array[String] = [
+	"res://art/vfx/forge_burst.png",
+	"res://art/vfx/forge_burst_01.png",
+	"res://art/vfx/forge_burst_02.png",
+]
+## How far a burst may be turned and how much its size may wander, so two
+## impacts in the same place are not the same picture twice. Decoration's own
+## dice, never the run's stream. [TUNE]
+const FORGE_SPIN: float = TAU
+const FORGE_SIZE_JITTER: float = 0.12
+
+var _forge_sheets: Array[String] = []
+var _forge_dice := RandomNumberGenerator.new()
 const FORGE_BURST_FRAMES: int = 16
 const EMBERS_ART: String = "res://art/vfx/embers.png"
 ## Regions whose dead go up in embers rather than dust.
@@ -1316,13 +1342,22 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 ## impact wants to name; the cell is drawn at that size and the ring grows
 ## inside it.
 func forge_burst(at: Vector2, size: float, tint: Color = Color.WHITE) -> void:
-	if world == null or not ResourceLoader.exists(FORGE_BURST_ART):
+	if world == null:
 		return
 	if Graphics.particle_scale() <= 0.0:
 		return
+	var sheet: String = _a_forge_sheet()
+	if sheet.is_empty():
+		return
 	var weight: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
 	var burst := Sprite2D.new()
-	burst.texture = load(FORGE_BURST_ART)
+	burst.texture = load(sheet)
+	# **Turned, and never quite the same size.** One sheet played at one
+	# rotation is the same picture every impact; the sheet is radial, so a
+	# free spin costs nothing and reads as a different blow. Neither touches
+	# a number - the ring is drawn at the diameter the caller named, jittered
+	# by a tenth, and nothing reads where it lands.
+	burst.rotation = _forge_dice.randf() * FORGE_SPIN
 	burst.hframes = FORGE_BURST_FRAMES
 	burst.frame = 0
 	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
@@ -1335,11 +1370,27 @@ func forge_burst(at: Vector2, size: float, tint: Color = Color.WHITE) -> void:
 	_track(burst)
 	burst.global_position = at
 	var cell: float = float(burst.texture.get_width()) / float(FORGE_BURST_FRAMES)
-	burst.scale = Vector2.ONE * (size / maxf(cell, 1.0)) * (0.7 + 0.3 * weight)
+	var wander: float = 1.0 + _forge_dice.randf_range(
+		-FORGE_SIZE_JITTER, FORGE_SIZE_JITTER)
+	burst.scale = Vector2.ONE * (size / maxf(cell, 1.0)) 		* (0.7 + 0.3 * weight) * wander
 	var life: float = float(FORGE_BURST_FRAMES) / Balance.VFX_FORGE_FRAME_RATE
 	var tween: Tween = burst.create_tween()
 	tween.tween_property(burst, "frame", FORGE_BURST_FRAMES - 1, life)
 	tween.tween_callback(burst.queue_free)
+
+
+## One of the forged sheets, at random. Filtered once: a variant nobody
+## rendered is not in the pool, and the pool is never empty while the original
+## sheet is on disk.
+func _a_forge_sheet() -> String:
+	if _forge_sheets.is_empty():
+		_forge_dice.seed = absi(hash("vfx-forge"))
+		for path: String in FORGE_BURST_VARIANTS:
+			if ResourceLoader.exists(path):
+				_forge_sheets.append(path)
+	if _forge_sheets.is_empty():
+		return ""
+	return _forge_sheets[_forge_dice.randi() % _forge_sheets.size()]
 
 
 func sheet_burst(at: Vector2, path: String, size: float, tint: Color = Color.WHITE,

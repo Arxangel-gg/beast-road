@@ -19,6 +19,13 @@ EFFECT = argv[0] if len(argv) > 0 else "burst"
 OUT = argv[1] if len(argv) > 1 else "/tmp/forge"
 FRAMES = int(argv[2]) if len(argv) > 2 else 16
 SIZE = int(argv[3]) if len(argv) > 3 else 96
+# **Which variant of this effect.** Zero is the one the sheet has always been.
+#
+# The whole stylisation comes out of one noise lookup, so moving where that
+# lookup samples gives a genuinely different break-up of the same effect - the
+# same ring, frayed somewhere else - rather than a recolour or a rotation,
+# which the game can already do for itself. See `forge.py --variants`.
+SEED = float(argv[4]) if len(argv) > 4 else 0.0
 
 # ------------------------------------------------------------------ the scene
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -136,7 +143,10 @@ swirled = new("ShaderNodeCombineXYZ", "Swirled")
 links.new(sx.outputs[0], swirled.inputs[0])
 links.new(sy.outputs[0], swirled.inputs[1])
 age_z = math("AgeZ", "MULTIPLY", age, 1.7)
-links.new(age_z.outputs[0], swirled.inputs[2])
+# The variant's own slice of the noise field. An irrational step, so two
+# variants never land on the same neighbourhood of it.
+age_seed = math("AgeSeed", "ADD", age_z.outputs[0], SEED * 7.3197)
+links.new(age_seed.outputs[0], swirled.inputs[2])
 
 # 4. Noise through a hard threshold: the stylisation.
 noise = new("ShaderNodeTexNoise", "Noise")
