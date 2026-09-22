@@ -29,6 +29,10 @@ func _ready() -> void:
 		await get_tree().process_frame
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	RunState.gain_every_currency(9999)
+	# **With a deadline running**, so the clock at the top of the sheet is in
+	# the picture. It is hidden where there is nothing to count, which is what
+	# an untimed Preparation is - and that is most of them.
+	EventBus.preparation_changed.emit(Balance.PREPARATION_BETWEEN_WAVES * 0.42, true)
 	var field: Battlefield = run.battlefield
 	var road: Vector2i = Vector2i.ZERO
 	for radius: int in range(3, 40):
