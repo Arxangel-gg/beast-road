@@ -400,6 +400,13 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 ## So the Walk resets the run state - it needs a purse, a town and a field -
 ## and then takes none of those steps. `RunState.walking` is set after the
 ## reset, because the reset clears it.
+## **A documented seam, for `tutorial_walk_check` alone**: whether a lost Walk
+## goes to the menu. A gate driving the loss through the real `end_run` would
+## otherwise have its own scene replaced under it - the same shape as
+## `Run.withdrawal_test_seconds`. True in a shipping game, always.
+var walk_leaves_on_loss: bool = true
+
+
 func start_walk() -> void:
 	RunState.reset(false, 0)
 	RunState.walking = true
@@ -420,12 +427,14 @@ func start_walk() -> void:
 ## through `TutorialGrants.award`, which is guarded and pays once. This door
 ## only closes the valley, so a Walk that is abandoned mid-stop cannot pay by
 ## accident on the way out.
-func end_walk(finished: bool) -> void:
+func end_walk(finished: bool, leave: bool = true) -> void:
 	if not RunState.walking:
 		return
 	RunState.walking = false
 	run_active = false
 	EventBus.walk_ended.emit(finished)
+	if not leave:
+		return
 	# **A first walk runs straight onto the road**, which is what the valley is
 	# for: the chain comes off and the beast takes a step, and stopping at a
 	# menu in between is the one cut that would waste it.
@@ -539,7 +548,7 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		# the valley could not end except at the chain. A loss closes the valley
 		# and nothing is settled, so the Walk is offered again from the menu.
 		if not victory:
-			end_walk(false)
+			end_walk(false, walk_leaves_on_loss)
 		return
 	if not run_active:
 		return

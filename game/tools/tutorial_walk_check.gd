@@ -221,14 +221,27 @@ func _test_the_walk_never_settles() -> void:
 	RunState.walking = true
 	GameDirector.run_active = true
 	var before: Dictionary = _snapshot()
-	GameDirector.end_run(false)
+	# A win arriving mid-walk settles nothing and leaves the valley running.
+	GameDirector.end_run(true)
 	var after: Dictionary = _snapshot()
 	for key: Variant in before:
 		_check(before[key] == after[key],
 			"ending a walk moved %s, so the valley settles as a run"
 				% String(key))
-	_check(GameDirector.run_active,
+	_check(GameDirector.run_active and RunState.walking,
 		"and the walk is still running - `_settle_run` returned before it ended it")
+	# **But a loss ends the Walk** (owner, 2026-09-22: a Warden on their last
+	# wound was sent back for ever and a fallen town kept standing, so the
+	# valley could not be left except at the chain). It still settles nothing.
+	GameDirector.walk_leaves_on_loss = false
+	GameDirector.end_run(false)
+	GameDirector.walk_leaves_on_loss = true
+	var lost: Dictionary = _snapshot()
+	for key: Variant in before:
+		_check(before[key] == lost[key],
+			"losing the walk moved %s, so the valley settles as a run" % String(key))
+	_check(not RunState.walking and not GameDirector.run_active,
+		"a lost walk is still running - the valley cannot be left except at the chain")
 	RunState.walking = was_walking
 	GameDirector.run_active = was_active
 

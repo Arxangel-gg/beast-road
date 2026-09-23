@@ -187,10 +187,16 @@ func _test_it_buys_at_the_road_s_prices() -> void:
 	for _step: int in 2:
 		_field.try_upgrade(anchor)
 	var shape: Dictionary = BuildTemplate.compose(_field)
-	var quoted: int = BuildTemplate.quote(shape)
-	_check(quoted > 0, "a board of one levelled tower quoted %d Gold" % quoted)
+	# **Ground already standing is not offered** (owner, 2026-09-22): on the
+	# field the board was recorded from, its one tower still stands, so there
+	# is nothing to rebuild and nothing to pay.
+	_check(BuildTemplate.quote(shape, _field) == 0,
+		"a board whose every tower is still standing quoted %d Gold"
+			% BuildTemplate.quote(shape, _field))
 
 	await _stand_a_field(20260924)
+	var quoted: int = BuildTemplate.quote(shape, _field)
+	_check(quoted > 0, "a board of one levelled tower quoted %d Gold" % quoted)
 	RunState.gain_every_currency(999999)
 	var before: int = RunState.currency(RunState.GOLD)
 	BuildTemplate.apply(_field, shape)
