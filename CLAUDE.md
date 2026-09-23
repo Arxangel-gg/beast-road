@@ -8227,6 +8227,61 @@ the edge, facing it - and none once the boss is on the screen. Its first cut
 waited twenty frames for a set gathered every fifth of a second, which headless
 is no time at all: waits are in seconds.
 
+**The owner could not reach Act II, and the batch that answered it, as of
+2026-09-22.** A level-100 geared Warden barely reached the first crossroad, the
+Walk on a new slot could not be lost or left, and several things on screen were
+lies. Each answer below is a decision rather than a tune, so each is written
+down.
+
+- **A lost Walk ends the Walk.** `_settle_run` returned on its first line while
+  walking, which swallowed every loss: a Warden on their last wound was sent
+  back for ever and a fallen town kept standing. A loss now calls
+  `end_walk(false)` - nothing settles, the menu offers the Walk again.
+  `GameDirector.walk_leaves_on_loss` is the documented seam that lets
+  `tutorial_walk_check` drive the loss without its own scene being replaced.
+- **Enemy damage 0.85 to 0.62, ranged a further quarter lighter**
+  (`ENEMY_RANGED_DAMAGE_SCALE`). Contact damage is outside `curve_report`'s
+  pressure by design, so the ramp is untouched and only survival moves.
+- **Extraction at every crossroad, the first included.** The 2026-09-20 rule
+  refused the first fork; for a player who can barely reach it, the first fork
+  is the only chance to keep anything, and a missing button read as bad luck.
+- **Ranged bodies besieging the wall come in closer** (`ENEMY_SIEGE_SHARE`,
+  stepping nearer by `ENEMY_SIEGE_STEP` after every shot to
+  `ENEMY_SIEGE_FLOOR`), **every recovery wanders per body**
+  (`ENEMY_CADENCE_WANDER`), and **light bodies and shooters may sidestep a
+  swing** they read at its start (`dodge_chance`, derived from role, hide and
+  footing; bosses, camp lords, plate, stone and shields never do). Each body's
+  own dice, seeded from its identity, so the run's stream does not move.
+- **A range ring is a true circle at the reach actually fired from**:
+  `Tower.effective_range()` through the field, never `range_at(level)`, and no
+  squash - the flattened ring promised 58% of the reach up and down the screen.
+  **Enemies show their reach after attacking** (`EventBus.enemy_attacked`),
+  near a Warden and at most `RANGE_RING_ENEMY_MAX` at once.
+- **Rebuild last board offers only free ground** (`BuildTemplate.rows_to_raise`,
+  asked of `placement_problem`), so a doctrine's board from an act start is
+  neither quoted, counted nor "refused".
+- **Locked towers are listed, dimmed, per element (x/10).** All forty existed;
+  the eight of 2026-09-22 sat at the end of the Tools ladder, and a sheet that
+  listed only what was unlocked read as a roster that was never built. The four
+  support towers' descriptions no longer say they fire nothing.
+- **Swings cost SP; Swiftness and Vigour deepen the pool** (`max_stamina`,
+  `HERO_ATTACK_SP_COST`, `HERO_SP_PER_*`); **the charge needs and spends
+  `MOUNT_RAM_SP_COST`**; **HP, MP and SP bars carry current/max and a
+  percentage**, drawn by `BarName` so a thin bar is never taller than itself.
+- **Combination towers name their own paths and capstones**
+  (`TowerData.path_names`); they already climbed to ten and split at five
+  through the same ladder, and were offered their first parent's names.
+- **A Wildblight frenzy pulses, froths and throws toxic rings.** Its picture
+  clocks live beside the animal's record, never in it: written into the record,
+  `wildlife_family_check`'s companion courtship failed four runs in four, and
+  moved out it passed - a record is what the ecology, the wire and the gates
+  reason about.
+
+**Not built in this batch, and recorded so it is not assumed**: enemy MP and SP
+pools with their own bars and spending, more attributes, several attribute
+points a level (a re-cut of "one point a level", which `attribute_check` holds
+first and hardest), and new combination towers with their own art.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

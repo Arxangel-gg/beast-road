@@ -67,6 +67,10 @@ func _init(wildlife: Wildlife) -> void:
 	wild = wildlife
 
 
+## The frenzy's picture clocks, by animal id - see `_dress_the_frenzy`.
+var _frenzy_dress: Dictionary = {}
+
+
 func _rng() -> RandomNumberGenerator:
 	return wild.dice()
 
@@ -840,6 +844,7 @@ func _tick_blight(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delt
 			_dress_the_frenzy(animal, sprite, kind, delta)
 			if float(animal["blight_left"]) <= 0.0:
 				sprite.self_modulate = Color.WHITE
+				_frenzy_dress.erase(int(animal.get("net_id", 0)))
 				_collapse(animal, sprite, kind)
 		Blight.COLLAPSING:
 			animal["blight_left"] = float(animal["blight_left"]) - delta
@@ -860,13 +865,17 @@ func _dress_the_frenzy(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		delta: float) -> void:
 	if sprite == null or not is_instance_valid(sprite):
 		return
-	var clock: float = float(animal.get("frenzy_clock", 0.0)) + delta
-	animal["frenzy_clock"] = clock
+	# Kept beside the record, never in it: an animal's record is what the
+	# ecology, the wire and the gates reason about, and a picture's clock has
+	# no business there.
+	var id: int = int(animal.get("net_id", 0))
+	var dressing: Dictionary = _frenzy_dress.get(id, {"clock": 0.0, "froth": 0.0, "ring": 0.0})
+	var clock: float = float(dressing["clock"]) + delta
 	var beat: float = 0.5 + 0.5 * sin(clock * 9.0 + sin(clock * 2.3) * 2.0)
 	sprite.self_modulate = Color.WHITE.lerp(Balance.WILDBLIGHT_FRENZY_TINT,
 		0.3 + 0.35 * beat)
-	var froth: float = float(animal.get("frenzy_froth", 0.0)) - delta
-	var ring: float = float(animal.get("frenzy_ring", 0.0)) - delta
+	var froth: float = float(dressing["froth"]) - delta
+	var ring: float = float(dressing["ring"]) - delta
 	var body: float = maxf(kind.scale, 0.5) * 40.0
 	var at: Vector2 = sprite.global_position + Vector2(
 		sin(clock * 17.0) * body * 0.4, -body * 0.35)
@@ -879,8 +888,7 @@ func _dress_the_frenzy(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			0.5, 4.0)
 		Vfx.spark(sprite.global_position, Balance.WILDBLIGHT_FRENZY_TINT, 6,
 			Vector2.ZERO, 120.0)
-	animal["frenzy_froth"] = froth
-	animal["frenzy_ring"] = ring
+	_frenzy_dress[id] = {"clock": clock, "froth": froth, "ring": ring}
 
 
 ## The limits, asked at the moment it would start: one natural outbreak an
