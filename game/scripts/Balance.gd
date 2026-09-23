@@ -11977,6 +11977,22 @@ const MOUNT_REMOUNT_DELAY: float = 0.6
 ## And it is what replaced the footfall. `_may_stay_mounted` used to refuse the
 ## saddle while `_beast_stun_left` ran, and Yuri's every step sets that, so a
 ## rider was thrown four times a minute by the ground they were riding on.
+## **The ram** (owner, 2026-09-22): right-click in the saddle charges along the
+## aim. How fast and how far it runs, how wide a line it hits along, what it
+## hits for as a share of the Warden's own finisher (so it sits on the capped
+## levelling-and-gear scale, never a horse's own power), the share the bodies
+## around the impact take, the shove, how long the saddle then rests, the push
+## that throws the Warden off a wall, and the beat the blow holds. [TUNE]
+const MOUNT_RAM_SPEED: float = 620.0
+const MOUNT_RAM_DISTANCE: float = 560.0
+const MOUNT_RAM_WIDTH: float = 38.0
+const MOUNT_RAM_DAMAGE_SCALE: float = 2.2
+const MOUNT_RAM_AOE_RADIUS: float = 150.0
+const MOUNT_RAM_AOE_SHARE: float = 0.55
+const MOUNT_RAM_KNOCKBACK: float = 520.0
+const MOUNT_RAM_COOLDOWN: float = 12.0
+const MOUNT_RAM_DEFLECT: float = 380.0
+const MOUNT_RAM_HITSTOP: float = 0.09
 const MOUNT_HURT_COOLDOWN: float = 6.0
 
 ## How close something hostile may be before the Warden refuses to mount.

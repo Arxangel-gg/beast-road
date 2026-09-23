@@ -185,6 +185,15 @@ var _mount_wait: float = 0.0
 ## the ring the HUD draws for it shows for this and never for the ordinary
 ## remount delay - see `Balance.MOUNT_HURT_COOLDOWN`.
 var _mount_thrown_left: float = 0.0
+## What the saddle's current cooldown is out of, and what it is called: a throw
+## and a ram rest the mount for different lengths and say different things.
+var _mount_cooldown_total: float = Balance.MOUNT_HURT_COOLDOWN
+var _mount_rest_reason: String = "Thrown"
+## **The ram** (owner, 2026-09-22): distance left in the charge, and its line.
+var _ram_left: float = 0.0
+var _ram_direction: Vector2 = Vector2.RIGHT
+## Why the last charge ended - a body, a wall or the edge, or its reach. For the gate.
+var _ram_ended_by: String = ""
 ## Whether the mount is at a gallop. **A gallop spends the rider's SP** (owner,
 ## 2026-09-21), at `MountData.sprint_drain` a second, through the same
 ## `_tick_stamina` a sprint on foot goes through - one pool, one winded rule.
@@ -507,7 +516,14 @@ func _physics_process(delta: float) -> void:
 	# to walk, which is the one phase where they are most likely to want to cross
 	# the map. It still costs its cooldown, so nothing is gained by spamming it.
 	if _beast_stun_left <= 0.0 and not _swimming and input.pressed(HeroInput.BUTTON_DASH):
-		_try_dash()
+		# **In the saddle the dash is the charge.** Not muted like the swing:
+		# a charge is movement that ends in a blow, and routing it through the
+		# dash bit is what lets it cross the co-op wire as the press it already
+		# is - the host's copy of a guest rams on the same fact.
+		if _mount != null:
+			_try_ram()
+		else:
+			_try_dash()
 	_tick_sprint(delta)
 	if ranged != null:
 		ranged.tick(delta)
@@ -542,7 +558,9 @@ func _physics_process(delta: float) -> void:
 		spells.cancel_channel()
 
 	var move_input: Vector2 = _move_input()
-	if _dash_left > 0.0:
+	if _ram_left > 0.0:
+		velocity = _ram_direction * Balance.MOUNT_RAM_SPEED
+	elif _dash_left > 0.0:
 		velocity = _dash_direction * (Balance.HERO_DASH_DISTANCE / Balance.HERO_DASH_DURATION)
 	elif spells.is_channelling():
 		velocity = Vector2.ZERO
@@ -565,9 +583,13 @@ func _physics_process(delta: float) -> void:
 			* RunState.wind_push(move_input)
 	velocity += _lunge_velocity + _shoved
 
+	var ram_from: Vector2 = global_position
 	move_and_slide()
 
+	var unbounded: Vector2 = global_position
 	global_position = _inside_bounds(global_position)
+	if _ram_left > 0.0:
+		_tick_ram(delta, ram_from, unbounded)
 
 	animator.set_motion(velocity, move_speed(), delta)
 	_drive_frames()
@@ -1588,7 +1610,7 @@ func _tick_stamina(delta: float) -> void:
 const MOUNTED_MUTE: int = HeroInput.BUTTON_ATTACK | HeroInput.HOLD_ATTACK \
 	| HeroInput.BUTTON_RANGED | HeroInput.BUTTON_AMMO_CYCLE \
 	| HeroInput.BUTTON_INTERACT | HeroInput.HOLD_INTERACT \
-	| HeroInput.BUTTON_DASH | HeroInput.HOLD_REVIVE
+	| HeroInput.HOLD_REVIVE
 
 
 ## Getting on, staying on, galloping, and getting off.
@@ -1669,7 +1691,7 @@ func mount() -> bool:
 		_refuse("Too deep to ride")
 		return false
 	if _mount_thrown_left > 0.0:
-		_refuse("Thrown - %d s" % ceili(_mount_thrown_left))
+		_refuse("%s - %d s" % [_mount_rest_reason, ceili(_mount_thrown_left)])
 		return false
 	# **Not a fairness rule.** A rider cannot fight, so mounting in a crowd only
 	# ever costs the player - this is here because doing it by accident in the
@@ -1762,6 +1784,7 @@ func dismount() -> bool:
 	if _mount == null:
 		return false
 	_mount = null
+	_ram_left = 0.0
 	_mark_tread()
 	_galloping = false
 	_mount_up_left = 0.0
@@ -1787,10 +1810,18 @@ func throw_from_saddle() -> bool:
 	if _mount == null:
 		return false
 	dismount()
-	_mount_thrown_left = Balance.MOUNT_HURT_COOLDOWN
-	_mount_refused_said = 0.0
+	_rest_the_mount(Balance.MOUNT_HURT_COOLDOWN, "Thrown")
 	_refuse("Thrown from the saddle")
 	return true
+
+
+## Closes the saddle for `seconds`, named for why - so the refusal and the ring
+## say "resting" after a charge and "thrown" after a blow.
+func _rest_the_mount(seconds: float, reason: String) -> void:
+	_mount_thrown_left = seconds
+	_mount_cooldown_total = maxf(seconds, 0.01)
+	_mount_rest_reason = reason
+	_mount_refused_said = 0.0
 
 
 ## Seconds before a thrown rider may mount again; zero when they may.
@@ -1802,9 +1833,9 @@ func mount_cooldown_left() -> float:
 ## when the saddle is open. What the HUD's ring draws, and the only thing it
 ## draws for.
 func mount_cooldown_ratio() -> float:
-	if Balance.MOUNT_HURT_COOLDOWN <= 0.0:
+	if _mount_cooldown_total <= 0.0:
 		return 0.0
-	return clampf(_mount_thrown_left / Balance.MOUNT_HURT_COOLDOWN, 0.0, 1.0)
+	return clampf(_mount_thrown_left / _mount_cooldown_total, 0.0, 1.0)
 
 
 ## Whether riding is still allowed at all.
@@ -1943,6 +1974,142 @@ func _kick_up_dust(delta: float) -> void:
 ## by the gate.
 func is_sprinting() -> bool:
 	return _sprinting
+
+
+## **The charge.** Owner, 2026-09-22: *"Right clicking while mounted should charge
+## in the direction aimed and ram enemies on its path and dismounting after
+## ramming or reaching the end reach of the charge or colliding with something
+## including the end edges of the map and deflecting. The ram should have juice
+## and be polished and do proper damage and aoe on impact and set the mount on a
+## cooldown."*
+##
+## **This re-cuts "a mount can never touch a number in a fight"** (2026-09-17),
+## and the bound that replaces it is where the number comes from: the ram hits
+## for a share of the Warden's own finisher, through `damage_multiplier`, so it
+## sits on the capped levelling-and-gear scale every blow already uses and a
+## horse adds no power of its own. What it costs is the ride - every charge ends
+## on foot, and the saddle rests for `MOUNT_RAM_COOLDOWN` - so it is one opening
+## blow a fight, never a way to fight mounted.
+func _try_ram() -> void:
+	if _mount == null or _ram_left > 0.0 or _mount_up_left > 0.0:
+		return
+	if RunState.flood_over_knee():
+		return
+	var line: Vector2 = _aim if _aim.length() > 0.1 else _facing
+	_ram_direction = line.normalized() if line.length() > 0.1 else Vector2.RIGHT
+	_ram_left = Balance.MOUNT_RAM_DISTANCE
+	_galloping = true
+	_facing = _ram_direction
+	Vfx.dust(global_position, _dust_colour(), 10, 70.0)
+	Sfx.play_at("sfx_dash", global_position, 1.0)
+	EventBus.camera_impact.emit(global_position, Balance.IMPACT_FULL_SHARE * 0.12)
+
+
+## One frame of the charge, after it moved: a body in the way, then a wall or the
+## edge, then the end of its reach - in that order, so a body standing at the
+## wall is rammed rather than the wall.
+func _tick_ram(delta: float, from: Vector2, unbounded: Vector2) -> void:
+	# Distance, not time, with a floor: a charge pinned against something that
+	# reports no collision still ends.
+	var went: float = global_position.distance_to(from)
+	_ram_left -= maxf(went, Balance.MOUNT_RAM_SPEED * delta * 0.25)
+	if field != null and field.has_method("enemies_near"):
+		# Body to body, which is how `enemies_near` measures.
+		var probe: Vector2 = combat_origin() + _ram_direction * Balance.MOUNT_RAM_WIDTH
+		var best: Enemy = null
+		var nearest: float = INF
+		for found: Variant in field.call("enemies_near", probe, Balance.MOUNT_RAM_WIDTH * 2.0):
+			var body := found as Enemy
+			if body == null or not is_instance_valid(body) or body.is_dying():
+				continue
+			var gap: float = body.global_position.distance_to(global_position)
+			if gap < nearest:
+				nearest = gap
+				best = body
+		if best != null:
+			_ram_impact(best)
+			return
+	var normal: Vector2 = Vector2.ZERO
+	if get_slide_collision_count() > 0:
+		normal = get_slide_collision(0).get_normal()
+	elif not unbounded.is_equal_approx(global_position):
+		normal = (global_position - unbounded).normalized()
+	if normal != Vector2.ZERO:
+		_ram_deflect(normal)
+		return
+	if _ram_left <= 0.0:
+		_end_ram("reach")
+
+
+## What a ram hits for: a share of the Warden's own finisher, on the scale every
+## other blow they throw is on.
+func ram_damage() -> float:
+	return Balance.HERO_ATTACK_DAMAGE[Balance.HERO_CHAIN_LENGTH - 1] \
+		* Balance.MOUNT_RAM_DAMAGE_SCALE * damage_multiplier()
+
+
+func _ram_impact(struck: Enemy) -> void:
+	var at: Vector2 = struck.combat_origin()
+	var ground: Vector2 = struck.global_position
+	var blow: float = ram_damage()
+	# A puppet refuses the blow, so a guest's own copy of the charge only draws
+	# it; the host's copy of that guest lands it.
+	struck.take_damage(blow, global_position, Balance.MOUNT_RAM_KNOCKBACK,
+		is_local_player())
+	if field != null and field.has_method("enemies_near"):
+		for found: Variant in field.call("enemies_near", at, Balance.MOUNT_RAM_AOE_RADIUS):
+			var body := found as Enemy
+			if body == null or body == struck or not is_instance_valid(body) \
+					or body.is_dying():
+				continue
+			body.take_damage(blow * Balance.MOUNT_RAM_AOE_SHARE, at,
+				Balance.MOUNT_RAM_KNOCKBACK * 0.7, is_local_player())
+	var warm := Color(1.0, 0.82, 0.55, 0.95)
+	Vfx.forge_play("slam_impact", at, Balance.MOUNT_RAM_AOE_RADIUS * 2.0, warm)
+	Vfx.ring(at, Balance.MOUNT_RAM_AOE_RADIUS, Color(1.0, 0.78, 0.45, 0.8), 0.32, 6.0)
+	Vfx.dust(ground, _dust_colour(), 18, 130.0)
+	Vfx.spark(at, warm, 14, _ram_direction, 260.0)
+	Sfx.play_at("sfx_hit_armour_1", at, 2.0)
+	EventBus.camera_impact.emit(at, Balance.IMPACT_FULL_SHARE * 0.7)
+	EventBus.hitstop_requested.emit(Balance.MOUNT_RAM_HITSTOP)
+	# The Warden comes off over the horse's shoulder, a step past the blow.
+	shove(_ram_direction * Balance.MOUNT_RAM_DEFLECT * 0.4)
+	_end_ram("body")
+
+
+func _ram_deflect(normal: Vector2) -> void:
+	var off: Vector2 = _ram_direction.bounce(normal).normalized()
+	Vfx.dust(global_position, _dust_colour(), 14, 90.0)
+	Vfx.spark(global_position, Color(0.95, 0.9, 0.8), 8, off, 200.0)
+	Sfx.play_at("sfx_hit_stone_1", global_position, 1.6)
+	EventBus.camera_impact.emit(global_position, Balance.IMPACT_FULL_SHARE * 0.4)
+	_end_ram("deflect")
+	shove(off * Balance.MOUNT_RAM_DEFLECT)
+
+
+## Every charge ends on foot, and the saddle rests.
+func _end_ram(cause: String) -> void:
+	_ram_left = 0.0
+	_ram_ended_by = cause
+	dismount()
+	_rest_the_mount(Balance.MOUNT_RAM_COOLDOWN, "Resting")
+
+
+## The colour of the ground the charge throws up, asked of whatever field the
+## Warden is on - the same reading every footfall uses.
+func _dust_colour() -> Color:
+	if field != null and field.has_method("ground_colour"):
+		return field.call("ground_colour", global_position) as Color
+	return Color(0.55, 0.49, 0.4)
+
+
+## Whether a charge is under way. For the gate and the rig.
+func is_ramming() -> bool:
+	return _ram_left > 0.0
+
+
+func ram_ended_by() -> String:
+	return _ram_ended_by
 
 
 func _try_dash() -> void:

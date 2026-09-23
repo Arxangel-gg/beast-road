@@ -8125,6 +8125,39 @@ and it deals exactly what the body was always going to deal, which is why
 in real time and insists the swing lands and was armoured, and that one blow
 arms nothing.
 
+**A mount charges, and that re-cuts "a mount can never touch a number in a
+fight", as of 2026-09-22.** The owner: *"Right clicking while mounted should
+charge in the direction aimed and ram enemies on its path and dismounting after
+ramming or reaching the end reach of the charge or colliding with something
+including the end edges of the map and deflecting ... do proper damage and aoe
+on impact and set the mount on a cooldown."* The 2026-09-17 bound was the
+dismount rule; this is the owner reversing half of it, so it is recorded.
+
+**The bound that replaces it is where the number comes from.** The ram hits for
+`MOUNT_RAM_DAMAGE_SCALE` of the Warden's own finisher through
+`damage_multiplier`, so it sits on the capped levelling-and-gear scale every
+blow already uses and a horse adds no power of its own; the bodies round the
+impact take `MOUNT_RAM_AOE_SHARE` of it and are shoved. **What it costs is the
+ride**: every charge ends on foot - at a body, at a wall or the map's edge
+(deflected along the bounce), or at `MOUNT_RAM_DISTANCE` - and the saddle rests
+for `MOUNT_RAM_COOLDOWN`, on the same ring and refusal a throw uses, named
+"Resting" rather than "Thrown". One opening blow a fight, never a way to fight
+mounted; the swing still dismounts.
+
+**It rides the dash bit**, which is no longer muted in the saddle: the charge
+is movement that ends in a blow, and the dash press is what already crosses the
+co-op wire, so the host's copy of a guest charges on the same fact and a
+puppet refuses the damage on the guest. `mount_check` (151) drives the press a
+player makes: a body on the line takes the scaled finisher and the one beside
+it takes its share, a charge into open ground runs its reach, a charge at the
+edge stops inside the map, and every charge ends resting. **Two coin tosses
+were in the first cut of that test, and both are recorded lessons**: a press on
+a single frame is dropped whenever Yuri's footfall has the Warden stunned (the
+test presses until the charge starts, as a player does), and the seed's weather
+floods the field often enough to refuse the charge and unseat the rider. The
+reach is measured only on a charge that ran free - trees and props end one
+exactly as they should - and every early end must say what it met.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

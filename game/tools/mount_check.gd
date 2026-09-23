@@ -582,6 +582,7 @@ func _test_the_field() -> void:
 	# is drawn on a horse and its input stays muted - so the revive brings back a
 	# Warden who cannot swing. Found by asking what else stops the tick rather
 	# than by anything failing: the gate was green with the hole in it.
+	await _test_the_ram(field, who)
 	who.set("_mount_wait", 0.0)
 	who.set("_swimming", false)
 	_check(who.mount(), "the Warden refused to mount before the death test")
@@ -594,6 +595,160 @@ func _test_the_field() -> void:
 
 	await _leave(run)
 
+
+
+## **The ram** (owner, 2026-09-22): right-click in the saddle charges along the
+## aim, rams the first body on its line for a share of the Warden's own
+## finisher and shoves the bodies round it, and ends on foot with the saddle
+## resting - after a blow, at the end of its reach, and off the edge of the map.
+## Driven through the dash press a player makes, never by calling the charge.
+func _test_the_ram(field: Battlefield, who: Hero) -> void:
+	var was: HeroInput = who.input
+	var fake := PressedInput.new()
+	who.input = fake
+	var breed: EnemyData = null
+	var ids: Array = ContentDB.enemies.keys()
+	ids.sort()
+	for id: String in ids:
+		var kind := ContentDB.enemies[id] as EnemyData
+		if kind != null and kind.category == EnemyData.Category.BREED and kind.brace_chance <= 0.0:
+			breed = kind
+			break
+	_check(breed != null, "the ram needs an ordinary body to hit")
+	if breed == null:
+		who.input = was
+		return
+
+	# --- A body on the line ---------------------------------------------------
+	var spot := Vector2(1500.0, 1400.0)
+	await _saddle(who, spot)
+	var struck: Enemy = _still_body(field, breed, spot + Vector2(320.0, 0.0))
+	var beside: Enemy = _still_body(field, breed, spot + Vector2(320.0, 90.0))
+	await _frames(3)
+	var hit_before: float = struck.health.current_hp
+	var side_before: float = beside.health.current_hp
+	var expected: float = who.ram_damage()
+	await _press_dash(who, fake, Vector2.RIGHT)
+	_check(who.is_ramming(), "a dash press in the saddle did not start a charge")
+	await _until_on_foot(who, 3.0)
+	var took: float = hit_before - struck.health.current_hp
+	_check(not who.is_mounted(), "the Warden was still in the saddle after ramming a body")
+	_check(took >= expected * 0.8 and took <= expected * 1.05 + 0.01,
+		("the rammed body took %.1f against a ram of %.1f - the blow is the "
+			+ "Warden's own finisher scaled, never a horse's power") % [took, expected])
+	_check(beside.health.current_hp < side_before,
+		"the body beside the one rammed took nothing - the impact has an area")
+	_check(beside.health.current_hp >= side_before - expected * Balance.MOUNT_RAM_AOE_SHARE - 0.01,
+		"the body beside the one rammed took more than the area's share")
+	_check(who.mount_cooldown_left() > Balance.MOUNT_RAM_COOLDOWN - 1.5,
+		"a ram left the saddle open (%.1f s) - it must rest the mount" % who.mount_cooldown_left())
+	_check(not who.mount(), "the Warden remounted a mount that is resting after a ram")
+	for body: Enemy in [struck, beside]:
+		if is_instance_valid(body):
+			body.queue_free()
+	await _frames(3)
+
+	# --- The end of its reach -------------------------------------------------
+	# A tree or a camp's props end a charge exactly as they should, and where
+	# they stand is the seed's - so the reach is measured on the first line that
+	# runs free, and every charge that ends early must say what it met.
+	var measured: bool = false
+	for line: Vector2 in [Vector2.DOWN, Vector2.UP, Vector2.LEFT, Vector2(1, 1).normalized(),
+			Vector2(-1, 1).normalized(), Vector2(-1, -1).normalized()]:
+		await _saddle(who, spot)
+		var from: Vector2 = who.global_position
+		await _press_dash(who, fake, line)
+		await _until_on_foot(who, 3.0)
+		_check(not who.is_mounted(), "a charge along %s never ended" % line)
+		var cause: String = who.ram_ended_by()
+		_check(["reach", "body", "deflect"].has(cause),
+			"a charge ended and could not say why (%s)" % cause)
+		if cause != "reach":
+			continue
+		var ran: float = who.global_position.distance_to(from)
+		_check(ran >= Balance.MOUNT_RAM_DISTANCE * 0.8 and ran <= Balance.MOUNT_RAM_DISTANCE * 1.5,
+			"a charge that ran free covered %.0f units against a reach of %.0f"
+				% [ran, Balance.MOUNT_RAM_DISTANCE])
+		measured = true
+		break
+	_check(measured, "no charge from the test spot ever ran its full reach")
+
+	# --- The edge of the map --------------------------------------------------
+	var edge: float = BattleGrid.play_extent()
+	await _saddle(who, Vector2(edge - 120.0, 0.0))
+	await _press_dash(who, fake, Vector2.RIGHT)
+	_check(who.is_ramming() or not who.is_mounted(),
+		("a dash press at the edge did not start a charge: at %s, mounted %s, "
+			+ "swimming %s, stunned %.2f, climbing %.2f") % [who.global_position,
+			who.is_mounted(), who.get("_swimming"), float(who.get("_beast_stun_left")),
+			float(who.get("_mount_up_left"))])
+	await _until_on_foot(who, 3.0)
+	_check(not who.is_mounted(), "a charge into the edge of the map never ended")
+	_check(absf(who.global_position.x) <= edge + 1.0,
+		"a charge left the map, standing at %.0f past an edge of %.0f"
+			% [who.global_position.x, edge])
+	_check(who.mount_cooldown_left() > Balance.MOUNT_RAM_COOLDOWN - 2.5,
+		"a charge that met the edge left the saddle open")
+	_check(who.ram_ended_by() != "reach",
+		"a charge begun %.0f units from the edge ran its whole reach of %.0f"
+			% [120.0, Balance.MOUNT_RAM_DISTANCE])
+	who.set("_mount_thrown_left", 0.0)
+	who.input = was
+
+
+## Dry ground and a clean saddle. The weather is the seed's, and a flood both
+## refuses a charge and unseats a rider - correctly, and as a coin toss.
+func _saddle(who: Hero, at: Vector2) -> void:
+	RunState.flood = 0.0
+	if who.field is Battlefield:
+		(who.field as Battlefield).sky().events_enabled = false
+	who.set("_mount_thrown_left", 0.0)
+	who.set("_mount_wait", 0.0)
+	who.set("_swimming", false)
+	who.set("_shoved", Vector2.ZERO)
+	who.global_position = at
+	who.health.current_hp = who.health.max_hp
+	_check(who.mount(), "the Warden refused to mount for the ram test")
+	var left: float = Balance.MOUNT_UP_SECONDS + 0.3
+	while left > 0.0:
+		RunState.flood = 0.0
+		await get_tree().process_frame
+		left -= get_process_delta_time()
+
+
+func _still_body(field: Battlefield, breed: EnemyData, at: Vector2) -> Enemy:
+	var body: Enemy = field.spawn_enemy(breed, 0, 60.0, 0.001, 0.001)
+	body.global_position = at
+	body.process_mode = Node.PROCESS_MODE_DISABLED
+	return body
+
+
+## Pressed until the charge starts, as a player presses: Yuri's footfall stuns
+## the Warden for a beat on every step, and a press that lands on that beat is
+## dropped exactly as a dash on foot is. One press on one frame was a coin toss.
+func _press_dash(who: Hero, fake: PressedInput, line: Vector2) -> void:
+	for _try: int in 40:
+		who.face(line)
+		fake.press = HeroInput.BUTTON_DASH
+		await get_tree().process_frame
+		fake.press = 0
+		if who.is_ramming() or not who.is_mounted():
+			return
+		await get_tree().process_frame
+
+
+func _until_on_foot(who: Hero, seconds: float) -> void:
+	var left: float = seconds
+	while left > 0.0 and who.is_mounted():
+		RunState.flood = 0.0
+		await get_tree().process_frame
+		left -= get_process_delta_time()
+	await _frames(2)
+
+
+func _frames(count: int) -> void:
+	for _f: int in count:
+		await get_tree().process_frame
 
 # --- The paddock -------------------------------------------------------------
 

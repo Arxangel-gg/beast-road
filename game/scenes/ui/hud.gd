@@ -2311,14 +2311,19 @@ func _update_ride_button() -> void:
 		_ride_cooldown.ratio = thrown
 		if waiting:
 			_ride_cooldown.queue_redraw()
+	# A charge rests the mount as a throw does, and the button says which.
+	var resting: bool = waiting and String(who.get("_mount_rest_reason")) == "Resting"
 	_ride_button.text = _action_label("H", "DISMOUNT" if up
-		else ("THROWN" if waiting else "RIDE"))
+		else (("RESTING" if resting else "THROWN") if waiting else "RIDE"))
 	_ride_button.disabled = who == null or not who.is_alive() or waiting
-	_ride_button.tooltip_text = ("Get down and fight where you stand." if up
-		else ("Thrown from the saddle. The %s takes you back in %d s."
-			% [kind.display_name, ceili(who.mount_cooldown_left())] if waiting
-		else "Ride the %s. Mounted you cannot fight - attacking gets you down."
-			% kind.display_name))
+	_ride_button.tooltip_text = ("Get down and fight where you stand - or charge: "
+			+ "the dash rams the first thing on your line and leaves you on foot." if up
+		else (("%s from the charge. The %s takes you back in %d s." if resting
+			else "Thrown from the saddle. The %s takes you back in %d s.")
+			% ([("Resting"), kind.display_name, ceili(who.mount_cooldown_left())] if resting
+				else [kind.display_name, ceili(who.mount_cooldown_left())]) if waiting
+		else ("Ride the %s. Mounted you cannot fight - attacking gets you down, "
+			+ "and the dash charges and rams.") % kind.display_name))
 
 
 func _update_repair_button() -> void:
