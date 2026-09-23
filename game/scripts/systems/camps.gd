@@ -685,18 +685,37 @@ func _both_camps_fell(lane: int) -> bool:
 	return true
 
 
+## What razing a camp of a tier pays in each run currency, in an act.
+##
+## One function, read by the payout and by `camps_check`, so the envelope the
+## gate holds is the figure the ground is actually paid.
+static func raze_currency(tier: int, act: int) -> Dictionary:
+	var value: float = float(Balance.CAMP_CURRENCY[clampi(tier, 0,
+		Balance.CAMP_CURRENCY.size() - 1)]) * Balance.kill_act_scale(act)
+	var out: Dictionary = {}
+	for id: Variant in Balance.CAMP_CURRENCY_SPLIT:
+		out[String(id)] = int(round(value * float(Balance.CAMP_CURRENCY_SPLIT[id])))
+	return out
+
+
 ## What a razed camp leaves on its ground.
 func _pay(site: Dictionary) -> void:
 	if field == null:
 		return
 	var tier: int = int(site["tier"])
 	var centre: Vector2 = site["centre"] as Vector2
-	var value: int = Balance.CAMP_CURRENCY[tier]
 	var spread: RandomNumberGenerator = RunState.rng("gear")
 	if field.has_method("spawn_loot"):
-		field.spawn_loot(RunState.GOLD, int(round(value * 0.55)), centre + Vector2(-24.0, 0.0))
-		field.spawn_loot(RunState.FOOD, int(round(value * 0.25)), centre + Vector2(24.0, 12.0))
-		field.spawn_loot(RunState.STONE, int(round(value * 0.20)), centre + Vector2(0.0, -20.0))
+		var places: Dictionary = {
+			RunState.GOLD: Vector2(-24.0, 0.0), RunState.FOOD: Vector2(24.0, 12.0),
+			RunState.STONE: Vector2(0.0, -20.0), RunState.WOOD: Vector2(0.0, 24.0),
+		}
+		var shares: Dictionary = raze_currency(tier, RunState.act)
+		for id: Variant in shares:
+			var amount: int = int(shares[id])
+			if amount > 0:
+				field.spawn_loot(String(id), amount,
+					centre + (places.get(id, Vector2.ZERO) as Vector2))
 	if field.has_method("spawn_gear"):
 		var campaign: CampaignTierData = RunState.tier()
 		var order: int = (campaign.order if campaign != null else 0) + Balance.CAMP_GEAR_TIER_BONUS[tier]

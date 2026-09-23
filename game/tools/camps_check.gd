@@ -34,6 +34,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 
 	_test_the_camps_escalate()
+	_test_a_raze_does_not_buy_the_opening()
 	var field: Battlefield = run.battlefield
 	var camps: Camps = field.camps()
 	_test_an_ambush_walks_inward(field.grid)
@@ -305,6 +306,41 @@ func _fell(mobs: Array) -> void:
 ## - **A camp lord never reaches the road.** The category is the only thing
 ##   keeping it out of the wave roll, so a lord listed in a region's
 ##   `enemy_ids` would walk up the lane as rank and file.
+## **A razed camp never buys the opening.** Owner, 2026-09-22: camps paid "too
+## many resources including gold". The envelope `balance_test` guards says wave
+## 1 must not pay for a tower; an outer camp reachable in the opening paid a flat
+## 50 Gold on a 150-second clock, which is that envelope with a side door. Every
+## tier's raze in Act I stays well under the cheapest tower's Gold, and the pay
+## climbs with the act exactly as a road kill does - read off the same function
+## the ground is paid by, so the check and the payout cannot disagree.
+func _test_a_raze_does_not_buy_the_opening() -> void:
+	var cheapest: int = 1 << 30
+	for value: Variant in ContentDB.towers.values():
+		var tower := value as TowerData
+		if tower == null or tower.is_combination or tower.is_well():
+			continue
+		cheapest = mini(cheapest, tower.build_cost())
+	_check(cheapest < (1 << 30), "no tower to price a camp against")
+	for tier: int in Balance.CAMP_CURRENCY.size():
+		var first: Dictionary = Camps.raze_currency(tier, 1)
+		var gold: int = int(first.get(RunState.GOLD, 0))
+		_check(gold > 0, "a tier-%d camp pays no Gold at all" % tier)
+		var ceiling: float = float(cheapest) * (0.34 if tier == 0 else 0.8)
+		_check(float(gold) <= ceiling,
+			("razing a tier-%d camp in Act I pays %d Gold against a cheapest tower "
+				+ "of %d - a camp that buys the opening's towers is the envelope "
+				+ "with a side door") % [tier, gold, cheapest])
+		var last: Dictionary = Camps.raze_currency(tier, Balance.ACT_COUNT)
+		var ratio: float = float(int(last.get(RunState.GOLD, 0))) / maxf(float(gold), 1.0)
+		var road: float = Balance.kill_act_scale(Balance.ACT_COUNT) / Balance.kill_act_scale(1)
+		_check(absf(ratio - road) <= road * 0.2,
+			("a tier-%d camp's pay climbs %.2fx over the road while a road kill "
+				+ "climbs %.2fx") % [tier, ratio, road])
+	for spent: Variant in Balance.CAMP_CURRENCY_SPLIT.keys():
+		_check([RunState.GOLD, RunState.FOOD, RunState.STONE, RunState.WOOD].has(String(spent)),
+			"the raze split names %s, which is no run currency" % spent)
+
+
 func _test_the_camps_escalate() -> void:
 	var lords: Array[EnemyData] = ContentDB.enemies_of_category(
 		EnemyData.Category.CAMP_LORD)

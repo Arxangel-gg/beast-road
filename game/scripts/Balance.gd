@@ -7777,18 +7777,38 @@ const CAMP_PATROL_PAUSE: Vector2 = Vector2(1.2, 3.4)
 ## Health regained per second while walking home, as a share of the maximum.
 const CAMP_RETURN_REGEN: float = 0.45
 ## Seconds until a razed camp stands again, by tier.
-const CAMP_RESPAWN_SECONDS: Array[float] = [150.0, 200.0, 300.0]
-## What razing a camp pays, by tier: run currency (split like a raid's), gear
-## pieces, the tier-order bonus those pieces roll at (odds of rarity, never a
-## new kind), and Shards.
-const CAMP_CURRENCY: Array[int] = [90, 170, 360]
+##
+## Owner, 2026-09-22: camps *"drop too many resources including gold which can
+## really affect the runs"*. The clock is half of that: at 150 seconds an outer
+## camp was a loop a player could walk forever between waves. [TUNE]
+const CAMP_RESPAWN_SECONDS: Array[float] = [240.0, 300.0, 420.0]
+## What razing a camp pays, by tier: run currency, gear pieces, the tier-order
+## bonus those pieces roll at (odds of rarity, never a new kind), and Shards.
+##
+## **The currency is the other half, and it was never scaled.** It was a flat
+## 90 / 170 / 360 - more than half of it Gold - in every act, against a road
+## body worth about 1.3 resources in Act I: an outer camp paid roughly seven
+## road waves and nearly bought the first tower on its own, which is the one
+## thing the opening envelope forbids. It is a third of that now and climbs
+## with `kill_act_scale` exactly as a road kill does, so a camp is worth the
+## same share of a wave in Act X as in Act I. What a camp is *for* is the gear,
+## the Shards and the fork - untouched. `camps_check` holds the envelope.
+const CAMP_CURRENCY: Array[int] = [36, 64, 110]
+## How a raze's currency is shared. Gold is the tower economy and the one the
+## owner named, so it is the smallest share; Food and Stone are what the
+## outskirts are for. [TUNE]
+const CAMP_CURRENCY_SPLIT: Dictionary = {
+	"gold": 0.35, "food": 0.25, "stone": 0.20, "wood": 0.20,
+}
 const CAMP_GEAR_DROPS: Array[int] = [1, 2, 3]
 const CAMP_GEAR_TIER_BONUS: Array[int] = [1, 2, 3]
 const CAMP_SHARDS: Array[int] = [0, 3, 10]
 ## Hero experience for a camp body, against the same body on the road.
 const CAMP_XP_SCALE: float = 1.5
-## A camp body's kill spoils against the same body on the road.
-const CAMP_SPOILS_SCALE: float = 1.4
+## A camp body's kill spoils against the same body on the road. Barely above
+## one: the raze is the reward for clearing it, and a camp body paying 40% more
+## than a road body was a second reward for the same clear (2026-09-22). [TUNE]
+const CAMP_SPOILS_SCALE: float = 1.1
 ## Props scattered on a camp's ground, and how far in from its edge.
 const CAMP_PROP_COUNT: Vector2i = Vector2i(4, 7)
 const CAMP_PROP_INSET: float = 40.0

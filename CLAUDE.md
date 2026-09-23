@@ -8083,6 +8083,24 @@ that is not multiplied, in code rather than comments. The four real copies, in
   live is still refused. `save_slot_check` and `pen_check` drive a live road by
   the director's own flag now, and hold the fresh-launch case.
 
+**A camp pays the share of a wave it always should have, as of 2026-09-22.**
+The owner: camps *"drop too many resources including gold which can really
+affect the runs"*. Measured: razing paid a flat 90 / 170 / 360 currency, 55%
+of it Gold, in every act, on a 150-second clock - against a road body worth
+about 1.3 resources in Act I. An outer camp paid roughly seven road waves and
+nearly bought the first tower on its own, which is the opening envelope
+`balance_test` guards arriving through a side door.
+
+The raze pays a third of that now (`CAMP_CURRENCY` 36 / 64 / 110), split with
+Gold the smallest share (`CAMP_CURRENCY_SPLIT`), climbing with
+`kill_act_scale` exactly as a road kill does; a camp body pays 1.1 of a road
+body rather than 1.4; and the camps come back on 240 / 300 / 420 seconds. What
+a camp is *for* is untouched: the gear, the Shards and the fork.
+`Camps.raze_currency` is the one function the ground is paid by and the gate
+reads, and `camps_check` holds that no tier's raze in Act I buys the cheapest
+tower and that the pay climbs with the road. Planted: the old flat table,
+which it named on all three tiers.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
