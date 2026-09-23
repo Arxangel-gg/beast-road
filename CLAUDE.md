@@ -8047,6 +8047,42 @@ inset is a different number that shares a spelling, so it matches only a tile
 that is not multiplied, in code rather than comments. The four real copies, in
 `fishing.gd` and `wildlife.gd`, ask `play_extent()` now.
 
+**Four interface faults from one play report, as of 2026-09-22.**
+
+- **The tower's range ring was drawn round its target.** `EventBus.tower_fired`
+  carries where the shot went - right for the sound and the muzzle - and
+  `CombatTells` drew the tower's reach there, so the ring stood on the enemy it
+  hit. The owner asked for League's readout: the reach round the tower. The
+  centre is asked of the field by anchor (`Battlefield._tower_ring_centre`,
+  the same point the selection ring uses) and a tower the field cannot find
+  draws no ring rather than a wrong one. `tower_juice_check` holds it for all
+  five shot styles.
+- **The command panel is hidden until Command is earned**, and hangs below the
+  HUD's second row measured off that row (`UI_COMMAND_PANEL_GAP`). It sat at a
+  typed 104 while the row it had to clear is seated off the top bar's own
+  height, so the quiver readout and the sundial were under its frame. Derived
+  from `command_earned`, so it resets with the run and rides the expedition
+  snapshot. The tutorial step already fired on the first Command earned, so the
+  panel and the lesson arrive together; its copy no longer says "along the
+  bottom". `road_sheet_check` holds both halves.
+- **Building sheets dock under the top-left readouts.** `UiMetrics.dock_panel`
+  takes the edge to start below; the HUD publishes it
+  (`HUD.top_left_reserve`) where it seats that row. On a screen too short for
+  both, the sheet keeps `UI_SIDE_PANEL_MIN_HEIGHT` and the readouts give way.
+  `layout_check` holds it on every shape tall enough to ask.
+- **The Warden picker refused on every fresh launch. Owner re-cut of the
+  2026-09-22 slot rule**: *"even if I don't have a run saved I should still be
+  able to change save slots. And even if I do"*. The rule was "not mid-run" and
+  the predicate was `phase != ENDED` - but the phase becomes `ENDED` only when
+  a run is *settled*. It is `PREPARATION` at every launch and stays mid-run
+  after a road is left from the pause menu, so the menu said "a road is under
+  way" when none existed. `RunState.road_is_live` asks the director
+  (`run_active`) and the phase together, and the pen's `pen_take` had the same
+  fault and asks the same function. A banked road is the slot's own and stays
+  with it, so changing Warden never costs one; switching while a road is truly
+  live is still refused. `save_slot_check` and `pen_check` drive a live road by
+  the director's own flag now, and hold the fresh-launch case.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
