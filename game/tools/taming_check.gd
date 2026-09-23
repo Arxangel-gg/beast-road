@@ -242,6 +242,10 @@ func _test_the_pen_bound_survives() -> void:
 	MetaState.pen_taken = ""
 	var first: String = MetaState.pen_add("fox", 0, false, "", 1.0)
 	var second: String = MetaState.pen_add("deer", 0, false, "", 1.0)
+	# A road is live when the director says so (`RunState.road_is_live`), not
+	# when the phase alone reads mid-run - which it does on every fresh launch.
+	var was_active: bool = GameDirector.run_active
+	GameDirector.run_active = true
 	RunState.phase = RunState.Phase.ROAD_BATTLE
 	_check(not MetaState.pen_take(first), "a mid-run swap is still refused")
 	_check(MetaState.pen_take(first, true), "a fresh catch goes to work mid-run")
@@ -249,6 +253,7 @@ func _test_the_pen_bound_survives() -> void:
 		"and it still cannot be swapped for another one")
 	_check(MetaState.pen_stand_down(), "it can be stood down at any time")
 	_check(MetaState.pen_taken.is_empty(), "and then nothing is out")
+	GameDirector.run_active = was_active
 	RunState.phase = RunState.Phase.ENDED
 	MetaState.pen.clear()
 	MetaState.pen_taken = ""
