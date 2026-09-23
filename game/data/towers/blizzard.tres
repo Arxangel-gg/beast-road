@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_4scpx")
+path_names = Array[String](["Whiteout Lance", "Howling Squall"])
 shot = 3
 ambient = 4
 juice_scale = 1.25

@@ -846,10 +846,15 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 ## moment. **And never on the first fork of a run**: banking a front nobody has
 ## built yet is a trip to the menu for nothing, and `HOMECOMING_FROM_ACT` does
 ## not stop it on its own because Act I opens with one.
+## **Offered at every crossroad, the first included** (owner, 2026-09-22: "most
+## of the time I'm not lucky for it to even have an extract option available").
+## It was refused until one fork had been passed without banking, on the
+## grounds that banking an unbuilt front is a trip to the menu for nothing -
+## but for a player who can barely reach the first fork, the first fork is the
+## only chance to keep anything, and a missing button read as bad luck.
 func extraction_open() -> bool:
 	return ask_homecoming and not Coop.is_guest() and crossroad_ui != null \
-		and RunState.act >= Balance.HOMECOMING_FROM_ACT \
-		and RunState.momentum > 0.0
+		and RunState.act >= Balance.HOMECOMING_FROM_ACT
 
 
 func _homecoming_open(act: int) -> bool:

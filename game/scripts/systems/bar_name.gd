@@ -25,6 +25,10 @@ extends Control
 ## collide with something that is not in the layout.
 
 var text: String = ""
+## **The pool's own figures, on the bar** (owner, 2026-09-22: "Player HP MP SP
+## all need current/max values and percentages displayed within their progress
+## bars"). Drawn at the right end, as the name is at the left.
+var value_text: String = ""
 var font_size: int = 11
 var inset: float = 5.0
 var tint: Color = Color(0.96, 0.94, 0.90, 0.95)
@@ -70,3 +74,11 @@ func _draw() -> void:
 	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
 		font_size, 4, outline)
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, tint)
+	if not value_text.is_empty():
+		var wide: float = font.get_string_size(value_text, HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0, font_size).x
+		var right := Vector2(size.x - inset - wide, at.y)
+		draw_string_outline(font, right, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+			font_size, 4, outline)
+		draw_string(font, right, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+			font_size, tint)

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_xquuw")
+path_names = Array[String](["Eye of the Storm", "Cyclone"])
 shot = 4
 ambient = 7
 juice_scale = 1.3

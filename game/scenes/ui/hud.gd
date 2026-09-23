@@ -2382,11 +2382,11 @@ func _update_repair_button() -> void:
 ## vanishes is a row a player never learns exists - and the price is on it.
 func _offer_the_last_board(column: VBoxContainer) -> void:
 	var stored: Dictionary = MetaState.build_template
-	var line: String = BuildTemplate.say(stored)
+	var line: String = BuildTemplate.say(stored, battlefield)
 	if line.is_empty():
 		return
-	var price: int = BuildTemplate.quote(stored)
-	var rows: Array = BuildTemplate.rows_of(stored)
+	var price: int = BuildTemplate.quote(stored, battlefield)
+	var rows: Array = BuildTemplate.rows_to_raise(stored, battlefield)
 	var affordable: bool = RunState.can_afford_cost({RunState.GOLD: price})
 	var button: Button = _add_button(column, line, func() -> void:
 		var landed: Dictionary = BuildTemplate.apply(battlefield, stored)
@@ -4956,7 +4956,7 @@ func _refresh_build_panel() -> void:
 				"%s has reached its fifth level. Choose what it becomes."
 					% existing.display_name, 15))
 			for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD]:
-				var named: String = TowerData.path_name(existing.element, path)
+				var named: String = existing.path_label(path)
 				var pick: Button = _add_button(_build_list, named,
 					func() -> void:
 						if RunState.set_tower_path(anchor, path):
@@ -4968,15 +4968,15 @@ func _refresh_build_panel() -> void:
 		elif RunState.tower_path(anchor) != TowerData.Path.NONE:
 			var taken: int = RunState.tower_path(anchor)
 			_build_list.add_child(_label("%s  ·  %s" % [
-				TowerData.path_name(existing.element, taken),
+				existing.path_label(taken),
 				TowerData.path_note(taken)], 13))
 			if level < Balance.TOWER_CAPSTONE_LEVEL:
 				_build_list.add_child(_label("At level %d: %s" % [
 					Balance.TOWER_CAPSTONE_LEVEL,
-					TowerData.capstone_note(existing.element, taken)], 13))
+					existing.capstone_line(taken)], 13))
 			else:
 				_build_list.add_child(_label(
-					TowerData.capstone_note(existing.element, taken), 13))
+					existing.capstone_line(taken), 13))
 
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(
@@ -5253,13 +5253,25 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 		var listed: Array = by_element.get(tower.element, [])
 		listed.append(tower)
 		by_element[tower.element] = listed
+	# **And what is still to earn**, listed rather than hidden (owner,
+	# 2026-09-22: "each of the 4 elements ... 10 towers each, but they're still
+	# not implemented!"). They were - at the end of the Tools ladder - and a
+	# sheet that listed only what was unlocked read as a roster of six.
+	var locked: Dictionary = {}
+	for tower: TowerData in ContentDB.base_towers():
+		if MetaState.unlocked_towers.has(tower.id):
+			continue
+		var waiting: Array = locked.get(tower.element, [])
+		waiting.append(tower)
+		locked[tower.element] = waiting
 
 	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
 			TowerData.Element.EARTH, TowerData.Element.AIR]:
 		var towers: Array = by_element.get(element, [])
 		var pick := Button.new()
 		pick.custom_minimum_size = Vector2(ELEMENT_RAIL_WIDTH, BUILD_ROW_HEIGHT)
-		pick.text = "%s  %d" % [TowerData.element_name(element), towers.size()]
+		var total: int = towers.size() + (locked.get(element, []) as Array).size()
+		pick.text = "%s  %d/%d" % [TowerData.element_name(element), towers.size(), total]
 		pick.icon = IconKit.element_sized(element, 26)
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.focus_mode = Control.FOCUS_NONE
@@ -5267,8 +5279,8 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 		pick.button_pressed = element == _build_element
 		pick.disabled = towers.is_empty()
 		pick.add_theme_color_override("font_color", TowerData.element_colour(element))
-		pick.tooltip_text = "%s  -  %d unlocked" % [
-			TowerData.element_name(element), towers.size()]
+		pick.tooltip_text = "%s  -  %d of %d unlocked" % [
+			TowerData.element_name(element), towers.size(), total]
 		pick.pressed.connect(func() -> void:
 			_build_element = -1 if _build_element == element else element
 			_refresh_build_panel())
@@ -5288,6 +5300,13 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 
 	for tower: TowerData in by_element[_build_element]:
 		flyout.add_child(_tower_card(tower, anchor))
+	for tower: TowerData in locked.get(_build_element, []):
+		var card: Button = _tower_card(tower, anchor)
+		card.disabled = true
+		card.modulate = Color(1.0, 1.0, 1.0, 0.5)
+		card.tooltip_text = ("Locked - earned with Tools at the end of a run.\n"
+			+ card.tooltip_text)
+		flyout.add_child(card)
 	return row
 
 
@@ -5663,6 +5682,7 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	var share: float = current / maximum if maximum > 0.0 else 0.0
 	_hero_bar.value = share
 	_hero_bar.tooltip_text = "Health %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	_say_the_pool(_hero_bar, current, maximum)
 	_paint_health(_hero_bar, share)
 	# **Pulsing under the critical share** (owner, 2026-09-16). Driven from here
 	# rather than looped: a bar that pulses for ever is a screensaver, and this
@@ -5748,6 +5768,7 @@ func _on_hero_stamina(current: float, maximum: float) -> void:
 	var share: float = current / maximum if maximum > 0.0 else 0.0
 	_stamina_bar.value = share
 	_stamina_bar.tooltip_text = "Stamina %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	_say_the_pool(_stamina_bar, current, maximum)
 	# The last of it should be felt before it is gone, not discovered when the
 	# legs stop.
 	_stamina_low = share > 0.0 and share <= Balance.HERO_STAMINA_LOW
@@ -5770,6 +5791,7 @@ func _on_hero_mana(current: float, maximum: float) -> void:
 		return
 	_mana_bar.value = current / maximum if maximum > 0.0 else 0.0
 	_mana_bar.tooltip_text = "Mana %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	_say_the_pool(_mana_bar, current, maximum)
 
 
 ## A cast refused for want of mana: the bar says so, since the button did not.
@@ -6238,6 +6260,20 @@ func _show_the_heal_saving(price: int) -> void:
 		_tend_progress.add_theme_stylebox_override("background", empty)
 		_tend_progress.add_theme_stylebox_override("fill", fill)
 	fill.bg_color = HEAL_SAVING_FAR.lerp(HEAL_SAVING_NEAR, share)
+
+
+## Writes a pool's current and maximum, and the share, onto its bar.
+func _say_the_pool(bar: ProgressBar, current: float, maximum: float) -> void:
+	if bar == null:
+		return
+	for child: Node in bar.get_children():
+		var mark := child as BarName
+		if mark == null:
+			continue
+		var share: int = int(round(100.0 * current / maximum)) if maximum > 0.0 else 0
+		mark.value_text = "%d/%d  %d%%" % [int(ceil(current)), int(ceil(maximum)), share]
+		mark.queue_redraw()
+		return
 
 
 ## Writes a pool's two-letter name onto its own bar.

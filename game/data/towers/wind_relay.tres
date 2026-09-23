@@ -16,6 +16,6 @@ attack_range = 300.0
 max_hp = 260.0
 id = "wind_relay"
 display_name = "Wind Relay"
-description = "Warden. Fires nothing. Carries the towers' sight further: everything in its reach shoots further while it stands, and a relay never carries another relay. Thin as a mast, and as easy to knock down."
+description = "Warden. Snaps a light gust at whatever comes close, and carries the towers' sight further: everything in its reach shoots further while it stands, and a relay never carries another relay. Thin as a mast, and as easy to knock down."
 extra_targets = 1
 shot = 4

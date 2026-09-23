@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_aq605")
+path_names = Array[String](["Sunfire", "Inferno"])
 ambient = 1
 juice_scale = 1.1
 is_combination = true

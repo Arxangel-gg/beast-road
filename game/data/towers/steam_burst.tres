@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_eky8d")
+path_names = Array[String](["Pressure Jet", "Scald Cloud"])
 shot = 3
 ambient = 2
 shot_tint = Color(0.9, 0.95, 1.0, 1)

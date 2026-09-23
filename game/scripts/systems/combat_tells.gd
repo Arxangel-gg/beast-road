@@ -57,6 +57,8 @@ var hero: Callable = Callable()
 ## Where a tower stands, by its anchor, or null when there is none. Handed in by
 ## the field for the same reason `hero` is.
 var tower_at: Callable = Callable()
+## Whether a point is near enough a Warden for an enemy's ring to matter.
+var near_a_warden: Callable = Callable()
 
 ## One entry per shooter that has fired recently: where, how far, what colour,
 ## and how long is left on it.
@@ -68,6 +70,7 @@ func _ready() -> void:
 	z_index = Balance.COMBAT_TELL_Z
 	EventBus.ranged_shot_fired.connect(_on_shot)
 	EventBus.tower_fired.connect(_on_tower_fired)
+	EventBus.enemy_attacked.connect(_on_enemy_attacked)
 	set_process(true)
 
 
@@ -101,13 +104,31 @@ func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
 	var data: TowerData = RunState.tower_at(anchor)
 	if data == null or not tower_at.is_valid():
 		return
-	var centre: Variant = tower_at.call(anchor)
-	if not (centre is Vector2):
+	var found: Variant = tower_at.call(anchor)
+	if not (found is Dictionary):
 		return
-	# The tower's *own* reach at its own level, read the way the shot reads it,
-	# so the circle drawn and the circle fired from are one number.
-	show_range(anchor.x * 4096 + anchor.y + 1, centre as Vector2,
-		data.range_at(RunState.level_at(anchor)), Balance.RANGE_RING_TOWER)
+	# **The tower's own reach, as it fires** - its path, a relay beside it and
+	# the ground it stands on all move it - asked of the tower rather than read
+	# off its data at its level, which drew a smaller circle than the one it
+	# shot from (owner, 2026-09-22: "not properly showing the towers' actual
+	# reaches").
+	show_range(anchor.x * 4096 + anchor.y + 1, (found as Dictionary)["at"] as Vector2,
+		float((found as Dictionary)["reach"]), Balance.RANGE_RING_TOWER)
+
+
+## **An enemy shows its reach for a while after it attacks**, as a tower does
+## (owner, 2026-09-22). Only near a Warden, and only so many at once: a ring
+## round every body on a road of two hundred is a diagram rather than a tell.
+func _on_enemy_attacked(key: int, at: Vector2, reach: float) -> void:
+	if not near_a_warden.is_valid() or not bool(near_a_warden.call(at)):
+		return
+	var enemies: int = 0
+	for held: Variant in _rings:
+		if int(held) < 0:
+			enemies += 1
+	if enemies >= Balance.RANGE_RING_ENEMY_MAX and not _rings.has(-key):
+		return
+	show_range(-key, at, reach, Balance.RANGE_RING_ENEMY)
 
 
 func _process(delta: float) -> void:
@@ -145,11 +166,12 @@ func _draw_rings(weight: float) -> void:
 		tint.a *= alpha * weight
 		if tint.a <= 0.004:
 			continue
-		# Flattened, because the camera looks down and slightly along: a true
-		# circle on the ground reads as a hoop standing up. The same reason the
-		# set aura is an ellipse.
+		# **A true circle**, because a reach is one: towers and bodies measure
+		# range as a radius in every direction, and a flattened ring promised
+		# 58% of it up and down the screen (owner, 2026-09-22: "Player towers
+		# should not have skewed tower attack ranges").
 		_arc(ring["at"] as Vector2, float(ring["reach"]), tint,
-			Balance.RANGE_RING_WIDTH)
+			Balance.RANGE_RING_WIDTH, 1.0)
 
 
 ## The bodies the next swing would land on.
@@ -182,7 +204,8 @@ func _draw_reach(weight: float) -> void:
 ## for at the swim sheen, the menu campfire and the blood. Each segment is drawn
 ## as a band whose outer and inner vertices are transparent, so the line has a
 ## soft shoulder at any zoom.
-func _arc(at: Vector2, radius: float, tint: Color, width: float) -> void:
+func _arc(at: Vector2, radius: float, tint: Color, width: float,
+		squash: float = Balance.RANGE_RING_SQUASH) -> void:
 	if radius <= 1.0 or tint.a <= 0.004:
 		return
 	var steps: int = Balance.RANGE_RING_SEGMENTS
@@ -192,7 +215,7 @@ func _arc(at: Vector2, radius: float, tint: Color, width: float) -> void:
 	var clear := Color(tint.r, tint.g, tint.b, 0.0)
 	for step: int in steps + 1:
 		var angle: float = TAU * float(step) / float(steps)
-		var out := Vector2(cos(angle), sin(angle) * Balance.RANGE_RING_SQUASH)
+		var out := Vector2(cos(angle), sin(angle) * squash)
 		points.append(at + out * (radius - width))
 		colours.append(clear)
 		points.append(at + out * radius)

@@ -533,6 +533,13 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	# to keep that promise is the first line of the function that would break
 	# it rather than at each of the places a run can end.
 	if RunState.walking:
+		# **But a Walk can be lost** (owner, 2026-09-22): a Warden on their last
+		# wound was sent back to town for ever and a fallen town kept standing,
+		# because every loss arrives here and this line swallowed all of them -
+		# the valley could not end except at the chain. A loss closes the valley
+		# and nothing is settled, so the Walk is offered again from the menu.
+		if not victory:
+			end_walk(false)
 		return
 	if not run_active:
 		return

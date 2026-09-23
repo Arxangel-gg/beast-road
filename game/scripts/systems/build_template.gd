@@ -111,9 +111,9 @@ static func anchor_of(row: Dictionary) -> Vector2i:
 ## Quoted through the same two functions the purchase charges, so the number on
 ## the button and the number taken cannot drift apart - which is the rule the
 ## Forge and the Quartermaster are already held to.
-static func quote(stored: Dictionary) -> int:
+static func quote(stored: Dictionary, field: Battlefield = null) -> int:
 	var total: int = 0
-	for entry: Variant in rows_of(stored):
+	for entry: Variant in rows_to_raise(stored, field):
 		var row: Dictionary = entry as Dictionary
 		var kind: TowerData = ContentDB.tower(String(row["kind"]))
 		if kind == null:
@@ -138,7 +138,7 @@ static func apply(field: Battlefield, stored: Dictionary) -> Dictionary:
 	var refused: Array[String] = []
 	if field == null:
 		return {"built": 0, "refused": refused}
-	var rows: Array = rows_of(stored)
+	var rows: Array = rows_to_raise(stored, field)
 	for pass_fusions: bool in [false, true]:
 		for entry: Variant in rows:
 			var row: Dictionary = entry as Dictionary
@@ -189,10 +189,31 @@ static func _raise(field: Battlefield, anchor: Vector2i, row: Dictionary) -> voi
 		RunState.cycle_target_priority(anchor)
 
 
+## **Only the ground that is still free** (owner, 2026-09-22). A road begun at a
+## later act stands a doctrine's board up first, and a remembered emplacement
+## whose ground that board now covers is neither offered, priced nor counted -
+## it used to be quoted, charged into the total and then "refused". Asked of
+## the field's own `placement_problem`, the one rule a build is refused by, so
+## the button and the purchase cannot disagree about which ground is free.
+static func rows_to_raise(stored: Dictionary, field: Battlefield = null) -> Array:
+	var out: Array = []
+	for entry: Variant in rows_of(stored):
+		var row: Dictionary = entry as Dictionary
+		var anchor: Vector2i = anchor_of(row)
+		if RunState.tower_at(anchor) != null:
+			continue
+		var kind: TowerData = ContentDB.tower(String(row["kind"]))
+		if field != null and kind != null and not kind.is_combination \
+				and not field.placement_problem(anchor).is_empty():
+			continue
+		out.append(row)
+	return out
+
+
 ## What to say on the button, or "" when there is nothing to offer.
-static func say(stored: Dictionary) -> String:
-	var rows: Array = rows_of(stored)
+static func say(stored: Dictionary, field: Battlefield = null) -> String:
+	var rows: Array = rows_to_raise(stored, field)
 	if rows.is_empty():
 		return ""
 	return "Rebuild last board  ·  %d towers  ·  %d Gold" % [rows.size(),
-		quote(stored)]
+		quote(stored, field)]

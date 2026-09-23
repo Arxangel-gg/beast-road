@@ -2915,7 +2915,15 @@ func _tower_ring_centre(anchor: Vector2i) -> Variant:
 	var built: Tower = tower_at_anchor(anchor)
 	if built == null or not is_instance_valid(built):
 		return null
-	return built.origin()
+	return {"at": built.origin(), "reach": built.effective_range()}
+
+
+func _near_a_warden(at: Vector2) -> bool:
+	for someone: Hero in heroes():
+		if someone != null and someone.is_alive() \
+				and someone.global_position.distance_to(at) <= Balance.RANGE_RING_ENEMY_NOTICE:
+			return true
+	return false
 
 
 func all_towers() -> Array[Tower]:
@@ -3099,6 +3107,7 @@ func _build_combat_tells() -> void:
 	_tells.name = "CombatTells"
 	_tells.hero = _would_be_hit
 	_tells.tower_at = _tower_ring_centre
+	_tells.near_a_warden = _near_a_warden
 	(entity_root if entity_root != null else self).add_child(_tells)
 
 

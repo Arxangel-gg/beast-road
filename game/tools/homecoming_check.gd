@@ -90,12 +90,12 @@ func _test_the_fork_offers_the_road_home() -> void:
 	_check(not _run.extraction_open(),
 		"a headless run is never held at the fork for an answer")
 
-	# **Not on the first fork.** Banking a front nobody has built is a trip to
-	# the menu for nothing, and `HOMECOMING_FROM_ACT` does not stop it on its own
-	# because Act I opens with a fork.
+	# **On the first fork as well** (owner ruling, 2026-09-22). It used to be
+	# refused there; a player who barely reaches the first fork read the missing
+	# button as bad luck.
 	_run.ask_homecoming = true
-	_check(not _run.extraction_open(),
-		"the road home is not offered before a single fork has been passed")
+	_check(_run.extraction_open(),
+		"the road home is not offered at the first fork")
 
 	# One fork behind them, and it is offered.
 	RunState.momentum = Balance.MOMENTUM_PER_CROSSROAD

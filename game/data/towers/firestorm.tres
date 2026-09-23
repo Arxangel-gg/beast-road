@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_ryw3k")
+path_names = Array[String](["Pyre Bolt", "Ember Gale"])
 shot = 3
 ambient = 1
 juice_scale = 1.25

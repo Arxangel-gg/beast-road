@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_50uy1")
+path_names = Array[String](["Keep", "Rampart"])
 shot = 1
 ambient = 5
 shot_tint = Color(0.95, 0.8, 0.35, 1)

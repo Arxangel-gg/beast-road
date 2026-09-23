@@ -80,6 +80,16 @@ const HERO_STAMINA_REGEN: float = 14.0
 ## the correct play is to tap sprint on and off for ever, which is not a
 ## decision, it is a keyboard exercise.
 const HERO_STAMINA_REGEN_DELAY: float = 0.65
+## **Swings spend SP, and two attributes deepen the pool** (owner, 2026-09-22:
+## "Melee attacks also need to consume SP. The appropriate player attribute(s)
+## should contribute to SP"). Per chain step, the finisher dearest; and the
+## pool each point of Swiftness and Vigour adds. A steady combo at the regen
+## rate is close to even, so the cost bites when the Warden also sprints. [TUNE]
+const HERO_ATTACK_SP_COST: Array[float] = [4.0, 4.0, 8.0]
+const HERO_SP_PER_SWIFTNESS: float = 1.5
+const HERO_SP_PER_VIGOUR: float = 0.8
+## What a mounted charge costs, and needs, in SP. [TUNE]
+const MOUNT_RAM_SP_COST: float = 30.0
 ## How much faster a sprint is, and how much faster the legs go with it. The
 ## stride is deliberately *more* than the speed, because a run that covers more
 ## ground at the same cadence reads as ice.
@@ -2016,7 +2026,39 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 ## `curve_report`'s pressure is threat over *tower DPS* - whether the player can
 ## kill a formation, not whether it can kill them. Contact damage appears nowhere
 ## in it, so this buys survivability without flattening the ramp.
-const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.85
+## **Lowered 0.85 to 0.62, 2026-09-22** (owner: "All enemies deal too much damage
+## and need to be nerfed a bit, especially ranged ones ... My own game is too
+## hard for me" - a level-100 geared Warden could not reach Act II). Survivability
+## only, for the reason above: the ramp is untouched.
+const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.62
+## And a ranged body's blow a quarter lighter again: it is thrown from where the
+## Warden cannot answer it, which is why it was named first. [TUNE]
+const ENEMY_RANGED_DAMAGE_SCALE: float = 0.75
+## **A frenzy, dressed** (owner, 2026-09-22): the sickly green a frenzied body
+## pulses toward, the foam it drips and how often, and how often a toxic ring
+## breathes off it. A look, read by nothing. [TUNE]
+const WILDBLIGHT_FRENZY_TINT: Color = Color(0.62, 1.0, 0.32, 1.0)
+const WILDBLIGHT_FROTH: Color = Color(0.92, 1.0, 0.86, 0.9)
+const WILDBLIGHT_FROTH_EVERY: float = 0.14
+const WILDBLIGHT_RING_EVERY: float = 0.9
+## **A ranged body besieging the wall** (owner, 2026-09-22): the share of its
+## reach it first fires from, rolled per body; how much nearer it steps after
+## each shot, and the nearest share it closes to. [TUNE]
+const ENEMY_SIEGE_SHARE: Vector2 = Vector2(0.6, 0.85)
+const ENEMY_SIEGE_STEP: Vector2 = Vector2(0.03, 0.09)
+const ENEMY_SIEGE_FLOOR: float = 0.4
+## How far each recovery wanders from the breed's cadence, as a multiplier, so
+## nothing fires the instant it is able. [TUNE]
+const ENEMY_CADENCE_WANDER: Vector2 = Vector2(0.85, 1.4)
+## **Sidestepping a swing**: how close to the swing a body must be to read it,
+## the chance a shooter and a light body take it, how far and how fast the step
+## is, and how long before the same body may do it again. [TUNE]
+const ENEMY_DODGE_NOTICE: float = 170.0
+const ENEMY_DODGE_CHANCE_RANGED: float = 0.35
+const ENEMY_DODGE_CHANCE_LIGHT: float = 0.14
+const ENEMY_DODGE_DISTANCE: float = 90.0
+const ENEMY_DODGE_SECONDS: float = 0.22
+const ENEMY_DODGE_COOLDOWN: float = 2.5
 
 ## Minimum time between two contact hits from the same enemy.
 ## The floor under how often one body may land a contact blow.
@@ -3838,6 +3880,11 @@ const RANGE_RING_SEGMENTS: int = 48
 const RANGE_RING_SQUASH: float = 0.58
 const RANGE_RING_HERO: Color = Color(0.72, 0.86, 0.96, 0.62)
 const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.42)
+## An enemy's reach after it attacks (owner, 2026-09-22): its colour, how near a
+## Warden it must be to be drawn, and how many may stand at once. [TUNE]
+const RANGE_RING_ENEMY: Color = Color(0.95, 0.38, 0.3, 0.38)
+const RANGE_RING_ENEMY_NOTICE: float = 900.0
+const RANGE_RING_ENEMY_MAX: int = 8
 
 ## The mark on a body the next swing would land on. Warm, so it cannot be
 ## mistaken for the cool range rings, and it *breathes* rather than sitting

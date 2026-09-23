@@ -837,7 +837,9 @@ func _tick_blight(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delt
 				_frenzy(animal, sprite, kind)
 		Blight.FRENZIED:
 			animal["blight_left"] = float(animal["blight_left"]) - delta
+			_dress_the_frenzy(animal, sprite, kind, delta)
 			if float(animal["blight_left"]) <= 0.0:
+				sprite.self_modulate = Color.WHITE
 				_collapse(animal, sprite, kind)
 		Blight.COLLAPSING:
 			animal["blight_left"] = float(animal["blight_left"]) - delta
@@ -846,6 +848,39 @@ func _tick_blight(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delt
 				aura.modulate.a = Balance.WILDLIFE_RABID_AURA.a * clampf(float(animal["blight_left"]) / Balance.WILDBLIGHT_COLLAPSE_SECONDS, 0.0, 1.0)
 			if float(animal["blight_left"]) <= 0.0:
 				wild.perish(animal)
+
+
+## **A frenzy that cannot be mistaken** (owner, 2026-09-22: "Wildlife with rabies
+## needs more clarity and aesthetic appeal vfx juice"). The body pulses a sickly
+## green on a fast, uneven beat, foam drips from it, and a toxic ring breathes
+## outward every so often - so a frenzied deer reads as *wrong* across the field
+## before it reads as a deer. Presentation only, on the decoration's own clock:
+## nothing reads any of it, and `Graphics.particle_scale` gives the foam away.
+func _dress_the_frenzy(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
+		delta: float) -> void:
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var clock: float = float(animal.get("frenzy_clock", 0.0)) + delta
+	animal["frenzy_clock"] = clock
+	var beat: float = 0.5 + 0.5 * sin(clock * 9.0 + sin(clock * 2.3) * 2.0)
+	sprite.self_modulate = Color.WHITE.lerp(Balance.WILDBLIGHT_FRENZY_TINT,
+		0.3 + 0.35 * beat)
+	var froth: float = float(animal.get("frenzy_froth", 0.0)) - delta
+	var ring: float = float(animal.get("frenzy_ring", 0.0)) - delta
+	var body: float = maxf(kind.scale, 0.5) * 40.0
+	var at: Vector2 = sprite.global_position + Vector2(
+		sin(clock * 17.0) * body * 0.4, -body * 0.35)
+	if froth <= 0.0:
+		froth = Balance.WILDBLIGHT_FROTH_EVERY
+		Vfx.spark(at, Balance.WILDBLIGHT_FROTH, 3, Vector2.DOWN, 55.0)
+	if ring <= 0.0:
+		ring = Balance.WILDBLIGHT_RING_EVERY
+		Vfx.ring(sprite.global_position, body * 1.6, Balance.WILDBLIGHT_FRENZY_TINT,
+			0.5, 4.0)
+		Vfx.spark(sprite.global_position, Balance.WILDBLIGHT_FRENZY_TINT, 6,
+			Vector2.ZERO, 120.0)
+	animal["frenzy_froth"] = froth
+	animal["frenzy_ring"] = ring
 
 
 ## The limits, asked at the moment it would start: one natural outbreak an

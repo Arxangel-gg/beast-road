@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_xwssd")
+path_names = Array[String](["Icefall", "Moraine"])
 shot = 1
 ambient = 4
 juice_scale = 1.35

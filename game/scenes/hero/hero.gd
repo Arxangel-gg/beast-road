@@ -166,6 +166,9 @@ var _winded: bool = false
 ## The last value announced, so the bar is told when it changes and not 60
 ## times a second.
 var _stamina_said: float = -1.0
+## The swing already paid for, and when "Winded" was last said.
+var _swing_paid: bool = false
+var _stamina_said_low: float = 0.0
 var _mana_announce_left: float = 0.0
 
 ## **Riding** (owner brief, 2026-09-17). What is saddled while the Warden is
@@ -510,7 +513,14 @@ func _physics_process(delta: float) -> void:
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
 			or input.held(HeroInput.HOLD_ATTACK)):
-		attack.request()
+		# **A swing costs SP** (owner, 2026-09-22), so a Warden with nothing
+		# left cannot swing until it comes back - said once at the feet.
+		if stamina >= Balance.HERO_ATTACK_SP_COST[0]:
+			attack.request()
+		elif input.pressed(HeroInput.BUTTON_ATTACK) and _stamina_said_low <= 0.0:
+			_stamina_said_low = 1.0
+			Vfx.word(global_position + Vector2(0.0, -48.0), "Winded", Color(0.95, 0.85, 0.5), 20)
+	_spend_on_swing(delta)
 	# Dash is movement, and movement is allowed whenever the hero is on the field.
 	# Gating it behind combat meant a player repositioning during Preparation had
 	# to walk, which is the one phase where they are most likely to want to cross
@@ -1583,16 +1593,16 @@ func _tick_stamina(delta: float) -> void:
 		_sprinting = false
 		_galloping = false
 		_stamina_rest = maxf(_stamina_rest - delta, 0.0)
-		if _stamina_rest <= 0.0 and stamina < Balance.HERO_STAMINA_MAX:
+		if _stamina_rest <= 0.0 and stamina < max_stamina():
 			stamina = minf(stamina + Balance.HERO_STAMINA_REGEN * delta,
-				Balance.HERO_STAMINA_MAX)
+				max_stamina())
 		# Back on its feet: the floor is what stops a player tapping sprint the
 		# instant the legs give out and getting a stride out of it.
 		if _winded and stamina >= Balance.HERO_SPRINT_FLOOR:
 			_winded = false
 	if not is_equal_approx(stamina, _stamina_said):
 		_stamina_said = stamina
-		EventBus.hero_stamina_changed.emit(stamina, Balance.HERO_STAMINA_MAX)
+		EventBus.hero_stamina_changed.emit(stamina, max_stamina())
 
 
 # --- Mounts ------------------------------------------------------------------
@@ -1995,6 +2005,13 @@ func _try_ram() -> void:
 		return
 	if RunState.flood_over_knee():
 		return
+	# **A charge needs the wind for it** (owner, 2026-09-22): refused, and said,
+	# without `MOUNT_RAM_SP_COST` in the pool, and spent the moment it starts.
+	if stamina < Balance.MOUNT_RAM_SP_COST:
+		_refuse("Too winded to charge")
+		return
+	stamina -= Balance.MOUNT_RAM_SP_COST
+	_stamina_rest = Balance.HERO_STAMINA_REGEN_DELAY
 	var line: Vector2 = _aim if _aim.length() > 0.1 else _facing
 	_ram_direction = line.normalized() if line.length() > 0.1 else Vector2.RIGHT
 	_ram_left = Balance.MOUNT_RAM_DISTANCE
@@ -2101,6 +2118,29 @@ func _dust_colour() -> Color:
 	if field != null and field.has_method("ground_colour"):
 		return field.call("ground_colour", global_position) as Color
 	return Color(0.55, 0.49, 0.4)
+
+
+## **The SP pool, grown by the attributes that should grow it** (owner,
+## 2026-09-22): Swiftness is how long the legs last, Vigour how much body there is
+## behind them. It was flat - a flat pool no attribute could deepen - and a
+## swing now spends from it.
+func max_stamina() -> float:
+	return Balance.HERO_STAMINA_MAX \
+		+ float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SP_PER_SWIFTNESS \
+		+ float(RunState.attribute(RunState.Attribute.VIGOUR)) * Balance.HERO_SP_PER_VIGOUR
+
+
+## Pays for each swing once, as it begins: the finisher dearer than the rest.
+func _spend_on_swing(delta: float) -> void:
+	_stamina_said_low = maxf(_stamina_said_low - delta, 0.0)
+	if attack == null:
+		return
+	var swinging: bool = attack.is_swinging()
+	if swinging and not _swing_paid:
+		var step: int = clampi(int(attack.get("_step")), 0,
+			Balance.HERO_ATTACK_SP_COST.size() - 1)
+		stamina = maxf(stamina - Balance.HERO_ATTACK_SP_COST[step], 0.0)
+	_swing_paid = swinging
 
 
 ## Whether a charge is under way. For the gate and the rig.

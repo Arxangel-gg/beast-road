@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_kuyhx")
+path_names = Array[String](["Stasis", "Permafrost"])
 shot = 2
 ambient = 4
 juice_scale = 1.1

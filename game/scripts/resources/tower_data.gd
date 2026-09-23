@@ -48,6 +48,13 @@ enum TargetPriority {
 ## flanking slots are filled. `parent_a` / `parent_b` are the elements that
 ## produce this tower; order does not matter when matching.
 @export var is_combination: bool = false
+## **A combination's own two paths** (owner, 2026-09-22: combination towers
+## "should also have branching specializations from after level 5 as well as
+## the level 10 bonus"). They climb to ten and split at five through the same
+## ladder every tower uses; what they lacked was a name of their own - a Magma
+## was offered its first parent's "Lance or Wildfire". Focus first, Spread
+## second. Empty falls back to the element's names.
+@export var path_names: Array[String] = []
 @export var parent_a: Element = Element.FIRE
 @export var parent_b: Element = Element.FIRE
 
@@ -484,6 +491,26 @@ static func path_note(path: int) -> String:
 				int(round(Balance.TOWER_SPREAD_AOE * 100.0))]
 		_:
 			return ""
+
+
+## This tower's name for a path: its own, when it authors one.
+func path_label(path: int) -> String:
+	if path == Path.FOCUS and path_names.size() >= 1 and not path_names[0].is_empty():
+		return path_names[0]
+	if path == Path.SPREAD and path_names.size() >= 2 and not path_names[1].is_empty():
+		return path_names[1]
+	return path_name(element, path)
+
+
+## What the tenth level adds, by the path already taken, named as this tower
+## names it.
+func capstone_line(path: int) -> String:
+	var line: String = capstone_note(element, path)
+	var generic: String = path_name(element, path)
+	var own: String = path_label(path)
+	if generic.is_empty() or own == generic:
+		return line
+	return line.replace(generic, own)
 
 
 ## What the tenth level adds, by the path already taken.

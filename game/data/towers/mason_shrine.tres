@@ -18,6 +18,6 @@ attack_range = 280.0
 max_hp = 700.0
 id = "mason_shrine"
 display_name = "Mason Shrine"
-description = "Warden. Fires nothing. Its masons mend the towers beside it a little at a time, every few breaths, and never past whole. Stone that has fallen stays fallen; a shrine raises nothing."
+description = "Warden. Slings a chip of stone at whatever comes close, and its masons mend the towers beside it a little at a time, every few breaths, and never past whole. Stone that has fallen stays fallen; a shrine raises nothing."
 knockback = 60.0
 shot = 1

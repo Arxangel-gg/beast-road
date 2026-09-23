@@ -487,6 +487,9 @@ signal tower_destroyed(anchor: Vector2i, at: Vector2)
 
 ## A tower fired at something. Purely for feedback systems.
 signal tower_fired(anchor: Vector2i, at: Vector2)
+## An enemy threw a blow, from where and with what reach - read by the range
+## tells, which show it for a while near a Warden.
+signal enemy_attacked(key: int, at: Vector2, reach: float)
 
 ## A tower's player-selected targeting doctrine changed.
 signal tower_targeting_changed(anchor: Vector2i, priority: int)

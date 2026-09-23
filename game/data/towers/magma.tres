@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_eeyr0")
+path_names = Array[String](["Caldera", "Lava Flow"])
 shot = 1
 ambient = 1
 shot_tint = Color(1.0, 0.45, 0.15, 1)

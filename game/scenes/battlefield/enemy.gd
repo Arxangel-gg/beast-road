@@ -273,6 +273,13 @@ var _depth_lift: float = 0.0
 ## replacing it - an enemy mid-slip is still trying to get where it was going,
 ## which is what makes it read as a stumble rather than as a teleport.
 var _slip: Vector2 = Vector2.ZERO
+## **This body's own temperament** (owner, 2026-09-22): how far into its reach a
+## ranged body comes before it fires on the wall, how its attack cadence
+## wanders, and when it may next sidestep a swing. Its own dice, seeded from
+## its identity, so nothing it rolls moves the run's stream.
+var _temper := RandomNumberGenerator.new()
+var _siege_share: float = 1.0
+var _dodge_ready: float = 0.0
 var _slip_left: float = 0.0
 
 
@@ -470,6 +477,10 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 
 
 func _ready() -> void:
+	_temper.seed = hash(get_instance_id())
+	_siege_share = _temper.randf_range(Balance.ENEMY_SIEGE_SHARE.x,
+		Balance.ENEMY_SIEGE_SHARE.y)
+	EventBus.hero_swing_started.connect(_on_hero_swing)
 	add_to_group(GROUP)
 	# **A mark that is born wearing a ward.** Through `guard`, the same door an
 	# anchor's shelter uses, so a guarded body turns one blow and is spent - and
@@ -916,6 +927,8 @@ func _tick_state(delta: float) -> void:
 			_state_left -= delta
 			if _state_left <= 0.0:
 				_strike()
+				EventBus.enemy_attacked.emit(get_instance_id(), combat_origin(),
+					attack_reach())
 				_enter(State.STRIKE, Balance.ENEMY_ATTACK_STRIKE)
 				var toward: Vector2 = Vector2.RIGHT
 				if _target != null and is_instance_valid(_target):
@@ -929,9 +942,19 @@ func _tick_state(delta: float) -> void:
 				# whatever the wind-up and the blow did not already cover - at
 				# the derived default that is exactly `ENEMY_ATTACK_RECOVERY`,
 				# so a breed that authors nothing swings as it always did.
+				# **And never on the instant it is ready**: each recovery wanders
+				# by the body's own dice, so a crowd does not fire in lockstep and
+				# a shooter does not spam the moment its arm comes back.
 				_enter(State.RECOVER, maxf(Balance.ENEMY_ATTACK_RECOVERY,
 					data.contact_interval - Balance.ENEMY_ATTACK_WINDUP
-						- Balance.ENEMY_ATTACK_STRIKE))
+						- Balance.ENEMY_ATTACK_STRIKE)
+					* _temper.randf_range(Balance.ENEMY_CADENCE_WANDER.x,
+						Balance.ENEMY_CADENCE_WANDER.y))
+				if _field != null and _target == _field.town_node() \
+						and data.role == EnemyData.Role.HOWLER:
+					_siege_share = maxf(_siege_share - _temper.randf_range(
+						Balance.ENEMY_SIEGE_STEP.x, Balance.ENEMY_SIEGE_STEP.y),
+						Balance.ENEMY_SIEGE_FLOOR)
 		State.RECOVER:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -1941,7 +1964,22 @@ func _target_gap(target: Node2D) -> float:
 
 func _in_reach(target: Node2D) -> bool:
 	var gap: float = _target_gap(target)
-	return gap <= attack_reach()
+	return gap <= attack_reach() * _siege_reach_share(target)
+
+
+## **A ranged body besieging the wall comes in closer than its longest shot**
+## (owner, 2026-09-22: they attacked the city "from beyond their attack ranges
+## and should be a bit closer and should not just stand at reach of attack and
+## just fire ranged but should also kite closer towards the tower"). Each body
+## fires from its own share of its reach and steps nearer after every shot, so
+## a line of shamans closes on the gate rather than standing on one circle.
+## Against a person it keeps its whole reach - that is the fight it is for.
+func _siege_reach_share(target: Node2D) -> float:
+	if data == null or data.role != EnemyData.Role.HOWLER or _field == null:
+		return 1.0
+	if target == null or target != _field.town_node():
+		return 1.0
+	return _siege_share
 
 
 func _strike() -> void:
@@ -3679,7 +3717,7 @@ func _begin_slam() -> void:
 ## bite at a provoked animal, a boss slam and a boss volley - and a modifier
 ## applied at three of four is a portent that charges most of the time.
 func _enemy_damage_scale() -> float:
-	return Balance.ENEMY_CONTACT_DAMAGE_SCALE \
+	return Balance.ENEMY_CONTACT_DAMAGE_SCALE * _ranged_share() \
 		* maxf(Modifiers.multiplier(Modifiers.ENEMY_DAMAGE), 0.0)
 
 
@@ -4053,3 +4091,64 @@ func _shot_tint(fallback: Color) -> Color:
 	if _shot_paint != null and _shot_paint.has_tint():
 		return _shot_paint.tint
 	return fallback
+
+
+## A ranged body's blow is lighter again than a melee one (owner, 2026-09-22:
+## "especially ranged ones") - it lands from where the Warden cannot answer it.
+func _ranged_share() -> float:
+	if data != null and data.role == EnemyData.Role.HOWLER:
+		return Balance.ENEMY_RANGED_DAMAGE_SCALE
+	return 1.0
+
+
+## **Some bodies step out of a swing** (owner, 2026-09-22: "some enemies may also
+## defend and attempt to dodge the players attacks by trying to defensively move
+## out of the way before continuing including path finding if gone off path").
+##
+## Heard as the swing *starts*, so it is a read of the wind-up rather than a
+## reaction to a blow already landed. A light body, walking or recovering and
+## inside the swing's notice, may sidestep - out of the arc and a little back -
+## through the same slip the snow uses, which ends on its own clock; the body
+## then walks its route from wherever it stood, which is the way back onto the
+## road. Never a boss, a camp lord or a body mid-blow, never while braced or
+## breaking out, and never twice inside `ENEMY_DODGE_COOLDOWN`.
+func _on_hero_swing(_step: int, at: Vector2) -> void:
+	if puppet or data == null or _state == State.DYING or _field == null:
+		return
+	if _state != State.WALKING and _state != State.RECOVER:
+		return
+	if _dodge_ready > Time.get_ticks_msec() / 1000.0:
+		return
+	var chance: float = dodge_chance()
+	if chance <= 0.0 or global_position.distance_to(at) > Balance.ENEMY_DODGE_NOTICE:
+		return
+	if _temper.randf() >= chance:
+		return
+	_dodge_ready = Time.get_ticks_msec() / 1000.0 + Balance.ENEMY_DODGE_COOLDOWN
+	var away: Vector2 = global_position - at
+	away = away.normalized() if away.length() > 0.01 else Vector2.RIGHT
+	var side: Vector2 = away.orthogonal() * (1.0 if _temper.randf() < 0.5 else -1.0)
+	var line: Vector2 = (side + away * 0.6).normalized()
+	_slip = line * (Balance.ENEMY_DODGE_DISTANCE / maxf(Balance.ENEMY_DODGE_SECONDS, 0.01))
+	_slip_left = Balance.ENEMY_DODGE_SECONDS
+	if _state == State.RECOVER:
+		_enter(State.WALKING, 0.0)
+	if animator != null:
+		animator.squash(0.9)
+	Vfx.dust(global_position, Color(0.55, 0.49, 0.4), 4, 30.0)
+
+
+## How likely this body is to sidestep a swing: derived from what it already
+## declares - a shooter keeps its distance, a light body is nimble, and a boss,
+## a camp lord, a plated or stone hide and a shield-bearer stand their ground.
+func dodge_chance() -> float:
+	if data == null:
+		return 0.0
+	if data.category == EnemyData.Category.BOSS or data.category == EnemyData.Category.CAMP_LORD:
+		return 0.0
+	if data.brace_chance > 0.0 or data.hide == EnemyData.Hide.ARMOUR \
+			or data.hide == EnemyData.Hide.STONE:
+		return 0.0
+	if data.role == EnemyData.Role.HOWLER:
+		return Balance.ENEMY_DODGE_CHANCE_RANGED
+	return Balance.ENEMY_DODGE_CHANCE_LIGHT if data.stagger_tolerance >= 4.0 else 0.0
