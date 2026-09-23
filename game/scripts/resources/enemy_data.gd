@@ -424,3 +424,9 @@ func get_sprite_path() -> String:
 @export var dragon_event_weight: float = 0.0
 @export var dragon_breath_tint: Color = Color(1.0, 0.4, 0.12)
 @export var dragon_ignites: bool = false
+## **The element a dragon breathes** (owner, 2026-09-22): fire, frost, storm or
+## stone - a key of `Balance.DRAGON_BREATH_PALETTES`. Empty for anything that
+## does not breathe. A dragon breathes plain fire as well, now and then.
+@export var breath_element: String = ""
+## Whether it can breathe the ultra - the plasma hyperbeam. The fire wyrm's own.
+@export var breath_ultra: bool = false

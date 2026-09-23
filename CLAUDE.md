@@ -8158,6 +8158,42 @@ floods the field often enough to refuse the charge and unseat the rider. The
 reach is measured only on a charge that ran free - trees and props end one
 exactly as they should - and every early end must say what it met.
 
+**Every dragon breathes its own element, and the fire wyrm has a hyperbeam, as
+of 2026-09-22.** The owner: *"Dragon firebreath is highly unpolished and needs
+super aesthetically appealing game juicy vfx! Make it with blender's forge ...
+each dragon type's elemental breath attack which should match its element and
+not all be fire, although the non-fire dragons can also breath normal
+firebreath ... the fire dragon ... a special ultra firebreath attack which is a
+fire/electric/plasmaish hyperbeam type of laser beam."*
+
+**Both breaths were two straight lines of one colour.** The war-camp wyrm's
+release (`EnemyGroundStrike`, a line) and the passing dragon's
+(`GroundHazard`, "breath"). `DragonBreath` is the one picture both stand up: a
+charge glowing at the mouth over the warning, a feathered licking cone in the
+element's three colours (`DRAGON_BREATH_PALETTES`), forged tongues and blooms
+rolled down it from Blender (`breath_tongue`, `breath_bloom`), the element's
+matter thrown off it (embers, frost motes, lightning, grit), and for the ultra
+a plasma beam - white core, violet sheath, fire skin, two arcs wound round it
+and forged `beam_core` segments tiled along it. `breath_shot` photographs all
+five; the first photograph had the cone too thin to read as anything but a
+laser, a square-cut front and tongues as opaque blobs, and each was fixed
+against the picture rather than a number.
+
+**`EnemyData.breath_element` and `breath_ultra`**, authored on the four
+dragons. `DragonBreath.choose` breathes the dragon's own element
+`DRAGON_OWN_BREATH_CHANCE` of the time and plain fire otherwise, the fire wyrm
+its ultra on `DRAGON_ULTRA_CHANCE`, and wanders the line's width, reach and
+angle within authored bounds - the ultra is longer, narrower and charges for
+longer, so the stronger picture is the more readable tell.
+
+**The bound is the one every shot here is held to: shape, never size.** The
+release's damage is the bank's own and is decided *before* the dice are rolled;
+`dragon_check` walks the source to hold that order, and drives two thousand
+breaths per dragon to hold that each mostly breathes its own element, sometimes
+fire, and that only the fire wyrm ever breathes the ultra. `DragonBreath` reads
+nothing, moves no number and draws on its own dice. The telegraph's exact edges
+are still drawn by the strike that owns them.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

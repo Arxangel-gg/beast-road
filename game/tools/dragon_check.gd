@@ -40,6 +40,7 @@ func _ready() -> void:
 	_test_it_is_authored_and_rare()
 	await _test_it_crosses_warns_and_burns_and_hurts_nothing()
 	await _test_it_is_seen_as_the_thing_it_is()
+	_test_every_dragon_breathes_its_own()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[dragon] PASS - %d checks: warned before it arrives, burns "
@@ -215,6 +216,66 @@ func _land_one(field: Battlefield, kind: EnemyData, rarity: int) -> DragonPass:
 	# the flight spends its remainder on nothing, so an exact sum lands short.
 	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS * 0.5 + 0.6, 80)
 	return wyrm
+
+
+## **Each dragon breathes its own element, and fire** (owner, 2026-09-22). Every
+## dragon names an element the breath can draw; only the fire wyrm carries the
+## plasma ultra; over many breaths each breathes its own element most of the
+## time and plain fire the rest; and the ultra is a longer, narrower line. The
+## damage is the bank's own and is decided before the dice - held by a source
+## walk, because an element that multiplied it would pass every picture.
+func _test_every_dragon_breathes_its_own() -> void:
+	var dragons: Array[EnemyData] = []
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.id.begins_with("dragon_"):
+			dragons.append(kind)
+	_check(dragons.size() >= 4, "only %d dragons are authored" % dragons.size())
+	var ultras: int = 0
+	for kind: EnemyData in dragons:
+		_check(Balance.DRAGON_BREATH_PALETTES.has(kind.breath_element),
+			"%s breathes '%s', which no palette draws" % [kind.id, kind.breath_element])
+		if kind.breath_ultra:
+			ultras += 1
+			_check(kind.breath_element == "fire",
+				"%s carries the ultra but is not the fire wyrm" % kind.id)
+		var dice := RandomNumberGenerator.new()
+		dice.seed = hash(kind.id)
+		var own: int = 0
+		var fire: int = 0
+		var ultra: int = 0
+		for _roll: int in 2000:
+			var chosen: Dictionary = DragonBreath.choose(kind, dice)
+			var element: String = String(chosen["element"])
+			if bool(chosen["ultra"]):
+				ultra += 1
+				_check(element == "plasma", "%s's ultra is drawn as %s" % [kind.id, element])
+				_check(float(chosen["reach"]) > 1.0 and float(chosen["width"]) < 1.0,
+					"%s's ultra is not a longer, narrower line" % kind.id)
+				continue
+			var wide: float = float(chosen["width"])
+			_check(wide >= Balance.DRAGON_BREATH_WIDTH_WANDER.x - 0.001
+				and wide <= Balance.DRAGON_BREATH_WIDTH_WANDER.y + 0.001,
+				"%s's breath wandered outside its authored width" % kind.id)
+			if element == kind.breath_element:
+				own += 1
+			if element == "fire":
+				fire += 1
+		if kind.breath_element != "fire":
+			_check(own > fire and fire > 0,
+				("%s breathed its own %d times and fire %d - it should mostly "
+					+ "breathe its own and sometimes fire") % [kind.id, own, fire])
+		_check((ultra > 0) == kind.breath_ultra,
+			"%s breathed the ultra %d times with breath_ultra %s" % [kind.id, ultra, kind.breath_ultra])
+	_check(ultras == 1, "%d dragons carry the ultra; the fire wyrm alone should" % ultras)
+	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	var release: int = source.find("func _release_bank()")
+	var damage_at: int = source.find("blow.damage =", release)
+	var dice_at: int = source.find("DragonBreath.choose", release)
+	_check(release >= 0 and damage_at > release and dice_at > damage_at,
+		"the release's damage must be decided before the breath's dice are rolled")
+	_check(dice_at < 0 or not source.substr(dice_at, 900).contains("blow.damage"),
+		"something after the breath's dice changes the release's damage")
 
 
 func _check(condition: bool, why: String) -> void:

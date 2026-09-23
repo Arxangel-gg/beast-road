@@ -130,6 +130,9 @@ const FORGE_CATALOGUE: Dictionary = {
 	"slam_impact": ForgeTurn.FREE,
 	"quake_dust": ForgeTurn.UPRIGHT,
 	"funnel_debris": ForgeTurn.UPRIGHT,
+	"breath_tongue": ForgeTurn.AIMED,
+	"breath_bloom": ForgeTurn.FREE,
+	"beam_core": ForgeTurn.AIMED,
 }
 
 ## Which forged hit an element gets. The five are authored rather than derived

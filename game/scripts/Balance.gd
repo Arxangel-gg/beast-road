@@ -12099,6 +12099,45 @@ const EARTH_DEBRIS_BURSTS: int = 6
 const DRAGON_CURVE_WIDTH: float = 360.0
 const DRAGON_LAND_CHANCE: float = 0.45
 const DRAGON_LAND_SECONDS: float = 5.0
+## **Every dragon's breath, drawn** (owner, 2026-09-22). Three colours an
+## element - a core, a body and a rim - for the cone `DragonBreath` draws;
+## "plasma" is the fire wyrm's ultra: a white core in a violet sheath in a fire
+## skin. A look, read by nothing. [TUNE]
+const DRAGON_BREATH_PALETTES: Dictionary = {
+	"fire": [Color(1.0, 0.95, 0.72), Color(1.0, 0.52, 0.12), Color(0.85, 0.16, 0.04)],
+	"frost": [Color(0.93, 0.98, 1.0), Color(0.55, 0.82, 1.0), Color(0.22, 0.45, 0.95)],
+	"storm": [Color(0.96, 0.96, 1.0), Color(0.58, 0.68, 1.0), Color(0.46, 0.28, 0.95)],
+	"stone": [Color(0.98, 0.9, 0.7), Color(0.74, 0.58, 0.38), Color(0.42, 0.32, 0.2)],
+	"plasma": [Color(1.0, 1.0, 1.0), Color(0.92, 0.38, 1.0), Color(1.0, 0.42, 0.1)],
+}
+## How long a breath burns after its warning, how long it takes to go, and how
+## often a forged tongue and a scrap of the element are thrown down it. [TUNE]
+const DRAGON_BREATH_BLAST: float = 0.6
+const DRAGON_BREATH_FADE: float = 0.35
+const DRAGON_BREATH_TONGUE_EVERY: float = 0.07
+const DRAGON_BREATH_MATTER_EVERY: float = 0.05
+## How much of a forged tongue shows through the cone it rolls down. [TUNE]
+const DRAGON_BREATH_TONGUE_ALPHA: float = 0.55
+## **Which breath, and its shape.** A dragon breathes its own element this share
+## of the time and plain fire otherwise; the width and reach wander within
+## these bounds and the line turns by up to this many radians, so no two
+## breaths from one wyrm lie on the ground the same. Shape, never size: the
+## damage is the bank's own either way. [TUNE]
+const DRAGON_OWN_BREATH_CHANCE: float = 0.65
+const DRAGON_BREATH_WIDTH_WANDER: Vector2 = Vector2(0.85, 1.25)
+const DRAGON_BREATH_REACH_WANDER: Vector2 = Vector2(0.9, 1.08)
+const DRAGON_BREATH_TURN_WANDER: float = 0.1
+## **The ultra**: how often a dragon that has one breathes it, how much longer
+## and narrower its line is than an ordinary breath, how much longer it charges
+## (so a stronger picture is a more readable tell, never a harder blow), how
+## long the beam holds, and the length of each forged segment tiled down it.
+## [TUNE]
+const DRAGON_ULTRA_CHANCE: float = 0.35
+const DRAGON_ULTRA_REACH: float = 1.35
+const DRAGON_ULTRA_WIDTH: float = 0.62
+const DRAGON_ULTRA_WARNING: float = 1.5
+const DRAGON_ULTRA_BLAST: float = 0.9
+const DRAGON_ULTRA_SEGMENT: float = 150.0
 const DRAGON_BREATH_CHANCE: float = 0.55
 const DRAGON_BREATH_WARNING: float = 1.5
 const DRAGON_BREATH_REACH: float = 560.0

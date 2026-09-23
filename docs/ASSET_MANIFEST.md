@@ -2682,6 +2682,16 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 | `forge_funnel_debris_01.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_funnel_debris_02.png` | 1920×96 | T | `#FFFFFF` |
 | `forge_funnel_debris_03.png` | 1920×96 | T | `#FFFFFF` |
+| `forge_breath_tongue.png` | 2048×128 | T | `#FFFFFF` |
+| `forge_breath_tongue_01.png` | 2048×128 | T | `#FFFFFF` |
+| `forge_breath_tongue_02.png` | 2048×128 | T | `#FFFFFF` |
+| `forge_breath_tongue_03.png` | 2048×128 | T | `#FFFFFF` |
+| `forge_breath_bloom.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_breath_bloom_01.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_breath_bloom_02.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_beam_core.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_beam_core_01.png` | 1536×128 | T | `#FFFFFF` |
+| `forge_beam_core_02.png` | 1536×128 | T | `#FFFFFF` |
 | `forge_hit_air.png` | 640×64 | T | `#FFFFFF` |
 | `forge_hit_air_01.png` | 640×64 | T | `#FFFFFF` |
 | `forge_hit_air_02.png` | 640×64 | T | `#FFFFFF` |

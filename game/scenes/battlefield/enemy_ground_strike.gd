@@ -40,6 +40,12 @@ var blamed_on: String = ""
 ## roster fires: a bolt that moved you would be a second mechanic to learn on
 ## top of the five shapes, and the shapes are the lesson.
 var knockback: float = 0.0
+## **A dragon's breath** rather than a plain line: the element it is drawn in,
+## whether it is the ultra, and where the mouth is. Only the picture differs -
+## the line, its width and its damage are the ones above.
+var breath: String = ""
+var ultra: bool = false
+var mouth: Vector2 = Vector2.INF
 
 var _left: float = 0.0
 var _drawn: bool = false
@@ -75,6 +81,10 @@ func _tell() -> void:
 	if shape == Shape.CIRCLE:
 		Vfx.ring(global_position, reach, Color(tint, 0.5),
 			_left * JuiceDirector.weight(JuiceDirector.Priority.TELEGRAPH), 5.0)
+	if not breath.is_empty() and shape == Shape.LINE:
+		DragonBreath.breathe(get_parent(), mouth if mouth != Vector2.INF else global_position,
+			global_position + aim * reach, half_width, breath, ultra, _left)
+		return
 	Sfx.play("sfx_spell_cast", -9.0)
 
 
@@ -89,7 +99,7 @@ func _land() -> void:
 		# bolt at a glance - and never a second reach: the ring above is
 		# drawn from `reach` and so is this.
 		Vfx.forge_play("shot_lob", global_position, reach * 2.0, Color(tint, 0.85))
-	else:
+	elif breath.is_empty():
 		var tip: Vector2 = global_position + aim * reach
 		Vfx.spark(tip, tint, 8, aim, 220.0)
 		Vfx.flash_at(global_position + aim * reach * 0.5, Color(tint, 0.5), half_width * 2.0)

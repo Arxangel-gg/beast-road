@@ -2,6 +2,8 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+breath_element = "fire"
+breath_ultra = true
 voice_sfx = "sfx_enemy_call_beast"
 stagger_tolerance = 1.0
 behaviour = 4

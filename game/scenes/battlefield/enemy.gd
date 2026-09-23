@@ -1294,6 +1294,21 @@ func _release_bank() -> void:
 	blow.aim = _behaviour_aim
 	blow.blamed_on = promoted_name()
 	blow.global_position = global_position
+	# **A dragon breathes it** (owner, 2026-09-22): its own element most of the
+	# time and plain fire now and then, the fire wyrm now and then its plasma
+	# ultra - drawn by `DragonBreath`. What the dice move is the line's shape:
+	# its width, its reach and a small turn. The damage above is the bank's own
+	# whatever is breathed, so no element and no ultra is a harder blow.
+	if not data.breath_element.is_empty():
+		var chosen: Dictionary = DragonBreath.choose(data, RunState.rng("combat"))
+		blow.breath = String(chosen["element"])
+		blow.ultra = bool(chosen["ultra"])
+		blow.half_width *= float(chosen["width"])
+		blow.reach *= float(chosen["reach"])
+		blow.aim = _behaviour_aim.rotated(float(chosen["turn"]))
+		if blow.ultra:
+			blow.delay *= Balance.DRAGON_ULTRA_WARNING
+		blow.mouth = combat_origin() + blow.aim * data.body_radius * 0.8
 	_field.add_child(blow)
 
 

@@ -16,6 +16,14 @@ func _ready() -> void:
 	z_index = Balance.VFX_Z - 2
 	_previous = plan["from"] as Vector2
 	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
+	# **The passing dragon's breath is the same picture as a war-camp wyrm's**
+	# (owner, 2026-09-22). The warning's exact edges are still drawn here; the
+	# breath itself - cone, tongues, element - is `DragonBreath`.
+	if String(plan["mode"]) == "breath":
+		DragonBreath.breathe(get_parent(), plan.get("origin", plan["from"]) as Vector2,
+			plan["to"] as Vector2, float(plan["width"]),
+			String(plan.get("element", "fire")), bool(plan.get("ultra", false)),
+			float(plan["warning"]))
 
 
 func _process(delta: float) -> void:
@@ -41,9 +49,7 @@ func _process(delta: float) -> void:
 		if _dust <= 0.0:
 			_dust = Balance.EARTH_PATTERN_DUST_INTERVAL
 			if String(plan["mode"]) == "breath":
-				var mouth: Vector2 = plan.get("origin", start) as Vector2
-				Vfx.spark(mouth, plan["tint"] as Color, 12,
-					(end - mouth).normalized(), mouth.distance_to(end))
+				pass
 			else:
 				Vfx.dust(head, Color(0.38, 0.29, 0.18), 5, float(plan["width"]) * 1.8)
 				if String(plan["mode"]) == "trail":
@@ -109,9 +115,6 @@ func _draw() -> void:
 	draw_line(a - side, b - side, Color(tint, 0.16 * fade), 2.0, true)
 
 	if String(plan["mode"]) == "breath":
-		var mouth: Vector2 = to_local(plan.get("origin", plan["from"]) as Vector2)
-		draw_line(mouth, b, Color(tint, 0.48 * fade), width * 1.6, true)
-		draw_line(mouth, b, Color(tint.lightened(0.6), 0.9 * fade), width * 0.35, true)
 		return
 
 	var end: Vector2 = b

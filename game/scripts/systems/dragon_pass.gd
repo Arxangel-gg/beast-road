@@ -177,11 +177,18 @@ func _breathe() -> void:
 				nearest = distance
 				target = hero.global_position
 	var tint: Color = _kind.dragon_breath_tint if _kind != null else Color(1.0, 0.4, 0.12)
+	# Its own element or plain fire, and the fire wyrm's ultra now and then,
+	# off the pass's own dice so both machines draw the same breath.
+	var chosen: Dictionary = DragonBreath.choose(_kind, _random)
+	var width: float = Balance.DRAGON_BREATH_WIDTH * float(chosen["width"])
+	if bool(chosen["ultra"]):
+		target = global_position + (target - global_position) * Balance.DRAGON_ULTRA_REACH
 	_attack_left = Balance.DRAGON_BREATH_WARNING + 0.35
 	EventBus.world_hazard.emit("ground", {
 		"mode": "breath", "from": global_position, "to": target,
+		"element": String(chosen["element"]), "ultra": bool(chosen["ultra"]),
 		"origin": global_position - Vector2(0.0, _height),
-		"width": Balance.DRAGON_BREATH_WIDTH, "warning": Balance.DRAGON_BREATH_WARNING,
+		"width": width, "warning": Balance.DRAGON_BREATH_WARNING,
 		"travel": 0.35, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
 		"tower_damage": 0.0, "tint": tint,
 		"blame": _kind.display_name if _kind != null else "dragon"})
