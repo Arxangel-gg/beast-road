@@ -548,6 +548,10 @@ func _build_video(column: VBoxContainer) -> void:
 		"The region's tint and vignette over the whole picture."))
 	column.add_child(_pref_toggle_row("Minimap", Graphics.KEY_MINIMAP, Graphics.minimap_shown(),
 		"The field at a glance. M toggles it in play."))
+	column.add_child(_pref_toggle_row("Tower ranges", Graphics.KEY_RANGE_TOWERS,
+		Graphics.tower_rings_shown(), "A tower's reach is ringed for a moment each time it fires."))
+	column.add_child(_pref_toggle_row("Enemy ranges", Graphics.KEY_RANGE_ENEMIES,
+		Graphics.enemy_rings_shown(), "An enemy near you shows its reach for a moment after it attacks."))
 	column.add_child(_pref_toggle_row("Trampled foliage", Graphics.KEY_FOLIAGE_TRAMPLE,
 		Graphics.foliage_trample(),
 		"Plants are laid over by whatever walks through them, and spring back."))

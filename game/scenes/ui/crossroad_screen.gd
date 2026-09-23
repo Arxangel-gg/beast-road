@@ -515,6 +515,9 @@ const RARITY_WORD: Array[String] = ["COMMON", "UNCOMMON", "RARE", "LEGENDARY"]
 ## Portrait, and wide enough for two stat rows without wrapping. Three of these
 ## sit across the panel with room around them.
 const PLAY_CARD := Vector2(286.0, 404.0)
+## Longer than this, a card's value is a sentence and goes on its own wrapped
+## line under its name rather than beside it.
+const PLAY_CARD_INLINE_CHARS: int = 18
 const PLAY_CARD_ART: int = 150
 
 ## The rarity from which a card wears the travelling sheen. Highest only: a
@@ -588,14 +591,32 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 	face.add_child(frame)
 
 	# **What it does, in the numbers it does it by.**
+	#
+	# A figure sits beside its name; a *sentence* - a portent's bane and boon -
+	# goes under its name and wraps to the card (owner, 2026-09-22: portents
+	# "do not properly wrap or have proper alignment"). On one line beside the
+	# name, a sentence set the card face wider than the card and ran across the
+	# cards beside it.
+	face.clip_contents = true
 	for pair: Array in stats:
+		var value: String = String(pair[1])
+		if value.length() > PLAY_CARD_INLINE_CHARS:
+			var heading: Label = _card_line(String(pair[0]).to_upper(), 12,
+				Color("9aa39e"), HORIZONTAL_ALIGNMENT_LEFT)
+			face.add_child(heading)
+			var said: Label = _card_line(value, 14, tint.lightened(0.15),
+				HORIZONTAL_ALIGNMENT_LEFT)
+			said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			said.custom_minimum_size.x = 0.0
+			face.add_child(said)
+			continue
 		var row := HBoxContainer.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var label: Label = _card_line(String(pair[0]), 15, Color("9aa39e"),
 			HORIZONTAL_ALIGNMENT_LEFT)
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(label)
-		row.add_child(_card_line(String(pair[1]), 15, tint.lightened(0.15),
+		row.add_child(_card_line(value, 15, tint.lightened(0.15),
 			HORIZONTAL_ALIGNMENT_RIGHT))
 		face.add_child(row)
 
@@ -608,6 +629,7 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 	var words: Label = _card_line(flavour, 14, Color("a8b0aa"),
 		HORIZONTAL_ALIGNMENT_CENTER)
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.custom_minimum_size.x = 0.0
 	words.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	face.add_child(words)
 

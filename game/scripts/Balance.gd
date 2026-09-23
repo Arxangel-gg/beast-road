@@ -3879,10 +3879,18 @@ const RANGE_RING_SEGMENTS: int = 48
 ## circle on the ground reads as a hoop standing up.
 const RANGE_RING_SQUASH: float = 0.58
 const RANGE_RING_HERO: Color = Color(0.72, 0.86, 0.96, 0.62)
-const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.42)
+const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.26)
 ## An enemy's reach after it attacks (owner, 2026-09-22): its colour, how near a
 ## Warden it must be to be drawn, and how many may stand at once. [TUNE]
-const RANGE_RING_ENEMY: Color = Color(0.95, 0.38, 0.3, 0.38)
+const RANGE_RING_ENEMY: Color = Color(0.95, 0.38, 0.3, 0.22)
+## The pulse a ring gives each time its shooter fires again: how long it takes
+## to settle and how much brighter it starts (owner, 2026-09-22: "more
+## semi-transparent and should glow pulse"). [TUNE]
+const RANGE_RING_PULSE_SECONDS: float = 0.35
+## How long a tower or trap bought in Preparation may be taken back for its
+## full price (owner, 2026-09-22). [TUNE]
+const PURCHASE_UNDO_SECONDS: float = 5.0
+const RANGE_RING_PULSE_GAIN: float = 1.4
 const RANGE_RING_ENEMY_NOTICE: float = 900.0
 const RANGE_RING_ENEMY_MAX: int = 8
 
@@ -4527,8 +4535,12 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## only their height comes down, which is the same distinction the wave growth
 ## rates were scaled under rather than re-tuned. Act X health falls 2.28 to
 ## 1.94 and its damage 1.28 to 1.18.
+## **Raised from Act III, 2026-09-22** (owner: "Enemies need more health by and
+## after act 3 ... act 3 and act 4 felt too easy once I had enough towers up
+## everywhere"). Acts I and II are unchanged - they "felt decent" - and the
+## step from II to III is where a built-up board stopped being asked anything.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.15, 1.34, 1.50, 1.60, 1.70, 1.76, 1.84, 1.90, 1.94,
+	1.0, 1.15, 1.52, 1.72, 1.78, 1.80, 1.82, 1.87, 1.92, 1.96,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.0, 1.04, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18,

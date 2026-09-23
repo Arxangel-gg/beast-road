@@ -8282,6 +8282,28 @@ pools with their own bars and spending, more attributes, several attribute
 points a level (a re-cut of "one point a level", which `attribute_check` holds
 first and hardest), and new combination towers with their own art.
 
+**The second pass of 2026-09-22, and the design question behind it.** The owner
+played v0.53 and reported Acts III–IV playing themselves once the board was
+built, the map reading as a swastika, and a list of fixes.
+`docs/DESIGN_DIRECTION_2026-09-22.md` is the decision document for the first
+two - mirroring alternate lanes as the immediate P0 for the map shape, and
+board-attacking enemies plus Warden-only objectives for the late game - and
+**none of it is built**; each is the owner's to rule on.
+
+Built: range rings follow the enemy that drew them, are fainter, and **pulse on
+every refresh** so a held ring still says each shot; each kind is its own
+setting (`Graphics.KEY_RANGE_TOWERS`, `KEY_RANGE_ENEMIES`). A 15 FPS frame cap.
+**Undo** of the last tower or trap for its full price within
+`PURCHASE_UNDO_SECONDS` in Preparation, only while it is exactly as bought.
+**Sell all Rough / Sound** beside Break all, with the same sweep rules. The
+tower sheet wraps its text and grows leftward, so the upgrade's price stays on
+screen. The boss bar and the portent cards stop overlapping what is beside them.
+**Enemy health from Act III** raised (`WAVE_ACT_HP_SCALE` 1.52 at III to 1.96
+at X): the first cut raised the late acts too and `curve_report` refused it at
+0.627 for four players against a ceiling of 0.58; the model itself put Acts III
+and IV at 0.30, which is the owner's "too easy" in numbers, so the raise is
+concentrated there.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

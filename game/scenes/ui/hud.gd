@@ -563,6 +563,7 @@ var _preparation_clock: Label
 var _ride_on_button: Button
 var _command_panel: PanelContainer
 var _threat_pointers: ThreatPointers = null
+var _undo_button: Button = null
 var _command_bar: ProgressBar
 var _command_value: Label
 var _command_target: Label
@@ -746,6 +747,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _undo_button != null and battlefield != null:
+		var left: float = battlefield.undo_seconds_left()
+		_undo_button.visible = left > 0.0
+		if left > 0.0:
+			_undo_button.text = "UNDO  ·  %d s" % ceili(left)
 	# **The critical pulse.** Driven from the frame rather than from a looping
 	# tween, so it stops on the frame a draught lands instead of running until
 	# somebody kills the tween - the fault the title screen's wound vignette
@@ -3150,6 +3156,20 @@ func _build_preparation_panel() -> void:
 	_speed_button.add_theme_font_size_override("font_size", 11)
 	_speed_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_speed_button.tooltip_text = "Run the road at double speed. P toggles it. Alone only - a partner's clock is the host's."
+	# **Undo the last purchase**, shown only while it can be taken back.
+	_undo_button = _add_button(column, "UNDO", func() -> void:
+		if battlefield != null:
+			var said: String = battlefield.try_undo_purchase()
+			if not said.is_empty():
+				_report(said)
+			elif _build_panel != null and _build_panel.visible:
+				_refresh_build_panel())
+	_undo_button.set_meta(UiMetrics.SELF_SIZED, true)
+	_undo_button.custom_minimum_size.y = 26.0
+	_undo_button.add_theme_font_size_override("font_size", 11)
+	_undo_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_undo_button.tooltip_text = "Take back the last tower or trap for its full price, within a few seconds."
+	_undo_button.visible = false
 	_speed_button.visible = not touch_ui()
 	_refresh_speed_button()
 
@@ -3251,6 +3271,16 @@ func _seat_command_panel() -> void:
 	var top: float = row_foot + Balance.UI_COMMAND_PANEL_GAP
 	_command_panel.offset_top = top
 	_command_panel.offset_bottom = top
+	if _boss_panel != null:
+		_boss_panel.offset_top = _boss_panel_top()
+
+
+## **The act boss's bar hangs below every row at the top** (owner, 2026-09-22:
+## it "should have enough padding to not overlap any of the UI elements at the
+## top of the screen"). It sat at a typed 54, across the boss-distance line and
+## the second row; it is seated off that row now, as the command panel is.
+func _boss_panel_top() -> float:
+	return maxf(54.0, _top_left_foot + Balance.UI_COMMAND_PANEL_GAP)
 
 
 ## **The lowest edge of the top-left readouts**, for a sheet that docks there.
@@ -4637,7 +4667,7 @@ func _build_boss_bar() -> void:
 	_boss_panel = PanelContainer.new()
 	_boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_fit_centred(_boss_panel, 420.0)
-	_boss_panel.offset_top = 54.0
+	_boss_panel.offset_top = _boss_panel_top()
 	_boss_panel.visible = false
 	add_child(_boss_panel)
 
@@ -5084,8 +5114,32 @@ func _finish_build_panel_refresh() -> void:
 		return
 	UiMetrics.apply_touch_tree(_build_panel, touch_ui())
 	_size_build_controls(_build_panel)
+	_wrap_sheet_text(_build_list)
 	_size_build_scrollbar()
 	_fit_build_panel()
+	# **It grows leftward, never off the screen** (owner, 2026-09-22: "The
+	# upgrade panel stretches off screen instead of having proper padding to
+	# not overlap the right side UI elements"). One unwrapped line of a
+	# tower's description made the sheet's minimum wider than its slot, and a
+	# right-docked control that outgrows its offsets grows to the right - over
+	# the scope column and off the edge, taking the upgrade's price with it.
+	_build_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_build_panel.clip_contents = true
+
+
+## Every plain line of text stacked on the sheet wraps to the sheet rather than
+## setting its width. A label in a row keeps its own width - the stat preview is
+## a row of figures, and wrapping those collapses them to a letter each.
+func _wrap_sheet_text(root: Node) -> void:
+	if root == null:
+		return
+	for child: Node in root.get_children():
+		var line := child as Label
+		if line != null and root is VBoxContainer and line.autowrap_mode == TextServer.AUTOWRAP_OFF:
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.custom_minimum_size.x = 0.0
+		elif not (child is Button):
+			_wrap_sheet_text(child)
 
 
 func _size_build_controls(root: Node) -> void:

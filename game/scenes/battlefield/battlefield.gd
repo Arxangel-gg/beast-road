@@ -1848,6 +1848,7 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 	_fresh_build = anchor
 	RunState.set_tower(anchor, tower_data.id, 1)
 	RunState.towers_built += 1
+	_note_purchase("tower", anchor, build_cost)
 	Vfx.build_burst(BattleGrid.footprint_centre(anchor),
 		TowerData.element_colour(tower_data.element))
 	return ""
@@ -1883,6 +1884,7 @@ func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
 	RunState.spend_cost(cost)
 	RunState.set_trap(tile, trap_data.id, trap_data.triggers)
 	RunState.traps_laid += 1
+	_note_purchase("trap", tile, cost)
 	Vfx.build_burst(BattleGrid.tile_to_world(tile), trap_data.colour)
 	return ""
 
@@ -2158,6 +2160,51 @@ func sell_refund(anchor: Vector2i) -> int:
 	for l: int in range(1, RunState.level_at(anchor)):
 		spent += upgrade_cost_of(l)
 	return int(round(float(spent) * Balance.TOWER_SELL_REFUND))
+
+
+## **The last purchase, which may be taken back** (owner, 2026-09-22: "Undo last
+## tower or trap purchase within 5 seconds if preparation has not ended yet").
+## Full price back - it is a misclick corrected, not a sale - and only while
+## the thing is exactly as bought: a tower upgraded since is a decision built
+## on, and the window closes with Preparation.
+var _last_purchase: Dictionary = {}
+
+
+func _note_purchase(kind: String, at: Vector2i, cost: Dictionary) -> void:
+	_last_purchase = {"kind": kind, "at": at, "cost": cost.duplicate(),
+		"time": Time.get_ticks_msec() / 1000.0}
+
+
+## Seconds left to undo the last purchase, or zero when there is nothing to undo.
+func undo_seconds_left() -> float:
+	if _last_purchase.is_empty() or not RunState.can_build_now() or Coop.is_guest():
+		return 0.0
+	var at: Vector2i = _last_purchase["at"] as Vector2i
+	if String(_last_purchase["kind"]) == "tower":
+		if RunState.tower_at(at) == null or RunState.level_at(at) != 1:
+			return 0.0
+	elif RunState.trap_at(at) == null or RunState.trap_level(at) != 1:
+		return 0.0
+	var gone: float = Time.get_ticks_msec() / 1000.0 - float(_last_purchase["time"])
+	return maxf(Balance.PURCHASE_UNDO_SECONDS - gone, 0.0)
+
+
+func try_undo_purchase() -> String:
+	if undo_seconds_left() <= 0.0:
+		return "Nothing to undo."
+	var at: Vector2i = _last_purchase["at"] as Vector2i
+	var cost: Dictionary = _last_purchase["cost"] as Dictionary
+	if String(_last_purchase["kind"]) == "tower":
+		RunState.clear_tower(at)
+		RunState.towers_built = maxi(RunState.towers_built - 1, 0)
+		_refund_orphaned_fusions()
+	else:
+		RunState.clear_trap(at)
+		RunState.traps_laid = maxi(RunState.traps_laid - 1, 0)
+	for id: Variant in cost:
+		RunState.gain_currency(String(id), int(cost[id]))
+	_last_purchase = {}
+	return ""
 
 
 func try_sell(anchor: Vector2i) -> String:

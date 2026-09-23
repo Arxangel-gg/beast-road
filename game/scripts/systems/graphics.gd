@@ -72,6 +72,10 @@ const KEY_SMOOTHING: String = "display_smoothing"
 const KEY_FOG: String = "fog_of_war"
 const KEY_GRADE: String = "color_grade"
 const KEY_MINIMAP: String = "minimap"
+## **Attack range rings, each kind its own switch** (owner, 2026-09-22): the
+## ring a tower draws when it fires and the one an enemy draws after it attacks.
+const KEY_RANGE_TOWERS: String = "range_rings_towers"
+const KEY_RANGE_ENEMIES: String = "range_rings_enemies"
 ## Plants laid over by whatever walks through them (2026-09-17). A look and
 ## nothing else - `TrampleField` is read by the foliage shader and by no
 ## number in the game - so a weak machine can have the whole thing back for
@@ -180,7 +184,7 @@ const PRESETS: Dictionary = {
 ## A cap is not only for weak machines. An uncapped 2D game on a strong one will
 ## happily render several hundred frames a second into a laptop's thermal limit
 ## and then stutter, which reads to the player as the game being badly optimised.
-const FPS_CHOICES: Array[int] = [0, 30, 60, 120, 144]
+const FPS_CHOICES: Array[int] = [0, 15, 30, 60, 120, 144]
 
 ## The ceiling for the density multipliers.
 ##
@@ -653,3 +657,11 @@ static func pond_fish() -> bool:
 ## Whether the minimap is shown. M toggles it in play as well.
 static func minimap_shown() -> bool:
 	return bool(_chosen.get(KEY_MINIMAP, true))
+
+
+static func tower_rings_shown() -> bool:
+	return bool(_chosen.get(KEY_RANGE_TOWERS, true))
+
+
+static func enemy_rings_shown() -> bool:
+	return bool(_chosen.get(KEY_RANGE_ENEMIES, true))

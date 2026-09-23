@@ -275,6 +275,30 @@ func _sorted_indices() -> Array[int]:
 ## pieces from the second one onward. Equipped gear is skipped outright rather
 ## than filtered afterwards - a bulk action that can strip the hero is a bulk
 ## action nobody presses.
+## **Everything unworn at or below `rarity`, sold for Marks in one press**
+## (owner, 2026-09-22: "options not just to break all rough and sound gear but to
+## also sell all"). The same sweep as breaking - equipped and kept pieces are
+## never touched, descending so removals do not shift what is still to come -
+## paid at each piece's own sale price, the one a single sale pays.
+func _sell_all(rarity: int) -> int:
+	MetaState.hold_saves()
+	var sold: int = 0
+	var gained: int = 0
+	for index: int in range(MetaState.stash.size() - 1, -1, -1):
+		if MetaState.is_equipped_index(index):
+			continue
+		var piece: Dictionary = MetaState.stash[index]
+		if not Stash.may_break(piece, rarity):
+			continue
+		gained += Stash.sell_price(piece)
+		MetaState.drop_gear(index)
+		sold += 1
+	MetaState.resume_saves()
+	MetaState.marks += gained
+	MetaState.save_game()
+	return sold
+
+
 func _break_all(rarity: int) -> int:
 	# Asked of `MetaState` by position rather than collected from the map: the
 	# map keys by uid since 2026-09-22 and a screen must not know that.
@@ -466,6 +490,22 @@ func _build_tools() -> void:
 				"" if broken == 1 else "s"]
 			_refresh())
 		_tools.add_child(sweep)
+		var sale := Button.new()
+		sale.text = "Sell all %s" % Stash.RARITY_NAMES[rarity]
+		sale.tooltip_text = ("Sells every unequipped, unmarked %s piece for Marks. "
+			+ "Never touches what you are wearing.") % Stash.RARITY_NAMES[rarity]
+		sale.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
+		sale.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sale.add_theme_font_size_override("font_size", 14)
+		sale.pressed.connect(func() -> void:
+			if TradeBooth.is_trading():
+				_message = "Not while a trade is open."
+				_refresh()
+				return
+			var sold: int = _sell_all(threshold)
+			_message = "Sold %d piece%s for Marks." % [sold, "" if sold == 1 else "s"]
+			_refresh())
+		_tools.add_child(sale)
 
 	# The way into a trade, and the only one. Drawn beside the bulk tools
 	# because that is where a player is already standing when they decide a

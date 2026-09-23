@@ -78,14 +78,20 @@ func _ready() -> void:
 ##
 ## Keyed by the shooter rather than appended, so a tower firing eight times a
 ## second holds one ring at full rather than stacking eight.
-func show_range(key: int, at: Vector2, reach: float, tint: Color) -> void:
+func show_range(key: int, at: Vector2, reach: float, tint: Color,
+		follow: Node2D = null) -> void:
 	if reach <= 1.0:
 		return
+	# **A pulse on every refresh** (owner, 2026-09-22): a ring already standing
+	# brightens and swells for a beat when the shooter fires again, so a
+	# held ring still says each shot.
 	_rings[key] = {
 		"at": at,
 		"reach": reach,
 		"tint": tint,
 		"left": Balance.RANGE_RING_HOLD,
+		"pulse": 1.0,
+		"follow": follow,
 	}
 
 
@@ -101,6 +107,8 @@ func _on_shot(from: Vector2, reach: float) -> void:
 ## asked of the field by anchor, the one thing the signal names that is the
 ## tower, and a tower the field cannot find draws no ring rather than a wrong one.
 func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
+	if not Graphics.tower_rings_shown():
+		return
 	var data: TowerData = RunState.tower_at(anchor)
 	if data == null or not tower_at.is_valid():
 		return
@@ -120,6 +128,8 @@ func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
 ## (owner, 2026-09-22). Only near a Warden, and only so many at once: a ring
 ## round every body on a road of two hundred is a diagram rather than a tell.
 func _on_enemy_attacked(key: int, at: Vector2, reach: float) -> void:
+	if not Graphics.enemy_rings_shown():
+		return
 	if not near_a_warden.is_valid() or not bool(near_a_warden.call(at)):
 		return
 	var enemies: int = 0
@@ -128,7 +138,7 @@ func _on_enemy_attacked(key: int, at: Vector2, reach: float) -> void:
 			enemies += 1
 	if enemies >= Balance.RANGE_RING_ENEMY_MAX and not _rings.has(-key):
 		return
-	show_range(-key, at, reach, Balance.RANGE_RING_ENEMY)
+	show_range(-key, at, reach, Balance.RANGE_RING_ENEMY, instance_from_id(key) as Node2D)
 
 
 func _process(delta: float) -> void:
@@ -140,6 +150,17 @@ func _process(delta: float) -> void:
 		if left <= 0.0:
 			continue
 		ring["left"] = left
+		ring["pulse"] = maxf(float(ring.get("pulse", 0.0)) - delta / Balance.RANGE_RING_PULSE_SECONDS, 0.0)
+		# **Carried by an enemy while it moves** (owner, 2026-09-22), and let go
+		# of the moment the body is gone rather than read after it is freed.
+		var held: Variant = ring.get("follow")
+		if held != null:
+			if is_instance_valid(held):
+				var body := held as Node2D
+				ring["at"] = body.call("combat_origin") if body.has_method("combat_origin") \
+					else body.global_position
+			else:
+				ring["follow"] = null
 		live[key] = ring
 	_rings = live
 	queue_redraw()
@@ -163,7 +184,8 @@ func _draw_rings(weight: float) -> void:
 		var alpha: float = clampf(left / maxf(Balance.RANGE_RING_FADE, 0.01),
 			0.0, 1.0)
 		var tint: Color = ring["tint"] as Color
-		tint.a *= alpha * weight
+		var pulse: float = float(ring.get("pulse", 0.0))
+		tint.a *= alpha * weight * (1.0 + Balance.RANGE_RING_PULSE_GAIN * pulse)
 		if tint.a <= 0.004:
 			continue
 		# **A true circle**, because a reach is one: towers and bodies measure
@@ -171,7 +193,7 @@ func _draw_rings(weight: float) -> void:
 		# 58% of it up and down the screen (owner, 2026-09-22: "Player towers
 		# should not have skewed tower attack ranges").
 		_arc(ring["at"] as Vector2, float(ring["reach"]), tint,
-			Balance.RANGE_RING_WIDTH, 1.0)
+			Balance.RANGE_RING_WIDTH * (1.0 + pulse), 1.0)
 
 
 ## The bodies the next swing would land on.
