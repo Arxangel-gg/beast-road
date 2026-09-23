@@ -87,6 +87,15 @@ static func world_to_tile(at: Vector2) -> Vector2i:
 		int(floor((at.y + HALF_EXTENT) / TILE)))
 
 
+## The arena floor anything may stand on, a tile in from the rim.
+##
+## The twin of `BattleGrid.play_extent`, and named the same thing for the
+## same reason: the hero's clamp and every body's step must read one number,
+## or a body can stand where the player cannot follow it.
+static func play_extent() -> float:
+	return HALF_EXTENT - TILE
+
+
 static func in_bounds(tile: Vector2i) -> bool:
 	return tile.x >= 0 and tile.y >= 0 and tile.x < SIZE and tile.y < SIZE
 

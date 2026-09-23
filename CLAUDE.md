@@ -7788,6 +7788,265 @@ coordinates, and an applier that writes `RunState.towers` directly, which it
 names as *"quoted 305 Gold and took 175"* and as a board stood up with an empty
 purse.
 
+**Nobody was lost; one body in ten was walking a road 67 seconds longer, as of
+2026-09-22.** The owner: *"Not all enemies that have spawned go to the city
+base! Some seem to go off elsewhere or get lost preventing the wave from
+completing!"*
+
+**Traced before anything was changed**, because the state machine reads fine and
+this project's record is full of pathing reports where it did. `wave_stall_trace`
+is the harness: the real director on the field exactly as it ships, every body
+sampled twice a second, and a body called lost when it has not improved on its
+own best distance to the wall for twenty-five seconds. `enemy_siege_trace
+--mode=full` could not answer it - its `_ready` clears the wildlife and switches
+the sky's events off, which removes two of the ways a body can leave the road
+before the measurement starts.
+
+**Every lost body was WALKING, on a sane path index, with a legitimate route.**
+Their routes reached the *direct approach* - one stood at (-1088, 0) with the
+town at the origin - and then turned north, crossed the top of the map, came
+down the east side and entered by a different gate. 5,632 units against a
+shortest way in of 2,944.
+
+**The pool, measured** (`route_report`, eight seeds): near routes 2,944 to 5,632
+units, far routes 3,968 to 6,656. At the roster's 28 to 48 units a second that
+is a 74-second walk against a 198-second one. The weighting deals each of the
+two longest **2.4%** of the time, so about one body in ten arrives 55 to 95
+seconds after its wave-mates - on an eight-body Act I wave, better than even odds
+of a straggler every single wave. A wave cannot close until its last body
+resolves, and `WAVE_INTERVAL` is **20 seconds**. Driven on the owner's own
+account: **wave 1 took 345 seconds to clear.**
+
+**The cap was there and it was passing.** `ROUTE_LENGTH_MAX_RATIO` is 2.0 and the
+worst route measured 1.91x. Its own comment names this exact complaint - *"an
+enemy taking it walks for around two and a half minutes ... the wave has been
+over for a minute by the time it arrives, and it reads as a stuck enemy rather
+than as a flanker"* - and it could not see it, for two reasons.
+
+- **A ratio is not a bound on the thing the player feels.** It says how the
+  routes compare to each other and nothing about how long anybody walks. When
+  the map grew - `OUTSKIRTS` 15 tiles to 21 on 2026-09-14, `SIZE` with it -
+  every route got longer in absolute terms while the ratio between them did not
+  move, so the cap went on passing a pool it had stopped describing. **That is
+  the same family as the pressure band written in prose here and enforced by a
+  constant in a tool**, one layer further in: the bound was real, it was
+  enforced, and it was measuring the wrong quantity.
+- **And it measured the wrong route.** `_finish_routes` filtered `_tile_length`
+  of the whole lattice walk from the fork junction, while what it hands back is
+  that walk trimmed at `_join_step` with a spawn and a way onto the road in
+  front of it. Two different lengths, and the body only ever walks the second.
+
+`ROUTE_LATE_ARRIVAL_SECONDS` is the bound that answers it, stated against
+`WAVE_INTERVAL` because that is the thing it must not outlive: a body still
+walking when the next wave is dealt makes the road read as stuck and holds the
+wave after it open too. Held on the produced polyline, at `ROUTE_REFERENCE_WALK`.
+Measured after: the pool is 2,944 to 3,456 units, **12.8 seconds apart** rather
+than 67, and every lane still offers four ways in. **The flanking survives** -
+even the shortest route still loops south through the build ground before it
+reaches the gate; what went is the pair that crossed to another quadrant
+entirely, which is what the owner was watching.
+
+**And the rescue had been disarmed, which is the other half of "preventing the
+wave from completing".** `WaveDirector` has a watchdog that ends a wave after
+`WAVE_STALL_TIMEOUT` - 75 seconds, itself long enough to read as a stall - and
+its clock is reset by any progress. Progress is two readings, and **both counted
+bodies the wave does not**: `enemy_count` excludes camp mobs because *"a camp is
+not a wave"*, and `nearest_enemy_distance` and `wave_activity_checksum` did not.
+A camp regenerating on the outskirts is what a camp does the moment it is left
+alone, and a Warden who walks out to fight one moves camp health every frame -
+so the checksum moved every frame, the clock reset every frame, and a genuine
+straggler held the road open **for ever** rather than for 75 seconds. The
+outskirts exist to be visited during a wave, so this is the common case rather
+than the edge one. `EnemyField.holds_the_wave` is the one rule now, asked by all
+four, and `nearest_enemy_distance` measures from the town rather than from the
+world origin - which was the right answer only because the town happens to stand
+there.
+
+**`route_length_check` (212 checks) holds both halves**, and it drives
+`route_for` across its whole roll space rather than reading the pool, because the
+pool is where the bound is applied and `route_for` is the door the spawner opens.
+Three faults planted and all three named: the shipped ratio-only bound, which it
+reports as *"a route 2688 units behind its shortest - 67s against a budget of
+20s"*; camp bodies counting toward the wave, which it names on all four readings;
+and a budget tuned down until a lane has one road left.
+
+**That third plant walked straight through the first cut of the gate**, which is
+the finding worth keeping. The variety check counted *routes*, and every shape is
+laid twice - once from each ambush side - so a pool holding one road still holds
+two routes, and two different arrays, differing in their first point and nowhere
+else. It read clean and proved nothing. A road is counted as distinct by its
+length or its gate now. **A countervailing bound is only worth having if it can
+fail**, and the cheap way to satisfy an "arrives on time" bound is to delete the
+map's shape.
+
+**One thing the trace found and ruled out, recorded so it is not chased again.**
+Road bodies do get into long fights with wildlife well off the road - an Ember
+Shaman was watched losing 58 hp to two animals at 636 units out, and another was
+killed by one while standing at the wall. It is bounded and it is not this:
+`_biting_back` returns a provoker **only while it is already in reach**, so an
+animal can never pull a column off the road, and a body that loses the fight
+dies, which *resolves* the wave rather than holding it open.
+
+**And the pounce had never left the ground, as of the same date.** The half of
+"some seem to go off elsewhere" that the routes do not explain, found by an
+audit running beside the trace rather than by the trace, which never saw it: a
+pounce only fires with a Warden inside its leap, and the harness had parked the
+hero out of the way. **A harness that keeps the field quiet cannot measure the
+things that only happen when it is loud.**
+
+**Measured on all eighteen breeds that pounce, hand-driven through the real
+state machine.** Two faults, and the second is the one the owner was watching.
+
+- **The leap crossed nothing.** `_commit_behaviour` writes it into `_slip` -
+  *"a shove along the marked line, through the same slip the knockback uses, so
+  nothing downstream learns a pounce exists"* - and `_slip` is spent in
+  `_advance`, which is reached from `_walk`, `_walk_camp` and `_rout` and from
+  nowhere else. The COMMIT arm of `_tick_state` calls none of them. So every
+  pouncing breed has told its tell, committed, and **moved zero units**, since
+  the behaviour was authored on 2026-09-15. `_hold_behaviour` decaying that
+  slip, and ANCHOR zeroing its own to stay *rooted*, are the same two lines
+  saying the movement was meant to be there.
+- **And the shove outlived the commitment.** `_slip` is the field the snow also
+  uses, and only the snow's copy carries `_slip_left`, which is the only thing
+  `_tick_slip` ever clears. A pounce's carried no timer and nothing else zeroed
+  it, so what the decay had not eaten was added to **every step the body took
+  for the rest of its life**. Measured: 153 to 245 units a second left behind by
+  a pounce that ran its course, and **709 to 821** by one a rout broke into -
+  against authored walks of 76 to 96. A body carried off the road at two to
+  eight times its own speed, in the direction the Warden had been standing,
+  never arriving and never dying. That is the report.
+
+**The decay rate was a third number with no relationship to the other two.** A
+flat 240 a second against an opening 789 wants 3.3 seconds, and the commitment
+lasts 2.4 - so the residue existed even when nothing interrupted anything.
+`_leap_speed` and `_leap_decay` are a ramp now: `2 * reach / t` falling to
+nothing over `t`, which covers exactly the authored reach and arrives at exactly
+zero. The shove is applied through `_step`, split out of `_advance` so a
+commitment can move a body without also paying it its walking speed, and the
+cliff slide is not written twice.
+
+**And the clear lives in `_enter`**, which is the one funnel every state change
+goes through - beside the line that drops an interrupted throw for precisely the
+same reason. Put in `_end_behaviour` it would have covered the tidy exit and
+missed the rout, the death and the behaviour taken over, which are the three
+that were wrong.
+
+**One thing measured and deliberately not changed.** `_commit_behaviour` holds
+the commitment for `maxf(data.behaviour_seconds, ENEMY_BEHAVIOUR_SECONDS)`, and
+that floor of 2.4 seconds is above every value POUNCE (0.36-0.50) and STORE
+(0.50-0.80) author, and below every value ANCHOR (3.0-4.0) and WARD (5.0-6.0)
+do. So the floor never does what it was written for - *"a breed that authors
+nothing gets the default"* - and only ever overrides the two behaviours whose
+authored windows are deliberately short. `_behaviour_reach` reads the same kind
+of field the other way round (`authored if > 0 else default`), which is the
+correct idiom and is two functions away. **It is left alone because changing it
+is a pacing decision on twenty-seven breeds and the owner reported movement, not
+timing** - and with the leap applied, the body now crosses its reach in its own
+0.4 seconds and stands committed for the rest, which is strictly better than
+standing still for all 2.4 and then drifting. Worth an owner ruling.
+
+`enemy_behaviour_check` grew from 130 checks to **343**, and it walks every
+pouncing breed twice - once left alone and once broken out of the commitment by
+a rout. Both faults were planted back and both were named: the unapplied shove
+as *"crossed 0 units on a pounce authored to reach 300"*, and the surviving one
+as *"left 1302 units a second of drift ... it walks at 96"*.
+
+**The gate's first run reported twelve breeds as never pouncing, and that was
+the harness.** Eighteen breeds each get twenty seconds beside the Warden and
+they all swing; the hero died partway down the list, `_foe_stands` then refused
+it, nothing targeted it, and every breed after that looked like one with no
+behaviour at all. It is `stagger_check`'s probe dying three blows into a
+twelve-blow flurry, one level up - **a probe that dies mid-measurement reads
+exactly like a feature that does not work.**
+
+**And "every enemy in the group" is never "every enemy on this field".**
+`Enemy.GROUP` is global - every body joins it in `_ready` - while a raid camp, a
+rift maze and the road are all `EnemyField`s full of enemies. Two things read it
+as though it meant the road.
+
+- **The road's wave counted an arena's bodies.** Solo that is harmless, because
+  entering a raid or a rift freezes the field (working rule 8); in co-op it is
+  not, because a party that splits leaves the road running - which is that
+  rule's own 2026-09-12 amendment - and the wave then waited on bodies in a maze
+  nobody on the road could reach.
+- **And the rescue razed the outskirts.** `resolve_stalled_wave` walked the
+  whole group and killed it through `Health.kill`, which is the ordinary death:
+  so a watchdog firing razed **every camp on the map** and paid full spoils,
+  experience, loot and gear for each one. A stall is already a bad moment;
+  handing the player twenty-eight free camp kills and emptying the ground the
+  outskirts exist for is worse than the thing it was rescuing.
+
+`Enemy.field()` names the scope a body was stood up in, `holds_the_wave` asks
+it, and a body that names no field at all is still counted - that is a harness
+probe, and excluding it would quietly change what every gate measuring
+`enemy_count` is measuring.
+
+**Both of these came out of an audit run beside the trace rather than out of
+the trace**, which is the argument for running both: the trace measures what
+the field actually does and can only see what its own harness provokes, and a
+read of the code sees what is reachable and cannot tell you whether anything
+reaches it. Between them the pounce was found twice, independently, with the
+same arithmetic.
+
+**Nothing walks off the map, and the edge is one number, as of 2026-09-22.**
+The owner, of the beasts and of "any other enemies that might experience
+similar issues": they *"try to leave the map or get lost ... ensure that they
+are not able to leave the map's bounds"*.
+
+**The Warden had been clamped since it was written and nothing else ever
+was.** `Battlefield.step_is_legal` refuses only the city, and the base
+`EnemyField.step_is_legal` returns `true` outright - so a hard enough shove,
+or the pounce drift above, walked a body off the field, where it could never
+arrive, never be killed and never stop holding its wave open. The knockback
+bounce had its own copy of the edge, and that copy named the *battlefield's*
+extent even inside a raid arena several times smaller.
+
+**One rule, per scope, asked at every mover.** `BattleGrid.play_extent()` and
+`RaidLayout.play_extent()` state the edge once; `EnemyField.hold_inside` is
+the question, answered by the battlefield and the raid arena for their own
+ground. `Enemy._step` (the walk, the cliff slide, a commitment's shove),
+`Enemy._walk_camp` (a camp lord's patrol), `Enemy._bounced` (knockback) and
+`Wildlife._walk_step` all ask it, and so does the hero's `bounds_extent`, so
+the Warden and the things hunting them agree about where the world ends.
+
+**Clamped, never refused.** A body already outside - thrown there, spawned
+there by a harness, standing there when the ground was re-laid - has to be
+able to come back, which is `step_is_legal`'s own reasoning about the city
+applied at the other edge.
+
+**An animal crosses the edge twice in its life, on purpose.** It arrives from
+off the map and it leaves over it. The first cut held every step, which pinned
+a leaving animal against the border walking at a way out it could never reach -
+the report, from the other side. `ARRIVING` and `LEAVING` cross; everything
+else is held, **and so is where it is going**. A goal outside is written in
+several places - a bolt with nowhere clear to go, a shove off the town, a
+relocation - and a body held at the border while it walks at an unreachable
+goal is an animal stuck at the edge of the world. `_settled` holds the goal at
+its one reader, and the wander centre and every bolt candidate with it.
+
+**`map_bounds_check` (24 checks, both bars)** shoves every breed from a
+corner, walks a body placed four thousand units out back in, patrols a camp
+lord whose home is outside, and settles every animal at a corner with its
+haunt and goal dragged off the map while one more is sent away over it. Four
+faults planted, four named: the enemy step unheld, the bounce unheld (a Bell
+Priest thrown 9,468 units out), the wildlife step and goal unheld (789 units
+out), and every crossing held (a leaver pinned inside).
+
+**Its wildlife test was blind twice, and both are lessons this file already
+holds.** It read the survivors at the end, and an animal that walks far enough
+out is *forgotten* - removed as out of everybody's sight - so a stray passed
+precisely because it got away; it samples every frame now. And the Warden
+stood at the town, 3,800 units from the corner the animals were placed in, so
+the mythic was forgotten on its first tick and the test measured an empty
+field. **A probe outside the thing it measures reads as the thing working.**
+
+The source walk refuses a hand-written `HALF_EXTENT - TILE` anywhere but the
+two owners, and its first cut named five files of which two were not copies at
+all - half a tile to lay a tilemap, two tiles for a spawn ring. A different
+inset is a different number that shares a spelling, so it matches only a tile
+that is not multiplied, in code rather than comments. The four real copies, in
+`fishing.gd` and `wildlife.gd`, ask `play_extent()` now.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

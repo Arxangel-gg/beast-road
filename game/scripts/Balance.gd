@@ -2919,7 +2919,41 @@ const ROUTE_LENGTH_BIAS: float = 1.5
 ## - the wave has been over for a minute by the time it arrives, and it reads as
 ## a stuck enemy rather than as a flanker. Capped at twice the direct route,
 ## which still leaves several genuinely different ways in. [TUNE]
+##
+## **It is the wrong bound on its own, and 2026-09-22 is when that showed.** A
+## ratio says nothing about how long a body walks; it only says how the routes
+## compare to each other. When the map grew - `OUTSKIRTS` went 15 tiles to 21 on
+## 2026-09-14 and `SIZE` with it - every route got longer in absolute terms while
+## the ratio between them did not move, so this cap went on passing a pool it no
+## longer described. Measured: the near pool ran 2944 to 5632 units, 1.91x, which
+## is **inside** this cap and **67 seconds apart** for an ordinary body. See
+## `ROUTE_LATE_ARRIVAL_SECONDS`, which is the bound that answers the complaint.
 const ROUTE_LENGTH_MAX_RATIO: float = 2.0
+
+## How far behind the rest of its wave the last body in may arrive.
+##
+## **This is the bound the player actually feels.** A wave cannot close until
+## every body it dealt has resolved (`WaveDirector._process`), so the slowest way
+## in decides how long the road stands empty. Owner report, 2026-09-22: *"Not all
+## enemies that have spawned go to the city base! Some seem to go off elsewhere
+## or get lost preventing the wave from completing!"* Traced, they were neither
+## lost nor off elsewhere - they were walking a legitimate route 2688 units
+## longer than the one their wave-mates drew, at about one body in ten, which on
+## an eight-body wave is better than even odds of one straggler every wave.
+##
+## Stated against `WAVE_INTERVAL` because that is the thing it must not outlive:
+## a body still walking when the *next* wave arrives makes the road read as
+## stuck, and the wave it belongs to holds the one after it open too. At one
+## interval the last body in is home before its successors are dealt. [TUNE]
+const ROUTE_LATE_ARRIVAL_SECONDS: float = WAVE_INTERVAL
+
+## The walk the bound above is measured at, in world units a second.
+##
+## The roster runs about 28 to 48, and the middle of it is what a wave reads as.
+## **Not derived from `ContentDB`**: `BattleGrid` lays the road before any breed
+## has been chosen to walk it, and a road whose shape depended on who was coming
+## would be a different road every act. [TUNE]
+const ROUTE_REFERENCE_WALK: float = 40.0
 
 ## The battlefield's build grid, in tiles per side (GDD §13, LOCKED at 30x30).
 ## `BattleGrid` reads this rather than owning it: it is a tuning number, and every

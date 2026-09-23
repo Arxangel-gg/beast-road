@@ -413,6 +413,15 @@ func route_point_at(fraction: float) -> Vector2:
 
 ## Whether something provoked this body recently enough that it is still
 ## coming for whoever did it. Public because the towers ask (2026-09-13).
+## The scope this body was stood up in.
+##
+## `Enemy.GROUP` is global and a raid camp, a rift maze and the road are all
+## `EnemyField`s full of enemies, so "every enemy in the group" is never the
+## same question as "every enemy on this field". See `EnemyField.holds_the_wave`.
+func field() -> EnemyField:
+	return _field
+
+
 func is_provoked() -> bool:
 	return _provoked_left > 0.0
 
@@ -930,6 +939,13 @@ func _tick_state(delta: float) -> void:
 		State.COMMIT:
 			_state_left -= delta
 			_hold_behaviour(delta)
+			# **And the shove is actually applied.** `_slip` is spent in
+			# `_advance`, which is reached from `_walk`, `_walk_camp` and `_rout`
+			# and from nowhere else - so a body in COMMIT was never moved by it,
+			# and a pounce crossed **nothing** from the day it was authored. An
+			# anchor zeroes its own slip in `_hold_behaviour` and stays rooted,
+			# which is the same line saying the opposite thing.
+			_step(_slip, delta)
 			if _state_left <= 0.0:
 				_end_behaviour()
 		State.ROUTED:
@@ -1065,8 +1081,7 @@ func _commit_behaviour() -> void:
 		EnemyData.Behaviour.POUNCE:
 			# A leap is a shove along the marked line, through the same slip the
 			# knockback uses, so nothing downstream learns a pounce exists.
-			_slip = _behaviour_aim * _behaviour_reach() \
-				/ maxf(data.behaviour_seconds, 0.2)
+			_slip = _behaviour_aim * _leap_speed()
 			animator.punch(_behaviour_aim, 1.5)
 		EnemyData.Behaviour.WARD:
 			# One turned blow each, to a bounded number of allies, and it does
@@ -1098,7 +1113,31 @@ func _hold_behaviour(delta: float) -> void:
 			# is paying, and it is why the guard is not a free damage reduction.
 			_slip = Vector2.ZERO
 		EnemyData.Behaviour.POUNCE:
-			_slip = _slip.move_toward(Vector2.ZERO, delta * 240.0)
+			# Down to nothing exactly as the leap ends, which is what makes the
+			# ground it covers equal to the reach it was authored with. A flat
+			# 240 a second had no relationship to either: from 789 it wanted 3.3
+			# seconds against a commitment of 2.4, so it could not reach zero even
+			# when it was left alone to try.
+			_slip = _slip.move_toward(Vector2.ZERO, delta * _leap_decay())
+
+
+## The leap's own numbers.
+##
+## A body shoved at `_leap_speed` and slowed at `_leap_decay` covers exactly
+## `_behaviour_reach()` and arrives at exactly nothing, over the seconds the
+## breed authored. Stated as a ramp rather than a flat speed because a shove
+## that stopped dead would read as a teleport, and one that never stopped is
+## what was carrying bodies off the map.
+func _leap_seconds() -> float:
+	return maxf(data.behaviour_seconds, 0.2)
+
+
+func _leap_speed() -> float:
+	return 2.0 * _behaviour_reach() / _leap_seconds()
+
+
+func _leap_decay() -> float:
+	return _leap_speed() / _leap_seconds()
 
 
 func _end_behaviour() -> void:
@@ -1261,6 +1300,22 @@ func _enter(state: State, duration: float) -> void:
 	# body often enough that a rider was reliably interrupted mid-throw.
 	if state != State.WINDUP:
 		_throwing = false
+	# **A commitment's shove does not outlive it.** The leap is written into
+	# `_slip`, which is the field the *snow* also uses - and the snow's copy
+	# carries `_slip_left`, so `_tick_slip` clears it. A pounce's carries no
+	# timer and nothing else in this file zeroes it, so leaving COMMIT by any
+	# door - a rout, a death, a behaviour taken over - left the whole leap
+	# velocity on the body for the rest of its life. Measured 2026-09-22 across
+	# all eighteen breeds that pounce: 709 to 821 units a second of drift
+	# against authored walks of 76 to 96, which is a body carried off the road
+	# and never seen again. "Some seem to go off elsewhere."
+	#
+	# Here rather than in `_end_behaviour`, for the same reason the throw above
+	# is dropped here: this is the one funnel every state change goes through,
+	# and the interrupted exits are the ones that were wrong.
+	if _state == State.COMMIT and state != State.COMMIT:
+		_slip = Vector2.ZERO
+		_slip_left = 0.0
 	_state = state
 	_state_left = duration
 
@@ -1350,8 +1405,13 @@ func _walk_camp(delta: float) -> void:
 		* RunState.wind_push(to_goal)
 	if step.length() > to_goal.length():
 		step = to_goal
-	if _field.step_is_legal(global_position, global_position + step):
-		global_position += step
+	# Held inside the field, like every other step. A camp lord is the
+	# largest thing on the outskirts and it patrols out here rather than
+	# walking a road, so it is the body most likely to be pushed over the
+	# edge and the one a player most wants to be able to find.
+	var wanted: Vector2 = _field.hold_inside(global_position + step)
+	if _field.step_is_legal(global_position, wanted):
+		global_position = wanted
 
 
 ## One step in a direction, sliding off whatever it cannot walk through.
@@ -1370,9 +1430,25 @@ func _walk_camp(delta: float) -> void:
 ## comparator is the mistake that comment already warns about.
 func _advance(direction: Vector2, delta: float) -> void:
 	_tick_slip(delta, direction)
-	var step: Vector2 = (direction * current_speed() * RunState.wind_push(direction)
-		+ _slip) * delta
-	var wanted: Vector2 = global_position + step
+	_step(direction * current_speed() * RunState.wind_push(direction) + _slip, delta)
+
+
+## One step at a velocity, sliding off whatever it cannot walk through.
+##
+## Split out of `_advance` when the pounce was found to cross no ground: a
+## commitment has to move the body without also paying it its walking speed, and
+## a second copy of the cliff slide is the copy that would not be fixed the next
+## time the first one was.
+func _step(velocity: Vector2, delta: float) -> void:
+	var step: Vector2 = velocity * delta
+	if step.length() <= 0.0001:
+		return
+	# **Held inside the field's own edge.** Nothing bounded a body before this:
+	# `Battlefield.step_is_legal` refuses only the city and the base
+	# `EnemyField.step_is_legal` returns true outright, so a hard enough shove -
+	# a pounce, a funnel, a knockback - walked a body off the map, where it could
+	# never arrive and never die while the wave waited on it.
+	var wanted: Vector2 = _field.hold_inside(global_position + step)
 	if _field.step_is_legal(global_position, wanted):
 		global_position = wanted
 		return
@@ -1382,7 +1458,7 @@ func _advance(direction: Vector2, delta: float) -> void:
 	# the face looking for the ramp reads as a siege - which is the behaviour the
 	# ramp exists to produce.
 	for sideways: Vector2 in [Vector2(step.y, -step.x), Vector2(-step.y, step.x)]:
-		var slide: Vector2 = global_position + sideways
+		var slide: Vector2 = _field.hold_inside(global_position + sideways)
 		if _field.step_is_legal(global_position, slide):
 			global_position = slide
 			return
@@ -3431,14 +3507,18 @@ func _advance_attack_frames() -> bool:
 ## map, where nothing could reach it and it could not walk back. It bounces
 ## instead: the component that would leave is reflected and damped, which
 ## also reads better than a body sliding along an invisible wall.
+## Where a knocked-back body ends up, and the wall it bounced off.
+##
+## **The scope's own edge, asked through `EnemyField.hold_inside`.** This wrote
+## `BattleGrid.HALF_EXTENT - BattleGrid.TILE` out by hand, which is a third copy
+## of the map's edge - and it is the *battlefield's* edge, so a body knocked back
+## inside a raid camp or a rift maze was clamped to a square several times larger
+## than the floor it was standing on and could be thrown clean off it.
 func _bounced(at: Vector2) -> Vector2:
-	var edge: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
-	var out := at
-	if absf(out.x) > edge:
-		out.x = clampf(out.x, -edge, edge)
+	var out: Vector2 = _field.hold_inside(at) if _field != null else at
+	if not is_equal_approx(out.x, at.x):
 		_knockback.x = -_knockback.x * Balance.KNOCKBACK_BOUNCE
-	if absf(out.y) > edge:
-		out.y = clampf(out.y, -edge, edge)
+	if not is_equal_approx(out.y, at.y):
 		_knockback.y = -_knockback.y * Balance.KNOCKBACK_BOUNCE
 	return out
 

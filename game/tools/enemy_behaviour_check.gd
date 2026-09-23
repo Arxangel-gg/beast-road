@@ -52,6 +52,7 @@ func _ready() -> void:
 
 	_test_every_behaviour_is_authored_somewhere()
 	_test_every_behaviour_is_told_before_it_happens()
+	await _test_a_pounce_covers_ground_and_leaves_none_behind()
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
@@ -103,6 +104,106 @@ func _test_every_behaviour_is_told_before_it_happens() -> void:
 			else Balance.ENEMY_BEHAVIOUR_WARNING
 		_check(warning >= 0.3,
 			"%s tells for %0.2fs, which nobody can read" % [breed.id, warning])
+
+
+## **A pounce crosses the ground it was authored to cross, and leaves nothing
+## behind when it is over.**
+##
+## `_commit_behaviour` writes the leap into `_slip` - "a shove along the marked
+## line, through the same slip the knockback uses" - and `_slip` is applied in
+## `_advance`, which the COMMIT arm of `_tick_state` never calls. So the two
+## halves worth measuring are whether the leap happens at all, and what is left
+## in `_slip` afterwards: `_tick_slip` only ever clears a slip the **snow** set,
+## because that is the one carrying a timer, and nothing else in the file zeroes
+## it. A residue there is added to every step the body takes for the rest of its
+## life, which is a body that walks sideways off the road - and "some seem to go
+## off elsewhere" is the owner's report of 2026-09-22.
+##
+## Every breed that pounces, not one of them: eighteen do, and a guarantee is a
+## property of all of them or it is not a guarantee. Hand-driven with the run
+## stopped, which is `enemy_siege_trace`'s pattern, so nothing else on the field
+## can move the body while it is being measured.
+func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
+	const FRAME: float = 1.0 / 60.0
+	var pouncers: Array[EnemyData] = []
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed != null and breed.behaviour == EnemyData.Behaviour.POUNCE:
+			pouncers.append(breed)
+	_check(not pouncers.is_empty(), "no breed pounces, so this measures nothing")
+	# **The quarry has to outlive the measurement.** Eighteen breeds each get
+	# twenty seconds beside the Warden and they all swing; once the hero is down,
+	# `_foe_stands` refuses it, nothing targets it, and every breed after that
+	# reads as one that never pounces. It is `stagger_check`'s probe dying three
+	# blows into a twelve-blow flurry, one level up.
+	if _field.hero != null and _field.hero.health != null:
+		_field.hero.health.floor_hp = _field.hero.health.max_hp * 0.5
+	for breed: EnemyData in pouncers:
+		for interrupted: bool in [false, true]:
+			_clear()
+			await get_tree().process_frame
+			var body: Enemy = await _spawn(breed.id)
+			if body == null:
+				continue
+			_run.process_mode = Node.PROCESS_MODE_DISABLED
+			# Far from the town, so nothing steals the target, and with the quarry
+			# inside the leap but outside the arm - which is what `_behaviour_wants_to`
+			# asks for - and inside `ENEMY_HERO_AGGRO_RANGE`, or it is not a target.
+			var away := Vector2(2400.0, 0.0)
+			var gap: float = clampf(breed.behaviour_reach * 0.6,
+				body.attack_reach() + 30.0, Balance.ENEMY_HERO_AGGRO_RANGE - 20.0)
+			body.global_position = away
+			_field.hero.global_position = away + Vector2(gap, 0.0)
+			var from := Vector2.ZERO
+			var covered: float = -1.0
+			var committed: bool = false
+			for frame: int in 1200:
+				var before: int = int(body.get("_state"))
+				body.call("_process", FRAME)
+				var now: int = int(body.get("_state"))
+				if now == Enemy.State.COMMIT and not committed:
+					committed = true
+					from = body.global_position
+					continue
+				if committed and interrupted and now == Enemy.State.COMMIT \
+						and frame % 7 == 0:
+					# Broken out of the commitment part way through, which a
+					# champion falling nearby does. Nothing calls `_end_behaviour`
+					# on that path.
+					body.shake_morale(9.0)
+				if committed and now != Enemy.State.COMMIT and before == Enemy.State.COMMIT:
+					covered = from.distance_to(body.global_position)
+					break
+			# Ten more frames of ordinary walking, which is where a residue shows.
+			var walked_from: Vector2 = body.global_position
+			for _frame: int in 10:
+				body.call("_process", FRAME)
+			var drift: float = walked_from.distance_to(body.global_position) / (10.0 * FRAME)
+			var slip: Vector2 = body.get("_slip") as Vector2
+			_run.process_mode = Node.PROCESS_MODE_INHERIT
+
+			var tag: String = "%s%s" % [breed.id, " (interrupted)" if interrupted else ""]
+			_check(committed, "%s never committed to its pounce" % tag)
+			if not committed:
+				continue
+			if not interrupted:
+				_check(covered > breed.behaviour_reach * 0.5,
+					("%s crossed %.0f units on a pounce authored to reach %.0f. "
+						+ "The leap is written into `_slip` and `_slip` is applied "
+						+ "in `_advance`, which the COMMIT arm never calls")
+						% [tag, covered, breed.behaviour_reach])
+			_check(slip.length() <= 1.0,
+				("%s left %.0f units a second of drift in `_slip` when its "
+					+ "commitment ended - it walks at %.0f, so it is carried %s "
+					+ "off the road for the rest of its life. Only the snow's slip "
+					+ "carries a timer, so nothing ever clears this one.")
+					% [tag, slip.length(), breed.move_speed,
+						"sideways" if slip.length() > breed.move_speed else "wide"])
+			_check(drift <= maxf(breed.move_speed, 1.0) * 1.6,
+				("%s moves at %.0f units a second after its pounce against an "
+					+ "authored walk of %.0f") % [tag, drift, breed.move_speed])
+	_clear()
+	await get_tree().process_frame
 
 
 ## One blow, then gone. Driven through the real `take_damage`.
@@ -244,7 +345,10 @@ func _finish() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print("[enemy-behaviour] PASS - %d checks: every behaviour authored and told before it happens, a guard that turns one blow, and a shield that redirects rather than reduces" % _checks)
+		print(("[enemy-behaviour] PASS - %d checks: every behaviour authored and "
+			+ "told before it happens, a pounce that crosses its own reach and "
+			+ "leaves no drift behind, a guard that turns one blow, and a shield "
+			+ "that redirects rather than reduces") % _checks)
 	else:
 		push_error("[enemy-behaviour] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

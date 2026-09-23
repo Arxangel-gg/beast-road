@@ -298,7 +298,7 @@ func _ensure_body(number: int) -> Hero:
 	hero.name = "PartyHero%d" % number
 	hero.field = battlefield
 	hero.party_slot = number
-	hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
+	hero.bounds_extent = Vector2.ONE * BattleGrid.play_extent()
 	hero.spawn_point = spawn_for_slot(number, battlefield.town_position())
 	hero.position = hero.spawn_point
 	battlefield.entity_root.add_child(hero)

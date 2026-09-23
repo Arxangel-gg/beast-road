@@ -121,6 +121,43 @@ func blocking_barricade_ahead(_from: Vector2, _heading: Vector2) -> Node2D:
 	return null
 
 
+## Whether this body is one the live wave is waiting on.
+##
+## **One rule, asked by four things**, and until 2026-09-22 they disagreed. The
+## count below closes the wave on it; `Battlefield.nearest_enemy_distance` and
+## `wave_activity_checksum` decide whether the wave is making progress, which is
+## what arms the stall watchdog; and the summary names who is left. Only the
+## count excluded camp bodies - so a camp quietly regenerating on the outskirts,
+## or one trading blows with a Warden who had walked out to visit it, read to
+## the watchdog as the wave resolving and reset its clock every frame while a
+## straggler held the road open. The rescue that is supposed to arrive after
+## `WAVE_STALL_TIMEOUT` then never arrived at all.
+##
+## **And it is this scope's wave.** `Enemy.GROUP` is global - every body in the
+## game joins it in `_ready` - while a raid camp and a rift maze are `EnemyField`s
+## full of enemies too. Solo that is harmless, because entering one freezes the
+## road (working rule 8); in co-op it is not, because a party that splits leaves
+## the road running while somebody fights in an arena, and the road's wave then
+## waited on bodies in a maze nobody on it could reach.
+##
+## A body that names no field at all is counted, which is deliberate: that is a
+## probe stood up by a harness, and excluding it would quietly change what every
+## gate measuring `enemy_count` is measuring.
+##
+## A predicate rather than a list, because `enemy_count` is asked every frame by
+## the director and an array built per frame over a formation of a hundred and
+## eighty is a cost `budget_check` measures.
+func holds_the_wave(enemy: Enemy) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	var scope: EnemyField = enemy.field()
+	if scope != null and scope != self:
+		return false
+	# A camp body is not a wave: alive on the outskirts it must not hold one
+	# open, or the road would wait on a camp nobody has visited.
+	return not enemy.is_dying() and not enemy.is_camp_mob()
+
+
 ## Enemies that can still fight.
 ##
 ## Deliberately not `get_node_count_in_group`. A wave ends when this reaches
@@ -131,23 +168,21 @@ func blocking_barricade_ahead(_from: Vector2, _heading: Vector2) -> Node2D:
 func enemy_count() -> int:
 	var total: int = 0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		var enemy := node as Enemy
-		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
-			continue
-		# A camp body is not a wave: alive on the outskirts it must not hold a
-		# wave open, or the road would wait on a camp nobody has visited.
-		if enemy.is_camp_mob():
-			continue
-		total += 1
+		if holds_the_wave(node as Enemy):
+			total += 1
 	return total
 
 
 ## Who is keeping a wave open, for the watchdog's report.
+##
+## The bodies the wave is actually waiting on, which is what the sentence above
+## it says. It listed camp bodies too, so a stall report named a dozen raiders
+## standing quietly in their clearings beside the one body that was the problem.
 func living_enemy_summary() -> String:
 	var names: PackedStringArray = []
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+		if not holds_the_wave(enemy):
 			continue
 		names.append("%s on road %d at %.0f,%.0f" % [
 			enemy.data.id if enemy.data != null else "?", enemy.lane,
@@ -329,6 +364,17 @@ func spawn_gear(_piece: Dictionary, _at: Vector2) -> void:
 
 ## Whether a body may move between two points. Open ground says yes to
 ## everything; the raid camp has cliffs and answers properly.
+## Holds a point inside this scope's playable ground.
+##
+## **The base answers "anywhere"**, which is the honest answer for a scope with
+## no declared edge. The battlefield and the raid arena each know their own, and
+## both `Enemy._step` and `Wildlife._walk_step` ask through here - so a body and
+## an animal cannot disagree about where the world ends, which is the argument
+## `_walk_step`'s own note makes about the city.
+func hold_inside(at: Vector2) -> Vector2:
+	return at
+
+
 func step_is_legal(_from: Vector2, _to: Vector2) -> bool:
 	return true
 

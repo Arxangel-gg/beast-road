@@ -1093,6 +1093,15 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		speed *= RunState.flood_slow()
 	if state == State.FLEEING or state == State.LEAVING:
 		speed *= kind.flee_speed_scale
+	# **Arriving and leaving cross the edge on purpose**; everything else stays
+	# inside it, and so does where it is going. Held here, at the one reader of
+	# `goal`, because a goal outside is written in several places - a bolt with
+	# nowhere clear to go, a shove off the town, a relocation - and a body held
+	# at the border while it walks at a goal it can never reach is an animal
+	# stuck against the edge of the world for the rest of the run.
+	var crossing: bool = state == State.ARRIVING or state == State.LEAVING
+	if not crossing:
+		animal["goal"] = _settled(animal["goal"] as Vector2)
 	var toward: Vector2 = (animal["goal"] as Vector2) - sprite.global_position
 	var moving: bool = toward.length() > 6.0
 
@@ -1103,7 +1112,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		var step: Vector2 = direction * speed * burst * delta
 		if step.length() > toward.length():
 			step = toward
-		_walk_step(sprite, step)
+		_walk_step(sprite, step, crossing)
 		# Facing from motion, against the *art's own* direction rather than a
 		# guess. The sprites are drawn facing left, the flip was written for
 		# right-facing art, and the result was six species walking backwards.
@@ -1647,7 +1656,7 @@ func _sheltered(at: Vector2) -> bool:
 ##
 ## **Refuses entering, never leaving**, for the reason `step_is_legal` gives:
 ## an animal that somehow starts inside has to be able to get out.
-func _walk_step(sprite: Node2D, step: Vector2) -> void:
+func _walk_step(sprite: Node2D, step: Vector2, crossing: bool = false) -> void:
 	var to: Vector2 = sprite.global_position + step
 	var battlefield := field as Battlefield
 	if battlefield != null:
@@ -1665,7 +1674,14 @@ func _walk_step(sprite: Node2D, step: Vector2) -> void:
 					animal["home"] = to
 					animal["heading"] = away
 					break
-	sprite.global_position = to
+	# And inside the field's own edge, for the reason `EnemyField.hold_inside`
+	# gives: an animal that wandered off the map is an encounter the player can
+	# never reach, and a mythic that did it is a legend nobody meets. Except
+	# while `crossing` - walking in from off the edge, or away over it - which
+	# is the one time an animal is meant to be out there.
+	var scope := field as EnemyField
+	var held: bool = scope != null and not crossing
+	sprite.global_position = scope.hold_inside(to) if held else to
 
 
 func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
@@ -2338,7 +2354,7 @@ func _on_flood(level: float) -> void:
 		# where an animal is forgotten for having wandered off the world - so
 		# a climber sent to the nearest of those was quietly deleted on its
 		# way up. The gathering trees are inside and are what it climbs.
-		var inside: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+		var inside: float = BattleGrid.play_extent()
 		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
 			if absf(trunk.x) <= inside and absf(trunk.y) <= inside:
 				trunks.append(trunk)
@@ -2509,13 +2525,31 @@ func _bolt_target(from: Vector2, threat: Vector2 = Vector2.INF) -> Vector2:
 		away = from.normalized() if from.length() > 1.0 else Vector2.RIGHT
 	for turn: float in [0.0, 0.6, -0.6, 1.2, -1.2, 1.8]:
 		var candidate: Vector2 = from + away.rotated(turn) * Balance.WILDLIFE_BOLT_DISTANCE
+		candidate = _settled(candidate)
 		if _is_clear(candidate):
 			return candidate
 	return away * Balance.WILDLIFE_ENTRY_DISTANCE
 
 
 ## A new spot to potter over to, on ground it is allowed to stand on.
+## The wander centre, held inside the field.
+##
+## `home` is moved every time an animal is frightened - `WILDLIFE_RELOCATE_DISTANCE`
+## away, each time - so a species that is startled often walks its own haunt
+## across the map and eventually off the edge of it. The position clamp in
+## `_walk_step` then holds the body at the border while it keeps aiming at a goal
+## outside, which reads as an animal stuck against the edge of the world. Owner,
+## 2026-09-22: they "try to leave the map or get lost".
+##
+## Held at the consumer rather than at each of the six places `home` is written,
+## because one reader cannot be forgotten and six writers can.
+func _settled(at: Vector2) -> Vector2:
+	var scope := field as EnemyField
+	return scope.hold_inside(at) if scope != null else at
+
+
 func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -> Vector2:
+	home = _settled(home)
 	var roam_scale: float = stage_scale
 	match kind.movement_style:
 		WildlifeData.MovementStyle.GRAZER:
@@ -2533,11 +2567,11 @@ func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -
 	if not kind.haunts.is_empty() and _rng.randf() < kind.haunt_pull:
 		var drawn: Vector2 = _haunt_near(home, kind.haunts)
 		if drawn != Vector2.INF:
-			return drawn
+			return _settled(drawn)
 	for _attempt: int in 6:
-		var candidate: Vector2 = home + Vector2(
+		var candidate: Vector2 = _settled(home + Vector2(
 			_rng.randf_range(-kind.roam, kind.roam) * roam_scale,
-			_rng.randf_range(-kind.roam, kind.roam) * 0.7 * roam_scale)
+			_rng.randf_range(-kind.roam, kind.roam) * 0.7 * roam_scale))
 		if _is_clear(candidate):
 			return candidate
 	# Six misses means the animal is hemmed in. Staying put is the only answer
@@ -3584,7 +3618,7 @@ func _hiding_spot(from: Vector2, kind: WildlifeData = null) -> Vector2:
 	var open_best: Vector2 = Vector2.INF
 	var open_away: float = INF
 	if field != null and field.has_method("tree_positions"):
-		var inside: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+		var inside: float = BattleGrid.play_extent()
 		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
 			if absf(trunk.x) > inside or absf(trunk.y) > inside:
 				continue

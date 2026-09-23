@@ -701,6 +701,8 @@ jobs:
           check "pen" --headless --path game res://tools/pen_check.tscn
           check "expedition" --headless --path game res://tools/expedition_check.tscn
           check "wave library" --headless --path game res://tools/wave_library_check.tscn
+          check "route length" --headless --path game res://tools/route_length_check.tscn
+          check "map bounds" --headless --path game res://tools/map_bounds_check.tscn
           check "journey" --headless --path game res://tools/journey_check.tscn
           check "act start" --headless --path game res://tools/act_start_check.tscn
           # The Hold as a place, the Market's shelf and Orden's commission:

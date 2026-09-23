@@ -252,7 +252,7 @@ func _is_good_water(at: Vector2, half: Vector2) -> bool:
 	if grid == null:
 		return false
 	var rim := Rect2(at - half, half * 2.0)
-	var reach: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+	var reach: float = BattleGrid.play_extent()
 	if absf(at.x) + half.x > reach or absf(at.y) + half.y > reach:
 		return false
 	if not ground_is_open(grid, rim, Balance.FISHING_ROAD_CLEARANCE_TILES):
@@ -788,7 +788,7 @@ func _let_fly(angler: Node2D) -> void:
 		var reach: float = lerpf(Balance.FISHING_CAST_MIN, Balance.FISHING_CAST_MAX, _charge)
 		_float_at = angler.global_position + aim * reach
 	# The line always lands inside the field.
-	var limit: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+	var limit: float = BattleGrid.play_extent()
 	_float_at = Vector2(clampf(_float_at.x, -limit, limit), clampf(_float_at.y, -limit, limit))
 	_state = State.CASTING
 	_phase_total = Balance.FISHING_CAST_TIME * lerpf(0.8, 1.6, _charge)

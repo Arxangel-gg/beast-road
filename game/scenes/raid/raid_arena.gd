@@ -589,7 +589,7 @@ func _build_camp() -> void:
 	if hero != null:
 		# The camp is a square field now, so the hero is bounded by its edge
 		# rather than by the old circle.
-		hero.bounds_extent = Vector2.ONE * (RaidLayout.HALF_EXTENT - RaidLayout.TILE)
+		hero.bounds_extent = Vector2.ONE * RaidLayout.play_extent()
 		hero.global_position = Vector2.ZERO
 	# The fog (2026-09-12): a fresh one a stage, so a dungeon is discovered
 	# floor by floor and only the hero and its companion can see.
@@ -684,6 +684,12 @@ func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 ## the whole shape stops meaning anything. Asked per step rather than pathfound:
 ## a camp is sixty seconds long and an enemy that slides along a cliff looking
 ## for the ramp reads as a siege, which is what the ramp is for.
+## The arena's own floor, a tile in from the rim for the reason the grid's is.
+func hold_inside(at: Vector2) -> Vector2:
+	var edge: float = RaidLayout.play_extent()
+	return Vector2(clampf(at.x, -edge, edge), clampf(at.y, -edge, edge))
+
+
 func step_is_legal(from: Vector2, to: Vector2) -> bool:
 	if layout == null:
 		return true

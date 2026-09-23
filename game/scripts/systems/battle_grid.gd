@@ -261,6 +261,37 @@ static func footprint_centre(tile: Vector2i) -> Vector2:
 	return tile_to_world(tile) + Vector2(TILE, TILE) * 0.5
 
 
+## The ground anything on this field may stand on, in world units from the
+## middle, and the one function that holds a point inside it.
+##
+## **The hero has been clamped to this since it was written and nothing else
+## ever was.** `Battlefield.step_is_legal` refuses only the city, and the base
+## `EnemyField.step_is_legal` returns `true` outright - so a body shoved hard
+## enough left the map and kept going, and a wave cannot close until its last
+## body resolves. Measured 2026-09-22: a pounce left up to 821 units a second of
+## drift on a body that walks at 96, which is off the field in a few seconds.
+## Owner, same date: *"ensure that they are not able to leave the map's bounds
+## etc. And for any other enemies that might experience similar issues."*
+##
+## A tile in from the edge, which is where the hero's own clamp already stood:
+## the outermost row is under the fog's rim and a body standing on it draws cut
+## in half, which is what `_far_routes_for` records about the far spawns.
+static func play_extent() -> float:
+	return HALF_EXTENT - TILE
+
+
+## Holds a point inside the playable ground.
+##
+## Clamped rather than refused, deliberately: a body that is already outside -
+## spawned there by a harness, thrown there by a funnel, standing there when the
+## ground was re-laid - has to be able to come back, and a rule that refused an
+## out-of-bounds destination would pin it there for the rest of the run. That is
+## `step_is_legal`'s own reasoning about the city, applied at the other edge.
+static func hold_inside(at: Vector2) -> Vector2:
+	var edge: float = play_extent()
+	return Vector2(clampf(at.x, -edge, edge), clampf(at.y, -edge, edge))
+
+
 static func in_bounds(tile: Vector2i) -> bool:
 	return tile.x >= 0 and tile.y >= 0 and tile.x < SIZE and tile.y < SIZE
 
@@ -656,21 +687,6 @@ func _walk_routes(entry: Vector2i) -> Array:
 	return found
 
 
-## Turns lattice walks into world polylines from `spawn`, dropping the ones far
-## longer than the direct way in and the final step onto the town itself.
-##
-## Routes far longer than the direct way in are dropped rather than merely made
-## unlikely. A weighting still rolls them occasionally, and an enemy that walks
-## for two and a half minutes arrives long after its wave is over - which reads
-## as a stuck enemy, not as a flanker.
-##
-## **A route ends at the wall, not at the origin.** The goal node is the town's
-## own tile, and a body that walked to it stood in the middle of the square
-## before it swung; the last node before the goal is the gate ring, three tiles
-## out, which is inside a melee reach of the wall and is where a besieger
-## stands. Owner report, 2026-09-12: "melee units should not head all the way
-## into the city base at origin but rather attack it from just outside its
-## walls on their cardinal direction."
 ## Where a route is joined by a body stepping onto it part way along.
 ##
 ## **The first step that is no further from the town than the joining point**,
@@ -697,41 +713,88 @@ func _join_step(path: Array, at: Vector2) -> int:
 	return best
 
 
+## Turns lattice walks into the polylines bodies walk, dropping the ways in that
+## arrive too long after the rest of the wave.
+##
+## **Measured on the route that is produced, not on the walk it came from.**
+## This filtered `_tile_length` of the whole lattice walk from the fork
+## junction, while what it hands back is that walk trimmed at `_join_step` with
+## a spawn and a way onto the road in front of it - two different lengths, and
+## the body only ever walks the second one. Measuring the wrong one is how the
+## pool came to hold a near route of 5632 units against a shortest of 2944 with
+## the cap reporting itself satisfied.
+##
+## **Two bounds, and the absolute one is the one that answers the complaint.**
+## `ROUTE_LENGTH_MAX_RATIO` protects a map whose shortest way in is itself long;
+## `ROUTE_LATE_ARRIVAL_SECONDS` protects the player, who is looking at an empty
+## road waiting for one body. A ratio alone stopped describing this game when
+## the outskirts grew - see the note on that constant.
+##
+## **A route ends at the wall, not at the origin.** The goal node is the town's
+## own tile, and a body that walked to it stood in the middle of the square
+## before it swung; the last node before the goal is the gate ring, three tiles
+## out, which is inside a melee reach of the wall and is where a besieger
+## stands. Owner report, 2026-09-12: "melee units should not head all the way
+## into the city base at origin but rather attack it from just outside its
+## walls on their cardinal direction."
 func _finish_routes(found: Array, spawn: Vector2, via: Vector2 = Vector2.INF) -> Array:
-	var shortest: int = _tile_length(found[0]) if not found.is_empty() else 0
-	var out: Array = []
+	var built: Array = []
 	for path: Array in found:
-		if shortest > 0 and float(_tile_length(path)) \
-				> float(shortest) * Balance.ROUTE_LENGTH_MAX_RATIO:
+		built.append(_lay_route(path, spawn, via))
+	return _bounded(built)
+
+
+## One lattice walk, laid as the polyline a body actually walks.
+func _lay_route(path: Array, spawn: Vector2, via: Vector2) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	points.append(spawn)
+	# The way onto the road, when the spawn is off it: an ambusher crosses the
+	# open ground to the corridor first, then walks the road like any other body.
+	var joins: int = 0
+	if via.is_finite() and via.distance_to(spawn) > 1.0:
+		points.append(via)
+		# **And it joins the road where it steps onto it**, not at the far end of
+		# it.
+		#
+		# `_entry_node` finds the lattice node *furthest out* along the lane, so
+		# every route in `found` is written from the fork junction inward - which
+		# is right for a body that enters at the fork and wrong for one that
+		# ambushes from the trees beside the core. Laid whole, the route sent an
+		# ambusher to the corridor, then out past both camps to the junction, then
+		# all the way back in past itself.
+		#
+		# Owner, 2026-09-15: wave enemies "spawn at the correct location between
+		# camp 1 and closer to the central square ... but then they head to the
+		# fork joint where camp 3 is before heading back to the central square".
+		# This is that, and it was every closed-fork wave in the game.
+		joins = _join_step(path, via)
+	var last: int = path.size() - 1 if path.size() <= 2 else path.size() - 2
+	for index: int in range(joins, last + 1):
+		points.append(tile_to_world(path[index]))
+	return points
+
+
+## The ways in that are worth offering, shortest first.
+##
+## The shortest is always kept, so a lane can never be left without a road even
+## if every bound were tuned to nothing.
+static func _bounded(built: Array) -> Array:
+	var shortest: float = INF
+	for path: Variant in built:
+		shortest = minf(shortest, _world_length(path as PackedVector2Array))
+	if not is_finite(shortest):
+		return built
+	var ceiling: float = shortest * Balance.ROUTE_LENGTH_MAX_RATIO
+	var late: float = Balance.ROUTE_LATE_ARRIVAL_SECONDS * Balance.ROUTE_REFERENCE_WALK
+	var budget: float = shortest + late
+	var out: Array = []
+	for path: Variant in built:
+		var length: float = _world_length(path as PackedVector2Array)
+		if length > ceiling or length > budget:
 			continue
-		var points: PackedVector2Array = PackedVector2Array()
-		points.append(spawn)
-		# The way onto the road, when the spawn is off it: an ambusher crosses
-		# the open ground to the corridor first, then walks the road like any
-		# other body.
-		var joins: int = 0
-		if via.is_finite() and via.distance_to(spawn) > 1.0:
-			points.append(via)
-			# **And it joins the road where it steps onto it**, not at the far
-			# end of it.
-			#
-			# `_entry_node` finds the lattice node *furthest out* along the
-			# lane, so every route in `found` is written from the fork junction
-			# inward - which is right for a body that enters at the fork and
-			# wrong for one that ambushes from the trees beside the core. Laid
-			# whole, the route sent an ambusher to the corridor, then out past
-			# both camps to the junction, then all the way back in past itself.
-			#
-			# Owner, 2026-09-15: wave enemies "spawn at the correct location
-			# between camp 1 and closer to the central square ... but then they
-			# head to the fork joint where camp 3 is before heading back to the
-			# central square". This is that, and it was every closed-fork wave
-			# in the game.
-			joins = _join_step(path, via)
-		var last: int = path.size() - 1 if path.size() <= 2 else path.size() - 2
-		for index: int in range(joins, last + 1):
-			points.append(tile_to_world(path[index]))
-		out.append(points)
+		out.append(path)
+	out.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+		return _world_length(a) < _world_length(b))
 	return out
 
 

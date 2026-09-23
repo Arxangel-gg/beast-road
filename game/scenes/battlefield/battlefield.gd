@@ -261,7 +261,7 @@ func _ready() -> void:
 		# area follows the map instead of having to be remembered whenever the
 		# map changes. It was not remembered: the scene still carried an 880
 		# circle from the 30x30 field.
-		hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
+		hero.bounds_extent = Vector2.ONE * BattleGrid.play_extent()
 	# The partner's hero, when there is one. Created unconditionally and inert in
 	# a single-player run: it spawns nothing, sends nothing and costs one early
 	# return per physics frame. A system that only exists in co-op is a system
@@ -1317,6 +1317,11 @@ static func sprite_clearance(at: Vector2, visual: Sprite2D, minimum: float) -> f
 ## ring and a body at the gate hits the gate, so a marching body was never
 ## trying to walk in. What this stops is the one that broke off to chase a
 ## Warden and followed them through the arch.
+## The grid's own playable ground. See `BattleGrid.hold_inside`.
+func hold_inside(at: Vector2) -> Vector2:
+	return BattleGrid.hold_inside(at)
+
+
 func step_is_legal(from: Vector2, to: Vector2) -> bool:
 	if inside_city(to) and not inside_city(from):
 		return false
@@ -1685,26 +1690,51 @@ func try_drop_gear(index: int) -> String:
 	return ""
 
 
+## How close the nearest body the wave is waiting on has got to the wall.
+##
+## **Measured from the town, over the bodies that hold the wave open.** It read
+## `global_position.length()` - distance from the world origin - which is the
+## right answer only because the town happens to stand there, and it counted
+## camp bodies, which `enemy_count` deliberately does not. A camp mob patrolling
+## inward set the closest approach the watchdog then measured every real body
+## against. See `EnemyField.holds_the_wave`.
 func nearest_enemy_distance() -> float:
+	var from: Vector2 = town_position()
 	var nearest: float = INF
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
-			nearest = minf(nearest, enemy.global_position.length())
+		if not holds_the_wave(enemy):
+			continue
+		nearest = minf(nearest, from.distance_to(enemy.global_position))
 	return nearest
 
 
 ## Aggregate health across both sides of the live wave. Any material change
 ## means combat is resolving even if the nearest ranged attacker is stationary.
+##
+## **The live wave, which camp bodies are not.** This summed every enemy in the
+## group, so a camp regenerating on the outskirts - which is what a camp does
+## the moment it is left alone - moved this every frame, and a change here
+## resets the stall clock. A straggler on the long road then held the wave open
+## with the watchdog permanently disarmed, which is the half of the
+## 2026-09-22 report that made a slow arrival into one that never resolved.
 func wave_activity_checksum() -> float:
 	var total: float = town.health.current_hp if town != null and town.health != null else 0.0
-	for group: StringName in [Enemy.GROUP, Tower.GROUP]:
-		for node: Node in get_tree().get_nodes_in_group(group):
-			if not is_instance_valid(node):
-				continue
-			var health: Health = Health.of(node)
-			if health != null and not health.is_dead:
-				total += health.current_hp
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if not holds_the_wave(enemy):
+			continue
+		var body: Health = Health.of(enemy)
+		if body != null and not body.is_dead:
+			total += body.current_hp
+	# Towers stay: one being chewed through, or mended by a Mason Shrine after
+	# it was, is the fight resolving rather than the outskirts breathing.
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		if not is_instance_valid(node):
+			continue
+		var health: Health = Health.of(node)
+		if health != null and not health.is_dead:
+			total += health.current_hp
 	return total
 
 
@@ -1716,7 +1746,14 @@ func resolve_stalled_wave() -> int:
 	var resolved: int = 0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+		# **Only the bodies that were holding the wave open.** This walked the
+		# whole group, so the rescue razed every camp on the outskirts and every
+		# body in an arena beside the road - and `Health.kill` is the ordinary
+		# death, so it paid full spoils, experience, loot and gear for each of
+		# them. A watchdog that fires is already a bad moment; one that hands the
+		# player twenty-eight free camp kills and empties the outskirts is worse
+		# than the stall it is rescuing.
+		if not holds_the_wave(enemy):
 			continue
 		var health: Health = Health.of(enemy)
 		if health != null:
