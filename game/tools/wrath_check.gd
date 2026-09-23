@@ -409,8 +409,13 @@ func _test_the_wildfire() -> void:
 	var coil: Tower = _build("ash_thrower", stand)
 	await get_tree().process_frame
 	var calm: float = coil.effective_damage() if coil != null else 0.0
+	# Counted as a difference, not a total: the fire tower stood up a frame ago
+	# may already have lit something with a shot, which is the tower working -
+	# on CI's slower frames it did, twice, and the total read 3.
+	var burning: int = _fire.fire_count()
 	_check(_fire.ignite_near(seed_at, 20.0, 1.0), "a dry plant did not catch")
-	_check(_fire.fire_count() == 1, "one plant lit means one fire (%d)" % _fire.fire_count())
+	_check(_fire.fire_count() == burning + 1, "one plant lit means one fire (%d from %d)"
+		% [_fire.fire_count(), burning])
 	# A body standing in it burns; a fire tower near it heats.
 	var body: Enemy = _body(seed_at)
 	body.set_process(false)
