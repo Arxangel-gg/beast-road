@@ -580,6 +580,10 @@ func _process(delta: float) -> void:
 		- delta / maxf(Balance.STAGGER_WINDOW, 0.01), 0.0)
 	_braced_left = maxf(_braced_left - delta, 0.0)
 	_brace_refractory = maxf(_brace_refractory - delta, 0.0)
+	if _interrupt_clock > 0.0:
+		_interrupt_clock -= delta
+		if _interrupt_clock <= 0.0:
+			_interrupts = 0
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_provoked_left = maxf(_provoked_left - delta, 0.0)
 	_tick_boss_abilities(delta)
@@ -889,6 +893,8 @@ func _tick_state(delta: float) -> void:
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
 				# Coil before the blow: the tell the player reads.
 				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+				if _breakout_armed:
+					_break_out()
 			elif _may_throw_on_the_way_in():
 				# **The same wind-up, so the tell is the tell.** A throw that
 				# had its own silent animation would be a blow from nowhere,
@@ -1300,6 +1306,9 @@ func _enter(state: State, duration: float) -> void:
 	# body often enough that a rider was reliably interrupted mid-throw.
 	if state != State.WINDUP:
 		_throwing = false
+	# An armoured swing lasts exactly as long as the swing.
+	if state != State.WINDUP and state != State.STRIKE:
+		_breaking_out = false
 	# **A commitment's shove does not outlive it.** The leap is written into
 	# `_slip`, which is the field the *snow* also uses - and the snow's copy
 	# carries `_slip_left`, so `_tick_slip` clears it. A pounce's carries no
@@ -2169,6 +2178,13 @@ var _death_element_left: float = 0.0
 ## Presentation and spacing only: nothing here reads or moves damage.
 var _stagger_load: float = 0.0
 var _braced_left: float = 0.0
+## **The break-out.** How many wind-ups have been knocked out of this body
+## lately, whether its next one will be armoured, and whether the one under way
+## is. See `_note_an_interruption`.
+var _interrupts: int = 0
+var _interrupt_clock: float = 0.0
+var _breakout_armed: bool = false
+var _breaking_out: bool = false
 var _brace_refractory: float = 0.0
 
 
@@ -2273,8 +2289,9 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	# into a telegraph a real answer rather than a trade - and a body that has
 	# planted is no longer interrupted by it, which is what the plant is *for*.
 	if knockback > 0.0 and rocked > Balance.STAGGER_MIN_SCALE \
-			and _state == State.WINDUP:
+			and _state == State.WINDUP and not _breaking_out:
 		_enter(State.RECOVER, Balance.ENEMY_ATTACK_RECOVERY * 0.5)
+		_note_an_interruption()
 	if active_hero:
 		EventBus.hero_enemy_hit.emit(data.id, lane, is_priority(),
 			was_telegraphing and knockback > 0.0, global_position)
@@ -2344,7 +2361,7 @@ func pull_toward(point: Vector2, strength: float) -> void:
 func _absorb_a_blow() -> float:
 	if data == null:
 		return 1.0
-	if _braced_left > 0.0:
+	if _braced_left > 0.0 or _breaking_out:
 		return 0.0
 	var worth: float = lerpf(1.0, Balance.STAGGER_MIN_SCALE,
 		clampf(_stagger_load, 0.0, 1.0))
@@ -2396,13 +2413,77 @@ func is_braced() -> bool:
 	return _braced_left > 0.0
 
 
+## **A wind-up knocked out of this body, counted toward breaking out.**
+##
+## Owner, 2026-09-22: *"enemies that have been hitstunlocked from the player's
+## spammed attacks are eventually able to break out of it and attack back, tuned
+## for each enemy appropriately."* The footing above takes the *shove* away from
+## a spammed body, and a shield-bearer plants - but the footing drains at two
+## thirds a second, so a Warden swinging three times a second holds an ordinary
+## body's load low for ever, and every blow still knocks its 0.45-second wind-up
+## back into recovery. It never swings. That is the lock.
+##
+## So interruptions are counted inside `ENEMY_BREAKOUT_WINDOW`, and once a body
+## has had `breakout_after()` wind-ups broken, the **next** one is armoured: no
+## flinch, no shove, no stun, and the ordinary blow lands at its ordinary size.
+## The tell is loud and early, so the answer - step out, or dodge it - is a
+## read rather than a surprise.
+##
+## **Damage never moves, and that is the whole bound.** The blow that breaks out
+## is the blow the body was always going to throw; what changed is that spamming
+## can no longer refuse it. `curve_report` models no interruptions and so reads
+## the same waves.
+func _note_an_interruption() -> void:
+	if puppet or data == null:
+		return
+	_interrupts += 1
+	_interrupt_clock = Balance.ENEMY_BREAKOUT_WINDOW
+	if _interrupts >= breakout_after():
+		_breakout_armed = true
+
+
+## How many wind-ups this body lets be broken before the next is armoured.
+##
+## **Derived from the tolerance each breed already declares** rather than typed
+## into sixty-eight files: a boss (tolerance 1) breaks out after one, an anchor
+## or a stone hide after two, an ordinary body after three. A breed tuned to reel
+## longer is tuned to be held longer, which is the same statement.
+func breakout_after() -> int:
+	var tolerance: float = data.stagger_tolerance if data != null else 5.0
+	return clampi(int(ceil(tolerance * Balance.ENEMY_BREAKOUT_TOLERANCE_SHARE)),
+		1, Balance.ENEMY_BREAKOUT_MAX)
+
+
+## The armoured swing begins: said loudly, so it is read rather than suffered.
+func _break_out() -> void:
+	_breakout_armed = false
+	_breaking_out = true
+	_interrupts = 0
+	_interrupt_clock = 0.0
+	_hitstun_left = 0.0
+	_knockback = Vector2.ZERO
+	var at: Vector2 = _visual_origin()
+	Vfx.ring(at, data.body_radius * 2.4, Balance.ENEMY_BREAKOUT_COLOUR,
+		Balance.ENEMY_ATTACK_WINDUP, 5.0)
+	Vfx.spark(at, Balance.ENEMY_BREAKOUT_COLOUR, 12, Vector2.ZERO, 240.0)
+	_flash_left = Balance.HIT_FLASH_TIME
+	animator.squash(1.25)
+	Sfx.play_at("sfx_hit_armour_1", global_position, 1.3)
+	EventBus.camera_impact.emit(global_position, Balance.IMPACT_FULL_SHARE * 0.18)
+
+
+## Whether the swing under way cannot be interrupted. For the gate and the field.
+func is_breaking_out() -> bool:
+	return _breaking_out
+
+
 ## How reeled this body is, 0 to 1. For the gate.
 func stagger_load() -> float:
 	return _stagger_load
 
 
 func _add_hitstun(duration: float) -> void:
-	if duration <= 0.0 or _hitstun_refractory > 0.0:
+	if duration <= 0.0 or _hitstun_refractory > 0.0 or _breaking_out:
 		return
 	_hitstun_left = maxf(_hitstun_left, duration)
 	_hitstun_refractory = duration + Balance.ENEMY_HITSTUN_GAP

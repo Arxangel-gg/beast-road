@@ -227,7 +227,72 @@ func _test_the_field() -> void:
 					+ "a body that can never be moved for the rest of a fight"))
 		wall.queue_free()
 
+	await _test_a_spammed_body_breaks_out(field, soft)
 	await _leave(run)
+
+
+## **Held by spam, it breaks out and swings** (owner, 2026-09-22). A Warden
+## hitting three times a second keeps an ordinary body's footing low, so every
+## blow still knocked its wind-up back into recovery and it never swung at all.
+## Driven in real time with real blows: the body must land its ordinary swing,
+## at its ordinary size, inside a few seconds of being spammed - and a body hit
+## once must not have been armoured by it.
+func _test_a_spammed_body_breaks_out(field: Battlefield, breed: EnemyData) -> void:
+	var hero: Hero = field.hero
+	_check(hero != null and hero.health != null, "the break-out needs a Warden to swing at")
+	if hero == null or hero.health == null:
+		return
+	var spot := Vector2(1800.0, -1800.0)
+	hero.global_position = spot
+	hero.health.current_hp = hero.health.max_hp
+	hero.health.floor_hp = hero.health.max_hp * 0.5
+	var body: Enemy = _stand(field, breed, spot + Vector2(70.0, 0.0))
+	_check(body.breakout_after() == 3,
+		"an ordinary body breaks out after %d broken wind-ups, not 3" % body.breakout_after())
+	var landed: Array[float] = []
+	var took: Callable = func(amount: float, _from: Vector2) -> void:
+		landed.append(amount)
+	hero.health.damaged.connect(took)
+	await _settle(0.2)
+	var armoured: bool = false
+	var clock: float = 0.0
+	while clock < 9.0 and landed.is_empty():
+		_strike(body, 1.0, Balance.HERO_ATTACK_KNOCKBACK[0])
+		armoured = armoured or body.is_breaking_out()
+		await _settle(0.3)
+		clock += 0.3
+		if not is_instance_valid(body):
+			break
+		body.global_position = body.global_position.move_toward(
+			spot + Vector2(70.0, 0.0), 40.0)
+	hero.health.damaged.disconnect(took)
+	_check(not landed.is_empty(),
+		("a body spammed every 0.3 s never landed a swing in %.1f s - it is "
+			+ "held for ever, which is the lock the break-out exists to end") % clock)
+	_check(armoured, "the swing that landed was never armoured")
+	if not landed.is_empty():
+		_check(landed[0] <= body.data.contact_damage * 3.0 + 0.01,
+			"the break-out swing hit for %.1f - it must be the ordinary blow" % landed[0])
+	if is_instance_valid(body):
+		body.queue_free()
+	# One blow is not a lock.
+	var once: Enemy = _stand(field, breed, spot + Vector2(900.0, 0.0))
+	await _settle(0.1)
+	_strike(once, 1.0, Balance.HERO_ATTACK_KNOCKBACK[0])
+	_check(not bool(once.get("_breakout_armed")),
+		"a body hit once was armoured by it")
+	once.queue_free()
+	hero.health.floor_hp = 0.0
+	# **Tuned per body.** The count is derived from the footing each breed
+	# declares, so a boss that reels least breaks out soonest.
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind == null:
+			continue
+		var wanted: int = clampi(int(ceil(kind.stagger_tolerance
+			* Balance.ENEMY_BREAKOUT_TOLERANCE_SHARE)), 1, Balance.ENEMY_BREAKOUT_MAX)
+		if kind.category == EnemyData.Category.BOSS:
+			_check(wanted <= 2, "boss %s is held for %d broken wind-ups" % [kind.id, wanted])
 
 
 ## One blow, and what it took off. **The probe is refilled afterwards**, because

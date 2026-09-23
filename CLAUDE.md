@@ -8101,6 +8101,30 @@ reads, and `camps_check` holds that no tier's raze in Act I buys the cheapest
 tower and that the pay climbs with the road. Planted: the old flat table,
 which it named on all three tiers.
 
+**A body held by spam breaks out and swings, as of 2026-09-22.** The owner:
+enemies *"hitstunlocked from the player's spammed attacks"* should *"eventually
+... break out of it and attack back, tuned for each enemy appropriately"*.
+
+**The footing of 2026-09-15 took the shove away and left the lock.** The load
+drains at two thirds a second and an ordinary body gains a fifth a blow, so a
+Warden swinging three times a second holds it low for ever - and every blow
+with any shove still knocked a 0.45-second wind-up back into recovery.
+Measured by planting the fault: a body spammed every 0.3 seconds went nine
+seconds without one swing.
+
+So broken wind-ups are counted inside `ENEMY_BREAKOUT_WINDOW`, and once a body
+has had `breakout_after()` broken, the next is armoured: no flinch, no shove,
+no stun, a loud early tell (ring, sparks, the armour ring's sound, a small
+impact), and **the ordinary blow at its ordinary size**. The count is derived
+from the `stagger_tolerance` each breed already declares - a boss after one,
+a plated or stone body after two, an ordinary body after three - so a breed
+tuned to reel longer is tuned to be held longer, and nobody edits sixty-eight
+files. A brace is still a refusal that deals nothing; this is the other half,
+and it deals exactly what the body was always going to deal, which is why
+`curve_report` reads the same waves. `stagger_check` (241) spams a real body
+in real time and insists the swing lands and was armoured, and that one blow
+arms nothing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

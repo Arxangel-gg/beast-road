@@ -2216,6 +2216,15 @@ const BRACE_AT: float = 0.55
 const BRACE_SECONDS: float = 0.9
 const BRACE_SHOVE: float = 360.0
 const BRACE_REFRACTORY: float = 2.4
+## **The break-out** (owner, 2026-09-22): a body whose wind-ups keep being
+## broken throws an armoured one. Interruptions are counted inside the window;
+## the number allowed is the breed's `stagger_tolerance` times the share,
+## rounded up, never more than the maximum - so a boss breaks out after one, a
+## plated or stone body after two, an ordinary one after three. [TUNE]
+const ENEMY_BREAKOUT_WINDOW: float = 3.0
+const ENEMY_BREAKOUT_TOLERANCE_SHARE: float = 0.6
+const ENEMY_BREAKOUT_MAX: int = 4
+const ENEMY_BREAKOUT_COLOUR: Color = Color(1.0, 0.46, 0.24, 0.9)
 
 const ENEMY_KNOCKBACK_DECAY: float = 900.0
 
