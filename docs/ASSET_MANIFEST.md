@@ -3545,6 +3545,7 @@ in step with the screens rather than leaving fifteen stale copies.
 | `spirit_upkeep.png` | 1280×720 | O | `#2E3A33` |
 | `sharing_fish.png` | 1280×720 | O | `#2E3A33` |
 | `boss_fight.png` | 1280×720 | O | `#2E3A33` |
+| `commands.png` | 1280×720 | O | `#2E3A33` |
 | `hunted.png` | 1280×720 | O | `#2E3A33` |
 | `attributes.png` | 1280×720 | O | `#2E3A33` |
 | `enemy_shots.png` | 1280×720 | O | `#2E3A33` |

@@ -239,6 +239,14 @@ func _ready() -> void:
 		func() -> void: _apt_combat_post("hud"))
 	await _shot("loop", func() -> void: _apt_combat_post("loop"),
 		func() -> void: _apt_combat_post("loop"))
+	# **The Command panel, earned.** It is hidden until the first Command of a
+	# run (owner, 2026-09-22), so the page about it is photographed with some
+	# in hand - enough for two orders and not the third, which is the state a
+	# player reading the page is most often in.
+	await _shot("commands", func() -> void:
+			_apt_combat_post("commands")
+			RunState.gain_command(Balance.COMMAND_RALLY_COST + 10.0),
+		func() -> void: _apt_combat_post("commands"))
 	_crop("waves", "spells", Rect2(0.25, 0.8, 0.5, 0.2))
 	_crop("waves", "currencies", Rect2(0.0, 0.0, 0.42, 0.22))
 	await _shot("healing", func() -> void:

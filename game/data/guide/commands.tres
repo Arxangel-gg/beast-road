@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "commands"
+display_name = "Command and its orders"
+title = "Command and its orders"
+category = "Fighting"
+order = 8
+image = "res://art/guide/commands.png"
+body = "Command is earned in battle, never bought. Every blow you land on a road that is under pressure adds some, and the harder that road is pressed the more each blow is worth. Striking a marked priority target adds more, knocking an enemy out of its wind-up adds more again, and a perfect dodge - dashing through an attack a moment before it lands - adds the most. Focus makes it come faster. It only builds while a wave is being fought, it stops at 100, and the Command panel appears at the top left the first time you earn any.\n\nOverdrive (Z, 30 Command): aim at one of your towers. For a few seconds it fires far faster and its slows, burns and chains bite harder.\n\nRally (X, 45 Command): aim at a road. Every enemy on it staggers, and every tower on it is shielded.\n\nLast Stand (C, 100 Command, once a battle): the walls cannot be hurt for a few seconds, and every tower's next shot is ready at once.\n\nOrders work during a wave, when building does not - that is what they are for."
