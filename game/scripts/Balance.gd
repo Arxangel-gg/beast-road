@@ -5488,6 +5488,18 @@ const STRAGGLER_RING_WIDTH: float = 2.4
 const STRAGGLER_MARK_CLEAR: float = 26.0
 const STRAGGLER_PULSE_HZ: float = 0.85
 const STRAGGLER_TONE: Color = Color(0.96, 0.36, 0.30, 0.82)
+## **Edge arrows** (owner, 2026-09-22): how often the set is gathered, how far
+## in from the screen's edge an arrow stands, how big it is, how fast it
+## breathes, and its colour by `ThreatPointers.Kind` - the wave's last bodies,
+## a boss, a beast hunting the players, a landed dragon. [TUNE]
+const THREAT_POINTER_REFRESH: float = 0.2
+const THREAT_POINTER_INSET: float = 44.0
+const THREAT_POINTER_SIZE: float = 15.0
+const THREAT_POINTER_PULSE_HZ: float = 1.1
+const THREAT_POINTER_COLOURS: Array[Color] = [
+	Color(0.96, 0.36, 0.30), Color(0.98, 0.2, 0.2), Color(1.0, 0.62, 0.18),
+	Color(0.78, 0.45, 1.0),
+]
 ## **And the same mark in gold once the next swing would reach it** (owner,
 ## 2026-09-22). Red says "still standing, and it is over there"; gold says
 ## "and you are close enough". The colour every actionable thing in this game

@@ -8194,6 +8194,39 @@ fire, and that only the fire wyrm ever breathes the ultra. `DragonBreath` reads
 nothing, moves no number and draws on its own dice. The telegraph's exact edges
 are still drawn by the strike that owns them.
 
+**A beast sent after the players keeps after the players, and the screen's
+edge points at what the player must find, as of 2026-09-22.** The owner, of the
+"new beasts": *"sometimes they'll run off and attack a camp or try to leave the
+map or get lost. They should have smarter AI behaviors ... and indicators also
+implemented to help players identify where they are"*.
+
+**The fault was the frenzy's appetite on an animal that was not frenzied.** A
+savage - the elite a species sends after somebody who over-farmed it - is also
+flagged `rabid`, which is what lends it the frenzy's reach, and `_quarry_for`
+offered a rabid animal every road body and camp body in range. So a beast sent
+after the player detoured into the first camp it passed; a robbed parent
+(`angered`) had the same door. And with no Warden in reach it settled where it
+had been placed - which for a savage is the edge of the map - and wandered.
+`Wildlife.hunts_the_players` names the two; they take only heroes and the
+spirits at their shoulder, and with nobody in reach they walk toward the
+nearest Warden not sheltered in the town. A Wildblight frenzy that nobody
+provoked still attacks everything near it - that is the blight, unchanged.
+`wildlife_spawn_check` offers a savage a road body and no Warden, and refuses
+the old appetite by name.
+
+**`ThreatPointers` puts an arrow at the screen's edge**, pointing out along the
+line from the middle of the screen, for four things: the wave's last bodies
+(asked of `Stragglers`, so the plume and the arrow are one set - and
+`Stragglers` now scopes itself to its own field's wave, as `enemy_count` does),
+an act boss, a beast hunting the players, and a dragon that has landed. **The
+fog's bound, narrowed as `Stragglers` narrowed it**: only what is hunting the
+player or what a wave or an announcement is already asking about; an arrow at
+every elite and every camp would be the fog turned off. Nothing reads it.
+`road_sheet_check` stands a boss off the screen and insists on one arrow, at
+the edge, facing it - and none once the boss is on the screen. Its first cut
+waited twenty frames for a set gathered every fifth of a second, which headless
+is no time at all: waits are in seconds.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

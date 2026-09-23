@@ -1556,9 +1556,21 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	elif float(animal["wary"]) > 0.0:
 		return false
 
+	var hunter: bool = hunts_the_players(animal)
 	var quarry: Node2D = _quarry_for(sprite.global_position, kind, sprite,
 		bool(animal.get("rabid", false)), bool(animal.get("truce", false)),
-		bool(animal.get("angered", false)))
+		bool(animal.get("angered", false)), hunter)
+	if quarry == null and hunter:
+		# **Sent after the player, it keeps after the player.** With nobody in
+		# reach it walks toward the nearest Warden it can reach rather than
+		# settling where it was placed - at the edge of the map, which is where
+		# a savage arrives - and wandering there. That was "get lost".
+		var trail: Vector2 = _nearest_warden(sprite.global_position)
+		if trail != Vector2.INF:
+			animal["state"] = State.STALKING
+			animal["goal"] = trail
+			animal["home"] = trail
+			return false
 	if quarry == null:
 		# Nothing worth attacking. A territorial animal goes back to standing
 		# about; a predator keeps looking while it wanders.
@@ -1684,8 +1696,51 @@ func _walk_step(sprite: Node2D, step: Vector2, crossing: bool = false) -> void:
 	sprite.global_position = scope.hold_inside(to) if held else to
 
 
+## **Whether this animal was sent after the players** - a savage the species
+## sent to hunt the hunter, or a parent whose nest was robbed. Owner,
+## 2026-09-22, of the beasts: *"sometimes they'll run off and attack a camp or
+## try to leave the map or get lost. They should have smarter AI behaviors"*.
+## A savage is also `rabid`, which is what lends it the frenzy's reach - and
+## the frenzy's appetite for *everything*, road bodies and camps included, so a
+## beast sent after the player detoured into the first camp it passed.
+func hunts_the_players(animal: Dictionary) -> bool:
+	return bool(animal.get("savage", false)) or bool(animal.get("angered", false))
+
+
+## The animals hunting the players right now - a savage, a robbed parent, one
+## the Wildblight has taken - for the edge arrows. Presentation reads this;
+## nothing about the hunt does.
+func hunting_sprites() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	for animal: Dictionary in _living:
+		if not hunts_the_players(animal) and not bool(animal.get("rabid", false)):
+			continue
+		if float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		var sprite := animal.get("sprite") as Node2D
+		if sprite != null and is_instance_valid(sprite):
+			out.append(sprite)
+	return out
+
+
+## Where the nearest Warden stands that is not sheltered in the town, or INF.
+func _nearest_warden(at: Vector2) -> Vector2:
+	var best: Vector2 = Vector2.INF
+	var nearest: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Hero
+		if hero == null or not hero.is_alive() or _sheltered(hero.global_position):
+			continue
+		var distance: float = at.distance_to(hero.global_position)
+		if distance < nearest:
+			nearest = distance
+			best = hero.global_position
+	return best
+
+
 func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
-		rabid: bool = false, truce: bool = false, angered: bool = false) -> Node2D:
+		rabid: bool = false, truce: bool = false, angered: bool = false,
+		players_only: bool = false) -> Node2D:
 	var best: Node2D = null
 	# A frenzied grazer has no aggro radius of its own - nothing harmless does -
 	# so the blight lends it one, or a turned rabbit would look for trouble and
@@ -1718,6 +1773,10 @@ func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
 		if distance < best_distance:
 			best_distance = distance
 			best = spirit
+	# A beast sent after the players hunts the players and the spirits at their
+	# shoulder, and nothing else - see `hunts_the_players`.
+	if players_only:
+		return best
 	if field != null and field.has_method("enemies_near"):
 		for enemy: Enemy in field.enemies_near(at, kind.aggro_radius):
 			if enemy.is_dying():

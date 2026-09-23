@@ -52,6 +52,7 @@ func _ready() -> void:
 	_test_hoarders(wildlife)
 	_test_the_road_goes_quiet(wildlife)
 	_test_a_savage_is_actually_savage(wildlife)
+	_test_a_hunter_keeps_to_the_players(wildlife)
 
 	if _failures == 0:
 		print("[wildlife] PASS - arrivals keep their distance, every tier is "
@@ -482,3 +483,57 @@ func _test_a_savage_is_actually_savage(wildlife: Wildlife) -> void:
 	_check(savage_pace > plain_pace,
 		("a savage moves at %.2f of its kind's pace - it is sent to hunt, and "
 			+ "something that cannot close is not hunting") % savage_pace)
+
+
+## **A beast sent after the players hunts the players** (owner, 2026-09-22: they
+## "run off and attack a camp ... or get lost"). A savage is also rabid, which
+## lends it the frenzy's reach and its appetite for everything; offered a road
+## or camp body and no Warden, it must take neither. A frenzied animal that was
+## *not* sent after anybody still attacks whatever is near - that is the
+## Wildblight, and it is unchanged.
+func _test_a_hunter_keeps_to_the_players(wildlife: Wildlife) -> void:
+	var kind: WildlifeData = null
+	for species: WildlifeData in ContentDB.wildlife():
+		if species != null and species.damage > 0.0 and species.aggro_radius > 0.0:
+			kind = species
+			break
+	_check(kind != null, "no predator to send")
+	if kind == null:
+		return
+	var stub := HuntField.new()
+	var breed: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		breed = value as EnemyData
+		if breed != null and breed.category == EnemyData.Category.BREED:
+			break
+	var body := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+	add_child(stub)
+	body.setup(breed, 1, stub, 1.0, 1.0, 1.0)
+	stub.add_child(body)
+	body.global_position = Vector2(40.0, 0.0)
+	stub.bodies.append(body)
+	var was: Node = wildlife.field
+	wildlife.field = stub
+	var savage: Dictionary = {"savage": true, "rabid": true}
+	var robbed: Dictionary = {"angered": true}
+	var frenzied: Dictionary = {"rabid": true}
+	_check(wildlife.hunts_the_players(savage) and wildlife.hunts_the_players(robbed),
+		"a savage and a robbed parent must both count as hunting the players")
+	_check(not wildlife.hunts_the_players(frenzied),
+		"a frenzy with nobody to blame must not count as hunting the players")
+	var for_savage: Variant = wildlife.call("_quarry_for", Vector2.ZERO, kind, null,
+		true, false, false, true)
+	_check(for_savage == null,
+		"a savage sent after the players took a road body for its quarry - it detours into camps")
+	var for_frenzy: Variant = wildlife.call("_quarry_for", Vector2.ZERO, kind, null,
+		true, false, false, false)
+	_check(for_frenzy == body, "a plain frenzy no longer attacks the body beside it")
+	wildlife.field = was
+	stub.queue_free()
+
+
+class HuntField extends EnemyField:
+	var bodies: Array[Enemy] = []
+
+	func enemies_near(_at: Vector2, _radius: float) -> Array[Enemy]:
+		return bodies

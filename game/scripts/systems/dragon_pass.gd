@@ -51,8 +51,18 @@ var _attack_left: float = 0.0
 var _touched_down: bool = false
 
 
+## Every passing dragon, for anything that has to find one - the edge arrows.
+const GROUP: StringName = &"dragon_pass"
+
+
+## Whether it is standing on the field rather than crossing the sky.
+func is_landed() -> bool:
+	return _landed
+
+
 func _ready() -> void:
 	name = "DragonPass"
+	add_to_group(GROUP)
 	z_as_relative = false
 	z_index = Balance.DRAGON_Z
 	_mirror = Coop.is_guest()

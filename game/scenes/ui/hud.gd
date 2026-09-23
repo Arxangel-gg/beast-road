@@ -562,6 +562,7 @@ var _preparation_label: Label
 var _preparation_clock: Label
 var _ride_on_button: Button
 var _command_panel: PanelContainer
+var _threat_pointers: ThreatPointers = null
 var _command_bar: ProgressBar
 var _command_value: Label
 var _command_target: Label
@@ -627,6 +628,7 @@ func _ready() -> void:
 	_build_tutorial_coach()
 	_build_preparation_panel()
 	_build_command_panel()
+	_build_threat_pointers()
 	_refit_banners()  # once the whole HUD exists
 
 	EventBus.resources_changed.connect(func(v: int) -> void:
@@ -3336,6 +3338,17 @@ func _top_bar_room() -> float:
 	return clampf(wide / TOP_BAR_FULL_WIDTH, 0.55, 1.0)
 
 
+## **Edge arrows for what the player has to go and find** (owner, 2026-09-22).
+## First among the HUD's children, so every panel draws over an arrow rather
+## than an arrow over a button.
+func _build_threat_pointers() -> void:
+	_threat_pointers = ThreatPointers.new()
+	_threat_pointers.name = "ThreatPointers"
+	_threat_pointers.field = battlefield
+	add_child(_threat_pointers)
+	move_child(_threat_pointers, 0)
+
+
 func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	# Top left, as a column.
@@ -5830,6 +5843,9 @@ func _on_scope_changed(scope: int) -> void:
 	_build_panel.visible = _build_panel.visible and on_field
 	if _command_panel != null:
 		_command_panel.visible = on_field and _command_panel_wanted()
+	if _threat_pointers != null:
+		_threat_pointers.field = battlefield
+		_threat_pointers.visible = on_field
 	if _preparation_panel != null:
 		_preparation_panel.visible = on_field and RunState.is_preparation()
 	if _spell_bar != null:

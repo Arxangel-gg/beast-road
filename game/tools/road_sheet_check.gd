@@ -130,6 +130,7 @@ func _ready() -> void:
 	await _test_close_is_reachable()
 	await _test_a_reshape_re_lays_both_sheets()
 	await _test_the_command_panel_is_on_screen()
+	await _test_a_boss_off_screen_has_an_arrow()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -471,6 +472,64 @@ func _test_a_reshape_re_lays_both_sheets() -> void:
 ## to clear - and because the panel was being sent 276 units above the top of
 ## the screen by two lines in the touch pass that still wrote the offsets it had
 ## in the other corner.
+## **An arrow at the edge for what the player must go and find** (owner,
+## 2026-09-22). A boss stood far off the screen gets one pointer, on the edge
+## of the screen and facing the boss; one on the screen gets none.
+func _test_a_boss_off_screen_has_an_arrow() -> void:
+	var arrows: ThreatPointers = _hud.get("_threat_pointers") as ThreatPointers
+	_check(arrows != null, "the HUD has no edge arrows")
+	if arrows == null or _field == null:
+		return
+	arrows.field = _field
+	arrows.visible = true
+	var boss_kind: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.category == EnemyData.Category.BOSS:
+			boss_kind = kind
+			break
+	_check(boss_kind != null, "no boss to point at")
+	if boss_kind == null:
+		return
+	var boss: Enemy = _field.spawn_enemy(boss_kind, 0, 1.0, 0.001, 0.001)
+	var hero_at: Vector2 = _field.hero.global_position if _field.hero != null else Vector2.ZERO
+	boss.global_position = hero_at + Vector2(2400.0, 0.0)
+	boss.process_mode = Node.PROCESS_MODE_DISABLED
+	await _for_seconds(Balance.THREAT_POINTER_REFRESH * 3.0)
+	var found: Array[Dictionary] = []
+	for pointer: Dictionary in arrows.pointers():
+		if int(pointer["kind"]) == ThreatPointers.Kind.BOSS:
+			found.append(pointer)
+	_check(found.size() == 1, "a boss off the screen has %d arrows, not one" % found.size())
+	if found.size() == 1:
+		var at: Vector2 = found[0]["at"] as Vector2
+		var screen: Rect2 = arrows.get_viewport_rect()
+		var edge: float = minf(minf(at.x, screen.size.x - at.x), minf(at.y, screen.size.y - at.y))
+		_check(edge <= Balance.THREAT_POINTER_INSET + 1.0,
+			"the boss's arrow stands %.0f in from the edge, not at it" % edge)
+		var toward: Vector2 = (arrows.get_viewport().get_canvas_transform() * boss.global_position - at).normalized()
+		_check((found[0]["facing"] as Vector2).dot(toward) > 0.9,
+			"the boss's arrow does not point at the boss")
+	boss.global_position = hero_at + Vector2(60.0, 0.0)
+	await _for_seconds(Balance.THREAT_POINTER_REFRESH * 3.0)
+	var still: int = 0
+	for pointer: Dictionary in arrows.pointers():
+		if int(pointer["kind"]) == ThreatPointers.Kind.BOSS:
+			still += 1
+	_check(still == 0, "a boss standing on the screen still has an arrow pointing off it")
+	boss.queue_free()
+	for _f: int in 4:
+		await get_tree().process_frame
+
+
+## Headless frames are milliseconds; the arrows gather every fraction of a second.
+func _for_seconds(seconds: float) -> void:
+	var left: float = seconds
+	while left > 0.0:
+		await get_tree().process_frame
+		left -= get_process_delta_time()
+
+
 func _test_the_command_panel_is_on_screen() -> void:
 	var panel: Control = _hud.get("_command_panel") as Control
 	if panel == null:

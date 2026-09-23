@@ -93,11 +93,21 @@ func _gather() -> void:
 		# draws one layer down.
 		if body.is_camp_mob():
 			continue
+		# And only this field's: a raid's or a rift's bodies share the group.
+		if field.has_method("holds_the_wave") and not bool(field.call("holds_the_wave", body)):
+			continue
 		alive.append(body.get_instance_id())
 	if alive.size() > 0 and alive.size() <= AT_MOST:
 		_marked = alive
 	if was > 0 or not _marked.is_empty():
 		queue_redraw()
+
+
+## The bodies this is marking, by instance id - read by `ThreatPointers`, so an
+## arrow at the edge of the screen and a plume over the treeline are the same
+## set rather than two answers to "who is left".
+func marked() -> Array[int]:
+	return _marked
 
 
 ## Which of the marked bodies the next swing would reach. Asked once a frame
