@@ -7128,6 +7128,11 @@ const UI_TOUCH_PREPARATION_BUTTON_HEIGHT: float = 72.0
 ## on every side. Below about 16 the frame's corner ironwork touches the bezel
 ## and the panel reads as clipped even when it is not. [TUNE]
 const UI_PANEL_MARGIN: float = 22.0
+## Air between the HUD's top-left readouts and a side sheet docked beneath them,
+## and the least height such a sheet keeps however tall the readouts are - on a
+## screen too short for both, the sheet wins. Owner, 2026-09-22. [TUNE]
+const UI_PANEL_BELOW_HUD_GAP: float = 12.0
+const UI_SIDE_PANEL_MIN_HEIGHT: float = 420.0
 
 ## The widest a side-docked building sheet may be, as a share of the screen, and
 ## the narrowest it is allowed to become. The share matters more than the pixels:
@@ -11755,6 +11760,10 @@ const UI_POOL_GLOSS: float = 0.5
 ## measured rather than written down. It was a hardcoded 52 until the pools grew
 ## on 2026-09-17 and the act name came down onto the distance icons.
 const UI_TOP_BAR_GAP: float = 8.0
+## Air between the HUD's second row (distance, wave, quiver, sundial, seed) and
+## the command panel hung beneath it. Owner, 2026-09-22: "enough padding to not
+## overlap any of those UI elements". [TUNE]
+const UI_COMMAND_PANEL_GAP: float = 14.0
 
 
 # --- The pixel grid (owner, 2026-09-17) --------------------------------------

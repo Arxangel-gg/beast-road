@@ -1888,8 +1888,10 @@ func _write_slot_pointer() -> void:
 ## Refused during a run, which is the rule and the reasoning `pen_take` already
 ## carries: a road is banked at a crossroad, so switching mid-run would abandon
 ## a front the player never chose to give up - silently, because the other
-## slot's menu looks perfectly ordinary. `Phase.ENDED` is "between runs" here
-## exactly as it is there.
+## slot's menu looks perfectly ordinary. `RunState.road_is_live` is "during a
+## run" here exactly as it is there - and never the phase alone, which reads
+## "under way" on a fresh launch and after every road left from the pause menu.
+## A banked road is not a live one: it is the slot's own, and stays with it.
 ##
 ## Refused while saves are held, for the reason above the pointer: switching is
 ## a write by definition, and a gate's scratch account must never be the thing
@@ -1901,7 +1903,7 @@ func _write_slot_pointer() -> void:
 func use_slot(index: int) -> bool:
 	if index < 0 or index >= Balance.SAVE_SLOTS:
 		return false
-	if RunState.phase != RunState.Phase.ENDED:
+	if RunState.road_is_live():
 		return false
 	if _saves_held > 0:
 		return false
@@ -2033,7 +2035,7 @@ func _act_reached(distance: float) -> int:
 func erase_slot(index: int) -> bool:
 	if index <= 0 or index >= Balance.SAVE_SLOTS or index == _slot:
 		return false
-	if RunState.phase != RunState.Phase.ENDED:
+	if RunState.road_is_live():
 		return false
 	if _saves_held > 0:
 		return false
@@ -2934,7 +2936,7 @@ func pen_take(uid: String, freshly_caught: bool = false) -> bool:
 	# minute* is not a swap: it came off the road, it was never safe in the pen,
 	# and putting it to work is the reason anybody threw a rope. It can only ever
 	# be made safer from there - see `pen_stand_down`.
-	if not freshly_caught and RunState.phase != RunState.Phase.ENDED:
+	if not freshly_caught and RunState.road_is_live():
 		return false
 	if uid.is_empty():
 		pen_taken = ""

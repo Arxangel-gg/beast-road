@@ -930,6 +930,7 @@ func _build_top_bar() -> void:
 	# so the strip can be any height it likes.
 	journey_bar.position = Vector2(24.0, 52.0)
 	bar.resized.connect(_seat_journey_bar)
+	journey_bar.resized.connect(_seat_command_panel)
 	_seat_journey_bar.call_deferred()
 	journey_bar.add_theme_constant_override("separation", 20)
 	add_child(journey_bar)
@@ -3225,6 +3226,52 @@ func _seat_journey_bar() -> void:
 		return
 	_journey_bar.position = Vector2(24.0,
 		_top_bar.offset_top + maxf(_top_bar.size.y, 24.0) + Balance.UI_TOP_BAR_GAP)
+	_seat_command_panel()
+
+
+## **The command panel hangs below the second row, measured off that row.**
+## Owner, 2026-09-22: it was *"overlapping the top left UI elements and needs to
+## be brought down to have enough padding"*. It sat at a typed 104 while the row
+## above it - distance, wave, the quiver, the sundial and the seed - is seated
+## off the top bar's own height, so the quiver readout and the dial were drawn
+## under the panel's frame. A number that has to agree with a measured row is a
+## number that will not, so the panel asks the row.
+func _seat_command_panel() -> void:
+	if _command_panel == null or _journey_bar == null:
+		return
+	var row_foot: float = _journey_bar.position.y + _journey_bar.size.y
+	_top_left_foot = row_foot
+	var top: float = row_foot + Balance.UI_COMMAND_PANEL_GAP
+	_command_panel.offset_top = top
+	_command_panel.offset_bottom = top
+
+
+## **The lowest edge of the top-left readouts**, for a sheet that docks there.
+##
+## Owner, 2026-09-22: a building sheet opened in the town *"covers the resources
+## UI, it should have padding to prevent overlapping top left UI elements"*. The
+## sheet sits on a layer above the HUD and was pinned at the screen's own top
+## margin - straight over the act line, the purse and the row under it. Static,
+## because the sheet is a separate scene with no HUD to hold; written where the
+## HUD seats that row, so the two cannot disagree about where it ends.
+static var _top_left_foot: float = 0.0
+
+
+static func top_left_reserve() -> float:
+	return _top_left_foot
+
+
+## **Hidden until the Warden has earned Command this run.** Owner, 2026-09-22:
+## *"the command panel should be hidden until the player has gained command"*.
+## An empty meter and three dead order buttons are a system the player has not
+## met yet, and the tutorial's step for it fires on the first Command earned -
+## so the panel and the lesson about it now arrive together.
+##
+## Derived from `command_earned` rather than stored: it resets with the run,
+## rides the expedition snapshot, and cannot disagree with the meter.
+func _command_panel_wanted() -> bool:
+	return GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD \
+		and RunState.is_command_combat() and RunState.command_earned > 0.0
 
 
 func _size_top_bar() -> void:
@@ -3367,8 +3414,7 @@ func _on_phase_changed(phase: int, _previous: int) -> void:
 		or phase == int(RunState.Phase.FINAL_ASCENT)
 	_preparation_panel.visible = preparing \
 		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
-	_command_panel.visible = commanding \
-		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
+	_command_panel.visible = commanding and _command_panel_wanted()
 	if preparing:
 		_last_stand_spent = false
 	_refresh_horn_button()
@@ -3406,6 +3452,8 @@ func _preparation_text(seconds_left: float, reward: int) -> String:
 func _on_command_changed(current: float, maximum: float) -> void:
 	if _command_bar == null:
 		return
+	if _command_panel != null:
+		_command_panel.visible = _command_panel_wanted()
 	_command_bar.value = current / maximum if maximum > 0.0 else 0.0
 	_command_value.text = "%d / %d" % [int(round(current)), int(round(maximum))]
 	_set_command_available(CommandSystemScript.OVERDRIVE,
@@ -4447,9 +4495,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	# Re-placed where it lives rather than deleted, because this function's job
 	# is to re-lay for the new layout and the panel does want re-laying: its
 	# contents grow under a thumb.
-	if _command_panel != null:
-		_command_panel.offset_top = COMMAND_BAR_TOP
-		_command_panel.offset_bottom = COMMAND_BAR_TOP
+	_seat_command_panel()
 
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
@@ -5778,7 +5824,7 @@ func _on_scope_changed(scope: int) -> void:
 	_raid_panel.visible = in_raid
 	_build_panel.visible = _build_panel.visible and on_field
 	if _command_panel != null:
-		_command_panel.visible = on_field and RunState.is_command_combat()
+		_command_panel.visible = on_field and _command_panel_wanted()
 	if _preparation_panel != null:
 		_preparation_panel.visible = on_field and RunState.is_preparation()
 	if _spell_bar != null:

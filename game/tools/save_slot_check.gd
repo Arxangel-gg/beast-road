@@ -235,6 +235,12 @@ func _test_switching_is_refused_during_a_run() -> void:
 	_write_a_warden("Belisent", 42, 4242)
 	_be_slot(0)
 
+	# A road is live only while the director says so. Every phase is walked
+	# with one, and then without - the second half is the owner's report of
+	# 2026-09-22: on a fresh launch, and after a road left from the pause menu,
+	# the phase is still `PREPARATION` and no road exists, and the picker
+	# refused anyway.
+	GameDirector.run_active = true
 	for phase: int in [RunState.Phase.PREPARATION, RunState.Phase.ROAD_BATTLE,
 			RunState.Phase.BOSS, RunState.Phase.RAID, RunState.Phase.FINAL_ASCENT]:
 		RunState.set_phase(phase as RunState.Phase)
@@ -246,6 +252,13 @@ func _test_switching_is_refused_during_a_run() -> void:
 			"a slot was erased mid-run, in phase %d" % phase)
 		_check(FileAccess.file_exists(MetaState.slot_path(1)),
 			"a refused erase still took the file, in phase %d" % phase)
+	GameDirector.run_active = false
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	_check(MetaState.use_slot(1) and MetaState.slot() == 1,
+		("with no road live the Warden could not be changed, because the phase "
+			+ "still read PREPARATION - which is every fresh launch and every "
+			+ "road left from the pause menu"))
+	_be_slot(0)
 	RunState.set_phase(RunState.Phase.ENDED)
 
 	# And never the slot being played, whatever the phase. Erasing the account

@@ -288,6 +288,21 @@ func _test_every_style_lands_the_same_hit() -> void:
 		_check(body.health.current_hp < before,
 			"%s: the shot must land on the body whatever the picture did (%.1f -> %.1f)"
 			% [data.id, before, body.health.current_hp])
+		# **The range ring stands round the tower, never round what it hit.**
+		# Owner, 2026-09-22: it was "appearing on the hit enemy instead of
+		# showing around the attacking tower like in league of legends".
+		if record["seen"]:
+			var tells: Node = _field.get("_tells") as Node
+			var rings: Dictionary = tells.get("_rings") as Dictionary if tells != null else {}
+			var ring: Dictionary = rings.get(anchor.x * 4096 + anchor.y + 1, {}) as Dictionary
+			_check(not ring.is_empty(), "%s: firing opened no range ring" % data.id)
+			if not ring.is_empty():
+				var centre: Vector2 = ring["at"] as Vector2
+				_check(centre.distance_to(tower.origin()) < 1.0,
+					("%s: the range ring is centred %.0f units from the tower and %.0f "
+						+ "from the body it shot - a reach drawn round its target")
+						% [data.id, centre.distance_to(tower.origin()),
+							centre.distance_to(body.global_position)])
 		if style == TowerData.Shot.LOB:
 			_check(float(record["peak"]) > 4.0, "%s: a lob rises off its path in the air" % data.id)
 			_check(bool(record["shadow"]), "%s: a lob throws a shadow on the ground" % data.id)

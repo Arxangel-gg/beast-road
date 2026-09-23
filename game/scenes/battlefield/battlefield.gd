@@ -2908,6 +2908,16 @@ func tower_at_anchor(anchor: Vector2i) -> Tower:
 	return _towers.get(anchor, null) as Tower
 
 
+## Where a tower's range is measured from, for the ring `CombatTells` draws when
+## it fires - the same point its selection ring is centred on. Null when the
+## anchor holds no standing tower.
+func _tower_ring_centre(anchor: Vector2i) -> Variant:
+	var built: Tower = tower_at_anchor(anchor)
+	if built == null or not is_instance_valid(built):
+		return null
+	return built.origin()
+
+
 func all_towers() -> Array[Tower]:
 	var found: Array[Tower] = []
 	for key: Variant in _towers:
@@ -3088,6 +3098,7 @@ func _build_combat_tells() -> void:
 	_tells = CombatTells.new()
 	_tells.name = "CombatTells"
 	_tells.hero = _would_be_hit
+	_tells.tower_at = _tower_ring_centre
 	(entity_root if entity_root != null else self).add_child(_tells)
 
 

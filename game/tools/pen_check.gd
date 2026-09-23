@@ -122,10 +122,12 @@ func _test_taking_one_out() -> void:
 		"a refused request still changed which animal was out")
 	# **Not during a run.** Swapping when it starts to look dangerous is the
 	# decision being made after the risk rather than before it.
+	GameDirector.run_active = true
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	_check(not MetaState.pen_take(first),
 		"the pen was edited mid-run, so the risk can be dodged after the fact")
 	_check(MetaState.pen_taken == second, "a mid-run request changed the pen")
+	GameDirector.run_active = false
 	RunState.set_phase(RunState.Phase.ENDED)
 	_check(MetaState.pen_take(""), "the pen refused to take everything back")
 	_check(MetaState.pen_taken.is_empty(), "something stayed out")

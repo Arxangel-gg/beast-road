@@ -1692,6 +1692,21 @@ func build_grace_left() -> float:
 	return maxf(float(build_grace_until_msec - Time.get_ticks_msec()) / 1000.0, 0.0)
 
 
+## **Whether a road is being played right now** - the one time the account may
+## not be rearranged underneath it.
+##
+## Not `phase != ENDED`, which is what the Warden picker and the pen asked, and
+## which was wrong in the direction the owner met (2026-09-22: *"even if I don't
+## have a run saved I should still be able to change save slots. And even if I
+## do"*). The phase becomes `ENDED` only when a run is *settled*: it starts every
+## launch as `PREPARATION`, and a road left from the pause menu is abandoned
+## without ever reaching `ENDED` - so on a fresh launch, and after every quit,
+## the menu refused to change Warden because "a road is under way" when no road
+## existed. `run_active` is the director's own answer to that question.
+func road_is_live() -> bool:
+	return GameDirector.run_active and phase != Phase.ENDED
+
+
 func is_command_combat() -> bool:
 	return phase == Phase.ROAD_BATTLE or phase == Phase.BOSS \
 		or phase == Phase.FINAL_ASCENT

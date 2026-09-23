@@ -476,15 +476,36 @@ func _test_the_command_panel_is_on_screen() -> void:
 	if panel == null:
 		_check(false, "the HUD has no command panel")
 		return
-	# Shown in combat only, so the phase decides whether it is drawn at all.
+	# Shown in combat only, and only once Command has been earned this run
+	# (owner, 2026-09-22: "hidden until the player has gained command").
+	RunState.command_earned = 0.0
+	RunState.command = 0.0
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	for _f: int in 8:
 		await get_tree().process_frame
-	_check(panel.visible, "the command panel must be on screen in combat")
+	_check(not panel.visible,
+		"the command panel is shown before any Command has been earned")
+	RunState.gain_command(10.0)
+	for _f: int in 8:
+		await get_tree().process_frame
+	_check(panel.visible, "the command panel must be on screen once Command is earned")
 	var rect: Rect2 = panel.get_global_rect()
 	_notes.append("command panel at %.0f,%.0f  %.0fx%.0f"
 		% [rect.position.x, rect.position.y, rect.size.x, rect.size.y])
 	_check_on_screen(panel, "the command panel")
+	# **Below the second row, never over it** (owner, 2026-09-22): the quiver
+	# readout and the sundial were drawn under the panel's frame. Every visible
+	# readout in that row is measured, because it grows when the quiver appears.
+	var row: Control = _hud.get("_journey_bar") as Control
+	_check(row != null, "the HUD has no second row to hang the command panel beneath")
+	if row != null:
+		for child: Node in row.get_children():
+			var readout := child as Control
+			if readout == null or not readout.is_visible_in_tree():
+				continue
+			var theirs: Rect2 = readout.get_global_rect()
+			_check(not rect.intersects(theirs),
+				"the command panel %s overlaps %s at %s" % [rect, readout.name, theirs])
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	for _f: int in 4:
 		await get_tree().process_frame

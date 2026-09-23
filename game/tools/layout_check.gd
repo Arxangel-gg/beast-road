@@ -693,6 +693,21 @@ func _check_town_panel(run: Node) -> void:
 		_failures.append("no town panel on the run, so the building sheet was never checked")
 		return
 	sheet.open("sanctum")
+	for _f: int in 4:
+		await get_tree().process_frame
+	# **Under the HUD's top-left readouts, never over them.** Owner, 2026-09-22:
+	# the sheet *"covers the resources UI"*. Held against the reserve the HUD
+	# publishes, on every shape tall enough to keep the sheet usable beneath it -
+	# on one too short for both, the readouts are what give way, by design.
+	var reserve: float = HUD.top_left_reserve()
+	var sheet_rect: Rect2 = (sheet.get("panel") as Control).get_global_rect()
+	var tall: float = get_viewport().get_visible_rect().size.y
+	if reserve <= 0.0:
+		_failures.append("the HUD never published where its top-left readouts end")
+	elif tall - reserve - Balance.UI_PANEL_BELOW_HUD_GAP - Balance.UI_PANEL_MARGIN \
+			>= Balance.UI_SIDE_PANEL_MIN_HEIGHT and sheet_rect.position.y < reserve:
+		_failures.append(("the building sheet starts at y %.0f, over the HUD's "
+			+ "top-left readouts which end at %.0f") % [sheet_rect.position.y, reserve])
 	for page: int in 3:
 		sheet.set("_mansion_page", page)
 		sheet.call("_refresh")

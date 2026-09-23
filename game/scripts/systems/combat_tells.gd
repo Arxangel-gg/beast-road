@@ -54,6 +54,9 @@ extends Node2D
 ## Where the Warden is and what they are pointing at. Handed in by the scope so
 ## this file holds no reference to a hero it does not own.
 var hero: Callable = Callable()
+## Where a tower stands, by its anchor, or null when there is none. Handed in by
+## the field for the same reason `hero` is.
+var tower_at: Callable = Callable()
 
 ## One entry per shooter that has fired recently: where, how far, what colour,
 ## and how long is left on it.
@@ -87,13 +90,23 @@ func _on_shot(from: Vector2, reach: float) -> void:
 	show_range(0, from, reach, Balance.RANGE_RING_HERO)
 
 
-func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
+## **Around the tower, never around what it hit.** Owner, 2026-09-22: the range
+## was *"appearing on the hit enemy instead of showing around the attacking
+## tower like in league of legends"*. `tower_fired` carries where the shot went,
+## which is what the sound and the muzzle want, and this ring was drawn there - a
+## tower's reach centred on its target describes nothing at all. The centre is
+## asked of the field by anchor, the one thing the signal names that is the
+## tower, and a tower the field cannot find draws no ring rather than a wrong one.
+func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
 	var data: TowerData = RunState.tower_at(anchor)
-	if data == null:
+	if data == null or not tower_at.is_valid():
+		return
+	var centre: Variant = tower_at.call(anchor)
+	if not (centre is Vector2):
 		return
 	# The tower's *own* reach at its own level, read the way the shot reads it,
 	# so the circle drawn and the circle fired from are one number.
-	show_range(anchor.x * 4096 + anchor.y + 1, at,
+	show_range(anchor.x * 4096 + anchor.y + 1, centre as Vector2,
 		data.range_at(RunState.level_at(anchor)), Balance.RANGE_RING_TOWER)
 
 

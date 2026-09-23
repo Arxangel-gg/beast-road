@@ -145,14 +145,15 @@ func _note_text() -> String:
 			+ "the road, or turn for home at a crossroad, and come back.")
 	return ("Each Warden keeps everything of their own - level, gear, stash, pen, "
 		+ "stable, larder, crafts and banked road. The first is the account this "
-		+ "machine already had. Changing Warden is only possible between roads.")
+		+ "machine already had. A banked road stays with the Warden who banked "
+		+ "it, so changing Warden never costs one.")
 
 
 ## Whether a slot may change at all, asked the way `MetaState.use_slot` asks it
 ## rather than kept here. The door refuses regardless; this only decides what
 ## the page says and which buttons are worth offering.
 func _between_runs() -> bool:
-	return RunState.phase == RunState.Phase.ENDED
+	return not RunState.road_is_live()
 
 
 func _card(summary: Dictionary) -> Control:

@@ -247,7 +247,12 @@ static func _grow_font(control: Control, enforce_button_floor: bool = false) -> 
 ## `right` docks it against the trailing edge; the default is the left, which is
 ## where the building sheets now live (owner decision, 2026-09-01) so they no
 ## longer sit under the combat rail on the right of the screen.
-static func dock_panel(panel: Control, right: bool = false) -> void:
+##
+## `below` is the lowest edge of whatever already lives at the top of that side
+## - the HUD's readouts, for a building sheet - and the panel starts under it
+## rather than over it. It is never allowed to take the panel below a usable
+## height: on a screen too short for both, the readouts give way first.
+static func dock_panel(panel: Control, right: bool = false, below: float = 0.0) -> void:
 	if panel.get_viewport() == null:
 		return
 	var screen: Vector2 = panel.get_viewport_rect().size
@@ -257,14 +262,19 @@ static func dock_panel(panel: Control, right: bool = false) -> void:
 	var width: float = clampf(screen.x * Balance.UI_SIDE_PANEL_SHARE,
 		minf(Balance.UI_SIDE_PANEL_MIN_WIDTH, screen.x - margin * 2.0),
 		Balance.UI_SIDE_PANEL_MAX_WIDTH)
-	var height: float = maxf(screen.y - margin * 2.0, 120.0)
+	var top: float = margin
+	if below > 0.0:
+		top = maxf(margin, below + Balance.UI_PANEL_BELOW_HUD_GAP)
+	var room: float = screen.y - margin * 2.0
+	top = minf(top, margin + maxf(room - Balance.UI_SIDE_PANEL_MIN_HEIGHT, 0.0))
+	var height: float = maxf(screen.y - top - margin, 120.0)
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	panel.grow_horizontal = Control.GROW_DIRECTION_END
 	panel.grow_vertical = Control.GROW_DIRECTION_END
 	panel.offset_left = screen.x - width - margin if right else margin
-	panel.offset_top = margin
+	panel.offset_top = top
 	panel.offset_right = panel.offset_left + width
-	panel.offset_bottom = margin + height
+	panel.offset_bottom = top + height
 	# Belt and braces: a child that still insists on more room is cut off at the
 	# panel's edge rather than being allowed to drag the panel past the screen.
 	panel.clip_contents = true

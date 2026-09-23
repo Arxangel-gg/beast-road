@@ -8,5 +8,5 @@ id = "commands"
 display_name = "Command"
 trigger = 4
 order = 0
-body = "Command builds as you fight. Spend it on orders along the bottom - they work during the wave, when building does not."
+body = "Command builds as you fight, and its orders appear at the top left once you have some. Spend it there - orders work during the wave, when building does not."
 seconds = 9.0

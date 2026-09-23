@@ -82,7 +82,10 @@ func _ready() -> void:
 
 
 func _fit() -> void:
-	UiMetrics.dock_panel(panel)
+	# Under the HUD's top-left readouts rather than over them (owner,
+	# 2026-09-22). Asked on every open, because the row beneath the purse
+	# changes height when the quiver appears.
+	UiMetrics.dock_panel(panel, false, HUD.top_left_reserve())
 
 
 ## Which merchant this sheet is showing, or "" when it is showing a building.
