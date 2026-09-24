@@ -1,296 +1,223 @@
-# The plan after the credit reset
+# The plan for the next session (written 2026-09-24, for Opus 5.5)
 
-Written 2026-09-20/21 with the weekly budget nearly spent, so the next session
-starts from a decision rather than from a re-read. The reasoning is what each
-item has to be built *against*.
-
----
-
-## P0 - shipped in v0.47.2 (2026-09-21), and what it turned out to be
-
-### 1. Enemies never attack anything
-
-**Traced first, and the leading mechanism was not the cause.** Five traces on
-HEAD - a body hand-driven, a body on the live field, four breeds against a
-hero, the real director on a fresh account, and the real director on a copy of
-the owner's own banked front - all showed the ordinary breeds walking up and
-striking. What stood at the wall and never swung was **every Dune Burrower in
-the wave**: a siege breed picks the nearest tower in its lane, the road is not
-optional so it never leaves the route to reach it, and it arrives at the wall
-still holding a target it cannot reach. `_pick_target`'s tower branch had no
-reach condition since 2026-08-13; only the hero branch said "a body at the gate
-hits the gate". The walk-in/teleport-out loop is real but only ever runs for a
-body whose target is not the wall, and a body that walks up honestly stops at
-its reach, well outside the padding.
-
-**Fix:** one rule in `_pick_target` - in reach of the town and of nothing it
-was aiming at, the town. **Gate:** `enemy_siege_check` (246 checks, on both
-bars) walks all 68 breeds to a strike and stands every siege breed at the gate.
-Planted, it names all six.
-
-**Not reproduced:** "not the player". Four breeds attacked a hero on the road
-at 176 units. What changed in v0.47.0 is the sanctuary rect: a Warden within
-256 of the town (362 at a corner) is invisible and immune by the owner's own
-rule. That should be said on screen - see P1.
-
-### 2. A mount is thrown by Yuri's footfall
-
-Read straight off the code: `_may_stay_mounted` refused the saddle while
-`_beast_stun_left` ran, which every footfall sets. **Now:** a blow that takes
-health throws the rider (`Hero.throw_from_saddle`), the saddle closes for
-`MOUNT_HURT_COOLDOWN` (6 s), the ride button reads THROWN with the horse's own
-picture inside an emptying ring, visible for that clock only, and the co-op
-mirror throws on the same drop. `mount_check` is 119 checks; both planted
-faults named.
-
-**The owner's mount ruling below shipped later the same day.**
-
-## P1 - the HUD tells you the town is dying
-
-**Shipped 2026-09-21.** A blow flashes the town bar and the banner names the road it
-came from; under the critical share the bar pulses; bodies at the gate tint the icon and
-are said once; the sanctuary is said on entering. `town_alert_check` reads it back off
-the real HUD. The reasoning below is what it was built against.
-
-The screenshot reporting the attack bug shows the town at 24% with nothing on
-screen saying so. Two readouts, neither of which changes a number:
-
-- **Under attack**: an indicator wherever the player is, pointing at the town.
-- **Imminent damage**: about five seconds of warning before a body reaches the
-  wall. That is a telegraph, so `JuiceDirector.Priority.TELEGRAPH` applies - it
-  is never damped and never quietened by distance.
-
-The fog's bound applies to both: they may read and may never feed the AI.
+Written with the weekly budget nearly spent, so the next session starts from
+decisions rather than from a re-read. **Read CLAUDE.md first** - the entries
+dated 2026-09-24 are what this plan builds on. The owner's standing rules:
+never run agents or workflows (ultracode or not); ask before any windowed
+Godot run and run one at a time; commit before planting a fault; never edit
+the tree during a sweep; never delete an inbox after importing it.
 
 ---
 
-## P2 - mobile
+## 0. Where things stand
 
-- ~~**A mount control**~~ The Ride button on the action bar calls
-  `TouchInput.ask_mount()`; this line was stale when written.
-- ~~**The overlap pass.**~~ `layout_check` is green at 430x932 and 1280x592
-  (2026-09-21) and on the release bar.
-- **Performance.** Its own session with `perf_check` and `perf_bisect`; the
-  desktop frame is 16.6 ms on a 3070 Ti with no headroom, so a phone needs a
-  real budget rather than a hope.
+- **v0.56.3** failed its release on `ranged_check` (a once-a-frame roster
+  missed a body stood up in the same frame). Fixed in `446a1a4a`.
+- **v0.56.4** was tagged on that fix and will fail on `balance_test`, which had
+  been red on main since the pooling and ink commits (two harness invariants
+  moved by design). Fixed in `cb42e522`.
+- **v0.56.5** is tagged on `cb42e522` and carries: the roster fix, the
+  difficulty tune, wave formations, siege orders, and the balance amendments.
+  **First thing next session: check the v0.56.5 release run.** If it is red,
+  read the failing gate's log (`gh run view <id> --log-failed` needs auth;
+  the step name and annotations do not - see the memory directory) and fix
+  that gate before anything else. Nothing else in this plan matters while
+  nothing new is live.
+- The owner's brief of 2026-09-24 is triaged below into what was built (§1),
+  what is yours (§2-§5), and what needs the owner (§6).
 
----
+Measured on a new account after the tune (`curve_report`, `APPDATA` pointed
+at an empty directory):
 
-## P3 - systems and content
-
-- **Raids and rifts**: procedural layouts, loot chests placed procedurally, and
-  other interactables. `DungeonLayout` already cuts corridors and rooms; grow it
-  rather than add a second system.
-- **Crossroads as a map you travel.** Replace the background with the procedural
-  tileset showing a fork per option, and have a miniature Yuri walk the chosen
-  branch before the battlefield returns. Every later choice forks from where the
-  last one left off.
-- **Dragons.** Every overhead dragon flies as the *fire* sprite and only differs
-  once landed - almost certainly one painting used for all four. Polish pass.
-- **More enemy SFX.** `EnemyData.voice_sfx` exists and **67 breeds ship with no
-  voice at all**; six archetype prompts are already written in the docs.
-- **Settings reachable from the Hold**, adopted like every other door so the
-  menu list and the walkable place cannot disagree.
+    mean pressure by party size   1:0.488  2:0.528  3:0.553  4:0.573
+    by act   1:0.25 2:0.19 3:0.34 4:0.34 5:0.43 6:0.47 7:0.59 8:0.54 9:0.63 10:0.67 11:0.65
+    band     floor 0.40, ceiling 0.64 (moved from 0.58, recorded in CLAUDE.md)
 
 ---
 
-## Owner rulings that re-cut a recorded bound
+## 1. Built this session (do not build twice)
 
-### Mounts are faster, and a mounted sprint costs SP
-
-**Shipped 2026-09-21.** `MOUNT_GALLOP_CEILING` 2.2 and `MOUNT_GALLOP_RANGE` 2,600 are
-the stated bounds, each mount has its own walk, gallop and SP drain tuned under them,
-the mount's own wind pool is gone, and `mount_check` measures the drain through the
-real tick (134 checks; the runner's-rate fault was planted and named). The reasoning
-below is what it was built against.
-
-This re-cuts **two** sentences this project wrote down deliberately:
-
-- `MOUNT_SPEED_CEILING` **is** `HERO_SPRINT_SPEED`, on purpose, so a mount bought
-  sprint speed without the SP cost rather than new speed.
-- *"the rider's SP is untouched, because a mount drinking from SP would make the
-  pool the Warden sprints on a shared resource that nothing is tuning."*
-
-**Ruled on both**: a mount is faster than the Warden on foot, a mounted sprint
-**does** spend SP, the rate differs per mount, and every mount gets its own tuned
-walk and sprint speeds.
-
-**What survives untouched is the bound that made mounts safe at all**: the
-dismount-on-attack rule. Mounted, the Warden may not swing, cast, loose, gather,
-fish or work a seam, and the first press of attack puts them on their feet. So a
-mount still cannot touch a number in a fight, and `curve_report` does not model
-movement speed.
-
-**The new bound has to be written before the code**, because the old one is gone.
-What is being traded away is not damage - it is **how fast a Warden can be
-anywhere on the field**, and with four roads that is a real defensive number. Two
-rates per mount (walk, sprint) and an SP drain per mount, tuned against each
-other, with a ceiling stated rather than implied.
-
-**`mount_check` asserts SP is unchanged after a gallop.** That invariant is now
-wrong and must be **amended deliberately and recorded** - amending a gate's
-invariant is the one kind of change that makes every later run agree with the bug
-it was built to catch. What replaces it: a mounted sprint spends SP at the
-mount's own authored rate, an unsprinted mount spends none, and the ceiling is
-measured through `Hero.move_speed()` rather than read off a constant.
-
-### Character customization - approved, and it needs a bound first
-
-**Built 2026-09-21 as a dye**: two hue turns on the painted Warden (cloak, sash)
-through one shader include, persisted as `MetaState.look`, relayed by value,
-previewed on the Warden card. `warden_look_check` (36) holds the bound by dressing
-a real hero and reading every number back. Drawn options stay unbought for the
-reason below.
-
-A new persistent axis under working rule 7. Before a line of code: **what may a
-customization change?** The answer that keeps it safe is *nothing but how the
-Warden looks* - no attribute, no stat, no unlock, no currency. Additive save key,
-absent reads as the default Warden, `SAVE_VERSION` unmoved.
-
-**Scope it before buying generations.** The Warden is eight directions with idle,
-walk, sprint and attack sheets; a naive paper-doll multiplies every option across
-every sheet and is the one thing here that could eat the PixelLab budget. Pilot
-one option on one direction before committing a batch - the discipline the mount
-walk cycles were bought under after the template animations wasted a set.
-
-### Save slots per profile
-
-The one thing in this project **git cannot restore**. It changes the save shape,
-so `SAVE_VERSION` moves, the backup path is exercised, and `save_backup_check` is
-run **by hand** before any release that changes it.
+- **Difficulty tune**: counts +8%, health +6%, damage +2% and contact 0.62 to
+  0.65, kill income 0.36 to 0.33, road trickle 0.20 to 0.18. Constants and
+  rationale in `Balance.gd`, dated 2026-09-24.
+- **Formations**: `WaveArchetypeData.formation` (SCATTERED / VANGUARD /
+  REARGUARD), `WaveDirector._marshal_queue`, `WAVE_VANGUARD_SHARE`/`_ROLES`.
+  Ten signature-led archetypes author VANGUARD, the two howler ones REARGUARD.
+- **Siege orders**: `WAVE_SIEGE_ORDER_SHARE` by act (none in Acts I-II),
+  `WaveDirector._order_the_siege`, `Enemy.order_siege()`, one reader
+  `Enemy.targets_towers()`. Gated by `wave_library_check` (143) and
+  `enemy_siege_check` (301).
+- **Roster cache**: `EnemyField.roster_changed()` + a group-count key.
 
 ---
 
-## More enemies: 8-14 an act across all 11 acts
+## 2. P0 for you: the portent cards (owner's screenshot)
 
-**Shipped 2026-09-21 as the owner's own table** - 8 in Act I, +1 an act to 17, 19 at
-the summit - with fourteen new breeds, `TerrainData.veteran_ids`, the Final Ascent as a
-full act on the Crown, and `roster_check`. The same session shipped loot as pieces, the
-dragon polish, the Walk's verbs, the fast-forward and the wall alert. The sizing below is
-what it was built against.
+**Report:** *"Cards need to be center aligned with proper padding and cards
+need to be able to fit all texts properly without overflow ... and need to be
+more juicy."* The screenshot shows three cards left-of-centre, and the flavour
+line (the italic sentence after the BOON) drawn past the card's bottom edge.
 
-**Measured, not estimated.** Each region names **4-5** breeds today (`enemy_ids`
-on `TerrainData`), across 10 regions, out of 68 enemy `.tres` including bosses,
-elites, camp breeds and camp lords. Act XI is the Final Ascent.
+**Where:** `game/scenes/ui/crossroad_screen.gd`. The portent path builds its
+cards near line 1205 (`card.custom_minimum_size = Vector2(CARD_WIDTH, 0.0)`),
+the title at line 863 (`"THE ROAD AHEAD  ·  read one portent"`). Read the
+whole builder before touching it - the same file lays the road cards (line
+918, 1060) and the two share helpers.
 
-Reaching 8-14 an act means roughly **doubling the region-native breeds** - about
-30 to 40 new ones, since each region lists its own first and veterans after, and
-a veteran counts for the act it is lent to.
+**What to do, in order:**
 
-**PixelLab budget, checked rather than assumed: 5,279 generations remaining,
-refilling 2026-10-11.** A breed is a base sprite plus idle, walk and attack
-animations, so 40 breeds is a few hundred generations. **PixelLab is not the
-binding constraint** - the customization pilot and the dragon polish both fit
-beside it with room left over.
-
-**The expensive half is not the art.** Every new breed needs a facing recorded in
-`enemy_facing_check`'s ledger, loops that close on their own pose, a walk that
-does not drift off the base's ground line, a hide, a stagger footing, a voice,
-and a kill value on the roster average. **A roster average drifts as the roster
-grows** - twenty-one breeds authored below the average once read as a harder game
-in every act and `curve_report` refused it. Re-run the curve after the batch.
-
-Add them **region by region, gated each time**, never as one batch of forty.
+1. **Photograph first.** There is no `portent_shot`; write one following
+   `road_sheet_shot`'s pattern (stand the screen up, force three offers,
+   save a PNG). Every layout fix in this project that skipped the photograph
+   was wrong once. Take the shot at 1920x1080 and at the phone shapes
+   `layout_check` uses.
+2. **Centre the row**: the cards' container wants
+   `alignment = BoxContainer.ALIGNMENT_CENTER` and equal
+   `custom_minimum_size` widths; check whether the row is anchored full-width
+   or sized to content - the screenshot's offset says it is not centred in
+   the viewport.
+3. **The overflow**: the flavour text is almost certainly a `Label` placed
+   after the card's `PanelContainer` rather than inside its `VBoxContainer`,
+   or the card has a fixed height while the flavour label has
+   `autowrap_mode` on and grows. Put it inside the card's box with autowrap,
+   give every card the same height by reading the tallest, and remember
+   `Control.size` is clamped to the combined minimum - a panel never shrinks
+   to fit, it grows past its offsets (CLAUDE.md, the trap menu note).
+4. **Juice, bounded**: a card is a `Control`, so the existing hologram
+   hover/focus sweep (`ui_juice_check`, additive only) applies if the card is
+   a `Button` or wears the same material. A rise on hover, a rarity-coloured
+   rim, a one-shot sweep when the three are dealt (driven, never looped).
+   Nothing reads a card's look; `Graphics.particle_scale` gives away any
+   motes.
+5. **Gate**: `layout_check` at every shape must stay green; add the portent
+   screen to whatever `layout_check` stands up if it does not already open
+   it (a screen nothing opens is a screen nothing measures). Add one check
+   in `omen_check` or `road_card_check` that every offered card's flavour
+   label rect is inside its card rect.
 
 ---
 
-## Where 2026-09-21 (evening) left it
+## 3. For you: the juice pass ("tastefully ultra juicy, mindful of optimisation")
 
-**Shipped and tagged v0.49.0** on a 169/169 release sweep: the co-op guest fix
-(wildlife relay arity, lane pressure, the harness taking its road card), the mount
-ruling (faster, SP-costed, `MOUNT_GALLOP_CEILING`/`_RANGE`), the mount idles, the
-quit warning, the machine preset, the interface size, the pad walk, the Warden's
-look (dye), the boss phase tempo, and the icon-rect fix the 4K layout shape found.
-The boss tempo, the icon fix and the 4K/ultrawide shapes landed **after** the tag.
+The bounds every item is held to: a look and never a fact (nothing reads it),
+damped by `JuiceDirector` as COSMETIC, scaled away by
+`Graphics.particle_scale`, records on `VfxInk`/`BloodMotes` rather than nodes
+(a hit allocates nothing - `frame_budget_check` holds it), and photographed
+before it is believed. Most of the two-hundred-item juice list is already
+built (`docs/IDEAS_REVIEW_2026-09-16.md`, `_2026-09-24.md`); grep for what a
+system *reads* before adding one. Worth doing, in order:
 
-**And then the owner's batch of the same evening, all built and gated** (v0.50.0):
-Yuri's tail answered in the file after nine reports (`grade_tail_to_stub.py`,
-every runtime knob gone); the Walk card above the HUD's band; seven action
-buttons beside four slots at 1920 (`layout_check` saddles a mount); the Arcane
-opening with Act II (`DISCIPLINE_OPENS_AT_ACT`); seams shedding Stone and gems
-with a level-scaled take (`GATHER_BONUS_*`, `Request.GATHER_SIDE`); the nine
-road wardens at 64% and every boss at 72% of their health; eighty-six per-breed
-shots with drawn heads, a partner's screen wearing the same one, and the
-systematic walk (`enemy_shot_check`, 894); and the VFX forge's first effect out
-of Blender 4.5 (`tools/vfx_forge`, `Vfx.forge_burst`, `forge_check`).
+1. **Wave arrival as a beat.** A VANGUARD wave now leads with its tanks; say
+   so: a banner line naming the formation (`WaveArchetypeData.display_name`
+   already exists), a horn sting for the leaders, a `camera_impact` at the
+   spawn when a signature body steps on. `EventBus.wave_archetype_started`
+   already carries the id.
+2. **A body under siege orders is readable.** A small mark over a body whose
+   `targets_towers()` is true and that is not a siege breed (a pick-axe
+   glyph, or the tower-target ring the tells already draw). The player must
+   be able to read "that one is going for my tower" - it is the whole point
+   of the orders. Presentation only; `CombatTells` is the place.
+3. **Tower hits felt on the board**: `Tower.hurt` already shakes and leaves
+   rubble; a tower under attack by a body wants a flash on its health bar and
+   the town-alert banner's rule applied (once per cooldown, named by road).
+   `town_alert_check` is the model.
+4. **Kill streaks and the last body**: the loot-streak pitch exists; a wave's
+   last body (`Stragglers`) could carry a louder finisher and a brief slow
+   (`GameSpeed.restore()` after - never write `Engine.time_scale` directly,
+   `game_speed_check` walks the source).
+5. **Preparation opening**: the sheet clocks exist; a soft chime at ten
+   seconds and a pulse on the countdown's last three, through `Sfx.MIX`.
 
-**Still open, in the order to take them:**
+Do not: add `PointLight2D`s per effect (budgeted in `LightKit`), add nodes
+per hit, loop a shimmer, or put a number on anything a telegraph draws.
 
-1. ~~**Save slots per profile**~~ **Built 2026-09-22** (`MetaState.slot_path`,
-   `save_slot_check`, 117 checks, on both bars). It did **not** move
-   `SAVE_VERSION` and did not move the historic file: an existing account *is*
-   slot 0 by derivation, and every later slot is a new file beside it.
-2. **Photosensitivity on first run** - surface the flash and shake scales on the
-   first launch rather than in a settings tab. Small; needs a first-run moment.
-3. **Build templates** ("repeat my last board") - QoL; the act-start doctrines
-   already spend a budget through `try_build`, which is the door to reuse.
-4. **The lobby portrait wears the painted Warden** for a partner: a look only
-   crosses in the state row and the Hold's seat rows, so the matchmaking card
-   would need it in the party roster. Deliberately not built.
-5. **Mobile performance, minimum spec, the Deck decision** - need hardware or the
-   owner.
-6. **Content owed** (§4 of the roadmap): act VI-X music, boss themes, enemy
-   voices, the reed frog.
+---
 
-## Standing lessons that apply to all of the above
+## 4. For you: smarter AI, bounded
 
-- A guarantee is a property of every breed, road, act and region, or it is not a
-  guarantee. Walk the table; never sample it.
-- A model of a thing is not the thing. Photograph the output; measure the files
-  actually in use.
-- Trace before theorising when a state machine misbehaves.
-- The release bar is a superset of guard's. Diff the two lists before a tag.
-- Never delete an inbox after importing it.
+Every one of these changes the *shape* of a fight and never its size (no
+damage multiplier, no new pool), and each is authored on `EnemyData` where a
+breed differs. Read `enemy.gd`'s `_pick_target`/`_choose_target` wrapper and
+`Wildlife.hunts_the_players` first.
 
+1. **Focus fire on the Warden who hits them**: the grudge branch exists;
+   check that a body struck from outside `ENEMY_HERO_AGGRO_RANGE` by an arrow
+   or a spell turns on the shooter for a bounded window rather than walking
+   on. Gate in `enemy_behaviour_check`.
+2. **Shooters hold their reach**: `ENEMY_SIEGE_SHARE` steps ranged bodies
+   nearer to the wall; against a Warden a HOWLER should back off when the
+   Warden closes inside a fraction of its reach (kiting), once per cooldown,
+   never off the road. Measure on the real field, hold the probe still.
+3. **Wildlife as cover**: bodies already fight animals only when bitten
+   (`_biting_back`). Leave it - the trace of 2026-09-22 showed a column
+   pulled off the road is worse than a body ignoring a wolf.
+4. **Bodies answer a tower that hurts them**: a body under fire from one
+   tower for several seconds with no target in reach could take a siege
+   order itself (`order_siege()`), bounded by the act's share. That closes
+   "sit at base" further without a new system.
 
-## Where 2026-09-22 left it
+Do **not** build the ChatGPT "simulation LOD / spatial hash / scheduler"
+items as AI work - see §7.
 
-Three faults that every number in the project was blind to, all found by the
-release sweep and by photographing output rather than by reading code:
+---
 
-- **A property read off a resource that does not declare it**, twice
-  (`found.colour`, `breed.is_boss`). One had made the full-set aura draw nothing
-  at all for days while `gear_set_check` stayed green.
-- **The set aura was drawn at chest height, behind the body**, and its ring was
-  a true circle standing up like a hoop while its own motes rode a flattened
-  ellipse. `set_aura_shot` is the picture; there were forty-seven shot tools and
-  not one of them photographed the one visual sets were ever asked for.
-- **The sheet clock rebuilt itself every frame.** `_paint_sheet_clocks` called
-  `_dress_bar`, which only ever adds - four nodes a frame for a thirty-second
-  breather, 7,264 children on each clock bar - and the `colour` it was handed
-  was never read, so the urgency tint had never reached the bar either.
-  `preparation_check` holds it deterministically now and `perf_check`'s growth
-  failure names its culprit instead of printing a bare percentage.
+## 5. For you: housekeeping that is cheap and real
 
-**And then the three remaining buildable items on roadmap §7.2, all built:**
+- `docs/ROAD_TO_1_0.md` has the release checklist; walk it.
+- The 4K/ultrawide shapes and the phone shapes are on both bars; keep them
+  green after the card fix.
+- Run the pre-tag diff (CLAUDE.md, "the diff to run before a tag has three
+  lines") and the full `tools/sweep.sh <scratch> release` before any tag.
+- `perf_check --act=10 --build` windowed on the 180 Hz screen is the number
+  that matters for "144+"; it wants the screen for ninety seconds - ask.
 
-- **Photosensitivity on first run.** `ComfortCard`, offered before the story
-  intro, writing nothing unless a slider moved and storing no "seen" flag.
-  It dragged out two more faults: the beast scope read the shake setting raw
-  and unclamped past 1.0, and `SaveSlotScreen` had never had its focus ring
-  walked.
-- **Build templates.** `BuildTemplate`, recorded on the frame a run ends and
-  replayed through `try_build` at the road's own prices, with anchors stored
-  core-relative because `camp_side` is seeded.
-- **The partner's dyed Warden.** Three faults rather than the one recorded: the
-  party tint destroyed the dye for half the seats, a guest's dye reached
-  nobody, and the lobby drew every Warden painted.
+---
 
-**Still open, and none of it is code:**
+## 6. Needs the owner
 
-1. **Mobile performance, minimum spec, the Deck decision** - need hardware or
-   the owner.
-2. **Content owed**: act VI-X music, boss themes, enemy voices, the reed frog.
-   `music_check` and `audio_verify` print the counts every run rather than
-   leaving them to somebody's memory.
-3. **Onboarding by gating** (roadmap §7.1) and **a difficulty below Normal**
-   (§7.2) are both design decisions and both the owner's. The second is sized:
-   a fourth `CampaignTierData` at `order = -1` opens beside Normal rather than
-   after it, but `Stash.roll` gates gear kinds on `min_tier > tier_order`, so a
-   negative order silently drops every kind unless it is clamped at that door;
-   and `GatekeeperTrials.total_rungs` multiplies by the tier count, so a fourth
-   tier would raise `ASCENSION_MAX` - a *third power scale* growing because an
-   easier difficulty was added. Both are answerable; neither should be answered
-   without the owner.
-4. **§7.3 commercial** - store presence, a demo, the privacy note, leaderboard
-   integrity, localisation readiness.
+- **Warden-only objectives** (`DESIGN_DIRECTION_2026-09-22.md` §2, item 2):
+  a caravan to escort, a shrine to hold, an elite that must fall to melee.
+  It is a content system, so it needs a bound written before code (what it
+  pays, what it costs to ignore, never a power scale). Siege orders are
+  built; this is the other half of "no sitting at base".
+- **Fast-forward costing something** (§2 item 4): a design ruling.
+- **The vanguard share and the siege share** are numbers the owner will feel
+  on the next play; expect a report and move `WAVE_VANGUARD_SHARE` /
+  `WAVE_SIEGE_ORDER_SHARE` rather than the code.
+
+---
+
+## 7. ChatGPT's 25 optimisation items, triaged against what ships
+
+Measured facts this rests on are in CLAUDE.md's 2026-09-24 entries: at Act X
+peak the frame is 17.9 ms windowed at 1080p, script about 9 ms, and the
+lever is the number of things drawn, not script.
+
+| # | Item | Verdict |
+|---|------|---------|
+| 1 | Simulation scheduler / staggered ticks | **Mostly built** as cadences: `ENEMY_RETARGET_SECONDS`, `TOWER_AIM_INTERVAL`, `TOWER_IDLE_RESCAN_SECONDS`, `ENEMY_HOWLER_SENSE_SECONDS`, fog 10 Hz, trample 15 Hz, `FOOTFALL_HZ`, `FLAME_REDRAW_HZ`. A central scheduler class would be a refactor for no measured gain; add a cadence where the profile names a per-frame cost. |
+| 2 | Spatial hash for everything | **Not worth it now.** `EnemyField.living_bodies` gathers once a frame and `separate_crowd` already buckets; roster is 40-70 bodies, not 1,500. Revisit only if `perf_check --trace` names `enemies_near`. |
+| 3 | Simulation LOD | **Refused.** Every body on this field is on a road toward the town; there is no "far" body whose AI can be abstracted without changing what arrives. Wildlife already forgets animals out of sight. |
+| 4 | Flow fields for hordes | **Built** (routes are shared polylines per lane; rifts use a flow field). |
+| 5 | Pooling + budgets | **Built** (`NodePool`, `VFX_INK_*_MAX`, `LOOT_FIELD_MAX`, `PROJECTILE_LIGHT_MAX`, `SHADOW_LIGHT_BUDGET_*`). |
+| 6 | Fake projectiles | **Built** - no physics bodies; a shot is one node and one additive child. |
+| 7 | No physics on visuals | **Built** - `VfxInk`, `BloodMotes`, records not bodies. |
+| 8-9 | MultiMesh foliage, hybrid trees | **Measured and refused**: the 725 plants cost 0.4 ms (`perf_bisect --visuals`); the renderer batches texture rects already. |
+| 10 | Event-driven climate | **Built** (dirty cells, band crossings only). |
+| 11 | Aggregate ecology | **Refused** - the ecology *is* the field the player stands on; nothing is off-screen enough. |
+| 12-13 | Staggered tower targeting, separate acquire/fire | **Built** (choice once a frame shared, idle rescan cadence). |
+| 14 | Squared distances | **Built** where it matters (`enemies_near`). |
+| 15 | Cache references | **Built** (`all_towers()` rebuilt on change, `Tower._lane` once). |
+| 16 | Data-oriented arrays | **Built for VFX and blood**; bodies stay nodes (they are the game). |
+| 17 | Threads | **Refused** for 1.0 - nothing measured is on the main thread long enough, and the gates cannot see a race. |
+| 18 | Chunking | **Refused** - one field, 87 tiles a side, already culled per emitter (`ScreenCull`). |
+| 19 | LOD/HLOD | n/a in 2D beyond what `ScreenCull` does. |
+| 20 | Transparent overdraw | **Worth a look**: bloom, fog, veil, flood sheen stack at night. Measure with `perf_bisect --visuals` before touching. |
+| 21 | Dynamic VFX scaling | **Built** (`JuiceDirector` load, `QualityGovernor`). |
+| 22 | Audio priority | **Built** (voice pool, `SFX_CUTOFF`, `MIX` limits). |
+| 23 | Prewarm | **Built** (`RosterWarmup.warm_act`, `warm_shaders`, `Vfx.warm_art`). |
+| 24 | No spawn-all-at-once | **Built** (`WAVE_SPAWN_SPACING`, `MASS_KILL_PER_FRAME`). |
+| 25 | Explicit budgets | **Built** as `frame_budget_check` + `perf_check` ledger; a written ms table would be prose that drifts. |
+
+The honest next millisecond is renderer-side: torches and pools, particles,
+the ink under load, the tells, the bars - `perf_bisect --visuals` ranked them.
