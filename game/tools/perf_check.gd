@@ -101,6 +101,8 @@ var _seconds: float = 120.0
 var _build: bool = false
 var _idle: bool = false
 var _vsync_actual: int = -1
+## Measure the display at its native size and mode rather than pinned 1080p.
+var _native: bool = false
 var _checkpoint_path: String = CHECKPOINT_PATH
 ## High is the shipped, authored target and therefore the release budget. Ultra
 ## is intentionally an opt-in headroom mode; it can be profiled explicitly with
@@ -175,6 +177,8 @@ func _ready() -> void:
 				_quality = requested
 			else:
 				push_warning("Unknown quality preset '%s'; testing High." % requested)
+		elif argument == "--native":
+			_native = true
 		elif argument.begins_with("--off="):
 			# Turns one feature off on top of the chosen preset, so the cost of a
 			# single thing can be measured instead of inferred from the gap between
@@ -202,6 +206,16 @@ func _ready() -> void:
 	# like a failed budget, when it was a 60 Hz panel and a couple of frames of
 	# jitter. A budget that cannot tell "slow" from "capped" would never detect
 	# headroom disappearing until it had already gone.
+	# **Measured at 1080p, windowed, whatever the monitor is** (2026-09-24). The
+	# project opens fullscreen at the display's native size, so every number
+	# taken before this was at 1440p on the owner's monitor against a budget
+	# the design states at 1080p - the GPU's share of the frame was a third
+	# higher than the game a 1080p player sees. `--native` measures the
+	# display as it is, for the question "how does it run on this monitor".
+	if not _native:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_size(Vector2i(1920, 1080))
+		DisplayServer.window_set_position(Vector2i(40, 40))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	# Reported, not assumed. Asking for it off and *getting* it off are different
 	# things - a driver or compositor can hold the swap regardless, and then every
@@ -241,6 +255,7 @@ func _ready() -> void:
 	var off: String = ("  minus " + ", ".join(_disabled)) if not _disabled.is_empty() else ""
 	print("[perf] vsync requested OFF, actually %d (0=disabled 1=on 2=adaptive 3=mailbox)"
 		% _vsync_actual)
+	print("[perf] window %s%s" % [str(DisplayServer.window_get_size()), "  (native)" if _native else "  (pinned 1080p)"])
 	print("[perf] %s renderer, %s quality%s, %.0fs of measured combat, warm-up %.0fs"
 		% [_renderer_name(), _quality.capitalize(), off, _seconds, WARMUP_SECONDS])
 

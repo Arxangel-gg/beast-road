@@ -40,7 +40,8 @@ var _pressure: float = 0.0
 var _pressure_sample_left: float = 0.0
 
 var _flame: Flame
-var _embers_out: Sprite2D
+## The coals' alpha, drawn by `_draw`.
+var _coals_alpha: float = 0.55
 var _relight_glow: Sprite2D
 ## The warm pool on the ground under the post - see `_build_pool`.
 var _pool: Sprite2D
@@ -65,7 +66,7 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	_build_ironwork()
+	queue_redraw()
 
 	# A pool at the foot of the post.
 	#
@@ -180,53 +181,52 @@ func _refresh_pool(wobble: float = 1.0) -> void:
 
 ## The post and brazier. Drawn rather than art because at this size a PNG would
 ## be nine pixels of detail and one more file to keep in the manifest.
-func _build_ironwork() -> void:
+##
+## **One canvas item, not five** (2026-09-24). The post, the collar, the bowl,
+## the rim and the coals were four `Polygon2D`s and a sprite under every one
+## of a hundred torches - five hundred items for the renderer to cull and draw
+## on a field that had five thousand. They are five commands in one `_draw`
+## now, redrawn only when the coals change, which is on a strength change and
+## a relight and nowhere else. The order is what it was: a parent draws
+## before its children, and the ironwork was the first child.
+func _draw() -> void:
 	var height: float = Balance.TORCH_HEIGHT
-
-	var post := Polygon2D.new()
-	post.polygon = PackedVector2Array([
+	draw_colored_polygon(PackedVector2Array([
 		Vector2(-3.0, 0.0), Vector2(3.0, 0.0),
 		Vector2(2.0, -height), Vector2(-2.0, -height),
-	])
-	post.color = Color(0.13, 0.11, 0.10)
-	add_child(post)
-
+	]), Color(0.13, 0.11, 0.10))
 	# A collar partway up, so the post has a silhouette instead of being a stick.
-	var collar := Polygon2D.new()
-	collar.polygon = PackedVector2Array([
-		Vector2(-5.0, 0.0), Vector2(5.0, 0.0), Vector2(4.0, -4.0), Vector2(-4.0, -4.0),
-	])
-	collar.color = Color(0.20, 0.17, 0.14)
-	collar.position.y = -height * 0.42
-	add_child(collar)
-
+	var collar_y: float = -height * 0.42
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-5.0, collar_y), Vector2(5.0, collar_y),
+		Vector2(4.0, collar_y - 4.0), Vector2(-4.0, collar_y - 4.0),
+	]), Color(0.20, 0.17, 0.14))
 	# The bowl the fire sits in. Its rim is drawn separately and slightly lighter
 	# so the fire looks contained by it rather than drawn on top of it.
-	var bowl := Polygon2D.new()
-	bowl.polygon = PackedVector2Array([
-		Vector2(-9.0, 0.0), Vector2(9.0, 0.0),
-		Vector2(5.5, -8.0), Vector2(-5.5, -8.0),
-	])
-	bowl.color = Color(0.19, 0.15, 0.13)
-	bowl.position.y = -height + 4.0
-	add_child(bowl)
-
-	var rim := Polygon2D.new()
-	rim.polygon = PackedVector2Array([
-		Vector2(-9.5, 0.0), Vector2(9.5, 0.0), Vector2(9.5, -2.0), Vector2(-9.5, -2.0),
-	])
-	rim.color = Color(0.34, 0.27, 0.20)
-	rim.position.y = -height + 4.0
-	add_child(rim)
-
+	var bowl_y: float = -height + 4.0
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-9.0, bowl_y), Vector2(9.0, bowl_y),
+		Vector2(5.5, bowl_y - 8.0), Vector2(-5.5, bowl_y - 8.0),
+	]), Color(0.19, 0.15, 0.13))
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-9.5, bowl_y), Vector2(9.5, bowl_y),
+		Vector2(9.5, bowl_y - 2.0), Vector2(-9.5, bowl_y - 2.0),
+	]), Color(0.34, 0.27, 0.20))
 	# Coals: visible whether or not the torch is lit, so a dead torch reads as a
 	# torch that has gone out and not as an empty pole.
-	_embers_out = Sprite2D.new()
-	_embers_out.texture = Flame.dot_texture()
-	_embers_out.modulate = Color(0.55, 0.18, 0.06, 0.55)
-	_embers_out.scale = Vector2(0.42, 0.20)
-	_embers_out.position.y = -height + 1.0
-	add_child(_embers_out)
+	var coals: Texture2D = Flame.dot_texture()
+	var size: Vector2 = coals.get_size() * Vector2(0.42, 0.20)
+	draw_texture_rect(coals, Rect2(Vector2(-size.x * 0.5, -height + 1.0 - size.y * 0.5), size),
+		false, Color(0.55, 0.18, 0.06, _coals_alpha))
+
+
+## The coals' alpha: brighter while a relight is held, dimmer as the flame
+## gutters. Redraws the ironwork only when it actually moves.
+func _set_coals(alpha: float) -> void:
+	if is_equal_approx(alpha, _coals_alpha):
+		return
+	_coals_alpha = alpha
+	queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -395,16 +395,14 @@ func _show_rekindle(progress: float) -> void:
 	var span: float = Balance.TORCH_FLAME_SIZE * 2.4 / float(LightKit.falloff_texture().width)
 	_relight_glow.scale = Vector2.ONE * span * progress
 	_relight_glow.modulate.a = progress * 0.7
-	if _embers_out != null:
-		_embers_out.modulate.a = 0.55 + progress * 0.45
+	_set_coals(0.55 + progress * 0.45)
 
 
 func _apply_state(quiet: bool = false) -> void:
 	if _flame != null:
 		_flame.set_lit(_lit)
 		_flame.set_intensity(_strength)
-	if _embers_out != null:
-		_embers_out.modulate.a = 0.55
+	_set_coals(0.55)
 	_refresh_pool()
 	_show_rekindle(0.0)
 	if not quiet:
@@ -415,6 +413,5 @@ func _apply_state(quiet: bool = false) -> void:
 func _apply_strength() -> void:
 	if _flame != null:
 		_flame.set_intensity(_strength)
-	if _embers_out != null:
-		_embers_out.modulate.a = lerpf(0.55, 0.12, _strength)
+	_set_coals(lerpf(0.55, 0.12, _strength))
 	_refresh_pool()
