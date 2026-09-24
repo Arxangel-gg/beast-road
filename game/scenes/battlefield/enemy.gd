@@ -502,6 +502,10 @@ func _ready() -> void:
 		Balance.ENEMY_SIEGE_SHARE.y)
 	EventBus.hero_swing_started.connect(_on_hero_swing)
 	add_to_group(GROUP)
+	# The field's roster is gathered once a frame; a body that joins after
+	# that read would be invisible to every arrow and tower until the next.
+	if _field != null:
+		_field.roster_changed()
 	# **A mark that is born wearing a ward.** Through `guard`, the same door an
 	# anchor's shelter uses, so a guarded body turns one blow and is spent - and
 	# nothing had to learn that an affix can grant one.

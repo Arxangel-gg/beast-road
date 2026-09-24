@@ -9091,6 +9091,16 @@ tween is bound to its node: it halts while the node is out of the tree and
 *resumes* when the node is added again, onto whatever the piece is by then -
 so a release kills both of a piece's tweens by hand.
 
+**A roster gathered once a frame missed a body that joined that frame, and it
+failed a release, as of 2026-09-24 (v0.56.3).** `EnemyField.living_bodies`
+caches the group per process frame; `ranged_check` stands a body up and fires
+an arrow at it inside one hand-ticked frame, so the arrow read a roster taken
+before the body existed and flew past it. Two doors now: a body calls
+`roster_changed()` on its field as it joins the group, and the cache is also
+keyed on `get_node_count_in_group`, for a probe that names no field. **A cache
+keyed on the frame is only as fresh as the frame's first reader**, and a
+harness that ticks by hand never leaves the frame.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -334,12 +334,26 @@ func _crowd_reach(bodies: Array[Enemy], cell: float) -> int:
 ## freed outright is refused by validity.
 var _roster: Array[Enemy] = []
 var _roster_frame: int = -1
+var _roster_count: int = -1
+
+
+## A body that joined the group after this frame's roster was read says so
+## here, and the next ask gathers again. A stale roster is invisible to a
+## count and cost a release: `ranged_check` stands a body up and fires an
+## arrow at it inside one hand-ticked frame, and the arrow read a roster
+## taken before the body existed (v0.56.3).
+func roster_changed() -> void:
+	_roster_frame = -1
 
 
 func living_bodies() -> Array[Enemy]:
 	var frame: int = Engine.get_process_frames()
-	if frame != _roster_frame:
+	# The group's size is the second door, for a probe that names no field
+	# and so cannot call `roster_changed`.
+	var count: int = get_tree().get_node_count_in_group(Enemy.GROUP)
+	if frame != _roster_frame or count != _roster_count:
 		_roster_frame = frame
+		_roster_count = count
 		_roster.clear()
 		for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 			var enemy := node as Enemy
