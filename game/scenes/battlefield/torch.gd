@@ -42,6 +42,9 @@ var _pressure_sample_left: float = 0.0
 var _flame: Flame
 ## The coals' alpha, drawn by `_draw`.
 var _coals_alpha: float = 0.55
+## Whether a hero is near, asked on `TORCH_HERO_SAMPLE`.
+var _hero_near: bool = false
+var _hero_sample_left: float = 0.0
 var _relight_glow: Sprite2D
 ## The warm pool on the ground under the post - see `_build_pool`.
 var _pool: Sprite2D
@@ -88,6 +91,7 @@ func _build() -> void:
 	add_child(_flame)
 	# A radius of zero means "no PointLight2D", which is how an unlit post still
 	# gets its flame and glow without adding to the light budget.
+	_flame.smokes = Balance.TORCH_SMOKES
 	_flame.configure(Balance.TORCH_FLAME_SIZE,
 		Balance.TORCH_LIGHT_RADIUS if carries_light else 0.0,
 		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY,
@@ -242,7 +246,11 @@ func light_strength() -> float:
 
 
 func _tick_strength(delta: float) -> void:
-	var hero_near: bool = _hero_is_near()
+	_hero_sample_left -= delta
+	if _hero_sample_left <= 0.0:
+		_hero_sample_left = Balance.TORCH_HERO_SAMPLE
+		_hero_near = _hero_is_near()
+	var hero_near: bool = _hero_near
 	var before: float = _strength
 	# A flood at its height puts every post out. No roll: the brazier is under
 	# water.

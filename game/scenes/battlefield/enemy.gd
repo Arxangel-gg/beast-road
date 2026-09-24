@@ -119,6 +119,14 @@ var _blood_tried: bool = false
 ## promoted body afterwards. Combat state has to reach both. See `ActorState`.
 var _polish: ShaderMaterial = null
 var _state_seeded: bool = false
+## What the state shader was last told, so it is told only on change: three
+## uniform writes a body a frame were a third of the look's cost.
+var _state_shader_last: Vector3 = Vector3(-1.0, -1.0, -1.0)
+## Whether the impact rim was last written above zero, so its fade to zero
+## is written once and not on every quiet frame.
+var _impact_shown: bool = false
+## The aura ring, kept rather than looked up by name every frame.
+var _aura_ring: Line2D = null
 
 ## Nerve, 1 whole and 0 broken.
 ##
@@ -3399,6 +3407,7 @@ func _build_aura_readout() -> void:
 		return
 	var ring := Line2D.new()
 	ring.name = "AuraRing"
+	_aura_ring = ring
 	# **Centred on the body, not the feet, and not on the canvas either.**
 	#
 	# Depth sorting moved the node down to the ground contact point, so a ring
@@ -3474,7 +3483,9 @@ func _update_blood(delta: float) -> void:
 	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
-	BloodStain.drive_impact(_blood, _flash_left)
+	if _flash_left > 0.0 or _impact_shown:
+		BloodStain.drive_impact(_blood, _flash_left)
+		_impact_shown = _flash_left > 0.0
 	_update_state_shader()
 
 
@@ -3494,11 +3505,13 @@ func _update_state_shader() -> void:
 	# Frozen solid is frost at full rather than a fourth effect: it is the same
 	# ice, arrived. The chill meter is already 0..1 and needs no conversion.
 	var frozen: float = 1.0 if _freeze_left > 0.0 else _chill
-	ActorState.drive(material,
-		ActorState.burn_level(_burn_left),
-		frozen,
+	var wanted := Vector3(ActorState.burn_level(_burn_left), frozen,
 		ActorState.telegraph_level(_state_left, Balance.ENEMY_ATTACK_WINDUP)
 			if _state == State.WINDUP else 0.0)
+	if wanted.is_equal_approx(_state_shader_last):
+		return
+	_state_shader_last = wanted
+	ActorState.drive(material, wanted.x, wanted.y, wanted.z)
 
 
 ## Whichever of this body's two possible materials it actually wears.
@@ -3549,9 +3562,8 @@ func _update_sprite(delta: float = 0.0) -> void:
 	# The ring follows the flip: a mirrored sprite puts its body on the other
 	# side of the canvas, so a fixed offset would be wrong by twice itself the
 	# moment the breed turned round.
-	var ring := get_node_or_null("AuraRing") as Line2D
-	if ring != null:
-		ring.position.x = _body_offset_x()
+	if _aura_ring != null and is_instance_valid(_aura_ring):
+		_aura_ring.position.x = _body_offset_x()
 
 	_advance_walk_frames(delta)
 

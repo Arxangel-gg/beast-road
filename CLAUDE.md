@@ -8895,6 +8895,61 @@ once now. **"Nothing found, so try again next frame" is the shape to look
 for in any per-frame tick**: the cadence that was added for the found case
 does not cover the empty one. The run reads 9.0 ms headless, p99 15.
 
+**The renderer's half, measured, and the floor that was a sleep, as of
+2026-09-24 (late).** Three findings from the same evening, each of which
+corrected an earlier number in this file.
+
+**The 6.9 ms "engine floor" was `low_processor_mode_sleep_usec`.** With
+nothing to draw, Godot sleeps every frame out to that setting's default of
+6,900 microseconds, so every headless frame lighter than that read as 6.90 -
+and a floor ablation that freed the whole field, class by class, printed
+6.90 on every row. With the sleep off, "every node's processing off" is
+**0.19 ms**: the engine idles at nothing and a headless frame is script, full
+stop. Both headless tools zero it now, and every headless average recorded
+above this paragraph carried that floor. The heavy stretches were never
+floored - a frame heavier than the sleep is not slept - so the cuts they
+led to stand.
+
+**And every windowed number before the evening was taken on a 60 Hz
+monitor.** `perf_check` put its 1080p window at screen coordinates (40, 40),
+which on this machine is one of two 60 Hz displays beside the 180 Hz one,
+and the tool's own note said so in the log: the compositor rounds any
+windowed frame over 16.7 ms up to 33.3 whatever vsync reports, so the
+"average" was a quantisation. It pins to the fastest screen now and prints
+which. On the 180 Hz screen, honestly measured, Act X read **20.8 ms (48
+fps), the heavy stretch 30.7 ms**, before the evening's cuts.
+
+**`perf_bisect --visuals` is the renderer's own table**: a class of thing on
+the screen is hidden, the frame measured on, off and on again, and the
+saving printed. It said what the script profile could not, and it corrected
+a plan: the 725 painted plants I was about to fold into bands (and pay for
+in sorting) cost **0.4 ms**; the flames cost 2.7-3.6 and the two ink
+canvases 2-4, because **a triangle array handed to the Compatibility
+renderer is a new GPU buffer on every redraw**. A `draw_mesh` is uploaded
+once; a texture rect is an instance in a batch the renderer already keeps
+(a probe drew five hundred rotated quads in three draw calls). So the flame
+ring is forty-eight retained meshes, sparks, motes and flashes are quads of
+the flames' soft dot, torches carry no smoke emitter (`TORCH_SMOKES`: a
+wisp nobody can see, and a hundred of the four hundred and fifty particle
+systems), the tells repaint on `RANGE_RING_REDRAW_HZ`, a torch asks whether
+a hero is near on `TORCH_HERO_SAMPLE`, and a body writes its shader uniforms
+only when they change. Read the table in aggregate over runs: the held
+field's load moves second to second and a single row can be a wave-state
+shift (one run printed the minimap at 16 ms).
+
+**Measured after, windowed at 1080p on the 180 Hz screen, High, forty
+level-8 towers on Act X: 17.9 ms average (56 fps), p99 27.1, the heavy
+stretch 23.6 ms, five hitches a minute** - from 20.8, 34.3, 30.7 and
+49-78. What a heavy frame is now: about 9 ms of script (bodies 1.8, towers
+0.9, the hero's physics ticks 0.55, the tells 0.55, the animals 0.45, the
+look 0.45, the ink 0.45, sound 0.4), the viewport's own 5.2 ms of render
+CPU and 4.4 of GPU beside it, and some 9 ms of renderer work outside the
+viewport's measure - culling, sync, lights, particles, present. **A steady
+sixty at Act X's peak needs about seven milliseconds more**, and the
+ablation names where: torches and their pools (1.5-3), particles (1-3),
+the ink (2-4 under load), the tells, the bars, the ground blood - and on the
+script side the body's tick and the tower's. The plants are not on the list.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

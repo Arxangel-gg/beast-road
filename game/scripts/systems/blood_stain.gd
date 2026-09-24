@@ -91,8 +91,10 @@ static func drive(material: ShaderMaterial, health_fraction: float,
 	var current: float = level(material)
 	var rate: float = Balance.BLOOD_STAIN_ON if wanted > current \
 		else Balance.BLOOD_STAIN_OFF
-	material.set_shader_parameter("stain",
-		move_toward(current, wanted, rate * delta))
+	var next: float = move_toward(current, wanted, rate * delta)
+	if is_equal_approx(next, current):
+		return
+	material.set_shader_parameter("stain", next)
 
 
 static func strike(material: ShaderMaterial, direction: Vector2) -> void:

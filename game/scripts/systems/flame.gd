@@ -43,6 +43,10 @@ const LAYERS: Array[Dictionary] = [
 ## Height of the flame in pixels. Everything else scales off it.
 var size: float = 16.0
 
+## Whether the flame carries a smoke emitter. A torch says no (`TORCH_SMOKES`);
+## set before `configure`, which is where the emitters are built.
+var smokes: bool = true
+
 ## 0..1. Scales height, glow and particle output together, so one number turns a
 ## fire up. The city uses it to make a fresh blaze settle into a steady burn.
 var intensity: float = 1.0
@@ -105,7 +109,8 @@ func configure(flame_size: float, light_radius: float = 0.0,
 	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	material = additive
 
-	_build_smoke()
+	if smokes:
+		_build_smoke()
 	_build_embers()
 
 	if light_radius > 0.0:

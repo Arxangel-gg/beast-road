@@ -3875,6 +3875,9 @@ const RANGE_RING_HOLD: float = 2.6
 const RANGE_RING_FADE: float = 0.8
 const RANGE_RING_WIDTH: float = 3.0
 const RANGE_RING_SEGMENTS: int = 48
+## The rings are repainted at this rate rather than every frame; a ring
+## following a body at thirty a second is a ring following a body.
+const RANGE_RING_REDRAW_HZ: float = 30.0
 ## Flattened, because the camera looks down and slightly along and a true
 ## circle on the ground reads as a hoop standing up.
 const RANGE_RING_SQUASH: float = 0.58
@@ -6494,6 +6497,13 @@ const TORCH_LANE_OFFSET: float = 138.0
 ## the lane. [TUNE]
 const TORCH_HEIGHT: float = 58.0
 const TORCH_FLAME_SIZE: float = 26.0
+## A torch's flame carries no smoke emitter (2026-09-24): its wisp is eleven
+## grey motes at a quarter alpha, invisible at play zoom, and it was a hundred
+## of the four hundred and fifty particle systems on Act X. A camp fire, a
+## burning house and a pyre keep theirs - smoke is a question of what is
+## burning, not of how big the flame is, since a torch and a city fire are
+## the same size.
+const TORCH_SMOKES: bool = false
 
 ## Tight and bright, not wide and soft.
 ##
@@ -6659,6 +6669,9 @@ const TORCH_SNUFF_RANGE: float = 120
 ## Pressure is accumulated while enemies remain level with a torch, not rolled
 ## as an instant binary snuff. One walker takes time; a crowd can overwhelm it.
 ## Elite and boss bodies count as more than one ordinary walker. [TUNE]
+## How often a torch asks whether a hero is near enough to relight it - a
+## walk of the hero group, which a hundred torches were making every frame.
+const TORCH_HERO_SAMPLE: float = 0.1
 const TORCH_PRESSURE_SAMPLE: float = 0.18
 ## **Retuned upward when the lateral bound landed**, and the reason is worth
 ## keeping. Torches were going out because enemies on *other legs of the same

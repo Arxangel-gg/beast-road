@@ -64,6 +64,8 @@ var near_a_warden: Callable = Callable()
 ## and how long is left on it.
 var _rings: Dictionary = {}
 var _clock: float = 0.0
+## The repaint's own clock (`RANGE_RING_REDRAW_HZ`).
+var _redraw_debt: float = 0.0
 
 
 func _ready() -> void:
@@ -193,7 +195,10 @@ func _process_measured(delta: float) -> void:
 				ring["follow"] = null
 		live[key] = ring
 	_rings = live
-	queue_redraw()
+	_redraw_debt += delta
+	if _redraw_debt >= 1.0 / Balance.RANGE_RING_REDRAW_HZ or _rings.is_empty():
+		_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.RANGE_RING_REDRAW_HZ)
+		queue_redraw()
 
 
 func _draw_measured() -> void:
