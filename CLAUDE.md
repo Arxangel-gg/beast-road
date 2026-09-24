@@ -8614,6 +8614,38 @@ printed an error a frame from the moment its body's target died - sixty lines a
 frame on Act X. Validity first; `tower_juice_check` frees a body's target under
 a followed ring now.
 
+**The second cut is the ink, as of the same date.** The owner, of the same
+build: *"nor is it aesthetically appealing as projectiles are not polished"*.
+Both halves of that were one thing. A spark was a `Line2D` with a tip sprite
+and two tweens; a ring a `Line2D`, a bloom sprite and two tweens; a flash a
+polygon and a tween; a tower's shot a body node, two `Line2D`s, three
+polygons, a head sprite, a light and a shadow, shedding a sprite-and-tween
+eighteen times a second - and a `Line2D` with a round cap *reads as a pipe*,
+which is what "not polished" was.
+
+**`VfxInk` is one canvas for the short-lived light of a fight**: sparks,
+rings, flashes, motes and rays are records in arrays, advanced once a frame and
+handed to the renderer as one triangle array a kind, capped a kind by dropping
+the oldest (`VFX_INK_*_MAX`) - which is what `VFX_MAX_LIVE` did to the node
+layer. No node is born or freed for any of them. Every shape has a solid middle
+and a rim at zero alpha and the canvas blends additively, so a spark over a
+torch pool brightens it - the rule `BloodInk`, the menu fire and the swim sheen
+each ended at. It processes always and, while the tree is paused, advances only
+the records flagged `finish_when_paused`, which is what `lightning_lifetime_check`
+holds. `Vfx.spark`, `ring`, `flash_at`, `rays`, `pellets` keep their signatures
+and write records; `Vfx.mote` is the new door a shot sheds through.
+
+**And a projectile draws itself.** `Projectile` is one node and one additive
+child now: the head is painted art or the element's own silhouette with a soft
+rim, the ember of a high tier turns against it, a lob's shadow is drawn on the
+ground under the picture, and the ribbon is `InkRibbon` - a tapered, feathered
+strip along the shot's history with a white-hot filament inside it, **the same
+geometry for the tower's shot and the enemy's**, so the two cannot drift apart
+the first time either is tuned. What remains as a node is the light, on the
+shared budget. `projectile_tier_check` still reads a wider, hotter shot per
+level and `tower_juice_check` still reads every style's damage through it,
+because nothing about a shot's flight or its hit moved: a look, never a fact.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

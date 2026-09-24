@@ -1,78 +1,84 @@
 class_name Projectile
 extends Node2D
 
-## A tower's shot, in flight.
+## A tower's shot: one node that draws itself (2026-09-24).
 ##
-## Replaces an instant tracer line. The difference is not cosmetic: a shot that
-## takes time to arrive means a tower can miss a fast enemy, a slow heavy shell
-## reads differently from a rapid one, and the player can see which lane is
-## actually under fire. It makes the towers legible.
+## It was a tree - a body node, two `Line2D`s for the ribbon and its filament,
+## three polygons for the glow, the core and the hot ember, a head sprite, a
+## `PointLight2D` with its driver, a shadow polygon for a lob, and a sprite
+## with a tween shed eighteen times a second - nine to eleven nodes a shot, and
+## a lane of forty level-8 towers keeps a hundred shots in the air. Measured
+## on Act X: 7,151 canvas items and 2,674 draw calls at 90-99 ms a frame.
 ##
-## Homing rather than ballistic. A tower that fires at where something *was* is
-## technically more honest and practically just frustrating at this scale.
+## Now the picture is one `_draw` on this node - a tapered, feathered ribbon
+## with a white-hot filament inside it, a soft glow, the element's head (its
+## painted art where there is some, its authored silhouette where not), the
+## ember of a high tier, and the shadow a lob throws - and the motes go to
+## `Vfx.mote`, the drawn ink canvas. What remains as a node is the light,
+## which has to be a light, and is on a budget (`LightKit.shot_light_free`).
+##
+## **The look is drawn as light.** Every shape has a solid middle and a rim at
+## zero alpha, and the glow layer blends additively, so a volley over a torch
+## pool brightens it rather than laying flat strokes across it. The owner's
+## report was that the projectiles were "not polished"; a `Line2D` with a
+## round cap reads as a pipe, and that was the whole of it.
+##
+## **A style is a look and never a fact**: a lob's picture rises off the
+## straight path while the node that hits stays on it, a lance is the same
+## speed drawn longer, a chain's jitter is in the ribbon. `tower_juice_check`
+## reads the damage back through every style.
 
-## Element head art, derived from the element name the same way every other
-## asset path in the project is derived from an id (CLAUDE.md SS4).
 const PROJECTILE_ART_FORMAT: String = "res://art/vfx/projectile_%s.png"
 
-## Set by the tower before it enters the tree.
 var damage: float = 0.0
 var knockback: float = 0.0
 var speed: float = 600.0
 var colour: Color = Color.WHITE
 var data: TowerData = null
 
-## Level of the tower that fired this. An upgraded tower throws visibly bigger,
-## brighter, longer-tailed shots, so the investment shows in flight rather than
-## only in the damage numbers.
+## The level of the tower that fired this, which is what every visual here
+## sizes itself from: a level 8 shot is bigger, hotter, longer-tailed.
 var tier: int = 1
-## What the firing tower's path does to this shot's blast. 1.0 unless the
-## tower took the spreading path (2026-09-13).
+## What the shot's blast is scaled by - a Spread capstone widens it.
 var aoe_scale: float = 1.0
 
 var _target: Enemy = null
 var _direction: Vector2 = Vector2.RIGHT
 var _life: float = 0.0
+var _aimed: bool = false
+var _shot: int = TowerData.Shot.BOLT
 
-## A ribbon of recent positions. A moving dot reads as a dot; a dot with a tail
-## behind it reads as speed, and costs one node and a ring buffer.
-var _trail: Line2D
-var _filament: Line2D
-var _core: Polygon2D
-## The white heart a high-tier shot carries. Null below `PROJECTILE_HOT_TIER`.
-var _ember: Polygon2D = null
-
-## Painted head, when the element has art. The authored polygons stay as the
-## fallback, so a missing file costs nothing and the shot still reads.
-var _head: Sprite2D = null
-
-## The head's own animation, when the element has authored continuation frames.
-##
-## Empty is the normal case for any element that ships one drawing, and costs
-## nothing: the sprite simply keeps the single texture it was given. Frame zero
-## of the sequence *is* that texture, by the same convention every animated
-## structure and creature in the project uses.
-var _head_frames: Array[Texture2D] = []
-var _glow: Polygon2D
-var _light: PointLight2D
+## The ribbon: where the picture has been, newest last, in world space.
 var _history: PackedVector2Array = []
 var _spin: float = 0.0
 var _mote_left: float = 0.0
 
-## The style this shot is drawn in (`TowerData.Shot`, owner brief 2026-09-14),
-## and what the style needs. **The style is a look and never a fact**: the
-## node's own position, speed, homing and hit are the same in all five, and
-## `tower_juice_check` fires each at a body and reads the damage back.
-var _shot: int = TowerData.Shot.BOLT
-## Everything that flies - head, glow, core, ember, light - hangs off this so
-## a lob can lift the picture off the straight path while the hit stays on it.
-var _body: Node2D = null
-## A lob's shadow on the ground beneath the lifted picture.
-var _shadow: Polygon2D = null
+## A lob's arc: how far it had to fly when it left, how high the picture is
+## now, and the highest it has been (the gate reads that).
 var _lob_total: float = 0.0
 var _lift: float = 0.0
 var _peak_lift: float = 0.0
-var _aimed: bool = false
+
+## The head's painted art, when the element has some; frames for an animated
+## head, else one texture.
+var _head_frames: Array[Texture2D] = []
+var _head_shape: PackedVector2Array = []
+var _ember_shape: PackedVector2Array = []
+var _glow_shape: PackedVector2Array = []
+
+## The additive layer the ribbon, the glow and the filament are drawn on - the
+## one child a shot keeps for its picture, because a canvas item has one
+## material and the head art is not additive.
+var _glow_layer: ProjectileGlow = null
+
+## The light, on the shared shot-light budget; null when none was free.
+var _light: PointLight2D = null
+var _carries_light: bool = false
+
+## Reused every frame rather than reallocated.
+var _points: PackedVector2Array = PackedVector2Array()
+var _colours: PackedColorArray = PackedColorArray()
+var _indices: PackedInt32Array = PackedInt32Array()
 
 
 ## Builds the shot. **`fired_at` is a parameter, not a field to assign after.**
@@ -96,88 +102,54 @@ func setup(target: Enemy, tower_data: TowerData, hit_damage: float,
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
-	_body = Node2D.new()
-	add_child(_body)
-
-	# The trail lives in world space, so it stays put as the head moves rather
-	# than rotating with the projectile.
-	_trail = Line2D.new()
-	_trail.top_level = true
-	_trail.width = Balance.PROJECTILE_WIDTH * _tier_scale()
-	_trail.default_color = Color(colour, 0.75)
-	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_trail.joint_mode = Line2D.LINE_JOINT_ROUND
-	# Tapers to nothing at the tail; a constant-width trail looks like a pipe.
-	var taper := Curve.new()
-	taper.add_point(Vector2(0.0, 0.05))
-	taper.add_point(Vector2(1.0, 1.0))
-	_trail.width_curve = taper
-	# Fades along its length as well as tapering, so the tail dissolves.
-	var ramp := Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 1.0])
-	ramp.colors = PackedColorArray([Color(colour, 0.0), Color(colour, 0.85)])
-	_trail.gradient = ramp
-	add_child(_trail)
-
-	# A thin white-hot filament inside the broad elemental ribbon adds contrast
-	# at speed and keeps volleys readable against the darker night grade.
-	_filament = Line2D.new()
-	_filament.top_level = true
-	_filament.width = Balance.PROJECTILE_FILAMENT_WIDTH * _tier_scale()
-	_filament.default_color = Color(colour.lerp(Color.WHITE, 0.82), 0.95)
-	_filament.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_filament.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_filament.width_curve = taper
-	_filament.gradient = ramp
-	add_child(_filament)
-
-	# Each element gets its own head shape, so a lane full of shots is readable
-	# at a glance without reading the colours.
-	_glow = Polygon2D.new()
-	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
-	# Blooms harder with the tier, so the shot reads brighter as well as bigger.
-	_glow.color = Color(colour, _glow_alpha(0.30))
-	_body.add_child(_glow)
-
-	_core = Polygon2D.new()
-	_core.polygon = _head_shape(_tier_scale())
-	# A hot centre: the element colour lifted toward white reads as energy
-	# rather than as a coloured shape.
-	_core.color = colour.lerp(Color.WHITE, 0.55)
-	_body.add_child(_core)
-
+	_glow_shape = _element_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
+	_head_shape = _element_shape(_tier_scale())
 	# **An upgraded shot is hotter, not just larger.** Scale already carried the
 	# tier and a bigger shot still reads as the same shot; a white centre turning
 	# against its own shell changes what the projectile is. Only from
 	# `PROJECTILE_HOT_TIER`, so the step is an event rather than a gradient
 	# nobody notices crossing.
 	if tier >= Balance.PROJECTILE_HOT_TIER:
-		_ember = Polygon2D.new()
-		_ember.polygon = _head_shape(_tier_scale() * Balance.PROJECTILE_HOT_SCALE)
-		_ember.color = Color(1.0, 0.97, 0.9, 0.92)
-		_body.add_child(_ember)
-
-	_build_head()
-
+		_ember_shape = _element_shape(_tier_scale() * Balance.PROJECTILE_HOT_SCALE)
+	_load_head_art()
+	_glow_layer = ProjectileGlow.new()
+	_glow_layer.shot = self
+	add_child(_glow_layer)
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all - up to `PROJECTILE_LIGHT_MAX` of them at once
 	# (2026-09-24): a lane of forty level-8 towers keeps a hundred shots in
 	# the air, and a hundred lights is the frame going away. None on Low.
 	if LightKit.shot_light_free():
-		_light = LightKit.add_light(_body, colour,
+		_light = LightKit.add_light(self, colour,
 			Balance.PROJECTILE_LIGHT_RADIUS * _tier_scale(),
 			Balance.PROJECTILE_LIGHT_ENERGY * _tier_scale())
 		LightKit.take_shot_light()
 		_carries_light = true
-
 	# **Aimed on the first tick, not here.** The field positions a shot *after*
 	# adding it to the tree, so in `_ready` the node still sits at the world
 	# origin, and a heading taken from there is a heading from the wrong side
 	# of the map: every shot left its tower pointing somewhere else and curved
 	# round over the first tenth of a second. A tower far from the origin
 	# threw shots that flew away from the body before homing back.
-	_dress_for_style()
+
+
+func _exit_tree() -> void:
+	if _carries_light:
+		_carries_light = false
+		LightKit.give_shot_light()
+
+
+## Swaps the authored silhouette for painted art, where art exists.
+func _load_head_art() -> void:
+	var element: int = data.element if data != null else TowerData.Element.FIRE
+	var path: String = PROJECTILE_ART_FORMAT % TowerData.element_name(element).to_lower()
+	if not ResourceLoader.exists(path):
+		return
+	_head_frames = GameData.load_idle_frames(path)
+	if _head_frames.is_empty():
+		var single: Texture2D = load(path) as Texture2D
+		if single != null:
+			_head_frames.append(single)
 
 
 ## The heading from where the shot actually is to what it is flying at.
@@ -186,49 +158,6 @@ func _aim() -> void:
 	if _target != null and is_instance_valid(_target):
 		_direction = (_target.global_position - global_position).normalized()
 	rotation = _direction.angle()
-
-
-## What the style changes about the picture, once, when the shot is built.
-func _dress_for_style() -> void:
-	match _shot:
-		TowerData.Shot.LANCE:
-			# A long bright streak: a thinner ribbon, a hotter filament and a
-			# head stretched along the flight.
-			_trail.width *= 0.8
-			_filament.width *= 1.7
-			_filament.default_color = Color(colour.lerp(Color.WHITE, 0.9), 1.0)
-			_body.scale = Balance.PROJECTILE_LANCE_STRETCH
-		TowerData.Shot.LOB:
-			# The arc is measured against the distance the shot had to fly when
-			# it left the tower, so it peaks halfway however far that is. Taken
-			# on the first tick rather than here: the field positions a shot
-			# *after* adding it, so in `_ready` it is still at the world origin.
-			_lob_total = 0.0
-			_shadow = Polygon2D.new()
-			var points: PackedVector2Array = []
-			var w: float = Balance.PROJECTILE_WIDTH * _tier_scale() * 2.2
-			for i: int in 10:
-				var a: float = TAU * float(i) / 10.0
-				points.append(Vector2(cos(a) * w, sin(a) * w * 0.55))
-			_shadow.polygon = points
-			_shadow.color = Color(0.0, 0.0, 0.0, Balance.PROJECTILE_LOB_SHADOW_ALPHA)
-			_shadow.top_level = true
-			_shadow.z_index = Balance.VFX_Z - 3
-			add_child(_shadow)
-			_shadow.global_position = global_position
-		_:
-			pass
-
-
-## Whether this shot took one of the shot lights, so the budget is given back
-## when it lands or fizzles.
-var _carries_light: bool = false
-
-
-func _exit_tree() -> void:
-	if _carries_light:
-		_carries_light = false
-		LightKit.give_shot_light()
 
 
 func _process(delta: float) -> void:
@@ -248,37 +177,27 @@ func _process(delta: float) -> void:
 
 	global_position += _direction * speed * delta
 	rotation = _direction.angle()
-	_tick_style()
-	if not _head_frames.is_empty() and _head != null:
-		var frame: int = int(_life * Balance.VFX_ART_FRAME_RATE) % _head_frames.size()
-		_head.texture = _head_frames[frame]
-
+	_tick_lob()
 	# Earth shots tumble; everything else holds its heading.
 	if data != null and data.element == TowerData.Element.EARTH:
 		_spin += delta * Balance.PROJECTILE_SPIN_RATE * (1.0
 			+ float(_tier_step()) * Balance.PROJECTILE_SPIN_TIER_STEP)
-		_core.rotation = _spin
-		_glow.rotation = _spin
-		if _head != null:
-			_head.rotation = _spin
-		# Against the shell. Two things turning the same way read as one thing
-		# turning; opposed, they read as something being driven.
-		if _ember != null:
-			_ember.rotation = -_spin * 1.6
-
 	_push_trail()
 	_mote_left -= delta
 	if _mote_left <= 0.0:
 		_mote_left = Balance.PROJECTILE_MOTE_INTERVAL
 		if _shot == TowerData.Shot.CHAIN:
 			_mote_left *= Balance.PROJECTILE_CHAIN_MOTE_SCALE
-		# A mote is a sprite and a tween, eighteen times a second per shot;
-		# under load the director thins them and the particle scale can give
-		# them away entirely. Cosmetic, so nothing about the shot moves.
+		# A mote is a record on the ink canvas now, eighteen times a second per
+		# shot; under load the director thins them and the particle scale can
+		# give them away entirely. Cosmetic, so nothing about the shot moves.
 		var keep: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC) \
 			* Graphics.particle_scale()
 		if keep >= 1.0 or randf() < keep:
 			_shed_mote()
+	queue_redraw()
+	if _glow_layer != null:
+		_glow_layer.queue_redraw()
 
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS
@@ -286,10 +205,13 @@ func _process(delta: float) -> void:
 			_impact()
 
 
-## What the style does every frame: a lob lifts its picture on an arc over the
-## straight path and drops a shadow where the hit will land.
-func _tick_style() -> void:
-	if _shot != TowerData.Shot.LOB or _body == null:
+## What a lob does every frame: its picture rises on an arc over the straight
+## path and its shadow stays on the ground where the hit will land. The arc is
+## measured against the distance the shot had to fly when it left the tower,
+## so it peaks halfway however far that is - taken on the first tick rather
+## than in `_ready`, because the field positions a shot after adding it.
+func _tick_lob() -> void:
+	if _shot != TowerData.Shot.LOB:
 		return
 	var left: float = 0.0
 	if _target != null and is_instance_valid(_target):
@@ -300,12 +222,6 @@ func _tick_style() -> void:
 	var arc: float = sin(progress * PI)
 	_lift = arc * Balance.PROJECTILE_LOB_HEIGHT * _tier_scale()
 	_peak_lift = maxf(_peak_lift, _lift)
-	# Screen-up, whichever way the node is turned.
-	_body.position = Vector2(0.0, -_lift).rotated(-rotation)
-	if _shadow != null:
-		_shadow.global_position = global_position
-		_shadow.scale = Vector2.ONE * (1.0 - 0.45 * arc)
-		_shadow.color.a = Balance.PROJECTILE_LOB_SHADOW_ALPHA * (1.0 - 0.5 * arc)
 
 
 ## Where the picture is: the shot's own position, lifted by a lob's arc.
@@ -313,52 +229,184 @@ func _drawn_at() -> Vector2:
 	return global_position + Vector2(0.0, -_lift)
 
 
-## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
-## chunk, air a thin dart.
-## Swaps the authored polygon head for painted art, where art exists.
-##
-## The polygon is hidden rather than removed and the glow is kept but dimmed:
-## the glow is what carries the element colour at distance, and the sprite is
-## what carries the shape up close. Everything that *moves* - the taper, the
-## tumble, the light, the per-level scaling - is untouched, because the motion
-## is the read and the sprite is only the surface.
-func _build_head() -> void:
-	var element: int = data.element if data != null else TowerData.Element.FIRE
-	var path: String = PROJECTILE_ART_FORMAT % TowerData.element_name(element).to_lower()
-	if not ResourceLoader.exists(path):
+func _push_trail() -> void:
+	_history.append(_drawn_at())
+	var held: float = float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()
+	if _shot == TowerData.Shot.LANCE:
+		held *= Balance.PROJECTILE_LANCE_TRAIL
+	while _history.size() > int(held):
+		_history.remove_at(0)
+
+
+func _shed_mote() -> void:
+	var drift: Vector2 = -_direction * randf_range(18.0, 36.0) \
+		+ _direction.orthogonal() * randf_range(-14.0, 14.0)
+	Vfx.mote(_drawn_at() + Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0)), drift,
+		Color(colour.lerp(Color.WHITE, 0.55), 0.72),
+		randf_range(3.0, 5.5) * _tier_scale(), Balance.PROJECTILE_MOTE_LIFE)
+
+
+# --- The picture ------------------------------------------------------------------
+
+## What this node draws itself: the head - painted art or the element's own
+## silhouette - the ember, and a lob's shadow. Everything that is light is on
+## the additive child.
+func _draw() -> void:
+	var at: Vector2 = to_local(_drawn_at())
+	if _shot == TowerData.Shot.LOB:
+		# The shadow stays on the ground under the shot, smaller and fainter
+		# the higher the picture is - which is what says "this is in the air".
+		var arc: float = _lift / maxf(Balance.PROJECTILE_LOB_HEIGHT * _tier_scale(), 1.0)
+		var w: float = Balance.PROJECTILE_WIDTH * _tier_scale() * 2.2 * (1.0 - 0.45 * arc)
+		_begin()
+		_ellipse(Vector2.ZERO, w, w * 0.55, Color(0.0, 0.0, 0.0, 1.0),
+			Balance.PROJECTILE_LOB_SHADOW_ALPHA * (1.0 - 0.5 * arc), 10)
+		_flush()
+	var stretch: Vector2 = Balance.PROJECTILE_LANCE_STRETCH \
+		if _shot == TowerData.Shot.LANCE else Vector2.ONE
+	if not _head_frames.is_empty():
+		var frame: Texture2D = _head_frames[int(_life * Balance.VFX_ART_FRAME_RATE) % _head_frames.size()]
+		var scale: float = Balance.PROJECTILE_ART_SCALE * _tier_scale()
+		draw_set_transform(at, _spin, stretch * scale)
+		draw_texture(frame, -frame.get_size() * 0.5, colour.lerp(Color.WHITE, 0.35))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		# The authored silhouette, with a soft rim.
+		draw_set_transform(at, _spin, stretch)
+		_begin()
+		_soft_polygon(_head_shape, colour.lerp(Color.WHITE, 0.55), 1.0)
+		_flush()
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if not _ember_shape.is_empty():
+		# Against the shell. Two things turning the same way read as one thing
+		# turning; opposed, they read as something being driven.
+		draw_set_transform(at, -_spin * 1.6, stretch)
+		_begin()
+		_soft_polygon(_ember_shape, Color(1.0, 0.97, 0.9), 0.92)
+		_flush()
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## The additive half, drawn by the glow child: the ribbon, its filament and
+## the glow round the head.
+func draw_light(on: CanvasItem) -> void:
+	if _history.size() < 2:
+		_draw_glow_only(on)
 		return
-	_head = Sprite2D.new()
-	_head.texture = load(path)
-	# The bolt animates *in place* while this node does the travelling. That
-	# split is deliberate and is what keeps one drawing reusable: the sprite
-	# carries flicker, heat and trailing embers, and the scene carries speed,
-	# homing and where the thing actually is.
-	_head_frames = GameData.load_idle_frames(path)
-	_head.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	_head.add_to_group(Graphics.FILTER_GROUP)
-	_head.scale = Vector2.ONE * Balance.PROJECTILE_ART_SCALE * _tier_scale()
-	# Tinted toward the element rather than left neutral, so a Fire shot from a
-	# fused tower still reads as that tower's colour.
-	_head.modulate = colour.lerp(Color.WHITE, 0.35)
-	_body.add_child(_head)
-	_core.visible = false
-	# Still tier-scaled. This used to reset the alpha to a flat value, which
-	# quietly undid the upgrade's bloom for every tower that has painted head
-	# art - which is all of them.
-	_glow.color = Color(colour, _glow_alpha(0.22))
+	var inverse: Transform2D = on.get_global_transform().affine_inverse()
+	var points: PackedVector2Array = _history
+	if _shot == TowerData.Shot.CHAIN:
+		# A jagged ribbon: every other point thrown off the path, freshly each
+		# frame, so the trail crackles rather than merely bends.
+		points = PackedVector2Array(_history)
+		for index: int in range(1, points.size() - 1, 2):
+			var along: Vector2 = (_history[index + 1] - _history[index - 1]).normalized()
+			points[index] += along.orthogonal() * randf_range(-Balance.PROJECTILE_CHAIN_JITTER,
+				Balance.PROJECTILE_CHAIN_JITTER)
+	var width: float = Balance.PROJECTILE_WIDTH * _tier_scale()
+	var filament: float = Balance.PROJECTILE_FILAMENT_WIDTH * _tier_scale()
+	if _shot == TowerData.Shot.LANCE:
+		width *= 0.8
+		filament *= 1.7
+	# The broad elemental ribbon, tapering to nothing at the tail and fading
+	# along its length so the tail dissolves; then the white-hot filament
+	# inside it, which is what keeps volleys readable against a night grade.
+	# One geometry for both projectile kinds (`InkRibbon`), so the enemy's
+	# shot and the tower's cannot drift apart the first time either is tuned.
+	InkRibbon.ribbon(on, points, inverse, width, Color(colour, 0.75), 0.0, 0.85)
+	InkRibbon.ribbon(on, points, inverse, filament,
+		Color(colour.lerp(Color.WHITE, 0.9 if _shot == TowerData.Shot.LANCE else 0.82), 0.95),
+		0.0, 1.0)
+	_draw_glow_only(on)
 
 
-## How much bigger a shot is per level of the tower that fired it.
-## The glow's opacity at this tier, from a base the caller chooses.
-##
-## One place, because two call sites set it and only one of them was scaling -
-## so a painted shot bloomed the same at level 5 as at level 1.
+func _draw_glow_only(on: CanvasItem) -> void:
+	var inverse: Transform2D = on.get_global_transform().affine_inverse()
+	var at: Vector2 = inverse * _drawn_at()
+	var lit: float = _glow_alpha(0.22 if not _head_frames.is_empty() else 0.30)
+	on.draw_set_transform(at, _spin, Balance.PROJECTILE_LANCE_STRETCH \
+		if _shot == TowerData.Shot.LANCE else Vector2.ONE)
+	_begin()
+	_soft_polygon(_glow_shape, colour, lit)
+	_flush_on(on)
+	on.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## A polygon with a solid centre and a soft rim: a fan from the centroid to
+## each vertex at `lit`, then a feather band outside it at nothing.
+func _soft_polygon(shape: PackedVector2Array, tint: Color, lit: float) -> void:
+	if shape.size() < 3:
+		return
+	var centre := Vector2.ZERO
+	for point: Vector2 in shape:
+		centre += point
+	centre /= float(shape.size())
+	var base: int = _points.size()
+	var n: int = shape.size()
+	_points.append(centre)
+	_colours.append(Color(tint.r, tint.g, tint.b, lit))
+	var clear := Color(tint.r, tint.g, tint.b, 0.0)
+	for point: Vector2 in shape:
+		_points.append(point)
+		_colours.append(Color(tint.r, tint.g, tint.b, lit * 0.85))
+	for point: Vector2 in shape:
+		_points.append(centre + (point - centre) * 1.55)
+		_colours.append(clear)
+	for index: int in n:
+		var a: int = base + 1 + index
+		var b: int = base + 1 + (index + 1) % n
+		_indices.append(base)
+		_indices.append(a)
+		_indices.append(b)
+		# the feather quad between the edge a-b and its outer copy
+		var a2: int = a + n
+		var b2: int = b + n
+		_indices.append(a)
+		_indices.append(a2)
+		_indices.append(b)
+		_indices.append(b)
+		_indices.append(a2)
+		_indices.append(b2)
+
+
+func _ellipse(centre: Vector2, rx: float, ry: float, tint: Color, lit: float,
+		segments: int) -> void:
+	var base: int = _points.size()
+	_points.append(centre)
+	_colours.append(Color(tint.r, tint.g, tint.b, lit))
+	var clear := Color(tint.r, tint.g, tint.b, 0.0)
+	for step: int in segments:
+		var angle: float = TAU * float(step) / float(segments)
+		_points.append(centre + Vector2(cos(angle) * rx, sin(angle) * ry))
+		_colours.append(clear)
+	for step: int in segments:
+		_indices.append(base)
+		_indices.append(base + 1 + step)
+		_indices.append(base + 1 + (step + 1) % segments)
+
+
+func _begin() -> void:
+	_points.clear()
+	_colours.clear()
+	_indices.clear()
+
+
+func _flush() -> void:
+	_flush_on(self)
+
+
+func _flush_on(on: CanvasItem) -> void:
+	if _indices.is_empty():
+		return
+	RenderingServer.canvas_item_add_triangle_array(on.get_canvas_item(), _indices, _points, _colours)
+
+
+# --- What the gates and the field read ---------------------------------------------
+
 func _glow_alpha(base: float) -> float:
 	return minf(base + float(_tier_step()) * Balance.PROJECTILE_GLOW_TIER_STEP, 0.72)
 
 
-## The style this shot is drawn in, how far a lob has lifted its picture, and
-## whether it throws a shadow. For the gate.
 func style() -> int:
 	return _shot
 
@@ -367,31 +415,29 @@ func lifted() -> float:
 	return _lift
 
 
-## The highest the picture rose over its whole flight, for a gate reading a
-## shot that has already landed.
 func peak_lift() -> float:
 	return _peak_lift
 
 
 func has_shadow() -> bool:
-	return _shadow != null and is_instance_valid(_shadow)
+	return _shot == TowerData.Shot.LOB
 
 
-## Whether this shot carries the white heart of an upgraded tower. For the gate.
 func has_hot_core() -> bool:
-	return _ember != null and is_instance_valid(_ember)
+	return not _ember_shape.is_empty()
 
 
-## The trail's width and the glow's opacity, for the gate to compare tiers by.
 func look() -> Dictionary:
+	var width: float = Balance.PROJECTILE_WIDTH * _tier_scale()
+	if _shot == TowerData.Shot.LANCE:
+		width *= 0.8
 	return {
-		"trail": _trail.width if _trail != null else 0.0,
-		"glow_alpha": _glow.color.a if _glow != null else 0.0,
+		"trail": width,
+		"glow_alpha": _glow_alpha(0.22 if not _head_frames.is_empty() else 0.30),
 		"hot": has_hot_core(),
 	}
 
 
-## How many upgrades this shot is above a fresh one, 0 to TOWER_MAX_LEVEL - 1.
 func _tier_step() -> int:
 	return clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1
 
@@ -400,7 +446,9 @@ func _tier_scale() -> float:
 	return 1.0 + float(clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1) * Balance.PROJECTILE_TIER_SCALE
 
 
-func _head_shape(scale: float) -> PackedVector2Array:
+## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
+## chunk, air a thin dart.
+func _element_shape(scale: float) -> PackedVector2Array:
 	var w: float = Balance.PROJECTILE_WIDTH * scale
 	var element: int = data.element if data != null else 0
 	match element:
@@ -419,50 +467,12 @@ func _head_shape(scale: float) -> PackedVector2Array:
 				Vector2(-w * 0.4, 0.0), Vector2(-w * 1.0, w * 0.5)])
 		_:
 			return PackedVector2Array([
-				Vector2(w * 2.2, 0.0), Vector2(w * 0.2, -w * 1.0),
-				Vector2(-w * 1.8, 0.0), Vector2(w * 0.2, w * 1.0)])
+				Vector2(w * 2.2, 0.0), Vector2(w * 0.6, -w * 1.0),
+				Vector2(-w * 1.4, -w * 0.6), Vector2(-w * 1.4, w * 0.6),
+				Vector2(w * 0.6, w * 1.0)])
 
 
-## Keeps the last N world positions and feeds them to the trail.
-func _push_trail() -> void:
-	_history.append(_drawn_at())
-	var held: float = float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()
-	if _shot == TowerData.Shot.LANCE:
-		held *= Balance.PROJECTILE_LANCE_TRAIL
-	while _history.size() > int(held):
-		_history.remove_at(0)
-	if _shot == TowerData.Shot.CHAIN:
-		# A jagged ribbon: every other point thrown off the path, freshly each
-		# frame, so the trail crackles rather than merely bends.
-		var jag: PackedVector2Array = PackedVector2Array(_history)
-		for index: int in range(1, jag.size() - 1, 2):
-			var along: Vector2 = (_history[index + 1] - _history[index - 1]).normalized()
-			jag[index] += along.orthogonal() * randf_range(-Balance.PROJECTILE_CHAIN_JITTER,
-				Balance.PROJECTILE_CHAIN_JITTER)
-		_trail.points = jag
-		_filament.points = jag
-		return
-	_trail.points = _history
-	_filament.points = _history
-
-
-func _shed_mote() -> void:
-	var mote := Sprite2D.new()
-	mote.texture = Flame.dot_texture()
-	mote.modulate = Color(colour.lerp(Color.WHITE, 0.55), 0.72)
-	mote.scale = Vector2.ONE * randf_range(0.08, 0.16) * _tier_scale()
-	mote.top_level = true
-	add_child(mote)
-	mote.global_position = _drawn_at() + Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
-	var drift: Vector2 = -_direction * randf_range(18.0, 36.0) \
-		+ _direction.orthogonal() * randf_range(-14.0, 14.0)
-	var tween: Tween = mote.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(mote, "global_position", mote.global_position + drift,
-		Balance.PROJECTILE_MOTE_LIFE)
-	tween.tween_property(mote, "modulate:a", 0.0, Balance.PROJECTILE_MOTE_LIFE)
-	tween.chain().tween_callback(mote.queue_free)
-
+# --- The hit ------------------------------------------------------------------------
 
 func _impact() -> void:
 	var field: Battlefield = _find_field()
@@ -490,11 +500,6 @@ func _impact() -> void:
 	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
 		Color(colour, 0.7), 0.22, 3.0)
 	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH * _tier_scale())
-	# **The forged sheet is `impact`'s now.** It played the generic shock here
-	# and the element's own hit from in there, which is two sheets on every
-	# tower shot in a lane - twice the sprites for a picture nobody can tell
-	# apart from one. The element's is the better of the two, because it is
-	# the one that says which tower fired.
 	# A lob lands: dust off the ground and a tremor weighted by distance from
 	# the camera, through the same door every blow in the game uses.
 	if _shot == TowerData.Shot.LOB:
@@ -513,16 +518,9 @@ func _expire() -> void:
 func _apply(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
-	# **What killed it decides how it comes apart.** Said before the blow rather
-	# than after, because the blow may be the one that finishes the body and the
-	# death reads the mark. Presentation only - `Enemy.mark_element` is read by
-	# nothing but `_elemental_end`.
 	if data != null:
 		enemy.mark_element(data.element)
 	if damage > 0.0:
-		# The brand is read at impact rather than at the muzzle: a shot in flight
-		# toward an elite that gets branded on the way should land the amplified
-		# hit, and one aimed at a body whose mark expired mid-flight should not.
 		enemy.take_damage(damage * enemy.brand_multiplier(), global_position, knockback)
 	var utility: float = data.utility_at(tier)
 	if data.slow_factor < 1.0:
@@ -545,3 +543,21 @@ func _find_field() -> Battlefield:
 			return field
 		node = node.get_parent()
 	return null
+
+
+## The additive layer of a shot: one child, one material, drawn by the shot.
+class ProjectileGlow extends Node2D:
+	var shot: Projectile = null
+
+	func _ready() -> void:
+		# World space, so the ribbon behind the head stays put as the head moves
+		# rather than turning with the projectile.
+		top_level = true
+		z_index = Balance.VFX_Z
+		var material := CanvasItemMaterial.new()
+		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		self.material = material
+
+	func _draw() -> void:
+		if shot != null and is_instance_valid(shot):
+			shot.draw_light(self)

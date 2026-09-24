@@ -31,6 +31,9 @@ var _container: Node2D = null
 ## Blood on the ground. Outlives individual effects, so it is kept apart from
 ## them - see `bind_world`.
 var _ground: BloodField = null
+## The drawn canvas for sparks, rings, flashes, motes and rays (2026-09-24):
+## records on one `_draw` rather than nodes with tweens. See `VfxInk`.
+var _ink: VfxInk = null
 
 ## Spatter shapes are cosmetic, so they draw from their own stream rather than
 ## the run's seeded one - blood must never move a gameplay roll.
@@ -303,6 +306,7 @@ func _load_particle_art() -> void:
 func bind_world(node: Node2D) -> void:
 	world = node
 	_container = null
+	_ink = null
 	# A new world is a new screen, and the director's load is a fact about what
 	# is on *this* one. Without this, walking into a rift from a wave that had
 	# just killed forty bodies would arrive with every cosmetic effect damped and
@@ -323,11 +327,18 @@ func bind_world(node: Node2D) -> void:
 	_ground.name = "BloodField"
 	node.add_child(_ground)
 
+	# Beside the layer rather than in it: the layer's children are the
+	# short-lived nodes that remain, and the gates count them.
+	_ink = VfxInk.new()
+	node.add_child(_ink)
+
 
 func clear() -> void:
 	if _container != null and is_instance_valid(_container):
 		for child: Node in _container.get_children():
 			child.queue_free()
+	if _ink != null and is_instance_valid(_ink):
+		_ink.clear()
 	if _ground != null and is_instance_valid(_ground):
 		_ground.wipe()
 	clear_vignette()
@@ -380,8 +391,17 @@ func _track(node: Node) -> void:
 
 ## A burst of shards flying outward. `direction` biases the spray; pass ZERO for
 ## an even burst.
+## A soft dot that drifts and dies: what a shot sheds behind it. On the ink
+## canvas, so a hundred shots shedding eighteen a second allocate nothing.
+func mote(at: Vector2, drift: Vector2, colour: Color, size: float, life: float,
+		finish_when_paused: bool = false) -> void:
+	if world == null or _ink == null:
+		return
+	_ink.mote(at, drift, colour, size, life, finish_when_paused)
+
+
 func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vector2.ZERO, speed: float = 260.0, finish_when_paused: bool = false) -> void:
-	if world == null:
+	if world == null or _ink == null:
 		return
 	# **Sparks are the first thing a busy screen gives up**, and the most common
 	# effect in the game - every blow that lands throws some. Never to nothing:
@@ -391,34 +411,10 @@ func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vect
 	count = maxi(1, int(round(float(count) * JuiceDirector.weight(
 		JuiceDirector.Priority.COSMETIC))))
 	JuiceDirector.note(JuiceDirector.Priority.COSMETIC)
+	# Records on the ink canvas (2026-09-24), where they were a `Line2D`, a tip
+	# sprite and two tweens apiece - a thousand nodes a second on Act X.
 	for i: int in count:
-		var angle: float
-		if direction == Vector2.ZERO:
-			angle = randf() * TAU
-		else:
-			angle = direction.angle() + randf_range(-Balance.VFX_SPARK_SPREAD, Balance.VFX_SPARK_SPREAD)
-		var dir: Vector2 = Vector2.RIGHT.rotated(angle)
-		var length: float = randf_range(6.0, 16.0)
-
-		var shard := Line2D.new()
-		shard.points = PackedVector2Array([Vector2.ZERO, dir * length])
-		shard.width = randf_range(2.0, 4.0)
-		shard.default_color = colour
-		shard.z_index = Balance.VFX_Z
-		if finish_when_paused:
-			shard.process_mode = Node.PROCESS_MODE_ALWAYS
-		_track(shard)
-		shard.global_position = at
-
-		var travel: float = speed * randf_range(0.5, 1.2)
-		var life: float = Balance.VFX_SPARK_LIFE * randf_range(0.7, 1.3)
-		var tween: Tween = shard.create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(shard, "global_position", at + dir * travel, life)\
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-		tween.tween_property(shard, "modulate:a", 0.0, life)
-		tween.chain().tween_callback(shard.queue_free)
-		_spark_mote(shard, dir * length, colour, life)
+		_ink.spark(at, direction, colour, speed, finish_when_paused)
 
 
 ## The hot head of a shard. Same additive contract as `_ring_bloom`: a child of
@@ -427,81 +423,15 @@ func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vect
 ## The streak is what reads as *speed*; the mote is what reads as *matter*. Sat
 ## at the leading end rather than the origin, because a shard that fades from its
 ## own tail is what debris does and a lit dot at the back is what a bug looks like.
-func _spark_mote(shard: Line2D, tip: Vector2, colour: Color, life: float) -> void:
-	if _spark_texture == null:
-		return
-	var mote := Sprite2D.new()
-	mote.texture = _spark_texture
-	mote.centered = true
-	mote.position = tip
-	# The drawn shape is a teardrop with its fat, bright end at local +Y and its
-	# taper at -Y, so the head faces the direction of travel at angle - 90deg.
-	# Facing it along +X instead - the obvious guess - lays the droplet broadside
-	# to its own flight, which reads as tumbling debris rather than a hot mote.
-	mote.rotation = tip.angle() - PI * 0.5
-	mote.self_modulate = Color(colour.r, colour.g, colour.b, 0.9)
-	# Sized against the *drawn* width, not the canvas: the art fills 8 of 32
-	# pixels across, so measuring the file would have made every mote a quarter
-	# of its intended size - which is exactly what the first version did, and it
-	# was invisible on screen rather than wrong-looking.
-	var span: float = maxf(float(_spark_texture.get_width()), 1.0) * SPARK_ART_FILL
-	# 1.8x the streak's own width. Wider and the head swallows the line that is
-	# carrying the sense of speed; the streak is the motion, this is only the
-	# matter at the front of it.
-	var born: float = shard.width * 1.8 / span
-	mote.scale = Vector2.ONE * born
-	shard.add_child(mote)
-	# Shrinking rather than growing: the piece is cooling as it flies, and a mote
-	# that swelled while its streak faded would read as an approaching object.
-	mote.create_tween().tween_property(mote, "scale", Vector2.ONE * born * 0.35, life) \
-			.set_ease(Tween.EASE_IN)
-
-
 ## An expanding ring. Reads as force in a way a flash does not.
 func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, width: float = 4.0, finish_when_paused: bool = false) -> void:
-	if world == null:
+	if world == null or _ink == null:
 		return
-	var line := Line2D.new()
-	var points: PackedVector2Array = []
-	for i: int in 33:
-		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 32.0))
-	line.default_color = colour
-	line.width = width
-	line.z_index = Balance.VFX_Z
-	if finish_when_paused:
-		line.process_mode = Node.PROCESS_MODE_ALWAYS
-	_track(line)
-	line.global_position = at
-
-	# The ring grows by having its points moved outward, NOT by scaling the node.
-	#
-	# Line2D width is in local units, so it scales with the transform. Growing a
-	# 6px ring to radius 224 by scaling therefore ended it 1344px thick — not a
-	# ring but a filled disc, whose polyline joins fanned out as spokes. Under
-	# sustained town damage the overlap became a red starburst covering half the
-	# map. (Counter-scaling the width does not fix it either: both values ease
-	# quadratically, so their product still bulges through the middle of the
-	# tween. Only leaving the scale alone actually holds the thickness.)
-	#
-	# Rebuilding thirty-three points per frame for a handful of live rings costs
-	# nothing worth measuring.
-	var grow: Callable = func(radius: float) -> void:
-		if not is_instance_valid(line):
-			return
-		var scaled: PackedVector2Array = []
-		for point: Vector2 in points:
-			scaled.append(point * radius)
-		line.points = scaled
-
-	grow.call(4.0)
-
-	var tween: Tween = line.create_tween()
-	tween.set_parallel(true)
-	tween.tween_method(grow, 4.0, to_radius, life)\
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(line, "modulate:a", 0.0, life)
-	tween.chain().tween_callback(line.queue_free)
-	_ring_bloom(line, to_radius, colour, life)
+	# A record on the ink canvas (2026-09-24): the ring grows by its radius
+	# rather than by scale, so its width holds - which is the whole reason the
+	# node version rebuilt thirty-three points a frame - and it carries its own
+	# faint bloom, drawn as light rather than as a sprite.
+	_ink.ring(at, to_radius, colour, life, width, finish_when_paused)
 
 
 ## The authored rim, laid *under* the procedural ring rather than instead of it.
@@ -529,28 +459,6 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, widt
 ## The texture is drawn white so `modulate` can tint it to whatever the caller
 ## asked for. A coloured source multiplies into mud the moment somebody asks for
 ## blue.
-func _ring_bloom(line: Line2D, to_radius: float, colour: Color, life: float) -> void:
-	if _ring_texture == null:
-		return
-	var glow := Sprite2D.new()
-	glow.texture = _ring_texture
-	glow.centered = true
-	# Behind the polyline, so the crisp edge stays the thing the eye lands on.
-	glow.z_index = -1
-	glow.self_modulate = Color(colour.r, colour.g, colour.b, 0.55)
-	# The drawn ring does not reach the edge of its own canvas - it occupies 98 of
-	# the texture's 128 pixels - so scaling by diameter alone lands the bloom
-	# inside the polyline by about a fifth of the radius, which reads as two
-	# separate rings rather than one with a body. The first version did exactly
-	# that. Scale by the *visible* span instead.
-	var span: float = maxf(float(_ring_texture.get_width()), 1.0) / RING_ART_FILL
-	glow.scale = Vector2.ONE * (8.0 / span)
-	line.add_child(glow)
-	var tween: Tween = glow.create_tween()
-	tween.tween_property(glow, "scale", Vector2.ONE * (to_radius * 2.0 / span), life) \
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-
-
 ## Floating damage text. Pops in, arcs upward, hangs and fades.
 ##
 ## Procedural rather than a fixed rise: the number leaves the body fast, slows
@@ -662,28 +570,15 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color,
 ## they touch nothing, and the real shot is the one that lands.
 func pellets(at: Vector2, direction: Vector2, colour: Color, count: int,
 		reach: float, life: float) -> void:
-	if world == null or count <= 0:
+	if world == null or count <= 0 or _ink == null:
 		return
 	for i: int in count:
 		var share: float = (float(i) / float(maxi(count - 1, 1)) - 0.5) * 2.0
 		var angle: float = direction.angle() + share * Balance.TOWER_SPRAY_SPREAD \
 			+ randf_range(-0.06, 0.06)
-		var dir: Vector2 = Vector2.RIGHT.rotated(angle)
-		var dot := Sprite2D.new()
-		dot.texture = Flame.dot_texture()
-		dot.modulate = Color(colour.lerp(Color.WHITE, 0.5), 0.9)
-		dot.scale = Vector2.ONE * randf_range(0.14, 0.22)
-		dot.z_index = Balance.VFX_Z - 1
-		_track(dot)
-		dot.global_position = at
 		var far: float = reach * randf_range(0.7, 1.0)
-		var tween: Tween = dot.create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(dot, "global_position", at + dir * far, life)\
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		tween.tween_property(dot, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
-		tween.tween_property(dot, "scale", dot.scale * 0.4, life)
-		tween.chain().tween_callback(dot.queue_free)
+		_ink.mote(at, Vector2.RIGHT.rotated(angle) * far, Color(colour.lerp(Color.WHITE, 0.5), 0.9),
+			randf_range(4.5, 7.0), life)
 
 
 ## Elemental art for the barrel flash, played once.
@@ -732,29 +627,13 @@ func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int,
 ## expanding shock ring. One Line2D per ray lets each length and timing vary.
 func rays(at: Vector2, colour: Color, count: int = 8, radius: float = 60.0,
 		rotation_offset: float = 0.0) -> void:
-	if world == null:
+	if world == null or _ink == null:
 		return
 	for i: int in count:
 		var angle: float = rotation_offset + TAU * float(i) / float(maxi(count, 1)) \
 			+ randf_range(-0.08, 0.08)
-		var direction := Vector2.RIGHT.rotated(angle)
-		var inner: float = radius * randf_range(0.12, 0.24)
-		var outer: float = radius * randf_range(0.72, 1.08)
-		var ray := Line2D.new()
-		ray.points = PackedVector2Array([direction * inner, direction * outer])
-		ray.width = randf_range(2.0, 4.5)
-		ray.default_color = colour
-		ray.z_index = Balance.VFX_Z
-		ray.scale = Vector2.ONE * 0.35
-		_track(ray)
-		ray.global_position = at
-		var life: float = Balance.VFX_RAY_LIFE * randf_range(0.8, 1.15)
-		var tween: Tween = ray.create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(ray, "scale", Vector2.ONE, life)\
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
-		tween.tween_property(ray, "modulate:a", 0.0, life).set_delay(life * 0.18)
-		tween.chain().tween_callback(ray.queue_free)
+		_ink.ray(at, Vector2.RIGHT.rotated(angle), colour, radius * randf_range(0.12, 0.24),
+			radius * randf_range(0.72, 1.08), Balance.VFX_RAY_LIFE * randf_range(0.8, 1.15))
 
 
 ## Low, soft puffs that anchor impacts to the ground. These are translucent
@@ -1606,25 +1485,9 @@ func blood(at: Vector2, direction: Vector2, size: float,
 
 
 func flash_at(at: Vector2, colour: Color, radius: float, finish_when_paused: bool = false) -> void:
-	if world == null:
+	if world == null or _ink == null:
 		return
-	var blob := Polygon2D.new()
-	var points: PackedVector2Array = []
-	for i: int in 12:
-		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 12.0) * radius)
-	blob.polygon = points
-	blob.color = Color(colour.lerp(Color.WHITE, 0.6), 0.85)
-	blob.z_index = Balance.VFX_Z
-	if finish_when_paused:
-		blob.process_mode = Node.PROCESS_MODE_ALWAYS
-	_track(blob)
-	blob.global_position = at
-
-	var tween: Tween = blob.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(blob, "scale", Vector2.ONE * 1.9, 0.16).set_ease(Tween.EASE_OUT)
-	tween.tween_property(blob, "modulate:a", 0.0, 0.16)
-	tween.chain().tween_callback(blob.queue_free)
+	_ink.flash(at, colour, radius, finish_when_paused)
 
 
 ## A real light at a big blow, for a moment (2026-09-24).

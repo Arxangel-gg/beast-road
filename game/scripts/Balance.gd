@@ -5702,6 +5702,16 @@ const VFX_MAX_LIVE: int = 350
 
 ## Shards thrown by an impact. [TUNE]
 const VFX_SPARK_LIFE: float = 0.32
+## **The ink canvas** (2026-09-24, `VfxInk`): sparks, rings, flashes, motes and
+## rays are records on one drawn canvas rather than nodes, capped a kind by
+## dropping the oldest - which is what `VFX_MAX_LIVE` did to the node layer.
+## A flash lives this long; the rest carry their own lives.
+const VFX_FLASH_LIFE: float = 0.16
+const VFX_INK_SPARKS_MAX: int = 700
+const VFX_INK_RINGS_MAX: int = 160
+const VFX_INK_FLASHES_MAX: int = 120
+const VFX_INK_MOTES_MAX: int = 900
+const VFX_INK_RAYS_MAX: int = 200
 const VFX_SPARK_SPREAD: float = 0.9
 
 ## Floating damage numbers. [TUNE]

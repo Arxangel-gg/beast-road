@@ -53,8 +53,9 @@ var _destination: Vector2 = Vector2.ZERO
 var _direction: Vector2 = Vector2.RIGHT
 var _damage: float = 0.0
 var _life: float = 0.0
-var _trail: Line2D = null
-var _filament: Line2D = null
+## The ribbon behind the head: where the shot has been, drawn on an additive
+## child rather than kept as two `Line2D`s (2026-09-24). See `InkRibbon`.
+var _ribbon: EnemyShotGlow = null
 var _history: PackedVector2Array = []
 var _mote_left: float = 0.0
 
@@ -85,23 +86,9 @@ func configure_toward(destination: Vector2, origin: Vector2) -> void:
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
-	_trail = Line2D.new()
-	_trail.top_level = true
-	_trail.width = Balance.ENEMY_PROJECTILE_WIDTH * trail_scale
-	_trail.default_color = Color(shell_tint, 0.90)
-	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_trail.width_curve = _trail_taper()
-	add_child(_trail)
-
-	_filament = Line2D.new()
-	_filament.top_level = true
-	_filament.width = Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH * trail_scale
-	_filament.default_color = Color(core_tint, 0.88)
-	_filament.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_filament.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_filament.width_curve = _trail_taper()
-	add_child(_filament)
+	_ribbon = EnemyShotGlow.new()
+	_ribbon.shot = self
+	add_child(_ribbon)
 
 	var glow := Sprite2D.new()
 	glow.texture = LightKit.falloff_texture()
@@ -157,8 +144,8 @@ func _process(delta: float) -> void:
 	_history.append(global_position)
 	while _history.size() > Balance.ENEMY_PROJECTILE_TRAIL_POINTS:
 		_history.remove_at(0)
-	_trail.points = _history
-	_filament.points = _history
+	if _ribbon != null:
+		_ribbon.queue_redraw()
 	_mote_left -= delta
 	if _mote_left <= 0.0:
 		_mote_left += Balance.ENEMY_PROJECTILE_MOTE_INTERVAL
@@ -391,3 +378,31 @@ static func _combat_origin(node: Node2D) -> Vector2:
 		if origin is Vector2:
 			return origin as Vector2
 	return node.global_position
+
+
+## The ribbon behind the head, in world space so it stays put as the head
+## moves, and additive so it reads as light: the shell colour tapering to
+## nothing at the tail with the core colour as a filament inside it.
+func draw_ribbon(on: CanvasItem) -> void:
+	if _history.size() < 2:
+		return
+	var inverse: Transform2D = on.get_global_transform().affine_inverse()
+	InkRibbon.ribbon(on, _history, inverse, Balance.ENEMY_PROJECTILE_WIDTH * trail_scale,
+		Color(shell_tint, 0.90), 0.0, 1.0)
+	InkRibbon.ribbon(on, _history, inverse,
+		Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH * trail_scale, Color(core_tint, 0.88), 0.0, 1.0)
+
+
+class EnemyShotGlow extends Node2D:
+	var shot: EnemyProjectile = null
+
+	func _ready() -> void:
+		top_level = true
+		z_index = Balance.VFX_Z - 1
+		var material := CanvasItemMaterial.new()
+		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		self.material = material
+
+	func _draw() -> void:
+		if shot != null and is_instance_valid(shot):
+			shot.draw_ribbon(self)
