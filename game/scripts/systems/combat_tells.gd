@@ -155,10 +155,15 @@ func _enemy_aim(body: Node2D) -> Vector2:
 	if body == null or not is_instance_valid(body):
 		return Vector2.ZERO
 	var target: Variant = body.get("_target")
-	if target is Node2D and is_instance_valid(target):
-		var line: Vector2 = (target as Node2D).global_position - body.global_position
-		return line.normalized() if line.length() > 1.0 else Vector2.ZERO
-	return Vector2.ZERO
+	# Validity first: `is` and `as` on a freed instance both throw before any
+	# guard after them can run, and a followed body's target dies every wave.
+	if target == null or not is_instance_valid(target):
+		return Vector2.ZERO
+	var aimed := target as Node2D
+	if aimed == null:
+		return Vector2.ZERO
+	var line: Vector2 = aimed.global_position - body.global_position
+	return line.normalized() if line.length() > 1.0 else Vector2.ZERO
 
 
 func _process(delta: float) -> void:

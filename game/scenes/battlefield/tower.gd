@@ -27,7 +27,15 @@ var anchor: Vector2i = Vector2i.ZERO
 ## Which road this tower answers to, for synergy, road armour and Rally.
 ## Free placement means a tower is not *in* a lane; the nearest cardinal is.
 func lane() -> int:
-	return RunState.tower_lane(anchor)
+	# Decided once, in `setup`: the anchor never moves, and `RunState.tower_lane`
+	# is a geometric search over the roads that every walking body was asking
+	# of every tower on every frame (2026-09-24 - the largest single line of
+	# the Act X frame).
+	if _lane < 0:
+		_lane = RunState.tower_lane(anchor)
+	return _lane
+
+var _lane: int = -1
 
 var _field: Battlefield = null
 var _cooldown: float = 0.0
@@ -116,6 +124,7 @@ func origin() -> Vector2:
 
 
 func setup(tower_data: TowerData, tower_level: int, tile: Vector2i, field: Battlefield) -> void:
+	_lane = -1
 	data = tower_data
 	level = tower_level
 	anchor = tile

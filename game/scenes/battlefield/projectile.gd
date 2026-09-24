@@ -161,10 +161,15 @@ func _ready() -> void:
 	_build_head()
 
 	# Every shot carries its own small light, which is most of why a night
-	# battlefield reads at all.
-	_light = LightKit.add_light(_body, colour,
-		Balance.PROJECTILE_LIGHT_RADIUS * _tier_scale(),
-		Balance.PROJECTILE_LIGHT_ENERGY * _tier_scale())
+	# battlefield reads at all - up to `PROJECTILE_LIGHT_MAX` of them at once
+	# (2026-09-24): a lane of forty level-8 towers keeps a hundred shots in
+	# the air, and a hundred lights is the frame going away. None on Low.
+	if LightKit.shot_light_free():
+		_light = LightKit.add_light(_body, colour,
+			Balance.PROJECTILE_LIGHT_RADIUS * _tier_scale(),
+			Balance.PROJECTILE_LIGHT_ENERGY * _tier_scale())
+		LightKit.take_shot_light()
+		_carries_light = true
 
 	# **Aimed on the first tick, not here.** The field positions a shot *after*
 	# adding it to the tree, so in `_ready` the node still sits at the world
@@ -215,6 +220,17 @@ func _dress_for_style() -> void:
 			pass
 
 
+## Whether this shot took one of the shot lights, so the budget is given back
+## when it lands or fizzles.
+var _carries_light: bool = false
+
+
+func _exit_tree() -> void:
+	if _carries_light:
+		_carries_light = false
+		LightKit.give_shot_light()
+
+
 func _process(delta: float) -> void:
 	if not _aimed:
 		_aim()
@@ -256,7 +272,13 @@ func _process(delta: float) -> void:
 		_mote_left = Balance.PROJECTILE_MOTE_INTERVAL
 		if _shot == TowerData.Shot.CHAIN:
 			_mote_left *= Balance.PROJECTILE_CHAIN_MOTE_SCALE
-		_shed_mote()
+		# A mote is a sprite and a tween, eighteen times a second per shot;
+		# under load the director thins them and the particle scale can give
+		# them away entirely. Cosmetic, so nothing about the shot moves.
+		var keep: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC) \
+			* Graphics.particle_scale()
+		if keep >= 1.0 or randf() < keep:
+			_shed_mote()
 
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS

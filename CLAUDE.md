@@ -8531,6 +8531,89 @@ headless frames cost nothing; **its first cut fed 250 ms "frames" as the
 settle and the governor rightly read them as two slow windows** - the harness,
 not the feature.
 
+**Modular gear on the Warden's body is designed and piloted, not built, as of
+2026-09-24.** The owner asked for character creation and customization "with
+modular parts so that even wearing gear or weapons updates on the players
+appearance". `docs/WARDEN_DRESS_DESIGN_2026-09-24.md` is the design; the
+bound is the dye's - **a look may change nothing but how the Warden looks** -
+and it adds nothing to the save, because which class a Warden wears is
+derived from worn gear at draw time, as the set aura's colour already is.
+
+**The recommendation is layered deltas on one shared skeleton, and the pilot
+proved it buildable for about 90 generations.** The Warden was re-founded as
+a PixelLab character from its own shipping south frame (identity kept in all
+eight facings); a `create_character_state` keeps the individual **and the
+pose** per facing; and two states walked through the same template in
+`mode: "skeleton-v3"` land on the same pixels frame for frame (feet within
+1-3 px, 0.70-0.76 IoU, the difference being exactly the plate and the helm)
+**with the lantern, sword and banner kept** - where plain template mode
+stripped all three, which is the mount lesson of 2026-09-17 again. So every
+look class is one state, every state is animated through the same skeleton
+templates, and a class's delta against the weaponless base is composited over
+the body in lockstep. Ninety-six combinations from fifteen sheets a state.
+
+Three things to know before spending on it: a state edit can disagree with
+itself across facings (the Unarmed state kept the sword in two of eight - check
+facing by facing, inpaint the stragglers); skeleton-v3 returns 192x192 and is
+cropped by the union of the facing; and at 2-4 generations a facing the whole
+wardrobe is a cycle's budget, so **weapons first**, armour and helmets next
+cycle. The pilot character (`Warden (dress pilot)`) stays in the account as
+the base. `docs/IMAGE_PROMPTS_CHATGPT_2026-09-24.md` is the companion list of
+everything PixelLab should *not* make - paintings, the interface kit, store
+art, icon sets the game has none of - for the owner to generate.
+
+**Act X ran at 13 fps on the machine it was tuned on, measured 2026-09-24.**
+The owner: *"run even the last few acts and peak pressure successfully at
+60fps"*, and, watching it, *"it's getting 12fps on avg"*. `perf_check --act=10
+--build` - forty level-8 towers on Act X's waves, the board `curve_report` says
+a walked campaign holds - read **76 ms a frame** at 1080p on the RTX 3070 Ti,
+`process` 96 ms, 950 hitches a minute; Low was 61 ms, and every `--off=` switch
+moved it by less than the run-to-run noise. The cost is script and node churn,
+not pixels.
+
+**What the steady bisect saw before it died** (`perf_bisect --act=10
+--settle=50`, the field held with the director stopped and the bodies
+immortal): 42 bodies, **247 lights, 2,674 draw calls, 7,151 canvas items, 491
+particle systems** at 90-99 ms. Read against the code: every walking body
+re-chose its target *every frame*, each choice walked every tower on the field
+twice through `all_towers()` (a fresh forty-entry array a call) and
+`Tower.lane()` (a geometric search over the roads a call); every shot carried a
+`PointLight2D`, two `Line2D`s, three polygons and a head sprite and shed a
+sprite-plus-tween eighteen times a second; every impact spawned a sprite, a
+forged sheet, seven shard `Line2D`s with tip sprites, a ring with a bloom
+sprite and a flash, each with its own tween.
+
+**The first cut, all gated green**: `ENEMY_RETARGET_SECONDS` - a body chooses
+on a cadence with its own phase and at once when what it fought is gone;
+`Tower._lane` decided once in `setup`; `Battlefield.all_towers()` rebuilt only
+when a tower comes or goes; `LightKit`'s shot-light budget
+(`PROJECTILE_LIGHT_MAX`, one counter for both projectile kinds, none on Low);
+motes thinned by `JuiceDirector` and `Graphics.particle_scale`. A look and a
+cadence, never a number: `enemy_siege_check`, `enemy_behaviour_check`,
+`stagger_check`, `enemy_shot_check` and `tower_juice_check` read the same
+fights.
+
+**And the bisect itself had to be rebuilt to survive Act X.** Three runs died
+under the table: the town fell (held now by `floor_hp`, the door every
+long harness uses); a freed body was cast before it was checked; a wave's end
+put the field into Preparation mid-table so the groups measured in it "saved"
+forty milliseconds of bodies that had merely died - it holds the field steady
+now; and then the **pause menu opened and its Leave button fired** - traced
+through the director's one scene door (`WILDERHOLD_TRACE_SCENE=1` prints who
+asked) - so the harness disarms the pause menu, unbinds the pause action,
+stops the road and the sky, and refuses a paused tree. `perf_bisect --act=N`
+and `perf_check --act=N` stage the road through the same statics
+(`stage_late_act`, `build_late_board`) so both tools stand on one road. **A
+windowed measurement on the owner's screen is a measurement the owner can
+end** - and did, twice, by pressing Escape on a window that had covered what
+they were doing. Run them when the screen is free, or not at all.
+
+**One real bug fell out of it**: `CombatTells._enemy_aim` asked `target is
+Node2D` before asking whether the target existed, so every following ring
+printed an error a frame from the moment its body's target died - sixty lines a
+frame on Act X. Validity first; `tower_juice_check` frees a body's target under
+a followed ring now.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

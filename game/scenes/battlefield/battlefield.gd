@@ -2892,6 +2892,7 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 		if existing != null and is_instance_valid(existing):
 			existing.queue_free()
 		_towers.erase(anchor)
+		_tower_list_dirty = true
 		_refresh_tower_modifiers()
 		return
 
@@ -2920,6 +2921,7 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 		instance.begin_rise()
 		_fresh_build = Vector2i(-9999, -9999)
 	_towers[anchor] = instance
+	_tower_list_dirty = true
 	_refresh_tower_modifiers()
 
 
@@ -2981,12 +2983,28 @@ func _near_a_warden(at: Vector2) -> bool:
 
 
 func all_towers() -> Array[Tower]:
-	var found: Array[Tower] = []
-	for key: Variant in _towers:
-		var built: Tower = _towers[key] as Tower
-		if built != null and is_instance_valid(built):
-			found.append(built)
-	return found
+	# **Rebuilt only when a tower comes or goes.** Every walking body asks for
+	# this list two or three times a frame - taunt, siege target, grudge - and
+	# building a fresh forty-entry array each time was a measurable share of
+	# the Act X frame (2026-09-24). Callers iterate it and never keep it, and a
+	# tower freed without `clear_tower` still drops out through the validity
+	# walk, which is forty checks rather than forty appends.
+	if _tower_list_dirty:
+		_tower_list = []
+		for key: Variant in _towers:
+			var built: Tower = _towers[key] as Tower
+			if built != null and is_instance_valid(built):
+				_tower_list.append(built)
+		_tower_list_dirty = false
+		return _tower_list
+	for built: Tower in _tower_list:
+		if not is_instance_valid(built):
+			_tower_list_dirty = true
+			return all_towers()
+	return _tower_list
+
+var _tower_list: Array[Tower] = []
+var _tower_list_dirty: bool = true
 
 ## Pressure is how much of a lane's threat is close to the town, so a lane full
 ## of enemies that just spawned reads calmer than one about to break.

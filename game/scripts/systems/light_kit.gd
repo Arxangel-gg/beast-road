@@ -81,6 +81,33 @@ static func enable_shadows(light: PointLight2D,
 
 ## Creates a light and attaches it to `parent`. `radius` is in pixels;
 ## `flicker` above zero makes it breathe, for fire and torches.
+## **Shots carry lights up to `Balance.PROJECTILE_LIGHT_MAX` at once**
+## (2026-09-24). A lane of forty level-8 towers keeps a hundred shots in the
+## air, and in the compatibility renderer every light re-draws what stands
+## under it - a hundred of them is the frame going away. The budget is one
+## counter for a tower's shot and an enemy's, so the two cannot each fill
+## the field alone; none on Low. A look, never a fact.
+static var _shot_lights: int = 0
+
+
+static func shot_light_free() -> bool:
+	return _shot_lights < Balance.PROJECTILE_LIGHT_MAX \
+		and Graphics.preset() != Graphics.PRESET_LOW
+
+
+static func take_shot_light() -> void:
+	_shot_lights += 1
+
+
+static func give_shot_light() -> void:
+	_shot_lights = maxi(_shot_lights - 1, 0)
+
+
+## How many shots carry a light right now (for the gate).
+static func shot_lights() -> int:
+	return _shot_lights
+
+
 static func add_light(parent: Node2D, colour: Color, radius: float,
 		energy: float, flicker: float = 0.0) -> PointLight2D:
 	var light := PointLight2D.new()

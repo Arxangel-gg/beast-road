@@ -891,12 +891,29 @@ func _react_to_mirrored_hit(lost: float) -> void:
 
 # --- State machine ----------------------------------------------------------
 
+## The retarget clock and this body's own phase on it (from its identity, so
+## the run's stream is not drawn on and two machines agree).
+var _retarget_left: float = 0.0
+var _retarget_phase: float = -1.0
+
+
 func _tick_state(delta: float) -> void:
 	match _state:
 		State.WALKING:
 			_grudge_left = maxf(_grudge_left - delta, 0.0)
 			_notice_towers(delta)
-			_target = _pick_target()
+			# **Chosen on a cadence, not every frame** (2026-09-24). Choosing
+			# walks every tower on the field twice and every foe once, and
+			# with sixty bodies walking it was the largest line of the Act X
+			# frame. A body that has lost what it was fighting chooses at
+			# once; otherwise it chooses every `ENEMY_RETARGET_SECONDS`, on
+			# its own phase so sixty bodies do not choose on the same frame.
+			_retarget_left -= delta
+			if _retarget_left <= 0.0 or _target == null or not is_instance_valid(_target):
+				_target = _pick_target()
+				if _retarget_phase < 0.0:
+					_retarget_phase = float(get_instance_id() % 997) / 997.0
+				_retarget_left = Balance.ENEMY_RETARGET_SECONDS * (0.7 + 0.6 * _retarget_phase)
 			if _begin_behaviour():
 				return
 			_throw_cooldown = maxf(_throw_cooldown - delta, 0.0)

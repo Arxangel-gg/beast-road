@@ -108,10 +108,23 @@ func _ready() -> void:
 	glow.modulate = Color(tint, 0.72)
 	glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE * sqrt(head_scale)
 	add_child(glow)
-	LightKit.add_light(self, tint,
-		Balance.ENEMY_PROJECTILE_LIGHT_RADIUS, Balance.ENEMY_PROJECTILE_LIGHT_ENERGY)
+	# On the shared shot-light budget (2026-09-24); see `LightKit`.
+	if LightKit.shot_light_free():
+		LightKit.add_light(self, tint,
+			Balance.ENEMY_PROJECTILE_LIGHT_RADIUS, Balance.ENEMY_PROJECTILE_LIGHT_ENERGY)
+		LightKit.take_shot_light()
+		_carries_light = true
 	_mote_left = Balance.ENEMY_PROJECTILE_MOTE_INTERVAL
 	queue_redraw()
+
+
+var _carries_light: bool = false
+
+
+func _exit_tree() -> void:
+	if _carries_light:
+		_carries_light = false
+		LightKit.give_shot_light()
 
 
 func _process(delta: float) -> void:
@@ -149,9 +162,14 @@ func _process(delta: float) -> void:
 	_mote_left -= delta
 	if _mote_left <= 0.0:
 		_mote_left += Balance.ENEMY_PROJECTILE_MOTE_INTERVAL
-		Vfx.spark(global_position - _direction * Balance.ENEMY_PROJECTILE_HEAD_RADIUS,
-			core_tint, 1, -_direction,
-			Balance.ENEMY_PROJECTILE_MOTE_SPEED)
+		# One shard a tick is the floor `spark` keeps, so under load the
+		# director could never thin these; thinned here instead (2026-09-24).
+		var keep: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC) \
+			* Graphics.particle_scale()
+		if keep >= 1.0 or randf() < keep:
+			Vfx.spark(global_position - _direction * Balance.ENEMY_PROJECTILE_HEAD_RADIUS,
+				core_tint, 1, -_direction,
+				Balance.ENEMY_PROJECTILE_MOTE_SPEED)
 	queue_redraw()
 	# **A shot hits what it passes through.**
 	#

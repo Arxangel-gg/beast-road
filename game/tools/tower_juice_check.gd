@@ -38,6 +38,7 @@ func _ready() -> void:
 	_test_every_look_is_worn()
 	await _test_every_style_lands_the_same_hit()
 	await _test_a_broken_tower_is_not_a_sold_one()
+	await _test_a_ring_outlives_its_bodys_target()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -364,3 +365,56 @@ func _default_air(element: int) -> int:
 			return TowerData.Ambient.GRIT
 		_:
 			return TowerData.Ambient.GUSTS
+
+
+## **A followed ring survives the death of what its body was fighting**
+## (2026-09-24). The arc reads the body's `_target` every frame to face it,
+## and the first cut asked `target is Node2D` before asking whether the
+## target still existed - `is` on a freed instance throws, so every ring on
+## the field printed an error a frame from the moment its body's target
+## died, which on Act X is sixty lines a frame. The ring keeps the way it
+## last faced; the harness frees the target outright, which is the case a
+## `queue_free` would only reach a frame later.
+func _test_a_ring_outlives_its_bodys_target() -> void:
+	var tells: Node = _field.get("_tells") as Node
+	_check(tells != null, "the field stands no CombatTells")
+	if tells == null:
+		return
+	var hero: Node2D = _field.hero
+	_check(hero != null and is_instance_valid(hero), "the harness needs a Warden to be near")
+	if hero == null:
+		return
+	var breeds: Array = ContentDB.enemies.values()
+	if breeds.is_empty():
+		return
+	var breed: EnemyData = breeds[0] as EnemyData
+	var body: Enemy = _field.spawn_enemy(breed, 0, 60.0, -1.0, 0.001)
+	var quarry: Enemy = _field.spawn_enemy(breed, 0, 60.0, -1.0, 0.001)
+	_check(body != null and quarry != null, "the harness needs two bodies")
+	if body == null or quarry == null:
+		return
+	body.global_position = hero.global_position + Vector2(180.0, 0.0)
+	quarry.global_position = body.global_position + Vector2(120.0, 0.0)
+	await get_tree().process_frame
+	body.set("_target", quarry)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	EventBus.enemy_attacked.emit(body.get_instance_id(), body.global_position, 140.0)
+	tells.call("_process", 0.016)
+	var rings: Dictionary = tells.get("_rings") as Dictionary
+	var ring: Dictionary = rings.get(-body.get_instance_id(), {}) as Dictionary
+	_check(not ring.is_empty(), "a body attacking near the Warden opened no ring")
+	var facing: Vector2 = ring.get("aim", Vector2.ZERO) as Vector2
+	_check(facing.x > 0.9, "the ring faces what the body is fighting (got %s)" % str(facing))
+	# The quarry dies. Freed outright, so the body's `_target` is a freed
+	# instance on the very next tick - the thing the guard has to survive.
+	quarry.free()
+	for _frame: int in 3:
+		tells.call("_process", 0.016)
+	rings = tells.get("_rings") as Dictionary
+	ring = rings.get(-body.get_instance_id(), {}) as Dictionary
+	_check(not ring.is_empty(), "the ring vanished when its body's target died")
+	_check((ring.get("aim", Vector2.ZERO) as Vector2).is_equal_approx(facing),
+		"a ring whose body lost its target keeps the way it last faced")
+	body.queue_free()
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	await get_tree().process_frame

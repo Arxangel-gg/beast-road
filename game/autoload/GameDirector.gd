@@ -801,4 +801,12 @@ func reopen_the_menu() -> void:
 func _change(path: String) -> void:
 	# Deferred: this is routinely called from a signal handler inside the scene
 	# being torn down, and changing scenes from inside one is a crash.
+	#
+	# `WILDERHOLD_TRACE_SCENE` in the environment prints who asked. A scene
+	# change under a harness is the harness losing its tree with nothing in
+	# the log to say why (2026-09-24: two bisects died this way), and this is
+	# the one door every change goes through.
+	if OS.has_environment("WILDERHOLD_TRACE_SCENE"):
+		print("[director] scene -> %s" % path)
+		print_stack()
 	get_tree().call_deferred("change_scene_to_file", path)

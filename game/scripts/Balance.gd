@@ -4183,6 +4183,20 @@ const GOVERNOR_CAP_SLACK: float = 1.15
 ## has a hundred torches - which a phone cannot afford.
 const TORCH_LIGHT_EVERY_LOW: int = 3
 
+## **The Act X frame, 2026-09-24.** Forty level-8 towers on a wave of 25-60
+## bodies measured 76 ms a frame at 1080p on an RTX 3070 Ti, and the cost was
+## script, not pixels: every walking body re-chose its target *every frame*,
+## and choosing walked every tower on the field twice, each walk recomputing
+## the tower's lane from geometry. A body re-chooses on this cadence now, its
+## own phase, and at once when what it was fighting is gone - the road does
+## not notice a tenth of a second and the frame notices very much.
+const ENEMY_RETARGET_SECONDS: float = 0.1
+## Shots carry their own light, which is most of why a night field reads at
+## all - and a lane of forty towers at level eight keeps a hundred in the air.
+## Only this many at once carry one; the rest are lit by the ones that do.
+## None on Low. A look, never a fact.
+const PROJECTILE_LIGHT_MAX: int = 14
+
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45

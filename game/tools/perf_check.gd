@@ -86,6 +86,10 @@ const MAX_ORPHAN_GROWTH: int = 64
 ## compile shaders and load textures, and none of that is what the budget is
 ## about.
 const WARMUP_SECONDS: float = 6.0
+## The board a late act is measured with: what `curve_report` says a walked
+## campaign holds by Act X (forty emplacements at level 8 on Normal).
+const LATE_BOARD_TOWERS: int = 40
+const LATE_BOARD_LEVEL: int = 8
 ## Whether the numbers were ever printed. See `_exit_tree`.
 var _reported: bool = false
 ## A distinct slot in the same storage backend as the real save. It is never
@@ -129,6 +133,12 @@ var _orphans: Array[float] = []
 ## One census a second beside the scalar, so a leak can be named.
 var _census: Array[Dictionary] = []
 var _seed: int = DEFAULT_SEED
+## The act to stand the field up in, near the end of its road where its waves
+## are heaviest (2026-09-24, owner: "run even the last few acts and peak
+## pressure at 60fps"). 1 is the opening the gate always measured; with
+## `--build` a late act stands a full board at the Forge's top cap, because
+## that is the field a player reaches Act X with.
+var _act: int = 1
 ## Every run phase the measured window actually saw, in order.
 var _phases_seen: Array[String] = []
 var _memory: Array[float] = []
@@ -163,6 +173,8 @@ func _ready() -> void:
 			#   --quality=high --off=clouds   what does the cloud layer cost
 			for piece: String in argument.split("=")[1].split(","):
 				_disabled.append(piece.strip_edges().to_lower())
+		elif argument.begins_with("--act="):
+			_act = clampi(int(argument.split("=")[1]), 1, Balance.FINAL_ASCENT_ACT)
 		elif argument == "--build":
 			_build = true
 		elif argument == "--idle":
@@ -201,6 +213,8 @@ func _ready() -> void:
 	Engine.max_fps = 0
 
 	RunState.reset(false, _seed)
+	if _act > 1:
+		stage_late_act(_act)
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
 	add_child(load("res://scenes/run/run.tscn").instantiate())
@@ -218,9 +232,66 @@ func _ready() -> void:
 		% [_renderer_name(), _quality.capitalize(), off, _seconds, WARMUP_SECONDS])
 
 
+## The road put down near the end of a late act, the way `ActStart.begin`
+## puts it down at an act's door: the act, the distance, the wave the road
+## would be on, the region, and the Forge at its top so the board can climb.
+## Eight waves short of the boss, so the measured window is the act's heaviest
+## waves and not the boss fight - which is a different measurement.
+##
+## Static, and shared with `perf_bisect` through a preload, so the two tools
+## stand on the same road: a bisect of a different act than the one that
+## failed would name different culprits.
+static func stage_late_act(act: int, waves_short: float = 8.0) -> void:
+	RunState.act = act
+	RunState.distance_travelled = maxf(Balance.act_end_distance(act)
+		- Balance.WAVE_ROAD_DISTANCE * waves_short, Balance.act_start_distance(act))
+	RunState.wave_number = maxi(int(round(
+		RunState.distance_travelled / Balance.WAVE_ROAD_DISTANCE)), 0)
+	var terrain: TerrainData = ContentDB.terrain_for_act(act)
+	if terrain != null:
+		RunState.terrain_id = terrain.id
+	RunState.building_tiers["forge"] = Balance.TOWER_LEVEL_CAP_BY_FORGE.size() - 1
+	print("[perf] staged act %d at distance %.0f, wave %d, %s" % [act,
+		RunState.distance_travelled, RunState.wave_number, RunState.terrain_id])
+
+
+## The late board, through the same doors a player's build calls. Returns the
+## anchors it stood up.
+static func build_late_board(field: Battlefield, towers: Array[TowerData]) -> Array[Vector2i]:
+	for currency: String in [RunState.WOOD, RunState.FOOD, RunState.GOLD, RunState.STONE]:
+		RunState.gain_currency(currency, 900000)
+	var built: Array[Vector2i] = []
+	var per_lane: int = int(ceil(float(LATE_BOARD_TOWERS) / float(Balance.LANE_COUNT)))
+	for lane: int in Balance.LANE_COUNT:
+		for index: int in per_lane:
+			var anchor: Vector2i = field.free_anchor_near(lane, 9)
+			var kind: TowerData = towers[(lane * per_lane + index) % towers.size()]
+			if field.try_build(anchor, kind).is_empty():
+				built.append(anchor)
+	var climbed: int = 0
+	for anchor: Vector2i in built:
+		for _step: int in LATE_BOARD_LEVEL - 1:
+			if not field.try_upgrade(anchor).is_empty():
+				break
+			if RunState.level_at(anchor) == Balance.TOWER_SPECIALISE_LEVEL:
+				RunState.set_tower_path(anchor, TowerData.Path.SPREAD if climbed % 2 == 0
+					else TowerData.Path.FOCUS)
+		climbed += 1
+	var levels: int = 0
+	for anchor: Vector2i in built:
+		levels += RunState.level_at(anchor)
+	print("[perf] late board: %d towers, mean level %.1f" % [built.size(),
+		float(levels) / maxf(float(built.size()), 1.0)])
+	return built
+
+
 ## Towers, so the worst case is a real fight rather than an empty field. A
 ## performance budget measured on a battlefield with nothing on it is a budget
 ## measured on the wrong thing.
+##
+## In a late act (`--act=`) the board is the one a player reaches it with:
+## `LATE_BOARD_TOWERS` emplacements climbed to `LATE_BOARD_LEVEL`, every path
+## chosen, through the same doors a player's own build calls.
 func _build_defence() -> void:
 	var field: Battlefield = null
 	for node: Node in _all(get_tree().root):
@@ -234,9 +305,12 @@ func _build_defence() -> void:
 	var towers: Array[TowerData] = ContentDB.base_towers()
 	if towers.is_empty():
 		return
-	for lane: int in Balance.LANE_COUNT:
-		for _pair: int in 2:
-			field.try_build(field.free_anchor_near(lane), towers[lane % towers.size()])
+	if _act <= 1:
+		for lane: int in Balance.LANE_COUNT:
+			for _pair: int in 2:
+				field.try_build(field.free_anchor_near(lane), towers[lane % towers.size()])
+		return
+	build_late_board(field, towers)
 
 
 ## Leaves Preparation so waves actually arrive.
