@@ -22,7 +22,12 @@ var _fire: Wildfire = null
 
 func _ready() -> void:
 	MetaState.hold_saves()
-	RunState.reset()
+	# **A fixed road, never a fresh seed** (2026-09-24). This gate rolled a
+	# fresh seed every launch and CI drew a field with no woodcutting tree, so
+	# the wildfire's "the tree beside the fire chars" read as a failure of the
+	# fire - the eighth coin toss this project has shipped in a gate's clothes.
+	# A guarantee is a property of a road or it is not a guarantee.
+	RunState.reset(false, 20260924)
 	GameDirector.run_active = true
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(_run)
