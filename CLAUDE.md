@@ -9057,6 +9057,24 @@ where it was +15 to +44, and `Polygon2D` is gone from the census's movers** -
 what the window stands up now is bodies arriving, which is a spawn and not a
 hit. The pool cap is `VFX_INK_DUST_MAX`.
 
+**And the ninety seconds the owner gave the screen for say the same thing
+on the renderer.** Same seed, same window, same 180 Hz screen at 1080p: **19.1
+ms average (52 fps), p99 28.4, worst 43, fourteen hitches** - thirteen of them
+in the fight's first forty seconds and one at the end - against 26.5 ms, p99
+66.8, worst 86.7 and six hundred and sixty-three hitches before dust became
+records. The second wave that read as the next heavy stretch was mostly its
+own landings: a wipe's worth of pieces coming down three puffs each, every
+puff a canvas item and a tween the scene tree ran, and a breather in which
+they went on expiring. The traced window's script buckets sum to about five
+milliseconds of a 22.7 ms breather frame, so what is left there is the
+renderer's - the hundred torches, the hundred and fifty-five lights, the
+plants - which `perf_bisect --visuals` already ranked.
+
+**A trace line reads `pool loot=18/10/4` beside `tower=0.2/40`, and a parser
+that takes `name=a/b` for a bucket reads the pool's twenty-three shots made
+as twenty-three milliseconds.** It did, for one summary, and the counters
+wear braces now so a bucket and a counter cannot share a shape.
+
 **Item four was surveyed and not built, by measurement.** Every remaining
 group walk in the hot files is on a cadence or an event - a well's clock, a
 mend interval, a death, a lunge, the idle rescan - and the two per-frame ones

@@ -460,7 +460,9 @@ func _process(delta: float) -> void:
 				", ".join(_movers_between(_trace_census_last, census_now, 6))])
 		_trace_census_last = census_now
 		var motes: BloodMotes = Vfx.blood_motes()
-		print("[profile] motes=%d/%d pool loot=%d/%d/%d shot=%d/%d/%d eshot=%d/%d/%d %s" % [
+		# The pool's counters wear braces so a parser taking `name=a/b` for a
+		# bucket cannot read twenty-three shots made as twenty-three ms.
+		print("[profile] motes=%d/%d pool{loot %d/%d/%d shot %d/%d/%d eshot %d/%d/%d} %s" % [
 			motes.live() if motes != null else -1, motes.draws if motes != null else -1,
 			NodePool.made(&"loot"), NodePool.reused(&"loot"), NodePool.pooled(&"loot"),
 			NodePool.made(&"shot"), NodePool.reused(&"shot"), NodePool.pooled(&"shot"),
