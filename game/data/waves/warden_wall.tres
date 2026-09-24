@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "warden_wall"
 display_name = "Warden Wall"
 description = "Shields first, and everything behind them is patient."

@@ -693,7 +693,11 @@ const PARTY_SPREAD_LIMIT: float = 22.0
 ## band was noise this time rather than a distortion - worth knowing, because it
 ## is not always.
 const PARTY_PRESSURE_FLOOR: float = 0.40
-const PARTY_PRESSURE_CEILING: float = 0.58
+## 0.58 to 0.64 on 2026-09-24: the owner asked for a harder road (more
+## bodies, more health, scarcer income), and a ceiling left where it was would
+## judge the re-tune against the game it replaced - the failure recorded when
+## the band last moved. The floor is deliberately unmoved.
+const PARTY_PRESSURE_CEILING: float = 0.64
 
 
 ## Replays the whole curve for one party size and averages the pressure.

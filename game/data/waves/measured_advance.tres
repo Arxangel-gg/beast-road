@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "measured_advance"
 display_name = "Measured Advance"
 description = "Balanced pressure that grows across the lanes."

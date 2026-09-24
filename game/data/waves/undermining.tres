@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "undermining"
 display_name = "Undermining"
 description = "Something is already inside the line by the time the line arrives."

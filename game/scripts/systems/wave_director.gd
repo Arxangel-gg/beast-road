@@ -342,6 +342,9 @@ func _begin_wave() -> void:
 	# reveal before the bait. All ordinary formations retain systemic variety.
 	if archetype == null or not archetype.delayed_adjacent_surge:
 		_shuffle_queue()
+		if archetype != null:
+			_marshal_queue(archetype.formation)
+	_order_the_siege()
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
 	_spawn_timer = 0.0
@@ -621,7 +624,7 @@ func _spawn_next() -> void:
 	var lane: int = int(entry.get("lane", 0))
 	var enemy_id: String = String(entry.get("enemy_id", ""))
 	var data: EnemyData = ContentDB.enemy(enemy_id) if not enemy_id.is_empty() \
-		else _pick_enemy(bool(entry.get("elite", false)))
+		else _pick_enemy(bool(entry.get("elite", false)), entry.get("prefer_role", []))
 	if data != null:
 		var hp: float = _hp_scale(lane) * float(entry.get("hp_scale", 1.0))
 		var dmg: float = _damage_scale(lane) * float(entry.get("damage_scale", 1.0))
@@ -636,7 +639,7 @@ func _spawn_next() -> void:
 			var pack: int = RunState.rng("rank").randi_range(
 				Balance.CHAMPION_PACK_MIN, Balance.CHAMPION_PACK_MAX)
 			for member: int in pack:
-				battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, shared)
+				_stand(entry, battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, shared))
 		else:
 			# Declared with its element type rather than built inline. A ternary
 			# whose other branch is a bare `[]` produces an untyped array, and
@@ -646,7 +649,7 @@ func _spawn_next() -> void:
 			if rank == Enemy.Rank.ELITE:
 				worn = _roll_affixes(RunState.rng("rank").randi_range(
 					Balance.ELITE_AFFIX_MIN, Balance.ELITE_AFFIX_MAX))
-			battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, worn)
+			_stand(entry, battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, worn))
 
 	var spacing: float = Balance.WAVE_SPAWN_SPACING * float(entry.get("spacing_scale", 1.0))
 	if RunState.horn_active:
@@ -654,7 +657,71 @@ func _spawn_next() -> void:
 	_spawn_timer = spacing
 
 
-func _pick_enemy(elite: bool) -> EnemyData:
+## A body that has just been stood up takes whatever the queue entry ordered
+## of it. One door, so a pack member and a lone body cannot differ.
+func _stand(entry: Dictionary, body: Enemy) -> void:
+	if body != null and bool(entry.get("siege", false)):
+		body.order_siege()
+
+
+## **A formation is an order, never a roster** (2026-09-24). The queue is
+## partitioned into the leaders - the signature bodies, the elites, and a
+## share of the ordinary bodies marked to be drawn from the tanking roles -
+## and the horde, and VANGUARD sends the leaders first, REARGUARD last. Every
+## entry the shuffle dealt is still dealt at the same strength; only the
+## order the road reads them in moves.
+func _marshal_queue(formation: WaveArchetypeData.Formation) -> void:
+	if formation == WaveArchetypeData.Formation.SCATTERED:
+		return
+	var leaders: Array[Dictionary] = []
+	var horde: Array[Dictionary] = []
+	for entry: Dictionary in _spawn_queue:
+		if bool(entry.get("elite", false)) or not String(entry.get("enemy_id", "")).is_empty():
+			leaders.append(entry)
+		else:
+			horde.append(entry)
+	var drawn: int = mini(horde.size(), ceili(float(horde.size()) * Balance.WAVE_VANGUARD_SHARE))
+	for index: int in drawn:
+		var tank: Dictionary = horde[index]
+		tank["prefer_role"] = Balance.WAVE_VANGUARD_ROLES
+		leaders.append(tank)
+	_spawn_queue.clear()
+	var vanguard: bool = formation == WaveArchetypeData.Formation.VANGUARD
+	if vanguard:
+		for entry: Dictionary in leaders:
+			_spawn_queue.append(entry)
+	for index: int in range(drawn, horde.size()):
+		_spawn_queue.append(horde[index])
+	if not vanguard:
+		for entry: Dictionary in leaders:
+			_spawn_queue.append(entry)
+
+
+## **Siege orders** (2026-09-24). Every k-th ordinary body of the queue is
+## sent at the board rather than the wall, k from the act's share
+## (`Balance.WAVE_SIEGE_ORDER_SHARE`). By index rather than by a roll: the
+## shuffle already decided which bodies stand where, and a draw per entry
+## would move every seeded roll after it.
+func _order_the_siege() -> void:
+	var share: float = Balance.WAVE_SIEGE_ORDER_SHARE[clampi(RunState.act - 1, 0,
+		Balance.WAVE_SIEGE_ORDER_SHARE.size() - 1)]
+	if share <= 0.0:
+		return
+	var every: int = maxi(1, roundi(1.0 / share))
+	var ordinary: int = 0
+	for entry: Dictionary in _spawn_queue:
+		if entry.has("delay") or bool(entry.get("elite", false)) \
+				or not String(entry.get("enemy_id", "")).is_empty():
+			continue
+		ordinary += 1
+		if ordinary % every == 0:
+			entry["siege"] = true
+
+
+## `prefer` names roles (`EnemyData.Role` values) the regional draw is
+## narrowed to when the region has any; a formation's vanguard is drawn
+## through it. Empty, the draw is exactly what it always was.
+func _pick_enemy(elite: bool, prefer: Array = []) -> EnemyData:
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if elite:
 		if terrain != null:
@@ -681,6 +748,13 @@ func _pick_enemy(elite: bool) -> EnemyData:
 				return veterans[_rng.randi_range(0, veterans.size() - 1)]
 	if terrain != null:
 		var regional: Array[EnemyData] = _enemy_pool(terrain.enemy_ids)
+		if not prefer.is_empty():
+			var tanks: Array[EnemyData] = []
+			for candidate: EnemyData in regional:
+				if int(candidate.role) in prefer:
+					tanks.append(candidate)
+			if not tanks.is_empty():
+				regional = tanks
 		if not regional.is_empty():
 			return regional[_rng.randi_range(0, regional.size() - 1)]
 		var breed: EnemyData = ContentDB.enemy(terrain.breed_id)

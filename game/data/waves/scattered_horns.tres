@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 2
 id = "scattered_horns"
 display_name = "Scattered Horns"
 description = "They stay back and they keep shouting, and the shouting is the problem."

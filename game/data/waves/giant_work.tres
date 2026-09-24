@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "giant_work"
 display_name = "Giant's Work"
 description = "One of them is worth the whole wave, and it is walking at your wall."

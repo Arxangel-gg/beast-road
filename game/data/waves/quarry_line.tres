@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "quarry_line"
 display_name = "Quarry Line"
 description = "They walk past you. The emplacements are what they came for."

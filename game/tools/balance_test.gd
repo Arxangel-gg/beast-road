@@ -1109,7 +1109,11 @@ func _test_loot_and_weather() -> void:
 		"a dissolving drop must not pay a second time")
 	var drop: LootDrop = pieces[pieces.size() - 1]
 	await get_tree().create_timer(Balance.LOOT_PICKUP_DISSOLVE_TIME + 0.05).timeout
-	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion(),
+	# Amended 2026-09-24: a piece comes back from a pool now, so "retired" is
+	# parked under `NodePool.lot()` - out of its group, hidden - or freed.
+	# What may never happen is a collected piece still standing in the field.
+	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion()
+			or (drop.get_parent() == NodePool.lot() and not drop.is_in_group(LootDrop.GROUP)),
 		"a collected drop must retire when its pickup dissolve ends")
 
 	# A battlefield gear roll becomes the same persistent reward as a raid chest,
@@ -2794,11 +2798,11 @@ func _test_hostile_projectile() -> void:
 			var shot := child as Node2D
 			_check(shot.global_position.distance_to(howler.combat_origin()) < 0.5,
 				"Howler projectile must originate at the body, not the Y-sort feet")
-			var ribbons: int = 0
-			for layer: Node in shot.get_children():
-				if layer is Line2D:
-					ribbons += 1
-			_check(ribbons >= 2,
+			# Amended 2026-09-24: the shell and the filament are one `InkRibbon`
+			# drawn by the shot itself along its `_history` now, never two
+			# `Line2D`s - so what is held is the history and the additive child.
+			var history: Variant = shot.get("_history")
+			_check(history is PackedVector2Array and shot.get("_ribbon") != null,
 				"hostile projectile must retain its shell and filament presentation")
 			break
 	_check(found, "Howler must release a visible hostile projectile")

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "caravan_guard"
 display_name = "Caravan Guard"
 description = "A valuable armored standard advances behind a rotating elite escort."

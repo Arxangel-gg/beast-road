@@ -69,6 +69,19 @@ enum LanePattern {
 ## `minimum_act` carry that, not a special case here.
 @export var calm: bool = false
 
+## **How the formation arrives** (2026-09-24). SCATTERED is the shuffle every
+## wave had. VANGUARD sends the leaders ahead of the horde - the signature
+## bodies, the elites, and a share of the ordinary bodies drawn from the
+## tanking roles (`Balance.WAVE_VANGUARD_SHARE`, `_ROLES`) - so a road reads
+## "the shields are here and the rest is behind them", which is the owner's
+## "tankier/siege enemies before hordes of lighter units". REARGUARD is the
+## reverse: the horde first, the leaders last. **A look at the queue's order
+## and never at what is in it**: the same bodies at the same strength, so
+## `curve_report` reads the same waves. Appended, never inserted - the data
+## indexes this by number.
+enum Formation { SCATTERED, VANGUARD, REARGUARD }
+@export var formation: Formation = Formation.SCATTERED
+
 
 func is_available(act: int, act_wave: int) -> bool:
 	return act >= minimum_act and act_wave >= minimum_act_wave

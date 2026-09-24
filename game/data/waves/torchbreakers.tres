@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "torchbreakers"
 display_name = "Torchbreakers"
 description = "Inner-ring sappers smother the light while a focused column advances."

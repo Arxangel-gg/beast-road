@@ -350,6 +350,15 @@ func _test_a_siege_breed_prefers_a_tower_it_can_reach(tower: Tower) -> void:
 				"%s halfway down the road aims at %s rather than the town"
 					% [marcher.id, _name_of(enemy.call("_pick_target") as Node)])
 			enemy.queue_free()
+		# **Siege orders** (2026-09-24): the same marcher, told by the director
+		# to go at the board, prefers the tower a siege breed would.
+		var ordered: Enemy = _field.spawn_enemy(marcher, 0, 1.0)
+		if ordered != null:
+			ordered.order_siege()
+			_check(ordered.call("_pick_target") == tower,
+				"%s under siege orders at its spawn aims at %s rather than the tower"
+					% [marcher.id, _name_of(ordered.call("_pick_target") as Node)])
+			ordered.queue_free()
 
 
 func _name_of(node: Node) -> String:

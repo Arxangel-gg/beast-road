@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 2
 id = "howling_pack"
 display_name = "Howling Pack"
 description = "Kill the leaders before their aura accelerates every escort."

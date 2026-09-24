@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "crevasse_work"
 display_name = "Crevasse Work"
 description = "They come for the stone, and they know which stone is holding."

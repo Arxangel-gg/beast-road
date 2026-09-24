@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "burrower_pincer"
 display_name = "Burrower Pincer"
 description = "Opposite lanes split attention while infiltrators surface inside."

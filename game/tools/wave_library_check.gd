@@ -40,6 +40,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_every_act_has_formations()
 	_test_every_formation_can_be_dealt()
+	_test_a_vanguard_leads_and_the_siege_is_ordered()
 	await _test_a_quiet_wave_ends()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -50,6 +51,125 @@ func _ready() -> void:
 	else:
 		push_error("[wave-library] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A formation is an order, never a roster, and the road can tell**
+## (2026-09-24). Driven on the director's own queue, hand-built, because what
+## is under test is the marshal and the siege orders and not the deal - the
+## deal is `_test_every_formation_can_be_dealt`'s. The wiring is a source
+## walk, because the failure worth catching is the call left out of
+## `_begin_wave`: both functions pass every check below with that line gone.
+func _test_a_vanguard_leads_and_the_siege_is_ordered() -> void:
+	var director := WaveDirector.new()
+	var plain: int = 10
+	director.set("_spawn_queue", _hand_queue(plain))
+	director.call("_marshal_queue", WaveArchetypeData.Formation.VANGUARD)
+	var marshalled: Array = director.get("_spawn_queue")
+	_check(marshalled.size() == plain + 2,
+		"a vanguard deals every body it was dealt (%d of %d)" % [marshalled.size(), plain + 2])
+	var bounds: Vector2i = _leader_bounds(marshalled)
+	_check(bounds.x >= 0 and bounds.y > bounds.x,
+		"a vanguard leads: the last leader stood at %d and the first plain body at %d"
+			% [bounds.x, bounds.y])
+	var tanks: int = 0
+	for entry: Dictionary in marshalled:
+		if entry.has("prefer_role"):
+			tanks += 1
+	_check(tanks == ceili(float(plain) * Balance.WAVE_VANGUARD_SHARE),
+		"the vanguard draws %d bodies from the tanking roles, not %d"
+			% [ceili(float(plain) * Balance.WAVE_VANGUARD_SHARE), tanks])
+	director.set("_spawn_queue", _hand_queue(plain))
+	director.call("_marshal_queue", WaveArchetypeData.Formation.REARGUARD)
+	marshalled = director.get("_spawn_queue")
+	bounds = _leader_bounds(marshalled)
+	_check(bounds.y == 0 and bounds.x == marshalled.size() - 1,
+		"a rearguard follows: the first plain body stood at %d and the last leader at %d of %d"
+			% [bounds.y, bounds.x, marshalled.size()])
+	director.set("_spawn_queue", _hand_queue(plain))
+	director.call("_marshal_queue", WaveArchetypeData.Formation.SCATTERED)
+	marshalled = director.get("_spawn_queue")
+	var untouched: bool = marshalled.size() == plain + 2 \
+			and bool((marshalled[plain] as Dictionary).get("elite", false))
+	for entry: Dictionary in marshalled:
+		if entry.has("prefer_role"):
+			untouched = false
+	_check(untouched, "a scattered formation is the shuffle exactly as it was dealt")
+
+	var act_before: int = RunState.act
+	RunState.act = 1
+	director.set("_spawn_queue", _hand_queue(plain))
+	director.call("_order_the_siege")
+	_check(_siege_count(director.get("_spawn_queue")) == 0,
+		"the opening act gives no siege orders")
+	RunState.act = Balance.ACT_COUNT
+	var share: float = Balance.WAVE_SIEGE_ORDER_SHARE[Balance.ACT_COUNT - 1]
+	var expected: int = plain / maxi(1, roundi(1.0 / share))
+	director.set("_spawn_queue", _hand_queue(plain))
+	director.call("_order_the_siege")
+	marshalled = director.get("_spawn_queue")
+	_check(_siege_count(marshalled) == expected,
+		"act %d orders %d of %d plain bodies at the board, not %d"
+			% [Balance.ACT_COUNT, expected, plain, _siege_count(marshalled)])
+	var leaders_ordered: int = 0
+	for entry: Dictionary in marshalled:
+		if bool(entry.get("siege", false)) and (bool(entry.get("elite", false))
+				or not String(entry.get("enemy_id", "")).is_empty()):
+			leaders_ordered += 1
+	_check(leaders_ordered == 0, "siege orders go to the horde, never to a leader or an elite")
+	RunState.act = act_before
+	director.free()
+
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/wave_director.gd")
+	var begin: int = source.find("func _begin_wave")
+	var next: int = source.find("\nfunc ", begin + 1)
+	var body: String = source.substr(begin, next - begin)
+	_check(body.find("_marshal_queue(") >= 0, "_begin_wave never marshals the formation")
+	_check(body.find("_order_the_siege()") >= 0, "_begin_wave never gives siege orders")
+	var authored: int = 0
+	for value: Variant in ContentDB.wave_archetypes.values():
+		var wave := value as WaveArchetypeData
+		if wave != null and wave.formation != WaveArchetypeData.Formation.SCATTERED:
+			authored += 1
+	_check(authored >= 3,
+		"only %d formations author an order; a shape nothing authors is a shape nobody meets"
+			% authored)
+
+
+func _hand_queue(plain: int) -> Array[Dictionary]:
+	var queue: Array[Dictionary] = []
+	for _index: int in plain:
+		queue.append(_hand_entry(false, ""))
+	queue.append(_hand_entry(true, ""))
+	queue.append(_hand_entry(false, "warden"))
+	return queue
+
+
+func _hand_entry(elite: bool, enemy_id: String) -> Dictionary:
+	return {"lane": 0, "elite": elite, "enemy_id": enemy_id, "hp_scale": 1.0,
+		"damage_scale": 1.0, "speed_scale": 1.0, "spacing_scale": 1.0}
+
+
+## (last leader's index, first plain body's index).
+func _leader_bounds(queue: Array) -> Vector2i:
+	var last_leader: int = -1
+	var first_plain: int = -1
+	for index: int in queue.size():
+		var entry: Dictionary = queue[index]
+		var leader: bool = bool(entry.get("elite", false)) \
+			or not String(entry.get("enemy_id", "")).is_empty() or entry.has("prefer_role")
+		if leader:
+			last_leader = index
+		elif first_plain < 0:
+			first_plain = index
+	return Vector2i(last_leader, first_plain)
+
+
+func _siege_count(queue: Array) -> int:
+	var count: int = 0
+	for entry: Dictionary in queue:
+		if bool(entry.get("siege", false)):
+			count += 1
+	return count
 
 
 ## **Every act meets formations of its own, and the pool grows.**

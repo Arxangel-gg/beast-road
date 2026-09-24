@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_wave")
+formation = 1
 id = "siege_column"
 display_name = "Siege Column"
 description = "The whole assault compresses into one armoured lane."

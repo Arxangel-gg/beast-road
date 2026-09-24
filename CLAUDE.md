@@ -9101,6 +9101,52 @@ keyed on `get_node_count_in_group`, for a probe that names no field. **A cache
 keyed on the frame is only as fresh as the frame's first reader**, and a
 harness that ticks by hand never leaves the frame.
 
+**The road asks more, arrives in formation, and comes at the board, as of
+2026-09-24 (evening).** The owner: *"Buff all enemies with a bit more hp and a
+tiny bit more damage ... increasing the count of enemies per wave and making
+resource gain a bit more scarce ... formation spawning ... sending in
+tankier/siege enemies before hoards of lighter units ... so that players will
+not be able to simply just sit at base and fast forward every wave"*. Three
+things, each measured against `curve_report` on a new account, and one band
+moved and recorded.
+
+- **The tune.** `WAVE_ACT_COUNT_SCALE` up 8% across the road,
+  `WAVE_ACT_HP_SCALE` up 6%, `WAVE_ACT_DAMAGE_SCALE` up 2% with
+  `ENEMY_CONTACT_DAMAGE_SCALE` 0.62 to 0.65, `KILL_RESOURCE_SCALE` 0.36 to
+  0.33 and `RESOURCE_PER_DISTANCE` 0.20 to 0.18. Every ladder keeps its shape.
+  Measured: solo mean pressure **0.429 to 0.488**, four players 0.505 to
+  0.573, every act up and Act II - the soft spot, 0.16 - now 0.19.
+  `PARTY_PRESSURE_CEILING` **0.58 to 0.64**, because a ceiling left where it
+  was would judge the re-tune against the game it replaced - the failure
+  recorded both times the band moved before. The floor is unmoved.
+  `balance_test` reads 34,719 assertions.
+- **A formation is an order, never a roster.** `WaveArchetypeData.formation`
+  - SCATTERED (the shuffle every wave had), VANGUARD (the signature bodies,
+  the elites and `WAVE_VANGUARD_SHARE` of the horde drawn from the tanking
+  roles lead), REARGUARD (the reverse). Ten signature-led formations lead
+  with their tanks and the two howler formations keep their shooters behind
+  the horde. The same bodies at the same strength in a different order, so
+  the curve reads the same waves. Appended to the resource, never inserted.
+- **Siege orders.** `WAVE_SIEGE_ORDER_SHARE` of a wave's ordinary bodies, by
+  act and none in Acts I-II, are told to go at the board:
+  `Enemy.order_siege()` and one reader, `targets_towers()`, so the breed's
+  flag and the order cannot disagree. Every k-th body by index rather than
+  by a roll, because a draw per entry moves every seeded roll after it. This
+  is `DESIGN_DIRECTION_2026-09-22` section 2's first answer, built; its
+  second (Warden-only objectives) is still owed and is in the plan.
+
+`wave_library_check` (143) drives the marshal and the orders on a hand-built
+queue, walks `_begin_wave`'s source for both calls, and refuses a library
+that authors no order; `enemy_siege_check` (301) stands a marcher under
+orders at its spawn and insists it prefers the tower.
+
+**And `balance_test` had been red on main since the morning's pooling and
+ink commits**, on two invariants that moved by design: a collected piece is
+parked under `NodePool.lot()` now rather than queued for deletion, and a
+hostile shot's shell and filament are one `InkRibbon` along its history
+rather than two `Line2D`s. Both amended and dated in the gate. It is
+release-only, so nothing on the guard bar could have said so.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -2045,7 +2045,7 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 ## and need to be nerfed a bit, especially ranged ones ... My own game is too
 ## hard for me" - a level-100 geared Warden could not reach Act II). Survivability
 ## only, for the reason above: the ramp is untouched.
-const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.62
+const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.65
 ## And a ranged body's blow a quarter lighter again: it is thrown from where the
 ## Warden cannot answer it, which is why it was named first. [TUNE]
 const ENEMY_RANGED_DAMAGE_SCALE: float = 0.75
@@ -4565,8 +4565,11 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## same ceiling over ten. An act has to be harder than the one before it or
 ## there is no reason to have walked; the hero grows across ten acts too, and
 ## `curve_report` is where the two are read against each other. [TUNE]
+## Lifted 8% across the road on 2026-09-24 (owner: "they don't feel like
+## enough of a threat ... increasing the count of enemies per wave"); the
+## ratio between adjacent acts is untouched.
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.0, 1.12, 1.36, 1.58, 1.74, 1.90, 2.00, 2.12, 2.22, 2.32,
+	1.08, 1.21, 1.47, 1.71, 1.88, 2.05, 2.16, 2.29, 2.40, 2.51,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -4751,11 +4754,15 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## after act 3 ... act 3 and act 4 felt too easy once I had enough towers up
 ## everywhere"). Acts I and II are unchanged - they "felt decent" - and the
 ## step from II to III is where a built-up board stopped being asked anything.
+## Health 6% and damage 2% up across the road on 2026-09-24 (owner: "buff
+## all enemies with a bit more hp and a tiny bit more damage"); the shape of
+## both ladders is untouched, and the contact scale carries the other half of
+## the damage lift.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.15, 1.52, 1.72, 1.78, 1.80, 1.82, 1.87, 1.92, 1.96,
+	1.06, 1.22, 1.61, 1.82, 1.89, 1.91, 1.93, 1.98, 2.04, 2.08,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
-	1.0, 1.04, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18, 1.18,
+	1.02, 1.06, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20,
 ]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
@@ -4785,6 +4792,26 @@ const WAVE_ELITE_BASE_CHANCE: float = 0.17
 const WAVE_ELITE_PROGRESS_BONUS: float = 0.75
 const WAVE_ELITE_ACT_BONUS: float = 0.20
 const WAVE_MAX_QUEUED: int = 180
+
+## **A formation's vanguard** (2026-09-24). The share of a VANGUARD wave's
+## ordinary bodies drawn from the tanking roles and sent ahead of the horde
+## beside the leaders, and the roles it is drawn from. The same bodies at the
+## same strength, in a different order - `curve_report` reads the same waves.
+const WAVE_VANGUARD_SHARE: float = 0.3
+const WAVE_VANGUARD_ROLES: Array[int] = [EnemyData.Role.WARDEN, EnemyData.Role.VANGUARD]
+
+## **Siege orders** (2026-09-24). The share of a wave's ordinary bodies, by
+## act, sent at the board rather than the wall: a body under orders picks a
+## tower the way a breed that authors `targets_towers` does and swings its own
+## blow at it. This is `DESIGN_DIRECTION_2026-09-22` section 2's first answer
+## to a late game that plays itself once every road is covered, and the
+## owner's own ask that a player may not "sit at base and fast forward every
+## wave". Acts I and II send none, so the opening envelope is untouched. The
+## shape of a blow and never its size: the board takes attrition and the
+## Warden has somewhere to be, and `curve_report` reads the same waves.
+const WAVE_SIEGE_ORDER_SHARE: Array[float] = [
+	0.0, 0.0, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24,
+]
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
@@ -4889,12 +4916,15 @@ const TOWN_DAMAGE_SCALE: float = 1.75
 const TOWER_ARMOUR_EFFECT_SCALE: float = 0.45
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.20
+const RESOURCE_PER_DISTANCE: float = 0.18
 
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.36
+## 0.36 to 0.33 on 2026-09-24: the owner asked for resource gain "a bit
+## more scarce" beside the enemy lift, and the kill is where a player reads
+## it (2026-09-15).
+const KILL_RESOURCE_SCALE: float = 0.33
 
 ## What a body is worth, by the act it dies in. [TUNE]
 ##

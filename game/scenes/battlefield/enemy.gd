@@ -440,6 +440,21 @@ func field() -> EnemyField:
 	return _field
 
 
+## **Under siege orders** (2026-09-24): a body the wave director sent at the
+## board. It picks a tower exactly as a breed that authors `targets_towers`
+## does and swings its own blow at it - the shape of the fight, never its
+## size. One reader, so the breed's own flag and the order cannot disagree.
+var _siege_order: bool = false
+
+
+func order_siege() -> void:
+	_siege_order = true
+
+
+func targets_towers() -> bool:
+	return (data != null and data.targets_towers) or _siege_order
+
+
 func is_provoked() -> bool:
 	return _provoked_left > 0.0
 
@@ -1881,7 +1896,7 @@ func _choose_target() -> Node2D:
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
 	if taunt != null and is_instance_valid(taunt) and _taunted_by(taunt):
 		return taunt
-	if data.targets_towers:
+	if targets_towers():
 		var structure: Node2D = _field.vulnerable_tower_in_lane(lane, global_position)
 		if structure != null and is_instance_valid(structure):
 			return structure
