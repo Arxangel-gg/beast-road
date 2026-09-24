@@ -602,7 +602,7 @@ func _pick_elite(tier: int = BattleGrid.CampTier.BARON) -> EnemyData:
 
 # --- Living -------------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if Coop.is_guest() or _sites.is_empty():
 		return
 	for site: Dictionary in _sites:
@@ -878,3 +878,10 @@ func map_marks() -> Array[Dictionary]:
 		out.append({"at": site["centre"] as Vector2, "state": int(site["state"]),
 			"baron": int(site["tier"]) == BattleGrid.CampTier.BARON})
 	return out
+
+
+## `FrameProfile` bucket "p_camps": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_camps", started)

@@ -102,7 +102,7 @@ func _on_changed(current: float, maximum: float) -> void:
 		visible = ratio < 1.0
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _trail_ratio <= _ratio + 0.0005:
 		_trail_ratio = _ratio
 		_apply_size()
@@ -117,7 +117,7 @@ func _process(delta: float) -> void:
 ## piece of the interface rather than two rectangles (owner brief,
 ## 2026-09-12). A ranked bar wears a warm frame with end caps and ticks
 ## across the fill, which is how an elite reads as one at a glance.
-func _draw() -> void:
+func _draw_measured() -> void:
 	if background == null:
 		return
 	var rect: Rect2 = Rect2(background.position, background.size)
@@ -140,3 +140,17 @@ func _draw() -> void:
 			Balance.HEALTH_BAR_FRAME_LIGHT, 1.0)
 		draw_line(Vector2(rect.position.x, rect.end.y - 0.5), rect.end - Vector2(0.0, 0.5),
 			Balance.HEALTH_BAR_FRAME_SHADE, 1.0)
+
+
+## `FrameProfile` bucket "d_health_bar": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_health_bar", started)
+
+
+## `FrameProfile` bucket "p_health_bar": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_health_bar", started)

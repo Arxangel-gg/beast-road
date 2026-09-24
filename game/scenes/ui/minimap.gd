@@ -87,7 +87,7 @@ func _to_map(at: Vector2) -> Vector2:
 	return (at + Vector2.ONE * half) / (half * 2.0) * size
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Balance.MINIMAP_GROUND)
 	if battlefield == null or not is_instance_valid(battlefield):
 		return
@@ -297,3 +297,10 @@ func _mark_diamond(at: Vector2, reach: float, colour: Color) -> void:
 ## anything but the marks, which is where the outline colour still belongs.
 func _draw_frame() -> void:
 	FrameKit.draw_frame(_frame, Rect2(Vector2.ZERO, size))
+
+
+## `FrameProfile` bucket "d_minimap": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_minimap", started)

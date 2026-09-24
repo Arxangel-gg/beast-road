@@ -54,7 +54,7 @@ func refresh() -> void:
 		"vignette": terrain.grade_vignette}
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	if _rect == null:
 		return
@@ -86,3 +86,10 @@ func _apply(grade: Dictionary) -> void:
 	_material.set_shader_parameter("bloom_threshold", lerpf(Balance.BLOOM_THRESHOLD_DAY,
 		Balance.BLOOM_THRESHOLD_NIGHT, dark))
 	_material.set_shader_parameter("now", _clock)
+
+
+## `FrameProfile` bucket "p_color_grade": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_color_grade", started)

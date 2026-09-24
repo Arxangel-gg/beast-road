@@ -34,7 +34,7 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var centre := Vector2(WIDTH * 0.5, HEIGHT - 12.0)
 	var radius: float = WIDTH * 0.42
 	var phase: float = DayNight.phase
@@ -85,3 +85,10 @@ func _moon(at: Vector2) -> void:
 	# The crescent: the dark of the sky bitten out of the disc.
 	draw_circle(at + Vector2(2.6, -1.4), 4.6, Color(0.13, 0.15, 0.26))
 	draw_circle(at + Vector2(-3.0, 1.5), 0.9, Color(1.0, 1.0, 1.0, 0.9))
+
+
+## `FrameProfile` bucket "d_sundial": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_sundial", started)

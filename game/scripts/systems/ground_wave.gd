@@ -137,7 +137,7 @@ func _build_ripple() -> void:
 	add_child(layer)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_elapsed += delta
 	var running: bool = false
 	for ring: Ring in _rings:
@@ -353,7 +353,7 @@ func _drive_ripple() -> void:
 		_ripple.visible = showing
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if _elapsed < _warned:
 		_draw_the_split()
 		return
@@ -481,3 +481,17 @@ func _draw_crest(ring: Ring) -> void:
 ## nothing here may move a roll the run depends on.
 func _hash01(of: float) -> float:
 	return absf(fmod(sin(of * 12.9898) * 43758.5453, 1.0))
+
+
+## `FrameProfile` bucket "d_ground_wave": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_ground_wave", started)
+
+
+## `FrameProfile` bucket "p_ground_wave": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_ground_wave", started)

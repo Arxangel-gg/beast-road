@@ -252,7 +252,7 @@ func _ready() -> void:
 	_apply(ContentDB.weather(RunState.weather_id))
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	# The authored density, swelled and slackened by the sky (2026-09-14): a
 	# downpour is not one rate. Both veils - the field's and the beast scope's -
 	# read the same number, so the two views agree about how hard it is coming
@@ -363,3 +363,10 @@ func set_cover(value: float) -> void:
 	_cover = clampf(value, 0.0, 1.0)
 	RunState.snow_cover = _cover
 	EventBus.snow_cover_changed.emit(_cover)
+
+
+## `FrameProfile` bucket "p_weather_veil": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_weather_veil", started)

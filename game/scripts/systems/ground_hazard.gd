@@ -26,7 +26,7 @@ func _ready() -> void:
 			float(plan["warning"]))
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_elapsed += delta
 	var warning: float = float(plan["warning"])
 	var travel: float = float(plan["travel"])
@@ -96,7 +96,7 @@ func _strike(a: Vector2, b: Vector2) -> void:
 ## and the split is **slabs with gaps between them**, each tapering to a
 ## point and ragged along its edge. The breath is untouched: it is a cone of
 ## fire rather than earth, and it is the one mode here that is not a crack.
-func _draw() -> void:
+func _draw_measured() -> void:
 	var a: Vector2 = to_local(plan["from"] as Vector2)
 	var b: Vector2 = to_local(plan["to"] as Vector2)
 	var width: float = float(plan["width"])
@@ -190,3 +190,17 @@ func _draw_the_split(a: Vector2, b: Vector2, side: Vector2, width: float,
 ## machines and nothing here moves a roll the run depends on.
 func _hash01(of: float) -> float:
 	return absf(fmod(sin(of * 12.9898) * 43758.5453, 1.0))
+
+
+## `FrameProfile` bucket "d_ground_hazard": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_ground_hazard", started)
+
+
+## `FrameProfile` bucket "p_ground_hazard": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_ground_hazard", started)

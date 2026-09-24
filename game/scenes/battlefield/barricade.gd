@@ -77,7 +77,7 @@ func _ready() -> void:
 	_bar.bind(health)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _sprite == null:
 		return
 	if _flash > 0.0:
@@ -199,3 +199,10 @@ func radius() -> float:
 	if _sprite == null or _sprite.texture == null:
 		return 40.0
 	return _sprite.texture.get_size().x * 0.5 * absf(_sprite.scale.x)
+
+
+## `FrameProfile` bucket "p_barricade": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_barricade", started)

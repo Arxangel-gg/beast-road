@@ -52,7 +52,7 @@ func _ready() -> void:
 	EventBus.build_mode_changed.connect(func(_b: bool) -> void: queue_redraw())
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_timer -= delta
 	if _timer > 0.0:
 		return
@@ -140,7 +140,7 @@ func _is_active() -> bool:
 	return _field != null and _field.grid != null and RunState.can_build_now() 		and GameDirector.build_mode
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if not _is_active() or _hover.x == -999:
 		return
 
@@ -188,3 +188,17 @@ func _draw() -> void:
 				var parent: Vector2i = option[key]
 				var at: Vector2 = BattleGrid.tile_to_world(parent) - tile_size * 0.5
 				draw_rect(Rect2(at, span), Color("e8a33d", 0.55), false, 2.0)
+
+
+## `FrameProfile` bucket "d_cursor": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_cursor", started)
+
+
+## `FrameProfile` bucket "p_placement_cursor": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_placement_cursor", started)

@@ -103,7 +103,7 @@ func _ready() -> void:
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_idle(delta)
 	_tick_health_ring(delta)
 	if _flash_left > 0.0:
@@ -470,3 +470,10 @@ func _town_share() -> float:
 	if health == null or health.max_hp <= 0.0:
 		return 1.0
 	return clampf(health.current_hp / health.max_hp, 0.0, 1.0)
+
+
+## `FrameProfile` bucket "p_town_core": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_town_core", started)

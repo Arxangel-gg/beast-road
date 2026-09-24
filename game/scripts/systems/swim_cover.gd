@@ -30,7 +30,7 @@ func _ready() -> void:
 	visible = false
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	if visible:
 		queue_redraw()
@@ -40,7 +40,7 @@ func _process(delta: float) -> void:
 var field: Node = null
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if sprite == null or sprite.texture == null:
 		return
 	# The sprite's drawn rectangle, in this node's space (a sibling of the
@@ -147,3 +147,17 @@ func _draw_the_sheen(band: PackedVector2Array, wet: PackedColorArray, steps: int
 			indices.append_array([a, a + 1, a + steps + 1,
 				a + 1, a + steps + 2, a + steps + 1])
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
+
+
+## `FrameProfile` bucket "d_swim_cover": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_swim_cover", started)
+
+
+## `FrameProfile` bucket "p_swim_cover": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_swim_cover", started)

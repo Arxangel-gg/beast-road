@@ -26,6 +26,8 @@ var _ring: Line2D = null
 var _pool: Sprite2D = null
 var _element: int = 0
 var _spin: float = 0.0
+## Seconds of hurt owed since the last tick (`GROUND_HURT_TICK`).
+var _hurt_owed: float = 0.0
 
 ## Element art, derived from the element name like every other path here.
 const POOL_ART_FORMAT: String = "res://art/vfx/pool_%s.png"
@@ -86,7 +88,7 @@ func _build_pool() -> void:
 	grow.tween_property(_pool, "scale", _pool.scale, 0.18).from(_pool.scale * 0.55)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_left -= delta
 	if _left <= 0.0 or _field == null:
 		queue_free()
@@ -98,5 +100,16 @@ func _process(delta: float) -> void:
 		# eye without another frame of art.
 		_pool.rotation += _spin * delta
 		_pool.modulate.a = 0.92 * fade
+	_hurt_owed += delta
+	if _hurt_owed < Balance.GROUND_HURT_TICK:
+		return
 	for enemy: Enemy in _field.enemies_near(global_position, _radius):
-		enemy.take_damage(_dps * delta, global_position, 0.0)
+		enemy.take_damage(_dps * _hurt_owed, global_position, 0.0)
+	_hurt_owed = 0.0
+
+
+## `FrameProfile` bucket "p_ground_zone": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_ground_zone", started)

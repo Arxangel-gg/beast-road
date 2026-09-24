@@ -141,7 +141,7 @@ func _on_lit_elsewhere(at: Vector2) -> void:
 		_light(plant)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _fires.is_empty():
 		return
 	# Rain shortens every fire; a flood ends them all.
@@ -175,7 +175,13 @@ func _process(delta: float) -> void:
 			if ground != null:
 				ground.add_heat(at, Balance.CLIMATE_HEAT_PER_FIRE_SECOND * delta, Balance.CLIMATE_FIRE_RADIUS)
 				ground.add_wet(at, -Balance.CLIMATE_DRY_PER_FIRE_SECOND * delta, Balance.CLIMATE_FIRE_RADIUS)
-			_hurt_around(at, delta)
+			# On `GROUND_HURT_TICK`, not every frame: the same damage over time
+			# with a fifth of the blows (2026-09-24).
+			var owed: float = float(fire.get("hurt_owed", 0.0)) + delta
+			if owed >= Balance.GROUND_HURT_TICK:
+				_hurt_around(at, owed)
+				owed = 0.0
+			fire["hurt_owed"] = owed
 			if scare and animals != null:
 				animals.scare_from(at, Balance.WILDFIRE_SCARE_RADIUS)
 			fire["spread"] = float(fire["spread"]) - delta
@@ -305,3 +311,10 @@ func fire_positions() -> PackedVector2Array:
 	for fire: Dictionary in _fires:
 		out.append(fire["at"] as Vector2)
 	return out
+
+
+## `FrameProfile` bucket "p_wildfire": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_wildfire", started)

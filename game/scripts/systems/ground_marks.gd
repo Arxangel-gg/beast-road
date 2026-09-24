@@ -128,7 +128,7 @@ func _mark(at: Vector2, way: Vector2, size: float, life: float,
 	})
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	var live: Array[Dictionary] = []
 	for mark: Dictionary in _marks:
@@ -146,7 +146,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if _marks.is_empty():
 		return
 	var points: PackedVector2Array = []
@@ -175,3 +175,17 @@ func _draw() -> void:
 			indices.append_array([base, base + step + 1, base + step + 2])
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
 		indices, points, colours)
+
+
+## `FrameProfile` bucket "d_ground_marks": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_ground_marks", started)
+
+
+## `FrameProfile` bucket "p_ground_marks": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_ground_marks", started)

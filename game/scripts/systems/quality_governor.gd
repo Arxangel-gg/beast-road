@@ -67,7 +67,7 @@ func rest() -> void:
 	_fast_windows = 0
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if DisplayServer.get_name() == "headless" and not measure_headless:
 		return
 	sample(delta)
@@ -127,3 +127,10 @@ func _step(direction: int) -> void:
 	if say.is_valid():
 		say.call("GRAPHICS", "%s to %s" % ["Eased" if direction < 0 else "Raised",
 			ladder[to].capitalize()], "Measured on this device. Settings to choose.")
+
+
+## `FrameProfile` bucket "p_quality_governor": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_quality_governor", started)

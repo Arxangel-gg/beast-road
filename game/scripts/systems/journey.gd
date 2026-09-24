@@ -38,7 +38,7 @@ func stop() -> void:
 	_running = false
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not _running or _crossroad_pending:
 		return
 
@@ -264,3 +264,10 @@ func regional_relic_choices_for_test(act: int) -> Array[String]:
 
 func is_at_crossroad() -> bool:
 	return _crossroad_pending
+
+
+## `FrameProfile` bucket "p_journey": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_journey", started)

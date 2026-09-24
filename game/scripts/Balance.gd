@@ -9189,6 +9189,13 @@ const WILDFIRE_WIND_SPREAD: float = 1.4
 const WILDFIRE_HOT_FROM: float = 30.0
 const WILDFIRE_HOT_SPREAD: float = 1.5
 const WILDFIRE_HURT_RADIUS: float = 70.0
+## Ground that burns bodies - a wildfire, a burning zone - deals its damage
+## on this tick rather than every frame (2026-09-24). A blow through
+## `take_damage` carries a number, a spark, blood, a recoil and a camera
+## impact, and every body in a blaze was taking one per frame; the same
+## damage over time, five times a second, is the same fight with a fifth
+## of the blows.
+const GROUND_HURT_TICK: float = 0.2
 const WILDFIRE_DPS: float = 14.0
 const WILDFIRE_HERO_SHARE_PER_SECOND: float = 0.05
 const WILDFIRE_WILDLIFE_DPS: float = 9.0

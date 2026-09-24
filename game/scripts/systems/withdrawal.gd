@@ -127,7 +127,7 @@ func seconds_left() -> float:
 	return maxf(_left, 0.0)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_left -= delta
 	if _left <= 0.0:
 		_end()
@@ -176,3 +176,10 @@ func _end() -> void:
 	if _sent > 0:
 		EventBus.preparation_warning.emit("The beast is clear of the road. Home.")
 	finished.emit()
+
+
+## `FrameProfile` bucket "p_withdrawal": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_withdrawal", started)

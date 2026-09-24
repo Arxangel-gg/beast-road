@@ -227,9 +227,20 @@ func _ready() -> void:
 	# higher than the game a 1080p player sees. `--native` measures the
 	# display as it is, for the question "how does it run on this monitor".
 	if not _native:
+		# **On the fastest screen** (2026-09-24). `(40, 40)` is a point on
+		# screen 0, which on the machine this is tuned on is a 60 Hz monitor
+		# beside a 180 Hz one - and a windowed frame on a 60 Hz screen is
+		# rounded up to the next 16.7 ms by the compositor whatever vsync
+		# says, so a 20 ms frame read as 33 and the average was a quantisation.
+		var best: int = DisplayServer.window_get_current_screen()
+		for screen: int in DisplayServer.get_screen_count():
+			var faster: bool = DisplayServer.screen_get_refresh_rate(screen) > DisplayServer.screen_get_refresh_rate(best) + 0.5
+			if faster:
+				best = screen
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_current_screen(best)
 		DisplayServer.window_set_size(Vector2i(1920, 1080))
-		DisplayServer.window_set_position(Vector2i(40, 40))
+		DisplayServer.window_set_position(DisplayServer.screen_get_position(best) + Vector2i(40, 40))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	# Reported, not assumed. Asking for it off and *getting* it off are different
 	# things - a driver or compositor can hold the swap regardless, and then every
@@ -269,7 +280,9 @@ func _ready() -> void:
 	var off: String = ("  minus " + ", ".join(_disabled)) if not _disabled.is_empty() else ""
 	print("[perf] vsync requested OFF, actually %d (0=disabled 1=on 2=adaptive 3=mailbox)"
 		% _vsync_actual)
-	print("[perf] window %s%s" % [str(DisplayServer.window_get_size()), "  (native)" if _native else "  (pinned 1080p)"])
+	print("[perf] window %s%s on screen %d at %.0f Hz" % [str(DisplayServer.window_get_size()),
+		"  (native)" if _native else "  (pinned 1080p)", DisplayServer.window_get_current_screen(),
+		DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen())])
 	print("[perf] %s renderer, %s quality%s, %.0fs of measured combat, warm-up %.0fs"
 		% [_renderer_name(), _quality.capitalize(), off, _seconds, WARMUP_SECONDS])
 
@@ -423,7 +436,8 @@ func _process(delta: float) -> void:
 	if _trace_to > 0.0 and _elapsed >= _trace_from and _elapsed <= _trace_to:
 		print("[trace] %6.2fs %5.1f ms  nodes %+4d  bodies %+3d  %s" % [_elapsed, ms,
 			nodes_now - _nodes_last, bodies_now - _bodies_last, " ".join(_trace_fired)])
-		print("[profile] %s" % buckets)
+		var motes: BloodMotes = Vfx.blood_motes()
+		print("[profile] motes=%d/1 %s" % [motes.live() if motes != null else -1, buckets])
 	_trace_fired.clear()
 	if ms > HITCH_MS:
 		_hitches += 1

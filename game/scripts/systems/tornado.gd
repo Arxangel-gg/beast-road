@@ -72,7 +72,7 @@ func _build_debris() -> void:
 	add_child(_debris)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_spin += delta * Balance.TORNADO_SPIN
 	queue_redraw()
 	if _mirror:
@@ -213,7 +213,7 @@ func _die() -> void:
 
 ## The funnel: a column of dust that fades into the air at every edge, with
 ## debris winding up it and a pool of grit at its foot.
-func _draw() -> void:
+func _draw_measured() -> void:
 	_draw_the_foot()
 	_draw_the_column()
 	_draw_the_streaks()
@@ -339,3 +339,17 @@ func _draw_the_foot() -> void:
 		var next_outer: int = 1 + steps + (s + 1) % steps
 		indices.append_array([inner, outer, next_inner, outer, next_outer, next_inner])
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
+
+
+## `FrameProfile` bucket "d_tornado": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_tornado", started)
+
+
+## `FrameProfile` bucket "p_tornado": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_tornado", started)

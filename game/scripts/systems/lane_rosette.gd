@@ -60,7 +60,7 @@ func set_pressure(lane: int, value: float) -> void:
 		_pressure[lane] = clampf(value, 0.0, 1.0)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_pulse += delta * Balance.LANE_RING_PULSE_SPEED
 
 	var moved: bool = false
@@ -103,7 +103,7 @@ func _any_alarmed() -> bool:
 	return false
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var centre: Vector2 = _centre if _centre != Vector2.ZERO else size * 0.5
 	var span: float = deg_to_rad(Balance.LANE_RING_ARC_DEGREES)
 
@@ -159,3 +159,17 @@ func _draw() -> void:
 				var back: Vector2 = centre + outward * (Balance.LANE_RING_RADIUS + thickness * 0.6)
 				draw_colored_polygon(PackedVector2Array([
 					at, back + wing, back - wing]), Color(colour, alpha))
+
+
+## `FrameProfile` bucket "d_lane_rosette": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_lane_rosette", started)
+
+
+## `FrameProfile` bucket "p_lane_rosette": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_lane_rosette", started)

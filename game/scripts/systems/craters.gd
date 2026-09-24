@@ -44,7 +44,7 @@ func _ready() -> void:
 	set_process(false)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	queue_redraw()
 	if _clock > _hot_until:
@@ -93,7 +93,7 @@ func count() -> int:
 const LIGHT := Vector2(-0.55, -0.8)
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	for pit: Dictionary in pits:
 		_draw_pit(pit)
 
@@ -220,3 +220,17 @@ func _draw_debris(at: Vector2, radius: float, rng: RandomNumberGenerator) -> voi
 		# the whole difference between a rock and a speck of dirt.
 		draw_circle(here + Vector2(size * 0.4, size * 0.5), size, Color(0.0, 0.0, 0.0, 0.3))
 		draw_circle(here, size, Balance.CRATER_DEBRIS_TONE)
+
+
+## `FrameProfile` bucket "d_craters": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_craters", started)
+
+
+## `FrameProfile` bucket "p_craters": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_craters", started)

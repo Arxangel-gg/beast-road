@@ -45,7 +45,7 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if _hero == null or not _hero.is_downed():
 		return
 	var origin := Vector2(-WIDTH * 0.5, LIFT)
@@ -69,3 +69,10 @@ func _draw() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
 	draw_string(font, Vector2(-width * 0.5, LIFT - 6.0), hint,
 		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, Color("d8e4de"))
+
+
+## `FrameProfile` bucket "d_revive_bar": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_revive_bar", started)

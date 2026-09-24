@@ -419,7 +419,7 @@ func _roll() -> RandomNumberGenerator:
 
 # --- Drawing and the prompt ----------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _plots.is_empty():
 		return
 	for index: int in _plots.size():
@@ -605,3 +605,10 @@ func redress(index: int) -> void:
 func _exit_tree() -> void:
 	if not _prompt.is_empty() and EventBus.claim_prompt(PROMPT_OWNER, ""):
 		EventBus.interact_prompt.emit("", "")
+
+
+## `FrameProfile` bucket "p_farming": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_farming", started)

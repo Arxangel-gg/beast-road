@@ -31,7 +31,7 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var left: float = 0.0
 	var right: float = WIDTH
 	var progress: float = RunState.act_progress()
@@ -94,3 +94,10 @@ func _text(at: Vector2, text: String, colour: Color, size: int) -> void:
 	draw_string(_font, at + Vector2(1.0, 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 		Color(0.0, 0.0, 0.0, 0.7))
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
+
+
+## `FrameProfile` bucket "d_act_track": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_act_track", started)

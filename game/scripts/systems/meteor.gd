@@ -41,7 +41,7 @@ func _ready() -> void:
 	Sfx.play("sfx_meteor_whistle", 0.0)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _landed:
 		return
 	_left -= delta
@@ -70,7 +70,7 @@ func _process(delta: float) -> void:
 ## **Where, and when.** The shadow says where; a ring closing onto the target
 ## says when; and in the last half second the stone comes in, lighting the ground
 ## it is about to hit.
-func _draw() -> void:
+func _draw_measured() -> void:
 	var progress: float = 1.0 - clampf(_left / maxf(Balance.METEOR_WARNING, 0.01), 0.0, 1.0)
 	var radius: float = Balance.METEOR_RADIUS * lerpf(0.25, 0.85, progress)
 	if radius >= 2.0:
@@ -219,3 +219,17 @@ func _hurt() -> void:
 	var animals: Wildlife = field.wildlife()
 	if animals != null:
 		animals.wound_within(at, radius, Balance.METEOR_WILDLIFE_DAMAGE, false)
+
+
+## `FrameProfile` bucket "d_meteor": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_meteor", started)
+
+
+## `FrameProfile` bucket "p_meteor": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_meteor", started)

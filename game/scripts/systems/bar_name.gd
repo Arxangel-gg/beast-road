@@ -62,7 +62,7 @@ func _ready() -> void:
 	custom_minimum_size = Vector2.ZERO
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if text.is_empty():
 		return
 	var font: Font = get_theme_default_font()
@@ -82,3 +82,10 @@ func _draw() -> void:
 			font_size, 4, outline)
 		draw_string(font, right, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
 			font_size, tint)
+
+
+## `FrameProfile` bucket "d_bar_name": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_bar_name", started)

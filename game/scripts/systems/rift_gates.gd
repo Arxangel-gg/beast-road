@@ -161,7 +161,7 @@ func _dig(kind: int, at: Vector2, art: Texture2D) -> void:
 	})
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _gates.is_empty():
 		return
 	for index: int in _gates.size():
@@ -284,3 +284,10 @@ func gate_kinds() -> Array[int]:
 	for gate: Dictionary in _gates:
 		out.append(int(gate["kind"]))
 	return out
+
+
+## `FrameProfile` bucket "p_rift_gates": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_rift_gates", started)

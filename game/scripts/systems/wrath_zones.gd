@@ -113,7 +113,7 @@ func clear() -> void:
 	queue_redraw()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if zones.is_empty():
 		if _drew:
 			_drew = false
@@ -131,7 +131,7 @@ func _process(delta: float) -> void:
 ## A soft disc, a breathing ring at the edge, and three short arcs turning
 ## inside it - enough to say "this ground is different" without a texture,
 ## in the kind's own colour so a player learns the four at a glance.
-func _draw() -> void:
+func _draw_measured() -> void:
 	_drew = not zones.is_empty()
 	for zone: Dictionary in zones:
 		var at: Vector2 = zone["at"]
@@ -149,3 +149,17 @@ func _draw() -> void:
 		for spoke: int in 3:
 			var from: float = _pulse * 0.7 + float(spoke) * TAU / 3.0
 			draw_arc(at, radius * 0.62, from, from + 0.9, 14, Color(colour, alpha * 1.3), 2.0, true)
+
+
+## `FrameProfile` bucket "d_wrath_zones": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_wrath_zones", started)
+
+
+## `FrameProfile` bucket "p_wrath_zones": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_wrath_zones", started)

@@ -40,7 +40,7 @@ func _ready() -> void:
 	y_sort_enabled = false
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	# Redrawn at `POND_BUBBLE_HZ` and only in view: eight bubbles and a pop
 	# ring each are twenty draw commands a patch, and a pond off the screen
@@ -59,7 +59,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	# The shape below: a dark disc that breathes, offset against the bubbles'
 	# drift so it reads as a thing rather than as a shadow of the patch.
 	var breath: float = 0.9 + 0.1 * sin(_clock * 1.3)
@@ -83,3 +83,17 @@ func _draw() -> void:
 			var pop: float = (life - 0.8) / 0.2
 			draw_arc(at, size + pop * 5.0, 0.0, TAU, 12,
 				Color(0.9, 0.97, 1.0, 0.6 * (1.0 - pop)), 1.0)
+
+
+## `FrameProfile` bucket "d_pond_bubbles": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_pond_bubbles", started)
+
+
+## `FrameProfile` bucket "p_pond_bubbles": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_pond_bubbles", started)

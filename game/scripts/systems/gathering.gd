@@ -215,7 +215,7 @@ func _swings_in(kind: GatherNodeData) -> int:
 
 # --- Working -------------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _nodes.is_empty():
 		return
 	for index: int in _nodes.size():
@@ -775,3 +775,10 @@ func _fell(index: int, kind: GatherNodeData) -> void:
 	Sfx.play("sfx_tower_upgrade" if timber else "sfx_hit_stone", -6.0)
 	Vfx.dust(at, Color(0.5, 0.44, 0.34), 16, 90.0)
 	EventBus.camera_impact.emit(at, 0.34)
+
+
+## `FrameProfile` bucket "p_gathering": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_gathering", started)

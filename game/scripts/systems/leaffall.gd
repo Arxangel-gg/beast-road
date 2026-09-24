@@ -63,7 +63,7 @@ func set_canopies(points: Array[Array], region: String) -> void:
 	queue_redraw()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	var moved: bool = _tick_leaves(delta)
 	if not _canopies.is_empty():
 		_next_fall -= delta * _rate()
@@ -193,7 +193,7 @@ func _tick_leaves(delta: float) -> bool:
 	return true
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	for leaf: Dictionary in _leaves:
 		var tint: Color = leaf["tint"]
 		tint.a = Balance.LEAFFALL_ALPHA
@@ -223,3 +223,17 @@ func _draw_leaf(at: Vector2, angle: float, size: float, squash: float,
 	var across: Vector2 = Vector2.DOWN.rotated(angle) * size * squash
 	draw_colored_polygon(PackedVector2Array([
 		at - along, at - across, at + along, at + across]), tint)
+
+
+## `FrameProfile` bucket "d_leaffall": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_leaffall", started)
+
+
+## `FrameProfile` bucket "p_leaffall": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_leaffall", started)

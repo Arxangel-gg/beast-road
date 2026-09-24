@@ -125,7 +125,7 @@ func _ready() -> void:
 	Sfx.play_at("sfx_spell_cast", mouth, 1.0)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_age += delta
 	if _age >= warning:
 		if not _opened:
@@ -251,7 +251,7 @@ func _regrow_bolts() -> void:
 		_bolts.append(bolt)
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var b: Vector2 = to - mouth
 	if b.length() < 1.0:
 		return
@@ -416,3 +416,17 @@ func _fan(points: PackedVector2Array, shades: PackedColorArray,
 		shades.append(rim)
 	for step: int in steps:
 		indices.append_array([first, first + 1 + step, first + 1 + (step + 1) % steps])
+
+
+## `FrameProfile` bucket "d_dragon_breath": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_dragon_breath", started)
+
+
+## `FrameProfile` bucket "p_dragon_breath": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_dragon_breath", started)

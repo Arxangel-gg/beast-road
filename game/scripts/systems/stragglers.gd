@@ -125,7 +125,7 @@ func _read_reach() -> void:
 			_in_reach[body.get_instance_id()] = true
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	for id: int in _marked:
 		var body := instance_from_id(id) as Node2D
 		if body == null or not is_instance_valid(body):
@@ -211,3 +211,10 @@ func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
 	FrameProfile.add(&"stragglers", started)
+
+
+## `FrameProfile` bucket "d_stragglers": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_stragglers", started)

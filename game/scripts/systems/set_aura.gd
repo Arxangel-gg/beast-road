@@ -45,7 +45,7 @@ func _ready() -> void:
 	_look()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	_ask_in -= delta
 	if _ask_in <= 0.0:
@@ -77,7 +77,7 @@ func worn_set() -> GearSetData:
 	return _set if visible else null
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	if _set == null:
 		return
 	var breath: float = 0.5 + 0.5 * sin(TAU * _clock
@@ -109,3 +109,17 @@ func _draw() -> void:
 		var lit: float = 0.45 + 0.55 * (0.5 + 0.5 * sin(turn * 2.0 + _clock * 2.2))
 		draw_circle(at, 2.4 * (0.7 + 0.3 * breath),
 			Color(tint.r, tint.g, tint.b, tint.a * lit))
+
+
+## `FrameProfile` bucket "d_set_aura": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_set_aura", started)
+
+
+## `FrameProfile` bucket "p_set_aura": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_set_aura", started)

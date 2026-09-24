@@ -114,7 +114,7 @@ func _ready() -> void:
 	set_process(true)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	_attack_left = maxf(_attack_left - delta, 0.0)
 	if _landed:
@@ -220,7 +220,7 @@ func _breathe() -> void:
 ## and a landed dragon stands in a contact shadow rather than under a copy of
 ## itself. A shadow that stayed at flight size on the ground read as a second
 ## dragon lying beside the first, which is the report this answers.
-func _draw() -> void:
+func _draw_measured() -> void:
 	if _art == null:
 		return
 	var size: Vector2 = flying_size()
@@ -373,3 +373,17 @@ func encounter_plan() -> Dictionary:
 	return {"from": from, "to": to, "landing": _landing, "land": _will_land,
 		"curve": _curve, "variant": _kind.id if _kind != null else "",
 		"rarity": rarity}
+
+
+## `FrameProfile` bucket "d_dragon_pass": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_dragon_pass", started)
+
+
+## `FrameProfile` bucket "p_dragon_pass": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_dragon_pass", started)

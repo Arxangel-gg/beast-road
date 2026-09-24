@@ -5623,7 +5623,11 @@ func _refresh_currencies() -> void:
 func _on_distance(total: float, to_crossroad: float) -> void:
 	# "Distance" is dropped - the icon says it. "crossroad in" is kept, because
 	# that is a second number and an icon cannot tell the two apart.
-	_distance.text = "%d   ·   crossroad in %d" % [int(total), int(ceil(to_crossroad))]
+	# Emitted every frame; a Label's text set is a reshape, so it is set
+	# only when the words change (2026-09-24).
+	var text: String = "%d   ·   crossroad in %d" % [int(total), int(ceil(to_crossroad))]
+	if text != _distance.text:
+		_distance.text = text
 
 
 func _on_town_health(current: float, maximum: float) -> void:

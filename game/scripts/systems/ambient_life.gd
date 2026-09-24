@@ -55,7 +55,7 @@ func _exit_tree() -> void:
 		_fireflies.queue_free()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	for butterfly: Dictionary in _butterflies:
 		_tick_butterfly(butterfly, delta)
 		# **After the tick, never inside it.** The tick moves the butterfly and
@@ -397,3 +397,10 @@ func _is_clear(point: Vector2) -> bool:
 			if cell == BattleGrid.Cell.ROAD or cell == BattleGrid.Cell.TOWN:
 				return false
 	return true
+
+
+## `FrameProfile` bucket "p_ambient_life": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_ambient_life", started)

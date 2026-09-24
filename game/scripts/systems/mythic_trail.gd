@@ -146,7 +146,7 @@ func _sign_for(stage: int) -> TrailSignData:
 	return choices[_rng.randi() % choices.size()]
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _quarry == null or _found or _signs.is_empty():
 		return
 	_clock += delta
@@ -285,3 +285,10 @@ func read_the_next_sign() -> bool:
 	last["read"] = true
 	_read(last)
 	return true
+
+
+## `FrameProfile` bucket "p_mythic_trail": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_mythic_trail", started)

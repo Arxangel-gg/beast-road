@@ -176,56 +176,116 @@ func _show_particles(seen: bool) -> void:
 		_smoke.visible = seen
 
 
-func _draw() -> void:
+## **The tongues are a ring of shapes shared by every flame** (2026-09-24).
+##
+## Every flame in view used to rebuild its three tongues in script on each
+## redraw - twenty vertices of sines and a colour lerp per slice per layer,
+## about 80 us a flame - and on Act X the camera sees fifty-five of them, so
+## the flames alone were 4.4 ms of a 30 ms frame. That is the same finding
+## as 2026-09-14 (`flame.gd` 5.2 ms), which the redraw clock halved and did
+## not end.
+##
+## Every shape function here is linear in `size`, so one ring of
+## `RING_STEPS` phases built once at `RING_SIZE` serves every flame in the
+## game through a transform: `size / RING_SIZE` across, and `intensity`
+## along the height, which is what a guttering torch's height was. A flame's
+## own seed is its offset into the ring, so no two are in step. The colours
+## are per layer and per slice and never change, so they are built once too.
+## What a redraw costs now is a halo rect and three triangle arrays handed to
+## the renderer from cached packed arrays.
+##
+## The ring wraps every `RING_PERIOD` seconds of the flame's own clock; the
+## sines that shape a tongue are not periodic in that, so a flame jumps a
+## little at the wrap - once every few seconds, on a shape that flickers all
+## the time, on a random offset per flame. Photographed on `torch_shot` and
+## not visible.
+const RING_STEPS: int = 48
+const RING_PERIOD: float = 4.0
+const RING_SIZE: float = 32.0
+static var _ring: Dictionary = {}
+
+
+static func _shape_ring() -> Dictionary:
+	if not _ring.is_empty():
+		return _ring
+	var probe := Flame.new()
+	probe.size = RING_SIZE
+	probe.intensity = 1.0
+	probe._seed = 0.0
+	var points: Array = []
+	var colours: Array = []
+	var indices := PackedInt32Array()
+	var base_colours: Array[Color] = [Balance.FLAME_BODY, Balance.FLAME_MID, Balance.FLAME_CORE]
+	for index: int in LAYERS.size():
+		var layer: Dictionary = LAYERS[index]
+		var colour: Color = base_colours[index]
+		colour.a = float(layer["alpha"])
+		var per_phase: Array = []
+		var layer_colours := PackedColorArray()
+		for step: int in RING_STEPS:
+			probe._time = RING_PERIOD * float(step) / float(RING_STEPS)
+			var outline: PackedVector2Array = probe.outline_for(layer, float(index) * 2.7)
+			var built: Dictionary = _tongue_geometry(outline, colour)
+			per_phase.append(built["points"])
+			if layer_colours.is_empty():
+				layer_colours = built["colours"]
+			if indices.is_empty():
+				indices = built["indices"]
+		points.append(per_phase)
+		colours.append(layer_colours)
+	probe.free()
+	_ring = {"points": points, "colours": colours, "indices": indices}
+	return _ring
+
+
+## For the gate: the ring, built if it has not been.
+static func shape_ring() -> Dictionary:
+	return _shape_ring()
+
+
+func _draw_measured() -> void:
 	if not _lit or intensity <= 0.01:
 		return
 	# The glow first, so the tongues sit on it. On this node's own additive
-	# material now, which is what a halo of light is.
+	# material, which is what a halo of light is.
 	var halo: Texture2D = LightKit.falloff_texture()
 	var halo_size: Vector2 = halo.get_size() * _glow_base_scale() * _glow_pulse * intensity
 	draw_texture_rect(halo, Rect2(Vector2(-halo_size.x * 0.5, -size * 0.55 - halo_size.y * 0.5), halo_size),
 		false, Color(Balance.FLAME_MID, Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * _glow_pulse)))
-
-	var colours: Array[Color] = [Balance.FLAME_BODY, Balance.FLAME_MID, Balance.FLAME_CORE]
+	if intensity <= Balance.FLAME_MIN_INTENSITY or size * intensity < Balance.FLAME_MIN_SIZE * 2.0:
+		return
+	var ring: Dictionary = _shape_ring()
+	var indices: PackedInt32Array = ring["indices"]
+	if indices.is_empty():
+		return
+	var step: int = int(fposmod(_time + _seed, RING_PERIOD) / RING_PERIOD * float(RING_STEPS)) % RING_STEPS
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(size / RING_SIZE, size / RING_SIZE * intensity))
+	var item: RID = get_canvas_item()
 	for index: int in LAYERS.size():
-		var layer: Dictionary = LAYERS[index]
-		var colour: Color = colours[index]
-		colour.a = float(layer["alpha"])
-		_draw_layer(layer, colour, float(index) * 2.7)
+		var phases: Array = ring["points"][index]
+		if phases.is_empty():
+			continue
+		RenderingServer.canvas_item_add_triangle_array(item, indices,
+			phases[step] as PackedVector2Array, ring["colours"][index] as PackedColorArray)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
-	var outline: PackedVector2Array = outline_for(layer, phase)
-	if outline.is_empty():
-		return
-	_fill_the_tongue(outline, colour)
-
-
-## **A layer with no edge**, from the outline `outline_for` already builds.
-##
-## That outline is the left side up and the right side back down, so slice `i`
-## is `outline[i]` on one side and `outline[last - i]` on the other - which is
-## what lets this lay three columns through it: nothing at each silhouette, full
-## strength along the middle of the tongue. It also fades toward the tip and runs
-## toward white at the foot, so a layer is a *body of fire* rather than a shape
-## painted one colour.
-##
-## One `canvas_item_add_triangle_array` per layer, which is the same number of
-## draw calls as the `draw_colored_polygon` it replaces. That is deliberate: the
-## note above `outline_for` records this file at 14.8 ms of a 21.5 ms frame, and
-## soft edges are not worth buying a second time.
-func _fill_the_tongue(outline: PackedVector2Array, colour: Color) -> void:
-	var slices: int = outline.size() / 2
-	if slices < 2:
-		return
-	var last: int = outline.size() - 1
+## One tongue's geometry from its outline: a solid spine fading to a clear
+## rim, hotter at the base. `BloodInk`'s rule - one colour for the whole
+## shape is what a hard edge is - applied to fire. Returns the arrays rather
+## than drawing them, so the ring can keep them.
+static func _tongue_geometry(outline: PackedVector2Array, colour: Color) -> Dictionary:
 	var points := PackedVector2Array()
 	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
+	var slices: int = outline.size() / 2
+	if slices < 2:
+		return {"points": points, "colours": colours, "indices": indices}
+	var last: int = outline.size() - 1
 	for i: int in slices:
 		var left: Vector2 = outline[i]
 		var right: Vector2 = outline[last - i]
 		var u: float = float(i) / float(slices - 1)
-		# Hottest at the foot, thinning into the air at the tip.
 		var heat: Color = colour.lerp(Color(1.0, 1.0, 1.0, colour.a),
 			Balance.FLAME_BASE_HEAT * (1.0 - u))
 		heat.a = colour.a * (1.0 - Balance.FLAME_TIP_FADE * u * u)
@@ -236,12 +296,11 @@ func _fill_the_tongue(outline: PackedVector2Array, colour: Color) -> void:
 		colours.append(clear)
 		colours.append(heat)
 		colours.append(clear)
-	var indices := PackedInt32Array()
 	for i: int in slices - 1:
 		var a: int = i * 3
 		indices.append_array([a, a + 1, a + 3, a + 1, a + 4, a + 3,
 			a + 1, a + 2, a + 4, a + 2, a + 5, a + 4])
-	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
+	return {"points": points, "colours": colours, "indices": indices}
 
 
 ## The filled shape of one layer, or an empty array when there is nothing to
@@ -515,3 +574,10 @@ func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
 	FrameProfile.add(&"flame", started)
+
+
+## `FrameProfile` bucket "d_flame": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_flame", started)

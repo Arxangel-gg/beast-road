@@ -29,14 +29,14 @@ func _ready() -> void:
 	add_child(_label)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	if _label != null:
 		_label.text = "%d s" % int(ceil(maxf(left, 0.0)))
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var radius: float = Balance.CAMP_MARKER_RADIUS
 	var done: float = 1.0 - clampf(left / maxf(total, 0.01), 0.0, 1.0)
 	var pulse: float = 0.5 + 0.5 * sin(_clock * (2.0 + 4.0 * done))
@@ -57,3 +57,17 @@ func _draw() -> void:
 	if done > 0.85:
 		draw_arc(Vector2.ZERO, radius + 6.0 + pulse * 3.0, 0.0, TAU, 40,
 			Color(Balance.CAMP_MARKER_COLOUR, 0.2 + 0.3 * pulse), 2.0)
+
+
+## `FrameProfile` bucket "d_camp_marker": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_camp_marker", started)
+
+
+## `FrameProfile` bucket "p_camp_marker": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_camp_marker", started)

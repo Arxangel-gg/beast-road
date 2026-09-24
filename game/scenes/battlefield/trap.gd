@@ -80,7 +80,7 @@ func _ready() -> void:
 	y_sort_enabled = false
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process_measured(delta: float) -> void:
 	if data == null:
 		return
 	_frame_clock += delta
@@ -170,3 +170,10 @@ func damage_now() -> float:
 ## which is most of what makes the last levels worth the Gold.
 func radius_now() -> float:
 	return data.radius * Balance.TRAP_LEVEL_RADIUS[_level_index()]
+
+
+## `FrameProfile` bucket "pp_trap": the real work is `_physics_process_measured` above.
+func _physics_process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_physics_process_measured(delta)
+	FrameProfile.add(&"pp_trap", started)

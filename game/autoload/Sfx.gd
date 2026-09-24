@@ -1895,7 +1895,7 @@ func is_listening() -> bool:
 ## **It decides nothing.** A dropped sound changes no state: the caller has
 ## already done whatever it did, and this is the last thing it does. With no ear
 ## this is `play`, unchanged, which is what keeps the gates honest.
-func play_at(id: String, at: Vector2, extra_db: float = 0.0,
+func _play_at_measured(id: String, at: Vector2, extra_db: float = 0.0,
 		pitch_shift: float = 0.0) -> void:
 	if not _listening:
 		play(id, extra_db, pitch_shift)
@@ -1939,7 +1939,7 @@ func play_at(id: String, at: Vector2, extra_db: float = 0.0,
 ## double it on the host and desynchronise it everywhere else.
 
 
-func play_group_at(group: String, at: Vector2, extra_db: float = 0.0,
+func _play_group_at_measured(group: String, at: Vector2, extra_db: float = 0.0,
 		pitch_shift: float = 0.0) -> void:
 	if not _listening:
 		play_group(group, extra_db, pitch_shift)
@@ -1978,7 +1978,7 @@ func distance_db(away: float) -> float:
 ## percent sharp. Threaded through rather than set by the caller afterwards,
 ## because the voice is chosen, started and released in here and a caller has
 ## no handle on it.
-func play(id: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
+func _play_measured(id: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
 	_attempts += 1
 	var stream: AudioStream = _streams.get(id, null) as AudioStream
 	if stream == null:
@@ -2036,7 +2036,7 @@ func _play_stream(id: String, stream: AudioStream, mix_id: String,
 
 
 ## Plays one of a group's variants, never the same one twice running.
-func play_group(group: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
+func _play_group_measured(group: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
 	var options: Array = GROUPS.get(group, []) as Array
 	if options.is_empty():
 		return
@@ -2168,3 +2168,33 @@ func _on_spell_cast(spell_id: String, _slot: int, at: Vector2) -> void:
 			play_at("sfx_spell_nova", at)
 		_:
 			play_at("sfx_spell_cast", at)
+
+
+## `FrameProfile` bucket "sfx": the real work is `_play_at_measured` above.
+func play_at(id: String, at: Vector2, extra_db: float = 0.0,
+		pitch_shift: float = 0.0) -> void:
+	var started: int = Time.get_ticks_usec()
+	_play_at_measured(id, at, extra_db, pitch_shift)
+	FrameProfile.add(&"sfx", started)
+
+
+## `FrameProfile` bucket "sfx": the real work is `_play_group_at_measured` above.
+func play_group_at(group: String, at: Vector2, extra_db: float = 0.0,
+		pitch_shift: float = 0.0) -> void:
+	var started: int = Time.get_ticks_usec()
+	_play_group_at_measured(group, at, extra_db, pitch_shift)
+	FrameProfile.add(&"sfx", started)
+
+
+## `FrameProfile` bucket "sfx": the real work is `_play_measured` above.
+func play(id: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
+	var started: int = Time.get_ticks_usec()
+	_play_measured(id, extra_db, pitch_shift)
+	FrameProfile.add(&"sfx", started)
+
+
+## `FrameProfile` bucket "sfx": the real work is `_play_group_measured` above.
+func play_group(group: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
+	var started: int = Time.get_ticks_usec()
+	_play_group_measured(group, extra_db, pitch_shift)
+	FrameProfile.add(&"sfx", started)

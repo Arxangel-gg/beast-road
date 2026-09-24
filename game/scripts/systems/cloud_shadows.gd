@@ -121,7 +121,7 @@ func _ready() -> void:
 	_on_phase(DayNight.phase, DayNight.tint, DayNight.darkness)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	# Scrolled in noise space, so speed is independent of the cloud scale.
 	_near += Balance.CLOUD_SPEED * delta / Balance.CLOUD_SCALE
 	_far += Balance.CLOUD_SPEED_FAR * delta / Balance.CLOUD_SCALE_FAR
@@ -144,3 +144,10 @@ func _on_phase(_phase: float, _tint: Color, darkness: float) -> void:
 	var daylight: float = sqrt(clampf(1.0 - darkness, 0.0, 1.0))
 	_material.set_shader_parameter("strength", Balance.CLOUD_DARKNESS * daylight)
 	_rect.visible = daylight > 0.02
+
+
+## `FrameProfile` bucket "p_cloud_shadows": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_cloud_shadows", started)

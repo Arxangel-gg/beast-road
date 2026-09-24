@@ -196,7 +196,7 @@ func _process_measured(delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var weight: float = Graphics.particle_scale()
 	if weight <= 0.01:
 		return
@@ -310,3 +310,10 @@ func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
 	FrameProfile.add(&"tells", started)
+
+
+## `FrameProfile` bucket "d_combat_tells": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_combat_tells", started)

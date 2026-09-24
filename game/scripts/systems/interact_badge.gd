@@ -81,7 +81,7 @@ func _on_prompt(text: String, _button: String) -> void:
 	_showing = _icon.texture != null
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	var want: float = 1.0 if _showing else 0.0
 	_out = move_toward(_out, want, delta / maxf(Balance.INTERACT_BADGE_FADE, 0.01))
@@ -115,3 +115,10 @@ func _process(delta: float) -> void:
 ## For the gate: what is being offered right now, or "" for nothing.
 func showing() -> StringName:
 	return _kind if _showing else &""
+
+
+## `FrameProfile` bucket "p_interact_badge": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_interact_badge", started)

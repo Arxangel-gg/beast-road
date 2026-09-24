@@ -58,7 +58,7 @@ func _ready() -> void:
 	queue_redraw()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_left -= delta
 	queue_redraw()
 	if _left <= 0.0:
@@ -172,7 +172,7 @@ static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 	return struck
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var ratio: float = 1.0 - clampf(_left / maxf(delay, 0.001), 0.0, 1.0)
 	if shape == Shape.CIRCLE:
 		# The circle fills from the middle out, so the player reads how long
@@ -189,3 +189,17 @@ func _draw() -> void:
 	# And a bright leading edge that runs the length of the line as it charges.
 	var head: Vector2 = aim * reach * ratio
 	draw_line(head + side, head - side, Color(tint, 0.85), 2.6, true)
+
+
+## `FrameProfile` bucket "d_strike": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_strike", started)
+
+
+## `FrameProfile` bucket "p_enemy_ground_strike": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_enemy_ground_strike", started)

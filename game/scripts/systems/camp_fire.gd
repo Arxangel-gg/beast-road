@@ -44,7 +44,7 @@ func _ready() -> void:
 		0.9, 0.35)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	# An unseen fire's embers rest (`ScreenCull`); the flicker still runs so
 	# what the fire lights agrees with it the frame it comes into view.
@@ -203,7 +203,7 @@ func _tick_showpiece(flicker: float) -> void:
 ## faint wedges leaning with the flame, widening as they rise and fading out
 ## before the top, which is what light looks like when there is something in the
 ## air for it to catch.
-func _draw() -> void:
+func _draw_measured() -> void:
 	if not _showpiece:
 		return
 	var tall: float = Balance.CAMP_FIRE_LIGHT_RADIUS * 0.62 * _glow_scale / maxf(scale.y, 0.01)
@@ -259,3 +259,17 @@ func _feathered_shaft(foot_x: float, foot_half: float, head: Vector2,
 			PackedVector2Array([Vector2(a, -2.0), Vector2(b, -2.0),
 				Vector2(c, head.y), Vector2(d, head.y)]),
 			PackedColorArray([left_lit, right_lit, right_top, left_top]))
+
+
+## `FrameProfile` bucket "d_camp_fire": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_camp_fire", started)
+
+
+## `FrameProfile` bucket "p_camp_fire": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_camp_fire", started)

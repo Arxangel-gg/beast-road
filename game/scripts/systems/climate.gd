@@ -475,7 +475,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## The cells as they are, for tuning: each one's band colours, its figures,
 ## and whether it is awake. Drawn only while the toggle is on.
-func _draw() -> void:
+func _draw_measured() -> void:
 	if not debug_shown:
 		return
 	var font: Font = ThemeDB.fallback_font
@@ -509,3 +509,10 @@ func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
 	FrameProfile.add(&"climate", started)
+
+
+## `FrameProfile` bucket "d_climate": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_climate", started)

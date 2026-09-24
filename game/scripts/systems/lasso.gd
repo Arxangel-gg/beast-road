@@ -71,7 +71,7 @@ func throw_from(at: Vector2, heading: Vector2) -> void:
 	Sfx.play_at("sfx_dash", at, -6.0)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	_spun += delta
 	queue_redraw()
@@ -223,7 +223,7 @@ func _loop_size(quarry: Node2D) -> Vector2:
 		maxf(drawn.y * Balance.LASSO_LOOP_SHARE, 10.0) * Balance.LASSO_LOOP_SQUASH)
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var quarry: Node2D = _quarry()
 	var head: Vector2 = to_local(_at)
 	var hand: Vector2 = to_local(thrower.global_position
@@ -287,3 +287,17 @@ func _facing_lean(quarry: Node2D) -> float:
 	if sprite == null:
 		return 0.0
 	return Balance.LASSO_LOOP_LEAN * (-1.0 if sprite.flip_h else 1.0)
+
+
+## `FrameProfile` bucket "d_lasso": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_lasso", started)
+
+
+## `FrameProfile` bucket "p_lasso": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_lasso", started)

@@ -180,7 +180,7 @@ func _refresh_pool(wobble: float = 1.0) -> void:
 ## now, redrawn only when the coals change, which is on a strength change and
 ## a relight and nowhere else. The order is what it was: a parent draws
 ## before its children, and the ironwork was the first child.
-func _draw() -> void:
+func _draw_measured() -> void:
 	var height: float = Balance.TORCH_HEIGHT
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-3.0, 0.0), Vector2(3.0, 0.0),
@@ -220,7 +220,7 @@ func _set_coals(alpha: float) -> void:
 	queue_redraw()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_pressure_sample_left -= delta
 	if _pressure_sample_left <= 0.0:
 		_pressure_sample_left = Balance.TORCH_PRESSURE_SAMPLE
@@ -422,3 +422,17 @@ func _apply_strength() -> void:
 		_flame.set_intensity(_strength)
 	_set_coals(lerpf(0.55, 0.12, _strength))
 	_refresh_pool()
+
+
+## `FrameProfile` bucket "d_torch": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_torch", started)
+
+
+## `FrameProfile` bucket "p_torch": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_torch", started)

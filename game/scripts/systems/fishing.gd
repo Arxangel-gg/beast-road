@@ -415,7 +415,7 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 
 # --- The water -----------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_restock(delta)
 	_tick_pond_plants(delta)
 	_clock += delta
@@ -1707,3 +1707,10 @@ func _clear_pond_plants() -> void:
 func _shore_tint() -> Color:
 	var water: Color = water_colour()
 	return water.lerp(Color(0.72, 0.62, 0.46), 0.7)
+
+
+## `FrameProfile` bucket "p_fishing": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"p_fishing", started)

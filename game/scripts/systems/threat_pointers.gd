@@ -110,7 +110,7 @@ func pointers() -> Array[Dictionary]:
 	return out
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var beat: float = 0.5 + 0.5 * sin(_life * Balance.THREAT_POINTER_PULSE_HZ * TAU)
 	for pointer: Dictionary in pointers():
 		var kind: int = int(pointer["kind"])
@@ -137,3 +137,10 @@ func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
 	FrameProfile.add(&"pointers", started)
+
+
+## `FrameProfile` bucket "d_threat_pointers": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"d_threat_pointers", started)
