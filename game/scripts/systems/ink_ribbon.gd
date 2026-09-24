@@ -17,6 +17,11 @@ static var _colours: PackedColorArray = PackedColorArray()
 static var _indices: PackedInt32Array = PackedInt32Array()
 
 
+## `width` is the ribbon's whole width at the head, as a `Line2D`'s was: a
+## solid core of that width with a feather half as wide again either side.
+## The first cut fell from full at the spine to nothing at `width` out, which
+## on a five-unit shot at play zoom is a hairline - photographed as a thread
+## from the tower to the body, and reported as the projectiles being broken.
 static func ribbon(on: CanvasItem, points: PackedVector2Array, inverse: Transform2D,
 		width: float, colour_at_head: Color, tail_alpha: float, head_alpha: float) -> void:
 	var count: int = points.size()
@@ -34,23 +39,28 @@ static func ribbon(on: CanvasItem, points: PackedVector2Array, inverse: Transfor
 		var along: Vector2 = next - prev
 		if along.length_squared() < 0.0001:
 			along = Vector2.RIGHT
-		var side: Vector2 = along.normalized().orthogonal() * width * lerpf(0.05, 1.0, t)
+		var normal: Vector2 = along.normalized().orthogonal()
+		var taper: float = lerpf(0.08, 1.0, t)
+		var core: Vector2 = normal * width * 0.5 * taper
+		var feather: Vector2 = normal * width * 1.1 * taper
 		var mid := Color(colour_at_head.r, colour_at_head.g, colour_at_head.b,
 			colour_at_head.a * lerpf(tail_alpha, head_alpha, t))
-		_points.append(inverse * (here - side))
+		_points.append(inverse * (here - feather))
 		_colours.append(clear)
-		_points.append(inverse * here)
+		_points.append(inverse * (here - core))
 		_colours.append(mid)
-		_points.append(inverse * (here + side))
+		_points.append(inverse * (here + core))
+		_colours.append(mid)
+		_points.append(inverse * (here + feather))
 		_colours.append(clear)
 	for index: int in count - 1:
-		var row: int = index * 3
-		for column: int in 2:
+		var row: int = index * 4
+		for column: int in 3:
 			var a: int = row + column
 			_indices.append(a)
 			_indices.append(a + 1)
-			_indices.append(a + 3)
-			_indices.append(a + 1)
 			_indices.append(a + 4)
-			_indices.append(a + 3)
+			_indices.append(a + 1)
+			_indices.append(a + 5)
+			_indices.append(a + 4)
 	RenderingServer.canvas_item_add_triangle_array(on.get_canvas_item(), _indices, _points, _colours)

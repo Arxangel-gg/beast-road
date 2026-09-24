@@ -141,7 +141,17 @@ func _process(delta: float) -> void:
 		rotation = _direction.angle()
 	var distance_before: float = global_position.distance_to(_destination)
 	global_position += _direction * Balance.ENEMY_PROJECTILE_SPEED * _pace() * delta
-	_history.append(global_position)
+	# The trail is a length in units, laid a point every step of travel, so
+	# it is the same ribbon at any frame rate; the point count is a cap.
+	if _history.is_empty() \
+			or _history[_history.size() - 1].distance_to(global_position) >= Balance.ENEMY_PROJECTILE_TRAIL_STEP:
+		_history.append(global_position)
+		var length: float = 0.0
+		for index: int in range(_history.size() - 1, 0, -1):
+			length += _history[index].distance_to(_history[index - 1])
+			if length > Balance.ENEMY_PROJECTILE_TRAIL_LENGTH * trail_scale:
+				_history = _history.slice(index - 1)
+				break
 	while _history.size() > Balance.ENEMY_PROJECTILE_TRAIL_POINTS:
 		_history.remove_at(0)
 	if _ribbon != null:

@@ -4832,7 +4832,10 @@ const ENEMY_PROJECTILE_PULSE_SPEED: float = 9.0
 const ENEMY_PROJECTILE_HIT_RADIUS: float = 18.0
 const ENEMY_PROJECTILE_BLAST_RADIUS: float = 54.0
 const ENEMY_PROJECTILE_MAX_LIFE: float = 2.0
-const ENEMY_PROJECTILE_TRAIL_POINTS: int = 16
+const ENEMY_PROJECTILE_TRAIL_POINTS: int = 24
+## A length in units and a step, as the tower shot's (2026-09-24).
+const ENEMY_PROJECTILE_TRAIL_LENGTH: float = 120.0
+const ENEMY_PROJECTILE_TRAIL_STEP: float = 5.0
 const ENEMY_PROJECTILE_GLOW_SCALE: float = 0.30
 const ENEMY_PROJECTILE_MOTE_INTERVAL: float = 0.11
 const ENEMY_PROJECTILE_MOTE_SPEED: float = 58.0
@@ -6207,7 +6210,14 @@ const PROJECTILE_HIT_RADIUS: float = 16.0
 const PROJECTILE_MAX_LIFE: float = 2.5
 
 ## Points held in a shot's trail. More is a longer ribbon. [TUNE]
-const PROJECTILE_TRAIL_POINTS: int = 14
+const PROJECTILE_TRAIL_POINTS: int = 24
+## **The trail is a length, not a count of frames** (2026-09-24). Kept by
+## point count it spanned the whole flight at twenty frames a second and a
+## stub at a hundred and forty-four; a point is laid every `_STEP` units of
+## travel and the ribbon is trimmed to `_LENGTH` units, whatever the frame
+## rate. `PROJECTILE_TRAIL_POINTS` is only the hard cap on points.
+const PROJECTILE_TRAIL_LENGTH: float = 96.0
+const PROJECTILE_TRAIL_STEP: float = 5.0
 
 ## Size of the soft glow behind the head, as a multiple of the core. [TUNE]
 const PROJECTILE_GLOW_SCALE: float = 2.4

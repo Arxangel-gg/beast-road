@@ -230,11 +230,24 @@ func _drawn_at() -> Vector2:
 
 
 func _push_trail() -> void:
-	_history.append(_drawn_at())
-	var held: float = float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()
+	var at: Vector2 = _drawn_at()
+	# A point every `PROJECTILE_TRAIL_STEP` of travel, so a fast frame rate
+	# does not lay a hundred points a shot; then the tail is trimmed to a
+	# length in units, so the ribbon is the same ribbon at any frame rate.
+	if not _history.is_empty() \
+			and _history[_history.size() - 1].distance_to(at) < Balance.PROJECTILE_TRAIL_STEP:
+		return
+	_history.append(at)
+	var allowed: float = Balance.PROJECTILE_TRAIL_LENGTH * _tier_scale()
 	if _shot == TowerData.Shot.LANCE:
-		held *= Balance.PROJECTILE_LANCE_TRAIL
-	while _history.size() > int(held):
+		allowed *= Balance.PROJECTILE_LANCE_TRAIL
+	var length: float = 0.0
+	for index: int in range(_history.size() - 1, 0, -1):
+		length += _history[index].distance_to(_history[index - 1])
+		if length > allowed:
+			_history = _history.slice(index - 1)
+			break
+	while _history.size() > Balance.PROJECTILE_TRAIL_POINTS:
 		_history.remove_at(0)
 
 
@@ -323,7 +336,7 @@ func draw_light(on: CanvasItem) -> void:
 func _draw_glow_only(on: CanvasItem) -> void:
 	var inverse: Transform2D = on.get_global_transform().affine_inverse()
 	var at: Vector2 = inverse * _drawn_at()
-	var lit: float = _glow_alpha(0.22 if not _head_frames.is_empty() else 0.30)
+	var lit: float = _glow_alpha(0.34 if not _head_frames.is_empty() else 0.44)
 	# Turned with the flight as the head is: the glow child is top-level, so
 	# the node's own rotation does not reach it (2026-09-24 - a lance's
 	# stretched glow lay across the world's x axis whatever way it flew).
