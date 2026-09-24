@@ -32,6 +32,8 @@ func _ready() -> void:
 	_test_physics_follows_the_display()
 	await _test_the_lamps_on_loot_are_budgeted()
 	_test_the_roster_is_gathered_once_a_frame()
+	await _test_a_bar_is_one_item()
+	_test_the_ink_ages_on_its_clock()
 	Graphics.from_dictionary(held)
 	Vfx.bind_world(null)
 	await get_tree().process_frame
@@ -339,6 +341,46 @@ func _test_the_lamps_on_loot_are_budgeted() -> void:
 
 ## Two calls in one frame walk the group once; a body that starts dying between
 ## them is still refused; the next frame gathers again.
+## **A health bar is one canvas item** (2026-09-24): the scene's rects are
+## read and freed in `_ready`, and the frame is filled rects rather than
+## polylines. Held by counting the bar's children after a frame and by a
+## source walk, because the polyline is the half a count cannot see.
+func _test_a_bar_is_one_item() -> void:
+	var bar: HealthBar = (load("res://scenes/ui/health_bar.tscn") as PackedScene).instantiate() as HealthBar
+	_world.add_child(bar)
+	await get_tree().process_frame
+	_check(bar.get_child_count() == 0,
+		"a health bar should own no child items, it owns %d" % bar.get_child_count())
+	var source: String = FileAccess.get_file_as_string("res://scenes/ui/health_bar.gd")
+	_check(source.find("draw_line(") < 0 and source.find(", false, 1.0)") < 0,
+		"a health bar's frame must be filled rects, never a polyline")
+	bar.queue_free()
+
+
+## **The ink ages on its redraw clock** (2026-09-24): five short frames bank
+## their delta and step nothing, and the next tick steps by all of it.
+func _test_the_ink_ages_on_its_clock() -> void:
+	var ink := VfxInk.new(false)
+	_world.add_child(ink)
+	ink.dust(Vector2.ZERO, Vector2.RIGHT * 10.0, Color.WHITE, 5.0, 2.0, 1.0, false)
+	var records: Array = ink.get("_dust")
+	_check(records.size() == 1, "one dust record was written")
+	if records.size() == 1:
+		var tick: float = 1.0 / Balance.VFX_INK_HZ
+		var small: float = tick * 0.12
+		for _frame: int in 5:
+			ink._process(small)
+		var banked: float = float((records[0] as Dictionary)["age"])
+		_check(banked <= small + 0.0001,
+			"five short frames should bank their delta, not spend it (aged %.4f)" % banked)
+		ink._process(tick)
+		var stepped: float = float((records[0] as Dictionary)["age"])
+		_check(is_equal_approx(stepped, small * 5.0 + tick),
+			"the tick should step by everything banked (aged %.4f, wanted %.4f)"
+				% [stepped, small * 5.0 + tick])
+	ink.queue_free()
+
+
 func _test_the_roster_is_gathered_once_a_frame() -> void:
 	var field := EnemyField.new()
 	_world.add_child(field)

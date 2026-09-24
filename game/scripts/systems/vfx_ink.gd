@@ -70,7 +70,7 @@ var _font_size: int = 18
 ## dies is drawn too - without it the final picture stayed on the canvas
 ## until the next record arrived. And the redraw clock (`VFX_INK_HZ`).
 var _was_live: bool = false
-var _redraw_debt: float = 0.0
+var _age_debt: float = 0.0
 
 
 func _init(adds_light: bool = true) -> void:
@@ -325,20 +325,30 @@ func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:
 
 func _process_measured(delta: float) -> void:
 	var paused: bool = get_tree() != null and get_tree().paused
+	# **Aged on the redraw clock, never per frame** (2026-09-24). The canvas
+	# draws on `VFX_INK_HZ`; a record advanced a hundred and forty-four times a
+	# second and drawn thirty times is script spent on positions nobody sees.
+	# The frame's delta is banked and every record steps once a tick by what
+	# was banked, so at 144 Hz the walks are a fifth of what they were and the
+	# picture is the same picture. A record's life is still the tree's real
+	# seconds, and the first record after a quiet stretch is drawn on the
+	# frame it arrives - a spark must not wait a tick to exist.
+	_age_debt += delta
+	if _was_live and _age_debt < 1.0 / Balance.VFX_INK_HZ:
+		return
+	var step: float = _age_debt
+	_age_debt = 0.0
 	var moved: bool = false
-	moved = _age(_sparks, delta, paused) or moved
-	moved = _age(_rings, delta, paused) or moved
-	moved = _age(_flashes, delta, paused) or moved
-	moved = _age(_motes, delta, paused) or moved
-	moved = _age(_rays, delta, paused) or moved
-	moved = _age(_art, delta, paused) or moved
-	moved = _age(_numbers, delta, paused) or moved
-	moved = _age(_dust, delta, paused) or moved
+	moved = _age(_sparks, step, paused) or moved
+	moved = _age(_rings, step, paused) or moved
+	moved = _age(_flashes, step, paused) or moved
+	moved = _age(_motes, step, paused) or moved
+	moved = _age(_rays, step, paused) or moved
+	moved = _age(_art, step, paused) or moved
+	moved = _age(_numbers, step, paused) or moved
+	moved = _age(_dust, step, paused) or moved
 	if moved:
-		_redraw_debt += delta
-		if _redraw_debt >= 1.0 / Balance.VFX_INK_HZ:
-			_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.VFX_INK_HZ)
-			queue_redraw()
+		queue_redraw()
 	elif _was_live:
 		# The last record died this frame: draw the empty canvas once.
 		queue_redraw()

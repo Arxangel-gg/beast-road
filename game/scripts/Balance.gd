@@ -5568,6 +5568,12 @@ const TOWER_SORT_LIFT: float = 64.0
 ## a plant standing in front of it. Absolute, not relative.
 const HEALTH_BAR_Z: int = 20
 
+## The bar's own colours when its scene authors none (the scene's are read
+## first). Named here because a bar is one `_draw` now (2026-09-24) and no
+## longer owns a `ColorRect` to carry them.
+const HEALTH_BAR_BACKGROUND_COLOUR: Color = Color(0.043, 0.078, 0.086, 0.85)
+const HEALTH_BAR_FILL_COLOUR: Color = Color(0.78, 0.27, 0.22, 1.0)
+
 # ==============================================================================
 # PROCEDURAL ANIMATION
 # ==============================================================================

@@ -24,7 +24,7 @@ the tree during a sweep; never delete an inbox after importing it.
   that gate before anything else. Nothing else in this plan matters while
   nothing new is live.
 - The owner's brief of 2026-09-24 is triaged below into what was built (§1),
-  what is yours (§2-§5), and what needs the owner (§6).
+  what is yours (§2-§6), and what needs the owner (§7).
 
 Measured on a new account after the tune (`curve_report`, `APPDATA` pointed
 at an empty directory):
@@ -157,11 +157,47 @@ breed differs. Read `enemy.gd`'s `_pick_target`/`_choose_target` wrapper and
    "sit at base" further without a new system.
 
 Do **not** build the ChatGPT "simulation LOD / spatial hash / scheduler"
-items as AI work - see §7.
+items as AI work - see §8.
 
 ---
 
-## 5. For you: housekeeping that is cheap and real
+## 5. For you: the renderer's remaining milliseconds (measure first)
+
+Built at the end of 2026-09-24 without the screen: the health bar as one
+`_draw` of filled rects, and the ink canvases ageing on their redraw clock.
+What is left needs a windowed reading before code - ask for the screen, run
+`perf_bisect --visuals` and `perf_check --act=10 --build` on the 180 Hz
+display, and only then take the largest row. The candidates, with the plan
+each one needs:
+
+- **Ground blood**: keep the one triangle array (one draw call) and stop
+  rebuilding it on the fade. Bake each mark's birth and life into a vertex
+  attribute (UV2 or CUSTOM0 via `ArrayMesh`, or `draw_polygon`'s UV) and
+  fade in a shader off `TIME`, so `BloodField` rebuilds only when a mark is
+  added or dropped. Shaders are invisible headless: photograph with
+  `blood_shot` before and after.
+- **Loot piece materials**: one `ShaderMaterial` per rarity instead of one
+  per piece. Derive the shimmer `seed` in the shader from `MODEL_MATRIX`'s
+  origin rather than a uniform; give a piece its own material only when
+  `pickup` animates. Then `Vfx`-level draw calls drop by the piece count on
+  the field. Photograph with `loot_juice` / `juice_shot`.
+- **Tower airs** (`TowerAura`, one `CPUParticles2D` a tower): forty emitters
+  at peak. Convert to motes on the additive `VfxInk` on a cadence, as the
+  torch smoke and the dust were. `tower_juice_check` reads the air's
+  existence; amend deliberately.
+- **Torch lights**: `LightKit.budget_shadows` ranks shadow lights by distance;
+  do the same for *enabled* lights on High (`TORCH_LIGHT_ENABLED_BUDGET`),
+  so only the nearest N torches light at all. Off-screen lights are already
+  culled, so measure before assuming a gain.
+- **The tells**: `CombatTells` repaints on `RANGE_RING_REDRAW_HZ`; the arc is
+  a feathered polyline. If it ranks, draw it as quads of the soft dot like the
+  ink does.
+- **The ink itself**: if it still ranks under load, the next shape is a
+  `MultiMesh` per record kind (`RenderingServer.canvas_item_add_multimesh`,
+  buffer from a `PackedFloat32Array` rebuilt on the tick) - one command per
+  kind rather than a rect command per record.
+
+## 6. For you: housekeeping that is cheap and real
 
 - `docs/ROAD_TO_1_0.md` has the release checklist; walk it.
 - The 4K/ultrawide shapes and the phone shapes are on both bars; keep them
@@ -173,7 +209,7 @@ items as AI work - see §7.
 
 ---
 
-## 6. Needs the owner
+## 7. Needs the owner
 
 - **Warden-only objectives** (`DESIGN_DIRECTION_2026-09-22.md` §2, item 2):
   a caravan to escort, a shrine to hold, an elite that must fall to melee.
@@ -187,7 +223,7 @@ items as AI work - see §7.
 
 ---
 
-## 7. ChatGPT's 25 optimisation items, triaged against what ships
+## 8. ChatGPT's 25 optimisation items, triaged against what ships
 
 Measured facts this rests on are in CLAUDE.md's 2026-09-24 entries: at Act X
 peak the frame is 17.9 ms windowed at 1080p, script about 9 ms, and the

@@ -9147,7 +9147,40 @@ hostile shot's shell and filament are one `InkRibbon` along its history
 rather than two `Line2D`s. Both amended and dated in the gate. It is
 release-only, so nothing on the guard bar could have said so.
 
-### The three escape hatches — and why there are only three
+**A bar is one item and the ink ages on its clock, as of 2026-09-24 (late
+evening).** The owner asked for the renderer-side list the ablation ranked -
+torches and pools, particles, the ink under load, the tells, the bars, the
+ground blood - and two of those were safe to convert without the screen.
+
+- **A health bar was three canvas items and two polylines.** A `Node2D`, two
+  `ColorRect`s, a trail rect, and a frame drawn with `draw_line` and an
+  unfilled `draw_rect` - and a polyline is its own draw call, breaking the
+  batch every rect around it joins. Sixty bodies on Act X is a hundred and
+  eighty items. The rects are read for their authored colours and freed in
+  `_ready`, and the whole bar is filled rects in one `_draw`, redrawn only
+  when the health or the trail moves. `frame_budget_check` counts the bar's
+  children and walks its source for a polyline.
+- **The ink canvases aged every record every frame and drew on a clock.** At
+  144 Hz that was five walks over a thousand records for every picture drawn.
+  The frame's delta is banked and every record steps once a tick
+  (`VFX_INK_HZ`) by what was banked; the first record after a quiet stretch
+  is still drawn on the frame it arrives. `lightning_lifetime_check` and
+  `frame_budget_check` hold the pause rule and the clock.
+
+**Not converted, and why, so the next session does not re-derive it.** The
+ground blood cannot become retained meshes: a `draw_mesh` per mark is a draw
+call per mark on every frame, where the triangle array is one draw call and
+an upload only on repaint - the flame ring is forty-eight meshes because it is
+forty-eight nodes. Its real saving is a shader fade (age in a vertex
+attribute, alpha from `TIME`) so the mesh is rebuilt only when the set of
+marks changes, and a shader cannot be seen headless. The loot piece's material
+per drop needs the shimmer's `seed` derived from `MODEL_MATRIX` in the shader
+so pieces can share one material a rarity - the same reason. Both are in the
+plan with the photograph they need. **Every number in the list is one to
+three milliseconds and two earlier obvious targets measured at nothing**, so
+the next step is `perf_bisect --visuals` on the 180 Hz screen, not code.
+
+ — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
 hedging: a runtime flag that keeps v3 behaviour alive doubles the surface that

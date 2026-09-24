@@ -8,6 +8,15 @@ extends Node2D
 ## makes damage legible, and it stays attached to the unit rather than becoming
 ## screen furniture.
 
+## **One canvas item, as of 2026-09-24.** A bar was a `Node2D` with two
+## `ColorRect`s and a trail rect - three canvas items a body, sixty bodies on
+## Act X, and a frame drawn as polylines that break the batch every rect
+## around them joins. `perf_bisect --visuals` and the act census both named
+## the bars. The rects are read for their authored colours in `_ready` and
+## freed; everything is filled rects in one `_draw`, redrawn only when the
+## health or the trail moves, and a filled rect is a command the renderer
+## batches. The bar still rides its unit, so it costs nothing per frame.
+
 @export var background: ColorRect
 @export var fill: ColorRect
 
@@ -19,7 +28,6 @@ var _bound: Health = null
 ## it drains after, so a blow that takes one percent off a huge body is still
 ## a visible bite rather than a bar that reads as full (owner brief,
 ## 2026-09-12: "it always showed a full health bar despite being hit").
-var _trail: ColorRect = null
 var _trail_ratio: float = 1.0
 var _ratio: float = 1.0
 ## Width against the ordinary bar; the ranked wear a wider one.
@@ -27,6 +35,8 @@ var _width_scale: float = 1.0
 ## Whether this bar dresses as a ranked body's: a warm frame with end caps
 ## and a ticked fill, so an elite reads as one across the field.
 var _ranked: bool = false
+var _background_colour: Color = Balance.HEALTH_BAR_BACKGROUND_COLOUR
+var _fill_colour: Color = Balance.HEALTH_BAR_FILL_COLOUR
 
 
 func _ready() -> void:
@@ -36,19 +46,19 @@ func _ready() -> void:
 	# which is correct y-sorting and completely wrong information.
 	z_index = Balance.HEALTH_BAR_Z
 	z_as_relative = false
-
+	# The scene's rects carry the authored colours and nothing else now; a
+	# ranked bar set before `_ready` keeps its rank fill.
+	if background != null:
+		_background_colour = background.color
+		background.queue_free()
+		background = null
 	if fill != null:
-		_trail = ColorRect.new()
-		_trail.name = "Trail"
-		_trail.color = Balance.HEALTH_BAR_TRAIL_COLOUR
-		_trail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_trail)
-		move_child(_trail, fill.get_index())
-	_apply_size()
+		if not _ranked:
+			_fill_colour = fill.color
+		fill.queue_free()
+		fill = null
 	visible = not hide_until_damaged
-	# The frame is drawn over the rects, so it has to redraw when they move.
-	if fill != null:
-		fill.visibility_changed.connect(queue_redraw)
+	queue_redraw()
 
 
 func bind(health: Health) -> void:
@@ -62,18 +72,7 @@ func bind(health: Health) -> void:
 
 
 func _apply_size() -> void:
-	var w: float = Balance.HEALTH_BAR_WIDTH * _width_scale
-	var h: float = Balance.HEALTH_BAR_RANK_HEIGHT if _ranked else Balance.HEALTH_BAR_HEIGHT
 	queue_redraw()
-	if background != null:
-		background.position = Vector2(-w * 0.5, 0.0)
-		background.size = Vector2(w, h)
-	if fill != null:
-		fill.position = Vector2(-w * 0.5, 0.0)
-		fill.size = Vector2(w * _ratio, h)
-	if _trail != null:
-		_trail.position = Vector2(-w * 0.5, 0.0)
-		_trail.size = Vector2(w * _trail_ratio, h)
 
 
 ## A wider bar, for a body worth reading: elites and bosses. Shown at once
@@ -83,8 +82,7 @@ func set_ranked(scale_width: float) -> void:
 	_ranked = true
 	hide_until_damaged = false
 	visible = true
-	if fill != null:
-		fill.color = Balance.HEALTH_BAR_RANK_FILL
+	_fill_colour = Balance.HEALTH_BAR_RANK_FILL
 	_apply_size()
 
 
@@ -113,33 +111,52 @@ func _process_measured(delta: float) -> void:
 	_apply_size()
 
 
-## The pixel frame: a one-pixel outline with a bevel, so the bar reads as a
-## piece of the interface rather than two rectangles (owner brief,
-## 2026-09-12). A ranked bar wears a warm frame with end caps and ticks
-## across the fill, which is how an elite reads as one at a glance.
+## The bar's rect in its own space: centred on the node, hanging below it.
+func _bar_rect() -> Rect2:
+	var w: float = Balance.HEALTH_BAR_WIDTH * _width_scale
+	var h: float = Balance.HEALTH_BAR_RANK_HEIGHT if _ranked else Balance.HEALTH_BAR_HEIGHT
+	return Rect2(-w * 0.5, 0.0, w, h)
+
+
+## The whole bar: background, trail, fill, then the pixel frame - a one-pixel
+## outline with a bevel, so the bar reads as a piece of the interface rather
+## than two rectangles (owner brief, 2026-09-12). A ranked bar wears a warm
+## frame with end caps and ticks across the fill, which is how an elite reads
+## as one at a glance. Every stroke is a filled rect: an outline drawn with
+## `draw_rect(..., false)` or a `draw_line` is a polyline, and a polyline is
+## its own draw call.
 func _draw_measured() -> void:
-	if background == null:
-		return
-	var rect: Rect2 = Rect2(background.position, background.size)
+	var rect: Rect2 = _bar_rect()
+	draw_rect(rect, _background_colour)
+	if _trail_ratio > _ratio:
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _trail_ratio, rect.size.y)),
+			Balance.HEALTH_BAR_TRAIL_COLOUR)
+	if _ratio > 0.0:
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _ratio, rect.size.y)), _fill_colour)
 	var outline: Color = Balance.HEALTH_BAR_RANK_FRAME if _ranked else Balance.HEALTH_BAR_FRAME_OUTLINE
-	# Outline, one pixel outside the rects.
-	draw_rect(rect.grow(1.0), outline, false, 1.0)
+	_frame(rect.grow(1.0), outline)
 	if _ranked:
-		draw_rect(rect.grow(2.0), Balance.HEALTH_BAR_FRAME_OUTLINE, false, 1.0)
+		_frame(rect.grow(2.0), Balance.HEALTH_BAR_FRAME_OUTLINE)
 		# End caps.
 		draw_rect(Rect2(rect.position.x - 3.0, rect.position.y - 1.0, 2.0, rect.size.y + 2.0), outline)
 		draw_rect(Rect2(rect.end.x + 1.0, rect.position.y - 1.0, 2.0, rect.size.y + 2.0), outline)
 		# Ticks across the fill, so a quarter is a quarter.
 		for tick: int in range(1, Balance.HEALTH_BAR_RANK_TICKS):
 			var x: float = rect.position.x + rect.size.x * float(tick) / float(Balance.HEALTH_BAR_RANK_TICKS)
-			draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y),
-				Color(Balance.HEALTH_BAR_FRAME_OUTLINE, 0.7), 1.0)
+			draw_rect(Rect2(x - 0.5, rect.position.y, 1.0, rect.size.y),
+				Color(Balance.HEALTH_BAR_FRAME_OUTLINE, 0.7))
 	else:
-		# Bevel: light along the top and left, shade along the bottom and right.
-		draw_line(rect.position + Vector2(0.0, 0.5), Vector2(rect.end.x, rect.position.y + 0.5),
-			Balance.HEALTH_BAR_FRAME_LIGHT, 1.0)
-		draw_line(Vector2(rect.position.x, rect.end.y - 0.5), rect.end - Vector2(0.0, 0.5),
-			Balance.HEALTH_BAR_FRAME_SHADE, 1.0)
+		# Bevel: light along the top, shade along the bottom.
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), Balance.HEALTH_BAR_FRAME_LIGHT)
+		draw_rect(Rect2(rect.position.x, rect.end.y - 1.0, rect.size.x, 1.0), Balance.HEALTH_BAR_FRAME_SHADE)
+
+
+## A one-pixel frame as four filled rects.
+func _frame(rect: Rect2, colour: Color) -> void:
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), colour)
+	draw_rect(Rect2(rect.position.x, rect.end.y - 1.0, rect.size.x, 1.0), colour)
+	draw_rect(Rect2(rect.position.x, rect.position.y + 1.0, 1.0, rect.size.y - 2.0), colour)
+	draw_rect(Rect2(rect.end.x - 1.0, rect.position.y + 1.0, 1.0, rect.size.y - 2.0), colour)
 
 
 ## `FrameProfile` bucket "d_health_bar": the real work is `_draw_measured` above.
