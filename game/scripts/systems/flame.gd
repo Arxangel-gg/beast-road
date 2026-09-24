@@ -67,6 +67,14 @@ var _smoke: CPUParticles2D
 var _light: PointLight2D
 ## Whether the camera could see this flame on its last tick.
 var _seen: bool = true
+## **An unseen flame sleeps** (2026-09-24). Two hundred and twenty flames
+## ticked every frame to ask whether they were on screen, and the asking was
+## 0.3 ms of a frame on which forty of them could be seen. A flame that finds
+## itself off screen stops processing and lies here; `wake_the_seen` (called
+## by `Vfx` on `PARTICLE_CULL_INTERVAL`) walks the list and wakes whichever
+## the camera has reached. A flame's dance clock is not continuous across a
+## sleep, and nothing can tell: it was off screen.
+static var _dormant: Array[Flame] = []
 ## The screen test's own clock, staggered per flame, so two hundred flames do
 ## not each transform themselves into the viewport every frame.
 var _cull_left: float = 0.0
@@ -142,6 +150,7 @@ func _process_measured(delta: float) -> void:
 			_seen = seen
 			_show_particles(seen)
 	if not _seen:
+		_sleep()
 		return
 	# **Redrawn at `FLAME_REDRAW_HZ`, not every frame.** The clock above runs
 	# at frame rate, so the dance is as smooth as the cadence it is sampled at
@@ -157,6 +166,35 @@ func _process_measured(delta: float) -> void:
 	# phase, the two read as one object being scaled.
 	_glow_pulse = 1.0 + sin(_time * 1.9 - 0.6) * 0.13
 	queue_redraw()
+
+
+func _sleep() -> void:
+	set_process(false)
+	if not _dormant.has(self):
+		_dormant.append(self)
+
+
+## Wakes every sleeping flame the camera can see now. One walk on a cadence
+## for the whole field, in place of a tick per flame per frame.
+static func wake_the_seen() -> void:
+	var index: int = _dormant.size() - 1
+	while index >= 0:
+		var flame: Flame = _dormant[index]
+		if flame == null or not is_instance_valid(flame):
+			_dormant.remove_at(index)
+		elif flame.is_inside_tree() and flame._on_screen():
+			_dormant.remove_at(index)
+			flame._seen = true
+			flame._show_particles(true)
+			flame._cull_left = Balance.PARTICLE_CULL_INTERVAL
+			flame.set_process(true)
+			flame.queue_redraw()
+		index -= 1
+
+
+## How many flames are asleep, for the gate.
+static func dormant_count() -> int:
+	return _dormant.size()
 
 
 ## Whether any of this flame could land inside the viewport.
@@ -255,15 +293,24 @@ static func shape_ring() -> Dictionary:
 	return _shape_ring()
 
 
+## Diagnostic only: `perf_bisect --visuals` switches the halo and the tongues
+## off one at a time to price them. Never set by the game.
+static var ablate_halo: bool = false
+static var ablate_tongues: bool = false
+
+
 func _draw_measured() -> void:
 	if not _lit or intensity <= 0.01:
 		return
 	# The glow first, so the tongues sit on it. On this node's own additive
 	# material, which is what a halo of light is.
-	var halo: Texture2D = LightKit.falloff_texture()
-	var halo_size: Vector2 = halo.get_size() * _glow_base_scale() * _glow_pulse * intensity
-	draw_texture_rect(halo, Rect2(Vector2(-halo_size.x * 0.5, -size * 0.55 - halo_size.y * 0.5), halo_size),
-		false, Color(Balance.FLAME_MID, Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * _glow_pulse)))
+	if not ablate_halo:
+		var halo: Texture2D = LightKit.falloff_texture()
+		var halo_size: Vector2 = halo.get_size() * _glow_base_scale() * _glow_pulse * intensity
+		draw_texture_rect(halo, Rect2(Vector2(-halo_size.x * 0.5, -size * 0.55 - halo_size.y * 0.5), halo_size),
+			false, Color(Balance.FLAME_MID, Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * _glow_pulse)))
+	if ablate_tongues:
+		return
 	if intensity <= Balance.FLAME_MIN_INTENSITY or size * intensity < Balance.FLAME_MIN_SIZE * 2.0:
 		return
 	var ring: Dictionary = _shape_ring()

@@ -187,6 +187,10 @@ const MUZZLE_ART_FORMAT: String = "res://art/vfx/muzzle_%s.png"
 const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshader"
 
 
+## The sweep that wakes sleeping flames; see `Flame.wake_the_seen`.
+var _flame_sweep_left: float = 0.0
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_particle_art()
@@ -272,6 +276,10 @@ void fragment() {
 
 
 func _process(delta: float) -> void:
+	_flame_sweep_left -= delta
+	if _flame_sweep_left <= 0.0:
+		_flame_sweep_left = Balance.PARTICLE_CULL_INTERVAL
+		Flame.wake_the_seen()
 	if _town_cooldown > 0.0:
 		_town_cooldown = maxf(_town_cooldown - delta, 0.0)
 		if _town_cooldown <= 0.0 and _town_pending > 0.0:

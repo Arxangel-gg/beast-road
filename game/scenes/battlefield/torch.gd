@@ -40,6 +40,51 @@ var _pressure: float = 0.0
 var _pressure_sample_left: float = 0.0
 
 var _flame: Flame
+## Diagnostic only: `perf_bisect --visuals` switches the ironwork off to
+## price it. Never set by the game.
+static var ablate_ironwork: bool = false
+
+## **The ironwork is one baked texture** (2026-09-24). Four
+## `draw_colored_polygon`s and a coal quad were five commands a torch, and in
+## the Compatibility renderer a polygon is a primitive draw of its own where a
+## texture rect joins a batch: `perf_bisect --visuals` priced the ironwork
+## alone at 0.9 ms of an 11 ms frame. The same four shapes are rasterised
+## once, row by row at their own tapers, into an image every torch shares, so
+## a torch is one textured rect and its coals. The silhouette is the polygons'
+## own to the pixel.
+static var _ironwork: ImageTexture = null
+const IRON_HALF: int = 12
+
+
+static func ironwork_texture() -> ImageTexture:
+	if _ironwork != null:
+		return _ironwork
+	var height: float = Balance.TORCH_HEIGHT
+	var rows: int = int(ceil(height)) + 2
+	var image: Image = Image.create(IRON_HALF * 2, rows, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.0, 0.0, 0.0, 0.0))
+	var collar_y: float = -height * 0.42
+	var bowl_y: float = -height + 4.0
+	for row: int in rows:
+		# Image row 0 is the top; the last row is the foot, local y = 0.
+		var y: float = float(row) - float(rows - 1) + 0.5
+		_iron_row(image, row, y, -height, 0.0, 3.0, 2.0, Color(0.13, 0.11, 0.10))
+		_iron_row(image, row, y, collar_y - 4.0, collar_y, 5.0, 4.0, Color(0.20, 0.17, 0.14))
+		_iron_row(image, row, y, bowl_y - 8.0, bowl_y, 9.0, 5.5, Color(0.19, 0.15, 0.13))
+		_iron_row(image, row, y, bowl_y - 2.0, bowl_y, 9.5, 9.5, Color(0.34, 0.27, 0.20))
+	_ironwork = ImageTexture.create_from_image(image)
+	return _ironwork
+
+
+## One row of a shape spanning local `top`..`bottom` (negative is up),
+## `half_at_bottom` wide at its foot tapering to `half_at_top`.
+static func _iron_row(image: Image, row: int, y: float, top: float, bottom: float,
+		half_at_bottom: float, half_at_top: float, colour: Color) -> void:
+	if y < top or y > bottom:
+		return
+	var t: float = (bottom - y) / maxf(bottom - top, 0.001)
+	var half: int = maxi(1, roundi(lerpf(half_at_bottom, half_at_top, t)))
+	image.fill_rect(Rect2i(IRON_HALF - half, row, half * 2, 1), colour)
 ## The coals' alpha, drawn by `_draw`.
 var _coals_alpha: float = 0.55
 ## Whether a hero is near, asked on `TORCH_HERO_SAMPLE`.
@@ -125,9 +170,7 @@ func _build_pool() -> void:
 	_pool = Sprite2D.new()
 	_pool.name = "Pool"
 	_pool.texture = LightKit.falloff_texture()
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	_pool.material = additive
+	_pool.material = LightKit.additive_material()
 	var across: float = maxf(float(_pool.texture.get_width()), 1.0)
 	var span: float = Balance.TORCH_POOL_RADIUS * 2.0 / across
 	# Flattened into an ellipse: the camera looks down and along, so a circle of
@@ -185,28 +228,13 @@ func _refresh_pool(wobble: float = 1.0) -> void:
 ## a relight and nowhere else. The order is what it was: a parent draws
 ## before its children, and the ironwork was the first child.
 func _draw_measured() -> void:
+	if ablate_ironwork:
+		return
 	var height: float = Balance.TORCH_HEIGHT
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-3.0, 0.0), Vector2(3.0, 0.0),
-		Vector2(2.0, -height), Vector2(-2.0, -height),
-	]), Color(0.13, 0.11, 0.10))
-	# A collar partway up, so the post has a silhouette instead of being a stick.
-	var collar_y: float = -height * 0.42
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-5.0, collar_y), Vector2(5.0, collar_y),
-		Vector2(4.0, collar_y - 4.0), Vector2(-4.0, collar_y - 4.0),
-	]), Color(0.20, 0.17, 0.14))
-	# The bowl the fire sits in. Its rim is drawn separately and slightly lighter
-	# so the fire looks contained by it rather than drawn on top of it.
-	var bowl_y: float = -height + 4.0
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-9.0, bowl_y), Vector2(9.0, bowl_y),
-		Vector2(5.5, bowl_y - 8.0), Vector2(-5.5, bowl_y - 8.0),
-	]), Color(0.19, 0.15, 0.13))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-9.5, bowl_y), Vector2(9.5, bowl_y),
-		Vector2(9.5, bowl_y - 2.0), Vector2(-9.5, bowl_y - 2.0),
-	]), Color(0.34, 0.27, 0.20))
+	# The post, the collar, the bowl and its rim: one shared texture (see
+	# `ironwork_texture`), laid so its last row is the foot.
+	var iron: ImageTexture = ironwork_texture()
+	draw_texture(iron, Vector2(-float(IRON_HALF), -float(iron.get_height() - 1)))
 	# Coals: visible whether or not the torch is lit, so a dead torch reads as a
 	# torch that has gone out and not as an empty pole.
 	var coals: Texture2D = Flame.dot_texture()

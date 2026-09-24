@@ -177,7 +177,17 @@ ironwork as one baked sprite per torch (a polygon per part is a primitive
 draw each); the tongues as a 48-cell sheet rendered once from the ring
 meshes by a windowed tool and drawn as a region rect, so every flame batches
 with every other; the embers as ink motes on a cadence, as the torch smoke
-went. Then the older candidates, each with the plan it needs:
+went. **Done since**: the finer rows exist in `perf_bisect --visuals` (`torch_iron`,
+`flame_halo`, `flame_tongue`, `embers`, `torch_tick`, `flame_tick`), the
+ironwork is one baked texture and unseen flames sleep. Measured after: 13.0
+ms average, 975 draw calls. What the rows still price: embers 0.56 (ink
+motes on a cadence; amend `frame_budget_check`'s unseen-emitter test), the
+towers 1.1 (split them the same way first: sprite, `actor_polish` relief,
+aura, glow, light), the tongue mesh 0.26 and the halo 0.17 (noise floor,
+leave). And `weapon_vfx_check` is profile-dependent - it equips by a literal
+0 on a uid-keyed map - and failed once on a shared scratch profile; pin it by
+equipping the piece's own uid. Then the older candidates, each with the plan
+it needs:
 
 - **Ground blood**: keep the one triangle array (one draw call) and stop
   rebuilding it on the fade. Bake each mark's birth and life into a vertex

@@ -9214,6 +9214,49 @@ sixteen sites). Correct, harmless, and **measured at nothing**: 13.7 to 14.0
 ms is inside the run-to-run noise, so the batcher was not breaking on the
 instance. Recorded so nobody claims it as a saving.
 
+**The torch, split, and the two parts of it that were worth rebuilding, as
+of 2026-09-24 (late night).** The owner said to continue with the torch and
+the flame. `perf_bisect --visuals` grew rows that switch one part of a class
+at a time - the ironwork, the halo, the tongue mesh, the embers, and each
+class's tick - through diagnostic statics on `Torch` and `Flame`, because
+the coarse rows hide a node with everything under it and "torches 2.9 ms"
+could not say which part. Read on a held Act X field at 10.8 ms:
+
+    torch_iron   0.92 ms    embers   0.56    flame_tick   0.31
+    flame_tongue 0.26       flame_halo 0.17  torch_tick, pools, lights: nothing
+
+- **The ironwork is one baked texture.** Four `draw_colored_polygon`s were
+  four primitive draws a torch on every frame - in the Compatibility
+  renderer a polygon is its own draw where a texture rect joins a batch. The
+  same four tapers are rasterised once, row by row, into an image every torch
+  shares (`Torch.ironwork_texture`), and a torch is one textured rect and its
+  coals. Photographed with `torch_shot`: the silhouette is the polygons' own.
+- **An unseen flame sleeps.** Two hundred and twenty flames ticked every
+  frame to ask whether they were on screen; a flame that finds itself off
+  screen stops processing and lies in `Flame._dormant`, and `Vfx` walks that
+  list on `PARTICLE_CULL_INTERVAL` to wake whichever the camera has reached.
+  A flame's dance clock is not continuous across a sleep, and nothing can
+  tell, because it was off screen.
+
+Measured after, same seed and window: **13.0 ms average (77 fps), p99 22.2,
+worst 35.8, two hitches in ninety seconds, 975 draw calls** against 1,100 to
+1,200 before. The renderer's own CPU went 4.5 to 4.1 ms.
+
+**Not rebuilt, and priced so the next session can choose.** The embers
+(0.56 ms, one `CPUParticles2D` a flame) would become ink motes on a cadence,
+as the torch smoke and the dust did, and `frame_budget_check`'s "an unseen
+emitter rests" would need amending; the tongue mesh (0.26) and the halo
+(0.17) are one `draw_mesh` and one quad a visible flame and are at the noise
+floor; the towers' 1.1 ms is the next unexplained row and wants the same
+split (sprite, relief shader, aura, glow, light) before anything is touched.
+
+**And `weapon_vfx_check` failed once on the shared scratch profile and passed
+four times on fresh ones**, with and without the torch change: its blade test
+equips by a literal 0 that the file's own comment says is "no piece" under
+uid keying, so what it dresses depends on what the profile already holds.
+Not chased; recorded as the shared-profile shape from the memory directory,
+for the next session to pin.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

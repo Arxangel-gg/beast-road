@@ -393,6 +393,10 @@ func _visual_groups() -> Dictionary:
 			_:
 				if node is TileMapLayer:
 					key = "tiles"
+				elif node is CPUParticles2D and node.name == "Embers":
+					key = "embers"
+				elif node is Sprite2D and node.name == "Pool" and script == null:
+					key = "torch_pools"
 				elif node is CPUParticles2D or node is GPUParticles2D:
 					key = "particles"
 				elif node is Sprite2D and script == null and (node as Sprite2D).texture != null \
@@ -453,6 +457,7 @@ func _visual_table() -> void:
 			"saved": (before + after) * 0.5 - without, "off": without, "on": (before + after) * 0.5})
 		print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms" % [
 			String(key), live.size(), (before + after) * 0.5, without, (before + after) * 0.5 - without])
+	await _ablate_parts(groups, scored)
 	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["saved"]) > float(b["saved"]))
 	print("[bisect] frame cost by what is drawn, most expensive first:")
@@ -462,6 +467,61 @@ func _visual_table() -> void:
 	if motes != null:
 		print("[bisect] blood motes canvas drew %d times during the table (live %d)" % [
 			motes.draws - draws_before, motes.live()])
+
+
+## **The torch and the flame, split** (2026-09-24). The coarse rows hide a
+## node with everything under it, so "torches 2.5 ms" could not say whether
+## the cost is the ironwork, the halo, the tongue mesh, the embers or the
+## tick. These rows switch one part at a time through a diagnostic static on
+## the class, or stop the class's process, and measure exactly as the node
+## rows do.
+func _ablate_parts(groups: Dictionary, scored: Array) -> void:
+	var torches: Array = groups.get("torches", [])
+	var flames: Array = groups.get("flames", [])
+	var iron := func(off: bool) -> void:
+		Torch.ablate_ironwork = off
+		_redraw_all(torches)
+	var halo := func(off: bool) -> void:
+		Flame.ablate_halo = off
+		_redraw_all(flames)
+	var tongues := func(off: bool) -> void:
+		Flame.ablate_tongues = off
+		_redraw_all(flames)
+	var torch_tick := func(off: bool) -> void:
+		for item: Variant in torches:
+			if is_instance_valid(item):
+				(item as Node).set_process(not off)
+	var flame_tick := func(off: bool) -> void:
+		for item: Variant in flames:
+			if is_instance_valid(item):
+				(item as Node).set_process(not off)
+	await _part_row("torch_iron", torches.size(), iron, scored)
+	await _part_row("flame_halo", flames.size(), halo, scored)
+	await _part_row("flame_tongue", flames.size(), tongues, scored)
+	await _part_row("torch_tick", torches.size(), torch_tick, scored)
+	await _part_row("flame_tick", flames.size(), flame_tick, scored)
+
+
+func _part_row(kind: String, count: int, apply: Callable, scored: Array) -> void:
+	if count == 0:
+		return
+	var before: float = await _measure()
+	if get_tree() == null:
+		return
+	apply.call(true)
+	var without: float = await _measure()
+	apply.call(false)
+	var after: float = await _measure()
+	scored.append({"kind": kind, "nodes": count,
+		"saved": (before + after) * 0.5 - without, "off": without, "on": (before + after) * 0.5})
+	print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms" % [
+		kind, count, (before + after) * 0.5, without, (before + after) * 0.5 - without])
+
+
+func _redraw_all(items: Array) -> void:
+	for item: Variant in items:
+		if is_instance_valid(item):
+			(item as CanvasItem).queue_redraw()
 
 
 func _floor_table() -> void:
