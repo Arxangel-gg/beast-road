@@ -44,6 +44,9 @@ var _life: PackedFloat32Array = PackedFloat32Array()
 var _radius: PackedFloat32Array = PackedFloat32Array()
 var _ground: BloodField = null
 var _was_live: bool = false
+## How many times the canvas has drawn, for the gate: a burst that is thrown
+## and never painted is exactly the fault a count of records cannot see.
+var draws: int = 0
 ## The landings' own dice: a droplet's size on the ground was rolled by the
 ## burst node that carried it, and the canvas rolls it for all of them now.
 var _rng := RandomNumberGenerator.new()
@@ -153,6 +156,7 @@ func _process(delta: float) -> void:
 ## drop slows. `BloodInk.MAX_LONG` bounds the stretch here as it does on the
 ## ground, because past it a drop reads as a slash.
 func _draw_measured() -> void:
+	draws += 1
 	var dot: Texture2D = Flame.dot_texture()
 	var count: int = _origin.size()
 	for index: int in count:

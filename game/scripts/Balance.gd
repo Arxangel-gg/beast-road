@@ -10308,6 +10308,12 @@ const TRAP_GLOW_RADIUS: float = 70.0
 ## How often the fog is restamped, how soft a sight disc's rim is, and how
 ## much of a cell must be seen for a body standing in it to be drawn. [TUNE]
 const FOG_TICK: float = 0.1
+## The sun is republished to every light and tint when its phase has moved
+## this far, not on every frame the road advances (2026-09-24): the distance
+## fact fires every frame and `DayNight` re-lit the whole field each time -
+## 0.2 ms a frame of the same sky. A step this size is under a minute of
+## a day; nothing on screen can tell.
+const DAYNIGHT_PHASE_STEP: float = 1.0 / 2880.0
 const FOG_FEATHER: float = 110.0
 const FOG_SEEN_THRESHOLD: int = 90
 ## The veil's darkness over ground never seen, and over ground seen and left.

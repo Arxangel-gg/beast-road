@@ -66,6 +66,9 @@ static func warm_act(act: int, terrain_id: String) -> int:
 			loaded += _warm_body(tower.get_sprite_path(), false)
 	loaded += warm_saddled_mount()
 	loaded += Vfx.warm_art()
+	# The flames' ring of meshes, so the first flame drawn in an act is not
+	# forty-eight meshes built inside a frame.
+	loaded += (Flame.shape_ring()["meshes"] as Array).size()
 	return loaded
 
 

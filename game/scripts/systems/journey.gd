@@ -68,11 +68,17 @@ func _process_measured(delta: float) -> void:
 	var progress_walked: float = walked / maxf(road.distance_scale, 0.1) \
 		if road != null else walked
 	RunState.distance_travelled += progress_walked
+	var _t: int = Time.get_ticks_usec()
 	_accrue_resources(walked)
+	FrameProfile.add(&"j_accrue", _t)
+	_t = Time.get_ticks_usec()
 	_advance_construction(walked)
 	_recover_beast_speed(delta)
+	FrameProfile.add(&"j_build", _t)
 
+	_t = Time.get_ticks_usec()
 	EventBus.distance_changed.emit(RunState.distance_travelled, RunState.distance_to_crossroad())
+	FrameProfile.add(&"j_emit", _t)
 
 	# The ascent is one authored road to the summit: no crossroads, no fork, and
 	# the Chainmaker at the end of it rather than at a segment boundary. Checked

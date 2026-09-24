@@ -38,6 +38,17 @@ func _ready() -> void:
 		"a blow must stand no node up; blood in the air is a record")
 	_check(motes != null and motes.live() >= Balance.VFX_BLOOD_DROPS_MIN,
 		"enabled blood must throw a ballistic spray of motes")
+	# **And the spray is painted.** A record thrown and never drawn is a spray
+	# nobody sees, and a count of records passes it (2026-09-24).
+	var drawn_before: int = motes.draws if motes != null else 0
+	var live_before: int = motes.live() if motes != null else 0
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(motes != null and motes.draws > drawn_before,
+		"a burst must be drawn on the frames after it is thrown (draws %d -> %d)" % [drawn_before, motes.draws if motes != null else -1])
+	_check(motes != null and motes.live() > 0 and motes.live() <= live_before,
+		"the motes must fly (age) on the frames after the burst")
 
 	# The damage fact names the body that was hit. Before `at` existed, Vfx
 	# searched the hero group and a remote Warden's impact appeared on the local

@@ -439,10 +439,20 @@ func _annulus(centre: Vector2, radius: float, width: float, colour: Color, lit: 
 			_indices.append(a + 3)
 
 
+## **Sparks, motes and flashes are quads of a soft dot, not fans of
+## triangles** (2026-09-24, second cut). A triangle array is a new GPU buffer
+## on every redraw in the Compatibility renderer, and the visual ablation
+## table read the two ink canvases at two milliseconds a frame together
+## with the script side already small. A texture rect is an instance in a
+## batch the renderer already keeps, so a thousand sparks are one draw call
+## and no buffer. A spark is a stretched dot with a brighter dot at its
+## head; a mote and a flash are one dot each. Rings and rays keep their
+## triangles: they are few, and a ring is a telegraph drawn at the blow's
+## own radius.
 func _draw_sparks(inverse: Transform2D) -> void:
 	if _sparks.is_empty():
 		return
-	_begin()
+	var dot: Texture2D = Flame.dot_texture()
 	for record: Dictionary in _sparks:
 		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
 		var eased: float = 1.0 - pow(1.0 - t, 3.0)
@@ -450,16 +460,22 @@ func _draw_sparks(inverse: Transform2D) -> void:
 		var head: Vector2 = (record["at"] as Vector2) + dir * float(record["travel"]) * eased
 		var colour: Color = record["colour"] as Color
 		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
 		var length: float = float(record["length"]) * (1.0 - 0.4 * t)
-		_strip(inverse * head, inverse * (head - dir * length),
-			float(record["width"]) * (1.0 - 0.3 * t), colour, lit, 0.25)
-		# The mote on the tip: what made a shard read as hot rather than as a
-		# dash. It shrinks as the shard cools.
-		_disc(inverse * head, float(record["width"]) * 1.8 * lerpf(1.0, 0.35, t),
-			colour, lit * 0.9, 6)
-	_flush()
-
-
+		var width: float = float(record["width"]) * (1.0 - 0.3 * t)
+		var tail: Vector2 = head - dir * length
+		var middle: Vector2 = inverse * ((head + tail) * 0.5)
+		var along: Vector2 = inverse.basis_xform(dir)
+		draw_set_transform(middle, along.angle(), Vector2.ONE)
+		draw_texture_rect(dot, Rect2(-length * 0.5, -width, length, width * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit * 0.8))
+		var bead: float = width * 1.8 * lerpf(1.0, 0.35, t)
+		var bead_at: Vector2 = inverse * head
+		draw_set_transform(bead_at, 0.0, Vector2.ONE)
+		draw_texture_rect(dot, Rect2(-bead, -bead, bead * 2.0, bead * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit * 0.9))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 func _draw_rays(inverse: Transform2D) -> void:
 	if _rays.is_empty():
 		return
@@ -499,29 +515,32 @@ func _draw_rings(inverse: Transform2D) -> void:
 func _draw_flashes(inverse: Transform2D) -> void:
 	if _flashes.is_empty():
 		return
-	_begin()
+	var dot: Texture2D = Flame.dot_texture()
 	for record: Dictionary in _flashes:
 		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
 		var grown: float = lerpf(1.0, 1.9, 1.0 - pow(1.0 - t, 2.0))
 		var colour: Color = record["colour"] as Color
-		_disc(inverse * (record["at"] as Vector2), float(record["radius"]) * grown, colour,
-			colour.a * (1.0 - t), 12)
-	_flush()
-
-
+		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
+		var radius: float = float(record["radius"]) * grown
+		var at: Vector2 = inverse * (record["at"] as Vector2)
+		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit))
 func _draw_motes(inverse: Transform2D) -> void:
 	if _motes.is_empty():
 		return
-	_begin()
+	var dot: Texture2D = Flame.dot_texture()
 	for record: Dictionary in _motes:
 		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
-		var at: Vector2 = (record["at"] as Vector2) + (record["drift"] as Vector2) * t
 		var colour: Color = record["colour"] as Color
-		_disc(inverse * at, float(record["size"]) * lerpf(1.0, 0.35, t), colour,
-			colour.a * (1.0 - t), 8)
-	_flush()
-
-
+		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
+		var at: Vector2 = inverse * ((record["at"] as Vector2) + (record["drift"] as Vector2) * t)
+		var radius: float = float(record["size"]) * lerpf(1.0, 0.35, t)
+		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit))
 ## Painted art: a transform per record and one draw command, centred on its
 ## point as a sprite is. A sheet reads its cell off its age; a frame list
 ## plays end to end; a single texture holds and fades.

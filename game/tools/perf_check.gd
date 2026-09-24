@@ -146,6 +146,7 @@ var _trace_from: float = -1.0
 var _trace_to: float = -1.0
 var _trace_fired: PackedStringArray = []
 var _listening: bool = false
+var _trace_said_motes: bool = false
 
 ## Sampled once a second rather than per frame: the question is a trend over
 ## minutes, and sixty samples a second only makes the array bigger.
@@ -241,6 +242,13 @@ func _ready() -> void:
 		DisplayServer.window_set_current_screen(best)
 		DisplayServer.window_set_size(Vector2i(1920, 1080))
 		DisplayServer.window_set_position(DisplayServer.screen_get_position(best) + Vector2i(40, 40))
+	# **Headless frames are floored at 6.9 ms by a sleep, not by work** (found
+	# 2026-09-24): with nothing to draw, `OS.add_frame_delay` sleeps each frame
+	# out to `low_processor_mode_sleep_usec`, whose default is 6900 - so every
+	# frame lighter than that read as 6.90, a floor ablation freed the whole
+	# field and moved nothing, and every headless average carried the sleep.
+	# Off for the length of this report.
+	OS.low_processor_usage_mode_sleep_usec = 0
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	# Reported, not assumed. Asking for it off and *getting* it off are different
 	# things - a driver or compositor can hold the swap regardless, and then every
@@ -290,13 +298,14 @@ func _ready() -> void:
 ## The road put down near the end of a late act, the way `ActStart.begin`
 ## puts it down at an act's door: the act, the distance, the wave the road
 ## would be on, the region, and the Forge at its top so the board can climb.
-## Eight waves short of the boss, so the measured window is the act's heaviest
+## Twelve waves short of the boss (eight until 2026-09-24, when a sixty-second
+## run reached it and measured the arrival's textures), so the window is the act's heaviest
 ## waves and not the boss fight - which is a different measurement.
 ##
 ## Static, and shared with `perf_bisect` through a preload, so the two tools
 ## stand on the same road: a bisect of a different act than the one that
 ## failed would name different culprits.
-static func stage_late_act(act: int, waves_short: float = 8.0) -> void:
+static func stage_late_act(act: int, waves_short: float = 12.0) -> void:
 	RunState.act = act
 	RunState.distance_travelled = maxf(Balance.act_end_distance(act)
 		- Balance.WAVE_ROAD_DISTANCE * waves_short, Balance.act_start_distance(act))
@@ -437,7 +446,13 @@ func _process(delta: float) -> void:
 		print("[trace] %6.2fs %5.1f ms  nodes %+4d  bodies %+3d  %s" % [_elapsed, ms,
 			nodes_now - _nodes_last, bodies_now - _bodies_last, " ".join(_trace_fired)])
 		var motes: BloodMotes = Vfx.blood_motes()
-		print("[profile] motes=%d/1 %s" % [motes.live() if motes != null else -1, buckets])
+		print("[profile] motes=%d/%d %s" % [motes.live() if motes != null else -1,
+			motes.draws if motes != null else -1, buckets])
+		if motes != null and _trace_said_motes == false:
+			_trace_said_motes = true
+			print("[trace] motes canvas: in_tree=%s visible=%s visible_in_tree=%s parent=%s z=%d pos=%s" % [
+				str(motes.is_inside_tree()), str(motes.visible), str(motes.is_visible_in_tree()),
+				str(motes.get_parent().get_path()) if motes.get_parent() != null else "none", motes.z_index, str(motes.global_position)])
 	_trace_fired.clear()
 	if ms > HITCH_MS:
 		_hitches += 1

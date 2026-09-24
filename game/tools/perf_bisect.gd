@@ -41,6 +41,17 @@ const PerfCheck := preload("res://tools/perf_check.gd")
 ## the 76 ms `perf_check` sees ninety seconds into Act X's waves, because the
 ## cost is the bodies and there were none yet. Bisect the road that failed.
 var _settle_seconds: float = 3.0
+## `--visuals`: the other table. Instead of a script's `_process`, a *class of
+## thing on the screen* is hidden and the frame measured without it - the
+## painted plants, the torches, the bars, the fog, the interface - so the
+## renderer's levers are sized in one run rather than guessed at. Needs a
+## renderer, because headless draws nothing and hides nothing.
+var _visuals: bool = false
+## `--floor`: every node's processing off, then classes of nodes *freed* one
+## after another, cumulatively, with the frame measured after each - what the
+## engine's own frame is made of when nothing runs. Headless is fine: what it
+## measures is the tree, not the picture. Destructive; the run is over after.
+var _floor: bool = false
 var _run: Node = null
 
 
@@ -56,6 +67,17 @@ func _ready() -> void:
 			_act = clampi(int(argument.split("=")[1]), 1, Balance.FINAL_ASCENT_ACT)
 		elif argument.begins_with("--settle="):
 			_settle_seconds = maxf(float(argument.split("=")[1]), 0.5)
+		elif argument == "--visuals":
+			_visuals = true
+		elif argument == "--floor":
+			_floor = true
+	# **Headless frames are floored at 6.9 ms by a sleep, not by work** (found
+	# 2026-09-24): with nothing to draw, `OS.add_frame_delay` sleeps each frame
+	# out to `low_processor_mode_sleep_usec`, whose default is 6900 - so every
+	# frame lighter than that read as 6.90, a floor ablation freed the whole
+	# field and moved nothing, and every headless average carried the sleep.
+	# Off for the length of this tool.
+	OS.low_processor_usage_mode_sleep_usec = 0
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	await _boot()
@@ -252,6 +274,12 @@ func _report() -> void:
 	if not _idle and not RunState.is_command_combat():
 		print("[bisect] the field was held in %s rather than combat; towers idle here"
 			% RunState.Phase.keys()[RunState.phase])
+	if _visuals:
+		await _visual_table()
+		return
+	if _floor:
+		await _floor_table()
+		return
 	var groups: Dictionary = _groups()
 	var keys: Array = groups.keys()
 	# Most nodes first: the groups worth knowing about are the populous ones,
@@ -325,3 +353,152 @@ func _report() -> void:
 			node.set_physics_process(true)
 	print("[bisect] floor %.2f ms with every node's processing off (%d nodes stilled) - the engine's own frame" % [floor_ms, stilled.size()])
 	print("[bisect] done - comparative only; re-measure with perf_check before believing a fix")
+
+
+## **What is on the screen, by kind.** Classified by script file, class and
+## name rather than by scene, because what costs the renderer is what it is
+## asked to draw and not where it lives in the tree. An inner-class script has
+## no path (a foliage band), so those are read off their host.
+func _visual_groups() -> Dictionary:
+	var out: Dictionary = {}
+	var shadowed: Array = []
+	for node: Node in _all(get_tree().root):
+		if not is_instance_valid(node) or not (node is CanvasItem):
+			continue
+		var item := node as CanvasItem
+		var script: Script = node.get_script() as Script
+		var file: String = script.resource_path.get_file() if script != null else ""
+		var key: String = ""
+		match file:
+			"torch.gd": key = "torches"
+			"flame.gd": key = "flames"
+			"health_bar.gd": key = "bars"
+			"loot_drop.gd": key = "drops"
+			"tower_aura.gd": key = "auras"
+			"ground_glow.gd", "torch_pool.gd": key = "pools"
+			"fog_of_war.gd": key = "fog"
+			"hud.gd": key = "hud"
+			"minimap.gd": key = "minimap"
+			"enemy.gd": key = "enemies"
+			"tower.gd": key = "towers"
+			"wildlife.gd": key = "wildlife"
+			"parallax_scatter.gd", "parallax_band.gd", "treeline.gd": key = "treeline"
+			"weather_veil.gd", "color_grade.gd", "cloud_shadows.gd", "sun_relief.gd": key = "post"
+			"vfx_ink.gd": key = "ink_light" if bool(node.get("additive")) else "ink_flat"
+			"blood_motes.gd": key = "blood_air"
+			"blood_field.gd": key = "blood_ground"
+			"combat_tells.gd": key = "tells"
+			"footfalls.gd": key = "footfalls"
+			"foliage.gd": key = "foliage_host"
+			_:
+				if node is TileMapLayer:
+					key = "tiles"
+				elif node is CPUParticles2D or node is GPUParticles2D:
+					key = "particles"
+				elif node is Sprite2D and script == null and (node as Sprite2D).texture != null \
+						and (node as Sprite2D).texture.resource_path.contains("/foliage/"):
+					key = "plants"
+				elif script != null and script.resource_path.is_empty() and node is Node2D \
+						and node.get_parent() != null and node.get_parent().name == "Sorted":
+					key = "bands"
+		if node is Light2D:
+			key = "lights"
+			if (node as Light2D).shadow_enabled:
+				shadowed.append(node)
+		if key.is_empty():
+			continue
+		if not out.has(key):
+			out[key] = []
+		(out[key] as Array).append(item)
+	if not shadowed.is_empty():
+		out["shadows"] = shadowed
+	return out
+
+
+func _visual_table() -> void:
+	var groups: Dictionary = _visual_groups()
+	var keys: Array = groups.keys()
+	keys.sort()
+	var motes: BloodMotes = Vfx.blood_motes()
+	var draws_before: int = motes.draws if motes != null else -1
+	var scored: Array = []
+	for key: Variant in keys:
+		var items: Array = groups[key]
+		var live: Array = []
+		for value: Variant in items:
+			if is_instance_valid(value):
+				live.append(value)
+		if live.is_empty():
+			continue
+		var before: float = await _measure()
+		if get_tree() == null:
+			return
+		for value: Variant in live:
+			if not is_instance_valid(value):
+				continue
+			if String(key) == "shadows":
+				(value as Light2D).shadow_enabled = false
+			else:
+				(value as CanvasItem).visible = false
+		var without: float = await _measure()
+		for value: Variant in live:
+			if not is_instance_valid(value):
+				continue
+			if String(key) == "shadows":
+				(value as Light2D).shadow_enabled = true
+			else:
+				(value as CanvasItem).visible = true
+		var after: float = await _measure()
+		scored.append({"kind": String(key), "nodes": live.size(),
+			"saved": (before + after) * 0.5 - without, "off": without, "on": (before + after) * 0.5})
+		print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms" % [
+			String(key), live.size(), (before + after) * 0.5, without, (before + after) * 0.5 - without])
+	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["saved"]) > float(b["saved"]))
+	print("[bisect] frame cost by what is drawn, most expensive first:")
+	for row: Dictionary in scored:
+		print("[bisect]   %-12s %4d nodes  saves %.2f ms when hidden" % [
+			row["kind"], int(row["nodes"]), float(row["saved"])])
+	if motes != null:
+		print("[bisect] blood motes canvas drew %d times during the table (live %d)" % [
+			motes.draws - draws_before, motes.live()])
+
+
+func _floor_table() -> void:
+	var live: float = await _measure()
+	print("[bisect] floor: live frame %.2f ms" % live)
+	for node: Node in _all(get_tree().root):
+		if node == self or not is_instance_valid(node):
+			continue
+		node.set_process(false)
+		node.set_physics_process(false)
+		node.set_process_input(false)
+		node.set_process_unhandled_input(false)
+	var quiet: float = await _measure()
+	print("[bisect] floor: every node's processing off %.2f ms" % quiet)
+	var groups: Dictionary = _visual_groups()
+	var order: Array[String] = ["particles", "flames", "torches", "lights", "plants", "bands",
+		"foliage_host", "bars", "drops", "enemies", "towers", "auras", "pools", "ink_light",
+		"ink_flat", "blood_air", "blood_ground", "tells", "footfalls", "fog", "minimap", "hud",
+		"tiles", "treeline", "post", "wildlife"]
+	var last: float = quiet
+	for key: String in order:
+		if not groups.has(key):
+			continue
+		var freed: int = 0
+		for value: Variant in groups[key]:
+			if is_instance_valid(value) and (value as Node).is_inside_tree():
+				(value as Node).free()
+				freed += 1
+		if freed == 0:
+			continue
+		var now: float = await _measure()
+		print("[bisect] floor: without %-12s (%4d freed) %.2f ms  (-%.2f)" % [key, freed, now, last - now])
+		last = now
+	var remaining: int = 0
+	var items: int = 0
+	for node: Node in _all(get_tree().root):
+		remaining += 1
+		if node is CanvasItem:
+			items += 1
+	print("[bisect] floor: %d nodes and %d canvas items left, %.2f ms" % [remaining, items, last])

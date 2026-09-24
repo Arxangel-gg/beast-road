@@ -191,8 +191,14 @@ func _show_particles(seen: bool) -> void:
 ## along the height, which is what a guttering torch's height was. A flame's
 ## own seed is its offset into the ring, so no two are in step. The colours
 ## are per layer and per slice and never change, so they are built once too.
-## What a redraw costs now is a halo rect and three triangle arrays handed to
-## the renderer from cached packed arrays.
+## What a redraw costs now is a halo rect and one `draw_mesh`.
+##
+## **A mesh, not a triangle array** (measured the same evening). A triangle
+## array handed to the Compatibility renderer is a new GPU buffer on every
+## redraw, and the visual ablation table (`perf_bisect --visuals`) read the
+## flames at 2.7-3.6 ms a frame *after* the ring took the script cost
+## away. A `Mesh` is uploaded once and drawn from then on; the ring is
+## forty-eight of them, three surfaces each, and a flame draws one.
 ##
 ## The ring wraps every `RING_PERIOD` seconds of the flame's own clock; the
 ## sines that shape a tongue are not periodic in that, so a flame jumps a
@@ -212,29 +218,31 @@ static func _shape_ring() -> Dictionary:
 	probe.size = RING_SIZE
 	probe.intensity = 1.0
 	probe._seed = 0.0
-	var points: Array = []
-	var colours: Array = []
-	var indices := PackedInt32Array()
+	var meshes: Array[ArrayMesh] = []
 	var base_colours: Array[Color] = [Balance.FLAME_BODY, Balance.FLAME_MID, Balance.FLAME_CORE]
-	for index: int in LAYERS.size():
-		var layer: Dictionary = LAYERS[index]
-		var colour: Color = base_colours[index]
-		colour.a = float(layer["alpha"])
-		var per_phase: Array = []
-		var layer_colours := PackedColorArray()
-		for step: int in RING_STEPS:
-			probe._time = RING_PERIOD * float(step) / float(RING_STEPS)
+	var vertices: int = 0
+	for step: int in RING_STEPS:
+		probe._time = RING_PERIOD * float(step) / float(RING_STEPS)
+		var mesh := ArrayMesh.new()
+		for index: int in LAYERS.size():
+			var layer: Dictionary = LAYERS[index]
+			var colour: Color = base_colours[index]
+			colour.a = float(layer["alpha"])
 			var outline: PackedVector2Array = probe.outline_for(layer, float(index) * 2.7)
 			var built: Dictionary = _tongue_geometry(outline, colour)
-			per_phase.append(built["points"])
-			if layer_colours.is_empty():
-				layer_colours = built["colours"]
-			if indices.is_empty():
-				indices = built["indices"]
-		points.append(per_phase)
-		colours.append(layer_colours)
+			var points: PackedVector2Array = built["points"]
+			if points.is_empty():
+				continue
+			var arrays: Array = []
+			arrays.resize(Mesh.ARRAY_MAX)
+			arrays[Mesh.ARRAY_VERTEX] = points
+			arrays[Mesh.ARRAY_COLOR] = built["colours"]
+			arrays[Mesh.ARRAY_INDEX] = built["indices"]
+			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			vertices += points.size()
+		meshes.append(mesh)
 	probe.free()
-	_ring = {"points": points, "colours": colours, "indices": indices}
+	_ring = {"meshes": meshes, "vertices": vertices}
 	return _ring
 
 
@@ -255,19 +263,11 @@ func _draw_measured() -> void:
 	if intensity <= Balance.FLAME_MIN_INTENSITY or size * intensity < Balance.FLAME_MIN_SIZE * 2.0:
 		return
 	var ring: Dictionary = _shape_ring()
-	var indices: PackedInt32Array = ring["indices"]
-	if indices.is_empty():
+	var meshes: Array[ArrayMesh] = ring["meshes"]
+	if meshes.is_empty():
 		return
 	var step: int = int(fposmod(_time + _seed, RING_PERIOD) / RING_PERIOD * float(RING_STEPS)) % RING_STEPS
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(size / RING_SIZE, size / RING_SIZE * intensity))
-	var item: RID = get_canvas_item()
-	for index: int in LAYERS.size():
-		var phases: Array = ring["points"][index]
-		if phases.is_empty():
-			continue
-		RenderingServer.canvas_item_add_triangle_array(item, indices,
-			phases[step] as PackedVector2Array, ring["colours"][index] as PackedColorArray)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_mesh(meshes[step], null, Transform2D(0.0, Vector2(size / RING_SIZE, size / RING_SIZE * intensity), 0.0, Vector2.ZERO))
 
 
 ## One tongue's geometry from its outline: a solid spine fading to a clear

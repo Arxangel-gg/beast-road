@@ -65,7 +65,11 @@ func _ready() -> void:
 
 
 func _on_distance(total_distance: float, _to_crossroad: float) -> void:
-	_apply(fmod(Balance.DAY_START_PHASE + total_distance / DAY_LENGTH, 1.0))
+	var wanted: float = fmod(Balance.DAY_START_PHASE + total_distance / DAY_LENGTH, 1.0)
+	# Applied on a phase step rather than every frame (`DAYNIGHT_PHASE_STEP`).
+	if absf(wanted - phase) < Balance.DAYNIGHT_PHASE_STEP:
+		return
+	_apply(wanted)
 
 
 ## True while the night difficulty modifiers apply. The sun's, never the deep's.
