@@ -62,6 +62,7 @@ func _test_a_hit_allocates_no_node() -> void:
 		Vfx.forge_burst(at, 80.0)
 		Vfx.spark(at, Color.WHITE, 1, Vector2.UP, 120.0)
 		Vfx.blood(at, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
+		Vfx.dust(at, Color(0.4, 0.3, 0.2), 3, 30.0)
 	await get_tree().process_frame
 	var stood: int = layer.get_child_count() if layer != null else -1
 	_check(stood == 0,
@@ -73,6 +74,8 @@ func _test_a_hit_allocates_no_node() -> void:
 		return
 	_check(not flat.additive and light.additive,
 		"the numbers' canvas lays paint and the sparks' canvas adds light")
+	_check(flat.live_dust() == 120,
+		"forty landings' dust should be a hundred and twenty records on the flat canvas, got %d" % flat.live_dust())
 	_check(flat.live_numbers() == 40,
 		"forty numbers should be forty records, got %d" % flat.live_numbers())
 	_check(light.live_art() >= 40,

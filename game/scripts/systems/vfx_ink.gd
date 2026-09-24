@@ -54,6 +54,9 @@ var _rays: Array[Dictionary] = []
 var _art: Array[Dictionary] = []
 ## Damage numbers.
 var _numbers: Array[Dictionary] = []
+## Dust: a soft disc that drifts out, grows and fades - paint, on the flat
+## canvas, because a puff of earth over a lit road darkens it.
+var _dust: Array[Dictionary] = []
 
 ## Reused every frame rather than reallocated.
 var _points: PackedVector2Array = PackedVector2Array()
@@ -101,13 +104,14 @@ func clear() -> void:
 	_rays.clear()
 	_art.clear()
 	_numbers.clear()
+	_dust.clear()
 	queue_redraw()
 
 
 ## How many records live, for the gates.
 func live() -> int:
 	return _sparks.size() + _rings.size() + _flashes.size() + _motes.size() + _rays.size() \
-		+ _art.size() + _numbers.size()
+		+ _art.size() + _numbers.size() + _dust.size()
 
 
 func live_sparks() -> int:
@@ -124,6 +128,10 @@ func live_art() -> int:
 
 func live_numbers() -> int:
 	return _numbers.size()
+
+
+func live_dust() -> int:
+	return _dust.size()
 
 
 ## The painted records, oldest first, for a gate that wants to read a sheet's
@@ -289,6 +297,23 @@ func number(at: Vector2, text: String, colour: Color, big: bool) -> void:
 	}, Balance.VFX_INK_NUMBERS_MAX)
 
 
+## A puff of dust: born at `at`, drifting `drift` on an ease-out, growing to
+## `grow` times its size and fading to nothing over `life`. What `Vfx.dust`
+## stood up as an octagon and three tweens (2026-09-24).
+func dust(at: Vector2, drift: Vector2, colour: Color, size: float, grow: float,
+		life: float, always: bool = false) -> void:
+	_push(_dust, {
+		"at": at,
+		"drift": drift,
+		"colour": colour,
+		"size": maxf(size, 0.5),
+		"grow": maxf(grow, 1.0),
+		"life": maxf(life, 0.02),
+		"age": 0.0,
+		"always": always,
+	}, Balance.VFX_INK_DUST_MAX)
+
+
 func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:
 	into.append(record)
 	# The oldest give way, which is what the node layer did with its cap.
@@ -308,6 +333,7 @@ func _process_measured(delta: float) -> void:
 	moved = _age(_rays, delta, paused) or moved
 	moved = _age(_art, delta, paused) or moved
 	moved = _age(_numbers, delta, paused) or moved
+	moved = _age(_dust, delta, paused) or moved
 	if moved:
 		_redraw_debt += delta
 		if _redraw_debt >= 1.0 / Balance.VFX_INK_HZ:
@@ -341,6 +367,8 @@ func _age(records: Array[Dictionary], delta: float, paused: bool) -> bool:
 
 func _draw_measured() -> void:
 	var inverse: Transform2D = global_transform.affine_inverse()
+	# Dust first: it lies under everything else a blow throws.
+	_draw_dust(inverse)
 	_draw_sparks(inverse)
 	_draw_rays(inverse)
 	_draw_rings(inverse)
@@ -527,6 +555,26 @@ func _draw_flashes(inverse: Transform2D) -> void:
 		var at: Vector2 = inverse * (record["at"] as Vector2)
 		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
 			Color(colour.r, colour.g, colour.b, lit))
+## The soft dot, drifting out on an ease-out and growing as it fades: the
+## octagon it replaces was a translucent blob at this size, and a soft disc
+## reads as the same puff with a softer edge.
+func _draw_dust(inverse: Transform2D) -> void:
+	if _dust.is_empty():
+		return
+	var dot: Texture2D = Flame.dot_texture()
+	for record: Dictionary in _dust:
+		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
+		var colour: Color = record["colour"] as Color
+		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
+		var eased: float = 1.0 - (1.0 - t) * (1.0 - t)
+		var at: Vector2 = inverse * ((record["at"] as Vector2) + (record["drift"] as Vector2) * eased)
+		var radius: float = float(record["size"]) * lerpf(1.0, float(record["grow"]), t)
+		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit))
+
+
 func _draw_motes(inverse: Transform2D) -> void:
 	if _motes.is_empty():
 		return

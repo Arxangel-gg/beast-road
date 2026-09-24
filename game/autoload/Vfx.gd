@@ -597,36 +597,22 @@ func rays(at: Vector2, colour: Color, count: int = 8, radius: float = 60.0,
 			radius * randf_range(0.72, 1.08), Balance.VFX_RAY_LIFE * randf_range(0.8, 1.15))
 
 
-## Low, soft puffs that anchor impacts to the ground. These are translucent
-## octagons rather than opaque particles, keeping busy lanes readable.
+## Low, soft puffs that anchor impacts to the ground. Translucent rather than
+## opaque, keeping busy lanes readable - and records on the flat canvas rather
+## than a `Polygon2D` and three tweens a puff (2026-09-24): the trace's census
+## named dust as 485 of the 800 nodes a thirty-second window of deaths stood
+## up, three on every loot piece's landing.
 func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0, finish_when_paused: bool = false) -> void:
-	if world == null:
+	if world == null or _ink_flat == null:
 		return
 	for i: int in count:
-		var puff := Polygon2D.new()
-		var points: PackedVector2Array = []
-		var size: float = randf_range(5.0, 10.0)
-		for point: int in 8:
-			points.append(Vector2.RIGHT.rotated(TAU * float(point) / 8.0) \
-				* size * randf_range(0.82, 1.15))
-		puff.polygon = points
-		puff.color = Color(colour.r, colour.g, colour.b, minf(colour.a, 0.42))
-		puff.z_index = Balance.VFX_Z - 1
-		if finish_when_paused:
-			puff.process_mode = Node.PROCESS_MODE_ALWAYS
-		_track(puff)
-		var direction := Vector2.RIGHT.rotated(TAU * float(i) / float(maxi(count, 1)) \
+		var direction := Vector2.RIGHT.rotated(TAU * float(i) / float(maxi(count, 1))
 			+ randf_range(-0.35, 0.35))
-		puff.global_position = at + direction * randf_range(4.0, 14.0)
-		var life: float = Balance.VFX_DUST_LIFE * randf_range(0.8, 1.25)
-		var tween: Tween = puff.create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(puff, "global_position",
-			at + direction * radius * randf_range(0.65, 1.1), life)\
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		tween.tween_property(puff, "scale", Vector2.ONE * randf_range(1.6, 2.5), life)
-		tween.tween_property(puff, "modulate:a", 0.0, life)
-		tween.chain().tween_callback(puff.queue_free)
+		_ink_flat.dust(at + direction * randf_range(4.0, 14.0),
+			direction * radius * randf_range(0.65, 1.1),
+			Color(colour.r, colour.g, colour.b, minf(colour.a, 0.42)),
+			randf_range(5.0, 10.0), randf_range(1.6, 2.5),
+			Balance.VFX_DUST_LIFE * randf_range(0.8, 1.25), finish_when_paused)
 
 
 ## One authored-feeling construction beat shared by new towers and upgrades.

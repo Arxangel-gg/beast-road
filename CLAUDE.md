@@ -9044,6 +9044,27 @@ the glow under it cannot share a draw without the glow shimmering. Pooling
 removed the allocation, which was the cost that was measured; what a single
 node would still save is two canvas items a plain piece.
 
+**Dust is a record, as of the same evening.** The owner's answer to the
+paragraph above was *"You know best!"*, so the largest allocation the census
+named was built: `Vfx.dust` writes records on the flat ink canvas - a soft
+disc that drifts out on an ease-out, grows and fades, which is the octagon it
+replaces with a softer edge - and stands up nothing. Twenty callers, one door,
+no signature change; the strike's dust still finishes under a pause because
+the record carries `always`, and `lightning_lifetime_check` holds it.
+`frame_budget_check`'s forty hits throw dust now and the effects layer still
+stays empty. **Measured on the same window: a death frame is +0 to +6 nodes
+where it was +15 to +44, and `Polygon2D` is gone from the census's movers** -
+what the window stands up now is bodies arriving, which is a spawn and not a
+hit. The pool cap is `VFX_INK_DUST_MAX`.
+
+**Item four was surveyed and not built, by measurement.** Every remaining
+group walk in the hot files is on a cadence or an event - a well's clock, a
+mend interval, a death, a lunge, the idle rescan - and the two per-frame ones
+(the crowd's separation and the lane pressure) are one walk of the field
+each. The script buckets read about six milliseconds a frame after the
+evening's cuts, and a fresh array of fifty references a frame is not where
+any of it is. Recorded so it is not re-surveyed.
+
 **Two things about writing the gate are worth keeping.** `Vfx.bind_world`
 stands the effect layers up *under the world it is handed*, so a count of the
 world's children once the pieces have gone is five, not zero - the first cut

@@ -5801,6 +5801,12 @@ const VFX_INK_RAYS_MAX: int = 200
 ## The painted records - impact and muzzle art, forged sheets - and the numbers.
 const VFX_INK_ART_MAX: int = 160
 const VFX_INK_NUMBERS_MAX: int = 120
+## Dust puffs (2026-09-24): a `Polygon2D` and a tween a puff until the
+## trace's census named them as 485 of the 800 nodes a thirty-second window
+## of deaths stood up - three on every loot piece's landing, eight on a
+## lob's. Records on the flat canvas now, like the numbers. A whole field's
+## worth of landings at once, and the oldest give way.
+const VFX_INK_DUST_MAX: int = 400
 ## Drops of blood in the air at once (`BloodMotes`). A blow throws five to
 ## nine for half a second, so this is about forty blows in flight; past it
 ## the oldest land early. Every mote in flight is a soft dot drawn each
