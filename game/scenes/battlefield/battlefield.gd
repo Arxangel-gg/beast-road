@@ -595,6 +595,10 @@ func _setup_lighting() -> void:
 	# the release bar fails on and the PASS line hides.
 	DayNight.phase_changed.connect(_on_day_phase)
 	modulate_node.color = Graphics.graded(DayNight.tint)
+	# The sun's direction on the towers (2026-09-23). It reaches only a shaded
+	# tower, and there is none without the polish shaders.
+	if Graphics.polish_shaders():
+		add_child(SunRelief.new())
 	# Grouped so `Graphics.apply_to_scene` can re-grade a field that is already
 	# standing. Without it, changing brightness from the pause menu does nothing
 	# until the next battlefield is built - which is the one moment a player is

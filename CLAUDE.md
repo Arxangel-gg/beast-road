@@ -8401,6 +8401,55 @@ changes nothing but presentation, and `polish_check` holds all three:
   because that is what it edits; a set that overrode a chosen dye would be the
   game ignoring the player.
 
+**The visual pass that followed, as of 2026-09-24.** The owner took the triage's
+visual roadmap and asked for all six, then forwarded twelve Godot VFX and polish
+videos (`docs/IDEAS_REVIEW_2026-09-24.md` is that triage: nearly all of it
+already ships, and the two real gaps are built below). Every item is a look and
+never a fact - nothing reads any of it, and `polish_check` holds each one.
+
+- **Light takes the ground's colour.** `GroundGlow` is a pool that comes up with
+  the dark, its colour the light times the earth under it
+  (`GroundGlow.bounced`): lifted so black earth tints a pool rather than putting
+  it out, held at the light's own brightness so the ground moves the hue and
+  never the strength, and re-read when the region changes. The torch pools take
+  the same arithmetic. A pool is a sprite, never a `PointLight2D`.
+- **The town is shelter at night**: one warm light and a wide pool
+  (`TOWN_NIGHT_*`). **Every tower throws its element on the ground**, and **ore
+  and gem seams glow**; timber does not. The first town pool was invisible at
+  midnight - a wide pool at a torch's strength is spread too thin to read - and
+  only the photograph said so.
+- **Towers shade with the light's direction** - the pilot, towers first (owner).
+  `actor_polish.gdshader` reads the relief off the painting itself: mostly the
+  silhouette, a little of the brightness, at two reaches, so a lit tower reads as
+  a turned form rather than as embossed bricks. That was the first cut, and the
+  picture refused it; a flame, a crystal or an ember is left unshaded because it
+  is its own light. A custom `light()` brightens the side facing a light and
+  darkens the far side by less. **At `shade_strength` 0 it is the engine's own
+  formula, measured byte-identical** (`tools/shade_probe.gd`, windowed), and
+  only `tower.gd` sets it - `polish_check` walks every other script. A tower's
+  own light stands `TOWER_LIGHT_HEIGHT` above it so it lights its tower flat.
+  `SunRelief` is the sun for towers alone (`SUN_RELIEF_LAYER`): it lights no flat
+  pixel, swings from the right at dawn to the left at dusk, and is gone at night.
+  Rolling it out to bodies is one uniform a kind, and a decision.
+- **A third dye and presets.** The leather - hue 21-32°, saturated and dark,
+  which keeps the lantern's bright orange out of it - rather than the metal trim
+  the triage named, because the trim shares its hues with the lantern and the
+  leather has a clean band. **Appended to `WardenLook.KEYS`, never inserted**: a
+  two-number row from an older partner still means cloak and sash, and
+  `coop_heroes_check` proves one lands. Six presets in `WardenLook.PRESETS`.
+- **A palette check per region**: `tools/palette_sheet.py <out>` - a region's
+  palette off its ground and foliage, then every sprite that stands there ranked
+  by distance from it. A picture, not a verdict: it flags where to look.
+- **Bloom**, inside the colour grade's own pass. The Compatibility renderer does
+  give the screen texture mipmaps (`tools/bloom_probe.gd`), so it is three taps
+  of a blur the renderer already paid for, after the grade and the vignette, as
+  a screen blend. The threshold falls with the dark, so a sunlit field never
+  hazes and every torch, flame, spell and seam bleeds into the night.
+  `Graphics.KEY_BLOOM`, off by default on Low. `bloom_shot` photographs it.
+- **The boot splash is the studio splash's own dark, with no image.** The first
+  thing a player saw was Godot's logo. `polish_check` holds the colour against
+  `splash.tscn`'s background, so the handoff cannot flash.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

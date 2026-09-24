@@ -27,6 +27,7 @@
 
 uniform float look_cloak : hint_range(-0.5, 0.5) = 0.0;
 uniform float look_sash : hint_range(-0.5, 0.5) = 0.0;
+uniform float look_leather : hint_range(-0.5, 0.5) = 0.0;
 
 vec3 look_to_hsv(vec3 c) {
 	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -59,7 +60,7 @@ vec3 look_to_rgb(vec3 c) {
 // blood: what a pixel *is* comes from the art, what is done to it comes from
 // the state.
 vec3 warden_look(vec3 rgb, vec3 art) {
-	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005) {
+	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005 && abs(look_leather) < 0.0005) {
 		return rgb;
 	}
 	vec3 mask = look_to_hsv(art);
@@ -74,6 +75,11 @@ vec3 warden_look(vec3 rgb, vec3 art) {
 	float red = 1.0 - smoothstep(0.035, 0.055, mask.x);
 	float wrapped = smoothstep(0.94, 0.96, mask.x);
 	float sash = max(red, wrapped) * smoothstep(0.45, 0.60, mask.y);
-	hsv.x = fract(hsv.x + look_cloak * cloak + look_sash * sash);
+	// The leather band (2026-09-23): hue 21 to 32 degrees, saturated, and dark.
+	// Measured on the idle sheet at s 0.78, v 0.39; the lantern's orange sits in
+	// the same hues but bright (v 0.63 and up), so the value edge keeps it lit.
+	float leather = smoothstep(0.052, 0.062, mask.x) * (1.0 - smoothstep(0.088, 0.098, mask.x))
+		* smoothstep(0.45, 0.58, mask.y) * (1.0 - smoothstep(0.46, 0.56, mask.z));
+	hsv.x = fract(hsv.x + look_cloak * cloak + look_sash * sash + look_leather * leather);
 	return look_to_rgb(hsv);
 }

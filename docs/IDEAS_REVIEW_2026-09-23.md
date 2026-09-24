@@ -113,6 +113,13 @@ shortcuts and gems.
 
 ## 5. The visual roadmap from here
 
+**All six built on 2026-09-24** (owner: "all of these"). Two departures, both
+for a reason: the third dye is the *leather*, because the metal trim shares its
+hues with the lantern and the leather has a clean band of its own; and the
+normal maps are not files - the shader reads the relief off each frame, so every
+tower frame is covered without a single sheet redrawn. See CLAUDE.md, "The
+visual pass that followed".
+
 In order of how much of Core Keeper's look each buys for its cost:
 
 1. **Warm safety at the town.** A broad warm pool of light round the town

@@ -814,6 +814,12 @@ func mark_walk_done() -> void:
 ## One dye on the Warden. The Hold's card is the only caller; clamped here
 ## rather than there, so a second caller cannot write a value the shader was
 ## never authored for.
+## A whole look at once - a preset - saved once rather than once a key.
+func set_whole_look(wanted: Dictionary) -> void:
+	look = WardenLook.clean(wanted)
+	save_game()
+
+
 func set_look(key: String, value: float) -> void:
 	if not WardenLook.KEYS.has(key):
 		return

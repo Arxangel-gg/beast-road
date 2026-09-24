@@ -78,4 +78,11 @@ func _apply(grade: Dictionary) -> void:
 	_material.set_shader_parameter("lift", grade["lift"])
 	_material.set_shader_parameter("vignette", grade["vignette"])
 	_material.set_shader_parameter("night", clampf(DayNight.darkness, 0.0, 1.0) * Balance.GRADE_NIGHT_STRENGTH)
+	# The bloom (2026-09-24), the night's mostly: the threshold falls with the
+	# dark, so by day only what outshines a sunlit field blooms.
+	var dark: float = clampf(DayNight.darkness, 0.0, 1.0)
+	_material.set_shader_parameter("bloom", lerpf(Balance.BLOOM_STRENGTH_DAY,
+		Balance.BLOOM_STRENGTH_NIGHT, dark) if Graphics.bloom() else 0.0)
+	_material.set_shader_parameter("bloom_threshold", lerpf(Balance.BLOOM_THRESHOLD_DAY,
+		Balance.BLOOM_THRESHOLD_NIGHT, dark))
 	_material.set_shader_parameter("now", _clock)

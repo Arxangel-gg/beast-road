@@ -4090,6 +4090,63 @@ const FOLIAGE_GLOW_REACH: float = 1.5
 ## which is slow; this is for the breathing.
 const FOLIAGE_GLOW_HZ: float = 8.0
 
+## **Light that takes the ground's colour** (2026-09-23, from Core Keeper's
+## bounce light). A pool of light on the ground is the light multiplied by the
+## earth under it (`GroundGlow.bounced`): this much of the way toward that, with
+## the earth lifted this far toward white first so dark ground tints a pool
+## rather than putting it out. The pool keeps the light's own brightness.
+const GROUND_BOUNCE_SHARE: float = 0.45
+const GROUND_BOUNCE_LIFT: float = 0.35
+## The darkness a pool starts to show at.
+const GROUND_GLOW_FROM: float = 0.3
+## **The town is shelter at night**: one real warm light and a wide pool round
+## it, so the base reads as safety against a dark field - Core Keeper's cozy
+## contrast. One light, because every light re-draws everything under it.
+const TOWN_NIGHT_LIGHT_COLOUR: Color = Color(1.0, 0.74, 0.42)
+const TOWN_NIGHT_LIGHT_RADIUS: float = 900.0
+const TOWN_NIGHT_LIGHT_ENERGY: float = 1.0
+const TOWN_NIGHT_POOL_RADIUS: float = 820.0
+const TOWN_NIGHT_POOL_ALPHA: float = 0.8
+## A tower's pool on the ground, in its element's colour.
+const TOWER_POOL_RADIUS: float = 170.0
+const TOWER_POOL_ALPHA: float = 0.3
+## **Ore and gem seams glow at night**, as Core Keeper's ores do: a halo behind
+## the stone in the stone's own colour, as wide as this share of the painting.
+## Timber does not glow.
+const GATHER_GLOW_REACH: float = 1.1
+const GATHER_GLOW_ALPHA: float = 0.5
+
+## **Towers shade with the light's direction** (2026-09-23, the pilot of the
+## Core Keeper look): `actor_polish.gdshader` reads the painting's own relief and
+## lights the side of a tower that faces a light. Strength 0 is the old look
+## exactly, which is what every other body wears.
+const TOWER_SHADE_STRENGTH: float = 1.0
+## How steep the painting's relief reads, and how far a facet turned to a light
+## is lit past the plain additive light.
+const TOWER_SHADE_RELIEF: float = 4.0
+const TOWER_SHADE_REACH: float = 10.0
+const TOWER_SHADE_GAIN: float = 2.4
+## A tower's own light stands this high above it, so it lights its tower nearly
+## flat rather than shading it from inside its own foot. A torch stands at the
+## roadside (height 0) and leans hard.
+const TOWER_LIGHT_HEIGHT: float = 260.0
+## The sun's relief on the towers by day (`SunRelief`): no flat surface is lit,
+## only what faces the sun, scaled by how light the hour is.
+const SUN_RELIEF_ENERGY: float = 0.75
+## The light-mask bit only a shaded tower carries, so the sun reaches nothing
+## else in the game.
+const SUN_RELIEF_LAYER: int = 1 << 9
+
+## **Bloom** (2026-09-24, from the forwarded VFX videos): bright things bleed
+## light into the dark around them, inside the colour grade's own pass. The
+## threshold is how bright a blurred patch must be to bloom - high by day, so a
+## sunlit field does not haze, low at night, so every torch, flame, spell and
+## glowing seam does. The strength is how much of that light is added.
+const BLOOM_THRESHOLD_DAY: float = 0.86
+const BLOOM_THRESHOLD_NIGHT: float = 0.16
+const BLOOM_STRENGTH_DAY: float = 0.35
+const BLOOM_STRENGTH_NIGHT: float = 1.25
+
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45

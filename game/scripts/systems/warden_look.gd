@@ -23,7 +23,26 @@ extends RefCounted
 
 const KEY_CLOAK: String = "cloak"
 const KEY_SASH: String = "sash"
-const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH]
+## The third dye (2026-09-23, from Core Keeper's customisation): the leather -
+## straps, belt, boots - which the painting keeps in dark saturated orange-brown,
+## clear of the sash's red below it and the lantern's brighter orange above.
+## **Appended, never inserted**: a look is packed by position on the wire, and a
+## partner on the build before this sends two numbers that must still mean the
+## cloak and the sash.
+const KEY_LEATHER: String = "leather"
+const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER]
+
+## Looks worth one press, for a player who wants a Warden rather than three
+## sliders. Hue turns from the painting: the cloak is teal-steel (0.535), the sash
+## red (0.0), the leather orange-brown (0.075).
+const PRESETS: Array[Dictionary] = [
+	{"label": "Painted", "cloak": 0.0, "sash": 0.0, "leather": 0.0},
+	{"label": "Ember", "cloak": -0.495, "sash": 0.12, "leather": -0.04},
+	{"label": "Frost", "cloak": 0.045, "sash": 0.5, "leather": -0.475},
+	{"label": "Moss", "cloak": -0.205, "sash": 0.1, "leather": 0.0},
+	{"label": "Royal", "cloak": 0.215, "sash": 0.12, "leather": -0.075},
+	{"label": "Verdant", "cloak": -0.115, "sash": -0.05, "leather": -0.03},
+]
 ## How far either dye may turn the hue, as a share of the wheel. Half a turn
 ## reaches every colour; there is nothing past it.
 const RANGE: float = 0.5
@@ -33,7 +52,14 @@ static var _shader: Shader = null
 
 
 static func plain() -> Dictionary:
-	return {KEY_CLOAK: 0.0, KEY_SASH: 0.0}
+	return {KEY_CLOAK: 0.0, KEY_SASH: 0.0, KEY_LEATHER: 0.0}
+
+
+## A preset as a look.
+static func preset(index: int) -> Dictionary:
+	var entry: Dictionary = PRESETS[clampi(index, 0, PRESETS.size() - 1)]
+	return clean({KEY_CLOAK: entry["cloak"], KEY_SASH: entry["sash"],
+		KEY_LEATHER: entry["leather"]})
 
 
 ## Whatever arrived - a save, a packet, a slider - as a look that is safe to
@@ -66,7 +92,7 @@ static func same(a: Dictionary, b: Dictionary) -> bool:
 	return true
 
 
-## The two numbers, in key order, for a packet.
+## The numbers, in key order, for a packet.
 static func pack(look: Dictionary) -> Array:
 	var cleaned: Dictionary = clean(look)
 	var row: Array = []
@@ -160,3 +186,4 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 		item.material = material
 	material.set_shader_parameter("look_cloak", float(cleaned[KEY_CLOAK]))
 	material.set_shader_parameter("look_sash", float(cleaned[KEY_SASH]))
+	material.set_shader_parameter("look_leather", float(cleaned[KEY_LEATHER]))

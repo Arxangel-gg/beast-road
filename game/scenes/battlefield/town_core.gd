@@ -78,6 +78,12 @@ func _ready() -> void:
 	_fire_rng.seed = 0x8EA57
 	_setup_visual_depth()
 	_build_smoke()
+	# Shelter at night (2026-09-23): a warm light and a wide pool that come up
+	# with the dark, so the town reads as the safe place on a dark field.
+	LightKit.add_light(self, Balance.TOWN_NIGHT_LIGHT_COLOUR, Balance.TOWN_NIGHT_LIGHT_RADIUS,
+		Balance.TOWN_NIGHT_LIGHT_ENERGY, 0.04)
+	GroundGlow.lay(self, Balance.TOWN_NIGHT_LIGHT_COLOUR, Balance.TOWN_NIGHT_POOL_RADIUS,
+		Balance.TOWN_NIGHT_POOL_ALPHA)
 	_apply_stage(true)
 	ShadowKit.add_contact(visual_host if visual_host != null else self, sprite, 0.72)
 	if sprite != null and sprite.texture != null:

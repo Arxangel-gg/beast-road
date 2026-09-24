@@ -61,9 +61,11 @@ func _test_clean_and_pack() -> void:
 		or is_equal_approx(float(WardenLook.clean({"cloak": 0.2}).get("cloak")), 0.2),
 		"an integer is a number too")
 	var packed: Array = WardenLook.pack({"cloak": 0.25, "sash": -0.1})
-	_check(packed.size() == 2 and is_equal_approx(float(packed[0]), 0.25)
-		and is_equal_approx(float(packed[1]), -0.1),
-		"pack must give the two numbers in key order, got %s" % str(packed))
+	# One number a dye, in key order; the leather (2026-09-23) is appended, so
+	# a look that never set it packs it as painted.
+	_check(packed.size() == WardenLook.KEYS.size() and is_equal_approx(float(packed[0]), 0.25)
+		and is_equal_approx(float(packed[1]), -0.1) and is_equal_approx(float(packed[2]), 0.0),
+		"pack must give one number a dye in key order, got %s" % str(packed))
 	_check(WardenLook.same(WardenLook.unpack(packed), {"cloak": 0.25, "sash": -0.1}),
 		"unpack must undo pack")
 	_check(WardenLook.is_plain(WardenLook.unpack("x")),

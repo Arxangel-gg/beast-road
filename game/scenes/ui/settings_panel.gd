@@ -590,6 +590,8 @@ func _build_video(column: VBoxContainer) -> void:
 		"The road beyond what the party, its towers and the town can see is dark."))
 	column.add_child(_pref_toggle_row("Colour grade", Graphics.KEY_GRADE, Graphics.grade_enabled(),
 		"The region's tint and vignette over the whole picture."))
+	column.add_child(_pref_toggle_row("Bloom", Graphics.KEY_BLOOM, Graphics.bloom_chosen(),
+		"Torches, flames and spells bleed light into the dark around them. Rides the colour grade."))
 	column.add_child(_pref_toggle_row("Minimap", Graphics.KEY_MINIMAP, Graphics.minimap_shown(),
 		"The field at a glance. M toggles it in play."))
 	column.add_child(_pref_toggle_row("Tower ranges", Graphics.KEY_RANGE_TOWERS,

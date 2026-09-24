@@ -79,6 +79,7 @@ func _build() -> void:
 	# already the contact point at the foot of the post, so the offset is zero.
 	ShadowKit.add_contact_sized(self, Balance.TORCH_SHADOW_WIDTH)
 	_build_pool()
+	EventBus.act_started.connect(_retint_pool)
 
 	_flame = Flame.new()
 	_flame.name = "Fire"
@@ -136,7 +137,7 @@ func _build_pool() -> void:
 	# Flattened into an ellipse: the camera looks down and along, so a circle of
 	# light on the ground is a circle seen at an angle.
 	_pool.scale = Vector2(span, span * Balance.TORCH_POOL_SQUASH)
-	_pool.modulate = Color(Balance.TORCH_LIGHT_COLOUR, 0.0)
+	_pool.modulate = Color(_pool_colour(), 0.0)
 	# Under the post and the shadow, over the ground the torch stands on.
 	_pool.z_index = -2
 	add_child(_pool)
@@ -144,6 +145,25 @@ func _build_pool() -> void:
 	DayNight.phase_changed.connect(func(_p: float, _t: Color, _d: float) -> void:
 		_refresh_pool())
 	_refresh_pool()
+
+
+## The pool's colour: the flame's, as it lands on the ground under this post
+## (2026-09-23, `GroundGlow.bounced`) - a redder pool on red earth than on snow.
+## Asked again when the region changes, because the post stays and the ground
+## does not.
+func _pool_colour() -> Color:
+	var node: Node = get_parent()
+	while node != null:
+		if node is Battlefield:
+			return GroundGlow.bounced(Balance.TORCH_LIGHT_COLOUR,
+				(node as Battlefield).ground_colour(global_position))
+		node = node.get_parent()
+	return Balance.TORCH_LIGHT_COLOUR
+
+
+func _retint_pool(_act: int, _terrain_id: String) -> void:
+	if _pool != null:
+		_pool.modulate = Color(_pool_colour(), _pool.modulate.a)
 
 
 ## How bright the pool is right now: the flame's strength, by the night.

@@ -71,6 +71,8 @@ const KEY_SMOOTHING: String = "display_smoothing"
 ## preferences rather than quality switches, so none of them unlabels a preset.
 const KEY_FOG: String = "fog_of_war"
 const KEY_GRADE: String = "color_grade"
+## The bloom inside the grade's pass (2026-09-24). A look, never a fact.
+const KEY_BLOOM: String = "bloom"
 const KEY_MINIMAP: String = "minimap"
 ## **Attack range rings, each kind its own switch** (owner, 2026-09-22): the
 ## ring a tower draws when it fires and the one an enemy draws after it attacks.
@@ -574,6 +576,19 @@ static func grade_enabled() -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
 	return bool(_chosen.get(KEY_GRADE, true))
+
+
+## Whether bright things bleed light (2026-09-24). It rides the grade's pass, so
+## it needs the grade; it asks the renderer for the screen's mip chain, so it is
+## off by default on Low, where every full-screen cost counts.
+static func bloom() -> bool:
+	return grade_enabled() and bloom_chosen()
+
+
+## The switch itself, apart from whether the grade is on to carry it - what the
+## settings screen shows and the gate reads, headless included.
+static func bloom_chosen() -> bool:
+	return bool(_chosen.get(KEY_BLOOM, preset() != PRESET_LOW))
 
 
 ## Whether the fog of war covers the field. On by default; a player who

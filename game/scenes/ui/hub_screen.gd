@@ -59,6 +59,8 @@ var _grid: GridContainer
 var _close_button: Button
 var _first_button: Button = null
 var _portrait: TextureRect = null
+## The dye sliders by key, so a preset can move them.
+var _look_sliders: Dictionary = {}
 var _portrait_frames: int = 1
 ## True while a door from this room is open over it. The room hides so the
 ## door's screen is on top, and comes back when the door closes.
@@ -732,8 +734,11 @@ func _build_card() -> void:
 	# the Warden looks and nothing else). Two dyes, previewed on the portrait
 	# above as the slider moves, saved through `MetaState.set_look` so the
 	# clamp lives in one place.
+	_look_sliders.clear()
 	_card.add_child(_look_row("Cloak", WardenLook.KEY_CLOAK))
 	_card.add_child(_look_row("Sash", WardenLook.KEY_SASH))
+	_card.add_child(_look_row("Leather", WardenLook.KEY_LEATHER))
+	_card.add_child(_look_presets())
 
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
@@ -779,18 +784,44 @@ func _look_row(text: String, key: String) -> HBoxContainer:
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.value_changed.connect(func(v: float) -> void:
 		MetaState.set_look(key, v)
-		# **And the person standing in the room**, not only the portrait on
-		# the card. The card dressed its own picture and nothing else, so the
-		# owner set a colour and watched the painted Warden keep walking
-		# (2026-09-22).
-		if _session != null:
-			_session.my_look_changed()
-		elif _yard != null:
-			_yard.set_look(0, WardenLook.pack(WardenLook.worn()))
-		if _portrait != null:
-			WardenLook.dress(_portrait, WardenLook.worn()))
+		_show_the_look())
+	_look_sliders[key] = slider
 	row.add_child(slider)
 	return row
+
+
+## The presets, one press each (2026-09-23): a Warden rather than three sliders.
+func _look_presets() -> HFlowContainer:
+	var row := HFlowContainer.new()
+	row.name = "LookPresets"
+	row.add_theme_constant_override("h_separation", 6)
+	row.add_theme_constant_override("v_separation", 6)
+	for index: int in WardenLook.PRESETS.size():
+		var button := Button.new()
+		button.text = String(WardenLook.PRESETS[index]["label"])
+		button.custom_minimum_size = Vector2(0.0, 30.0)
+		button.add_theme_font_size_override("font_size", 13)
+		button.pressed.connect(func() -> void:
+			MetaState.set_whole_look(WardenLook.preset(index))
+			for key: Variant in _look_sliders:
+				var slider: HSlider = _look_sliders[key]
+				slider.set_value_no_signal(float(WardenLook.mine().get(key, 0.0)))
+			_show_the_look())
+		row.add_child(button)
+	return row
+
+
+## Shows a changed look on everything that draws this Warden in the Hold.
+func _show_the_look() -> void:
+	# **And the person standing in the room**, not only the portrait on the
+	# card. The card dressed its own picture and nothing else, so the owner set
+	# a colour and watched the painted Warden keep walking (2026-09-22).
+	if _session != null:
+		_session.my_look_changed()
+	elif _yard != null:
+		_yard.set_look(0, WardenLook.pack(WardenLook.worn()))
+	if _portrait != null:
+		WardenLook.dress(_portrait, WardenLook.worn())
 
 
 func _toggle_rename() -> void:

@@ -131,12 +131,24 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
 	_impact_material = ActorPolishScript.attach(sprite)
+	# Shades with the light's direction (2026-09-23): the pilot of the Core
+	# Keeper look, on towers first. No material, no shading - the low preset.
+	if _impact_material != null:
+		_impact_material.set_shader_parameter("shade_strength", Balance.TOWER_SHADE_STRENGTH)
+		_impact_material.set_shader_parameter("shade_relief", Balance.TOWER_SHADE_RELIEF)
+		_impact_material.set_shader_parameter("shade_reach", Balance.TOWER_SHADE_REACH)
+		_impact_material.set_shader_parameter("shade_gain", Balance.TOWER_SHADE_GAIN)
+		sprite.light_mask |= Balance.SUN_RELIEF_LAYER
 	_idle_frames = GameData.load_idle_frames(path)
 	_attack_frames = GameData.load_attack_frames(path)
 	_draw_range_ring()
 	refresh_modifiers()
 	_light = LightKit.add_light(self, TowerData.element_colour(data.element),
 		Balance.TOWER_LIGHT_RADIUS, Balance.TOWER_LIGHT_ENERGY, Balance.TOWER_LIGHT_FLICKER)
+	_light.height = Balance.TOWER_LIGHT_HEIGHT
+	# Its light on the ground at night, in its element's colour and the earth's.
+	GroundGlow.lay(self, TowerData.element_colour(data.element), Balance.TOWER_POOL_RADIUS,
+		Balance.TOWER_POOL_ALPHA)
 
 	# A tower is scenery as far as shadows go: it sits still and it is solid, so
 	# every torch near it throws its shape across the road.

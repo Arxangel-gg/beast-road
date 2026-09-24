@@ -186,6 +186,13 @@ func _dig(kind: GatherNodeData, at: Vector2, rng: RandomNumberGenerator) -> void
 	# Sorted by its foot, like everything else standing on the field.
 	sprite.offset = Vector2(0.0, -float(art.get_height()) * 0.42)
 	root.add_child(sprite)
+	# Ore and gems glow at night in their own colour (2026-09-23); timber does not.
+	var material: MaterialData = ContentDB.material(kind.material_id)
+	if material != null and material.kind != MaterialData.Kind.WOOD:
+		var halo: GroundGlow = GroundGlow.lay(sprite, Foliage.glow_colour(art),
+			float(art.get_width()) * Balance.GATHER_GLOW_REACH * 0.5,
+			Balance.GATHER_GLOW_ALPHA, 1.0, false)
+		halo.position = sprite.offset
 	(host if host != null else self).add_child(root)
 	_nodes.append({
 		"root": root, "sprite": sprite, "at": at, "id": kind.id,

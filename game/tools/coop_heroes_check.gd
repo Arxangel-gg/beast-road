@@ -316,7 +316,9 @@ func _test_a_guests_dye_reaches_the_party() -> void:
 	# And the row the host packs for everybody else now carries it, which is
 	# what reaches a third player.
 	var packed: Array = heroes.call("_look_of", slot, partner) as Array
-	_check(packed.size() == 2 and is_equal_approx(float(packed[0]), 0.3),
+	# A number a dye since the leather (2026-09-23): the row is as long as the
+	# look has keys, and a two-number request from an older build still lands.
+	_check(packed.size() == WardenLook.KEYS.size() and is_equal_approx(float(packed[0]), 0.3),
 		("the host packs %s for that seat - a third player would still see it "
 			+ "painted") % str(packed))
 	# A packet from a peer in no seat dresses nobody.
