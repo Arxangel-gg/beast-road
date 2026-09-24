@@ -190,7 +190,7 @@ func living_enemy_summary() -> String:
 	return ", ".join(names) if not names.is_empty() else "nothing"
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	# After the enemies have taken their own steps this frame, so the push
 	# resolves the overlap they just created rather than one from last frame.
 	separate_crowd(delta)
@@ -414,3 +414,10 @@ func inside_city(_at: Vector2) -> bool:
 
 func spawn_ground_zone(_at: Vector2, _dps: float, _duration: float, _radius: float) -> void:
 	pass
+
+
+## `FrameProfile` bucket "enemyfield": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"enemyfield", started)

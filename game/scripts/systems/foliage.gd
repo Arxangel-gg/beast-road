@@ -572,7 +572,7 @@ var host: Node2D = null
 ## The whole field advances on the same index, offset per plant, so this is one
 ## integer comparison per frame and a texture assignment only on the steps where
 ## the index actually changes - roughly five times a second rather than sixty.
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_glows(delta)
 	if _animated.is_empty():
 		return
@@ -1558,3 +1558,10 @@ class FoliageShadowLayer extends Node2D:
 			var at: Vector2 = shadow["at"]
 			draw_texture_rect(texture,
 				Rect2(at - Vector2.ONE * size * 0.5, Vector2.ONE * size), false)
+
+
+## `FrameProfile` bucket "foliage": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"foliage", started)

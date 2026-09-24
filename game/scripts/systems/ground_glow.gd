@@ -97,9 +97,16 @@ func _field() -> Battlefield:
 	return null
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	var lit: float = smoothstep(Balance.GROUND_GLOW_FROM, 1.0, DayNight.darkness) * strength
 	var breath: float = 0.9 + 0.1 * sin(_clock * 0.9 + _phase)
 	modulate.a = lit * breath
 	visible = modulate.a > 0.004
+
+
+## `FrameProfile` bucket "glow": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"glow", started)

@@ -52,7 +52,7 @@ func _ready() -> void:
 	set_process(true)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_life += delta
 	_clock -= delta
 	if _clock <= 0.0:
@@ -204,3 +204,10 @@ func _ground_ring(at: Vector2, radius: float, tint: Color, width: float) -> void
 		points.append(at + Vector2(cos(angle) * radius,
 			sin(angle) * radius * Balance.STRAGGLER_RING_SQUASH))
 	draw_polyline(points, tint, width, true)
+
+
+## `FrameProfile` bucket "stragglers": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"stragglers", started)

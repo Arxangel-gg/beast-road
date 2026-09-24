@@ -28,6 +28,11 @@ const REDRAW_HZ: float = 10.0
 var _splats: Array[Dictionary] = []
 var _since_redraw: float = 0.0
 var _rain_wash: float = 1.0
+## A mark laid since the last repaint. The field repaints on `REDRAW_HZ`
+## and never per mark (2026-09-24): every landing droplet used to queue a
+## repaint of all hundred and forty marks, which under a heavy fight is a
+## repaint every frame. A mark showing a tenth of a second late is nothing.
+var _dirty: bool = false
 
 
 func _ready() -> void:
@@ -92,8 +97,7 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	})
 	while _splats.size() > MAX_SPLATS:
 		_splats.remove_at(0)
-	set_process(true)
-	queue_redraw()
+	_touch()
 
 
 ## One procedural droplet, added when its visible ballistic mote reaches the
@@ -114,8 +118,19 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 	})
 	while _splats.size() > MAX_SPLATS:
 		_splats.remove_at(0)
+	_touch()
+
+
+## A mark arrived: repaint now if the clock allows, otherwise with the next
+## tick of it.
+func _touch() -> void:
 	set_process(true)
-	queue_redraw()
+	if _since_redraw >= 1.0 / REDRAW_HZ:
+		_since_redraw = 0.0
+		_dirty = false
+		queue_redraw()
+	else:
+		_dirty = true
 
 
 ## How many marks the field is holding. For the gate.
@@ -149,6 +164,7 @@ func _process(delta: float) -> void:
 	_since_redraw += delta
 	if _since_redraw >= 1.0 / REDRAW_HZ:
 		_since_redraw = 0.0
+		_dirty = false
 		queue_redraw()
 
 
@@ -159,7 +175,7 @@ func _on_weather_changed(weather_id: String) -> void:
 		else 1.0
 
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var points := PackedVector2Array()
 	var colours := PackedColorArray()
 	var indices := PackedInt32Array()
@@ -187,3 +203,10 @@ func _draw() -> void:
 	# node in the first place - a soft blob is three triangles a rim vertex, and
 	# spending a draw call each would undo that.
 	BloodInk.paint(self, points, colours, indices)
+
+
+## `FrameProfile` bucket "blood_ground": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"blood_ground", started)

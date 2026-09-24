@@ -1,6 +1,5 @@
 extends Node
 
-const BloodBurstScript = preload("res://scripts/systems/blood_burst.gd")
 
 ## The gore toggle is cosmetic and local: off creates no blood nodes; on creates
 ## a procedural ballistic burst while leaving the rest of Vfx untouched.
@@ -22,20 +21,23 @@ func _ready() -> void:
 	var layer: Node2D = stage.get_node_or_null("VfxLayer") as Node2D
 	_check(layer != null, "Vfx must create a scoped effect layer")
 
+	var motes: BloodMotes = Vfx.blood_motes()
+	_check(motes != null, "Vfx must stand the mote canvas up with the world")
 	UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, false)
 	Vfx.blood(Vector2.ZERO, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
 	_check(layer == null or layer.get_child_count() == 0,
 		"disabled blood must create no cosmetic nodes")
+	_check(motes == null or motes.live() == 0, "disabled blood must throw no motes")
 
 	UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, true)
 	Vfx.blood(Vector2.ZERO, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE,
 		Vector2(0.0, 42.0))
-	var procedural: bool = false
-	if layer != null:
-		for child: Node in layer.get_children():
-			if child.get_script() == BloodBurstScript:
-				procedural = true
-	_check(procedural, "enabled blood must create a procedural ballistic burst")
+	# **A blow allocates no node** (2026-09-24): the spray is records on one
+	# canvas, so the layer stays empty and the motes are counted instead.
+	_check(layer == null or layer.get_child_count() == 0,
+		"a blow must stand no node up; blood in the air is a record")
+	_check(motes != null and motes.live() >= Balance.VFX_BLOOD_DROPS_MIN,
+		"enabled blood must throw a ballistic spray of motes")
 
 	# The damage fact names the body that was hit. Before `at` existed, Vfx
 	# searched the hero group and a remote Warden's impact appeared on the local
@@ -44,12 +46,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var harmed_at := Vector2(123.0, 87.0)
 	EventBus.hero_damaged.emit(12.0, Vector2.ZERO, harmed_at)
-	var found_at_target: bool = false
-	if layer != null:
-		for child: Node in layer.get_children():
-			if child.get_script() == BloodBurstScript \
-					and (child as Node2D).global_position.is_equal_approx(harmed_at):
-				found_at_target = true
+	var found_at_target: bool = motes != null and motes.live_near(harmed_at, 1.0) > 0 \
+		and motes.live_near(Vector2.ZERO, 1.0) == 0
 	_check(found_at_target, "hero blood must appear on the Warden named by the damage fact")
 	_test_persistent_blood()
 	_test_the_shape_of_a_blob()

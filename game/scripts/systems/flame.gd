@@ -63,6 +63,9 @@ var _smoke: CPUParticles2D
 var _light: PointLight2D
 ## Whether the camera could see this flame on its last tick.
 var _seen: bool = true
+## The screen test's own clock, staggered per flame, so two hundred flames do
+## not each transform themselves into the viewport every frame.
+var _cull_left: float = 0.0
 
 ## A small soft dot, shared by every particle in the game. Cached because a
 ## burning city plus twenty-four torches is otherwise thirty gradient textures
@@ -116,7 +119,7 @@ func configure(flame_size: float, light_radius: float = 0.0,
 
 # --- Silhouette -------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not _lit:
 		return
 	_time += delta * Balance.FLAME_DANCE_SPEED
@@ -127,11 +130,14 @@ func _process(delta: float) -> void:
 	# This is the whole of `flame.gd`'s frame cost: three polygons rebuilt per
 	# flame per frame, times every torch on a 75x75 grid, of which a handful
 	# are ever on screen at gameplay zoom.
-	var seen: bool = _on_screen()
-	if seen != _seen:
-		_seen = seen
-		_show_particles(seen)
-	if not seen:
+	_cull_left -= delta
+	if _cull_left <= 0.0:
+		_cull_left = Balance.PARTICLE_CULL_INTERVAL * randf_range(0.7, 1.3)
+		var seen: bool = _on_screen()
+		if seen != _seen:
+			_seen = seen
+			_show_particles(seen)
+	if not _seen:
 		return
 	# **Redrawn at `FLAME_REDRAW_HZ`, not every frame.** The clock above runs
 	# at frame rate, so the dance is as smooth as the cadence it is sampled at
@@ -502,3 +508,10 @@ func set_intensity(value: float) -> void:
 
 func light() -> PointLight2D:
 	return _light
+
+
+## `FrameProfile` bucket "flame": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"flame", started)

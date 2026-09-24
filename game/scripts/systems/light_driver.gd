@@ -24,11 +24,21 @@ func setup(light: PointLight2D, base_energy: float, flicker: float) -> void:
 	DayNight.phase_changed.connect(_on_phase)
 
 
-func _process(delta: float) -> void:
+## The flicker is written at `FLAME_REDRAW_HZ`, the clock the flames already
+## draw at, rather than every frame: two hundred lights each wrote two
+## properties a frame for a wobble nobody can see above thirty a second.
+var _flicker_debt: float = 0.0
+
+
+func _process_measured(delta: float) -> void:
 	if _flicker <= 0.0 or _light == null:
 		set_process(false)
 		return
 	_seed += delta
+	_flicker_debt += delta
+	if _flicker_debt < 1.0 / Balance.FLAME_REDRAW_HZ:
+		return
+	_flicker_debt = fmod(_flicker_debt, 1.0 / Balance.FLAME_REDRAW_HZ)
 	_apply()
 
 
@@ -51,3 +61,10 @@ func _apply() -> void:
 	# Respect it here so the day/night driver cannot re-light an extinguished
 	# torch on the following frame.
 	_light.visible = _light.energy > 0.01 and _light.color.a > 0.01
+
+
+## `FrameProfile` bucket "lights": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"lights", started)

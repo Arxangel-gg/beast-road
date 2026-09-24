@@ -286,7 +286,7 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 	refresh_modifiers()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_step_wobble(delta)
 	_impact_left = maxf(_impact_left - delta, 0.0)
 	if _impact_left > 0.0 or _impact_driven:
@@ -1505,3 +1505,10 @@ func path_aoe_scale() -> float:
 ## Which path this tower took. For the sheet and for the gate.
 func path() -> int:
 	return _path
+
+
+## `FrameProfile` bucket "tower": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"tower", started)

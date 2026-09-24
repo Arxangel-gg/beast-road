@@ -269,7 +269,7 @@ func _recovery() -> bool:
 	return _healing() or currency == Balance.QUIVER_ID
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _taken:
 		return
 	_life += delta
@@ -1095,3 +1095,10 @@ func _exit_tree() -> void:
 	if _lamp != null:
 		LightKit.give_drop_light()
 		_lamp = null
+
+
+## `FrameProfile` bucket "loot": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"loot", started)

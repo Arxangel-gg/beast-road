@@ -5771,6 +5771,12 @@ const VFX_INK_RAYS_MAX: int = 200
 ## The painted records - impact and muzzle art, forged sheets - and the numbers.
 const VFX_INK_ART_MAX: int = 160
 const VFX_INK_NUMBERS_MAX: int = 120
+## Drops of blood in the air at once (`BloodMotes`). A blow throws five to
+## nine for half a second, so this is about forty blows in flight; past it
+## the oldest land early. Every mote in flight is a soft dot drawn each
+## frame, so the cap is the frame's bound under a fight nobody can watch
+## the whole of - measured at 3,500 blob builds a frame before it existed.
+const VFX_BLOOD_MOTES_MAX: int = 300
 const VFX_SPARK_SPREAD: float = 0.9
 
 ## Floating damage numbers. [TUNE]

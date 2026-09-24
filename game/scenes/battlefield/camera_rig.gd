@@ -58,7 +58,7 @@ func _exit_tree() -> void:
 	Sfx.stop_listening()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	Sfx.listen_from(global_position)
 	var zoom_t: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)
 	zoom = zoom.lerp(Vector2.ONE * _wanted_zoom, zoom_t)
@@ -331,3 +331,10 @@ func _on_shake_requested(magnitude: float, duration: float,
 	_shake_direction = direction.normalized() if direction != Vector2.ZERO \
 		else Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
 	_rumble_seed = _rng.randf_range(0.0, TAU)
+
+
+## `FrameProfile` bucket "camera": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"camera", started)

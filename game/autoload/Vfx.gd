@@ -1,6 +1,5 @@
 extends Node
 
-const BloodBurstScript = preload("res://scripts/systems/blood_burst.gd")
 
 ## Every transient visual in the game: sparks, damage numbers, muzzle flashes,
 ## rings, screen flashes.
@@ -31,6 +30,10 @@ var _container: Node2D = null
 ## Blood on the ground. Outlives individual effects, so it is kept apart from
 ## them - see `bind_world`.
 var _ground: BloodField = null
+## Every drop in the air, on one canvas (2026-09-24). A blow used to stand a
+## `BloodBurst` node up, and a heavy stretch on Act X had five hundred of
+## them alive at once.
+var _motes: BloodMotes = null
 ## The drawn canvas for sparks, rings, flashes, motes and rays (2026-09-24):
 ## records on one `_draw` rather than nodes with tweens. See `VfxInk`.
 var _ink: VfxInk = null
@@ -333,6 +336,10 @@ func bind_world(node: Node2D) -> void:
 	_ground = BloodField.new()
 	_ground.name = "BloodField"
 	node.add_child(_ground)
+	_motes = BloodMotes.new()
+	_motes.name = "BloodMotes"
+	_motes.configure(_ground, _blood_rng.randi())
+	node.add_child(_motes)
 
 	# Beside the layer rather than in it: the layer's children are the
 	# short-lived nodes that remain, and the gates count them.
@@ -352,6 +359,11 @@ func ink_flat() -> VfxInk:
 	return _ink_flat if _ink_flat != null and is_instance_valid(_ink_flat) else null
 
 
+## The blood in the air, for the gates. Null before a world is bound.
+func blood_motes() -> BloodMotes:
+	return _motes if _motes != null and is_instance_valid(_motes) else null
+
+
 func clear() -> void:
 	if _container != null and is_instance_valid(_container):
 		for child: Node in _container.get_children():
@@ -362,6 +374,8 @@ func clear() -> void:
 		_ink_flat.clear()
 	if _ground != null and is_instance_valid(_ground):
 		_ground.wipe()
+	if _motes != null and is_instance_valid(_motes):
+		_motes.clear()
 	clear_vignette()
 
 
@@ -1422,10 +1436,9 @@ func blood(at: Vector2, direction: Vector2, size: float,
 	var floor_at: Vector2 = ground_at
 	if floor_at == Vector2.INF:
 		floor_at = at + Vector2(0.0, size * 0.62)
-	var burst: Node2D = BloodBurstScript.new() as Node2D
-	burst.configure(at, floor_at, direction, size, _ground, _blood_rng)
-	_track(burst)
-	burst.global_position = at
+	if _motes == null or not is_instance_valid(_motes):
+		return
+	_motes.burst(at, floor_at, direction, size, _blood_rng)
 
 
 func flash_at(at: Vector2, colour: Color, radius: float, finish_when_paused: bool = false) -> void:

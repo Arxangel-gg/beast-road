@@ -137,6 +137,15 @@ var _render_gpu_ms_sum: float = 0.0
 var _hitch_ledger: Array[Dictionary] = []
 var _nodes_last: int = 0
 var _textures_last: float = 0.0
+var _bodies_last: int = 0
+## `--trace=FROM:TO` prints every frame inside that window of measured
+## seconds with its cost, what arrived, and every EventBus signal that fired
+## in it (2026-09-24). A burst of hitches at a fixed second on a fixed seed
+## is one scripted event, and the ledger can say when and never what.
+var _trace_from: float = -1.0
+var _trace_to: float = -1.0
+var _trace_fired: PackedStringArray = []
+var _listening: bool = false
 
 ## Sampled once a second rather than per frame: the question is a trend over
 ## minutes, and sixty samples a second only makes the array bigger.
@@ -190,6 +199,11 @@ func _ready() -> void:
 				_disabled.append(piece.strip_edges().to_lower())
 		elif argument.begins_with("--act="):
 			_act = clampi(int(argument.split("=")[1]), 1, Balance.FINAL_ASCENT_ACT)
+		elif argument.begins_with("--trace="):
+			var span: PackedStringArray = argument.trim_prefix("--trace=").split(":")
+			if span.size() == 2:
+				_trace_from = float(span[0])
+				_trace_to = float(span[1])
 		elif argument == "--build":
 			_build = true
 		elif argument == "--idle":
@@ -342,7 +356,23 @@ func _build_defence() -> void:
 
 
 ## Leaves Preparation so waves actually arrive.
+## Every signal on the bus, noted by name into the frame it fired in. A lambda
+## with seven optional parameters accepts any arity the bus declares.
+func _listen_to_the_bus() -> void:
+	if _trace_to <= 0.0 or _listening:
+		return
+	_listening = true
+	FrameProfile.enabled = true
+	for info: Dictionary in EventBus.get_signal_list():
+		var named: String = String(info["name"])
+		var note := func(_a: Variant = null, _b: Variant = null, _c: Variant = null, _d: Variant = null,
+				_e: Variant = null, _f: Variant = null, _g: Variant = null, _h: Variant = null) -> void:
+			_trace_fired.append(named)
+		EventBus.connect(named, note)
+
+
 func _start_fighting() -> void:
+	_listen_to_the_bus()
 	for node: Node in _all(get_tree().root):
 		if node is Run:
 			# Performance measurement is not an onboarding test. Confirm uncovered
@@ -388,10 +418,19 @@ func _process(delta: float) -> void:
 	# memory that appeared are the two signatures of a load mid-fight.
 	var nodes_now: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var textures_now: float = float(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED))
+	var bodies_now: int = get_tree().get_nodes_in_group("enemies").size()
+	var buckets: String = FrameProfile.take() if _trace_to > 0.0 else ""
+	if _trace_to > 0.0 and _elapsed >= _trace_from and _elapsed <= _trace_to:
+		print("[trace] %6.2fs %5.1f ms  nodes %+4d  bodies %+3d  %s" % [_elapsed, ms,
+			nodes_now - _nodes_last, bodies_now - _bodies_last, " ".join(_trace_fired)])
+		print("[profile] %s" % buckets)
+	_trace_fired.clear()
 	if ms > HITCH_MS:
 		_hitches += 1
 		_hitch_ledger.append({"at": _elapsed, "ms": ms, "nodes": nodes_now - _nodes_last,
-			"textures_kb": (textures_now - _textures_last) / 1024.0})
+			"textures_kb": (textures_now - _textures_last) / 1024.0,
+			"bodies": bodies_now - _bodies_last})
+	_bodies_last = bodies_now
 	_nodes_last = nodes_now
 	_textures_last = textures_now
 
@@ -477,6 +516,42 @@ func _check_timing() -> void:
 		% [average, fps, p99, _worst_ms])
 	_notes.append("hitches over %.0f ms: %d  (%.1f per minute, budget %.1f)"
 		% [HITCH_MS, _hitches, per_minute, MAX_HITCHES_PER_MINUTE])
+	# **Whether the hitches are a beat** (2026-09-24). Three hundred hitches
+	# in ninety seconds is either one burst or a clock: the eight worst below
+	# could not tell them apart, and a stutter at a fixed rate names the
+	# system that ticks at that rate. Measured on the chronological ledger,
+	# before it is sorted by size.
+	if _hitch_ledger.size() >= 4:
+		var gaps: Array[float] = []
+		for index: int in range(1, _hitch_ledger.size()):
+			gaps.append(float(_hitch_ledger[index]["at"]) - float(_hitch_ledger[index - 1]["at"]))
+		gaps.sort()
+		var median: float = gaps[gaps.size() / 2]
+		var near: int = 0
+		for gap: float in gaps:
+			if median > 0.0 and absf(gap - median) <= median * 0.2:
+				near += 1
+		var buckets: Dictionary = {}
+		for hitch: Dictionary in _hitch_ledger:
+			var bucket: int = int(float(hitch["at"]) / 10.0) * 10
+			buckets[bucket] = int(buckets.get(bucket, 0)) + 1
+		var keys: Array = buckets.keys()
+		keys.sort()
+		var spread: PackedStringArray = []
+		for key: Variant in keys:
+			spread.append("%ds:%d" % [int(key), int(buckets[key])])
+		var spawned: int = 0
+		var fell: int = 0
+		for hitch: Dictionary in _hitch_ledger:
+			if int(hitch.get("bodies", 0)) > 0:
+				spawned += 1
+			elif int(hitch.get("bodies", 0)) < 0:
+				fell += 1
+		_notes.append("hitch beat: median gap %.2fs (%.1f Hz), %d of %d gaps within 20%% of it; "
+			% [median, 1.0 / maxf(median, 0.001), near, gaps.size()]
+			+ "per 10s %s" % ", ".join(spread))
+		_notes.append("hitch frames: %d saw a body arrive, %d saw one leave, %d neither"
+			% [spawned, fell, _hitch_ledger.size() - spawned - fell])
 	# The worst eight, with what arrived in the frame: a hitch with a texture
 	# jump is a load, one with a node jump is a spawn, one with neither is
 	# script time.
@@ -489,8 +564,9 @@ func _check_timing() -> void:
 		_notes.append("hitches that loaded textures: %d of %d" % [loads, _hitch_ledger.size()])
 	for index: int in mini(_hitch_ledger.size(), 8):
 		var hitch: Dictionary = _hitch_ledger[index]
-		_notes.append("  hitch %.1f ms at %.0fs  nodes %+d  textures %+.0f KB" % [
-			float(hitch["ms"]), float(hitch["at"]), int(hitch["nodes"]), float(hitch["textures_kb"])])
+		_notes.append("  hitch %.1f ms at %.1fs  nodes %+d  bodies %+d  textures %+.0f KB" % [
+			float(hitch["ms"]), float(hitch["at"]), int(hitch["nodes"]), int(hitch.get("bodies", 0)),
+			float(hitch["textures_kb"])])
 	_notes.append("render objects %d  primitives %d  draw calls %d" % [
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
@@ -503,15 +579,21 @@ func _check_timing() -> void:
 	# improve the frame time at all - so 13-14 ms was going somewhere none of the
 	# quality settings touch, and the report could not say where. A total with no
 	# breakdown tells you that you have a problem and nothing about whose it is.
+	#
+	# **`TIME_PROCESS` and `TIME_PHYSICS_PROCESS` are each second's worst
+	# frame**, refreshed once a second (`Main::iteration` hands the monitor
+	# `process_max`), which is why a 'process' of thirty could sit beside an
+	# average frame of twenty on 2026-09-24 and read as the renderer being
+	# half the frame. The viewport's own render times are per frame. Said on
+	# the line, so the two are not subtracted from each other again.
 	var sampled: float = float(maxi(_frame_ms.size(), 1))
-	var script_ms: float = _process_ms_sum / sampled
-	var physics_ms: float = _physics_ms_sum / sampled
+	var process_worst: float = _process_ms_sum / sampled
+	var physics_worst: float = _physics_ms_sum / sampled
 	var render_cpu: float = _render_cpu_ms_sum / sampled
 	var render_gpu: float = _render_gpu_ms_sum / sampled
-	_notes.append(("frame split  process %.1f ms (the renderer's cpu %.1f of it)  "
-		+ "physics %.1f ms  gpu %.1f ms  rest %.1f ms")
-		% [script_ms, render_cpu, physics_ms, render_gpu,
-			maxf(average - script_ms - physics_ms, 0.0)])
+	_notes.append(("frame split  renderer cpu %.1f ms  gpu %.1f ms per frame;  "
+		+ "each second's worst process frame %.1f ms, worst physics %.1f ms")
+		% [render_cpu, render_gpu, process_worst, physics_worst])
 
 	if not _has_renderer():
 		_notes.append("timing NOT asserted: the dummy renderer does no GPU work, "

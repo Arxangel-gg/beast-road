@@ -306,7 +306,7 @@ func _gusts() -> void:
 ## **An air the camera cannot see rests** (2026-09-24): forty towers' emitters
 ## were simulated every frame for a camera that sees eight. Hidden rather
 ## than stopped, so a tower panned onto is mid-air rather than starting empty.
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_cull_left -= delta
 	if _cull_left > 0.0:
 		return
@@ -315,3 +315,10 @@ func _process(delta: float) -> void:
 	if seen != _seen:
 		_seen = seen
 		visible = seen
+
+
+## `FrameProfile` bucket "aura": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"aura", started)

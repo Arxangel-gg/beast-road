@@ -298,7 +298,7 @@ func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:
 
 # --- The clock --------------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	var paused: bool = get_tree() != null and get_tree().paused
 	var moved: bool = false
 	moved = _age(_sparks, delta, paused) or moved
@@ -339,7 +339,7 @@ func _age(records: Array[Dictionary], delta: float, paused: bool) -> bool:
 
 # --- The picture ------------------------------------------------------------------
 
-func _draw() -> void:
+func _draw_measured() -> void:
 	var inverse: Transform2D = global_transform.affine_inverse()
 	_draw_sparks(inverse)
 	_draw_rays(inverse)
@@ -595,3 +595,17 @@ func _draw_numbers(inverse: Transform2D) -> void:
 			8 if big else 6, Color(0.02, 0.04, 0.05, 0.9 * colour.a))
 		draw_string(_font, pen, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## `FrameProfile` bucket "ink_draw": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"ink_draw", started)
+
+
+## `FrameProfile` bucket "ink": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"ink", started)

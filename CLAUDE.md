@@ -8800,8 +8800,87 @@ the town's plots ticked every frame under the battlefield for a camera that
 was elsewhere. A hidden scope's `process_mode` is `DISABLED` now, and the
 battlefield's never is, because leaving the fight has to cost.
 
-The census still says: a hundred torches at fifteen canvas items each, nine
-hundred painted plants, a `ShaderMaterial` per drop.
+**And every number before this one was taken at 1440p.** The project opens
+fullscreen at the display's native size and `perf_check` never pinned its
+window, so the GDD's "60 FPS at 1080p" had been measured on the owner's
+1440p monitor all along. It pins 1920x1080 windowed now and prints the size
+(`--native` measures the display as it is). At 1080p, after the caches and
+the scopes: **21.5 ms (46 fps), GPU 6.3 ms, 1,075 draw calls, three texture
+hitches in ninety seconds.** The GPU barely moved from 1440p to 1080p, and
+`--off=lights` and the Low preset moved it by nothing at all - so its cost
+is per draw call, not per pixel or per light, and the render CPU is the same
+draw calls being submitted. **The lever now is the number of things drawn.**
+
+**The torches were the first**, at fifteen canvas items each: the ironwork
+(four polygons and the coals) is one `_draw` on the torch, the flame's glow
+is drawn by the flame on its own additive material rather than a sprite
+under it, and the rekindle wisp exists only while a relight is held. Canvas
+items 5,611 to about 4,800; **20.1 ms (50 fps), 998 draw calls.** What the
+census names next: the health bars at three items each, the nine hundred
+painted plants sorted one by one against the bodies, and a `ShaderMaterial`
+per loot drop.
+
+**A frame is profiled by system, and the heavy stretch was the blood, as of
+2026-09-24 (night).** The hitch ledger's worst eight were all at 32-33
+seconds, and a headless trace of that window - every frame with its cost,
+what arrived, and every bus signal fired in it - read **20-36 ms a frame
+against a 9 ms road either side**, with three to sixteen `camera_impact`
+emissions a frame. A blow is where the impact is announced, so the stretch
+was several hundred blows a second, and something in the blow path cost a
+millisecond each.
+
+**It was `Vfx.blood`, which stood a node up per blow.** `BloodBurst` was the
+one hit effect the ink pass never reached: five to nine motes on arcs, each
+rebuilt as a lobed blob in GDScript every frame for half a second, and every
+landing droplet queuing a repaint of all hundred and forty ground marks. Five
+hundred of those nodes were alive at once. `BloodMotes` is one canvas for
+every drop in the air, on packed arrays, drawing the flames' own soft dot
+stretched along each drop's velocity - a three-pixel drop cannot be told from
+a lobed fan, and the ground keeps the lobes where a mark is large and looked
+at. `BloodField` repaints on its own `REDRAW_HZ` and never per mark. Capped at
+`VFX_BLOOD_MOTES_MAX`; `blood_vfx_check` and `frame_budget_check` count
+records where they counted nodes.
+
+**And a bisect could never have named it**, which is why `FrameProfile`
+exists beside it: the bisect holds the field with its bodies immortal, so it
+never dies, never drops loot and never sees the stretch. `perf_check --trace`
+turns the profile on, every system's tick or draw is wrapped in a four-line
+timer (`_process_measured`, bucket `enemy`, `tower`, `blow`, `ink_draw`,
+`fog`...), and each trace frame prints its buckets. It cost one
+`Time.get_ticks_usec()` a site when off. What it named after the blood:
+
+    blood_air   4.56 ms   every frame, the cap full
+    fog         5.5 ms    ten times a second
+    trample     2.8 ms    fifteen times a second
+
+**The fog re-stamped a hundred and forty circles that never move and then
+walked every cell.** Towers, the town and the torches are flagged `static` by
+the battlefield now; `FogOfWar` stamps them into a layer once and again only
+when their set changes - a torch's reach quantised to whole cells, because its
+strength drifts every tick and a layer rebuilt for a pixel is the full stamp
+back - and a tick copies that layer, stamps the few that move over it, and
+touches the bytes only in the cells a mover lit. The explored layer and the
+bytes are kept beside every stamp, so the pass over all 7,569 cells is gone.
+`reveal_all` writes the bytes too, which it never did.
+
+**The trample decayed and republished thirteen thousand cells to move a few
+hundred.** `TrampleField` keeps a live list; a cell that decays to nothing
+writes its neutral bytes once and leaves it.
+
+**Measured, headless, on the same seed and window: 20.1 ms mean and 88 frames
+over 20 became 12.9 ms mean, 17.7 worst and none over 20**; the whole run 11.3
+to 9.5 ms, p99 22.2 to 13.9. Script is about 6 ms of that frame now - bodies
+1.5, towers 1.1, the animals 0.7, the ink 0.7, the blows 0.5 - and the engine's
+own floor is the rest. **`TIME_PROCESS` is each second's worst frame**, not an
+average: `perf_check`'s split line said "process 30 ms" beside a 20 ms
+average frame and the label now says what it is. The ledger also says whether
+its hitches are a beat and what changed on each hitch frame, because three
+hundred hitches in ninety seconds is either a clock or a burst and the eight
+worst could not tell.
+
+**Not yet re-measured on the renderer.** Every number here is headless; the
+windowed frame at 1080p was 20.1 ms before these three cuts and the next
+number wants the screen for ninety seconds.
 
 ### The three escape hatches — and why there are only three
 

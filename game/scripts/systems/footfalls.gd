@@ -130,7 +130,7 @@ func _ready() -> void:
 	set_process(true)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	var step: float = 1.0 / maxf(Balance.FOOTFALL_HZ, 1.0)
 	if _clock < step:
@@ -253,3 +253,10 @@ func _leaf_burst(at: Vector2, way: Vector2, effort: float, weight: float,
 ## How many marks are alive. For the gate, which measures rather than asserts.
 func live_marks() -> int:
 	return _marks.live() if _marks != null else 0
+
+
+## `FrameProfile` bucket "footfalls": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"footfalls", started)

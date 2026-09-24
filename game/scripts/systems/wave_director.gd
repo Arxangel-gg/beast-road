@@ -70,7 +70,7 @@ func resume_after_breather() -> void:
 	_wave_timer = minf(_wave_timer, Balance.WAVE_BREATHER_RESUME_SECONDS)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not _running:
 		return
 	# **A guest never runs waves.**
@@ -818,3 +818,10 @@ func _on_act_started(_act: int, _terrain_id: String) -> void:
 		return
 	# Give the new terrain a breath, but never a full idle interval.
 	_wave_timer = minf(_wave_timer, Balance.WAVE_INTERVAL * 0.55)
+
+
+## `FrameProfile` bucket "director": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"director", started)

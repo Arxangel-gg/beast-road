@@ -746,7 +746,7 @@ func _ready() -> void:
 	_on_scope_changed(int(GameDirector.current_scope))
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if _undo_button != null and battlefield != null:
 		var left: float = battlefield.undo_seconds_left()
 		_undo_button.visible = left > 0.0
@@ -6394,3 +6394,10 @@ func _place_spirit_panel() -> void:
 	var column: float = maxf(nav_column_width() + SPIRIT_PANEL_GAP, NAV_STRIP)
 	_spirit_panel.offset_left = -(column + SPIRIT_PANEL_WIDTH)
 	_spirit_panel.offset_right = -column
+
+
+## `FrameProfile` bucket "hud": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"hud", started)

@@ -160,7 +160,7 @@ func _aim() -> void:
 	rotation = _direction.angle()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not _aimed:
 		_aim()
 	_life += delta
@@ -264,7 +264,7 @@ func _shed_mote() -> void:
 ## What this node draws itself: the head - painted art or the element's own
 ## silhouette - the ember, and a lob's shadow. Everything that is light is on
 ## the additive child.
-func _draw() -> void:
+func _draw_measured() -> void:
 	var at: Vector2 = to_local(_drawn_at())
 	if _shot == TowerData.Shot.LOB:
 		# The shadow stays on the ground under the shot, smaller and fainter
@@ -580,3 +580,17 @@ class ProjectileGlow extends Node2D:
 	func _draw() -> void:
 		if shot != null and is_instance_valid(shot):
 			shot.draw_light(self)
+
+
+## `FrameProfile` bucket "shot": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"shot", started)
+
+
+## `FrameProfile` bucket "shot_draw": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"shot_draw", started)

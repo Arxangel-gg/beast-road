@@ -114,7 +114,7 @@ func _exit_tree() -> void:
 		LightKit.give_shot_light()
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_life += delta
 	if _life >= Balance.ENEMY_PROJECTILE_MAX_LIFE:
 		queue_free()
@@ -259,7 +259,7 @@ func _land_the_look() -> void:
 ## the drawing's transform, never to `global_position`, so a shot that wobbles
 ## still hits exactly where it flies - the bound every tower shot style is held
 ## to, in the other direction.
-func _draw() -> void:
+func _draw_measured() -> void:
 	var pulse: float = sin(_life * Balance.ENEMY_PROJECTILE_PULSE_SPEED) * 0.5 + 0.5
 	var size: float = Balance.ENEMY_PROJECTILE_HEAD_RADIUS * head_scale
 	# Drawn in the node's own frame, which already faces the flight: a sway is
@@ -418,3 +418,17 @@ class EnemyShotGlow extends Node2D:
 	func _draw() -> void:
 		if shot != null and is_instance_valid(shot):
 			shot.draw_ribbon(self)
+
+
+## `FrameProfile` bucket "eshot": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"eshot", started)
+
+
+## `FrameProfile` bucket "eshot_draw": the real work is `_draw_measured` above.
+func _draw() -> void:
+	var started: int = Time.get_ticks_usec()
+	_draw_measured()
+	FrameProfile.add(&"eshot_draw", started)

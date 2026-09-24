@@ -287,7 +287,7 @@ func reset(wet: float = Balance.CLIMATE_WET_REST) -> void:
 
 # --- The simulation --------------------------------------------------------------------
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_timer -= delta
 	if _timer > 0.0:
 		return
@@ -502,3 +502,10 @@ func _draw() -> void:
 		draw_string(font, centre + Vector2(-_cell * 0.42, 22.0), "%s %s%s" % [
 			TempBand.keys()[temp_band], WetBand.keys()[wet_band], " *" if _awake[index] != 0 else ""],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1.0, 0.9, 0.6, 0.8))
+
+
+## `FrameProfile` bucket "climate": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"climate", started)

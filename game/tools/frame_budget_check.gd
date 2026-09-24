@@ -61,6 +61,7 @@ func _test_a_hit_allocates_no_node() -> void:
 		Vfx.impact(at, TowerData.Element.FIRE, Color(1.0, 0.6, 0.2), 48.0)
 		Vfx.forge_burst(at, 80.0)
 		Vfx.spark(at, Color.WHITE, 1, Vector2.UP, 120.0)
+		Vfx.blood(at, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
 	await get_tree().process_frame
 	var stood: int = layer.get_child_count() if layer != null else -1
 	_check(stood == 0,
@@ -78,6 +79,10 @@ func _test_a_hit_allocates_no_node() -> void:
 		"forty forged bursts should be at least forty records, got %d" % light.live_art())
 	_check(light.live_sparks() == 40,
 		"forty sparks should be forty records, got %d" % light.live_sparks())
+	var motes: BloodMotes = Vfx.blood_motes()
+	_check(motes != null and motes.live() >= 40 * Balance.VFX_BLOOD_DROPS_MIN
+		and motes.live() <= Balance.VFX_BLOOD_MOTES_MAX,
+		"forty blows' blood should be records in the air, got %d" % (motes.live() if motes != null else -1))
 	_check(light.live_rings() == 0 and light.live() > 80,
 		"the muzzle's tongue and flash land on the light canvas (%d live)" % light.live())
 	if ResourceLoader.exists(Vfx.IMPACT_ART_FORMAT % "fire"):
@@ -158,20 +163,22 @@ func _test_shadows_are_the_nearest_few() -> void:
 func _test_an_unseen_emitter_rests() -> void:
 	var far := Vector2(-9000.0, -9000.0)
 	var near := Vector2(200.0, 200.0)
-	var step: float = Balance.PARTICLE_CULL_INTERVAL + 0.01
+	# The flame staggers its clock up to 1.3x the interval, so one tick this
+	# long is past every emitter's next look.
+	var step: float = Balance.PARTICLE_CULL_INTERVAL * 1.3 + 0.01
 
 	var flame := Flame.new()
 	_world.add_child(flame)
 	flame.configure(16.0)
 	flame.position = far
-	flame._process(0.05)
+	flame._process(step)
 	var embers: CPUParticles2D = flame.get("_embers") as CPUParticles2D
 	var smoke: CPUParticles2D = flame.get("_smoke") as CPUParticles2D
 	_check(embers != null and smoke != null, "a configured flame has embers and smoke")
 	_check(embers != null and not embers.visible and smoke != null and not smoke.visible,
 		"a flame far off the screen still simulated its embers")
 	flame.position = near
-	flame._process(0.05)
+	flame._process(step)
 	_check(embers != null and embers.visible and smoke != null and smoke.visible,
 		"a flame back in view did not wake its embers")
 	flame.free()

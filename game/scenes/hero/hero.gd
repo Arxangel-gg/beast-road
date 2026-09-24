@@ -484,7 +484,7 @@ func _ready() -> void:
 	_build_aim_guide()
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process_measured(delta: float) -> void:
 	_tick_timers(delta)
 
 	if not is_alive():
@@ -3191,3 +3191,10 @@ func telling_blow(enemy: Node2D) -> float:
 	if RunState.rng("combat").randf() >= chance:
 		return 1.0
 	return 2.0
+
+
+## `FrameProfile` bucket "hero": the real work is `_physics_process_measured` above.
+func _physics_process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_physics_process_measured(delta)
+	FrameProfile.add(&"hero", started)

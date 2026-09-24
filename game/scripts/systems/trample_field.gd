@@ -53,6 +53,13 @@ var _texture: ImageTexture = null
 var _clock: float = 0.0
 var _last: Dictionary = {}
 var _on: bool = true
+## **Only the trodden cells cost anything** (2026-09-24). The decay and
+## the publish walked all thirteen thousand cells fifteen times a second -
+## 2.8 ms a stamp, in script - when a few hundred were ever pressed. The
+## live list is every cell with weight in it; a cell that decays to nothing
+## writes its neutral bytes once and leaves the list.
+var _live: PackedInt32Array = PackedInt32Array()
+var _in_live: PackedByteArray = PackedByteArray()
 
 
 func _ready() -> void:
@@ -62,6 +69,7 @@ func _ready() -> void:
 	_push_x.resize(count)
 	_push_y.resize(count)
 	_weight.resize(count)
+	_in_live.resize(count)
 	_bytes.resize(count * 3)
 	_clear()
 	_image = Image.create_from_data(_across, _across, false, FORMAT, _bytes)
@@ -73,6 +81,8 @@ func _clear() -> void:
 	_push_x.fill(0.0)
 	_push_y.fill(0.0)
 	_weight.fill(0.0)
+	_in_live.fill(0)
+	_live = PackedInt32Array()
 	for i: int in _bytes.size():
 		_bytes[i] = 128 if i % 3 < 2 else 0
 
@@ -95,7 +105,7 @@ func set_enabled(on: bool) -> void:
 	_on = on
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not _on or _image == null:
 		return
 	_clock += delta
@@ -126,10 +136,23 @@ func _stamp(delta: float) -> void:
 	# Everything eases back first, so a plant springs up behind whatever passed
 	# rather than staying flat for the rest of the act.
 	var keep: float = exp(-delta / maxf(Balance.FOLIAGE_TRAMPLE_SPRING, 0.05))
-	for i: int in _weight.size():
-		_weight[i] *= keep
+	var survivors := PackedInt32Array()
+	for i: int in _live:
+		var weight: float = _weight[i] * keep
+		if weight < 0.004:
+			_weight[i] = 0.0
+			_push_x[i] = 0.0
+			_push_y[i] = 0.0
+			_in_live[i] = 0
+			_bytes[i * 3] = 128
+			_bytes[i * 3 + 1] = 128
+			_bytes[i * 3 + 2] = 0
+			continue
+		_weight[i] = weight
 		_push_x[i] *= keep
 		_push_y[i] *= keep
+		survivors.append(i)
+	_live = survivors
 	var seen: Dictionary = {}
 	for body: Node2D in _movers():
 		var at: Vector2 = body.global_position
@@ -162,6 +185,9 @@ func _press(at: Vector2, way: Vector2, radius: float) -> void:
 				continue
 			var strength: float = 1.0 - away * away
 			var i: int = y * _across + x
+			if _in_live[i] == 0:
+				_in_live[i] = 1
+				_live.append(i)
 			_weight[i] = minf(_weight[i] + strength, 1.0)
 			_push_x[i] = clampf(_push_x[i] + way.x * strength, -1.0, 1.0)
 			_push_y[i] = clampf(_push_y[i] + way.y * strength, -1.0, 1.0)
@@ -175,7 +201,7 @@ func _cell_of(at: Vector2) -> Vector2i:
 
 
 func _publish_bytes() -> void:
-	for i: int in _weight.size():
+	for i: int in _live:
 		_bytes[i * 3] = int(clampf((_push_x[i] * 0.5 + 0.5) * 255.0, 0.0, 255.0))
 		_bytes[i * 3 + 1] = int(clampf((_push_y[i] * 0.5 + 0.5) * 255.0, 0.0, 255.0))
 		_bytes[i * 3 + 2] = int(clampf(_weight[i] * 255.0, 0.0, 255.0))
@@ -204,3 +230,10 @@ func laid_at(at: Vector2) -> Vector2:
 
 func cells_across() -> int:
 	return _across
+
+
+## `FrameProfile` bucket "trample": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"trample", started)

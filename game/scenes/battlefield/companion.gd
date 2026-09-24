@@ -246,7 +246,7 @@ func _refresh_bar() -> void:
 	_bar.visible = ratio < 0.999 and _recovering <= 0.0
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process_measured(delta: float) -> void:
 	if data == null:
 		return
 	if _recovering > 0.0:
@@ -738,3 +738,10 @@ func feed(kind: FishData) -> void:
 	Vfx.ring(global_position, 60.0, kind.rarity_colour(), 0.45, 4.0)
 	Vfx.spark(global_position, kind.rarity_colour(), 9, Vector2.UP, 150.0)
 	Sfx.play("sfx_ui_confirm", -3.0)
+
+
+## `FrameProfile` bucket "companion": the real work is `_physics_process_measured` above.
+func _physics_process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_physics_process_measured(delta)
+	FrameProfile.add(&"companion", started)

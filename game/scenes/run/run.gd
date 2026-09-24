@@ -231,7 +231,7 @@ func _ready() -> void:
 	_enter_preparation(true)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	# **The clock waits out the grace.** The owner's own reading of it:
@@ -1496,3 +1496,10 @@ func _show_the_fallen(boss_id: String, act: int) -> void:
 func _on_walk_finished() -> void:
 	await get_tree().create_timer(Balance.WALK_ENDING_SECONDS).timeout
 	GameDirector.end_walk(true)
+
+
+## `FrameProfile` bucket "run": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"run", started)

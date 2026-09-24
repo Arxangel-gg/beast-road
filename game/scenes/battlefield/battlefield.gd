@@ -309,7 +309,7 @@ func _ready() -> void:
 		ActStart.outfit(self)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	# Counts down in real time rather than on the wave clock, so a ration taken
 	# at the end of one wave still costs the player something at the start of the
 	# next. It is suspended with everything else during a raid, because
@@ -3409,10 +3409,14 @@ func _vision_sources() -> Array:
 	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
 		var tower: Tower = node as Tower
 		if tower != null and is_instance_valid(tower):
+			# Static: the fog keeps a layer of what does not move and re-stamps
+			# it only when this list changes (2026-09-24).
 			out.append({"at": tower.global_position,
-				"radius": tower.effective_range() + Balance.FOG_VISION_TOWER_MARGIN})
+				"radius": tower.effective_range() + Balance.FOG_VISION_TOWER_MARGIN,
+				"static": true})
 	if town != null and is_instance_valid(town):
-		out.append({"at": town.global_position, "radius": Balance.FOG_VISION_TOWN})
+		out.append({"at": town.global_position, "radius": Balance.FOG_VISION_TOWN,
+			"static": true})
 	# A lit torch is sight down the road it stands on, by how strongly it burns.
 	# A guttering one sees less, a dead one nothing - which is one more reason
 	# to walk out and relight it.
@@ -3420,5 +3424,13 @@ func _vision_sources() -> Array:
 		var torch := node as Torch
 		if torch != null and is_instance_valid(torch) and torch.is_lit():
 			out.append({"at": torch.global_position,
-				"radius": Balance.FOG_VISION_TORCH * torch.light_strength()})
+				"radius": Balance.FOG_VISION_TORCH * torch.light_strength(),
+				"static": true})
 	return out
+
+
+## `FrameProfile` bucket "field": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"field", started)

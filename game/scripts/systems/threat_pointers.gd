@@ -34,7 +34,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_life += delta
 	_clock -= delta
 	if _clock <= 0.0:
@@ -130,3 +130,10 @@ func _draw() -> void:
 		draw_colored_polygon(rim, Color(0.05, 0.04, 0.03, 0.75))
 		draw_colored_polygon(arrow, Color(tint, 0.7 + 0.3 * beat))
 		draw_circle(at - facing * size * 0.9, size * 0.32, Color(tint, 0.85))
+
+
+## `FrameProfile` bucket "pointers": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"pointers", started)

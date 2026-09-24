@@ -166,7 +166,7 @@ func _enemy_aim(body: Node2D) -> Vector2:
 	return line.normalized() if line.length() > 1.0 else Vector2.ZERO
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_clock += delta
 	var live: Dictionary = {}
 	for key: Variant in _rings:
@@ -303,3 +303,10 @@ func _arc(at: Vector2, radius: float, tint: Color, width: float,
 		indices.append_array([a + 1, a + 2, b + 1, b + 1, a + 2, b + 2])
 	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
 		indices, points, colours)
+
+
+## `FrameProfile` bucket "tells": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"tells", started)

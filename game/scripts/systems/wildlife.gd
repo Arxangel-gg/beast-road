@@ -315,7 +315,7 @@ func _refresh_kinds() -> void:
 		_kinds.append(data)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_hunt(delta)
 	if _families != null:
 		_families.tick(delta)
@@ -3766,3 +3766,10 @@ func carried_loot(index: int) -> Array:
 	if index < 0 or index >= _living.size():
 		return []
 	return _living[index].get("loot", []) as Array
+
+
+## `FrameProfile` bucket "wildlife": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"wildlife", started)

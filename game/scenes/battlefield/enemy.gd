@@ -564,7 +564,7 @@ func _ready() -> void:
 	EventBus.enemy_spawned.emit(data.id, global_position)
 
 
-func _process(delta: float) -> void:
+func _process_measured(delta: float) -> void:
 	_tick_oath_mark(delta)
 	# Famished and its kind, closing its own wounds.
 	if not affixes.is_empty() and _state != State.DYING and health != null:
@@ -2272,7 +2272,7 @@ func mark_element(element: int) -> void:
 	_death_element_left = Balance.DEATH_ELEMENT_MEMORY
 
 
-func take_damage(amount: float, from: Vector2, knockback: float,
+func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 		active_hero: bool = false) -> bool:
 	if _state == State.DYING or data == null or puppet:
 		return false
@@ -4186,3 +4186,20 @@ func dodge_chance() -> float:
 	if data.role == EnemyData.Role.HOWLER:
 		return Balance.ENEMY_DODGE_CHANCE_RANGED
 	return Balance.ENEMY_DODGE_CHANCE_LIGHT if data.stagger_tolerance >= 4.0 else 0.0
+
+
+## `FrameProfile` bucket "enemy": the real work is `_process_measured` above.
+func _process(delta: float) -> void:
+	var started: int = Time.get_ticks_usec()
+	_process_measured(delta)
+	FrameProfile.add(&"enemy", started)
+
+
+## `FrameProfile` bucket "blow": every blow in the game, inclusive of the
+## number, the spark, the blood, the recoil and the impact it announces.
+func take_damage(amount: float, from: Vector2, knockback: float,
+		active_hero: bool = false) -> bool:
+	var started: int = Time.get_ticks_usec()
+	var landed: bool = _take_damage_measured(amount, from, knockback, active_hero)
+	FrameProfile.add(&"blow", started)
+	return landed
