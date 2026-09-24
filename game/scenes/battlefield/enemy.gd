@@ -3732,6 +3732,7 @@ func _land_slam() -> void:
 	damage = minf(damage, Balance.boss_slam_ceiling(RunState.act))
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
+	Vfx.light_burst(global_position, Color(1.0, 0.7, 0.42), data.boss_slam_radius * 1.8, 1.2, 0.35)
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
 	# The forged shock at the slam's own radius: the picture of the blow the
 	# ring above already promised, never a second reach.

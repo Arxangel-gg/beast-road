@@ -620,22 +620,44 @@ func _test_the_ram(field: Battlefield, who: Hero) -> void:
 		return
 
 	# --- A body on the line ---------------------------------------------------
-	var spot := Vector2(1500.0, 1400.0)
+	# **A dry line, found rather than typed.** The ponds are the seed's, and a
+	# charge line typed as (1500, 1400) heading right crossed one on some seeds
+	# and not others - the rider swam, the ram hit nothing and the saddle never
+	# rested, about one run in two. That is the sixth coin toss this project
+	# has shipped in a gate's clothes, and the answer is the same as every
+	# time: the harness asks the field where dry ground is.
+	var spot: Vector2 = Vector2(1500.0, 1400.0)
+	var charge: Vector2 = Vector2.RIGHT
+	var found: bool = false
+	for candidate: Vector2 in [Vector2(1500.0, 1400.0), Vector2(-1500.0, 1400.0),
+			Vector2(1500.0, -1400.0), Vector2(-1500.0, -1400.0), Vector2(1900.0, 600.0),
+			Vector2(-1900.0, 600.0), Vector2(600.0, 1900.0), Vector2(600.0, -1900.0)]:
+		for heading: Vector2 in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+			if _dry_line(field, candidate, heading, Balance.MOUNT_RAM_DISTANCE + 240.0):
+				spot = candidate
+				charge = heading
+				found = true
+				break
+		if found:
+			break
+	_check(found, "no dry charge line anywhere on this field - the ponds took every candidate")
+	var across: Vector2 = charge.orthogonal()
 	await _saddle(who, spot)
-	var struck: Enemy = _still_body(field, breed, spot + Vector2(320.0, 0.0))
-	var beside: Enemy = _still_body(field, breed, spot + Vector2(320.0, 90.0))
+	var struck: Enemy = _still_body(field, breed, spot + charge * 320.0)
+	var beside: Enemy = _still_body(field, breed, spot + charge * 320.0 + across * 90.0)
 	await _frames(3)
 	var hit_before: float = struck.health.current_hp
 	var side_before: float = beside.health.current_hp
 	var expected: float = who.ram_damage()
-	await _press_dash(who, fake, Vector2.RIGHT)
+	await _press_dash(who, fake, charge)
 	_check(who.is_ramming(), "a dash press in the saddle did not start a charge")
 	await _until_on_foot(who, 3.0)
 	var took: float = hit_before - struck.health.current_hp
 	_check(not who.is_mounted(), "the Warden was still in the saddle after ramming a body")
 	_check(took >= expected * 0.8 and took <= expected * 1.05 + 0.01,
-		("the rammed body took %.1f against a ram of %.1f - the blow is the "
-			+ "Warden's own finisher scaled, never a horse's power") % [took, expected])
+		("the rammed body took %.1f against a ram of %.1f (from %s along %s, ended by %s) - "
+			+ "the blow is the Warden's own finisher scaled, never a horse's power")
+			% [took, expected, spot, charge, who.ram_ended_by()])
 	_check(beside.health.current_hp < side_before,
 		"the body beside the one rammed took nothing - the impact has an area")
 	_check(beside.health.current_hp >= side_before - expected * Balance.MOUNT_RAM_AOE_SHARE - 0.01,
@@ -661,7 +683,9 @@ func _test_the_ram(field: Battlefield, who: Hero) -> void:
 		await _until_on_foot(who, 3.0)
 		_check(not who.is_mounted(), "a charge along %s never ended" % line)
 		var cause: String = who.ram_ended_by()
-		_check(["reach", "body", "deflect"].has(cause),
+		# "water" is a charge the pond took, which rests the mount like any
+		# other end (2026-09-24) and measures nothing about the reach.
+		_check(["reach", "body", "deflect", "water"].has(cause),
 			"a charge ended and could not say why (%s)" % cause)
 		if cause != "reach":
 			continue
@@ -675,7 +699,12 @@ func _test_the_ram(field: Battlefield, who: Hero) -> void:
 
 	# --- The edge of the map --------------------------------------------------
 	var edge: float = BattleGrid.play_extent()
-	await _saddle(who, Vector2(edge - 120.0, 0.0))
+	var edge_spot := Vector2(edge - 120.0, 0.0)
+	for y: float in [0.0, 300.0, -300.0, 700.0, -700.0, 1100.0, -1100.0]:
+		if _dry_line(field, Vector2(edge - 120.0, y), Vector2.RIGHT, 160.0):
+			edge_spot = Vector2(edge - 120.0, y)
+			break
+	await _saddle(who, edge_spot)
 	await _press_dash(who, fake, Vector2.RIGHT)
 	_check(who.is_ramming() or not who.is_mounted(),
 		("a dash press at the edge did not start a charge: at %s, mounted %s, "
@@ -694,6 +723,23 @@ func _test_the_ram(field: Battlefield, who: Hero) -> void:
 			% [120.0, Balance.MOUNT_RAM_DISTANCE])
 	who.set("_mount_thrown_left", 0.0)
 	who.input = was
+
+
+## Whether a charge from `from` along `line` stays out of the water for
+## `length` units, asked of the field's own reading every 32 units - the same
+## reading the swimmer uses, so the gate and the hero cannot disagree.
+func _dry_line(field: Battlefield, from: Vector2, line: Vector2, length: float) -> bool:
+	var extent: float = BattleGrid.play_extent() - 80.0
+	var step: float = 32.0
+	var gone: float = -64.0
+	while gone <= length:
+		var at: Vector2 = from + line * gone
+		if absf(at.x) > extent or absf(at.y) > extent:
+			return false
+		if field.water_depth_at(at) > 0.0:
+			return false
+		gone += step
+	return true
 
 
 ## Dry ground and a clean saddle. The weather is the seed's, and a flood both

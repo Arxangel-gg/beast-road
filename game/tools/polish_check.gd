@@ -288,6 +288,41 @@ func _check_the_night_lights(run: Node) -> void:
 	DayNight.phase = held_phase
 	DayNight.darkness = held_dark
 
+	# **A big blow throws a real light** (2026-09-24): capped, gone with its
+	# life, and off on Low. Every count is of lights in the tree, because a
+	# light out of the tree lights nothing.
+	var held_graphics: Dictionary = Graphics.to_dictionary()
+	Graphics.from_dictionary({Graphics.KEY_PRESET: Graphics.PRESET_HIGH})
+	var before: int = get_tree().get_nodes_in_group(Vfx.LIGHT_BURST_GROUP).size()
+	for index: int in Balance.LIGHT_BURST_MAX + 3:
+		Vfx.light_burst(Vector2(120.0 * float(index), 0.0), Color.WHITE, 300.0, 1.5, 0.25)
+	await get_tree().process_frame
+	var standing: int = get_tree().get_nodes_in_group(Vfx.LIGHT_BURST_GROUP).size() - before
+	_check(standing >= 1, "a big blow throws no light at all")
+	_check(standing <= Balance.LIGHT_BURST_MAX,
+		"%d burst lights stand at once against a cap of %d" % [standing, Balance.LIGHT_BURST_MAX])
+	await _seconds(0.6)
+	_check(get_tree().get_nodes_in_group(Vfx.LIGHT_BURST_GROUP).size() - before == 0,
+		"a burst light outlived its life")
+	# A blow after the last one has died: the list still holds the freed
+	# lights, and the first cut's `filter` threw on them and made no light -
+	# which this passed, because nothing here had ever thrown twice.
+	Vfx.light_burst(Vector2.ZERO, Color.WHITE, 300.0, 1.5, 0.25)
+	await get_tree().process_frame
+	_check(get_tree().get_nodes_in_group(Vfx.LIGHT_BURST_GROUP).size() - before == 1,
+		"a blow after the last light died threw no light")
+	await _seconds(0.6)
+	Graphics.from_dictionary({Graphics.KEY_PRESET: Graphics.PRESET_LOW})
+	Vfx.light_burst(Vector2.ZERO, Color.WHITE, 300.0, 1.5, 0.25)
+	await get_tree().process_frame
+	_check(get_tree().get_nodes_in_group(Vfx.LIGHT_BURST_GROUP).size() - before == 0,
+		"Low still throws burst lights")
+	Graphics.from_dictionary(held_graphics)
+	for path: String in ["res://scripts/systems/meteor.gd", "res://scripts/systems/sky.gd",
+			"res://scenes/battlefield/enemy.gd", "res://scripts/systems/dragon_breath.gd"]:
+		_check(FileAccess.get_file_as_string(path).contains("Vfx.light_burst("),
+			"%s no longer throws a light at its blow" % path.get_file())
+
 
 ## The pure half of the bounce.
 func _check_the_bounce() -> void:

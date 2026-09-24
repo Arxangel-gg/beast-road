@@ -591,6 +591,13 @@ static func bloom_chosen() -> bool:
 	return bool(_chosen.get(KEY_BLOOM, preset() != PRESET_LOW))
 
 
+## Whether a big blow throws a real light for a moment (2026-09-24). Off on
+## Low with the shadows and the refraction, for the same reason: a light
+## re-draws everything under it.
+static func light_bursts() -> bool:
+	return preset() != PRESET_LOW
+
+
 ## Whether the fog of war covers the field. On by default; a player who
 ## wants the whole road visible turns it off in the video settings.
 static func fog_of_war() -> bool:

@@ -1652,7 +1652,16 @@ func _tick_mount(delta: float) -> void:
 			dismount()
 			return
 		if not _may_stay_mounted():
-			dismount()
+			# A charge the water takes still ends through the one door every
+			# charge ends through (2026-09-24): otherwise a rider could charge
+			# into a pond and be handed the saddle back with no rest, which is
+			# the ram's whole price skipped. It also caught `mount_check`: a
+			# seed that dug a pond under its fixed charge line read as a ram
+			# that hit nothing and rested nothing.
+			if is_ramming():
+				_end_ram("water")
+			else:
+				dismount()
 			return
 		_tick_gallop(delta)
 		_drive_mount()

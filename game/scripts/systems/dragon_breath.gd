@@ -157,6 +157,7 @@ func _open() -> void:
 	var size: float = half_width * (4.0 if ultra else 3.0)
 	Vfx.forge_play("breath_bloom", mouth, size, colours[1] as Color)
 	Vfx.forge_hit(_hit_element(), to, size * 1.2, colours[1] as Color)
+	Vfx.light_burst(to, colours[1] as Color, size * 2.0, 1.4, 0.4)
 	if ultra:
 		# Laid end to end down the beam, turned onto it, so the plasma crackles
 		# along its whole length rather than at one point.

@@ -4147,6 +4147,16 @@ const BLOOM_THRESHOLD_NIGHT: float = 0.16
 const BLOOM_STRENGTH_DAY: float = 0.35
 const BLOOM_STRENGTH_NIGHT: float = 1.25
 
+## **A big blow throws a real light** (2026-09-24, from the forwarded VFX
+## videos: Brackeys animates a light with every explosion and Le Lu puts one at
+## a lightning strike, because that is what ties an effect into the world). A
+## `PointLight2D` at a meteor, a strike, a boss slam and a dragon's breath,
+## decaying over its life. Capped, because every light re-draws what stands
+## under it, and the oldest gives way. It stands `LIGHT_BURST_HEIGHT` high so a
+## shaded tower beside it is lit from above and across.
+const LIGHT_BURST_MAX: int = 4
+const LIGHT_BURST_HEIGHT: float = 160.0
+
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45

@@ -1627,6 +1627,56 @@ func flash_at(at: Vector2, colour: Color, radius: float, finish_when_paused: boo
 	tween.chain().tween_callback(blob.queue_free)
 
 
+## A real light at a big blow, for a moment (2026-09-24).
+##
+## `flash_at` is an additive polygon and lights nothing. This is a
+## `PointLight2D` that decays over `life`, so the ground, the bodies and - now
+## that they shade with the light's direction - the towers round a meteor are
+## lit by it, from the side it fell on. Capped at `LIGHT_BURST_MAX`, the oldest
+## giving way, because every light re-draws what stands under it; off on Low
+## (`Graphics.light_bursts`). A look, never a fact: nothing reads it.
+const LIGHT_BURST_GROUP: StringName = &"light_bursts"
+var _light_bursts: Array[PointLight2D] = []
+
+
+func light_burst(at: Vector2, colour: Color, radius: float, energy: float,
+		life: float = 0.35) -> void:
+	if world == null or not Graphics.light_bursts():
+		return
+	# A loop rather than `filter`: a freed light is still in the array, and a
+	# lambda typed `PointLight2D` refuses it - and `filter` hands back an
+	# untyped array besides, which a typed one refuses to take.
+	var alive: Array[PointLight2D] = []
+	for old: Variant in _light_bursts:
+		if is_instance_valid(old):
+			alive.append(old as PointLight2D)
+	_light_bursts = alive
+	while _light_bursts.size() >= Balance.LIGHT_BURST_MAX:
+		var oldest: PointLight2D = _light_bursts.pop_front()
+		if is_instance_valid(oldest):
+			# Out of the tree now rather than at the end of the frame, so the
+			# cap is the number a count sees and not one more.
+			if oldest.get_parent() != null:
+				oldest.get_parent().remove_child(oldest)
+			oldest.queue_free()
+	var light := PointLight2D.new()
+	light.name = "LightBurst"
+	light.texture = LightKit.falloff_texture()
+	light.color = colour
+	light.energy = energy
+	light.texture_scale = maxf(radius, 1.0) / 128.0
+	light.height = Balance.LIGHT_BURST_HEIGHT
+	light.shadow_enabled = false
+	light.blend_mode = Light2D.BLEND_MODE_ADD
+	light.add_to_group(LIGHT_BURST_GROUP)
+	_track(light)
+	light.global_position = at
+	_light_bursts.append(light)
+	var tween: Tween = light.create_tween()
+	tween.tween_property(light, "energy", 0.0, maxf(life, 0.05)).set_ease(Tween.EASE_IN)
+	tween.tween_callback(light.queue_free)
+
+
 ## Full-screen colour wash. Decays quadratically so it snaps rather than smears.
 func flash(colour: Color, peak: float, life: float) -> void:
 	# **How much flashing the player asked for.** The one effect in this game

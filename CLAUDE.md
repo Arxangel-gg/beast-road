@@ -8450,6 +8450,55 @@ never a fact - nothing reads any of it, and `polish_check` holds each one.
   thing a player saw was Godot's logo. `polish_check` holds the colour against
   `splash.tscn`'s background, so the handoff cannot flash.
 
+**The twelve videos were studied from their transcripts, as of 2026-09-24.**
+The first triage above was written from titles and chapter lists, because a
+signed-out browser is refused YouTube's transcripts; the owner asked for the
+real thing. `yt-dlp` fetched nine caption tracks, Whisper (`medium.en`, on the
+GPU) transcribed the two with none - one of them a short whose auto-captions
+YouTube had misheard as Arabic - and the 14-second electric clip has no speech
+and was read from its frames. About 30,000 words, every technique checked
+against the code by reading it. `docs/IDEAS_REVIEW_2026-09-24.md` is rewritten
+from that, video by video, with the file and line for each.
+
+**The reading held up, with one more gap and one refusal.** Nearly every
+technique in the twelve ships here, several in a stronger form - the camera
+shake is a modelled thunder and rumble rather than sampled noise. The gap:
+**a big blow throws a real light** now (`Vfx.light_burst`). Brackeys animates
+a light with every explosion and Le Lu puts one at a lightning strike "to tie
+the effect into the world"; `Vfx.flash_at` is an additive polygon and lights
+nothing. A meteor, a strike, a boss slam and a dragon's breath throw a
+`PointLight2D` that decays, capped at `LIGHT_BURST_MAX` with the oldest giving
+way, standing `LIGHT_BURST_HEIGHT` high so the towers - shaded by light
+direction since the same morning - are lit from the side the meteor fell on.
+Off on Low. `polish_check` holds the cap, the life, the Low switch and the four
+call sites. The refusal is MrEliptik's acceleration and friction on the walk:
+every telegraph here is answered by stepping out of a circle, and a tenth of a
+second to start walking is a tenth of a second less to leave a slam's ring.
+Recorded in the triage so it is a decision rather than an omission.
+
+**And the method is recorded in the memory directory**, because the wrong
+methods cost an hour: the browser's transcript panel, YouTube's transcript API
+and the timed-text URL are all dead ends signed out.
+
+**A charge into a pond skipped the rest, found 2026-09-24 by a red release.**
+v0.56.0 failed on `mount_check` in CI and the same gate on the same commit
+failed once and passed once here: the rammed body took nothing, its neighbour
+took nothing, and the saddle was open. **The seventh coin toss this project has
+shipped in a gate's clothes**, and the same shape as the first six: the charge
+line was typed as (1500, 1400) heading right, the ponds are the seed's, and on
+some seeds one lay under that line.
+
+**Behind it was a real hole.** `_tick_mount` answered "may not stay mounted" -
+deep water, the flood, death - with a bare `dismount()`, so a charge the water
+took never went through `_end_ram` and rested nothing: a rider could charge
+into a pond and be handed the saddle back with no cooldown, which is the ram's
+whole price skipped. A charge ends through the one door every charge ends
+through now, `_end_ram("water")`, and the gate accepts "water" as a reason a
+charge ended. The harness asks the field where dry ground is (`_dry_line`,
+`Battlefield.water_depth_at` every 32 units, the same reading the swimmer uses)
+and charges there, for the body test and the edge test both. Run three times in
+a row before the tag.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

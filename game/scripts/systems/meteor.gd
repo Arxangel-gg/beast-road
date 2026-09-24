@@ -152,6 +152,8 @@ func _land() -> void:
 	_landed = true
 	Vfx.flash(Color(1.0, 0.72, 0.45), Balance.METEOR_FLASH, 0.28)
 	Vfx.flash_at(at, Color(1.0, 0.7, 0.4), Balance.METEOR_RADIUS * 0.6)
+	# The fall lights the field round it for a moment (2026-09-24).
+	Vfx.light_burst(at, Color(1.0, 0.72, 0.45), Balance.METEOR_RADIUS * 2.4, 1.8, 0.55)
 	# Three rings leaving at three speeds: the blast, the shock behind it, and
 	# the dust it pushed. One ring is a drawn radius; three read as something
 	# expanding.
