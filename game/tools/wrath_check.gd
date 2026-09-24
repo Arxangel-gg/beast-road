@@ -302,6 +302,15 @@ func _test_the_wave_travels() -> void:
 	# measuring an epicentre nobody had asked for.
 	await _clear_waves()
 	await _clear_towers()
+	# **Nothing bites the probes.** The animals are the seed's, and on CI
+	# (2026-09-24) one stood where the mover ran: it "took more than the body
+	# that stood still" and the gate read that as crests that cost nothing.
+	# Cleared and stilled for this test only - the wildfire test below wants
+	# them back.
+	var animals: Node = _field.get_node_or_null("Wildlife")
+	if animals != null and animals.has_method("clear"):
+		animals.call("clear")
+		animals.process_mode = Node.PROCESS_MODE_DISABLED
 	_field.hero.global_position = _field.city_bounds().end + Vector2(900.0, 900.0)
 	var still: Enemy = _body(Vector2(-900.0, 0.0))
 	var mover: Enemy = _body(Vector2(900.0, 0.0))
@@ -333,6 +342,8 @@ func _test_the_wave_travels() -> void:
 			% [mover.health.current_hp, still.health.current_hp])
 	still.queue_free()
 	mover.queue_free()
+	if animals != null:
+		animals.process_mode = Node.PROCESS_MODE_INHERIT
 	await get_tree().process_frame
 
 

@@ -393,7 +393,7 @@ func _on_lightning_seen(at: Vector2, radius: float) -> void:
 	Vfx.flash_at(at, Color.WHITE, 62.0, true)
 	Vfx.flash_at(at, Balance.LIGHTNING_COLOUR, 70.0, true)
 	# A strike lights what stands round it (2026-09-24), and is gone.
-	Vfx.light_burst(at, Balance.LIGHTNING_COLOUR, 520.0, 1.8, 0.3)
+	Vfx.light_burst(at, Balance.LIGHTNING_COLOUR, 520.0, 1.8, 0.3, true)
 	# **Two rings, not one.** A fast tight one that is the blast leaving and a
 	# slow wide one that is the air answering: one ring alone reads as a
 	# decoration drawn at a radius, two read as something happening.

@@ -1640,7 +1640,7 @@ var _light_bursts: Array[PointLight2D] = []
 
 
 func light_burst(at: Vector2, colour: Color, radius: float, energy: float,
-		life: float = 0.35) -> void:
+		life: float = 0.35, finish_when_paused: bool = false) -> void:
 	if world == null or not Graphics.light_bursts():
 		return
 	# A loop rather than `filter`: a freed light is still in the array, and a
@@ -1669,6 +1669,11 @@ func light_burst(at: Vector2, colour: Color, radius: float, energy: float,
 	light.shadow_enabled = false
 	light.blend_mode = Light2D.BLEND_MODE_ADD
 	light.add_to_group(LIGHT_BURST_GROUP)
+	# A strike's light dies while the game is paused, as the rest of the strike
+	# does - `lightning_lifetime_check` holds the container empty after a
+	# pause, and a light that waited out the pause is what failed v0.56.1.
+	if finish_when_paused:
+		light.process_mode = Node.PROCESS_MODE_ALWAYS
 	_track(light)
 	light.global_position = at
 	_light_bursts.append(light)
