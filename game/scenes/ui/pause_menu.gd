@@ -13,6 +13,7 @@ var _settings_button: Button
 ## What a quit costs, said above the button that would do it. See
 ## `_on_menu_pressed`.
 var _warning: Label
+var _battlefield: Label
 var _confirming: bool = false
 var _menu_text: String = ""
 
@@ -37,6 +38,7 @@ func _ready() -> void:
 
 	_build_settings()
 	_build_warning()
+	_build_battlefield_line()
 	# **Grown from the centre, and bounded by the screen.** Reported as the pause
 	# menu sitting low and running off the bottom of a phone. `anchors_preset = 8`
 	# in a `.tscn` writes the anchors and nothing else - the grow directions stay
@@ -117,6 +119,38 @@ static func leaving_costs() -> String:
 		+ "road before you stop.")
 
 
+## Which battlefield this road is laid on, above the buttons.
+##
+## Random settles on a layout when the road begins and says so nowhere else, and
+## a banked road keeps the map it was banked on whatever the setting says now -
+## so without this a player testing layouts cannot tell which one they are on.
+func _build_battlefield_line() -> void:
+	_battlefield = Label.new()
+	_battlefield.name = "BattlefieldLine"
+	_battlefield.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_battlefield.add_theme_font_size_override("font_size", 14)
+	_battlefield.modulate = Color(1.0, 1.0, 1.0, 0.75)
+	var box: Node = resume_button.get_parent()
+	box.add_child(_battlefield)
+	box.move_child(_battlefield, resume_button.get_index())
+	_say_the_battlefield()
+
+
+func _say_the_battlefield() -> void:
+	if _battlefield == null:
+		return
+	_battlefield.text = battlefield_line()
+
+
+## The words, pure over the run: "Battlefield: Keep", and "varied" when Random
+## rolled its proportions.
+static func battlefield_line() -> String:
+	var line: String = "Battlefield: %s" % MapModes.label_of(RunState.map_mode)
+	if RunState.map_varied:
+		line += "  ·  varied"
+	return line
+
+
 ## The line above the leave button, hidden until a press asks for it. A Label
 ## rather than a dialog, so the answer stands where the question was asked.
 func _build_warning() -> void:
@@ -187,6 +221,8 @@ func toggle() -> void:
 		_show_settings(false)
 		return
 	var showing: bool = not panel.visible
+	if showing:
+		_say_the_battlefield()
 	set_showing(showing)
 	# Through GameDirector, which tells the other player. Setting the tree
 	# directly pauses one machine while the other keeps fighting a wave that is

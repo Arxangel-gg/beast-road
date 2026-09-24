@@ -163,6 +163,11 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		"wall": RunState.town_hp / maxf(RunState.town_max_hp, 1.0),
 		"momentum": RunState.momentum,
 		"tier": RunState.tier_id,
+		# The map it was banked on, so it comes back on that map whatever the
+		# setting says by then. A front banked before modes existed has none,
+		# and was banked on Classic.
+		"map_mode": RunState.map_mode,
+		"map_varied": RunState.map_varied,
 		"name": name,
 	}
 
@@ -237,6 +242,8 @@ static func apply(stored: Dictionary) -> bool:
 	for id: String in RunState.CURRENCIES:
 		RunState.currencies[id] = int(purse.get(id, 0))
 	RunState.tier_id = String(stored.get("tier", RunState.tier_id))
+	RunState.map_mode = MapModes.sanitise(stored.get("map_mode", MapModes.CLASSIC))
+	RunState.map_varied = bool(stored.get("map_varied", false))
 	# **The wall comes back as hurt as it was.** Same argument as the towers:
 	# a wall that healed on extraction is a wall nobody ever has to mend.
 	RunState.town_hp = RunState.town_max_hp \

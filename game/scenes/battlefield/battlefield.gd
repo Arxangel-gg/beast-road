@@ -222,8 +222,9 @@ func _ready() -> void:
 	_setup_lighting()
 	_setup_ground()
 	# Seeded from the run, so the outskirts' mirror is the run's and both
-	# machines in co-op lay the same camps.
-	grid = BattleGrid.new(RunState.run_seed)
+	# machines in co-op lay the same camps - and laid on the road's own map,
+	# which the host chose and the guest was told.
+	grid = BattleGrid.new(RunState.run_seed, RunState.map_mode, RunState.map_varied)
 	_build_lanes()
 	PathBlend.set_weather(RunState.weather_id)
 	# **Guarded, because `set_weather` is static.** Godot drops a connection when

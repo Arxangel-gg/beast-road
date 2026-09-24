@@ -291,7 +291,7 @@ func _declare_tier() -> void:
 		# and the hero state row that carries a look on the road does not.
 		line.request(CoopRelay.Request.DECLARE_TIER,
 			[MetaState.tier_cleared, BuildInfo.VERSION,
-				WardenLook.pack(WardenLook.mine())])
+				WardenLook.pack(WardenLook.worn())])
 
 
 ## Why this party cannot play the run's chosen tier, or "" if it can.
@@ -701,7 +701,7 @@ func _on_peer_connected(id: int) -> void:
 		# addressed to it, exactly as the party was told when the run began;
 		# its own run then stands up and asks for the rest (`Request.WELCOME`).
 		if GameDirector.run_active and _relay != null:
-			_relay.tell(id, CoopRelay.Fact.RUN_STARTED, [RunState.run_seed])
+			_relay.tell(id, CoopRelay.Fact.RUN_STARTED, [RunState.run_seed, RunState.map_mode, RunState.map_varied])
 	EventBus.coop_partner_joined.emit(id)
 
 

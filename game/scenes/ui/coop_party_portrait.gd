@@ -42,7 +42,7 @@ func configure(slot: int, player_name: String, colour: Color,
 	# The dye under the seat tint, which is the order the road draws them in.
 	# The shader reads its bands off the painting rather than off the tinted
 	# colour, so the mask does not move with the seat - see `warden_look`.
-	WardenLook.dress(_portrait, WardenLook.mine() if is_local
+	WardenLook.dress(_portrait, WardenLook.worn() if is_local
 		else WardenLook.unpack(look))
 
 	var card := StyleBoxFlat.new()

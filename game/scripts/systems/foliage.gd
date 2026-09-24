@@ -252,6 +252,11 @@ static var _idle_cache: Dictionary = {}
 ## rather than a group lookup because it is walked every animation step and a
 ## group query allocates.
 var _animated: Array[Dictionary] = []
+## The halos behind glowing plants: {halo, phase}. See `_add_glow`.
+var _glows: Array[Dictionary] = []
+var _glow_clock: float = 0.0
+## A glow colour per plant art, sampled once.
+static var _glow_colours: Dictionary = {}
 var _idle_clock: float = 0.0
 var _idle_frame: int = 0
 
@@ -568,6 +573,7 @@ var host: Node2D = null
 ## integer comparison per frame and a texture assignment only on the steps where
 ## the index actually changes - roughly five times a second rather than sixty.
 func _process(delta: float) -> void:
+	_tick_glows(delta)
 	if _animated.is_empty():
 		return
 	_idle_clock += delta * Balance.FOLIAGE_IDLE_FRAME_RATE
@@ -609,6 +615,7 @@ func scatter() -> void:
 	# Cleared first: the nodes these point at are freed by the rebuild below, and
 	# a stale entry would be a freed sprite walked every frame.
 	_animated.clear()
+	_glows.clear()
 	for node: Node2D in _bands:
 		if is_instance_valid(node):
 			node.queue_free()
@@ -948,6 +955,7 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	plant.modulate = tint
 	plant.flip_h = flip
 	parent.add_child(plant)
+	_add_glow(plant, art, at)
 	# A plant with authored frames breathes; one without keeps the shader sway
 	# it already had. Both are supported, so adding a sequence is dropping files
 	# in beside the sprite - no code and no manifest of its own.
@@ -961,6 +969,112 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 			"phase": _idle_cache.size() + _animated.size(),
 		})
 	_painted_plants.append(plant)
+
+
+## Whether a plant of this art may glow at night.
+static func glows(path: String) -> bool:
+	return Balance.FOLIAGE_GLOW_KINDS.has(kind_of(path))
+
+
+## **A halo behind a share of the flowers**, lit by the dark (2026-09-23).
+##
+## Drawn behind its own plant (`show_behind_parent`), so a patch reads as
+## flowers glowing rather than as discs laid over them, and freed with the plant.
+## Which plants glow is decided by where they stand - the decoration's own dice,
+## never the run's stream, because a draw added to a named stream moves every
+## roll after it.
+func _add_glow(plant: Sprite2D, art: Texture2D, at: Vector2) -> void:
+	if art == null or _glows.size() >= Balance.FOLIAGE_GLOW_MAX or not glows(art.resource_path):
+		return
+	var dice: int = absi(hash(Vector2i(roundi(at.x), roundi(at.y))))
+	if float(dice % 1000) / 1000.0 >= Balance.FOLIAGE_GLOW_SHARE:
+		return
+	var halo := Sprite2D.new()
+	halo.name = "Glow"
+	halo.texture = LightKit.falloff_texture()
+	halo.show_behind_parent = true
+	var additive := CanvasItemMaterial.new()
+	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	halo.material = additive
+	# Round the blooms, which sit in the upper part of the painting.
+	var size: Vector2 = art.get_size()
+	halo.position = plant.offset + Vector2(0.0, -size.y * 0.12)
+	var reach: float = size.x * Balance.FOLIAGE_GLOW_REACH
+	halo.scale = Vector2.ONE * reach / maxf(halo.texture.get_size().x, 1.0)
+	var colour: Color = glow_colour(art)
+	colour.a = 0.0
+	halo.modulate = colour
+	plant.add_child(halo)
+	_glows.append({"halo": halo, "phase": float(dice % 628) / 100.0})
+
+
+## The colour a plant glows: its petals', read off the painting - the most
+## saturated, brightest pixels it has - so an orange flower glows orange and a
+## blue mushroom blue. Core Keeper's light takes the colour of what it falls on;
+## this is the same idea from the other end.
+static func glow_colour(art: Texture2D) -> Color:
+	var key: String = art.resource_path
+	if _glow_colours.has(key):
+		return _glow_colours[key]
+	var colour := Color(0.95, 0.85, 0.55)
+	var image: Image = art.get_image()
+	if image != null and not image.is_empty():
+		if image.is_compressed():
+			image.decompress()
+		var best: Array[Color] = []
+		var step: int = maxi(1, image.get_width() / 48)
+		for y: int in range(0, image.get_height(), step):
+			for x: int in range(0, image.get_width(), step):
+				var pixel: Color = image.get_pixel(x, y)
+				if pixel.a < 0.8 or pixel.s < 0.35 or pixel.v < 0.45:
+					continue
+				best.append(pixel)
+		if not best.is_empty():
+			best.sort_custom(func(a: Color, b: Color) -> bool:
+				return a.s * a.v > b.s * b.v)
+			var total := Color(0, 0, 0)
+			var count: int = mini(best.size(), 24)
+			for i: int in count:
+				total += best[i]
+			colour = Color(total.r / count, total.g / count, total.b / count)
+			# Lifted toward light: a glow is the colour lit, not the colour.
+			colour = colour.lerp(Color.WHITE, 0.25)
+	_glow_colours[key] = colour
+	return colour
+
+
+## Lights the halos by how dark it is, with a slow breath each of its own.
+func _tick_glows(delta: float) -> void:
+	if _glows.is_empty():
+		return
+	_glow_clock += delta
+	var every: float = 1.0 / maxf(Balance.FOLIAGE_GLOW_HZ, 1.0)
+	if fmod(_glow_clock, every) >= delta and _glow_clock > every:
+		return
+	var dark: float = DayNight.darkness
+	var lit: float = smoothstep(Balance.FOLIAGE_GLOW_FROM, 1.0, dark) \
+		* Balance.FOLIAGE_GLOW_STRENGTH
+	for entry: Dictionary in _glows:
+		var halo: Sprite2D = entry["halo"]
+		if not is_instance_valid(halo):
+			continue
+		var breath: float = 0.85 + 0.15 * sin(_glow_clock * 1.3 + float(entry["phase"]))
+		halo.modulate.a = lit * breath
+		halo.visible = lit > 0.005
+
+
+## How many halos this field carries, and how brightly they are lit - for the gate.
+func glow_count() -> int:
+	return _glows.size()
+
+
+func glow_brightness() -> float:
+	var brightest: float = 0.0
+	for entry: Dictionary in _glows:
+		var halo: Sprite2D = entry["halo"]
+		if is_instance_valid(halo) and halo.visible:
+			brightest = maxf(brightest, halo.modulate.a)
+	return brightest
 
 
 func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,

@@ -567,6 +567,15 @@ jobs:
           # were read as lists of `.tscn`. It had been red since the outskirts
           # landed on 2026-09-12, asserting a 45x45 map with one spawn a road.
           check "battlefield grid" --headless --path game --script res://tools/grid_check.gd
+          # Every map mode laid and walked (2026-09-23): Classic is the authored
+          # map cell for cell, every other layout and every varied roll is road
+          # the whole way, mirrored, balanced and buildable, and Random never
+          # deals Classic. Played on the real field at release.
+          check "map modes" --headless --path game --script res://tools/map_mode_check.gd
+          # The polish taken from Core Keeper: music that settles in Preparation
+          # and opens for a wave, flowers that glow only in the dark, and a full
+          # set's colour on a cloak left as painted.
+          check "core keeper polish" --headless --path game res://tools/polish_check.tscn
           # The camps on the outskirts: three a road, camp-mode bodies, the
           # fork that both razed camps open, the respawn, and the war camp's
           # dungeon mouth.

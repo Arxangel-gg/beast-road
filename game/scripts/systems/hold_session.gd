@@ -227,7 +227,7 @@ func _compose() -> void:
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
 	_table[0]["pen"] = MetaState.pen
-	_table[0]["look"] = WardenLook.pack(WardenLook.mine())
+	_table[0]["look"] = WardenLook.pack(WardenLook.worn())
 	var slot: int = 1
 	for peer: int in multiplayer.get_peers():
 		if slot >= _table.size():
@@ -284,9 +284,9 @@ func _on_seats_told(rows: Array) -> void:
 ## owner set a colour and saw the painted Warden keep walking (2026-09-22).
 func my_look_changed() -> void:
 	if _mine >= 0 and _mine < _table.size():
-		_table[_mine]["look"] = WardenLook.pack(WardenLook.mine())
+		_table[_mine]["look"] = WardenLook.pack(WardenLook.worn())
 	if yard != null:
-		yard.set_look(0, WardenLook.pack(WardenLook.mine()))
+		yard.set_look(0, WardenLook.pack(WardenLook.worn()))
 	if Coop.is_host():
 		_publish_table()
 	else:
@@ -308,7 +308,7 @@ func _draw_table() -> void:
 			_figure[index] = 0
 			yard.set_seat(0, Seat.LOCAL, _my_name(), MetaState.warden_title())
 			yard.set_pen(0, MetaState.pen)
-			yard.set_look(0, WardenLook.pack(WardenLook.mine()))
+			yard.set_look(0, WardenLook.pack(WardenLook.worn()))
 			continue
 		if next >= yard.seats():
 			break
@@ -419,7 +419,7 @@ func introduce() -> void:
 		# but which of them gets asked first.
 		line.request(CoopRelay.Request.HOLD_HELLO,
 			[_my_name(), MetaState.warden_title(), _species_of(MetaState.pen),
-				is_public(), WardenLook.pack(WardenLook.mine())])
+				is_public(), WardenLook.pack(WardenLook.worn())])
 
 
 ## **A pen on the wire is a list of species and nothing else.**

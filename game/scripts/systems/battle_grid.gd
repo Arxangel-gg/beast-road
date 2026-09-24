@@ -140,6 +140,16 @@ const SPAWN_INSET: int = 1
 const AMBUSH_DEPTH: int = 2
 const AMBUSH_SIDE: int = 6
 
+## How much looser than `_bounded` the generated layouts' route search walks, in
+## tiles, and how much of it there may be. The search is the lattice, not the
+## world: `_bounded` decides in world units afterwards, so a little slack here
+## only means a route is considered and then refused, never missed.
+const ROUTE_SEARCH_SLACK: int = 4
+## Ways in collected before the shortest `ROUTES_PER_LANE_MAX` are kept.
+const ROUTE_SEARCH_COLLECT: int = 96
+## Steps the search may take at most, so no layout can stall a battlefield.
+const ROUTE_SEARCH_BUDGET: int = 60000
+
 ## Camp tiers, outermost last.
 enum CampTier { EASY, HARD, BARON }
 
@@ -187,18 +197,32 @@ var barriers: Array = []
 ## the torches and the lane ring depend on that - and the seed picks which.
 var camp_side: int = 1
 
+## Which layout this road is laid on (`MapModes`). Classic is the authored core
+## and every line below behaves exactly as it did before modes existed; the
+## others lay a generated core and mirror their camps (see `_side_of`).
+var mode: String = MapModes.CLASSIC
+## Whether the layout was laid with its proportions rolled from the seed, which
+## is what Random asks for (`MapLayouts.lay`). Never true for Classic.
+var varied: bool = false
+
 var _lattice: Dictionary = {}
 var _centre_cols: Array[int] = []
 var _centre_rows: Array[int] = []
 
 
-func _init(layout_seed: int = 0) -> void:
+func _init(layout_seed: int = 0, map_mode: String = MapModes.CLASSIC,
+		map_varied: bool = false) -> void:
+	mode = MapModes.sanitise(map_mode)
+	varied = map_varied and mode != MapModes.CLASSIC
 	cells.resize(SIZE * SIZE)
 	cells.fill(Cell.OPEN)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = layout_seed
 	camp_side = 1 if rng.randf() < 0.5 else -1
-	_load_layout()
+	if mode == MapModes.CLASSIC:
+		_load_layout()
+	else:
+		_paste_core(MapLayouts.lay(mode, rng, varied))
 	_lay_outskirts()
 	_seal_border()
 	_build_lattice()
@@ -360,6 +384,13 @@ func _load_layout() -> void:
 			_put(Vector2i(x + OUTSKIRTS, y + OUTSKIRTS), _cell_for(int(row[x])))
 
 
+## A generated core, laid where the authored one would be.
+func _paste_core(core: Array[int]) -> void:
+	for y: int in CORE_SIZE:
+		for x: int in CORE_SIZE:
+			_put(Vector2i(x + OUTSKIRTS, y + OUTSKIRTS), core[y * CORE_SIZE + x])
+
+
 func _put(tile: Vector2i, cell: int) -> void:
 	if in_bounds(tile):
 		cells[tile.y * SIZE + tile.x] = cell
@@ -399,8 +430,8 @@ func _lay_outskirts() -> void:
 		# The camps. The first branches to the seed's side, the second to the
 		# other, so the road reads as a road with things off it rather than as
 		# a corridor with a mirror.
-		_lay_camp(lane, CampTier.EASY, CAMP_A_DEPTH, camp_side)
-		_lay_camp(lane, CampTier.HARD, CAMP_B_DEPTH, -camp_side)
+		_lay_camp(lane, CampTier.EASY, CAMP_A_DEPTH, _side_of(lane))
+		_lay_camp(lane, CampTier.HARD, CAMP_B_DEPTH, -_side_of(lane))
 		# The war camp between the legs, beyond the bar.
 		var baron_tiles: Array[Vector2i] = []
 		for d: int in range(BARON_DEPTH_FROM, OUTSKIRTS + 1):
@@ -419,6 +450,20 @@ func _lay_outskirts() -> void:
 				"along": along,
 			})
 		barriers.append(pair)
+
+
+## Which side a lane's first camp branches to.
+##
+## **Classic: the same side for all four**, so the outskirts are one shape
+## turned four times - which is part of what made the map a pinwheel, and is
+## kept because Classic is kept exactly. **Every other mode mirrors them**: the
+## east and west camps are each other's reflection across the north-south line,
+## and the north and south camps across the east-west one, so no turn of the
+## field maps it onto itself and nothing about it winds.
+func _side_of(lane: int) -> int:
+	if mode == MapModes.CLASSIC:
+		return camp_side
+	return camp_side * (1 if lane < 2 else -1)
 
 
 func _lay_camp(lane: int, tier: int, depth: int, side: int) -> void:
@@ -680,11 +725,108 @@ func _far_routes_for(lane: int, _near: Array) -> Array:
 func _walk_routes(entry: Vector2i) -> Array:
 	var centre: int = SIZE / 2
 	var goal := Vector2i(centre, centre)
+	if mode != MapModes.CLASSIC:
+		return _walk_routes_bounded(entry, goal)
 	var found: Array = []
 	_walk(entry, goal, {entry: true}, [entry], found)
 	found.sort_custom(func(a: Array, b: Array) -> bool:
 		return _tile_length(a) < _tile_length(b))
 	return found
+
+
+## Every way in worth offering, found by a search that knows how far it is to go.
+##
+## **Classic keeps the plain walk above, untouched**, because Classic is
+## preserved exactly. The generated layouts are more connected than the
+## authored core - a double wall is a grid - and a walk that stops at
+## `ROUTES_PER_LANE_MAX` finds, in whatever order the lattice lists its
+## neighbours, the first two dozen ways in rather than the shortest two dozen.
+## So this knows the shortest distance from every node to the town first, takes
+## the true shortest route before anything else, and then only walks a step that
+## could still arrive within the bounds `_bounded` will hold it to.
+func _walk_routes_bounded(entry: Vector2i, goal: Vector2i) -> Array:
+	var to_goal: Dictionary = _distances_to(goal)
+	if not to_goal.has(entry):
+		return []
+	var shortest: int = int(to_goal[entry])
+	var late: float = Balance.ROUTE_LATE_ARRIVAL_SECONDS * Balance.ROUTE_REFERENCE_WALK / TILE
+	# In lattice tiles, a little looser than `_bounded`, which has the last say
+	# in world units once the spawn and the way onto the road are laid in front.
+	var limit: int = int(ceil(minf(float(shortest) * Balance.ROUTE_LENGTH_MAX_RATIO,
+		float(shortest) + late))) + ROUTE_SEARCH_SLACK
+	var found: Array = [_shortest_walk(entry, goal, to_goal)]
+	var known: Dictionary = {str(found[0]): true}
+	var budget: Array[int] = [ROUTE_SEARCH_BUDGET]
+	_walk_bounded(entry, goal, {entry: true}, [entry], 0, limit, to_goal, found, known, budget)
+	found.sort_custom(func(a: Array, b: Array) -> bool:
+		return _tile_length(a) < _tile_length(b))
+	if found.size() > Balance.ROUTES_PER_LANE_MAX:
+		found.resize(Balance.ROUTES_PER_LANE_MAX)
+	return found
+
+
+## How far each lattice node is from `goal` along the roads, in tiles.
+func _distances_to(goal: Vector2i) -> Dictionary:
+	var dist: Dictionary = {goal: 0}
+	var open: Array[Vector2i] = [goal]
+	while not open.is_empty():
+		var best: int = 0
+		for i: int in open.size():
+			if int(dist[open[i]]) < int(dist[open[best]]):
+				best = i
+		var node: Vector2i = open[best]
+		open.remove_at(best)
+		for next: Vector2i in lattice_neighbours(node):
+			var through: int = int(dist[node]) + absi(next.x - node.x) + absi(next.y - node.y)
+			if not dist.has(next) or through < int(dist[next]):
+				if not dist.has(next):
+					open.append(next)
+				dist[next] = through
+	return dist
+
+
+## The one shortest way from `entry` to `goal`, read off the distances.
+func _shortest_walk(entry: Vector2i, goal: Vector2i, to_goal: Dictionary) -> Array:
+	var path: Array = [entry]
+	var node: Vector2i = entry
+	while node != goal:
+		var here: int = int(to_goal[node])
+		var chosen: Vector2i = node
+		for next: Vector2i in lattice_neighbours(node):
+			var step: int = absi(next.x - node.x) + absi(next.y - node.y)
+			if to_goal.has(next) and int(to_goal[next]) + step == here:
+				chosen = next
+				break
+		if chosen == node:
+			break
+		path.append(chosen)
+		node = chosen
+	return path
+
+
+func _walk_bounded(node: Vector2i, goal: Vector2i, seen: Dictionary, path: Array,
+		length: int, limit: int, to_goal: Dictionary, found: Array, known: Dictionary,
+		budget: Array[int]) -> void:
+	if found.size() >= ROUTE_SEARCH_COLLECT or budget[0] <= 0:
+		return
+	budget[0] -= 1
+	if node == goal:
+		var key: String = str(path)
+		if not known.has(key):
+			known[key] = true
+			found.append(path.duplicate())
+		return
+	for next: Vector2i in lattice_neighbours(node):
+		if seen.has(next) or not to_goal.has(next):
+			continue
+		var step: int = absi(next.x - node.x) + absi(next.y - node.y)
+		if length + step + int(to_goal[next]) > limit:
+			continue
+		seen[next] = true
+		path.append(next)
+		_walk_bounded(next, goal, seen, path, length + step, limit, to_goal, found, known, budget)
+		path.pop_back()
+		seen.erase(next)
 
 
 ## Where a route is joined by a body stepping onto it part way along.

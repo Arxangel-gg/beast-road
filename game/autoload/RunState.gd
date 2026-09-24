@@ -70,6 +70,20 @@ var pending_road_relics: Array[String] = []
 ## stream derived from this value, so adding a spark or audio variation cannot
 ## silently change tomorrow's formation or crossroad.
 var run_seed: int = 1
+## Which battlefield layout this road is laid on (`MapModes`).
+##
+## **The road's, not the machine's.** Classic after every reset; `start_run`
+## gives a new road the player's choice (a guest the host's), and a banked
+## front comes back on the map it was banked on. The battlefield reads this and
+## nothing else, so two machines on one road cannot build two maps.
+var map_mode: String = MapModes.CLASSIC
+## What the host said the road's layout is, heard beside the seed. A guest's
+## `start_run` takes it; nothing else reads it.
+var relayed_map_mode: String = MapModes.CLASSIC
+## Whether this road's layout was laid varied - Random's proportions rolled from
+## the seed. Carried with the mode everywhere the mode goes.
+var map_varied: bool = false
+var relayed_map_varied: bool = false
 
 ## Which lanes' forks are open this act (both camps razed). Run-scoped and
 ## re-closed every act with the camps; nothing persists. See `Camps`.
@@ -540,6 +554,12 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		forks_open.append(false)
 	terrain_id = ""
 	walking = false
+	# Classic unless a door that starts a real road says otherwise: a gate or a
+	# harness that resets the run gets the shipped map, whatever the machine's
+	# setting is - a check that measured whichever map its developer last chose
+	# would be measuring a different game on every desk.
+	map_mode = MapModes.CLASSIC
+	map_varied = false
 	phase = Phase.PREPARATION
 	active_road_id = ""
 	active_road_difficulty_id = ""

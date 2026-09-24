@@ -4068,6 +4068,28 @@ const BEAST_IDLE_BREATH_RATE: float = 0.16
 ## this multiplies the field's draw cost for a difference nobody sees. [TUNE]
 const FOLIAGE_PAINTED_CHANCE: float = 0.16
 
+## **Flowers glow at night** (2026-09-23, taken from Core Keeper, whose glow
+## tulips and lit caverns are the thing every review of it names first). A soft
+## additive halo behind a share of the flower patches, in the petals' own
+## colour, fading in as the dark comes down. A halo is a sprite, never a
+## `PointLight2D`: a hundred real lights is the frame going away, and this only
+## has to read as light, not cast it. Nothing reads a glow.
+const FOLIAGE_GLOW_KINDS: Array[String] = ["flower", "blossom", "mushrooms",
+	"wildflower_01", "wildflower_02", "wildflower_03", "wildflower_04"]
+## Share of the plants of those kinds that glow - all of them is a field of
+## lamps rather than a field with a few glowing flowers in it.
+const FOLIAGE_GLOW_SHARE: float = 0.45
+## Most halos on one field, so a flower-heavy region costs what any other does.
+const FOLIAGE_GLOW_MAX: int = 90
+## The darkness a glow starts at and how bright it gets at deep night.
+const FOLIAGE_GLOW_FROM: float = 0.3
+const FOLIAGE_GLOW_STRENGTH: float = 0.6
+## A halo's reach, as a share of the plant's painted width.
+const FOLIAGE_GLOW_REACH: float = 1.5
+## How often the halos are re-lit, a second. The dark moves on the road's clock,
+## which is slow; this is for the breathing.
+const FOLIAGE_GLOW_HZ: float = 8.0
+
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45
@@ -5939,6 +5961,19 @@ const MUSIC_DB: float = -8.0
 ## what is on disk ships every extra song in the export and plays none of them,
 ## which nothing fails on and nobody hears.
 const MUSIC_PLAYLIST_SLOTS: int = 24
+
+## **The music settles when the road is safe** (2026-09-23, from Core Keeper,
+## whose soundtrack reviewers praise for moving between calm in safe places and
+## tension in dangerous ones). During Preparation on the battlefield the music
+## passes through a low-pass filter and a small trim, as if heard from inside
+## the walls; a wave opens it back up. The same song, never a different one -
+## a track change every thirty seconds would be the playlist fighting itself.
+const MUSIC_CALM_CUTOFF_HZ: float = 4200.0
+## The music fader's share while calm, on top of the player's own slider.
+const MUSIC_CALM_TRIM: float = 0.85
+## Seconds to settle or to open up. Slow enough to read as the world changing
+## rather than as the audio cutting.
+const MUSIC_CALM_SECONDS: float = 3.0
 const MUSIC_BOSS_FADE: float = 2.4
 
 # ==============================================================================

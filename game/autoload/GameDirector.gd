@@ -329,6 +329,19 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
 	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
+	# **The map this road is laid on.** The host's own choice - a lone player is
+	# a host - or, for a guest, the host's word heard beside the seed. A banked
+	# front overrides both below, because it comes back on the map it was
+	# banked on.
+	# Random is settled here, once, into a layout and whether it is varied -
+	# which is what the road carries from now on.
+	if Coop.is_host():
+		var road: Array = MapModes.resolve(UserSettings.map_mode(), RunState.run_seed)
+		RunState.map_mode = String(road[0])
+		RunState.map_varied = bool(road[1])
+	else:
+		RunState.map_mode = MapModes.sanitise(RunState.relayed_map_mode)
+		RunState.map_varied = RunState.relayed_map_varied
 	_road_taken_at = Time.get_unix_time_from_system()
 	# **And if the Warden is going back to a front, the road is put down first.**
 	#

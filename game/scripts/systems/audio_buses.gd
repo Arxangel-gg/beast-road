@@ -32,6 +32,16 @@ const WEATHER: String = "Weather"
 ## value nothing was using.
 static var _hush: float = 1.0
 
+## How settled the music is, 0 (as mixed) to 1 (Preparation's calm). Rides on
+## the music bus as a low-pass and a trim, never on the player's slider.
+static var _calm: float = 0.0
+## Where the low-pass sits on the music bus, once it has been put there.
+static var _calm_effect: int = -1
+## The calm last written to the bus. Kept apart from `_calm` so a frame's small
+## step is always *counted* and only the bus work is skipped - skipping the step
+## itself stalled the fade at a high frame rate, where every step is small.
+static var _calm_applied: float = -1.0
+
 
 ## Lets the room back in, or takes it away. 1 is the game as mixed.
 static func set_hush(share: float) -> void:
@@ -44,6 +54,34 @@ static func set_hush(share: float) -> void:
 
 static func hush_share() -> float:
 	return _hush
+
+
+## Settles the music toward calm (1) or opens it back up (0).
+static func set_calm(share: float) -> void:
+	_calm = clampf(share, 0.0, 1.0)
+	var ends: bool = _calm <= 0.0 or _calm >= 1.0
+	if _calm_effect >= 0 and absf(_calm - _calm_applied) < 0.002 and not ends:
+		return
+	_calm_applied = _calm
+	ensure()
+	var bus: int = AudioServer.get_bus_index(MUSIC)
+	if bus < 0:
+		return
+	if _calm_effect < 0 or _calm_effect >= AudioServer.get_bus_effect_count(bus):
+		AudioServer.add_bus_effect(bus, AudioEffectLowPassFilter.new())
+		_calm_effect = AudioServer.get_bus_effect_count(bus) - 1
+	var filter := AudioServer.get_bus_effect(bus, _calm_effect) as AudioEffectLowPassFilter
+	if filter != null:
+		# Along the ear's scale rather than the number line: a linear sweep
+		# spends most of its time above anything anybody can hear change.
+		filter.cutoff_hz = exp(lerpf(log(20000.0), log(Balance.MUSIC_CALM_CUTOFF_HZ), _calm))
+	# Off entirely when fully open, so the game as mixed is the game as mixed.
+	AudioServer.set_bus_effect_enabled(bus, _calm_effect, _calm > 0.002)
+	apply_volumes()
+
+
+static func calm_share() -> float:
+	return _calm
 
 
 static func ensure() -> void:
@@ -73,7 +111,7 @@ static func apply_volumes() -> void:
 	# effects, the ambience and the weather at once - which is what "near-total
 	# quiet" means and what four separate fades would fail to keep in step.
 	_apply_bus(0, master * _hush)
-	_apply_bus(AudioServer.get_bus_index(MUSIC), music)
+	_apply_bus(AudioServer.get_bus_index(MUSIC), music * lerpf(1.0, Balance.MUSIC_CALM_TRIM, _calm))
 	_apply_bus(AudioServer.get_bus_index(SFX), sfx)
 	_apply_bus(AudioServer.get_bus_index(AMBIENCE), ambience)
 	_apply_bus(AudioServer.get_bus_index(WEATHER), weather)

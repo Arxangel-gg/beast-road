@@ -701,7 +701,7 @@ func _build_card() -> void:
 	# The rank is a warmth on the same Warden rather than a different picture.
 	portrait.modulate = RANK_TINTS[clampi(MetaState.ascension, 0, RANK_TINTS.size() - 1)]
 	# And the dye is the same Warden in different cloth (2026-09-21).
-	WardenLook.dress(portrait, WardenLook.mine())
+	WardenLook.dress(portrait, WardenLook.worn())
 	_card.add_child(portrait)
 
 	var name_row := HBoxContainer.new()
@@ -786,9 +786,9 @@ func _look_row(text: String, key: String) -> HBoxContainer:
 		if _session != null:
 			_session.my_look_changed()
 		elif _yard != null:
-			_yard.set_look(0, WardenLook.pack(WardenLook.mine()))
+			_yard.set_look(0, WardenLook.pack(WardenLook.worn()))
 		if _portrait != null:
-			WardenLook.dress(_portrait, WardenLook.mine()))
+			WardenLook.dress(_portrait, WardenLook.worn()))
 	row.add_child(slider)
 	return row
 

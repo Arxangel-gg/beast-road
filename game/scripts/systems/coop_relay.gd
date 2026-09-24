@@ -842,7 +842,8 @@ func _on_coop_xp_awarded(amount: float) -> void:
 
 
 func _on_coop_run_started(seed_value: int) -> void:
-	_relay(Fact.RUN_STARTED, [seed_value])
+	# The map rides beside the seed: both machines have to lay the same road.
+	_relay(Fact.RUN_STARTED, [seed_value, RunState.map_mode, RunState.map_varied])
 
 
 func _on_coop_host_input(slot: int, snapshot: Array) -> void:
@@ -1292,7 +1293,13 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 1:
 				bus.coop_xp_awarded.emit(float(args[0]))
 		Fact.RUN_STARTED:
-			if args.size() == 1:
+			if args.size() >= 1 and args.size() <= 3:
+				# Heard before the run starts, so the guest's `start_run` lays
+				# the host's map, varied as the host's was. A host that sent no
+				# map sent Classic.
+				RunState.relayed_map_mode = MapModes.sanitise(args[1]) if args.size() >= 2 \
+					else MapModes.CLASSIC
+				RunState.relayed_map_varied = args.size() == 3 and bool(args[2])
 				bus.coop_run_started.emit(int(args[0]))
 		Fact.WELCOME:
 			if args.size() == 1 and args[0] is Dictionary:

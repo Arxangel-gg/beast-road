@@ -88,9 +88,40 @@ static func unpack(row: Variant) -> Dictionary:
 	return clean(out)
 
 
-## This machine's own player's look, off the save.
+## This machine's own player's look, off the save. What the dye sliders read and
+## write; what is *drawn* is `worn`.
 static func mine() -> Dictionary:
 	return clean(MetaState.look)
+
+
+## The middle of the cloak's hue band, as a share of the wheel - the teal-steel
+## the Warden is painted in (`warden_look.gdshaderinc`, 0.43 to 0.64).
+const CLOAK_HUE: float = 0.535
+## A set colour greyer than this has no hue worth wearing.
+const SET_COLOUR_MIN_SATURATION: float = 0.2
+
+
+## **You look like what you wear** (2026-09-23, from Core Keeper, where every
+## armour piece changes the character). The Warden's frames cannot change with
+## gear - every sheet again per piece - but the dye can: a set worn in full puts
+## its own colour on the cloak, the same colour its ring turns in at the feet.
+##
+## Only a cloak left as painted. A dye the player chose is a choice, and a set
+## that overrode it would be the game ignoring them. Nothing reads a look.
+static func worn() -> Dictionary:
+	var full: GearSetData = Modifiers.completed_set()
+	return with_set_colour(mine(), full.aura_colour if full != null else Color(0, 0, 0, 0))
+
+
+## Pure: `look` with a set's colour on a cloak left as painted.
+static func with_set_colour(look: Dictionary, colour: Color) -> Dictionary:
+	var out: Dictionary = clean(look)
+	if colour.a <= 0.0 or colour.s < SET_COLOUR_MIN_SATURATION:
+		return out
+	if absf(float(out.get(KEY_CLOAK, 0.0))) > 0.0005:
+		return out
+	out[KEY_CLOAK] = wrapf(colour.h - CLOAK_HUE, -RANGE, RANGE)
+	return clean(out)
 
 
 static func shader() -> Shader:

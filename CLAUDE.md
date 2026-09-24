@@ -58,6 +58,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | The town rides the beast; no standing hub (§54, IDEAS_REVIEW §4) | no hub | **DECIDED 2026-09-11: build the hub. See below.** |
 | No dungeons, rifts, professions or ascension | absent | **DECIDED 2026-09-11: build them. See below.** |
 | Disciplines are the card draft (IDEAS_REVIEW §4) | refuse a second pool | **DECIDED 2026-09-11: build Road Cards. See below.** |
+| One authored battlefield; procedural layouts cut (v4 §54) | cut for 1.0 | **DECIDED 2026-09-23: map modes in the settings, Random included. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -8303,6 +8304,102 @@ at X): the first cut raised the late acts too and `curve_report` refused it at
 0.627 for four players against a ceiling of 0.58; the model itself put Acts III
 and IV at 0.30, which is the owner's "too easy" in numbers, so the raise is
 concentrated there.
+
+**The battlefield has modes, as of 2026-09-23.** The owner: *"settings
+dropdown options for the best different map modes for our game including the new
+map modes and current map mode, so all variations can be tested and current
+method can be preserved to revisit as needed"*, then *"an option that will
+randomly use any of the map modes except for the original which looks like a
+reverse swastika. Any of the random maps it makes should also have procedural
+variations"*, and *"another version of confluence that has the rings for the
+north and south as well"*. That re-cuts v4 §54's cut of procedural layouts and
+the 2026-09-12 line above that "what the seed decides is a mirror", so it is
+recorded.
+
+**What the problem actually was, measured.** The authored core is the pinwheel,
+not only the outskirts: it matches itself under a quarter turn on 100% of its
+road and its own mirror image on 44%. `DESIGN_DIRECTION_2026-09-22.md`'s option A
+- mirror the outskirts - could never have fixed it.
+
+**Seven layouts** (`MapModes`): **Classic**, the authored map exactly; **Keep**,
+two walls whose roads double back to four gates; **Citadel**, one wall with gates
+east and west and a bastion on every road; **Beast-Axis**, a spine and ribs;
+**Confluence**, two braided trunks the north and south roads split onto;
+**Confluence: Four Rings**, a braided ring for every road; and **Wild Roads**, a
+network rolled from the seed. **Random** is a choice rather than a layout: it
+deals any of them but Classic when a road begins, **varied** - its walls, bars,
+ribs, braids and ties rolled from the seed within ranges that keep it sound.
+
+**The core is replaced and nothing around it moves.** Every layout keeps the four
+entries at the middle of each edge, so the outskirts, camps, forks, ponds, nodes,
+plots and gates are laid exactly as before; every road is a straight three-wide
+corridor on the lattice the renderer, torches and minimap already read. Classic's
+code path is untouched to the line - the authored file, the same-way-round camps,
+the original route walk - and `map_mode_check` holds that a grid made as Classic
+is the unmoded grid cell for cell and route for route.
+
+**Four bounds, each gated:**
+
+- **A new layout is its own mirror image left to right** (`map_mode_check`,
+  99% or better; they measure 100%). A shape with a mirror line cannot be a
+  pinwheel, so the fault is impossible rather than merely absent. Their camps
+  mirror too (`BattleGrid._side_of`): east and west reflect each other, north and
+  south likewise.
+- **No lane is the one every wave is lost on.** Shortest ways in within 1.6x of
+  each other across the four lanes, and every varied roll within 1.45x
+  (`MapLayouts._sound`), none a straight shot.
+- **Room to build**: at least 55% of the tower places Classic's core offers.
+- **Every road is walked.** `map_mode_play_check` stands the real run up on each
+  layout and sends bodies down every lane until they reach the wall - on the
+  release bar only, because it takes six minutes.
+
+**A layout is the road's, never the machine's.** The setting chooses the *next
+new* road. `RunState.map_mode` and `map_varied` are reset to Classic by every
+`reset()` - so a gate never measures whichever map its developer last chose - and
+set in `start_run` from the setting, or for a guest from the host's word heard
+beside the seed (`Fact.RUN_STARTED` carries both). A banked front carries its
+own and comes back on it whatever the setting says. The Walk is always Classic,
+because its stops and its pictures were made there. The pause menu names the
+battlefield, since Random says so nowhere else.
+
+**Generated layouts walk routes differently, and Classic does not.** A double
+wall is a grid, and the plain walk stops at `ROUTES_PER_LANE_MAX` on the first
+two dozen ways in the lattice lists rather than the shortest two dozen. So the
+new layouts take the true shortest way first and then search only steps that can
+still arrive within `_bounded`'s limits (`_walk_routes_bounded`).
+
+**Nothing persists but the choice**: `settings.map_mode`, declared in the
+defaults, and two fields on a banked front. Additive; `SAVE_VERSION` did not move.
+**The default is still Classic**, because the ruling was to add and preserve.
+Moving it off Classic before anybody outside plays is the P0 in the design
+direction, and it is now a one-line default rather than a project.
+
+**Three things taken from Core Keeper, as of 2026-09-23.** The owner asked what
+the game can learn from Core Keeper's systems and its polish, ruled "no idols",
+and left the rest to judgement. `docs/IDEAS_REVIEW_2026-09-23.md` is the triage:
+what it does, what Wilderhold already has under other names, what comes next and
+what is refused. Three pieces were built the same day, each a presentation that
+changes nothing but presentation, and `polish_check` holds all three:
+
+- **The music settles when the road is safe.** Preparation on the battlefield
+  eases the music bus through a low-pass and a trim (`MUSIC_CALM_*`); a wave
+  opens it over three seconds. The same song, never a track change; the player's
+  slider and the post-boss hush never move; a raid is never safe. It found a real
+  bug on its first run: `AudioBuses.set_calm` skipped any step under 0.002
+  *without storing it*, and at a high frame rate every step is that small, so
+  the fade stalled. A skip may save the bus work; it may never drop the count.
+- **Flowers glow at night.** A share of the flower and mushroom patches carries
+  an additive halo behind the plant (`show_behind_parent`), in the petals' own
+  colour read off the painting, lit by `DayNight.darkness`. Sprites, never
+  `PointLight2D` - a hundred real lights is the frame going away - and capped by
+  `FOLIAGE_GLOW_MAX`. Which plants glow comes from where they stand, never from
+  the run's stream.
+- **You look like what you wear.** `WardenLook.worn` puts a full set's aura
+  colour on a cloak the player left undyed, and every place this machine draws
+  or sends its own Warden uses it - so a partner, the Hold's seats and the lobby
+  see the same Warden. `mine` is still what the dye slider reads and writes,
+  because that is what it edits; a set that overrode a chosen dye would be the
+  game ignoring the player.
 
 ### The three escape hatches — and why there are only three
 

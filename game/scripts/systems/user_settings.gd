@@ -83,6 +83,17 @@ const DISPLAY_FULLSCREEN: String = "fullscreen"
 const DISPLAY_WINDOWED: String = "windowed"
 
 
+## The battlefield layout the next *new* road is laid on (`MapModes`). A banked
+## road keeps its own, and a guest walks the host's.
+const MAP_MODE_KEY: String = "map_mode"
+
+
+## The layout chosen for new roads - a layout or Random - sanitised, because a
+## save may hold anything.
+static func map_mode() -> String:
+	return MapModes.sanitise_choice(value(MAP_MODE_KEY, MapModes.CLASSIC))
+
+
 static func value(key: String, fallback: Variant = null) -> Variant:
 	return MetaState.settings.get(key, fallback)
 

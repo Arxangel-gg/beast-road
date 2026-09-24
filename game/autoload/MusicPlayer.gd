@@ -95,6 +95,23 @@ var _boss_holding: bool = false
 var test_slots: Dictionary = {}
 
 
+## Whether the music should be settled now: Preparation, on the battlefield, on
+## a live road. Pure over the state, so the gate can ask it.
+static func should_be_calm() -> bool:
+	return GameDirector.run_active \
+		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD \
+		and RunState.phase == RunState.Phase.PREPARATION
+
+
+## Eases the music toward calm or toward the full mix, a little every frame.
+func _process(delta: float) -> void:
+	var want: float = 1.0 if should_be_calm() else 0.0
+	var now: float = AudioBuses.calm_share()
+	if is_equal_approx(want, now):
+		return
+	AudioBuses.set_calm(move_toward(now, want, delta / maxf(Balance.MUSIC_CALM_SECONDS, 0.05)))
+
+
 func _ready() -> void:
 	AudioBuses.ensure()
 	for i: int in 2:

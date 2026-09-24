@@ -2777,7 +2777,7 @@ func _update_sprite(_delta: float) -> void:
 		# The dye goes on with the material it lives in. The local player's
 		# is the save's; a mirror keeps whatever it was told before this ran.
 		if is_local_player():
-			look = WardenLook.mine()
+			look = WardenLook.worn()
 		WardenLook.dress(sprite, look)
 	BloodStain.drive(_blood, health.ratio(), _delta)
 	if _flash_left > 0.0:

@@ -922,6 +922,9 @@ var settings: Dictionary = {
 	"screen_flash": 1.0,
 	"damage_number_density": 1.0,
 	"beast_gait": 0.65,
+	# The layout new roads are laid on (2026-09-23). Declared here or it is
+	# dropped on load and every choice reverts to Classic on the next launch.
+	"map_mode": MapModes.CLASSIC,
 	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
 	# These keys must exist before load_save() merges persisted settings. The
 	# loader deliberately rejects unknown keys, so omitting them made Video and

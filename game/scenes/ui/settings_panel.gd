@@ -160,6 +160,8 @@ func _build() -> void:
 	game.add_child(_gait_row())
 	game.add_child(_blood_vfx_row())
 	game.add_child(_separator())
+	game.add_child(_map_mode_row())
+	game.add_child(_separator())
 	game.add_child(_tutorial_row())
 	var game_scroll := ScrollContainer.new()
 	game_scroll.name = game.name
@@ -500,6 +502,48 @@ func _refresh_display_buttons() -> void:
 ## want six. Touching any switch moves the preset to Custom rather than silently
 ## disagreeing with the label above it.
 ## Replaying the tutorial is a game setting, not a data one.
+## Which battlefield new roads are laid on (2026-09-23): the shipped map and
+## every layout built beside it, so each can be played and Classic kept.
+##
+## A dropdown rather than a row of buttons: six names do not fit a phone's row,
+## and a list that grows by one line per layout is the shape this will keep.
+func _map_mode_row() -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var name_label: Label = _label("Battlefield")
+	name_label.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(name_label)
+	var picker := OptionButton.new()
+	picker.name = "MapModePicker"
+	picker.custom_minimum_size = Vector2(240.0, 38.0)
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var current: String = UserSettings.map_mode()
+	var choices: Array[Dictionary] = MapModes.choices()
+	for index: int in choices.size():
+		var entry: Dictionary = choices[index]
+		picker.add_item(String(entry["label"]), index)
+		if String(entry["id"]) == current:
+			picker.select(index)
+	row.add_child(picker)
+	box.add_child(row)
+	var blurb: Label = _label(MapModes.blurb_of(current), 14)
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(blurb)
+	var note: Label = _label("Lays your next new road. A banked road keeps the map it was "
+		+ "banked on, and in co-op everyone plays the host's.", 13)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.modulate = Color(1.0, 1.0, 1.0, 0.7)
+	box.add_child(note)
+	picker.item_selected.connect(func(index: int) -> void:
+		var id: String = String(choices[clampi(index, 0, choices.size() - 1)]["id"])
+		UserSettings.set_value(UserSettings.MAP_MODE_KEY, id)
+		blurb.text = MapModes.blurb_of(id)
+		_queue_save())
+	return box
+
+
 func _tutorial_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)

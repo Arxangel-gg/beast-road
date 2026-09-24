@@ -172,7 +172,7 @@ func open(host_name: String) -> void:
 	host.name = _clean(host_name)
 	# The host declares nothing to itself, so its own dye is read here - without
 	# it the roster it publishes carries three dyes and a painted host.
-	host.look = WardenLook.pack(WardenLook.mine())
+	host.look = WardenLook.pack(WardenLook.worn())
 	_seats[1] = host
 	roster_changed.emit()
 

@@ -710,7 +710,7 @@ func _tell_them_my_dye(relay: CoopRelay, delta: float) -> void:
 	if _look_timer > 0.0:
 		return
 	_look_timer = LOOK_INTERVAL
-	var row: Array = WardenLook.pack(WardenLook.mine())
+	var row: Array = WardenLook.pack(WardenLook.worn())
 	if row == _look_said:
 		return
 	_look_said = row.duplicate()
@@ -767,7 +767,7 @@ func _send_state() -> void:
 ## dye on it rather than as a malformed packet.
 func _look_of(number: int, who: Hero) -> Array:
 	if number == Coop.party().slot():
-		return WardenLook.pack(WardenLook.mine())
+		return WardenLook.pack(WardenLook.worn())
 	return WardenLook.pack(who.look)
 
 
