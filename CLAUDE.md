@@ -9182,6 +9182,40 @@ the next step is `perf_bisect --visuals` on the 180 Hz screen, not code.
 
  — and why there are only three
 
+**Measured on the renderer after the evening's cuts, as of 2026-09-24
+(night).** The owner gave the screen. `perf_check --act=10 --build`, ninety
+seconds, seed 20260922, 1080p windowed on the 180 Hz screen, High, with the
+8% larger waves of the same evening:
+
+    before the bars and the ink   19.1 ms avg   p99 28.4   worst 43.0   14 hitches
+    after                         13.7 ms avg   p99 23.7   worst 38.8    2 hitches
+    with one shared additive      14.0 ms avg   p99 23.9   worst 32.8    0 hitches
+
+**73 fps at Act X's peak on this machine, and the 60 the GDD asks for with
+a quarter of the frame to spare.** The renderer's own 4.5 ms CPU and 4.5 ms
+GPU did not move; what moved was the script and the item count around them.
+
+`perf_bisect --visuals` re-ranked what is drawn, on a held field of 24
+bodies at 11.5 ms: **torches 2.5 ms, flames 1.6, towers 1.1, particles 0.6,
+the minimap 0.5**, and everything else - the bars, both ink canvases, the
+ground blood, the tells, the pools, the lights, the plants - inside the
+noise at 0.2 or under. So the bars and the ink were the right two to
+convert and the list this file gave before is retired; the minimap's moving
+marks repaint on `MINIMAP_MARKS_HZ` now, and the torch and its flame are
+the whole of what is left. Read against the code: a torch in view is its
+ironwork's polygons, a flame's halo quad and one retained mesh, an ember
+emitter and every second one a light - and the `lights` row saved nothing,
+so it is not the lights. **The next step is a finer ablation**, splitting
+the torch into ironwork, halo, tongue mesh and embers, before any of them
+is rebuilt; the plan names the shapes each would take.
+
+**And one additive material serves every glow now** (`LightKit.additive_material`,
+sixteen sites). Correct, harmless, and **measured at nothing**: 13.7 to 14.0
+ms is inside the run-to-run noise, so the batcher was not breaking on the
+instance. Recorded so nobody claims it as a saving.
+
+### The three escape hatches - and why there are only three
+
 The project is going all in on v4. That is the right call and it does not need
 hedging: a runtime flag that keeps v3 behaviour alive doubles the surface that
 has to be balanced, tested and understood, and the unused branch rots until it

@@ -165,10 +165,19 @@ items as AI work - see §8.
 
 Built at the end of 2026-09-24 without the screen: the health bar as one
 `_draw` of filled rects, and the ink canvases ageing on their redraw clock.
-What is left needs a windowed reading before code - ask for the screen, run
-`perf_bisect --visuals` and `perf_check --act=10 --build` on the 180 Hz
-display, and only then take the largest row. The candidates, with the plan
-each one needs:
+Both were then measured on the screen: 19.1 ms to 13.7 ms average on the
+same seed and window (73 fps at Act X's peak), and `perf_bisect --visuals`
+re-ranked the field as torches 2.5, flames 1.6, towers 1.1, particles 0.6,
+minimap 0.5 (now on a clock), everything else at noise. **The torch and its
+flame are the whole of what is left**, and the next step is a finer ablation
+- add rows to `perf_bisect --visuals` that hide only a torch's ironwork,
+only the flames' halos, only the tongue meshes, only the embers - before
+rebuilding any of them. The shapes each would take if it ranks: the
+ironwork as one baked sprite per torch (a polygon per part is a primitive
+draw each); the tongues as a 48-cell sheet rendered once from the ring
+meshes by a windowed tool and drawn as a region rect, so every flame batches
+with every other; the embers as ink motes on a cadence, as the torch smoke
+went. Then the older candidates, each with the plan it needs:
 
 - **Ground blood**: keep the one triangle array (one draw call) and stop
   rebuilding it on the fade. Bake each mark's birth and life into a vertex
