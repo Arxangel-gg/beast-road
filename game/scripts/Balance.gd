@@ -3878,11 +3878,11 @@ const RANGE_RING_SEGMENTS: int = 48
 ## Flattened, because the camera looks down and slightly along and a true
 ## circle on the ground reads as a hoop standing up.
 const RANGE_RING_SQUASH: float = 0.58
-const RANGE_RING_HERO: Color = Color(0.72, 0.86, 0.96, 0.62)
-const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.26)
+const RANGE_RING_HERO: Color = Color(0.72, 0.86, 0.96, 0.5)
+const RANGE_RING_TOWER: Color = Color(0.86, 0.78, 0.42, 0.21)
 ## An enemy's reach after it attacks (owner, 2026-09-22): its colour, how near a
 ## Warden it must be to be drawn, and how many may stand at once. [TUNE]
-const RANGE_RING_ENEMY: Color = Color(0.95, 0.38, 0.3, 0.22)
+const RANGE_RING_ENEMY: Color = Color(0.95, 0.38, 0.3, 0.18)
 ## The pulse a ring gives each time its shooter fires again: how long it takes
 ## to settle and how much brighter it starts (owner, 2026-09-22: "more
 ## semi-transparent and should glow pulse"). [TUNE]
@@ -3893,6 +3893,15 @@ const PURCHASE_UNDO_SECONDS: float = 5.0
 const RANGE_RING_PULSE_GAIN: float = 1.4
 const RANGE_RING_ENEMY_NOTICE: float = 900.0
 const RANGE_RING_ENEMY_MAX: int = 8
+## **An arc, not a circle** (owner, 2026-09-24): the part of the reach that
+## faces what was shot at, this many degrees wide, its two ends feathered over
+## `RANGE_RING_ARC_FEATHER` degrees so there is no cut edge, laid over a wider,
+## fainter halo of the same colour. A shooter with no aim to show - a signal
+## that carries none - still draws the whole ring.
+const RANGE_RING_ARC_SPAN: float = 110.0
+const RANGE_RING_ARC_FEATHER: float = 32.0
+const RANGE_RING_HALO_WIDTH: float = 3.4
+const RANGE_RING_HALO_ALPHA: float = 0.32
 
 ## The mark on a body the next swing would land on. Warm, so it cannot be
 ## mistaken for the cool range rings, and it *breathes* rather than sitting
@@ -4156,6 +4165,23 @@ const BLOOM_STRENGTH_NIGHT: float = 1.25
 ## shaded tower beside it is lit from above and across.
 const LIGHT_BURST_MAX: int = 4
 const LIGHT_BURST_HEIGHT: float = 160.0
+
+## **The frame governs the preset** (2026-09-24, `QualityGovernor`): while the
+## player has chosen nothing, the road's frames are averaged over windows of
+## this many seconds after a settle; two slow windows step the preset down,
+## twelve fast ones step it up (never past the machine's own). A frame cap the
+## player set is honoured with this much slack over its own interval.
+const GOVERNOR_WINDOW_SECONDS: float = 5.0
+const GOVERNOR_SETTLE_SECONDS: float = 8.0
+const GOVERNOR_STEP_DOWN_MS: float = 19.0
+const GOVERNOR_STEP_UP_MS: float = 9.5
+const GOVERNOR_SLOW_WINDOWS: int = 2
+const GOVERNOR_FAST_WINDOWS: int = 12
+const GOVERNOR_CAP_SLACK: float = 1.15
+## On Low every this-many-th torch carries a real light; every other post still
+## burns and pools. A `PointLight2D` re-draws what stands under it, and a road
+## has a hundred torches - which a phone cannot afford.
+const TORCH_LIGHT_EVERY_LOW: int = 3
 
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]

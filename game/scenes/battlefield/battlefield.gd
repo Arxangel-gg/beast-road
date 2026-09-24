@@ -840,10 +840,12 @@ func _place_torch(lane: int, at: Vector2) -> void:
 	var torch := Torch.new()
 	torch.lane = lane
 	torch.position = at
-	# Every torch lights. The quality tier decides whether it also *casts*, which
-	# is the expensive half; a light with no shadow is cheap and is what stops the
-	# road going dark between posts.
-	torch.carries_light = true
+	# Every torch lights above Low. The quality tier decides whether it also
+	# *casts*, which is the expensive half; a light with no shadow is cheap on a
+	# desktop and is what stops the road going dark between posts. On Low - a
+	# phone - only every `TORCH_LIGHT_EVERY_LOW`th carries one (2026-09-24), and
+	# the others still burn and pool.
+	torch.carries_light = _torch_index % Graphics.torch_light_every() == 0
 	torch.shadow_on_ultra_only = _torch_index % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
 	_torch_index += 1
 	entity_root.add_child(torch)

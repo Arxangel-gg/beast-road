@@ -79,7 +79,7 @@ func _ready() -> void:
 ## Keyed by the shooter rather than appended, so a tower firing eight times a
 ## second holds one ring at full rather than stacking eight.
 func show_range(key: int, at: Vector2, reach: float, tint: Color,
-		follow: Node2D = null) -> void:
+		follow: Node2D = null, aim: Vector2 = Vector2.ZERO) -> void:
 	if reach <= 1.0:
 		return
 	# **A pulse on every refresh** (owner, 2026-09-22): a ring already standing
@@ -92,11 +92,14 @@ func show_range(key: int, at: Vector2, reach: float, tint: Color,
 		"left": Balance.RANGE_RING_HOLD,
 		"pulse": 1.0,
 		"follow": follow,
+		# **The arc faces what was shot at** (owner, 2026-09-24). Zero means
+		# nobody said, and the whole ring is drawn.
+		"aim": aim,
 	}
 
 
-func _on_shot(from: Vector2, reach: float) -> void:
-	show_range(0, from, reach, Balance.RANGE_RING_HERO)
+func _on_shot(from: Vector2, reach: float, aim: Vector2) -> void:
+	show_range(0, from, reach, Balance.RANGE_RING_HERO, null, aim)
 
 
 ## **Around the tower, never around what it hit.** Owner, 2026-09-22: the range
@@ -106,7 +109,7 @@ func _on_shot(from: Vector2, reach: float) -> void:
 ## tower's reach centred on its target describes nothing at all. The centre is
 ## asked of the field by anchor, the one thing the signal names that is the
 ## tower, and a tower the field cannot find draws no ring rather than a wrong one.
-func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
+func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 	if not Graphics.tower_rings_shown():
 		return
 	var data: TowerData = RunState.tower_at(anchor)
@@ -120,8 +123,12 @@ func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
 	# off its data at its level, which drew a smaller circle than the one it
 	# shot from (owner, 2026-09-22: "not properly showing the towers' actual
 	# reaches").
-	show_range(anchor.x * 4096 + anchor.y + 1, (found as Dictionary)["at"] as Vector2,
-		float((found as Dictionary)["reach"]), Balance.RANGE_RING_TOWER)
+	var centre: Vector2 = (found as Dictionary)["at"] as Vector2
+	# Where the shot went is the one thing the signal carries that says which
+	# way the tower is looking; the ring's centre stays the tower's.
+	show_range(anchor.x * 4096 + anchor.y + 1, centre,
+		float((found as Dictionary)["reach"]), Balance.RANGE_RING_TOWER, null,
+		(at - centre).normalized() if at.distance_to(centre) > 1.0 else Vector2.ZERO)
 
 
 ## **An enemy shows its reach for a while after it attacks**, as a tower does
@@ -138,7 +145,20 @@ func _on_enemy_attacked(key: int, at: Vector2, reach: float) -> void:
 			enemies += 1
 	if enemies >= Balance.RANGE_RING_ENEMY_MAX and not _rings.has(-key):
 		return
-	show_range(-key, at, reach, Balance.RANGE_RING_ENEMY, instance_from_id(key) as Node2D)
+	var body := instance_from_id(key) as Node2D
+	show_range(-key, at, reach, Balance.RANGE_RING_ENEMY, body, _enemy_aim(body))
+
+
+## Which way a body's reach faces: toward what it is fighting, read off the
+## body rather than guessed. Zero when it has no target to face.
+func _enemy_aim(body: Node2D) -> Vector2:
+	if body == null or not is_instance_valid(body):
+		return Vector2.ZERO
+	var target: Variant = body.get("_target")
+	if target is Node2D and is_instance_valid(target):
+		var line: Vector2 = (target as Node2D).global_position - body.global_position
+		return line.normalized() if line.length() > 1.0 else Vector2.ZERO
+	return Vector2.ZERO
 
 
 func _process(delta: float) -> void:
@@ -159,6 +179,11 @@ func _process(delta: float) -> void:
 				var body := held as Node2D
 				ring["at"] = body.call("combat_origin") if body.has_method("combat_origin") \
 					else body.global_position
+				# And turned toward what it is fighting now; a body that has lost
+				# its target keeps facing the way it last did.
+				var facing: Vector2 = _enemy_aim(body)
+				if facing != Vector2.ZERO:
+					ring["aim"] = facing
 			else:
 				ring["follow"] = null
 		live[key] = ring
@@ -188,12 +213,20 @@ func _draw_rings(weight: float) -> void:
 		tint.a *= alpha * weight * (1.0 + Balance.RANGE_RING_PULSE_GAIN * pulse)
 		if tint.a <= 0.004:
 			continue
-		# **A true circle**, because a reach is one: towers and bodies measure
-		# range as a radius in every direction, and a flattened ring promised
-		# 58% of it up and down the screen (owner, 2026-09-22: "Player towers
-		# should not have skewed tower attack ranges").
+		# **A true circle's radius**, because a reach is one: towers and bodies
+		# measure range as a radius in every direction, and a flattened ring
+		# promised 58% of it up and down the screen (owner, 2026-09-22). **And
+		# only the part that faces what was shot at** (owner, 2026-09-24): an
+		# arc `RANGE_RING_ARC_SPAN` wide on the aim, feathered at both ends,
+		# over a wider and fainter halo so it reads as light on the ground
+		# rather than as a drawn line.
+		var aim: Vector2 = ring.get("aim", Vector2.ZERO) as Vector2
+		var halo: Color = tint
+		halo.a *= Balance.RANGE_RING_HALO_ALPHA
+		_arc(ring["at"] as Vector2, float(ring["reach"]), halo,
+			Balance.RANGE_RING_WIDTH * Balance.RANGE_RING_HALO_WIDTH * (1.0 + pulse * 0.5), 1.0, aim)
 		_arc(ring["at"] as Vector2, float(ring["reach"]), tint,
-			Balance.RANGE_RING_WIDTH * (1.0 + pulse), 1.0)
+			Balance.RANGE_RING_WIDTH * (1.0 + pulse), 1.0, aim)
 
 
 ## The bodies the next swing would land on.
@@ -226,22 +259,36 @@ func _draw_reach(weight: float) -> void:
 ## for at the swim sheen, the menu campfire and the blood. Each segment is drawn
 ## as a band whose outer and inner vertices are transparent, so the line has a
 ## soft shoulder at any zoom.
+##
+## With an `aim`, only the arc of `RANGE_RING_ARC_SPAN` degrees that faces it is
+## drawn, and the alpha of its two ends falls away over `RANGE_RING_ARC_FEATHER`
+## degrees - a sector edge that ends in a hard cut reads as a slice of pie, and
+## one that fades reads as light.
 func _arc(at: Vector2, radius: float, tint: Color, width: float,
-		squash: float = Balance.RANGE_RING_SQUASH) -> void:
+		squash: float = Balance.RANGE_RING_SQUASH, aim: Vector2 = Vector2.ZERO) -> void:
 	if radius <= 1.0 or tint.a <= 0.004:
 		return
-	var steps: int = Balance.RANGE_RING_SEGMENTS
+	var whole: bool = aim == Vector2.ZERO
+	var span: float = TAU if whole else deg_to_rad(Balance.RANGE_RING_ARC_SPAN)
+	var start: float = 0.0 if whole else aim.angle() - span * 0.5
+	var feather: float = 0.0 if whole else clampf(
+		deg_to_rad(Balance.RANGE_RING_ARC_FEATHER) / span, 0.0, 0.5)
+	var steps: int = maxi(int(round(float(Balance.RANGE_RING_SEGMENTS) * span / TAU)), 8)
 	var points: PackedVector2Array = []
 	var colours: PackedColorArray = []
 	var indices: PackedInt32Array = []
 	var clear := Color(tint.r, tint.g, tint.b, 0.0)
 	for step: int in steps + 1:
-		var angle: float = TAU * float(step) / float(steps)
+		var along: float = float(step) / float(steps)
+		var angle: float = start + span * along
 		var out := Vector2(cos(angle), sin(angle) * squash)
+		var lit: Color = tint
+		if not whole:
+			lit.a *= smoothstep(0.0, feather, along) * smoothstep(0.0, feather, 1.0 - along)
 		points.append(at + out * (radius - width))
 		colours.append(clear)
 		points.append(at + out * radius)
-		colours.append(tint)
+		colours.append(lit)
 		points.append(at + out * (radius + width))
 		colours.append(clear)
 	for step: int in steps:

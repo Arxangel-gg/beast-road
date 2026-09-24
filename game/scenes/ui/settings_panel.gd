@@ -636,6 +636,19 @@ func _preset_row() -> HBoxContainer:
 	row.add_child(name_label)
 
 	_preset_buttons = {}
+	# **Auto** hands the choice to the machine and the frame (2026-09-24): the
+	# adapter's name picks the start and the governor steps it in play.
+	var automatic := Button.new()
+	automatic.text = "Auto"
+	automatic.toggle_mode = true
+	automatic.custom_minimum_size = Vector2(96.0, 40.0)
+	automatic.tooltip_text = "Let the game pick for this device and adjust in play."
+	automatic.pressed.connect(func() -> void:
+		Graphics.set_automatic()
+		_refresh_video()
+		_queue_save())
+	_preset_buttons["auto"] = automatic
+	row.add_child(automatic)
 	for entry: Array in [
 			[Graphics.PRESET_LOW, "Low"],
 			[Graphics.PRESET_MEDIUM, "Medium"],
@@ -865,8 +878,13 @@ func _refresh_video() -> void:
 
 func _refresh_preset_buttons() -> void:
 	var current: String = Graphics.preset()
+	var automatic: bool = Graphics.is_automatic()
 	for id: Variant in _preset_buttons:
-		(_preset_buttons[id] as Button).button_pressed = String(id) == current
+		var button := _preset_buttons[id] as Button
+		if String(id) == "auto":
+			button.button_pressed = automatic
+		else:
+			button.button_pressed = String(id) == current and not automatic
 
 
 func _refresh_fps_buttons() -> void:

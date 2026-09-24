@@ -29,6 +29,10 @@ extends RefCounted
 ## these are presentation budgets and belong with the code that spends them.
 
 const KEY_PRESET: String = "graphics_preset"
+## The level the frame-time governor measured the device down (or back up) to,
+## kept apart from the player's own choice so the two never overwrite each
+## other: `KEY_PRESET` is what the player said, this is what the frame said.
+const KEY_AUTO_PRESET: String = "graphics_auto_preset"
 const KEY_CAST_SHADOWS: String = "graphics_cast_shadows"
 const KEY_CONTACT_SHADOWS: String = "graphics_contact_shadows"
 const KEY_PARTICLES: String = "graphics_particles"
@@ -136,6 +140,8 @@ const PRESET_MEDIUM: String = "medium"
 const PRESET_HIGH: String = "high"
 const PRESET_ULTRA: String = "ultra"
 const PRESET_CUSTOM: String = "custom"
+## Low to Ultra, the order the governor steps along.
+const PRESET_LADDER: Array[String] = [PRESET_LOW, PRESET_MEDIUM, PRESET_HIGH, PRESET_ULTRA]
 
 ## What each preset sets. `custom` is absent on purpose: it is not a preset, it
 ## is the label the UI shows once a player has touched an individual switch.
@@ -266,7 +272,10 @@ static func machine_note() -> String:
 	var adapter: String = RenderingServer.get_video_adapter_name().strip_edges()
 	if adapter.is_empty():
 		return ""
-	return "Chosen for this machine: %s" % adapter
+	var note: String = "Chosen for this machine: %s" % adapter
+	if is_automatic() and not governed_preset().is_empty():
+		note += " · measured down to %s in play" % governed_preset().capitalize()
+	return note
 
 
 ## The live settings, held here rather than read from the save.
@@ -280,7 +289,43 @@ static var _chosen: Dictionary = {}
 
 
 static func preset() -> String:
-	return String(_chosen.get(KEY_PRESET, default_preset()))
+	return String(_chosen.get(KEY_PRESET, _chosen.get(KEY_AUTO_PRESET, default_preset())))
+
+
+## Whether the player has never chosen a preset, so the machine and the frame
+## decide it (`QualityGovernor`).
+static func is_automatic() -> bool:
+	return not _chosen.has(KEY_PRESET)
+
+
+## What the governor measured the device to, or empty.
+static func governed_preset() -> String:
+	return String(_chosen.get(KEY_AUTO_PRESET, ""))
+
+
+## The governor's step: remembered under its own key, never as the player's.
+static func govern(name: String) -> void:
+	if not PRESETS.has(name):
+		return
+	_chosen[KEY_AUTO_PRESET] = name
+	apply_runtime()
+
+
+## Hands the choice back to the machine and the frame ("Auto" on the settings
+## screen): the player's preset and every switch they set are forgotten.
+static func set_automatic() -> void:
+	_chosen.erase(KEY_PRESET)
+	_chosen.erase(KEY_AUTO_PRESET)
+	for key: String in [KEY_CAST_SHADOWS, KEY_CONTACT_SHADOWS,
+			KEY_PARTICLES, KEY_FOLIAGE, KEY_CLOUDS]:
+		_chosen.erase(key)
+	apply_runtime()
+
+
+## How many posts share one real light on the road. One on every preset but
+## Low, where a phone cannot afford a hundred lights and every third carries.
+static func torch_light_every() -> int:
+	return Balance.TORCH_LIGHT_EVERY_LOW if preset() == PRESET_LOW else 1
 
 
 ## Reads one switch, falling back through the current preset to High.

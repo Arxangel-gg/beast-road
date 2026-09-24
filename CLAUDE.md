@@ -8499,6 +8499,38 @@ charge ended. The harness asks the field where dry ground is (`_dry_line`,
 and charges there, for the body test and the edge test both. Run three times in
 a row before the tag.
 
+**A reach is an arc, and the frame governs the preset, as of 2026-09-24.**
+Two of the owner's asks from the same brief - "the part of the circle aimed at
+the enemy it attacked with smooth fading" and "auto settings detection and
+configuration for all platforms and any device".
+
+**The range ring draws only the part that faces what was shot at.**
+`ranged_shot_fired` carries the shot's own direction, a tower's ring reads the
+aim off where its shot went, and a body's off its `_target` every frame it is
+followed. `CombatTells._arc` takes an `aim`: `RANGE_RING_ARC_SPAN` degrees on
+it, each end feathered over `RANGE_RING_ARC_FEATHER` with a smoothstep - a
+sector that ends in a cut reads as a slice of pie - laid over a wider, fainter
+halo of the same colour so it reads as light on the ground. A shooter with no
+aim to give still draws the whole ring, which is what keeps every gate that
+reads rings reading. The three ring tints are a fifth more transparent.
+
+**`QualityGovernor` measures the frame in combat and steps the preset**, only
+while the player has never chosen one (`Graphics.is_automatic`), only on the
+road after `GOVERNOR_SETTLE_SECONDS`, in windows of `GOVERNOR_WINDOW_SECONDS`:
+two slow windows step down, twelve fast ones step up and never past what the
+machine was judged for by name. **A frame cap the player set is not a
+struggling device** - the slow line is the cap's own interval plus slack. The
+step is remembered under `KEY_AUTO_PRESET`, never as the player's choice, so
+the two cannot overwrite each other, and the settings screen's **Auto** hands
+the choice back. It is said on the HUD once. On Low every third torch carries
+a real light (`TORCH_LIGHT_EVERY_LOW`) and the rest still burn and pool - a
+phone cannot afford a hundred lights. A look, never a fact: a preset moves
+shadows, particles, bloom, shading and lights and not one number the fight
+reads. `governor_check` drives `sample` with a clock of its own, because
+headless frames cost nothing; **its first cut fed 250 ms "frames" as the
+settle and the governor rightly read them as two slow windows** - the harness,
+not the feature.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

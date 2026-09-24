@@ -576,6 +576,7 @@ jobs:
           # and opens for a wave, flowers that glow only in the dark, and a full
           # set's colour on a cloak left as painted.
           check "core keeper polish" --headless --path game res://tools/polish_check.tscn
+          check "quality governor" --headless --path game res://tools/governor_check.tscn
           # The camps on the outskirts: three a road, camp-mode bodies, the
           # fork that both razed camps open, the respawn, and the war camp's
           # dungeon mouth.

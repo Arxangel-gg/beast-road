@@ -76,6 +76,11 @@ var withdrawal_test_seconds: float = -1.0
 var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
 
 
+func _say_quality(kicker: String, title: String, note: String) -> void:
+	if hud != null and is_instance_valid(hud):
+		hud.announce(kicker, title, note)
+
+
 func _ready() -> void:
 	MusicPlayer.follow_situation()
 	raid.visible = false
@@ -84,6 +89,14 @@ func _ready() -> void:
 	rift.process_mode = Node.PROCESS_MODE_DISABLED
 	town.visible = false
 	beast.visible = false
+
+	# The frame governs the preset while the player has chosen none
+	# (2026-09-24). Said on the HUD through a callable, so the governor holds
+	# no HUD.
+	var governor := QualityGovernor.new()
+	governor.name = "QualityGovernor"
+	governor.say = _say_quality
+	add_child(governor)
 
 	EventBus.crossroad_reached.connect(_on_crossroad_reached)
 	crossroad_ui.extraction_chosen.connect(_on_extraction_chosen)

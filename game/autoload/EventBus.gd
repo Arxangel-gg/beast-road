@@ -183,7 +183,9 @@ signal hero_loosed(from: Vector2, direction: Vector2, ammo_id: String)
 ## Separate from `hero_loosed` because the reach is the *weapon's* and that
 ## signal carries the ammunition - and a ring drawn at a guessed number is a
 ## telegraph that lies, which this project has already paid for once.
-signal ranged_shot_fired(from: Vector2, reach: float)
+## `aim` is the shot's own direction (2026-09-24), so the reach can be drawn
+## as the arc that faces what was shot at rather than a whole circle.
+signal ranged_shot_fired(from: Vector2, reach: float, aim: Vector2)
 
 ## The trigger came down on an empty quiver. Said out loud, because a button
 ## that does nothing reads as broken rather than as empty.
