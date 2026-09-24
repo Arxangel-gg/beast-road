@@ -60,6 +60,14 @@ var _history: PackedVector2Array = []
 var _mote_left: float = 0.0
 
 
+## A shot from the pool, or a fresh one (`NodePool`, 2026-09-24). Every
+## thrower asks here; `_ready` dresses it per use and `reset_for_pool`
+## undresses it.
+static func take() -> EnemyProjectile:
+	return NodePool.take(&"enemy_shot",
+		func() -> EnemyProjectile: return EnemyProjectile.new()) as EnemyProjectile
+
+
 func configure(target: Node2D, damage: float, origin: Vector2) -> void:
 	_target = target
 	_damage = damage
@@ -86,18 +94,22 @@ func configure_toward(destination: Vector2, origin: Vector2) -> void:
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
-	_ribbon = EnemyShotGlow.new()
-	_ribbon.shot = self
-	add_child(_ribbon)
-
-	var glow := Sprite2D.new()
-	glow.texture = LightKit.falloff_texture()
-	glow.modulate = Color(tint, 0.72)
-	glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE * sqrt(head_scale)
-	add_child(glow)
+	# Per use (2026-09-24): a pooled shot runs this on every take.
+	visible = true
+	set_process(true)
+	if _ribbon == null:
+		_ribbon = EnemyShotGlow.new()
+		_ribbon.shot = self
+		add_child(_ribbon)
+	if _glow == null:
+		_glow = Sprite2D.new()
+		_glow.texture = LightKit.falloff_texture()
+		add_child(_glow)
+	_glow.modulate = Color(tint, 0.72)
+	_glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE * sqrt(head_scale)
 	# On the shared shot-light budget (2026-09-24); see `LightKit`.
 	if LightKit.shot_light_free():
-		LightKit.add_light(self, tint,
+		_light = LightKit.add_light(self, tint,
 			Balance.ENEMY_PROJECTILE_LIGHT_RADIUS, Balance.ENEMY_PROJECTILE_LIGHT_ENERGY)
 		LightKit.take_shot_light()
 		_carries_light = true
@@ -105,7 +117,51 @@ func _ready() -> void:
 	queue_redraw()
 
 
+## Back to the pool rather than freed (2026-09-24): from the landing, from
+## running out of life, and from a mirror swallowing it.
+func _release() -> void:
+	NodePool.give(&"enemy_shot", self, Balance.SHOT_POOL_MAX)
+
+
+## Everything a use decided, undone - the pool's rule. The ribbon and the
+## glow are kept; the light is freed, its budget slot going back in
+## `_exit_tree` as always. The paint goes back to the roster's own, so a
+## thrower that paints nothing throws the shot every breed threw before.
+func reset_for_pool() -> void:
+	visible = false
+	set_process(false)
+	for child: Node in get_children():
+		if child is PointLight2D or child is LightDriver:
+			child.queue_free()
+	_light = null
+	_field = null
+	_looked_for_field = false
+	kind = Kind.BOLT
+	mana_burn = 0.0
+	tint = Balance.ENEMY_PROJECTILE_COLOUR
+	core_tint = Balance.ENEMY_PROJECTILE_CORE_COLOUR
+	shell_tint = Balance.ENEMY_PROJECTILE_SHELL_COLOUR
+	head = EnemyShotData.Head.RUNE
+	head_scale = 1.0
+	spin = 0.0
+	wobble = 0.0
+	trail_scale = 1.0
+	pace_scale = 1.0
+	_target = null
+	_destination = Vector2.ZERO
+	_direction = Vector2.RIGHT
+	_damage = 0.0
+	_life = 0.0
+	_history.clear()
+	_mote_left = 0.0
+	rotation = 0.0
+
+
 var _carries_light: bool = false
+## The soft glow under the head and the light, kept as members so a pooled
+## shot can re-dress the one and free the other (2026-09-24).
+var _glow: Sprite2D = null
+var _light: PointLight2D = null
 
 
 func _exit_tree() -> void:
@@ -117,7 +173,7 @@ func _exit_tree() -> void:
 func _process_measured(delta: float) -> void:
 	_life += delta
 	if _life >= Balance.ENEMY_PROJECTILE_MAX_LIFE:
-		queue_free()
+		_release()
 		return
 	# A Stillwater Mirror in its way swallows it (2026-09-14): the shot ends
 	# here with no impact, and the mirror spends a charge.
@@ -128,7 +184,7 @@ func _process_measured(delta: float) -> void:
 			_field = node as Battlefield
 			node = node.get_parent()
 	if _field != null and _field.absorb_hostile_shot(global_position):
-		queue_free()
+		_release()
 		return
 	# A hex follows, slowly. It turns at a fixed rate rather than homing
 	# exactly, which is what makes outrunning one possible and what makes
@@ -212,7 +268,7 @@ func _impact() -> void:
 				who.mana = maxf(who.mana - mana_burn, 0.0)
 				EventBus.hero_mana_changed.emit(who.mana, who.mana_max())
 	_land_the_look()
-	queue_free()
+	_release()
 
 
 ## **What the head does when it lands** - the same blow, dressed by its shape.

@@ -127,6 +127,9 @@ var _state_shader_last: Vector3 = Vector3(-1.0, -1.0, -1.0)
 var _impact_shown: bool = false
 ## The aura ring, kept rather than looked up by name every frame.
 var _aura_ring: Line2D = null
+## Waiting on the stall rescue's clock (`Battlefield._tick_doomed`): holds
+## no wave open and does nothing until its turn to die (2026-09-24).
+var _doomed: bool = false
 
 ## Nerve, 1 whole and 0 broken.
 ##
@@ -445,6 +448,15 @@ func is_camp_mob() -> bool:
 	return camp_home != Vector2.INF
 
 
+## Marked for the stall rescue: out of the wave now, killed on its clock.
+func doom() -> void:
+	_doomed = true
+
+
+func is_doomed() -> bool:
+	return _doomed
+
+
 ## True while it is walking home to heal; the camp reads this to know a fight
 ## was broken off rather than won.
 func is_camp_returning() -> bool:
@@ -581,6 +593,10 @@ func _process_measured(delta: float) -> void:
 			health.heal(health.max_hp * mend * delta)
 	if _state == State.DYING:
 		_tick_death(delta)
+		return
+	if _doomed:
+		# The rescue's clock will kill it; until then it stands and does
+		# nothing, so a body doomed a frame before it dies cannot strike.
 		return
 
 	if puppet:
@@ -783,7 +799,7 @@ func strike_remote(at: Vector2, shot_id: String = "") -> void:
 	# partner's screen shows the breed's own head and never a guess. The
 	# picture is a bolt whatever the kind - a guest resolves no ground blow.
 	_shot_paint = _shot_named(shot_id)
-	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+	var shot: EnemyProjectile = EnemyProjectile.take()
 	_paint(shot)
 	shot.configure_toward(at, combat_origin())
 	_field.add_child(shot)
@@ -3843,7 +3859,7 @@ func _throw_volley(quarry: Node2D) -> void:
 	for index: int in shots:
 		var share: float = 0.0 if shots <= 1 \
 			else (float(index) / float(shots - 1) - 0.5) * 2.0
-		var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+		var shot: EnemyProjectile = EnemyProjectile.take()
 		_paint(shot)
 		# Aimed at a point rather than at the body, so a fan is a fan: a
 		# volley that all homed on the same target would be one shot drawn
@@ -4027,7 +4043,7 @@ func _choose_a_shot() -> EnemyShotData:
 
 ## One shot, committed at release. What every ranged breed did before this.
 func _loose_a_bolt(damage: float, at: Node2D, kind: int) -> EnemyProjectile:
-	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+	var shot: EnemyProjectile = EnemyProjectile.take()
 	shot.kind = kind
 	_paint(shot)
 	shot.configure(at, damage, combat_origin())
@@ -4067,7 +4083,7 @@ func _loose_a_fan(damage: float) -> void:
 	for index: int in shots:
 		var offset: float = 0.0 if shots <= 1 \
 			else (float(index) / float(shots - 1) - 0.5) * 2.0 * span
-		var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+		var shot: EnemyProjectile = EnemyProjectile.take()
 		shot.kind = EnemyProjectile.Kind.SPRAY
 		_paint(shot)
 		# Aimed at a *point* rather than at the body: three shots that all

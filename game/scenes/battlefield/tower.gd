@@ -1033,7 +1033,9 @@ func _launch(enemy: Enemy) -> void:
 	if projectile_scene == null or _field == null:
 		_hit(enemy)
 		return
-	var shot := projectile_scene.instantiate() as Projectile
+	# From the pool (2026-09-24); the scene is kept as the field's say-so
+	# that this field throws shots at all.
+	var shot: Projectile = Projectile.take()
 	if shot == null:
 		_hit(enemy)
 		return

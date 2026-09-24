@@ -81,6 +81,12 @@ var _colours: PackedColorArray = PackedColorArray()
 var _indices: PackedInt32Array = PackedInt32Array()
 
 
+## A shot from the pool, or a fresh one (`NodePool`, 2026-09-24). The tower
+## asks here; `_ready` dresses it per use and `reset_for_pool` undresses it.
+static func take() -> Projectile:
+	return NodePool.take(&"shot", func() -> Projectile: return Projectile.new()) as Projectile
+
+
 ## Builds the shot. **`fired_at` is a parameter, not a field to assign after.**
 ##
 ## Everything visual here sizes itself from the tier - head, trail, glow, light -
@@ -102,6 +108,9 @@ func setup(target: Enemy, tower_data: TowerData, hit_damage: float,
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
+	# Per use (2026-09-24): a pooled shot runs this on every take.
+	visible = true
+	set_process(true)
 	_glow_shape = _element_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
 	_head_shape = _element_shape(_tier_scale())
 	# **An upgraded shot is hotter, not just larger.** Scale already carried the
@@ -109,12 +118,15 @@ func _ready() -> void:
 	# against its own shell changes what the projectile is. Only from
 	# `PROJECTILE_HOT_TIER`, so the step is an event rather than a gradient
 	# nobody notices crossing.
+	_ember_shape = PackedVector2Array()
 	if tier >= Balance.PROJECTILE_HOT_TIER:
 		_ember_shape = _element_shape(_tier_scale() * Balance.PROJECTILE_HOT_SCALE)
+	_head_frames.clear()
 	_load_head_art()
-	_glow_layer = ProjectileGlow.new()
-	_glow_layer.shot = self
-	add_child(_glow_layer)
+	if _glow_layer == null:
+		_glow_layer = ProjectileGlow.new()
+		_glow_layer.shot = self
+		add_child(_glow_layer)
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all - up to `PROJECTILE_LIGHT_MAX` of them at once
 	# (2026-09-24): a lane of forty level-8 towers keeps a hundred shots in
@@ -131,6 +143,48 @@ func _ready() -> void:
 	# of the map: every shot left its tower pointing somewhere else and curved
 	# round over the first tenth of a second. A tower far from the origin
 	# threw shots that flew away from the body before homing back.
+
+
+## Back to the pool rather than freed (2026-09-24), from the landing and from
+## the fizzle alike. The blow was dealt before this; a reused shot cannot deal
+## it twice because `reset_for_pool` forgets who it was flying at.
+func _release() -> void:
+	NodePool.give(&"shot", self, Balance.SHOT_POOL_MAX)
+
+
+## Everything a use decided, undone - the pool's rule. The glow layer is kept
+## (it is what pooling saves); the light is not, because its driver is bound
+## to it at `setup` and the budget slot goes back in `_exit_tree` as always.
+func reset_for_pool() -> void:
+	visible = false
+	set_process(false)
+	for child: Node in get_children():
+		if child is PointLight2D or child is LightDriver:
+			child.queue_free()
+	_light = null
+	damage = 0.0
+	knockback = 0.0
+	speed = 600.0
+	colour = Color.WHITE
+	data = null
+	tier = 1
+	aoe_scale = 1.0
+	_target = null
+	_direction = Vector2.RIGHT
+	_life = 0.0
+	_aimed = false
+	_shot = TowerData.Shot.BOLT
+	_history.clear()
+	_spin = 0.0
+	_mote_left = 0.0
+	_lob_total = 0.0
+	_lift = 0.0
+	_peak_lift = 0.0
+	_head_frames.clear()
+	_head_shape = PackedVector2Array()
+	_ember_shape = PackedVector2Array()
+	_glow_shape = PackedVector2Array()
+	rotation = 0.0
 
 
 func _exit_tree() -> void:
@@ -521,14 +575,14 @@ func _impact() -> void:
 	if _shot == TowerData.Shot.LOB:
 		Vfx.dust(global_position, Color(colour.darkened(0.35), 0.5), 8, 62.0 * _tier_scale())
 		EventBus.camera_impact.emit(global_position, Balance.PROJECTILE_LOB_IMPACT * _tier_scale())
-	queue_free()
+	_release()
 
 
 ## Reached the end of its life without connecting. Fizzles rather than
 ## disappearing, so a miss is visible.
 func _expire() -> void:
 	Vfx.spark(global_position, Color(colour, 0.5), 3, _direction, 90.0)
-	queue_free()
+	_release()
 
 
 func _apply(enemy: Enemy) -> void:

@@ -90,8 +90,23 @@ var _settled: bool = false
 ## How hard this kind is thrown across the ground, as a range of
 ## `LOOT_SCATTER_SPEED`; rolled in `_ready`, once the net id is known.
 var _scatter: Vector2 = Vector2(0.4, 1.0)
+## Whether this use of the piece carries the spire and the motes: the
+## nodes are kept across uses (a piece is pooled), the flag is per use.
+var _attention: bool = false
+## The two tweens a piece runs, kept so a release can kill them - a tween
+## bound to a node halts while the node is out of the tree and *resumes*
+## when it is added again, onto whatever the piece is by then.
+var _pop: Tween = null
+var _dissolve: Tween = null
 
 const LOOT_SHADER: String = "res://scripts/shaders/loot_polish.gdshader"
+
+
+## A piece from the pool, or a fresh one (`NodePool`, 2026-09-24). Every
+## creation site asks here: a piece is stood up once and dressed per use in
+## `_ready`, which the pool arranges to run again on every take.
+static func take() -> LootDrop:
+	return NodePool.take(&"loot", func() -> LootDrop: return LootDrop.new()) as LootDrop
 
 
 func setup(currency_id: String, value: int, from: Vector2) -> void:
@@ -153,12 +168,25 @@ func setup_gear(piece: Dictionary, from: Vector2) -> void:
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	# **Per use, not once** (2026-09-24). A piece is pooled, so this runs on
+	# every take and dresses the node it was handed rather than assuming an
+	# empty one: what is built once is guarded, and everything this use
+	# decides - the art, the colour, the plate, the spire, the lamp, the toss -
+	# is set every time. `reset_for_pool` is the other half.
+	set_process(true)
+	visible = true
+	_taken = false
 	_roll_toss()
 	# On the budget, and given back when this piece leaves the tree.
 	if _wants_lamp() and LightKit.drop_light_free():
 		_light_the_drop()
 		LightKit.take_drop_light()
-	_sprite = Sprite2D.new()
+	if _sprite == null:
+		_sprite = Sprite2D.new()
+		_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+		_sprite.add_to_group(Graphics.FILTER_GROUP)
+	_sprite.position = Vector2.ZERO
+	_sprite.texture = null
 	# World art where it exists, the currency's UI icon otherwise.
 	#
 	# A HUD icon is drawn to read at 24px against a dark bar, not lying on a lit
@@ -182,35 +210,45 @@ func _ready() -> void:
 	if _sprite.texture != null:
 		_sprite.scale = Vector2.ONE * (icon_size
 			/ maxf(_sprite.texture.get_width(), 1.0))
-	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	if Graphics.polish_shaders() and ResourceLoader.exists(LOOT_SHADER):
-		_material = ShaderMaterial.new()
-		_material.shader = load(LOOT_SHADER) as Shader
+		if _material == null:
+			_material = ShaderMaterial.new()
+			_material.shader = load(LOOT_SHADER) as Shader
 		_material.set_shader_parameter("rarity_colour", _glow_colour)
 		_material.set_shader_parameter("shimmer_strength", Balance.LOOT_SHIMMER_STRENGTH)
 		_material.set_shader_parameter("seed", float(get_instance_id() % 997))
 		_material.set_shader_parameter("pickup", 0.0)
 		_sprite.material = _material
+	else:
+		_sprite.material = null
 	# A soft pool under the drop, so a coin lying on a lit road still reads.
 	#
 	# Behind the sprite rather than a shader on it: an outline drawn on the sprite
 	# competes with the road's own edge detail at this size, while a pool of light
 	# separates the drop from whatever it landed on regardless of what that was.
-	var glow := Sprite2D.new()
-	glow.texture = LightKit.falloff_texture()
-	glow.modulate = _glow_colour
-	glow.scale = Vector2.ONE * (_glow_size
+	if _glow == null:
+		_glow = Sprite2D.new()
+		_glow.texture = LightKit.falloff_texture()
+		_glow.z_index = -1
+		add_child(_glow)
+	_glow.modulate = _glow_colour
+	_glow.scale = Vector2.ONE * (_glow_size
 		/ maxf(LightKit.falloff_texture().get_width(), 1.0))
-	glow.z_index = -1
-	add_child(glow)
-	_glow = glow
-	if _wants_attention():
+	_attention = _wants_attention()
+	if _attention:
 		_build_attention_fx()
+	else:
+		if _beacon != null:
+			_beacon.visible = false
+		for mote: Sprite2D in _orbiters:
+			mote.visible = false
 	if lead:
 		_build_name_plate()
+	elif _plate != null:
+		_plate.visible = false
 
-	add_child(_sprite)
+	if _sprite.get_parent() == null:
+		add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
 
 	# **It arrives, rather than being there.** The scatter already threw drops
@@ -218,12 +256,79 @@ func _ready() -> void:
 	# its own, so a wave's spoils read as inventory materialising. A short pop
 	# that overshoots gives the eye a change in size to catch, which is what
 	# makes a coin land instead of exist.
-	var pop: Tween = create_tween()
-	pop.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	if _pop != null and _pop.is_valid():
+		_pop.kill()
+	_pop = create_tween()
+	_pop.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	scale = Vector2.ONE * Balance.LOOT_POP_FROM
-	pop.tween_property(self, "scale",
+	_pop.tween_property(self, "scale",
 		Vector2.ONE * Balance.LOOT_POP_OVERSHOOT, Balance.LOOT_POP_TIME * 0.6)
-	pop.tween_property(self, "scale", Vector2.ONE, Balance.LOOT_POP_TIME * 0.4)
+	_pop.tween_property(self, "scale", Vector2.ONE, Balance.LOOT_POP_TIME * 0.4)
+
+
+## Back to the pool rather than freed (2026-09-24). The payout happened before
+## the dissolve, so nothing a reused piece can do pays twice.
+func _release() -> void:
+	NodePool.give(&"loot", self, Balance.LOOT_POOL_MAX)
+
+
+## **Everything a use decided, undone** - the pool's rule. A piece keeps its
+## sprite, its glow, its material, its plate, its spire and its motes across
+## uses (they are what pooling saves); what it may not keep is a single fact
+## about the last thing it was: not the coin, not the gear, not the wire
+## identity, not the toss, not the lamp, not "taken". Held "taken" while it
+## waits, so a thief that remembered it by instance id finds nothing to steal.
+func reset_for_pool() -> void:
+	set_process(false)
+	visible = false
+	remove_from_group(GROUP)
+	if _pop != null and _pop.is_valid():
+		_pop.kill()
+	if _dissolve != null and _dissolve.is_valid():
+		_dissolve.kill()
+	_pop = null
+	_dissolve = null
+	if _lamp != null:
+		LightKit.give_drop_light()
+		_lamp = null
+	for child: Node in get_children():
+		if child is PointLight2D or child is LightDriver:
+			child.queue_free()
+	net_id = 0
+	puppet = false
+	currency = ""
+	amount = 0
+	gear = {}
+	blueprint = ""
+	player_dropped = false
+	_velocity = Vector2.ZERO
+	_life = 0.0
+	_homing = false
+	_taken = true
+	_beacon_wide = Balance.LOOT_BEACON_WIDTH
+	_glow_colour = Balance.LOOT_GLOW_COLOUR
+	_rank = 0.0
+	_glow_size = Balance.LOOT_GLOW_SIZE
+	lead = true
+	siblings = 1
+	_height = 0.0
+	_lift = 0.0
+	_bounces = 0
+	_settled = false
+	_scatter = Vector2(0.4, 1.0)
+	_attention = false
+	if _beacon != null:
+		_beacon.visible = false
+	for mote: Sprite2D in _orbiters:
+		mote.visible = false
+	if _plate != null:
+		_plate.visible = false
+	if _sprite != null:
+		_sprite.position = Vector2.ZERO
+	if _material != null:
+		_material.set_shader_parameter("pickup", 0.0)
+	scale = Vector2.ONE
+	modulate = Color.WHITE
 
 
 ## **A drop lights the ground it is lying on.**
@@ -337,7 +442,7 @@ func _process_measured(delta: float) -> void:
 		var shrink: float = 1.0 / (1.0 + _height / 120.0)
 		_glow.scale = Vector2.ONE * (_glow_size * pulse * shrink
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
-	if _beacon != null:
+	if _beacon != null and _attention:
 		_beacon.visible = _bounces > 0
 		var spire: ShaderMaterial = _beacon.material as ShaderMaterial
 		if spire != null:
@@ -360,7 +465,7 @@ func _process_measured(delta: float) -> void:
 		_beacon.scale.x = _beacon_wide * (0.92 + 0.08 * beam_pulse) / QUAD
 	for index: int in _orbiters.size():
 		var mote: Sprite2D = _orbiters[index]
-		mote.visible = _bounces > 0
+		mote.visible = _bounces > 0 and _attention
 		var angle: float = _life * Balance.LOOT_ORBIT_SPEED \
 			+ TAU * float(index) / float(maxi(_orbiters.size(), 1))
 		mote.position = Vector2(cos(angle) * Balance.LOOT_ORBIT_RADIUS.x,
@@ -424,35 +529,47 @@ func _build_attention_fx() -> void:
 	# foot pinched, the core lost its heat and the motes climbed into a fade
 	# that was not the shader's. Owner, 2026-09-17: *"a low quality unpolished
 	# eyesore"*. On a blank white quad the shader is the only thing shaping it.
+	#
+	# Built once and dressed per use (2026-09-24): a pooled piece keeps its
+	# spire and its motes, and each take re-colours and re-sizes them.
 	var rich: float = _richness()
-	var tall: float = Balance.LOOT_BEACON_HEIGHT 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_HEIGHT, rich)
-	var wide: float = Balance.LOOT_BEACON_WIDTH 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_WIDTH, rich)
-	_beacon = Sprite2D.new()
-	_beacon.name = "PickupBeacon"
-	_beacon.texture = _blank_quad()
+	var tall: float = Balance.LOOT_BEACON_HEIGHT \
+		* lerpf(1.0, Balance.LOOT_BEACON_RARE_HEIGHT, rich)
+	var wide: float = Balance.LOOT_BEACON_WIDTH \
+		* lerpf(1.0, Balance.LOOT_BEACON_RARE_WIDTH, rich)
+	if _beacon == null:
+		_beacon = Sprite2D.new()
+		_beacon.name = "PickupBeacon"
+		_beacon.texture = _blank_quad()
+		_beacon.z_index = -1
+		if DisplayServer.get_name() != "headless":
+			var spire := ShaderMaterial.new()
+			spire.shader = load("res://scripts/shaders/loot_beacon.gdshader")
+			_beacon.material = spire
+		add_child(_beacon)
+	# Shown by the tick once the piece has landed.
+	_beacon.visible = false
 	_beacon.modulate = Color(_glow_colour, Balance.LOOT_BEACON_ALPHA)
 	_beacon_wide = wide
 	_beacon.scale = Vector2(wide / QUAD, tall / QUAD)
 	_beacon.position.y = -tall * 0.30
-	_beacon.z_index = -1
-	if DisplayServer.get_name() != "headless":
-		var spire := ShaderMaterial.new()
-		spire.shader = load("res://scripts/shaders/loot_beacon.gdshader")
-		spire.set_shader_parameter("richness", rich)
-		spire.set_shader_parameter("tint", Color(_glow_colour, 1.0))
-		_beacon.material = spire
-	add_child(_beacon)
+	var spire_material := _beacon.material as ShaderMaterial
+	if spire_material != null:
+		spire_material.set_shader_parameter("richness", rich)
+		spire_material.set_shader_parameter("tint", Color(_glow_colour, 1.0))
 
-	for index: int in Balance.LOOT_ORBIT_COUNT:
+	while _orbiters.size() < Balance.LOOT_ORBIT_COUNT:
 		var mote := Sprite2D.new()
-		mote.name = "PickupMote%d" % index
+		mote.name = "PickupMote%d" % _orbiters.size()
 		mote.texture = light
-		mote.modulate = Color(_glow_colour, 0.72)
-		mote.scale = Vector2.ONE * (Balance.LOOT_ORBIT_SIZE
-			/ maxf(float(light.get_width()), 1.0))
 		mote.z_index = 1
 		add_child(mote)
 		_orbiters.append(mote)
+	for mote: Sprite2D in _orbiters:
+		mote.visible = false
+		mote.modulate = Color(_glow_colour, 0.72)
+		mote.scale = Vector2.ONE * (Balance.LOOT_ORBIT_SIZE
+			/ maxf(float(light.get_width()), 1.0))
 
 
 ## The spray when a drop is taken, in the drop's own colour.
@@ -973,16 +1090,18 @@ func _expire_special() -> void:
 ## duplicate pickup.
 func _dissolve_and_free() -> void:
 	set_process(false)
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
+	if _dissolve != null and _dissolve.is_valid():
+		_dissolve.kill()
+	_dissolve = create_tween()
+	_dissolve.set_parallel(true)
 	if _material != null:
-		tween.tween_method(_set_pickup_dissolve, 0.0, 1.0,
+		_dissolve.tween_method(_set_pickup_dissolve, 0.0, 1.0,
 			Balance.LOOT_PICKUP_DISSOLVE_TIME)
-	tween.tween_property(self, "position:y", position.y - 22.0,
+	_dissolve.tween_property(self, "position:y", position.y - 22.0,
 		Balance.LOOT_PICKUP_DISSOLVE_TIME)
-	tween.tween_property(self, "scale", Vector2.ONE * 0.55,
+	_dissolve.tween_property(self, "scale", Vector2.ONE * 0.55,
 		Balance.LOOT_PICKUP_DISSOLVE_TIME)
-	tween.chain().tween_callback(queue_free)
+	_dissolve.chain().tween_callback(_release)
 
 
 func _set_pickup_dissolve(value: float) -> void:
@@ -1037,35 +1156,43 @@ func _richness() -> float:
 func _build_name_plate() -> void:
 	var words: String = _plate_text()
 	if words.is_empty():
+		if _plate != null:
+			_plate.visible = false
 		return
-	_plate = Label.new()
-	_plate.name = "PickupPlate"
+	if _plate == null:
+		_plate = Label.new()
+		_plate.name = "PickupPlate"
+		_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_plate.add_theme_font_size_override("font_size", Balance.LOOT_PLATE_SIZE)
+		_plate.add_theme_constant_override("outline_size", 5)
+		_plate.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.03, 0.9))
+		# The backing is a StyleBox on the label rather than a second node: one
+		# control, one draw, and it cannot drift out of line with its own text.
+		var backing := StyleBoxFlat.new()
+		backing.corner_radius_top_left = 3
+		backing.corner_radius_top_right = 3
+		backing.corner_radius_bottom_left = 3
+		backing.corner_radius_bottom_right = 3
+		backing.content_margin_left = Balance.LOOT_PLATE_PAD.x
+		backing.content_margin_right = Balance.LOOT_PLATE_PAD.x
+		backing.content_margin_top = Balance.LOOT_PLATE_PAD.y
+		backing.content_margin_bottom = Balance.LOOT_PLATE_PAD.y
+		# A rarity-tinted hairline, so the frame carries the colour too rather than
+		# leaving it all to the text.
+		backing.border_width_bottom = 2
+		_plate.add_theme_stylebox_override("normal", backing)
+		add_child(_plate)
+	# Per use (2026-09-24): the words and the colour are this piece's own.
 	_plate.text = words
-	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_plate.add_theme_font_size_override("font_size", Balance.LOOT_PLATE_SIZE)
+	_plate.visible = true
+	_plate.modulate = Color.WHITE
 	_plate.add_theme_color_override("font_color",
 		Color(_glow_colour.r, _glow_colour.g, _glow_colour.b, 1.0))
-	_plate.add_theme_constant_override("outline_size", 5)
-	_plate.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.03, 0.9))
-	# The backing is a StyleBox on the label rather than a second node: one
-	# control, one draw, and it cannot drift out of line with its own text.
-	var backing := StyleBoxFlat.new()
-	backing.bg_color = Balance.LOOT_PLATE_BACKING
-	backing.corner_radius_top_left = 3
-	backing.corner_radius_top_right = 3
-	backing.corner_radius_bottom_left = 3
-	backing.corner_radius_bottom_right = 3
-	backing.content_margin_left = Balance.LOOT_PLATE_PAD.x
-	backing.content_margin_right = Balance.LOOT_PLATE_PAD.x
-	backing.content_margin_top = Balance.LOOT_PLATE_PAD.y
-	backing.content_margin_bottom = Balance.LOOT_PLATE_PAD.y
-	# A rarity-tinted hairline, so the frame carries the colour too rather than
-	# leaving it all to the text.
-	backing.border_width_bottom = 2
-	backing.border_color = Color(_glow_colour.r, _glow_colour.g, _glow_colour.b, 0.75)
-	_plate.add_theme_stylebox_override("normal", backing)
-	add_child(_plate)
+	var worn := _plate.get_theme_stylebox("normal") as StyleBoxFlat
+	if worn != null:
+		worn.bg_color = Balance.LOOT_PLATE_BACKING
+		worn.border_color = Color(_glow_colour.r, _glow_colour.g, _glow_colour.b, 0.75)
 	_place_plate()
 
 

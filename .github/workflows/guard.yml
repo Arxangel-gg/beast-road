@@ -578,6 +578,9 @@ jobs:
           check "core keeper polish" --headless --path game res://tools/polish_check.tscn
           check "quality governor" --headless --path game res://tools/governor_check.tscn
           check "frame budgets" --headless --path game res://tools/frame_budget_check.tscn
+          # The pools: a piece and a shot come back reset, and the stall
+          # rescue closes the wave now and kills on its clock.
+          check "node pools" --headless --path game res://tools/node_pool_check.tscn
           # The camps on the outskirts: three a road, camp-mode bodies, the
           # fork that both razed camps open, the respawn, and the war camp's
           # dungeon mouth.

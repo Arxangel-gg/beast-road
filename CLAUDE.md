@@ -8950,6 +8950,108 @@ ablation names where: torches and their pools (1.5-3), particles (1-3),
 the ink (2-4 under load), the tells, the bars, the ground blood - and on the
 script side the body's tick and the tower's. The plants are not on the list.
 
+**A piece and a shot come back, and the rescue kills on its clock, as of
+2026-09-24.** The owner forwarded ChatGPT's advice on object pooling and
+garbage collection and approved three of the four items it came to. Recorded
+because half of the advice did not apply here, and the half that did was
+measured before it was believed.
+
+**What did not apply.** GDScript has no garbage collector: a `queue_free` is a
+free at the end of the frame, so there are no collection pauses to avoid. And
+most of what the document proposed pooling - hit sparks, numbers, impacts,
+muzzles, blood - had already stopped being nodes: they are records on a
+canvas (`VfxInk`, `BloodMotes`) since the ink cuts of the same day, and `Sfx`
+has pooled its voices since it was written. What the ledger still showed was
+the loot piece (+27..+48 nodes on every death frame: a sprite, a glow, a
+shader material, a plate and a spire a piece), the two projectile kinds (two
+nodes a shot, thirty to a hundred shots a second on Act X), and a stall
+rescue that killed twenty-two bodies in one frame for a 48 ms hitch.
+
+**`NodePool` is one class and three rules.** A pooled node resets itself -
+`reset_for_pool` is the node's own, and every field a use decides is that
+function's responsibility; it is parked in a lot under the root, hidden, not
+processing and out of its groups, never left in the field and never left as
+an orphan; and it is parked on a deferred call, so a release from inside the
+node's own `_process` or from a tween callback is one rule rather than three.
+The free lists are capped (`LOOT_POOL_MAX`, `SHOT_POOL_MAX`), and past the cap
+a node is freed as it always was - a wave wipe must not become a permanent
+reserve.
+
+**The lot is what makes a pool safe to put under two hundred gates.** A
+parked node left in the field keeps its groups, its process and its draw -
+`_make_room_for_loot`, the minimap, the raccoon and the fog all walk
+`LootDrop.GROUP`; one left as an orphan is a leaked instance at exit, which
+every gate's quit reads as a red line, and clearing the pool by hand from
+every gate that ever fires a shot is a list nobody would keep. Under the root,
+the tree frees it at quit with everything else.
+
+**The fault pooling invites is a node that remembers its last life**, and it
+is invisible to a count. `node_pool_check` (70 checks) takes every released
+node *back* and reads it: a collected coin is out of the group, hidden, not
+processing, and holds "taken" while it waits - so a thief that remembered it
+by instance id finds nothing to steal; a blueprint's piece comes back as
+timber with its plate, its spire and its lamp gone; a level-5 shot comes back
+at tier 1 with no tower, no trail and no aim; a painted hostile shot comes
+back in the roster's own paint, so a thrower that paints nothing throws the
+shot every breed threw before. And a plain piece reused as a plain piece has
+exactly the children it had, because a second sprite is the whole saving
+thrown away one child at a time.
+
+**And the rescue closes the wave now and kills later.** `resolve_stalled_wave`
+used to `Health.kill` every body it was owed in one frame. A body it dooms
+holds no wave open and does nothing (`Enemy.is_doomed`, asked by
+`holds_the_wave`, so `enemy_count`, the watchdog and the stall report cannot
+disagree), the wave closes on the frame the rescue fires exactly as it did,
+and `Battlefield._tick_doomed` kills `MASS_KILL_PER_FRAME` of them a frame
+through the ordinary death, so the rewards, the counts and the VFX stay on
+the normal path. Driven on the real field: twelve resolved, the wave closed
+the same frame, four died a frame, all twelve died, the town untouched while
+they waited.
+
+**And a released node keeps its state until it is parked.** The first cut
+reset a shot on release, and `tower_juice_check` went red: it reads a lob's
+peak on `tree_exiting`, which now fires at the end of the frame, after the
+reset. A freed node kept its state until the free, so the pool does the same -
+the park removes the node, *then* resets it - and the last frame draws the
+shot where it landed. Every gate that read the pooled classes was found by
+grep rather than by name (twenty-four), and that was the one that failed.
+
+**Measured, and the measurement corrected the plan.** Headless on one seed,
+pooled against the stashed tree: **5.1 ms against 5.2**, p99 10.6 against
+11.0 - the pool costs nothing and, on this harness, saves little per frame,
+because what it removes is the allocation on a death frame and not the tick.
+The shot pool works hard (25 shots made, 421 reuses in ninety seconds); the
+loot pool barely cycles on a road nobody walks (22 made, 4 reused). Windowed
+at 1080p on the 180 Hz screen, sixty seconds on the same seed: **19.1 ms,
+p99 33.3**, with thirty of its thirty-two hitches in the six seconds where
+the window ran into the *second* wave - which the earlier sixty-second runs
+(17.9 ms) never reached, and which a ninety-second run reads at 26.5 ms
+overall. So the second wave of Act X's staged road is the next heavy stretch,
+and it is not the pool.
+
+**And the death frames were still +15..+44 nodes, so the trace grew a
+census.** `perf_check --trace` walks the tree on every traced frame now and
+names what a frame stood up by kind (`[trace-census]`); over a thirty-second
+window of deaths it read **Polygon2D +485** of about eight hundred nodes,
+eleven to thirty-two a death frame. That is `Vfx.dust`: a `Polygon2D` and a
+tween per puff, three puffs on every loot piece's landing, eight on a lob's,
+and it was believed converted with the other hit effects and was not. It is
+the largest allocation left in a fight and it is not built here, because it
+was not in the three items approved; it is the next one to ask for. The other
+half of item one - the piece as a single `_draw` node - is also not built,
+deliberately: a canvas item has one material, so the icon's shimmer shader and
+the glow under it cannot share a draw without the glow shimmering. Pooling
+removed the allocation, which was the cost that was measured; what a single
+node would still save is two canvas items a plain piece.
+
+**Two things about writing the gate are worth keeping.** `Vfx.bind_world`
+stands the effect layers up *under the world it is handed*, so a count of the
+world's children once the pieces have gone is five, not zero - the first cut
+counted the world and was wrong; count the kind of thing you put there. And a
+tween is bound to its node: it halts while the node is out of the tree and
+*resumes* when the node is added again, onto whatever the piece is by then -
+so a release kills both of a piece's tweens by hand.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

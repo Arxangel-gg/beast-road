@@ -154,8 +154,10 @@ func holds_the_wave(enemy: Enemy) -> bool:
 	if scope != null and scope != self:
 		return false
 	# A camp body is not a wave: alive on the outskirts it must not hold one
-	# open, or the road would wait on a camp nobody has visited.
-	return not enemy.is_dying() and not enemy.is_camp_mob()
+	# open, or the road would wait on a camp nobody has visited. Nor is a
+	# body the stall rescue has doomed: it dies on the rescue's own clock,
+	# and the wave it was holding closes now (2026-09-24).
+	return not enemy.is_dying() and not enemy.is_camp_mob() and not enemy.is_doomed()
 
 
 ## Enemies that can still fight.

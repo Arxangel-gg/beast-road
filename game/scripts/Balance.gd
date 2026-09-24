@@ -240,6 +240,14 @@ const LOOT_BEACON_MIN_VALUE: int = 10
 ## out to make room. Bounds the node count under a busy wave without ever
 ## losing a reward.
 const LOOT_FIELD_MAX: int = 180
+## **A piece that will be needed again is kept** (`NodePool`, 2026-09-24).
+## Every death threw twenty to fifty nodes on the ground - a sprite, a glow,
+## a shader material, a plate and a spire a piece - and the ledger read
+## each death frame at +27..+48 nodes. A collected piece resets itself and
+## waits in the pool for the next kill; past this many parked, a piece is
+## freed as it always was, so a wave wipe is never a permanent reserve.
+## The field's own cap, because that is the most that can ever come back.
+const LOOT_POOL_MAX: int = 200
 ## Dust thrown by a landing, per piece, on its first bounce only.
 const LOOT_LAND_DUST: int = 3
 
@@ -1906,6 +1914,13 @@ static func preparation_bonus_seconds_left(seconds_left: float) -> float:
 ## Generous, because it must never fire during an ordinary slow wave; it exists
 ## only so a stall becomes a hiccup. [TUNE]
 const WAVE_STALL_TIMEOUT: float = 75.0
+## How many of a stalled wave's bodies the rescue kills a frame
+## (2026-09-24). `resolve_stalled_wave` killed every body it was owed in
+## one frame - a 48 ms hitch with twenty-two deaths' worth of loot, blood
+## and experience in it. The wave still closes on the frame the rescue
+## fires: a doomed body holds nothing open and does nothing, and only its
+## death is spread over the frames that follow.
+const MASS_KILL_PER_FRAME: int = 4
 
 ## How much closer an enemy must get for the wave to count as progressing.
 ##
@@ -4199,6 +4214,12 @@ const ENEMY_RETARGET_SECONDS: float = 0.1
 ## Only this many at once carry one; the rest are lit by the ones that do.
 ## None on Low. A look, never a fact.
 const PROJECTILE_LIGHT_MAX: int = 14
+## **A shot that has landed is kept for the next one** (`NodePool`,
+## 2026-09-24): two nodes a shot, thirty to a hundred shots a second on
+## Act X, every one of them stood up and torn down. Both kinds share the
+## cap; about what a lane of forty towers keeps in the air, and past it a
+## shot is freed as it always was.
+const SHOT_POOL_MAX: int = 160
 
 ## **Cast shadows are the nearest few, never every torch on the field**
 ## (2026-09-24). Turning them off took 34 ms off a 97 ms Act X frame on an

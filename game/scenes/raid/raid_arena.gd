@@ -679,7 +679,7 @@ func _place_treasure() -> void:
 func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 	if amount <= 0:
 		return
-	var drop := LootDrop.new()
+	var drop: LootDrop = LootDrop.take()
 	drop.setup(currency, amount, at)
 	(effect_root if effect_root != null else self).add_child(drop)
 

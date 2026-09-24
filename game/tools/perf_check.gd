@@ -155,6 +155,10 @@ var _nodes: Array[float] = []
 var _orphans: Array[float] = []
 ## One census a second beside the scalar, so a leak can be named.
 var _census: Array[Dictionary] = []
+## The trace's own census of the frame before, and how many nodes a traced
+## frame must stand up before its movers are printed.
+var _trace_census_last: Dictionary = {}
+const TRACE_CENSUS_FROM: int = 10
 var _seed: int = DEFAULT_SEED
 ## The act to stand the field up in, near the end of its road where its waves
 ## are heaviest (2026-09-24, owner: "run even the last few acts and peak
@@ -445,9 +449,23 @@ func _process(delta: float) -> void:
 	if _trace_to > 0.0 and _elapsed >= _trace_from and _elapsed <= _trace_to:
 		print("[trace] %6.2fs %5.1f ms  nodes %+4d  bodies %+3d  %s" % [_elapsed, ms,
 			nodes_now - _nodes_last, bodies_now - _bodies_last, " ".join(_trace_fired)])
+		# **What a frame stood up, by kind.** A node delta says how many; the
+		# census says what, which is the difference between "a death allocates"
+		# and "a death allocates three dust puffs a piece". Walked only inside
+		# the trace window, where a five-thousand-node walk a frame is a
+		# diagnostic's price and not the game's.
+		var census_now: Dictionary = _node_census()
+		if nodes_now - _nodes_last >= TRACE_CENSUS_FROM and not _trace_census_last.is_empty():
+			print("[trace-census] %6.2fs %s" % [_elapsed,
+				", ".join(_movers_between(_trace_census_last, census_now, 6))])
+		_trace_census_last = census_now
 		var motes: BloodMotes = Vfx.blood_motes()
-		print("[profile] motes=%d/%d %s" % [motes.live() if motes != null else -1,
-			motes.draws if motes != null else -1, buckets])
+		print("[profile] motes=%d/%d pool loot=%d/%d/%d shot=%d/%d/%d eshot=%d/%d/%d %s" % [
+			motes.live() if motes != null else -1, motes.draws if motes != null else -1,
+			NodePool.made(&"loot"), NodePool.reused(&"loot"), NodePool.pooled(&"loot"),
+			NodePool.made(&"shot"), NodePool.reused(&"shot"), NodePool.pooled(&"shot"),
+			NodePool.made(&"enemy_shot"), NodePool.reused(&"enemy_shot"), NodePool.pooled(&"enemy_shot"),
+			buckets])
 		if motes != null and _trace_said_motes == false:
 			_trace_said_motes = true
 			print("[trace] motes canvas: in_tree=%s visible=%s visible_in_tree=%s parent=%s z=%d pos=%s" % [
@@ -825,8 +843,10 @@ func _node_census() -> Dictionary:
 func _biggest_movers(most: int) -> Array[String]:
 	if _census.size() < 2:
 		return []
-	var first: Dictionary = _census[0]
-	var last: Dictionary = _census[_census.size() - 1]
+	return _movers_between(_census[0], _census[_census.size() - 1], most)
+
+
+func _movers_between(first: Dictionary, last: Dictionary, most: int) -> Array[String]:
 	var moved: Array = []
 	for key: Variant in last.keys():
 		var rise: int = int(last[key]) - int(first.get(key, 0))

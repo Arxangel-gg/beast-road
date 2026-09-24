@@ -315,6 +315,7 @@ func _process_measured(delta: float) -> void:
 	# next. It is suspended with everything else during a raid, because
 	# `_process` is, which is the behaviour working rule 8 asks for.
 	_ration_cooldown = maxf(_ration_cooldown - delta, 0.0)
+	_tick_doomed()
 	# A spirit at your shoulder eats while it is there (owner brief,
 	# 2026-09-13). `RunState` owns the larder and sends it home when the
 	# larder is empty; the field only says that time passed.
@@ -1571,7 +1572,7 @@ func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 	_make_room_for_loot()
 	var values: PackedInt32Array = LootDrop.split(currency, amount)
 	for index: int in values.size():
-		var drop := LootDrop.new()
+		var drop: LootDrop = LootDrop.take()
 		drop.setup(currency, values[index], at)
 		drop.lead = index == 0
 		drop.siblings = values.size()
@@ -1615,7 +1616,7 @@ func _make_room_for_loot() -> void:
 ## Puts a mirrored coin on a guest's field. Draws only; the host banks it.
 func mirror_loot(net_id: int, currency: String, amount: int, at: Vector2,
 		lead: bool = true) -> void:
-	var drop := LootDrop.new()
+	var drop: LootDrop = LootDrop.take()
 	drop.setup(currency, amount, at)
 	drop.net_id = net_id
 	drop.lead = lead
@@ -1639,7 +1640,7 @@ func take_mirrored_loot(net_id: int) -> void:
 func spawn_blueprint(plan_id: String, at: Vector2) -> void:
 	if plan_id.is_empty():
 		return
-	var drop := LootDrop.new()
+	var drop: LootDrop = LootDrop.take()
 	drop.setup_blueprint(plan_id, at)
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 
@@ -1647,7 +1648,7 @@ func spawn_blueprint(plan_id: String, at: Vector2) -> void:
 func spawn_gear(piece: Dictionary, at: Vector2, by_a_player: bool = false) -> void:
 	if piece.is_empty():
 		return
-	var drop := LootDrop.new()
+	var drop: LootDrop = LootDrop.take()
 	drop.setup_gear(piece, at)
 	drop.player_dropped = by_a_player
 	# **Gear did not replicate at all until 2026-09-14.** Only coins did, so a
@@ -1668,7 +1669,7 @@ func spawn_gear(piece: Dictionary, at: Vector2, by_a_player: bool = false) -> vo
 ## one way this system could make a sword exist twice.
 func mirror_gear(net_id: int, piece: Dictionary, at: Vector2,
 		by_a_player: bool) -> void:
-	var drop := LootDrop.new()
+	var drop: LootDrop = LootDrop.take()
 	drop.setup_gear(piece, at)
 	drop.net_id = net_id
 	drop.puppet = true
@@ -1769,11 +1770,42 @@ func resolve_stalled_wave() -> int:
 		# than the stall it is rescuing.
 		if not holds_the_wave(enemy):
 			continue
+		# **Doomed now, killed over the frames that follow** (2026-09-24). A
+		# doomed body holds nothing open and does nothing, so the wave closes
+		# on this frame exactly as it did; what is spread is the death - the
+		# loot, the blood, the experience - which twenty-two at once made a
+		# 48 ms hitch of. `MASS_KILL_PER_FRAME` a frame, from `_tick_doomed`.
+		enemy.doom()
+		_doomed.append(enemy)
+		resolved += 1
+	return resolved
+
+
+## The bodies the rescue owes a death, waiting their turn.
+var _doomed: Array[Enemy] = []
+
+
+## Kills `MASS_KILL_PER_FRAME` of the doomed a frame, through the ordinary
+## death so the rewards, the counts and the VFX stay on the normal path.
+func _tick_doomed() -> void:
+	var killed: int = 0
+	while not _doomed.is_empty() and killed < Balance.MASS_KILL_PER_FRAME:
+		var enemy: Enemy = _doomed.pop_front()
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
 		var health: Health = Health.of(enemy)
 		if health != null:
 			health.kill(town_position())
-			resolved += 1
-	return resolved
+		killed += 1
+
+
+## How many doomed bodies are still owed a death, for the gate.
+func doomed_pending() -> int:
+	var pending: int = 0
+	for enemy: Enemy in _doomed:
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
+			pending += 1
+	return pending
 
 
 func spawn_tracer(from: Vector2, to: Vector2, colour: Color) -> void:
