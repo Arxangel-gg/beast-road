@@ -398,7 +398,9 @@ class EnemyShotGlow extends Node2D:
 
 	func _ready() -> void:
 		top_level = true
-		z_index = Balance.VFX_Z - 1
+		# Under the head, absolutely (a child draws after its parent).
+		z_as_relative = false
+		z_index = Balance.VFX_Z - 2
 		var material := CanvasItemMaterial.new()
 		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		self.material = material

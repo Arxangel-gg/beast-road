@@ -63,6 +63,11 @@ var _indices: PackedInt32Array = PackedInt32Array()
 ## The numbers' face: the project theme's, as the labels wore.
 var _font: Font = null
 var _font_size: int = 18
+## Whether the last frame drew anything, so the frame after the last record
+## dies is drawn too - without it the final picture stayed on the canvas
+## until the next record arrived. And the redraw clock (`VFX_INK_HZ`).
+var _was_live: bool = false
+var _redraw_debt: float = 0.0
 
 
 func _init(adds_light: bool = true) -> void:
@@ -304,7 +309,14 @@ func _process(delta: float) -> void:
 	moved = _age(_art, delta, paused) or moved
 	moved = _age(_numbers, delta, paused) or moved
 	if moved:
+		_redraw_debt += delta
+		if _redraw_debt >= 1.0 / Balance.VFX_INK_HZ:
+			_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.VFX_INK_HZ)
+			queue_redraw()
+	elif _was_live:
+		# The last record died this frame: draw the empty canvas once.
 		queue_redraw()
+	_was_live = moved
 
 
 ## Ages every record that may move now and drops the ones that are done.
@@ -479,8 +491,8 @@ func _draw_rings(inverse: Transform2D) -> void:
 		var width: float = float(record["width"])
 		# The bloom: the same ring, wide and faint, so the edge reads as a
 		# wave leaving a point rather than a drawn circle.
-		_annulus(at, radius, width * 3.5, colour, lit * 0.22, 32)
-		_annulus(at, radius, width, colour, lit, 32)
+		_annulus(at, radius, width * 3.5, colour, lit * 0.22, 24)
+		_annulus(at, radius, width, colour, lit, 24)
 	_flush()
 
 

@@ -324,7 +324,10 @@ func _draw_glow_only(on: CanvasItem) -> void:
 	var inverse: Transform2D = on.get_global_transform().affine_inverse()
 	var at: Vector2 = inverse * _drawn_at()
 	var lit: float = _glow_alpha(0.22 if not _head_frames.is_empty() else 0.30)
-	on.draw_set_transform(at, _spin, Balance.PROJECTILE_LANCE_STRETCH \
+	# Turned with the flight as the head is: the glow child is top-level, so
+	# the node's own rotation does not reach it (2026-09-24 - a lance's
+	# stretched glow lay across the world's x axis whatever way it flew).
+	on.draw_set_transform(at, rotation + _spin, Balance.PROJECTILE_LANCE_STRETCH \
 		if _shot == TowerData.Shot.LANCE else Vector2.ONE)
 	_begin()
 	_soft_polygon(_glow_shape, colour, lit)
@@ -553,7 +556,10 @@ class ProjectileGlow extends Node2D:
 		# World space, so the ribbon behind the head stays put as the head moves
 		# rather than turning with the projectile.
 		top_level = true
-		z_index = Balance.VFX_Z
+		# **Under the head**, absolutely: a child draws after its parent, so
+		# the ribbon and glow were laid over the head and washed it out.
+		z_as_relative = false
+		z_index = Balance.VFX_Z - 2
 		var material := CanvasItemMaterial.new()
 		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		self.material = material

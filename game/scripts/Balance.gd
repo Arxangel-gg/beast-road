@@ -4152,9 +4152,9 @@ const SUN_RELIEF_LAYER: int = 1 << 9
 ## sunlit field does not haze, low at night, so every torch, flame, spell and
 ## glowing seam does. The strength is how much of that light is added.
 const BLOOM_THRESHOLD_DAY: float = 0.86
-const BLOOM_THRESHOLD_NIGHT: float = 0.16
-const BLOOM_STRENGTH_DAY: float = 0.35
-const BLOOM_STRENGTH_NIGHT: float = 1.25
+const BLOOM_THRESHOLD_NIGHT: float = 0.30
+const BLOOM_STRENGTH_DAY: float = 0.28
+const BLOOM_STRENGTH_NIGHT: float = 0.70
 
 ## **A big blow throws a real light** (2026-09-24, from the forwarded VFX
 ## videos: Brackeys animates a light with every explosion and Le Lu puts one at
@@ -4234,6 +4234,21 @@ const FOLIAGE_IDLE_VIEW_MARGIN: float = 220.0
 const PHYSICS_RATE_MIN: int = 60
 const PHYSICS_RATE_MAX: int = 144
 const PHYSICS_STEPS_PER_FRAME_MAX: int = 12
+## **A tower chooses on a cadence, and its lean reads that choice** (2026-09-24).
+## The bisect on Act X put `tower.gd` first at 12 ms a frame for forty
+## towers: the lean tell called `_acquire_targets` every frame beside the
+## shot's own call, and every acquisition sorted every body in reach with a
+## comparator that walked a body's children to find its health twice per
+## comparison. The choice is made at most once a frame and shared, the lean
+## re-asks on this clock, and a body's health is the field it already has.
+const TOWER_AIM_INTERVAL: float = 0.1
+## A body asks whether a howler is near it on this clock rather than every
+## frame: forty bodies each scanning forty was the second row of the bisect.
+const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2
+## The ink canvases redraw at most this often. Their records still age every
+## frame; what a 144 Hz screen does not need is the triangle arrays rebuilt
+## 144 times a second for sparks that live a third of a second.
+const VFX_INK_HZ: float = 60.0
 
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]

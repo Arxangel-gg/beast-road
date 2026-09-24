@@ -36,6 +36,15 @@ func lane() -> int:
 	return _lane
 
 var _lane: int = -1
+## The lean's goal, re-asked on `TOWER_AIM_INTERVAL`; the last acquisition,
+## shared by the lean and the shot within one frame (2026-09-24).
+var _aim_goal: Vector2 = Vector2.ZERO
+var _aim_left: float = 0.0
+var _acquired: Array[Enemy] = []
+var _acquired_frame: int = -1
+## Whether the impact rim was driven last frame, so a material at rest is
+## not written every frame.
+var _impact_driven: bool = false
 
 var _field: Battlefield = null
 var _cooldown: float = 0.0
@@ -280,7 +289,9 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 func _process(delta: float) -> void:
 	_tick_step_wobble(delta)
 	_impact_left = maxf(_impact_left - delta, 0.0)
-	ActorPolishScript.drive(_impact_material, _impact_left)
+	if _impact_left > 0.0 or _impact_driven:
+		ActorPolishScript.drive(_impact_material, _impact_left)
+		_impact_driven = _impact_left > 0.0
 	if data == null or _field == null or not RunState.is_command_combat():
 		return
 	_command_overdrive_left = maxf(_command_overdrive_left - delta, 0.0)
@@ -791,10 +802,19 @@ func show_range(visible_now: bool) -> void:
 ## The player chooses a doctrine per built tower. "First" is the safe default;
 ## the alternatives turn high-level towers into active tactical tools against
 ## the authored formations instead of fire-and-forget stat sticks.
+## At most once a frame: the lean's tell and the shot ask the same question
+## in the same frame, and the answer cannot differ inside one (2026-09-24).
 func _acquire_targets() -> Array[Enemy]:
+	var frame: int = Engine.get_process_frames()
+	if frame != _acquired_frame:
+		_acquired_frame = frame
+		_acquired = _acquire_targets_now()
+	return _acquired
+
+
+func _acquire_targets_now() -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var reach: float = effective_range()
-	var candidates: Array[Enemy] = _field.enemies_near(origin(), reach)
 	# **A camp is somewhere you go, not something that walks into your guns.**
 	#
 	# Camp bodies patrol their own ground and never take the road; a tower in
@@ -803,20 +823,28 @@ func _acquire_targets() -> Array[Enemy]:
 	# wrong the other way - a camp roused by a player and chasing them home
 	# should meet the defence it is running into. So: a camp body is invisible
 	# to a tower until something provokes it, and then it is fair game.
-	candidates = candidates.filter(func(enemy: Enemy) -> bool:
-		return not enemy.is_camp_mob() or enemy.is_provoked())
+	var candidates: Array[Enemy] = []
+	for enemy: Enemy in _field.enemies_near(origin(), reach):
+		if not enemy.is_camp_mob() or enemy.is_provoked():
+			candidates.append(enemy)
 	if candidates.is_empty():
 		return found
 
+	# Scored once each and then sorted, rather than scored twice per
+	# comparison: a sort of forty bodies makes some two hundred comparisons,
+	# and the score walked a body's children for its health each time.
 	var priority: int = RunState.target_priority_at(anchor)
-	candidates.sort_custom(func(a: Enemy, b: Enemy) -> bool:
-		return _target_score(a, priority) > _target_score(b, priority))
+	var scored: Array = []
+	for enemy: Enemy in candidates:
+		scored.append([_target_score(enemy, priority), enemy])
+	scored.sort_custom(func(a: Array, b: Array) -> bool:
+		return float(a[0]) > float(b[0]))
 
 	var wanted: int = 1 + data.extra_targets_at(level) + _extra_chain_targets + path_extra_targets()
-	for enemy: Enemy in candidates:
+	for row: Array in scored:
 		if found.size() >= wanted:
 			break
-		found.append(enemy)
+		found.append(row[1] as Enemy)
 	return found
 
 
@@ -829,7 +857,7 @@ func _target_score(enemy: Enemy, priority: int) -> float:
 		/ maxf(Balance.LANE_SPAWN_RADIUS, 1.0), 0.0, 1.0)
 	match priority:
 		TowerData.TargetPriority.STRONG:
-			var target_health: Health = Health.of(enemy)
+			var target_health: Health = enemy.health
 			return (target_health.max_hp if target_health != null else enemy.data.max_hp) \
 				+ closeness * 0.01
 		TowerData.TargetPriority.FAST:
@@ -1332,7 +1360,11 @@ func _tick_step_wobble(delta: float) -> void:
 	# that the structure still reads as standing square on its plot - a tower
 	# rotated to face a flank would be lying on its side (the perspective rule,
 	# 2026-09-14).
-	_aim = _aim.lerp(_aim_wanted(), clampf(delta * Balance.TOWER_AIM_EASE, 0.0, 1.0))
+	_aim_left -= delta
+	if _aim_left <= 0.0:
+		_aim_left = Balance.TOWER_AIM_INTERVAL
+		_aim_goal = _aim_wanted()
+	_aim = _aim.lerp(_aim_goal, clampf(delta * Balance.TOWER_AIM_EASE, 0.0, 1.0))
 	# **And how far out of the ground it is.** A tower is built rather than
 	# placed: it comes up out of its own foundation over a third of a second.
 	_rise_left = maxf(_rise_left - delta, 0.0)

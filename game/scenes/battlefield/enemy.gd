@@ -895,6 +895,11 @@ func _react_to_mirrored_hit(lost: float) -> void:
 ## the run's stream is not drawn on and two machines agree).
 var _retarget_left: float = 0.0
 var _retarget_phase: float = -1.0
+## The nearest howler, re-asked on `ENEMY_HOWLER_SENSE_SECONDS`: `current_speed`
+## is read every frame a body walks, and the scan was every body against
+## every body (2026-09-24).
+var _howler: Enemy = null
+var _howler_checked_ms: int = -100000
 
 
 func _tick_state(delta: float) -> void:
@@ -3408,6 +3413,17 @@ func _build_aura_readout() -> void:
 func _nearby_howler() -> Enemy:
 	if _field == null:
 		return null
+	var now: int = Time.get_ticks_msec()
+	if now - _howler_checked_ms < int(Balance.ENEMY_HOWLER_SENSE_SECONDS * 1000.0):
+		if _howler != null and is_instance_valid(_howler) and not _howler.is_dying():
+			return _howler
+		return null
+	_howler_checked_ms = now
+	_howler = _scan_for_howler()
+	return _howler
+
+
+func _scan_for_howler() -> Enemy:
 	for enemy: Enemy in _field.enemies_near(global_position, Balance.HOWLER_SEARCH_RADIUS):
 		if enemy == self or enemy.data == null or enemy.is_dying():
 			continue

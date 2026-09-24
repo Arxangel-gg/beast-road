@@ -248,6 +248,10 @@ func _report() -> void:
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
 	])
 
+	# Held in combat, or the towers measured are idle ones.
+	if not _idle and not RunState.is_command_combat():
+		print("[bisect] the field was held in %s rather than combat; towers idle here"
+			% RunState.Phase.keys()[RunState.phase])
 	var groups: Dictionary = _groups()
 	var keys: Array = groups.keys()
 	# Most nodes first: the groups worth knowing about are the populous ones,
@@ -268,6 +272,11 @@ func _report() -> void:
 				affected.append(node)
 		if affected.is_empty():
 			continue
+		# **Measured against its own neighbours, not the opening baseline.** A
+		# table takes minutes and the frame drifts under it; the second Act X
+		# run compared every group with a baseline taken two minutes earlier
+		# and named nothing. On, off, on again: the drift cancels.
+		var before: float = await _measure()
 		for node: Node in affected:
 			node.set_process(false)
 		if get_tree() == null:
@@ -277,10 +286,11 @@ func _report() -> void:
 		for node: Node in affected:
 			if is_instance_valid(node):
 				node.set_process(true)
+		var after: float = await _measure()
 		scored.append({
 			"script": String(key).trim_prefix("res://"),
 			"nodes": affected.size(),
-			"saved": baseline - without,
+			"saved": (before + after) * 0.5 - without,
 		})
 
 	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -293,4 +303,25 @@ func _report() -> void:
 		if saved < 0.1:
 			continue
 		print("   %6.2f ms  %4d nodes  %s" % [saved, int(row["nodes"]), row["script"]])
+	# **The floor**: every node's _process and _physics_process off at once,
+	# so what is left is the engine's own frame - the canvas cull, tweens,
+	# signals, transform propagation - which no script toggle above can name.
+	# The named rows add up to a share of the baseline; this says how big the
+	# share nobody owns is, which is the difference between "optimise a
+	# script" and "there are too many nodes".
+	var everything: Array[Node] = _all(get_tree().root)
+	var stilled: Array[Node] = []
+	for node: Node in everything:
+		if node == self or not is_instance_valid(node):
+			continue
+		if node.is_processing() or node.is_physics_processing():
+			node.set_process(false)
+			node.set_physics_process(false)
+			stilled.append(node)
+	var floor_ms: float = await _measure()
+	for node: Node in stilled:
+		if is_instance_valid(node):
+			node.set_process(true)
+			node.set_physics_process(true)
+	print("[bisect] floor %.2f ms with every node's processing off (%d nodes stilled) - the engine's own frame" % [floor_ms, stilled.size()])
 	print("[bisect] done - comparative only; re-measure with perf_check before believing a fix")
