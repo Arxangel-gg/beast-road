@@ -4242,6 +4242,12 @@ const PHYSICS_STEPS_PER_FRAME_MAX: int = 12
 ## comparison. The choice is made at most once a frame and shared, the lean
 ## re-asks on this clock, and a body's health is the field it already has.
 const TOWER_AIM_INTERVAL: float = 0.1
+## A tower past its cooldown with nothing in reach asks again this much
+## later rather than on the next frame (2026-09-24): on Act X two thirds of
+## the board was idle at any moment and each scanned the roster every
+## frame - 0.66 ms a frame of scans that found nothing. A body arriving
+## waits at most this long for the first shot, which is under a reaction.
+const TOWER_IDLE_RESCAN_SECONDS: float = 0.08
 ## A body asks whether a howler is near it on this clock rather than every
 ## frame: forty bodies each scanning forty was the second row of the bisect.
 const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2

@@ -579,7 +579,9 @@ func _process_measured(delta: float) -> void:
 		_tick_puppet(delta)
 		return
 
+	var _t: int = Time.get_ticks_usec()
 	_tick_status(delta)
+	FrameProfile.add(&"e_status", _t)
 	_hitstun_left = maxf(_hitstun_left - delta, 0.0)
 	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
 	# **The footing recovers whenever the blows stop**, which is what makes
@@ -597,12 +599,17 @@ func _process_measured(delta: float) -> void:
 			_interrupts = 0
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_provoked_left = maxf(_provoked_left - delta, 0.0)
+	_t = Time.get_ticks_usec()
 	_tick_boss_abilities(delta)
+	FrameProfile.add(&"e_boss", _t)
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.ENEMY_KNOCKBACK_DECAY * delta)
 
 	var before: Vector2 = global_position
+	_t = Time.get_ticks_usec()
 	if _freeze_left <= 0.0 and _hitstun_left <= 0.0:
 		_tick_state(delta)
+	FrameProfile.add(&"e_state", _t)
+	_t = Time.get_ticks_usec()
 
 	if not _knockback.is_zero_approx():
 		global_position = _bounced(global_position + _knockback * delta)
@@ -633,10 +640,13 @@ func _process_measured(delta: float) -> void:
 	if battlefield != null:
 		global_position = battlefield.deflect_from_city(global_position,
 			contact_radius())
+	FrameProfile.add(&"e_deflect", _t)
 	_motion = (global_position - before) / maxf(delta, 0.0001)
+	_t = Time.get_ticks_usec()
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite(delta)
 	_update_blood(delta)
+	FrameProfile.add(&"e_look", _t)
 
 
 func _build_oath_mark() -> void:
@@ -906,20 +916,32 @@ func _tick_state(delta: float) -> void:
 	match _state:
 		State.WALKING:
 			_grudge_left = maxf(_grudge_left - delta, 0.0)
+			var _t: int = Time.get_ticks_usec()
 			_notice_towers(delta)
+			FrameProfile.add(&"e_notice", _t)
 			# **Chosen on a cadence, not every frame** (2026-09-24). Choosing
 			# walks every tower on the field twice and every foe once, and
 			# with sixty bodies walking it was the largest line of the Act X
 			# frame. A body that has lost what it was fighting chooses at
 			# once; otherwise it chooses every `ENEMY_RETARGET_SECONDS`, on
 			# its own phase so sixty bodies do not choose on the same frame.
+			# A body with *no* target waits for the cadence like any other
+			# (2026-09-24): `or _target == null` had every camp body and every
+			# body between foes choosing again on every frame - half the
+			# roster's choices on Act X. Only a target that was freed under it
+			# is answered at once.
 			_retarget_left -= delta
-			if _retarget_left <= 0.0 or _target == null or not is_instance_valid(_target):
+			if _retarget_left <= 0.0 or (_target != null and not is_instance_valid(_target)):
+				_t = Time.get_ticks_usec()
 				_target = _pick_target()
+				FrameProfile.add(&"e_pick", _t)
 				if _retarget_phase < 0.0:
 					_retarget_phase = float(get_instance_id() % 997) / 997.0
 				_retarget_left = Balance.ENEMY_RETARGET_SECONDS * (0.7 + 0.6 * _retarget_phase)
-			if _begin_behaviour():
+			_t = Time.get_ticks_usec()
+			var began: bool = _begin_behaviour()
+			FrameProfile.add(&"e_behaviour", _t)
+			if began:
 				return
 			_throw_cooldown = maxf(_throw_cooldown - delta, 0.0)
 			if _target != null and _in_reach(_target):
@@ -942,9 +964,13 @@ func _tick_state(delta: float) -> void:
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP
 					* Balance.ENEMY_THROW_WINDUP_SCALE)
 				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+				_t = Time.get_ticks_usec()
 				_walk(delta)
+				FrameProfile.add(&"e_walk", _t)
 			else:
+				_t = Time.get_ticks_usec()
 				_walk(delta)
+				FrameProfile.add(&"e_walk", _t)
 		State.WINDUP:
 			_state_left -= delta
 			if _state_left <= 0.0:

@@ -8882,6 +8882,19 @@ worst could not tell.
 windowed frame at 1080p was 20.1 ms before these three cuts and the next
 number wants the screen for ninety seconds.
 
+**And the idle shape, twice more.** With the profile split one level down,
+two thirds of the towers on Act X were past their cooldown, scanning the
+roster and finding nothing, and scanning again on the next frame - 0.66 ms a
+frame of scans that found nothing; a tower with nothing in reach asks again
+after `TOWER_IDLE_RESCAN_SECONDS` now, and the tower's tick went 1.17 ms to
+0.58. And `_pick_target` ran twenty-two times a frame across forty-four
+bodies, because `or _target == null` had every body *between* foes - and
+every camp body - choosing again every frame rather than on
+`ENEMY_RETARGET_SECONDS`; only a target freed under a body is answered at
+once now. **"Nothing found, so try again next frame" is the shape to look
+for in any per-frame tick**: the cadence that was added for the found case
+does not cover the empty one. The run reads 9.0 ms headless, p99 15.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

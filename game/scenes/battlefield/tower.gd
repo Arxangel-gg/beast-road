@@ -287,7 +287,9 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 
 
 func _process_measured(delta: float) -> void:
+	var _t: int = Time.get_ticks_usec()
 	_tick_step_wobble(delta)
+	FrameProfile.add(&"t_wobble", _t)
 	_impact_left = maxf(_impact_left - delta, 0.0)
 	if _impact_left > 0.0 or _impact_driven:
 		ActorPolishScript.drive(_impact_material, _impact_left)
@@ -299,8 +301,10 @@ func _process_measured(delta: float) -> void:
 	var rate: float = Balance.COMMAND_OVERDRIVE_RATE \
 		if _command_overdrive_left > 0.0 else 1.0
 	_cooldown -= delta * rate
+	_t = Time.get_ticks_usec()
 	_tick_storm(delta)
 	_tick_heat(delta)
+	FrameProfile.add(&"t_env", _t)
 	# A support tower works on its own clock; a puppet's copy runs too,
 	# because what it changes is what the guest sees and the guest's towers
 	# are told their shots anyway.
@@ -344,8 +348,12 @@ func _process_measured(delta: float) -> void:
 	if data.is_well():
 		_pour(delta)
 		return
+	_t = Time.get_ticks_usec()
 	var targets: Array[Enemy] = _acquire_targets()
+	FrameProfile.add(&"t_acquire", _t)
 	if targets.is_empty():
+		# Nothing in reach: ask again shortly, not next frame.
+		_cooldown = Balance.TOWER_IDLE_RESCAN_SECONDS
 		return
 	_cooldown = data.interval_at(level) * path_interval_scale()
 	if data.windup_seconds > 0.0:
