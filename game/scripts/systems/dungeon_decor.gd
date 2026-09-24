@@ -216,8 +216,7 @@ func _plant_pieces(layout: DungeonLayout, kind: int, rng: RandomNumberGenerator)
 				var glow := Sprite2D.new()
 				glow.name = "Glow"
 				glow.texture = LightKit.falloff_texture()
-				var additive := CanvasItemMaterial.new()
-				additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+				var additive: CanvasItemMaterial = LightKit.additive_material()
 				glow.material = additive
 				glow.modulate = Color(0.7, 0.45, 1.0, 0.3)
 				glow.scale = Vector2.ONE * (150.0 / maxf(float(glow.texture.get_width()), 1.0))
@@ -251,8 +250,7 @@ func _plant_runes(layout: DungeonLayout, kind: int) -> void:
 	_runes_glow = Sprite2D.new()
 	_runes_glow.name = "RunesGlow"
 	_runes_glow.texture = LightKit.falloff_texture()
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	_runes_glow.material = additive
 	_runes_glow.modulate = Color(_runes_tint(), 0.1)
 	_runes_glow.scale = Vector2.ONE * _runes_glow_scale()

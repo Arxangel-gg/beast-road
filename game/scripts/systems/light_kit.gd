@@ -17,6 +17,21 @@ const SHADOW_GROUP: StringName = &"shadow_lights"
 const ULTRA_SHADOW_GROUP: StringName = &"ultra_shadow_lights"
 
 static var _falloff: GradientTexture2D = null
+static var _additive: CanvasItemMaterial = null
+
+
+## **One additive material for everything that glows** (2026-09-24). Every
+## flame, pool, halo, ember and shot glow used to own a `CanvasItemMaterial`
+## of its own, and the renderer breaks a batch on every material it has not
+## just drawn with - so a road of a hundred torches was a hundred batch breaks
+## for one blend mode. Nothing ever sets anything on these but the blend, so
+## one instance serves them all and consecutive glows draw as one batch.
+static func additive_material() -> CanvasItemMaterial:
+	if _additive == null:
+		_additive = CanvasItemMaterial.new()
+		_additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	return _additive
+
 
 
 ## A soft round falloff, white in the centre to transparent at the edge.

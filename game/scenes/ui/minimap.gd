@@ -58,6 +58,9 @@ func _ready() -> void:
 	resized.connect(func() -> void: _dirty = true)
 
 
+var _marks_clock: float = 0.0
+
+
 func _process(_delta: float) -> void:
 	if not visible or battlefield == null or not is_instance_valid(battlefield):
 		return
@@ -72,7 +75,10 @@ func _process(_delta: float) -> void:
 		_dirty = false
 		_still_clock = 1.5
 		queue_redraw()
-	_marks.queue_redraw()
+	_marks_clock -= _delta
+	if _marks_clock <= 0.0:
+		_marks_clock = 1.0 / Balance.MINIMAP_MARKS_HZ
+		_marks.queue_redraw()
 
 
 func _fog() -> FogOfWar:

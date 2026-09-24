@@ -1008,8 +1008,7 @@ func _add_glow(plant: Sprite2D, art: Texture2D, at: Vector2) -> void:
 	halo.name = "Glow"
 	halo.texture = LightKit.falloff_texture()
 	halo.show_behind_parent = true
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	halo.material = additive
 	# Round the blooms, which sit in the upper part of the painting.
 	var size: Vector2 = art.get_size()

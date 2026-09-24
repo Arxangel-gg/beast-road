@@ -158,8 +158,7 @@ func make_showpiece(glow_scale: float = 1.0) -> void:
 	# `color_ramp` on a CPUParticles2D is the Gradient itself, not a texture of
 	# one - that distinction is a parse error rather than a wrong look.
 	_embers.color_ramp = fade
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	_embers.material = additive
 	_embers.position = Vector2(0.0, -6.0)
 	# Same reason as the core above: embers from a fire behind the beast must
@@ -170,8 +169,7 @@ func make_showpiece(glow_scale: float = 1.0) -> void:
 	# **Additive, like every other fire in this project draws itself.** See the
 	# note at the top of `flame.gd`: a flame is emitted light rather than paint,
 	# and the shafts below are drawn by this node so they take the same blend.
-	var lit := CanvasItemMaterial.new()
-	lit.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var lit: CanvasItemMaterial = LightKit.additive_material()
 	material = lit
 	_glow_scale = glow_scale
 	_tick_showpiece(1.0)

@@ -118,8 +118,7 @@ func _ready() -> void:
 	# Light adds; grit does not. A stone breath drawn additively glows, which
 	# is the one thing sand in the air does not do.
 	if element != "stone":
-		var glow := CanvasItemMaterial.new()
-		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		var glow: CanvasItemMaterial = LightKit.additive_material()
 		material = glow
 	JuiceDirector.note(JuiceDirector.Priority.HAZARD)
 	Sfx.play_at("sfx_spell_cast", mouth, 1.0)

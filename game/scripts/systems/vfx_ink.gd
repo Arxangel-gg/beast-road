@@ -84,8 +84,7 @@ func _ready() -> void:
 	texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	add_to_group(Graphics.FILTER_GROUP)
 	if additive:
-		var glow := CanvasItemMaterial.new()
-		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		var glow: CanvasItemMaterial = LightKit.additive_material()
 		material = glow
 	var theme: Theme = ThemeDB.get_project_theme()
 	if theme != null and theme.default_font != null:

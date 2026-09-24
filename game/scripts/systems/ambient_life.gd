@@ -350,8 +350,7 @@ func _build_firefly_cluster(at: Vector2, amount: int,
 	glow.scale = Vector2.ONE * (spread.x * Balance.AMBIENT_FIREFLY_POOL
 		/ maxf(float(Flame.dot_texture().width), 1.0)) * 2.0
 	glow.modulate = Color(tint.r, tint.g, tint.b, Balance.AMBIENT_FIREFLY_POOL_ALPHA)
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	glow.material = additive
 	glow.z_index = -1
 	glow.z_as_relative = false

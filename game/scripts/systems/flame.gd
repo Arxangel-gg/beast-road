@@ -105,8 +105,7 @@ func configure(flame_size: float, light_radius: float = 0.0,
 
 	# Additive, so the flame reads as emitted light rather than as paint. The
 	# material goes on this node because _draw output obeys it.
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	material = additive
 
 	if smokes:
@@ -440,8 +439,7 @@ func _build_embers() -> void:
 	])
 	_embers.color_ramp = ramp
 
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	_embers.material = additive
 	add_child(_embers)
 

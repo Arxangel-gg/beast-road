@@ -41,8 +41,7 @@ func begin(which: int, floor_layout: DungeonLayout) -> void:
 		_motes.append(_new_mote(view, true))
 	_drip_in = _rng.randf_range(Balance.DUNGEON_DRIP_SECONDS.x, Balance.DUNGEON_DRIP_SECONDS.y)
 	if kind == RiftArena.Kind.RIFT:
-		var additive := CanvasItemMaterial.new()
-		additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		var additive: CanvasItemMaterial = LightKit.additive_material()
 		material = additive
 	else:
 		material = null

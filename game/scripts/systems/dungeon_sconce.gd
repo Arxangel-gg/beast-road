@@ -48,8 +48,7 @@ func _ready() -> void:
 	_pool = Sprite2D.new()
 	_pool.name = "Pool"
 	_pool.texture = LightKit.falloff_texture()
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	_pool.material = additive
 	var span: float = Balance.DUNGEON_SCONCE_POOL_RADIUS * 2.0 \
 		/ maxf(float(_pool.texture.get_width()), 1.0)

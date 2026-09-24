@@ -627,8 +627,7 @@ class ProjectileGlow extends Node2D:
 		# the ribbon and glow were laid over the head and washed it out.
 		z_as_relative = false
 		z_index = Balance.VFX_Z - 2
-		var material := CanvasItemMaterial.new()
-		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		var material: CanvasItemMaterial = LightKit.additive_material()
 		self.material = material
 
 	func _draw() -> void:

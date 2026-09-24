@@ -48,8 +48,7 @@ func _ready() -> void:
 	_ring.texture = LightKit.falloff_texture()
 	_ring.modulate = Balance.INTERACT_BADGE_HALO
 	_ring.z_index = -1
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	_ring.material = additive
 	add_child(_ring)
 	_icon = Sprite2D.new()

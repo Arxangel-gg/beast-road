@@ -10441,6 +10441,10 @@ const RAID_FOG_Z: int = 60
 ## shade as a hard line; ten keeps the rim past anything the hero can see.
 const RAID_FOG_MARGIN_TILES: float = 10.0
 ## The minimap's side, on a desktop and on a phone, and its fog's darkness.
+## The moving marks on the map repaint on this clock rather than every
+## frame (2026-09-24): a body's dot on a 224-unit map moves less than a pixel
+## between frames, and the ablation named the map at half a millisecond.
+const MINIMAP_MARKS_HZ: float = 20.0
 const MINIMAP_SIZE: float = 224.0
 const MINIMAP_SIZE_TOUCH: float = 150.0
 const MINIMAP_UNEXPLORED_ALPHA: float = 0.62

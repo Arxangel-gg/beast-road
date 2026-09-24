@@ -40,8 +40,7 @@ static func lay(parent: Node2D, colour: Color, radius: float, glow_strength: flo
 	glow.strength = glow_strength
 	glow.bounce = on_ground
 	glow.texture = LightKit.falloff_texture()
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var additive: CanvasItemMaterial = LightKit.additive_material()
 	glow.material = additive
 	var span: float = radius * 2.0 / maxf(float(glow.texture.get_width()), 1.0)
 	glow.scale = Vector2(span, span * squash)
