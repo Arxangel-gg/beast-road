@@ -172,6 +172,9 @@ const FORGE_RUNE_REACH: float = 150.0
 
 ## The take pool for each effect, built on first use and never rebuilt.
 var _forge_sheets: Dictionary = {}
+## Every sheet ever played, kept: a sheet held only by the record playing it
+## was read off the disk again on the next play (2026-09-24).
+var _sheet_cache: Dictionary = {}
 var _forge_dice := RandomNumberGenerator.new()
 var _forge_seeded: bool = false
 const EMBERS_ART: String = "res://art/vfx/embers.png"
@@ -1282,7 +1285,7 @@ func forge_play(effect: String, at: Vector2, size: float,
 	var sheet: String = _a_forge_sheet(effect)
 	if sheet.is_empty():
 		return
-	var texture: Texture2D = load(sheet) as Texture2D
+	var texture: Texture2D = _sheet_texture(sheet)
 	if texture == null:
 		return
 	# **The cell count is the sheet's own shape.** A row of squares is as many
@@ -1320,6 +1323,43 @@ func forge_play(effect: String, at: Vector2, size: float,
 		Vector2(scale * (-1.0 if flip_h else 1.0), scale * (-1.0 if flip_v else 1.0)),
 		Color(tint.r, tint.g, tint.b, tint.a * minf(1.0, weight)),
 		float(cells) / Balance.VFX_FORGE_FRAME_RATE)
+
+
+func _sheet_texture(path: String) -> Texture2D:
+	if _sheet_cache.has(path):
+		return _sheet_cache[path] as Texture2D
+	var texture: Texture2D = load(path) as Texture2D
+	if texture != null:
+		_sheet_cache[path] = texture
+	return texture
+
+
+## **The fight's art, loaded before the fight** (2026-09-24): every forged
+## sheet, every element's impact and muzzle art and every element's shot
+## head, so the first volley of an act is not seven disk reads. Called from
+## `RosterWarmup.warm_act`, which is the one door everything regional is
+## warmed through. The sheets are skipped headless, where nothing draws them
+## and a hundred gates would each pay to load sixty megabytes of light.
+func warm_art() -> int:
+	var count: int = 0
+	var headless: bool = DisplayServer.get_name() == "headless"
+	for element: int in TowerData.Element.size():
+		var named: String = TowerData.element_name(element).to_lower()
+		for format: String in [IMPACT_ART_FORMAT, MUZZLE_ART_FORMAT, Projectile.PROJECTILE_ART_FORMAT]:
+			var path: String = format % named
+			if not ResourceLoader.exists(path):
+				continue
+			count += GameData.load_idle_frames(path).size()
+			if _sheet_texture(path) != null:
+				count += 1
+	if headless:
+		return count
+	for effect: Variant in FORGE_CATALOGUE:
+		_a_forge_sheet(String(effect))
+		for path: Variant in (_forge_sheets.get(effect, []) as Array):
+			if _sheet_texture(String(path)) != null:
+				count += 1
+	return count
 
 
 func _forge_roll() -> float:

@@ -129,6 +129,21 @@ static func load_move_frames(base_path: String) -> Array[Texture2D]:
 	return out
 
 
+## **Every sequence is loaded once and kept** (2026-09-24). `ResourceLoader`
+## caches a texture only while something holds it, so a shot's head frames,
+## an impact's, a muzzle's - held by nothing between one blow and the next -
+## were read off the disk and uploaded again on every volley: three
+## megabytes a hitch, seven hitches a second on Act X. The tables below hold
+## them for the process; `forget_frames` empties them.
+static var _sequences: Dictionary = {}
+static var _states: Dictionary = {}
+
+
+static func forget_frames() -> void:
+	_sequences.clear()
+	_states.clear()
+
+
 static func load_idle_frames(base_path: String) -> Array[Texture2D]:
 	return _load_sequence(base_path, idle_frame_path)
 
@@ -139,11 +154,15 @@ static func load_state_frames(base_path: String, state: String) -> Array[Texture
 	var out: Array[Texture2D] = []
 	if base_path.is_empty() or state.is_empty():
 		return out
+	var key: String = base_path + "#" + state
+	if _states.has(key):
+		return (_states[key] as Array[Texture2D]).duplicate()
 	for index: int in range(1, 17):
 		var path: String = "%s_%s_%02d.png" % [base_path.get_basename(), state, index]
 		if not ResourceLoader.exists(path):
 			break
 		out.append(load(path) as Texture2D)
+	_states[key] = out.duplicate()
 	return out
 
 
@@ -157,6 +176,9 @@ static func _load_sequence(base_path: String, namer: Callable) -> Array[Texture2
 	var out: Array[Texture2D] = []
 	if base_path.is_empty() or not ResourceLoader.exists(base_path):
 		return out
+	var key: String = base_path + "#" + namer.get_method()
+	if _sequences.has(key):
+		return (_sequences[key] as Array[Texture2D]).duplicate()
 	var first: String = namer.call(base_path, 1)
 	if not ResourceLoader.exists(first):
 		return out
@@ -169,6 +191,7 @@ static func _load_sequence(base_path: String, namer: Callable) -> Array[Texture2
 		if not ResourceLoader.exists(path):
 			break
 		out.append(load(path) as Texture2D)
+	_sequences[key] = out.duplicate()
 	return out
 
 

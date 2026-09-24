@@ -89,6 +89,8 @@ func _ready() -> void:
 	rift.process_mode = Node.PROCESS_MODE_DISABLED
 	town.visible = false
 	beast.visible = false
+	town.process_mode = Node.PROCESS_MODE_DISABLED
+	beast.process_mode = Node.PROCESS_MODE_DISABLED
 
 	# The frame governs the preset while the player has chosen none
 	# (2026-09-24). Said on the HUD through a callable, so the governor holds
@@ -412,6 +414,15 @@ func switch_scope(scope: GameDirector.Scope) -> void:
 	battlefield.visible = scope == GameDirector.Scope.BATTLEFIELD
 	town.visible = scope == GameDirector.Scope.TOWN
 	beast.visible = scope == GameDirector.Scope.BEAST
+	# **A hidden scope does not process** (2026-09-24). The town and the beast
+	# kept ticking every frame under the battlefield - the walk's frames, its
+	# backdrop, its route, the town's plots - for a camera that was elsewhere;
+	# the raid and the rift were disabled when hidden and these two never were.
+	# The battlefield is never disabled: leaving the fight has to cost.
+	town.process_mode = Node.PROCESS_MODE_INHERIT \
+		if scope == GameDirector.Scope.TOWN else Node.PROCESS_MODE_DISABLED
+	beast.process_mode = Node.PROCESS_MODE_INHERIT \
+		if scope == GameDirector.Scope.BEAST else Node.PROCESS_MODE_DISABLED
 	# The act track lives on a canvas layer, which a hidden scope does not hide.
 	beast.set_track_visible(scope == GameDirector.Scope.BEAST)
 

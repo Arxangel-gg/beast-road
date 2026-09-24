@@ -8715,14 +8715,93 @@ gathers the roster once a frame and `LootDrop._alive_heroes` the heroes;
 keeping theirs and a piece leaving handing its lamp on. No behaviour moved: a
 body that starts dying after the roster was taken is still refused per call.
 
-**What has not been measured is the frame.** These are structural and provable
-headless; the number is a windowed run away, and the last one was force-closed
-because it took the owner's screen. Ask for the window. What the census says
-is still there, for after the measurement: a hundred torches are about fifteen
-canvas items each (four polygons and four sprites of ironwork and light, a
-flame with its glow sprite and two emitters), the foliage is nine hundred
-painted sprites, and every drop wears its own `ShaderMaterial`, which is a
-draw call each.
+**Measured, then bisected, then measured again, as of the same evening.** The
+owner gave the screen and `perf_check --act=10 --build` read **58.9 ms
+(17 fps)** after the three cuts above, against 76.3 before them - and its new
+split said the renderer was **7.7 ms CPU and 7.7 ms GPU of a 55 ms process**.
+The frame was script, and the `--off=` deltas that had said shadows and
+particles were a third each were single samples of `TIME_PROCESS` taken at
+report time, which is one frame's worth and reads as noise. `perf_check`
+averages its split over every sampled frame now and measures the renderer's
+own clock (`viewport_set_measure_render_time`).
+
+**The bisect runs headless now**, because script time costs the same without a
+renderer and a windowed one takes the owner's screen for minutes - they quit
+the first one - and it is drift-proof: each script group is measured on, off
+and on again against its own neighbours, because a table takes minutes and the
+frame moves under it; the second run compared every group with a baseline two
+minutes old and named nothing. It also says when the field was held in a
+breather, which measures idle towers. What it named, on a 56 ms frame with 38
+bodies held:
+
+    tower.gd     11.9 ms   40 nodes
+    enemy.gd      7.6 ms   38 nodes
+    vfx_ink.gd    4.3 ms    4 nodes
+    flame.gd      1.6 ms  220 nodes
+    floor         6.9 ms   every node's processing off: the engine's own frame
+
+- **A tower chose forty times a second and sorted every body twice per
+  comparison.** The lean tell called `_acquire_targets` every frame beside
+  the shot's own call, and the sort's comparator scored both bodies on every
+  comparison, each score walking a body's children for its `Health`. The
+  choice is made at most once a frame and shared; the candidates are scored
+  once and then sorted; the lean re-asks on `TOWER_AIM_INTERVAL`; a body's
+  health is the field it already has; the impact rim is written only while it
+  moves.
+- **Every walking body scanned every body for a howler every frame**, from
+  `current_speed`. It asks on `ENEMY_HOWLER_SENSE_SECONDS`.
+- **The ink canvases redraw on `VFX_INK_HZ` and draw their last frame.** They
+  never had: a canvas that only redrew while records moved left the final
+  picture standing until the next effect arrived - which is half of what the
+  owner saw as the projectiles being *"really messed up"*.
+- **The other half was the ribbon.** `InkRibbon` fell from full at the spine
+  to nothing at the ribbon's width, which on a five-unit shot at play zoom is
+  a hairline; photographed, every shot was a thread from the tower to the
+  body. It is a solid core with a feather either side now, as the `Line2D` it
+  replaced was. The trail was kept by point count, so at twenty frames a
+  second it spanned the whole flight and at 144 it was a stub: a point every
+  `PROJECTILE_TRAIL_STEP` of travel, trimmed to `PROJECTILE_TRAIL_LENGTH`,
+  for both shot kinds. And the additive child drew *over* the head (a child
+  draws after its parent) and its glow was not turned with the flight; it is
+  under the head, absolutely, and turned.
+- **Bloom came down**, night most of all (`BLOOM_STRENGTH_NIGHT` 1.25 to
+  0.70, the night threshold 0.16 to 0.30), on the owner's report that it was
+  too strong in places.
+
+**Measured after: 22.4 ms a frame (45 fps), p99 50 ms.** The headless field
+frame went 56 ms to 11, of which the engine's floor is 6.9 - so the script is
+a few milliseconds now and the per-script table is inside its own noise at
+that scale. The p99 is the hitch ledger, and the ledger says what the hitches
+are:
+
+    hitch 86.5 ms at 20s  nodes +6    textures +3072 KB
+    hitch 84.2 ms at 14s  nodes +10   textures +3072 KB
+    hitch 81.5 ms at 16s  nodes +13   textures +3588 KB
+    hitch 74.5 ms at 83s  nodes +244  textures +9216 KB
+
+**The same three megabytes, read off the disk every few seconds.**
+`ResourceLoader` caches a texture only while something holds it, and the
+fight's art - a shot's head frames (loaded per projectile in `_ready`), an
+impact's frames, a muzzle's, a forged sheet (loaded per play) - is held only
+by the record or node playing it, so between one volley and the next it was
+freed and the next volley read and uploaded it again. `GameData._load_sequence`
+and `Vfx._sheet_texture` keep what they load for the process now, and
+`Vfx.warm_art` loads every element's shot, impact and muzzle art and every
+forged sheet before the act, from `RosterWarmup.warm_act` - which also warms
+the **veterans** and the **camps' own breeds and lords** now: the 244-node,
+nine-megabyte hitch was a wave of invaders no region's roster names. The
+sheets are skipped headless, where nothing draws them and a hundred gates
+would each pay to load sixty megabytes of light.
+
+**And two scopes were processing while hidden.** `_show_scope` hid the town
+and the beast and disabled neither; the raid and the rift were disabled when
+hidden since they were built. The walk's frames, its backdrop, its route and
+the town's plots ticked every frame under the battlefield for a camera that
+was elsewhere. A hidden scope's `process_mode` is `DISABLED` now, and the
+battlefield's never is, because leaving the fight has to cost.
+
+The census still says: a hundred torches at fifteen canvas items each, nine
+hundred painted plants, a `ShaderMaterial` per drop.
 
 ### The three escape hatches — and why there are only three
 

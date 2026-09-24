@@ -35,8 +35,18 @@ static func warm_act(act: int, terrain_id: String) -> int:
 	if terrain != null:
 		ids.append_array(terrain.enemy_ids)
 		ids.append_array(terrain.elite_ids)
+		# The invaders from other roads walk this one too (2026-09-24): a wave
+		# of veterans on Act X loaded nine megabytes of frames mid-fight.
+		for id: String in terrain.veteran_ids:
+			if not ids.has(id):
+				ids.append(id)
 		if not terrain.boss_id.is_empty():
 			ids.append(terrain.boss_id)
+	# And the camps' own breeds and lords, which no region's roster names.
+	for category: int in [EnemyData.Category.CAMP_BREED, EnemyData.Category.CAMP_LORD]:
+		for data: EnemyData in ContentDB.enemies_of_category(category):
+			if not ids.has(data.id):
+				ids.append(data.id)
 	# Any elite may be dealt when a region names none of its own.
 	for data: EnemyData in ContentDB.enemies_of_category(EnemyData.Category.ELITE):
 		if not ids.has(data.id):
@@ -55,6 +65,7 @@ static func warm_act(act: int, terrain_id: String) -> int:
 		if tower != null:
 			loaded += _warm_body(tower.get_sprite_path(), false)
 	loaded += warm_saddled_mount()
+	loaded += Vfx.warm_art()
 	return loaded
 
 
