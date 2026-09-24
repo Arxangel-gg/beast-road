@@ -8646,6 +8646,69 @@ shared budget. `projectile_tier_check` still reads a wider, hotter shot per
 level and `tower_juice_check` still reads every style's damage through it,
 because nothing about a shot's flight or its hit moved: a look, never a fact.
 
+**The third cut is everything else a hit stood up, and three budgets, as of
+the same date.** The owner: *"optimize our game perfectly with all of the best
+techniques to help players get such a high fps rate even 144+"*. The Act X
+measurements said where the frame was, and it was not one thing:
+
+    clean            process 96.5 ms
+    cast shadows off process 62.3 ms   (-34)
+    particles off    process 62.0 ms   (-34)
+    lights off       process 56.1 ms   (-40)
+    Low              process 38.5 ms
+
+**`process` includes the renderer.** `Performance.TIME_PROCESS` is the main
+loop's iteration, and in the Compatibility renderer `RenderingServer.draw`
+runs inside it on the main thread - so the 34 ms that cast shadows cost is
+canvas work, not script, and a script bisect would never have found it.
+
+- **A hit allocates no node.** A damage number was a `Label` and five tweens;
+  a muzzle a polygon, a sprite and three tweens; an impact a sprite, a
+  material and two tweens; a forged sheet a sprite, a material and a tween.
+  All are records now, on a **second, flat** `VfxInk` for what is paint
+  (numbers, impact and muzzle art) beside the additive one for what is light,
+  because additive text over a bright ground disappears. `forge_check` reads
+  the records back where it read sprites - the invariants (a take, a turn, a
+  flip, a size wander, nothing at zero density) are unchanged and a flip is a
+  negative axis on the record's scale.
+- **Cast shadows are the nearest few.** `LightKit.budget_shadows` ranks every
+  shadow light by distance to what the camera watches and keeps
+  `SHADOW_LIGHT_BUDGET_HIGH` (8) or `_ULTRA` (14), re-ranked on
+  `SHADOW_BUDGET_INTERVAL` from the battlefield and the raid arena. A hundred
+  torches each cast, and a shadowed light the renderer can see draws every
+  occluder four times and samples its map under every lit pixel; what the
+  player sees is the torches beside the Warden casting, which is where they
+  were looking. Ultra keeps more than High because `live_settings_check` holds
+  that Ultra promotes torch shadows; an unlit light takes no slot.
+- **An emitter the camera cannot see rests.** `ScreenCull.sees` is `Flame`'s
+  own on-screen test moved to one place, and a flame, a tower's air
+  (`TowerAura`) and a camp fire hide their emitters off screen. Hidden, never
+  stopped: `CPUParticles2D` skips its whole update while not visible in the
+  tree, nothing restarts, and a torch panned onto is mid-life. Two hundred of
+  the four hundred and ninety-one emitters on Act X were torches.
+- **The foliage's idle step reaches only the view.** Every painted plant
+  breathes on three frames, so one step wrote about two thousand textures at
+  once, four and a half times a second - a 4-6 ms spike on a clock nobody
+  could see. `Foliage._step_idle` takes the world window
+  (`ScreenCull.world_window`) and a plant's place is read once and kept.
+- **The physics tick follows the display.** The Warden moves in
+  `_physics_process`; at sixty ticks a 144 Hz screen watched a hero stepping
+  at sixty while the road moved at 144. `Graphics.physics_rate_for` is the
+  display's refresh capped by the frame cap, inside `PHYSICS_RATE_MIN` and
+  `_MAX`, with `PHYSICS_STEPS_PER_FRAME_MAX` so a slow frame catches up rather
+  than slowing the clock. Headless there is no display and the rate is the
+  floor, so no gate measures a different game. The cap offers 165 and 240.
+
+**The bound is the one every feel change here is held to: nothing about damage
+moves.** Every one of these is a look, and `frame_budget_check` drives each -
+forty hits and an empty effects layer, twenty lights and the nearest eight, a
+flame far off the screen resting and waking, two plants and one window, and
+the tick over every shape of display - rather than reading a constant back.
+
+**What has not been measured is the frame.** These are structural and provable
+headless; the number is a windowed run away, and the last one was force-closed
+because it took the owner's screen. Ask for the window.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

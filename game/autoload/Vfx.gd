@@ -34,6 +34,9 @@ var _ground: BloodField = null
 ## The drawn canvas for sparks, rings, flashes, motes and rays (2026-09-24):
 ## records on one `_draw` rather than nodes with tweens. See `VfxInk`.
 var _ink: VfxInk = null
+## The flat one: the impact and muzzle art, and the numbers - paint, not
+## light, because additive text over a bright ground disappears.
+var _ink_flat: VfxInk = null
 
 ## Spatter shapes are cosmetic, so they draw from their own stream rather than
 ## the run's seeded one - blood must never move a gameplay roll.
@@ -307,6 +310,7 @@ func bind_world(node: Node2D) -> void:
 	world = node
 	_container = null
 	_ink = null
+	_ink_flat = null
 	# A new world is a new screen, and the director's load is a fact about what
 	# is on *this* one. Without this, walking into a rift from a wave that had
 	# just killed forty bodies would arrive with every cosmetic effect damped and
@@ -329,8 +333,20 @@ func bind_world(node: Node2D) -> void:
 
 	# Beside the layer rather than in it: the layer's children are the
 	# short-lived nodes that remain, and the gates count them.
-	_ink = VfxInk.new()
+	_ink = VfxInk.new(true)
 	node.add_child(_ink)
+	_ink_flat = VfxInk.new(false)
+	node.add_child(_ink_flat)
+
+
+## The two ink canvases, for the gates: the additive one carries light, the
+## flat one paint. Null before a world is bound.
+func ink() -> VfxInk:
+	return _ink if _ink != null and is_instance_valid(_ink) else null
+
+
+func ink_flat() -> VfxInk:
+	return _ink_flat if _ink_flat != null and is_instance_valid(_ink_flat) else null
 
 
 func clear() -> void:
@@ -339,6 +355,8 @@ func clear() -> void:
 			child.queue_free()
 	if _ink != null and is_instance_valid(_ink):
 		_ink.clear()
+	if _ink_flat != null and is_instance_valid(_ink_flat):
+		_ink_flat.clear()
 	if _ground != null and is_instance_valid(_ground):
 		_ground.wipe()
 	clear_vignette()
@@ -468,53 +486,13 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, widt
 ## number that appears at full size and floats off is a receipt, and the old
 ## ones were receipts.
 func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> void:
-	if world == null or amount < 1.0:
+	if world == null or amount < 1.0 or _ink_flat == null:
 		return
-	# **How many numbers the player asked for.** A density rather than a switch,
-	# so somebody who finds the count overwhelming can thin the ordinary ones out
-	# and keep the criticals and finishers - which is fewer numbers rather than
-	# less information. At the default of 1 this costs a comparison.
 	if not JuiceDirector.wants_number(big):
 		return
-	var label := Label.new()
-	label.text = str(int(round(amount)))
-	label.add_theme_font_size_override("font_size", Balance.VFX_NUMBER_SIZE_BIG if big else Balance.VFX_NUMBER_SIZE)
-	label.add_theme_color_override("font_color", colour)
-	label.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.05, 0.9))
-	label.add_theme_constant_override("outline_size", 8 if big else 6)
-	label.z_index = Balance.VFX_Z + 1
-	_track(label)
-	# Scaled and tilted about its own centre rather than its top-left corner,
-	# or the pop swings the text sideways instead of growing it in place.
-	label.pivot_offset = label.get_minimum_size() * 0.5
-	label.global_position = at + Vector2(randf_range(-14.0, 14.0), -20.0) - label.pivot_offset
-	var pop: float = Balance.VFX_NUMBER_POP * (1.15 if big else 1.0)
-	label.scale = Vector2.ONE * 0.35
-	if big:
-		label.rotation_degrees = randf_range(-Balance.VFX_NUMBER_TILT_DEGREES,
-			Balance.VFX_NUMBER_TILT_DEGREES)
-
-	var rise: float = Balance.VFX_NUMBER_RISE \
-			* (1.0 + (Balance.VFX_NUMBER_BIG_RISE_BONUS if big else 0.0))
-	var life: float = Balance.VFX_NUMBER_LIFE * (1.25 if big else 1.0)
-	var start: Vector2 = label.global_position
-	var sideways: float = randf_range(-26.0, 26.0)
-	# Two legs: a fast climb that decelerates into a hang, then a short settle
-	# back down while it fades - the arc a thrown thing makes, not a lift.
-	var tween: Tween = label.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(label, "global_position",
-			start + Vector2(sideways * 0.7, -rise), life * 0.55) \
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.chain().tween_property(label, "global_position",
-			start + Vector2(sideways, -rise * 0.82), life * 0.45) \
-			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
-	tween.tween_property(label, "scale", Vector2.ONE * pop, life * 0.16) \
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.chain().tween_property(label, "scale", Vector2.ONE, life * 0.24) \
-			.set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(label, "modulate:a", 0.0, life * 0.5).set_delay(life * 0.5)
-	tween.chain().tween_callback(label.queue_free)
+	# A record on the flat ink canvas (2026-09-24), where it was a `Label` and
+	# five tweens - a hundred a second on Act X.
+	_ink_flat.number(at, str(int(round(amount))), colour, big)
 
 
 ## A short bright cone where a tower fired from, plus the element's own flash.
@@ -530,39 +508,16 @@ func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> voi
 ## sells the timing, the sprite is the material.
 func muzzle(at: Vector2, direction: Vector2, colour: Color,
 		element: int = -1, size: float = 1.0) -> void:
-	if world == null:
+	if world == null or _ink == null:
 		return
-	# Drawn first, because whether there is art changes what the cone should be.
 	var painted: bool = _muzzle_art(at, direction, colour, element, size)
-
-	var flash := Polygon2D.new()
-	# **The cone shrinks and goes white when there is art behind it.**
-	#
-	# At full size in the element's own colour it was not an accent, it was a
-	# flat coloured wedge sitting on top of the flash and winning - a triangle
-	# with texture behind it, which reads worse than either alone. What the cone
-	# is actually good at is the instant: a hard white stab at the barrel on the
-	# frame the shot leaves. So with art it becomes exactly that, and without it
-	# stays the whole effect it has always been.
+	# The flash: a short feathered tongue along the aim, on the additive ink,
+	# where it was a polygon and a tween a shot.
 	var length: float = Balance.VFX_MUZZLE_LENGTH * (0.45 if painted else 1.0) * size
 	var spread: float = Balance.VFX_MUZZLE_WIDTH * (0.5 if painted else 1.0) * size
-	flash.polygon = PackedVector2Array([
-		Vector2.ZERO,
-		Vector2(length, -spread),
-		Vector2(length * 1.15, 0.0),
-		Vector2(length, spread),
-	])
-	flash.color = colour.lerp(Color.WHITE, 0.75) if painted else colour
-	flash.rotation = direction.angle()
-	flash.z_index = Balance.VFX_Z
-	_track(flash)
-	flash.global_position = at
-
-	var tween: Tween = flash.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(flash, "modulate:a", 0.0, Balance.VFX_MUZZLE_LIFE)
-	tween.tween_property(flash, "scale", Vector2(1.35, 0.5), Balance.VFX_MUZZLE_LIFE)
-	tween.chain().tween_callback(flash.queue_free)
+	_ink.ray(at, direction, colour.lerp(Color.WHITE, 0.75) if painted else colour,
+		0.0, length * 1.15, Balance.VFX_MUZZLE_LIFE)
+	_ink.flash(at + direction * length * 0.3, colour, spread * 1.2)
 
 
 ## A fan of cosmetic pellets beside a spraying tower's real shot (owner brief,
@@ -592,34 +547,23 @@ func pellets(at: Vector2, direction: Vector2, colour: Color, count: int,
 ## a random flip so a lane of one tower firing does not stamp the same picture.
 func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int,
 		size: float = 1.0) -> bool:
-	if element < 0 or world == null:
+	if element < 0 or world == null or _ink_flat == null:
 		return false
 	var path: String = MUZZLE_ART_FORMAT % TowerData.element_name(element).to_lower()
 	if not ResourceLoader.exists(path):
 		return false
 	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
-	var art := Sprite2D.new()
-	art.texture = load(path)
-	art.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	art.add_to_group(Graphics.FILTER_GROUP)
-	art.modulate = Color(colour.lerp(Color.WHITE, 0.4), 0.9)
-	art.rotation = direction.angle()
-	art.scale = Vector2(1.0, 1.0 if randf() < 0.5 else -1.0) \
-			* (Balance.VFX_MUZZLE_LENGTH * 2.0 * size
-			/ maxf(float(art.texture.get_width()), 1.0))
-	art.z_index = Balance.VFX_Z - 1
-	_track(art)
-	art.global_position = at + direction * Balance.VFX_MUZZLE_LENGTH * 0.35
-
-	var life: float = Balance.VFX_MUZZLE_LIFE * 2.2
-	if frames.size() > 1:
-		var step: Callable = func(index: float) -> void:
-			if is_instance_valid(art):
-				art.texture = frames[clampi(int(index), 0, frames.size() - 1)]
-		art.create_tween().tween_method(step, 0.0, float(frames.size()), life)
-	var fade: Tween = art.create_tween()
-	fade.tween_property(art, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
-	fade.tween_callback(art.queue_free)
+	if frames.is_empty():
+		var single: Texture2D = load(path) as Texture2D
+		if single == null:
+			return false
+		frames.append(single)
+	var flip: float = 1.0 if randf() < 0.5 else -1.0
+	var scale: float = Balance.VFX_MUZZLE_LENGTH * 2.0 * size \
+		/ maxf(float(frames[0].get_width()), 1.0)
+	_ink_flat.art(frames, at + direction * Balance.VFX_MUZZLE_LENGTH * 0.35, direction.angle(),
+		Vector2(scale, scale * flip), Color(colour.lerp(Color.WHITE, 0.4), 0.9),
+		Balance.VFX_MUZZLE_LIFE * 2.2, 1.0, 0.0)
 	return true
 
 
@@ -1248,34 +1192,10 @@ func _on_hero_loosed(from: Vector2, direction: Vector2, _ammo_id: String) -> voi
 ## Silently does nothing when the element has no art, so a missing file costs the
 ## same as it did before there was any.
 func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
-	if world == null:
+	if world == null or _ink_flat == null:
 		return
 	var named: String = TowerData.element_name(element).to_lower()
-	forge_hit(named, at, size * FORGE_IMPACT_REACH, colour)
-	var path: String = IMPACT_ART_FORMAT % named
-	if not ResourceLoader.exists(path):
-		return
-	var burst := Sprite2D.new()
-	burst.texture = load(path)
-	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	burst.add_to_group(Graphics.FILTER_GROUP)
-	burst.modulate = Color(colour.lerp(Color.WHITE, 0.45), 0.95)
-	burst.z_index = Balance.VFX_Z
-	# A different quarter-turn each time, so a lane full of the same tower firing
-	# does not stamp the identical picture forty times.
-	burst.rotation = TAU * float(randi() % 4) / 4.0
-	_track(burst)
-	burst.global_position = at
-
-	var start: float = size / maxf(float(burst.texture.get_width()), 1.0)
-	burst.scale = Vector2.ONE * start * 0.45
-	var tween: Tween = burst.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(burst, "scale", Vector2.ONE * start, 0.14).set_ease(Tween.EASE_OUT)
-	tween.tween_property(burst, "modulate:a", 0.0, 0.26).set_delay(0.06)
-	_play_burst_frames(burst, path)
-	tween.chain().tween_callback(burst.queue_free)
-	# **And the forged hit for that element, from here rather than from the
+	# **The forged hit for that element, from here rather than from the
 	# thirty places that deal an elemental blow.** Each of the five behaves
 	# the way its element does - fire flares upward and dies, water splashes
 	# into a ring of droplets, earth throws chunks, air is a ring leaving,
@@ -1284,6 +1204,25 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	# over the painted impact for the same reason the painted impact is
 	# layered over the sparks: one picture doing all the work reads as a
 	# decal. Nothing downstream learns it happened.
+	forge_hit(named, at, size * FORGE_IMPACT_REACH, colour)
+	var path: String = IMPACT_ART_FORMAT % named
+	if not ResourceLoader.exists(path):
+		return
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+	if frames.is_empty():
+		var single: Texture2D = load(path) as Texture2D
+		if single == null:
+			return
+		frames.append(single)
+	# A record on the flat ink canvas (2026-09-24), where it was a sprite, a
+	# frame tween and a fade tween a hit. A different quarter-turn each time,
+	# so a lane full of the same tower firing does not stamp the identical
+	# picture forty times; it swells from under half its size over its first
+	# frames and fades over its last.
+	var start: float = size / maxf(float(frames[0].get_width()), 1.0)
+	var life: float = float(frames.size()) / Balance.VFX_ART_FRAME_RATE if frames.size() > 1 else 0.32
+	_ink_flat.art(frames, at, TAU * float(randi() % 4) / 4.0, Vector2.ONE * start,
+		Color(colour.lerp(Color.WHITE, 0.45), 0.95), maxf(life, 0.32), 0.45, 0.2)
 
 
 ## A drawn burst at a point: any authored frame sequence, played once.
@@ -1355,42 +1294,32 @@ func forge_play(effect: String, at: Vector2, size: float,
 
 	var weight: float = JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
 	var turn: int = int(FORGE_CATALOGUE[effect])
-	var burst := Sprite2D.new()
-	burst.texture = texture
-	burst.hframes = cells
-	burst.frame = 0
-	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	burst.add_to_group(Graphics.FILTER_GROUP)
-	burst.modulate = Color(tint.r, tint.g, tint.b, tint.a * minf(1.0, weight))
-	burst.z_index = Balance.VFX_Z
-
+	# The take, the turn, the flip and the size wander are still the door's
+	# (2026-09-24); what changed is that the sheet is a record on the additive
+	# ink canvas rather than a sprite with a material and a tween of its own.
+	var rotation: float = 0.0
+	var flip_h: bool = false
+	var flip_v: bool = false
 	match turn:
 		ForgeTurn.FREE:
-			burst.rotation = _forge_roll() * FORGE_SPIN
-			burst.flip_h = _forge_roll() < 0.5
-			burst.flip_v = _forge_roll() < 0.5
+			rotation = _forge_roll() * FORGE_SPIN
+			flip_h = _forge_roll() < 0.5
+			flip_v = _forge_roll() < 0.5
 		ForgeTurn.UPRIGHT:
-			# Left to right only. The ground is down and the flame goes up;
-			# a vertical flip would hang both from the ceiling.
-			burst.flip_h = _forge_roll() < 0.5
+			flip_h = _forge_roll() < 0.5
 		ForgeTurn.AIMED:
-			burst.rotation = aim + _forge_dice.randf_range(
+			rotation = aim + _forge_dice.randf_range(
 				-FORGE_AIM_WANDER, FORGE_AIM_WANDER)
-			# Across the aim, never along it.
-			burst.flip_v = _forge_roll() < 0.5
-
-	var glow := CanvasItemMaterial.new()
-	glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	burst.material = glow
-	_track(burst)
-	burst.global_position = at
+			flip_v = _forge_roll() < 0.5
+	if _ink == null:
+		return
 	var wander: float = 1.0 + _forge_dice.randf_range(
 		-FORGE_SIZE_JITTER, FORGE_SIZE_JITTER)
-	burst.scale = Vector2.ONE * (size / float(tall)) * (0.7 + 0.3 * weight) * wander
-	var life: float = float(cells) / Balance.VFX_FORGE_FRAME_RATE
-	var tween: Tween = burst.create_tween()
-	tween.tween_property(burst, "frame", cells - 1, life)
-	tween.tween_callback(burst.queue_free)
+	var scale: float = (size / float(tall)) * (0.7 + 0.3 * weight) * wander
+	_ink.sheet(texture, cells, at, rotation,
+		Vector2(scale * (-1.0 if flip_h else 1.0), scale * (-1.0 if flip_v else 1.0)),
+		Color(tint.r, tint.g, tint.b, tint.a * minf(1.0, weight)),
+		float(cells) / Balance.VFX_FORGE_FRAME_RATE)
 
 
 func _forge_roll() -> float:
@@ -1424,47 +1353,22 @@ func sheet_burst(at: Vector2, path: String, size: float, tint: Color = Color.WHI
 		additive: bool = false, rotation_radians: float = 0.0) -> void:
 	if world == null or not ResourceLoader.exists(path):
 		return
-	var burst := Sprite2D.new()
-	burst.texture = load(path)
-	burst.rotation = rotation_radians
-	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	burst.add_to_group(Graphics.FILTER_GROUP)
-	burst.modulate = tint
-	burst.z_index = Balance.VFX_Z
-	if additive:
-		var glow := CanvasItemMaterial.new()
-		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		burst.material = glow
-	_track(burst)
-	burst.global_position = at
-	burst.scale = Vector2.ONE * (size / maxf(float(burst.texture.get_width()), 1.0))
-	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
-	var life: float = float(maxi(frames.size(), 3)) / Balance.VFX_ART_FRAME_RATE
-	var tween: Tween = burst.create_tween()
-	tween.tween_property(burst, "modulate:a", 0.0, life * 0.35).set_delay(life * 0.65)
-	_play_burst_frames(burst, path)
-	tween.chain().tween_callback(burst.queue_free)
-
-
-## Steps an impact through its authored frames, once, over the life of the
-## burst.
-##
-## Played through rather than looped: an impact happens, it does not idle. A
-## loop on a 0.3-second sprite would show the same second frame twice and read
-## as a stutter rather than as a hit.
-##
-## Frame zero is the ordinary texture, so an element that ships one drawing has
-## an empty sequence here and keeps exactly the behaviour it had before any of
-## this existed.
-func _play_burst_frames(burst: Sprite2D, path: String) -> void:
-	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
-	if frames.size() < 2:
+	# A record on one of the two ink canvases (2026-09-24) - light on the
+	# additive one, paint on the flat one - where it was a sprite, a material
+	# and two tweens a play. Frame zero is the ordinary texture, so an element
+	# that ships one drawing has a one-frame sequence and holds it.
+	var canvas: VfxInk = _ink if additive else _ink_flat
+	if canvas == null:
 		return
-	var step: Callable = func(index: float) -> void:
-		if is_instance_valid(burst):
-			burst.texture = frames[clampi(int(index), 0, frames.size() - 1)]
-	burst.create_tween().tween_method(step, 0.0, float(frames.size()),
-		float(frames.size()) / Balance.VFX_ART_FRAME_RATE)
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+	if frames.is_empty():
+		var single: Texture2D = load(path) as Texture2D
+		if single == null:
+			return
+		frames.append(single)
+	var life: float = float(maxi(frames.size(), 3)) / Balance.VFX_ART_FRAME_RATE
+	var scale: float = size / maxf(float(frames[0].get_width()), 1.0)
+	canvas.art(frames, at, rotation_radians, Vector2.ONE * scale, tint, life, 1.0, 0.65)
 
 
 ## Optional character-hit layer. Procedural droplets leave their persistent

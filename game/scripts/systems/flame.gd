@@ -57,6 +57,8 @@ var _glow: Sprite2D
 var _embers: CPUParticles2D
 var _smoke: CPUParticles2D
 var _light: PointLight2D
+## Whether the camera could see this flame on its last tick.
+var _seen: bool = true
 
 ## A small soft dot, shared by every particle in the game. Cached because a
 ## burning city plus twenty-four torches is otherwise thirty gradient textures
@@ -122,7 +124,11 @@ func _process(delta: float) -> void:
 	# This is the whole of `flame.gd`'s frame cost: three polygons rebuilt per
 	# flame per frame, times every torch on a 75x75 grid, of which a handful
 	# are ever on screen at gameplay zoom.
-	if not _on_screen():
+	var seen: bool = _on_screen()
+	if seen != _seen:
+		_seen = seen
+		_show_particles(seen)
+	if not seen:
 		return
 	# **Redrawn at `FLAME_REDRAW_HZ`, not every frame.** The clock above runs
 	# at frame rate, so the dance is as smooth as the cadence it is sampled at
@@ -149,13 +155,19 @@ func _process(delta: float) -> void:
 ## directly, so this costs one transform and four comparisons - against three
 ## polygons rebuilt from a sine outline, which is what it replaces.
 func _on_screen() -> bool:
-	var view: Viewport = get_viewport()
-	if view == null:
-		return true
-	var at: Vector2 = get_global_transform_with_canvas().origin
-	var size: Vector2 = view.get_visible_rect().size
-	var margin: float = Balance.FLAME_OFFSCREEN_MARGIN
-	return at.x > -margin and at.y > -margin 		and at.x < size.x + margin and at.y < size.y + margin
+	return ScreenCull.sees(self, Balance.FLAME_OFFSCREEN_MARGIN)
+
+
+## **An unseen flame's embers and smoke rest** (2026-09-24). `CPUParticles2D`
+## skips its whole update while it is not visible in the tree, so hiding the
+## two emitters is what stops a hundred torches on the outskirts being
+## simulated for a camera that sees six. Hidden rather than stopped: nothing
+## restarts, and a torch panned onto is mid-life rather than starting empty.
+func _show_particles(seen: bool) -> void:
+	if _embers != null and is_instance_valid(_embers):
+		_embers.visible = seen
+	if _smoke != null and is_instance_valid(_smoke):
+		_smoke.visible = seen
 
 
 func _draw() -> void:

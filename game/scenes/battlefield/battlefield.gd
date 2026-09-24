@@ -140,6 +140,8 @@ var _suspended: bool = false
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
 var _pressure: Array[float] = []
 var _pressure_timer: float = 0.0
+## The cast-shadow budget's clock (`LightKit.budget_shadows`).
+var _shadow_budget_left: float = 0.0
 
 ## Field rations: how long until the next one, and how many this fight has
 ## already cost. See `Balance.RATION_COST`.
@@ -349,6 +351,11 @@ func _process(delta: float) -> void:
 	if _pressure_timer <= 0.0:
 		_pressure_timer = PRESSURE_INTERVAL
 		_update_pressure()
+	# The torches nearest the Warden cast; the rest rest (2026-09-24).
+	_shadow_budget_left -= delta
+	if _shadow_budget_left <= 0.0:
+		_shadow_budget_left = Balance.SHADOW_BUDGET_INTERVAL
+		LightKit.budget_shadows(get_tree(), _watched_point())
 
 
 # --- Suspension -------------------------------------------------------------

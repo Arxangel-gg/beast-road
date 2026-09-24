@@ -325,101 +325,113 @@ func _stage() -> Node2D:
 	for child: Node in _world.get_children():
 		_world.remove_child(child)
 		child.free()
+	# **Bound rather than assigned** (2026-09-24): a forged sheet is a record on
+	# the additive ink canvas now, and the canvas is stood up by `bind_world`.
+	# Assigning `Vfx.world` alone would leave no canvas and every play would
+	# draw nothing - which is a fault, and one this gate has to be able to
+	# tell apart from the density being off.
+	Vfx.bind_world(_world)
 	return _world
 
 
-func _sprites_under(root: Node) -> Array[Sprite2D]:
-	var out: Array[Sprite2D] = []
-	for child: Node in root.get_children():
-		if child is Sprite2D:
-			out.append(child as Sprite2D)
-	return out
+## The forged sheets alive on the additive ink canvas, oldest first.
+func _sheets() -> Array[Dictionary]:
+	var ink: VfxInk = Vfx.ink()
+	if ink == null:
+		return []
+	return ink.art_records()
 
 
 func _test_the_player_plays_it_once_and_gives_way() -> void:
-	var world: Node2D = _stage()
 	var before: Node2D = Vfx.world
-	Vfx.world = world
+	_stage()
 	Vfx.forge_play("burst", Vector2(40.0, 40.0), 120.0, Color(1.0, 0.5, 0.2))
-	var sprites: Array[Sprite2D] = _sprites_under(world)
-	_check(sprites.size() == 1, "one call should stand one sprite up, stood %d" % sprites.size())
-	if sprites.size() == 1:
-		var burst: Sprite2D = sprites[0]
-		var texture: Texture2D = burst.texture
+	var sheets: Array[Dictionary] = _sheets()
+	_check(sheets.size() == 1, "one call should lay one sheet, laid %d" % sheets.size())
+	if sheets.size() == 1:
+		var burst: Dictionary = sheets[0]
+		var frames: Array = burst["frames"]
+		var texture: Texture2D = frames[0] if not frames.is_empty() else null
 		var cells: int = 0
 		if texture != null and texture.get_height() > 0:
 			cells = texture.get_width() / texture.get_height()
-		_check(burst.hframes == cells and cells > 0,
-			"the sprite is cut into %d cells and the sheet holds %d" % [burst.hframes, cells])
-		var material := burst.material as CanvasItemMaterial
+		_check(int(burst["sheet"]) == cells and cells > 0,
+			"the record is cut into %d cells and the sheet holds %d" % [int(burst["sheet"]), cells])
+		var material := Vfx.ink().material as CanvasItemMaterial
 		_check(material != null and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD,
 			"a forged sheet is light and must be drawn additively")
-		_check(burst.modulate.r > burst.modulate.b, "the tint was not applied")
-		_check(burst.global_position.is_equal_approx(Vector2(40.0, 40.0)),
+		var tint: Color = burst["tint"]
+		_check(tint.r > tint.b, "the tint was not applied")
+		_check((burst["at"] as Vector2).is_equal_approx(Vector2(40.0, 40.0)),
 			"it plays where it was asked")
 		var life: float = float(maxi(cells, 1)) / Balance.VFX_FORGE_FRAME_RATE
 		await get_tree().create_timer(life * 0.5).timeout
-		_check(is_instance_valid(burst) and burst.frame > 0 and burst.frame < cells - 1,
-			"half way through its life the sheet should be mid-play (frame %d)"
-				% (burst.frame if is_instance_valid(burst) else -1))
+		var mid: Array[Dictionary] = _sheets()
+		var age: float = float(mid[0]["age"]) if mid.size() == 1 else -1.0
+		_check(mid.size() == 1 and age > 0.0 and age < life,
+			"half way through its life the sheet should be mid-play (age %.3f of %.3f)"
+				% [age, life])
 		await get_tree().create_timer(life * 0.7).timeout
 		await get_tree().process_frame
-		_check(not is_instance_valid(burst), "the sprite must free itself when the sheet has played")
+		_check(_sheets().is_empty(), "the record must drop itself when the sheet has played")
 
 	# **Every element actually draws**, which is the answer for the five the
 	# grep above skips. They are reached by a lookup rather than written at
 	# a call site, so the only honest way to ask whether they work is to ask
-	# for one and see a sprite - which is a stronger check than a grep and
+	# for one and see a record - which is a stronger check than a grep and
 	# is why they are excused from it.
 	for element: int in TowerData.Element.size():
-		world = _stage()
+		_stage()
 		var named: String = TowerData.element_name(element).to_lower()
 		Vfx.forge_hit(named, Vector2(12.0, 0.0), 100.0, Color(0.9, 0.9, 1.0))
-		var drew: Array[Sprite2D] = _sprites_under(world)
+		var drew: Array[Dictionary] = _sheets()
 		_check(drew.size() == 1,
-			"asking for the %s hit stood %d sprites up" % [named, drew.size()])
+			"asking for the %s hit laid %d sheets" % [named, drew.size()])
 		if drew.size() == 1:
-			_check(drew[0].texture != null, "the %s hit stood a sprite with no sheet" % named)
+			var art: Array = drew[0]["frames"]
+			_check(not art.is_empty() and art[0] != null,
+				"the %s hit laid a record with no sheet" % named)
 	# And a sword's hit, which is the one that is not an element at all.
-	world = _stage()
+	_stage()
 	Vfx.forge_hit("physical", Vector2.ZERO, 100.0)
-	_check(_sprites_under(world).size() == 1, "steel has no forged hit")
+	_check(_sheets().size() == 1, "steel has no forged hit")
 
 	# An effect nobody authored, and an element nobody mapped: both draw
 	# nothing rather than erroring, which is what lets a half-finished art
 	# pass ship rather than crash.
-	world = _stage()
+	_stage()
 	Vfx.forge_play("no_such_effect_at_all", Vector2.ZERO, 100.0)
-	_check(_sprites_under(world).is_empty(), "an unknown effect drew something")
+	_check(_sheets().is_empty(), "an unknown effect drew something")
 	Vfx.forge_hit("aether", Vector2.ZERO, 100.0)
-	_check(_sprites_under(world).is_empty(), "an unknown element drew something")
+	_check(_sheets().is_empty(), "an unknown element drew something")
 
 	# **And with the density off it plays nothing at all** - the decoration
 	# bound. Set through the same door the settings screen uses.
 	Graphics._chosen[Graphics.KEY_PARTICLES] = 0.0
 	Vfx.forge_play("burst", Vector2.ZERO, 120.0)
 	Vfx.forge_hit("fire", Vector2.ZERO, 120.0)
-	_check(_sprites_under(world).is_empty(), "with particles at zero a forged sheet still drew")
+	_check(_sheets().is_empty(), "with particles at zero a forged sheet still drew")
 	Graphics._chosen.erase(Graphics.KEY_PARTICLES)
-	Vfx.world = before
+	Vfx.bind_world(before)
 	await get_tree().process_frame
 
 
-## **What may be turned, and what may not.** Measured on the sprites the
-## player actually stands up rather than read back off the table, because a
-## table that says UPRIGHT while the code spins everything would pass a read.
+## **What may be turned, and what may not.** Measured on the records the
+## player actually lays rather than read back off the table, because a table
+## that says UPRIGHT while the code spins everything would pass a read. A
+## flip is a negative axis on the record's scale, which is how the canvas
+## mirrors a sheet.
 func _test_the_turn_policy_is_obeyed() -> void:
-	var world: Node2D = _stage()
 	var before: Node2D = Vfx.world
-	Vfx.world = world
+	_stage()
 
 	# Free: a spread of angles over enough calls that one repeated angle
 	# cannot pass.
 	for _i: int in 24:
 		Vfx.forge_play("burst", Vector2.ZERO, 100.0)
 	var angles: Array[float] = []
-	for sprite: Sprite2D in _sprites_under(world):
-		angles.append(sprite.rotation)
+	for sheet: Dictionary in _sheets():
+		angles.append(float(sheet["rot"]))
 	var spread: float = 0.0
 	if not angles.is_empty():
 		for angle: float in angles:
@@ -428,19 +440,20 @@ func _test_the_turn_policy_is_obeyed() -> void:
 		"a freely-turned sheet came out at the same angle 24 times (spread %.2f rad)" % spread)
 
 	# Upright: never turned, never flipped top to bottom, mirrored sometimes.
-	world = _stage()
+	_stage()
 	for _i: int in 16:
 		Vfx.forge_play("level_up", Vector2.ZERO, 100.0)
-	var upright: Array[Sprite2D] = _sprites_under(world)
+	var upright: Array[Dictionary] = _sheets()
 	var turned: int = 0
 	var upside_down: int = 0
 	var mirrored: int = 0
-	for sprite: Sprite2D in upright:
-		if absf(sprite.rotation) > 0.001:
+	for sheet: Dictionary in upright:
+		var scale: Vector2 = sheet["scale"]
+		if absf(float(sheet["rot"])) > 0.001:
 			turned += 1
-		if sprite.flip_v:
+		if scale.y < 0.0:
 			upside_down += 1
-		if sprite.flip_h:
+		if scale.x < 0.0:
 			mirrored += 1
 	_check(turned == 0, "%d of %d upright sheets were turned; the ground is down"
 		% [turned, upright.size()])
@@ -452,17 +465,17 @@ func _test_the_turn_policy_is_obeyed() -> void:
 
 	# Aimed: laid along the angle it was given, within the wander, and never
 	# mirrored along that same axis.
-	world = _stage()
+	_stage()
 	var aim: float = 0.9
 	for _i: int in 16:
 		Vfx.forge_play("beam_end", Vector2.ZERO, 100.0, Color.WHITE, aim)
-	var aimed: Array[Sprite2D] = _sprites_under(world)
+	var aimed: Array[Dictionary] = _sheets()
 	var off: int = 0
 	var flipped_along: int = 0
-	for sprite: Sprite2D in aimed:
-		if absf(sprite.rotation - aim) > Vfx.FORGE_AIM_WANDER + 0.001:
+	for sheet: Dictionary in aimed:
+		if absf(float(sheet["rot"]) - aim) > Vfx.FORGE_AIM_WANDER + 0.001:
 			off += 1
-		if sprite.flip_h:
+		if (sheet["scale"] as Vector2).x < 0.0:
 			flipped_along += 1
 	_check(off == 0, "%d of %d aimed sheets were laid off their aim by more than the wander"
 		% [off, aimed.size()])
@@ -473,16 +486,16 @@ func _test_the_turn_policy_is_obeyed() -> void:
 	# And the size wanders without ever being nothing.
 	var least: float = 9999.0
 	var most: float = 0.0
-	for sprite: Sprite2D in aimed:
-		least = minf(least, sprite.scale.x)
-		most = maxf(most, sprite.scale.x)
+	for sheet: Dictionary in aimed:
+		var size: float = absf((sheet["scale"] as Vector2).x)
+		least = minf(least, size)
+		most = maxf(most, size)
 	_check(least > 0.0, "a forged sheet was drawn at no size at all")
 	_check(most > least, "the size never wandered across 16 plays")
 	_check(most / maxf(least, 0.0001) < 1.0 + 3.0 * Vfx.FORGE_SIZE_JITTER,
 		"the size wandered further than the jitter allows (%.2f to %.2f)" % [least, most])
 
-	Vfx.world = before
-	_stage()
+	Vfx.bind_world(before)
 	await get_tree().process_frame
 
 

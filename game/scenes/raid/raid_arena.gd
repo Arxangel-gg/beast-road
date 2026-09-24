@@ -46,6 +46,8 @@ func activate() -> void:
 
 var _running: bool = false
 var _elapsed: float = 0.0
+## The cast-shadow budget's clock (`LightKit.budget_shadows`).
+var _shadow_budget_left: float = 0.0
 var _spawn_timer: float = 0.0
 
 var _window_timer: float = 0.0
@@ -206,6 +208,11 @@ func _process(delta: float) -> void:
 	if not _running:
 		return
 	_elapsed += delta
+	# The sconces nearest the Warden cast; the rest rest (2026-09-24).
+	_shadow_budget_left -= delta
+	if _shadow_budget_left <= 0.0:
+		_shadow_budget_left = Balance.SHADOW_BUDGET_INTERVAL
+		LightKit.budget_shadows(get_tree(), _watched_point())
 
 	if not hero.is_alive() and not _finished:
 		# Dying in the camp costs everything, including the meter.

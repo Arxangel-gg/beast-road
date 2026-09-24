@@ -178,6 +178,7 @@ jobs:
           run_godot_clean --headless --path game --script res://tools/map_mode_check.gd
           run_godot_clean --headless --path game res://tools/polish_check.tscn
           run_godot_clean --headless --path game res://tools/governor_check.tscn
+          run_godot_clean --headless --path game res://tools/frame_budget_check.tscn
           # Every layout played on the real field: bodies down every lane reach
           # the wall. Six minutes, so here and not on every push.
           run_godot_clean --headless --fixed-fps 60 --path game res://tools/map_mode_play_check.tscn

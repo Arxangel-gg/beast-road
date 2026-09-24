@@ -20,10 +20,15 @@ var kind: int = TowerData.Ambient.ELEMENT
 var tint: Color = Color(0.0, 0.0, 0.0, 0.0)
 
 var _built: int = TowerData.Ambient.ELEMENT
+## The screen cull's clock and its last answer (2026-09-24).
+var _cull_left: float = 0.0
+var _seen: bool = true
 
 
 func _ready() -> void:
 	name = "Aura"
+	# Staggered, so forty towers do not all ask on the same frame.
+	_cull_left = randf() * Balance.PARTICLE_CULL_INTERVAL
 	z_index = 1
 	z_as_relative = true
 	local_coords = false
@@ -296,3 +301,17 @@ func _gusts() -> void:
 	ramp.set_color(1, Color(0.75, 0.8, 1.0, 0.0))
 	ramp.add_point(0.4, Color(0.95, 0.97, 1.0, 0.85))
 	color_ramp = ramp
+
+
+## **An air the camera cannot see rests** (2026-09-24): forty towers' emitters
+## were simulated every frame for a camera that sees eight. Hidden rather
+## than stopped, so a tower panned onto is mid-air rather than starting empty.
+func _process(delta: float) -> void:
+	_cull_left -= delta
+	if _cull_left > 0.0:
+		return
+	_cull_left = Balance.PARTICLE_CULL_INTERVAL
+	var seen: bool = ScreenCull.sees(self, Balance.PARTICLE_CULL_MARGIN)
+	if seen != _seen:
+		_seen = seen
+		visible = seen

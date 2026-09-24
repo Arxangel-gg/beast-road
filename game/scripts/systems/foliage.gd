@@ -581,9 +581,24 @@ func _process(delta: float) -> void:
 	if step == _idle_frame:
 		return
 	_idle_frame = step
+	_step_idle(step, ScreenCull.world_window(get_viewport(), Balance.FOLIAGE_IDLE_VIEW_MARGIN))
+
+
+## **Turns every breathing plant inside `window` to its next frame** and
+## leaves the rest where they are (2026-09-24). Every painted plant breathes
+## on three frames, so a step used to write two thousand textures at once -
+## each a rebuild of that sprite's draw commands - four and a half times a
+## second, which is a 4-6 ms spike on a clock nobody could see. A plant
+## sliding into view shows a stale frame for at most one step. Its place is
+## read once and kept, because a plant does not move.
+func _step_idle(step: int, window: Rect2) -> void:
 	for entry: Dictionary in _animated:
 		var sprite: Sprite2D = entry["sprite"]
 		if not is_instance_valid(sprite):
+			continue
+		if not entry.has("at"):
+			entry["at"] = sprite.global_position
+		if not window.has_point(entry["at"] as Vector2):
 			continue
 		var frames: Array = entry["frames"]
 		sprite.texture = frames[(step + int(entry["phase"])) % frames.size()]

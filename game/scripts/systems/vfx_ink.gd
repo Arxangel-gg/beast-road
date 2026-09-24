@@ -5,8 +5,10 @@ extends Node2D
 ##
 ## A spark was a `Line2D` with a sprite on its tip and two tweens; a ring a
 ## `Line2D`, a bloom sprite and two tweens; a flash a polygon and a tween; a
-## shot's mote a sprite and a tween eighteen times a second. On Act X's waves
-## that was about a thousand nodes allocated and freed every second, and the
+## shot's mote a sprite and a tween eighteen times a second; a damage number a
+## `Label` and five tweens; a muzzle a polygon, a sprite and three tweens; an
+## impact two sprites, a material and two tweens. On Act X's waves that was
+## well over a thousand nodes allocated and freed every second, and the
 ## `VfxLayer` sat against `VFX_MAX_LIVE` evicting its oldest child on every
 ## frame. Measured: 7,151 canvas items and 2,674 draw calls on a field of
 ## forty-two bodies, at 90-99 ms a frame.
@@ -14,14 +16,18 @@ extends Node2D
 ## Every one of those is a small bright shape that moves for a fraction of a
 ## second, and that is one `_draw`: the items are records in arrays, advanced
 ## once a frame, and each kind is handed to the renderer as a single triangle
-## array. No node is born or freed for any of them, and the count is capped
-## per kind by dropping the oldest, which is what the layer did anyway.
+## array - or, for the painted art and the numbers, one draw command each with
+## no node behind it. No node is born or freed for any of them, and the count
+## is capped per kind by dropping the oldest, which is what the layer did.
 ##
-## **And they are drawn as light rather than as lines.** Every shape here has a
-## solid middle and a rim at zero alpha - the rule `BloodInk`, the menu fire
-## and the swim sheen all ended at: one colour for the whole shape is what a
-## hard edge *is* - and the whole canvas blends additively, so a spark over a
-## torch pool brightens it rather than painting a flat stroke across it.
+## **Two of these stand on a field.** The additive one carries what is light -
+## sparks, rings, flashes, motes, rays, the forged sheets - so a spark over a
+## torch pool brightens it rather than painting a flat stroke across it; the
+## flat one carries what is paint - the impact and muzzle art, the numbers -
+## because additive text over a bright ground disappears. Every drawn shape
+## has a solid middle and a rim at zero alpha - the rule `BloodInk`, the menu
+## fire and the swim sheen all ended at: one colour for the whole shape is what
+## a hard edge *is*.
 ##
 ## A look, never a fact. Nothing reads this canvas; `Graphics.particle_scale`
 ## and `JuiceDirector` thin what reaches it at the doors in `Vfx`, and a record
@@ -32,6 +38,9 @@ extends Node2D
 ## sparks must burn out under a pause exactly as the strike's own light does
 ## (`lightning_lifetime_check`), and a tower's must not.
 
+## Whether this canvas adds light or lays paint.
+var additive: bool = true
+
 ## The records, one array a kind. A record is a Dictionary rather than a node:
 ## an allocation still, but one a few hundred bytes wide with no tree, no
 ## transform notification and no free at the end of it.
@@ -40,20 +49,43 @@ var _rings: Array[Dictionary] = []
 var _flashes: Array[Dictionary] = []
 var _motes: Array[Dictionary] = []
 var _rays: Array[Dictionary] = []
+## Painted art played once: a sheet of cells, or a list of frames, or a single
+## texture that fades.
+var _art: Array[Dictionary] = []
+## Damage numbers.
+var _numbers: Array[Dictionary] = []
 
 ## Reused every frame rather than reallocated.
 var _points: PackedVector2Array = PackedVector2Array()
 var _colours: PackedColorArray = PackedColorArray()
 var _indices: PackedInt32Array = PackedInt32Array()
 
+## The numbers' face: the project theme's, as the labels wore.
+var _font: Font = null
+var _font_size: int = 18
+
+
+func _init(adds_light: bool = true) -> void:
+	additive = adds_light
+
 
 func _ready() -> void:
-	name = "VfxInk"
-	z_index = Balance.VFX_Z
+	name = "VfxInk" if additive else "VfxInkFlat"
+	z_index = Balance.VFX_Z if additive else Balance.VFX_Z + 1
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	var material := CanvasItemMaterial.new()
-	material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	self.material = material
+	texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	add_to_group(Graphics.FILTER_GROUP)
+	if additive:
+		var glow := CanvasItemMaterial.new()
+		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		material = glow
+	var theme: Theme = ThemeDB.get_project_theme()
+	if theme != null and theme.default_font != null:
+		_font = theme.default_font
+		_font_size = theme.default_font_size
+	else:
+		_font = ThemeDB.fallback_font
+		_font_size = ThemeDB.fallback_font_size
 
 
 func clear() -> void:
@@ -62,12 +94,15 @@ func clear() -> void:
 	_flashes.clear()
 	_motes.clear()
 	_rays.clear()
+	_art.clear()
+	_numbers.clear()
 	queue_redraw()
 
 
 ## How many records live, for the gates.
 func live() -> int:
-	return _sparks.size() + _rings.size() + _flashes.size() + _motes.size() + _rays.size()
+	return _sparks.size() + _rings.size() + _flashes.size() + _motes.size() + _rays.size() \
+		+ _art.size() + _numbers.size()
 
 
 func live_sparks() -> int:
@@ -76,6 +111,24 @@ func live_sparks() -> int:
 
 func live_rings() -> int:
 	return _rings.size()
+
+
+func live_art() -> int:
+	return _art.size()
+
+
+func live_numbers() -> int:
+	return _numbers.size()
+
+
+## The painted records, oldest first, for a gate that wants to read a sheet's
+## turn, flip, tint and age back off what was actually laid.
+func art_records() -> Array[Dictionary]:
+	return _art.duplicate()
+
+
+func number_records() -> Array[Dictionary]:
+	return _numbers.duplicate()
 
 
 # --- Doors ----------------------------------------------------------------------
@@ -163,6 +216,74 @@ func ray(at: Vector2, direction: Vector2, colour: Color, inner: float, outer: fl
 	}, Balance.VFX_INK_RAYS_MAX)
 
 
+## Painted art played once at `at`: `frames` in order over `life` (one frame
+## holds for the whole life), turned by `rotation`, at `scale` (a negative
+## axis mirrors), in `tint`. `grow` is the scale the picture starts from as a
+## share of `scale`, easing out to it; `fade_from` is the share of the life
+## after which it fades to nothing (1.0 never fades - a sheet that ends on an
+## empty cell needs none). Centred on `at`, as a sprite would be.
+func art(frames: Array[Texture2D], at: Vector2, rotation: float, scale: Vector2,
+		tint: Color, life: float, grow: float = 1.0, fade_from: float = 0.0,
+		always: bool = false) -> void:
+	if frames.is_empty():
+		return
+	_push(_art, {
+		"frames": frames,
+		"sheet": 0,
+		"at": at,
+		"rot": rotation,
+		"scale": scale,
+		"tint": tint,
+		"life": maxf(life, 0.02),
+		"grow": grow,
+		"fade_from": fade_from,
+		"age": 0.0,
+		"always": always,
+	}, Balance.VFX_INK_ART_MAX)
+
+
+## A forged sheet: one texture holding `cells` square cells in a row, played
+## end to end over `life`.
+func sheet(texture: Texture2D, cells: int, at: Vector2, rotation: float, scale: Vector2,
+		tint: Color, life: float, always: bool = false) -> void:
+	if texture == null or cells < 1:
+		return
+	var frames: Array[Texture2D] = [texture]
+	_push(_art, {
+		"frames": frames,
+		"sheet": cells,
+		"at": at,
+		"rot": rotation,
+		"scale": scale,
+		"tint": tint,
+		"life": maxf(life, 0.02),
+		"grow": 1.0,
+		"fade_from": 1.0,
+		"age": 0.0,
+		"always": always,
+	}, Balance.VFX_INK_ART_MAX)
+
+
+## A damage number: pops, rises and hangs, then falls back a little and fades.
+## `big` is a critical or a finisher - larger, tilted, longer.
+func number(at: Vector2, text: String, colour: Color, big: bool) -> void:
+	var rise: float = Balance.VFX_NUMBER_RISE \
+		* (1.0 + (Balance.VFX_NUMBER_BIG_RISE_BONUS if big else 0.0))
+	_push(_numbers, {
+		"at": at + Vector2(randf_range(-14.0, 14.0), -20.0),
+		"text": text,
+		"colour": colour,
+		"big": big,
+		"tilt": deg_to_rad(randf_range(-Balance.VFX_NUMBER_TILT_DEGREES,
+			Balance.VFX_NUMBER_TILT_DEGREES)) if big else 0.0,
+		"side": randf_range(-26.0, 26.0),
+		"rise": rise,
+		"life": Balance.VFX_NUMBER_LIFE * (1.25 if big else 1.0),
+		"age": 0.0,
+		"always": false,
+	}, Balance.VFX_INK_NUMBERS_MAX)
+
+
 func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:
 	into.append(record)
 	# The oldest give way, which is what the node layer did with its cap.
@@ -180,6 +301,8 @@ func _process(delta: float) -> void:
 	moved = _age(_flashes, delta, paused) or moved
 	moved = _age(_motes, delta, paused) or moved
 	moved = _age(_rays, delta, paused) or moved
+	moved = _age(_art, delta, paused) or moved
+	moved = _age(_numbers, delta, paused) or moved
 	if moved:
 		queue_redraw()
 
@@ -211,6 +334,8 @@ func _draw() -> void:
 	_draw_rings(inverse)
 	_draw_flashes(inverse)
 	_draw_motes(inverse)
+	_draw_art(inverse)
+	_draw_numbers(inverse)
 
 
 func _begin() -> void:
@@ -383,3 +508,78 @@ func _draw_motes(inverse: Transform2D) -> void:
 		_disc(inverse * at, float(record["size"]) * lerpf(1.0, 0.35, t), colour,
 			colour.a * (1.0 - t), 8)
 	_flush()
+
+
+## Painted art: a transform per record and one draw command, centred on its
+## point as a sprite is. A sheet reads its cell off its age; a frame list
+## plays end to end; a single texture holds and fades.
+func _draw_art(inverse: Transform2D) -> void:
+	if _art.is_empty():
+		return
+	for record: Dictionary in _art:
+		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
+		var frames: Array[Texture2D] = record["frames"]
+		var cells: int = int(record["sheet"])
+		var tint: Color = record["tint"] as Color
+		var fade_from: float = float(record["fade_from"])
+		if fade_from < 1.0 and t > fade_from:
+			tint.a *= 1.0 - (t - fade_from) / maxf(1.0 - fade_from, 0.001)
+		var grow: float = float(record["grow"])
+		var scale: Vector2 = record["scale"] as Vector2
+		if grow < 1.0:
+			scale *= lerpf(grow, 1.0, 1.0 - pow(1.0 - minf(t / 0.35, 1.0), 2.0))
+		draw_set_transform(inverse * (record["at"] as Vector2), float(record["rot"]), scale)
+		if cells > 1:
+			var texture: Texture2D = frames[0]
+			var tall: float = float(texture.get_height())
+			var cell: int = clampi(int(t * float(cells)), 0, cells - 1)
+			draw_texture_rect_region(texture, Rect2(-tall * 0.5, -tall * 0.5, tall, tall),
+				Rect2(float(cell) * tall, 0.0, tall, tall), tint)
+		else:
+			var frame: Texture2D = frames[clampi(int(t * float(frames.size())), 0, frames.size() - 1)]
+			draw_texture(frame, -frame.get_size() * 0.5, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Damage numbers: a pop (scale from a third to `VFX_NUMBER_POP` and back to
+## one), a rise that eases out then sinks back a little, a fade over the
+## second half - the motion the labels had, on one canvas.
+func _draw_numbers(inverse: Transform2D) -> void:
+	if _numbers.is_empty() or _font == null:
+		return
+	for record: Dictionary in _numbers:
+		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
+		var big: bool = bool(record["big"])
+		var pop: float = Balance.VFX_NUMBER_POP * (1.15 if big else 1.0)
+		var scale: float
+		if t < 0.16:
+			var u: float = t / 0.16
+			scale = lerpf(0.35, pop, 1.0 - pow(1.0 - u, 3.0))
+		elif t < 0.40:
+			var u: float = (t - 0.16) / 0.24
+			scale = lerpf(pop, 1.0, u * u * (3.0 - 2.0 * u))
+		else:
+			scale = 1.0
+		var rise: float = float(record["rise"])
+		var side: float = float(record["side"])
+		var offset: Vector2
+		if t < 0.55:
+			var u: float = t / 0.55
+			offset = Vector2(side * 0.7, -rise) * (1.0 - pow(1.0 - u, 3.0))
+		else:
+			var u: float = (t - 0.55) / 0.45
+			offset = Vector2(side * 0.7, -rise).lerp(Vector2(side, -rise * 0.82),
+				1.0 - cos(u * PI * 0.5))
+		var colour: Color = record["colour"] as Color
+		if t > 0.5:
+			colour.a *= 1.0 - (t - 0.5) / 0.5
+		var size: int = Balance.VFX_NUMBER_SIZE_BIG if big else Balance.VFX_NUMBER_SIZE
+		var text: String = String(record["text"])
+		var width: float = _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var at: Vector2 = inverse * ((record["at"] as Vector2) + offset)
+		draw_set_transform(at, float(record["tilt"]), Vector2.ONE * scale)
+		var pen := Vector2(-width * 0.5, float(size) * 0.35)
+		draw_string_outline(_font, pen, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size,
+			8 if big else 6, Color(0.02, 0.04, 0.05, 0.9 * colour.a))
+		draw_string(_font, pen, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

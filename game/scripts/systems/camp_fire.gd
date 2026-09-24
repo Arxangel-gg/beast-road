@@ -21,6 +21,9 @@ var _showpiece: bool = false
 var _glow_scale: float = 1.0
 var _drawn_at: float = -1.0
 var _flicker: float = 1.0
+## The screen cull's clock and its last answer (2026-09-24).
+var _cull_left: float = 0.0
+var _seen: bool = true
 
 
 func _ready() -> void:
@@ -43,6 +46,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	# An unseen fire's embers rest (`ScreenCull`); the flicker still runs so
+	# what the fire lights agrees with it the frame it comes into view.
+	_cull_left -= delta
+	if _cull_left <= 0.0:
+		_cull_left = Balance.PARTICLE_CULL_INTERVAL
+		var seen: bool = ScreenCull.sees(self, Balance.PARTICLE_CULL_MARGIN)
+		if seen != _seen and _embers != null and is_instance_valid(_embers):
+			_embers.visible = seen
+		_seen = seen
 	var flicker: float = 0.86 + 0.14 * sin(_clock * 9.0 + _seed) * sin(_clock * 3.7 + _seed * 0.5)
 	_flicker = flicker
 	if _showpiece:

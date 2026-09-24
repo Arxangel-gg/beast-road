@@ -192,7 +192,7 @@ const PRESETS: Dictionary = {
 ## A cap is not only for weak machines. An uncapped 2D game on a strong one will
 ## happily render several hundred frames a second into a laptop's thermal limit
 ## and then stutter, which reads to the player as the game being badly optimised.
-const FPS_CHOICES: Array[int] = [0, 15, 30, 60, 120, 144]
+const FPS_CHOICES: Array[int] = [0, 15, 30, 60, 120, 144, 165, 240]
 
 ## The ceiling for the density multipliers.
 ##
@@ -520,6 +520,12 @@ static func set_display(key: String, value: Variant) -> void:
 ## no state.
 static func apply_runtime() -> void:
 	Engine.max_fps = fps_cap()
+	# **The physics tick follows the display** (2026-09-24). The Warden moves
+	# in `_physics_process`; at sixty ticks a 144 Hz screen watched a hero
+	# stepping at sixty while the road moved at 144. Headless there is no
+	# display and the rate is the floor, so no gate measures a different game.
+	Engine.physics_ticks_per_second = physics_rate()
+	Engine.max_physics_steps_per_frame = Balance.PHYSICS_STEPS_PER_FRAME_MAX
 	apply_to_scene()
 
 
@@ -612,6 +618,35 @@ static func set_fps_cap(value: int) -> void:
 
 static func fps_label(value: int) -> String:
 	return "Uncapped" if value <= 0 else "%d" % value
+
+
+## How many lights may cast shadows at once (`LightKit.budget_shadows`):
+## the nearest few to what the camera watches. Zero wherever cast shadows
+## are off; a custom preset that casts gets High's.
+static func shadow_light_budget() -> int:
+	if not cast_shadows():
+		return 0
+	if preset() == PRESET_ULTRA:
+		return Balance.SHADOW_LIGHT_BUDGET_ULTRA
+	return Balance.SHADOW_LIGHT_BUDGET_HIGH
+
+
+## The physics tick rate for this display and this frame cap.
+static func physics_rate() -> int:
+	var refresh: float = -1.0
+	if not DisplayServer.get_name() == "headless":
+		refresh = DisplayServer.screen_get_refresh_rate()
+	return physics_rate_for(refresh, fps_cap())
+
+
+## Pure over the two numbers, for the gate: the display's refresh (negative
+## when unknown) capped by the player's frame cap (zero when uncapped),
+## inside `PHYSICS_RATE_MIN` and `PHYSICS_RATE_MAX`.
+static func physics_rate_for(refresh: float, cap: int) -> int:
+	var wanted: float = refresh if refresh > 0.0 else float(Balance.PHYSICS_RATE_MIN)
+	if cap > 0:
+		wanted = minf(wanted, float(cap)) if refresh > 0.0 else float(cap)
+	return clampi(roundi(wanted), Balance.PHYSICS_RATE_MIN, Balance.PHYSICS_RATE_MAX)
 
 
 ## Whether the frame-wide colour grade runs. Off headless - a screen read on

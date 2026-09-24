@@ -125,3 +125,46 @@ static func add_light(parent: Node2D, colour: Color, radius: float,
 	driver.setup(light, energy, flicker)
 	parent.add_child(driver)
 	return light
+
+
+## **Cast shadows are budgeted by distance from what the camera watches**
+## (2026-09-24). Every light in `SHADOW_GROUP` is ranked by its distance to
+## `watch`; the nearest `Graphics.shadow_light_budget()` of them cast and the
+## rest do not. Turning cast shadows off took 34 ms off a 97 ms Act X frame:
+## a shadowed light the renderer can see draws every occluder four times
+## and samples its map under every lit pixel, and a hundred torches carried
+## one each. What a player sees is the torches beside the Warden casting,
+## which is where they were looking anyway.
+##
+## A light that is not visible in the tree - an unlit torch - takes no slot,
+## and a light `Graphics._walk` would refuse (cast shadows off, or an
+## Ultra-only light below Ultra) is refused here too, so the two writers of
+## `shadow_enabled` cannot disagree for longer than one interval. Returns
+## how many cast, for the gate. A look, never a fact.
+static func budget_shadows(tree: SceneTree, watch: Vector2) -> int:
+	if tree == null:
+		return 0
+	var keep: int = Graphics.shadow_light_budget()
+	var allow: bool = Graphics.cast_shadows()
+	var ultra: bool = Graphics.preset() == Graphics.PRESET_ULTRA
+	var ranked: Array = []
+	for node: Node in tree.get_nodes_in_group(SHADOW_GROUP):
+		var light := node as PointLight2D
+		if light == null or not is_instance_valid(light):
+			continue
+		var tier_allows: bool = not light.is_in_group(ULTRA_SHADOW_GROUP) or ultra
+		if not allow or not tier_allows or keep <= 0 or not light.is_visible_in_tree():
+			if light.shadow_enabled:
+				light.shadow_enabled = false
+			continue
+		ranked.append([light.global_position.distance_squared_to(watch), light])
+	ranked.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	var kept: int = 0
+	for index: int in ranked.size():
+		var light: PointLight2D = ranked[index][1]
+		var on: bool = index < keep
+		if light.shadow_enabled != on:
+			light.shadow_enabled = on
+		if on:
+			kept += 1
+	return kept

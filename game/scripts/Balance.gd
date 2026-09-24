@@ -4197,6 +4197,37 @@ const ENEMY_RETARGET_SECONDS: float = 0.1
 ## None on Low. A look, never a fact.
 const PROJECTILE_LIGHT_MAX: int = 14
 
+## **Cast shadows are the nearest few, never every torch on the field**
+## (2026-09-24). Turning them off took 34 ms off a 97 ms Act X frame on an
+## RTX 3070 Ti: every shadowed light the renderer can see draws every
+## occluder four times and then samples its map under every lit pixel, and
+## a hundred torches carried one each. `LightKit.budget_shadows` keeps the
+## nearest of them to what the camera watches, re-ranked on this clock -
+## slow enough to cost nothing and fast enough that a torch the camera
+## pans onto is casting before the pan has settled. Ultra keeps more than
+## High, which `live_settings_check` holds; Low and Medium cast none.
+const SHADOW_LIGHT_BUDGET_HIGH: int = 8
+const SHADOW_LIGHT_BUDGET_ULTRA: int = 14
+const SHADOW_BUDGET_INTERVAL: float = 0.2
+## An emitter the camera cannot see rests (`ScreenCull`): a torch's embers,
+## a tower's air and a camp's sparks are all simulated on the CPU every
+## frame, and on a 75x75 field the camera sees a handful of the hundreds.
+## The margin is in viewport pixels beyond the edge, so nothing pops.
+const PARTICLE_CULL_MARGIN: float = 260.0
+const PARTICLE_CULL_INTERVAL: float = 0.25
+## The foliage's idle step re-textures only the plants inside the view,
+## grown by this much in world units - two thousand `texture =` writes a
+## step was a 4-6 ms spike four and a half times a second.
+const FOLIAGE_IDLE_VIEW_MARGIN: float = 220.0
+## **The physics tick follows the display.** The Warden moves in
+## `_physics_process`, so at 60 ticks a 144 Hz screen watched a hero
+## stepping at 60 while everything else moved at 144. The rate is the
+## display's refresh capped by the player's frame cap, inside these bounds;
+## the step ceiling lets a slow frame catch up rather than slow the clock.
+const PHYSICS_RATE_MIN: int = 60
+const PHYSICS_RATE_MAX: int = 144
+const PHYSICS_STEPS_PER_FRAME_MAX: int = 12
+
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45
@@ -5712,6 +5743,9 @@ const VFX_INK_RINGS_MAX: int = 160
 const VFX_INK_FLASHES_MAX: int = 120
 const VFX_INK_MOTES_MAX: int = 900
 const VFX_INK_RAYS_MAX: int = 200
+## The painted records - impact and muzzle art, forged sheets - and the numbers.
+const VFX_INK_ART_MAX: int = 160
+const VFX_INK_NUMBERS_MAX: int = 120
 const VFX_SPARK_SPREAD: float = 0.9
 
 ## Floating damage numbers. [TUNE]

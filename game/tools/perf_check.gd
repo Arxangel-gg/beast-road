@@ -120,6 +120,17 @@ var _nag: float = 1.0
 var _frame_ms: Array[float] = []
 var _hitches: int = 0
 var _worst_ms: float = 0.0
+## The frame's parts, summed over every sampled frame rather than read once
+## at the end (2026-09-24) - a single sample at report time was one frame's
+## worth and read as 'rest 0' on one run and 'rest 22' on the next. `process`
+## is the main loop's whole iteration, which in the Compatibility renderer
+## includes `RenderingServer.draw` on this thread, so the renderer's own CPU
+## and GPU time are measured beside it: a cost that moves with `--off=cast`
+## and not with a script is the renderer's, and a script bisect cannot see it.
+var _process_ms_sum: float = 0.0
+var _physics_ms_sum: float = 0.0
+var _render_cpu_ms_sum: float = 0.0
+var _render_gpu_ms_sum: float = 0.0
 ## Each hitch: when, how long, and what arrived that frame.
 var _hitch_ledger: Array[Dictionary] = []
 var _nodes_last: int = 0
@@ -197,6 +208,8 @@ func _ready() -> void:
 	# number lands near the refresh interval and looks like a fixed cost in the
 	# game. Which is exactly what a whole afternoon of measurements looked like.
 	_vsync_actual = int(DisplayServer.window_get_vsync_mode())
+	# The renderer's own clock, cpu and gpu, per frame (see the sums above).
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	Graphics.apply_preset(_quality)
 	for feature: String in _disabled:
 		match feature:
@@ -351,6 +364,11 @@ func _process(delta: float) -> void:
 	var ms: float = delta * 1000.0
 	_frame_ms.append(ms)
 	_worst_ms = maxf(_worst_ms, ms)
+	_process_ms_sum += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	_physics_ms_sum += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var rid: RID = get_viewport().get_viewport_rid()
+	_render_cpu_ms_sum += RenderingServer.viewport_get_measured_render_time_cpu(rid)
+	_render_gpu_ms_sum += RenderingServer.viewport_get_measured_render_time_gpu(rid)
 	# What the frame did, for the hitch ledger: nodes that arrived and texture
 	# memory that appeared are the two signatures of a load mid-fight.
 	var nodes_now: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
@@ -470,11 +488,15 @@ func _check_timing() -> void:
 	# improve the frame time at all - so 13-14 ms was going somewhere none of the
 	# quality settings touch, and the report could not say where. A total with no
 	# breakdown tells you that you have a problem and nothing about whose it is.
-	var script_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
-	var physics_ms: float = Performance.get_monitor(
-		Performance.TIME_PHYSICS_PROCESS) * 1000.0
-	_notes.append("frame split  process %.1f ms  physics %.1f ms  rest %.1f ms"
-		% [script_ms, physics_ms, maxf(average - script_ms - physics_ms, 0.0)])
+	var sampled: float = float(maxi(_frame_ms.size(), 1))
+	var script_ms: float = _process_ms_sum / sampled
+	var physics_ms: float = _physics_ms_sum / sampled
+	var render_cpu: float = _render_cpu_ms_sum / sampled
+	var render_gpu: float = _render_gpu_ms_sum / sampled
+	_notes.append(("frame split  process %.1f ms (the renderer's cpu %.1f of it)  "
+		+ "physics %.1f ms  gpu %.1f ms  rest %.1f ms")
+		% [script_ms, render_cpu, physics_ms, render_gpu,
+			maxf(average - script_ms - physics_ms, 0.0)])
 
 	if not _has_renderer():
 		_notes.append("timing NOT asserted: the dummy renderer does no GPU work, "
