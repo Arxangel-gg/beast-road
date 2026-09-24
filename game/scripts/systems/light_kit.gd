@@ -108,6 +108,27 @@ static func shot_lights() -> int:
 	return _shot_lights
 
 
+## The same budget for the lamps on loot (`Balance.LOOT_LIGHT_MAX`).
+static var _drop_lights: int = 0
+
+
+static func drop_light_free() -> bool:
+	return _drop_lights < Balance.LOOT_LIGHT_MAX \
+		and Graphics.preset() != Graphics.PRESET_LOW
+
+
+static func take_drop_light() -> void:
+	_drop_lights += 1
+
+
+static func give_drop_light() -> void:
+	_drop_lights = maxi(_drop_lights - 1, 0)
+
+
+static func drop_lights() -> int:
+	return _drop_lights
+
+
 static func add_light(parent: Node2D, colour: Color, radius: float,
 		energy: float, flicker: float = 0.0) -> PointLight2D:
 	var light := PointLight2D.new()

@@ -4209,6 +4209,13 @@ const PROJECTILE_LIGHT_MAX: int = 14
 const SHADOW_LIGHT_BUDGET_HIGH: int = 8
 const SHADOW_LIGHT_BUDGET_ULTRA: int = 14
 const SHADOW_BUDGET_INTERVAL: float = 0.2
+## **Drops carry lights up to this many at once** (2026-09-24), the shot
+## budget's rule in a second place: an Act X field held twenty-three drops
+## and every one of them carried a lamp, and every lamp the renderer can
+## see re-draws what stands under it. The first to land keep theirs, so a
+## healing drop is still the brightest thing on the floor until the floor
+## is already lit by a dozen; none on Low. A look, never a fact.
+const LOOT_LIGHT_MAX: int = 12
 ## An emitter the camera cannot see rests (`ScreenCull`): a torch's embers,
 ## a tower's air and a camp's sparks are all simulated on the CPU every
 ## frame, and on a 75x75 field the camera sees a handful of the hundreds.

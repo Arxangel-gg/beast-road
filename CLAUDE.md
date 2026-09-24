@@ -8705,9 +8705,24 @@ forty hits and an empty effects layer, twenty lights and the nearest eight, a
 flame far off the screen resting and waking, two plants and one window, and
 the tick over every shape of display - rather than reading a constant back.
 
+**And the field is asked once a frame for what is on it.** `act_census`
+(headless: what an Act X field hands the renderer, by owner) found twenty-three
+drops each carrying a lamp and a hundred and eighty pieces each walking the hero
+group every frame; forty towers, every spell, arrow, barricade, companion and
+animal walked the enemy group every call to `enemies_near`. `EnemyField.living_bodies`
+gathers the roster once a frame and `LootDrop._alive_heroes` the heroes;
+`LOOT_LIGHT_MAX` is the shot budget's rule on the lamps, the first to land
+keeping theirs and a piece leaving handing its lamp on. No behaviour moved: a
+body that starts dying after the roster was taken is still refused per call.
+
 **What has not been measured is the frame.** These are structural and provable
 headless; the number is a windowed run away, and the last one was force-closed
-because it took the owner's screen. Ask for the window.
+because it took the owner's screen. Ask for the window. What the census says
+is still there, for after the measurement: a hundred torches are about fifteen
+canvas items each (four polygons and four sprites of ironwork and light, a
+flame with its glow sprite and two emitters), the foliage is nine hundred
+painted sprites, and every drop wears its own `ShaderMaterial`, which is a
+draw call each.
 
 ### The three escape hatches — and why there are only three
 

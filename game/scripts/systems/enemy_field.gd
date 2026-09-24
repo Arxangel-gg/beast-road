@@ -324,12 +324,33 @@ func _crowd_reach(bodies: Array[Enemy], cell: float) -> int:
 	return maxi(1, ceili(widest * 2.0 / maxf(cell, 1.0)))
 
 
+## **The living bodies, gathered once a frame** (2026-09-24). Forty towers,
+## every spell, arrow, barricade, companion and animal asked `enemies_near`
+## every frame, and each call walked the enemy group and cast every node in
+## it; the group is the same for all of them within a frame. A body that
+## starts dying after the roster was taken is still refused below, and one
+## freed outright is refused by validity.
+var _roster: Array[Enemy] = []
+var _roster_frame: int = -1
+
+
+func living_bodies() -> Array[Enemy]:
+	var frame: int = Engine.get_process_frames()
+	if frame != _roster_frame:
+		_roster_frame = frame
+		_roster.clear()
+		for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+			var enemy := node as Enemy
+			if enemy != null and not enemy.is_dying():
+				_roster.append(enemy)
+	return _roster
+
+
 func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var radius_squared: float = radius * radius
-	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		var enemy := node as Enemy
-		if enemy == null or enemy.is_dying():
+	for enemy: Enemy in living_bodies():
+		if not is_instance_valid(enemy) or enemy.is_dying():
 			continue
 		# **Measured to the body, not the feet.** Depth sorting moved the enemy
 		# node down to its ground contact point, and everything that asks "what

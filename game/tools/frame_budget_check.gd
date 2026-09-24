@@ -30,6 +30,8 @@ func _ready() -> void:
 	_test_an_unseen_emitter_rests()
 	_test_the_idle_step_reaches_only_the_view()
 	_test_physics_follows_the_display()
+	await _test_the_lamps_on_loot_are_budgeted()
+	_test_the_roster_is_gathered_once_a_frame()
 	Graphics.from_dictionary(held)
 	Vfx.bind_world(null)
 	await get_tree().process_frame
@@ -267,3 +269,74 @@ func _check(condition: bool, message: String) -> void:
 	_checks += 1
 	if not condition:
 		_failures.append(message)
+
+
+# --- The lamps on loot are budgeted --------------------------------------------
+
+## Thirty pieces that each want a lamp: no more than `LOOT_LIGHT_MAX` carry
+## one, the first to land keep theirs, and a piece leaving the field hands
+## its lamp back for the next.
+func _test_the_lamps_on_loot_are_budgeted() -> void:
+	Graphics.apply_preset(Graphics.PRESET_HIGH)
+	var before: int = LightKit.drop_lights()
+	var pieces: Array[LootDrop] = []
+	for i: int in 30:
+		var piece := LootDrop.new()
+		piece.currency = RunState.GOLD
+		piece.amount = 5
+		piece.lead = true
+		piece.position = Vector2(float(i) * 30.0, 0.0)
+		_world.add_child(piece)
+		pieces.append(piece)
+	var lamps: int = 0
+	var first_lit: bool = true
+	for i: int in pieces.size():
+		var lamp: Variant = pieces[i].get("_lamp")
+		if lamp != null:
+			lamps += 1
+		elif i < Balance.LOOT_LIGHT_MAX - before:
+			first_lit = false
+	_check(lamps <= Balance.LOOT_LIGHT_MAX,
+		"thirty lit pieces carry %d lamps against a budget of %d" % [lamps, Balance.LOOT_LIGHT_MAX])
+	_check(lamps == Balance.LOOT_LIGHT_MAX - before and first_lit,
+		"the first to land should keep their lamps (%d lit, %d already out)" % [lamps, before])
+	pieces[0].free()
+	pieces.remove_at(0)
+	var late := LootDrop.new()
+	late.currency = RunState.GOLD
+	late.amount = 5
+	late.lead = true
+	_world.add_child(late)
+	_check(late.get("_lamp") != null, "a piece leaving the field should hand its lamp to the next")
+	late.free()
+	for piece: LootDrop in pieces:
+		piece.free()
+	_check(LightKit.drop_lights() == before,
+		"every lamp should be given back (%d still out)" % (LightKit.drop_lights() - before))
+	Graphics.apply_preset(Graphics.PRESET_LOW)
+	var dark := LootDrop.new()
+	dark.currency = RunState.GOLD
+	dark.amount = 5
+	dark.lead = true
+	_world.add_child(dark)
+	_check(dark.get("_lamp") == null, "Low should light no drop")
+	dark.free()
+	Graphics.apply_preset(Graphics.PRESET_HIGH)
+	await get_tree().process_frame
+
+
+# --- The roster is gathered once a frame ---------------------------------------
+
+## Two calls in one frame walk the group once; a body that starts dying between
+## them is still refused; the next frame gathers again.
+func _test_the_roster_is_gathered_once_a_frame() -> void:
+	var field := EnemyField.new()
+	_world.add_child(field)
+	var first: Array[Enemy] = field.living_bodies()
+	var again: Array[Enemy] = field.living_bodies()
+	_check(first == again and field.get("_roster_frame") == Engine.get_process_frames(),
+		"two asks in one frame should read one roster")
+	var near: Array[Enemy] = field.enemies_near(Vector2.ZERO, 1.0e6)
+	_check(near.size() == first.size(), "enemies_near reads the roster (%d against %d)"
+		% [near.size(), first.size()])
+	field.free()

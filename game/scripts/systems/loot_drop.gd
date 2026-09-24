@@ -154,8 +154,10 @@ func setup_gear(piece: Dictionary, from: Vector2) -> void:
 func _ready() -> void:
 	add_to_group(GROUP)
 	_roll_toss()
-	if _wants_lamp():
+	# On the budget, and given back when this piece leaves the tree.
+	if _wants_lamp() and LightKit.drop_light_free():
 		_light_the_drop()
+		LightKit.take_drop_light()
 	_sprite = Sprite2D.new()
 	# World art where it exists, the currency's UI icon otherwise.
 	#
@@ -510,12 +512,33 @@ func _burst() -> void:
 
 
 ## Whichever hero is closest, of however many there are.
+## **The living heroes, gathered once a frame for every piece on the field**
+## (2026-09-24). A hundred and eighty pieces each walked the hero group on
+## every frame to find the nearest Warden; the group is the same for all of
+## them and changes on the frame somebody falls, which the check below
+## still reads per piece. A hero freed mid-frame is skipped by validity.
+static var _heroes_frame: int = -1
+static var _heroes: Array[Hero] = []
+
+
+static func _alive_heroes(tree: SceneTree) -> Array[Hero]:
+	var frame: int = Engine.get_process_frames()
+	if frame != _heroes_frame or tree == null:
+		_heroes_frame = frame
+		_heroes.clear()
+		if tree != null:
+			for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
+				var who := node as Hero
+				if who != null and who.is_alive():
+					_heroes.append(who)
+	return _heroes
+
+
 func _nearest_hero() -> Node2D:
 	var best: Node2D = null
 	var best_distance: float = INF
-	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
-		var who := node as Hero
-		if who == null or not who.is_alive():
+	for who: Hero in _alive_heroes(get_tree()):
+		if not is_instance_valid(who) or not who.is_alive():
 			continue
 		var distance: float = global_position.distance_to(who.global_position)
 		if distance < best_distance:
@@ -1064,3 +1087,11 @@ func _plate_text() -> String:
 	if not blueprint.is_empty():
 		return "Blueprint"
 	return ""
+
+
+## A lamp taken on the budget is given back with the piece, however it left:
+## collected, expired, stolen or evicted for the field's cap.
+func _exit_tree() -> void:
+	if _lamp != null:
+		LightKit.give_drop_light()
+		_lamp = null
