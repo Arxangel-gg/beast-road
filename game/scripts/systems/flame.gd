@@ -53,7 +53,11 @@ var _redraw_debt: float = 0.0
 var _seed: float = 0.0
 var _lit: bool = true
 
-var _glow: Sprite2D
+## The glow's pulse and alpha, drawn by `_draw` (2026-09-24): it was a
+## sprite under every flame - two hundred and twenty canvas items on Act X
+## - and the flame already redraws at `FLAME_REDRAW_HZ`, which is exactly
+## the clock the glow breathed on.
+var _glow_pulse: float = 1.0
 var _embers: CPUParticles2D
 var _smoke: CPUParticles2D
 var _light: PointLight2D
@@ -99,7 +103,6 @@ func configure(flame_size: float, light_radius: float = 0.0,
 	material = additive
 
 	_build_smoke()
-	_build_glow()
 	_build_embers()
 
 	if light_radius > 0.0:
@@ -140,12 +143,9 @@ func _process(delta: float) -> void:
 	if _redraw_debt < 1.0 / Balance.FLAME_REDRAW_HZ:
 		return
 	_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.FLAME_REDRAW_HZ)
-	if _glow != null:
-		# The glow breathes with the flame but lags it slightly. Perfectly in
-		# phase, the two read as one object being scaled.
-		var pulse: float = 1.0 + sin(_time * 1.9 - 0.6) * 0.13
-		_glow.scale = Vector2.ONE * _glow_base_scale() * pulse * intensity
-		_glow.modulate.a = Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * pulse)
+	# The glow breathes with the flame but lags it slightly. Perfectly in
+	# phase, the two read as one object being scaled.
+	_glow_pulse = 1.0 + sin(_time * 1.9 - 0.6) * 0.13
 	queue_redraw()
 
 
@@ -173,6 +173,12 @@ func _show_particles(seen: bool) -> void:
 func _draw() -> void:
 	if not _lit or intensity <= 0.01:
 		return
+	# The glow first, so the tongues sit on it. On this node's own additive
+	# material now, which is what a halo of light is.
+	var halo: Texture2D = LightKit.falloff_texture()
+	var halo_size: Vector2 = halo.get_size() * _glow_base_scale() * _glow_pulse * intensity
+	draw_texture_rect(halo, Rect2(Vector2(-halo_size.x * 0.5, -size * 0.55 - halo_size.y * 0.5), halo_size),
+		false, Color(Balance.FLAME_MID, Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * _glow_pulse)))
 
 	var colours: Array[Color] = [Balance.FLAME_BODY, Balance.FLAME_MID, Balance.FLAME_CORE]
 	for index: int in LAYERS.size():
@@ -330,18 +336,6 @@ func _glow_base_scale() -> float:
 	return size * Balance.FLAME_GLOW_SCALE / float(LightKit.falloff_texture().width)
 
 
-func _build_glow() -> void:
-	_glow = Sprite2D.new()
-	_glow.name = "Glow"
-	_glow.texture = LightKit.falloff_texture()
-	_glow.modulate = Color(Balance.FLAME_MID, Balance.FLAME_GLOW_ALPHA)
-	_glow.scale = Vector2.ONE * _glow_base_scale()
-	_glow.position.y = -size * 0.55
-	# Behind the flame body, in front of the smoke.
-	_glow.z_index = -1
-	add_child(_glow)
-
-
 func _build_embers() -> void:
 	_embers = CPUParticles2D.new()
 	_embers.name = "Embers"
@@ -473,8 +467,6 @@ func set_lit(lit: bool) -> void:
 		# Smoke outlives the flame by one lifetime: a torch that has just gone
 		# out should smoulder, not stop dead.
 		_smoke.emitting = lit
-	if _glow != null:
-		_glow.visible = lit
 	if _light != null:
 		_light.visible = lit
 	queue_redraw()
@@ -493,8 +485,6 @@ func set_intensity(value: float) -> void:
 		var light_colour: Color = _light.color
 		light_colour.a = intensity
 		_light.color = light_colour
-	if _glow != null:
-		_glow.visible = _lit and intensity > 0.01
 	if _embers != null:
 		var ember_amount: int = maxi(Graphics.scaled(
 			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale()), 1)

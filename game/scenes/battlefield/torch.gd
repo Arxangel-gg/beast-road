@@ -93,18 +93,9 @@ func _build() -> void:
 		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY,
 		casts_shadows and carries_light, shadow_on_ultra_only)
 
-	# The wisp that grows while the hero holds position to relight it. Reusing
-	# the flame for this would mean a half-lit torch already counted as lit.
-	_relight_glow = Sprite2D.new()
-	_relight_glow.name = "Rekindle"
-	_relight_glow.texture = LightKit.falloff_texture()
-	_relight_glow.position.y = -Balance.TORCH_HEIGHT
-	_relight_glow.modulate = Color(Balance.TORCH_LIGHT_COLOUR, 0.0)
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	_relight_glow.material = additive
-	_relight_glow.scale = Vector2.ZERO
-	add_child(_relight_glow)
+	# The wisp that grows while the hero holds position to relight it lives
+	# only while one is held (`_show_rekindle`): a hundred zero-sized sprites
+	# waiting for a relight were a hundred items to cull every frame.
 
 
 ## The pool of light on the ground, on every torch, at no cost in lights.
@@ -390,8 +381,24 @@ func _tick_relight(delta: float) -> void:
 ## The coals brightening under the hero's attention: the readout that holding
 ## position here is doing something.
 func _show_rekindle(progress: float) -> void:
-	if _relight_glow == null:
+	if progress <= 0.0:
+		if _relight_glow != null and is_instance_valid(_relight_glow):
+			_relight_glow.queue_free()
+		_relight_glow = null
+		_set_coals(0.55)
 		return
+	if _relight_glow == null or not is_instance_valid(_relight_glow):
+		# Reusing the flame for this would mean a half-lit torch already
+		# counted as lit.
+		_relight_glow = Sprite2D.new()
+		_relight_glow.name = "Rekindle"
+		_relight_glow.texture = LightKit.falloff_texture()
+		_relight_glow.position.y = -Balance.TORCH_HEIGHT
+		_relight_glow.modulate = Color(Balance.TORCH_LIGHT_COLOUR, 0.0)
+		var additive := CanvasItemMaterial.new()
+		additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		_relight_glow.material = additive
+		add_child(_relight_glow)
 	var span: float = Balance.TORCH_FLAME_SIZE * 2.4 / float(LightKit.falloff_texture().width)
 	_relight_glow.scale = Vector2.ONE * span * progress
 	_relight_glow.modulate.a = progress * 0.7
