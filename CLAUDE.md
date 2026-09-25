@@ -9257,6 +9257,53 @@ uid keying, so what it dresses depends on what the profile already holds.
 Not chased; recorded as the shared-profile shape from the memory directory,
 for the next session to pin.
 
+**A rung below Low, and Low draws fewer pixels, as of 2026-09-25.** The owner
+measured the build on two phones: **6 fps on a 2019 phone, 45 on a 2025 one.**
+Both start on Low (`Graphics.preset_for_machine`), and Low was the floor the
+governor could step to, so the old phone had nowhere to go. Read against the
+code, Low still paid for three things a desktop never priced:
+
+- **The panel's native resolution.** `canvas_items` stretch draws every pixel
+  of the screen. Low and below now switch the root window to `viewport`
+  stretch, which draws the logical size `ScreenFit` already chose and
+  upscales once - the same coordinates for every node, so no layout moves.
+  On a 2280x1080 phone that is about 45% fewer pixels through every pass.
+  **Only where it saves** (`Graphics.logical_pixel_ratio` at least
+  `RENDER_LOGICAL_MIN_RATIO`): a 1080p desktop at a fit of one is untouched,
+  and an interface slider below one would otherwise supersample. The price
+  is text drawn at the logical size, a little softer, on Low and below only.
+- **Two full-screen copies at every preset.** The colour grade and the pixel
+  filter each copy the screen and run a pass; both stay on by default
+  everywhere but the new rung.
+- **Lights.** Low still enabled every third torch's light, the towers' and
+  the sun's, and in the Compatibility renderer each re-draws what stands
+  under it.
+
+**`PRESET_MINIMAL`** is the rung beneath Low and the governor's new floor:
+every `Light2D` disabled (nothing else in the game writes `enabled`, so it is
+this rung's switch; the torch pools and the town's pool are sprites and
+stay), no grade and no pixel filter unless the player turns them on,
+particles at 0.2 and foliage at 0.15. **A look and never a fact**: not one
+number the fight reads moves. `Graphics.at_most_low()` replaces every
+comparison against Low alone, because each of those would have handed
+Minimal the High look it exists to drop, and `governor_check` walks the
+source for one.
+
+**And a phone ticks physics at sixty** (`PHYSICS_RATE_MOBILE`) whatever its
+panel reports: the 2026-09-24 rule that the tick follows the display doubled
+the hero's physics work on a 120 Hz phone. The desktop rule is unchanged.
+
+**`governor_check`'s floor moved from Low to Minimal by design**, amended and
+dated in the gate. Its new checks hold the pixel ratio on a phone, a 1440p
+and a 1080p screen, the slider refusing to supersample, Minimal's two copies
+off and its lights off, and High keeping native resolution. Planted - the
+ratio ignored - it named the 1080p and slider lines.
+
+**Not measured on a phone**, and that is the next step: the owner's two
+readings on this build, with the phone models, their resolutions, the act
+the reading was taken in and the preset the settings screen shows. The
+governor only acts while no preset has been chosen by hand.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

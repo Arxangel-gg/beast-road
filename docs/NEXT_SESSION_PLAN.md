@@ -278,3 +278,13 @@ workflow builds:**
 
 The 2025 phone gets the same headroom from every one of these, and the
 governor then has a rung to step to on both.
+
+**Built on 2026-09-25 (v0.56.8), not yet measured on a phone**: items 1, 3
+and 4 above - `PRESET_MINIMAL` as the governor's floor with every light
+disabled and no grade or pixel filter by default, Low and below rendering at
+the logical size wherever that saves pixels, and a phone's physics pinned to
+60. `governor_check` holds all of it. **What is left**: the owner's readings
+on both phones with this build (models, resolutions, act, preset shown);
+item 2 for the fog quad and the weather veil, which still draw on Minimal;
+and item 5, the script side on the phone's CPU, once the readings say the
+GPU is no longer the wall.
