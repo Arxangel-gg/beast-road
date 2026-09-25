@@ -4256,6 +4256,13 @@ const FOLIAGE_IDLE_VIEW_MARGIN: float = 220.0
 ## display's refresh capped by the player's frame cap, inside these bounds;
 ## the step ceiling lets a slow frame catch up rather than slow the clock.
 const PHYSICS_RATE_MIN: int = 60
+## **A phone ticks physics at sixty whatever its panel says** (2026-09-25).
+## A 120 Hz phone doubled the hero's physics work on a CPU that could not
+## afford it; the owner measured 45 fps on a 2025 phone and 6 on a 2019 one.
+const PHYSICS_RATE_MOBILE: int = 60
+## Below this ratio of screen pixels to logical pixels, rendering at the
+## logical size saves too little to be worth the softer text.
+const RENDER_LOGICAL_MIN_RATIO: float = 1.05
 const PHYSICS_RATE_MAX: int = 144
 const PHYSICS_STEPS_PER_FRAME_MAX: int = 12
 ## **A tower chooses on a cadence, and its lean reads that choice** (2026-09-24).

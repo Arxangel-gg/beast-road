@@ -123,6 +123,9 @@ func _fit() -> void:
 	# exactly as they did.
 	window.content_scale_factor = factor_for(Vector2(window.size), base_size(),
 		touch_layout, _menu_layout) * UserSettings.ui_scale()
+	# The fit decides the logical size, which decides whether rendering at it
+	# saves anything (2026-09-25).
+	Graphics.apply_render_scale()
 
 
 ## Re-fits the window now. For the interface-size slider, which is the one

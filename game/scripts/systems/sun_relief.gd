@@ -23,6 +23,7 @@ func _ready() -> void:
 	range_item_cull_mask = Balance.SUN_RELIEF_LAYER
 	shadow_enabled = false
 	height = 0.0
+	enabled = Graphics.lights_allowed()
 	_follow()
 
 

@@ -650,6 +650,7 @@ func _preset_row() -> HBoxContainer:
 	_preset_buttons["auto"] = automatic
 	row.add_child(automatic)
 	for entry: Array in [
+			[Graphics.PRESET_MINIMAL, "Minimal"],
 			[Graphics.PRESET_LOW, "Low"],
 			[Graphics.PRESET_MEDIUM, "Medium"],
 			[Graphics.PRESET_HIGH, "High"],

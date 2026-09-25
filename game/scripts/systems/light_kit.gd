@@ -107,7 +107,7 @@ static var _shot_lights: int = 0
 
 static func shot_light_free() -> bool:
 	return _shot_lights < Balance.PROJECTILE_LIGHT_MAX \
-		and Graphics.preset() != Graphics.PRESET_LOW
+		and not Graphics.at_most_low()
 
 
 static func take_shot_light() -> void:
@@ -129,7 +129,7 @@ static var _drop_lights: int = 0
 
 static func drop_light_free() -> bool:
 	return _drop_lights < Balance.LOOT_LIGHT_MAX \
-		and Graphics.preset() != Graphics.PRESET_LOW
+		and not Graphics.at_most_low()
 
 
 static func take_drop_light() -> void:
@@ -152,6 +152,9 @@ static func add_light(parent: Node2D, colour: Color, radius: float,
 	light.energy = energy
 	light.texture_scale = radius / 128.0
 	light.shadow_enabled = false
+	# Born disabled on Minimal; `Graphics._walk` switches every light when the
+	# preset moves.
+	light.enabled = Graphics.lights_allowed()
 	# Lights sit under the sprites they belong to, so a tower is lit rather than
 	# washed out by its own glow.
 	light.blend_mode = Light2D.BLEND_MODE_ADD

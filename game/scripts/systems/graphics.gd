@@ -135,17 +135,34 @@ const BRIGHTNESS_DAY_GAIN: float = 0.50
 ## World tints that must be re-graded when brightness changes.
 const TINT_GROUP: StringName = &"world_tint"
 
+## **Below Low, for a phone that cannot hold Low** (2026-09-25). The owner
+## measured 6 fps on a 2019 phone, and Low was the floor the governor could
+## step to. Minimal lights nothing (every `Light2D` is disabled; the torch
+## pools and the town's pool are sprites and stay), runs no colour grade and
+## no pixel filter unless the player asks for them, and thins particles and
+## foliage further. **A look and never a fact**, like every preset: not one
+## number the fight reads moves.
+const PRESET_MINIMAL: String = "minimal"
 const PRESET_LOW: String = "low"
 const PRESET_MEDIUM: String = "medium"
 const PRESET_HIGH: String = "high"
 const PRESET_ULTRA: String = "ultra"
 const PRESET_CUSTOM: String = "custom"
 ## Low to Ultra, the order the governor steps along.
-const PRESET_LADDER: Array[String] = [PRESET_LOW, PRESET_MEDIUM, PRESET_HIGH, PRESET_ULTRA]
+const PRESET_LADDER: Array[String] = [PRESET_MINIMAL, PRESET_LOW, PRESET_MEDIUM,
+	PRESET_HIGH, PRESET_ULTRA]
 
 ## What each preset sets. `custom` is absent on purpose: it is not a preset, it
 ## is the label the UI shows once a player has touched an individual switch.
 const PRESETS: Dictionary = {
+	PRESET_MINIMAL: {
+		KEY_CAST_SHADOWS: false,
+		KEY_CONTACT_SHADOWS: false,
+		KEY_PARTICLES: 0.2,
+		KEY_FOLIAGE: 0.15,
+		KEY_CLOUDS: false,
+		KEY_WATER_REFRACTION: false,
+	},
 	PRESET_LOW: {
 		KEY_CAST_SHADOWS: false,
 		KEY_CONTACT_SHADOWS: false,
@@ -325,7 +342,69 @@ static func set_automatic() -> void:
 ## How many posts share one real light on the road. One on every preset but
 ## Low, where a phone cannot afford a hundred lights and every third carries.
 static func torch_light_every() -> int:
-	return Balance.TORCH_LIGHT_EVERY_LOW if preset() == PRESET_LOW else 1
+	return Balance.TORCH_LIGHT_EVERY_LOW if at_most_low() else 1
+
+
+## Low or the rung beneath it: every place that sheds cost on Low sheds it
+## on Minimal too, so a comparison against Low alone would hand Minimal the
+## High look it was built to drop.
+static func at_most_low() -> bool:
+	var name: String = preset()
+	return name == PRESET_LOW or name == PRESET_MINIMAL
+
+
+## Whether any 2D light is enabled. Nothing else writes a light's `enabled`,
+## so it is this rung's switch: a disabled light is culled before it costs
+## a pass, and each enabled one re-draws everything under it.
+static func lights_allowed() -> bool:
+	return preset() != PRESET_MINIMAL
+
+
+## **Render at the logical size rather than the screen's** (2026-09-25).
+## `canvas_items` stretch draws every pixel of the panel; `viewport` stretch
+## draws the logical size `ScreenFit` already chose and upscales once, with
+## the same coordinates for every node. On a 2280x1080 phone that is about
+## 45% fewer pixels through every full-screen pass. Taken on Low and below,
+## and only where it saves: a player's interface slider below one would make
+## the logical size larger than the screen, which would be supersampling.
+## The price is text drawn at the logical size, a little softer.
+static func renders_at_logical_size(window_size: Vector2, factor: float) -> bool:
+	return at_most_low() and logical_pixel_ratio(window_size, base_size(), factor) \
+		>= Balance.RENDER_LOGICAL_MIN_RATIO
+
+
+## Screen pixels per logical pixel under `expand` aspect. Pure, for the gate.
+static func logical_pixel_ratio(window_size: Vector2, base: Vector2, factor: float) -> float:
+	if window_size.x <= 0.0 or window_size.y <= 0.0 or base.x <= 0.0 or base.y <= 0.0:
+		return 1.0
+	var expanded: Vector2 = base
+	if window_size.x / window_size.y > base.x / base.y:
+		expanded = Vector2(base.y * window_size.x / window_size.y, base.y)
+	else:
+		expanded = Vector2(base.x, base.x * window_size.y / window_size.x)
+	var logical_height: float = expanded.y / maxf(factor, 0.01)
+	return window_size.y / maxf(logical_height, 1.0)
+
+
+static func base_size() -> Vector2:
+	return Vector2(
+		float(ProjectSettings.get_setting("display/window/size/viewport_width", 1920)),
+		float(ProjectSettings.get_setting("display/window/size/viewport_height", 1080)))
+
+
+## Sets the root window's stretch mode from the rule above. Called when the
+## preset changes and by `ScreenFit` whenever the fit does; never headless,
+## where there is no screen and every gate must measure the authored mode.
+static func apply_render_scale() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	var window: Window = tree.root
+	var logical: bool = renders_at_logical_size(Vector2(window.size), window.content_scale_factor)
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT if logical \
+		else Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 
 
 ## Reads one switch, falling back through the current preset to High.
@@ -452,7 +531,7 @@ static func cloud_shadows() -> bool:
 ## Four-sample actor outlines and local loot shaders. Low sheds the texture
 ## reads; every other tier retains the readability pass.
 static func polish_shaders() -> bool:
-	return preset() != PRESET_LOW
+	return not at_most_low()
 
 
 ## One screen-sized regional pass is reserved for the authored High target and
@@ -526,6 +605,7 @@ static func apply_runtime() -> void:
 	# display and the rate is the floor, so no gate measures a different game.
 	Engine.physics_ticks_per_second = physics_rate()
 	Engine.max_physics_steps_per_frame = Balance.PHYSICS_STEPS_PER_FRAME_MAX
+	apply_render_scale()
 	apply_to_scene()
 
 
@@ -573,6 +653,9 @@ static func apply_to_scene() -> void:
 
 ## Lights, particles, clouds and foliage, in one pass.
 static func _walk(from: Node, show_casters: bool) -> void:
+	var any_light := from as Light2D
+	if any_light != null:
+		any_light.enabled = lights_allowed()
 	var light := from as PointLight2D
 	if light != null and from.is_in_group(LightKit.SHADOW_GROUP):
 		light.shadow_filter = shadow_filter()
@@ -636,6 +719,8 @@ static func physics_rate() -> int:
 	var refresh: float = -1.0
 	if not DisplayServer.get_name() == "headless":
 		refresh = DisplayServer.screen_get_refresh_rate()
+	if OS.has_feature("mobile") and refresh > float(Balance.PHYSICS_RATE_MOBILE):
+		refresh = float(Balance.PHYSICS_RATE_MOBILE)
 	return physics_rate_for(refresh, fps_cap())
 
 
@@ -655,7 +740,8 @@ static func physics_rate_for(refresh: float, cap: int) -> int:
 static func grade_enabled() -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
-	return bool(_chosen.get(KEY_GRADE, true))
+	# A full-screen copy and a pass; off by default on Minimal only.
+	return bool(_chosen.get(KEY_GRADE, preset() != PRESET_MINIMAL))
 
 
 ## Whether bright things bleed light (2026-09-24). It rides the grade's pass, so
@@ -668,14 +754,14 @@ static func bloom() -> bool:
 ## The switch itself, apart from whether the grade is on to carry it - what the
 ## settings screen shows and the gate reads, headless included.
 static func bloom_chosen() -> bool:
-	return bool(_chosen.get(KEY_BLOOM, preset() != PRESET_LOW))
+	return bool(_chosen.get(KEY_BLOOM, not at_most_low()))
 
 
 ## Whether a big blow throws a real light for a moment (2026-09-24). Off on
 ## Low with the shadows and the refraction, for the same reason: a light
 ## re-draws everything under it.
 static func light_bursts() -> bool:
-	return preset() != PRESET_LOW
+	return not at_most_low()
 
 
 ## Whether the fog of war covers the field. On by default; a player who
@@ -700,7 +786,8 @@ static func foliage_trample() -> bool:
 static func pixel_filter() -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
-	return bool(_chosen.get(KEY_PIXEL_FILTER, true))
+	# A screen copy, the shader and the mask; off by default on Minimal only.
+	return bool(_chosen.get(KEY_PIXEL_FILTER, preset() != PRESET_MINIMAL))
 
 
 ## Whether the interface is snapped to that same grid. **Never without the
