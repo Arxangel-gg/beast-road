@@ -132,6 +132,13 @@ all four hold sixty on Low.
 
 ## 4. Feel and juice, each a look and never a fact
 
+**Items 1 to 5 were built on 2026-09-25 (v0.56.9)** - the formation's horn,
+the siege mark, the tower-under-attack alert with a flash on every bitten
+bar, the last kill held for a hitstop beat, and the countdown ticks - and
+are recorded in CLAUDE.md. Items 6 and 7 remain as written. **Also done that
+day and not in this plan's first draft**: `unsafe_property_access` raised to
+an error with all 199 sites resolved, and `coop_check`'s crash at quit.
+
 Bounds for every item: read by nothing, damped by `JuiceDirector` as
 COSMETIC, scaled away by `Graphics.particle_scale`, records on `VfxInk` or
 `BloodMotes` rather than nodes (`frame_budget_check` holds that a hit
