@@ -24,6 +24,13 @@ ALPHA = 32          # below this a pixel is transparent
 COLOUR_T = 48.0     # RGB distance a moving thing exceeds; smoothing and re-rendering do not
 MIN_BLOB = 24       # a difference smaller than this many pixels is noise
 SEARCH = 6          # pixels of drift to search for
+# Idle loops authored from the painting by `paint_still_idle.py` rather than
+# generated. Their motion is small by design - a crystal's pulse, a ripple on a
+# reflection, a few motes - and this lock reads exactly that as re-rendering
+# noise: run over them it erased 3,959 of the Mirror's 3,962 moving pixels,
+# which is how both towers shipped a loop identical to the painting (2026-09-25).
+# Their attack frames are generated and are still locked.
+AUTHORED_IDLE = {"frostpoint", "stillwater_mirror"}
 
 
 def load(path):
@@ -96,6 +103,10 @@ def main():
             continue
         base = load(base_path)
         for frame_path in sorted(glob.glob(os.path.join(root, f"tower_{tid}_*_*.png"))):
+            if tid in AUTHORED_IDLE and "_idle_" in os.path.basename(frame_path):
+                if args.report:
+                    print(f"{os.path.basename(frame_path):36s} authored, left as it is")
+                continue
             frame = load(frame_path)
             if frame.shape != base.shape:
                 print(f"skip {os.path.basename(frame_path)}: size differs", file=sys.stderr)
