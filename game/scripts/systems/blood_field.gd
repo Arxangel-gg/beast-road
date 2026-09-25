@@ -16,6 +16,14 @@ extends Node2D
 ##
 ## Redrawn at a fixed low rate rather than every frame. Fading takes many
 ## seconds; ten steps a second is invisible as motion and is a tenth of the work.
+##
+## **And the fade is the shader's, as of 2026-09-25** (owner: "shader fade for
+## ground blood"). The mesh used to be rebuilt ten times a second while any
+## mark was fading, each rebuild a fresh triangle array for the renderer to
+## upload. Now each vertex carries its mark's birth and life, `blood_ground`
+## works out the fade and the drying from the field's own clock, and the mesh
+## is rebuilt only when a mark is laid - an expired mark is invisible already,
+## so it is dropped at the next rebuild rather than causing one.
 
 ## The oldest marks are dropped first. Generous enough that a long fight leaves a
 ## real trail, bounded so a whole act cannot accumulate into a slideshow.
@@ -26,7 +34,17 @@ const REDRAW_HZ: float = 10.0
 
 ## One mark: where, how big, its blobs, when it was laid down, how long it lasts.
 var _splats: Array[Dictionary] = []
-var _since_redraw: float = 0.0
+## The field's own clock: the frame's delta times the rain's wash, so a mark's
+## age is `_clock - born` and rain still ages what it falls on faster.
+var _clock: float = 0.0
+## When the last mark laid will have faded, on `_clock`.
+var _last_end: float = 0.0
+var _material: ShaderMaterial = null
+const SHADER_PATH: String = "res://scripts/shaders/blood_ground.gdshader"
+## Starts full, and is refilled whenever the field goes quiet: the first mark
+## after a quiet spell paints at once, and only marks arriving in a burst wait
+## for the clock.
+var _since_redraw: float = 1.0 / REDRAW_HZ
 var _rain_wash: float = 1.0
 ## A mark laid since the last repaint. The field repaints on `REDRAW_HZ`
 ## and never per mark (2026-09-24): every landing droplet used to queue a
@@ -42,6 +60,15 @@ func _ready() -> void:
 	add_to_group(Graphics.FILTER_GROUP)
 	EventBus.weather_changed.connect(_on_weather_changed)
 	_on_weather_changed(RunState.weather_id)
+	if ResourceLoader.exists(SHADER_PATH):
+		_material = ShaderMaterial.new()
+		_material.shader = load(SHADER_PATH) as Shader
+		_material.set_shader_parameter("hold", Balance.BLOOD_HOLD)
+		_material.set_shader_parameter("ground_alpha", Balance.BLOOD_GROUND_ALPHA)
+		_material.set_shader_parameter("fresh", Balance.BLOOD_FRESH)
+		_material.set_shader_parameter("dry", Balance.BLOOD_DRY)
+		_material.set_shader_parameter("clock", _clock)
+		material = _material
 	set_process(false)
 
 
@@ -88,7 +115,7 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	_splats.append({
 		"at": at,
 		"blobs": blobs,
-		"age": 0.0,
+		"born": _clock,
 		# Life is an authored promise now: every mark that is not displaced by the
 		# bounded field survives the full ten-minute memory window. Randomising it
 		# below one quietly turned "600 seconds" into as little as eight minutes.
@@ -112,7 +139,7 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 			"r": maxf(radius * rng.randf_range(0.78, 1.22), 1.4),
 			"seed": rng.randf() * 1000.0,
 			"long": Vector2.ZERO}],
-		"age": 0.0,
+		"born": _clock,
 		"life": Balance.BLOOD_GROUND_LIFE,
 		"tone": rng.randf(),
 	})
@@ -124,6 +151,7 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 ## A mark arrived: repaint now if the clock allows, otherwise with the next
 ## tick of it.
 func _touch() -> void:
+	_last_end = maxf(_last_end, _clock + Balance.BLOOD_GROUND_LIFE)
 	set_process(true)
 	if _since_redraw >= 1.0 / REDRAW_HZ:
 		_since_redraw = 0.0
@@ -133,9 +161,15 @@ func _touch() -> void:
 		_dirty = true
 
 
-## How many marks the field is holding. For the gate.
+## How many marks are still showing. For the gate. Counted rather than taken
+## from the array's size, because an expired mark stays in it until the next
+## rebuild drops it.
 func marks() -> int:
-	return _splats.size()
+	var showing: int = 0
+	for splat: Dictionary in _splats:
+		if _clock - float(splat["born"]) < float(splat["life"]):
+			showing += 1
+	return showing
 
 
 ## Current ageing rate, exposed for the release gate.
@@ -147,22 +181,23 @@ func wash_multiplier() -> float:
 func wipe() -> void:
 	_splats.clear()
 	set_process(false)
+	_since_redraw = 1.0 / REDRAW_HZ
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
-	var alive: Array[Dictionary] = []
-	for splat: Dictionary in _splats:
-		splat["age"] = float(splat["age"]) + delta * _rain_wash
-		if float(splat["age"]) < float(splat["life"]):
-			alive.append(splat)
-	_splats = alive
-	if _splats.is_empty():
+	_clock += delta * _rain_wash
+	if _material != null:
+		_material.set_shader_parameter("clock", _clock)
+	if _clock >= _last_end:
+		# Everything has faded: drop it all, draw the empty field once, rest.
+		_splats.clear()
 		set_process(false)
+		_since_redraw = 1.0 / REDRAW_HZ
 		queue_redraw()
 		return
 	_since_redraw += delta
-	if _since_redraw >= 1.0 / REDRAW_HZ:
+	if _dirty and _since_redraw >= 1.0 / REDRAW_HZ:
 		_since_redraw = 0.0
 		_dirty = false
 		queue_redraw()
@@ -179,30 +214,40 @@ func _draw_measured() -> void:
 	var points := PackedVector2Array()
 	var colours := PackedColorArray()
 	var indices := PackedInt32Array()
+	var uvs := PackedVector2Array()
+	var kept: Array[Dictionary] = []
 	for splat: Dictionary in _splats:
+		var born: float = float(splat["born"])
 		var life: float = maxf(float(splat["life"]), 0.01)
-		var t: float = clampf(float(splat["age"]) / life, 0.0, 1.0)
-		# Holds, then goes. Blood does not begin fading the instant it lands, and
-		# a mark that starts disappearing immediately never reads as a stain.
-		var alpha: float = Balance.BLOOD_GROUND_ALPHA \
-			* (1.0 - smoothstep(Balance.BLOOD_HOLD, 1.0, t))
-		if alpha <= 0.004:
+		if _clock - born >= life:
 			continue
-		# Darkens as it dries, which is what sells it as old rather than merely
-		# transparent.
-		var tone: Color = Balance.BLOOD_FRESH.lerp(Balance.BLOOD_DRY,
-			clampf(t * 1.4, 0.0, 1.0) * 0.85 + float(splat["tone"]) * 0.15)
-		tone.a = alpha
+		kept.append(splat)
+		# The fade and the drying are the shader's (see `blood_ground`): what the
+		# vertex carries is the mark's shade roll in red and the blob's own shape
+		# in alpha, and its birth and life in the UV.
+		var carrier := Color(float(splat["tone"]), 0.0, 0.0, 1.0)
 		var origin: Vector2 = to_local(splat["at"] as Vector2)
 		for blob: Variant in (splat["blobs"] as Array):
 			var one: Dictionary = blob
 			BloodInk.blob(points, colours, indices, origin + (one["at"] as Vector2),
-				float(one["r"]), tone, float(one.get("seed", 0.0)),
+				float(one["r"]), carrier, float(one.get("seed", 0.0)),
 				one.get("long", Vector2.ZERO) as Vector2)
+		while uvs.size() < points.size():
+			uvs.append(Vector2(born, life))
+	_splats = kept
+	if points.is_empty() or indices.is_empty():
+		return
+	if _material == null:
+		# No shader on disk: the mark is drawn at its laying shade and never
+		# fades, which is a stain rather than nothing.
+		for index: int in colours.size():
+			var c: Color = colours[index]
+			colours[index] = Color(Balance.BLOOD_FRESH, c.a * Balance.BLOOD_GROUND_ALPHA)
 	# One draw call for the whole field, which is the reason this is a single
 	# node in the first place - a soft blob is three triangles a rim vertex, and
 	# spending a draw call each would undo that.
-	BloodInk.paint(self, points, colours, indices)
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
+		indices, points, colours, uvs)
 
 
 ## `FrameProfile` bucket "blood_ground": the real work is `_draw_measured` above.

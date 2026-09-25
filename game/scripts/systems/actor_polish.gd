@@ -22,6 +22,8 @@ static func attach(sprite: CanvasItem) -> ShaderMaterial:
 	material.set_shader_parameter("impact_colour", Balance.IMPACT_RIM_COLOUR)
 	material.set_shader_parameter("impact_strength", 0.0)
 	sprite.material = material
+	# A body turned to the light (2026-09-25); a tower sets its own after this.
+	ActorShade.dress(material, sprite)
 	return material
 
 

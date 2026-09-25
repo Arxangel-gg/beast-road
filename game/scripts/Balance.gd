@@ -4198,9 +4198,23 @@ const TOWER_LIGHT_HEIGHT: float = 260.0
 ## The sun's relief on the towers by day (`SunRelief`): no flat surface is lit,
 ## only what faces the sun, scaled by how light the hour is.
 const SUN_RELIEF_ENERGY: float = 0.75
-## The light-mask bit only a shaded tower carries, so the sun reaches nothing
-## else in the game.
+## The light-mask bit only a shaded actor carries, so the sun reaches nothing
+## else in the game. Towers from 2026-09-23, bodies from 2026-09-25.
 const SUN_RELIEF_LAYER: int = 1 << 9
+
+## **Bodies shade with the light too** (owner, 2026-09-25: "shaded bodies
+## wanted"). An enemy, the Warden, an animal and a companion read the relief off
+## their own painting as a tower does, at the tower's strength and a slightly
+## shorter reach, because a body has limbs rather than walls. Tuned on
+## `shade_probe --body`: a softer first cut (0.8 strength, 1.9 gain) moved a lit
+## body's two halves by under a percent, which no player would see.
+## `ActorShade.dress` is the one place these are set, and it sets nothing on Low
+## or below - eight more texture reads a pixel is what a weak machine gives away
+## first.
+const BODY_SHADE_STRENGTH: float = 1.0
+const BODY_SHADE_RELIEF: float = 3.6
+const BODY_SHADE_REACH: float = 8.0
+const BODY_SHADE_GAIN: float = 2.2
 
 ## **Bloom** (2026-09-24, from the forwarded VFX videos): bright things bleed
 ## light into the dark around them, inside the colour grade's own pass. The

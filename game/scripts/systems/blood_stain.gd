@@ -63,6 +63,8 @@ static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
 	# declared default, so the first `drive` would be doing arithmetic on nothing.
 	material.set_shader_parameter("stain", 0.0)
 	sprite.material = material
+	# A body turned to the light (2026-09-25). See `ActorShade`.
+	ActorShade.dress(material, sprite)
 	return material
 
 

@@ -212,6 +212,15 @@ func _check_the_night_lights(run: Node) -> void:
 				"a tower does not shade with the light")
 			_check(tower.sprite.light_mask & Balance.SUN_RELIEF_LAYER != 0,
 				"a shaded tower does not carry the sun's layer, so the sun never reaches it")
+		# The Warden turns to the light too (2026-09-25), at a body's strength.
+		var warden: Hero = field.hero
+		if warden != null and Graphics.polish_shaders():
+			var worn := warden.sprite.material as ShaderMaterial
+			_check(worn != null and is_equal_approx(float(worn.get_shader_parameter(
+				"shade_strength")), Balance.BODY_SHADE_STRENGTH),
+				"the Warden does not shade with the light")
+			_check(warden.sprite.light_mask & Balance.SUN_RELIEF_LAYER != 0,
+				"the Warden does not carry the sun's layer")
 		var own_light: PointLight2D = tower.get("_light") as PointLight2D
 		_check(own_light != null and is_equal_approx(own_light.height, Balance.TOWER_LIGHT_HEIGHT),
 			"a tower's own light is not raised above it, so it shades the tower from its own foot")
@@ -375,12 +384,28 @@ func _check_the_leather() -> void:
 	var shader: String = FileAccess.get_file_as_string("res://scripts/shaders/warden_look.gdshaderinc")
 	_check(dresser.contains("\"look_leather\"") and shader.contains("uniform float look_leather"),
 		"the leather is saved and packed but never reaches the shader")
-	# Only a tower is shaded: every other body wears the same shader at zero.
+	# **Amended 2026-09-25 (owner: "shaded bodies wanted").** Towers shade at
+	# their own strength and every body at `BODY_SHADE_*`, set in exactly one
+	# place each: `tower.gd` and `ActorShade`. A third writer is a second opinion
+	# about how a body meets the light.
 	for path: String in _scripts("res://scenes") + _scripts("res://scripts"):
-		if path.ends_with("tower.gd"):
+		if path.ends_with("tower.gd") or path.ends_with("actor_shade.gd"):
 			continue
 		if FileAccess.get_file_as_string(path).contains("\"shade_strength\""):
-			_check(false, "%s shades a body that is not a tower - the pilot is towers first" % path)
+			_check(false, ("%s sets a shade strength - bodies are dressed by ActorShade "
+				+ "and towers by tower.gd, and nowhere else") % path)
+	# Both actor shaders read the one light: a body in blood and a body in
+	# polish must turn to it the same way.
+	for shader_path: String in ["res://scripts/shaders/actor_polish.gdshader",
+			"res://scripts/shaders/blood_stain.gdshader"]:
+		var code: String = FileAccess.get_file_as_string(shader_path)
+		_check(code.contains("actor_shade.gdshaderinc") and code.contains("SHADE_NORMAL("),
+			"%s does not shade with the light" % shader_path.get_file())
+	# And the two doors that dress every body actually dress it.
+	for door: String in ["res://scripts/systems/blood_stain.gd",
+			"res://scripts/systems/actor_polish.gd"]:
+		_check(FileAccess.get_file_as_string(door).contains("ActorShade.dress("),
+			"%s attaches a body's material without turning it to the light" % door.get_file())
 
 
 ## The bloom (2026-09-24) rides the grade's pass and reads the screen's mip

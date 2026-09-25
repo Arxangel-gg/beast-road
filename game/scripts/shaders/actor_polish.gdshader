@@ -56,34 +56,11 @@ float aura_noise(vec2 uv) {
 	return low * 0.65 + high * 0.35;
 }
 
-// --- Light direction (2026-09-23) ---------------------------------------------
+// --- Light direction ----------------------------------------------------------
 //
-// Core Keeper's things shade with the light: a torch on the left lights the
-// left of a tower and leaves its right in shadow. Real normal maps would be
-// every frame of every tower drawn a second time; this reads the relief off the
-// painting itself - how its brightness and its silhouette climb and fall across
-// two pixels - which is what the auto-normal tools do, and it follows every
-// frame for free because it reads the frame being drawn.
-//
-// **Zero for everything but a tower**, and at zero `light()` below is the
-// engine's own formula, so nothing else that wears this shader looks any
-// different. The pilot is towers first (owner, 2026-09-23).
-uniform float shade_strength : hint_range(0.0, 1.0) = 0.0;
-// How steep the relief reads as a surface, and how far in from the silhouette
-// it reaches, in source pixels. Measured at two reaches and averaged, so the
-// turn from the lit side to the dark one is a gradient rather than a band.
-uniform float shade_relief = 2.2;
-uniform float shade_reach = 6.0;
-// How far a facet turned to a point light is lit past the plain additive light.
-uniform float shade_gain = 1.4;
-
-// **The form, not the bricks.** Mostly the silhouette with a little of the
-// painting's brightness: read off the brightness alone, every mortar line
-// became a ridge and the tower came out embossed rather than lit - the first
-// photograph of this (2026-09-23) looked like a filter, not like light.
-float relief_of(vec4 c) {
-	return c.a * (0.8 + 0.2 * dot(c.rgb, vec3(0.299, 0.587, 0.114)));
-}
+// In `actor_shade.gdshaderinc` since 2026-09-25, shared with `blood_stain` so
+// bodies shade as towers do. Zero unless `ActorShade.dress` turns it up.
+#include "res://scripts/shaders/actor_shade.gdshaderinc"
 
 // --- Coat --------------------------------------------------------------------
 //
@@ -234,53 +211,10 @@ void fragment() {
 			tex.a * flame * 0.16 * aura_strength);
 	}
 
-	if (shade_strength > 0.001) {
-		// A normal in the canvas's own axes, y down: a facet that falls away to
-		// the right faces right.
-		vec2 slope = vec2(0.0);
-		for (int step = 1; step <= 2; step++) {
-			vec2 w = px * shade_reach * float(step) * 0.5;
-			slope.x += relief_of(texture(TEXTURE, UV - vec2(w.x, 0.0)))
-				- relief_of(texture(TEXTURE, UV + vec2(w.x, 0.0)));
-			slope.y += relief_of(texture(TEXTURE, UV - vec2(0.0, w.y)))
-				- relief_of(texture(TEXTURE, UV + vec2(0.0, w.y)));
-		}
-		// What glows is not shaded: a flame, a crystal, an ember is its own
-		// light, and a dark streak across one reads as soot rather than as form.
-		float hottest = max(tex.r, max(tex.g, tex.b));
-		float spread = hottest - min(tex.r, min(tex.g, tex.b));
-		float glowing = smoothstep(0.6, 0.85, hottest) * smoothstep(0.25, 0.5, spread);
-		NORMAL = vec3(normalize(vec3(slope * 0.5 * shade_relief, 1.0)).xy * (1.0 - glowing), 1.0);
-	}
+	SHADE_NORMAL(tex, UV, px)
 
 	STATE_APPLY_TELEGRAPH(painted, UV, px, tex.a)
 	// Last: a body that is coming apart takes its outline, its aura and its
 	// wind-up with it. Anything applied after this would survive the death.
 	COLOR = state_dissolve(painted, UV, px);
 }
-
-
-// The engine's own light, times how squarely a facet faces it. A light's
-// direction is mostly across the canvas unless it stands high: a torch at the
-// roadside leans hard, and a tower's own light - raised to stand above it
-// (`TOWER_LIGHT_HEIGHT`) - lights it nearly flat, so a tower is not shaded from
-// inside its own foot. A directional light is the sun's relief and nothing else:
-// it lights no flat surface at all and only brightens what faces it and darkens
-// what faces away, so it cannot wash a tower out by day.
-void light() {
-	float lean = 0.0;
-	if (shade_strength > 0.001) {
-		lean = dot(NORMAL.xy, LIGHT_DIRECTION.xy) * shade_strength;
-	}
-	// The side turned away is darkened less than the side turned toward is lit:
-	// a shaded side still reads as the same stone, and the sun darkening a whole
-	// face to black read as a burnt tower.
-	float turned = lean > 0.0 ? lean : lean * 0.45;
-	if (LIGHT_IS_DIRECTIONAL && shade_strength > 0.001) {
-		LIGHT = vec4(COLOR.rgb * LIGHT_COLOR.rgb * LIGHT_ENERGY * turned, LIGHT_COLOR.a);
-	} else {
-		LIGHT = vec4(LIGHT_COLOR.rgb * COLOR.rgb * LIGHT_ENERGY
-			* max(1.0 + turned * shade_gain, 0.0), LIGHT_COLOR.a);
-	}
-}
-

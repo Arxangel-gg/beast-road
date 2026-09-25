@@ -5,6 +5,7 @@ shader_type canvas_item;
 // player reads off a body has to live in both - see the include's header.
 #include "res://scripts/shaders/actor_state.gdshaderinc"
 #include "res://scripts/shaders/warden_look.gdshaderinc"
+#include "res://scripts/shaders/actor_shade.gdshaderinc"
 
 // Blood on a character, as speckle rather than tint.
 //
@@ -102,6 +103,10 @@ void fragment() {
 		// silhouette - blood belongs on the character, not in its bounding box.
 		COLOR.rgb = mix(COLOR.rgb, blood_colour, mask * 0.88 * COLOR.a);
 	}
+	// The body turned to the light (2026-09-25): the same relief towers read,
+	// off the painting rather than off the stained, dyed colour above.
+	vec4 shade_texel = texture(TEXTURE, UV);
+	SHADE_NORMAL(shade_texel, UV, px)
 	// Over everything, including the outline this shader may have written into
 	// a transparent texel: the tell is what has to survive.
 	STATE_APPLY_TELEGRAPH(COLOR, UV, px, body_a)

@@ -43,7 +43,11 @@ func _run() -> void:
 	dark.color = Color(0.18, 0.2, 0.3)
 	root.add_child(dark)
 	_sprite = Sprite2D.new()
-	_sprite.texture = load(TOWER)
+	# `--sprite=` and `--shader=` (2026-09-25): a body in its blood shader is
+	# held to the same three proofs as a tower in its polish, and `--body`
+	# shades it at the body's strength rather than the tower's.
+	var sprite_path: String = _arg("--sprite=")
+	_sprite.texture = load(sprite_path if not sprite_path.is_empty() else TOWER)
 	_sprite.scale = Vector2(2.5, 2.5)
 	_sprite.position = view.get_center()
 	root.add_child(_sprite)
@@ -57,7 +61,9 @@ func _run() -> void:
 	var orig := Shader.new()
 	var orig_path: String = _arg("--orig=")
 	orig.code = FileAccess.get_file_as_string(orig_path)
-	var fresh: Shader = load("res://scripts/shaders/actor_polish.gdshader") as Shader
+	var shader_path: String = _arg("--shader=")
+	var fresh: Shader = load(shader_path if not shader_path.is_empty()
+		else "res://scripts/shaders/actor_polish.gdshader") as Shader
 
 	_light.position = _sprite.position + Vector2(-420.0, -40.0)
 	var old_look: Image = await _shot(orig, 0.0)
@@ -124,10 +130,15 @@ func _shot(shader: Shader, strength: float) -> Image:
 	material.set_shader_parameter("impact_colour", Balance.IMPACT_RIM_COLOUR)
 	material.set_shader_parameter("impact_strength", 0.0)
 	if strength > 0.0:
-		material.set_shader_parameter("shade_strength", strength)
-		material.set_shader_parameter("shade_relief", Balance.TOWER_SHADE_RELIEF)
-		material.set_shader_parameter("shade_reach", Balance.TOWER_SHADE_REACH)
-		material.set_shader_parameter("shade_gain", Balance.TOWER_SHADE_GAIN)
+		var body: bool = OS.get_cmdline_user_args().has("--body")
+		material.set_shader_parameter("shade_strength",
+			strength * (Balance.BODY_SHADE_STRENGTH if body else 1.0))
+		material.set_shader_parameter("shade_relief",
+			Balance.BODY_SHADE_RELIEF if body else Balance.TOWER_SHADE_RELIEF)
+		material.set_shader_parameter("shade_reach",
+			Balance.BODY_SHADE_REACH if body else Balance.TOWER_SHADE_REACH)
+		material.set_shader_parameter("shade_gain",
+			Balance.BODY_SHADE_GAIN if body else Balance.TOWER_SHADE_GAIN)
 	_sprite.material = material
 	for i: int in 4:
 		await process_frame
