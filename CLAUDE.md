@@ -9369,6 +9369,38 @@ it waits a second of wall time as well, eight of eight clean after.
 a fresh one; it prints the equip state it saw when it fails, and the plan's
 earlier diagnosis of it was wrong (`MetaState.equip` takes an index).
 
+**It was never the profile.** The first swing of a gate loads the blade's art,
+and the frame after that load carries a delta longer than the 0.16-second
+blade, so the swing was over before the gate looked. A warm-up swing loads the
+art first and the measured swing is the second. Both paragraphs above that
+blamed the shared profile were wrong about the cause.
+
+**The embers are ink, and the tower is split, as of 2026-09-25 (late).** The
+three items the torch note above left "not rebuilt, and priced" are answered.
+
+- **A flame's embers are records on the additive ink**, shed only while the
+  flame is in view, at the emitter's own rate, spread, speed, rise, size and
+  colour ramp. The first cut stored each as a dictionary aged every tick, and
+  the bisect priced it *above* the emitter it replaced (the flames' tick 1.01
+  ms against 0.87 for the emitter and the old tick together), so the store is
+  a ring of packed arrays keyed by birth: an ember is written once and never
+  touched, its age is the ink's ember clock less its birth, the dead are
+  skipped and dropped from the front. **Photographed at play zoom
+  (`torch_shot --close`)**, and that is what found the second fault: the
+  records faded from birth where the emitter's ramp was whole through the
+  first third, and a torch's share read as two specks.
+- **`perf_bisect --visuals` prices draw calls beside milliseconds** and splits
+  a tower. On a held Act X field at 11.2 ms, a tower's tick is 0.35 ms, its
+  light 0.28 and 21 draws, its ground glow 0.15, its aura 0.04 and its relief
+  shader 0.01 - the shader the plan guessed at is nothing, and no part of a
+  tower is a lever. The torches (1.5 ms, 323 draws) and the flames (1.4 ms)
+  are still the largest rows, and the rest of the table is at the noise floor.
+
+Measured after, the same ninety seconds on the same seed and window: **12.8 ms
+average (78 fps), p99 21.9, worst 37.0, two hitches, 912 draw calls**, against
+13.0 ms and 975 draws before. Act X's peak holds sixty on the machine it was
+tuned on with a quarter of the frame to spare.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

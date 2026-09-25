@@ -173,15 +173,13 @@ Measured and ranked on this machine (`perf_bisect --visuals`, held Act X):
     towers 1.1 ms   embers 0.56   flame_tick 0.31 (now sleeps)
     flame_tongue 0.26   flame_halo 0.17   everything else at noise
 
-1. **The towers**: split them the way the torch was split - rows in the
-   bisect for the sprite, the `actor_polish` relief, the aura, the glow and
-   the light - before touching anything. It is almost certainly the shader.
-2. **The embers**: one `CPUParticles2D` a flame. Ink motes on a cadence, as
-   the torch smoke and the dust went; amend `frame_budget_check`'s
-   "an unseen emitter rests" deliberately.
-3. **Draw calls** (975 at peak, about 4 microseconds each): add a draw-call
-   column to the bisect first (`RenderingServer.get_rendering_info`). Then,
-   if it ranks: atlas the foliage per region through Godot's texture-atlas
+1. ~~**The towers**~~ **Split, 2026-09-25**: tick 0.35 ms, light 0.28, glow
+   0.15, aura 0.04, the relief shader 0.01. Not the shader; no lever.
+2. ~~**The embers**~~ **Built, 2026-09-25**: a ring of packed arrays on the
+   additive ink, photographed with `torch_shot --close`.
+3. **Draw calls** (912 at peak after the above): the bisect prints a draw
+   column now. The torches are 323 of them and the flames' tongues 135. If it
+   ranks: atlas the foliage per region through Godot's texture-atlas
    import (watch edge bleed under linear filtering; photograph), share the
    per-instance shader materials on bodies, towers and loot by moving the
    per-instance value into a channel the shader reads, and render the flame
