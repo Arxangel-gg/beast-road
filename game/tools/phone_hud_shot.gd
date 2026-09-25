@@ -80,7 +80,7 @@ func _ready() -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	await _settle(0.4)
 	var field: Battlefield = _run.battlefield
-	_run.hud._open_build_panel(field.free_anchor_near(0) if field != null else Vector2i.ZERO)
+	_run.hud._open_build_panel(_plot_in_view(field))
 	await _settle(0.6)
 	await _shot("sheet")
 	_print_tree(_run.hud.get("_build_panel") as Control, 0)
@@ -100,23 +100,34 @@ func _ready() -> void:
 		fullest.pressed.emit()
 	await _settle(0.5)
 	await _shot("sheet_list")
+	# The hovered offer's ghost (2026-09-25): the first tower card, hovered the
+	# way a cursor does, standing on the plot inside its reach.
+	for node: Node in _all(_run.hud.get("_build_list") as Node):
+		var card := node as Button
+		# Disabled rows too: a tower the purse cannot reach yet is the one a
+		# player most wants to see the reach of.
+		if card != null and not card.toggle_mode and card.get_child_count() > 0:
+			card.mouse_entered.emit()
+			break
+	await _settle(0.8)
+	await _shot("ghost")
+	# A beat later, so the two pictures can be held against each other: the ghost
+	# and the tooltip both play their idle rather than standing still.
+	await _settle(0.25)
+	await _shot("ghost_b")
 	_run.hud.call("_close_build_panel")
 	# And the traps: the road sheet, on the nearest road tile.
-	var road: Vector2i = Vector2i.ZERO
-	for radius: int in range(2, 40):
-		var found: bool = false
-		for angle: int in range(0, 360, 15):
-			var at := Vector2i(int(cos(deg_to_rad(angle)) * float(radius)),
-				int(sin(deg_to_rad(angle)) * float(radius)))
-			if field.grid.cell_at(at) == BattleGrid.Cell.ROAD:
-				road = at
-				found = true
-				break
-		if found:
-			break
+	var road: Vector2i = _road_in_view(field)
 	_run.hud.call("_open_road_panel", road)
 	await _settle(0.5)
 	await _shot("road")
+	for node: Node in _all(_run.hud.get("_road_list") as Node):
+		var row := node as Button
+		if row != null and row.get_child_count() > 0:
+			row.mouse_entered.emit()
+			break
+	await _settle(0.8)
+	await _shot("road_ghost")
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -176,4 +187,40 @@ func _all(from: Node) -> Array[Node]:
 	for child: Node in from.get_children():
 		out.append_array(_all(child))
 	return out
+
+
+## A road tile the camera can see, left of the middle, for the trap sheet.
+func _road_in_view(field: Battlefield) -> Vector2i:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var to_world: Transform2D = field.get_canvas_transform().affine_inverse()
+	var aim: Vector2i = BattleGrid.world_to_tile(to_world * (view * Vector2(0.36, 0.52)))
+	for radius: int in range(0, 16):
+		for dy: int in range(-radius, radius + 1):
+			for dx: int in range(-radius, radius + 1):
+				if maxi(absi(dx), absi(dy)) != radius:
+					continue
+				var tile: Vector2i = aim + Vector2i(dx, dy)
+				if field.grid.cell_at(tile) == BattleGrid.Cell.ROAD:
+					return tile
+	return aim
+
+
+## A legal plot the camera can see, left of the middle where no sheet stands, so
+## the hovered offer's ghost is in the picture. The lane pocket the gates use is
+## ten paces up the north road, which is off the top of this view.
+func _plot_in_view(field: Battlefield) -> Vector2i:
+	if field == null:
+		return Vector2i.ZERO
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var to_world: Transform2D = field.get_canvas_transform().affine_inverse()
+	var aim: Vector2i = BattleGrid.world_to_tile(to_world * (view * Vector2(0.36, 0.52)))
+	for radius: int in range(0, 12):
+		for dy: int in range(-radius, radius + 1):
+			for dx: int in range(-radius, radius + 1):
+				if maxi(absi(dx), absi(dy)) != radius:
+					continue
+				var tile: Vector2i = aim + Vector2i(dx, dy)
+				if field.placement_problem(tile).is_empty():
+					return tile
+	return field.free_anchor_near(0)
 

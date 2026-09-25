@@ -1089,16 +1089,29 @@ func _hit(enemy: Enemy) -> void:
 
 
 func effective_range() -> float:
-	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) \
-		* path_range_scale() * _support_reach_scale()
+	return reach_for(data, level, _path, origin(), _field)
 
 
-## What the relays in reach do to this tower's reach (2026-09-14). A relay
-## never carries another relay, so the chain stops at one.
-func _support_reach_scale() -> float:
-	if _field == null or data == null or int(data.support) == TowerData.Support.REACH:
-		return 1.0
-	return _field.support_reach_at(origin())
+## **The reach a tower of this kind would have at this level, on this path,
+## standing here** - the one formula, so a tower that is standing and a tower
+## that is only being considered cannot disagree about it (2026-09-25: the build
+## sheet's hover ghost draws this before the Gold is spent).
+static func reach_for(tower_data: TowerData, tower_level: int, path: int, at: Vector2,
+		field: Battlefield) -> float:
+	if tower_data == null:
+		return 0.0
+	var relays: float = 1.0
+	# A relay never carries another relay, so the chain stops at one.
+	if field != null and int(tower_data.support) != TowerData.Support.REACH:
+		relays = field.support_reach_at(at)
+	return tower_data.range_at(tower_level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) \
+		* path_reach_scale(path, tower_level) * relays
+
+
+## This tower's reach one level up, where it stands - what the upgrade row's
+## hover promises.
+func reach_at_level(next_level: int) -> float:
+	return reach_for(data, next_level, _path, origin(), _field)
 
 
 ## What the chosen path does to this tower's reach, capstone included.
@@ -1108,10 +1121,14 @@ func _support_reach_scale() -> float:
 ## its targets and its blast - the dead half of the Focus capstone survived
 ## precisely because reach was the one path number nothing could ask about.
 func path_range_scale() -> float:
-	if _path != TowerData.Path.FOCUS:
+	return path_reach_scale(_path, level)
+
+
+static func path_reach_scale(path: int, tower_level: int) -> float:
+	if path != TowerData.Path.FOCUS:
 		return 1.0
 	var further: float = 1.0 + Balance.TOWER_FOCUS_RANGE
-	if level >= Balance.TOWER_CAPSTONE_LEVEL:
+	if tower_level >= Balance.TOWER_CAPSTONE_LEVEL:
 		further += Balance.TOWER_CAPSTONE_FOCUS_RANGE
 	return further
 

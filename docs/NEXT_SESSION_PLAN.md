@@ -42,6 +42,10 @@ before touching the phone HUD, the sheets or the touch input:
 - Fast-forward costs a quarter of the road's pay; the wheel and the pinch zoom
   the battlefield only; a lost Walk shows a report.
 - Draw calls 950 to 849-870 at Act X (the torch atlas).
+- **A hovered build offer stands on its plot as a see-through ghost, playing
+  its idle, inside a full circle of its reach**, and the tooltip picture plays
+  the idle too; every idle loop had played its rest pose twice. Photographed on
+  desktop; on a landscape phone the plot sits under the sheet.
 
 **Open, in order:**
 
@@ -166,6 +170,10 @@ all four hold sixty on Low.
   name. The Warden was re-founded as a PixelLab character for the dress pilot
   (`Warden (dress pilot)`), so new states are reachable again.
 - **A Guide page for mounts** (`guide_shots` needs the screen).
+- **Idle loops for Frostpoint and the Stillwater Mirror.** Their three idle
+  frames are pixel copies of the base painting, so both towers stand still on
+  the field, in the tooltip and as a build ghost. Regenerate by job URL and run
+  `tools/lock_tower_frames.py`, then check the loop moves (most change ~7%).
 
 ---
 

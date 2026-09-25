@@ -211,6 +211,8 @@ var grid: BattleGrid = null
 
 ## Draws the build footprint under the mouse and turns a click into an anchor.
 var placement: PlacementCursor = null
+## The hovered offer, drawn where it would stand. See `preview_tower`.
+var build_ghost: BuildGhost = null
 
 
 func _ready() -> void:
@@ -251,6 +253,9 @@ func _ready() -> void:
 	placement.name = "PlacementCursor"
 	placement.setup(self)
 	slot_root.add_child(placement)
+	build_ghost = BuildGhost.new()
+	build_ghost.name = "BuildGhost"
+	slot_root.add_child(build_ghost)
 	_build_torches()
 	_build_foliage()
 	_build_ambient_life()
@@ -3003,6 +3008,56 @@ func free_anchor_near(lane: int, search: int = 3) -> Vector2i:
 
 func tower_at_anchor(anchor: Vector2i) -> Tower:
 	return _towers.get(anchor, null) as Tower
+
+
+## **A hovered tower, standing on the plot it would be built on** (owner,
+## 2026-09-25), inside the reach it would have there - asked of
+## `Tower.reach_for`, the formula a built tower's `effective_range` reads, at
+## level one on no path, measured from the point a built tower measures from.
+## The painting is centred where a built tower's is: the plot's own middle.
+func preview_tower(tower_data: TowerData, anchor: Vector2i) -> void:
+	if build_ghost == null or tower_data == null:
+		return
+	var at: Vector2 = BattleGrid.footprint_centre(anchor)
+	build_ghost.show_offer(_ghost_art(tower_data.get_sprite_path()), at, at,
+		Tower.reach_for(tower_data, 1, TowerData.Path.NONE, at, self),
+		TowerData.element_colour(tower_data.element),
+		Vector2.ONE * BattleGrid.TILE * float(BattleGrid.FOOTPRINT),
+		GameData.load_idle_frames(tower_data.get_sprite_path()),
+		Balance.STRUCTURE_IDLE_FRAME_RATE, true)
+
+
+## A hovered trap on the road tile it would be laid on, inside its reach at the
+## level being bought - one for a new trap, the next for a raise.
+func preview_trap(trap_data: TrapData, tile: Vector2i, trap_level: int) -> void:
+	if build_ghost == null or trap_data == null:
+		return
+	var at: Vector2 = BattleGrid.tile_to_world(tile)
+	build_ghost.show_offer(_ghost_art(trap_data.get_sprite_path()), at, at,
+		Trap.radius_for(trap_data, trap_level), trap_data.colour,
+		Vector2.ONE * BattleGrid.TILE,
+		GameData.load_idle_frames(trap_data.get_sprite_path()), Balance.TRAP_FRAME_RATE)
+
+
+## The reach a standing tower would have one level up, round the tower itself:
+## the tower is already there, so the ghost is the circle alone.
+func preview_upgrade(anchor: Vector2i, next_level: int) -> void:
+	var built: Tower = tower_at_anchor(anchor)
+	if build_ghost == null or built == null or not is_instance_valid(built):
+		clear_preview()
+		return
+	build_ghost.show_offer(null, built.origin(), built.origin(),
+		built.reach_at_level(next_level), TowerData.element_colour(built.data.element))
+
+
+func clear_preview() -> void:
+	if build_ghost != null:
+		build_ghost.clear()
+
+
+func _ghost_art(path: String) -> Texture2D:
+	return load(path) as Texture2D if not path.is_empty() and ResourceLoader.exists(path) \
+		else null
 
 
 ## Where a tower's range is measured from, for the ring `CombatTells` draws when

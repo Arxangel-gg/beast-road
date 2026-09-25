@@ -9537,6 +9537,61 @@ per-system totals. The machine was slower, not the build. **Before calling a
 regression, measure the old build now** - a worktree with a copy of `.godot` and
 one `--import` is a few minutes, and it is the only control there is.
 
+**A hovered offer stands on its plot, in its idle, inside its reach, as of
+2026-09-25.** The owner: *"an on-hover visual see-through semi-transparent placed
+in place of the selected tile with its attack range full circle indicator"*, and
+then *"the onhover placement indicator of the tower/trap should also be animated
+in its idle state, same with the tooltip views"*.
+
+`BuildGhost` is one node under the battlefield's slot root, shown while a build
+row, a trap or raise row or an upgrade button is hovered: the offer's painting,
+see-through and washed toward its colour, on the plot or tile it would take,
+with that ground outlined and a full circle of the reach it would have - a
+faint middle, a rim the eye can follow, and a wave leaving the centre so the
+circle reads as live rather than as a mark on the map. **It plays the offer's
+own idle**, its loop at the rate the field plays it (`STRUCTURE_IDLE_FRAME_RATE`
+for a tower, `TRAP_FRAME_RATE` for a trap), and a structure with no loop breathes
+and sways as `Tower._tick_step_wobble` does - so it moves the way the thing it
+promises will move once built.
+
+**The reach is asked, never worked out there.** `Tower.reach_for` and
+`Trap.radius_for` are the statics a built tower's `effective_range` and a laid
+trap's `radius_now` read, split out so the ghost could ask them for a tower that
+does not exist yet - relayed reach included. A ghost with its own arithmetic is a
+second opinion about the number the player is choosing on. `road_sheet_check`
+hovers a real row, **builds the tower**, and holds the ghost against the tower on
+where it stands, where its reach is measured from and how far it goes; the same
+for a trap, laid; and it watches the ghost and the tooltip over a whole loop and
+insists both drew every pose - reading the frames the ghost holds would pass a
+ghost that drew the painting. Planted three ways (the painting drawn over the
+loop, the rest pose doubled, a trap at the tower's rate) and all three named.
+
+**Every idle loop in the game played its rest pose twice.** `GameData.load_idle_frames`
+already hands the base painting back as frame zero, and both the tooltip and
+`Trap._ready` put the painting on the front again - a double beat on every loop
+of every trap on the road and every tooltip in the build sheets. Both take the
+loop whole now.
+
+**Two towers do not move at all, and that is art.** Frostpoint and the Stillwater
+Mirror ship idle frames identical to their base painting, pixel for pixel - so
+on the field, in the tooltip and as a ghost they stand still, and because they
+*have* a loop they do not get the procedural breath a tower without one does.
+Measured: most towers' loops change about 7% of the painting, those two change
+nothing. It wants the two loops regenerated, not a rule in code that second-guesses
+a loop by comparing pixels at load.
+
+**The tooltip is held invisible until its height is real.** The deferred clamp
+could run before the box's container had laid out the wrapped text and read a
+height several times the finished one - photographed: a 285-unit box measured as
+750 and lifted to the top of the screen over the boss readout. It is placed a
+frame later and shown only then.
+
+**A picture and nothing else**: the ghost reads nothing into the fight, rolls no
+dice and sends nothing over the wire; each machine draws its own player's hover.
+On a landscape phone the plot usually sits under the build sheet and a tap buys
+at once, so it is a desktop feature in practice. Barricades have none,
+deliberately: which way a barricade faces is decided on the node as it is laid.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

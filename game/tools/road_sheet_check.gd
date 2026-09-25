@@ -134,6 +134,8 @@ func _ready() -> void:
 	await _test_a_tap_in_a_stick_zone_opens_the_sheet()
 	_test_command_and_preparation_never_share_the_screen()
 	await _test_an_announcement_waits_for_the_sheet()
+	await _test_a_hovered_tower_stands_where_it_would()
+	await _test_a_hovered_trap_lies_where_it_would()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -659,6 +661,172 @@ func _test_an_announcement_waits_for_the_sheet() -> void:
 	_check(card != null and card.visible and title != null and title.text == "HELD CARD",
 		"a held announcement must be shown when the sheet closes")
 	_hud.call("_clear_region_card")
+
+
+## **A hovered tower stands where it would stand, inside the reach it would
+## have** (owner, 2026-09-25). Hovered through the row's own `mouse_entered`,
+## then **built**, and the ghost held against the real thing: where its
+## painting stands, where its reach is measured from, and how far it reaches.
+## A ghost with arithmetic of its own would pass a check that read the ghost
+## alone, and it would be a promise the tower does not keep.
+func _test_a_hovered_tower_stands_where_it_would() -> void:
+	_hud.call("_close_road_panel")
+	await _open_build_sheet()
+	var ghost: BuildGhost = _field.build_ghost
+	_check(ghost != null, "the battlefield has no build ghost")
+	if ghost == null:
+		return
+	var anchor: Vector2i = _hud.get("_selected")
+	var picked: TowerData = null
+	var row: Button = null
+	for candidate: Button in _rows_of(_hud.get("_build_list") as Control):
+		if candidate.toggle_mode or candidate.disabled:
+			continue
+		for tower: TowerData in ContentDB.unlocked_base_towers():
+			if candidate.text == tower.display_name and not tower.is_well():
+				picked = tower
+				row = candidate
+				break
+		if row != null:
+			break
+	_check(row != null, "the build sheet offered no tower row to hover")
+	if row == null:
+		return
+	row.mouse_entered.emit()
+	await _for_seconds(0.05)
+	_check(ghost.showing() and ghost.texture != null,
+		"hovering %s showed no ghost of it" % picked.display_name)
+	# **It stands in its idle, and so does its picture** (owner, 2026-09-25: "the
+	# onhover placement indicator of the tower/trap should also be animated in its
+	# idle state, same with the tooltip views"). Both are watched over a whole
+	# loop rather than read: a ghost handed the frames and drawing the painting
+	# would pass a check that counted the frames it holds.
+	var loop: Array[Texture2D] = GameData.load_idle_frames(picked.get_sprite_path())
+	_check(ghost.frames.size() == loop.size()
+			and is_equal_approx(ghost.frame_rate, Balance.STRUCTURE_IDLE_FRAME_RATE),
+		"the ghost of %s holds %d idle frames at %.1f a second, not its own %d at %.1f"
+			% [picked.display_name, ghost.frames.size(), ghost.frame_rate, loop.size(),
+				Balance.STRUCTURE_IDLE_FRAME_RATE])
+	var tooltip_frames: Array[Texture2D] = _hud.get("_tooltip_frames")
+	_check(tooltip_frames.size() == loop.size(),
+		"the %s tooltip plays %d frames of a %d-frame idle - the rest pose twice a loop"
+			% [picked.display_name, tooltip_frames.size(), loop.size()])
+	if loop.size() > 1:
+		var picture: TextureRect = _hud.get("_build_tooltip_picture") as TextureRect
+		var ghost_poses: Dictionary = {}
+		var tooltip_poses: Dictionary = {}
+		var span: float = float(loop.size()) / minf(Balance.STRUCTURE_IDLE_FRAME_RATE,
+			Balance.BUILD_TOOLTIP_FRAME_RATE) + 0.4
+		var waited: float = 0.0
+		while waited < span:
+			ghost_poses[ghost.pose()] = true
+			if picture != null:
+				tooltip_poses[picture.texture] = true
+			await get_tree().process_frame
+			waited += get_process_delta_time()
+		_check(ghost_poses.size() >= loop.size(),
+			"the ghost of %s drew %d of its %d idle poses in %.1fs"
+				% [picked.display_name, ghost_poses.size(), loop.size(), span])
+		_check(tooltip_poses.size() >= loop.size(),
+			"the %s tooltip showed %d of its %d idle poses in %.1fs"
+				% [picked.display_name, tooltip_poses.size(), loop.size(), span])
+	var plot: Vector2 = BattleGrid.footprint_centre(anchor)
+	_check(ghost.reach_at.distance_to(plot) < 0.5 and ghost.reach > 0.0,
+		"the ghost of %s measures its reach from %s, not from the plot at %s"
+			% [picked.display_name, ghost.reach_at, plot])
+	row.mouse_exited.emit()
+	await _for_seconds(0.05)
+	_check(not ghost.showing(), "the ghost stayed after the cursor left the row")
+
+	# The promise, then the tower.
+	row.mouse_entered.emit()
+	await _for_seconds(0.05)
+	var promised_at: Vector2 = ghost.sprite_at
+	var promised_from: Vector2 = ghost.reach_at
+	var promised_reach: float = ghost.reach
+	var refusal: String = _field.try_build(anchor, picked)
+	await _for_seconds(0.2)
+	_check(refusal.is_empty(), "the hovered %s could not be built: %s" % [picked.display_name,
+		refusal])
+	var built: Tower = _field.tower_at_anchor(anchor)
+	if built != null:
+		_check(built.origin().distance_to(promised_from) < 1.0,
+			"%s measures its reach from %s where its ghost promised %s"
+				% [picked.display_name, built.origin(), promised_from])
+		_check(absf(built.effective_range() - promised_reach) < 0.5,
+			"%s reaches %.1f where its ghost promised %.1f"
+				% [picked.display_name, built.effective_range(), promised_reach])
+		# At rest: a fresh tower rises out of its foundation and then breathes,
+		# so where it *stands* is its sprite's home, not this frame's sprite.
+		var rest: Vector2 = built.to_global(built.get("_sprite_home") as Vector2)
+		_check(rest.distance_to(promised_at) < 1.0,
+			"%s stands at %s where its ghost stood at %s"
+				% [picked.display_name, rest, promised_at])
+	else:
+		_check(false, "nothing stood on the plot after building %s" % picked.display_name)
+	# Building refreshed the sheet under the cursor, and that door clears it too.
+	_check(not ghost.showing(), "the ghost outlived the row it belonged to")
+	_field.try_sell(anchor)
+	_hud.call("_close_build_panel")
+	await _for_seconds(0.1)
+
+
+## The same promise for a trap: hovered on the road sheet, laid, and held against
+## the laid trap's own `radius_now` and place. Closing the sheet clears it.
+func _test_a_hovered_trap_lies_where_it_would() -> void:
+	await _open_road_sheet()
+	var ghost: BuildGhost = _field.build_ghost
+	var tile: Vector2i = _hud.get("_road_tile")
+	var picked: TrapData = null
+	var row: Button = null
+	for candidate: Button in _rows_of(_hud.get("_road_list") as Control):
+		for trap: TrapData in ContentDB.trap_kinds():
+			if candidate.text == trap.display_name:
+				picked = trap
+				row = candidate
+				break
+		if row != null:
+			break
+	_check(row != null, "the road sheet offered no trap row to hover")
+	if row == null or ghost == null:
+		return
+	row.mouse_entered.emit()
+	await _for_seconds(0.05)
+	var at: Vector2 = BattleGrid.tile_to_world(tile)
+	_check(ghost.showing() and ghost.texture != null and ghost.reach > 0.0,
+		"hovering %s showed no ghost with a reach" % picked.display_name)
+	var trap_loop: Array[Texture2D] = GameData.load_idle_frames(picked.get_sprite_path())
+	_check(ghost.frames.size() == trap_loop.size()
+			and is_equal_approx(ghost.frame_rate, Balance.TRAP_FRAME_RATE),
+		"the ghost of %s holds %d idle frames at %.1f a second, not its own %d at %.1f"
+			% [picked.display_name, ghost.frames.size(), ghost.frame_rate, trap_loop.size(),
+				Balance.TRAP_FRAME_RATE])
+	var promised_from: Vector2 = ghost.reach_at
+	var promised_reach: float = ghost.reach
+	_check(promised_from.distance_to(at) < 0.5,
+		"the ghost of %s lies at %s, not on its tile at %s"
+			% [picked.display_name, promised_from, at])
+	var refusal: String = _field.try_place_trap(tile, picked)
+	await _for_seconds(0.2)
+	var laid: Trap = (_field.get("_traps") as Dictionary).get(tile, null) as Trap
+	if refusal.is_empty() and laid != null:
+		_check(absf(laid.radius_now() - promised_reach) < 0.5,
+			"%s reaches %.1f where its ghost promised %.1f"
+				% [picked.display_name, laid.radius_now(), promised_reach])
+		_check(laid.global_position.distance_to(promised_from) < 1.0,
+			"%s lies at %s where its ghost promised %s"
+				% [picked.display_name, laid.global_position, promised_from])
+	else:
+		_check(false, "the hovered %s could not be laid: %s" % [picked.display_name, refusal])
+	RunState.clear_trap(tile)
+	await _open_road_sheet()
+	for candidate: Button in _rows_of(_hud.get("_road_list") as Control):
+		if candidate.text == picked.display_name:
+			candidate.mouse_entered.emit()
+	await _for_seconds(0.05)
+	_hud.call("_close_road_panel")
+	await _for_seconds(0.05)
+	_check(not ghost.showing(), "the ghost stayed after the road sheet closed")
 
 
 func _for_seconds(seconds: float) -> void:

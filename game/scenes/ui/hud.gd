@@ -836,6 +836,8 @@ func _process_measured(delta: float) -> void:
 		or (_road_panel != null and _road_panel.visible)
 	if sheet_open != _sheet_was_open:
 		_refresh_minimap_visible()
+		if not sheet_open:
+			_clear_offer_preview()
 	if _nav_bar != null:
 		_live_nav_rect = _nav_bar.get_global_rect() if _nav_bar.is_visible_in_tree() else Rect2()
 		_live_nav_columns = _nav_bar.columns
@@ -873,6 +875,7 @@ func _process_measured(delta: float) -> void:
 	_tick_fps(delta)
 	_tick_party_prompt(delta)
 	_tick_tooltip_picture(delta)
+	_tick_tooltip_settle()
 	# A slow warm breath rather than a flash: the player is being told an
 	# option exists, not alarmed. Driven here because the refresh that
 	# decides urgency runs on events, and a pulse has to run on frames.
@@ -2804,12 +2807,14 @@ func _refresh_road_panel() -> void:
 					cost,
 					func() -> void: _report(battlefield.try_upgrade_trap(_road_tile)),
 					standing.get_sprite_path(),
-					_trap_tooltip(standing, level + 1))
+					_trap_tooltip(standing, level + 1),
+					func() -> void: battlefield.preview_trap(standing, _road_tile, level + 1))
 	else:
 		for trap: TrapData in ContentDB.trap_kinds():
 			_add_road_row(trap.display_name, trap.description, trap.cost,
 				func() -> void: _report(battlefield.try_place_trap(_road_tile, trap)),
-				trap.get_sprite_path(), _trap_tooltip(trap))
+				trap.get_sprite_path(), _trap_tooltip(trap),
+				func() -> void: battlefield.preview_trap(trap, _road_tile, 1))
 		for value: Variant in ContentDB.barricades.values():
 			var barricade := value as BarricadeData
 			if barricade == null:
@@ -2826,7 +2831,8 @@ func _refresh_road_panel() -> void:
 
 ## One offer on the road sheet.
 func _add_road_row(name: String, description: String, cost: Dictionary,
-		on_press: Callable, picture: String = "", figures: String = "") -> void:
+		on_press: Callable, picture: String = "", figures: String = "",
+		preview: Callable = Callable()) -> void:
 	var row: Button = _add_button(_road_list, name, func() -> void:
 		on_press.call()
 		_refresh_road_panel())
@@ -2846,7 +2852,11 @@ func _add_road_row(name: String, description: String, cost: Dictionary,
 	# a trap's numbers and its picture (owner brief, 2026-09-12). Godot's own
 	# tooltip opened at the cursor, over the rows being compared.
 	var text: String = description if figures.is_empty() else "%s\n%s" % [description, figures]
-	row.mouse_entered.connect(func() -> void: _show_build_tooltip(text, row, picture))
+	row.mouse_entered.connect(func() -> void:
+		_show_build_tooltip(text, row, picture)
+		# A trap on its tile, inside its reach (2026-09-25); a wall has none.
+		if preview.is_valid():
+			preview.call())
 	row.mouse_exited.connect(func() -> void: _hide_build_tooltip())
 
 
@@ -3042,6 +3052,34 @@ func _show_build_tooltip(text: String, near: Control, picture: String = "") -> v
 	# The height is not known until the box has been laid out with this text, and
 	# a row near the bottom of a tall panel would otherwise hang off the screen.
 	_clamp_build_tooltip.call_deferred(row_top)
+	# **And once more when the height is real** (2026-09-25). The deferred clamp
+	# can run before the box's container has laid out the wrapped text, and
+	# read a height several times the finished one - photographed: a 285-unit
+	# box measured as 750, "overlapped" the Preparation card it was nowhere
+	# near, and was lifted to the top of the screen over the boss readout. It
+	# is held invisible until it has settled, so it never shows in the wrong place.
+	_build_tooltip.modulate.a = 0.0
+	_tooltip_settle_top = row_top
+	# Two ticks: a hover that arrives with the input is ticked once in the same
+	# frame, before the container has sorted, and a wrapped label wants two sorts.
+	_tooltip_settle_frames = 2
+
+
+## The row a held tooltip belongs to and the frames left before it is placed.
+## Counted in the HUD's own tick rather than awaited: a coroutine resumed after
+## the HUD is freed is an engine error, and a later hover simply overwrites both.
+var _tooltip_settle_top: float = 0.0
+var _tooltip_settle_frames: int = 0
+
+
+func _tick_tooltip_settle() -> void:
+	if _tooltip_settle_frames <= 0:
+		return
+	_tooltip_settle_frames -= 1
+	if _tooltip_settle_frames > 0 or _build_tooltip == null or not _build_tooltip.visible:
+		return
+	_clamp_build_tooltip(_tooltip_settle_top)
+	_build_tooltip.modulate.a = 1.0
 
 
 ## Pulls the box back inside the viewport once its height is known.
@@ -3166,6 +3204,15 @@ func _hide_build_tooltip() -> void:
 	if _build_tooltip != null:
 		_build_tooltip.visible = false
 	_tooltip_frames.clear()
+	# The hovered offer's ghost goes with its figures: every way a row stops
+	# being hovered - the cursor leaving, the sheet refreshing under it, the
+	# sheet closing - already comes through here.
+	_clear_offer_preview()
+
+
+func _clear_offer_preview() -> void:
+	if battlefield != null:
+		battlefield.clear_preview()
 
 
 ## The panel a row belongs to: the first PanelContainer above it.
@@ -3194,9 +3241,10 @@ func _set_tooltip_picture(path: String) -> void:
 	var art: Texture2D = load(path) as Texture2D
 	_build_tooltip_picture.texture = art
 	_build_tooltip_picture.visible = art != null
+	# The loader hands the base back as frame zero, so the loop is taken whole:
+	# appending the painting first played the rest pose twice a loop.
 	var loop: Array[Texture2D] = GameData.load_idle_frames(path)
 	if not loop.is_empty():
-		_tooltip_frames.append(art)
 		_tooltip_frames.append_array(loop)
 		_tooltip_frame_clock = 0.0
 
@@ -5500,6 +5548,11 @@ func _refresh_build_panel() -> void:
 			IconKit.on_button(button, "upgrade", 22)
 			_attach_price(button, {RunState.GOLD: cost}, afford)
 			button.disabled = not afford
+			# The reach one level up, round the tower that is already there.
+			var next_level: int = level + 1
+			button.mouse_entered.connect(func() -> void:
+				battlefield.preview_upgrade(anchor, next_level))
+			button.mouse_exited.connect(_clear_offer_preview)
 			if not afford:
 				_build_list.add_child(_label("Need %d more Gold." % (
 					cost - RunState.currency(RunState.GOLD)), 13))
@@ -5902,7 +5955,11 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	var figures: String = _tower_tooltip(tower, cost_map)
 	button.mouse_entered.connect(func() -> void:
 		_show_build_detail(blurb if affordable else "%s\nInsufficient currency." % blurb)
-		_show_build_tooltip(figures, button, tower.get_sprite_path()))
+		_show_build_tooltip(figures, button, tower.get_sprite_path())
+		# Standing on the plot, inside its reach (2026-09-25). Cleared by the
+		# same door the figures box is - see `_hide_build_tooltip`.
+		if battlefield != null:
+			battlefield.preview_tower(tower, anchor))
 	button.mouse_exited.connect(func() -> void:
 		_show_build_detail("")
 		_hide_build_tooltip())

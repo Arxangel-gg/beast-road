@@ -54,9 +54,10 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		_sprite.texture = load(path)
 		# An idle loop dropped beside the art plays (2026-09-12).
+		# The loader already hands the base painting back as frame zero
+		# (`GameData._load_sequence`); putting it on the front again held the
+		# rest pose for a double beat on every loop (2026-09-25).
 		_frames = GameData.load_idle_frames(path)
-		if not _frames.is_empty():
-			_frames.push_front(_sprite.texture)
 	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	add_child(_sprite)
@@ -168,6 +169,16 @@ func damage_now() -> float:
 
 ## How far it reaches at its level. A raised trap covers a little more road,
 ## which is most of what makes the last levels worth the Gold.
+## What a trap of this kind reaches at `trap_level` - the one formula, shared by a
+## laid trap and the road sheet's hover ghost (2026-09-25), so a promise and a
+## trap cannot disagree about how much road it covers.
+static func radius_for(trap_data: TrapData, trap_level: int) -> float:
+	if trap_data == null:
+		return 0.0
+	return trap_data.radius \
+		* Balance.TRAP_LEVEL_RADIUS[clampi(trap_level - 1, 0, Balance.TRAP_MAX_LEVEL - 1)]
+
+
 func radius_now() -> float:
 	return data.radius * Balance.TRAP_LEVEL_RADIUS[_level_index()]
 

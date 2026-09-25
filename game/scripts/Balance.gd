@@ -3950,6 +3950,29 @@ const RANGE_RING_SEGMENTS: int = 48
 ## The rings are repainted at this rate rather than every frame; a ring
 ## following a body at thirty a second is a ring following a body.
 const RANGE_RING_REDRAW_HZ: float = 30.0
+
+## **A hovered offer stands where it would stand** (owner, 2026-09-25). See
+## `BuildGhost`. Above the placement cursor, so the promise is never under the
+## plot outline it is a promise about.
+const BUILD_GHOST_Z: int = 6
+## The painting's alpha breathes between these, over this many seconds -
+## see-through enough that the ground and anything standing there still read.
+const BUILD_GHOST_ALPHA_MIN: float = 0.36
+const BUILD_GHOST_ALPHA_MAX: float = 0.58
+const BUILD_GHOST_BREATHE_SECONDS: float = 1.6
+## How far the painting is washed toward its colour: a promise, not a tower.
+const BUILD_GHOST_WASH: float = 0.22
+## The reach: fill alpha at the centre and at the rim, the rim line, the wave
+## that leaves the centre, and how round the circle is drawn.
+const BUILD_GHOST_FILL_CENTRE: float = 0.03
+const BUILD_GHOST_FILL_RIM: float = 0.15
+const BUILD_GHOST_RIM_ALPHA: float = 0.72
+const BUILD_GHOST_RIM_WIDTH: float = 3.0
+const BUILD_GHOST_WAVE_SECONDS: float = 1.5
+const BUILD_GHOST_SEGMENTS: int = 72
+## The plot or tile it would stand on: a wash and an outline.
+const BUILD_GHOST_PLOT_FILL: float = 0.14
+const BUILD_GHOST_PLOT_LINE: float = 0.62
 ## Flattened, because the camera looks down and slightly along and a true
 ## circle on the ground reads as a hoop standing up.
 const RANGE_RING_SQUASH: float = 0.58
