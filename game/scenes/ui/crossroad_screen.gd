@@ -753,6 +753,9 @@ func _tick_holograms(delta: float) -> void:
 ## two formats for one table of numbers is how a card ends up promising "+0.18
 ## chain targets".
 static func effect_figure(effect_id: String, magnitude: float) -> String:
+	# A keystone moves no number, so it says what it is instead of "+100%".
+	if effect_id.begins_with("keystone_"):
+		return "Keystone"
 	if effect_id == "chain_targets" or effect_id == "wave_foresight":
 		return "%+d" % int(round(magnitude))
 	return "%+d%%" % int(round(magnitude * 100.0))
@@ -1186,7 +1189,12 @@ func open_road_card_choice() -> void:
 func _replacement_for(card: RoadCardData) -> String:
 	for held: String in RunState.road_cards:
 		var other: RoadCardData = ContentDB.road_card(held)
-		if other != null and other.effect_id == card.effect_id:
+		if other == null:
+			continue
+		# A keystone replaces the keystone held, whatever it re-routes.
+		if card.keystone and other.keystone:
+			return other.display_name
+		if other.effect_id == card.effect_id:
 			return other.display_name
 	return ""
 

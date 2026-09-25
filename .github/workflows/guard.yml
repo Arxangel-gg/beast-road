@@ -396,6 +396,8 @@ jobs:
           # function. If the cap or the one-card-per-key rule can be walked
           # around, twenty crossroads become twenty upgrades and nothing errors.
           check "road cards" --headless --path game res://tools/road_card_check.tscn
+          # A keystone re-routes an effect onto a new trigger and never its size.
+          check "keystones"  --headless --path game res://tools/keystone_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
           # carries on when one will not parse, so the dictionary goes quietly
           # short and every gate over that content keeps passing on what did

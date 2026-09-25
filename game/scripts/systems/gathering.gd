@@ -334,6 +334,25 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 		"")
 
 
+## **Timberwright and Sapper's Due** (keystones, 2026-09-25): a trunk felled
+## mends the towers near it, and a seam emptied rearms the traps near it. The
+## mend is `Tower.repair`, which refuses a tower that has fallen - stone that has
+## fallen stays fallen - and the rearm is the Quartermaster's own door, limited
+## to a place. The host's, because the board and the traps are the host's.
+func _keystone_worked_out(kind: GatherNodeData, at: Vector2) -> void:
+	if Coop.is_guest() or kind == null:
+		return
+	var battlefield := field as Battlefield
+	if battlefield == null:
+		return
+	if kind.craft == "woodcutter" and Modifiers.value(Modifiers.KEYSTONE_TIMBERWRIGHT) > 0.0:
+		for tower: Tower in battlefield.all_towers():
+			if tower != null and tower.origin().distance_to(at) <= Balance.KEYSTONE_WORK_REACH:
+				tower.repair(Balance.KEYSTONE_TIMBER_MEND)
+	if kind.craft == "miner" and Modifiers.value(Modifiers.KEYSTONE_SAPPERS_DUE) > 0.0:
+		RunState.rearm_the_traps(at, Balance.KEYSTONE_WORK_REACH)
+
+
 ## One more of the material for every roll that lands. See
 ## `Balance.GATHER_BONUS_ROLLS`: bounded by the rolls, widened by practice.
 func _extra_from_practice(share: float) -> int:
@@ -421,6 +440,7 @@ func _work_it_out(kind: GatherNodeData) -> void:
 	var rarity: int = clampi(kind.rarity, 0, Balance.GATHER_RESPAWN_SECONDS.size() - 1)
 	_nodes[index]["cooldown"] = Balance.GATHER_RESPAWN_SECONDS[rarity]
 	var at: Vector2 = _nodes[index]["at"] as Vector2
+	_keystone_worked_out(kind, at)
 	Vfx.dust(at, Color(0.44, 0.38, 0.3), 12, 60.0)
 	Vfx.ring(at, 70.0, Color(_spark_colour(kind), 0.6), 0.35, 4.0)
 	# Said on the node as well as in the log: the log is at the edge of the

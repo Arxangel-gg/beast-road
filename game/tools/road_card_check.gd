@@ -34,6 +34,10 @@ const EXPECTED_TESTS: int = 6
 ## to agree about what "counted" means and neither owns the other.
 const COUNTED_KEYS: Array[String] = [
 	Modifiers.CHAIN_TARGETS, Modifiers.WAVE_FORESIGHT,
+	# Keystones are flags, read as "one or more" (2026-09-25).
+	Modifiers.KEYSTONE_COLD_SNAP, Modifiers.KEYSTONE_TINDERSTRIKE,
+	Modifiers.KEYSTONE_TIMBERWRIGHT, Modifiers.KEYSTONE_SAPPERS_DUE,
+	Modifiers.KEYSTONE_HUNTERS_MARK,
 ]
 
 
@@ -169,6 +173,10 @@ func _test_the_hand_holds() -> void:
 	ids.sort()
 	for id: String in ids:
 		var card: RoadCardData = _card(id)
+		# A keystone has a rule of its own - one a hand - held by
+		# `keystone_check`. This is the ordinary hand's test (2026-09-25).
+		if card.keystone:
+			continue
 		if not by_key.has(card.effect_id):
 			by_key[card.effect_id] = []
 		(by_key[card.effect_id] as Array).append(id)
@@ -271,6 +279,9 @@ func omen_check_keys() -> Dictionary:
 		Modifiers.WAVE_FORESIGHT: true,
 		Modifiers.BUILD_COST: false, Modifiers.ENEMY_DAMAGE: false,
 		Modifiers.DASH_COOLDOWN: false,
+		Modifiers.KEYSTONE_COLD_SNAP: true, Modifiers.KEYSTONE_TINDERSTRIKE: true,
+		Modifiers.KEYSTONE_TIMBERWRIGHT: true, Modifiers.KEYSTONE_SAPPERS_DUE: true,
+		Modifiers.KEYSTONE_HUNTERS_MARK: true,
 	}
 
 

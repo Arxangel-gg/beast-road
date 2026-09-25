@@ -30,6 +30,10 @@ const EXPECTED_TESTS: int = 9
 ## hands out silence. That is this gate's founding failure wearing a different
 ## hat, and it caught two entries authored that way on the first run.
 const COUNTED_KEYS: Array[String] = [
+	# Keystones are flags, read as "one or more" (2026-09-25).
+	Modifiers.KEYSTONE_COLD_SNAP, Modifiers.KEYSTONE_TINDERSTRIKE,
+	Modifiers.KEYSTONE_TIMBERWRIGHT, Modifiers.KEYSTONE_SAPPERS_DUE,
+	Modifiers.KEYSTONE_HUNTERS_MARK,
 	Modifiers.CHAIN_TARGETS, Modifiers.WAVE_FORESIGHT,
 ]
 

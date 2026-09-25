@@ -683,6 +683,7 @@ func _process_measured(delta: float) -> void:
 		_tick_puppet(delta)
 		return
 
+	_hunted_left = maxf(_hunted_left - delta, 0.0)
 	var _t: int = Time.get_ticks_usec()
 	_tick_status(delta)
 	FrameProfile.add(&"e_status", _t)
@@ -2565,6 +2566,8 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	# A Prism Warden banks a capped share of what it is given.
 	_bank_blow(incoming)
 	_note_tower_blow(from)
+	if active_hero and Modifiers.value(Modifiers.KEYSTONE_HUNTERS_MARK) > 0.0:
+		_hunted_left = Balance.KEYSTONE_HUNT_SECONDS
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
 		if active_hero else null
 	if attack_node != null and attack_node.effect_id == "tower_damage_brand" \
@@ -3122,6 +3125,33 @@ func _burst_on_death() -> void:
 				hurt.take_damage(affix.death_blast_damage, combat_origin())
 
 
+## **Cold Snap** (a keystone, 2026-09-25): a body that dies chilled passes its
+## chill to the bodies around it. The chill is its own, shared rather than made,
+## so the keystone re-routes an effect the water towers already paid for and
+## adds none. Through `_add_chill`, the door every chill goes through - so a
+## neighbour it fills still shatters on the ordinary ceiling and refractory.
+func _cold_snap() -> void:
+	if puppet or _chill < Balance.KEYSTONE_COLD_SNAP_MIN_CHILL:
+		return
+	if Modifiers.value(Modifiers.KEYSTONE_COLD_SNAP) <= 0.0:
+		return
+	var share: float = _chill * Balance.KEYSTONE_COLD_SNAP_SHARE
+	for other: Enemy in _allies_in(Balance.KEYSTONE_COLD_SNAP_REACH):
+		other._add_chill(share)
+	Vfx.ring(combat_origin(), Balance.KEYSTONE_COLD_SNAP_REACH,
+		Color(0.7, 0.9, 1.0, 0.7), 0.3, 4.0)
+
+
+## **Hunter's Mark** (a keystone, 2026-09-25): seconds left in which the towers
+## prefer this body because the Warden has just struck it. What a tower fires
+## on, never how hard - see `Tower._target_score`.
+var _hunted_left: float = 0.0
+
+
+func is_hunted() -> bool:
+	return _hunted_left > 0.0
+
+
 ## **Stormbound**: the blast leaps rather than blooms (2026-09-25).
 ##
 ## The same damage and the same radius as the blast it replaces; what changes is
@@ -3221,6 +3251,7 @@ func _on_died(_from: Vector2) -> void:
 	if rank == Rank.COMMON and not affixes.is_empty():
 		spoils *= 1.0 + Balance.MARKED_REWARD_PER_MARK * float(affixes.size())
 	RunState.gain_kill_resources(int(round(spoils)))
+	_cold_snap()
 	_burst_on_death()
 	_mend_the_company()
 	_elemental_end()

@@ -34,6 +34,16 @@ const RAID_CHARGE: String = "raid_charge"
 const ENEMY_DAMAGE: String = "enemy_damage"
 const WAVE_FORESIGHT: String = "wave_foresight"
 
+# --- Keystones (2026-09-25) ------------------------------------------------------
+#
+# Flags rather than numbers: a keystone card sets one to one, and the system it
+# re-routes asks `value(key) > 0.0`. What each does is written where it is read.
+const KEYSTONE_COLD_SNAP: String = "keystone_cold_snap"
+const KEYSTONE_TINDERSTRIKE: String = "keystone_tinderstrike"
+const KEYSTONE_TIMBERWRIGHT: String = "keystone_timberwright"
+const KEYSTONE_SAPPERS_DUE: String = "keystone_sappers_due"
+const KEYSTONE_HUNTERS_MARK: String = "keystone_hunters_mark"
+
 
 ## **What each key is called on a card**, authored rather than derived.
 ##
@@ -74,6 +84,11 @@ const LABELS: Dictionary = {
 	RAID_CHARGE: "Raid charge",
 	ENEMY_DAMAGE: "Enemy damage",
 	WAVE_FORESIGHT: "Wave foresight",
+	KEYSTONE_COLD_SNAP: "Cold Snap",
+	KEYSTONE_TINDERSTRIKE: "Tinderstrike",
+	KEYSTONE_TIMBERWRIGHT: "Timberwright",
+	KEYSTONE_SAPPERS_DUE: "Sapper's Due",
+	KEYSTONE_HUNTERS_MARK: "Hunter's Mark",
 }
 
 

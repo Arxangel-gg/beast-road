@@ -2263,7 +2263,13 @@ All 128×128, type T, placeholder colour `#B8863A`.
 `card_the_good_road.png` · `card_the_standing_order.png` · `card_counted_the_fires.png` ·
 `card_the_quartermaster.png` · `card_the_master_founder.png` · `card_the_watchtower_eye.png` ·
 `card_riveted_plate.png` · `card_the_conductor.png` · `card_the_open_hand.png` ·
-`card_second_wind.png` · `card_the_deep_cellar.png` · `card_the_quiet_approach.png`
+`card_second_wind.png` · `card_the_deep_cellar.png` · `card_the_quiet_approach.png` ·
+`card_cold_snap.png` · `card_tinderstrike.png` · `card_timberwright.png` ·
+`card_sappers_due.png` · `card_hunters_mark.png`
+
+The last five are **keystones** (2026-09-25), drawn with a shipped card as the
+style image and its palette left off, because an ice shard in warm amber is not
+an ice shard. They are still single objects the road left behind.
 
 One per card, drawn on the face that offers it, and the same rule as the omen
 icons: a **single object the road left behind** rather than a symbol. A card is

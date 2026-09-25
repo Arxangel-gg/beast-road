@@ -246,6 +246,7 @@ func _ready() -> void:
 	_regional_polish.set("field", self)
 	add_child(_regional_polish)
 	EventBus.tower_changed.connect(_on_tower_changed)
+	EventBus.hero_attack_landed.connect(_on_hero_finisher)
 	EventBus.trap_changed.connect(_on_trap_changed)
 	EventBus.barricade_changed.connect(_on_barricade_changed)
 	EventBus.phase_changed.connect(_on_phase_cursor)
@@ -3433,6 +3434,21 @@ func absorb_hostile_shot(at: Vector2) -> bool:
 
 func sky() -> WeatherSky:
 	return _sky
+
+
+## **Tinderstrike** (a keystone, 2026-09-25): the Warden's finisher lights the
+## brush nearest where it landed. A fire the player lit, so the earth holds it
+## against the road exactly as it holds a fire tower's - the keystone's price is
+## written in the wrath rather than on the card. Through `ignite_near`, which
+## refuses rain, a flood and a guest's copy of the fire.
+func _on_hero_finisher(chain_step: int, _targets: int, at: Vector2, _hide: int) -> void:
+	if chain_step < Balance.HERO_CHAIN_LENGTH - 1:
+		return
+	if Modifiers.value(Modifiers.KEYSTONE_TINDERSTRIKE) <= 0.0:
+		return
+	var fire: Wildfire = wildfire()
+	if fire != null:
+		fire.ignite_near(at, Balance.KEYSTONE_TINDER_REACH, 1.0, true)
 
 
 func wildfire() -> Wildfire:

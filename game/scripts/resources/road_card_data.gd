@@ -60,6 +60,18 @@ func get_sprite_path() -> String:
 ## Which pool this card is drawn from, and how strong it is allowed to be.
 @export var rarity: Rarity = Rarity.COMMON
 
+## **A keystone** (2026-09-25): a card that re-routes an existing effect onto a
+## new trigger rather than moving a number - "a chilled body's death spreads its
+## chill", "felling a trunk mends the towers near it". Its `effect_id` is a
+## `Modifiers.KEYSTONE_*` flag read by the system it re-routes, at magnitude 1.
+##
+## **The bound is the discipline synergies' bound**: a keystone changes when an
+## existing effect fires or what it fires on, and never its size. The chill is
+## the dying body's own, the mend goes through `Tower.repair`, the fire is one a
+## player lit and costs wrath. One keystone at most in a hand, and a second
+## replaces the first - `RunState.take_road_card` holds that.
+@export var keystone: bool = false
+
 ## Earliest act this may be dealt. Rare cards open late so that the first hand
 ## is built out of small things and improved rather than rolled at once.
 @export_range(1, 10) var first_act: int = 1
@@ -87,9 +99,14 @@ func get_sprite_path() -> String:
 ## reproducible from a seed, which is a fault this project has recorded once.
 static func offer(held: Array, act: int, count: int) -> Array[String]:
 	var pool: Array[String] = []
+	var keystones: Array[String] = []
 	for id_value: Variant in ContentDB.road_cards:
 		var card: RoadCardData = ContentDB.road_card(String(id_value))
 		if card == null or held.has(card.id) or card.first_act > act:
+			continue
+		# Keystones are dealt apart from the pool - see the end of this.
+		if card.keystone:
+			keystones.append(card.id)
 			continue
 		pool.append(card.id)
 	if pool.size() < count or count <= 0:
@@ -101,4 +118,12 @@ static func offer(held: Array, act: int, count: int) -> Array[String]:
 		pool[index] = pool[other]
 		pool[other] = swap
 	pool.resize(count)
+	# **Now and then the last card is a keystone** (2026-09-25), on dice of its
+	# own: the ordinary pool is shuffled on the "road_cards" stream exactly as it
+	# always was, so adding keystones moved no seeded draft.
+	if not keystones.is_empty() and count > 0:
+		var dice: RandomNumberGenerator = RunState.rng("keystones")
+		if dice.randf() < Balance.KEYSTONE_OFFER_CHANCE:
+			keystones.sort()
+			pool[count - 1] = keystones[dice.randi() % keystones.size()]
 	return pool

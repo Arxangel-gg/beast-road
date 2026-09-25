@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "timberwright"
+display_name = "Timberwright"
+effect_id = "keystone_timberwright"
+effect_magnitude = 1.0
+rarity = 2
+first_act = 3
+card_text = "A trunk you fell mends the towers near it."
+keystone = true

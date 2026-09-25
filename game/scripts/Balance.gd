@@ -4085,6 +4085,29 @@ const ENEMY_MARK_SPEED_MAX: float = 1.6
 ## Where a Stormbound arc lands on a person: their chest, not their feet.
 const ENEMY_CHAIN_LIFT: float = 44.0
 
+# --- Keystone Road Cards (2026-09-25) --------------------------------------------
+#
+# A keystone re-routes an existing effect onto a new trigger and never moves its
+# size. These are the reaches and shares of the re-routing, not new magnitudes.
+
+## How often the last card of a draft is a keystone, on its own dice. [TUNE]
+const KEYSTONE_OFFER_CHANCE: float = 0.2
+## Cold Snap: how chilled a body must be for its death to pass the chill on,
+## how far, and what share of its own chill each neighbour takes.
+const KEYSTONE_COLD_SNAP_MIN_CHILL: float = 0.2
+const KEYSTONE_COLD_SNAP_REACH: float = 170.0
+const KEYSTONE_COLD_SNAP_SHARE: float = 0.6
+## Tinderstrike: how far from a finisher's landing the brush may catch.
+const KEYSTONE_TINDER_REACH: float = 230.0
+## Timberwright and Sapper's Due: how far from the node the towers and traps
+## are that it answers for, and what share of a tower's pool a felled trunk mends.
+const KEYSTONE_WORK_REACH: float = 560.0
+const KEYSTONE_TIMBER_MEND: float = 0.2
+## Hunter's Mark: how long a body the Warden struck stays first in every
+## tower's eye, and the score that puts it there - above any doctrine's reach.
+const KEYSTONE_HUNT_SECONDS: float = 4.0
+const KEYSTONE_HUNT_PRIORITY: float = 100000.0
+
 const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
 
 const WILDLIFE_TOWN_SPACE: float = 520.0

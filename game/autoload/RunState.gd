@@ -2266,7 +2266,17 @@ func take_road_card(card_id: String, drop: String = "") -> String:
 	if card == null or road_cards.has(card_id):
 		return ""
 	var replaced: String = ""
+	# **One keystone in a hand** (2026-09-25): a second replaces the first,
+	# whatever it re-routes, so a hand is never a stack of mechanics.
+	if card.keystone:
+		for held: String in road_cards:
+			var kept: RoadCardData = ContentDB.road_card(held)
+			if kept != null and kept.keystone:
+				replaced = held
+				break
 	for held: String in road_cards:
+		if not replaced.is_empty():
+			break
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other != null and other.effect_id == card.effect_id:
 			replaced = held
@@ -2711,10 +2721,14 @@ func pay_the_quartermaster() -> bool:
 ##
 ## Bought back rather than granted: a trap the player already laid and already
 ## paid for, returned to what it was. Returns how many were rearmed.
-func rearm_the_traps() -> int:
+func rearm_the_traps(near: Vector2 = Vector2.INF, reach: float = 0.0) -> int:
 	var rearmed: int = 0
 	for key: Variant in traps:
 		var tile: Vector2i = key as Vector2i
+		# Only the traps near a place, when one is named (Sapper's Due,
+		# 2026-09-25); every trap on the roads when it is not.
+		if near != Vector2.INF and BattleGrid.tile_to_world(tile).distance_to(near) > reach:
+			continue
 		var entry: Dictionary = traps[tile]
 		var kind: TrapData = ContentDB.trap(String(entry.get("trap_id", "")))
 		if kind == null:

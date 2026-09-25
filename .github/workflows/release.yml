@@ -367,6 +367,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/omen_check.tscn
           run_godot_clean --headless --path game res://tools/recap_check.tscn
           run_godot_clean --headless --path game res://tools/road_card_check.tscn
+          run_godot_clean --headless --path game res://tools/keystone_check.tscn
           run_godot_clean --headless --path game res://tools/save_round_trip_check.tscn
           run_godot_clean --headless --path game res://tools/save_slot_check.tscn
           run_godot_clean --headless --path game res://tools/spell_strike_check.tscn

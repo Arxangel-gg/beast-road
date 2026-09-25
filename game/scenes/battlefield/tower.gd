@@ -859,6 +859,13 @@ func _acquire_targets_now() -> Array[Enemy]:
 func _target_score(enemy: Enemy, priority: int) -> float:
 	if enemy == null or enemy.data == null:
 		return -INF
+	# **Hunter's Mark** (a keystone, 2026-09-25): what the Warden has just
+	# struck comes first, whatever the doctrine - which body, never how hard.
+	var hunted: float = Balance.KEYSTONE_HUNT_PRIORITY if enemy.is_hunted() else 0.0
+	return hunted + _doctrine_score(enemy, priority)
+
+
+func _doctrine_score(enemy: Enemy, priority: int) -> float:
 	# A small closeness tie-break keeps every doctrine deterministic and prevents
 	# two equal targets from shuffling order every acquisition.
 	var closeness: float = 1.0 - clampf(enemy.global_position.length() \
