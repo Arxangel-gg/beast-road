@@ -157,7 +157,9 @@ func _test_blade_sweep() -> void:
 	await get_tree().process_frame
 
 	var blades: Array[Sprite2D] = _sprites()
-	_check(not blades.is_empty(), "an equipped weapon must appear in the swing")
+	_check(not blades.is_empty(), "an equipped weapon must appear in the swing (equipped %s, worn '%s', stash %d)"
+		% [MetaState.equipped, String(MetaState.equipped_piece(GearData.Slot.WEAPON).get("kind", "")),
+			MetaState.stash.size()])
 	if blades.is_empty():
 		return
 

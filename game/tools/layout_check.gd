@@ -165,6 +165,7 @@ func _ready() -> void:
 	await _check_town_panel(run)
 	_check_modal_layers(run)
 	await _check_goal_scope(run)
+	await _check_portent_cards(run)
 
 	if _dump:
 		# Ground truth for a layout complaint. A screenshot says "cut off"; this
@@ -608,6 +609,71 @@ func _bail(code: int) -> void:
 		MetaState.mounts = _before_mounts
 		MetaState.mount_saddled = _before_saddled
 	get_tree().quit(code)
+
+
+## **The portent cards are centred and hold their words** (2026-09-25). The
+## owner photographed three cards in the left half of the screen with the
+## flavour sentence hanging under them. Dealt the three portents with the most
+## to say, then measured: every face inside its card, the three the same
+## height, and the row's gap to the left of the panel the same as to the right.
+func _check_portent_cards(run: Node) -> void:
+	var screen: Node = run.get("crossroad_ui")
+	if screen == null:
+		_failures.append("no crossroad screen, so the portent cards were never measured")
+		return
+	var wordy: Array = []
+	for value: Variant in ContentDB.omens.values():
+		var omen := value as OmenData
+		if omen != null:
+			wordy.append(omen)
+	wordy.sort_custom(func(a: OmenData, b: OmenData) -> bool:
+		return (a.bane_text + a.boon_text + a.portent).length() \
+			> (b.bane_text + b.boon_text + b.portent).length())
+	var held: Array[String] = RunState.pending_omens.duplicate()
+	RunState.pending_omens.clear()
+	for index: int in mini(3, wordy.size()):
+		RunState.pending_omens.append((wordy[index] as OmenData).id)
+	screen.call("open_omen_choice")
+	# In seconds, not frames: the cards are dealt on `scale` around their
+	# middles, and a card caught mid-flip reports a shifted origin.
+	await get_tree().create_timer(1.2).timeout
+	var cards: Array[Control] = []
+	for node: Node in screen.call("_entrance_cards"):
+		var card := node as Control
+		if card != null and CrossroadScreen.play_face(card) != null:
+			cards.append(card)
+	if cards.size() != 3:
+		_failures.append("the portents dealt %d cards, not three" % cards.size())
+	var height: float = -1.0
+	var left: float = INF
+	var right: float = -INF
+	for card: Control in cards:
+		var face: Control = CrossroadScreen.play_face(card)
+		var outer: Rect2 = card.get_global_rect().grow(1.0)
+		var inner: Rect2 = face.get_global_rect()
+		if not outer.encloses(inner):
+			_failures.append("a portent's words spill out of its card: face %s in card %s"
+				% [inner, card.get_global_rect()])
+		if height >= 0.0 and absf(card.size.y - height) > 1.0:
+			_failures.append("the portent cards are different heights (%.0f and %.0f)"
+				% [height, card.size.y])
+		height = card.size.y
+		var screen_rect: Rect2 = card.get_viewport().get_visible_rect()
+		if not _inside_scroll(card, screen) and not screen_rect.grow(1.0).encloses(card.get_global_rect()):
+			_failures.append("a portent card runs off the screen: card %s on screen %s"
+				% [card.get_global_rect(), screen_rect])
+		left = minf(left, card.get_global_rect().position.x)
+		right = maxf(right, card.get_global_rect().end.x)
+	if not cards.is_empty():
+		var row := cards[0].get_parent() as Control
+		var span: Rect2 = row.get_global_rect()
+		var lean: float = (left - span.position.x) - (span.end.x - right)
+		if absf(lean) > 4.0:
+			_failures.append("the portent cards lean %.0f units off the middle of their row"
+				% lean)
+	_notes.append("portent cards: %d dealt, %.0f tall" % [cards.size(), height])
+	(screen.get("panel") as CanvasItem).visible = false
+	RunState.pending_omens = held
 
 
 func _check_goal_scope(run: Node) -> void:

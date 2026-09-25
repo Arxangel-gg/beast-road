@@ -166,8 +166,15 @@ func _test_a_piece_is_thrown_lands_and_settles() -> void:
 		"the weakest toss (peak %.1f) must clear the catch height (%.1f), or a hero "
 			% [weakest_peak, Balance.LOOT_CATCH_HEIGHT]
 			+ "standing under a kill takes a piece before it visibly leaves the corpse")
-	_check(peak >= weakest_peak - 1.0,
-		"the piece never left the ground (peak %.1f, weakest toss %.1f)" % [peak, weakest_peak])
+	# **Less the integrator's own shortfall** (2026-09-25). The piece steps its
+	# toss a frame at a time, and a discrete step undershoots the analytic peak
+	# by about the launch speed times half a frame - 2.6 units at the weakest
+	# toss. The first cut allowed one, so a toss drawn near the minimum failed
+	# Guard: the ninth coin toss in a gate's clothes.
+	var shortfall: float = Balance.LOOT_TOSS_LIFT_MIN * FRAME * 0.5 + 0.5
+	_check(peak >= weakest_peak - shortfall,
+		"the piece never left the ground (peak %.1f, weakest toss %.1f less %.1f for the step)"
+			% [peak, weakest_peak, shortfall])
 	_check(airborne_frames > 6, "the piece was in the air for %d frames" % airborne_frames)
 	_check(not caught_in_the_air, "a hero took a piece out of the air")
 	_check(RunState.currency(RunState.GOLD) == before + 3,

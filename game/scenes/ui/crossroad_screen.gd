@@ -192,7 +192,7 @@ func _open_roads(segment_index: int) -> void:
 	# The column has to expand before the row inside it can, or the cards sit at
 	# their minimum height in the top third and the screen looks half-drawn.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = HBoxContainer.new()
+	_road_row = _card_row()
 	_road_row.add_theme_constant_override("separation", 26)
 	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	options_box.add_child(_road_row)
@@ -475,7 +475,7 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 	# column with a name and a description crammed into one string read as a list
 	# of rows rather than as a choice between treasures.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = HBoxContainer.new()
+	_road_row = _card_row()
 	_road_row.add_theme_constant_override("separation", 22)
 	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	options_box.add_child(_road_row)
@@ -519,6 +519,19 @@ const PLAY_CARD := Vector2(286.0, 404.0)
 ## line under its name rather than beside it.
 const PLAY_CARD_INLINE_CHARS: int = 18
 const PLAY_CARD_ART: int = 150
+## The face's inset inside the card, horizontally and vertically.
+const PLAY_CARD_INSET := Vector2(14.0, 12.0)
+## A dealt card flips in from edge-on and settles with a little overshoot.
+const CARD_DEAL_SECONDS: float = 0.34
+const CARD_DEAL_FROM := Vector2(0.06, 0.92)
+## A card under the cursor or the pad lifts toward the player.
+const CARD_HOVER_SCALE: float = 1.045
+const CARD_HOVER_SECONDS: float = 0.12
+## How much wider than `PLAY_CARD` a card may grow on a short screen, the
+## smallest the illustration may shrink to, and the air under the cards.
+const PLAY_CARD_WIDEST: float = 1.7
+const PLAY_CARD_ART_MIN: int = 64
+const PLAY_CARD_FOOT: float = 16.0
 
 ## The rarity from which a card wears the travelling sheen. Highest only: a
 ## hologram on everything is wallpaper.
@@ -561,10 +574,11 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 	var face := VBoxContainer.new()
 	face.add_theme_constant_override("separation", 6)
 	face.set_anchors_preset(Control.PRESET_FULL_RECT)
-	face.offset_left = 14.0
-	face.offset_right = -14.0
-	face.offset_top = 12.0
-	face.offset_bottom = -12.0
+	face.offset_left = PLAY_CARD_INSET.x
+	face.offset_right = -PLAY_CARD_INSET.x
+	face.offset_top = PLAY_CARD_INSET.y
+	face.offset_bottom = -PLAY_CARD_INSET.y
+	face.set_meta(&"play_face", true)
 	# Every part of the face is decoration; the press belongs to the card.
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(face)
@@ -589,6 +603,7 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 		art.texture = load(icon_path) as Texture2D
 	frame.add_child(art)
 	face.add_child(frame)
+	face.set_meta(&"art", art)
 
 	# **What it does, in the numbers it does it by.**
 	#
@@ -827,6 +842,139 @@ func _dress_options() -> void:
 		rise.tween_property(item, "modulate:a", 1.0, CARD_ENTRANCE_SECONDS) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		step += 1
+	_fit_play_cards()
+
+
+## **A row of cards is centred** (2026-09-25). An `HBoxContainer` packs its
+## children to the left by default, so three cards on a wide screen stood in
+## the left half of it (owner's screenshot of the portents). One helper for the
+## roads, the relics and the portents, so the three cannot disagree.
+func _card_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	return row
+
+
+## **Every card as tall as its tallest face needs** (2026-09-25). A card is a
+## `Button` of a fixed size with its face laid inside it, and a `Button` does
+## not grow to fit children - so a portent whose bane, boon and flavour needed
+## more height than the card had grew its face past the card's bottom edge,
+## and the clip on the face clipped nothing because it clips to its own grown
+## rect (owner's screenshot: the flavour sentence under the cards). Measured
+## after two layout passes, because an autowrapped label only knows its height
+## once it has been given its width; then every card in the row takes the
+## tallest, so the three read as one hand.
+##
+## Then the deal: each card flips in from edge-on on `scale`, which a
+## container does not own - the first entrance tweened position and fought
+## the row. A look and never a fact.
+func _fit_play_cards() -> void:
+	if not await _settle(2):
+		return
+	var cards: Array[Button] = []
+	for node: Node in _entrance_cards():
+		var card := node as Button
+		if card != null and is_instance_valid(card) and play_face(card) != null:
+			cards.append(card)
+	if cards.is_empty():
+		return
+	# **The room first, then the fit** (2026-09-25). On a landscape phone the
+	# touch fonts wrap a portent to 658 units against a 777-unit screen with
+	# the title above it, and the row had a thousand units of width to spare.
+	# So a card that would run off the bottom first widens into its share of
+	# the row - the text wraps less - and only then does the illustration give
+	# up height, down to `PLAY_CARD_ART_MIN`. `layout_check` holds that every
+	# card ends on the screen at every shape.
+	var room: float = _card_room(cards[0])
+	var tallest: float = _tallest_face(cards)
+	if tallest > room:
+		var row := cards[0].get_parent() as Control
+		var gaps: float = float(row.get_theme_constant("separation")) * float(cards.size() - 1) \
+			if row != null else 0.0
+		var share: float = ((row.size.x if row != null else PLAY_CARD.x) - gaps) / float(cards.size())
+		var width: float = clampf(share, PLAY_CARD.x, PLAY_CARD.x * PLAY_CARD_WIDEST)
+		for card: Button in cards:
+			card.custom_minimum_size.x = width
+		if not await _settle(2):
+			return
+		tallest = _tallest_face(cards)
+	if tallest > room:
+		var art_height: float = maxf(float(PLAY_CARD_ART) - (tallest - room), float(PLAY_CARD_ART_MIN))
+		for card: Button in cards:
+			var art := play_face(card).get_meta(&"art", null) as Control
+			if art != null:
+				art.custom_minimum_size.y = art_height
+		if not await _settle(2):
+			return
+		tallest = _tallest_face(cards)
+	for card: Button in cards:
+		card.custom_minimum_size.y = ceilf(tallest)
+	if not await _settle(1):
+		return
+	var step: int = 0
+	for card: Button in cards:
+		if not is_instance_valid(card):
+			continue
+		card.pivot_offset = card.size * 0.5
+		card.scale = CARD_DEAL_FROM
+		var deal: Tween = create_tween()
+		deal.tween_interval(float(step) * CARD_ENTRANCE_STAGGER)
+		deal.tween_callback(Sfx.play_group.bind("sfx_ui_move", -6.0, float(step) * 0.05))
+		deal.tween_property(card, "scale", Vector2.ONE, CARD_DEAL_SECONDS) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		card.set_meta(&"juice_tween", deal)
+		if not card.mouse_entered.is_connected(_lift_card):
+			card.mouse_entered.connect(_lift_card.bind(card, true))
+			card.focus_entered.connect(_lift_card.bind(card, true))
+			card.mouse_exited.connect(_lift_card.bind(card, false))
+			card.focus_exited.connect(_lift_card.bind(card, false))
+		step += 1
+
+
+## Waits `frames` layout passes; false if the screen left the tree meanwhile.
+func _settle(frames: int) -> bool:
+	for _frame: int in frames:
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return false
+	return true
+
+
+## The height a card may take: from its own top to the foot of the screen.
+func _card_room(card: Control) -> float:
+	var screen: Rect2 = card.get_viewport().get_visible_rect()
+	return screen.end.y - card.get_global_rect().position.y - PLAY_CARD_FOOT
+
+
+## The tallest face in the row, with its inset, at the widths it has now.
+func _tallest_face(cards: Array[Button]) -> float:
+	var tallest: float = PLAY_CARD.y
+	for card: Button in cards:
+		var face: Control = play_face(card)
+		if face != null:
+			tallest = maxf(tallest, face.get_combined_minimum_size().y + PLAY_CARD_INSET.y * 2.0)
+	return tallest
+
+
+## The face a play card carries, or null for any other kind of card.
+static func play_face(card: Control) -> Control:
+	for child: Node in card.get_children():
+		if child.has_meta(&"play_face"):
+			return child as Control
+	return null
+
+
+func _lift_card(card: Button, up: bool) -> void:
+	if not is_instance_valid(card):
+		return
+	var running: Variant = card.get_meta(&"juice_tween", null)
+	if running is Tween and (running as Tween).is_valid():
+		(running as Tween).kill()
+	card.pivot_offset = card.size * 0.5
+	var lift: Tween = create_tween()
+	lift.tween_property(card, "scale", Vector2.ONE * (CARD_HOVER_SCALE if up else 1.0),
+		CARD_HOVER_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	card.set_meta(&"juice_tween", lift)
 
 
 ## The cards an entrance should play on: whatever is laid out in the row when
@@ -866,7 +1014,7 @@ func open_omen_choice() -> void:
 	# and the boon - the half a player is actually deciding on - was the line that
 	# got clipped whenever the icon set the row's height.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = HBoxContainer.new()
+	_road_row = _card_row()
 	_road_row.add_theme_constant_override("separation", 22)
 	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	options_box.add_child(_road_row)
@@ -1010,7 +1158,7 @@ func open_road_card_choice() -> void:
 	# coding and the sheen actually mean something: a Common reads as stock and a
 	# Rare wears the travelling highlight.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = HBoxContainer.new()
+	_road_row = _card_row()
 	_road_row.add_theme_constant_override("separation", 22)
 	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1087,7 +1235,7 @@ func _open_drop_choice(card: RoadCardData) -> void:
 	# behind is a comparison between five things, and a column of rows does not
 	# support one.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = HBoxContainer.new()
+	_road_row = _card_row()
 	_road_row.add_theme_constant_override("separation", 14)
 	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
