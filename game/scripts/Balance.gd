@@ -2048,7 +2048,14 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.65
 ## And a ranged body's blow a quarter lighter again: it is thrown from where the
 ## Warden cannot answer it, which is why it was named first. [TUNE]
-const ENEMY_RANGED_DAMAGE_SCALE: float = 0.75
+##
+## **Back to 1.0, 2026-09-25, because the quarter was answering a fault.** From
+## 2026-09-21 every ranged swing hit twice - its projectile, and the same blow
+## again instantly, because an edit to `Enemy._strike` moved the ranged branch's
+## `return` under a new co-op branch. So what the owner felt as "ranged ones
+## deal too much" was twice the authored blow, and the quarter cut left it at
+## 1.5 of it. With the double hit gone, the blow is the authored one.
+const ENEMY_RANGED_DAMAGE_SCALE: float = 1.0
 ## **A frenzy, dressed** (owner, 2026-09-22): the sickly green a frenzied body
 ## pulses toward, the foam it drips and how often, and how often a toxic ring
 ## breathes off it. A look, read by nothing. [TUNE]
@@ -2100,6 +2107,37 @@ const ENEMY_BEHAVIOUR_SECONDS: float = 2.4
 const ENEMY_BEHAVIOUR_RECOVERY: float = 1.1
 const ENEMY_BEHAVIOUR_REACH: float = 220.0
 const ENEMY_BEHAVIOUR_INTERVAL: float = 9.0
+
+# --- The pounce lands, and may come again (owner, 2026-09-25) ------------------
+#
+# *"Those pouncing wild cat enemies should be able to pounce randomly 1-2 times,
+# and should have a chance to attack after a pounce"*, and *"the pounce itself
+# rarely if ever does damage? Make it more effective"*. It never did any: a
+# pounce was written as ground crossed and nothing else, then stood committed
+# for `ENEMY_BEHAVIOUR_SECONDS` - two seconds of a cat doing nothing - and its
+# leap was sized to the breed's whole reach, so it flew past a Warden standing
+# closer than that. **This re-cuts the behaviour bound above for the pounce
+# alone**: a pounce that connects is a blow, at `ENEMY_POUNCE_DAMAGE_SCALE` of
+# the breed's own contact damage, through the same `_strike` every swing uses.
+#
+## What a pounce that connects hits for, as a share of the breed's swing.
+const ENEMY_POUNCE_DAMAGE_SCALE: float = 1.25
+## The chance a pounce is followed by a second one, rolled once at the first
+## tell on the body's own dice - so a cat pounces once or twice, never more.
+const ENEMY_POUNCE_AGAIN_CHANCE: float = 0.5
+## A second pounce is told again, and quicker: the cat is already coiled.
+const ENEMY_POUNCE_CHAIN_WARNING: float = 0.6
+## The chance a pounce that ends in reach is followed straight into a swing,
+## and how much of the ordinary wind-up that swing keeps. A tell still.
+const ENEMY_POUNCE_FOLLOW_CHANCE: float = 0.6
+const ENEMY_POUNCE_FOLLOW_WINDUP: float = 0.55
+## A leap is aimed to land this share of the arm's reach short of where the
+## target stood at the tell, so a Warden who holds still is in reach when it
+## lands and one who stepped aside during the tell is not.
+const ENEMY_POUNCE_LAND_SHARE: float = 0.5
+## The shortest leap worth the name, and the moment it holds after landing.
+const ENEMY_POUNCE_MIN_LEAP: float = 60.0
+const ENEMY_POUNCE_LAND_SECONDS: float = 0.12
 ## How much of its reach the tell's ring draws at.
 const ENEMY_BEHAVIOUR_TELL_SHARE: float = 0.55
 ## **Non-stacking and bounded**, which is the review's own rule for guards: one
@@ -4865,7 +4903,10 @@ const BATTLEFIELD_MAX_ENEMIES: int = 120
 # from a wind-up you can see and dash out of.
 
 ## How close an enemy gets before it stops to attack. [TUNE]
-const ENEMY_ATTACK_RANGE: float = 62.0
+## **62 to 68, 2026-09-25** (owner: melee enemies "need to be a bit more
+## aggressive and have a tiny bit more attack range"). A melee arm reaches this
+## plus the body's own radius, so an ordinary breed swings from about 90.
+const ENEMY_ATTACK_RANGE: float = 68.0
 
 ## Visible tell before the blow lands. [TUNE]
 const ENEMY_ATTACK_WINDUP: float = 0.45
@@ -4878,6 +4919,13 @@ const ENEMY_ATTACK_RECOVERY: float = 0.75
 
 ## An enemy will break off to hit the hero if the hero is this close. [TUNE]
 const ENEMY_HERO_AGGRO_RANGE: float = 210.0
+## **A melee body notices the Warden further off and swings again sooner**
+## (owner, 2026-09-25: "a bit more aggressive"). Melee only: a shooter already
+## engages from its own range, and one that also closed from further would
+## crowd the Warden instead of shooting. The recovery share is taken off the
+## rest between swings, never off the wind-up - the tell stays the tell.
+const ENEMY_MELEE_AGGRO_SCALE: float = 1.2
+const ENEMY_MELEE_RECOVERY_SCALE: float = 0.8
 
 ## Howlers and the Drowned Choir fire slow committed shots. Their target can
 ## leave the marked destination before impact; this is pressure, not hitscan.

@@ -25,6 +25,14 @@ extends Node
 ##   and does not stack. Two priests must not make a wave unkillable.
 ## - **A shield redirects and never reduces.** The blow lands on the shield
 ##   instead of the body behind it, so the wave's total health is untouched.
+##
+## **Amended 2026-09-25 (owner): a pounce that connects is a blow.** It was
+## ground crossed and nothing else, stood committed for two seconds after, and
+## was sized to the breed's whole reach so it flew past a Warden standing closer
+## - the owner: "the pounce itself rarely if ever does damage". It lands one blow
+## at `ENEMY_POUNCE_DAMAGE_SCALE` of the swing now, may come once more, and may
+## run straight into a swing. That is the one exception to the bound above, and
+## `_test_a_pounce_lands_and_may_come_again` holds its edges.
 
 var _failures: int = 0
 var _checks: int = 0
@@ -53,6 +61,8 @@ func _ready() -> void:
 	_test_every_behaviour_is_authored_somewhere()
 	_test_every_behaviour_is_told_before_it_happens()
 	await _test_a_pounce_covers_ground_and_leaves_none_behind()
+	await _test_a_pounce_lands_and_may_come_again()
+	await _test_a_swing_is_dealt_once()
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
@@ -157,6 +167,7 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 			var from := Vector2.ZERO
 			var covered: float = -1.0
 			var committed: bool = false
+			var planned: float = 0.0
 			for frame: int in 1200:
 				var before: int = int(body.get("_state"))
 				body.call("_process", FRAME)
@@ -164,6 +175,7 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 				if now == Enemy.State.COMMIT and not committed:
 					committed = true
 					from = body.global_position
+					planned = float(body.get("_leap_distance"))
 					continue
 				if committed and interrupted and now == Enemy.State.COMMIT \
 						and frame % 7 == 0:
@@ -187,11 +199,14 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 			if not committed:
 				continue
 			if not interrupted:
-				_check(covered > breed.behaviour_reach * 0.5,
-					("%s crossed %.0f units on a pounce authored to reach %.0f. "
+				# Amended 2026-09-25: a leap is sized to land in reach of where
+				# the target stood at the tell, not to the breed's whole reach,
+				# so what it must cross is the ground it was sized to.
+				_check(planned > 0.0 and covered >= planned * 0.8,
+					("%s crossed %.0f units on a pounce sized to cross %.0f. "
 						+ "The leap is written into `_slip` and `_slip` is applied "
 						+ "in `_advance`, which the COMMIT arm never calls")
-						% [tag, covered, breed.behaviour_reach])
+						% [tag, covered, planned])
 			_check(slip.length() <= 1.0,
 				("%s left %.0f units a second of drift in `_slip` when its "
 					+ "commitment ended - it walks at %.0f, so it is carried %s "
@@ -202,6 +217,176 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 			_check(drift <= maxf(breed.move_speed, 1.0) * 1.6,
 				("%s moves at %.0f units a second after its pounce against an "
 					+ "authored walk of %.0f") % [tag, drift, breed.move_speed])
+	_clear()
+	await get_tree().process_frame
+
+
+## **A pounce at a Warden standing still connects, and what follows is one of
+## three things** (owner, 2026-09-25).
+##
+## Every breed that pounces lands its leap on a Warden who held still inside it,
+## and the Warden loses health to it - counted on the hero's own `damaged`
+## signal, so a ward or a deferral cannot hide it. Then, across many bodies of
+## one breed: a pounce whose target moved out of the arm but not out of the leap
+## is sometimes told again, and one that landed in reach is sometimes followed
+## straight into a swing. "Sometimes" both ways: a chance that always or never
+## fires is not the rule the owner asked for. The dice are each body's own, so
+## twenty-four bodies are twenty-four different rolls.
+func _test_a_pounce_lands_and_may_come_again() -> void:
+	const FRAME: float = 1.0 / 60.0
+	var hero: Hero = _field.hero
+	if hero == null or hero.health == null:
+		_check(false, "the harness needs a hero with health")
+		return
+	var landed_blows: Array[int] = [0]
+	var counter := func(amount: float, _from: Vector2) -> void:
+		if amount > 0.0:
+			landed_blows[0] += 1
+	hero.health.damaged.connect(counter)
+	var pouncers: Array[EnemyData] = []
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed != null and breed.behaviour == EnemyData.Behaviour.POUNCE:
+			pouncers.append(breed)
+	for breed: EnemyData in pouncers:
+		var body: Enemy = await _stage_a_pounce(breed.id)
+		if body == null:
+			continue
+		hero.health.heal(hero.health.max_hp)
+		hero.health.set("_invulnerable_left", 0.0)
+		hero.health.set("_shield", 0.0)
+		var before: int = landed_blows[0]
+		var outcome: int = _drive_through_the_leap(body, FRAME, false)
+		_run.process_mode = Node.PROCESS_MODE_INHERIT
+		_check(outcome >= 0, "%s never committed to its pounce" % breed.id)
+		_check(bool(body.get("_pounce_landed")),
+			("%s pounced at a Warden standing still inside its leap and never "
+				+ "connected - it flew past or stopped short") % breed.id)
+		_check(landed_blows[0] > before,
+			"%s's pounce connected and the Warden lost nothing" % breed.id)
+	# The chain and the swing, on one breed, many bodies.
+	var again: int = 0
+	var swung: int = 0
+	var rested: int = 0
+	var first: EnemyData = pouncers[0] if not pouncers.is_empty() else null
+	if first != null:
+		for attempt: int in 24:
+			var body: Enemy = await _stage_a_pounce(first.id)
+			if body == null:
+				continue
+			# Half the bodies have their quarry step back out of the arm while
+			# they are in the air, which is what a second pounce is for.
+			var outcome: int = _drive_through_the_leap(body, FRAME, attempt % 2 == 0)
+			_run.process_mode = Node.PROCESS_MODE_INHERIT
+			if outcome == Enemy.State.BRACE:
+				again += 1
+			elif outcome == Enemy.State.WINDUP:
+				swung += 1
+			elif outcome == Enemy.State.RECOVER:
+				rested += 1
+		_check(again > 0, ("%s never pounced a second time in 24 leaps whose "
+			+ "quarry stepped back inside the leap") % first.id)
+		_check(swung > 0, ("%s never followed a pounce that landed in reach "
+			+ "with a swing in 24 leaps") % first.id)
+		_check(rested > 0, ("%s always followed up - a chance that always "
+			+ "fires is not a chance") % first.id)
+	hero.health.damaged.disconnect(counter)
+	hero.health.heal(hero.health.max_hp)
+	_clear()
+	await get_tree().process_frame
+
+
+## One pouncer, far from the town, its quarry inside the leap and outside the
+## arm, with the run stopped so nothing else moves either of them.
+func _stage_a_pounce(breed_id: String) -> Enemy:
+	_clear()
+	await get_tree().process_frame
+	var body: Enemy = await _spawn(breed_id)
+	if body == null:
+		return null
+	_run.process_mode = Node.PROCESS_MODE_DISABLED
+	var breed: EnemyData = body.data
+	var away := Vector2(2400.0, 0.0)
+	var gap: float = clampf(breed.behaviour_reach * 0.6,
+		body.attack_reach() + 30.0, body.hero_aggro_range() - 20.0)
+	body.global_position = away
+	_field.hero.global_position = away + Vector2(gap, 0.0)
+	return body
+
+
+## Drives a staged pounce until its first commitment ends and says what it went
+## into: BRACE (again), WINDUP (a swing), RECOVER, or -1 if it never committed.
+## `step_back` moves the quarry, the moment the leap begins, to half an arm
+## beyond where the leap will land: out of reach, and well inside the next leap.
+func _drive_through_the_leap(body: Enemy, frame_seconds: float, step_back: bool) -> int:
+	var committed: bool = false
+	for frame: int in 1200:
+		var before: int = int(body.get("_state"))
+		body.call("_process", frame_seconds)
+		var now: int = int(body.get("_state"))
+		if now == Enemy.State.COMMIT and not committed:
+			committed = true
+			if step_back:
+				var aim: Vector2 = body.get("_behaviour_aim") as Vector2
+				var landing: float = float(body.get("_leap_distance"))
+				_field.hero.global_position = body.global_position + aim * (landing + body.attack_reach() * 1.6)
+			continue
+		if committed and before == Enemy.State.COMMIT and now != Enemy.State.COMMIT:
+			return now
+	return -1 if not committed else int(body.get("_state"))
+
+
+## **A swing is dealt once** (2026-09-25). From 2026-09-21 `Enemy._strike` read
+## `if HOWLER: shoot  elif net_id: announce; return` - the ranged branch's
+## `return` had moved under the new co-op one - so a ranged swing hit twice (its
+## projectile, and the same blow again on the frame it was thrown), and a melee
+## swing on a co-op host was announced and never dealt. `enemy_shot_check` fires
+## shots through its own seam and could not see either; this drives `_strike`.
+func _test_a_swing_is_dealt_once() -> void:
+	var hero: Hero = _field.hero
+	var melee: EnemyData = null
+	var ranged: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or breed.category != EnemyData.Category.BREED:
+			continue
+		if breed.role == EnemyData.Role.HOWLER:
+			if ranged == null:
+				ranged = breed
+		elif melee == null and breed.behaviour == EnemyData.Behaviour.NONE:
+			melee = breed
+	for pair: Array in [[melee, 4242], [ranged, 0]]:
+		var breed := pair[0] as EnemyData
+		if breed == null:
+			_check(false, "the harness needs a plain melee and a ranged breed")
+			continue
+		_clear()
+		await get_tree().process_frame
+		var body: Enemy = await _spawn(breed.id)
+		if body == null:
+			continue
+		_run.process_mode = Node.PROCESS_MODE_DISABLED
+		body.global_position = Vector2(2400.0, 0.0)
+		hero.global_position = body.global_position + Vector2(body.attack_reach() * 0.5, 0.0)
+		hero.health.heal(hero.health.max_hp)
+		hero.health.set("_invulnerable_left", 0.0)
+		hero.health.set("_shield", 0.0)
+		body.set("_target", hero)
+		body.net_id = int(pair[1])
+		var before: float = hero.health.current_hp
+		body.call("_strike")
+		var taken: float = before - hero.health.current_hp
+		body.net_id = 0
+		_run.process_mode = Node.PROCESS_MODE_INHERIT
+		if breed.role == EnemyData.Role.HOWLER:
+			_check(is_zero_approx(taken),
+				("%s's swing took %.1f on the frame it was thrown, before its shot "
+					+ "had flown - a ranged blow landing twice") % [breed.id, taken])
+		else:
+			_check(taken > 0.0,
+				("%s's swing on a co-op host (net id %d) was announced and never "
+					+ "dealt") % [breed.id, int(pair[1])])
+	hero.health.heal(hero.health.max_hp)
 	_clear()
 	await get_tree().process_frame
 

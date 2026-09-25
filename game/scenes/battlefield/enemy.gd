@@ -244,6 +244,13 @@ var _slow_factor: float = 1.0
 var _behaviour_wait: float = 0.0
 var _behaviour_aim: Vector2 = Vector2.RIGHT
 var _behaviour_bank: float = 0.0
+## The pounces still owed after this one, the ground this leap was sized to
+## cross, whether it has connected, and what the next `_strike` is worth
+## against the swing (2026-09-25). See `ENEMY_POUNCE_*`.
+var _pounces_left: int = 0
+var _leap_distance: float = 0.0
+var _pounce_landed: bool = false
+var _blow_scale: float = 1.0
 ## How long a guard this body is standing behind has left, and whose it is. A
 ## guard turns one blow; see `_absorb_guard`.
 var _guard_left: float = 0.0
@@ -1044,11 +1051,13 @@ func _tick_state(delta: float) -> void:
 				# **And never on the instant it is ready**: each recovery wanders
 				# by the body's own dice, so a crowd does not fire in lockstep and
 				# a shooter does not spam the moment its arm comes back.
+				var rest_share: float = 1.0 if data.role == EnemyData.Role.HOWLER \
+					else Balance.ENEMY_MELEE_RECOVERY_SCALE
 				_enter(State.RECOVER, maxf(Balance.ENEMY_ATTACK_RECOVERY,
 					data.contact_interval - Balance.ENEMY_ATTACK_WINDUP
 						- Balance.ENEMY_ATTACK_STRIKE)
 					* _temper.randf_range(Balance.ENEMY_CADENCE_WANDER.x,
-						Balance.ENEMY_CADENCE_WANDER.y))
+						Balance.ENEMY_CADENCE_WANDER.y) * rest_share)
 				if _field != null and _target == _field.town_node() \
 						and data.role == EnemyData.Role.HOWLER:
 					_siege_share = maxf(_siege_share - _temper.randf_range(
@@ -1075,7 +1084,10 @@ func _tick_state(delta: float) -> void:
 			# which is the same line saying the opposite thing.
 			_step(_slip, delta)
 			if _state_left <= 0.0:
-				_end_behaviour()
+				if data.behaviour == EnemyData.Behaviour.POUNCE:
+					_after_the_pounce()
+				else:
+					_end_behaviour()
 		State.ROUTED:
 			_rout_left -= delta
 			if _rout_left <= 0.0:
@@ -1114,7 +1126,18 @@ func _begin_behaviour() -> bool:
 	if not _behaviour_wants_to():
 		return false
 	_behaviour_aim = _behaviour_heading()
-	_enter(State.BRACE, _behaviour_warning())
+	if data.behaviour == EnemyData.Behaviour.POUNCE:
+		# Once or twice, decided at the first tell on the body's own dice, so the
+		# run's stream does not move and a cat never pounces a third time.
+		_pounces_left = 1 if _temper.randf() < Balance.ENEMY_POUNCE_AGAIN_CHANCE else 0
+		_size_the_leap()
+	_tell_behaviour(_behaviour_warning())
+	return true
+
+
+## The tell: a pose, a word and a ring, for as long as `warning` lasts.
+func _tell_behaviour(warning: float) -> void:
+	_enter(State.BRACE, warning)
 	# The tell. Every one of these is a *pose* rather than a particle, because
 	# the thing a player has to read in a crowd is the silhouette.
 	match data.behaviour:
@@ -1138,9 +1161,25 @@ func _begin_behaviour() -> bool:
 		JuiceDirector.note(JuiceDirector.Priority.BOSS)
 	speak()
 	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
-	Vfx.ring(global_position, _behaviour_reach() * Balance.ENEMY_BEHAVIOUR_TELL_SHARE,
-		_behaviour_colour(), _behaviour_warning(), 3.0)
-	return true
+	var tell_reach: float = _behaviour_reach() * Balance.ENEMY_BEHAVIOUR_TELL_SHARE
+	if data.behaviour == EnemyData.Behaviour.POUNCE and _leap_distance > 0.0:
+		tell_reach = _leap_distance
+	Vfx.ring(global_position, tell_reach, _behaviour_colour(), warning, 3.0)
+
+
+## **A leap lands where the target stood at the tell** (2026-09-25). Sized to
+## the breed's whole reach, a pounce at a Warden standing closer than that flew
+## straight past them and never connected. Taken once, like the heading: a
+## Warden who steps aside during the tell is not where the cat lands.
+func _size_the_leap() -> void:
+	_pounce_landed = false
+	var reach: float = _behaviour_reach()
+	if _target == null or not is_instance_valid(_target):
+		_leap_distance = reach
+		return
+	var gap: float = _target_gap(_target)
+	_leap_distance = clampf(gap - attack_reach() * Balance.ENEMY_POUNCE_LAND_SHARE,
+		minf(Balance.ENEMY_POUNCE_MIN_LEAP, reach), reach)
 
 
 ## Whether the moment is right. Each behaviour answers for itself, and each
@@ -1203,8 +1242,13 @@ func _behaviour_colour() -> Color:
 
 ## The commitment lands.
 func _commit_behaviour() -> void:
-	_enter(State.COMMIT, maxf(data.behaviour_seconds,
-		Balance.ENEMY_BEHAVIOUR_SECONDS))
+	# A pounce is committed for the leap and the landing, never the default
+	# floor: two seconds standing where it landed was the whole of why it read
+	# as ineffective.
+	var held: float = maxf(data.behaviour_seconds, Balance.ENEMY_BEHAVIOUR_SECONDS)
+	if data.behaviour == EnemyData.Behaviour.POUNCE:
+		held = _leap_seconds() + Balance.ENEMY_POUNCE_LAND_SECONDS
+	_enter(State.COMMIT, held)
 	match data.behaviour:
 		EnemyData.Behaviour.POUNCE:
 			# A leap is a shove along the marked line, through the same slip the
@@ -1247,6 +1291,26 @@ func _hold_behaviour(delta: float) -> void:
 			# seconds against a commitment of 2.4, so it could not reach zero even
 			# when it was left alone to try.
 			_slip = _slip.move_toward(Vector2.ZERO, delta * _leap_decay())
+			_land_the_pounce()
+
+
+## **A pounce that reaches its target strikes it**, once, at
+## `ENEMY_POUNCE_DAMAGE_SCALE` of the swing - through `_strike`, so a ward, a
+## dodge, a companion and the co-op announcement all treat it as the blow it is.
+func _land_the_pounce() -> void:
+	if _pounce_landed or data.role == EnemyData.Role.HOWLER:
+		return
+	if _target == null or not is_instance_valid(_target):
+		return
+	if _target_gap(_target) > attack_reach():
+		return
+	_pounce_landed = true
+	_blow_scale = Balance.ENEMY_POUNCE_DAMAGE_SCALE
+	_strike()
+	_blow_scale = 1.0
+	EventBus.enemy_attacked.emit(get_instance_id(), combat_origin(), attack_reach())
+	animator.punch(_behaviour_aim, 1.3)
+	EventBus.camera_impact.emit(global_position, 0.35)
 
 
 ## The leap's own numbers.
@@ -1261,14 +1325,45 @@ func _leap_seconds() -> float:
 
 
 func _leap_speed() -> float:
-	return 2.0 * _behaviour_reach() / _leap_seconds()
+	return 2.0 * _leap_length() / _leap_seconds()
+
+
+## The ground this leap crosses: what `_size_the_leap` chose, or the whole
+## reach for a leap nobody sized.
+func _leap_length() -> float:
+	return _leap_distance if _leap_distance > 0.0 else _behaviour_reach()
 
 
 func _leap_decay() -> float:
 	return _leap_speed() / _leap_seconds()
 
 
+## Again, a swing, or the opening (2026-09-25).
+##
+## A second pounce if one was rolled and the target is still out of the arm and
+## inside the leap; otherwise a swing, sometimes, if the landing left it in
+## reach; otherwise the recovery every behaviour ends in.
+func _after_the_pounce() -> void:
+	var alive: bool = _target != null and is_instance_valid(_target)
+	if alive and _pounces_left > 0:
+		var gap: float = _target_gap(_target)
+		if gap > attack_reach() and gap <= _behaviour_reach():
+			_pounces_left -= 1
+			_behaviour_aim = _behaviour_heading()
+			_size_the_leap()
+			_tell_behaviour(_behaviour_warning() * Balance.ENEMY_POUNCE_CHAIN_WARNING)
+			return
+	_pounces_left = 0
+	if alive and _in_reach(_target) and _temper.randf() < Balance.ENEMY_POUNCE_FOLLOW_CHANCE:
+		_behaviour_wait = maxf(data.behaviour_interval, Balance.ENEMY_BEHAVIOUR_INTERVAL)
+		_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP * Balance.ENEMY_POUNCE_FOLLOW_WINDUP)
+		animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+		return
+	_end_behaviour()
+
+
 func _end_behaviour() -> void:
+	_pounces_left = 0
 	_behaviour_wait = maxf(data.behaviour_interval, Balance.ENEMY_BEHAVIOUR_INTERVAL)
 	_behaviour_bank = 0.0
 	# **The recovery is the opening.** It cannot act, it cannot move, and it is
@@ -1927,7 +2022,7 @@ func _choose_target() -> Node2D:
 		# objective there is, at any distance.
 		if town == null:
 			return hero
-		if global_position.distance_to(hero.global_position) <= Balance.ENEMY_HERO_AGGRO_RANGE:
+		if global_position.distance_to(hero.global_position) <= hero_aggro_range():
 			# **A body at the gate hits the gate.** A hero merely *near* used to
 			# take the target from a wall already in reach, so a besieger at the
 			# town with the Warden dashing around it stood there swinging at
@@ -2007,6 +2102,14 @@ func _foe_stands(foe: Node2D) -> bool:
 ##
 ## One number now, drawn and obeyed. Where a ranged breed authored an aura, that
 ## aura *is* its reach - the circle was always what the player was reading.
+## How near the Warden has to be before this body breaks off to fight them.
+## Further for a melee body (2026-09-25): see `ENEMY_MELEE_AGGRO_SCALE`.
+func hero_aggro_range() -> float:
+	if data != null and data.role == EnemyData.Role.HOWLER:
+		return Balance.ENEMY_HERO_AGGRO_RANGE
+	return Balance.ENEMY_HERO_AGGRO_RANGE * Balance.ENEMY_MELEE_AGGRO_SCALE
+
+
 func attack_reach() -> float:
 	if data.role != EnemyData.Role.HOWLER:
 		# A melee arm reaches from the body's surface, so the attacker's own
@@ -2109,7 +2212,7 @@ func _strike() -> void:
 	# time reads as arithmetic; the average is unchanged, so nothing balanced
 	# against it moves.
 	var damage: float = TowerData.roll_damage(
-		data.contact_damage * _damage_scale * _rank_scale().y
+		data.contact_damage * _damage_scale * _blow_scale * _rank_scale().y
 			* _affix_product(&"damage_scale")
 			* _enemy_damage_scale(), RunState.rng("combat"))
 	if _boss_phase > 0:
@@ -2146,12 +2249,18 @@ func _strike() -> void:
 	# Said out loud, so a guest can draw the blow it is not simulating. A puppet
 	# never runs this function, so without the announcement a ranged enemy on the
 	# other screen hurt people from across the field with nothing in between.
+	# **A shot is the blow; a swing is announced and then dealt** (2026-09-25).
+	# Since 2026-09-21 this read `if HOWLER: shoot  elif net_id: announce;
+	# return` - the ranged branch's `return` had moved under the new co-op one -
+	# so every ranged swing hit twice, its projectile and the same blow again
+	# right here, and on a co-op host a melee swing was announced and never
+	# dealt. `enemy_behaviour_check` drives a real swing both ways now.
 	if data.role == EnemyData.Role.HOWLER:
 		# Says `enemy_struck` itself, once it knows which shot it chose.
 		_loose_a_shot(damage)
-	elif net_id != 0:
-		EventBus.enemy_struck.emit(net_id, _target.global_position, "")
 		return
+	if net_id != 0:
+		EventBus.enemy_struck.emit(net_id, _target.global_position, "")
 	if _target is Companion:
 		(_target as Companion).take_damage(damage, combat_origin())
 		return
