@@ -3727,12 +3727,33 @@ func _build_command_panel() -> void:
 	orders.add_theme_constant_override("v_separation", 6)
 	_command_orders = orders
 	column.add_child(orders)
-	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z",
+	# **Named, not lettered** (2026-09-25). The three orders read "Z", "X" and
+	# "C" on a button as wide as the panel - a key on a thumb layout that has no
+	# keyboard, and on a desktop a key with nothing to say what it does until
+	# the tooltip opened. The key stays on a keyboard; the name is on both.
+	_add_command_button(orders, CommandSystemScript.OVERDRIVE, _action_label("Z", "Overdrive"),
 		"command_overdrive", "Point at a tower and press Z: it surges its attack rate and utility for 5 seconds.")
-	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, "X",
+	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, _action_label("X", "Rally"),
 		"command_rally", "Point at a road and press X: it staggers everything on it and shields its blockers.")
-	_add_command_button(orders, CommandSystemScript.LAST_STAND, "C",
+	_add_command_button(orders, CommandSystemScript.LAST_STAND, _action_label("C", "Last Stand"),
 		"command_last_stand", "Press C: the Town Hall is protected for 3 seconds and every tower attack resets. Once per battle.")
+
+
+## Each order's key and name, for `_action_label` - at build and whenever the
+## touch layout changes, so a phone never shows a keyboard's letter.
+const COMMAND_ORDER_NAMES: Dictionary = {
+	"overdrive": ["Z", "Overdrive"],
+	"rally_road": ["X", "Rally"],
+	"last_stand": ["C", "Last Stand"],
+}
+
+
+func _label_the_orders() -> void:
+	for id: Variant in _command_buttons.keys():
+		var button := _command_buttons[id] as Button
+		var names: Array = COMMAND_ORDER_NAMES.get(String(id), [])
+		if button != null and names.size() == 2:
+			button.text = _action_label(String(names[0]), String(names[1]))
 
 
 func _add_command_button(parent: Node, id: String, text: String, icon: String,
@@ -4919,6 +4940,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_command_orders.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if showing else Control.SIZE_FILL
 	if _top_scrim != null:
 		_top_scrim.visible = showing
+	_label_the_orders()
 	_seat_region_card()
 	if _seed_label != null:
 		_seed_label.visible = not showing
@@ -6200,7 +6222,8 @@ func _toggle_game_speed() -> void:
 func _refresh_speed_button() -> void:
 	if _speed_button == null:
 		return
-	_speed_button.text = "2x  ·  P" if GameSpeed.is_fast() else "1x  ·  P"
+	# Says what it is before what it is set to: "1x · P" read as a stray code.
+	_speed_button.text = "P  Speed 2x" if GameSpeed.is_fast() else "P  Speed 1x"
 	_speed_button.visible = not touch_ui() and GameSpeed.allowed()
 	_speed_button.tooltip_text = ("Run the road at double speed. P toggles it. The road "
 		+ "pays %d%% less in spoils and trickle while it runs fast. Alone only - a "
