@@ -9401,6 +9401,142 @@ average (78 fps), p99 21.9, worst 37.0, two hitches, 912 draw calls**, against
 13.0 ms and 975 draws before. Act X's peak holds sixty on the machine it was
 tuned on with a quarter of the frame to spare.
 
+**A pounce strikes, and a swing is dealt once, as of 2026-09-25.** The owner:
+the pouncing cats *"should be able to pounce randomly 1-2 times, and should have
+a chance to attack after a pounce"*, and *"the pounce itself rarely if ever does
+damage"*. It did none by design - the leap was movement - and it was sized to
+the breed's whole reach, so it flew past a Warden standing closer. A leap now
+lands half an arm short of where its target stood at the tell, strikes once
+through `_strike` at `ENEMY_POUNCE_DAMAGE_SCALE`, and then pounces again, runs
+into a swing, or recovers - rolled on the body's own dice, so the run's stream
+does not move. **The bound is `_strike`**: the pounce's blow is the breed's own
+blow scaled, through the one door every enemy blow goes through, never a
+second damage path.
+
+**And `_strike` had been dealing two blows since 2026-09-21.** The ranged
+branch's `return` had drifted under the new co-op branch, so every ranged swing
+hit twice - the shot and an instant blow - and a melee swing on a co-op host was
+announced and never dealt. `ENEMY_RANGED_DAMAGE_SCALE` goes back to 1.0: its
+quarter cut of 2026-09-22 was, without anyone knowing it, answering the double
+hit. `enemy_behaviour_check` deals a real swing both ways and counts the blows.
+
+**Bodies turn to the light, and ground blood fades on the GPU, as of the same
+date.** `actor_shade.gdshaderinc` is the towers' light-direction relief, shared
+by `actor_polish` and `blood_stain`, so an enemy, the Warden, an animal and a
+companion read the light off their own painting; `ActorShade.dress` is the one
+place a body is given it, and it gives nothing on Low or below. `BloodField`
+carries each mark's birth and life in its UVs and fades them against one clock
+uniform, so the mesh is rebuilt when a mark is laid rather than ten times a
+second while marks fade. A look, never a fact.
+
+**Fast-forward costs a quarter of the road's pay, as of the same date.** The
+owner: *"fast forward should cost something"*. `GAME_SPEED_FAST_TOLL` takes a
+quarter off kill spoils and the trickle through `Modifiers`, beside momentum,
+for as long as the clock runs fast - said once when it starts, and on the
+button's tooltip. The bound is that it moves the purse and nothing about a
+fight: a player may still trade time for Gold, which is the decision it exists
+to make. On a phone the speed toggle is a square in the scope column.
+
+**The wheel and the pinch zoom the battlefield only**, and the near end is one
+step closer (`CAMERA_ZOOM_BATTLEFIELD_MAX` 1.10, 1.65 on touch). The wheel used
+to step out past the field to the Town and Yuri, which the owner reported as the
+view changing scope under them; the scope buttons do that now and nothing else.
+
+**A lost Walk says so.** A Walk lost to three wounds or the town went straight
+to the menu with no word; it shows the valley's own short report now, and leaving
+it ends the Walk. Nothing is paid. **And the valley refuses a town order it
+cannot finish**: a project grows with road walked and Yuri is chained there, so
+the order took the Wood and never progressed. It is refused before anything is
+spent (`TownScope.WALK_REFUSAL`).
+
+**A tap is a tap wherever it lands, as of 2026-09-25.** The owner: *"Too often
+i'll be in build mode and try tapping on a ground tile to place a tower or trap
+and the menus wont open!"* The two thumb-stick zones are 42% of the width by 62%
+of the height each, so together they own the lower two thirds of the screen bar
+a thin strip; a finger landing there belonged to a stick, and the placement
+cursor drops any click whose finger a stick holds. `touch_check` had recorded
+exactly this since 2026-09-22 and named tap-versus-drag as the fix it deferred.
+
+It is built now, and the sticks still claim every finger. A press let go within
+`TOUCH_TAP_SECONDS` having moved no more than `TOUCH_TAP_SLOP` is handed back as
+`TouchInput.field_tapped`, and the cursor treats it exactly as a mouse release at
+that point. A second finger's tap is handed back too - Godot emulates a mouse
+from finger 0 only, so the other hand tapping a tile while a thumb rested on the
+move stick clicked nothing at all. Finger 0 on open glass is not reported, or the
+sheet would open twice. `touch_check` holds the rules; `road_sheet_check` taps a
+buildable tile inside each stick's zone on the real field at the phone shapes and
+insists the sheet opens and a drag does not - and named both zones with the
+connection planted out.
+
+**Its first cut measured a hold on the wrong clock.** A scene timer counts game
+time and the tap rule counts the wall clock; headless the first ran twice as fast
+as the second, so "hold 0.45 s" held for 229 ms and read as a tap. The gate waits
+on `Time.get_ticks_msec` now.
+
+**The phone HUD, as of the same date.** The owner: *"mobile UI sucks, it must be
+polished with all buttons and UI elements on bottom and top and sides having
+perfect fitting and layout"*. What is a decision rather than a fix:
+
+- **The actions are one row of tiles on a landscape phone**, the height of an
+  ability slot, mark above word, beside the slots. Two rows of wide buttons sat
+  in the corner a left thumb rests in. The combat band stops counting a second
+  action row in that mode (`_action_band_height`), which lifted every sheet and
+  card a button's height above empty field - and that had been holding the
+  scope column in two columns by accident. **The column now asks for the thumb
+  cluster's own height** (`_column_floor`), because a floor borrowed from an
+  unrelated band is a floor that moves when the band does: the day the tiles
+  landed the column grew through the XP strip and DASH was thrown mid-screen.
+- **A sheet stands the combat row down on a thumb** (`_stand_the_row_down`).
+  Sheets open only in Preparation, when nothing on that row is being pressed, and
+  on a landscape phone the row's height was the difference between a tower list
+  and one row of it. The sheet is wider there too (`BUILD_PANEL_TOUCH_WIDTH`).
+  Only a row a sheet took down is put back, so an end report stays cleared, and
+  the row follows the sheets' own visibility once a frame rather than trusting
+  each close door.
+- **Fixed chrome must leave room for a row of the list.** It used to be fixed
+  whenever the chrome alone fitted, which on one shape left an eleven-unit list
+  window: a sheet with nothing in it.
+- **An announcement waits for an open sheet.** The region title is centred
+  again - it had been shoved 220 units left on a phone since the Preparation
+  card sat mid-screen - and centred it crosses a phone's sheet; a card arriving
+  while a sheet is open is held and shown when it closes.
+- Empty slots and disabled actions are **dimmed, never see-through**: a 70%
+  plate on the battlefield reads as a ghost of a button with the road through it.
+  Slot names wrap to two lines on a thumb; a shade sits behind the top readouts
+  on a thumb; thumb buttons are plates with a lit face; the build rows carry each
+  tower's and trap's own painting (`IconKit.art`), not its element's glyph; the
+  command orders are named rather than lettered.
+- **The command panel is a faded meter until an order is affordable**, then a
+  frame with only the orders that can be given, still see-through. Shaped only
+  when that changes: it first re-laid itself on every kill.
+
+`phone_hud_shot` is the picture for all of it - the opening, Preparation, both
+command states, both sheets with their lists showing, at any shape, `--desktop`
+for a keyboard - and it prints the rects beside each.
+
+**The code had been quietly flattened by its own patch scripts, found the same
+day.** 161 line continuations were a run of tabs in the middle of a line - a
+heredoc had eaten each backslash-newline - and 35 GDScript strings held raw
+newlines where a Python patch string had turned `"\n"` into one. All of it
+compiled and behaved identically, which is why nothing ever failed on it.
+Restored mechanically and checked the same way: with the restored continuations
+taken back out, every changed file matches the previous commit byte for byte.
+**Patch GDScript through a file written with the Write tool, and build a
+backslash with `chr(92)`**; the memory directory has had this lesson since the
+first time, and this is what it cost to keep relearning it.
+
+**A torch's post and coals are one batch**: the coal dot is rasterised into the
+ironwork's texture, so two commands on two textures became two regions of one.
+Act X at 1080p, 950 draw calls to 849-870.
+
+**And a measurement is only comparable to one taken the same day.** The frame
+read 14.7-15.2 ms against the 12.8 recorded two sessions ago, and looked like a
+regression across six commits. The previous commit, measured the same way that
+afternoon, read 15.1 ms, and headless both builds traced to 8.4 ms with the same
+per-system totals. The machine was slower, not the build. **Before calling a
+regression, measure the old build now** - a worktree with a copy of `.godot` and
+one `--import` is a few minutes, and it is the only control there is.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

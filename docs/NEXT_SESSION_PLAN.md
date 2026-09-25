@@ -21,6 +21,45 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0a. Where things stand (2026-09-25, end of day)
+
+Built, gated and recorded in CLAUDE.md under 2026-09-25 - read those entries
+before touching the phone HUD, the sheets or the touch input:
+
+- **Taps in build mode open the menu anywhere** (tap-versus-drag on the
+  sticks, and a second finger's tap). This was the owner's worst mobile bug.
+  **Still owed: a check on a real phone** - the rule is gated headless, but a
+  thumb's slop and timing are only measurable under a thumb. If taps still go
+  missing, `TOUCH_TAP_SLOP` and `TOUCH_TAP_SECONDS` are the two numbers.
+- The phone HUD: tiles, the thumb cluster under a two-column scope bar, solid
+  dimmed plates, wrapping slot names, the top shade, sheets that stand the
+  combat row down and carry each tower's painting, a centred title that waits
+  for a sheet, the command panel as a faded meter.
+- The pounce strikes and may chain or follow into a swing; the double hit in
+  `_strike` is gone and ranged damage is back to 1.0 - **expect the owner to
+  feel the game got harder at range and easier from cats that used to stand
+  still**; both are the fix, not a tuning slip.
+- Fast-forward costs a quarter of the road's pay; the wheel and the pinch zoom
+  the battlefield only; a lost Walk shows a report.
+- Draw calls 950 to 849-870 at Act X (the torch atlas).
+
+**Open, in order:**
+
+1. **Portrait is only the web build's, and it is still miniature** - the HUD at
+   430x932 is desktop-sized type on a phone-sized screen, and DASH floats
+   mid-screen because a one-column scope bar leaves no room under it. Android is
+   landscape-locked, so this is the browser's problem alone. The answer is a
+   portrait layout, not a scale: decide with the owner whether the web build
+   should simply ask the player to turn the phone.
+2. **The pool figures on a phone are small** (the HP/MP/SP bars are 16 units in
+   a column that cannot grow on the portrait shape). A landscape-only taller bar
+   is the likely answer; `BarName`'s header explains why a Label cannot be used.
+3. **The flame tongue is a `draw_mesh` per flame**, which never batches. The
+   next draw-call lever is a baked animation strip drawn as texture regions;
+   photograph it against the mesh before believing it.
+4. **Measure on the owner's two phones** after the tap fix: the model, the
+   resolution, the act and the preset the settings screen shows.
+
 ## 0. Where things stand (2026-09-24, end of day)
 
 - **v0.56.6 is live** (difficulty batch, formations, siege orders, the bar
