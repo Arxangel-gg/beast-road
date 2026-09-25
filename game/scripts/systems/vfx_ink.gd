@@ -77,8 +77,22 @@ func _init(adds_light: bool = true) -> void:
 	additive = adds_light
 
 
+## **The canvas every flame's embers land on** (2026-09-25): the additive
+## one, registered here so a `Flame` - which the headless `--script` tools load
+## and which therefore may not name an autoload - can reach it.
+static var ember_canvas: VfxInk = null
+var _embers: Array[Dictionary] = []
+
+
+func _exit_tree() -> void:
+	if ember_canvas == self:
+		ember_canvas = null
+
+
 func _ready() -> void:
 	name = "VfxInk" if additive else "VfxInkFlat"
+	if additive:
+		ember_canvas = self
 	z_index = Balance.VFX_Z if additive else Balance.VFX_Z + 1
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
@@ -104,6 +118,7 @@ func clear() -> void:
 	_art.clear()
 	_numbers.clear()
 	_dust.clear()
+	_embers.clear()
 	queue_redraw()
 
 
@@ -127,6 +142,29 @@ func live_art() -> int:
 
 func live_numbers() -> int:
 	return _numbers.size()
+
+
+func live_embers() -> int:
+	return _embers.size()
+
+
+## An ember: born at `at` moving at `velocity`, lifted by `rise` a second a
+## second, running from `core` to `body` over its first third and fading
+## and shrinking to nothing over `life`. Its own array and its own cap, so a
+## hundred torches never push a shot's trail out of the motes.
+func ember(at: Vector2, velocity: Vector2, rise: float, core: Color, body: Color,
+		size: float, life: float) -> void:
+	_push(_embers, {
+		"at": at,
+		"velocity": velocity,
+		"rise": rise,
+		"core": core,
+		"body": body,
+		"size": maxf(size, 0.5),
+		"life": maxf(life, 0.02),
+		"age": 0.0,
+		"always": false,
+	}, Balance.VFX_INK_EMBERS_MAX)
 
 
 func live_dust() -> int:
@@ -346,6 +384,7 @@ func _process_measured(delta: float) -> void:
 	moved = _age(_art, step, paused) or moved
 	moved = _age(_numbers, step, paused) or moved
 	moved = _age(_dust, step, paused) or moved
+	moved = _age(_embers, step, paused) or moved
 	if moved:
 		queue_redraw()
 	elif _was_live:
@@ -383,6 +422,7 @@ func _draw_measured() -> void:
 	_draw_rings(inverse)
 	_draw_flashes(inverse)
 	_draw_motes(inverse)
+	_draw_embers(inverse)
 	_draw_art(inverse)
 	_draw_numbers(inverse)
 
@@ -580,6 +620,26 @@ func _draw_dust(inverse: Transform2D) -> void:
 		var eased: float = 1.0 - (1.0 - t) * (1.0 - t)
 		var at: Vector2 = inverse * ((record["at"] as Vector2) + (record["drift"] as Vector2) * eased)
 		var radius: float = float(record["size"]) * lerpf(1.0, float(record["grow"]), t)
+		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
+			Color(colour.r, colour.g, colour.b, lit))
+
+
+func _draw_embers(inverse: Transform2D) -> void:
+	if _embers.is_empty():
+		return
+	var dot: Texture2D = Flame.dot_texture()
+	for record: Dictionary in _embers:
+		var age: float = float(record["age"])
+		var t: float = clampf(age / float(record["life"]), 0.0, 1.0)
+		var colour: Color = (record["core"] as Color).lerp(record["body"] as Color,
+			clampf(t / 0.35, 0.0, 1.0))
+		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
+		var from: Vector2 = record["at"] as Vector2
+		var at: Vector2 = inverse * (from + (record["velocity"] as Vector2) * age
+			+ Vector2(0.0, -0.5 * float(record["rise"]) * age * age))
+		var radius: float = float(record["size"]) * (1.0 - 0.6 * t)
 		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
 			Color(colour.r, colour.g, colour.b, lit))
 

@@ -62,7 +62,8 @@ var _lit: bool = true
 ## - and the flame already redraws at `FLAME_REDRAW_HZ`, which is exactly
 ## the clock the glow breathed on.
 var _glow_pulse: float = 1.0
-var _embers: CPUParticles2D
+## Embers owed but not yet shed, a fraction carried frame to frame.
+var _ember_debt: float = 0.0
 var _smoke: CPUParticles2D
 var _light: PointLight2D
 ## Whether the camera could see this flame on its last tick.
@@ -118,7 +119,6 @@ func configure(flame_size: float, light_radius: float = 0.0,
 
 	if smokes:
 		_build_smoke()
-	_build_embers()
 
 	if light_radius > 0.0:
 		_light = LightKit.add_light(self, light_colour, light_radius,
@@ -152,6 +152,7 @@ func _process_measured(delta: float) -> void:
 	if not _seen:
 		_sleep()
 		return
+	_shed_embers(delta)
 	# **Redrawn at `FLAME_REDRAW_HZ`, not every frame.** The clock above runs
 	# at frame rate, so the dance is as smooth as the cadence it is sampled at
 	# - and a fire sampled thirty times a second is a fire. Measured on the
@@ -166,6 +167,32 @@ func _process_measured(delta: float) -> void:
 	# phase, the two read as one object being scaled.
 	_glow_pulse = 1.0 + sin(_time * 1.9 - 0.6) * 0.13
 	queue_redraw()
+
+
+## **Embers are records on the additive ink** (2026-09-25). They were a
+## `CPUParticles2D` a flame - a simulation and a draw call each, 0.56 ms of a
+## held Act X frame - and are shed here at the rate the emitter kept, with its
+## spread, speed, rise, size and colour ramp, only while the flame is in view.
+## A look and never a fact.
+func _shed_embers(delta: float) -> void:
+	if intensity <= 0.035:
+		return
+	var canvas: VfxInk = VfxInk.ember_canvas
+	if canvas == null or not is_instance_valid(canvas):
+		return
+	var amount: int = Graphics.scaled(
+		int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale())
+	_ember_debt += delta * float(amount) / Balance.FLAME_EMBER_LIFETIME
+	var spread: float = deg_to_rad(Balance.FLAME_EMBER_SPREAD)
+	while _ember_debt >= 1.0:
+		_ember_debt -= 1.0
+		var from: Vector2 = global_position + Vector2(0.0, -size * 0.3) \
+			+ Vector2.from_angle(randf() * TAU) * randf() * size * 0.3
+		var heading: Vector2 = Vector2.UP.rotated(randf_range(-spread, spread))
+		canvas.ember(from, heading * randf_range(0.5, 1.0) * Balance.FLAME_EMBER_SPEED * 0.7,
+			Balance.FLAME_EMBER_RISE, Balance.FLAME_CORE, Balance.FLAME_BODY,
+			16.0 * randf_range(size * 0.006, size * 0.014),
+			Balance.FLAME_EMBER_LIFETIME * randf_range(0.45, 1.0))
 
 
 func _sleep() -> void:
@@ -212,8 +239,6 @@ func _on_screen() -> bool:
 ## simulated for a camera that sees six. Hidden rather than stopped: nothing
 ## restarts, and a torch panned onto is mid-life rather than starting empty.
 func _show_particles(seen: bool) -> void:
-	if _embers != null and is_instance_valid(_embers):
-		_embers.visible = seen
 	if _smoke != null and is_instance_valid(_smoke):
 		_smoke.visible = seen
 
@@ -452,45 +477,6 @@ func _glow_base_scale() -> float:
 	return size * Balance.FLAME_GLOW_SCALE / float(LightKit.falloff_texture().width)
 
 
-func _build_embers() -> void:
-	_embers = CPUParticles2D.new()
-	_embers.name = "Embers"
-	_embers.texture = dot_texture()
-	_embers.amount = Graphics.scaled(
-		int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale())
-	_embers.lifetime = Balance.FLAME_EMBER_LIFETIME
-	_embers.lifetime_randomness = 0.55
-	_embers.local_coords = false
-
-	_embers.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	_embers.emission_sphere_radius = size * 0.30
-	_embers.position.y = -size * 0.3
-
-	_embers.direction = Vector2.UP
-	_embers.spread = Balance.FLAME_EMBER_SPREAD
-	_embers.initial_velocity_min = Balance.FLAME_EMBER_SPEED * 0.5
-	_embers.initial_velocity_max = Balance.FLAME_EMBER_SPEED
-	# Negative gravity: hot air carries embers up, and they slow as they cool.
-	_embers.gravity = Vector2(0.0, -Balance.FLAME_EMBER_RISE)
-	_embers.damping_min = 8.0
-	_embers.damping_max = 22.0
-
-	_embers.scale_amount_min = size * 0.006
-	_embers.scale_amount_max = size * 0.014
-	_embers.scale_amount_curve = _fade_curve()
-
-	var ramp := Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
-	ramp.colors = PackedColorArray([
-		Balance.FLAME_CORE, Balance.FLAME_BODY, Color(Balance.FLAME_BODY, 0.0),
-	])
-	_embers.color_ramp = ramp
-
-	var additive: CanvasItemMaterial = LightKit.additive_material()
-	_embers.material = additive
-	add_child(_embers)
-
-
 func _build_smoke() -> void:
 	_smoke = CPUParticles2D.new()
 	_smoke.name = "Smoke"
@@ -560,11 +546,6 @@ static func _growth_curve() -> Curve:
 ## better than the setting appearing to do nothing at all.
 func refresh_quality() -> void:
 	var scale: float = Graphics.particle_scale()
-	if _embers != null:
-		var ember_amount: int = maxi(Graphics.scaled(
-			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), scale), 1)
-		if _embers.amount != ember_amount:
-			_embers.amount = ember_amount
 	if _smoke != null:
 		var smoke_amount: int = maxi(Graphics.scaled(
 			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), scale), 1)
@@ -576,8 +557,6 @@ func set_lit(lit: bool) -> void:
 	if _lit == lit:
 		return
 	_lit = lit
-	if _embers != null:
-		_embers.emitting = lit
 	if _smoke != null:
 		# Smoke outlives the flame by one lifetime: a torch that has just gone
 		# out should smoulder, not stop dead.
@@ -600,12 +579,6 @@ func set_intensity(value: float) -> void:
 		var light_colour: Color = _light.color
 		light_colour.a = intensity
 		_light.color = light_colour
-	if _embers != null:
-		var ember_amount: int = maxi(Graphics.scaled(
-			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale()), 1)
-		if _embers.amount != ember_amount:
-			_embers.amount = ember_amount
-		_embers.emitting = _lit and intensity > 0.035
 	if _smoke != null:
 		var smoke_amount: int = maxi(Graphics.scaled(
 			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), Graphics.particle_scale()), 1)

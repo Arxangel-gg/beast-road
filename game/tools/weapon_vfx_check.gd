@@ -153,6 +153,16 @@ func _test_blade_sweep() -> void:
 
 	var aim := Vector2.RIGHT
 	var reach: float = Balance.HERO_ATTACK_RANGE[0]
+	# **A warm-up swing first** (2026-09-25). The blade lives 0.16 s on a tween,
+	# and the first swing loads the weapon's art and samples its tint inside the
+	# handler - so on a cold cache the frame after it can be longer than the
+	# blade's whole life, the tween finishes in one step and frees it, and the
+	# gate saw no blade about one run in five. The measured swing is the second,
+	# as a player's is.
+	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0)
+	await get_tree().create_timer(0.4).timeout
+	Vfx.clear()
+	await get_tree().process_frame
 	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0)
 	await get_tree().process_frame
 

@@ -176,16 +176,26 @@ func _test_an_unseen_emitter_rests() -> void:
 	_world.add_child(flame)
 	flame.configure(16.0)
 	flame.position = far
+	# Amended 2026-09-25: a flame's embers are records on the additive ink, not
+	# an emitter, so what is held is that an unseen flame sheds none and a
+	# seen one sheds some - and the smoke emitter still rests.
+	var ink: VfxInk = VfxInk.ember_canvas
+	_check(ink != null, "the additive ink registers itself for the embers")
+	var shed_before: int = ink.live_embers() if ink != null else 0
 	flame._process(step)
-	var embers: CPUParticles2D = flame.get("_embers") as CPUParticles2D
 	var smoke: CPUParticles2D = flame.get("_smoke") as CPUParticles2D
-	_check(embers != null and smoke != null, "a configured flame has embers and smoke")
-	_check(embers != null and not embers.visible and smoke != null and not smoke.visible,
-		"a flame far off the screen still simulated its embers")
+	_check(smoke != null, "a configured flame has smoke")
+	_check(smoke != null and not smoke.visible, "a flame far off the screen still simulated its smoke")
+	_check(ink == null or ink.live_embers() == shed_before,
+		"a flame far off the screen shed %d embers" % ((ink.live_embers() if ink != null else 0) - shed_before))
+	_check(flame.get_child_count() >= 0 and flame.find_child("Embers", false, false) == null,
+		"a flame still carries an ember emitter")
 	flame.position = near
+	Flame.wake_the_seen()
 	flame._process(step)
-	_check(embers != null and embers.visible and smoke != null and smoke.visible,
-		"a flame back in view did not wake its embers")
+	_check(smoke != null and smoke.visible, "a flame back in view did not wake its smoke")
+	_check(ink == null or ink.live_embers() > shed_before,
+		"a flame in view shed no embers")
 	flame.free()
 
 	var aura := TowerAura.new()

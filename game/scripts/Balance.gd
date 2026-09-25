@@ -6853,6 +6853,9 @@ const FLAME_GLOW_ALPHA: float = 0.26
 
 ## Embers. A real particle system, so they inherit spread, damping and a colour
 ## ramp rather than being hand-tweened one at a time. [TUNE]
+## The embers a flame keeps in the air, on the additive ink since 2026-09-25
+## (they were a `CPUParticles2D` a flame, 0.56 ms of a held Act X frame).
+const VFX_INK_EMBERS_MAX: int = 700
 const FLAME_EMBER_AMOUNT: int = 16
 const FLAME_EMBER_LIFETIME: float = 1.7
 const FLAME_EMBER_SPEED: float = 42.0

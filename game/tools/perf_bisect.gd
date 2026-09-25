@@ -217,10 +217,21 @@ func _measure() -> float:
 	for _warm: int in 8:
 		await get_tree().process_frame
 	var started: int = Time.get_ticks_usec()
+	var draws: float = 0.0
 	for _frame: int in frames:
 		await get_tree().process_frame
+		draws += float(RenderingServer.get_rendering_info(
+			RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 	var elapsed: float = float(Time.get_ticks_usec() - started) / 1000.0
+	_last_draws = draws / float(frames)
 	return elapsed / float(frames)
+
+
+## **Draw calls beside milliseconds** (2026-09-25). The frame at Act X's peak
+## is about four microseconds a draw call, so a row that saves draws but not
+## time is still worth knowing on a phone, which pays more per call. The mean
+## over the measured frames; zero headless, where nothing is drawn.
+var _last_draws: float = 0.0
 
 
 func _all(from: Node) -> Array[Node]:
@@ -435,6 +446,7 @@ func _visual_table() -> void:
 		if live.is_empty():
 			continue
 		var before: float = await _measure()
+		var draws_on: float = _last_draws
 		if get_tree() == null:
 			return
 		for value: Variant in live:
@@ -445,6 +457,7 @@ func _visual_table() -> void:
 			else:
 				(value as CanvasItem).visible = false
 		var without: float = await _measure()
+		var draws_off: float = _last_draws
 		for value: Variant in live:
 			if not is_instance_valid(value):
 				continue
@@ -455,8 +468,9 @@ func _visual_table() -> void:
 		var after: float = await _measure()
 		scored.append({"kind": String(key), "nodes": live.size(),
 			"saved": (before + after) * 0.5 - without, "off": without, "on": (before + after) * 0.5})
-		print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms" % [
-			String(key), live.size(), (before + after) * 0.5, without, (before + after) * 0.5 - without])
+		print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms  draws %.0f" % [
+			String(key), live.size(), (before + after) * 0.5, without, (before + after) * 0.5 - without,
+			draws_on - draws_off])
 	await _ablate_parts(groups, scored)
 	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a["saved"]) > float(b["saved"]))
@@ -500,22 +514,67 @@ func _ablate_parts(groups: Dictionary, scored: Array) -> void:
 	await _part_row("flame_tongue", flames.size(), tongues, scored)
 	await _part_row("torch_tick", torches.size(), torch_tick, scored)
 	await _part_row("flame_tick", flames.size(), flame_tick, scored)
+	# **A tower, split the same way** (2026-09-25): its relief shader, its
+	# light, its aura emitter, the glow it throws on the ground, and its tick.
+	var towers: Array = groups.get("towers", [])
+	var held_materials: Dictionary = {}
+	var tower_shader := func(off: bool) -> void:
+		for item: Variant in towers:
+			if not is_instance_valid(item):
+				continue
+			var body := item as Tower
+			if body == null or body.sprite == null:
+				continue
+			if off:
+				held_materials[body.get_instance_id()] = body.sprite.material
+				body.sprite.material = null
+			else:
+				body.sprite.material = held_materials.get(body.get_instance_id(), body.sprite.material)
+	var tower_part := func(off: bool, field: String) -> void:
+		for item: Variant in towers:
+			if not is_instance_valid(item):
+				continue
+			var part := (item as Node).get(field) as CanvasItem
+			if part != null:
+				part.visible = not off
+	var tower_light := func(off: bool) -> void: tower_part.call(off, "_light")
+	var tower_aura := func(off: bool) -> void: tower_part.call(off, "_aura")
+	var tower_glow := func(off: bool) -> void:
+		for item: Variant in towers:
+			if not is_instance_valid(item):
+				continue
+			for child: Node in (item as Node).get_children():
+				if child.get_script() != null \
+						and (child.get_script() as Script).resource_path.ends_with("ground_glow.gd"):
+					(child as CanvasItem).visible = not off
+	var tower_tick := func(off: bool) -> void:
+		for item: Variant in towers:
+			if is_instance_valid(item):
+				(item as Node).set_process(not off)
+	await _part_row("tower_shader", towers.size(), tower_shader, scored)
+	await _part_row("tower_light", towers.size(), tower_light, scored)
+	await _part_row("tower_aura", towers.size(), tower_aura, scored)
+	await _part_row("tower_glow", towers.size(), tower_glow, scored)
+	await _part_row("tower_tick", towers.size(), tower_tick, scored)
 
 
 func _part_row(kind: String, count: int, apply: Callable, scored: Array) -> void:
 	if count == 0:
 		return
 	var before: float = await _measure()
+	var draws_on: float = _last_draws
 	if get_tree() == null:
 		return
 	apply.call(true)
 	var without: float = await _measure()
+	var draws_off: float = _last_draws
 	apply.call(false)
 	var after: float = await _measure()
 	scored.append({"kind": kind, "nodes": count,
 		"saved": (before + after) * 0.5 - without, "off": without, "on": (before + after) * 0.5})
-	print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms" % [
-		kind, count, (before + after) * 0.5, without, (before + after) * 0.5 - without])
+	print("[bisect]   %-12s %4d nodes  on %.2f  off %.2f  saved %.2f ms  draws %.0f" % [
+		kind, count, (before + after) * 0.5, without, (before + after) * 0.5 - without,
+		draws_on - draws_off])
 
 
 func _redraw_all(items: Array) -> void:
