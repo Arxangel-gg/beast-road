@@ -330,7 +330,7 @@ func _refit() -> void:
 	_panel.custom_minimum_size = Vector2(minf(PANEL_WIDTH, screen.x * 0.94), 0.0)
 	var room: bool = screen.y >= HEADER_MIN_SCREEN
 	if _art != null:
-		_art.get_parent().visible = room
+		(_art.get_parent() as CanvasItem).visible = room
 	# Measured rather than a share of the screen: a flat 42% plus a header, a
 	# heading, two lines of copy, a result, a purse and a row of buttons is
 	# taller than a landscape phone, and the panel then hangs off the bottom.

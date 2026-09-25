@@ -996,7 +996,7 @@ func _animal_in_front(from: Vector2, direction: Vector2) -> Node2D:
 	for node: Node in animals.call("living_sprites") as Array[Node2D]:
 		if node == null or not is_instance_valid(node):
 			continue
-		var toward: Vector2 = node.global_position - from
+		var toward: Vector2 = (node as Node2D).global_position - from
 		var away: float = toward.length()
 		if away > nearest or away < 1.0:
 			continue

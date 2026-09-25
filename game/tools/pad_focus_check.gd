@@ -180,7 +180,7 @@ func _collect(node: Node, out: Array[Control]) -> void:
 	if control != null and control.is_visible_in_tree() \
 			and control.focus_mode == Control.FOCUS_ALL:
 		var button := control as BaseButton
-		var slider := control as Range
+		var slider := control as Slider
 		if (button == null or not button.disabled) and (slider == null or slider.editable):
 			out.append(control)
 	for child: Node in node.get_children():

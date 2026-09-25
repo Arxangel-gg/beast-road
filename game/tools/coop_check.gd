@@ -78,8 +78,8 @@ var _host: Node = null
 var _guest: Node = null
 
 ## One event bus per simulated machine. See `_build_two_sessions`.
-var _host_bus: Node = null
-var _guest_bus: Node = null
+var _host_bus: CoopRelay.BusScript = null
+var _guest_bus: CoopRelay.BusScript = null
 
 ## What each side heard, recorded from its own bus.
 var _guest_heard: Array = []
@@ -211,7 +211,7 @@ func _build_two_sessions() -> void:
 ## `add_child` returns — so the relay is holding the real `EventBus` autoload.
 ## Replacing it here means dropping the old connections and binding again, which
 ## is why `_bind_facts` had to be safe to call twice.
-func _rebind_relay(session: Node, bus: Node) -> void:
+func _rebind_relay(session: Node, bus: CoopRelay.BusScript) -> void:
 	var relay: CoopRelay = session.call("relay")
 	if relay == null:
 		_check(false, "a session must build its relay on ready")
@@ -253,7 +253,7 @@ func _test_the_shipping_singleton() -> void:
 ## would be a different branch from the co-op one — the branch nobody exercises,
 ## which is the branch that rots.
 func _test_offline_is_its_own_authority() -> void:
-	_check(_host.state() == _host.State.OFFLINE, "a fresh session must be OFFLINE")
+	_check(_host.state() == Coop.State.OFFLINE, "a fresh session must be OFFLINE")
 	_check(_host.is_host(), "a single player must be their own authority")
 	_check(not _host.is_guest(), "a single player is not a guest")
 	_check(not _host.is_networked(), "a single player is not networked")
@@ -262,8 +262,8 @@ func _test_offline_is_its_own_authority() -> void:
 
 
 func _test_host_and_join() -> void:
-	_check(_host.host(TEST_PORT), "hosting on a free port must succeed (%s)" % _host.last_error)
-	_check(_host.state() == _host.State.HOSTING, "a host must report HOSTING")
+	_check(_host.host(TEST_PORT), "hosting on a free port must succeed (%s)" % String(_host.get("last_error")))
+	_check(_host.state() == Coop.State.HOSTING, "a host must report HOSTING")
 	_check(_host.is_host() and not _host.is_guest(), "a host is the host")
 	_check(_host.is_networked(), "a host is networked even before anyone arrives")
 	_check(_host.player_count() == 1,
@@ -276,12 +276,12 @@ func _test_host_and_join() -> void:
 	# line, so a passing test would have broken the build to assert something the
 	# next four lines assert anyway.
 	_check(_guest.join("127.0.0.1", TEST_PORT),
-		"dialling a live host must start (%s)" % _guest.last_error)
-	_check(_guest.state() == _guest.State.CONNECTING,
+		"dialling a live host must start (%s)" % String(_guest.get("last_error")))
+	_check(_guest.state() == Coop.State.CONNECTING,
 		"a dial in flight must report CONNECTING, not success")
 
-	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED)
-	_check(_guest.state() == _guest.State.CONNECTED,
+	await _settle(func() -> bool: return _guest.state() == Coop.State.CONNECTED)
+	_check(_guest.state() == Coop.State.CONNECTED,
 		"the guest must connect over loopback")
 	_check(_guest.is_guest() and not _guest.is_host(),
 		"a guest must not claim authority")
@@ -635,7 +635,7 @@ func _row(kind: String) -> Array:
 ## record a finished run, and that a new session can be opened afterwards - a
 ## dropped host that leaves the game unable to reconnect would be the worse bug.
 func _test_a_dropped_host_ends_the_guest_run() -> void:
-	_check(_guest.state() == _guest.State.CONNECTED,
+	_check(_guest.state() == Coop.State.CONNECTED,
 		"the harness expects a joined guest")
 	_check(not GameDirector.run_active,
 		"this harness must not have a live run: abandoning one changes the scene")
@@ -645,9 +645,9 @@ func _test_a_dropped_host_ends_the_guest_run() -> void:
 	# The host goes away without saying goodbye, which is the case that matters:
 	# a clean quit and a pulled cable must look the same to the guest.
 	_host.leave()
-	await _settle(func() -> bool: return _guest.state() != _guest.State.CONNECTED)
+	await _settle(func() -> bool: return _guest.state() != Coop.State.CONNECTED)
 
-	_check(_guest.state() != _guest.State.CONNECTED,
+	_check(_guest.state() != Coop.State.CONNECTED,
 		"the guest must notice the host is gone")
 	_check(_failure_reasons.size() > failures_before,
 		"and say so, with a reason fit to show a player")
@@ -660,8 +660,8 @@ func _test_a_dropped_host_ends_the_guest_run() -> void:
 	# drop does not leave the game unable to reconnect.
 	_check(_host.host(TEST_PORT), "the harness must be able to host again")
 	_check(_guest.join("127.0.0.1", TEST_PORT), "and the guest to rejoin")
-	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED)
-	_check(_guest.state() == _guest.State.CONNECTED,
+	await _settle(func() -> bool: return _guest.state() == Coop.State.CONNECTED)
+	_check(_guest.state() == Coop.State.CONNECTED,
 		"a session must be re-openable after a drop")
 
 
@@ -690,26 +690,26 @@ func _test_a_late_guest_is_told_the_run() -> void:
 	_check(seeds.size() == 1 and seeds[0] == 4242,
 		"a late guest is told the run's seed, once, addressed to it (%s)" % str(seeds))
 	_check(host_told.is_empty(), "and the host is not told its own run started again")
-	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED and _host.partner_present())
-	_check(_guest.state() == _guest.State.CONNECTED, "and stands connected afterwards")
+	await _settle(func() -> bool: return _guest.state() == Coop.State.CONNECTED and _host.partner_present())
+	_check(_guest.state() == Coop.State.CONNECTED, "and stands connected afterwards")
 
 
 func _test_guest_leaves_cleanly() -> void:
 	_guest.leave()
-	_check(_guest.state() == _guest.State.OFFLINE, "leaving must return to OFFLINE")
+	_check(_guest.state() == Coop.State.OFFLINE, "leaving must return to OFFLINE")
 	_check(_guest.is_host(), "a player who left is once again their own authority")
 
 	await _settle(func() -> bool: return not _host.partner_present())
 	_check(not _host.partner_present(), "the host must notice the guest is gone")
 	_check(_host.player_count() == 1,
 		"the host must fall back to balancing for one")
-	_check(_host.state() == _host.State.HOSTING,
+	_check(_host.state() == Coop.State.HOSTING,
 		"the host keeps hosting after a guest leaves: the run is still theirs")
 	_check(not _left_peers.is_empty(),
 		"coop_partner_left must have been emitted for the departure")
 
 	_host.leave()
-	_check(_host.state() == _host.State.OFFLINE, "a host that leaves goes offline")
+	_check(_host.state() == Coop.State.OFFLINE, "a host that leaves goes offline")
 	# And the port comes back, which is what makes hosting twice in one sitting
 	# work.
 	var after := ENetMultiplayerPeer.new()
@@ -726,17 +726,17 @@ func _test_guest_leaves_cleanly() -> void:
 ## had hung.
 func _test_a_bad_address_fails_instead_of_hanging() -> void:
 	_check(not _guest.join("", TEST_PORT), "an empty address must be refused outright")
-	_check(_guest.state() == _guest.State.FAILED, "a refused dial must report FAILED")
-	_check(not _guest.last_error.is_empty(), "a failure must carry a reason to show")
+	_check(_guest.state() == Coop.State.FAILED, "a refused dial must report FAILED")
+	_check(not String(_guest.get("last_error")).is_empty(), "a failure must carry a reason to show")
 	_check(not _failure_reasons.is_empty(), "coop_failed must have been emitted")
 
 	# The timeout itself, driven rather than waited out: this is a ten-second
 	# clock and a gate must not take ten seconds to check it.
 	_check(_guest.join("127.0.0.1", TEST_PORT + 1),
 		"dialling a closed port must at least start")
-	_check(_guest.state() == _guest.State.CONNECTING, "and must be in flight")
+	_check(_guest.state() == Coop.State.CONNECTING, "and must be in flight")
 	_guest._process(Balance.COOP_CONNECT_TIMEOUT + 1.0)
-	_check(_guest.state() == _guest.State.FAILED,
+	_check(_guest.state() == Coop.State.FAILED,
 		"a dial with no answer must time out rather than hang in CONNECTING")
 	_guest.leave()
 	await get_tree().process_frame
@@ -1171,7 +1171,7 @@ func _poll_both() -> void:
 ## Connected by name from the same list the relay uses, so a signal added to the
 ## relay and forgotten here shows up as a missing recording rather than as a
 ## silent gap in the test.
-func _listen(bus: Node, into: Array) -> void:
+func _listen(bus: CoopRelay.BusScript, into: Array) -> void:
 	for name: String in ["enemy_died", "wave_cleared", "boss_defeated",
 			"lane_pressure_changed", "phase_changed", "currency_changed",
 			"town_health_changed", "camera_shake_requested", "hero_dashed"]:

@@ -669,7 +669,7 @@ func _build_coop_button() -> void:
 	_coop = CoopScreenScript.new()
 	add_child(_coop)
 	_coop_button = button
-	_coop.closed.connect(func() -> void: button.grab_focus())
+	(_coop as CoopScreenScript).closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void:
 		if not MetaState.tutorial_done:
 			# Owner brief, 2026-09-12, amended 2026-09-17: a run that *ends*
@@ -733,7 +733,7 @@ func _build_leaderboard_button() -> void:
 
 	_leaderboard = LeaderboardScreenScript.new()
 	add_child(_leaderboard)
-	_leaderboard.closed.connect(func() -> void: button.grab_focus())
+	(_leaderboard as LeaderboardScreenScript).closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _leaderboard.open())
 
 
@@ -1005,7 +1005,7 @@ func _build_chronicle_button() -> void:
 
 	_chronicle = ChronicleScreenScript.new()
 	add_child(_chronicle)
-	_chronicle.closed.connect(func() -> void:
+	(_chronicle as ChronicleScreenScript).closed.connect(func() -> void:
 		button.text = "Chronicle  ·  %d / %d" % [MetaState.chronicle_completed_count(),
 			ContentDB.chronicle_objectives.size()]
 		button.grab_focus())

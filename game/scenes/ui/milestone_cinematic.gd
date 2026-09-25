@@ -275,7 +275,7 @@ func _input(event: InputEvent) -> void:
 			_advance = true
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		var click := event as InputEventMouseButton
 		_pointer_held = click.pressed
 		if not click.pressed and _held < Balance.MILESTONE_CINEMATIC_SKIP_HOLD_SECONDS:

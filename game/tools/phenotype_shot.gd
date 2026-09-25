@@ -42,13 +42,13 @@ func _ready() -> void:
 	plate.color = Color(0.10, 0.11, 0.12)
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(plate)
-	var wide: float = float(get_viewport().size.x) / float(ACROSS)
+	var wide: float = float(get_viewport().get_visible_rect().size.x) / float(ACROSS)
 	for index: int in ACROSS:
 		var sprite := Sprite2D.new()
 		sprite.texture = art
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.position = Vector2(wide * (float(index) + 0.5),
-			float(get_viewport().size.y) * 0.5)
+			float(get_viewport().get_visible_rect().size.y) * 0.5)
 		sprite.scale = Vector2.ONE * minf(wide / float(art.get_width()), 3.0)
 		add_child(sprite)
 		# The real door, so the sheet is a photograph of what the field does

@@ -410,7 +410,7 @@ func _refit() -> void:
 	_panel.custom_minimum_size = Vector2(minf(PANEL_WIDTH, screen.x * 0.94), 0.0)
 	var room: bool = screen.y >= HEADER_MIN_SCREEN
 	if _art != null:
-		_art.get_parent().visible = room
+		(_art.get_parent() as CanvasItem).visible = room
 	_scroll.custom_minimum_size = Vector2(0.0, minf(screen.y * 0.42,
 		UiMetrics.scroll_room_measured(_scroll, _scroll.get_parent() as Control,
 			Balance.UI_PANEL_MARGIN)))

@@ -283,3 +283,11 @@ renderer/rendering_method.mobile="gl_compatibility"
 ; Godot actually owns appears in `ProjectSettings.get_property_list()`; an
 ; invented one does not. That is the way to tell them apart.
 textures/vram_compression/import_etc2_astc=true
+
+[debug]
+
+; An unknown property on a known type is a parse error, not a runtime one
+; (2026-09-25). GDScript defers it to the frame the line runs otherwise, and
+; five shipping faults of exactly that shape were found by hand on 2026-09-22.
+; `script_check` compiles every script, so a new one fails the push.
+gdscript/warnings/unsafe_property_access=2

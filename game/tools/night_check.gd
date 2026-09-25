@@ -101,7 +101,7 @@ func _ready() -> void:
 	if run.hud != null:
 		run.hud.visible = false
 
-	var camera := run.battlefield.camera as Camera2D
+	var camera := run.battlefield.camera as CameraRig
 	if camera != null:
 		camera.target = null
 		camera.global_position = Vector2.ZERO

@@ -35,13 +35,13 @@ func _ready() -> void:
 		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		sprite.material = glow
 		stage.add_child(sprite)
-	var sheet: Texture2D = load(Vfx.FORGE_BURST_ART) as Texture2D
+	var sheet: Texture2D = load(Vfx.FORGE_ART_FORMAT % "burst") as Texture2D
 	var tints: Array[Color] = [Color(1.0, 0.55, 0.2), Color(0.45, 0.85, 1.0)]
 	for row: int in tints.size():
 		for index: int in CELLS.size():
 			var sprite := Sprite2D.new()
 			sprite.texture = sheet
-			sprite.hframes = Vfx.FORGE_BURST_FRAMES
+			sprite.hframes = maxi(1, sheet.get_width() / maxi(sheet.get_height(), 1))
 			sprite.frame = CELLS[index]
 			sprite.modulate = tints[row]
 			sprite.position = Vector2(90.0 + float(index) * 160.0, 210.0 + float(row) * 130.0)

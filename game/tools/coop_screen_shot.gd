@@ -62,7 +62,7 @@ func _ready() -> void:
 
 ## Four seats, four dyes, on a plate.
 func _photograph_the_cards(menu: Node) -> void:
-	menu.visible = false
+	(menu as CanvasItem).visible = false
 	var plate := ColorRect.new()
 	plate.color = Color(0.05, 0.06, 0.06)
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)

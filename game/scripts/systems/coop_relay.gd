@@ -362,7 +362,12 @@ var session: Node = null
 ## the guest's relay directly — which both echoes facts back and forth forever
 ## and trips the guard on traffic that never crossed a wire. A test that cannot
 ## tell the two machines apart cannot test the thing that separates them.
-var bus: Node = null
+## Typed as the EventBus script rather than `Node` (2026-09-25), so every
+## signal read off it is checked when the script compiles: with the project's
+## `unsafe_property_access` raised, a signal renamed on the bus is a parse
+## error here rather than a relay that silently binds nothing.
+const BusScript := preload("res://autoload/EventBus.gd")
+var bus: BusScript = null
 
 ## True only while re-emitting a received fact, so the guard below can tell a
 ## mirrored fact from one this machine invented.
@@ -411,7 +416,7 @@ func _bind_transport() -> void:
 ## `EventBus` before it enters the tree, so in the game the bus never changes.
 ## The harness gives each simulated machine its own bus and has to do so *after*
 ## the session exists, because the session is what creates the relay.
-func rebind_bus(to: Node) -> void:
+func rebind_bus(to: BusScript) -> void:
 	_unbind_facts()
 	bus = to
 	_bind_facts()

@@ -192,7 +192,7 @@ func _hold_the_field() -> void:
 	# minutes and the beast walked into both. The sky's events go too - a
 	# quake mid-table is a group that "saved" the quake.
 	if _run != null and _run.get("journey") != null:
-		_run.journey.stop()
+		(_run as Run).journey.stop()
 	for node: Node in _all(get_tree().root):
 		if node is Battlefield and node.has_method("sky"):
 			var sky: Variant = node.call("sky")

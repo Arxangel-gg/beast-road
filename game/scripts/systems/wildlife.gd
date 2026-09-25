@@ -1023,7 +1023,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			animal["glint"] = float(animal.get("glint", 0.0)) - delta
 			if float(animal["glint"]) <= 0.0 and not bool(animal.get("hiding", false)):
 				animal["glint"] = Balance.THIEF_SACK_GLINT_SECONDS
-				Vfx.spark(sack.global_position, Color(1.0, 0.86, 0.45), 3, Vector2.UP, 90.0)
+				Vfx.spark((sack as Node2D).global_position, Color(1.0, 0.86, 0.45), 3, Vector2.UP, 90.0)
 		if left <= 0.0:
 			_rift_out(animal, sprite)
 			return false

@@ -208,7 +208,7 @@ func _ready() -> void:
 	hud.command_requested.connect(_on_command_requested)
 
 	boss_director.battlefield = battlefield
-	command_system.battlefield = battlefield
+	(command_system as HUD.CommandSystemScript).battlefield = battlefield
 
 	# Claim the starting scope explicitly.
 	#
@@ -280,7 +280,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _locked:
 		return
-	if event is InputEventMouseButton and event.pressed:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var wheel := event as InputEventMouseButton
 		var up: bool = wheel.button_index == MOUSE_BUTTON_WHEEL_UP
 		if up or wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:

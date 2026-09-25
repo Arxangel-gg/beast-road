@@ -109,11 +109,11 @@ func _ready() -> void:
 	var overlay := MilestoneCinematic.new()
 	add_child(overlay)
 	overlay.call("_apply", sample)
-	_check(overlay.get_node("Frame/Backdrop").texture != null,
+	_check((overlay.get_node("Frame/Backdrop") as TextureRect).texture != null,
 		"boss composition must load its regional backdrop")
-	_check(overlay.get_node("Frame/BossPortrait").texture != null,
+	_check((overlay.get_node("Frame/BossPortrait") as TextureRect).texture != null,
 		"boss composition must load its portrait")
-	_check(overlay.get_node("Frame/CopySafeArea/Copy/Title").text == sample.display_name,
+	_check((overlay.get_node("Frame/CopySafeArea/Copy/Title") as Label).text == sample.display_name,
 		"overlay copy must come from data")
 
 	# A short pointer release advances; a held touch crosses the deliberate-skip

@@ -227,7 +227,7 @@ func _walk_to_the_first_blow(enemy: Enemy, frames: int) -> Node:
 
 func _test_every_breed_lands_a_blow_on_the_town() -> void:
 	# (awaits inside: one settling frame per body)
-	var town: Node2D = _field.town
+	var town: TownCore = _field.town
 	var probed: int = 0
 	var ids: Array = ContentDB.enemies.keys()
 	ids.sort()
@@ -270,7 +270,7 @@ func _test_every_breed_lands_a_blow_on_the_town() -> void:
 ## The traced fault, for every siege breed: at the wall with a tower in its
 ## lane beyond its arm, it swings at the wall.
 func _test_a_siege_breed_at_the_gate_hits_the_gate(tower: Tower) -> void:
-	var town: Node2D = _field.town
+	var town: TownCore = _field.town
 	var siege: int = 0
 	for value: Variant in ContentDB.enemies.values():
 		var breed := value as EnemyData
@@ -316,7 +316,7 @@ func _test_a_siege_breed_at_the_gate_hits_the_gate(tower: Tower) -> void:
 ## The role survives the fix: from the spawn the tower is the target, and a
 ## tower inside the arm is struck rather than the wall behind it.
 func _test_a_siege_breed_prefers_a_tower_it_can_reach(tower: Tower) -> void:
-	var town: Node2D = _field.town
+	var town: TownCore = _field.town
 	for value: Variant in ContentDB.enemies.values():
 		var breed := value as EnemyData
 		if breed == null or not breed.targets_towers:
