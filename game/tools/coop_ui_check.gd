@@ -379,7 +379,8 @@ func _enter_run_in_place(role: String) -> void:
 				# their own range of the town so *they* have something to shoot
 				# at. A ranged enemy with no target in reach walks, and walking
 				# was all four of them did.
-				mob.global_position = (post + Vector2(90.0 + 30.0 * float(n), 40.0)) 					if n < 2 else (field.town_position()
+				mob.global_position = (post + Vector2(90.0 + 30.0 * float(n), 40.0)) \
+					if n < 2 else (field.town_position()
 						+ Vector2(Balance.ENEMY_RANGED_RANGE * 0.6, 30.0 * float(n)))
 		print("[coop-ui] host put a tower and %d ranged enemies on road 0"
 			% (4 if howler != null else 0))

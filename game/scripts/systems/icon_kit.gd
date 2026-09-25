@@ -119,7 +119,8 @@ static func labelled(id: String, text: String, font_size: int = 18,
 ## number beside it and the mark stays whatever it was. A 24px icon next to
 ## 28px type is the readout looking half-finished, which is what it looked like.
 static func resize_labelled(row: Node, id: String, icon_size: float) -> void:
-	var icon := row.get_child(0) as TextureRect if row.get_child_count() > 0 		else null
+	var icon := row.get_child(0) as TextureRect if row.get_child_count() > 0 \
+		else null
 	if icon == null:
 		return
 	icon.texture = sized(id, int(icon_size))

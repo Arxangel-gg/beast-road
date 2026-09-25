@@ -226,7 +226,8 @@ func _ready() -> void:
 	# roams to 2000 - so walking out past the city found a hard edge where the
 	# rain simply stopped. Reported from play, and it is the kind of thing that
 	# reads as the sky being a texture.
-	var extent: float = reach if reach > 0.0 		else maxf(BattleGrid.HALF_EXTENT * 1.2, Balance.WEATHER_VEIL_REACH)
+	var extent: float = reach if reach > 0.0 \
+		else maxf(BattleGrid.HALF_EXTENT * 1.2, Balance.WEATHER_VEIL_REACH)
 	_rect = ColorRect.new()
 	_rect.name = "Veil"
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -327,7 +328,8 @@ func _apply(weather: WeatherData) -> void:
 	_melt_scale = maxf(weather.snow_melt_scale, 0.0)
 	# Dust drifts as motes, not as streaks. Only rain falls fast enough in a
 	# straight enough line to read as a line.
-	var rounded: bool = weather.precipitation == WeatherData.Precipitation.SNOW 		or weather.precipitation == WeatherData.Precipitation.DUST
+	var rounded: bool = weather.precipitation == WeatherData.Precipitation.SNOW \
+		or weather.precipitation == WeatherData.Precipitation.DUST
 	_material.set_shader_parameter("flake", 1.0 if rounded else 0.0)
 	_material.set_shader_parameter("wind", weather.precipitation_wind)
 	_material.set_shader_parameter("fall_speed", weather.precipitation_speed)

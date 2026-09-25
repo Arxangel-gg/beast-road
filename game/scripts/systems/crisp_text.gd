@@ -268,7 +268,8 @@ func _walk(from: Variant, into: Array[Rect2]) -> void:
 		# whole settings screen out of the grid.
 		elif control is TabContainer:
 			var bar: TabBar = (control as TabContainer).get_tab_bar()
-			if bar != null and is_instance_valid(bar) 					and bar.is_visible_in_tree():
+			if bar != null and is_instance_valid(bar) \
+					and bar.is_visible_in_tree():
 				into.append(bar.get_global_rect())
 		elif control.has_method("crisp_rects"):
 			for rect: Variant in control.call("crisp_rects"):

@@ -196,7 +196,8 @@ func _on_the_road() -> void:
 	get_window().size = FIELD
 	get_viewport().set_content_scale_size(FIELD)
 	MetaState.hold_saves()
-	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene) 		.instantiate() as Run
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene) \
+		.instantiate() as Run
 	add_child(run)
 	for _frame: int in 30:
 		await get_tree().process_frame

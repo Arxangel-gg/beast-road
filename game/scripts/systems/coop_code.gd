@@ -173,4 +173,5 @@ static func _dotted(value: int) -> String:
 ## address has dots and a code never does.
 static func looks_like_code(text: String) -> bool:
 	var cleaned: String = text.to_upper().replace("-", "").replace(" ", "").strip_edges()
-	return not cleaned.contains(".") 		and (cleaned.length() == LENGTH or cleaned.length() == PAIR_LENGTH)
+	return not cleaned.contains(".") \
+		and (cleaned.length() == LENGTH or cleaned.length() == PAIR_LENGTH)

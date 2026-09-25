@@ -541,7 +541,8 @@ func _consider_arrival() -> void:
 	# Below the floor, something always comes. Above it, arrival stays a coin
 	# flip - that is what keeps the population varying rather than sitting at a
 	# quota, while still guaranteeing the field is never empty for long.
-	if _living.size() >= Balance.WILDLIFE_MIN 			and _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
+	if _living.size() >= Balance.WILDLIFE_MIN \
+			and _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
 		return
 	# **Where first, then what.** The two used to be rolled the other way round,
 	# which makes distance impossible to read: a hunter picked before a place is
@@ -762,7 +763,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# reads at a glance and at any zoom. Everything else about it scales from one
 	# number, so an elite is stronger, tougher and worth more without six fields
 	# needing to agree.
-	var elite: bool = kind.elite_chance > 0.0 		and _rng.randf() < kind.elite_chance
+	var elite: bool = kind.elite_chance > 0.0 \
+		and _rng.randf() < kind.elite_chance
 	var size: float = Balance.WILDLIFE_ELITE_SCALE if elite else 1.0
 	if elite:
 		sprite.scale = Vector2.ONE * kind.scale * size
@@ -1496,7 +1498,8 @@ func _tick_dying(animal: Dictionary, sprite: Sprite2D, delta: float) -> bool:
 	# Over onto its side, settling as it goes, and fading out at the end.
 	sprite.rotation = deg_to_rad(through * Balance.WILDLIFE_DEATH_ROLL
 		* (-1.0 if sprite.flip_h else 1.0))
-	sprite.scale.y = float(animal["size"]) * (animal["data"] as WildlifeData).scale 		* (1.0 - through * 0.3)
+	sprite.scale.y = float(animal["size"]) * (animal["data"] as WildlifeData).scale \
+		* (1.0 - through * 0.3)
 	sprite.modulate.a = clampf(1.0 - through, 0.0, 1.0)
 	return true
 
@@ -1543,7 +1546,8 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# is a free carcass rather than a wild animal (owner, 2026-09-16).
 	animal["provoked"] = maxf(float(animal.get("provoked", 0.0)) - delta, 0.0)
 	if RunState.is_preparation() and float(animal.get("provoked", 0.0)) <= 0.0:
-		if int(animal["state"]) == State.STALKING 				or int(animal["state"]) == State.STRIKING:
+		if int(animal["state"]) == State.STALKING \
+				or int(animal["state"]) == State.STRIKING:
 			return _break_off(animal, sprite)
 		_drift_from_town(animal, sprite)
 		return false
@@ -1574,7 +1578,8 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	if quarry == null:
 		# Nothing worth attacking. A territorial animal goes back to standing
 		# about; a predator keeps looking while it wanders.
-		if int(animal["state"]) == State.STALKING 				or int(animal["state"]) == State.STRIKING:
+		if int(animal["state"]) == State.STALKING \
+				or int(animal["state"]) == State.STRIKING:
 			animal["state"] = State.SETTLED
 		animal["hunt"] = 0.0
 		return false
@@ -1637,10 +1642,12 @@ func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
 		return
 	if not is_zero_approx(float(animal.get("drifted", 0.0))):
 		return
-	var away: Vector2 = out.normalized() if out.length() > 1.0 		else Vector2.from_angle(_rng.randf() * TAU)
+	var away: Vector2 = out.normalized() if out.length() > 1.0 \
+		else Vector2.from_angle(_rng.randf() * TAU)
 	animal["state"] = State.SETTLED
 	animal["drifted"] = 1.0
-	animal["goal"] = away * Balance.WILDLIFE_TOWN_SPACE 		* _rng.randf_range(1.05, 1.4)
+	animal["goal"] = away * Balance.WILDLIFE_TOWN_SPACE \
+		* _rng.randf_range(1.05, 1.4)
 
 
 ## The nearest thing worth attacking, or null.
@@ -2143,7 +2150,8 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	var bar := animal["bar"] as ProgressBar
 	if bar != null and is_instance_valid(bar):
 		bar.visible = true
-		var full: float = kind.max_hp 			* (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
+		var full: float = kind.max_hp \
+			* (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
 		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
 	# **Struck by a person is a fact the phase does not get to overrule.**
 	#
@@ -2276,7 +2284,8 @@ func _haunt_near(from: Vector2, wanted: String) -> Vector2:
 	if best == Vector2.INF:
 		return Vector2.INF
 	for _try: int in 8:
-		var beside: Vector2 = best + Vector2.from_angle(_rng.randf() * TAU) 			* _rng.randf_range(Balance.WILDLIFE_HAUNT_CLEAR,
+		var beside: Vector2 = best + Vector2.from_angle(_rng.randf() * TAU) \
+			* _rng.randf_range(Balance.WILDLIFE_HAUNT_CLEAR,
 				Balance.WILDLIFE_HAUNT_CLEAR * 2.4)
 		if _is_clear(beside):
 			return beside
@@ -2566,7 +2575,8 @@ func _is_forgotten(at: Vector2) -> bool:
 		return false
 	for node: Node in heroes:
 		var hero := node as Node2D
-		if hero != null and at.distance_to(hero.global_position) 				< Balance.WILDLIFE_FORGET_DISTANCE:
+		if hero != null and at.distance_to(hero.global_position) \
+				< Balance.WILDLIFE_FORGET_DISTANCE:
 			return false
 	return true
 
@@ -2716,7 +2726,8 @@ func population() -> int:
 func goals() -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for animal: Dictionary in _living:
-		if int(animal["state"]) == State.SETTLED 				or int(animal["state"]) == State.ARRIVING:
+		if int(animal["state"]) == State.SETTLED \
+				or int(animal["state"]) == State.ARRIVING:
 			out.append(animal["goal"] as Vector2)
 	return out
 

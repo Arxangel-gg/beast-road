@@ -243,8 +243,7 @@ func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 		if file == null:
 			continue
 		var line_number: int = 0
-		for line: String in file.get_as_text().split("
-"):
+		for line: String in file.get_as_text().split("\n"):
 			line_number += 1
 			# Its own docstring names a group that does not exist, on purpose.
 			if line.strip_edges().begins_with("#"):
@@ -407,8 +406,7 @@ func _gather_named(path: String, into: Dictionary) -> void:
 	# in: the skip was written against one table's *shape* rather than against
 	# what a table *is*. Blocks now, by name.
 	var declaring: bool = false
-	for line: String in file.get_as_text().split("
-"):
+	for line: String in file.get_as_text().split("\n"):
 		var trimmed: String = line.strip_edges()
 		if trimmed.begins_with("#"):
 			continue

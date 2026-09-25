@@ -830,9 +830,7 @@ func _test_a_beacon_is_heard() -> void:
 	# never drawn as it arrived.
 	_check(CoopBeacon._clean("") == "A warden's camp",
 		"an empty name must still be something to click")
-	_check(not CoopBeacon._clean("a
-b	c").contains("
-"),
+	_check(not CoopBeacon._clean("a\nb	c").contains("\n"),
 		"a name must not carry line breaks into the row it is drawn in")
 	_check(CoopBeacon._clean("x".repeat(200)).length() <= CoopBeacon.MAX_NAME,
 		"nor run past the panel")
@@ -871,14 +869,12 @@ func _test_the_public_list_is_not_trusted() -> void:
 
 	# A name is drawn in a row on screen and arrived from a stranger.
 	var nasty: Array = CoopDirectory.parse_rows([
-		{"code": good, "name": "line" + "
-" + "break", "players": 9, "age_seconds": -5},
+		{"code": good, "name": "line" + "\n" + "break", "players": 9, "age_seconds": -5},
 	])
 	_check(nasty.size() == 1, "a hostile name must not lose the row")
 	if nasty.size() == 1:
 		var row: Dictionary = nasty[0]
-		_check(not String(row["name"]).contains("
-"),
+		_check(not String(row["name"]).contains("\n"),
 			"a name must not carry a line break into the row it is drawn in")
 		_check(int(row["players"]) <= Balance.COOP_MAX_PLAYERS,
 			"a player count must be clamped to the seat count, got %d"

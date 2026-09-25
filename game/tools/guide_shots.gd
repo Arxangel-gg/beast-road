@@ -354,7 +354,8 @@ func _ready() -> void:
 		func() -> void: _look_at(_meteor_at),
 		func() -> bool:
 			var stone: Variant = instance_from_id(_the_stone) if _the_stone != 0 else null
-			return stone != null and is_instance_valid(stone as Object) 				and bool((stone as Meteor).get("_landed")))
+			return stone != null and is_instance_valid(stone as Object) \
+				and bool((stone as Meteor).get("_landed")))
 	await _weather_shot("charged_ground", func() -> void:
 		var sky: WeatherSky = run.battlefield.sky()
 		var hero: Hero = run.battlefield.hero
@@ -1708,7 +1709,8 @@ func _wound_the_nearest() -> Vector2:
 		return Vector2.INF
 	var quarry: Node2D = bodies[0]
 	for body: Node2D in bodies:
-		if body.global_position.distance_to(hero.global_position) 				< quarry.global_position.distance_to(hero.global_position):
+		if body.global_position.distance_to(hero.global_position) \
+				< quarry.global_position.distance_to(hero.global_position):
 			quarry = body
 	var record: Dictionary = animals.call("record_for_id", quarry.get_instance_id())
 	if record.is_empty():
@@ -1734,7 +1736,8 @@ func _throw_a_rope() -> void:
 	var field: Battlefield = run.battlefield
 	var hero: Hero = field.hero if field != null else null
 	var held: Variant = instance_from_id(_roped) if _roped != 0 else null
-	if field == null or hero == null or held == null 			or not is_instance_valid(held as Object):
+	if field == null or hero == null or held == null \
+			or not is_instance_valid(held as Object):
 		return
 	var rope := Lasso.new()
 	rope.field = field

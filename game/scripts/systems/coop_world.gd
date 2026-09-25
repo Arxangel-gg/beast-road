@@ -507,7 +507,8 @@ func compose_welcome() -> Array:
 			facts.append([CoopRelay.Fact.BOSS_SPAWNED, [enemy.data.id, RunState.act]])
 			var phase: int = enemy.boss_phase()
 			if phase > 0:
-				var phase_name: String = enemy.data.phase_names[phase - 1] 					if phase - 1 < enemy.data.phase_names.size() else "Phase %d" % (phase + 1)
+				var phase_name: String = enemy.data.phase_names[phase - 1] \
+					if phase - 1 < enemy.data.phase_names.size() else "Phase %d" % (phase + 1)
 				facts.append([CoopRelay.Fact.BOSS_PHASE_CHANGED, [enemy.data.id, phase, phase_name]])
 	if battlefield != null and battlefield.wildlife() != null:
 		for animal: Array in battlefield.wildlife().announced_animals():

@@ -1040,14 +1040,16 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 		# Only the host authors facts. A packet claiming otherwise is either a
 		# bug or something hostile, and either way it is not obeyed - except for
 		# the handful that genuinely have two authors.
-		if session != null and bool(session.call("is_host")) 				and not SYMMETRIC_FACTS.has(kind):
+		if session != null and bool(session.call("is_host")) \
+				and not SYMMETRIC_FACTS.has(kind):
 			return
 		_replay(kind, args)
 		# **In a party of four, a guest can only reach the host.** Everything
 		# host-authored already goes to everybody, but a fact with two authors
 		# arrives at the host addressed to nobody else - so the host passes it
 		# on, or two of the four players never hear the third one speak.
-		if kind == Fact.CHAT and session != null 				and bool(session.call("is_host")):
+		if kind == Fact.CHAT and session != null \
+				and bool(session.call("is_host")):
 			_send([TAG_FACT, kind, args])
 	elif tag == TAG_REQUEST:
 		if session == null or not bool(session.call("is_host")):

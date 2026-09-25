@@ -432,7 +432,8 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		# fell and never what to has always owed the player this line; being
 		# felled by a Rimewarded Ironhide Bogkin for 41 is the story of the run,
 		# and "fell 3 times" is a statistic about it.
-		"Last blow   %s" % String(summary.get("last_blow", "")) 			if not String(summary.get("last_blow", "")).is_empty() else "",
+		"Last blow   %s" % String(summary.get("last_blow", "")) \
+			if not String(summary.get("last_blow", "")).is_empty() else "",
 		"Raids %d   ·   Oathbound leaders %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
 		"",
 		"DEFENCE",

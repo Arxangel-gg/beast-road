@@ -279,7 +279,8 @@ func separate_crowd(delta: float) -> void:
 						continue
 					# Exactly on top of each other has no direction, so one is
 					# invented rather than dividing by zero.
-					var push: Vector2 = apart / distance if distance > 0.001 						else Vector2.from_angle(float(index) * 2.399)
+					var push: Vector2 = apart / distance if distance > 0.001 \
+						else Vector2.from_angle(float(index) * 2.399)
 					var overlap: float = (gap - distance) * 0.5
 					shove[index] -= push * overlap
 					shove[other_index] += push * overlap
@@ -297,7 +298,8 @@ func separate_crowd(delta: float) -> void:
 			var distance: float = apart.length()
 			if distance >= gap:
 				continue
-			var push: Vector2 = apart / distance if distance > 0.001 				else Vector2.from_angle(float(index) * 2.399)
+			var push: Vector2 = apart / distance if distance > 0.001 \
+				else Vector2.from_angle(float(index) * 2.399)
 			shove[index] += push * (gap - distance)
 
 	var most: float = Balance.CROWD_MAX_SHOVE * delta

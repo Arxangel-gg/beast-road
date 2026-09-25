@@ -45,7 +45,8 @@ var _grid: PixelGrid = null
 
 func _ready() -> void:
 	name = "PixelFilter" if covers == Covers.WORLD else "PixelFilterUI"
-	layer = Balance.UI_PIXEL_FILTER_LAYER if covers == Covers.WORLD 		else Balance.UI_PIXEL_FILTER_UI_LAYER
+	layer = Balance.UI_PIXEL_FILTER_LAYER if covers == Covers.WORLD \
+		else Balance.UI_PIXEL_FILTER_UI_LAYER
 	# So the switch in the video settings reaches it while the game is running,
 	# rather than changing a saved value and nothing on screen - which is how a
 	# setting reads as broken, and is why this group exists.
@@ -59,7 +60,8 @@ func _ready() -> void:
 ## Reads the setting. Named to match the other display preferences, because
 ## `Graphics.apply_to_scene` calls this on every node that has it.
 func refresh_from_settings() -> void:
-	set_enabled(Graphics.pixel_filter() if covers == Covers.WORLD 		else Graphics.pixel_filter_ui())
+	set_enabled(Graphics.pixel_filter() if covers == Covers.WORLD \
+		else Graphics.pixel_filter_ui())
 
 
 func set_enabled(on: bool) -> void:

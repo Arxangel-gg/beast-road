@@ -2537,7 +2537,8 @@ func _test_hero_frame_animation(field: Battlefield) -> void:
 		seen[hero._frame_state_for_swing(0)] = true
 	_check(seen.has("attack_1a") and seen.has("attack_1b"),
 		"the opening swing must vary between its two authored sheets, saw %s" % [seen.keys()])
-	_check(hero._frame_state_for_swing(1) == "attack_2" 		and hero._frame_state_for_swing(2) == "attack_3",
+	_check(hero._frame_state_for_swing(1) == "attack_2" \
+		and hero._frame_state_for_swing(2) == "attack_3",
 		"chain steps 2 and 3 must map to their own sheets")
 
 	hero.frames.play("idle", true)

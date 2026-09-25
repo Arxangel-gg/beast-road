@@ -276,7 +276,8 @@ func _refresh() -> void:
 
 	_style_tabs()
 	if _search_edit != null:
-		_search_edit.custom_minimum_size.y = 			TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
+		_search_edit.custom_minimum_size.y = \
+			TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
 	if _tab == TAB_SPIRITS:
 		_note.text = ("Every animal the road can bond. What one eats is what "
 			+ "it costs to keep at your shoulder, and a rarer spirit is a "
@@ -339,8 +340,7 @@ func _detail_for(kind: String, entry: GameData) -> String:
 			var animal := entry as WildlifeData
 			if animal == null:
 				return ""
-			return "
-%s  ·  %d health  ·  %s" % [
+			return "\n%s  ·  %d health  ·  %s" % [
 				"Predator" if animal.is_hostile() else "Harmless",
 				int(animal.max_hp),
 				"drops food and hide" if animal.max_hp > 0.0 else "ambient"]
@@ -372,11 +372,9 @@ func _enemy_detail(foe: EnemyData) -> String:
 		traits.append("strengthens what stands near it")
 	if not foe.phase_thresholds.is_empty():
 		traits.append("fights in %d stages" % (foe.phase_thresholds.size() + 1))
-	var line: String = "
-" + "  ·  ".join(facts)
+	var line: String = "\n" + "  ·  ".join(facts)
 	if not traits.is_empty():
-		line += "
-" + "  ·  ".join(traits)
+		line += "\n" + "  ·  ".join(traits)
 	return line
 
 
@@ -400,8 +398,7 @@ func _affix_detail(affix: EnemyAffixData) -> String:
 		effects.append("bursts when killed")
 	if affix.regeneration > 0.0:
 		effects.append("mends itself")
-	return "
-" + "  ·  ".join(effects) if not effects.is_empty() else ""
+	return "\n" + "  ·  ".join(effects) if not effects.is_empty() else ""
 
 
 func _section_heading(text: String) -> Label:

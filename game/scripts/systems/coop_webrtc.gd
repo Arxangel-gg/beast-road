@@ -365,7 +365,8 @@ func status_line() -> String:
 			("host" if _is_host else "guest") + " s%d" % _slot, code,
 			_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
 			_polls, _replies, link, mesh, room.substr(0, 8),
-			"" if _why.is_empty() else "  why " + _why]  + "  ice " + state 		+ "  links " + _link_states()
+			"" if _why.is_empty() else "  why " + _why]  + "  ice " + state \
+		+ "  links " + _link_states()
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -487,7 +488,8 @@ func _start_offer() -> void:
 func _build_peer(own_id: int) -> bool:
 	_slot = own_id
 	_peer = WebRTCMultiplayerPeer.new()
-	var started: int = _peer.create_server() if own_id == HOST_ID 		else _peer.create_client(own_id)
+	var started: int = _peer.create_server() if own_id == HOST_ID \
+		else _peer.create_client(own_id)
 	if started != OK:
 		_fail("Could not start a WebRTC session.")
 		return false
@@ -670,7 +672,8 @@ func _poll() -> void:
 			# the lobby list, the heartbeat, the signal posts and this poll all
 			# compete, and any of them can lose an 8 second timeout. Giving up
 			# after five of *those* ends a session that was fine.
-			if data is Dictionary 					and String((data as Dictionary).get("code", "")) == ROOM_GONE:
+			if data is Dictionary \
+					and String((data as Dictionary).get("code", "")) == ROOM_GONE:
 				_fail("The room is no longer open. Host again to get a fresh "
 					+ "code.")
 				return
@@ -681,7 +684,8 @@ func _poll() -> void:
 			return
 		_misses = 0
 		_replies += 1
-		if _is_host and not _announced and _deadline > HANDSHAKE_TIMEOUT 				and not (data as Array).is_empty():
+		if _is_host and not _announced and _deadline > HANDSHAKE_TIMEOUT \
+				and not (data as Array).is_empty():
 			# Somebody is negotiating. From here a clock is fair, and a stalled
 			# handshake should be reported rather than waited on for ever.
 			_deadline = HANDSHAKE_TIMEOUT
@@ -827,7 +831,8 @@ func _process(delta: float) -> void:
 ## Refusals are kept rather than dropped: the only reason to refuse one is that
 ## the description has not landed yet, and that resolves itself a frame later.
 func _offer_candidates(link: Link) -> void:
-	if link == null or link.connection == null or link.waiting.is_empty() 			or not link.heard_desc:
+	if link == null or link.connection == null or link.waiting.is_empty() \
+			or not link.heard_desc:
 		return
 	var still: Array = []
 	for entry: Variant in link.waiting:

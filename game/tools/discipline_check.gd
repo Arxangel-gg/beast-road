@@ -154,7 +154,8 @@ func _test_mercy_under_fire() -> void:
 	var breed: EnemyData = null
 	for value: Variant in ContentDB.enemies.values():
 		var one := value as EnemyData
-		if one != null and one.category == EnemyData.Category.BREED 				and one.knockback_resistance < 0.5:
+		if one != null and one.category == EnemyData.Category.BREED \
+				and one.knockback_resistance < 0.5:
 			breed = one
 			break
 	_check(breed != null, "a breed with ordinary footing is needed to be pushed")

@@ -348,7 +348,8 @@ func _test_a_new_act_relays_the_ground() -> void:
 	if ponds != null and ponds.has_method("pond_positions"):
 		var centres: PackedVector2Array = ponds.call("pond_positions")
 		var halves: PackedVector2Array = ponds.call("pond_extents")
-		var reach: float = Balance.FISHING_RADIUS + Balance.FISHING_CAST_MAX * 0.5 			+ Balance.GATHER_RADIUS
+		var reach: float = Balance.FISHING_RADIUS + Balance.FISHING_CAST_MAX * 0.5 \
+			+ Balance.GATHER_RADIUS
 		for spot: Vector2 in patch.node_positions():
 			for index: int in mini(centres.size(), halves.size()):
 				var rim := Rect2(centres[index] - halves[index], halves[index] * 2.0)

@@ -212,7 +212,8 @@ func _draw_measured() -> void:
 		# rather than light. Each offset is an irrational step through the fire's
 		# own seed, so no two shafts over one flame ever fall into step.
 		var own: float = _seed + float(side) * 2.399963
-		var spread: float = (float(side) - float(Balance.CAMP_FIRE_SHAFT_COUNT - 1) * 0.5) 			/ maxf(float(Balance.CAMP_FIRE_SHAFT_COUNT - 1), 1.0)
+		var spread: float = (float(side) - float(Balance.CAMP_FIRE_SHAFT_COUNT - 1) * 0.5) \
+			/ maxf(float(Balance.CAMP_FIRE_SHAFT_COUNT - 1), 1.0)
 		var reach: float = tall * (0.74 + 0.40 * fposmod(own * 0.618, 1.0))
 		# Its own flicker, at its own rate: a shaft that breathes with its
 		# neighbour is one wide shaft with a seam down it.
@@ -220,7 +221,8 @@ func _draw_measured() -> void:
 		var lean: float = sin(_clock * (0.7 + 0.31 * float(side)) + own)
 		var foot: float = wide * 0.30 * spread * 2.0
 		var head: Vector2 = Vector2(lean * wide * 0.5 + foot * 1.6, -reach)
-		var lit: float = (0.055 + 0.03 * _flicker) 			* (1.0 - 0.25 * absf(spread))
+		var lit: float = (0.055 + 0.03 * _flicker) \
+			* (1.0 - 0.25 * absf(spread))
 		_feathered_shaft(foot, wide * 0.17, head, wide * 0.5, lit)
 
 

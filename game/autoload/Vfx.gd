@@ -931,7 +931,8 @@ func _draw_blade_trail(progress: float, trail: Polygon2D, at: Vector2,
 	# not zero - the outer and inner arcs still land on each other within float
 	# precision and the triangulator still refuses. Measured: it fails at 1e-7
 	# and succeeds from 1e-5. See `Balance.VFX_BLADE_TRAIL_MIN_SWEPT`.
-	if progress <= 0.0 or is_equal_approx(from, to) 			or absf(to - from) * progress < Balance.VFX_BLADE_TRAIL_MIN_SWEPT:
+	if progress <= 0.0 or is_equal_approx(from, to) \
+			or absf(to - from) * progress < Balance.VFX_BLADE_TRAIL_MIN_SWEPT:
 		trail.polygon = PackedVector2Array()
 		trail.vertex_colors = PackedColorArray()
 		return

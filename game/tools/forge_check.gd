@@ -235,8 +235,7 @@ func _test_the_takes_are_takes() -> void:
 ## is a promise nobody keeps. Grepped rather than driven, because what this
 ## catches is *wiring* - which is the half that goes silently missing.
 func _test_every_effect_is_played_by_something() -> void:
-	var text: String = _all_game_source() + "
-" + _the_player_without_its_tables()
+	var text: String = _all_game_source() + "\n" + _the_player_without_its_tables()
 	for key: Variant in Vfx.FORGE_CATALOGUE:
 		var effect: String = String(key)
 		if Vfx.FORGE_HIT_BY_ELEMENT.values().has(effect):
@@ -267,8 +266,7 @@ func _the_player_without_its_tables() -> String:
 		if opens < 0:
 			_check(false, "%s no longer declares %s" % [THE_PLAYER, table])
 			continue
-		var closes: int = text.find("
-}", opens)
+		var closes: int = text.find("\n}", opens)
 		if closes < 0:
 			continue
 		text = text.substr(0, opens) + text.substr(closes + 2)

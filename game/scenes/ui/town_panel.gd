@@ -485,18 +485,14 @@ func _show_merchant() -> void:
 	# themselves saying the same thing they say on every other road.
 	var said: String = MerchantYard.spoken_line(_merchant_id)
 	if not said.is_empty():
-		lines.append("
-\"%s\"" % said)
+		lines.append("\n\"%s\"" % said)
 	if resident:
-		lines.append("
-Settled in town. Restocks every Preparation, every run.")
+		lines.append("\nSettled in town. Restocks every Preparation, every run.")
 	else:
 		var done: int = MerchantYard.trades_done(_merchant_id)
-		lines.append("
-Business done: %d of %d different goods. Buy %d more and they stay for good."
+		lines.append("\nBusiness done: %d of %d different goods. Buy %d more and they stay for good."
 			% [done, data.settle_trades, maxi(data.settle_trades - done, 0)])
-	KeywordTextScript.apply(body, "
-".join(lines))
+	KeywordTextScript.apply(body, "\n".join(lines))
 
 	actions.add_child(_heading("On the cart"))
 	if not RunState.can_build_now():
@@ -516,7 +512,8 @@ func _merchant_row(offer: Dictionary, index: int) -> void:
 		"SOLD  ·  " if taken else "", String(offer.get("label", "")),
 		RunState.format_cost(cost)], 48.0)
 	row.tooltip_text = String(offer.get("detail", ""))
-	row.disabled = taken or not RunState.can_build_now() 		or not RunState.can_afford_cost(cost)
+	row.disabled = taken or not RunState.can_build_now() \
+		or not RunState.can_afford_cost(cost)
 	# Disabled buttons carry no tooltip in Godot, and an unaffordable row is
 	# exactly the one a player wants explained. The price is already in the
 	# label, so the row still says why - which the four silent refusals above
@@ -1007,11 +1004,9 @@ func _show_synergies() -> void:
 		var tint: Color = Color("9fd48a") if live else (
 			Color("e8a33d") if done > 0 else Color("8f877a"))
 		var state: String = "ACTIVE" if live else "%d of %d trained" % [done, need]
-		var body: String = "%s  ·  %s
-%s" % [data.display_name, state, data.description]
+		var body: String = "%s  ·  %s\n%s" % [data.display_name, state, data.description]
 		if not live and not data.hint.is_empty():
-			body += "
-%s" % data.hint
+			body += "\n%s" % data.hint
 		actions.add_child(_line(body, 13, tint))
 
 

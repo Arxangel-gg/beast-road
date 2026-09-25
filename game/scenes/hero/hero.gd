@@ -547,7 +547,8 @@ func _physics_process_measured(delta: float) -> void:
 			# sheet open, a crossroad - are exactly when a player wants to patch
 			# themselves up before the next formation arrives.
 			use_carried_item()
-		if combat_input and _beast_stun_left <= 0.0 				and input.pressed(HeroInput.BUTTON_RANGED):
+		if combat_input and _beast_stun_left <= 0.0 \
+				and input.pressed(HeroInput.BUTTON_RANGED):
 			# The body, like the swing and the spells beside it. The root is
 			# the hero's ground contact for depth sorting, so passing it here
 			# loosed every arrow from the Warden's boots.
@@ -990,7 +991,8 @@ func _throw_a_snare(from: Vector2, direction: Vector2) -> void:
 func _animal_in_front(from: Vector2, direction: Vector2) -> Node2D:
 	var best: Node2D = null
 	var nearest: float = Balance.LASSO_RANGE
-	var animals: Node = field.call("wildlife") if field != null 		and field.has_method("wildlife") else null
+	var animals: Node = field.call("wildlife") if field != null \
+		and field.has_method("wildlife") else null
 	if animals == null or not animals.has_method("living_sprites"):
 		return null
 	for node: Node in animals.call("living_sprites") as Array[Node2D]:
@@ -1430,7 +1432,8 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	# `town_node()` rather than a null check on the field: `EnemyField` answers
 	# `town_position()` with the origin when there is no town, so the raid arena
 	# would have paid Vigil to anyone dodging near its centre.
-	if DisciplineEffects.trained("town_dodge_command") 			and field != null and field.town_node() != null:
+	if DisciplineEffects.trained("town_dodge_command") \
+			and field != null and field.town_node() != null:
 		var hall: Vector2 = field.town_position()
 		if global_position.distance_to(hall) <= Balance.VIGIL_COMMAND_RADIUS:
 			RunState.gain_command(
@@ -2315,7 +2318,8 @@ func drink_healing_orb(points: float) -> void:
 	if gained <= 0:
 		return
 	Vfx.number(combat_origin(), float(gained), Balance.HEALING_ORB_COLOUR, false)
-	var drop := ContentDB.recovery_drops.get(Balance.HEALING_ORB_ID, null) 		as RecoveryDropData
+	var drop := ContentDB.recovery_drops.get(Balance.HEALING_ORB_ID, null) \
+		as RecoveryDropData
 	if drop != null and not drop.pickup_line.is_empty():
 		EventBus.preparation_warning.emit(drop.pickup_line % gained)
 
@@ -2680,7 +2684,8 @@ func _apply_party_colour() -> void:
 	# identifier that was already on screen.
 	if _light != null and is_instance_valid(_light):
 		_light.color = Balance.HERO_LIGHT_COLOUR.lerp(wanted,
-			Balance.PARTY_LIGHT_STRENGTH) if showing 			else Balance.HERO_LIGHT_COLOUR
+			Balance.PARTY_LIGHT_STRENGTH) if showing \
+			else Balance.HERO_LIGHT_COLOUR
 
 
 ## The name over the head, in co-op. Owner brief, 2026-09-12: the Warden's

@@ -91,8 +91,10 @@ var _awaiting_gesture: bool = false
 func _input(event: InputEvent) -> void:
 	if not _awaiting_gesture:
 		return
-	var gesture: bool = event is InputEventScreenTouch 		and (event as InputEventScreenTouch).pressed
-	gesture = gesture or (event is InputEventMouseButton 		and (event as InputEventMouseButton).pressed)
+	var gesture: bool = event is InputEventScreenTouch \
+		and (event as InputEventScreenTouch).pressed
+	gesture = gesture or (event is InputEventMouseButton \
+		and (event as InputEventMouseButton).pressed)
 	if not gesture:
 		return
 	_awaiting_gesture = false

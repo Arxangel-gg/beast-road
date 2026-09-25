@@ -442,7 +442,8 @@ func _begin(index: int, kind: GatherNodeData) -> void:
 ## time with it. See `Hero.play_work_swing` for why it is the heavy swing sheet.
 func _swing_the_hero(index: int) -> void:
 	var who: Node2D = _local_hero()
-	if who == null or not who.has_method("play_work_swing") 			or index < 0 or index >= _nodes.size():
+	if who == null or not who.has_method("play_work_swing") \
+			or index < 0 or index >= _nodes.size():
 		return
 	who.call("play_work_swing", _nodes[index]["at"] as Vector2)
 

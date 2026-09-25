@@ -2115,7 +2115,8 @@ func _build_action_bar(bar: Container) -> void:
 	# exactly when nobody wants to remember a shortcut.
 	_mode_button = _add_button(bar, _action_label("TAB", "Build"),
 		func() -> void: GameDirector.toggle_build_mode())
-	_mode_button.tooltip_text = "Build lays towers and traps. Fight lets you " 		+ "swing at whatever wandered in. Tab switches."
+	_mode_button.tooltip_text = "Build lays towers and traps. Fight lets you " \
+		+ "swing at whatever wandered in. Tab switches."
 	IconKit.on_button(_mode_button, "upgrade", 22)
 	EventBus.build_mode_changed.connect(_on_build_mode_changed)
 	EventBus.phase_changed.connect(func(_n: int, _p: int) -> void: _update_mode_button())
@@ -2404,7 +2405,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _chat_available() -> bool:
-	return _chat_box != null and is_instance_valid(_chat_box) 		and Coop.is_networked()
+	return _chat_box != null and is_instance_valid(_chat_box) \
+		and Coop.is_networked()
 
 
 func _on_chat_submitted(text: String) -> void:
@@ -2471,7 +2473,8 @@ func _update_mode_button() -> void:
 		return
 	_apply_mode_cursor(GameDirector.build_mode)
 	var building: bool = GameDirector.build_mode
-	_mode_button.text = ("BUILD" if building else "FIGHT") if touch_ui() 		else ("TAB  Build" if building else "TAB  Fight")
+	_mode_button.text = ("BUILD" if building else "FIGHT") if touch_ui() \
+		else ("TAB  Build" if building else "TAB  Fight")
 	_mode_button.add_theme_color_override("font_color",
 		Color("9fd6b0") if building else Color("e8a33d"))
 	IconKit.on_button(_mode_button, "upgrade" if building else "war_horn", 22)
@@ -2515,7 +2518,9 @@ func _update_orders_button(delta: float = 0.0) -> void:
 	var price: int = RunState.quartermaster_price()
 	var order: String = _standing_order()
 	var nothing: String = String(battlefield.call("_would_do", order))
-	_orders_button.disabled = not RunState.is_preparation() 		or not nothing.is_empty() 		or not RunState.can_afford_cost({RunState.GOLD: price})
+	_orders_button.disabled = not RunState.is_preparation() \
+		or not nothing.is_empty() \
+		or not RunState.can_afford_cost({RunState.GOLD: price})
 	const NAMES: Dictionary = {
 		"wall": "Mend the wall", "towers": "Mend the towers", "traps": "Rearm the traps",
 	}
@@ -2524,8 +2529,7 @@ func _update_orders_button(delta: float = 0.0) -> void:
 	# ends; a seventh word on one of them made the whole row worse.
 	_orders_button.text = "ORDERS" if touch_ui() else "Orders"
 	_orders_button.tooltip_text = ("The Quartermaster's standing order, during "
-		+ "Preparation. Next: %s, for %d Gold.
-"
+		+ "Preparation. Next: %s, for %d Gold.\n"
 		+ "Every order is dearer than the last, and each one buys back something "
 		+ "you already had rather than something new.") % [
 			String(NAMES.get(order, "an order")), price]
@@ -2650,15 +2654,11 @@ func _offer_the_last_board(column: VBoxContainer) -> void:
 		_refresh_build_panel())
 	button.disabled = not affordable
 	IconKit.on_button(button, "gold")
-	var figures: String = ("Rebuild last board
-Cost: %d Gold
-Towers: %d"
-		+ "
-Placed where they stood, at the road's own prices. Anything that "
+	var figures: String = ("Rebuild last board\nCost: %d Gold\nTowers: %d"
+		+ "\nPlaced where they stood, at the road's own prices. Anything that "
 		+ "will not fit is left, and said.") % [price, rows.size()]
 	if not affordable:
-		figures += "
-More Gold is needed than the purse holds."
+		figures += "\nMore Gold is needed than the purse holds."
 	button.mouse_entered.connect(func() -> void:
 		_show_build_tooltip(figures, button))
 	button.mouse_exited.connect(_hide_build_tooltip)
@@ -3454,7 +3454,8 @@ func _place_preparation_panel() -> void:
 		_preparation_panel.grow_horizontal = Control.GROW_DIRECTION_END
 		_preparation_panel.grow_vertical = Control.GROW_DIRECTION_END
 		_preparation_panel.offset_left = PREPARATION_TOUCH_MARGIN
-		_preparation_panel.offset_right = PREPARATION_TOUCH_MARGIN 			+ PREPARATION_TOUCH_WIDTH
+		_preparation_panel.offset_right = PREPARATION_TOUCH_MARGIN \
+			+ PREPARATION_TOUCH_WIDTH
 		# **Under the readouts, measured off them** (2026-09-25). A typed 128
 		# sat over the second row's sundial whenever that row ran taller than
 		# the constant assumed (owner's screenshot) - the command panel's own
@@ -3608,7 +3609,8 @@ func _size_top_bar() -> void:
 		var gaps: float = _top_bar_room()
 		var apart: int = maxi(int(round((24.0 if touch_ui() else 32.0) * gaps)), 10)
 		_top_bar.add_theme_constant_override("separation", apart)
-	var mark: float = TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() 		else TOP_BAR_ICON
+	var mark: float = TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() \
+		else TOP_BAR_ICON
 	for id: Variant in _currency_rows.keys():
 		IconKit.resize_labelled(_currency_rows[id] as Node, String(id), mark)
 	# Set outright rather than left to the generic floor. `UiMetrics` lifts every
@@ -4453,7 +4455,8 @@ static func _action_band_height() -> float:
 	if _action_columns() >= ACTION_BUTTON_COUNT:
 		return 0.0
 	var rows: int = int(ceil(float(ACTION_BUTTON_COUNT) / float(_action_columns())))
-	return float(rows) * hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y 		+ float(rows - 1) * ACTION_ROW_GAP
+	return float(rows) * hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y \
+		+ float(rows - 1) * ACTION_ROW_GAP
 
 
 static func _bottom_row_inset() -> float:
@@ -4586,7 +4589,8 @@ func _rebuild_spell_bar() -> void:
 		# Lifted slightly above centre because the ability's name sits along the
 		# bottom edge; splitting the difference puts the pair in the middle
 		# together rather than the icon alone.
-		var icon_side: float = SPELL_ICON_TOUCH_SIZE if touch_ui() 			else SPELL_ICON_SIZE
+		var icon_side: float = SPELL_ICON_TOUCH_SIZE if touch_ui() \
+			else SPELL_ICON_SIZE
 		icon.size = Vector2(icon_side, icon_side)
 		icon.position = Vector2((slot_size.x - icon_side) * 0.5,
 			(slot_size.y - icon_side) * 0.5 - inset.y * 0.5)
@@ -5491,8 +5495,7 @@ func _refresh_build_panel() -> void:
 
 	if not RunState.is_preparation():
 		var lock_note: Label = _label(
-			"COMBAT LOCK  ·  construction returns in Preparation.
-"
+			"COMBAT LOCK  ·  construction returns in Preparation.\n"
 			+ "This road is selected for Rally Road.", 14)
 		lock_note.add_theme_color_override("font_color", Color("e8a33d"))
 		_build_list.add_child(lock_note)

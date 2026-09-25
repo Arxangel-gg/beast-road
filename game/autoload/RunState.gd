@@ -1255,7 +1255,8 @@ func attribute(which: int) -> int:
 
 ## How many discipline nodes this hero may hold, which grows with level.
 func discipline_cap() -> int:
-	return Balance.DISCIPLINE_MAX_TRAINED 		+ int(hero_level / Balance.HERO_DISCIPLINE_CAP_EVERY)
+	return Balance.DISCIPLINE_MAX_TRAINED \
+		+ int(hero_level / Balance.HERO_DISCIPLINE_CAP_EVERY)
 
 
 func try_train_discipline(id: String) -> String:
@@ -1267,7 +1268,8 @@ func try_train_discipline(id: String) -> String:
 	if trained_discipline_nodes.has(id):
 		return "Already trained."
 	if trained_discipline_nodes.size() >= discipline_cap():
-		return "%d nodes is the limit at level %d. Level up or respec." 			% [discipline_cap(), hero_level]
+		return "%d nodes is the limit at level %d. Level up or respec." \
+			% [discipline_cap(), hero_level]
 	# A skill point as well as the Food. Two gates on purpose: the point is the
 	# growth the player earned by fighting, the Food is the Preparation decision
 	# they make against their towers. Either alone would be weaker - skill points

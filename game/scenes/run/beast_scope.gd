@@ -656,7 +656,8 @@ func _apply_parallax_palette() -> void:
 	# rather than in front of it.
 	if _skyline != null:
 		var art: String = Balance.BEAST_SKYLINE_FORMAT % RunState.terrain_id
-		_skyline.texture = load(art) as Texture2D if ResourceLoader.exists(art) 			else null
+		_skyline.texture = load(art) as Texture2D if ResourceLoader.exists(art) \
+			else null
 		var sky_haze: Color = horizon.lerp(Color(horizon.r, horizon.g, horizon.b)
 			.lightened(0.24), Balance.BEAST_SKYLINE_HAZE)
 		_skyline.tint = Color(sky_haze.darkened(Balance.BEAST_SKYLINE_SHADE), 1.0)
@@ -678,7 +679,8 @@ func _apply_parallax_palette() -> void:
 		_mid_band.shape_seed = hash(RunState.terrain_id + "mid")
 		_mid_band.rebuild()
 
-	_foreground.colour = Color(horizon.r, horizon.g, horizon.b, 1.0) 		.darkened(1.0 - Balance.BEAST_FOREGROUND_DARKEN)
+	_foreground.colour = Color(horizon.r, horizon.g, horizon.b, 1.0) \
+		.darkened(1.0 - Balance.BEAST_FOREGROUND_DARKEN)
 	_foreground.shape_seed = hash(RunState.terrain_id + "near")
 	_foreground.rebuild()
 	_rebuild_scatter(horizon)

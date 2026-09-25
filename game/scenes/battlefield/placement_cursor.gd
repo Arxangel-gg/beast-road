@@ -74,7 +74,8 @@ func _process_measured(delta: float) -> void:
 func _point_at(tile: Vector2i) -> void:
 	_hover = tile
 	_legal = _field.placement_problem(tile).is_empty()
-	_road = not _legal and _field.grid != null 		and _field.grid.cell_at(tile) == BattleGrid.Cell.ROAD
+	_road = not _legal and _field.grid != null \
+		and _field.grid.cell_at(tile) == BattleGrid.Cell.ROAD
 	_fusions = RunState.combinations_for_tile(tile)
 	queue_redraw()
 
@@ -166,7 +167,8 @@ func _is_active() -> bool:
 	# every way a sheet opens.
 	if RunState.build_grace_left() > 0.0:
 		return false
-	return _field != null and _field.grid != null and RunState.can_build_now() 		and GameDirector.build_mode
+	return _field != null and _field.grid != null and RunState.can_build_now() \
+		and GameDirector.build_mode
 
 
 func _draw_measured() -> void:

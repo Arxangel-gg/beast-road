@@ -154,7 +154,8 @@ func set_facing(wanted: BarricadeData.Facing, mirrored: bool) -> void:
 	if _sprite == null:
 		return
 	_sprite.flip_h = mirrored
-	var lean: float = Balance.BARRICADE_DIAGONAL_DEGREES 		if wanted == BarricadeData.Facing.DIAGONAL else 0.0
+	var lean: float = Balance.BARRICADE_DIAGONAL_DEGREES \
+		if wanted == BarricadeData.Facing.DIAGONAL else 0.0
 	_sprite.rotation = deg_to_rad(-lean if mirrored else lean)
 	_apply_facing()
 

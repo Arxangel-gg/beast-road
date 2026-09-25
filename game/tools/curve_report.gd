@@ -440,7 +440,8 @@ func _gold_per_body() -> float:
 ## Nothing about the *game* moved. A camp lord pays what it always paid, to a
 ## player who went and killed one.
 func _walks_the_road(enemy: EnemyData) -> bool:
-	return enemy.category == EnemyData.Category.BREED 		or enemy.category == EnemyData.Category.ELITE
+	return enemy.category == EnemyData.Category.BREED \
+		or enemy.category == EnemyData.Category.ELITE
 
 ## Best-case tower damage per second for a given amount of Gold earned.
 ##

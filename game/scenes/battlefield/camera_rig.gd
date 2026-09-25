@@ -82,16 +82,19 @@ func _process_measured(delta: float) -> void:
 ## The zoom band for this device, chosen here because this is where the answer
 ## is known. `Balance` holds the numbers and must not ask an autoload for them.
 func _zoom_floor() -> float:
-	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN if TouchInput.is_showing() 		else Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
+	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN if TouchInput.is_showing() \
+		else Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
 
 
 func _zoom_ceiling() -> float:
-	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX if TouchInput.is_showing() 		else Balance.CAMERA_ZOOM_BATTLEFIELD_MAX
+	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX if TouchInput.is_showing() \
+		else Balance.CAMERA_ZOOM_BATTLEFIELD_MAX
 
 
 ## A scene's authored framing, brought closer if this is a phone.
 func _start_zoom(authored: float) -> float:
-	return authored * Balance.CAMERA_TOUCH_ZOOM_GAIN if TouchInput.is_showing() 		else authored
+	return authored * Balance.CAMERA_TOUCH_ZOOM_GAIN if TouchInput.is_showing() \
+		else authored
 
 
 func zoom_by(steps: int) -> bool:

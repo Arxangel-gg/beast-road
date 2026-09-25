@@ -1078,7 +1078,8 @@ func _build_foliage() -> void:
 		leaf.anchor = row[1] as Vector2
 		leaf.facing = float(row[2])
 		leaf.phase = float(row[3])
-		leaf.sway = Balance.MENU_VINE_SWAY if leaf.kind == MenuFoliage.Kind.VINE 			else Balance.MENU_FERN_SWAY
+		leaf.sway = Balance.MENU_VINE_SWAY if leaf.kind == MenuFoliage.Kind.VINE \
+			else Balance.MENU_FERN_SWAY
 		leaf.z_index = Balance.MENU_FOLIAGE_Z
 		add_child(leaf)
 		_foliage.append(leaf)
@@ -1091,7 +1092,8 @@ func _build_foliage() -> void:
 func _place_foliage(span: Vector2) -> void:
 	for leaf: MenuFoliage in _foliage:
 		leaf.position = span * leaf.anchor
-		var share: float = Balance.MENU_VINE_REACH 			if leaf.kind == MenuFoliage.Kind.VINE else Balance.MENU_FERN_REACH
+		var share: float = Balance.MENU_VINE_REACH \
+			if leaf.kind == MenuFoliage.Kind.VINE else Balance.MENU_FERN_REACH
 		leaf.reach = span.y * share
 		leaf.tint = _foliage_tint()
 		# **The painted leaves are graded to the corner they hang in**, exactly

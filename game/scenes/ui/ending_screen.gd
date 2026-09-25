@@ -73,8 +73,7 @@ func _ready() -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
 	move_child(scrim, 1)
-	credits.text = "
-".join(CREDITS)
+	credits.text = "\n".join(CREDITS)
 	credits.visible = false
 	credits_button.pressed.connect(_roll_credits)
 	finish_button.pressed.connect(_finish)

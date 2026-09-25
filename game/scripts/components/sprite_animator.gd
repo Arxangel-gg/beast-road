@@ -229,7 +229,8 @@ func _process(delta: float) -> void:
 		# The net rotation cancels; the scale does not. Godot has no shear on
 		# Node2D, so this is the honest approximation and it reads fine in motion.
 
-	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin) + deg_to_rad(_balance_wobble) 		+ deg_to_rad(_drive)
+	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin) + deg_to_rad(_balance_wobble) \
+		+ deg_to_rad(_drive)
 
 	sprite.position = _home + offset
 	sprite.rotation = rotation_now

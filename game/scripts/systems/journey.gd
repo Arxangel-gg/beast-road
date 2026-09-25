@@ -58,7 +58,8 @@ func _process_measured(delta: float) -> void:
 	# gear affix, a Road Card, two relics and two omens all wrote it - so every
 	# one of them charged its price and moved the beast not at all. Found by
 	# auditing the modifier table for readers, 2026-09-13.
-	var walked: float = RunState.beast_speed 		* maxf(Modifiers.multiplier(Modifiers.BEAST_SPEED), 0.0) * delta
+	var walked: float = RunState.beast_speed \
+		* maxf(Modifiers.multiplier(Modifiers.BEAST_SPEED), 0.0) * delta
 	if walked <= 0.0:
 		return
 

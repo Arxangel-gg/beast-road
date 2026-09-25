@@ -502,10 +502,9 @@ func _update_diagnostic() -> void:
 	# "Connecting, then a timeout" is the same sentence for four different
 	# faults, and this is what tells them apart.
 	if Coop.state() != Coop.State.OFFLINE or not Coop.room_code.is_empty():
-		_diagnostic.text += "
-" + ("" if CoopWebRTC.has_relay() else
-		"no relay configured - players behind strict routers cannot connect
-") 		+ Coop.webrtc().status_line()
+		_diagnostic.text += "\n" + ("" if CoopWebRTC.has_relay() else
+		"no relay configured - players behind strict routers cannot connect\n") \
+		+ Coop.webrtc().status_line()
 
 
 ## Six characters, no dots. See `_on_join`.
@@ -610,7 +609,8 @@ func _refresh() -> void:
 		Coop.State.OFFLINE:
 			_status.text = "Not connected."
 			_address_label.text = ""
-			_hint.text = "Same network? Pick their game above. Anywhere else? Host, " 				+ "press Copy code, and send them the code."
+			_hint.text = "Same network? Pick their game above. Anywhere else? Host, " \
+				+ "press Copy code, and send them the code."
 		Coop.State.HOSTING:
 			_status.text = "Player 2 is here. Ready when you are." if joined \
 				else "Hosting. Waiting for your friend to join…"
@@ -635,7 +635,9 @@ func _refresh() -> void:
 		# Said plainly rather than left as a button that does nothing. A desktop
 		# build without the extension is a build somebody made wrong, and a
 		# browser always has it.
-		_room_button.tooltip_text = "Six characters to share. Works in a browser " 			+ "and through a home router." if CoopWebRTC.available() 			else "This build was made without WebRTC support."
+		_room_button.tooltip_text = "Six characters to share. Works in a browser " \
+			+ "and through a home router." if CoopWebRTC.available() \
+			else "This build was made without WebRTC support."
 	# Opening a port is desktop-only: a browser cannot do it, and offering it is
 	# offering a button that must fail.
 	if OS.has_feature("web"):
@@ -685,7 +687,8 @@ func _address_text() -> String:
 	# Listed publicly the moment there is something worth listing. The code
 	# improves when the public address arrives, and `publish` updates the row
 	# rather than adding a second one.
-	if not code.is_empty() and Coop.is_host() 			and Coop.state() == Coop.State.HOSTING:
+	if not code.is_empty() and Coop.is_host() \
+			and Coop.state() == Coop.State.HOSTING:
 		Coop.directory().publish(code, Coop.lobby_name())
 	return "\n".join(lines)
 
@@ -720,7 +723,8 @@ func _on_games_changed(found: Array) -> void:
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.custom_minimum_size = Vector2(0.0, 34.0)
 		row.add_theme_font_size_override("font_size", 15)
-		row.disabled = full or Coop.state() != Coop.State.OFFLINE 			and Coop.state() != Coop.State.FAILED
+		row.disabled = full or Coop.state() != Coop.State.OFFLINE \
+			and Coop.state() != Coop.State.FAILED
 		IconKit.on_button(row, "pressure_arrow", 18)
 		var address: String = String(game["address"])
 		var port: int = int(game["port"])
@@ -744,7 +748,8 @@ func _on_public_games(found: Array) -> void:
 			joinable.append(game)
 	var note: String = Coop.directory().status()
 	if joinable.is_empty():
-		_public_title.text = note if not note.is_empty() 			else "No public games open right now. Host one and anybody can join."
+		_public_title.text = note if not note.is_empty() \
+			else "No public games open right now. Host one and anybody can join."
 		return
 	_public_title.text = "Open to anyone:" if note.is_empty() else note
 	for entry: Variant in joinable:
@@ -762,7 +767,8 @@ func _on_public_games(found: Array) -> void:
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.custom_minimum_size = Vector2(0.0, 34.0)
 		row.add_theme_font_size_override("font_size", 15)
-		row.disabled = Coop.state() != Coop.State.OFFLINE 			and Coop.state() != Coop.State.FAILED
+		row.disabled = Coop.state() != Coop.State.OFFLINE \
+			and Coop.state() != Coop.State.FAILED
 		IconKit.on_button(row, "pressure_arrow", 18)
 		var code: String = String(game["code"])
 		# Straight through `_on_join`, so a lobby row and a pasted code take
@@ -807,7 +813,8 @@ func _share_code() -> String:
 func _hint_text() -> String:
 	# A room needs nothing from the router, so it must not talk about one.
 	if not Coop.room_code.is_empty():
-		return "Anyone with that code can join, on any platform. " 			+ "Nothing to forward, nothing to configure."
+		return "Anyone with that code can join, on any platform. " \
+			+ "Nothing to forward, nothing to configure."
 	if Coop.external_address.is_empty():
 		return "Asking your router for a public address…"
 	if Coop.port_mapped:

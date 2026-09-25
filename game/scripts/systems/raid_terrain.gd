@@ -285,10 +285,12 @@ class _Faces extends Node2D:
 					# The rim of the map counts as lower ground: a ledge that
 					# runs off the edge still has a face, or the camp ends in a
 					# cut through solid earth.
-					var lower: int = layout.level_at(below) 						if RaidLayout.in_bounds(below) else 0
+					var lower: int = layout.level_at(below) \
+						if RaidLayout.in_bounds(below) else 0
 					if lower >= level:
 						continue
-					var top_left: Vector2 = RaidLayout.tile_to_world(tile) 						+ Vector2(-RaidLayout.TILE, RaidLayout.TILE) * 0.5
+					var top_left: Vector2 = RaidLayout.tile_to_world(tile) \
+						+ Vector2(-RaidLayout.TILE, RaidLayout.TILE) * 0.5
 					var into := Rect2(top_left, Vector2(RaidLayout.TILE, tall))
 					if layout.cell_at(tile) == RaidLayout.Cell.RAMP and _steps != null:
 						# **Up over the lip as well as down the face.** The old

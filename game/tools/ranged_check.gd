@@ -337,7 +337,8 @@ func _test_melee_is_still_the_default() -> void:
 	# statement of the same fact for the balance to drift away from.
 	var chain_seconds: float = 0.0
 	for step: int in Balance.HERO_CHAIN_LENGTH:
-		chain_seconds += Balance.HERO_ATTACK_WINDUP[step] 			+ Balance.HERO_ATTACK_ACTIVE[step] + Balance.HERO_ATTACK_RECOVERY[step]
+		chain_seconds += Balance.HERO_ATTACK_WINDUP[step] \
+			+ Balance.HERO_ATTACK_ACTIVE[step] + Balance.HERO_ATTACK_RECOVERY[step]
 	var melee_dps: float = melee / maxf(chain_seconds, 0.001)
 
 	var best: float = 0.0

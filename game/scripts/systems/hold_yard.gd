@@ -1499,7 +1499,8 @@ func _follow_the_sun() -> void:
 func _tick_treads(delta: float) -> void:
 	if _marks == null or delta <= 0.0:
 		return
-	var weight: float = Graphics.particle_scale() 		* JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
+	var weight: float = Graphics.particle_scale() \
+		* JuiceDirector.weight(JuiceDirector.Priority.COSMETIC)
 	if weight <= 0.01:
 		return
 	var stride: float = Balance.HERO_BODY_RADIUS * Balance.FOOTFALL_STRIDE

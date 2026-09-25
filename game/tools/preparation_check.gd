@@ -240,7 +240,8 @@ func _test_painting_the_clock_builds_nothing(clocks: Array) -> void:
 	# tint is taken on the way past.
 	var paints: int = 24
 	for step: int in paints:
-		var left: float = Balance.PREPARATION_BETWEEN_WAVES 			* (1.0 - float(step) / float(paints))
+		var left: float = Balance.PREPARATION_BETWEEN_WAVES \
+			* (1.0 - float(step) / float(paints))
 		EventBus.preparation_changed.emit(maxf(left, 0.05), true)
 		await get_tree().process_frame
 	for index: int in clocks.size():

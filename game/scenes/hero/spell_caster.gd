@@ -493,7 +493,8 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 ## than as a second code path, so an echo is the same spell resolving again and
 ## nothing downstream has to learn that echoes exist.
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.0) -> void:
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) 		* focus_power() * share
+	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) \
+		* focus_power() * share
 	# Where the spell lands, for what it does to the world.
 	var lands: Vector2 = origin
 	if spell.kind == SpellData.Kind.METEOR or spell.kind == SpellData.Kind.VOLLEY:

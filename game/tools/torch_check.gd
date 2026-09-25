@@ -243,7 +243,8 @@ func _check_layout() -> bool:
 func _has_live_light(from: Node) -> bool:
 	for child: Node in from.get_children():
 		var light := child as PointLight2D
-		if light != null and light.enabled and light.energy > 0.0 				and light.texture_scale > 0.0:
+		if light != null and light.enabled and light.energy > 0.0 \
+				and light.texture_scale > 0.0:
 			return true
 		if _has_live_light(child):
 			return true

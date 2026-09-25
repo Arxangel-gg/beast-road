@@ -518,7 +518,8 @@ func _build_tools() -> void:
 		trade.add_theme_font_size_override("font_size", 13)
 		trade.pressed.connect(func() -> void:
 			var refusal: String = TradeBooth.invite()
-			_message = refusal if not refusal.is_empty() 				else "Asked to trade. Waiting for an answer."
+			_message = refusal if not refusal.is_empty() \
+				else "Asked to trade. Waiting for an answer."
 			_refresh())
 		_tools.add_child(trade)
 

@@ -127,7 +127,8 @@ static func fill_rate(side: int, price: int, guide: int, ceiling: int,
 			+ minf(above, 1.0) * (Balance.EXCHANGE_FILL_BEST_MULTIPLIER - 1.0))
 	# `+ 1` for the same reason the ask ceiling has one: the floor is the last
 	# bid that finds a caravan, not the first that does not.
-	var under_guide: float = float(guide - price) 		/ maxf(float(guide - floor_price + 1), 1.0)
+	var under_guide: float = float(guide - price) \
+		/ maxf(float(guide - floor_price + 1), 1.0)
 	return Balance.EXCHANGE_FILL_AT_GUIDE * maxf(1.0 - under_guide, 0.0)
 
 

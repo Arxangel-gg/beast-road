@@ -2287,7 +2287,8 @@ func _refund_orphaned_fusions() -> void:
 	for key: Variant in RunState.towers:
 		var anchor: Vector2i = key
 		var built: TowerData = RunState.tower_at(anchor)
-		if built != null and built.is_combination 				and not RunState.fusion_parents_intact(anchor):
+		if built != null and built.is_combination \
+				and not RunState.fusion_parents_intact(anchor):
 			orphans.append(anchor)
 	for anchor: Vector2i in orphans:
 		var built: TowerData = RunState.tower_at(anchor)
@@ -2344,7 +2345,8 @@ func try_tend_hero(who: Hero = null) -> String:
 	RunState.spend_cost({RunState.FOOD: price})
 	# A fraction of maximum, so it stays worth buying once Wounds have cut the
 	# ceiling and a flat number would be most of a bar.
-	var share: float = Balance.RATION_FRACTION if under_fire 		else Balance.HERO_TEND_FRACTION
+	var share: float = Balance.RATION_FRACTION if under_fire \
+		else Balance.HERO_TEND_FRACTION
 	patient.health.heal(patient.health.max_hp * share)
 	if under_fire:
 		_ration_cooldown = Balance.RATION_COOLDOWN
@@ -3081,8 +3083,10 @@ func _update_pressure() -> void:
 		# different answers: an enemy at the far end of the detour is close to the
 		# town as the crow flies and still has most of the road left to walk.
 		# Ranking by the crow would call a lane critical while it is fine.
-		var distance: float = grid.distance_to_town_along(lane, enemy.global_position) 			if grid != null else enemy.global_position.length()
-		var road_length: float = grid.lane_length(lane) if grid != null 			else Balance.LANE_SPAWN_RADIUS
+		var distance: float = grid.distance_to_town_along(lane, enemy.global_position) \
+			if grid != null else enemy.global_position.length()
+		var road_length: float = grid.lane_length(lane) if grid != null \
+			else Balance.LANE_SPAWN_RADIUS
 		var closeness: float = 1.0 - clampf(
 			(distance - Balance.TOWN_RADIUS) / maxf(road_length - Balance.TOWN_RADIUS, 1.0),
 			0.0, 1.0)

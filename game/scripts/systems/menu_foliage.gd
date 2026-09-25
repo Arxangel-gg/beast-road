@@ -391,7 +391,8 @@ func _draw_vine(strand: Dictionary) -> void:
 		# **And what it is carrying.** Hung from its own point down the strand
 		# rather than at the tip: fruit grows where the vine is thick enough to
 		# hold it, and a bunch dangling off the very end reads as a pendulum.
-		var carried: Texture2D = _one_of(_hangers, float(strand["hanger"])) 			if bool(strand["carries"]) else null
+		var carried: Texture2D = _one_of(_hangers, float(strand["hanger"])) \
+			if bool(strand["carries"]) else null
 		if carried != null and points.size() > 3:
 			var where: int = clampi(
 				int(float(points.size() - 1) * float(strand["hanger_at"])),

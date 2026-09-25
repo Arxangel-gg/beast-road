@@ -78,7 +78,8 @@ func _ready() -> void:
 
 	var sink_ok: bool = _test_tools_have_somewhere_to_go()
 
-	if not content_ok or premature != 0 or not one_time or not persistence_ok 			or not sink_ok:
+	if not content_ok or premature != 0 or not one_time or not persistence_ok \
+			or not sink_ok:
 		push_error("Chronicle objective gate failed")
 		get_tree().quit(1)
 		return
@@ -160,6 +161,8 @@ func _summary_meeting_everything(objectives: Array[ChronicleObjectiveData]) -> D
 			continue
 		var wanted: float = objective.target
 		if out.has(key):
-			wanted = maxf(float(out[key]), objective.target) 				if objective.comparison == ChronicleObjectiveData.Comparison.AT_LEAST 				else minf(float(out[key]), objective.target)
+			wanted = maxf(float(out[key]), objective.target) \
+				if objective.comparison == ChronicleObjectiveData.Comparison.AT_LEAST \
+				else minf(float(out[key]), objective.target)
 		out[key] = wanted
 	return out

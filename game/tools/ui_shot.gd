@@ -59,7 +59,8 @@ func _ready() -> void:
 		RunState.building_tiers["sanctum"] = 3
 		RunState.trained_discipline_nodes.clear()
 		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-			if node.discipline == DisciplineNodeData.Discipline.BLOOD 					and node.role in [DisciplineNodeData.Role.ATTACK,
+			if node.discipline == DisciplineNodeData.Discipline.BLOOD \
+					and node.role in [DisciplineNodeData.Role.ATTACK,
 						DisciplineNodeData.Role.DEFENSE]:
 				RunState.trained_discipline_nodes.append(node.id)
 		RunState.equipped_discipline_slots = ["", "", "", ""]
@@ -82,7 +83,8 @@ func _ready() -> void:
 	# owner's account has a mount; a fresh one has none and the button is
 	# hidden, so one is saddled here for the picture.
 	await _shot("hud_thrown", func() -> void:
-		var stock: Array[MountData] = ContentDB.mounts_sorted() 			if ContentDB.has_method("mounts_sorted") else []
+		var stock: Array[MountData] = ContentDB.mounts_sorted() \
+			if ContentDB.has_method("mounts_sorted") else []
 		if stock.is_empty():
 			return
 		MetaState.mounts.clear()

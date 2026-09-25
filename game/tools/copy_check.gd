@@ -187,8 +187,7 @@ func _check_every_modifier_has_a_reviewed_label() -> void:
 		_failures.append("[copy] Modifiers.gd is missing, so no label can be reviewed")
 		return
 	var keys: PackedStringArray = []
-	for line: String in file.get_as_text().split("
-"):
+	for line: String in file.get_as_text().split("\n"):
 		var trimmed: String = line.strip_edges()
 		if not trimmed.begins_with("const ") or not trimmed.contains(": String = \""):
 			continue
@@ -246,8 +245,7 @@ func _check_the_beast_scope_names_yuri() -> void:
 			_failures.append("[copy] %s is missing, so nothing names the beast scope" % path)
 			continue
 		var named: bool = false
-		for line: String in file.get_as_text().split("
-"):
+		for line: String in file.get_as_text().split("\n"):
 			if not line.contains(String(places[path])):
 				continue
 			if line.contains("Yuri"):

@@ -288,9 +288,11 @@ func _test_the_shelves_are_walkable() -> void:
 		for x: int in HoldYard.MAP_W:
 			var above := Vector2i(x, y)
 			var below := Vector2i(x, y + 1)
-			if not Elevation.LEVEL.has(_mark(above)) 					or not Elevation.LEVEL.has(_mark(below)):
+			if not Elevation.LEVEL.has(_mark(above)) \
+					or not Elevation.LEVEL.has(_mark(below)):
 				continue
-			if int(Elevation.LEVEL[_mark(above)]) 					<= int(Elevation.LEVEL[_mark(below)]):
+			if int(Elevation.LEVEL[_mark(above)]) \
+					<= int(Elevation.LEVEL[_mark(below)]):
 				continue
 			cliffs += 1
 			var top: Vector2 = HoldYard.at_cell(above)

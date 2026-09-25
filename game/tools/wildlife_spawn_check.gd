@@ -148,7 +148,8 @@ func _test_rarity_coverage() -> void:
 				var dangerous: bool = kind.temperament >= WildlifeData.Temperament.TERRITORIAL
 				if dangerous != hostile:
 					continue
-				share[kind.rarity] = float(share.get(kind.rarity, 0.0)) 					+ kind.roll_weight(act) / total
+				share[kind.rarity] = float(share.get(kind.rarity, 0.0)) \
+					+ kind.roll_weight(act) / total
 			var side: String = "dangerous" if hostile else "harmless"
 			for tier: int in [WildlifeData.Rarity.COMMON, WildlifeData.Rarity.UNCOMMON,
 					WildlifeData.Rarity.RARE, WildlifeData.Rarity.LEGENDARY]:
@@ -214,7 +215,8 @@ func _test_ecology(wildlife: Wildlife) -> void:
 
 	# And prey runs. Asked at the rabbit's own position with the wolf beside it.
 	var wolf := Sprite2D.new()
-	wolf.global_position = rabbit.global_position 		+ Vector2(prey.skittish_radius * 0.4, 0.0)
+	wolf.global_position = rabbit.global_position \
+		+ Vector2(prey.skittish_radius * 0.4, 0.0)
 	wildlife.add_child(wolf)
 	living.append({
 		"data": predator, "sprite": wolf, "dying": 0.0, "state": 1,

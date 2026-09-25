@@ -447,7 +447,8 @@ func _test_a_hover_never_leaves_its_layout_place() -> void:
 	ride.mouse_entered.emit()
 	for _frame: int in 24:
 		await get_tree().process_frame
-	var laid_out: float = column.position.y + clock.size.y 		+ column.get_theme_constant(&"separation")
+	var laid_out: float = column.position.y + clock.size.y \
+		+ column.get_theme_constant(&"separation")
 	_check(absf(ride.position.y - laid_out) <= Balance.UI_HOLO_LIFT + 0.6,
 		"a hovered button must sit within %0.1fpx of where the column put it: %0.1f against %0.1f"
 			% [Balance.UI_HOLO_LIFT, ride.position.y, laid_out])
@@ -464,7 +465,8 @@ func _test_a_hover_never_leaves_its_layout_place() -> void:
 	ride.mouse_entered.emit()
 	for _frame: int in 24:
 		await get_tree().process_frame
-	var moved: float = column.position.y + clock.size.y 		+ column.get_theme_constant(&"separation")
+	var moved: float = column.position.y + clock.size.y \
+		+ column.get_theme_constant(&"separation")
 	_check(absf(ride.position.y - moved) <= Balance.UI_HOLO_LIFT + 0.6,
 		("after the column re-sorts, a hover must still land within %0.1fpx of "
 			+ "the new layout: %0.1f against %0.1f")

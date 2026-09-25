@@ -491,8 +491,10 @@ static var _authored: float = 0.0
 
 
 static func _apply_wind(wind: float, strength: float) -> void:
-	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
-	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
+	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES \
+		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
+	var speed: float = Balance.FOLIAGE_SWAY_SPEED \
+		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
 	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES
 	var reached: Array[ShaderMaterial] = [wind_material(), painted_material()]
 	for region: Variant in _canopy_materials:
@@ -892,7 +894,8 @@ func refresh_quality() -> void:
 ## beside one, and holding an even density all the way out cost 2.3 ms a frame
 ## for plants mostly off screen.
 func _random_point(rng: RandomNumberGenerator) -> Vector2:
-	var radius: float = pow(rng.randf(), Balance.FOLIAGE_INNER_BIAS) 		* Balance.FOLIAGE_REACH
+	var radius: float = pow(rng.randf(), Balance.FOLIAGE_INNER_BIAS) \
+		* Balance.FOLIAGE_REACH
 	return Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
 
 

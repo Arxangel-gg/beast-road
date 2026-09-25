@@ -410,7 +410,8 @@ func _draw_level(level: int) -> void:
 			var se: bool = _at_least(Vector2i(i, j), level)
 			if not (nw or ne or sw or se):
 				continue
-			var index: int = (8 if nw else 0) + (4 if ne else 0) 				+ (2 if sw else 0) + (1 if se else 0)
+			var index: int = (8 if nw else 0) + (4 if ne else 0) \
+				+ (2 if sw else 0) + (1 if se else 0)
 			var where := Rect2(
 				_origin.x + float(i) * _cell - _cell * 0.5,
 				_origin.y + float(j) * _cell - _cell * 0.5 - lift,
@@ -662,10 +663,12 @@ func _draw_flights() -> void:
 			var ch: String = mark(cell)
 			if not WAY.has(ch) or seen.has(cell):
 				continue
-			var art: Texture2D = _stair_north if (ch == "^" or ch == "v") 				else _stair_side
+			var art: Texture2D = _stair_north if (ch == "^" or ch == "v") \
+				else _stair_side
 			# The run lies across the way it climbs: a stair going north is
 			# wide east to west.
-			var across: Vector2i = Vector2i(1, 0) if WAY[ch].x == 0 				else Vector2i(0, 1)
+			var across: Vector2i = Vector2i(1, 0) if WAY[ch].x == 0 \
+				else Vector2i(0, 1)
 			# **Only a flight that climbs away from the camera is stretched.**
 			# A staircase drawn across the view is steps seen edge-on, and
 			# stretching one down a three-cell run turns it into diagonal
@@ -685,7 +688,9 @@ func _draw_flights() -> void:
 			# Drawn from the low edge up: the steps *are* the climb, so the
 			# piece covers the run and the rise it crosses.
 			var box := Rect2(from.x, from.y - float(low + 1) * _rise,
-				to.x - from.x, (to.y - from.y) + _rise) 				if across.x != 0 				else Rect2(from.x, from.y - float(low + 1) * _rise,
+				to.x - from.x, (to.y - from.y) + _rise) \
+				if across.x != 0 \
+				else Rect2(from.x, from.y - float(low + 1) * _rise,
 					_cell, (to.y - from.y) + _rise)
 			if across.x != 0:
 				box.size.y = _cell + _rise

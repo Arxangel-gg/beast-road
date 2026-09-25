@@ -273,7 +273,8 @@ func _test_every_fish_faces_the_way_it_is_drawn() -> void:
 		if not FACINGS.has(kind.id):
 			continue
 		var recorded: String = String(FACINGS[kind.id])
-		var carried: String = "top_down" if kind.art_top_down 			else ("right" if kind.art_faces_right else "left")
+		var carried: String = "top_down" if kind.art_top_down \
+			else ("right" if kind.art_faces_right else "left")
 		_check(recorded == carried,
 			"%s is recorded as facing %s and is authored %s" % [kind.id, recorded, carried])
 	for id: Variant in FACINGS:

@@ -340,7 +340,8 @@ func _test_the_wave_travels() -> void:
 		await get_tree().process_frame
 		ran += get_process_delta_time()
 		if is_instance_valid(mover):
-			mover.global_position += Vector2(Balance.QUAKE_WAVE_SPEED * 1.4, 0.0) 				* get_process_delta_time()
+			mover.global_position += Vector2(Balance.QUAKE_WAVE_SPEED * 1.4, 0.0) \
+				* get_process_delta_time()
 	_check(still.health.current_hp < pool, "the crest passed the still body and did not strike it")
 	_check(mover.health.current_hp > still.health.current_hp,
 		"stepping out of the crests bought nothing: %.0f against %.0f"

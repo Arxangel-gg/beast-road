@@ -69,8 +69,7 @@ func _test_every_priority_reaches_the_game() -> void:
 		# the comment above it explained what the note was for. That is the same
 		# false positive `audio_verify` was given a comment-skip for this morning,
 		# in a gate written hours later.
-		for line: String in file.get_as_text().split("
-"):
+		for line: String in file.get_as_text().split("\n"):
 			if line.strip_edges().begins_with("#"):
 				continue
 			for name: String in JuiceDirector.Priority.keys():

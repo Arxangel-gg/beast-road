@@ -455,15 +455,13 @@ func _test_no_shipping_path_skips_the_derivation() -> void:
 	if not _check(not body.is_empty(), "could not read MetaState.gd to walk it"):
 		return
 	var code: PackedStringArray = PackedStringArray()
-	for line: String in body.split("
-"):
+	for line: String in body.split("\n"):
 		var trimmed: String = line.strip_edges()
 		# Comments talk about these names on purpose; only code may not.
 		if trimmed.begins_with("#"):
 			continue
 		code.append(line)
-	var text: String = "
-".join(code)
+	var text: String = "\n".join(code)
 	_check(text.count("SAVE_PATH") == 2,
 		("SAVE_PATH is named %d times in MetaState's code; it may appear only "
 			+ "in its own declaration and as `slot_root`'s starting value - "

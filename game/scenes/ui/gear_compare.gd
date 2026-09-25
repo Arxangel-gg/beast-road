@@ -310,7 +310,8 @@ func _say_the_difference(offered: Dictionary, offered_kind: GearData,
 			down -= change[index]
 
 	if said.is_empty():
-		_verdict.text = "[center][color=#%s]the same, attribute for attribute[/color][/center]" 			% SAME.to_html(false)
+		_verdict.text = "[center][color=#%s]the same, attribute for attribute[/color][/center]" \
+			% SAME.to_html(false)
 		_verdict.add_theme_color_override("default_color", SAME)
 		return
 	_verdict.text = "[center]%s[/center]" % "  ·  ".join(said)

@@ -1712,7 +1712,8 @@ func _dim_to(picked_id: String) -> void:
 		if button == null or not is_instance_valid(button):
 			continue
 		button.disabled = true
-		button.modulate = Color.WHITE if String(id) == picked_id 			else Color(1.0, 1.0, 1.0, 0.45)
+		button.modulate = Color.WHITE if String(id) == picked_id \
+			else Color(1.0, 1.0, 1.0, 0.45)
 
 
 ## The other player chose. Take it and close.

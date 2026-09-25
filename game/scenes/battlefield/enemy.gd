@@ -871,8 +871,10 @@ func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 	# right one played out in full view. Showing the jump is the lesser lie, and
 	# it covers every way a puppet can end up misplaced - a missed spawn packet,
 	# a late join, a knockback - rather than only the one that was found.
-	var reachable: float = maxf(data.move_speed if data != null else 1.0, 1.0) 		* window * Balance.COOP_MIRROR_SNAP_FACTOR
-	if not _mirrored_once 			or global_position.distance_to(at) > reachable:
+	var reachable: float = maxf(data.move_speed if data != null else 1.0, 1.0) \
+		* window * Balance.COOP_MIRROR_SNAP_FACTOR
+	if not _mirrored_once \
+			or global_position.distance_to(at) > reachable:
 		global_position = at
 		_puppet_last = at
 		_mirror_velocity = Vector2.ZERO
@@ -1880,7 +1882,8 @@ static func reanchor_index(path: PackedVector2Array, at: Vector2, following: int
 	# nearest is the same mistake in a different shape: a body standing exactly
 	# on the first leg while its cursor still says the eighth is as lost as a
 	# body can be, and its distance to the nearest leg is zero.
-	if distance_to_leg(at, path[current], path[current + 1]) 			< Balance.ENEMY_REANCHOR_DISTANCE:
+	if distance_to_leg(at, path[current], path[current + 1]) \
+			< Balance.ENEMY_REANCHOR_DISTANCE:
 		return current
 
 	var nearest: int = current
@@ -1948,7 +1951,8 @@ func provoked_by(animal: Node2D, source: Node) -> void:
 ## column off the road, which is the one thing a lane enemy must never do. In
 ## reach means standing on top of it, and the step it takes to close is nothing.
 func _biting_back() -> Node2D:
-	if _provoked_left <= 0.0 or _provoker == null 			or not is_instance_valid(_provoker):
+	if _provoked_left <= 0.0 or _provoker == null \
+			or not is_instance_valid(_provoker):
 		return null
 	if not _in_reach(_provoker):
 		return null
@@ -3162,7 +3166,8 @@ func _drop_loot() -> void:
 		chance = 1.0
 	if RunState.rng("combat").randf() > chance:
 		return
-	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.kill_act_scale(RunState.act)
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE \
+		* Balance.LOOT_BONUS_SHARE * Balance.kill_act_scale(RunState.act)
 	if elite:
 		share *= Balance.LOOT_ELITE_MULTIPLIER
 	var tier: CampaignTierData = RunState.tier()
@@ -3215,7 +3220,8 @@ func _drop_healing_orb() -> void:
 ## What one orb from this body is worth, as a whole number of health points on
 ## the ordinary hero scale. Capped, and the cap is the whole balance argument.
 func healing_orb_amount() -> int:
-	var fraction: float = Balance.HEALING_ORB_BASE_FRACTION 		+ float(data.resource_value) * Balance.HEALING_ORB_POWER_PER_VALUE
+	var fraction: float = Balance.HEALING_ORB_BASE_FRACTION \
+		+ float(data.resource_value) * Balance.HEALING_ORB_POWER_PER_VALUE
 	fraction = minf(fraction, Balance.HEALING_ORB_MAX_FRACTION)
 	return maxi(int(round(Balance.HERO_MAX_HP * fraction)), 1)
 
@@ -3247,7 +3253,9 @@ func _drop_supply_crate() -> void:
 
 ## What a crate from this body carries, as the currency value of one spill.
 func crate_value() -> int:
-	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE 		* Balance.kill_act_scale(RunState.act)
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE \
+		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE \
+		* Balance.kill_act_scale(RunState.act)
 	if data.is_promoted():
 		share *= Balance.LOOT_ELITE_MULTIPLIER
 	var tier: CampaignTierData = RunState.tier()
@@ -3339,7 +3347,8 @@ func _drop_gear() -> void:
 ## Its own RNG stream, like gear, so adding a spark or retuning damage cannot
 ## quietly rewrite what a boss teaches.
 func _drop_blueprint() -> void:
-	if _field == null or not (_field is Battlefield) 			or not _field.has_method("spawn_blueprint"):
+	if _field == null or not (_field is Battlefield) \
+			or not _field.has_method("spawn_blueprint"):
 		return
 	var chance: float = 0.0
 	match data.category:
@@ -3471,7 +3480,8 @@ func _build_rank_mark() -> void:
 	sprite.scale *= grow
 	_depth_lift *= grow
 
-	var tint: Color = affixes[0].mark_colour if not affixes.is_empty() 		else Color(0.95, 0.82, 0.45)
+	var tint: Color = affixes[0].mark_colour if not affixes.is_empty() \
+		else Color(0.95, 0.82, 0.45)
 	# An elite wears every colour it carries, blended, so a two-affix body is
 	# visibly not either of its parts.
 	for index: int in range(1, affixes.size()):

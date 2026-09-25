@@ -168,7 +168,10 @@ func _test_every_mark_field_is_read() -> void:
 	var script := load("res://scripts/resources/enemy_affix_data.gd") as Script
 	for entry: Dictionary in script.get_script_property_list():
 		var name: String = String(entry.get("name", ""))
-		if name.is_empty() or name.begins_with("_") or name == "id" 				or name == "display_name" or name == "description" 				or name == "mark_colour" or name == "from_act" 				or name.ends_with(".gd"):
+		if name.is_empty() or name.begins_with("_") or name == "id" \
+				or name == "display_name" or name == "description" \
+				or name == "mark_colour" or name == "from_act" \
+				or name.ends_with(".gd"):
 			continue
 		if int(entry.get("usage", 0)) & PROPERTY_USAGE_SCRIPT_VARIABLE == 0:
 			continue

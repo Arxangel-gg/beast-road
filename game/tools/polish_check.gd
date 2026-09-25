@@ -252,7 +252,8 @@ func _check_the_night_lights(run: Node) -> void:
 		var node: Node = glow.get_parent()
 		# By the art rather than the node's name: every node after the first is
 		# renamed by the engine on arrival, and only the first keeps "GatherNode".
-		if node is Sprite2D and (node as Sprite2D).texture != null 				and (node as Sprite2D).texture.resource_path.contains("/node_"):
+		if node is Sprite2D and (node as Sprite2D).texture != null \
+				and (node as Sprite2D).texture.resource_path.contains("/node_"):
 			if timber.has((node as Sprite2D).texture.resource_path):
 				timber_glows += 1
 			else:

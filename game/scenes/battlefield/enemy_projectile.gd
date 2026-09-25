@@ -88,7 +88,8 @@ func configure_toward(destination: Vector2, origin: Vector2) -> void:
 	_damage = 0.0
 	global_position = origin
 	_destination = destination
-	_direction = (destination - origin).normalized() 		if destination.distance_to(origin) > 1.0 else Vector2.RIGHT
+	_direction = (destination - origin).normalized() \
+		if destination.distance_to(origin) > 1.0 else Vector2.RIGHT
 	rotation = _direction.angle()
 
 
@@ -233,7 +234,9 @@ func _process_measured(delta: float) -> void:
 	# whoever they were thrown at and burst harmlessly at the far end of their
 	# range. Caught by `enemy_shot_check` measuring the damage rather than
 	# trusting the aim.
-	if _target != null and is_instance_valid(_target) 			and global_position.distance_to(_combat_origin(_target)) 				<= Balance.ENEMY_PROJECTILE_BLAST_RADIUS:
+	if _target != null and is_instance_valid(_target) \
+			and global_position.distance_to(_combat_origin(_target)) \
+				<= Balance.ENEMY_PROJECTILE_BLAST_RADIUS:
 		_impact()
 		return
 	var distance_after: float = global_position.distance_to(_destination)

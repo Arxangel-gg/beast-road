@@ -126,7 +126,8 @@ func _draw() -> void:
 		# edges by the same amount only makes the banner *shorter* - a notch
 		# needs a vertex down the middle and this strip has two rails.
 		if down > Balance.HOLD_BANNER_TAIL_AT:
-			var into: float = (down - Balance.HOLD_BANNER_TAIL_AT) 				/ maxf(1.0 - Balance.HOLD_BANNER_TAIL_AT, 0.001)
+			var into: float = (down - Balance.HOLD_BANNER_TAIL_AT) \
+				/ maxf(1.0 - Balance.HOLD_BANNER_TAIL_AT, 0.001)
 			half *= 1.0 - into * Balance.HOLD_BANNER_TAPER
 		left.append(middle + Vector2(-half, 0.0))
 		right.append(middle + Vector2(half, 0.0))

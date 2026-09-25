@@ -177,7 +177,8 @@ func _ready() -> void:
 			if not control.is_visible_in_tree():
 				continue
 			var rect: Rect2 = control.get_global_rect()
-			var off: bool = rect.position.y < -1.0 or rect.end.y > screen.y + 1.0 				or rect.position.x < -1.0 or rect.end.x > screen.x + 1.0
+			var off: bool = rect.position.y < -1.0 or rect.end.y > screen.y + 1.0 \
+				or rect.position.x < -1.0 or rect.end.x > screen.x + 1.0
 			print("[dump] %-34s %7.1fx%-7.1f at %7.1f,%-7.1f%s" % [
 				_named(control), rect.size.x, rect.size.y,
 				rect.position.x, rect.position.y, "   OFF-SCREEN" if off else ""])
@@ -285,7 +286,8 @@ func _check_on_screen(widgets: Array[Control]) -> void:
 		if not screen.intersects(rect):
 			continue
 		var inside: Rect2 = screen.intersection(rect)
-		var shown: float = (inside.size.x * inside.size.y) 			/ maxf(rect.size.x * rect.size.y, 1.0)
+		var shown: float = (inside.size.x * inside.size.y) \
+			/ maxf(rect.size.x * rect.size.y, 1.0)
 		if shown < 0.995:
 			clipped += 1
 			_failures.append("off screen: %s%s at %s size %s - only %.0f%% visible"
@@ -534,7 +536,8 @@ func _visible_widgets() -> Array[Control]:
 		# frame where there is no message, which is most of them.
 		if control is Label and (control as Label).text.strip_edges().is_empty():
 			continue
-		if control is RichTextLabel 				and (control as RichTextLabel).get_parsed_text().strip_edges().is_empty():
+		if control is RichTextLabel \
+				and (control as RichTextLabel).get_parsed_text().strip_edges().is_empty():
 			continue
 		found.append(control)
 	return found
@@ -735,8 +738,7 @@ func _named(control: Control) -> String:
 	if control is Button:
 		text = (control as Button).text
 	if text.is_empty():
-		text = control.tooltip_text.split("
-")[0]
+		text = control.tooltip_text.split("\n")[0]
 	if text.is_empty():
 		return _path_of(control)
 	return "%s \"%s\"" % [_path_of(control), text.substr(0, 32)]

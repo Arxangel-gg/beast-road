@@ -73,8 +73,7 @@ func _init() -> void:
 ## and platform-specific: nothing on a desktop machine will ever notice it.
 func _http_gzip() -> void:
 	const SELF: String = "res://tools/run_tool.gd"
-	const NEWLINE: String = "
-"
+	const NEWLINE: String = "\n"
 	const MADE: String = "HTTPRequest" + ".new()"
 	const DECLINED: String = "accept_gzip" + " = false"
 	var offenders: PackedStringArray = []

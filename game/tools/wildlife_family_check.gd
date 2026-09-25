@@ -479,7 +479,8 @@ func _test_a_pair_courts_through_its_stages_and_bears() -> void:
 		# gestation is forty seconds of road, which is the design and is not
 		# something a gate should sit through - what is being tested is that
 		# the mating leads to a birth, not that a float counts down.
-		if int(mother.get("court", 0)) == WildlifeFamilies.Court.OUTCOME 				and float(mother.get("gestation", 0.0)) > 0.1:
+		if int(mother.get("court", 0)) == WildlifeFamilies.Court.OUTCOME \
+				and float(mother.get("gestation", 0.0)) > 0.1:
 			mother["gestation"] = 0.05
 		if not litters.is_empty():
 			born = true

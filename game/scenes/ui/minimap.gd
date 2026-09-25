@@ -131,9 +131,11 @@ func _draw_measured() -> void:
 		var spots: PackedVector2Array = patch.call("node_positions")
 		var ids: Array[String] = patch.call("node_ids")
 		for index: int in spots.size():
-			var kind: GatherNodeData = ContentDB.gather_node(ids[index]) 				if index < ids.size() else null
+			var kind: GatherNodeData = ContentDB.gather_node(ids[index]) \
+				if index < ids.size() else null
 			var spent: bool = bool(patch.call("node_is_spent", index))
-			var tint: Color = Balance.MINIMAP_WOOD if kind != null 				and kind.craft == "woodcutter" else Balance.MINIMAP_ORE
+			var tint: Color = Balance.MINIMAP_WOOD if kind != null \
+				and kind.craft == "woodcutter" else Balance.MINIMAP_ORE
 			if spent:
 				tint = Color(tint, tint.a * 0.35)
 			draw_circle(_to_map(spots[index]), maxf(size.x / 76.0, 2.0), tint)

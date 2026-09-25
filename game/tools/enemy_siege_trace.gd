@@ -356,8 +356,10 @@ func _trace_full_waves() -> void:
 		if enemy == null or not is_instance_valid(enemy):
 			continue
 		var target: Node = enemy.get("_target") as Node
-		var target_gap: float = float(enemy.call("_target_gap", target)) 			if target != null and is_instance_valid(target) else -1.0
-		var target_at: String = str((target as Node2D).global_position) 			if target is Node2D else "-"
+		var target_gap: float = float(enemy.call("_target_gap", target)) \
+			if target != null and is_instance_valid(target) else -1.0
+		var target_at: String = str((target as Node2D).global_position) \
+			if target is Node2D else "-"
 		print("[trace] BODY %-16s camp=%s %s target_gap=%.1f target_at=%s route=%s"
 			% [enemy.data.id, enemy.is_camp_mob(), _line("dump", 0, enemy, bounds),
 				target_gap, target_at, enemy.get("_route")])

@@ -282,7 +282,8 @@ func _draw() -> void:
 		# is zero and the painting is reproduced exactly, which is the whole
 		# claim this class makes.
 		var rest_lean: Vector2 = _rest[index] - _rest[index - 1]
-		var turn: float = lean.angle() - rest_lean.angle() if rest_lean.length() > 0.001 			else 0.0
+		var turn: float = lean.angle() - rest_lean.angle() if rest_lean.length() > 0.001 \
+			else 0.0
 		# The slice is drawn with its own root-side edge on `here`, running back
 		# toward `next`, turned to the segment it belongs to. Its vertical place
 		# is the painting's own: the centreline point it was measured at.

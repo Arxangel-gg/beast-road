@@ -241,7 +241,8 @@ func _test_a_barricade_is_something_to_break() -> void:
 		"and one already past it must not be sent back to it")
 
 	# Far enough away it is somebody else's problem.
-	var distant: Vector2 = wall.global_position 		- toward_town * (Balance.BARRICADE_NOTICE_RANGE + 300.0)
+	var distant: Vector2 = wall.global_position \
+		- toward_town * (Balance.BARRICADE_NOTICE_RANGE + 300.0)
 	_check(_field.blocking_barricade_ahead(distant, toward_town) != wall,
 		"and one still a long way off must not stop to fight it")
 

@@ -349,7 +349,8 @@ func _test_build_mode_frees_the_screen() -> void:
 	_check(left.size.x > 0.0 and left.size.y > 0.0, "the sticks must have zones")
 	# The two of them really do own most of the glass - stated so the number is
 	# in front of whoever changes it next.
-	var covered: float = (left.get_area() + right.get_area()) 		/ maxf(span.x * span.y, 1.0)
+	var covered: float = (left.get_area() + right.get_area()) \
+		/ maxf(span.x * span.y, 1.0)
 	_check(covered > 0.4,
 		"the stick zones cover %.0f%% of the screen; if that has shrunk this "
 			% (covered * 100.0) + "test is guarding something that moved")

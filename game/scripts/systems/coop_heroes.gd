@@ -321,7 +321,8 @@ func _ensure_body(number: int) -> Hero:
 func _prune_bodies() -> void:
 	for key: Variant in _bodies.keys():
 		var number: int = int(key)
-		if number != Coop.party().slot() 				and Coop.party().seat_for_slot(number) != null:
+		if number != Coop.party().slot() \
+				and Coop.party().seat_for_slot(number) != null:
 			continue
 		_drop_body(number)
 

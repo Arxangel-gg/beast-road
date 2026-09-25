@@ -101,7 +101,8 @@ func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
 	if keeper == null:
 		push_warning("BossDirector: the summit owes a Gatekeeper and none is authored")
 		return
-	var lane: int = (boss_lane + 1 + _rng.randi_range(0, Balance.LANE_COUNT - 2)) 		% Balance.LANE_COUNT
+	var lane: int = (boss_lane + 1 + _rng.randi_range(0, Balance.LANE_COUNT - 2)) \
+		% Balance.LANE_COUNT
 	# Scaled as the Act 9 encounter that was declined rather than as a second
 	# act boss: he is the fight the player walked past, at the strength they
 	# walked past it.

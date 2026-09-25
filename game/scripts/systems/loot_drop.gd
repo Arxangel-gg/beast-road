@@ -452,7 +452,8 @@ func _process_measured(delta: float) -> void:
 		# away it would be one more piece of text over the fight.
 		if _plate != null:
 			var who: Node2D = _nearest_hero()
-			var gap: float = global_position.distance_to(who.global_position) 				if who != null else Balance.LOOT_PLATE_FADE_RANGE
+			var gap: float = global_position.distance_to(who.global_position) \
+				if who != null else Balance.LOOT_PLATE_FADE_RANGE
 			_plate.modulate.a = clampf(
 				1.0 - gap / maxf(Balance.LOOT_PLATE_FADE_RANGE, 1.0), 0.0, 1.0)
 		var beam_pulse: float = 0.88 + 0.12 * sin(_life * 2.1)
@@ -472,7 +473,8 @@ func _process_measured(delta: float) -> void:
 			sin(angle) * Balance.LOOT_ORBIT_RADIUS.y - 5.0)
 		mote.modulate.a = 0.48 + 0.34 * (0.5 + 0.5 * sin(angle * 1.7))
 
-	var span: float = Balance.LOOT_PLAYER_DROP_LIFETIME if player_dropped 		else Balance.LOOT_LIFETIME
+	var span: float = Balance.LOOT_PLAYER_DROP_LIFETIME if player_dropped \
+		else Balance.LOOT_LIFETIME
 	if _life >= span:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
 		# already earned by killing the thing teaches a player to stop fighting
@@ -623,7 +625,8 @@ func _burst() -> void:
 	# is the same argument the beacon is already held to - so the bar is the
 	# rarity, and a Rough sword gets the sparks it always got. It says what
 	# arrived and reads nothing: the piece was banked before this ran.
-	if not gear.is_empty() 			and int(gear.get("rarity", 0)) >= Balance.LOOT_FORGE_RARITY_FROM:
+	if not gear.is_empty() \
+			and int(gear.get("rarity", 0)) >= Balance.LOOT_FORGE_RARITY_FROM:
 		Vfx.forge_play("rarity_burst", global_position,
 			Balance.LOOT_FORGE_REACH, _glow_colour)
 

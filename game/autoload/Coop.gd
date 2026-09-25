@@ -572,7 +572,8 @@ func _lookup_external(port: int) -> void:
 	var found: int = upnp.discover()
 	var address: String = ""
 	var mapped: bool = false
-	if found == UPNP.UPNP_RESULT_SUCCESS and upnp.get_gateway() != null 			and upnp.get_gateway().is_valid_gateway():
+	if found == UPNP.UPNP_RESULT_SUCCESS and upnp.get_gateway() != null \
+			and upnp.get_gateway().is_valid_gateway():
 		address = upnp.query_external_address()
 		# UDP: ENet is a UDP protocol, and mapping TCP would open the wrong door
 		# and report success while nothing could connect.
@@ -675,7 +676,9 @@ func _process(delta: float) -> void:
 			# is the expected outcome for exactly half the codes ever pasted.
 			join(second, second_port)
 			return
-		var reason: String = "No answer from the host. If you are on the same " 			+ "network as them, ask for their Same network address. Otherwise " 			+ "they may need to forward UDP %d on their router." % Balance.COOP_PORT
+		var reason: String = "No answer from the host. If you are on the same " \
+			+ "network as them, ask for their Same network address. Otherwise " \
+			+ "they may need to forward UDP %d on their router." % Balance.COOP_PORT
 		leave()
 		_fail(reason)
 

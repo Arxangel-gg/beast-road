@@ -351,7 +351,8 @@ func _edge_point() -> Vector2:
 	# Spawned on the camp's edge, and only somewhere standable: the old circle
 	# had no unwalkable ground, so a ring of random angles was always valid.
 	for _try: int in 24:
-		var at: Vector2 = Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU)) 			* (RaidLayout.HALF_EXTENT - RaidLayout.TILE * 2.0)
+		var at: Vector2 = Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU)) \
+			* (RaidLayout.HALF_EXTENT - RaidLayout.TILE * 2.0)
 		if layout == null or layout.is_open(at):
 			return at
 	return Vector2.RIGHT * (RaidLayout.HALF_EXTENT - RaidLayout.TILE * 2.0)

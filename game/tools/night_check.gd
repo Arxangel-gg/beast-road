@@ -151,7 +151,8 @@ func _ready() -> void:
 			day.append(lit)
 		await get_tree().process_frame
 	if not day.is_empty():
-		_day_separation = _mean(day, _road_samples(run.battlefield)) 			- _mean(day, _ground_samples())
+		_day_separation = _mean(day, _road_samples(run.battlefield)) \
+			- _mean(day, _ground_samples())
 	DayNight._apply(NIGHT_PHASE)
 	for _f: int in 12:
 		await get_tree().process_frame

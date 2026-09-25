@@ -140,7 +140,8 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	# front edge so it y-sorts on the ground it stands on, and the sprite lifted
 	# back up to compensate. A shadow placed from the node then floated a tile
 	# below the tower it belonged to.
-	var anchor: float = sprite.position.y 		+ ((texture_size.y * 0.40) if is_nan(base_offset) else base_offset)
+	var anchor: float = sprite.position.y \
+		+ ((texture_size.y * 0.40) if is_nan(base_offset) else base_offset)
 	return add_contact_sized(target, width, anchor)
 
 
