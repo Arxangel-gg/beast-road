@@ -229,3 +229,52 @@ other names, six refused on measurement, two not worth it at this scale,
 two open (transparent overdraw at night, and the renderer rows above). Do
 not rebuild a spatial hash, a simulation LOD, chunking, threads or MultiMesh
 foliage without a measurement that names them.
+
+---
+
+## 9. Phones, measured by the owner (2026-09-24, night) - now the top of section 2
+
+**A 2019 phone runs the game at 6 fps; a 2025 phone at 45.** Both start on
+Low (`Graphics.preset_for_machine`), and Low is the floor the governor can
+step to, so the old phone has nowhere to go. A seven-fold gap on one build
+says the old phone is bound by something the desktop never priced: fill
+rate at the screen's native resolution, and 2D lights, which cost nothing on
+the 3070 Ti and dominate on a 2019 mobile GPU. The script side alone cannot
+explain 166 ms a frame.
+
+**First, three facts from the owner, before any code**: the two phone models
+and screen resolutions, the act and wave the readings were taken at, and
+what the settings screen says the preset is (Auto chose Low for ...).
+
+**Then, in order, each measured on the old phone with the APK the Android
+workflow builds:**
+
+1. **Render scale.** The project stretches `canvas_items`, which renders the
+   canvas at the window's full resolution; a 2019 phone at 2340x1080 pays
+   for every pixel of every full-screen pass. Render the canvas at a lower
+   resolution and upscale (stretch mode `viewport` on phones, or a
+   `content_scale_factor` below one under a Graphics key), and measure. This
+   is the single largest lever on a fill-rate-bound GPU and it is a look:
+   the painterly art upscales cleanly under linear filtering.
+2. **Count the full-screen passes.** Every shader with `hint_screen_texture`
+   (`color_grade` with bloom, the weather veil, the flood sheen and the quake
+   ripple, the fog) is a screen copy per pass on a tile-based mobile GPU.
+   Bloom and refraction are already off on Low; check the rest are, and
+   merge or skip what is left on the lowest rung.
+3. **A rung below Low** (`Minimal`, chosen for a phone judged old by name and
+   reachable by the governor): no 2D lights at all (torch pools and the
+   town's pool are sprites already), `actor_polish` at `shade_strength` 0
+   (it is then the engine's own formula, measured byte-identical), the
+   foliage sway material off (plain sprites), fog drawing off, particles at
+   their floor, blood and bloom off, the frame cap at 30. A look and never a
+   fact, like every preset: not one number the fight reads moves.
+4. **Physics rate on phones pinned to 60** whatever the display reports, so a
+   120 Hz panel does not double the hero's tick on a CPU that cannot afford
+   it (`Graphics.physics_rate_for`).
+5. **Then the script side**, which on a 2019 CPU is five to eight times the
+   desktop's 5 to 9 ms: the same headless profile (`perf_check --trace`)
+   run on the phone build names which buckets, and the bodies' and towers'
+   ticks are the ones to cadence further.
+
+The 2025 phone gets the same headroom from every one of these, and the
+governor then has a rung to step to on both.
