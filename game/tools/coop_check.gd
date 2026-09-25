@@ -144,6 +144,13 @@ func _ready() -> void:
 	# having let go.
 	for _f: int in 30:
 		await get_tree().process_frame
+	# **And a second of wall time** (2026-09-25). The peer's threads wind down
+	# in real time, and headless frames take microseconds, so thirty of them
+	# were a few milliseconds: exit 139 still fired about one run in four on
+	# Windows. A wait for something outside the frame loop is counted in
+	# seconds - the lesson the shot gates and the courtship gate already paid
+	# for.
+	await get_tree().create_timer(1.0, true, false, true).timeout
 	if _failures == 0:
 		print("[coop] PASS - handshake, relayed facts, the authority guard, "
 			+ "requests and refusals, world facts, cosmetic isolation, "

@@ -48,6 +48,16 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ## 1. P0 - the one thing the owner has photographed
 
+**Built 2026-09-25, measured headless, not yet photographed.** Every card
+row centres through `CrossroadScreen._card_row`; `_fit_play_cards` sizes the
+cards to the tallest face after layout, widening into the row's spare width
+and then shrinking the illustration on a short screen; the cards flip in on
+`scale` and lift on hover. `layout_check` deals the three wordiest portents
+at five shapes and holds the words inside the cards, equal heights, a centred
+row and every card on the screen; planted, it named the left-packed row (the
+screenshot, 498 units of lean) and the spill. **Still owed: `portent_shot`,
+one windowed photograph** - ask for the screen first.
+
 **The portent cards** (`game/scenes/ui/crossroad_screen.gd`, cards built
 near line 1205, title at 863). Off-centre, the flavour sentence overflowing
 the card's bottom, no juice on the deal.
@@ -89,8 +99,11 @@ all four hold sixty on Low.
 5. **A play of the difficulty tune** by the owner (section 0).
 6. **The mix levels heard in play.** Every level was authored expecting to
    be audible; none has been verified by ear.
-7. **`weapon_vfx_check`** fails once in five on a shared scratch profile: it
-   equips by a literal 0 on a uid-keyed map. Equip the piece's own uid.
+7. **`weapon_vfx_check`** fails about once in five on a shared scratch
+   profile and never on a fresh one. The earlier diagnosis here was wrong:
+   `MetaState.equip` takes a stash *index*, so the literal 0 is correct. The
+   check now prints the equip state it saw when it fails; read that line the
+   next time it fires, before theorising again.
 8. **The four human-judgement conformance rows** (`run_tool.gd -- audit
    --todo`): read them for this release and record the reading.
 
@@ -107,8 +120,9 @@ all four hold sixty on Low.
 - **Enemy voices**: 67 breeds with `EnemyData.voice_sfx` empty; six archetype
   prompts in `docs/SFX_PROMPTS.md`. Import with `import_audio.py`, then
   `register_sfx.py`, then `--import`. Never delete the inbox.
-- **The Last Anchor's sprite** (Act X boss), the one stand-in left. Boss art
-  is 384px; PixelLab's animator caps at 256, so bosses keep four walk frames.
+- ~~The Last Anchor's sprite~~ - **drawn** (commit 29f74d02, with idle, walk
+  and attack frames); this line was stale. Checked on a contact sheet beside
+  the Chainmaker and the Cinder Titan on 2026-09-25: it belongs.
 - **The Warden's chop and mine sheets**; `Hero.play_work_swing` takes one by
   name. The Warden was re-founded as a PixelLab character for the dress pilot
   (`Warden (dress pilot)`), so new states are reachable again.
