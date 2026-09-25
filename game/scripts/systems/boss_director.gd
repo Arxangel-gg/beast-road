@@ -52,7 +52,15 @@ func summon(act: int) -> bool:
 	var lane: int = _rng.randi_range(0, Balance.LANE_COUNT - 1)
 	# Bosses ignore the live-enemy cap: the cap exists to stop a death spiral of
 	# trash, and the boss *is* the encounter.
-	_active = battlefield.spawn_enemy(data, lane, _boss_scale(act))
+	# **A boss wears marks on the harder tiers** (2026-09-25): the same boss, a
+	# different fight. Its behaviour and never its size - see
+	# `Enemy._mark_scale`. Nothing is drawn on Normal.
+	var worn: Array[EnemyAffixData] = []
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null and tier.boss_marks > 0:
+		worn = EnemyMarks.roll(tier.boss_marks, act, RunState.weather_id, _rng)
+	_active = battlefield.spawn_enemy(data, lane, _boss_scale(act), -1.0, 1.0, false,
+		Enemy.Rank.COMMON, worn)
 	if _active == null:
 		return false
 	_active_act = act

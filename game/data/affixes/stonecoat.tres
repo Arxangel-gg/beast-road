@@ -12,3 +12,4 @@ aura_radius = 220.0
 aura_resistance = 0.16
 mark_colour = Color(0.60, 0.62, 0.58, 1)
 from_act = 3
+favoured_weather = Array[String](["duststorm"])

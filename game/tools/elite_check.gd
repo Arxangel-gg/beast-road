@@ -184,14 +184,22 @@ func _test_every_mark_field_is_read() -> void:
 		"res://scenes/battlefield/companion.gd",
 		"res://scripts/systems/wave_director.gd",
 		"res://scripts/systems/camps.gd",
+		"res://scripts/systems/enemy_marks.gd",
 	]
 	var body: String = ""
 	for path: String in readers:
 		if not FileAccess.file_exists(path):
 			continue
 		body += FileAccess.get_file_as_string(path)
+	# **A read of the mark, not of the word** (2026-09-25). This checked
+	# `body.contains(name)`, and the enemy script contains "speed_scale" three
+	# times over - its own `_speed_scale`, its `speed_scale()` and a parameter -
+	# so the mark's `speed_scale`, authored on twelve marks and shown in the
+	# codex, passed while nothing applied it. A mark's field is read as
+	# `affix.<name>` or handed by name to the product and best helpers.
 	for name: String in declared:
-		_check(body.contains(name),
+		var read: bool = body.contains("affix." + name) or body.contains("&\"%s\"" % name)
+		_check(read,
 			("a mark may carry '%s' and nothing outside the resource reads it - "
 				+ "the mark draws, the codex describes it, and it does nothing")
 					% name)

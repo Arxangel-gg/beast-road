@@ -89,6 +89,37 @@ extends GameData
 ## Widened 2026-09-15; the fifth hardcoded three-act range this project has found.
 @export_range(1, 10) var from_act: int = 1
 
+# --- 2026-09-25: marks that read the world, and four new ones ---------------
+#
+# Appended, never inserted: a mark is authored by field name, but the rule this
+# project keeps is that a resource grows at its end.
+
+## The weathers (their ids) under which this mark comes up more often. Empty
+## means it does not care. The road telling you something: Rimewarded in the
+## snow, Galeshod in a duststorm. Read by `EnemyMarks.roll`.
+@export var favoured_weather: Array[String] = []
+
+## **Frenzied**: below this share of its health it moves `frenzy_speed` times
+## as fast. Zero means never. A number the fight already has - speed - gated on
+## a number it already has - health.
+@export_range(0.0, 0.6) var frenzy_below: float = 0.0
+@export_range(1.0, 2.0) var frenzy_speed: float = 1.0
+
+## **Packbound**: its aura reaches only bodies of its own breed. The same aura,
+## narrowed, so a pack of one kind is a pack and a mixed wave is not.
+@export var aura_kin_only: bool = false
+
+## **Stormbound**: its death blast leaps to at most this many of the player's
+## side nearest it, as lightning, instead of striking everything inside the
+## radius. The blast's own damage and radius; only the shape changes.
+@export_range(0, 6) var death_chain: int = 0
+
+## **Mirrorhide**: every `tower_glance_interval` seconds, for
+## `tower_glance_seconds`, tower shots glance off it. The Warden's blows never
+## do - the answer to a mirror is the person, not the board.
+@export_range(0.0, 4.0) var tower_glance_seconds: float = 0.0
+@export_range(2.0, 20.0) var tower_glance_interval: float = 6.0
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("icons/affixes", "affix_", id)

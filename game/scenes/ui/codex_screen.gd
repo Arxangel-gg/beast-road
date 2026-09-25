@@ -394,10 +394,27 @@ func _affix_detail(affix: EnemyAffixData) -> String:
 		effects.append("chills what it strikes")
 	if affix.on_hit_burn_duration > 0.0:
 		effects.append("burns what it strikes")
-	if affix.death_blast_radius > 0.0:
+	if affix.death_blast_radius > 0.0 and affix.death_chain > 0:
+		effects.append("its death leaps to the nearest %d" % affix.death_chain)
+	elif affix.death_blast_radius > 0.0:
 		effects.append("bursts when killed")
 	if affix.regeneration > 0.0:
 		effects.append("mends itself")
+	if affix.frenzy_below > 0.0 and affix.frenzy_speed > 1.0:
+		effects.append("faster below %d%% health" % int(round(affix.frenzy_below * 100.0)))
+	if affix.aura_radius > 0.0 and affix.aura_kin_only:
+		effects.append("only its own kind hear it")
+	if affix.tower_glance_seconds > 0.0:
+		effects.append("tower shots glance off it now and then")
+	# The weather it comes with, so a snowfall full of Rimewarded reads as the
+	# road telling you something rather than as bad luck (2026-09-25).
+	var weathers: PackedStringArray = []
+	for id: String in affix.favoured_weather:
+		var weather: WeatherData = ContentDB.weather(id)
+		if weather != null:
+			weathers.append(weather.display_name.to_lower())
+	if not weathers.is_empty():
+		effects.append("commoner in " + " and ".join(weathers))
 	return "\n" + "  ·  ".join(effects) if not effects.is_empty() else ""
 
 

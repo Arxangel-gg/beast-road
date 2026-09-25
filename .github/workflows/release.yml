@@ -134,6 +134,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/wildlife_spawn_check.tscn
           run_godot_clean --headless --path game res://tools/ranged_check.tscn
           run_godot_clean --headless --path game res://tools/elite_check.tscn
+          run_godot_clean --headless --path game res://tools/mark_rules_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_walk_check.tscn
           run_godot_clean --headless --path game res://tools/item_check.tscn
           run_godot_clean --headless --path game res://tools/merchant_check.tscn

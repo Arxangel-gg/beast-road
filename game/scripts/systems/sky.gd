@@ -148,6 +148,9 @@ func _ready() -> void:
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.gathered.connect(_on_gathered)
 	_apply(ContentDB.weather(RunState.weather_id))
+	# **The earth starts angrier on the harder tiers** (2026-09-25).
+	if not _mirror:
+		_wrath_floor = maxf(_wrath_floor, tier_floor())
 	_temperature = _temperature_target
 	_publish(true)
 
@@ -1011,7 +1014,7 @@ func _tick_wrath(delta: float) -> void:
 	# every legendary still standing on it.
 	if _quiet > Balance.WRATH_QUIET_SECONDS:
 		_wrath_floor = maxf(_wrath_floor - Balance.WRATH_FLOOR_RECOVERY_PER_SECOND
-			* (1.0 + float(anchors())) * delta, 0.0)
+			* (1.0 + float(anchors())) * delta, tier_floor())
 	# The signs. Never a number: the birds, the ground, the sky, once each
 	# time the anger climbs a step, and again only after it has come down.
 	var tier: int = wrath_tier()
@@ -1020,6 +1023,14 @@ func _tick_wrath(delta: float) -> void:
 		_tell("unrest_%d" % tier, Vector2.ZERO, 0.0)
 	elif tier < _tier_told - 1:
 		_tier_told = tier
+
+
+## **The floor this tier's earth never falls below** (2026-09-25): where it
+## opens, what an act's easing leaves, and what quiet cannot take away. Zero on
+## Normal.
+static func tier_floor() -> float:
+	var tier: CampaignTierData = RunState.tier()
+	return tier.wrath_floor if tier != null else 0.0
 
 
 ## The earth's mood in steps, 0 calm to `WRATH_TIERS`. For the signs only;
@@ -1041,7 +1052,7 @@ func _on_act_started(_act: int, _terrain: String) -> void:
 	_burnt_seen = 0
 	if _mirror:
 		return
-	_wrath_floor *= Balance.WRATH_ACT_CARRY
+	_wrath_floor = maxf(_wrath_floor * Balance.WRATH_ACT_CARRY, tier_floor())
 	_wrath_heat *= Balance.WRATH_ACT_CARRY
 	_tier_told = mini(_tier_told, wrath_tier())
 

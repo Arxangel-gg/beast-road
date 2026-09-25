@@ -588,6 +588,10 @@ func _expire() -> void:
 func _apply(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
+	# **Mirrorhide** (2026-09-25): the whole shot glances, status and all.
+	if enemy.glances_tower_shots():
+		enemy.glance_off(global_position)
+		return
 	if data != null:
 		enemy.mark_element(data.element)
 	if damage > 0.0:

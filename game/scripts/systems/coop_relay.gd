@@ -828,10 +828,10 @@ func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 
 func _on_coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
 		hp_scale: float, damage_scale: float, speed_scale: float,
-		oath_pursuer: bool) -> void:
+		oath_pursuer: bool, rank: int, marks: PackedStringArray) -> void:
 	_relay(Fact.ENEMY_SPAWNED,
 		[net_id, data_id, lane, at, hp_scale, damage_scale, speed_scale,
-			oath_pursuer])
+			oath_pursuer, rank, marks])
 
 
 func _on_coop_enemy_batch(entries: Array) -> void:
@@ -1286,10 +1286,16 @@ func _replay(kind: int, args: Array) -> void:
 				bus.coop_tower_state.emit(args[0] as Vector2i, String(args[1]),
 					int(args[2]))
 		Fact.ENEMY_SPAWNED:
-			if args.size() == 8:
+			# Ten since 2026-09-25 (the rank and the marks); eight from a build
+			# before that reads as an ordinary unmarked body, which is what that
+			# build drew.
+			if args.size() == 8 or args.size() == 10:
+				var rank: int = int(args[8]) if args.size() == 10 else 0
+				var marks: PackedStringArray = PackedStringArray(args[9]) \
+					if args.size() == 10 else PackedStringArray()
 				bus.coop_enemy_spawned.emit(int(args[0]), String(args[1]),
 					int(args[2]), args[3] as Vector2, float(args[4]),
-					float(args[5]), float(args[6]), bool(args[7]))
+					float(args[5]), float(args[6]), bool(args[7]), rank, marks)
 		Fact.ENEMY_BATCH:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_enemy_batch.emit(args[0] as Array)

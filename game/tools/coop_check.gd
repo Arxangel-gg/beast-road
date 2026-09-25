@@ -530,9 +530,10 @@ func _test_world_facts_cross_the_wire() -> void:
 	_host_bus.world_hazard.emit("ground", hazard)
 	_guest_bus.coop_enemy_spawned.connect(
 		func(net_id: int, data_id: String, lane: int, at: Vector2,
-				hp: float, dmg: float, spd: float, oath_pursuer: bool) -> void:
+				hp: float, dmg: float, spd: float, oath_pursuer: bool,
+				rank: int, marks: PackedStringArray) -> void:
 			_guest_world.append(["spawned", net_id, data_id, lane, at, hp, dmg, spd,
-				oath_pursuer]))
+				oath_pursuer, rank, marks]))
 	_guest_bus.coop_enemy_batch.connect(
 		func(entries: Array) -> void: _guest_world.append(["batch", entries]))
 	_guest_bus.coop_enemy_removed.connect(
@@ -542,7 +543,7 @@ func _test_world_facts_cross_the_wire() -> void:
 			_guest_world.append(["tower", anchor, id, level]))
 
 	_host_bus.coop_enemy_spawned.emit(41, "bogkin", 2, Vector2(300.0, -120.0),
-		1.5, 1.25, 1.1, true)
+		1.5, 1.25, 1.1, true, 2, PackedStringArray(["cruel", "warded"]))
 	_host_bus.coop_enemy_batch.emit([[41, Vector2(280.0, -100.0), 0.5]])
 	_host_bus.coop_tower_state.emit(Vector2i(3, 4), "ember_spire", 2)
 	_host_bus.coop_enemy_removed.emit(41)
@@ -563,6 +564,12 @@ func _test_world_facts_cross_the_wire() -> void:
 			and is_equal_approx(float(spawned[7]), 1.1)
 			and bool(spawned[8]),
 			"a spawn must arrive with every field intact")
+		# **And what it is** (2026-09-25): the announce carried no rank and no
+		# mark, so on a partner's screen every elite was a plain body.
+		_check(int(spawned[9]) == 2
+			and PackedStringArray(spawned[10]) == PackedStringArray(["cruel", "warded"]),
+			"a spawn must say its rank and its marks, got %s and %s"
+				% [str(spawned[9]), str(spawned[10])])
 
 	var batch: Array = _row("batch")
 	_check(not batch.is_empty(), "a position batch must cross")

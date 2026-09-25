@@ -11,3 +11,4 @@ damage_scale = 0.9
 speed_scale = 1.32
 mark_colour = Color(0.80, 0.92, 1.00, 1)
 from_act = 5
+favoured_weather = Array[String](["duststorm"])

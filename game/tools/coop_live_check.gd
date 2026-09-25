@@ -61,7 +61,8 @@ func _ready() -> void:
 		_heard.append(["enemy_died", id, at]))
 	EventBus.coop_enemy_spawned.connect(
 		func(net_id: int, data_id: String, lane: int, _at: Vector2,
-				_hp: float, _dmg: float, _spd: float, _pursuer: bool) -> void:
+				_hp: float, _dmg: float, _spd: float, _pursuer: bool,
+				_rank: int, _marks: PackedStringArray) -> void:
 			_heard.append(["spawned", net_id, data_id, lane]))
 	EventBus.coop_tower_state.connect(
 		func(anchor: Vector2i, id: String, level: int) -> void:
@@ -110,7 +111,7 @@ func _run_host() -> void:
 
 	EventBus.enemy_died.emit("bogkin", Vector2(64.0, -32.0))
 	EventBus.coop_enemy_spawned.emit(7, "bogkin", 1, Vector2(500.0, 0.0),
-		1.0, 1.0, 1.0, false)
+		1.0, 1.0, 1.0, false, 0, PackedStringArray())
 	EventBus.coop_tower_state.emit(Vector2i(2, 3), "ember_spire", 1)
 	# Awarded through the real path, so this exercises the shared-XP rule rather
 	# than a hand-built signal.

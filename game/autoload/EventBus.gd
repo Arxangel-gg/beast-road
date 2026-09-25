@@ -787,7 +787,8 @@ signal coop_tower_fired(anchor: Vector2i, at: Vector2)
 
 ## The host put an enemy on the field and gave it an identity.
 signal coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
-	hp_scale: float, damage_scale: float, speed_scale: float, oath_pursuer: bool)
+	hp_scale: float, damage_scale: float, speed_scale: float, oath_pursuer: bool,
+	rank: int, marks: PackedStringArray)
 
 ## Where every living enemy is, in one message. Entries are
 ## `[net_id: int, at: Vector2, health_ratio: float]`.

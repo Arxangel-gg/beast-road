@@ -358,6 +358,9 @@ jobs:
           check "wildlife"    --headless --path game res://tools/wildlife_spawn_check.tscn
           check "ranged"      --headless --path game res://tools/ranged_check.tscn
           check "elites"      --headless --path game res://tools/elite_check.tscn
+          # One door for every mark, the weather choosing, a tier marking a share
+          # of the road, a boss wearing a mark's behaviour and never its size.
+          check "mark rules"  --headless --path game res://tools/mark_rules_check.tscn
           # Enemies walk on their own legs rather than sliding. Both halves fail
           # silently: frames that exist but are not found by convention, and a
           # loader "fixed" to include the resting pose in the cycle.

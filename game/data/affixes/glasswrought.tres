@@ -12,3 +12,4 @@ speed_scale = 0.84
 damage_resistance = 0.22
 mark_colour = Color(0.70, 0.88, 0.92, 1)
 from_act = 4
+favoured_weather = Array[String](["snowfall"])

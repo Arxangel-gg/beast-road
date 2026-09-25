@@ -12,3 +12,4 @@ on_hit_burn = 30.0
 on_hit_burn_duration = 4.5
 mark_colour = Color(0.52, 0.48, 0.44, 1)
 from_act = 6
+favoured_weather = Array[String](["heatwave", "duststorm"])

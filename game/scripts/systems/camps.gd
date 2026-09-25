@@ -512,19 +512,9 @@ func _spawn_body(site: Dictionary, data: EnemyData, at: Vector2, extra_scale: fl
 
 
 func _roll_affixes(count: int) -> Array[EnemyAffixData]:
-	var pool: Array[EnemyAffixData] = []
-	var ids: Array = ContentDB.affixes.keys()
-	ids.sort()
-	for id: Variant in ids:
-		var affix := ContentDB.affixes[id] as EnemyAffixData
-		if affix != null and affix.from_act <= RunState.act:
-			pool.append(affix)
-	var out: Array[EnemyAffixData] = []
-	for _pick: int in mini(count, pool.size()):
-		var index: int = _rng.randi_range(0, pool.size() - 1)
-		out.append(pool[index])
-		pool.remove_at(index)
-	return out
+	# Through the one door every mark is rolled through (2026-09-25), so a camp
+	# under a snowfall answers the weather exactly as the road does.
+	return EnemyMarks.roll(count, RunState.act, RunState.weather_id, _rng)
 
 
 ## A body for a camp of this tier: the region's own breeds, with the harder

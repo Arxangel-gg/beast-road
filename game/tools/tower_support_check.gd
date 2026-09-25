@@ -362,13 +362,27 @@ func _test_the_mirror_swallows_a_few_and_recovers() -> void:
 			if node is EnemyProjectile:
 				record["born"] += 1
 				node.tree_exiting.connect(func() -> void: record["gone"] += 1)
-		_field.effect_root.child_entered_tree.connect(born)
+		# On the field, which is where a hostile shot is parented; the first cut
+		# watched `effect_root` and reported "0 born" over shots that flew.
+		_field.child_entered_tree.connect(born)
 		var before: int = mirror.charges()
-		for _frame: int in 600:
+		# **Its bolt, by name, through the real dispatch** (2026-09-25). The
+		# shaman used to be left to choose, and it chooses from a bolt, a
+		# mortar and a scatter - a mortar is a ground strike and never crosses
+		# anything, so a shaman that drew mortars for the whole wait threw
+		# nothing across the water and this failed "0 born" about one run in
+		# six. `loose_named_shot` is the seam `enemy_shot_check` throws every
+		# breed's repertoire through; the body is held still and aimed, and
+		# the wait is in seconds.
+		body.set_process(false)
+		body.set("_target", _field.hero)
+		_check(bool(body.loose_named_shot("ember_shaman_cinder_bolt", 1.0)),
+			"the harness could not throw the shaman's bolt")
+		var waited: float = 0.0
+		while waited < 3.0 and mirror.charges() >= before:
 			await get_tree().process_frame
-			if mirror.charges() < before:
-				break
-		_field.effect_root.child_entered_tree.disconnect(born)
+			waited += get_process_delta_time()
+		_field.child_entered_tree.disconnect(born)
 		_check(mirror.charges() < before,
 			"a real hostile shot thrown across the water is swallowed (%d born, charges %d)" % [int(record["born"]), mirror.charges()])
 		body.queue_free()

@@ -595,19 +595,26 @@ func _roll_rank() -> Enemy.Rank:
 ## Never the same one twice on one body: "Cruel Cruel Bogkin" is a bug the player
 ## can read. Act-gated so the opening is not answering the summit.
 func _roll_affixes(count: int) -> Array[EnemyAffixData]:
-	var pool: Array[EnemyAffixData] = []
-	var ids: Array = ContentDB.affixes.keys()
-	ids.sort()
-	for id: Variant in ids:
-		var affix := ContentDB.affixes[id] as EnemyAffixData
-		if affix != null and affix.from_act <= RunState.act:
-			pool.append(affix)
-	var worn: Array[EnemyAffixData] = []
-	for i: int in mini(count, pool.size()):
-		var pick: int = RunState.rng("rank").randi() % pool.size()
-		worn.append(pool[pick])
-		pool.remove_at(pick)
-	return worn
+	# One door for every mark rolled anywhere (2026-09-25): the weather chooses.
+	return EnemyMarks.roll(count, RunState.act, RunState.weather_id, RunState.rng("rank"))
+
+
+## **An ordinary body a tier marks** (2026-09-25). Nothing on Normal, and no
+## draw either - the rank stream is exactly as far along as it always was, so a
+## seeded Normal road deals what it always dealt.
+func _roll_marked_common() -> Array[EnemyAffixData]:
+	var none: Array[EnemyAffixData] = []
+	var tier: CampaignTierData = RunState.tier()
+	if tier == null or tier.marked_share <= 0.0 or tier.marks_max <= 0:
+		return none
+	var wrath: float = 0.0
+	if battlefield != null and battlefield.sky() != null:
+		wrath = battlefield.sky().wrath()
+	var stream: RandomNumberGenerator = RunState.rng("rank")
+	if stream.randf() >= EnemyMarks.marked_share(tier, wrath):
+		return none
+	return EnemyMarks.roll(stream.randi_range(1, tier.marks_max), RunState.act,
+		RunState.weather_id, stream)
 
 
 func _spawn_next() -> void:
@@ -649,6 +656,8 @@ func _spawn_next() -> void:
 			if rank == Enemy.Rank.ELITE:
 				worn = _roll_affixes(RunState.rng("rank").randi_range(
 					Balance.ELITE_AFFIX_MIN, Balance.ELITE_AFFIX_MAX))
+			elif rank == Enemy.Rank.COMMON:
+				worn = _roll_marked_common()
 			_stand(entry, battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, worn))
 
 	var spacing: float = Balance.WAVE_SPAWN_SPACING * float(entry.get("spacing_scale", 1.0))

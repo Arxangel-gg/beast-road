@@ -43,6 +43,24 @@ extends GameData
 ## Shown on the difficulty picker under the name.
 @export var summary: String = ""
 
+# --- Rules, not numbers (2026-09-25) ------------------------------------------
+#
+# A tier was five multipliers, so Hell was Normal with bigger numbers. These
+# make it a different road with the same content: which bodies wear marks, what
+# a boss brings with it, and how angry the earth is when the road begins. All
+# zero on Normal, which is where every curve in the project is measured.
+
+## The share of ordinary road bodies that wear marks. See `EnemyMarks`.
+@export_range(0.0, 0.6) var marked_share: float = 0.0
+## How many marks such a body may wear: one to this.
+@export_range(0, 3) var marks_max: int = 0
+## How many marks an act boss wears. A boss wears a mark's behaviour and never
+## its size - see `Enemy._mark_scale`.
+@export_range(0, 3) var boss_marks: int = 0
+## The floor the earth's wrath never falls below on this tier: where it opens,
+## what an act's easing leaves, and what quiet cannot take away.
+@export_range(0.0, 0.5) var wrath_floor: float = 0.0
+
 
 ## The hero level this tier expects at the given act's boss.
 func expected_level(act: int) -> int:

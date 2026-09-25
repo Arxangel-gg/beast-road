@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frenzied"
+display_name = "Frenzied"
+description = "Hurt it and it only comes faster."
+health_scale = 1.05
+damage_scale = 1.05
+frenzy_below = 0.35
+frenzy_speed = 1.6
+mark_colour = Color(0.98, 0.36, 0.24, 1)
+from_act = 2
+favoured_weather = Array[String](["heatwave"])

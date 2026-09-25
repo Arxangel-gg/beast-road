@@ -15,3 +15,7 @@ score_scale = 6.0
 summary = "The Chainmaker's own terms. Come at ninety or do not come."
 id = "hell"
 display_name = "Hell"
+marked_share = 0.3
+marks_max = 2
+boss_marks = 2
+wrath_floor = 0.18

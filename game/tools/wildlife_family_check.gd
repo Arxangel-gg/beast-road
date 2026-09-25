@@ -267,8 +267,11 @@ func _test_a_companion_may_court_and_may_be_refused() -> void:
 		_check(false, "the gate needs a breeding species to court with")
 		return
 
-	# A companion of that species, female, so the wild half seeks and the
-	# whole conversation is driven from the animal's side.
+	# A companion of that species, female. **Only a female seeks**, so this
+	# spirit is the one that searches and the conversation runs through its
+	# own tick; the other door - a wild female finding a male spirit, through
+	# `companion_is_courtable` - is section 6. (This comment said the opposite
+	# until 2026-09-25, and a fault planted in that other door passed here.)
 	var key: String = SpiritBond.key(deer.id, 0, false)
 	RunState.companion_sex[key] = WildlifeFamilies.Sex.FEMALE
 	var spirit: Companion = await _stand_a_companion(deer, key)
@@ -326,10 +329,31 @@ func _test_a_companion_may_court_and_may_be_refused() -> void:
 		await _let_the_swing_finish(spirit)
 
 	# 4. AND THEN IT COURTS. Same species, opposite sexes, nothing to do.
+	#
+	# **Where the Warden is not** (2026-09-25). The mate above is stood sixty
+	# units off a spirit that stands beside its owner, well inside a deer's
+	# fright radius of the hero - so it bolts on the first frame, and where it
+	# settles is wherever its bolt was rolled. It used to settle inside the
+	# courting radius and this passed; when the enemy marks began to move their
+	# bodies at their authored pace the world's dice fell differently, it
+	# settled at 587 against a radius of 520, and the gate failed a feature
+	# that works. A pair that forms or not on where a bolt lands is a coin toss
+	# wearing a gate's clothes, the tenth here. The scene the sentence above
+	# describes is set instead: in reach of the spirit, out of the hero's.
+	_animals.perish(mate)
+	await get_tree().process_frame
+	mate = _settle(_place(deer, {"sex": WildlifeFamilies.Sex.MALE,
+		"stage": WildlifeFamilies.Stage.ADULT}, _in_reach_but_unafraid(spirit, deer)))
+	if mate.is_empty():
+		return
 	_check(spirit.may_court(), "with the road quiet it is free to be courted (%s)"
 		% _why_it_will_not_court(spirit))
-	var courted: bool = await _watch_for_pair(spirit, 3000)
-	_check(courted, "a companion must court a wild animal of its own kind")
+	# In **seconds**: the busy spirit above was put on the retry clock, and a
+	# wait counted in frames is a wait in whatever the machine felt like giving.
+	var courted: bool = await _watch_for_pair_for(spirit,
+		Balance.WILDLIFE_COURT_RETRY + 6.0)
+	_check(courted, "a companion must court a wild animal of its own kind (%s)"
+		% _why_no_pair(spirit, mate))
 	if courted:
 		# It walks to the meeting rather than standing at its owner's heel:
 		# the destination is the whole of what the machine asks of the node.
@@ -347,6 +371,29 @@ func _test_a_companion_may_court_and_may_be_refused() -> void:
 		_check(int(abandoned.get("court", 0)) == WildlifeFamilies.Court.NONE,
 			"a dismissed companion lets its partner go, left at %d"
 				% int(abandoned.get("court", 0)))
+
+	# 6. AND A WILD FEMALE FINDS A MALE SPIRIT. The same machine from the
+	#    other side: she seeks, and the spirit is offered to her search
+	#    through `companion_is_courtable` and nowhere else.
+	var his_key: String = SpiritBond.key(deer.id, 1, false)
+	RunState.companion_sex[his_key] = WildlifeFamilies.Sex.MALE
+	var him: Companion = await _stand_a_companion(deer, his_key)
+	if him == null:
+		return
+	var her: Dictionary = _settle(_place(deer, {"sex": WildlifeFamilies.Sex.FEMALE,
+		"stage": WildlifeFamilies.Stage.ADULT}, _in_reach_but_unafraid(him, deer)))
+	if her.is_empty():
+		him.queue_free()
+		return
+	var found: bool = await _watch_for_pair_for(him, 8.0)
+	_check(found, "a wild female must court a male companion of her kind (%s)"
+		% _why_no_pair(him, her))
+	if found:
+		_check(int(_families.get("_mate_record").get("partner", 0)) == int(her.get("net_id", -1)),
+			"and it is her he is paired with")
+	him.queue_free()
+	for _frame: int in 6:
+		await get_tree().process_frame
 
 
 ## Settles a placed animal so it is eligible to court: born before this act,
@@ -425,6 +472,16 @@ func _why_it_will_not_court(spirit: Companion) -> String:
 		said.append("swing cooldown %.2fs" % float(spirit.get("_cooldown")))
 	if String(spirit.spirit_key).is_empty():
 		said.append("no spirit key")
+	# The two things a free companion answers, named rather than summarised:
+	# "busy" is where the diagnosis starts, never where it ends.
+	var threat: Vector2 = spirit.call("_threat_to_owner")
+	if threat != Vector2.INF:
+		said.append("a threat to its owner %.0f away" % threat.distance_to(spirit.global_position))
+	var quarry := spirit.call("_nearest_enemy") as Enemy
+	if quarry != null:
+		said.append("%s%s %.0f away wearing %d marks" % [quarry.data.id,
+			" (camp)" if quarry.is_camp_mob() else "",
+			quarry.global_position.distance_to(spirit.global_position), quarry.affixes.size()])
 	return "free" if said.is_empty() else ", ".join(said)
 
 
@@ -440,6 +497,58 @@ func _stand_a_body_near(at: Vector2) -> Enemy:
 		body.global_position = at + Vector2(40.0, 0.0)
 		return body
 	return null
+
+
+## A place a wild animal would court the companion from: inside the courting
+## radius of the spirit, and somewhere the ecology's own rule says it is not
+## afraid - asked of `Wildlife.frightened_at` rather than reasoned about here,
+## because the first cut reasoned about the hero alone and placed the deer in
+## front of a camp body on the far side, which frightened it just the same.
+func _in_reach_but_unafraid(spirit: Companion, kind: WildlifeData) -> Vector2:
+	var reach_most: float = Balance.WILDLIFE_COURT_RADIUS - 60.0
+	for reach: float in [kind.social_spacing * 2.0, 200.0, 280.0, 360.0, reach_most]:
+		for step: int in 24:
+			var out: Vector2 = Vector2.RIGHT.rotated(TAU * float(step) / 24.0) * minf(reach, reach_most)
+			var spot: Vector2 = spirit.global_position + out
+			if not _animals.frightened_at(spot, kind):
+				return spot
+	_check(false, "the harness found nowhere near the spirit a deer is not afraid")
+	return spirit.global_position + Vector2(reach_most, 0.0)
+
+
+## What stood between the companion and the mate, said when they did not pair:
+## the retry clock, the mate's state, the gaps, and the two budgets.
+func _why_no_pair(spirit: Companion, mate: Dictionary) -> String:
+	var record: Dictionary = _families.get("_mate_record") as Dictionary
+	var said: String = "companion court %s, clock %.1f, state %s, %s" % [
+		record.get("court"), float(record.get("court_cooldown", 0.0)), record.get("state"),
+		_why_it_will_not_court(spirit) if is_instance_valid(spirit) else "gone"]
+	var mate_sprite := mate.get("sprite", null) as Sprite2D
+	if mate_sprite != null and is_instance_valid(mate_sprite) and is_instance_valid(spirit):
+		said += "; mate state %s, court %s, clock %.1f, dying %.1f, %.0f from the spirit, %.0f from the hero" % [
+			mate.get("state"), mate.get("court"), float(mate.get("court_cooldown", 0.0)),
+			float(mate.get("dying", 0.0)), mate_sprite.global_position.distance_to(spirit.global_position),
+			mate_sprite.global_position.distance_to(_field.hero.global_position)]
+	else:
+		said += "; the mate is gone"
+	said += "; births %d, population %d of %d" % [int(_families.get("births_this_act")),
+		_animals.population(), _animals.population_cap()]
+	return said
+
+
+## Whether the companion's record pairs with anything inside `seconds` of game
+## time.
+func _watch_for_pair_for(spirit: Companion, seconds: float) -> bool:
+	var waited: float = 0.0
+	while waited < seconds:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+		if not is_instance_valid(spirit):
+			return false
+		var record: Dictionary = _families.get("_mate_record") as Dictionary
+		if not record.is_empty() and int(record.get("court", 0)) != WildlifeFamilies.Court.NONE:
+			return true
+	return false
 
 
 ## Whether the companion's record pairs with anything inside `frames`.

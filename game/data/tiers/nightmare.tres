@@ -15,3 +15,7 @@ score_scale = 2.6
 summary = "Everything again, and everything hits back. Bring what you learned."
 id = "nightmare"
 display_name = "Nightmare"
+marked_share = 0.15
+marks_max = 1
+boss_marks = 1
+wrath_floor = 0.08

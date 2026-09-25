@@ -1054,6 +1054,10 @@ func _launch(enemy: Enemy) -> void:
 func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
+	# **Mirrorhide** (2026-09-25): the whole shot glances, status and all.
+	if enemy.glances_tower_shots():
+		enemy.glance_off(origin())
+		return
 	if effective_damage() > 0.0:
 		# Conductive: a storm tower's shot hits a wet body harder.
 		var dealt: float = rolled_damage() * enemy.brand_multiplier() \

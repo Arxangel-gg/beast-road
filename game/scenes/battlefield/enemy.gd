@@ -379,6 +379,50 @@ func _affix_product(field_name: StringName) -> float:
 	return total
 
 
+## A mark's size on this body: the worn multiplier, or one on a boss.
+##
+## **A boss wears a mark's behaviour and never its size** (2026-09-25). A mark
+## authored to make a road body half again as tough, multiplied onto a boss
+## pool of eleven thousand, is an hour-long fight rather than a different one.
+## So on a boss the health, damage and speed multipliers are one, and the ward,
+## the aura, the burn, the blast and the glance all stand.
+func _mark_scale(field_name: StringName) -> float:
+	if data != null and data.category == EnemyData.Category.BOSS:
+		return 1.0
+	return _affix_product(field_name)
+
+
+## **What its marks do to its pace** (2026-09-25).
+##
+## A mark's `speed_scale` had been authored on twelve marks - Galeshod at 1.32,
+## "It is already somewhere else", Swiftfoot at 1.55 - shown in the codex, and
+## applied by nothing: every speed mark in the game walked at its breed's pace.
+## `elite_check` counted the enemy script's own `_speed_scale` as a reader of
+## the mark's field. Capped either way, because two speed marks multiplying is
+## a body the road cannot hold and two slow ones is a body that never arrives.
+##
+## And **Frenzied**: below its authored share of health, faster again. The best
+## frenzy worn rather than the product, the rule the auras follow.
+func _mark_speed() -> float:
+	if affixes.is_empty():
+		return 1.0
+	var scale: float = clampf(_mark_scale(&"speed_scale"), Balance.ENEMY_MARK_SPEED_MIN,
+		Balance.ENEMY_MARK_SPEED_MAX)
+	return scale * _frenzy()
+
+
+## The frenzy a hurt body is in: one, or its best `frenzy_speed`.
+func _frenzy() -> float:
+	if health == null or health.max_hp <= 0.0:
+		return 1.0
+	var share: float = health.current_hp / health.max_hp
+	var best: float = 1.0
+	for affix: EnemyAffixData in affixes:
+		if affix.frenzy_below > 0.0 and share < affix.frenzy_below:
+			best = maxf(best, affix.frenzy_speed)
+	return best
+
+
 ## The largest value any worn affix contributes. Used where stacking would be
 ## absurd - two sources of resistance should not approach immunity.
 func _affix_best(field_name: StringName) -> float:
@@ -494,7 +538,8 @@ func is_camp_returning() -> bool:
 
 
 func promoted_name() -> String:
-	if rank == Rank.COMMON or data == null:
+	# An ordinary body a tier marked says its marks too (2026-09-25).
+	if (rank == Rank.COMMON and affixes.is_empty()) or data == null:
 		return data.display_name if data != null else ""
 	var parts: PackedStringArray = []
 	for affix: EnemyAffixData in affixes:
@@ -555,7 +600,7 @@ func _ready() -> void:
 	# war camp's champion scale, a rank and two affixes stacked to eighty
 	# times a breed's health once - a body the owner hit for five minutes to
 	# take a quarter off. Nothing here is a twenty-minute wall.
-	var stacked: float = _hp_scale * _rank_scale().x * _affix_product(&"health_scale")
+	var stacked: float = _hp_scale * _rank_scale().x * _mark_scale(&"health_scale")
 	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING)
 	health.revive()
 	health.damaged.connect(_on_damaged)
@@ -625,6 +670,7 @@ func _process_measured(delta: float) -> void:
 		var mend: float = _affix_best(&"regeneration")
 		if mend > 0.0 and health.current_hp < health.max_hp:
 			health.heal(health.max_hp * mend * delta)
+		_tick_glance(delta)
 	if _state == State.DYING:
 		_tick_death(delta)
 		return
@@ -1390,6 +1436,10 @@ func _ally_aura(field_name: StringName) -> float:
 		for affix: EnemyAffixData in other.affixes:
 			if affix.aura_radius <= 0.0:
 				continue
+			# **Packbound**: only its own breed hears it (2026-09-25).
+			if affix.aura_kin_only and (other.data == null or data == null
+					or other.data.id != data.id):
+				continue
 			if global_position.distance_to(other.global_position) > affix.aura_radius:
 				continue
 			best = maxf(best, float(affix.get(field_name)))
@@ -1921,6 +1971,7 @@ func current_speed() -> float:
 ## status and boss-phase speed are enough to rank runners correctly.
 func targeting_speed() -> float:
 	var speed: float = data.move_speed * _speed_scale * _slow_factor * RunState.flood_slow()
+	speed *= _mark_speed()
 	if _boss_phase > 0:
 		speed *= 1.0 + data.phase_speed_bonus * float(_boss_phase)
 	if RunState.horn_active:
@@ -2217,7 +2268,7 @@ func _strike() -> void:
 	# against it moves.
 	var damage: float = TowerData.roll_damage(
 		data.contact_damage * _damage_scale * _blow_scale * _rank_scale().y
-			* _affix_product(&"damage_scale")
+			* _mark_scale(&"damage_scale")
 			* _enemy_damage_scale(), RunState.rng("combat"))
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
@@ -2890,6 +2941,11 @@ func _tick_status(delta: float) -> void:
 
 func _on_damaged(_amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	# **Frenzied**, said once: the blow that took it under its threshold.
+	if not _frenzy_told and not affixes.is_empty() and _frenzy() > 1.0:
+		_frenzy_told = true
+		Vfx.ring(combat_origin(), data.body_radius * 2.0 if data != null else 40.0,
+			Color(0.98, 0.36, 0.24, 0.85), 0.26, 4.0)
 	_impact_direction = (global_position - from).normalized()
 	BloodStain.strike(_blood, _impact_direction)
 	_camp_calm = 0.0
@@ -3050,6 +3106,9 @@ func _burst_on_death() -> void:
 	for affix: EnemyAffixData in affixes:
 		if affix.death_blast_radius <= 0.0:
 			continue
+		if affix.death_chain > 0:
+			_chain_on_death(affix)
+			continue
 		Vfx.ring(combat_origin(), affix.death_blast_radius,
 			Color(affix.mark_colour, 0.65), 0.34, 6.0)
 		for hero: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
@@ -3061,6 +3120,85 @@ func _burst_on_death() -> void:
 			var hurt: Health = Health.of(who)
 			if hurt != null:
 				hurt.take_damage(affix.death_blast_damage, combat_origin())
+
+
+## **Stormbound**: the blast leaps rather than blooms (2026-09-25).
+##
+## The same damage and the same radius as the blast it replaces; what changes is
+## that it reaches the nearest few of the player's side - heroes and the spirits
+## at their shoulder - and nobody else, drawn as the sky's own chain arc so a
+## guest sees it too. A shape, never a size.
+func _chain_on_death(affix: EnemyAffixData) -> void:
+	var here: Vector2 = combat_origin()
+	var reach: float = affix.death_blast_radius
+	var candidates: Array[Node2D] = []
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who != null and who.is_alive() and here.distance_to(who.global_position) <= reach:
+			candidates.append(who)
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var spirit := node as Companion
+		if spirit != null and is_instance_valid(spirit) and spirit.is_alive() \
+				and here.distance_to(spirit.global_position) <= reach:
+			candidates.append(spirit)
+	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return here.distance_squared_to(a.global_position) < here.distance_squared_to(b.global_position))
+	var from: Vector2 = here
+	for index: int in mini(affix.death_chain, candidates.size()):
+		var target: Node2D = candidates[index]
+		var to: Vector2 = target.global_position + Vector2(0.0, -Balance.ENEMY_CHAIN_LIFT)
+		EventBus.world_hazard.emit("chain", {"from": from, "to": to})
+		if target is Companion:
+			(target as Companion).take_damage(affix.death_blast_damage, here)
+		else:
+			var hurt: Health = Health.of(target)
+			if hurt != null:
+				hurt.take_damage(affix.death_blast_damage, here)
+		from = to
+	Vfx.flash_at(here, Color(affix.mark_colour, 0.8), 34.0)
+
+
+# --- Mirrorhide (2026-09-25) ------------------------------------------------------
+
+## Seconds this body has worn a glancing mark, and whether the window is open.
+var _glance_clock: float = 0.0
+var _glancing: bool = false
+## Whether the frenzy has been shown. Once a life.
+var _frenzy_told: bool = false
+
+
+## Opens and closes the glance on the mark's own clock. Each body keeps its own
+## phase, from its identity, so a pack of them never shuts together.
+func _tick_glance(delta: float) -> void:
+	var seconds: float = 0.0
+	var interval: float = 0.0
+	for affix: EnemyAffixData in affixes:
+		if affix.tower_glance_seconds > seconds:
+			seconds = affix.tower_glance_seconds
+			interval = affix.tower_glance_interval
+	if seconds <= 0.0:
+		return
+	if _glance_clock <= 0.0:
+		_glance_clock = float(absi(get_instance_id()) % 997) / 997.0 * interval
+	_glance_clock += delta
+	var was: bool = _glancing
+	_glancing = fmod(_glance_clock, maxf(interval, 0.5)) < seconds
+	if _glancing and not was:
+		Vfx.ring(combat_origin(), data.body_radius * 2.4 if data != null else 48.0,
+			Color(0.88, 0.95, 1.0, 0.85), 0.3, 3.0)
+
+
+## True while tower shots glance off it. Asked by both doors a tower's blow
+## goes through - `Tower._hit` and `Projectile._apply` - and by nothing else,
+## so the Warden's own blows always land.
+func glances_tower_shots() -> bool:
+	return _glancing and not puppet and _state != State.DYING
+
+
+## The shot that did not land, said out loud.
+func glance_off(from: Vector2) -> void:
+	var away: Vector2 = (combat_origin() - from).normalized()
+	Vfx.spark(combat_origin(), Color(0.9, 0.97, 1.0), 6, -away, 170.0)
 
 
 func _on_died(_from: Vector2) -> void:
@@ -3078,6 +3216,10 @@ func _on_died(_from: Vector2) -> void:
 			spoils *= Balance.CHAMPION_REWARD_SCALE
 		Rank.ELITE:
 			spoils *= Balance.ELITE_REWARD_SCALE
+	# An ordinary body wearing marks (a tier's rule, 2026-09-25) is a little
+	# more fight and pays a little more for it - never a champion's share.
+	if rank == Rank.COMMON and not affixes.is_empty():
+		spoils *= 1.0 + Balance.MARKED_REWARD_PER_MARK * float(affixes.size())
 	RunState.gain_kill_resources(int(round(spoils)))
 	_burst_on_death()
 	_mend_the_company()
@@ -3472,6 +3614,9 @@ func _visual_origin() -> Vector2:
 ## Built after the scale for the same reason the aura ring is: `_depth_lift` does
 ## not exist before then, and a ring drawn without it sits on the floor.
 func _build_rank_mark() -> void:
+	if rank == Rank.COMMON and not affixes.is_empty():
+		_build_marked_outline()
+		return
 	if rank == Rank.COMMON or sprite == null or sprite.texture == null:
 		return
 	# Bigger, first and most legible. Read from across the field before any
@@ -3538,6 +3683,24 @@ func _build_rank_mark() -> void:
 	sprite.self_modulate = Color.WHITE.lerp(tint,
 		Balance.RANK_TINT_STRENGTH if rank == Rank.ELITE
 			else Balance.RANK_TINT_STRENGTH * 0.6)
+
+
+## **An ordinary body that wears marks** (a tier's rule, 2026-09-25): the
+## mark's colour on its outline and a faint tint, and nothing else. No growth,
+## no ring and no sheen, because those say "elite" and this is not one - the
+## player learns the mark on a body that is otherwise the breed they know.
+func _build_marked_outline() -> void:
+	if sprite == null or sprite.texture == null or affixes.is_empty():
+		return
+	var tint: Color = affixes[0].mark_colour
+	for index: int in range(1, affixes.size()):
+		tint = tint.lerp(affixes[index].mark_colour, 0.5)
+	var polish: ShaderMaterial = ActorPolishScript.attach(sprite)
+	_polish = polish
+	if polish != null:
+		polish.set_shader_parameter("outline_colour", Color(tint, 0.9))
+		polish.set_shader_parameter("outline_strength", Balance.MARKED_OUTLINE_STRENGTH)
+	sprite.self_modulate = Color.WHITE.lerp(tint, Balance.RANK_TINT_STRENGTH * 0.4)
 
 
 ## How far the painted body sits from the middle of its own canvas, in node
@@ -4076,7 +4239,7 @@ func _let_the_javelin_go() -> void:
 	_throw_cooldown = data.thrown_interval
 	var damage: float = TowerData.roll_damage(
 		data.contact_damage * _damage_scale * _rank_scale().y
-			* _affix_product(&"damage_scale")
+			* _mark_scale(&"damage_scale")
 			* _enemy_damage_scale() * data.thrown_share, RunState.rng("combat"))
 	if RunState.enemies_are_weakened():
 		damage *= Balance.WEAKENED_STAT_SCALE

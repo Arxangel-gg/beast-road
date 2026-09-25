@@ -1480,7 +1480,9 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	# **Promoted before setup**, because the rank multiplies the health the next
 	# line fills in. A promotion applied afterwards leaves a champion with a
 	# common's hit points and nothing reports it.
-	if promoted_rank != Enemy.Rank.COMMON:
+	# A body wears its marks whatever its rank - an ordinary body a tier marked
+	# (2026-09-25), or a boss - so the door asks for either.
+	if promoted_rank != Enemy.Rank.COMMON or not worn_affixes.is_empty():
 		enemy.promote(promoted_rank, worn_affixes)
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() \

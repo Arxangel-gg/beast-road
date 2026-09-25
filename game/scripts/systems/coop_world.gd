@@ -108,8 +108,19 @@ func announce_enemy(enemy: Enemy) -> int:
 	_announced[enemy.net_id] = true
 	EventBus.coop_enemy_spawned.emit(enemy.net_id, enemy.data.id, enemy.lane,
 		enemy.global_position, enemy.hp_scale(), enemy.damage_scale(),
-		enemy.speed_scale(), enemy.oath_pursuer)
+		enemy.speed_scale(), enemy.oath_pursuer, int(enemy.rank), mark_ids(enemy))
 	return enemy.net_id
+
+
+## A body's marks by name, for the wire.
+static func mark_ids(enemy: Enemy) -> PackedStringArray:
+	var out := PackedStringArray()
+	if enemy == null:
+		return out
+	for affix: EnemyAffixData in enemy.affixes:
+		if affix != null:
+			out.append(affix.id)
+	return out
 
 
 ## Reports everything that has left since the last batch. Host side.
@@ -170,14 +181,24 @@ func _send_batch() -> void:
 
 func _on_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
 		hp_scale: float, damage_scale: float, speed_scale: float,
-		oath_pursuer: bool) -> void:
+		oath_pursuer: bool, rank: int = 0, marks: PackedStringArray = PackedStringArray()) -> void:
 	if not Coop.is_guest() or _puppets.has(net_id):
 		return
 	var battlefield := field as Battlefield
 	if battlefield == null:
 		return
+	# **What it is, as well as where** (2026-09-25). The announce never carried
+	# a rank or a mark, so on a partner's screen every elite and champion was a
+	# plain body at the host's health. The marks are named and read off this
+	# machine's own content, never sent as numbers.
+	var worn: Array[EnemyAffixData] = []
+	for id: String in marks:
+		var affix := ContentDB.affixes.get(id, null) as EnemyAffixData
+		if affix != null:
+			worn.append(affix)
 	var enemy: Enemy = battlefield.spawn_enemy(ContentDB.enemy(data_id), lane,
-		hp_scale, damage_scale, speed_scale, oath_pursuer)
+		hp_scale, damage_scale, speed_scale, oath_pursuer,
+		clampi(rank, 0, Enemy.Rank.size() - 1) as Enemy.Rank, worn)
 	if enemy == null:
 		return
 	enemy.net_id = net_id
@@ -500,7 +521,7 @@ func compose_welcome() -> Array:
 			continue
 		facts.append([CoopRelay.Fact.ENEMY_SPAWNED, [enemy.net_id, enemy.data.id, enemy.lane,
 			enemy.global_position, enemy.hp_scale(), enemy.damage_scale(), enemy.speed_scale(),
-			enemy.oath_pursuer]])
+			enemy.oath_pursuer, int(enemy.rank), mark_ids(enemy)]])
 		# A boss is a body and an announcement: the bar, the theme and the phase
 		# it has already reached.
 		if enemy.data.category == EnemyData.Category.BOSS:

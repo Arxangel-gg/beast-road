@@ -4061,6 +4061,30 @@ const ELITE_SPAWN_CHANCE: float = 0.03
 const CHAMPION_REWARD_SCALE: float = 2.5
 const ELITE_REWARD_SCALE: float = 6.0
 
+# --- Marks that read the world (2026-09-25) ------------------------------------
+
+## How much likelier a mark is under a weather it favours. Rimewarded in the
+## snow, Galeshod in a duststorm. Three times: noticeable over a wave, and never
+## so strong that a weather deals one mark and nothing else. [TUNE]
+const MARK_WEATHER_FAVOUR: float = 3.0
+## How much the earth's hidden anger lifts the share of marked ordinary bodies
+## a tier sets, per unit of wrath, and the share it may never pass. [TUNE]
+const MARK_WRATH_LIFT: float = 0.5
+const MARK_SHARE_CEILING: float = 0.55
+## What each mark adds to an ordinary body's spoils. A marked body is a little
+## more fight; this is never a champion's share. [TUNE]
+const MARKED_REWARD_PER_MARK: float = 0.35
+## The outline a marked ordinary body wears: the mark's colour, fainter than a
+## champion's, because this is a body the player knows wearing something new.
+const MARKED_OUTLINE_STRENGTH: float = 0.7
+## A mark's pace, capped either way. `speed_scale` was authored on twelve marks
+## and applied by nothing until 2026-09-25; two fast marks multiplying is a body
+## the road cannot hold, and two slow ones a body that never arrives.
+const ENEMY_MARK_SPEED_MIN: float = 0.7
+const ENEMY_MARK_SPEED_MAX: float = 1.6
+## Where a Stormbound arc lands on a person: their chest, not their feet.
+const ENEMY_CHAIN_LIFT: float = 44.0
+
 const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
 
 const WILDLIFE_TOWN_SPACE: float = 520.0
