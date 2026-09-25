@@ -29,7 +29,35 @@ func _ready() -> void:
 	_test_a_hitstop_gives_the_clock_back()
 	_test_company_refuses_it()
 	_test_every_reset_goes_through_it()
+	_test_the_road_pays_less_at_speed()
 	_finish()
+
+
+## **Fast-forward costs something** (owner, 2026-09-25). Read off the table the
+## spoils and the trickle are paid through, so a toll that was authored and
+## never charged, or charged and never lifted, is named. Driven through the one
+## door that changes the rate.
+func _test_the_road_pays_less_at_speed() -> void:
+	_check(Balance.GAME_SPEED_FAST_TOLL > 0.0 and Balance.GAME_SPEED_FAST_TOLL <= 0.5,
+		"the toll costs something and is not most of the road (%.2f)" % Balance.GAME_SPEED_FAST_TOLL)
+	GameSpeed.reset()
+	Modifiers.rebuild()
+	var spoils: float = Modifiers.multiplier(Modifiers.KILL_RESOURCES)
+	var trickle: float = Modifiers.multiplier(Modifiers.RESOURCE_RATE)
+	GameSpeed.set_fast(true)
+	_check(is_equal_approx(Modifiers.multiplier(Modifiers.KILL_RESOURCES),
+		spoils - Balance.GAME_SPEED_FAST_TOLL),
+		"at speed the spoils pay %.2f, not %.2f" % [
+			Modifiers.multiplier(Modifiers.KILL_RESOURCES), spoils - Balance.GAME_SPEED_FAST_TOLL])
+	_check(is_equal_approx(Modifiers.multiplier(Modifiers.RESOURCE_RATE),
+		trickle - Balance.GAME_SPEED_FAST_TOLL), "at speed the trickle pays less too")
+	GameSpeed.set_fast(false)
+	_check(is_equal_approx(Modifiers.multiplier(Modifiers.KILL_RESOURCES), spoils),
+		"back at one speed the spoils are whole again")
+	GameSpeed.set_fast(true)
+	GameSpeed.reset()
+	_check(is_equal_approx(Modifiers.multiplier(Modifiers.KILL_RESOURCES), spoils),
+		"a run beginning takes the toll off with the speed")
 
 
 func _test_the_base_rate_has_one_owner() -> void:

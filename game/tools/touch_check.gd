@@ -204,6 +204,19 @@ func _test_revive_hold() -> void:
 ## `_unhandled_input`, so the panel eats the tap and the dash silently stops
 ## working. The rail moved to the right edge after the dash was put there.
 func _test_dash_clears_the_rail() -> void:
+	# **Amended 2026-09-25.** This held the dash against a rail one square wide,
+	# which is the assumption that put it on the second column of a wrapped rail
+	# on a landscape phone (owner's screenshots). What it has to hold is that
+	# the dash never shares a pixel with the rail *as drawn*; the one-square
+	# rail stands in only when no HUD has drawn one.
+	var nav: Rect2 = HUD.live_nav_rect()
+	if nav.has_area():
+		for spot: Rect2 in [TouchInput.dash_rect(), TouchInput.revive_rect(),
+				TouchInput.loose_rect(), TouchInput.ammo_rect(),
+				TouchInput.cast_rect(), TouchInput.use_rect()]:
+			_check(not spot.intersects(nav),
+				"a thumb button at %s sits on the scope rail at %s" % [spot, nav])
+		return
 	var span: Vector2 = get_viewport().get_visible_rect().size
 	var rail: float = span.x - HUD.one_nav_column()
 	_check(TouchInput.dash_rect().end.x <= rail + 1.0,

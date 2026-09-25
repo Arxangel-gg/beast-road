@@ -23,6 +23,10 @@ extends Node
 
 ## The hero's health changed for any reason, including respawn.
 signal hero_health_changed(current_hp: float, max_hp: float)
+## Two fingers on the field changed their gap by this factor (above one: apart,
+## closer in). Said by `TouchInput`, heard by the run, which zooms the battlefield
+## and nothing else (owner, 2026-09-25).
+signal pinch_zoomed(factor: float)
 
 ## The local hero's mana moved. Throttled by the hero to a few times a second.
 signal hero_mana_changed(current: float, maximum: float)

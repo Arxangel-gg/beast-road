@@ -103,6 +103,16 @@ func zoom_by(steps: int) -> bool:
 	return not is_equal_approx(before, _wanted_zoom)
 
 
+## A pinch: the zoom times `factor`, inside the band (2026-09-25). Returns
+## whether it moved.
+func zoom_by_factor(factor: float) -> bool:
+	if factor <= 0.0 or is_equal_approx(factor, 1.0):
+		return false
+	var before: float = _wanted_zoom
+	_wanted_zoom = clampf(_wanted_zoom * factor, _zoom_floor(), _zoom_ceiling())
+	return not is_equal_approx(before, _wanted_zoom)
+
+
 ## Where the camera sits inside the band this device allows, from 0 (as far
 ## out as it goes) to 1 (as close as it goes).
 ##

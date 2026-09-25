@@ -95,8 +95,8 @@ func _test_the_wheel_path_asks() -> void:
 	_check(at >= 0, "run.gd no longer reads the wheel at all")
 	if at < 0:
 		return
-	var ladder: int = code.find("_zoom_ladder(", at)
+	var ladder: int = code.find("_zoom_wheel(", at)
 	var asks: int = code.find("_pointer_is_over_a_scroller()", at)
 	_check(asks >= 0 and (ladder < 0 or asks < ladder),
-		("the wheel reaches _zoom_ladder without asking whether the pointer is "
+		("the wheel reaches _zoom_wheel without asking whether the pointer is "
 			+ "over a scroller, so overscrolling a menu changes the view again"))

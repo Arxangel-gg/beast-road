@@ -38,8 +38,13 @@ static func allowed() -> bool:
 
 
 static func set_fast(on: bool) -> void:
+	var was: bool = _fast
 	_fast = on and allowed()
 	Engine.time_scale = chosen()
+	# The toll lives in the modifier table (2026-09-25): rebuilt when the rate
+	# changes, so what a body pays and the speed it was killed at agree.
+	if was != _fast:
+		Modifiers.rebuild()
 
 
 ## An override - a hitstop, a slow - has ended: back to the base rate, which is
@@ -50,5 +55,8 @@ static func restore() -> void:
 
 ## A run, a walk or the menu is beginning: one speed, whatever was chosen.
 static func reset() -> void:
+	var was: bool = _fast
 	_fast = false
 	Engine.time_scale = 1.0
+	if was:
+		Modifiers.rebuild()

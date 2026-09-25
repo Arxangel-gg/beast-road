@@ -312,6 +312,29 @@ var _town_threatened: bool = false
 var _sanctuary_inside: bool = false
 var _sanctuary_said: float = 0.0
 var _speed_button: Button = null
+## **The fast-forward on a phone** (owner, 2026-09-25: "add fast forward support
+## to mobile"). A square in the scope column, where a thumb already goes to
+## change what it is looking at; hidden on a keyboard, which has P and the
+## Preparation card's button.
+var _speed_nav: Button = null
+## The seed readout, kept so a phone can hide it: on a landscape phone the row
+## it ends ran it under the boss readout, and a thumb cannot hover for its
+## tooltip anyway. The pause menu says it instead.
+var _seed_label: Label = null
+## Whether the pools have been written once from the hero itself. They are
+## otherwise written only when a pool changes, and a road that opens with every
+## pool full - announced before this HUD was listening - drew three bars with
+## no numbers on them until the first hit (owner's screenshot, 2026-09-25).
+var _pools_primed: bool = false
+## The three order buttons: a column on a keyboard, a row on a thumb.
+var _command_orders: GridContainer = null
+## **Where the scope column is, for the thumb controls** (2026-09-25). On a
+## landscape phone the column wraps to two, and `TouchInput` - an autoload with
+## no HUD to hold - placed the dash against one, so the dash sat on the second
+## column (owner's screenshots). Written every frame from the laid-out bar and
+## cleared when the HUD goes.
+static var _live_nav_rect: Rect2 = Rect2()
+static var _live_nav_columns: int = 1
 var _hero_bar: ProgressBar
 ## The pale bite left behind when health drops, and where it is draining to.
 var _hero_trail: ColorRect = null
@@ -399,6 +422,16 @@ const ACTION_COLUMNS: int = 3
 ## five columns it wrapped onto a row of its own and took the band back up to
 ## 240 to hold a 48px label.
 const ACTION_COLUMNS_WIDE: int = 6
+## **A landscape phone's grid is two steady rows** (2026-09-25). At six a row the
+## Preparation bar - seven buttons with Build and a horse - put its last one on a
+## line of its own and the whole row jumped up between phases (owner's
+## screenshots). Four a row is two rows in every phase, the band reserved for
+## them was already two rows tall, and the cluster covers about the same field.
+const ACTION_COLUMNS_LANDSCAPE: int = 4
+## The raid's charge, drawn inside the Raid button (2026-09-25): its height and
+## its inset from the button's edge.
+const CHARGE_STRIP_HEIGHT: float = 5.0
+const CHARGE_STRIP_INSET: float = 7.0
 ## Width, in layout units, below which the buttons have to wrap.
 const ACTION_WRAP_BELOW: float = 1500.0
 
@@ -414,7 +447,9 @@ static func _action_columns() -> int:
 	if tree != null and tree.root != null:
 		var size: Vector2 = tree.root.get_visible_rect().size
 		landscape = size.x > size.y
-	return ACTION_COLUMNS_WIDE if landscape or span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
+	if landscape:
+		return ACTION_COLUMNS_LANDSCAPE
+	return ACTION_COLUMNS_WIDE if span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
 ## What `_build_action_bar` puts in the bar: Horn, Raid, Build, Repair, Orders,
 ## Heal, Ride.
 ##
@@ -751,6 +786,11 @@ func _ready() -> void:
 
 
 func _process_measured(delta: float) -> void:
+	if _nav_bar != null:
+		_live_nav_rect = _nav_bar.get_global_rect() if _nav_bar.is_visible_in_tree() else Rect2()
+		_live_nav_columns = _nav_bar.columns
+	if not _pools_primed:
+		_prime_the_pools()
 	if _undo_button != null and battlefield != null:
 		var left: float = battlefield.undo_seconds_left()
 		_undo_button.visible = left > 0.0
@@ -971,6 +1011,8 @@ func _build_top_bar() -> void:
 	var seed_label: Label = _label("SEED  " + RunState.seed_code(), 12)
 	seed_label.tooltip_text = "Gameplay seed. Enter this code on the main menu to reproduce road, wave, raid and reward rolls."
 	seed_label.add_theme_color_override("font_color", Color("778985"))
+	seed_label.visible = not touch_ui()
+	_seed_label = seed_label
 	journey_bar.add_child(seed_label)
 
 	var spacer := Control.new()
@@ -1186,9 +1228,9 @@ func _build_zoom_slider(bar: Container) -> void:
 	_zoom_slider.step = 0.01
 	_zoom_slider.value = 1.0
 	_zoom_slider.focus_mode = Control.FOCUS_NONE
-	_zoom_slider.tooltip_text = ("Zoom. Drag, scroll the wheel, or press "
-		+ "the scope keys; the bottom of the travel steps out to the town "
-		+ "and then to Yuri.")
+	_zoom_slider.tooltip_text = ("Zoom. Drag it, scroll the wheel or pinch; the "
+		+ "bottom of this slider's travel steps out to the town and then to Yuri. "
+		+ "The wheel and a pinch zoom the battlefield only.")
 	_zoom_slider.value_changed.connect(func(v: float) -> void:
 		if _zoom_following:
 			return
@@ -1579,6 +1621,14 @@ func _build_nav_bar() -> void:
 		map_button.text = "M"
 		_nav_buttons.append(map_button)
 
+	# The fast-forward, for a thumb (2026-09-25). Shown only on a touch layout
+	# and only alone; `_refresh_speed_button` decides.
+	_speed_nav = _add_icon_button(bar, "", "Double speed. The road pays a quarter less while it runs fast.",
+		func() -> void: _toggle_game_speed())
+	_speed_nav.name = "SpeedSquare"
+	_speed_nav.text = "1x"
+	_nav_buttons.append(_speed_nav)
+
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
 	# the settings, or out of the game.
@@ -1850,6 +1900,10 @@ func _add_icon_button(parent: Node, icon: String, tip: String,
 	# buttons line their icons up. There is no label here, so centred is the only
 	# thing that looks deliberate.
 	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# **Its own square, whatever row it shares** (2026-09-25). Two columns put
+	# the Yuri button in a row with the zoom slider, and a grid cell fills its
+	# row - so it stood as tall as the slider (owner's screenshots).
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(on_press)
 	parent.add_child(b)
 	# After it is in the tree, and that is not a detail: a Control outside the
@@ -1917,7 +1971,9 @@ func _wrap_nav_bar(side: float) -> void:
 		return
 	var count: int = 0
 	for button: Button in _nav_buttons:
-		if button != null and is_instance_valid(button):
+		# Only what is shown takes a cell: the speed square is hidden on a
+		# keyboard and in company.
+		if button != null and is_instance_valid(button) and button.visible:
 			count += 1
 	if count <= 0:
 		return
@@ -2044,23 +2100,38 @@ func _build_action_bar(bar: Container) -> void:
 	_ride_cooldown.offset_bottom = RIDE_RING_SIZE * 0.5
 	_ride_button.add_child(_ride_cooldown)
 
-	var charge_readout := VBoxContainer.new()
-	# 92 rather than 108: the bar ends where the spell slots begin, and the last
-	# widget in it was reaching seventeen pixels into the first slot.
-	charge_readout.custom_minimum_size = Vector2(92.0, 48.0)
-	charge_readout.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	charge_readout.add_theme_constant_override("separation", 1)
-	var charge_label: Label = _label("CHARGE", 10)
-	charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	charge_label.add_theme_color_override("font_color", Color("b9abc9"))
-	charge_readout.add_child(charge_label)
-	_charge_bar = _make_bar(Color("9b8fc4"), 92.0)
-	_charge_bar.custom_minimum_size.y = 18.0
+	# **The raid's charge, inside the Raid button** (2026-09-25). It was a
+	# readout of its own in the bar - a label and a bar - and on a phone that
+	# made a cell the grid wrapped onto a line of its own, under the buttons
+	# (owner's screenshots). It is the raid's charge, so it lives on the raid:
+	# a strip along the button's foot that fills until the button lights.
+	# Anchored by offsets, because a preset set from code leaves a zero rect.
+	_charge_bar = ProgressBar.new()
+	_charge_bar.name = "RaidCharge"
+	_charge_bar.show_percentage = false
+	_charge_bar.max_value = 1.0
 	_charge_bar.value = 0.0
-	_charge_bar.tooltip_text = "Raid charge. Defeat enemies to fill it; War Horn accelerates the gain."
-	charge_readout.tooltip_text = _charge_bar.tooltip_text
-	charge_readout.add_child(_charge_bar)
-	bar.add_child(charge_readout)
+	_charge_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_charge_bar.custom_minimum_size = Vector2(0.0, CHARGE_STRIP_HEIGHT)
+	_charge_bar.anchor_left = 0.0
+	_charge_bar.anchor_right = 1.0
+	_charge_bar.anchor_top = 1.0
+	_charge_bar.anchor_bottom = 1.0
+	_charge_bar.offset_left = CHARGE_STRIP_INSET
+	_charge_bar.offset_right = -CHARGE_STRIP_INSET
+	_charge_bar.offset_top = -(CHARGE_STRIP_INSET + CHARGE_STRIP_HEIGHT)
+	_charge_bar.offset_bottom = -CHARGE_STRIP_INSET
+	var charge_empty := StyleBoxFlat.new()
+	charge_empty.bg_color = Color(0.05, 0.05, 0.08, 0.72)
+	charge_empty.set_corner_radius_all(2)
+	var charge_fill := StyleBoxFlat.new()
+	charge_fill.bg_color = Color("9b8fc4")
+	charge_fill.set_corner_radius_all(2)
+	_charge_bar.add_theme_stylebox_override("background", charge_empty)
+	_charge_bar.add_theme_stylebox_override("fill", charge_fill)
+	_raid_button.add_child(_charge_bar)
+	_raid_button.tooltip_text = ("Raid charge fills along the foot of this button. "
+		+ "Defeat enemies to fill it; War Horn accelerates the gain.")
 
 	# **The count and the bar must agree.** See `ACTION_BUTTON_COUNT`: the band
 	# under every phone layout is measured from that constant, and a bar that
@@ -3205,8 +3276,14 @@ func _place_preparation_panel() -> void:
 		_preparation_panel.grow_vertical = Control.GROW_DIRECTION_END
 		_preparation_panel.offset_left = PREPARATION_TOUCH_MARGIN
 		_preparation_panel.offset_right = PREPARATION_TOUCH_MARGIN 			+ PREPARATION_TOUCH_WIDTH
-		_preparation_panel.offset_top = PREPARATION_TOUCH_TOP
-		_preparation_panel.offset_bottom = PREPARATION_TOUCH_TOP 			+ PREPARATION_TOUCH_HEIGHT
+		# **Under the readouts, measured off them** (2026-09-25). A typed 128
+		# sat over the second row's sundial whenever that row ran taller than
+		# the constant assumed (owner's screenshot) - the command panel's own
+		# fault of 2026-09-22, in the card beside it.
+		var card_top: float = maxf(PREPARATION_TOUCH_TOP,
+			_top_left_foot + Balance.UI_COMMAND_PANEL_GAP)
+		_preparation_panel.offset_top = card_top
+		_preparation_panel.offset_bottom = card_top + PREPARATION_TOUCH_HEIGHT
 		if _preparation_label != null:
 			_preparation_label.visible = false
 		if _ride_on_button != null:
@@ -3275,6 +3352,8 @@ func _seat_command_panel() -> void:
 	var top: float = row_foot + Balance.UI_COMMAND_PANEL_GAP
 	_command_panel.offset_top = top
 	_command_panel.offset_bottom = top
+	# The Preparation card hangs from the same row on a phone.
+	_place_preparation_panel()
 	if _boss_panel != null:
 		_boss_panel.offset_top = _boss_panel_top()
 
@@ -3429,8 +3508,15 @@ func _build_command_panel() -> void:
 	_command_target.custom_minimum_size = Vector2(COMMAND_BAR_WIDTH - 24.0, 30.0)
 	column.add_child(_command_target)
 
-	var orders := VBoxContainer.new()
-	orders.add_theme_constant_override("separation", 6)
+	# **A column on a keyboard, a row on a thumb** (2026-09-25). Three thumb-sized
+	# rows made the panel 500 units tall on a landscape phone and it ran down
+	# over the action buttons (owner's screenshot). Side by side they are one
+	# thumb tall, which is what the corner has room for.
+	var orders := GridContainer.new()
+	orders.columns = 3 if touch_ui() else 1
+	orders.add_theme_constant_override("h_separation", 8)
+	orders.add_theme_constant_override("v_separation", 6)
+	_command_orders = orders
 	column.add_child(orders)
 	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z",
 		"command_overdrive", "Point at a tower and press Z: it surges its attack rate and utility for 5 seconds.")
@@ -4518,6 +4604,11 @@ func _refresh_xp_bar() -> void:
 ## frame and moving the panels that intentionally sit above that frame.
 func _on_touch_layout_changed(showing: bool) -> void:
 	_place_minimap()
+	if _command_orders != null:
+		_command_orders.columns = 3 if showing else 1
+	if _seed_label != null:
+		_seed_label.visible = not showing
+	_refresh_speed_button()
 	if _horn_button != null:
 		_horn_button.text = "HORN" if showing else "Q  War Horn"
 	if _raid_button != null:
@@ -5767,6 +5858,11 @@ func _toggle_game_speed() -> void:
 		return
 	GameSpeed.set_fast(not GameSpeed.is_fast())
 	_refresh_speed_button()
+	# Said once, when it starts costing (owner, 2026-09-25: "fast forward
+	# should cost something"). The price is the point, so it is said out loud.
+	if GameSpeed.is_fast():
+		_show_message("DOUBLE SPEED  ·  the road pays %d%% less while it runs fast"
+			% int(round(Balance.GAME_SPEED_FAST_TOLL * 100.0)))
 
 
 func _refresh_speed_button() -> void:
@@ -5774,6 +5870,15 @@ func _refresh_speed_button() -> void:
 		return
 	_speed_button.text = "2x  ·  P" if GameSpeed.is_fast() else "1x  ·  P"
 	_speed_button.visible = not touch_ui() and GameSpeed.allowed()
+	_speed_button.tooltip_text = ("Run the road at double speed. P toggles it. The road "
+		+ "pays %d%% less in spoils and trickle while it runs fast. Alone only - a "
+		+ "partner's clock is the host's.") % int(round(Balance.GAME_SPEED_FAST_TOLL * 100.0))
+	if _speed_nav != null and is_instance_valid(_speed_nav):
+		var was: bool = _speed_nav.visible
+		_speed_nav.text = "2x" if GameSpeed.is_fast() else "1x"
+		_speed_nav.visible = touch_ui() and GameSpeed.allowed()
+		if was != _speed_nav.visible:
+			_size_nav_bar()
 
 
 func _on_hero_health(current: float, maximum: float) -> void:
@@ -6360,6 +6465,45 @@ func _show_the_heal_saving(price: int) -> void:
 	fill.bg_color = HEAL_SAVING_FAR.lerp(HEAL_SAVING_NEAR, share)
 
 
+## The pools as the hero holds them, written once. See `_pools_primed`.
+func _prime_the_pools() -> void:
+	if battlefield == null or not is_instance_valid(battlefield):
+		return
+	var who: Hero = battlefield.hero
+	if who == null or not is_instance_valid(who) or who.health == null:
+		return
+	_pools_primed = true
+	_on_hero_health(who.health.current_hp, who.health.max_hp)
+	_on_hero_mana(who.mana, who.mana_max())
+	_on_hero_stamina(who.stamina, who.max_stamina())
+
+
+## Where the scope column is on screen, empty when there is no HUD. For
+## `TouchInput`, which keeps its thumb controls off it.
+static func live_nav_rect() -> Rect2:
+	return _live_nav_rect
+
+
+static func live_nav_columns() -> int:
+	return _live_nav_columns
+
+
+## The top of the ability slots on a screen `span_y` tall: what a control
+## placed beside them must stay above.
+static func slot_row_top(span_y: float) -> float:
+	return span_y - _bottom_row_inset() - _spell_slot_size().y
+
+
+## The air under the combat row, above the screen's own edge.
+static func bottom_edge_inset() -> float:
+	return _bottom_row_inset()
+
+
+func _exit_tree() -> void:
+	_live_nav_rect = Rect2()
+	_live_nav_columns = 1
+
+
 ## Writes a pool's current and maximum, and the share, onto its bar.
 func _say_the_pool(bar: ProgressBar, current: float, maximum: float) -> void:
 	if bar == null:
@@ -6368,8 +6512,13 @@ func _say_the_pool(bar: ProgressBar, current: float, maximum: float) -> void:
 		var mark := child as BarName
 		if mark == null:
 			continue
-		var share: int = int(round(100.0 * current / maximum)) if maximum > 0.0 else 0
-		mark.value_text = "%d/%d  %d%%" % [int(ceil(current)), int(ceil(maximum)), share]
+		# **The share of the two numbers shown**, not of the pool behind them
+		# (2026-09-25). 82.4 of 100 showed as "83/100  82%" - a ceiling beside a
+		# rounding - and a bar that disagrees with itself reads as a bug.
+		var shown: int = int(ceil(current))
+		var whole: int = int(ceil(maximum))
+		var share: int = int(round(100.0 * float(shown) / float(whole))) if whole > 0 else 0
+		mark.value_text = "%d/%d  %d%%" % [shown, whole, share]
 		mark.queue_redraw()
 		return
 

@@ -171,6 +171,10 @@ func rebuild() -> void:
 	# `Balance.MOMENTUM_PER_CROSSROAD` for why momentum may never reach a damage
 	# number. It is the one modifier here bought by refusing to save.
 	_add_momentum()
+	# **And what running the road fast costs** (owner, 2026-09-25). Beside
+	# momentum and on the same two keys, because it is the same kind of thing:
+	# what the road pays, never what a fight is.
+	_add_speed_toll()
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
 
@@ -250,6 +254,16 @@ func _add_momentum() -> void:
 	var push: float = clampf(RunState.momentum, 0.0, Balance.MOMENTUM_MAX)
 	_totals[KILL_RESOURCES] = float(_totals.get(KILL_RESOURCES, 0.0)) + push
 	_totals[RESOURCE_RATE] = float(_totals.get(RESOURCE_RATE, 0.0)) + push * 0.5
+
+
+## A quarter off the spoils and the trickle while the clock runs fast. See
+## `Balance.GAME_SPEED_FAST_TOLL`. `GameSpeed` rebuilds this table whenever the
+## rate changes, so the toll is never charged at one speed or missed at two.
+func _add_speed_toll() -> void:
+	if not GameSpeed.is_fast():
+		return
+	_totals[KILL_RESOURCES] = float(_totals.get(KILL_RESOURCES, 0.0)) - Balance.GAME_SPEED_FAST_TOLL
+	_totals[RESOURCE_RATE] = float(_totals.get(RESOURCE_RATE, 0.0)) - Balance.GAME_SPEED_FAST_TOLL
 
 
 func _add(relic: RelicData) -> void:

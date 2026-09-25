@@ -101,6 +101,7 @@ func _ready() -> void:
 	add_child(governor)
 
 	EventBus.crossroad_reached.connect(_on_crossroad_reached)
+	EventBus.pinch_zoomed.connect(_on_pinch_zoomed)
 	crossroad_ui.extraction_chosen.connect(_on_extraction_chosen)
 	EventBus.act_boss_due.connect(_on_act_boss_due)
 	# **A guest's field is up: ask for the world** (the welcome, 2026-09-14). A
@@ -175,7 +176,7 @@ func _ready() -> void:
 	crisp_layer.add_child(_crisp)
 	add_child(crisp_layer)
 	hud.scope_requested.connect(switch_scope)
-	hud.zoom_requested.connect(_zoom_ladder)
+	hud.zoom_requested.connect(_zoom_wheel)
 	hud.zoom_set.connect(_on_zoom_set)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())
 	hud.horn_requested.connect(_on_horn_requested)
@@ -296,9 +297,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _pointer_is_over_a_scroller():
 				get_viewport().set_input_as_handled()
 				return
-			_zoom_ladder(1 if up else -1)
+			_zoom_wheel(1 if up else -1)
 			get_viewport().set_input_as_handled()
 			return
+	# A trackpad's pinch arrives as a gesture rather than as two fingers.
+	var magnify := event as InputEventMagnifyGesture
+	if magnify != null:
+		_on_pinch_zoomed(magnify.factor)
+		get_viewport().set_input_as_handled()
+		return
 	# Number keys jump between scopes; the whole point of the run layer is that
 	# moving between them is cheap.
 	# The two the buttons offer and the keyboard did not.
@@ -323,9 +330,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		switch_scope(GameDirector.Scope.BEAST)
 
 
-## Wheel-in moves toward tactical detail; wheel-out moves toward the whole
-## journey. Battlefield consumes steps internally until its wide limit, then
-## the next detent crosses to Town and the following one to Beast.
 ## Whether the pointer is inside something that scrolls.
 func _pointer_is_over_a_scroller() -> bool:
 	return scrolls_under(get_viewport().gui_get_hovered_control())
@@ -379,27 +383,28 @@ func _on_zoom_set(share: float) -> void:
 	rig.set_zoom_share((share - stop) / maxf(1.0 - stop, 0.0001))
 
 
-func _zoom_ladder(direction: int) -> void:
-	match _scope:
-		GameDirector.Scope.BATTLEFIELD:
-			var rig := battlefield.camera as CameraRig
-			if direction > 0:
-				if rig != null:
-					rig.zoom_by(1)
-			elif rig == null or not rig.zoom_by(-1):
-				switch_scope(GameDirector.Scope.TOWN)
-		GameDirector.Scope.TOWN:
-			if direction > 0:
-				switch_scope(GameDirector.Scope.BATTLEFIELD)
-				var rig := battlefield.camera as CameraRig
-				if rig != null:
-					rig.reset_to_wide()
-			else:
-				switch_scope(GameDirector.Scope.BEAST)
-		GameDirector.Scope.BEAST:
-			if direction > 0:
-				beast.set_zoomed_out(false)
-				switch_scope(GameDirector.Scope.TOWN)
+## **The wheel zooms the battlefield and nothing else** (owner, 2026-09-25:
+## "make it so that the scroll zoom only affects the battlefield and doesnt
+## change to the town or beast scopes"). It used to be a ladder: past the
+## widest zoom the next detent crossed to the town and the one after to Yuri,
+## so a player zooming out to see the road was thrown into another view. At the
+## end of its band it now simply stops; the scope buttons change scope.
+func _zoom_wheel(direction: int) -> void:
+	if _scope != GameDirector.Scope.BATTLEFIELD:
+		return
+	var rig := battlefield.camera as CameraRig
+	if rig != null:
+		rig.zoom_by(direction)
+
+
+## A pinch on the field, from `TouchInput` or a trackpad: the battlefield's zoom
+## and nothing else, exactly as the wheel.
+func _on_pinch_zoomed(factor: float) -> void:
+	if _locked or _scope != GameDirector.Scope.BATTLEFIELD:
+		return
+	var rig := battlefield.camera as CameraRig
+	if rig != null:
+		rig.zoom_by_factor(factor)
 
 
 func switch_scope(scope: GameDirector.Scope) -> void:

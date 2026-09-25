@@ -2665,21 +2665,36 @@ func _test_zoom_range() -> void:
 	_check(Balance.CAMERA_MOUSE_LEAN_MAX < Balance.LANE_SPAWN_RADIUS,
 		"camera look-ahead must be bounded inside the battlefield")
 	rig.reset_to_wide()
-	_check(not rig.zoom_by(-1), "wide battlefield limit must hand wheel-out to Town")
+	_check(not rig.zoom_by(-1), "the wide battlefield limit is a limit")
 	_check(rig.zoom_by(1), "wheel-in must zoom the battlefield")
+	# **Amended 2026-09-25 (owner): the wheel zooms the battlefield and never
+	# changes scope.** It was a ladder - past the widest zoom the next detent
+	# opened the Town and the one after it Yuri - and this held the ladder.
 	rig.reset_to_wide()
-	_run._zoom_ladder(-1)
-	_check(GameDirector.current_scope == GameDirector.Scope.TOWN,
-		"wheel-out from wide battlefield must open Town")
-	_run._zoom_ladder(-1)
-	_check(GameDirector.current_scope == GameDirector.Scope.BEAST,
-		"wheel-out from Town must open Beast")
-	_run._zoom_ladder(1)
-	_check(GameDirector.current_scope == GameDirector.Scope.TOWN,
-		"wheel-in from Beast must return to Town")
-	_run._zoom_ladder(1)
+	_run._zoom_wheel(-1)
 	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD,
-		"wheel-in from Town must return to battlefield")
+		"wheel-out at the widest battlefield must stay on the battlefield")
+	_run._zoom_wheel(1)
+	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
+		and not rig.is_fully_zoomed_out(), "wheel-in must zoom the battlefield in")
+	for scope: GameDirector.Scope in [GameDirector.Scope.TOWN, GameDirector.Scope.BEAST]:
+		_run.switch_scope(scope)
+		_run._zoom_wheel(-1)
+		_run._zoom_wheel(1)
+		_check(GameDirector.current_scope == scope,
+			"the wheel must not leave scope %d" % int(scope))
+	# A pinch is the wheel's rule with two fingers: the battlefield and nothing else.
+	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	rig.reset_to_wide()
+	var wide: float = rig.zoom_share()
+	EventBus.pinch_zoomed.emit(1.4)
+	_check(rig.zoom_share() > wide, "a pinch apart must zoom the battlefield in")
+	_run.switch_scope(GameDirector.Scope.TOWN)
+	var held: float = rig.zoom_share()
+	EventBus.pinch_zoomed.emit(0.6)
+	_check(GameDirector.current_scope == GameDirector.Scope.TOWN and is_equal_approx(rig.zoom_share(), held),
+		"a pinch in the Town must neither zoom the battlefield nor change scope")
+	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
 
 
 func _test_beast_gait() -> void:

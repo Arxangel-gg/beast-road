@@ -88,6 +88,15 @@ var _loose: TouchButton = null
 ## decision a bow asks for, and on a phone it had no answer either.
 var _ammo: TouchButton = null
 
+## **The fingers nothing else took, for a pinch** (owner, 2026-09-25: "pinch to
+## zoom in/out for mobile"). A finger the sticks and the buttons refused is
+## tracked here; when two are down their changing gap is a zoom. Held by index
+## and position, and cleared on every release path.
+var _free_fingers: Dictionary = {}
+var _pinching: bool = false
+var _pinch_gap: float = 0.0
+var _pinch_ended_msec: int = -100000
+
 
 func _ready() -> void:
 	layer = 48
@@ -149,6 +158,11 @@ func attacking() -> bool:
 func owns_pointer() -> bool:
 	if not _showing:
 		return false
+	# A pinch, and a moment after one: lifting two fingers off the field is not
+	# a tap on it.
+	if _pinching or Time.get_ticks_msec() - _pinch_ended_msec \
+			< int(Balance.TOUCH_PINCH_GRACE * 1000.0):
+		return true
 	for stick: TouchStick in _sticks:
 		if stick.holds_emulated_finger():
 			return true
@@ -308,6 +322,7 @@ func _input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch == null or touch.pressed:
 		return
+	_let_go_of_a_free_finger(touch.index)
 	for stick: TouchStick in _sticks:
 		stick.release_finger(touch.index)
 	if _dash != null:
@@ -356,6 +371,54 @@ func _unhandled_input(event: InputEvent) -> void:
 		or _sticks[1].consume(event, zone(true))
 	if claimed:
 		get_viewport().set_input_as_handled()
+		return
+	if _track_the_pinch(event):
+		get_viewport().set_input_as_handled()
+
+
+## A finger nothing else claimed, followed; two of them, a pinch.
+##
+## Returns whether the event was the pinch's. A single free finger is not
+## consumed - it may be a tap on the field - and only a drag while two are down
+## is, so a pinch never also walks the emulated mouse across the ground.
+func _track_the_pinch(event: InputEvent) -> bool:
+	var touch := event as InputEventScreenTouch
+	if touch != null:
+		if touch.pressed:
+			_free_fingers[touch.index] = touch.position
+			if _free_fingers.size() >= 2:
+				_pinching = true
+				_pinch_gap = _finger_gap()
+				return true
+		return false
+	var drag := event as InputEventScreenDrag
+	if drag == null or not _free_fingers.has(drag.index):
+		return false
+	_free_fingers[drag.index] = drag.position
+	if not _pinching or _free_fingers.size() < 2:
+		return false
+	var gap: float = _finger_gap()
+	if _pinch_gap >= Balance.TOUCH_PINCH_MIN_GAP and gap >= Balance.TOUCH_PINCH_MIN_GAP:
+		EventBus.pinch_zoomed.emit(gap / _pinch_gap)
+	_pinch_gap = gap
+	return true
+
+
+## The gap between the first two free fingers.
+func _finger_gap() -> float:
+	var at: Array = _free_fingers.values()
+	if at.size() < 2:
+		return 0.0
+	return (at[0] as Vector2).distance_to(at[1] as Vector2)
+
+
+func _let_go_of_a_free_finger(index: int) -> void:
+	if not _free_fingers.has(index):
+		return
+	_free_fingers.erase(index)
+	if _pinching and _free_fingers.size() < 2:
+		_pinching = false
+		_pinch_ended_msec = Time.get_ticks_msec()
 
 
 ## The corner one stick owns. `right` picks which.
@@ -383,6 +446,8 @@ func zone(right: bool) -> Rect2:
 ## not merely hide it, it *eats the tap*. Half height on the right edge is the
 ## one part of the frame the interface never claims.
 func dash_rect() -> Rect2:
+	if _under_the_column():
+		return _cluster_cell(1, 1)
 	var span: Vector2 = get_viewport().get_visible_rect().size
 	var side: float = button_side()
 	# **Inside the scope rail, not under it.** The right edge at half height was
@@ -403,6 +468,8 @@ func dash_rect() -> Rect2:
 ## standing still beside a fallen partner for three seconds, so the hand
 ## holding this one is not the one steering.
 func revive_rect() -> Rect2:
+	if _under_the_column():
+		return _cluster_cell(0, 1)
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position + Vector2(0.0, dash.size.y * 1.25), dash.size)
 
@@ -413,6 +480,8 @@ func revive_rect() -> Rect2:
 ## dash proved that - and the three ranged controls stack up it from the dash
 ## rather than being scattered, so a player finds all of them by finding one.
 func loose_rect() -> Rect2:
+	if _under_the_column():
+		return _cluster_cell(1, 0)
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position - Vector2(0.0, dash.size.y * 1.25), dash.size)
 
@@ -420,8 +489,56 @@ func loose_rect() -> Rect2:
 ## Where cycling ammunition sits: above the trigger, drawn only when there is
 ## more than one kind held.
 func ammo_rect() -> Rect2:
+	if _under_the_column():
+		return _cluster_cell(0, 0)
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position - Vector2(0.0, dash.size.y * 2.5), dash.size)
+
+
+## **Under the scope column, when it has wrapped to two** (2026-09-25).
+##
+## The dash was placed against a column one square wide, and on a landscape
+## phone the column is two - so the dash sat on the second one (owner's
+## screenshots), which is not merely hidden: the column eats the tap. The space
+## *under* a two-wide column is the part of the right edge nothing claims - the
+## combat row stops at the column's edge - and it is exactly two thumbs wide:
+## the dash at the bottom right where a thumb rests, the revive beside it, the
+## bow's trigger and its quiver above. Asked of the live column, so the rule
+## cannot drift from what is drawn.
+func _under_the_column() -> bool:
+	if HUD.live_nav_columns() < 2:
+		return false
+	var nav: Rect2 = HUD.live_nav_rect()
+	if not nav.has_area():
+		return false
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var side: float = button_side()
+	var top: float = span.y - HUD.bottom_edge_inset() - side * 2.0 - side * 0.25
+	return top >= nav.end.y + 4.0
+
+
+## A cell of the two-by-two cluster: column 0 left, 1 right; row 0 above, 1 below.
+func _cluster_cell(column: int, row: int) -> Rect2:
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var side: float = button_side()
+	var gap: float = side * 0.25
+	var nav: Rect2 = HUD.live_nav_rect()
+	var x: float = nav.end.x - side * float(2 - column) - gap * float(1 - column)
+	var foot: float = span.y - HUD.bottom_edge_inset() - side
+	return Rect2(x, foot - (side + gap) * float(1 - row), side, side)
+
+
+## Left of the column and above the ability slots, stacked upward from `row` 0:
+## where the rarer two - a drink and the fishing rod - go when the cluster is
+## full.
+func _beside_the_column(row: int) -> Rect2:
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var side: float = button_side()
+	var gap: float = side * 0.25
+	var nav: Rect2 = HUD.live_nav_rect()
+	var bottom: float = HUD.slot_row_top(span.y) - gap
+	return Rect2(nav.position.x - gap - side, bottom - side - (side + gap) * float(row),
+		side, side)
 
 
 ## Whether a bow is in hand at all, which is what the two ranged buttons follow.
@@ -620,6 +737,8 @@ func _axis(action: StringName, strength: float) -> void:
 ## Called when the controls are hidden, and it matters: an action left pressed
 ## by a stick that no longer exists is a hero that walks into a wall forever.
 func _release_all() -> void:
+	_free_fingers.clear()
+	_pinching = false
 	_move = Vector2.ZERO
 	_attacking = false
 	for action: StringName in [&"move_left", &"move_right", &"move_up",
@@ -820,11 +939,15 @@ class TouchButton extends Control:
 ## and a reel is held for seconds at a time, which wants a target the thumb
 ## can rest on without brushing the dash.
 func cast_rect() -> Rect2:
+	if _under_the_column():
+		return _beside_the_column(1)
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position - Vector2(dash.size.x * 1.3, 0.0), dash.size)
 
 
 func use_rect() -> Rect2:
+	if _under_the_column():
+		return _beside_the_column(0)
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position + Vector2(0.0, dash.size.y * 2.5), dash.size)
 

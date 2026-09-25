@@ -1332,6 +1332,14 @@ const CAMERA_TOUCH_ZOOM_GAIN: float = 1.55
 
 
 
+## **Pinch to zoom** (owner, 2026-09-25). How long after two fingers lift the
+## pointer is still the pinch's, so the lifting is never read as a tap on the
+## ground - which in Preparation would open a build sheet.
+const TOUCH_PINCH_GRACE: float = 0.3
+## The least a pinch's two fingers may be apart for a change in their gap to be
+## read as a zoom: two fingers laid almost on one another give a ratio that
+## leaps from a pixel of movement.
+const TOUCH_PINCH_MIN_GAP: float = 40.0
 const CAMERA_ZOOM_STEP: float = 0.10
 ## How fast the view settles on a new zoom.
 ##
@@ -6733,6 +6741,15 @@ const SANCTUARY_SAY_COOLDOWN: float = 25.0
 ## The fast-forward, solo only (see `GameSpeed`). Two rather than three: the
 ## opening waves are a teaching stretch and 3x turns them into a slideshow.
 const GAME_SPEED_FAST: float = 2.0
+## **What the fast-forward costs** (owner, 2026-09-25: "Fast forward should cost
+## something"). The design direction of 2026-09-22 named the failure - a built
+## board and 2x made standing at the town the correct play - and offered the
+## answer: a toll, so fast is a convenience rather than the dominant strategy.
+## The road pays this share less while the clock runs fast: the spoils off every
+## body and the trickle the buildings pay. Through `Modifiers`, beside momentum,
+## so nothing that pays a spoil learns fast-forward exists. Nothing about a
+## fight moves - the road's bodies are the same bodies, arriving sooner.
+const GAME_SPEED_FAST_TOLL: float = 0.25
 
 ## The preparation clock, from plenty of time to none.
 ##
