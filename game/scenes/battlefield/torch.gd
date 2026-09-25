@@ -54,6 +54,18 @@ static var ablate_ironwork: bool = false
 ## own to the pixel.
 static var _ironwork: ImageTexture = null
 const IRON_HALF: int = 12
+## **And the coals are on it too** (2026-09-25, owner: "fewer draw calls"). The
+## coals were a second command on a second texture - the flames' soft dot - and
+## the Compatibility renderer batches consecutive commands only while the
+## texture holds, so every torch in view was two draws before its flame. The
+## dot is rasterised from the flames' own gradient into the same image, to the
+## right of the post, and both halves are regions of one texture: one batch.
+const COAL_SIDE: int = 32
+## The same 32 the flames' dot is filled at, so the coals keep their size.
+## The transparent gap between the post and the coals, so a filtered sample at
+## the edge of either region reads nothing from the other.
+const ATLAS_GAP: int = 2
+static var _iron_rows: int = 0
 
 
 static func ironwork_texture() -> ImageTexture:
@@ -61,8 +73,11 @@ static func ironwork_texture() -> ImageTexture:
 		return _ironwork
 	var height: float = Balance.TORCH_HEIGHT
 	var rows: int = int(ceil(height)) + 2
-	var image: Image = Image.create(IRON_HALF * 2, rows, false, Image.FORMAT_RGBA8)
+	_iron_rows = rows
+	var image: Image = Image.create(IRON_HALF * 2 + ATLAS_GAP + COAL_SIDE,
+		maxi(rows, COAL_SIDE), false, Image.FORMAT_RGBA8)
 	image.fill(Color(0.0, 0.0, 0.0, 0.0))
+	_bake_coals(image, IRON_HALF * 2 + ATLAS_GAP)
 	var collar_y: float = -height * 0.42
 	var bowl_y: float = -height + 4.0
 	for row: int in rows:
@@ -74,6 +89,29 @@ static func ironwork_texture() -> ImageTexture:
 		_iron_row(image, row, y, bowl_y - 2.0, bowl_y, 9.5, 9.5, Color(0.34, 0.27, 0.20))
 	_ironwork = ImageTexture.create_from_image(image)
 	return _ironwork
+
+
+## The flames' soft dot, drawn from the same gradient `Flame.dot_texture` fills
+## with, radially, into a `COAL_SIDE` square at column `left`. Read from the
+## gradient rather than from that texture's image, which is generated lazily and
+## is not there to read on the frame this bakes.
+static func _bake_coals(image: Image, left: int) -> void:
+	var gradient: Gradient = Flame.dot_texture().gradient
+	var half: float = float(COAL_SIDE) * 0.5
+	for y: int in COAL_SIDE:
+		for x: int in COAL_SIDE:
+			var reach: float = Vector2(float(x) + 0.5 - half, float(y) + 0.5 - half).length() / half
+			image.set_pixel(left + x, y, gradient.sample(clampf(reach, 0.0, 1.0)))
+
+
+## Where the post sits in the atlas, and where the coals do.
+static func _iron_region() -> Rect2:
+	ironwork_texture()
+	return Rect2(0.0, 0.0, float(IRON_HALF * 2), float(_iron_rows))
+
+
+static func _coal_region() -> Rect2:
+	return Rect2(float(IRON_HALF * 2 + ATLAS_GAP), 0.0, float(COAL_SIDE), float(COAL_SIDE))
 
 
 ## One row of a shape spanning local `top`..`bottom` (negative is up),
@@ -233,14 +271,17 @@ func _draw_measured() -> void:
 	var height: float = Balance.TORCH_HEIGHT
 	# The post, the collar, the bowl and its rim: one shared texture (see
 	# `ironwork_texture`), laid so its last row is the foot.
-	var iron: ImageTexture = ironwork_texture()
-	draw_texture(iron, Vector2(-float(IRON_HALF), -float(iron.get_height() - 1)))
+	var atlas: ImageTexture = ironwork_texture()
+	var post: Rect2 = _iron_region()
+	draw_texture_rect_region(atlas, Rect2(Vector2(-float(IRON_HALF), -(post.size.y - 1.0)),
+		post.size), post)
 	# Coals: visible whether or not the torch is lit, so a dead torch reads as a
-	# torch that has gone out and not as an empty pole.
-	var coals: Texture2D = Flame.dot_texture()
-	var size: Vector2 = coals.get_size() * Vector2(0.42, 0.20)
-	draw_texture_rect(coals, Rect2(Vector2(-size.x * 0.5, -height + 1.0 - size.y * 0.5), size),
-		false, Color(0.55, 0.18, 0.06, _coals_alpha))
+	# torch that has gone out and not as an empty pole. The same texture as the
+	# post, so the two are one batch.
+	var coal: Rect2 = _coal_region()
+	var size: Vector2 = coal.size * Vector2(0.42, 0.20)
+	draw_texture_rect_region(atlas, Rect2(Vector2(-size.x * 0.5, -height + 1.0 - size.y * 0.5), size),
+		coal, Color(0.55, 0.18, 0.06, _coals_alpha))
 
 
 ## The coals' alpha: brighter while a relight is held, dimmer as the flame

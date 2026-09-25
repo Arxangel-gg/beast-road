@@ -351,6 +351,8 @@ var _command_orders: GridContainer = null
 ## Whether the command panel is open - an order is affordable - or down to its
 ## meter. See `_shape_the_command_panel`.
 var _command_open: bool = true
+## Whether `_shape_the_command_panel` has laid the panel out at least once.
+var _command_shaped: bool = false
 var _command_fade: Tween = null
 ## **Where the scope column is, for the thumb controls** (2026-09-25). On a
 ## landscape phone the column wraps to two, and `TouchInput` - an autoload with
@@ -3886,6 +3888,13 @@ func _set_command_available(id: String, available: bool) -> void:
 func _shape_the_command_panel(open: bool) -> void:
 	if _command_panel == null:
 		return
+	# **Only when it changes** (2026-09-25). Command moves on every kill, and this
+	# re-laid the panel - offsets, `reset_size`, the grid under it - on each one,
+	# and restarted the fade before it could finish: at Act X that was a share
+	# of the two milliseconds `perf_check` found the frame had gained.
+	if _command_shaped and open == _command_open:
+		return
+	_command_shaped = true
 	var changed: bool = open != _command_open
 	_command_open = open
 	if _command_target != null:
@@ -4941,6 +4950,9 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	if _top_scrim != null:
 		_top_scrim.visible = showing
 	_label_the_orders()
+	# The orders grid changed shape, so the panel is laid out again.
+	_command_shaped = false
+	_shape_the_command_panel(_command_open)
 	_seat_region_card()
 	if _seed_label != null:
 		_seed_label.visible = not showing
