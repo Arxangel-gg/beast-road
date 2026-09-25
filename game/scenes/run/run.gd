@@ -1467,10 +1467,13 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	# A return (the road home, 2026-09-14) is paid in full: the party chose
 	# to bank the run rather than gamble it, and that is the whole decision.
 	var returned: bool = bool(summary.get("returned", false))
-	var marks: int = homecoming_marks(RunState.act, victory or returned)
-	MetaState.marks += marks
-	MetaState.save_game()
-	summary["marks"] = marks
+	# The valley pays nothing, win or lose (2026-09-25): its report is a
+	# report, not a settlement.
+	if not bool(summary.get("walk", false)):
+		var marks: int = homecoming_marks(RunState.act, victory or returned)
+		MetaState.marks += marks
+		MetaState.save_game()
+		summary["marks"] = marks
 
 	if hud != null:
 		hud.show_end_report()

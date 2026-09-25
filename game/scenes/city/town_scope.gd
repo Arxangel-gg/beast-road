@@ -448,10 +448,20 @@ func _refresh_hall() -> void:
 
 # --- Construction API (called by the town UI) -------------------------------
 
+## What the town says to an order in the Walk.
+const WALK_REFUSAL: String = ("A town project grows with the road Yuri walks, and in "
+	+ "the valley he is chained. Commission it on the road.")
+
 ## Returns "" on success, or the reason the order was refused.
 static func try_start_construction(building_id: String) -> String:
 	if not RunState.can_build_now():
 		return "Town projects are chosen during Preparation."
+	# **Not in the valley** (owner, 2026-09-25: a Woodcutter tier "didn't
+	# work"). A project grows with the road Yuri walks, and in the Walk he is
+	# chained - so the order was taken, the Wood spent, and it could never
+	# finish. It is refused before anything is spent.
+	if RunState.walking:
+		return WALK_REFUSAL
 	if not RunState.construction.is_empty():
 		return "Something is already being built."
 	var data: BuildingData = ContentDB.building(building_id)

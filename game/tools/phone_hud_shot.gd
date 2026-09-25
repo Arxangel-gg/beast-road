@@ -60,6 +60,14 @@ func _ready() -> void:
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	RunState.command_earned = 40.0
 	EventBus.phase_changed.emit(int(RunState.Phase.ROAD_BATTLE), int(RunState.Phase.PREPARATION))
+	# The command panel twice (2026-09-25): down to its faded meter while no
+	# order is affordable, and open on the one order that is.
+	RunState.command = 10.0
+	EventBus.command_changed.emit(10.0, Balance.COMMAND_MAX)
+	await _settle(0.6)
+	await _shot("combat_idle")
+	RunState.command = 40.0
+	EventBus.command_changed.emit(40.0, Balance.COMMAND_MAX)
 	await _settle(0.6)
 	await _shot("combat")
 

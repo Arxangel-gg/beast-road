@@ -267,7 +267,36 @@ func _centre_panel() -> void:
 
 func _leave() -> void:
 	get_tree().paused = false
+	# A lost Walk's report ends the Walk on the way out, which puts the Warden
+	# on the menu with the Walk offered again (2026-09-25).
+	if RunState.walking:
+		GameDirector.end_walk(false)
+		return
 	GameDirector.goto_menu()
+
+
+## **A lost Walk's report** (owner, 2026-09-25). Short, because the valley is a
+## lesson rather than a road: what did it, that nothing was lost, and where the
+## Walk is waiting. The rest of this screen - the score, the route, the Marks -
+## describes a run, and the Walk is not one.
+func _show_the_valley(summary: Dictionary) -> void:
+	title.text = "The valley took you"
+	menu_button.grab_focus.call_deferred()
+	var lines: PackedStringArray = []
+	if bool(summary.get("town_fell", false)):
+		lines.append("The town fell before the chain was cut.")
+	else:
+		lines.append("The Warden fell %d times, and the third was the last."
+			% int(summary.get("wounds", 0)))
+	var blow: String = String(summary.get("last_blow", ""))
+	if not blow.is_empty():
+		lines.append("Last blow   %s" % blow)
+	lines.append("")
+	lines.append("Nothing was lost. The Walk is offered again from the menu,")
+	lines.append("or skip it there and take the road with what it would have given.")
+	KeywordTextScript.apply(body, "\n".join(lines))
+	if _submit_button != null:
+		_submit_button.visible = false
 
 
 ## The debrief is a dead end unless something can dismiss it, and a mouse is not
@@ -332,6 +361,9 @@ var _pending_summary: Dictionary = {}
 
 
 func show_results(victory: bool, summary: Dictionary) -> void:
+	if bool(summary.get("walk", false)):
+		_show_the_valley(summary)
+		return
 	_show_score(summary)
 	_offer_ascension(victory)
 	# A return (the road home, 2026-09-14) is the third ending, and it reads

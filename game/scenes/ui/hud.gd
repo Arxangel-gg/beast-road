@@ -328,6 +328,10 @@ var _seed_label: Label = null
 var _pools_primed: bool = false
 ## The three order buttons: a column on a keyboard, a row on a thumb.
 var _command_orders: GridContainer = null
+## Whether the command panel is open - an order is affordable - or down to its
+## meter. See `_shape_the_command_panel`.
+var _command_open: bool = true
+var _command_fade: Tween = null
 ## **Where the scope column is, for the thumb controls** (2026-09-25). On a
 ## landscape phone the column wraps to two, and `TouchInput` - an autoload with
 ## no HUD to hold - placed the dash against one, so the dash sat on the second
@@ -3514,6 +3518,10 @@ func _build_command_panel() -> void:
 	# thumb tall, which is what the corner has room for.
 	var orders := GridContainer.new()
 	orders.columns = 3 if touch_ui() else 1
+	# Centred on a thumb, so one affordable order sits in the middle of the
+	# panel rather than against its left edge; full width on a keyboard, where
+	# the orders are rows.
+	orders.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if touch_ui() else Control.SIZE_FILL
 	orders.add_theme_constant_override("h_separation", 8)
 	orders.add_theme_constant_override("v_separation", 6)
 	_command_orders = orders
@@ -3624,12 +3632,60 @@ func _on_command_changed(current: float, maximum: float) -> void:
 		current >= Balance.COMMAND_RALLY_COST)
 	_set_command_available(CommandSystemScript.LAST_STAND,
 		current >= Balance.COMMAND_LAST_STAND_COST and not _last_stand_spent)
+	var any: bool = false
+	for value: Variant in _command_buttons.values():
+		var order := value as Button
+		if order != null and order.visible:
+			any = true
+	_shape_the_command_panel(any)
 
 
+## **Only the orders that can be given** (owner, 2026-09-25). A greyed row of
+## three a player cannot afford is a panel of reasons not to look at it; an
+## order that is not there yet takes no room.
 func _set_command_available(id: String, available: bool) -> void:
 	var button: Button = _command_buttons.get(id, null) as Button
 	if button != null:
 		button.disabled = not available
+		button.visible = available
+
+
+## **The meter alone, faded, until an order is affordable; then the panel**
+## (owner, 2026-09-25: "faded out to semi transparency and minimalistic when
+## 0/100 command only showing the command progress bar and consuming minimum
+## screen space, and expanding only when a command is available ... still being
+## semi-transparent but more apparent when commands are available and having its
+## panel restored").
+##
+## The frame goes with `self_modulate`, which draws the panel's own frame and
+## none of its children - so the tint `UiTint` painted onto it is untouched and
+## comes back exactly as it was. The width collapses to what the meter needs
+## and is given back when the orders arrive; the height follows the children.
+func _shape_the_command_panel(open: bool) -> void:
+	if _command_panel == null:
+		return
+	var changed: bool = open != _command_open
+	_command_open = open
+	if _command_target != null:
+		_command_target.visible = open
+	if _command_orders != null:
+		_command_orders.visible = open
+	_command_panel.self_modulate.a = 1.0 if open else 0.0
+	_command_panel.offset_right = _command_panel.offset_left \
+		+ (COMMAND_BAR_WIDTH if open else 0.0)
+	_command_panel.offset_bottom = _command_panel.offset_top
+	_command_panel.reset_size()
+	var alpha: float = Balance.UI_COMMAND_READY_ALPHA if open else Balance.UI_COMMAND_IDLE_ALPHA
+	if not changed and is_equal_approx(_command_panel.modulate.a, alpha):
+		return
+	if _command_fade != null and _command_fade.is_valid():
+		_command_fade.kill()
+	if not is_inside_tree() or DisplayServer.get_name() == "headless":
+		_command_panel.modulate.a = alpha
+		return
+	_command_fade = create_tween()
+	_command_fade.tween_property(_command_panel, "modulate:a", alpha,
+		Balance.UI_COMMAND_FADE_SECONDS)
 
 
 func _on_command_order_used(order_id: String, _lane: int, _slot: int, _at: Vector2) -> void:
@@ -4606,6 +4662,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	_place_minimap()
 	if _command_orders != null:
 		_command_orders.columns = 3 if showing else 1
+		_command_orders.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if showing else Control.SIZE_FILL
 	if _seed_label != null:
 		_seed_label.visible = not showing
 	_refresh_speed_button()

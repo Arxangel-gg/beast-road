@@ -323,6 +323,9 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 	if not RunState.can_build_now():
 		_note("Read only during battle. Return in Preparation to make changes.")
 		return
+	if RunState.walking:
+		_note(TownScope.WALK_REFUSAL)
+		return
 
 	if tier >= data.max_tier:
 		_note("Fully built.")

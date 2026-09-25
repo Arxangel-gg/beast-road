@@ -546,6 +546,19 @@ func _hatch_what_was_carried(home: bool) -> Array[String]:
 	return hatched
 
 
+## What a lost Walk's report says: that it was the valley, what did it, and how
+## many times the Warden fell. Nothing is paid and nothing is recorded - the
+## Walk is not a run - so there are no Marks, unlocks or statistics in it.
+func _walk_summary() -> Dictionary:
+	return {
+		"walk": true,
+		"last_blow": RunState.last_blow_line(),
+		"deaths": RunState.hero_deaths,
+		"wounds": RunState.hero_wounds,
+		"town_fell": RunState.hero_wounds < RunState.max_wounds(),
+	}
+
+
 func _settle_run(victory: bool, returned: bool = false) -> void:
 	# **The Walk is not a run and may never settle as one.**
 	#
@@ -561,7 +574,16 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		# the valley could not end except at the chain. A loss closes the valley
 		# and nothing is settled, so the Walk is offered again from the menu.
 		if not victory:
-			end_walk(false, walk_leaves_on_loss)
+			# **And it says so** (owner, 2026-09-25: "Dying ... made me go to
+			# the main menu ... I didn't even get the end report screen"). A
+			# lost Walk went straight to the menu with no word about why. It
+			# shows the valley's own short report now, and leaving that is what
+			# ends the Walk - `ResultsScreen._leave` calls `end_walk`. The gate's
+			# seam keeps the old door, which is what it measures.
+			if walk_leaves_on_loss:
+				EventBus.run_ended.emit(false, _walk_summary())
+			else:
+				end_walk(false, false)
 		return
 	if not run_active:
 		return

@@ -242,6 +242,34 @@ func _test_the_walk_never_settles() -> void:
 			"losing the walk moved %s, so the valley settles as a run" % String(key))
 	_check(not RunState.walking and not GameDirector.run_active,
 		"a lost walk is still running - the valley cannot be left except at the chain")
+	# **And a lost Walk says so** (owner, 2026-09-25: "I didn't even get the end
+	# report screen"). With the ordinary door open, a loss announces the valley's
+	# own report and the Walk stays open until the report is left - it settles
+	# nothing on the way. The run's own listeners are lifted for the check, so
+	# the report is heard here and not stood up over the rest of this gate.
+	RunState.walking = true
+	GameDirector.run_active = true
+	var lifted: Array = EventBus.run_ended.get_connections()
+	for connection: Dictionary in lifted:
+		EventBus.run_ended.disconnect(connection["callable"])
+	var heard: Array[Dictionary] = []
+	var listen := func(_victory: bool, summary: Dictionary) -> void:
+		heard.append(summary)
+	EventBus.run_ended.connect(listen)
+	var reported_before: Dictionary = _snapshot()
+	GameDirector.end_run(false)
+	EventBus.run_ended.disconnect(listen)
+	for connection: Dictionary in lifted:
+		EventBus.run_ended.connect(connection["callable"])
+	_check(heard.size() == 1 and bool(heard[0].get("walk", false)),
+		"a lost walk went to the menu without a report")
+	_check(RunState.walking and GameDirector.run_active,
+		"a lost walk ended before its report could be read")
+	var reported_after: Dictionary = _snapshot()
+	for key: Variant in reported_before:
+		_check(reported_before[key] == reported_after[key],
+			"reporting a lost walk moved %s" % String(key))
+	GameDirector.end_walk(false, false)
 	RunState.walking = was_walking
 	GameDirector.run_active = was_active
 

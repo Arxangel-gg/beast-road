@@ -1291,11 +1291,12 @@ const CAMERA_ZOOM: float = 0.72
 const CAMERA_ZOOM_BATTLEFIELD: float = 0.52
 const CAMERA_ZOOM_RAID: float = 0.95
 
-## Mouse-wheel battlefield range. Reaching the minimum and continuing outward
-## moves through Town and Beast rather than shrinking the tactical map into an
-## unreadable postage stamp.
+## Mouse-wheel battlefield range. The wheel stops at either end (owner,
+## 2026-09-25: it no longer steps out to the Town and Yuri), and the near end
+## went one step closer the same day (owner: "one more zoom in level beyond the
+## current max zoom in"): 1.00 to 1.10, one `CAMERA_ZOOM_STEP`.
 const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38
-const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.00
+const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.10
 
 ## The same three numbers, for a screen held in one hand.
 ##
@@ -1310,7 +1311,8 @@ const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.00
 ## pulls back far enough to read the ring of lanes, and the near end goes closer
 ## than a desktop ever needs for the moments a thumb is fighting something. [TUNE]
 const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN: float = 0.52
-const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.55
+## One step closer on a thumb too (2026-09-25): 1.55 to 1.65.
+const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.65
 
 
 ## How much closer every scene starts when a thumb is driving.
@@ -3411,6 +3413,15 @@ const TOWER_LEVEL_RANGE: Array[float] = [
 # ------------------------------------------------------------------------------
 
 const COMMAND_MAX: float = 100.0
+## **The command panel keeps out of the way until it has something to offer**
+## (owner, 2026-09-25: "faded out to semi transparency and minimalistic when
+## 0/100 command only showing the command progress bar ... expanding only when a
+## command is available ... still being semi-transparent but more apparent").
+## How visible it is while nothing is affordable, and once something is.
+const UI_COMMAND_IDLE_ALPHA: float = 0.5
+const UI_COMMAND_READY_ALPHA: float = 0.85
+## How long it takes to go from one to the other.
+const UI_COMMAND_FADE_SECONDS: float = 0.22
 const COMMAND_CAUTION_PRESSURE: float = 0.35
 const COMMAND_HERO_HIT_GAIN: float = 2.5
 const COMMAND_PRIORITY_HIT_GAIN: float = 2.0
