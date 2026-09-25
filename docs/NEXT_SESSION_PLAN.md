@@ -1,278 +1,231 @@
-# The plan for the next session (written 2026-09-24, for Opus 5.5)
+# The road to a production-ready release (written 2026-09-24 late, for Opus 5.5)
 
-Written with the weekly budget nearly spent, so the next session starts from
-decisions rather than from a re-read. **Read CLAUDE.md first** - the entries
-dated 2026-09-24 are what this plan builds on. The owner's standing rules:
-never run agents or workflows (ultracode or not); ask before any windowed
-Godot run and run one at a time; commit before planting a fault; never edit
-the tree during a sweep; never delete an inbox after importing it.
+Written with the weekly budget at three percent, so the next sessions start
+from decisions rather than from a re-read. **Read CLAUDE.md first**, and its
+entries dated 2026-09-24 in particular. Then this file, top to bottom, and
+work it in the order given: each section is ordered by what unblocks what.
 
----
+**Standing rules from the owner**, none negotiable: never run agents or
+workflows (ultracode or not); ask before any windowed Godot run and run one
+at a time, since a window covers the owner's screen; commit before planting
+a fault; never edit the tree while a sweep is running; never delete an inbox
+after importing it; photograph anything a player looks at before believing a
+number about it.
 
-## 0. Where things stand
-
-- **v0.56.3** failed its release on `ranged_check` (a once-a-frame roster
-  missed a body stood up in the same frame). Fixed in `446a1a4a`.
-- **v0.56.4** was tagged on that fix and will fail on `balance_test`, which had
-  been red on main since the pooling and ink commits (two harness invariants
-  moved by design). Fixed in `cb42e522`.
-- **v0.56.5** is tagged on `cb42e522` and carries: the roster fix, the
-  difficulty tune, wave formations, siege orders, and the balance amendments.
-  **First thing next session: check the v0.56.5 release run.** If it is red,
-  read the failing gate's log (`gh run view <id> --log-failed` needs auth;
-  the step name and annotations do not - see the memory directory) and fix
-  that gate before anything else. Nothing else in this plan matters while
-  nothing new is live.
-- The owner's brief of 2026-09-24 is triaged below into what was built (§1),
-  what is yours (§2-§6), and what needs the owner (§7).
-
-Measured on a new account after the tune (`curve_report`, `APPDATA` pointed
-at an empty directory):
-
-    mean pressure by party size   1:0.488  2:0.528  3:0.553  4:0.573
-    by act   1:0.25 2:0.19 3:0.34 4:0.34 5:0.43 6:0.47 7:0.59 8:0.54 9:0.63 10:0.67 11:0.65
-    band     floor 0.40, ceiling 0.64 (moved from 0.58, recorded in CLAUDE.md)
+**How work is done here.** Every change is measured or photographed, gated
+by a check on both workflow bars, and recorded in CLAUDE.md as a decision
+with its reasoning. A change to a gate's invariant is recorded, never
+quiet. Before any tag: `tools/sweep.sh <scratch> release`, then the
+three-line guard/release/neither diff in CLAUDE.md. Tag with
+`tools\release.ps1 -Version X.Y.Z`; CI builds; check the run.
 
 ---
 
-## 1. Built this session (do not build twice)
+## 0. Where things stand (2026-09-24, end of day)
 
-- **Difficulty tune**: counts +8%, health +6%, damage +2% and contact 0.62 to
-  0.65, kill income 0.36 to 0.33, road trickle 0.20 to 0.18. Constants and
-  rationale in `Balance.gd`, dated 2026-09-24.
-- **Formations**: `WaveArchetypeData.formation` (SCATTERED / VANGUARD /
-  REARGUARD), `WaveDirector._marshal_queue`, `WAVE_VANGUARD_SHARE`/`_ROLES`.
-  Ten signature-led archetypes author VANGUARD, the two howler ones REARGUARD.
-- **Siege orders**: `WAVE_SIEGE_ORDER_SHARE` by act (none in Acts I-II),
-  `WaveDirector._order_the_siege`, `Enemy.order_siege()`, one reader
-  `Enemy.targets_towers()`. Gated by `wave_library_check` (143) and
-  `enemy_siege_check` (301).
-- **Roster cache**: `EnemyField.roster_changed()` + a group-count key.
-
----
-
-## 2. P0 for you: the portent cards (owner's screenshot)
-
-**Report:** *"Cards need to be center aligned with proper padding and cards
-need to be able to fit all texts properly without overflow ... and need to be
-more juicy."* The screenshot shows three cards left-of-centre, and the flavour
-line (the italic sentence after the BOON) drawn past the card's bottom edge.
-
-**Where:** `game/scenes/ui/crossroad_screen.gd`. The portent path builds its
-cards near line 1205 (`card.custom_minimum_size = Vector2(CARD_WIDTH, 0.0)`),
-the title at line 863 (`"THE ROAD AHEAD  ·  read one portent"`). Read the
-whole builder before touching it - the same file lays the road cards (line
-918, 1060) and the two share helpers.
-
-**What to do, in order:**
-
-1. **Photograph first.** There is no `portent_shot`; write one following
-   `road_sheet_shot`'s pattern (stand the screen up, force three offers,
-   save a PNG). Every layout fix in this project that skipped the photograph
-   was wrong once. Take the shot at 1920x1080 and at the phone shapes
-   `layout_check` uses.
-2. **Centre the row**: the cards' container wants
-   `alignment = BoxContainer.ALIGNMENT_CENTER` and equal
-   `custom_minimum_size` widths; check whether the row is anchored full-width
-   or sized to content - the screenshot's offset says it is not centred in
-   the viewport.
-3. **The overflow**: the flavour text is almost certainly a `Label` placed
-   after the card's `PanelContainer` rather than inside its `VBoxContainer`,
-   or the card has a fixed height while the flavour label has
-   `autowrap_mode` on and grows. Put it inside the card's box with autowrap,
-   give every card the same height by reading the tallest, and remember
-   `Control.size` is clamped to the combined minimum - a panel never shrinks
-   to fit, it grows past its offsets (CLAUDE.md, the trap menu note).
-4. **Juice, bounded**: a card is a `Control`, so the existing hologram
-   hover/focus sweep (`ui_juice_check`, additive only) applies if the card is
-   a `Button` or wears the same material. A rise on hover, a rarity-coloured
-   rim, a one-shot sweep when the three are dealt (driven, never looped).
-   Nothing reads a card's look; `Graphics.particle_scale` gives away any
-   motes.
-5. **Gate**: `layout_check` at every shape must stay green; add the portent
-   screen to whatever `layout_check` stands up if it does not already open
-   it (a screen nothing opens is a screen nothing measures). Add one check
-   in `omen_check` or `road_card_check` that every offered card's flavour
-   label rect is inside its card rect.
+- **v0.56.6 is live** (difficulty batch, formations, siege orders, the bar
+  and ink conversions, the roster fix, the pinned wrath gate). **v0.56.7 is
+  building** with the torch ironwork, sleeping flames, the minimap clock and
+  the shared additive material. First thing: check that run. If red, read the
+  failing gate (`gh run view <id> --json jobs` and the check-run annotations
+  work without admin) and fix that gate before anything below.
+- **Performance on this machine is done.** `perf_check --act=10 --build`,
+  1080p on the 180 Hz screen, High, forty level-8 towers on Act X's waves:
+  13.0 ms average (77 fps), p99 22.2, worst 35.8, two hitches in ninety
+  seconds, 975 draw calls. It was 76 ms and 950 hitches a minute this morning.
+  Do not spend more on this machine; every remaining row is a millisecond.
+- **Conformance**: 47 of 47 automatable rows pass; four human-judgement rows
+  remain (section 2). **Art**: 0 placeholders among 4,582 manifest assets by
+  the magenta rule; the known stand-in is the Last Anchor's sprite.
+  **Music**: 76 songs over 5 of 10 acts, 0 of 10 boss themes.
+- **The difficulty re-tune has never been played.** Counts +8%, health +6%,
+  damage +2% and contact 0.62 to 0.65, kill income 0.36 to 0.33, road
+  trickle 0.20 to 0.18, formations and siege orders - all on `curve_report`'s
+  word (solo 0.488, four players 0.573, band 0.40 to 0.64). Expect a play
+  report and move `Balance` numbers, not code.
 
 ---
 
-## 3. For you: the juice pass ("tastefully ultra juicy, mindful of optimisation")
+## 1. P0 - the one thing the owner has photographed
 
-The bounds every item is held to: a look and never a fact (nothing reads it),
-damped by `JuiceDirector` as COSMETIC, scaled away by
-`Graphics.particle_scale`, records on `VfxInk`/`BloodMotes` rather than nodes
-(a hit allocates nothing - `frame_budget_check` holds it), and photographed
-before it is believed. Most of the two-hundred-item juice list is already
-built (`docs/IDEAS_REVIEW_2026-09-16.md`, `_2026-09-24.md`); grep for what a
-system *reads* before adding one. Worth doing, in order:
+**The portent cards** (`game/scenes/ui/crossroad_screen.gd`, cards built
+near line 1205, title at 863). Off-centre, the flavour sentence overflowing
+the card's bottom, no juice on the deal.
 
-1. **Wave arrival as a beat.** A VANGUARD wave now leads with its tanks; say
-   so: a banner line naming the formation (`WaveArchetypeData.display_name`
-   already exists), a horn sting for the leaders, a `camera_impact` at the
-   spawn when a signature body steps on. `EventBus.wave_archetype_started`
-   already carries the id.
-2. **A body under siege orders is readable.** A small mark over a body whose
-   `targets_towers()` is true and that is not a siege breed (a pick-axe
-   glyph, or the tower-target ring the tells already draw). The player must
-   be able to read "that one is going for my tower" - it is the whole point
-   of the orders. Presentation only; `CombatTells` is the place.
-3. **Tower hits felt on the board**: `Tower.hurt` already shakes and leaves
-   rubble; a tower under attack by a body wants a flash on its health bar and
-   the town-alert banner's rule applied (once per cooldown, named by road).
-   `town_alert_check` is the model.
-4. **Kill streaks and the last body**: the loot-streak pitch exists; a wave's
-   last body (`Stragglers`) could carry a louder finisher and a brief slow
-   (`GameSpeed.restore()` after - never write `Engine.time_scale` directly,
-   `game_speed_check` walks the source).
-5. **Preparation opening**: the sheet clocks exist; a soft chime at ten
-   seconds and a pulse on the countdown's last three, through `Sfx.MIX`.
-
-Do not: add `PointLight2D`s per effect (budgeted in `LightKit`), add nodes
-per hit, loop a shimmer, or put a number on anything a telegraph draws.
+1. Write `portent_shot` on `road_sheet_shot`'s pattern and photograph first,
+   at 1920x1080 and the phone shapes `layout_check` uses.
+2. Centre the row: the cards' container wants
+   `alignment = BoxContainer.ALIGNMENT_CENTER` and equal widths; check whether
+   the row is anchored full-width or sized to content.
+3. The overflow: the flavour label is either outside the card's box or the
+   card has a height while the label autowraps and grows. Put it inside the
+   box, equalise card heights by the tallest, and remember `Control.size` is
+   clamped to the combined minimum, so a panel grows past its offsets rather
+   than shrinking.
+4. Juice, bounded: the hologram hover/focus sweep already on every button
+   (`ui_juice_check`, additive only), a rise on hover, a rarity-coloured rim,
+   one driven sweep when the three are dealt. Nothing reads a look.
+5. Gate: `layout_check` at every shape stays green and opens this screen;
+   one check in `omen_check` that every flavour label's rect is inside its
+   card.
 
 ---
 
-## 4. For you: smarter AI, bounded
+## 2. Verification - the production claim depends on it
 
-Every one of these changes the *shape* of a fight and never its size (no
-damage multiplier, no new pool), and each is authored on `EnemyData` where a
-breed differs. Read `enemy.gd`'s `_pick_target`/`_choose_target` wrapper and
-`Wildlife.hunts_the_players` first.
+Nothing here is code. Each is one reading, and the claim is only true once
+all four hold sixty on Low.
 
-1. **Focus fire on the Warden who hits them**: the grudge branch exists;
-   check that a body struck from outside `ENEMY_HERO_AGGRO_RANGE` by an arrow
-   or a spell turns on the shooter for a bounded window rather than walking
-   on. Gate in `enemy_behaviour_check`.
-2. **Shooters hold their reach**: `ENEMY_SIEGE_SHARE` steps ranged bodies
-   nearer to the wall; against a Warden a HOWLER should back off when the
-   Warden closes inside a fraction of its reach (kiting), once per cooldown,
-   never off the road. Measure on the real field, hold the probe still.
-3. **Wildlife as cover**: bodies already fight animals only when bitten
-   (`_biting_back`). Leave it - the trace of 2026-09-22 showed a column
-   pulled off the road is worse than a body ignoring a wolf.
-4. **Bodies answer a tower that hurts them**: a body under fire from one
-   tower for several seconds with no target in reach could take a siege
-   order itself (`order_siege()`), bounded by the act's share. That closes
-   "sit at base" further without a new system.
-
-Do **not** build the ChatGPT "simulation LOD / spatial hash / scheduler"
-items as AI work - see §8.
+1. **A weak laptop** (integrated GPU) on Low, `perf_check --act=10 --build`.
+   Low was 61 ms when High was 76 because the cost was script; script is now
+   about 5 ms, so Low should scale well. Unmeasured.
+2. **A phone.** The Android workflow builds the APK. Low, the governor
+   (`QualityGovernor`) and the light budget are built for it. Unmeasured.
+3. **The web build.** Same. Web saves are per-origin.
+4. **Four-player Act X.** The perf harness is solo; `tools/coop_ui.sh` and
+   `coop_live_check` are the two-process harnesses. A guest should be lighter
+   than the host (no AI, no waves); the host mirroring three guests is the
+   unknown.
+5. **A play of the difficulty tune** by the owner (section 0).
+6. **The mix levels heard in play.** Every level was authored expecting to
+   be audible; none has been verified by ear.
+7. **`weapon_vfx_check`** fails once in five on a shared scratch profile: it
+   equips by a literal 0 on a uid-keyed map. Equip the piece's own uid.
+8. **The four human-judgement conformance rows** (`run_tool.gd -- audit
+   --todo`): read them for this release and record the reading.
 
 ---
 
-## 5. For you: the renderer's remaining milliseconds (measure first)
+## 3. Content that is missing rather than wrong
 
-Built at the end of 2026-09-24 without the screen: the health bar as one
-`_draw` of filled rects, and the ink canvases ageing on their redraw clock.
-Both were then measured on the screen: 19.1 ms to 13.7 ms average on the
-same seed and window (73 fps at Act X's peak), and `perf_bisect --visuals`
-re-ranked the field as torches 2.5, flames 1.6, towers 1.1, particles 0.6,
-minimap 0.5 (now on a clock), everything else at noise. **The torch and its
-flame are the whole of what is left**, and the next step is a finer ablation
-- add rows to `perf_bisect --visuals` that hide only a torch's ironwork,
-only the flames' halos, only the tongue meshes, only the embers - before
-rebuilding any of them. The shapes each would take if it ranks: the
-ironwork as one baked sprite per torch (a polygon per part is a primitive
-draw each); the tongues as a 48-cell sheet rendered once from the ring
-meshes by a windowed tool and drawn as a region rect, so every flame batches
-with every other; the embers as ink motes on a cadence, as the torch smoke
-went. **Done since**: the finer rows exist in `perf_bisect --visuals` (`torch_iron`,
-`flame_halo`, `flame_tongue`, `embers`, `torch_tick`, `flame_tick`), the
-ironwork is one baked texture and unseen flames sleep. Measured after: 13.0
-ms average, 975 draw calls. What the rows still price: embers 0.56 (ink
-motes on a cadence; amend `frame_budget_check`'s unseen-emitter test), the
-towers 1.1 (split them the same way first: sprite, `actor_polish` relief,
-aura, glow, light), the tongue mesh 0.26 and the halo 0.17 (noise floor,
-leave). And `weapon_vfx_check` is profile-dependent - it equips by a literal
-0 on a uid-keyed map - and failed once on a shared scratch profile; pin it by
-equipping the piece's own uid. Then the older candidates, each with the plan
-it needs:
-
-- **Ground blood**: keep the one triangle array (one draw call) and stop
-  rebuilding it on the fade. Bake each mark's birth and life into a vertex
-  attribute (UV2 or CUSTOM0 via `ArrayMesh`, or `draw_polygon`'s UV) and
-  fade in a shader off `TIME`, so `BloodField` rebuilds only when a mark is
-  added or dropped. Shaders are invisible headless: photograph with
-  `blood_shot` before and after.
-- **Loot piece materials**: one `ShaderMaterial` per rarity instead of one
-  per piece. Derive the shimmer `seed` in the shader from `MODEL_MATRIX`'s
-  origin rather than a uniform; give a piece its own material only when
-  `pickup` animates. Then `Vfx`-level draw calls drop by the piece count on
-  the field. Photograph with `loot_juice` / `juice_shot`.
-- **Tower airs** (`TowerAura`, one `CPUParticles2D` a tower): forty emitters
-  at peak. Convert to motes on the additive `VfxInk` on a cadence, as the
-  torch smoke and the dust were. `tower_juice_check` reads the air's
-  existence; amend deliberately.
-- **Torch lights**: `LightKit.budget_shadows` ranks shadow lights by distance;
-  do the same for *enabled* lights on High (`TORCH_LIGHT_ENABLED_BUDGET`),
-  so only the nearest N torches light at all. Off-screen lights are already
-  culled, so measure before assuming a gain.
-- **The tells**: `CombatTells` repaints on `RANGE_RING_REDRAW_HZ`; the arc is
-  a feathered polyline. If it ranks, draw it as quads of the soft dot like the
-  ink does.
-- **The ink itself**: if it still ranks under load, the next shape is a
-  `MultiMesh` per record kind (`RenderingServer.canvas_item_add_multimesh`,
-  buffer from a `PackedFloat32Array` rebuilt on the tick) - one command per
-  kind rather than a rect command per record.
-
-## 6. For you: housekeeping that is cheap and real
-
-- `docs/ROAD_TO_1_0.md` has the release checklist; walk it.
-- The 4K/ultrawide shapes and the phone shapes are on both bars; keep them
-  green after the card fix.
-- Run the pre-tag diff (CLAUDE.md, "the diff to run before a tag has three
-  lines") and the full `tools/sweep.sh <scratch> release` before any tag.
-- `perf_check --act=10 --build` windowed on the 180 Hz screen is the number
-  that matters for "144+"; it wants the screen for ninety seconds - ask.
+- **Music for Acts VI to X** at `music_act%02d_%02d.ogg`; seven regions also
+  borrow another's battle track (`TerrainData.battle_music`).
+- **Boss themes** at `music_boss_act%02d.ogg`, 0 of 10; the crossfade and the
+  stinger are built.
+- **Ambience recordings** for the seven regions lying under a borrowed bed
+  (`TerrainData.ambience_bed`).
+- **Enemy voices**: 67 breeds with `EnemyData.voice_sfx` empty; six archetype
+  prompts in `docs/SFX_PROMPTS.md`. Import with `import_audio.py`, then
+  `register_sfx.py`, then `--import`. Never delete the inbox.
+- **The Last Anchor's sprite** (Act X boss), the one stand-in left. Boss art
+  is 384px; PixelLab's animator caps at 256, so bosses keep four walk frames.
+- **The Warden's chop and mine sheets**; `Hero.play_work_swing` takes one by
+  name. The Warden was re-founded as a PixelLab character for the dress pilot
+  (`Warden (dress pilot)`), so new states are reachable again.
+- **A Guide page for mounts** (`guide_shots` needs the screen).
 
 ---
 
-## 7. Needs the owner
+## 4. Feel and juice, each a look and never a fact
 
-- **Warden-only objectives** (`DESIGN_DIRECTION_2026-09-22.md` §2, item 2):
-  a caravan to escort, a shrine to hold, an elite that must fall to melee.
-  It is a content system, so it needs a bound written before code (what it
-  pays, what it costs to ignore, never a power scale). Siege orders are
-  built; this is the other half of "no sitting at base".
-- **Fast-forward costing something** (§2 item 4): a design ruling.
-- **The vanguard share and the siege share** are numbers the owner will feel
-  on the next play; expect a report and move `WAVE_VANGUARD_SHARE` /
-  `WAVE_SIEGE_ORDER_SHARE` rather than the code.
+Bounds for every item: read by nothing, damped by `JuiceDirector` as
+COSMETIC, scaled away by `Graphics.particle_scale`, records on `VfxInk` or
+`BloodMotes` rather than nodes (`frame_budget_check` holds that a hit
+allocates nothing), photographed before believed. Most of the forwarded
+juice lists are already built - grep for what a system reads before adding.
+
+1. **A wave arriving as a beat**: the formation's `display_name` on the
+   banner (`EventBus.wave_archetype_started` carries the id), a horn sting
+   for the leaders, a `camera_impact` when the signature body steps on.
+2. **A body under siege orders readable**: a mark in `CombatTells` for a body
+   whose `targets_towers()` is true and that is not a siege breed.
+3. **Tower hits felt on the board**: a flash on the tower's bar and the
+   town-alert rule (once per cooldown, named by road) for a tower under
+   attack; `town_alert_check` is the model.
+4. **The last body of a wave** (`Stragglers`): a louder finisher and a brief
+   slow through `GameSpeed` - never write `Engine.time_scale` directly.
+5. **Preparation's clock**: a chime at ten seconds, a pulse on the last
+   three, through `Sfx.MIX`.
+6. **The deferred second rank** (owner, 2026-09-15): persistent footprints,
+   boss entrance behaviours, post-battle settling, anticipation audio on the
+   telegraphs. Content, not systems; build after 1 to 5 have been played.
+7. **Bodies shaded by light direction**: towers wear `actor_polish` with
+   `shade_strength`; rolling it to bodies is one uniform a kind and a
+   decision (section 6).
 
 ---
 
-## 8. ChatGPT's 25 optimisation items, triaged against what ships
+## 5. Performance - only after section 2 says where
 
-Measured facts this rests on are in CLAUDE.md's 2026-09-24 entries: at Act X
-peak the frame is 17.9 ms windowed at 1080p, script about 9 ms, and the
-lever is the number of things drawn, not script.
+Measured and ranked on this machine (`perf_bisect --visuals`, held Act X):
 
-| # | Item | Verdict |
-|---|------|---------|
-| 1 | Simulation scheduler / staggered ticks | **Mostly built** as cadences: `ENEMY_RETARGET_SECONDS`, `TOWER_AIM_INTERVAL`, `TOWER_IDLE_RESCAN_SECONDS`, `ENEMY_HOWLER_SENSE_SECONDS`, fog 10 Hz, trample 15 Hz, `FOOTFALL_HZ`, `FLAME_REDRAW_HZ`. A central scheduler class would be a refactor for no measured gain; add a cadence where the profile names a per-frame cost. |
-| 2 | Spatial hash for everything | **Not worth it now.** `EnemyField.living_bodies` gathers once a frame and `separate_crowd` already buckets; roster is 40-70 bodies, not 1,500. Revisit only if `perf_check --trace` names `enemies_near`. |
-| 3 | Simulation LOD | **Refused.** Every body on this field is on a road toward the town; there is no "far" body whose AI can be abstracted without changing what arrives. Wildlife already forgets animals out of sight. |
-| 4 | Flow fields for hordes | **Built** (routes are shared polylines per lane; rifts use a flow field). |
-| 5 | Pooling + budgets | **Built** (`NodePool`, `VFX_INK_*_MAX`, `LOOT_FIELD_MAX`, `PROJECTILE_LIGHT_MAX`, `SHADOW_LIGHT_BUDGET_*`). |
-| 6 | Fake projectiles | **Built** - no physics bodies; a shot is one node and one additive child. |
-| 7 | No physics on visuals | **Built** - `VfxInk`, `BloodMotes`, records not bodies. |
-| 8-9 | MultiMesh foliage, hybrid trees | **Measured and refused**: the 725 plants cost 0.4 ms (`perf_bisect --visuals`); the renderer batches texture rects already. |
-| 10 | Event-driven climate | **Built** (dirty cells, band crossings only). |
-| 11 | Aggregate ecology | **Refused** - the ecology *is* the field the player stands on; nothing is off-screen enough. |
-| 12-13 | Staggered tower targeting, separate acquire/fire | **Built** (choice once a frame shared, idle rescan cadence). |
-| 14 | Squared distances | **Built** where it matters (`enemies_near`). |
-| 15 | Cache references | **Built** (`all_towers()` rebuilt on change, `Tower._lane` once). |
-| 16 | Data-oriented arrays | **Built for VFX and blood**; bodies stay nodes (they are the game). |
-| 17 | Threads | **Refused** for 1.0 - nothing measured is on the main thread long enough, and the gates cannot see a race. |
-| 18 | Chunking | **Refused** - one field, 87 tiles a side, already culled per emitter (`ScreenCull`). |
-| 19 | LOD/HLOD | n/a in 2D beyond what `ScreenCull` does. |
-| 20 | Transparent overdraw | **Worth a look**: bloom, fog, veil, flood sheen stack at night. Measure with `perf_bisect --visuals` before touching. |
-| 21 | Dynamic VFX scaling | **Built** (`JuiceDirector` load, `QualityGovernor`). |
-| 22 | Audio priority | **Built** (voice pool, `SFX_CUTOFF`, `MIX` limits). |
-| 23 | Prewarm | **Built** (`RosterWarmup.warm_act`, `warm_shaders`, `Vfx.warm_art`). |
-| 24 | No spawn-all-at-once | **Built** (`WAVE_SPAWN_SPACING`, `MASS_KILL_PER_FRAME`). |
-| 25 | Explicit budgets | **Built** as `frame_budget_check` + `perf_check` ledger; a written ms table would be prose that drifts. |
+    towers 1.1 ms   embers 0.56   flame_tick 0.31 (now sleeps)
+    flame_tongue 0.26   flame_halo 0.17   everything else at noise
 
-The honest next millisecond is renderer-side: torches and pools, particles,
-the ink under load, the tells, the bars - `perf_bisect --visuals` ranked them.
+1. **The towers**: split them the way the torch was split - rows in the
+   bisect for the sprite, the `actor_polish` relief, the aura, the glow and
+   the light - before touching anything. It is almost certainly the shader.
+2. **The embers**: one `CPUParticles2D` a flame. Ink motes on a cadence, as
+   the torch smoke and the dust went; amend `frame_budget_check`'s
+   "an unseen emitter rests" deliberately.
+3. **Draw calls** (975 at peak, about 4 microseconds each): add a draw-call
+   column to the bisect first (`RenderingServer.get_rendering_info`). Then,
+   if it ranks: atlas the foliage per region through Godot's texture-atlas
+   import (watch edge bleed under linear filtering; photograph), share the
+   per-instance shader materials on bodies, towers and loot by moving the
+   per-instance value into a channel the shader reads, and render the flame
+   tongues once into a 48-cell strip so flames batch.
+4. **Ground blood**: keep the one triangle array; move the fade into a shader
+   off `TIME` so `BloodField` rebuilds only when marks change. `blood_shot`
+   before and after.
+5. **A landscape phone's road sheet** has 76 units of room with the spirit
+   readout up (section 6 decides).
+
+---
+
+## 6. Decisions only the owner can make - ask, do not build
+
+- **Warden-only objectives** (`DESIGN_DIRECTION_2026-09-22.md` section 2,
+  item 2): a caravan to escort, a shrine to hold, an elite that must fall to
+  melee. Siege orders are the first half of "no sitting at base"; this is the
+  second. A content system: its bound (what it pays, what ignoring it costs,
+  never a power scale) is written before code, as spirits, the pantry,
+  professions and materials each were.
+- **Whether fast-forward costs something** (same document, item 4).
+- **The behaviour floor**: `_commit_behaviour` holds every commitment for at
+  least `ENEMY_BEHAVIOUR_SECONDS` (2.4 s), which overrides every POUNCE and
+  STORE window on twenty-seven breeds. A pacing decision.
+- **The landscape phone's spirit readout** stepping aside while a sheet is
+  open, which softens a 2026-09-17 ruling.
+- **Modular gear on the Warden's body** (`WARDEN_DRESS_DESIGN_2026-09-24.md`):
+  designed and piloted, about ninety generations, weapons first. A budget
+  decision.
+- **The game speed button on touch layouts**: hidden for now; the column has
+  no room on a landscape phone.
+- **Bodies shaded by light direction** (section 4, item 7).
+- **Named legendaries and Notorious elites**: refused for 1.0 on 2026-09-15;
+  1.1 candidates.
+- **`WAVE_VANGUARD_SHARE` and `WAVE_SIEGE_ORDER_SHARE`** are numbers the
+  owner will feel on the next play; move them, not the code.
+
+---
+
+## 7. Release mechanics, so a tag is never lost to a stale gate
+
+- The release bar is a superset of guard's; five judgement-heavy reports
+  (`balance_test`, `curve_report`, `soak`, `perf_check`, `map_mode_play_check`)
+  are release-only. **`balance_test` was red on main for a day this week
+  because nothing on push runs it** - run it by hand after touching
+  `LootDrop`, `Projectile`, `EnemyProjectile`, `Balance` or the wave director.
+- Eight gates in this project's history were coin tosses; every one was a
+  fresh seed. Any gate that stands up a run pins its seed
+  (`RunState.reset(false, seed)`).
+- `curve_report` reads the account; tune against an empty `APPDATA`.
+- The pre-tag diff (CLAUDE.md, "the diff to run before a tag has three
+  lines") over `res://tools/[a-z_0-9]+\.(tscn|gd)`.
+- After a new `class_name`, run `--import` and then `git checkout project.godot`.
+
+---
+
+## 8. What is done and must not be built twice
+
+Pooling (`NodePool`), dust and every hit effect as ink records, the bar as
+one `_draw`, the ink ageing on its clock, the torch ironwork baked, sleeping
+flames, the minimap on a clock, one additive material, the roster cache
+invalidation, formations, siege orders, the difficulty tune, the band at
+0.40 to 0.64, the wrath gate pinned. The 25 ChatGPT optimisation items are
+triaged in CLAUDE.md's 2026-09-24 entries: fifteen already built under
+other names, six refused on measurement, two not worth it at this scale,
+two open (transparent overdraw at night, and the renderer rows above). Do
+not rebuild a spatial hash, a simulation LOD, chunking, threads or MultiMesh
+foliage without a measurement that names them.
