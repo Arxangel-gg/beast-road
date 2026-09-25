@@ -183,13 +183,18 @@ func _build_two_sessions() -> void:
 	# and tripping the guard on local traffic. `CoopRelay.bus` is injectable for
 	# exactly this reason.
 	var bus_script: GDScript = load("res://autoload/EventBus.gd") as GDScript
-	_host_bus = Node.new()
-	_host_bus.name = "HostBus"
-	_host_bus.set_script(bus_script)
+	# Built bare and given the script before the typed fields take them: the
+	# fields hold the EventBus script's type (2026-09-25), and a bare `Node`
+	# is not one until its script is set.
+	var host_bus := Node.new()
+	host_bus.name = "HostBus"
+	host_bus.set_script(bus_script)
+	_host_bus = host_bus as CoopRelay.BusScript
 	_host_root.add_child(_host_bus)
-	_guest_bus = Node.new()
-	_guest_bus.name = "GuestBus"
-	_guest_bus.set_script(bus_script)
+	var guest_bus := Node.new()
+	guest_bus.name = "GuestBus"
+	guest_bus.set_script(bus_script)
+	_guest_bus = guest_bus as CoopRelay.BusScript
 	_guest_root.add_child(_guest_bus)
 
 	_host = Node.new()

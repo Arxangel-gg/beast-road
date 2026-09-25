@@ -9304,6 +9304,71 @@ readings on this build, with the phone models, their resolutions, the act
 the reading was taken in and the preset the settings screen shows. The
 governor only acts while no preset has been chosen by hand.
 
+**The owner measured 60 fps on the 2019 phone on Minimal, as of 2026-09-25.**
+It was 6 fps on Low the night before. That is the first reading of this game
+on hardware of the minimum-spec class, and it is the evidence the conformance
+row "60 FPS at 1920x1080 on minimum spec" was missing - recorded here rather
+than claimed as the row closing, because one phone is one reading.
+
+**The portent cards are centred, fitted and dealt, as of the same day.** The
+owner's screenshot showed three cards in the left half of the screen and the
+flavour sentence hanging under them. Two faults and one fix each:
+
+- **An `HBoxContainer` packs left by default.** Five card rows (roads, relics,
+  portents, road cards and one more) are built through `_card_row` now, which
+  centres.
+- **A `Button` does not grow to fit its children.** The card is a fixed-size
+  button with its face laid inside, so a long bane, boon and flavour grew the
+  face past the card, and the face's clip clipped nothing because it clips to
+  its own grown rect. `_fit_play_cards` measures after two layout passes (an
+  autowrapped label knows its height only once it has its width) and sizes
+  every card to the tallest face; on a short screen the cards first widen into
+  the row's spare width and then the illustration gives up height
+  (`PLAY_CARD_WIDEST`, `PLAY_CARD_ART_MIN`).
+
+The deal flips each card in on `scale` and a hover lifts it - `scale`, because
+the row owns position and size and the first entrance fought it on position.
+`layout_check` deals the three wordiest portents at every shape and holds the
+words inside the cards, equal heights, a centred row and every card on the
+screen. **It caught the landscape phone on its first run** (658-unit cards on
+a 777-unit screen), which is why the fit uses the room. Planted, it named the
+left-packed row at 498 units of lean, which is the screenshot.
+
+**Six juice items, each a look and never a fact.** A VANGUARD or REARGUARD
+formation sounds the enemy's own horn call; the breather ticks at ten and at
+three, two and one; every health bar's fill flashes on a bite; a tower taking
+blows is said by its road (`EventBus.tower_struck`, local presentation, its own
+`TOWER_ALERT_COOLDOWN`); a body whose current target is a tower wears a pulsing
+ring at its feet in `CombatTells` (`Enemy.siege_target`,
+`Battlefield.bodies_at_the_board`); and the last kill of a wave holds for a
+hitstop beat through the one door that gives the clock back to `GameSpeed`.
+
+**An unknown property is a compile error now.** `unsafe_property_access` is
+raised to an error in `project.godot`, so `script_check` - which compiles every
+script - fails a push on a property a type does not declare. That was the
+fault class behind five shipping bugs found by hand on 2026-09-22, and 2026-09-22
+deferred this change to its own pass because it can stop the game loading.
+**199 sites were resolved and the game loads with no error or warning.** 148 of
+them were the co-op relay holding EventBus as a `Node`; it holds it as the
+EventBus script's type (`CoopRelay.BusScript`) now, so a signal renamed on the
+bus is a parse error in the relay rather than a relay that binds nothing. Three
+of the rest were latent faults: `forge_shot` read two `Vfx` constants the forge
+catalogue had removed, `pad_focus_check` read `editable` off a `Range`, and
+`coop_check` read the Coop enum off sessions typed `Node`.
+`unsafe_method_access` is deliberately not raised: the project calls methods
+through `call` and `has_method` by design, and that is a different audit.
+
+**Two gate coin tosses and one crash at quit were answered the same day.**
+`loot_juice_check` held the toss's peak within one unit of the analytic peak
+while the piece integrates per frame and undershoots by about the launch speed
+times half a frame - the tolerance is derived now, the ninth coin toss.
+`coop_check` crashed on exit about one run in four on Windows because it waited
+thirty *frames* for the native peer's threads, which headless is milliseconds;
+it waits a second of wall time as well, eight of eight clean after.
+`weapon_vfx_check` fails about one run in five on a shared profile and never on
+a fresh one; it prints the equip state it saw when it fails, and the plan's
+earlier diagnosis of it was wrong (`MetaState.equip` takes an index).
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
