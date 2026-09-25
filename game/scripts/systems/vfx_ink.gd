@@ -81,7 +81,27 @@ func _init(adds_light: bool = true) -> void:
 ## one, registered here so a `Flame` - which the headless `--script` tools load
 ## and which therefore may not name an autoload - can reach it.
 static var ember_canvas: VfxInk = null
-var _embers: Array[Dictionary] = []
+## **Embers are a ring of packed arrays, keyed by when each was born**
+## (2026-09-25). A flame sheds hundreds a second and an ember's path is a
+## function of its age alone, so as a nine-key dictionary aged every tick the
+## records cost more than the emitter they replaced (1.01 ms of a held Act X
+## frame against 0.87). Here an ember is written once and never touched again:
+## its age is the ink's own ember clock less its birth, the clock runs only
+## while the tree does (so a pause holds them, as it held the records), the
+## dead are skipped where they are and dropped from the front of the ring, and
+## at the cap the oldest gives way. Born is a 64-bit float so a ten-hour road
+## still places an ember to the microsecond.
+var _ember_at: PackedVector2Array = PackedVector2Array()
+var _ember_velocity: PackedVector2Array = PackedVector2Array()
+var _ember_born: PackedFloat64Array = PackedFloat64Array()
+var _ember_life: PackedFloat32Array = PackedFloat32Array()
+var _ember_size: PackedFloat32Array = PackedFloat32Array()
+var _ember_rise: PackedFloat32Array = PackedFloat32Array()
+var _ember_core: PackedColorArray = PackedColorArray()
+var _ember_body: PackedColorArray = PackedColorArray()
+var _ember_head: int = 0
+var _ember_count: int = 0
+var _ember_clock: float = 0.0
 
 
 func _exit_tree() -> void:
@@ -118,7 +138,8 @@ func clear() -> void:
 	_art.clear()
 	_numbers.clear()
 	_dust.clear()
-	_embers.clear()
+	_ember_head = 0
+	_ember_count = 0
 	queue_redraw()
 
 
@@ -144,8 +165,10 @@ func live_numbers() -> int:
 	return _numbers.size()
 
 
+## The embers the ring holds. A dead one behind a living one is counted until
+## it reaches the front, which is at most one ember lifetime of overstatement.
 func live_embers() -> int:
-	return _embers.size()
+	return _ember_count
 
 
 ## An ember: born at `at` moving at `velocity`, lifted by `rise` a second a
@@ -154,17 +177,42 @@ func live_embers() -> int:
 ## hundred torches never push a shot's trail out of the motes.
 func ember(at: Vector2, velocity: Vector2, rise: float, core: Color, body: Color,
 		size: float, life: float) -> void:
-	_push(_embers, {
-		"at": at,
-		"velocity": velocity,
-		"rise": rise,
-		"core": core,
-		"body": body,
-		"size": maxf(size, 0.5),
-		"life": maxf(life, 0.02),
-		"age": 0.0,
-		"always": false,
-	}, Balance.VFX_INK_EMBERS_MAX)
+	var cap: int = Balance.VFX_INK_EMBERS_MAX
+	if _ember_born.size() != cap:
+		_ember_at.resize(cap)
+		_ember_velocity.resize(cap)
+		_ember_born.resize(cap)
+		_ember_life.resize(cap)
+		_ember_size.resize(cap)
+		_ember_rise.resize(cap)
+		_ember_core.resize(cap)
+		_ember_body.resize(cap)
+		_ember_head = 0
+		_ember_count = 0
+	var slot: int = 0
+	if _ember_count < cap:
+		slot = (_ember_head + _ember_count) % cap
+		_ember_count += 1
+	else:
+		slot = _ember_head
+		_ember_head = (_ember_head + 1) % cap
+	_ember_at[slot] = at
+	_ember_velocity[slot] = velocity
+	_ember_born[slot] = _ember_clock
+	_ember_life[slot] = maxf(life, 0.02)
+	_ember_size[slot] = maxf(size, 0.5)
+	_ember_rise[slot] = rise
+	_ember_core[slot] = core
+	_ember_body[slot] = body
+
+
+## Drops the dead from the front of the ring and says whether any are left.
+func _prune_embers() -> bool:
+	var cap: int = _ember_born.size()
+	while _ember_count > 0 and _ember_clock - _ember_born[_ember_head] >= _ember_life[_ember_head]:
+		_ember_head = (_ember_head + 1) % cap
+		_ember_count -= 1
+	return _ember_count > 0
 
 
 func live_dust() -> int:
@@ -384,7 +432,9 @@ func _process_measured(delta: float) -> void:
 	moved = _age(_art, step, paused) or moved
 	moved = _age(_numbers, step, paused) or moved
 	moved = _age(_dust, step, paused) or moved
-	moved = _age(_embers, step, paused) or moved
+	if not paused:
+		_ember_clock += step
+	moved = _prune_embers() or moved
 	if moved:
 		queue_redraw()
 	elif _was_live:
@@ -625,23 +675,26 @@ func _draw_dust(inverse: Transform2D) -> void:
 
 
 func _draw_embers(inverse: Transform2D) -> void:
-	if _embers.is_empty():
+	if _ember_count == 0:
 		return
 	var dot: Texture2D = Flame.dot_texture()
-	for record: Dictionary in _embers:
-		var age: float = float(record["age"])
-		var t: float = clampf(age / float(record["life"]), 0.0, 1.0)
-		var colour: Color = (record["core"] as Color).lerp(record["body"] as Color,
-			clampf(t / 0.35, 0.0, 1.0))
+	var cap: int = _ember_born.size()
+	for index: int in _ember_count:
+		var slot: int = (_ember_head + index) % cap
+		var age: float = _ember_clock - _ember_born[slot]
+		var life: float = _ember_life[slot]
+		if age >= life or age < 0.0:
+			continue
+		var t: float = age / life
+		var colour: Color = _ember_core[slot].lerp(_ember_body[slot], minf(t / 0.35, 1.0))
 		# The emitter's own ramp: whole through the first third, then fading -
 		# fading from birth left a torch's embers as specks nobody saw.
 		var lit: float = colour.a * (1.0 if t < 0.35 else 1.0 - (t - 0.35) / 0.65)
 		if lit <= 0.004:
 			continue
-		var from: Vector2 = record["at"] as Vector2
-		var at: Vector2 = inverse * (from + (record["velocity"] as Vector2) * age
-			+ Vector2(0.0, -0.5 * float(record["rise"]) * age * age))
-		var radius: float = float(record["size"]) * (1.0 - 0.6 * t)
+		var at: Vector2 = inverse * (_ember_at[slot] + _ember_velocity[slot] * age
+			+ Vector2(0.0, -0.5 * _ember_rise[slot] * age * age))
+		var radius: float = _ember_size[slot] * (1.0 - 0.6 * t)
 		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
 			Color(colour.r, colour.g, colour.b, lit))
 
