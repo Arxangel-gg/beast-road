@@ -670,6 +670,30 @@ func _test_the_riders_throw_on_the_way_in() -> void:
 			sieger.queue_free()
 			await get_tree().process_frame
 
+	# **Never asked of something that is gone** (2026-09-25). A tower razed or
+	# an animal killed under a rider leaves `_target` holding a freed instance,
+	# and the throw used to ask that instance what it *was* before asking
+	# whether it still existed - an engine error rather than a false, which
+	# failed the v0.56.11 release on `breather_check` and nowhere here. So the
+	# rider walks at a target that is freed under it, for real, and the sweep's
+	# error scan is what refuses the old order: this cannot be told apart from
+	# a correct false by the return value alone.
+	var orphaned: Enemy = _a_rider(field, hero, breed, 0.0)
+	if orphaned != null and is_instance_valid(orphaned):
+		var decoy := Node2D.new()
+		field.add_child(decoy)
+		decoy.global_position = hero.global_position + Vector2.RIGHT * (
+			breed.thrown_range * 0.6)
+		orphaned.set("_target", decoy)
+		decoy.free()
+		_check(not bool(orphaned.call("_may_throw_on_the_way_in")),
+			"%s would throw at a target that no longer exists" % breed.id)
+		for _frame: int in 6:
+			await get_tree().process_frame
+		if is_instance_valid(orphaned):
+			orphaned.queue_free()
+		await get_tree().process_frame
+
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()

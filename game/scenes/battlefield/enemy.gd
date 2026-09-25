@@ -4050,9 +4050,13 @@ func _may_throw_on_the_way_in() -> bool:
 		return false
 	if data.thrown_shot() == null:
 		return false
-	if not (_target is Hero or _target is Companion):
+	# Validity first: a tower razed or an animal killed under a rider is a
+	# freed instance, and asking a freed instance what it *is* is an engine
+	# error rather than a false - the v0.56.11 release failed on exactly this
+	# (2026-09-25).
+	if _target == null or not is_instance_valid(_target):
 		return false
-	if not is_instance_valid(_target):
+	if not (_target is Hero or _target is Companion):
 		return false
 	var gap: float = _target_gap(_target)
 	return gap > attack_reach() and gap <= data.thrown_range
@@ -4107,7 +4111,8 @@ func _loose_a_shot(damage: float) -> void:
 	# fell back with it: every breed in the game threw the roster's plain
 	# unpainted rune at the wall, which is the owner's report of 2026-09-22
 	# that "they all attack the base using the same projectile".
-	var at_a_person: bool = _target is Hero or _target is Companion
+	var at_a_person: bool = _target != null and is_instance_valid(_target)
+	at_a_person = at_a_person and (_target is Hero or _target is Companion)
 	var chosen: EnemyShotData = _choose_a_shot()
 	var shot: int = data.shot
 	if chosen != null:
@@ -4135,7 +4140,8 @@ func loose_named_shot(id: String, damage: float) -> bool:
 	var chosen: EnemyShotData = _shot_named(id)
 	if chosen == null:
 		return false
-	var at_a_person: bool = _target is Hero or _target is Companion
+	var at_a_person: bool = _target != null and is_instance_valid(_target)
+	at_a_person = at_a_person and (_target is Hero or _target is Companion)
 	_shot_paint = chosen
 	_loose_by_kind(int(chosen.kind) if at_a_person else EnemyData.Shot.BOLT, damage)
 	return true
