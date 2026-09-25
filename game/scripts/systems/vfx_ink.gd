@@ -633,7 +633,9 @@ func _draw_embers(inverse: Transform2D) -> void:
 		var t: float = clampf(age / float(record["life"]), 0.0, 1.0)
 		var colour: Color = (record["core"] as Color).lerp(record["body"] as Color,
 			clampf(t / 0.35, 0.0, 1.0))
-		var lit: float = colour.a * (1.0 - t)
+		# The emitter's own ramp: whole through the first third, then fading -
+		# fading from birth left a torch's embers as specks nobody saw.
+		var lit: float = colour.a * (1.0 if t < 0.35 else 1.0 - (t - 0.35) / 0.65)
 		if lit <= 0.004:
 			continue
 		var from: Vector2 = record["at"] as Vector2

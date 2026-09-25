@@ -36,9 +36,17 @@ func _ready() -> void:
 	# Partway up the north road, where the posts stand either side of it.
 	field.hero.global_position = Battlefield.lane_vector(0) * 520.0
 	DayNight._apply(phase)
+	# `--close` (2026-09-25): the camera pulled in on one post, so the embers
+	# a flame sheds onto the ink can be judged at a size a player sees them.
+	var close: bool = OS.get_cmdline_user_args().has("--close")
+	if close and field.camera != null:
+		field.camera.set("_wanted_zoom", 2.6)
+		field.camera.zoom = Vector2.ONE * 2.6
 	for _f: int in 90:
 		await get_tree().process_frame
-	var path: String = "user://torch_shot_%02d.png" % int(round(phase * 100.0))
+	var ink: VfxInk = VfxInk.ember_canvas
+	print("[torch] embers alive on the ink: %d" % (ink.live_embers() if ink != null else -1))
+	var path: String = "user://torch_shot_%02d%s.png" % [int(round(phase * 100.0)), "_close" if close else ""]
 	get_viewport().get_texture().get_image().save_png(path)
 	print("[torch] phase %.2f darkness %.2f -> %s" % [phase, DayNight.darkness,
 		ProjectSettings.globalize_path(path)])
