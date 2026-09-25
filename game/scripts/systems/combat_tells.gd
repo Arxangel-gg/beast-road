@@ -59,6 +59,9 @@ var hero: Callable = Callable()
 var tower_at: Callable = Callable()
 ## Whether a point is near enough a Warden for an enemy's ring to matter.
 var near_a_warden: Callable = Callable()
+## The bodies going for a tower right now (2026-09-25), asked of the field for
+## the same reason `hero` is. Each wears a ring at its feet.
+var sieging: Callable = Callable()
 
 ## One entry per shooter that has fired recently: where, how far, what colour,
 ## and how long is left on it.
@@ -207,6 +210,7 @@ func _draw_measured() -> void:
 		return
 	_draw_rings(weight)
 	_draw_reach(weight)
+	_draw_siege_marks(weight)
 
 
 ## The rings, each fading on its own clock over its last moments only - a ring
@@ -237,6 +241,30 @@ func _draw_rings(weight: float) -> void:
 			Balance.RANGE_RING_WIDTH * Balance.RANGE_RING_HALO_WIDTH * (1.0 + pulse * 0.5), 1.0, aim)
 		_arc(ring["at"] as Vector2, float(ring["reach"]), tint,
 			Balance.RANGE_RING_WIDTH * (1.0 + pulse), 1.0, aim)
+
+
+## **A ring at the feet of every body going for a tower** (2026-09-25). Siege
+## orders send a share of every late wave at the board, and a body under them
+## looks exactly like one walking at the wall; this is the read. A slow pulse
+## so it is noticed without being mistaken for a telegraph, which never
+## pulses. Capped at `SIEGE_MARK_MAX`. A look and never a fact.
+func _draw_siege_marks(weight: float) -> void:
+	if not sieging.is_valid():
+		return
+	var bodies: Array = sieging.call()
+	var tint: Color = Balance.SIEGE_MARK_COLOUR
+	tint.a *= weight * (0.72 + 0.28 * sin(_clock * 4.2))
+	var drawn: int = 0
+	for value: Variant in bodies:
+		if drawn >= Balance.SIEGE_MARK_MAX:
+			break
+		var body := value as Node2D
+		if body == null or not is_instance_valid(body):
+			continue
+		var radius: float = float(body.call("contact_radius")) * Balance.SIEGE_MARK_RADIUS_SCALE \
+			if body.has_method("contact_radius") else 30.0
+		_arc(body.global_position, radius, tint, 2.5)
+		drawn += 1
 
 
 ## The bodies the next swing would land on.

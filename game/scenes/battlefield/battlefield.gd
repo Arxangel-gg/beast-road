@@ -3213,12 +3213,23 @@ func _watched_point() -> Vector2:
 ## so a ring lies on the ground rather than over the bodies standing on it,
 ## and it freezes with the field for a raid (working rule 8) without knowing
 ## raids exist.
+## The bodies whose current target is a tower, for the siege mark
+## (2026-09-25). One walk of the roster the field already gathers a frame.
+func bodies_at_the_board() -> Array:
+	var out: Array = []
+	for enemy: Enemy in living_bodies():
+		if is_instance_valid(enemy) and enemy.siege_target() != null:
+			out.append(enemy)
+	return out
+
+
 func _build_combat_tells() -> void:
 	_tells = CombatTells.new()
 	_tells.name = "CombatTells"
 	_tells.hero = _would_be_hit
 	_tells.tower_at = _tower_ring_centre
 	_tells.near_a_warden = _near_a_warden
+	_tells.sieging = bodies_at_the_board
 	(entity_root if entity_root != null else self).add_child(_tells)
 
 

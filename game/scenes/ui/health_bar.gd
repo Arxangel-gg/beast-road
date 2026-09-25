@@ -37,6 +37,9 @@ var _width_scale: float = 1.0
 var _ranked: bool = false
 var _background_colour: Color = Balance.HEALTH_BAR_BACKGROUND_COLOUR
 var _fill_colour: Color = Balance.HEALTH_BAR_FILL_COLOUR
+## A bite flashes the fill toward white and it settles (2026-09-25): the
+## bar says "that landed" before the trail says how much.
+var _flash: float = 0.0
 
 
 func _ready() -> void:
@@ -91,6 +94,7 @@ func _on_changed(current: float, maximum: float) -> void:
 	if ratio < _ratio:
 		# A bite: the trail stays where the health was and drains after.
 		_trail_ratio = maxf(_trail_ratio, _ratio)
+		_flash = 1.0
 		set_process(true)
 	elif ratio > _trail_ratio:
 		_trail_ratio = ratio
@@ -101,10 +105,15 @@ func _on_changed(current: float, maximum: float) -> void:
 
 
 func _process_measured(delta: float) -> void:
-	if _trail_ratio <= _ratio + 0.0005:
+	_flash = maxf(_flash - delta / Balance.HEALTH_BAR_FLASH_SECONDS, 0.0)
+	if _trail_ratio <= _ratio + 0.0005 and _flash <= 0.0:
 		_trail_ratio = _ratio
 		_apply_size()
 		set_process(false)
+		return
+	if _trail_ratio <= _ratio + 0.0005:
+		_trail_ratio = _ratio
+		_apply_size()
 		return
 	# A short hold, then a drain: the eye catches the pale bite before it goes.
 	_trail_ratio = maxf(_trail_ratio - delta * Balance.HEALTH_BAR_TRAIL_RATE, _ratio)
@@ -132,7 +141,8 @@ func _draw_measured() -> void:
 		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _trail_ratio, rect.size.y)),
 			Balance.HEALTH_BAR_TRAIL_COLOUR)
 	if _ratio > 0.0:
-		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _ratio, rect.size.y)), _fill_colour)
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _ratio, rect.size.y)),
+			_fill_colour.lerp(Color.WHITE, _flash * Balance.HEALTH_BAR_FLASH_GAIN))
 	var outline: Color = Balance.HEALTH_BAR_RANK_FRAME if _ranked else Balance.HEALTH_BAR_FRAME_OUTLINE
 	_frame(rect.grow(1.0), outline)
 	if _ranked:

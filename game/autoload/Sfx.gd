@@ -1748,6 +1748,13 @@ func _ready() -> void:
 	# a kill would flatten the difference between them.
 	EventBus.wave_cleared.connect(func(_wave: int) -> void:
 		play("sfx_ui_confirm", -6.0))
+	# **A formation with leaders announces them** (2026-09-25): the enemy's own
+	# horn call when a VANGUARD or REARGUARD wave is dealt, so the tanks the
+	# formation sends first are heard coming.
+	EventBus.wave_archetype_started.connect(func(_wave: int, archetype_id: String) -> void:
+		var archetype: WaveArchetypeData = ContentDB.wave_archetype(archetype_id)
+		if archetype != null and archetype.formation != WaveArchetypeData.Formation.SCATTERED:
+			play_group("sfx_enemy_call_horn", -3.0))
 	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
 		play("sfx_spell_nova")
 		play("sfx_relic_socket", -3.0))

@@ -509,6 +509,10 @@ signal torch_state_changed(lane: int, lit: bool)
 signal town_damaged(amount: float, current_hp: float, max_hp: float)
 ## Where a blow on the town came from, so the HUD can name the road (2026-09-21).
 signal town_struck(from: Vector2)
+## Something landed a blow on a tower - a body or the earth; `at` is the
+## tower (2026-09-25). Local
+## presentation: tower health never crosses the wire.
+signal tower_struck(at: Vector2)
 
 ## The town's health changed for any reason.
 signal town_health_changed(current_hp: float, max_hp: float)

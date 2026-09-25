@@ -1816,6 +1816,9 @@ func _on_construction_completed(_building_id: String, _tier: int) -> void:
 ## already is. Deliberately gentler than a kill - a wave clearing is relief, and
 ## celebrating it as hard as a boss would flatten the difference between them.
 func _on_wave_cleared(_wave_number: int) -> void:
+	# The last kill of a wave holds for a beat before the breather (2026-09-25),
+	# through the one hitstop door, which gives the clock back to `GameSpeed`.
+	EventBus.hitstop_requested.emit(Balance.WAVE_CLEAR_HITSTOP)
 	ring(Vector2.ZERO, Balance.TOWN_RADIUS * 2.1, Color(0.62, 0.86, 0.72, 0.5),
 		0.7, 3.0)
 	flash(Color(0.5, 0.8, 0.65), 0.07, 0.4)

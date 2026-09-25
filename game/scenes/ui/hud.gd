@@ -301,6 +301,9 @@ var _town_bar: ProgressBar
 var _town_icon: Control = null
 var _town_alert_left: float = 0.0
 var _town_alert_said: float = 0.0
+var _tower_alert_said: float = 0.0
+## The last whole second of the breather that was said aloud.
+var _prep_second_said: int = -1
 var _town_critical: bool = false
 var _town_clock: float = 0.0
 var _town_poll: float = 0.0
@@ -640,6 +643,7 @@ func _ready() -> void:
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.town_struck.connect(_on_town_struck)
+	EventBus.tower_struck.connect(_on_tower_struck)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.hero_mana_changed.connect(_on_hero_mana)
 	EventBus.hero_stamina_changed.connect(_on_hero_stamina)
@@ -3479,6 +3483,7 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
 	_preparation_label.text = _preparation_text(seconds_left, reward)
 	_paint_the_clock(seconds_left)
+	_tick_the_countdown(seconds_left)
 	_paint_sheet_clocks(seconds_left)
 
 
@@ -3486,6 +3491,29 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 ## three: the bonus is falling, the bonus is about to vanish, and the wave comes
 ## regardless. One "time left" number would hide both cliffs the reward schedule
 ## is built around, and the cliffs are the whole decision.
+## **The breather's last seconds are heard** (2026-09-25). A tick at ten and
+## at three, two and one, rising in pitch, and the countdown lifts on each - on
+## `scale`, which the label's container does not own. Only on a timed breather:
+## the others have no deadline to warn about.
+func _tick_the_countdown(seconds_left: float) -> void:
+	if seconds_left <= 0.0:
+		_prep_second_said = -1
+		return
+	var second: int = ceili(seconds_left)
+	if second == _prep_second_said:
+		return
+	_prep_second_said = second
+	if second != 10 and second > 3:
+		return
+	Sfx.play_group("sfx_ui_move", -4.0 if second == 10 else -1.0,
+		0.0 if second == 10 else 0.08 * float(4 - second))
+	_preparation_label.pivot_offset = _preparation_label.size * 0.5
+	_preparation_label.scale = Vector2.ONE * (1.10 if second <= 3 else 1.05)
+	var settle: Tween = create_tween()
+	settle.tween_property(_preparation_label, "scale", Vector2.ONE, 0.28) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _preparation_text(seconds_left: float, reward: int) -> String:
 	if seconds_left <= 0.0:
 		return "Prepare as long as you need. The next wave waits for you."
@@ -5652,6 +5680,16 @@ func _on_town_struck(from: Vector2) -> void:
 	_show_message("THE WALL IS UNDER ATTACK  ·  from the %s" % _road_name_toward(from))
 
 
+## **A tower taking blows is said** (2026-09-25), named by the road
+## it stands on, once per `TOWER_ALERT_COOLDOWN`. Siege orders send a share of
+## every late wave at the board; a player out at a camp should hear it.
+func _on_tower_struck(at: Vector2) -> void:
+	if _tower_alert_said > 0.0:
+		return
+	_tower_alert_said = Balance.TOWER_ALERT_COOLDOWN
+	_show_message("A TOWER IS UNDER ATTACK  ·  on the %s" % _road_name_toward(at))
+
+
 func _road_name_toward(from: Vector2) -> String:
 	var centre: Vector2 = battlefield.town_position() if battlefield != null else Vector2.ZERO
 	var toward: Vector2 = from - centre
@@ -5666,6 +5704,8 @@ func _tick_town_alert(delta: float) -> void:
 	_town_clock += delta
 	if _town_alert_said > 0.0:
 		_town_alert_said -= delta
+	if _tower_alert_said > 0.0:
+		_tower_alert_said -= delta
 	if _town_alert_left > 0.0:
 		_town_alert_left -= delta
 		var share: float = clampf(_town_alert_left / Balance.TOWN_ALERT_FLASH_SECONDS, 0.0, 1.0)

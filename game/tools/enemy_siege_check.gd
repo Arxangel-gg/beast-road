@@ -358,6 +358,17 @@ func _test_a_siege_breed_prefers_a_tower_it_can_reach(tower: Tower) -> void:
 			_check(ordered.call("_pick_target") == tower,
 				"%s under siege orders at its spawn aims at %s rather than the tower"
 					% [marcher.id, _name_of(ordered.call("_pick_target") as Node)])
+			# **The siege mark reads the choice** (2026-09-25): a body aimed at a
+			# tower is what the tells ring, and one aimed at the wall is not.
+			ordered.set("_target", tower)
+			_check(_field.bodies_at_the_board().has(ordered),
+				"a body aimed at a tower wears no siege mark")
+			var tells: Object = _field.get("_tells")
+			_check(tells != null and (tells.get("sieging") as Callable).is_valid(),
+				"the tells are never told which bodies are going for a tower")
+			ordered.set("_target", town)
+			_check(not _field.bodies_at_the_board().has(ordered),
+				"a body aimed at the wall wears a siege mark")
 			ordered.queue_free()
 
 

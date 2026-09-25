@@ -6647,6 +6647,20 @@ const UI_HEALTH_BLINK_DEPTH: float = 0.45
 ## the town tint its icon and say so once, polled rather than counted a frame.
 const TOWN_ALERT_FLASH_SECONDS: float = 0.6
 const TOWN_ALERT_COOLDOWN: float = 8.0
+## A tower under a body's blows is said the way the wall is, on its own
+## clock so a siege on the board and one on the gate do not silence each
+## other (2026-09-25).
+const TOWER_ALERT_COOLDOWN: float = 10.0
+## A body whose current target is a tower wears a ring at its feet in this
+## colour, so "that one is going for my tower" is read rather than discovered.
+const SIEGE_MARK_COLOUR: Color = Color(1.0, 0.52, 0.18, 0.62)
+const SIEGE_MARK_RADIUS_SCALE: float = 1.35
+const SIEGE_MARK_MAX: int = 24
+## The last kill of a wave holds for a beat before the breather.
+const WAVE_CLEAR_HITSTOP: float = 0.09
+## A bitten health bar's fill flashes toward white and settles.
+const HEALTH_BAR_FLASH_SECONDS: float = 0.16
+const HEALTH_BAR_FLASH_GAIN: float = 0.55
 const TOWN_ALERT_CRITICAL_SHARE: float = 0.3
 const TOWN_ALERT_NEAR: float = 320.0
 const TOWN_ALERT_POLL_HZ: float = 4.0

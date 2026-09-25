@@ -1125,6 +1125,8 @@ func _build_health() -> void:
 	_refresh_health_for_level()
 	_health.revive()
 	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
+		if amount > 0.0 and from != Vector2.ZERO:
+			EventBus.tower_struck.emit(origin())
 		Vfx.number(origin(), amount, Color("d9cdb8"))
 		Vfx.spark(origin(), Color("a78f6d"), 5,
 			(origin() - from).normalized(), 120.0)

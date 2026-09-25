@@ -455,6 +455,14 @@ func targets_towers() -> bool:
 	return (data != null and data.targets_towers) or _siege_order
 
 
+## The tower this body is going for right now, or null (2026-09-25). For the
+## siege mark: it reads the choice the body already made, never a second one.
+func siege_target() -> Tower:
+	if _target == null or not is_instance_valid(_target):
+		return null
+	return _target as Tower
+
+
 func is_provoked() -> bool:
 	return _provoked_left > 0.0
 
