@@ -7554,6 +7554,15 @@ const TOUCH_STICK_REACH: float = 130.0
 ## How far a thumb may wander before it means anything. Larger than a mouse
 ## deadzone would be, because a resting thumb on glass is never still.
 const TOUCH_STICK_DEADZONE: float = 14.0
+## **A tap is a tap wherever it lands** (owner, 2026-09-25: "Too often i'll be in
+## build mode and try tapping on a ground tile to place a tower or trap and the
+## menus wont open!"). The two stick zones claim most of the lower screen, so a
+## tap there was a stick press and never reached the field. A press released
+## this quickly, having moved no further than this, is handed to the field as a
+## tap as well - a drag is still a stick, and a tap still steers nobody, because
+## this is little more than the deadzone.
+const TOUCH_TAP_SECONDS: float = 0.3
+const TOUCH_TAP_SLOP: float = 24.0
 
 ## How far the right stick must be pushed before it is asking for an attack
 ## rather than only turning the hero.

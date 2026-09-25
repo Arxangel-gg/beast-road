@@ -44,6 +44,12 @@ extends CanvasLayer
 ## out around them can move.
 signal shown_changed(showing: bool)
 
+## A quick, still touch on the field that a stick or a free finger was holding,
+## at its screen position. What a placement cursor treats as a click there -
+## see `Balance.TOUCH_TAP_SECONDS`. Finger 0 on open glass is not reported:
+## Godot already turns that into a mouse click, and two would be one too many.
+signal field_tapped(at: Vector2)
+
 ## Which corner of the screen each stick owns, and how far up it reaches.
 const ZONE_HEIGHT: float = 0.62
 const ZONE_WIDTH: float = 0.42
@@ -93,6 +99,9 @@ var _ammo: TouchButton = null
 ## tracked here; when two are down their changing gap is a zoom. Held by index
 ## and position, and cleared on every release path.
 var _free_fingers: Dictionary = {}
+## Where and when each free finger went down, `[position, msec]`, so a second
+## finger's tap can be told from its drag. See `field_tapped`.
+var _free_pressed: Dictionary = {}
 var _pinching: bool = false
 var _pinch_gap: float = 0.0
 var _pinch_ended_msec: int = -100000
@@ -218,12 +227,14 @@ const TOUCH_KEY: String = "touch_controls"
 
 func _build() -> void:
 	var left := TouchStick.new()
+	left.tapped.connect(_on_stick_tapped)
 	left.name = "MoveStick"
 	left.tint = Color("9fd0ff")
 	_sticks.append(left)
 	add_child(left)
 
 	var right := TouchStick.new()
+	right.tapped.connect(_on_stick_tapped)
 	right.name = "AimStick"
 	right.tint = Color("ffb27a")
 	_sticks.append(right)
@@ -386,6 +397,7 @@ func _track_the_pinch(event: InputEvent) -> bool:
 	if touch != null:
 		if touch.pressed:
 			_free_fingers[touch.index] = touch.position
+			_free_pressed[touch.index] = [touch.position, Time.get_ticks_msec()]
 			if _free_fingers.size() >= 2:
 				_pinching = true
 				_pinch_gap = _finger_gap()
@@ -415,10 +427,28 @@ func _finger_gap() -> float:
 func _let_go_of_a_free_finger(index: int) -> void:
 	if not _free_fingers.has(index):
 		return
+	var last: Vector2 = _free_fingers[index]
+	var pressed: Array = _free_pressed.get(index, [])
 	_free_fingers.erase(index)
+	_free_pressed.erase(index)
 	if _pinching and _free_fingers.size() < 2:
 		_pinching = false
 		_pinch_ended_msec = Time.get_ticks_msec()
+		return
+	# A second finger's tap. Only finger 0 is emulated as a mouse, so a tap with
+	# any other finger - a thumb resting on the move stick while the other hand
+	# taps a tile - clicked nothing at all.
+	if index == 0 or _pinching or pressed.size() < 2:
+		return
+	if Time.get_ticks_msec() - _pinch_ended_msec < int(Balance.TOUCH_PINCH_GRACE * 1000.0):
+		return
+	if TouchStick.is_a_tap(pressed[0] as Vector2, last, int(pressed[1])):
+		field_tapped.emit(pressed[0] as Vector2)
+
+
+func _on_stick_tapped(at: Vector2) -> void:
+	if _showing and _controls_live():
+		field_tapped.emit(at)
 
 
 ## The corner one stick owns. `right` picks which.
@@ -769,6 +799,12 @@ class TouchStick extends Control:
 	var _finger: int = -1
 	var _origin := Vector2.ZERO
 	var _at := Vector2.ZERO
+	## When the finger went down. See `tapped`.
+	var _pressed_msec: int = 0
+
+	## A press let go quickly without being pushed: a tap on the field under
+	## the stick rather than a push of it. See `Balance.TOUCH_TAP_SECONDS`.
+	signal tapped(at: Vector2)
 
 	func _init() -> void:
 		set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -803,7 +839,22 @@ class TouchStick extends Control:
 	## broadcast to every stick without asking which one owns it first.
 	func release_finger(index: int) -> void:
 		if _finger >= 0 and index == _finger:
-			forget()
+			_let_go()
+
+
+	## Whether a press from `from` at `since`, let go at `to` now, was a tap.
+	static func is_a_tap(from: Vector2, to: Vector2, since: int) -> bool:
+		return from.distance_to(to) <= Balance.TOUCH_TAP_SLOP \
+			and Time.get_ticks_msec() - since <= int(Balance.TOUCH_TAP_SECONDS * 1000.0)
+
+
+	## A lift, as against `forget`, which is a reset: only a lift can be a tap.
+	func _let_go() -> void:
+		var from: Vector2 = _origin
+		var was_tap: bool = is_a_tap(_origin, _at, _pressed_msec)
+		forget()
+		if was_tap:
+			tapped.emit(from)
 
 
 	## Takes the event if it belongs to this stick. Returns whether it did.
@@ -816,10 +867,11 @@ class TouchStick extends Control:
 				_finger = touch.index
 				_origin = touch.position
 				_at = touch.position
+				_pressed_msec = Time.get_ticks_msec()
 				queue_redraw()
 				return true
 			if touch.index == _finger:
-				forget()
+				_let_go()
 				return true
 			return false
 
@@ -915,21 +967,52 @@ class TouchButton extends Control:
 		# is already on it, so it never has to be found; this is on screen the
 		# whole time and has to be found exactly once. At stick opacity it was a
 		# faint ring on a textured battlefield - present, and invisible.
-		var alpha: float = Balance.TOUCH_BUTTON_OPACITY * (1.5 if _finger >= 0 else 1.0)
-		draw_circle(centre, side * 0.5, Color(0.0, 0.0, 0.0, alpha * 0.55))
-		draw_arc(centre, side * 0.5, 0.0, TAU, 40,
-			Color(1.0, 0.85, 0.55, minf(alpha, 1.0)), 3.0, true)
+		var held: bool = _finger >= 0
+		var alpha: float = Balance.TOUCH_BUTTON_OPACITY * (1.5 if held else 1.0)
+		# **A button, not a ring** (owner, 2026-09-25: "mobile UI sucks, it must
+		# be polished"). A dark disc with a hairline of gold read as a hole in the
+		# field. This is a plate: a shadow under it, a face lit from above, a dark
+		# rim and a gold one inside it. Pressed, the face sinks onto its shadow and
+		# lights up, which is the feedback a thumb gets instead of a click.
+		var radius: float = side * 0.5
+		var sink: float = radius * (0.06 if held else 0.0)
+		var face: Vector2 = centre + Vector2(0.0, sink)
+		var inner: float = radius * 0.92
+		draw_circle(centre + Vector2(0.0, radius * 0.08), inner,
+			Color(0.0, 0.0, 0.0, minf(alpha * 0.7, 0.62)), true, -1.0, true)
+		draw_circle(face, inner, Color(0.12, 0.09, 0.07, minf(alpha * 1.25, 0.9)),
+			true, -1.0, true)
+		draw_circle(face - Vector2(0.0, inner * 0.2), inner * 0.76,
+			Color(0.42, 0.31, 0.19, minf(alpha * (0.62 if held else 0.42), 0.55)),
+			true, -1.0, true)
+		draw_arc(face, inner, 0.0, TAU, 48,
+			Color(0.03, 0.02, 0.02, minf(alpha * 1.5, 1.0)), 3.0, true)
+		draw_arc(face, inner - 3.5, 0.0, TAU, 48,
+			Color(1.0, 0.82, 0.5, minf(alpha * (1.5 if held else 1.1), 1.0)), 2.0, true)
 
 		if label.is_empty():
 			return
-		var font: Font = ThemeDB.fallback_font
-		var size_px: int = int(side * 0.24)
+		# The game's own face, fitted to the plate, with an outline so it reads
+		# over a lit field. The fallback font was the engine's, beside a HUD that
+		# is not.
+		var font: Font = get_theme_font("font", "Label")
+		if font == null:
+			font = ThemeDB.fallback_font
+		var size_px: int = int(side * 0.22)
 		var extent: Vector2 = font.get_string_size(label,
-			HORIZONTAL_ALIGNMENT_CENTER, -1.0, size_px)
-		font.draw_string(get_canvas_item(),
-			centre - Vector2(extent.x * 0.5, -extent.y * 0.26), label,
-			HORIZONTAL_ALIGNMENT_CENTER, -1.0, size_px,
-			Color(1.0, 0.90, 0.70, minf(alpha * 1.2, 1.0)))
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_px)
+		var room: float = inner * 1.5
+		if extent.x > room:
+			size_px = maxi(8, int(float(size_px) * room / extent.x))
+			extent = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_px)
+		var at: Vector2 = face + Vector2(-extent.x * 0.5,
+			(font.get_ascent(size_px) - font.get_descent(size_px)) * 0.5)
+		font.draw_string_outline(get_canvas_item(), at, label,
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_px, 4,
+			Color(0.02, 0.01, 0.01, minf(alpha * 1.4, 1.0)))
+		font.draw_string(get_canvas_item(), at, label,
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_px,
+			Color(1.0, 0.91, 0.72, minf(alpha * 1.6, 1.0)))
 
 
 ## Where the USE button sits: below the revive, continuing the same right-edge

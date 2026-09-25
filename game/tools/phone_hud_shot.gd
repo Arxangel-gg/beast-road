@@ -21,14 +21,17 @@ func _ready() -> void:
 	# the account must never be able to write it to the player's disk.
 	MetaState.hold_saves()
 	var viewport_size := Vector2i(1280, 592)
+	var touch: bool = true
 	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--desktop":
+			touch = false
 		if argument.begins_with("--viewport="):
 			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
 			if dimensions.size() == 2:
 				viewport_size = Vector2i(dimensions[0].to_int(), dimensions[1].to_int())
 	get_window().mode = Window.MODE_WINDOWED
 	get_window().size = viewport_size
-	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	MetaState.settings[TouchInput.TOUCH_KEY] = touch
 	TouchInput.refresh()
 	ScreenFit._fit()
 	MetaState.settings["tutorial_seen"] = true
@@ -71,6 +74,50 @@ func _ready() -> void:
 	await _settle(0.6)
 	await _shot("combat")
 
+	# The build sheet, in Preparation: where its heading, list, footer and Close
+	# button land on this shape. `layout_check` opens it too, and says only that
+	# two of its parts overlap.
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	await _settle(0.4)
+	var field: Battlefield = _run.battlefield
+	_run.hud._open_build_panel(field.free_anchor_near(0) if field != null else Vector2i.ZERO)
+	await _settle(0.6)
+	await _shot("sheet")
+	_print_tree(_run.hud.get("_build_panel") as Control, 0)
+	# The list a player actually reads: the element with the most towers, picked
+	# through the rail's own button.
+	var fullest: Button = null
+	var most: int = -1
+	for node: Node in _all(_run.hud.get("_build_list") as Node):
+		var row := node as Button
+		if row == null or not row.toggle_mode:
+			continue
+		var count: int = row.text.split(" ")[-1].to_int()
+		if count > most:
+			most = count
+			fullest = row
+	if fullest != null:
+		fullest.pressed.emit()
+	await _settle(0.5)
+	await _shot("sheet_list")
+	_run.hud.call("_close_build_panel")
+	# And the traps: the road sheet, on the nearest road tile.
+	var road: Vector2i = Vector2i.ZERO
+	for radius: int in range(2, 40):
+		var found: bool = false
+		for angle: int in range(0, 360, 15):
+			var at := Vector2i(int(cos(deg_to_rad(angle)) * float(radius)),
+				int(sin(deg_to_rad(angle)) * float(radius)))
+			if field.grid.cell_at(at) == BattleGrid.Cell.ROAD:
+				road = at
+				found = true
+				break
+		if found:
+			break
+	_run.hud.call("_open_road_panel", road)
+	await _settle(0.5)
+	await _shot("road")
+
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
@@ -104,3 +151,29 @@ func _shot(name: String) -> void:
 	for spot: String in ["dash_rect", "revive_rect", "loose_rect", "ammo_rect", "cast_rect", "use_rect"]:
 		print("[phone]   %-20s %s" % [spot, str(TouchInput.call(spot))])
 	print("[phone]   %-20s %s" % ["nav width", str(hud.nav_column_width())])
+
+
+func _print_tree(control: Control, depth: int) -> void:
+	if control == null or depth > 5 or not control.is_visible_in_tree():
+		return
+	var words: String = ""
+	if control is Label:
+		words = (control as Label).text.left(28)
+	elif control is Button:
+		words = (control as Button).text.left(28)
+	print("[phone]   %s%s %s %s" % ["  ".repeat(depth), control.get_class(),
+		str(control.get_global_rect()), words])
+	for child: Node in control.get_children():
+		if child is Control:
+			_print_tree(child as Control, depth + 1)
+
+
+func _all(from: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	if from == null:
+		return out
+	out.append(from)
+	for child: Node in from.get_children():
+		out.append_array(_all(child))
+	return out
+

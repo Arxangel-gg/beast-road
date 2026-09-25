@@ -156,6 +156,7 @@ func _ready() -> void:
 	_test_revive_hold()
 	_test_dash_clears_the_rail()
 	_test_build_mode_frees_the_screen()
+	await _test_a_tap_is_a_tap_wherever_it_lands()
 
 	if _failures == 0:
 		print("[touch] PASS - thumbs reach the input map, both sticks work at once, "
@@ -239,6 +240,89 @@ func _drag(to: Vector2, finger: int) -> void:
 	TouchInput._unhandled_input(event)
 
 
+## A finger coming off the glass, the way the engine delivers it: `_input`
+## first - which lets go of whatever held the finger - then `_unhandled_input`.
+func _lift(at: Vector2, finger: int) -> void:
+	var event := InputEventScreenTouch.new()
+	event.position = at
+	event.pressed = false
+	event.index = finger
+	TouchInput._input(event)
+	TouchInput._unhandled_input(event)
+
+
+## **A tap is a tap wherever it lands** (owner, 2026-09-25: "Too often i'll be in
+## build mode and try tapping on a ground tile to place a tower or trap and the
+## menus wont open!"). The measurement below records why: the stick zones own
+## most of the lower screen, and a finger a stick holds never reached the field.
+## A quick, still press is handed back as `field_tapped`; a drag stays a stick.
+##
+## TouchInput's half only. `road_sheet_check` drives the same tap through a real
+## battlefield and insists the build sheet opens.
+func _test_a_tap_is_a_tap_wherever_it_lands() -> void:
+	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	TouchInput.refresh()
+	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
+	_settle()
+	var heard: Array[Vector2] = []
+	var listen := func(at: Vector2) -> void: heard.append(at)
+	TouchInput.field_tapped.connect(listen)
+	var left: Vector2 = TouchInput.zone(false).get_center()
+	var right: Vector2 = TouchInput.zone(true).get_center()
+
+	_touch(left, true, 0)
+	_lift(left, 0)
+	_check(heard.size() == 1 and heard[0].is_equal_approx(left),
+		"a quick tap in the move stick's zone must reach the field once, heard %s" % str(heard))
+
+	heard.clear()
+	_touch(right + Vector2(0.0, -30.0), true, 1)
+	_lift(right + Vector2(0.0, -30.0), 1)
+	_check(heard.size() == 1, "a quick tap in the aim stick's zone must reach the field once, heard %d"
+		% heard.size())
+
+	heard.clear()
+	_touch(left, true, 0)
+	_drag(left + Vector2(Balance.TOUCH_TAP_SLOP * 3.0, 0.0), 0)
+	_lift(left + Vector2(Balance.TOUCH_TAP_SLOP * 3.0, 0.0), 0)
+	_check(heard.is_empty(), "a push of the stick must stay a push, not a tap")
+
+	heard.clear()
+	_touch(left, true, 0)
+	var held_from: int = Time.get_ticks_msec()
+	# **On the wall clock**, which is the one a tap is judged by. A scene timer
+	# counts game time, and headless that ran twice as fast: the first cut
+	# waited "0.45 s" and held the thumb for 229 ms.
+	while Time.get_ticks_msec() - held_from < int((Balance.TOUCH_TAP_SECONDS + 0.15) * 1000.0):
+		await get_tree().process_frame
+	_lift(left, 0)
+	_check(heard.is_empty(), "a thumb held still on the stick for %d ms is not a tap, heard %s"
+		% [Time.get_ticks_msec() - held_from, str(heard)])
+
+	# A second finger, while the first holds the move stick: only finger 0 is
+	# emulated as a mouse, so without this the other hand's tap clicked nothing.
+	var middle: Vector2 = get_viewport().get_visible_rect().size * Vector2(0.5, 0.25)
+	heard.clear()
+	_touch(left, true, 0)
+	_touch(middle, true, 1)
+	_lift(middle, 1)
+	_lift(left, 0)
+	_check(heard.size() >= 1 and heard[0].is_equal_approx(middle),
+		"a second finger's tap on open ground must reach the field, heard %s" % str(heard))
+
+	# Finger 0 on open ground is the emulated mouse's; reporting it too would
+	# open the sheet twice.
+	heard.clear()
+	_touch(middle, true, 0)
+	_lift(middle, 0)
+	_check(heard.is_empty(), "finger 0 on open ground is the mouse's click and must not be reported twice")
+
+	TouchInput.field_tapped.disconnect(listen)
+	MetaState.settings[TouchInput.TOUCH_KEY] = false
+	TouchInput.refresh()
+	_settle()
+
+
 ## Runs the frame that turns stick positions into pressed actions.
 func _settle() -> void:
 	TouchInput._process(0.016)
@@ -270,15 +354,13 @@ func _test_build_mode_frees_the_screen() -> void:
 		"the stick zones cover %.0f%% of the screen; if that has shrunk this "
 			% (covered * 100.0) + "test is guarding something that moved")
 
-	# **Not asserted, deliberately.** The obvious fix - stand the sticks down in
-	# build mode - is wrong: `GameDirector.build_mode` defaults to *true*, so it
-	# disables them globally and this gate went from clean to twelve failures.
-	# The right fix is tap-versus-drag (claim the finger only once it moves past
-	# the deadzone), which changes how every touch in the game is routed and
-	# wants a device to test on rather than a headless runner.
-	#
-	# What is recorded here is the measurement, so whoever does it starts from a
-	# number instead of a guess.
+	# **Answered by tap-versus-drag, as of 2026-09-25**, and asserted in
+	# `_test_a_tap_is_a_tap_wherever_it_lands`. The obvious fix - stand the
+	# sticks down in build mode - is wrong: `GameDirector.build_mode` defaults
+	# to *true*, so it disables them globally and this gate went from clean to
+	# twelve failures. The sticks still claim the finger; a press let go
+	# quickly and still is handed back to the field as a tap. The measurement
+	# above stays, because it is why the tap exists.
 	GameDirector.build_mode = was
 
 

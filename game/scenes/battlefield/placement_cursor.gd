@@ -50,6 +50,7 @@ func _ready() -> void:
 	EventBus.tower_changed.connect(func(_a: Vector2i) -> void: queue_redraw())
 	EventBus.phase_changed.connect(func(_n: int, _p: int) -> void: queue_redraw())
 	EventBus.build_mode_changed.connect(func(_b: bool) -> void: queue_redraw())
+	TouchInput.field_tapped.connect(_on_field_tapped)
 
 
 func _process_measured(delta: float) -> void:
@@ -66,6 +67,11 @@ func _process_measured(delta: float) -> void:
 	var tile: Vector2i = _anchor_under_mouse()
 	if tile == _hover:
 		return
+	_point_at(tile)
+
+
+## Marks `tile` as the one the pointer is over, with what can be built on it.
+func _point_at(tile: Vector2i) -> void:
 	_hover = tile
 	_legal = _field.placement_problem(tile).is_empty()
 	_road = not _legal and _field.grid != null 		and _field.grid.cell_at(tile) == BattleGrid.Cell.ROAD
@@ -89,7 +95,27 @@ func _unhandled_input(event: InputEvent) -> void:
 	# mouse already had everywhere else in this interface.
 	if TouchInput.owns_pointer():
 		return
-	var tile: Vector2i = _anchor_under_mouse()
+	_click_at(get_global_mouse_position())
+
+
+## **A tap the sticks were holding is a tap on the ground** (owner, 2026-09-25:
+## "Too often i'll be in build mode and try tapping on a ground tile ... and the
+## menus wont open!"). The two stick zones cover most of the lower screen, so a
+## tap there belonged to a stick and `owns_pointer` dropped it above - the build
+## sheet opened only in the narrow strip between them. `TouchInput` hands a
+## quick, still press back as a tap, in screen space, and it lands here exactly
+## as a mouse release would.
+func _on_field_tapped(at: Vector2) -> void:
+	if not _is_active() or _field == null or not _field.visible:
+		return
+	var world: Vector2 = get_canvas_transform().affine_inverse() * at
+	_point_at(_anchor_at(world))
+	_click_at(world)
+
+
+## What a click at `world` does: open the tile's sheet, or a road's.
+func _click_at(world: Vector2) -> void:
+	var tile: Vector2i = _anchor_at(world)
 	# An occupied tile is still worth clicking: that is how a built tower is
 	# inspected, upgraded and sold. Only genuinely unbuildable ground is ignored,
 	# so a misclick on a road does not close whatever the player had open.
@@ -103,7 +129,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# under the cursor rather than the 2x2 anchor: a trap occupies one tile, and
 	# offsetting it half a footprint would lay it on the tile beside the one the
 	# player pointed at.
-	var exact: Vector2i = BattleGrid.world_to_tile(get_global_mouse_position())
+	var exact: Vector2i = BattleGrid.world_to_tile(world)
 	if _field.grid.cell_at(exact) == BattleGrid.Cell.ROAD:
 		road_tile_clicked.emit(exact)
 		get_viewport().set_input_as_handled()
@@ -115,7 +141,10 @@ func _unhandled_input(event: InputEvent) -> void:
 ## footprint up and left - otherwise the footprint would always hang down-right
 ## of the cursor and never feel centred on it.
 func _anchor_under_mouse() -> Vector2i:
-	var at: Vector2 = get_global_mouse_position()
+	return _anchor_at(get_global_mouse_position())
+
+
+func _anchor_at(at: Vector2) -> Vector2i:
 	return BattleGrid.world_to_tile(at) - Vector2i(BattleGrid.FOOTPRINT - 1, BattleGrid.FOOTPRINT - 1)
 
 

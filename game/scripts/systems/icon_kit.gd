@@ -164,11 +164,74 @@ static func sized(id: String, pixels: int) -> Texture2D:
 
 ## Puts an icon on a Button. Godot draws button icons left of the text already;
 ## this only exists so the size is right and a missing icon is a no-op.
+## Marks a button as a tile: its icon sits above its word. See `on_button`.
+const ICON_ON_TOP: StringName = &"icon_on_top"
+## What `on_button` last put on a button and at what size, so a button can be
+## re-dressed as a tile and back without its owner remembering either.
+const ICON_ID: StringName = &"icon_id"
+const ICON_SIZE: StringName = &"icon_size"
+## A tile's mark. A tile is the size of an ability slot, and a 24px mark on it
+## read as a speck above a word.
+const TILE_ICON_SIZE: int = 40
+
+
+## **A painting as a mark** (2026-09-25): a tower's or a trap's own art, cropped
+## to what is drawn and set on a square of `pixels`, feet on the square's foot.
+## The build sheets marked every row with its element's glyph, so ten fire
+## towers were ten identical flames and a player chose by name alone. Cached by
+## path and size, so a sheet rebuilt on every purchase costs one resize a row
+## for the life of the process. Null when there is no painting to show.
+static func art(path: String, pixels: int) -> Texture2D:
+	var key: String = "art:%s@%d" % [path, pixels]
+	if _cache.has(key):
+		return _cache[key]
+	var out: Texture2D = null
+	var source: Texture2D = load(path) as Texture2D \
+		if not path.is_empty() and ResourceLoader.exists(path) else null
+	var image: Image = source.get_image() if source != null else null
+	if image != null:
+		image = image.duplicate() as Image
+		if image.is_compressed():
+			image.decompress()
+		image.convert(Image.FORMAT_RGBA8)
+		var used: Rect2i = image.get_used_rect()
+		if used.has_area():
+			image = image.get_region(used)
+			var side: int = maxi(image.get_width(), image.get_height())
+			var square: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+			square.blit_rect(image, Rect2i(Vector2i.ZERO, image.get_size()),
+				Vector2i((side - image.get_width()) / 2, side - image.get_height()))
+			square.resize(pixels, pixels, Image.INTERPOLATE_LANCZOS)
+			out = ImageTexture.create_from_image(square)
+	_cache[key] = out
+	return out
+
+
+## Puts back whatever mark `on_button` last gave a button - after it has been
+## made a tile or unmade one, which changes the mark's size and where it sits.
+static func redress(button: Button) -> void:
+	if button.has_meta(ICON_ID):
+		on_button(button, String(button.get_meta(ICON_ID)),
+			int(button.get_meta(ICON_SIZE, 24)))
+
+
 static func on_button(button: Button, id: String, size: int = 24) -> void:
-	var texture: Texture2D = sized(id, size)
+	button.set_meta(ICON_ID, id)
+	button.set_meta(ICON_SIZE, size)
+	var pixels: int = maxi(size, TILE_ICON_SIZE) if button.has_meta(ICON_ON_TOP) else size
+	var texture: Texture2D = sized(id, pixels)
 	if texture == null:
 		return
 	button.icon = texture
+	# **A tile keeps its mark on top** (2026-09-25): the landscape phone's action
+	# row is a line of square tiles, icon above word, and a button whose icon is
+	# swapped mid-run - Build to Fight, Heal to Ration - must not fall back to
+	# the row layout below.
+	if button.has_meta(ICON_ON_TOP):
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		return
 	# Godot centres text and icon together by default, which reads as ragged in a
 	# column of buttons. Left-aligned puts every icon on the same vertical line.
 	#

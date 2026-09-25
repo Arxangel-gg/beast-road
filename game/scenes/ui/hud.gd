@@ -59,6 +59,12 @@ const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 ## is decided for both.
 ## Wide enough for the element rail and the towers it pulls out beside it.
 const BUILD_PANEL_WIDTH: float = 560.0
+## **Wider on a thumb** (owner, 2026-09-25: "build menus for towers and traps have
+## panels that are too small"). At 560 the tower column was narrow enough that
+## "Ember Spire" ran into its own price. A landscape phone has the width; what it
+## lacks is height, which the combat row gives up while a sheet is open (see
+## `_stand_the_row_down`).
+const BUILD_PANEL_TOUCH_WIDTH: float = 760.0
 
 ## The element rail down the left of the build panel.
 const ELEMENT_RAIL_WIDTH: float = 150.0
@@ -155,6 +161,20 @@ const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 ## everything else is: it is being read at arm's length on a small screen.
 const SPELL_ICON_SIZE: float = 32.0
 const SPELL_ICON_TOUCH_SIZE: float = 46.0
+## An ability's name on a thumb: built at 8 so the touch pass lands it at 11, two
+## lines in a box this tall, dropped this far into the art's lower ironwork so the
+## icon above keeps its room.
+const SLOT_NAME_TOUCH_FONT: int = 8
+const SLOT_NAME_TOUCH_HEIGHT: float = 30.0
+const SLOT_NAME_TOUCH_DROP: float = 7.0
+## **A shade behind the top readouts on a thumb** (owner, 2026-09-25: "all
+## buttons and UI elements on bottom and top and sides"). A phone's top rows are
+## small type laid straight on the field - snow, sand and torchlight - and read as
+## noise wherever the ground was bright. A shade that falls from this alpha at the
+## top edge to nothing just below the second row gives every readout the same
+## ground without a box around any of them.
+const TOP_SCRIM_ALPHA: float = 0.62
+const TOP_SCRIM_TAIL: float = 26.0
 
 ## Gap between the spell bar and the screen edge.
 const SPELL_BAR_MARGIN: float = 24.0
@@ -419,7 +439,6 @@ const PREPARATION_TOUCH_HEIGHT: float = 164.0
 
 ## How far above centre an announcement sits when a thumb is driving.
 const REGION_CARD_TOUCH_RISE: float = 160.0
-const REGION_CARD_TOUCH_LEFT: float = 220.0
 
 const ACTION_COLUMNS: int = 3
 ## Six, not five: the raid-charge readout is the sixth thing in the grid, and at
@@ -432,6 +451,24 @@ const ACTION_COLUMNS_WIDE: int = 6
 ## screenshots). Four a row is two rows in every phase, the band reserved for
 ## them was already two rows tall, and the cluster covers about the same field.
 const ACTION_COLUMNS_LANDSCAPE: int = 4
+## **Tiles, one row, on a landscape phone** (owner, 2026-09-25: "mobile UI sucks
+## ... all buttons and UI elements on bottom and top and sides having perfect
+## fitting"). Two rows of wide buttons covered most of the corner the move stick
+## answers in, which is where a left thumb rests. Square tiles - the mark above
+## the word, the size of an ability slot - fit every action in one row beside the
+## slots, so the row never wraps, never jumps between phases, and the corner
+## above it is the thumb's.
+const ACTION_TILE_WIDTH: float = 112.0
+## An action that cannot be taken yet: a solid, darker plate and a quieter word.
+const ACTION_DISABLED_PLATE := Color(0.47, 0.45, 0.46, 1.0)
+## A progress strip on a tile: how far in from each side, as a share of the
+## tile's width, and how far up from its foot.
+const STRIP_TILE_SIDE_SHARE: float = 0.2
+const STRIP_TILE_FOOT: float = 21.0
+## The empty track's rim, so a strip with nothing in it is still a strip.
+const STRIP_RIM := Color(1.0, 0.86, 0.62, 0.28)
+const ACTION_DISABLED_TEXT := Color(0.62, 0.58, 0.52, 0.85)
+const ACTION_TILE_FONT: int = 16
 ## The raid's charge, drawn inside the Raid button (2026-09-25): its height and
 ## its inset from the button's edge.
 const CHARGE_STRIP_HEIGHT: float = 5.0
@@ -452,7 +489,7 @@ static func _action_columns() -> int:
 		var size: Vector2 = tree.root.get_visible_rect().size
 		landscape = size.x > size.y
 	if landscape:
-		return ACTION_COLUMNS_LANDSCAPE
+		return ACTION_BUTTON_COUNT
 	return ACTION_COLUMNS_WIDE if span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
 ## What `_build_action_bar` puts in the bar: Horn, Raid, Build, Repair, Orders,
 ## Heal, Ride.
@@ -790,6 +827,13 @@ func _ready() -> void:
 
 
 func _process_measured(delta: float) -> void:
+	# A sheet can be hidden by more than its own close door - a scope change, a
+	# phase that clears it - and the row it stood down has to come back whichever
+	# way it went. Asked of the sheets themselves, once a frame.
+	var sheet_open: bool = (_build_panel != null and _build_panel.visible) \
+		or (_road_panel != null and _road_panel.visible)
+	if sheet_open != _sheet_was_open:
+		_refresh_minimap_visible()
 	if _nav_bar != null:
 		_live_nav_rect = _nav_bar.get_global_rect() if _nav_bar.is_visible_in_tree() else Rect2()
 		_live_nav_columns = _nav_bar.columns
@@ -937,6 +981,15 @@ func _label(text: String, size: int = 21) -> Label:
 
 
 func _build_top_bar() -> void:
+	# Added first, so it draws under every readout. A plain `Control` with a
+	# `_draw`, so no layout gate mistakes a shade for a widget.
+	_top_scrim = Control.new()
+	_top_scrim.name = "TopScrim"
+	_top_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_top_scrim.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_top_scrim.draw.connect(_draw_top_scrim)
+	_top_scrim.visible = false
+	add_child(_top_scrim)
 	var bar := HBoxContainer.new()
 	_top_bar = bar
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -1651,8 +1704,24 @@ func _build_nav_bar() -> void:
 
 
 ## How far above the bottom edge the build sheet's lower rim sits.
+##
+## On a thumb, only the XP strip's (2026-09-25): the combat row stands down
+## while a sheet is open there, so the sheet takes the height the row had. Two
+## rows of a list between a ceiling and a combat row were the whole of a phone's
+## build sheet, and a tower list read one row at a time is not a menu.
 func _build_panel_lift() -> float:
+	if touch_ui():
+		return _sheet_air() + _bottom_row_inset()
 	return _sheet_air() + _bottom_band_height()
+
+
+## How wide a right-hand sheet is. See `BUILD_PANEL_TOUCH_WIDTH`.
+func _sheet_width() -> float:
+	if not touch_ui():
+		return BUILD_PANEL_WIDTH
+	# Never wider than the field left of the scope column, less a margin.
+	var span: float = get_viewport().get_visible_rect().size.x
+	return minf(BUILD_PANEL_TOUCH_WIDTH, span - _build_panel_inset() - BUILD_PANEL_MARGIN)
 
 
 ## The least air a sheet keeps off the very bottom of the screen.
@@ -1729,7 +1798,7 @@ func _fit_right_sheet(panel: PanelContainer, frame: Control,
 		panel.offset_left = -(screen.x - BUILD_PANEL_MARGIN)
 		panel.offset_right = -(BUILD_PANEL_MARGIN + nav_column_width())
 	else:
-		panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+		panel.offset_left = -_sheet_width() - _build_panel_inset()
 		panel.offset_right = -_build_panel_inset()
 	# Clear of the scope column's top, so the sheet never grows up behind it.
 	# **Clear of the spirit readout as well as the scope column** (owner,
@@ -1788,7 +1857,13 @@ func _fit_right_sheet(panel: PanelContainer, frame: Control,
 	var chrome: float = frame.get_combined_minimum_size().y
 	var was_fixed: bool = _chrome_is_fixed(frame, above, below)
 	var chrome_fixed: float = chrome if was_fixed else chrome + cost
-	var fixed: bool = inset + chrome_fixed <= room
+	# **And a row of the list beside it** (2026-09-25). Fixed chrome that only
+	# just fits leaves the list whatever is over - on a landscape phone once the
+	# action row became one row of tiles, that was an eleven-unit window onto a
+	# list of towers, which is a sheet with nothing in it. A list window smaller
+	# than one of its own rows is not a list, so below that the chrome scrolls
+	# with the list, as it did before.
+	var fixed: bool = inset + chrome_fixed + hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y <= room
 	if fixed != was_fixed:
 		_seat_chrome(frame, scroll, column, above, below, fixed)
 		chrome = chrome_fixed if fixed else chrome_fixed - cost
@@ -1985,11 +2060,29 @@ func _wrap_nav_bar(side: float) -> void:
 	if separation <= 0.0:
 		separation = 8.0
 	var screen: Vector2 = get_viewport().get_visible_rect().size
-	var room: float = screen.y - NAV_BAR_TOP - _bottom_band_height() - SPELL_BAR_MARGIN
+	var room: float = screen.y - NAV_BAR_TOP - _column_floor() - SPELL_BAR_MARGIN
 	var tall: float = float(count) * side + float(count - 1) * separation
 	# Never more than two: a third column would start eating the field, and a
 	# column of three squares is already an odd shape to read.
 	grid.columns = 1 if tall <= room or room <= 0.0 else 2
+
+
+## What the scope column has to stop above: the combat row, and on a thumb the
+## dash cluster that stands under the column (`TouchInput._under_the_column`
+## asks the same arithmetic).
+##
+## **Asked of the cluster, not borrowed from the band** (2026-09-25). This read
+## `_bottom_band_height` alone, which on a landscape phone happened to be about
+## the cluster's height only because the action row wrapped to two rows. The
+## day the row became one line of tiles the band shrank, the column grew back to
+## one long column through the XP strip, and DASH was thrown to the middle of
+## the screen.
+static func _column_floor() -> float:
+	var band: float = _bottom_band_height()
+	if not touch_ui():
+		return band
+	var side: float = TouchInput.button_side()
+	return maxf(band, bottom_edge_inset() + side * 2.25 + 4.0)
 
 
 ## The combat half: what a player reaches for while something is happening.
@@ -2073,9 +2166,21 @@ func _build_action_bar(bar: Container) -> void:
 	_tend_progress.value = 0.0
 	_tend_progress.visible = false
 	_tend_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tend_progress.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_tend_progress.custom_minimum_size = Vector2(0.0, HEAL_SAVING_BAR_HEIGHT)
-	_tend_progress.offset_top = -HEAL_SAVING_BAR_HEIGHT
+	# **Inside the frame, the way the raid's charge is** (2026-09-25). A bottom
+	# preset set from code hung it off the button's foot, under the plate and
+	# only as wide as its fill - a pink stroke under the tile on a phone that
+	# read as a stray mark. Offsets and the charge strip's own measurements, so
+	# the two strips read as one kind of thing; its colour is decided as it
+	# fills (`_show_the_heal_saving`).
+	_tend_progress.custom_minimum_size = Vector2(0.0, CHARGE_STRIP_HEIGHT)
+	_tend_progress.anchor_left = 0.0
+	_tend_progress.anchor_right = 1.0
+	_tend_progress.anchor_top = 1.0
+	_tend_progress.anchor_bottom = 1.0
+	_tend_progress.offset_left = CHARGE_STRIP_INSET
+	_tend_progress.offset_right = -CHARGE_STRIP_INSET
+	_tend_progress.offset_top = -(CHARGE_STRIP_INSET + CHARGE_STRIP_HEIGHT)
+	_tend_progress.offset_bottom = -CHARGE_STRIP_INSET
 	_tend_button.add_child(_tend_progress)
 
 	# **Ride** (owner brief, 2026-09-17). The mount key is H and is not
@@ -2128,6 +2233,10 @@ func _build_action_bar(bar: Container) -> void:
 	var charge_empty := StyleBoxFlat.new()
 	charge_empty.bg_color = Color(0.05, 0.05, 0.08, 0.72)
 	charge_empty.set_corner_radius_all(2)
+	# A faint rim, so an empty charge is a track on a dark plate rather than
+	# nothing at all: the reason to have the strip is to see it start to fill.
+	charge_empty.set_border_width_all(1)
+	charge_empty.border_color = STRIP_RIM
 	var charge_fill := StyleBoxFlat.new()
 	charge_fill.bg_color = Color("9b8fc4")
 	charge_fill.set_corner_radius_all(2)
@@ -2152,6 +2261,53 @@ func _build_action_bar(bar: Container) -> void:
 			_slim(child as Button)
 
 
+## **The action row as tiles on a landscape phone**, and back to buttons off it.
+##
+## After the touch pass rather than before it: `UiMetrics` records a control's
+## authored size the first time it grows it and restores exactly that on the way
+## back, so a tile sized here is undone by the same pass that grew it.
+func _tile_the_actions(showing: bool) -> void:
+	if _action_row == null:
+		return
+	var tiles: bool = showing and _action_columns() >= ACTION_BUTTON_COUNT
+	for child: Node in _action_row.get_children():
+		var button := child as Button
+		if button == null:
+			continue
+		if tiles:
+			button.set_meta(IconKit.ICON_ON_TOP, true)
+			button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+			button.custom_minimum_size = Vector2(ACTION_TILE_WIDTH,
+				Balance.UI_TOUCH_SPELL_SLOT_HEIGHT)
+			button.add_theme_font_size_override("font_size", ACTION_TILE_FONT)
+			IconKit.redress(button)
+		elif button.has_meta(IconKit.ICON_ON_TOP):
+			button.remove_meta(IconKit.ICON_ON_TOP)
+			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+			IconKit.redress(button)
+	for strip: Control in [_charge_bar, _tend_progress]:
+		_seat_strip(strip, tiles)
+
+
+## Where a button's progress strip sits. On a row button, along its foot; on a
+## tile, just above the plate's lower ironwork and between its corner studs -
+## at the foot of a tile it lay on the border and read as a stray mark under
+## the button (2026-09-25).
+func _seat_strip(strip: Control, tiles: bool) -> void:
+	if strip == null:
+		return
+	var side: float = ACTION_TILE_WIDTH * STRIP_TILE_SIDE_SHARE if tiles else CHARGE_STRIP_INSET
+	var foot: float = STRIP_TILE_FOOT if tiles else CHARGE_STRIP_INSET
+	strip.offset_left = side
+	strip.offset_right = -side
+	strip.offset_top = -(foot + CHARGE_STRIP_HEIGHT)
+	strip.offset_bottom = -foot
+
+
 ## Takes an action button's side padding down to `ACTION_BUTTON_PAD`, the way
 ## `_square_off` does for the nav column: a Control cannot be smaller than its
 ## own style demands, so the theme's padding decides the width and no minimum
@@ -2164,7 +2320,16 @@ func _slim(button: Button) -> void:
 		var slim: StyleBox = box.duplicate()
 		slim.content_margin_left = ACTION_BUTTON_PAD
 		slim.content_margin_right = ACTION_BUTTON_PAD
+		# **Dimmed, never see-through** (2026-09-25). The theme draws a disabled
+		# frame at 70% alpha, which on a menu over a dark plate reads as "not
+		# now" and on the field reads as a ghost of a button with the road
+		# showing through it - four of the seven on a phone's opening frame. The
+		# action row sits on the battlefield, so its "not now" is darker and
+		# solid. Before the tint, which keeps whatever base it first finds.
+		if state == "disabled" and slim is StyleBoxTexture:
+			(slim as StyleBoxTexture).modulate_color = ACTION_DISABLED_PLATE
 		button.add_theme_stylebox_override(state, slim)
+	button.add_theme_color_override("font_disabled_color", ACTION_DISABLED_TEXT)
 
 
 ## The party feed, and the line a player types into.
@@ -2357,7 +2522,7 @@ func _update_orders_button(delta: float = 0.0) -> void:
 	# The price is in the tooltip rather than on the face. The action bar is
 	# six buttons wide at 1600x900 and every label was already clipping at the
 	# ends; a seventh word on one of them made the whole row worse.
-	_orders_button.text = "Orders"
+	_orders_button.text = "ORDERS" if touch_ui() else "Orders"
 	_orders_button.tooltip_text = ("The Quartermaster's standing order, during "
 		+ "Preparation. Next: %s, for %d Gold.
 "
@@ -2525,7 +2690,7 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 func _build_road_panel() -> void:
 	_road_panel = PanelContainer.new()
 	_road_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_road_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+	_road_panel.offset_left = -_sheet_width() - _build_panel_inset()
 	_road_panel.offset_right = -_build_panel_inset()
 	_road_panel.offset_top = -_build_panel_lift()
 	_road_panel.offset_bottom = -_build_panel_lift()
@@ -2660,11 +2825,21 @@ func _refresh_road_panel() -> void:
 ## One offer on the road sheet.
 func _add_road_row(name: String, description: String, cost: Dictionary,
 		on_press: Callable, picture: String = "", figures: String = "") -> void:
-	var row: Button = _add_button(_road_list, "%s   %s" % [
-		name, RunState.format_cost(cost)], func() -> void:
+	var row: Button = _add_button(_road_list, name, func() -> void:
 		on_press.call()
 		_refresh_road_panel())
-	row.disabled = not RunState.can_afford_cost(cost)
+	var affordable: bool = RunState.can_afford_cost(cost)
+	row.disabled = not affordable
+	# **Laid out as a tower row is** (2026-09-25): the trap's painting at the
+	# left, its name, and its price at the right edge in the same short form. It
+	# was one run of text - "Bell Wire   25 Wood + 35 Gold" - which on a phone
+	# ran the price into the frame and gave a player nothing to recognise a trap
+	# by but its name.
+	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var mark: Texture2D = IconKit.art(picture, _row_mark_size())
+	if mark != null:
+		row.icon = mark
+	_attach_price(row, cost, affordable)
 	# The same box the towers open, beside the panel, with the asset in it:
 	# a trap's numbers and its picture (owner brief, 2026-09-12). Godot's own
 	# tooltip opened at the cursor, over the rows being compared.
@@ -2703,7 +2878,7 @@ func _build_tower_panel() -> void:
 	# bottom is, so the taller build view and the shorter upgrade view both clear
 	# the column by the same margin without either being given a fixed height.
 	_build_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+	_build_panel.offset_left = -_sheet_width() - _build_panel_inset()
 	_build_panel.offset_right = -_build_panel_inset()
 	_build_panel.offset_top = -_build_panel_lift()
 	_build_panel.offset_bottom = -_build_panel_lift()
@@ -2805,7 +2980,7 @@ func _build_side_tooltip() -> void:
 	# Grows downward from wherever it is placed, so the box sizes to its own text
 	# and the row it belongs to stays its top edge.
 	_build_tooltip.grow_vertical = Control.GROW_DIRECTION_END
-	_build_tooltip.offset_right = -(BUILD_PANEL_MARGIN + BUILD_PANEL_WIDTH + BUILD_TOOLTIP_GAP)
+	_build_tooltip.offset_right = -(BUILD_PANEL_MARGIN + _sheet_width() + BUILD_TOOLTIP_GAP)
 	_build_tooltip.offset_left = _build_tooltip.offset_right - BUILD_TOOLTIP_WIDTH
 	# It must never eat a click meant for the field behind it, and it is never
 	# interactive itself.
@@ -2852,7 +3027,7 @@ func _show_build_tooltip(text: String, near: Control, picture: String = "") -> v
 	# own left edge is the truth.
 	var panel: Control = _panel_of(near)
 	var left_edge: float = panel.global_position.x if panel != null \
-		else get_viewport().get_visible_rect().size.x - BUILD_PANEL_MARGIN - BUILD_PANEL_WIDTH
+		else get_viewport().get_visible_rect().size.x - BUILD_PANEL_MARGIN - _sheet_width()
 	_build_tooltip.offset_right = left_edge - BUILD_TOOLTIP_GAP \
 		- get_viewport().get_visible_rect().size.x
 	_build_tooltip.offset_left = _build_tooltip.offset_right - BUILD_TOOLTIP_WIDTH
@@ -3353,6 +3528,10 @@ func _seat_command_panel() -> void:
 		return
 	var row_foot: float = _journey_bar.position.y + _journey_bar.size.y
 	_top_left_foot = row_foot
+	if _top_scrim != null:
+		_top_scrim.offset_top = 0.0
+		_top_scrim.offset_bottom = row_foot + TOP_SCRIM_TAIL
+		_top_scrim.queue_redraw()
 	var top: float = row_foot + Balance.UI_COMMAND_PANEL_GAP
 	_command_panel.offset_top = top
 	_command_panel.offset_bottom = top
@@ -3379,6 +3558,26 @@ func _boss_panel_top() -> float:
 ## because the sheet is a separate scene with no HUD to hold; written where the
 ## HUD seats that row, so the two cannot disagree about where it ends.
 static var _top_left_foot: float = 0.0
+## The shade behind the top rows on a thumb. See `TOP_SCRIM_ALPHA`.
+var _top_scrim: Control = null
+
+
+## Two quads, dark at the top edge and clear at the foot, so no readout sits in a
+## box and none sits on raw snow.
+func _draw_top_scrim() -> void:
+	var extent: Vector2 = _top_scrim.size
+	if extent.x <= 0.0 or extent.y <= 0.0:
+		return
+	var shade := Color(0.02, 0.02, 0.03, TOP_SCRIM_ALPHA)
+	var mid := Color(0.02, 0.02, 0.03, TOP_SCRIM_ALPHA * 0.8)
+	var clear := Color(0.02, 0.02, 0.03, 0.0)
+	var middle: float = extent.y * 0.55
+	_top_scrim.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(extent.x, 0.0),
+		Vector2(extent.x, middle), Vector2(0.0, middle)]),
+		PackedColorArray([shade, shade, mid, mid]))
+	_top_scrim.draw_polygon(PackedVector2Array([Vector2(0.0, middle), Vector2(extent.x, middle),
+		Vector2(extent.x, extent.y), Vector2(0.0, extent.y)]),
+		PackedColorArray([mid, mid, clear, clear]))
 
 
 static func top_left_reserve() -> float:
@@ -4248,6 +4447,11 @@ static func bottom_reserve() -> float:
 static func _action_band_height() -> float:
 	if not touch_ui():
 		return 0.0
+	# Tiles share the ability slots' row and are their height (2026-09-25), so
+	# they add no band of their own - counting one lifted every sheet, card and
+	# panel measured from this a whole button's height above empty field.
+	if _action_columns() >= ACTION_BUTTON_COUNT:
+		return 0.0
 	var rows: int = int(ceil(float(ACTION_BUTTON_COUNT) / float(_action_columns())))
 	return float(rows) * hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y 		+ float(rows - 1) * ACTION_ROW_GAP
 
@@ -4398,6 +4602,32 @@ func _rebuild_spell_bar() -> void:
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.add_theme_font_size_override("font_size", 9)
 		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		# **Two lines on a thumb, never an ellipsis** (owner, 2026-09-25: "mobile
+		# UI sucks"). One line in the art's interior cut "HEMORRHAGE EDGE" to
+		# "HEMORRH..." on every phone, and a touch layout has no hover to read the
+		# rest from. The box takes half of each side's ironwork - enough for the
+		# longest word in the tree - and wraps at words, bottom-aligned so a one-word
+		# name sits where a two-word one ends. Built a size smaller so the touch
+		# pass lands it where it fits (`SLOT_NAME_TOUCH_FONT`).
+		if touch_ui():
+			var wide: float = interior.x + inset.x
+			name_label.add_theme_font_size_override("font_size", SLOT_NAME_TOUCH_FONT)
+			name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			name_label.max_lines_visible = 2
+			name_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+			name_label.size = Vector2(wide, SLOT_NAME_TOUCH_HEIGHT)
+			name_label.position = Vector2((slot_size.x - wide) * 0.5,
+				slot_size.y - inset.y + SLOT_NAME_TOUCH_DROP - SLOT_NAME_TOUCH_HEIGHT)
+			name_label.add_theme_constant_override("outline_size", 4)
+			name_label.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.9))
+			name_label.add_theme_constant_override("line_spacing", -3)
+		else:
+			# One line on a desktop - the slot is too short for two under the
+			# icon - but across half of each side's ironwork as well, where
+			# "HEMORRHAGE EDGE" fits whole instead of losing its last word.
+			var across: float = interior.x + inset.x
+			name_label.size.x = across
+			name_label.position.x = (slot_size.x - across) * 0.5
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame.add_child(name_label)
 
@@ -4425,8 +4655,12 @@ func _rebuild_spell_bar() -> void:
 			button.disabled = true
 			name_label.text = "EMPTY"
 			name_label.add_theme_color_override("font_color", Color("8b8175"))
+			# **Dimmed, never see-through** (2026-09-25). The plate was drawn at
+			# 45% alpha, so on a phone two of the four slots were the battlefield
+			# with a faint ring on it - read as missing rather than empty. The art
+			# is opaque; darkening it says "nothing here" and keeps it a slot.
 			if plate != null:
-				plate.modulate = Color(1, 1, 1, 0.45)
+				plate.modulate = Color(0.58, 0.55, 0.55, 1.0)
 		else:
 			icon.texture = _spell_icon(spell)
 			name_label.text = spell.display_name.to_upper()
@@ -4436,12 +4670,18 @@ func _rebuild_spell_bar() -> void:
 		frame.add_child(button)
 		# Keep the interactive surface behind informational overlays.
 		frame.move_child(button, 1 if plate != null else 0)
-
 		_spell_bar.add_child(frame)
 		_spell_buttons.append(button)
 		_spell_icons.append(icon)
 		_spell_labels.append(name_label)
 		_spell_cooldowns.append(cooldown)
+	# **A bar rebuilt mid-run is touch-sized too** (2026-09-25). The HUD's touch
+	# pass runs when the layout changes, and a slot trained during a run
+	# rebuilds this bar afterwards - so its labels kept their desktop type on a
+	# phone until the next layout change. The pass records each control once, so
+	# running it here and again from `_on_touch_layout_changed` is one pass.
+	if touch_ui():
+		UiMetrics.apply_touch_tree(_spell_bar, true)
 
 
 func _spell_icon(spell: SpellData) -> Texture2D:
@@ -4525,6 +4765,24 @@ func _update_spell_bar() -> void:
 ## beat — something has changed and the next thirty seconds are different — and
 ## three near-identical overlays is how a game ends up with three slightly
 ## different fonts.
+## **Dead centre across, a little high on a thumb** (owner, 2026-09-25: "that big
+## text that's supposed to be center on the battlefield is slightly offset left").
+## It was pushed 220 units left on a phone when the Preparation card sat in the
+## middle of the screen; the card has lived in the top left since, and the shove
+## outlived its reason - it only put "WILDERHOLD" against the command panel. Set
+## from nothing each time the card is shown, so a longer title laid last time
+## cannot leave it off centre, and on a layout change, so a phone turned into a
+## desktop does not keep the phone's lift.
+func _seat_region_card() -> void:
+	if _region_card == null:
+		return
+	var rise: float = REGION_CARD_TOUCH_RISE if touch_ui() else 0.0
+	_region_card.offset_left = 0.0
+	_region_card.offset_right = 0.0
+	_region_card.offset_top = -rise
+	_region_card.offset_bottom = -rise
+
+
 func _build_region_card() -> void:
 	_region_card = VBoxContainer.new()
 	_region_card.name = "RegionCard"
@@ -4534,17 +4792,9 @@ func _build_region_card() -> void:
 	_region_card.set_anchors_preset(Control.PRESET_CENTER)
 	_region_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_region_card.grow_vertical = Control.GROW_DIRECTION_BOTH
-	# Above centre on a phone. Dead centre is where the preparation card now
-	# sits - it had to come down off the hero - and an announcement that lands on
-	# top of the button the player is reaching for is worse than one sitting a
-	# little high.
-	if touch_ui():
-		_region_card.offset_top -= REGION_CARD_TOUCH_RISE
-		_region_card.offset_bottom -= REGION_CARD_TOUCH_RISE
-		_region_card.offset_left -= REGION_CARD_TOUCH_LEFT
-		_region_card.offset_right -= REGION_CARD_TOUCH_LEFT
 	_region_card.add_theme_constant_override("separation", 4)
 	add_child(_region_card)
+	_seat_region_card()
 
 	_region_kicker = _label("", 20)
 	_region_kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -4663,6 +4913,9 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	if _command_orders != null:
 		_command_orders.columns = 3 if showing else 1
 		_command_orders.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if showing else Control.SIZE_FILL
+	if _top_scrim != null:
+		_top_scrim.visible = showing
+	_seat_region_card()
 	if _seed_label != null:
 		_seed_label.visible = not showing
 	_refresh_speed_button()
@@ -4675,6 +4928,8 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	_update_mode_button()
 	if _tend_button != null:
 		_tend_button.text = "TEND" if showing else "Tend"
+	if _orders_button != null:
+		_update_orders_button()
 
 	if _bottom_row != null:
 		_bottom_row.offset_top = -_bottom_band_height()
@@ -4723,6 +4978,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
+	_tile_the_actions(showing)
 	_place_preparation_panel()
 	_size_build_controls(_build_panel)
 	_size_build_controls(_road_panel)
@@ -4794,6 +5050,12 @@ func _craft_name(craft: String) -> String:
 func announce(kicker: String, title: String, note: String = "") -> void:
 	if _region_card == null:
 		return
+	# **Held while a sheet is open** (2026-09-25). Centred, the card crosses a
+	# phone's build sheet, and a player choosing a tower is not reading an
+	# announcement - so it waits for the sheet to close rather than being lost.
+	if _a_sheet_is_open():
+		_held_announcement = [kicker, title, note]
+		return
 	# The other direction of the same rule: a card arriving takes the centre back
 	# from whatever line was sitting there.
 	if _message != null:
@@ -4805,6 +5067,7 @@ func announce(kicker: String, title: String, note: String = "") -> void:
 	# note from the last card sitting under a boss name would be nonsense.
 	_region_note.text = note
 	_region_note.visible = not note.is_empty()
+	_seat_region_card()
 	_region_card.visible = true
 	_region_card.modulate.a = 0.0
 
@@ -5561,7 +5824,9 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 		button.text = "%s  %d/%d" % [tower.display_name, standing,
 			Balance.WELL_LIMIT_PER_PLAYER]
 	button.custom_minimum_size = Vector2(0.0, BUILD_ROW_HEIGHT)
-	button.icon = IconKit.element_sized(tower.element, 26)
+	# The tower's own painting, and its element's glyph only where it has none.
+	var mark: Texture2D = IconKit.art(tower.get_sprite_path(), _row_mark_size())
+	button.icon = mark if mark != null else IconKit.element_sized(tower.element, 26)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
 
@@ -5689,11 +5954,13 @@ const PREPARATION_URGENT_SECONDS: float = 5.0
 const BAR_NAME_INSET: float = 5.0
 const BAR_NAME_SIZE: int = 13
 
-const HEAL_SAVING_BAR_HEIGHT: float = 4.0
 const HEAL_SAVING_FAR: Color = Color(0.26, 0.45, 0.85, 0.95)
 const HEAL_SAVING_NEAR: Color = Color(0.90, 0.30, 0.24, 0.95)
 
 const BUILD_HINT: String = "Point at a tower to see what it does."
+## A thumb has no pointer to rest (2026-09-25): "point at" is an instruction for a
+## mouse, and on a phone the line under the list was advice nobody could take.
+const BUILD_HINT_TOUCH: String = "Tap a tower to build it here."
 
 
 ## Pins a price to the right edge of a button, clear of the frame.
@@ -5709,6 +5976,11 @@ const BUILD_HINT: String = "Point at a tower to see what it does."
 ## Takes a currency map rather than a bare number, because a tower can cost two
 ## things now and a button that shows only the Gold is a button that lies about
 ## what it will charge.
+## How big a row's painting is on a sheet: the row's height less its padding.
+static func _row_mark_size() -> int:
+	return 48 if touch_ui() else 34
+
+
 func _attach_price(button: Button, cost: Dictionary, affordable: bool) -> void:
 	var parts: PackedStringArray = []
 	for id: String in RunState.CURRENCIES:
@@ -5733,7 +6005,7 @@ func _show_build_detail(text: String) -> void:
 	if _build_detail == null:
 		return
 	var showing: bool = not text.is_empty()
-	_build_detail.text = text if showing else BUILD_HINT
+	_build_detail.text = text if showing else (BUILD_HINT_TOUCH if touch_ui() else BUILD_HINT)
 	_build_detail.add_theme_color_override("font_color",
 		Color("cfe0da") if showing else Color(0.62, 0.66, 0.64, 0.55))
 
@@ -6419,6 +6691,45 @@ func _refresh_minimap_visible() -> void:
 		or (_road_panel != null and _road_panel.visible)
 	_minimap.visible = Graphics.minimap_shown() and not sheet_open \
 		and int(GameDirector.current_scope) == GameDirector.Scope.BATTLEFIELD
+	_stand_the_row_down(sheet_open)
+	if sheet_open:
+		_clear_region_card()
+	elif not _held_announcement.is_empty():
+		var held: Array = _held_announcement
+		_held_announcement = []
+		announce(String(held[0]), String(held[1]), String(held[2]))
+	# Both sheets, not the build sheet alone: the trap sheet docks against the
+	# same edge, and DASH stood on top of it.
+	TouchInput.set_actions_visible(not sheet_open)
+
+
+## **The combat row steps aside while a sheet is open on a thumb** (owner,
+## 2026-09-25). A sheet only opens in Preparation, when nothing on that row is
+## being pressed, and on a landscape phone the row's height is the difference
+## between a list of towers and a single row of one. Only a row this took down
+## is put back, so an end report that cleared the lower bands stays cleared.
+var _row_under_sheet: bool = false
+## An announcement that arrived while a sheet was open. See `announce`.
+var _held_announcement: Array = []
+var _sheet_was_open: bool = false
+
+
+func _a_sheet_is_open() -> bool:
+	return (_build_panel != null and _build_panel.visible) \
+		or (_road_panel != null and _road_panel.visible)
+
+
+func _stand_the_row_down(sheet_open: bool) -> void:
+	_sheet_was_open = sheet_open
+	if _bottom_row == null:
+		return
+	var down: bool = sheet_open and touch_ui()
+	if down and _bottom_row.visible:
+		_bottom_row.visible = false
+		_row_under_sheet = true
+	elif not down and _row_under_sheet:
+		_bottom_row.visible = true
+		_row_under_sheet = false
 
 
 func _toggle_minimap() -> void:
@@ -6515,8 +6826,12 @@ func _show_the_heal_saving(price: int) -> void:
 	if fill == null or not fill.has_meta(&"heal_saving"):
 		fill = StyleBoxFlat.new()
 		fill.set_meta(&"heal_saving", true)
+		fill.set_corner_radius_all(2)
 		var empty := StyleBoxFlat.new()
 		empty.bg_color = Color(0.05, 0.05, 0.07, 0.7)
+		empty.set_corner_radius_all(2)
+		empty.set_border_width_all(1)
+		empty.border_color = STRIP_RIM
 		_tend_progress.add_theme_stylebox_override("background", empty)
 		_tend_progress.add_theme_stylebox_override("fill", fill)
 	fill.bg_color = HEAL_SAVING_FAR.lerp(HEAL_SAVING_NEAR, share)

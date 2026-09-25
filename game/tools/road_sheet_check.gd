@@ -131,6 +131,9 @@ func _ready() -> void:
 	await _test_a_reshape_re_lays_both_sheets()
 	await _test_the_command_panel_is_on_screen()
 	await _test_a_boss_off_screen_has_an_arrow()
+	await _test_a_tap_in_a_stick_zone_opens_the_sheet()
+	_test_command_and_preparation_never_share_the_screen()
+	await _test_an_announcement_waits_for_the_sheet()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -523,6 +526,141 @@ func _test_a_boss_off_screen_has_an_arrow() -> void:
 
 
 ## Headless frames are milliseconds; the arrows gather every fraction of a second.
+## **A tap on ground the sticks own opens the sheet** (owner, 2026-09-25: "Too
+## often i'll be in build mode and try tapping on a ground tile to place a tower
+## or trap and the menus wont open!"). Driven the way the engine delivers a
+## finger - the press through `_unhandled_input`, the lift through `_input` then
+## `_unhandled_input` - at a buildable tile inside each stick's zone, on the real
+## field, and read back off the HUD. A drag from the same place must not open it.
+func _test_a_tap_in_a_stick_zone_opens_the_sheet() -> void:
+	if not _touch:
+		return
+	_hud.call("_close_build_panel")
+	_hud.call("_close_road_panel")
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	GameDirector.build_mode = true
+	await _for_seconds(0.1)
+	var cursor: CanvasItem = _field.placement
+	for right: bool in [false, true]:
+		var zone: Rect2 = TouchInput.zone(right)
+		var spot: Vector2 = _buildable_point_in(zone, cursor)
+		if spot.x < 0.0:
+			_check(false, "no buildable ground under the %s stick's zone to tap"
+				% ("aim" if right else "move"))
+			continue
+		_hud.call("_close_build_panel")
+		await _for_seconds(0.05)
+		_finger(spot, true)
+		_finger(spot, false)
+		await _for_seconds(0.1)
+		var sheet: Control = _hud.get("_build_panel") as Control
+		_check(sheet != null and sheet.visible,
+			"a tap on buildable ground under the %s stick at %s did not open the build sheet"
+				% ["aim" if right else "move", spot])
+		_hud.call("_close_build_panel")
+		await _for_seconds(0.05)
+		_finger(spot, true)
+		var away: Vector2 = spot + Vector2(Balance.TOUCH_TAP_SLOP * 3.0, 0.0)
+		var drag := InputEventScreenDrag.new()
+		drag.position = away
+		drag.index = 0
+		TouchInput._unhandled_input(drag)
+		_finger(away, false)
+		await _for_seconds(0.1)
+		_check(sheet != null and not sheet.visible,
+			"a push of the %s stick opened the build sheet" % ("aim" if right else "move"))
+
+
+## A point in `zone`, clear of every interface control, whose tile a tower could
+## stand on - found by asking the field, as the cursor does.
+func _buildable_point_in(zone: Rect2, cursor: CanvasItem) -> Vector2:
+	var to_world: Transform2D = cursor.get_canvas_transform().affine_inverse()
+	var step: float = 24.0
+	var y: float = zone.position.y + step
+	while y < zone.end.y - step:
+		var x: float = zone.position.x + step
+		while x < zone.end.x - step:
+			var at := Vector2(x, y)
+			var world: Vector2 = to_world * at
+			var anchor: Vector2i = BattleGrid.world_to_tile(world) \
+				- Vector2i(BattleGrid.FOOTPRINT - 1, BattleGrid.FOOTPRINT - 1)
+			if _field.placement_problem(anchor).is_empty() and not _under_interface(at):
+				return at
+			x += step
+		y += step
+	return Vector2(-1.0, -1.0)
+
+
+## Whether a visible control that takes the pointer covers `at` - a real finger
+## there would press that, not the ground.
+func _under_interface(at: Vector2) -> bool:
+	for node: Node in _all(_hud):
+		var control := node as Control
+		if control == null or not control.is_visible_in_tree() \
+				or control.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+			continue
+		if control is Container and not control is PanelContainer:
+			continue
+		if control.get_global_rect().has_point(at):
+			return true
+	return false
+
+
+func _finger(at: Vector2, down: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.position = at
+	event.pressed = down
+	event.index = 0
+	if not down:
+		TouchInput._input(event)
+	TouchInput._unhandled_input(event)
+
+
+## **The command panel and the Preparation card never share the screen** (owner,
+## 2026-09-25: "make sure the command and preparation windows do not overlap on
+## mobile or desktop"). They hang from the same corner on a phone, so the rule
+## that keeps them apart is the phase: the card is Preparation's and the panel
+## is the fight's. Walked through every phase with Command already earned, which
+## is the state where both have a reason to show.
+func _test_command_and_preparation_never_share_the_screen() -> void:
+	RunState.command_earned = 40.0
+	RunState.command = 40.0
+	for phase: int in [RunState.Phase.PREPARATION, RunState.Phase.ROAD_BATTLE,
+			RunState.Phase.BOSS, RunState.Phase.FINAL_ASCENT, RunState.Phase.PREPARATION]:
+		RunState.set_phase(phase)
+		EventBus.command_changed.emit(RunState.command, Balance.COMMAND_MAX)
+		var card: Control = _hud.get("_preparation_panel") as Control
+		var panel: Control = _hud.get("_command_panel") as Control
+		if card == null or panel == null:
+			_check(false, "the HUD has no Preparation card or command panel to compare")
+			return
+		var both: bool = card.is_visible_in_tree() and panel.is_visible_in_tree()
+		_check(not both or not card.get_global_rect().intersects(panel.get_global_rect()),
+			"in phase %s the Preparation card %s and the command panel %s overlap"
+				% [RunState.Phase.keys()[phase], card.get_global_rect(), panel.get_global_rect()])
+	RunState.set_phase(RunState.Phase.PREPARATION)
+
+
+## **An announcement waits for an open sheet** (2026-09-25). The region card is
+## centred, and on a phone that crosses the build sheet; a card arriving while a
+## sheet is open is held and shown when the sheet closes, never lost.
+func _test_an_announcement_waits_for_the_sheet() -> void:
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	GameDirector.build_mode = true
+	await _open_build_sheet()
+	var card: Control = _hud.get("_region_card") as Control
+	_hud.announce("The road", "HELD CARD")
+	await _for_seconds(0.1)
+	_check(card != null and not card.visible,
+		"an announcement made while a sheet is open must wait for it, not cross it")
+	_hud.call("_close_build_panel")
+	await _for_seconds(0.2)
+	var title: Label = _hud.get("_region_title") as Label
+	_check(card != null and card.visible and title != null and title.text == "HELD CARD",
+		"a held announcement must be shown when the sheet closes")
+	_hud.call("_clear_region_card")
+
+
 func _for_seconds(seconds: float) -> void:
 	var left: float = seconds
 	while left > 0.0:
