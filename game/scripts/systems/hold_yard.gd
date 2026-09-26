@@ -1011,7 +1011,50 @@ func _build_seats() -> void:
 		if own != null:
 			own.seed = absi(hash("hold-seat:" + sim_key(index)))
 		_place(_seats[index])
+		# Somebody, rather than a copy of the player: a body, a haircut, a
+		# colour, a beard and a skin of their own, drawn from this visit's salt.
+		_dress_seat(index, _stranger_look(index), [])
+	_dress_seat(0, WardenLook.worn(), Hero.worn_kinds())
 	_relabel()
+
+
+## A simulated Warden's look, rolled from the visit rather than the run's stream
+## (decoration never draws on a named stream). Plain cloth: a dye on a stranger
+## would read as the player's own colours.
+func _stranger_look(index: int) -> Dictionary:
+	var own := RandomNumberGenerator.new()
+	own.seed = absi(hash("hold-look:" + sim_key(index)))
+	var look: Dictionary = WardenLook.plain()
+	var drawn: Array[int] = []
+	for body: int in WardenDress.BODIES.size():
+		if WardenDress.available(WardenDress.BODIES[body]):
+			drawn.append(body)
+	look[WardenLook.KEY_BODY] = drawn[own.randi_range(0, drawn.size() - 1)] if not drawn.is_empty() else 0
+	for key: String in [WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_BEARD,
+			WardenLook.KEY_SKIN]:
+		look[key] = own.randi_range(0, int(WardenLook.CHOICES[key]) - 1)
+	return WardenLook.clean(look)
+
+
+## Dresses a seat's Warden: the look, and the gear by kind where it is known.
+## A dressed body's feet sit `PAINTED_FEET_BELOW_CENTRE` below its sprite's
+## origin, as the hero's do; the painted one stands on the seat's offset. So a
+## dressed figure is lifted by that much, or it stands in the ground.
+func _dress_seat(index: int, look: Dictionary, kinds: Array) -> void:
+	if index < 0 or index >= _seats.size():
+		return
+	var animator := _seats[index].get("animator") as HeroAnimator
+	if animator == null or animator.sprite == null:
+		return
+	var gear: Array[GearData] = []
+	for slot: int in 4:
+		gear.append(ContentDB.gear(String(kinds[slot])) if slot < kinds.size() and kinds[slot] is String else null)
+	WardenLook.dress(animator.sprite, look)
+	animator.dress(WardenDress.outfit(look, gear[0], gear[1], gear[2], gear[3]))
+	if animator.dressed():
+		animator.sprite.position = Vector2(0.0, -HeroAnimator.PAINTED_FEET_BELOW_CENTRE)
+	else:
+		animator.sprite.position = Vector2.ZERO
 
 
 ## What a simulated Warden is up to where it stopped. See `_errand`.
@@ -1039,6 +1082,11 @@ func _stand_warden(index: int) -> Dictionary:
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.centered = true
 	sprite.offset = Vector2(0.0, -float(HeroAnimator.CELL_H) * 0.5 + Balance.HOLD_WARDEN_FOOT)
+	# The look's shader from the start, so the skin mask and the dressed body's
+	# bands have somewhere to go on the first frame rather than the second.
+	var material := ShaderMaterial.new()
+	material.shader = WardenLook.shader()
+	sprite.material = material
 	root.add_child(sprite)
 
 	var animator := HeroAnimator.new()
@@ -1726,9 +1774,9 @@ func set_seat(index: int, kind: int, who: String, title: String = "") -> void:
 func set_look(index: int, row: Array) -> void:
 	if index < 0 or index >= _seats.size():
 		return
-	var animator := _seats[index].get("animator") as HeroAnimator
-	if animator != null and animator.sprite != null:
-		WardenLook.dress(animator.sprite, WardenLook.unpack(row))
+	# This machine's own seat wears its own gear; a guest's is not known in the
+	# Hold, so it stands in its look alone.
+	_dress_seat(index, WardenLook.unpack(row), Hero.worn_kinds() if index == 0 else [])
 
 
 ## A seat's own record, so a gate can drive one rather than assert a constant.

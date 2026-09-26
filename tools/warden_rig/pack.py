@@ -76,6 +76,36 @@ def layer_names(body: str) -> list:
     return [k for k, v in spec.items() if v["body"] == body]
 
 
+# Generator dust: an opaque island this small, this far from the body, is a
+# speck the animator left in the air (a dot beside the head in a few idle
+# frames of the female base), never a part of the Warden. An island touching
+# the silhouette is kept whatever its size - a fingertip is small too.
+SPECK_MAX = 5
+SPECK_CLEARANCE = 2
+
+
+def clear_specks(image: Image.Image) -> Image.Image:
+    from scipy import ndimage
+    a = np.asarray(image).copy()
+    opaque = a[..., 3] > 0
+    labels, count = ndimage.label(opaque, structure=np.ones((3, 3)))
+    if count <= 1:
+        return image
+    sizes = ndimage.sum(opaque, labels, range(1, count + 1))
+    body = labels == (int(np.argmax(sizes)) + 1)
+    near = ndimage.binary_dilation(body, iterations=SPECK_CLEARANCE)
+    cleared = 0
+    for index, size in enumerate(sizes, start=1):
+        if size > SPECK_MAX:
+            continue
+        island = labels == index
+        if (island & near).any():
+            continue
+        a[island] = 0
+        cleared += int(size)
+    return Image.fromarray(a, "RGBA") if cleared else image
+
+
 def _repairs() -> dict:
     """Frames held on a neighbour: `repairs.json`, by layer, then
     `clip<N>/<facing>/<NN>` to the frame that stands in for it."""
@@ -98,7 +128,7 @@ def frames_of(layer: str, clip_index: int, facing: str) -> list:
         if stand_in is not None:
             print("  %s clip%d %s frame %s holds frame %s (repairs.json)" % (layer, clip_index, facing, n[:-4], stand_in))
             n = stand_in + ".png"
-        out.append(Image.open(os.path.join(folder, n)).convert("RGBA"))
+        out.append(clear_specks(Image.open(os.path.join(folder, n)).convert("RGBA")))
     return out
 
 
@@ -135,10 +165,21 @@ def dither(image: Image.Image) -> int:
     return int(((~a) & (around >= 3)).sum() + (a & (around <= 1)).sum())
 
 
+# Animations whose last frame is always the one before it. The generator reads
+# "collapse" as "fade away": six of the sixteen last death frames across the two
+# bases dissolved, and three of them into a pale colour speckle that neither the
+# pin-hole count nor a speckle count could tell from an ordinary frame. The last
+# two frames of a death are one pose within a pixel or two, so holding the
+# earlier costs nothing that can be seen.
+ALWAYS_HOLD_LAST: tuple = ("death",)
+
+
 def hold_dissolved_end(state: str, images: list) -> list:
     """A one-shot whose last frame dissolves ends on the frame before it."""
     if animations.ANIMATIONS[state][1] or len(images) < 3:
         return images
+    if state in ALWAYS_HOLD_LAST:
+        return images[:-1] + [images[-2]]
     scores = [dither(im) for im in images]
     usual = float(np.median(scores[:-1]))
     if scores[-1] > max(DISSOLVE_FLOOR, DISSOLVE_RATIO * usual):
