@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 8
+attribute = 4
+base_points = 2
+weight = 1.15
+min_tier = 0
+id = "pilgrims_wrap"
+display_name = "Pilgrim's Wrap"
+description = "Walked in for a thousand miles and never once thrown away."

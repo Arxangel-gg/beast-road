@@ -454,7 +454,11 @@ const LOOT_Z_INDEX: int = -2
 ## it is the roster's size arriving in a constant, and the reason the check
 ## exists is that a stash which cannot hold two of everything cannot be used to
 ## compare duplicates, which is most of what a stash is for.
-const STASH_CAPACITY: int = 304
+##
+## **Raised 304 -> 336 on 2026-09-25, with the fifteen capes** - the ninth
+## slot. Fifth time; 153 kinds is 306 before any slack and a tenth on top is
+## 336. Same arithmetic, and the gate named it on the first run again.
+const STASH_CAPACITY: int = 336
 
 ## How many pieces one side may put on the trade table at once.
 ##
@@ -589,6 +593,12 @@ const EXCHANGE_SUPPLY_FEED_WEIGHT: float = 0.6
 ## 3.0, so filling a full loadout is worth about half again as much as the old
 ## one - a real reward for collecting, comfortably short of doubling.
 ##
+## **The cape is the ninth, as of 2026-09-25** (owner: "capes should have
+## stats"), at a glove's weight. The loadout goes 4.55 to 4.95 and stays under
+## `GEAR_TOTAL_SLOT_CEILING`, which did not move to make room for it: the ceiling
+## is the bound, and a slot that needed it raised would be a slot that made the
+## hero stronger rather than the choosing richer.
+##
 ## Indexed by `GearData.Slot`. [TUNE]
 const GEAR_SLOT_WEIGHT: Array[float] = [
 	1.00,  # Weapon
@@ -599,6 +609,7 @@ const GEAR_SLOT_WEIGHT: Array[float] = [
 	0.40,  # Boots
 	0.30,  # Ring
 	0.35,  # Amulet
+	0.40,  # Cape
 ]
 
 ## The most the whole loadout may be worth, against one weapon.

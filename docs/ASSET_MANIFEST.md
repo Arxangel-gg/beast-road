@@ -2159,6 +2159,23 @@ near-black leather as the rest of the set, and the same 128x128.
 `ui_ring_of_the_unbroken.png` · `ui_band_of_quiet_iron.png` ·
 `ui_amulet_of_the_standing_stone.png` · `ui_pendant_of_the_kept_word.png`
 
+Fifteen capes arrived with the **Cape** slot on 2026-09-25 (owner: "capes should
+have stats"): three for each attribute, across the three campaign tiers. Same
+cold blue-grey steel and near-black leather as the rest of the set, drawn with a
+shipped gear icon as the style image, and the same 128x128. Each has its own
+silhouette - a pelt, a half-cape on one shoulder, a chained hem, a salt-bleached
+wrap, a mist that trails off - because a slot of fifteen folded black cloaks is
+one cape fifteen times.
+
+`ui_wolfpelt_mantle.png` · `ui_reavers_halfcape.png` ·
+`ui_ironveil_mantle.png` · `ui_roadwardens_mantle.png` ·
+`ui_marchers_greatcloak.png` · `ui_terrace_mistcloak.png` ·
+`ui_drovers_oilcloth.png` · `ui_saltwhite_cloak.png` ·
+`ui_stalkers_shadowcloak.png` · `ui_ashen_shroud.png` ·
+`ui_emberweave_cape.png` · `ui_glassthread_mantle.png` ·
+`ui_pilgrims_wrap.png` · `ui_bannermans_cape.png` ·
+`ui_chainbreakers_cloak.png`
+
 Four of these were drawn twice. Hand armour generates as leg armour unless the
 prompt insists on fingers, and a ring generates as a slab unless it insists on
 the hole; the first pass put boots in the Gloves slot and a paving stone in the

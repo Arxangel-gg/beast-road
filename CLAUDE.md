@@ -59,6 +59,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | No dungeons, rifts, professions or ascension | absent | **DECIDED 2026-09-11: build them. See below.** |
 | Disciplines are the card draft (IDEAS_REVIEW §4) | refuse a second pool | **DECIDED 2026-09-11: build Road Cards. See below.** |
 | One authored battlefield; procedural layouts cut (v4 §54) | cut for 1.0 | **DECIDED 2026-09-23: map modes in the settings, Random included. See below.** |
+| One painted Warden, the hooded skull (every sheet since v0.3) | not in the spec | **DECIDED 2026-09-25: a modular, customizable Warden, male and female, capes as a stat slot. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -9852,6 +9853,47 @@ litter rolled by the real families and placed by the real `spawn_born`
 wearing the coat it was rolled with on its record and on its material. Two
 faults were planted - the spawn ignoring the born coat, and the clamp removed -
 and both were named.
+
+**The Warden becomes a modular, customizable body, as of 2026-09-25.** The
+owner asked how to build modular player characters - bodies per weapon type in
+the Diablo II manner, a customizable head at a neck socket, armour that shows,
+capes as their own slot - and ruled on three questions: *"1. Capes should have
+stats. 2. No hooded skull 3. Yes. Max perfection"*, and in the same hour *"make
+male and female customizable players"*. Four decisions, each recorded here
+before anything is built on it.
+
+- **The hooded skull is retired as the player's face.** The Warden becomes a
+  person the player dresses: a bald base body in plain linen with the lantern at
+  the hip, onto which a head, hair, armour, a cape and a weapon class are laid.
+  The menu painting, the story panels and the Hold's figures still show the old
+  Warden and are owed; they are recorded in the plan rather than forgotten.
+- **Two bodies, male and female.** Both are posed by one skeleton
+  (`tools/warden_rig/`), so a weapon, a cape or a helmet drawn for one sits on
+  the other's hands and shoulders. Armour and hair are drawn per body, because a
+  breastplate cut for one silhouette does not sit on the other - that is the one
+  place the second body doubles the art.
+- **The look is layers composited at runtime, never a painting per
+  combination.** Every option is a PixelLab state of one base, animated to the
+  *same* authored keypoints, and what ships is its difference against the base.
+  Ninety-odd combinations from a few dozen sheets; the pilot of 2026-09-24
+  proved two states land on the same pixels frame for frame
+  (`docs/WARDEN_DRESS_DESIGN_2026-09-24.md`).
+- **A cape is a gear slot, and it carries stats.** `GearData.Slot.CAPE` is
+  *appended* - data indexes that enum by number, and `equipped` is keyed by it -
+  and weighs `0.40` of a weapon in `GEAR_SLOT_WEIGHT`, beside gloves and boots.
+  A full loadout goes 4.55 to 4.95 against `GEAR_TOTAL_SLOT_CEILING` of 5.0,
+  which is the bound the eight slots were added under and it does not move: a
+  ninth socket is more choosing, never a hero past the capped scale.
+
+**The bound is the dye's, unchanged: a look may change nothing but how the
+Warden looks.** Body, head, hair and skin are presentation and move no number.
+What a cape *grants* it grants as gear - attribute points on the capped scale,
+through `Stash.points` - and which cape class it *draws* is derived from its kind
+at draw time, exactly as the set aura's colour is. So nothing about the body is
+saved beyond the look row the dye already sanctioned (working rule 7): which
+body and which head are two more entries on `MetaState.look`, appended to
+`WardenLook.KEYS` and never inserted, for the co-op reason that key list already
+records.
 
 ### The three escape hatches - and why there are only three
 

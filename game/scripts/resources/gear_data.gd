@@ -12,7 +12,7 @@ extends GameData
 ## Distinct from `ItemData`, which is a consumable the player carries for a run.
 ## Gear persists (owner ruling, 2026-08-20) and is worn.
 
-## The eight places a piece can be worn.
+## The nine places a piece can be worn.
 ##
 ## Owner request, 2026-09-01. Three slots meant three decisions a run; eight
 ## means a loadout has a shape. **The first three keep their ordinal values** so
@@ -24,7 +24,13 @@ extends GameData
 ## added around them are minor by design - a ring is not a breastplate - and
 ## `Balance.GEAR_SLOT_WEIGHT` is where that is stated rather than being implied
 ## by whatever numbers happened to get authored.
-enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET }
+##
+## **CAPE is appended, never inserted** (owner ruling, 2026-09-25: "capes should
+## have stats"). Every `.tres` names its slot by number and `equipped` is keyed
+## by it, so a member slipped in before AMULET would move every amulet in every
+## save onto a slot it was never cut for - silently, because a number is always
+## a legal slot. A cape is a minor slot, worth what gloves and boots are.
+enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE }
 
 @export var slot: Slot = Slot.WEAPON
 
@@ -73,6 +79,8 @@ static func name_of_slot(which: int) -> String:
 			return "Boots"
 		Slot.RING:
 			return "Ring"
+		Slot.CAPE:
+			return "Cape"
 		_:
 			return "Amulet"
 

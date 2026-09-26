@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 8
+attribute = 1
+base_points = 3
+weight = 1.10
+min_tier = 0
+id = "roadwardens_mantle"
+display_name = "Roadwarden's Mantle"
+description = "Oiled wool, cut to shed the rain and the worst of the road's opinion."

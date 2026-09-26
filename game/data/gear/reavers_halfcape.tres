@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 8
+attribute = 0
+base_points = 3
+weight = 0.95
+min_tier = 1
+id = "reavers_halfcape"
+display_name = "Reaver's Half-cape"
+description = "Worn on one shoulder, leaving the sword arm free for the argument."

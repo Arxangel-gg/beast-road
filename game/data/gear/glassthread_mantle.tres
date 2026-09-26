@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 8
+attribute = 3
+base_points = 4
+weight = 0.85
+min_tier = 1
+id = "glassthread_mantle"
+display_name = "Glassthread Mantle"
+description = "It rings faintly when the wind turns. Casters swear it helps them think."

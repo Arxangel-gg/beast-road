@@ -385,7 +385,7 @@ func _build_tools() -> void:
 	var names: Array[String] = ["All"]
 	for slot: int in GearData.Slot.size():
 		names.append(GearData.name_of_slot(slot))
-	# Last rather than first: the eight slots are what this screen is for, and a
+	# Last rather than first: the nine slots are what this screen is for, and a
 	# tab that pushes them along by one is a tab that moved every button a
 	# returning player already knew the position of.
 	#

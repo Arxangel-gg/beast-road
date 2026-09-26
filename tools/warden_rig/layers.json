@@ -1,0 +1,14 @@
+{
+ "male_base": {
+  "body": "male",
+  "character_id": "61c27878-6e62-4b94-b4f0-19e2c2541043",
+  "description": "bald lean male warden in an off-white linen tunic, grey-brown trousers, dark leather belt with a glowing iron lantern at the left hip, brown leather boots, both hands closed in empty fists, holding nothing",
+  "seed": 7
+ },
+ "female_base": {
+  "body": "female",
+  "character_id": "4ebe78e2-47ad-403e-8bf1-41e15e710eba",
+  "description": "bald lean female warden in an off-white linen tunic, grey-brown trousers, dark leather belt with a glowing iron lantern at the left hip, brown leather boots, both hands closed in empty fists, holding nothing",
+  "seed": 7
+ }
+}

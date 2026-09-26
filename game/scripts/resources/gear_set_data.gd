@@ -20,7 +20,7 @@ extends GameData
 ## Gear grants attribute points on the capped scale levelling shares (working
 ## rule 7), and a set changes none of that - every piece still grants exactly
 ## what its kind, rarity and level say. What the player gives up is the freedom
-## to pick: six of eight slots locked to *particular kinds* is six slots where
+## to pick: six of nine slots locked to *particular kinds* is six slots where
 ## you cannot chase the attribute you wanted, the rarity you found, or the
 ## affixes you were hunting. A set is a different build rather than a better one.
 ##

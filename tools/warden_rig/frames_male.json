@@ -1,0 +1,58 @@
+{
+ "east": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 104.0,
+  "foot_y": 168.26685443578702,
+  "stature": 153.24907899084656
+ },
+ "south-east": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 107.5,
+  "foot_y": 171.91849423116855,
+  "stature": 155.43835154785864
+ },
+ "south": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 102.0,
+  "foot_y": 171.0,
+  "stature": 151.05980643383447
+ },
+ "south-west": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 98.0,
+  "foot_y": 171.91849423116855,
+  "stature": 155.43835154785864
+ },
+ "west": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 97.0,
+  "foot_y": 168.26685443578702,
+  "stature": 153.24907899084656
+ },
+ "north-west": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 102.0,
+  "foot_y": 168.94019497601946,
+  "stature": 154.3437152693526
+ },
+ "north": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 104.0,
+  "foot_y": 170.0,
+  "stature": 152.1544427123405
+ },
+ "north-east": {
+  "width": 208,
+  "height": 208,
+  "foot_x": 107.0,
+  "foot_y": 168.94019497601946,
+  "stature": 154.3437152693526
+ }
+}

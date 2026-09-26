@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 8
+attribute = 4
+base_points = 4
+weight = 0.75
+min_tier = 2
+id = "chainbreakers_cloak"
+display_name = "Chainbreaker's Cloak"
+description = "Hemmed with links from a chain somebody broke, so the next one knows it can be."
