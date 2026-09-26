@@ -122,7 +122,9 @@ func dress(outfit: Dictionary) -> void:
 		_outfit = {}
 		if _layers != null:
 			_layers.set_worn(false)
+		_say_which_bands(true)
 		return
+	_say_which_bands(false)
 	var changed_body: bool = String(_outfit.get("body_layer", "")) != String(outfit.get("body_layer", ""))
 	_outfit = outfit
 	if changed_body:
@@ -139,6 +141,14 @@ func dress(outfit: Dictionary) -> void:
 	# A state already playing is re-read in the new outfit's combo.
 	if not _state.is_empty():
 		_state_drawn = _resolve(_state)
+
+
+## Tells the sprite's shader whether it is the painted Warden, whose cloak and
+## sash bands the first two dyes turn, or the dressed one, which has neither.
+func _say_which_bands(painted: bool) -> void:
+	var material := sprite.material as ShaderMaterial if sprite != null else null
+	if material != null:
+		material.set_shader_parameter("painted_bands", painted)
 
 
 func dressed() -> bool:

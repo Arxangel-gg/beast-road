@@ -826,6 +826,10 @@ func _test_the_skin_turns() -> void:
 	_check(animator.skin_mask_drawn() == "male_base/idle",
 		"the idle mask was not handed over: %s" % animator.skin_mask_drawn())
 	_check(material.get_shader_parameter("skin_mask") is Texture2D, "the idle sheet's skin mask is not on the material")
+	# The dressed body wears linen, with no cloak or sash band for the first two
+	# dyes to find - turned anyway, the sash dye speckled the skin's ink cyan.
+	_check(material.get_shader_parameter("painted_bands") == false,
+		"a dressed body still lets the cloak and sash dyes turn it")
 	animator.play("walk", true)
 	animator._process(0.0)
 	_check(animator.skin_mask_drawn() == "male_base/walk" and material.get_shader_parameter("skin_mask") == null,

@@ -94,6 +94,101 @@
   "status": "completed",
   "submitted": "2026-09-26T01:29:27"
  },
+ "north-east/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip0\\north-east",
+  "job": "6797e3d2-e92c-46dc-828f-36e26595701e",
+  "status": "completed",
+  "submitted": "2026-09-26T01:47:46"
+ },
+ "north-east/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip1\\north-east",
+  "job": "9f4a7735-ae61-441c-9519-bdcb370f81b2",
+  "status": "completed",
+  "submitted": "2026-09-26T01:48:11"
+ },
+ "north-east/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip2\\north-east",
+  "job": "d358e4a0-8d16-4f86-8000-c8d00e61e5dd",
+  "status": "completed",
+  "submitted": "2026-09-26T01:48:12"
+ },
+ "north-east/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip3\\north-east",
+  "job": "55f6d0fb-e569-48c9-95f1-c743582f3bf0",
+  "status": "completed",
+  "submitted": "2026-09-26T01:48:34"
+ },
+ "north-east/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip4\\north-east",
+  "job": "f0fbc66b-5412-40c2-995e-3a81cd9c935a",
+  "status": "completed",
+  "submitted": "2026-09-26T01:48:35"
+ },
+ "north-east/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip5\\north-east",
+  "job": "85e7e3a2-ff21-4413-b4a0-c1c834d8deb9",
+  "status": "completed",
+  "submitted": "2026-09-26T01:49:40"
+ },
+ "north-east/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip6\\north-east",
+  "job": "ad0bb8b3-160b-4e61-87a0-62dbbc6d7108",
+  "status": "completed",
+  "submitted": "2026-09-26T01:50:05"
+ },
+ "north-east/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip7\\north-east",
+  "job": "1361aa55-7017-456d-85a9-166bc4a87838",
+  "status": "completed",
+  "submitted": "2026-09-26T01:50:06"
+ },
  "north-west/0": {
   "attempts": 1,
   "clip": [
@@ -113,8 +208,9 @@
    "hurt"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip1\\north-west",
   "job": "30ed0252-ea07-4f3a-a743-54abd3d66109",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:42:03"
  },
  "north-west/2": {
@@ -124,8 +220,9 @@
    "death"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip2\\north-west",
   "job": "2f7e93ad-233f-4ef9-bb5c-27e64f1a0564",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:42:04"
  },
  "north-west/3": {
@@ -135,8 +232,9 @@
    "attack_1a"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip3\\north-west",
   "job": "620f32a7-c88d-45d2-b72b-669e4ca76de4",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:43:17"
  },
  "north-west/4": {
@@ -146,8 +244,9 @@
    "attack_2"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip4\\north-west",
   "job": "2739139c-ab3e-48b4-92f2-98831c418481",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:43:19"
  },
  "north-west/5": {
@@ -157,8 +256,9 @@
    "attack_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip5\\north-west",
   "job": "1fcf2d19-b718-4fd8-bbe5-d18ce9c5c7b7",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:43:48"
  },
  "north-west/6": {
@@ -168,8 +268,9 @@
    "attack_2h_4"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip6\\north-west",
   "job": "8edfbfc3-54d6-498d-955c-c6e00b26317a",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:43:50"
  },
  "north-west/7": {
@@ -178,8 +279,9 @@
    "attack_2h_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip7\\north-west",
   "job": "04d791e4-fe83-47fe-a424-eb06160d537a",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:43:51"
  },
  "north/0": {
@@ -189,8 +291,9 @@
    "dash"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip0\\north",
   "job": "fa878f64-eb2e-4fe2-bbf3-82f151aa0911",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:44:45"
  },
  "north/1": {
@@ -200,8 +303,9 @@
    "hurt"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip1\\north",
   "job": "131e53be-8f25-40e8-a206-9578eee1dd4f",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:06"
  },
  "north/2": {
@@ -211,8 +315,9 @@
    "death"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip2\\north",
   "job": "865527b6-58cf-4ab8-97a0-83d09a26a556",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:28"
  },
  "north/3": {
@@ -222,8 +327,9 @@
    "attack_1a"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip3\\north",
   "job": "d456ef5f-2a1d-4735-9c4d-9f80cb7f3ead",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:30"
  },
  "north/4": {
@@ -233,8 +339,9 @@
    "attack_2"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip4\\north",
   "job": "2764082c-4152-4add-8b10-69e3b8625eca",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:33"
  },
  "north/5": {
@@ -244,8 +351,9 @@
    "attack_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip5\\north",
   "job": "43f43441-d44a-45f2-98bf-607e853e105f",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:54"
  },
  "north/6": {
@@ -255,9 +363,21 @@
    "attack_2h_4"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip6\\north",
   "job": "2ab2e18a-5c01-4107-be96-857420020f94",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:45:56"
+ },
+ "north/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip7\\north",
+  "job": "310e9e2b-a4c1-4d88-a9d4-99abbb10df46",
+  "status": "completed",
+  "submitted": "2026-09-26T01:47:45"
  },
  "south-east/0": {
   "attempts": 1,
@@ -551,8 +671,9 @@
    "dash"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip0\\west",
   "job": "0474ea0c-1fe4-4689-805b-7e8011caec0c",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:38:14"
  },
  "west/1": {
@@ -610,8 +731,9 @@
    "attack_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip5\\west",
   "job": "f529ed69-60e4-40e6-8fc7-a209ee5851a8",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:39:26"
  },
  "west/6": {

@@ -40,6 +40,12 @@ uniform float look_leather : hint_range(-0.5, 0.5) = 0.0;
 // `WardenLook.turn_skin_channel` is the same rule for the gate. No mask (the
 // painted Warden, the Hold's figures) samples black, and nothing turns.
 uniform sampler2D skin_mask : filter_nearest, hint_default_black;
+// Whether the sprite is the old painted Warden, whose cloak and sash are the
+// teal and red bands the first two dyes turn. The dressed Warden (2026-09-26)
+// wears linen and has neither band - and turned anyway, the sash dye found the
+// skin's reddish ink round the eyes and the outline and speckled it cyan. So
+// on a dressed body only the leather turns; `HeroAnimator.dress` says which.
+uniform bool painted_bands = true;
 uniform vec3 skin_from = vec3(0.5);
 uniform vec3 skin_to = vec3(0.5);
 
@@ -92,14 +98,15 @@ vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
 	vec3 hsv = look_to_hsv(rgb);
 	// The teal-steel band: hue 160 to 225 degrees, anything with a little colour
 	// in it. Bone and the plain greys have none and stay bone and grey.
+	float bands = painted_bands ? 1.0 : 0.0;
 	float cloak = smoothstep(0.43, 0.47, mask.x) * (1.0 - smoothstep(0.60, 0.64, mask.x))
-		* smoothstep(0.10, 0.18, mask.y);
+		* smoothstep(0.10, 0.18, mask.y) * bands;
 	// The red band: within a few degrees of zero, either side of the wrap, and
 	// saturated. The lantern's orange (hue 20 to 40) and the leather (hue 20,
 	// less saturated) are outside it.
 	float red = 1.0 - smoothstep(0.035, 0.055, mask.x);
 	float wrapped = smoothstep(0.94, 0.96, mask.x);
-	float sash = max(red, wrapped) * smoothstep(0.45, 0.60, mask.y);
+	float sash = max(red, wrapped) * smoothstep(0.45, 0.60, mask.y) * bands;
 	// The leather band (2026-09-23): hue 21 to 32 degrees, saturated, and dark.
 	// Measured on the idle sheet at s 0.78, v 0.39; the lantern's orange sits in
 	// the same hues but bright (v 0.63 and up), so the value edge keeps it lit.

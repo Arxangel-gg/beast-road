@@ -266,11 +266,13 @@
   "status": "completed"
  },
  "m_twin": {
-  "bought": "2026-09-26T01:11:52",
-  "rejected": [],
-  "seed": 7,
-  "state": "fad4c1e4-a011-40ae-9534-46eb055a61e8",
-  "status": "completed"
+  "bought": "2026-09-26T01:59:38",
+  "rejected": [
+   "fad4c1e4-a011-40ae-9534-46eb055a61e8"
+  ],
+  "seed": 108,
+  "state": "67e666d6-93d8-4ca3-90ba-78401a044087",
+  "status": "processing"
  },
  "m_undercut": {
   "bought": "2026-09-26T01:09:02",

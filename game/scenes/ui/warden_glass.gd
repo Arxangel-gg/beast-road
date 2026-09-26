@@ -58,6 +58,7 @@ var _beard_name: Label
 var _skin_name: Label
 var _colour_name: Label
 var _dye_sliders: Dictionary = {}
+var _dye_rows: Dictionary = {}
 var _hair_materials: Array[ShaderMaterial] = []
 var _face_materials: Array[ShaderMaterial] = []
 var _pose_buttons: Array[Button] = []
@@ -399,6 +400,7 @@ func _dye_row(text: String, key: String) -> HBoxContainer:
 		_touched = true
 		_refresh_preview())
 	_dye_sliders[key] = slider
+	_dye_rows[key] = row
 	row.add_child(slider)
 	return row
 
@@ -620,6 +622,12 @@ func _refresh() -> void:
 			(buttons[index] as Button).set_pressed_no_signal(index == chosen)
 	for key: Variant in _dye_sliders:
 		(_dye_sliders[key] as HSlider).set_value_no_signal(float(look.get(key, 0.0)))
+	# The cloak and the sash are the painted Warden's bands; a dressed body wears
+	# linen and has neither, so only the leather is offered on one.
+	var dressed: bool = WardenDress.available(WardenDress.body_name(look))
+	for key: String in [WardenLook.KEY_CLOAK, WardenLook.KEY_SASH]:
+		if _dye_rows.has(key):
+			(_dye_rows[key] as Control).visible = not dressed
 	# The skin swatch for "as painted" is the body's own painted skin.
 	var skins: Array = _choices.get(WardenLook.KEY_SKIN, [])
 	if not skins.is_empty():

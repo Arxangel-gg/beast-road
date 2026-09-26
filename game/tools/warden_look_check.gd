@@ -194,6 +194,10 @@ func _test_the_shader_is_wired() -> void:
 		"the skin must be turned from the painted mean to the tone, lightening and darkening")
 	_check(include_text.contains("* (1.0 - skin)"),
 		"the leather dye must never reach the skin, whose shadows sit in its hue")
+	# The dressed body has no cloak or sash band: a sash dye there speckled the
+	# skin's ink cyan (2026-09-26).
+	_check(include_text.contains("uniform bool painted_bands") and include_text.contains("* bands;"),
+		"the cloak and sash dyes must be off on a dressed body, which has neither band")
 	# The mask must come from `art` and the turn from `hsv`: a build that read
 	# either from the other is the fault this amendment exists to refuse.
 	_check(include_text.contains("vec3 mask = look_to_hsv(art);")
