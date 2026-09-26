@@ -246,7 +246,8 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) \
 			* float(_players) * standing \
 		+ _companion_dps() * float(_players) * standing \
-		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE)
+		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE) \
+			* _core_scale(Modifiers.TOWER_RATE)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -880,7 +881,7 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 		ranks += 1
 	var drafts: int = ranks + (act - 1) + (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
 	var left: int = drafts
-	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.HERO_DAMAGE]:
+	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.TOWER_RATE, Modifiers.HERO_DAMAGE]:
 		var card: RoadCardData = _best_card_for(key, act)
 		if card == null or left <= 0:
 			continue

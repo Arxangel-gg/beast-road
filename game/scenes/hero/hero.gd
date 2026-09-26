@@ -1108,8 +1108,9 @@ func mana_max() -> float:
 
 
 func mana_regen() -> float:
-	return Balance.HERO_MANA_REGEN \
-		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS
+	return (Balance.HERO_MANA_REGEN
+		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS) \
+		* maxf(Modifiers.multiplier(Modifiers.MANA_REGEN), 0.0)
 
 
 ## Pays for a cast. False, and nothing spent, when the pool cannot cover it.

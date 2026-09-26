@@ -165,7 +165,8 @@ func _level_index() -> int:
 
 ## What this trap hits for at its level.
 func damage_now() -> float:
-	return data.damage * Balance.TRAP_LEVEL_DAMAGE[_level_index()]
+	return data.damage * Balance.TRAP_LEVEL_DAMAGE[_level_index()] \
+		* maxf(Modifiers.multiplier(Modifiers.TRAP_DAMAGE), 0.0)
 
 
 ## How far it reaches at its level. A raised trap covers a little more road,

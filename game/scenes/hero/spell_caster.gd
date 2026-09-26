@@ -282,9 +282,13 @@ func _effective_cooldown(spell: SpellData) -> float:
 
 ## What Focus multiplies spell damage by. The Mansion has said "spell power"
 ## since the attribute was authored; this is where it happens.
+##
+## And the hand's spell power (augments), which multiplies the same blows: every
+## spell that deals damage reads this, so this is the one place to put it.
 static func focus_power() -> float:
-	return 1.0 + float(RunState.attribute(RunState.Attribute.FOCUS)) \
-		* Balance.HERO_FOCUS_SPELL_PER_POINT
+	return (1.0 + float(RunState.attribute(RunState.Attribute.FOCUS)) \
+		* Balance.HERO_FOCUS_SPELL_PER_POINT) \
+		* maxf(Modifiers.multiplier(Modifiers.SPELL_POWER), 0.0)
 
 
 ## What the discipline node in this slot adds on top of the spell it adapts.

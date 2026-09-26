@@ -139,7 +139,8 @@ func _ready() -> void:
 	# A companion is paid for at the moment of casting: the relics and buildings
 	# in force when it was called are what it swings with. Reading live would let
 	# a socket change mid-summon retroactively re-price a spell already spent.
-	_power = data.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	_power = data.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) \
+		* maxf(Modifiers.multiplier(Modifiers.COMPANION_DAMAGE), 0.0)
 	if not spirit_key.is_empty():
 		_power *= SpiritBond.power_scale(SpiritBond.rarity_of(spirit_key),
 			SpiritBond.shiny_of(spirit_key))

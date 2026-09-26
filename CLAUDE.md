@@ -10387,6 +10387,20 @@ peak the script frame went 3.9 to 4.3 ms. `ACT_START_BUDGET` was re-read.
 defaults**, so it saved and reverted on every launch - the fourth setting that
 dictionary has dropped.
 
+**Thirty-one more augments are staged, not built, and the reason is art.**
+PixelLab's allowance was spent (0 generations, no credits, reset 2026-10-11)
+and the production-art gate refuses a placeholder, so the pass waits in
+`docs/staged/augment_content_2026-09-26/` with its README. What could be done
+without a picture was: the five keys the new cards move - `tower_rate`,
+`trap_damage`, `spell_power`, `mana_regen`, `companion_damage` - are wired at
+the one place each number is made (the well's refill is excluded from fire
+rate), the ledger credits every key a source's blows are multiplied by, and
+`curve_report` already reads `tower_rate`, so the band will say what the rate
+cards buy the day they land. `augment_check` refuses a key the table resolves
+that no script reads - the `DisciplineEffects` lie on the modifier table, and
+the only thing that would notice one of these five coming unwired before any
+card sets it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

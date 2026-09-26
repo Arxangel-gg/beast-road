@@ -15,7 +15,7 @@ var _checks: int = 0
 ## Every test stamps this as its last line, so one that aborts on a runtime
 ## error - which stops that function and nothing else - cannot pass by omission.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 18
+const EXPECTED_TESTS: int = 20
 var _run: Run = null
 var _field: Battlefield = null
 
@@ -36,6 +36,7 @@ func _ready() -> void:
 	_test_an_act_start_banks_the_road()
 	_test_the_ledger_names_every_blow()
 	_test_a_branch_opens_its_keystones()
+	_test_every_key_is_read()
 
 	RunState.reset(false, 20260926)
 	GameDirector.run_active = true
@@ -54,6 +55,7 @@ func _ready() -> void:
 		await _test_later_waits_for_the_next_breather()
 		await _test_at_once_holds_the_road()
 		await _test_the_strip_opens_a_draft()
+		_test_the_new_keys_reach_their_readers()
 
 	MetaState.settings[UserSettings.AUGMENT_AT_ONCE_KEY] = false
 	RunState.reset(false, 20260926)
@@ -747,6 +749,63 @@ func _test_a_branch_opens_its_keystones() -> void:
 			depth, "dealt" if saw_second else "never dealt"])
 	_check(Augments.branch_depth([first.id, second.id], RoadCardData.Branch.WARDEN) == 0,
 		"a keystone counted toward the depth that opens it")
+	_finished += 1
+
+
+## **Every key a card may move is read by the game.** A key the table resolves
+## and nothing asks for is the `DisciplineEffects` lie on the modifier table:
+## the card draws, says the words, levels to V and does nothing. A grep is a weak
+## proof of behaviour and a strong proof of wiring, which is the half that goes
+## silently false - the five keys wired for the staged content pass have no card
+## yet, so nothing else would notice one coming unwired before October.
+func _test_every_key_is_read() -> void:
+	var sources: Array[String] = []
+	for folder: String in ["res://scenes", "res://scripts", "res://autoload"]:
+		for path: String in _scripts_under(folder):
+			if path.ends_with("Modifiers.gd") or path.ends_with("damage_ledger.gd"):
+				continue
+			sources.append(FileAccess.get_file_as_string(path))
+	var constants: Dictionary = (Modifiers.get_script() as Script).get_script_constant_map()
+	for name: Variant in constants:
+		var value: Variant = constants[name]
+		if typeof(value) != TYPE_STRING or not Modifiers.keys_in_use().has(String(value)):
+			continue
+		var needle: String = "Modifiers.%s" % String(name)
+		var read: bool = false
+		for text: String in sources:
+			if text.contains(needle):
+				read = true
+				break
+		_check(read, "%s ('%s') is resolved by the table and read by nothing" % [name, value])
+	_finished += 1
+
+
+## **The new keys move what they name**, through the real readers, with a probe
+## card slipped into the deck for the length of the test.
+func _test_the_new_keys_reach_their_readers() -> void:
+	var probe := RoadCardData.new()
+	probe.id = "probe_augment"
+	probe.effect_magnitude = 0.2
+	ContentDB.road_cards[probe.id] = probe
+	RunState.road_cards = []
+	RunState.road_card_levels = {}
+	Modifiers.rebuild()
+	var spell_before: float = SpellCaster.focus_power()
+	var hero: Hero = _field.hero
+	var regen_before: float = hero.mana_regen() if hero != null else 0.0
+	for key: String in [Modifiers.SPELL_POWER, Modifiers.MANA_REGEN]:
+		probe.effect_id = key
+		RunState.road_cards = [probe.id]
+		Modifiers.rebuild()
+		if key == Modifiers.SPELL_POWER:
+			_check(is_equal_approx(SpellCaster.focus_power(), spell_before * 1.2),
+				"a spell-power card left spells at %.3f of %.3f" % [SpellCaster.focus_power(), spell_before])
+		elif hero != null:
+			_check(is_equal_approx(hero.mana_regen(), regen_before * 1.2),
+				"a mana card left the Warden's regeneration at %.3f of %.3f" % [hero.mana_regen(), regen_before])
+	RunState.road_cards = []
+	Modifiers.rebuild()
+	ContentDB.road_cards.erase(probe.id)
 	_finished += 1
 
 

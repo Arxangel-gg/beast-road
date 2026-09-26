@@ -528,7 +528,7 @@ const AUGMENT_LEVELLED_COST_CEILING: float = 0.40
 ## **A key with a ceiling of its own.** A tower's reach is an area, so a share
 ## more of it is more than a share more of the fight - the tower covers the
 ## square of it. [TUNE]
-const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35}
+const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35, "tower_rate": 0.25}
 
 ## **The road rank**, the run's own level: road experience from every kill on
 ## the road, a rank at a time, each rank dealing a draft. A rank costs

@@ -34,6 +34,17 @@ const RAID_CHARGE: String = "raid_charge"
 const ENEMY_DAMAGE: String = "enemy_damage"
 const WAVE_FORESIGHT: String = "wave_foresight"
 
+## **Five numbers the fight already had and nothing could raise** (2026-09-26,
+## for the augment content pass staged in `docs/staged/`): how often a tower
+## fires, what a trap bites for, what a spell hits for, how fast the Warden's
+## mana comes back, and what a companion swings for. Each is read at the one
+## place that number is made, so nothing downstream learns they exist.
+const TOWER_RATE: String = "tower_rate"
+const TRAP_DAMAGE: String = "trap_damage"
+const SPELL_POWER: String = "spell_power"
+const MANA_REGEN: String = "mana_regen"
+const COMPANION_DAMAGE: String = "companion_damage"
+
 # --- Keystones (2026-09-25) ------------------------------------------------------
 #
 # Flags rather than numbers: a keystone card sets one to one, and the system it
@@ -84,6 +95,11 @@ const LABELS: Dictionary = {
 	RAID_CHARGE: "Raid charge",
 	ENEMY_DAMAGE: "Enemy damage",
 	WAVE_FORESIGHT: "Wave foresight",
+	TOWER_RATE: "Tower fire rate",
+	TRAP_DAMAGE: "Trap damage",
+	SPELL_POWER: "Spell power",
+	MANA_REGEN: "Mana regeneration",
+	COMPANION_DAMAGE: "Companion damage",
 	KEYSTONE_COLD_SNAP: "Cold Snap",
 	KEYSTONE_TINDERSTRIKE: "Tinderstrike",
 	KEYSTONE_TIMBERWRIGHT: "Timberwright",

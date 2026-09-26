@@ -300,6 +300,11 @@ func _process_measured(delta: float) -> void:
 	_command_rally_left = maxf(_command_rally_left - delta, 0.0)
 	var rate: float = Balance.COMMAND_OVERDRIVE_RATE \
 		if _command_overdrive_left > 0.0 else 1.0
+	# A hand's fire rate (augments). Not the well's: its refill counts down on
+	# this same clock, and a draught that came back faster would be a recovery
+	# augment wearing a tower's name.
+	if not data.is_well():
+		rate *= maxf(Modifiers.multiplier(Modifiers.TOWER_RATE), 0.1)
 	_cooldown -= delta * rate
 	_t = Time.get_ticks_usec()
 	_tick_storm(delta)

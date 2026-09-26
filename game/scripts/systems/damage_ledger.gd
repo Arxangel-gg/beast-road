@@ -57,32 +57,36 @@ static func note(source: String, taken: float) -> void:
 		return
 	var book: Dictionary = RunState.damage_ledger
 	book[source] = float(book.get(source, 0.0)) + taken
-	var key: String = _key_of(source)
-	if key.is_empty():
-		return
-	var total: float = 1.0 + maxf(Modifiers.value(key), 0.0)
-	for held: String in RunState.road_cards:
-		var card: RoadCardData = ContentDB.road_card(held)
-		if card == null or card.effect_id != key:
-			continue
-		var share: float = card.magnitude_at(RunState.card_level(held)) / total
-		if share <= 0.0:
-			continue
-		var credit: String = AUGMENT_PREFIX + held
-		book[credit] = float(book.get(credit, 0.0)) + taken * share
+	for key: String in _keys_of(source):
+		var total: float = 1.0 + maxf(Modifiers.value(key), 0.0)
+		for held: String in RunState.road_cards:
+			var card: RoadCardData = ContentDB.road_card(held)
+			if card == null or card.effect_id != key:
+				continue
+			var share: float = card.magnitude_at(RunState.card_level(held)) / total
+			if share <= 0.0:
+				continue
+			var credit: String = AUGMENT_PREFIX + held
+			book[credit] = float(book.get(credit, 0.0)) + taken * share
 
 
-## The damage key a source's blows are multiplied by, or "" for one no augment
-## touches.
-static func _key_of(source: String) -> String:
+## Every key a source's blows are multiplied by, or none for one no augment
+## touches. A tower's rate is here as well as its damage: more shots is more of
+## the same blow, and the share of it a faster clock bought is the rate's.
+static func _keys_of(source: String) -> Array[String]:
 	if source.begins_with(TOWER_PREFIX):
-		return Modifiers.TOWER_DAMAGE
+		return [Modifiers.TOWER_DAMAGE, Modifiers.TOWER_RATE]
+	if source.begins_with(TRAP_PREFIX):
+		return [Modifiers.TRAP_DAMAGE]
 	if source == BURN:
-		return Modifiers.BURN_DAMAGE
-	if source == WARDEN or source == ARROW or source == COMPANION or source == MOUNT \
-			or source == SPELL:
-		return Modifiers.HERO_DAMAGE
-	return ""
+		return [Modifiers.BURN_DAMAGE]
+	if source == SPELL:
+		return [Modifiers.HERO_DAMAGE, Modifiers.SPELL_POWER]
+	if source == COMPANION:
+		return [Modifiers.HERO_DAMAGE, Modifiers.COMPANION_DAMAGE]
+	if source == WARDEN or source == ARROW or source == MOUNT:
+		return [Modifiers.HERO_DAMAGE]
+	return []
 
 
 ## What a source is called on a screen.

@@ -23,30 +23,20 @@ was the alternative and was refused.
    two before the batch and contact-sheet them beside the shipped 29. Save to
    `game/art/icons/road_cards/card_<id>.png`, add each to `ASSET_MANIFEST.md`
    §5.13e, and `--import`.
-2. **Five new `Modifiers` keys, each a number the fight already has**, with a
-   label, a reader, and a row in the direction tables of `road_card_check` and
-   `omen_check`:
-   - `tower_rate` — `Tower`: the `rate` its `_cooldown` counts down by.
-   - `trap_damage` — `Trap.damage_now()`.
-   - `spell_power` — `SpellCaster.focus_power()` (every spell blow reads it).
-   - `mana_regen` — `Hero.mana_regen()`.
-   - `companion_damage` — `Companion._power`.
+2. **The five new `Modifiers` keys are already wired** (2026-09-26, later):
+   `tower_rate`, `trap_damage`, `spell_power`, `mana_regen` and
+   `companion_damage` have their labels, their readers, the ledger's key lists
+   and `tower_rate`'s own ceiling (0.25), and `augment_check` refuses a key the
+   table resolves that nothing reads. Add the five to `road_card_check`'s
+   direction table (all help the player) when the cards land.
 3. **`keystone_mortar`** (Mortar on the March, Hearth, `branch_needs = 6`): on
    `road_rank_gained`, the battlefield heals the town by
    `Balance.TOWN_REPAIR_AMOUNT` - the Wood repair re-routed onto the rank, its
    size unchanged. Host only; the wall already relays.
-4. **The ledger** (`DamageLedger._key_of`) should return every key a source's
-   blows are multiplied by: towers `tower_damage` and `tower_rate`, spells
-   `hero_damage` and `spell_power`, companions `hero_damage` and
-   `companion_damage`, traps `trap_damage`.
-5. **The curve.** `curve_report` must model `tower_rate` in the capability line
-   and in the modelled hand (tower damage, then rate, then the Warden's damage),
-   and the density re-tuned to hold the band - an augment the model does not
-   carry is forbidden. Spell power and companion damage are outside the model as
-   spells and companions are today.
-6. **Per-key ceilings**: give `tower_rate` its own in
-   `Balance.AUGMENT_KEY_CEILING` (0.25 is the starting proposal), for the reason
-   range has one.
+4. **The curve.** `curve_report` already reads `tower_rate` in the capability
+   line and pours the modelled hand into it after tower damage, so the moment
+   the rate cards land the band will say how much they bought. Re-tune the
+   density against it - an augment the model does not carry is forbidden.
 
 ## The list
 
