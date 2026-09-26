@@ -23,9 +23,10 @@ extends Node
 ## pad player cannot even close it), a focus ring that skips a control, and a
 ## `focus_mode` set to none on the one button that matters.
 
-## Screens with a no-argument `open()`. The crossroad wants a segment and the
-## hub wants the menu's buttons to adopt, so those two are covered by the menu
-## gate and the co-op harness rather than stood up bare here.
+## Screens with a no-argument `open()`. The crossroad wants a segment, so it is
+## covered by the menu gate and the co-op harness rather than stood up bare
+## here; the Hold wants the menu's buttons to adopt, so it is stood up through
+## the menu (`_walk_the_hold`).
 ## A `var` rather than a `const`: a class reference is not a constant
 ## expression to GDScript, and `PackedStringArray([...])` was refused for the
 ## same reason once.
@@ -52,6 +53,7 @@ var _screens: Array = [
 const RING_BUDGET: int = 512
 
 var _failures: int = 0
+var _hold_walked: bool = false
 var _checks: int = 0
 
 
@@ -64,6 +66,8 @@ func _ready() -> void:
 	for entry: Array in _screens:
 		await _walk_screen(String(entry[0]), entry[1] as GDScript)
 	await _walk_main_menu()
+	await _walk_the_hold()
+	_check(_hold_walked, "the Hold's walk aborted partway - every check it had not made is unmade")
 	await _walk_pause_menu()
 	await _walk_settings()
 	MetaState.resume_saves()
@@ -103,6 +107,39 @@ func _walk_main_menu() -> void:
 	await get_tree().process_frame
 
 
+## The Hold, as the main menu builds it (2026-09-26): its doors are the menu's
+## own buttons, adopted, so it is stood up through the menu rather than bare.
+## Walked twice - the yard with its strip of buttons, and the Warden's Stone
+## card, which carries every door as a row. The yard is crossed with the stick
+## and used with Interact, which are a pad's own verbs; what a focus ring has
+## to reach is the buttons.
+func _walk_the_hold() -> void:
+	var menu: Control = (load("res://scenes/ui/main_menu.tscn") as PackedScene).instantiate() as Control
+	add_child(menu)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var hub := menu.get("_hub") as HubScreen
+	_check(hub != null, "the main menu builds no Hold to walk")
+	if hub != null:
+		hub.open()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_walk("Hold", hub)
+		hub.call("_show_card")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		# From where the card puts focus, over the card alone: it is a ring of
+		# its own beside the yard's strip, and cancel is the way between them.
+		var card := hub.get("_card_root") as Control
+		_check(card != null and card.visible, "the Warden's Stone opened no card")
+		if card != null:
+			_walk("Hold (the Warden's Stone)", card, get_viewport().gui_get_focus_owner())
+		hub.close()
+	menu.queue_free()
+	await get_tree().process_frame
+	_hold_walked = true
+
+
 func _walk_pause_menu() -> void:
 	var menu: PauseMenu = (load("res://scenes/ui/pause_menu.tscn") as PackedScene).instantiate() as PauseMenu
 	add_child(menu)
@@ -129,7 +166,10 @@ func _walk_settings() -> void:
 
 ## The ring, from the first focusable control, until it comes back round or
 ## runs out. Every focusable control the screen shows has to be on it.
-func _walk(label: String, root: Node) -> void:
+##
+## `from` is where the screen itself put focus, when that is the honest place
+## to start; otherwise the walk starts at the first focusable control.
+func _walk(label: String, root: Node, from: Control = null) -> void:
 	var focusable: Array[Control] = []
 	_collect(root, focusable)
 	_check(not focusable.is_empty(),
@@ -137,6 +177,10 @@ func _walk(label: String, root: Node) -> void:
 	if focusable.is_empty():
 		return
 	var start: Control = focusable[0]
+	if from != null and focusable.has(from):
+		start = from
+	elif from != null:
+		_check(false, "%s put focus on %s, which is not on it" % [label, from.name])
 	start.grab_focus()
 	var seen: Dictionary = {}
 	var at: Control = start
