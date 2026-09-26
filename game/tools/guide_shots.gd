@@ -620,9 +620,22 @@ func _ready() -> void:
 				MetaState.mount_saddled = stock[0].id
 		MetaState.marks = maxi(MetaState.marks, 900)
 		_screen_shot(func() -> Node: return StableScreen.new(), "Stable"))
+	# **The Warden's Glass**, open on a dressed Warden: a mane and a full beard on
+	# brown skin, wearing whatever the account wears. The look is put back once
+	# the picture is taken, because every later shot draws this Warden.
+	var kept_look: Dictionary = MetaState.look.duplicate()
+	await _shot("warden_glass", func() -> void:
+		var look: Dictionary = WardenLook.plain()
+		look["hair"] = 10
+		look["hair_colour"] = 4
+		look["beard"] = 5
+		look["skin"] = 7
+		MetaState.look = WardenLook.dyed_as(look, 1)
+		_screen_shot(func() -> Node: return WardenGlass.new(), "Glass"))
 	for node: Node in get_children():
 		if node.name.ends_with("Shot"):
 			node.queue_free()
+	MetaState.look = kept_look
 	for _f: int in 8:
 		await get_tree().process_frame
 	# **A seam worth stopping at**, for the two sections about the crafts. They
@@ -630,6 +643,18 @@ func _ready() -> void:
 	# which has a gather node anywhere in it.
 	await _subject_shot("gathering", _a_gather_node(), Vector2(56.0, 40.0), 1.0)
 	_crop("gathering", "crafts", Rect2(0.2, 0.15, 0.6, 0.7))
+	# **A wayside encounter, stopped at.** Laid through the documented seam
+	# beside the seam the crafts picture uses, so it stands on the open ground of
+	# the outer band where the road lays them - an overturned cart, because it
+	# reads as a thing that happened here without a word of explanation.
+	await _made_subject_shot("wayside", func() -> Vector2:
+		var ways: Wayside = run.battlefield.wayside()
+		var data: WaysideData = ContentDB.wayside("overturned_cart")
+		if ways == null or data == null:
+			print("[guide-shots] warning: no wayside encounter to photograph")
+			return Vector2.ZERO
+		ways.lay_for_test(data, _a_gather_node() + Vector2(-220.0, 60.0))
+		return ways.position_of(), Vector2(70.0, 60.0), 1.1)
 	# **A bow with an arrow in the air.** It was a photograph of an ordinary
 	# wave, because the hero starts a run melee-only and nothing in this tool
 	# had ever put a bow in their hands.
