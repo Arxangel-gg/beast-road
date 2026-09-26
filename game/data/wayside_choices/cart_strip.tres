@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "cart_strip"
-label = "Take what the road left"
+display_name = "Take what the road left"
 hint = "Coin from the spilled load, and nothing owed to anyone."
 outcome = "You fill your pockets and leave the rest for the crows."
 boon = 1

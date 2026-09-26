@@ -9796,6 +9796,22 @@ walk up, press Interact, the field freezes, the card, a choice pressed on it,
 walk on. Three faults were planted - the cost never taken, the answered act
 asked again, the gear door opening nothing - and all three were named.
 
+**The release sweep caught what the targeted runs did not.** Both resources
+first carried a name of their own - `title` and `label` - beside the
+`display_name` every `GameData` already has, so eighteen files authored a name
+in one field and left the other empty. `content_check` refused all eighteen: it
+walks every data folder and holds that a piece of content has a name, and it was
+not on the list of gates run while building this, because that list was chosen
+by what the encounters *read*. The name is `display_name` now, as for every
+other resource. **A new data folder is read by the gates that read every data
+folder**, so `content_check` and `resource_reach_check` belong on the list for
+any new resource type, whatever it is about.
+
+**And one more deliberate release-only gate, recorded beside the other five.**
+`structure_art_check` holds every tower and building tier to its full four-pose
+art package, and its own comment in `release.yml` says why it gates a tag and
+not a push: art completeness is legitimately red while art is being made.
+
 **Owed, and recorded so it is not assumed**: a Guide page (it needs a
 photograph from `guide_shots`, which needs the screen), and a photograph of the
 props on the field at play zoom. The six props were generated with PixelLab Pro

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "snare_take"
-label = "Take it"
+display_name = "Take it"
 hint = "A good deal of food. Its kind is near, and will come for you."
 outcome = "You take it. A long way off, something of its kind lifts its head."
 boon = 1

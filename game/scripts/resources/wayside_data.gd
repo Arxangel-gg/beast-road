@@ -24,9 +24,10 @@ enum Scene {
 	ANIMAL,
 }
 
-## Shown on the card and the prompt. An ANIMAL encounter may carry one `%s`,
-## which is the animal's name.
-@export var title: String = ""
+## The name on the card and the prompt is `display_name`, as for every piece of
+## content (`GameData`): an ANIMAL encounter's may carry one `%s`, which is the
+## animal's name. Not a field of its own - two fields for one name is two
+## chances to fill in the wrong one, which `content_check` refused on sight.
 @export_multiline var text: String = ""
 @export var scene: Scene = Scene.PROP
 ## For an ANIMAL encounter: the rarity of the animal the road lays here.
@@ -47,6 +48,6 @@ func get_sprite_path() -> String:
 
 ## The title with the animal's name in it, when it wants one.
 func title_for(animal_name: String) -> String:
-	if title.contains("%s"):
-		return title % animal_name
-	return title
+	if display_name.contains("%s"):
+		return display_name % animal_name
+	return display_name

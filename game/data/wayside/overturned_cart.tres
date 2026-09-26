@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_data")
 id = "overturned_cart"
-title = "An Overturned Cart"
+display_name = "An Overturned Cart"
 text = "A trader's cart lies on its side at the edge of the trees, one wheel still turning. The load is half in the grass. Nobody is with it."
 choice_ids = PackedStringArray("cart_right", "cart_strip")

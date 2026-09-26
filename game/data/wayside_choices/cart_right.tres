@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "cart_right"
-label = "Right it and wait"
+display_name = "Right it and wait"
 hint = "Timber for the axle. Whoever owns it may be grateful."
 outcome = "The trader comes back out of the trees, shaking, and presses something from the load into your hands before they go."
 cost_currency = "wood"

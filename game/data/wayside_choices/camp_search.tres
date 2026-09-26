@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "camp_search"
-label = "Go through what they left"
+display_name = "Go through what they left"
 hint = "Tools and stone. And whatever drove them off may still be about."
 outcome = "You find their stores - and hear, behind you, whatever it was they ran from."
 boon = 1

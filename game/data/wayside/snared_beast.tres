@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "snared_beast"
-title = "A %s in a Snare"
+display_name = "A %s in a Snare"
 text = "A hunter's snare, and something rare caught in it, pulling against the wire. The hunter is nowhere. Its kind will be somewhere near."
 scene = 1
 animal_rarity = 2

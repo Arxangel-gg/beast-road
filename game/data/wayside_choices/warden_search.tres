@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "warden_search"
-label = "Open the pack"
+display_name = "Open the pack"
 hint = "What a Warden carried, they will not need."
 outcome = "Oilcloth, a whetstone, and wrapped at the bottom something they meant to keep."
 boon = 2

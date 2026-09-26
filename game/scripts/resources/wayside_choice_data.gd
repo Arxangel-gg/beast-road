@@ -37,8 +37,7 @@ enum Effect {
 	WRATH,
 }
 
-## The button.
-@export var label: String = ""
+## The button is `display_name`, as for every piece of content (`GameData`).
 ## Under the button: what taking it gives and risks, in the world's words.
 @export var hint: String = ""
 ## Said once it is done.

@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_data")
 id = "cold_camp"
-title = "A Cold Camp"
+display_name = "A Cold Camp"
 text = "Two bedrolls, a dead fire and a spear still standing in the ground. Whoever slept here left in a hurry, and did not come back for any of it."
 choice_ids = PackedStringArray("camp_rest", "camp_search")

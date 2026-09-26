@@ -88,7 +88,7 @@ func _test_the_encounters_are_authored() -> void:
 		_check(data != null and data.id == id, "the wayside file '%s' does not name itself" % id)
 		if data == null:
 			continue
-		_check(not data.title.strip_edges().is_empty() and not data.text.strip_edges().is_empty(),
+		_check(not data.display_name.strip_edges().is_empty() and not data.text.strip_edges().is_empty(),
 			"%s says nothing" % id)
 		_check(data.first_act >= Balance.WAYSIDE_FIRST_ACT,
 			"%s is laid from act %d, before the road lays any" % [id, data.first_act])
@@ -96,7 +96,7 @@ func _test_the_encounters_are_authored() -> void:
 		_check(data.choice_ids.size() >= 2,
 			"%s offers %d answers - one answer and walking on is not a choice" % [id, data.choice_ids.size()])
 		if data.scene == WaysideData.Scene.ANIMAL:
-			_check(data.title.contains("%s"), "%s is an animal and its title does not name it" % id)
+			_check(data.display_name.contains("%s"), "%s is an animal and its title does not name it" % id)
 			_check(not data.title_for("Deer").contains("%"), "%s's title does not take the name" % id)
 		else:
 			_check(ResourceLoader.exists(data.get_sprite_path()),
@@ -125,7 +125,7 @@ func _test_the_encounters_are_authored() -> void:
 
 func _check_choice(data: WaysideData, choice: WaysideChoiceData) -> void:
 	var what: String = choice.id
-	_check(not choice.label.strip_edges().is_empty() and not choice.hint.strip_edges().is_empty()
+	_check(not choice.display_name.strip_edges().is_empty() and not choice.hint.strip_edges().is_empty()
 		and not choice.outcome.strip_edges().is_empty(), "%s has no label, hint or outcome" % what)
 	if not choice.cost_currency.is_empty() or choice.cost_amount != 0:
 		_check(RunState.CURRENCIES.has(choice.cost_currency) and choice.cost_amount > 0,
@@ -454,7 +454,7 @@ func _test_the_flow_a_player_takes() -> void:
 	EventBus.interact_prompt.connect(prompt)
 	for _frame: int in 4:
 		await get_tree().process_frame
-	_check(said.size() > 0 and said[said.size() - 1].contains(cairn.title),
+	_check(said.size() > 0 and said[said.size() - 1].contains(cairn.display_name),
 		"standing at the cairn prompts nothing that names it (%s)" % str(said))
 
 	var was: HeroInput = hero.input
@@ -498,7 +498,7 @@ func _test_the_flow_a_player_takes() -> void:
 	_wayside.lay_for_test(cairn, at)
 	for currency: String in RunState.CURRENCIES:
 		RunState.currencies[currency] = 0
-	card.open(cairn, cairn.title)
+	card.open(cairn, cairn.display_name)
 	var give := rows.get_node_or_null("cairn_give/Take") as Button
 	_check(give != null and give.disabled, "a price the purse cannot meet is offered anyway")
 	_check(give != null and give.text.contains("25"), "a dimmed answer hides its price")

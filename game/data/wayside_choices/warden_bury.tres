@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "warden_bury"
-label = "Bury them"
+display_name = "Bury them"
 hint = "Stone for a cairn of their own. You may learn something from how they fell."
 outcome = "You lay the stones over them and read the road the way they must have. You understand it a little better."
 cost_currency = "stone"

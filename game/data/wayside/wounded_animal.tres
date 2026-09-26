@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "wounded_animal"
-title = "A Wounded %s"
+display_name = "A Wounded %s"
 text = "It lies in the long grass with a broken shaft in its flank, too tired to run, and watches you come."
 scene = 1
 choice_ids = PackedStringArray("wounded_tend", "wounded_end")

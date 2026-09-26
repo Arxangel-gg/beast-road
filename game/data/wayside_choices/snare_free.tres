@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "snare_free"
-label = "Cut it free"
+display_name = "Cut it free"
 hint = "It will not thank you. It will remember."
 outcome = "The wire parts and it is gone into the trees. You feel it watching from somewhere you cannot see."
 boon = 3

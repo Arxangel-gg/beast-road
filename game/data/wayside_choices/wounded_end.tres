@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "wounded_end"
-label = "End it"
+display_name = "End it"
 hint = "Food for the road. The earth counts what is killed."
 outcome = "It is quick. The ground is very quiet for a moment afterwards."
 boon = 1

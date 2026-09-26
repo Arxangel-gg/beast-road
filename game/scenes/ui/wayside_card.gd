@@ -105,7 +105,7 @@ func _choice_row(choice: WaysideChoiceData) -> VBoxContainer:
 	var price: String = ""
 	for id_value: Variant in cost:
 		price = "  ·  %d %s" % [int(cost[id_value]), RunState.currency_name(String(id_value))]
-	button.text = choice.label + price
+	button.text = choice.display_name + price
 	button.custom_minimum_size = Vector2(0.0, 44.0)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var affordable: bool = RunState.can_afford_cost(cost)

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "cairn_take"
-label = "Take the offerings"
+display_name = "Take the offerings"
 hint = "Coin, and the earth will not forget who took it."
 outcome = "The coins are cold in your hand. Somewhere under your feet, something turns over."
 boon = 1

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "camp_rest"
-label = "Rekindle the fire and rest"
+display_name = "Rekindle the fire and rest"
 hint = "A little timber for a little while off your feet."
 outcome = "The fire takes. For a few breaths the road is somewhere else."
 cost_currency = "wood"

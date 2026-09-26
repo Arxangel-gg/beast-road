@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "cairn_give"
-label = "Leave something of your own"
+display_name = "Leave something of your own"
 hint = "Food on the stones. Something may answer."
 outcome = "Warmth goes through you like the first drink after a long road. Your wounds close."
 cost_currency = "food"

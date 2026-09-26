@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 id = "wounded_tend"
-label = "Tend it"
+display_name = "Tend it"
 hint = "Food and a steady hand. It will know you again."
 outcome = "It lets you close the wound, looks at you a long moment, and goes. Its kind will know you."
 cost_currency = "food"
