@@ -37,6 +37,7 @@ const SAVE_DELAY: float = 0.45
 
 var _save_left: float = 0.0
 var _fullscreen_button: Button
+var _tabs: TabContainer = null
 var _touch_buttons: Array[Button] = []
 var _windowed_button: Button
 
@@ -134,6 +135,7 @@ func _build() -> void:
 	# players most need - the graphics ones, when the game is running badly - would
 	# be the furthest down.
 	var tabs := TabContainer.new()
+	_tabs = tabs
 	# **Measured against the screen, not fixed at 700.** Tall enough for the full
 	# Video accessibility preview at 1080p, and on anything shorter it gives way
 	# rather than pushing the panel past the bottom of the display - a fixed 700
@@ -917,6 +919,18 @@ func _refresh_colourblind_buttons() -> void:
 ## the correct instinct, but a button that changes into its own confirmation and
 ## changes back after a few seconds cannot be dismissed by reflex the way a
 ## dialog can, and it cannot be clicked through by somebody who is not reading.
+## Opens the Data tab with the support report already prepared. The door the
+## main menu's crash notice uses, so what a player copies is what they read.
+func show_support_report() -> void:
+	if _tabs != null:
+		var data: Control = _tabs.get_node_or_null("Data") as Control
+		if data != null:
+			_tabs.current_tab = _tabs.get_tab_idx_from_control(data)
+	var panel := find_child("SupportDiagnostics", true, false) as SupportDiagnosticsPanel
+	if panel != null:
+		panel.prepare_report()
+
+
 func _build_data(column: VBoxContainer) -> void:
 	column.add_child(SupportDiagnosticsPanel.new())
 	column.add_child(_separator())

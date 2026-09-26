@@ -11,7 +11,7 @@ const MAX_NUMBER: float = 1000000000000.0
 
 static func capture(viewport_size: Vector2i) -> Dictionary:
 	var engine: Dictionary = Engine.get_version_info()
-	return {
+	var report: Dictionary = {
 		"format": FORMAT,
 		"build": {
 			"version": _metadata(BuildInfo.VERSION),
@@ -30,6 +30,12 @@ static func capture(viewport_size: Vector2i) -> Dictionary:
 		"quality": _quality(),
 		"run": _run(),
 	}
+	# Only when the last session ended without saying so, and only what
+	# `CrashWatch` allowlists: where it was, how long it ran, and its error lines
+	# with the player's folders taken out.
+	if CrashWatch.pending():
+		report["last_session"] = CrashWatch.last_session()
+	return report
 
 
 static func report_text(viewport_size: Vector2i) -> String:

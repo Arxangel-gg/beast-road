@@ -211,6 +211,10 @@ func _ready() -> void:
 	# the body face behind it fixes that at the point of rendering rather than
 	# at every call site. See `UiFonts`.
 	UiFonts.apply()
+	# Before anything else can go wrong: the last session is read and this one's
+	# marker stood. Lives as long as the game, which is what makes it the one
+	# thing still standing when the game did not end cleanly.
+	add_child(CrashWatch.new())
 	EventBus.boss_defeated.connect(_on_boss_felled)
 	# Navigation belongs here, not in the network layer. `Coop` reports that the
 	# session is gone; deciding that this means leaving the run is this node's

@@ -12849,6 +12849,17 @@ const DRAGON_LAND_IMPACT: float = 11.0
 ## nothing could reach. Slot 0 is the historic save - see `MetaState.slot_path`.
 const SAVE_SLOTS: int = 4
 
+## **What a crash report may carry** (2026-09-26, `CrashWatch`). A breadcrumb of
+## where the Warden was is rewritten this often, so a report can say it; only
+## this much of the last log is read, only this many of its error lines are
+## kept, each cut to this length, and a session is never reported as having
+## run longer than a week - a marker older than that is a clock that moved.
+const CRASH_BREADCRUMB_SECONDS: float = 20.0
+const CRASH_LOG_TAIL_BYTES: int = 262144
+const CRASH_REPORT_LINES: int = 40
+const CRASH_LINE_MAX: int = 200
+const CRASH_SESSION_CEILING_SECONDS: int = 604800
+
 const CHAIN_CORE_WIDTH: float = 3.2
 const CHAIN_FLASH_HOLD: float = 0.04
 const CHAIN_FLASH_FADE: float = 0.18

@@ -8,3 +8,5 @@ extends GameData
 @export_multiline var ready_note: String = ""
 @export_multiline var copy_requested_note: String = ""
 @export_multiline var clipboard_unavailable_note: String = ""
+## The main menu's one line when the last session ended without saying so.
+@export var crash_notice: String = ""

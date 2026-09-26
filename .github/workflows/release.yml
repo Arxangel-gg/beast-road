@@ -260,6 +260,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/breather_check.tscn
           run_godot_clean --headless --path game res://tools/live_settings_check.tscn
           run_godot_clean --headless --path game res://tools/support_diagnostics_check.tscn
+          run_godot_clean --headless --path game res://tools/crash_watch_check.tscn
           run_godot_clean --headless --path game res://tools/structure_check.tscn
           run_godot_clean --headless --path game res://tools/torch_check.tscn
           # Every tower and every building tier must carry its exact four-pose

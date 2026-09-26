@@ -805,6 +805,7 @@ jobs:
             check "breather" --headless --path game res://tools/breather_check.tscn
           check "live settings" --headless --path game res://tools/live_settings_check.tscn
           check "support diagnostics" --headless --path game res://tools/support_diagnostics_check.tscn
+          check "crash watch" --headless --path game res://tools/crash_watch_check.tscn
           check "structures" --headless --path game res://tools/structure_check.tscn
           check "torches" --headless --path game res://tools/torch_check.tscn
           # **Back in the gate on 2026-09-08, after five days out of it.**

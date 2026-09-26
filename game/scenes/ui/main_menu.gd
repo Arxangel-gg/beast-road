@@ -205,6 +205,7 @@ func _ready() -> void:
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 	_build_version_label()
 	_dress_seed_row()
+	_build_crash_notice()
 
 	# Wired after every door has been built, so the watcher sees all of them.
 	_watch_the_doors()
@@ -1224,6 +1225,29 @@ func _summary() -> String:
 # --- The build, and the seed row's fade (2026-09-12) --------------------------------
 
 ## Which build this is, top right. A development build says so.
+## **Said once, when the last session did not end cleanly** (`CrashWatch`).
+##
+## At the top of the column, because a crash the player has to go looking for is
+## a crash nobody reports. It opens the support report already prepared rather
+## than copying it, so what a player shares is what they have read - the rule the
+## report was built under. Pressed or not, it is gone at the next launch.
+func _build_crash_notice() -> void:
+	if not CrashWatch.pending():
+		return
+	var notice := Button.new()
+	notice.name = "CrashNotice"
+	notice.text = SupportDiagnosticsPanel.COPY.crash_notice
+	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	IconKit.on_button(notice, "settings", 22)
+	notice.pressed.connect(func() -> void:
+		_show_settings(true)
+		_settings.show_support_report()
+		notice.queue_free())
+	var column: Node = new_run_button.get_parent()
+	column.add_child(notice)
+	column.move_child(notice, 0)
+
+
 func _build_version_label() -> void:
 	_version_label = Label.new()
 	_version_label.name = "Version"
