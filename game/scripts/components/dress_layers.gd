@@ -58,6 +58,8 @@ const HEAD_SOCKET: int = 10
 var behind: Node2D
 
 var _cape_back: Sprite2D
+## A cape kind that names no colour of its own is plain undyed wool.
+const CAPE_PLAIN: Color = Color8(118, 104, 86)
 var _cape_front: Sprite2D
 var _beard: Sprite2D
 var _hair: Sprite2D
@@ -105,6 +107,14 @@ func _ready() -> void:
 	_cape_front = _part(self, "CapeFront")
 	for part: Sprite2D in [_cape_back, _cape_front]:
 		part.region_enabled = true
+		# The cape is packed keyed to a grey shade (`pack.cape_key`) and coloured
+		# here through the hair's own gradient map, so its folds keep their light
+		# and dark in whatever colour the cape kind is - a multiply on grey would
+		# only ever darken it (2026-09-26).
+		if ResourceLoader.exists(HAIR_SHADER_PATH):
+			var tint := ShaderMaterial.new()
+			tint.shader = load(HAIR_SHADER_PATH) as Shader
+			part.material = tint
 	# Over the cape, under the weapon; the beard first so the hair meets it.
 	_beard = _head_part("Beard")
 	_hair = _head_part("Hair")
@@ -174,8 +184,11 @@ func wear(outfit: Dictionary) -> void:
 	for hand: int in 2:
 		_hide_hand(hand)
 	var tint: Color = outfit.get("cape_tint", Color(1, 1, 1, 0))
+	var cloth: Color = Color(tint.r, tint.g, tint.b, 1.0) if tint.a > 0.0 else CAPE_PLAIN
 	for part: Sprite2D in [_cape_back, _cape_front]:
-		part.self_modulate = Color(tint.r, tint.g, tint.b, 1.0) if tint.a > 0.0 else Color.WHITE
+		var material := part.material as ShaderMaterial
+		if material != null:
+			material.set_shader_parameter("hair_colour", cloth)
 		part.visible = false
 	var colour: Color = outfit.get("hair_colour", WardenLook.HAIR_COLOURS[0])
 	for pair: Array in [[_hair, "hair"], [_beard, "beard"]]:

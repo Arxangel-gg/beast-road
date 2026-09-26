@@ -351,8 +351,14 @@ func _test_the_runtime_lays_every_part() -> void:
 			"a Warden facing the camera does not wear the cape behind")
 		_check(_against(cape_back, sprite) == "under",
 			"the cape behind a Warden facing the camera is drawn %s the body" % _against(cape_back, sprite))
+		# **Amended 2026-09-26**: the cape is coloured through the hair's gradient
+		# map rather than a modulate, because a multiply on the keyed grey could
+		# only ever darken it. What is held is unchanged - the cape wears its
+		# kind's own colour - read where the colour now lives.
 		var tint := Color(cape.look_tint.r, cape.look_tint.g, cape.look_tint.b, 1.0)
-		_check(cape_back.self_modulate.is_equal_approx(tint), "the cape is not dyed its kind's colour")
+		var cape_material := cape_back.material as ShaderMaterial
+		_check(cape_material != null and (cape_material.get_shader_parameter("hair_colour") as Color).is_equal_approx(tint),
+			"the cape is not dyed its kind's colour")
 		animator.set_facing(Vector2(0.0, -1.0))
 		animator._process(0.0)
 		_check(cape_front.visible and not cape_back.visible,

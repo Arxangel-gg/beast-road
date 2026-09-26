@@ -135,6 +135,16 @@ def save_ledger(layer: str, ledger: dict) -> None:
     tmp = ledger_path(layer) + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(ledger, f, indent=1, sort_keys=True)
+    # Windows refuses the rename while something - a scanner, an indexer - holds
+    # the ledger open for a moment; one refusal killed a batch mid-flight with
+    # sixteen jobs paid for (2026-09-26). The ledger is what stops a job being
+    # bought twice, so it is worth waiting for.
+    for attempt in range(20):
+        try:
+            os.replace(tmp, ledger_path(layer))
+            return
+        except PermissionError:
+            time.sleep(0.5 * (attempt + 1))
     os.replace(tmp, ledger_path(layer))
 
 
