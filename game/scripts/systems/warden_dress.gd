@@ -255,6 +255,23 @@ static func meta(body: String, state: String) -> Dictionary:
 	return out
 
 
+## The painted skin's mean colour for a body, measured off its sheets by
+## `tools/warden_rig/pack.py` and carried in every state's meta: what a skin
+## tone is a turn *of*. Transparent where the body was never packed, which
+## `WardenLook.skin_tone` reads as nothing to turn.
+static func skin_painted(body: String) -> Color:
+	var mean: Variant = meta(body, "idle").get("skin", [])
+	if not (mean is Array) or (mean as Array).size() < 3:
+		return Color(0, 0, 0, 0)
+	var rgb: Array = mean
+	return Color(float(rgb[0]) / 255.0, float(rgb[1]) / 255.0, float(rgb[2]) / 255.0, 1.0)
+
+
+## A body sheet's skin mask: the same layout, white where the painting is skin.
+static func skin_mask_path(layer: String, state: String) -> String:
+	return art_root + layer + "/" + state + "_skin.png"
+
+
 ## Everything a Warden wears, from their look and their gear, as the names the
 ## drawing needs. The one function the hero, the Hold and a partner's copy ask.
 static func outfit(look: Dictionary, weapon: GearData, armour: GearData,

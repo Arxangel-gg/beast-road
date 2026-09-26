@@ -440,9 +440,25 @@ def to_screen(p, facing, frame: Frame):
     return sx, sy, ga
 
 
-def project(solved: dict, facing: str, frame: Frame) -> list:
+# PixelLab's own scale for a joint's distance from the camera: 0-255, about
+# 128 at the body's centre, higher nearer. A figure's depth is laid on it at the
+# same pixels a figure's height is laid on the sprite, so a joint a shoulder's
+# width behind the chest is that many "pixels" behind it.
+DEPTH_CENTRE = 128.0
+# A multiplier on that scale, for measuring what the endpoint expects (its docs
+# give the centre and the direction and no unit).
+DEPTH_SCALE = 1.0
+
+
+def project(solved: dict, facing: str, frame: Frame, depth: bool = False) -> list:
     """PixelLab keypoints for one facing: x/y as fractions of the sprite with y
-    down, and z_index ranked so the joint nearest the camera is highest."""
+    down, and z_index ranked so the joint nearest the camera is highest.
+
+    `depth` sends how far each joint really is from the camera. Left out, the
+    endpoint takes each joint's depth from a *standing* template, so a fist
+    swung across the chest and seen from behind reads as level with the back -
+    and the model paints the forearm across the back, which is what the first
+    male base did in the north and north-east follow-through of the forehand."""
     keypoints = []
     away = {}
     for label in LABELS:
@@ -455,6 +471,9 @@ def project(solved: dict, facing: str, frame: Frame) -> list:
         keypoints.append({"label": label,
                           "x": round(min(max(sx / frame.width, 0.0), 1.0), 4),
                           "y": round(min(max(sy / frame.height, 0.0), 1.0), 4)})
+        if depth:
+            keypoints[-1]["depth"] = round(min(max(DEPTH_CENTRE - ga * frame.stature * DEPTH_SCALE, 0.0),
+                                                   255.0), 1)
     order = sorted(LABELS, key=lambda k: -away[k])
     rank = {label: i for i, label in enumerate(order)}
     for kp in keypoints:

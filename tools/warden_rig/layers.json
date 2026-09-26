@@ -9,6 +9,7 @@
   "body": "female",
   "character_id": "4ebe78e2-47ad-403e-8bf1-41e15e710eba",
   "description": "bald lean female warden in an off-white linen tunic, grey-brown trousers, dark leather belt with a glowing iron lantern at the left hip, brown leather boots, both hands closed in empty fists, holding nothing",
-  "seed": 7
+  "seed": 7,
+  "depth": true
  }
 }

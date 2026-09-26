@@ -1,6 +1,10 @@
 """Head dressings - hair and beards - for the modular Warden.
 
     python heads.py buy <id>           queue the chroma-key state for one option
+    python heads.py buy-all [id ...]   buy and fetch until every named option (or
+                                       every authored one) is in, a wave at a time
+    python heads.py rebuy <id> ...     forget a state that came back wrong and buy
+                                       it again on a new seed (the old take is kept)
     python heads.py fetch              collect every bought state that finished
     python heads.py cut <id>           key the dressing out of its eight rotations
     python heads.py preview <id> <out> the base wearing the cut in four colours
@@ -104,15 +108,41 @@ def buy(option_id: str) -> None:
         "character_id": base,
         "edit_description": KEY_PROMPT.format(style=option["prompt"], what=what),
         "state_name": "Key: " + option["id"],
-        "seed": 7,
+        "seed": int(ledger.get(option_id, {}).get("seed", 7)),
         "no_background": True,
     }
     reply = batch._request("POST", "/create-character-state", body)
     state = reply.get("character_id") or reply.get("id")
-    ledger[option_id] = {"state": state, "status": "processing",
-                         "bought": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    ledger[option_id] = {"state": state, "status": "processing", "seed": body["seed"],
+                         "bought": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                         "rejected": ledger.get(option_id, {}).get("rejected", [])}
     _save(LEDGER, ledger)
     print("bought", option_id, state)
+
+
+def rebuy(option_ids: list) -> None:
+    """A state the generator drew wrong - the full beard's east and west came
+    back as three-quarter views, so the cut could not sit on a profile - is
+    bought again on a new seed. Its frames move to `rejected/` and its id stays
+    in the ledger, so nothing paid for is lost track of."""
+    ledger = _load(LEDGER, {})
+    for option_id in option_ids:
+        entry = ledger.get(option_id)
+        if not entry or not entry.get("state"):
+            sys.exit("no bought state for %s" % option_id)
+        seed = int(entry.get("seed", 7))
+        folder = os.path.join(CACHE, option_id)
+        if os.path.isdir(folder):
+            dst = os.path.join(CACHE, "rejected", "%s_seed%d" % (option_id, seed))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not os.path.exists(dst):
+                os.replace(folder, dst)
+        # Kept "bought" rather than removed, so buy() sees the new seed but
+        # asks again: an entry with no state is one it will buy.
+        ledger[option_id] = {"seed": seed + 101,
+                             "rejected": entry.get("rejected", []) + [entry["state"]]}
+        print("rebuy", option_id, "seed", seed + 101)
+    _save(LEDGER, ledger)
 
 
 def record(option_id: str, state: str) -> None:
@@ -126,9 +156,20 @@ def record(option_id: str, state: str) -> None:
 def fetch() -> None:
     ledger = _load(LEDGER, {})
     for option_id, entry in sorted(ledger.items()):
-        if entry.get("status") == "completed":
+        if entry.get("status") == "completed" or not entry.get("state"):
             continue
-        reply = batch._request("GET", "/characters/" + entry["state"])
+        try:
+            reply = batch._request("GET", "/characters/" + entry["state"])
+        except RuntimeError as busy:
+            # 423 is the endpoint saying the state is still being drawn.
+            print(option_id, "still drawing" if "423" in str(busy) else busy)
+            continue
+        if reply.get("status") == "failed":
+            # Forgotten, so the next wave buys it again.
+            print(option_id, "failed - will be bought again")
+            del ledger[option_id]
+            _save(LEDGER, ledger)
+            continue
         if reply.get("status") != "completed":
             print(option_id, reply.get("status"))
             continue
@@ -363,6 +404,35 @@ def _write_manifest(option_ids: list) -> None:
     print("manifest: %d head sheets listed" % len(option_ids))
 
 
+# States in flight at once. The account runs about twenty jobs at a time, and a
+# skeleton batch may be running beside this.
+IN_FLIGHT = 8
+POLL_SECONDS = 30
+
+
+def buy_all(option_ids: list) -> None:
+    wanted = option_ids or list(options())
+    while True:
+        fetch()
+        ledger = _load(LEDGER, {})
+        waiting = [i for i in wanted if ledger.get(i, {}).get("status") != "completed"]
+        if not waiting:
+            print("all %d in" % len(wanted))
+            return
+        flying = sum(1 for e in ledger.values() if e.get("status") == "processing")
+        unbought = [i for i in waiting if not ledger.get(i, {}).get("state")]
+        for option_id in unbought[:max(0, IN_FLIGHT - flying)]:
+            try:
+                buy(option_id)
+            except RuntimeError as failure:
+                # A refused request (the account at its limit) is waited out,
+                # never a reason to stop the whole wave.
+                print("could not buy", option_id, failure)
+                break
+        print("%d waiting, %d in flight" % (len(waiting), flying), flush=True)
+        time.sleep(POLL_SECONDS)
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -373,6 +443,10 @@ def main() -> None:
         record(sys.argv[2], sys.argv[3])
     elif command == "fetch":
         fetch()
+    elif command == "buy-all":
+        buy_all(sys.argv[2:])
+    elif command == "rebuy":
+        rebuy(sys.argv[2:])
     elif command == "cut":
         print(json.dumps(cut(sys.argv[2]), indent=1))
     elif command == "preview":

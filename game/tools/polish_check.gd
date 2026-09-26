@@ -362,9 +362,16 @@ func _check_the_leather() -> void:
 	# colour and beard were appended after the three dyes - so each place is
 	# held by name, and an older row still means what it meant.
 	var order: Array[String] = [WardenLook.KEY_CLOAK, WardenLook.KEY_SASH, WardenLook.KEY_LEATHER,
-		WardenLook.KEY_BODY, WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_BEARD]
+		WardenLook.KEY_BODY, WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_BEARD,
+		WardenLook.KEY_SKIN]
 	_check(WardenLook.KEYS.size() >= order.size() and WardenLook.KEYS.slice(0, order.size()) == order,
 		"the look's entries must keep their places, each appended after the last - the wire packs by position")
+	# The skin arrived after the beard (2026-09-26); a partner a build behind
+	# sends seven numbers, and they must still mean the seven they meant.
+	var seven: Dictionary = WardenLook.unpack([0.2, -0.1, 0.3, 1, 4, 6, 2])
+	_check(int(seven[WardenLook.KEY_BEARD]) == 2 and int(seven[WardenLook.KEY_HAIR]) == 4
+		and int(seven[WardenLook.KEY_SKIN]) == 0,
+		"a seven-number row must keep its beard and hair and read as the skin as painted: %s" % str(seven))
 	var three: Dictionary = WardenLook.unpack([0.2, -0.1, 0.3])
 	_check(int(three[WardenLook.KEY_BODY]) == 0 and int(three[WardenLook.KEY_HAIR]) == 0
 		and int(three[WardenLook.KEY_BEARD]) == 0,

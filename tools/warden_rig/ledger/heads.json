@@ -1,7 +1,282 @@
 {
+ "f_afro": {
+  "bought": "2026-09-26T01:14:18",
+  "rejected": [],
+  "seed": 7,
+  "state": "0cdf1755-1e36-45b1-9532-353cd56768fa",
+  "status": "completed"
+ },
+ "f_bob": {
+  "bought": "2026-09-26T01:01:49",
+  "state": "cc13fecd-0541-4d2c-bb9c-0d2845285a88",
+  "status": "completed"
+ },
+ "f_braid": {
+  "bought": "2026-09-26T01:01:51",
+  "state": "10c8983e-84ee-4e32-9d2e-2dd43d530588",
+  "status": "completed"
+ },
+ "f_crest": {
+  "bought": "2026-09-26T01:12:51",
+  "rejected": [],
+  "seed": 7,
+  "state": "bdc09ea5-6ca0-4a60-a68e-3891a088d681",
+  "status": "completed"
+ },
+ "f_cropped": {
+  "bought": "2026-09-26T01:11:53",
+  "rejected": [],
+  "seed": 7,
+  "state": "1acb657d-8ae7-4378-a473-5d6166da4aff",
+  "status": "completed"
+ },
+ "f_crown": {
+  "bought": "2026-09-26T01:18:36",
+  "rejected": [],
+  "seed": 7,
+  "state": "5c59a0eb-e247-4a09-bfeb-3bbac1184a32",
+  "status": "completed"
+ },
+ "f_curls": {
+  "bought": "2026-09-26T01:12:49",
+  "rejected": [],
+  "seed": 7,
+  "state": "51e473ba-b294-4042-a14f-d5afeceffc96",
+  "status": "completed"
+ },
+ "f_flowing": {
+  "bought": "2026-09-26T01:01:50",
+  "state": "7ad87e52-04a7-4c00-a665-8fde8b012e73",
+  "status": "completed"
+ },
+ "f_locs": {
+  "bought": "2026-09-26T01:15:04",
+  "rejected": [],
+  "seed": 7,
+  "state": "069f0197-0bdb-451f-bfc8-3e0664caa2df",
+  "status": "completed"
+ },
+ "f_mane": {
+  "bought": "2026-09-26T01:13:38",
+  "rejected": [],
+  "seed": 7,
+  "state": "850a854e-aa3b-42cc-9805-16af945ae4da",
+  "status": "completed"
+ },
+ "f_ponytail": {
+  "bought": "2026-09-26T01:15:06",
+  "rejected": [],
+  "seed": 7,
+  "state": "1b2b1192-a344-487b-ab16-98493849a658",
+  "status": "completed"
+ },
+ "f_shoulder": {
+  "bought": "2026-09-26T01:12:52",
+  "rejected": [],
+  "seed": 7,
+  "state": "a8c7ff05-763d-4d67-9a83-ff4570934151",
+  "status": "completed"
+ },
+ "f_sidesweep": {
+  "bought": "2026-09-26T01:12:51",
+  "rejected": [],
+  "seed": 7,
+  "state": "493a8208-fb1e-4386-a5f6-a9c3f6996081",
+  "status": "completed"
+ },
+ "f_tied": {
+  "bought": "2026-09-26T01:15:05",
+  "rejected": [],
+  "seed": 7,
+  "state": "53e8b6dd-16fb-4dbb-b4dc-3a8b18ee6f34",
+  "status": "completed"
+ },
+ "f_topknot": {
+  "bought": "2026-09-26T01:15:46",
+  "rejected": [],
+  "seed": 7,
+  "state": "0215df3d-653b-44af-9253-ee1377f9a108",
+  "status": "completed"
+ },
+ "f_tousled": {
+  "bought": "2026-09-26T01:11:54",
+  "rejected": [],
+  "seed": 7,
+  "state": "b672993d-014c-4b51-b440-899603a5dbd9",
+  "status": "completed"
+ },
+ "f_twin": {
+  "bought": "2026-09-26T01:16:43",
+  "rejected": [],
+  "seed": 7,
+  "state": "0e2ba042-e318-452e-b773-ae7ac9b79294",
+  "status": "completed"
+ },
+ "f_undercut": {
+  "bought": "2026-09-26T01:12:50",
+  "rejected": [],
+  "seed": 7,
+  "state": "94563f47-b507-4b9b-b72c-dc71bef7a142",
+  "status": "completed"
+ },
+ "m_afro": {
+  "bought": "2026-09-26T01:01:51",
+  "state": "7b1e73b9-4447-4fce-ab88-b51345367dec",
+  "status": "completed"
+ },
+ "m_bob": {
+  "bought": "2026-09-26T01:09:05",
+  "rejected": [],
+  "seed": 7,
+  "state": "423b695d-a2bb-466f-88a7-59f764e4b514",
+  "status": "completed"
+ },
+ "m_braid": {
+  "bought": "2026-09-26T01:09:08",
+  "rejected": [],
+  "seed": 7,
+  "state": "c72f68d3-f7c6-4f78-9614-2435c49337d1",
+  "status": "completed"
+ },
+ "m_braided": {
+  "bought": "2026-09-26T01:20:09",
+  "rejected": [],
+  "seed": 7,
+  "state": "bb610487-2252-4496-bca1-37bc39dfe02d",
+  "status": "processing"
+ },
+ "m_crest": {
+  "bought": "2026-09-26T01:09:04",
+  "rejected": [],
+  "seed": 7,
+  "state": "b8c0895b-118c-4873-a826-ae04cf619c30",
+  "status": "completed"
+ },
+ "m_cropped": {
+  "bought": "2026-09-26T01:09:01",
+  "rejected": [],
+  "seed": 7,
+  "state": "c63c2724-ce3f-4ba8-a691-86defdae1a45",
+  "status": "completed"
+ },
+ "m_crown": {
+  "bought": "2026-09-26T01:11:53",
+  "rejected": [],
+  "seed": 7,
+  "state": "51bf08bf-9591-4e97-9a1d-334351449f31",
+  "status": "completed"
+ },
+ "m_curls": {
+  "bought": "2026-09-26T01:09:02",
+  "rejected": [],
+  "seed": 7,
+  "state": "efb83921-995b-4f4c-8dd1-c5963b610293",
+  "status": "completed"
+ },
+ "m_flowing": {
+  "bought": "2026-09-26T01:09:06",
+  "rejected": [],
+  "seed": 7,
+  "state": "b7fbccdb-49cc-41dc-8163-3a5fe434e4b7",
+  "status": "completed"
+ },
+ "m_full": {
+  "bought": "2026-09-26T01:19:37",
+  "rejected": [
+   "23bf35ee-2dfb-4a1c-810a-a7343d6e2f40"
+  ],
+  "seed": 108,
+  "state": "19451f3f-be41-4e57-b3cc-9d17ba979456",
+  "status": "completed"
+ },
+ "m_goatee": {
+  "bought": "2026-09-26T01:01:54",
+  "state": "c1cc7004-a3c7-4114-8c1e-40c508f3d65b",
+  "status": "completed"
+ },
+ "m_locs": {
+  "bought": "2026-09-26T01:01:52",
+  "state": "410c3540-9f34-4a91-ab7e-3b0cce245a45",
+  "status": "completed"
+ },
+ "m_mane": {
+  "bought": "2026-09-26T01:01:53",
+  "state": "0f8cf38f-e9ee-4028-91ff-d083ba6d28db",
+  "status": "completed"
+ },
+ "m_moustache": {
+  "bought": "2026-09-26T01:18:38",
+  "rejected": [],
+  "seed": 7,
+  "state": "68221867-a6ce-4d98-a24e-e58e76918bba",
+  "status": "completed"
+ },
+ "m_ponytail": {
+  "bought": "2026-09-26T01:09:07",
+  "rejected": [],
+  "seed": 7,
+  "state": "4d075572-3440-430a-b947-e333752e5284",
+  "status": "completed"
+ },
+ "m_shoulder": {
+  "bought": "2026-09-26T01:09:06",
+  "rejected": [],
+  "seed": 7,
+  "state": "d505fbaf-8278-496d-922b-ce59842a7346",
+  "status": "completed"
+ },
+ "m_sidesweep": {
+  "bought": "2026-09-26T01:09:03",
+  "rejected": [],
+  "seed": 7,
+  "state": "27c853ea-80d2-479b-8e1a-747f5fbe2554",
+  "status": "completed"
+ },
+ "m_stubble": {
+  "bought": "2026-09-26T01:18:37",
+  "rejected": [],
+  "seed": 7,
+  "state": "870d2f7a-f411-4ec9-a91e-ea8be76c8bf6",
+  "status": "processing"
+ },
+ "m_tied": {
+  "bought": "2026-09-26T01:09:07",
+  "rejected": [],
+  "seed": 7,
+  "state": "bf12e705-71c6-4a8c-bc1a-112371f7ce45",
+  "status": "completed"
+ },
+ "m_topknot": {
+  "bought": "2026-09-26T01:09:08",
+  "rejected": [],
+  "seed": 7,
+  "state": "62fec3a2-8b81-46c3-b5be-d06025ca66d1",
+  "status": "completed"
+ },
  "m_tousled": {
   "bought": "2026-09-26T00:31:10",
   "state": "8d3fa549-f0d3-4530-85fb-40c70bb99b4f",
+  "status": "completed"
+ },
+ "m_trimmed": {
+  "bought": "2026-09-26T01:19:30",
+  "rejected": [],
+  "seed": 7,
+  "state": "59422a43-0d0b-4d4e-94b1-0cbdff48837e",
+  "status": "completed"
+ },
+ "m_twin": {
+  "bought": "2026-09-26T01:11:52",
+  "rejected": [],
+  "seed": 7,
+  "state": "fad4c1e4-a011-40ae-9534-46eb055a61e8",
+  "status": "completed"
+ },
+ "m_undercut": {
+  "bought": "2026-09-26T01:09:02",
+  "rejected": [],
+  "seed": 7,
+  "state": "0d298b80-0183-44cf-a721-749809a6f1d3",
   "status": "completed"
  }
 }

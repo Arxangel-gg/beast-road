@@ -82,6 +82,9 @@ func _test_clean_and_pack() -> void:
 
 func _test_the_save_round_trip() -> void:
 	var kept: Dictionary = MetaState.look.duplicate()
+	# From the painted Warden, whatever this account wears: a played save with
+	# the leather dyed read back that dye beside the two set here (2026-09-26).
+	MetaState.look = WardenLook.plain()
 	MetaState.set_look("cloak", 0.25)
 	MetaState.set_look("sash", -0.1)
 	MetaState.set_look("hat", 0.4)
@@ -166,17 +169,31 @@ func _test_the_shader_is_wired() -> void:
 	# lost its cloak band entirely. The bands are read off `texture(TEXTURE, UV)`
 	# now and the turn applied to `COLOR`, so what a pixel *is* comes from the
 	# art and what is done to it comes from the state.
+	#
+	# **Amended again 2026-09-26: and the UV.** The skin tone reads a mask that
+	# shares the body sheet's layout texel for texel, and a custom shader
+	# function cannot see `UV`, so the call hands it over; the painting and the
+	# colour are still two arguments for the reason above.
 	for path: String in [BloodStain.SHADER_PATH, WardenLook.SHADER_PATH]:
 		var text: String = FileAccess.get_file_as_string(path)
-		_check(text.contains("warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb)"),
-			("%s must call the dye with the painting as well as the colour - "
+		_check(text.contains("warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb, UV)"),
+			("%s must call the dye with the painting, the colour and the UV - "
 				+ "bands read off a tinted colour are bands that move with the "
-				+ "seat") % path.get_file())
+				+ "seat, and a skin mask needs to know where it is") % path.get_file())
 	var include_text: String = FileAccess.get_file_as_string(
 		"res://scripts/shaders/warden_look.gdshaderinc")
 	_check(include_text.contains("uniform float look_cloak")
 		and include_text.contains("uniform float look_sash"),
 		"the include must declare both dyes")
+	# A mask that filters blends skin into the cloth beside it; one with no
+	# default black would turn the painted Warden's whole sprite with the tone.
+	_check(include_text.contains("uniform sampler2D skin_mask : filter_nearest, hint_default_black"),
+		"the skin mask must be read texel for texel and default to no skin")
+	_check(include_text.contains("uniform vec3 skin_from") and include_text.contains("uniform vec3 skin_to")
+		and include_text.contains("step(skin_from, skin_to)"),
+		"the skin must be turned from the painted mean to the tone, lightening and darkening")
+	_check(include_text.contains("* (1.0 - skin)"),
+		"the leather dye must never reach the skin, whose shadows sit in its hue")
 	# The mask must come from `art` and the turn from `hsv`: a build that read
 	# either from the other is the fault this amendment exists to refuse.
 	_check(include_text.contains("vec3 mask = look_to_hsv(art);")

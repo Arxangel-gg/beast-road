@@ -51,12 +51,13 @@ func _ready() -> void:
 	await _test_the_runtime_lays_every_part()
 	await _test_the_fist_closes_over_the_handle()
 	await _test_the_head_is_socketed()
-	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies", "runtime", "fist", "head"]:
+	await _test_the_skin_turns()
+	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies", "runtime", "fist", "head", "skin"]:
 		_check(_reached.has(name), "'%s' never reached its end - a runtime error stopped it" % name)
 	for _frame: int in 10:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[dress] PASS - %d checks: every class known, every weapon held and sized by its class, the grip picks the combo, the dress resolves, the fist closes over the handle, the head is socketed and sways" % _checks)
+		print("[dress] PASS - %d checks: every class known, every weapon held and sized by its class, the grip picks the combo, the dress resolves, the fist closes over the handle, the head is socketed and sways, the skin turns where its mask says" % _checks)
 	else:
 		push_error("[dress] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -739,3 +740,153 @@ func _test_the_head_is_socketed() -> void:
 	WardenDress.heads_table = saved[1]
 	WardenDress.forget()
 	_reached.append("head")
+
+
+# --- The skin turns (owner, 2026-09-26) ----------------------------------------
+
+## The painted skin of the synthetic dress, 0-255 - the male base's own measure.
+const TEST_SKIN_MEAN: Array = [181.0, 128.6, 94.0]
+
+
+func _luma(c: Color) -> float:
+	return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+
+
+func _test_the_skin_turns() -> void:
+	# The choice is a whole number over the tones, and the tones are named.
+	_check(WardenLook.CHOICES[WardenLook.KEY_SKIN] == WardenLook.SKIN_TONES.size()
+		and WardenLook.SKIN_NAMES.size() == WardenLook.SKIN_TONES.size(),
+		"the count of skin tones, the tones and their names disagree")
+	_check(int(WardenLook.clean({"skin": 99})["skin"]) == WardenLook.SKIN_TONES.size() - 1,
+		"a skin tone past the last was not held to the last")
+	var painted := Color(TEST_SKIN_MEAN[0] / 255.0, TEST_SKIN_MEAN[1] / 255.0, TEST_SKIN_MEAN[2] / 255.0, 1.0)
+	_check(WardenLook.skin_tone({"skin": 0}, painted) == painted, "the skin as painted turned")
+	_check(WardenLook.skin_tone({"skin": 3}, Color(0, 0, 0, 0)).a == 0.0,
+		"a body whose skin was never measured was turned anyway")
+	# Lightest to deepest, and none a step from the painting: a tone that looks
+	# like no choice is not one.
+	var last: float = 2.0
+	for index: int in range(1, WardenLook.SKIN_TONES.size()):
+		var tone: Color = WardenLook.SKIN_TONES[index]
+		var named: String = WardenLook.SKIN_NAMES[index]
+		_check(WardenLook.skin_tone({"skin": index}, painted) == tone, "tone %d is not what it turns to" % index)
+		_check(_luma(tone) < last, "%s is not deeper than the tone before it" % named)
+		last = _luma(tone)
+		_check(absf(_luma(tone) - _luma(painted)) > 0.06, "%s sits within a step of the painted skin" % named)
+		# The painted mean lands on the tone, every channel, lighter and darker;
+		# the turn never leaves the gamut and never reverses the shading.
+		for c: int in 3:
+			var turned: float = WardenLook.turn_skin_channel(painted[c], painted[c], tone[c])
+			_check(absf(turned - tone[c]) < 0.0005,
+				"%s channel %d: the painted mean turned to %.3f, not %.3f" % [named, c, turned, tone[c]])
+			var previous: float = -1.0
+			for step: int in 21:
+				var value: float = WardenLook.turn_skin_channel(float(step) / 20.0, painted[c], tone[c])
+				_check(value >= previous - 0.0001 and value >= 0.0 and value <= 1.0,
+					"%s channel %d reverses or leaves the gamut at %.2f" % [named, c, float(step) / 20.0])
+				previous = value
+			# A highlight is compressed toward white, never clipped to it: the
+			# straight multiply this replaced turned porcelain's crown flat white.
+			var near_white: float = WardenLook.turn_skin_channel(0.9, painted[c], tone[c])
+			_check(near_white < 0.999 or tone[c] >= 0.999,
+				"%s channel %d clips a highlight to white" % [named, c])
+
+	# The runtime: the mask follows the sheet, and the tone reaches the material.
+	_write_test_dress()
+	var mask := Image.create(TEST_CELL.x * 8, TEST_CELL.y * 8, false, Image.FORMAT_RGBA8)
+	mask.fill(Color(1, 1, 1, 1))
+	mask.save_png(TEST_ROOT + "art/male_base/idle_skin.png")
+	for state: String in STATES:
+		var path: String = TEST_ROOT + "meta/male/%s.json" % state
+		var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+		meta["skin"] = TEST_SKIN_MEAN
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		file.store_string(JSON.stringify(meta))
+		file.close()
+	var saved: Array = [WardenDress.art_root, WardenDress.meta_root]
+	WardenDress.art_root = TEST_ROOT + "art/"
+	WardenDress.meta_root = TEST_ROOT + "meta/"
+	WardenDress.forget()
+	_check(WardenDress.skin_painted("male").is_equal_approx(painted),
+		"the painted skin was not read off the meta: %s" % WardenDress.skin_painted("male"))
+
+	var sprite := Sprite2D.new()
+	var material := ShaderMaterial.new()
+	material.shader = load(BloodStain.SHADER_PATH) as Shader
+	sprite.material = material
+	add_child(sprite)
+	var animator := HeroAnimator.new()
+	animator.sprite = sprite
+	add_child(animator)
+	var look: Dictionary = {"body": 0, "skin": 9}
+	animator.dress(WardenDress.outfit(look, null, null, null, null))
+	WardenLook.dress(sprite, look)
+	animator.play("idle", true)
+	animator._process(0.0)
+	_check(animator.skin_mask_drawn() == "male_base/idle",
+		"the idle mask was not handed over: %s" % animator.skin_mask_drawn())
+	_check(material.get_shader_parameter("skin_mask") is Texture2D, "the idle sheet's skin mask is not on the material")
+	animator.play("walk", true)
+	animator._process(0.0)
+	_check(animator.skin_mask_drawn() == "male_base/walk" and material.get_shader_parameter("skin_mask") == null,
+		"a sheet packed with no mask kept the last sheet's mask, which would turn whatever lies there")
+	var tone_9: Color = WardenLook.SKIN_TONES[9]
+	var from: Variant = material.get_shader_parameter("skin_from")
+	var to: Variant = material.get_shader_parameter("skin_to")
+	_check(from is Vector3 and (from as Vector3).is_equal_approx(Vector3(painted.r, painted.g, painted.b)),
+		"the material does not turn the skin from the painted mean: %s" % str(from))
+	_check(to is Vector3 and (to as Vector3).is_equal_approx(Vector3(tone_9.r, tone_9.g, tone_9.b)),
+		"the material does not turn the skin to the tone chosen: %s" % str(to))
+	WardenLook.dress(sprite, {"body": 0, "skin": 0})
+	_check((material.get_shader_parameter("skin_to") as Vector3).is_equal_approx(
+			material.get_shader_parameter("skin_from") as Vector3),
+		"the skin as painted still turns")
+	WardenDress.art_root = saved[0]
+	WardenDress.meta_root = saved[1]
+	WardenDress.forget()
+	for node: Node in [animator, sprite]:
+		node.queue_free()
+	await get_tree().process_frame
+
+	# The real bodies: a mask beside every sheet, the same size, never marking
+	# empty paper, and a mean that is the one measured off the paint.
+	for body: String in WardenDress.BODIES:
+		if not WardenDress.available(body):
+			continue
+		var mean: Array = WardenDress.meta(body, "idle").get("skin", [])
+		_check(mean.size() == 3, "%s carries no painted skin mean" % body)
+		for state: String in STATES:
+			var sheet_path: String = WardenDress.DRESS_DIR + body + "_base/" + state + ".png"
+			var mask_path: String = WardenDress.skin_mask_path(body + "_base", state)
+			if not ResourceLoader.exists(sheet_path):
+				continue
+			_check(ResourceLoader.exists(mask_path), "%s %s has no skin mask" % [body, state])
+			if not ResourceLoader.exists(mask_path):
+				continue
+			var sheet: Image = (load(sheet_path) as Texture2D).get_image()
+			var skin: Image = (load(mask_path) as Texture2D).get_image()
+			_check(sheet.get_size() == skin.get_size(),
+				"%s %s mask is %s against a %s sheet" % [body, state, skin.get_size(), sheet.get_size()])
+			if sheet.get_size() != skin.get_size() or state != "idle":
+				continue
+			var total := Vector3.ZERO
+			var count: int = 0
+			var stray: int = 0
+			for y: int in sheet.get_height():
+				for x: int in sheet.get_width():
+					if skin.get_pixel(x, y).a < 0.5:
+						continue
+					var p: Color = sheet.get_pixel(x, y)
+					if p.a < 0.5:
+						stray += 1
+						continue
+					total += Vector3(p.r, p.g, p.b)
+					count += 1
+			_check(stray == 0, "%s idle mask marks %d pixels of empty paper" % [body, stray])
+			_check(count > 0, "%s idle mask marks no skin at all" % body)
+			if count > 0 and mean.size() == 3:
+				var measured: Vector3 = total / float(count) * 255.0
+				_check(absf(measured.x - float(mean[0])) < 14.0 and absf(measured.y - float(mean[1])) < 14.0
+					and absf(measured.z - float(mean[2])) < 14.0,
+					"%s carries a skin mean of %s and its idle skin measures %s" % [body, str(mean), measured])
+	_reached.append("skin")

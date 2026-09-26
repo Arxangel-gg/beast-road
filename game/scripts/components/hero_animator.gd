@@ -99,6 +99,9 @@ var _outfit: Dictionary = {}
 var _dress_sheets: Dictionary = {}
 var _state_drawn: String = ""
 var _layers: DressLayers = null
+# Which sheet's skin mask the sprite's material holds, so a mask is handed over
+# when the sheet changes rather than every frame.
+var _mask_drawn: String = ""
 
 
 func _ready() -> void:
@@ -124,6 +127,7 @@ func dress(outfit: Dictionary) -> void:
 	_outfit = outfit
 	if changed_body:
 		_dress_sheets.clear()
+		_mask_drawn = ""
 	if _layers == null and sprite != null:
 		_layers = DressLayers.attach(sprite)
 	if _layers != null:
@@ -257,6 +261,26 @@ func _process(delta: float) -> void:
 		float(CELL_W), float(CELL_H))
 
 
+## The skin mask of the sheet being drawn, on the sprite's material (owner,
+## 2026-09-26: skin tones). The mask shares the sheet's layout, so the shader
+## reads it at the sheet's own UV; a sheet packed with no mask hands over
+## nothing, which the shader reads as no skin.
+func _hand_over_skin_mask() -> void:
+	var key: String = String(_outfit.get("body_layer", "")) + "/" + _state_drawn
+	var material := sprite.material as ShaderMaterial
+	if key == _mask_drawn or material == null:
+		return
+	_mask_drawn = key
+	var path: String = WardenDress.skin_mask_path(String(_outfit.get("body_layer", "")), _state_drawn)
+	material.set_shader_parameter("skin_mask",
+		WardenDress.texture(path) if WardenDress.exists(path) else null)
+
+
+## Which skin mask the sprite holds, for the gate.
+func skin_mask_drawn() -> String:
+	return _mask_drawn
+
+
 ## One frame of the dressed Warden: the body's cell, stood so its feet are
 ## where the painted Warden's were, and every layer laid on the same frame.
 func _show_dressed() -> void:
@@ -272,6 +296,7 @@ func _show_dressed() -> void:
 	sprite.texture = sheet
 	sprite.region_rect = Rect2(float(frame * int(cell[0])), float(_direction * int(cell[1])),
 		float(cell[0]), float(cell[1]))
+	_hand_over_skin_mask()
 	# The cell's top-left, placed so the canvas's feet land on the painted
 	# Warden's feet: centre-relative, because SpriteAnimator's scale and lean
 	# pivot on the sprite's origin.

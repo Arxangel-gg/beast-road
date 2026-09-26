@@ -279,6 +279,12 @@ func _test_a_guests_dye_reaches_the_party() -> void:
 	if heroes == null or partner == null:
 		_check(false, "the harness needs a partner to dye")
 		return
+	# Painted to start with, as a partner is on a real session. Unnetworked,
+	# `is_local_player` is true of every hero, so the harness's partner took this
+	# machine's own look off its save when its sprite was first drawn - and on a
+	# played account with a dye on it, this gate went red for a reason that is
+	# not about the wire (found 2026-09-26; a clean CI profile never has one).
+	partner.wear_look([])
 	var party: CoopParty = Coop.party()
 	# **This machine first.** `seat` hands out the lowest free slot, and
 	# `_hero_for_slot` answers the *local* hero for `party.slot()` - so a

@@ -28,6 +28,20 @@
 uniform float look_cloak : hint_range(-0.5, 0.5) = 0.0;
 uniform float look_sash : hint_range(-0.5, 0.5) = 0.0;
 uniform float look_leather : hint_range(-0.5, 0.5) = 0.0;
+// The skin tone (owner, 2026-09-26). The body sheets carry a mask beside them
+// - `<state>_skin.png`, white where the painting is skin, written by
+// `tools/warden_rig/pack.py` from the frame's colour *and* its bones, because
+// the boots and the belt are painted in the skin's own hue - and the skin is
+// turned so the painted skin's mean (`skin_from`) lands on the chosen tone
+// (`skin_to`): multiplied where the tone is darker, multiplied in the inverted
+// space where it is lighter, so a highlight compresses toward white rather than
+// clipping to it. A turn rather than a ramp, so the painting's own shading
+// survives at every tone; a ramp tried beside it turned every tone grey.
+// `WardenLook.turn_skin_channel` is the same rule for the gate. No mask (the
+// painted Warden, the Hold's figures) samples black, and nothing turns.
+uniform sampler2D skin_mask : filter_nearest, hint_default_black;
+uniform vec3 skin_from = vec3(0.5);
+uniform vec3 skin_to = vec3(0.5);
 
 vec3 look_to_hsv(vec3 c) {
 	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -59,7 +73,18 @@ vec3 look_to_rgb(vec3 c) {
 // It is the same separation `blood_stain.gdshader` already insists on for the
 // blood: what a pixel *is* comes from the art, what is done to it comes from
 // the state.
-vec3 warden_look(vec3 rgb, vec3 art) {
+//
+// `uv` reads the skin mask, which shares the sheet's layout texel for texel.
+vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
+	float skin = 0.0;
+	if (distance(skin_to, skin_from) > 0.0005 || abs(look_leather) > 0.0005) {
+		skin = texture(skin_mask, uv).a;
+		vec3 darker = rgb * skin_to / max(skin_from, vec3(0.001));
+		vec3 lighter = vec3(1.0) - (vec3(1.0) - rgb) * (vec3(1.0) - skin_to)
+			/ max(vec3(1.0) - skin_from, vec3(0.001));
+		vec3 turned = clamp(mix(darker, lighter, step(skin_from, skin_to)), 0.0, 1.0);
+		rgb = mix(rgb, turned, skin);
+	}
 	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005 && abs(look_leather) < 0.0005) {
 		return rgb;
 	}
@@ -78,8 +103,10 @@ vec3 warden_look(vec3 rgb, vec3 art) {
 	// The leather band (2026-09-23): hue 21 to 32 degrees, saturated, and dark.
 	// Measured on the idle sheet at s 0.78, v 0.39; the lantern's orange sits in
 	// the same hues but bright (v 0.63 and up), so the value edge keeps it lit.
+	// Never on skin: the skin's own shadows sit in the leather's hue, and a
+	// dyed shin of shadow under the jaw is the dye leaking onto the Warden.
 	float leather = smoothstep(0.052, 0.062, mask.x) * (1.0 - smoothstep(0.088, 0.098, mask.x))
-		* smoothstep(0.45, 0.58, mask.y) * (1.0 - smoothstep(0.46, 0.56, mask.z));
+		* smoothstep(0.45, 0.58, mask.y) * (1.0 - smoothstep(0.46, 0.56, mask.z)) * (1.0 - skin);
 	hsv.x = fract(hsv.x + look_cloak * cloak + look_sash * sash + look_leather * leather);
 	return look_to_rgb(hsv);
 }

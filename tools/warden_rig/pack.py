@@ -6,8 +6,15 @@ Reads every layer of that body out of `cache/<layer>/clip<N>/<facing>/NN.png`
 (written by `batch.py`), splits each clip back into its animations, and writes
 for every animation:
 
-    game/art/hero/dress/<layer>/<state>.png     rows = facings, columns = frames
-    game/data/dress/<body>/<state>.json          cell, origin, sockets
+    game/art/hero/dress/<layer>/<state>.png      rows = facings, columns = frames
+    game/art/hero/dress/<layer>/<state>_skin.png the same, white where it is skin
+    game/data/dress/<body>/<state>.json           cell, origin, sockets, skin mean
+
+**The skin mask** (owner, 2026-09-26: skin tones) is `skin.py`'s: skin-coloured
+*and* on a part the outfit leaves bare, measured round the frame's own bones.
+The meta carries the painted skin's mean over the whole base layer, which is
+what a chosen tone is a turn of. The manifest section listing every sheet and
+mask is rewritten by this step, so the folder and the manifest cannot disagree.
 
 **Every layer of a body shares one cell per animation.** The cell is the union
 of what any layer of that body draws in that animation, plus a margin, so the
@@ -41,12 +48,26 @@ import sys
 
 from PIL import Image
 
+import numpy as np
+
 import animations
 import fist
 import rig
+import skin
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MARGIN = 3
+GAME = os.path.normpath(os.path.join(HERE, "..", "..", "game"))
+MANIFEST = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "ASSET_MANIFEST.md"))
+MANIFEST_HEADING = "### 5.35 Dressed Warden bodies of 2026-09-26"
+MANIFEST_BEFORE = "### 5.34 Head dressings"
+MANIFEST_INTRO = """The modular Warden's bodies (owner, 2026-09-25: a modular, customizable
+Warden, male and female), one folder a layer: every animation as a sheet of
+eight facings by its frames, and beside it a skin mask of the same layout -
+white where the painting is skin - which the body shader turns to the chosen
+skin tone (owner, 2026-09-26). Written by `tools/warden_rig/pack.py`, which
+rewrites these rows whenever it packs a body.
+"""
 
 
 def layer_names(body: str) -> list:
@@ -133,8 +154,69 @@ def sockets_for(body: str, state: str, cell_origin: tuple, painted: dict | None 
     return out
 
 
+def _mask_sheet(body: str, state: str, frames: dict, box: tuple, cell: tuple, count: int) -> tuple:
+    """The skin mask for one layer's state, cropped as its sheet is, and the
+    sum and count of the skin it found, for the painted mean."""
+    rig_frames = _frames(body)
+    poses = animations.poses(state)
+    sheet = Image.new("RGBA", (cell[0] * count, cell[1] * len(rig.ROW_ORDER)), (0, 0, 0, 0))
+    total = np.zeros(3, dtype=np.float64)
+    found = 0
+    for row, facing in enumerate(rig.ROW_ORDER):
+        for col, image in enumerate(frames[facing]):
+            joints = skin.joints_for(body, poses[min(col, len(poses) - 1)], facing, rig_frames[facing])
+            m = skin.mask(image, joints, rig_frames[facing].stature)
+            total += np.array(image.convert("RGB")).astype(np.float64)[m].sum(axis=0)
+            found += int(m.sum())
+            white = np.zeros((image.height, image.width, 4), dtype=np.uint8)
+            white[m] = (255, 255, 255, 255)
+            sheet.alpha_composite(Image.fromarray(white, "RGBA").crop(box), (col * cell[0], row * cell[1]))
+    return sheet, total, found
+
+
+def _write_manifest(game: str) -> None:
+    """Every body sheet and mask on disk, as rows of one section."""
+    nl, crlf = chr(10), chr(13) + chr(10)
+    root = os.path.join(game, "art", "hero", "dress")
+    rows = ["| File | Size | Type | Placeholder colour |", "|------|------|------|--------------------|"]
+    count = 0
+    for layer in sorted(os.listdir(root)):
+        folder = os.path.join(root, layer)
+        if layer == "head" or not os.path.isdir(folder):
+            continue
+        for name in sorted(os.listdir(folder)):
+            if not name.endswith(".png"):
+                continue
+            with Image.open(os.path.join(folder, name)) as im:
+                w, h = im.size
+            rows.append("| `%s/%s` | %d%s%d | T | `#3A3128` |" % (layer, name, w, chr(215), h))
+            count += 1
+    with open(MANIFEST, encoding="utf-8", newline="") as f:
+        raw = f.read()
+    was_crlf = crlf in raw
+    text = raw.replace(crlf, nl)
+    section = "%s %s `res://art/hero/dress/`%s%s%s%s%s%s" % (
+        MANIFEST_HEADING, chr(8212), nl + nl, MANIFEST_INTRO, nl, nl.join(rows), nl, nl)
+    start = text.find(MANIFEST_HEADING)
+    if start >= 0:
+        end = text.find(nl + "### ", start + 1)
+        text = text[:start] + section + text[end + 1:]
+    else:
+        at = text.find(MANIFEST_BEFORE)
+        if at < 0:
+            raise SystemExit("no %r in the manifest to put the bodies before" % MANIFEST_BEFORE)
+        text = text[:at] + section + text[at:]
+    with open(MANIFEST, "w", encoding="utf-8", newline="") as f:
+        f.write(text.replace(nl, crlf) if was_crlf else text)
+    print("manifest: %d body sheets and masks listed" % count)
+
+
 def pack(body: str, game: str) -> None:
     layers = layer_names(body)
+    base_layer = body + "_base"
+    skin_total = np.zeros(3, dtype=np.float64)
+    skin_found = 0
+    metas: dict = {}
     per_layer = {layer: animation_frames(layer) for layer in layers}
     states = sorted({s for frames in per_layer.values() for s in frames})
     with open(os.path.join(HERE, "frames_%s.json" % body), encoding="utf-8") as f:
@@ -160,6 +242,11 @@ def pack(body: str, game: str) -> None:
             out_dir = os.path.join(game, "art", "hero", "dress", layer)
             os.makedirs(out_dir, exist_ok=True)
             sheet.save(os.path.join(out_dir, state + ".png"))
+            mask, total, found = _mask_sheet(body, state, frames[state], box, cell, count)
+            mask.save(os.path.join(out_dir, state + "_skin.png"))
+            if layer == base_layer:
+                skin_total += total
+                skin_found += found
         moved: list = []
         sockets = sockets_for(body, state, (box[0], box[1]), per_layer.get(body + "_base", {}).get(state),
                               moved)
@@ -180,12 +267,23 @@ def pack(body: str, game: str) -> None:
             "frames": count, "loop": animations.ANIMATIONS[state][1],
             "sockets": sockets,
         }
-        meta_dir = os.path.join(game, "data", "dress", body)
-        os.makedirs(meta_dir, exist_ok=True)
-        with open(os.path.join(meta_dir, state + ".json"), "w", encoding="utf-8") as f:
-            json.dump(meta, f, separators=(",", ":"))
+        metas[state] = meta
         print("packed %-12s %s cell %dx%d, %d of %d fists found on the paint (moved up to %.1f px)" % (
             state, body, cell[0], cell[1], len(found), len(moved), max(found) if found else 0.0))
+    # The painted skin's mean over the whole base layer, in every state's meta:
+    # the one number a chosen tone turns, the same whichever state is drawn.
+    mean = (skin_total / skin_found).round(1).tolist() if skin_found else []
+    meta_dir = os.path.join(game, "data", "dress", body)
+    os.makedirs(meta_dir, exist_ok=True)
+    for state, meta in metas.items():
+        meta["skin"] = mean
+        with open(os.path.join(meta_dir, state + ".json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, separators=(",", ":"))
+    print("painted skin mean %s over %d pixels" % (mean, skin_found))
+    # A pack into a scratch folder (`--game`) is a test, and its files are not
+    # the game's: the manifest lists only what the real game holds.
+    if os.path.normcase(os.path.normpath(game)) == os.path.normcase(GAME):
+        _write_manifest(game)
 
 
 def main() -> None:

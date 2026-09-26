@@ -41,8 +41,14 @@ const KEY_BODY: String = "body"
 const KEY_HAIR: String = "hair"
 const KEY_HAIR_COLOUR: String = "hair_colour"
 const KEY_BEARD: String = "beard"
+## The skin (owner, 2026-09-26: *"make sure players can also properly select
+## their skintones"*). **Appended last**, for the reason every key after the
+## dyes was: a partner on the build before this sends seven numbers, and they
+## must still mean the dyes, the body, the hair and the beard. 0 is the skin as
+## the body was painted, so an older row reads as the painting.
+const KEY_SKIN: String = "skin"
 const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER,
-	KEY_BODY, KEY_HAIR, KEY_HAIR_COLOUR, KEY_BEARD]
+	KEY_BODY, KEY_HAIR, KEY_HAIR_COLOUR, KEY_BEARD, KEY_SKIN]
 ## The hue turns, which the dye shader reads.
 const DYES: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER]
 ## The hair colours a style may be drawn in. Every style is drawn once, in
@@ -61,10 +67,36 @@ const HAIR_COLOURS: Array[Color] = [
 	Color8(128, 124, 120),  # grey
 	Color8(226, 222, 212),  # white
 ]
-## How many of each choice there are, the plain one included: two bodies, eight
-## styles and bald, the colours above, four beards and clean-shaven.
+## The skin tones, lightest to deepest, as the middle of the skin: what the
+## painted skin's own mean is turned into (`warden_look.gdshaderinc`), so the
+## painting's shading - the lit crown, the shadow under the jaw, the warm
+## knuckles - is kept at every tone rather than flattened onto a ramp. The
+## first entry is the skin as painted, and turns nothing. Judged on the male
+## base at every facing (2026-09-26): the painted skin is a mid tan, so no entry
+## sits within a step of it, and a tone nearer than that is a choice that looks
+## like no choice.
+const SKIN_TONES: Array[Color] = [
+	Color(0, 0, 0, 0),      # as painted
+	Color8(242, 212, 194),  # porcelain
+	Color8(234, 194, 166),  # fair
+	Color8(224, 176, 140),  # light
+	Color8(212, 150, 126),  # rosy
+	Color8(196, 158, 112),  # olive
+	Color8(148, 98, 64),    # bronze
+	Color8(120, 78, 52),    # brown
+	Color8(92, 59, 41),     # deep
+	Color8(64, 42, 31),     # ebony
+]
+## The names the creation screen shows, one a tone.
+const SKIN_NAMES: Array[String] = ["As painted", "Porcelain", "Fair", "Light", "Rosy", "Olive",
+	"Bronze", "Brown", "Deep", "Ebony"]
+## How many of each choice there are, the plain one included: two bodies,
+## eighteen styles and bald, the colours above, six beards and clean-shaven,
+## and the tones above. Owner, 2026-09-26: *"12-24 hairstyles or more and
+## including styles for both genders"* and *"4-8 beards is fine"*. A style's
+## place in the count is the same style on either body (`tools/warden_rig/heads.json`).
 const CHOICES: Dictionary = {
-	KEY_BODY: 2, KEY_HAIR: 9, KEY_HAIR_COLOUR: 10, KEY_BEARD: 5,
+	KEY_BODY: 2, KEY_HAIR: 19, KEY_HAIR_COLOUR: 10, KEY_BEARD: 7, KEY_SKIN: 10,
 }
 
 ## Looks worth one press, for a player who wants a Warden rather than three
@@ -159,6 +191,29 @@ static func _default_choices(cleaned: Dictionary) -> bool:
 ## The colour a hair or beard is drawn in.
 static func hair_colour(look: Dictionary) -> Color:
 	return HAIR_COLOURS[int(clean(look)[KEY_HAIR_COLOUR])]
+
+
+## The tone the painted skin's mean is turned to: the chosen tone, or `painted`
+## itself (measured off the body's sheets when they are packed, carried in their
+## meta) for the painting as painted - which the shader reads as nothing to
+## turn. A body never measured is transparent and turns nothing either.
+static func skin_tone(look: Dictionary, painted: Color) -> Color:
+	var index: int = int(clean(look)[KEY_SKIN])
+	if index <= 0 or painted.a <= 0.0:
+		return painted
+	return SKIN_TONES[index]
+
+
+## One channel of a skin pixel turned from `painted` to `tone`: the rule the
+## shader applies, written out for the gate and the creation screen's swatches.
+## Darkening multiplies; lightening multiplies in the inverted space, so a
+## highlight is compressed toward white rather than clipped to it - a straight
+## multiply turned porcelain's lit crown into a flat white smear. Either way the
+## painted mean lands exactly on the tone.
+static func turn_skin_channel(value: float, painted: float, tone: float) -> float:
+	if tone > painted:
+		return clampf(1.0 - (1.0 - value) * (1.0 - tone) / maxf(1.0 - painted, 0.001), 0.0, 1.0)
+	return clampf(value * tone / maxf(painted, 0.001), 0.0, 1.0)
 
 
 static func same(a: Dictionary, b: Dictionary) -> bool:
@@ -257,7 +312,7 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 	elif item.material != null:
 		return
 	else:
-		if is_undyed(cleaned) or shader() == null:
+		if (is_undyed(cleaned) and int(cleaned[KEY_SKIN]) == 0) or shader() == null:
 			return
 		material = ShaderMaterial.new()
 		material.shader = shader()
@@ -265,3 +320,9 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 	material.set_shader_parameter("look_cloak", float(cleaned[KEY_CLOAK]))
 	material.set_shader_parameter("look_sash", float(cleaned[KEY_SASH]))
 	material.set_shader_parameter("look_leather", float(cleaned[KEY_LEATHER]))
+	# The skin turns only where a body sheet's mask says skin (set per sheet by
+	# `HeroAnimator`); on art with no mask this is a number nothing reads.
+	var painted: Color = WardenDress.skin_painted(WardenDress.body_name(cleaned))
+	var tone: Color = skin_tone(cleaned, painted)
+	material.set_shader_parameter("skin_from", Vector3(painted.r, painted.g, painted.b))
+	material.set_shader_parameter("skin_to", Vector3(tone.r, tone.g, tone.b))

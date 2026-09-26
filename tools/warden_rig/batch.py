@@ -4,6 +4,9 @@
     python batch.py run <layer> [--facings f,g] [--clips 0,3] [--dry]
     python batch.py fetch <layer>                 collect finished jobs only
     python batch.py balance -                     the account's generations left
+    python batch.py reroll <layer> <facing>/<clip> ...   buy named jobs again, new seed
+        [--ref <png>]   ...started from this frame rather than the layer's rotation
+        [--depth]       ...sending each joint's true depth (see rig.project)
 
 The key is read from PIXELLAB_API_KEY, or from ~/.pixellab/api_key (or
 api_key.txt, which is what Notepad saves), and is never printed, logged or
@@ -135,28 +138,41 @@ def save_ledger(layer: str, ledger: dict) -> None:
     os.replace(tmp, ledger_path(layer))
 
 
-def _reference(layer: str, facing: str) -> str:
-    path = os.path.join(HERE, "refs", layer, facing + ".png")
+def _reference(layer: str, facing: str, override: str | None = None) -> str:
+    path = override or os.path.join(HERE, "refs", layer, facing + ".png")
     if not os.path.exists(path):
         sys.exit("no reference frame at %s - fetch the layer's rotations first" % path)
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
 
-def job_body(layer: str, spec: dict, facing: str, clip: list) -> dict:
+def uses_depth(layer: str, spec: dict, key: str, entry: dict) -> bool:
+    """Whether a job sends each joint's true depth. A job's own flag wins; a
+    layer drawn over another (`follows`) takes the flag of the same job there,
+    because two states land on the same pixels only from the same keypoints;
+    otherwise the layer's default."""
+    if "depth" in entry:
+        return bool(entry["depth"])
+    if spec.get("follows"):
+        return bool(load_ledger(spec["follows"]).get(key, {}).get("depth", False))
+    return bool(spec.get("depth", False))
+
+
+def job_body(layer: str, spec: dict, facing: str, clip: list, seed: int | None = None,
+             ref: str | None = None, depth: bool = False) -> dict:
     body = rig.BODIES[spec["body"]]
     frame = frames_for(spec["body"])[facing]
-    rest = rig.project(rig.solve(rig.Pose(), body), facing, frame)
+    rest = rig.project(rig.solve(rig.Pose(), body), facing, frame, depth)
     poses, _ = animations.clip_poses(clip)
     return {
         "description": spec["description"],
         "action": animations.action_of(clip),
         "direction": facing,
         "view": "low top-down",
-        "first_frame": {"type": "base64", "base64": _reference(layer, facing), "format": "png"},
+        "first_frame": {"type": "base64", "base64": _reference(layer, facing, ref), "format": "png"},
         "first_frame_keypoints": rest,
-        "keypoints": [rig.project(rig.solve(p, body), facing, frame) for p in poses],
-        "seed": spec.get("seed", 7),
+        "keypoints": [rig.project(rig.solve(p, body), facing, frame, depth) for p in poses],
+        "seed": spec.get("seed", 7) if seed is None else seed,
         "no_background": True,
     }
 
@@ -234,11 +250,23 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
                 print("giving up on %s after two failures: %s" % (key, entry.get("error")))
                 pending.remove((facing, c))
                 continue
-            body = job_body(layer, spec, facing, animations.CLIPS[c])
-            response = _request("POST", "/animate-with-skeleton-v3", body)
+            depth = uses_depth(layer, spec, key, entry)
+            body = job_body(layer, spec, facing, animations.CLIPS[c], entry.get("seed"), entry.get("ref"), depth)
+            try:
+                response = _request("POST", "/animate-with-skeleton-v3", body)
+            except RuntimeError as refused:
+                # The account runs about twenty jobs at once across every tool
+                # buying on it - the head states included - so a refusal waits
+                # for a slot rather than ending the run.
+                print("not taken yet", key, str(refused)[:120])
+                break
             ledger[key] = {"status": "processing", "job": response["background_job_id"],
                            "clip": animations.CLIPS[c], "attempts": entry.get("attempts", 0) + 1,
                            "submitted": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            for kept in ("seed", "ref"):
+                if kept in entry:
+                    ledger[key][kept] = entry[kept]
+            ledger[key]["depth"] = depth
             save_ledger(layer, ledger)
             in_flight.append(key)
             print("submitted", key, response["background_job_id"])
@@ -273,6 +301,50 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
     print("done:", sum(1 for v in ledger.values() if v.get("status") == "completed"), "completed")
 
 
+def reroll(layer: str, keys: list) -> None:
+    """Mark finished jobs to be bought again on a new seed. Their frames are
+    kept under `rejected/` rather than overwritten unseen, so the new take can
+    be judged against the one it replaces.
+
+    `--ref <png>` starts the new take from another frame of the same rest pose
+    - the idle's first frame, say - where the rotation itself leaves something
+    undecided that the other clips decided one way: a lantern the rotation
+    hides behind the hip, drawn on the right by five clips and on the left by
+    the sixth, is the case this exists for."""
+    spec = layers()[layer]
+    ledger = load_ledger(layer)
+    ref = None
+    depth = "--depth" in keys
+    keys = [k for k in keys if k != "--depth"]
+    if "--ref" in keys:
+        at = keys.index("--ref")
+        ref = os.path.abspath(keys[at + 1])
+        if not os.path.exists(ref):
+            sys.exit("no reference frame at %s" % ref)
+        keys = keys[:at] + keys[at + 2:]
+    for key in keys:
+        entry = ledger.get(key)
+        if entry is None:
+            sys.exit("no job %s in the %s ledger" % (key, layer))
+        facing, c = key.split("/")
+        src = os.path.join(HERE, "cache", layer, "clip" + c, facing)
+        if os.path.isdir(src):
+            dst = os.path.join(HERE, "cache", layer, "rejected", "clip" + c, facing,
+                               "seed%d" % entry.get("seed", spec.get("seed", 7)))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not os.path.exists(dst):
+                os.replace(src, dst)
+        entry["seed"] = entry.get("seed", spec.get("seed", 7)) + 101
+        if ref:
+            entry["ref"] = ref
+        if depth:
+            entry["depth"] = True
+        entry["status"] = "reroll"
+        entry["attempts"] = 0
+        print("reroll", key, "seed", entry["seed"])
+    save_ledger(layer, ledger)
+
+
 def main() -> None:
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -294,6 +366,8 @@ def main() -> None:
         run(layer, facings, clip_ids, dry=False, submit=False)
     elif command == "balance":
         balance()
+    elif command == "reroll":
+        reroll(layer, args)
     else:
         sys.exit(__doc__)
 
