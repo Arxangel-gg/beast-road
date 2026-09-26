@@ -116,7 +116,7 @@ requirements or establish production readiness.
 | Desert region | new terrain | `file:res://art/terrain/terrain_desert.png` |
 | Snow region | new terrain | `file:res://art/terrain/terrain_snow.png` |
 | Summit backdrop | final ascent art | `file:res://art/bg/summit.png` |
-| No franchise shorthand in copy | original faction language | `manual` |
+| No franchise shorthand in copy | original faction language | `manual` — read 2026-09-26: no franchise or game name in any of the 2,393 data strings or any string literal in the code; the only borrowed words are the genre's own (XP, DPS, cooldowns). The owner's read of faction naming is still owed |
 
 ## 7. Raids and leaders — GDD §57
 
@@ -138,7 +138,7 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Seed reproduction | same seed, same run | `gate:res://tools/seed_reproduction_check.tscn` |
 | Key rebinding | all actions | `class:KeyBindings` |
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
-| Controller parity | every screen focusable | `manual` |
+| Controller parity | every screen focusable | `manual` — `pad_focus_check` walks the focus ring of 15 screens, the main menu, the pause menu and the settings. Not walked: the co-op screen (it opens network requests) and the Hold (it adopts the menu's buttons); joining by typed room code needs a keyboard on a pad |
 | 60 FPS at 1920x1080 | on minimum spec | `manual` — provisional targets in `MINIMUM_SPEC.md` remain **unverified**: nothing has been run on a machine of that class |
 | No placeholder or orphan assets | manifest clean | `gate:res://tools/run_tool.gd -- report` |
 | Night playable at minimum brightness | readability under load — `night_check.tscn` measures it, but needs a renderer so it cannot run on a headless runner | `manual` |
