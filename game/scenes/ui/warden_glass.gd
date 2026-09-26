@@ -381,7 +381,10 @@ func _build_choices(body: VBoxContainer) -> void:
 
 func _section(parent: VBoxContainer, title: String) -> VBoxContainer:
 	var section := VBoxContainer.new()
-	section.name = title.capitalize().replace(" ", "")
+	# Prefixed: the dressed Warden in the preview has parts called "Beard" and
+	# "Hair", and a section sharing a name with one is a section `find_child`
+	# may never reach.
+	section.name = "Section" + title.capitalize().replace(" ", "")
 	section.add_theme_constant_override("separation", 6)
 	parent.add_child(section)
 	var label := Label.new()
@@ -704,6 +707,11 @@ func _refresh() -> void:
 	var body: int = int(look.get(WardenLook.KEY_BODY, 0))
 	for index: int in _body_buttons.size():
 		_body_buttons[index].set_pressed_no_signal(index == body)
+		# A body whose art is not on disk would draw the old painted Warden,
+		# which is not a choice anybody made - so it waits, and says why.
+		var drawn: bool = WardenDress.available(WardenDress.BODIES[index])
+		_body_buttons[index].disabled = not drawn and index != body
+		_body_buttons[index].tooltip_text = "" if drawn else "Still being drawn"
 	for key: String in [WardenLook.KEY_SKIN, WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR,
 			WardenLook.KEY_BEARD]:
 		var buttons: Array = _choices.get(key, [])

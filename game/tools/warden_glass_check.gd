@@ -110,7 +110,7 @@ func _test_every_control_reaches_the_look(glass: WardenGlass) -> void:
 			_check(String(frames._outfit.get("body", "")) == WardenDress.BODIES[body],
 				"the Warden in the glass is not the body chosen")
 		# The beard is offered to a body that grows one and to nobody else.
-		var section := glass.find_child("Beard", true, false) as Control
+		var section := glass.find_child("SectionBeard", true, false) as Control
 		var grows: bool = body == 0 or not WardenDress.head_option(WardenDress.BODIES[body], "beard", 1).is_empty()
 		_check(section != null and section.visible == grows,
 			"body %d is %s a beard" % [body, "offered" if section != null and section.visible else "not offered"])

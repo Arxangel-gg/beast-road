@@ -76,12 +76,30 @@ def layer_names(body: str) -> list:
     return [k for k, v in spec.items() if v["body"] == body]
 
 
+def _repairs() -> dict:
+    """Frames held on a neighbour: `repairs.json`, by layer, then
+    `clip<N>/<facing>/<NN>` to the frame that stands in for it."""
+    path = os.path.join(HERE, "repairs.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def frames_of(layer: str, clip_index: int, facing: str) -> list:
     folder = os.path.join(HERE, "cache", layer, "clip%d" % clip_index, facing)
     if not os.path.isdir(folder):
         return []
     names = sorted(n for n in os.listdir(folder) if n.endswith(".png"))
-    return [Image.open(os.path.join(folder, n)).convert("RGBA") for n in names]
+    held = _repairs().get(layer, {})
+    out = []
+    for n in names:
+        stand_in = held.get("clip%d/%s/%s" % (clip_index, facing, n[:-4]))
+        if stand_in is not None:
+            print("  %s clip%d %s frame %s holds frame %s (repairs.json)" % (layer, clip_index, facing, n[:-4], stand_in))
+            n = stand_in + ".png"
+        out.append(Image.open(os.path.join(folder, n)).convert("RGBA"))
+    return out
 
 
 def animation_frames(layer: str) -> dict:

@@ -1,0 +1,6 @@
+{
+ "_why": "Frames a generator cannot draw from their pose, held on a neighbour at pack time. Each entry names the layer, the clip, the facing and the frame, and the frame that stands in for it. Owner, 2026-09-26: south draw frame 5 melted the head on two seeds - the bow arm points at the camera across the face.",
+ "male_base": {
+  "clip4/south/05": "04"
+ }
+}
