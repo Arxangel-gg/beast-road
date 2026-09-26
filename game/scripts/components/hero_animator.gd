@@ -118,18 +118,16 @@ func dress(outfit: Dictionary) -> void:
 	if body.is_empty() or not WardenDress.available(body):
 		_outfit = {}
 		if _layers != null:
-			_layers.visible = false
+			_layers.set_worn(false)
 		return
 	var changed_body: bool = String(_outfit.get("body_layer", "")) != String(outfit.get("body_layer", ""))
 	_outfit = outfit
 	if changed_body:
 		_dress_sheets.clear()
 	if _layers == null and sprite != null:
-		_layers = DressLayers.new()
-		_layers.name = "Dress"
-		sprite.add_child(_layers)
+		_layers = DressLayers.attach(sprite)
 	if _layers != null:
-		_layers.visible = true
+		_layers.set_worn(true)
 		_layers.wear(outfit)
 	if sprite != null:
 		sprite.region_enabled = true

@@ -157,9 +157,12 @@ static var _held: Dictionary = {}
 static var _held_read: bool = false
 
 
-## Where the fist closes on a weapon's held picture, and the top of its blade,
-## in the picture's own pixels (`tools/warden_rig/install_held.py`). Found from
-## the picture when it was installed, so a new weapon needs no numbers typed.
+## Where the fist closes on a weapon's held picture, the top of its blade, and
+## the rows of the handle the fist may cover (`hilt`, first and last), in the
+## picture's own pixels (`tools/warden_rig/install_held.py`). Found from the
+## picture when it was installed, so a new weapon needs no numbers typed. A
+## table from before the hilt was measured gives a hilt of the grip's own row,
+## which hides the least handle a fist can.
 static func held_grip(weapon: GearData) -> Dictionary:
 	if not _held_read:
 		_held_read = true
@@ -172,7 +175,9 @@ static func held_grip(weapon: GearData) -> Dictionary:
 		return {}
 	var entry: Dictionary = _held[weapon.id]
 	var grip: Array = entry.get("grip", [64.0, 100.0])
-	return {"grip": Vector2(float(grip[0]), float(grip[1])), "tip": float(entry.get("tip", 0.0))}
+	var hilt: Array = entry.get("hilt", [grip[1], grip[1]])
+	return {"grip": Vector2(float(grip[0]), float(grip[1])), "tip": float(entry.get("tip", 0.0)),
+		"hilt": Vector2(float(hilt[0]), float(hilt[1]))}
 
 
 ## How long the weapon is drawn, in figure heights: its class's length, nudged

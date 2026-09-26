@@ -91,6 +91,10 @@ class Body:
     ear_half: float = 0.052
     face_forward: float = 0.055
     hand: float = 0.030        # wrist to the middle of the grip
+    # Half a fist's width. The stretch of a weapon's handle this far either side
+    # of a gripping fist is drawn behind the body, so the fingers close over it
+    # (`fist.py`). Measured on both base paintings at 0.072-0.077 across.
+    fist_half: float = 0.037
 
 
 # The female base's shoulders are 18% narrower at the same stature, measured
