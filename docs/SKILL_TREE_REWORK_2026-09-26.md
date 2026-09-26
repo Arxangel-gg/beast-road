@@ -331,3 +331,76 @@ affixes if R7 is approved.
 **Fixed now, without waiting**: the point leak under the current model (points
 are recomputed from level each run rather than stored), and the missing Arcane
 filter.
+
+---
+
+## 7. The owner's answer, and what it adds (2026-09-26, later)
+
+The owner read this and answered: *"You know best! Aim for the best most
+perfect max perfection"*, that the tree "seems nice", and added two things:
+
+- *"builds that players could create that persist beyond runs with a tree of
+  its own, as well as a tree that's run specific that resets per run"*;
+- more enemies each wave, so card-style augments "in the manner of Megabonk and
+  Tower of Babel" have room to shine.
+
+**R1 to R7 are taken as approved**, on the owner's delegation, and each is
+recorded in CLAUDE.md as a decision with its bound. What the answer adds is a
+second tree and a denser road.
+
+### 7.1 Two trees with two jobs
+
+| | The Disciplines (kept) | Roadcraft (per run) |
+|---|---|---|
+| **What it is** | Who the Warden is: skills, their upgrades, the chain form, the Oath | What this road has taught: the board, the town and the Warden's edge on this road |
+| **Kept** | On the account, per save slot | Cleared when the run ends; banked with the front |
+| **Edited** | In the Hold, free between runs | At the Mansion in Preparation |
+| **Paid with** | Skill points from levels and first clears | Road ranks earned by killing on this road, plus Food |
+| **Moves** | Behaviour, forms and capped passives | `Modifiers` numbers and keystone-style rule re-routes only |
+
+The split is the answer to Tower of Babel's worst fault. The persistent tree
+holds the build's core, so it is never drawn at random. The run tree grows fast
+and differs every road, which is the survivors-like feeling of getting stronger
+mid-run - but it is a tree the player chooses from, not three random offers.
+
+**Roadcraft** has three branches:
+
+- **Warden**: the hero's edge on this road - finisher windows, dash, sustain
+  and kill momentum.
+- **Rampart**: towers, traps and walls - rates, reach, trap charges and repair.
+- **Hearth**: the town, economy, companions and Command.
+
+Each node carries one `Modifiers` key or one keystone-style re-route, the bound
+Road Cards and portents already live under, so nothing downstream learns the
+tree exists. Depth is counted in points spent in the branch. A node costs one
+road rank and some Food, bought in Preparation at the Mansion.
+
+**Road ranks** are a run-scoped bar filled by kills, beside the hero's
+persistent XP rather than instead of it. Ranks come quickly early and slow
+later, and every fifth rank also deals a Road Card draft. Ranks are how the
+denser road pays for itself.
+
+### 7.2 A denser road
+
+Survivors-likes feel good because there is a lot to kill. The road gains a
+**swarm**: packs of small, fast, fragile bodies in the ordinary roles. They
+arrive in numbers - many to a pack - with little health each, and they walk on
+cheaper logic: no morale, no behaviour and no stagger footing. Waves carry more
+bodies overall. The pressure band stays where `curve_report` holds it, so the
+density is paid for with lower health per body, not with a harder game, and the
+extra kills feed road ranks.
+
+**The bounds**: `ENEMY_CEILING` and the frame are measured, not assumed. Act X's
+peak holds 78 fps at 1080p on the reference machine today, and a denser road has
+to keep sixty there.
+
+### 7.3 Order of work
+
+1. The fixes found on the way (done first): the point leak, the Arcane filter,
+   a partner's gear in the lobby and the Hold, and a swing announced once and
+   drawn hilt-first.
+2. The Disciplines foundation (section 5, phase 1).
+3. Roadcraft and road ranks.
+4. The swarm and the denser waves, measured against `curve_report` and the
+   frame.
+5. Content: distinct skills, upgrades, Oaths and Roadcraft nodes.
