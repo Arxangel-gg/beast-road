@@ -55,6 +55,10 @@ LOCK_FRESH_SECONDS = 180
 # heavy load"), unbilled. Counted as tries, two of those gave a job up for good
 # on a busy afternoon; they are waited out instead and cost no try.
 LOAD_BACKOFF_SECONDS = 300
+# A socket timeout bounds each read, not the whole response, so a server
+# trickling a large status body can hold a round for many minutes (2026-09-26:
+# eighteen minutes with the lock untouched). Reads are bounded as a whole.
+READ_DEADLINE_SECONDS = 180
 
 
 def _take_lock(layer: str) -> None:
@@ -120,6 +124,18 @@ def _key() -> str:
     return key
 
 
+def _read_within(response, seconds: float) -> bytes:
+    end = time.time() + seconds
+    chunks = []
+    while True:
+        if time.time() > end:
+            raise RuntimeError("the response took longer than %d seconds" % seconds)
+        chunk = response.read(1 << 16)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
 def _request(method: str, path: str, body: dict | None = None) -> dict:
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(API + path, data=data, method=method, headers={
@@ -129,7 +145,8 @@ def _request(method: str, path: str, body: dict | None = None) -> dict:
     for attempt in range(5):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
-                return json.loads(r.read().decode())
+                raw = _read_within(r, READ_DEADLINE_SECONDS) if method == "GET" else r.read()
+                return json.loads(raw.decode())
         except urllib.error.HTTPError as e:
             text = e.read().decode(errors="replace")[:300]
             if e.code in (429, 502, 503, 504) and attempt < 4:
@@ -247,7 +264,7 @@ def _images_of(response: dict) -> list:
         elif isinstance(image, dict) and image.get("url"):
             req = urllib.request.Request(image["url"], headers={"User-Agent": "wilderhold-rig"})
             with urllib.request.urlopen(req, timeout=120) as r:
-                out.append(r.read())
+                out.append(_read_within(r, READ_DEADLINE_SECONDS))
         elif isinstance(image, str):
             out.append(base64.b64decode(image))
     return out
@@ -370,7 +387,11 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                 entry["stalled"] = True
                 print("stalled at PixelLab", key, entry["job"])
             if status["status"] == "completed":
-                images = _images_of(status)
+                try:
+                    images = _images_of(status)
+                except (RuntimeError, OSError) as lost:
+                    print("download", key, str(lost)[:120], "- asking again next round")
+                    continue
                 facing, c = key.split("/")
                 expected = len(animations.clip_poses(animations.CLIPS[int(c)])[0])
                 if len(images) != expected:
