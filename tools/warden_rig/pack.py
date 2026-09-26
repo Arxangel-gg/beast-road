@@ -106,6 +106,40 @@ def clear_specks(image: Image.Image) -> Image.Image:
     return Image.fromarray(a, "RGBA") if cleared else image
 
 
+# A cape is drawn in chroma-key green and keyed here to a grey shade, which the
+# game colours by the cape kind's own colour - one cape serves every cape. The
+# key is the hair's (`heads.KEY_LEAD`, `KEY_RATIO`), and the dark line the
+# generator draws round the cape comes with it, as the hair's does.
+CAPE_KEY_LEAD = 18
+CAPE_KEY_RATIO = 1.3
+CAPE_OUTLINE_REACH = 2
+CAPE_OUTLINE_DARK = 110
+
+
+def is_cape(layer: str) -> bool:
+    return "_cape_" in layer
+
+
+def cape_key(image: Image.Image) -> Image.Image:
+    """The cape alone, as a grey shade: green lead is its light, everything
+    that is not the cape - the body it was painted on - is gone."""
+    from scipy import ndimage
+    a = np.asarray(image.convert("RGBA")).astype(np.int32)
+    r, g, b, alpha = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    others = np.maximum(r, b)
+    green = (alpha >= 100) & (g - others >= CAPE_KEY_LEAD) & (g >= CAPE_KEY_RATIO * np.maximum(others, 1))
+    near = ndimage.binary_dilation(green, iterations=CAPE_OUTLINE_REACH)
+    outline = near & ~green & (alpha >= 100) & (a[..., :3].max(axis=2) < CAPE_OUTLINE_DARK)
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    shade = np.where(green, g, lum * 0.6).clip(0, 255).astype(np.uint8)
+    out = np.zeros(a.shape, dtype=np.uint8)
+    out[..., 0] = shade
+    out[..., 1] = shade
+    out[..., 2] = shade
+    out[..., 3] = np.where(green | outline, 255, 0).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
+
+
 def _repairs() -> dict:
     """Frames held on a neighbour: `repairs.json`, by layer, then
     `clip<N>/<facing>/<NN>` to the frame that stands in for it."""
@@ -128,7 +162,8 @@ def frames_of(layer: str, clip_index: int, facing: str) -> list:
         if stand_in is not None:
             print("  %s clip%d %s frame %s holds frame %s (repairs.json)" % (layer, clip_index, facing, n[:-4], stand_in))
             n = stand_in + ".png"
-        out.append(clear_specks(Image.open(os.path.join(folder, n)).convert("RGBA")))
+        image = clear_specks(Image.open(os.path.join(folder, n)).convert("RGBA"))
+        out.append(cape_key(image) if is_cape(layer) else image)
     return out
 
 
@@ -332,6 +367,8 @@ def pack(body: str, game: str) -> None:
             out_dir = os.path.join(game, "art", "hero", "dress", layer)
             os.makedirs(out_dir, exist_ok=True)
             sheet.save(os.path.join(out_dir, state + ".png"))
+            if is_cape(layer):
+                continue    # a keyed cape has no skin on it
             mask, total, found = _mask_sheet(body, state, frames[state], box, cell, count)
             mask.save(os.path.join(out_dir, state + "_skin.png"))
             if layer == base_layer:

@@ -251,7 +251,15 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
                 pending.remove((facing, c))
                 continue
             depth = uses_depth(layer, spec, key, entry)
-            body = job_body(layer, spec, facing, animations.CLIPS[c], entry.get("seed"), entry.get("ref"), depth)
+            seed = entry.get("seed")
+            if seed is None and spec.get("follows"):
+                # A layer drawn over a body takes that body's seed as well as its
+                # depth, job by job: a base take bought again on a new seed has to
+                # be followed on that seed, or the two stop landing on one pixel.
+                seed = load_ledger(spec["follows"]).get(key, {}).get("seed")
+                if seed is not None:
+                    entry["seed"] = seed
+            body = job_body(layer, spec, facing, animations.CLIPS[c], seed, entry.get("ref"), depth)
             try:
                 response = _request("POST", "/animate-with-skeleton-v3", body)
             except RuntimeError as refused:
