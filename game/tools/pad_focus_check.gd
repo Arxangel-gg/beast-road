@@ -54,6 +54,7 @@ const RING_BUDGET: int = 512
 
 var _failures: int = 0
 var _hold_walked: bool = false
+var _coop_walked: bool = false
 var _checks: int = 0
 
 
@@ -68,6 +69,8 @@ func _ready() -> void:
 	await _walk_main_menu()
 	await _walk_the_hold()
 	_check(_hold_walked, "the Hold's walk aborted partway - every check it had not made is unmade")
+	await _walk_the_coop_screen()
+	_check(_coop_walked, "the co-op screen's walk aborted partway - every check it had not made is unmade")
 	await _walk_pause_menu()
 	await _walk_settings()
 	MetaState.resume_saves()
@@ -138,6 +141,34 @@ func _walk_the_hold() -> void:
 	menu.queue_free()
 	await get_tree().process_frame
 	_hold_walked = true
+
+
+## The co-op screen, the one the main menu builds (2026-09-26). Shown and
+## refreshed, never `open()`ed: opening it listens for LAN games and browses
+## the public list, and a gate that talks to the network is a gate whose
+## verdict depends on the network. So this walks every control the screen
+## draws, from where opening it would put focus, and not the rows of games a
+## search would add - each of those is a button in a list the scroll already
+## carries.
+func _walk_the_coop_screen() -> void:
+	var menu: Control = (load("res://scenes/ui/main_menu.tscn") as PackedScene).instantiate() as Control
+	add_child(menu)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var coop := menu.get("_coop") as CanvasLayer
+	_check(coop != null, "the main menu builds no co-op screen to walk")
+	if coop != null:
+		coop.visible = true
+		coop.call("_refresh")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var host := coop.get("_host_button") as Control
+		_check(host != null, "the co-op screen has no Host button for opening it to focus")
+		_walk("CoopScreen", coop, host)
+		coop.visible = false
+	menu.queue_free()
+	await get_tree().process_frame
+	_coop_walked = true
 
 
 func _walk_pause_menu() -> void:
