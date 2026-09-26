@@ -1,0 +1,764 @@
+{
+ "east/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\east",
+  "job": "d66d1b01-494c-4d76-b715-ac6467f7fa3d",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:04"
+ },
+ "east/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\east",
+  "job": "4599c452-4b2f-41ae-a63f-0757e11d447b",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:06"
+ },
+ "east/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\east",
+  "job": "909d7a46-2691-49c5-aea4-a9502726a551",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:09"
+ },
+ "east/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\east",
+  "job": "b5cba014-43a2-4de1-963b-690a1e6c6ce5",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:10"
+ },
+ "east/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\east",
+  "job": "5c9e9244-e695-4dd3-b53b-60ef23924580",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:12"
+ },
+ "east/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\east",
+  "job": "7646daf4-9213-4b44-8b8d-0587c384cb05",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:13"
+ },
+ "east/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\east",
+  "job": "4d68e208-c63e-491f-befb-87d93a076af1",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:14"
+ },
+ "east/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\east",
+  "job": "0c0de127-0a4a-4798-96c4-e73b403a784b",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:17"
+ },
+ "north-east/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\north-east",
+  "job": "9a0839a5-43ac-466b-bbd4-30eb47734eb6",
+  "status": "completed",
+  "submitted": "2026-09-26T11:20:30"
+ },
+ "north-east/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\north-east",
+  "job": "c3f34ffd-42fc-4cb6-bb63-5330727a06ab",
+  "status": "completed",
+  "submitted": "2026-09-26T11:20:56"
+ },
+ "north-east/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\north-east",
+  "job": "137f4ff1-a5fb-43f6-bd6a-5eb62b67a1bb",
+  "status": "completed",
+  "submitted": "2026-09-26T11:20:57"
+ },
+ "north-east/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\north-east",
+  "job": "7ea479c8-0b88-4673-9d35-2f0f3976d9fe",
+  "status": "completed",
+  "submitted": "2026-09-26T11:21:45"
+ },
+ "north-east/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\north-east",
+  "job": "7efa078a-fc42-4b18-8fe8-63b4f53552ad",
+  "status": "completed",
+  "submitted": "2026-09-26T11:22:09"
+ },
+ "north-east/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\north-east",
+  "job": "4ea475f4-50e4-4e0f-b64f-f894b345cbac",
+  "status": "completed",
+  "submitted": "2026-09-26T11:23:24"
+ },
+ "north-east/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\north-east",
+  "job": "f2e21cb9-c3bd-41ab-b72f-72c1e0f6697b",
+  "status": "completed",
+  "submitted": "2026-09-26T11:23:25"
+ },
+ "north-east/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\north-east",
+  "job": "92e08d02-ca2a-4404-8b40-ac57237f184c",
+  "status": "completed",
+  "submitted": "2026-09-26T11:23:52"
+ },
+ "north-west/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\north-west",
+  "job": "16cc8d67-90a7-442a-a2ce-317b3f9cf797",
+  "status": "completed",
+  "submitted": "2026-09-26T11:06:12"
+ },
+ "north-west/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\north-west",
+  "job": "88b2c0c2-7f2f-463d-9379-893f044c0b1a",
+  "status": "completed",
+  "submitted": "2026-09-26T11:08:19"
+ },
+ "north-west/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\north-west",
+  "job": "888f265e-71d7-4ace-8cf6-e763036f1ac7",
+  "status": "completed",
+  "submitted": "2026-09-26T11:08:21"
+ },
+ "north-west/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\north-west",
+  "job": "5cffb6ce-0a9b-4c5d-b502-7eecc7e140ba",
+  "status": "completed",
+  "submitted": "2026-09-26T11:08:44"
+ },
+ "north-west/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\north-west",
+  "job": "7f903de1-9151-4625-8257-bc1a233ead5b",
+  "status": "completed",
+  "submitted": "2026-09-26T11:09:20"
+ },
+ "north-west/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\north-west",
+  "job": "f8301748-f679-493f-bf9a-4b3630d239ce",
+  "status": "completed",
+  "submitted": "2026-09-26T11:09:22"
+ },
+ "north-west/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\north-west",
+  "job": "99fcfb42-022f-4281-8130-92d362d7620b",
+  "status": "completed",
+  "submitted": "2026-09-26T11:09:45"
+ },
+ "north-west/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\north-west",
+  "job": "1125600f-0bba-484b-b91b-b7ca7e91976b",
+  "status": "completed",
+  "submitted": "2026-09-26T11:10:51"
+ },
+ "north/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\north",
+  "job": "6016e480-e13e-4dc8-9b10-8f4d32271d76",
+  "status": "completed",
+  "submitted": "2026-09-26T11:14:23"
+ },
+ "north/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\north",
+  "job": "362cb303-b304-46fa-9008-7a5520ac460d",
+  "status": "completed",
+  "submitted": "2026-09-26T11:15:05"
+ },
+ "north/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\north",
+  "job": "75205e05-2457-4604-9d4f-74f998ef5b8c",
+  "status": "completed",
+  "submitted": "2026-09-26T11:17:08"
+ },
+ "north/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\north",
+  "job": "9c39d2c1-1abe-4dbc-907c-26780549985d",
+  "status": "completed",
+  "submitted": "2026-09-26T11:17:31"
+ },
+ "north/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\north",
+  "job": "eeed7474-e27b-4710-a4a1-0922e48307a0",
+  "status": "completed",
+  "submitted": "2026-09-26T11:17:53"
+ },
+ "north/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\north",
+  "job": "6e40be67-fe66-4c07-b575-9a26511b647d",
+  "status": "completed",
+  "submitted": "2026-09-26T11:17:55"
+ },
+ "north/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\north",
+  "job": "4e346e60-40f0-4f5b-97d4-d6713b8b9b02",
+  "status": "completed",
+  "submitted": "2026-09-26T11:19:20"
+ },
+ "north/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\north",
+  "job": "5b7f80c2-6f20-4efb-877d-d2346ca716fc",
+  "status": "completed",
+  "submitted": "2026-09-26T11:19:42"
+ },
+ "south-east/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\south-east",
+  "job": "6c0b9ee4-7c67-4d8a-8756-4abda5030b5d",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:19"
+ },
+ "south-east/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\south-east",
+  "job": "76d48da9-f432-4759-8a51-d32408c5d043",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:21"
+ },
+ "south-east/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\south-east",
+  "job": "5c96e323-21a5-472d-88d4-eff72a45d971",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:22"
+ },
+ "south-east/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\south-east",
+  "job": "e3fd101d-74a3-4742-9643-b8b8eb3deb23",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:24"
+ },
+ "south-east/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\south-east",
+  "job": "598d6241-f6e1-49d6-89f7-ed779fcc528b",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:25"
+ },
+ "south-east/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\south-east",
+  "job": "4a6c4076-2cf0-4659-bc10-51ee767fcdbc",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:27"
+ },
+ "south-east/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\south-east",
+  "job": "d0871a21-e4ba-41d2-a51b-b36e50b31852",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:28"
+ },
+ "south-east/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\south-east",
+  "job": "20c7a5b7-c712-48f9-ba23-b3c2ffaf4c26",
+  "status": "completed",
+  "submitted": "2026-09-26T10:36:31"
+ },
+ "south-west/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\south-west",
+  "job": "3c9db149-d906-4416-b9b8-7b97ec09d2d4",
+  "status": "completed",
+  "submitted": "2026-09-26T10:47:23"
+ },
+ "south-west/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\south-west",
+  "job": "88b2f1a1-acf5-4b8c-ba07-725b97ece96e",
+  "status": "completed",
+  "submitted": "2026-09-26T10:52:49"
+ },
+ "south-west/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\south-west",
+  "job": "b5c8ccd8-5efe-4991-9db7-cee478e34f34",
+  "status": "completed",
+  "submitted": "2026-09-26T10:54:21"
+ },
+ "south-west/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\south-west",
+  "job": "cd19495d-686e-4c5a-9015-03276852dd9f",
+  "status": "completed",
+  "submitted": "2026-09-26T10:55:10"
+ },
+ "south-west/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\south-west",
+  "job": "0f33c8e2-6163-4311-a2e7-689eafe6538a",
+  "status": "completed",
+  "submitted": "2026-09-26T10:55:18"
+ },
+ "south-west/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\south-west",
+  "job": "7ea20148-72be-485a-aec0-24ab857eacc1",
+  "status": "completed",
+  "submitted": "2026-09-26T10:55:42"
+ },
+ "south-west/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\south-west",
+  "job": "99fc62d2-5f85-47bb-948f-2f26bdb34ee3",
+  "status": "completed",
+  "submitted": "2026-09-26T10:56:31"
+ },
+ "south-west/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\south-west",
+  "job": "137d3427-f001-4c23-8736-19111980dd2d",
+  "status": "completed",
+  "submitted": "2026-09-26T10:57:37"
+ },
+ "south/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\south",
+  "job": "bcf4e8b8-4bbf-4997-b163-e1d572849f45",
+  "status": "completed",
+  "submitted": "2026-09-26T10:40:50"
+ },
+ "south/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\south",
+  "job": "e11d7403-343b-4f4e-b56c-ae4aaae1b7b0",
+  "status": "completed",
+  "submitted": "2026-09-26T10:43:22"
+ },
+ "south/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\south",
+  "job": "a35271d7-4f1c-42a3-b1db-5fac164454da",
+  "status": "completed",
+  "submitted": "2026-09-26T10:43:49"
+ },
+ "south/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\south",
+  "job": "4f844c3d-26f7-45ee-b475-883cc3ca3f90",
+  "status": "completed",
+  "submitted": "2026-09-26T10:43:50"
+ },
+ "south/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\south",
+  "job": "d18f0c59-9bff-4ff4-b702-5f9534e3363a",
+  "status": "completed",
+  "submitted": "2026-09-26T10:43:52"
+ },
+ "south/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\south",
+  "job": "a53555c9-df79-4d25-a45f-f0bada4daa28",
+  "status": "completed",
+  "submitted": "2026-09-26T10:45:22"
+ },
+ "south/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\south",
+  "job": "21aea65d-257a-4b93-9ed3-4ebacc72a50f",
+  "seed": 108,
+  "status": "completed",
+  "submitted": "2026-09-26T10:45:49"
+ },
+ "south/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\south",
+  "job": "b8a163b0-6b42-441b-8637-f5c0864ffc61",
+  "status": "completed",
+  "submitted": "2026-09-26T10:46:36"
+ },
+ "west/0": {
+  "attempts": 1,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip0\\west",
+  "job": "3017efcc-ca26-4b3a-a848-f57f5ecbd7df",
+  "status": "completed",
+  "submitted": "2026-09-26T10:58:00"
+ },
+ "west/1": {
+  "attempts": 1,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip1\\west",
+  "job": "e0d80107-dd14-40cd-8a47-12e8641a97d2",
+  "status": "completed",
+  "submitted": "2026-09-26T10:58:25"
+ },
+ "west/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip2\\west",
+  "job": "fc6645e8-8778-426d-b2f5-1e1452ec8385",
+  "status": "completed",
+  "submitted": "2026-09-26T10:59:14"
+ },
+ "west/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip3\\west",
+  "job": "6ca26b2f-2a24-413a-a41b-cd4c44a3e4c2",
+  "status": "completed",
+  "submitted": "2026-09-26T11:01:48"
+ },
+ "west/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip4\\west",
+  "job": "81a5d987-1c60-45ab-856a-43249e614176",
+  "status": "completed",
+  "submitted": "2026-09-26T11:04:51"
+ },
+ "west/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip5\\west",
+  "job": "72a60dfd-74d2-4183-8d63-2d2b443cc58c",
+  "seed": 108,
+  "status": "completed",
+  "submitted": "2026-09-26T11:04:52"
+ },
+ "west/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip6\\west",
+  "job": "8ed07af0-924b-4ee6-809a-a7d28183d58f",
+  "status": "completed",
+  "submitted": "2026-09-26T11:04:54"
+ },
+ "west/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_cape_long\\clip7\\west",
+  "job": "1047af5f-40c5-433c-b5fb-c9ebac1864d2",
+  "status": "completed",
+  "submitted": "2026-09-26T11:05:48"
+ }
+}
