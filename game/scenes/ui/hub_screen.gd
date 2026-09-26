@@ -33,6 +33,10 @@ const PANEL_SCREEN_SHARE: float = 0.94
 const BODY_SCREEN_SHARE: float = 0.52
 const BODY_SCREEN_SHARE_PORTRAIT: float = 0.66
 const PORTRAIT_SIZE: float = 128.0
+## The dressed Warden on the card: turning slower than the glass, which is a
+## place to choose rather than to look, and smaller.
+const CARD_TURN_SECONDS: float = 2.6
+const CARD_ART_SCALE: float = 1.0
 ## Drawn above anything the yard sorts. A rider's overlay is z 2.
 const CHROME_Z: int = 100
 ## The card's inset from its carved frame, and the width its left column keeps
@@ -61,6 +65,8 @@ var _first_button: Button = null
 var _portrait: TextureRect = null
 ## The Warden's Glass, stood up the first time it is asked for.
 var _glass: WardenGlass = null
+## The dressed Warden on the card, where one is drawn.
+var _card_stage: WardenStage = null
 var _portrait_frames: int = 1
 ## True while a door from this room is open over it. The room hides so the
 ## door's screen is on top, and comes back when the door closes.
@@ -685,6 +691,28 @@ func _build_card() -> void:
 		_card.remove_child(child)
 		child.queue_free()
 
+	# **The Warden as they are** (2026-09-26): once the dressed body is drawn,
+	# the card stands the same stage the Warden's Glass turns - the body, the
+	# skin, the hair and the gear the road will draw - where a portrait of the
+	# old painted Warden used to be.
+	_card_stage = null
+	if WardenDress.available(WardenDress.body_name(WardenLook.worn())):
+		_portrait = null
+		_card_stage = WardenStage.new()
+		_card_stage.name = "CardStage"
+		_card_stage.turn_seconds = CARD_TURN_SECONDS
+		_card_stage.art_scale = CARD_ART_SCALE
+		_card_stage.custom_minimum_size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE * 1.3)
+		_card_stage.modulate = RANK_TINTS[clampi(MetaState.ascension, 0, RANK_TINTS.size() - 1)]
+		_card.add_child(_card_stage)
+		_card_stage.show_look(WardenLook.worn())
+	else:
+		_card.add_child(_painted_portrait())
+	_card_after_portrait()
+
+
+## The old painted Warden, for an account whose body is not drawn yet.
+func _painted_portrait() -> TextureRect:
 	var portrait := TextureRect.new()
 	_portrait = portrait
 	_portrait_frames = 1
@@ -704,8 +732,10 @@ func _build_card() -> void:
 	portrait.modulate = RANK_TINTS[clampi(MetaState.ascension, 0, RANK_TINTS.size() - 1)]
 	# And the dye is the same Warden in different cloth (2026-09-21).
 	WardenLook.dress(portrait, WardenLook.worn())
-	_card.add_child(portrait)
+	return portrait
 
+
+func _card_after_portrait() -> void:
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
 	_card.add_child(name_row)
@@ -791,6 +821,8 @@ func _show_the_look() -> void:
 		_yard.set_look(0, WardenLook.pack(WardenLook.worn()))
 	if _portrait != null:
 		WardenLook.dress(_portrait, WardenLook.worn())
+	if _card_stage != null and is_instance_valid(_card_stage):
+		_card_stage.show_look(WardenLook.worn())
 
 
 func _toggle_rename() -> void:

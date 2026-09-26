@@ -32,17 +32,6 @@ const THUMB: Vector2 = Vector2(72.0, 84.0)
 const THUMB_WINDOW: Vector2 = Vector2(48.0, 56.0)
 const THUMB_HEAD_ABOVE: float = 20.0
 const SWATCH: float = 34.0
-## The preview is the sprite at this many screen pixels to one of art.
-const STAGE_SCALE: float = 2.0
-## Where the Warden's feet stand, as a share of the preview's height.
-const STAGE_FEET: float = 0.86
-## The turntable: a facing this often, and this long before it resumes after a
-## hand turned it.
-const TURN_SECONDS: float = 1.5
-const TURN_RESUME_SECONDS: float = 4.0
-## The pop a change gives the preview.
-const POP_SCALE: float = 1.07
-const POP_SECONDS: float = 0.22
 ## The rig's facing order - east, south-east, south ... - and the south view.
 const SOUTH_VIEW: int = 2
 const GOLD: Color = Color("e8a33d")
@@ -56,13 +45,8 @@ const POSE_NAMES: Array[String] = ["Stand", "Walk", "Strike"]
 
 var _panel: PanelContainer
 var _split: BoxContainer
-var _preview_holder: SubViewportContainer
-var _viewport: SubViewport
-var _stage: Node2D
-var _sprite: Sprite2D
-var _animator: HeroAnimator
-var _pedestal: Pedestal
-var _sparkles: CPUParticles2D
+## The Warden turning in the glass: the same stage the Hold's card stands.
+var _stage: WardenStage
 var _close_button: Button
 var _body_buttons: Array[Button] = []
 var _choices: Dictionary = {}
@@ -79,13 +63,9 @@ var _face_materials: Array[ShaderMaterial] = []
 var _pose_buttons: Array[Button] = []
 var _gear_toggle: CheckButton
 
-var _facing: int = SOUTH_VIEW
-var _turn_left: float = TURN_SECONDS
-var _resume_left: float = 0.0
 var _pose: String = "idle"
 var _show_gear: bool = true
 var _touched: bool = false
-var _pop: Tween = null
 var _rng := RandomNumberGenerator.new()
 
 
@@ -212,62 +192,12 @@ func _build_preview() -> Control:
 	column.add_theme_constant_override("separation", 6)
 	frame.add_child(column)
 
-	_preview_holder = SubViewportContainer.new()
-	_preview_holder.name = "Stage"
-	_preview_holder.stretch = true
-	_preview_holder.custom_minimum_size = Vector2(300.0, 340.0)
-	_preview_holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_preview_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_preview_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(_preview_holder)
-	_viewport = SubViewport.new()
-	_viewport.transparent_bg = true
-	# Two enums for one idea: the canvas filter is a CanvasItem's, a viewport's
-	# default is its own, and their numbers do not line up.
-	if Graphics.canvas_filter() == CanvasItem.TEXTURE_FILTER_NEAREST:
-		_viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	else:
-		_viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR
-	_preview_holder.add_child(_viewport)
-
-	_stage = Node2D.new()
+	_stage = WardenStage.new()
 	_stage.name = "Stage"
-	_stage.scale = Vector2(STAGE_SCALE, STAGE_SCALE)
-	_viewport.add_child(_stage)
-	_pedestal = Pedestal.new()
-	_stage.add_child(_pedestal)
-	_sprite = Sprite2D.new()
-	_sprite.name = "Warden"
-	var material := ShaderMaterial.new()
-	material.shader = WardenLook.shader()
-	_sprite.material = material
-	_stage.add_child(_sprite)
-	_animator = HeroAnimator.new()
-	_animator.name = "Frames"
-	_animator.sprite = _sprite
-	_stage.add_child(_animator)
-	_animator.finished.connect(_on_pose_finished)
-	_sparkles = CPUParticles2D.new()
-	_sparkles.name = "Sparkles"
-	_sparkles.emitting = false
-	_sparkles.one_shot = true
-	_sparkles.amount = int(roundf(24.0 * Graphics.particle_scale()))
-	_sparkles.lifetime = 0.7
-	_sparkles.explosiveness = 0.9
-	_sparkles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	_sparkles.emission_sphere_radius = 26.0
-	_sparkles.direction = Vector2(0.0, -1.0)
-	_sparkles.spread = 180.0
-	_sparkles.initial_velocity_min = 20.0
-	_sparkles.initial_velocity_max = 60.0
-	_sparkles.gravity = Vector2(0.0, -30.0)
-	_sparkles.scale_amount_min = 1.0
-	_sparkles.scale_amount_max = 2.5
-	_sparkles.position = Vector2(0.0, -40.0)
-	var additive := CanvasItemMaterial.new()
-	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	_sparkles.material = additive
-	_stage.add_child(_sparkles)
+	_stage.custom_minimum_size = Vector2(300.0, 340.0)
+	_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(_stage)
 
 	# Turning and posing, under the stage.
 	var turns := HBoxContainer.new()
@@ -584,9 +514,7 @@ func _head_name(kind: String, index: int) -> String:
 func open() -> void:
 	_touched = false
 	visible = true
-	_facing = SOUTH_VIEW
-	_turn_left = TURN_SECONDS
-	_resume_left = 0.0
+	_stage.reset_turn()
 	_set_pose("idle")
 	_refresh()
 	_close_button.grab_focus()
@@ -612,23 +540,8 @@ func _refit() -> void:
 	# Side by side where there is width for both; stacked on an upright screen,
 	# where a preview beside the pickers leaves neither room to be read.
 	_split.vertical = screen.x < screen.y * 1.1
-	_preview_holder.custom_minimum_size = Vector2(minf(320.0, wide * 0.42), minf(360.0, tall * 0.5)) \
+	_stage.custom_minimum_size = Vector2(minf(320.0, wide * 0.42), minf(360.0, tall * 0.5)) \
 		if not _split.vertical else Vector2(0.0, minf(300.0, tall * 0.38))
-
-
-func _process(delta: float) -> void:
-	if not visible or _stage == null:
-		return
-	var room: Vector2 = Vector2(_viewport.size)
-	_stage.position = Vector2(room.x * 0.5,
-		room.y * STAGE_FEET - HeroAnimator.PAINTED_FEET_BELOW_CENTRE * _stage.scale.y)
-	if _resume_left > 0.0:
-		_resume_left -= delta
-		return
-	_turn_left -= delta
-	if _turn_left <= 0.0:
-		_turn_left = TURN_SECONDS
-		_face((_facing + 1) % HeroAnimator.DIRECTION_COUNT)
 
 
 # --- What a press does ---------------------------------------------------------
@@ -673,29 +586,16 @@ func _as_painted() -> void:
 
 
 func _turn(step: int) -> void:
-	_face(posmod(_facing + step, HeroAnimator.DIRECTION_COUNT))
-	_resume_left = TURN_RESUME_SECONDS
-
-
-func _face(facing: int) -> void:
-	_facing = facing
-	_animator.set_facing(Vector2.from_angle(float(_facing) * TAU / float(HeroAnimator.DIRECTION_COUNT)))
+	_stage.turn(step)
 
 
 func _set_pose(pose: String) -> void:
-	if pose == "attack_1a":
-		_animator.play(pose, true)
-		return
-	_pose = pose
-	for index: int in _pose_buttons.size():
-		if _pose_buttons[index].toggle_mode:
-			_pose_buttons[index].set_pressed_no_signal(POSES[index] == pose)
-	_animator.play(pose)
-
-
-func _on_pose_finished(state: String) -> void:
-	if state == "attack_1a":
-		_animator.play(_pose, true)
+	if not pose.begins_with("attack"):
+		_pose = pose
+		for index: int in _pose_buttons.size():
+			if _pose_buttons[index].toggle_mode:
+				_pose_buttons[index].set_pressed_no_signal(POSES[index] == pose)
+	_stage.pose(pose)
 
 
 ## The page re-read from the save: which choice is chosen, what it is called,
@@ -744,62 +644,10 @@ func _refresh() -> void:
 
 
 func _refresh_preview() -> void:
-	var look: Dictionary = WardenLook.worn()
-	var outfit: Dictionary = WardenDress.outfit(look, _worn(GearData.Slot.WEAPON), _worn(GearData.Slot.ARMOUR),
-		_worn(GearData.Slot.CAPE), _worn(GearData.Slot.HELMET)) if _show_gear \
-		else WardenDress.outfit(look, null, null, null, null)
-	_animator.dress(outfit)
-	WardenLook.dress(_sprite, look)
-	_face(_facing)
-	_animator.play(_pose)
-
-
-func _worn(slot: int) -> GearData:
-	var piece: Dictionary = MetaState.equipped_piece(slot)
-	return ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
+	_stage.show_look(WardenLook.worn(), _show_gear)
 
 
 ## The preview answers a change: it swells and settles, sparks in the colour
 ## chosen, and the ring under the Warden takes that colour.
 func _flourish(colour: Color) -> void:
-	if _pop != null and _pop.is_valid():
-		_pop.kill()
-	_stage.scale = Vector2(STAGE_SCALE, STAGE_SCALE) * POP_SCALE
-	_pop = create_tween()
-	_pop.tween_property(_stage, "scale", Vector2(STAGE_SCALE, STAGE_SCALE), POP_SECONDS) \
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_pedestal.flare(colour)
-	if _sparkles.amount > 0:
-		_sparkles.color = Color(colour.r, colour.g, colour.b, 0.9).lightened(0.25)
-		_sparkles.restart()
-		_sparkles.emitting = true
-
-
-## The ground the Warden stands on in the glass: a soft shadow and a ring of
-## light that breathes, and flares in the colour of whatever was just chosen.
-class Pedestal extends Node2D:
-	const RESTING: Color = Color(0.91, 0.64, 0.24)
-	var _colour: Color = RESTING
-	var _flare: float = 0.0
-	var _clock: float = 0.0
-
-	func flare(colour: Color) -> void:
-		_colour = colour
-		_flare = 1.0
-
-	func _process(delta: float) -> void:
-		_clock += delta
-		_flare = maxf(_flare - delta * 1.6, 0.0)
-		queue_redraw()
-
-	func _draw() -> void:
-		var feet := Vector2(0.0, HeroAnimator.PAINTED_FEET_BELOW_CENTRE)
-		draw_set_transform(feet, 0.0, Vector2(1.0, 0.3))
-		for step: int in 5:
-			var t: float = float(step) / 4.0
-			draw_circle(Vector2.ZERO, lerpf(44.0, 20.0, t), Color(0.0, 0.0, 0.0, 0.10 + 0.06 * t))
-		var breath: float = 0.5 + 0.5 * sin(_clock * 2.2)
-		var ring: Color = _colour.lerp(RESTING, 1.0 - _flare)
-		ring.a = 0.25 + 0.2 * breath + 0.45 * _flare
-		draw_arc(Vector2.ZERO, 40.0 + 6.0 * _flare, 0.0, TAU, 48, ring, 2.0 + 2.0 * _flare, true)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_stage.flourish(colour)
