@@ -398,6 +398,8 @@ jobs:
           check "road cards" --headless --path game res://tools/road_card_check.tscn
           # A keystone re-routes an effect onto a new trigger and never its size.
           check "keystones"  --headless --path game res://tools/keystone_check.tscn
+          # Every piece of gear says how it is worn, and every weapon is held on the body.
+          check "dress"      --headless --path game res://tools/dress_check.tscn
           # A wayside encounter asks, and every answer is a door the game already has.
           check "wayside"    --headless --path game res://tools/wayside_check.tscn
           # Every authored .tres actually became content. ContentDB warns and

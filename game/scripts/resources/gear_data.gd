@@ -60,6 +60,28 @@ enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE }
 @export_range(0.5, 2.0) var reach_scale: float = 1.0
 @export_range(0.5, 2.0) var swing_scale: float = 1.0
 
+## How a weapon is held on the Warden's body (owner ruling, 2026-09-25: the
+## Warden is dressed by what they wear). Appended to, never inserted into -
+## data names these by number.
+##
+## ONE_HAND is the right fist and the one-handed combo; TWO_HAND puts the left
+## fist on the haft below it and plays the two-handed combo; PAIRED is a second
+## of the same blade in the left fist. **A look and never a number**: the swing
+## timings, reach and damage are the weapon's own, whichever grip draws it.
+enum Grip { ONE_HAND, TWO_HAND, PAIRED }
+
+@export var grip: Grip = Grip.ONE_HAND
+
+## Which drawn class this kind wears as: an armour's `light`, `medium` or
+## `heavy`, a cape's shape, a helmet's head dressing. A class with no art yet
+## falls back to the nearest that has some (`WardenDress`), so a kind can name
+## the class it belongs to before that class is drawn.
+@export var look: String = ""
+
+## A cape's own colour, laid over its drawn shape. Alpha zero leaves the shape
+## as it was painted.
+@export var look_tint: Color = Color(1.0, 1.0, 1.0, 0.0)
+
 
 ## The player-facing name of a slot. Static so the interface can name a slot it
 ## has no piece for - an empty Boots row still has to say "Boots".

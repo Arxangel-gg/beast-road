@@ -5971,6 +5971,29 @@ const ENEMY_SPRITE_SCALE: float = 1.55
 ## lifted above it, so foliage, torches, wildlife and combatants all compare the
 ## same physical point when the shared Y sorter orders them. [TUNE]
 const HERO_FEET_ANCHOR: float = 0.43
+
+## How long a socketed weapon is drawn on the Warden's body, in figure heights,
+## by the class of thing it is (2026-09-25, the modular Warden). The held picture
+## is always drawn blade-up at full height, so its length comes from here and
+## never from the picture, and a weapon added tomorrow is the right size without
+## anybody measuring its painting.
+##
+## **By class, not by reach.** `reach_scale` is a balance number: the Tally Knife
+## reaches 0.92 and the Coalpaint Edge 0.86, because the knife is quick and the
+## sword is heavy - and drawing lengths from it put a knife longer than a sword
+## on the body, which `dress_check` refused on its first run. So the class sets
+## the length and reach nudges it by `DRESS_REACH_NUDGE` either way. [TUNE]
+const DRESS_WEAPON_LENGTH: Dictionary = {
+	"knife": 0.25,
+	"short": 0.33,
+	"sword": 0.42,
+	"long": 0.48,
+	"axe": 0.40,
+	"club": 0.38,
+	"maul": 0.56,
+	"polearm": 0.70,
+}
+const DRESS_REACH_NUDGE: float = 0.12
 const ENEMY_FEET_ANCHOR: float = 0.43
 const ELITE_SPRITE_SCALE: float = 1.9
 const BOSS_SPRITE_SCALE: float = 2.2

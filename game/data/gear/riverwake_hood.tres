@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_gear")
+look = "hood"
 slot = 3
 attribute = 2
 base_points = 4

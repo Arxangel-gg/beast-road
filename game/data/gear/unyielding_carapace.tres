@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+look = "heavy"
 slot = 1
 attribute = 4
 base_points = 4

@@ -92,15 +92,15 @@ def dash(frames: int = FRAMES) -> list:
 
 def hurt(frames: int = FRAMES) -> list:
     struck = REST.but(lean=-14.0, head_nod=-16.0, twist=12.0, shift_f=-0.03,
-                      r_raise=22.0, r_spread=34.0, l_raise=18.0, l_spread=34.0,
+                      r_raise=40.0, r_spread=38.0, r_bend=30.0, l_raise=-20.0, l_spread=30.0,
                       rl_raise=-8.0, ll_raise=10.0, ll_bend=12.0)
-    reel = struck.but(lean=-8.0, head_nod=-6.0, twist=6.0)
+    reel = struck.but(lean=-8.0, head_nod=-6.0, twist=6.0, l_raise=-28.0)
     return sample([(0.0, REST), (0.18, struck), (0.5, reel), (1.0, REST)], loop=False, frames=frames)
 
 
 def death(frames: int = FRAMES) -> list:
     stagger = REST.but(lean=-12.0, head_nod=-22.0, twist=10.0, shift_f=-0.02,
-                       r_raise=20.0, r_spread=30.0, l_raise=10.0, l_spread=28.0)
+                       r_raise=36.0, r_spread=34.0, r_bend=26.0, l_raise=-16.0, l_spread=26.0)
     buckle = REST.but(shift_u=-0.10, lean=12.0, head_nod=10.0,
                       rl_raise=34.0, rl_bend=62.0, ll_raise=28.0, ll_bend=58.0,
                       r_raise=12.0, l_raise=12.0, r_spread=24.0, l_spread=24.0)
@@ -137,7 +137,7 @@ def _swing(**kw) -> Pose:
 
 
 READY_1H = _swing(r_hand=(0.19, 0.58, 0.17), r_blade=(0.1, 0.45, 0.88),
-                  l_hand=(-0.13, 0.62, 0.12), l_pole=(-0.7, -0.4, -0.4), rl_spread=8.0,
+                  l_hand=(-0.25, 0.60, -0.02), l_pole=(-0.7, -0.4, -0.4), rl_spread=8.0,
                   ll_spread=8.0)
 
 
@@ -146,11 +146,11 @@ def attack_1a(frames: int = FRAMES) -> list:
     wind = READY_1H.but(twist=58.0, r_hand=(0.30, 0.82, -0.12), r_blade=(0.55, 0.2, -0.8),
                         lean=-4.0, rl_raise=-10.0, rl_bend=8.0, shift_u=-0.01,
                         head_turn=-20.0, l_hand=(-0.06, 0.68, 0.26))
-    cut = READY_1H.but(twist=0.0, r_hand=(0.04, 0.74, 0.42), r_blade=(-0.05, 0.05, 1.0),
+    cut = READY_1H.but(twist=0.0, r_hand=(0.04, 0.74, 0.42), r_blade=(-0.5, 0.05, 0.86),
                        lean=12.0, shift_f=0.06, shift_u=-0.02, ll_raise=30.0, ll_bend=26.0,
-                       rl_raise=-18.0, l_hand=(-0.22, 0.64, -0.02))
-    follow = cut.but(twist=-58.0, r_hand=(-0.22, 0.68, 0.26), r_blade=(-0.9, -0.05, 0.35),
-                     head_turn=18.0, l_hand=(-0.26, 0.60, -0.10))
+                       rl_raise=-18.0, l_hand=(-0.26, 0.62, -0.12))
+    follow = cut.but(twist=-58.0, r_hand=(-0.22, 0.68, 0.26), r_blade=(-0.7, -0.1, -0.7),
+                     head_turn=18.0, l_hand=(-0.20, 0.58, -0.22))
     settle = follow.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.4, 0.3, 0.85),
                         lean=5.0)
     return sample([(0.0, READY_1H), (0.32, wind), (0.52, cut), (0.7, follow), (1.0, settle)],
@@ -160,10 +160,12 @@ def attack_1a(frames: int = FRAMES) -> list:
 def attack_1b(frames: int = FRAMES) -> list:
     """Backhand: back across from the left to the right."""
     start = READY_1H.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.4, 0.3, 0.85),
-                         lean=5.0, shift_f=0.03, ll_raise=18.0, ll_bend=14.0)
-    wind = start.but(twist=-60.0, r_hand=(-0.22, 0.78, 0.04), r_blade=(-0.7, 0.3, -0.6),
+                         lean=5.0, shift_f=0.03, ll_raise=18.0, ll_bend=14.0,
+                         l_hand=(-0.22, 0.56, -0.20))
+    wind = start.but(twist=-60.0, r_hand=(-0.22, 0.78, 0.04), r_blade=(-0.25, 0.8, -0.55),
                      head_turn=15.0)
-    cut = start.but(twist=5.0, r_hand=(0.08, 0.72, 0.42), r_blade=(0.1, 0.05, 1.0),
+    cut = start.but(twist=5.0, r_hand=(0.08, 0.72, 0.42), r_blade=(0.5, 0.05, 0.86),
+                    l_hand=(-0.24, 0.60, -0.16),
                     lean=12.0, shift_f=0.06, rl_raise=26.0, rl_bend=22.0, ll_raise=-14.0,
                     ll_bend=4.0)
     follow = cut.but(twist=55.0, r_hand=(0.32, 0.68, 0.18), r_blade=(0.9, 0.0, 0.35),
@@ -175,11 +177,11 @@ def attack_1b(frames: int = FRAMES) -> list:
 def attack_2(frames: int = FRAMES) -> list:
     """An overhead chop, high on the right down to low on the left."""
     wind = READY_1H.but(twist=28.0, r_hand=(0.20, 1.06, -0.04), r_blade=(0.3, 0.6, -0.75),
-                        lean=-10.0, l_hand=(-0.12, 0.74, 0.22), rl_raise=-8.0,
+                        lean=-10.0, l_hand=(-0.26, 0.70, 0.04), rl_raise=-8.0,
                         head_nod=-8.0)
-    chop = READY_1H.but(twist=-26.0, r_hand=(-0.04, 0.50, 0.42), r_blade=(-0.3, -0.55, 0.78),
+    chop = READY_1H.but(twist=-26.0, r_hand=(-0.04, 0.50, 0.42), r_blade=(-0.2, -0.85, 0.5),
                         lean=26.0, shift_f=0.07, shift_u=-0.03, ll_raise=32.0, ll_bend=30.0,
-                        rl_raise=-18.0, head_nod=10.0, l_hand=(-0.24, 0.58, -0.06))
+                        rl_raise=-18.0, head_nod=10.0, l_hand=(-0.30, 0.68, -0.20))
     hold = chop.but(lean=14.0, r_hand=(-0.06, 0.52, 0.30))
     return sample([(0.0, READY_1H), (0.35, wind), (0.55, chop), (0.72, hold), (1.0, READY_1H)],
                   loop=False, frames=frames)
@@ -195,8 +197,8 @@ def attack_3(frames: int = FRAMES) -> list:
                         l_hand=(-0.16, 0.86, 0.14))
     slam = READY_1H.but(shift_u=-0.05, lean=30.0, twist=-6.0, rl_bend=45.0, ll_bend=45.0,
                         ll_raise=30.0, rl_raise=-12.0,
-                        r_hand=(0.02, 0.34, 0.42), r_blade=(0.0, -0.8, 0.6),
-                        l_hand=(-0.18, 0.40, 0.16))
+                        r_hand=(0.02, 0.34, 0.42), r_blade=(0.0, -0.97, 0.25),
+                        l_hand=(-0.30, 0.80, -0.24))
     held = slam.but(lean=24.0, shift_u=-0.04)
     return sample([(0.0, READY_1H), (0.25, gather), (0.45, rise), (0.6, slam), (1.0, held)],
                   loop=False, frames=frames)
@@ -204,38 +206,42 @@ def attack_3(frames: int = FRAMES) -> list:
 
 # --- Two-handed combo ---------------------------------------------------------
 
-READY_2H = _swing(two_hand=True, r_hand=(0.10, 0.60, 0.20), r_blade=(0.15, 0.6, 0.78),
+READY_2H = _swing(two_hand=True, r_hand=(0.04, 0.60, 0.24), r_blade=(0.1, 0.7, 0.7),
                   rl_spread=9.0, ll_spread=9.0, ll_raise=8.0)
 
 
 def attack_2h_1(frames: int = FRAMES) -> list:
     """A wide sweep from the right hip across to the left."""
-    wind = READY_2H.but(twist=55.0, r_hand=(0.24, 0.62, -0.12), r_blade=(0.5, 0.1, -0.86),
+    wind = READY_2H.but(twist=60.0, r_hand=(0.10, 0.66, 0.10), r_blade=(0.55, 0.15, -0.82),
                         lean=-4.0, rl_raise=-10.0)
-    cut = READY_2H.but(twist=-8.0, r_hand=(0.03, 0.62, 0.30), r_blade=(-0.1, 0.02, 1.0),
-                       lean=10.0, shift_f=0.04, ll_raise=22.0, ll_bend=18.0)
-    follow = cut.but(twist=-55.0, r_hand=(-0.22, 0.58, 0.10), r_blade=(-0.9, -0.1, -0.4))
-    return sample([(0.0, READY_2H), (0.34, wind), (0.55, cut), (0.74, follow), (1.0, follow.but(twist=-40.0))],
+    cut = READY_2H.but(twist=-5.0, r_hand=(0.02, 0.64, 0.30), r_blade=(-0.72, 0.05, 0.69),
+                       lean=10.0, shift_f=0.05, ll_raise=24.0, ll_bend=20.0)
+    follow = cut.but(twist=-60.0, r_hand=(-0.08, 0.62, 0.14), r_blade=(-0.9, -0.1, -0.4))
+    swing = wind.but(twist=30.0, r_hand=(0.08, 0.66, 0.22), r_blade=(0.85, 0.1, 0.5))
+    return sample([(0.0, READY_2H), (0.34, wind), (0.45, swing), (0.55, cut), (0.74, follow),
+                   (1.0, follow.but(twist=-40.0))],
                   loop=False, frames=frames)
 
 
 def attack_2h_2(frames: int = FRAMES) -> list:
     """The return: low on the left, rising across to high on the right."""
-    start = READY_2H.but(twist=-40.0, r_hand=(-0.22, 0.58, 0.10), r_blade=(-0.9, -0.1, -0.4),
+    start = READY_2H.but(twist=-45.0, r_hand=(-0.08, 0.62, 0.14), r_blade=(-0.9, -0.1, -0.4),
                          shift_f=0.04, ll_raise=22.0, ll_bend=18.0)
-    wind = start.but(twist=-55.0, r_hand=(-0.20, 0.50, 0.05), r_blade=(-0.8, -0.3, -0.5))
-    cut = start.but(twist=10.0, r_hand=(0.05, 0.70, 0.30), r_blade=(0.3, 0.35, 0.9),
+    wind = start.but(twist=-62.0, r_hand=(-0.08, 0.56, 0.12), r_blade=(-0.8, -0.3, -0.5))
+    cut = start.but(twist=8.0, r_hand=(0.02, 0.70, 0.30), r_blade=(0.45, 0.35, 0.82),
                     rl_raise=16.0, rl_bend=14.0, ll_raise=4.0)
-    follow = cut.but(twist=50.0, r_hand=(0.26, 0.90, 0.05), r_blade=(0.6, 0.7, -0.35))
-    return sample([(0.0, start), (0.3, wind), (0.52, cut), (0.74, follow), (1.0, READY_2H)],
+    follow = cut.but(twist=55.0, r_hand=(0.08, 0.92, 0.08), r_blade=(0.6, 0.7, -0.35))
+    swing = wind.but(twist=-30.0, r_hand=(-0.06, 0.60, 0.22), r_blade=(-0.9, -0.15, 0.4))
+    return sample([(0.0, start), (0.3, wind), (0.41, swing), (0.52, cut), (0.74, follow),
+                   (1.0, READY_2H)],
                   loop=False, frames=frames)
 
 
 def attack_2h_3(frames: int = FRAMES) -> list:
     """Overhead, both hands, straight down in front."""
-    wind = READY_2H.but(twist=10.0, r_hand=(0.04, 1.05, -0.05), r_blade=(0.05, 0.3, -0.95),
+    wind = READY_2H.but(twist=10.0, r_hand=(0.02, 1.02, 0.02), r_blade=(0.05, 0.25, -0.97),
                         lean=-8.0, rl_raise=-8.0)
-    chop = READY_2H.but(r_hand=(0.00, 0.45, 0.36), r_blade=(0.0, -0.6, 0.8), lean=25.0,
+    chop = READY_2H.but(r_hand=(0.00, 0.46, 0.34), r_blade=(0.0, -0.75, 0.66), lean=25.0,
                         shift_f=0.05, ll_raise=26.0, ll_bend=22.0, rl_raise=-10.0)
     hold = chop.but(lean=20.0)
     return sample([(0.0, READY_2H), (0.38, wind), (0.56, chop), (0.76, hold), (1.0, READY_2H)],
@@ -246,11 +252,11 @@ def attack_2h_4(frames: int = FRAMES) -> list:
     """The heavy finisher: up off the ground and down onto it, head first."""
     gather = READY_2H.but(shift_u=-0.05, twist=35.0, rl_bend=34.0, ll_bend=34.0,
                           rl_raise=10.0, ll_raise=12.0, lean=10.0,
-                          r_hand=(0.20, 0.46, -0.14), r_blade=(0.4, -0.4, -0.8))
+                          r_hand=(0.08, 0.50, 0.02), r_blade=(0.4, -0.4, -0.8))
     rise = READY_2H.but(shift_u=0.07, lean=-10.0, rl_bend=34.0, ll_bend=44.0, ll_raise=26.0,
-                        r_hand=(0.04, 1.08, -0.02), r_blade=(0.05, 0.25, -0.97))
+                        r_hand=(0.02, 1.04, 0.00), r_blade=(0.05, 0.25, -0.97))
     slam = READY_2H.but(shift_u=-0.06, lean=34.0, rl_bend=48.0, ll_bend=48.0, ll_raise=32.0,
-                        rl_raise=-12.0, r_hand=(0.00, 0.32, 0.40), r_blade=(0.0, -0.95, 0.3))
+                        rl_raise=-12.0, r_hand=(0.00, 0.34, 0.36), r_blade=(0.0, -0.97, 0.25))
     held = slam.but(lean=28.0, shift_u=-0.05)
     return sample([(0.0, READY_2H), (0.25, gather), (0.45, rise), (0.6, slam), (1.0, held)],
                   loop=False, frames=frames)

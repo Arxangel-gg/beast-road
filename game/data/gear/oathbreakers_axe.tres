@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_g")
+look = "axe"
 slot = 0
 attribute = 0
 base_points = 4

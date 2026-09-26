@@ -187,9 +187,10 @@ class Pose:
     r_pole: tuple = (0.6, -0.5, -0.6)
     l_pole: tuple = (-0.6, -0.5, -0.6)
     # None derives the weapon's direction from the forearm: a relaxed carry
-    # holds a blade halfway between the forearm and square to it, so a sword
-    # at the side points forward and down. Square to it points straight at
-    # whatever is ahead, which on a walk reads as a lunge.
+    # trails the blade down and back, behind the hand. Carried forward, a
+    # sword at the right hip crosses the left fist in every side view, and a
+    # player reads that as the off hand holding the blade (`validate.py`,
+    # found on the first pilot).
     r_blade: tuple | None = None
     l_blade: tuple | None = None
     # Hand targets are authored in the chest's frame unless this is set, in
@@ -210,6 +211,26 @@ class Pose:
         return replace(self, **changes)
 
 
+def _slerp(a, b, t):
+    """Between two directions along the arc joining them. A straight blend
+    through the middle passes near zero when they point far apart, and a blade
+    normalised from nearly nothing points anywhere - the fault `validate.py`
+    found in the two-handed sweep."""
+    a, b = _norm(a), _norm(b)
+    cos_angle = max(-1.0, min(1.0, _dot(a, b)))
+    angle = math.acos(cos_angle)
+    if angle < 1e-3:
+        return a
+    s = math.sin(angle)
+    if s < 1e-3:
+        # Opposite: the arc is undefined. An animation that needs this must
+        # author the middle; blend and let the validator say so.
+        return _norm(tuple(x + (y - x) * t for x, y in zip(a, b)))
+    wa = math.sin((1.0 - t) * angle) / s
+    wb = math.sin(t * angle) / s
+    return _norm(tuple(x * wa + y * wb for x, y in zip(a, b)))
+
+
 def lerp(a: Pose, b: Pose, t: float) -> Pose:
     """Between two poses. A hand target blends only when both poses author one;
     otherwise the pose nearer in time wins, so an arm never snaps half way
@@ -218,10 +239,10 @@ def lerp(a: Pose, b: Pose, t: float) -> Pose:
     for f in fields(Pose):
         va, vb = getattr(a, f.name), getattr(b, f.name)
         if isinstance(va, tuple) and isinstance(vb, tuple):
-            v = tuple(x + (y - x) * t for x, y in zip(va, vb))
             if f.name.endswith("_blade") or f.name.endswith("_pole"):
-                v = _norm(v)
-            out[f.name] = v
+                out[f.name] = _slerp(va, vb, t)
+            else:
+                out[f.name] = tuple(x + (y - x) * t for x, y in zip(va, vb))
         elif va is None or vb is None or isinstance(va, bool):
             out[f.name] = va if t < 0.5 else vb
         else:
@@ -251,6 +272,35 @@ def _ik(root, target, pole, l1, l2):
     mid = _add(_add(root, _mul(axis, a)), _mul(p, h))
     end = _add(root, _mul(axis, dist))
     return mid, end
+
+
+HAFT_SPACING = 0.075   # the left fist below the right on a two-handed haft
+
+
+def _fit_two_hand(right_target, blade, b):
+    """Both fists on one haft, within reach of both arms, by construction.
+
+    The right fist goes where it was asked, as far as the arm reaches; the left
+    takes the haft a hand and a half nearer the pommel. When the left arm cannot
+    reach that, the pair slides toward the left shoulder until it can - so an
+    authored pose that asks for the impossible is moved to the nearest one that
+    is not, rather than drawn with a fist floating off the haft. Found by
+    `validate.py`, which reported half the two-handed frames out of reach."""
+    rs = (b.shoulder_half, b.shoulder, 0.0)
+    ls = (-b.shoulder_half, b.shoulder, 0.0)
+    reach = b.upper_arm + b.fore_arm - 0.012
+    right = right_target
+    for _ in range(8):
+        to_right = _sub(right, rs)
+        if _len(to_right) > reach:
+            right = _add(rs, _mul(_norm(to_right), reach))
+        left = _sub(right, _mul(blade, HAFT_SPACING))
+        to_left = _sub(left, ls)
+        short = _len(to_left) - reach
+        if short <= 0.0:
+            return right, left
+        right = _sub(right, _mul(_norm(to_left), short + 0.004))
+    return right, _sub(right, _mul(blade, HAFT_SPACING))
 
 
 def _arm(shoulder, side, raise_, spread, bend, body):
@@ -314,9 +364,7 @@ def solve(pose: Pose, body: Body) -> dict:
             if blades[key] is not None:
                 blades[key] = _undir(blades[key], pose)
     if pose.two_hand and targets["r"] is not None and blades["r"] is not None:
-        # The haft runs through the right fist; the left takes it a hand's
-        # breadth and a half nearer the pommel.
-        targets["l"] = _sub(targets["r"], _mul(_norm(blades["r"]), 0.075))
+        targets["r"], targets["l"] = _fit_two_hand(targets["r"], _norm(blades["r"]), b)
         blades["l"] = blades["r"]
     for side, pre, key in ((1.0, "RIGHT", "r"), (-1.0, "LEFT", "l")):
         shoulder = (side * b.shoulder_half, b.shoulder, 0.0)
@@ -334,7 +382,7 @@ def solve(pose: Pose, body: Body) -> dict:
         grip = _toward(wrist, _sub(wrist, elbow), b.hand)
         blade = blades[key]
         if blade is None:
-            blade = _pitch(_norm(_sub(wrist, elbow)), -45.0, 0.0)
+            blade = _pitch(_norm(_sub(wrist, elbow)), 35.0, 0.0)
         sockets[key + "_grip"] = grip
         sockets[key + "_tip"] = _add(grip, _norm(blade))
     head = {

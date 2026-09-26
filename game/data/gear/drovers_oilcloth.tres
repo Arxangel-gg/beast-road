@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_gear")
+look = "long"
+look_tint = Color(0.149, 0.137, 0.129, 1)
 slot = 8
 attribute = 2
 base_points = 2

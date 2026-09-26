@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_gear")
+look = "great_helm"
 slot = 3
 attribute = 0
 base_points = 3

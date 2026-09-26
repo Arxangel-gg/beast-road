@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_g")
+look = "polearm"
+grip = 1
 slot = 0
 attribute = 0
 base_points = 3

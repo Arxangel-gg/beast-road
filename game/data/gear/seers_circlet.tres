@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+look = "circlet"
 slot = 3
 attribute = 3
 base_points = 3

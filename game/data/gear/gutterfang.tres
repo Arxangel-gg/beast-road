@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+look = "knife"
 slot = 0
 attribute = 2
 base_points = 4

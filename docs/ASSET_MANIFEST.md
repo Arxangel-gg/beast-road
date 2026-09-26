@@ -3529,6 +3529,42 @@ top-down angle - never an isometric corner.
 | `wayside_snared_beast.png` | 96×96 | O | `#3A3128` |
 | `wayside_wounded_animal.png` | 96×96 | O | `#3A3128` |
 
+### 5.33 Held weapons of 2026-09-25 — `res://art/hero/held/`
+
+Every weapon kind as the Warden holds it (the modular Warden, owner rulings of
+2026-09-25): drawn blade-up at full height on a 128 canvas, PixelLab Pro Flash
+with the weapon's own icon as the style image, `view: side`. Socketed at the
+rig's grip at runtime and turned along the blade, so the exact weapon worn is
+the one drawn. Where the fist closes is found by `tools/warden_rig/install_held.py`
+and kept in `data/dress/held.json`; how long it is on the body comes from the
+weapon's `reach_scale`, never from the picture.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `held_ashfall_glaive.png` | 128×128 | T | `#3A3128` |
+| `held_bulwark_blade.png` | 128×128 | T | `#3A3128` |
+| `held_bulwark_pike.png` | 128×128 | T | `#3A3128` |
+| `held_coalpaint_edge.png` | 128×128 | T | `#3A3128` |
+| `held_gravebell_maul.png` | 128×128 | T | `#3A3128` |
+| `held_gutterfang.png` | 128×128 | T | `#3A3128` |
+| `held_lanternhook.png` | 128×128 | T | `#3A3128` |
+| `held_oathbreakers_axe.png` | 128×128 | T | `#3A3128` |
+| `held_oathkeeper_spear.png` | 128×128 | T | `#3A3128` |
+| `held_oathkeepers_maul.png` | 128×128 | T | `#3A3128` |
+| `held_pilgrims_spear.png` | 128×128 | T | `#3A3128` |
+| `held_ratcatchers_awl.png` | 128×128 | T | `#3A3128` |
+| `held_reckoners_rod.png` | 128×128 | T | `#3A3128` |
+| `held_rimebound_maul.png` | 128×128 | T | `#3A3128` |
+| `held_shieldbearers_vow.png` | 128×128 | T | `#3A3128` |
+| `held_sigil_brand.png` | 128×128 | T | `#3A3128` |
+| `held_stonewarden_hammer.png` | 128×128 | T | `#3A3128` |
+| `held_sunglass_saber.png` | 128×128 | T | `#3A3128` |
+| `held_tally_knife.png` | 128×128 | T | `#3A3128` |
+| `held_tanners_cleaver.png` | 128×128 | T | `#3A3128` |
+| `held_twinfang_dirks.png` | 128×128 | T | `#3A3128` |
+| `held_whisper_fang.png` | 128×128 | T | `#3A3128` |
+| `held_windcut_saber.png` | 128×128 | T | `#3A3128` |
+
 ### 5.32 Materials of 2026-09-13 — `res://art/icons/ui/`
 
 What the trees and the seams give up. 128×128 like the gear icons they sit
