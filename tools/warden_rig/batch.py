@@ -44,7 +44,7 @@ MAX_IN_FLIGHT = 16          # PixelLab allows 20 at Tier 3; four are left for ha
 SUBMIT_GAP = 0.6            # seconds between submissions ("too many too quickly")
 POLL_EVERY = 12.0
 COST = {3: 2, 8: 3, 15: 4}  # generations by frame count, from the endpoint's own doc
-STALE_MINUTES = 120         # a job the queue has held this long is resubmitted once
+STALE_MINUTES = 120         # a job the queue has held this long is named as stalled
 # One run at a time. Two runs each holding MAX_IN_FLIGHT jobs overfill the
 # account's limit, the queue backs up past STALE_MINUTES, and the stale rule then
 # buys again jobs PixelLab was still drawing (2026-09-26: two paid twice). A
@@ -285,6 +285,12 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
         pending = [(f, c) for f, c in pending
                    if ledger.get("%s/%d" % (f, c), {}).get("status") == "processing"]
     while pending:
+        if not submit:
+            # Collecting only: a job that failed can never be sent from here, so
+            # it leaves the list rather than keeping the loop alive for ever.
+            pending = [p for p in pending if ledger.get("%s/%d" % p, {}).get("status") == "processing"]
+            if not pending:
+                break
         in_flight = [k for k, v in ledger.items() if v.get("status") == "processing"]
         for facing, c in list(pending):
             key = "%s/%d" % (facing, c)
@@ -340,8 +346,14 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                 if "-> 423" not in str(e):
                     print("poll", key, str(e)[:160])
                 status = {"status": "processing"}
-            if status["status"] == "processing" and _stale(entry):
-                status = {"status": "failed", "last_response": "no answer in %d minutes" % STALE_MINUTES}
+            if status["status"] == "processing" and _stale(entry) and not entry.get("stalled"):
+                # A job PixelLab still calls processing is not lost, and its API has
+                # no way to cancel one, so buying it again pays twice the day PixelLab
+                # finishes the first (2026-09-26: fifteen held at 95% for an hour,
+                # one of them restarted by PixelLab itself). It stays in flight and
+                # is polled; if nothing else is left, the run stops and names it.
+                entry["stalled"] = True
+                print("stalled at PixelLab", key, entry["job"])
             if status["status"] == "completed":
                 images = _images_of(status)
                 facing, c = key.split("/")
@@ -350,11 +362,17 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                     entry.update(status="failed", error="%d frames for %d" % (len(images), expected))
                 else:
                     entry.update(status="completed", folder=_store(layer, facing, int(c), images))
+                    entry.pop("stalled", None)
                     pending = [p for p in pending if "%s/%d" % p != key]
                     print("completed", key)
             elif status["status"] == "failed":
                 why = str(status.get("last_response"))[:200]
-                if "heavy load" in why:
+                if entry.pop("stalled", False):
+                    # Cancelled by hand, or dropped by PixelLab after holding it:
+                    # neither is a take that went wrong, so it costs no try.
+                    entry.update(status="failed", error=why, attempts=max(entry.get("attempts", 1) - 1, 0))
+                    print("stalled job ended, buying again", key)
+                elif "heavy load" in why:
                     entry.update(status="failed", error=why, attempts=max(entry.get("attempts", 1) - 1, 0),
                                  retry_after=time.time() + LOAD_BACKOFF_SECONDS)
                     print("refused under load, waiting", key)
@@ -362,6 +380,20 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                     entry.update(status="failed", error=why)
                     print("failed", key, entry["error"])
             save_ledger(layer, ledger)
+        # Nothing can move when every job in flight is stalled and nothing else
+        # can be sent - none left, or every slot held by a stalled job. Waiting
+        # then holds the lock and every later layer behind a queue that is not
+        # moving, so stop and say which to cancel; a later run collects any that
+        # PixelLab finishes after all.
+        flying = [k for k, v in ledger.items() if v.get("status") == "processing"]
+        stuck = [k for k in flying if ledger[k].get("stalled")]
+        unsent = [p for p in pending if ledger.get("%s/%d" % p, {}).get("status") != "processing"]
+        if stuck and len(stuck) == len(flying) and (not unsent or len(flying) >= MAX_IN_FLIGHT):
+            print("stopping: %d jobs stalled at PixelLab. Cancel them with the MCP's cancel_job, "
+                  "then run this layer again:" % len(stuck))
+            for k in stuck:
+                print("   %s %s" % (k, ledger[k]["job"]))
+            return
 
 
 def reroll(layer: str, keys: list) -> None:
