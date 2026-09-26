@@ -1515,7 +1515,7 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 ## released at the end of a swing cannot press a card - and only on the machine
 ## that drafts.
 func _offer_banked_augments() -> void:
-	if crossroad_ui == null or Coop.is_guest() or RunState.walking or _locked:
+	if crossroad_ui == null or _drafts_elsewhere() or RunState.walking or _locked:
 		return
 	if _augments_put_off or RunState.augments_waiting() <= 0:
 		return
@@ -1525,6 +1525,13 @@ func _offer_banked_augments() -> void:
 			or battlefield.is_suspended():
 		return
 	crossroad_ui.open_augment_draft()
+
+
+## Whether this machine's drafts are made somewhere else: a guest's, when the
+## party shares one hand the host drafts (co-op phase A). In a split hand every
+## Warden drafts their own, the guest included.
+func _drafts_elsewhere() -> bool:
+	return Coop.is_guest() and not RunState.hands_split
 
 
 func _augment_holds_the_clock() -> bool:
@@ -1544,6 +1551,11 @@ func _on_augment_closed() -> void:
 ## the moment it is earned, the Megabonk way. Alone only, on the field, in a
 ## fight - a draft earned anywhere else waits for the next Preparation.
 func _on_augment_queued(_source: String, _waiting: int) -> void:
+	# A guest's seat is told its drafts; the next breather opens one, or this
+	# one if the breather is already here.
+	if Coop.is_guest() and RunState.hands_split:
+		_offer_banked_augments.call_deferred()
+		return
 	if not UserSettings.augment_at_once() or Coop.is_networked() or RunState.walking:
 		return
 	# Deferred: a draft is earned inside a death, and the field is not frozen
@@ -1570,7 +1582,7 @@ func _open_augment_at_once() -> void:
 ## shared road never stops for one player's cards, so there it waits for the
 ## breather.
 func _on_augment_open_requested() -> void:
-	if crossroad_ui == null or crossroad_ui.is_open() or _locked or Coop.is_guest():
+	if crossroad_ui == null or crossroad_ui.is_open() or _locked or _drafts_elsewhere():
 		return
 	if RunState.augments_waiting() <= 0 or _scope != GameDirector.Scope.BATTLEFIELD:
 		return

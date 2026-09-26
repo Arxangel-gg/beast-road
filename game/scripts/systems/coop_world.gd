@@ -480,7 +480,7 @@ func welcome(peer: int) -> void:
 	var line: CoopRelay = Coop.relay()
 	if line == null:
 		return
-	for fact: Array in compose_welcome():
+	for fact: Array in compose_welcome(peer):
 		line.tell(peer, fact[0], fact[1])
 
 
@@ -489,7 +489,7 @@ func welcome(peer: int) -> void:
 ## everything standing on the field. Only what was *announced* is told -
 ## a body with no identity cannot be mirrored, and a drop with none was
 ## never on the wire.
-func compose_welcome() -> Array:
+func compose_welcome(peer: int = 0) -> Array:
 	var facts: Array = []
 	facts.append([CoopRelay.Fact.WELCOME, [{
 		"seed": RunState.run_seed, "wave": RunState.wave_number, "phase": int(RunState.phase)}]])
@@ -499,6 +499,11 @@ func compose_welcome() -> Array:
 	# The party's augment hand, so a guest back after a drop holds what the
 	# host holds rather than the hand it had when it fell away.
 	facts.append([CoopRelay.Fact.AUGMENT_HAND, CoopRelay.augment_hand_args()])
+	# And, in a split hand, that guest's own seat - its cards and its drafts are
+	# the host's to keep while it was away.
+	var returning: int = Coop.party().slot_for_peer(peer)
+	if RunState.hands_split and returning > 0:
+		facts.append([CoopRelay.Fact.AUGMENT_SEAT, [RunState.augment_seat(returning).pack()]])
 	for id: String in RunState.CURRENCIES:
 		facts.append([CoopRelay.Fact.CURRENCY_CHANGED, [id, RunState.currency(id)]])
 	var battlefield := field as Battlefield

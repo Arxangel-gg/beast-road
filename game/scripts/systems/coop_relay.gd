@@ -194,6 +194,11 @@ enum Fact {
 	## **The party's augment hand** (2026-09-26, co-op phase A): the ids, their
 	## levels, the banished and the road rank, whole, whenever any of it moves.
 	AUGMENT_HAND = 85,
+	## **A guest's own seat** (per-Warden hands, 2026-09-26): its draft, its
+	## tools and its own cards, told to that guest alone and whole whenever any
+	## of it moves - a refusal included, so a guest's draft screen is never left
+	## waiting on an answer that will not come.
+	AUGMENT_SEAT = 86,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -326,6 +331,10 @@ enum Request {
 	## (`WardenSheet.from_row`), so the packet carries facts to clean rather than
 	## figures to trust. 43, read off the whole table rather than its tail.
 	HERO_SHEET = 43,
+	## **A guest chose on its own augment draft**: a verb (`take`, `reroll`,
+	## `banish`, `skip`), a card id and the card to leave. By id, never by what
+	## it is worth; the host checks it against that seat's own offer. 44.
+	AUGMENT_CHOICE = 44,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -553,6 +562,8 @@ func _fact_bindings() -> Array:
 		["coop_omen_chosen", _on_coop_omen_chosen],
 		["coop_road_card_chosen", _on_coop_road_card_chosen],
 		["augment_hand_changed", _on_augment_hand_changed],
+		["augment_seat_told", _on_augment_seat_told],
+		["augment_choice_asked", _on_augment_choice_asked],
 		["road_rank_gained", _on_road_rank_gained],
 		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_party_roster", _on_coop_party_roster],
@@ -782,6 +793,22 @@ func _on_coop_road_card_chosen(card_id: String, dropped: String) -> void:
 ## takes it might have missed.
 func _on_augment_hand_changed() -> void:
 	_relay(Fact.AUGMENT_HAND, augment_hand_args())
+
+
+## A guest seat's own draft, told to that guest alone. Host side.
+func _on_augment_seat_told(slot: int, packed: Dictionary) -> void:
+	if session == null or not bool(session.call("is_host")) or not Coop.is_networked():
+		return
+	var person: CoopParty.Seat = Coop.party().seat_for_slot(slot)
+	if person != null and person.peer > 0:
+		tell(person.peer, Fact.AUGMENT_SEAT, [packed])
+
+
+## A guest's choice on its own draft, asked of the host. Guest side.
+func _on_augment_choice_asked(verb: String, card_id: String, drop: String) -> void:
+	if session == null or bool(session.call("is_host")):
+		return
+	request(Request.AUGMENT_CHOICE, [verb, card_id, drop])
 
 
 ## A rank changes nothing in the hand, but the guest's bar shows it.
@@ -1383,6 +1410,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WORLD_HAZARD:
 			if args.size() == 2 and args[1] is Dictionary:
 				bus.coop_world_hazard.emit(String(args[0]), args[1] as Dictionary)
+		Fact.AUGMENT_SEAT:
+			if args.size() == 1 and args[0] is Dictionary:
+				bus.coop_augment_seat.emit(args[0] as Dictionary)
 		Fact.AUGMENT_HAND:
 			if args.size() == 4 and args[0] is Array and args[1] is Array \
 					and args[2] is Array:

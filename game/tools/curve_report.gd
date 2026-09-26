@@ -902,8 +902,14 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 		xp -= RunState.road_rank_cost(ranks)
 		ranks += 1
 	var drafts: int = ranks + (act - 1) + (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
-	var left: int = drafts
-	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.TOWER_RATE, Modifiers.HERO_DAMAGE]:
+	# **A party drafts once a seat** (per-Warden hands, 2026-09-26): every rank
+	# deals every Warden a draft, the party's board takes what any of them
+	# chose for it, and each Warden's own card grows only from their own. So the
+	# board fills with every seat's picks and the hero's card with one seat's -
+	# best case, the party fills the board first and then turns to its own.
+	var seats: int = maxi(_players, 1)
+	var left: int = drafts * seats
+	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.TOWER_RATE]:
 		var card: RoadCardData = _best_card_for(key, act)
 		if card == null or left <= 0:
 			continue
@@ -911,6 +917,11 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 		left -= level
 		hand.append(card.id)
 		levels[card.id] = level
+	var own: RoadCardData = _best_card_for(Modifiers.HERO_DAMAGE, act)
+	var each: int = left / seats
+	if own != null and each > 0:
+		hand.append(own.id)
+		levels[own.id] = mini(each, own.max_level())
 	RunState.road_cards = hand
 	RunState.road_card_levels = levels
 	Modifiers.rebuild()

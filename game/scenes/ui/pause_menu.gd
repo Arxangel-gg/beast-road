@@ -174,6 +174,12 @@ func _say_the_ledger() -> void:
 ## **The run's tree, in one line**: how deep the hand is in each branch, which is
 ## what opens a branch's keystones at three and at six.
 static func hand_line() -> String:
+	if RunState.hands_split:
+		var own: Array[String] = RunState.augment_seat(0).cards
+		if RunState.road_cards.is_empty() and own.is_empty():
+			return ""
+		return "Your augments %d of %d  ·  the party's %d of %d" % [own.size(),
+			Balance.AUGMENT_SEAT_HAND, RunState.road_cards.size(), Balance.ROAD_CARD_HAND]
 	if RunState.road_cards.is_empty():
 		return ""
 	var parts: PackedStringArray = []

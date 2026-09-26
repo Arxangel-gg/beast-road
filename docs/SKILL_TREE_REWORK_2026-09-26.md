@@ -534,7 +534,10 @@ the plan above, and why:
 - **Co-op phase A**: one party hand drafted by the host, relayed whole. Per-Warden
   hands (8.5) are the next co-op step, and they wait on the fault found while
   planning them: the host's copy of a guest's Warden read the host's account for
-  everything a Warden is. That is fixed first (COOP_DESIGN §11, `WardenSheet`).
+  everything a Warden is. That was fixed first (COOP_DESIGN §11, `WardenSheet`),
+  and the hands were built on it the same day: every seat drafts, a card that
+  acts on one hero is that seat's own (`AUGMENT_SEAT_HAND`, 4), every other card
+  is the party's board, and a guest's choice is asked by card id.
 - **Branch keystones at three and six (8.2) are built.** Still waiting: the
   content pass of about sixty augments (8.7, item 5) - staged, with its keys
   wired, until the art allowance returns on 2026-10-11 - and the swarm role. The

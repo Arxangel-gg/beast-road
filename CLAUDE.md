@@ -10487,6 +10487,58 @@ modelling a player the road never produces, so they are left out and said to
 be. Measured on a new account: solo 0.454 to 0.453, four players 0.528 to
 0.526. The hero is a small share of a board's capability, which is why.
 
+**Every Warden drafts their own in co-op, as of 2026-09-26** (per-Warden hands,
+SKILL_TREE_REWORK §8.5, stage 2 of COOP_DESIGN §11). In phase A the host drafted
+one hand for the party and a guest never chose a card.
+
+**The rank is the party's and every rank deals every seat a draft** - Vampire
+Survivors' co-op shares one bar the same way. **The hand splits by what a card
+acts on** (`Augments.seat_keeps`): a card whose key is read per hero and nowhere
+else - damage, health, speed, dash, mana, spell power, companion damage - goes
+to that Warden's own hand of `AUGMENT_SEAT_HAND` (4); every keystone, the shove
+and the enemy's own damage act on the shared world, so they and every Rampart
+and Hearth card go to the party's board of `ROAD_CARD_HAND`. That rule is what
+keeps Tinderstrike, Hunter's Mark and the towers' own readers correct without
+widening a signal. **Alone nothing splits**: `RunState.hands_split` is decided
+when a road begins and banked with the front, so a hand never changes shape
+halfway down a road.
+
+**One door for a seat.** `AugmentSeat` holds a Warden's draft and own cards;
+the old `augment_*` fields forward to this machine's own, so every caller that
+read them reads the same thing, and the host keeps one more for each guest,
+dealt on its own stream (`augments:<slot>`) so a guest's draw never moves the
+host's dice. `take_card_for`, `deal_next_for`, `resolve_for`, `reroll_for`,
+`banish_for` and `skip_for` are the rules, once; the old names call them for
+this machine's seat. A partner reads its own seat's cards through
+`WardenSheet.value_of`, which adds `Modifiers.seat_value` for the sheet's slot,
+and the table's `own_value` now carries this machine's own seat cards beside
+its gear.
+
+**A guest's choice is asked by card id** (`Request.AUGMENT_CHOICE` = 44, a
+verb, a card and the card to leave), attributed by the peer it arrived on and
+checked against that seat's own offer. **The host answers every choice, a
+refusal included, with the seat told whole** (`Fact.AUGMENT_SEAT` = 86,
+addressed to that guest alone), and the guest's draft screen waits for that
+answer as the crossroad's own request does - an unanswered refusal would be a
+screen that waits for ever. A rejoining guest is told its seat in the welcome.
+**The crossroad's card is the party's**: a fork the whole party chose at never
+deals one Warden's card.
+
+**Measured, and the band did not move** (1: 0.453, 2: 0.486, 4: 0.526).
+`curve_report` models a party drafting once a seat - the board fills with every
+seat's picks, each hero's card with one seat's - and with today's deck both
+modelled cards reach level V by Act III either way. When the staged rate cards
+land the pacing will matter, and the model already carries it.
+
+`augment_seat_check` (both bars) holds it: alone nothing splits, the routing,
+both hands' bounds, a partner reading its own seat and not the host's, every
+seat drafting on its own stream, a guest's choice refused outside its offer or
+from an unseated peer and answered either way, the crossroad, a banked front
+and a guest holding what it is told. Ten faults were planted and every one was
+named. **What is not built**: the guest's damage ledger still reads its own
+blows only (phase A's limitation), and a partner's spirit is still this
+machine's.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

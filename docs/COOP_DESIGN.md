@@ -598,7 +598,7 @@ was.
   `Hero.gear_kinds` already are - working rule 6's "whose copy is
   authoritative", not a second cache of the host's run.
 
-### Then per-Warden augment hands (SKILL_TREE_REWORK §8.5)
+### Then per-Warden augment hands (SKILL_TREE_REWORK §8.5) - built the same day
 
 Built on the sheet, because a seat's Warden cards are one more part of what a
 Warden brings: the rank stays the party's (a shared bar, as Vampire Survivors'
@@ -609,3 +609,12 @@ to that guest alone and its pick comes back by card id. Measured in
 `curve_report` before its pacing is believed: the board fills faster with more
 seats and the band has to say whether that is the answer to more bodies or a
 second power scale.
+
+**As built.** The split is by what a card acts on (`Augments.seat_keeps`): a key
+read per hero and nowhere else goes to the seat's own hand of
+`AUGMENT_SEAT_HAND`; every keystone, the shove, the enemy's own damage and every
+Rampart and Hearth card go to the party's board. `AugmentSeat` holds a seat's
+draft; `Request.AUGMENT_CHOICE` (44) carries a guest's choice by card id, and
+`Fact.AUGMENT_SEAT` (86) answers it whole, addressed to that guest alone,
+every time. The crossroad deals only the party's cards. `curve_report` models a
+party drafting once a seat, and with today's deck the band did not move.

@@ -1904,6 +1904,8 @@ func wear_sheet(row: Variant) -> void:
 	if not _is_partner_body():
 		return
 	sheet = WardenSheet.from_row(row)
+	sheet.slot = party_slot
+	RunState.augment_seat(party_slot).learned_tags = sheet.tags()
 	if attack != null:
 		attack.sheet = sheet
 	if spells != null:

@@ -124,6 +124,8 @@ var _base_totals: Dictionary = {}
 ## affixes and set tiers - kept beside the total so a partner's Warden can be
 ## read as the shared part plus *their* gear (2026-09-26, COOP_DESIGN §11).
 var _own_totals: Dictionary = {}
+## Each guest seat's own cards, by slot then key, host side.
+var _seat_totals: Dictionary = {}
 
 ## **The keys a Warden brings to a fight**, read per hero rather than for the
 ## board: what the Warden hits for, how much health and speed they have, their
@@ -170,9 +172,15 @@ func base_value(effect_id: String) -> float:
 	return float(_base_totals.get(effect_id, 0.0))
 
 
-## What this machine's own gear adds to a key. See `_own_totals`.
+## What this machine's own Warden adds to a key - its gear, and in a split hand
+## its own cards. See `_own_totals`.
 func own_value(effect_id: String) -> float:
 	return float(_own_totals.get(effect_id, 0.0))
+
+
+## What a guest seat's own cards add to a key, host side (per-Warden hands).
+func seat_value(slot: int, effect_id: String) -> float:
+	return float((_seat_totals.get(slot, {}) as Dictionary).get(effect_id, 0.0))
 
 
 ## Convenience for the common "1.0 + bonus" multiplier shape.
@@ -202,11 +210,34 @@ func rebuild() -> void:
 	for card_id: String in RunState.road_cards:
 		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData,
 			RunState.card_level(card_id))
+	# And, in a split hand, this Warden's own cards - into the table and into
+	# the part of it that is this machine's own, so a partner is read without
+	# them (`WardenSheet.value_of`) and with their own seat's instead.
+	_seat_totals.clear()
+	var own_cards: Dictionary = {}
+	if RunState.hands_split:
+		var mine: AugmentSeat = RunState.augment_seat(0)
+		for card_id: String in mine.cards:
+			var card: RoadCardData = ContentDB.road_card(card_id)
+			if card == null:
+				continue
+			var magnitude: float = card.magnitude_at(mine.card_level(card_id))
+			_totals[card.effect_id] = float(_totals.get(card.effect_id, 0.0)) + magnitude
+			own_cards[card.effect_id] = float(own_cards.get(card.effect_id, 0.0)) + magnitude
+		for key: Variant in RunState.augment_seats:
+			var seat: AugmentSeat = RunState.augment_seats[key] as AugmentSeat
+			var totals: Dictionary = {}
+			for card_id: String in seat.cards:
+				var card: RoadCardData = ContentDB.road_card(card_id)
+				if card != null:
+					totals[card.effect_id] = float(totals.get(card.effect_id, 0.0)) \
+						+ card.magnitude_at(seat.card_level(card_id))
+			_seat_totals[seat.slot] = totals
 	# And what the Warden wears, into the table and into the part of it that is
 	# this machine's own (see `_own_totals`). Added in the order it always was,
 	# so the sum a solo road reads is the sum it always read.
 	var worn: Array[Dictionary] = MetaState.worn_pieces()
-	_own_totals.clear()
+	_own_totals = own_cards
 	_add_gear(_totals, worn)
 	_add_gear(_own_totals, worn)
 	# **And how far the party has pushed without banking.** Discovery only: see

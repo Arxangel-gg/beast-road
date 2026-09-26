@@ -174,14 +174,29 @@ static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Arra
 
 ## **What a source deals now**, on the run's own state.
 static func deal_for(source: String, floor: int, exclude: Array = [],
-		count: int = Balance.ROAD_CARD_OFFER_COUNT) -> Array[String]:
-	var dice: RandomNumberGenerator = RunState.rng(STREAM)
+		count: int = Balance.ROAD_CARD_OFFER_COUNT, seat: AugmentSeat = null) -> Array[String]:
+	var who: AugmentSeat = seat if seat != null else RunState.augment_seat(0)
+	# This machine's own seat deals on the stream a draft always used, so a solo
+	# road is dealt exactly as it was; a guest's seat on a stream of its own.
+	var dice: RandomNumberGenerator = RunState.rng(STREAM) if who == RunState.augment_seat(0) \
+		else RunState.rng("%s:%d" % [STREAM, who.slot])
+	var hand: Array[String] = RunState.hand_of(who)
+	var levels: Dictionary = RunState.levels_of(who)
 	if source == SOURCE_TEMPERING:
-		return temper(dice, RunState.road_cards, RunState.road_card_levels,
-			count, exclude)
-	return deal(dice, count, floor, RunState.road_cards, RunState.road_card_levels,
-		RunState.act, RunState.augment_banished, RunState.augment_luck,
-		RunState.augment_lean_tags(), exclude)
+		return temper(dice, hand, levels, count, exclude)
+	return deal(dice, count, floor, hand, levels, RunState.act, who.banished, who.luck,
+		RunState.augment_lean_tags(who), exclude)
+
+
+## **Whether a card is one Warden's rather than the party's**, when a hand is
+## split in co-op: a card whose key is read per hero and nowhere else. Every
+## keystone re-routes a rule of the shared road, and the shove and the enemy's
+## own damage are read by the towers and the bodies as well as the hero, so all
+## of those are the party's.
+static func seat_keeps(card: RoadCardData) -> bool:
+	return card != null and not card.keystone \
+		and Modifiers.WARDEN_KEYS.has(card.effect_id) \
+		and card.effect_id != Modifiers.KNOCKBACK
 
 
 ## **A Tempering deals from the hand**: the held cards that can still grow, as

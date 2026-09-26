@@ -357,6 +357,14 @@ signal road_rank_gained(rank: int)
 signal road_xp_changed(share: float)
 ## The host's hand, as a guest applies it (co-op phase A: the party's hand).
 signal coop_augment_hand(ids: Array, levels: Array, banished: Array, rank: int)
+## Host: a guest seat's draft and own cards changed; the relay tells that guest
+## alone (per-Warden hands, 2026-09-26).
+signal augment_seat_told(slot: int, packed: Dictionary)
+## Guest: the host told this machine its own seat, whole.
+signal coop_augment_seat(packed: Dictionary)
+## Guest: the player chose on their draft - `take`, `reroll`, `banish` or
+## `skip` - and the relay asks the host, by card id.
+signal augment_choice_asked(verb: String, card_id: String, drop: String)
 
 ## An omen was read, and the road is worse and better for the rest of the run.
 signal omen_taken(omen_id: String)

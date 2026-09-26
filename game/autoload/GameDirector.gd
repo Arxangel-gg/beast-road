@@ -682,7 +682,7 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		"kept": RunState.kept.duplicate(true),
 		"earth": RunState.earth_events.duplicate(true),
 		"damage": RunState.damage_ledger.duplicate(true),
-		"augments": RunState.road_card_levels.duplicate(true),
+		"augments": RunState.levels_of(),
 	}
 	var unlocks: Array[String] = _pay_out_unlocks(victory)
 

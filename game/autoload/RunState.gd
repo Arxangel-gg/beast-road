@@ -52,23 +52,84 @@ var road_card_levels: Dictionary = {}
 var road_rank: int = 0
 var road_xp: float = 0.0
 
+## **This machine's own draft** (`AugmentSeat`), and in co-op its Warden's own
+## hand. The `augment_*` fields below read and write it, so every caller that
+## read them before reads the same thing; a seat is what lets the host keep one
+## more for every guest (2026-09-26, per-Warden hands).
+var _mine: AugmentSeat = AugmentSeat.new(1)
+## The host's seats for its guests, by slot. Empty alone and on a guest.
+var augment_seats: Dictionary = {}
+## **Whether the hand is split** into the party's board and each Warden's own
+## cards (`AugmentSeat`). Decided when a road begins - co-op or not - and banked
+## with a front, so a hand never changes shape halfway down a road.
+var hands_split: bool = false
+
 ## Drafts earned and not yet opened, oldest first, each `{source, floor}`. A
 ## draft banks rather than interrupting a fight; the breather opens them.
-var augment_queue: Array[Dictionary] = []
+var augment_queue: Array[Dictionary]:
+	get:
+		return _mine.queue
+	set(value):
+		_mine.queue = value
 
 ## The draft on the table - the cards dealt and where they came from - or
 ## empty. Kept here rather than on the screen, so a panel closed by a crossroad
 ## or a wave loses nothing and the same cards come back.
-var augment_offer: Array[String] = []
-var augment_offer_source: String = ""
+var augment_offer: Array[String]:
+	get:
+		return _mine.offer
+	set(value):
+		_mine.offer = value
+var augment_offer_source: String:
+	get:
+		return _mine.source
+	set(value):
+		_mine.source = value
 
 ## The tools against luck, spent from the road.
-var augment_rerolls: int = 0
-var augment_banishes: int = 0
+var augment_rerolls: int:
+	get:
+		return _mine.rerolls
+	set(value):
+		_mine.rerolls = value
+var augment_banishes: int:
+	get:
+		return _mine.banishes
+	set(value):
+		_mine.banishes = value
 ## Cards banished from the deck for the rest of the road.
-var augment_banished: Array[String] = []
+var augment_banished: Array[String]:
+	get:
+		return _mine.banished
+	set(value):
+		_mine.banished = value
 ## Clean waves banked toward the next draft's odds.
-var augment_luck: int = 0
+var augment_luck: int:
+	get:
+		return _mine.luck
+	set(value):
+		_mine.luck = value
+## This Warden's own cards in a split hand, as plain data - what a banked front
+## carries of them.
+var augment_own_hand: Dictionary:
+	get:
+		return _mine.pack()
+	set(value):
+		var read: AugmentSeat = AugmentSeat.unpack(value)
+		_mine.cards = read.cards
+		_mine.levels = read.levels
+## The host's seats for its guests, as plain data, for a banked front.
+var augment_seat_rows: Array:
+	get:
+		var rows: Array = []
+		for key: Variant in augment_seats:
+			rows.append((augment_seats[key] as AugmentSeat).pack())
+		return rows
+	set(value):
+		augment_seats = {}
+		for row: Variant in value:
+			var seat: AugmentSeat = AugmentSeat.unpack(row)
+			augment_seats[seat.slot] = seat
 ## Waves cleared toward the next Tempering.
 var augment_waves_toward_tempering: int = 0
 ## The acts whose first camp razed has dealt its draft - so a camp that comes
@@ -511,6 +572,8 @@ func _ready() -> void:
 	EventBus.wave_started.connect(_on_wave_for_augments)
 	EventBus.wave_cleared.connect(_on_wave_cleared_for_augments)
 	EventBus.coop_augment_hand.connect(_on_coop_augment_hand)
+	EventBus.coop_augment_seat.connect(_on_coop_augment_seat)
+	EventBus.coop_request_received.connect(_on_coop_augment_request)
 
 
 ## The host earned experience, so this player earns the same amount.
@@ -609,6 +672,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	road_card_levels = {}
 	road_rank = 0
 	road_xp = 0.0
+	_mine = AugmentSeat.new(1)
+	augment_seats = {}
+	hands_split = _session_splits_hands()
 	augment_queue = []
 	augment_offer = []
 	augment_offer_source = ""
@@ -2159,17 +2225,28 @@ func gain_kill_resources(base_amount: int) -> void:
 ## Both rules live in this one function so that `road_card_check` can drive the
 ## real thing rather than a copy of it.
 func take_road_card(card_id: String, drop: String = "") -> String:
+	return take_card_for(_mine, card_id, drop)
+
+
+## `take_road_card`, for a seat: this machine's own, or on the host a guest's.
+## The hand a card goes to is `target_hand` - the party's board, or in a split
+## hand the seat's own - and every rule below is the same rule on either.
+func take_card_for(seat: AugmentSeat, card_id: String, drop: String = "") -> String:
 	var card: RoadCardData = ContentDB.road_card(card_id)
 	if card == null:
 		return ""
+	var own: bool = hands_split and Augments.seat_keeps(card)
+	var hand: Array[String] = seat.cards if own else road_cards
+	var levels: Dictionary = seat.levels if own else road_card_levels
+	var room: int = Balance.AUGMENT_SEAT_HAND if own else Balance.ROAD_CARD_HAND
 	# **Taking a held card levels it** (augments, 2026-09-26). A card that moves a
 	# fraction grows I to V; one at its last level, or one that moves a whole
 	# number of things, cannot be taken again.
-	if road_cards.has(card_id):
-		var level: int = card_level(card_id)
+	if hand.has(card_id):
+		var level: int = maxi(1, int(levels.get(card_id, 1)))
 		if level >= card.max_level():
 			return ""
-		road_card_levels[card_id] = level + 1
+		levels[card_id] = level + 1
 		Modifiers.rebuild()
 		EventBus.augment_hand_changed.emit()
 		return ""
@@ -2177,20 +2254,20 @@ func take_road_card(card_id: String, drop: String = "") -> String:
 	# **One keystone in a hand** (2026-09-25): a second replaces the first,
 	# whatever it re-routes, so a hand is never a stack of mechanics.
 	if card.keystone:
-		for held: String in road_cards:
+		for held: String in hand:
 			var kept: RoadCardData = ContentDB.road_card(held)
 			if kept != null and kept.keystone:
 				replaced = held
 				break
-	for held: String in road_cards:
+	for held: String in hand:
 		if not replaced.is_empty():
 			break
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other != null and other.effect_id == card.effect_id:
 			replaced = held
 			break
-	if replaced.is_empty() and road_cards.size() >= Balance.ROAD_CARD_HAND:
-		if not road_cards.has(drop):
+	if replaced.is_empty() and hand.size() >= room:
+		if not hand.has(drop):
 			return ""
 		replaced = drop
 	var inherited: int = 1
@@ -2200,34 +2277,107 @@ func take_road_card(card_id: String, drop: String = "") -> String:
 		# better card cost the levels, it would be the worse pick.
 		var old: RoadCardData = ContentDB.road_card(replaced)
 		if old != null and old.effect_id == card.effect_id:
-			inherited = card_level(replaced)
-		road_cards.erase(replaced)
-		road_card_levels.erase(replaced)
-	road_cards.append(card_id)
-	road_card_levels[card_id] = clampi(inherited, 1, card.max_level())
+			inherited = maxi(1, int(levels.get(replaced, 1)))
+		hand.erase(replaced)
+		levels.erase(replaced)
+	hand.append(card_id)
+	levels[card_id] = clampi(inherited, 1, card.max_level())
 	Modifiers.rebuild()
 	EventBus.augment_hand_changed.emit()
 	return replaced
 
 
-## The level a held card has grown to, or 0 for a card not in the hand.
+## The level a held card has grown to, or 0 for a card not in the hand - the
+## party's board, or this Warden's own cards in a split hand.
 func card_level(card_id: String) -> int:
-	if not road_cards.has(card_id):
-		return 0
-	return maxi(1, int(road_card_levels.get(card_id, 1)))
+	if road_cards.has(card_id):
+		return maxi(1, int(road_card_levels.get(card_id, 1)))
+	if hands_split:
+		return _mine.card_level(card_id)
+	return 0
+
+
+## Whether this Warden holds a card, on the board or in their own hand.
+func holds_card(card_id: String) -> bool:
+	return road_cards.has(card_id) or (hands_split and _mine.cards.has(card_id))
+
+
+## Every card a seat draws against and sees: the whole hand alone, and in a
+## split hand the party's board and the seat's own cards.
+func hand_of(seat: AugmentSeat = null) -> Array[String]:
+	var who: AugmentSeat = seat if seat != null else _mine
+	var out: Array[String] = road_cards.duplicate()
+	if hands_split:
+		out.append_array(who.cards)
+	return out
+
+
+func levels_of(seat: AugmentSeat = null) -> Dictionary:
+	var who: AugmentSeat = seat if seat != null else _mine
+	var out: Dictionary = road_card_levels.duplicate()
+	if hands_split:
+		for id: String in who.cards:
+			out[id] = who.card_level(id)
+	return out
+
+
+## The hand a card would go into for this Warden: the board, or their own.
+func target_hand(card: RoadCardData) -> Array[String]:
+	if card != null and hands_split and Augments.seat_keeps(card):
+		return _mine.cards
+	return road_cards
+
+
+## Whether taking this card means choosing one to leave, for this Warden.
+func hand_is_full_for(card: RoadCardData) -> bool:
+	var room: int = Balance.AUGMENT_SEAT_HAND \
+		if card != null and hands_split and Augments.seat_keeps(card) else Balance.ROAD_CARD_HAND
+	return target_hand(card).size() >= room
+
+
+## The seat a slot's Warden drafts from: this machine's own, or on the host a
+## guest's, made the first time it is asked for.
+func augment_seat(slot: int) -> AugmentSeat:
+	if slot <= 0 or slot == _my_slot():
+		return _mine
+	if not augment_seats.has(slot):
+		augment_seats[slot] = AugmentSeat.new(slot)
+	return augment_seats[slot] as AugmentSeat
+
+
+## This machine's seat: 1 alone, the assigned seat in company.
+func _my_slot() -> int:
+	if get_node_or_null(^"/root/Coop") == null:
+		return 1
+	return maxi(Coop.party().slot(), 1)
+
+
+## A road splits the hand when it is played in company. Asked of the tree rather
+## than of the autoload's name, because `reset` also runs from `_ready`, before
+## every autoload after this one has arrived.
+func _session_splits_hands() -> bool:
+	return get_node_or_null(^"/root/Coop") != null and Coop.is_networked()
 
 
 ## Every tag the Warden already holds - on the cards in the hand and on the
 ## Disciplines learned - so the deck can lean toward a build being made.
-func augment_lean_tags() -> Array[String]:
+func augment_lean_tags(seat: AugmentSeat = null) -> Array[String]:
+	var who: AugmentSeat = seat if seat != null else _mine
 	var tags: Array[String] = []
-	for held: String in road_cards:
+	for held: String in hand_of(who):
 		var card: RoadCardData = ContentDB.road_card(held)
 		if card == null:
 			continue
 		for tag: String in card.tags:
 			if not tags.has(tag):
 				tags.append(tag)
+	# A guest's seat is told its Warden's tags with the sheet (`CoopHeroes`);
+	# this machine's Warden reads its own account.
+	if who != _mine:
+		for tag: String in who.learned_tags:
+			if not tags.has(tag):
+				tags.append(tag)
+		return tags
 	for id: String in learned_disciplines():
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if node == null:
@@ -2264,6 +2414,36 @@ func queue_augment(source: String) -> void:
 		return
 	augment_queue.append({"source": source, "floor": Augments.floor_for(source)})
 	EventBus.augment_queued.emit(source, augment_queue.size())
+	# **Every seat drafts** (per-Warden hands, 2026-09-26). The rank is the
+	# party's, as Vampire Survivors' co-op shares one bar; what each rank deals
+	# is every Warden's own.
+	if hands_split:
+		for slot: int in _guest_slots():
+			var seat: AugmentSeat = augment_seat(slot)
+			seat.queue.append({"source": source, "floor": Augments.floor_for(source)})
+			deal_next_for(seat)
+			_tell_seat(seat)
+
+
+## The guests' slots on this road, host side.
+func _guest_slots() -> Array[int]:
+	var out: Array[int] = []
+	if get_node_or_null(^"/root/Coop") == null:
+		return out
+	for value: Variant in Coop.party().seats():
+		var person := value as CoopParty.Seat
+		if person != null and person.slot > 0 and person.slot != _my_slot() \
+				and not out.has(person.slot):
+			out.append(person.slot)
+	return out
+
+
+## Tells a guest its own seat, whole, so its draft screen shows what the host
+## dealt it. Through the bus, which the relay addresses to that guest alone.
+func _tell_seat(seat: AugmentSeat) -> void:
+	if seat == _mine or not Coop.is_host():
+		return
+	EventBus.augment_seat_told.emit(seat.slot, seat.pack())
 
 
 ## How many drafts wait, counting the one on the table.
@@ -2275,19 +2455,28 @@ func augments_waiting() -> int:
 ## A draft the deck cannot fill is turned into a reroll rather than lost, which
 ## is what a hand at its last levels meets. Returns whether a draft is on it.
 func deal_next_augment() -> bool:
-	if not augment_offer.is_empty():
+	# A guest's draft is dealt by the host and told to it (`_on_coop_augment_seat`).
+	if Coop.is_guest():
+		return not augment_offer.is_empty()
+	return deal_next_for(_mine)
+
+
+func deal_next_for(seat: AugmentSeat) -> bool:
+	if not seat.offer.is_empty():
 		return true
-	while not augment_queue.is_empty():
-		var entry: Dictionary = augment_queue[0]
+	while not seat.queue.is_empty():
+		var entry: Dictionary = seat.queue[0]
 		var source: String = String(entry.get("source", ""))
-		var drawn: Array[String] = Augments.deal_for(source, int(entry.get("floor", 0)))
+		var drawn: Array[String] = Augments.deal_for(source, int(entry.get("floor", 0)),
+			[], Balance.ROAD_CARD_OFFER_COUNT, seat)
 		if drawn.is_empty():
-			augment_queue.pop_front()
-			augment_rerolls = mini(augment_rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
+			seat.queue.pop_front()
+			seat.rerolls = mini(seat.rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
 			continue
-		augment_offer = drawn
-		augment_offer_source = source
-		EventBus.augment_offer_changed.emit()
+		seat.offer = drawn
+		seat.source = source
+		if seat == _mine:
+			EventBus.augment_offer_changed.emit()
 		return true
 	return false
 
@@ -2297,35 +2486,66 @@ func deal_next_augment() -> bool:
 ## Tempering levels the card named and deals nothing new. Returns whether it was
 ## taken; a refusal leaves the draft exactly where it was.
 func resolve_augment(card_id: String, drop: String = "") -> bool:
-	if not augment_offer.has(card_id):
+	if Coop.is_guest():
+		return _ask_the_host("take", card_id, drop)
+	return resolve_for(_mine, card_id, drop)
+
+
+func resolve_for(seat: AugmentSeat, card_id: String, drop: String = "") -> bool:
+	if not seat.offer.has(card_id):
 		return false
-	var held: bool = road_cards.has(card_id)
-	if augment_offer_source == Augments.SOURCE_TEMPERING and not held:
+	var card: RoadCardData = ContentDB.road_card(card_id)
+	var own: bool = card != null and hands_split and Augments.seat_keeps(card)
+	var levels: Dictionary = seat.levels if own else road_card_levels
+	var hand: Array[String] = seat.cards if own else road_cards
+	var held: bool = hand.has(card_id)
+	if seat.source == Augments.SOURCE_TEMPERING and not held:
 		return false
-	var before: int = card_level(card_id)
-	take_road_card(card_id, drop)
-	if not road_cards.has(card_id) or (held and card_level(card_id) <= before):
+	var before: int = maxi(1, int(levels.get(card_id, 1))) if held else 0
+	take_card_for(seat, card_id, drop)
+	var after: int = maxi(1, int(levels.get(card_id, 1))) if hand.has(card_id) else 0
+	if not hand.has(card_id) or (held and after <= before):
 		return false
 	# The luck a clean road banked is spent on the draft it improved.
-	augment_luck = 0
-	_close_augment_draft()
-	EventBus.augment_taken.emit(card_id, card_level(card_id))
+	seat.luck = 0
+	_close_draft_of(seat)
+	if seat == _mine:
+		EventBus.augment_taken.emit(card_id, after)
+	return true
+
+
+## **A guest's draft door**: the choice is the host's to make real, asked by
+## card id and never by what it is worth - the rule the fish, the crops and the
+## eggs are asked under. Nothing changes here: the host answers every choice,
+## a refusal included, with the seat told whole (`adopt_augment_seat`), and the
+## draft screen waits for that answer as the crossroad's own request does.
+func _ask_the_host(verb: String, card_id: String = "", drop: String = "") -> bool:
+	if augment_offer.is_empty() or (verb == "take" and not augment_offer.has(card_id)):
+		return false
+	EventBus.augment_choice_asked.emit(verb, card_id, drop)
 	return true
 
 
 ## **Deals the draft again**, for a reroll. Another three where the deck allows,
 ## the same ones back only where it does not.
 func reroll_augment() -> bool:
-	if augment_offer.is_empty() or augment_rerolls <= 0 or augment_queue.is_empty():
+	if Coop.is_guest():
+		return augment_rerolls > 0 and _ask_the_host("reroll")
+	return reroll_for(_mine)
+
+
+func reroll_for(seat: AugmentSeat) -> bool:
+	if seat.offer.is_empty() or seat.rerolls <= 0 or seat.queue.is_empty():
 		return false
-	var entry: Dictionary = augment_queue[0]
-	var drawn: Array[String] = Augments.deal_for(augment_offer_source,
-		int(entry.get("floor", 0)), augment_offer)
+	var entry: Dictionary = seat.queue[0]
+	var drawn: Array[String] = Augments.deal_for(seat.source,
+		int(entry.get("floor", 0)), seat.offer, Balance.ROAD_CARD_OFFER_COUNT, seat)
 	if drawn.is_empty():
 		return false
-	augment_rerolls -= 1
-	augment_offer = drawn
-	EventBus.augment_offer_changed.emit()
+	seat.rerolls -= 1
+	seat.offer = drawn
+	if seat == _mine:
+		EventBus.augment_offer_changed.emit()
 	return true
 
 
@@ -2333,42 +2553,61 @@ func reroll_augment() -> bool:
 ## card in the hand cannot be banished - it would take its own levels with it -
 ## and a Tempering deals only what is held, so it has nothing to banish.
 func banish_augment(card_id: String) -> bool:
-	if not augment_offer.has(card_id) or augment_banishes <= 0 \
-			or road_cards.has(card_id) or augment_queue.is_empty() \
-			or augment_offer_source == Augments.SOURCE_TEMPERING:
+	if Coop.is_guest():
+		return augment_offer.has(card_id) and augment_banishes > 0 \
+			and _ask_the_host("banish", card_id)
+	return banish_for(_mine, card_id)
+
+
+func banish_for(seat: AugmentSeat, card_id: String) -> bool:
+	if not seat.offer.has(card_id) or seat.banishes <= 0 \
+			or hand_of(seat).has(card_id) or seat.queue.is_empty() \
+			or seat.source == Augments.SOURCE_TEMPERING:
 		return false
-	augment_banishes -= 1
-	augment_banished.append(card_id)
-	var at: int = augment_offer.find(card_id)
-	var entry: Dictionary = augment_queue[0]
-	var again: Array[String] = Augments.deal_for(augment_offer_source,
-		int(entry.get("floor", 0)), augment_offer, 1)
-	if again.is_empty() or augment_offer.has(again[0]):
-		augment_offer.remove_at(at)
+	seat.banishes -= 1
+	seat.banished.append(card_id)
+	var at: int = seat.offer.find(card_id)
+	var entry: Dictionary = seat.queue[0]
+	var again: Array[String] = Augments.deal_for(seat.source,
+		int(entry.get("floor", 0)), seat.offer, 1, seat)
+	if again.is_empty() or seat.offer.has(again[0]):
+		seat.offer.remove_at(at)
 	else:
-		augment_offer[at] = again[0]
-	if augment_offer.is_empty():
-		_close_augment_draft()
-	EventBus.augment_hand_changed.emit()
-	EventBus.augment_offer_changed.emit()
+		seat.offer[at] = again[0]
+	if seat.offer.is_empty():
+		_close_draft_of(seat)
+	if seat == _mine:
+		EventBus.augment_hand_changed.emit()
+		EventBus.augment_offer_changed.emit()
 	return true
 
 
 ## **Passes on a draft**, banking a reroll for a later one.
 func skip_augment() -> bool:
-	if augment_offer.is_empty():
+	if Coop.is_guest():
+		return not augment_offer.is_empty() and _ask_the_host("skip")
+	return skip_for(_mine)
+
+
+func skip_for(seat: AugmentSeat) -> bool:
+	if seat.offer.is_empty():
 		return false
-	augment_rerolls = mini(augment_rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
-	_close_augment_draft()
+	seat.rerolls = mini(seat.rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
+	_close_draft_of(seat)
 	return true
 
 
 func _close_augment_draft() -> void:
-	augment_offer = []
-	augment_offer_source = ""
-	if not augment_queue.is_empty():
-		augment_queue.pop_front()
-	EventBus.augment_offer_changed.emit()
+	_close_draft_of(_mine)
+
+
+func _close_draft_of(seat: AugmentSeat) -> void:
+	seat.offer = []
+	seat.source = ""
+	if not seat.queue.is_empty():
+		seat.queue.pop_front()
+	if seat == _mine:
+		EventBus.augment_offer_changed.emit()
 
 
 ## A wave began: the wall's count is noted, so the end can tell a clean wave.
@@ -2383,6 +2622,9 @@ func note_augment_wave_cleared() -> void:
 		return
 	if town_hits_taken == _augment_wave_hits:
 		augment_luck = mini(augment_luck + 1, Balance.AUGMENT_LUCK_CAP)
+		for key: Variant in augment_seats:
+			var seat: AugmentSeat = augment_seats[key] as AugmentSeat
+			seat.luck = mini(seat.luck + 1, Balance.AUGMENT_LUCK_CAP)
 	_augment_wave_hits = town_hits_taken
 	augment_waves_toward_tempering += 1
 	if augment_waves_toward_tempering >= Balance.AUGMENT_HOLDFAST_WAVES:
@@ -2423,6 +2665,56 @@ func _on_wildlife_for_augments(kind_id: String, _food: int, _at: Vector2,
 func _on_coop_augment_hand(ids: Array, levels: Array, banished: Array, rank: int) -> void:
 	if Coop.is_guest():
 		adopt_augment_hand(ids, levels, banished, rank)
+
+
+## **The host told this guest its own seat**: the draft it was dealt, its tools,
+## and its own cards. Applied whole, like the hand, so a guest's draft can never
+## drift from the host's by a missed message.
+func _on_coop_augment_seat(packed: Dictionary) -> void:
+	if not Coop.is_guest():
+		return
+	adopt_augment_seat(packed)
+
+
+func adopt_augment_seat(packed: Dictionary) -> void:
+	var told: AugmentSeat = AugmentSeat.unpack(packed)
+	var waiting_before: int = augment_queue.size()
+	told.slot = _mine.slot
+	told.learned_tags = _mine.learned_tags
+	_mine = told
+	Modifiers.rebuild()
+	EventBus.augment_hand_changed.emit()
+	EventBus.augment_offer_changed.emit()
+	if augment_queue.size() > waiting_before and not augment_queue.is_empty():
+		EventBus.augment_queued.emit(String(augment_queue[augment_queue.size() - 1].get("source", "")),
+			augment_queue.size())
+
+
+## **A guest's choice, on the host.** Attributed by the peer it arrived on -
+## never by a slot inside it - and carried out through the same door this
+## machine's own draft uses, against that seat's own offer. Whatever happened,
+## the seat is told back whole, so a refused choice reopens the same draft.
+func _on_coop_augment_request(kind: int, args: Array, from: int) -> void:
+	if kind != CoopRelay.Request.AUGMENT_CHOICE or not Coop.is_host() or not hands_split:
+		return
+	var slot: int = Coop.party().slot_for_peer(from)
+	if slot <= 0 or slot == _my_slot() or args.size() < 3:
+		return
+	var seat: AugmentSeat = augment_seat(slot)
+	var verb: String = String(args[0]) if args[0] is String else ""
+	var card_id: String = String(args[1]) if args[1] is String else ""
+	var drop: String = String(args[2]) if args[2] is String else ""
+	match verb:
+		"take":
+			resolve_for(seat, card_id, drop)
+		"reroll":
+			reroll_for(seat)
+		"banish":
+			banish_for(seat, card_id)
+		"skip":
+			skip_for(seat)
+	deal_next_for(seat)
+	_tell_seat(seat)
 
 
 func _on_wave_for_augments(_wave: int, _lanes: Array) -> void:

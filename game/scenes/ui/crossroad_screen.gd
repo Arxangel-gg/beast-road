@@ -211,6 +211,7 @@ func _ready() -> void:
 	EventBus.coop_relic_chosen.connect(_on_coop_relic_chosen)
 	EventBus.coop_omen_chosen.connect(_on_coop_omen_chosen)
 	EventBus.coop_road_card_chosen.connect(_on_coop_road_card_chosen)
+	EventBus.augment_offer_changed.connect(_on_augment_offer_changed)
 	EventBus.coop_last_scar_accepted.connect(_on_coop_last_scar_accepted)
 
 
@@ -1239,7 +1240,7 @@ func open_road_card_choice() -> void:
 
 ## The line under a card's text: what it does, and what it costs the hand.
 func _replacement_for(card: RoadCardData) -> String:
-	for held: String in RunState.road_cards:
+	for held: String in RunState.target_hand(card):
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other == null:
 			continue
@@ -1256,7 +1257,7 @@ func _card_button(card: RoadCardData, replaces: String) -> Button:
 	var note: String = ""
 	if not replaces.is_empty():
 		note = "\nReplaces %s." % replaces
-	elif RunState.road_card_hand_is_full():
+	elif RunState.hand_is_full_for(card):
 		note = "\nYour hand is full. You will choose what to leave."
 	button.text = "%s\n%s%s" % [card.display_name.to_upper(), card.card_text, note]
 	var art: String = card.get_sprite_path()
@@ -1302,7 +1303,7 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	options_box.add_child(_road_row)
-	for held: String in RunState.road_cards:
+	for held: String in RunState.target_hand(card):
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other == null:
 			continue
@@ -1432,6 +1433,20 @@ func open_augment_draft() -> bool:
 	return true
 
 
+## **A guest's draft is the host's to change** (per-Warden hands, 2026-09-26):
+## a choice is asked, the screen holds still, and the host's answer - the seat
+## told whole, a refusal included - redraws it or closes it.
+func _waits_on_the_host() -> bool:
+	return Coop.is_guest() and RunState.hands_split
+
+
+func _on_augment_offer_changed() -> void:
+	if not _waits_on_the_host() or not _augment_open:
+		return
+	_resolving = false
+	open_augment_draft.call_deferred()
+
+
 ## Closes the draft without taking anything from it. It stays banked.
 func close_augment_draft() -> void:
 	var was: bool = _augment_open
@@ -1450,7 +1465,7 @@ func is_augment_open() -> bool:
 ## the hand. Shared by the crossroad's draft and the augment draft, so a card
 ## cannot say one thing at a fork and another after a boss.
 func augment_rows(card: RoadCardData) -> Array:
-	var held: bool = RunState.road_cards.has(card.id)
+	var held: bool = RunState.holds_card(card.id)
 	var now: int = RunState.card_level(card.id)
 	var next: int = now + 1 if held else _inherited_level(card)
 	var figure: String = effect_figure(card.effect_id, card.magnitude_at(next))
@@ -1465,7 +1480,7 @@ func augment_rows(card: RoadCardData) -> Array:
 	var replaces: String = "" if held else _replacement_for(card)
 	if not replaces.is_empty():
 		rows.append(["Replaces", replaces])
-	elif not held and RunState.road_card_hand_is_full():
+	elif not held and RunState.hand_is_full_for(card):
 		rows.append(["Hand", "full"])
 	return rows
 
@@ -1480,7 +1495,7 @@ func _level_word(card: RoadCardData, level: int) -> String:
 ## The level a new card arrives at: a better card for a key already held keeps
 ## the levels the old one grew (`RunState.take_road_card`).
 func _inherited_level(card: RoadCardData) -> int:
-	for held: String in RunState.road_cards:
+	for held: String in RunState.target_hand(card):
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other != null and not other.keystone and not card.keystone \
 				and other.effect_id == card.effect_id:
@@ -1490,7 +1505,7 @@ func _inherited_level(card: RoadCardData) -> int:
 
 ## Whether taking this card means choosing one to leave.
 func _needs_a_drop(card: RoadCardData) -> bool:
-	return not RunState.road_cards.has(card.id) and RunState.road_card_hand_is_full() \
+	return not RunState.holds_card(card.id) and RunState.hand_is_full_for(card) \
 		and _replacement_for(card).is_empty()
 
 
@@ -1516,8 +1531,8 @@ func _augment_tools(tempering: bool) -> HBoxContainer:
 	tools.add_child(skip)
 	# **What is left in the deck**, so a banish is a decision about something
 	# countable and the rarer cards are known to still be in there.
-	var deck: Label = _card_line("Deck  ·  %d" % Augments.candidates(RunState.road_cards,
-		RunState.road_card_levels, RunState.act, RunState.augment_banished).size(),
+	var deck: Label = _card_line("Deck  ·  %d" % Augments.candidates(RunState.hand_of(),
+		RunState.levels_of(), RunState.act, RunState.augment_banished).size(),
 		16, Color("9aa39e"), HORIZONTAL_ALIGNMENT_CENTER)
 	deck.tooltip_text = "Cards this draft could still deal: the deck, less what is banished and what is already as good as it gets."
 	deck.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1542,6 +1557,9 @@ func _choose_augment(card_id: String) -> void:
 		return
 	if _banishing:
 		_banishing = false
+		if _waits_on_the_host():
+			_resolving = RunState.banish_augment(card_id)
+			return
 		RunState.banish_augment(card_id)
 		open_augment_draft()
 		return
@@ -1557,6 +1575,9 @@ func _choose_augment(card_id: String) -> void:
 
 func _take_augment(card_id: String, drop: String) -> void:
 	_pending_take = ""
+	if _waits_on_the_host():
+		_resolving = RunState.resolve_augment(card_id, drop)
+		return
 	if not RunState.resolve_augment(card_id, drop):
 		open_augment_draft()
 		return
@@ -1569,6 +1590,9 @@ func _take_augment(card_id: String, drop: String) -> void:
 
 func _reroll_augment() -> void:
 	_banishing = false
+	if _waits_on_the_host():
+		_resolving = RunState.reroll_augment()
+		return
 	if RunState.reroll_augment():
 		open_augment_draft()
 
@@ -1580,6 +1604,9 @@ func _arm_banish() -> void:
 
 func _skip_augment() -> void:
 	_banishing = false
+	if _waits_on_the_host():
+		_resolving = RunState.skip_augment()
+		return
 	RunState.skip_augment()
 	if RunState.augments_waiting() > 0:
 		open_augment_draft()

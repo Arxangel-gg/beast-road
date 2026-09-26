@@ -41,6 +41,9 @@ const LEARNED_READ_MAX: int = 256
 const WORN_READ_MAX: int = 16
 
 var level: int = 1
+## The seat the Warden sits in, set by the host when it wears the sheet: what
+## finds that Warden's own augment cards (`Modifiers.seat_value`).
+var slot: int = 0
 var placed: Array[int] = [0, 0, 0, 0, 0]
 var ascension: int = 0
 var form: String = ""
@@ -231,6 +234,20 @@ func _derive_gear() -> void:
 
 ## The most nodes a Warden of this level could hold beyond the starters: every
 ## point the level grants and every first clear there is to have.
+## The tags the Warden's learned nodes carry, for the deck's lean in a seat
+## the host deals for (`AugmentSeat.learned_tags`).
+func tags() -> Array[String]:
+	var out: Array[String] = []
+	for id: Variant in learned:
+		var node: DisciplineNodeData = ContentDB.discipline_node(String(id))
+		if node == null:
+			continue
+		for tag: String in node.tags:
+			if not out.has(tag):
+				out.append(tag)
+	return out
+
+
 static func points_ceiling(of_level: int) -> int:
 	return MetaState.skill_points_for_level(of_level) \
 		+ ContentDB.tiers.size() * (Balance.ACT_COUNT + 1) * Balance.SKILL_POINTS_PER_FIRST_CLEAR
@@ -253,7 +270,7 @@ static func value_of(sheet: WardenSheet, key: String) -> float:
 	if sheet == null or not Modifiers.WARDEN_KEYS.has(key):
 		return Modifiers.value(key)
 	return Modifiers.value(key) - Modifiers.own_value(key) \
-		+ float(sheet._gear_totals.get(key, 0.0))
+		+ float(sheet._gear_totals.get(key, 0.0)) + Modifiers.seat_value(sheet.slot, key)
 
 
 static func multiplier_of(sheet: WardenSheet, key: String) -> float:

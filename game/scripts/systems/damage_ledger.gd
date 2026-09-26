@@ -59,7 +59,8 @@ static func note(source: String, taken: float) -> void:
 	book[source] = float(book.get(source, 0.0)) + taken
 	for key: String in _keys_of(source):
 		var total: float = 1.0 + maxf(Modifiers.value(key), 0.0)
-		for held: String in RunState.road_cards:
+		# The party's board and, in a split hand, this Warden's own cards.
+		for held: String in RunState.hand_of():
 			var card: RoadCardData = ContentDB.road_card(held)
 			if card == null or card.effect_id != key:
 				continue

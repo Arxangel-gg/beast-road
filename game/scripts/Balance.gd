@@ -589,6 +589,12 @@ const AUGMENT_FLOOR_MYTHIC: int = 3
 ## from the first photograph, where the crossroad's painting hid it). Dark
 ## enough that the cards' pale text holds against a sunlit field. [TUNE]
 const AUGMENT_DRAFT_SCRIM := Color(0.02, 0.03, 0.04, 0.68)
+## **Each Warden's own hand in co-op** (per-Warden hands, 2026-09-26): the cards
+## that act on one hero - damage, health, speed, dash, mana, spells, companion.
+## Beside the party's board of `ROAD_CARD_HAND`, so a Warden in company holds a
+## few cards of their own and shares the rest. Alone, the one hand holds every
+## branch, as it always has. [TUNE]
+const AUGMENT_SEAT_HAND: int = 4
 
 ## The largest a single card's magnitude may be, for keys read as a fraction.
 ##

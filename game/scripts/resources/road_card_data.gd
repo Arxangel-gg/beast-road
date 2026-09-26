@@ -160,6 +160,11 @@ static func offer(held: Array, act: int, count: int) -> Array[String]:
 		if not Augments.may_deal(card, held, RunState.road_card_levels,
 				RunState.augment_banished):
 			continue
+		# **The crossroad's card is the party's.** In a split hand one Warden's
+		# card comes from that Warden's own drafts; a card the whole party chose
+		# at a fork is only ever one the whole party holds.
+		if RunState.hands_split and Augments.seat_keeps(card):
+			continue
 		# Keystones are dealt apart from the pool - see the end of this.
 		if card.keystone:
 			keystones.append(card.id)
