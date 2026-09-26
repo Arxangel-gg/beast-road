@@ -10057,6 +10057,28 @@ all through `CrashWatch.root` against a fixture folder, and named three planted
 faults: a clean end that left the marker, a scrub that did nothing, and every
 log line carried.
 
+**What leaves the machine is written down and held to the code, as of
+2026-09-26.** `docs/PRIVACY.md` is a draft for the owner, written from the code
+rather than from intent, and Settings › Data carries its short form from data.
+**A privacy note is only true on the day it is written**, so `privacy_check`
+(both bars) walks every script for the hosts it names and the connections it
+opens, holds a leaderboard post and a Ledger sale to exactly the fields the note
+lists, and allows only the results screen's Submit to post. It found the LAN
+beacon on its first run, which the draft had missed. A new script that talks to
+the network fails the gate until it is written into the note and onto
+`KNOWN_TALKERS` with what it sends.
+
+**Writing it found a real fault.** Hosting by port asked the router over UPnP
+for a *permanent* UDP forward and never took it down, so every Warden who ever
+hosted kept a port open to their machine until the router restarted. It is
+leased for `COOP_UPNP_LEASE_SECONDS` now - a day, permanent only where a router
+refuses any lease - and closed when hosting stops and when the game quits,
+which does not pass through `Coop.leave`.
+
+**Open for the owner**: a contact for removal requests, whether the board stays
+public, and whether leaderboard names should be word-filtered - they are
+length-limited and stripped of control characters, and nothing more.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
