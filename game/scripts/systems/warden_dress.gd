@@ -55,6 +55,17 @@ const TWO_HANDED_STATES: Dictionary = {
 static var _meta: Dictionary = {}
 static var _layers: Dictionary = {}
 
+## Where the dress is read from. The shipped folders in a game; moved to a
+## synthetic dress under user:// by `dress_check` alone, so the runtime can be
+## driven through its real doors before a single real frame exists - the seam
+## `MetaState.slot_root` is for saves.
+static var art_root: String = DRESS_DIR
+static var meta_root: String = META_DIR
+static var held_root: String = HELD_DIR
+## The grip table sits with the weapons rather than with a body's sheets, so a
+## gate that points the sheets at a synthetic dress still holds real swords.
+static var held_table: String = META_DIR + "held.json"
+
 
 ## Whether a body has any dress art at all. False until the base body is on
 ## disk, which is what keeps the painted Warden playing in the meantime.
@@ -64,8 +75,23 @@ static func available(body: String = "male") -> bool:
 
 static func has_layer(layer: String) -> bool:
 	if not _layers.has(layer):
-		_layers[layer] = ResourceLoader.exists(DRESS_DIR + layer + "/idle.png")
+		_layers[layer] = exists(art_root + layer + "/idle.png")
 	return bool(_layers[layer])
+
+
+static func exists(path: String) -> bool:
+	return ResourceLoader.exists(path) or (not path.begins_with("res://") and FileAccess.file_exists(path))
+
+
+## A picture, imported or not: the game's own are imported resources, and the
+## gate's synthetic ones are plain PNGs in user://.
+static func texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	if not path.begins_with("res://") and FileAccess.file_exists(path):
+		var image: Image = Image.load_from_file(path)
+		return ImageTexture.create_from_image(image) if image != null else null
+	return null
 
 
 ## Forget what was found on disk; a gate that installs art calls this.
@@ -123,8 +149,8 @@ static func state_for(state: String, weapon: GearData) -> String:
 static func held_path(weapon: GearData) -> String:
 	if weapon == null:
 		return ""
-	var path: String = HELD_DIR + "held_" + weapon.id + ".png"
-	return path if ResourceLoader.exists(path) else ""
+	var path: String = held_root + "held_" + weapon.id + ".png"
+	return path if exists(path) else ""
 
 
 static var _held: Dictionary = {}
@@ -137,7 +163,7 @@ static var _held_read: bool = false
 static func held_grip(weapon: GearData) -> Dictionary:
 	if not _held_read:
 		_held_read = true
-		var path: String = META_DIR + "held.json"
+		var path: String = held_table
 		if FileAccess.file_exists(path):
 			var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 			if parsed is Dictionary:
@@ -172,7 +198,7 @@ static func meta(body: String, state: String) -> Dictionary:
 	var key: String = body + "/" + state
 	if _meta.has(key):
 		return _meta[key]
-	var path: String = META_DIR + key + ".json"
+	var path: String = meta_root + key + ".json"
 	var out: Dictionary = {}
 	if FileAccess.file_exists(path):
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))

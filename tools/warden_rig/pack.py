@@ -76,6 +76,11 @@ def union_box(boxes: list, canvas: tuple) -> tuple:
     return (max(left, 0), max(top, 0), min(right, canvas[0]), min(bottom, canvas[1]))
 
 
+def _frames(body: str) -> dict:
+    with open(os.path.join(HERE, "frames_%s.json" % body), encoding="utf-8") as f:
+        return {k: rig.Frame(**v) for k, v in json.load(f).items()}
+
+
 def sockets_for(body: str, state: str, cell_origin: tuple) -> dict:
     """Per facing, per frame: the right hand, the left hand and the head, in the
     cell's own pixels."""
@@ -127,6 +132,13 @@ def pack(body: str, game: str) -> None:
             sheet.save(os.path.join(out_dir, state + ".png"))
         meta = {
             "cell": list(cell), "origin": [box[0], box[1]], "canvas": list(canvas),
+            # Where the soles are on the canvas, per facing, so the game can
+            # stand the dressed Warden's feet exactly where the painted one's
+            # were.
+            "foot": {f: [round(fr.foot_x, 2), round(fr.foot_y, 2)] for f, fr in _frames(body).items()},
+            # The figure's height in pixels, which a socketed weapon's length
+            # is measured in.
+            "stature": round(_frames(body)["south"].stature, 2),
             "frames": count, "loop": animations.ANIMATIONS[state][1],
             "sockets": sockets_for(body, state, (box[0], box[1])),
         }

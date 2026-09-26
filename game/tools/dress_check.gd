@@ -36,7 +36,8 @@ func _ready() -> void:
 	_test_grip_picks_the_combo()
 	_test_the_outfit_resolves()
 	_test_drawn_bodies_are_whole()
-	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies"]:
+	await _test_the_runtime_lays_every_part()
+	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies", "runtime"]:
 		_check(_reached.has(name), "'%s' never reached its end - a runtime error stopped it" % name)
 	for _frame: int in 10:
 		await get_tree().process_frame
@@ -197,3 +198,146 @@ func _test_drawn_bodies_are_whole() -> void:
 					"%s %s %s has %d socket rows for %d frames" % [body, state, facing,
 						(sockets[facing] as Array).size(), frames])
 	_reached.append("bodies")
+
+
+# --- The runtime, through its real doors ---------------------------------------
+
+const TEST_ROOT: String = "user://dress_test/"
+const TEST_CELL: Vector2i = Vector2i(40, 60)
+const TEST_ORIGIN: Vector2 = Vector2(80.0, 110.0)
+const TEST_FOOT: Vector2 = Vector2(100.0, 170.0)
+
+
+## A socket the gate can predict: every number differs by state, frame and row,
+## so a layer read from the wrong one is caught.
+func _test_socket(state_index: int, frame: int, row: int) -> Array:
+	var right: Array = [10.0 + frame, 20.0 + row, 30.0 * frame + 5.0 * state_index, 0.5 + 0.05 * frame,
+		(frame + row) % 2]
+	var left: Array = [30.0 - frame, 25.0 + row, 200.0 - 20.0 * frame, 0.6, (frame + row + 1) % 2]
+	return right + left + [20.0, 8.0, row]
+
+
+func _write_test_dress() -> void:
+	DirAccess.make_dir_recursive_absolute(TEST_ROOT + "art/male_base")
+	DirAccess.make_dir_recursive_absolute(TEST_ROOT + "art/male_cape_long")
+	DirAccess.make_dir_recursive_absolute(TEST_ROOT + "meta/male")
+	for index: int in STATES.size():
+		var state: String = STATES[index]
+		var frames: int = 7 if state.begins_with("attack") else 8
+		var sheet := Image.create(TEST_CELL.x * frames, TEST_CELL.y * 8, false, Image.FORMAT_RGBA8)
+		sheet.fill(Color(0.8, 0.7, 0.6, 1.0))
+		sheet.save_png(TEST_ROOT + "art/male_base/%s.png" % state)
+		sheet.fill(Color(0.5, 0.5, 0.5, 1.0))
+		sheet.save_png(TEST_ROOT + "art/male_cape_long/%s.png" % state)
+		var sockets: Dictionary = {}
+		var feet: Dictionary = {}
+		for row: int in 8:
+			var rows: Array = []
+			for frame: int in frames:
+				rows.append(_test_socket(index, frame, row))
+			sockets[HeroAnimator.FACING_NAMES[row]] = rows
+			feet[HeroAnimator.FACING_NAMES[row]] = [TEST_FOOT.x + row, TEST_FOOT.y]
+		var meta: Dictionary = {"cell": [TEST_CELL.x, TEST_CELL.y], "origin": [TEST_ORIGIN.x, TEST_ORIGIN.y],
+			"canvas": [208, 208], "frames": frames, "loop": not state.begins_with("attack"),
+			"foot": feet, "stature": 150.0, "sockets": sockets}
+		var file := FileAccess.open(TEST_ROOT + "meta/male/%s.json" % state, FileAccess.WRITE)
+		file.store_string(JSON.stringify(meta))
+		file.close()
+
+
+func _test_the_runtime_lays_every_part() -> void:
+	_write_test_dress()
+	var saved: Array = [WardenDress.art_root, WardenDress.meta_root]
+	WardenDress.art_root = TEST_ROOT + "art/"
+	WardenDress.meta_root = TEST_ROOT + "meta/"
+	WardenDress.forget()
+	_check(WardenDress.available("male"), "the synthetic dress is not found through the seam")
+
+	var sprite := Sprite2D.new()
+	add_child(sprite)
+	var animator := HeroAnimator.new()
+	animator.sprite = sprite
+	add_child(animator)
+	var sword: GearData = ContentDB.gear("coalpaint_edge")
+	var maul: GearData = ContentDB.gear("gravebell_maul")
+	var dirks: GearData = ContentDB.gear("twinfang_dirks")
+	var cape: GearData = ContentDB.gear("roadwardens_mantle")
+
+	animator.dress(WardenDress.outfit({"body": 0}, sword, null, cape, null))
+	_check(animator.dressed(), "a body with dress art on disk was not dressed")
+	animator.set_facing(Vector2(0.0, 1.0))
+	animator.play("attack_1a", true)
+	animator._process(0.0)
+	var row: int = 2
+	var feet := Vector2(TEST_FOOT.x + row, TEST_FOOT.y)
+	var offset: Vector2 = TEST_ORIGIN - feet + Vector2(0.0, HeroAnimator.PAINTED_FEET_BELOW_CENTRE)
+	_check(sprite.region_rect == Rect2(0, row * TEST_CELL.y, TEST_CELL.x, TEST_CELL.y),
+		"the body drew %s, not frame 0 of the south row" % sprite.region_rect)
+	_check(sprite.offset.is_equal_approx(offset),
+		"the body stands at %s, not with its feet where the painted Warden's were (%s)" % [sprite.offset, offset])
+	var layers: DressLayers = sprite.get_node_or_null("Dress") as DressLayers
+	_check(layers != null, "no dress layers were put on the sprite")
+	if layers != null:
+		var weapon: Sprite2D = layers.get_node("Weapon") as Sprite2D
+		var socket: Array = _test_socket(STATES.find("attack_1a"), 0, row)
+		var at: Vector2 = offset + Vector2(socket[0], socket[1])
+		_check(weapon.visible, "the sword is not drawn")
+		_check(weapon.position.is_equal_approx(at),
+			"the sword is at %s, not on the right fist's socket %s" % [weapon.position, at])
+		_check(is_equal_approx(weapon.rotation, deg_to_rad(float(socket[2])) + PI * 0.5),
+			"the sword is not turned along the socket's blade")
+		_check(is_equal_approx(weapon.scale.y / weapon.scale.x, float(socket[3])),
+			"the sword is not shortened by what the camera sees of it")
+		_check(weapon.show_behind_parent == (int(socket[4]) == 0),
+			"the sword is on the wrong side of the body")
+		var grip: Dictionary = WardenDress.held_grip(sword)
+		_check(weapon.offset.is_equal_approx(-(grip["grip"] as Vector2)),
+			"the sword is not held by its grip")
+		var cape_back: Sprite2D = layers.get_node("CapeBack") as Sprite2D
+		var cape_front: Sprite2D = layers.get_node("CapeFront") as Sprite2D
+		_check(cape_back.visible and not cape_front.visible,
+			"a Warden facing the camera does not wear the cape behind")
+		var tint := Color(cape.look_tint.r, cape.look_tint.g, cape.look_tint.b, 1.0)
+		_check(cape_back.self_modulate.is_equal_approx(tint), "the cape is not dyed its kind's colour")
+		animator.set_facing(Vector2(0.0, -1.0))
+		animator._process(0.0)
+		_check(cape_front.visible and not cape_back.visible,
+			"a Warden walking away does not wear the cape over the body")
+		_check(not (layers.get_node("OffWeapon") as Sprite2D).visible,
+			"a one-handed sword shows a second blade")
+
+		# Two hands: the forehand draws the two-handed combo.
+		animator.dress(WardenDress.outfit({"body": 0}, maul, null, null, null))
+		animator.play("attack_1a", true)
+		animator._process(0.0)
+		_check(animator._state_drawn == "attack_2h_1", "a maul drew %s for the forehand" % animator._state_drawn)
+		_check(not cape_back.visible and not cape_front.visible, "no cape drew a cape")
+
+		# A pair: the second blade is in the left fist.
+		animator.dress(WardenDress.outfit({"body": 0}, dirks, null, null, null))
+		animator.play("attack_1b", true)
+		animator._process(0.0)
+		var off: Sprite2D = layers.get_node("OffWeapon") as Sprite2D
+		var pair: Array = _test_socket(STATES.find("attack_1b"), 0, 6)
+		_check(off.visible, "the second dirk is not drawn")
+		_check(off.position.is_equal_approx(sprite.offset + Vector2(pair[5], pair[6])),
+			"the second dirk is not on the left fist's socket")
+
+	# And a body with no art is the painted Warden, untouched.
+	WardenDress.art_root = TEST_ROOT + "nothing/"
+	WardenDress.forget()
+	var plain_sprite := Sprite2D.new()
+	add_child(plain_sprite)
+	var plain := HeroAnimator.new()
+	plain.sprite = plain_sprite
+	add_child(plain)
+	plain.dress(WardenDress.outfit({"body": 0}, sword, null, null, null))
+	_check(not plain.dressed(), "a body with no dress art was dressed anyway")
+
+	WardenDress.art_root = saved[0]
+	WardenDress.meta_root = saved[1]
+	WardenDress.forget()
+	for node: Node in [animator, sprite, plain, plain_sprite]:
+		node.queue_free()
+	await get_tree().process_frame
+	_reached.append("runtime")
