@@ -4108,6 +4108,46 @@ const KEYSTONE_TIMBER_MEND: float = 0.2
 const KEYSTONE_HUNT_SECONDS: float = 4.0
 const KEYSTONE_HUNT_PRIORITY: float = 100000.0
 
+# --- Wayside encounters (2026-09-25) --------------------------------------------
+#
+# One thing on the outskirts an act, now and then, that stops and asks. See
+# `Wayside`: every choice is a door the game already has, so these tune only
+# where it stands, how it is found and how often it is there.
+
+## From the second act: the opening act is the one stretch of the road measured
+## against a player learning the game, and it has enough to learn.
+const WAYSIDE_FIRST_ACT: int = 2
+## The share of acts that lay one. Now and then, rather than always, so it is
+## found rather than expected - and rolled from the run's seed, so a road laid
+## twice lays the same encounters.
+const WAYSIDE_CHANCE_PER_ACT: float = 0.7
+## Tiles tried from the outer band before an act goes without one.
+const WAYSIDE_PLACEMENT_ATTEMPTS: int = 80
+## Reach of the Interact press, as a gathering node's.
+const WAYSIDE_RADIUS: float = 130.0
+## Clear of the gates, the camps, the plots and the nodes by this much, so one
+## press never means two things.
+const WAYSIDE_SPACING: float = 320.0
+## The small prop an animal encounter wears beside the animal, offset along x.
+const WAYSIDE_PROP_BESIDE: float = 44.0
+## An animal that is hurt or caught, a little dimmed.
+const WAYSIDE_ANIMAL_TINT: Color = Color(0.86, 0.8, 0.78)
+## A warm pool under it so it is found at night, and a glint now and then.
+const WAYSIDE_GLOW_COLOUR: Color = Color(1.0, 0.82, 0.5)
+const WAYSIDE_GLOW_RADIUS: float = 120.0
+const WAYSIDE_GLOW_ALPHA: float = 0.32
+const WAYSIDE_GLINT_SECONDS: Vector2 = Vector2(2.2, 4.8)
+## A slow breath while it waits.
+const WAYSIDE_BREATH: float = 0.018
+const WAYSIDE_BREATH_SECONDS: float = 3.4
+## Answered, it fades over this long and is gone.
+const WAYSIDE_FADE_SECONDS: float = 1.2
+## The card's layer: over the HUD (20) and the crossroad (28), under the pause
+## menu (32), so pausing over a card still works.
+const WAYSIDE_CARD_LAYER: int = 29
+## Its mark on the map: the colour of the pool it stands in.
+const MINIMAP_WAYSIDE: Color = Color(1.0, 0.82, 0.5, 0.95)
+
 const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
 
 const WILDLIFE_TOWN_SPACE: float = 520.0

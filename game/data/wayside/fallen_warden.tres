@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "fallen_warden"
+title = "A Fallen Warden"
+text = "Bones in a Warden's cloak, sat against a rock as if resting. A lantern gone cold beside them, and a pack nobody has opened."
+first_act = 3
+weight = 0.8
+choice_ids = PackedStringArray("warden_search", "warden_bury")

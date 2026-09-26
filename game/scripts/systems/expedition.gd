@@ -162,6 +162,9 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		"purse": purse,
 		"wall": RunState.town_hp / maxf(RunState.town_max_hp, 1.0),
 		"momentum": RunState.momentum,
+		# The acts whose wayside encounter was answered, so a resumed road does
+		# not ask a question it has already had answered.
+		"wayside": RunState.wayside_answered.duplicate(),
 		"tier": RunState.tier_id,
 		# The map it was banked on, so it comes back on that map whatever the
 		# setting says by then. A front banked before modes existed has none,
@@ -224,6 +227,9 @@ static func apply(stored: Dictionary) -> bool:
 	RunState.wave_number = int(stored.get("wave", 1))
 	RunState.distance_travelled = float(stored.get("distance", 0.0))
 	RunState.momentum = float(stored.get("momentum", 0.0))
+	RunState.wayside_answered.clear()
+	for answered: Variant in (stored.get("wayside", []) as Array):
+		RunState.wayside_answered.append(int(answered))
 	RunState.towers.clear()
 	for tower: Variant in (stored.get("towers", []) as Array):
 		var row := tower as Dictionary

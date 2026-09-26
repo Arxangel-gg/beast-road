@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "offering_cairn"
+title = "A Cairn of Offerings"
+text = "Stones piled over a hollow, and in the hollow what people left for whatever lives here: coin, herbs, a candle burned down to nothing."
+choice_ids = PackedStringArray("cairn_take", "cairn_give")

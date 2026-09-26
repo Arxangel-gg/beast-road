@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cairn_take"
+label = "Take the offerings"
+hint = "Coin, and the earth will not forget who took it."
+outcome = "The coins are cold in your hand. Somewhere under your feet, something turns over."
+boon = 1
+boon_currency = "gold"
+boon_amount = 36.0
+bane = 7
+bane_amount = 4.0

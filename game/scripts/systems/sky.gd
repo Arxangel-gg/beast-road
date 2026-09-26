@@ -147,6 +147,7 @@ func _ready() -> void:
 	EventBus.coop_wrath_warned.connect(_on_warned_elsewhere)
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.gathered.connect(_on_gathered)
+	EventBus.earth_offended.connect(_on_earth_offended)
 	_apply(ContentDB.weather(RunState.weather_id))
 	# **The earth starts angrier on the harder tiers** (2026-09-25).
 	if not _mirror:
@@ -846,6 +847,16 @@ func _on_wildlife_killed(_kind_id: String, _food: int, at: Vector2, rarity: int,
 		shocks += 1
 		_shock_left = Balance.WRATH_SHOCK_SECONDS
 		_tell("legendary_slain", at, Balance.WRATH_SHOCK_SECONDS)
+
+
+## **Something the earth minds as it minds a kill** (2026-09-25): a wayside
+## offering taken, a snared animal kept. Counted exactly as `weight` common
+## kills, through the same count, so it feeds the same heat and the same quiet
+## clock - never a second measure of anger beside the one there is.
+func _on_earth_offended(weight: float) -> void:
+	if _mirror or weight <= 0.0:
+		return
+	_count_kill(weight)
 
 
 ## A worse kill: an elite, a savage. The gate calls it.

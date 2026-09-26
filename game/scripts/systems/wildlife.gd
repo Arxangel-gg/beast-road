@@ -3376,12 +3376,25 @@ func _tally_hunt(kind: WildlifeData) -> void:
 	_send_a_savage(kind)
 
 
+## **A species sends its worst for a reason other than being farmed** - a
+## wayside choice that took from it (2026-09-25). The same door over-farming
+## opens, so the savage is exactly the savage; only the warning is the caller's,
+## because the card has already said why. False when nothing arrived.
+func send_savage(species_id: String) -> bool:
+	var kind: WildlifeData = ContentDB.wildlife_kinds.get(species_id, null) as WildlifeData
+	if kind == null or Coop.is_guest():
+		return false
+	var before: int = _living.size()
+	_send_a_savage(kind, false)
+	return _living.size() > before
+
+
 ## Puts a savage of `kind` on the field, at the edge, already hunting.
 ##
 ## It is spawned through the ordinary door so that everything else about an
 ## animal - the shadow, the bar, the frames, the co-op serial - is true of it
 ## too; what makes it a savage is the dressing and the numbers afterwards.
-func _send_a_savage(kind: WildlifeData) -> void:
+func _send_a_savage(kind: WildlifeData, warn: bool = true) -> void:
 	if grid == null:
 		return
 	var hero: Node2D = _nearest_hero_node()
@@ -3397,8 +3410,9 @@ func _send_a_savage(kind: WildlifeData) -> void:
 		return
 	var animal: Dictionary = _living[_living.size() - 1]
 	_make_savage(animal, kind, hero)
-	EventBus.preparation_warning.emit(
-		"Something large has taken an interest in your hunting.")
+	if warn:
+		EventBus.preparation_warning.emit(
+			"Something large has taken an interest in your hunting.")
 	# **The species' own answer to being farmed**, which had its own recording
 	# and borrowed a chieftain's roar. A savage is an animal, not a warlord.
 	Sfx.play_group("sfx_wildlife_savage_arrival")

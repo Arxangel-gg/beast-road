@@ -162,6 +162,13 @@ func _draw_measured() -> void:
 		for nest: Dictionary in clutches.call("report"):
 			draw_circle(_to_map(nest["at"] as Vector2),
 				maxf(size.x / 78.0, 2.0), Balance.MINIMAP_NEST)
+	# **A wayside encounter** (2026-09-25): something that stops and asks, and
+	# is somewhere a player may want to walk back to once they can pay for it.
+	var wayside: Node = battlefield.call("wayside") if battlefield.has_method("wayside") else null
+	if wayside != null and wayside.has_method("position_of"):
+		var asks: Vector2 = wayside.call("position_of")
+		if asks != Vector2.INF:
+			_draw_diamond(_to_map(asks), maxf(size.x / 60.0, 2.5), Balance.MINIMAP_WAYSIDE)
 	# Plots and the crops in them: bare earth, growing, ripe. A wilting crop
 	# is drawn dim, which is the same tell the plant itself gives.
 	var farm: Node = battlefield.call("farming") if battlefield.has_method("farming") else null

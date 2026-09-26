@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "camp_rest"
+label = "Rekindle the fire and rest"
+hint = "A little timber for a little while off your feet."
+outcome = "The fire takes. For a few breaths the road is somewhere else."
+cost_currency = "wood"
+cost_amount = 15
+boon = 4
+boon_amount = 0.6

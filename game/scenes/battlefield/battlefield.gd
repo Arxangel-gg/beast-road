@@ -54,6 +54,8 @@ var _ponds: Fishing = null
 ## The rift gates and dungeon mouths, re-laid with the ponds.
 var _rifts: RiftGates = null
 var _gathering: Gathering = null
+## This act's wayside encounter, if the road has one (2026-09-25).
+var _wayside: Wayside = null
 var _farming: Farming = null
 var _treeline: Treeline = null
 ## What a mythical animal left behind, and where it is at the end of it.
@@ -903,6 +905,7 @@ func _build_foliage() -> void:
 	_build_camps()
 	_build_trail()
 	_build_nests()
+	_build_wayside()
 
 
 func _build_ambient_life() -> void:
@@ -1056,6 +1059,31 @@ func _build_gathering() -> void:
 
 func farming() -> Farming:
 	return _farming
+
+
+## After the camps and the nodes, so it keeps clear of both - it answers the
+## same Interact press they do.
+func _build_wayside() -> void:
+	_wayside = Wayside.new()
+	_wayside.name = "Wayside"
+	_wayside.grid = grid
+	_wayside.field = self
+	_wayside.host = entity_root
+	_wayside.avoid = _wayside_taken()
+	_wayside.avoid_water = _taken_water()
+	add_child(_wayside)
+	_wayside.scatter()
+
+
+func _wayside_taken() -> PackedVector2Array:
+	var taken: PackedVector2Array = _taken_ground()
+	if _gathering != null:
+		taken.append_array(_gathering.node_positions())
+	return taken
+
+
+func wayside() -> Wayside:
+	return _wayside
 
 
 func gathering() -> Gathering:
@@ -2546,6 +2574,11 @@ func refresh_terrain() -> void:
 		_farming.avoid = _taken_ground() + (_gathering.node_positions() if _gathering != null else PackedVector2Array())
 		_farming.avoid_water = _taken_water()
 		_farming.refresh_region()
+	# And the wayside encounter, which is the act's and asks about this ground.
+	if _wayside != null:
+		_wayside.avoid = _wayside_taken()
+		_wayside.avoid_water = _taken_water()
+		_wayside.scatter()
 	# And the nests: a clutch belongs to the ground it was laid on, and a
 	# species angered in one region does not follow the party into the next.
 	if _nests != null:

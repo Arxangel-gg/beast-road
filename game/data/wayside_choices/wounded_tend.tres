@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wounded_tend"
+label = "Tend it"
+hint = "Food and a steady hand. It will know you again."
+outcome = "It lets you close the wound, looks at you a long moment, and goes. Its kind will know you."
+cost_currency = "food"
+cost_amount = 20
+boon = 3
+boon_amount = 3.0

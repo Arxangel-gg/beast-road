@@ -101,6 +101,10 @@ var synergies: Dictionary = {}
 var omens: Dictionary = {}
 var road_cards: Dictionary = {}
 
+## Wayside encounters and their choices (2026-09-25). See `WaysideData`.
+var wayside_encounters: Dictionary = {}
+var wayside_choices: Dictionary = {}
+
 ## Every kind of fish, by id. See `Fishing` for the ponds they come out of.
 var fish_kinds: Dictionary = {}
 
@@ -156,6 +160,8 @@ func _ready() -> void:
 	synergies = _load_dir("res://data/synergies")
 	omens = _load_dir("res://data/omens")
 	road_cards = _load_dir("res://data/road_cards")
+	wayside_encounters = _load_dir("res://data/wayside")
+	wayside_choices = _load_dir("res://data/wayside_choices")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
 	trail_signs = _load_dir("res://data/trail_signs")
@@ -199,6 +205,24 @@ func omen(id: String) -> OmenData:
 
 func road_card(id: String) -> RoadCardData:
 	return road_cards.get(id, null) as RoadCardData
+
+
+func wayside(id: String) -> WaysideData:
+	return wayside_encounters.get(id, null) as WaysideData
+
+
+func wayside_choice(id: String) -> WaysideChoiceData:
+	return wayside_choices.get(id, null) as WaysideChoiceData
+
+
+## Every wayside encounter's id, sorted, so a weighted roll over them reads the
+## same order on every machine and every run.
+func wayside_ids() -> Array[String]:
+	var out: Array[String] = []
+	for key: Variant in wayside_encounters.keys():
+		out.append(String(key))
+	out.sort()
+	return out
 
 
 func merchant(id: String) -> MerchantData:

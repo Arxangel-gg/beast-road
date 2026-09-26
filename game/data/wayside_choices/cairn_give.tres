@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cairn_give"
+label = "Leave something of your own"
+hint = "Food on the stones. Something may answer."
+outcome = "Warmth goes through you like the first drink after a long road. Your wounds close."
+cost_currency = "food"
+cost_amount = 25
+boon = 4
+boon_amount = 1.0

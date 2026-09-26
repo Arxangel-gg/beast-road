@@ -74,6 +74,9 @@ var withdrawal_test_seconds: float = -1.0
 ## The phase the field was in when a rift gate was taken, so the road only
 ## resumes if it was moving.
 var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
+## The wayside card, and whether it was this run that froze the field for it.
+var _wayside_card: WaysideCard = null
+var _wayside_froze: bool = false
 
 
 func _say_quality(kicker: String, title: String, note: String) -> void:
@@ -119,6 +122,8 @@ func _ready() -> void:
 	EventBus.rift_ended.connect(_on_rift_ended)
 	EventBus.run_ended.connect(_on_run_ended)
 	EventBus.wave_cleared.connect(_on_wave_cleared)
+	EventBus.wayside_reached.connect(_on_wayside_reached)
+	EventBus.wayside_left.connect(_on_wayside_left)
 
 	crossroad_ui.road_chosen.connect(_on_road_chosen)
 	EventBus.coop_crossroad_opened.connect(_on_coop_crossroad_opened)
@@ -1478,6 +1483,36 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	if hud != null:
 		hud.show_end_report()
 	results_ui.show_results(victory, summary)
+
+
+## **A wayside encounter asks** (2026-09-25). The field is frozen for the
+## answer, as it is for a crossroad: an answer given while something bites is
+## not a decision. Frozen here and only let go by the card closing, and only if
+## it was this that froze it - so a card that somehow opened over a field
+## already held does not thaw it on the way out.
+func _on_wayside_reached(encounter_id: String, title: String) -> void:
+	var encounter: WaysideData = ContentDB.wayside(encounter_id)
+	if encounter == null or _locked:
+		return
+	if _wayside_card == null:
+		_wayside_card = WaysideCard.new()
+		_wayside_card.name = "WaysideCard"
+		add_child(_wayside_card)
+	_wayside_froze = not battlefield.is_suspended()
+	if _wayside_froze:
+		battlefield.suspend()
+	_wayside_card.open(encounter, title)
+
+
+func _on_wayside_left(_encounter_id: String) -> void:
+	if _wayside_froze:
+		_wayside_froze = false
+		battlefield.resume()
+
+
+## The card, for the gate.
+func wayside_card() -> WaysideCard:
+	return _wayside_card
 
 
 ## Holds the fallen boss up, full screen, between the kill and the road.

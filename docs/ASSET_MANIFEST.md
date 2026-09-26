@@ -3495,6 +3495,23 @@ chain, stood a little below the town. All 128×128, type T, placeholder colour `
 
 Files: `walk_chain.png`
 
+### 5.32 Wayside encounters of 2026-09-25 — `res://art/battlefield/`
+
+The things on the outskirts that stop and ask (`WaysideData`). A prop encounter
+is its painting; an animal encounter is the region's own animal with the small
+prop at its feet. Generated with PixelLab Pro Flash as objects, `view: low
+top-down`, styled on the shipped camp props, drawn front-on with a slight
+top-down angle - never an isometric corner.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `wayside_overturned_cart.png` | 128×128 | O | `#3A3128` |
+| `wayside_offering_cairn.png` | 128×128 | O | `#3A3128` |
+| `wayside_cold_camp.png` | 128×128 | O | `#3A3128` |
+| `wayside_fallen_warden.png` | 128×128 | O | `#3A3128` |
+| `wayside_snared_beast.png` | 96×96 | O | `#3A3128` |
+| `wayside_wounded_animal.png` | 96×96 | O | `#3A3128` |
+
 ### 5.32 Materials of 2026-09-13 — `res://art/icons/ui/`
 
 What the trees and the seams give up. 128×128 like the gear icons they sit

@@ -43,6 +43,7 @@ var _screens: Array = [
 	["StableScreen", StableScreen],
 	["StashScreen", StashScreen],
 	["VendorScreen", VendorScreen],
+	["WaysideCard", WaysideCard],
 ]
 
 ## More steps than any screen has controls; the walk stops when the ring

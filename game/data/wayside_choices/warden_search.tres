@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "warden_search"
+label = "Open the pack"
+hint = "What a Warden carried, they will not need."
+outcome = "Oilcloth, a whetstone, and wrapped at the bottom something they meant to keep."
+boon = 2
+boon_amount = 1.0

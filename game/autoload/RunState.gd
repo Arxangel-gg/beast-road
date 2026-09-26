@@ -688,6 +688,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	# already paid for.
 	pen_companion_fell = false
 	momentum = 0.0
+	wayside_answered.clear()
 	# A flag left set by a run that was abandoned mid-withdrawal would silence
 	# every road wave of the next one. Cleared with the rest of the run.
 	withdrawing = false
@@ -2543,6 +2544,14 @@ var pen_companion_fell: bool = false
 ## taken. Read by `Modifiers` into discovery keys only - see
 ## `Balance.MOMENTUM_PER_CROSSROAD` for why it may never reach a damage number.
 var momentum: float = 0.0
+
+## **The acts whose wayside encounter has been answered this run** (2026-09-25).
+## An encounter is re-laid from the run's seed whenever the region is, so a
+## front banked at a crossroad and resumed would lay an answered one again -
+## and bank, resume, answer, bank is a loop that farms gear and sightings.
+## Banked with the front (`Expedition`), and `Wayside.may_lay` refuses an act on
+## it. Road data, never the account: it resets with the run.
+var wayside_answered: Array[int] = []
 
 
 ## **True while the road behind the party is closing** (2026-09-16).

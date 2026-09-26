@@ -1064,4 +1064,17 @@ signal party_run_replied(slot: int, accepted: bool)
 
 ## Host-authored environmental paths; guests render the same committed warning.
 signal world_hazard(kind: String, payload: Dictionary)
+
+## **Wayside encounters** (2026-09-25). The Warden walked up to one and pressed
+## Interact: the run shows its card. Solo only, so nothing here crosses a wire.
+signal wayside_reached(encounter_id: String, title: String)
+## A choice on the card. `Wayside` pays and opens its doors; the card shows the outcome.
+signal wayside_chosen(encounter_id: String, choice_id: String)
+## The card closed - after a choice, or walking on without one.
+signal wayside_left(encounter_id: String)
+## An encounter was answered and is going.
+signal wayside_resolved(encounter_id: String, choice_id: String)
+## Something the Warden did that the earth minds as it minds a kill, `weight`
+## common kills' worth. Read by the sky and nothing else.
+signal earth_offended(weight: float)
 signal coop_world_hazard(kind: String, payload: Dictionary)

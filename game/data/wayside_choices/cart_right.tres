@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cart_right"
+label = "Right it and wait"
+hint = "Timber for the axle. Whoever owns it may be grateful."
+outcome = "The trader comes back out of the trees, shaking, and presses something from the load into your hands before they go."
+cost_currency = "wood"
+cost_amount = 30
+boon = 2
+boon_amount = 1.0

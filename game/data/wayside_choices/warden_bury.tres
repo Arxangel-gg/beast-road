@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "warden_bury"
+label = "Bury them"
+hint = "Stone for a cairn of their own. You may learn something from how they fell."
+outcome = "You lay the stones over them and read the road the way they must have. You understand it a little better."
+cost_currency = "stone"
+cost_amount = 20
+boon = 5
+boon_amount = 0.3

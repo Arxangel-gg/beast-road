@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "snared_beast"
+title = "A %s in a Snare"
+text = "A hunter's snare, and something rare caught in it, pulling against the wire. The hunter is nowhere. Its kind will be somewhere near."
+scene = 1
+animal_rarity = 2
+first_act = 4
+weight = 0.7
+choice_ids = PackedStringArray("snare_free", "snare_take")

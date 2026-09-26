@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cart_strip"
+label = "Take what the road left"
+hint = "Coin from the spilled load, and nothing owed to anyone."
+outcome = "You fill your pockets and leave the rest for the crows."
+boon = 1
+boon_currency = "gold"
+boon_amount = 40.0

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wounded_animal"
+title = "A Wounded %s"
+text = "It lies in the long grass with a broken shaft in its flank, too tired to run, and watches you come."
+scene = 1
+choice_ids = PackedStringArray("wounded_tend", "wounded_end")

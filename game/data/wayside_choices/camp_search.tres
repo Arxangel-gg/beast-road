@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "camp_search"
+label = "Go through what they left"
+hint = "Tools and stone. And whatever drove them off may still be about."
+outcome = "You find their stores - and hear, behind you, whatever it was they ran from."
+boon = 1
+boon_currency = "stone"
+boon_amount = 40.0
+bane = 6
+bane_amount = 1.0
