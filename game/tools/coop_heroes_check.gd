@@ -332,6 +332,27 @@ func _test_a_guests_dye_reaches_the_party() -> void:
 	heroes.call("_on_request", CoopRelay.Request.HERO_LOOK, [[0.9, 0.9]], 9999)
 	_check(is_equal_approx(float(partner.look.get("cloak", 0.0)), 0.3),
 		"a packet from an unseated peer dressed somebody's Warden")
+	# **And what it wears** (2026-09-26): four kinds by name, checked against
+	# this build's content. Before this a partner was never dressed at all, and
+	# a party of dressed Wardens drew every partner as the old painted one.
+	var sword: String = "coalpaint_edge"
+	var cape: String = "roadwardens_mantle"
+	_check(ContentDB.gear(sword) != null and ContentDB.gear(cape) != null,
+		"the harness's sword or cape is not in the content any more")
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[sword, "", cape, ""]], peer)
+	_check(partner.gear_kinds == [sword, "", cape, ""],
+		"a guest's gear never reached the host's mirror: %s" % str(partner.gear_kinds))
+	var packed_gear: Array = heroes.call("_gear_of", slot, partner) as Array
+	_check(packed_gear == [sword, "", cape, ""],
+		"the host packs %s for that seat - a third player would see it bare" % str(packed_gear))
+	# A kind in the wrong slot and a kind this build does not know are nothing.
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[cape, "no_such_kind", sword, ""]], peer)
+	_check(partner.gear_kinds == ["", "", "", ""],
+		"a packet put gear where it does not go: %s" % str(partner.gear_kinds))
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[sword, "", cape, ""]], peer)
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [["", "", "", ""]], 9999)
+	_check(partner.gear_kinds[0] == sword, "a packet from an unseated peer undressed somebody's Warden")
+	partner.wear_gear([])
 	party.unseat(peer)
 	party.unseat(1)
 	partner.wear_look([])

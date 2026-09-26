@@ -223,6 +223,13 @@ var look: Dictionary = WardenLook.plain()
 ## What this Warden is wearing, as `WardenDress.outfit` names it (2026-09-25).
 ## The local player's comes from the save; a mirrored partner's is told.
 var outfit: Dictionary = {}
+## What a partner wears, by kind: weapon, armour, cape, helmet (2026-09-26).
+## Told over the wire, because a partner's gear is another account's; this
+## machine's own Warden reads its own save instead. Presentation only.
+var gear_kinds: Array[String] = ["", "", "", ""]
+## The slots `gear_kinds` names, in order.
+const DRESS_SLOTS: Array[int] = [GearData.Slot.WEAPON, GearData.Slot.ARMOUR, GearData.Slot.CAPE,
+	GearData.Slot.HELMET]
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
@@ -1785,6 +1792,12 @@ func _dress_warden() -> void:
 		outfit = WardenDress.outfit(look, _worn_kind(GearData.Slot.WEAPON),
 			_worn_kind(GearData.Slot.ARMOUR), _worn_kind(GearData.Slot.CAPE),
 			_worn_kind(GearData.Slot.HELMET))
+	else:
+		# A partner: dressed from what the wire said it looks like and wears.
+		# Before this it was never dressed at all, and a dressed party drew
+		# every partner as the old painted Warden.
+		outfit = WardenDress.outfit(look, ContentDB.gear(gear_kinds[0]), ContentDB.gear(gear_kinds[1]),
+			ContentDB.gear(gear_kinds[2]), ContentDB.gear(gear_kinds[3]))
 	frames.dress(outfit)
 
 
@@ -1801,6 +1814,36 @@ func wear_look(row: Variant) -> void:
 	look = wanted
 	if _blood_tried and sprite != null:
 		WardenLook.dress(sprite, look)
+		# The body, the hair, the beard and the skin are the dress, not the dye.
+		_dress_warden()
+
+
+## This account's own worn gear, by kind, in `DRESS_SLOTS` order: what a guest
+## tells the party and what a host packs for its own seat.
+static func worn_kinds() -> Array[String]:
+	var out: Array[String] = []
+	for slot: int in DRESS_SLOTS:
+		out.append(String(MetaState.equipped_piece(slot).get("kind", "")))
+	return out
+
+
+## Told what a partner wears. Cleaned whole: four entries, each a kind this
+## build knows in the slot it is named for, or nothing - a packet is not trusted
+## to put a helmet in the weapon's hand.
+func wear_gear(row: Variant) -> void:
+	var wanted: Array[String] = ["", "", "", ""]
+	if row is Array:
+		var given: Array = row
+		for index: int in mini(given.size(), DRESS_SLOTS.size()):
+			var kind: String = String(given[index]) if given[index] is String else ""
+			var gear: GearData = ContentDB.gear(kind) if not kind.is_empty() else null
+			if gear != null and gear.slot == DRESS_SLOTS[index]:
+				wanted[index] = kind
+	if wanted == gear_kinds:
+		return
+	gear_kinds = wanted
+	if _blood_tried and sprite != null:
+		_dress_warden()
 
 
 ## Gets off, here, facing the way the Warden was going.

@@ -53,29 +53,36 @@ so a part flagged behind one level deeper is drawn over the body.
 
 ## Heads (owner, 2026-09-26)
 
-*"8 hairstyles, beards yes, code sway, one face."*
+*"8 hairstyles, beards yes, code sway, one face"* - and then, the same day,
+*"12-24 hairstyles or more and including styles for both genders"* and *"4-8
+beards is fine"*.
 
-| Male | Female |
-|---|---|
-| close-cropped | pixie crop |
-| short tousled | chin-length bob |
-| swept-back undercut | shoulder-length loose |
-| shoulder-length loose | single long braid down the back |
-| long, tied in a ponytail | high ponytail |
-| warrior topknot | braided crown |
-| shaved sides, braided crest | twin braids |
-| long braids | shaved sides, braided crest |
+Eighteen styles, **each drawn on both bodies in one order**, so a slot is the
+same style on either: close-cropped, short and tousled, short curls, swept-back
+undercut, side-swept, braided crest, chin-length bob, shoulder-length, long and
+flowing, wild mane, rounded afro, locs, tied back, high ponytail, topknot, long
+braid, twin braids, braided crown. Bald is the nineteenth choice.
 
-Beards on the male body: stubble, trimmed, full, braided. Bald and clean-shaven
-are the ninth and fifth choices and cost nothing.
+Six beards on the male body: stubble, moustache, goatee, trimmed, full,
+braided. Clean-shaven is the seventh.
 
 - A style is a state of the body's own base, **drawn in chroma-key green**,
   keyed out of its eight rotations inside the head's region, and coloured at
   runtime by mapping the key's light and dark onto the chosen hair colour.
-- In play it is pinned to the rig's head point every frame (the neck-to-nose
-  line gives its turn), chosen by the head's facing, and swayed in code by the
-  Warden's own movement. A helmet uses the same socket and hides the hair.
+- In play it is pinned to the rig's head point every frame, chosen by the
+  head's facing, and swayed in code by the Warden's own movement. A helmet uses
+  the same socket and hides the hair.
 - One face a body.
+
+**All forty-two are bought, keyed and installed** (80x128 cells). The full
+beard's first take drew its east and west as three-quarter views and was
+bought again; the braided beard's back views are blanked by name.
+
+## Skin (owner, 2026-09-26)
+
+Ten tones, the first as painted, turned in the shader from the painted skin's
+mean onto the tone, where a mask packed beside each body sheet says skin. See
+CLAUDE.md for how the mask is found and why colour alone could not find it.
 
 ## Two motion families
 
@@ -96,10 +103,12 @@ frames 4), so two animations share one 15-frame job: eight clips a facing,
 | Fifteen cape icons | ~90 | done, in the game |
 | Twenty-three held weapons | ~140 | done, in the game, grips found |
 | Pilots (three short jobs) | 10 | done |
-| Male and female base layers | 496 | waiting on the pilot's sign-off |
+| Male and female base layers | 496 | male in the game; female buying |
 | Light and heavy armour, both bodies (4 states + animation) | ~1,110 | after the bases |
 | Long cape, both bodies (2 states + animation) | ~560 | after the bases |
-| Hair (eight a body), beards (four, male) and helmets (four classes a body) | ~840 (28 states at 20-40) | owner ruling 2026-09-26; a keyed pilot first |
+| Hair (eighteen styles, both bodies) and beards (six, male) | ~1,720 (43 states at ~40) | done, in the game |
+| Re-rolls of the male base (depth sent; 21 takes) and depth probes | ~95 | done |
+| Helmets (four classes a body) | ~320 | not started |
 | **Remaining** | **~2,050** | of 4,085 left after the day's 232 |
 
 ## The checks every layer passes through

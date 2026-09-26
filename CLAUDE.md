@@ -9931,19 +9931,22 @@ body sprite, and the gate asks which holder a part hangs from; planted back, it
 names the cape. A flag on a node is a model of the picture, and this file has
 recorded what those are worth.
 
-**Heads are socketed, and the owner sized them, as of 2026-09-26.** Four
-rulings, in the owner's words: *"8 hairstyles, beards yes, code sway, one
-face"*.
+**Heads are socketed, and the owner sized them twice, as of 2026-09-26.** The
+first ruling was *"8 hairstyles, beards yes, code sway, one face"*; the same day
+it became *"12-24 hairstyles or more and including styles for both genders"*
+and *"4-8 beards is fine"*. What stands:
 
-- **Eight hairstyles a body**, sixteen in all, plus bald. A style is a PixelLab
-  state of that body's base in eight rotations, never an animation: it is
-  pinned to the rig's head point every frame and chosen by the head's facing.
-  Styles are drawn per body because the heads differ.
-- **Beards, on the male body.** The count was not given; four are budgeted
-  (stubble, trimmed, full, braided) and it is one line in the list to change.
+- **Eighteen hairstyles, each drawn on both bodies**, plus bald. A style is a
+  PixelLab state of that body's base in eight rotations, never an animation: it
+  is pinned to the rig's head point every frame and chosen by the head's
+  facing. Both bodies list the styles in one order (`tools/warden_rig/heads.json`),
+  so a style's slot is the same style whichever body wears it - changing body
+  never changes the haircut.
+- **Six beards, on the male body** (stubble, moustache, goatee, trimmed, full,
+  braided). The female body grows none and the glass does not offer one.
 - **The sway is code**, driven by the Warden's own movement - a presentation
   and never a fact, like every other look. An animated style would be a whole
-  body layer (248 generations) per style, and sixteen of them is the budget.
+  body layer (248 generations) per style.
 - **One face a body.** A second face is a second animated body, and it is not
   bought.
 
@@ -9952,8 +9955,55 @@ keyed out of its state on a colour nothing else on the Warden wears, and its
 light and dark are mapped onto the chosen hair colour, so every style comes in
 every colour without a generation more - black and white included, which a hue
 turn cannot reach. Helmets sit on the same head point and hide the hair while
-worn. Body, skin, style, hair colour and beard are entries appended to
-`WardenLook.KEYS`, never inserted, and nothing else about them is saved.
+worn. The sheets are 80x128 a cell: waist-length hair did not fit 64x96. A
+style that hangs keeps the pieces of itself that pass behind a shoulder and
+reappear lower (`heads.HANGING_REACH`), and a view the generator drew wrong can
+be blanked by name - the braided beard grew a braid down his back.
+
+**Skin tones, as of the same date** (owner: *"make sure players can also
+properly select their skintones"*). Ten, the first the skin as painted, turned
+in the body shader from the painted skin's mean onto the tone - a multiply
+where the tone is darker, a multiply in the inverted space where it is lighter,
+so a highlight compresses toward white instead of clipping. A luminance ramp
+was tried beside it and turned every tone grey.
+
+**Where the skin is, is a colour and a place**, because the boots, the belt and
+the lantern's iron are painted in the skin's own hues - the lantern's iron is
+(128, 72, 42), which is also on the jaw of the same frame. `tools/warden_rig/skin.py`
+marks a pixel skin when it is skin-coloured, nearer a bare bone (head, neck and
+collar, arms, hands) than a boot, and not the lantern's, which hangs at a place
+in the body's own frame fitted to the lit glass of the eight rotations. The
+owner caught the first two cuts on screen - the near arm in every profile, then
+the fingertips, where a far knee projects up to the hand's height - and each
+time the answer was geometry, never a looser colour. `pack.py` writes
+`<state>_skin.png` beside every sheet and the painted mean into its meta;
+`dress_check` measures that mean back off the paint.
+
+**The skeleton endpoint is sent each joint's depth, as of the same date.** Left
+out, PixelLab takes depth from a standing template, so a fist swung across the
+chest and seen from behind was painted across the back (owner: *"North12-North14
+... had the attacking hand behind the back"*). `rig.project(..., depth=True)`
+sends the true distance from the camera. A same-seed probe at 1.7x the depth
+turned the face just as the first try had, so a bad take is the seed, not the
+scale. Every re-roll and the female base use it, and a layer drawn over
+another follows the base job's flag (`batch.uses_depth`), because two states
+land on the same pixels only from the same keypoints.
+
+**Frames a generator cannot draw are repaired at pack time, visibly.** A
+one-shot's dissolving last frame holds the one before (`pack.hold_dissolved_end`,
+measured by pin-holes and lone pixels), and a frame named in
+`tools/warden_rig/repairs.json` holds a neighbour - the south draw's frame five
+melted the head on two seeds, because the bow arm points at the camera across
+the face. A repair is a line in a file, never a silent edit to the art.
+
+**The Warden's Glass, as of the same date**, is the one screen for all of it:
+body, skin, hairstyle, hair colour, beard and the three dyes, beside the
+Warden turning on a lit pedestal - drawn by the real `HeroAnimator` from
+`WardenDress.outfit`, so it cannot disagree with the road. It is the Hold's door
+for the look and is offered to a new Warden before their first road and before
+the Walk, derived from `runs_started` and a plain look, never stored.
+`warden_glass_check` holds that an untouched glass writes nothing and that
+nothing but the look moves.
 
 ### The three escape hatches - and why there are only three
 

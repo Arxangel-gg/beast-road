@@ -366,6 +366,7 @@ func _physics_process(delta: float) -> void:
 	if Coop.is_guest():
 		_send_input(relay)
 		_tell_them_my_dye(relay, delta)
+		_tell_them_my_gear(relay, delta)
 	else:
 		# The host sends its input too, not only its position. A mirrored hero
 		# with no input has no velocity, and every animation in this game is
@@ -718,6 +719,25 @@ func _tell_them_my_dye(relay: CoopRelay, delta: float) -> void:
 	_on_local_look_changed(row)
 
 
+var _gear_timer: float = 0.0
+var _gear_said: Array = []
+
+
+## What this guest wears, told as the dye is and for the same reasons: on the
+## first tick, then rarely, and only when it changed. Gear cannot change on the
+## road, so this is an arrival rather than a stream.
+func _tell_them_my_gear(relay: CoopRelay, delta: float) -> void:
+	_gear_timer -= delta
+	if _gear_timer > 0.0:
+		return
+	_gear_timer = LOOK_INTERVAL
+	var row: Array = Hero.worn_kinds()
+	if row == _gear_said:
+		return
+	_gear_said = row.duplicate()
+	relay.request(CoopRelay.Request.HERO_GEAR, [row])
+
+
 ## A guest telling the party how its own Warden is dyed.
 ##
 ## **The one thing about a look that cannot be worked out locally.** The dye is
@@ -756,7 +776,8 @@ func _send_state() -> void:
 		if who == null:
 			continue
 		rows.append([number, who.global_position, who.aim_direction(),
-			_health_of(who), _mana_of(who), _saddled_of(number), _look_of(number, who)])
+			_health_of(who), _mana_of(who), _saddled_of(number), _look_of(number, who),
+			_gear_of(number, who)])
 	if rows.is_empty():
 		return
 	EventBus.coop_hero_state.emit(rows)
@@ -770,6 +791,15 @@ func _look_of(number: int, who: Hero) -> Array:
 	if number == Coop.party().slot():
 		return WardenLook.pack(WardenLook.worn())
 	return WardenLook.pack(who.look)
+
+
+## What a seat wears, as four kind ids. **Appended to the row** like the look
+## before it: an older build reads the eighth element nowhere, and this build
+## reads it only `if row.size() > 7`.
+func _gear_of(number: int, who: Hero) -> Array:
+	if number == Coop.party().slot():
+		return Hero.worn_kinds()
+	return who.gear_kinds.duplicate()
 
 
 ## Which mount a seat is on, as an id.
@@ -829,12 +859,13 @@ func _on_hero_state(rows: Array) -> void:
 			row[1] as Vector2, float(row[3]),
 			float(row[4]) if row.size() > 4 else -1.0,
 			String(row[5]) if row.size() > 5 else "",
-			row[6] if row.size() > 6 and row[6] is Array else [])
+			row[6] if row.size() > 6 and row[6] is Array else [],
+			row[7] if row.size() > 7 and row[7] is Array else [])
 
 
 ## One seat's authoritative position and health, on a guest.
 func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0,
-		mount_id: String = "", look_row: Array = []) -> void:
+		mount_id: String = "", look_row: Array = [], gear_row: Array = []) -> void:
 	var who: Hero = _hero_for_slot(number)
 	if who == null:
 		return
@@ -843,6 +874,8 @@ func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0,
 	# machine sent would overwrite a slider it is still moving.
 	if number != Coop.party().slot() and not look_row.is_empty():
 		who.wear_look(look_row)
+	if number != Coop.party().slot() and not gear_row.is_empty():
+		who.wear_gear(gear_row)
 	# Told for every seat including this player's own, which is harmless and
 	# self-correcting: the host is echoing back the id this machine sent it.
 	who.wear_mount(mount_id)
@@ -897,6 +930,15 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			var worn: Hero = _hero_for_slot(dyed)
 			if worn != null:
 				worn.wear_look(args[0])
+		return
+	if kind == CoopRelay.Request.HERO_GEAR:
+		# By the peer it arrived on, like the dye; `wear_gear` refuses a kind in
+		# the wrong slot and one this build does not know.
+		var wearer: int = Coop.party().slot_for_peer(from)
+		if wearer > 0 and args.size() >= 1:
+			var dressed: Hero = _hero_for_slot(wearer)
+			if dressed != null:
+				dressed.wear_gear(args[0])
 		return
 	if kind == CoopRelay.Request.HERO_MOUNT:
 		var seat: int = Coop.party().slot_for_peer(from)

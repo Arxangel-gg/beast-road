@@ -308,6 +308,13 @@ enum Request {
 	## attributed by the peer it arrived on rather than by a slot in the
 	## packet. 41, read off the whole table rather than its tail.
 	HERO_LOOK = 41,
+	## A guest's worn gear, as four kind ids - weapon, armour, cape, helmet -
+	## so its partners draw the Warden it is (2026-09-26): the modular Warden
+	## wears its gear, and gear is the other account's to know. Kinds by name,
+	## never pieces: nothing about a piece's rarity, level or bonuses travels,
+	## and a kind this build does not know is drawn as nothing. 42, read off
+	## the whole table rather than its tail.
+	HERO_GEAR = 42,
 }
 
 ## Facts that are *state announcements* rather than events.
