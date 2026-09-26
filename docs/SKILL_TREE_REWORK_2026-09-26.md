@@ -404,3 +404,113 @@ to keep sixty there.
 4. The swarm and the denser waves, measured against `curve_report` and the
    frame.
 5. Content: distinct skills, upgrades, Oaths and Roadcraft nodes.
+
+
+---
+
+## 8. Augments: a draft on every road rank (2026-09-26, later still)
+
+The owner asked for *"random augment cards each time the player levels up as
+well as other events that are worthy of giving the players as well as possibly
+incremental augments rewarded every so often while players continue to
+survive"*, in the manner of Megabonk and Tower of Babel.
+
+### 8.1 Why this is now right, when section 2 rejected it
+
+Section 2 rejected *"a random level-up pool as the build engine"*, because it is
+Tower of Babel's most-cited fault: the build's core is drawn, so a run lives or
+dies on whether the main skill is offered. That objection was about the
+**core**. Phase 1 moved the core out of reach of any draw - skills, the chain
+form and the Oath live in the Disciplines, kept on the account and chosen in the
+Hold. So a random draft can no longer withhold a build; it can only add to one.
+Randomness may add, never withhold, is exactly the rule section 2 set.
+
+### 8.2 One deck, not a third draft
+
+**Road Cards become Augments.** One deck, one hand, dealt from more places. A
+second pool beside Road Cards and the portents would be the third draft this
+project has refused since `IDEAS_REVIEW` §4, and two decks tuned apart would
+disagree about what a card is worth.
+
+**Roadcraft folds into it.** Section 7.1's per-run tree was the survivors-like
+feeling bought from a menu; the owner asked for it dealt. Its three branches -
+Warden, Rampart, Hearth - become the three kinds of augment, and the run's tree
+is the board those augments fill in: a branch reaching three and six augments
+opens a keystone for that branch. A tree that grows from what the road dealt
+you, and resets with the road.
+
+### 8.3 Where augments come from
+
+| Source | Draft | Why |
+|---|---|---|
+| **Road rank** - a run-scoped level bar filled by kills | 3 cards, pick 1, every rank | The Megabonk level-up. Ranks come fast early in a road and slower late, and reset each road. |
+| Crossroad | the road's draft, as Road Cards are dealt today | Unchanged. |
+| Act boss falls | a draft with a Rare floor, beside the portent | The loudest moment in the game should change the build. |
+| Camp razed, raid chieftain, rift or dungeon stage cleared | a draft | The Warden-only objectives of `DESIGN_DIRECTION_2026-09-22` §2, paid in build rather than Gold. |
+| Mythic encounter answered | a draft with an Epic floor | The rarest thing on the road pays in kind. |
+| **Holdfast**: every `AUGMENT_HOLDFAST_WAVES` waves survived | a **Tempering**: one held augment of the player's choosing gains a level | The incremental reward for surviving. It deepens the build rather than widening it. |
+| A clean wave (the wall untouched) | raises the rarity odds of the next draft | Defending well is what luck is made of. |
+
+**Not the Warden's level.** That level is the account's: level 10 lands in the
+middle of Act II and a veteran climbs one level a campaign or less. A draft on
+it would shower a new Warden and starve a practised one - backwards - and it
+would feed the account's power scale from a run system. The road rank is the
+run's own level-up, beside the persistent XP strip rather than instead of it.
+
+### 8.4 How a draft plays
+
+- **Three offered, one taken, or skip** for a small refund.
+- **Taking one you hold levels it**, I to V - the incremental growth the owner
+  asked for - rather than dealing a copy. A card's magnitude climbs by level to a
+  ceiling per effect key, which is today's `ROAD_CARD_MAX_MAGNITUDE` bound read
+  at level V.
+- **The hand is eight**, up from five, and full it deals levels and replacements.
+- **The tools against luck**, which are Tower of Babel's 1.8 fix and the answer
+  to the review the owner quoted: Reroll, Banish (a card never offered again this
+  road), and Lean - the deck weighs toward the tags already held, in the hand and
+  in the Disciplines, so a synergy can be built on purpose. A few of each a road,
+  more from the events above. The draft shows what is left in the deck.
+- **Picks bank rather than interrupt.** A rank-up mid-wave pulses a card on the
+  HUD; the player opens it when they choose (solo, the field freezes while it is
+  open, as a crossroad does) and the breather opens any still waiting. A setting
+  opens each draft the moment it is dealt, for players who want Megabonk's pace.
+
+### 8.5 Co-op
+
+Each Warden has their own rank bar, their own draws and their own hand of
+**Warden** augments. **Rampart and Hearth** augments act on the shared board and
+the town, so they go to one party hand with its own limit - four players must not
+stack four tower-damage cards on one board. The host rolls every offer, per seat,
+on its own stream, and a pick is asked by card id and never by magnitude: the
+rule the fish, the crops and the eggs already live under.
+
+### 8.6 Bounds
+
+- **Every augment moves a number `Modifiers` already resolves, or is a
+  keystone re-route** - the Road Card, portent and set bound, unchanged.
+- **It is a run-scoped power scale, measured.** Many drafts a road is real power
+  and the owner has asked for it. `curve_report` models the ranks a road deals by
+  each wave and the augment levels they buy, and **the denser road of §7.2 is
+  scaled against that model** - the owner's own pairing: more enemies so the
+  augments have something to shine against. An augment level the model does not
+  carry is forbidden, exactly as ascension's are.
+- **Nothing persists.** A hand is the road's and is banked with the front, as
+  Road Cards are. What may persist is which augments are **in the pool**:
+  unlocking a card into the deck is an unlocked id, which working rule 7 already
+  sanctions.
+- **The ledger comes with it.** Section 3.8's damage report, by source - every
+  augment, tower, skill and blow received - on the pause screen and the debrief.
+  A draft the player cannot see the value of is the review's "Blackjack against a
+  cheating AI" in a nicer suit.
+
+### 8.7 Order of work, revised
+
+1. Done: the fixes found on the way.
+2. The Disciplines foundation (phase 1) - built and in its gates.
+3. **Augments**: road ranks, the one deck with levels and eight slots, the draft
+   sources, the tools against luck, banked picks, co-op hands, and the ledger.
+   Replaces "Roadcraft and road ranks".
+4. The swarm and the denser road, tuned **together** with augments against
+   `curve_report` and the frame, because each is measured against the other.
+5. Content: about sixty augments across the three branches and their branch
+   keystones, distinct skills, upgrades and Oaths.
