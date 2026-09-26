@@ -63,6 +63,8 @@ static func may_deal(card: RoadCardData, hand: Array, levels: Dictionary,
 		banished: Array) -> bool:
 	if card == null or banished.has(card.id):
 		return false
+	if card.branch_needs > 0 and branch_depth(hand, int(card.branch)) < card.branch_needs:
+		return false
 	if hand.has(card.id):
 		return card.levels() and _level_of(card.id, levels) < card.max_level()
 	if card.keystone:
@@ -72,6 +74,17 @@ static func may_deal(card: RoadCardData, hand: Array, levels: Dictionary,
 		if other != null and not other.keystone and other.effect_id == card.effect_id:
 			return card.rarity > other.rarity
 	return true
+
+
+## How many cards of `branch` the hand holds, keystones not counted - a keystone
+## is what a branch opens, never part of what opens it.
+static func branch_depth(hand: Array, branch: int) -> int:
+	var depth: int = 0
+	for held: Variant in hand:
+		var card: RoadCardData = ContentDB.road_card(String(held))
+		if card != null and not card.keystone and int(card.branch) == branch:
+			depth += 1
+	return depth
 
 
 ## The cards a draft may deal from, sorted by id so a seed deals the same deck

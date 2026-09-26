@@ -107,6 +107,9 @@ func _test_every_keystone_is_authored() -> void:
 		_check(card.first_act >= 3, "%s is dealt from act %d, before the draft has a hand" % [card.id, card.first_act])
 		_check(not card.card_text.strip_edges().is_empty(), "%s says nothing" % card.id)
 		_check(ResourceLoader.exists(card.get_sprite_path()), "%s has no icon" % card.id)
+		_check(card.branch_needs == 3 or card.branch_needs == 6,
+			"%s opens at %d of its branch; a branch's keystones open at three and six"
+				% [card.id, card.branch_needs])
 		_check(Modifiers.LABELS.has(card.effect_id), "%s has no label on the table" % card.id)
 		claimed[card.effect_id] = true
 	# Every keystone flag has a card, or it is a flag nothing can set.
@@ -160,11 +163,18 @@ func _test_the_ordinary_draft_did_not_move() -> void:
 
 
 ## Dealt about as often as authored, only in the last slot, and never early.
+##
+## **Over a hand deep in the Warden's branch** (amended 2026-09-26): a keystone
+## is what three and six cards of its branch open now, so an empty hand is
+## dealt none and the old measurement over one would read nought. The chance,
+## the slot and the act are what this holds, and a hand that opens two of them
+## measures all three.
 func _test_keystones_are_dealt_and_only_last() -> void:
+	var deep: Array = _warden_hand(6)
 	var dealt: int = 0
 	var offers: int = 3000
 	for _i: int in offers:
-		var drawn: Array[String] = RoadCardData.offer([], 5, Balance.ROAD_CARD_OFFER_COUNT)
+		var drawn: Array[String] = RoadCardData.offer(deep, 5, Balance.ROAD_CARD_OFFER_COUNT)
 		for index: int in drawn.size():
 			var card: RoadCardData = ContentDB.road_card(drawn[index])
 			if card != null and card.keystone:
@@ -175,8 +185,29 @@ func _test_keystones_are_dealt_and_only_last() -> void:
 	_check(absf(share - Balance.KEYSTONE_OFFER_CHANCE) < 0.04,
 		"keystones came in %.3f of drafts against %.3f" % [share, Balance.KEYSTONE_OFFER_CHANCE])
 	for _i: int in 400:
-		for id: String in RoadCardData.offer([], 2, Balance.ROAD_CARD_OFFER_COUNT):
+		for id: String in RoadCardData.offer(deep, 2, Balance.ROAD_CARD_OFFER_COUNT):
 			_check(not ContentDB.road_card(id).keystone, "a keystone was dealt in act 2")
+	# And never to a hand shallower than its branch asks.
+	var shallow: Array = _warden_hand(2)
+	for _i: int in 1500:
+		for id: String in RoadCardData.offer(shallow, 5, Balance.ROAD_CARD_OFFER_COUNT):
+			var card: RoadCardData = ContentDB.road_card(id)
+			_check(not card.keystone or card.branch_needs <= Augments.branch_depth(shallow, int(card.branch)),
+				"%s was dealt to a hand %d deep in its branch; it asks for %d" % [card.id,
+					Augments.branch_depth(shallow, int(card.branch)), card.branch_needs])
+
+
+## The first `count` Warden cards, by id: a hand that deep in one branch.
+func _warden_hand(count: int) -> Array:
+	var hand: Array = []
+	var ids: Array = ContentDB.road_cards.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		if card != null and not card.keystone and card.branch == RoadCardData.Branch.WARDEN \
+				and hand.size() < count:
+			hand.append(card.id)
+	return hand
 
 
 # --- The doors ------------------------------------------------------------------------------

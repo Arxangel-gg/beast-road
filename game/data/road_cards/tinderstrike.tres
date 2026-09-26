@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 branch = 0
+branch_needs = 6
 tags = Array[String](["Fire", "Finisher"])
 id = "tinderstrike"
 display_name = "Tinderstrike"

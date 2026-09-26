@@ -15,7 +15,7 @@ var _checks: int = 0
 ## Every test stamps this as its last line, so one that aborts on a runtime
 ## error - which stops that function and nothing else - cannot pass by omission.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 16
+const EXPECTED_TESTS: int = 18
 var _run: Run = null
 var _field: Battlefield = null
 
@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_the_party_holds_one_hand()
 	_test_an_act_start_banks_the_road()
 	_test_the_ledger_names_every_blow()
+	_test_a_branch_opens_its_keystones()
 
 	RunState.reset(false, 20260926)
 	GameDirector.run_active = true
@@ -52,6 +53,7 @@ func _ready() -> void:
 		await _test_the_breather_opens_the_draft()
 		await _test_later_waits_for_the_next_breather()
 		await _test_at_once_holds_the_road()
+		await _test_the_strip_opens_a_draft()
 
 	MetaState.settings[UserSettings.AUGMENT_AT_ONCE_KEY] = false
 	RunState.reset(false, 20260926)
@@ -712,6 +714,42 @@ func _test_the_ledger_names_every_blow() -> void:
 	_finished += 1
 
 
+## **Depth in a branch opens its keystones** - three cards the first, six the
+## second - and a keystone never counts toward the depth that opens it.
+func _test_a_branch_opens_its_keystones() -> void:
+	var warden: Array[String] = []
+	for card: RoadCardData in _sorted_cards():
+		if not card.keystone and card.branch == RoadCardData.Branch.WARDEN:
+			warden.append(card.id)
+	var first: RoadCardData = _first(func(c: RoadCardData) -> bool:
+		return c.keystone and c.branch == RoadCardData.Branch.WARDEN and c.branch_needs == 3)
+	var second: RoadCardData = _first(func(c: RoadCardData) -> bool:
+		return c.keystone and c.branch == RoadCardData.Branch.WARDEN and c.branch_needs == 6)
+	_check(first != null and second != null and warden.size() >= 6,
+		"the Warden's branch has no keystone at three and six, or too few cards to reach them")
+	if first == null or second == null or warden.size() < 6:
+		return
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 33
+	var none: Array = []
+	for depth: int in [0, 2, 3, 5, 6]:
+		var hand: Array = warden.slice(0, depth)
+		var saw_first: bool = false
+		var saw_second: bool = false
+		for _i: int in 1500:
+			var dealt: Array[String] = Augments.deal(dice, 3, 0, hand, {}, Balance.ACT_COUNT,
+				none, 0, none)
+			saw_first = saw_first or dealt.has(first.id)
+			saw_second = saw_second or dealt.has(second.id)
+		_check(saw_first == (depth >= 3), "%s at a Warden depth of %d was %s" % [first.id,
+			depth, "dealt" if saw_first else "never dealt"])
+		_check(saw_second == (depth >= 6), "%s at a Warden depth of %d was %s" % [second.id,
+			depth, "dealt" if saw_second else "never dealt"])
+	_check(Augments.branch_depth([first.id, second.id], RoadCardData.Branch.WARDEN) == 0,
+		"a keystone counted toward the depth that opens it")
+	_finished += 1
+
+
 func _scripts_under(folder: String) -> Array[String]:
 	var out: Array[String] = []
 	var dir: DirAccess = DirAccess.open(folder)
@@ -810,6 +848,33 @@ func _test_later_waits_for_the_next_breather() -> void:
 	screen.close_augment_draft()
 	for _frame: int in 4:
 		await get_tree().process_frame
+	_finished += 1
+
+
+## **The strip opens a banked draft**: in a fight, playing alone, the road holds
+## for it exactly as At once holds it.
+func _test_the_strip_opens_a_draft() -> void:
+	var screen: CrossroadScreen = _run.crossroad_ui
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	for _frame: int in 3:
+		await get_tree().process_frame
+	RunState.queue_augment(Augments.SOURCE_RANK)
+	for _frame: int in 3:
+		await get_tree().process_frame
+	_check(not screen.is_augment_open(), "a draft opened in a fight before anybody asked")
+	_check(EventBus.augment_open_requested.is_connected(_run._on_augment_open_requested),
+		"nothing answers the strip")
+	EventBus.augment_open_requested.emit()
+	for _frame: int in 3:
+		await get_tree().process_frame
+	_check(_field.is_suspended() and screen.is_augment_open(),
+		"asking for a banked draft in a fight did not hold the road and open it")
+	RunState.skip_augment()
+	screen.close_augment_draft()
+	for _frame: int in 3:
+		await get_tree().process_frame
+	_check(not _field.is_suspended(), "closing the asked-for draft did not let the field go")
+	RunState.set_phase(RunState.Phase.PREPARATION)
 	_finished += 1
 
 

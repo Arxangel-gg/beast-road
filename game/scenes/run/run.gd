@@ -137,6 +137,7 @@ func _ready() -> void:
 	EventBus.road_card_taken.connect(_on_road_card_taken)
 	crossroad_ui.augment_closed.connect(_on_augment_closed)
 	EventBus.augment_queued.connect(_on_augment_queued)
+	EventBus.augment_open_requested.connect(_on_augment_open_requested)
 	EventBus.road_rank_gained.connect(_on_road_rank_gained)
 	EventBus.phase_changed.connect(_on_phase_for_augments)
 	# The sheet docks over the left of the screen, which is where part of the
@@ -1556,6 +1557,28 @@ func _open_augment_at_once() -> void:
 	if _scope != GameDirector.Scope.BATTLEFIELD or not RunState.is_command_combat():
 		return
 	if battlefield.is_suspended() or RunState.augments_waiting() <= 0:
+		return
+	battlefield.suspend()
+	_augment_froze_field = true
+	if not crossroad_ui.open_augment_draft():
+		_augment_froze_field = false
+		battlefield.resume()
+
+
+## **The player asked for a banked draft now.** In Preparation it simply opens;
+## in a fight, playing alone, the road holds for it as At once holds it - a
+## shared road never stops for one player's cards, so there it waits for the
+## breather.
+func _on_augment_open_requested() -> void:
+	if crossroad_ui == null or crossroad_ui.is_open() or _locked or Coop.is_guest():
+		return
+	if RunState.augments_waiting() <= 0 or _scope != GameDirector.Scope.BATTLEFIELD:
+		return
+	_augments_put_off = false
+	if RunState.is_preparation():
+		crossroad_ui.open_augment_draft()
+		return
+	if Coop.is_networked() or not RunState.is_command_combat() or battlefield.is_suspended():
 		return
 	battlefield.suspend()
 	_augment_froze_field = true

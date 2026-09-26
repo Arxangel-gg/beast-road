@@ -10336,8 +10336,10 @@ drives every door. What is a decision rather than a detail:
   release mid-swing cannot press a card, and **hold the breather's clock** alone.
   `Later` keeps them for the next Preparation; **At once** (Settings > Game,
   solo only, off by default) holds the road and opens each draft the moment it
-  is earned. Not built from the design: a HUD card to open a banked draft
-  mid-wave, and a count of what is left in the deck.
+  is earned. **The road-rank strip is the third door**: it takes a click or a
+  tap only while a draft waits, and in a fight, alone, it holds the road as At
+  once does. The pad is full, so it has no button; the breather opens every
+  draft anyway. The draft shows what is left in the deck.
 - **Taking a held card levels it**, and a better card for a held key keeps the
   levels the old one grew - otherwise the better card would be the worse pick.
   The deal never offers a downgrade, never two cards on one key and never two
@@ -10351,6 +10353,16 @@ drives every door. What is a decision rather than a detail:
   (`ACT_START_DRAFTS`, `ACT_START_ROAD_RANK`), read off the report like the purse
   and retyped with it. The road is tuned against a hand that size, and a road
   begun at Act VII with none would be harder than the road it stands in for.
+- **A branch's keystones open at depth three and six.** The five keystones are
+  now the run tree's rewards (`RoadCardData.branch_needs`, asked by
+  `Augments.may_deal` and so by the crossroad too): dealt only to a hand already
+  holding that many cards of their branch, keystones not counted. Hunter's Mark
+  and Tinderstrike close the Warden's branch, Sapper's Due and Cold Snap the
+  Rampart's, Timberwright opens the Hearth's - whose six waits on the staged
+  Mortar on the March. `keystone_check`'s "dealt about as often as authored" was
+  **amended**: it measures over a hand deep enough to open them, because an empty
+  hand is now dealt none, and a new check refuses one dealt to a shallow hand.
+  The pause screen names the hand's depth in each branch.
 - **The damage ledger** (`DamageLedger`): every door that throws a blow names
   itself just before it lands, the funnel takes the name so a refused blow cannot
   lend it to the next one, and what the blow took off the body is written

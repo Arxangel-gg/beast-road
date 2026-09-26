@@ -160,8 +160,28 @@ func _build_ledger_line() -> void:
 func _say_the_ledger() -> void:
 	if _ledger == null:
 		return
-	_ledger.text = DamageLedger.brief(RunState.damage_ledger, 3)
+	var lines: PackedStringArray = []
+	var hand: String = PauseMenu.hand_line()
+	if not hand.is_empty():
+		lines.append(hand)
+	var damage: String = DamageLedger.brief(RunState.damage_ledger, 3)
+	if not damage.is_empty():
+		lines.append(damage)
+	_ledger.text = "\n".join(lines)
 	_ledger.visible = not _ledger.text.is_empty()
+
+
+## **The run's tree, in one line**: how deep the hand is in each branch, which is
+## what opens a branch's keystones at three and at six.
+static func hand_line() -> String:
+	if RunState.road_cards.is_empty():
+		return ""
+	var parts: PackedStringArray = []
+	for branch: int in CrossroadScreen.BRANCH_WORD.size():
+		parts.append("%s %d" % [CrossroadScreen.BRANCH_WORD[branch],
+			Augments.branch_depth(RunState.road_cards, branch)])
+	return "Augments %d of %d  ·  %s" % [RunState.road_cards.size(), Balance.ROAD_CARD_HAND,
+		"  ·  ".join(parts)]
 
 
 func _say_the_battlefield() -> void:

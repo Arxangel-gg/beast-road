@@ -349,6 +349,8 @@ signal augment_queued(source: String, waiting: int)
 signal augment_taken(card_id: String, level: int)
 ## The draft on the table changed: dealt, rerolled, banished from, or closed.
 signal augment_offer_changed()
+## The player asked to open a banked draft now - a click on the road-rank strip.
+signal augment_open_requested()
 ## The road rank rose. Each rank deals a draft.
 signal road_rank_gained(rank: int)
 ## Road experience moved; `share` is how far through the current rank it is.

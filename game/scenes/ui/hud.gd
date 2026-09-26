@@ -4560,6 +4560,11 @@ func _build_xp_bar() -> void:
 	_xp_band.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_xp_band.offset_top = -_xp_bar_height()
 	_xp_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# **A banked draft can be opened from here** (augments, 2026-09-26): the strip
+	# takes a press only while a draft waits, so the rest of the time it is
+	# exactly the decoration it always was. The pad is full, so this is the
+	# mouse's and the thumb's door; the breather opens every draft anyway.
+	_xp_band.gui_input.connect(_on_xp_band_input)
 	add_child(_xp_band)
 
 	_xp_bar = _make_bar(Color("9b8fc4"), 0.0)
@@ -5001,6 +5006,16 @@ func _on_augments_changed(_source: String = "", _waiting: int = 0) -> void:
 	_refresh_xp_bar()
 
 
+func _on_xp_band_input(event: InputEvent) -> void:
+	var press := event as InputEventMouseButton
+	var tap := event as InputEventScreenTouch
+	if (press != null and press.pressed and press.button_index == MOUSE_BUTTON_LEFT) \
+			or (tap != null and tap.pressed):
+		if RunState.augments_waiting() > 0:
+			EventBus.augment_open_requested.emit()
+			_xp_band.accept_event()
+
+
 func _refresh_xp_bar() -> void:
 	if _xp_bar == null or _xp_label == null:
 		return
@@ -5010,7 +5025,12 @@ func _refresh_xp_bar() -> void:
 	var road: String = "   ·   ROAD RANK %d" % RunState.road_rank
 	var waiting: int = RunState.augments_waiting()
 	if waiting > 0:
-		road += "  ·  %d AUGMENT%s" % [waiting, "" if waiting == 1 else "S"]
+		road += "  ·  %d AUGMENT%s  ·  CHOOSE" % [waiting, "" if waiting == 1 else "S"]
+	if _xp_band != null:
+		_xp_band.mouse_filter = Control.MOUSE_FILTER_STOP if waiting > 0 \
+			else Control.MOUSE_FILTER_IGNORE
+		_xp_band.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if waiting > 0 \
+			else Control.CURSOR_ARROW
 	if RunState.hero_level >= Balance.HERO_MAX_LEVEL:
 		_xp_bar.max_value = 1.0
 		_xp_bar.value = 1.0

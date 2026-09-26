@@ -98,6 +98,12 @@ func get_sprite_path() -> String:
 ## Which branch of the run's tree this card grows.
 @export var branch: Branch = Branch.RAMPART
 
+## **A keystone that closes a branch** (the run's tree, 2026-09-26): dealt only
+## to a hand already holding this many cards of its branch, so a keystone is
+## what depth in one part of the build opens rather than a card anybody can be
+## handed. Nought for an ordinary card.
+@export_range(0, 8) var branch_needs: int = 0
+
 ## What the card is about, in the words the Disciplines use too - so the deck can
 ## lean toward what the Warden already holds (`Balance.AUGMENT_LEAN_PER_TAG`).
 @export var tags: Array[String] = []

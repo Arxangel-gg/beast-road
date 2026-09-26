@@ -1420,7 +1420,8 @@ func augment_rows(card: RoadCardData) -> Array:
 	if card.max_level() > 1:
 		rows.append(["Level", ("%s → %s" % [RunState.act_numeral(now),
 			RunState.act_numeral(next)]) if held else _level_word(card, next)])
-	rows.append(["Branch", BRANCH_WORD[clampi(int(card.branch), 0, BRANCH_WORD.size() - 1)]])
+	var branch_word: String = BRANCH_WORD[clampi(int(card.branch), 0, BRANCH_WORD.size() - 1)]
+	rows.append(["Branch", ("%s keystone" % branch_word) if card.branch_needs > 0 else branch_word])
 	var replaces: String = "" if held else _replacement_for(card)
 	if not replaces.is_empty():
 		rows.append(["Replaces", replaces])
@@ -1473,6 +1474,14 @@ func _augment_tools(tempering: bool) -> HBoxContainer:
 	var skip: Button = _tool_button("Skip  ·  +1 reroll", _skip_augment)
 	skip.tooltip_text = "Pass on this draft and bank a reroll for a later one."
 	tools.add_child(skip)
+	# **What is left in the deck**, so a banish is a decision about something
+	# countable and the rarer cards are known to still be in there.
+	var deck: Label = _card_line("Deck  ·  %d" % Augments.candidates(RunState.road_cards,
+		RunState.road_card_levels, RunState.act, RunState.augment_banished).size(),
+		16, Color("9aa39e"), HORIZONTAL_ALIGNMENT_CENTER)
+	deck.tooltip_text = "Cards this draft could still deal: the deck, less what is banished and what is already as good as it gets."
+	deck.mouse_filter = Control.MOUSE_FILTER_PASS
+	tools.add_child(deck)
 	var later: Button = _tool_button("Later", close_augment_draft)
 	later.tooltip_text = "Close the draft. It stays banked and opens again at the next breather."
 	tools.add_child(later)
