@@ -57,19 +57,30 @@ INK_VAL = 0.36
 INK_SAT = 0.50
 # The lantern's lit glass is in the skin's hues and hangs beside a hand: bright
 # and saturated together is glass, never skin (a lit crown is bright and pale).
+# The bar sits at 0.62 because the glass measures 0.69 and up, and the female
+# base paints its skin glossier than the male - highlights near (235, 170, 120),
+# saturation 0.49 - which a bar at 0.45 took for glass and left as pale streaks
+# down every arm. The lantern's place catches what the colour does not.
 GLOW_VAL = 0.88
-GLOW_SAT = 0.45
+GLOW_SAT = 0.62
 # The lantern's iron is painted in the skin's own shadow - (128, 72, 42) is on
 # the lantern and on the jaw of the same frame - so no colour tells them apart,
 # and a hand hangs beside it. So it has a place: hanging from the left hip,
-# this far outward, forward and down in the body's own frame, fitted to the lit
-# glass of the eight reference rotations (4.3 px rms; the rotations themselves
-# disagree by about that). A pixel this near it, and nearer it than any bare
-# bone, is the lantern's.
-LANTERN_OUT = 0.02
-LANTERN_FORWARD = 0.06
-LANTERN_DOWN = 0.05
+# this far outward, forward and down in the body's own frame, fitted per body
+# to the lit glass of its reference rotations - the male's fit put the female's
+# lantern twenty pixels off, because it hangs at the side of her hip and higher
+# (male 4.3 px rms, female 5.7; the rotations themselves disagree by about that).
+# A pixel this near it, and nearer it than any bare bone, is the lantern's.
+LANTERN_PLACE = {
+    "male": (0.02, 0.06, 0.05),     # outward, forward, down
+    "female": (-0.07, 0.0, -0.05),
+}
 LANTERN_RADIUS = 0.065
+# The lantern claims only what could be lantern: its iron and frame are dark to
+# mid (its glass is caught as glow), so a pixel brighter than this beside it is a
+# hand or an arm catching the light - the female's arm passes the lantern in
+# profile, and a claim on everything left pale patches on it.
+LANTERN_VAL = 0.62
 
 
 def _segment_distance(px: np.ndarray, py: np.ndarray, a: tuple, b: tuple) -> np.ndarray:
@@ -109,9 +120,10 @@ def _bones(joints: dict) -> tuple:
     return bare, legs
 
 
-def bare(shape: tuple, joints: dict, stature: float) -> np.ndarray:
+def bare(shape: tuple, joints: dict, stature: float, value: np.ndarray | None = None) -> np.ndarray:
     """Where a skin-coloured pixel is skin: within reach of a bare part's bone,
-    nearer it than any shin, and not the lantern's."""
+    nearer it than any shin, and not the lantern's. `value` is the frame's
+    brightness, 0-1, which is what the lantern's claim is limited by."""
     h, w = shape
     py, px = np.mgrid[0:h, 0:w].astype(np.float32)
     px += 0.5
@@ -123,7 +135,10 @@ def bare(shape: tuple, joints: dict, stature: float) -> np.ndarray:
     if "LANTERN" in joints:
         lx, ly = joints["LANTERN"]
         to_lantern = np.hypot(px - lx, py - ly)
-        out &= ~((to_lantern <= LANTERN_RADIUS * stature) & (to_lantern < to_bare))
+        claim = (to_lantern <= LANTERN_RADIUS * stature) & (to_lantern < to_bare)
+        if value is not None:
+            claim &= value < LANTERN_VAL
+        out &= ~claim
     return out
 
 
@@ -141,10 +156,11 @@ def coloured(image: Image.Image) -> np.ndarray:
 
 
 def mask(image: Image.Image, joints: dict, stature: float) -> np.ndarray:
-    return coloured(image) & bare((image.height, image.width), joints, stature)
+    value = np.asarray(image.convert("RGB").convert("HSV"))[:, :, 2].astype(np.float32) / 255.0
+    return coloured(image) & bare((image.height, image.width), joints, stature, value)
 
 
-def lantern(solved: dict) -> tuple:
+def lantern(solved: dict, body: str = "male") -> tuple:
     """Where the lantern hangs, in the body's frame, from its solved joints."""
     lh, rh, neck = np.array(solved["LEFT HIP"]), np.array(solved["RIGHT HIP"]), np.array(solved["NECK"])
     out = lh - rh
@@ -152,7 +168,8 @@ def lantern(solved: dict) -> tuple:
     down = (lh + rh) / 2.0 - neck
     down /= np.linalg.norm(down)
     forward = -np.cross(down, out)
-    p = lh + out * LANTERN_OUT + forward * LANTERN_FORWARD + down * LANTERN_DOWN
+    o, f, d = LANTERN_PLACE[body]
+    p = lh + out * o + forward * f + down * d
     return (float(p[0]), float(p[1]), float(p[2]))
 
 
@@ -160,7 +177,7 @@ def joints_for(body: str, pose: rig.Pose, facing: str, frame: rig.Frame) -> dict
     """The frame's joints in canvas pixels, and where its lantern hangs."""
     solved = rig.solve(pose, rig.BODIES[body])
     joints = rig.to_pixels(rig.project(solved, facing, frame), frame)
-    sx, sy, _ = rig.to_screen(lantern(solved), facing, frame)
+    sx, sy, _ = rig.to_screen(lantern(solved, body), facing, frame)
     joints["LANTERN"] = (sx, sy)
     return joints
 

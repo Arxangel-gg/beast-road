@@ -648,9 +648,10 @@
    "attack_2h_4"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip6\\south",
   "job": "320b3ff1-9b90-456f-9703-609166bf43dd",
   "seed": 108,
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T02:03:29"
  },
  "south/7": {
@@ -731,9 +732,10 @@
    "attack_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\female_base\\clip5\\west",
   "job": "aebd11be-6a27-4084-909c-473686b0e3e5",
   "seed": 108,
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T02:03:30"
  },
  "west/6": {

@@ -3540,6 +3540,36 @@ rewrites these rows whenever it packs a body.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
+| `female_base/attack_1a.png` | 1092×1296 | T | `#3A3128` |
+| `female_base/attack_1a_skin.png` | 1092×1296 | T | `#3A3128` |
+| `female_base/attack_1b.png` | 1078×1312 | T | `#3A3128` |
+| `female_base/attack_1b_skin.png` | 1078×1312 | T | `#3A3128` |
+| `female_base/attack_2.png` | 1078×1512 | T | `#3A3128` |
+| `female_base/attack_2_skin.png` | 1078×1512 | T | `#3A3128` |
+| `female_base/attack_2h_1.png` | 749×1296 | T | `#3A3128` |
+| `female_base/attack_2h_1_skin.png` | 749×1296 | T | `#3A3128` |
+| `female_base/attack_2h_2.png` | 819×1296 | T | `#3A3128` |
+| `female_base/attack_2h_2_skin.png` | 819×1296 | T | `#3A3128` |
+| `female_base/attack_2h_3.png` | 896×1336 | T | `#3A3128` |
+| `female_base/attack_2h_3_skin.png` | 896×1336 | T | `#3A3128` |
+| `female_base/attack_2h_4.png` | 864×1432 | T | `#3A3128` |
+| `female_base/attack_2h_4_skin.png` | 864×1432 | T | `#3A3128` |
+| `female_base/attack_3.png` | 952×1464 | T | `#3A3128` |
+| `female_base/attack_3_skin.png` | 952×1464 | T | `#3A3128` |
+| `female_base/dash.png` | 728×1280 | T | `#3A3128` |
+| `female_base/dash_skin.png` | 728×1280 | T | `#3A3128` |
+| `female_base/death.png` | 1000×1320 | T | `#3A3128` |
+| `female_base/death_skin.png` | 1000×1320 | T | `#3A3128` |
+| `female_base/hurt.png` | 917×1240 | T | `#3A3128` |
+| `female_base/hurt_skin.png` | 917×1240 | T | `#3A3128` |
+| `female_base/idle.png` | 656×1208 | T | `#3A3128` |
+| `female_base/idle_skin.png` | 656×1208 | T | `#3A3128` |
+| `female_base/shoot.png` | 984×1248 | T | `#3A3128` |
+| `female_base/shoot_skin.png` | 984×1248 | T | `#3A3128` |
+| `female_base/sprint.png` | 984×1280 | T | `#3A3128` |
+| `female_base/sprint_skin.png` | 984×1280 | T | `#3A3128` |
+| `female_base/walk.png` | 784×1280 | T | `#3A3128` |
+| `female_base/walk_skin.png` | 784×1280 | T | `#3A3128` |
 | `male_base/attack_1a.png` | 1134×1312 | T | `#3A3128` |
 | `male_base/attack_1a_skin.png` | 1134×1312 | T | `#3A3128` |
 | `male_base/attack_1b.png` | 1134×1344 | T | `#3A3128` |
@@ -3558,8 +3588,8 @@ rewrites these rows whenever it packs a body.
 | `male_base/attack_3_skin.png` | 1024×1472 | T | `#3A3128` |
 | `male_base/dash.png` | 763×1272 | T | `#3A3128` |
 | `male_base/dash_skin.png` | 763×1272 | T | `#3A3128` |
-| `male_base/death.png` | 1072×1344 | T | `#3A3128` |
-| `male_base/death_skin.png` | 1072×1344 | T | `#3A3128` |
+| `male_base/death.png` | 1072×1328 | T | `#3A3128` |
+| `male_base/death_skin.png` | 1072×1328 | T | `#3A3128` |
 | `male_base/hurt.png` | 987×1240 | T | `#3A3128` |
 | `male_base/hurt_skin.png` | 987×1240 | T | `#3A3128` |
 | `male_base/idle.png` | 728×1216 | T | `#3A3128` |
