@@ -12,9 +12,15 @@ extends PanelContainer
 const IDLE_SHEET_PATH: String = "res://art/hero/hero_idle.png"
 const CELL_SIZE: Vector2i = Vector2i(168, 160)
 const SOUTH_DIRECTION: int = 2
+## The dressed Warden at the size the painted portrait is drawn in the card.
+const STAGE_ART_SCALE: float = 0.66
 
 var _atlas: AtlasTexture = null
 var _portrait: TextureRect = null
+## The dressed Warden (2026-09-26), stood where the painted portrait was once
+## the look's body is drawn. The painted one stays underneath as the fallback,
+## and as what `coop_lobby_check` reads the region of.
+var _stage: WardenStage = null
 var _name_label: Label = null
 var _colour_label: Label = null
 var _frame: int = 0
@@ -42,8 +48,17 @@ func configure(slot: int, player_name: String, colour: Color,
 	# The dye under the seat tint, which is the order the road draws them in.
 	# The shader reads its bands off the painting rather than off the tinted
 	# colour, so the mask does not move with the seat - see `warden_look`.
-	WardenLook.dress(_portrait, WardenLook.worn() if is_local
-		else WardenLook.unpack(look))
+	var shown: Dictionary = WardenLook.worn() if is_local else WardenLook.unpack(look)
+	WardenLook.dress(_portrait, shown)
+	# Dressed where the body is drawn - the person in the lobby is the person on
+	# the road. Gear only on this machine's own card: a partner's is theirs, and
+	# the lobby is before any wire has carried it.
+	var dressed: bool = WardenDress.available(WardenDress.body_name(shown))
+	_stage.visible = dressed
+	_portrait.visible = not dressed
+	if dressed:
+		_stage.modulate = _portrait.modulate
+		_stage.show_look(shown, is_local)
 
 	var card := StyleBoxFlat.new()
 	card.bg_color = Color(0.025, 0.035, 0.04, 0.96)
@@ -95,6 +110,14 @@ func _ensure_built() -> void:
 	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	column.add_child(_portrait)
+	_stage = WardenStage.new()
+	_stage.name = "Dressed"
+	_stage.turntable = false
+	_stage.art_scale = STAGE_ART_SCALE
+	_stage.feet_at = 0.94
+	_stage.custom_minimum_size = Balance.COOP_LOBBY_HERO_SIZE
+	_stage.visible = false
+	column.add_child(_stage)
 
 	_name_label = Label.new()
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
