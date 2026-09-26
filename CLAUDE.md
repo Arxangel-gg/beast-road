@@ -8700,6 +8700,16 @@ canvas work, not script, and a script bisect would never have found it.
   than slowing the clock. Headless there is no display and the rate is the
   floor, so no gate measures a different game. The cap offers 165 and 240.
 
+  **The ceiling was 144 and it is 240, as of 2026-09-26.** On the owner's
+  180 Hz screen, uncapped, the tick ran under the frames and the Warden moved
+  on four frames in five. And the tick had quietly become the co-op input
+  rate: a guest sent its snapshot every tick and the host relayed every hand
+  on each, so a raised ceiling would have raised the traffic with it. Input
+  goes out on `COOP_INPUT_HZ` now (`CoopHeroes._input_due`), except a press or
+  a change in what is held, which go at once; the snapshot is still read every
+  tick, because a press is true on one tick only. `coop_heroes_check` drives
+  the rule at 240 and walks both senders for it.
+
 **The bound is the one every feel change here is held to: nothing about damage
 moves.** Every one of these is a look, and `frame_budget_check` drives each -
 forty hits and an empty effects layer, twenty lights and the nearest eight, a
