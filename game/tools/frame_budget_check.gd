@@ -268,8 +268,11 @@ func _test_physics_follows_the_display() -> void:
 	_check(Graphics.physics_rate_for(60.0, 0) == 60, "a 60 Hz display ticks at 60")
 	_check(Graphics.physics_rate_for(-1.0, 0) == floor_rate, "an unknown display ticks at the floor")
 	_check(Graphics.physics_rate_for(144.0, 60) == 60, "a frame cap below the display caps the tick")
-	_check(Graphics.physics_rate_for(240.0, 0) == Balance.PHYSICS_RATE_MAX,
-		"a 240 Hz display is held to the ceiling")
+	_check(Graphics.physics_rate_for(180.0, 0) == 180,
+		"a 180 Hz display uncapped ticks at 180 - under its frames the hero stands still on some of them")
+	_check(Graphics.physics_rate_for(240.0, 0) == 240, "a 240 Hz display uncapped ticks at 240")
+	_check(Graphics.physics_rate_for(360.0, 0) == Balance.PHYSICS_RATE_MAX,
+		"a 360 Hz display is held to the ceiling")
 	_check(Graphics.physics_rate_for(144.0, 240) == 144, "a cap above the display changes nothing")
 	_check(Graphics.physics_rate_for(-1.0, 144) == 144, "an unknown display with a cap ticks at the cap")
 	_check(Graphics.physics_rate_for(-1.0, 30) == floor_rate, "a cap under the floor still ticks at the floor")

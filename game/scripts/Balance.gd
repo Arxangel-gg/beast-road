@@ -4478,7 +4478,14 @@ const PHYSICS_RATE_MOBILE: int = 60
 ## Below this ratio of screen pixels to logical pixels, rendering at the
 ## logical size saves too little to be worth the softer text.
 const RENDER_LOGICAL_MIN_RATIO: float = 1.05
-const PHYSICS_RATE_MAX: int = 144
+## **240, not 144** (2026-09-26). At 144 a 180 Hz screen ticked 144 times
+## a second under 180 frames, so the Warden moved on four frames in five
+## and stood still on the fifth - a stutter under the hero on every high-
+## refresh screen the old ceiling was below. What a higher tick costs a
+## frame is about one hero step either way; what it must not cost is the
+## wire, which is why co-op input has a clock of its own
+## (`COOP_INPUT_HZ`).
+const PHYSICS_RATE_MAX: int = 240
 const PHYSICS_STEPS_PER_FRAME_MAX: int = 12
 ## **A tower chooses on a cadence, and its lean reads that choice** (2026-09-24).
 ## The bisect on Act X put `tower.gd` first at 12 ms a frame for forty
@@ -7942,6 +7949,14 @@ const COOP_DISCOVERY_PORT: int = 45871
 ## spawn ring and the colours below all derive from it - so it is a number to
 ## change rather than a rewrite, which is the only reason two became four
 ## cheaply.
+## **How often a player's stick and aim cross the wire** (2026-09-26). They
+## went out on every physics tick, and the tick follows the display, so a
+## 240 Hz screen sent 240 packets a second and a host relayed its own hands
+## and every guest's on each of them. A stick and an aim are levels - the
+## newest is the truth - so they wait for this clock; a press is an edge and
+## a change in what is held is what a partner sees happen, so both go at
+## once (`CoopHeroes._input_due`).
+const COOP_INPUT_HZ: float = 60.0
 const COOP_MAX_PLAYERS: int = 4
 const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
 

@@ -30,6 +30,11 @@ extends Node
 ## co-op ever looks jittery; it is not the knob to turn if it looks *wrong*.
 const STATE_INTERVAL: float = 0.05
 
+## Until this machine's input next goes out on the clock, and what it was
+## holding when it last went. See `_input_due`.
+var _input_clock: float = 0.0
+var _input_sent_holds: int = -1
+
 ## The battlefield that owns the heroes. Assigned on creation.
 var field: Node = null
 
@@ -364,7 +369,7 @@ func _physics_process(delta: float) -> void:
 	_watch_deaths()
 	_tick_revives(delta)
 	if Coop.is_guest():
-		_send_input(relay)
+		_send_input(relay, delta)
 		_tell_them_my_dye(relay, delta)
 		_tell_them_my_gear(relay, delta)
 	else:
@@ -372,7 +377,7 @@ func _physics_process(delta: float) -> void:
 		# with no input has no velocity, and every animation in this game is
 		# chosen from velocity and state - which is why the guest's partner slid
 		# about with no walk cycle and never swung.
-		_send_host_input()
+		_send_host_input(delta)
 		_state_timer -= delta
 		if _state_timer <= 0.0:
 			_state_timer = STATE_INTERVAL
@@ -384,14 +389,39 @@ func _physics_process(delta: float) -> void:
 ## Input rather than outcome, and that distinction is the authority model in one
 ## line. A guest that sent its position would be informing the host of a fact,
 ## and the host would have no way to refuse it.
-func _send_input(relay: CoopRelay) -> void:
+##
+## The snapshot is still read every tick, because a press is an edge that is
+## true on one tick only; what waits for `COOP_INPUT_HZ` is the sending.
+func _send_input(relay: CoopRelay, delta: float) -> void:
 	var mine: Hero = _local_hero()
 	if mine == null:
 		return
 	var source := mine.input as LocalHeroInput
 	if source == null:
 		return
-	relay.request(CoopRelay.Request.HERO_INPUT, source.snapshot(mine.aim_direction()))
+	var snapshot: Array = source.snapshot(mine.aim_direction())
+	if _input_due(delta, snapshot):
+		relay.request(CoopRelay.Request.HERO_INPUT, snapshot)
+
+
+## Whether this tick's input goes out: a press or a change in what is held at
+## once, the stick and the aim on `Balance.COOP_INPUT_HZ`. Every send restarts
+## the period, so a press is never followed by a second packet a frame later
+## saying the same thing.
+func _input_due(delta: float, snapshot: Array) -> bool:
+	_input_clock -= delta
+	var buttons: int = int(snapshot[2]) if snapshot.size() > 2 else 0
+	var holds: int = int(snapshot[3]) if snapshot.size() > 3 else 0
+	var urgent: bool = buttons != 0 or holds != _input_sent_holds
+	if not urgent and _input_clock > 0.0:
+		return false
+	var period: float = 1.0 / Balance.COOP_INPUT_HZ
+	# On the clock the remainder is kept, or a 240 Hz tick lands a send every
+	# fifth tick and the rate is 48; after a long stall it is not carried as a
+	# debt of sends to pay back on consecutive ticks.
+	_input_clock = period if urgent else maxf(_input_clock + period, 0.0)
+	_input_sent_holds = holds
+	return true
 
 
 ## Watches both heroes so a death crosses the wire.
@@ -647,15 +677,19 @@ func _hero_for_slot(number: int) -> Hero:
 ## reaches the host and stops there, so the host passes on what everybody is
 ## doing - otherwise two guests animate the host perfectly and stand still to
 ## each other. The host's own seat rides along in the same packet.
-func _send_host_input() -> void:
+func _send_host_input(delta: float) -> void:
 	var mine: Hero = _local_hero()
 	if mine == null:
 		return
 	var source := mine.input as LocalHeroInput
 	if source == null:
 		return
-	EventBus.coop_host_input.emit(Coop.party().slot(),
-		source.snapshot(mine.aim_direction()))
+	# The guests' hands go out with the host's own, on the same clock: they are
+	# levels, and a press of the host's is the only thing that cannot wait.
+	var snapshot: Array = source.snapshot(mine.aim_direction())
+	if not _input_due(delta, snapshot):
+		return
+	EventBus.coop_host_input.emit(Coop.party().slot(), snapshot)
 	for key: Variant in _inputs.keys():
 		var number: int = int(key)
 		var driver: RemoteHeroInput = _inputs[key] as RemoteHeroInput

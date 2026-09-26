@@ -50,6 +50,7 @@ func _ready() -> void:
 	await _test_a_partner_appears_and_is_remote()
 	await _test_the_two_move_independently()
 	await _test_buttons_latch_rather_than_drop()
+	_test_input_has_its_own_clock()
 	await _test_the_phase_binds_both()
 	await _test_a_partner_leaving_leaves_nothing_held()
 	await _test_a_battlefield_built_mid_session_finds_its_partner()
@@ -64,6 +65,8 @@ func _ready() -> void:
 	# the first cut of the dye test above passed with its subject removed.
 	_check(_reached_dye,
 		"the dye test aborted partway - every check it had not made is unmade")
+	_check(_reached_clock,
+		"the input clock test aborted partway - every check it had not made is unmade")
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -77,6 +80,48 @@ func _ready() -> void:
 		print("[coop-heroes] PASS - one hero alone, two in company, independent, "
 			+ "phase-bound, revived without a wound, and both of them findable")
 	get_tree().quit(_failures)
+
+
+## Input crosses on a clock of its own (2026-09-26). The physics tick follows
+## the display and may be 240; the stick and the aim go out about
+## `COOP_INPUT_HZ` times a second whatever it is, a press on the very tick it
+## happened, and a change in what is held at once. Both senders ask the one
+## rule, read off the source, because a sender that skipped it is back on the
+## tick and nothing about the game would look wrong.
+func _test_input_has_its_own_clock() -> void:
+	var heroes := CoopHeroes.new()
+	var tick: float = 1.0 / 240.0
+	var still: Array = [Vector2.RIGHT, Vector2.RIGHT, 0, 0]
+	var sent: int = 0
+	for _i: int in 240:
+		if heroes._input_due(tick, still):
+			sent += 1
+	_check(absi(sent - int(Balance.COOP_INPUT_HZ)) <= 2,
+		"a second of 240 ticks sent %d snapshots of a still stick, where about %d were meant"
+		% [sent, int(Balance.COOP_INPUT_HZ)])
+	# Onto the tick straight after a send, which the clock alone would skip.
+	var guard: int = 0
+	while not heroes._input_due(tick, still) and guard < 240:
+		guard += 1
+	var pressed: Array = [Vector2.RIGHT, Vector2.RIGHT, HeroInput.BUTTON_ATTACK, 0]
+	_check(heroes._input_due(tick, pressed), "a press on a tick between sends waited for the clock")
+	_check(not heroes._input_due(tick, still), "the tick after a press sent the same stick again")
+	var reviving: Array = [Vector2.RIGHT, Vector2.RIGHT, 0, HeroInput.HOLD_REVIVE]
+	_check(heroes._input_due(tick, reviving), "starting to hold waited for the clock")
+	_check(not heroes._input_due(tick, reviving), "a hold still held was sent again on the next tick")
+	_check(heroes._input_due(tick, still), "letting go waited for the clock")
+	heroes.free()
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/coop_heroes.gd")
+	for sender: String in ["func _send_input(", "func _send_host_input("]:
+		var at: int = source.find(sender)
+		var body: String = source.substr(at) if at >= 0 else ""
+		# Up to the next function and no further: the rule's own name is the
+		# next thing in the file, and reading into it would find a call that is
+		# not there.
+		var end: int = body.find("\nfunc ", 1)
+		body = body.substr(0, end) if end > 0 else body
+		_check(body.contains("_input_due("), "%s sends without asking the input clock" % sender.trim_prefix("func ").trim_suffix("("))
+	_reached_clock = true
 
 
 ## A single-player run is untouched by any of this.
@@ -369,6 +414,7 @@ func _spawn_partner() -> Hero:
 
 ## Whether the dye test reached its own last line. See the guard in `_ready`.
 var _reached_dye: bool = false
+var _reached_clock: bool = false
 
 
 func _check(condition: bool, why: String) -> void:
