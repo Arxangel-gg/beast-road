@@ -584,6 +584,11 @@ const AUGMENT_FLOOR_CAMP: int = 0
 const AUGMENT_FLOOR_RAID: int = 1
 const AUGMENT_FLOOR_RIFT: int = 1
 const AUGMENT_FLOOR_MYTHIC: int = 3
+## The shade a draft is laid over: the road shows through it, dimmed, so the
+## board a Rampart card would change is in view while choosing (2026-09-26,
+## from the first photograph, where the crossroad's painting hid it). Dark
+## enough that the cards' pale text holds against a sunlit field. [TUNE]
+const AUGMENT_DRAFT_SCRIM := Color(0.02, 0.03, 0.04, 0.68)
 
 ## The largest a single card's magnitude may be, for keys read as a fraction.
 ##

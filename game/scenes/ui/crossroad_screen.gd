@@ -90,7 +90,19 @@ var _road_row: HBoxContainer = null
 ## **Whether the table holds an augment draft** (2026-09-26) rather than one of
 ## the crossroad's own choices. Set by `open_augment_draft` and dropped by every
 ## other door onto the panel.
-var _augment_open: bool = false
+##
+## **And it decides what is behind the cards.** A draft opens in a breather with
+## the board standing, and whether a Rampart card is worth more than a Warden one
+## is a question about that board - so the crossroad's painting gives way to a
+## scrim and the road shows through it, dimmed and still. A crossroad, a relic
+## and a portent keep the painting: they are places and moments, and a draft is
+## neither. Set on the flag rather than at each door, because every door onto the
+## panel sets the flag and not every door would remember a second line.
+var _augment_open: bool = false:
+	set(value):
+		_augment_open = value
+		_wear_backdrop(not value)
+var _scrim: ColorRect = null
 ## Banish is armed: the next card pressed leaves the deck rather than the draft.
 var _banishing: bool = false
 var _last_scar_button: Button = null
@@ -161,6 +173,34 @@ func _build_pointer() -> Control:
 func _hide_pointer() -> void:
 	if _pointer != null and is_instance_valid(_pointer):
 		_pointer.visible = false
+
+
+## The painting behind a crossroad, or the scrim behind a draft. The painting is
+## hidden by its own `self_modulate`, which draws nothing of the texture and
+## leaves the cards - its children - exactly as they are.
+func _wear_backdrop(painted: bool) -> void:
+	if panel == null:
+		return
+	var art := panel.get_node_or_null(^"Art") as TextureRect
+	if art != null:
+		art.self_modulate.a = 1.0 if painted else 0.0
+	if _scrim == null and not painted:
+		_scrim = ColorRect.new()
+		_scrim.name = "DraftScrim"
+		_scrim.color = Balance.AUGMENT_DRAFT_SCRIM
+		_scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+		panel.add_child(_scrim)
+		panel.move_child(_scrim, 0)
+		_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if _scrim != null:
+		_scrim.visible = not painted
+
+
+## Whether the table is drawn over the road rather than over a painting.
+func shows_the_road() -> bool:
+	var art := panel.get_node_or_null(^"Art") as TextureRect if panel != null else null
+	return art != null and is_zero_approx(art.self_modulate.a) \
+		and _scrim != null and _scrim.visible
 
 
 func _ready() -> void:

@@ -862,6 +862,9 @@ func _test_the_breather_opens_the_draft() -> void:
 	for _frame: int in 6:
 		await get_tree().process_frame
 	_check(screen.is_augment_open(), "a banked draft did not open in Preparation")
+	# Over the road, not over the crossroad's painting: the board a Rampart card
+	# would change is what the player is deciding about.
+	_check(screen.shows_the_road(), "the draft was laid over the crossroad's painting, not the road")
 	var held_at: float = _run._preparation_left
 	for _frame: int in 30:
 		await get_tree().process_frame
@@ -878,6 +881,8 @@ func _test_the_breather_opens_the_draft() -> void:
 	_check(RunState.road_cards.has(chosen) and not screen.is_augment_open()
 			and RunState.augments_waiting() == 0,
 		"pressing the card did not take it and close the draft")
+	_check(not screen.shows_the_road(),
+		"the scrim outlived the draft, so the next crossroad would open without its painting")
 	for _frame: int in 20:
 		await get_tree().process_frame
 	_check(_run._preparation_left < held_at, "the clock did not start again once the draft closed")

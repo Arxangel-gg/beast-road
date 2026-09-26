@@ -29,8 +29,7 @@ func _ready() -> void:
 	RunState.act = 6
 
 	RunState.queue_augment(Augments.SOURCE_RANK)
-	for _f: int in 20:
-		await get_tree().process_frame
+	await _let_the_deal_land()
 	await _shoot("augment_shot_fresh")
 
 	# A hand with something to grow, three levels deep.
@@ -41,7 +40,10 @@ func _ready() -> void:
 	RunState.take_road_card("whetstone_hour")
 	RunState.take_road_card("whetstone_hour")
 	RunState.augment_luck = 5
-	RunState.queue_augment(Augments.SOURCE_BOSS)
+	# A camp's draft, whose floor is Common: a boss deals Rare and above, so a
+	# boss draft over a hand of commons can never put a levelling row on the
+	# table, and the first run of this tool photographed exactly that.
+	RunState.queue_augment(Augments.SOURCE_CAMP)
 	run._augments_put_off = false
 	for _f: int in 20:
 		await get_tree().process_frame
@@ -57,6 +59,7 @@ func _ready() -> void:
 		run.crossroad_ui.open_augment_draft()
 		for _f: int in 6:
 			await get_tree().process_frame
+	await _let_the_deal_land()
 	await _shoot("augment_shot_level")
 
 	RunState.skip_augment()
@@ -79,6 +82,14 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	get_tree().quit(0)
+
+
+## **In seconds, never frames** (2026-09-26). The cards flip in and the tools
+## row fades in on a stagger, so twenty frames at a hundred and eighty a second
+## photographed one card, a sliver and nothing under them - and read as a broken
+## draft. The whole entrance is well under two seconds.
+func _let_the_deal_land() -> void:
+	await get_tree().create_timer(2.0).timeout
 
 
 func _shoot(name: String) -> void:
