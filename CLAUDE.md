@@ -9592,6 +9592,251 @@ On a landscape phone the plot usually sits under the build sheet and a tap buys
 at once, so it is a desktop feature in practice. Barricades have none,
 deliberately: which way a barricade faces is decided on the node as it is laid.
 
+**Frostpoint and the Stillwater Mirror breathe, and a still subject is painted
+rather than animated, as of 2026-09-25.** The two towers were the last with an
+idle loop owed. They had shipped three frames identical to the base: the
+animator treats an object at rest as nearly still, returns thirty to eighty
+pixels of motion, and `lock_tower_frames` - correctly - erases that as
+re-rendering noise. `tools/paint_still_idle.py` paints the motion from the base
+painting itself, touching only the moving part: the Frostpoint's crystal pulses
+and a glint slides down the ice; the Mirror's reflection ripples, its sky sways a
+pixel and glints wink on the water. Every displacement is zero at frame 0, so the
+loop closes on the base. A
+tower whose idle was authored that way is listed in `lock_tower_frames.py`'s
+`AUTHORED_IDLE`, because locking a painted breath back to its base would put the
+still frame back.
+
+**A rider asks whether its target exists before asking what it is, found by a
+red release on 2026-09-25.** v0.56.11 failed CI on one engine error line:
+*"Left operand of 'is' is a previously freed instance"*. `_loose_a_shot`,
+`loose_named_shot` and the rider's throw asked `_target is Hero` first and
+`is_instance_valid` second, and `is` on a freed object is an engine error - not
+a script error, so the gate that hit it still printed PASS and only the release
+bar, which fails on any ERROR line, saw it. Validity first, at all three.
+`enemy_shot_check` frees a rider's decoy under it now. **The order is the whole
+rule: `is_instance_valid` before `is`, before `as`, before anything.** It is
+the third costume of the fault `Battlefield._process` and `CombatTells` each
+paid for.
+
+**Marks are dealt by one door, and the road's difficulty is rules as well as
+numbers, as of 2026-09-25.** The owner forwarded eight proposals (modular
+affixes, augment drafts, tag-based items, branching world events, genetics,
+rulesets, boss mutations, quests); `docs/IDEAS_REVIEW_2026-09-25.md` is the
+triage and this is its first piece.
+
+**`EnemyMarks` is the one place a mark is chosen.** The wave director, the boss
+director and the camps each had a copy of "pick from the act's pool", and a
+second copy is how the weather's favour would have reached two of them.
+`EnemyMarks.roll` draws one number per pick - `randi() % size` while every
+weight is even, so a seeded roll on a clear day is exactly the draw it always
+was - and a mark whose `favoured_weather` names the sky being worn is
+`MARK_WEATHER_FAVOUR` times likelier. Rimewarded in the snow, Emberclad in a
+heatwave, Stormbound in a downpour: two of the game's best systems read each
+other, and the codex says which weather a mark is commoner in.
+
+**The tier grew four rules, all zero on Normal**, which is why no seeded road
+on Normal moved: `marked_share` (the share of ordinary bodies that wear marks,
+lifted by the earth's wrath up to `MARK_SHARE_CEILING`), `marks_max`,
+`boss_marks` and `wrath_floor`. Nightmare is 0.15, 1, 1 and 0.08; Hell 0.3, 2,
+2 and 0.18. A marked commoner wears an outline and pays
+`MARKED_REWARD_PER_MARK` more a mark, because a harder body worth the same is a
+tax rather than a fight. `_roll_marked_common` returns before drawing on
+Normal, so the stream is untouched there by construction rather than by luck.
+
+**A boss wears a mark's behaviour and never its size.** `_mark_scale` returns
+one for a boss, so a Warded or Stormbound boss is a different fight and not a
+longer one: a mark authored for a road body, multiplied into a boss pool of
+eleven thousand, is an hour. `mark_rules_check` holds it by measuring a marked
+boss against an unmarked one.
+
+**Four marks joined, each moving a number the fight already has.** Frenzied
+(faster below a share of its health, the best frenzy worn rather than the
+product), Packbound (an aura for its own breed only), Stormbound (a death that
+chains lightning to the heroes near it, through `world_hazard`), Mirrorhide
+(tower shots glance off it for a moment on a clock, answered by the hero). The
+pool reaches every act from II.
+
+**And `speed_scale` had never been applied.** Twelve marks authored it -
+Swiftfoot at 1.55, "It is already somewhere else" - the codex printed it, and
+every one walked at its breed's pace. `elite_check`'s reader test counted the
+enemy script's own `_speed_scale` as a reader of the mark's field, which is the
+`DisciplineEffects` lie in a new costume: a name that matches is not a read. The
+test wants `affix.<field>` or `&"<field>"` now, and `targeting_speed` multiplies
+by `_mark_speed`, clamped between `ENEMY_MARK_SPEED_MIN` and `_MAX`.
+
+**A guest sees what it is fighting.** The co-op announce never carried a body's
+rank or marks, so every elite and champion on a partner's screen was a plain
+body. `coop_enemy_spawned` carries both, by id; the guest resolves them off its
+own content, and the relay still accepts the eight-element fact an older build
+sends.
+
+**Two gates were coin tosses, and applying the speed marks is what showed it.**
+Neither was about marks; both were one change in the world's timing away from
+failing, which is what a coin toss is.
+
+- `wildlife_family_check` stood a companion's mate sixty units off a spirit at
+  its owner's heel - inside a deer's fright radius of the hero - so the deer
+  bolted on the first frame, and whether they courted depended on where that
+  bolt was rolled to settle: 587 units against a courting radius of 520 was a
+  failure of a feature that works. The mate is placed where
+  `Wildlife.frightened_at` says it is calm (the first cut reasoned about the
+  hero alone and put it in front of a camp body), and the wait is in seconds.
+  **Its comment had the seeker backwards**: only females seek, so the female
+  companion it builds is the searcher and `companion_is_courtable` - the wild
+  side's door - was reached by nothing. A fault planted there passed. Section 6
+  drives that door now, a wild female finding a male spirit, and the same plant
+  is named.
+- `tower_support_check` left an Ember Shaman to choose a shot, and its
+  repertoire is a bolt, a mortar and a scatter. A mortar is a ground strike and
+  crosses no water, so "0 born" about one run in six. It throws the bolt by name
+  through `loose_named_shot`, the seam `enemy_shot_check` already uses, and its
+  birth counter watches the field rather than `effect_root` - which is where a
+  hostile shot has never been parented, so it had read "0 born" over shots that
+  flew.
+
+**The failure line is where the diagnosis starts.** Both were found by making
+the check say what it saw - the retry clocks, the states, the gaps, what the
+spirit was answering - after two rounds of mitigations built on a guess. The
+guesses were each plausible and each wrong.
+
+**Keystone Road Cards, as of 2026-09-25.** The second piece of that triage, and
+the answer to "augment drafts": Road Cards already are one, so the gap was never
+a draft. It was that every card moves a number and none changes a *rule*.
+
+A keystone re-routes an effect the game already has onto a new trigger:
+**Cold Snap** (a body that dies chilled passes its chill on), **Tinderstrike**
+(the finisher lights the brush where it lands), **Timberwright** (a felled trunk
+mends the towers near it), **Sapper's Due** (an emptied seam rearms the traps
+near it) and **Hunter's Mark** (what the Warden struck comes first in a tower's
+eye). Each is a `Modifiers.KEYSTONE_*` flag at magnitude one, read by the one
+system it re-routes, so nothing downstream learns keystones exist.
+
+**The bound is the discipline synergies': when an effect fires or what it fires
+on, never its size.** The chill passed on is a share of the dying body's own,
+the mend goes through `Tower.repair` and stops at whole, the fire is one a
+player lit and costs wrath as any player's fire does, and the traps rearm to the
+charges they were built with.
+
+**One a hand, dealt apart.** A second keystone replaces the first
+(`RunState.take_road_card`), and a keystone is only ever the last card of an
+offer, on its own `rng("keystones")` stream at `KEYSTONE_OFFER_CHANCE` - so the
+ordinary draft is shuffled on "road_cards" exactly as it always was and no
+seeded draft moved. From Act III, when a hand has something to re-route.
+`keystone_check` holds all of it and drives each keystone through its door both
+held and not held, because a flag that fires without the card is a free rule.
+Four faults were planted - Cold Snap unwired, a second keystone kept beside the
+first, any swing lighting the brush, and keystones drawn on the draft's own
+stream - and all four were named.
+
+**Wayside encounters, as of 2026-09-25.** The third piece of that triage, and
+the translation of two proposals into one thing: "world events with branching
+consequences" and "a quest template generator". The road already had a trail,
+nests, a blight, a savage and a dragon, and every one of them is something that
+*happens*. None of them stopped and asked. A wayside encounter does: an
+overturned cart, a cairn of offerings, a cold camp, a fallen Warden, a wounded
+animal, a beast in a snare - walked up to, answered from a card, and gone.
+
+**Every answer is a door the game already has, opened in one function.**
+`Wayside._open_door` is the only place a choice reaches the game: gear rolled on
+the stash tables and laid on the ground, currency laid as pieces and scaled by
+the act as a kill is, sightings through `MetaState.record_spirit_encounter`, a
+share of the Warden's health through `Health.heal`, a share of what the next
+level costs through `gain_hero_xp`, the savage over-farming already sends
+(`Wildlife.send_savage`, the same door with the caller's warning), and the
+earth's heat through `EventBus.earth_offended`, counted exactly as that many
+common kills. A choice has a boon and a bane and nothing else, because a choice
+that did four things would be a system wearing a card's clothes.
+
+**The quest generator was refused as a system and this is what survived of
+it.** A generated quest wants an actor to give it and a place to return it, and
+the road has neither - the town rides the beast and the Hold is between runs.
+An actor, a motive, a complication, a choice and a consequence fit in a thing
+that starts and ends where it is found.
+
+**Solo for 1.0, and stated rather than half-built.** On a shared road the choice
+would have to be put to the party, which is `PartyEvents`' conversation; until
+that is built, `Wayside.may_lay` lays nothing on a networked road. Never in the
+opening act, never on the Walk, and `WAYSIDE_CHANCE_PER_ACT` of acts from II,
+rolled from the run's seed on dice of its own so it moves no other roll.
+
+**It answers Interact, so it is placed like the things that also do** - from
+`Fishing.band_tiles`, clear of the gates, the camps, the plots, the gathering
+nodes and the water by `WAYSIDE_SPACING`, because two prompts on one spot is one
+button meaning two things. Re-laid in `refresh_terrain` with everything else
+regional; marked on the map.
+
+**The field freezes for the card**, as it does for a crossroad: an answer given
+while something bites is not a decision. The run freezes it on
+`wayside_reached` and lets it go on `wayside_left`, and only if it was the one
+that froze it. A price the purse cannot meet is shown dimmed with the price on
+it, never hidden - an answer that vanishes when you are short reads as an
+encounter with fewer answers.
+
+**Nothing persists that was not already sanctioned.** The encounter is the
+act's; the sightings and the experience go through the doors that already
+persist them. `SAVE_VERSION` did not move and no save key was added.
+
+**An answered encounter is banked with the front, and that closed a loop found
+by reading rather than by a gate.** An encounter is re-laid from the run's seed
+whenever the region is, and a front resumed from a crossroad is re-laid on the
+same seed and act - so bank, resume, answer, bank handed out the same gear and
+the same sightings for ever. `RunState.wayside_answered` is road data (reset
+with the run, carried in the expedition snapshot as `wayside`), and
+`Wayside.may_lay` refuses an act on it. **Every new thing re-laid from the seed
+has to ask what a resumed front already did with it** - the gathering nodes
+regrow by design, and an encounter must not.
+
+`wayside_check` (5352 checks) takes every authored answer for real on the real
+field and reads back the purse, the ground, the journal, the hero, the savages
+and the earth - the cost exactly, the boon exactly, and nothing else - then
+refuses an answer the purse cannot pay, one belonging to another encounter and
+one given twice, holds an answer across `Expedition.compose` and `apply`, lays
+the road across every act and two dozen seeds an act, and walks the whole flow:
+walk up, press Interact, the field freezes, the card, a choice pressed on it,
+walk on. Three faults were planted - the cost never taken, the answered act
+asked again, the gear door opening nothing - and all three were named.
+
+**Owed, and recorded so it is not assumed**: a Guide page (it needs a
+photograph from `guide_shots`, which needs the screen), and a photograph of the
+props on the field at play zoom. The six props were generated with PixelLab Pro
+Flash as objects, styled on the shipped camp props by their public raw-GitHub
+URL.
+
+**A newborn wears its parents' coat, as of 2026-09-25.** The last piece of that
+triage, from the proposal for "wildlife genetics 2.0". The coat of 2026-09-15
+was drawn from the animal's own serial, so a cub looked nothing like either
+parent and a litter read as strangers who arrived together.
+
+`Phenotype.dress` is split into `genes` (the draws, exactly the draws it always
+made, in the same order) and `apply`; `phenotype_check` holds the split against
+the original arithmetic written out, for every species, because a reordered
+draw would re-coat every animal in the game and nothing would error.
+`Phenotype.inherit` takes each gene from the mother, the father or now and then
+between them (`PHENOTYPE_BLEND_CHANCE`), drifts it by `PHENOTYPE_MUTATION` of the
+species' spread, and **clamps it to that spread** - so resemblance can never
+walk a coat past a ceiling over generations, and a coat still cannot be read as
+a rarity.
+
+**Rolled with the litter, carried in `born`.** The coat is decided in
+`_roll_clutch`, while both parents exist, on dice seeded from the parents and
+the cub's place in the litter - so the family stream moves not at all, an egg
+that hatches after both parents are gone still looks like them, and a guest
+told the birth draws the same coat from the same fact. A spirit that fathers a
+litter hands down the coat it actually wears (`Companion.coat_serial`).
+
+**Refused, as the triage refused it: inherited numbers.** Speed, bite, loyalty
+and an element bred from parents are a stat scale found by breeding, and
+breeding would become the way to power. A coat is a look; nothing reads it.
+
+`phenotype_check` holds the split, the resemblance (every gene inside its
+parents' range widened by the mutation, a cub nearer a parent than a stranger
+of its kind at least four times in five, a litter of four never one coat, the
+same litter rolled twice the same litter) and, driven on the real field, a
+litter rolled by the real families and placed by the real `spawn_born`
+wearing the coat it was rolled with on its record and on its material. Two
+faults were planted - the spawn ignoring the born coat, and the clamp removed -
+and both were named.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

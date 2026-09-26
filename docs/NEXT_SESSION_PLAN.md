@@ -21,6 +21,27 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0b. The content multipliers (2026-09-25, later)
+
+The owner forwarded eight proposals; `docs/IDEAS_REVIEW_2026-09-25.md` is the
+triage, and all four pieces it ordered are built, gated on both bars and
+recorded in CLAUDE.md:
+
+- **Marks** by one door (`EnemyMarks`), favoured by the weather; Nightmare and
+  Hell mark a share of the road's commoners and their bosses (behaviour, never
+  size) and raise the wrath floor; four new marks; speed marks finally move
+  their bodies; a guest sees a body's rank and marks. `mark_rules_check`.
+- **Keystone Road Cards** - five, one a hand, dealt apart on their own stream.
+  `keystone_check`.
+- **Wayside encounters** - six, solo only, every answer an existing door.
+  `wayside_check`. **Owed**: a Guide page and a photograph of the props at play
+  zoom (both need the screen).
+- **Inherited coats** - a newborn wears its parents' coat, with a mutation.
+  `phenotype_check`.
+
+**Expect the owner to notice on Nightmare and Hell**: marked commoners, marked
+bosses and an angrier earth from the first act. On Normal nothing moved.
+
 ## 0a. Where things stand (2026-09-25, end of day)
 
 Built, gated and recorded in CLAUDE.md under 2026-09-25 - read those entries
@@ -142,11 +163,12 @@ all four hold sixty on Low.
 5. **A play of the difficulty tune** by the owner (section 0).
 6. **The mix levels heard in play.** Every level was authored expecting to
    be audible; none has been verified by ear.
-7. **`weapon_vfx_check`** fails about once in five on a shared scratch
-   profile and never on a fresh one. The earlier diagnosis here was wrong:
-   `MetaState.equip` takes a stash *index*, so the literal 0 is correct. The
-   check now prints the equip state it saw when it fails; read that line the
-   next time it fires, before theorising again.
+7. ~~`weapon_vfx_check` fails about once in five.~~ **Answered** (CLAUDE.md,
+   2026-09-25): the first swing loaded the blade's art and the frame after the
+   load outlasted the swing; a warm-up swing loads it first. Two more coin
+   tosses were answered the same way on 2026-09-25 - `wildlife_family_check`'s
+   courting mate and `tower_support_check`'s shaman shot. Run a gate six to
+   eight times before trusting a single green.
 8. **The four human-judgement conformance rows** (`run_tool.gd -- audit
    --todo`): read them for this release and record the reading.
 
@@ -170,10 +192,10 @@ all four hold sixty on Low.
   name. The Warden was re-founded as a PixelLab character for the dress pilot
   (`Warden (dress pilot)`), so new states are reachable again.
 - **A Guide page for mounts** (`guide_shots` needs the screen).
-- **Idle loops for Frostpoint and the Stillwater Mirror.** Their three idle
-  frames are pixel copies of the base painting, so both towers stand still on
-  the field, in the tooltip and as a build ghost. Regenerate by job URL and run
-  `tools/lock_tower_frames.py`, then check the loop moves (most change ~7%).
+- ~~Idle loops for Frostpoint and the Stillwater Mirror.~~ **Painted** by
+  `tools/paint_still_idle.py` (the animator returns an object at rest nearly
+  still, and the lock erases what little it draws). Both towers are listed in
+  `lock_tower_frames.py`'s `AUTHORED_IDLE` so the lock leaves them alone.
 
 ---
 
