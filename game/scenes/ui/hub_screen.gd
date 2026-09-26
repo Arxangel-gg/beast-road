@@ -802,7 +802,7 @@ func _look_presets() -> HFlowContainer:
 		button.custom_minimum_size = Vector2(0.0, 30.0)
 		button.add_theme_font_size_override("font_size", 13)
 		button.pressed.connect(func() -> void:
-			MetaState.set_whole_look(WardenLook.preset(index))
+			MetaState.dye_as_preset(index)
 			for key: Variant in _look_sliders:
 				var slider: HSlider = _look_sliders[key]
 				slider.set_value_no_signal(float(WardenLook.mine().get(key, 0.0)))

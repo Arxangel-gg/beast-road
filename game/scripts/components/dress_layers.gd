@@ -29,6 +29,15 @@ extends Node2D
 ## judged on. A weapon behind the body is drawn whole behind it, where the fist
 ## covers it anyway.
 ##
+## **The head is socketed too** (owner, 2026-09-26: *"8 hairstyles, beards
+## yes, code sway, one face"*). A hairstyle and a beard are one picture a
+## facing, laid on the head point the socket table gives every frame and chosen
+## by the view the head shows, coloured by `hair_tint.gdshader`. The beard is
+## drawn first and the hair over it, both over the cape and under the weapon:
+## a blade swung across the face is in front of the face. The hair leans about
+## the head point as the Warden moves, on a spring driven by this node's own
+## travel, so nothing else has to tell it the Warden moved.
+##
 ## **Placed, never animated here.** `HeroAnimator` decides the state, frame and
 ## facing; this reads the socket table `tools/warden_rig/pack.py` wrote for that
 ## frame - each hand moved onto the fist the body actually drew - and lays each
@@ -41,12 +50,22 @@ const BACK_ROWS: Array[int] = [5, 6, 7]
 ## A weapon is cut into at most this many bands behind the body - one per fist
 ## on it - and so at most one more stretch in front.
 const MAX_BANDS: int = 2
+const HAIR_SHADER_PATH: String = "res://scripts/shaders/hair_tint.gdshader"
+## Where the head point is in the socket row: x, y, and the view's facing index.
+const HEAD_SOCKET: int = 10
 
 ## The holder drawn under the body. Made by `attach`, beside this node.
 var behind: Node2D
 
 var _cape_back: Sprite2D
 var _cape_front: Sprite2D
+var _beard: Sprite2D
+var _hair: Sprite2D
+var _hair_sway: float = 0.0
+## The lean the hair is at, radians, and how fast it is changing.
+var _sway: float = 0.0
+var _sway_speed: float = 0.0
+var _last_at: Vector2 = Vector2.INF
 ## Per hand (0 the weapon in the right fist, 1 the second of a pair in the
 ## left): the pieces drawn over the body and the pieces drawn under it.
 var _over: Array = [[], []]
@@ -86,6 +105,9 @@ func _ready() -> void:
 	_cape_front = _part(self, "CapeFront")
 	for part: Sprite2D in [_cape_back, _cape_front]:
 		part.region_enabled = true
+	# Over the cape, under the weapon; the beard first so the hair meets it.
+	_beard = _head_part("Beard")
+	_hair = _head_part("Hair")
 	for hand: int in 2:
 		for i: int in MAX_BANDS + 1:
 			(_over[hand] as Array).append(_piece(self, "Weapon%d_%d" % [hand, i]))
@@ -106,6 +128,17 @@ func _part(holder: Node, node_name: String) -> Sprite2D:
 	sprite.centered = false
 	sprite.visible = false
 	holder.add_child(sprite)
+	return sprite
+
+
+func _head_part(node_name: String) -> Sprite2D:
+	var sprite: Sprite2D = _part(self, node_name)
+	sprite.region_enabled = true
+	var shader: Shader = load(HAIR_SHADER_PATH) as Shader
+	if shader != null:
+		var material := ShaderMaterial.new()
+		material.shader = shader
+		sprite.material = material
 	return sprite
 
 
@@ -144,6 +177,16 @@ func wear(outfit: Dictionary) -> void:
 	for part: Sprite2D in [_cape_back, _cape_front]:
 		part.self_modulate = Color(tint.r, tint.g, tint.b, 1.0) if tint.a > 0.0 else Color.WHITE
 		part.visible = false
+	var colour: Color = outfit.get("hair_colour", WardenLook.HAIR_COLOURS[0])
+	for pair: Array in [[_hair, "hair"], [_beard, "beard"]]:
+		var part: Sprite2D = pair[0]
+		var option: Dictionary = outfit.get(pair[1], {})
+		part.texture = WardenDress.texture(String(option.get("path", ""))) if not option.is_empty() else null
+		part.visible = false
+		var material := part.material as ShaderMaterial
+		if material != null:
+			material.set_shader_parameter("hair_colour", colour)
+	_hair_sway = float((outfit.get("hair", {}) as Dictionary).get("sway", 0.0))
 
 
 ## Lay every part on one frame. `offset` is where the body's cell was drawn,
@@ -156,6 +199,7 @@ func show_frame(state: String, frame: int, row: int, offset: Vector2, meta: Dict
 	var rows: Dictionary = meta.get("sockets", {})
 	var facing: String = HeroAnimator.FACING_NAMES[row] if row < HeroAnimator.FACING_NAMES.size() else ""
 	var table: Array = rows.get(facing, [])
+	_show_head(table[frame] if frame < table.size() else [], offset)
 	if frame >= table.size() or _texture == null:
 		_hide_hand(0)
 		_hide_hand(1)
@@ -226,6 +270,61 @@ func _lay(hand: int, socket: Array, start: int, offset: Vector2, length: float, 
 		(over[i] as Sprite2D).visible = false
 	for i: int in range(used_under, under.size()):
 		(under[i] as Sprite2D).visible = false
+
+
+## The hair and the beard on this frame's head point, in the view the head
+## shows. A socket row with no head in it - a table from before heads - shows
+## neither, rather than a head dressing in the wrong place.
+func _show_head(socket: Array, offset: Vector2) -> void:
+	var cell: Array = _outfit.get("head_cell", [64, 96])
+	var anchor: Array = _outfit.get("head_anchor", [32, 28])
+	for part: Sprite2D in [_hair, _beard]:
+		if part.texture == null or socket.size() <= HEAD_SOCKET + 2:
+			part.visible = false
+			continue
+		var view: int = int(socket[HEAD_SOCKET + 2])
+		part.region_rect = Rect2(float(view * int(cell[0])), 0.0, float(cell[0]), float(cell[1]))
+		part.offset = -Vector2(float(anchor[0]), float(anchor[1]))
+		part.position = offset + Vector2(float(socket[HEAD_SOCKET]), float(socket[HEAD_SOCKET + 1]))
+		part.skew = _sway * _hair_sway if part == _hair else 0.0
+		part.visible = true
+
+
+## The lean trails the Warden's own travel: moving right, what hangs below the
+## head swings left. A spring rather than a direct lean, so a stop overshoots
+## and settles the way hair does.
+func _process(delta: float) -> void:
+	if delta <= 0.0 or not visible:
+		return
+	var at: Vector2 = global_position
+	var travel: Vector2 = Vector2.ZERO
+	if _last_at != Vector2.INF:
+		travel = (at - _last_at) / delta
+	_last_at = at
+	if travel.length() > Balance.DRESS_HAIR_TELEPORT_SPEED:
+		_sway = 0.0
+		_sway_speed = 0.0
+		return
+	var target: float = clampf(travel.x * Balance.DRESS_HAIR_SWAY_PER_SPEED,
+		-Balance.DRESS_HAIR_SWAY_MAX, Balance.DRESS_HAIR_SWAY_MAX)
+	_sway_speed += ((target - _sway) * Balance.DRESS_HAIR_SWAY_SPRING
+		- _sway_speed * Balance.DRESS_HAIR_SWAY_DAMP) * delta
+	_sway = clampf(_sway + _sway_speed * delta, -Balance.DRESS_HAIR_SWAY_MAX, Balance.DRESS_HAIR_SWAY_MAX)
+	if _hair != null and _hair.visible:
+		_hair.skew = _sway * _hair_sway
+
+
+## The hair and the beard as drawn this frame, for `dress_check`.
+func hair() -> Sprite2D:
+	return _hair
+
+
+func beard() -> Sprite2D:
+	return _beard
+
+
+func sway() -> float:
+	return _sway
 
 
 func _hide_hand(hand: int) -> void:

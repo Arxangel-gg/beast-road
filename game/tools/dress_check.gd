@@ -23,6 +23,11 @@ extends Node
 ## - **The fist closes over the handle** (owner, 2026-09-25). A fist's width of
 ##   handle round each gripping fist goes under the body, never past the hilt,
 ##   drawn where the fist is; the guard and the blade stay over it.
+## - **The head is socketed** (owner, 2026-09-26). A hairstyle and a beard are
+##   a body's own, chosen by a whole number that nought makes bald; laid on the
+##   head point of every frame in the view the head shows, coloured as chosen,
+##   over the body and under a blade; and the hair leans with the Warden's own
+##   travel, never the beard, never past its ceiling and never on a teleport.
 
 const STATES: Array[String] = [
 	"idle", "walk", "sprint", "dash", "hurt", "death", "shoot",
@@ -45,12 +50,13 @@ func _ready() -> void:
 	_test_drawn_bodies_are_whole()
 	await _test_the_runtime_lays_every_part()
 	await _test_the_fist_closes_over_the_handle()
-	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies", "runtime", "fist"]:
+	await _test_the_head_is_socketed()
+	for name: String in ["classes", "held", "length", "combo", "outfit", "bodies", "runtime", "fist", "head"]:
 		_check(_reached.has(name), "'%s' never reached its end - a runtime error stopped it" % name)
 	for _frame: int in 10:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[dress] PASS - %d checks: every class known, every weapon held and sized by its class, the grip picks the combo, the dress resolves, the fist closes over the handle" % _checks)
+		print("[dress] PASS - %d checks: every class known, every weapon held and sized by its class, the grip picks the combo, the dress resolves, the fist closes over the handle, the head is socketed and sways" % _checks)
 	else:
 		push_error("[dress] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -576,3 +582,160 @@ func _test_the_fist_closes_over_the_handle() -> void:
 	body.queue_free()
 	await get_tree().process_frame
 	_reached.append("fist")
+
+
+# --- The head, socketed (owner, 2026-09-26) -----------------------------------
+
+const HEAD_TEST_ROOT: String = "user://dress_test/head/"
+const HEAD_TEST_TABLE: String = "user://dress_test/meta/heads.json"
+
+
+func _write_test_heads() -> void:
+	DirAccess.make_dir_recursive_absolute(HEAD_TEST_ROOT)
+	var sheet := Image.create(64 * 8, 96, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.6, 0.6, 0.6, 1.0))
+	for id: String in ["t_male_hair", "t_male_beard", "t_female_hair"]:
+		sheet.save_png(HEAD_TEST_ROOT + "head_%s.png" % id)
+	var table: Dictionary = {"cell": [64, 96], "anchor": [32, 28], "options": {
+		"t_male_hair": {"body": "male", "kind": "hair", "slot": 2, "sway": 1.0},
+		"t_male_beard": {"body": "male", "kind": "beard", "slot": 1, "sway": 0.0},
+		"t_female_hair": {"body": "female", "kind": "hair", "slot": 1, "sway": 0.5},
+		# Authored, and its sheet never installed: drawn as nothing.
+		"t_unpainted": {"body": "male", "kind": "hair", "slot": 3, "sway": 0.0},
+	}}
+	var file := FileAccess.open(HEAD_TEST_TABLE, FileAccess.WRITE)
+	file.store_string(JSON.stringify(table))
+	file.close()
+
+
+func _head_meta(rows: Array) -> Dictionary:
+	var sockets: Dictionary = {}
+	for row: int in 8:
+		sockets[HeroAnimator.FACING_NAMES[row]] = rows
+	return {"cell": [TEST_CELL.x, TEST_CELL.y], "sockets": sockets}
+
+
+func _test_the_head_is_socketed() -> void:
+	# The look's choices are whole numbers, clamped to their counts.
+	_check(int(WardenLook.clean({"hair": 99})["hair"]) == WardenLook.CHOICES["hair"] - 1,
+		"a hairstyle past the last was not held to the last")
+	_check(int(WardenLook.clean({"hair": -3})["hair"]) == 0, "a hairstyle below bald was not bald")
+	_check(int(WardenLook.clean({"hair": 2.6})["hair"]) == 3, "a hairstyle is not a whole number")
+	_check(int(WardenLook.clean({"body": 5})["body"]) == 1, "a body past the last was not held to it")
+	_check(int(WardenLook.clean({"hair_colour": 50})["hair_colour"]) == WardenLook.HAIR_COLOURS.size() - 1,
+		"a hair colour past the last was not held to it")
+	_check(WardenLook.CHOICES["hair_colour"] == WardenLook.HAIR_COLOURS.size(),
+		"the count of hair colours and the colours themselves disagree")
+	_check(WardenLook.is_undyed({"hair": 3, "body": 1}) and not WardenLook.is_plain({"hair": 3}),
+		"a haircut is not a dye, and it is not the plain Warden either")
+	var chosen: Dictionary = {"cloak": 0.3, "body": 1, "hair": 4, "hair_colour": 6, "beard": 2}
+	var dyed: Dictionary = WardenLook.dyed_as(chosen, 1)
+	_check(int(dyed["body"]) == 1 and int(dyed["hair"]) == 4 and int(dyed["beard"]) == 2
+		and int(dyed["hair_colour"]) == 6, "a preset changed the body, the hair or the beard: %s" % str(dyed))
+	_check(is_equal_approx(float(dyed["cloak"]), float(WardenLook.preset(1)["cloak"])),
+		"a preset did not put its own dye on")
+	_check(WardenLook.same(WardenLook.unpack(WardenLook.pack(chosen)), chosen),
+		"the body, the hair and the beard do not survive the wire")
+	_check(WardenLook.hair_colour({"hair_colour": 6}) == WardenLook.HAIR_COLOURS[6],
+		"the hair is not drawn in the colour chosen")
+
+	_write_test_heads()
+	var saved: Array = [WardenDress.head_root, WardenDress.heads_table]
+	WardenDress.head_root = HEAD_TEST_ROOT
+	WardenDress.heads_table = HEAD_TEST_TABLE
+	WardenDress.forget()
+
+	# Which style a body wears: its own, by its place in the count; nought is
+	# bald; a style the table names and nothing has painted is drawn as nothing.
+	var male: Dictionary = WardenDress.outfit({"body": 0, "hair": 2, "beard": 1, "hair_colour": 6},
+		null, null, null, null)
+	_check(String((male["hair"] as Dictionary).get("id", "")) == "t_male_hair",
+		"the second male hairstyle did not resolve to its sheet: %s" % str(male["hair"]))
+	_check(String((male["beard"] as Dictionary).get("id", "")) == "t_male_beard",
+		"the first beard did not resolve to its sheet")
+	_check((WardenDress.outfit({"body": 0, "hair": 0}, null, null, null, null)["hair"] as Dictionary).is_empty(),
+		"bald drew a hairstyle")
+	_check((WardenDress.outfit({"body": 0, "hair": 3}, null, null, null, null)["hair"] as Dictionary).is_empty(),
+		"a hairstyle with no sheet on disk drew something")
+	var female: Dictionary = WardenDress.outfit({"body": 1, "hair": 1, "beard": 1}, null, null, null, null)
+	_check(String((female["hair"] as Dictionary).get("id", "")) == "t_female_hair",
+		"the female body wore a style that is not hers: %s" % str(female["hair"]))
+	_check((female["beard"] as Dictionary).is_empty(), "the female body grew the male body's beard")
+
+	# Laid on the head point every frame, in the view the head shows.
+	var body := Sprite2D.new()
+	add_child(body)
+	var layers: DressLayers = DressLayers.attach(body)
+	await get_tree().process_frame
+	layers.set_process(false)
+	layers.wear(male)
+	var offset := Vector2(-20.0, -140.0)
+	var head := Vector2(21.0, 9.5)
+	var rows: Array = []
+	for frame: int in 3:
+		var socket: Array = _test_socket(0, frame, 2)
+		socket[10] = head.x + frame
+		socket[11] = head.y - frame
+		socket[12] = 3 if frame == 2 else 2
+		rows.append(socket)
+	var meta: Dictionary = _head_meta(rows)
+	for frame: int in 3:
+		layers.show_frame("idle", frame, 2, offset, meta)
+		var hair: Sprite2D = layers.hair()
+		var at: Vector2 = offset + head + Vector2(float(frame), -float(frame))
+		_check(hair.visible, "frame %d: the hair was not drawn" % frame)
+		_check(hair.position.is_equal_approx(at),
+			"frame %d: the hair is at %s, not on the head point %s" % [frame, hair.position, at])
+		_check(hair.offset.is_equal_approx(Vector2(-32.0, -28.0)),
+			"the hair's anchor is not the sheet's head point: %s" % hair.offset)
+		var view: int = int(rows[frame][12])
+		_check(is_equal_approx(hair.region_rect.position.x, float(view * 64)),
+			"frame %d: the hair drew view %s, not the head's view %d" % [frame, hair.region_rect.position.x / 64.0, view])
+		_check(layers.beard().visible and layers.beard().position.is_equal_approx(at),
+			"frame %d: the beard is not on the same head point" % frame)
+	var material := layers.hair().material as ShaderMaterial
+	_check(material != null and material.get_shader_parameter("hair_colour") == WardenLook.HAIR_COLOURS[6],
+		"the hair is not coloured as chosen")
+	_check(_against(layers.hair(), body) == "over" and _against(layers.beard(), body) == "over",
+		"a head dressing is drawn under the body")
+	_check(layers.beard().get_index() < layers.hair().get_index(), "the beard is drawn over the hair")
+	var first_weapon: int = layers.get_node("Weapon0_0").get_index()
+	_check(layers.hair().get_index() < first_weapon, "the hair is drawn over a blade swung across the face")
+	# A socket from before heads has none, and shows no head dressing.
+	layers.show_frame("idle", 0, 2, offset, _head_meta([_test_socket(0, 0, 2).slice(0, 10)]))
+	_check(not layers.hair().visible and not layers.beard().visible,
+		"a frame with no head point drew a head dressing somewhere")
+
+	# The sway trails the Warden's own travel, on the hair and not the beard.
+	layers.show_frame("idle", 0, 2, offset, meta)
+	var step: float = 1.0 / 60.0
+	for tick: int in 40:
+		body.position += Vector2(4.0, 0.0)
+		layers._process(step)
+	_check(layers.sway() > 0.02 and layers.hair().skew > 0.02,
+		"moving right did not lean the hair back: sway %.3f" % layers.sway())
+	_check(is_equal_approx(layers.beard().skew, 0.0), "the beard swayed")
+	_check(absf(layers.sway()) <= Balance.DRESS_HAIR_SWAY_MAX + 0.0001, "the sway ran past its ceiling")
+	body.position += Vector2(9000.0, 0.0)
+	layers._process(step)
+	_check(is_zero_approx(layers.sway()), "a teleport swung the hair: %.3f" % layers.sway())
+	for tick: int in 180:
+		layers._process(step)
+	_check(absf(layers.sway()) < 0.01, "standing still, the hair never settled: %.3f" % layers.sway())
+	for tick: int in 40:
+		body.position -= Vector2(4.0, 0.0)
+		layers._process(step)
+	_check(layers.sway() < -0.02, "moving left did not lean the hair the other way: %.3f" % layers.sway())
+
+	# Headless never compiles a shader, so its wiring is read off the source.
+	var shader: String = FileAccess.get_file_as_string(DressLayers.HAIR_SHADER_PATH)
+	_check(shader.contains("uniform vec4 hair_colour") and shader.contains("texture(TEXTURE, UV)"),
+		"the hair shader does not take the colour or read the grey it maps")
+
+	layers.queue_free()
+	body.queue_free()
+	await get_tree().process_frame
+	WardenDress.head_root = saved[0]
+	WardenDress.heads_table = saved[1]
+	WardenDress.forget()
+	_reached.append("head")

@@ -9931,6 +9931,30 @@ body sprite, and the gate asks which holder a part hangs from; planted back, it
 names the cape. A flag on a node is a model of the picture, and this file has
 recorded what those are worth.
 
+**Heads are socketed, and the owner sized them, as of 2026-09-26.** Four
+rulings, in the owner's words: *"8 hairstyles, beards yes, code sway, one
+face"*.
+
+- **Eight hairstyles a body**, sixteen in all, plus bald. A style is a PixelLab
+  state of that body's base in eight rotations, never an animation: it is
+  pinned to the rig's head point every frame and chosen by the head's facing.
+  Styles are drawn per body because the heads differ.
+- **Beards, on the male body.** The count was not given; four are budgeted
+  (stubble, trimmed, full, braided) and it is one line in the list to change.
+- **The sway is code**, driven by the Warden's own movement - a presentation
+  and never a fact, like every other look. An animated style would be a whole
+  body layer (248 generations) per style, and sixteen of them is the budget.
+- **One face a body.** A second face is a second animated body, and it is not
+  bought.
+
+**A style is drawn in chroma-key green and coloured at runtime.** The hair is
+keyed out of its state on a colour nothing else on the Warden wears, and its
+light and dark are mapped onto the chosen hair colour, so every style comes in
+every colour without a generation more - black and white included, which a hue
+turn cannot reach. Helmets sit on the same head point and hide the hair while
+worn. Body, skin, style, hair colour and beard are entries appended to
+`WardenLook.KEYS`, never inserted, and nothing else about them is saved.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

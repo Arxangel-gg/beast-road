@@ -820,12 +820,21 @@ func set_whole_look(wanted: Dictionary) -> void:
 	save_game()
 
 
+## A preset's dyes on the saved look, keeping the body, the hair and the beard
+## the Warden already chose: a preset is a set of colours, never a haircut.
+## Here rather than on the screen, because the saved look is this file's to edit
+## and every screen draws the worn one (`polish_check`).
+func dye_as_preset(index: int) -> void:
+	set_whole_look(WardenLook.dyed_as(look, index))
+
+
 func set_look(key: String, value: float) -> void:
 	if not WardenLook.KEYS.has(key):
 		return
 	var cleaned: Dictionary = WardenLook.clean(look)
-	cleaned[key] = clampf(value, -WardenLook.RANGE, WardenLook.RANGE)
-	look = cleaned
+	cleaned[key] = value
+	# Cleaned whole: a dye is clamped to its range and a choice to its count.
+	look = WardenLook.clean(cleaned)
 	save_game()
 
 

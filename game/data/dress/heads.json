@@ -1,0 +1,19 @@
+{
+ "anchor": [
+  32,
+  28
+ ],
+ "cell": [
+  64,
+  96
+ ],
+ "options": {
+  "m_tousled": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Short and tousled",
+   "slot": 2,
+   "sway": 0.3
+  }
+ }
+}

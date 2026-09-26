@@ -51,6 +51,32 @@ Under the body means hung from `DressBehind`, a holder that is the body
 sprite's own child: `show_behind_parent` orders a node only against its parent,
 so a part flagged behind one level deeper is drawn over the body.
 
+## Heads (owner, 2026-09-26)
+
+*"8 hairstyles, beards yes, code sway, one face."*
+
+| Male | Female |
+|---|---|
+| close-cropped | pixie crop |
+| short tousled | chin-length bob |
+| swept-back undercut | shoulder-length loose |
+| shoulder-length loose | single long braid down the back |
+| long, tied in a ponytail | high ponytail |
+| warrior topknot | braided crown |
+| shaved sides, braided crest | twin braids |
+| long braids | shaved sides, braided crest |
+
+Beards on the male body: stubble, trimmed, full, braided. Bald and clean-shaven
+are the ninth and fifth choices and cost nothing.
+
+- A style is a state of the body's own base, **drawn in chroma-key green**,
+  keyed out of its eight rotations inside the head's region, and coloured at
+  runtime by mapping the key's light and dark onto the chosen hair colour.
+- In play it is pinned to the rig's head point every frame (the neck-to-nose
+  line gives its turn), chosen by the head's facing, and swayed in code by the
+  Warden's own movement. A helmet uses the same socket and hides the hair.
+- One face a body.
+
 ## Two motion families
 
 The 23 weapon kinds split by grip: one-handed (blades, sabers, knives, rods,
@@ -73,8 +99,8 @@ frames 4), so two animations share one 15-frame job: eight clips a facing,
 | Male and female base layers | 496 | waiting on the pilot's sign-off |
 | Light and heavy armour, both bodies (4 states + animation) | ~1,110 | after the bases |
 | Long cape, both bodies (2 states + animation) | ~560 | after the bases |
-| Hair (four a body) and helmets (four classes) | ~360 | after the bases |
-| **Remaining** | **~2,530** | of 4,085 left after the day's 232 |
+| Hair (eight a body), beards (four, male) and helmets (four classes a body) | ~840 (28 states at 20-40) | owner ruling 2026-09-26; a keyed pilot first |
+| **Remaining** | **~2,050** | of 4,085 left after the day's 232 |
 
 ## The checks every layer passes through
 

@@ -30,7 +30,42 @@ const KEY_SASH: String = "sash"
 ## partner on the build before this sends two numbers that must still mean the
 ## cloak and the sash.
 const KEY_LEATHER: String = "leather"
-const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER]
+## The modular Warden's own choices (owner, 2026-09-26: *"8 hairstyles, beards
+## yes, code sway, one face"*): which body, which hairstyle, which hair colour,
+## which beard. **Appended after the dyes, never inserted** - the wire packs by
+## position, and a partner on an older build sends three numbers that must
+## still mean the three dyes. Each is a whole number, an index rather than a
+## hue turn, and 0 is always the plain choice: the male body, bald, the first
+## colour, clean-shaven. A look still changes nothing but a picture.
+const KEY_BODY: String = "body"
+const KEY_HAIR: String = "hair"
+const KEY_HAIR_COLOUR: String = "hair_colour"
+const KEY_BEARD: String = "beard"
+const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER,
+	KEY_BODY, KEY_HAIR, KEY_HAIR_COLOUR, KEY_BEARD]
+## The hue turns, which the dye shader reads.
+const DYES: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER]
+## The hair colours a style may be drawn in. Every style is drawn once, in
+## chroma-key green, and its light and dark are mapped onto one of these at
+## runtime (`hair_tint.gdshader`), so a colour costs nothing and black and white
+## are reachable, which a hue turn is not.
+const HAIR_COLOURS: Array[Color] = [
+	Color8(58, 38, 26),     # dark brown
+	Color8(26, 22, 22),     # black
+	Color8(96, 64, 40),     # brown
+	Color8(122, 70, 40),    # chestnut
+	Color8(134, 52, 32),    # auburn
+	Color8(178, 86, 40),    # copper
+	Color8(212, 176, 108),  # blonde
+	Color8(182, 170, 142),  # ash
+	Color8(128, 124, 120),  # grey
+	Color8(226, 222, 212),  # white
+]
+## How many of each choice there are, the plain one included: two bodies, eight
+## styles and bald, the colours above, four beards and clean-shaven.
+const CHOICES: Dictionary = {
+	KEY_BODY: 2, KEY_HAIR: 9, KEY_HAIR_COLOUR: 10, KEY_BEARD: 5,
+}
 
 ## Looks worth one press, for a player who wants a Warden rather than three
 ## sliders. Hue turns from the painting: the cloak is teal-steel (0.535), the sash
@@ -52,7 +87,22 @@ static var _shader: Shader = null
 
 
 static func plain() -> Dictionary:
-	return {KEY_CLOAK: 0.0, KEY_SASH: 0.0, KEY_LEATHER: 0.0}
+	var out: Dictionary = {}
+	for key: String in DYES:
+		out[key] = 0.0
+	for key: String in CHOICES:
+		out[key] = 0
+	return out
+
+
+## `look` wearing a preset's dyes, and keeping everything else it chose - a
+## preset is a set of colours, never a new body or a haircut.
+static func dyed_as(look: Dictionary, index: int) -> Dictionary:
+	var out: Dictionary = clean(look)
+	var dyes: Dictionary = preset(index)
+	for key: String in DYES:
+		out[key] = dyes[key]
+	return out
 
 
 ## A preset as a look.
@@ -70,17 +120,45 @@ static func clean(raw: Variant) -> Dictionary:
 		var given: Dictionary = raw
 		for key: String in KEYS:
 			var value: Variant = given.get(key, 0.0)
-			if value is float or value is int:
+			if not (value is float or value is int):
+				continue
+			if CHOICES.has(key):
+				out[key] = clampi(roundi(float(value)), 0, int(CHOICES[key]) - 1)
+			else:
 				out[key] = clampf(float(value), -RANGE, RANGE)
 	return out
 
 
+## One entry, cleaned as `clean` would clean it.
+static func cleaned_value(key: String, value: float) -> Variant:
+	var one: Dictionary = {}
+	one[key] = value
+	return clean(one).get(key, 0.0)
+
+
 static func is_plain(look: Dictionary) -> bool:
+	return is_undyed(look) and _default_choices(clean(look))
+
+
+## No dye on any band: the painting as it was painted.
+static func is_undyed(look: Dictionary) -> bool:
 	var cleaned: Dictionary = clean(look)
-	for key: String in KEYS:
+	for key: String in DYES:
 		if absf(float(cleaned[key])) > 0.0005:
 			return false
 	return true
+
+
+static func _default_choices(cleaned: Dictionary) -> bool:
+	for key: String in CHOICES:
+		if int(cleaned[key]) != 0:
+			return false
+	return true
+
+
+## The colour a hair or beard is drawn in.
+static func hair_colour(look: Dictionary) -> Color:
+	return HAIR_COLOURS[int(clean(look)[KEY_HAIR_COLOUR])]
 
 
 static func same(a: Dictionary, b: Dictionary) -> bool:
@@ -179,7 +257,7 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 	elif item.material != null:
 		return
 	else:
-		if is_plain(cleaned) or shader() == null:
+		if is_undyed(cleaned) or shader() == null:
 			return
 		material = ShaderMaterial.new()
 		material.shader = shader()

@@ -356,8 +356,19 @@ func _check_the_bounce() -> void:
 
 ## The third dye and the presets.
 func _check_the_leather() -> void:
-	_check(WardenLook.KEYS.size() == 3 and WardenLook.KEYS[2] == WardenLook.KEY_LEATHER,
-		"the leather must be appended after the cloak and the sash - the wire packs by position")
+	# Amended 2026-09-26: this held `KEYS.size() == 3`, which was the count on the
+	# day the leather landed rather than the invariant. What the wire needs is
+	# that every entry keeps its place - the modular Warden's body, hair, hair
+	# colour and beard were appended after the three dyes - so each place is
+	# held by name, and an older row still means what it meant.
+	var order: Array[String] = [WardenLook.KEY_CLOAK, WardenLook.KEY_SASH, WardenLook.KEY_LEATHER,
+		WardenLook.KEY_BODY, WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_BEARD]
+	_check(WardenLook.KEYS.size() >= order.size() and WardenLook.KEYS.slice(0, order.size()) == order,
+		"the look's entries must keep their places, each appended after the last - the wire packs by position")
+	var three: Dictionary = WardenLook.unpack([0.2, -0.1, 0.3])
+	_check(int(three[WardenLook.KEY_BODY]) == 0 and int(three[WardenLook.KEY_HAIR]) == 0
+		and int(three[WardenLook.KEY_BEARD]) == 0,
+		"a three-number row from an older partner must still be the plain body, bald and clean-shaven")
 	var old_row: Array = [0.2, -0.1]
 	var read: Dictionary = WardenLook.unpack(old_row)
 	_check(is_equal_approx(float(read[WardenLook.KEY_CLOAK]), 0.2)

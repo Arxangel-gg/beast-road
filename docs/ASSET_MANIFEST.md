@@ -3529,6 +3529,21 @@ top-down angle - never an isometric corner.
 | `wayside_snared_beast.png` | 96×96 | O | `#3A3128` |
 | `wayside_wounded_animal.png` | 96×96 | O | `#3A3128` |
 
+### 5.34 Head dressings of 2026-09-26 — `res://art/hero/dress/head/`
+
+Hairstyles and beards for the modular Warden (owner, 2026-09-26: eight
+hairstyles a body, beards, the sway in code, one face). Each is a state of its
+body's own base drawn in chroma-key green, keyed to grey by
+`tools/warden_rig/heads.py`, and laid out as eight cells in the rig's facing
+order with the head point at the same place in each. Coloured at runtime by
+`hair_tint.gdshader`, so a sheet is every hair colour at once. Rows are written
+by the install step itself, one per sheet it lays, so the manifest and the
+folder cannot disagree.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `head_m_tousled.png` | 512×96 | T | `#3A3128` |
+
 ### 5.33 Held weapons of 2026-09-25 — `res://art/hero/held/`
 
 Every weapon kind as the Warden holds it (the modular Warden, owner rulings of

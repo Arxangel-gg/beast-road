@@ -1,0 +1,22 @@
+[
+ {"id": "m_cropped", "body": "male", "kind": "hair", "name": "Close-cropped", "prompt": "Give him very short close-cropped hair, a soldier's crop hugging the skull, ears showing.", "sway": 0.0},
+ {"id": "m_tousled", "body": "male", "kind": "hair", "name": "Short and tousled", "prompt": "Give him short tousled hair, a little longer on top, ears still showing.", "sway": 0.3},
+ {"id": "m_undercut", "body": "male", "kind": "hair", "name": "Swept-back undercut", "prompt": "Give him an undercut: the sides shaved short and the top grown longer and swept straight back.", "sway": 0.2},
+ {"id": "m_loose", "body": "male", "kind": "hair", "name": "Shoulder-length", "prompt": "Give him loose shoulder-length hair, parted in the middle, falling to just above the shoulders.", "sway": 0.8},
+ {"id": "m_ponytail", "body": "male", "kind": "hair", "name": "Tied back", "prompt": "Give him long hair pulled back tight and tied in a single ponytail at the nape of the neck.", "sway": 1.0},
+ {"id": "m_topknot", "body": "male", "kind": "hair", "name": "Topknot", "prompt": "Give him a warrior's topknot: long hair gathered up and tied in a knot on the crown of the head, the sides kept short.", "sway": 0.5},
+ {"id": "m_crest", "body": "male", "kind": "hair", "name": "Braided crest", "prompt": "Give him shaved sides with a single thick braid running from the forehead back over the crown to the nape, like a crest.", "sway": 0.3},
+ {"id": "m_braids", "body": "male", "kind": "hair", "name": "Long braids", "prompt": "Give him long hair worn in several thick braids that hang down the back past the shoulders.", "sway": 1.0},
+ {"id": "f_pixie", "body": "female", "kind": "hair", "name": "Pixie crop", "prompt": "Give her a short pixie crop, cut close at the back and sides with a short fringe on top.", "sway": 0.2},
+ {"id": "f_bob", "body": "female", "kind": "hair", "name": "Chin-length bob", "prompt": "Give her a straight chin-length bob with a blunt fringe.", "sway": 0.6},
+ {"id": "f_loose", "body": "female", "kind": "hair", "name": "Shoulder-length", "prompt": "Give her loose shoulder-length hair, parted to one side, falling to the shoulders.", "sway": 0.8},
+ {"id": "f_braid", "body": "female", "kind": "hair", "name": "Long braid", "prompt": "Give her long hair gathered into one thick braid that hangs straight down the middle of her back.", "sway": 1.0},
+ {"id": "f_ponytail", "body": "female", "kind": "hair", "name": "High ponytail", "prompt": "Give her long hair drawn up into a high ponytail at the crown of the head, falling to between the shoulders.", "sway": 1.0},
+ {"id": "f_crown", "body": "female", "kind": "hair", "name": "Braided crown", "prompt": "Give her hair braided and wrapped around the head like a crown, neat and close to the skull.", "sway": 0.1},
+ {"id": "f_twin", "body": "female", "kind": "hair", "name": "Twin braids", "prompt": "Give her two braids, one behind each ear, hanging down behind the shoulders.", "sway": 1.0},
+ {"id": "f_crest", "body": "female", "kind": "hair", "name": "Braided crest", "prompt": "Give her shaved sides with a single thick braid running from the forehead back over the crown to the nape, like a crest.", "sway": 0.3},
+ {"id": "m_stubble", "body": "male", "kind": "beard", "name": "Stubble", "prompt": "Give him a few days of short stubble along the jaw, chin and upper lip.", "sway": 0.0},
+ {"id": "m_trimmed", "body": "male", "kind": "beard", "name": "Trimmed beard", "prompt": "Give him a short neatly trimmed beard and moustache following the jawline.", "sway": 0.0},
+ {"id": "m_full", "body": "male", "kind": "beard", "name": "Full beard", "prompt": "Give him a thick full beard and moustache reaching a hand's width below the chin.", "sway": 0.0},
+ {"id": "m_braided", "body": "male", "kind": "beard", "name": "Braided beard", "prompt": "Give him a long beard gathered into a single braid that hangs down onto the chest, with a full moustache.", "sway": 0.0}
+]

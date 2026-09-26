@@ -3,10 +3,11 @@
     python batch.py plan <layer>                  what it would buy, and the cost
     python batch.py run <layer> [--facings f,g] [--clips 0,3] [--dry]
     python batch.py fetch <layer>                 collect finished jobs only
+    python batch.py balance -                     the account's generations left
 
-The key is read from PIXELLAB_API_KEY, or from ~/.pixellab/api_key, and is never
-printed, logged or written anywhere else. The owner puts it there; nothing here
-asks for it.
+The key is read from PIXELLAB_API_KEY, or from ~/.pixellab/api_key (or
+api_key.txt, which is what Notepad saves), and is never printed, logged or
+written anywhere else. The owner puts it there; nothing here asks for it.
 
 Why a script. One skeleton job carries a reference frame and up to fifteen
 eighteen-joint skeletons, and a layer is eight facings of eight clips - sixty-four
@@ -40,6 +41,15 @@ MAX_IN_FLIGHT = 16          # PixelLab allows 20 at Tier 3; four are left for ha
 SUBMIT_GAP = 0.6            # seconds between submissions ("too many too quickly")
 POLL_EVERY = 12.0
 COST = {3: 2, 8: 3, 15: 4}  # generations by frame count, from the endpoint's own doc
+STALE_MINUTES = 45          # a job the queue has held this long is resubmitted once
+
+
+def _stale(entry: dict) -> bool:
+    try:
+        started = time.mktime(time.strptime(entry.get("submitted", ""), "%Y-%m-%dT%H:%M:%S"))
+    except ValueError:
+        return False
+    return time.time() - started > STALE_MINUTES * 60
 
 
 def cost_of(frames: int) -> int:
@@ -49,7 +59,8 @@ def cost_of(frames: int) -> int:
     return COST[15]
 
 
-KEY_FILE = os.path.join(os.path.expanduser("~"), ".pixellab", "api_key")
+KEY_FILES = [os.path.join(os.path.expanduser("~"), ".pixellab", name)
+             for name in ("api_key", "api_key.txt")]
 
 
 def _key() -> str:
@@ -57,11 +68,16 @@ def _key() -> str:
     ~/.pixellab/api_key. Read here and used in one header; never printed,
     logged, echoed on an error or written anywhere else."""
     key = os.environ.get("PIXELLAB_API_KEY", "").strip()
-    if not key and os.path.exists(KEY_FILE):
-        with open(KEY_FILE, encoding="utf-8") as f:
-            key = f.read().strip()
+    for path in KEY_FILES:
+        if key:
+            break
+        if os.path.exists(path):
+            # utf-8-sig: Notepad may write a byte-order mark, which would ride
+            # into the header and read as a wrong key rather than a missing one.
+            with open(path, encoding="utf-8-sig") as f:
+                key = f.read().strip()
     if not key:
-        sys.exit("No PixelLab key: set PIXELLAB_API_KEY, or put the key alone in %s." % KEY_FILE)
+        sys.exit("No PixelLab key: set PIXELLAB_API_KEY, or put the key alone in %s." % KEY_FILES[0])
     return key
 
 
@@ -167,7 +183,8 @@ def _images_of(response: dict) -> list:
         if isinstance(image, dict) and image.get("base64"):
             out.append(base64.b64decode(image["base64"]))
         elif isinstance(image, dict) and image.get("url"):
-            with urllib.request.urlopen(image["url"], timeout=120) as r:
+            req = urllib.request.Request(image["url"], headers={"User-Agent": "wilderhold-rig"})
+            with urllib.request.urlopen(req, timeout=120) as r:
                 out.append(r.read())
         elif isinstance(image, str):
             out.append(base64.b64decode(image))
@@ -183,7 +200,13 @@ def _store(layer: str, facing: str, clip_index: int, images: list) -> str:
     return folder
 
 
-def run(layer: str, facings: list, clip_ids: list, dry: bool) -> None:
+def balance() -> None:
+    reply = _request("GET", "/balance")
+    sub = reply.get("subscription") or {}
+    print("generations left: %s of %s (%s)" % (sub.get("generations"), sub.get("total"), sub.get("plan")))
+
+
+def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = True) -> None:
     spec = layers()[layer]
     ledger = load_ledger(layer)
     todo = [(f, c) for f, c in slots(layer, facings, clip_ids)
@@ -194,6 +217,10 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool) -> None:
     if dry:
         return
     pending = [(f, c) for f, c in todo]
+    if not submit:
+        # Collect only: a job never submitted stays unbought.
+        pending = [(f, c) for f, c in pending
+                   if ledger.get("%s/%d" % (f, c), {}).get("status") == "processing"]
     while pending:
         in_flight = [k for k, v in ledger.items() if v.get("status") == "processing"]
         for facing, c in list(pending):
@@ -201,7 +228,7 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool) -> None:
             entry = ledger.get(key, {})
             if entry.get("status") == "processing":
                 continue
-            if len(in_flight) >= MAX_IN_FLIGHT:
+            if len(in_flight) >= MAX_IN_FLIGHT or not submit:
                 break
             if entry.get("attempts", 0) >= 2:
                 print("giving up on %s after two failures: %s" % (key, entry.get("error")))
@@ -219,7 +246,16 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool) -> None:
         time.sleep(POLL_EVERY)
         for key in [k for k, v in ledger.items() if v.get("status") == "processing"]:
             entry = ledger[key]
-            status = _request("GET", "/background-jobs/" + entry["job"])
+            try:
+                status = _request("GET", "/background-jobs/" + entry["job"])
+            except RuntimeError as e:
+                # 423 is PixelLab's "still in the queue"; anything else is
+                # reported and asked again next round rather than ending the run.
+                if "-> 423" not in str(e):
+                    print("poll", key, str(e)[:160])
+                status = {"status": "processing"}
+            if status["status"] == "processing" and _stale(entry):
+                status = {"status": "failed", "last_response": "no answer in %d minutes" % STALE_MINUTES}
             if status["status"] == "completed":
                 images = _images_of(status)
                 facing, c = key.split("/")
@@ -255,7 +291,9 @@ def main() -> None:
     elif command == "run":
         run(layer, facings, clip_ids, dry)
     elif command == "fetch":
-        run(layer, facings, clip_ids, dry=False)
+        run(layer, facings, clip_ids, dry=False, submit=False)
+    elif command == "balance":
+        balance()
     else:
         sys.exit(__doc__)
 

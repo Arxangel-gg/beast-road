@@ -5994,6 +5994,18 @@ const DRESS_WEAPON_LENGTH: Dictionary = {
 	"polearm": 0.70,
 }
 const DRESS_REACH_NUDGE: float = 0.12
+## How a hairstyle sways as the Warden moves (owner, 2026-09-26: *"code
+## sway"*). A style is one picture a facing, so its motion is a lean about the
+## head point - `skew`, radians - that trails the Warden's own travel on a
+## damped spring, scaled by how much of the style hangs free (`sway` in
+## `data/dress/heads.json`). A look and never a fact: nothing reads it. [TUNE]
+const DRESS_HAIR_SWAY_PER_SPEED: float = 0.0006
+const DRESS_HAIR_SWAY_MAX: float = 0.22
+const DRESS_HAIR_SWAY_SPRING: float = 60.0
+const DRESS_HAIR_SWAY_DAMP: float = 9.0
+## A move faster than this is a teleport - a respawn, a revive - and swings
+## nothing; the spring starts again from rest.
+const DRESS_HAIR_TELEPORT_SPEED: float = 2400.0
 const ENEMY_FEET_ANCHOR: float = 0.43
 const ELITE_SPRITE_SCALE: float = 1.9
 const BOSS_SPRITE_SCALE: float = 2.2

@@ -25,6 +25,7 @@ const BODIES: Array[String] = ["male", "female"]
 const DRESS_DIR: String = "res://art/hero/dress/"
 const META_DIR: String = "res://data/dress/"
 const HELD_DIR: String = "res://art/hero/held/"
+const HEAD_DIR: String = "res://art/hero/dress/head/"
 
 ## The armour classes, and which to try when one is not drawn yet. Medium falls
 ## to heavy before light because mail reads nearer plate than leather.
@@ -65,6 +66,10 @@ static var held_root: String = HELD_DIR
 ## The grip table sits with the weapons rather than with a body's sheets, so a
 ## gate that points the sheets at a synthetic dress still holds real swords.
 static var held_table: String = META_DIR + "held.json"
+## The head dressings: their sheets, and the table naming each one's body, kind
+## and place in the look's count (`tools/warden_rig/heads.py install`).
+static var head_root: String = HEAD_DIR
+static var heads_table: String = META_DIR + "heads.json"
 
 
 ## Whether a body has any dress art at all. False until the base body is on
@@ -100,6 +105,8 @@ static func forget() -> void:
 	_layers.clear()
 	_held.clear()
 	_held_read = false
+	_heads.clear()
+	_heads_read = false
 
 
 static func body_name(look: Dictionary) -> String:
@@ -197,6 +204,41 @@ static func helmet_class(helmet: GearData) -> String:
 	return helmet.look if helmet != null else ""
 
 
+static var _heads: Dictionary = {}
+static var _heads_read: bool = false
+
+
+## The installed head dressings: `options` by id - body, kind, slot, sway - and
+## the one `cell` every sheet is laid in, with the head point at `anchor`.
+static func heads() -> Dictionary:
+	if not _heads_read:
+		_heads_read = true
+		if FileAccess.file_exists(heads_table):
+			var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(heads_table))
+			if parsed is Dictionary:
+				_heads = parsed
+	return _heads
+
+
+## A head dressing for a body: the `index`-th of its kind, counting from one,
+## because nought is the plain choice - bald, or clean-shaven. Empty when that
+## choice is plain, when the body has no such option, or when its sheet is not
+## on disk: a style that cannot be drawn is drawn as nothing rather than as the
+## wrong one.
+static func head_option(body: String, kind: String, index: int) -> Dictionary:
+	if index <= 0:
+		return {}
+	var options: Dictionary = heads().get("options", {})
+	for id: String in options:
+		var option: Dictionary = options[id]
+		if String(option.get("body", "")) == body and String(option.get("kind", "")) == kind \
+				and int(option.get("slot", 0)) == index:
+			var path: String = head_root + "head_" + id + ".png"
+			if exists(path):
+				return {"id": id, "path": path, "sway": float(option.get("sway", 0.0))}
+	return {}
+
+
 ## A state's sheet metadata for a body: its cell, where the cell sits on the
 ## canvas, its frame count and its sockets. Empty when it has none.
 static func meta(body: String, state: String) -> Dictionary:
@@ -228,4 +270,9 @@ static func outfit(look: Dictionary, weapon: GearData, armour: GearData,
 		"held_grip": held_grip(weapon),
 		"held_length": held_length(weapon),
 		"helmet": helmet_class(helmet),
+		"hair": head_option(body, "hair", int(WardenLook.clean(look)[WardenLook.KEY_HAIR])),
+		"beard": head_option(body, "beard", int(WardenLook.clean(look)[WardenLook.KEY_BEARD])),
+		"hair_colour": WardenLook.hair_colour(look),
+		"head_cell": heads().get("cell", [64, 96]),
+		"head_anchor": heads().get("anchor", [32, 28]),
 	}
