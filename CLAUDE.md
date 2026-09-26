@@ -10164,6 +10164,27 @@ rather than asking again:
   fragile bodies on cheaper logic - with the pressure band held by lower health
   per body, measured against `curve_report` and the frame.
 
+**A body lets go of a Warden who falls or goes inside the walls, as of
+2026-09-26.** The owner: *"enemies should stop targeting a player once the player
+has died"*. Measured on the live field before the fix: of six bodies fighting the
+Warden, three kept the corpse as their target for four seconds and spent 108
+frames striking it. Choosing already refused the dead - keeping did not. The
+choosing clock of 2026-09-24 counted down only while a body walked, and a
+fighting body walks one frame a swing, so its tenth of a second took several
+swings to run out; and a wind-up was never asked whether its target still stood.
+The clock runs in every state now, a target that has fallen or gone inside the
+walls is dropped on the frame it happens (`Enemy._target_fell`), and a wind-up at
+one is let go. The same gap let a chasing body follow the Warden into the
+sanctuary of 2026-09-17. `dead_target_check` holds both, on both bars, and named
+both on the old code.
+
+**A body that slides through its sheet while the hair holds is a game left open
+under new art.** Reported the same day after resuming a front: the male sheets
+had just been re-cut to wider cells for the cape, and `WardenDress.meta` is read
+once a process while each sheet loads the first time it is drawn - so a game
+running across the repack framed 108-pixel windows out of a 126-pixel sheet.
+Restart the game after dress art is repacked; a shipped build cannot see it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

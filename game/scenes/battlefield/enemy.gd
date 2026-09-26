@@ -1020,6 +1020,12 @@ var _howler_checked_ms: int = -100000
 
 
 func _tick_state(delta: float) -> void:
+	# **The choosing clock runs in every state** (2026-09-26). It only counted
+	# down while walking, and a body that is fighting walks for one frame a
+	# swing - so its tenth of a second took several swings to run out, and it
+	# went on swinging at a Warden who had died (owner report, measured: three
+	# of six bodies struck a corpse for four seconds).
+	_retarget_left -= delta
 	match _state:
 		State.WALKING:
 			_grudge_left = maxf(_grudge_left - delta, 0.0)
@@ -1037,8 +1043,7 @@ func _tick_state(delta: float) -> void:
 			# body between foes choosing again on every frame - half the
 			# roster's choices on Act X. Only a target that was freed under it
 			# is answered at once.
-			_retarget_left -= delta
-			if _retarget_left <= 0.0 or (_target != null and not is_instance_valid(_target)):
+			if _retarget_left <= 0.0 or _target_fell():
 				_t = Time.get_ticks_usec()
 				_target = _pick_target()
 				FrameProfile.add(&"e_pick", _t)
@@ -1079,6 +1084,13 @@ func _tick_state(delta: float) -> void:
 				_walk(delta)
 				FrameProfile.add(&"e_walk", _t)
 		State.WINDUP:
+			# A blow coiled at somebody who has since fallen, or stepped inside the
+			# walls, is not thrown at where they were: the body lets it go and
+			# chooses again. A telegraph already laid on the ground is a different
+			# thing and lands whatever happens - that is `EnemyGroundStrike`.
+			if _target_fell():
+				_enter(State.WALKING, 0.0)
+				return
 			_state_left -= delta
 			if _state_left <= 0.0:
 				_strike()
@@ -2117,6 +2129,20 @@ func _camp_target() -> Node2D:
 	if hero.global_position.distance_to(camp_home) > camp_leash:
 		return null
 	return hero
+
+
+## Whether the target this body holds has stopped being one: freed, or a
+## hero or companion who has fallen, gone down or stepped inside the walls.
+## Asked every frame a body walks or winds up, because keeping a target is
+## the half of `_foe_stands` the choosing clock does not cover.
+func _target_fell() -> bool:
+	if _target == null:
+		return false
+	if not is_instance_valid(_target):
+		return true
+	if _target is Hero or _target is Companion:
+		return not _foe_stands(_target)
+	return false
 
 
 ## Whether a foe - hero or companion - is still something to fight.
