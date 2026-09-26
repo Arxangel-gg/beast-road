@@ -798,7 +798,9 @@ func _apply_level_look() -> void:
 
 	if _light != null:
 		var boost: float = 1.0 + step * Balance.TOWER_LEVEL_LIGHT_STEP
-		_light.energy = Balance.TOWER_LIGHT_ENERGY * boost
+		# Through the driver: it rewrites the energy every tick, and a boost
+		# written here directly was gone the moment it did.
+		LightKit.scale_light(_light, boost)
 		_light.texture_scale = (Balance.TOWER_LIGHT_RADIUS / 128.0) * (1.0 + step * 0.25)
 
 

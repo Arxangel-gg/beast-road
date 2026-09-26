@@ -12,6 +12,15 @@ var _light: PointLight2D
 var _base_energy: float = 1.0
 var _flicker: float = 0.0
 var _seed: float = 0.0
+## The owner's own factor - a campfire's flicker, a tower's level, a healing
+## drop's breath - on top of the day and the wobble. **The driver is the one
+## writer of `energy`** (2026-09-26): a campfire wrote its flicker every frame
+## while this wrote the day-dimmed wobble thirty times a second, so on a fast
+## screen the light was one value for five frames and a quite different one
+## for the sixth - the menu's fires strobing, which the owner reported as a
+## glitchy jitter. An owner that wants to move the light asks through
+## `LightKit.scale_light`, which lands here.
+var _scale: float = 1.0
 
 
 func setup(light: PointLight2D, base_energy: float, flicker: float) -> void:
@@ -20,6 +29,7 @@ func setup(light: PointLight2D, base_energy: float, flicker: float) -> void:
 	_flicker = flicker
 	# Offset per light so a row of torches does not pulse in unison.
 	_seed = randf() * 100.0
+	light.set_meta(&"light_driver", self)
 	_apply()
 	DayNight.phase_changed.connect(_on_phase)
 
@@ -46,6 +56,15 @@ func _on_phase(_phase: float, _tint: Color, _darkness: float) -> void:
 	_apply()
 
 
+## The owner's factor, applied at once so a light following a flame moves on
+## the frame the flame does. A change too small to see is no write.
+func set_scale(value: float) -> void:
+	if absf(value - _scale) < 0.0005:
+		return
+	_scale = value
+	_apply()
+
+
 func _apply() -> void:
 	if _light == null or not is_instance_valid(_light):
 		return
@@ -56,7 +75,7 @@ func _apply() -> void:
 	if _flicker > 0.0:
 		# Two out-of-phase sines read as an unsteady flame; one reads as a pulse.
 		wobble = 1.0 + _flicker * (sin(_seed * 7.3) * 0.6 + sin(_seed * 13.1) * 0.4) * 0.5
-	_light.energy = _base_energy * day_scale * wobble
+	_light.energy = _base_energy * day_scale * wobble * _scale
 	# Flame.set_intensity() uses alpha as its persistent on/off/intensity signal.
 	# Respect it here so the day/night driver cannot re-light an extinguished
 	# torch on the following frame.

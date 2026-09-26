@@ -166,6 +166,18 @@ static func add_light(parent: Node2D, colour: Color, radius: float,
 	return light
 
 
+## Moves a light made here by its owner's own factor, through the driver that is
+## the one writer of its energy (2026-09-26). Writing `energy` directly beside a
+## driver is two writers of one property, and the light shows whichever wrote
+## last - which strobed the menu's fires on a fast screen.
+static func scale_light(light: PointLight2D, scale: float) -> void:
+	if light == null or not is_instance_valid(light) or not light.has_meta(&"light_driver"):
+		return
+	var driver: Variant = light.get_meta(&"light_driver")
+	if driver != null and is_instance_valid(driver) and driver is LightDriver:
+		(driver as LightDriver).set_scale(scale)
+
+
 ## **Cast shadows are budgeted by distance from what the camera watches**
 ## (2026-09-24). Every light in `SHADOW_GROUP` is ranked by its distance to
 ## `watch`; the nearest `Graphics.shadow_light_budget()` of them cast and the

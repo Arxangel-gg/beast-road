@@ -383,11 +383,10 @@ func _process_measured(delta: float) -> void:
 	# something flashing on a battlefield reads as a hazard, and this is the
 	# opposite of one.
 	if _lamp != null and is_instance_valid(_lamp) and _healing():
-		_lamp.energy = Balance.LOOT_LIGHT_ENERGY_MAX \
-			* Balance.LOOT_LIGHT_HEAL_SCALE \
-			* (1.0 - Balance.LOOT_LIGHT_PULSE_DEPTH \
-				+ Balance.LOOT_LIGHT_PULSE_DEPTH \
-				* absf(sin(_life * Balance.LOOT_LIGHT_PULSE_RATE)))
+		# Through the driver, which writes the lamp's energy; the strength it
+		# was made with is the heal scale already.
+		LightKit.scale_light(_lamp, 1.0 - Balance.LOOT_LIGHT_PULSE_DEPTH
+			+ Balance.LOOT_LIGHT_PULSE_DEPTH * absf(sin(_life * Balance.LOOT_LIGHT_PULSE_RATE)))
 	# The *nearest* hero, not the one holding the hero group.
 	#
 	# That group answers "which hero does the HUD describe", which is this

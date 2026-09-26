@@ -40,8 +40,10 @@ func _ready() -> void:
 	_glow.z_index = -1
 	_glow.z_as_relative = true
 	add_child(_glow)
+	# No wobble of the driver's own: the light follows this fire's flicker, so
+	# what the fire lights agrees with the flame, the glow and the pool.
 	_light = LightKit.add_light(self, Color(1.0, 0.62, 0.3), Balance.CAMP_FIRE_LIGHT_RADIUS * 1.4,
-		0.9, 0.35)
+		0.9, 0.0)
 
 
 func _process_measured(delta: float) -> void:
@@ -65,7 +67,7 @@ func _process_measured(delta: float) -> void:
 			/ maxf(float(LightKit.falloff_texture().get_width()), 1.0)) / maxf(scale.x, 0.01) \
 			* (0.94 + 0.06 * flicker)
 	if _light != null:
-		_light.energy = 0.9 * flicker
+		LightKit.scale_light(_light, flicker)
 	if _frames.is_empty():
 		return
 	var index: int = int(floor(_clock * Balance.CAMP_FIRE_FRAME_RATE)) % _frames.size()
