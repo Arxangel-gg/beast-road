@@ -30,6 +30,12 @@ const HOST_SAID: String = "pulling to the north road"
 ## guest's tend, build and revive requests were addressed to - three failures
 ## that read as co-op faults and were the harness quitting early.
 const GUEST_DONE: String = "guest done"
+## **A Warden the host has never met** (2026-09-26, COOP_DESIGN §11). The guest
+## arrives as this account, and the host's copy of it must fight as this sheet
+## rather than as the host's own - which a single process can never tell apart,
+## because it has one `MetaState` and both heroes would read it.
+const GUEST_LEVEL: int = 23
+const GUEST_PLACED: Array[int] = [10, 4, 4, 2, 2]
 var _heard_chat: String = ""
 var _guest_done: bool = false
 var _heard_from: int = 0
@@ -206,6 +212,9 @@ func _run_guest() -> void:
 	# crossed the wire - which is the property worth checking.
 	GameDirector.run_active = true
 	EventBus.coop_run_started.connect(_on_host_run_started)
+	MetaState.hero_level = GUEST_LEVEL
+	MetaState.hero_attributes = GUEST_PLACED.duplicate()
+	MetaState.hero_attribute_points = 0
 	var code: String = CoopCode.encode("127.0.0.1", Balance.COOP_PORT)
 	_check(not code.is_empty(), "the harness must be able to build a code")
 	_check(CoopCode.looks_like_code(code), "and it must read as one")
@@ -282,6 +291,26 @@ func _enter_run_in_place(role: String) -> void:
 		# apply them to. Loot came through as zero and looked like a broken
 		# feature rather than a race in the harness.
 		await _hold(2.0)
+		# **The guest's Warden, as the guest's account.** Told once, early, and
+		# kept by the host for a body built after it landed.
+		# Asked afresh each frame: the partner's body can be rebuilt when the
+		# roster lands, and the sheet is worn by whichever body stands.
+		await _until(func() -> bool:
+			var body: Hero = field.partner_hero()
+			return body != null and body.sheet != null)
+		var sheeted: Hero = field.partner_hero()
+		var crew: Node = field.get_node_or_null("CoopHeroes")
+		print("[coop-ui] host sheets held: %s" % (str((crew.get("_sheets") as Dictionary).keys())
+			if crew != null else "no CoopHeroes"))
+		_check(sheeted != null and sheeted.sheet != null
+			and sheeted.sheet.level == GUEST_LEVEL and sheeted.sheet.placed == GUEST_PLACED,
+			"the host must fight the guest's Warden as the guest's own sheet, got %s"
+				% (str([sheeted.sheet.level, sheeted.sheet.placed]) if sheeted != null
+					and sheeted.sheet != null else "no sheet"))
+		if sheeted != null and sheeted.sheet != null:
+			print("[coop-ui] host fights the guest's Warden at level %d, Might %d"
+				% [sheeted.sheet.level,
+					WardenSheet.attribute_of(sheeted.sheet, RunState.Attribute.MIGHT)])
 		field.spawn_loot(RunState.GOLD, 7, Vector2(240.0, -120.0))
 		var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
 		if wildlife != null:
@@ -501,6 +530,21 @@ func _enter_run_in_place(role: String) -> void:
 		_check(not field.is_suspended(),
 			"the field must resume on the host once the crossroad is done")
 		print("[coop-ui] host settled the road card and the road resumed")
+		# **Every Warden drafts their own** (per-Warden hands). A rank deals the
+		# guest's seat a draft the host holds and tells it alone; the guest takes
+		# a card by id below, and the host must be the one who made it real.
+		_check(RunState.hands_split, "a road begun in company must split the hand")
+		var guest_slot: int = 0
+		for value: Variant in Coop.party().seats():
+			var person := value as CoopParty.Seat
+			if person != null and person.slot != Coop.party().slot():
+				guest_slot = person.slot
+		RunState.queue_augment(Augments.SOURCE_RANK)
+		var seat: AugmentSeat = RunState.augment_seat(guest_slot)
+		_check(guest_slot > 0 and seat.offer.size() == Balance.ROAD_CARD_OFFER_COUNT,
+			"a rank must deal the guest's seat its own draft, dealt %d" % seat.offer.size())
+		print("[coop-ui] host dealt the guest's seat %s" % str(seat.offer))
+		var levels_before: int = _level_total(RunState.levels_of(seat))
 		# The guest tends, builds and walks off a wipe *after* the fork, and every
 		# one of those is a request addressed to this seat. Leaving before they
 		# arrive answers nothing and reads as three co-op faults on the other log.
@@ -510,6 +554,14 @@ func _enter_run_in_place(role: String) -> void:
 			await get_tree().process_frame
 		_check(_guest_done,
 			"the host must hear the guest finish before it leaves the party")
+		# Counted in levels, not cards: a card the party already holds is levelled
+		# by a second take rather than added, and the first cut of this read that
+		# as the pick never landing.
+		_check(seat.offer.is_empty() and _level_total(RunState.levels_of(seat)) > levels_before,
+			"the guest's pick must be made real on the host: seat %s, levels %d -> %d"
+				% [str(seat.pack()), levels_before, _level_total(RunState.levels_of(seat))])
+		print("[coop-ui] host holds the guest's pick: own %s, board %d"
+			% [str(seat.cards), RunState.road_cards.size()])
 		await _hold(2.0)
 	else:
 		# Drive the local hero, which is what gets sampled and sent.
@@ -532,6 +584,9 @@ func _enter_run_in_place(role: String) -> void:
 		# difficulty bonus and the act, so if it is not the host's number then
 		# the two are playing different games under different skies.
 		await _hold(2.0)
+		var mine_crew: Node = field.get_node_or_null("CoopHeroes")
+		print("[coop-ui] guest told its sheet: %s" % (str(mine_crew.get("_sheet_said"))
+			if mine_crew != null else "no CoopHeroes"))
 		_check(RunState.distance_travelled > 0.0
 			or RunState.weather_id != "",
 			"the guest must be receiving the host's world clock")
@@ -743,6 +798,23 @@ func _enter_run_in_place(role: String) -> void:
 				% went + "velocity %.0f" % mine.velocity.length())
 		print("[coop-ui] guest walked %.1f at velocity %.0f after the wipe"
 			% [went, mine.velocity.length()])
+		# **This Warden's own draft**, dealt by the host and told to this seat
+		# alone, taken the way the draft screen takes it: by asking.
+		await _until(func() -> bool: return not RunState.augment_offer.is_empty())
+		_check(RunState.hands_split and not RunState.augment_offer.is_empty(),
+			"the guest must be told its own augment draft")
+		if not RunState.augment_offer.is_empty():
+			var chosen: String = RunState.augment_offer[0]
+			var had: int = RunState.card_level(chosen)
+			_check(RunState.resolve_augment(chosen, ""), "the guest's draft door must ask the host")
+			_check(RunState.card_level(chosen) == had,
+				"a guest's take must not happen locally - it asks, and the host answers")
+			await _until(func() -> bool:
+				return RunState.card_level(chosen) > had and RunState.augment_offer.is_empty())
+			_check(RunState.card_level(chosen) > had and RunState.augment_offer.is_empty(),
+				"the guest must hold the card it asked for once the host answers, at level %d from %d"
+					% [RunState.card_level(chosen), had])
+			print("[coop-ui] guest took augment '%s' and the host granted it" % chosen)
 		# Told to the host as a chat line, which is the one guest-authored thing
 		# already on the wire; a moment for the packet to flush before this side
 		# quits and takes the peer with it.
@@ -787,6 +859,13 @@ func _until(done: Callable) -> void:
 	var deadline: int = Time.get_ticks_msec() + int(PORT_WAIT * 1000.0)
 	while Time.get_ticks_msec() < deadline and not bool(done.call()):
 		await get_tree().process_frame
+
+
+func _level_total(levels: Dictionary) -> int:
+	var total: int = 0
+	for key: Variant in levels:
+		total += int(levels[key])
+	return total
 
 
 func _hold(seconds: float) -> void:

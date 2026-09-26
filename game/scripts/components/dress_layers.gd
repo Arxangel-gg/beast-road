@@ -61,6 +61,7 @@ var _cape_back: Sprite2D
 ## A cape kind that names no colour of its own is plain undyed wool.
 const CAPE_PLAIN: Color = Color8(118, 104, 86)
 var _cape_front: Sprite2D
+var _built: bool = false
 var _beard: Sprite2D
 var _hair: Sprite2D
 var _hair_sway: float = 0.0
@@ -95,13 +96,25 @@ static func attach(sprite: Node2D) -> DressLayers:
 
 
 func _ready() -> void:
+	_build_parts()
+
+
+## **The parts are made on first need**, from `_ready` or from `wear`, and
+## once. The co-op lobby's `WardenStage` dresses a Warden before the stage has
+## entered the tree, so `wear` ran against a cape that did not exist yet - seven
+## script errors a session, for as long as the lobby had drawn partners.
+func _build_parts() -> void:
+	if _built:
+		return
+	_built = true
 	if behind == null:
 		# Never reached through `attach`; a node made by hand still draws its
 		# under-layer where one belongs rather than nowhere.
 		behind = Node2D.new()
 		behind.name = "DressBehind"
 		behind.show_behind_parent = true
-		get_parent().add_child.call_deferred(behind)
+		if get_parent() != null:
+			get_parent().add_child.call_deferred(behind)
 	# Added in drawing order: the cape first, then the weapon over it.
 	_cape_back = _part(behind, "CapeBack")
 	_cape_front = _part(self, "CapeFront")
@@ -170,6 +183,7 @@ func set_worn(on: bool) -> void:
 
 ## Dress in an outfit from `WardenDress.outfit`.
 func wear(outfit: Dictionary) -> void:
+	_build_parts()
 	_outfit = outfit
 	_cape_sheets.clear()
 	var held: String = String(outfit.get("held", ""))

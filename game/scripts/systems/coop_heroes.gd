@@ -738,9 +738,18 @@ func _on_local_mounted(mount_id: String) -> void:
 ## that the host's mirror of this hero may not have existed when the first one
 ## was sent, and that a rejoining guest has to say it again.
 const LOOK_INTERVAL: float = 4.0
+## **And how often it is said again unchanged** (2026-09-26). The paragraph
+## above gave the reason to repeat and the code never repeated: a row was sent
+## once and then only when it changed, so a guest whose battlefield stood up
+## before the host's told a host with nothing listening yet - and its dye, its
+## gear and its sheet were lost for the whole road. Found by the two-process
+## harness, where the host fought the guest's Warden as its own account. The
+## host ignores a row it already holds, so a restatement costs a packet.
+const RESTATE_INTERVAL: float = 8.0
 
 var _look_timer: float = 0.0
 var _look_said: Array = []
+var _look_restate: float = 0.0
 
 
 ## Says it on the first tick and then rarely, and only when it has changed.
@@ -755,14 +764,17 @@ func _tell_them_my_dye(relay: CoopRelay, delta: float) -> void:
 		return
 	_look_timer = LOOK_INTERVAL
 	var row: Array = WardenLook.pack(WardenLook.worn())
-	if row == _look_said:
+	_look_restate -= LOOK_INTERVAL
+	if row == _look_said and _look_restate > 0.0:
 		return
+	_look_restate = RESTATE_INTERVAL
 	_look_said = row.duplicate()
 	_on_local_look_changed(row)
 
 
 var _gear_timer: float = 0.0
 var _gear_said: Array = []
+var _gear_restate: float = 0.0
 
 
 ## What this guest wears, told as the dye is and for the same reasons: on the
@@ -774,14 +786,17 @@ func _tell_them_my_gear(relay: CoopRelay, delta: float) -> void:
 		return
 	_gear_timer = LOOK_INTERVAL
 	var row: Array = Hero.worn_kinds()
-	if row == _gear_said:
+	_gear_restate -= LOOK_INTERVAL
+	if row == _gear_said and _gear_restate > 0.0:
 		return
+	_gear_restate = RESTATE_INTERVAL
 	_gear_said = row.duplicate()
 	relay.request(CoopRelay.Request.HERO_GEAR, [row])
 
 
 var _sheet_timer: float = 0.0
 var _sheet_said: Array = []
+var _sheet_restate: float = 0.0
 ## Host side: the last sheet each seat told, by slot, kept so a body built after
 ## its packet arrived still wears it. A sheet told once can land before the
 ## host's mirror of that Warden exists; stored, it is never lost to that race.
@@ -797,8 +812,10 @@ func _tell_them_my_sheet(relay: CoopRelay, delta: float) -> void:
 		return
 	_sheet_timer = LOOK_INTERVAL
 	var row: Array = WardenSheet.pack_mine()
-	if row == _sheet_said:
+	_sheet_restate -= LOOK_INTERVAL
+	if row == _sheet_said and _sheet_restate > 0.0:
 		return
+	_sheet_restate = RESTATE_INTERVAL
 	_sheet_said = row.duplicate(true)
 	relay.request(CoopRelay.Request.HERO_SHEET, [row])
 
@@ -1011,9 +1028,12 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 		# `wear_sheet` cleans it by the rules a save is read under.
 		var seated: int = Coop.party().slot_for_peer(from)
 		if seated > 0 and seated != Coop.party().slot() and args.size() >= 1:
+			# A restatement of the sheet already worn changes nothing and is not
+			# cleaned again: the pools would be re-fitted every few seconds.
+			var known: bool = _sheets.get(seated, null) == args[0]
 			_sheets[seated] = args[0]
 			var fought: Hero = _hero_for_slot(seated)
-			if fought != null:
+			if fought != null and (not known or fought.sheet == null):
 				fought.wear_sheet(args[0])
 		return
 	if kind == CoopRelay.Request.HERO_MOUNT:

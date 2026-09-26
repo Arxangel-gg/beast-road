@@ -103,6 +103,8 @@ var _augment_open: bool = false:
 		_augment_open = value
 		_wear_backdrop(not value)
 var _scrim: ColorRect = null
+## Which `_fit_play_cards` is the current one; see its first lines.
+var _fit_generation: int = 0
 ## Banish is armed: the next card pressed leaves the deck rather than the draft.
 var _banishing: bool = false
 var _last_scar_button: Button = null
@@ -929,12 +931,20 @@ func _card_row() -> HBoxContainer:
 ## container does not own - the first entrance tweened position and fought
 ## the row. A look and never a fact.
 func _fit_play_cards() -> void:
-	if not await _settle(2):
+	# **A fit belongs to the cards it was started for** (2026-09-26). It waits
+	# on layout passes, and a draft redrawn meanwhile - a reroll, a banish, a
+	# host's answer to a guest - frees the cards this one is holding; the next
+	# line then read a freed button. A newer fit ends the older one.
+	_fit_generation += 1
+	var generation: int = _fit_generation
+	if not await _settle(2) or generation != _fit_generation:
 		return
 	var cards: Array[Button] = []
 	for node: Node in _entrance_cards():
+		if not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
 		var card := node as Button
-		if card != null and is_instance_valid(card) and play_face(card) != null:
+		if card != null and play_face(card) != null:
 			cards.append(card)
 	if cards.is_empty():
 		return
@@ -955,7 +965,7 @@ func _fit_play_cards() -> void:
 		var width: float = clampf(share, PLAY_CARD.x, PLAY_CARD.x * PLAY_CARD_WIDEST)
 		for card: Button in cards:
 			card.custom_minimum_size.x = width
-		if not await _settle(2):
+		if not await _settle(2) or generation != _fit_generation:
 			return
 		tallest = _tallest_face(cards)
 	if tallest > room:
@@ -964,12 +974,12 @@ func _fit_play_cards() -> void:
 			var art := play_face(card).get_meta(&"art", null) as Control
 			if art != null:
 				art.custom_minimum_size.y = art_height
-		if not await _settle(2):
+		if not await _settle(2) or generation != _fit_generation:
 			return
 		tallest = _tallest_face(cards)
 	for card: Button in cards:
 		card.custom_minimum_size.y = ceilf(tallest)
-	if not await _settle(1):
+	if not await _settle(1) or generation != _fit_generation:
 		return
 	var step: int = 0
 	for card: Button in cards:
