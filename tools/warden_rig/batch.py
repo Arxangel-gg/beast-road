@@ -44,7 +44,31 @@ MAX_IN_FLIGHT = 16          # PixelLab allows 20 at Tier 3; four are left for ha
 SUBMIT_GAP = 0.6            # seconds between submissions ("too many too quickly")
 POLL_EVERY = 12.0
 COST = {3: 2, 8: 3, 15: 4}  # generations by frame count, from the endpoint's own doc
-STALE_MINUTES = 45          # a job the queue has held this long is resubmitted once
+STALE_MINUTES = 120         # a job the queue has held this long is resubmitted once
+# One run at a time. Two runs each holding MAX_IN_FLIGHT jobs overfill the
+# account's limit, the queue backs up past STALE_MINUTES, and the stale rule then
+# buys again jobs PixelLab was still drawing (2026-09-26: two paid twice). A
+# running batch touches this file every round; another refuses while it is fresh.
+LOCK = os.path.join(HERE, "ledger", ".batch.lock")
+LOCK_FRESH_SECONDS = 180
+
+
+def _take_lock(layer: str) -> None:
+    if os.path.exists(LOCK) and time.time() - os.path.getmtime(LOCK) < LOCK_FRESH_SECONDS:
+        with open(LOCK, encoding="utf-8") as f:
+            holder = f.read().strip()
+        sys.exit("another batch is running (%s); one at a time" % holder)
+    _touch_lock(layer)
+
+
+def _touch_lock(layer: str) -> None:
+    with open(LOCK, "w", encoding="utf-8") as f:
+        f.write("%s pid %d" % (layer, os.getpid()))
+
+
+def _drop_lock() -> None:
+    if os.path.exists(LOCK):
+        os.remove(LOCK)
 
 
 def _stale(entry: dict) -> bool:
@@ -243,6 +267,15 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
     if dry:
         return
     pending = [(f, c) for f, c in todo]
+    _take_lock(layer)
+    try:
+        _run_pending(layer, spec, ledger, pending, submit)
+    finally:
+        _drop_lock()
+    print("done:", sum(1 for v in ledger.values() if v.get("status") == "completed"), "completed")
+
+
+def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bool) -> None:
     if not submit:
         # Collect only: a job never submitted stays unbought.
         pending = [(f, c) for f, c in pending
@@ -290,6 +323,7 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
             print("submitted", key, response["background_job_id"])
             time.sleep(SUBMIT_GAP)
         time.sleep(POLL_EVERY)
+        _touch_lock(layer)
         for key in [k for k, v in ledger.items() if v.get("status") == "processing"]:
             entry = ledger[key]
             try:
@@ -316,7 +350,6 @@ def run(layer: str, facings: list, clip_ids: list, dry: bool, submit: bool = Tru
                 entry.update(status="failed", error=str(status.get("last_response"))[:200])
                 print("failed", key, entry["error"])
             save_ledger(layer, ledger)
-    print("done:", sum(1 for v in ledger.values() if v.get("status") == "completed"), "completed")
 
 
 def reroll(layer: str, keys: list) -> None:
