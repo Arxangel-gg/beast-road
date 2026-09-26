@@ -95,8 +95,39 @@ def animation_frames(layer: str) -> dict:
                 continue
             for state, (start, end) in spans.items():
                 if end <= len(images):
-                    out.setdefault(state, {})[facing] = images[start:end]
+                    out.setdefault(state, {})[facing] = hold_dissolved_end(state, images[start:end])
     return out
+
+
+# A one-shot's last frame is held on screen for as long as the state lasts - a
+# death is held until the run ends - so a last frame the generator drew
+# dissolving (a death fading into specks: west's scored 41 pin-holes and lone
+# pixels against single figures for every other frame of every death) is the
+# picture a player stares at. Past this many, and this many times the clip's
+# own median, it holds the frame before it instead.
+DISSOLVE_FLOOR = 25
+DISSOLVE_RATIO = 3.0
+
+
+def dither(image: Image.Image) -> int:
+    """Pin-holes a pixel wide and opaque pixels nearly alone: a dissolve."""
+    a = np.asarray(image.getchannel("A")) > 127
+    p = np.pad(a, 1)
+    around = p[:-2, 1:-1].astype(int) + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]
+    return int(((~a) & (around >= 3)).sum() + (a & (around <= 1)).sum())
+
+
+def hold_dissolved_end(state: str, images: list) -> list:
+    """A one-shot whose last frame dissolves ends on the frame before it."""
+    if animations.ANIMATIONS[state][1] or len(images) < 3:
+        return images
+    scores = [dither(im) for im in images]
+    usual = float(np.median(scores[:-1]))
+    if scores[-1] > max(DISSOLVE_FLOOR, DISSOLVE_RATIO * usual):
+        print("  %s: last frame dissolves (%d against %.0f) - holding the one before" % (
+            state, scores[-1], usual))
+        return images[:-1] + [images[-2]]
+    return images
 
 
 def union_box(boxes: list, canvas: tuple) -> tuple:

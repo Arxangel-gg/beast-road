@@ -57,11 +57,17 @@ OUTLINE_DIFF = 60
 OUTLINE_DARK = 110
 # How far from the head point a green part may start, in figure heights.
 HEAD_REACH = 0.16
+# A style that hangs - a braid, twin braids, hair to the middle of the back -
+# passes behind a shoulder and comes back lower as a separate green piece, and
+# at HEAD_REACH those pieces were dropped (hundreds of pixels on the braids).
+# A style whose sway marks it as hanging reaches this far down the back.
+HANGING_SWAY = 0.9
+HANGING_REACH = 0.5
 # The game's sheet: eight cells in `rig.ROW_ORDER`, one a facing, each this
 # size with the head point at ANCHOR. Fixed, so every sheet is one size the
 # asset manifest can name, and the runtime needs no offset table.
-CELL = (64, 96)
-ANCHOR = (32, 28)
+CELL = (80, 128)
+ANCHOR = (40, 30)
 GAME = os.path.normpath(os.path.join(HERE, "..", "..", "game"))
 MANIFEST = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "ASSET_MANIFEST.md"))
 MANIFEST_HEADING = "### 5.34 Head dressings of 2026-09-26"
@@ -226,7 +232,7 @@ def _components(mask: np.ndarray) -> list:
     return parts
 
 
-def key(state: Image.Image, base: Image.Image, head: tuple) -> tuple:
+def key(state: Image.Image, base: Image.Image, head: tuple, reach_share: float = HEAD_REACH) -> tuple:
     """The dressing's shade and alpha, and a report of what else moved."""
     s = np.asarray(state.convert("RGBA")).astype(int)
     b = np.asarray(base.convert("RGBA")).astype(int)
@@ -234,7 +240,7 @@ def key(state: Image.Image, base: Image.Image, head: tuple) -> tuple:
     others = np.maximum(r, bl)
     green = (a >= 100) & (g - others >= KEY_LEAD) & (g >= KEY_RATIO * np.maximum(others, 1))
     hx, hy, stature = head
-    reach = HEAD_REACH * stature
+    reach = reach_share * stature
     keep = np.zeros_like(green)
     for part in _components(green):
         ys = np.array([p[0] for p in part])
@@ -289,7 +295,13 @@ def cut(option_id: str) -> dict:
         state = Image.open(os.path.join(folder, facing + ".png")).convert("RGBA")
         base = Image.open(os.path.join(HERE, "refs", body + "_base", facing + ".png")).convert("RGBA")
         head = head_point(body, facing)
-        shade, info = key(state, base, head)
+        reach = HANGING_REACH if float(option.get("sway", 0.0)) >= HANGING_SWAY else HEAD_REACH
+        shade, info = key(state, base, head, reach)
+        if facing in option.get("hidden", []):
+            # A view where the generator painted something the dressing cannot
+            # be seen doing - the braided beard grew a braid down his back.
+            shade = Image.new("RGBA", shade.size, (0, 0, 0, 0))
+            info["hidden"] = True
         box = shade.getbbox()
         info["box"] = box
         info["offset"] = [round(box[0] - head[0], 2), round(box[1] - head[1], 2)] if box else None

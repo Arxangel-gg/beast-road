@@ -40,5 +40,5 @@
  {"id": "m_goatee", "body": "male", "kind": "beard", "name": "Goatee", "prompt": "Give him a short pointed goatee on the chin with a moustache, the cheeks clean-shaven.", "sway": 0.0},
  {"id": "m_trimmed", "body": "male", "kind": "beard", "name": "Trimmed beard", "prompt": "Give him a short neatly trimmed beard and moustache following the jawline.", "sway": 0.0},
  {"id": "m_full", "body": "male", "kind": "beard", "name": "Full beard", "prompt": "Give him a thick full beard and moustache reaching a hand's width below the chin.", "sway": 0.0},
- {"id": "m_braided", "body": "male", "kind": "beard", "name": "Braided beard", "prompt": "Give him a long beard gathered into a single braid that hangs down onto the chest, with a full moustache.", "sway": 0.0}
+ {"id": "m_braided", "body": "male", "kind": "beard", "name": "Braided beard", "prompt": "Give him a long beard gathered into a single braid that hangs down onto the chest, with a full moustache.", "sway": 0.0, "hidden": ["north-west", "north", "north-east"]}
 ]

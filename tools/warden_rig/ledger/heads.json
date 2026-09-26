@@ -143,7 +143,7 @@
   "rejected": [],
   "seed": 7,
   "state": "bb610487-2252-4496-bca1-37bc39dfe02d",
-  "status": "processing"
+  "status": "completed"
  },
  "m_crest": {
   "bought": "2026-09-26T01:09:04",
@@ -237,7 +237,7 @@
   "rejected": [],
   "seed": 7,
   "state": "870d2f7a-f411-4ec9-a91e-ea8be76c8bf6",
-  "status": "processing"
+  "status": "completed"
  },
  "m_tied": {
   "bought": "2026-09-26T01:09:07",

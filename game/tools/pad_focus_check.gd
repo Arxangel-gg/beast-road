@@ -39,6 +39,7 @@ var _screens: Array = [
 	["LeaderboardScreen", LeaderboardScreen],
 	["PenScreen", PenScreen],
 	["SaveSlotScreen", SaveSlotScreen],
+	["WardenGlass", WardenGlass],
 	["SmithyScreen", SmithyScreen],
 	["StableScreen", StableScreen],
 	["StashScreen", StashScreen],

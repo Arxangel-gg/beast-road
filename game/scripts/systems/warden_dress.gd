@@ -290,6 +290,6 @@ static func outfit(look: Dictionary, weapon: GearData, armour: GearData,
 		"hair": head_option(body, "hair", int(WardenLook.clean(look)[WardenLook.KEY_HAIR])),
 		"beard": head_option(body, "beard", int(WardenLook.clean(look)[WardenLook.KEY_BEARD])),
 		"hair_colour": WardenLook.hair_colour(look),
-		"head_cell": heads().get("cell", [64, 96]),
-		"head_anchor": heads().get("anchor", [32, 28]),
+		"head_cell": heads().get("cell", [80, 128]),
+		"head_anchor": heads().get("anchor", [40, 30]),
 	}

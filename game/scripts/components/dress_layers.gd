@@ -276,8 +276,8 @@ func _lay(hand: int, socket: Array, start: int, offset: Vector2, length: float, 
 ## shows. A socket row with no head in it - a table from before heads - shows
 ## neither, rather than a head dressing in the wrong place.
 func _show_head(socket: Array, offset: Vector2) -> void:
-	var cell: Array = _outfit.get("head_cell", [64, 96])
-	var anchor: Array = _outfit.get("head_anchor", [32, 28])
+	var cell: Array = _outfit.get("head_cell", [80, 128])
+	var anchor: Array = _outfit.get("head_anchor", [40, 30])
 	for part: Sprite2D in [_hair, _beard]:
 		if part.texture == null or socket.size() <= HEAD_SOCKET + 2:
 			part.visible = false

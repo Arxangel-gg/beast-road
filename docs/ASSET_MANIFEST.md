@@ -3542,7 +3542,48 @@ folder cannot disagree.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `head_m_tousled.png` | 512×96 | T | `#3A3128` |
+| `head_f_afro.png` | 640×128 | T | `#3A3128` |
+| `head_f_bob.png` | 640×128 | T | `#3A3128` |
+| `head_f_braid.png` | 640×128 | T | `#3A3128` |
+| `head_f_crest.png` | 640×128 | T | `#3A3128` |
+| `head_f_cropped.png` | 640×128 | T | `#3A3128` |
+| `head_f_crown.png` | 640×128 | T | `#3A3128` |
+| `head_f_curls.png` | 640×128 | T | `#3A3128` |
+| `head_f_flowing.png` | 640×128 | T | `#3A3128` |
+| `head_f_locs.png` | 640×128 | T | `#3A3128` |
+| `head_f_mane.png` | 640×128 | T | `#3A3128` |
+| `head_f_ponytail.png` | 640×128 | T | `#3A3128` |
+| `head_f_shoulder.png` | 640×128 | T | `#3A3128` |
+| `head_f_sidesweep.png` | 640×128 | T | `#3A3128` |
+| `head_f_tied.png` | 640×128 | T | `#3A3128` |
+| `head_f_topknot.png` | 640×128 | T | `#3A3128` |
+| `head_f_tousled.png` | 640×128 | T | `#3A3128` |
+| `head_f_twin.png` | 640×128 | T | `#3A3128` |
+| `head_f_undercut.png` | 640×128 | T | `#3A3128` |
+| `head_m_afro.png` | 640×128 | T | `#3A3128` |
+| `head_m_bob.png` | 640×128 | T | `#3A3128` |
+| `head_m_braid.png` | 640×128 | T | `#3A3128` |
+| `head_m_braided.png` | 640×128 | T | `#3A3128` |
+| `head_m_crest.png` | 640×128 | T | `#3A3128` |
+| `head_m_cropped.png` | 640×128 | T | `#3A3128` |
+| `head_m_crown.png` | 640×128 | T | `#3A3128` |
+| `head_m_curls.png` | 640×128 | T | `#3A3128` |
+| `head_m_flowing.png` | 640×128 | T | `#3A3128` |
+| `head_m_full.png` | 640×128 | T | `#3A3128` |
+| `head_m_goatee.png` | 640×128 | T | `#3A3128` |
+| `head_m_locs.png` | 640×128 | T | `#3A3128` |
+| `head_m_mane.png` | 640×128 | T | `#3A3128` |
+| `head_m_moustache.png` | 640×128 | T | `#3A3128` |
+| `head_m_ponytail.png` | 640×128 | T | `#3A3128` |
+| `head_m_shoulder.png` | 640×128 | T | `#3A3128` |
+| `head_m_sidesweep.png` | 640×128 | T | `#3A3128` |
+| `head_m_stubble.png` | 640×128 | T | `#3A3128` |
+| `head_m_tied.png` | 640×128 | T | `#3A3128` |
+| `head_m_topknot.png` | 640×128 | T | `#3A3128` |
+| `head_m_tousled.png` | 640×128 | T | `#3A3128` |
+| `head_m_trimmed.png` | 640×128 | T | `#3A3128` |
+| `head_m_twin.png` | 640×128 | T | `#3A3128` |
+| `head_m_undercut.png` | 640×128 | T | `#3A3128` |
 
 ### 5.33 Held weapons of 2026-09-25 — `res://art/hero/held/`
 

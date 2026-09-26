@@ -59,8 +59,8 @@ var _grid: GridContainer
 var _close_button: Button
 var _first_button: Button = null
 var _portrait: TextureRect = null
-## The dye sliders by key, so a preset can move them.
-var _look_sliders: Dictionary = {}
+## The Warden's Glass, stood up the first time it is asked for.
+var _glass: WardenGlass = null
 var _portrait_frames: int = 1
 ## True while a door from this room is open over it. The room hides so the
 ## door's screen is on top, and comes back when the door closes.
@@ -731,14 +731,16 @@ func _build_card() -> void:
 	_card.add_child(_rename_edit)
 
 	# **The look** (owner, 2026-09-21: character customization, bounded to how
-	# the Warden looks and nothing else). Two dyes, previewed on the portrait
-	# above as the slider moves, saved through `MetaState.set_look` so the
-	# clamp lives in one place.
-	_look_sliders.clear()
-	_card.add_child(_look_row("Cloak", WardenLook.KEY_CLOAK))
-	_card.add_child(_look_row("Sash", WardenLook.KEY_SASH))
-	_card.add_child(_look_row("Leather", WardenLook.KEY_LEATHER))
-	_card.add_child(_look_presets())
+	# the Warden looks and nothing else). The body, the skin, the hair, the
+	# beard and the three dyes live in the Warden's Glass (2026-09-26), which
+	# shows the Warden turning in them; the card keeps the door.
+	var glass := Button.new()
+	glass.name = "OpenGlass"
+	glass.text = "The Warden's Glass"
+	glass.tooltip_text = "Body, skin, hair, beard and cloth - how the road sees you, and nothing else"
+	glass.custom_minimum_size = Vector2(0.0, 38.0)
+	glass.pressed.connect(_open_glass)
+	_card.add_child(glass)
 
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
@@ -765,50 +767,17 @@ func _build_card() -> void:
 		MetaState.runs_won, MetaState.rifts_closed], Color("8f9b98"))
 
 
-func _look_row(text: String, key: String) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var label := Label.new()
-	label.text = text
-	label.custom_minimum_size = Vector2(56.0, 0.0)
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color("8d968f"))
-	row.add_child(label)
-	var slider := HSlider.new()
-	slider.name = "Look%s" % key.capitalize()
-	slider.min_value = -WardenLook.RANGE
-	slider.max_value = WardenLook.RANGE
-	slider.step = 0.02
-	slider.value = float(WardenLook.mine().get(key, 0.0))
-	slider.custom_minimum_size = Vector2(180.0, 24.0)
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.value_changed.connect(func(v: float) -> void:
-		MetaState.set_look(key, v)
-		_show_the_look())
-	_look_sliders[key] = slider
-	row.add_child(slider)
-	return row
-
-
-## The presets, one press each (2026-09-23): a Warden rather than three sliders.
-func _look_presets() -> HFlowContainer:
-	var row := HFlowContainer.new()
-	row.name = "LookPresets"
-	row.add_theme_constant_override("h_separation", 6)
-	row.add_theme_constant_override("v_separation", 6)
-	for index: int in WardenLook.PRESETS.size():
-		var button := Button.new()
-		button.text = String(WardenLook.PRESETS[index]["label"])
-		button.custom_minimum_size = Vector2(0.0, 30.0)
-		button.add_theme_font_size_override("font_size", 13)
-		button.pressed.connect(func() -> void:
-			MetaState.dye_as_preset(index)
-			for key: Variant in _look_sliders:
-				var slider: HSlider = _look_sliders[key]
-				slider.set_value_no_signal(float(WardenLook.mine().get(key, 0.0)))
-			_show_the_look())
-		row.add_child(button)
-	return row
+## Opens the Warden's Glass, and shows whatever it changed on everything in the
+## Hold that draws this Warden when it closes.
+func _open_glass() -> void:
+	if _glass == null:
+		_glass = WardenGlass.new()
+		_glass.name = "WardenGlass"
+		add_child(_glass)
+		_glass.closed.connect(func() -> void:
+			_show_the_look()
+			_build_card())
+	_glass.open()
 
 
 ## Shows a changed look on everything that draws this Warden in the Hold.

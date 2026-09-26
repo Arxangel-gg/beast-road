@@ -66,10 +66,10 @@
   ],
   "depth": true,
   "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_base\\clip5\\east",
-  "job": "c3760e4b-231d-4de8-b28a-b347bab0a7c0",
-  "seed": 108,
+  "job": "ff9cb92c-d0db-4257-b4b6-5fbf3b3c3191",
+  "seed": 209,
   "status": "completed",
-  "submitted": "2026-09-26T01:16:01"
+  "submitted": "2026-09-26T01:28:37"
  },
  "east/6": {
   "attempts": 1,
@@ -602,10 +602,10 @@
   ],
   "depth": true,
   "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_base\\clip4\\south",
-  "job": "12be211e-1147-4e25-a572-0b9a02ea0582",
-  "seed": 108,
+  "job": "5490fd55-1ec5-4b89-9267-192b92d4fcb2",
+  "seed": 209,
   "status": "completed",
-  "submitted": "2026-09-26T01:16:05"
+  "submitted": "2026-09-26T01:28:39"
  },
  "south/5": {
   "attempts": 1,

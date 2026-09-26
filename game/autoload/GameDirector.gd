@@ -296,6 +296,27 @@ func _offer_comfort() -> void:
 	card.queue_free()
 
 
+## Who walks the road, before a Warden's first one (owner, 2026-09-26: the
+## character customization, polished). **Derived, never stored** - see
+## `WardenGlass.should_offer` - and asked once a sitting, so a Warden who walks
+## the valley first is not asked again at the gate of their first road.
+##
+## Returns at once where there is no screen, for the reason `_offer_comfort`
+## gives: a run that waited here would hang every gate that starts one.
+func _offer_glass() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if not WardenGlass.should_offer():
+		return
+	WardenGlass.mark_offered()
+	var glass := WardenGlass.new()
+	glass.name = "WardenGlass"
+	get_tree().root.add_child(glass)
+	glass.open()
+	await glass.closed
+	glass.queue_free()
+
+
 func _play_intro() -> void:
 	if StoryIntro.already_seen():
 		return
@@ -387,7 +408,9 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 
 	# **Before the intro, which is the brightest eighteen seconds in the game.**
 	# Offering the comfort scales after it would be offering them to somebody
-	# who has already had the thing they needed them for.
+	# who has already had the thing they needed them for. Who the Warden is
+	# comes first of all: the intro is about them.
+	await _offer_glass()
 	await _offer_comfort()
 	await _play_intro()
 
@@ -421,6 +444,9 @@ var walk_leaves_on_loss: bool = true
 
 
 func start_walk() -> void:
+	# The valley is where a new Warden first sees themselves, so it is asked here
+	# too; headless, this returns before it waits for anything.
+	await _offer_glass()
 	RunState.reset(false, 0)
 	RunState.walking = true
 	# The valley is not a run: nothing about it is announced to a partner, the

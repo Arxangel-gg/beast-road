@@ -1,19 +1,306 @@
 {
  "anchor": [
-  32,
-  28
+  40,
+  30
  ],
  "cell": [
-  64,
-  96
+  80,
+  128
  ],
  "options": {
+  "f_afro": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Rounded afro",
+   "slot": 11,
+   "sway": 0.1
+  },
+  "f_bob": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Chin-length bob",
+   "slot": 7,
+   "sway": 0.6
+  },
+  "f_braid": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Long braid",
+   "slot": 16,
+   "sway": 1.0
+  },
+  "f_crest": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Braided crest",
+   "slot": 6,
+   "sway": 0.3
+  },
+  "f_cropped": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Close-cropped",
+   "slot": 1,
+   "sway": 0.0
+  },
+  "f_crown": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Braided crown",
+   "slot": 18,
+   "sway": 0.1
+  },
+  "f_curls": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Short curls",
+   "slot": 3,
+   "sway": 0.15
+  },
+  "f_flowing": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Long and flowing",
+   "slot": 9,
+   "sway": 1.0
+  },
+  "f_locs": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Locs",
+   "slot": 12,
+   "sway": 0.9
+  },
+  "f_mane": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Wild mane",
+   "slot": 10,
+   "sway": 0.7
+  },
+  "f_ponytail": {
+   "body": "female",
+   "kind": "hair",
+   "name": "High ponytail",
+   "slot": 14,
+   "sway": 1.0
+  },
+  "f_shoulder": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Shoulder-length",
+   "slot": 8,
+   "sway": 0.8
+  },
+  "f_sidesweep": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Side-swept",
+   "slot": 5,
+   "sway": 0.35
+  },
+  "f_tied": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Tied back",
+   "slot": 13,
+   "sway": 1.0
+  },
+  "f_topknot": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Topknot",
+   "slot": 15,
+   "sway": 0.5
+  },
+  "f_tousled": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Short and tousled",
+   "slot": 2,
+   "sway": 0.3
+  },
+  "f_twin": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Twin braids",
+   "slot": 17,
+   "sway": 1.0
+  },
+  "f_undercut": {
+   "body": "female",
+   "kind": "hair",
+   "name": "Swept-back undercut",
+   "slot": 4,
+   "sway": 0.2
+  },
+  "m_afro": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Rounded afro",
+   "slot": 11,
+   "sway": 0.1
+  },
+  "m_bob": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Chin-length bob",
+   "slot": 7,
+   "sway": 0.6
+  },
+  "m_braid": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Long braid",
+   "slot": 16,
+   "sway": 1.0
+  },
+  "m_braided": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Braided beard",
+   "slot": 6,
+   "sway": 0.0
+  },
+  "m_crest": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Braided crest",
+   "slot": 6,
+   "sway": 0.3
+  },
+  "m_cropped": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Close-cropped",
+   "slot": 1,
+   "sway": 0.0
+  },
+  "m_crown": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Braided crown",
+   "slot": 18,
+   "sway": 0.1
+  },
+  "m_curls": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Short curls",
+   "slot": 3,
+   "sway": 0.15
+  },
+  "m_flowing": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Long and flowing",
+   "slot": 9,
+   "sway": 1.0
+  },
+  "m_full": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Full beard",
+   "slot": 5,
+   "sway": 0.0
+  },
+  "m_goatee": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Goatee",
+   "slot": 3,
+   "sway": 0.0
+  },
+  "m_locs": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Locs",
+   "slot": 12,
+   "sway": 0.9
+  },
+  "m_mane": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Wild mane",
+   "slot": 10,
+   "sway": 0.7
+  },
+  "m_moustache": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Moustache",
+   "slot": 2,
+   "sway": 0.0
+  },
+  "m_ponytail": {
+   "body": "male",
+   "kind": "hair",
+   "name": "High ponytail",
+   "slot": 14,
+   "sway": 1.0
+  },
+  "m_shoulder": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Shoulder-length",
+   "slot": 8,
+   "sway": 0.8
+  },
+  "m_sidesweep": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Side-swept",
+   "slot": 5,
+   "sway": 0.35
+  },
+  "m_stubble": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Stubble",
+   "slot": 1,
+   "sway": 0.0
+  },
+  "m_tied": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Tied back",
+   "slot": 13,
+   "sway": 1.0
+  },
+  "m_topknot": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Topknot",
+   "slot": 15,
+   "sway": 0.5
+  },
   "m_tousled": {
    "body": "male",
    "kind": "hair",
    "name": "Short and tousled",
    "slot": 2,
    "sway": 0.3
+  },
+  "m_trimmed": {
+   "body": "male",
+   "kind": "beard",
+   "name": "Trimmed beard",
+   "slot": 4,
+   "sway": 0.0
+  },
+  "m_twin": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Twin braids",
+   "slot": 17,
+   "sway": 1.0
+  },
+  "m_undercut": {
+   "body": "male",
+   "kind": "hair",
+   "name": "Swept-back undercut",
+   "slot": 4,
+   "sway": 0.2
   }
  }
 }

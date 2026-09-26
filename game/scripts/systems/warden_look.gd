@@ -67,6 +67,9 @@ const HAIR_COLOURS: Array[Color] = [
 	Color8(128, 124, 120),  # grey
 	Color8(226, 222, 212),  # white
 ]
+## The names the creation screen shows, one a colour.
+const HAIR_COLOUR_NAMES: Array[String] = ["Dark brown", "Black", "Brown", "Chestnut", "Auburn",
+	"Copper", "Blonde", "Ash", "Grey", "White"]
 ## The skin tones, lightest to deepest, as the middle of the skin: what the
 ## painted skin's own mean is turned into (`warden_look.gdshaderinc`), so the
 ## painting's shading - the lit crown, the shadow under the jaw, the warm
