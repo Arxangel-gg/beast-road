@@ -2,10 +2,12 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 1
+ring = 1
+tags = Array[String](["Finisher", "Bleed"])
+form_damage = 0.08
 discipline = 0
 role = 0
-mansion_tier = 1
-food_cost = 35
 effect_id = "bleed_finisher"
 effect_value = 0.24
 id = "hemorrhage_edge"

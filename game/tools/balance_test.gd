@@ -965,7 +965,6 @@ func _test_hero_levelling() -> void:
 	RunState.hero_level = 1
 	RunState.hero_xp = 0.0
 	RunState.hero_attribute_points = 0
-	RunState.hero_skill_points = 0
 	RunState.hero_attributes = [0, 0, 0, 0, 0]
 	MetaState.hero_xp = 0.0
 	RunState.gain_hero_xp(3.0)
@@ -1001,9 +1000,16 @@ func _test_hero_levelling() -> void:
 	_check(RunState.hero_attribute_points == RunState.hero_level - 1,
 		"one attribute point per level (%d points at level %d)"
 			% [RunState.hero_attribute_points, RunState.hero_level])
-	_check(RunState.hero_skill_points
-		== int(RunState.hero_level / Balance.HERO_SKILL_POINT_EVERY),
-		"a skill point every %d levels" % Balance.HERO_SKILL_POINT_EVERY)
+	# **Skill points are counted, never kept** (2026-09-26): what the Warden may
+	# spend is what levels and first clears have earned less what the tree
+	# holds, asked of the account every time.
+	_check(RunState.skill_points() == maxi(MetaState.skill_points_earned()
+			- MetaState.skill_points_spent(), 0),
+		"the points a Warden may spend must be earned less learned")
+	_check(MetaState.skill_points_earned()
+			>= MetaState.skill_points_for_level(RunState.hero_level),
+		"a level-%d Warden has earned at least its levels' %d points"
+			% [RunState.hero_level, MetaState.skill_points_for_level(RunState.hero_level)])
 
 	# The cap is a ceiling, not a soft target. Twice the whole ladder, so the
 	# award is enormous however the curve is tuned.
@@ -1028,9 +1034,15 @@ func _test_hero_levelling() -> void:
 	_check(not RunState.spend_attribute_point(RunState.Attribute.MIGHT).is_empty(),
 		"spending from an empty pool must be refused")
 
-	# The discipline cap grows with level.
-	_check(RunState.discipline_cap() > Balance.DISCIPLINE_MAX_TRAINED,
-		"a level %d hero should have earned discipline slots" % RunState.hero_level)
+	# The levels' share of the points follows its rule to the cap: one a level
+	# to `SKILL_POINTS_EARLY_LEVELS`, one every `SKILL_POINTS_LATER_EVERY` after.
+	var early: int = Balance.SKILL_POINTS_EARLY_LEVELS
+	_check(MetaState.skill_points_for_level(1) == 0
+			and MetaState.skill_points_for_level(early) == early - 1
+			and MetaState.skill_points_for_level(Balance.HERO_MAX_LEVEL) == early - 1
+				+ (Balance.HERO_MAX_LEVEL - early) / Balance.SKILL_POINTS_LATER_EVERY,
+		"skill points from levels must follow the rule to the cap, read %d at level %d"
+			% [MetaState.skill_points_for_level(Balance.HERO_MAX_LEVEL), Balance.HERO_MAX_LEVEL])
 
 	# The generic unlock payload must not duplicate the dedicated hero schema.
 	var saved: Dictionary = MetaState.call("_unlocked_payload") if MetaState.has_method(
@@ -1424,7 +1436,14 @@ func _test_tiers_and_persistence() -> void:
 				# which is on this list above with its own cap. It could not be
 				# derived - no existing statistic records which optional detours were
 				# taken on which difficulty.
-				"gatekeeper"],
+				"gatekeeper",
+				# The Disciplines (owner rulings R1 and R2, 2026-09-26): the nodes
+				# learned, the chain's form, which skill sits in each slot, and the
+				# acts whose boss has fallen once on each difficulty. Hero
+				# progression, bought with points from levels and first clears and
+				# never more than they buy - `MetaState._settle_disciplines` trims a
+				# save that says otherwise, and `discipline_check` drives it.
+				"tree", "form", "loadout", "first_clears"],
 				"unexpected hero save key \"%s\" - only the amendment's fields persist" % key)
 
 	# The migration every existing player will actually hit: a v3 save has no hero

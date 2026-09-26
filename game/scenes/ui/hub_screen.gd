@@ -65,6 +65,8 @@ var _first_button: Button = null
 var _portrait: TextureRect = null
 ## The Warden's Glass, stood up the first time it is asked for.
 var _glass: WardenGlass = null
+## The Disciplines, likewise.
+var _disciplines: DisciplinesScreen = null
 ## The dressed Warden on the card, where one is drawn.
 var _card_stage: WardenStage = null
 var _portrait_frames: int = 1
@@ -772,6 +774,19 @@ func _card_after_portrait() -> void:
 	glass.pressed.connect(_open_glass)
 	_card.add_child(glass)
 
+	# **The tree, beside the look** (2026-09-26): what the Warden has learned is
+	# the account's, and the Hold is the one place it is reshaped. The door says
+	# what there is to spend, because that is why a Warden would open it.
+	var disciplines := Button.new()
+	disciplines.name = "OpenDisciplines"
+	var free: int = MetaState.skill_points_free()
+	disciplines.text = "The Disciplines" if free <= 0 \
+		else "The Disciplines  ·  %d to spend" % free
+	disciplines.tooltip_text = "Learn, slot and let go of what the Warden knows - kept between roads"
+	disciplines.custom_minimum_size = Vector2(0.0, 38.0)
+	disciplines.pressed.connect(_open_disciplines)
+	_card.add_child(disciplines)
+
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
 		_line("Ascended %d of %d times" % [MetaState.ascension, Balance.ASCENSION_MAX], Color("b8ae98"))
@@ -808,6 +823,17 @@ func _open_glass() -> void:
 			_show_the_look()
 			_build_card())
 	_glass.open()
+
+
+## Opens the Disciplines, and counts the points again on the card when it
+## closes.
+func _open_disciplines() -> void:
+	if _disciplines == null:
+		_disciplines = DisciplinesScreen.new()
+		_disciplines.name = "Disciplines"
+		add_child(_disciplines)
+		_disciplines.closed.connect(_build_card)
+	_disciplines.open()
 
 
 ## Shows a changed look on everything that draws this Warden in the Hold.

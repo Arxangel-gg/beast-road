@@ -1117,7 +1117,10 @@ func _a_gather_node() -> Vector2:
 func _open_mansion(page: int, tree_filter: int = -1) -> void:
 	_park_clear()
 	RunState.building_tiers["sanctum"] = maxi(RunState.building_tier("sanctum"), 2)
-	RunState.hero_skill_points = maxi(RunState.hero_skill_points, 3)
+	# Points are counted off the level, so the picture has some to spend by
+	# being a Warden who has earned them. Held saves: none of this is written.
+	MetaState.hero_level = maxi(MetaState.hero_level, 6)
+	RunState.hero_level = maxi(RunState.hero_level, MetaState.hero_level)
 	RunState.hero_attribute_points = maxi(RunState.hero_attribute_points, 2)
 	run.switch_scope(GameDirector.Scope.TOWN)
 	var sheet: TownPanel = run.town_panel

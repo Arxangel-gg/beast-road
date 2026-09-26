@@ -35,6 +35,7 @@ var _screens: Array = [
 	["ChronicleScreen", ChronicleScreen],
 	["CodexScreen", CodexScreen],
 	["ComfortCard", ComfortCard],
+	["DisciplinesScreen", DisciplinesScreen],
 	["ExchangeScreen", ExchangeScreen],
 	["GuideScreen", GuideScreen],
 	["LeaderboardScreen", LeaderboardScreen],

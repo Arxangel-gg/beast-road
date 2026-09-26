@@ -2,10 +2,11 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 0
+ring = 2
+tags = Array[String](["Movement"])
 discipline = 2
 role = 0
-mansion_tier = 2
-food_cost = 55
 spell_id = "chain_hook"
 effect_id = "heavy_reverse_pull"
 effect_value = 1.0

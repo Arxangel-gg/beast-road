@@ -582,11 +582,15 @@ func discipline_nodes_sorted() -> Array[DisciplineNodeData]:
 		var node := value as DisciplineNodeData
 		if node != null:
 			out.append(node)
+	# The tree's own order: by arm, then from the Warden outward, then skills
+	# before forms, passives and upgrades, so a list reads the way the map does.
 	out.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
-		if a.mansion_tier != b.mansion_tier:
-			return a.mansion_tier < b.mansion_tier
 		if a.discipline != b.discipline:
 			return a.discipline < b.discipline
+		if a.ring != b.ring:
+			return a.ring < b.ring
+		if a.kind != b.kind:
+			return a.kind < b.kind
 		return a.id < b.id)
 	return out
 

@@ -1030,15 +1030,12 @@ func damage_multiplier() -> float:
 	# with relics into a number nobody predicted.
 	var might: int = RunState.attribute(RunState.Attribute.MIGHT)
 	multiplier *= 1.0 + float(might) * Balance.HERO_MIGHT_PER_POINT
-	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0)
-	if attack_node != null:
-		match attack_node.effect_id:
-			"bleed_finisher":
-				multiplier *= 1.08
-			"defense_radiant_finisher":
-				multiplier *= 1.05
-			"crowd_finisher_force":
-				multiplier *= 1.04
+	# The chain's form, authored on the node (2026-09-26). The three forms' 8%,
+	# 5% and 4% were a `match` on effect ids here, which is a stat branch in code
+	# that working rule 3 forbids and a fourth form would have had to find.
+	var form: DisciplineNodeData = RunState.chain_form()
+	if form != null:
+		multiplier *= 1.0 + form.form_damage
 	# **No Ground Given**, spent on the finisher and on nothing else. Asked here
 	# rather than applied at the evade, so the bonus rides the swing the card
 	# names rather than whatever the hero happened to do next.

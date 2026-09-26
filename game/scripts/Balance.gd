@@ -165,7 +165,6 @@ const HERO_DASH_COOLDOWN: float = 4.0
 ## Maximum spells equipped at once (GDD §2, decision 4).
 const HERO_MAX_SPELL_SLOTS: int = 4
 const HERO_ACTIVE_SLOTS: int = 4
-const DISCIPLINE_MAX_TRAINED: int = 6
 
 # --- Hero levelling ----------------------------------------------------------
 #
@@ -846,14 +845,39 @@ const HERO_XP_CURVE: float = 3.5
 ## multipliers. Measured with `tools/level_curve.tscn`. [TUNE]
 const HERO_XP_PER_HP: float = 0.30
 
-## Levels between skill points. Twenty across a full run.
-const HERO_SKILL_POINT_EVERY: int = 5
+## **Skill points, earned by the account** (owner rulings R1 and R2,
+## 2026-09-26). One on each level up to `SKILL_POINTS_EARLY_LEVELS`, because the
+## XP curve puts level 10 in the middle of Act II and the first hour needs
+## choices in it; one every `SKILL_POINTS_LATER_EVERY` levels after; and one the
+## first time each act's boss falls on each difficulty. Counted, never stored:
+## what a Warden holds is always earned less learned. [TUNE]
+const SKILL_POINTS_EARLY_LEVELS: int = 10
+const SKILL_POINTS_LATER_EVERY: int = 2
+const SKILL_POINTS_PER_FIRST_CLEAR: int = 1
 
-## Levels between one more discipline node being allowed.
-##
-## The trained cap starts at DISCIPLINE_MAX_TRAINED and grows with this, so
-## levelling opens the tree rather than only filling a bar.
-const HERO_DISCIPLINE_CAP_EVERY: int = 20
+## **How much of an arm must be learned before each ring opens**, from the
+## Warden outward: ring I, II, III and the tip. Counted in nodes of that arm -
+## a count cannot strand a node the way a drawn graph can. [TUNE]
+const DISCIPLINE_RING_DEPTH: Array[int] = [0, 2, 5, 8]
+
+## The form and the Defense skill every Warden starts with, free. They cost no
+## point, so a new account is never a Warden with nothing to swing.
+const DISCIPLINE_STARTING_FORM: String = "hemorrhage_edge"
+const DISCIPLINE_STARTERS: Array[String] = ["hemorrhage_edge", "aegis_step"]
+
+## **The Mansion opens a slot an act early** (owner ruling R6, 2026-09-26),
+## indexed by slot: the Mansion tier that does it, or 0 for a slot open from the
+## start. Power normally opens after the Act I boss and Ultimate after the Act II
+## boss; a Mansion built high enough brings each one act forward. [TUNE]
+const DISCIPLINE_EARLY_SLOT_TIER: Array[int] = [0, 0, 2, 3]
+
+## **Cleaving Road**: how many bodies past the first can each add the form's
+## share of shove to the finisher. [TUNE]
+const DISCIPLINE_CLEAVE_CROWD_CAP: int = 5
+## **Consecrated Chain**: how near a tower the Warden must stand for the finisher
+## to splash, and how wide the splash is. [TUNE]
+const DISCIPLINE_RADIANT_TOWER_REACH: float = 360.0
+const DISCIPLINE_RADIANT_RADIUS: float = 150.0
 
 ## Per-point attribute gains, as fractions.
 ##
@@ -905,8 +929,6 @@ const SPELL_VOLLEY_SCATTER: float = 0.85
 ## player reads "something is about to land here" and then "it landed".
 const SPELL_STRIKE_WARNING_COLOUR: Color = Color(0.96, 0.68, 0.26, 0.70)
 const SPELL_STRIKE_LANDED_COLOUR: Color = Color(1.0, 0.93, 0.74, 0.95)
-const DISCIPLINE_RESPEC_BASE_COST: int = 45
-const DISCIPLINE_RESPEC_COST_STEP: int = 30
 
 ## Spells offered to choose from on level-up; the player picks one (GDD §2).
 const SPELLS_OFFERED_ON_LEVEL_UP: int = 3

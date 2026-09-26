@@ -448,10 +448,12 @@ signal spell_cast(spell_id: String, slot: int, at: Vector2)
 ## The hero's equipped spells changed.
 signal spells_changed()
 
-## Mansion progression telemetry and UI refresh.
-signal discipline_trained(node_id: String, food_spent: int)
+## The Warden's Disciplines changed. A node learned, for the points it cost; a
+## skill put in a slot, or a chain form taken up as slot -1; and a node let go
+## or the whole tree reset, which only the Hold does.
+signal discipline_trained(node_id: String, points_spent: int)
 signal discipline_equipped(slot: int, node_id: String)
-signal discipline_respecced(food_spent: int, use_count: int)
+signal discipline_tree_reshaped()
 
 ## Something wants the camera shaken — decoupled so any system can ask.
 signal camera_shake_requested(magnitude: float, duration: float)

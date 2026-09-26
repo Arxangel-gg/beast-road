@@ -103,24 +103,12 @@ const DECLARED_ONLY: Array[String] = []
 ## counted equipped nodes would leave every PASSIVE and AUGMENT node inert for a
 ## second time, which is the whole bug this file is about.
 static func trained_value(effect_id: String) -> float:
-	if effect_id.is_empty():
-		return 0.0
-	for id: String in RunState.trained_discipline_nodes:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node != null and node.effect_id == effect_id:
-			return node.effect_value
-	return 0.0
+	return MetaState.learned_effect_value(effect_id)
 
 
 ## Whether the hero has trained a node carrying this effect.
 static func trained(effect_id: String) -> bool:
-	if effect_id.is_empty():
-		return false
-	for id: String in RunState.trained_discipline_nodes:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node != null and node.effect_id == effect_id:
-			return true
-	return false
+	return MetaState.learned_effect(effect_id)
 
 
 # --- The Arcane (2026-09-13) --------------------------------------------------

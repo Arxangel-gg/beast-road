@@ -1,9 +1,10 @@
 class_name DisciplineNodeData
 extends GameData
 
-## One authored node in the Mansion's three discipline trees. Acquisition,
-## slot role and the implemented spell adapter all live in data; the Mansion UI
-## never branches on a node id.
+## One authored node in the Warden's Disciplines: four arms around the Warden,
+## kept on the account and edited in the Hold (owner ruling, 2026-09-26 - see
+## `docs/SKILL_TREE_REWORK_2026-09-26.md`). Acquisition, slot role and the
+## implemented spell adapter all live in data; no screen branches on a node id.
 
 ## The four trees.
 ##
@@ -24,57 +25,74 @@ enum Discipline { BLOOD, HOLY, BERSERK, ARCANE }
 const DISCIPLINE_NAMES: Array[String] = ["Blood", "Holy", "Berserk", "Arcane"]
 enum Role { ATTACK, DEFENSE, POWER, PASSIVE, ULTIMATE, AUGMENT }
 
+## What a node is in the tree. **Appended, never reordered**: data names these
+## by number, and `Role` and `Trigger` have both shipped content pointing at the
+## wrong member after an insertion.
+##
+## - SKILL: a cast, slotted by its `role` - Attack, Defense, Power or Ultimate.
+## - FORM: a shape of the three-hit chain. One is chosen at a time, beside the
+##   four slots rather than in one of them, so every slot can hold a cast.
+## - PASSIVE: always on once learned.
+## - UPGRADE: changes one skill (`parent_id`); those sharing an `exclusive`
+##   group exclude each other.
+## - OATH: the tip of an arm; one sworn at a time.
+enum Kind { SKILL, FORM, PASSIVE, UPGRADE, OATH }
+
 @export var discipline: Discipline = Discipline.BLOOD
 @export var role: Role = Role.ATTACK
-@export_range(1, 3) var mansion_tier: int = 1
-@export var food_cost: int = 45
+@export var kind: Kind = Kind.SKILL
+
+## Which ring of its arm the node sits in, from the Warden outward: 1 to 3, and
+## 4 for the tip. A ring opens when enough of its own arm is learned -
+## `Balance.DISCIPLINE_RING_DEPTH` - **counted rather than graphed**: a count
+## cannot author an unreachable node the way a hand-drawn graph can, and this
+## project lost `call_wolf` to exactly that once.
+@export_range(1, 4) var ring: int = 1
+
+## The skill an upgrade changes, and the group of upgrades it excludes.
+@export var parent_id: String = ""
+@export var exclusive: String = ""
+
+## What the node is about, for passives and synergies to name and for the map
+## to show - so a passive never says "area" without saying where.
+@export var tags: Array[String] = []
 
 ## Optional adapter to an existing fully implemented SpellData. Empty means the
-## node modifies core combat or is a passive/augment rather than a cast.
+## node modifies core combat or is a passive/upgrade rather than a cast.
 @export var spell_id: String = ""
 
 ## A semantic effect key and bounded magnitude for core-combat consumers.
 @export var effect_id: String = ""
 @export var effect_value: float = 0.0
 
-## **How deep into this node's own discipline the player must already be.**
-##
-## The trees used to be three flat lists gated only by Mansion tier, which is a
-## *building* level rather than anything the player chose - so every node was
-## available to everyone at the same time and a Blood hero differed from a Holy
-## one only by which four things happened to be slotted. There was no path, and
-## so no commitment and no build identity. Reported as the tree being
-## "not interesting or smart/intuitive"; owner asked for Diablo-style paths on
-## 2026-09-09.
-##
-## Counted rather than graphed: a node needs N nodes of the *same* discipline
-## trained before it can be offered, instead of naming particular predecessors.
-## Two reasons. A count cannot author an unreachable node the way a hand-drawn
-## graph can - `discipline_check` caught exactly that failure once already, when
-## a hash rotation left `call_wolf` unofferable across 480 roads. And it leaves
-## the shape of a tree to the tiers that already exist rather than inventing a
-## second structure to keep in step with them.
-##
-## -1 derives it from the tier, which is the intended shape: tier 1 opens a
-## discipline, tier 2 wants one node in it, tier 3 wants two. Authoring a value
-## overrides that for a node that should sit deeper or shallower than its tier.
-@export var requires_depth: int = -1
+## A chain form's extra on every swing, as a share. Authored on the form rather
+## than matched by effect id in `Hero.damage_multiplier`, which is where the
+## three forms' 8%, 5% and 4% lived until 2026-09-26.
+@export var form_damage: float = 0.0
 
 
-## Nodes of this discipline that must already be trained before this is offered.
-func required_depth() -> int:
-	return requires_depth if requires_depth >= 0 else maxi(mansion_tier - 1, 0)
+## How many nodes of this node's own arm must be learned before it opens.
+func depth_to_open() -> int:
+	var table: Array[int] = Balance.DISCIPLINE_RING_DEPTH
+	return table[clampi(ring - 1, 0, table.size() - 1)]
+
+
+func is_form() -> bool:
+	return kind == Kind.FORM
 
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("icons/disciplines", "discipline_", id)
 
 
+## Only a skill sits in a slot: a form is chosen beside them.
 func is_active_slot() -> bool:
-	return role in [Role.ATTACK, Role.DEFENSE, Role.POWER, Role.ULTIMATE]
+	return kind == Kind.SKILL and role in [Role.ATTACK, Role.DEFENSE, Role.POWER, Role.ULTIMATE]
 
 
 func slot_index() -> int:
+	if kind != Kind.SKILL:
+		return -1
 	match role:
 		Role.ATTACK:
 			return 0
@@ -89,6 +107,15 @@ func slot_index() -> int:
 
 
 func slot_name() -> String:
+	match kind:
+		Kind.FORM:
+			return "Form"
+		Kind.PASSIVE:
+			return "Passive"
+		Kind.UPGRADE:
+			return "Upgrade"
+		Kind.OATH:
+			return "Oath"
 	match role:
 		Role.ATTACK:
 			return "Attack"

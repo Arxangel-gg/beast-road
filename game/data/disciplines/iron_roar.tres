@@ -2,10 +2,11 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 0
+ring = 1
+tags = Array[String](["Ward", "Stagger"])
 discipline = 2
 role = 1
-mansion_tier = 1
-food_cost = 40
 spell_id = "ash_veil"
 effect_id = "armor_stagger"
 effect_value = 0.30

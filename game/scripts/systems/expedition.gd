@@ -39,11 +39,6 @@ const STATE_KEYS: Array[String] = [
 	"boss_cores",
 	"traps",
 	"barricades",
-	"equipped_spells",
-	"trained_discipline_nodes",
-	"equipped_discipline_slots",
-	"discipline_offers",
-	"discipline_respec_uses",
 	"bosses_felled",
 	"raid_keys",
 	"quartermaster_orders",
@@ -268,9 +263,11 @@ static func apply(stored: Dictionary) -> bool:
 	RunState.hero_wounds = 0
 	EventBus.hero_wounds_changed.emit(RunState.hero_wounds,
 		RunState.max_wounds())
-	# The front brought its trained nodes back; the points they cost are
-	# counted against the level again rather than read off the save.
-	RunState.recount_skill_points()
+	# The Disciplines are the account's and were never in the snapshot - an
+	# older front that carried a trained list simply has it ignored. What the
+	# combat bar casts is restated from the loadout the Warden holds now, which
+	# may have been reshaped in the Hold since the front was banked.
+	RunState._sync_discipline_spells()
 	Modifiers.rebuild()
 	return true
 

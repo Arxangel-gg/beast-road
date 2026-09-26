@@ -547,7 +547,24 @@ var hero_level: int = 1
 var hero_xp: float = 0.0
 var hero_attributes: Array[int] = [0, 0, 0, 0, 0]
 var hero_attribute_points: int = 0
-var hero_skill_points: int = 0
+
+## **The Warden's Disciplines, kept** (owner rulings R1 and R2, 2026-09-26;
+## `docs/SKILL_TREE_REWORK_2026-09-26.md`). What the account has learned - the
+## ids of the nodes, the free starters never stored - the chain form it fights
+## with, and which learned skill sits in each of the four slots.
+##
+## **It amends working rule 7 by nothing new in kind**: a tree is hero
+## progression, bought with points that come from levels and first clears, and
+## it lives in the save's hero block beside the level and the attributes. The
+## ceiling is the points - `skill_points_earned` - and the tree can never hold
+## more than they buy, which `_read_disciplines` enforces on a save that says
+## otherwise.
+var discipline_tree: Dictionary = {}
+var discipline_form: String = ""
+var discipline_loadout: Array[String] = ["", "", "", ""]
+## Which acts' bosses have fallen at least once on each difficulty, as a mask
+## of acts by tier id. What first-clear skill points are counted from.
+var first_clears: Dictionary = {}
 ## The Warden's ascension rank, 0 to `Balance.ASCENSION_MAX` (owner request,
 ## 2026-09-11). Prestige: a title, a portrait and a score multiplier, never
 ## power. See the note in Balance.
@@ -848,8 +865,12 @@ func rename_player(wanted: String) -> void:
 
 
 func _wire_statistics() -> void:
-	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
+	EventBus.boss_defeated.connect(func(_id: String, act: int) -> void:
 		bosses_felled += 1
+		# The first fall on each difficulty is a skill point. Not on the Walk,
+		# whose valley has no boss worth the name and pays nothing.
+		if not RunState.walking:
+			note_first_clear(RunState.tier_id, act)
 		check_achievements())
 	EventBus.act_started.connect(func(act: int, _terrain: String) -> void:
 		if act > highest_act:
@@ -1180,7 +1201,11 @@ func erase_progress() -> void:
 	hero_xp = 0.0
 	hero_attributes = [0, 0, 0, 0, 0]
 	hero_attribute_points = 0
-	hero_skill_points = 0
+	discipline_tree = {}
+	discipline_form = Balance.DISCIPLINE_STARTING_FORM
+	discipline_loadout = ["", "", "", ""]
+	first_clears = {}
+	_clean_loadout()
 	ascension = 0
 	tier_cleared = -1
 	gatekeeper = {}
@@ -1372,7 +1397,6 @@ func _read_hero(hero: Dictionary) -> void:
 	hero_xp = maxf(float(hero.get("xp", 0.0)), 0.0)
 	hero_attribute_points = maxi(int(hero.get("attribute_points", 0)), 0)
 	ascension = clampi(int(hero.get("ascension", 0)), 0, Balance.ASCENSION_MAX)
-	hero_skill_points = maxi(int(hero.get("skill_points", 0)), 0)
 	tier_cleared = clampi(int(hero.get("tier_cleared", -1)), -1, 8)
 	# **A malformed row is dropped rather than trusted**, the rule the pen is
 	# read under: this list decides what the Gatekeeper does at a summit, and a
@@ -1391,6 +1415,8 @@ func _read_hero(hero: Dictionary) -> void:
 	var stored: Array = hero.get("attributes", []) as Array
 	for i: int in mini(stored.size(), hero_attributes.size()):
 		hero_attributes[i] = maxi(int(stored[i]), 0)
+
+	_read_disciplines(hero)
 
 	# Placed points plus unspent may not exceed what the level could ever have
 	# granted. This is the one line that stops a hand-edited save from arriving
@@ -2194,7 +2220,13 @@ func serialized_save() -> String:
 			"attribute_points": hero_attribute_points,
 			"ascension": ascension,
 			"gatekeeper": gatekeeper,
-			"skill_points": hero_skill_points,
+			"skill_points": skill_points_earned(),
+			# The Disciplines (2026-09-26): kept here beside the level and the
+			# attributes, which is what makes them hero progression.
+			"tree": discipline_tree,
+			"form": discipline_form,
+			"loadout": discipline_loadout,
+			"first_clears": first_clears,
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,
 			"story_seen": story_intro_seen,
@@ -2400,6 +2432,7 @@ func adopt_save(data: Dictionary) -> void:
 	tutorial_walk_done = bool(stats.get("tutorial_walk_done", false))
 
 	_read_settings(data.get("settings", {}) as Dictionary)
+	_settle_disciplines()
 
 	# A piece that had never been named now has one, and it has to survive the
 	# session that gave it. Once: the flag is cleared by the next `_read_stash`.
@@ -3053,3 +3086,357 @@ func _read_spirits(block: Dictionary) -> void:
 	# than summoning something the collection does not contain.
 	if not equipped_spirit.is_empty() and not spirit_bonded.has(equipped_spirit):
 		equipped_spirit = ""
+
+# --- The Disciplines (2026-09-26) ----------------------------------------------
+
+
+## Reads the learned tree, the form, the loadout and the first clears, dropping
+## anything this build does not have. Cleared first, so an empty hero block is
+## a new Warden - the rule every `_read_*` here follows.
+func _read_disciplines(hero: Dictionary) -> void:
+	discipline_tree = {}
+	for key: Variant in (hero.get("tree", {}) as Dictionary):
+		if ContentDB.discipline_node(String(key)) != null:
+			discipline_tree[String(key)] = 1
+	first_clears = {}
+	var stored: Variant = hero.get("first_clears", null)
+	if stored is Dictionary:
+		for key: Variant in (stored as Dictionary):
+			if ContentDB.tiers.has(String(key)):
+				first_clears[String(key)] = int((stored as Dictionary)[key]) & ((1 << (Balance.ACT_COUNT + 1)) - 1)
+	# Derived once the rest of the save is in: the furthest act reached is a
+	# statistic, and statistics are read after the hero.
+	_first_clears_pending = not (stored is Dictionary) and not hero.is_empty()
+	discipline_form = String(hero.get("form", Balance.DISCIPLINE_STARTING_FORM))
+	discipline_loadout = ["", "", "", ""]
+	var loadout: Variant = hero.get("loadout", null)
+	if loadout is Array:
+		for slot: int in mini((loadout as Array).size(), discipline_loadout.size()):
+			discipline_loadout[slot] = String((loadout as Array)[slot])
+	else:
+		for id: String in Balance.DISCIPLINE_STARTERS:
+			var node: DisciplineNodeData = ContentDB.discipline_node(id)
+			if node != null and node.slot_index() >= 0:
+				discipline_loadout[node.slot_index()] = id
+
+
+var _first_clears_pending: bool = false
+
+
+## The Disciplines once the whole save is read: first clears for a save that
+## predates them, then **nothing held that the points do not buy or that could
+## not have been learned in some order** - a save that says otherwise was edited
+## by hand or written by a build with a different tree - then a loadout of only
+## what is still held.
+func _settle_disciplines() -> void:
+	if _first_clears_pending:
+		_first_clears_pending = false
+		_derive_first_clears()
+	while skill_points_spent() > skill_points_earned() and not discipline_tree.is_empty():
+		discipline_tree.erase(discipline_tree.keys()[discipline_tree.size() - 1])
+	var stranded: String = _stranded(owned_disciplines())
+	while not stranded.is_empty() and discipline_tree.has(stranded):
+		discipline_tree.erase(stranded)
+		stranded = _stranded(owned_disciplines())
+	_clean_loadout()
+
+
+## The first node in a set that could not have been learned in any order, or "".
+## Per arm, nodes placed shallowest first: each needs as many placed before it
+## as its ring asks. Exact, because placing more never closes a ring.
+func _stranded(ids: Array[String]) -> String:
+	var by_arm: Dictionary = {}
+	for id: String in ids:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null:
+			continue
+		if not by_arm.has(node.discipline):
+			by_arm[node.discipline] = []
+		(by_arm[node.discipline] as Array).append(node)
+	for arm: Variant in by_arm:
+		var nodes: Array = by_arm[arm]
+		nodes.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
+			return a.depth_to_open() < b.depth_to_open())
+		var placed: int = 0
+		for value: Variant in nodes:
+			var node := value as DisciplineNodeData
+			if node.depth_to_open() > placed:
+				return node.id
+			placed += 1
+	for id: String in ids:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node != null and not node.parent_id.is_empty() and not ids.has(node.parent_id):
+			return id
+	return ""
+
+
+## First clears for a save written before they were recorded: every act of a
+## difficulty cleared outright, and on the first difficulty every act before
+## the furthest one reached - reaching an act means its predecessor's boss fell.
+func _derive_first_clears() -> void:
+	var tiers: Array = ContentDB.tiers.values()
+	tiers.sort_custom(func(a: Variant, b: Variant) -> bool:
+		return (a as CampaignTierData).order < (b as CampaignTierData).order)
+	var all_acts: int = (1 << (Balance.ACT_COUNT + 1)) - 1
+	for value: Variant in tiers:
+		var tier := value as CampaignTierData
+		if tier.order <= tier_cleared:
+			first_clears[tier.id] = all_acts
+	if not tiers.is_empty():
+		var first := tiers[0] as CampaignTierData
+		if not first_clears.has(first.id):
+			var reached: int = ActStart.furthest_act()
+			var mask: int = 0
+			for act: int in range(1, reached):
+				mask |= 1 << (act - 1)
+			if mask != 0:
+				first_clears[first.id] = mask
+
+
+## A boss fallen on the road: the first time on this difficulty is a point.
+func note_first_clear(tier_id: String, act: int) -> void:
+	if tier_id.is_empty() or act < 1 or act > Balance.ACT_COUNT + 1:
+		return
+	var mask: int = int(first_clears.get(tier_id, 0))
+	var bit: int = 1 << (act - 1)
+	if mask & bit != 0:
+		return
+	first_clears[tier_id] = mask | bit
+	save_game()
+
+
+func first_clears_count() -> int:
+	var count: int = 0
+	for key: Variant in first_clears:
+		var mask: int = int(first_clears[key])
+		while mask != 0:
+			count += mask & 1
+			mask >>= 1
+	return count
+
+
+## Every node learned, the free starters first.
+func owned_disciplines() -> Array[String]:
+	var out: Array[String] = []
+	for id: String in Balance.DISCIPLINE_STARTERS:
+		if ContentDB.discipline_node(id) != null:
+			out.append(id)
+	for key: Variant in discipline_tree:
+		if not out.has(String(key)):
+			out.append(String(key))
+	return out
+
+
+func owns_discipline(id: String) -> bool:
+	return Balance.DISCIPLINE_STARTERS.has(id) or discipline_tree.has(id)
+
+
+static func skill_points_for_level(level: int) -> int:
+	var early: int = clampi(level, 1, Balance.SKILL_POINTS_EARLY_LEVELS) - 1
+	var later: int = maxi(level - Balance.SKILL_POINTS_EARLY_LEVELS, 0) / Balance.SKILL_POINTS_LATER_EVERY
+	return early + later
+
+
+func skill_points_earned() -> int:
+	return skill_points_for_level(hero_level) \
+		+ first_clears_count() * Balance.SKILL_POINTS_PER_FIRST_CLEAR
+
+
+func skill_points_spent() -> int:
+	var spent: int = 0
+	for key: Variant in discipline_tree:
+		if not Balance.DISCIPLINE_STARTERS.has(String(key)):
+			spent += 1
+	return spent
+
+
+func skill_points_free() -> int:
+	return maxi(skill_points_earned() - skill_points_spent(), 0)
+
+
+## Nodes learned in each arm, keyed by `DisciplineNodeData.Discipline`: what a
+## ring's depth is measured against. `without` leaves one node out, for the
+## question of whether letting it go would strand another.
+func discipline_depth(without: String = "") -> Dictionary:
+	var depth: Dictionary = {}
+	for id: String in owned_disciplines():
+		if id == without:
+			continue
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node != null:
+			depth[node.discipline] = int(depth.get(node.discipline, 0)) + 1
+	return depth
+
+
+## Whether an arm may be learned in at all - `Balance.DISCIPLINE_OPENS_AT_ACT`,
+## against the furthest act the account has reached or the act a run is in.
+func discipline_open(discipline: int, run_act: int = 0) -> bool:
+	var table: Array[int] = Balance.DISCIPLINE_OPENS_AT_ACT
+	if discipline < 0 or discipline >= table.size():
+		return true
+	return maxi(ActStart.furthest_act(), run_act) >= table[discipline]
+
+
+## Why a node cannot be learned now, in the order a player would want told, or
+## "" when it can.
+func learn_problem(id: String, run_act: int = 0) -> String:
+	var problem: String = reach_problem(id, run_act)
+	if not problem.is_empty():
+		return problem
+	if skill_points_free() <= 0:
+		return "No skill points to spend - they come with levels and first clears."
+	return ""
+
+
+## Everything `learn_problem` asks but the points: whether the node is open to
+## this Warden at all. What the Mansion lists, with the price said beside it.
+func reach_problem(id: String, run_act: int = 0) -> String:
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	if node == null:
+		return "That node does not exist."
+	if owns_discipline(id):
+		return "Already learned."
+	if not discipline_open(node.discipline, run_act):
+		return "%s opens when Act %d is reached." % [node.discipline_name(),
+			Balance.DISCIPLINE_OPENS_AT_ACT[node.discipline]]
+	var depth: int = int(discipline_depth().get(node.discipline, 0))
+	if depth < node.depth_to_open():
+		return "Needs %d learned in %s first (%d so far)." % [node.depth_to_open(),
+			node.discipline_name(), depth]
+	if node.kind == DisciplineNodeData.Kind.UPGRADE and not node.parent_id.is_empty() \
+			and not owns_discipline(node.parent_id):
+		var parent: DisciplineNodeData = ContentDB.discipline_node(node.parent_id)
+		return "Learn %s first." % (parent.display_name if parent != null else node.parent_id)
+	if not node.exclusive.is_empty():
+		for other: String in owned_disciplines():
+			var held: DisciplineNodeData = ContentDB.discipline_node(other)
+			if held != null and held.exclusive == node.exclusive:
+				return "%s is learned, and the two exclude each other." % held.display_name
+	return ""
+
+
+## The authored magnitude of a learned effect, or 0. Walks the starters and the
+## tree in place rather than building a list: combat asks this on every swing.
+func learned_effect_value(effect_id: String) -> float:
+	var node: DisciplineNodeData = _learned_with_effect(effect_id)
+	return node.effect_value if node != null else 0.0
+
+
+func learned_effect(effect_id: String) -> bool:
+	return _learned_with_effect(effect_id) != null
+
+
+func _learned_with_effect(effect_id: String) -> DisciplineNodeData:
+	if effect_id.is_empty():
+		return null
+	for id: String in Balance.DISCIPLINE_STARTERS:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node != null and node.effect_id == effect_id:
+			return node
+	for key: Variant in discipline_tree:
+		var node: DisciplineNodeData = ContentDB.discipline_node(String(key))
+		if node != null and node.effect_id == effect_id:
+			return node
+	return null
+
+
+## Learns a node, or says why not. A first skill for an empty slot goes into it
+## and a first form is taken up, so learning never leaves the Warden holding
+## something they then have to find to use.
+func learn_discipline(id: String, run_act: int = 0) -> String:
+	var problem: String = learn_problem(id, run_act)
+	if not problem.is_empty():
+		return problem
+	discipline_tree[id] = 1
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	var slot: int = node.slot_index()
+	if slot >= 0 and discipline_loadout[slot].is_empty():
+		discipline_loadout[slot] = id
+	if node.is_form() and not owns_discipline(discipline_form):
+		discipline_form = id
+	save_game()
+	EventBus.discipline_trained.emit(id, 1)
+	return ""
+
+
+## Why a node cannot be let go, or "". **Reshaping is the Hold's, between
+## roads**: on a road the tree only grows, because a build rebuilt at every
+## Preparation is not a build.
+func unlearn_problem(id: String) -> String:
+	if Balance.DISCIPLINE_STARTERS.has(id):
+		return "The starting pair cannot be let go."
+	if not discipline_tree.has(id):
+		return "Not learned."
+	if RunState.road_is_live():
+		return "The tree is reshaped in the Hold, between roads."
+	var remaining: Array[String] = owned_disciplines()
+	remaining.erase(id)
+	var stranded: String = _stranded(remaining)
+	if not stranded.is_empty():
+		var held: DisciplineNodeData = ContentDB.discipline_node(stranded)
+		return "%s stands on it - let that go first." % (held.display_name if held != null else stranded)
+	return ""
+
+
+func unlearn_discipline(id: String) -> String:
+	var problem: String = unlearn_problem(id)
+	if not problem.is_empty():
+		return problem
+	discipline_tree.erase(id)
+	_clean_loadout()
+	save_game()
+	EventBus.discipline_tree_reshaped.emit()
+	return ""
+
+
+## Lets the whole tree go, free, in the Hold.
+func reset_disciplines() -> String:
+	if RunState.road_is_live():
+		return "The tree is reshaped in the Hold, between roads."
+	discipline_tree.clear()
+	discipline_form = Balance.DISCIPLINE_STARTING_FORM
+	_clean_loadout()
+	save_game()
+	EventBus.discipline_tree_reshaped.emit()
+	return ""
+
+
+## Puts a learned skill in its slot, or clears a slot with "".
+func set_discipline_slot(slot: int, id: String) -> String:
+	if slot < 0 or slot >= discipline_loadout.size():
+		return "There is no such slot."
+	if not id.is_empty():
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null or not owns_discipline(id):
+			return "Learn it first."
+		if node.slot_index() != slot:
+			return "%s is a %s skill." % [node.display_name, node.slot_name()]
+	discipline_loadout[slot] = id
+	save_game()
+	return ""
+
+
+func set_discipline_form(id: String) -> String:
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	if node == null or not node.is_form():
+		return "That is not a form of the chain."
+	if not owns_discipline(id):
+		return "Learn it first."
+	discipline_form = id
+	save_game()
+	return ""
+
+
+## Leaves nothing in a slot or the form that is not learned or not of its slot.
+func _clean_loadout() -> void:
+	for slot: int in discipline_loadout.size():
+		var id: String = discipline_loadout[slot]
+		if id.is_empty():
+			continue
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null or not owns_discipline(id) or node.slot_index() != slot:
+			discipline_loadout[slot] = ""
+	var form: DisciplineNodeData = ContentDB.discipline_node(discipline_form)
+	if form == null or not form.is_form() or not owns_discipline(discipline_form):
+		discipline_form = Balance.DISCIPLINE_STARTING_FORM
+

@@ -2594,7 +2594,9 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	_note_tower_blow(from)
 	if active_hero and Modifiers.value(Modifiers.KEYSTONE_HUNTERS_MARK) > 0.0:
 		_hunted_left = Balance.KEYSTONE_HUNT_SECONDS
-	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
+	# The chain's form, which sits beside the four slots rather than in the
+	# first of them since the Disciplines became the account's (2026-09-26).
+	var attack_node: DisciplineNodeData = RunState.chain_form() \
 		if active_hero else null
 	if attack_node != null and attack_node.effect_id == "tower_damage_brand" \
 			and is_priority():

@@ -2,10 +2,11 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 2
+ring = 3
+tags = Array[String](["Mana", "Haste"])
 discipline = 3
 role = 5
-mansion_tier = 3
-food_cost = 80
 effect_id = "cast_haste_chain"
 effect_value = 0.18
 id = "quickening"

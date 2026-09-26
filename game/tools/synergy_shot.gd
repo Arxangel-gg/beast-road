@@ -12,6 +12,10 @@ var _run: Node = null
 
 func _ready() -> void:
 	await get_tree().process_frame
+	# **Held**: the Disciplines are the account's since 2026-09-26, so the nodes
+	# trained below for the picture would otherwise be written into whichever
+	# Warden's save this tool was run against.
+	MetaState.hold_saves()
 	RunState.reset()
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate()
 	add_child(_run)
@@ -29,7 +33,7 @@ func _ready() -> void:
 	for effect_id: String in ["support_kill_speed", "revive_knockback"]:
 		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
 			if node.effect_id == effect_id:
-				RunState.trained_discipline_nodes.append(node.id)
+				MetaState.discipline_tree[node.id] = 1
 
 	var panel: Node = _run.get("town_panel")
 	panel.call("open", "sanctum")

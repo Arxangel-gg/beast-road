@@ -52,6 +52,10 @@ var partner_weapon: String = ""
 ## arrangement `damage_multiplier` above already uses.
 var drag: float = 1.0
 
+## Whether this swing's radiant splash has gone off - once a swing, like the
+## announcement.
+var _radiant_done: bool = false
+
 var _phase: Phase = Phase.READY
 var _step: int = 0
 var _phase_left: float = 0.0
@@ -285,6 +289,7 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 	_chain_left = 0.0
 	_hit_ids.clear()
 	_announced = false
+	_radiant_done = false
 	lunge_requested.emit(_swing_aim, Balance.HERO_ATTACK_LUNGE[_step])
 	# Announced on the swing, not on the hit. Feedback for an action the player
 	# took has to happen even when the action accomplishes nothing.
@@ -350,6 +355,52 @@ func would_hit(origin: Vector2, aim: Vector2, step: int) -> Array[Node2D]:
 	return out
 
 
+## Bodies standing in this swing's arc right now, hit or not.
+func _count_in_arc(reach: float, half_arc: float) -> int:
+	var count: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dying():
+			continue
+		var to: Vector2 = enemy.combat_origin() - _swing_origin
+		var distance: float = to.length()
+		if distance > reach + enemy.contact_radius():
+			continue
+		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
+			continue
+		count += 1
+	return count
+
+
+## **Consecrated Chain**: the third hit splashes radiant damage near defenses.
+## Once a swing, only when a tower stands within `DISCIPLINE_RADIANT_TOWER_REACH`
+## of the Warden, onto the bodies round the blow that the swing itself missed -
+## a share of the finisher, never a second finisher.
+func _radiant_splash(amount: float, reach: float) -> void:
+	if _radiant_done or amount <= 0.0:
+		return
+	var near_tower: bool = false
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Node2D
+		if tower != null and tower.global_position.distance_to(_swing_origin) \
+				<= Balance.DISCIPLINE_RADIANT_TOWER_REACH:
+			near_tower = true
+			break
+	if not near_tower:
+		return
+	_radiant_done = true
+	var centre: Vector2 = _swing_origin + _swing_aim * reach * 0.6
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dying() or _hit_ids.has(enemy.get_instance_id()):
+			continue
+		if enemy.combat_origin().distance_to(centre) \
+				> Balance.DISCIPLINE_RADIANT_RADIUS + enemy.contact_radius():
+			continue
+		enemy.take_damage(amount, centre, 0.0)
+	Vfx.ring(centre, Balance.DISCIPLINE_RADIANT_RADIUS, Color("ffe7a3"), 0.4, 4.0)
+
+
 func _strike() -> void:
 	var reach: float = Balance.HERO_ATTACK_RANGE[_step] * reach_scale()
 	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[_step] * 0.5)
@@ -357,6 +408,18 @@ func _strike() -> void:
 	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * Modifiers.multiplier(Modifiers.KNOCKBACK)
 	var hits: int = 0
 	var struck_hide: int = -1
+	# **The chain's form**, read for the Warden this machine plays: a partner's
+	# form is their account's, and it is not on this machine to read.
+	var form: DisciplineNodeData = RunState.chain_form() if own_stash else null
+	var finisher: bool = _step >= Balance.HERO_CHAIN_LENGTH - 1
+	# **Cleaving Road**: the wide third hit gains force for each enemy struck.
+	# Counted across the whole arc before any blow lands, so the first body is
+	# shoved as hard as the last; capped, so a packed road is a wall moved rather
+	# than a wall thrown off the map.
+	if finisher and form != null and form.effect_id == "crowd_finisher_force":
+		var crowd: int = _count_in_arc(reach, half_arc)
+		knockback *= 1.0 + form.effect_value \
+			* float(clampi(crowd - 1, 0, Balance.DISCIPLINE_CLEAVE_CROWD_CAP))
 
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
@@ -417,6 +480,8 @@ func _strike() -> void:
 			owner.call("spend_guard")
 	if hits == 0:
 		return
+	if finisher and form != null and form.effect_id == "defense_radiant_finisher":
+		_radiant_splash(damage * form.effect_value, reach)
 	landed.emit(_step, hits, _swing_origin)
 	var hide: int = maxi(struck_hide, 0)
 	EventBus.hero_attack_landed.emit(_step, hits, _swing_origin, hide)

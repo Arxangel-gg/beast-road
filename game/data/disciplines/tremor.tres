@@ -2,10 +2,11 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 0
+ring = 2
+tags = Array[String](["Earth", "Area", "Road"])
 discipline = 2
 role = 2
-mansion_tier = 2
-food_cost = 60
 spell_id = "tremor"
 effect_id = "road_line_disrupt"
 effect_value = 1.0

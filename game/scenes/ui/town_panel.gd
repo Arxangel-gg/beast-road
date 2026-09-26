@@ -47,13 +47,15 @@ const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
 
 var _building_id: String = ""
 
-## The Mansion's sub-page. A phone cannot show levelling, a loadout, this road's
-## offers and the whole tree in one column and have any of it be readable.
+## The Mansion's sub-page. A phone cannot show levelling, a loadout, what may be
+## learned and the whole tree in one column and have any of it be readable.
 enum Mansion { HERO, TRAINING, TREE }
 var _mansion_page: int = Mansion.HERO
 
-## Which ability slot the player is currently choosing for, or -1.
+## Which ability slot the player is currently choosing for, `FORM_FOCUS` for
+## the chain's form, or -1.
 var _slot_focus: int = -1
+const FORM_FOCUS: int = 4
 
 ## Which discipline the tree page is filtered to, or -1 for all.
 var _tree_filter: int = -1
@@ -76,9 +78,9 @@ func _ready() -> void:
 	EventBus.relic_socketed.connect(func(_id: String) -> void: _refresh())
 	EventBus.relic_unsocketed.connect(func(_id: String) -> void: _refresh())
 	EventBus.captive_assigned.connect(func(_c: String, _b: String) -> void: _refresh())
-	EventBus.discipline_trained.connect(func(_id: String, _food: int) -> void: _refresh())
+	EventBus.discipline_trained.connect(func(_id: String, _points: int) -> void: _refresh())
 	EventBus.discipline_equipped.connect(func(_slot: int, _id: String) -> void: _refresh())
-	EventBus.discipline_respecced.connect(func(_food: int, _uses: int) -> void: _refresh())
+	EventBus.discipline_tree_reshaped.connect(_refresh)
 
 
 func _fit() -> void:
@@ -597,7 +599,7 @@ func _show_mansion() -> void:
 			int(RunState.hero_level_progress() * 100.0), RunState.hero_level + 1]
 
 
-	var page_names: Array[String] = ["Hero", "Training", "Disciplines"]
+	var page_names: Array[String] = ["Hero", "Learn", "Tree"]
 	for page: int in page_names.size():
 		var tab := Button.new()
 		tab.text = page_names[page]
@@ -633,8 +635,10 @@ func _show_mansion() -> void:
 ## build a plot before they can spend it turns levelling up into an IOU.
 func _mansion_hero(tier: int) -> void:
 	_note("Every kill on the road is experience. Each level brings an attribute "
-		+ "point, and every %d levels a skill point for training abilities."
-		% Balance.HERO_SKILL_POINT_EVERY)
+		+ "point and, up to level %d, a skill point - then one every %d levels, "
+		% [Balance.SKILL_POINTS_EARLY_LEVELS, Balance.SKILL_POINTS_LATER_EVERY]
+		+ "and one the first time each act's boss falls on each difficulty. "
+		+ "What the Warden learns is kept between roads.")
 	actions.add_child(_heading("Attributes"))
 	if RunState.hero_attribute_points > 0:
 		_note("%d point%s to place. One arrives with every level." % [
@@ -704,23 +708,33 @@ func _mansion_hero(tier: int) -> void:
 	actions.add_child(ledger_row)
 
 	actions.add_child(_heading("Abilities"))
-	_note("Four slots. What sits in one is cast from the combat bar.")
+	_note("The chain's form, and four slots cast from the combat bar. The "
+		+ "loadout is the Warden's own and comes to every road.")
+	var form: DisciplineNodeData = RunState.chain_form()
+	var form_row := _row("Form  ·  %s" % (form.display_name if form != null else "none"), 48.0)
+	if form != null:
+		if ResourceLoader.exists(form.get_sprite_path()):
+			UiMetrics.row_icon(form_row, load(form.get_sprite_path()), 32)
+		form_row.tooltip_text = form.description
+	form_row.pressed.connect(func() -> void:
+		_slot_focus = FORM_FOCUS
+		_mansion_page = Mansion.TRAINING
+		_clear_notice()
+		_refresh())
+	actions.add_child(form_row)
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
-		var equipped: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
-		var unlocked: bool = DisciplineNodeData.slot_is_unlocked(slot, RunState.act)
-		var what: String = "empty  —  choose"
-		if equipped != null:
-			what = equipped.display_name
-		elif not unlocked:
-			what = "unlocks after the Act %s boss" % _roman(
-				DisciplineNodeData.slot_opens_after_boss(slot))
+		var held: DisciplineNodeData = RunState.loadout_node(slot)
+		var open: bool = RunState.slot_is_open(slot)
+		var what: String = held.display_name if held != null else "empty  —  choose"
+		if not open:
+			what += "  ·  %s" % RunState.slot_opens_note(slot)
 		var row := _row("%s  ·  %s" % [SLOT_NAMES[slot], what], 48.0)
-		if equipped != null and ResourceLoader.exists(equipped.get_sprite_path()):
-			UiMetrics.row_icon(row, load(equipped.get_sprite_path()), 32)
-
-		if equipped != null:
-			row.tooltip_text = equipped.description
-		row.disabled = not unlocked
+		if held != null and ResourceLoader.exists(held.get_sprite_path()):
+			UiMetrics.row_icon(row, load(held.get_sprite_path()), 32)
+		if held != null:
+			row.tooltip_text = held.description
+		# **Pressable while closed.** The loadout is the account's, so a Warden may
+		# choose the Ultimate that waits for the Act II boss before it falls.
 		var wanted: int = slot
 		row.pressed.connect(func() -> void:
 			_slot_focus = wanted
@@ -730,159 +744,130 @@ func _mansion_hero(tier: int) -> void:
 		actions.add_child(row)
 
 	if tier <= 0:
-		actions.add_child(_heading("Training"))
-		_note("Build the Hero Mansion to train new abilities. The attributes above "
-			+ "are yours to place either way.")
+		actions.add_child(_heading("Learning"))
+		_note("Build the Hero Mansion to learn Disciplines on the road. Between "
+			+ "roads the Hold's Disciplines door is always open. The attributes "
+			+ "above are yours to place either way.")
 
 
-## This road's offers, the trained loadout, and — when a slot was pressed on the
-## Hero page — the list of what may go into it.
+## What may be learned now, what the Warden has learned, and - when a slot or
+## the form was pressed on the Hero page - the list of what may go into it.
+##
+## **The tree is the account's since 2026-09-26** (owner rulings R1 and R5):
+## there are no offers, no Food and no cap. A point buys a node, the ring it
+## sits in is the gate, and a node learned here is kept when the road ends.
 func _mansion_training(tier: int) -> void:
 	if _slot_focus >= 0:
 		_mansion_slot_picker()
 		return
 
-	actions.add_child(_heading("Training"))
+	actions.add_child(_heading("Learn"))
+	var from_levels: int = MetaState.skill_points_for_level(RunState.hero_level)
+	var from_clears: int = MetaState.first_clears_count() * Balance.SKILL_POINTS_PER_FIRST_CLEAR
+	_note("%d skill point%s free   ·   %d earned: %d from levels, %d from first clears" % [
+		RunState.skill_points(), "" if RunState.skill_points() == 1 else "s",
+		from_levels + from_clears, from_levels, from_clears])
 	if tier <= 0:
-		_note("The Hero Mansion is not built. Building it opens discipline "
-			+ "training and reveals this road's offers.")
-		return
+		_note("The Hero Mansion is not built. Build it to learn on the road - or "
+			+ "learn in the Hold between roads.")
+	_note("A node costs one point. Its ring opens when enough of its own arm is "
+		+ "learned. Learning is kept; the tree is reshaped, free, in the Hold.")
+	_empty_slot_hints()
 
-	_note("Skill points %d   ·   Food %d   ·   trained %d of %d" % [
-		RunState.hero_skill_points, RunState.currency(RunState.FOOD),
-		RunState.trained_discipline_nodes.size(), RunState.discipline_cap()])
-	_note("A node costs one skill point — one arrives every %d levels — and its "
-		% Balance.HERO_SKILL_POINT_EVERY
-		+ "Food. Spend them on any node your disciplines are deep enough for. "
-		+ "The three below are this road's suggestions.")
-
-	# **What committing to a discipline has bought.**
-	#
-	# Depth gates which nodes can be offered at all, and a rule the player cannot
-	# see is a rule they experience as the game being arbitrary - the offers
-	# simply look different this road and nothing says why. Reported as the tree
-	# being unintuitive, so the standing is shown before the offers that it
-	# decided.
+	# **What committing to an arm has bought**, before the list it decided.
 	var depth: Dictionary = RunState.discipline_depth()
 	var tree_names: Array[String] = DisciplineNodeData.DISCIPLINE_NAMES
 	actions.add_child(_heading("Your disciplines"))
-	var deepest: int = 0
 	for which: int in tree_names.size():
-		deepest = maxi(deepest, int(depth.get(which, 0)))
-	for which: int in tree_names.size():
-		var have: int = int(depth.get(which, 0))
-		# A tree the road has not opened yet says so, and says what opens it -
-		# a fourth column that is simply absent reads as a tree with three.
 		if not RunState.discipline_is_open(which):
 			_note("%s  ·  opens when Act %s is reached: the boss before it has to fall" % [
 				tree_names[which], _roman(RunState.discipline_opens_at(which))])
 			continue
-		var locked: int = 0
-		var open_now: int = 0
-		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-			if node.discipline != which or RunState.trained_discipline_nodes.has(node.id):
-				continue
-			if have < node.required_depth():
-				locked += 1
-			else:
-				open_now += 1
-		var line: String = "%s  ·  %d trained  ·  %d open" % [
-			tree_names[which], have, open_now]
-		if locked > 0:
-			line += "  ·  %d deeper node%s need%s more here" % [
-				locked, "" if locked == 1 else "s", "s" if locked == 1 else ""]
+		var have: int = int(depth.get(which, 0))
+		var line: String = "%s  ·  %d learned" % [tree_names[which], have]
+		for ring: int in Balance.DISCIPLINE_RING_DEPTH.size():
+			var needed: int = Balance.DISCIPLINE_RING_DEPTH[ring]
+			if needed > have:
+				line += "  ·  ring %s at %d" % [_roman(ring + 1), needed]
+				break
 		_note(line)
-	if deepest == 0:
-		_note("Every discipline starts with three nodes open. Training in one "
-			+ "opens its deeper nodes; spreading wide keeps all three shallow.")
 
-	if RunState.discipline_offers.is_empty():
-		RunState.refresh_discipline_offers()
-	actions.add_child(_heading("This road's offers"))
-	if RunState.discipline_offers.is_empty():
-		_note("Nothing left to offer at Mansion tier %d. Raise it for deeper nodes."
-			% tier)
-	for id: String in RunState.discipline_offers:
-		var offered: DisciplineNodeData = ContentDB.discipline_node(id)
-		if offered == null:
-			continue
-		var blocker: String = _training_blocker(offered)
-		var card := _row("%s\n%s · %s · %d Food\n%s%s" % [
-			offered.display_name, offered.discipline_name(), offered.slot_name(),
-			offered.food_cost, offered.description,
-			"\n— %s" % blocker if not blocker.is_empty() else ""], 78.0)
-		if ResourceLoader.exists(offered.get_sprite_path()):
-			UiMetrics.row_icon(card, load(offered.get_sprite_path()), 40)
-
-		card.disabled = not blocker.is_empty()
-		card.pressed.connect(func() -> void: _attempt(RunState.try_train_discipline(id)))
-		actions.add_child(card)
-
-	# **And the rest of the tree, since stage three** (owner, 2026-09-15).
-	#
-	# The offers above stopped being a fence on the same day; if this page still
-	# showed only three, the freedom would exist in `try_train_discipline` and
-	# nowhere a player could reach it - which is the same failure as a discipline
-	# effect nothing reads. Grouped by tree rather than listed flat, because what
-	# the player is choosing between is depth in one and breadth across three.
-	var rest: Array[DisciplineNodeData] = []
-	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
-		if not RunState.discipline_offers.has(node.id):
-			rest.append(node)
-	if not rest.is_empty():
-		actions.add_child(_heading("The whole tree  ·  %d open" % rest.size()))
-		var last_tree: int = -1
-		for node: DisciplineNodeData in rest:
-			if node.discipline != last_tree:
-				last_tree = node.discipline
-				_note(node.discipline_name())
-			var blocked: String = _training_blocker(node)
-			var row := _row("%s  ·  %s  ·  %d Food\n%s%s" % [
-				node.display_name, node.slot_name(), node.food_cost,
-				node.description,
-				"\n— %s" % blocked if not blocked.is_empty() else ""], 66.0)
-			if ResourceLoader.exists(node.get_sprite_path()):
-				UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
-
-			row.disabled = not blocked.is_empty()
-			var pick: String = node.id
-			row.pressed.connect(func() -> void: _attempt(RunState.try_train_discipline(pick)))
-			actions.add_child(row)
-
-	if RunState.trained_discipline_nodes.is_empty():
-		return
-	actions.add_child(_heading("Trained"))
-	for id: String in RunState.trained_discipline_nodes:
-		var trained: DisciplineNodeData = ContentDB.discipline_node(id)
-		if trained == null:
-			continue
-		var equipped: bool = RunState.equipped_discipline_slots.has(id)
-		var where: String = "equipped" if equipped else (
-			trained.slot_name().to_lower() if trained.is_active_slot() else "always on")
-		var row := _row("%s%s  ·  %s" % ["◆ " if equipped else "",
-			trained.display_name, where], 44.0)
-		if ResourceLoader.exists(trained.get_sprite_path()):
-			UiMetrics.row_icon(row, load(trained.get_sprite_path()), 30)
-
-		row.tooltip_text = trained.description
-		row.disabled = not trained.is_active_slot() or equipped \
-			or not trained.is_slot_unlocked(RunState.act)
-		row.pressed.connect(func() -> void: _attempt(RunState.try_equip_discipline(id)))
+	var open: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
+	actions.add_child(_heading("Open to learn  ·  %d" % open.size()))
+	if open.is_empty():
+		_note("Nothing open right now. Learning in an arm opens its next ring.")
+	var last_tree: int = -1
+	for node: DisciplineNodeData in open:
+		if node.discipline != last_tree:
+			last_tree = node.discipline
+			_note(node.discipline_name())
+		var blocked: String = _training_blocker(node)
+		var row := _row("%s  ·  %s  ·  ring %s\n%s%s" % [
+			node.display_name, node.slot_name(), _roman(node.ring), node.description,
+			"\n— %s" % blocked if not blocked.is_empty() else ""], 66.0)
+		if ResourceLoader.exists(node.get_sprite_path()):
+			UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
+		row.disabled = not blocked.is_empty()
+		var pick: String = node.id
+		row.pressed.connect(func() -> void: _attempt(RunState.try_learn_discipline(pick)))
 		actions.add_child(row)
 
-	var respec := _row("Respec disciplines  ·  %d Food" % RunState.discipline_respec_cost(), 46.0)
-	respec.tooltip_text = "Return to the curated Attack and Defense starters. Cost rises each use."
-	respec.disabled = not RunState.is_preparation() \
-		or not RunState.can_afford_cost({RunState.FOOD: RunState.discipline_respec_cost()})
-	respec.pressed.connect(func() -> void: _attempt(RunState.try_respec_disciplines()))
-	actions.add_child(respec)
+	actions.add_child(_heading("Learned"))
+	var form: DisciplineNodeData = RunState.chain_form()
+	for id: String in RunState.learned_disciplines():
+		var learned: DisciplineNodeData = ContentDB.discipline_node(id)
+		if learned == null:
+			continue
+		var where: String = "always on"
+		var here: bool = false
+		if learned.is_form():
+			here = form != null and form.id == id
+			where = "the chain's form" if here else "a form of the chain"
+		elif learned.is_active_slot():
+			here = RunState.loadout_node(learned.slot_index()) == learned
+			where = "%s slot%s" % [learned.slot_name().to_lower(), "" if here else " - not slotted"]
+		elif learned.kind == DisciplineNodeData.Kind.UPGRADE:
+			var parent: DisciplineNodeData = ContentDB.discipline_node(learned.parent_id)
+			where = "changes %s" % (parent.display_name if parent != null else learned.parent_id)
+		var row := _row("%s%s  ·  %s" % ["◆ " if here else "", learned.display_name, where], 44.0)
+		if ResourceLoader.exists(learned.get_sprite_path()):
+			UiMetrics.row_icon(row, load(learned.get_sprite_path()), 30)
+		row.tooltip_text = learned.description
+		row.disabled = here or not (learned.is_form() or learned.is_active_slot())
+		var pick: String = id
+		row.pressed.connect(func() -> void:
+			if ContentDB.discipline_node(pick).is_form():
+				_attempt(RunState.try_choose_form(pick))
+			else:
+				_attempt(RunState.try_equip_discipline(pick)))
+		actions.add_child(row)
 
 
-## What may go into the slot the player pressed. A slot that cannot be filled
-## says why, rather than presenting an empty list.
+## **An open slot with nothing in it is a dead slot**, and the reason a player
+## reported one on 2026-09-13 was that nothing said so. Named here, with whether
+## there is anything learned or open to put in it.
+func _empty_slot_hints() -> void:
+	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		if not RunState.slot_is_open(slot) or RunState.loadout_node(slot) != null:
+			continue
+		var learned: bool = false
+		for id: String in RunState.learned_disciplines():
+			var node: DisciplineNodeData = ContentDB.discipline_node(id)
+			learned = learned or (node != null and node.slot_index() == slot)
+		if learned:
+			_note("Your %s slot is open and empty - press it on the Hero page to fill it."
+				% SLOT_NAMES[slot])
+		else:
+			_note("Your %s slot is open and empty - learn a %s skill below to fill it."
+				% [SLOT_NAMES[slot], SLOT_NAMES[slot]])
+
+
+## What may go into the slot, or the forms, the player pressed. A slot that
+## cannot be filled says why, rather than presenting an empty list.
 func _mansion_slot_picker() -> void:
+	var form_pick: bool = _slot_focus == FORM_FOCUS
 	var slot: int = clampi(_slot_focus, 0, SLOT_NAMES.size() - 1)
-	actions.add_child(_heading("%s slot" % SLOT_NAMES[slot]))
+	actions.add_child(_heading("The chain's form" if form_pick else "%s slot" % SLOT_NAMES[slot]))
 
 	var back := _row("←  Back", 40.0)
 	back.pressed.connect(func() -> void:
@@ -891,43 +876,45 @@ func _mansion_slot_picker() -> void:
 		_clear_notice()
 		_refresh())
 	actions.add_child(back)
+	if not form_pick and not RunState.slot_is_open(slot):
+		_note("This slot %s. What you put in it waits there until then."
+			% RunState.slot_opens_note(slot))
 
 	var found: int = 0
-	for id: String in RunState.trained_discipline_nodes:
+	var form: DisciplineNodeData = RunState.chain_form()
+	for id: String in RunState.learned_disciplines():
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node == null or node.slot_index() != slot:
+		if node == null:
+			continue
+		if form_pick != node.is_form() or (not form_pick and node.slot_index() != slot):
 			continue
 		found += 1
-		var here: bool = RunState.equipped_discipline_slots[slot] == id
+		var here: bool = (form != null and form.id == id) if form_pick \
+			else RunState.loadout_node(slot) == node
 		var row := _row("%s%s\n%s" % ["◆ " if here else "", node.display_name,
 			node.description], 60.0)
 		if ResourceLoader.exists(node.get_sprite_path()):
 			UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
-
-		row.disabled = here or not RunState.is_preparation() \
-			or not node.is_slot_unlocked(RunState.act)
+		row.disabled = here or not RunState.is_preparation()
+		var pick: String = id
 		row.pressed.connect(func() -> void:
-			var problem: String = RunState.try_equip_discipline(id)
+			var problem: String = RunState.try_choose_form(pick) if form_pick \
+				else RunState.try_equip_discipline(pick)
 			_slot_focus = -1
 			_mansion_page = Mansion.HERO
 			_attempt(problem))
 		actions.add_child(row)
 
 	if found == 0:
-		_note("Nothing trained for this slot yet. Train a %s node on the Training "
-			% SLOT_NAMES[slot].to_lower() + "page — the Disciplines page shows "
-			+ "which ones exist.")
+		_note("Nothing learned for this yet. The Learn page lists what is open, and "
+			+ "the Tree page shows every node there is.")
 	elif not RunState.is_preparation():
 		_note("Loadout changes are available only in Preparation.")
 
 
-## Every node in the game, with its state. Not a shop — a map.
-##
-## The offers are three of twenty-seven and they rotate, so without this page a
-## player has no way to learn that a discipline *is* anything, or to decide they
-## want a particular ultimate two roads from now. Nothing here can be pressed to
-## buy; it exists so that what the Training page offers means something.
-func _mansion_tree(tier: int) -> void:
+## Every node in the game, with its state. Not a shop — a map. The Hold draws it
+## as one; this is the road's list of the same thing.
+func _mansion_tree(_tier: int) -> void:
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 4)
 	# Off the one list of trees, which is what gives the Arcane its button: a
@@ -948,8 +935,8 @@ func _mansion_tree(tier: int) -> void:
 	actions.add_child(filters)
 	_note("Blood trades health for damage. Holy shields and cleanses. Berserk "
 		+ "breaks formations. Arcane fights at range, on mana rather than on "
-		+ "blood. Mix them freely — nothing locks you to one, but depth in one "
-		+ "is what opens its deeper nodes.")
+		+ "blood. Each arm opens outward in rings: learn in one to reach its "
+		+ "deeper nodes, or spread across them and stay shallow.")
 
 	_show_synergies()
 
@@ -960,18 +947,18 @@ func _mansion_tree(tier: int) -> void:
 		if int(node.discipline) != last:
 			last = int(node.discipline)
 			actions.add_child(_heading(node.discipline_name()))
-		var state: String = "may be offered on a later road"
-		var tint: Color = Color("b8ae98")
-		if RunState.trained_discipline_nodes.has(node.id):
-			state = "trained"
+		var state: String = "open to learn"
+		var tint: Color = Color("e8a33d")
+		if RunState.has_learned(node.id):
+			state = "learned"
 			tint = Color("9fd48a")
-		elif node.mansion_tier > tier:
-			state = "needs Mansion tier %d" % node.mansion_tier
-		elif RunState.discipline_offers.has(node.id):
-			state = "offered on this road"
-			tint = Color("e8a33d")
-		actions.add_child(_line("%s  ·  %s\n%s\n%s" % [node.display_name,
-			node.slot_name(), node.description, state], 13, tint))
+		else:
+			var reach: String = MetaState.reach_problem(node.id, RunState.act)
+			if not reach.is_empty():
+				state = reach
+				tint = Color("b8ae98")
+		actions.add_child(_line("%s  ·  %s  ·  ring %s\n%s\n%s" % [node.display_name,
+			node.slot_name(), _roman(node.ring), node.description, state], 13, tint))
 
 
 ## Pairs of nodes that do something together, and how close the hero is to each.
@@ -1013,21 +1000,15 @@ func _show_synergies() -> void:
 
 
 ## The one requirement standing in the way, in the order the rules are checked,
-## so the card can say it before the player presses.
+## so the card can say it before the player presses. The account's own reasons
+## come from `MetaState.learn_problem`; the road adds only its two - the phase,
+## and a Mansion to learn in.
 func _training_blocker(node: DisciplineNodeData) -> String:
 	if not RunState.is_preparation():
 		return "Preparation only"
-	if RunState.trained_discipline_nodes.size() >= RunState.discipline_cap():
-		return "%d trained is the limit at level %d" % [
-			RunState.discipline_cap(), RunState.hero_level]
-	if RunState.hero_skill_points <= 0:
-		return "needs a skill point — one every %d levels" % Balance.HERO_SKILL_POINT_EVERY
-	if RunState.building_tier("sanctum") < node.mansion_tier:
-		return "needs Hero Mansion tier %d" % node.mansion_tier
-	if not RunState.can_afford_cost({RunState.FOOD: node.food_cost}):
-		return "needs %d Food, you have %d" % [node.food_cost,
-			RunState.currency(RunState.FOOD)]
-	return ""
+	if RunState.building_tier("sanctum") <= 0:
+		return "build the Hero Mansion to learn on the road"
+	return MetaState.learn_problem(node.id, RunState.act)
 
 
 ## Relic sockets. Only socketed relics do anything at all, which is the entire

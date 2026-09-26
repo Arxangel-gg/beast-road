@@ -149,10 +149,11 @@ func _report() -> void:
 			str(_opening.get(level, "never"))])
 	print("[level] the opening, on the very first campaign: %s"
 		% ", ".join(opening))
-	print("[level] %d attribute points, %d skill points, %d of 24 discipline nodes"
+	print("[level] %d attribute points, %d skill points from levels and up to %d from first clears, against %d nodes"
 		% [_attribute_points, _skill_points,
-			Balance.DISCIPLINE_MAX_TRAINED
-				+ int(_level / Balance.HERO_DISCIPLINE_CAP_EVERY)])
+			(Balance.ACT_COUNT + 1) * ContentDB.tiers_sorted().size()
+				* Balance.SKILL_POINTS_PER_FIRST_CLEAR,
+			ContentDB.discipline_nodes.size()])
 	# A run is exactly as long as the road is, because one unit of road is one
 	# second at the beast's base speed - see `WAVE_ROAD_DISTANCE`.
 	var run_hours: float = (Balance.JOURNEY_TOTAL_DISTANCE
@@ -183,5 +184,4 @@ func _award(amount: float) -> void:
 		if not _opening.has(_level):
 			_opening[_level] = _wave_of_run
 		_attribute_points += 1
-		if _level % Balance.HERO_SKILL_POINT_EVERY == 0:
-			_skill_points += 1
+		_skill_points = MetaState.skill_points_for_level(_level)

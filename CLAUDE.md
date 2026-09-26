@@ -10130,6 +10130,14 @@ earned figure only, and a resumed front recounts for the nodes it brings back.
 `discipline_check` drives a run, a spend, a level, the next run, a respec and a
 resume.
 
+**Superseded later the same day, and the principle survived it.** Phase 1 of the
+rework below made the tree the account's, so there is no run-scoped list to
+recount and `recount_skill_points` is gone. The counting moved to
+`MetaState.skill_points_free` - earned from levels and first clears, less what
+the tree holds - which is the same rule with nothing left on either side of it
+to leak. Recorded rather than overwritten, for the reason the starting-gold
+paragraph was.
+
 **A partner is dressed in the lobby and the Hold, as of 2026-09-26.** On the
 road a partner's look and four gear kinds already crossed; the lobby's roster and
 the Hold's hello carried the look and no gear, so partners stood in the bare body
@@ -10184,6 +10192,119 @@ had just been re-cut to wider cells for the cape, and `WardenDress.meta` is read
 once a process while each sheet loads the first time it is drawn - so a game
 running across the repack framed 108-pixel windows out of a 126-pixel sheet.
 Restart the game after dress art is repacked; a shipped build cannot see it.
+
+**The Disciplines are the account's, as of 2026-09-26 (phase 1 of the rework).**
+Rulings R1, R2, R5 and R6 above, built. What a Warden has learned, the chain's
+form and which skill sits in each of the four slots live in `MetaState`
+(`discipline_tree`, `discipline_form`, `discipline_loadout`, and `first_clears`
+for the points), in the save's hero block beside the level. **RunState keeps no
+copy**: it asks - `learned_disciplines`, `chain_form`, `skill_points`,
+`discipline_node_in_slot` - and the one list it still holds, `equipped_spells`,
+is restated from the loadout by `_sync_discipline_spells` at a road's start, on
+a loadout change, when a boss falls and when the Mansion is raised.
+
+**Points are counted from two sources and never kept**: one a level to level 10
+(the XP curve puts level 10 mid Act II, and the first hour needs choices), one
+every two levels after, and one for each act boss's first fall on each
+difficulty - 87 at most. A save written before this derives its first clears
+from the tiers it had cleared and the furthest act it reached. The save writes
+the earned figure under `skill_points` for an older build's sake and reads it
+for nothing.
+
+**The rings are counted, not graphed**: ring I is open, ring II wants two of its
+own arm learned, ring III five, the tip eight (`DISCIPLINE_RING_DEPTH`). An
+upgrade also wants its skill. A save holding more than its points buy, or a node
+no order of learning could reach, is trimmed on read (`_settle_disciplines`,
+`_stranded`), which is what makes a hand-edited tree harmless.
+
+**Learning has two doors and letting go has one.** A node is learned in the Hold
+at any time between roads, or at the Hero Mansion in Preparation with the
+Mansion standing (`RunState.try_learn_discipline`). It is let go **only in the
+Hold, free**, one node or the whole tree. That drops the proposal's Food-priced
+retraining at the Mansion, deliberately: a build that can be rebuilt at every
+Preparation is not a build, and one that costs Food to rethink is one nobody
+tries. There are no offers, no Food price and no cap - the points and the rings
+are the whole economy (R5).
+
+**The slots open by the boss, or a boss sooner by the Mansion** (R6):
+`RunState.slot_is_open` is Attack and Defense from the start, Power after the
+Act I boss and Ultimate after the Act II boss, each an act earlier with the
+Mansion at tier II and III (`DISCIPLINE_EARLY_SLOT_TIER`). The loadout is the
+account's, so a skill may be put in a slot that is not open yet; it waits there
+and is cast once the slot opens.
+
+**A form is chosen beside the slots, not in the first of them**, so every slot
+can hold a cast. A form's share on every swing is `form_damage` in its data -
+the 8%, 5% and 4% were a `match` on effect ids in `Hero.damage_multiplier`,
+which is the stat branch in code working rule 3 forbids.
+
+**Two of the four forms were placebos, and both are true now.** Consecrated
+Chain said the finisher *"splashes radiant damage near defenses"* and Cleaving
+Road that it *"gains force for each enemy struck"*; the only code behind either
+was that flat multiplier. Cleaving Road's finisher now shoves harder for each
+other body in its arc (`DISCIPLINE_CLEAVE_CROWD_CAP`), and Consecrated Chain's
+splashes a share of the finisher onto the bodies around the blow that the swing
+missed, once a swing, only with a tower within `DISCIPLINE_RADIANT_TOWER_REACH`.
+Found because the effect gate asks every implemented key to be named by some
+script, and removing the `match` left two keys named by nothing - the gate doing
+exactly its job.
+
+**The Hold draws the tree** (`DisciplinesScreen`, from the Warden's Stone card
+beside the Glass): four arms round the Warden - Blood left, Holy above, Berserk
+right, the Arcane below - rings as faint circles, every node an icon on a plate
+lit learned, rimmed open or dark closed, the only line an upgrade's thread to its
+skill. It asks `MetaState` for every rule and writes nothing when only looked at.
+
+**A banked front no longer carries a tree.** `Expedition.STATE_KEYS` lost the
+trained list, the slots, the offers and the respec count; an older snapshot's
+keys are skipped because restore only sets what it names.
+
+`discipline_check` was rewritten for all of it (10 tests): a new Warden's free
+pair, the tree's shape, every node learnable by some order through the real
+door, a Normal clear never buying the whole tree, points through a Hold learn,
+two levels, the next road, the save and its read, a greedy and a stranded save,
+a first clear once, the rings, an upgrade's skill, reshaping refused on a live
+road, the road's two doors, the loadout, the slot table across eight cases driven
+through the Mansion's own signal, both forms through a real finisher, and the
+Hold screen through its own buttons. Five faults were planted - first clears
+uncounted, the crowd shove removed, the Mansion ignored, reshaping allowed on the
+road, the splash without a tower - and every one was named.
+
+**Owed, and recorded so it is not assumed:**
+
+- **A new Warden's Attack slot is empty** until ring II: the only two Attack
+  skills (Red Pursuit, Chain Hook) sit there. Phase 2's distinct skills fix it.
+- **A full account can learn the whole tree** - 87 points against 38 nodes. What
+  makes the top a choice is phase 2: exclusive upgrades and one Oath at a time.
+  Until then the gate holds only that one Normal clear does not buy everything.
+- **`curve_report` does not model the tree yet**, which R3 makes the price of
+  any node carrying a number.
+- **Co-op reads this machine's tree** for a partner's passives and form share,
+  as it did before; per-Warden trees are phase 1's fourth item and still owed.
+  A partner's swing does not take this machine's form (`HeroAttack.own_stash`).
+
+**Augments: a draft on every road rank, as of 2026-09-26 (owner request,
+designed, not built).** The owner: *"random augment cards each time the player
+levels up as well as other events ... as well as possibly incremental augments
+rewarded every so often while players continue to survive"*. The design is
+`docs/SKILL_TREE_REWORK_2026-09-26.md` §8, and three things in it are decisions:
+
+- **It is allowed now because phase 1 moved the build's core out of the draw.**
+  §2 of that document rejected a random level-up pool as Tower of Babel's worst
+  fault - the core of a build drawn rather than chosen. Skills, the chain form
+  and the Oath are the account's and chosen in the Hold now, so a draft can only
+  add to a build, never withhold one.
+- **Road Cards become Augments and Roadcraft folds into them.** One deck, one
+  hand of eight, dealt on every road rank (the run's own level bar, never the
+  Warden's account level), at crossroads, bosses, camps, raids, rifts and
+  mythics, with a Tempering every few waves survived that levels a held augment.
+  A card taken twice levels I to V. Reroll, Banish and Lean are the answer to
+  "Blackjack against a cheating AI"; picks bank rather than interrupt a wave.
+  The run tree is the board the augments fill, three branches with keystones.
+- **It is a run-scoped power scale and it is measured.** `curve_report` models
+  the ranks a road deals and the levels they buy, the denser road is scaled
+  against that model, and the damage ledger ships with it. Nothing persists but
+  which augments are in the pool, which is an unlocked id.
 
 ### The three escape hatches - and why there are only three
 

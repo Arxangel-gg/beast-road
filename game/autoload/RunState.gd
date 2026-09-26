@@ -202,11 +202,16 @@ var barricades: Dictionary = {}
 
 # --- Hero ------------------------------------------------------------------
 
+## The spell each ability slot casts on this road, derived from the account's
+## loadout by `_sync_discipline_spells` and never written anywhere else.
+##
+## **The Disciplines are the account's, not the run's** (owner rulings R1 and
+## R5, 2026-09-26). What is learned, which skill sits in each slot and which
+## form the chain takes all live in `MetaState` and are read through the
+## functions below; a run keeps no copy of them to drift. This one list stays
+## because the combat bar and the caster index it every frame, and it is only
+## ever a restatement of the loadout against the slots this road has opened.
 var equipped_spells: Array[String] = []
-var trained_discipline_nodes: Array[String] = []
-var equipped_discipline_slots: Array[String] = []
-var discipline_offers: Array[String] = []
-var discipline_respec_uses: int = 0
 ## How many act bosses this run has felled.
 ##
 ## **Renamed from `hero_ascension` on 2026-09-17**, because the owner's
@@ -352,7 +357,6 @@ var hero_xp: float = 0.0
 
 ## Points earned and not yet placed.
 var hero_attribute_points: int = 0
-var hero_skill_points: int = 0
 
 ## Points placed, one entry per Attribute.
 var hero_attributes: Array[int] = [0, 0, 0, 0, 0]
@@ -451,6 +455,8 @@ func _ready() -> void:
 	EventBus.coop_xp_awarded.connect(_on_coop_xp_awarded)
 	EventBus.town_health_changed.connect(_on_town_health_for_last_scar)
 	EventBus.coop_last_scar_resolved.connect(_on_coop_last_scar_resolved)
+	# A Mansion raised may open a slot an act early (ruling R6).
+	EventBus.construction_completed.connect(_on_construction_completed)
 
 
 ## The host earned experience, so this player earns the same amount.
@@ -621,12 +627,6 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	barricades.clear()
 
 	equipped_spells.clear()
-	trained_discipline_nodes.clear()
-	equipped_discipline_slots.clear()
-	equipped_discipline_slots.resize(Balance.HERO_MAX_SPELL_SLOTS)
-	equipped_discipline_slots.fill("")
-	discipline_offers.clear()
-	discipline_respec_uses = 0
 	bosses_felled = 0
 	raid_keys = 0
 	weather_id = "clear"
@@ -650,7 +650,6 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	hero_level = MetaState.hero_level
 	hero_xp = MetaState.hero_xp
 	hero_attribute_points = MetaState.hero_attribute_points
-	hero_skill_points = MetaState.hero_skill_points
 	hero_attributes = MetaState.hero_attributes.duplicate()
 	tier_id = MetaState.last_tier_id
 	hero_hp = -1.0
@@ -728,7 +727,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	wounds_suffered = 0
 	hearthmends_used = 0
 
-	_setup_starting_disciplines()
+	_sync_discipline_spells()
 
 	var starting_terrain: TerrainData = ContentDB.terrain_for_act(1)
 	if starting_terrain != null:
@@ -758,114 +757,106 @@ func _equip_starting_spells() -> void:
 		equipped_spells.append(pool[i])
 
 
-## Curated first-run pair. Attack modifies the basic chain; Defense is a cast.
-## The ids remain content, and the existence checks make save migration safe if
-## a future release replaces either starter.
-func _setup_starting_disciplines() -> void:
-	for id: String in STARTING_DISCIPLINES:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node == null:
-			continue
-		trained_discipline_nodes.append(id)
-		var slot: int = node.slot_index()
-		if slot >= 0 and equipped_discipline_slots[slot].is_empty():
-			equipped_discipline_slots[slot] = id
-	_sync_discipline_spells()
-	refresh_discipline_offers()
-	# A run's start and a respec both land here with only the free pair
-	# trained, so every point the level has earned is back.
-	recount_skill_points()
+## **Skill points the Warden may spend**, counted by the account: what levels
+## and first clears have earned less what the tree holds (2026-09-26). Nothing
+## is kept, so nothing can leak - the fault the owner's level-100 Warden found,
+## holding 16 of the 20 they had earned.
+func skill_points() -> int:
+	return MetaState.skill_points_free()
 
 
-## The pair every road begins with, free: they cost no skill point.
-const STARTING_DISCIPLINES: Array[String] = ["hemorrhage_edge", "aegis_step"]
+## Every node the Warden has learned, the free starters first.
+func learned_disciplines() -> Array[String]:
+	return MetaState.owned_disciplines()
 
 
-## **Skill points are counted, never kept** (2026-09-26).
+func has_learned(id: String) -> bool:
+	return MetaState.owns_discipline(id)
+
+
+## The shape the three-hit chain takes: a FORM node, chosen beside the four
+## slots rather than in one of them, so every slot can hold a cast.
+func chain_form() -> DisciplineNodeData:
+	var node: DisciplineNodeData = ContentDB.discipline_node(MetaState.discipline_form)
+	if node == null or not node.is_form():
+		node = ContentDB.discipline_node(Balance.DISCIPLINE_STARTING_FORM)
+	return node
+
+
+## **Whether a slot is open on this road**, and the one rule for it.
 ##
-## The points belonged to the account and the nodes they bought belonged to
-## the run, so a point spent on a node was written to the save by the next
-## level-up and the node was then cleared when the run ended - lost both
-## ways. The owner's level-100 Warden had earned 20 and held 16. A respec
-## lost them the same way inside one run: it took the nodes back and left
-## the points spent.
-##
-## So what a hero holds is always what the level has earned less what this
-## road has trained beyond the free pair, and the save keeps the earned
-## figure only. There is nothing left to leak.
-func earned_skill_points() -> int:
-	return int(hero_level / Balance.HERO_SKILL_POINT_EVERY)
+## Attack and Defense from the start; Power once the Act I boss has fallen and
+## Ultimate once the Act II boss has - and a Mansion built to
+## `Balance.DISCIPLINE_EARLY_SLOT_TIER` brings each one act forward (owner
+## ruling R6, 2026-09-26: the Mansion's tiers used to reveal deeper rows of a
+## per-road tree, and the tree is the account's now).
+func slot_is_open(slot: int) -> bool:
+	if slot < 0 or slot >= Balance.HERO_MAX_SPELL_SLOTS:
+		return false
+	if DisciplineNodeData.slot_is_unlocked(slot, act):
+		return true
+	return act >= DisciplineNodeData.slot_opens_at_act(slot) - 1 and _mansion_opens(slot)
 
 
-func recount_skill_points() -> void:
-	var spent: int = 0
-	for id: String in trained_discipline_nodes:
-		if not STARTING_DISCIPLINES.has(id):
-			spent += 1
-	hero_skill_points = maxi(earned_skill_points() - spent, 0)
+func _mansion_opens(slot: int) -> bool:
+	var table: Array[int] = Balance.DISCIPLINE_EARLY_SLOT_TIER
+	var needed: int = table[slot] if slot < table.size() else 0
+	return needed > 0 and building_tier("sanctum") >= needed
 
 
+## What a closed slot says about itself, for the Mansion and the combat bar.
+func slot_opens_note(slot: int) -> String:
+	var table: Array[int] = Balance.DISCIPLINE_EARLY_SLOT_TIER
+	var boss: int = DisciplineNodeData.slot_opens_after_boss(slot)
+	var line: String = "opens after the Act %s boss" % act_numeral(boss)
+	var needed: int = table[slot] if slot < table.size() else 0
+	if needed > 0 and boss > 1:
+		line += ", or a boss sooner with the Hero Mansion at tier %d" % needed
+	return line
+
+
+## An act as the roman numeral the screens print.
+static func act_numeral(act_number: int) -> String:
+	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
+		"VI", "VII", "VIII", "IX", "X", "XI"]
+	return NUMERALS[clampi(act_number - 1, 0, NUMERALS.size() - 1)]
+
+
+## The skill in a slot this road can cast, or null - empty, or not open yet.
 func discipline_node_in_slot(slot: int) -> DisciplineNodeData:
-	if slot < 0 or slot >= equipped_discipline_slots.size():
+	if not slot_is_open(slot):
 		return null
-	return ContentDB.discipline_node(equipped_discipline_slots[slot])
+	return loadout_node(slot)
 
 
-## How many nodes are trained in each discipline, keyed by
-## `DisciplineNodeData.Discipline`. What a node's `required_depth` is measured
-## against, and what the Mansion shows when a node is still out of reach.
+## The skill the account has put in a slot, open or not.
+func loadout_node(slot: int) -> DisciplineNodeData:
+	if slot < 0 or slot >= MetaState.discipline_loadout.size():
+		return null
+	var id: String = MetaState.discipline_loadout[slot]
+	return ContentDB.discipline_node(id) if not id.is_empty() else null
+
+
+## Nodes learned in each arm, keyed by `DisciplineNodeData.Discipline`.
 func discipline_depth() -> Dictionary:
-	var depth: Dictionary = {}
-	for id: String in trained_discipline_nodes:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node == null:
-			continue
-		depth[node.discipline] = int(depth.get(node.discipline, 0)) + 1
-	return depth
+	return MetaState.discipline_depth()
 
 
-## **Every node the hero could train right now**, in the tree's own order.
-##
-## One function, because the draft and the training door used to make this
-## judgement separately and stage three (below) turns the second of them into
-## the only one that matters. `refresh_discipline_offers` picks three of these
-## to suggest; `try_train_discipline` allows any of them.
+## **Every node the Warden could learn now**, in the tree's own order - open by
+## arm, ring and parent, whether or not a point is free to buy it. The Mansion
+## lists these and says what a point would buy; `try_learn_discipline` asks the
+## same question with the points included.
 func eligible_discipline_nodes() -> Array[DisciplineNodeData]:
 	var out: Array[DisciplineNodeData] = []
-	var mansion_tier: int = building_tier("sanctum")
-	if mansion_tier <= 0:
-		return out
-	var depth: Dictionary = discipline_depth()
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.mansion_tier > mansion_tier or trained_discipline_nodes.has(node.id):
-			continue
-		if not discipline_is_open(node.discipline):
-			continue
-		# **Depth in the node's own discipline, which is what makes this a tree.**
-		# The Mansion tier says what the *building* has unlocked; this says what
-		# the player has committed to. Without it all thirty nodes were available
-		# to everyone at once and no run's hero differed from another's except by
-		# which four happened to be slotted.
-		#
-		# It carries more weight since stage three than it did when it was
-		# written: the per-road draft used to be the other thing stopping a
-		# player from walking straight to the best node, and depth is now the
-		# only one. A tier-three node still costs two nodes in its own tree.
-		if int(depth.get(node.discipline, 0)) < node.required_depth():
-			continue
-		out.append(node)
+		if MetaState.reach_problem(node.id, act).is_empty():
+			out.append(node)
 	return out
 
 
-## Whether a discipline's nodes may be offered or trained at all - see
-## `Balance.DISCIPLINE_OPENS_AT_ACT`. The one door, so the draft, the training
-## and the Mansion page cannot disagree about what is open.
+## Whether an arm may be learned in at all - see `Balance.DISCIPLINE_OPENS_AT_ACT`.
 func discipline_is_open(discipline: int) -> bool:
-	var table: Array[int] = Balance.DISCIPLINE_OPENS_AT_ACT
-	if discipline < 0 or discipline >= table.size():
-		return true
-	var reached: int = maxi(ActStart.furthest_act(), act)
-	return reached >= table[discipline]
+	return MetaState.discipline_open(discipline, act)
 
 
 ## The act a closed discipline opens at, for the Mansion's copy.
@@ -874,140 +865,6 @@ func discipline_opens_at(discipline: int) -> int:
 	if discipline < 0 or discipline >= table.size():
 		return 1
 	return table[discipline]
-
-
-func refresh_discipline_offers() -> void:
-	discipline_offers.clear()
-	var mansion_tier: int = building_tier("sanctum")
-	if mansion_tier <= 0:
-		return
-	var eligible: Array[DisciplineNodeData] = eligible_discipline_nodes()
-	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
-	# the panel, while the next road still produces a new set.
-	#
-	# **A seeded shuffle, not a hash ordering**, and this is the second lesson on
-	# the same line. The first version sorted by `hash(id + seed)`, and Godot
-	# hashes a string with a multiply-accumulate - so a shared *suffix* scaled
-	# both operands equally and preserved the sign of their difference. Twenty-
-	# seven nodes rotated through the same three for almost every seed.
-	#
-	# Moving the seed to the front fixed that instance and left the shape: an
-	# ordering derived from a hash gives no guarantee that every id reaches the
-	# top three, only that no obvious correlation remains. Adding three nodes for
-	# the new companions pushed `call_wolf` out of reach across 480 roads, which
-	# `discipline_check` caught.
-	#
-	# A Fisher-Yates shuffle from a seeded RNG has the property the hash never
-	# did: every eligible node is equally likely to land in any position, so
-	# coverage follows from the arithmetic rather than from luck. Still perfectly
-	# deterministic - same seed, same road, same three offers.
-	var offer_seed: int = run_seed + segment * 97 + wave_number * 31 + act * 13
-	var shuffler := RandomNumberGenerator.new()
-	shuffler.seed = offer_seed
-	for index: int in range(eligible.size() - 1, 0, -1):
-		var swap: int = shuffler.randi_range(0, index)
-		var held: DisciplineNodeData = eligible[index]
-		eligible[index] = eligible[swap]
-		eligible[swap] = held
-	for node: DisciplineNodeData in eligible:
-		if discipline_offers.size() >= 3:
-			break
-		discipline_offers.append(node.id)
-	# Always expose at least one off-discipline choice when the eligible pool has
-	# one, rather than letting synergy turn into a forced mono-build.
-	if not discipline_offers.is_empty():
-		var lead: DisciplineNodeData = ContentDB.discipline_node(discipline_offers[0])
-		var has_off: bool = false
-		for id: String in discipline_offers:
-			var offered: DisciplineNodeData = ContentDB.discipline_node(id)
-			has_off = has_off or (offered != null and lead != null \
-				and offered.discipline != lead.discipline)
-		if not has_off and lead != null:
-			for node: DisciplineNodeData in eligible:
-				if node.discipline != lead.discipline:
-					discipline_offers[discipline_offers.size() - 1] = node.id
-					break
-	_offer_an_empty_slot(eligible)
-
-
-## **An unlocked slot the hero cannot fill is a dead slot.**
-##
-## Power opens on Act II and Ultimate on Act III, and both are drawn from the
-## same three-a-road rotation as everything else. A player who kept taking
-## the Attack and Defense nodes in front of them could reach Act V with a
-## tier-three Mansion and two empty slots and nothing telling them why -
-## reported 2026-09-13 with a screenshot of exactly that.
-##
-## So when a slot is unlocked and empty, one of the three offers is a node
-## that fills it, whenever the eligible pool holds one. It replaces the last
-## offer rather than adding a fourth: the draft is still three, and refusing
-## is still the common case.
-## **Both empty slots, not the same offer twice.** The first cut of this wrote
-## every role into `size - 1`, so with Power *and* Ultimate empty the Power
-## offer was written and then immediately overwritten by the Ultimate one - and
-## a player in exactly the reported state was still never offered a Power node.
-## Each role takes its own place from the back now.
-##
-## **And a place is claimed by whatever already fills it.** The same overwrite
-## came back one layer in: a Power node the shuffle had already dealt satisfied
-## the "this role is covered" check, and a covered role did not advance the
-## write position, so the Ultimate offer was written over it. It needed the
-## shuffle to deal a Power node into the last place, which is about one road in
-## six - so it passed here and failed on CI. See `claimed` below: the two ways a
-## role gets served have to agree about which index is spent.
-##
-## Index 0 is never taken, so the draft always keeps one offer that is not
-## dictated by a dead slot. With three offers and two dead slots that is two
-## fixed and one free, which is the right trade for a state the player has to
-## be dug out of.
-func _offer_an_empty_slot(eligible: Array[DisciplineNodeData]) -> void:
-	if discipline_offers.is_empty():
-		return
-	# Which dead slots there are to serve at all.
-	var wanted: Array[int] = []
-	for role: int in [DisciplineNodeData.Role.POWER, DisciplineNodeData.Role.ULTIMATE]:
-		if not _slot_is_filled(role):
-			wanted.append(role)
-	# **An offer that already serves a dead slot claims its place.**
-	#
-	# This is the third cut of the same line and the second time the Power offer
-	# was the casualty. The second cut noticed when a role was already covered by
-	# the shuffle's own three and skipped it - correctly - but skipped it
-	# *without taking its index out of play*, so the write position stayed on the
-	# back offer and the Ultimate write landed on top of the very Power node that
-	# had satisfied the check.
-	var claimed: Dictionary = {}
-	for index: int in discipline_offers.size():
-		var offered: DisciplineNodeData = ContentDB.discipline_node(
-			discipline_offers[index])
-		if offered == null or not wanted.has(int(offered.role)):
-			continue
-		claimed[index] = true
-		wanted.erase(int(offered.role))
-	var at: int = discipline_offers.size() - 1
-	for role: int in wanted:
-		while at > 0 and claimed.has(at):
-			at -= 1
-		if at <= 0:
-			break
-		for node: DisciplineNodeData in eligible:
-			if node.role != role or not node.is_slot_unlocked(act):
-				continue
-			if discipline_offers.has(node.id):
-				continue
-			discipline_offers[at] = node.id
-			claimed[at] = true
-			at -= 1
-			break
-
-
-## Whether anything trained already sits in that slot.
-func _slot_is_filled(role: int) -> bool:
-	for id: String in trained_discipline_nodes:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node != null and node.role == role:
-			return true
-	return false
 
 
 ## Spends a key if one is held. Returns whether it could.
@@ -1124,8 +981,6 @@ func gain_hero_xp(amount: float) -> void:
 		hero_level += 1
 		gained += 1
 		hero_attribute_points += 1
-		if hero_level % Balance.HERO_SKILL_POINT_EVERY == 0:
-			hero_skill_points += 1
 	if hero_level >= Balance.HERO_MAX_LEVEL:
 		hero_xp = 0.0
 	# Keep sub-level progress in the account state as it is earned. A level-up
@@ -1135,7 +990,7 @@ func gain_hero_xp(amount: float) -> void:
 	if gained > 0:
 		note_kept("levels", float(gained))
 		_store_hero()
-		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, hero_skill_points)
+		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, skill_points())
 	var needed: float = hero_xp_for_level(hero_level)
 	EventBus.hero_xp_changed.emit(hero_xp, 0.0 if is_inf(needed) else needed,
 		hero_level)
@@ -1152,8 +1007,6 @@ func _store_hero() -> void:
 	MetaState.hero_level = hero_level
 	MetaState.hero_xp = hero_xp
 	MetaState.hero_attribute_points = hero_attribute_points
-	# The earned figure and never the spent one: see `recount_skill_points`.
-	MetaState.hero_skill_points = earned_skill_points()
 	MetaState.hero_attributes = hero_attributes.duplicate()
 	MetaState.last_tier_id = tier_id
 	MetaState.save_game()
@@ -1286,112 +1139,55 @@ func attribute(which: int) -> int:
 	return hero_attributes[which] + bonus
 
 
-## How many discipline nodes this hero may hold, which grows with level.
-func discipline_cap() -> int:
-	return Balance.DISCIPLINE_MAX_TRAINED \
-		+ int(hero_level / Balance.HERO_DISCIPLINE_CAP_EVERY)
-
-
-func try_train_discipline(id: String) -> String:
+## Learns a node from the Mansion, in Preparation. The Hold's door is
+## `MetaState.learn_discipline`, which this is: the road only adds the phase,
+## because the tree is the account's and only the time to edit it is the road's.
+##
+## **No Food, no cap, no offers** (owner ruling R5, 2026-09-26). A point is the
+## price, and points come from levels and first clears; the ring a node sits in
+## is the gate. A node learned here is kept when the road ends.
+func try_learn_discipline(id: String) -> String:
 	if not is_preparation():
-		return "Hero training is available only in Preparation."
-	var node: DisciplineNodeData = ContentDB.discipline_node(id)
-	if node == null:
-		return "That discipline node is unavailable."
-	if trained_discipline_nodes.has(id):
-		return "Already trained."
-	if trained_discipline_nodes.size() >= discipline_cap():
-		return "%d nodes is the limit at level %d. Level up or respec." \
-			% [discipline_cap(), hero_level]
-	# A skill point as well as the Food. Two gates on purpose: the point is the
-	# growth the player earned by fighting, the Food is the Preparation decision
-	# they make against their towers. Either alone would be weaker - skill points
-	# only, and the hero stops competing with the defence for resources; Food
-	# only, and levelling has nothing to say about the skill tree.
-	if hero_skill_points <= 0:
-		return "Needs a skill point. Level up to earn one."
-	if building_tier("sanctum") < node.mansion_tier:
-		return "Hero Mansion tier %d is required." % node.mansion_tier
-	# **Stage three: the points are spent freely** (owner, 2026-09-15).
-	#
-	# This used to read `if not discipline_offers.has(id)`, and the three offers
-	# were a fence rather than a suggestion. The draft was doing two jobs - it
-	# forced variety, and it stopped a player walking straight at the one node
-	# they wanted - and the owner asked on 2026-09-09 for something closer to a
-	# Diablo tree, which is freely spent points with prerequisites. The first two
-	# stages built the prerequisites: depth in a tree opens its deeper nodes, and
-	# synergies reward pairs. This removes the fence.
-	#
-	# **Four bounds survive and they are what keep it a build rather than a
-	# shopping list**: a node still costs a skill point, which arrives with
-	# levels; it still costs Food, which is the Preparation decision against the
-	# towers; the total is still capped by `discipline_cap()`; and a deep node
-	# still wants depth in its own tree. The offers remain, as the road's
-	# suggestion, because a wall of thirty nodes with nothing highlighted is the
-	# unreadable Mansion the owner reported in the first place.
-	if not _is_eligible_discipline(node):
-		return "Your disciplines are not deep enough for that node yet."
-	if not can_afford_cost({FOOD: node.food_cost}):
-		return "Needs %d Food." % node.food_cost
-	spend_cost({FOOD: node.food_cost})
-	hero_skill_points -= 1
-	trained_discipline_nodes.append(id)
-	discipline_offers.erase(id)
-	if node.is_active_slot() and node.is_slot_unlocked(act):
-		var slot: int = node.slot_index()
-		if equipped_discipline_slots[slot].is_empty():
-			equipped_discipline_slots[slot] = id
-			_sync_discipline_spells()
-	EventBus.discipline_trained.emit(id, node.food_cost)
-	return ""
+		return "The tree is learned in Preparation, or in the Hold."
+	if building_tier("sanctum") <= 0:
+		return "Build the Hero Mansion to learn on the road, or learn in the Hold between roads."
+	var problem: String = MetaState.learn_discipline(id, act)
+	if problem.is_empty():
+		_sync_discipline_spells()
+	return problem
 
 
-## Whether one node is trainable now, asked by the door rather than re-derived.
-func _is_eligible_discipline(node: DisciplineNodeData) -> bool:
-	for open_node: DisciplineNodeData in eligible_discipline_nodes():
-		if open_node.id == node.id:
-			return true
-	return false
-
-
+## Puts a learned skill into the slot it belongs to, in Preparation. The slot
+## may not be open on this road yet; the loadout is the account's, and the skill
+## waits there for the boss that opens it.
 func try_equip_discipline(id: String) -> String:
 	if not is_preparation():
 		return "Loadout changes are available only in Preparation."
-	if not trained_discipline_nodes.has(id):
-		return "Train that node first."
 	var node: DisciplineNodeData = ContentDB.discipline_node(id)
 	if node == null or not node.is_active_slot():
-		return "That node is a doctrine, not an active slot."
-	if not node.is_slot_unlocked(act):
-		return "%s unlocks after the Act %d boss." % [node.slot_name(),
-			1 if node.role == DisciplineNodeData.Role.POWER else 2]
-	var slot: int = node.slot_index()
-	equipped_discipline_slots[slot] = id
+		return "That is not a skill for a slot."
+	var problem: String = MetaState.set_discipline_slot(node.slot_index(), id)
+	if not problem.is_empty():
+		return problem
 	_sync_discipline_spells()
-	EventBus.discipline_equipped.emit(slot, id)
+	EventBus.discipline_equipped.emit(node.slot_index(), id)
 	return ""
 
 
-func discipline_respec_cost() -> int:
-	return Balance.DISCIPLINE_RESPEC_BASE_COST \
-		+ discipline_respec_uses * Balance.DISCIPLINE_RESPEC_COST_STEP
-
-
-func try_respec_disciplines() -> String:
+## Takes up a learned chain form, in Preparation. Announced as slot -1: the form
+## sits beside the four slots.
+func try_choose_form(id: String) -> String:
 	if not is_preparation():
-		return "Respec is available only in Preparation."
-	var cost: int = discipline_respec_cost()
-	if not can_afford_cost({FOOD: cost}):
-		return "Needs %d Food." % cost
-	spend_cost({FOOD: cost})
-	discipline_respec_uses += 1
-	trained_discipline_nodes.clear()
-	equipped_discipline_slots.fill("")
-	_setup_starting_disciplines()
-	EventBus.discipline_respecced.emit(cost, discipline_respec_uses)
-	return ""
+		return "Loadout changes are available only in Preparation."
+	var problem: String = MetaState.set_discipline_form(id)
+	if problem.is_empty():
+		EventBus.discipline_equipped.emit(-1, id)
+	return problem
 
 
+## The combat bar's spells, restated from the loadout against the slots this
+## road has opened. Called at a run's start, on a loadout change, when a boss
+## falls and when the Mansion is raised - the four things that move it.
 func _sync_discipline_spells() -> void:
 	equipped_spells.clear()
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
@@ -2786,3 +2582,8 @@ func rearm_the_traps(near: Vector2 = Vector2.INF, reach: float = 0.0) -> int:
 		EventBus.trap_changed.emit(tile)
 		rearmed += 1
 	return rearmed
+
+
+func _on_construction_completed(building_id: String, _tier: int) -> void:
+	if building_id == "sanctum":
+		_sync_discipline_spells()

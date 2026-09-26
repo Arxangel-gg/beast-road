@@ -177,11 +177,10 @@ func _on_relic_taken(relic_id: String) -> void:
 		_say(_blame(), "%s took %s." % [_who(_blame()), relic.display_name])
 
 
-func _on_discipline(node_id: String, food_spent: int) -> void:
+func _on_discipline(node_id: String, _points_spent: int) -> void:
 	var node: DisciplineNodeData = ContentDB.discipline_node(node_id)
-	_say(_blame(), "%s trained %s for %d Food."
-		% [_who(_blame()), node.display_name if node != null else node_id,
-			food_spent])
+	_say(_blame(), "%s learned %s."
+		% [_who(_blame()), node.display_name if node != null else node_id])
 
 
 func _on_weather(weather_id: String) -> void:

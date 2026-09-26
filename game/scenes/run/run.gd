@@ -1144,7 +1144,6 @@ func _on_road_chosen(option_id: String) -> void:
 	# Rolled as the road is chosen, so it is known before Preparation opens and
 	# the player can build for it rather than discover it mid-wave.
 	RunState.roll_weather()
-	RunState.refresh_discipline_offers()
 	# The draft comes after the road rather than beside it: the road is a
 	# decision about where to go and the card is what the last one taught, and
 	# on one screen neither lands. The battlefield stays suspended while the

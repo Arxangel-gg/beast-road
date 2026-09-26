@@ -10,4 +10,4 @@ available_from_start = false
 plot_angle_degrees = 72.0
 id = "sanctum"
 display_name = "Hero Mansion"
-description = "Reveals and trains the hero's discipline options."
+description = "Where the Warden learns and slots Disciplines on the road. Each tier adds health, speed and quicker spells; tiers II and III open the Power and Ultimate slots a boss sooner."

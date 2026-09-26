@@ -4,10 +4,11 @@
 
 [resource]
 script = ExtResource("1")
+kind = 0
+ring = 2
+tags = Array[String](["Summon"])
 discipline = 0
 role = 2
-mansion_tier = 2
-food_cost = 65
 spell_id = "call_crow"
 effect_id = ""
 effect_value = 0.0

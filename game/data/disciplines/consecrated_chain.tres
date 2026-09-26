@@ -2,10 +2,12 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+kind = 1
+ring = 1
+tags = Array[String](["Finisher", "Radiant", "Road"])
+form_damage = 0.05
 discipline = 1
 role = 0
-mansion_tier = 1
-food_cost = 35
 effect_id = "defense_radiant_finisher"
 effect_value = 0.30
 id = "consecrated_chain"
