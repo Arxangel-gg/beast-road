@@ -9895,6 +9895,42 @@ body and which head are two more entries on `MetaState.look`, appended to
 `WardenLook.KEYS` and never inserted, for the co-op reason that key list already
 records.
 
+**The fist closes over the handle it holds, as of 2026-09-25.** Owner: *"make
+sure the part of the hand that grips the weapon gets zsorted over the blade"*.
+A socketed weapon in front of the body is cut along its own picture: a fist's
+width of handle round each gripping fist is drawn *under* the body, so the
+painted fingers cover it, and the guard, the blade and the pommel stay over it.
+Two fists on a haft hide two stretches; a pair closes each blade in its own
+fist. `DressLayers.grip_bands` is the rule and `tools/warden_rig/compose.py` is
+the same rule for the pictures a pilot is judged on.
+
+**Bounded by the hilt, and the hilt is found rather than typed.** `held.json`
+records each weapon's `hilt`: grown from the grip until the picture widens - a
+guard, a head, a pommel ring - or a grip of wood or leather turns to bare metal,
+and never more than half the way to the tip. A band past it would put a guard, a
+blade or a rod's head under the fingers of a foreshortened fist. The Sunglass
+Saber's grip had been on its pommel ring (a ring taller than the rows skipped
+for it read as a guard); the finder is repaired and every other grip moved two
+pixels or fewer.
+
+**On the fist that was drawn, not the one that was asked for.** The generator
+draws a fist within a few pixels of its keypoint - 1.4 to 5 on the pilot - and a
+handle that misses the fist by three pixels is held by the knuckles. `pack.py`
+moves each hand's socket onto the painted fist (`fist.py`: the far end of the
+forearm's skin, joined to the wrist, because the lantern's orange glass reads as
+skin to any rule simple enough to trust and pulled the pilot's fist into the
+lamp) and writes the fist's size into the meta. Measured on the base layer and
+used for every layer of that body, which were all drawn to one skeleton.
+
+**And "behind the body" had been drawn over it.** `show_behind_parent` orders a
+node only against its own parent. The first cut hung every part from one
+`DressLayers` node, so the back of the cape and every weapon "behind the chest"
+drew over the Warden - while `dress_check` read the flag off each part and
+passed. The under-parts hang from their own holder now, a direct child of the
+body sprite, and the gate asks which holder a part hangs from; planted back, it
+names the cape. A flag on a node is a model of the picture, and this file has
+recorded what those are worth.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

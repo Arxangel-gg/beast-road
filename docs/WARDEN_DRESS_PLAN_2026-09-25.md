@@ -32,6 +32,25 @@ every frame of every facing. That decides the architecture.
 Skin, hair colour and cape colour are shader tints; the cloak and sash dyes of
 2026-09-21 become the cape and trim dyes.
 
+### The fist closes over the handle
+
+Owner, 2026-09-25: *"make sure the part of the hand that grips the weapon gets
+zsorted over the blade"*. A weapon in front of the body is cut along its own
+picture into bands: a fist's width of handle round each gripping fist is drawn
+**under** the body (the painted fingers cover it), and the rest - guard, blade,
+pommel - over it. A weapon behind the body is drawn whole under it.
+
+| Piece | Where it comes from |
+|---|---|
+| The hilt a fist may cover | `held.json` `hilt`, measured by `install_held.py` from the picture |
+| Where the fist is | the socket, moved by `pack.py` onto the fist the base layer drew (`fist.py`) |
+| How wide a fist is | `rig.Body.fist_half` (0.037 of the figure, measured on both bases), written to the meta as `fist` |
+| The rule | `DressLayers.grip_bands`; `compose.grip_bands` is the same rule for pilot pictures |
+
+Under the body means hung from `DressBehind`, a holder that is the body
+sprite's own child: `show_behind_parent` orders a node only against its parent,
+so a part flagged behind one level deeper is drawn over the body.
+
 ## Two motion families
 
 The 23 weapon kinds split by grip: one-handed (blades, sabers, knives, rods,
@@ -73,7 +92,10 @@ person's eye alone:
    told to be. Flags for review; it never re-rolls on its own.
 3. **`dress_check`** (in the game, both bars) - every gear kind names a class
    the drawing knows, every weapon is held and sized by what it is, and the
-   runtime lays every part on its socket, proven on a synthetic dress.
+   runtime lays every part on its socket, proven on a synthetic dress: under
+   or over the body by the holder it hangs from, and the fist closed over the
+   handle in every case - in front, behind, foreshortened, two fists on a haft,
+   a pair.
 
 ## Order
 
