@@ -21,6 +21,40 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0c. The modular Warden (2026-09-26)
+
+**In the game**: both bare bodies (male, female) with 18 hairstyles each, six
+beards on the male, ten skin tones, and **light armour on both bodies**, packed
+by `tools/warden_rig/pack.py <body>` and held by `dress_check` (every installed
+layer cut to the base's cells, no empty frame). Any armour draws light until
+the heavier classes are in, by `WardenDress.ARMOUR_FALLBACK`.
+
+**Generating**: heavy armour and the long cape on both bodies, one layer at a
+time through `tools/warden_rig/batch.py run <layer>` (one batch at a time, a
+lock enforces it). A job PixelLab holds past `STALE_MINUTES` is never bought
+twice: the run stops and names it, cancel it with the MCP's `cancel_job`, run
+again. When a layer finishes: `pack.py <body>`, `--import`, restore
+`project.godot`, then `dress_check`, `warden_glass_check`, `warden_look_check`,
+`hold_check`, `coop_heroes_check`, `polish_check`, the asset report - and look
+at a contact sheet of bare against dressed before believing any of it.
+
+**Owed after the 11 October reset**, in this order:
+
+1. Whatever of the heavy armour and capes the budget did not reach (about 1,170
+   generations were needed against 1,196 left, with no room for a redraw).
+2. **Helmets**, four classes on each body, about 320 generations.
+3. **The female light armour's lantern in the side views.** In the east and
+   west facings the armoured body carries it on the far hip, hidden, where the
+   bare body shows it on the near one - consistent inside the layer, so it only
+   shows at the moment armour goes on. Redrawing the layer is about 250
+   generations; the three-quarter, front and back views already match.
+4. Chop and mine animations (the work swing is the heavy sword sheet).
+5. The menu Warden's sitting and riding poses, drawn from the dressed body.
+
+**The Guide's photographs** (75 of 77 date from 2026-09-16 and show the old
+Warden and an older HUD) want one windowed `guide_shots` run, best done once the
+armour is in so it happens once. Ask first.
+
 ## 0b. The content multipliers (2026-09-25, later)
 
 The owner forwarded eight proposals; `docs/IDEAS_REVIEW_2026-09-25.md` is the
