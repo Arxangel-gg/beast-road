@@ -39,24 +39,41 @@ the lantern hook) and two-handed (mauls, hammers, axes, spears, pikes, glaives).
 Each family has its own four-step combo; everything else - idle, walk, sprint,
 dash, hurt, death, shoot - is shared. A weapon kind names its family.
 
-## Budget, this cycle (4,317 generations left, reset 2026-10-11)
+## Budget, this cycle (4,317 generations at the start of the day, reset 2026-10-11)
 
-Fifteen animations (eleven shared plus four two-handed attacks), eight facings,
-eight frames at 3 generations a facing: **360 a layer.**
+A skeleton job costs by frame count and barely moves with it (8 frames 3, 15
+frames 4), so two animations share one 15-frame job: eight clips a facing,
+**248 generations a layer** (`batch.py plan`).
 
-| Item | Generations |
-|---|---|
-| Male base, female base (grip states + animation) | 60 + 720 |
-| Light and heavy armour, both bodies (4 states + animation) | 120 + 1,440 |
-| One cape shape (state + animation), shared by both bodies | 30 + 360 |
-| Hair: four styles a body, eight views each | 240 |
-| Helmets: three classes | 90 |
-| Held weapon sprites, 23 kinds | 140 |
-| Cape icons (fifteen) | 90 |
-| **Total** | **~3,290**, leaving ~1,000 for retries |
+| Item | Generations | Status |
+|---|---|---|
+| Base candidates, female base, grip states | ~80 | done |
+| Fifteen cape icons | ~90 | done, in the game |
+| Twenty-three held weapons | ~140 | done, in the game, grips found |
+| Pilots (three short jobs) | 10 | done |
+| Male and female base layers | 496 | waiting on the pilot's sign-off |
+| Light and heavy armour, both bodies (4 states + animation) | ~1,110 | after the bases |
+| Long cape, both bodies (2 states + animation) | ~560 | after the bases |
+| Hair (four a body) and helmets (four classes) | ~360 | after the bases |
+| **Remaining** | **~2,530** | of 4,085 left after the day's 232 |
 
-Next cycle: medium armour, a second cape shape, more hair and faces, the
-menu painting and story panels redrawn for the new Warden.
+## The checks every layer passes through
+
+Owner, on the first pilot: *"If these are foundations they should be polished
+to prevent further defects later on"*. So nothing is bought or shipped on a
+person's eye alone:
+
+1. **`validate.py`** - every authored frame of every animation, both bodies,
+   all eight facings: the wrist's bend, the blade clear of the torso and the
+   head, two-handed grips within reach, and the off hand clear of the blade *in
+   each facing's projection*, which is what a player sees. Run before any job.
+2. **`qa.py`** - every generated frame against its own skeleton: anything drawn
+   outside the body that is not skin is an object the generator invented (the
+   pilot's painted swords), and the fists and feet must be where they were
+   told to be. Flags for review; it never re-rolls on its own.
+3. **`dress_check`** (in the game, both bars) - every gear kind names a class
+   the drawing knows, every weapon is held and sized by what it is, and the
+   runtime lays every part on its socket, proven on a synthetic dress.
 
 ## Order
 

@@ -136,7 +136,10 @@ def _swing(**kw) -> Pose:
     return REST.but(hands_in_body=True, **kw)
 
 
-READY_1H = _swing(r_hand=(0.19, 0.58, 0.17), r_blade=(0.1, 0.45, 0.88),
+# The ready blade leans out and up rather than straight ahead: straight ahead
+# is straight at the camera for a Warden facing it, and the first pilot drew
+# that as a stub at the hip.
+READY_1H = _swing(r_hand=(0.19, 0.58, 0.17), r_blade=(0.42, 0.7, 0.58),
                   l_hand=(-0.25, 0.60, -0.02), l_pole=(-0.7, -0.4, -0.4), rl_spread=8.0,
                   ll_spread=8.0)
 
@@ -151,7 +154,8 @@ def attack_1a(frames: int = FRAMES) -> list:
                        rl_raise=-18.0, l_hand=(-0.26, 0.62, -0.12))
     follow = cut.but(twist=-58.0, r_hand=(-0.22, 0.68, 0.26), r_blade=(-0.7, -0.1, -0.7),
                      head_turn=18.0, l_hand=(-0.20, 0.58, -0.22))
-    settle = follow.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.4, 0.3, 0.85),
+    settle = follow.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.6, 0.5, 0.62),
+                        l_hand=(-0.26, 0.58, -0.30),
                         lean=5.0)
     return sample([(0.0, READY_1H), (0.32, wind), (0.52, cut), (0.7, follow), (1.0, settle)],
                   loop=False, frames=frames)
@@ -159,7 +163,7 @@ def attack_1a(frames: int = FRAMES) -> list:
 
 def attack_1b(frames: int = FRAMES) -> list:
     """Backhand: back across from the left to the right."""
-    start = READY_1H.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.4, 0.3, 0.85),
+    start = READY_1H.but(twist=-22.0, r_hand=(-0.04, 0.60, 0.20), r_blade=(-0.6, 0.5, 0.62),
                          lean=5.0, shift_f=0.03, ll_raise=18.0, ll_bend=14.0,
                          l_hand=(-0.22, 0.56, -0.20))
     wind = start.but(twist=-60.0, r_hand=(-0.22, 0.78, 0.04), r_blade=(-0.25, 0.8, -0.55),
