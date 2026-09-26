@@ -10089,6 +10089,81 @@ which does not pass through `Coop.leave`.
 public, and whether leaderboard names should be word-filtered - they are
 length-limited and stripped of control characters, and nothing more.
 
+**A swing is announced once, and every weapon swings hilt-first, as of
+2026-09-26.** The owner sent a screenshot of a knife swung handle-outward, in a
+fan of five. Two faults, and the fan was the larger one.
+
+**The fan was one swing announcing itself on every frame.** `HeroAttack._strike`
+runs on every frame of the active window so a body stepping in mid-swing is
+still hit, and `hero_swing_resolved` was emitted at its end - so each frame of
+the window started a blade sweep, a ribbon, motes and a forged hit. Six at sixty
+frames a second; eighteen on the owner's 180 Hz tick after the ceiling moved the
+same day. **And each one wounded an animal**: `Wildlife._on_swing_resolved`
+wounds whatever stands in front of the swing, so one swing wounded wildlife six
+to twenty-four times depending on the frame rate. The swing is announced on its
+first active frame and no other (`_announced`, reset in `_begin_swing`).
+`weapon_vfx_check` drives a real attack at 240 Hz and 60 Hz and counts one
+announcement for one press.
+
+**The handle was the icon.** The sweep drew the weapon's inventory icon and
+turned it by `VFX_BLADE_ART_DEGREES`, assuming every icon's point lies up and to
+the right. The Tally Knife's is painted the other way round. An older check
+measured which *diagonal* an icon lies on - which a knife drawn backwards passes -
+not which end is the point. The sweep draws the **held picture** now, the one the
+fist closes on: drawn tip-up with its grip measured at install, so which end is
+the handle is known rather than assumed, and the weapon in the air is the weapon
+in the hand. All 23 weapons have one; the icon remains the fallback.
+`weapon_vfx_check` swings every weapon and reads grip and tip back in world space.
+
+**A partner swings their own weapon.** The signal carries the swinging Warden's
+weapon kind and whether it is this machine's own, so the sweep draws theirs; and
+`HeroAttack` takes the partner's kind from `Hero.gear_kinds` rather than reading
+this machine's stash - a partner's reach and pace on the host were the host's.
+
+**Skill points are counted, never kept, as of 2026-09-26.** The points belonged
+to the account and the nodes they bought to the run, so a point spent on a node
+was written to the save by the next level-up and the node was cleared when the
+run ended. The owner's level-100 Warden had earned 20 and held 16. A respec lost
+them the same way inside one run. `RunState.recount_skill_points` is earned (the
+level) less what this road trained beyond the free pair, the save keeps the
+earned figure only, and a resumed front recounts for the nodes it brings back.
+`discipline_check` drives a run, a spend, a level, the next run, a respec and a
+resume.
+
+**A partner is dressed in the lobby and the Hold, as of 2026-09-26.** On the
+road a partner's look and four gear kinds already crossed; the lobby's roster and
+the Hold's hello carried the look and no gear, so partners stood in the bare body
+until the run began. Both carry the kinds now, appended so an older build reads a
+short row, and `Hero.clean_worn_kinds` is the one cleaning rule for every place a
+partner's gear arrives.
+
+**The skill tree rework, owner rulings of 2026-09-26.** The proposal is
+`docs/SKILL_TREE_REWORK_2026-09-26.md`. The owner answered *"You know best! Aim
+for the best most perfect max perfection"*, which delegates its seven rulings, and
+added two things. Recorded here as decisions so the next session builds on them
+rather than asking again:
+
+- **R1** The Disciplines persist on the account, edited in the Hold, reset free
+  between runs; re-cuts v4 §24 and §26. The tree lives in the save's hero block
+  beside level and attributes, which working rule 7 already sanctions.
+- **R2** Skill points also come from each act boss's first fall on each
+  difficulty.
+- **R3** Nodes may carry numbers, modelled by `curve_report` as part of the
+  levelling scale; replaces the 2026-09-09 bound that depth buys access and never
+  power. Depth itself still grants nothing.
+- **R4** Oaths change a rule with a bane and a boon, one sworn at a time.
+- **R5** The Mansion's per-road offers are removed.
+- **R6** Mansion tiers open slots an act early instead of tree depth.
+- **R7** A legendary affix may grant a skill upgrade (phase 3).
+- **A second tree that resets every run** (owner: *"a tree that's run specific
+  that resets per run"*): Roadcraft, paid with road ranks earned by killing on
+  this road, three branches, `Modifiers` numbers and keystone-style re-routes
+  only.
+- **A denser road** (owner: *"even more enemies each wave to really give the
+  extra augments and powers a chance to shine"*): a swarm role - many small, fast,
+  fragile bodies on cheaper logic - with the pressure band held by lower health
+  per body, measured against `curve_report` and the frame.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
