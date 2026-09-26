@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "warden_glass"
+display_name = "The Warden's Glass"
+title = "The Warden's Glass"
+category = "Basics"
+order = 19
+image = "res://art/guide/warden_glass.png"
+body = "The Warden's Glass is where you decide who walks the road. It is offered before your first road and stands in the Hold after that, and it changes nothing but how you look - no choice here moves a number. Pick a body, male or female, a skin tone, one of eighteen hairstyles and its colour, and on the male body one of six beards. The leather takes a dye, and the presets dye it for you. The Warden in the glass turns while you choose: point at a choice to see it before you take it, turn the figure with the arrows, and set it standing, walking or striking. Wearing my gear dresses it in what you have equipped. Surprise me deals a new look on the same body; As painted puts it back. Your partner in co-op and everyone in the Hold see the Warden you chose."

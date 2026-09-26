@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "wayside"
+display_name = "Wayside encounters"
+title = "Wayside encounters"
+category = "The Road"
+order = 15
+image = "res://art/guide/wayside.png"
+body = "From the second act, the road sometimes leaves something by the wayside: an overturned cart, a cairn of offerings, a cold camp, a fallen Warden, a wounded animal, a beast in a snare. It glows faintly and the map marks it. Walk up and press Interact, and the field holds still while you decide - an answer given with something biting you is not a decision. Every encounter offers two answers, and every answer has a price and a reward: gear on the ground, a purse, a sighting for your journal, your wounds closed, experience - or a savage sent after you, or the earth's anger. An answer the purse cannot pay is shown with its price and cannot be taken. Once answered, it is gone for the act, and a road you bank and pick up again remembers that you answered it. In co-op the road leaves none."
