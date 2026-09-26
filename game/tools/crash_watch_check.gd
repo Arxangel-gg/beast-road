@@ -32,7 +32,7 @@ func _ready() -> void:
 	_test_the_wiring()
 	CrashWatch.forget()
 	CrashWatch.root = saved_root
-	_clear_fixture()
+	_clear_fixture(false)
 	for stage: String in ["headless", "clean", "standing", "cut", "log", "report", "menu", "wiring"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check it had "
@@ -276,7 +276,10 @@ func _write(path: String, text: String) -> void:
 	file.close()
 
 
-func _clear_fixture() -> void:
+## Empties the fixture, and leaves the folder standing only when a test is
+## about to write into it - the last call takes it away, so the gate leaves
+## nothing in whatever profile it ran in.
+func _clear_fixture(recreate: bool = true) -> void:
 	var base: String = ProjectSettings.globalize_path(FIXTURE)
 	for sub: String in [CrashWatch.LOG_FOLDER, ""]:
 		var folder: String = base.path_join(sub) if not sub.is_empty() else base
@@ -286,7 +289,10 @@ func _clear_fixture() -> void:
 		for file_name: String in dir.get_files():
 			DirAccess.remove_absolute(folder.path_join(file_name))
 	DirAccess.remove_absolute(base.path_join(CrashWatch.LOG_FOLDER))
-	DirAccess.make_dir_recursive_absolute(base)
+	if recreate:
+		DirAccess.make_dir_recursive_absolute(base)
+	else:
+		DirAccess.remove_absolute(base)
 
 
 func _check(condition: bool, message: String) -> void:
