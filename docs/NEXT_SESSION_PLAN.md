@@ -21,6 +21,32 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0d. Augments (2026-09-26, later)
+
+**Built, gated and recorded in CLAUDE.md**: the draft on every road rank, cards
+levelling I to V in a hand of eight, the sources (bosses, the first camp an
+act, raids, rifts, legends, a Tempering every forty waves, luck from clean
+waves), reroll, banish, skip, the strip that opens a banked draft, the At once
+setting, branch keystones at three and six, act starts banking their drafts,
+the damage ledger, co-op phase A (the host drafts one hand for the party), the
+curve model, and the denser road that answers it (solo 0.454, four 0.528).
+
+**Next, in order:**
+
+1. **Photograph it** - `augment_shot` (three pictures, about a minute in a
+   window). Ask first. Then have the owner play a road: whether a draft every
+   few waves reads as Megabonk or as homework is not a number.
+2. **After 2026-10-11**: the 31 staged augments and the Mortar keystone
+   (`docs/staged/augment_content_2026-09-26/README.md`). Their keys are already
+   wired; what is owed is 32 icons, the data, the direction table, the Mortar
+   mechanic, and a curve re-tune once the rate cards are in.
+3. **Per-Warden hands in co-op** (design §8.5): each seat its own rank and its
+   Warden augments, Rampart and Hearth shared. Every hero read of a Warden key
+   has to ask for that hero's hand, which is the size of it - plan it before
+   building it, and test it with two processes.
+4. **The swarm role** waits on art too: many small, fast bodies on cheaper
+   logic is the frame's answer to "more enemies", and it needs its sprites.
+
 ## 0c. The modular Warden (2026-09-26)
 
 **In the game**: both bare bodies (male, female) with 18 hairstyles each, six
