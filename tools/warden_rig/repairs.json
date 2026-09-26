@@ -5,5 +5,14 @@
  },
  "female_base": {
   "clip4/south/05": "04"
+ },
+ "_why_male_cape_long": "2026-09-26: the generator drew the cape inconsistently in three places, each found by counting the cape's pixels per frame and looking at every row that shrank by half. The north-west attack collapsed it to a shoulder mantle for three frames of the swing; the north-east attack dissolved it into specks for one; the north walk dropped it for the last two frames of the stride, a pop on every step. A keyed cape carries no body, so holding a neighbour cannot ghost a limb. Rows that shrank because the cape is swinging were looked at and left alone.",
+ "male_cape_long": {
+  "clip2/north-west/03": "02",
+  "clip2/north-west/04": "02",
+  "clip2/north-west/05": "06",
+  "clip3/north-east/10": "09",
+  "clip1/north/06": "05",
+  "clip1/north/07": "05"
  }
 }
