@@ -10027,6 +10027,36 @@ dissolved, three into a pale speckle no measure could tell from an ordinary
 frame, and the last two frames of a death are one pose. `pack.py` also clears
 detached dust of five pixels or fewer.
 
+**A session that ends without saying so is noticed, as of 2026-09-26.**
+`ROAD_TO_1_0.md` put crash reporting before any testers, because without it a
+tester's bad evening teaches nothing. **Where a report is sent is the owner's
+decision and is not built**: the only service the game talks to is the
+leaderboard, whose key every copy carries, so anything posted there can be
+forged and read by anybody. What is built is the half every answer needs.
+
+`CrashWatch` stands a marker when a session starts (a child of `GameDirector`,
+which lives as long as the game), rewrites it with a breadcrumb every
+`CRASH_BREADCRUMB_SECONDS`, and takes it down on a clean exit or when a phone
+pauses the game - the system may end a paused app and that is not a crash. A
+marker still standing at the next launch is a session that crashed, hung and
+was killed, or lost power; one the crash cut short still counts, and it is read
+through a `JSON` instance because `JSON.parse_string` prints an engine error on
+cut text. **Never on the web**, where a closed tab never exits cleanly and every
+visit would read as a crash, and **never headless**, so no gate writes a marker
+into the profile the sweep shares.
+
+**The support report carries it, and the promise that report makes was
+amended.** It said no logs are included; after a crash it now carries the error
+lines of that session's own log - only error lines and the locations under
+them, the last `CRASH_REPORT_LINES`, each cut to `CRASH_LINE_MAX`, with the data
+folder, the game's folder and any home directory named after the player taken
+out - and the description says so. The main menu says it once, at the top of the
+column, and opens the report prepared in Settings, so what a player copies is
+what they read. Nothing is sent. `crash_watch_check` (55, both bars) drives it
+all through `CrashWatch.root` against a fixture folder, and named three planted
+faults: a clean end that left the marker, a scrub that did nothing, and every
+log line carried.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
