@@ -27,6 +27,15 @@ var field: Node = null
 ## so a hero leaving takes its own with it.
 var owner_hero: Node2D = null
 
+
+## The Warden this companion stands beside, as a sheet: null for this machine's
+## own, and the partner's own on the host - so a partner's spirit is kept by
+## their Resolve and swings with their damage, not the host's.
+func _keeper_sheet() -> WardenSheet:
+	if owner_hero == null or not is_instance_valid(owner_hero):
+		return null
+	return owner_hero.get("sheet") as WardenSheet
+
 var _left: float = 0.0
 var _cooldown: float = 0.0
 
@@ -129,7 +138,7 @@ func _ready() -> void:
 		# and a fifth attribute quietly raising it would be the third power
 		# scale this project keeps refusing.
 		var keeper: float = 1.0 + minf(
-			float(RunState.attribute(RunState.Attribute.RESOLVE))
+			float(WardenSheet.attribute_of(_keeper_sheet(), RunState.Attribute.RESOLVE))
 				* Balance.HERO_RESOLVE_SPIRIT_PER_POINT,
 			Balance.HERO_RESOLVE_SPIRIT_CAP)
 		_max_hp = data.damage * Balance.SPIRIT_HEALTH_PER_DAMAGE * scale * keeper
@@ -139,8 +148,8 @@ func _ready() -> void:
 	# A companion is paid for at the moment of casting: the relics and buildings
 	# in force when it was called are what it swings with. Reading live would let
 	# a socket change mid-summon retroactively re-price a spell already spent.
-	_power = data.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) \
-		* maxf(Modifiers.multiplier(Modifiers.COMPANION_DAMAGE), 0.0)
+	_power = data.damage * WardenSheet.multiplier_of(_keeper_sheet(), Modifiers.HERO_DAMAGE) \
+		* maxf(WardenSheet.multiplier_of(_keeper_sheet(), Modifiers.COMPANION_DAMAGE), 0.0)
 	if not spirit_key.is_empty():
 		_power *= SpiritBond.power_scale(SpiritBond.rarity_of(spirit_key),
 			SpiritBond.shiny_of(spirit_key))

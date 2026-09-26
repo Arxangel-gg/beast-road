@@ -515,3 +515,97 @@ and inventing an answer inside step 4 would have buried it. The shapes available
 
 Needs an owner ruling before co-op is playable as more than a demo.
 - Separate per-player economies, which the owner ruled against.
+
+**Ruled 2026-08-25: both earn the same.** The host emits the *award*, never the
+total, and each machine applies it to its own hero against its own curve
+(`RunState.gain_hero_xp`), so a level-20 guest is never demoted to a level-5
+host's number. Recorded here because this section read as open for a month
+after it was closed.
+
+---
+
+## 11. A Warden fights as their own account (2026-09-26)
+
+**Found while planning per-Warden augment hands, and it is the larger fault.**
+The host simulates every hero, and the host's copy of a guest's Warden reads
+the *host's* account for everything a Warden brings to a fight: the five
+attributes and the gear points under them, the legendary affixes and set tiers
+on the Warden's own numbers, the ascension rank, the chain form, every learned
+Discipline and synergy, and the skills in the four slots. A level-1 guest
+fought as a level-100 host, and the reverse; a guest cast the host's skills.
+Only the look, the weapon's kind and the mount crossed. §1's reason for two
+heroes - each player arrives with a hero they have grown - did not survive the
+host's simulation.
+
+### What travels: the Warden's sheet
+
+A guest tells the host its **sheet**, as it already tells its dye and its gear
+(`Request.HERO_SHEET`, by the peer it arrived on, repeated on a slow clock and
+only when it changed):
+
+- the level, the five **placed** attribute points and the ascension rank;
+- the chain form, every learned node, and the four slots' nodes;
+- every worn piece as `{kind, rarity, level, uid}`.
+
+**Facts about the account, never numbers derived from them.** The host works
+out the gear's attribute points, legendary affixes and set tiers itself, from
+the pieces, with the same `Stash` functions the guest's own machine uses - a
+piece's affixes are rolled from its own `uid`, so both machines agree without a
+packet carrying a figure. A guest cannot claim a Might it did not place or a
+set it is not wearing.
+
+### Cleaned on arrival, by the rules the save is read under
+
+The host has no account server, so a sheet is cleaned exactly as a hand-edited
+save is: the level clamped to `HERO_MAX_LEVEL`; placed points trimmed to the
+level's grant (`level - 1`); the ascension clamped to `ASCENSION_MAX`; nodes
+this build does not know dropped, then as many as the most points that level
+could ever have bought (every first clear counted), then any node no order of
+learning could reach (`MetaState.stranded_node`, now static so both doors share
+it), then an exclusive pair's second; a form that is not a learned form becomes
+the starting form; a slot whose node is not learned or does not fit it is
+emptied; a piece in the wrong slot, of a kind this build lacks, or past the
+stash's rarity and level bounds is dropped. **A sheet can only ever describe a
+Warden the game could have produced.**
+
+### One door for every read
+
+`WardenSheet` holds a sheet and answers the questions the fight asks:
+`attribute_of`, `value_of` and `multiplier_of` for a Warden key,
+`trained_value_of`, `trained_of`, `form_of`, `synergy_of`, `ascension_of` and
+`spell_in_slot_of`. Each is static and takes a sheet that may be **null**, and
+null means *this machine's own Warden* - the exact expression the call site used
+before. So a solo road, and the host's own hero, read byte-identical numbers by
+construction rather than by testing, and a gate walks the hero's scripts for any
+read that skips the door.
+
+The Warden's **modifier keys** (`Modifiers.WARDEN_KEYS`: damage, health, speed,
+dash, mana, spell power, companion damage and the swing's shove) are split in
+the table. `Modifiers` keeps the part this machine's own gear put there beside
+the total, so a partner reads *the shared part* - relics, cores, portents, the
+party's cards, the regional adapters - plus *their own gear's part*. The board's
+keys are not split: what a host's gear does to the towers is the board's, as it
+was.
+
+### What does not move, and why
+
+- **The run is still the host's.** Relics, cores, portents, the town, the
+  Sanctum, wounds and the party's augment hand are shared, as they were.
+- **A spirit companion is still this machine's pen and journal.** A partner's
+  spirit is its own open question; recorded rather than half-built.
+- **Nothing persists that did not.** The sheet is a copy of the partner's
+  account, held by the host for the length of a run, exactly as `Hero.look` and
+  `Hero.gear_kinds` already are - working rule 6's "whose copy is
+  authoritative", not a second cache of the host's run.
+
+### Then per-Warden augment hands (SKILL_TREE_REWORK §8.5)
+
+Built on the sheet, because a seat's Warden cards are one more part of what a
+Warden brings: the rank stays the party's (a shared bar, as Vampire Survivors'
+co-op shares one), every rank deals **every seat** a draft on its own stream,
+a Warden card goes to that seat's hand and acts on that seat's hero, and a
+Rampart or Hearth card goes to the party's board hand. A guest's draft is sent
+to that guest alone and its pick comes back by card id. Measured in
+`curve_report` before its pacing is believed: the board fills faster with more
+seats and the band has to say whether that is the answer to more bodies or a
+second power scale.

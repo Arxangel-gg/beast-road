@@ -2541,7 +2541,7 @@ func mark_element(element: int) -> void:
 
 
 func _take_damage_measured(amount: float, from: Vector2, knockback: float,
-		active_hero: bool = false) -> bool:
+		active_hero: bool = false, striker: WardenSheet = null) -> bool:
 	# Whoever named this blow is taken now, so a blow refused below can never
 	# lend its name to the next one (`DamageLedger`).
 	var source: String = DamageLedger.take_source()
@@ -2602,7 +2602,9 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 		_hunted_left = Balance.KEYSTONE_HUNT_SECONDS
 	# The chain's form, which sits beside the four slots rather than in the
 	# first of them since the Disciplines became the account's (2026-09-26).
-	var attack_node: DisciplineNodeData = RunState.chain_form() \
+	# **The striker's own form** (2026-09-26): a partner's blow brands and bleeds
+	# by the partner's chain, not the host's. Null is this machine's Warden.
+	var attack_node: DisciplineNodeData = WardenSheet.form_of(striker) \
 		if active_hero else null
 	if attack_node != null and attack_node.effect_id == "tower_damage_brand" \
 			and is_priority():
@@ -2616,7 +2618,7 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 		# chain value. Apply a bounded three-second bleed; it uses the shared status
 		# path so death rewards and hit accounting remain identical.
 		var finisher_damage: float = Balance.HERO_ATTACK_DAMAGE[Balance.HERO_CHAIN_LENGTH - 1] \
-			* Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+			* WardenSheet.multiplier_of(striker, Modifiers.HERO_DAMAGE)
 		if amount >= finisher_damage * 0.9:
 			apply_burn(amount * attack_node.effect_value, 3.0)
 	# **How much this blow is allowed to move the body**, before anything is
@@ -4652,8 +4654,8 @@ func _process(delta: float) -> void:
 ## `FrameProfile` bucket "blow": every blow in the game, inclusive of the
 ## number, the spark, the blood, the recoil and the impact it announces.
 func take_damage(amount: float, from: Vector2, knockback: float,
-		active_hero: bool = false) -> bool:
+		active_hero: bool = false, striker: WardenSheet = null) -> bool:
 	var started: int = Time.get_ticks_usec()
-	var landed: bool = _take_damage_measured(amount, from, knockback, active_hero)
+	var landed: bool = _take_damage_measured(amount, from, knockback, active_hero, striker)
 	FrameProfile.add(&"blow", started)
 	return landed

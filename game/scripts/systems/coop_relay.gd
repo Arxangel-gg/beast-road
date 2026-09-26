@@ -318,6 +318,14 @@ enum Request {
 	## and a kind this build does not know is drawn as nothing. 42, read off
 	## the whole table rather than its tail.
 	HERO_GEAR = 42,
+	## **A guest's Warden sheet** (2026-09-26, COOP_DESIGN §11): its level,
+	## placed points, ascension, form, nodes, slots and worn pieces, so the
+	## host's copy of that Warden fights as that account rather than as the
+	## host's. The one place a piece's rarity, level and name cross the wire,
+	## and only to the host: the host works out every number from them itself
+	## (`WardenSheet.from_row`), so the packet carries facts to clean rather than
+	## figures to trust. 43, read off the whole table rather than its tail.
+	HERO_SHEET = 43,
 }
 
 ## Facts that are *state announcements* rather than events.

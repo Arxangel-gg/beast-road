@@ -120,6 +120,20 @@ static func label(key: String) -> String:
 
 var _totals: Dictionary = {}
 var _base_totals: Dictionary = {}
+## **The part of the table this machine's own gear put there** - legendary
+## affixes and set tiers - kept beside the total so a partner's Warden can be
+## read as the shared part plus *their* gear (2026-09-26, COOP_DESIGN §11).
+var _own_totals: Dictionary = {}
+
+## **The keys a Warden brings to a fight**, read per hero rather than for the
+## board: what the Warden hits for, how much health and speed they have, their
+## dash, their mana, their spells, their companion and the shove of their swing.
+## `WardenSheet.value_of` splits exactly these; every other key is the board's
+## and is read whole, as it always was.
+const WARDEN_KEYS: Array[String] = [
+	HERO_DAMAGE, HERO_MAX_HP, HERO_SPEED, DASH_COOLDOWN,
+	MANA_REGEN, SPELL_POWER, COMPANION_DAMAGE, KNOCKBACK,
+]
 
 
 func _ready() -> void:
@@ -156,6 +170,11 @@ func base_value(effect_id: String) -> float:
 	return float(_base_totals.get(effect_id, 0.0))
 
 
+## What this machine's own gear adds to a key. See `_own_totals`.
+func own_value(effect_id: String) -> float:
+	return float(_own_totals.get(effect_id, 0.0))
+
+
 ## Convenience for the common "1.0 + bonus" multiplier shape.
 func multiplier(effect_id: String) -> float:
 	return 1.0 + value(effect_id)
@@ -183,22 +202,13 @@ func rebuild() -> void:
 	for card_id: String in RunState.road_cards:
 		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData,
 			RunState.card_level(card_id))
-	# And what the Warden wears. A legendary affix is a relic the player found
-	# on a sword rather than in a boss's chest, and it lands where a relic
-	# lands - so a tower asking for `tower_damage` gets one number.
-	for slot: Variant in MetaState.equipped:
-		var piece: Dictionary = MetaState.equipped_piece(int(slot))
-		if piece.is_empty():
-			continue
-		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-		for affix: GearAffixData in Stash.legendary_affixes(piece, kind):
-			if affix.effect_id.is_empty():
-				continue
-			_totals[affix.effect_id] = float(_totals.get(affix.effect_id, 0.0)) + affix.magnitude
-	# And what matches. A set tier is a relic the player assembled rather than
-	# found, and it lands where a relic lands - so nothing downstream learns that
-	# sets exist either.
-	_add_matched_sets()
+	# And what the Warden wears, into the table and into the part of it that is
+	# this machine's own (see `_own_totals`). Added in the order it always was,
+	# so the sum a solo road reads is the sum it always read.
+	var worn: Array[Dictionary] = MetaState.worn_pieces()
+	_own_totals.clear()
+	_add_gear(_totals, worn)
+	_add_gear(_own_totals, worn)
 	# **And how far the party has pushed without banking.** Discovery only: see
 	# `Balance.MOMENTUM_PER_CROSSROAD` for why momentum may never reach a damage
 	# number. It is the one modifier here bought by refusing to save.
@@ -211,17 +221,41 @@ func rebuild() -> void:
 	_apply_regional_adapters()
 
 
+## **What a list of worn pieces puts in the table**: their legendary affixes and
+## the set tiers they match. The same arithmetic for this machine's own Warden
+## (`rebuild`) and for a partner's, worked out by the host from the pieces
+## (`WardenSheet`) - one function, so the two can never disagree about what a
+## sword is worth.
+static func gear_totals(pieces: Array[Dictionary]) -> Dictionary:
+	var out: Dictionary = {}
+	_add_gear(out, pieces)
+	return out
+
+
+static func _add_gear(into: Dictionary, pieces: Array[Dictionary]) -> void:
+	# A legendary affix is a relic the player found on a sword rather than in a
+	# boss's chest, and it lands where a relic lands - so a tower asking for
+	# `tower_damage` gets one number.
+	for piece: Dictionary in pieces:
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		for affix: GearAffixData in Stash.legendary_affixes(piece, kind):
+			if affix.effect_id.is_empty():
+				continue
+			into[affix.effect_id] = float(into.get(affix.effect_id, 0.0)) + affix.magnitude
+	# And what matches. A set tier is a relic the player assembled rather than
+	# found, and it lands where a relic lands - so nothing downstream learns that
+	# sets exist either.
+	_add_matched_sets(into, pieces)
+
+
 ## **What the Warden is wearing enough of.**
 ##
 ## Counted by *kind* across the worn slots, so a piece of any rarity or level
 ## counts toward its set - the thing to hunt is the match, which the road can
 ## actually give you, rather than a second lottery on top of the drop tables.
-func _add_matched_sets() -> void:
+static func _add_matched_sets(into: Dictionary, pieces: Array[Dictionary]) -> void:
 	var worn: Dictionary = {}
-	for slot: Variant in MetaState.equipped:
-		var piece: Dictionary = MetaState.equipped_piece(int(slot))
-		if piece.is_empty():
-			continue
+	for piece: Dictionary in pieces:
 		var kind_id: String = String(piece.get("kind", ""))
 		var set_data: GearSetData = ContentDB.gear_set_of(kind_id)
 		if set_data == null:
@@ -241,7 +275,7 @@ func _add_matched_sets() -> void:
 			var key: String = set_data.tier_effects[tier]
 			if key.is_empty():
 				continue
-			_totals[key] = float(_totals.get(key, 0.0)) \
+			into[key] = float(into.get(key, 0.0)) \
 				+ set_data.tier_magnitudes[tier]
 
 

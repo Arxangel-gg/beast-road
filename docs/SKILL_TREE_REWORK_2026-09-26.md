@@ -527,13 +527,18 @@ the plan above, and why:
 - **The ceiling at level V is the single-card bound**, as 8.4 said, with costs
   at 0.40 and a tower's reach at 0.35. The first cut allowed 0.80.
 - **Banked drafts open at the next Preparation**, holding the solo clock; the
-  "open at once" setting holds the road. Not built: a HUD card to open a banked
-  draft mid-wave, and the count of what is left in the deck.
+  "open at once" setting holds the road. The rank strip opens a banked draft
+  mid-wave, and the draft counts what is left in the deck (built later the same
+  day). A draft is laid over the road through a scrim rather than over the
+  crossroad's painting, because the board is what a Rampart card changes.
 - **Co-op phase A**: one party hand drafted by the host, relayed whole. Per-Warden
-  hands (8.5) are the next co-op step.
-- **Not yet built**: branch keystones at three and six (8.2), the content pass of
-  about sixty augments (8.7, item 5), and the swarm role. The denser road was
-  tuned with more bodies of the existing roster.
+  hands (8.5) are the next co-op step, and they wait on the fault found while
+  planning them: the host's copy of a guest's Warden read the host's account for
+  everything a Warden is. That is fixed first (COOP_DESIGN §11, `WardenSheet`).
+- **Branch keystones at three and six (8.2) are built.** Still waiting: the
+  content pass of about sixty augments (8.7, item 5) - staged, with its keys
+  wired, until the art allowance returns on 2026-10-11 - and the swarm role. The
+  denser road was tuned with more bodies of the existing roster.
 - **The ledger shipped** on the debrief and the pause screen.
 - **Measured**: solo pressure 0.454 and four players 0.528 with the modelled
   hand on the denser road; 0.639 without augments on the same road.

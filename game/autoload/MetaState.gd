@@ -1554,6 +1554,17 @@ func _read_board(data: Dictionary) -> void:
 				break
 
 
+## Every piece worn, in the order the slots are held - what the modifier table
+## sums and what a co-op guest tells the host it is wearing (`WardenSheet`).
+func worn_pieces() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for slot: Variant in equipped:
+		var piece: Dictionary = equipped_piece(int(slot))
+		if not piece.is_empty():
+			out.append(piece)
+	return out
+
+
 ## The piece worn in a slot, or an empty dictionary.
 func equipped_piece(slot: int) -> Dictionary:
 	var index: int = equipped_index(slot)
@@ -3149,10 +3160,17 @@ func _settle_disciplines() -> void:
 	_clean_loadout()
 
 
+func _stranded(ids: Array[String]) -> String:
+	return stranded_node(ids)
+
+
 ## The first node in a set that could not have been learned in any order, or "".
 ## Per arm, nodes placed shallowest first: each needs as many placed before it
 ## as its ring asks. Exact, because placing more never closes a ring.
-func _stranded(ids: Array[String]) -> String:
+##
+## Static, because it reads nothing of the account: the host asks it of a
+## partner's sheet (`WardenSheet`) under the same rule the save is read by.
+static func stranded_node(ids: Array[String]) -> String:
 	var by_arm: Dictionary = {}
 	for id: String in ids:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)

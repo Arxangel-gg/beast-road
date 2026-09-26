@@ -52,6 +52,9 @@ var field: EnemyField = null
 ## rule and earns its keep here: a companion has to know whose it is, and in
 ## co-op there are two heroes with two casters and the wrong answer is silent.
 var hero: Node2D = null
+## The Warden casting, when it is not this machine's (`Hero.sheet`). Null reads
+## this machine's own account, as every cast always did.
+var sheet: WardenSheet = null
 
 ## Seconds remaining per slot, indexed the same as RunState.equipped_spells.
 var _cooldowns: Array[float] = []
@@ -186,9 +189,8 @@ func is_lane_warded(lane: int) -> bool:
 
 
 func spell_in_slot(slot: int) -> SpellData:
-	if slot < 0 or slot >= RunState.equipped_spells.size():
-		return null
-	return ContentDB.spells.get(RunState.equipped_spells[slot], null) as SpellData
+	var id: String = WardenSheet.spell_in_slot_of(sheet, slot)
+	return ContentDB.spells.get(id, null) as SpellData if not id.is_empty() else null
 
 
 func cooldown_ratio(slot: int) -> float:
@@ -272,10 +274,10 @@ func _effective_cooldown(spell: SpellData) -> float:
 	var reduction: float = 0.0
 	if sanctum != null:
 		reduction = sanctum.effect_at(RunState.building_tier("sanctum"))
-	var flat: float = Modifiers.value(Modifiers.DASH_COOLDOWN)
+	var flat: float = WardenSheet.value_of(sheet, Modifiers.DASH_COOLDOWN)
 	# Focus shortens every cooldown, up to a cap, so it cannot be spent into
 	# a spell with no cooldown at all.
-	var focus_cut: float = minf(float(RunState.attribute(RunState.Attribute.FOCUS))
+	var focus_cut: float = minf(float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS))
 		* Balance.HERO_FOCUS_COOLDOWN_PER_POINT, Balance.HERO_FOCUS_COOLDOWN_CAP)
 	return maxf(spell.cooldown * (1.0 - reduction) * (1.0 - focus_cut) + flat, 0.5)
 
@@ -286,9 +288,14 @@ func _effective_cooldown(spell: SpellData) -> float:
 ## And the hand's spell power (augments), which multiplies the same blows: every
 ## spell that deals damage reads this, so this is the one place to put it.
 static func focus_power() -> float:
-	return (1.0 + float(RunState.attribute(RunState.Attribute.FOCUS)) \
+	return focus_power_of(null)
+
+
+## The same, for a Warden's sheet - null for this machine's own.
+static func focus_power_of(of: WardenSheet) -> float:
+	return (1.0 + float(WardenSheet.attribute_of(of, RunState.Attribute.FOCUS)) \
 		* Balance.HERO_FOCUS_SPELL_PER_POINT) \
-		* maxf(Modifiers.multiplier(Modifiers.SPELL_POWER), 0.0)
+		* maxf(WardenSheet.multiplier_of(of, Modifiers.SPELL_POWER), 0.0)
 
 
 ## What the discipline node in this slot adds on top of the spell it adapts.
@@ -305,7 +312,7 @@ static func focus_power() -> float:
 ## Command, and a lookup by `spell_id` alone would keep paying it for anyone who
 ## happened to cast the same spell.
 func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
-	var node: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
+	var node: DisciplineNodeData = WardenSheet.node_in_slot_of(sheet, slot)
 	if node == null or node.spell_id != spell.id:
 		return
 	match node.effect_id:
@@ -392,7 +399,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 	var along: Vector2 = field.lane_direction(_lane_at(origin))
 	var reach: float = Balance.DISCIPLINE_ROAD_SHOCK_REACH * scale
 	var feet: Vector2 = _foot(origin)
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
+	var power: float = spell.damage * WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet)
 	var centre: Vector2 = origin + along * (reach * 0.5)
 	var sweep: float = reach * 0.5 + Balance.DISCIPLINE_ROAD_SHOCK_HALF_WIDTH
 	for enemy: Enemy in field.enemies_near(centre, sweep):
@@ -408,7 +415,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 			continue
 		var falloff: float = 1.0 - Balance.DISCIPLINE_ROAD_SHOCK_FALLOFF * (ahead / reach)
 		DamageLedger.credit_as(DamageLedger.SPELL)
-		enemy.take_damage(power * falloff, feet, spell.knockback, true)
+		enemy.take_damage(power * falloff, feet, spell.knockback, true, sheet)
 		enemy.shove(feet, Balance.DISCIPLINE_ROAD_SHOCK_SHOVE)
 
 
@@ -498,8 +505,8 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 ## than as a second code path, so an echo is the same spell resolving again and
 ## nothing downstream has to learn that echoes exist.
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.0) -> void:
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) \
-		* focus_power() * share
+	var power: float = spell.damage * WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) \
+		* focus_power_of(sheet) * share
 	# Where the spell lands, for what it does to the world.
 	var lands: Vector2 = origin
 	if spell.kind == SpellData.Kind.METEOR or spell.kind == SpellData.Kind.VOLLEY:
@@ -649,7 +656,7 @@ func _damage_area(centre: Vector2, radius: float, power: float, knockback: float
 	var dealt: float = 0.0
 	for enemy: Enemy in field.enemies_near(centre, radius):
 		DamageLedger.credit_as(DamageLedger.SPELL)
-		if enemy.take_damage(power, from, knockback, true):
+		if enemy.take_damage(power, from, knockback, true, sheet):
 			dealt += power
 			# A water spell leaves what it hits wet.
 			if element == TowerData.Element.WATER:
@@ -687,7 +694,7 @@ func _touch_the_world(spell: SpellData, at: Vector2, share: float = 1.0) -> void
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 	for enemy: Enemy in field.enemies_near(origin, _reach(spell)):
 		DamageLedger.credit_as(DamageLedger.SPELL)
-		enemy.take_damage(power, origin, 0.0, true)
+		enemy.take_damage(power, origin, 0.0, true, sheet)
 		# Negative knockback would be a hack; pulling is its own operation.
 		enemy.pull_toward(origin, spell.knockback)
 
@@ -708,7 +715,7 @@ func _tick_beam(delta: float, origin: Vector2) -> void:
 		return
 	var reach: float = maxf(_beam_spell.effect_radius, 120.0)
 	var tick_damage: float = _beam_spell.damage * delta \
-		* Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
+		* WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet)
 	# A line, approximated by walking spheres along the aim — cheap, and exact
 	# enough for something that is already a cone of fire.
 	var steps: int = 6
@@ -753,7 +760,7 @@ func _lane_at(point: Vector2) -> int:
 ## inside the nova gives up its brand for one extra blow, and the whole burst is
 ## capped - a road of forty branded bodies must not be a one-cast wipe.
 func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
-	var share: float = DisciplineEffects.trained_value("consume_marks_burst")
+	var share: float = WardenSheet.trained_value_of(sheet, "consume_marks_burst")
 	if share <= 0.0 or field == null:
 		return
 	var spent: float = 0.0
@@ -781,7 +788,7 @@ func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
 ## permanent tower HP". A barricade repaired outright would make the wall
 ## economy free; a shield is spent by the next thing that hits it.
 func _ward_the_walls(origin: Vector2) -> void:
-	var share: float = DisciplineEffects.trained_value("repair_blocker_shields")
+	var share: float = WardenSheet.trained_value_of(sheet, "repair_blocker_shields")
 	if share <= 0.0:
 		return
 	var centre: Vector2 = _foot(origin)
@@ -803,7 +810,7 @@ func _ward_the_walls(origin: Vector2) -> void:
 ## more, up to a hard cap the card promises out loud.
 func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
 	_beam_from = at
-	var step: float = DisciplineEffects.trained_value("elite_extend_ultimate")
+	var step: float = WardenSheet.trained_value_of(sheet, "elite_extend_ultimate")
 	if step <= 0.0 or _beam_left <= 0.0 or not is_channelling():
 		return
 	var room: float = Balance.DISCIPLINE_CHANNEL_EXTEND_CAP - _beam_extended
@@ -830,11 +837,11 @@ func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
 ## at four of five call sites is a node that works on some spells.
 func _reach(spell: SpellData) -> float:
 	return spell.cast_range * (1.0 + minf(
-		DisciplineEffects.trained_value("arcane_reach"), Balance.ARCANE_REACH_CAP))
+		WardenSheet.trained_value_of(sheet, "arcane_reach"), Balance.ARCANE_REACH_CAP))
 
 
 func _wellspring() -> void:
-	if not DisciplineEffects.trained("mana_on_kill"):
+	if not WardenSheet.trained_of(sheet, "mana_on_kill"):
 		return
 	mana_refunded.emit(Balance.ARCANE_MANA_ON_KILL)
 
@@ -846,7 +853,7 @@ func _wellspring() -> void:
 ## the reduction lands on the *next* spell rather than on the one that earned
 ## it - a cast that shortened its own cooldown would be a rate increase.
 func _quickening_scale() -> float:
-	var share: float = DisciplineEffects.trained_value("cast_haste_chain")
+	var share: float = WardenSheet.trained_value_of(sheet, "cast_haste_chain")
 	if share <= 0.0:
 		return 1.0
 	var scale: float = 1.0 - clampf(share, 0.0, 0.6) if _chain_left > 0.0 else 1.0
@@ -859,10 +866,10 @@ func _quickening_scale() -> float:
 ## The one Arcane effect that reads an attribute, and it reads the caster's own:
 ## a wizard's answer to being hit is that they were casting when it happened.
 func _siphon_ward(origin: Vector2) -> void:
-	var share: float = DisciplineEffects.trained_value("focus_ward")
+	var share: float = WardenSheet.trained_value_of(sheet, "focus_ward")
 	if share <= 0.0:
 		return
-	var focus: int = RunState.attribute(RunState.Attribute.FOCUS)
+	var focus: int = WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)
 	var deepened: float = share + minf(float(focus) * Balance.ARCANE_WARD_FOCUS_PER_POINT,
 		Balance.ARCANE_WARD_FOCUS_CAP)
 	ward_requested.emit(deepened)
@@ -878,7 +885,7 @@ func _siphon_ward(origin: Vector2) -> void:
 func _echo(_slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> bool:
 	if _echoing:
 		return false
-	var chance: float = DisciplineEffects.trained_value("spell_echo")
+	var chance: float = WardenSheet.trained_value_of(sheet, "spell_echo")
 	if chance <= 0.0 or RunState.rng("combat").randf() >= chance:
 		return false
 	_echoing = true

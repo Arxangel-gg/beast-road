@@ -33,17 +33,23 @@ curve model, and the denser road that answers it (solo 0.454, four 0.528).
 
 **Next, in order:**
 
-1. **Photograph it** - `augment_shot` (three pictures, about a minute in a
-   window). Ask first. Then have the owner play a road: whether a draft every
-   few waves reads as Megabonk or as homework is not a number.
+1. **Photographed, 2026-09-26.** The first pictures showed the draft laid over
+   the crossroad's painting, hiding the board; it now dims the road through a
+   scrim. What is left is the owner playing a road: whether a draft every few
+   waves reads as Megabonk or as homework is not a number.
 2. **After 2026-10-11**: the 31 staged augments and the Mortar keystone
    (`docs/staged/augment_content_2026-09-26/README.md`). Their keys are already
    wired; what is owed is 32 icons, the data, the direction table, the Mortar
    mechanic, and a curve re-tune once the rate cards are in.
-3. **Per-Warden hands in co-op** (design §8.5): each seat its own rank and its
-   Warden augments, Rampart and Hearth shared. Every hero read of a Warden key
-   has to ask for that hero's hand, which is the size of it - plan it before
-   building it, and test it with two processes.
+3. **Per-Warden hands in co-op** (design §8.5), in two stages, planned in
+   COOP_DESIGN §11. **Stage 1 is built**: a Warden fights as their own account
+   (`WardenSheet`, `warden_sheet_check`) - the host had simulated every guest
+   with the host's own attributes, gear, tree and skills. **Stage 2** is the
+   hands: the rank stays the party's, every rank deals every seat a draft, a
+   card that acts on one hero is that seat's own (`AUGMENT_SEAT_HAND`), every
+   other card is the party's board, and a guest's choice is asked by card id.
+   Test it with two processes, by hand rather than through `coop_ui.sh`, which
+   kills every Godot on the machine.
 4. **The swarm role** waits on art too: many small, fast bodies on cheaper
    logic is the frame's answer to "more enemies", and it needs its sprites.
 

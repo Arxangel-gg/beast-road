@@ -307,6 +307,9 @@ func _ensure_body(number: int) -> Hero:
 	hero.spawn_point = spawn_for_slot(number, battlefield.town_position())
 	hero.position = hero.spawn_point
 	battlefield.entity_root.add_child(hero)
+	# A sheet that arrived before the body did (`_sheets`).
+	if _sheets.has(number):
+		hero.wear_sheet(_sheets[number])
 	# A partner is in play without claiming the hero group - it is a body the
 	# world can hit, and it is not whose health the HUD shows.
 	hero.set_present(true)
@@ -329,6 +332,10 @@ func _prune_bodies() -> void:
 		if number != Coop.party().slot() \
 				and Coop.party().seat_for_slot(number) != null:
 			continue
+		# A seat that emptied takes its sheet with it: whoever sits there next is
+		# somebody else's Warden, and tells the host so.
+		if Coop.party().seat_for_slot(number) == null:
+			_sheets.erase(number)
 		_drop_body(number)
 
 
@@ -372,6 +379,7 @@ func _physics_process(delta: float) -> void:
 		_send_input(relay, delta)
 		_tell_them_my_dye(relay, delta)
 		_tell_them_my_gear(relay, delta)
+		_tell_them_my_sheet(relay, delta)
 	else:
 		# The host sends its input too, not only its position. A mirrored hero
 		# with no input has no velocity, and every animation in this game is
@@ -772,6 +780,29 @@ func _tell_them_my_gear(relay: CoopRelay, delta: float) -> void:
 	relay.request(CoopRelay.Request.HERO_GEAR, [row])
 
 
+var _sheet_timer: float = 0.0
+var _sheet_said: Array = []
+## Host side: the last sheet each seat told, by slot, kept so a body built after
+## its packet arrived still wears it. A sheet told once can land before the
+## host's mirror of that Warden exists; stored, it is never lost to that race.
+var _sheets: Dictionary = {}
+
+
+## **What this guest's Warden is**, told as the gear is and on the same clock:
+## the first tick, then only when it changed - a node learned at the Mansion, a
+## point placed. See `WardenSheet` and COOP_DESIGN §11.
+func _tell_them_my_sheet(relay: CoopRelay, delta: float) -> void:
+	_sheet_timer -= delta
+	if _sheet_timer > 0.0:
+		return
+	_sheet_timer = LOOK_INTERVAL
+	var row: Array = WardenSheet.pack_mine()
+	if row == _sheet_said:
+		return
+	_sheet_said = row.duplicate(true)
+	relay.request(CoopRelay.Request.HERO_SHEET, [row])
+
+
 ## A guest telling the party how its own Warden is dyed.
 ##
 ## **The one thing about a look that cannot be worked out locally.** The dye is
@@ -973,6 +1004,17 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			var dressed: Hero = _hero_for_slot(wearer)
 			if dressed != null:
 				dressed.wear_gear(args[0])
+		return
+	if kind == CoopRelay.Request.HERO_SHEET:
+		# By the peer it arrived on, like the dye and the gear: a sheet naming the
+		# seat it describes would be a guest choosing whose Warden it rewrites.
+		# `wear_sheet` cleans it by the rules a save is read under.
+		var seated: int = Coop.party().slot_for_peer(from)
+		if seated > 0 and seated != Coop.party().slot() and args.size() >= 1:
+			_sheets[seated] = args[0]
+			var fought: Hero = _hero_for_slot(seated)
+			if fought != null:
+				fought.wear_sheet(args[0])
 		return
 	if kind == CoopRelay.Request.HERO_MOUNT:
 		var seat: int = Coop.party().slot_for_peer(from)

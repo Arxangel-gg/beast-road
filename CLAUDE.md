@@ -10409,6 +10409,72 @@ that no script reads - the `DisciplineEffects` lie on the modifier table, and
 the only thing that would notice one of these five coming unwired before any
 card sets it.
 
+**A draft is laid over the road, not over a crossroad, as of 2026-09-26.** The
+first photograph of it (`augment_shot`) showed the crossroad's valley painting
+behind the cards, hiding the board a Rampart card would change. The draft now
+dims the road through a scrim (`Balance.AUGMENT_DRAFT_SCRIM`); crossroads,
+relics and portents keep their painting. It is set on the `_augment_open` flag
+every door onto the panel already sets, so no door can forget it, and
+`augment_check` holds both halves. The tool's own first photographs were of
+the deal mid-animation - twenty *frames* at a hundred and eighty a second is a
+card, a sliver and no tools row - and it waits in seconds now.
+
+**A Warden fights as their own account in co-op, as of 2026-09-26.** Found
+while planning per-Warden augment hands (`docs/COOP_DESIGN.md` §11), and the
+larger fault of the two: the host simulates every hero, and its copy of a
+guest's Warden read the **host's** account for everything a Warden brings - the
+five attributes and the gear points under them, the legendary affixes and set
+tiers on the Warden's own numbers, the ascension rank, the chain form, every
+learned node and synergy, and the four slotted skills. A level-1 guest fought
+as a level-100 host and cast the host's skills. Only the look, the weapon's
+kind and the mount crossed, and COOP_DESIGN §1's reason for two heroes - each
+player arrives with a hero they have grown - did not survive the simulation.
+
+**A guest tells the host its sheet** (`Request.HERO_SHEET` = 43, by the peer it
+arrived on, on the dye's slow clock and only when it changed), and the host's
+copy reads it. **Facts cross, never figures**: the level, the placed points, the
+ascension, the form, the nodes, the slots and the worn pieces; the gear's
+attribute points, affixes and set tiers are worked out on arrival by the same
+`Stash` functions the guest's machine uses, rolled from each piece's own `uid`.
+A sheet is **cleaned by the rules a save is read under** - placed points to
+`level - 1`, nodes to what the level's points could buy and what some order of
+learning reaches (`MetaState.stranded_node`, static now so both doors share
+it), a form and slots only of what is held and fits, pieces only in their own
+slot and inside the stash's bounds - so it can only ever describe a Warden the
+game could have produced. The host keeps each seat's last sheet
+(`CoopHeroes._sheets`) because a sheet told once can land before the body
+exists.
+
+**One door, and null is this machine's own Warden.** `WardenSheet`'s static
+readers - `attribute_of`, `value_of`, `multiplier_of`, `trained_value_of`,
+`trained_of`, `form_of`, `synergy_of`, `ascension_of`, `node_in_slot_of`,
+`spell_in_slot_of` - take a sheet that may be null, and null answers the exact
+expression the call site used before, so a solo road cannot move.
+`Modifiers.WARDEN_KEYS` are split: the table keeps the part this machine's own
+gear put there (`own_value`), so a partner reads the shared part - relics,
+cores, portents, the party's cards - plus their own gear's part. A board key is
+read whole, as it always was. The striker's sheet rides the blow into
+`Enemy.take_damage`, so a partner brands and bleeds by their own form.
+
+**And a partner kept the host's wounds.** `_apply_permanent_bonuses` restored
+every hero's health from `RunState.hero_hp`, which is this machine's Warden, so
+a relic socketed or a boss fallen gave each partner the host's figure. A
+partner body - told apart by its remote input, because this machine's own
+Warden has seat 1 until a partner arrives - keeps the share it had.
+
+`warden_sheet_check` (on both bars) holds all of it: every reader with no sheet
+against the account to the digit, a packed sheet reading back its account with
+gear that moves a Warden key, the cleaning, a partner body fighting as its
+sheet while this machine's Warden stays put, the wounds, the wire by peer, a
+body built after its sheet, and a walk of the hero's four scripts for any read
+that goes round the door. Seven faults were planted and every one was named.
+
+**What did not move**: the run is the host's (relics, portents, the Sanctum,
+the party's augment hand), a partner's spirit companion is still this
+machine's pen and journal (an open question, recorded), and nothing persists
+that did not - the sheet is the host's copy of the partner's account for a run,
+as `Hero.look` and `Hero.gear_kinds` already were.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -227,6 +227,13 @@ var outfit: Dictionary = {}
 ## Told over the wire, because a partner's gear is another account's; this
 ## machine's own Warden reads its own save instead. Presentation only.
 var gear_kinds: Array[String] = ["", "", "", ""]
+## **What this Warden brings to a fight, when it is not this machine's**
+## (2026-09-26, COOP_DESIGN §11). Null for the Warden this machine plays - which
+## reads the account exactly as it always did - and, on the host, the partner's
+## own sheet: their attributes, gear, form, nodes and skills. Every read of any
+## of those goes through `WardenSheet`'s static door with this as its first
+## argument.
+var sheet: WardenSheet = null
 ## The slots `gear_kinds` names, in order.
 const DRESS_SLOTS: Array[int] = [GearData.Slot.WEAPON, GearData.Slot.ARMOUR, GearData.Slot.CAPE,
 	GearData.Slot.HELMET]
@@ -890,7 +897,7 @@ func contact_radius() -> float:
 ## Roar and the Sanguine Guard already take the *minimum* of. A hero with no
 ## Resolve stands at exactly 1.0, which is where every hero stood before this.
 func _resolve_scale() -> float:
-	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
+	var points: int = WardenSheet.attribute_of(sheet, RunState.Attribute.RESOLVE)
 	var mitigation: float = minf(
 		float(points) * Balance.HERO_RESOLVE_MITIGATION_PER_POINT,
 		Balance.HERO_RESOLVE_MITIGATION_CAP)
@@ -902,22 +909,22 @@ func _resolve_scale() -> float:
 	# so the third scale can never take mitigation somewhere the second was
 	# already tuned to stop.
 	mitigation = minf(mitigation + minf(
-		float(MetaState.ascension) * Balance.ASCENSION_MITIGATION_PER_RANK,
+		float(WardenSheet.ascension_of(sheet)) * Balance.ASCENSION_MITIGATION_PER_RANK,
 		Balance.ASCENSION_MITIGATION_CAP), Balance.HERO_RESOLVE_MITIGATION_CAP)
 	return 1.0 - mitigation
 
 
 ## And what a ward given to them is worth.
 func _resolve_ward_scale() -> float:
-	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
+	var points: int = WardenSheet.attribute_of(sheet, RunState.Attribute.RESOLVE)
 	return 1.0 + minf(float(points) * Balance.HERO_RESOLVE_WARD_PER_POINT
-		+ float(MetaState.ascension) * Balance.ASCENSION_WARD_PER_RANK,
+		+ float(WardenSheet.ascension_of(sheet)) * Balance.ASCENSION_WARD_PER_RANK,
 		Balance.HERO_RESOLVE_WARD_CAP)
 
 
 ## Vigour's share of the health pool.
 func _vigour_bonus() -> float:
-	var points: int = RunState.attribute(RunState.Attribute.VIGOUR)
+	var points: int = WardenSheet.attribute_of(sheet, RunState.Attribute.VIGOUR)
 	return float(points) * Balance.HERO_VIGOUR_PER_POINT
 
 
@@ -926,14 +933,14 @@ func move_speed() -> float:
 	var bonus: float = 0.0
 	if sanctum != null:
 		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
-	bonus += Modifiers.value(Modifiers.HERO_SPEED)
+	bonus += WardenSheet.value_of(sheet, Modifiers.HERO_SPEED)
 	bonus += _veil_speed_bonus
 	# **Hunter's Pulse.** "Marked support kills grant a short speed burst."
 	# Summed with the others rather than multiplied, so it cannot compound with
 	# Swiftness or a relic into a number nobody predicted.
 	if _pulse_left > 0.0:
-		bonus += DisciplineEffects.trained_value("support_kill_speed")
-	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
+		bonus += WardenSheet.trained_value_of(sheet, "support_kill_speed")
+	bonus += float(WardenSheet.attribute_of(sheet, RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
 	bonus += _meal_speed
 	# Wading (2026-09-14). A multiplier rather than a bonus, so it cannot be
 	# summed away by Swiftness: water is water whoever is walking through it.
@@ -1024,16 +1031,16 @@ func _animal_in_front(from: Vector2, direction: Vector2) -> Node2D:
 
 ## Damage multiplier the attack chain applies to every swing.
 func damage_multiplier() -> float:
-	var multiplier: float = Modifiers.multiplier(Modifiers.HERO_DAMAGE) * (1.0 + _meal_damage)
+	var multiplier: float = WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * (1.0 + _meal_damage)
 	# Might. Additive with itself and multiplicative with everything else, so a
 	# hundred points is a known ceiling rather than something that compounds
 	# with relics into a number nobody predicted.
-	var might: int = RunState.attribute(RunState.Attribute.MIGHT)
+	var might: int = WardenSheet.attribute_of(sheet, RunState.Attribute.MIGHT)
 	multiplier *= 1.0 + float(might) * Balance.HERO_MIGHT_PER_POINT
 	# The chain's form, authored on the node (2026-09-26). The three forms' 8%,
 	# 5% and 4% were a `match` on effect ids here, which is a stat branch in code
 	# that working rule 3 forbids and a fourth form would have had to find.
-	var form: DisciplineNodeData = RunState.chain_form()
+	var form: DisciplineNodeData = WardenSheet.form_of(sheet)
 	if form != null:
 		multiplier *= 1.0 + form.form_damage
 	# **No Ground Given**, spent on the finisher and on nothing else. Asked here
@@ -1041,7 +1048,7 @@ func damage_multiplier() -> float:
 	# names rather than whatever the hero happened to do next.
 	if _guard_left > 0.0 and attack != null \
 			and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
-		multiplier *= 1.0 + DisciplineEffects.trained_value("block_finisher")
+		multiplier *= 1.0 + WardenSheet.trained_value_of(sheet, "block_finisher")
 	return multiplier
 
 
@@ -1054,9 +1061,17 @@ func _apply_permanent_bonuses() -> void:
 	var felled: float = float(RunState.bosses_felled) * Balance.BOSS_FELLED_VIGOUR
 	var wound_scale: float = maxf(1.0 - float(RunState.hero_wounds) \
 		* Balance.HERO_WOUND_HP_PENALTY, 0.4)
-	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) \
+	var share: float = health.current_hp / health.max_hp if health.max_hp > 0.0 else 1.0
+	health.max_hp = (Balance.HERO_MAX_HP + WardenSheet.value_of(sheet, Modifiers.HERO_MAX_HP)) \
 		* (1.0 + bonus + felled + _vigour_bonus()) * wound_scale
-	if RunState.hero_hp >= 0.0:
+	if _is_partner_body():
+		# **A partner's pool is theirs** (2026-09-26). `RunState.hero_hp` is this
+		# machine's Warden, and reading it here gave every partner the host's
+		# wounds whenever a relic was socketed or a boss fell. What a partner
+		# keeps across a refit is the share it had.
+		if not health.is_dead:
+			health.current_hp = clampf(health.max_hp * share, 1.0, health.max_hp)
+	elif RunState.hero_hp >= 0.0:
 		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 	else:
 		health.current_hp = health.max_hp
@@ -1070,7 +1085,10 @@ func _apply_permanent_bonuses() -> void:
 	health.shield_scale = _resolve_ward_scale()
 	# Mana comes back the same way health does: what the last scope left, or
 	# full when there was no last scope.
-	mana = clampf(RunState.hero_mana, 0.0, mana_max()) if RunState.hero_mana >= 0.0 else mana_max()
+	if _is_partner_body():
+		mana = clampf(mana, 0.0, mana_max())
+	else:
+		mana = clampf(RunState.hero_mana, 0.0, mana_max()) if RunState.hero_mana >= 0.0 else mana_max()
 	EventBus.hero_mana_changed.emit(mana, mana_max())
 
 
@@ -1104,13 +1122,13 @@ func _on_blink(to: Vector2) -> void:
 ## The pool's size and refill, both deepened by Focus.
 func mana_max() -> float:
 	return Balance.HERO_MANA_BASE \
-		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_PER_FOCUS
+		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)) * Balance.HERO_MANA_PER_FOCUS
 
 
 func mana_regen() -> float:
 	return (Balance.HERO_MANA_REGEN
-		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS) \
-		* maxf(Modifiers.multiplier(Modifiers.MANA_REGEN), 0.0)
+		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS) \
+		* maxf(WardenSheet.multiplier_of(sheet, Modifiers.MANA_REGEN), 0.0)
 
 
 ## Pays for a cast. False, and nothing spent, when the pool cannot cover it.
@@ -1404,7 +1422,7 @@ func respawn_from_wipe() -> void:
 ## `enemy_died(id, at)` is a typed EventBus fact and widening it for one node
 ## would be a contract change (working rule 5).
 func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
-	if not is_alive() or not DisciplineEffects.trained("support_kill_speed"):
+	if not is_alive() or not WardenSheet.trained_of(sheet, "support_kill_speed"):
 		return
 	var breed: EnemyData = ContentDB.enemy(enemy_id)
 	if breed == null or breed.role != EnemyData.Role.HOWLER:
@@ -1416,7 +1434,7 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 	# to swing at - so the reward for the play the game most wants you to make
 	# was, in practice, losing your attack speed. This hands it straight back at
 	# the cap. No number changes: the ramp is the ramp, it simply starts full.
-	if Synergies.active("second_wind") and attack != null:
+	if WardenSheet.synergy_of(sheet, "second_wind") and attack != null:
 		attack.fill_fury()
 
 
@@ -1446,7 +1464,7 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	# **No Ground Given.** A perfect evade is this game's block - the i-frame
 	# window is how a committed hit is answered - so it empowers the *next
 	# finisher* rather than every swing after it. One evade, one blow.
-	if DisciplineEffects.trained("block_finisher"):
+	if WardenSheet.trained_of(sheet, "block_finisher"):
 		_guard_left = Balance.DISCIPLINE_GUARD_SECONDS
 	if attack != null:
 		attack.grant_haste(Balance.HERO_EVADE_HASTE_SECONDS)
@@ -1476,12 +1494,12 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	# `town_node()` rather than a null check on the field: `EnemyField` answers
 	# `town_position()` with the origin when there is no town, so the raid arena
 	# would have paid Vigil to anyone dodging near its centre.
-	if DisciplineEffects.trained("town_dodge_command") \
+	if WardenSheet.trained_of(sheet, "town_dodge_command") \
 			and field != null and field.town_node() != null:
 		var hall: Vector2 = field.town_position()
 		if global_position.distance_to(hall) <= Balance.VIGIL_COMMAND_RADIUS:
 			RunState.gain_command(
-				DisciplineEffects.trained_value("town_dodge_command"))
+				WardenSheet.trained_value_of(sheet, "town_dodge_command"))
 			Vfx.ring(global_position, 118.0, Balance.HERO_EVADE_COLOUR, 0.28, 4.0)
 	# Not the dash whoosh, which already played when the dash started - a reward
 	# that sounds like the thing it rewards is a reward nobody hears. The blink
@@ -1877,6 +1895,29 @@ static func worn_kinds() -> Array[String]:
 	return out
 
 
+## Told what a partner's Warden is: host side, for a partner's body only.
+## Cleaned on arrival (`WardenSheet.from_row`), handed to the swing and the
+## caster so every blow reads it, and the pools re-fitted - keeping the share of
+## health and mana the body has now, because a sheet can arrive mid-road and the
+## body's wounds are the fight's rather than the sheet's.
+func wear_sheet(row: Variant) -> void:
+	if not _is_partner_body():
+		return
+	sheet = WardenSheet.from_row(row)
+	if attack != null:
+		attack.sheet = sheet
+	if spells != null:
+		spells.sheet = sheet
+	_apply_permanent_bonuses()
+
+
+## A body another player drives: its input is somebody else's hands. Decided by
+## the input rather than the seat, because this machine's own Warden has seat 1
+## until a partner arrives and would read as a stranger until then.
+func _is_partner_body() -> bool:
+	return input != null and not input.is_local()
+
+
 ## Told what a partner wears. Cleaned whole: four entries, each a kind this
 ## build knows in the slot it is named for, or nothing - a packet is not trusted
 ## to put a helmet in the weapon's hand.
@@ -2247,8 +2288,8 @@ func _dust_colour() -> Color:
 ## swing now spends from it.
 func max_stamina() -> float:
 	return Balance.HERO_STAMINA_MAX \
-		+ float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SP_PER_SWIFTNESS \
-		+ float(RunState.attribute(RunState.Attribute.VIGOUR)) * Balance.HERO_SP_PER_VIGOUR
+		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.SWIFTNESS)) * Balance.HERO_SP_PER_SWIFTNESS \
+		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.VIGOUR)) * Balance.HERO_SP_PER_VIGOUR
 
 
 ## Pays for each swing once, as it begins: the finisher dearer than the rest.
@@ -2693,7 +2734,7 @@ func _stand_back_up(fraction: float) -> void:
 ## Non-damaging is the whole design and is why `shove` exists. A revive that
 ## killed things would make dying a play.
 func _mercy_under_fire() -> void:
-	var push: float = DisciplineEffects.trained_value("revive_knockback")
+	var push: float = WardenSheet.trained_value_of(sheet, "revive_knockback")
 	if push <= 0.0:
 		return
 	_synergies_on_standing_up()
@@ -2724,9 +2765,9 @@ func _mercy_under_fire() -> void:
 ## power", and a synergy that multiplied something would be that bound going out
 ## through a side door.
 func _synergies_on_standing_up() -> void:
-	if Synergies.active("break_their_grip"):
+	if WardenSheet.synergy_of(sheet, "break_their_grip"):
 		_pulse_left = Balance.HUNTERS_PULSE_SECONDS
-	if not Synergies.active("the_watch_answers"):
+	if not WardenSheet.synergy_of(sheet, "the_watch_answers"):
 		return
 	# Same guard as Vigil's, and for the same reason: `town_position` answers
 	# with the origin when there is no town, so the raid arena would pay this to
@@ -2735,7 +2776,7 @@ func _synergies_on_standing_up() -> void:
 		return
 	if global_position.distance_to(field.town_position()) > Balance.VIGIL_COMMAND_RADIUS:
 		return
-	RunState.gain_command(DisciplineEffects.trained_value("town_dodge_command"))
+	RunState.gain_command(WardenSheet.trained_value_of(sheet, "town_dodge_command"))
 	Vfx.ring(global_position, 132.0, Balance.HERO_EVADE_COLOUR, 0.36, 4.0)
 
 
@@ -3295,7 +3336,7 @@ func is_guarded() -> bool:
 ## lottery ticket for the whole crowd - the node's own text is about *isolated*
 ## enemies, and a crowd has none in it by definition.
 func telling_blow(enemy: Node2D) -> float:
-	var chance: float = DisciplineEffects.trained_value("isolated_crit")
+	var chance: float = WardenSheet.trained_value_of(sheet, "isolated_crit")
 	if chance <= 0.0 or enemy == null or field == null:
 		return 1.0
 	var near: Array = field.enemies_near(enemy.global_position,

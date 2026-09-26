@@ -41,6 +41,11 @@ var damage_multiplier: float = 1.0
 ## this machine's stash and swing with its reach and pace (2026-09-26).
 var own_stash: bool = true
 var partner_weapon: String = ""
+## The swinging Warden's sheet when it is not this machine's (`Hero.sheet`),
+## handed down by the hero: their Swiftness, form, nodes and shove. Null reads
+## this machine's own account, as every swing always did. A number the hero
+## sets, like `drag` - this class still does not know what a `Hero` is.
+var sheet: WardenSheet = null
 
 ## **How much longer every phase takes**, set by the hero from where it is
 ## standing. One at the ordinary pace; above one is slower.
@@ -170,7 +175,7 @@ func fury_ramp() -> float:
 ## "to a hard cap" and an attack speed that kept climbing while the player kept
 ## swinging would be a second power scale beside levelling and gear.
 func _fury_scale() -> float:
-	var gain: float = DisciplineEffects.trained_value("active_attack_speed")
+	var gain: float = WardenSheet.trained_value_of(sheet, "active_attack_speed")
 	if gain <= 0.0:
 		return 1.0
 	var ramp: float = clampf(_fury_seconds / maxf(Balance.RISING_FURY_RAMP_SECONDS, 0.001),
@@ -179,7 +184,7 @@ func _fury_scale() -> float:
 
 
 func _swiftness_scale() -> float:
-	var points: int = RunState.attribute(RunState.Attribute.SWIFTNESS)
+	var points: int = WardenSheet.attribute_of(sheet, RunState.Attribute.SWIFTNESS)
 	return 1.0 / (1.0 + float(points) * Balance.HERO_SWIFTNESS_ATTACK_PER_POINT)
 
 
@@ -406,12 +411,13 @@ func _strike() -> void:
 	var reach: float = Balance.HERO_ATTACK_RANGE[_step] * reach_scale()
 	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[_step] * 0.5)
 	var damage: float = Balance.HERO_ATTACK_DAMAGE[_step] * damage_multiplier
-	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * Modifiers.multiplier(Modifiers.KNOCKBACK)
+	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * WardenSheet.multiplier_of(sheet, Modifiers.KNOCKBACK)
 	var hits: int = 0
 	var struck_hide: int = -1
 	# **The chain's form**, read for the Warden this machine plays: a partner's
 	# form is their account's, and it is not on this machine to read.
-	var form: DisciplineNodeData = RunState.chain_form() if own_stash else null
+	var form: DisciplineNodeData = WardenSheet.form_of(sheet) \
+		if own_stash or sheet != null else null
 	var finisher: bool = _step >= Balance.HERO_CHAIN_LENGTH - 1
 	# **Cleaving Road**: the wide third hit gains force for each enemy struck.
 	# Counted across the whole arc before any blow lands, so the first body is
@@ -450,7 +456,7 @@ func _strike() -> void:
 				Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
 					_swing_aim, 240.0)
 		DamageLedger.credit_as(DamageLedger.WARDEN)
-		if not enemy.take_damage(blow, _swing_origin, knockback, true):
+		if not enemy.take_damage(blow, _swing_origin, knockback, true, sheet):
 			continue
 		_hit_ids[id] = true
 		hits += 1
