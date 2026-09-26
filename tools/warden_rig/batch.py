@@ -83,6 +83,14 @@ def _stale(entry: dict) -> bool:
     return time.time() - started > STALE_MINUTES * 60
 
 
+def _cannot_pay(refusal: str) -> bool:
+    """Whether a refusal is about money rather than a busy queue: HTTP 402, or
+    a body that names the balance, credits or generations as short."""
+    text = refusal.lower()
+    return "-> 402" in text or any(word in text for word in (
+        "insufficient", "not enough credit", "out of credit", "no generations", "balance"))
+
+
 def cost_of(frames: int) -> int:
     for limit in sorted(COST):
         if frames <= limit:
@@ -318,6 +326,13 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
             try:
                 response = _request("POST", "/animate-with-skeleton-v3", body)
             except RuntimeError as refused:
+                if _cannot_pay(str(refused)):
+                    # A slot opens when a job finishes; money does not. Waiting
+                    # here would spin for ever, so the run stops and says so.
+                    # Jobs already in flight stay in the ledger and a later run
+                    # collects them.
+                    print("stopping: the account cannot pay for", key, "-", str(refused)[:160])
+                    return
                 # The account runs about twenty jobs at once across every tool
                 # buying on it - the head states included - so a refusal waits
                 # for a slot rather than ending the run.
