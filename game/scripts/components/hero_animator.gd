@@ -123,6 +123,7 @@ func dress(outfit: Dictionary) -> void:
 		if _layers != null:
 			_layers.set_worn(false)
 		_say_which_bands(true)
+		_count_frames()
 		return
 	_say_which_bands(false)
 	var changed_body: bool = String(_outfit.get("body_layer", "")) != String(outfit.get("body_layer", ""))
@@ -141,6 +142,29 @@ func dress(outfit: Dictionary) -> void:
 	# A state already playing is re-read in the new outfit's combo.
 	if not _state.is_empty():
 		_state_drawn = _resolve(_state)
+	_count_frames()
+
+
+## How many frames the state being drawn has, read off whichever art draws it,
+## and re-read whenever that art changes. A state begun on the painted sheet
+## and then dressed kept the painted sheet's nine and played a ninth cell of an
+## eight-frame dressed sheet, which is empty: the Glass's Warden vanished for one
+## frame of every idle loop, and so did a dressed hero on the road (2026-09-26).
+func _count_frames() -> void:
+	if _state.is_empty():
+		return
+	if dressed():
+		var meta: Dictionary = WardenDress.meta(String(_outfit["body"]), _state_drawn)
+		_frames_in_state = maxi(int(meta.get("frames", 1)), 1)
+	elif _sheets.has(_state):
+		var sheet: Texture2D = _sheets[_state]
+		_frames_in_state = maxi(int(sheet.get_width() / CELL_W), 1)
+	_frame = minf(_frame, float(_frames_in_state - 1))
+
+
+## How many frames the state playing has, for the gate.
+func frames_in_state() -> int:
+	return _frames_in_state
 
 
 ## Tells the sprite's shader whether it is the painted Warden, whose cloak and
@@ -208,13 +232,8 @@ func play(state: String, restart: bool = false) -> void:
 	_state = state
 	_frame = 0.0
 	_playing = true
-	if dressed():
-		_state_drawn = _resolve(state)
-		var meta: Dictionary = WardenDress.meta(String(_outfit["body"]), _state_drawn)
-		_frames_in_state = maxi(int(meta.get("frames", 1)), 1)
-		return
-	var sheet: Texture2D = _sheets[state]
-	_frames_in_state = maxi(int(sheet.get_width() / CELL_W), 1)
+	_state_drawn = _resolve(state)
+	_count_frames()
 
 
 ## Walk plays faster when the hero moves faster. 1.0 is the authored rate.

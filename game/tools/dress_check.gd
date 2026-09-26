@@ -215,6 +215,7 @@ func _test_drawn_bodies_are_whole() -> void:
 				_check(sheet.get_width() == int(cell[0]) * frames and sheet.get_height() == int(cell[1]) * 8,
 					"%s %s sheet is %dx%d for %d frames of %s" % [body, state, sheet.get_width(),
 						sheet.get_height(), frames, cell])
+				_drawn_cells_are_whole(body, state, sheet_path, frames, cell)
 			var sockets: Dictionary = meta.get("sockets", {})
 			_check(sockets.size() == 8, "%s %s has sockets for %d facings" % [body, state, sockets.size()])
 			_check(float(meta.get("fist", 0.0)) > 0.0,
@@ -224,6 +225,25 @@ func _test_drawn_bodies_are_whole() -> void:
 					"%s %s %s has %d socket rows for %d frames" % [body, state, facing,
 						(sockets[facing] as Array).size(), frames])
 	_reached.append("bodies")
+
+
+## Every cell a state's meta counts holds a body. An empty cell is a Warden who
+## vanishes for a frame, which reads as a flicker and nothing else - no number
+## anywhere says it happened.
+func _drawn_cells_are_whole(body: String, state: String, sheet_path: String, frames: int,
+		cell: Array) -> void:
+	var image := Image.load_from_file(ProjectSettings.globalize_path(sheet_path))
+	if image == null:
+		_check(false, "%s %s sheet could not be read as an image" % [body, state])
+		return
+	var area: int = int(cell[0]) * int(cell[1])
+	for row: int in 8:
+		for frame: int in frames:
+			var used: Rect2i = image.get_region(Rect2i(frame * int(cell[0]), row * int(cell[1]),
+				int(cell[0]), int(cell[1]))).get_used_rect()
+			_check(used.size.x * used.size.y * 12 > area,
+				"%s %s %s frame %d is empty or nearly so (%s of a %s cell)" % [body, state,
+					HeroAnimator.FACING_NAMES[row], frame, used.size, cell])
 
 
 # --- The runtime, through its real doors ---------------------------------------
@@ -394,9 +414,40 @@ func _test_the_runtime_lays_every_part() -> void:
 		WardenDress.art_root = TEST_ROOT + "art/"
 		WardenDress.forget()
 
+	# A state begun on the painted sheet and then dressed plays the dressed
+	# sheet's frames, never the painted sheet's count (2026-09-26: the painted
+	# idle has nine, a dressed one eight, and the ninth cell is empty - the
+	# Glass's Warden vanished for a frame of every idle loop).
+	var early_sprite := Sprite2D.new()
+	add_child(early_sprite)
+	var early := HeroAnimator.new()
+	early.sprite = early_sprite
+	add_child(early)
+	early.set_process(false)
+	early.play("idle")
+	var painted_frames: int = early.frames_in_state()
+	early.dress(WardenDress.outfit({"body": 0}, sword, null, null, null))
+	var dressed_frames: int = int(WardenDress.meta("male", "idle").get("frames", 0))
+	_check(painted_frames != dressed_frames,
+		"the test needs the painted idle (%d) and the dressed one (%d) to differ" % [painted_frames, dressed_frames])
+	_check(early.frames_in_state() == dressed_frames,
+		"dressed mid-idle, the Warden counts %d frames on a sheet of %d" % [early.frames_in_state(), dressed_frames])
+	var widest: float = 0.0
+	for _tick: int in 90:
+		early._process(1.0 / 24.0)
+		widest = maxf(widest, early_sprite.region_rect.position.x)
+	_check(widest < float(dressed_frames * TEST_CELL.x),
+		"a dressed idle drew a cell at x=%d, past the sheet's %d frames" % [int(widest), dressed_frames])
+
 	# And a body with no art is the painted Warden, untouched.
 	WardenDress.art_root = TEST_ROOT + "nothing/"
 	WardenDress.forget()
+	early.dress(WardenDress.outfit({"body": 0}, sword, null, null, null))
+	_check(early.frames_in_state() == painted_frames,
+		"undressed mid-idle, the Warden counts %d frames on the painted sheet's %d" % [
+			early.frames_in_state(), painted_frames])
+	early.queue_free()
+	early_sprite.queue_free()
 	var plain_sprite := Sprite2D.new()
 	add_child(plain_sprite)
 	var plain := HeroAnimator.new()
