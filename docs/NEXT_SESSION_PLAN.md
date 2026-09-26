@@ -24,14 +24,16 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 ## 0c. The modular Warden (2026-09-26)
 
 **In the game**: both bare bodies (male, female) with 18 hairstyles each, six
-beards on the male, ten skin tones, and **light armour on both bodies**, packed
-by `tools/warden_rig/pack.py <body>` and held by `dress_check` (every installed
-layer cut to the base's cells, no empty frame). Any armour draws light until
-the heavier classes are in, by `WardenDress.ARMOUR_FALLBACK`.
+beards on the male, ten skin tones, and **light and heavy armour on both
+bodies**, packed by `tools/warden_rig/pack.py <body>` and held by `dress_check`
+(every installed layer cut to the base's cells, no empty frame). Medium armour
+draws heavy, and every cape draws nothing until the long cape is in
+(`WardenDress.ARMOUR_FALLBACK`, `CAPE_FALLBACK`).
 
-**Generating**: heavy armour and the long cape on both bodies, one layer at a
-time through `tools/warden_rig/batch.py run <layer>` (one batch at a time, a
-lock enforces it). A job PixelLab holds past `STALE_MINUTES` is never bought
+**Generating** (2026-09-26): the long cape, male then female, through
+`tools/warden_rig/batch.py run <layer>` (one batch at a time, a lock enforces
+it). The credits may end one or two female jobs short; those wait for the
+reset. A layer is only installed once every clip in every facing is in. A job PixelLab holds past `STALE_MINUTES` is never bought
 twice: the run stops and names it, cancel it with the MCP's `cancel_job`, run
 again. When a layer finishes: `pack.py <body>`, `--import`, restore
 `project.godot`, then `dress_check`, `warden_glass_check`, `warden_look_check`,
@@ -54,6 +56,14 @@ at a contact sheet of bare against dressed before believing any of it.
 **The Guide's photographs** (75 of 77 date from 2026-09-16 and show the old
 Warden and an older HUD) want one windowed `guide_shots` run, best done once the
 armour is in so it happens once. Ask first.
+
+**Also done on 2026-09-26**, each gated on both bars and recorded in CLAUDE.md:
+the Warden's HP, MP and SP bars stand above the drawn head in every hairstyle
+and facing (`hero_bar_check`); the menu's campfires stopped strobing, because a
+light has one writer now (`light_writer_check`); the physics ceiling is 240, so
+the owner's 180 Hz screen no longer steps the hero on four frames in five, and
+co-op input crosses on its own clock (`coop_heroes_check`); `pad_focus_check`
+walks the Hold and the co-op screen.
 
 ## 0b. The content multipliers (2026-09-25, later)
 
