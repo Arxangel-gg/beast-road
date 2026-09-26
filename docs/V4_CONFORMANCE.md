@@ -100,7 +100,7 @@ requirements or establish production readiness.
 
 | Item | Target | Probe |
 |------|--------|-------|
-| Three disciplines | Blood, Holy, Berserk | `const:DISCIPLINE_IDS` |
+| Three disciplines | Blood, Holy, Berserk (and the Arcane since 2026-09-13, owner) | `gate:res://tools/discipline_check.tscn` |
 | Four active slots | not eight spells | `const:HERO_ACTIVE_SLOTS` |
 | Wounds allow two recoveries | third down ends the run | `const:HERO_MAX_WOUNDS` |
 | Hearthmend | pre-boss recovery | `signal:hearthmend_completed` |

@@ -10387,6 +10387,14 @@ peak the script frame went 3.9 to 4.3 ms. `ACT_START_BUDGET` was re-read.
 defaults**, so it saved and reverted on every launch - the fourth setting that
 dictionary has dropped.
 
+**The conformance audit read 46 of 47 all day and nothing said so, found
+2026-09-26.** The disciplines row probed `Balance.DISCIPLINE_IDS`, removed as a
+dead constant that morning, and `gdd_audit_check` - the gate named for the
+audit - only asked whether the checklist could be read. The row now names the
+gate that actually holds the trees (`discipline_check`, and it says there are
+four since the Arcane), and `gdd_audit_check` fails when any automatable row
+does. A report nobody's gate reads is a report that goes red in private.
+
 **Thirty-one more augments are staged, not built, and the reason is art.**
 PixelLab's allowance was spent (0 generations, no credits, reset 2026-10-11)
 and the production-art gate refuses a placeholder, so the pass waits in

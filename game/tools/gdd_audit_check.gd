@@ -93,6 +93,15 @@ func _test_real_checklist() -> void:
 	_check(bool(report.get("ok", false)), "the real checklist must remain readable")
 	_check(not body.contains("unknown probe") and not body.contains("malformed count probe"),
 		"the real checklist must not contain unknown or malformed probes")
+	# **And every automatable row passes** (2026-09-26). The disciplines row
+	# probed a Balance constant removed as dead that morning, the audit read
+	# 46 of 47 all day, and this gate - the one named for the audit - passed,
+	# because it only asked whether the checklist could be read. A row that is
+	# genuinely open is marked `manual` or built; one that goes red because a
+	# symbol moved says so here, at the push that moved it.
+	_check(int(report.get("done", 0)) == int(report.get("total", -1)),
+		"%d of %d automatable conformance rows pass - run `run_tool.gd -- audit --todo`"
+			% [int(report.get("done", 0)), int(report.get("total", 0))])
 
 
 func _check(condition: bool, message: String) -> void:
