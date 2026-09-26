@@ -400,6 +400,8 @@ jobs:
           check "keystones"  --headless --path game res://tools/keystone_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn
+          # The Warden's bars stand above every head it can wear, with MP and SP beneath HP.
+          check "hero-bar"   --headless --path game res://tools/hero_bar_check.tscn
           # A wayside encounter asks, and every answer is a door the game already has.
           check "wayside"    --headless --path game res://tools/wayside_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
