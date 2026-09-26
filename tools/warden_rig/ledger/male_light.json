@@ -98,26 +98,114 @@
   "submitted": "2026-09-26T02:22:24"
  },
  "north-west/0": {
+  "attempts": 2,
+  "clip": [
+   "idle",
+   "dash"
+  ],
+  "depth": false,
+  "job": "c9db1904-5fa8-4464-be85-0462a72ec8df",
+  "status": "processing",
+  "submitted": "2026-09-26T03:44:44"
+ },
+ "north-west/1": {
+  "attempts": 2,
+  "clip": [
+   "walk",
+   "hurt"
+  ],
+  "depth": false,
+  "job": "5447ded4-fec7-4c44-8866-3ad3fda3b616",
+  "status": "processing",
+  "submitted": "2026-09-26T03:58:11"
+ },
+ "north-west/2": {
+  "attempts": 1,
+  "clip": [
+   "attack_1b",
+   "death"
+  ],
+  "depth": true,
+  "job": "9bccea70-570b-4a53-a804-932a8d4efa15",
+  "seed": 108,
+  "status": "processing",
+  "submitted": "2026-09-26T03:37:11"
+ },
+ "north-west/3": {
+  "attempts": 1,
+  "clip": [
+   "sprint",
+   "attack_1a"
+  ],
+  "depth": false,
+  "job": "aed6cd6a-52ad-4ddf-9eef-bff89bce6a5a",
+  "status": "processing",
+  "submitted": "2026-09-26T03:37:44"
+ },
+ "north-west/4": {
+  "attempts": 1,
+  "clip": [
+   "shoot",
+   "attack_2"
+  ],
+  "depth": false,
+  "job": "4540b719-b8f4-479d-ac1e-53eddb6aba04",
+  "status": "processing",
+  "submitted": "2026-09-26T03:38:18"
+ },
+ "north-west/5": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_1",
+   "attack_3"
+  ],
+  "depth": false,
+  "job": "46f62094-9bd3-45b7-8284-265b790b33c5",
+  "status": "processing",
+  "submitted": "2026-09-26T03:41:02"
+ },
+ "north-west/6": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_2",
+   "attack_2h_4"
+  ],
+  "depth": false,
+  "job": "9cc238c0-2162-439b-8e90-1507fbe2394c",
+  "status": "processing",
+  "submitted": "2026-09-26T03:41:56"
+ },
+ "north-west/7": {
+  "attempts": 1,
+  "clip": [
+   "attack_2h_3"
+  ],
+  "depth": false,
+  "job": "7c4fc5b2-8188-45a8-9cb2-4c99588379fe",
+  "status": "processing",
+  "submitted": "2026-09-26T03:42:31"
+ },
+ "north/0": {
   "attempts": 1,
   "clip": [
    "idle",
    "dash"
   ],
   "depth": false,
-  "job": "3345eb82-856d-4b89-88fb-a1a50ae6975b",
+  "job": "18025536-8616-47cc-be9b-55da25d91d89",
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:44:01"
  },
- "north-west/1": {
+ "north/1": {
   "attempts": 1,
   "clip": [
    "walk",
    "hurt"
   ],
   "depth": false,
-  "job": "36b9d68f-fea9-4ade-9e46-a936ba2307bf",
+  "job": "ad6d8032-6662-4e64-b3d8-9db13edbf837",
   "status": "processing",
-  "submitted": "2026-09-26T02:57:52"
+  "submitted": "2026-09-26T03:47:12"
  },
  "south-east/0": {
   "attempts": 1,
@@ -289,15 +377,15 @@
   "submitted": "2026-09-26T03:23:05"
  },
  "south-west/6": {
-  "attempts": 1,
+  "attempts": 2,
   "clip": [
    "attack_2h_2",
    "attack_2h_4"
   ],
   "depth": false,
-  "job": "2ad93215-014e-4301-8a68-05ef82fdeb95",
+  "job": "aab30d18-a921-4664-ad37-c99dceb7d73e",
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:39:31"
  },
  "south-west/7": {
   "attempts": 1,
@@ -305,8 +393,9 @@
    "attack_2h_3"
   ],
   "depth": false,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_light\\clip7\\south-west",
   "job": "12b4a62a-107e-4135-a0c1-dcbc4fb4edbb",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T03:31:31"
  },
  "south/0": {
@@ -408,15 +497,15 @@
   "submitted": "2026-09-26T02:30:06"
  },
  "west/0": {
-  "attempts": 1,
+  "attempts": 2,
   "clip": [
    "idle",
    "dash"
   ],
   "depth": false,
-  "job": "ae1b8ee9-92b4-4314-b1b0-f43402d7afef",
+  "job": "f6a61590-4259-473a-b532-a05acab56099",
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:40:44"
  },
  "west/1": {
   "attempts": 1,
@@ -444,15 +533,15 @@
   "submitted": "2026-09-26T02:40:51"
  },
  "west/3": {
-  "attempts": 1,
+  "attempts": 2,
   "clip": [
    "sprint",
    "attack_1a"
   ],
   "depth": false,
-  "job": "e0cef595-366d-4b33-b724-0efe7a773ddb",
+  "job": "625c54c3-d31d-4783-99bd-035b5398651a",
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:42:53"
  },
  "west/4": {
   "attempts": 1,
@@ -468,27 +557,27 @@
   "submitted": "2026-09-26T02:42:13"
  },
  "west/5": {
-  "attempts": 1,
+  "attempts": 2,
   "clip": [
    "attack_2h_1",
    "attack_3"
   ],
   "depth": true,
-  "job": "b383e1e6-7b9e-4d98-b000-9f9fdf723b40",
+  "job": "a7f4c428-a3a0-42eb-a4c3-61ba96f32794",
   "seed": 108,
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:42:54"
  },
  "west/6": {
-  "attempts": 1,
+  "attempts": 2,
   "clip": [
    "attack_2h_2",
    "attack_2h_4"
   ],
   "depth": false,
-  "job": "c039d53f-00b9-4d27-b181-a07374af2563",
+  "job": "505ece0c-76a6-44d7-8ae9-570b26d40446",
   "status": "processing",
-  "submitted": "2026-09-26T03:31:31"
+  "submitted": "2026-09-26T03:43:27"
  },
  "west/7": {
   "attempts": 1,
@@ -496,8 +585,9 @@
    "attack_2h_3"
   ],
   "depth": false,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_light\\clip7\\west",
   "job": "41e29ff8-e422-42cf-ab3a-9e16f88b3dda",
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T03:31:31"
  }
 }

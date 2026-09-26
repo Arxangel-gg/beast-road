@@ -51,6 +51,10 @@ STALE_MINUTES = 120         # a job the queue has held this long is resubmitted 
 # running batch touches this file every round; another refuses while it is fresh.
 LOCK = os.path.join(HERE, "ledger", ".batch.lock")
 LOCK_FRESH_SECONDS = 180
+# PixelLab under load refuses jobs it never drew ("Generation failed due to
+# heavy load"), unbilled. Counted as tries, two of those gave a job up for good
+# on a busy afternoon; they are waited out instead and cost no try.
+LOAD_BACKOFF_SECONDS = 300
 
 
 def _take_lock(layer: str) -> None:
@@ -289,6 +293,8 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                 continue
             if len(in_flight) >= MAX_IN_FLIGHT or not submit:
                 break
+            if entry.get("retry_after", 0) > time.time():
+                continue
             if entry.get("attempts", 0) >= 2:
                 print("giving up on %s after two failures: %s" % (key, entry.get("error")))
                 pending.remove((facing, c))
@@ -347,8 +353,14 @@ def _run_pending(layer: str, spec: dict, ledger: dict, pending: list, submit: bo
                     pending = [p for p in pending if "%s/%d" % p != key]
                     print("completed", key)
             elif status["status"] == "failed":
-                entry.update(status="failed", error=str(status.get("last_response"))[:200])
-                print("failed", key, entry["error"])
+                why = str(status.get("last_response"))[:200]
+                if "heavy load" in why:
+                    entry.update(status="failed", error=why, attempts=max(entry.get("attempts", 1) - 1, 0),
+                                 retry_after=time.time() + LOAD_BACKOFF_SECONDS)
+                    print("refused under load, waiting", key)
+                else:
+                    entry.update(status="failed", error=why)
+                    print("failed", key, entry["error"])
             save_ledger(layer, ledger)
 
 
