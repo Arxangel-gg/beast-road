@@ -34,6 +34,8 @@ import rig
 BARE_REACH = 0.13
 # How far past the wrist the hand reaches, as a share of the forearm.
 HAND_REACH = 0.45
+# Where a boot begins, as a share of the way from the knee to the ankle.
+BOOT_TOP = 0.4
 # The neck continues into the tunic's open collar, this share of the way to
 # the hips, so the skin in the V is the neck's.
 COLLAR_REACH = 0.22
@@ -94,11 +96,16 @@ def _bones(joints: dict) -> tuple:
         shoulder, elbow, wrist = joints[side + " SHOULDER"], joints[side + " ELBOW"], joints[side + " ARM"]
         hand = (wrist[0] + (wrist[0] - elbow[0]) * HAND_REACH, wrist[1] + (wrist[1] - elbow[1]) * HAND_REACH)
         bare += [(shoulder, elbow), (elbow, wrist), (wrist, hand)]
-        # The shins alone: the boots are the only thing below the belt painted
-        # in skin's colours - the trousers are grey - and a thigh competing
-        # took the near hand in every profile, where it hangs over the thigh.
+        # The boots alone: they are the only thing below the belt painted in
+        # skin's colours - the trousers are grey - so what competes is the shin
+        # from where a boot begins. A thigh competing took the near hand in
+        # every profile, where it hangs over the thigh; the whole shin took the
+        # fingertips, because the camera looks down and a far knee in profile
+        # projects up to the height of the hand (owner, 2026-09-26: "a little
+        # bit of the hands still left out").
         knee, ankle = joints[side + " KNEE"], joints[side + " LEG"]
-        legs += [(knee, ankle)]
+        top = (knee[0] + (ankle[0] - knee[0]) * BOOT_TOP, knee[1] + (ankle[1] - knee[1]) * BOOT_TOP)
+        legs += [(top, ankle)]
     return bare, legs
 
 

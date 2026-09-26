@@ -159,10 +159,11 @@
    "attack_3"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_base\\clip5\\north-east",
   "job": "f075392f-2f85-4550-9d22-9da0dfafee69",
   "ref": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\refs\\male_base\\alt\\north-east.png",
   "seed": 108,
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:18:08"
  },
  "north-east/6": {
@@ -671,9 +672,10 @@
    "death"
   ],
   "depth": true,
+  "folder": "E:\\Arxangel\\GameDev\\BeastRoad\\tools\\warden_rig\\cache\\male_base\\clip2\\west",
   "job": "ee0b74fc-11f4-4f9b-89ad-0361f80f5ebb",
   "seed": 108,
-  "status": "processing",
+  "status": "completed",
   "submitted": "2026-09-26T01:16:15"
  },
  "west/3": {
