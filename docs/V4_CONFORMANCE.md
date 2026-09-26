@@ -139,6 +139,6 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Key rebinding | all actions | `class:KeyBindings` |
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
 | Controller parity | every screen focusable | `manual` — `pad_focus_check` walks the focus ring of 15 screens, the main menu, the pause menu and the settings. Not walked: the co-op screen (it opens network requests) and the Hold (it adopts the menu's buttons); joining by typed room code needs a keyboard on a pad |
-| 60 FPS at 1920x1080 | on minimum spec | `manual` — provisional targets in `MINIMUM_SPEC.md` remain **unverified**: nothing has been run on a machine of that class |
+| 60 FPS at 1920x1080 | on minimum spec | `manual` — provisional targets in `MINIMUM_SPEC.md` remain **unverified**: nothing has been run on a machine of that class. Read 2026-09-26: Act X at its peak holds 78 fps at 1080p on the RTX 3070 Ti, and the owner measured a 2019 phone at 60 fps on the Minimal preset (2026-09-25). Neither is the declared minimum, an integrated-GPU desktop on Low; that reading is still owed |
 | No placeholder or orphan assets | manifest clean | `gate:res://tools/run_tool.gd -- report` |
 | Night playable at minimum brightness | readability under load — `night_check.tscn` measures it, but needs a renderer so it cannot run on a headless runner | `manual` |
