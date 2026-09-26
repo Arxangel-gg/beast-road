@@ -496,6 +496,9 @@ func compose_welcome() -> Array:
 	facts.append([CoopRelay.Fact.WORLD_CLOCK,
 		[RunState.distance_travelled, RunState.weather_id, RunState.act]])
 	facts.append([CoopRelay.Fact.PHASE_CHANGED, [int(RunState.phase), int(RunState.phase)]])
+	# The party's augment hand, so a guest back after a drop holds what the
+	# host holds rather than the hand it had when it fell away.
+	facts.append([CoopRelay.Fact.AUGMENT_HAND, CoopRelay.augment_hand_args()])
 	for id: String in RunState.CURRENCIES:
 		facts.append([CoopRelay.Fact.CURRENCY_CHANGED, [id, RunState.currency(id)]])
 	var battlefield := field as Battlefield

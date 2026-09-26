@@ -501,7 +501,72 @@ const OMEN_OFFER_COUNT: int = 3
 ## effect key on top of that (`RunState.take_road_card`), the most a hand can
 ## ever be worth is five cards on five different numbers. [TUNE]
 const ROAD_CARD_OFFER_COUNT: int = 3
-const ROAD_CARD_HAND: int = 5
+## **Eight since augments (2026-09-26)**, up from five: the deck is dealt on
+## every road rank now, and a card taken twice levels rather than stacks, so the
+## hand is where a run's build lives rather than a handful of refusals. The
+## bound is unchanged in kind - one card per effect key, one keystone - and in
+## size it is eight numbers at their levelled ceiling. [TUNE]
+const ROAD_CARD_HAND: int = 8
+
+## **Augments** (owner request, 2026-09-26; `docs/SKILL_TREE_REWORK_2026-09-26.md`
+## section 8). A card that moves a fraction levels I to V when it is taken again,
+## its magnitude multiplied by this table and held under the ceiling. A card that
+## moves a whole number, and a keystone, is taken once. [TUNE]
+const AUGMENT_MAX_LEVEL: int = 5
+const AUGMENT_LEVEL_SCALE: Array[float] = [1.0, 1.7, 2.3, 2.8, 3.2]
+const AUGMENT_LEVELLED_CEILING: float = 0.80
+## A card that helps by making something *smaller* - a price, a blow taken, a
+## cooldown - is held under a lower ceiling, because a cost taken toward nothing
+## is a different game rather than a stronger one. [TUNE]
+const AUGMENT_LEVELLED_COST_CEILING: float = 0.45
+
+## **The road rank**, the run's own level: road experience from every kill on
+## the road, a rank at a time, each rank dealing a draft. A rank costs
+## `ROAD_RANK_BASE + ROAD_RANK_STEP * rank` kills' worth, so they come quickly at
+## the start of a road and more slowly as it goes on, and all of it resets with
+## the road. Measured: about eight ranks across Act I. [TUNE]
+const ROAD_RANK_BASE: float = 20.0
+const ROAD_RANK_STEP: float = 5.0
+## What a kill is worth to the rank, by what was killed. A body is one; the
+## things that are harder to kill are worth more. [TUNE]
+const ROAD_XP_BODY: float = 1.0
+const ROAD_XP_CAMP: float = 2.0
+const ROAD_XP_CHAMPION: float = 3.0
+const ROAD_XP_ELITE: float = 5.0
+const ROAD_XP_BOSS: float = 20.0
+
+## How often each rarity is dealt, by `RoadCardData.Rarity`, before luck and
+## lean. [TUNE]
+const AUGMENT_RARITY_WEIGHTS: Array[float] = [60.0, 26.0, 10.0, 3.2, 0.8]
+## **A clean wave is luck**: every wave the wall is not struck lifts the odds of
+## anything above Common by this share per rarity step, to a cap, and the next
+## draft taken spends it. [TUNE]
+const AUGMENT_LUCK_PER_CLEAN_WAVE: float = 0.12
+const AUGMENT_LUCK_CAP: int = 8
+## **Lean**: the deck weighs toward the tags the Warden already holds - in the
+## hand and in the Disciplines - by this share per shared tag, so a synergy can
+## be built on purpose. [TUNE]
+const AUGMENT_LEAN_PER_TAG: float = 0.35
+## A held card's next level weighs this much more than a card not held. [TUNE]
+const AUGMENT_HELD_WEIGHT: float = 1.4
+## Keystones in a draft, against an ordinary card of their rarity. [TUNE]
+const AUGMENT_KEYSTONE_WEIGHT: float = 0.4
+## **The tools against luck.** Rerolls and banishes a road starts with, and the
+## most rerolls it may hold; skipping a draft banks one. [TUNE]
+const AUGMENT_REROLLS_START: int = 2
+const AUGMENT_REROLLS_MAX: int = 6
+const AUGMENT_BANISHES_START: int = 2
+## **Holdfast**: every this many waves cleared, a Tempering - one held card of
+## the player's choosing gains a level. [TUNE]
+const AUGMENT_HOLDFAST_WAVES: int = 8
+## The rarity floor each source deals at, by `RoadCardData.Rarity`. A floor
+## above what the deck holds falls back a step at a time. [TUNE]
+const AUGMENT_FLOOR_RANK: int = 0
+const AUGMENT_FLOOR_BOSS: int = 2
+const AUGMENT_FLOOR_CAMP: int = 0
+const AUGMENT_FLOOR_RAID: int = 1
+const AUGMENT_FLOOR_RIFT: int = 1
+const AUGMENT_FLOOR_MYTHIC: int = 3
 
 ## The largest a single card's magnitude may be, for keys read as a fraction.
 ##

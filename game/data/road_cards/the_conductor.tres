@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 1
+tags = Array[String](["Storm", "Tower"])
 effect_id = "chain_targets"
 effect_magnitude = 1.0
 rarity = 2

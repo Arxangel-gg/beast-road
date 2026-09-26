@@ -191,6 +191,9 @@ enum Fact {
 	## act it opens at, a line describing it, and the seconds to answer in.
 	PARTY_RUN_OFFER = 83,
 	WORLD_HAZARD = 84,
+	## **The party's augment hand** (2026-09-26, co-op phase A): the ids, their
+	## levels, the banished and the road rank, whole, whenever any of it moves.
+	AUGMENT_HAND = 85,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -327,7 +330,11 @@ enum Request {
 ##
 ## Kept deliberately short. Everything absent from it is an event, and a guest
 ## originating an event is exactly what the guard exists to catch.
-const ANNOUNCEMENT_FACTS: Array[int] = [Fact.TOWN_HEALTH, Fact.CURRENCY_CHANGED]
+## The augment hand is here because a guest applies the crossroad's draft
+## locally as well as being told the host's hand, and the take announces the
+## hand it made - the same hand the host is about to send.
+const ANNOUNCEMENT_FACTS: Array[int] = [Fact.TOWN_HEALTH, Fact.CURRENCY_CHANGED,
+	Fact.AUGMENT_HAND]
 
 ## Facts **either** player may author, and therefore either player may receive.
 ##
@@ -537,6 +544,8 @@ func _fact_bindings() -> Array:
 		["coop_relic_chosen", _on_coop_relic_chosen],
 		["coop_omen_chosen", _on_coop_omen_chosen],
 		["coop_road_card_chosen", _on_coop_road_card_chosen],
+		["augment_hand_changed", _on_augment_hand_changed],
+		["road_rank_gained", _on_road_rank_gained],
 		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
@@ -757,6 +766,33 @@ func _on_coop_omen_chosen(omen_id: String) -> void:
 
 func _on_coop_road_card_chosen(card_id: String, dropped: String) -> void:
 	_relay(Fact.ROAD_CARD_CHOSEN, [card_id, dropped])
+
+
+## **The party's hand, whole** (augments, co-op phase A). The host drafts for
+## the party, so the hand travels as what it is - ids, levels, the banished and
+## the rank - and a guest holds exactly the host's hand rather than replaying
+## takes it might have missed.
+func _on_augment_hand_changed() -> void:
+	_relay(Fact.AUGMENT_HAND, augment_hand_args())
+
+
+## A rank changes nothing in the hand, but the guest's bar shows it.
+func _on_road_rank_gained(_rank: int) -> void:
+	_relay(Fact.AUGMENT_HAND, augment_hand_args())
+
+
+## The hand as it crosses the wire: plain arrays, so a typed one never meets a
+## decoder that does not know its type.
+static func augment_hand_args() -> Array:
+	var ids: Array = []
+	var levels: Array = []
+	for id: String in RunState.road_cards:
+		ids.append(id)
+		levels.append(RunState.card_level(id))
+	var banished: Array = []
+	for id: String in RunState.augment_banished:
+		banished.append(id)
+	return [ids, levels, banished, RunState.road_rank]
 
 
 func _on_coop_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
@@ -1339,6 +1375,11 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WORLD_HAZARD:
 			if args.size() == 2 and args[1] is Dictionary:
 				bus.coop_world_hazard.emit(String(args[0]), args[1] as Dictionary)
+		Fact.AUGMENT_HAND:
+			if args.size() == 4 and args[0] is Array and args[1] is Array \
+					and args[2] is Array:
+				bus.coop_augment_hand.emit(args[0] as Array, args[1] as Array,
+					args[2] as Array, int(args[3]))
 		Fact.EARTHQUAKE:
 			if args.size() == 2:
 				# Three and four both arrive: a build that predates the ground

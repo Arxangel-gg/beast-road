@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 1
+tags = Array[String](["Fire", "Tower"])
 effect_id = "burn_damage"
 effect_magnitude = 0.26
 rarity = 1

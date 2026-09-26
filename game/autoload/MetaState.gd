@@ -958,6 +958,14 @@ var settings: Dictionary = {
 	"screen_flash": 1.0,
 	"damage_number_density": 1.0,
 	"beast_gait": 0.65,
+	# **Missing from here until 2026-09-26**, so the Blood effects toggle saved
+	# and reverted on every launch - the fourth setting this dictionary has
+	# dropped. On by default, as every reader already assumed.
+	"blood_vfx": true,
+	# Whether an augment draft opens the moment it is earned, holding the road,
+	# or waits for the breather (2026-09-26). Solo only; off by default, so a
+	# fight is never interrupted unless the player asked for it.
+	"augment_at_once": false,
 	# The layout new roads are laid on (2026-09-23). Declared here or it is
 	# dropped on load and every choice reverts to Classic on the next launch.
 	"map_mode": MapModes.CLASSIC,

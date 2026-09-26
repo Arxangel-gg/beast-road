@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 1
+tags = Array[String](["Town", "Ward"])
 effect_id = "town_max_hp"
 effect_magnitude = 0.22
 rarity = 2

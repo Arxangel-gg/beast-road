@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 1
+tags = Array[String](["Tower", "Economy"])
 effect_id = "build_cost"
 effect_magnitude = -0.14
 rarity = 1

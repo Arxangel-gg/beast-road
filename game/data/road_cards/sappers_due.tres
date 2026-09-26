@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_data")
+branch = 1
+tags = Array[String](["Trap"])
 id = "sappers_due"
 display_name = "Sapper's Due"
 effect_id = "keystone_sappers_due"

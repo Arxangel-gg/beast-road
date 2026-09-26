@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 2
+tags = Array[String](["Economy"])
 effect_id = "kill_resources"
 effect_magnitude = 0.4
 rarity = 2

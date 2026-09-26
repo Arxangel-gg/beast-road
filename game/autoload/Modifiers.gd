@@ -165,7 +165,8 @@ func rebuild() -> void:
 		_add_omen(ContentDB.omens.get(omen_id, null) as OmenData)
 	# And the hand, into the same table for the same reason.
 	for card_id: String in RunState.road_cards:
-		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData)
+		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData,
+			RunState.card_level(card_id))
 	# And what the Warden wears. A legendary affix is a relic the player found
 	# on a sword rather than in a boss's chest, and it lands where a relic
 	# lands - so a tower asking for `tower_damage` gets one number.
@@ -287,12 +288,13 @@ func _add(relic: RelicData) -> void:
 	_totals[relic.effect_id] = float(_totals.get(relic.effect_id, 0.0)) + relic.effect_magnitude
 
 
-## One Road Card. No halves: a card's price is the hand slot it occupies.
-func _add_card(card: RoadCardData) -> void:
+## One Road Card, at the level it has grown to. No halves: a card's price is the
+## hand slot it occupies.
+func _add_card(card: RoadCardData, level: int = 1) -> void:
 	if card == null or card.effect_id.is_empty():
 		return
 	_totals[card.effect_id] = float(_totals.get(card.effect_id, 0.0)) \
-		+ card.effect_magnitude
+		+ card.magnitude_at(level)
 
 
 ## Both halves of a portent, cost first.

@@ -20,6 +20,8 @@ const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume
 const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"
 const BLOOD_VFX_KEY: String = "blood_vfx"
+## Whether an augment draft opens the moment it is earned (2026-09-26).
+const AUGMENT_AT_ONCE_KEY: String = "augment_at_once"
 
 ## Two more comfort scales, added 2026-09-16 out of the forwarded accessibility
 ## notes (#182-#195), and put here rather than in `Graphics` because the shake
@@ -100,6 +102,12 @@ static func value(key: String, fallback: Variant = null) -> Variant:
 
 static func number(key: String, fallback: float) -> float:
 	return float(MetaState.settings.get(key, fallback))
+
+
+## Whether an augment draft opens the moment it is earned rather than at the
+## breather. Solo only: on a shared road a draft never holds the party's field.
+static func augment_at_once() -> bool:
+	return bool(value(AUGMENT_AT_ONCE_KEY, false))
 
 
 ## The interface size, clamped - a save may hold anything.

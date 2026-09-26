@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 0
+tags = Array[String](["Stagger"])
 effect_id = "knockback"
 effect_magnitude = 0.26
 rarity = 1

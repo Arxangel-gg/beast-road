@@ -376,6 +376,8 @@ var _stamina_bar: ProgressBar
 var _stamina_low: bool = false
 var _blink_clock: float = 0.0
 var _xp_band: Control
+## The road rank's progress, drawn along the top of the experience band.
+var _road_line: ColorRect
 var _xp_bar: ProgressBar
 var _xp_label: Label
 var _wounds_label: Label
@@ -728,6 +730,11 @@ func _ready() -> void:
 	EventBus.hero_winded.connect(_on_hero_winded)
 	EventBus.hero_wounds_changed.connect(_on_hero_wounds_changed)
 	EventBus.hero_xp_changed.connect(_on_hero_xp_changed)
+	EventBus.road_xp_changed.connect(_on_road_rank_changed)
+	EventBus.road_rank_gained.connect(_on_road_rank_changed)
+	EventBus.augment_hand_changed.connect(_on_road_rank_changed)
+	EventBus.augment_offer_changed.connect(_on_road_rank_changed)
+	EventBus.augment_queued.connect(_on_augments_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
 	EventBus.wave_started.connect(_on_wave)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
@@ -4561,6 +4568,20 @@ func _build_xp_bar() -> void:
 	_xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_xp_band.add_child(_xp_bar)
 
+	# **The road rank's progress** along the top edge of the band, in gold (augments,
+	# 2026-09-26): the run's own level, drawn on the account's without taking a row
+	# of its own from a bottom band every phone shape is already measured against.
+	_road_line = ColorRect.new()
+	_road_line.name = "RoadRank"
+	_road_line.color = Color("f2c96b")
+	_road_line.anchor_left = 0.0
+	_road_line.anchor_top = 0.0
+	_road_line.anchor_right = 0.0
+	_road_line.anchor_bottom = 0.0
+	_road_line.offset_bottom = 3.0
+	_road_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_band.add_child(_road_line)
+
 	_xp_label = _label("LEVEL 1  ·  0 / 17 XP", 12)
 	_xp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -4972,19 +4993,34 @@ func _on_hero_xp_changed(_current: float, _needed: float, _level_number: int) ->
 	_refresh_xp_bar()
 
 
+func _on_road_rank_changed(_value: Variant = null) -> void:
+	_refresh_xp_bar()
+
+
+func _on_augments_changed(_source: String = "", _waiting: int = 0) -> void:
+	_refresh_xp_bar()
+
+
 func _refresh_xp_bar() -> void:
 	if _xp_bar == null or _xp_label == null:
 		return
+	if _road_line != null:
+		_road_line.anchor_right = clampf(RunState.road_xp
+			/ RunState.road_rank_cost(RunState.road_rank), 0.0, 1.0)
+	var road: String = "   ·   ROAD RANK %d" % RunState.road_rank
+	var waiting: int = RunState.augments_waiting()
+	if waiting > 0:
+		road += "  ·  %d AUGMENT%s" % [waiting, "" if waiting == 1 else "S"]
 	if RunState.hero_level >= Balance.HERO_MAX_LEVEL:
 		_xp_bar.max_value = 1.0
 		_xp_bar.value = 1.0
-		_xp_label.text = "LEVEL %d  ·  MAX" % RunState.hero_level
+		_xp_label.text = "LEVEL %d  ·  MAX%s" % [RunState.hero_level, road]
 		return
 	var needed: float = RunState.hero_xp_for_level(RunState.hero_level)
 	_xp_bar.max_value = maxf(needed, 1.0)
 	_xp_bar.value = RunState.hero_xp
-	_xp_label.text = "LEVEL %d  ·  %d / %d XP" % [RunState.hero_level,
-		int(floor(RunState.hero_xp)), int(ceil(needed))]
+	_xp_label.text = "LEVEL %d  ·  %d / %d XP%s" % [RunState.hero_level,
+		int(floor(RunState.hero_xp)), int(ceil(needed)), road]
 
 
 ## Touch changes the metrics of the controls themselves, not the CanvasLayer.

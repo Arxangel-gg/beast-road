@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_data")
+branch = 0
+tags = Array[String](["Fire", "Finisher"])
 id = "tinderstrike"
 display_name = "Tinderstrike"
 effect_id = "keystone_tinderstrike"

@@ -39,6 +39,11 @@ var _scope: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
 ## rather than silently leaving a frozen battlefield behind.
 var _locked: bool = false
 
+## **Augment drafts** (2026-09-26). Put off with Later until the next
+## Preparation, and whether this run froze the field to open one at once.
+var _augments_put_off: bool = false
+var _augment_froze_field: bool = false
+
 ## The party's conversation before a raid or a rift, in co-op. See
 ## `PartyEvents`.
 var party_events: PartyEvents = null
@@ -130,6 +135,10 @@ func _ready() -> void:
 	EventBus.coop_road_chosen.connect(_on_coop_road_chosen)
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
 	EventBus.road_card_taken.connect(_on_road_card_taken)
+	crossroad_ui.augment_closed.connect(_on_augment_closed)
+	EventBus.augment_queued.connect(_on_augment_queued)
+	EventBus.road_rank_gained.connect(_on_road_rank_gained)
+	EventBus.phase_changed.connect(_on_phase_for_augments)
 	# The sheet docks over the left of the screen, which is where part of the
 	# plot ring is. The town slides out from under it rather than the sheet
 	# shrinking; `run` wires it because it owns both and the scope must not hold
@@ -238,6 +247,7 @@ func _ready() -> void:
 
 
 func _process_measured(delta: float) -> void:
+	_offer_banked_augments()
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	# **The clock waits out the grace.** The owner's own reading of it:
@@ -246,6 +256,12 @@ func _process_measured(delta: float) -> void:
 	# of their thirty. The clock holds at full and the sheets refuse to open,
 	# and then both start together.
 	if RunState.build_grace_left() > 0.0:
+		EventBus.preparation_changed.emit(_preparation_left, true)
+		return
+	# **And it waits while an augment is chosen**, playing alone: a draft read
+	# against a clock is a draft taken in a hurry. A shared road keeps its clock -
+	# the party is not held for one player's cards.
+	if _augment_holds_the_clock():
 		EventBus.preparation_changed.emit(_preparation_left, true)
 		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
@@ -1224,6 +1240,7 @@ func _enter_wave_breather(wave: int) -> bool:
 	RunState.arm_build_grace()
 	RunState.begin_preparation_trade()
 	_breather_after_wave = wave
+	_augments_put_off = false
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
 	journey.stop()
@@ -1290,6 +1307,7 @@ func _enter_preparation(initial: bool) -> void:
 	_breather = false
 	RunState.begin_preparation_trade()
 	_breather_after_wave = RunState.wave_number
+	_augments_put_off = false
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
 	journey.stop()
@@ -1489,6 +1507,80 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 ## not a decision. Frozen here and only let go by the card closing, and only if
 ## it was this that froze it - so a card that somehow opened over a field
 ## already held does not thaw it on the way out.
+# --- Augments ---------------------------------------------------------------------------------
+
+## **A banked draft opens when the road gives the player a moment**: any
+## Preparation on the field, once the build grace has passed - so a button
+## released at the end of a swing cannot press a card - and only on the machine
+## that drafts.
+func _offer_banked_augments() -> void:
+	if crossroad_ui == null or Coop.is_guest() or RunState.walking or _locked:
+		return
+	if _augments_put_off or RunState.augments_waiting() <= 0:
+		return
+	if not RunState.is_preparation() or RunState.build_grace_left() > 0.0:
+		return
+	if _scope != GameDirector.Scope.BATTLEFIELD or crossroad_ui.is_open() \
+			or battlefield.is_suspended():
+		return
+	crossroad_ui.open_augment_draft()
+
+
+func _augment_holds_the_clock() -> bool:
+	return crossroad_ui != null and crossroad_ui.is_augment_open() \
+		and not Coop.is_networked()
+
+
+func _on_augment_closed() -> void:
+	# Closed with drafts still banked is Later: they wait for the next breather.
+	_augments_put_off = RunState.augments_waiting() > 0
+	if _augment_froze_field:
+		_augment_froze_field = false
+		battlefield.resume()
+
+
+## **At once, if the player asked for it**: the field holds and the draft opens
+## the moment it is earned, the Megabonk way. Alone only, on the field, in a
+## fight - a draft earned anywhere else waits for the next Preparation.
+func _on_augment_queued(_source: String, _waiting: int) -> void:
+	if not UserSettings.augment_at_once() or Coop.is_networked() or RunState.walking:
+		return
+	# Deferred: a draft is earned inside a death, and the field is not frozen
+	# from the middle of one of its own bodies dying.
+	_open_augment_at_once.call_deferred()
+
+
+func _open_augment_at_once() -> void:
+	if crossroad_ui == null or crossroad_ui.is_open() or _locked:
+		return
+	if _scope != GameDirector.Scope.BATTLEFIELD or not RunState.is_command_combat():
+		return
+	if battlefield.is_suspended() or RunState.augments_waiting() <= 0:
+		return
+	battlefield.suspend()
+	_augment_froze_field = true
+	if not crossroad_ui.open_augment_draft():
+		_augment_froze_field = false
+		battlefield.resume()
+
+
+## A fight starting closes a draft left open over the breather; it stays banked.
+func _on_phase_for_augments(_phase: int, _previous: int) -> void:
+	if crossroad_ui == null or _augment_froze_field:
+		return
+	if RunState.is_command_combat() and crossroad_ui.is_augment_open():
+		crossroad_ui.close_augment_draft()
+
+
+func _on_road_rank_gained(rank: int) -> void:
+	var hero: Hero = battlefield.hero if battlefield != null else null
+	if hero == null or not is_instance_valid(hero) or _scope != GameDirector.Scope.BATTLEFIELD:
+		return
+	Vfx.word(hero.global_position + Vector2(0.0, -96.0), "ROAD RANK %d" % rank,
+		Color("f2c96b"), 26)
+	Sfx.play("sfx_ui_confirm", 1.0)
+
+
 func _on_wayside_reached(encounter_id: String, title: String) -> void:
 	var encounter: WaysideData = ContentDB.wayside(encounter_id)
 	if encounter == null or _locked:

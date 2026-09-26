@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_data")
+branch = 1
+tags = Array[String](["Frost", "Tower"])
 id = "cold_snap"
 display_name = "Cold Snap"
 effect_id = "keystone_cold_snap"

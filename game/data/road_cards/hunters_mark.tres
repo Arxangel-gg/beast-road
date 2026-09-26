@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_data")
+branch = 0
+tags = Array[String](["Mark", "Tower"])
 id = "hunters_mark"
 display_name = "Hunter's Mark"
 effect_id = "keystone_hunters_mark"

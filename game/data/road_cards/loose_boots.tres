@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 0
+tags = Array[String](["Movement"])
 effect_id = "hero_speed"
 effect_magnitude = 0.08
 rarity = 0

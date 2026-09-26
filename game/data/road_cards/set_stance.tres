@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 0
+tags = Array[String](["Finisher"])
 effect_id = "hero_damage"
 effect_magnitude = 0.14
 rarity = 1

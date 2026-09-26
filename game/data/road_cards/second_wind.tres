@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 0
+tags = Array[String](["Movement"])
 effect_id = "dash_cooldown"
 effect_magnitude = -0.22
 rarity = 2

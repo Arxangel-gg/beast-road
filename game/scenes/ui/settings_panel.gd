@@ -161,6 +161,7 @@ func _build() -> void:
 	game.add_child(_number_density_row())
 	game.add_child(_gait_row())
 	game.add_child(_blood_vfx_row())
+	game.add_child(_augment_draft_row())
 	game.add_child(_separator())
 	game.add_child(_map_mode_row())
 	game.add_child(_separator())
@@ -399,6 +400,30 @@ func _blood_vfx_row() -> HBoxContainer:
 		UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, on)
 		button.text = "On" if on else "Off"
 		IconKit.on_button(button, "upgrade" if on else "close", 22)
+		_queue_save())
+	row.add_child(button)
+	return row
+
+
+## **When an augment draft opens** (2026-09-26): at the breather, or the moment
+## it is earned with the road held for it - the Megabonk way. Solo only.
+func _augment_draft_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Augment drafts")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+	var button := Button.new()
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.button_pressed = UserSettings.augment_at_once()
+	button.text = "At once" if button.button_pressed else "At the breather"
+	button.tooltip_text = ("At once holds the road while you choose, the moment a draft "
+		+ "is earned. At the breather banks them until the wave is done. Playing "
+		+ "alone only - a shared road never stops for one player's draft.")
+	button.toggled.connect(func(on: bool) -> void:
+		UserSettings.set_value(UserSettings.AUGMENT_AT_ONCE_KEY, on)
+		button.text = "At once" if on else "At the breather"
 		_queue_save())
 	row.add_child(button)
 	return row

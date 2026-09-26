@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+branch = 0
+tags = Array[String](["Ward"])
 effect_id = "enemy_damage"
 effect_magnitude = -0.16
 rarity = 2

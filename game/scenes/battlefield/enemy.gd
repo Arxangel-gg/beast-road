@@ -3259,6 +3259,23 @@ func glance_off(from: Vector2) -> void:
 	Vfx.spark(combat_origin(), Color(0.9, 0.97, 1.0), 6, -away, 170.0)
 
 
+## **What this kill is worth to the road rank** (augments, 2026-09-26): a body
+## is one, and what is harder to bring down is worth more. A count rather than
+## the health the Warden's own experience is paid in, so the rank is a measure
+## of the road survived and a late act does not deal drafts faster than an
+## early one.
+func road_xp_worth() -> float:
+	if data != null and data.category == EnemyData.Category.BOSS:
+		return Balance.ROAD_XP_BOSS
+	if rank == Rank.ELITE or (data != null and data.category == EnemyData.Category.ELITE):
+		return Balance.ROAD_XP_ELITE
+	if rank == Rank.CHAMPION:
+		return Balance.ROAD_XP_CHAMPION
+	if is_camp_mob():
+		return Balance.ROAD_XP_CAMP
+	return Balance.ROAD_XP_BODY
+
+
 func _on_died(_from: Vector2) -> void:
 	_enter(State.DYING, 0.0)
 	_death_left = Balance.ENEMY_DEATH_FADE
@@ -3294,6 +3311,7 @@ func _on_died(_from: Vector2) -> void:
 	if is_camp_mob():
 		payout *= Balance.CAMP_XP_SCALE
 	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
+	RunState.gain_road_xp(road_xp_worth())
 	_drop_loot()
 	_drop_gear()
 	_drop_blueprint()

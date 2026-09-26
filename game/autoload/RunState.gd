@@ -38,6 +38,44 @@ var road_cards: Array[String] = []
 
 ## The three on offer at this crossroad, or empty.
 var pending_road_cards: Array[String] = []
+
+## **Augments** (2026-09-26, `docs/SKILL_TREE_REWORK_2026-09-26.md` section 8).
+##
+## Each held card's level, I to V, by id. A card missing from this is at level
+## one, which is what a hand assembled by a harness, or a front banked before
+## levels existed, reads as.
+var road_card_levels: Dictionary = {}
+
+## **The road rank**, the run's own level bar: every kill pays road experience
+## and each rank deals a draft. Never the Warden's account level, and it goes
+## with the road.
+var road_rank: int = 0
+var road_xp: float = 0.0
+
+## Drafts earned and not yet opened, oldest first, each `{source, floor}`. A
+## draft banks rather than interrupting a fight; the breather opens them.
+var augment_queue: Array[Dictionary] = []
+
+## The draft on the table - the cards dealt and where they came from - or
+## empty. Kept here rather than on the screen, so a panel closed by a crossroad
+## or a wave loses nothing and the same cards come back.
+var augment_offer: Array[String] = []
+var augment_offer_source: String = ""
+
+## The tools against luck, spent from the road.
+var augment_rerolls: int = 0
+var augment_banishes: int = 0
+## Cards banished from the deck for the rest of the road.
+var augment_banished: Array[String] = []
+## Clean waves banked toward the next draft's odds.
+var augment_luck: int = 0
+## Waves cleared toward the next Tempering.
+var augment_waves_toward_tempering: int = 0
+## Camps that have dealt their draft this act, as "act:lane:tier" - so a camp
+## that comes back is a fight again and never a second draft.
+var augment_camps_drafted: Array[String] = []
+## The wall's hit count when the wave began, so a clean wave can be told.
+var _augment_wave_hits: int = 0
 var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
@@ -457,6 +495,17 @@ func _ready() -> void:
 	EventBus.coop_last_scar_resolved.connect(_on_coop_last_scar_resolved)
 	# A Mansion raised may open a slot an act early (ruling R6).
 	EventBus.construction_completed.connect(_on_construction_completed)
+	# **What the road pays in drafts** (augments, 2026-09-26). Kept here beside
+	# the hand rather than in a battlefield system, for the reason the shared XP
+	# arrives here: a boss, a raid or a rift can end with no field standing.
+	EventBus.boss_defeated.connect(_on_boss_for_augments)
+	EventBus.camp_cleared.connect(_on_camp_for_augments)
+	EventBus.raid_ended.connect(_on_raid_for_augments)
+	EventBus.rift_stage_cleared.connect(_on_rift_for_augments)
+	EventBus.wildlife_killed.connect(_on_wildlife_for_augments)
+	EventBus.wave_started.connect(_on_wave_for_augments)
+	EventBus.wave_cleared.connect(_on_wave_cleared_for_augments)
+	EventBus.coop_augment_hand.connect(_on_coop_augment_hand)
 
 
 ## The host earned experience, so this player earns the same amount.
@@ -552,6 +601,19 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	pending_omens.clear()
 	road_cards.clear()
 	pending_road_cards.clear()
+	road_card_levels = {}
+	road_rank = 0
+	road_xp = 0.0
+	augment_queue = []
+	augment_offer = []
+	augment_offer_source = ""
+	augment_rerolls = Balance.AUGMENT_REROLLS_START
+	augment_banishes = Balance.AUGMENT_BANISHES_START
+	augment_banished = []
+	augment_luck = 0
+	augment_waves_toward_tempering = 0
+	augment_camps_drafted = []
+	_augment_wave_hits = 0
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
@@ -2092,7 +2154,18 @@ func gain_kill_resources(base_amount: int) -> void:
 ## real thing rather than a copy of it.
 func take_road_card(card_id: String, drop: String = "") -> String:
 	var card: RoadCardData = ContentDB.road_card(card_id)
-	if card == null or road_cards.has(card_id):
+	if card == null:
+		return ""
+	# **Taking a held card levels it** (augments, 2026-09-26). A card that moves a
+	# fraction grows I to V; one at its last level, or one that moves a whole
+	# number of things, cannot be taken again.
+	if road_cards.has(card_id):
+		var level: int = card_level(card_id)
+		if level >= card.max_level():
+			return ""
+		road_card_levels[card_id] = level + 1
+		Modifiers.rebuild()
+		EventBus.augment_hand_changed.emit()
 		return ""
 	var replaced: String = ""
 	# **One keystone in a hand** (2026-09-25): a second replaces the first,
@@ -2114,11 +2187,275 @@ func take_road_card(card_id: String, drop: String = "") -> String:
 		if not road_cards.has(drop):
 			return ""
 		replaced = drop
+	var inherited: int = 1
 	if not replaced.is_empty():
+		# **A better card for a key already held keeps the levels the old one
+		# grew.** Rarity is an upgrade path and so are levels; if taking the
+		# better card cost the levels, it would be the worse pick.
+		var old: RoadCardData = ContentDB.road_card(replaced)
+		if old != null and old.effect_id == card.effect_id:
+			inherited = card_level(replaced)
 		road_cards.erase(replaced)
+		road_card_levels.erase(replaced)
 	road_cards.append(card_id)
+	road_card_levels[card_id] = clampi(inherited, 1, card.max_level())
 	Modifiers.rebuild()
+	EventBus.augment_hand_changed.emit()
 	return replaced
+
+
+## The level a held card has grown to, or 0 for a card not in the hand.
+func card_level(card_id: String) -> int:
+	if not road_cards.has(card_id):
+		return 0
+	return maxi(1, int(road_card_levels.get(card_id, 1)))
+
+
+## Every tag the Warden already holds - on the cards in the hand and on the
+## Disciplines learned - so the deck can lean toward a build being made.
+func augment_lean_tags() -> Array[String]:
+	var tags: Array[String] = []
+	for held: String in road_cards:
+		var card: RoadCardData = ContentDB.road_card(held)
+		if card == null:
+			continue
+		for tag: String in card.tags:
+			if not tags.has(tag):
+				tags.append(tag)
+	for id: String in learned_disciplines():
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null:
+			continue
+		for tag: String in node.tags:
+			if not tags.has(tag):
+				tags.append(tag)
+	return tags
+
+
+## Road experience a road rank costs, from the rank being left.
+static func road_rank_cost(rank: int) -> float:
+	return Balance.ROAD_RANK_BASE + Balance.ROAD_RANK_STEP * float(maxi(rank, 0))
+
+
+## **The road rank grows.** Every kill on the road pays into it, and each rank it
+## crosses banks a draft. The host keeps the party's rank; a guest is told it
+## with the hand, and the Walk earns nothing because nothing on it is kept.
+func gain_road_xp(amount: float) -> void:
+	if amount <= 0.0 or walking or Coop.is_guest():
+		return
+	road_xp += amount
+	while road_xp >= road_rank_cost(road_rank):
+		road_xp -= road_rank_cost(road_rank)
+		road_rank += 1
+		EventBus.road_rank_gained.emit(road_rank)
+		queue_augment(Augments.SOURCE_RANK)
+	EventBus.road_xp_changed.emit(road_xp / road_rank_cost(road_rank))
+
+
+## Banks a draft from `source`, dealt when it is opened.
+func queue_augment(source: String) -> void:
+	if walking or Coop.is_guest():
+		return
+	augment_queue.append({"source": source, "floor": Augments.floor_for(source)})
+	EventBus.augment_queued.emit(source, augment_queue.size())
+
+
+## How many drafts wait, counting the one on the table.
+func augments_waiting() -> int:
+	return augment_queue.size()
+
+
+## **Deals the oldest banked draft onto the table**, unless one is already there.
+## A draft the deck cannot fill is turned into a reroll rather than lost, which
+## is what a hand at its last levels meets. Returns whether a draft is on it.
+func deal_next_augment() -> bool:
+	if not augment_offer.is_empty():
+		return true
+	while not augment_queue.is_empty():
+		var entry: Dictionary = augment_queue[0]
+		var source: String = String(entry.get("source", ""))
+		var drawn: Array[String] = Augments.deal_for(source, int(entry.get("floor", 0)))
+		if drawn.is_empty():
+			augment_queue.pop_front()
+			augment_rerolls = mini(augment_rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
+			continue
+		augment_offer = drawn
+		augment_offer_source = source
+		EventBus.augment_offer_changed.emit()
+		return true
+	return false
+
+
+## **Takes one card from the draft on the table.** `drop` is as for
+## `take_road_card`: the card to leave when a new key meets a full hand. A
+## Tempering levels the card named and deals nothing new. Returns whether it was
+## taken; a refusal leaves the draft exactly where it was.
+func resolve_augment(card_id: String, drop: String = "") -> bool:
+	if not augment_offer.has(card_id):
+		return false
+	var held: bool = road_cards.has(card_id)
+	if augment_offer_source == Augments.SOURCE_TEMPERING and not held:
+		return false
+	var before: int = card_level(card_id)
+	take_road_card(card_id, drop)
+	if not road_cards.has(card_id) or (held and card_level(card_id) <= before):
+		return false
+	# The luck a clean road banked is spent on the draft it improved.
+	augment_luck = 0
+	_close_augment_draft()
+	EventBus.augment_taken.emit(card_id, card_level(card_id))
+	return true
+
+
+## **Deals the draft again**, for a reroll. Another three where the deck allows,
+## the same ones back only where it does not.
+func reroll_augment() -> bool:
+	if augment_offer.is_empty() or augment_rerolls <= 0 or augment_queue.is_empty():
+		return false
+	var entry: Dictionary = augment_queue[0]
+	var drawn: Array[String] = Augments.deal_for(augment_offer_source,
+		int(entry.get("floor", 0)), augment_offer)
+	if drawn.is_empty():
+		return false
+	augment_rerolls -= 1
+	augment_offer = drawn
+	EventBus.augment_offer_changed.emit()
+	return true
+
+
+## **Banishes a card for the rest of the road**, and deals its place again. A
+## card in the hand cannot be banished - it would take its own levels with it -
+## and a Tempering deals only what is held, so it has nothing to banish.
+func banish_augment(card_id: String) -> bool:
+	if not augment_offer.has(card_id) or augment_banishes <= 0 \
+			or road_cards.has(card_id) or augment_queue.is_empty() \
+			or augment_offer_source == Augments.SOURCE_TEMPERING:
+		return false
+	augment_banishes -= 1
+	augment_banished.append(card_id)
+	var at: int = augment_offer.find(card_id)
+	var entry: Dictionary = augment_queue[0]
+	var again: Array[String] = Augments.deal_for(augment_offer_source,
+		int(entry.get("floor", 0)), augment_offer, 1)
+	if again.is_empty() or augment_offer.has(again[0]):
+		augment_offer.remove_at(at)
+	else:
+		augment_offer[at] = again[0]
+	if augment_offer.is_empty():
+		_close_augment_draft()
+	EventBus.augment_hand_changed.emit()
+	EventBus.augment_offer_changed.emit()
+	return true
+
+
+## **Passes on a draft**, banking a reroll for a later one.
+func skip_augment() -> bool:
+	if augment_offer.is_empty():
+		return false
+	augment_rerolls = mini(augment_rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
+	_close_augment_draft()
+	return true
+
+
+func _close_augment_draft() -> void:
+	augment_offer = []
+	augment_offer_source = ""
+	if not augment_queue.is_empty():
+		augment_queue.pop_front()
+	EventBus.augment_offer_changed.emit()
+
+
+## A wave began: the wall's count is noted, so the end can tell a clean wave.
+func note_augment_wave_started() -> void:
+	_augment_wave_hits = town_hits_taken
+
+
+## **A wave ended.** A wave the wall was never struck in is luck toward the
+## next draft, and every `AUGMENT_HOLDFAST_WAVES` survived is a Tempering.
+func note_augment_wave_cleared() -> void:
+	if walking or Coop.is_guest():
+		return
+	if town_hits_taken == _augment_wave_hits:
+		augment_luck = mini(augment_luck + 1, Balance.AUGMENT_LUCK_CAP)
+	_augment_wave_hits = town_hits_taken
+	augment_waves_toward_tempering += 1
+	if augment_waves_toward_tempering >= Balance.AUGMENT_HOLDFAST_WAVES:
+		augment_waves_toward_tempering = 0
+		queue_augment(Augments.SOURCE_TEMPERING)
+
+
+func _on_boss_for_augments(_boss_id: String, _act: int) -> void:
+	queue_augment(Augments.SOURCE_BOSS)
+
+
+func _on_camp_for_augments(lane: int, tier: int) -> void:
+	note_camp_augment(lane, tier)
+
+
+## A raid brought something back: a partial extraction counts, a death does not.
+func _on_raid_for_augments(reward: Dictionary) -> void:
+	if not bool(reward.get("died", false)):
+		queue_augment(Augments.SOURCE_RAID)
+
+
+func _on_rift_for_augments(_stage: int, _stages: int) -> void:
+	queue_augment(Augments.SOURCE_RIFT)
+
+
+## A legend of the trail, brought down. The rarest thing on the road deals the
+## rarest draft.
+func _on_wildlife_for_augments(kind_id: String, _food: int, _at: Vector2,
+		_rarity: int, _shiny: bool, _grave: bool) -> void:
+	var kind: WildlifeData = ContentDB.wildlife_kind(kind_id)
+	if kind != null and kind.mythic:
+		queue_augment(Augments.SOURCE_MYTHIC)
+
+
+func _on_coop_augment_hand(ids: Array, levels: Array, banished: Array, rank: int) -> void:
+	if Coop.is_guest():
+		adopt_augment_hand(ids, levels, banished, rank)
+
+
+func _on_wave_for_augments(_wave: int, _lanes: Array) -> void:
+	note_augment_wave_started()
+
+
+func _on_wave_cleared_for_augments(_wave: int) -> void:
+	note_augment_wave_cleared()
+
+
+## A camp fell. It deals a draft once an act, so one that comes back is a fight
+## again and never a second draft. Returns whether it dealt.
+func note_camp_augment(lane: int, tier: int) -> bool:
+	var key: String = "%d:%d:%d" % [act, lane, tier]
+	if augment_camps_drafted.has(key) or walking or Coop.is_guest():
+		return false
+	augment_camps_drafted.append(key)
+	queue_augment(Augments.SOURCE_CAMP)
+	return true
+
+
+## **The host's hand, as a guest holds it** (co-op phase A: one hand for the
+## party, drafted by the host). Applied whole rather than as a take, so a
+## guest's hand cannot drift from the host's by a missed message.
+func adopt_augment_hand(ids: Array, levels: Array, banished: Array, rank: int) -> void:
+	road_cards = []
+	road_card_levels = {}
+	for index: int in ids.size():
+		var id: String = String(ids[index])
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card == null or road_cards.has(id) or road_cards.size() >= Balance.ROAD_CARD_HAND:
+			continue
+		road_cards.append(id)
+		var level: int = int(levels[index]) if index < levels.size() else 1
+		road_card_levels[id] = clampi(level, 1, card.max_level())
+	augment_banished = []
+	for id: Variant in banished:
+		if ContentDB.road_card(String(id)) != null:
+			augment_banished.append(String(id))
+	road_rank = maxi(rank, 0)
+	Modifiers.rebuild()
+	EventBus.augment_hand_changed.emit()
 
 
 ## True when taking a new-key card would cost the player one they hold.

@@ -340,6 +340,22 @@ signal road_card_taken(card_id: String, dropped: String)
 ## The other player kept one - on the host's say-so.
 signal coop_road_card_chosen(card_id: String, dropped: String)
 
+## **Augments** (2026-09-26). The hand changed - a card taken, levelled, left or
+## banished. The co-op host relays the whole hand on it.
+signal augment_hand_changed()
+## A draft was earned and banked; `waiting` is how many are banked now.
+signal augment_queued(source: String, waiting: int)
+## A card was taken from a draft, at the level it now holds.
+signal augment_taken(card_id: String, level: int)
+## The draft on the table changed: dealt, rerolled, banished from, or closed.
+signal augment_offer_changed()
+## The road rank rose. Each rank deals a draft.
+signal road_rank_gained(rank: int)
+## Road experience moved; `share` is how far through the current rank it is.
+signal road_xp_changed(share: float)
+## The host's hand, as a guest applies it (co-op phase A: the party's hand).
+signal coop_augment_hand(ids: Array, levels: Array, banished: Array, rank: int)
+
 ## An omen was read, and the road is worse and better for the rest of the run.
 signal omen_taken(omen_id: String)
 

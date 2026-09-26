@@ -25,6 +25,10 @@ signal homecoming_decided(go_home: bool)
 ## The party turned for home at an ordinary fork rather than at an act's end.
 signal extraction_chosen()
 
+## An augment draft closed - taken, skipped, or put off till later. The run lets
+## the field go on it if it was the one that held it.
+signal augment_closed()
+
 ## Whether the fork offers the road home at all, and what it pays. Set by the
 ## run before it opens the screen, because whether a return may be taken is a
 ## fact about the *run* - the host owns the ending, and a headless gate is never
@@ -82,6 +86,13 @@ var _open_segment: int = 0
 ## The row the road cards sit in. Rebuilt per crossroad; relic rewards do not use
 ## it and stay in the column, which is the right shape for a list.
 var _road_row: HBoxContainer = null
+
+## **Whether the table holds an augment draft** (2026-09-26) rather than one of
+## the crossroad's own choices. Set by `open_augment_draft` and dropped by every
+## other door onto the panel.
+var _augment_open: bool = false
+## Banish is armed: the next card pressed leaves the deck rather than the draft.
+var _banishing: bool = false
 var _last_scar_button: Button = null
 
 
@@ -164,6 +175,7 @@ func _ready() -> void:
 
 
 func open(segment_index: int) -> void:
+	_augment_open = false
 	if not RunState.pending_road_relics.is_empty():
 		open_relic_reward(segment_index)
 		return
@@ -452,6 +464,7 @@ func draw_offers(segment_index: int) -> Array[Dictionary]:
 ## Relic Hunt resolves only after its danger has been survived. Present its
 ## authored regional reward before the next road (or the act boss) can begin.
 func open_relic_reward(followup_segment: int = -1) -> void:
+	_augment_open = false
 	# **A card with nothing on it is a dead end**, and a caller guarding is not
 	# the same as the screen being safe - `Run` checks the pool before calling,
 	# and the Guide's own shot tool did not, which is how a "RELIC HUNT COMPLETE"
@@ -508,9 +521,12 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 ## it takes. The border, the name and the ribbon all read from here, so a card
 ## cannot say Rare in one place and look Common in another.
 const RARITY_TINT: Array[Color] = [
-	Color("b8c1bc"), Color("8fd6a4"), Color("8fb6ef"), Color("d8a85f"),
+	Color("b8c1bc"), Color("8fd6a4"), Color("8fb6ef"), Color("c79bf0"), Color("d8a85f"),
 ]
-const RARITY_WORD: Array[String] = ["COMMON", "UNCOMMON", "RARE", "LEGENDARY"]
+## Indexed by `RoadCardData.Rarity`. Epic arrived with augments (2026-09-26); the
+## portents, which have no rarity of their own, wear Legendary.
+const RARITY_WORD: Array[String] = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]
+const RARITY_LEGENDARY: int = 4
 
 ## Portrait, and wide enough for two stat rows without wrapping. Three of these
 ## sit across the panel with room around them.
@@ -999,6 +1015,7 @@ func _entrance_cards() -> Array[Node]:
 ## second flow would be a second place for the co-op handshake to be subtly
 ## wrong. The card leads with the **cost**, because the cost is the decision.
 func open_omen_choice() -> void:
+	_augment_open = false
 	# The same refusal, for the same reason. `Run._offer_omens` will not open on
 	# fewer than three cards; this is what stops a second caller from doing so.
 	if RunState.pending_omens.is_empty():
@@ -1028,7 +1045,7 @@ func open_omen_choice() -> void:
 		# **The cost first.** A portent is a bargain and the bane is the half that
 		# decides it, which is why the card leads with it - the same reasoning the
 		# screen was built under.
-		_play_card(omen.id, omen.display_name, 3, omen.get_sprite_path(),
+		_play_card(omen.id, omen.display_name, RARITY_LEGENDARY, omen.get_sprite_path(),
 			[["Bane", omen.bane_text], ["Boon", omen.boon_text]],
 			omen.portent, _choose_omen.bind(omen.id))
 	_road_row = null
@@ -1041,6 +1058,7 @@ func open_omen_choice() -> void:
 ## pays now, what the next act would pay, and what a fall keeps - so the
 ## decision is made with the numbers in view rather than remembered.
 func open_homecoming(act: int, home_marks: int, next_marks: int, fall_marks: int) -> void:
+	_augment_open = false
 	_road_row = null
 	_relic_followup_segment = -1
 	_buttons.clear()
@@ -1148,6 +1166,7 @@ var _pending_take: String = ""
 ## pair travel, as one request. Sending the take and the drop separately would
 ## have made a disconnect between them leave a hand of four.
 func open_road_card_choice() -> void:
+	_augment_open = false
 	_road_row = null
 	_relic_followup_segment = -1
 	_buttons.clear()
@@ -1170,15 +1189,8 @@ func open_road_card_choice() -> void:
 		var card: RoadCardData = ContentDB.road_card(card_id)
 		if card == null:
 			continue
-		var rows: Array = [[effect_label(card.effect_id),
-			effect_figure(card.effect_id, card.effect_magnitude)]]
-		var replaces: String = _replacement_for(card)
-		if not replaces.is_empty():
-			rows.append(["Replaces", replaces])
-		elif RunState.road_card_hand_is_full():
-			rows.append(["Hand", "full"])
 		_play_card(card.id, card.display_name, int(card.rarity),
-			card.get_sprite_path(), rows, card.card_text,
+			card.get_sprite_path(), augment_rows(card), card.card_text,
 			_choose_road_card.bind(card.id))
 	_road_row = null
 	_dress_options()
@@ -1226,15 +1238,17 @@ func _choose_road_card(card_id: String) -> void:
 	var card: RoadCardData = ContentDB.road_card(card_id)
 	if card == null:
 		return
-	if RunState.road_card_hand_is_full() and _replacement_for(card).is_empty():
+	if _needs_a_drop(card):
 		_pending_take = card_id
 		_open_drop_choice(card)
 		return
 	_send_road_card(card_id, "")
 
 
-## Stage two: five cards in hand, and one of them is not coming any further.
-func _open_drop_choice(card: RoadCardData) -> void:
+## Stage two: a full hand, and one of the cards is not coming any further.
+## `on_leave` takes the card being kept and the one being left; the crossroad's
+## own draft sends the pair to the party, an augment draft takes it at once.
+func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> void:
 	_buttons.clear()
 	for child: Node in options_box.get_children():
 		child.queue_free()
@@ -1252,14 +1266,20 @@ func _open_drop_choice(card: RoadCardData) -> void:
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other == null:
 			continue
+		var leave: Callable = on_leave if on_leave.is_valid() else _send_road_card
 		var button: Button = _play_card(other.id, other.display_name,
 			int(other.rarity), other.get_sprite_path(),
 			[[effect_label(other.effect_id),
-				effect_figure(other.effect_id, other.effect_magnitude)],
+				effect_figure(other.effect_id,
+					other.magnitude_at(RunState.card_level(other.id)))],
+				["Level", _level_word(other, RunState.card_level(other.id))],
 				["", "LEAVE THIS ONE"]],
-			other.card_text, _send_road_card.bind(_pending_take, held))
+			other.card_text, leave.bind(_pending_take, held))
 		_buttons[held] = button
-		options_box.add_child(button)
+	# `_play_card` seats each card in the row; adding it to the box as well
+	# asked a parented node for a second parent.
+	_road_row = null
+	_dress_options()
 	panel.visible = true
 
 
@@ -1308,6 +1328,214 @@ func accept_road_card_request(card_id: String, drop: String) -> void:
 
 func _on_coop_road_card_chosen(card_id: String, drop: String) -> void:
 	accept_partner_road_card(card_id, drop)
+
+
+# --- Augments -------------------------------------------------------------------------------
+
+## What each source is called on the table, by `Augments.SOURCE_*`.
+const AUGMENT_TITLES: Dictionary = {
+	"rank": "ROAD RANK %s",
+	"boss": "THE BOSS'S SPOILS",
+	"camp": "WHAT THE CAMP HELD",
+	"raid": "WHAT THE RAID BROUGHT BACK",
+	"rift": "WHAT THE RIFT GAVE UP",
+	"mythic": "WHAT THE LEGEND LEFT",
+	"tempering": "TEMPERING",
+}
+const BRANCH_WORD: Array[String] = ["Warden", "Rampart", "Hearth"]
+
+
+## **Opens the oldest banked augment draft**, dealing it if it has not been.
+## Returns whether a draft is on the table; with none waiting the panel closes.
+func open_augment_draft() -> bool:
+	if not RunState.deal_next_augment():
+		close_augment_draft()
+		return false
+	_road_row = null
+	_relic_followup_segment = -1
+	_buttons.clear()
+	_sent_pointer = Vector2.ZERO
+	_resolving = false
+	_pending_take = ""
+	_augment_open = true
+	for child: Node in options_box.get_children():
+		child.queue_free()
+	var tempering: bool = RunState.augment_offer_source == Augments.SOURCE_TEMPERING
+	var heading: String = String(AUGMENT_TITLES.get(RunState.augment_offer_source,
+		"AN AUGMENT"))
+	if heading.contains("%s"):
+		heading = heading % RunState.act_numeral(RunState.road_rank)
+	var waiting: int = RunState.augments_waiting()
+	var more: String = "" if waiting <= 1 else "  ·  %d more waiting" % (waiting - 1)
+	if _banishing:
+		title.text = "%s  ·  choose a card to banish for this road" % heading
+	elif tempering:
+		title.text = "%s  ·  one card grows%s" % [heading, more]
+	else:
+		title.text = "%s  ·  keep one%s" % [heading, more]
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = _card_row()
+	_road_row.add_theme_constant_override("separation", 22)
+	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	options_box.add_child(_road_row)
+	for card_id: String in RunState.augment_offer:
+		var card: RoadCardData = ContentDB.road_card(card_id)
+		if card == null:
+			continue
+		_play_card(card.id, card.display_name, int(card.rarity),
+			card.get_sprite_path(), augment_rows(card), card.card_text,
+			_choose_augment.bind(card.id))
+	_road_row = null
+	options_box.add_child(_augment_tools(tempering))
+	_dress_options()
+	panel.visible = true
+	return true
+
+
+## Closes the draft without taking anything from it. It stays banked.
+func close_augment_draft() -> void:
+	var was: bool = _augment_open
+	_augment_open = false
+	_banishing = false
+	if was:
+		panel.visible = false
+		augment_closed.emit()
+
+
+func is_augment_open() -> bool:
+	return _augment_open and is_open()
+
+
+## **What a card does, at the level it would be taken at**, and what it costs
+## the hand. Shared by the crossroad's draft and the augment draft, so a card
+## cannot say one thing at a fork and another after a boss.
+func augment_rows(card: RoadCardData) -> Array:
+	var held: bool = RunState.road_cards.has(card.id)
+	var now: int = RunState.card_level(card.id)
+	var next: int = now + 1 if held else _inherited_level(card)
+	var figure: String = effect_figure(card.effect_id, card.magnitude_at(next))
+	if held:
+		figure = "%s → %s" % [effect_figure(card.effect_id, card.magnitude_at(now)), figure]
+	var rows: Array = [[effect_label(card.effect_id), figure]]
+	if card.max_level() > 1:
+		rows.append(["Level", ("%s → %s" % [RunState.act_numeral(now),
+			RunState.act_numeral(next)]) if held else _level_word(card, next)])
+	rows.append(["Branch", BRANCH_WORD[clampi(int(card.branch), 0, BRANCH_WORD.size() - 1)]])
+	var replaces: String = "" if held else _replacement_for(card)
+	if not replaces.is_empty():
+		rows.append(["Replaces", replaces])
+	elif not held and RunState.road_card_hand_is_full():
+		rows.append(["Hand", "full"])
+	return rows
+
+
+## "II of V" - a card's level against how far it can grow.
+func _level_word(card: RoadCardData, level: int) -> String:
+	if card.max_level() <= 1:
+		return "Once"
+	return "%s of %s" % [RunState.act_numeral(level), RunState.act_numeral(card.max_level())]
+
+
+## The level a new card arrives at: a better card for a key already held keeps
+## the levels the old one grew (`RunState.take_road_card`).
+func _inherited_level(card: RoadCardData) -> int:
+	for held: String in RunState.road_cards:
+		var other: RoadCardData = ContentDB.road_card(held)
+		if other != null and not other.keystone and not card.keystone \
+				and other.effect_id == card.effect_id:
+			return clampi(RunState.card_level(held), 1, card.max_level())
+	return 1
+
+
+## Whether taking this card means choosing one to leave.
+func _needs_a_drop(card: RoadCardData) -> bool:
+	return not RunState.road_cards.has(card.id) and RunState.road_card_hand_is_full() \
+		and _replacement_for(card).is_empty()
+
+
+## Reroll, Banish, Skip and Later, under the cards.
+func _augment_tools(tempering: bool) -> HBoxContainer:
+	var tools := HBoxContainer.new()
+	tools.alignment = BoxContainer.ALIGNMENT_CENTER
+	tools.add_theme_constant_override("separation", 14)
+	var reroll: Button = _tool_button("Reroll  ·  %d" % RunState.augment_rerolls,
+		_reroll_augment)
+	reroll.disabled = RunState.augment_rerolls <= 0
+	reroll.tooltip_text = "Deal this draft again. Skipping a draft banks one."
+	tools.add_child(reroll)
+	var banish: Button = _tool_button("Banish  ·  %d" % RunState.augment_banishes,
+		_arm_banish)
+	banish.toggle_mode = true
+	banish.button_pressed = _banishing
+	banish.disabled = tempering or RunState.augment_banishes <= 0
+	banish.tooltip_text = "Take a card out of the deck for the rest of this road, and deal its place again."
+	tools.add_child(banish)
+	var skip: Button = _tool_button("Skip  ·  +1 reroll", _skip_augment)
+	skip.tooltip_text = "Pass on this draft and bank a reroll for a later one."
+	tools.add_child(skip)
+	var later: Button = _tool_button("Later", close_augment_draft)
+	later.tooltip_text = "Close the draft. It stays banked and opens again at the next breather."
+	tools.add_child(later)
+	return tools
+
+
+func _tool_button(text: String, on_press: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.add_theme_font_size_override("font_size", 18)
+	button.pressed.connect(on_press)
+	return button
+
+
+func _choose_augment(card_id: String) -> void:
+	if _resolving or not _augment_open or not RunState.augment_offer.has(card_id):
+		return
+	if _banishing:
+		_banishing = false
+		RunState.banish_augment(card_id)
+		open_augment_draft()
+		return
+	var card: RoadCardData = ContentDB.road_card(card_id)
+	if card == null:
+		return
+	if RunState.augment_offer_source != Augments.SOURCE_TEMPERING and _needs_a_drop(card):
+		_pending_take = card_id
+		_open_drop_choice(card, _take_augment)
+		return
+	_take_augment(card_id, "")
+
+
+func _take_augment(card_id: String, drop: String) -> void:
+	_pending_take = ""
+	if not RunState.resolve_augment(card_id, drop):
+		open_augment_draft()
+		return
+	# Straight on to the next banked draft, if there is one.
+	if RunState.augments_waiting() > 0:
+		open_augment_draft()
+	else:
+		close_augment_draft()
+
+
+func _reroll_augment() -> void:
+	_banishing = false
+	if RunState.reroll_augment():
+		open_augment_draft()
+
+
+func _arm_banish() -> void:
+	_banishing = not _banishing
+	open_augment_draft()
+
+
+func _skip_augment() -> void:
+	_banishing = false
+	RunState.skip_augment()
+	if RunState.augments_waiting() > 0:
+		open_augment_draft()
+	else:
+		close_augment_draft()
 
 
 func _choose_relic(relic_id: String) -> void:

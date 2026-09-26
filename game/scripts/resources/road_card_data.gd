@@ -38,10 +38,23 @@ extends GameData
 ## `road_card_check` asserts a fresh run deals a fresh hand; cards that survived
 ## into the next run would be an account-level difficulty setting nobody chose.
 
+## **Appended, never inserted**: every card names its rarity by number.
+## Epic and Legendary arrived with augments (2026-09-26).
 enum Rarity {
 	COMMON,
 	UNCOMMON,
 	RARE,
+	EPIC,
+	LEGENDARY,
+}
+
+## Which part of the build a card belongs to - the three branches of the run's
+## tree (2026-09-26). The Warden's own edge; the board, the walls and the traps;
+## the town, the purse and the road.
+enum Branch {
+	WARDEN,
+	RAMPART,
+	HEARTH,
 }
 
 ## `id = "dry_powder"` -> `res://art/icons/road_cards/card_dry_powder.png`
@@ -82,6 +95,39 @@ func get_sprite_path() -> String:
 ## is a road that is telling you something.
 @export_multiline var card_text: String = ""
 
+## Which branch of the run's tree this card grows.
+@export var branch: Branch = Branch.RAMPART
+
+## What the card is about, in the words the Disciplines use too - so the deck can
+## lean toward what the Warden already holds (`Balance.AUGMENT_LEAN_PER_TAG`).
+@export var tags: Array[String] = []
+
+
+## **Whether taking this card again levels it.** Derived rather than authored:
+## a card that moves a fraction levels, while one that moves a whole number of
+## things - a chain target, a wave of warning - and a keystone is taken once.
+## That is `road_card_check`'s own definition of a counted key, read off the
+## number, so there is no second list to fall out of step with the first.
+func levels() -> bool:
+	return not keystone and absf(effect_magnitude) < 1.0
+
+
+func max_level() -> int:
+	return Balance.AUGMENT_MAX_LEVEL if levels() else 1
+
+
+## What the card moves at a level, held under `AUGMENT_LEVELLED_CEILING`.
+func magnitude_at(level: int) -> float:
+	if not levels():
+		return effect_magnitude
+	var table: Array[float] = Balance.AUGMENT_LEVEL_SCALE
+	var scale: float = table[clampi(level - 1, 0, table.size() - 1)]
+	var ceiling: float = Balance.AUGMENT_LEVELLED_COST_CEILING if effect_magnitude < 0.0 \
+		else Balance.AUGMENT_LEVELLED_CEILING
+	# Never below what the card moves at level one, whatever the ceilings say.
+	ceiling = maxf(ceiling, absf(effect_magnitude))
+	return clampf(effect_magnitude * scale, -ceiling, ceiling)
+
 
 ## The cards a given run offers at a given crossroad.
 ##
@@ -102,7 +148,10 @@ static func offer(held: Array, act: int, count: int) -> Array[String]:
 	var keystones: Array[String] = []
 	for id_value: Variant in ContentDB.road_cards:
 		var card: RoadCardData = ContentDB.road_card(String(id_value))
-		if card == null or held.has(card.id) or card.first_act > act:
+		if card == null or card.first_act > act:
+			continue
+		if not Augments.may_deal(card, held, RunState.road_card_levels,
+				RunState.augment_banished):
 			continue
 		# Keystones are dealt apart from the pool - see the end of this.
 		if card.keystone:
