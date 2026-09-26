@@ -803,7 +803,7 @@ func _test_the_field_is_inhabited() -> void:
 		# Swing at it from close by, the way the hero's attack reports itself.
 		var from: Vector2 = animal.global_position - Vector2(40.0, 0.0)
 		for _swing: int in 40:
-			EventBus.hero_swing_resolved.emit(from, Vector2.RIGHT, 200.0, 0)
+			EventBus.hero_swing_resolved.emit(from, Vector2.RIGHT, 200.0, 0, Vfx.worn_kind(), true)
 		hunted = true
 		break
 	if hunted:

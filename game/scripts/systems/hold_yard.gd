@@ -1771,12 +1771,15 @@ func set_seat(index: int, kind: int, who: String, title: String = "") -> void:
 
 ## How a seat's Warden is dyed: this machine's own off the save, a stranger's
 ## as the host said. A simulated seat is the painted Warden.
-func set_look(index: int, row: Array) -> void:
+##
+## `gear` is the four kinds another player wears, as their machine said; this
+## machine's own seat reads its own stash. A guest's gear crosses in its hello
+## beside the dye since 2026-09-26 - it stood in its look alone before that.
+func set_look(index: int, row: Array, gear: Array = []) -> void:
 	if index < 0 or index >= _seats.size():
 		return
-	# This machine's own seat wears its own gear; a guest's is not known in the
-	# Hold, so it stands in its look alone.
-	_dress_seat(index, WardenLook.unpack(row), Hero.worn_kinds() if index == 0 else [])
+	_dress_seat(index, WardenLook.unpack(row),
+		Hero.worn_kinds() if index == 0 else Hero.clean_worn_kinds(gear))
 
 
 ## A seat's own record, so a gate can drive one rather than assert a constant.

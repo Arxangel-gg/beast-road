@@ -824,7 +824,7 @@ func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, co
 ##   weapon's own art now, and the rarity band is only the fallback for art that
 ##   has no colour of its own to give.
 func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: float,
-		texture: Texture2D, tint: Color) -> void:
+		texture: Texture2D, tint: Color, held: Dictionary = {}) -> void:
 	if world == null or texture == null:
 		return
 	var half: float = deg_to_rad(arc_degrees * 0.5)
@@ -865,16 +865,29 @@ func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: flo
 	trail.global_position = at
 
 	var blade := Sprite2D.new()
+	blade.name = "Blade"
 	blade.texture = texture
 	blade.modulate = tint
-	# The icon is drawn on the up-right diagonal, not upright - checked against
-	# the actual sprites rather than assumed. Turning it back by that much makes
-	# the point lead along the radius it rides.
-	blade.rotation = -deg_to_rad(Balance.VFX_BLADE_ART_DEGREES)
-	blade.position = Vector2.RIGHT * radius
 	var longest: float = float(maxi(texture.get_width(), texture.get_height()))
-	if longest > 0.0:
-		blade.scale = Vector2.ONE * (reach * Balance.VFX_BLADE_SIZE / longest)
+	var size: float = reach * Balance.VFX_BLADE_SIZE / longest if longest > 0.0 else 1.0
+	blade.scale = Vector2.ONE * size
+	if not held.is_empty():
+		# **The held picture, grip at the hand and tip leading out.** Drawn
+		# tip-up, so a quarter turn lays it along the radius it rides; the
+		# grip is the origin, and the weapon's middle sits where the icon's
+		# centre did, so the reach it shows has not moved.
+		var grip: Vector2 = held.get("grip", Vector2.ZERO)
+		var length: float = maxf(grip.y - float(held.get("tip", 0.0)), 1.0) * size
+		blade.centered = false
+		blade.offset = -grip
+		blade.rotation = PI * 0.5
+		blade.position = Vector2.RIGHT * maxf(radius - length * 0.5, 0.0)
+	else:
+		# The icon is drawn on the up-right diagonal, not upright - checked
+		# against the actual sprites rather than assumed. Turning it back by that
+		# much makes the point lead along the radius it rides.
+		blade.rotation = -deg_to_rad(Balance.VFX_BLADE_ART_DEGREES)
+		blade.position = Vector2.RIGHT * radius
 	pivot.add_child(blade)
 
 	var tween: Tween = pivot.create_tween()
@@ -1124,16 +1137,40 @@ func worn_signature() -> Dictionary:
 ## Returns a null texture when the slot is empty, which every caller reads as
 ## "draw no blade".
 func _worn_blade() -> Array:
-	var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
-	if piece.is_empty():
-		return [null, Color.WHITE]
-	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-	if kind == null:
-		return [null, Color.WHITE]
+	return _blade_for(worn_kind(), true)
+
+
+## The kind of weapon this machine's Warden wears, or "".
+func worn_kind() -> String:
+	return String(MetaState.equipped_piece(GearData.Slot.WEAPON).get("kind", ""))
+
+
+## A weapon's picture for the sweep, its colour, and where its grip and tip are.
+##
+## **The held picture, not the icon** (2026-09-26). The icon is the inventory's
+## drawing, and the sweep assumed every icon had its point up and to the
+## right; the Tally Knife's is drawn the other way round and swung hilt
+## first. The held picture is the one the Warden's fist closes on, drawn
+## tip-up with its grip measured when it was installed, so which end is the
+## handle is known rather than assumed - and the weapon in the air is the
+## weapon in the hand. The icon remains the fallback for a weapon with no
+## held picture yet.
+func _blade_for(weapon_id: String, own: bool) -> Array:
+	var kind: GearData = ContentDB.gear(weapon_id) if not weapon_id.is_empty() else null
+	if kind == null or kind.slot != GearData.Slot.WEAPON:
+		return [null, Color.WHITE, {}]
+	var colour: Color = Color.WHITE
+	if own:
+		var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+		if String(piece.get("kind", "")) == weapon_id:
+			colour = Stash.rarity_colour(piece)
+	var held: String = WardenDress.held_path(kind)
+	if not held.is_empty():
+		return [load(held) as Texture2D, colour, WardenDress.held_grip(kind)]
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
-		return [null, Color.WHITE]
-	return [load(path) as Texture2D, Stash.rarity_colour(piece)]
+		return [null, Color.WHITE, {}]
+	return [load(path) as Texture2D, colour, {}]
 
 
 ## The bow, shown for the length of one release and then gone.
@@ -1541,14 +1578,16 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 ## actually swung, which fixes a second bug in the same breath - the aim used to
 ## come from the first node in the hero group, and with four heroes on the field
 ## that is whichever one happens to be first.
-func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> void:
+func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int,
+		weapon_id: String = "", own: bool = true) -> void:
 	# The step is told, not inferred. It used to be recovered by matching `reach`
 	# against the range table, which a weapon's own reach scale defeats
 	# completely - every swing would have read as a first step.
 	var index: int = clampi(step, 0, Balance.HERO_ATTACK_ARC_DEGREES.size() - 1)
 	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[index]
 	var finisher: bool = index >= Balance.HERO_CHAIN_LENGTH - 1
-	var blade: Array = _worn_blade()
+	# The swinging Warden's weapon, which on a partner's swing is theirs.
+	var blade: Array = _blade_for(weapon_id, own)
 	var texture := blade[0] as Texture2D
 	# **The wedge only when there is no blade.** It is the area the swing
 	# covered, which is exactly the information the ribbon now carries - and
@@ -1563,8 +1602,11 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> v
 	# The blade's own colour, sampled from its art, with the rarity band kept as
 	# the fallback for a weapon whose icon has nothing to say.
 	blade_sweep(at, aim, reach, arc, texture,
-		blade_tint(texture, (blade[1] as Color).lerp(Color.WHITE, 0.35)))
-	_swing_signature(at, aim, reach, arc, finisher)
+		blade_tint(texture, (blade[1] as Color).lerp(Color.WHITE, 0.35)), blade[2] as Dictionary)
+	# The signature is graded by rarity, which is known only for this
+	# machine's own piece: gear crosses the wire by kind, never by piece.
+	if own:
+		_swing_signature(at, aim, reach, arc, finisher)
 
 
 ## What the worn weapon leaves in the air behind the swing.

@@ -15,7 +15,7 @@ var _refund_asked: float = 0.0
 ## A stand-in hero for the cleanse test: it only has to say it was cleansed.
 const RECORDER_SOURCE: String = "extends Node2D\nvar cleansed: bool = false\nfunc cleanse_disables() -> void:\n\tcleansed = true\n"
 var _blinked_to: Vector2 = Vector2.INF
-const EXPECTED_TESTS: int = 5
+const EXPECTED_TESTS: int = 6
 
 
 func _ready() -> void:
@@ -90,6 +90,7 @@ func _ready() -> void:
 	await _test_the_brand_reaches_the_towers()
 	await _test_the_riders_fire()
 	_test_the_wound_pool_recovers()
+	_test_points_never_leak()
 
 	# **A script error aborts its own function and nothing else.**
 	# This gate printed PASS with three SCRIPT ERRORs above it, because the two
@@ -1044,6 +1045,59 @@ func _test_every_node_can_be_offered() -> void:
 ## the three suggestions still being offered. A stage three that quietly dropped
 ## one of those would pass a test that only looked for the freedom, and the tree
 ## would have become a shopping list on the same day it became a tree.
+## **Skill points cannot leak** (2026-09-26). Driven through the doors a
+## player uses: a run's start, training, a level earned after it, the next
+## run, a respec, and a banked front coming back.
+func _test_points_never_leak() -> void:
+	var saved_level: int = MetaState.hero_level
+	var saved_xp: float = MetaState.hero_xp
+	var saved_points: int = MetaState.hero_skill_points
+	MetaState.hero_level = 10
+	MetaState.hero_xp = 0.0
+	MetaState.hero_skill_points = 0
+	RunState.reset()
+	_check(RunState.hero_skill_points == 2,
+		"a level-10 Warden must start the road with 2 points, not the %d the save said" % RunState.hero_skill_points)
+	RunState.building_tiers["sanctum"] = 3
+	RunState.gain_currency(RunState.FOOD, 9999)
+	var open_now: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
+	if _checked(not open_now.is_empty(), "a built Mansion must have a node to train"):
+		_check(RunState.try_train_discipline(open_now[0].id).is_empty(), "training must succeed")
+		_check(RunState.hero_skill_points == 1, "training must cost the point")
+		var trained: Array[String] = RunState.trained_discipline_nodes.duplicate()
+		# A level after the spend, which is what used to write the spend to the save.
+		RunState.gain_hero_xp(RunState.hero_xp_for_level(RunState.hero_level) + 1.0)
+		_check(RunState.hero_level == 11, "the harness must level the Warden once")
+		_check(MetaState.hero_skill_points == 2,
+			"the save must keep the 2 earned, not the %d left after spending" % MetaState.hero_skill_points)
+		RunState.reset()
+		_check(RunState.hero_skill_points == 2,
+			"the next road must give the point back with the node gone: %d of 2" % RunState.hero_skill_points)
+		RunState.building_tiers["sanctum"] = 3
+		RunState.gain_currency(RunState.FOOD, 9999)
+		_check(RunState.try_train_discipline(open_now[0].id).is_empty(), "training again must succeed")
+		_check(RunState.try_respec_disciplines().is_empty(), "the respec must succeed")
+		_check(RunState.hero_skill_points == 2,
+			"a respec must give back the points it takes the nodes from: %d of 2" % RunState.hero_skill_points)
+		# A banked front brings its nodes back and must charge for them again.
+		RunState.trained_discipline_nodes = trained
+		RunState.recount_skill_points()
+		_check(RunState.hero_skill_points == 1,
+			"a front resumed with one node trained must hold 1 point, not %d" % RunState.hero_skill_points)
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/expedition.gd")
+	var at: int = source.find("static func apply(")
+	var body: String = source.substr(at) if at >= 0 else ""
+	var end: int = body.find("\nstatic func ", 1)
+	body = body.substr(0, end) if end > 0 else body
+	_check(body.contains("recount_skill_points("),
+		"Expedition.apply must count the points again for the nodes it brings back")
+	MetaState.hero_level = saved_level
+	MetaState.hero_xp = saved_xp
+	MetaState.hero_skill_points = saved_points
+	RunState.reset()
+	_finished += 1
+
+
 func _test_the_points_are_spent_freely() -> void:
 	var before_trained: Array[String] = RunState.trained_discipline_nodes.duplicate()
 	var before_slots: Array[String] = RunState.equipped_discipline_slots.duplicate()

@@ -570,6 +570,8 @@ func _physics_process_measured(delta: float) -> void:
 			spells.try_cast(slot, _aim, combat_origin())
 
 	attack.damage_multiplier = damage_multiplier()
+	attack.own_stash = is_local_player()
+	attack.partner_weapon = gear_kinds[0]
 	if combat_input:
 		attack.tick(delta, _aim, combat_origin())
 		spells.tick(delta, _aim, combat_origin())
@@ -1854,6 +1856,22 @@ func wear_look(row: Variant) -> void:
 
 ## This account's own worn gear, by kind, in `DRESS_SLOTS` order: what a guest
 ## tells the party and what a host packs for its own seat.
+## Four worn kinds as another machine said them, cleaned. A kind this build
+## does not know, or one in a slot it was never cut for, is nothing - a packet
+## may hold anything. The one rule for every place a partner's gear arrives:
+## the road, the co-op lobby and the Hold (2026-09-26).
+static func clean_worn_kinds(row: Variant) -> Array[String]:
+	var wanted: Array[String] = ["", "", "", ""]
+	if row is Array:
+		var given: Array = row
+		for index: int in mini(given.size(), DRESS_SLOTS.size()):
+			var kind: String = String(given[index]) if given[index] is String else ""
+			var gear: GearData = ContentDB.gear(kind) if not kind.is_empty() else null
+			if gear != null and gear.slot == DRESS_SLOTS[index]:
+				wanted[index] = kind
+	return wanted
+
+
 static func worn_kinds() -> Array[String]:
 	var out: Array[String] = []
 	for slot: int in DRESS_SLOTS:
@@ -1865,14 +1883,7 @@ static func worn_kinds() -> Array[String]:
 ## build knows in the slot it is named for, or nothing - a packet is not trusted
 ## to put a helmet in the weapon's hand.
 func wear_gear(row: Variant) -> void:
-	var wanted: Array[String] = ["", "", "", ""]
-	if row is Array:
-		var given: Array = row
-		for index: int in mini(given.size(), DRESS_SLOTS.size()):
-			var kind: String = String(given[index]) if given[index] is String else ""
-			var gear: GearData = ContentDB.gear(kind) if not kind.is_empty() else null
-			if gear != null and gear.slot == DRESS_SLOTS[index]:
-				wanted[index] = kind
+	var wanted: Array[String] = clean_worn_kinds(row)
 	if wanted == gear_kinds:
 		return
 	gear_kinds = wanted

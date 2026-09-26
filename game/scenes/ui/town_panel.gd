@@ -930,7 +930,9 @@ func _mansion_slot_picker() -> void:
 func _mansion_tree(tier: int) -> void:
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 4)
-	for which: int in Balance.DISCIPLINE_IDS.size() + 1:
+	# Off the one list of trees, which is what gives the Arcane its button: a
+	# three-entry list in Balance built this row and left it out.
+	for which: int in DisciplineNodeData.DISCIPLINE_NAMES.size() + 1:
 		var index: int = which - 1
 		var tab := Button.new()
 		tab.text = "All" if index < 0 else DisciplineNodeData.DISCIPLINE_NAMES[index]

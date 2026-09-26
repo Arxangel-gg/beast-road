@@ -762,7 +762,7 @@ func _equip_starting_spells() -> void:
 ## The ids remain content, and the existence checks make save migration safe if
 ## a future release replaces either starter.
 func _setup_starting_disciplines() -> void:
-	for id: String in ["hemorrhage_edge", "aegis_step"]:
+	for id: String in STARTING_DISCIPLINES:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if node == null:
 			continue
@@ -772,6 +772,37 @@ func _setup_starting_disciplines() -> void:
 			equipped_discipline_slots[slot] = id
 	_sync_discipline_spells()
 	refresh_discipline_offers()
+	# A run's start and a respec both land here with only the free pair
+	# trained, so every point the level has earned is back.
+	recount_skill_points()
+
+
+## The pair every road begins with, free: they cost no skill point.
+const STARTING_DISCIPLINES: Array[String] = ["hemorrhage_edge", "aegis_step"]
+
+
+## **Skill points are counted, never kept** (2026-09-26).
+##
+## The points belonged to the account and the nodes they bought belonged to
+## the run, so a point spent on a node was written to the save by the next
+## level-up and the node was then cleared when the run ended - lost both
+## ways. The owner's level-100 Warden had earned 20 and held 16. A respec
+## lost them the same way inside one run: it took the nodes back and left
+## the points spent.
+##
+## So what a hero holds is always what the level has earned less what this
+## road has trained beyond the free pair, and the save keeps the earned
+## figure only. There is nothing left to leak.
+func earned_skill_points() -> int:
+	return int(hero_level / Balance.HERO_SKILL_POINT_EVERY)
+
+
+func recount_skill_points() -> void:
+	var spent: int = 0
+	for id: String in trained_discipline_nodes:
+		if not STARTING_DISCIPLINES.has(id):
+			spent += 1
+	hero_skill_points = maxi(earned_skill_points() - spent, 0)
 
 
 func discipline_node_in_slot(slot: int) -> DisciplineNodeData:
@@ -1121,7 +1152,8 @@ func _store_hero() -> void:
 	MetaState.hero_level = hero_level
 	MetaState.hero_xp = hero_xp
 	MetaState.hero_attribute_points = hero_attribute_points
-	MetaState.hero_skill_points = hero_skill_points
+	# The earned figure and never the spent one: see `recount_skill_points`.
+	MetaState.hero_skill_points = earned_skill_points()
 	MetaState.hero_attributes = hero_attributes.duplicate()
 	MetaState.last_tier_id = tier_id
 	MetaState.save_game()

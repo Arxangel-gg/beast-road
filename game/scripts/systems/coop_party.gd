@@ -41,6 +41,11 @@ class Seat extends RefCounted:
 	## degrades to the painted Warden rather than to an empty roster.
 	var look: Array = []
 
+	## The four gear kinds this player wears - weapon, armour, cape, helmet - by
+	## name and never by piece, cleaned by `Hero.clean_worn_kinds`. Beside the
+	## dye and for its reason: the lobby is before the hero state row exists.
+	var gear: Array = []
+
 	func colour() -> Color:
 		return Balance.PARTY_COLOURS[clampi(slot - 1, 0,
 			Balance.PARTY_COLOURS.size() - 1)]
@@ -173,6 +178,7 @@ func open(host_name: String) -> void:
 	# The host declares nothing to itself, so its own dye is read here - without
 	# it the roster it publishes carries three dyes and a painted host.
 	host.look = WardenLook.pack(WardenLook.worn())
+	host.gear = Hero.worn_kinds()
 	_seats[1] = host
 	roster_changed.emit()
 
@@ -208,7 +214,7 @@ func unseat(peer_id: int) -> void:
 
 
 ## Records what a player says they have cleared. Host side.
-func declare(peer_id: int, cleared: int, look: Array = []) -> void:
+func declare(peer_id: int, cleared: int, look: Array = [], gear: Array = []) -> void:
 	for occupant: Variant in _seats.values():
 		var person := occupant as Seat
 		if person != null and person.peer == peer_id:
@@ -216,6 +222,7 @@ func declare(peer_id: int, cleared: int, look: Array = []) -> void:
 			# Cleaned on arrival rather than trusted: a packet may hold anything,
 			# and `unpack` answers the painted Warden for whatever it cannot read.
 			person.look = WardenLook.pack(WardenLook.unpack(look))
+			person.gear = Hero.clean_worn_kinds(gear)
 			roster_changed.emit()
 			return
 
@@ -262,8 +269,9 @@ func to_wire() -> Array:
 		# different games on one socket: the guest reads it and leaves.
 		# The sixth column is that player's dye. Appended, like the two before
 		# it, so an older guest reads a row without one as the painted Warden.
+		# The seventh is their worn gear, appended for the same reason.
 		rows.append([person.slot, person.peer, person.name, person.cleared,
-			build, person.look])
+			build, person.look, person.gear])
 	return rows
 
 
@@ -304,6 +312,7 @@ func _on_roster(rows: Array) -> void:
 		host_build = String(row[4]) if row.size() > 4 else ""
 		person.look = WardenLook.pack(WardenLook.unpack(
 			row[5] if row.size() > 5 else []))
+		person.gear = Hero.clean_worn_kinds(row[6] if row.size() > 6 else [])
 		_seats[number] = person
 		if person.peer == own_peer:
 			_own_slot = number

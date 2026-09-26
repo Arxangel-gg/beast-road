@@ -84,6 +84,7 @@ func _ready() -> void:
 	_test_the_residents_work_at_their_posts()
 	_test_the_seats_are_the_sessions()
 	_test_the_warden_wears_their_own_dye()
+	_test_a_stranger_wears_their_gear()
 	await _test_the_crowd_changes_and_does_things()
 	_test_the_shelf_refreshes_by_rule()
 	_test_buying_never_prints_marks()
@@ -97,7 +98,7 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door"]:
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -752,6 +753,92 @@ func _test_the_warden_wears_their_own_dye() -> void:
 ## and a simulated Warden that has walked to a station must eventually swing.
 ## The errand is driven rather than the constant read: a `doing` written into
 ## the seat and looked at by nobody is the shape this project keeps shipping.
+## **Another player in the Hold wears their gear** (2026-09-26). A guest's
+## hello carried a name, a title, a pen and a dye, so everybody stood in the
+## bare body. Driven through the host's door: the party seats a peer, the
+## session hears its hello, the table goes on the wire, and the yard dresses
+## the figure the session drew.
+func _test_a_stranger_wears_their_gear() -> void:
+	var yard: HoldYard = _stand_a_yard()
+	var session := HoldSession.new()
+	session.yard = yard
+	add_child(session)
+	var party: CoopParty = Coop.party()
+	party.open("Host")
+	var peer: int = 91
+	var slot: int = party.seat(peer, "Somebody")
+	var kinds: Array = four_kinds()
+	var look: Dictionary = WardenLook.plain()
+	# Collected into the array rather than assigned: a lambda captures a local
+	# by value, so assigning to it inside would change nothing out here.
+	var sent: Array = []
+	var listen := func(rows: Array) -> void:
+		sent.clear()
+		sent.append_array(rows)
+	EventBus.hold_seats.connect(listen)
+	session._on_request(CoopRelay.Request.HOLD_HELLO,
+		["Somebody", "Warden", [], false, WardenLook.pack(look), kinds], peer)
+	EventBus.hold_seats.disconnect(listen)
+	var row: Array = sent[slot] if slot < sent.size() else []
+	_check(row.size() > 5 and row[5] == Hero.clean_worn_kinds(kinds),
+		"the Hold's table must carry a guest's gear in its sixth column: %s" % str(row))
+	var figure: int = int(session._figure.get(slot, -1))
+	var animator: HeroAnimator = null
+	if figure > 0:
+		animator = yard.seat_state(figure).get("animator") as HeroAnimator
+	_check(wears(animator, outfit_of(look, kinds)),
+		"the guest's figure in the yard must wear the gear their hello carried")
+	# The guest's side of the same wire, read off the source because a guest
+	# path cannot run offline: the told table is read, and the hello sends it.
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/hold_session.gd")
+	_check(source.contains("_table[index][\"gear\"] = Hero.clean_worn_kinds(fields[5])"),
+		"a guest must read the gear column off the host's table")
+	_check(source.contains("WardenLook.pack(WardenLook.worn()), Hero.worn_kinds()])"),
+		"the hello must carry this machine's gear")
+	party.clear()
+	session.queue_free()
+	yard.queue_free()
+	_reached["stranger_gear"] = true
+
+
+## One real kind for each dressed slot - weapon, armour, cape, helmet - chosen
+## so the outfit they make differs from the bare body's, or a check comparing
+## the two could pass with the gear never arriving.
+static func four_kinds() -> Array:
+	var slots: Array[int] = [GearData.Slot.WEAPON, GearData.Slot.ARMOUR,
+		GearData.Slot.CAPE, GearData.Slot.HELMET]
+	var out: Array = ["", "", "", ""]
+	var ids: Array = ContentDB.gear_kinds.keys()
+	ids.sort()
+	for index: int in slots.size():
+		for id: Variant in ids:
+			var gear: GearData = ContentDB.gear(String(id))
+			if gear == null or gear.slot != slots[index]:
+				continue
+			if index == 0 and WardenDress.held_path(gear).is_empty():
+				continue
+			out[index] = String(id)
+			break
+	return out
+
+
+## The outfit four kinds should make on `look`.
+static func outfit_of(look: Dictionary, kinds: Array) -> Dictionary:
+	var clean: Array[String] = Hero.clean_worn_kinds(kinds)
+	return WardenDress.outfit(look, ContentDB.gear(clean[0]), ContentDB.gear(clean[1]),
+		ContentDB.gear(clean[2]), ContentDB.gear(clean[3]))
+
+
+## Whether a dressed animator wears `expected`, on the keys gear decides.
+static func wears(animator: HeroAnimator, expected: Dictionary) -> bool:
+	if animator == null:
+		return false
+	for key: String in ["held", "body_layer", "cape_layer", "helmet"]:
+		if str(animator._outfit.get(key, "")) != str(expected.get(key, "")):
+			return false
+	return true
+
+
 func _test_the_crowd_changes_and_does_things() -> void:
 	var first: HoldYard = _stand_a_yard()
 	var second: HoldYard = _stand_a_yard()

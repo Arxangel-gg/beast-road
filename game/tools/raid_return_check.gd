@@ -86,7 +86,7 @@ func _ready() -> void:
 	# And the thing a player actually notices: a swing leaves something behind.
 	Vfx.clear()
 	EventBus.hero_swing_resolved.emit(Vector2.ZERO, Vector2.RIGHT,
-		Balance.HERO_ATTACK_RANGE[0], 0)
+		Balance.HERO_ATTACK_RANGE[0], 0, Vfx.worn_kind(), true)
 	for _i: int in 4:
 		await get_tree().process_frame
 	_checked += 1

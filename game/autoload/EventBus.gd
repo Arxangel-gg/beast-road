@@ -257,7 +257,14 @@ signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2, hide: 
 ## against `Balance.HERO_ATTACK_RANGE`, which stopped working the moment a
 ## weapon could scale the reach - the arc silently fell back to the first
 ## step's and the finisher never flashed.
-signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int)
+##
+## **Once a swing** (2026-09-26): the strike runs on every frame of the
+## active window and announced itself on each, so one swing drew a fan of
+## blades and wounded an animal several times over. `weapon_id` is the kind
+## the swinging Warden holds, and `own` whether it is this machine's own - a
+## partner's swing draws their weapon, not this player's.
+signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int,
+	weapon_id: String, own: bool)
 
 ## The host put an animal on the field and gave it an identity.
 ## `shiny` is carried rather than re-rolled. Both machines roll from their own

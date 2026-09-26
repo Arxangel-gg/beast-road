@@ -42,6 +42,8 @@ func _ready() -> void:
 	_test_weapon_art_faces_the_same_way()
 	_test_starting_weapon()
 	await _test_blade_sweep()
+	_test_every_weapon_swings_hilt_first()
+	_test_a_swing_is_announced_once()
 	_test_blade_trail_is_never_degenerate()
 	_test_shadow_casters_are_never_degenerate()
 	_test_blade_tint()
@@ -127,6 +129,79 @@ func _test_weapon_variety() -> void:
 		"every weapon reaches the same distance, so the slot is a stat and not a choice")
 
 
+## **Every weapon swings hilt at the hand, point leading** (2026-09-26).
+## Reported with a screenshot: a knife swung handle-outward. Every weapon kind,
+## as a partner's swing would draw it, measured in world space the moment the
+## sweep begins - before its tween can move or free it.
+func _test_every_weapon_swings_hilt_first() -> void:
+	var checked: int = 0
+	var reach: float = Balance.HERO_ATTACK_RANGE[0]
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind == null or kind.slot != GearData.Slot.WEAPON:
+			continue
+		Vfx.clear()
+		EventBus.hero_swing_resolved.emit(Vector2(300.0, 0.0), Vector2.UP, reach, 0, kind.id, false)
+		var blade: Sprite2D = null
+		for sprite: Sprite2D in _sprites():
+			if sprite.name == &"Blade":
+				blade = sprite
+		if blade == null:
+			_check(false, "%s drew no blade when swung" % kind.id)
+			continue
+		checked += 1
+		var why: String = _hilt_first(blade, kind)
+		_check(why.is_empty(), "%s: %s" % [kind.id, why])
+	Vfx.clear()
+	_check(checked >= 20, "only %d weapons were swung, so the rule is barely held" % checked)
+
+
+## Why a swung blade is not hilt-first and leading, or "" when it is.
+func _hilt_first(blade: Sprite2D, kind: GearData) -> String:
+	var held: Dictionary = WardenDress.held_grip(kind)
+	if held.is_empty():
+		return "has no held picture, so the sweep would fall back to its icon"
+	var pivot := blade.get_parent() as Node2D
+	var radial: Vector2 = Vector2.RIGHT.rotated(pivot.global_rotation)
+	var xform: Transform2D = blade.get_global_transform()
+	var grip: Vector2 = held["grip"]
+	var grip_at: Vector2 = xform * (grip + blade.offset)
+	var tip_at: Vector2 = xform * (Vector2(grip.x, float(held["tip"])) + blade.offset)
+	var out: Vector2 = tip_at - grip_at
+	if out.dot(radial) <= 0.0:
+		return "swings hilt-first: its point is %.0f units nearer the hero than its grip" % -out.dot(radial)
+	var off_by: float = absf(out.angle_to(radial))
+	if off_by > deg_to_rad(12.0):
+		return "does not lead along the radius it rides (off by %.0f deg)" % rad_to_deg(off_by)
+	var from_pivot: float = (grip_at - pivot.global_position).dot(radial)
+	var reach: float = Balance.HERO_ATTACK_RANGE[0]
+	if from_pivot < 0.0 or (tip_at - pivot.global_position).dot(radial) > reach:
+		return "does not sit between the hand and the reach"
+	return ""
+
+
+## **A swing is announced once** (2026-09-26). The strike runs on every frame
+## of the active window and announced itself on each, so one swing drew a fan of
+## blades and wounded an animal once a frame. Driven through a real attack at a
+## 240 Hz tick and at 60, one press each: one swing, one announcement.
+func _test_a_swing_is_announced_once() -> void:
+	for rate: float in [240.0, 60.0]:
+		var attack := HeroAttack.new()
+		add_child(attack)
+		var heard: Array = []
+		var listen := func(_at: Vector2, _aim: Vector2, _reach: float, step: int,
+				_weapon: String, _own: bool) -> void:
+			heard.append(step)
+		EventBus.hero_swing_resolved.connect(listen)
+		attack.request()
+		for _tick: int in int(rate * 1.2):
+			attack.tick(1.0 / rate, Vector2.RIGHT, Vector2.ZERO)
+		EventBus.hero_swing_resolved.disconnect(listen)
+		_check(heard.size() == 1,
+			"one press at %d Hz must announce one swing, announced %d" % [int(rate), heard.size()])
+		attack.queue_free()
+
+
 ## An empty weapon slot still swings. It must not swing a phantom.
 func _test_unarmed_draws_nothing() -> void:
 	MetaState.stash = []
@@ -159,11 +234,11 @@ func _test_blade_sweep() -> void:
 	# blade's whole life, the tween finishes in one step and frees it, and the
 	# gate saw no blade about one run in five. The measured swing is the second,
 	# as a player's is.
-	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0)
+	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0, Vfx.worn_kind(), true)
 	await get_tree().create_timer(0.4).timeout
 	Vfx.clear()
 	await get_tree().process_frame
-	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0)
+	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0, Vfx.worn_kind(), true)
 	await get_tree().process_frame
 
 	var blades: Array[Sprite2D] = _sprites()
@@ -189,13 +264,13 @@ func _test_blade_sweep() -> void:
 	# enough to allow that is loose enough to accept any rotation at all. The
 	# first version of this check compared against the aim, and scored the bug
 	# it was written to catch *better* than the fix.
-	var radial: Vector2 = blade.global_position.normalized()
-	var points: Vector2 = Vector2.RIGHT.rotated(blade.global_rotation
-		+ deg_to_rad(Balance.VFX_BLADE_ART_DEGREES))
-	var off_by: float = absf(points.angle_to(radial))
-	_check(off_by < deg_to_rad(12.0),
-		"the blade must point along the radius it rides, not sit at its art angle (off by %.0f deg)"
-			% rad_to_deg(off_by))
+	# **Hilt at the hand, point leading** (2026-09-26). This compared the blade
+	# against the icon's painted diagonal, which says which way a weapon lies
+	# and not which end is its point - so a knife drawn backwards passed it and
+	# swung hilt-first. The sweep draws the held picture now and the check reads
+	# its grip and tip; `_test_every_weapon_swings_hilt_first` walks them all.
+	var why: String = _hilt_first(blade, kind)
+	_check(why.is_empty(), "%s: %s" % [kind.id, why])
 
 	# The ribbon, not a rope. A `Line2D` along one radius draws the path of a
 	# single point on the blade and reads as something swung on a chain; a

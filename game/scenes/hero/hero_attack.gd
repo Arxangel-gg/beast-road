@@ -35,6 +35,13 @@ signal landed(chain_step: int, targets: int, at: Vector2)
 ## Multiplier applied to every swing, set by the hero from relics and buildings.
 var damage_multiplier: float = 1.0
 
+## Whose weapon this is, set by the hero every tick like the multiplier above.
+## A partner's Warden on this machine swings the weapon its own player wears -
+## the kind arrives over the wire (`Hero.gear_kinds`) - where it used to read
+## this machine's stash and swing with its reach and pace (2026-09-26).
+var own_stash: bool = true
+var partner_weapon: String = ""
+
 ## **How much longer every phase takes**, set by the hero from where it is
 ## standing. One at the ordinary pace; above one is slower.
 ##
@@ -60,6 +67,9 @@ var _swing_origin: Vector2 = Vector2.ZERO
 
 ## Instance ids already hit by the current swing.
 var _hit_ids: Dictionary = {}
+
+## Whether the current swing has been announced. See `_strike`.
+var _announced: bool = false
 
 
 ## Called on click. Never starts a swing directly — the buffer does that, so
@@ -173,6 +183,8 @@ func _swiftness_scale() -> float:
 ## than cached: equipment cannot change mid-combat, so there is nothing to gain
 ## by holding a copy, and a copy is one more thing that can go stale.
 func _weapon() -> GearData:
+	if not own_stash:
+		return ContentDB.gear(partner_weapon) if not partner_weapon.is_empty() else null
 	var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
 	if piece.is_empty():
 		return null
@@ -272,6 +284,7 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 	_buffer_left = 0.0
 	_chain_left = 0.0
 	_hit_ids.clear()
+	_announced = false
 	lunge_requested.emit(_swing_aim, Balance.HERO_ATTACK_LUNGE[_step])
 	# Announced on the swing, not on the hit. Feedback for an action the player
 	# took has to happen even when the action accomplishes nothing.
@@ -383,7 +396,18 @@ func _strike() -> void:
 	# Announced whether or not it connected, and *before* the early return: a
 	# swing that touched no enemy is still a swing, and something small standing
 	# in front of the hero should know about it.
-	EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach, _step)
+	#
+	# **Once.** This function runs on every frame of the active window, so a
+	# body that steps in mid-swing is still hit - and the announcement ran on
+	# every one of those frames too: six at sixty frames a second, eighteen
+	# on a 180 Hz tick. Each drew a blade, a ribbon, motes and a forged hit,
+	# and each wounded an animal in front of the hero. Reported as a fan of
+	# knives (owner, 2026-09-26).
+	if not _announced:
+		_announced = true
+		var held: GearData = _weapon()
+		EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach, _step,
+			held.id if held != null else "", own_stash)
 	# **No Ground Given** is spent by the blow it paid for, whether or not that
 	# blow found anything. A bonus that survived a missed finisher would be a
 	# bonus the player keeps until it is convenient.

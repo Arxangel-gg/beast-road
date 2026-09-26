@@ -268,6 +268,9 @@ static func apply(stored: Dictionary) -> bool:
 	RunState.hero_wounds = 0
 	EventBus.hero_wounds_changed.emit(RunState.hero_wounds,
 		RunState.max_wounds())
+	# The front brought its trained nodes back; the points they cost are
+	# counted against the level again rather than read off the save.
+	RunState.recount_skill_points()
 	Modifiers.rebuild()
 	return true
 

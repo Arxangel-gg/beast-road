@@ -165,7 +165,6 @@ const HERO_DASH_COOLDOWN: float = 4.0
 ## Maximum spells equipped at once (GDD §2, decision 4).
 const HERO_MAX_SPELL_SLOTS: int = 4
 const HERO_ACTIVE_SLOTS: int = 4
-const DISCIPLINE_IDS: Array[String] = ["blood", "holy", "berserk"]
 const DISCIPLINE_MAX_TRAINED: int = 6
 
 # --- Hero levelling ----------------------------------------------------------

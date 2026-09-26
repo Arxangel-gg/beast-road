@@ -36,8 +36,11 @@ var _built: bool = false
 ## player's own, whose dye needs no wire at all. `coop_lobby_check` asserts the
 ## atlas region and the seat colour, and a dyed portrait and a painted one have
 ## identical regions - so nothing could see it.
+##
+## `gear` is the four kinds a partner wears, off the roster; this machine's own
+## card reads its own stash instead (2026-09-26).
 func configure(slot: int, player_name: String, colour: Color,
-		colour_name: String, is_local: bool, look: Array = []) -> void:
+		colour_name: String, is_local: bool, look: Array = [], gear: Array = []) -> void:
 	_ensure_built()
 	_frame = posmod((slot - 1) * 2, _frame_count)
 	_name_label.text = "%s%s" % [player_name, "  ·  you" if is_local else ""]
@@ -51,14 +54,17 @@ func configure(slot: int, player_name: String, colour: Color,
 	var shown: Dictionary = WardenLook.worn() if is_local else WardenLook.unpack(look)
 	WardenLook.dress(_portrait, shown)
 	# Dressed where the body is drawn - the person in the lobby is the person on
-	# the road. Gear only on this machine's own card: a partner's is theirs, and
-	# the lobby is before any wire has carried it.
+	# the road, wearing what they wear. A partner's gear arrives on the roster
+	# beside their dye; it drew the bare body until 2026-09-26.
 	var dressed: bool = WardenDress.available(WardenDress.body_name(shown))
 	_stage.visible = dressed
 	_portrait.visible = not dressed
 	if dressed:
 		_stage.modulate = _portrait.modulate
-		_stage.show_look(shown, is_local)
+		if is_local:
+			_stage.show_look(shown)
+		else:
+			_stage.show_look_wearing(shown, gear)
 
 	var card := StyleBoxFlat.new()
 	card.bg_color = Color(0.025, 0.035, 0.04, 0.96)

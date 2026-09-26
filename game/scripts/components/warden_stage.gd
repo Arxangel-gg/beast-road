@@ -102,6 +102,18 @@ func show_look(look: Dictionary, wearing_gear: bool = true) -> void:
 	var outfit: Dictionary = WardenDress.outfit(look, _worn(GearData.Slot.WEAPON), _worn(GearData.Slot.ARMOUR),
 		_worn(GearData.Slot.CAPE), _worn(GearData.Slot.HELMET)) if wearing_gear \
 		else WardenDress.outfit(look, null, null, null, null)
+	_wear(outfit, look)
+
+
+## Dresses the Warden in `look` wearing another player's gear, as the four
+## kinds their machine said - cleaned here, since they came off a wire.
+func show_look_wearing(look: Dictionary, kinds: Array) -> void:
+	var clean: Array[String] = Hero.clean_worn_kinds(kinds)
+	_wear(WardenDress.outfit(look, ContentDB.gear(clean[0]), ContentDB.gear(clean[1]),
+		ContentDB.gear(clean[2]), ContentDB.gear(clean[3])), look)
+
+
+func _wear(outfit: Dictionary, look: Dictionary) -> void:
 	_animator.dress(outfit)
 	WardenLook.dress(_sprite, look)
 	face(_facing)

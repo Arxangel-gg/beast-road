@@ -72,7 +72,8 @@ func _ready() -> void:
 	_table.resize(Balance.HOLD_SEATS)
 	for index: int in _table.size():
 		_table[index] = {"peer": 0, "name": "", "title": "",
-			"kind": Seat.SIMULATED, "pen": [], "was_public": false, "look": []}
+			"kind": Seat.SIMULATED, "pen": [], "was_public": false, "look": [],
+			"gear": []}
 	EventBus.hold_seats.connect(_on_seats_told)
 	EventBus.hold_moved.connect(_on_moved_told)
 	EventBus.hold_handover.connect(_on_handover_told)
@@ -228,6 +229,7 @@ func _compose() -> void:
 	_table[0]["title"] = MetaState.warden_title()
 	_table[0]["pen"] = MetaState.pen
 	_table[0]["look"] = WardenLook.pack(WardenLook.worn())
+	_table[0]["gear"] = Hero.worn_kinds()
 	var slot: int = 1
 	for peer: int in multiplayer.get_peers():
 		if slot >= _table.size():
@@ -250,7 +252,8 @@ func _publish_table() -> void:
 	var rows: Array = []
 	for seat: Dictionary in _table:
 		rows.append([int(seat["kind"]), String(seat["name"]), String(seat["title"]),
-			_species_of(seat.get("pen", []) as Array), seat.get("look", []) as Array])
+			_species_of(seat.get("pen", []) as Array), seat.get("look", []) as Array,
+			seat.get("gear", []) as Array])
 	EventBus.hold_seats.emit(rows)
 
 
@@ -275,6 +278,8 @@ func _on_seats_told(rows: Array) -> void:
 			_table[index]["pen"] = _roster_from(String(fields[1]), fields[3] as Array)
 		if fields.size() > 4 and fields[4] is Array and index != _mine:
 			_table[index]["look"] = WardenLook.pack(WardenLook.unpack(fields[4]))
+		if fields.size() > 5 and fields[5] is Array and index != _mine:
+			_table[index]["gear"] = Hero.clean_worn_kinds(fields[5])
 	_draw_table()
 
 
@@ -285,6 +290,7 @@ func _on_seats_told(rows: Array) -> void:
 func my_look_changed() -> void:
 	if _mine >= 0 and _mine < _table.size():
 		_table[_mine]["look"] = WardenLook.pack(WardenLook.worn())
+		_table[_mine]["gear"] = Hero.worn_kinds()
 	if yard != null:
 		yard.set_look(0, WardenLook.pack(WardenLook.worn()))
 	if Coop.is_host():
@@ -315,7 +321,7 @@ func _draw_table() -> void:
 		_figure[index] = next
 		yard.set_seat(next, kind, String(seat["name"]), String(seat["title"]))
 		yard.set_pen(next, seat.get("pen", []) as Array)
-		yard.set_look(next, seat.get("look", []) as Array)
+		yard.set_look(next, seat.get("look", []) as Array, seat.get("gear", []) as Array)
 		next += 1
 	seats_changed.emit()
 
@@ -391,6 +397,8 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 				_table[slot]["was_public"] = bool(args[3])
 			if args.size() > 4 and args[4] is Array:
 				_table[slot]["look"] = WardenLook.pack(WardenLook.unpack(args[4]))
+			if args.size() > 5 and args[5] is Array:
+				_table[slot]["gear"] = Hero.clean_worn_kinds(args[5])
 			_publish_table()
 			_draw_table()
 			note.emit("%s walked in." % String(_table[slot]["name"]))
@@ -419,7 +427,7 @@ func introduce() -> void:
 		# but which of them gets asked first.
 		line.request(CoopRelay.Request.HOLD_HELLO,
 			[_my_name(), MetaState.warden_title(), _species_of(MetaState.pen),
-				is_public(), WardenLook.pack(WardenLook.worn())])
+				is_public(), WardenLook.pack(WardenLook.worn()), Hero.worn_kinds()])
 
 
 ## **A pen on the wire is a list of species and nothing else.**

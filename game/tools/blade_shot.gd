@@ -34,8 +34,9 @@ func _ready() -> void:
 	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[0]
 	var last: float = Balance.HERO_ATTACK_RANGE[Balance.HERO_CHAIN_LENGTH - 1]
 	var last_arc: float = Balance.HERO_ATTACK_ARC_DEGREES[Balance.HERO_CHAIN_LENGTH - 1]
-	EventBus.hero_swing_resolved.emit(at, Vector2.RIGHT, reach, 0)
-	EventBus.hero_swing_resolved.emit(finisher, Vector2.RIGHT.rotated(-0.6), last, 2)
+	EventBus.hero_swing_resolved.emit(at, Vector2.RIGHT, reach, 0, Vfx.worn_kind(), true)
+	EventBus.hero_swing_resolved.emit(finisher, Vector2.RIGHT.rotated(-0.6), last, 2,
+		Vfx.worn_kind(), true)
 	var frame: int = 0
 	var out_dir: String = OS.get_environment("SHOT_DIR")
 	if out_dir.is_empty():
