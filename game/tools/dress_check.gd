@@ -216,6 +216,20 @@ func _test_drawn_bodies_are_whole() -> void:
 					"%s %s sheet is %dx%d for %d frames of %s" % [body, state, sheet.get_width(),
 						sheet.get_height(), frames, cell])
 				_drawn_cells_are_whole(body, state, sheet_path, frames, cell)
+			# Every armour and cape layer installed for this body is a whole
+			# body the game swaps in on the base's own cells, so it is held to
+			# the base's shape frame for frame. A layer is installed whole or
+			# not at all, so an installed one missing a state is a fault.
+			for layer: String in _worn_layers_of(body):
+				var layer_path: String = WardenDress.DRESS_DIR + layer + "/" + state + ".png"
+				_check(ResourceLoader.exists(layer_path), "%s is installed with no %s sheet" % [layer, state])
+				if not ResourceLoader.exists(layer_path):
+					continue
+				var worn: Texture2D = load(layer_path) as Texture2D
+				_check(worn.get_width() == int(cell[0]) * frames and worn.get_height() == int(cell[1]) * 8,
+					"%s %s sheet is %dx%d, not the base's %d frames of %s" % [layer, state, worn.get_width(),
+						worn.get_height(), frames, cell])
+				_drawn_cells_are_whole(layer, state, layer_path, frames, cell)
 			var sockets: Dictionary = meta.get("sockets", {})
 			_check(sockets.size() == 8, "%s %s has sockets for %d facings" % [body, state, sockets.size()])
 			_check(float(meta.get("fist", 0.0)) > 0.0,
@@ -225,6 +239,19 @@ func _test_drawn_bodies_are_whole() -> void:
 					"%s %s %s has %d socket rows for %d frames" % [body, state, facing,
 						(sockets[facing] as Array).size(), frames])
 	_reached.append("bodies")
+
+
+## The armour and cape layers installed for a body: every folder named for it
+## but its base, each one a whole body drawn on the base's skeleton.
+func _worn_layers_of(body: String) -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open(WardenDress.DRESS_DIR)
+	if dir == null:
+		return out
+	for folder: String in dir.get_directories():
+		if folder.begins_with(body + "_") and folder != body + "_base" and ResourceLoader.exists(WardenDress.DRESS_DIR + folder + "/idle.png"):
+			out.append(folder)
+	return out
 
 
 ## Every cell a state's meta counts holds a body. An empty cell is a Warden who
