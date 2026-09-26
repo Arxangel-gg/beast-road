@@ -93,6 +93,14 @@ var _with_companion: bool = false
 var _ascension: int = -1
 var _body_scale: float = 0.0
 
+## **Augments** (2026-09-26): whether the road's drafts are modelled, and the
+## bodies killed so far, which is what the road rank is paid in. On by default -
+## an augment level the model does not carry is forbidden, exactly as an
+## ascension rank is - and `--no-augments` prints the road without them, so the
+## size of what the drafts buy can be read as a difference.
+var _with_augments: bool = true
+var _road_kills: float = 0.0
+
 
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
@@ -102,6 +110,8 @@ func _ready() -> void:
 			_ascension = clampi(int(argument.split("=")[1]), 0, Balance.ASCENSION_MAX)
 		elif argument == "--companion":
 			_with_companion = true
+		elif argument == "--no-augments":
+			_with_augments = false
 		# An override, so a scaling value can be swept without editing Balance
 		# and rebuilding an opinion each time. Reporting only - the game always
 		# reads the table.
@@ -197,6 +207,8 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# rather than three. Modelled here as well as banked in `gain_kill_resources`,
 	# or this report would go on reading the flat economy it was what caught.
 	_earned_gold += float(bodies) * _gold_per_body() * Balance.kill_act_scale(act)
+	var dealt: Dictionary = _deal_the_augments_so_far(act, wave)
+	_road_kills += float(bodies)
 	# The hero counts toward the defence now, and has to.
 	#
 	# While the run began with four towers up, leaving the hero out was a
@@ -243,6 +255,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"hp": hp, "damage": damage, "speed": speed,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
+		"rank": int(dealt.get("ranks", 0)), "drafts": int(dealt.get("drafts", 0)),
 	}
 
 
@@ -758,17 +771,17 @@ func _print_table() -> void:
 	print("WILDERHOLD — difficulty curve, %d waves, daylight, best-case spending, %d player%s"
 		% [_rows.size(), _players, "" if _players == 1 else "s"])
 	print("")
-	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat      gold  twr  lvl   capable   pressure  step")
+	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat      gold  twr  lvl  rank draft   capable   pressure  step")
 	var previous: float = 0.0
 	for row: Dictionary in _rows:
 		var pressure: float = float(row["pressure"])
 		var step: String = "" if previous <= 0.0 \
 			else "%+5.0f%%" % ((pressure / previous - 1.0) * 100.0)
-		print("  %4d  %3d  %5d  %4d  %6d  %5.2f %5.2f %5.2f  %9.0f %9.0f  %3d  %3d %9.0f  %9.2f  %s" % [
+		print("  %4d  %3d  %5d  %4d  %6d  %5.2f %5.2f %5.2f  %9.0f %9.0f  %3d  %3d  %4d %5d %9.0f  %9.2f  %s" % [
 			row["wave"], row["act"], row["lanes"], row["per_lane"], row["bodies"],
 			row["hp"], row["damage"], row["speed"],
 			row["threat"], row["gold"], row["towers"], row["level"],
-			row["capability"], pressure, step])
+			row["rank"], row["drafts"], row["capability"], pressure, step])
 		previous = pressure
 
 	print("")
@@ -829,6 +842,68 @@ func _bank_the_cores_won_so_far(act: int) -> void:
 			held.append(core.id)
 	RunState.boss_cores = held
 	Modifiers.rebuild()
+
+
+## **The augments the road has dealt by this wave, on the two numbers this model
+## reads** (2026-09-26, owner request; `docs/SKILL_TREE_REWORK_2026-09-26.md`
+## section 8).
+##
+## A draft comes with every road rank - paid in kills, one a body, and in the
+## act bosses already down - with every act boss, and with every Tempering. Each
+## is taken into tower damage first and the Warden's own damage second, through
+## the best card each key has opened by this act, levelled as far as the drafts
+## reach.
+##
+## **That is the best case in the sense the purse column is one.** A real hand
+## spreads across range, armour, slows, chains and the purse, which this model
+## cannot score - so pouring every draft into the two keys it *can* score stands
+## in for all of them, and a hand that maxes both buys nothing further here
+## however many drafts follow. Camps, raids, rifts and legends are detours the
+## model does not walk, and their drafts are not counted.
+##
+## Written into `RunState` and rebuilt, so the table the capability line reads
+## holds the hand beside the banked cores. Only the kills of waves already
+## fought count: a wave is met with the hand from before it.
+func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
+	var hand: Array[String] = []
+	var levels: Dictionary = {}
+	if not _with_augments:
+		RunState.road_cards = hand
+		RunState.road_card_levels = levels
+		Modifiers.rebuild()
+		return {}
+	var xp: float = _road_kills * Balance.ROAD_XP_BODY \
+		+ float(act - 1) * Balance.ROAD_XP_BOSS
+	var ranks: int = 0
+	while xp >= RunState.road_rank_cost(ranks):
+		xp -= RunState.road_rank_cost(ranks)
+		ranks += 1
+	var drafts: int = ranks + (act - 1) + (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
+	var left: int = drafts
+	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.HERO_DAMAGE]:
+		var card: RoadCardData = _best_card_for(key, act)
+		if card == null or left <= 0:
+			continue
+		var level: int = mini(left, card.max_level())
+		left -= level
+		hand.append(card.id)
+		levels[card.id] = level
+	RunState.road_cards = hand
+	RunState.road_card_levels = levels
+	Modifiers.rebuild()
+	return {"ranks": ranks, "drafts": drafts}
+
+
+## The strongest card on `key` the road has opened by `act`.
+func _best_card_for(key: String, act: int) -> RoadCardData:
+	var best: RoadCardData = null
+	for id: Variant in ContentDB.road_cards:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		if card == null or card.keystone or card.effect_id != key or card.first_act > act:
+			continue
+		if best == null or card.magnitude_at(card.max_level()) > best.magnitude_at(best.max_level()):
+			best = card
+	return best
 
 
 ## What the banked cores do to one number, as a multiplier.

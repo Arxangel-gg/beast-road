@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Town", "Road"])
+branch_needs = 6
+effect_id = "keystone_mortar"
+effect_magnitude = 1.0
+rarity = 2
+first_act = 3
+card_text = "Every rank the road deals, the wall is mended as a load of timber would mend it."
+keystone = true
+id = "mortar_on_the_march"
+display_name = "Mortar on the March"
+description = "Rare card. Every rank the road deals, the wall is mended as a load of timber would mend it."

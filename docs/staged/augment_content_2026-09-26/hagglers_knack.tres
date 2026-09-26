@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Economy", "Tower"])
+effect_id = "build_cost"
+effect_magnitude = -0.2
+rarity = 2
+first_act = 4
+card_text = "The mason wanted forty. He left with thirty and thanked you for it."
+id = "hagglers_knack"
+display_name = "Haggler's Knack"
+description = "Rare card. The mason wanted forty. He left with thirty and thanked you for it."

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Road"])
+effect_id = "raid_charge"
+effect_magnitude = 0.5
+rarity = 2
+first_act = 5
+card_text = "Horn once, and the raiding party is already at the gate."
+id = "quick_muster"
+display_name = "Quick Muster"
+description = "Rare card. Horn once, and the raiding party is already at the gate."

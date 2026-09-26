@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Town", "Ward"])
+effect_id = "town_max_hp"
+effect_magnitude = 0.35
+rarity = 3
+first_act = 7
+card_text = "Oak from the Rustwood, iron from the Steppe, and a promise from everyone behind it."
+id = "the_great_gate"
+display_name = "The Great Gate"
+description = "Epic card. Oak from the Rustwood, iron from the Steppe, and a promise from everyone behind it."

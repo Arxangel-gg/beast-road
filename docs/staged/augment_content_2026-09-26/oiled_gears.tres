@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Tower", "Haste"])
+effect_id = "tower_rate"
+effect_magnitude = 0.05
+card_text = "A drop of fat on every axle and the whole wall turns quicker."
+id = "oiled_gears"
+display_name = "Oiled Gears"
+description = "Common card. A drop of fat on every axle and the whole wall turns quicker."

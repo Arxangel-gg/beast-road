@@ -1071,6 +1071,7 @@ func _hit(enemy: Enemy) -> void:
 		# Conductive: a storm tower's shot hits a wet body harder.
 		var dealt: float = rolled_damage() * enemy.brand_multiplier() \
 			* (enemy.shock_scale() if data.element == TowerData.Element.AIR else 1.0)
+		DamageLedger.credit_as(DamageLedger.TOWER_PREFIX + data.id)
 		enemy.take_damage(dealt, origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 		# The earth remembers every element's work, each on its own clock. And

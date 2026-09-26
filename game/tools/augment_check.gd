@@ -15,7 +15,7 @@ var _checks: int = 0
 ## Every test stamps this as its last line, so one that aborts on a runtime
 ## error - which stops that function and nothing else - cannot pass by omission.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 14
+const EXPECTED_TESTS: int = 16
 var _run: Run = null
 var _field: Battlefield = null
 
@@ -33,6 +33,8 @@ func _ready() -> void:
 	_test_a_front_banks_the_draft()
 	_test_a_fresh_road_deals_a_fresh_draft()
 	_test_the_party_holds_one_hand()
+	_test_an_act_start_banks_the_road()
+	_test_the_ledger_names_every_blow()
 
 	RunState.reset(false, 20260926)
 	GameDirector.run_active = true
@@ -120,9 +122,12 @@ func _test_cards_level() -> void:
 		_check(card.max_level() == Balance.AUGMENT_MAX_LEVEL, "%s levels to %d" % [card.id, card.max_level()])
 		_check(is_equal_approx(card.magnitude_at(1), card.effect_magnitude),
 			"%s at level one is not the card as authored" % card.id)
-		var ceiling: float = maxf(absf(card.effect_magnitude),
+		var ceiling: float = maxf(absf(card.effect_magnitude), minf(
 			Balance.AUGMENT_LEVELLED_COST_CEILING if card.effect_magnitude < 0.0
-				else Balance.AUGMENT_LEVELLED_CEILING)
+				else Balance.AUGMENT_LEVELLED_CEILING,
+			float(Balance.AUGMENT_KEY_CEILING.get(card.effect_id, 1.0))))
+		_check(ceiling <= Balance.ROAD_CARD_MAX_MAGNITUDE + 0.0001,
+			"%s may grow past the single-card bound" % card.id)
 		var last: float = 0.0
 		for level: int in range(1, card.max_level() + 1):
 			var value: float = absf(card.magnitude_at(level))
@@ -472,7 +477,9 @@ func _test_the_sources_are_wired() -> void:
 	var before: int = RunState.augments_waiting()
 	RunState._on_camp_for_augments(0, 1)
 	RunState._on_camp_for_augments(0, 1)
-	_check(RunState.augments_waiting() == before + 1, "a camp that came back dealt a second draft in one act")
+	RunState._on_camp_for_augments(2, 3)
+	_check(RunState.augments_waiting() == before + 1,
+		"a second camp in one act dealt a second draft")
 	RunState.act = 2
 	RunState._on_camp_for_augments(0, 1)
 	_check(RunState.augments_waiting() == before + 2, "a camp in a new act dealt nothing")
@@ -481,8 +488,11 @@ func _test_the_sources_are_wired() -> void:
 	_check(RunState.augments_waiting() == before, "a raid the Warden died in dealt a draft")
 	RunState._on_raid_for_augments({"died": false, "partial": true})
 	_check(_last_source() == Augments.SOURCE_RAID, "a raid brought home dealt nothing")
+	before = RunState.augments_waiting()
 	RunState._on_rift_for_augments(1, 3)
-	_check(_last_source() == Augments.SOURCE_RIFT, "a rift stage dealt nothing")
+	_check(RunState.augments_waiting() == before, "a dungeon dealt a draft before its last stage")
+	RunState._on_rift_for_augments(3, 3)
+	_check(_last_source() == Augments.SOURCE_RIFT, "a rift closed dealt nothing")
 	before = RunState.augments_waiting()
 	RunState._on_wildlife_for_augments("rabbit", 0, Vector2.ZERO, 0, false, false)
 	_check(RunState.augments_waiting() == before, "an ordinary animal dealt a draft")
@@ -536,7 +546,7 @@ func _test_a_front_banks_the_draft() -> void:
 	RunState.augment_luck = 4
 	RunState.augment_rerolls = 5
 	RunState.augment_waves_toward_tempering = 6
-	RunState.augment_camps_drafted.append("1:0:1")
+	RunState.augment_camps_drafted.append("1")
 	var names: Array[String] = ["road_card_levels", "road_rank", "road_xp", "augment_queue",
 		"augment_offer", "augment_offer_source", "augment_rerolls", "augment_banishes",
 		"augment_banished", "augment_luck", "augment_waves_toward_tempering",
@@ -606,6 +616,115 @@ func _test_the_party_holds_one_hand() -> void:
 	_finished += 1
 
 
+## **A road begun at an act holds the drafts a walked road would have dealt**,
+## banked for the player to choose rather than chosen for them.
+func _test_an_act_start_banks_the_road() -> void:
+	_check(Balance.ACT_START_DRAFTS.size() == Balance.ACT_START_BUDGET.size()
+			and Balance.ACT_START_ROAD_RANK.size() == Balance.ACT_START_BUDGET.size(),
+		"the act-start tables do not cover the same acts")
+	for index: int in range(1, Balance.ACT_START_DRAFTS.size()):
+		_check(Balance.ACT_START_DRAFTS[index] > Balance.ACT_START_DRAFTS[index - 1]
+				and Balance.ACT_START_ROAD_RANK[index] > Balance.ACT_START_ROAD_RANK[index - 1],
+			"a later act starts with no more drafts than an earlier one")
+		_check(Balance.ACT_START_DRAFTS[index] >= Balance.ACT_START_ROAD_RANK[index] + index,
+			"act %d starts with fewer drafts than its ranks and bosses deal" % (index + 1))
+	# Through the real door, which is the only thing a player presses.
+	var kept: float = MetaState.best_distance
+	MetaState.best_distance = Balance.act_start_distance(Balance.ACT_COUNT) + 10.0
+	for act: int in [1, 2, 7, Balance.ACT_COUNT]:
+		RunState.reset(false, 20260926)
+		_check(ActStart.begin(act, "measured"), "an act-%d start was refused" % act)
+		var index: int = act - 1
+		var bosses: int = 0
+		for entry: Dictionary in RunState.augment_queue:
+			if String(entry.get("source", "")) == Augments.SOURCE_BOSS:
+				bosses += 1
+		_check(RunState.augments_waiting() == Balance.ACT_START_DRAFTS[index]
+				and RunState.road_rank == Balance.ACT_START_ROAD_RANK[index]
+				and bosses == act - 1,
+			"an act-%d start banked %d drafts (%d bosses) at rank %d" % [act,
+				RunState.augments_waiting(), bosses, RunState.road_rank])
+	MetaState.best_distance = kept
+	RunState.pending_outfit = {}
+	RunState.reset(false, 20260926)
+	_finished += 1
+
+
+## **Every blow on a body names what threw it** (`DamageLedger`). The failure is
+## an omission - a new door that deals a blow without naming itself files it
+## under "other" for ever - so the doors are walked in the source, and then one
+## blow of each kind is thrown for real and read back.
+func _test_the_ledger_names_every_blow() -> void:
+	# Blows on something other than a road body: a hero, a spirit, a wall.
+	var not_a_body: Array[String] = ["pet.take_damage(", "spirit.take_damage(",
+		"(_target as Companion).take_damage(", "(target as Companion).take_damage(",
+		"hurt.take_damage(", "health.take_damage(", "target_health.take_damage("]
+	var unnamed: Array[String] = []
+	for folder: String in ["res://scenes", "res://scripts"]:
+		for path: String in _scripts_under(folder):
+			var lines: PackedStringArray = FileAccess.get_file_as_string(path).split("\n")
+			for index: int in lines.size():
+				var line: String = lines[index].strip_edges()
+				if line.begins_with("#") or not line.contains(".take_damage(") \
+						or line.begins_with("func "):
+					continue
+				var other: bool = false
+				for pattern: String in not_a_body:
+					if line.contains(pattern):
+						other = true
+				if other or path.ends_with("damage_ledger.gd"):
+					continue
+				if index == 0 or not lines[index - 1].contains("DamageLedger.credit_as("):
+					unnamed.append("%s:%d" % [path.get_file(), index + 1])
+	_check(unnamed.is_empty(), "blows that name nothing: %s" % ", ".join(unnamed))
+
+	RunState.reset(false, 20260926)
+	var tower_card: RoadCardData = _first(func(c: RoadCardData) -> bool:
+		return c.effect_id == Modifiers.TOWER_DAMAGE)
+	RunState.take_road_card(tower_card.id)
+	var total: float = 1.0 + Modifiers.value(Modifiers.TOWER_DAMAGE)
+	DamageLedger.note(DamageLedger.TOWER_PREFIX + "ember_spire", 100.0)
+	DamageLedger.note(DamageLedger.EARTH, 40.0)
+	DamageLedger.note(DamageLedger.WARDEN, 0.0)
+	var book: Dictionary = RunState.damage_ledger
+	_check(is_equal_approx(float(book.get("tower:ember_spire", 0.0)), 100.0)
+			and is_equal_approx(float(book.get(DamageLedger.EARTH, 0.0)), 40.0)
+			and not book.has(DamageLedger.WARDEN),
+		"the ledger did not write what each blow took: %s" % str(book))
+	var credited: float = float(book.get(DamageLedger.AUGMENT_PREFIX + tower_card.id, 0.0))
+	_check(is_equal_approx(credited, 100.0 * tower_card.magnitude_at(1) / total),
+		"%s was credited %.2f of a 100 blow, not its %.2f share" % [tower_card.id,
+			credited, 100.0 * tower_card.magnitude_at(1) / total])
+	_check(not book.has(DamageLedger.AUGMENT_PREFIX + tower_card.id + "x")
+			and float(book.get(DamageLedger.AUGMENT_PREFIX + tower_card.id, 0.0)) < 100.0,
+		"an augment was credited the whole blow")
+	DamageLedger.credit_as(DamageLedger.ARROW)
+	_check(DamageLedger.take_source() == DamageLedger.ARROW
+			and DamageLedger.take_source() == DamageLedger.OTHER,
+		"a blow's name outlived the blow and would name the next one")
+	var lines: PackedStringArray = DamageLedger.lines(book,
+		{tower_card.id: 1})
+	_check(lines.size() >= 3 and lines[0].begins_with("DAMAGE"),
+		"the debrief's ledger said nothing: %s" % str(lines))
+	_check(not DamageLedger.brief(book).is_empty(), "the pause screen's ledger said nothing")
+	RunState.reset(false, 20260926)
+	_check(RunState.damage_ledger.is_empty(), "a ledger survived into a fresh road")
+	_finished += 1
+
+
+func _scripts_under(folder: String) -> Array[String]:
+	var out: Array[String] = []
+	var dir: DirAccess = DirAccess.open(folder)
+	if dir == null:
+		return out
+	for name: String in dir.get_files():
+		if name.ends_with(".gd"):
+			out.append(folder.path_join(name))
+	for sub: String in dir.get_directories():
+		out.append_array(_scripts_under(folder.path_join(sub)))
+	return out
+
+
 # --- On the field ------------------------------------------------------------------
 
 ## A real body, killed the ordinary way, pays the rank.
@@ -620,6 +739,11 @@ func _test_a_kill_pays_the_rank() -> void:
 		"an ordinary body is worth %.1f to the rank" % body.road_xp_worth())
 	var xp_before: float = RunState.road_xp
 	var rank_before: int = RunState.road_rank
+	# And the ledger, on the funnel every blow goes through.
+	DamageLedger.credit_as(DamageLedger.TOWER_PREFIX + "ember_spire")
+	body.take_damage(10.0, body.global_position, 0.0)
+	_check(float(RunState.damage_ledger.get("tower:ember_spire", 0.0)) > 0.0,
+		"a named blow on the field did not reach the ledger")
 	body.health.kill(body.global_position)
 	await get_tree().process_frame
 	_check(RunState.road_xp > xp_before or RunState.road_rank > rank_before,

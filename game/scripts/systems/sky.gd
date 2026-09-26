@@ -346,6 +346,7 @@ func strike_at(at: Vector2) -> void:
 			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 		var struck: Array[Enemy] = field.enemies_near(at, radius)
 		for enemy: Enemy in struck:
+			DamageLedger.credit_as(DamageLedger.EARTH)
 			enemy.take_damage(Balance.LIGHTNING_ENEMY_DAMAGE * act_scale * enemy.shock_scale(), at, 0.0)
 		_chain(at, struck, Balance.LIGHTNING_ENEMY_DAMAGE * act_scale)
 		var hero_pool: float = 100.0
@@ -1547,6 +1548,7 @@ func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
 			break
 		struck.append(next)
 		var to: Vector2 = next.combat_origin()
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		next.take_damage(worth * next.shock_scale(), here, 0.0)
 		carrier = next
 		chain_arcs += 1

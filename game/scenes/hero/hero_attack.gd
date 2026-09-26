@@ -397,6 +397,7 @@ func _radiant_splash(amount: float, reach: float) -> void:
 		if enemy.combat_origin().distance_to(centre) \
 				> Balance.DISCIPLINE_RADIANT_RADIUS + enemy.contact_radius():
 			continue
+		DamageLedger.credit_as(DamageLedger.WARDEN)
 		enemy.take_damage(amount, centre, 0.0)
 	Vfx.ring(centre, Balance.DISCIPLINE_RADIANT_RADIUS, Color("ffe7a3"), 0.4, 4.0)
 
@@ -448,6 +449,7 @@ func _strike() -> void:
 			if blow > damage:
 				Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
 					_swing_aim, 240.0)
+		DamageLedger.credit_as(DamageLedger.WARDEN)
 		if not enemy.take_damage(blow, _swing_origin, knockback, true):
 			continue
 		_hit_ids[id] = true

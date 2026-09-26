@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 0
+tags = Array[String](["Movement"])
+effect_id = "hero_speed"
+effect_magnitude = 0.12
+rarity = 1
+first_act = 3
+card_text = "Resoled three times and still the best pair on the beast's back."
+id = "hard_road_boots"
+display_name = "Hard-Road Boots"
+description = "Uncommon card. Resoled three times and still the best pair on the beast's back."

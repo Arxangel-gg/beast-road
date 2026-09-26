@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Tower", "Haste"])
+effect_id = "tower_rate"
+effect_magnitude = 0.09
+rarity = 1
+first_act = 2
+card_text = "One loads while the other looses. Nobody sleeps, but nothing waits."
+id = "double_crews"
+display_name = "Double Crews"
+description = "Uncommon card. One loads while the other looses. Nobody sleeps, but nothing waits."

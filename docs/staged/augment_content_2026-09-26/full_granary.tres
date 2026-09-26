@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Economy", "Town"])
+effect_id = "resource_rate"
+effect_magnitude = 0.25
+rarity = 1
+first_act = 2
+card_text = "A good harvest carried on the beast's back is a harvest that travels."
+id = "full_granary"
+display_name = "Full Granary"
+description = "Uncommon card. A good harvest carried on the beast's back is a harvest that travels."

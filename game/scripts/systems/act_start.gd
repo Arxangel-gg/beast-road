@@ -105,9 +105,27 @@ static func begin(act: int, doctrine_id: String) -> bool:
 	# board, so there is no attrition to preserve and a hurt wall would be a
 	# worse opening bought with no decision.
 	RunState.town_hp = RunState.town_max_hp * Balance.ACT_START_WALL
+	bank_the_drafts(RunState.act)
 	# Read once and erased by the battlefield, the way `tower_health_restore` is.
 	RunState.pending_outfit = {"doctrine": doctrine.id, "budget": budget}
 	return true
+
+
+## **The drafts a walked road would have dealt, banked rather than chosen for
+## the player** (augments, 2026-09-26). The build is theirs to make: they open at
+## the first Preparation one after another, with Later as ever. The act bosses a
+## walked road felled deal at their own floor; the rest deal as ranks, because a
+## Tempering needs a hand to temper and this road starts without one.
+static func bank_the_drafts(act: int) -> void:
+	var index: int = clampi(act - 1, 0, Balance.ACT_START_DRAFTS.size() - 1)
+	RunState.road_rank = maxi(Balance.ACT_START_ROAD_RANK[
+		clampi(index, 0, Balance.ACT_START_ROAD_RANK.size() - 1)], 0)
+	var drafts: int = maxi(Balance.ACT_START_DRAFTS[index], 0)
+	var bosses: int = mini(act - 1, drafts)
+	for _draft: int in drafts - bosses:
+		RunState.queue_augment(Augments.SOURCE_RANK)
+	for _boss: int in bosses:
+		RunState.queue_augment(Augments.SOURCE_BOSS)
 
 
 ## **Spend the budget on a board, through the doors a player uses.**

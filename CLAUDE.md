@@ -10283,8 +10283,8 @@ road, the splash without a tower - and every one was named.
   as it did before; per-Warden trees are phase 1's fourth item and still owed.
   A partner's swing does not take this machine's form (`HeroAttack.own_stash`).
 
-**Augments: a draft on every road rank, as of 2026-09-26 (owner request,
-designed, not built).** The owner: *"random augment cards each time the player
+**Augments: a draft on every road rank, as of 2026-09-26 (owner request;
+designed, then built the same day - see the paragraph after this one).** The owner: *"random augment cards each time the player
 levels up as well as other events ... as well as possibly incremental augments
 rewarded every so often while players continue to survive"*. The design is
 `docs/SKILL_TREE_REWORK_2026-09-26.md` §8, and three things in it are decisions:
@@ -10305,6 +10305,75 @@ rewarded every so often while players continue to survive"*. The design is
   the ranks a road deals and the levels they buy, the denser road is scaled
   against that model, and the damage ledger ships with it. Nothing persists but
   which augments are in the pool, which is an unlocked id.
+
+**Augments are built, as of 2026-09-26, and measured.** `Augments` deals, one
+place; `RunState` owns the hand, the rank, the banked drafts and the tools;
+`CrossroadScreen.open_augment_draft` is the table; `augment_check` (17,314)
+drives every door. What is a decision rather than a detail:
+
+- **The rank is the run's, paid in bodies.** A body is one road experience and
+  harder things are worth more (`Enemy.road_xp_worth`), counted rather than
+  weighted by health so a late act does not deal faster than an early one.
+  Every rank banks a draft; so do an act boss (Rare floor), the **first** camp
+  razed in an act, a raid brought home, a rift or dungeon **closed** and a
+  legend (Epic floor); every `AUGMENT_HOLDFAST_WAVES` survived deals a
+  Tempering that levels a held card; a wave the wall was never struck in is luck
+  toward the next draft's odds.
+- **Paced to the hand, and the first cut was not.** A hand of eight absorbs
+  about forty useful picks. The first rank curve dealt a hundred ranks and the
+  first Holdfast ninety Temperings over the road, so the hand was finished by
+  Act IV and seven acts of drafts would have turned into rerolls. Re-solved
+  against `curve_report`'s kill column: about eight drafts by Act II, sixty by
+  Act X. One camp draft an act, not one a camp, for the same reason: twelve
+  camps an act would have been twelve drafts.
+- **Level V is the single-card bound, and the first cut went past it.** The
+  design said the ceiling at V is `ROAD_CARD_MAX_MAGNITUDE`; the first cut
+  allowed 0.80 and the curve measured a hand that took more than a third of the
+  pressure off every act from IV. `AUGMENT_LEVELLED_CEILING` *is* the single-card
+  bound now, costs stop at 0.40, and a tower's reach at 0.35 because a reach is
+  an area.
+- **Drafts bank and open at the next Preparation**, after the build grace so a
+  release mid-swing cannot press a card, and **hold the breather's clock** alone.
+  `Later` keeps them for the next Preparation; **At once** (Settings > Game,
+  solo only, off by default) holds the road and opens each draft the moment it
+  is earned. Not built from the design: a HUD card to open a banked draft
+  mid-wave, and a count of what is left in the deck.
+- **Taking a held card levels it**, and a better card for a held key keeps the
+  levels the old one grew - otherwise the better card would be the worse pick.
+  The deal never offers a downgrade, never two cards on one key and never two
+  keystones. The crossroad keeps its own seeded shuffle, now level-aware, because
+  both machines deal that one from the seed.
+- **Co-op is phase A: one hand, drafted by the host.** The whole hand - ids,
+  levels, the banished and the rank - crosses as one fact (`Fact.AUGMENT_HAND`,
+  85) whenever it moves and in the welcome, and a guest holds exactly it. Per
+  Warden hands, which the design wants, are not built.
+- **An act start banks the drafts a walked road would have dealt**
+  (`ACT_START_DRAFTS`, `ACT_START_ROAD_RANK`), read off the report like the purse
+  and retyped with it. The road is tuned against a hand that size, and a road
+  begun at Act VII with none would be harder than the road it stands in for.
+- **The damage ledger** (`DamageLedger`): every door that throws a blow names
+  itself just before it lands, the funnel takes the name so a refused blow cannot
+  lend it to the next one, and what the blow took off the body is written
+  against it - plus each held augment's share of blows on the key it moves,
+  `taken * c / (1 + total)`, exact for the Warden and generous for a tower. On
+  the debrief and the pause screen. `augment_check` walks every `.take_damage(`
+  on a road body for the name, because the failure is an omission.
+
+**The measurement, and the owner's pairing.** `curve_report` now models the hand
+(`--no-augments` prints the road without): every draft poured into tower damage
+then the Warden's damage, the two keys capability is read through - a best case
+in the sense the purse is one. On the old road the modelled hand took solo mean
+pressure from 0.488 to 0.348. The owner asked for *"even more enemies each wave
+to really give the extra augments and powers a chance to shine"*, so the count
+table carries most of the answer (+5/12/12% for Acts I-III, +22% from IV, then
++5% more from II) and health the rest. Measured on a new account: **0.454 solo,
+0.528 for four, last wave 0.82**; the same road without augments reads 0.639,
+which is the point - the draft is now part of the defence. Headless at Act X's
+peak the script frame went 3.9 to 4.3 ms. `ACT_START_BUDGET` was re-read.
+
+**Also found: the Blood effects toggle had never been declared in the settings
+defaults**, so it saved and reverted on every launch - the fourth setting that
+dictionary has dropped.
 
 ### The three escape hatches - and why there are only three
 

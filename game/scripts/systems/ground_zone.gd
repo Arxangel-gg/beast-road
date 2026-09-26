@@ -104,6 +104,7 @@ func _process_measured(delta: float) -> void:
 	if _hurt_owed < Balance.GROUND_HURT_TICK:
 		return
 	for enemy: Enemy in _field.enemies_near(global_position, _radius):
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		enemy.take_damage(_dps * _hurt_owed, global_position, 0.0)
 	_hurt_owed = 0.0
 

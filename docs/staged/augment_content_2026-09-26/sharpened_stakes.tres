@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Trap"])
+effect_id = "trap_damage"
+effect_magnitude = 0.1
+card_text = "An afternoon with a knife and a bundle of green wood."
+id = "sharpened_stakes"
+display_name = "Sharpened Stakes"
+description = "Common card. An afternoon with a knife and a bundle of green wood."

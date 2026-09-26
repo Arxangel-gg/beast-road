@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 0
+tags = Array[String](["Finisher"])
+effect_id = "hero_damage"
+effect_magnitude = 0.06
+card_text = "Ten strokes a side on the whetstone, every night, whatever the night was like."
+id = "honed_edge"
+display_name = "Honed Edge"
+description = "Common card. Ten strokes a side on the whetstone, every night, whatever the night was like."

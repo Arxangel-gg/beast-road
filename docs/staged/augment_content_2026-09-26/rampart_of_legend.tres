@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Tower", "Ward"])
+effect_id = "tower_armour"
+effect_magnitude = 0.35
+rarity = 3
+first_act = 6
+card_text = "Old stone from a wall that held when nothing else did."
+id = "rampart_of_legend"
+display_name = "Rampart of Legend"
+description = "Epic card. Old stone from a wall that held when nothing else did."

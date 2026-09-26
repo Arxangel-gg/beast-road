@@ -139,6 +139,7 @@ func _bite() -> void:
 		if enemy.is_dying():
 			continue
 		if data.damage > 0.0:
+			DamageLedger.credit_as(DamageLedger.TRAP_PREFIX + data.id)
 			enemy.take_damage(damage_now(), global_position, data.knockback, false)
 		if data.slow_factor < 1.0:
 			enemy.apply_slow(data.slow_factor, data.slow_duration)

@@ -2189,6 +2189,7 @@ func _ram_impact(struck: Enemy) -> void:
 	var blow: float = ram_damage()
 	# A puppet refuses the blow, so a guest's own copy of the charge only draws
 	# it; the host's copy of that guest lands it.
+	DamageLedger.credit_as(DamageLedger.MOUNT)
 	struck.take_damage(blow, global_position, Balance.MOUNT_RAM_KNOCKBACK,
 		is_local_player())
 	if field != null and field.has_method("enemies_near"):
@@ -2197,6 +2198,7 @@ func _ram_impact(struck: Enemy) -> void:
 			if body == null or body == struck or not is_instance_valid(body) \
 					or body.is_dying():
 				continue
+			DamageLedger.credit_as(DamageLedger.MOUNT)
 			body.take_damage(blow * Balance.MOUNT_RAM_AOE_SHARE, at,
 				Balance.MOUNT_RAM_KNOCKBACK * 0.7, is_local_player())
 	var warm := Color(1.0, 0.82, 0.55, 0.95)

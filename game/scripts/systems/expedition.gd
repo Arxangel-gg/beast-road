@@ -31,6 +31,7 @@ const STATE_KEYS: Array[String] = [
 	"augment_luck",
 	"augment_waves_toward_tempering",
 	"augment_camps_drafted",
+	"damage_ledger",
 	"pending_road_relics",
 	"forks_open",
 	"road_history",

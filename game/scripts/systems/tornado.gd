@@ -176,6 +176,7 @@ func _hurt(delta: float) -> void:
 		var inside: bool = away <= Balance.TORNADO_WAKE
 		var amount: float = ((Balance.TORNADO_WAKE_DPS if inside else Balance.TORNADO_AOE_DPS) + fire_more) \
 			* act_scale * delta
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		enemy.take_damage(amount, at, 0.0)
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:

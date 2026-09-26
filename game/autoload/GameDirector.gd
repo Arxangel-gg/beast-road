@@ -681,6 +681,8 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		# What the road was worth whatever happened, and what the earth did.
 		"kept": RunState.kept.duplicate(true),
 		"earth": RunState.earth_events.duplicate(true),
+		"damage": RunState.damage_ledger.duplicate(true),
+		"augments": RunState.road_card_levels.duplicate(true),
 	}
 	var unlocks: Array[String] = _pay_out_unlocks(victory)
 

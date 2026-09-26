@@ -210,6 +210,7 @@ func _hurt() -> void:
 			tower.hurt(Balance.METEOR_TOWER_DAMAGE * (1.0 - 0.5 * away / radius), at)
 			struck_towers += 1
 	for enemy: Enemy in field.enemies_near(at, radius):
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		enemy.take_damage(Balance.METEOR_ENEMY_DAMAGE * act_scale, at, 0.0)
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:

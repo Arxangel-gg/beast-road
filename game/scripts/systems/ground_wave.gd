@@ -217,6 +217,7 @@ func _strike_the_front(ring: Ring) -> void:
 		if absf(enemy.global_position.distance_to(at) - ring.radius) > half:
 			continue
 		ring.struck[id] = true
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		enemy.take_damage(enemy_damage * fade, at,
 			Balance.QUAKE_ENEMY_KNOCKBACK * magnitude)
 

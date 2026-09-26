@@ -39,6 +39,7 @@ func _ready() -> void:
 	_build_settings()
 	_build_warning()
 	_build_battlefield_line()
+	_build_ledger_line()
 	# **Grown from the centre, and bounded by the screen.** Reported as the pause
 	# menu sitting low and running off the bottom of a phone. `anchors_preset = 8`
 	# in a `.tscn` writes the anchors and nothing else - the grow directions stay
@@ -136,6 +137,33 @@ func _build_battlefield_line() -> void:
 	_say_the_battlefield()
 
 
+## **What is doing the damage so far** (`DamageLedger`), under the battlefield
+## line: the three biggest sources, so a player deciding what to draft next can
+## see what the last cards bought.
+var _ledger: Label = null
+
+
+func _build_ledger_line() -> void:
+	_ledger = Label.new()
+	_ledger.name = "LedgerLine"
+	_ledger.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ledger.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ledger.custom_minimum_size = Vector2(320.0, 0.0)
+	_ledger.add_theme_font_size_override("font_size", 13)
+	_ledger.modulate = Color(1.0, 1.0, 1.0, 0.7)
+	var box: Node = resume_button.get_parent()
+	box.add_child(_ledger)
+	box.move_child(_ledger, resume_button.get_index())
+	_say_the_ledger()
+
+
+func _say_the_ledger() -> void:
+	if _ledger == null:
+		return
+	_ledger.text = DamageLedger.brief(RunState.damage_ledger, 3)
+	_ledger.visible = not _ledger.text.is_empty()
+
+
 func _say_the_battlefield() -> void:
 	if _battlefield == null:
 		return
@@ -223,6 +251,7 @@ func toggle() -> void:
 	var showing: bool = not panel.visible
 	if showing:
 		_say_the_battlefield()
+		_say_the_ledger()
 	set_showing(showing)
 	# Through GameDirector, which tells the other player. Setting the tree
 	# directly pauses one machine while the other keeps fighting a wave that is

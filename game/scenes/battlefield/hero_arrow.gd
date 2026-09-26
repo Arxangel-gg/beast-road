@@ -150,6 +150,7 @@ static func contact_distance(start: Vector2, heading: Vector2, distance: float,
 
 
 func _strike(enemy: Enemy) -> void:
+	DamageLedger.credit_as(DamageLedger.ARROW)
 	enemy.take_damage(damage, global_position, knockback, false)
 	if ammo == null:
 		return
@@ -166,6 +167,7 @@ func _land() -> void:
 	if ammo != null and ammo.blast_radius > 0.0 and _field != null:
 		for enemy: Enemy in _field.enemies_near(global_position, ammo.blast_radius):
 			if not enemy.is_dying():
+				DamageLedger.credit_as(DamageLedger.ARROW)
 				enemy.take_damage(damage * 0.7, global_position, knockback * 0.5, false)
 		Vfx.ring(global_position, ammo.blast_radius, Color(_tint, 0.6), 0.28, 5.0)
 	Vfx.flash_at(global_position, _tint, 26.0)

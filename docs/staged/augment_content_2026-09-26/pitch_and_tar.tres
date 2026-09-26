@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Fire", "Tower"])
+effect_id = "burn_damage"
+effect_magnitude = 0.4
+rarity = 2
+first_act = 5
+card_text = "It sticks, and then it burns, and then it keeps burning."
+id = "pitch_and_tar"
+display_name = "Pitch and Tar"
+description = "Rare card. It sticks, and then it burns, and then it keeps burning."

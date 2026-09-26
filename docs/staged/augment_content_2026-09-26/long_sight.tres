@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Road"])
+effect_id = "wave_foresight"
+effect_magnitude = 2.0
+rarity = 2
+first_act = 6
+card_text = "From the top of the beast you can see the next two storms coming."
+id = "long_sight"
+display_name = "Long Sight"
+description = "Rare card. From the top of the beast you can see the next two storms coming."

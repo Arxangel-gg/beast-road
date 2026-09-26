@@ -1897,6 +1897,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	var from: Vector2 = sprite.global_position
 	var enemy := quarry as Enemy
 	if enemy != null:
+		DamageLedger.credit_as(DamageLedger.WILDLIFE)
 		enemy.take_damage(power, from, kind.knockback, false)
 		# It gets to bite back, if the animal is still standing on top of it when
 		# its next swing comes round. The road is not abandoned for this - see

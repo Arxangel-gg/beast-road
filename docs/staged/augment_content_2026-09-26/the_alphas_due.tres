@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 0
+tags = Array[String](["Summon"])
+effect_id = "companion_damage"
+effect_magnitude = 0.28
+rarity = 2
+first_act = 5
+card_text = "The first bite is always the spirit's. It has earned that much."
+id = "the_alphas_due"
+display_name = "The Alpha's Due"
+description = "Rare card. The first bite is always the spirit's. It has earned that much."

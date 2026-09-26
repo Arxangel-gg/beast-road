@@ -2542,6 +2542,9 @@ func mark_element(element: int) -> void:
 
 func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 		active_hero: bool = false) -> bool:
+	# Whoever named this blow is taken now, so a blow refused below can never
+	# lend its name to the next one (`DamageLedger`).
+	var source: String = DamageLedger.take_source()
 	if _state == State.DYING or data == null or puppet:
 		return false
 	# **Every blow in the game goes through here**, which is why the impact is
@@ -2563,6 +2566,7 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	# the review asked for, rather than to shoot harder.
 	var cover: Enemy = _anchor_covering(from)
 	if cover != null:
+		DamageLedger.credit_as(source)
 		return cover.take_damage(amount, from, knockback, active_hero)
 	var was_telegraphing: bool = _state == State.WINDUP
 	# **A ward turns one blow and is spent.** Checked before anything else so
@@ -2587,8 +2591,10 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	var shelter: float = Balance.CAMP_FIRE_WARMTH_RESIST if camp_warmth else 0.0
 	incoming *= 1.0 - clampf(maxf(_ally_aura(&"aura_resistance"), shelter),
 		0.0, 0.35)
+	var standing: float = health.current_hp
 	if not health.take_damage(incoming, from):
 		return false
+	DamageLedger.note(source, standing - maxf(health.current_hp, 0.0))
 	# A Prism Warden banks a capped share of what it is given.
 	_bank_blow(incoming)
 	_note_tower_blow(from)
@@ -2957,7 +2963,9 @@ func _tick_status(delta: float) -> void:
 		_wet_left -= delta
 	if _burn_left > 0.0:
 		_burn_left -= delta
+		var burning: float = health.current_hp
 		health.take_damage(_burn_dps * delta, global_position)
+		DamageLedger.note(DamageLedger.BURN, burning - maxf(health.current_hp, 0.0))
 	if data.hp_regen > 0.0:
 		health.heal(data.hp_regen * delta)
 	# Walking home is where a camp body heals: fast, and only then, so the

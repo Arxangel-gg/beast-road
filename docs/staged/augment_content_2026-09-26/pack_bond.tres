@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 0
+tags = Array[String](["Summon"])
+effect_id = "companion_damage"
+effect_magnitude = 0.16
+rarity = 1
+first_act = 2
+card_text = "It fights harder when it knows you are watching."
+id = "pack_bond"
+display_name = "Pack Bond"
+description = "Uncommon card. It fights harder when it knows you are watching."

@@ -467,6 +467,7 @@ func _strike(quarry: Enemy) -> void:
 	# `active_hero` false: this is the hero's damage at one remove, not the
 	# hero's swing, and the discipline nodes that key off a finisher must not
 	# fire for it.
+	DamageLedger.credit_as(DamageLedger.COMPANION)
 	quarry.take_damage(_swing_power(), global_position, data.knockback, false)
 	Vfx.spark(quarry.global_position, data.colour, 5,
 		(quarry.global_position - global_position).normalized(), 200.0)

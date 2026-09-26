@@ -512,21 +512,38 @@ const ROAD_CARD_HAND: int = 8
 ## section 8). A card that moves a fraction levels I to V when it is taken again,
 ## its magnitude multiplied by this table and held under the ceiling. A card that
 ## moves a whole number, and a keystone, is taken once. [TUNE]
+##
+## **The ceiling at level V is the single-card bound**, `ROAD_CARD_MAX_MAGNITUDE`,
+## which is what the design said and what the first cut did not do: it allowed
+## 0.80, and `curve_report` measured a hand that bought more than a third of the
+## pressure off every act from IV on. Levels are the way to reach the bound, never
+## a way past it.
 const AUGMENT_MAX_LEVEL: int = 5
-const AUGMENT_LEVEL_SCALE: Array[float] = [1.0, 1.7, 2.3, 2.8, 3.2]
-const AUGMENT_LEVELLED_CEILING: float = 0.80
+const AUGMENT_LEVEL_SCALE: Array[float] = [1.0, 1.5, 1.9, 2.25, 2.5]
+const AUGMENT_LEVELLED_CEILING: float = ROAD_CARD_MAX_MAGNITUDE
 ## A card that helps by making something *smaller* - a price, a blow taken, a
 ## cooldown - is held under a lower ceiling, because a cost taken toward nothing
 ## is a different game rather than a stronger one. [TUNE]
-const AUGMENT_LEVELLED_COST_CEILING: float = 0.45
+const AUGMENT_LEVELLED_COST_CEILING: float = 0.40
+## **A key with a ceiling of its own.** A tower's reach is an area, so a share
+## more of it is more than a share more of the fight - the tower covers the
+## square of it. [TUNE]
+const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35}
 
 ## **The road rank**, the run's own level: road experience from every kill on
 ## the road, a rank at a time, each rank dealing a draft. A rank costs
 ## `ROAD_RANK_BASE + ROAD_RANK_STEP * rank` kills' worth, so they come quickly at
 ## the start of a road and more slowly as it goes on, and all of it resets with
-## the road. Measured: about eight ranks across Act I. [TUNE]
-const ROAD_RANK_BASE: float = 20.0
-const ROAD_RANK_STEP: float = 5.0
+## the road.
+##
+## **Paced to the hand, not to Megabonk.** A hand of eight takes about forty
+## useful picks - eight cards, their levels and a few better rarities - and the
+## first cut dealt a hundred ranks and ninety Temperings over a road, so the
+## hand was finished by Act IV and seven acts of drafts turned into rerolls.
+## Solved against `curve_report`'s kill column: about six ranks across Act I
+## and forty by the end of Act X. [TUNE]
+const ROAD_RANK_BASE: float = 72.0
+const ROAD_RANK_STEP: float = 32.0
 ## What a kill is worth to the rank, by what was killed. A body is one; the
 ## things that are harder to kill are worth more. [TUNE]
 const ROAD_XP_BODY: float = 1.0
@@ -557,8 +574,8 @@ const AUGMENT_REROLLS_START: int = 2
 const AUGMENT_REROLLS_MAX: int = 6
 const AUGMENT_BANISHES_START: int = 2
 ## **Holdfast**: every this many waves cleared, a Tempering - one held card of
-## the player's choosing gains a level. [TUNE]
-const AUGMENT_HOLDFAST_WAVES: int = 8
+## the player's choosing gains a level. About eighteen over the road. [TUNE]
+const AUGMENT_HOLDFAST_WAVES: int = 40
 ## The rarity floor each source deals at, by `RoadCardData.Rarity`. A floor
 ## above what the deck holds falls back a step at a time. [TUNE]
 const AUGMENT_FLOOR_RANK: int = 0
@@ -1269,8 +1286,22 @@ const TOWER_SLOT_COUNT: int = 4
 ## the harder case - see the note on `curve_report` reading the save. [TUNE]
 ## Re-read 2026-09-21 off `curve_report`'s purse column at the first wave of
 ## each act, on the road of that date (an eighth longer, reference height 330).
+## Re-read 2026-09-26 on the denser road the augments are measured against.
 const ACT_START_BUDGET: Array[int] = [
-	0, 1184, 2773, 5141, 8159, 12269, 17660, 25028, 33680, 45006,
+	0, 1196, 2896, 5445, 8784, 13246, 19110, 27036, 36379, 48418,
+]
+
+## **The drafts a walked road would have dealt by each act** (augments,
+## 2026-09-26), and the road rank it would hold - read off `curve_report`'s rank
+## and draft columns at each act's first wave, on the same account and the same
+## date as the purse above, and retyped with it. An act start banks them: the
+## road is tuned against a hand that size, and one that arrived with none would
+## be a harder road than the one it stands in for. [TUNE]
+const ACT_START_ROAD_RANK: Array[int] = [
+	0, 6, 10, 14, 18, 22, 26, 30, 34, 38,
+]
+const ACT_START_DRAFTS: Array[int] = [
+	0, 8, 14, 20, 26, 33, 39, 46, 53, 60,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
@@ -4894,8 +4925,15 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## Lifted 8% across the road on 2026-09-24 (owner: "they don't feel like
 ## enough of a threat ... increasing the count of enemies per wave"); the
 ## ratio between adjacent acts is untouched.
+## **And lifted again for the augments, 2026-09-26** (owner: "even more enemies
+## each wave to really give the extra augments and powers a chance to shine").
+## `curve_report` models the hand a road deals, and it takes about three tenths
+## of the pressure off every act from IV on; this table carries most of the
+## answer - five, twelve and twelve per cent for Acts I to III, twenty-two from
+## IV - and the health table the rest, so the road is denser rather than only
+## tougher. Measured against the modelled hand on a new account.
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.08, 1.21, 1.47, 1.71, 1.88, 2.05, 2.16, 2.29, 2.40, 2.51,
+	1.13, 1.45, 1.75, 2.20, 2.40, 2.62, 2.77, 2.93, 3.08, 3.21,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -5084,8 +5122,11 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## all enemies with a bit more hp and a tiny bit more damage"); the shape of
 ## both ladders is untouched, and the contact scale carries the other half of
 ## the damage lift.
+## Lifted with the count table for the augments on 2026-09-26: three, ten and
+## eight per cent for Acts I to III and seventeen from IV, the smaller half of
+## what the modelled hand takes off.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.06, 1.22, 1.61, 1.82, 1.89, 1.91, 1.93, 1.98, 2.04, 2.08,
+	1.09, 1.40, 1.82, 2.23, 2.32, 2.34, 2.37, 2.44, 2.51, 2.55,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.02, 1.06, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20,

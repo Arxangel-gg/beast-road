@@ -595,6 +595,7 @@ func _apply(enemy: Enemy) -> void:
 	if data != null:
 		enemy.mark_element(data.element)
 	if damage > 0.0:
+		DamageLedger.credit_as(DamageLedger.TOWER_PREFIX + data.id if data != null else DamageLedger.OTHER)
 		enemy.take_damage(damage * enemy.brand_multiplier(), global_position, knockback)
 	var utility: float = data.utility_at(tier)
 	if data.slow_factor < 1.0:

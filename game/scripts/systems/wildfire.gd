@@ -207,6 +207,7 @@ func _hurt_around(at: Vector2, delta: float) -> void:
 	var dps: float = Balance.WILDFIRE_DPS * Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 	for enemy: Enemy in field.enemies_near(at, radius):
+		DamageLedger.credit_as(DamageLedger.EARTH)
 		enemy.take_damage(dps * delta, at, 0.0)
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:

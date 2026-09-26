@@ -514,3 +514,26 @@ rule the fish, the crops and the eggs already live under.
    `curve_report` and the frame, because each is measured against the other.
 5. Content: about sixty augments across the three branches and their branch
    keystones, distinct skills, upgrades and Oaths.
+
+### 8.8 As built (2026-09-26)
+
+Built the same day; CLAUDE.md carries the record. Where the build differs from
+the plan above, and why:
+
+- **Pacing.** About eight drafts by Act II and sixty by Act X - ranks paid in
+  bodies, act bosses, the first camp an act, raids, closed rifts, legends, and a
+  Tempering every forty waves. The first cut dealt about two hundred; a hand of
+  eight absorbs about forty picks.
+- **The ceiling at level V is the single-card bound**, as 8.4 said, with costs
+  at 0.40 and a tower's reach at 0.35. The first cut allowed 0.80.
+- **Banked drafts open at the next Preparation**, holding the solo clock; the
+  "open at once" setting holds the road. Not built: a HUD card to open a banked
+  draft mid-wave, and the count of what is left in the deck.
+- **Co-op phase A**: one party hand drafted by the host, relayed whole. Per-Warden
+  hands (8.5) are the next co-op step.
+- **Not yet built**: branch keystones at three and six (8.2), the content pass of
+  about sixty augments (8.7, item 5), and the swarm role. The denser road was
+  tuned with more bodies of the existing roster.
+- **The ledger shipped** on the debrief and the pause screen.
+- **Measured**: solo pressure 0.454 and four players 0.528 with the modelled
+  hand on the denser road; 0.639 without augments on the same road.

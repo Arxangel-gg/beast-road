@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 2
+tags = Array[String](["Economy", "Road"])
+effect_id = "resource_rate"
+effect_magnitude = 0.4
+rarity = 2
+first_act = 4
+card_text = "Traders follow the beast now. They pay well to walk in its shadow."
+id = "the_caravan_road"
+display_name = "The Caravan Road"
+description = "Rare card. Traders follow the beast now. They pay well to walk in its shadow."

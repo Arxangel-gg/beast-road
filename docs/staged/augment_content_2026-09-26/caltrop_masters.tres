@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Trap"])
+effect_id = "trap_damage"
+effect_magnitude = 0.18
+rarity = 1
+first_act = 3
+card_text = "They learned it from a road that was trying to kill them. So did you."
+id = "caltrop_masters"
+display_name = "Caltrop Masters"
+description = "Uncommon card. They learned it from a road that was trying to kill them. So did you."

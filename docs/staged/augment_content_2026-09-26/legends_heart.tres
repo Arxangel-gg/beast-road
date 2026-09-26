@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 0
+tags = Array[String](["Ward"])
+effect_id = "hero_max_hp"
+effect_magnitude = 0.4
+rarity = 4
+first_act = 9
+card_text = "Whoever wore it last walked the whole road. It has not forgotten how."
+id = "legends_heart"
+display_name = "Legend's Heart"
+description = "Legendary card. Whoever wore it last walked the whole road. It has not forgotten how."

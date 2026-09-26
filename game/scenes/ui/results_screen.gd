@@ -455,6 +455,13 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# and shook once was a different run, and the line that says so is the
 	# only readout the wrath will ever have.
 	lines.append_array(_earth_lines(summary.get("earth", {})))
+	# **What did the damage**, and what each augment added to it - the ledger the
+	# draft owes the player, so a card's worth is seen rather than taken on trust.
+	var ledger: PackedStringArray = DamageLedger.lines(summary.get("damage", {}) as Dictionary,
+		summary.get("augments", {}) as Dictionary)
+	if not ledger.is_empty():
+		lines.append("")
+		lines.append_array(ledger)
 	# **What the road paid whatever happened.** Levels, materials, fish, gear
 	# and spirits are the account's and stay; on a loss this is the answer to
 	# "was that worth anything", and it is asked before the unlock list.

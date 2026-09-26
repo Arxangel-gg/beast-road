@@ -403,6 +403,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 		if absf(offset.cross(along)) > Balance.DISCIPLINE_ROAD_SHOCK_HALF_WIDTH:
 			continue
 		var falloff: float = 1.0 - Balance.DISCIPLINE_ROAD_SHOCK_FALLOFF * (ahead / reach)
+		DamageLedger.credit_as(DamageLedger.SPELL)
 		enemy.take_damage(power * falloff, feet, spell.knockback, true)
 		enemy.shove(feet, Balance.DISCIPLINE_ROAD_SHOCK_SHOVE)
 
@@ -643,6 +644,7 @@ func _damage_area(centre: Vector2, radius: float, power: float, knockback: float
 		element: int = -1) -> float:
 	var dealt: float = 0.0
 	for enemy: Enemy in field.enemies_near(centre, radius):
+		DamageLedger.credit_as(DamageLedger.SPELL)
 		if enemy.take_damage(power, from, knockback, true):
 			dealt += power
 			# A water spell leaves what it hits wet.
@@ -680,6 +682,7 @@ func _touch_the_world(spell: SpellData, at: Vector2, share: float = 1.0) -> void
 
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 	for enemy: Enemy in field.enemies_near(origin, _reach(spell)):
+		DamageLedger.credit_as(DamageLedger.SPELL)
 		enemy.take_damage(power, origin, 0.0, true)
 		# Negative knockback would be a hack; pulling is its own operation.
 		enemy.pull_toward(origin, spell.knockback)
@@ -708,6 +711,7 @@ func _tick_beam(delta: float, origin: Vector2) -> void:
 	for i: int in steps:
 		var point: Vector2 = origin + _beam_aim * (reach * float(i + 1) / float(steps))
 		for enemy: Enemy in field.enemies_near(point, reach * 0.28):
+			DamageLedger.credit_as(DamageLedger.SPELL)
 			enemy.take_damage(tick_damage, origin, 0.0)
 	# **Where the beam ends, a few times a second rather than every frame.**
 	# An aimed sheet laid along the beam's own angle, so the spray it throws
@@ -760,6 +764,7 @@ func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
 		spent += blow
 		taken += 1
 		enemy.clear_brand()
+		DamageLedger.credit_as(DamageLedger.SPELL)
 		enemy.take_damage(blow, origin, 0.0, false)
 		Vfx.spark(enemy.combat_origin(), Color(0.86, 0.24, 0.3), 8, Vector2.UP, 210.0)
 	if taken > 0:

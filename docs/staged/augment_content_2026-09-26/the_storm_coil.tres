@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Storm", "Tower"])
+effect_id = "chain_targets"
+effect_magnitude = 2.0
+rarity = 3
+first_act = 8
+card_text = "Wound on the Iron Steppe during a storm nobody else survived."
+id = "the_storm_coil"
+display_name = "The Storm Coil"
+description = "Epic card. Wound on the Iron Steppe during a storm nobody else survived."

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+branch = 1
+tags = Array[String](["Frost", "Tower"])
+effect_id = "slow_strength"
+effect_magnitude = 0.4
+rarity = 2
+first_act = 5
+card_text = "Left out on the Glass Fields for a week. It never quite warmed up."
+id = "frostbitten_iron"
+display_name = "Frostbitten Iron"
+description = "Rare card. Left out on the Glass Fields for a week. It never quite warmed up."

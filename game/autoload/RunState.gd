@@ -71,11 +71,16 @@ var augment_banished: Array[String] = []
 var augment_luck: int = 0
 ## Waves cleared toward the next Tempering.
 var augment_waves_toward_tempering: int = 0
-## Camps that have dealt their draft this act, as "act:lane:tier" - so a camp
-## that comes back is a fight again and never a second draft.
+## The acts whose first camp razed has dealt its draft - so a camp that comes
+## back, or the eleventh camp of an act, is a fight and never another draft.
 var augment_camps_drafted: Array[String] = []
 ## The wall's hit count when the wave began, so a clean wave can be told.
 var _augment_wave_hits: int = 0
+
+## **The damage ledger** (`DamageLedger`): what each source took off the road's
+## bodies, and what each augment added to it, by key. Run statistics, banked
+## with a front and reset with the road.
+var damage_ledger: Dictionary = {}
 var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
@@ -614,6 +619,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	augment_waves_toward_tempering = 0
 	augment_camps_drafted = []
 	_augment_wave_hits = 0
+	damage_ledger = {}
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
@@ -2398,8 +2404,11 @@ func _on_raid_for_augments(reward: Dictionary) -> void:
 		queue_augment(Augments.SOURCE_RAID)
 
 
-func _on_rift_for_augments(_stage: int, _stages: int) -> void:
-	queue_augment(Augments.SOURCE_RIFT)
+## One draft a rift or dungeon, when its last stage falls - a dungeon of five
+## stages is one detour, not five drafts.
+func _on_rift_for_augments(stage: int, stages: int) -> void:
+	if stage >= stages:
+		queue_augment(Augments.SOURCE_RIFT)
 
 
 ## A legend of the trail, brought down. The rarest thing on the road deals the
@@ -2424,10 +2433,11 @@ func _on_wave_cleared_for_augments(_wave: int) -> void:
 	note_augment_wave_cleared()
 
 
-## A camp fell. It deals a draft once an act, so one that comes back is a fight
-## again and never a second draft. Returns whether it dealt.
-func note_camp_augment(lane: int, tier: int) -> bool:
-	var key: String = "%d:%d:%d" % [act, lane, tier]
+## A camp fell. The first camp razed in an act deals a draft and the rest are
+## fights: twelve camps an act would be twelve drafts, which is a detour worth
+## more than the road. Returns whether it dealt.
+func note_camp_augment(_lane: int, _tier: int) -> bool:
+	var key: String = str(act)
 	if augment_camps_drafted.has(key) or walking or Coop.is_guest():
 		return false
 	augment_camps_drafted.append(key)

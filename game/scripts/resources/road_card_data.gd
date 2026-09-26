@@ -124,6 +124,7 @@ func magnitude_at(level: int) -> float:
 	var scale: float = table[clampi(level - 1, 0, table.size() - 1)]
 	var ceiling: float = Balance.AUGMENT_LEVELLED_COST_CEILING if effect_magnitude < 0.0 \
 		else Balance.AUGMENT_LEVELLED_CEILING
+	ceiling = minf(ceiling, float(Balance.AUGMENT_KEY_CEILING.get(effect_id, ceiling)))
 	# Never below what the card moves at level one, whatever the ceilings say.
 	ceiling = maxf(ceiling, absf(effect_magnitude))
 	return clampf(effect_magnitude * scale, -ceiling, ceiling)
