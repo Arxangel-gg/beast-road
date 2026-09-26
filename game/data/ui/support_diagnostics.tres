@@ -14,3 +14,11 @@ ready_note = "Report ready. Review below, then copy and paste it with a descript
 copy_requested_note = "Copy requested. If your device blocks the clipboard, select the report below and copy it manually. Nothing has been sent."
 clipboard_unavailable_note = "Clipboard access is unavailable here. Select the report below and copy it manually."
 crash_notice = "The last session closed unexpectedly. Review a report you can share"
+privacy_heading = "What leaves your machine"
+privacy_body = "Wilderhold has no accounts, analytics or advertising. It uses the network only for features about other people.
+
+• The leaderboard, only when you press Submit after a run: the name you type, the score and the run's details. Anyone can read the board.
+• The Long Ledger: what a piece you listed sold for, never who you are or which piece it was.
+• Co-op online: a lobby row while you host, connection details with the players you join, and public servers that help find a route. Players you connect to see your IP address. Hosting by port asks your router to open one, and closes it when you stop.
+
+Support and crash reports are never sent. You copy them yourself."

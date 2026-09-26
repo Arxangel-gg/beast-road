@@ -934,6 +934,13 @@ func show_support_report() -> void:
 func _build_data(column: VBoxContainer) -> void:
 	column.add_child(SupportDiagnosticsPanel.new())
 	column.add_child(_separator())
+	var privacy: DiagnosticCopyData = SupportDiagnosticsPanel.COPY
+	column.add_child(_label(privacy.privacy_heading, 22))
+	var privacy_note: Label = _label(privacy.privacy_body, 14)
+	privacy_note.name = "PrivacyNote"
+	privacy_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(privacy_note)
+	column.add_child(_separator())
 	column.add_child(_label("Tutorial", 22))
 	var coach_note: Label = _label(
 		"Short prompts that explain the game as you meet each part of it. They "

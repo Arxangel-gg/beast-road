@@ -64,6 +64,10 @@ var external_address: String = ""
 ## switched off, and the honest answer is "forward port N yourself, or play on
 ## the same network" rather than a stack trace.
 var port_mapped: bool = false
+## The router this host asked to open a port, and the port, so hosting can
+## close it again. Written by the lookup thread and read only after it is joined.
+var _upnp: UPNP = null
+var _mapped_port: int = 0
 
 ## UPnP discovery blocks for seconds. On the main thread that is the menu
 ## freezing, so it runs on its own and the result arrives as a signal.
@@ -532,6 +536,7 @@ func leave() -> void:
 	if _directory != null:
 		_directory.withdraw()
 	_join_lookup()
+	_close_port()
 	if _peer != null:
 		_peer.close()
 		_peer = null
@@ -577,8 +582,16 @@ func _lookup_external(port: int) -> void:
 		address = upnp.query_external_address()
 		# UDP: ENet is a UDP protocol, and mapping TCP would open the wrong door
 		# and report success while nothing could connect.
-		mapped = upnp.add_port_mapping(port, port, "Wilderhold co-op",
-			"UDP") == UPNP.UPNP_RESULT_SUCCESS
+		mapped = upnp.add_port_mapping(port, port, "Wilderhold co-op", "UDP",
+			Balance.COOP_UPNP_LEASE_SECONDS) == UPNP.UPNP_RESULT_SUCCESS
+		if not mapped:
+			# Some routers refuse any lease but a permanent one; the take-down in
+			# `leave` is then the only thing that closes it.
+			mapped = upnp.add_port_mapping(port, port, "Wilderhold co-op",
+				"UDP") == UPNP.UPNP_RESULT_SUCCESS
+		if mapped:
+			_upnp = upnp
+			_mapped_port = port
 	_finish_lookup.call_deferred(address, mapped)
 
 
@@ -629,6 +642,20 @@ func _on_public_ip(result: int, code: int, _headers: PackedStringArray,
 	EventBus.coop_address_known.emit(local_address, external_address, port_mapped)
 
 
+## Asks the router to close the port hosting opened. Off the main thread for
+## the lookup's reason; joined like it, before any later lookup and at exit.
+func _close_port() -> void:
+	if _upnp == null or _mapped_port <= 0:
+		return
+	var router: UPNP = _upnp
+	var port: int = _mapped_port
+	_upnp = null
+	_mapped_port = 0
+	port_mapped = false
+	_upnp_thread = Thread.new()
+	_upnp_thread.start(func() -> void: router.delete_port_mapping(port, "UDP"))
+
+
 func _join_lookup() -> void:
 	if _upnp_thread != null:
 		if _upnp_thread.is_started():
@@ -649,6 +676,10 @@ func _first_local_address() -> String:
 
 
 func _exit_tree() -> void:
+	# Quitting does not pass through `leave`, and a port left open is the
+	# player's router doing this game a favour it never agreed to keep doing.
+	_join_lookup()
+	_close_port()
 	_join_lookup()
 
 

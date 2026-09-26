@@ -7892,6 +7892,14 @@ const LEADERBOARD_PENDING_MAX: int = 12
 ## ones already occupied on a machine that plays other games, and "someone else's
 ## server is already on that port" reads to a player as "co-op is broken".
 const COOP_PORT: int = 45870
+## **How long a router keeps the port a host asked it to open** (2026-09-26).
+## The mapping used to be permanent and was never taken down, so every Warden
+## who ever hosted left a UDP port forwarded to their machine until the router
+## restarted. It is taken down when hosting stops now, and this lease is the
+## backstop for a session that ends without stopping - a crash, a pulled plug.
+## A day, so no hosted evening outlives it; a router that only takes permanent
+## leases gets one, and relies on the take-down.
+const COOP_UPNP_LEASE_SECONDS: int = 86400
 
 ## How long a host waits after refusing a guest's build before dropping it, so
 ## the refusal is delivered and the guest can show the reason. [TUNE]

@@ -10,3 +10,7 @@ extends GameData
 @export_multiline var clipboard_unavailable_note: String = ""
 ## The main menu's one line when the last session ended without saying so.
 @export var crash_notice: String = ""
+## What leaves the machine, said where a player looking for it would look.
+## `docs/PRIVACY.md` is the long form; `privacy_check` holds both to the code.
+@export var privacy_heading: String = ""
+@export_multiline var privacy_body: String = ""
