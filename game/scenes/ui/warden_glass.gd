@@ -255,6 +255,7 @@ func _build_choices(body: VBoxContainer) -> void:
 		button.button_group = group
 		button.custom_minimum_size = Vector2(120.0, 40.0)
 		button.pressed.connect(_choose.bind(WardenLook.KEY_BODY, index))
+		_let_it_peek(button, WardenLook.KEY_BODY, index)
 		row.add_child(button)
 		_body_buttons.append(button)
 
@@ -350,6 +351,7 @@ func _swatch_row(key: String, count: int, colour_of: Callable, name_of: Callable
 		button.custom_minimum_size = Vector2(SWATCH, SWATCH)
 		_paint_swatch(button, colour_of.call(index) as Color)
 		button.pressed.connect(_choose.bind(key, index))
+		_let_it_peek(button, key, index)
 		row.add_child(button)
 		buttons.append(button)
 	_choices[key] = buttons
@@ -496,6 +498,7 @@ func _fill_grid(grid: GridContainer, kind: String, key: String) -> Array[Button]
 		thumb.position = Vector2(4.0, 4.0)
 		button.add_child(thumb)
 		button.pressed.connect(_choose.bind(key, index))
+		_let_it_peek(button, key, index)
 		grid.add_child(button)
 		buttons.append(button)
 	return buttons
@@ -649,6 +652,24 @@ func _refresh() -> void:
 		material.set_shader_parameter("skin_from", Vector3(painted.r, painted.g, painted.b))
 		material.set_shader_parameter("skin_to", Vector3(tone.r, tone.g, tone.b))
 	_refresh_preview()
+
+
+## Try before choosing: pointing at a choice, or walking the pad onto it, shows
+## it on the Warden in the glass without saving it, and leaving puts back what
+## was chosen. A look is a picture, so a peek is only ever a picture.
+func _let_it_peek(button: Button, key: String, index: int) -> void:
+	button.mouse_entered.connect(_peek.bind(key, index))
+	button.focus_entered.connect(_peek.bind(key, index))
+	button.mouse_exited.connect(_refresh_preview)
+	button.focus_exited.connect(_refresh_preview)
+
+
+func _peek(key: String, index: int) -> void:
+	if not visible or (key == WardenLook.KEY_BODY and not WardenDress.available(WardenDress.BODIES[index])):
+		return
+	var look: Dictionary = WardenLook.worn()
+	look[key] = index
+	_stage.show_look(WardenLook.clean(look), _show_gear)
 
 
 func _refresh_preview() -> void:

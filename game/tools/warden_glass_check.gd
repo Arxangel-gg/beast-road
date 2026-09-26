@@ -145,6 +145,21 @@ func _test_every_control_reaches_the_look(glass: WardenGlass) -> void:
 			slider.value = 0.3
 			_check(is_equal_approx(float(MetaState.look[key]), 0.3), "the %s slider did not dye" % key)
 	_check(glass.touched(), "a glass that changed the look says it was not touched")
+	# A peek is a picture: pointing at a style shows it on the Warden and saves
+	# nothing, and pointing away puts the chosen one back.
+	_press(_button(glass, "Hair0"))
+	var saved: String = MetaState.serialized_save()
+	var peeked: Button = _button(glass, "Hair5")
+	if peeked != null and frames != null:
+		peeked.mouse_entered.emit()
+		_check(MetaState.serialized_save() == saved, "peeking at a hairstyle wrote the save")
+		if frames.dressed():
+			var shown: Dictionary = frames._outfit.get("hair", {})
+			_check(String(shown.get("id", "")) == String(WardenDress.head_option("male", "hair", 5).get("id", "")),
+				"peeking at a hairstyle did not show it on the Warden")
+			peeked.mouse_exited.emit()
+			_check((frames._outfit.get("hair", {}) as Dictionary).is_empty(),
+				"pointing away from a hairstyle left it on the Warden")
 	_check(_all_but_the_look() == rest, "choosing a look moved something that is not the look")
 	glass.close()
 	await get_tree().process_frame
