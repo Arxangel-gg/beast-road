@@ -10005,6 +10005,28 @@ the Walk, derived from `runs_started` and a plain look, never stored.
 `warden_glass_check` holds that an untouched glass writes nothing and that
 nothing but the look moves.
 
+**Everybody is dressed, not only the player.** A partner on the road is dressed
+from the look row and four worn gear kinds the wire now carries
+(`Request.HERO_GEAR`, by kind and never by piece, attributed by the peer it
+arrived on; a kind in the wrong slot or unknown to this build is nothing). The
+Hold's seats wear their looks - the simulated Wardens a body, hairstyle, colour,
+beard and skin rolled from the visit's salt, so the Hold is full of strangers -
+and the Hold's card and the co-op lobby stand a `WardenStage`, the same dressed
+Warden the glass turns. The painted Warden remains only as a fallback for a body
+whose art is not drawn.
+
+**The dressed body has no cloak or sash band.** Those two dyes turn the painted
+Warden's teal cloak and red sash; on the new linen body the sash band found the
+skin's reddish ink and speckled it cyan. `HeroAnimator.dress` tells the shader
+which Warden it draws (`painted_bands`), and a dressed body turns only its
+leather.
+
+**A death ends on its last-but-one frame, always.** The generator reads
+"collapse" as "fade": six of the sixteen last death frames across the two bases
+dissolved, three into a pale speckle no measure could tell from an ordinary
+frame, and the last two frames of a death are one pose. `pack.py` also clears
+detached dust of five pixels or fewer.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
