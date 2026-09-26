@@ -10475,6 +10475,18 @@ machine's pen and journal (an open question, recorded), and nothing persists
 that did not - the sheet is the host's copy of the partner's account for a run,
 as `Hero.look` and `Hero.gear_kinds` already were.
 
+**The curve carries what a node adds to a swing, as of 2026-09-26.** Ruling R3
+lets a Discipline carry a number on the condition that `curve_report` models it,
+and it modelled none: every Warden starts with Hemorrhage Edge, the chain form
+worth 8% on every swing, and the report's hero was a naked combo.
+`_discipline_scale` reads the account's form and Rising Fury at its cap through
+the same `WardenSheet` door the hero reads. The rest of the tree is conditional
+- a crit on an isolated body, a burst after a support kill, a finisher after a
+perfect evade - and a best-case model that met every condition would be
+modelling a player the road never produces, so they are left out and said to
+be. Measured on a new account: solo 0.454 to 0.453, four players 0.528 to
+0.526. The hero is a small share of a board's capability, which is why.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

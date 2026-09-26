@@ -244,7 +244,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# re-tune of the ladder moves this too rather than leaving a number behind.
 	var standing: float = ascension_uptime(ascension_rank())
 	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) \
-			* float(_players) * standing \
+			* _discipline_scale() * float(_players) * standing \
 		+ _companion_dps() * float(_players) * standing \
 		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE) \
 			* _core_scale(Modifiers.TOWER_RATE)
@@ -413,6 +413,28 @@ func _hero_dps() -> float:
 			+ Balance.HERO_ATTACK_ACTIVE[index] \
 			+ Balance.HERO_ATTACK_RECOVERY[index]
 	return damage / maxf(duration, 0.01)
+
+
+## **What the Disciplines add to a swing, for the account being measured**
+## (owner ruling R3, 2026-09-26: a node may carry a number, and the curve
+## carries it as part of the levelling scale - a number the model does not
+## carry is forbidden, exactly as an ascension rank's is).
+##
+## Two numbers a node carries on every swing of a sustained fight: the chain's
+## form (Hemorrhage Edge is every new Warden's, at 8%), and Rising Fury at its
+## cap, which a Warden swinging without pause reaches in
+## `RISING_FURY_RAMP_SECONDS`. Read through the same door the hero reads
+## (`WardenSheet` with no sheet is this account), so the report and the fight
+## cannot disagree about which nodes are held. The rest of the tree is
+## conditional - a crit on an isolated body, a burst after a support kill, a
+## finisher after a perfect evade - and a best-case model that counted every
+## condition as met would be modelling a player the road never produces; they
+## are left out and said to be.
+func _discipline_scale() -> float:
+	var form: DisciplineNodeData = WardenSheet.form_of(null)
+	var scale: float = 1.0 + (form.form_damage if form != null else 0.0)
+	scale *= 1.0 + WardenSheet.trained_value_of(null, "active_attack_speed")
+	return scale
 
 
 ## Average Gold a body is worth, across the enemies that actually walk on.
