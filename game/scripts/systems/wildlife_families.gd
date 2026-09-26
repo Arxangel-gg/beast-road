@@ -647,6 +647,7 @@ func _give_birth(mother: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> vo
 func _roll_clutch(mother: Dictionary, kind: WildlifeData, litter: int,
 		family: int, father_rarity: int, father_shiny: bool) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	var father: Dictionary = _by_id(int(mother.get("litter_by", 0)))
 	for _cub: int in litter:
 		if births_this_act >= Balance.WILDLIFE_BIRTHS_PER_ACT \
 				or wild.population() + out.size() >= wild.population_cap():
@@ -663,8 +664,25 @@ func _roll_clutch(mother: Dictionary, kind: WildlifeData, litter: int,
 			"born_act": RunState.act,
 			"parents": [int(mother["net_id"]), int(mother.get("litter_by", 0))],
 			"family": family,
+			"coat": cub_coat(mother, father, kind, family, out.size()),
 		})
 	return out
+
+
+## **A cub's coat, from its parents** (2026-09-25; see `Phenotype.inherit`).
+##
+## On dice of its own, seeded from who the parents are and which of the litter
+## this is - so the family stream the sex and the rarity are rolled on moves not
+## at all, and a litter rolled twice is the same litter.
+static func cub_coat(mother: Dictionary, father: Dictionary, kind: WildlifeData,
+		family: int, index: int) -> Dictionary:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = absi(hash("%s|%d|%d|%d|%d" % [kind.id, int(mother.get("net_id", 0)),
+		int(father.get("net_id", 0)), family, index]))
+	var from_mother: Dictionary = Phenotype.coat_of(mother)
+	var from_father: Dictionary = Phenotype.coat_of(father) if not father.is_empty() \
+		else from_mother
+	return Phenotype.inherit(kind, from_mother, from_father, dice)
 
 
 ## A rolled clutch becomes animals on the ground.
@@ -1090,6 +1108,8 @@ func _refresh_companion_record() -> void:
 	_mate_record["rarity"] = SpiritBond.rarity_of(one.spirit_key)
 	_mate_record["shiny"] = SpiritBond.shiny_of(one.spirit_key)
 	_mate_record["sex"] = companion_sex(one.spirit_key)
+	# The coat it actually wears, so a litter it fathers looks like it.
+	_mate_record["coat"] = Phenotype.genes(kind, one.coat_serial())
 	_mate_record["hp"] = 1.0 if one.is_alive() else 0.0
 	# SETTLED only while it is genuinely free; anything else reads to
 	# `_can_court` as an animal that is busy.

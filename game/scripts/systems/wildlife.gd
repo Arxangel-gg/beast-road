@@ -813,7 +813,15 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# material, because the serial is only decided above - and a coat seeded
 	# from a number that is zero for every animal in a solo run is one coat for
 	# the whole road, which is exactly what happened to spirit personalities.
-	Phenotype.dress(impact_material, kind, identity)
+	#
+	# **A newborn wears the coat it was born with** (2026-09-25): rolled from its
+	# parents when the litter was, and carried here in `born` - so an egg that
+	# hatches after both parents are gone still looks like them, and a guest,
+	# told the birth, draws the same coat from the same fact.
+	var coat: Dictionary = born.get("coat", {}) as Dictionary if born.has("coat") else {}
+	if coat.is_empty():
+		coat = Phenotype.genes(kind, identity)
+	Phenotype.apply(impact_material, kind, coat)
 
 	# A bar over anything that can be hurt, hidden until it has been.
 	#
@@ -862,6 +870,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		# Nothing the player does can reroll a temperament, for the same reason
 		# nothing can reroll a shiny.
 		"trait": SpiritBond.trait_for(kind.id, identity),
+		# The coat it wears, so its own young can be handed it.
+		"coat": coat,
 		# One animal is one encounter, however many times it is hit or approached.
 		"credited": false,
 		"group_id": group_id,

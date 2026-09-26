@@ -84,19 +84,23 @@ static func dress(material: ShaderMaterial, kind: WildlifeData,
 		serial: int) -> void:
 	if material == null or kind == null:
 		return
-	if not Graphics.phenotypes():
-		_plain(material)
-		return
+	apply(material, kind, genes(kind, serial))
+
+
+## **A coat as the numbers an animal carries** (2026-09-25): split out of
+## `dress` so a newborn can be handed its parents' rather than its serial's.
+##
+## The draws are exactly the ones `dress` always made, in the same order, so an
+## animal that was not born on the road wears the coat it always wore -
+## `phenotype_check` holds that against the original arithmetic.
+static func genes(kind: WildlifeData, serial: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_for(kind.id, serial)
 	# Each draw is its own call so that adding one later shifts nothing before
 	# it - the same discipline every seeded stream in this project is held to.
-	var hue: float = rng.randf_range(-1.0, 1.0) * minf(kind.coat_hue_spread,
-		Balance.PHENOTYPE_HUE_CEILING)
-	var light: float = rng.randf_range(-1.0, 1.0) * minf(kind.coat_light_spread,
-		Balance.PHENOTYPE_LIGHT_CEILING)
-	var saturation: float = rng.randf_range(-1.0, 1.0) * minf(
-		kind.coat_saturation_spread, Balance.PHENOTYPE_SATURATION_CEILING)
+	var hue: float = rng.randf_range(-1.0, 1.0) * spread(kind, "hue")
+	var light: float = rng.randf_range(-1.0, 1.0) * spread(kind, "light")
+	var saturation: float = rng.randf_range(-1.0, 1.0) * spread(kind, "saturation")
 	# **The pattern is the species' own or nothing.** A rabbit does not grow
 	# stripes because a die came up stripes; what varies is where its markings
 	# fall and how strong they are, which is what actually differs between two
@@ -108,15 +112,100 @@ static func dress(material: ShaderMaterial, kind: WildlifeData,
 	# the same offset read on both halves of the sprite is what makes a coat
 	# look printed rather than grown.
 	var offset := Vector2(rng.randf() * 64.0, rng.randf() * 64.0)
-	material.set_shader_parameter("coat_hue", hue)
-	material.set_shader_parameter("coat_light", light)
-	material.set_shader_parameter("coat_saturation", saturation)
+	return {"hue": hue, "light": light, "saturation": saturation,
+		"strength": strength, "offset": offset}
+
+
+## How far a species' coat may wander on one gene: its own authored spread,
+## never past the ceiling that keeps a coat from reading as a rarity.
+static func spread(kind: WildlifeData, gene: String) -> float:
+	match gene:
+		"hue":
+			return minf(kind.coat_hue_spread, Balance.PHENOTYPE_HUE_CEILING)
+		"light":
+			return minf(kind.coat_light_spread, Balance.PHENOTYPE_LIGHT_CEILING)
+		"saturation":
+			return minf(kind.coat_saturation_spread, Balance.PHENOTYPE_SATURATION_CEILING)
+	return 0.0
+
+
+## Puts a coat on a material. The species decides the pattern, its scale and its
+## tint; the coat decides everything that differs between two of a kind.
+static func apply(material: ShaderMaterial, kind: WildlifeData, coat: Dictionary) -> void:
+	if material == null or kind == null:
+		return
+	if not Graphics.phenotypes():
+		_plain(material)
+		return
+	material.set_shader_parameter("coat_hue", float(coat.get("hue", 0.0)))
+	material.set_shader_parameter("coat_light", float(coat.get("light", 0.0)))
+	material.set_shader_parameter("coat_saturation", float(coat.get("saturation", 0.0)))
 	material.set_shader_parameter("coat_pattern", int(kind.coat_pattern))
-	material.set_shader_parameter("coat_pattern_strength", strength)
+	material.set_shader_parameter("coat_pattern_strength", float(coat.get("strength", 0.0)))
 	material.set_shader_parameter("coat_pattern_scale",
 		maxf(kind.coat_pattern_scale, 1.0))
 	material.set_shader_parameter("coat_pattern_tint", kind.coat_pattern_tint)
-	material.set_shader_parameter("coat_offset", offset)
+	material.set_shader_parameter("coat_offset", coat.get("offset", Vector2.ZERO) as Vector2)
+
+
+## **A newborn wears its parents' coat** (2026-09-25, `IDEAS_REVIEW_2026-09-25`
+## §5). Each gene comes from the mother, from the father, or now and then from
+## between them, and then drifts by a small mutation - so a litter looks like a
+## family rather than like strangers who arrived together, and no two cubs of a
+## litter are the same cub.
+##
+## **Clamped to the species' own spread**, so resemblance can never walk a coat
+## past a ceiling over generations: a family of foxes is a family of foxes,
+## never a blue one, and a coat still cannot be mistaken for a rarity.
+##
+## **A look and never a number**, like every coat. Speed, bite, loyalty and an
+## element were proposed as inherited genes too and refused: bred numbers are a
+## stat scale found by breeding, and breeding would become the way to power.
+static func inherit(kind: WildlifeData, mother: Dictionary, father: Dictionary,
+		dice: RandomNumberGenerator) -> Dictionary:
+	var out: Dictionary = {}
+	for gene: String in ["hue", "light", "saturation"]:
+		var limit: float = spread(kind, gene)
+		var value: float = _one_gene(float(mother.get(gene, 0.0)),
+			float(father.get(gene, mother.get(gene, 0.0))), dice)
+		value += dice.randf_range(-1.0, 1.0) * limit * Balance.PHENOTYPE_MUTATION
+		out[gene] = clampf(value, -limit, limit)
+	var strength: float = 0.0
+	if kind.coat_pattern != WildlifeData.Coat.NONE:
+		strength = _one_gene(float(mother.get("strength", 0.0)),
+			float(father.get("strength", mother.get("strength", 0.0))), dice)
+		strength += dice.randf_range(-1.0, 1.0) * kind.coat_pattern_strength \
+			* Balance.PHENOTYPE_MUTATION
+		strength = clampf(strength, 0.0, kind.coat_pattern_strength)
+	out["strength"] = strength
+	# Where the markings sit: one parent's, nudged. A blend of two offsets is a
+	# pattern that belongs to neither, which reads as noise rather than as kin.
+	var from: Dictionary = mother if dice.randf() < 0.5 else father
+	var offset: Vector2 = from.get("offset", Vector2.ZERO) as Vector2
+	offset += Vector2(dice.randf_range(-1.0, 1.0), dice.randf_range(-1.0, 1.0)) \
+		* Balance.PHENOTYPE_OFFSET_DRIFT
+	out["offset"] = Vector2(fposmod(offset.x, 64.0), fposmod(offset.y, 64.0))
+	return out
+
+
+static func _one_gene(from_mother: float, from_father: float,
+		dice: RandomNumberGenerator) -> float:
+	var pick: float = dice.randf()
+	if pick < Balance.PHENOTYPE_BLEND_CHANCE:
+		return lerpf(from_mother, from_father, dice.randf())
+	if pick < Balance.PHENOTYPE_BLEND_CHANCE + (1.0 - Balance.PHENOTYPE_BLEND_CHANCE) * 0.5:
+		return from_mother
+	return from_father
+
+
+## The coat an animal record wears: the one it was born with, or its serial's.
+static func coat_of(animal: Dictionary) -> Dictionary:
+	if animal.has("coat"):
+		return animal["coat"] as Dictionary
+	var kind := animal.get("data", null) as WildlifeData
+	if kind == null:
+		return {}
+	return genes(kind, int(animal.get("net_id", 0)))
 
 
 ## What a coat is, as numbers, without needing a material. For the gate, and for

@@ -187,9 +187,15 @@ func _wear_its_own_coat() -> void:
 	var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
 	if kind == null:
 		return
-	var serial: int = absi(RunState.run_seed ^ hash(spirit_key if not spirit_key.is_empty()
+	Phenotype.dress(ActorPolish.attach(_sprite), kind, coat_serial())
+
+
+## The serial this spirit's coat is drawn from: the run's seed and its bond, so
+## it is the same companion all run on both machines. One door, because the
+## families hand a litter this spirit fathers the same coat.
+func coat_serial() -> int:
+	return absi(RunState.run_seed ^ hash(spirit_key if not spirit_key.is_empty()
 		else data.id))
-	Phenotype.dress(ActorPolish.attach(_sprite), kind, serial)
 
 
 ## The frames this companion wears: a species' own, or its single sprite.

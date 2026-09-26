@@ -4564,6 +4564,17 @@ const PHENOTYPE_HUE_CEILING: float = 0.055
 const PHENOTYPE_LIGHT_CEILING: float = 0.22
 const PHENOTYPE_SATURATION_CEILING: float = 0.30
 
+## **A newborn's coat is its parents'** (2026-09-25). Each gene is the mother's
+## or the father's, and this share of the time somewhere between the two. [TUNE]
+const PHENOTYPE_BLEND_CHANCE: float = 0.12
+## How far a gene drifts from the parent it came from, as a share of the
+## species' own spread - enough that no two cubs are one cub, small enough that
+## a litter reads as a family. [TUNE]
+const PHENOTYPE_MUTATION: float = 0.15
+## How far a cub's markings sit from the parent's they came from, in pattern
+## texels of a 64-texel tile. [TUNE]
+const PHENOTYPE_OFFSET_DRIFT: float = 5.0
+
 ## **The trail to something mythical.** See `MythicTrail`.
 ##
 ## Five signs is the shortest thing that reads as a *trail* rather than as a
