@@ -343,6 +343,21 @@ def pack(body: str, game: str) -> None:
     skin_found = 0
     metas: dict = {}
     per_layer = {layer: animation_frames(layer) for layer in layers}
+    # **A layer ships whole or not at all.** The game takes a layer as worn the
+    # moment its idle sheet exists (`WardenDress.has_layer`), so light armour
+    # packed while its walk was still drawing would stand in armour and walk in
+    # nothing. The base is packed as far as it goes, as before.
+    wanted = set(animations.ANIMATIONS)
+    for layer in list(per_layer):
+        if layer == base_layer:
+            continue
+        frames = per_layer[layer]
+        missing = sorted(st for st in wanted
+                         if st not in frames or len(frames[st]) < len(rig.ROW_ORDER))
+        if missing:
+            print("held back %-18s %d of %d states unfinished (%s)" % (
+                layer, len(missing), len(wanted), ", ".join(missing[:4])))
+            del per_layer[layer]
     states = sorted({s for frames in per_layer.values() for s in frames})
     with open(os.path.join(HERE, "frames_%s.json" % body), encoding="utf-8") as f:
         south = json.load(f)["south"]
