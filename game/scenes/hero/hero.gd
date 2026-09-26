@@ -496,6 +496,7 @@ func _ready() -> void:
 
 func _physics_process_measured(delta: float) -> void:
 	_tick_timers(delta)
+	_place_bars(delta)
 
 	if not is_alive():
 		_tick_respawn(delta)
@@ -1249,6 +1250,39 @@ func _on_fish_eaten(fish_id: String) -> void:
 ## In a solo run there is one hero and it is always this one. In co-op the
 ## partner's body is in the same tree, and a good deal depends on telling them
 ## apart - who a fish feeds, whose line is in the water.
+## Whether the overhead bars have been stood anywhere yet: the first placement
+## snaps, every later one eases.
+var _bars_placed: bool = false
+
+
+## The overhead bars stand above the head actually drawn (owner, 2026-09-26:
+## "Player HP bar overlaps the player's head and should be above it", with thin
+## MP and SP bars under it). The head is read off the sprite as it is drawn -
+## its position, its offset (which carries a mount's seat) and the animator's
+## head top, which counts the hair - so an afro, a bald head and a rider all
+## clear it, and the bars ease rather than snap so a turn or a climb does not
+## make them twitch. Stamina is this machine's own and never crosses the wire,
+## so a partner's bar shows health and mana.
+func _place_bars(delta: float) -> void:
+	if health_bar == null or sprite == null:
+		return
+	var head: float = frames.head_top() if frames != null else NAN
+	var top: float
+	if is_nan(head):
+		top = sprite.position.y + sprite.offset.y * sprite.scale.y - Balance.HERO_PAINTED_CROWN_ABOVE_CENTRE * sprite.scale.y
+	else:
+		top = sprite.position.y + (sprite.offset.y + head) * sprite.scale.y
+	health_bar.set_pools(mana / maxf(mana_max(), 0.001),
+		stamina / maxf(max_stamina(), 0.001) if is_local_player() else -1.0)
+	var target: float = top - Balance.HERO_BAR_HEAD_GAP - health_bar.stack_height()
+	if not _bars_placed:
+		health_bar.position.y = target
+		_bars_placed = true
+		return
+	health_bar.position.y = lerpf(health_bar.position.y, target,
+		1.0 - exp(-Balance.HERO_BAR_FOLLOW_RATE * delta))
+
+
 func is_local_player() -> bool:
 	return not Coop.is_networked() or party_slot == Coop.party().slot()
 

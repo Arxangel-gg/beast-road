@@ -3000,6 +3000,29 @@ const TREELINE_LANE_CLEARANCE: float = 320.0
 ## screen-space HUD, but a swing you cannot see landing tells you nothing.
 const HEALTH_BAR_WIDTH: float = 54.0
 const HEALTH_BAR_HEIGHT: float = 7.0
+## The Warden's overhead bars (owner, 2026-09-26: "Player HP bar overlaps the
+## player's head and should be above it", with thin MP and SP bars beneath it).
+## They hang off the body actually drawn - its head point, the tallest thing on
+## its head, and the seat when mounted - so a bald head, an afro and a rider all
+## clear them. HP on top, then MP, then SP, each pool a thin bar.
+const HERO_POOL_BAR_HEIGHT: float = 3.0
+## From one bar's bottom edge to the next one's top, frames included.
+const HERO_POOL_BAR_GAP: float = 3.0
+## Air between the lowest bar and the top of the head.
+const HERO_BAR_HEAD_GAP: float = 5.0
+## How quickly the bars follow the head, per second: a turn moves the painted
+## feet a pixel or two and a mount lifts the rider, and a bar that snapped with
+## every one of those would twitch.
+const HERO_BAR_FOLLOW_RATE: float = 14.0
+## The bald crown above the head point, measured on both bodies (11.4 art px):
+## what a bare head's bars stand on.
+const DRESS_CROWN_ABOVE_HEAD: float = 12.0
+## Room for a head dressing whose picture cannot be read: the tallest drawn,
+## the afro, rises 27 art px above the head point.
+const DRESS_HEAD_RISE_FALLBACK: float = 27.0
+## The painted Warden's crown above its sprite's centre, which puts the health
+## bar exactly where the scene authored it for that sprite.
+const HERO_PAINTED_CROWN_ABOVE_CENTRE: float = 62.0
 ## The pale trail a hit leaves on a bar, and how fast it drains (fraction of
 ## the bar per second). The ranked wear a wider bar.
 const HEALTH_BAR_TRAIL_COLOUR: Color = Color(1.0, 0.86, 0.5, 0.95)

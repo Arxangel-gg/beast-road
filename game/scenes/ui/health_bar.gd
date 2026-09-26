@@ -40,6 +40,11 @@ var _fill_colour: Color = Balance.HEALTH_BAR_FILL_COLOUR
 ## A bite flashes the fill toward white and it settles (2026-09-25): the
 ## bar says "that landed" before the trail says how much.
 var _flash: float = 0.0
+## The Warden's mana and stamina, as shares of their pools, drawn as thin bars
+## under the health (owner, 2026-09-26). -1 is no bar: only the hero sets them,
+## and a partner's stamina never crosses the wire, so theirs shows mana alone.
+var _pools: PackedFloat32Array = PackedFloat32Array([-1.0, -1.0])
+var _pool_colours: Array[Color] = [Color(Balance.UI_MANA_INDIGO), Color(Balance.UI_STAMINA_GREEN)]
 
 
 func _ready() -> void:
@@ -76,6 +81,30 @@ func bind(health: Health) -> void:
 
 func _apply_size() -> void:
 	queue_redraw()
+
+
+## Mana then stamina as shares of their pools, -1 for a bar not shown. A change
+## too small to move a pixel is not a redraw.
+func set_pools(mana: float, stamina: float) -> void:
+	var wanted := PackedFloat32Array([mana, stamina])
+	var moved: bool = false
+	for index: int in wanted.size():
+		var value: float = clampf(wanted[index], 0.0, 1.0) if wanted[index] >= 0.0 else -1.0
+		if (value < 0.0) != (_pools[index] < 0.0) or absf(value - _pools[index]) > 0.004:
+			_pools[index] = value
+			moved = true
+	if moved:
+		queue_redraw()
+
+
+## How tall the whole stack is, from the top of the health to the bottom of the
+## last pool, so the hero can stand it clear of a head.
+func stack_height() -> float:
+	var height: float = _bar_rect().size.y
+	for value: float in _pools:
+		if value >= 0.0:
+			height += Balance.HERO_POOL_BAR_GAP + Balance.HERO_POOL_BAR_HEIGHT
+	return height
 
 
 ## A wider bar, for a body worth reading: elites and bosses. Shown at once
@@ -145,6 +174,7 @@ func _draw_measured() -> void:
 			_fill_colour.lerp(Color.WHITE, _flash * Balance.HEALTH_BAR_FLASH_GAIN))
 	var outline: Color = Balance.HEALTH_BAR_RANK_FRAME if _ranked else Balance.HEALTH_BAR_FRAME_OUTLINE
 	_frame(rect.grow(1.0), outline)
+	_draw_pools(rect)
 	if _ranked:
 		_frame(rect.grow(2.0), Balance.HEALTH_BAR_FRAME_OUTLINE)
 		# End caps.
@@ -159,6 +189,23 @@ func _draw_measured() -> void:
 		# Bevel: light along the top, shade along the bottom.
 		draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), Balance.HEALTH_BAR_FRAME_LIGHT)
 		draw_rect(Rect2(rect.position.x, rect.end.y - 1.0, rect.size.x, 1.0), Balance.HEALTH_BAR_FRAME_SHADE)
+
+
+## The thin mana and stamina bars under the health, the same width, framed
+## the same way, so the three read as one readout.
+func _draw_pools(health: Rect2) -> void:
+	var y: float = health.end.y
+	for index: int in _pools.size():
+		var value: float = _pools[index]
+		if value < 0.0:
+			continue
+		y += Balance.HERO_POOL_BAR_GAP
+		var rect := Rect2(health.position.x, y, health.size.x, Balance.HERO_POOL_BAR_HEIGHT)
+		draw_rect(rect, _background_colour)
+		if value > 0.0:
+			draw_rect(Rect2(rect.position, Vector2(rect.size.x * value, rect.size.y)), _pool_colours[index])
+		_frame(rect.grow(1.0), Balance.HEALTH_BAR_FRAME_OUTLINE)
+		y = rect.end.y
 
 
 ## A one-pixel frame as four filled rects.

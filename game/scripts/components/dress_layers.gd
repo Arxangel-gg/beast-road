@@ -327,6 +327,46 @@ func _process(delta: float) -> void:
 		_hair.skew = _sway * _hair_sway
 
 
+## How far what is worn on the head rises above the head point, in art pixels:
+## the tallest of each dressing's eight views, or the bald crown when there is
+## none. What the Warden's overhead bars stand clear of (owner, 2026-09-26).
+func head_rise() -> float:
+	var rise: float = Balance.DRESS_CROWN_ABOVE_HEAD
+	var cell: Array = _outfit.get("head_cell", [80, 128])
+	var anchor: Array = _outfit.get("head_anchor", [40, 30])
+	for part: Sprite2D in [_hair, _beard]:
+		if part != null and part.texture != null:
+			rise = maxf(rise, _rise_of(part.texture, Vector2i(int(cell[0]), int(cell[1])), float(anchor[1])))
+	return rise
+
+
+## A dressing's rise, read once a picture and kept: the topmost pixel of any
+## view against the anchor row. A picture that cannot be read is given the
+## tallest dressing drawn, so a bar is never laid across a head.
+static var _rises: Dictionary = {}
+
+
+static func _rise_of(texture: Texture2D, cell: Vector2i, anchor_y: float) -> float:
+	var key: String = texture.resource_path
+	if not key.is_empty() and _rises.has(key):
+		return float(_rises[key])
+	var rise: float = Balance.DRESS_HEAD_RISE_FALLBACK
+	var image: Image = texture.get_image()
+	if image != null and not image.is_empty() and cell.x > 0:
+		if image.is_compressed():
+			image.decompress()
+		var top: int = cell.y
+		for view: int in image.get_width() / cell.x:
+			var used: Rect2i = image.get_region(Rect2i(view * cell.x, 0, cell.x, cell.y)).get_used_rect()
+			if used.size.y > 0:
+				top = mini(top, used.position.y)
+		if top < cell.y:
+			rise = anchor_y - float(top)
+	if not key.is_empty():
+		_rises[key] = rise
+	return rise
+
+
 ## The hair and the beard as drawn this frame, for `dress_check`.
 func hair() -> Sprite2D:
 	return _hair

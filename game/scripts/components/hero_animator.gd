@@ -102,6 +102,10 @@ var _layers: DressLayers = null
 # Which sheet's skin mask the sprite's material holds, so a mask is handed over
 # when the sheet changes rather than every frame.
 var _mask_drawn: String = ""
+## The top of the dressed head, hair and all, in the cell's own pixels - taken
+## off the standing frames once, when the Warden is dressed, so the bars
+## above it hold still while the body swings. NAN while the painted Warden plays.
+var _head_top: float = NAN
 
 
 func _ready() -> void:
@@ -123,6 +127,7 @@ func dress(outfit: Dictionary) -> void:
 		if _layers != null:
 			_layers.set_worn(false)
 		_say_which_bands(true)
+		_head_top = NAN
 		_count_frames()
 		return
 	_say_which_bands(false)
@@ -136,6 +141,7 @@ func dress(outfit: Dictionary) -> void:
 	if _layers != null:
 		_layers.set_worn(true)
 		_layers.wear(outfit)
+	_head_top = _read_head_top(body)
 	if sprite != null:
 		sprite.region_enabled = true
 		sprite.centered = false
@@ -143,6 +149,32 @@ func dress(outfit: Dictionary) -> void:
 	if not _state.is_empty():
 		_state_drawn = _resolve(_state)
 	_count_frames()
+
+
+## The top of the dressed head in the cell's pixels: the highest head point
+## the standing Warden reaches in any facing or breath, less whatever is worn
+## on the head. One number for every facing, so the bars hold still through a
+## turn; the highest rather than the south view's, because a turned head sits
+## a pixel or three higher and the south view alone left 1.6 of the 5 intended.
+## NAN when the table has no head point to read.
+func _read_head_top(body: String) -> float:
+	var rows: Dictionary = WardenDress.meta(body, "idle").get("sockets", {})
+	var highest: float = INF
+	for facing: String in rows:
+		for socket: Variant in rows[facing]:
+			if socket is Array and (socket as Array).size() > DressLayers.HEAD_SOCKET + 1:
+				highest = minf(highest, float((socket as Array)[DressLayers.HEAD_SOCKET + 1]))
+	if is_inf(highest):
+		return NAN
+	var rise: float = _layers.head_rise() if _layers != null else Balance.DRESS_HEAD_RISE_FALLBACK
+	return highest - rise
+
+
+## Where the top of the dressed head is, in the sprite's own pixels measured
+## from its offset, or NAN while the painted Warden plays. The hero stands its
+## overhead bars on it.
+func head_top() -> float:
+	return _head_top
 
 
 ## How many frames the state being drawn has, read off whichever art draws it,
