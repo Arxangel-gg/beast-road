@@ -38,16 +38,18 @@ func _ready() -> void:
 	await _test_every_control_reaches_the_look(glass)
 	_test_the_pickers_match_the_counts(glass)
 	_test_the_shortcuts(glass)
+	_test_every_new_warden_is_asked()
 	glass.queue_free()
 	MetaState.look = kept
-	for stage: String in ["silent", "reaches", "counts", "shortcuts"]:
+	for stage: String in ["silent", "reaches", "counts", "shortcuts", "asked"]:
 		_check(_reached.has(stage),
 			"'%s' never reached its end - it aborted partway, and every check it had not made is unmade" % stage)
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[glass] PASS - %d checks: an untouched glass writes nothing, every body, skin, "
-			+ "hairstyle, colour and beard reaches the save and the Warden in the glass, and "
-			+ "nothing but the look moves") % _checks)
+			+ "hairstyle, colour and beard reaches the save and the Warden in the glass, "
+			+ "nothing but the look moves, and every new Warden - each slot, the menu, "
+			+ "a slot begun - is asked") % _checks)
 	else:
 		push_error("[glass] FAIL - %d problem(s)" % _failures)
 	Sfx.stop_immediately()
@@ -204,3 +206,66 @@ func _test_the_shortcuts(glass: WardenGlass) -> void:
 	_press(_button(glass, "Body0"))
 	glass.close()
 	_reached["shortcuts"] = true
+
+
+## **Every new Warden is asked, not the first of a sitting** (owner, 2026-09-27:
+## *"New players and new slot characters need to bring up character creation
+## screen before starting"*).
+##
+## The offer was one flag for the whole process, so making a second Warden in a
+## new slot the same evening skipped the Glass entirely. It is remembered per
+## slot now, and an erased slot is forgotten through `MetaState.slot_erased` -
+## emitted here so the connection `GameDirector` makes is what is driven, not a
+## call to `forget` that would pass with the wiring missing.
+##
+## The two new doors are walked in the source rather than driven: headless,
+## `offer_glass` returns before it opens anything (a waiting run would hang every
+## gate that starts one), so a driven door can prove only that it did not crash.
+func _test_every_new_warden_is_asked() -> void:
+	var kept_runs: int = MetaState.runs_started
+	var kept_offered: Dictionary = WardenGlass._offered_slots.duplicate()
+	WardenGlass._offered_slots.clear()
+	MetaState.runs_started = 0
+	MetaState.look = WardenLook.plain()
+	var here: int = MetaState.slot()
+	var there: int = (here + 1) % maxi(Balance.SAVE_SLOTS, 2)
+	_check(WardenGlass.should_offer(), "a Warden who never walked, in the painted look, is not asked")
+	WardenGlass.mark_offered()
+	_check(not WardenGlass.should_offer(), "a Warden already asked this sitting is asked again")
+	_check(WardenGlass.should_offer_for(there),
+		"asking the Warden in slot %d used up the ask for slot %d - a second new Warden in one sitting is never asked" % [here, there])
+	MetaState.slot_erased.emit(here)
+	_check(WardenGlass.should_offer(),
+		"erasing slot %d did not forget it, so the next Warden made there is never asked" % here)
+	var dyed: Dictionary = WardenLook.plain()
+	dyed[WardenLook.DYES[0]] = 0.25
+	MetaState.look = dyed
+	_check(not WardenGlass.should_offer(), "a Warden who already chose a look is asked again")
+	MetaState.look = WardenLook.plain()
+	MetaState.runs_started = 1
+	_check(not WardenGlass.should_offer(), "a Warden who has walked a road is asked who they are")
+	MetaState.runs_started = kept_runs
+	WardenGlass._offered_slots = kept_offered
+
+	var menu: String = _body_of("res://scenes/ui/main_menu.gd", "func _ready")
+	_check(menu.contains("_ask_who_walks"), "the menu does not ask a new player who they are when it first appears")
+	var ask: String = _body_of("res://scenes/ui/main_menu.gd", "func _ask_who_walks")
+	_check(ask.contains("GameDirector.offer_glass()"), "the menu's ask does not open the Glass")
+	var play: String = _body_of("res://scenes/ui/save_slot_screen.gd", "func _play")
+	var switched: int = play.find("MetaState.use_slot(")
+	var offered: int = play.find("GameDirector.offer_glass()")
+	_check(switched >= 0 and offered > switched,
+		"beginning a slot does not open the Glass for the Warden it now holds")
+	var slots: String = FileAccess.get_file_as_string("res://scenes/ui/save_slot_screen.gd")
+	_check(slots.contains("_play(index)"), "the slot's button does not go through the door that asks")
+	_reached["asked"] = true
+
+
+## One function's body, from its line to the next top-level declaration.
+func _body_of(path: String, header: String) -> String:
+	var text: String = FileAccess.get_file_as_string(path)
+	var start: int = text.find("\n" + header)
+	if start < 0:
+		return ""
+	var end: int = text.find("\nfunc ", start + 1)
+	return text.substr(start, (end - start) if end > 0 else -1)

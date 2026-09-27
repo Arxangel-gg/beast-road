@@ -10618,6 +10618,20 @@ deliberate act. `balance_test._test_zoom_range` drives all of it with a clock of
 its own (`Run.zoom_test_now_msec`), including a forty-detent flick that must stop
 at the end of the band.
 
+**Every new Warden is made before they do anything, as of 2026-09-27.** Owner:
+*"New players and new slot characters need to bring up character creation
+screen before starting."* The Glass was offered at the gate of the first road
+only, and remembered **once a process** - so the first Warden made in a sitting
+used the ask up and a second, in a new slot, was never asked at all. It is
+remembered per slot now (`WardenGlass._offered_slots`), forgotten when a slot is
+erased (`MetaState.slot_erased`, connected by `GameDirector`), and asked at three
+doors that all go through `GameDirector.offer_glass`: the menu the first time a
+brand-new Warden reaches it, the slot page the moment an empty slot is begun,
+and the road as before. Whichever asks first marks the slot and the others pass
+through; nothing is stored, and a returning player is never asked.
+`warden_glass_check` holds the per-slot ask through the real erase signal and
+walks the two new doors in the source, and named three planted faults.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

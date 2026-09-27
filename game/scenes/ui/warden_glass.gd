@@ -87,16 +87,33 @@ func _ready() -> void:
 ## would be a new save key every existing account gains for a screen its owner
 ## will never see. A Warden who already chose a look is not asked again, and
 ## neither is one who closed it untouched earlier in this sitting.
-static var _offered_this_sitting: bool = false
+##
+## **Remembered per slot, not per sitting** (owner, 2026-09-27: *"new slot
+## characters need to bring up character creation screen before starting"*).
+## It was one flag for the whole process, so the first Warden made in a sitting
+## used it up and the second - a new slot, a new person - was never asked. A
+## slot is forgotten when it is erased (`forget`, from `MetaState.slot_erased`),
+## because an erased slot is somebody new.
+static var _offered_slots: Dictionary = {}
 
 
 static func should_offer() -> bool:
+	return should_offer_for(MetaState.slot())
+
+
+## The same question about one slot, for the gate: whether this Warden has not
+## walked a road, wears the painted look, and that slot was not asked this sitting.
+static func should_offer_for(slot: int) -> bool:
 	return MetaState.runs_started <= 0 and WardenLook.is_plain(WardenLook.mine()) \
-		and not _offered_this_sitting
+		and not _offered_slots.has(slot)
 
 
 static func mark_offered() -> void:
-	_offered_this_sitting = true
+	_offered_slots[MetaState.slot()] = true
+
+
+static func forget(slot: int) -> void:
+	_offered_slots.erase(slot)
 
 
 # --- Building ------------------------------------------------------------------

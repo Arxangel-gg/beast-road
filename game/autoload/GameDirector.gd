@@ -215,6 +215,8 @@ func _ready() -> void:
 	# marker stood. Lives as long as the game, which is what makes it the one
 	# thing still standing when the game did not end cleanly.
 	add_child(CrashWatch.new())
+	# An erased slot is somebody new, and is asked who they are again.
+	MetaState.slot_erased.connect(WardenGlass.forget)
 	EventBus.boss_defeated.connect(_on_boss_felled)
 	# Navigation belongs here, not in the network layer. `Coop` reports that the
 	# session is gone; deciding that this means leaving the run is this node's
@@ -307,7 +309,12 @@ func _offer_comfort() -> void:
 ##
 ## Returns at once where there is no screen, for the reason `_offer_comfort`
 ## gives: a run that waited here would hang every gate that starts one.
-func _offer_glass() -> void:
+##
+## Public since 2026-09-27, because the road is not the only door a new Warden
+## comes through: the menu asks a brand-new player when it first appears, and
+## the slot page asks the moment a new slot is begun. Whichever door asks first
+## marks the slot, and the others then pass straight through.
+func offer_glass() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	if not WardenGlass.should_offer():
@@ -414,7 +421,7 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# Offering the comfort scales after it would be offering them to somebody
 	# who has already had the thing they needed them for. Who the Warden is
 	# comes first of all: the intro is about them.
-	await _offer_glass()
+	await offer_glass()
 	await _offer_comfort()
 	await _play_intro()
 
@@ -450,7 +457,7 @@ var walk_leaves_on_loss: bool = true
 func start_walk() -> void:
 	# The valley is where a new Warden first sees themselves, so it is asked here
 	# too; headless, this returns before it waits for anything.
-	await _offer_glass()
+	await offer_glass()
 	RunState.reset(false, 0)
 	RunState.walking = true
 	# The valley is not a run: nothing about it is announced to a partner, the

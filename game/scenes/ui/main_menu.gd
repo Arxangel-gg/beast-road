@@ -223,6 +223,23 @@ func _ready() -> void:
 	_setup_front_leaves()
 	# Again, now that the lines this lays out exist.
 	_fit_menu.call_deferred()
+	_ask_who_walks.call_deferred()
+
+
+## **A new Warden is asked who they are before anything else** (owner,
+## 2026-09-27: *"New players and new slot characters need to bring up character
+## creation screen before starting."*). It was asked only at the gate of the
+## first road, so a new player could spend their first minutes in the Hold, the
+## Guide and the settings as a Warden nobody had made. `offer_glass` decides
+## whether to ask - never walked, painted look, not asked yet for this slot - so
+## the menu asking first leaves the road's own ask to pass straight through, and
+## a returning player is never asked at all. Headless it returns at once.
+func _ask_who_walks() -> void:
+	if not is_inside_tree() or not WardenGlass.should_offer():
+		return
+	await GameDirector.offer_glass()
+	if is_inside_tree():
+		stats_label.text = _summary()
 
 
 ## **Every door in the Hold comes back to the Hold.**

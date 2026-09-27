@@ -193,11 +193,7 @@ func _card(summary: Dictionary) -> Control:
 	play.custom_minimum_size = Vector2(0.0, 40.0)
 	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play.disabled = current or not _between_runs()
-	play.pressed.connect(func() -> void:
-		# The door refuses during a run and for an index this build has no slot
-		# for; the page simply asks and re-reads whatever it says.
-		MetaState.use_slot(index)
-		refresh())
+	play.pressed.connect(func() -> void: _play(index))
 	buttons.add_child(play)
 
 	# **The first Warden has no Erase**, and the button says why rather than
@@ -231,6 +227,23 @@ func _card(summary: Dictionary) -> Control:
 			refresh())
 	buttons.add_child(erase)
 	return card
+
+
+## The door refuses during a run and for an index this build has no slot for;
+## the page simply asks and re-reads whatever it says.
+##
+## **A new Warden is made here, not at the first road** (owner, 2026-09-27).
+## Beginning an empty slot opens the Warden's Glass at once, because a new slot
+## is a new person and choosing who they are is what beginning one means.
+func _play(index: int) -> void:
+	if not MetaState.use_slot(index):
+		refresh()
+		return
+	refresh()
+	if WardenGlass.should_offer():
+		await GameDirector.offer_glass()
+		if is_inside_tree():
+			refresh()
 
 
 ## What a slot is worth saying, read off the summary and nothing else.
