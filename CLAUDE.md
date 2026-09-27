@@ -10663,6 +10663,35 @@ always waited too. `hold_check` drives it through the viewport with touch forced
 on, and named five planted faults: the controls ignoring the place, the road's
 layer, ENTER unwired, no sprint at the rim, and the stick-corner tap dropped.
 
+**Every door in the Hold says so, and says what is waiting, as of 2026-09-27.**
+Owner: *"Interactables at the Hold need to have clear and aesthetic indicators
+for interaction that are further attention grabbing and have more indicators to
+get the player to come interact with it to check the notifications/see what's
+new."* The Hold marked only what was already in reach - a ring at the Warden's
+feet - so a door across the square was a painting until somebody walked into it.
+
+**Three levels, quiet to loud** (`HoldBeacons`, screen space so the words stay
+sharp at every zoom). Every door wears a small turning gem over its roof, so
+what can be used is never a guess; walking near one names it. A door with
+something waiting wears a hopping badge with a count, a pillar of light off its
+roof, rings rolling out along the ground and rising motes - and off the screen
+it becomes an arrow on the rim of the room. The prompt line says how many doors
+are waiting and, at a door, what is waiting there.
+
+**The news is derived and stored nowhere** (`HoldNews`), which is the rule the
+comfort card and the Glass live under: skill and attribute points to spend, fish
+rising in the pond, a banked front, Ledger lines met, a piece in the stash or on
+the shelf that beats the one worn in its slot, a shelf owed a restock, enough
+material to forge, and a horse the Warden can afford. **The Codex and the
+Chronicle wear the plain marker, deliberately**: "new since you last looked"
+needs a stored flag, and a badge that lit on every visit whether or not anything
+had changed would teach a player to ignore badges - the one thing this exists to
+prevent. `hold_check` holds the news true both ways - points appear and go, a
+better piece calls until it is worn - holds every marker loud exactly when its
+news says so, and drives the arrow by zooming in at the far side of the yard.
+Its first run caught the overlay sized to nothing (`set_anchors_preset` in
+`_ready`, the recorded trap), which would have pinned every arrow to one corner.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

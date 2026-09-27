@@ -2346,6 +2346,28 @@ func _breathe(delta: float) -> void:
 			else frames[step - 1] as Texture2D
 
 
+## Where every usable door's marker belongs, in yard coordinates: the ground
+## it stands on and the top of its roof. For `HoldBeacons`, which draws in
+## screen space so its words stay sharp at every zoom. A station whose door was
+## never adopted has nothing behind it and gets no marker, for the reason the
+## focus ignores it.
+func beacon_marks() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for station: Dictionary in _stations:
+		var node := station["node"] as Sprite2D
+		if node == null or not is_instance_valid(node):
+			continue
+		if station["button"] == null and not String(station["door"]).is_empty():
+			continue
+		var tall: float = float(node.texture.get_height()) * node.scale.y \
+			if node.texture != null else 0.0
+		var foot: Vector2 = _actors.position + node.position
+		out.append({"id": String(station["id"]), "label": String(station["label"]),
+			"foot": foot, "top": foot - Vector2(0.0, tall),
+			"at": station["at"] as Vector2})
+	return out
+
+
 ## What is in reach, nearest first. A building and its keeper answer the same
 ## door, so standing between them is never ambiguous about what happens.
 func _find_focus() -> void:

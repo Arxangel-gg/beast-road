@@ -167,6 +167,12 @@ func _build_frame() -> void:
 	frame.z_index = CHROME_Z
 	add_child(frame)
 
+	# The doors' markers, first in the frame so the bar and the prompt stand
+	# over them. See `HoldBeacons`.
+	_beacons = HoldBeacons.new()
+	_beacons.yard = _yard
+	frame.add_child(_beacons)
+
 	# **A column rather than a row**, because five buttons and a title do not
 	# fit across a 430-wide phone - and what falls off the right-hand end of
 	# that row is Close, which is the one thing `menu_layout_check` exists to
@@ -179,6 +185,7 @@ func _build_frame() -> void:
 	top.offset_top = 16.0
 	top.add_theme_constant_override("separation", 8)
 	frame.add_child(top)
+	_top = top
 
 	var title := Label.new()
 	title.text = "THE HOLD"
@@ -426,7 +433,13 @@ func _tick_prompt() -> void:
 		_prompt.text = ""
 		return
 	var label: String = _yard.focus_label()
+	var waiting: int = _beacons.waiting() if _beacons != null else 0
 	if label.is_empty():
+		if waiting > 0:
+			_prompt.text = "%d %s something waiting - follow the lights" % [
+				waiting, "door has" if waiting == 1 else "doors have"]
+			_prompt.modulate = Color(1.0, 0.92, 0.72, 0.9)
+			return
 		_prompt.text = ("Walk with the stick, or tap where you want to stand"
 			if TouchInput.is_showing() else "Walk with the movement keys")
 		_prompt.modulate = Color(1.0, 1.0, 1.0, 0.45)
@@ -435,6 +448,10 @@ func _tick_prompt() -> void:
 	_prompt.text = "%s   -   %s" % [label,
 		("press %s, or tap it" % _yard.focus_verb()) if TouchInput.is_showing()
 			else "press Interact"]
+	var here: Array[Dictionary] = _beacons.news_of(_yard.focus()) \
+		if _beacons != null else ([] as Array[Dictionary])
+	if not here.is_empty():
+		_prompt.text += "   -   %s" % String(here[0].get("text", ""))
 
 
 func open() -> void:
@@ -1077,8 +1094,15 @@ func _bar_recess() -> StyleBoxFlat:
 ##
 ## The yard is fitted rather than scrolled: the whole Hold is visible at once
 ## on every shape, which is what a lobby is for.
+## The doors' markers, and the strip over the yard they must stay under.
+var _beacons: HoldBeacons = null
+var _top: Control = null
+
+
 func _refit() -> void:
 	var screen: Vector2 = get_viewport().get_visible_rect().size
+	if _beacons != null and _top != null:
+		_beacons.room_top = _top.get_global_rect().end.y + 6.0
 	if _yard != null:
 		var room: Vector2 = screen * YARD_SHARE
 		var fit: float = minf(room.x / HoldYard.YARD.x, room.y / HoldYard.YARD.y)

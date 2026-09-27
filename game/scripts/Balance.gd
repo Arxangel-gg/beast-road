@@ -11919,6 +11919,33 @@ const HOLD_SPRINT_SPEED: float = HERO_SPRINT_SPEED
 ## needs precision is a hub people fight with.
 const HOLD_REACH: float = 120.0
 
+## **The Hold's doors say so, from quiet to loud** (owner, 2026-09-27; see
+## `HoldBeacons`). Every door wears a small gem `HOLD_BEACON_LIFT` over its roof,
+## bobbing by `HOLD_BEACON_BOB` at `HOLD_BEACON_BOB_RATE`; walking within
+## `HOLD_BEACON_NEAR` reaches of it names it. A door with something waiting
+## (`HoldNews`, asked every `HOLD_NEWS_REFRESH` seconds) wears a hopping badge
+## instead, a pillar of light off its roof and rings rolling out along the
+## ground; off the screen it becomes an arrow on the rim of the room, which
+## stands `HOLD_BEACON_EDGE` in from the sides and `HOLD_BEACON_FOOT_INSET` off
+## the bottom so an arrow never sits on the prompt line. Sizes are screen units.
+const HOLD_NEWS_REFRESH: float = 0.5
+const HOLD_BEACON_LIFT: float = 22.0
+const HOLD_BEACON_BOB: float = 4.0
+const HOLD_BEACON_BOB_RATE: float = 2.2
+const HOLD_BEACON_NEAR: float = 3.0
+const HOLD_BEACON_GEM: float = 8.0
+const HOLD_BEACON_BADGE: float = 15.0
+const HOLD_BEACON_HOP: float = 9.0
+const HOLD_BEACON_HOP_RATE: float = 3.2
+const HOLD_BEACON_GOLD: Color = Color(0.96, 0.72, 0.30)
+const HOLD_BEACON_PILLAR_ALPHA: float = 0.26
+const HOLD_BEACON_PILLAR_WIDTH: float = 44.0
+const HOLD_BEACON_RING_FROM: float = 40.0
+const HOLD_BEACON_RING_TO: float = 150.0
+const HOLD_BEACON_EDGE: float = 28.0
+const HOLD_BEACON_FOOT_INSET: float = 84.0
+const HOLD_BEACON_ARROW_SIZE: float = 18.0
+
 ## How long one of the Hold's people stands still before an errand, and how
 ## long a Warden nobody is driving stays put. Each figure rolls in this band on
 ## its own clock, so a yard of four never reads as four copies of one loop.

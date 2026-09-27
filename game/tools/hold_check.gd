@@ -92,6 +92,7 @@ func _ready() -> void:
 	_test_the_commission_costs_more()
 	_test_the_pond_is_bounded()
 	await _test_a_thumb_drives_the_hold()
+	await _test_the_doors_say_what_waits()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
 	# function it happens in and nothing else. So planting the act-start fault
@@ -99,7 +100,7 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb"]:
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -113,7 +114,8 @@ func _ready() -> void:
 			+ "commission costs more and teaches nothing, the pond gives up "
 			+ "three and then goes quiet, everybody in "
 			+ "it is working at their own post, and a thumb can walk, sprint, "
-			+ "tap and open a door in it") % _checks)
+			+ "tap and open a door in it, and every door says what is waiting "
+			+ "behind it and nothing else") % _checks)
 	else:
 		push_error("[hold] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -1219,3 +1221,112 @@ func _seconds(span: float) -> void:
 	var until: int = Time.get_ticks_msec() + int(span * 1000.0)
 	while Time.get_ticks_msec() < until:
 		await get_tree().process_frame
+
+
+# --- What waits at each door ---------------------------------------------------
+
+
+## **Every door says what is waiting behind it, and nothing else** (owner,
+## 2026-09-27: indicators *"further attention grabbing ... to get the player to
+## come interact with it to check the notifications/see what's new"*).
+##
+## A badge is only worth having if it is true both ways: one that lit on every
+## visit whether or not anything had changed would teach a player to ignore
+## badges. So the news is driven from the account and read back - points to
+## place appear and go, a better piece in the stash appears and goes when it is
+## worn - and over a real Hold every door is loud exactly when `HoldNews` says
+## so, and a loud door the view does not show becomes an arrow on the rim.
+func _test_the_doors_say_what_waits() -> void:
+	var kept_points: int = MetaState.hero_attribute_points
+	var kept_stash: Array = MetaState.stash.duplicate(true)
+	var kept_equipped: Dictionary = MetaState.equipped.duplicate()
+
+	MetaState.hero_attribute_points = 3
+	var card: Array[Dictionary] = HoldNews.of("card")
+	_check(_says(card, "3 attribute points"), "3 points to place and the Stone does not say so: %s" % str(card))
+	_check(HoldNews.count(card) >= 3, "the Stone's badge counts %d for 3 points" % HoldNews.count(card))
+	MetaState.hero_attribute_points = 0
+	_check(not _says(HoldNews.of("card"), "attribute"),
+		"the Stone still says there are attribute points with none to place")
+
+	MetaState.stash.clear()
+	MetaState.equipped.clear()
+	MetaState.stash.append(Stash.make("ashfall_glaive", 0, 1))
+	MetaState.stash.append(Stash.make("ashfall_glaive", 4, 5))
+	MetaState.equip(GearData.Slot.WEAPON, 0)
+	_check(_says(HoldNews.of("stash"), "weapon"),
+		"a far better weapon lies unworn and the stash does not say so: %s" % str(HoldNews.of("stash")))
+	MetaState.equip(GearData.Slot.WEAPON, 1)
+	_check(HoldNews.of("stash").is_empty(),
+		"the best weapon is worn and the stash still calls: %s" % str(HoldNews.of("stash")))
+
+	_check(HoldNews.of("pond").is_empty() == (MetaState.hold_pond_left() <= 0),
+		"the pond's badge disagrees with the pond")
+	_check(HoldNews.of("road").is_empty() == not MetaState.has_expedition(),
+		"the road's badge disagrees with whether a front is banked")
+
+	MetaState.hero_attribute_points = 2
+	var hub := HubScreen.new()
+	add_child(hub)
+	hub.visible = true
+	var yard: HoldYard = hub._yard
+	for station: Dictionary in HoldYard.STATIONS:
+		var door: String = String(station["door"])
+		if door.is_empty() or yard.bound(door):
+			continue
+		var button := Button.new()
+		button.name = door
+		hub.add_child(button)
+		yard.bind(door, button)
+	hub._beacons.refresh_news()
+	await _frames(3)
+	var marks: Dictionary = hub._beacons.marks
+	_check(marks.size() == yard.beacon_marks().size(),
+		"%d doors and %d markers" % [yard.beacon_marks().size(), marks.size()])
+	_check(marks.has("card") and bool(marks["card"]["hot"]) and int(marks["card"]["count"]) >= 2,
+		"the Stone has points waiting and its marker is quiet: %s" % str(marks.get("card", {}).get("count", -1)))
+	for id: String in marks:
+		_check(bool(marks[id]["hot"]) == not HoldNews.of(id).is_empty(),
+			"the %s marker is %s while its news is %s" % [id,
+				"loud" if bool(marks[id]["hot"]) else "quiet", str(HoldNews.of(id))])
+	hub._tick_prompt()
+	_check(hub._prompt.text.contains("waiting"),
+		"doors are waiting and the prompt says: %s" % hub._prompt.text)
+
+	# The far side of the yard from the Stone, zoomed all the way in.
+	var stone: Vector2 = (marks["card"] as Dictionary).get("foot", Vector2.ZERO) as Vector2
+	var far: Vector2 = yard.warden_at()
+	var widest: float = -1.0
+	for mark: Dictionary in yard.beacon_marks():
+		if String(mark["id"]) == "card":
+			stone = mark["at"] as Vector2
+	for mark: Dictionary in yard.beacon_marks():
+		var gap: float = (mark["at"] as Vector2).distance_to(stone)
+		if gap > widest:
+			widest = gap
+			far = mark["at"] as Vector2
+	yard._seats[0]["at"] = far
+	hub.set_zoom(Balance.HOLD_ZOOM_MAX)
+	await _seconds(1.5)
+	marks = hub._beacons.marks
+	var screen: Rect2 = get_viewport().get_visible_rect()
+	_check(bool(marks["card"]["arrow"]),
+		"zoomed in at the far side, the Stone's marker at %s is not an arrow" % str(marks["card"]["at"]))
+	_check(screen.has_point(marks["card"]["edge"] as Vector2),
+		"the Stone's arrow is off the screen at %s" % str(marks["card"]["edge"]))
+	_check((marks["card"]["edge"] as Vector2).y >= hub._beacons.room_top,
+		"the Stone's arrow sits on the Hold's own bar: edge %s, room top %.1f, beacons %s, room %s" % [str(marks["card"]["edge"]), hub._beacons.room_top, str(hub._beacons.size), str(hub._beacons._room())])
+
+	hub.queue_free()
+	MetaState.hero_attribute_points = kept_points
+	MetaState.stash = kept_stash
+	MetaState.equipped = kept_equipped
+	await _frames(2)
+	_reached["news"] = true
+
+
+func _says(lines: Array[Dictionary], words: String) -> bool:
+	for line: Dictionary in lines:
+		if String(line.get("text", "")).to_lower().contains(words.to_lower()):
+			return true
+	return false
