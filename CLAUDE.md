@@ -10539,6 +10539,55 @@ named. **What is not built**: the guest's damage ledger still reads its own
 blows only (phase A's limitation), and a partner's spirit is still this
 machine's.
 
+**Two real processes found four faults the in-process gates could not, as of
+2026-09-26.** `coop_ui_check` now brings a level-23 guest and asserts the host
+fights it as that sheet, has the guest take a card from its own draft by
+asking, and asks whether a tower's shot on the guest ever *flies*. Run by hand,
+host then guest six seconds later, each on its own profile - never through
+`tools/coop_ui.sh`, which kills every Godot on the machine.
+
+- **A guest's dye, gear and sheet were lost whenever its field stood up first.**
+  Each was sent on the first tick and then only on a change, and a guest's
+  battlefield can be built before the host's - so the host had nothing
+  listening and the row never came again. The comment above the send gave
+  exactly that race as the reason to repeat; the code did not repeat. All three
+  are restated every `RESTATE_INTERVAL` (8 s) now, and the host ignores a sheet
+  it already holds.
+- **A guest's effect root was frozen through every fight since 2026-08-13.**
+  `enter_preparation` freezes it and `begin_battle` thaws it, every run opens in
+  Preparation on both machines, and a guest's fights begin as a relayed phase
+  rather than through Ride On - so every tower shot a guest drew hung at its
+  muzzle for the whole run, never landing and never expiring, with its tracers
+  and ground zones frozen beside it. The harness had counted the shots as seen
+  because it watched them be born. A guest's effect root follows the phase it
+  is told now (`Battlefield._on_phase_cursor`); the host still goes through the
+  two doors.
+- **The draft screen's card fit read freed cards** when a draft was redrawn
+  between its layout waits; a newer fit ends an older one.
+- **The lobby dressed a Warden before its cape existed** - seven script errors a
+  session, pre-existing - and the dress parts are built on first need now.
+
+**And `map_mode_play_check` had been red on main, and its tower had never
+fired.** The release gate failed on Beast-Axis, only when the three layouts
+before it had shifted every body's dice, with one body "lost" 332 units from the
+wall. Traced on the control commit before anything was believed: the body was
+swinging at the gate's own tower on a grudge, and the tower - alive, in
+combat, the body in reach - had fired thirty-one shots into an effect root the
+gate had never thawed, because the gate keeps the wave director stopped and so
+cannot call `begin_battle`. Every layout had printed "0 killed on the way" on
+every run as though the tower missed. The gate thaws the root by hand now,
+counts a body swinging at a tower within `AT_A_TOWER` as at the defence rather
+than lost - apart, so a body genuinely lost on a map still fails - and takes
+the Warden out of the fight through `set_hero_away`, because "floored" kept
+them alive and in reach, and with the tower finally firing the southern bodies
+of Beast-Axis stopped at the Warden and nothing struck the wall. Measured
+after: every layout green, with four to six bodies killed on the way in five
+of the seven.
+
+**The lesson is the harness's, twice.** A gate that jumps a phase instead of
+opening the door the game opens measures a field the game never produces, and
+a check that a shot was *born* says nothing about whether it flies.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

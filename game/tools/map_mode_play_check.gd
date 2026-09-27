@@ -33,9 +33,22 @@ const AT_THE_WALL: float = 150.0
 ## turn is not a body lost on the map. A body stuck on a corner is a thousand
 ## units out, not two hundred and fifty.
 const AT_THE_GATE: float = 270.0
+## **Near enough to a tower to be breaking it** (2026-09-26). A body the tower
+## shot may turn on it for a grudge, and the tower's own doctrine prefers the
+## bodies nearest the town - so on Beast-Axis, after three layouts had shifted
+## every body's dice, one body stood swinging at the harness's own tower for the
+## last fifty seconds and was reported as lost. It was at the defence, which is
+## the board-attacking behaviour of 2026-09-24 working. Traced before it was
+## believed (the tower alive, in combat, the body in reach); counted apart so a
+## body that is genuinely lost on a map still fails.
+const AT_A_TOWER: float = 200.0
 
 var _failures: Array[String] = []
 var _struck: int = 0
+## Layouts that reached the end of `_play`. A runtime error stops the function it
+## happens in and nothing else, so a layout that aborted used to print nothing
+## and read as a pass (2026-09-26, the first run with the tower firing).
+var _played: int = 0
 
 
 func _ready() -> void:
@@ -44,6 +57,9 @@ func _ready() -> void:
 	EventBus.town_struck.connect(_on_town_struck)
 	for mode: String in MapModes.ids():
 		await _play(mode)
+	_check(_played == MapModes.ids().size(),
+		"%d of %d layouts reached the end of their play - a runtime error aborted the rest"
+			% [_played, MapModes.ids().size()])
 	for problem: String in _failures:
 		push_error("[map-play] " + problem)
 	print("[map-play] %s" % ("PASS" if _failures.is_empty() else "FAIL"))
@@ -95,7 +111,23 @@ func _play(mode: String) -> void:
 		return
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	field.resume()
-	var bodies: Array[Enemy] = []
+	# **The effect root, thawed by hand** (2026-09-26). `begin_battle` is the
+	# door that does it, and it also starts the wave director this gate keeps
+	# stopped - so the tower built above had fired into a frozen effect root in
+	# every layout, every shot hung at its muzzle, and "0 killed on the way" had
+	# been printed on every run as though the tower simply missed.
+	field.effect_root.process_mode = Node.PROCESS_MODE_INHERIT
+	# **And the Warden out of the fight**, through the door a raid uses. Floored
+	# kept them alive and still in reach: on Beast-Axis the southern bodies
+	# stopped at the Warden by the south gate and never struck the wall, which is
+	# a body answering a person rather than a road that does not arrive. What
+	# decides arrival here is meant to be the road alone.
+	field.set_hero_away(true)
+	# Untyped, and asked whether each is still there before it is treated as an
+	# `Enemy`: with the tower firing, bodies die and are freed, and a typed loop
+	# over a freed body is a runtime error that aborted this function - which
+	# the gate then read as a layout that passed (see `_played`).
+	var bodies: Array = []
 	var lanes: Array[int] = []
 	for lane: int in Balance.LANE_COUNT:
 		for _i: int in PER_LANE:
@@ -108,20 +140,26 @@ func _play(mode: String) -> void:
 
 	var struck_before: int = _struck
 	var reached: Dictionary = {}
+	var at_a_tower: Dictionary = {}
 	var swinging: Dictionary = {}
 	var clock: float = 0.0
 	while clock < BUDGET_SECONDS:
 		await get_tree().process_frame
 		clock += get_process_delta_time()
 		var waiting: int = 0
-		for body: Enemy in bodies:
-			if not _alive(body):
+		for value: Variant in bodies:
+			if not _alive(value):
 				continue
+			var body := value as Enemy
 			var gap: float = _gap_to_wall(field, body.global_position)
 			if gap <= AT_THE_GATE:
 				reached[body.get_instance_id()] = true
+			var besieged: Tower = body.siege_target()
+			if besieged != null and body.global_position.distance_to(besieged.global_position) <= AT_A_TOWER:
+				reached[body.get_instance_id()] = true
+				at_a_tower[body.get_instance_id()] = true
 			if gap <= AT_THE_WALL:
-				swinging[lanes[bodies.find(body)]] = true
+				swinging[lanes[bodies.find(value)]] = true
 			if not reached.has(body.get_instance_id()):
 				waiting += 1
 		# Done when every body is at a gate and the wall has been hit: a queue
@@ -132,10 +170,10 @@ func _play(mode: String) -> void:
 	var lost: Array[String] = []
 	var died: int = 0
 	for index: int in bodies.size():
-		var body: Enemy = bodies[index]
-		if not _alive(body):
+		if not _alive(bodies[index]):
 			died += 1
 			continue
+		var body := bodies[index] as Enemy
 		if not reached.has(body.get_instance_id()):
 			lost.append("lane %d at %s, %.0f from the wall" % [lanes[index],
 				body.global_position.round(), _gap_to_wall(field, body.global_position)])
@@ -146,8 +184,9 @@ func _play(mode: String) -> void:
 	_check(not swinging.is_empty(), "%s: no body ever reached the wall itself" % mode)
 	_check(_struck > struck_before or died > 0,
 		"%s: nothing struck the wall and nothing died - the bodies went nowhere" % mode)
-	print("[map-play] %s: %d bodies, %d at the wall, %d killed on the way, %d blows on the wall, %.0fs"
-		% [mode, bodies.size(), reached.size(), died, _struck - struck_before, clock])
+	print("[map-play] %s: %d bodies, %d at the wall or a tower (%d at a tower), %d killed on the way, %d blows on the wall, %.0fs"
+		% [mode, bodies.size(), reached.size(), at_a_tower.size(), died, _struck - struck_before, clock])
+	_played += 1
 
 	run.queue_free()
 	GameDirector.run_active = false
@@ -171,8 +210,11 @@ func _build_a_tower(field: Battlefield) -> bool:
 	return false
 
 
-func _alive(body: Enemy) -> bool:
-	return is_instance_valid(body) and body.health != null and not body.health.is_dead
+func _alive(value: Variant) -> bool:
+	if not is_instance_valid(value):
+		return false
+	var body := value as Enemy
+	return body != null and body.health != null and not body.health.is_dead
 
 
 func _gap_to_wall(field: Battlefield, at: Vector2) -> float:
