@@ -10780,11 +10780,17 @@ production gate refuses a placeholder. `tools/compose_arsenal_icons.py` is the
 recipe and rebuilds all twenty-three. Bespoke paintings are an October job, and
 installing one is overwriting its file.
 
-**Not built, and recorded so it is not assumed:** a guest does not see a
-partner's Warden weapons on their own screen (the host deals their blows, which
-land; only the picture is missing - it wants the seat's hand relayed), and the
-Guide has no Arsenal page yet (it needs a photograph from `guide_shots`, which
-needs the screen).
+**A guest sees a partner's weapons.** A Warden weapon is a seat's own card, and
+a guest was told its own seat and nothing of its partners', so a partner's orbs
+drew on the host's screen alone - the blows always landed, because the host
+deals them. The host tells every seat's cards to everybody whenever a hand moves
+(`Fact.ARSENAL_SEAT` = 87, and in the welcome); a guest adopts a partner's
+cleaned and never its own. `augment_seat_check` holds it, four planted faults
+named.
+
+**Not built, and recorded so it is not assumed:** the Guide has no Arsenal page
+yet (it needs a photograph from `guide_shots`, which needs the screen), and the
+HUD does not show the Arsenal's weapons and their clocks.
 
 ### The three escape hatches - and why there are only three
 
