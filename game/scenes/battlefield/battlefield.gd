@@ -522,6 +522,17 @@ func _on_phase_cursor(_phase: int, _previous: int) -> void:
 	if RunState.is_preparation():
 		_rations_taken = 0
 		_ration_cooldown = 0.0
+	# **A guest's effects follow the phase it is told** (2026-09-26). The effect
+	# root is frozen by `enter_preparation` and thawed by `begin_battle`, and a
+	# guest reaches only the first: every run opens in Preparation on both
+	# machines, and a guest's fights begin as a relayed phase rather than through
+	# Ride On. So since 2026-08-13 every tower shot a guest drew hung at its
+	# muzzle for the whole run - never landing, never expiring, piling up - with
+	# its tracers and ground zones frozen beside it. The host is untouched: it
+	# still goes through the two doors, and this is the guest's copy of them.
+	if Coop.is_guest():
+		effect_root.process_mode = Node.PROCESS_MODE_DISABLED \
+			if RunState.is_preparation() else Node.PROCESS_MODE_INHERIT
 	if not visible:
 		return
 	if RunState.is_preparation():

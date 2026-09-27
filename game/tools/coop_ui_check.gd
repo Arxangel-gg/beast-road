@@ -49,6 +49,12 @@ var _saw_partner_pointer: bool = false
 ## a shot lives for a fraction of a second.
 var _saw_tower_shot: bool = false
 var _saw_enemy_shot: bool = false
+## **The first tower shot and where it was born**, so the guest can ask whether
+## it ever flew (2026-09-26). Seeing one be born is not seeing it fly: a guest's
+## effect root stayed disabled through every fight, every shot hung at its
+## muzzle for the rest of the run, and this harness counted them as seen.
+var _first_shot: Node2D = null
+var _first_shot_at: Vector2 = Vector2.ZERO
 
 ## Set the moment this player's own hero is on the floor. Latched, because the
 ## host picks them back up a few seconds later and a sampled check would miss it.
@@ -70,6 +76,9 @@ func _scan_for_shots(from: Node) -> void:
 	for child: Node in from.get_children():
 		if child is Projectile:
 			_saw_tower_shot = true
+			if _first_shot == null:
+				_first_shot = child as Node2D
+				_first_shot_at = (child as Node2D).global_position
 		elif child is EnemyProjectile:
 			_saw_enemy_shot = true
 		if _saw_tower_shot and _saw_enemy_shot:
@@ -699,6 +708,10 @@ func _enter_run_in_place(role: String) -> void:
 		# single reading would miss every one of them and prove nothing.
 		_check(_saw_tower_shot,
 			"the guest must see its towers' projectiles fly")
+		_check(_first_shot != null and is_instance_valid(_first_shot)
+			and _first_shot.global_position.distance_to(_first_shot_at) > 1.0,
+			"a tower's shot on the guest must fly, not hang where it was born at %s"
+				% str(_first_shot_at))
 		_check(_saw_enemy_shot,
 			"and a ranged enemy's shot, or damage arrives from an empty field")
 		# The pool an impact leaves is *not* asserted here, deliberately. It is
