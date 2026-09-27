@@ -9451,7 +9451,9 @@ to make. On a phone the speed toggle is a square in the scope column.
 **The wheel and the pinch zoom the battlefield only**, and the near end is one
 step closer (`CAMERA_ZOOM_BATTLEFIELD_MAX` 1.10, 1.65 on touch). The wheel used
 to step out past the field to the Town and Yuri, which the owner reported as the
-view changing scope under them; the scope buttons do that now and nothing else.
+view changing scope under them; the scope buttons do that now and nothing else. **Re-cut on 2026-09-27**:
+the wheel crosses into the Town and out to Yuri again, on a deliberate second
+push - see the note of that date.
 
 **A lost Walk says so.** A Walk lost to three wounds or the town went straight
 to the menu with no word; it shows the valley's own short report now, and leaving
@@ -10587,6 +10589,34 @@ of the seven.
 **The lesson is the harness's, twice.** A gate that jumps a phase instead of
 opening the door the game opens measures a field the game never produces, and
 a check that a shot was *born* says nothing about whether it flies.
+
+**The zoom is one ladder again, and crossing its ends is deliberate, as of
+2026-09-27.** Owner: *"The closest zoom should zoom into the Town scope view.
+While the farthest zoom out should still go to the beast scope view."* That
+re-cuts the 2026-09-25 rule above, that the wheel zooms the battlefield only,
+so it is recorded rather than quietly reversed.
+
+**What 2026-09-25 was answering still stands**: a flick that ran into the end of
+the band threw the player into another view. So the ladder is Yuri, the
+battlefield's band, the Town, and the band's two ends are crossed only by a
+*second, deliberate* gesture (`Run._push_at_band_end`). A detent at the end counts
+only as a fresh gesture (after `CAMERA_SCOPE_PUSH_SETTLE` of stillness) or as the
+follow-up to a counted one (inside `CAMERA_SCOPE_PUSH_WINDOW`), and
+`CAMERA_SCOPE_PUSH_DETENTS` of them cross. So the rest of a flick is absorbed
+however long it spins, the first push says what the next one does ("Keep
+zooming in to enter the Town"), and the second goes. A pinch builds its
+overshoot past the end to `CAMERA_SCOPE_PINCH_PUSH`.
+
+**Coming back is one detent**, or `CAMERA_SCOPE_PINCH_RETURN` of pinch: the fight
+is never the surprise. A return lands at the band's end nearest the scope just
+left (`CameraRig.reset_to_close` / `reset_to_wide`), so the zoom carries on the
+way it was going. The walk keeps its own two views on the way: in from the wide
+one comes to the near one, and in again to the battlefield. The slider places
+directly - its two ends are the two scopes (`UI_ZOOM_BEAST_STOP`,
+`UI_ZOOM_TOWN_STOP`) - because dragging a slider to its end is already a
+deliberate act. `balance_test._test_zoom_range` drives all of it with a clock of
+its own (`Run.zoom_test_now_msec`), including a forty-detent flick that must stop
+at the end of the band.
 
 ### The three escape hatches - and why there are only three
 

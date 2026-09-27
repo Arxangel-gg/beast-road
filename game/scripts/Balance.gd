@@ -1430,10 +1430,11 @@ const CAMERA_ZOOM: float = 0.72
 const CAMERA_ZOOM_BATTLEFIELD: float = 0.52
 const CAMERA_ZOOM_RAID: float = 0.95
 
-## Mouse-wheel battlefield range. The wheel stops at either end (owner,
-## 2026-09-25: it no longer steps out to the Town and Yuri), and the near end
-## went one step closer the same day (owner: "one more zoom in level beyond the
-## current max zoom in"): 1.00 to 1.10, one `CAMERA_ZOOM_STEP`.
+## Mouse-wheel battlefield range. The near end went one step closer on
+## 2026-09-25 (owner: "one more zoom in level beyond the current max zoom in"):
+## 1.00 to 1.10, one `CAMERA_ZOOM_STEP`. Past the near end is the Town and past
+## the far end is Yuri, crossed only by a deliberate push
+## (`CAMERA_SCOPE_PUSH_*`, owner 2026-09-27).
 const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38
 const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.10
 
@@ -9609,11 +9610,37 @@ const TOWN_HOVER_RING: float = 92.0
 # it. Below the first is the walk, between them is the town, and everything
 # above the second is the battlefield's own band.
 #
-# **The scopes get the bottom sixth between them** because that is what they
-# are: two fixed views, not a range. Giving them half the travel would make the
-# part of the control a player actually uses - the fight - half as precise.
-const UI_ZOOM_TOWN_STOP: float = 0.08
-const UI_ZOOM_FIELD_STOP: float = 0.16
+# **The scopes get a sliver at either end** because that is what they are: two
+# fixed views, not a range. Giving them more of the travel would make the part
+# of the control a player actually uses - the fight - less precise.
+#
+# **Re-ordered 2026-09-27 (owner): "The closest zoom should zoom into the Town
+# scope view. While the farthest zoom out should still go to the beast scope
+# view."** The ladder had both scopes below the battlefield; it runs Yuri at the
+# bottom, the battlefield's band in the middle and the Town at the top now, so
+# the slider, the wheel and a pinch all agree that the town is *in* and the
+# beast is *out*. Below the first stop is Yuri; above the second is the Town.
+const UI_ZOOM_BEAST_STOP: float = 0.08
+const UI_ZOOM_TOWN_STOP: float = 0.92
+
+## **Leaving the battlefield by zooming is a deliberate push, never momentum.**
+## The 2026-09-25 ruling that stopped the wheel at the band's end came from a
+## player flicking out to see the road and being thrown into another view; the
+## 2026-09-27 ruling puts the scopes back on the ends. Both are kept by making
+## the crossing a second gesture: detents that run on from a flick into the end
+## are absorbed, and only a fresh push - one that starts at least
+## `CAMERA_SCOPE_PUSH_SETTLE` after the last detent - counts toward the
+## `CAMERA_SCOPE_PUSH_DETENTS` it takes to cross, each within
+## `CAMERA_SCOPE_PUSH_WINDOW` of the last. [TUNE]
+const CAMERA_SCOPE_PUSH_DETENTS: int = 2
+const CAMERA_SCOPE_PUSH_SETTLE: float = 0.35
+const CAMERA_SCOPE_PUSH_WINDOW: float = 0.9
+## A pinch's version: how far past the band's end the fingers must keep going,
+## as a ratio of the zoom, before the view crosses. Returning *to* the
+## battlefield from a scope takes only `CAMERA_SCOPE_PINCH_RETURN`, because
+## coming back to the fight is never the surprise. [TUNE]
+const CAMERA_SCOPE_PINCH_PUSH: float = 1.6
+const CAMERA_SCOPE_PINCH_RETURN: float = 1.2
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 

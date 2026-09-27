@@ -146,8 +146,18 @@ func is_fully_zoomed_out() -> bool:
 	return _wanted_zoom <= _zoom_floor() + 0.001
 
 
+func is_fully_zoomed_in() -> bool:
+	return _wanted_zoom >= _zoom_ceiling() - 0.001
+
+
 func reset_to_wide() -> void:
 	_wanted_zoom = _zoom_floor()
+
+
+## The closest the band allows: where a return from the Town lands, so zooming
+## back out of it continues the same motion rather than jumping.
+func reset_to_close() -> void:
+	_wanted_zoom = _zoom_ceiling()
 
 
 ## Two overlapping decays: the blow, and the ringing it leaves behind.

@@ -375,20 +375,21 @@ static func scrolls_under(hovered: Node) -> bool:
 
 ## The slider's answer: a place on the ladder rather than a step along it.
 ##
-## **The same ladder the buttons walked**, so the two ends still leave the
-## battlefield. Below `UI_ZOOM_FIELD_STOP` is the town and below
-## `UI_ZOOM_TOWN_STOP` is the walk, which is exactly where pressing minus once
-## too often used to take you - the control changed, the map did not.
+## **The same ladder the wheel walks**, so the two ends leave the battlefield:
+## above `UI_ZOOM_TOWN_STOP` is the Town and below `UI_ZOOM_BEAST_STOP` is Yuri
+## (owner, 2026-09-27: the closest zoom is the Town and the farthest the beast).
+## A slider is an explicit placement, so it crosses at once - the push the
+## wheel needs exists to stop a *flick* crossing, and nobody drags by accident.
 ##
 ## Read in one direction only: this moves the game, and `HUD` writes the slider
 ## back from what the game then says. Two things writing one number is how a
 ## zoom drifts while nobody is touching it.
 func _on_zoom_set(share: float) -> void:
-	if share < Balance.UI_ZOOM_TOWN_STOP:
+	if share < Balance.UI_ZOOM_BEAST_STOP:
 		if _scope != GameDirector.Scope.BEAST:
 			switch_scope(GameDirector.Scope.BEAST)
 		return
-	if share < Balance.UI_ZOOM_FIELD_STOP:
+	if share > Balance.UI_ZOOM_TOWN_STOP:
 		if _scope != GameDirector.Scope.TOWN:
 			if _scope == GameDirector.Scope.BEAST:
 				beast.set_zoomed_out(false)
@@ -401,32 +402,191 @@ func _on_zoom_set(share: float) -> void:
 	var rig := battlefield.camera as CameraRig
 	if rig == null:
 		return
-	var stop: float = Balance.UI_ZOOM_FIELD_STOP
-	rig.set_zoom_share((share - stop) / maxf(1.0 - stop, 0.0001))
+	var low: float = Balance.UI_ZOOM_BEAST_STOP
+	var high: float = Balance.UI_ZOOM_TOWN_STOP
+	rig.set_zoom_share((share - low) / maxf(high - low, 0.0001))
 
 
-## **The wheel zooms the battlefield and nothing else** (owner, 2026-09-25:
-## "make it so that the scroll zoom only affects the battlefield and doesnt
-## change to the town or beast scopes"). It used to be a ladder: past the
-## widest zoom the next detent crossed to the town and the one after to Yuri,
-## so a player zooming out to see the road was thrown into another view. At the
-## end of its band it now simply stops; the scope buttons change scope.
+## The push toward a scope at the end of the battlefield's band: its direction,
+## how many counted detents it holds, and when the last detent of any kind and
+## the last counted one arrived. See `Balance.CAMERA_SCOPE_PUSH_DETENTS`.
+var _push_direction: int = 0
+var _push_count: int = 0
+var _last_wheel_msec: int = -1000000
+var _last_push_msec: int = -1000000
+## A pinch's running ratio past the end of whatever it is pushing against.
+var _pinch_overshoot: float = 1.0
+var _last_scope_hint_msec: int = -1000000
+## A gate's clock: at or above zero it stands in for the wall clock, so a gate
+## can drive a pause and a fresh push without sleeping. -1 in the game.
+var zoom_test_now_msec: int = -1
+
+
+func _zoom_now_msec() -> int:
+	return zoom_test_now_msec if zoom_test_now_msec >= 0 else Time.get_ticks_msec()
+
+
+## **The wheel walks one ladder: Yuri, the battlefield's band, the Town**
+## (owner, 2026-09-27: *"The closest zoom should zoom into the Town scope view.
+## While the farthest zoom out should still go to the beast scope view."*).
+##
+## `direction` is +1 for in and -1 for out. On the battlefield it zooms, and at
+## either end of the band it pushes toward the scope that lies beyond it -
+## which only crosses on a deliberate second gesture (`_push_at_band_end`),
+## because the ruling of 2026-09-25 that stopped the wheel at the band's end
+## was about a flick throwing the player into another view, and that stays
+## answered. Coming back *to* the battlefield from a scope is one detent: the
+## fight is never the surprise.
 func _zoom_wheel(direction: int) -> void:
-	if _scope != GameDirector.Scope.BATTLEFIELD:
+	if direction == 0:
 		return
+	var now: int = _zoom_now_msec()
+	var since_last: int = now - _last_wheel_msec
+	_last_wheel_msec = now
+	match _scope:
+		GameDirector.Scope.BATTLEFIELD:
+			var rig := battlefield.camera as CameraRig
+			if rig == null:
+				return
+			if rig.zoom_by(direction):
+				_clear_push()
+				return
+			_push_at_band_end(direction, since_last, now)
+		GameDirector.Scope.TOWN:
+			if direction < 0:
+				_zoom_back_to_field(true)
+		GameDirector.Scope.BEAST:
+			if direction > 0:
+				if beast.is_zoomed_out():
+					beast.set_zoomed_out(false)
+				else:
+					_zoom_back_to_field(false)
+			elif not beast.is_zoomed_out():
+				beast.set_zoomed_out(true)
+
+
+## One detent against the end of the band. It counts only as part of a fresh
+## gesture - the first detent after a pause of `CAMERA_SCOPE_PUSH_SETTLE`, or
+## one following a counted detent inside `CAMERA_SCOPE_PUSH_WINDOW` - so the
+## rest of a flick that ran into the end is absorbed however long it spins.
+func _push_at_band_end(direction: int, since_last: int, now: int) -> void:
+	var settle: int = int(Balance.CAMERA_SCOPE_PUSH_SETTLE * 1000.0)
+	var window: int = int(Balance.CAMERA_SCOPE_PUSH_WINDOW * 1000.0)
+	if direction != _push_direction:
+		_push_direction = direction
+		_push_count = 0
+	var fresh: bool = since_last >= settle
+	var continuing: bool = _push_count > 0 and now - _last_push_msec <= window
+	if not fresh and not continuing:
+		return
+	if _push_count > 0 and now - _last_push_msec > window:
+		_push_count = 0
+	_push_count += 1
+	_last_push_msec = now
+	if _push_count >= Balance.CAMERA_SCOPE_PUSH_DETENTS:
+		_clear_push()
+		_cross_from_field(direction)
+		return
+	_hint_the_crossing(direction, now)
+
+
+func _clear_push() -> void:
+	_push_direction = 0
+	_push_count = 0
+	_pinch_overshoot = 1.0
+
+
+## In is the Town, out is Yuri.
+func _cross_from_field(direction: int) -> void:
+	if direction > 0:
+		switch_scope(GameDirector.Scope.TOWN)
+	else:
+		beast.set_zoomed_out(false)
+		switch_scope(GameDirector.Scope.BEAST)
+
+
+## Back onto the battlefield at the end of the band nearest the scope just left,
+## so the zoom carries on the way it was going instead of jumping.
+func _zoom_back_to_field(from_the_town: bool) -> void:
+	_clear_push()
+	if _scope == GameDirector.Scope.BEAST:
+		beast.set_zoomed_out(false)
+	switch_scope(GameDirector.Scope.BATTLEFIELD)
 	var rig := battlefield.camera as CameraRig
-	if rig != null:
-		rig.zoom_by(direction)
+	if rig == null:
+		return
+	if from_the_town:
+		rig.reset_to_close()
+	else:
+		rig.reset_to_wide()
 
 
-## A pinch on the field, from `TouchInput` or a trackpad: the battlefield's zoom
-## and nothing else, exactly as the wheel.
+## Says once in a while what the next push does, because a view that crosses on
+## the second detent and not the first is a rule nobody would guess.
+func _hint_the_crossing(direction: int, now: int) -> void:
+	if hud == null or now - _last_scope_hint_msec < 3000:
+		return
+	_last_scope_hint_msec = now
+	hud.say("Keep zooming in to enter the Town" if direction > 0
+		else "Keep zooming out to see Yuri")
+
+
+## A pinch, from `TouchInput` or a trackpad: the same ladder as the wheel.
+## Inside the band it zooms; past an end the fingers' overshoot builds until it
+## reaches `CAMERA_SCOPE_PINCH_PUSH`, and then the view crosses. Back from a
+## scope needs only `CAMERA_SCOPE_PINCH_RETURN`.
 func _on_pinch_zoomed(factor: float) -> void:
-	if _locked or _scope != GameDirector.Scope.BATTLEFIELD:
+	if _locked or factor <= 0.0 or is_equal_approx(factor, 1.0):
 		return
-	var rig := battlefield.camera as CameraRig
-	if rig != null:
-		rig.zoom_by_factor(factor)
+	var inward: bool = factor > 1.0
+	match _scope:
+		GameDirector.Scope.BATTLEFIELD:
+			var rig := battlefield.camera as CameraRig
+			if rig == null:
+				return
+			if rig.zoom_by_factor(factor):
+				_pinch_overshoot = 1.0
+				return
+			if (_pinch_overshoot > 1.0) != inward and not is_equal_approx(_pinch_overshoot, 1.0):
+				_pinch_overshoot = 1.0
+			_pinch_overshoot *= factor
+			var past: float = _pinch_overshoot if inward else 1.0 / _pinch_overshoot
+			if past >= Balance.CAMERA_SCOPE_PINCH_PUSH:
+				_clear_push()
+				_cross_from_field(1 if inward else -1)
+			else:
+				_hint_the_crossing(1 if inward else -1, _zoom_now_msec())
+		GameDirector.Scope.TOWN:
+			if _pinch_step(factor, not inward):
+				_zoom_back_to_field(true)
+		GameDirector.Scope.BEAST:
+			# The walk has its own two views, as the wheel does: in from the
+			# wide one comes to the near one, and in again to the battlefield.
+			if inward and _pinch_step(factor, true):
+				if beast.is_zoomed_out():
+					beast.set_zoomed_out(false)
+				else:
+					_zoom_back_to_field(false)
+			elif not inward and not beast.is_zoomed_out() and _pinch_step(factor, true):
+				beast.set_zoomed_out(true)
+
+
+## Builds the fingers' travel in one direction and says when it has gone
+## `CAMERA_SCOPE_PINCH_RETURN` - a step between fixed views, never a crossing
+## out of the fight, which is `CAMERA_SCOPE_PINCH_PUSH`'s job.
+func _pinch_step(factor: float, toward: bool) -> bool:
+	if not toward:
+		_pinch_overshoot = 1.0
+		return false
+	var before: float = _pinch_overshoot
+	if not is_equal_approx(before, 1.0) and (before > 1.0) != (factor > 1.0):
+		_pinch_overshoot = 1.0
+	_pinch_overshoot *= factor
+	var past: float = _pinch_overshoot if _pinch_overshoot >= 1.0 else 1.0 / _pinch_overshoot
+	if past >= Balance.CAMERA_SCOPE_PINCH_RETURN:
+		_pinch_overshoot = 1.0
+		return true
+	return false
 
 
 func switch_scope(scope: GameDirector.Scope) -> void:
@@ -435,6 +595,8 @@ func switch_scope(scope: GameDirector.Scope) -> void:
 	if scope == GameDirector.Scope.RAID:
 		return  # Raids are entered through _on_raid_requested, never directly.
 
+	# A push half-built toward one end must not carry into another view.
+	_clear_push()
 	_scope = scope
 	GameDirector.current_scope = scope
 

@@ -2687,34 +2687,95 @@ func _test_zoom_range() -> void:
 	rig.reset_to_wide()
 	_check(not rig.zoom_by(-1), "the wide battlefield limit is a limit")
 	_check(rig.zoom_by(1), "wheel-in must zoom the battlefield")
-	# **Amended 2026-09-25 (owner): the wheel zooms the battlefield and never
-	# changes scope.** It was a ladder - past the widest zoom the next detent
-	# opened the Town and the one after it Yuri - and this held the ladder.
-	rig.reset_to_wide()
-	_run._zoom_wheel(-1)
-	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD,
-		"wheel-out at the widest battlefield must stay on the battlefield")
-	_run._zoom_wheel(1)
-	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
-		and not rig.is_fully_zoomed_out(), "wheel-in must zoom the battlefield in")
-	for scope: GameDirector.Scope in [GameDirector.Scope.TOWN, GameDirector.Scope.BEAST]:
-		_run.switch_scope(scope)
+	# **Amended 2026-09-27 (owner): the closest zoom is the Town and the
+	# farthest is Yuri.** The 2026-09-25 version of this test held that the
+	# wheel never left the battlefield, because a flick out to see the road had
+	# thrown the player into another view. The ladder is back with the Town at
+	# the near end, and what this holds instead is that a *flick* still never
+	# crosses: only a second, deliberate push does. The clock is the run's gate
+	# seam, so a pause is a number rather than a sleep.
+	var BF: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
+	var clock: int = 100000
+	_run.zoom_test_now_msec = clock
+	_run.switch_scope(BF)
+	rig.set_zoom_share(0.5)
+	for _detent: int in 30:
+		clock += 20
+		_run.zoom_test_now_msec = clock
 		_run._zoom_wheel(-1)
+	_check(GameDirector.current_scope == BF and rig.is_fully_zoomed_out(),
+		"a flick out must stop at the widest battlefield, however long it spins")
+	clock += 600
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(-1)
+	_check(GameDirector.current_scope == BF,
+		"one fresh push at the widest zoom must only warn, not cross")
+	clock += 1500
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(-1)
+	_check(GameDirector.current_scope == BF,
+		"a push that lets its window lapse must start counting again")
+	clock += 150
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(-1)
+	_check(GameDirector.current_scope == GameDirector.Scope.BEAST
+		and not _run.beast.is_zoomed_out(),
+		"two deliberate pushes out must cross to Yuri's near view")
+	clock += 600
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(-1)
+	_check(_run.beast.is_zoomed_out(), "out again on the walk must widen to the whole road")
+	_run._zoom_wheel(1)
+	_check(GameDirector.current_scope == GameDirector.Scope.BEAST
+		and not _run.beast.is_zoomed_out(), "in from the wide walk must come to the near one")
+	_run._zoom_wheel(1)
+	_check(GameDirector.current_scope == BF and rig.is_fully_zoomed_out(),
+		"in from the walk must land on the battlefield at its widest")
+	for _detent: int in 40:
+		clock += 20
+		_run.zoom_test_now_msec = clock
 		_run._zoom_wheel(1)
-		_check(GameDirector.current_scope == scope,
-			"the wheel must not leave scope %d" % int(scope))
-	# A pinch is the wheel's rule with two fingers: the battlefield and nothing else.
-	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	_check(GameDirector.current_scope == BF and rig.is_fully_zoomed_in(),
+		"a flick in must stop at the closest battlefield zoom")
+	clock += 600
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(1)
+	clock += 120
+	_run.zoom_test_now_msec = clock
+	_run._zoom_wheel(1)
+	_check(GameDirector.current_scope == GameDirector.Scope.TOWN,
+		"two deliberate pushes in at the closest zoom must enter the Town")
+	_run._zoom_wheel(1)
+	_check(GameDirector.current_scope == GameDirector.Scope.TOWN,
+		"the Town is the end of the ladder: in again goes nowhere")
+	_run._zoom_wheel(-1)
+	_check(GameDirector.current_scope == BF and rig.is_fully_zoomed_in(),
+		"out of the Town must land on the battlefield at its closest")
+	# A pinch walks the same ladder: a pinch past the end builds, and only
+	# enough of it crosses.
+	rig.reset_to_close()
+	EventBus.pinch_zoomed.emit(1.2)
+	_check(GameDirector.current_scope == BF,
+		"a pinch a little past the closest zoom must not cross")
+	EventBus.pinch_zoomed.emit(1.5)
+	_check(GameDirector.current_scope == GameDirector.Scope.TOWN,
+		"a pinch well past the closest zoom must enter the Town")
+	EventBus.pinch_zoomed.emit(0.75)
+	_check(GameDirector.current_scope == BF,
+		"a pinch in from the Town must come back to the battlefield")
 	rig.reset_to_wide()
 	var wide: float = rig.zoom_share()
 	EventBus.pinch_zoomed.emit(1.4)
-	_check(rig.zoom_share() > wide, "a pinch apart must zoom the battlefield in")
-	_run.switch_scope(GameDirector.Scope.TOWN)
-	var held: float = rig.zoom_share()
-	EventBus.pinch_zoomed.emit(0.6)
-	_check(GameDirector.current_scope == GameDirector.Scope.TOWN and is_equal_approx(rig.zoom_share(), held),
-		"a pinch in the Town must neither zoom the battlefield nor change scope")
-	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	_check(rig.zoom_share() > wide, "a pinch apart inside the band must zoom the battlefield in")
+	# And the slider places directly: the top is the Town, the bottom Yuri.
+	_run._on_zoom_set(1.0)
+	_check(GameDirector.current_scope == GameDirector.Scope.TOWN, "the slider's top must be the Town")
+	_run._on_zoom_set(0.0)
+	_check(GameDirector.current_scope == GameDirector.Scope.BEAST, "the slider's bottom must be Yuri")
+	_run._on_zoom_set(0.5)
+	_check(GameDirector.current_scope == BF, "the slider's middle must be the battlefield")
+	_run.zoom_test_now_msec = -1
+	_run.switch_scope(BF)
 
 
 func _test_beast_gait() -> void:

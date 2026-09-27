@@ -1273,12 +1273,11 @@ func _update_wave_preview() -> void:
 ## HUD from a bad content import even though the production manifest is complete.
 ## The zoom ladder, as one control.
 ##
-## **It spans the whole ladder the two buttons walked**, not just the
-## battlefield's band: below `Balance.UI_ZOOM_FIELD_STOP` are the town and
-## the walk, which is exactly where the minus button used to take you. So
-## nothing that worked stops working, and the relationship between the three
-## views is visible instead of being a thing you find by pressing minus once
-## too often.
+## **It spans the whole ladder**, not just the battlefield's band: above
+## `Balance.UI_ZOOM_TOWN_STOP` is the Town and below `UI_ZOOM_BEAST_STOP` is
+## the walk (owner, 2026-09-27: the closest zoom is the Town, the farthest
+## Yuri). So the relationship between the three views is visible instead of
+## being a thing you find by zooming once too often.
 ##
 ## **It follows rather than leads.** `_refresh_zoom_slider` writes the
 ## slider from the camera every frame with `set_value_no_signal`, so the
@@ -1297,9 +1296,9 @@ func _build_zoom_slider(bar: Container) -> void:
 	_zoom_slider.step = 0.01
 	_zoom_slider.value = 1.0
 	_zoom_slider.focus_mode = Control.FOCUS_NONE
-	_zoom_slider.tooltip_text = ("Zoom. Drag it, scroll the wheel or pinch; the "
-		+ "bottom of this slider's travel steps out to the town and then to Yuri. "
-		+ "The wheel and a pinch zoom the battlefield only.")
+	_zoom_slider.tooltip_text = ("Zoom. Drag it, scroll the wheel or pinch. The top of "
+		+ "its travel goes into the Town and the bottom out to Yuri; the wheel and a "
+		+ "pinch cross at the end of the battlefield's zoom on a second push.")
 	_zoom_slider.value_changed.connect(func(v: float) -> void:
 		if _zoom_following:
 			return
@@ -1345,15 +1344,16 @@ func _zoom_ladder_share() -> float:
 	var scope: int = int(GameDirector.current_scope)
 	if scope == GameDirector.Scope.BEAST:
 		return 0.0
-	if scope != GameDirector.Scope.BATTLEFIELD:
-		return Balance.UI_ZOOM_TOWN_STOP
-	if battlefield == null or not is_instance_valid(battlefield):
+	if scope == GameDirector.Scope.TOWN:
 		return 1.0
+	var low: float = Balance.UI_ZOOM_BEAST_STOP
+	var high: float = Balance.UI_ZOOM_TOWN_STOP
+	if battlefield == null or not is_instance_valid(battlefield):
+		return high
 	var rig := battlefield.camera as CameraRig
 	if rig == null:
-		return 1.0
-	var stop: float = Balance.UI_ZOOM_FIELD_STOP
-	return stop + rig.zoom_share() * (1.0 - stop)
+		return high
+	return low + rig.zoom_share() * (high - low)
 
 
 # --- the frame rate, and the road through the act (owner, 2026-09-17) --------
@@ -3999,6 +3999,11 @@ func _show_message(text: String) -> void:
 	_message.text = _trimmed(text)
 	_message_left = 3.0
 	_clear_region_card()
+
+
+## The message line, for the run: a short hint that is not an announcement.
+func say(text: String) -> void:
+	_show_message(text)
 
 
 ## The banner's text, cut to something that fits the banner.
