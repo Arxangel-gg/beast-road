@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "arcane_missiles"
+display_name = "Arcane Missiles"
+description = "Uncommon card. A swarm of small bolts seeks the nearest bodies. They strike soaked bodies harder."
+rarity = 1
+first_act = 1
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Seeker"])
+card_text = "Each one small. None of them alone."
+weapon = "arcane_missiles"

@@ -179,6 +179,45 @@ def compose(card_id):
         place(c, spell('thorn_volley'), (94, 86), 64)
         place(c, spell('thorn_volley'), (64, 48), 90)
         return glow(c, (120, 220, 90), 0.5)
+    # The element weapons of 2026-09-27: each pattern in an element it lacked.
+    if card_id == 'sawstones':
+        stone = hue(spell('stonefall'), 0.0, 0.35, 0.95)
+        c = orbit(stone, 3, 36, 56, radial=False)
+        return glow(c, (200, 175, 140), 0.4)
+    if card_id == 'ice_needles':
+        for at in ((40, 84), (64, 64), (88, 44)):
+            place(c, spell('frost_lance'), at, 112, angle=-20)
+        return glow(c, (130, 205, 255), 1.0, 8)
+    if card_id == 'arcane_missiles':
+        bolt = hue(spell('ember_fall'), 0.66, 0.9, 1.1)
+        for at, size in (((30, 90), 46), ((58, 70), 52), ((90, 82), 46), ((70, 38), 60)):
+            place(c, bolt, at, size, angle=-25)
+        return glow(c, (190, 160, 255), 0.65)
+    if card_id == 'flame_nova':
+        place(c, spell('cinder_nova'), (64, 64), 124)
+        return glow(c, (255, 130, 60), 0.6)
+    if card_id == 'frost_nova':
+        place(c, hue(spell('cinder_nova'), 0.52, 0.9, 1.1), (64, 64), 124)
+        place(c, spell('frost_lance'), (64, 64), 58, angle=45)
+        return glow(c, (140, 210, 255), 0.6)
+    if card_id == 'flame_trail':
+        # Footprints of fire along the way walked, smallest where it began.
+        for at, size in (((26, 100), 38), ((52, 76), 50), ((80, 52), 62), ((104, 26), 44)):
+            place(c, spell('cinder_nova'), at, size)
+        return glow(c, (255, 140, 60), 0.6)
+    if card_id == 'frost_trail':
+        frost = hue(spell('cinder_nova'), 0.52, 0.9, 1.1)
+        for at, size in (((26, 100), 38), ((52, 76), 50), ((80, 52), 62), ((104, 26), 44)):
+            place(c, frost, at, size)
+        return glow(c, (140, 210, 255), 0.6)
+    if card_id == 'lightning_strike':
+        place(c, hue(spell('tremor'), 0.52, 0.8, 1.05), (64, 96), 90)
+        place(c, spell('sky_lance'), (64, 52), 110, angle=-45)
+        return glow(c, (170, 200, 255), 0.6)
+    if card_id == 'ice_pillar':
+        place(c, hue(spell('tremor'), 0.5, 0.8, 1.1), (64, 96), 90)
+        place(c, spell('frost_lance'), (64, 56), 112, angle=-45)
+        return glow(c, (140, 210, 255), 0.6)
     raise KeyError(card_id)
 
 
@@ -186,15 +225,22 @@ IDS = ['ember_wisps', 'frost_shards', 'seeking_flames', 'chain_spark', 'thunderc
        'thorn_wake', 'stone_rain', 'marrow_seekers', 'sentry_wisps', 'arc_lattice',
        'fortress_barrage', 'falling_stars', 'bell_of_the_hold', 'soulfire',
        'quickening_oil', 'twin_casting', 'wider_wake', 'long_burn', 'kindled_heart',
-       'sunwheel', 'stormcrown', 'worldbreaker', 'briar_sea']
+       'sunwheel', 'stormcrown', 'worldbreaker', 'briar_sea',
+       'sawstones', 'ice_needles', 'arcane_missiles', 'flame_nova', 'frost_nova',
+       'flame_trail', 'frost_trail', 'lightning_strike', 'ice_pillar']
 
 if __name__ == '__main__':
     import sys
-    sheet = Image.new('RGBA', (len(IDS) * 136 // 2 + 136, 290), (34, 30, 28, 255))
+    # ICON_OUT writes somewhere else, so a new recipe can be looked at before
+    # it replaces anything the game draws.
+    out = os.environ.get('ICON_OUT', OUT)
+    os.makedirs(out, exist_ok=True)
+    rows = (len(IDS) + 11) // 12
+    sheet = Image.new('RGBA', (12 * 136 + 4, rows * 144 + 4), (34, 30, 28, 255))
     for i, card_id in enumerate(IDS):
         icon = compose(card_id)
         assert icon.size == (SIZE, SIZE)
-        icon.save(os.path.join(OUT, 'card_%s.png' % card_id))
+        icon.save(os.path.join(out, 'card_%s.png' % card_id))
         x = (i % 12) * 136 + 4
         y = (i // 12) * 144 + 4
         sheet.alpha_composite(icon, (x, y))

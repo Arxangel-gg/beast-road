@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "ice_needles"
+display_name = "Ice Needles"
+description = "Rapid needles of ice at the nearest bodies. They slow, and leave what they hit wet."
+pattern = 1
+anchor = 0
+element = 1
+tint = Color(0.6, 0.88, 1.0, 1)
+damage = 8.0
+cooldown = 0.6
+count = 1
+reach = 460.0
+speed = 640.0
+slow = 0.8
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.2, 1.45, 1.7, 2.0])
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "water"
+effect = "hit_water"

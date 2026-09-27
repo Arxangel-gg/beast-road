@@ -94,6 +94,25 @@ code once; every weapon is a data file (working rule 3).
 | Stone Rain | Strike | Earth | Rocks fall on the thickest knot of bodies near you, telegraphed |
 | Marrow Seekers | On kill | Spirit | A body that dies lets a spirit go to hunt the next |
 
+**Added the same day** (`IDEAS_REVIEW_2026-09-27.md` §2.1), each an existing
+pattern in an element it lacked:
+
+| Weapon | Pattern | Element | Plays like |
+|---|---|---|---|
+| Sawstones | Orbit | Earth | Slow, heavy stone discs that shove what they cut |
+| Ice Needles | Seeker | Water | Rapid needles that slow and leave what they hit wet |
+| Arcane Missiles | Seeker | Air | A swarm of small bolts that strike soaked bodies harder |
+| Flame Nova | Nova | Fire | A ring of fire that leaves bodies burning |
+| Frost Nova | Nova | Water | A wide pulse that slows hard and soaks |
+| Flame Trail | Trail | Fire | Walking leaves burning ground |
+| Frost Trail | Trail | Water | Walking leaves ice that slows and soaks |
+| Lightning Strike | Strike | Air | Bolts called down onto knots near you |
+| Ice Pillar | Strike | Water | A spike under the thickest knot; slows and soaks |
+
+**And the elements react** as a tower's shot does: an air weapon hits a wet body
+harder, a water weapon soaks, a chain leaves a wet body further. A water weapon
+and an air weapon in one hand are a build rather than two cards.
+
 ### Rampart — the towers near the Warden fight (the party's)
 
 | Weapon | Pattern | Plays like |
@@ -130,6 +149,10 @@ Long Burn (duration), Kindled Heart (Arsenal power).
 | Stone Rain | Wider Wake | **Worldbreaker** — boulders crater the ground in a ring |
 | Thorn Wake | Long Burn | **Briar Sea** — the thorns stay, and spread |
 
+**Evolutions open from Act III** (2026-09-27): the mid-run spike the genre has.
+A Stormcrown by the end of Act II made that act softer than the first. A
+weapon that has evolved is not dealt again - it became the evolution.
+
 ### Refused, and why
 
 - **Every universal multiplier** ("Kindled Heart for the whole game", Echo Cast on
@@ -164,9 +187,9 @@ tuned to it. Measured on `curve_report`, new account, after the Arsenal landed:
 | Health an act, II on (`WAVE_ACT_HP_SCALE`) | 1.40 … 2.55 | **1.48, 2.31 … 3.05** - Act II held to a 1.36 step from Act I, the rest bought as bodies |
 | Co-op bodies a player (`COOP_BODY_SCALE_PER_PLAYER`) | 0.5 | **1.0** - each Warden brings their own Arsenal |
 | Co-op income a body (`COOP_KILL_INCOME_SCALE`) | 1.0 (unmodelled) | **0.85**, now modelled |
-| Mean pressure, 1 to 4 players | 0.453 … 0.526 | **0.437, 0.458, 0.432, 0.404** (band 0.40–0.64, spread 13%) |
-| Act by act | 0.23 … 0.61 | **0.25, 0.22, 0.38 … 0.66** - Act II a little under Act I, where the board arrives; no holiday |
-| Arsenal share of the defence | — | **20% in Act I, 43–60% after** |
+| Mean pressure, 1 to 4 players | 0.453 … 0.526 | **0.459, 0.429, 0.414, 0.411** (band 0.40–0.64, spread 12%) - re-measured the same day with a model that plans its hand and a party replay that starts empty; see §7 |
+| Act by act | 0.23 … 0.61 | **0.26, 0.25, 0.36 … 0.66** - escalating, no holiday |
+| Arsenal share of the defence | — | **19% in Act I, 55–66% after** |
 
 A campaign is 544 waves rather than 657: the road is the same length, and each
 wave is bigger. The act-start purse, ranks and drafts were re-read off the same
@@ -180,3 +203,22 @@ painted spell art** (three meteors in an orbit, lances in a chain), which is new
 arrangement of shipped art rather than art drawn in code, and its in-play effects
 are the forged VFX sheets, the painted projectile heads and the ink canvases the
 towers and spells already use. Bespoke icons are a PixelLab job for October.
+
+## 7. Re-measured the same day
+
+Nine more weapons were added (`IDEAS_REVIEW_2026-09-27.md`) and the curve moved
+the wrong way - more choice read as a harder road. The report now prints the
+hand it models at the end of every act, and that found three faults:
+
+- **The model drafted greedily one pick ahead**, filled its hand with strong
+  first levels by Act II and never evolved. It plans a target hand now,
+  evolutions weighed as pairs, and drafts within the plan through the game's
+  own `Augments.may_deal`.
+- **Every party-size replay held the solo run's finished hand from wave 1.**
+  Replayed honestly, a party ranked far faster than a player and every seat
+  drafted that much more. A road body now pays the rank its share of the party.
+- **An evolved weapon was dealt again.** It is not, now.
+
+A planning player found the road a quarter easier than the band, none of the
+new weapons in the planned hand. Evolutions open from Act III and the act
+ladder is flatter late (2.40 at the summit); the table above is the result.

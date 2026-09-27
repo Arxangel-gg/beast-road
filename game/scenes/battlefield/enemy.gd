@@ -3274,16 +3274,28 @@ func glance_off(from: Vector2) -> void:
 ## the health the Warden's own experience is paid in, so the rank is a measure
 ## of the road survived and a late act does not deal drafts faster than an
 ## early one.
+##
+## **A party ranks at a solo road's pace** (2026-09-27). The rank is the party's
+## and every rank deals every seat a draft, while a party's waves are
+## `WaveDirector.body_scale_for` times a solo road's - so a four-player party
+## ranked half again as often as a solo Warden and every seat drafted that much
+## more, which `curve_report` hid until its party replays stopped inheriting the
+## solo run's finished hand. A road body is worth its share of the bodies the
+## party was sent; a boss and a camp are not scaled with the party, so neither
+## is their worth.
 func road_xp_worth() -> float:
 	if data != null and data.category == EnemyData.Category.BOSS:
 		return Balance.ROAD_XP_BOSS
+	var worth: float = Balance.ROAD_XP_BODY
 	if rank == Rank.ELITE or (data != null and data.category == EnemyData.Category.ELITE):
-		return Balance.ROAD_XP_ELITE
-	if rank == Rank.CHAMPION:
-		return Balance.ROAD_XP_CHAMPION
-	if is_camp_mob():
+		worth = Balance.ROAD_XP_ELITE
+	elif rank == Rank.CHAMPION:
+		worth = Balance.ROAD_XP_CHAMPION
+	elif is_camp_mob():
 		return Balance.ROAD_XP_CAMP
-	return Balance.ROAD_XP_BODY
+	if is_camp_mob():
+		return worth
+	return worth / WaveDirector.body_scale_for(Coop.player_count())
 
 
 func _on_died(_from: Vector2) -> void:

@@ -609,7 +609,17 @@ const AUGMENT_SEAT_HAND: int = 4
 ## hundredfold, and it deliberately lags them: what closes the gap is the
 ## Warden's level and gear, which is the owner's *"keep up with the increasing
 ## difficulty"*. Solved against `curve_report` on a new account. [TUNE]
-const ARSENAL_ACT_SCALE: Array[float] = [1.0, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.55, 4.95]
+##
+## **Flattened again the same day, because the model learned to plan.** The
+## report's hand had been built greedily, one draft ahead, and the first nine
+## weapons added to the deck walked it into the trap every Megabonk player
+## learns: eight weapons with strong first levels, no room for a catalyst, no
+## evolution, nothing to spend a draft on from Act VI. It plans toward a hand
+## now, evolutions included, and a player who plans finds the old ladder a
+## quarter easier than the band (0.34 solo) with the Arsenal three quarters of
+## the defence. This ladder puts a planning player back at 0.46 solo and 0.41
+## for four, the Arsenal a fifth of the defence in Act I and 55-66% after.
+const ARSENAL_ACT_SCALE: Array[float] = [1.00, 1.30, 1.50, 1.70, 1.80, 1.90, 2.00, 2.10, 2.20, 2.30, 2.40]
 ## **Focus shortens a weapon's cadence** exactly as it shortens a spell's, per
 ## point and to the spell's own cap, so the attribute that makes a caster makes
 ## an Arsenal. With the cadence catalyst, a weapon never fires more often than
@@ -8351,6 +8361,15 @@ const COOP_CONNECT_TIMEOUT_ROOM: float = 50.0
 ## measured at 0.5 the party sizes spread 29% with co-op the easier road; at
 ## 0.9, four players still sat under the floor. One player's worth of road for
 ## each player who brings one player's worth of Arsenal.
+##
+## **Those measurements were of a replay that never reset its hand**, found the
+## same day: every party size fought the whole road holding the solo run's
+## finished Arsenal from wave 1. Replayed honestly, a party also ranked faster -
+## the rank is the party's, its bodies were several times a solo road's, and
+## every rank dealt every seat a draft - so four players read 0.28 against one
+## player's 0.56. `Enemy.road_xp_worth` pays a road body its share of the party
+## now, so a seat drafts at a solo road's pace, and at 1.0 the party sizes read
+## 0.46, 0.43, 0.41 and 0.41, a spread of 12%.
 const COOP_BODY_SCALE_PER_PLAYER: float = 1.0
 
 ## Trim on what a body pays when there are two players. [TUNE]

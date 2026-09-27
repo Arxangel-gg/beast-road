@@ -10792,6 +10792,68 @@ named.
 yet (it needs a photograph from `guide_shots`, which needs the screen), and the
 HUD does not show the Arsenal's weapons and their clocks.
 
+**The Arsenal answers the elements, and every pattern has its elements, as of
+2026-09-27.** The owner asked for the triage of the forwarded auto-attack ideas
+to be kept and its first two items built; it is
+`docs/IDEAS_REVIEW_2026-09-27.md`, which also records what is refused and why.
+
+**The reactions.** The Arsenal shipped outside them: a water weapon never soaked
+a body and an air weapon never hit a soaked one harder, so Frost Shards and a
+storm tower were two halves of a combo that did not meet. `Arsenal.strike_body`
+follows `Tower._hit` now - air hits a wet body `WET_SHOCK_DAMAGE` harder, water
+leaves what it hits wet, a chain leaving a wet body leaps `WET_CHAIN_RANGE`
+further as the sky's lightning does. **Every air weapon conducts**, Marrow
+Seekers included, because every air tower does and one rule is the point.
+**Deliberately not joined**: the earth's strain, which the Arsenal would feed at
+half the defence's weight against a hidden wrath curve, and brush fires, which
+Ember Wisps would light in every forest it circled. `arsenal_check` holds all
+three reactions and that an earth weapon does none, and holds the sky dry for
+every measurement - a seed that rained read every air weapon half again above
+its model. Three faults planted, three named.
+
+**Nine element weapons, data only**: Sawstones (earth orbit), Ice Needles (water
+seeker), Arcane Missiles (air seeker), Flame Nova and Frost Nova, Flame Trail and
+Frost Trail, Lightning Strike and Ice Pillar (strikes). Each is an existing
+pattern in an element it lacked, authored inside its pattern's existing power
+range so the curve's greedy best hand does not move; what they add is choice and
+the water-then-air build the reactions make real. Icons composed from shipped
+paintings, as before.
+
+**Adding them moved the curve the wrong way, and that is what found three
+faults.** Mean pressure rose from 0.44 to 0.53 - more choice read as a harder
+road - and the readout this change added to `curve_report` (the modelled hand
+at the end of every act) said why:
+
+- **The model's hand was greedy, one draft ahead.** With nine more weapons it
+  took whatever had the strongest first level, filled eight places by Act II,
+  never had room for a catalyst, never evolved, and spent every draft on
+  nothing from Act VI. That is the trap every Megabonk player learns to avoid.
+  `curve_report` now plans a target hand by what it is worth at the summit - a
+  weapon and its catalyst weighed as a pair - and drafts greedily *within* the
+  plan, asking the game's own `Augments.may_deal` for every pick.
+- **Every party-size replay held the solo run's finished hand from wave 1.**
+  `_mean_pressure_for` reset the purse and never the kills, the hand or the
+  picks - the gold lesson a second time. Replayed honestly, **a party ranked
+  far faster than a player**: the rank is the party's, its bodies were several
+  times a solo road's, and every rank dealt every seat a draft, so four players
+  read 0.28 against one player's 0.56. `Enemy.road_xp_worth` now pays a road
+  body its share of the party (`WaveDirector.body_scale_for`), bosses and camps
+  unscaled, so a seat drafts at a solo road's pace. The 2026-09-27 co-op
+  measurements above were taken on the broken replay; the note on
+  `COOP_BODY_SCALE_PER_PLAYER` says so.
+- **An evolved weapon was dealt again.** The planner evolved Chain Spark and
+  was offered it back - and so was every player. `may_deal` refuses a weapon
+  whose evolution is held.
+
+**With the model planning, v0.59.0's road read a quarter easier than the band**
+(0.34 solo) and the Arsenal three quarters of the defence - none of the new
+weapons in the planned hand, so this was the model catching up rather than the
+deck changing. Two levers, measured one at a time: **evolutions open from Act
+III** (a Stormcrown by the end of Act II made that act softer than the first),
+and **`ARSENAL_ACT_SCALE` flattened late** to 2.40 at the summit. Measured on a
+new account: 0.459, 0.429, 0.414, 0.411 for one to four players (spread 12%),
+acts 0.26 to 0.66, the Arsenal 19% of the defence in Act I and 55-66% after.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

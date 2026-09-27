@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "ice_pillar"
+display_name = "Ice Pillar"
+description = "A spike of ice bursts under the thickest knot of bodies near you. It slows, and soaks."
+pattern = 5
+anchor = 0
+element = 1
+tint = Color(0.6, 0.88, 1.0, 1)
+damage = 26.0
+cooldown = 2.4
+count = 1
+radius = 60.0
+reach = 500.0
+slow = 0.5
+crowd = 1.0
+level_count = Array[int]([0, 0, 1, 1, 2])
+head = "water"
+effect = "hit_water"

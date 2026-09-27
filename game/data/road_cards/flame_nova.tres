@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "flame_nova"
+display_name = "Flame Nova"
+description = "Common card. Every few seconds a ring of fire bursts around you and leaves bodies burning."
+rarity = 0
+first_act = 1
+branch = 0
+tags = Array[String](["Fire", "Arsenal", "Nova"])
+card_text = "The heat has been waiting for room."
+weapon = "flame_nova"

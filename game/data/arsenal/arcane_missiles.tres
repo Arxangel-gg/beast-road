@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "arcane_missiles"
+display_name = "Arcane Missiles"
+description = "A swarm of small bolts seeks the nearest bodies. They strike soaked bodies harder."
+pattern = 1
+anchor = 0
+element = 3
+tint = Color(0.78, 0.7, 1.0, 1)
+damage = 5.5
+cooldown = 1.1
+count = 3
+reach = 520.0
+speed = 460.0
+crowd = 1.0
+level_count = Array[int]([0, 1, 2, 3, 4])
+head = "air"
+effect = "hit_air"

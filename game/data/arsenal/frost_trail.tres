@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "frost_trail"
+display_name = "Frost Trail"
+description = "Walking leaves ice that slows whatever crosses it, and leaves it wet."
+pattern = 4
+anchor = 0
+element = 1
+tint = Color(0.62, 0.88, 1.0, 1)
+damage = 2.0
+cooldown = 0.8
+radius = 60.0
+duration = 2.2
+slow = 0.6
+crowd = 7.8
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.45])
+level_count = Array[int]([0, 0, 0, 0, 0])

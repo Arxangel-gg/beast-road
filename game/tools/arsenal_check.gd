@@ -259,6 +259,20 @@ func _test_the_deal() -> void:
 			and RunState.road_cards.has("twin_casting") and RunState.road_cards.size() == 3,
 		"taking an evolution did not swap its weapon in the same place: gave up '%s', hand %s"
 			% [went, str(RunState.road_cards)])
+	# **A weapon that has evolved is not dealt again** (2026-09-27) - it became
+	# the evolution. The curve's planner was offered Chain Spark back beside its
+	# own Stormcrown, and so was every player.
+	_check(not Augments.may_deal(ContentDB.road_card("ember_wisps"), RunState.road_cards,
+			RunState.road_card_levels, []),
+		"Ember Wisps was offered to a hand already holding the Sunwheel it became")
+	# **And an evolution is the mid-run spike**: none opens before Act III, where
+	# a Stormcrown at the end of Act II made that act softer than the first.
+	var earned: Array = ["ember_wisps", "twin_casting"]
+	var at_five: Dictionary = {"ember_wisps": 5, "twin_casting": 1}
+	_check(not Augments.candidates(earned, at_five, 2, []).has("sunwheel"),
+		"an evolution was dealt in Act II")
+	_check(Augments.candidates(earned, at_five, 3, []).has("sunwheel"),
+		"an earned evolution was not dealt in Act III")
 	# A retired card still resolves, so a banked front that holds one reads it.
 	_hold(["set_stance"])
 	_check(Modifiers.value(Modifiers.HERO_DAMAGE) > 0.0,

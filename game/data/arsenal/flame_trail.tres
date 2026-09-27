@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "flame_trail"
+display_name = "Flame Trail"
+description = "Walking leaves burning ground that sets alight whatever stands in it."
+pattern = 4
+anchor = 0
+element = 0
+tint = Color(1.0, 0.55, 0.25, 1)
+damage = 2.0
+cooldown = 0.8
+radius = 50.0
+duration = 1.8
+burn_share = 0.6
+crowd = 5.5
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.45])
+level_count = Array[int]([0, 0, 0, 0, 0])

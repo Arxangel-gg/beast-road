@@ -2296,6 +2296,13 @@ five catalysts and four evolutions, all 128×128.
 `card_kindled_heart.png` · `card_sunwheel.png` · `card_stormcrown.png` ·
 `card_worldbreaker.png` · `card_briar_sea.png`
 
+**The element weapons** (2026-09-27, `docs/IDEAS_REVIEW_2026-09-27.md`): nine
+more weapons, each an existing pattern in an element it lacked, 128×128.
+
+`card_sawstones.png` · `card_ice_needles.png` · `card_arcane_missiles.png` ·
+`card_flame_nova.png` · `card_frost_nova.png` · `card_flame_trail.png` ·
+`card_frost_trail.png` · `card_lightning_strike.png` · `card_ice_pillar.png`
+
 These are **composed from the game's own painted art** - the spell icons, three
 relics and two towers - because PixelLab's allowance was spent until 2026-10-11 and
 the production gate refuses a placeholder. A weapon is an effect rather than an

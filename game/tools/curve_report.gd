@@ -105,6 +105,10 @@ var _road_kills: float = 0.0
 ## drafts only ever grow. See `_deal_the_augments_so_far`.
 var _arsenal: Dictionary = {}
 var _arsenal_picks: int = 0
+## The hand the main run held at the end of each act, for the readout.
+var _hand_by_act: Dictionary = {}
+## The hand the model builds toward, planned once a pass - see `_plan_the_hand`.
+var _target: Array[String] = []
 
 
 func _ready() -> void:
@@ -153,6 +157,7 @@ func _ready() -> void:
 
 		var row: Dictionary = _measure(director, wave, act, act_wave, distance)
 		_rows.append(row)
+		_hand_by_act[act] = _arsenal.duplicate()
 
 		var cycle: float = Balance.WAVE_INTERVAL \
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
@@ -695,6 +700,17 @@ func _judge_escalation() -> int:
 		if share_counts.has(at_act):
 			share_line += "%d:%.0f%% " % [at_act, 100.0 * float(shares[at_act]) / float(share_counts[at_act])]
 	print("[curve] Arsenal share of the defence by act   %s" % share_line)
+	# **And what the model is holding**, so a curve that moves when the deck
+	# grows can be read for why: a pick that looks best one draft ahead and
+	# leaves the hand no room for an evolution reads as a harder road.
+	for at_act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
+		if not _hand_by_act.has(at_act):
+			continue
+		var cards: PackedStringArray = []
+		var hand: Dictionary = _hand_by_act[at_act] as Dictionary
+		for id: Variant in hand:
+			cards.append("%s L%d" % [String(id), int(hand[id])])
+		print("[curve] Arsenal hand at the end of act %d   %s" % [at_act, ", ".join(cards)])
 	if means.size() < Balance.FINAL_ASCENT_ACT:
 		return 0
 
@@ -777,6 +793,17 @@ func _mean_pressure_for(count: int) -> float:
 	# which reported 0.166 where the real run reports 0.363, and would have
 	# shipped a gate that measured its own leftovers.
 	_earned_gold = 0.0
+	# **And from an empty hand.** The replay inherited the main run's kills and
+	# its finished Arsenal, so every party size fought the whole road holding
+	# the summit's hand from wave 1 - the gold lesson above, a second time.
+	var kills_banked: float = _road_kills
+	var hand_banked: Dictionary = _arsenal.duplicate()
+	var picks_banked: int = _arsenal_picks
+	_road_kills = 0.0
+	_arsenal = {}
+	_arsenal_picks = 0
+	var target_banked: Array[String] = _target.duplicate()
+	_target = []
 	var total: float = 0.0
 	var samples: int = 0
 	var director := WaveDirector.new()
@@ -811,6 +838,10 @@ func _mean_pressure_for(count: int) -> float:
 	director.free()
 	_players = was
 	_earned_gold = banked
+	_road_kills = kills_banked
+	_arsenal = hand_banked
+	_arsenal_picks = picks_banked
+	_target = target_banked
 	return total / maxf(float(samples), 1.0)
 
 
@@ -912,7 +943,8 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 		RunState.road_card_levels = {}
 		Modifiers.rebuild()
 		return {}
-	var xp: float = _road_kills * Balance.ROAD_XP_BODY \
+	# A party's bodies pay the rank their share, as `Enemy.road_xp_worth` pays it.
+	var xp: float = _road_kills * Balance.ROAD_XP_BODY / WaveDirector.body_scale_for(_players) \
 		+ float(act - 1) * Balance.ROAD_XP_BOSS
 	var ranks: int = 0
 	while xp >= RunState.road_rank_cost(ranks):
@@ -933,11 +965,26 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 	return {"ranks": ranks, "drafts": drafts}
 
 
-## One draft, spent where it adds the most. Returns false when nothing can grow.
+## **One draft, spent toward the planned hand** (2026-09-27). Returns false
+## when nothing can grow.
+##
+## This was plain greedy - whichever pick added the most right now - and the
+## day the deck grew nine weapons it walked into the trap every Megabonk player
+## learns to avoid: it took whatever had the strongest first level, filled all
+## eight places by Act II, and never had room for the catalyst an evolution
+## wants. From Act VI it held eight weapons at their last level and spent every
+## draft on nothing, and the curve read the road as a tenth harder than a player
+## who plans would find it. So the model plans first (`_plan_the_hand`) and
+## then drafts greedily *within* the plan - the best pick among the planned
+## cards, their levels and the evolutions they earn - and a pick that adds
+## nothing now is still taken when it is the plan's last step, which is how a
+## catalyst gets into the hand before its weapon is ready.
 func _take_the_best_pick(act: int) -> bool:
+	if _target.is_empty():
+		_target = _plan_the_hand()
 	var now: float = _arsenal_value(_arsenal, act)
 	var best: Dictionary = {}
-	var gain: float = 0.0
+	var gain: float = -1.0
 	var ids: Array[String] = []
 	for id: Variant in ContentDB.road_cards:
 		ids.append(String(id))
@@ -948,10 +995,14 @@ func _take_the_best_pick(act: int) -> bool:
 			continue
 		if not card.is_weapon() and not card.effect_id.begins_with("arsenal_"):
 			continue
+		if not _in_the_plan(card):
+			continue
+		# The game's own rule for what a hand may be dealt, so the model never
+		# holds what a player could not.
+		if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
+			continue
 		var trial: Dictionary = _arsenal.duplicate()
 		if not card.evolves_from.is_empty():
-			if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
-				continue
 			trial.erase(card.evolves_from)
 			trial[id] = 1
 		elif trial.has(id):
@@ -970,6 +1021,86 @@ func _take_the_best_pick(act: int) -> bool:
 		return false
 	_arsenal = best
 	return true
+
+
+## Whether a card is one the planned hand wants: in the plan, or the evolution a
+## planned weapon and a planned catalyst earn together.
+func _in_the_plan(card: RoadCardData) -> bool:
+	if card.evolves_from.is_empty():
+		return _target.has(card.id)
+	return _target.has(card.evolves_from) and _target.has(card.evolves_with)
+
+
+## **The hand a player who plans builds toward**: eight cards chosen by what they
+## are worth at the end of the road, every weapon at its last level and every
+## evolution taken whose weapon and catalyst are both held. A weapon and its
+## catalyst are weighed as a pair, by what they add a place, so an evolution
+## line is judged as the one thing it is. Best case in the sense the purse is
+## one: a real hand is chosen by a person reading three cards at a time.
+func _plan_the_hand() -> Array[String]:
+	var towers_were: int = _bought_towers
+	_bought_towers = Balance.ARSENAL_MODEL_TOWERS
+	var singles: Array[String] = []
+	var lines: Array = []
+	var ids: Array[String] = []
+	for id: Variant in ContentDB.road_cards:
+		ids.append(String(id))
+	ids.sort()
+	for id: String in ids:
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card == null or card.retired or card.keystone:
+			continue
+		if not card.evolves_from.is_empty():
+			lines.append([id, card.evolves_from, card.evolves_with])
+		elif card.is_weapon() or card.effect_id.begins_with("arsenal_"):
+			singles.append(id)
+	var target: Array[String] = []
+	while target.size() < Balance.ROAD_CARD_HAND:
+		var now: float = _final_value(target, lines)
+		var best: Array[String] = []
+		var best_rate: float = 0.0
+		for id: String in singles:
+			if target.has(id):
+				continue
+			var trial: Array[String] = target.duplicate()
+			trial.append(id)
+			var rate: float = _final_value(trial, lines) - now
+			if rate > best_rate:
+				best_rate = rate
+				best = [id]
+		for line: Array in lines:
+			var adds: Array[String] = []
+			for part: Variant in [line[1], line[2]]:
+				if not target.has(String(part)):
+					adds.append(String(part))
+			if adds.is_empty() or target.size() + adds.size() > Balance.ROAD_CARD_HAND:
+				continue
+			var trial: Array[String] = target.duplicate()
+			trial.append_array(adds)
+			var rate: float = (_final_value(trial, lines) - now) / float(adds.size())
+			if rate > best_rate:
+				best_rate = rate
+				best = adds
+		if best.is_empty():
+			break
+		target.append_array(best)
+	_bought_towers = towers_were
+	return target
+
+
+## What a set of cards is worth at the summit, every weapon at its last level and
+## every evolution its weapon and catalyst earn.
+func _final_value(cards: Array[String], lines: Array) -> float:
+	var hand: Dictionary = {}
+	for id: String in cards:
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card != null:
+			hand[id] = card.max_level()
+	for line: Array in lines:
+		if hand.has(String(line[1])) and hand.has(String(line[2])):
+			hand.erase(String(line[1]))
+			hand[String(line[0])] = 1
+	return _arsenal_value(hand, Balance.FINAL_ASCENT_ACT)
 
 
 ## **What a hand of the Arsenal deals a second** - `ArsenalWeaponData.modelled_dps`,

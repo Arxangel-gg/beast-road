@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "ice_needles"
+display_name = "Ice Needles"
+description = "Common card. Rapid needles of ice at the nearest bodies. They slow, and leave what they hit wet."
+rarity = 0
+first_act = 1
+branch = 0
+tags = Array[String](["Water", "Arsenal", "Seeker"])
+card_text = "Winter, one splinter at a time."
+weapon = "ice_needles"

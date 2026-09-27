@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "frost_nova"
+display_name = "Frost Nova"
+description = "Rare card. A wide pulse of cold slows everything around you hard, and leaves it wet."
+rarity = 2
+first_act = 2
+branch = 0
+tags = Array[String](["Water", "Arsenal", "Nova"])
+card_text = "For a breath, the road forgets how to move."
+weapon = "frost_nova"

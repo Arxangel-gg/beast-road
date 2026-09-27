@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "sawstones"
+display_name = "Sawstones"
+description = "Uncommon card. Slow, heavy stone discs circle you and shove what they cut."
+rarity = 1
+first_act = 1
+branch = 0
+tags = Array[String](["Earth", "Arsenal", "Orbit"])
+card_text = "Millstones that forgot what they were grinding."
+weapon = "sawstones"

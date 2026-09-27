@@ -72,6 +72,13 @@ static func may_deal(card: RoadCardData, hand: Array, levels: Dictionary,
 			and (card.evolves_with.is_empty() or hand.has(card.evolves_with))
 	if card.branch_needs > 0 and branch_depth(hand, int(card.branch)) < card.branch_needs:
 		return false
+	# **A weapon that has evolved is not dealt again** (2026-09-27): it became
+	# the evolution, as it does in the genre this is drawn from. Found by the
+	# curve's planner, which evolved Chain Spark and was then offered it back.
+	for held: Variant in hand:
+		var evolved: RoadCardData = ContentDB.road_card(String(held))
+		if evolved != null and evolved.evolves_from == card.id:
+			return false
 	if hand.has(card.id):
 		return card.levels() and _level_of(card.id, levels) < card.max_level()
 	if card.keystone:
