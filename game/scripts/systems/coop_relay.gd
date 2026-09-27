@@ -199,6 +199,11 @@ enum Fact {
 	## of it moves - a refusal included, so a guest's draft screen is never left
 	## waiting on an answer that will not come.
 	AUGMENT_SEAT = 86,
+	## **A Warden's own cards, told to everybody** (the Arsenal, 2026-09-27): the
+	## slot, its card ids and their levels. Every screen draws every Warden's
+	## weapons from these; the blows are still the host's alone - a guest's
+	## bodies are puppets and refuse them.
+	ARSENAL_SEAT = 87,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -793,6 +798,32 @@ func _on_coop_road_card_chosen(card_id: String, dropped: String) -> void:
 ## takes it might have missed.
 func _on_augment_hand_changed() -> void:
 	_relay(Fact.AUGMENT_HAND, augment_hand_args())
+	_relay_arsenal_seats()
+
+
+## **Every Warden's own cards, to everybody** (the Arsenal, 2026-09-27). A guest
+## is told its own seat whole (`AUGMENT_SEAT`) and nothing of its partners', so
+## a partner's weapons drew on the host's screen and on nobody else's. Host side,
+## and only in a split hand - alone, or with one hand, there is nothing to tell.
+func _relay_arsenal_seats() -> void:
+	if session == null or not bool(session.call("is_host")) or not Coop.is_networked() \
+			or not RunState.hands_split:
+		return
+	for slot: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		if Coop.party().seat_for_slot(slot) == null:
+			continue
+		_relay(Fact.ARSENAL_SEAT, arsenal_seat_args(slot))
+
+
+## One seat's cards as they cross the wire: plain arrays.
+static func arsenal_seat_args(slot: int) -> Array:
+	var seat: AugmentSeat = RunState.augment_seat(slot)
+	var ids: Array = []
+	var levels: Array = []
+	for id: String in seat.cards:
+		ids.append(id)
+		levels.append(seat.card_level(id))
+	return [slot, ids, levels]
 
 
 ## A guest seat's own draft, told to that guest alone. Host side.
@@ -1413,6 +1444,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.AUGMENT_SEAT:
 			if args.size() == 1 and args[0] is Dictionary:
 				bus.coop_augment_seat.emit(args[0] as Dictionary)
+		Fact.ARSENAL_SEAT:
+			if args.size() == 3 and args[1] is Array and args[2] is Array:
+				bus.coop_arsenal_seat.emit(int(args[0]), args[1] as Array, args[2] as Array)
 		Fact.AUGMENT_HAND:
 			if args.size() == 4 and args[0] is Array and args[1] is Array \
 					and args[2] is Array:

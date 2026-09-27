@@ -20,13 +20,14 @@ extends Node
 ##   against that seat's own offer, and answered whole every time.
 ## - **A guest holds what it is told**, and **a front banks every seat**.
 ## - **The crossroad's card is the party's.**
+## - **A partner's weapons are told to everybody**, so every screen draws them.
 ##
 ## Run in one process with a guest seated on the party and `hands_split` forced,
 ## because what is under test is the host's bookkeeping; the wire is
 ## `coop_check`'s, and a real guest's screen is the two-process harness's.
 
 const SEED: int = 919191
-const EXPECTED_TESTS: int = 9
+const EXPECTED_TESTS: int = 10
 const GUEST_PEER: int = 7171
 
 var _failures: PackedStringArray = []
@@ -34,6 +35,7 @@ var _finished: int = 0
 var _run: Node = null
 var _field: Battlefield = null
 var _told: int = 0
+var _partner: Hero = null
 
 
 func _ready() -> void:
@@ -62,6 +64,7 @@ func _ready() -> void:
 	_test_a_guest_choice_is_the_hosts()
 	_test_the_crossroad_deals_the_partys()
 	_test_a_front_banks_every_seat()
+	_test_a_partners_weapons_are_told()
 	_test_a_guest_holds_what_it_is_told()
 	_check(_finished == EXPECTED_TESTS,
 		"%d of %d tests reached their end - a runtime error aborted one, and every check it had not made is unmade"
@@ -212,6 +215,7 @@ func _test_a_partner_reads_its_own_seat() -> void:
 		_finished += 1
 		return
 	partner.party_slot = _guest_slot()
+	_partner = partner
 	partner.wear_sheet(WardenSheet.pack_mine())
 	_check(partner.sheet != null and partner.sheet.slot == _guest_slot(),
 		"the partner's sheet does not know its seat")
@@ -358,6 +362,46 @@ func _test_a_front_banks_every_seat() -> void:
 	_check(back.card_level("loose_boots") == 3 and back.offer == offer and back.queue.size() == queued,
 		"the guest's seat came back as %s" % str(back.pack()))
 	_check(RunState.augment_seat(0).card_level("set_stance") == 2, "the host's own hand did not come back")
+	_finished += 1
+
+
+# --- 10 -----------------------------------------------------------------------------
+
+## **A partner's weapons are told to everybody** (the Arsenal, 2026-09-27). A
+## guest was told its own seat and nothing of its partners', so a partner's
+## weapons drew on the host's screen and on nobody else's. The host packs every
+## seat's cards as plain arrays; a guest adopts a partner's, cleaned, and the
+## Arsenal at that partner's side arms them - never this machine's own seat,
+## which the host tells whole.
+func _test_a_partners_weapons_are_told() -> void:
+	var slot: int = _guest_slot()
+	var seat: AugmentSeat = RunState.augment_seat(slot)
+	seat.cards = ["ember_wisps"]
+	seat.levels = {"ember_wisps": 3}
+	var args: Array = CoopRelay.arsenal_seat_args(slot)
+	_check(args == [slot, ["ember_wisps"], [3]],
+		"a seat's cards did not pack as plain arrays: %s" % str(args))
+	seat.cards = []
+	seat.levels = {}
+	RunState.adopt_arsenal_seat(slot, ["no_such_card", "ember_wisps", "chain_spark"], [1, 99, 2])
+	_check(seat.cards == ["ember_wisps", "chain_spark"],
+		"a told partner seat was not cleaned of a card this build lacks: %s" % str(seat.cards))
+	_check(seat.card_level("ember_wisps") == ContentDB.road_card("ember_wisps").max_level()
+			and seat.card_level("chain_spark") == 2,
+		"a told partner seat kept a level past its card's: %s" % str(seat.levels))
+	var arsenal: Arsenal = _partner.get("arsenal") as Arsenal \
+			if _partner != null and is_instance_valid(_partner) else null
+	_check(arsenal != null and arsenal.armed_cards() == ["chain_spark", "ember_wisps"],
+		"the partner's Arsenal did not arm the weapons it was told: %s"
+			% (str(arsenal.armed_cards()) if arsenal != null else "no Arsenal"))
+	var own: AugmentSeat = RunState.augment_seat(0)
+	own.cards = []
+	own.levels = {}
+	RunState.adopt_arsenal_seat(maxi(Coop.party().slot(), 1), ["ember_wisps"], [1])
+	_check(own.cards.is_empty(), "a told partner seat was written over this machine's own")
+	seat.cards = []
+	seat.levels = {}
+	EventBus.augment_hand_changed.emit()
 	_finished += 1
 
 

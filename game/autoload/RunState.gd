@@ -573,6 +573,7 @@ func _ready() -> void:
 	EventBus.wave_cleared.connect(_on_wave_cleared_for_augments)
 	EventBus.coop_augment_hand.connect(_on_coop_augment_hand)
 	EventBus.coop_augment_seat.connect(_on_coop_augment_seat)
+	EventBus.coop_arsenal_seat.connect(_on_coop_arsenal_seat)
 	EventBus.coop_request_received.connect(_on_coop_augment_request)
 
 
@@ -2677,6 +2678,34 @@ func _on_coop_augment_seat(packed: Dictionary) -> void:
 	if not Coop.is_guest():
 		return
 	adopt_augment_seat(packed)
+
+
+## **A partner's own cards, told to this guest** (the Arsenal, 2026-09-27), so
+## the Arsenal at that partner's side draws here too. Never this machine's own
+## seat, which the host tells whole (`adopt_augment_seat`), and never a card
+## this build does not have. A picture only: a guest's bodies refuse the blows.
+func _on_coop_arsenal_seat(slot: int, cards: Array, levels: Array) -> void:
+	if not Coop.is_guest():
+		return
+	adopt_arsenal_seat(slot, cards, levels)
+
+
+func adopt_arsenal_seat(slot: int, cards: Array, levels: Array) -> void:
+	if slot < 1 or slot > Balance.COOP_MAX_PLAYERS or slot == _my_slot():
+		return
+	var seat: AugmentSeat = augment_seat(slot)
+	seat.cards.clear()
+	seat.levels.clear()
+	for index: int in cards.size():
+		var id: String = String(cards[index]) if cards[index] is String else ""
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card == null or seat.cards.has(id) or seat.cards.size() >= Balance.AUGMENT_SEAT_HAND:
+			continue
+		seat.cards.append(id)
+		var level: int = int(levels[index]) if index < levels.size() else 1
+		seat.levels[id] = clampi(level, 1, card.max_level())
+	# The partner's Arsenal re-reads its cards on this, as it does on a draft.
+	EventBus.augment_hand_changed.emit()
 
 
 func adopt_augment_seat(packed: Dictionary) -> void:

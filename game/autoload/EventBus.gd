@@ -362,6 +362,8 @@ signal coop_augment_hand(ids: Array, levels: Array, banished: Array, rank: int)
 signal augment_seat_told(slot: int, packed: Dictionary)
 ## Guest: the host told this machine its own seat, whole.
 signal coop_augment_seat(packed: Dictionary)
+## Guest: a partner's own cards, so this screen can draw their Arsenal.
+signal coop_arsenal_seat(slot: int, cards: Array, levels: Array)
 ## Guest: the player chose on their draft - `take`, `reroll`, `banish` or
 ## `skip` - and the relay asks the host, by card id.
 signal augment_choice_asked(verb: String, card_id: String, drop: String)

@@ -504,6 +504,12 @@ func compose_welcome(peer: int = 0) -> Array:
 	var returning: int = Coop.party().slot_for_peer(peer)
 	if RunState.hands_split and returning > 0:
 		facts.append([CoopRelay.Fact.AUGMENT_SEAT, [RunState.augment_seat(returning).pack()]])
+	# And every partner's own cards, so their Arsenals draw on the returning
+	# guest's screen too (2026-09-27).
+	if RunState.hands_split:
+		for slot: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+			if slot != returning and Coop.party().seat_for_slot(slot) != null:
+				facts.append([CoopRelay.Fact.ARSENAL_SEAT, CoopRelay.arsenal_seat_args(slot)])
 	for id: String in RunState.CURRENCIES:
 		facts.append([CoopRelay.Fact.CURRENCY_CHANGED, [id, RunState.currency(id)]])
 	var battlefield := field as Battlefield
