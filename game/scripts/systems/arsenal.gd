@@ -370,11 +370,23 @@ func _anchors(armed: Armed) -> Array[Vector2]:
 
 
 ## One blow from a weapon, through the one door every blow uses.
+##
+## **It answers the elements the way a tower's shot does** (2026-09-27), because
+## the Arsenal shipped without and a Frost Shards that never soaked anything beside
+## a storm tower that hits soaked bodies harder was two halves of a combo that did
+## not meet. An air weapon is a storm weapon - `Tower._hit`'s own rule, every air
+## tower - and hits a wet body `WET_SHOCK_DAMAGE` harder; a water weapon leaves
+## what it hits wet for `WET_SECONDS`. Fire on a soaked body steams inside
+## `apply_burn`, and wet chill inside the chill meter, so neither is written
+## here. **Shape, never size**: each multiplies a blow already being dealt, on a
+## body the world already soaked, which is the bound every status is held to.
 func strike_body(armed: Armed, enemy: Enemy, amount: float, from: Vector2,
 		knockback: float = -1.0) -> bool:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return false
 	var weapon: ArsenalWeaponData = armed.weapon
+	if weapon.element == TowerData.Element.AIR:
+		amount *= enemy.shock_scale()
 	enemy.mark_element(weapon.element)
 	if weapon.pattern == ArsenalWeaponData.Pattern.ON_KILL:
 		_suppressing = armed.card.id
@@ -385,6 +397,9 @@ func strike_body(armed: Armed, enemy: Enemy, amount: float, from: Vector2,
 	_suppressing = ""
 	if not landed:
 		return false
+	if weapon.element == TowerData.Element.WATER and is_instance_valid(enemy) \
+			and not enemy.is_dying():
+		enemy.apply_wet(Balance.WET_SECONDS)
 	if weapon.burn_share > 0.0 and is_instance_valid(enemy) and not enemy.is_dying():
 		var lasting: float = maxf(duration_for(weapon), 1.0)
 		enemy.apply_burn(amount * weapon.burn_share / lasting, lasting)
@@ -528,17 +543,23 @@ func _fire_chain(armed: Armed) -> bool:
 		visited[current.get_instance_id()] = true
 		var at: Vector2 = current.global_position + Vector2(0.0, -Balance.ARSENAL_CHAIN_LIFT)
 		points.append(at)
+		# Conductive, as the sky's own lightning is: a storm leaving a wet body
+		# leaps `WET_CHAIN_RANGE` further. Read before the blow, which may kill.
+		var leap: float = Balance.ARSENAL_CHAIN_LEAP
+		if weapon.element == TowerData.Element.AIR and current.is_wet():
+			leap *= Balance.WET_CHAIN_RANGE
 		strike_body(armed, current, hit, points[points.size() - 2])
 		Vfx.impact(at, weapon.element, weapon.tint, 52.0)
-		current = _next_link(at, visited)
+		current = _next_link(at, visited, leap)
 	_add_record({"kind": "chain", "card": armed.card.id, "points": points,
 		"life": Balance.ARSENAL_CHAIN_LIFE, "full": Balance.ARSENAL_CHAIN_LIFE})
 	return true
 
 
-func _next_link(from: Vector2, visited: Dictionary) -> Enemy:
+func _next_link(from: Vector2, visited: Dictionary,
+		leap: float = Balance.ARSENAL_CHAIN_LEAP) -> Enemy:
 	var best: Enemy = null
-	var nearest: float = Balance.ARSENAL_CHAIN_LEAP * Balance.ARSENAL_CHAIN_LEAP
+	var nearest: float = leap * leap
 	for enemy: Enemy in bodies():
 		if visited.has(enemy.get_instance_id()):
 			continue

@@ -70,11 +70,13 @@ func _ready() -> void:
 	_test_the_deal()
 	_test_the_seats()
 	await _test_the_formula()
+	await _test_the_elements_react()
 	await _test_every_weapon_lands()
 	await _test_a_chain_reaction_ends()
 	await _test_it_freezes_with_the_field()
 
-	for stage: String in ["authored", "deal", "seats", "formula", "lands", "ends", "freezes"]:
+	for stage: String in ["authored", "deal", "seats", "formula", "reacts", "lands", "ends",
+			"freezes"]:
 		_check(_reached.has(stage),
 			"'%s' never reached its end - it aborted partway, and every check it had not made is unmade" % stage)
 	_hold([])
@@ -112,6 +114,11 @@ func _quiet_the_road() -> void:
 	if _field.wave_director != null:
 		_field.wave_director.stop()
 	_field.sky().events_enabled = false
+	# **And the sky is held dry.** A storm weapon hits a wet body harder, and a
+	# seed that happens to rain would measure every air weapon half again above
+	# its model - and the reactions test wants dry ground to wet by hand.
+	_field.sky().forced_intensity = 0.0
+	RunState.flood = 0.0
 	if _run.journey != null:
 		_run.journey.stop()
 	if _field.town != null and _field.town.health != null:
@@ -331,6 +338,83 @@ func _test_the_formula() -> void:
 	_hold([])
 	await get_tree().process_frame
 	_reached["formula"] = true
+
+
+## **The Arsenal answers the elements as a tower's shot does** (2026-09-27): an
+## air weapon hits a wet body harder, a water weapon leaves what it hits wet, a
+## chain leaving a wet body leaps further - and an earth weapon does none of it.
+## Driven through the Arsenal's own `strike_body` and `_fire_chain` with its
+## clock stopped, so nothing but the blow under test reaches the bodies.
+func _test_the_elements_react() -> void:
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or _hero.arsenal == null or breed == null:
+		_check(false, "the harness needs a battlefield, a Warden with an Arsenal and a breed")
+		return
+	var arsenal: Arsenal = _hero.arsenal
+	await _clear_the_field()
+	var where: Vector2 = _stand_for(ContentDB.arsenal_weapon("chain_spark"), [])
+	_hold(["chain_spark", "frost_shards", "stone_rain"])
+	arsenal.process_mode = Node.PROCESS_MODE_DISABLED
+	var spark: Arsenal.Armed = arsenal._armed.get("chain_spark", null) as Arsenal.Armed
+	var shards: Arsenal.Armed = arsenal._armed.get("frost_shards", null) as Arsenal.Armed
+	var stone: Arsenal.Armed = arsenal._armed.get("stone_rain", null) as Arsenal.Armed
+	_check(spark != null and shards != null and stone != null, "the Arsenal did not arm the three")
+	if spark == null or shards == null or stone == null:
+		arsenal.process_mode = Node.PROCESS_MODE_INHERIT
+		return
+	var bodies: Array[Enemy] = _crowd(breed, where + Vector2(0.0, 600.0), 4, 200.0, 400.0)
+	var dry: Enemy = bodies[0]
+	var wet: Enemy = bodies[1]
+	wet.apply_wet(Balance.WET_SECONDS)
+	_check(wet.is_wet() and not dry.is_wet(), "the harness could not soak one body and keep one dry")
+
+	# A storm weapon on a soaked body: the shock the storm towers already deal.
+	var taken_dry: float = _blow(arsenal, spark, dry)
+	var taken_wet: float = _blow(arsenal, spark, wet)
+	_check(taken_dry > 0.0 and absf(taken_wet / taken_dry - Balance.WET_SHOCK_DAMAGE) < 0.02,
+		"an air weapon took %.1f off a wet body and %.1f off a dry one, not %.2fx"
+			% [taken_wet, taken_dry, Balance.WET_SHOCK_DAMAGE])
+	# An earth weapon does not conduct.
+	var stone_dry: float = _blow(arsenal, stone, dry)
+	var stone_wet: float = _blow(arsenal, stone, wet)
+	_check(stone_dry > 0.0 and absf(stone_wet / stone_dry - 1.0) < 0.02,
+		"an earth weapon hit a wet body %.2fx as hard as a dry one - only a storm conducts"
+			% (stone_wet / maxf(stone_dry, 0.001)))
+	# A water weapon soaks what it hits, and an earth one does not.
+	var fresh: Enemy = bodies[2]
+	_blow(arsenal, stone, fresh)
+	_check(not fresh.is_wet(), "an earth weapon soaked the body it hit")
+	_blow(arsenal, shards, fresh)
+	_check(fresh.is_wet(), "a water weapon did not leave the body it hit wet")
+
+	# A chain leaving a wet body leaps `WET_CHAIN_RANGE` further: a second body
+	# past the dry leap and inside the wet one is reached only when the first is
+	# soaked.
+	await _clear_the_field()
+	var first: Enemy = _crowd(breed, where + Vector2(100.0, 0.0), 1, 0.0, 400.0)[0]
+	var gap: float = Balance.ARSENAL_CHAIN_LEAP * (1.0 + Balance.WET_CHAIN_RANGE) * 0.5
+	var second: Enemy = _crowd(breed, first.global_position + Vector2(gap, 0.0), 1, 0.0, 400.0)[0]
+	var before: float = second.health.current_hp
+	arsenal._fire_chain(spark)
+	_check(is_equal_approx(second.health.current_hp, before),
+		"a chain from a dry body leapt %.0f, past its reach of %.0f" % [gap, Balance.ARSENAL_CHAIN_LEAP])
+	first.apply_wet(Balance.WET_SECONDS)
+	arsenal._fire_chain(spark)
+	_check(second.health.current_hp < before,
+		"a chain leaving a wet body did not leap %.0f, inside %.0f"
+			% [gap, Balance.ARSENAL_CHAIN_LEAP * Balance.WET_CHAIN_RANGE])
+
+	arsenal.process_mode = Node.PROCESS_MODE_INHERIT
+	await _clear_the_field()
+	_hold([])
+	_reached["reacts"] = true
+
+
+## What one blow from a weapon took off a body.
+func _blow(arsenal: Arsenal, armed: Arsenal.Armed, body: Enemy) -> float:
+	var before: float = body.health.current_hp
+	arsenal.strike_body(armed, body, 20.0, body.global_position + Vector2(-40.0, 0.0), 0.0)
+	return before - body.health.current_hp
 
 
 func _focus_share() -> float:
