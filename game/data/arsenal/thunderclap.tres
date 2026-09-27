@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "thunderclap"
+display_name = "Thunderclap"
+description = "Every few seconds a pulse around you strikes and throws bodies back."
+pattern = 3
+anchor = 0
+element = 3
+tint = Color(0.75, 0.85, 1.0, 1)
+damage = 16.0
+cooldown = 3.5
+radius = 150.0
+knockback = 220.0
+crowd = 3.2
+level_damage = Array[float]([1.0, 1.35, 1.75, 2.2, 2.7])
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.45])
+level_count = Array[int]([0, 0, 0, 0, 0])
+effect = "nova"

@@ -100,6 +100,11 @@ var _body_scale: float = 0.0
 ## size of what the drafts buy can be read as a difference.
 var _with_augments: bool = true
 var _road_kills: float = 0.0
+## **The Arsenal the drafts have built so far** (2026-09-27): card id -> level,
+## grown greedily a draft at a time and carried from wave to wave, because the
+## drafts only ever grow. See `_deal_the_augments_so_far`.
+var _arsenal: Dictionary = {}
+var _arsenal_picks: int = 0
 
 
 func _ready() -> void:
@@ -206,7 +211,8 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# Later acts pay more, which is what keeps Gold a decision for ten acts
 	# rather than three. Modelled here as well as banked in `gain_kill_resources`,
 	# or this report would go on reading the flat economy it was what caught.
-	_earned_gold += float(bodies) * _gold_per_body() * Balance.kill_act_scale(act)
+	_earned_gold += float(bodies) * _gold_per_body() * Balance.kill_act_scale(act) \
+		* (Balance.COOP_KILL_INCOME_SCALE if _players > 1 else 1.0)
 	var dealt: Dictionary = _deal_the_augments_so_far(act, wave)
 	_road_kills += float(bodies)
 	# The hero counts toward the defence now, and has to.
@@ -243,11 +249,15 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# **The figure is read through the same constants the hero reads**, so a
 	# re-tune of the ladder moves this too rather than leaving a number behind.
 	var standing: float = ascension_uptime(ascension_rank())
+	var towers: float = _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE) \
+		* _core_scale(Modifiers.TOWER_RATE)
+	# **The Arsenal**, after the towers are bought, because a weapon on the
+	# towers stands on every one of them.
+	var arsenal: float = _arsenal_value(_arsenal, act) * standing
 	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) \
 			* _discipline_scale() * float(_players) * standing \
 		+ _companion_dps() * float(_players) * standing \
-		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE) \
-			* _core_scale(Modifiers.TOWER_RATE)
+		+ towers + arsenal
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -257,6 +267,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
 		"rank": int(dealt.get("ranks", 0)), "drafts": int(dealt.get("drafts", 0)),
+		"arsenal": arsenal,
 	}
 
 
@@ -670,6 +681,20 @@ func _judge_escalation() -> int:
 		readout += "%d:%.2f " % [act, mean]
 	print("")
 	print("[curve] mean pressure by act   %s" % readout)
+	# **What share of the defence is the Arsenal**, act by act - a readout, like
+	# the purse: the owner asked for augments that eliminate hordes, and this is
+	# how much of the killing the model says they do.
+	var shares: Dictionary = {}
+	var share_counts: Dictionary = {}
+	for row: Dictionary in _rows:
+		var at_act: int = int(row["act"])
+		shares[at_act] = float(shares.get(at_act, 0.0)) + float(row.get("arsenal", 0.0)) / maxf(float(row["capability"]), 0.001)
+		share_counts[at_act] = int(share_counts.get(at_act, 0)) + 1
+	var share_line: String = ""
+	for at_act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
+		if share_counts.has(at_act):
+			share_line += "%d:%.0f%% " % [at_act, 100.0 * float(shares[at_act]) / float(share_counts[at_act])]
+	print("[curve] Arsenal share of the defence by act   %s" % share_line)
 	if means.size() < Balance.FINAL_ASCENT_ACT:
 		return 0
 
@@ -867,32 +892,24 @@ func _bank_the_cores_won_so_far(act: int) -> void:
 	Modifiers.rebuild()
 
 
-## **The augments the road has dealt by this wave, on the two numbers this model
-## reads** (2026-09-26, owner request; `docs/SKILL_TREE_REWORK_2026-09-26.md`
-## section 8).
+## **The Arsenal the road has dealt by this wave** (2026-09-27; replaces the
+## two-number model of 2026-09-26, whose cards were retired as relic-like).
 ##
 ## A draft comes with every road rank - paid in kills, one a body, and in the
 ## act bosses already down - with every act boss, and with every Tempering. Each
-## is taken into tower damage first and the Warden's own damage second, through
-## the best card each key has opened by this act, levelled as far as the drafts
-## reach.
+## is spent on whichever pick adds the most modelled damage a second: a new
+## weapon, a level of a held one, a catalyst, or an evolution once it is earned.
+## **Best case in the sense the purse column is one**: a real hand is chosen
+## by a person reading three cards, and this picks from the whole deck.
 ##
-## **That is the best case in the sense the purse column is one.** A real hand
-## spreads across range, armour, slows, chains and the purse, which this model
-## cannot score - so pouring every draft into the two keys it *can* score stands
-## in for all of them, and a hand that maxes both buys nothing further here
-## however many drafts follow. Camps, raids, rifts and legends are detours the
-## model does not walk, and their drafts are not counted.
-##
-## Written into `RunState` and rebuilt, so the table the capability line reads
-## holds the hand beside the banked cores. Only the kills of waves already
-## fought count: a wave is met with the hand from before it.
+## Carried from wave to wave rather than rebuilt, because the drafts only ever
+## grow; a wave is met with the hand from before it. Camps, raids, rifts and
+## legends are detours the model does not walk, and their drafts are not
+## counted.
 func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
-	var hand: Array[String] = []
-	var levels: Dictionary = {}
 	if not _with_augments:
-		RunState.road_cards = hand
-		RunState.road_card_levels = levels
+		RunState.road_cards = [] as Array[String]
+		RunState.road_card_levels = {}
 		Modifiers.rebuild()
 		return {}
 	var xp: float = _road_kills * Balance.ROAD_XP_BODY \
@@ -902,42 +919,120 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 		xp -= RunState.road_rank_cost(ranks)
 		ranks += 1
 	var drafts: int = ranks + (act - 1) + (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
-	# **A party drafts once a seat** (per-Warden hands, 2026-09-26): every rank
-	# deals every Warden a draft, the party's board takes what any of them
-	# chose for it, and each Warden's own card grows only from their own. So the
-	# board fills with every seat's picks and the hero's card with one seat's -
-	# best case, the party fills the board first and then turns to its own.
-	var seats: int = maxi(_players, 1)
-	var left: int = drafts * seats
-	for key: String in [Modifiers.TOWER_DAMAGE, Modifiers.TOWER_RATE]:
-		var card: RoadCardData = _best_card_for(key, act)
-		if card == null or left <= 0:
-			continue
-		var level: int = mini(left, card.max_level())
-		left -= level
-		hand.append(card.id)
-		levels[card.id] = level
-	var own: RoadCardData = _best_card_for(Modifiers.HERO_DAMAGE, act)
-	var each: int = left / seats
-	if own != null and each > 0:
-		hand.append(own.id)
-		levels[own.id] = mini(each, own.max_level())
+	while _arsenal_picks < drafts:
+		_arsenal_picks += 1
+		if not _take_the_best_pick(act):
+			break
+	_arsenal_picks = maxi(_arsenal_picks, drafts)
+	var hand: Array[String] = []
+	for id: Variant in _arsenal:
+		hand.append(String(id))
 	RunState.road_cards = hand
-	RunState.road_card_levels = levels
+	RunState.road_card_levels = _arsenal.duplicate()
 	Modifiers.rebuild()
 	return {"ranks": ranks, "drafts": drafts}
 
 
-## The strongest card on `key` the road has opened by `act`.
-func _best_card_for(key: String, act: int) -> RoadCardData:
-	var best: RoadCardData = null
+## One draft, spent where it adds the most. Returns false when nothing can grow.
+func _take_the_best_pick(act: int) -> bool:
+	var now: float = _arsenal_value(_arsenal, act)
+	var best: Dictionary = {}
+	var gain: float = 0.0
+	var ids: Array[String] = []
 	for id: Variant in ContentDB.road_cards:
-		var card: RoadCardData = ContentDB.road_card(String(id))
-		if card == null or card.keystone or card.effect_id != key or card.first_act > act:
+		ids.append(String(id))
+	ids.sort()
+	for id: String in ids:
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card == null or card.retired or card.keystone or card.first_act > act:
 			continue
-		if best == null or card.magnitude_at(card.max_level()) > best.magnitude_at(best.max_level()):
-			best = card
-	return best
+		if not card.is_weapon() and not card.effect_id.begins_with("arsenal_"):
+			continue
+		var trial: Dictionary = _arsenal.duplicate()
+		if not card.evolves_from.is_empty():
+			if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
+				continue
+			trial.erase(card.evolves_from)
+			trial[id] = 1
+		elif trial.has(id):
+			if int(trial[id]) >= card.max_level():
+				continue
+			trial[id] = int(trial[id]) + 1
+		elif trial.size() >= Balance.ROAD_CARD_HAND:
+			continue
+		else:
+			trial[id] = 1
+		var worth: float = _arsenal_value(trial, act) - now
+		if worth > gain:
+			gain = worth
+			best = trial
+	if best.is_empty():
+		return false
+	_arsenal = best
+	return true
+
+
+## **What a hand of the Arsenal deals a second** - `ArsenalWeaponData.modelled_dps`,
+## the line `arsenal_check` holds the fight to, through `Arsenal.hit_for`'s own
+## factors: the act, the Warden's Might (a point a level, and gear - the account
+## this report reads), the hand and the form, the Arsenal's power, its cadence
+## and its volley. A weapon at a Warden's side counts once a Warden, one on the
+## towers once for each tower in a Warden's reach - `ARSENAL_MODEL_TOWERS`, or
+## fewer while the purse has bought fewer - (and an arc once, its count being
+## the pairs), one on the town once.
+func _arsenal_value(hand: Dictionary, act: int) -> float:
+	var power: float = 0.0
+	var haste: float = 0.0
+	var more: int = 0
+	for id: Variant in hand:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		if card == null or card.is_weapon():
+			continue
+		var amount: float = card.magnitude_at(int(hand[id]))
+		match card.effect_id:
+			Modifiers.ARSENAL_POWER:
+				power += amount
+			Modifiers.ARSENAL_HASTE:
+				haste += amount
+			Modifiers.ARSENAL_COUNT:
+				more += int(round(amount))
+	var might: float = float(WardenSheet.attribute_of(null, RunState.Attribute.MIGHT))
+	var scale: float = Balance.arsenal_act_scale(act) * (1.0 + power) \
+		* (1.0 + might * Balance.HERO_MIGHT_PER_POINT) * _core_scale(Modifiers.HERO_DAMAGE) \
+		* _discipline_scale() / maxf(1.0 - haste, Balance.ARSENAL_CADENCE_FLOOR)
+	var total: float = 0.0
+	for id: Variant in hand:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		var weapon: ArsenalWeaponData = card.weapon_data() if card != null else null
+		if weapon == null:
+			continue
+		var level: int = int(hand[id])
+		var dps: float = weapon.modelled_dps(level)
+		var shots: int = weapon.count_at(level)
+		if more > 0 and not _fires_once(weapon):
+			dps *= float(shots + mini(more, Balance.ARSENAL_COUNT_CEILING)) / float(maxi(shots, 1))
+		match weapon.anchor:
+			ArsenalWeaponData.Anchor.WARDEN:
+				dps *= float(_players)
+			ArsenalWeaponData.Anchor.TOWERS:
+				if weapon.pattern == ArsenalWeaponData.Pattern.ARC:
+					dps *= 1.0 if _bought_towers >= 2 else 0.0
+				else:
+					dps *= float(mini(_bought_towers, Balance.ARSENAL_MODEL_TOWERS))
+		total += dps
+	return total * scale
+
+
+## A weapon that fires once where it stands, whose count the fight never reads.
+func _fires_once(weapon: ArsenalWeaponData) -> bool:
+	match weapon.pattern:
+		ArsenalWeaponData.Pattern.NOVA, ArsenalWeaponData.Pattern.TRAIL:
+			return true
+		ArsenalWeaponData.Pattern.STRIKE:
+			return weapon.anchor == ArsenalWeaponData.Anchor.TOWERS
+		ArsenalWeaponData.Pattern.ON_KILL:
+			return weapon.speed <= 0.0
+	return false
 
 
 ## What the banked cores do to one number, as a multiplier.

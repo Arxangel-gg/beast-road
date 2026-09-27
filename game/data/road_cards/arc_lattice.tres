@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "arc_lattice"
+display_name = "Arc Lattice"
+description = "Uncommon card. Lightning hangs between the towers near you and bites what crosses it."
+rarity = 1
+first_act = 2
+branch = 1
+tags = Array[String](["Air", "Arsenal", "Tower"])
+card_text = "Stone to stone, the lightning holds its breath."
+weapon = "arc_lattice"

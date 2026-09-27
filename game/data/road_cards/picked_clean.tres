@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 2
 tags = Array[String](["Economy"])
 effect_id = "kill_resources"

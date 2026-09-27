@@ -38,6 +38,8 @@ const COUNTED_KEYS: Array[String] = [
 	Modifiers.KEYSTONE_COLD_SNAP, Modifiers.KEYSTONE_TINDERSTRIKE,
 	Modifiers.KEYSTONE_TIMBERWRIGHT, Modifiers.KEYSTONE_SAPPERS_DUE,
 	Modifiers.KEYSTONE_HUNTERS_MARK,
+	# One more orb, bolt, jump or stone for every weapon (2026-09-27).
+	Modifiers.ARSENAL_COUNT,
 ]
 
 
@@ -93,6 +95,15 @@ func _test_every_card_is_authored() -> void:
 		_checked += 1
 		_check(ResourceLoader.exists(card.get_sprite_path()),
 			"%s has no icon at %s" % [card.id, card.get_sprite_path()])
+		# **A weapon card fires a weapon rather than moving a number**
+		# (2026-09-27, the Arsenal): it must name one that exists and deals
+		# something. Whether it lands is `arsenal_check`'s question.
+		if card.is_weapon():
+			_checked += 1
+			var weapon: ArsenalWeaponData = card.weapon_data()
+			_check(weapon != null and weapon.damage > 0.0,
+				"%s names the weapon '%s', which does not exist or deals nothing" % [card.id, card.weapon])
+			continue
 		_checked += 1
 		_check(omen_check_keys().has(card.effect_id),
 			("%s names the effect '%s', which `Modifiers` does not resolve; it "
@@ -105,6 +116,8 @@ func _test_every_card_is_authored() -> void:
 func _test_magnitudes_are_sane() -> void:
 	for id: Variant in ContentDB.road_cards:
 		var card: RoadCardData = _card(String(id))
+		if card.is_weapon():
+			continue
 		_checked += 1
 		_check(not is_zero_approx(card.effect_magnitude),
 			"%s moves nothing" % card.id)
@@ -146,6 +159,9 @@ func _test_magnitudes_are_sane() -> void:
 func _test_a_card_reaches_the_modifier_table() -> void:
 	for id: Variant in ContentDB.road_cards:
 		var card: RoadCardData = _card(String(id))
+		# A weapon reaches the Arsenal, not the table (`arsenal_check`).
+		if card.is_weapon():
+			continue
 		RunState.road_cards = []
 		Modifiers.rebuild()
 		var before: float = Modifiers.value(card.effect_id)
@@ -177,9 +193,11 @@ func _test_the_hand_holds() -> void:
 		# `keystone_check`. This is the ordinary hand's test (2026-09-25).
 		if card.keystone:
 			continue
-		if not by_key.has(card.effect_id):
-			by_key[card.effect_id] = []
-		(by_key[card.effect_id] as Array).append(id)
+		# By `key()`, which is what the hand holds one of: every weapon card
+		# has an empty `effect_id`, and grouped by that they read as one key.
+		if not by_key.has(card.key()):
+			by_key[card.key()] = []
+		(by_key[card.key()] as Array).append(id)
 
 	# Six distinct keys into five slots: the sixth must be refused unless it
 	# names something to leave.
@@ -282,6 +300,9 @@ func omen_check_keys() -> Dictionary:
 		Modifiers.KEYSTONE_COLD_SNAP: true, Modifiers.KEYSTONE_TINDERSTRIKE: true,
 		Modifiers.KEYSTONE_TIMBERWRIGHT: true, Modifiers.KEYSTONE_SAPPERS_DUE: true,
 		Modifiers.KEYSTONE_HUNTERS_MARK: true,
+		Modifiers.ARSENAL_HASTE: true, Modifiers.ARSENAL_COUNT: true,
+		Modifiers.ARSENAL_AREA: true, Modifiers.ARSENAL_DURATION: true,
+		Modifiers.ARSENAL_POWER: true,
 	}
 
 

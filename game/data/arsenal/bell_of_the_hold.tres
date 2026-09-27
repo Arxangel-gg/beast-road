@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "bell_of_the_hold"
+display_name = "Bell of the Hold"
+description = "The town rings: a pulse strikes and throws back every body at the wall."
+pattern = 3
+anchor = 2
+element = 3
+tint = Color(1.0, 0.86, 0.5, 1)
+damage = 22.0
+cooldown = 5.0
+radius = 380.0
+knockback = 160.0
+crowd = 4.0
+level_damage = Array[float]([1.0, 1.35, 1.75, 2.2, 2.7])
+level_radius = Array[float]([1.0, 1.08, 1.16, 1.24, 1.35])
+level_count = Array[int]([0, 0, 0, 0, 0])
+effect = "rune_flare"

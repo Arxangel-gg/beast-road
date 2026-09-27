@@ -3235,6 +3235,7 @@ func _build_fog() -> void:
 	_build_withdrawal()
 	_build_footfalls()
 	_build_combat_tells()
+	_build_arsenal()
 
 
 ## **Plants give way to whatever walks through them.**
@@ -3367,6 +3368,21 @@ func _build_death_markers() -> void:
 	_death_markers = DeathMarkers.new()
 	_death_markers.scope = self
 	(entity_root if entity_root != null else self).add_child(_death_markers)
+
+
+## **The board's Arsenal** (2026-09-27): the hand's weapons that stand on the
+## towers and the town. Under the entity root, so it freezes with the field.
+func _build_arsenal() -> void:
+	_arsenal = Arsenal.new()
+	_arsenal.board = self
+	(entity_root if entity_root != null else self).add_child(_arsenal)
+
+
+func board_arsenal() -> Arsenal:
+	return _arsenal
+
+
+var _arsenal: Arsenal = null
 
 
 func death_markers() -> DeathMarkers:

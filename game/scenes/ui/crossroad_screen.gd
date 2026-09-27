@@ -815,7 +815,8 @@ static func effect_figure(effect_id: String, magnitude: float) -> String:
 	# A keystone moves no number, so it says what it is instead of "+100%".
 	if effect_id.begins_with("keystone_"):
 		return "Keystone"
-	if effect_id == "chain_targets" or effect_id == "wave_foresight":
+	if effect_id == "chain_targets" or effect_id == "wave_foresight" \
+			or effect_id == Modifiers.ARSENAL_COUNT:
 		return "%+d" % int(round(magnitude))
 	return "%+d%%" % int(round(magnitude * 100.0))
 
@@ -1257,7 +1258,7 @@ func _replacement_for(card: RoadCardData) -> String:
 		# A keystone replaces the keystone held, whatever it re-routes.
 		if card.keystone and other.keystone:
 			return other.display_name
-		if other.effect_id == card.effect_id:
+		if other.key() == card.key():
 			return other.display_name
 	return ""
 
@@ -1318,13 +1319,13 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 		if other == null:
 			continue
 		var leave: Callable = on_leave if on_leave.is_valid() else _send_road_card
+		var level: int = RunState.card_level(other.id)
+		var what: Array = weapon_rows(other, level, level).slice(0, 2) if other.is_weapon() \
+			else [[effect_label(other.effect_id), effect_figure(other.effect_id, other.magnitude_at(level))]]
+		what.append(["Level", _level_word(other, level)])
+		what.append(["", "LEAVE THIS ONE"])
 		var button: Button = _play_card(other.id, other.display_name,
-			int(other.rarity), other.get_sprite_path(),
-			[[effect_label(other.effect_id),
-				effect_figure(other.effect_id,
-					other.magnitude_at(RunState.card_level(other.id)))],
-				["Level", _level_word(other, RunState.card_level(other.id))],
-				["", "LEAVE THIS ONE"]],
+			int(other.rarity), other.get_sprite_path(), what,
 			other.card_text, leave.bind(_pending_take, held))
 		_buttons[held] = button
 	# `_play_card` seats each card in the row; adding it to the box as well
@@ -1394,6 +1395,44 @@ const AUGMENT_TITLES: Dictionary = {
 	"tempering": "TEMPERING",
 }
 const BRANCH_WORD: Array[String] = ["Warden", "Rampart", "Hearth"]
+
+## **What a weapon card says** (the Arsenal, 2026-09-27): not a number on a table
+## but what it does - how it kills and where it stands, what it hits for in this
+## Warden's hands at this act, how many it throws, and how often. Each moves
+## `from` -> `to` when the card is taken again, so a level is a visible change.
+## By `ArsenalWeaponData.Pattern` and `Anchor`, appended as those are.
+const WEAPON_SHAPE: Array[String] = ["Orbit", "Seeker", "Chain", "Pulse", "Trail",
+	"Strike", "On a kill", "Arc"]
+const WEAPON_PLACE: Array[String] = ["at your side", "on every tower", "at the town"]
+const WEAPON_UNIT: Array[String] = ["orbs", "bolts", "jumps", "", "", "falls", "spirits",
+	"arcs"]
+
+
+static func weapon_rows(card: RoadCardData, from: int, to: int) -> Array:
+	var weapon: ArsenalWeaponData = card.weapon_data()
+	if weapon == null:
+		return []
+	var shape: String = WEAPON_SHAPE[clampi(int(weapon.pattern), 0, WEAPON_SHAPE.size() - 1)]
+	var place: String = WEAPON_PLACE[clampi(int(weapon.anchor), 0, WEAPON_PLACE.size() - 1)]
+	var rows: Array = [[shape, place]]
+	var hit_from: float = Arsenal.preview_hit(weapon, from)
+	var hit_to: float = Arsenal.preview_hit(weapon, to)
+	rows.append(["Hit", ("%d" % int(round(hit_to))) if from == to
+		else ("%d → %d" % [int(round(hit_from)), int(round(hit_to))])])
+	var unit: String = WEAPON_UNIT[clampi(int(weapon.pattern), 0, WEAPON_UNIT.size() - 1)]
+	if not unit.is_empty():
+		var many_from: int = weapon.count_at(from)
+		var many_to: int = weapon.count_at(to)
+		rows.append([unit.capitalize(), ("%d" % many_to) if many_from == many_to
+			else ("%d → %d" % [many_from, many_to])])
+	if weapon.every_kills > 0:
+		rows.append(["Every", "%d kills" % weapon.every_kills])
+	elif weapon.pattern != ArsenalWeaponData.Pattern.ON_KILL:
+		rows.append(["Every", "%.1f s" % weapon.cooldown])
+	if not card.evolves_from.is_empty():
+		var base: RoadCardData = ContentDB.road_card(card.evolves_from)
+		rows.append(["Evolves", base.display_name if base != null else card.evolves_from])
+	return rows
 
 
 ## **Opens the oldest banked augment draft**, dealing it if it has not been.
@@ -1478,10 +1517,14 @@ func augment_rows(card: RoadCardData) -> Array:
 	var held: bool = RunState.holds_card(card.id)
 	var now: int = RunState.card_level(card.id)
 	var next: int = now + 1 if held else _inherited_level(card)
-	var figure: String = effect_figure(card.effect_id, card.magnitude_at(next))
-	if held:
-		figure = "%s → %s" % [effect_figure(card.effect_id, card.magnitude_at(now)), figure]
-	var rows: Array = [[effect_label(card.effect_id), figure]]
+	var rows: Array = []
+	if card.is_weapon():
+		rows = weapon_rows(card, now if held else next, next)
+	else:
+		var figure: String = effect_figure(card.effect_id, card.magnitude_at(next))
+		if held:
+			figure = "%s → %s" % [effect_figure(card.effect_id, card.magnitude_at(now)), figure]
+		rows = [[effect_label(card.effect_id), figure]]
 	if card.max_level() > 1:
 		rows.append(["Level", ("%s → %s" % [RunState.act_numeral(now),
 			RunState.act_numeral(next)]) if held else _level_word(card, next)])
@@ -1508,7 +1551,7 @@ func _inherited_level(card: RoadCardData) -> int:
 	for held: String in RunState.target_hand(card):
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other != null and not other.keystone and not card.keystone \
-				and other.effect_id == card.effect_id:
+				and other.key() == card.key():
 			return clampi(RunState.card_level(held), 1, card.max_level())
 	return 1
 

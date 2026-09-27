@@ -1,0 +1,595 @@
+extends Node
+
+## The Arsenal fires, lands through the one door, scales by the one formula,
+## ends its chain reactions, freezes with its scope, and does what the curve
+## says it does.
+##
+##   godot --headless --path game res://tools/arsenal_check.tscn
+##
+## Owner, 2026-09-27: augments *"more like Megabonk and Tower of Babel ...
+## providing new little ways of dealing damage to enemies. The augs still scale
+## in game and are also affected by the player's gear and persistent player
+## level etc. And even so with it all it still needs to be perfectly balanced."*
+## (`docs/AUTO_ARSENAL_2026-09-27.md`)
+##
+## Each bound is driven on a real battlefield rather than read back:
+##
+## - **It lands.** Every weapon, alone in the hand, is stood beside a crowd and
+##   must hurt it through `Enemy.take_damage`, named in the ledger as its card.
+## - **It is what the curve models.** What each weapon dealt a second against a
+##   standing crowd is held to its `modelled_dps` - the one line `curve_report`
+##   reads - within a band, so the curve cannot be tuned on a model the fight
+##   disagrees with.
+## - **One formula.** A hit moves with the level, the act, the Warden's Might and
+##   the Arsenal's power by exactly the factors the design names, and Focus and
+##   the cadence catalyst shorten the cadence to its floor.
+## - **A chain reaction ends.** A kill-weapon's own payload never re-fires it,
+##   and it fires at most `ARSENAL_KILL_TRIGGERS_PER_SECOND` a second.
+## - **It freezes with the field** (working rule 8).
+## - **The deal**: a retired card is never dealt, an evolution only to a hand
+##   that earned it, and taking one swaps its weapon in the same place.
+
+const BREED: String = "bogkin"
+## How long each weapon is measured, in seconds of the field's own clock.
+const MEASURE_SECONDS: float = 8.0
+## The band a weapon's measured damage a second must sit in, as a share of its
+## model. Wide on purpose: a crowd stood still is not a road, and what this
+## catches is a weapon that is an order of magnitude off - one that never fires,
+## or fires ten times - which is what would make the curve a fiction.
+const MODEL_LOW: float = 0.35
+const MODEL_HIGH: float = 2.8
+## The standard crowd: this many bodies over a disc this wide.
+const CROWD_BODIES: int = 14
+const CROWD_RADIUS: float = 240.0
+## The ring a trail's Warden walks through the crowd.
+const WALK_RING: float = 150.0
+
+var _failures: int = 0
+var _checks: int = 0
+var _reached: Dictionary = {}
+var _run: Run = null
+var _field: Battlefield = null
+var _hero: Hero = null
+var _ratios: PackedStringArray = []
+
+
+func _ready() -> void:
+	MetaState.hold_saves()
+	RunState.reset(false, 20260927)
+	GameDirector.run_active = true
+	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(_run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	_field = _run.battlefield
+	_hero = _field.hero if _field != null else null
+	RunState.gain_every_currency(50000)
+	_quiet_the_road()
+
+	_test_every_weapon_is_authored()
+	_test_the_deal()
+	_test_the_seats()
+	await _test_the_formula()
+	await _test_every_weapon_lands()
+	await _test_a_chain_reaction_ends()
+	await _test_it_freezes_with_the_field()
+
+	for stage: String in ["authored", "deal", "seats", "formula", "lands", "ends", "freezes"]:
+		_check(_reached.has(stage),
+			"'%s' never reached its end - it aborted partway, and every check it had not made is unmade" % stage)
+	_hold([])
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	Vfx.clear()
+	_run.queue_free()
+	for _frame: int in 20:
+		await get_tree().process_frame
+	MetaState.resume_saves()
+	print("[arsenal] measured / modelled: " + ", ".join(_ratios))
+	if _failures == 0:
+		print(("[arsenal] PASS - %d checks: every weapon lands through the one door and "
+			+ "is what the curve models, one formula scales it, a chain reaction ends, it "
+			+ "freezes with the field, and the deal deals only what is earned") % _checks)
+	else:
+		push_error("[arsenal] FAIL - %d problem(s)" % _failures)
+	get_tree().quit(1 if _failures > 0 else 0)
+
+
+func _check(condition: bool, why: String) -> void:
+	_checks += 1
+	if not condition:
+		_failures += 1
+		push_error("[arsenal] " + why)
+
+
+## Nothing on the road but what the gate stands there: no waves, no weather, no
+## walk, a town that cannot fall and a Warden who cannot - a probe that dies
+## mid-measurement reads exactly like a weapon that does not work.
+func _quiet_the_road() -> void:
+	if _field == null:
+		return
+	if _field.wave_director != null:
+		_field.wave_director.stop()
+	_field.sky().events_enabled = false
+	if _run.journey != null:
+		_run.journey.stop()
+	if _field.town != null and _field.town.health != null:
+		_field.town.health.floor_hp = _field.town.health.max_hp * 0.5
+	if _hero != null:
+		_hero.health.floor_hp = _hero.health.max_hp * 0.5
+	# **And the road's own animals are stilled.** A predator killing one of
+	# the chain test's bodies is a natural kill, and rightly sets a kill-weapon
+	# loose - which read as the payload firing itself, one run in two.
+	var animals: Wildlife = _field.wildlife()
+	if animals != null:
+		animals.clear()
+		animals.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _hold(ids: Array, level: int = 1) -> void:
+	var hand: Array[String] = []
+	var levels: Dictionary = {}
+	for id: Variant in ids:
+		hand.append(String(id))
+		levels[String(id)] = level
+	RunState.hands_split = false
+	RunState.road_cards = hand
+	RunState.road_card_levels = levels
+	Modifiers.rebuild()
+	EventBus.augment_hand_changed.emit()
+
+
+func _weapon_cards() -> Array[String]:
+	var out: Array[String] = []
+	for id: Variant in ContentDB.road_cards:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		if card != null and card.is_weapon():
+			out.append(card.id)
+	out.sort()
+	return out
+
+
+# --- Authored -------------------------------------------------------------------
+
+
+func _test_every_weapon_is_authored() -> void:
+	var named: Dictionary = {}
+	for id: String in _weapon_cards():
+		var card: RoadCardData = ContentDB.road_card(id)
+		var weapon: ArsenalWeaponData = card.weapon_data()
+		_check(weapon != null, "%s fires '%s', which is not a weapon" % [id, card.weapon])
+		if weapon == null:
+			continue
+		named[weapon.id] = true
+		_check(weapon.damage > 0.0 and weapon.cooldown > 0.0 and weapon.crowd > 0.0,
+			"%s: damage, cadence and crowd must all be positive" % weapon.id)
+		_check(weapon.level_damage.size() == Balance.AUGMENT_MAX_LEVEL
+				and weapon.level_count.size() == Balance.AUGMENT_MAX_LEVEL
+				and weapon.level_radius.size() == Balance.AUGMENT_MAX_LEVEL,
+			"%s: every level table holds one entry a level" % weapon.id)
+		for level: int in range(2, Balance.AUGMENT_MAX_LEVEL + 1):
+			_check(weapon.modelled_dps(level) > weapon.modelled_dps(level - 1),
+				"%s: level %d must be stronger than level %d, or taking it again is a wasted pick"
+					% [weapon.id, level, level - 1])
+		# **A count the runtime never reads is a model that lies.** A pulse, a
+		# trail, a burst and a tower's volley fire once where they stand, so a
+		# count or a count that grows would multiply the curve's figure and
+		# nothing on the field.
+		if _fires_once(weapon):
+			_check(weapon.count == 1 and weapon.level_count.max() == 0,
+				"%s fires once where it stands, and authors a count the fight never reads" % weapon.id)
+		if not weapon.effect.is_empty():
+			_check(Vfx.FORGE_CATALOGUE.has(weapon.effect),
+				"%s plays '%s', which the forge does not know" % [weapon.id, weapon.effect])
+		if not weapon.head.is_empty():
+			_check(ResourceLoader.exists(Arsenal.HEAD_FORMAT % weapon.head),
+				"%s wears the head '%s', which has no art" % [weapon.id, weapon.head])
+		if not card.evolves_from.is_empty():
+			var base: RoadCardData = ContentDB.road_card(card.evolves_from)
+			var catalyst: RoadCardData = ContentDB.road_card(card.evolves_with)
+			_check(base != null and base.is_weapon() and base.levels(),
+				"%s evolves from '%s', which is not a weapon that levels" % [id, card.evolves_from])
+			_check(catalyst != null and not catalyst.is_weapon() and not catalyst.keystone,
+				"%s evolves with '%s', which is not a catalyst" % [id, card.evolves_with])
+			_check(card.max_level() == 1, "%s is the top of a weapon and must not level" % id)
+			if base != null and base.weapon_data() != null:
+				_check(weapon.modelled_dps(1) > base.weapon_data().modelled_dps(Balance.AUGMENT_MAX_LEVEL),
+					"%s must be stronger than %s at its last level, or evolving is a loss" % [id, base.id])
+	for id: Variant in ContentDB.arsenal_weapons:
+		_check(named.has(String(id)), "the weapon '%s' is fired by no card" % id)
+	_reached["authored"] = true
+
+
+func _fires_once(weapon: ArsenalWeaponData) -> bool:
+	match weapon.pattern:
+		ArsenalWeaponData.Pattern.NOVA, ArsenalWeaponData.Pattern.TRAIL:
+			return true
+		ArsenalWeaponData.Pattern.STRIKE:
+			return weapon.anchor == ArsenalWeaponData.Anchor.TOWERS
+		ArsenalWeaponData.Pattern.ON_KILL:
+			return weapon.speed <= 0.0
+	return false
+
+
+# --- The deal -------------------------------------------------------------------
+
+
+func _test_the_deal() -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 20260927
+	var dealt_retired: Array[String] = []
+	var dealt_weapons: int = 0
+	for round: int in 400:
+		var act: int = 1 + round % Balance.ACT_COUNT
+		for id: String in Augments.deal(dice, 3, 0, [], {}, act, [], 0, []):
+			var card: RoadCardData = ContentDB.road_card(id)
+			if card.retired:
+				dealt_retired.append(id)
+			if card.is_weapon():
+				dealt_weapons += 1
+	_check(dealt_retired.is_empty(),
+		"a retired card was dealt: %s - the relic-like cards the owner named are back" % str(dealt_retired))
+	_check(dealt_weapons > 400, "four hundred drafts dealt only %d weapons" % dealt_weapons)
+
+	var sunwheel: RoadCardData = ContentDB.road_card("sunwheel")
+	_check(not Augments.may_deal(sunwheel, [], {}, []), "an evolution was offered to an empty hand")
+	_check(not Augments.may_deal(sunwheel, ["ember_wisps", "twin_casting"],
+			{"ember_wisps": 4, "twin_casting": 1}, []),
+		"an evolution was offered before its weapon reached its last level")
+	_check(not Augments.may_deal(sunwheel, ["ember_wisps"], {"ember_wisps": 5}, []),
+		"an evolution was offered without its catalyst")
+	_check(Augments.may_deal(sunwheel, ["ember_wisps", "twin_casting"],
+			{"ember_wisps": 5, "twin_casting": 1}, []),
+		"an earned evolution was not offered")
+	_check(Augments.may_deal(ContentDB.road_card("frost_shards"), ["ember_wisps"],
+			{"ember_wisps": 1}, []),
+		"a second weapon was refused as if two weapons were one card")
+
+	_hold(["ember_wisps", "twin_casting", "chain_spark"], 5)
+	var went: String = RunState.take_road_card("sunwheel")
+	_check(went == "ember_wisps" and RunState.road_cards.has("sunwheel")
+			and RunState.road_cards.has("twin_casting") and RunState.road_cards.size() == 3,
+		"taking an evolution did not swap its weapon in the same place: gave up '%s', hand %s"
+			% [went, str(RunState.road_cards)])
+	# A retired card still resolves, so a banked front that holds one reads it.
+	_hold(["set_stance"])
+	_check(Modifiers.value(Modifiers.HERO_DAMAGE) > 0.0,
+		"a retired card held by an old front no longer reaches the table")
+	_hold([])
+	_reached["deal"] = true
+
+
+func _test_the_seats() -> void:
+	_check(Augments.seat_keeps(ContentDB.road_card("ember_wisps")),
+		"a weapon at a Warden's shoulder must be that Warden's own in co-op")
+	_check(not Augments.seat_keeps(ContentDB.road_card("sentry_wisps")),
+		"a weapon on the towers must be the party's")
+	_check(not Augments.seat_keeps(ContentDB.road_card("falling_stars")),
+		"a weapon on the town must be the party's")
+	_check(Augments.seat_keeps(ContentDB.road_card("quickening_oil")),
+		"a catalyst is read per Warden and must be that Warden's own")
+	_reached["seats"] = true
+
+
+# --- The formula ----------------------------------------------------------------
+
+
+func _test_the_formula() -> void:
+	if _hero == null or _hero.arsenal == null:
+		_check(false, "the Warden carries no Arsenal")
+		return
+	var arsenal: Arsenal = _hero.arsenal
+	var weapon: ArsenalWeaponData = ContentDB.arsenal_weapon("seeking_flames")
+	_hold(["seeking_flames"])
+	RunState.act = 1
+	var base: float = arsenal.hit_for(weapon, 1)
+	_check(is_equal_approx(base, weapon.damage * arsenal.owner_multiplier()),
+		"a level I hit in Act I is %.2f, not its damage times the Warden's multiplier (%.2f)"
+			% [base, weapon.damage * arsenal.owner_multiplier()])
+	_check(is_equal_approx(arsenal.hit_for(weapon, 5) / base, weapon.level_damage[4]),
+		"level V does not multiply the hit by its own table")
+	RunState.act = 6
+	_check(is_equal_approx(arsenal.hit_for(weapon, 1) / base, Balance.arsenal_act_scale(6)),
+		"Act VI does not multiply the hit by the act ladder")
+	RunState.act = 1
+
+	# Might is the Warden's level and gear: the hit moves with the swing.
+	var might: int = RunState.Attribute.MIGHT
+	var kept: Array = RunState.hero_attributes.duplicate()
+	var swing_before: float = _hero.damage_multiplier()
+	RunState.hero_attributes[might] = int(RunState.hero_attributes[might]) + 40
+	var swing_after: float = _hero.damage_multiplier()
+	_check(swing_after > swing_before, "forty points of Might did not move the Warden's swing")
+	_check(is_equal_approx(arsenal.hit_for(weapon, 1) / base, swing_after / swing_before),
+		("the Arsenal did not grow with the Warden's Might (%.3f against the swing's %.3f) - "
+			+ "gear and level must reach it") % [arsenal.hit_for(weapon, 1) / base, swing_after / swing_before])
+	RunState.hero_attributes = kept
+
+	_hold(["seeking_flames", "kindled_heart"])
+	_check(is_equal_approx(arsenal.hit_for(weapon, 1) / base,
+			1.0 + ContentDB.road_card("kindled_heart").effect_magnitude),
+		"Kindled Heart does not multiply the Arsenal by its own number")
+
+	# Cadence: Focus and the catalyst, to the floor and never past it.
+	_hold(["seeking_flames"])
+	var focus: int = RunState.Attribute.FOCUS
+	kept = RunState.hero_attributes.duplicate()
+	var plain: float = arsenal.cadence(weapon)
+	_check(is_equal_approx(plain, weapon.cooldown * maxf(1.0 - _focus_share(), Balance.ARSENAL_CADENCE_FLOOR)),
+		"the cadence with no catalyst is not the authored one less Focus")
+	RunState.hero_attributes[focus] = int(RunState.hero_attributes[focus]) + 30
+	_check(arsenal.cadence(weapon) < plain, "thirty points of Focus did not quicken the Arsenal")
+	RunState.hero_attributes[focus] = 500
+	_hold(["seeking_flames", "quickening_oil"], 5)
+	_check(arsenal.cadence(weapon) >= weapon.cooldown * Balance.ARSENAL_CADENCE_FLOOR - 0.0001,
+		"Focus and the catalyst drove the cadence past its floor")
+	RunState.hero_attributes = kept
+	_hold(["seeking_flames", "twin_casting"])
+	_check(arsenal.count_for(weapon, 1) == weapon.count_at(1) + 1,
+		"Twin Casting did not add one to the volley")
+	_hold([])
+	await get_tree().process_frame
+	_reached["formula"] = true
+
+
+func _focus_share() -> float:
+	var focus: int = WardenSheet.attribute_of(null, RunState.Attribute.FOCUS)
+	return minf(float(focus) * Balance.HERO_FOCUS_COOLDOWN_PER_POINT, Balance.HERO_FOCUS_COOLDOWN_CAP)
+
+
+# --- Every weapon lands ---------------------------------------------------------
+
+
+func _test_every_weapon_lands() -> void:
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or breed == null:
+		_check(false, "the harness needs a battlefield, a Warden and a breed")
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_field.effect_root.process_mode = Node.PROCESS_MODE_INHERIT
+	# **The ground does not heal the crowd while it is measured.** Act I's
+	# jungle mends every body a little a second, which reads as a weapon that
+	# named more than the crowd lost.
+	var ground: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var mends: float = ground.enemy_hp_regen if ground != null else 0.0
+	if ground != null:
+		ground.enemy_hp_regen = 0.0
+	var towers: Array[Tower] = await _two_towers()
+	for id: String in _weapon_cards():
+		var card: RoadCardData = ContentDB.road_card(id)
+		var weapon: ArsenalWeaponData = card.weapon_data()
+		if weapon == null:
+			continue
+		await _clear_the_field()
+		var arsenal: Arsenal = _hero.arsenal if weapon.anchor == ArsenalWeaponData.Anchor.WARDEN \
+			else _field.board_arsenal()
+		_check(arsenal != null, "%s: no Arsenal stands where it fires" % id)
+		if arsenal == null:
+			continue
+		var where: Vector2 = _stand_for(weapon, towers)
+		var killers: bool = weapon.pattern == ArsenalWeaponData.Pattern.ON_KILL \
+			or weapon.every_kills > 0
+		var crowd: Array[Enemy] = _crowd(breed, where, CROWD_BODIES, CROWD_RADIUS, 400.0)
+		_hold([id])
+		arsenal.dealt.clear()
+		arsenal.hits.clear()
+		RunState.damage_ledger.clear()
+		await get_tree().process_frame
+		_check(arsenal.armed_cards().has(id), "%s: the Arsenal did not arm it" % id)
+		var before: float = _pool(crowd)
+		var elapsed: float = 0.0
+		var started: int = Time.get_ticks_msec()
+		if killers:
+			# A kill-weapon needs deaths: bodies with nothing in them, felled by
+			# the harness through the ordinary door.
+			var fodder: Array[Enemy] = _crowd(breed, where, weapon.every_kills + 4, 60.0, 0.01)
+			for body: Enemy in fodder:
+				DamageLedger.credit_as(DamageLedger.OTHER)
+				body.take_damage(100000.0, where, 0.0)
+				await get_tree().process_frame
+		# At least five of the weapon's own cadences: a stone every three seconds
+		# measured over eight is two or three stones, and a coin toss.
+		var window: float = maxf(MEASURE_SECONDS, weapon.cooldown * 5.0)
+		while elapsed < window:
+			await get_tree().process_frame
+			elapsed = float(Time.get_ticks_msec() - started) / 1000.0
+			if weapon.pattern == ArsenalWeaponData.Pattern.TRAIL:
+				# A trail is laid by walking, so the Warden walks a ring through
+				# the crowd at a walker's pace.
+				_hero.global_position = where + Vector2.from_angle(
+					elapsed * Balance.HERO_MOVE_SPEED / WALK_RING) * WALK_RING
+			_check(arsenal.records() <= Balance.ARSENAL_RECORDS_MAX,
+				"%s: %d records in the air, past the budget" % [id, arsenal.records()])
+		var dealt: float = float(arsenal.dealt.get(id, 0.0))
+		var taken: float = before - _pool(crowd)
+		_check(dealt > 0.0, "%s: fired at a crowd for %.0f seconds and dealt nothing" % [id, elapsed])
+		# **Every point the crowd lost is named** - by this card, its burn, or a
+		# tower beside it. A loss nobody named is a blow that went round the door.
+		# (What a weapon says it dealt is the blow before the body's own
+		# resistances, so it is not the figure to hold the crowd against.)
+		var named: float = 0.0
+		for source: Variant in RunState.damage_ledger:
+			named += float(RunState.damage_ledger[source])
+		if not killers:
+			_check(absf(taken - named) <= taken * 0.1 + 2.0,
+				"%s: the crowd lost %.0f and the ledger names %.0f - a blow went round the door" % [id, taken, named])
+		_check(float(RunState.damage_ledger.get(DamageLedger.AUGMENT_PREFIX + id, 0.0)) > 0.0,
+			"%s: the ledger does not name it" % id)
+		if not killers:
+			var anchors: float = float(towers.size()) if weapon.anchor == ArsenalWeaponData.Anchor.TOWERS \
+				and weapon.pattern != ArsenalWeaponData.Pattern.ARC else 1.0
+			var model: float = weapon.modelled_dps(1) / (1.0 + weapon.burn_share) \
+				* Balance.arsenal_act_scale(RunState.act) * arsenal.owner_multiplier() * anchors
+			var ratio: float = (dealt / maxf(elapsed, 0.01)) / maxf(model, 0.01)
+			_ratios.append("%s %.2f" % [id, ratio])
+			_check(ratio >= MODEL_LOW and ratio <= MODEL_HIGH,
+				("%s dealt %.1f a second against a model of %.1f (%.2fx) - the curve is "
+					+ "measuring a weapon the fight does not have") % [id, dealt / maxf(elapsed, 0.01), model, ratio])
+	await _clear_the_field()
+	_hold([])
+	if ground != null:
+		ground.enemy_hp_regen = mends
+	_reached["lands"] = true
+
+
+## Where a weapon's crowd stands: at the Warden's side, on a tower, or at the wall.
+func _stand_for(weapon: ArsenalWeaponData, towers: Array[Tower]) -> Vector2:
+	match weapon.anchor:
+		ArsenalWeaponData.Anchor.TOWERS:
+			# A weapon on the board arms the towers near a Warden, so the Warden
+			# stands among them.
+			if not towers.is_empty():
+				_hero.global_position = towers[0].global_position + Vector2(0.0, 120.0)
+			if towers.size() >= 2 and weapon.pattern == ArsenalWeaponData.Pattern.ARC:
+				return towers[0].global_position.lerp(towers[1].global_position, 0.5)
+			return towers[0].global_position + Vector2(40.0, 30.0) if not towers.is_empty() \
+				else _field.town_position()
+		ArsenalWeaponData.Anchor.TOWN:
+			return _field.town_position() + Vector2(400.0, 0.0)
+	var at: Vector2 = _field.town_position() + Vector2(900.0, 200.0)
+	_hero.global_position = at
+	_hero.velocity = Vector2.ZERO
+	return at
+
+
+
+
+## **The standard crowd**: bodies that do not walk, spread evenly over a disc -
+## a golden-angle spiral, so no ring of them happens to sit on an orbit. The
+## crowd a weapon's `crowd` factor is calibrated against, and so the crowd the
+## curve's model means.
+func _crowd(breed: EnemyData, at: Vector2, count: int, spread: float, hp_scale: float) -> Array[Enemy]:
+	var out: Array[Enemy] = []
+	for index: int in count:
+		var body: Enemy = _field.spawn_enemy(breed, 0, hp_scale, 0.0, 0.001)
+		if body == null:
+			continue
+		var ring: float = spread * sqrt((float(index) + 0.5) / float(count))
+		body.global_position = at + Vector2.from_angle(float(index) * 2.39996) * ring
+		out.append(body)
+	return out
+
+
+func _pool(crowd: Array[Enemy]) -> float:
+	var total: float = 0.0
+	for body: Enemy in crowd:
+		if is_instance_valid(body) and body.health != null:
+			total += maxf(body.health.current_hp, 0.0)
+	return total
+
+
+func _clear_the_field() -> void:
+	for body: Enemy in _field.living_bodies():
+		if is_instance_valid(body):
+			body.queue_free()
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		node.queue_free()
+	for _frame: int in 3:
+		await get_tree().process_frame
+
+
+## Two towers near each other, for the weapons that stand on the board.
+func _two_towers() -> Array[Tower]:
+	var out: Array[Tower] = []
+	var data: TowerData = ContentDB.tower("ember_spire")
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var first: Vector2i = _field.free_anchor_near(0, 8)
+	if _field.try_build(first, data).is_empty():
+		pass
+	for step: Vector2i in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2),
+			Vector2i(3, 0), Vector2i(0, 3), Vector2i(3, 3), Vector2i(-3, 0)]:
+		if _field.try_build(first + step, data).is_empty():
+			break
+	await get_tree().process_frame
+	for tower: Tower in _field.all_towers():
+		out.append(tower)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_field.effect_root.process_mode = Node.PROCESS_MODE_INHERIT
+	_check(out.size() >= 2, "the harness stood %d towers, and the board's weapons want two" % out.size())
+	if out.size() >= 2:
+		_check(out[0].global_position.distance_to(out[1].global_position) <= Balance.ARSENAL_ARC_SPAN,
+			"the harness's two towers stand too far apart for an arc")
+	return out
+
+
+# --- A chain reaction ends ------------------------------------------------------
+
+
+func _test_a_chain_reaction_ends() -> void:
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or breed == null:
+		return
+	await _clear_the_field()
+	# A tower's kill is a natural kill and rightly sets the card loose; this
+	# test is about the payload's own, so nothing else may kill.
+	for anchor: Variant in RunState.towers.keys():
+		RunState.clear_tower(anchor as Vector2i)
+	await get_tree().process_frame
+	var where: Vector2 = _stand_for(ContentDB.arsenal_weapon("marrow_seekers"), [])
+	_hold(["marrow_seekers"], 5)
+	var arsenal: Arsenal = _hero.arsenal
+	arsenal.kill_triggers.clear()
+	await get_tree().process_frame
+	# Bodies the seekers kill in one blow, so every payload can itself kill.
+	var fodder: Array[Enemy] = _crowd(breed, where, 16, CROWD_RADIUS, 0.01)
+	DamageLedger.credit_as(DamageLedger.OTHER)
+	fodder[0].take_damage(100000.0, where, 0.0)
+	await _seconds(3.0)
+	var fallen: int = 0
+	for body: Enemy in fodder:
+		if not is_instance_valid(body) or body.is_dying():
+			fallen += 1
+	_check(fallen > 1, "one death set nothing loose: %d fell" % fallen)
+	_check(int(arsenal.kill_triggers.get("marrow_seekers", 0)) == 1,
+		("one death released %d volleys - the seekers' own kills fired the card again, "
+			+ "which is a chain reaction with no end") % int(arsenal.kill_triggers.get("marrow_seekers", 0)))
+	# And many deaths at once: a second's worth, never more.
+	await _clear_the_field()
+	arsenal.kill_triggers.clear()
+	var many: Array[Enemy] = _crowd(breed, where, 24, 160.0, 0.01)
+	for body: Enemy in many:
+		DamageLedger.credit_as(DamageLedger.OTHER)
+		body.take_damage(100000.0, where, 0.0)
+	_check(int(arsenal.kill_triggers.get("marrow_seekers", 0)) <= Balance.ARSENAL_KILL_TRIGGERS_PER_SECOND,
+		"twenty-four deaths in a moment released %d volleys, past %d a second"
+			% [int(arsenal.kill_triggers.get("marrow_seekers", 0)), Balance.ARSENAL_KILL_TRIGGERS_PER_SECOND])
+	await _clear_the_field()
+	_hold([])
+	_reached["ends"] = true
+
+
+# --- Freezes --------------------------------------------------------------------
+
+
+func _test_it_freezes_with_the_field() -> void:
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or breed == null:
+		return
+	await _clear_the_field()
+	var where: Vector2 = _stand_for(ContentDB.arsenal_weapon("seeking_flames"), [])
+	# Far enough that a bolt is still in the air when the field stops.
+	_crowd(breed, where + Vector2(420.0, 0.0), 6, 40.0, 400.0)
+	_hold(["seeking_flames"], 5)
+	var arsenal: Arsenal = _hero.arsenal
+	var waited: float = 0.0
+	while arsenal.records() == 0 and waited < 6.0:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	_check(arsenal.records() > 0, "no bolt was ever in the air to freeze")
+	if arsenal.records() > 0:
+		_field.suspend()
+		var at: Vector2 = arsenal._records[0]["at"] as Vector2
+		await _seconds(0.5)
+		_check(arsenal.records() > 0 and (arsenal._records[0]["at"] as Vector2).is_equal_approx(at),
+			"a bolt kept flying while the field was frozen for a raid")
+		_field.resume()
+	await _clear_the_field()
+	_hold([])
+	_reached["freezes"] = true
+
+
+func _seconds(span: float) -> void:
+	var until: int = Time.get_ticks_msec() + int(span * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame

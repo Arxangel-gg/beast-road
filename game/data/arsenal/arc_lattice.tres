@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "arc_lattice"
+display_name = "Arc Lattice"
+description = "Lightning hangs between the towers near you and bites what crosses it."
+pattern = 7
+anchor = 1
+element = 3
+tint = Color(0.62, 0.78, 1.0, 1)
+damage = 10.0
+cooldown = 0.9
+count = 2
+radius = 26.0
+crowd = 0.5
+level_count = Array[int]([0, 1, 1, 2, 3])

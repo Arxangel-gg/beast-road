@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_data")
+branch_needs = 3
 branch = 1
-branch_needs = 6
 tags = Array[String](["Frost", "Tower"])
 id = "cold_snap"
 display_name = "Cold Snap"

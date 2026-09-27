@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "falling_stars"
+display_name = "Falling Stars"
+description = "Small stars fall on bodies near the town. More of them as it grows."
+pattern = 5
+anchor = 2
+element = 0
+tint = Color(1.0, 0.85, 0.5, 1)
+damage = 18.0
+cooldown = 2.2
+count = 2
+radius = 60.0
+reach = 900.0
+crowd = 1.2
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "fire"
+effect = "meteor_bloom"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "sunwheel"
+display_name = "Sunwheel"
+description = "Epic card. Evolved Ember Wisps: a wheel of suns circles you and burns everything it turns through."
+rarity = 3
+first_act = 1
+branch = 0
+tags = Array[String](["Fire", "Arsenal", "Orbit"])
+card_text = "Six small suns, and you at the middle of them."
+weapon = "sunwheel"
+evolves_from = "ember_wisps"
+evolves_with = "twin_casting"

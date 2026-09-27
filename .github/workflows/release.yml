@@ -374,6 +374,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/augment_check.tscn
           run_godot_clean --headless --path game res://tools/warden_sheet_check.tscn
           run_godot_clean --headless --path game res://tools/augment_seat_check.tscn
+          run_godot_clean --headless --path game res://tools/arsenal_check.tscn
           run_godot_clean --headless --path game res://tools/dress_check.tscn
           run_godot_clean --headless --path game res://tools/hero_bar_check.tscn
           run_godot_clean --headless --path game res://tools/light_writer_check.tscn

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 0
 tags = Array[String](["Ward"])
 effect_id = "hero_max_hp"

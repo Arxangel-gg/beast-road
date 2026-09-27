@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "falling_stars"
+display_name = "Falling Stars"
+description = "Uncommon card. Small stars fall on bodies near the town. More of them as it grows."
+rarity = 1
+first_act = 1
+branch = 2
+tags = Array[String](["Fire", "Arsenal", "Strike"])
+card_text = "The sky over the town is on your side."
+weapon = "falling_stars"

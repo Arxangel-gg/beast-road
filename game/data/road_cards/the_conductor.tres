@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 1
 tags = Array[String](["Storm", "Tower"])
 effect_id = "chain_targets"

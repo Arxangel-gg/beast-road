@@ -98,6 +98,9 @@ var _locked_state: String = ""
 
 ## The scope the hero is standing in. Set by that scope on entry — the hero
 ## never goes looking up the tree for the thing it happens to be parented to.
+## The weapons this Warden's hand fires (`Arsenal`, 2026-09-27).
+var arsenal: Arsenal = null
+
 var field: EnemyField = null:
 	set(value):
 		field = value
@@ -463,6 +466,11 @@ func _ready() -> void:
 	ranged.loosed.connect(_on_loosed)
 	ranged.dry.connect(func() -> void: EventBus.hero_out_of_ammo.emit())
 	add_child(ranged)
+	# **The Arsenal at this Warden's shoulder** (2026-09-27): the hand's weapons,
+	# fired on their own clocks. A child so it freezes with the scope.
+	arsenal = Arsenal.new()
+	arsenal.hero = self
+	add_child(arsenal)
 	spells.hero = self
 	spells.blink_requested.connect(_on_blink)
 	# Changing the equipped spirit at the shrine takes effect on the road, not

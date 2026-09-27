@@ -42,6 +42,7 @@ const EXEMPT_SCREENS: Array[String] = [
 	"audio_debug.gd",      # a developer readout, never shipped
 	"gear_compare.gd",     # a card the Market opens; enrolled with its screen
 	"hud.gd",              # enrols itself beside the tint, not at _ready
+	"hold_beacons.gd",     # the Hold's door markers: one _draw, nothing pressable
 ]
 
 

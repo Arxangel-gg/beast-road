@@ -60,6 +60,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Disciplines are the card draft (IDEAS_REVIEW §4) | refuse a second pool | **DECIDED 2026-09-11: build Road Cards. See below.** |
 | One authored battlefield; procedural layouts cut (v4 §54) | cut for 1.0 | **DECIDED 2026-09-23: map modes in the settings, Random included. See below.** |
 | One painted Warden, the hooded skull (every sheet since v0.3) | not in the spec | **DECIDED 2026-09-25: a modular, customizable Warden, male and female, capes as a stat slot. See below.** |
+| Road Cards move one number, as a relic does (2026-09-11 bound) | not in the spec | **DECIDED 2026-09-27: augments are an Arsenal of weapons; the number cards retired. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -10691,6 +10692,99 @@ better piece calls until it is worn - holds every marker loud exactly when its
 news says so, and drives the arrow by zooming in at the far side of the yard.
 Its first run caught the overlay sized to nothing (`set_anchors_preset` in
 `_ready`, the recorded trap), which would have pinned every arrow to one corner.
+
+**The augments are an Arsenal - ways of killing - as of 2026-09-27.** Owner:
+*"these augment cards you're showing me are too similar to the relics and stuff
+players would get at crossroads. These augments are supposed to be more like
+megabonk and tower of babel game providing new little ways of dealing damage to
+enemies ... The augs still scale in game and are also affected by the player's
+gear and persistent player level etc. And even so with it all it still needs to
+be perfectly balanced. Players should have fun eliminating way more hoards of
+enemies, and needing to in order to earn the resources needed for their
+towers."* The design and its measurement are `docs/AUTO_ARSENAL_2026-09-27.md`.
+
+**The owner was right about the overlap, and it was exact**: 24 of the 29 live
+cards moved one number in `Modifiers`, which is what a relic socketed at a
+crossroad does. They are **retired** (`RoadCardData.retired`), not deleted: never
+dealt again, still resolving by id, so a banked front that holds one still reads
+it. The deck is now fourteen **weapons** (`ArsenalWeaponData`, fired by
+`Arsenal`), five **catalysts** that move numbers only the Arsenal reads
+(cadence, volley, reach, duration, power), four **evolutions** earned by a
+weapon at level V with its catalyst held, and the five keystones.
+
+**Eight patterns are code, once** (orbit, seeker, chain, pulse, trail, strike,
+on-kill, arc) and every weapon is a data file. One `Arsenal` stands at each
+Warden's side (a child of `Hero`, so it freezes with its scope) and one on the
+battlefield for the weapons on the towers and the town.
+
+**The bounds, all held by `arsenal_check` (both bars):**
+
+- Every blow goes through `Enemy.take_damage` as a *generated* blow
+  (`active_hero` false), named in the ledger as its card - so it sets off no
+  form, no Hunter's Mark and no hit signal, and a weapon never fires a weapon.
+- **One formula** (`Arsenal.hit_for`): the weapon at its level, times
+  `ARSENAL_ACT_SCALE`, times the owner's own `Hero.damage_multiplier()` - which
+  is where gear and level reach it, through Might, as the owner asked - times
+  the Arsenal's power. Focus shortens a weapon's cadence exactly as it does a
+  spell's, to the same cap and never past `ARSENAL_CADENCE_FLOOR`.
+- A kill-weapon's own payload never re-fires it, and it fires at most
+  `ARSENAL_KILL_TRIGGERS_PER_SECOND` a second.
+- Records on two canvases, never nodes, at most `ARSENAL_RECORDS_MAX`.
+- **It is what the curve models.** `ArsenalWeaponData.modelled_dps` is the one
+  line `curve_report` reads, and the gate measures every weapon against it on a
+  standard crowd (fourteen bodies over a disc of 240) and holds it within
+  0.35-2.8x. Every weapon measures 0.84-1.30 of its model, identically on
+  repeated runs.
+
+**A weapon on the board arms the towers near a Warden, not every tower**
+(`ARSENAL_TOWER_REACH`). Measured first the other way: with forty towers Sentry
+Wisps alone modelled at more than the whole board by Act X and the Arsenal was
+92% of the defence, pressure 0.05. Near-Warden arming bounds it by a handful and
+makes where the Warden stands decide which stretch of wall fights harder - the
+direction the road was set on 2026-09-22. The curve assumes
+`ARSENAL_MODEL_TOWERS` in reach.
+
+**The road was re-tuned against it, on a new account** - more bodies an act,
+each worth less, so the extra towers are earned by killing the extra horde; more
+health from Act II; the Arsenal's ladder flattened late. Result: mean pressure
+**0.437 / 0.458 / 0.432 / 0.404** for one to four players (spread 13%), acts
+0.25 to 0.66, the Arsenal 20% of the defence in Act I and 43-60% after. Act II
+sits a little under Act I (0.22 against 0.25): the first cut put a 63% health
+wall on its first formation and `balance_test` refuses more than 40%, while
+Act I's first bodies are held forgiving by the same gate - so Act II is 1.48
+health and 2.30 bodies, a softer step with more of them. A campaign is 544 waves rather than 657 (the same road, bigger waves).
+The numbers are in the design doc; the act-start purse, ranks and drafts were
+re-read off the same report.
+
+**Two recorded rules moved, and each says so where it lives.**
+`COOP_BODY_SCALE_PER_PLAYER` went 0.5 to 1.0: its own note reasoned that a second
+hero barely moves late capability because towers dominate, and every Warden now
+brings their own Arsenal. `COOP_KILL_INCOME_SCALE` went 1.0 to 0.85 and is
+modelled by `curve_report` for the first time - it had been applied by the game
+and never by the model. And the keystone depths: Rampart and Hearth hold three
+weapons each now, so Cold Snap, Sapper's Due and Timberwright open at three - all
+of their branch - rather than six; the "three and six" rule `keystone_check`
+holds still stands.
+
+**Four harness lessons from the gate**, each one the project has met before:
+Act I's jungle regenerates every body (so a crowd heals back what the ledger
+rightly names - zero the ground's regeneration while measuring); the road's own
+wildlife kills fodder, and a natural kill rightly sets a kill-weapon loose (still
+the animals); a tower beside the crowd is a second author of its losses (hold the
+crowd against the whole ledger); and a slow weapon measured over eight seconds is
+two stones and a coin toss (measure over five cadences).
+
+**The icons are composed from the game's own painted art** - spell effects,
+three relics, two towers - because PixelLab is spent until 2026-10-11 and the
+production gate refuses a placeholder. `tools/compose_arsenal_icons.py` is the
+recipe and rebuilds all twenty-three. Bespoke paintings are an October job, and
+installing one is overwriting its file.
+
+**Not built, and recorded so it is not assumed:** a guest does not see a
+partner's Warden weapons on their own screen (the host deals their blows, which
+land; only the picture is missing - it wants the seat's hand relayed), and the
+Guide has no Arsenal page yet (it needs a photograph from `guide_shots`, which
+needs the screen).
 
 ### The three escape hatches - and why there are only three
 

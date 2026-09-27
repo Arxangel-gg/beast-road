@@ -87,6 +87,10 @@ static func _keys_of(source: String) -> Array[String]:
 		return [Modifiers.HERO_DAMAGE, Modifiers.COMPANION_DAMAGE]
 	if source == WARDEN or source == ARROW or source == MOUNT:
 		return [Modifiers.HERO_DAMAGE]
+	# A weapon of the Arsenal: its hit rides the Warden's damage and the
+	# Arsenal's own power (`Arsenal.hit_for`), so those cards share its blows.
+	if source.begins_with(AUGMENT_PREFIX):
+		return [Modifiers.HERO_DAMAGE, Modifiers.ARSENAL_POWER]
 	return []
 
 

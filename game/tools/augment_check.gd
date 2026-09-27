@@ -123,6 +123,14 @@ func _test_cards_level() -> void:
 		if not card.levels():
 			_check(card.max_level() == 1, "%s moves a whole number or is a keystone, and levels" % card.id)
 			continue
+		# **A weapon grows by what it deals** (2026-09-27, the Arsenal): it moves
+		# no number, so its levels are read off the weapon's own model.
+		if card.is_weapon():
+			var weapon: ArsenalWeaponData = card.weapon_data()
+			_check(card.max_level() == Balance.AUGMENT_MAX_LEVEL, "%s levels to %d" % [card.id, card.max_level()])
+			_check(weapon != null and weapon.modelled_dps(Balance.AUGMENT_MAX_LEVEL) > weapon.modelled_dps(1),
+				"%s grows nothing across five levels" % card.id)
+			continue
 		_check(card.max_level() == Balance.AUGMENT_MAX_LEVEL, "%s levels to %d" % [card.id, card.max_level()])
 		_check(is_equal_approx(card.magnitude_at(1), card.effect_magnitude),
 			"%s at level one is not the card as authored" % card.id)
@@ -142,7 +150,8 @@ func _test_cards_level() -> void:
 		_check(absf(card.magnitude_at(card.max_level())) > absf(card.effect_magnitude),
 			"%s grows nothing across five levels" % card.id)
 
-	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels())
+	# A card that moves a number, because what this reads is the table.
+	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels() and not c.is_weapon())
 	_hold([])
 	RunState.take_road_card(grower.id)
 	for level: int in range(1, Balance.AUGMENT_MAX_LEVEL + 1):
@@ -176,7 +185,7 @@ func _test_a_better_card_keeps_the_levels() -> void:
 		if not card.levels():
 			continue
 		for other: RoadCardData in _sorted_cards():
-			if other.levels() and other.effect_id == card.effect_id and other.rarity > card.rarity:
+			if other.levels() and other.key() == card.key() and other.rarity > card.rarity:
 				low = card
 				high = other
 				break
@@ -254,8 +263,8 @@ func _test_the_deal() -> void:
 			if card.keystone:
 				keystones += 1
 			else:
-				_check(not keys.has(card.effect_id), "two cards on %s were dealt together" % card.effect_id)
-				keys[card.effect_id] = true
+				_check(not keys.has(card.key()), "two cards on %s were dealt together" % card.key())
+				keys[card.key()] = true
 		_check(keystones <= 1, "two keystones were dealt together")
 	for _i: int in 400:
 		for id: String in Augments.deal(dice, 3, 0, none, levels, 1, none, 0, none):
@@ -278,7 +287,7 @@ func _test_the_deal() -> void:
 	# Banished, and a card at its last level, never.
 	var banished: Array = ["whetstone_hour", "loose_boots"]
 	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool:
-		return c.levels() and c.first_act <= 1 and not banished.has(c.id))
+		return c.levels() and c.first_act <= 1 and not banished.has(c.id) and not c.retired)
 	var hand: Array = [grower.id]
 	var full: Dictionary = {grower.id: Balance.AUGMENT_MAX_LEVEL}
 	var growing: Dictionary = {grower.id: 2}
@@ -541,7 +550,8 @@ func _last_source() -> String:
 ## levels, the rank, the banked drafts, the tools and the luck.
 func _test_a_front_banks_the_draft() -> void:
 	RunState.reset(false, 20260926)
-	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels())
+	# A card that moves a number, because what this reads is the table.
+	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels() and not c.is_weapon())
 	RunState.take_road_card(grower.id)
 	RunState.take_road_card(grower.id)
 	RunState.gain_road_xp(RunState.road_rank_cost(0) + 3.0)
@@ -593,9 +603,10 @@ func _test_a_fresh_road_deals_a_fresh_draft() -> void:
 ## past the card's last, is cleaned rather than trusted.
 func _test_the_party_holds_one_hand() -> void:
 	RunState.reset(false, 20260926)
-	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels())
+	# A card that moves a number, because what this reads is the table.
+	var grower: RoadCardData = _first(func(c: RoadCardData) -> bool: return c.levels() and not c.is_weapon())
 	var other: RoadCardData = _first(func(c: RoadCardData) -> bool:
-		return c.levels() and c.effect_id != grower.effect_id)
+		return c.levels() and not c.is_weapon() and c.key() != grower.key())
 	RunState.take_road_card(grower.id)
 	RunState.take_road_card(grower.id)
 	RunState.take_road_card(other.id)

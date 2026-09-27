@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "stormcrown"
+display_name = "Stormcrown"
+description = "Evolved Chain Spark: lightning leaps through nine bodies, and often."
+pattern = 2
+anchor = 0
+element = 3
+tint = Color(0.78, 0.88, 1.0, 1)
+damage = 30.0
+cooldown = 0.9
+count = 9
+reach = 460.0
+crowd = 1.0

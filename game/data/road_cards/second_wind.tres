@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 0
 tags = Array[String](["Movement"])
 effect_id = "dash_cooldown"

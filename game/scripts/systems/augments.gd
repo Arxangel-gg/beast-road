@@ -61,8 +61,15 @@ static func floor_for(source: String) -> int:
 ## worse the moment it is taken. And a banished card never.
 static func may_deal(card: RoadCardData, hand: Array, levels: Dictionary,
 		banished: Array) -> bool:
-	if card == null or banished.has(card.id):
+	if card == null or card.retired or banished.has(card.id):
 		return false
+	# **An evolution is earned, never rolled** (2026-09-27): only a hand holding
+	# the weapon it evolves from at its last level, and the catalyst it wants.
+	if not card.evolves_from.is_empty():
+		var base: RoadCardData = ContentDB.road_card(card.evolves_from)
+		return base != null and not hand.has(card.id) and hand.has(base.id) \
+			and _level_of(base.id, levels) >= base.max_level() \
+			and (card.evolves_with.is_empty() or hand.has(card.evolves_with))
 	if card.branch_needs > 0 and branch_depth(hand, int(card.branch)) < card.branch_needs:
 		return false
 	if hand.has(card.id):
@@ -71,7 +78,7 @@ static func may_deal(card: RoadCardData, hand: Array, levels: Dictionary,
 		return true
 	for held: Variant in hand:
 		var other: RoadCardData = ContentDB.road_card(String(held))
-		if other != null and not other.keystone and other.effect_id == card.effect_id:
+		if other != null and not other.keystone and other.key() == card.key():
 			return card.rarity > other.rarity
 	return true
 
@@ -168,7 +175,7 @@ static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Arra
 				return false
 			if card.keystone:
 				return not other.keystone
-			return other.keystone or other.effect_id != card.effect_id)
+			return other.keystone or other.key() != card.key())
 	return dealt
 
 
@@ -194,6 +201,11 @@ static func deal_for(source: String, floor: int, exclude: Array = [],
 ## own damage are read by the towers and the bodies as well as the hero, so all
 ## of those are the party's.
 static func seat_keeps(card: RoadCardData) -> bool:
+	# A weapon at a Warden's shoulder is theirs; one on the board or the town
+	# is the party's.
+	if card != null and card.is_weapon():
+		var weapon: ArsenalWeaponData = card.weapon_data()
+		return weapon != null and weapon.anchor == ArsenalWeaponData.Anchor.WARDEN
 	return card != null and not card.keystone \
 		and Modifiers.WARDEN_KEYS.has(card.effect_id) \
 		and card.effect_id != Modifiers.KNOCKBACK
@@ -206,7 +218,8 @@ static func temper(dice: RandomNumberGenerator, hand: Array, levels: Dictionary,
 	var growing: Array[String] = []
 	for held: Variant in hand:
 		var card: RoadCardData = ContentDB.road_card(String(held))
-		if card != null and card.levels() and _level_of(card.id, levels) < card.max_level():
+		if card != null and not card.retired and card.levels() \
+				and _level_of(card.id, levels) < card.max_level():
 			growing.append(card.id)
 	growing.sort()
 	var fresh: Array[String] = growing.filter(func(id: String) -> bool:
@@ -229,7 +242,7 @@ static func _distinct_keys(deck: Array[String]) -> int:
 	var keys: Dictionary = {}
 	for id: String in deck:
 		var card: RoadCardData = ContentDB.road_card(id)
-		keys["keystone" if card.keystone else card.effect_id] = true
+		keys["keystone" if card.keystone else card.key()] = true
 	return keys.size()
 
 

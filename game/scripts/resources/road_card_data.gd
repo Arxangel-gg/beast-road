@@ -108,6 +108,26 @@ func get_sprite_path() -> String:
 ## lean toward what the Warden already holds (`Balance.AUGMENT_LEAN_PER_TAG`).
 @export var tags: Array[String] = []
 
+## **A weapon of the Arsenal** (owner, 2026-09-27; `docs/AUTO_ARSENAL_2026-09-27.md`):
+## the id of an `ArsenalWeaponData` this card fires, or "" for a card that moves
+## a number or re-routes a rule. A weapon card has no `effect_id` - it is a way
+## of killing, not a number on a table - and levels I to V, every level a
+## visible change to the weapon.
+@export var weapon: String = ""
+
+## **Retired from the draft** (2026-09-27). The owner found the cards that move
+## one number too like the relics a crossroad offers, and they were. A retired
+## card is never dealt again but still resolves by id, so a banked front that
+## holds one reads it and its number still reaches `Modifiers` for that road.
+@export var retired: bool = false
+
+## **An evolution**: the weapon card this replaces, and the catalyst card that
+## must be held beside it. Offered only to a hand holding `evolves_from` at its
+## last level and `evolves_with` at all, and taking it swaps the one for the
+## other in the same place. Both "" for anything else.
+@export var evolves_from: String = ""
+@export var evolves_with: String = ""
+
 
 ## **Whether taking this card again levels it.** Derived rather than authored:
 ## a card that moves a fraction levels, while one that moves a whole number of
@@ -115,7 +135,27 @@ func get_sprite_path() -> String:
 ## That is `road_card_check`'s own definition of a counted key, read off the
 ## number, so there is no second list to fall out of step with the first.
 func levels() -> bool:
+	# A weapon grows I to V; an evolution is the top of one and is taken once.
+	if is_weapon():
+		return evolves_from.is_empty()
 	return not keystone and absf(effect_magnitude) < 1.0
+
+
+func is_weapon() -> bool:
+	return not weapon.is_empty()
+
+
+## The weapon this card fires, or null.
+func weapon_data() -> ArsenalWeaponData:
+	return ContentDB.arsenal_weapon(weapon) if is_weapon() else null
+
+
+## **What a hand holds one of**: the number a card moves, or the weapon it
+## fires. Every rule that says "one card per key" asks this rather than
+## `effect_id`, which every weapon leaves empty - read as a key, that empty
+## string would have made every weapon in the deck the same card.
+func key() -> String:
+	return "weapon:" + weapon if is_weapon() else effect_id
 
 
 func max_level() -> int:

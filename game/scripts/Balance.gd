@@ -528,7 +528,9 @@ const AUGMENT_LEVELLED_COST_CEILING: float = 0.40
 ## **A key with a ceiling of its own.** A tower's reach is an area, so a share
 ## more of it is more than a share more of the fight - the tower covers the
 ## square of it. [TUNE]
-const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35, "tower_rate": 0.25}
+const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35, "tower_rate": 0.25,
+	"arsenal_haste": 0.30, "arsenal_area": 0.40, "arsenal_duration": 0.60,
+	"arsenal_power": 0.45}
 
 ## **The road rank**, the run's own level: road experience from every kill on
 ## the road, a rank at a time, each rank dealing a draft. A rank costs
@@ -595,6 +597,78 @@ const AUGMENT_DRAFT_SCRIM := Color(0.02, 0.03, 0.04, 0.68)
 ## few cards of their own and shares the rest. Alone, the one hand holds every
 ## branch, as it always has. [TUNE]
 const AUGMENT_SEAT_HAND: int = 4
+
+## **The Arsenal** (owner, 2026-09-27; `docs/AUTO_ARSENAL_2026-09-27.md`): the
+## augments are ways of killing - orbs, bolts, pulses, chains, trails, strikes -
+## fired on their own clocks by the hand that holds them.
+##
+## **A hit is one formula** (`Arsenal.hit_for`): the weapon's damage at its level,
+## times `ARSENAL_ACT_SCALE` for the act, times the owner's own damage multiplier
+## (Might from level and gear, the form, the hand), times the Arsenal's power.
+## The act ladder lets a weapon keep its place on a road whose bodies grow a
+## hundredfold, and it deliberately lags them: what closes the gap is the
+## Warden's level and gear, which is the owner's *"keep up with the increasing
+## difficulty"*. Solved against `curve_report` on a new account. [TUNE]
+const ARSENAL_ACT_SCALE: Array[float] = [1.0, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.55, 4.95]
+## **Focus shortens a weapon's cadence** exactly as it shortens a spell's, per
+## point and to the spell's own cap, so the attribute that makes a caster makes
+## an Arsenal. With the cadence catalyst, a weapon never fires more often than
+## `1 / ARSENAL_CADENCE_FLOOR` times what it is authored at. [TUNE]
+const ARSENAL_CADENCE_FLOOR: float = 0.45
+## The most the volley catalyst may add to any weapon's count. [TUNE]
+const ARSENAL_COUNT_CEILING: int = 3
+## **Budget**: live shots, strikes and patches one Arsenal holds at once; the
+## oldest give way. Records on one canvas, never nodes. [TUNE]
+const ARSENAL_RECORDS_MAX: int = 96
+## **A chain reaction ends**: kill-triggered payloads one weapon may release a
+## second, and a payload's own kills never release another from the same card.
+## [TUNE]
+const ARSENAL_KILL_TRIGGERS_PER_SECOND: int = 6
+## A strike's ring stands this long before the blow lands - the telegraph rule
+## every blow from the sky in this game obeys. [TUNE]
+const ARSENAL_STRIKE_WARNING: float = 0.55
+## How far a chain may leap between bodies, and how far two towers may stand
+## for an arc to hang between them. [TUNE]
+const ARSENAL_CHAIN_LEAP: float = 230.0
+const ARSENAL_ARC_SPAN: float = 560.0
+## **A weapon on the board arms the towers near a Warden**, not every tower:
+## within this of one. `curve_report` assumes `ARSENAL_MODEL_TOWERS` of them in
+## reach - a Warden stands by a stretch of wall, not by the whole of it. [TUNE]
+const ARSENAL_TOWER_REACH: float = 640.0
+const ARSENAL_MODEL_TOWERS: int = 5
+## A bolt's life before it fizzles, and the ground walked between trail patches.
+## [TUNE]
+const ARSENAL_BOLT_LIFE: float = 2.4
+const ARSENAL_TRAIL_STEP: float = 72.0
+## The Arsenal's drawing refreshes at this rate; its clocks run every frame.
+const ARSENAL_DRAW_HZ: float = 60.0
+## The size of an orb and a bolt's head, and how much of a body's own width a
+## touch allows. [TUNE]
+const ARSENAL_ORB_SIZE: float = 18.0
+const ARSENAL_BOLT_SIZE: float = 14.0
+const ARSENAL_BODY_ALLOWANCE: float = 20.0
+## A weapon with nothing to fire at looks again this soon. [TUNE]
+const ARSENAL_RETRY: float = 0.25
+## How long a weapon's slow holds. [TUNE]
+const ARSENAL_SLOW_SECONDS: float = 1.4
+## A bolt whose body fell finds another this near; it turns toward its body this
+## sharply, and lands within this of it. [TUNE]
+const ARSENAL_BOLT_RETARGET: float = 280.0
+const ARSENAL_BOLT_TURN: float = 9.0
+const ARSENAL_BOLT_HIT: float = 22.0
+## A chain is drawn this far above the feet it strikes, and hangs this long.
+const ARSENAL_CHAIN_LIFT: float = 40.0
+const ARSENAL_CHAIN_LIFE: float = 0.22
+## An arc hangs this far above the towers' feet. [TUNE]
+const ARSENAL_ARC_LIFT: float = 70.0
+## The weight of a strike's landing on the camera, through `camera_impact`.
+const ARSENAL_STRIKE_SHAKE: float = 0.35
+## The bodies a strike weighs when it looks for the thickest knot. [TUNE]
+const ARSENAL_KNOT_CANDIDATES: int = 28
+
+
+static func arsenal_act_scale(act: int) -> float:
+	return ARSENAL_ACT_SCALE[clampi(act - 1, 0, ARSENAL_ACT_SCALE.size() - 1)]
 
 ## The largest a single card's magnitude may be, for keys read as a fraction.
 ##
@@ -1298,8 +1372,9 @@ const TOWER_SLOT_COUNT: int = 4
 ## Re-read 2026-09-21 off `curve_report`'s purse column at the first wave of
 ## each act, on the road of that date (an eighth longer, reference height 330).
 ## Re-read 2026-09-26 on the denser road the augments are measured against.
+## Re-read 2026-09-27 on the Arsenal's road: more bodies, each worth less.
 const ACT_START_BUDGET: Array[int] = [
-	0, 1196, 2896, 5445, 8784, 13246, 19110, 27036, 36379, 48418,
+	0, 1083, 2541, 4614, 7312, 10878, 15575, 21826, 29205, 38601,
 ]
 
 ## **The drafts a walked road would have dealt by each act** (augments,
@@ -1309,10 +1384,10 @@ const ACT_START_BUDGET: Array[int] = [
 ## road is tuned against a hand that size, and one that arrived with none would
 ## be a harder road than the one it stands in for. [TUNE]
 const ACT_START_ROAD_RANK: Array[int] = [
-	0, 6, 10, 14, 18, 22, 26, 30, 34, 38,
+	0, 6, 11, 16, 20, 24, 29, 33, 37, 41,
 ]
 const ACT_START_DRAFTS: Array[int] = [
-	0, 8, 14, 20, 26, 33, 39, 46, 53, 60,
+	0, 8, 15, 22, 28, 34, 41, 48, 54, 61,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
@@ -4945,7 +5020,7 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## IV - and the health table the rest, so the road is denser rather than only
 ## tougher. Measured against the modelled hand on a new account.
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.13, 1.45, 1.75, 2.20, 2.40, 2.62, 2.77, 2.93, 3.08, 3.21,
+	1.41, 2.30, 2.63, 3.30, 3.60, 3.93, 4.16, 4.40, 4.62, 4.82,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -5137,8 +5212,16 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Lifted with the count table for the augments on 2026-09-26: three, ten and
 ## eight per cent for Acts I to III and seventeen from IV, the smaller half of
 ## what the modelled hand takes off.
+## **Raised again from Act II for the Arsenal, 2026-09-27**, against a road that
+## now kills far more bodies and has weapons of its own - and the first cut
+## put 1.78 straight after 1.09, a sixty-three per cent wall on the first
+## formation of Act II that `balance_test` refuses at forty. Act I cannot
+## carry any of it - the first bodies are held forgiving by the same gate - so
+## Act II is 1.48, a step of 1.36, and the pressure it gave up is bought back
+## as bodies (`WAVE_ACT_COUNT_SCALE` 2.18 to 2.30): more of them, each softer,
+## which is the horde the Arsenal exists to answer.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.09, 1.40, 1.82, 2.23, 2.32, 2.34, 2.37, 2.44, 2.51, 2.55,
+	1.09, 1.48, 2.31, 2.84, 2.95, 2.98, 3.01, 3.00, 3.03, 3.05,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.02, 1.06, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20,
@@ -5313,7 +5396,7 @@ const RESOURCE_PER_DISTANCE: float = 0.18
 ## 0.36 to 0.33 on 2026-09-24: the owner asked for resource gain "a bit
 ## more scarce" beside the enemy lift, and the kill is where a player reads
 ## it (2026-09-15).
-const KILL_RESOURCE_SCALE: float = 0.33
+const KILL_RESOURCE_SCALE: float = 0.264
 
 ## What a body is worth, by the act it dies in. [TUNE]
 ##
@@ -5332,7 +5415,7 @@ const KILL_RESOURCE_SCALE: float = 0.33
 ## the one stretch of this economy measured against a player learning the game,
 ## and `balance_test._test_opening_envelope` owns it.
 const KILL_ACT_VALUE_SCALE: Array[float] = [
-	1.0, 1.0, 1.08, 1.18, 1.32, 1.48, 1.64, 1.82, 2.00, 2.20,
+	1.0, 0.833, 0.90, 0.983, 1.10, 1.233, 1.367, 1.517, 1.667, 1.833,
 ]
 
 
@@ -8259,7 +8342,15 @@ const COOP_CONNECT_TIMEOUT_ROOM: float = 50.0
 ## **This number is provisional until co-op is played on two machines**, which is
 ## a row on the road list. It is one constant with a recorded measurement behind
 ## it, which is what makes it cheap to move.
-const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
+##
+## **Raised to 1.0 on 2026-09-27, because the reasoning above stopped being
+## true.** It rests on a second hero barely moving late capability, and since
+## the Arsenal every Warden brings their own weapons - about half the defence
+## from Act III on. A second player now adds far more than a hero's swing, and
+## measured at 0.5 the party sizes spread 29% with co-op the easier road; at
+## 0.9, four players still sat under the floor. One player's worth of road for
+## each player who brings one player's worth of Arsenal.
+const COOP_BODY_SCALE_PER_PLAYER: float = 1.0
 
 ## Trim on what a body pays when there are two players. [TUNE]
 ##
@@ -8267,7 +8358,11 @@ const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
 ## curve was tuned against one player's earnings. This exists so the fix for
 ## "co-op is too rich" is a number rather than a redesign; 1.0 means no trim,
 ## which is where it starts because the measured curve did not need one.
-const COOP_KILL_INCOME_SCALE: float = 1.0
+##
+## **0.85 since 2026-09-27**, and modelled by `curve_report` for the first time:
+## with a road of bodies for every player, the purse was buying four players
+## most of four boards, and four players sat under the pressure floor.
+const COOP_KILL_INCOME_SCALE: float = 0.85
 
 # ------------------------------------------------------------------------------
 # Torch shadow

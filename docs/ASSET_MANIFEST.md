@@ -2284,6 +2284,25 @@ All 128×128, type T, placeholder colour `#B8863A`.
 `card_cold_snap.png` · `card_tinderstrike.png` · `card_timberwright.png` ·
 `card_sappers_due.png` · `card_hunters_mark.png`
 
+**The Arsenal** (2026-09-27, `docs/AUTO_ARSENAL_2026-09-27.md`): fourteen weapons,
+five catalysts and four evolutions, all 128×128.
+
+`card_ember_wisps.png` · `card_frost_shards.png` · `card_seeking_flames.png` ·
+`card_chain_spark.png` · `card_thunderclap.png` · `card_thorn_wake.png` ·
+`card_stone_rain.png` · `card_marrow_seekers.png` · `card_sentry_wisps.png` ·
+`card_arc_lattice.png` · `card_fortress_barrage.png` · `card_falling_stars.png` ·
+`card_bell_of_the_hold.png` · `card_soulfire.png` · `card_quickening_oil.png` ·
+`card_twin_casting.png` · `card_wider_wake.png` · `card_long_burn.png` ·
+`card_kindled_heart.png` · `card_sunwheel.png` · `card_stormcrown.png` ·
+`card_worldbreaker.png` · `card_briar_sea.png`
+
+These are **composed from the game's own painted art** - the spell icons, three
+relics and two towers - because PixelLab's allowance was spent until 2026-10-11 and
+the production gate refuses a placeholder. A weapon is an effect rather than an
+object, so its icon is the effect: three meteors in an orbit, lances in a chain, a
+tower with its wisps. Bespoke paintings are an October job; overwriting these
+files is the whole of installing them.
+
 The last five are **keystones** (2026-09-25), drawn with a shipped card as the
 style image and its palette left off, because an ice shard in warm amber is not
 an ice shard. They are still single objects the road left behind.

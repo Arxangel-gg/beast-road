@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "marrow_seekers"
+display_name = "Marrow Seekers"
+description = "A body that dies near you lets a spirit go to hunt the next."
+pattern = 6
+anchor = 0
+element = 3
+tint = Color(0.72, 0.95, 0.82, 1)
+damage = 14.0
+cooldown = 0.8
+count = 1
+reach = 400.0
+speed = 480.0
+crowd = 1.0
+level_count = Array[int]([0, 0, 1, 1, 2])

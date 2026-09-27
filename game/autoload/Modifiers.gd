@@ -45,6 +45,18 @@ const SPELL_POWER: String = "spell_power"
 const MANA_REGEN: String = "mana_regen"
 const COMPANION_DAMAGE: String = "companion_damage"
 
+# --- The Arsenal's catalysts (2026-09-27) -------------------------------------
+#
+# Numbers only the Arsenal reads, so a catalyst is a reason to build weapons
+# rather than a relic in a card's clothes: how soon every weapon fires again,
+# how many bolts or orbs it throws (a whole number), how wide it reaches, how
+# long what it leaves stands, and what it hits for. `Arsenal` is the one reader.
+const ARSENAL_HASTE: String = "arsenal_haste"
+const ARSENAL_COUNT: String = "arsenal_count"
+const ARSENAL_AREA: String = "arsenal_area"
+const ARSENAL_DURATION: String = "arsenal_duration"
+const ARSENAL_POWER: String = "arsenal_power"
+
 # --- Keystones (2026-09-25) ------------------------------------------------------
 #
 # Flags rather than numbers: a keystone card sets one to one, and the system it
@@ -100,6 +112,11 @@ const LABELS: Dictionary = {
 	SPELL_POWER: "Spell power",
 	MANA_REGEN: "Mana regeneration",
 	COMPANION_DAMAGE: "Companion damage",
+	ARSENAL_HASTE: "Arsenal cadence",
+	ARSENAL_COUNT: "Arsenal volleys",
+	ARSENAL_AREA: "Arsenal reach",
+	ARSENAL_DURATION: "Arsenal duration",
+	ARSENAL_POWER: "Arsenal power",
 	KEYSTONE_COLD_SNAP: "Cold Snap",
 	KEYSTONE_TINDERSTRIKE: "Tinderstrike",
 	KEYSTONE_TIMBERWRIGHT: "Timberwright",
@@ -135,6 +152,7 @@ var _seat_totals: Dictionary = {}
 const WARDEN_KEYS: Array[String] = [
 	HERO_DAMAGE, HERO_MAX_HP, HERO_SPEED, DASH_COOLDOWN,
 	MANA_REGEN, SPELL_POWER, COMPANION_DAMAGE, KNOCKBACK,
+	ARSENAL_HASTE, ARSENAL_COUNT, ARSENAL_AREA, ARSENAL_DURATION, ARSENAL_POWER,
 ]
 
 
@@ -219,7 +237,7 @@ func rebuild() -> void:
 		var mine: AugmentSeat = RunState.augment_seat(0)
 		for card_id: String in mine.cards:
 			var card: RoadCardData = ContentDB.road_card(card_id)
-			if card == null:
+			if card == null or card.effect_id.is_empty():
 				continue
 			var magnitude: float = card.magnitude_at(mine.card_level(card_id))
 			_totals[card.effect_id] = float(_totals.get(card.effect_id, 0.0)) + magnitude
@@ -229,7 +247,7 @@ func rebuild() -> void:
 			var totals: Dictionary = {}
 			for card_id: String in seat.cards:
 				var card: RoadCardData = ContentDB.road_card(card_id)
-				if card != null:
+				if card != null and not card.effect_id.is_empty():
 					totals[card.effect_id] = float(totals.get(card.effect_id, 0.0)) \
 						+ card.magnitude_at(seat.card_level(card_id))
 			_seat_totals[seat.slot] = totals

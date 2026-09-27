@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "fortress_barrage"
+display_name = "Fortress Barrage"
+description = "Rare card. Every twelve kills on the road, the towers near you each lob a stone at the nearest body."
+rarity = 2
+first_act = 3
+branch = 1
+tags = Array[String](["Earth", "Arsenal", "Tower", "Kill"])
+card_text = "Every so many dead, the walls answer together."
+weapon = "fortress_barrage"

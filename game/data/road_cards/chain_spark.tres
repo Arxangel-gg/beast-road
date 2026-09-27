@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "chain_spark"
+display_name = "Chain Spark"
+description = "Uncommon card. Lightning leaps from you through the crowd. One more jump a level."
+rarity = 1
+first_act = 1
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Chain"])
+card_text = "It never lands where it started."
+weapon = "chain_spark"

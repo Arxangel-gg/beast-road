@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 2
 tags = Array[String](["Economy", "Town"])
 effect_id = "resource_rate"

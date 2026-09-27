@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "bell_of_the_hold"
+display_name = "Bell of the Hold"
+description = "Rare card. The town rings: a pulse strikes and throws back every body at the wall."
+rarity = 2
+first_act = 2
+branch = 2
+tags = Array[String](["Air", "Arsenal", "Nova"])
+card_text = "The bell was cast to be heard. It was not cast to be gentle."
+weapon = "bell_of_the_hold"

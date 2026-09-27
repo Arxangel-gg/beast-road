@@ -2197,9 +2197,8 @@ func gain_kill_resources(base_amount: int) -> void:
 		* Balance.kill_act_scale(act) \
 		* Modifiers.multiplier(Modifiers.KILL_RESOURCES)
 	# Twice the bodies into one shared pool is twice the income, and the tower
-	# curve was tuned against one player earning. The trim is 1.0 today because
-	# the measured curve did not need one; it exists so that if co-op ever plays
-	# rich, the fix is a constant rather than a redesign.
+	# curve was tuned against one player earning. See the constant for why it is
+	# under one since the Arsenal.
 	if Coop.partner_present():
 		earned *= Balance.COOP_KILL_INCOME_SCALE
 	kill_resource_remainder += earned
@@ -2259,11 +2258,15 @@ func take_card_for(seat: AugmentSeat, card_id: String, drop: String = "") -> Str
 			if kept != null and kept.keystone:
 				replaced = held
 				break
+	# **An evolution takes its weapon's place** (2026-09-27), in the same slot,
+	# so evolving never asks the player to give up a second card for it.
+	if not card.evolves_from.is_empty() and hand.has(card.evolves_from):
+		replaced = card.evolves_from
 	for held: String in hand:
 		if not replaced.is_empty():
 			break
 		var other: RoadCardData = ContentDB.road_card(held)
-		if other != null and other.effect_id == card.effect_id:
+		if other != null and other.key() == card.key():
 			replaced = held
 			break
 	if replaced.is_empty() and hand.size() >= room:
@@ -2276,7 +2279,7 @@ func take_card_for(seat: AugmentSeat, card_id: String, drop: String = "") -> Str
 		# grew.** Rarity is an upgrade path and so are levels; if taking the
 		# better card cost the levels, it would be the worse pick.
 		var old: RoadCardData = ContentDB.road_card(replaced)
-		if old != null and old.effect_id == card.effect_id:
+		if old != null and old.key() == card.key():
 			inherited = maxi(1, int(levels.get(replaced, 1)))
 		hand.erase(replaced)
 		levels.erase(replaced)

@@ -403,6 +403,9 @@ jobs:
           check "augments"   --headless --path game res://tools/augment_check.tscn
           check "warden sheet" --headless --path game res://tools/warden_sheet_check.tscn
           check "augment seats" --headless --path game res://tools/augment_seat_check.tscn
+          # The Arsenal: every weapon lands through the one door, is what the curve
+          # models, scales by one formula, ends its chain reactions and freezes.
+          check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn
           # The Warden's bars stand above every head it can wear, with MP and SP beneath HP.

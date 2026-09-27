@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "stormcrown"
+display_name = "Stormcrown"
+description = "Epic card. Evolved Chain Spark: lightning leaps through nine bodies, and often."
+rarity = 3
+first_act = 1
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Chain"])
+card_text = "The storm has stopped waiting to be called."
+weapon = "stormcrown"
+evolves_from = "chain_spark"
+evolves_with = "quickening_oil"

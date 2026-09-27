@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+retired = true
 branch = 1
 tags = Array[String](["Tower", "Ward"])
 effect_id = "tower_armour"

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "stone_rain"
+display_name = "Stone Rain"
+description = "Rocks fall on the thickest knot of bodies near you, marked first."
+pattern = 5
+anchor = 0
+element = 2
+tint = Color(0.8, 0.66, 0.5, 1)
+damage = 28.0
+cooldown = 3.0
+count = 1
+radius = 85.0
+reach = 520.0
+crowd = 1.0
+level_count = Array[int]([0, 0, 1, 1, 2])
+head = "earth"
+effect = "slam_impact"

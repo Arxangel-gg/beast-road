@@ -100,6 +100,8 @@ var synergies: Dictionary = {}
 ## Portents read at the end of an act: one cost, one reward, kept for the run.
 var omens: Dictionary = {}
 var road_cards: Dictionary = {}
+## The Arsenal's weapons (2026-09-27), fired by the Road Cards that name them.
+var arsenal_weapons: Dictionary = {}
 
 ## Wayside encounters and their choices (2026-09-25). See `WaysideData`.
 var wayside_encounters: Dictionary = {}
@@ -160,6 +162,7 @@ func _ready() -> void:
 	synergies = _load_dir("res://data/synergies")
 	omens = _load_dir("res://data/omens")
 	road_cards = _load_dir("res://data/road_cards")
+	arsenal_weapons = _load_dir("res://data/arsenal")
 	wayside_encounters = _load_dir("res://data/wayside")
 	wayside_choices = _load_dir("res://data/wayside_choices")
 	fish_kinds = _load_dir("res://data/fish")
@@ -205,6 +208,10 @@ func omen(id: String) -> OmenData:
 
 func road_card(id: String) -> RoadCardData:
 	return road_cards.get(id, null) as RoadCardData
+
+
+func arsenal_weapon(id: String) -> ArsenalWeaponData:
+	return arsenal_weapons.get(id, null) as ArsenalWeaponData
 
 
 func wayside(id: String) -> WaysideData:

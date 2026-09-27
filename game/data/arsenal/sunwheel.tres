@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "sunwheel"
+display_name = "Sunwheel"
+description = "Evolved Ember Wisps: a wheel of suns circles you and burns everything it turns through."
+pattern = 0
+anchor = 0
+element = 0
+tint = Color(1.0, 0.78, 0.3, 1)
+damage = 26.0
+cooldown = 0.5
+count = 6
+radius = 125.0
+speed = 3.6
+duration = 2.5
+burn_share = 0.35
+crowd = 0.6
+head = "fire"

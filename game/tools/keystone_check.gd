@@ -153,7 +153,10 @@ func _test_the_ordinary_draft_did_not_move() -> void:
 		var ordinary: int = 0
 		for id: Variant in ContentDB.road_cards:
 			var card: RoadCardData = ContentDB.road_card(String(id))
-			if card != null and not card.keystone and card.first_act <= act:
+			# The pool the draft shuffles: dealable ordinary cards. A retired card
+			# and an evolution nobody has earned are never in it (2026-09-27).
+			if card != null and not card.keystone and card.first_act <= act \
+					and Augments.may_deal(card, [], {}, []):
 				ordinary += 1
 		RoadCardData.offer([], act, Balance.ROAD_CARD_OFFER_COUNT)
 		for index: int in range(ordinary - 1, 0, -1):

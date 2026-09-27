@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "sentry_wisps"
+display_name = "Sentry Wisps"
+description = "Common card. Every tower near you keeps a wisp circling it that zaps what comes near."
+rarity = 0
+first_act = 1
+branch = 1
+tags = Array[String](["Air", "Arsenal", "Orbit", "Tower"])
+card_text = "Every wall keeps a small light that bites."
+weapon = "sentry_wisps"
