@@ -10632,6 +10632,37 @@ through; nothing is stored, and a returning player is never asked.
 `warden_glass_check` holds the per-slot ask through the real erase signal and
 walks the two new doors in the source, and named three planted faults.
 
+**A thumb can walk the Hold, as of 2026-09-27.** Owner: *"Need mobile controls
+at the Hold."* The Hold had tap-to-walk and nothing else - no stick, no dash, no
+sprint, no horse, and every door wanted a second tap on the very spot - because
+`TouchInput` came up only on a live road (`GameDirector.run_active`), and the
+Hold is a screen with no run behind it.
+
+**The road's own controls, in a second mode.** The Hold's yard hands itself in
+(`TouchInput.drive_place`) and the controls ask it whether it is being driven,
+so they are up exactly while a player could walk and never over a door, the
+card or the road panel. The move stick walks (it feeds the same input actions
+the yard already polls), a push to its rim sprints, DASH dashes, a large button
+for what is in reach opens it (ENTER for a building, TALK for a person), and
+RIDE / DOWN appears when a horse is saddled. The aiming stick is off there, so
+the right side of the glass stays a tap on the yard; a tap in the stick's own
+corner is handed back through `field_tapped`, and two fingers pinch the zoom.
+
+**Sprint at the rim is the Hold's alone**, deliberately: sprinting there costs
+nothing (owner, 2026-09-18), while on the road a full push would spend SP a
+thumb only meant to walk with.
+
+**Two things a first cut would have got wrong.** The controls sit on canvas
+layer 48, under the road's HUD, and the Hold paints the whole screen on layer
+50 - so they would have worked and been drawn nowhere; in a place they stand one
+layer above it (`_layer_for`). And Godot sends the mouse it emulates from finger
+0 *before* the touch itself, so on the press nothing has claimed the finger yet
+and a thumb landing on DASH walked the Warden to it: the Hold acts on the lift
+on glass, when `owns_pointer` can answer, which is why the placement cursor has
+always waited too. `hold_check` drives it through the viewport with touch forced
+on, and named five planted faults: the controls ignoring the place, the road's
+layer, ENTER unwired, no sprint at the rim, and the stick-corner tap dropped.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

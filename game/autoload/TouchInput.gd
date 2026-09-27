@@ -99,6 +99,21 @@ var _ammo: TouchButton = null
 ## tracked here; when two are down their changing gap is a zoom. Held by index
 ## and position, and cleared on every release path.
 var _free_fingers: Dictionary = {}
+
+## **A walkable place outside a run** - the Hold's yard (owner, 2026-09-27: *"Need
+## mobile controls at the Hold."*). The Hold had tap-to-walk and nothing else,
+## so on a phone the Warden could not be steered, could not dash, sprint or
+## ride, and every door needed a second tap on the very spot. The yard hands
+## itself in here and the controls ask it whether it is being driven, so they
+## are up exactly while a player could walk and never over a door or the card.
+var _place: HoldYard = null
+## The Hold's own two: whatever is in reach, and the horse.
+var _enter: TouchButton = null
+var _ride: TouchButton = null
+## Whether this autoload pressed sprint or mount, so letting go never lets go
+## of a key somebody is holding on a real keyboard.
+var _sprint_driving: bool = false
+var _mount_driving: bool = false
 ## Where and when each free finger went down, `[position, msec]`, so a second
 ## finger's tap can be told from its drag. See `field_tapped`.
 var _free_pressed: Dictionary = {}
@@ -107,8 +122,14 @@ var _pinch_gap: float = 0.0
 var _pinch_ended_msec: int = -100000
 
 
+## Under the HUD on the road, so a panel there covers a stick rather than the
+## other way round. A place is drawn on a layer of its own (the Hold is 50), so
+## there the controls stand one above it - see `_layer_for`.
+const ROAD_LAYER: int = 48
+
+
 func _ready() -> void:
-	layer = 48
+	layer = ROAD_LAYER
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	get_tree().node_added.connect(_on_node_added)
@@ -175,7 +196,7 @@ func owns_pointer() -> bool:
 	for stick: TouchStick in _sticks:
 		if stick.holds_emulated_finger():
 			return true
-	for button: TouchButton in [_dash, _loose, _ammo, _revive, _use]:
+	for button: TouchButton in [_dash, _loose, _ammo, _revive, _use, _enter, _ride]:
 		if button != null and button.visible and button.holds_emulated_finger():
 			return true
 	return false
@@ -278,6 +299,18 @@ func _build() -> void:
 	_use.visible = false
 	add_child(_use)
 
+	_enter = TouchButton.new()
+	_enter.name = "EnterButton"
+	_enter.label = "ENTER"
+	_enter.visible = false
+	add_child(_enter)
+
+	_ride = TouchButton.new()
+	_ride.name = "RideButton"
+	_ride.label = "RIDE"
+	_ride.visible = false
+	add_child(_ride)
+
 	_cast = TouchButton.new()
 	_cast.name = "CastButton"
 	_cast.label = "CAST"
@@ -309,9 +342,36 @@ func _build() -> void:
 ## `_unhandled_input`, the button kept *consuming taps* on the front door - and
 ## an invisible button eats a press exactly as well as a visible one does.
 func _controls_live() -> bool:
-	return _showing and GameDirector.run_active and (
+	return _showing and (_road_live() or _place_live())
+
+
+func _road_live() -> bool:
+	return GameDirector.run_active and (
 		GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
 		or GameDirector.current_scope == GameDirector.Scope.RAID)
+
+
+## The Hold's yard, handed in when it is built and taken back when it goes.
+func drive_place(place: HoldYard) -> void:
+	_place = place
+
+
+func leave_place(place: HoldYard) -> void:
+	if _place == place:
+		_place = null
+
+
+## A place is live while it is on screen and being driven: the yard stops
+## driving under a door, the card and the road panel, and when the Hold closes.
+func _place_live() -> bool:
+	return _place != null and is_instance_valid(_place) and _place.is_inside_tree() \
+		and _place.is_visible_in_tree() and _place.is_driving()
+
+
+## The place's controls rather than the road's. Never both: a road outranks a
+## yard left standing behind it.
+func in_place() -> bool:
+	return _showing and _place_live() and not _road_live()
 
 
 ## Releases are watched here, and *only* releases.
@@ -348,10 +408,17 @@ func _input(event: InputEvent) -> void:
 		_ammo.release_finger(touch.index)
 	if _cast != null:
 		_cast.release_finger(touch.index)
+	if _enter != null:
+		_enter.release_finger(touch.index)
+	if _ride != null:
+		_ride.release_finger(touch.index)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _controls_live():
+		return
+	if in_place():
+		_place_input(event)
 		return
 
 	# The dash button is checked first: it sits inside the right stick's corner,
@@ -385,6 +452,116 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _track_the_pinch(event):
 		get_viewport().set_input_as_handled()
+
+
+## **In a place, one stick and the place's buttons.** The aiming stick is not
+## live here - there is nothing to swing at - so the right side of the glass
+## stays a tap on the yard, which is still how a thumb says "stand there".
+func _place_input(event: InputEvent) -> void:
+	for button: TouchButton in [_dash, _enter, _ride]:
+		if button.visible and button.consume(event, Rect2(button.position, button.size)):
+			get_viewport().set_input_as_handled()
+			return
+	if _sticks[0].consume(event, zone(false)):
+		get_viewport().set_input_as_handled()
+		return
+	if _track_the_pinch(event):
+		get_viewport().set_input_as_handled()
+
+
+## Where the place's buttons sit: the bottom-right corner, lifted clear of the
+## Hold's prompt line, with the thing in reach the largest because it is the
+## press that matters. `which` is 0 dash, 1 enter, 2 ride.
+func place_rect(which: int) -> Rect2:
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var side: float = button_side()
+	var gap: float = side * 0.3
+	var foot: float = span.y - Balance.TOUCH_PLACE_FOOT
+	var right: float = span.x - Balance.TOUCH_PLACE_EDGE
+	var dash := Rect2(right - side, foot - side, side, side)
+	match which:
+		1:
+			var big: float = side * Balance.TOUCH_PLACE_ENTER_SCALE
+			return Rect2(dash.position.x - gap - big, foot - big, big, big)
+		2:
+			return Rect2(dash.position.x, dash.position.y - gap - side, side, side)
+	return dash
+
+
+## A frame in a place: walk, sprint at the rim of the stick, and the buttons.
+##
+## **Sprint is the stick pushed to its rim**, and only here. The Hold's sprint
+## costs nothing (owner, 2026-09-18), so there is no pool to spend by accident;
+## on the road a full push costs SP and would drain a thumb that only meant to
+## walk, which is why the road does not do this.
+func _process_place() -> void:
+	_move = (_sticks[0] as TouchStick).value()
+	_aim = Vector2.ZERO
+	_attacking = false
+	(_sticks[1] as TouchStick).forget()
+	_axis(&"move_left", maxf(-_move.x, 0.0))
+	_axis(&"move_right", maxf(_move.x, 0.0))
+	_axis(&"move_up", maxf(-_move.y, 0.0))
+	_axis(&"move_down", maxf(_move.y, 0.0))
+	if Input.is_action_pressed(&"attack"):
+		Input.action_release(&"attack")
+	var sprinting: bool = _move.length() >= Balance.TOUCH_PLACE_SPRINT_PUSH
+	if sprinting and not _sprint_driving:
+		Input.action_press(&"sprint")
+		_sprint_driving = true
+	elif not sprinting and _sprint_driving:
+		Input.action_release(&"sprint")
+		_sprint_driving = false
+
+	if _dash.take_press():
+		Input.action_press(&"dash")
+	elif Input.is_action_pressed(&"dash"):
+		Input.action_release(&"dash")
+	if _ride.take_press():
+		Input.action_press(&"mount")
+		_mount_driving = true
+	elif _mount_driving:
+		Input.action_release(&"mount")
+		_mount_driving = false
+	# The door itself rather than the interact action: the Hold hears
+	# interact as an input event, and a pressed action is not an event.
+	if _enter.take_press() and _place != null:
+		_place.use_focus()
+
+	for button: TouchButton in [_revive, _loose, _ammo, _use, _cast]:
+		if button.visible:
+			button.visible = false
+			button.forget()
+	_seat_button(_dash, place_rect(0), true)
+	var verb: String = _place.focus_verb() if _place != null else ""
+	if _enter.label != verb and not verb.is_empty():
+		_enter.label = verb
+		_enter.queue_redraw()
+	_seat_button(_enter, place_rect(1), not verb.is_empty())
+	var riding: bool = _place != null and _place.is_riding()
+	var ride_label: String = "DOWN" if riding else "RIDE"
+	if _ride.label != ride_label:
+		_ride.label = ride_label
+		_ride.queue_redraw()
+	_seat_button(_ride, place_rect(2), _place != null and _place.can_ride())
+
+
+## One layer above the place being walked, or the road's own. The Hold paints
+## the whole screen on its layer, so controls left under it are drawn nowhere.
+func _layer_for() -> int:
+	if not in_place():
+		return ROAD_LAYER
+	var holder: CanvasLayer = _place.get_canvas_layer_node()
+	return holder.layer + 1 if holder != null else ROAD_LAYER
+
+
+func _seat_button(button: TouchButton, where: Rect2, shown: bool) -> void:
+	button.visible = shown
+	if shown:
+		button.position = where.position
+		button.size = where.size
+	elif button.is_held():
+		button.forget()
 
 
 ## A finger nothing else claimed, followed; two of them, a pinch.
@@ -646,8 +823,19 @@ func _process(_delta: float) -> void:
 		# listening for it.
 		if not live:
 			_release_all()
+	var wanted: int = _layer_for()
+	if layer != wanted:
+		layer = wanted
 	if not live:
 		return
+	if in_place():
+		_process_place()
+		return
+	# Off the road's buttons anything a place left up.
+	for button: TouchButton in [_enter, _ride]:
+		if button.visible:
+			button.visible = false
+			button.forget()
 	_move = (_sticks[0] as TouchStick).value()
 	var right: Vector2 = (_sticks[1] as TouchStick).value()
 
@@ -783,7 +971,13 @@ func _release_all() -> void:
 	if _dash != null:
 		_dash.forget()
 	_cast_driving = false
-	for button: TouchButton in [_loose, _ammo, _revive, _cast]:
+	if _sprint_driving:
+		Input.action_release(&"sprint")
+		_sprint_driving = false
+	if _mount_driving:
+		Input.action_release(&"mount")
+		_mount_driving = false
+	for button: TouchButton in [_loose, _ammo, _revive, _cast, _enter, _ride]:
 		if button != null:
 			button.forget()
 

@@ -7907,6 +7907,17 @@ const TOUCH_TAP_SLOP: float = 24.0
 ## player cannot line a shot up without committing to it.
 const TOUCH_ATTACK_THRESHOLD: float = 0.45
 
+## **The Hold's touch controls** (owner, 2026-09-27). The buttons stand in the
+## bottom-right corner, lifted by `TOUCH_PLACE_FOOT` so they clear the Hold's
+## prompt line (66 units off the bottom) and inset `TOUCH_PLACE_EDGE` from the
+## edge. The button for whatever is in reach is `TOUCH_PLACE_ENTER_SCALE` the
+## size of the others because it is the press that matters there. The stick
+## pushed past `TOUCH_PLACE_SPRINT_PUSH` sprints, which costs nothing in the Hold.
+const TOUCH_PLACE_FOOT: float = 84.0
+const TOUCH_PLACE_EDGE: float = 26.0
+const TOUCH_PLACE_ENTER_SCALE: float = 1.3
+const TOUCH_PLACE_SPRINT_PUSH: float = 0.9
+
 ## How visible the on-screen controls are.
 ##
 ## Low on purpose. They sit over the battlefield, and the thing a player needs to

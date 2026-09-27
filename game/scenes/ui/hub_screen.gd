@@ -235,6 +235,8 @@ func _build_frame() -> void:
 
 	_build_road_panel(frame)
 	EventBus.party_run_offered.connect(_on_road_offered)
+	TouchInput.field_tapped.connect(_on_field_tapped)
+	EventBus.pinch_zoomed.connect(_on_pinch)
 
 
 func _strip_button(text: String, on: Callable) -> Button:
@@ -425,13 +427,14 @@ func _tick_prompt() -> void:
 		return
 	var label: String = _yard.focus_label()
 	if label.is_empty():
-		_prompt.text = ("Tap where you want to stand" if TouchInput.is_showing()
-			else "Walk with the movement keys")
+		_prompt.text = ("Walk with the stick, or tap where you want to stand"
+			if TouchInput.is_showing() else "Walk with the movement keys")
 		_prompt.modulate = Color(1.0, 1.0, 1.0, 0.45)
 		return
 	_prompt.modulate = Color.WHITE
 	_prompt.text = "%s   -   %s" % [label,
-		"tap again to enter" if TouchInput.is_showing() else "press Interact"]
+		("press %s, or tap it" % _yard.focus_verb()) if TouchInput.is_showing()
+			else "press Interact"]
 
 
 func open() -> void:
@@ -1151,17 +1154,59 @@ func _unhandled_input(event: InputEvent) -> void:
 	# A tap walks there; a tap on something already in reach opens it, which is
 	# the only way a thumb can both cross a yard and use a door in it.
 	var click := event as InputEventMouseButton
-	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
+	if click == null or click.button_index != MOUSE_BUTTON_LEFT:
 		return
+	# **On glass, the lift rather than the press** (2026-09-27). Godot sends
+	# the mouse it emulates from finger 0 *before* the touch itself, so on the
+	# press no stick or button has claimed the finger yet and a thumb landing
+	# on DASH walked the Warden to it. By the lift the control holds the finger,
+	# `owns_pointer` says so, and the placement cursor has always waited for
+	# the same reason. A drag is not a tap either.
+	if TouchInput.is_showing():
+		if click.pressed:
+			_press_at = click.position
+			return
+		if TouchInput.owns_pointer() \
+				or click.position.distance_to(_press_at) > Balance.TOUCH_TAP_SLOP:
+			return
+	elif not click.pressed:
+		return
+	_tap_at(click.position)
+	get_viewport().set_input_as_handled()
+
+
+## Where the last press on glass went down, so a lift can tell a tap from a drag.
+var _press_at: Vector2 = Vector2.INF
+
+
+## One tap on the yard at a screen point: walk there, or open what is in reach.
+func _tap_at(screen_at: Vector2) -> void:
 	if _yard == null:
 		return
-	var at: Vector2 = _yard_point(click.position)
+	var at: Vector2 = _yard_point(screen_at)
 	var within: bool = _yard.warden_at().distance_to(at) <= Balance.HOLD_REACH
 	if within and not _yard.focus().is_empty():
 		_yard.use_focus()
 	else:
 		_yard.walk_toward(at)
-	get_viewport().set_input_as_handled()
+
+
+## A tap the move stick's corner took for a stick press, handed back. The stick
+## claims the lower left of the glass, and a tap there is still a tap.
+func _on_field_tapped(at: Vector2) -> void:
+	if _walkable():
+		_tap_at(at)
+
+
+## Two fingers apart zoom the yard in, together out - the wheel's slider.
+func _on_pinch(factor: float) -> void:
+	if _walkable() and factor > 0.0:
+		set_zoom(_zoom * factor)
+
+
+func _walkable() -> bool:
+	return visible and not _suspended and _yard != null \
+		and not (_card_root != null and _card_root.visible)
 
 
 # ------------------------------------------------------------- the road out

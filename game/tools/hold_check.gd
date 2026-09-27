@@ -91,6 +91,7 @@ func _ready() -> void:
 	_test_the_shelf_trails_the_warden()
 	_test_the_commission_costs_more()
 	_test_the_pond_is_bounded()
+	await _test_a_thumb_drives_the_hold()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
 	# function it happens in and nothing else. So planting the act-start fault
@@ -98,7 +99,7 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door", "stranger_gear"]:
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -110,8 +111,9 @@ func _ready() -> void:
 			+ "stands aside, seats are the session's, the shelf keeps its stock "
 			+ "across a restart, buying is always dearer than selling, and a "
 			+ "commission costs more and teaches nothing, the pond gives up "
-			+ "three and then goes quiet, and everybody in "
-			+ "it is working at their own post") % _checks)
+			+ "three and then goes quiet, everybody in "
+			+ "it is working at their own post, and a thumb can walk, sprint, "
+			+ "tap and open a door in it") % _checks)
 	else:
 		push_error("[hold] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -1075,3 +1077,145 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	push_error("[hold] " + why)
+
+
+# --- A thumb in the Hold ------------------------------------------------------
+
+
+## **A phone can walk the Hold** (owner, 2026-09-27: *"Need mobile controls at
+## the Hold."*). The Hold had tap-to-walk and nothing else: no stick, no dash,
+## no sprint, no horse, and every door wanted a second tap on the very spot.
+##
+## Driven through the viewport's own input, with touch forced on as a phone has
+## it, against a real `HubScreen` - so what is held is the whole road a thumb
+## takes: the controls come up *above* the yard (on the road's layer they would
+## be drawn under it, which is the easiest way for this to look finished and be
+## invisible), the stick walks and a push to its rim sprints, a tap in the
+## stick's own corner is still a tap on the yard, the button for what is in
+## reach opens its door, and the lot goes away under the Warden's card.
+func _test_a_thumb_drives_the_hold() -> void:
+	var kept_touch: Variant = MetaState.settings.get(TouchInput.TOUCH_KEY, null)
+	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	TouchInput.refresh()
+	var hub := HubScreen.new()
+	add_child(hub)
+	hub.visible = true
+	var yard: HoldYard = hub._yard
+	yard.set_driving(true)
+	await _frames(3)
+
+	_check(TouchInput.in_place(), "touch is on and the Hold is open, and the controls are not driving it")
+	_check(TouchInput.visible, "the Hold's touch controls are not shown")
+	_check(TouchInput.layer > hub.layer,
+		"the touch controls are on layer %d under the Hold's %d, so they are drawn under the yard"
+			% [TouchInput.layer, hub.layer])
+	var screen: Rect2 = get_viewport().get_visible_rect()
+	var dash: Control = TouchInput._dash
+	_check(dash.visible, "there is no dash button in the Hold")
+	_check(screen.encloses(Rect2(dash.position, dash.size)), "the dash button is off the screen")
+	var prompt: Rect2 = hub._prompt.get_global_rect()
+	for which: int in 3:
+		var spot: Rect2 = TouchInput.place_rect(which)
+		_check(screen.encloses(spot), "a Hold button (%d) is off the screen at %s" % [which, spot])
+		var prompt_line := Rect2(prompt.position.x + prompt.size.x * 0.25, prompt.position.y,
+			prompt.size.x * 0.5, prompt.size.y)
+		_check(not spot.intersects(prompt_line),
+			"a Hold button (%d) at %s covers the prompt line at %s" % [which, spot, prompt_line])
+	_check(not TouchInput._enter.visible, "an ENTER button with nothing in reach")
+	_check(TouchInput._ride.visible == yard.can_ride(), "the ride button disagrees with whether there is a horse")
+
+	# Walk: half a push east, for a while.
+	var zone: Rect2 = TouchInput.zone(false)
+	var thumb: Vector2 = zone.position + Vector2(zone.size.x * 0.4, zone.size.y * 0.45)
+	yard._seats[0]["at"] = yard._on_ground(yard.at_cell(HoldYard.ENTRY))
+	var from: Vector2 = yard.warden_at()
+	_touch(0, thumb, true)
+	_drag(0, thumb + Vector2(Balance.TOUCH_STICK_REACH * 0.55, 0.0))
+	await _seconds(0.6)
+	var walked: float = yard.warden_at().x - from.x
+	_check(walked > 30.0, "half a push east on the stick walked the Warden %.1f units" % walked)
+	_check(not Input.is_action_pressed(&"sprint"), "half a push sprints")
+	_drag(0, thumb + Vector2(Balance.TOUCH_STICK_REACH * 1.2, 0.0))
+	await _frames(2)
+	_check(Input.is_action_pressed(&"sprint"), "the stick pushed to its rim does not sprint")
+	_touch(0, thumb + Vector2(Balance.TOUCH_STICK_REACH * 1.2, 0.0), false)
+	await _frames(2)
+	for action: StringName in [&"move_right", &"sprint"]:
+		_check(not Input.is_action_pressed(action), "%s is still held after the thumb lifted" % action)
+
+	# A tap in the stick's own corner is a tap on the yard.
+	yard._walk_to = Vector2.INF
+	_touch(1, thumb, true)
+	_touch(1, thumb, false)
+	await _frames(1)
+	_check(yard._walk_to != Vector2.INF, "a tap in the move stick's corner did not walk the Warden there")
+	yard._walk_to = Vector2.INF
+
+	# The door in reach: bound, stood beside, and opened with the button.
+	var opened: Array = []
+	var target: Dictionary = {}
+	for station: Dictionary in yard._stations:
+		if not String(station["door"]).is_empty():
+			target = station
+			break
+	_check(not target.is_empty(), "the Hold has no station with a door")
+	if not target.is_empty():
+		var door := Button.new()
+		door.name = String(target["door"])
+		add_child(door)
+		door.pressed.connect(func() -> void: opened.append(true))
+		yard.bind(String(target["door"]), door)
+		yard._seats[0]["at"] = (target["at"] as Vector2) + Vector2(0.0, 40.0)
+		await _frames(3)
+		var enter: Control = TouchInput._enter
+		_check(enter.visible, "standing at %s there is no button for it" % String(target["id"]))
+		_check(TouchInput._enter.label == "ENTER", "a building's button says %s" % TouchInput._enter.label)
+		var middle: Vector2 = enter.position + enter.size * 0.5
+		_touch(2, middle, true)
+		await _frames(2)
+		_touch(2, middle, false)
+		_check(opened.size() == 1, "the ENTER button opened the door %d times" % opened.size())
+		door.queue_free()
+
+	# Under the card there is nothing to drive.
+	yard.set_driving(true)
+	hub._show_card()
+	await _frames(2)
+	_check(not TouchInput.visible, "the touch controls stay up over the Warden's card")
+	hub._hide_card()
+	hub.queue_free()
+	await _frames(2)
+	_check(not TouchInput.in_place(), "the controls still drive a Hold that has gone")
+	if kept_touch == null:
+		MetaState.settings.erase(TouchInput.TOUCH_KEY)
+	else:
+		MetaState.settings[TouchInput.TOUCH_KEY] = kept_touch
+	TouchInput.refresh()
+	_reached["thumb"] = true
+
+
+func _touch(finger: int, at: Vector2, down: bool) -> void:
+	var touch := InputEventScreenTouch.new()
+	touch.index = finger
+	touch.position = at
+	touch.pressed = down
+	get_viewport().push_input(touch, true)
+
+
+func _drag(finger: int, at: Vector2) -> void:
+	var drag := InputEventScreenDrag.new()
+	drag.index = finger
+	drag.position = at
+	get_viewport().push_input(drag, true)
+
+
+func _frames(count: int) -> void:
+	for _frame: int in count:
+		await get_tree().process_frame
+
+
+## In seconds rather than frames: headless runs far above sixty a second.
+func _seconds(span: float) -> void:
+	var until: int = Time.get_ticks_msec() + int(span * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame

@@ -496,6 +496,10 @@ var _dash_rest: float = 0.0
 
 func _ready() -> void:
 	name = "HoldYard"
+	# A thumb drives the Warden here through the road's own stick and a few
+	# buttons of the Hold's; `TouchInput` asks this yard whether it is being
+	# driven, so it is up exactly while a player could walk.
+	TouchInput.drive_place(self)
 	# **The paths and the worn patches read the ground in world coordinates**,
 	# so their UVs run well past one and the texture has to wrap. Left on the
 	# default this node clamps to the edge texel, and a whole route comes out
@@ -1910,6 +1914,38 @@ func set_driving(on: bool) -> void:
 	_driving = on
 	if not on:
 		_walk_to = Vector2.INF
+
+
+func is_driving() -> bool:
+	return _driving
+
+
+func _exit_tree() -> void:
+	TouchInput.leave_place(self)
+
+
+## What a thumb's button says for whatever is in reach: a building is entered
+## and a person is talked to, or "" when nothing is. The same door the keyboard
+## opens either way (`use_focus`); only the word differs.
+func focus_verb() -> String:
+	if _focus.is_empty():
+		return ""
+	for person: Dictionary in _residents:
+		if String(person["id"]) == _focus:
+			return "TALK"
+	return "ENTER"
+
+
+## Whether the Warden has a horse here to get on, and whether they are on it.
+func can_ride() -> bool:
+	if _seats.is_empty():
+		return false
+	var rig: MountRig = _seats[0].get("rig", null) as MountRig
+	return rig != null and is_instance_valid(rig)
+
+
+func is_riding() -> bool:
+	return not _seats.is_empty() and bool(_seats[0].get("riding", false))
 
 
 func _process(delta: float) -> void:
