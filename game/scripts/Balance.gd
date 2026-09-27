@@ -1372,9 +1372,10 @@ const TOWER_SLOT_COUNT: int = 4
 ## Re-read 2026-09-21 off `curve_report`'s purse column at the first wave of
 ## each act, on the road of that date (an eighth longer, reference height 330).
 ## Re-read 2026-09-26 on the denser road the augments are measured against.
-## Re-read 2026-09-27 on the Arsenal's road: more bodies, each worth less.
+## Re-read 2026-09-27 on the Arsenal's road: more bodies, each worth less, and
+## again the same day once Act II took 2.30 bodies for its softer step.
 const ACT_START_BUDGET: Array[int] = [
-	0, 1083, 2541, 4614, 7312, 10878, 15575, 21826, 29205, 38601,
+	0, 1083, 2577, 4650, 7349, 10914, 15606, 21857, 29236, 38632,
 ]
 
 ## **The drafts a walked road would have dealt by each act** (augments,
@@ -1384,10 +1385,10 @@ const ACT_START_BUDGET: Array[int] = [
 ## road is tuned against a hand that size, and one that arrived with none would
 ## be a harder road than the one it stands in for. [TUNE]
 const ACT_START_ROAD_RANK: Array[int] = [
-	0, 6, 11, 16, 20, 24, 29, 33, 37, 41,
+	0, 6, 11, 16, 20, 24, 29, 33, 37, 42,
 ]
 const ACT_START_DRAFTS: Array[int] = [
-	0, 8, 15, 22, 28, 34, 41, 48, 54, 61,
+	0, 8, 15, 22, 28, 34, 41, 48, 54, 62,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
