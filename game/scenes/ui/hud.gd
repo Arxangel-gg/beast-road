@@ -587,6 +587,8 @@ var _spell_cooldowns: Array[Label] = []
 ## `MountCooldownRing` for what it draws and `_update_ride_button` for when.
 var _ride_cooldown: MountCooldownRing = null
 var _spell_bar: HBoxContainer
+## The Arsenal's tiles beside the ability slots (desktop only; see `ArsenalStrip`).
+var _arsenal_strip: ArsenalStrip = null
 var _bottom_row: HBoxContainer
 
 ## The fishing readout: the pond's prompt, the tension bar with its safe band,
@@ -811,6 +813,9 @@ func _ready() -> void:
 		battlefield.placement.road_tile_clicked.connect(_open_road_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
+	if _arsenal_strip != null:
+		_arsenal_strip.hero = _hero
+		_arsenal_strip.board = battlefield
 	if _hero != null and _hero.spells != null and not _hero.spells.cast_starved.is_connected(_on_cast_starved):
 		_hero.spells.cast_starved.connect(_on_cast_starved)
 	_refresh_currencies()
@@ -4497,6 +4502,11 @@ func _build_bottom_row() -> void:
 	_build_action_bar(actions)
 
 	_build_spell_bar(centre)
+	# **The Arsenal beside the slots**, on a desktop: a thumb's combat row has
+	# no width to give, and the pause screen lists the hand there as before.
+	if not touch_ui():
+		_arsenal_strip = ArsenalStrip.new()
+		centre.add_child(_arsenal_strip)
 
 
 ## Whether the interface is being driven by a thumb.
@@ -6560,6 +6570,10 @@ func _on_scope_changed(scope: int) -> void:
 		_preparation_panel.visible = on_field and RunState.is_preparation()
 	if _spell_bar != null:
 		_spell_bar.visible = on_field or in_raid
+		if _arsenal_strip != null:
+			_arsenal_strip.set_process(on_field or in_raid)
+			if not (on_field or in_raid):
+				_arsenal_strip.visible = false
 	# The pressure ring and the boss bar describe the battlefield. Floating them
 	# over the town reads as though the town is the thing under attack.
 	if _lane_ring != null:

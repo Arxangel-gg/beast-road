@@ -231,6 +231,8 @@ jobs:
           run_godot_clean --headless --path game res://tools/stagger_check.tscn
           run_godot_clean --headless --path game res://tools/gear_set_check.tscn
           run_godot_clean --headless --path game res://tools/gear_socket_check.tscn
+          run_godot_clean --headless --path game res://tools/stash_doll_check.tscn
+          run_godot_clean --headless --path game res://tools/arsenal_strip_check.tscn
           run_godot_clean --headless --path game res://tools/stash_render_check.tscn
           run_godot_clean --headless --path game res://tools/pen_check.tscn
           run_godot_clean --headless --path game res://tools/expedition_check.tscn

@@ -60,7 +60,7 @@ func _ready() -> void:
 	var worn: GearData = ContentDB.gear(String(
 		(MetaState.stash[1] as Dictionary).get("kind", "")))
 	if worn != null:
-		MetaState.equipped[worn.slot] = 1
+		MetaState.equip(worn.slot, 1)
 
 	var screen := (load("res://scenes/ui/trade_screen.gd") as GDScript).new() as CanvasLayer
 	add_child(screen)

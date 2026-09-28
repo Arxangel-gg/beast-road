@@ -659,6 +659,9 @@ const ARSENAL_BOLT_SIZE: float = 14.0
 const ARSENAL_BODY_ALLOWANCE: float = 20.0
 ## A weapon with nothing to fire at looks again this soon. [TUNE]
 const ARSENAL_RETRY: float = 0.25
+## How often the HUD's Arsenal strip re-reads the hand. A picture, so a clock
+## rather than every frame.
+const ARSENAL_STRIP_HZ: float = 10.0
 ## How long a weapon's slow holds. [TUNE]
 const ARSENAL_SLOW_SECONDS: float = 1.4
 ## A bolt whose body fell finds another this near; it turns toward its body this
@@ -8121,6 +8124,10 @@ const UI_PORTRAIT_MENU_WIDTH: float = 900.0
 ## reverted: it trades a layout fault for 49px targets under the 92px a thumb
 ## needs, which is the worse of the two.
 const UI_STASH_WIDE_FILTERS: float = 1000.0
+## The stash shows the dressed Warden and the nine slot tiles beside the list
+## from this screen width (docs/GEAR_REWORK_2026-09-28.md §5); narrower, and on
+## a thumb, the list has the whole panel and the slot tabs do the filtering.
+const UI_STASH_DOLL_WIDTH: float = 1180.0
 const UI_TOUCH_MIN_FONT_SIZE: int = 26
 const UI_TOUCH_PANEL_SCALE: float = 1.10
 const UI_TOUCH_GAP_SCALE: float = 1.28

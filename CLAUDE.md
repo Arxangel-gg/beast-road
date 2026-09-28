@@ -11214,6 +11214,44 @@ scanning names for one whose own affix carries a gem's key, the trade lock,
 three temperings at a climbing price and a fourth refused, the save round trip
 with planted rows, a partner's sheet, and the screen.
 
+**The stash is a paper doll, and the Arsenal is on the HUD, as of
+2026-09-28.** Owner: *"elevate the Gear UI to perfect aesthetics and polish"*;
+`docs/GEAR_REWORK_2026-09-28.md` §5. The list kept everything it had - the
+cards, the menu, the sweeps, the filters - and gained a column beside it: the
+dressed Warden turning on the Glass's own stage, wearing this account's gear so
+the doll cannot disagree with the road about what is worn; the nine slots as
+tiles, each the worn piece's own mark in its rarity frame or the slot's mark
+dimmed, a dot a set gem; and the five attributes with the perk tier each has
+reached. **A tile is a filter**: pressing one reads the list by that slot and
+pressing it again reads everything, which is what the tabs do, so a thumb and
+a mouse reach the same list. The Market's comparison card answers a hover or a
+pad focus on any unworn row - never a worn one, since a piece compared with
+itself says nothing - and "Upgrades only" reads the list as the one question a
+stash is opened for. **The doll steps aside** below `UI_STASH_DOLL_WIDTH` and
+on a thumb, because the list had a way out on every shape before the doll
+existed and must still.
+
+**Three harnesses were still writing positions into a map of names**, found
+by grepping for the shape rather than by anything failing: `stash_render_check`
+(twice) and `trade_shot` wrote a stash index into `equipped`, which has been
+keyed by uid since 2026-09-22 - so the "complete set renders" picture had been
+measured with nothing worn and every check green. They go through
+`MetaState.equip` now. **The stash's own attribute table stopped at four**:
+Resolve joined on 2026-09-13 and the row clamped a fifth attribute onto the
+fourth, so "+3 Resolve" read "+3 Focus" on the line a player chooses on. One
+table, the game's own (`RunState.ATTRIBUTE_NAMES`).
+
+**And the hand is visible between drafts.** `ArsenalStrip` sits beside the
+ability slots on a desktop: a tile a weapon, the Warden's first and the board's
+after a gap, an arc for how ready it is and a pip a level, read off
+`Arsenal.readout()` on `ARSENAL_STRIP_HZ`. A weapon whose clock can be seen is
+one a player can fight around. **A readout reads**: it changes no number, rolls
+no die and sends nothing, and `arsenal_strip_check` holds the account
+byte-identical either side of drawing it, the clocked share climbing as the
+clock runs down, a guard's share as its stones, and the strip off and hidden in
+the town. A thumb's combat row has no width to give, so a phone reads the hand
+on the pause screen as before.
+
 **The forge window judges a sheet the way it will be seen, as of 2026-09-28.**
 Owner: *"Elevate our Forge VFX tool."* The window of 2026-09-22 played one take,
 square and upright, alone. Every rule the game applies to a sheet is now a

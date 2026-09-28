@@ -157,6 +157,37 @@ func _weapon_of(card_id: String) -> ArsenalWeaponData:
 	return card.weapon_data() if card != null else null
 
 
+## **What the HUD draws**: every armed card, its level, and how ready it is
+## as a share from nought to one - the clock against the cadence for a weapon
+## that fires on a clock, the stones standing for a guard, the kills counted
+## for a weapon that fires every so many, and one for a weapon that is always
+## on (an orbit, a trail, a field, an arc). Read by `ArsenalStrip` and by
+## nothing that decides anything.
+func readout() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id: String in armed_cards():
+		var armed: Armed = _armed[id]
+		var weapon: ArsenalWeaponData = armed.weapon
+		var share: float = 1.0
+		match weapon.pattern:
+			ArsenalWeaponData.Pattern.ORBIT, ArsenalWeaponData.Pattern.TRAIL, \
+					ArsenalWeaponData.Pattern.FIELD, ArsenalWeaponData.Pattern.ARC:
+				share = 1.0
+			ArsenalWeaponData.Pattern.GUARD:
+				var full: int = maxi(count_for(weapon, armed.level), 1)
+				share = 1.0 if armed.stones < 0 else clampf(float(armed.stones) / float(full), 0.0, 1.0)
+			ArsenalWeaponData.Pattern.ON_KILL:
+				share = 1.0
+			_:
+				if weapon.every_kills > 0:
+					share = clampf(float(armed.kills) / float(weapon.every_kills), 0.0, 1.0)
+				else:
+					var wait: float = maxf(cadence(weapon), 0.001)
+					share = 1.0 - clampf(armed.clock / wait, 0.0, 1.0)
+		out.append({"card": armed.card, "level": armed.level, "share": share})
+	return out
+
+
 ## The cards armed right now - for the gate.
 func armed_cards() -> Array[String]:
 	var out: Array[String] = []

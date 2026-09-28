@@ -103,7 +103,10 @@ func _test_the_best_piece_in_the_game_fits_on_its_card() -> void:
 	# One of them worn, because a worn card carries an extra word on its second
 	# line and a brighter edge - and that is the row most likely to overflow.
 	var first_kind: GearData = per_slot[per_slot.keys()[0]] as GearData
-	MetaState.equipped[first_kind.slot] = 0
+	for index: int in MetaState.stash.size():
+		if String((MetaState.stash[index] as Dictionary).get("kind", "")) == first_kind.id:
+			MetaState.equip(first_kind.slot, index)
+			break
 
 	await _open_and_measure("the top rarity at full level")
 
@@ -127,8 +130,9 @@ func _test_a_complete_set_renders() -> void:
 		var kind: GearData = ContentDB.gear(String(member))
 		if kind == null:
 			continue
-		MetaState.equipped[kind.slot] = MetaState.stash.size()
-		MetaState.stash.append(Stash.make(kind.id, top, Stash.MAX_LEVEL))
+		var piece: Dictionary = Stash.make(kind.id, top, Stash.MAX_LEVEL)
+		MetaState.stash.append(piece)
+		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
 	_check(MetaState.stash.size() >= 2,
 		"a set must put at least two pieces in the stash to render")
 	await _open_and_measure("a complete set")

@@ -32,6 +32,17 @@ const TOOL_COLUMNS: int = 3
 const ATTRIBUTE_NAMES: Array[String] = RunState.ATTRIBUTE_NAMES
 
 var _panel: PanelContainer
+## The paper doll (docs/GEAR_REWORK_2026-09-28.md §5): the dressed Warden, the
+## nine slot tiles and the attributes, in a column beside the list on a screen
+## wide enough for both. `_stage` is null on an account whose body is not drawn.
+var _body: HBoxContainer
+var _doll: VBoxContainer
+var _stage: WardenStage = null
+var _tiles: GridContainer
+var _sheet: VBoxContainer
+## The comparison card the Market already draws, laid over the screen while a
+## row is hovered or focused: what this piece would be instead of what is worn.
+var _compare: GearCompare
 var _list: VBoxContainer
 var _header: Label
 var _note: Label
@@ -55,6 +66,11 @@ var _filter: int = -1
 ## which is the question a full stash is actually opened with, and it is the one
 ## the Sort button puts the store itself into.
 var _best_first: bool = false
+
+## **Only what beats what is worn.** A stash of ninety-six is opened to answer
+## one question, and this reading answers it directly: an unworn piece whose
+## points beat the worn piece of its slot, and nothing else.
+var _upgrades_only: bool = false
 
 ## The last thing a bulk action had to say. Kept in a field rather than written
 ## straight to the label, because `_refresh` rewrites that label - the same trap
@@ -84,9 +100,28 @@ func _build() -> void:
 	_panel.custom_minimum_size = Vector2(940.0, 0.0)
 	centre.add_child(_panel)
 
+	# **The doll beside the list.** The list keeps everything it had; the doll
+	# is a column to its left that `_refit` shows only where there is room.
+	_body = HBoxContainer.new()
+	_body.add_theme_constant_override("separation", 14)
+	_panel.add_child(_body)
+	_doll = _build_doll()
+	_body.add_child(_doll)
+
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
-	_panel.add_child(column)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body.add_child(column)
+
+	# **The comparison card, on the layer rather than in the panel**, so a hover
+	# re-lays nothing: it is the Market's own card, anchored to the bottom of
+	# the screen exactly as the Market anchors it.
+	_compare = GearCompare.new()
+	_compare.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_compare.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_compare.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_compare.offset_bottom = -COMPARE_LIFT
+	add_child(_compare)
 
 	_header = Label.new()
 	_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -172,6 +207,167 @@ func _dress() -> void:
 	UiJuice.enrol(get_tree(), self)
 
 
+## The doll's column: the Warden, the nine slots and the attributes.
+func _build_doll() -> VBoxContainer:
+	var doll := VBoxContainer.new()
+	doll.name = "Doll"
+	doll.custom_minimum_size = Vector2(DOLL_WIDTH, 0.0)
+	doll.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "Wearing"
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color("b8ae98"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	doll.add_child(title)
+
+	# The dressed Warden, the Glass's own stage, wearing this account's gear -
+	# so the doll cannot disagree with the road about what is worn. An account
+	# whose body is not drawn yet has the tiles and no figure.
+	if WardenDress.available(WardenDress.body_name(WardenLook.worn())):
+		_stage = WardenStage.new()
+		_stage.name = "Stage"
+		_stage.turn_seconds = STAGE_TURN_SECONDS
+		_stage.art_scale = STAGE_ART_SCALE
+		_stage.custom_minimum_size = Vector2(DOLL_WIDTH, STAGE_HEIGHT)
+		_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		doll.add_child(_stage)
+
+	_tiles = GridContainer.new()
+	_tiles.name = "Slots"
+	_tiles.columns = TILE_COLUMNS
+	_tiles.add_theme_constant_override("h_separation", 6)
+	_tiles.add_theme_constant_override("v_separation", 6)
+	_tiles.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	doll.add_child(_tiles)
+
+	_sheet = VBoxContainer.new()
+	_sheet.name = "Attributes"
+	_sheet.add_theme_constant_override("separation", 2)
+	doll.add_child(_sheet)
+	return doll
+
+
+## One tile a slot: the worn piece's own mark in its rarity frame, or the
+## slot's mark dimmed where nothing is worn; a dot a set gem. **Pressing one
+## filters the list to that slot**, and pressing it again reads everything -
+## the tabs do the same, so a thumb and a mouse reach the same list.
+func _build_tiles() -> void:
+	if _tiles == null:
+		return
+	for child: Node in _tiles.get_children():
+		_tiles.remove_child(child)
+		child.queue_free()
+	for slot: int in GearData.Slot.size():
+		var piece: Dictionary = MetaState.equipped_piece(slot)
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
+		var worn: bool = kind != null
+		var tint: Color = Stash.rarity_colour(piece) if worn else Color("6f766f")
+		var tile := Button.new()
+		tile.name = "Tile%s" % GearData.name_of_slot(slot)
+		tile.toggle_mode = true
+		tile.button_pressed = _filter == slot
+		tile.custom_minimum_size = Vector2(TILE_SIZE, TILE_SIZE + TILE_LABEL)
+		tile.add_theme_stylebox_override("normal", _card_plate(tint, worn, 0.0))
+		tile.add_theme_stylebox_override("hover", _card_plate(tint, worn, 0.34))
+		tile.add_theme_stylebox_override("pressed", _card_plate(tint, worn, 0.5))
+		tile.add_theme_stylebox_override("focus", _card_plate(tint, worn, 0.34))
+		tile.tooltip_text = ("%s %s\n%s" % [Stash.rarity_name(piece), kind.display_name,
+			GearRow.bonus_text(piece, kind)]) if worn else "Nothing worn as %s" % GearData.name_of_slot(slot).to_lower()
+		var face := VBoxContainer.new()
+		face.set_anchors_preset(Control.PRESET_FULL_RECT)
+		face.add_theme_constant_override("separation", 0)
+		face.alignment = BoxContainer.ALIGNMENT_CENTER
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(face)
+		var icon := TextureRect.new()
+		icon.name = "Mark"
+		icon.custom_minimum_size = Vector2(TILE_ICON, TILE_ICON)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.texture = _art_at(kind.get_sprite_path()) if worn else _slot_mark(slot)
+		icon.modulate = tint.lerp(Color.WHITE, 0.45) if worn else Color(1.0, 1.0, 1.0, 0.32)
+		face.add_child(icon)
+		# A dot a set gem, in the gem's own colour, under the mark.
+		var gems: Array[String] = Stash.gems(piece)
+		if not gems.is_empty():
+			var dots := HBoxContainer.new()
+			dots.name = "Gems"
+			dots.alignment = BoxContainer.ALIGNMENT_CENTER
+			dots.add_theme_constant_override("separation", 3)
+			dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			for gem_id: String in gems:
+				var stone: MaterialData = ContentDB.material(gem_id)
+				var dot := ColorRect.new()
+				dot.custom_minimum_size = Vector2(7.0, 7.0)
+				dot.color = Stash.RARITY_COLOURS[clampi((stone.rarity if stone != null else 0) + 2, 0,
+					Stash.RARITY_COLOURS.size() - 1)]
+				dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				dots.add_child(dot)
+			face.add_child(dots)
+		var caption := Label.new()
+		caption.text = GearData.name_of_slot(slot)
+		caption.add_theme_font_size_override("font_size", 11)
+		caption.add_theme_color_override("font_color", tint.lerp(Color("cfd6d0"), 0.6))
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.add_child(caption)
+		var which: int = slot
+		tile.pressed.connect(func() -> void:
+			_filter = -1 if _filter == which else which
+			_refresh())
+		_tiles.add_child(tile)
+
+
+## The five attributes as the road reads them - placed and worn together - and
+## the perk tier each has reached, on one line apiece.
+func _build_sheet() -> void:
+	if _sheet == null:
+		return
+	for child: Node in _sheet.get_children():
+		_sheet.remove_child(child)
+		child.queue_free()
+	for which: int in RunState.ATTRIBUTE_NAMES.size():
+		var total: int = WardenSheet.attribute_of(null, which)
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 6)
+		var mark := TextureRect.new()
+		mark.custom_minimum_size = Vector2(18.0, 18.0)
+		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.texture = IconKit.attribute(which)
+		line.add_child(mark)
+		var words := Label.new()
+		var perk: AttributePerkData = ContentDB.attribute_perk(which)
+		var tiers: int = WardenSheet.perk_tiers(null, which)
+		words.text = "%s %d" % [RunState.ATTRIBUTE_NAMES[which], total]
+		if perk != null and tiers > 0:
+			words.text += "  ·  %s %s" % [perk.display_name, ["", "I", "II", "III", "IV", "V"][clampi(tiers, 0, 5)]]
+		words.add_theme_font_size_override("font_size", 13)
+		words.add_theme_color_override("font_color", RunState.ATTRIBUTE_COLOURS[which].lerp(Color("e8e2d4"), 0.4)
+			if which < RunState.ATTRIBUTE_COLOURS.size() else Color("cfd6d0"))
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.tooltip_text = perk.line(tiers, total) if perk != null else ""
+		line.add_child(words)
+		_sheet.add_child(line)
+
+
+## Dresses the figure in what is worn now. Asked on every refresh, because a
+## piece equipped from the list has to be on the Warden's back the same frame.
+func _dress_doll() -> void:
+	if _stage != null:
+		_stage.show_look(WardenLook.worn())
+
+
+## Whether the doll's column fits: a screen wide enough for both it and the
+## list, and never on a thumb, where the panel is the whole glass.
+func _doll_fits(screen: Vector2) -> bool:
+	return screen.x >= Balance.UI_STASH_DOLL_WIDTH and not TouchInput.is_showing()
+
+
 func open() -> void:
 	visible = true
 	# **Refresh first, then fit.** `_refit` measures the column's other children
@@ -187,6 +383,8 @@ func open() -> void:
 
 func hide_screen() -> void:
 	visible = false
+	if _compare != null:
+		_compare.hide_pair()
 	closed.emit()
 
 
@@ -219,8 +417,13 @@ func _refit() -> void:
 	if _tools != null:
 		_tools.columns = TOOL_COLUMNS if screen.x >= Balance.UI_STASH_WIDE_FILTERS \
 			else TOOL_COLUMNS - 1
+	# The doll takes its column only where the screen has one to give; the
+	# panel grows by exactly that column when it does.
+	var doll_shown: bool = _doll_fits(screen)
+	if _doll != null:
+		_doll.visible = doll_shown
 	_panel.custom_minimum_size = Vector2(
-		minf(940.0, screen.x - Balance.UI_PANEL_MARGIN * 2.0),
+		minf(940.0 + (DOLL_WIDTH + 14.0 if doll_shown else 0.0), screen.x - Balance.UI_PANEL_MARGIN * 2.0),
 		minf(screen.y * 0.82, 860.0))
 	# **Measured, not guessed.** This reserved a flat 300 for "heading, note, the
 	# tool row and Close" - written when the filters were one row of three. They
@@ -247,6 +450,10 @@ func _sorted_indices() -> Array[int]:
 		var piece: Dictionary = MetaState.stash[index]
 		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
 		if _filter >= 0 and (kind == null or int(kind.slot) != _filter):
+			continue
+		# Upgrades only: an unworn piece that beats what is worn in its slot.
+		if _upgrades_only and kind != null and (MetaState.is_equipped_index(index)
+				or Stash.points(piece, kind) <= HoldNews.worn_points(int(kind.slot))):
 			continue
 		order.append(index)
 	# **Best first reads the store's own order**, which `MetaState.sort_stash`
@@ -459,6 +666,21 @@ func _build_tools() -> void:
 		_refresh())
 	_tools.add_child(tidy)
 
+	# **Upgrades only.** Not a toggle button: `menu_check` counts the toggles in
+	# this grid as the slot filters, and this is a reading of the list rather
+	# than a slot. The words say which way it is set.
+	var better := Button.new()
+	better.text = "Upgrades  ·  showing" if _upgrades_only else "Upgrades only"
+	better.tooltip_text = ("Only pieces that beat what you are wearing in their "
+		+ "slot, by attribute points. Press again for everything.")
+	better.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
+	better.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	better.add_theme_font_size_override("font_size", 14)
+	better.pressed.connect(func() -> void:
+		_upgrades_only = not _upgrades_only
+		_refresh())
+	_tools.add_child(better)
+
 	# Two thresholds rather than one "break everything": the first is chaff a
 	# player will never wear, the second is what a mid-run stash fills with. Both
 	# stop below Fine, because breaking a Fine piece is a decision.
@@ -537,6 +759,11 @@ func _refresh() -> void:
 		_list.remove_child(child)
 		child.queue_free()
 	_build_tools()
+	_dress_doll()
+	_build_tiles()
+	_build_sheet()
+	if _compare != null:
+		_compare.hide_pair()
 	_header.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 	var worn: Array[int] = MetaState.gear_attribute_points()
 	var parts: PackedStringArray = []
@@ -689,6 +916,18 @@ func _fish_row(kind: FishData) -> Container:
 ## content actually needs. At 104 the best gear in the game was **eight pixels
 ## short** - its last row of bonuses drawn under its own border, with nothing to
 ## say so, which is precisely the pieces a player cares about. [TUNE]
+## The doll's column (docs/GEAR_REWORK_2026-09-28.md §5).
+const DOLL_WIDTH: float = 292.0
+const STAGE_HEIGHT: float = 210.0
+const STAGE_TURN_SECONDS: float = 3.2
+const STAGE_ART_SCALE: float = 1.4
+const TILE_COLUMNS: int = 3
+const TILE_SIZE: float = 84.0
+const TILE_ICON: float = 52.0
+const TILE_LABEL: float = 18.0
+## How far above the bottom edge the comparison card sits.
+const COMPARE_LIFT: float = 36.0
+
 const CARD_HEIGHT: float = 118.0
 
 ## What each row of bonuses past the first adds to a card's height.
@@ -800,6 +1039,14 @@ func _row(index: int) -> Container:
 	card.add_theme_stylebox_override("focus", _card_plate(tint, is_worn, 0.34))
 	card.tooltip_text = kind.description if kind != null else "Unknown"
 	card.pressed.connect(func() -> void: _open_item_menu(index, card))
+	# **The comparison on hover and on focus** - a hover wired only to the
+	# mouse is a feature for one of the three ways this game is played. Never
+	# for a worn piece: comparing a piece with itself says nothing.
+	if not is_worn:
+		card.mouse_entered.connect(func() -> void: _compare_to_worn(piece))
+		card.focus_entered.connect(func() -> void: _compare_to_worn(piece))
+		card.mouse_exited.connect(func() -> void: _hide_compare())
+		card.focus_exited.connect(func() -> void: _hide_compare())
 
 	var face := HBoxContainer.new()
 	face.add_theme_constant_override("separation", 12)
@@ -910,6 +1157,18 @@ func _row(index: int) -> Container:
 	tag.add_child(chevron)
 	face.add_child(tag)
 	return _wrap_card(card)
+
+
+## Lays the hovered piece beside whatever is worn in its slot.
+func _compare_to_worn(piece: Dictionary) -> void:
+	if _compare == null or not is_instance_valid(_compare):
+		return
+	_compare.show_pair(piece)
+
+
+func _hide_compare() -> void:
+	if _compare != null and is_instance_valid(_compare):
+		_compare.hide_pair()
 
 
 ## A card sits in a plain container so the list's own layout is unchanged.
