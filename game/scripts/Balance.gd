@@ -1102,6 +1102,17 @@ const SPELL_METEOR_DELAY: float = 0.85
 const SPELL_VOLLEY_STRIKES: int = 6
 const SPELL_VOLLEY_SCATTER: float = 0.85
 
+## **What a ranged spell shows on the way** (2026-09-28). A meteor falls from
+## `SPELL_METEOR_FALL` above its mark, up and back along the aim, over its
+## whole delay; a volley's thorns are lobbed from the hand over an arc of
+## `SPELL_VOLLEY_ARC`; a beam is a band `SPELL_BEAM_WIDTH_SHARE` of its reach
+## wide; a hook flies out in `SPELL_HOOK_SECONDS` and what a drain takes
+## flows back over `SPELL_DRAIN_SECONDS`. Pictures; the blows are unchanged.
+const SPELL_METEOR_FALL: Vector2 = Vector2(-210.0, -560.0)
+const SPELL_VOLLEY_ARC: float = 110.0
+const SPELL_BEAM_WIDTH_SHARE: float = 0.075
+const SPELL_HOOK_SECONDS: float = 0.14
+const SPELL_DRAIN_SECONDS: float = 0.42
 ## The tell and the blow. Warm amber going in, hot white coming down, so a
 ## player reads "something is about to land here" and then "it landed".
 const SPELL_STRIKE_WARNING_COLOUR: Color = Color(0.96, 0.68, 0.26, 0.70)
@@ -6361,6 +6372,19 @@ const VFX_INK_NUMBERS_MAX: int = 120
 ## lob's. Records on the flat canvas now, like the numbers. A whole field's
 ## worth of landings at once, and the oldest give way.
 const VFX_INK_DUST_MAX: int = 400
+## **Streaks and beams** (2026-09-28): what a spell shows travelling. A
+## streak is a head with `VFX_STREAK_GHOSTS` ghosts behind it, each
+## `VFX_STREAK_GHOST_STEP` of its life back; its painted head turns at
+## `VFX_STREAK_FRAME_RATE`. A channel's beam lives `VFX_BEAM_FRAME_LIFE` a
+## call and is called every frame, so it is continuous while held and gone
+## the frame after. [TUNE]
+const VFX_INK_STREAKS_MAX: int = 160
+const VFX_INK_BEAMS_MAX: int = 24
+const VFX_STREAK_GHOSTS: int = 5
+const VFX_STREAK_GHOST_STEP: float = 0.045
+const VFX_STREAK_FRAME_RATE: float = 14.0
+const VFX_STREAK_SIZE: float = 15.0
+const VFX_BEAM_FRAME_LIFE: float = 0.09
 ## Drops of blood in the air at once (`BloodMotes`). A blow throws five to
 ## nine for half a second, so this is about forty blows in flight; past it
 ## the oldest land early. Every mote in flight is a soft dot drawn each

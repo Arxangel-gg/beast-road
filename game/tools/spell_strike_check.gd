@@ -72,7 +72,140 @@ func _ready() -> void:
 	await _test_preparation_clears_the_air(meteor)
 	_test_the_same_seed_scatters_the_same_way(volley)
 	_test_only_a_true_channel_roots_the_caster()
+	_test_the_strike_is_seen_falling(meteor, volley)
+	_test_the_beam_is_drawn()
 	await _finish()
+
+
+## **The thing that lands is seen falling** (owner, 2026-09-28: a spell showed
+## *"a vfx forge animated sprite at a set distance away from the player without
+## showing any projectiles"*). A meteor's streak is drawn from the same two
+## numbers as its ring - the mark and the delay - so this reads both back off
+## the record: it ends exactly where the strike will land, it starts above, and
+## it lives exactly as long as the wait. A volley's thorns leave the hand on an
+## arc. The ink is a canvas under a world, so the gate binds one for it.
+func _test_the_strike_is_seen_falling(meteor: SpellData, volley: SpellData) -> void:
+	var world := Node2D.new()
+	world.name = "InkWorld"
+	add_child(world)
+	Vfx.bind_world(world)
+	var ink: VfxInk = Vfx.ink()
+	_checked += 1
+	_check(ink != null, "no ink canvas came up under a bound world, so nothing below measures anything")
+	if ink == null:
+		return
+	_equip(meteor)
+	_caster.cancel_channel()
+	_caster.clear_cooldowns()
+	ink.clear()
+	_caster.try_cast(0, Vector2.RIGHT, Vector2.ZERO)
+	var places: Array[Vector2] = _falling_places()
+	var records: Array[Dictionary] = ink.streak_records()
+	_checked += 1
+	_check(places.size() == 1 and records.size() == 1,
+		"%s put %d strikes in the air and %d streaks - the meteor is not seen falling"
+			% [meteor.id, places.size(), records.size()])
+	if places.size() == 1 and records.size() == 1:
+		var record: Dictionary = records[0]
+		_checked += 1
+		_check((record["to"] as Vector2).is_equal_approx(places[0]),
+			"%s's streak ends at %s and the strike lands at %s - the picture and the blow disagree"
+				% [meteor.id, record["to"], places[0]])
+		_checked += 1
+		_check((record["from"] as Vector2).y < (record["to"] as Vector2).y - 100.0,
+			"%s's streak does not come from above (%s to %s)" % [meteor.id, record["from"], record["to"]])
+		_checked += 1
+		_check(absf(float(record["life"]) - Balance.SPELL_METEOR_DELAY) < 0.02,
+			"%s's streak lives %.2fs against a %.2fs wait - it would land before or after the blow"
+				% [meteor.id, float(record["life"]), Balance.SPELL_METEOR_DELAY])
+		_checked += 1
+		_check(not (record["frames"] as Array).is_empty(),
+			"%s's streak wears no painted head, so it is a line rather than a thing" % meteor.id)
+	_equip(volley)
+	_caster.cancel_channel()
+	_caster.clear_cooldowns()
+	ink.clear()
+	_caster.try_cast(0, Vector2.RIGHT, Vector2.ZERO)
+	places = _falling_places()
+	records = ink.streak_records()
+	_checked += 1
+	_check(places.size() == records.size() and records.size() == Balance.SPELL_VOLLEY_STRIKES,
+		"%s put %d strikes in the air and %d streaks" % [volley.id, places.size(), records.size()])
+	var lobbed: int = 0
+	var from_hand: int = 0
+	var landing_on_a_mark: int = 0
+	for record: Dictionary in records:
+		if float(record["arc"]) > 0.0 and String(record["path"]) == "lob":
+			lobbed += 1
+		if (record["from"] as Vector2).is_equal_approx(Vector2.ZERO):
+			from_hand += 1
+		for place: Vector2 in places:
+			if (record["to"] as Vector2).is_equal_approx(place):
+				landing_on_a_mark += 1
+				break
+	_checked += 1
+	_check(lobbed == records.size(), "%d of %s's %d thorns are not lobbed" % [records.size() - lobbed, volley.id, records.size()])
+	_checked += 1
+	_check(from_hand == records.size(), "%d of %s's thorns do not leave the hand" % [records.size() - from_hand, volley.id])
+	_checked += 1
+	_check(landing_on_a_mark == records.size(),
+		"%d of %s's thorns land somewhere no strike is due" % [records.size() - landing_on_a_mark, volley.id])
+	_caster.clear_cooldowns()
+	ink.clear()
+
+
+## **The beam is drawn as a beam** - a band from the hand to its end on every
+## frame it is held, and on no frame after the channel ends. It used to be only
+## the sheet at the far end, which is exactly the report above.
+func _test_the_beam_is_drawn() -> void:
+	var ink: VfxInk = Vfx.ink()
+	if ink == null:
+		Vfx.bind_world(null)
+		return
+	var beam: SpellData = null
+	for id: Variant in ContentDB.spells:
+		var spell: SpellData = ContentDB.spells[id] as SpellData
+		if spell != null and spell.kind == SpellData.Kind.BEAM and spell.is_channelled:
+			beam = spell
+			break
+	_checked += 1
+	_check(beam != null, "no channelled BEAM to measure")
+	if beam == null:
+		Vfx.bind_world(null)
+		return
+	_equip(beam)
+	_caster.cancel_channel()
+	_caster.clear_cooldowns()
+	ink.clear()
+	_caster.try_cast(0, Vector2.RIGHT, Vector2.ZERO)
+	var ticks: int = 3
+	for _i: int in ticks:
+		_caster.tick(0.03, Vector2.RIGHT, Vector2.ZERO)
+	_checked += 1
+	_check(ink.live_beams() == ticks,
+		"%s was held for %d frames and drew %d beams - the beam is not drawn every frame"
+			% [beam.id, ticks, ink.live_beams()])
+	if ink.live_beams() > 0:
+		var record: Dictionary = ink.streak_records().duplicate() if false else {}
+		# The last beam pushed is the one to read; the canvas keeps them in order.
+		record = (ink.get("_beams") as Array)[ink.live_beams() - 1]
+		var from: Vector2 = record["from"]
+		var to: Vector2 = record["to"]
+		_checked += 1
+		_check(from.is_equal_approx(Vector2.ZERO) and to.x > 100.0 and absf(to.y) < 1.0,
+			"%s's beam runs %s to %s, not from the hand along the aim" % [beam.id, from, to])
+		_checked += 1
+		_check(absf(float(record["width"]) - from.distance_to(to) * Balance.SPELL_BEAM_WIDTH_SHARE) < 0.5,
+			"%s's beam is %.1f wide against a reach of %.0f" % [beam.id, float(record["width"]), from.distance_to(to)])
+	var held: int = ink.live_beams()
+	_caster.cancel_channel()
+	for _i: int in ticks:
+		_caster.tick(0.03, Vector2.RIGHT, Vector2.ZERO)
+	_checked += 1
+	_check(ink.live_beams() == held,
+		"%s drew %d more beams after the channel ended" % [beam.id, ink.live_beams() - held])
+	ink.clear()
+	Vfx.bind_world(null)
 
 
 ## Aimed at a point, it hits the body standing there and not the one at the feet.

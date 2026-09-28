@@ -10854,6 +10854,79 @@ and **`ARSENAL_ACT_SCALE` flattened late** to 2.40 at the summit. Measured on a
 new account: 0.459, 0.429, 0.414, 0.411 for one to four players (spread 12%),
 acts 0.26 to 0.66, the Arsenal 19% of the defence in Act I and 55-66% after.
 
+**The tail was the generator's own painting all along, and three passes had
+painted it into a different animal, as of 2026-09-28 (twelfth report).** The
+owner: *"still not the same color as the body ... addressed it more than 20
+times ... the biggest unpolished eyesore in the game."* Measured on the frames
+from before any tail tool existed (`git show 9d5c9ce6^:...`): luminance 0.271,
+p90 0.447, saturation 0.255, hue 76 - **the hide's own figures to the digit**,
+with the alpha identical. Every pass since - the palette match, the shadow
+seat, the stub grade - moved a tail that already matched off the body it hung
+from, each one answering the pass before it, and `beast_tail_check` held the
+fault in place: its bands demanded a root *darker* than the stub, so a tail
+that matched the hide failed the gate. The paintings are restored;
+`tools/clip_tail_glints.py` replaces the one near-white speck each frame
+carries (the animator's invented highlight, and the only pixel the hide never
+reaches) with the median of its neighbours and touches nothing else;
+`match_tail_palette.py` and `seat_tail_in_shadow.py` are deleted; the gate's
+bands are 0.80-1.10 at the root and 0.85-1.10 along the limb, with this written
+beside them. Photographed in both scopes: one animal. **When a fix has been
+applied twelve times, measure the original rather than the last fix** - every
+pass here measured the pass before it, and nobody had asked whether the
+untouched art was wrong. It was not.
+
+**The Hold's interface stands above its hour, as of 2026-09-28.** Owner:
+*"The Hold gets a dark overlay cast over everything including the UIs which
+shouldn't be the case, especially at least not over the UIs."* The hour is a
+`CanvasModulate` under the yard (`HoldSky`), and a `CanvasModulate` tints its
+whole canvas - the whole `CanvasLayer` it lives on - so the bar, the prompt,
+the markers and the card were graded like the buildings. The only thing a
+`CanvasModulate` does not reach is another `CanvasLayer`, so `HubScreen._chrome()`
+stands one two above the room (the thumb's controls are one above), and the
+frame and the card hang from it. **A nested `CanvasLayer` does not hide with
+its parent** and `is_visible_in_tree` cannot see one, so the chrome follows the
+room's `visibility_changed` by hand and `hold_check` reads the layer itself.
+`hub_shot` is the photograph: `hold_shot` frames the yard alone and could never
+show an interface it does not contain. It measures a bar button against the
+room at noon and at midnight - **0.99x against 0.67x** - and its verdict is
+held to `UiTint`'s own night floor, because the interface is allowed to be
+graded by the hour (2026-09-15) and never by the room.
+
+**The difficulties are the Long Road, the Iron Road and the Chainmaker's Road,
+as of 2026-09-28.** Owner: rename Normal, Nightmare and Hell. Display names
+only: the ids `normal`, `nightmare` and `hell` are what saves, first clears,
+the leaderboard and every gate name, and renaming an id is a migration of all
+of them for a word. `results_screen`'s fallback said "Normal" and says "Long
+Road".
+
+**A spell shows what travels, as of 2026-09-28.** Owner: skills were *"only
+displaying a vfx forge animated sprite at a set distance away from the player
+without showing any projectiles or beams"*. True of every ranged kind: a
+METEOR was a ring and then a bloom, a VOLLEY six rings, a BEAM the `beam_end`
+sheet at its far end with nothing between the hand and it, a HOOK and a DRAIN
+a number. `VfxInk` carries two more record kinds - a **streak**, a painted
+head (the element's own projectile art, the one the towers throw) with ghost
+frames behind it, along a line, a lob or a fall, over a life; and a **beam**,
+a feathered band with a filament, one record per frame it is held - and
+`Vfx.streak` and `Vfx.beam` are the doors. A meteor falls from
+`SPELL_METEOR_FALL` above its mark over the whole delay; a volley's thorns are
+lobbed from the hand; a beam is drawn from the hand to its end on every frame
+of the channel, with sparks at the hand; a hook flies to each body it pulls and
+a line hauls it in; a drain's take flows back to the hand; a blink opens a rift
+at both ends; a summon flares in.
+
+**The bound is the ring's: a picture drawn from the same two numbers as the
+blow** - the mark and the delay - so the streak lands on the frame the strike
+does, and `spell_strike_check` reads the record back: it ends where the strike
+is due, starts above, lives exactly the wait, wears a head, and a beam is drawn
+on every held frame and on no frame after the channel ends. Records, never
+nodes, capped by `VFX_INK_STREAKS_MAX` and `_BEAMS_MAX`, and nothing reads
+them. Two faults on the way, both named by the gate before a picture was
+taken: the meteor was first handed the hand as its origin (*"from (0,0) to
+(520,0)"* does not come from above), and `Vfx.head_frames` doubled the painting
+as frame zero because `load_idle_frames` already hands it back - the
+rest-pose-twice fault of 2026-09-25, arriving a third time.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -57,6 +57,15 @@ var _numbers: Array[Dictionary] = []
 ## Dust: a soft disc that drifts out, grows and fades - paint, on the flat
 ## canvas, because a puff of earth over a lit road darkens it.
 var _dust: Array[Dictionary] = []
+## **Streaks and beams** (2026-09-28): what travels from a cast to where it
+## lands, and the line a channel is. A spell used to resolve as a sheet at
+## the far end and nothing between - the owner's own words: *"only
+## displaying a vfx forge animated sprite at a set distance away from the
+## player without showing any projectiles or beams"*. A streak is a head on
+## a path with a trail of ghosts behind it; a beam is a feathered band that a
+## channel redraws every frame. Records, like everything else here.
+var _streaks: Array[Dictionary] = []
+var _beams: Array[Dictionary] = []
 
 ## Reused every frame rather than reallocated.
 var _points: PackedVector2Array = PackedVector2Array()
@@ -138,6 +147,8 @@ func clear() -> void:
 	_art.clear()
 	_numbers.clear()
 	_dust.clear()
+	_streaks.clear()
+	_beams.clear()
 	_ember_head = 0
 	_ember_count = 0
 	queue_redraw()
@@ -146,7 +157,20 @@ func clear() -> void:
 ## How many records live, for the gates.
 func live() -> int:
 	return _sparks.size() + _rings.size() + _flashes.size() + _motes.size() + _rays.size() \
-		+ _art.size() + _numbers.size() + _dust.size()
+		+ _art.size() + _numbers.size() + _dust.size() + _streaks.size() + _beams.size()
+
+
+func live_streaks() -> int:
+	return _streaks.size()
+
+
+func live_beams() -> int:
+	return _beams.size()
+
+
+## The streaks in the air, for the gates: where each is going.
+func streak_records() -> Array[Dictionary]:
+	return _streaks
 
 
 func live_sparks() -> int:
@@ -399,6 +423,44 @@ func dust(at: Vector2, drift: Vector2, colour: Color, size: float, grow: float,
 	}, Balance.VFX_INK_DUST_MAX)
 
 
+## **A streak**: a head that travels `from` to `to` over `life`, the way
+## `path` says - "fall" accelerates in like a stone, "lob" arcs over by
+## `arc` and lands, "line" is straight and even - with `frames` painted on
+## the head turned along its way, or a bead of light when there are none,
+## and ghosts of itself behind it. Drawn only; nothing reads where it is.
+func streak(from: Vector2, to: Vector2, life: float, colour: Color, frames: Array[Texture2D],
+		size: float, arc: float, path: String, always: bool = false) -> void:
+	_push(_streaks, {
+		"from": from,
+		"to": to,
+		"colour": colour,
+		"frames": frames,
+		"size": maxf(size, 2.0),
+		"arc": arc,
+		"path": path,
+		"life": maxf(life, 0.02),
+		"age": 0.0,
+		"always": always,
+	}, Balance.VFX_INK_STREAKS_MAX)
+
+
+## **A beam**: a feathered band from `from` to `to`, `width` either side, that
+## fades over `life`. A channel calls it every frame with a life a little
+## over a frame, so the beam is continuous while it is held and gone the
+## moment it is not; a single call is a flash of one.
+func beam(from: Vector2, to: Vector2, width: float, colour: Color, life: float,
+		always: bool = false) -> void:
+	_push(_beams, {
+		"from": from,
+		"to": to,
+		"width": maxf(width, 1.0),
+		"colour": colour,
+		"life": maxf(life, 0.02),
+		"age": 0.0,
+		"always": always,
+	}, Balance.VFX_INK_BEAMS_MAX)
+
+
 func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:
 	into.append(record)
 	# The oldest give way, which is what the node layer did with its cap.
@@ -432,6 +494,8 @@ func _process_measured(delta: float) -> void:
 	moved = _age(_art, step, paused) or moved
 	moved = _age(_numbers, step, paused) or moved
 	moved = _age(_dust, step, paused) or moved
+	moved = _age(_streaks, step, paused) or moved
+	moved = _age(_beams, step, paused) or moved
 	if not paused:
 		_ember_clock += step
 	moved = _prune_embers() or moved
@@ -467,12 +531,14 @@ func _draw_measured() -> void:
 	var inverse: Transform2D = global_transform.affine_inverse()
 	# Dust first: it lies under everything else a blow throws.
 	_draw_dust(inverse)
+	_draw_beams(inverse)
 	_draw_sparks(inverse)
 	_draw_rays(inverse)
 	_draw_rings(inverse)
 	_draw_flashes(inverse)
 	_draw_motes(inverse)
 	_draw_embers(inverse)
+	_draw_streaks(inverse)
 	_draw_art(inverse)
 	_draw_numbers(inverse)
 
@@ -713,6 +779,89 @@ func _draw_motes(inverse: Transform2D) -> void:
 		var radius: float = float(record["size"]) * lerpf(1.0, 0.35, t)
 		draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0), false,
 			Color(colour.r, colour.g, colour.b, lit))
+## Where a streak is at `t` of its life, and which way it is going.
+static func streak_at(record: Dictionary, t: float) -> Vector2:
+	var from: Vector2 = record["from"] as Vector2
+	var to: Vector2 = record["to"] as Vector2
+	var eased: float = t
+	match String(record["path"]):
+		"fall":
+			eased = t * t
+		"lob":
+			eased = t
+	var at: Vector2 = from.lerp(to, eased)
+	var arc: float = float(record["arc"])
+	if arc > 0.0:
+		at.y -= sin(t * PI) * arc
+	return at
+
+
+## A streak's head on its way, its ghosts behind it, and its painted frames
+## when it has them - drawn every frame it lives, so a stone falling for a
+## second is a stone seen falling.
+func _draw_streaks(inverse: Transform2D) -> void:
+	if _streaks.is_empty():
+		return
+	var dot: Texture2D = Flame.dot_texture()
+	for record: Dictionary in _streaks:
+		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
+		var colour: Color = record["colour"] as Color
+		var size: float = float(record["size"])
+		var head: Vector2 = streak_at(record, t)
+		var ahead: Vector2 = streak_at(record, minf(t + 0.02, 1.0))
+		var heading: Vector2 = (ahead - head)
+		if heading.length_squared() < 0.001:
+			heading = (record["to"] as Vector2) - (record["from"] as Vector2)
+		var angle: float = inverse.basis_xform(heading).angle()
+		# The ghosts: where the head was, fading back along the way.
+		for ghost: int in range(Balance.VFX_STREAK_GHOSTS, 0, -1):
+			var back: float = t - float(ghost) * Balance.VFX_STREAK_GHOST_STEP
+			if back <= 0.0:
+				continue
+			var share: float = 1.0 - float(ghost) / float(Balance.VFX_STREAK_GHOSTS + 1)
+			var radius: float = size * lerpf(0.45, 1.0, share)
+			var at: Vector2 = inverse * streak_at(record, back)
+			draw_texture_rect(dot, Rect2(at.x - radius, at.y - radius, radius * 2.0, radius * 2.0),
+				false, Color(colour.r, colour.g, colour.b, colour.a * 0.55 * share))
+		var where: Vector2 = inverse * head
+		var glow: float = size * 1.6
+		draw_texture_rect(dot, Rect2(where.x - glow, where.y - glow, glow * 2.0, glow * 2.0), false,
+			Color(colour.r, colour.g, colour.b, colour.a * 0.7))
+		var frames: Array[Texture2D] = record["frames"]
+		if frames.is_empty():
+			var bead: float = size * 0.7
+			draw_texture_rect(dot, Rect2(where.x - bead, where.y - bead, bead * 2.0, bead * 2.0), false,
+				Color(colour.lerp(Color.WHITE, 0.6), colour.a))
+			continue
+		var frame: Texture2D = frames[int(float(record["age"]) * Balance.VFX_STREAK_FRAME_RATE) % frames.size()]
+		draw_set_transform(where, angle, Vector2.ONE)
+		draw_texture_rect(frame, Rect2(-size, -size, size * 2.0, size * 2.0), false,
+			colour.lightened(0.3))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## A beam: a wide faint band, a narrow bright one and a white filament, all
+## from `from` to `to`, pulsing a little so a held channel reads as alive.
+func _draw_beams(inverse: Transform2D) -> void:
+	if _beams.is_empty():
+		return
+	_begin()
+	for record: Dictionary in _beams:
+		var t: float = clampf(float(record["age"]) / float(record["life"]), 0.0, 1.0)
+		var colour: Color = record["colour"] as Color
+		var lit: float = colour.a * (1.0 - t)
+		if lit <= 0.004:
+			continue
+		var a: Vector2 = inverse * (record["from"] as Vector2)
+		var b: Vector2 = inverse * (record["to"] as Vector2)
+		var width: float = float(record["width"])
+		var pulse: float = 1.0 + 0.12 * sin(_ember_clock * 40.0 + float(record.get("seed", 0)))
+		_strip(a, b, width * 2.2 * pulse, colour, lit * 0.35, 0.8)
+		_strip(a, b, width * 0.9 * pulse, colour.lerp(Color.WHITE, 0.25), lit * 0.85, 0.85)
+		_strip(a, b, width * 0.28, Color.WHITE, lit, 0.9)
+	_flush()
+
+
 ## Painted art: a transform per record and one draw command, centred on its
 ## point as a sprite is. A sheet reads its cell off its age; a frame list
 ## plays end to end; a single texture holds and fades.

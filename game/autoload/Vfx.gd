@@ -443,6 +443,64 @@ func mote(at: Vector2, drift: Vector2, colour: Color, size: float, life: float,
 	_ink.mote(at, drift, colour, size, life, finish_when_paused)
 
 
+## **Something that travels from a cast to where it lands** (2026-09-28), on
+## the additive ink: a stone falling on a meteor's mark, a thorn lobbed at a
+## volley's spot, a hook flying out, the life a drain pulls back. `head` names
+## the element's painted projectile ("fire", "water", "earth", "air") or is
+## empty for a bead of light. A picture and never a fact: the blow lands on
+## the spell's own clock whether or not this is drawn.
+func streak(from: Vector2, to: Vector2, seconds: float, colour: Color, head: String = "",
+		size: float = Balance.VFX_STREAK_SIZE, arc: float = 0.0, path: String = "line",
+		finish_when_paused: bool = false) -> void:
+	if world == null or _ink == null:
+		return
+	_ink.streak(from, to, seconds, colour, head_frames(head), size, arc, path, finish_when_paused)
+
+
+## **The line a channel is**, redrawn every frame it is held.
+func beam(from: Vector2, to: Vector2, width: float, colour: Color,
+		seconds: float = Balance.VFX_BEAM_FRAME_LIFE, finish_when_paused: bool = false) -> void:
+	if world == null or _ink == null:
+		return
+	_ink.beam(from, to, width, colour, seconds, finish_when_paused)
+
+
+## The element's painted projectile head, with its turning frames, cached
+## for the process. The same art the towers throw and the Arsenal wears.
+static var _head_frames: Dictionary = {}
+
+
+static func head_frames(head: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	if head.is_empty():
+		return out
+	if _head_frames.has(head):
+		return _head_frames[head]
+	var base: String = "res://art/vfx/projectile_%s.png" % head
+	# `load_idle_frames` hands the painting back as frame zero already; a
+	# head with no turning frames is the painting alone.
+	if ResourceLoader.exists(base):
+		out = GameData.load_idle_frames(base)
+		if out.is_empty():
+			out.append(load(base) as Texture2D)
+	_head_frames[head] = out
+	return out
+
+
+## Which painted head an element throws.
+static func head_of(element: int) -> String:
+	match element:
+		TowerData.Element.FIRE:
+			return "fire"
+		TowerData.Element.WATER:
+			return "water"
+		TowerData.Element.EARTH:
+			return "earth"
+		TowerData.Element.AIR:
+			return "air"
+	return ""
+
+
 func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vector2.ZERO, speed: float = 260.0, finish_when_paused: bool = false) -> void:
 	if world == null or _ink == null:
 		return

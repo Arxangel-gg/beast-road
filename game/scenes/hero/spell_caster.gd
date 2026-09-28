@@ -517,7 +517,12 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			# The destination is a place to stand, so it is built from the feet.
 			# `origin` is the body, a head-height above them; adding the step to
 			# it landed the hero that much up-screen on every Rift Step.
-			blink_requested.emit(_foot(origin) + aim * _reach(spell))
+			var landing: Vector2 = _foot(origin) + aim * _reach(spell)
+			_forged("portal_rift", _foot(origin), spell)
+			_forged("portal_rift", landing, spell)
+			Vfx.streak(origin, landing + (origin - _foot(origin)), Balance.SPELL_HOOK_SECONDS,
+				TowerData.element_colour(spell.element), "", Balance.VFX_STREAK_SIZE * 0.8)
+			blink_requested.emit(landing)
 		SpellData.Kind.NOVA:
 			_forged("nova", origin, spell)
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
@@ -553,9 +558,9 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 		SpellData.Kind.METEOR:
 			_aim_strike(_foot(origin) + aim * _reach(spell),
 				spell.effect_radius, power, spell.knockback,
-				Balance.SPELL_METEOR_DELAY)
+				Balance.SPELL_METEOR_DELAY, spell)
 		SpellData.Kind.VOLLEY:
-			_volley(_foot(origin) + aim * _reach(spell), spell, power)
+			_volley(_foot(origin) + aim * _reach(spell), spell, power, origin)
 
 
 ## **The forged sheet for a spell**, in the spell's own element.
@@ -591,12 +596,32 @@ func _summon(spell: SpellData, origin: Vector2, aim: Vector2) -> void:
 	companion.setup(data, hero, field)
 	companion.global_position = origin + aim.normalized() * 70.0
 	field.add_child(companion)
+	# Seen arriving: a rune flares where it stands and light leaves it.
+	Vfx.forge_play("rune_flare", companion.global_position, 150.0, Color(0.72, 0.62, 0.95))
+	Vfx.rays(companion.global_position, Color(0.88, 0.82, 1.0, 0.8), 12, 90.0, PI * 0.125)
+	Vfx.flash_at(companion.global_position, Color(0.8, 0.72, 1.0), 40.0)
 
 
 ## Puts one strike in the air. The telegraph is drawn where it will land, so
 ## the warning and the damage cannot disagree about the place.
+##
+## **And the thing that lands is seen falling** (owner, 2026-09-28: a spell
+## showed *"a vfx forge animated sprite at a set distance away from the
+## player without showing any projectiles"*). A meteor drops from
+## `SPELL_METEOR_FALL` above its mark over the whole delay, wearing the
+## element's painted head; a volley's thorns are lobbed from the hand. A
+## picture, drawn from the same two numbers as the ring - the mark and the
+## delay - so it arrives on the frame the blow does.
 func _aim_strike(at: Vector2, radius: float, power: float, knockback: float,
-		delay: float) -> void:
+		delay: float, spell: SpellData = null, thrown_from: Vector2 = Vector2.INF) -> void:
+	if spell != null:
+		var tint: Color = TowerData.element_colour(spell.element)
+		if thrown_from == Vector2.INF:
+			Vfx.streak(at + Balance.SPELL_METEOR_FALL, at, maxf(delay, 0.01), tint,
+				Vfx.head_of(spell.element), Balance.VFX_STREAK_SIZE * 1.3, 0.0, "fall")
+		else:
+			Vfx.streak(thrown_from, at, maxf(delay, 0.01), tint, Vfx.head_of(spell.element),
+				Balance.VFX_STREAK_SIZE * 0.75, Balance.SPELL_VOLLEY_ARC, "lob")
 	_falling.append({
 		"at": at, "radius": radius, "power": power,
 		"knockback": knockback, "left": maxf(delay, 0.01),
@@ -614,7 +639,7 @@ func _aim_strike(at: Vector2, radius: float, power: float, knockback: float,
 ## Scattered from the run's own stream rather than a fresh generator, so a
 ## seeded run lands its volley in the same places twice and a host and a guest
 ## watching the same cast see the same thing.
-func _volley(at: Vector2, spell: SpellData, power: float) -> void:
+func _volley(at: Vector2, spell: SpellData, power: float, thrown_from: Vector2 = Vector2.INF) -> void:
 	var strikes: int = maxi(Balance.SPELL_VOLLEY_STRIKES, 1)
 	var rng: RandomNumberGenerator = RunState.rng("combat")
 	var small: float = spell.effect_radius / sqrt(float(strikes))
@@ -626,7 +651,7 @@ func _volley(at: Vector2, spell: SpellData, power: float) -> void:
 		var reach: float = spread * sqrt(rng.randf())
 		var spot: Vector2 = at + Vector2(cos(angle), sin(angle)) * reach
 		var when: float = spell.duration * float(index) / float(strikes)
-		_aim_strike(spot, small, power, spell.knockback, when + 0.12)
+		_aim_strike(spot, small, power, spell.knockback, when + 0.12, spell, thrown_from)
 
 
 ## Lands everything whose moment has come.
@@ -647,6 +672,8 @@ func _tick_falling(delta: float) -> void:
 		# second reach - the bound every telegraphed blow here is held to.
 		Vfx.forge_play("meteor_bloom", at, float(strike["radius"]) * 2.2,
 			Balance.SPELL_STRIKE_LANDED_COLOUR)
+		Vfx.spark(at, Balance.SPELL_STRIKE_LANDED_COLOUR, 10, Vector2.UP, 240.0)
+		Vfx.light_burst(at, Balance.SPELL_STRIKE_LANDED_COLOUR, float(strike["radius"]) * 2.5, 1.2)
 		EventBus.camera_shake_requested.emit(6.0, 0.18)
 		_falling.remove_at(index)
 
@@ -693,6 +720,10 @@ func _touch_the_world(spell: SpellData, at: Vector2, share: float = 1.0) -> void
 
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 	for enemy: Enemy in field.enemies_near(origin, _reach(spell)):
+		# Seen: the hook out to the body, and the line it is hauled in on.
+		Vfx.streak(origin, enemy.combat_origin(), Balance.SPELL_HOOK_SECONDS,
+			TowerData.element_colour(spell.element), "", Balance.VFX_STREAK_SIZE * 0.6)
+		Vfx.beam(origin, enemy.combat_origin(), 3.0, Color(0.9, 0.86, 0.7, 0.7), 0.3)
 		DamageLedger.credit_as(DamageLedger.SPELL)
 		enemy.take_damage(power, origin, 0.0, true, sheet)
 		# Negative knockback would be a hack; pulling is its own operation.
@@ -701,7 +732,14 @@ func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 
 func _drain(origin: Vector2, aim: Vector2, spell: SpellData, power: float) -> void:
 	var centre: Vector2 = origin + aim * (spell.effect_radius * 0.5)
+	var struck: Array = field.enemies_near(centre, spell.effect_radius)
 	var dealt: float = _damage_area(centre, spell.effect_radius, power, spell.knockback, origin)
+	# Seen: the reach of the drain, and what it took flowing back to the hand.
+	Vfx.forge_play("hit_physical", centre, spell.effect_radius * 1.6, Color(0.86, 0.24, 0.3))
+	for enemy: Enemy in struck:
+		if is_instance_valid(enemy):
+			Vfx.streak(enemy.combat_origin(), origin, Balance.SPELL_DRAIN_SECONDS,
+				Color(0.86, 0.24, 0.3), "", Balance.VFX_STREAK_SIZE * 0.55, 40.0, "lob")
 	if dealt > 0.0 and spell.lifesteal > 0.0:
 		heal_requested.emit(dealt * spell.lifesteal)
 
@@ -729,12 +767,20 @@ func _tick_beam(delta: float, origin: Vector2) -> void:
 	# runs back up the beam instead of into the ground it is burning. On its
 	# own clock because a sheet a frame is sixty sprites a second, and this
 	# is decoration - `Graphics.particle_scale` takes it away entirely.
+	# **The beam is drawn as a beam** (2026-09-28): a band from the hand to
+	# the end, every frame it is held, in the element's colour. It used to be
+	# only the sheet at its far end, and a channel with no line was a fire
+	# that started a long way from the caster.
+	Vfx.beam(origin, origin + _beam_aim * reach, reach * Balance.SPELL_BEAM_WIDTH_SHARE,
+		TowerData.element_colour(_beam_spell.element))
 	_beam_spark -= delta
 	if _beam_spark <= 0.0:
 		_beam_spark = Balance.SPELL_BEAM_END_INTERVAL
 		Vfx.forge_play("beam_end", origin + _beam_aim * reach,
 			reach * Balance.SPELL_BEAM_END_SHARE,
 			TowerData.element_colour(_beam_spell.element), _beam_aim.angle())
+		Vfx.spark(origin + _beam_aim * 24.0, TowerData.element_colour(_beam_spell.element),
+			4, _beam_aim, 220.0)
 
 
 ## Which lane a point belongs to, by angle. Used by Bulwark Ward.
