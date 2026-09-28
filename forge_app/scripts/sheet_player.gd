@@ -52,11 +52,13 @@ class Glass extends Control:
 		var sheet: Texture2D = player.sheet
 		var cell: float = float(sheet.get_width()) / float(player.cells)
 		var tall: float = float(sheet.get_height())
-		var drawn := Vector2(cell, tall) * player.zoom
-		var at: Vector2 = (size - drawn) * 0.5
-		draw_texture_rect_region(sheet, Rect2(at, drawn),
+		var drawn := Vector2(cell, tall) * player.zoom * player._wander
+		# Turned and flipped about the cell's middle, as the ink draws it.
+		draw_set_transform(size * 0.5, player._rotation, player._flip)
+		draw_texture_rect_region(sheet, Rect2(-drawn * 0.5, drawn),
 			Rect2(float(player.current_frame()) * cell, 0.0, cell, tall),
 			player.tint)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 var sheet: Texture2D = null:
@@ -87,6 +89,27 @@ var zoom: float = 3.0:
 
 var playing: bool = true
 var looping: bool = true
+
+## **As the game plays it.** `Vfx.forge_play` picks a take, turns the sheet,
+## flips it and wanders its size, by the effect's turn rule; with this on the
+## player rolls the same on every restart, so a sheet is judged the way it
+## will actually be seen rather than only square and upright. The rule and the
+## amounts are the game's own (`Vfx.ForgeTurn`, `FORGE_SPIN`,
+## `FORGE_AIM_WANDER`, `FORGE_SIZE_JITTER`), read off `Vfx.gd` by the window.
+var as_game: bool = false:
+	set(value):
+		as_game = value
+		restart()
+## 0 FREE (any turn, either flip), 1 UPRIGHT (knows where the ground is: a
+## left-right flip only), 2 AIMED (laid along an aim: a small wander and a
+## top-bottom flip).
+var turn: int = 0
+var spin: float = TAU
+var aim_wander: float = 0.10
+var size_jitter: float = 0.12
+var _rotation: float = 0.0
+var _flip := Vector2.ONE
+var _wander: float = 1.0
 ## Drawn over the play, so the shape of one cell can be read while it moves.
 var show_grid: bool = false:
 	set(value):
@@ -119,6 +142,12 @@ func _process(delta: float) -> void:
 	if _frame >= float(cells):
 		if looping:
 			_frame = fmod(_frame, float(cells))
+			# A new loop is a new play: roll the turn again, as the game would
+			# for the next blow.
+			if as_game:
+				var kept: float = _frame
+				restart()
+				_frame = kept
 		else:
 			_frame = float(cells) - 0.001
 			playing = false
@@ -136,6 +165,21 @@ func scrub_to(frame: int) -> void:
 func restart() -> void:
 	_frame = 0.0
 	playing = true
+	_rotation = 0.0
+	_flip = Vector2.ONE
+	_wander = 1.0
+	if as_game:
+		match turn:
+			0:
+				_rotation = randf() * spin
+				_flip = Vector2(-1.0 if randf() < 0.5 else 1.0, -1.0 if randf() < 0.5 else 1.0)
+			1:
+				_flip = Vector2(-1.0 if randf() < 0.5 else 1.0, 1.0)
+			_:
+				_rotation = randf_range(-aim_wander, aim_wander)
+				_flip = Vector2(1.0, -1.0 if randf() < 0.5 else 1.0)
+		_wander = 1.0 + randf_range(-size_jitter, size_jitter)
+	_redraw()
 
 
 func current_frame() -> int:

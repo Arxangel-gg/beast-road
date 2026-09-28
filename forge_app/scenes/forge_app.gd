@@ -55,6 +55,19 @@ var _play: Button = null
 
 var _catalogue: Array = []
 var _chosen: String = ""
+## Which scripts of the game play each effect, by id - read off the game's
+## own sources so the window can say "played by nothing yet", which is the
+## `DisciplineEffects` lie in the art layer and the thing `forge_check` refuses.
+var _uses: Dictionary = {}
+## How the game may turn each effect, read off `Vfx.FORGE_CATALOGUE`.
+var _turns: Dictionary = {}
+var _played_by: Label = null
+var _as_game: CheckBox = null
+var _all_takes: CheckBox = null
+var _takes_row: HBoxContainer = null
+var _beside_pick: OptionButton = null
+var _beside: SheetPlayer = null
+var _stage_pair: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -164,12 +177,34 @@ func _build_stage() -> Control:
 	stage.add_child(inside)
 	_why = SkinScript.quiet("Pick an effect.")
 	inside.add_child(_why)
+	_played_by = SkinScript.quiet("")
+	inside.add_child(_played_by)
+	# The forged sheet, and a painted one beside it when one is chosen: the
+	# only judgement VFX_FORGE.md section 5 allows is against what the game
+	# already draws.
+	_stage_pair = HBoxContainer.new()
+	_stage_pair.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stage_pair.add_theme_constant_override("separation", 8)
+	inside.add_child(_stage_pair)
 	_player = SheetPlayerScript.new()
 	_player.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_player.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_player.custom_minimum_size = Vector2(0.0, 240.0)
 	_player.frame_changed.connect(_on_frame)
-	inside.add_child(_player)
+	_stage_pair.add_child(_player)
+	_beside = SheetPlayerScript.new()
+	_beside.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_beside.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_beside.custom_minimum_size = Vector2(0.0, 240.0)
+	_beside.visible = false
+	_stage_pair.add_child(_beside)
 	inside.add_child(_build_transport())
+	# Every take at once, under the strip, when asked for.
+	_takes_row = HBoxContainer.new()
+	_takes_row.add_theme_constant_override("separation", 6)
+	_takes_row.custom_minimum_size = Vector2(0.0, 150.0)
+	_takes_row.visible = false
+	inside.add_child(_takes_row)
 	_strip = Control.new()
 	_strip.custom_minimum_size = Vector2(0.0, 72.0)
 	# **Clipped, and rebuilt when the width changes.** The strip lays one
@@ -239,13 +274,22 @@ func _build_transport() -> Control:
 		+ "in the grey it was rendered in.")
 	_tint_pick.item_selected.connect(func(index: int) -> void:
 		_player.tint = TINTS[index]["colour"]
+		_beside.tint = _player.tint
+		for take: Node in _takes_row.get_children():
+			if take is SheetPlayer:
+				(take as SheetPlayer).tint = _player.tint
 		_rebuild_strip())
 	row.add_child(_tint_pick)
 
 	var ground := Button.new()
 	ground.text = "Ground"
 	ground.tooltip_text = "A bright effect on a black plate always looks good."
-	ground.pressed.connect(func() -> void: _player.ground += 1)
+	ground.pressed.connect(func() -> void:
+		_player.ground += 1
+		_beside.ground = _player.ground
+		for take: Node in _takes_row.get_children():
+			if take is SheetPlayer:
+				(take as SheetPlayer).ground = _player.ground)
 	row.add_child(ground)
 
 	var grid := CheckBox.new()
@@ -253,6 +297,19 @@ func _build_transport() -> Control:
 	grid.tooltip_text = "The cell's own edges and its middle."
 	grid.toggled.connect(func(on: bool) -> void: _player.show_grid = on)
 	row.add_child(grid)
+
+	_as_game = CheckBox.new()
+	_as_game.text = "As the game"
+	_as_game.tooltip_text = ("Turned, flipped and sized the way `Vfx.forge_play` "
+		+ "will do it, by this effect's own turn rule, rolled again on every "
+		+ "loop. A sheet judged square and upright is not the sheet a player "
+		+ "sees.")
+	_as_game.toggled.connect(func(on: bool) -> void:
+		_player.as_game = on
+		for take: Node in _takes_row.get_children():
+			if take is SheetPlayer:
+				(take as SheetPlayer).as_game = on)
+	row.add_child(_as_game)
 
 	var out := Button.new()
 	out.text = "-"
@@ -313,6 +370,43 @@ func _build_controls() -> Control:
 	reload.pressed.connect(_load_sheet)
 	column.add_child(reload)
 
+	_all_takes = CheckBox.new()
+	_all_takes.text = "Every take at once"
+	_all_takes.tooltip_text = ("The takes side by side, in step. A variation is "
+		+ "judged against its siblings, not alone.")
+	_all_takes.toggled.connect(func(_on: bool) -> void: _rebuild_takes_row())
+	column.add_child(_all_takes)
+
+	# A painted sheet from the game's own folder beside the forged one.
+	_beside_pick = OptionButton.new()
+	_beside_pick.tooltip_text = ("A painted sheet from game/art/vfx beside "
+		+ "the forged one, playing at the same rate under the same tint - "
+		+ "the comparison section 5 asks for.")
+	_beside_pick.item_selected.connect(func(_i: int) -> void: _load_beside())
+	column.add_child(_beside_pick)
+
+	var open_file := Button.new()
+	open_file.text = "Open the effect's file"
+	open_file.tooltip_text = "tools/vfx_forge/effects/<id>.py, in whatever opens .py here."
+	open_file.pressed.connect(func() -> void:
+		if _chosen.is_empty():
+			return
+		var path: String = _runner.repo.path_join("tools/vfx_forge/effects").path_join(_chosen + ".py")
+		if FileAccess.file_exists(path):
+			OS.shell_open(path)
+			_say("Opened %s." % path.get_file())
+		else:
+			_say("No file at %s." % path, SkinScript.DANGER))
+	column.add_child(open_file)
+
+	var photograph := Button.new()
+	photograph.text = "Photograph the catalogue"
+	photograph.tooltip_text = ("Every effect's first take as a row of cells, "
+		+ "under the current tint, in one picture - the contact sheet that "
+		+ "caught a flame rendering as a sunburst.")
+	photograph.pressed.connect(func() -> void: _photograph_catalogue())
+	column.add_child(photograph)
+
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
@@ -350,6 +444,8 @@ func _rule() -> Control:
 
 func _refresh_catalogue() -> void:
 	_catalogue = _runner.catalogue()
+	_read_the_game()
+	_fill_beside()
 	_list.clear()
 	for row: Variant in _catalogue:
 		var spec := row as Dictionary
@@ -370,8 +466,20 @@ func _on_chosen(index: int) -> void:
 	_size.value = int(spec.get("size", 96))
 	_takes.value = int(spec.get("variants", 1))
 	_why.text = "%s  -  %s" % [_chosen, String(spec.get("why", ""))]
+	var users: Array = _uses.get(_chosen, []) as Array
+	var turn_name: String = ["free turn", "upright", "aimed"][clampi(int(_turns.get(_chosen, 0)), 0, 2)]
+	if _turns.has(_chosen):
+		_played_by.text = "%s  -  played by %s" % [turn_name,
+			", ".join(PackedStringArray(users)) if not users.is_empty() else "nothing yet"]
+		_played_by.add_theme_color_override("font_color",
+			SkinScript.shade(1.3) if not users.is_empty() else SkinScript.DANGER)
+	else:
+		_played_by.text = "not in Vfx.FORGE_CATALOGUE - the game cannot play it"
+		_played_by.add_theme_color_override("font_color", SkinScript.DANGER)
+	_player.turn = int(_turns.get(_chosen, 0))
 	_fill_takes(int(spec.get("variants", 1)))
 	_load_sheet()
+	_rebuild_takes_row()
 
 
 ## Only the takes that are on disk, so the list is what can be looked at
@@ -419,6 +527,208 @@ func _rebuild_strip() -> void:
 	if _player == null or _strip == null:
 		return
 	_player.contact_strip(_strip, _strip.size.x if _strip.size.x > 16.0 else 600.0)
+
+
+## Every take on disk, side by side, sharing the main player's tint, ground
+## and way of playing.
+func _rebuild_takes_row() -> void:
+	if _takes_row == null:
+		return
+	for child: Node in _takes_row.get_children():
+		_takes_row.remove_child(child)
+		child.queue_free()
+	var wanted: bool = _all_takes != null and _all_takes.button_pressed and not _chosen.is_empty()
+	_takes_row.visible = wanted
+	if not wanted:
+		return
+	for take: int in 12:
+		var path: String = _sheet_path(take)
+		if not FileAccess.file_exists(path):
+			continue
+		var image: Image = Image.load_from_file(path)
+		if image == null:
+			continue
+		var one: SheetPlayer = SheetPlayerScript.new()
+		one.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		one.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		one.cells = maxi(image.get_width() / maxi(image.get_height(), 1), 1)
+		one.sheet = ImageTexture.create_from_image(image)
+		one.tint = _player.tint
+		one.ground = _player.ground
+		one.zoom = 1.5
+		one.turn = _player.turn
+		one.as_game = _player.as_game
+		one.tooltip_text = "take %d" % take
+		_takes_row.add_child(one)
+
+
+## The painted sheets in the game's own folder, for the picker.
+func _fill_beside() -> void:
+	if _beside_pick == null:
+		return
+	_beside_pick.clear()
+	_beside_pick.add_item("Nothing beside", 0)
+	var folder: String = _runner.repo.path_join("game/art/vfx")
+	var dir: DirAccess = DirAccess.open(folder)
+	if dir == null:
+		return
+	var names: PackedStringArray = []
+	for name: String in dir.get_files():
+		if name.ends_with(".png") and not name.begins_with("forge_"):
+			names.append(name)
+	names.sort()
+	for name: String in names:
+		_beside_pick.add_item(name.trim_suffix(".png"))
+	_beside_pick.selected = 0
+
+
+func _load_beside() -> void:
+	if _beside == null or _beside_pick == null:
+		return
+	if _beside_pick.selected <= 0:
+		_beside.visible = false
+		_beside.sheet = null
+		return
+	var name: String = _beside_pick.get_item_text(_beside_pick.selected) + ".png"
+	var path: String = _runner.repo.path_join("game/art/vfx").path_join(name)
+	var image: Image = Image.load_from_file(path)
+	if image == null:
+		_say("Could not read %s." % path, SkinScript.DANGER)
+		return
+	# A painted sheet is a row of square cells or one picture.
+	var cells: int = image.get_width() / maxi(image.get_height(), 1)
+	_beside.cells = maxi(cells, 1) if image.get_width() % maxi(image.get_height(), 1) == 0 else 1
+	_beside.sheet = ImageTexture.create_from_image(image)
+	_beside.tint = _player.tint
+	_beside.ground = _player.ground
+	_beside.zoom = _player.zoom
+	_beside.visible = true
+	_beside.restart()
+	_say("%s beside %s." % [name, _chosen])
+
+
+## Reads the game's own sources once: which scripts name each effect, and how
+## `Vfx.FORGE_CATALOGUE` says each may be turned. Never from a table here.
+func _read_the_game() -> void:
+	_uses = {}
+	_turns = {}
+	var game: String = _runner.repo.path_join("game")
+	var vfx_path: String = game.path_join("autoload/Vfx.gd")
+	var vfx: String = FileAccess.get_file_as_string(vfx_path) if FileAccess.file_exists(vfx_path) else ""
+	var regex := RegEx.new()
+	regex.compile("\"([a-z0-9_]+)\":\\s*ForgeTurn\\.(FREE|UPRIGHT|AIMED)")
+	for hit: RegExMatch in regex.search_all(vfx):
+		_turns[hit.get_string(1)] = ["FREE", "UPRIGHT", "AIMED"].find(hit.get_string(2))
+	var ids: Array[String] = []
+	for row: Variant in _catalogue:
+		ids.append(String((row as Dictionary).get("id", "")))
+	var sources: Array[Dictionary] = []
+	for folder: String in ["scenes", "scripts", "autoload"]:
+		for path: String in _scripts_under(game.path_join(folder)):
+			var text: String = FileAccess.get_file_as_string(path)
+			if path.ends_with("Vfx.gd"):
+				# The catalogue's own rows name every effect; drop them so the
+				# table is not counted as a player.
+				var kept: PackedStringArray = []
+				for line: String in text.split("\n"):
+					if not line.contains("ForgeTurn."):
+						kept.append(line)
+				text = "\n".join(kept)
+			sources.append({"name": path.get_file(), "text": text})
+	for id: String in ids:
+		var users: Array = []
+		for source: Dictionary in sources:
+			if String(source["text"]).contains("\"%s\"" % id):
+				users.append(String(source["name"]))
+		_uses[id] = users
+
+
+func _scripts_under(folder: String) -> Array[String]:
+	var out: Array[String] = []
+	var dir: DirAccess = DirAccess.open(folder)
+	if dir == null:
+		return out
+	for name: String in dir.get_files():
+		if name.ends_with(".gd"):
+			out.append(folder.path_join(name))
+	for sub: String in dir.get_directories():
+		out.append_array(_scripts_under(folder.path_join(sub)))
+	return out
+
+
+## One picture of the whole catalogue: a row an effect, its first take's
+## cells under the current tint, its id beside it. Rendered off screen and
+## opened when it is written.
+func _photograph_catalogue() -> void:
+	if _catalogue.is_empty():
+		return
+	var cell_px: float = 40.0
+	var name_px: float = 150.0
+	var most: int = 1
+	var rows: Array[Dictionary] = []
+	for row: Variant in _catalogue:
+		var id: String = String((row as Dictionary).get("id", ""))
+		var path: String = _runner.repo.path_join("game/art/vfx").path_join("forge_%s.png" % id)
+		if not FileAccess.file_exists(path):
+			rows.append({"id": id, "sheet": null, "cells": 0})
+			continue
+		var image: Image = Image.load_from_file(path)
+		var cells: int = maxi(image.get_width() / maxi(image.get_height(), 1), 1)
+		most = maxi(most, cells)
+		rows.append({"id": id, "sheet": ImageTexture.create_from_image(image), "cells": cells})
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(int(name_px + float(most) * (cell_px + 2.0) + 20.0), int(float(rows.size()) * (cell_px + 6.0) + 20.0))
+	viewport.transparent_bg = false
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var back := ColorRect.new()
+	back.color = SheetPlayerScript.GROUNDS[_player.ground]
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	viewport.add_child(back)
+	var column := VBoxContainer.new()
+	column.position = Vector2(10.0, 10.0)
+	column.add_theme_constant_override("separation", 6)
+	viewport.add_child(column)
+	var additive := CanvasItemMaterial.new()
+	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	for row: Dictionary in rows:
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 2)
+		var name_label: Label = SkinScript.line(String(row["id"]), 13)
+		name_label.custom_minimum_size = Vector2(name_px, cell_px)
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		line.add_child(name_label)
+		var sheet: Texture2D = row["sheet"]
+		if sheet == null:
+			line.add_child(SkinScript.quiet("not rendered", 12))
+		else:
+			var wide: float = float(sheet.get_width()) / float(int(row["cells"]))
+			for index: int in int(row["cells"]):
+				var one := TextureRect.new()
+				one.custom_minimum_size = Vector2(cell_px, cell_px)
+				var slice := AtlasTexture.new()
+				slice.atlas = sheet
+				slice.region = Rect2(float(index) * wide, 0.0, wide, float(sheet.get_height()))
+				one.texture = slice
+				one.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				one.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				one.modulate = _player.tint
+				one.material = additive
+				line.add_child(one)
+		column.add_child(line)
+	add_child(viewport)
+	_say("Photographing %d effects..." % rows.size())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var picture: Image = viewport.get_texture().get_image()
+	var out: String = ProjectSettings.globalize_path("user://forge_catalogue.png")
+	var wrote: int = picture.save_png(out)
+	viewport.queue_free()
+	if wrote == OK:
+		_say("Wrote %s" % out, SkinScript.GOOD)
+		OS.shell_open(out)
+	else:
+		_say("Could not write %s" % out, SkinScript.DANGER)
 
 
 func _on_frame(frame: int, of: int) -> void:

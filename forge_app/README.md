@@ -42,7 +42,9 @@ that catches a flame whose curve is perfect and whose picture is a sunburst.
 | **Effects** | The catalogue, read from `tools/vfx_forge/effects/` rather than from any list here. A file dropped in that folder appears on **Re-read the folder**. |
 | **Preview** | Play/pause (also `Space`), restart, a scrub bar, the tint, the ground plate, the cell outline, and zoom. |
 | **Render** | Frames, cell pixels and takes, defaulting to the effect's own `SPEC`. **Render this effect** (`Ctrl+R`) or **Render every effect**. |
-| **Look at** | Which take to play, and a reload from disk. |
+| **Look at** | Which take to play, a reload from disk, **every take at once** (in step, under one tint), a **painted sheet from `game/art/vfx` beside** the forged one, the effect's `.py` **opened in your editor**, and **a photograph of the whole catalogue** - one row an effect - written to `user://forge_catalogue.png` and opened. |
+| **As the game** | The preview turns, flips and sizes the sheet the way `Vfx.forge_play` will, by the effect's own turn rule read off `Vfx.FORGE_CATALOGUE`, rolled again on every loop. |
+| **Played by** | Under the effect's line: how the game may turn it, and which of the game's scripts name it - read off the sources, so "played by nothing yet" is the window saying what `forge_check` would refuse. |
 | **The forge says** | Blender's own output, live, while it renders. |
 
 `F11` fills the screen; `Escape` leaves it.

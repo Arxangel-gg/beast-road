@@ -11076,6 +11076,35 @@ one run in three: the coin was which body reached the spawn first. The
 sanctuary is the game's own rule for a Warden nothing may target, so the hero
 stands on the town.
 
+**The forge window judges a sheet the way it will be seen, as of 2026-09-28.**
+Owner: *"Elevate our Forge VFX tool."* The window of 2026-09-22 played one take,
+square and upright, alone. Every rule the game applies to a sheet is now a
+thing the window can show, and each was photographed (`docs/shots/forge_app_busy.png`):
+
+- **As the game**: the preview turns, flips and sizes the sheet by the effect's
+  own turn rule, rolled again on every loop - `Vfx.forge_play`'s FREE, UPRIGHT
+  and AIMED, read off `Vfx.FORGE_CATALOGUE` in the game's own source rather
+  than from a table in the app, with the game's own `FORGE_SPIN`,
+  `FORGE_AIM_WANDER` and `FORGE_SIZE_JITTER`. A sheet judged only square is
+  not the sheet a player sees.
+- **Every take at once**, in step under one tint: a variation is judged
+  against its siblings, which is what "takes" are for.
+- **A painted sheet beside** the forged one, from `game/art/vfx`, at the same
+  rate under the same tint - the one comparison `VFX_FORGE.md` §5 allows.
+- **Played by**: under the effect's line, which of the game's scripts name it,
+  read off the sources - so the window says "played by nothing yet", which is
+  the lie `forge_check` refuses, before a render is spent on it; and "not in
+  `Vfx.FORGE_CATALOGUE`", which is an effect the game cannot play at all.
+- **The effect's file** opened in whatever opens `.py`, and **a photograph of
+  the whole catalogue** - one row an effect under the current tint, written to
+  `user://forge_catalogue.png` and opened - the contact sheet that caught a
+  flame rendering as a sunburst, one press.
+
+It still renders nothing itself and authors nothing: everything it lists is
+the forge's or the game's. `forge_app/tools/app_shot` photographs it twice,
+plain and with every comparison on, because a control that draws nothing is
+the one thing this window exists to catch.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
