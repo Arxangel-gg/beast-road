@@ -1035,7 +1035,28 @@ const SKILL_POINTS_PER_FIRST_CLEAR: int = 1
 ## **How much of an arm must be learned before each ring opens**, from the
 ## Warden outward: ring I, II, III and the tip. Counted in nodes of that arm -
 ## a count cannot strand a node the way a drawn graph can. [TUNE]
-const DISCIPLINE_RING_DEPTH: Array[int] = [0, 2, 5, 8]
+## **Five clusters a trunk** (2026-09-28, docs/SKILL_TREE_D4_2026-09-28.md):
+## Basic, Core, Guard, Ultimate, Oath, each opening at this many points
+## spent in its own arm. Counted rather than graphed.
+const DISCIPLINE_RING_DEPTH: Array[int] = [0, 3, 7, 11, 15]
+## The most a branch may move a number of the skill it hangs off, as a
+## share, whatever the data authors. Counted keys (a second stone, two more
+## thorns) are not shares and are not bounded by it.
+const DISCIPLINE_UPGRADE_CEILING: float = 0.6
+## How many Oaths a Gatebroken Warden may swear (docs/GATEBROKEN_2026-09-28.md).
+const OATHS_GATEBROKEN: int = 2
+## How far past the swing's reach Spellblade's Arc Bolt looks for a body.
+const DISCIPLINE_BOLT_REACH_SCALE: float = 2.2
+## Attunement: a cast this soon after the finisher costs less.
+const DISCIPLINE_CAST_DISCOUNT_SECONDS: float = 2.0
+## How long a branch's status - a bleed, a burn - lasts on what it strikes.
+const DISCIPLINE_STATUS_SECONDS: float = 3.0
+## A second stone lands this share of the first's radius beside it, this
+## much later.
+const DISCIPLINE_EXTRA_STRIKE_OFFSET: float = 0.9
+const DISCIPLINE_EXTRA_STRIKE_DELAY: float = 0.18
+## No Retreat: how wide the dash's strike is either side of its line.
+const DISCIPLINE_DASH_STRIKE_WIDTH: float = 60.0
 
 ## The form and the Defense skill every Warden starts with, free. They cost no
 ## point, so a new account is never a Warden with nothing to swing.

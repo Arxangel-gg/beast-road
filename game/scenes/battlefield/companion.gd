@@ -130,6 +130,13 @@ func _ready() -> void:
 	if not spirit_key.is_empty():
 		# No clock. A spirit stays until it is beaten, unequipped or replaced.
 		_left = INF
+
+
+## A summon stays this share longer: a skill's `up_duration` branch. A
+## spirit has no clock to extend.
+func extend(share: float) -> void:
+	if share > 0.0 and _left != INF:
+		_left *= 1.0 + share
 		var scale: float = SpiritBond.power_scale(
 			SpiritBond.rarity_of(spirit_key), SpiritBond.shiny_of(spirit_key))
 		# The spirit stands where the Warden stands: Resolve is the one

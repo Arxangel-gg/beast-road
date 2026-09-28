@@ -788,22 +788,22 @@ func _mansion_training(tier: int) -> void:
 		for ring: int in Balance.DISCIPLINE_RING_DEPTH.size():
 			var needed: int = Balance.DISCIPLINE_RING_DEPTH[ring]
 			if needed > have:
-				line += "  ·  ring %s at %d" % [_roman(ring + 1), needed]
+				line += "  ·  %s at %d" % [DisciplineNodeData.CLUSTER_NAMES[ring], needed]
 				break
 		_note(line)
 
 	var open: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
 	actions.add_child(_heading("Open to learn  ·  %d" % open.size()))
 	if open.is_empty():
-		_note("Nothing open right now. Learning in an arm opens its next ring.")
+		_note("Nothing open right now. Points spent in an arm open its next cluster.")
 	var last_tree: int = -1
 	for node: DisciplineNodeData in open:
 		if node.discipline != last_tree:
 			last_tree = node.discipline
 			_note(node.discipline_name())
 		var blocked: String = _training_blocker(node)
-		var row := _row("%s  ·  %s  ·  ring %s\n%s%s" % [
-			node.display_name, node.slot_name(), _roman(node.ring), node.description,
+		var row := _row("%s  ·  %s  ·  %s\n%s%s" % [
+			node.display_name, node.slot_name(), node.cluster_name(), node.description,
 			"\n— %s" % blocked if not blocked.is_empty() else ""], 66.0)
 		if ResourceLoader.exists(node.get_sprite_path()):
 			UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
@@ -957,8 +957,8 @@ func _mansion_tree(_tier: int) -> void:
 			if not reach.is_empty():
 				state = reach
 				tint = Color("b8ae98")
-		actions.add_child(_line("%s  ·  %s  ·  ring %s\n%s\n%s" % [node.display_name,
-			node.slot_name(), _roman(node.ring), node.description, state], 13, tint))
+		actions.add_child(_line("%s  ·  %s  ·  %s\n%s\n%s" % [node.display_name,
+			node.slot_name(), node.cluster_name(), node.description, state], 13, tint))
 
 
 ## Pairs of nodes that do something together, and how close the hero is to each.

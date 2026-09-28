@@ -381,7 +381,7 @@ func _count_in_arc(reach: float, half_arc: float) -> int:
 ## Once a swing, only when a tower stands within `DISCIPLINE_RADIANT_TOWER_REACH`
 ## of the Warden, onto the bodies round the blow that the swing itself missed -
 ## a share of the finisher, never a second finisher.
-func _radiant_splash(amount: float, reach: float) -> void:
+func _radiant_splash(amount: float, reach: float, form: DisciplineNodeData = null) -> void:
 	if _radiant_done or amount <= 0.0:
 		return
 	var near_tower: bool = false
@@ -403,8 +403,80 @@ func _radiant_splash(amount: float, reach: float) -> void:
 				> Balance.DISCIPLINE_RADIANT_RADIUS + enemy.contact_radius():
 			continue
 		DamageLedger.credit_as(DamageLedger.WARDEN)
-		enemy.take_damage(amount, centre, 0.0)
+		if enemy.take_damage(amount, centre, 0.0) and form != null:
+			# **Searing Light**: what the splash touches burns.
+			var sear: float = WardenSheet.upgrade_of(sheet, form.id, "form_splash_burn")
+			if sear > 0.0:
+				enemy.apply_burn(amount * sear / Balance.DISCIPLINE_STATUS_SECONDS,
+					Balance.DISCIPLINE_STATUS_SECONDS)
 	Vfx.ring(centre, Balance.DISCIPLINE_RADIANT_RADIUS, Color("ffe7a3"), 0.4, 4.0)
+	# **Bastion Hymn**: the splash also wards the nearest tower.
+	if form != null:
+		var hymn: float = WardenSheet.upgrade_of(sheet, form.id, "form_splash_shield")
+		if hymn > 0.0:
+			var nearest: Node2D = null
+			var best: float = INF
+			for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+				var tower := node as Node2D
+				if tower != null and tower.global_position.distance_to(_swing_origin) < best:
+					best = tower.global_position.distance_to(_swing_origin)
+					nearest = tower
+			if nearest != null and nearest.has_method("ward"):
+				nearest.call("ward", hymn)
+				Vfx.ring(nearest.global_position, 60.0, Color("ffe7a3"), 0.4, 4.0)
+
+
+## **What the form's branches and the Oath do once a swing has landed**, each
+## a door on the hero called by name so this file still does not know what a
+## `Hero` is. `dealt` is what the swing took off every body it struck.
+func _form_branches(form: DisciplineNodeData, finisher: bool, hits: int, dealt: float,
+		reach: float) -> void:
+	var owner := get_parent() as Node
+	if owner == null:
+		return
+	# The Red Road heals on every swing; the Red Draught on the finisher.
+	var heal: float = WardenSheet.boon_of(sheet, "oath_lifesteal")
+	if finisher:
+		heal += WardenSheet.upgrade_of(sheet, form.id, "form_finisher_heal")
+	if heal > 0.0 and owner.has_method("heal_unscaled"):
+		owner.call("heal_unscaled", dealt * heal)
+	if not finisher:
+		return
+	# Spellblade's own refund, and its branches.
+	var refund: float = WardenSheet.upgrade_of(sheet, form.id, "form_finisher_mana")
+	if form.effect_id == "form_finisher_mana":
+		refund += form.effect_value
+	if refund > 0.0 and owner.has_method("refund_mana_share"):
+		owner.call("refund_mana_share", refund)
+	var dash: float = WardenSheet.upgrade_of(sheet, form.id, "form_finisher_dash_refund")
+	if dash > 0.0 and owner.has_method("refund_dash"):
+		owner.call("refund_dash", dash * float(hits) / maxf(Balance.HERO_DASH_COOLDOWN, 0.01))
+	if WardenSheet.upgrade_of(sheet, form.id, "form_finisher_cast_discount") > 0.0 \
+			and owner.has_method("note_finisher_landed"):
+		owner.call("note_finisher_landed")
+	var bolt: float = WardenSheet.upgrade_of(sheet, form.id, "form_finisher_bolt")
+	if bolt > 0.0:
+		_arc_bolt(dealt / float(maxi(hits, 1)) * bolt, reach)
+
+
+## **Arc Bolt**: the finisher throws a bolt at the nearest body beyond its
+## reach that it did not strike.
+func _arc_bolt(blow: float, reach: float) -> void:
+	var target: Enemy = null
+	var best: float = reach * Balance.DISCIPLINE_BOLT_REACH_SCALE
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dying() or _hit_ids.has(enemy.get_instance_id()):
+			continue
+		var apart: float = enemy.combat_origin().distance_to(_swing_origin)
+		if apart < best:
+			best = apart
+			target = enemy
+	if target == null:
+		return
+	Vfx.streak(_swing_origin, target.combat_origin(), 0.12, Color(0.62, 0.8, 1.0), "air", 12.0)
+	DamageLedger.credit_as(DamageLedger.WARDEN)
+	target.take_damage(blow, _swing_origin, 0.0, true, sheet)
 
 
 func _strike() -> void:
@@ -419,6 +491,10 @@ func _strike() -> void:
 	var form: DisciplineNodeData = WardenSheet.form_of(sheet) \
 		if own_stash or sheet != null else null
 	var finisher: bool = _step >= Balance.HERO_CHAIN_LENGTH - 1
+	# **Wide Cleave**: the finisher's arc is wider.
+	if finisher and form != null:
+		half_arc *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_finisher_arc")
+	var dealt: float = 0.0
 	# **Cleaving Road**: the wide third hit gains force for each enemy struck.
 	# Counted across the whole arc before any blow lands, so the first body is
 	# shoved as hard as the last; capped, so a packed road is a wall moved rather
@@ -455,11 +531,22 @@ func _strike() -> void:
 			if blow > damage:
 				Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
 					_swing_aim, 240.0)
+		# **Brand of Ruin**: the finisher strikes a branded body harder.
+		if finisher and form != null and enemy.is_branded():
+			blow *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_vs_branded")
 		DamageLedger.credit_as(DamageLedger.WARDEN)
 		if not enemy.take_damage(blow, _swing_origin, knockback, true, sheet):
 			continue
 		_hit_ids[id] = true
 		hits += 1
+		dealt += blow
+		# **Weeping Edge**: every hit in the chain opens the Bleed, at a share of
+		# the finisher's. The finisher's own is `enemy.gd`'s.
+		if not finisher and form != null and form.effect_id == "bleed_finisher":
+			var weep: float = WardenSheet.upgrade_of(sheet, form.id, "form_bleed_every_hit")
+			if weep > 0.0:
+				enemy.apply_burn(blow * form.effect_value * weep / Balance.DISCIPLINE_STATUS_SECONDS,
+					Balance.DISCIPLINE_STATUS_SECONDS)
 		# The first body struck decides what the hit sounds and looks like.
 		if struck_hide < 0 and enemy.data != null:
 			struck_hide = int(enemy.data.hide)
@@ -489,7 +576,9 @@ func _strike() -> void:
 	if hits == 0:
 		return
 	if finisher and form != null and form.effect_id == "defense_radiant_finisher":
-		_radiant_splash(damage * form.effect_value, reach)
+		_radiant_splash(damage * form.effect_value, reach, form)
+	if form != null and own_stash:
+		_form_branches(form, finisher, hits, dealt, reach)
 	landed.emit(_step, hits, _swing_origin)
 	var hide: int = maxi(struck_hide, 0)
 	EventBus.hero_attack_landed.emit(_step, hits, _swing_origin, hide)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 1
+ring = 1
+tags = Array[String](["Finisher", "Mana"])
+form_damage = 0.03
+discipline = 3
+role = 0
+effect_id = "form_finisher_mana"
+effect_value = 0.04
+id = "spellblade"
+display_name = "Spellblade"
+description = "The finisher refunds 4% of the pool."

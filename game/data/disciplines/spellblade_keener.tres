@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 1
+tags = Array[String](["Finisher", "Mana"])
+parent_id = "spellblade"
+discipline = 3
+role = 0
+effect_id = "form_power"
+effect_value = 0.03
+id = "spellblade_keener"
+display_name = "Keener Blade"
+description = "Spellblade: every swing hits 3% harder."

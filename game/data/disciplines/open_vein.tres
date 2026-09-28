@@ -2,13 +2,14 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+ranks = 3
 kind = 2
 ring = 2
 tags = Array[String](["Crit"])
 discipline = 0
 role = 3
 effect_id = "isolated_crit"
-effect_value = 0.15
+effect_value = 0.05
 id = "open_vein"
 display_name = "Open Vein"
 description = "Critical chance rises against isolated enemies."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 4
+ring = 5
+tags = Array[String](["Oath", "Blood"])
+exclusive = "oath"
+discipline = 0
+role = 5
+effect_id = "oath_lifesteal"
+effect_value = 0.06
+bane_id = "oath_heal_halved"
+bane_value = 0.5
+id = "oath_red_road"
+display_name = "The Red Road"
+description = "Every swing heals 6% of what it deals. Draughts, fish and the well heal you half as much."

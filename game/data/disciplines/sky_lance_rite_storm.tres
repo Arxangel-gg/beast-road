@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 4
+tags = Array[String](["Storm", "Beam"])
+parent_id = "sky_lance_rite_keen"
+exclusive = "sky_lance_rite_fork"
+discipline = 3
+role = 4
+effect_id = "up_vs_wet"
+effect_value = 0.4
+id = "sky_lance_rite_storm"
+display_name = "Storm Lance"
+description = "Sky Lance strikes soaked bodies 40% harder."

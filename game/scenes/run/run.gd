@@ -946,6 +946,9 @@ func _apply_rift_reward(reward: Dictionary) -> void:
 			EventBus.preparation_warning.emit(
 				"THE GATE IS ANSWERED  ·  %s  ·  rung %d of %d."
 				% [MetaState.warden_title(), rung, GatekeeperTrials.STAGES])
+			# **Gatebroken**: the Gatekeeper's Mantle, once, where he fell.
+			if rung == GatekeeperTrials.STAGES:
+				battlefield.spawn_gear(GatekeeperTrials.mantle_for(RunState.tier_id), at)
 	var value: int = int(reward.get("resources", 0))
 	RunState.gain_currency(RunState.GOLD, int(round(value * 0.55)))
 	RunState.gain_currency(RunState.FOOD, int(round(value * 0.30)))

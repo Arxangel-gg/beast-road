@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 2
+tags = Array[String](["Pull", "Mark"])
+parent_id = "chain_hook_long"
+exclusive = "chain_hook_fork"
+discipline = 2
+role = 0
+effect_id = "up_power"
+effect_value = 0.3
+id = "chain_hook_gaff"
+display_name = "Gaff"
+description = "Chain Hook strikes 30% harder."

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 2
+tags = Array[String](["Summon"])
+parent_id = "call_serpent_lasting"
+exclusive = "call_serpent_fork"
+discipline = 0
+role = 2
+effect_id = "up_status_bleed"
+effect_value = 0.2
+id = "call_serpent_venom"
+display_name = "Venom"
+description = "What the Serpent strikes bleeds for a fifth of the blow."

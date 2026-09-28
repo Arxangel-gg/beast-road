@@ -10927,6 +10927,155 @@ taken: the meteor was first handed the hand as its origin (*"from (0,0) to
 as frame zero because `load_idle_frames` already hands it back - the
 rest-pose-twice fault of 2026-09-25, arriving a third time.
 
+**The Disciplines have clusters, branches and forks, as of 2026-09-28 (phase 2
+of the rework).** Owner: *"complete overhaul ... basic skills clusters, core
+skills clusters, defensive and mobility clusters and ultimate clusters with the
+style of branching off of a skill for bonuses and forks at the end for
+modifiers and variations of the skill similar to diablo4's skill tree system."*
+`docs/SKILL_TREE_D4_2026-09-28.md` is the design.
+
+**Each arm is a trunk of five clusters** - Basic, Core, Guard, Ultimate, Oath -
+opened by points spent in that arm (`DISCIPLINE_RING_DEPTH` is `[0, 3, 7, 11,
+15]`, counted rather than graphed as before). "Defensive and mobility" is one
+cluster because the Defense slot already is: the step and the shell sit in one
+slot. **A skill is three nodes**: the skill, an enhancement hanging off it, and
+one of two forks hanging off the enhancement, the forks sharing an `exclusive`
+group. **A passive has ranks**, each a point, worth its per-rank value times
+the rank - and the per-rank value is the old value over the ranks, so a passive
+at its top is worth exactly what the single node was on 2026-09-26. **The Oath
+is the key passive**: one an arm, all four in one exclusive group, a boon paid
+for with a bane. Forty nodes became a hundred and twenty-six, and the Arcane
+gained its own form, Spellblade.
+
+**Why this makes the top a choice, measured.** Phase 1's gate held only that
+one Normal clear does not buy everything, and a full account could learn the
+whole tree. Now what can be held at once - every rank less a twin of each fork
+and three of the four Oaths - is more than a capped Warden earns, and
+`discipline_check` measures that rather than asserting it.
+
+**A branch moves a number the skill already has, read where that number is
+made, and nowhere else.** `DisciplineUpgrades.for_skill` walks a branch's
+`parent_id` chain to its root and sums by key; `WardenSheet.upgrade_of` and
+`spell_upgrade_of` are the doors, null for this machine's own Warden and a
+partner's sheet otherwise, so the host's copy of a partner reads the partner's
+branches. The vocabulary is small - power, cooldown, reach, area, time, count,
+shove, a status left on what it hits, harder against a status, a refund on a
+kill, a heal, a ward - and `SpellCaster._land` is the one funnel every spell's
+blow now goes through, so a branch wired there is wired for the nova, the
+strike, the beam and the hook alike. The forms' branches are read in
+`HeroAttack._form_branches` and the hero's doors it calls by name
+(`grant_ward`, `heal_unscaled`, `refund_mana_share`, `note_finisher_landed`),
+and the Oaths in `Hero` - `mana_max`, `mana_regen`, `damage_multiplier`,
+`_on_evaded`, `_dash_strike` - each a line at the number it moves.
+`DISCIPLINE_UPGRADE_CEILING` bounds any share whatever the data authors;
+counts and seconds are not shares and are listed as such.
+
+**The model.** `curve_report._discipline_scale` reads the form's enhancement,
+the one branch that reaches every swing. Spell branches are outside that model
+exactly as spells are - it has never carried a cast - and are held by the
+ceiling instead, which is the arrangement the ascension rank had before it was
+modelled.
+
+**Nothing new persists.** `discipline_tree[id]` held `1` since phase 1 and
+holds the rank now, so a save reads unchanged; a partner's row packs `id:rank`
+and a bare id from an older build reads as rank one. The Oath and the bane are
+nodes. `SAVE_VERSION` did not move.
+
+**The screen is a trunk, one arm at a time.** The radial map could not hold a
+hundred and thirty nodes at a readable size; four tabs, five columns, each
+skill with its enhancement to its right and its forks fanning off that, joined
+by lines - which is what the eye reads as a choice. Every node keeps its button
+and the others' are hidden, so the loadout can still find any of them and the
+overlap check reads only what is shown.
+
+**The art is composed** (`tools/compose_discipline_icons.py`): a branch's icon
+is its skill's medallion with a shipped relic laid over a corner - the gold orb
+for an enhancement, an emblem of what the fork does for a fork - which is what
+Diablo IV does with the same icon in a different frame, and what lets a player
+read "a branch of Ember Fall" at a glance. PixelLab is spent until 2026-10-11;
+installing a bespoke painting is overwriting its file.
+
+**Three keys were dropped before they shipped**: `up_mana`, `up_vs_burning`
+and `up_vs_branded` were on the ledger and no node authored them, which the
+gate's stale check would have named - a key read by code and authored by
+nothing is the `DisciplineEffects` lie the other way round. Spellblade's
+Attunement covers the cost, the bleed and the burn are one clock
+(`bleed_finisher` is `apply_burn`), and Brand of Ruin is the form's own.
+
+`discipline_branch_check` (both bars) drives every kind of thing through its
+real door: three learns are rank three and a fourth is refused; the packed row
+carries the rank; a fork waits for its enhancement and closes its twin; a
+second Oath is refused as sworn; Wide Fall's radius is read off the strike in
+the air, Cinder Rain's second stone counted there, Thicker Volley's thorns
+likewise, Deep Marrow's cooldown off the caster, Hollowing's heal off the
+signal, Barbed Hook's bleed off the body, Keen Lance's tick off a pool it
+cannot empty; Deeper Cut off the hero's multiplier, Red Draught and
+Spellblade's refund off an owner probe, Wide Cleave off a body the plain arc
+misses, Arc Bolt off a body beyond the swing, Brand of Ruin off a branded body;
+the Deep Well, the Red Road, No Retreat and the Kept Gate on a real Hero.
+
+**Gatebroken, as of 2026-09-28.** Owner: *"brainstorm the perfect system for
+rewarding players who complete the gatekeeper's trials ... inspired by astonia
+3's seyan du class"*. `docs/GATEBROKEN_2026-09-28.md` is the design, and the
+part of Seyan'Du that travels is the *freedom*: a class that could use both a
+warrior's and a mage's skills. This game has no classes; what a Warden lives
+under that a class lives under is one Oath at a time. So a Warden who has
+beaten the Gatekeeper on a tier - rung four of that tier's ladder, the same
+fact that takes him off its summit - is **Gatebroken**, and **may swear two
+Oaths, from two arms** (`MetaState.oaths_allowed`, read off
+`GatekeeperTrials.gatebroken_count`, stored nowhere). Two boons and two banes;
+what is new is the pairing. The door refuses a third, the settling keeps as
+many as the Warden may hold, a partner's row carries the allowance
+(`WardenSheet.AT_OATHS`, appended; an older row reads as one), and every boon
+and bane reader sums over what is sworn - so `curve_report` reads two through
+the same door.
+
+**The Gatekeeper's fall pays the Gatekeeper's Mantle**, once a tier, laid where
+he fell: a cape at the tier's own rarity - Oathbound on the Long Road, a rung
+higher each road after - with Resolve as its attribute, because what does not
+break is what he tests. **A trophy is paid by one thing and never rolled,
+stocked or forged** (`GearData.trophy`): `Stash.roll`, the Smithy and the
+Ledger's picker all skip it, so the only way to hold one is the road, which is
+the bound the Ledger already lives under. Gear on the gear scale and nothing
+else; the title on the card and the board is read off the same rungs. Nothing
+new persists.
+
+`discipline_branch_check` holds it: one Oath before, two after rung four, a
+third refused, both boons and banes read, a partner's row keeping both and an
+older row one, a save holding two Oaths trimmed to one when the rungs are gone,
+the Mantle a trophy cape at Oathbound on the Long Road, and six hundred rolls
+that never produce one.
+
+**What the gates changed on the way, same date.** Four things, each a
+harness or a decision rather than a fault in the tree:
+
+- **Mercy Under Fire is one rank again** (180), not three of 60. A shove's
+  reach goes with the square of its impulse, so a third of the impulse is a
+  ninth of the distance - two pixels, which the gate read as nothing. A number
+  that divides linearly may be ranked; a knockback may not.
+- **The learn walk is one walk a node, aimed at it.** Four walks favouring an
+  arm spent their eighty-seven points on whatever was open and ran dry two
+  clusters short, naming thirty reachable nodes as unreachable. Each node now
+  gets its own walk from a fresh tree - ancestors first, then its own arm,
+  never a twin of its fork or another Oath.
+- **The first skill opens at Core, three points in.** The Basic cluster is the
+  form's branches and a passive, so a new Warden's Attack slot fills on their
+  third point rather than their first; the screen test spends those points
+  through the real door before it looks for a skill. A skill learned into an
+  empty slot fills it on the spot, and the Use door is driven on a second form.
+- **Hollowing is held to what it adds.** Marrow Drain has paid its own 50%
+  draught since it was written; the first cut of the branch gate read the whole
+  heal against the fork's 20%. And `elite_extend_ultimate` is seconds, not a
+  share, and is listed as counted beside the other counted keys.
+
+**And the breather gate's hero stands inside the walls.** The sweep's one
+DIRTY row was a Canopy Stalker duelling the gate's invulnerable hero sixteen
+units outside the sanctuary for 75 seconds, which the stall watchdog - which
+reads no hero's pool - called a wave that could not clear. Seeded, and about
+one run in three: the coin was which body reached the spawn first. The
+sanctuary is the game's own rule for a Warden nothing may target, so the hero
+stands on the town.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

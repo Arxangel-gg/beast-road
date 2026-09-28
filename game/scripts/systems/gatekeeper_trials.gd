@@ -54,6 +54,36 @@ const STAGE_ACTS: Array[int] = [3, 5, 7, 9]
 const STAGES: int = 4
 
 
+## **Gatebroken** (docs/GATEBROKEN_2026-09-28.md): a Warden who has beaten
+## the Gatekeeper on a tier. Derived from the rungs, stored nowhere else.
+static func is_gatebroken(tier_id: String) -> bool:
+	return cleared_on(tier_id) >= STAGES
+
+
+## On how many tiers.
+static func gatebroken_count() -> int:
+	var count: int = 0
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		if is_gatebroken(tier.id):
+			count += 1
+	return count
+
+
+## The Gatekeeper's Mantle for a tier: a trophy cape at the tier's own
+## rarity - Oathbound on the Long Road, a rung higher each road after - or
+## an empty piece for a tier with none authored. Gear on the gear scale and
+## nothing else; paid once, where he fell, by `Run` when rung four is
+## recorded.
+static func mantle_for(tier_id: String) -> Dictionary:
+	var kind: GearData = ContentDB.gear("gatekeepers_mantle_%s" % tier_id)
+	if kind == null:
+		return {}
+	var tier: CampaignTierData = ContentDB.tiers.get(tier_id, null) as CampaignTierData
+	var order: int = tier.order if tier != null else 0
+	var rarity: int = clampi(Stash.RARITY_NAMES.find("Oathbound") + order, 0, Stash.RARITY_NAMES.size() - 1)
+	return Stash.make(kind.id, rarity)
+
+
 ## The rung an act offers, or 0 for an act that offers none.
 static func stage_for_act(act: int) -> int:
 	var at: int = STAGE_ACTS.find(act)

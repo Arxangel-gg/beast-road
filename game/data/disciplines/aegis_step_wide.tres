@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 3
+tags = Array[String](["Movement", "Ward"])
+parent_id = "aegis_step_lasting"
+exclusive = "aegis_step_fork"
+discipline = 1
+role = 1
+effect_id = "up_radius"
+effect_value = 0.35
+id = "aegis_step_wide"
+display_name = "Wide Aegis"
+description = "The Aegis field is 35% wider."

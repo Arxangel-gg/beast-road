@@ -100,7 +100,8 @@ static func _strike(wood_id: String, ore_id: String, gem_id: String,
 	var wood: MaterialData = ContentDB.material(wood_id)
 	var ore: MaterialData = ContentDB.material(ore_id)
 	var gem: MaterialData = ContentDB.material(gem_id)
-	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	var kinds: Array[GearData] = ContentDB.gear_sorted().filter(
+		func(kind: GearData) -> bool: return not kind.trophy)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var kind: GearData = kinds[rng.randi_range(0, kinds.size() - 1)]

@@ -448,7 +448,10 @@ func _hero_dps() -> float:
 ## are left out and said to be.
 func _discipline_scale() -> float:
 	var form: DisciplineNodeData = WardenSheet.form_of(null)
-	var scale: float = 1.0 + (form.form_damage if form != null else 0.0)
+	# The form and its enhancement (`form_power`), the one branch that reaches
+	# every swing - ruling R3's price for a node that carries a number.
+	var scale: float = 1.0 + (form.form_damage + WardenSheet.upgrade_of(null, form.id, "form_power")
+		if form != null else 0.0)
 	scale *= 1.0 + WardenSheet.trained_value_of(null, "active_attack_speed")
 	return scale
 

@@ -634,7 +634,8 @@ func _gear_ids() -> Array[String]:
 	var out: Array[String] = []
 	for value: Variant in ContentDB.gear_kinds.values():
 		var kind := value as GearData
-		if kind != null:
+		# A trophy is found and never hunted for on the Ledger.
+		if kind != null and not kind.trophy:
 			out.append(kind.id)
 	out.sort()
 	return out

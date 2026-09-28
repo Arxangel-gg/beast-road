@@ -1,23 +1,23 @@
 class_name DisciplinesScreen
 extends CanvasLayer
-
-## The Warden's Disciplines, drawn as what they are: four arms around the
-## Warden, opening outward in rings.
+## The Warden's Disciplines, drawn as a trunk: one arm at a time, its five
+## clusters left to right - Basic, Core, Guard, Ultimate, Oath - each skill
+## with its enhancement branching off it and its two forks off that
+## (docs/SKILL_TREE_D4_2026-09-28.md).
 ##
 ## **The tree is the account's and this is where it is shaped** (owner rulings
-## R1 and R5, 2026-09-26; `docs/SKILL_TREE_REWORK_2026-09-26.md`). A node may be
-## learned here or at the Hero Mansion on the road; it is **let go only here**,
-## between roads, and letting go is free - a build rebuilt at every Preparation
-## is not a build, and a build that costs Food to rethink is one nobody tries.
+## R1 and R5, 2026-09-26). A node may be learned here or at the Hero Mansion on
+## the road; it is **let go only here**, between roads, and letting go is free.
 ##
-## **The screen decides nothing.** Every rule - the points, the rings, an
-## upgrade's skill, the free pair, the loadout's slots - is asked of `MetaState`
-## through the same doors the Mansion and `discipline_check` use, and the page
-## re-reads the account after every press rather than keeping a copy.
+## **The screen decides nothing.** Every rule - the points, the clusters, a
+## branch's skill, a fork's twin, the ranks, the one Oath, the free pair, the
+## loadout's slots - is asked of `MetaState` through the same doors the Mansion
+## and `discipline_check` use, and the page re-reads the account after every
+## press rather than keeping a copy.
 ##
-## Counted, not graphed, and the drawing says so: a ring is a circle, and what
-## opens it is how much of its own arm is learned, so there are no lines between
-## nodes to follow except an upgrade's to the skill it changes.
+## The radial map of phase 1 could not hold a hundred and thirty nodes at a
+## readable size; a trunk is what the owner named, and a fork is what the eye
+## reads as a choice.
 
 signal closed
 
@@ -28,26 +28,24 @@ const LEARNED: Color = Color("9fd48a")
 ## Each arm's colour, by `DisciplineNodeData.Discipline`.
 const ARM_COLOURS: Array[Color] = [Color("c8453a"), Color("f0d27a"), Color("e07a2e"),
 	Color("7fa8ff")]
-## Where each arm points, in degrees clockwise from the right: Blood to the
-## left, Holy above, Berserk to the right, the Arcane below.
-const ARM_ANGLES: Array[float] = [180.0, 270.0, 0.0, 90.0]
-## The most a ring's nodes may spread round their arm, in degrees. Inside it
-## they are spaced by their own size at that radius (`NODE_GAP` apart), so a
-## ring near the Warden, where a node is a wide angle, still clears the next
-## arm - a fixed arc put the first rings of neighbouring arms on top of each
-## other on a small map.
-const ARM_SPREAD: float = 62.0
-const NODE_GAP: float = 1.2
-## Each ring's radius, as a share of the map's half-size, from the Warden out.
-const RING_RADII: Array[float] = [0.46, 0.68, 0.88, 0.98]
 const SLOT_NAMES: Array[String] = ["Attack", "Defense", "Power", "Ultimate"]
+## How a skill's branches stand round it, in node sizes: the enhancement this
+## far to the right, the forks this far again and this far up and down.
+const BRANCH_STEP: float = 1.3
+const FORK_RISE: float = 0.72
+## A cluster's column, in node sizes, and the room a passive row takes.
+const CLUSTER_WIDTH: float = 4.4
+const ROW_HEIGHT: float = 1.7
+const HEADER_HEIGHT: float = 34.0
 
 var _panel: PanelContainer
 var _split: BoxContainer
 var _map: Control
 var _stage: WardenStage
 var _nodes: Dictionary = {}
-var _node_size: float = 46.0
+var _node_size: float = 40.0
+var _arm: int = 0
+var _tabs: Array[Button] = []
 var _points: Label
 var _detail_name: Label
 var _detail_meta: Label
@@ -109,11 +107,27 @@ func _build() -> void:
 	column.add_child(_points)
 	var sub := Label.new()
 	sub.text = ("Kept between roads. Learn here or at the Hero Mansion on the road; "
-		+ "letting go is free, and only here. Each ring opens when enough of its own arm is learned.")
+		+ "letting go is free, and only here. Points spent in an arm open its next cluster; "
+		+ "a skill's enhancement hangs off it, and one of its two forks off that.")
 	sub.add_theme_font_size_override("font_size", 13)
 	sub.add_theme_color_override("font_color", QUIET)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(sub)
+
+	var tabs := HBoxContainer.new()
+	tabs.name = "Arms"
+	tabs.add_theme_constant_override("separation", 6)
+	column.add_child(tabs)
+	for arm: int in DisciplineNodeData.DISCIPLINE_NAMES.size():
+		var tab := Button.new()
+		tab.name = "Arm%s" % DisciplineNodeData.DISCIPLINE_NAMES[arm]
+		tab.toggle_mode = true
+		tab.custom_minimum_size = Vector2(120.0, 36.0)
+		tab.add_theme_color_override("font_color", ARM_COLOURS[arm])
+		tab.add_theme_color_override("font_pressed_color", INK)
+		tab.pressed.connect(_show_arm.bind(arm))
+		tabs.add_child(tab)
+		_tabs.append(tab)
 
 	_split = BoxContainer.new()
 	_split.name = "Split"
@@ -256,7 +270,8 @@ func open() -> void:
 	_stage.reset_turn()
 	if _selected.is_empty():
 		_selected = MetaState.discipline_form
-	_refresh()
+	var chosen: DisciplineNodeData = ContentDB.discipline_node(_selected)
+	_show_arm(chosen.discipline if chosen != null else 0)
 	_close_button.grab_focus()
 
 
@@ -275,51 +290,101 @@ func _refit() -> void:
 	if _panel == null:
 		return
 	var screen: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-	var wide: float = minf(screen.x * 0.96, 1240.0)
-	var tall: float = minf(screen.y * 0.94, 800.0)
+	var wide: float = minf(screen.x * 0.96, 1280.0)
+	var tall: float = minf(screen.y * 0.94, 820.0)
 	_panel.custom_minimum_size = Vector2(wide, tall)
 	# Side by side where there is width for both; stacked on an upright screen.
 	_split.vertical = screen.x < screen.y * 1.1
-	var map_side: float = minf(tall - 170.0, wide - 380.0) if not _split.vertical \
-		else minf(wide - 40.0, tall * 0.52)
-	_map.custom_minimum_size = Vector2(maxf(map_side, 260.0), maxf(map_side, 260.0))
+	var map_wide: float = wide - 400.0 if not _split.vertical else wide - 40.0
+	var map_tall: float = tall - 240.0 if not _split.vertical else tall * 0.5
+	_map.custom_minimum_size = Vector2(maxf(map_wide, 320.0), maxf(map_tall, 260.0))
 
 
 # --- The map -------------------------------------------------------------------
 
-## Where each node stands: its arm's direction, its ring's radius, spread round
-## the arm by kind and id so the same tree always draws the same way.
+## Shows one arm's trunk. The other arms' buttons are hidden rather than
+## removed, so every node keeps its button and the loadout can find any of them.
+func _show_arm(arm: int) -> void:
+	_arm = clampi(arm, 0, DisciplineNodeData.DISCIPLINE_NAMES.size() - 1)
+	for index: int in _tabs.size():
+		_tabs[index].button_pressed = index == _arm
+	_layout_map()
+	_refresh()
+
+
+## The skills and forms of a cluster in this arm, each with its branches, and
+## the passives after them: what one column holds, top to bottom.
+func _column(arm: int, ring: int) -> Array[DisciplineNodeData]:
+	var out: Array[DisciplineNodeData] = []
+	var nodes: Array[DisciplineNodeData] = ContentDB.discipline_nodes_sorted()
+	for node: DisciplineNodeData in nodes:
+		if node.discipline == arm and node.ring == ring \
+				and node.kind in [DisciplineNodeData.Kind.SKILL, DisciplineNodeData.Kind.FORM,
+					DisciplineNodeData.Kind.OATH]:
+			out.append(node)
+	for node: DisciplineNodeData in nodes:
+		if node.discipline == arm and node.ring == ring and node.kind == DisciplineNodeData.Kind.PASSIVE:
+			out.append(node)
+	return out
+
+
+## A branch's place beside the node it hangs off: the enhancement to the right,
+## a fork to the right of that and up or down.
+func _branches_of(skill: DisciplineNodeData) -> Array[DisciplineNodeData]:
+	var out: Array[DisciplineNodeData] = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.kind == DisciplineNodeData.Kind.UPGRADE and node.parent_id == skill.id:
+			out.append(node)
+	return out
+
+
 func _layout_map() -> void:
 	# The map's first resize arrives while it is being built, before the Warden
 	# and the nodes stand on it; `_build` lays it out once they do.
 	if _stage == null:
 		return
-	var half: float = minf(_map.size.x, _map.size.y) * 0.5
-	var middle: Vector2 = _map.size * 0.5
-	_node_size = clampf(half * 0.17, 30.0, 54.0)
-	var reach: float = half - _node_size * 0.6
-	var stage_side: float = reach * RING_RADII[0] * 1.2
-	_stage.size = Vector2(stage_side, stage_side * 1.1)
-	_stage.position = middle - _stage.size * 0.5
-	for arm: int in ARM_ANGLES.size():
-		for ring: int in range(1, 5):
-			var here: Array[DisciplineNodeData] = []
-			for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-				if node.discipline == arm and node.ring == ring:
-					here.append(node)
-			var radius: float = reach * RING_RADII[ring - 1]
-			var spread: float = minf(ARM_SPREAD, float(here.size() - 1)
-				* rad_to_deg(_node_size / maxf(radius, 1.0)) * NODE_GAP)
-			for index: int in here.size():
-				var share: float = 0.5 if here.size() == 1 \
-					else float(index) / float(here.size() - 1)
-				var degrees: float = ARM_ANGLES[arm] + (share - 0.5) * spread
-				var at: Vector2 = middle + Vector2.RIGHT.rotated(deg_to_rad(degrees)) * radius
-				var button: TextureButton = _nodes.get(here[index].id, null)
-				if button != null:
-					button.size = Vector2(_node_size, _node_size)
-					button.position = at - button.size * 0.5
+	var clusters: int = DisciplineNodeData.CLUSTER_NAMES.size()
+	# The root's column holds the Warden; the clusters share the rest.
+	var root_wide: float = minf(_map.size.x * 0.12, 120.0)
+	var room: float = _map.size.x - root_wide
+	_node_size = clampf(room / (float(clusters) * CLUSTER_WIDTH), 26.0, 54.0)
+	var column_wide: float = room / float(clusters)
+	_stage.size = Vector2(root_wide * 0.9, root_wide * 1.0)
+	_stage.position = Vector2(root_wide * 0.05, _map.size.y * 0.5 - _stage.size.y * 0.5)
+	for id: String in _nodes:
+		(_nodes[id] as TextureButton).visible = false
+	for ring: int in range(1, clusters + 1):
+		var column_x: float = root_wide + column_wide * float(ring - 1)
+		var rows: Array[DisciplineNodeData] = _column(_arm, ring)
+		var tall: float = 0.0
+		for node: DisciplineNodeData in rows:
+			tall += _node_size * (ROW_HEIGHT if node.kind == DisciplineNodeData.Kind.PASSIVE
+				else FORK_RISE * 2.0 + 1.1)
+		var y: float = maxf((_map.size.y - HEADER_HEIGHT - tall) * 0.5 + HEADER_HEIGHT, HEADER_HEIGHT + _node_size)
+		for node: DisciplineNodeData in rows:
+			var passive: bool = node.kind == DisciplineNodeData.Kind.PASSIVE
+			var row_tall: float = _node_size * (ROW_HEIGHT if passive else FORK_RISE * 2.0 + 1.1)
+			var at: Vector2 = Vector2(column_x + _node_size * 0.9, y + row_tall * 0.5)
+			_place(node.id, at)
+			var step: float = _node_size * BRANCH_STEP
+			var branches: Array[DisciplineNodeData] = _branches_of(node)
+			for branch: DisciplineNodeData in branches:
+				_place(branch.id, at + Vector2(step, 0.0))
+				var forks: Array[DisciplineNodeData] = _branches_of(branch)
+				for index: int in forks.size():
+					var rise: float = (float(index) - float(forks.size() - 1) * 0.5) * 2.0 * FORK_RISE * _node_size
+					_place(forks[index].id, at + Vector2(step * 2.0, rise))
+			y += row_tall
 	_map.queue_redraw()
+
+
+func _place(id: String, at: Vector2) -> void:
+	var button: TextureButton = _nodes.get(id, null)
+	if button == null:
+		return
+	button.visible = true
+	button.size = Vector2(_node_size, _node_size)
+	button.position = at - button.size * 0.5
 
 
 func _centre_of(id: String) -> Vector2:
@@ -328,41 +393,52 @@ func _centre_of(id: String) -> Vector2:
 
 
 func _draw_map() -> void:
-	var half: float = minf(_map.size.x, _map.size.y) * 0.5
-	var middle: Vector2 = _map.size * 0.5
-	var reach: float = half - _node_size * 0.6
-	# The rings, faint: a ring is a circle, never a path.
-	for ring: int in 3:
-		_map.draw_arc(middle, reach * RING_RADII[ring], 0.0, TAU, 96,
-			Color(QUIET, 0.22), 2.0, true)
-	# **The arms named in the corner, each beside a pointer its own way.** A name
-	# written along its arm lands on a node or behind the Warden however it is
-	# placed; the corner between Blood and Holy is empty ground on every size.
 	var font: Font = ThemeDB.fallback_font
-	for arm: int in ARM_ANGLES.size():
-		var direction: Vector2 = Vector2.RIGHT.rotated(deg_to_rad(ARM_ANGLES[arm]))
-		var label: String = DisciplineNodeData.DISCIPLINE_NAMES[arm].to_upper()
-		var open: bool = MetaState.discipline_open(arm)
+	var clusters: int = DisciplineNodeData.CLUSTER_NAMES.size()
+	var root_wide: float = minf(_map.size.x * 0.12, 120.0)
+	var column_wide: float = (_map.size.x - root_wide) / float(clusters)
+	var colour: Color = ARM_COLOURS[_arm]
+	var depth: int = int(MetaState.discipline_depth().get(_arm, 0))
+	# The trunk: one line through the clusters, lit as far as the arm is open.
+	var trunk_y: float = HEADER_HEIGHT * 0.5 + 6.0
+	for ring: int in range(1, clusters + 1):
+		var x: float = root_wide + column_wide * float(ring - 1)
+		var needed: int = Balance.DISCIPLINE_RING_DEPTH[clampi(ring - 1, 0, Balance.DISCIPLINE_RING_DEPTH.size() - 1)]
+		var open: bool = depth >= needed and MetaState.discipline_open(_arm)
+		var tint: Color = colour if open else Color(QUIET, 0.7)
+		_map.draw_line(Vector2(x, trunk_y), Vector2(x + column_wide - 6.0, trunk_y),
+			Color(tint, 0.35), 2.0, true)
+		var label: String = DisciplineNodeData.CLUSTER_NAMES[ring - 1].to_upper()
 		if not open:
-			label += "  ·  ACT %s" % RunState.act_numeral(Balance.DISCIPLINE_OPENS_AT_ACT[arm])
-		var colour: Color = ARM_COLOURS[arm] if open else Color(QUIET, 0.7)
-		var tip: Vector2 = Vector2(13.0, 12.0 + 18.0 * arm)
-		var side: Vector2 = direction.orthogonal() * 4.0
-		_map.draw_colored_polygon(PackedVector2Array([tip + direction * 5.0,
-			tip - direction * 4.0 + side, tip - direction * 4.0 - side]), colour)
-		_map.draw_string(font, Vector2(24.0, tip.y + 5.0), label,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, colour)
-	# An upgrade's thread to the skill it changes: the only line on the map.
+			label += "  ·  %d IN %s" % [needed, DisciplineNodeData.DISCIPLINE_NAMES[_arm].to_upper()]
+		_map.draw_string(font, Vector2(x + 4.0, trunk_y - 6.0), label,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 12, tint)
+		if ring > 1:
+			_map.draw_line(Vector2(x, HEADER_HEIGHT), Vector2(x, _map.size.y),
+				Color(QUIET, 0.12), 1.0, true)
+	# The arm's own name at the root, over the Warden.
+	var open_arm: bool = MetaState.discipline_open(_arm)
+	var title: String = DisciplineNodeData.DISCIPLINE_NAMES[_arm].to_upper()
+	if not open_arm:
+		title += "  ·  ACT %s" % RunState.act_numeral(Balance.DISCIPLINE_OPENS_AT_ACT[_arm])
+	_map.draw_string(font, Vector2(6.0, trunk_y - 6.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
+		colour if open_arm else Color(QUIET, 0.7))
+	# The branches: a line from every branch to what it hangs off.
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.kind == DisciplineNodeData.Kind.UPGRADE and _nodes.has(node.parent_id):
-			_map.draw_line(_centre_of(node.parent_id), _centre_of(node.id),
-				Color(ARM_COLOURS[node.discipline], 0.45), 2.0, true)
+		if node.discipline != _arm or node.kind != DisciplineNodeData.Kind.UPGRADE:
+			continue
+		if not _nodes.has(node.parent_id) or not (_nodes[node.id] as TextureButton).visible:
+			continue
+		var lit: bool = MetaState.owns_discipline(node.id)
+		_map.draw_line(_centre_of(node.parent_id), _centre_of(node.id),
+			Color(colour, 0.85 if lit else 0.3), 2.5 if lit else 1.5, true)
 	# Each node's plate: lit in its arm's colour when learned, rimmed when open,
-	# dark when closed; the selected one wears gold.
+	# dark when closed; the selected one wears gold; a passive says its rank.
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.discipline != _arm or not (_nodes[node.id] as TextureButton).visible:
+			continue
 		var at: Vector2 = _centre_of(node.id)
 		var radius: float = _node_size * 0.62
-		var colour: Color = ARM_COLOURS[node.discipline]
 		match _state(node.id):
 			"learned":
 				_map.draw_circle(at, radius, Color(colour, 0.55))
@@ -373,17 +449,25 @@ func _draw_map() -> void:
 			_:
 				_map.draw_circle(at, radius, Color(0.05, 0.05, 0.06, 0.9))
 				_map.draw_arc(at, radius, 0.0, TAU, 32, Color(QUIET, 0.35), 1.5, true)
+		if node.is_oath() and MetaState.owns_discipline(node.id):
+			_map.draw_arc(at, radius + 5.0, 0.0, TAU, 40, GOLD, 2.0, true)
 		if node.is_form() and node.id == MetaState.discipline_form \
 				or (node.is_active_slot() and MetaState.discipline_loadout[node.slot_index()] == node.id):
 			_map.draw_arc(at, radius + 4.0, 0.0, TAU, 32, INK, 1.5, true)
+		if node.ranks > 1:
+			var rank: int = MetaState.discipline_rank(node.id)
+			_map.draw_string(font, at + Vector2(-radius, radius + 12.0), "%d/%d" % [rank, node.ranks],
+				HORIZONTAL_ALIGNMENT_CENTER, radius * 2.0, 11, INK if rank > 0 else QUIET)
 		if node.id == _selected:
 			_map.draw_arc(at, radius + 7.0, 0.0, TAU, 40, GOLD, 3.0, true)
 
 
-## "learned", "open" - learnable if a point is free - or "closed".
+## "learned" (at its top rank), "open" - learnable, or a rank up - or "closed".
 func _state(id: String) -> String:
-	if MetaState.owns_discipline(id):
+	if MetaState.reach_problem(id) == "Already learned.":
 		return "learned"
+	if MetaState.owns_discipline(id):
+		return "learned" if not MetaState.learn_problem(id).is_empty() else "open"
 	return "open" if MetaState.reach_problem(id).is_empty() else "closed"
 
 
@@ -395,6 +479,12 @@ func _refresh() -> void:
 	var free: int = MetaState.skill_points_free()
 	_points.text = "%d skill point%s to spend   ·   %d earned: %d from levels, %d from first clears" % [
 		free, "" if free == 1 else "s", from_levels + from_clears, from_levels, from_clears]
+	for index: int in _tabs.size():
+		var arm_depth: int = int(MetaState.discipline_depth().get(index, 0))
+		_tabs[index].text = "%s  ·  %d" % [DisciplineNodeData.DISCIPLINE_NAMES[index], arm_depth]
+		if not MetaState.discipline_open(index):
+			_tabs[index].text = "%s  ·  Act %s" % [DisciplineNodeData.DISCIPLINE_NAMES[index],
+				RunState.act_numeral(Balance.DISCIPLINE_OPENS_AT_ACT[index])]
 	for id: String in _nodes:
 		var button: TextureButton = _nodes[id]
 		match _state(id):
@@ -417,6 +507,10 @@ func _select(id: String) -> void:
 		return
 	_selected = id
 	_reset_armed = false
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	if node != null and node.discipline != _arm:
+		_show_arm(node.discipline)
+		return
 	_show_detail()
 	_reset_button.text = "Let the whole tree go"
 	_map.queue_redraw()
@@ -432,27 +526,39 @@ func _show_detail() -> void:
 			button.visible = false
 		return
 	_detail_name.text = node.display_name
-	_detail_meta.text = "%s  ·  ring %s  ·  %s" % [node.discipline_name(),
-		RunState.act_numeral(node.ring), _kind_name(node)]
+	var meta: String = "%s  ·  %s  ·  %s" % [node.discipline_name(), node.cluster_name(), _kind_name(node)]
+	if node.ranks > 1:
+		meta += "  ·  rank %d of %d" % [MetaState.discipline_rank(node.id), node.ranks]
+	_detail_meta.text = meta
 	_detail_tags.text = "  ·  ".join(node.tags) if not node.tags.is_empty() else ""
 	_detail_tags.visible = not node.tags.is_empty()
 	_detail_text.text = node.description
 	var owned: bool = MetaState.owns_discipline(node.id)
 	var problem: String = MetaState.learn_problem(node.id)
-	if owned:
+	var topped: bool = owned and MetaState.discipline_rank(node.id) >= node.ranks
+	if topped:
 		_detail_state.text = "Learned." if not Balance.DISCIPLINE_STARTERS.has(node.id) \
 			else "Learned - every Warden begins with it."
+		if node.is_oath():
+			_detail_state.text = "Sworn."
 		_detail_state.add_theme_color_override("font_color", LEARNED)
 	elif problem.is_empty():
-		_detail_state.text = "Open - one skill point."
+		_detail_state.text = ("Open - one skill point." if not owned
+			else "Rank %d - one skill point for the next." % MetaState.discipline_rank(node.id))
+		if node.is_oath():
+			_detail_state.text = ("Open - one skill point, and the only Oath you may hold."
+				if MetaState.oaths_allowed() == 1
+				else "Open - one skill point. Gatebroken, you may hold two.")
 		_detail_state.add_theme_color_override("font_color", GOLD)
 	else:
 		_detail_state.text = problem
 		_detail_state.add_theme_color_override("font_color", QUIET)
-	_learn_button.visible = not owned
+	_learn_button.visible = not topped
+	_learn_button.text = "Swear" if node.is_oath() else ("Learn" if not owned else "Rank up")
 	_learn_button.disabled = not problem.is_empty()
 	_learn_button.tooltip_text = problem
 	_forget_button.visible = owned and not Balance.DISCIPLINE_STARTERS.has(node.id)
+	_forget_button.text = "Let go" if MetaState.discipline_rank(node.id) <= 1 else "Let a rank go"
 	var forget_problem: String = MetaState.unlearn_problem(node.id) if owned else ""
 	_forget_button.disabled = not forget_problem.is_empty()
 	_forget_button.tooltip_text = forget_problem
@@ -476,9 +582,13 @@ func _kind_name(node: DisciplineNodeData) -> String:
 			return "always on"
 		DisciplineNodeData.Kind.UPGRADE:
 			var parent: DisciplineNodeData = ContentDB.discipline_node(node.parent_id)
-			return "changes %s" % (parent.display_name if parent != null else node.parent_id)
+			var root: DisciplineNodeData = ContentDB.discipline_node(DisciplineUpgrades.root_of(node))
+			var what: String = root.display_name if root != null else node.parent_id
+			if node.is_fork():
+				return "a fork of %s - one of two" % what
+			return "enhances %s" % (parent.display_name if parent != null else node.parent_id)
 		DisciplineNodeData.Kind.OATH:
-			return "an oath"
+			return "an Oath - a boon paid for with a bane"
 	return "%s skill" % node.slot_name()
 
 
@@ -492,6 +602,10 @@ func _build_loadout() -> void:
 	for slot: int in SLOT_NAMES.size():
 		var id: String = MetaState.discipline_loadout[slot]
 		_loadout_row(SLOT_NAMES[slot], ContentDB.discipline_node(id) if not id.is_empty() else null)
+	var sworn: Array[DisciplineNodeData] = MetaState.sworn_oaths()
+	for which: int in MetaState.oaths_allowed():
+		_loadout_row("Oath" if MetaState.oaths_allowed() == 1 else "Oath %d" % (which + 1),
+			sworn[which] if which < sworn.size() else null)
 
 
 func _loadout_row(label: String, node: DisciplineNodeData) -> void:

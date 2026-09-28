@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 1
+tags = Array[String](["Finisher", "Radiant"])
+parent_id = "consecrated_chain_brighter"
+exclusive = "consecrated_chain_fork"
+discipline = 1
+role = 0
+effect_id = "form_splash_burn"
+effect_value = 0.35
+id = "consecrated_chain_searing"
+display_name = "Searing Light"
+description = "Consecrated Chain: what the splash touches burns for a third of it."

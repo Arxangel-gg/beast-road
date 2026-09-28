@@ -249,7 +249,11 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	# Paid before it resolves, and refused if it cannot be. A bare caster with
 	# no hero - the gates - casts for free, which is what they need.
 	if hero != null and hero.has_method("spend_mana"):
-		if not bool(hero.call("spend_mana", spell.cost())):
+		# Spellblade's Attunement makes the cast after a finisher cheaper -
+		# asked of the hero, who holds the window, and spent by the asking.
+		var discount: float = float(hero.call("cast_discount")) if hero.has_method("cast_discount") else 0.0
+		var cost: float = spell.cost() * (1.0 - discount)
+		if not bool(hero.call("spend_mana", cost)):
 			cast_starved.emit(slot)
 			return false
 
@@ -260,6 +264,10 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	cooldown_changed.emit(slot, 1.0)
 	_resolve(spell, aim, origin)
 	_rider(slot, spell, aim, origin)
+	# A ward on cast (Clotting, Iron Skin, Deep Veil, the Bear's Bulwark).
+	var ward: float = _up(spell, "up_ward")
+	if ward > 0.0:
+		ward_requested.emit(ward)
 	# **Siphoning Veil** and **Echo of the Weave**, after the cast they ride.
 	_siphon_ward(origin)
 	_echo(slot, spell, aim, origin)
@@ -279,7 +287,8 @@ func _effective_cooldown(spell: SpellData) -> float:
 	# a spell with no cooldown at all.
 	var focus_cut: float = minf(float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS))
 		* Balance.HERO_FOCUS_COOLDOWN_PER_POINT, Balance.HERO_FOCUS_COOLDOWN_CAP)
-	return maxf(spell.cooldown * (1.0 - reduction) * (1.0 - focus_cut) + flat, 0.5)
+	return maxf((spell.cooldown * (1.0 - reduction) * (1.0 - focus_cut) + flat)
+		* (1.0 - _up(spell, "up_cooldown")), 0.5)
 
 
 ## What Focus multiplies spell damage by. The Mansion has said "spell power"
@@ -325,12 +334,13 @@ func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 		"armor_stagger":
 			_roar(origin, spell, node.effect_value)
 		"dash_shield_field":
-			_aegis_fields.append({"at": _foot(origin), "left": node.effect_value, "granted": []})
+			_aegis_fields.append({"at": _foot(origin),
+				"left": node.effect_value * (1.0 + _up(spell, "up_duration")), "granted": []})
 			Vfx.ring(_foot(origin), Balance.DISCIPLINE_AEGIS_RADIUS, Color("9fd3ff"), 0.5, 4.0)
 		"lane_cleanse":
 			_cleanse(origin, spell)
 		"recoverable_wound":
-			wound_guard_requested.emit(node.effect_value, spell.duration,
+			wound_guard_requested.emit(node.effect_value, _duration(spell),
 				Balance.DISCIPLINE_WOUND_SECONDS)
 		"road_line_disrupt":
 			_line_disrupt(origin, spell, node.effect_value)
@@ -342,7 +352,7 @@ func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			# **Dawn Bell.** The stagger is Tremor's own; this is the bell that
 			# follows it, and it reaches the towers rather than the bodies.
 			RunState.haste_the_towers(node.effect_value,
-				Balance.DISCIPLINE_TOWER_HASTE_SECONDS)
+				Balance.DISCIPLINE_TOWER_HASTE_SECONDS * (1.0 + _up(spell, "up_duration")))
 			Vfx.ring(_foot(origin), Balance.DISCIPLINE_WALL_WARD_RADIUS,
 				Color("ffd98a"), 0.7, 5.0)
 			Sfx.play("sfx_spell_nova", -4.0)
@@ -359,7 +369,7 @@ func _roar(origin: Vector2, spell: SpellData, fraction: float) -> void:
 			continue
 		enemy.apply_stagger(Balance.DISCIPLINE_ROAR_STAGGER)
 		enemy.shove(feet, Balance.DISCIPLINE_ROAR_SHOVE)
-	armor_requested.emit(fraction, spell.duration + Balance.DISCIPLINE_ROAR_ARMOR_TAIL)
+	armor_requested.emit(fraction, _duration(spell) + Balance.DISCIPLINE_ROAR_ARMOR_TAIL)
 	Vfx.ring(origin, Balance.DISCIPLINE_ROAR_RADIUS, Color("ffb35c"), 0.4, 5.0)
 
 
@@ -371,7 +381,7 @@ func _cleanse(origin: Vector2, spell: SpellData) -> void:
 		var body := node as Node2D
 		if body == null or not body.has_method("cleanse_disables"):
 			continue
-		if body.global_position.distance_to(centre) <= spell.effect_radius:
+		if body.global_position.distance_to(centre) <= _radius(spell):
 			body.call("cleanse_disables")
 
 
@@ -380,7 +390,7 @@ func _cleanse(origin: Vector2, spell: SpellData) -> void:
 ## than merely stepping back.
 func _line_disrupt(origin: Vector2, spell: SpellData, scale: float) -> void:
 	var along: Vector2 = field.lane_direction(_lane_at(origin))
-	var reach: float = spell.effect_radius * Balance.DISCIPLINE_LINE_REACH_SCALE * scale
+	var reach: float = _radius(spell) * Balance.DISCIPLINE_LINE_REACH_SCALE * scale
 	var feet: Vector2 = _foot(origin)
 	for enemy: Enemy in field.enemies_near(origin, reach):
 		if enemy.is_dying():
@@ -405,7 +415,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 	for enemy: Enemy in field.enemies_near(centre, sweep):
 		if enemy.is_dying():
 			continue
-		if origin.distance_to(enemy.combat_origin()) <= spell.effect_radius:
+		if origin.distance_to(enemy.combat_origin()) <= _radius(spell):
 			continue
 		var offset: Vector2 = enemy.global_position - feet
 		var ahead: float = offset.dot(along)
@@ -415,7 +425,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 			continue
 		var falloff: float = 1.0 - Balance.DISCIPLINE_ROAD_SHOCK_FALLOFF * (ahead / reach)
 		DamageLedger.credit_as(DamageLedger.SPELL)
-		enemy.take_damage(power * falloff, feet, spell.knockback, true, sheet)
+		enemy.take_damage(power * falloff, feet, _knockback(spell), true, sheet)
 		enemy.shove(feet, Balance.DISCIPLINE_ROAD_SHOCK_SHOVE)
 
 
@@ -445,8 +455,8 @@ func _pursuit(origin: Vector2, aim: Vector2, spell: SpellData, fraction: float) 
 ## asks for.
 func _drain_command(origin: Vector2, aim: Vector2, spell: SpellData,
 		amount: float) -> void:
-	var centre: Vector2 = origin + aim * (spell.effect_radius * 0.5)
-	for enemy: Enemy in field.enemies_near(centre, spell.effect_radius):
+	var centre: Vector2 = origin + aim * (_radius(spell) * 0.5)
+	for enemy: Enemy in field.enemies_near(centre, _radius(spell)):
 		if enemy.is_priority():
 			RunState.gain_command(amount)
 			return
@@ -459,7 +469,7 @@ func _drain_command(origin: Vector2, aim: Vector2, spell: SpellData,
 ## is applied here rather than trusted to the fraction.
 func _tempest_heal(origin: Vector2, spell: SpellData, cap: float) -> void:
 	var struck: float = 0.0
-	for enemy: Enemy in field.enemies_near(origin, spell.effect_radius):
+	for enemy: Enemy in field.enemies_near(origin, _radius(spell)):
 		if not enemy.is_dying():
 			struck += 1.0
 	if struck <= 0.0:
@@ -506,7 +516,7 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 ## nothing downstream has to learn that echoes exist.
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.0) -> void:
 	var power: float = spell.damage * WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) \
-		* focus_power_of(sheet) * share
+		* focus_power_of(sheet) * share * (1.0 + _up(spell, "up_power"))
 	# Where the spell lands, for what it does to the world.
 	var lands: Vector2 = origin
 	if spell.kind == SpellData.Kind.METEOR or spell.kind == SpellData.Kind.VOLLEY:
@@ -525,7 +535,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			blink_requested.emit(landing)
 		SpellData.Kind.NOVA:
 			_forged("nova", origin, spell)
-			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
+			_damage_area(origin, _radius(spell), power, _knockback(spell), origin, spell.element, spell)
 			# **Blood Remembers.** Asked here rather than in `_rider`, because it
 			# is a passive with no `spell_id` of its own - the Tempest is simply
 			# the nova this hero happens to be casting.
@@ -537,28 +547,36 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			_drain(origin, aim, spell, power)
 		SpellData.Kind.SHOCKWAVE:
 			_forged("slam_impact", origin, spell)
-			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
+			_damage_area(origin, _radius(spell), power, _knockback(spell), origin, spell.element, spell)
 			EventBus.camera_shake_requested.emit(10.0, 0.35)
 		SpellData.Kind.VEIL:
-			veil_requested.emit(spell.duration, spell.speed_bonus)
+			veil_requested.emit(_duration(spell), spell.speed_bonus)
 		SpellData.Kind.WARD:
 			_forged("ward", origin, spell)
 			_ward_lane = _lane_at(origin)
-			_ward_left = spell.duration
+			_ward_left = _duration(spell)
 			# **Unbroken Oath.** A ward that shields the lane shields what is
 			# standing in it, walls included. A passive again, so it is asked
 			# rather than dispatched.
 			_ward_the_walls(origin)
 		SpellData.Kind.BEAM:
 			_beam_spell = spell
-			_beam_left = spell.duration
+			_beam_left = _duration(spell)
 			_beam_aim = aim
 		SpellData.Kind.COMPANION:
 			_summon(spell, origin, aim)
 		SpellData.Kind.METEOR:
 			_aim_strike(_foot(origin) + aim * _reach(spell),
-				spell.effect_radius, power, spell.knockback,
+				_radius(spell), power, _knockback(spell),
 				Balance.SPELL_METEOR_DELAY, spell)
+			# A second stone (Cinder Rain, Quarry): beside the first, a beat later,
+			# the same stone - a count, never a share.
+			for extra: int in int(_up(spell, "up_extra")):
+				var side: float = 1.0 if extra % 2 == 0 else -1.0
+				_aim_strike(_foot(origin) + aim * _reach(spell)
+						+ aim.orthogonal() * _radius(spell) * Balance.DISCIPLINE_EXTRA_STRIKE_OFFSET * side,
+					_radius(spell), power, _knockback(spell),
+					Balance.SPELL_METEOR_DELAY + Balance.DISCIPLINE_EXTRA_STRIKE_DELAY * float(extra + 1), spell)
 		SpellData.Kind.VOLLEY:
 			_volley(_foot(origin) + aim * _reach(spell), spell, power, origin)
 
@@ -571,7 +589,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 ## thing each branch does with the cast and nothing reads it - the bound
 ## every feel change in this project is held to.
 func _forged(effect: String, at: Vector2, spell: SpellData) -> void:
-	var wide: float = maxf(spell.effect_radius, Balance.SPELL_FORGE_MIN_REACH) * 2.0
+	var wide: float = maxf(_radius(spell), Balance.SPELL_FORGE_MIN_REACH) * 2.0
 	Vfx.forge_play(effect, at, wide, TowerData.element_colour(spell.element))
 
 
@@ -596,6 +614,7 @@ func _summon(spell: SpellData, origin: Vector2, aim: Vector2) -> void:
 	companion.setup(data, hero, field)
 	companion.global_position = origin + aim.normalized() * 70.0
 	field.add_child(companion)
+	companion.extend(_up(spell, "up_duration"))
 	# Seen arriving: a rune flares where it stands and light leaves it.
 	Vfx.forge_play("rune_flare", companion.global_position, 150.0, Color(0.72, 0.62, 0.95))
 	Vfx.rays(companion.global_position, Color(0.88, 0.82, 1.0, 0.8), 12, 90.0, PI * 0.125)
@@ -625,6 +644,7 @@ func _aim_strike(at: Vector2, radius: float, power: float, knockback: float,
 	_falling.append({
 		"at": at, "radius": radius, "power": power,
 		"knockback": knockback, "left": maxf(delay, 0.01),
+		"spell": spell, "element": spell.element if spell != null else -1,
 	})
 	# The telegraph is `Vfx.ring` rather than a new effect: a ring that grows to
 	# exactly the radius the damage will use, over exactly the delay before it
@@ -640,18 +660,18 @@ func _aim_strike(at: Vector2, radius: float, power: float, knockback: float,
 ## seeded run lands its volley in the same places twice and a host and a guest
 ## watching the same cast see the same thing.
 func _volley(at: Vector2, spell: SpellData, power: float, thrown_from: Vector2 = Vector2.INF) -> void:
-	var strikes: int = maxi(Balance.SPELL_VOLLEY_STRIKES, 1)
+	var strikes: int = maxi(Balance.SPELL_VOLLEY_STRIKES + int(_up(spell, "up_extra")), 1)
 	var rng: RandomNumberGenerator = RunState.rng("combat")
-	var small: float = spell.effect_radius / sqrt(float(strikes))
+	var small: float = _radius(spell) / sqrt(float(strikes))
 	for index: int in strikes:
 		var angle: float = rng.randf() * TAU
-		var spread: float = spell.effect_radius * Balance.SPELL_VOLLEY_SCATTER
+		var spread: float = _radius(spell) * Balance.SPELL_VOLLEY_SCATTER
 		# Square-rooted so the hits spread evenly over the circle's area
 		# rather than clustering in the middle of it.
 		var reach: float = spread * sqrt(rng.randf())
 		var spot: Vector2 = at + Vector2(cos(angle), sin(angle)) * reach
-		var when: float = spell.duration * float(index) / float(strikes)
-		_aim_strike(spot, small, power, spell.knockback, when + 0.12, spell, thrown_from)
+		var when: float = _duration(spell) * float(index) / float(strikes)
+		_aim_strike(spot, small, power, _knockback(spell), when + 0.12, spell, thrown_from)
 
 
 ## Lands everything whose moment has come.
@@ -665,7 +685,8 @@ func _tick_falling(delta: float) -> void:
 			continue
 		var at: Vector2 = strike["at"]
 		_damage_area(at, float(strike["radius"]), float(strike["power"]),
-			float(strike["knockback"]), at)
+			float(strike["knockback"]), at, int(strike.get("element", -1)),
+			strike.get("spell", null) as SpellData)
 		Vfx.ring(at, float(strike["radius"]),
 			Balance.SPELL_STRIKE_LANDED_COLOUR, 0.30, 7.0)
 		# The bloom, at the radius the ring already promised and never a
@@ -679,16 +700,57 @@ func _tick_falling(delta: float) -> void:
 
 
 func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2,
-		element: int = -1) -> float:
+		element: int = -1, spell: SpellData = null) -> float:
 	var dealt: float = 0.0
 	for enemy: Enemy in field.enemies_near(centre, radius):
-		DamageLedger.credit_as(DamageLedger.SPELL)
-		if enemy.take_damage(power, from, knockback, true, sheet):
-			dealt += power
-			# A water spell leaves what it hits wet.
-			if element == TowerData.Element.WATER:
-				enemy.apply_wet(Balance.WET_SECONDS)
+		dealt += _land(enemy, power, from, knockback, element, spell, true)
 	return dealt
+
+
+## **One blow of a spell on one body**, and everything a branch does to it:
+## harder against a body wearing a status, a status left behind, a refund on
+## a kill, a share healed. Every spell's blow lands through this, so a
+## branch wired here is wired for the nova, the strike, the beam and the
+## hook alike. A bleed is the burn status in a red coat (`enemy.gd`'s
+## `bleed_finisher` is `apply_burn`), so "bleeding" and "burning" read one
+## clock.
+func _land(enemy: Enemy, power: float, from: Vector2, knockback: float, element: int,
+		spell: SpellData, active: bool) -> float:
+	var blow: float = power
+	if spell != null:
+		if enemy.is_burning():
+			blow *= 1.0 + _up(spell, "up_vs_bleeding")
+		if enemy.is_wet():
+			blow *= 1.0 + _up(spell, "up_vs_wet")
+	var stood: bool = not enemy.is_dying()
+	DamageLedger.credit_as(DamageLedger.SPELL)
+	if not enemy.take_damage(blow, from, knockback, active, sheet):
+		return 0.0
+	# A water spell leaves what it hits wet.
+	if element == TowerData.Element.WATER:
+		enemy.apply_wet(Balance.WET_SECONDS)
+	if spell == null:
+		return blow
+	var burn: float = _up(spell, "up_status_burn") + _up(spell, "up_status_bleed")
+	if burn > 0.0:
+		enemy.apply_burn(blow * burn / Balance.DISCIPLINE_STATUS_SECONDS, Balance.DISCIPLINE_STATUS_SECONDS)
+	var wet: float = _up(spell, "up_status_wet")
+	if wet > 0.0:
+		enemy.apply_wet(wet)
+	var brand: float = _up(spell, "up_status_brand")
+	if brand > 0.0:
+		enemy.brand(Balance.DISCIPLINE_BRAND_SECONDS, brand)
+	var heal: float = _up(spell, "up_heal")
+	if heal > 0.0:
+		heal_requested.emit(blow * heal)
+	if stood and enemy.is_dying():
+		var refund: float = _up(spell, "up_kill_mana")
+		if refund > 0.0:
+			mana_refunded.emit(refund)
+		var cool: float = _up(spell, "up_kill_cooldown")
+		if cool > 0.0:
+			_cool_by(spell, cool)
+	return blow
 
 
 ## A spell of an element works the world the way a tower of it does, by the
@@ -724,18 +786,18 @@ func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 		Vfx.streak(origin, enemy.combat_origin(), Balance.SPELL_HOOK_SECONDS,
 			TowerData.element_colour(spell.element), "", Balance.VFX_STREAK_SIZE * 0.6)
 		Vfx.beam(origin, enemy.combat_origin(), 3.0, Color(0.9, 0.86, 0.7, 0.7), 0.3)
-		DamageLedger.credit_as(DamageLedger.SPELL)
-		enemy.take_damage(power, origin, 0.0, true, sheet)
+		_land(enemy, power, origin, 0.0, spell.element, spell, true)
 		# Negative knockback would be a hack; pulling is its own operation.
-		enemy.pull_toward(origin, spell.knockback)
+		enemy.pull_toward(origin, _knockback(spell))
 
 
 func _drain(origin: Vector2, aim: Vector2, spell: SpellData, power: float) -> void:
-	var centre: Vector2 = origin + aim * (spell.effect_radius * 0.5)
-	var struck: Array = field.enemies_near(centre, spell.effect_radius)
-	var dealt: float = _damage_area(centre, spell.effect_radius, power, spell.knockback, origin)
+	var centre: Vector2 = origin + aim * (_radius(spell) * 0.5)
+	var struck: Array = field.enemies_near(centre, _radius(spell))
+	var dealt: float = _damage_area(centre, _radius(spell), power, _knockback(spell), origin,
+		spell.element, spell)
 	# Seen: the reach of the drain, and what it took flowing back to the hand.
-	Vfx.forge_play("hit_physical", centre, spell.effect_radius * 1.6, Color(0.86, 0.24, 0.3))
+	Vfx.forge_play("hit_physical", centre, _radius(spell) * 1.6, Color(0.86, 0.24, 0.3))
 	for enemy: Enemy in struck:
 		if is_instance_valid(enemy):
 			Vfx.streak(enemy.combat_origin(), origin, Balance.SPELL_DRAIN_SECONDS,
@@ -751,17 +813,17 @@ var _beam_spark: float = 0.0
 func _tick_beam(delta: float, origin: Vector2) -> void:
 	if _beam_spell == null:
 		return
-	var reach: float = maxf(_beam_spell.effect_radius, 120.0)
+	var reach: float = maxf(_radius(_beam_spell), 120.0)
 	var tick_damage: float = _beam_spell.damage * delta \
-		* WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet)
+		* WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet) \
+		* (1.0 + _up(_beam_spell, "up_power"))
 	# A line, approximated by walking spheres along the aim — cheap, and exact
 	# enough for something that is already a cone of fire.
 	var steps: int = 6
 	for i: int in steps:
 		var point: Vector2 = origin + _beam_aim * (reach * float(i + 1) / float(steps))
 		for enemy: Enemy in field.enemies_near(point, reach * 0.28):
-			DamageLedger.credit_as(DamageLedger.SPELL)
-			enemy.take_damage(tick_damage, origin, 0.0)
+			_land(enemy, tick_damage, origin, 0.0, _beam_spell.element, _beam_spell, false)
 	# **Where the beam ends, a few times a second rather than every frame.**
 	# An aimed sheet laid along the beam's own angle, so the spray it throws
 	# runs back up the beam instead of into the ground it is burning. On its
@@ -811,7 +873,7 @@ func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
 		return
 	var spent: float = 0.0
 	var taken: int = 0
-	for enemy: Enemy in field.enemies_near(origin, spell.effect_radius):
+	for enemy: Enemy in field.enemies_near(origin, _radius(spell)):
 		if enemy.is_dying() or not enemy.is_branded():
 			continue
 		var blow: float = minf(spell.damage * share,
@@ -825,7 +887,7 @@ func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
 		enemy.take_damage(blow, origin, 0.0, false)
 		Vfx.spark(enemy.combat_origin(), Color(0.86, 0.24, 0.3), 8, Vector2.UP, 210.0)
 	if taken > 0:
-		Vfx.ring(_foot(origin), spell.effect_radius, Color(0.86, 0.24, 0.3, 0.7), 0.35, 5.0)
+		Vfx.ring(_foot(origin), _radius(spell), Color(0.86, 0.24, 0.3, 0.7), 0.35, 5.0)
 
 
 ## **Unbroken Oath.** A ward puts a shield on the walls near it.
@@ -881,9 +943,39 @@ func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
 ##
 ## One function, and every throw in this file goes through it - a reach applied
 ## at four of five call sites is a node that works on some spells.
+## **A skill's branches** (docs/SKILL_TREE_D4_2026-09-28.md), read where each
+## number is made and nowhere else: an enhancement or a fork moves the
+## spell's power, cooldown, cost, reach, area, time, shove or count, or
+## what it leaves on a body. `WardenSheet.spell_upgrade_of` bounds a share to
+## `DISCIPLINE_UPGRADE_CEILING`; null is this machine's own Warden.
+func _up(spell: SpellData, key: String) -> float:
+	return WardenSheet.spell_upgrade_of(sheet, spell.id, key) if spell != null else 0.0
+
+
 func _reach(spell: SpellData) -> float:
 	return spell.cast_range * (1.0 + minf(
-		WardenSheet.trained_value_of(sheet, "arcane_reach"), Balance.ARCANE_REACH_CAP))
+		WardenSheet.trained_value_of(sheet, "arcane_reach"), Balance.ARCANE_REACH_CAP)) \
+		* (1.0 + _up(spell, "up_reach"))
+
+
+func _radius(spell: SpellData) -> float:
+	return spell.effect_radius * (1.0 + _up(spell, "up_radius"))
+
+
+func _duration(spell: SpellData) -> float:
+	return spell.duration * (1.0 + _up(spell, "up_duration"))
+
+
+func _knockback(spell: SpellData) -> float:
+	return spell.knockback * (1.0 + _up(spell, "up_shove"))
+
+
+## Takes seconds off this spell's own cooldown: a kill by it, for a branch.
+func _cool_by(spell: SpellData, seconds: float) -> void:
+	for slot: int in _cooldowns.size():
+		if spell_in_slot(slot) == spell and _cooldowns[slot] > 0.0:
+			_cooldowns[slot] = maxf(_cooldowns[slot] - seconds, 0.0)
+			cooldown_changed.emit(slot, cooldown_ratio(slot))
 
 
 func _wellspring() -> void:

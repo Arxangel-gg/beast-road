@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+look = "long"
+look_tint = Color(0.340, 0.300, 0.200, 1)
+slot = 8
+attribute = 4
+base_points = 5
+weight = 0.0
+min_tier = 0
+trophy = true
+id = "gatekeepers_mantle_normal"
+display_name = "Mantle of the Long Road"
+description = "The Gatekeeper's own weave, worn by the one who knocked. It does not fray."

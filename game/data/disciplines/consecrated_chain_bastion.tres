@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 1
+tags = Array[String](["Finisher", "Radiant"])
+parent_id = "consecrated_chain_brighter"
+exclusive = "consecrated_chain_fork"
+discipline = 1
+role = 0
+effect_id = "form_splash_shield"
+effect_value = 0.06
+id = "consecrated_chain_bastion"
+display_name = "Bastion Hymn"
+description = "Consecrated Chain: the splash also wards the nearest tower for 6% of its health."

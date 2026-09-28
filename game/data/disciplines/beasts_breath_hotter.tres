@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 4
+tags = Array[String](["Area", "Road"])
+parent_id = "beasts_breath"
+discipline = 2
+role = 4
+effect_id = "up_power"
+effect_value = 0.25
+id = "beasts_breath_hotter"
+display_name = "Hotter Breath"
+description = "Beast's Breath strikes 25% harder."

@@ -2,13 +2,14 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+ranks = 3
 kind = 2
 ring = 1
 tags = Array[String](["Haste"])
 discipline = 2
 role = 3
 effect_id = "active_attack_speed"
-effect_value = 0.24
+effect_value = 0.08
 id = "rising_fury"
 display_name = "Rising Fury"
 description = "Sustained active combat raises attack speed to a hard cap."

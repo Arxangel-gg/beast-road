@@ -1755,7 +1755,17 @@ func tier_is_unlocked(tier: CampaignTierData) -> bool:
 ## Records a full clear, which is what opens the next tier.
 ## The Warden's title, by rank.
 func warden_title() -> String:
-	return Balance.ASCENSION_TITLES[clampi(ascension, 0, Balance.ASCENSION_TITLES.size() - 1)]
+	var title: String = Balance.ASCENSION_TITLES[clampi(ascension, 0, Balance.ASCENSION_TITLES.size() - 1)]
+	# **Gatebroken**, once the Gatekeeper has fallen to this Warden - on one
+	# road, or more. Prestige read off the rungs, stored nowhere else.
+	match GatekeeperTrials.gatebroken_count():
+		0:
+			return title
+		1:
+			return title + ", Gatebroken"
+		2:
+			return title + ", Gatebroken twice"
+	return title + ", Gatebroken thrice"
 
 
 ## Ascends, once per summit clear, up to the cap. Returns the new rank, or the
@@ -3114,9 +3124,12 @@ func _read_spirits(block: Dictionary) -> void:
 ## a new Warden - the rule every `_read_*` here follows.
 func _read_disciplines(hero: Dictionary) -> void:
 	discipline_tree = {}
-	for key: Variant in (hero.get("tree", {}) as Dictionary):
-		if ContentDB.discipline_node(String(key)) != null:
-			discipline_tree[String(key)] = 1
+	var stored_tree: Dictionary = hero.get("tree", {}) as Dictionary
+	for key: Variant in stored_tree:
+		var node: DisciplineNodeData = ContentDB.discipline_node(String(key))
+		if node != null:
+			# The value is the rank (2026-09-28); phase 1 wrote 1, which is rank one.
+			discipline_tree[String(key)] = clampi(int(stored_tree[key]), 1, maxi(node.ranks, 1))
 	first_clears = {}
 	var stored: Variant = hero.get("first_clears", null)
 	if stored is Dictionary:
@@ -3152,7 +3165,23 @@ func _settle_disciplines() -> void:
 		_first_clears_pending = false
 		_derive_first_clears()
 	while skill_points_spent() > skill_points_earned() and not discipline_tree.is_empty():
-		discipline_tree.erase(discipline_tree.keys()[discipline_tree.size() - 1])
+		var last: String = String(discipline_tree.keys()[discipline_tree.size() - 1])
+		if int(discipline_tree[last]) > 1:
+			discipline_tree[last] = int(discipline_tree[last]) - 1
+		else:
+			discipline_tree.erase(last)
+	# One of each fork pair, and one Oath: the first kept wins, as the sheet's
+	# reader keeps it, so a save and the sheet packed from it agree.
+	var exclusive: Dictionary = {}
+	for key: Variant in discipline_tree.keys():
+		var held: DisciplineNodeData = ContentDB.discipline_node(String(key))
+		if held == null or held.exclusive.is_empty():
+			continue
+		var allowed: int = oaths_allowed() if held.is_oath() else 1
+		if int(exclusive.get(held.exclusive, 0)) >= allowed:
+			discipline_tree.erase(key)
+		else:
+			exclusive[held.exclusive] = int(exclusive.get(held.exclusive, 0)) + 1
 	var stranded: String = _stranded(owned_disciplines())
 	while not stranded.is_empty() and discipline_tree.has(stranded):
 		discipline_tree.erase(stranded)
@@ -3161,7 +3190,7 @@ func _settle_disciplines() -> void:
 
 
 func _stranded(ids: Array[String]) -> String:
-	return stranded_node(ids)
+	return stranded_node(ids, discipline_tree)
 
 
 ## The first node in a set that could not have been learned in any order, or "".
@@ -3170,7 +3199,11 @@ func _stranded(ids: Array[String]) -> String:
 ##
 ## Static, because it reads nothing of the account: the host asks it of a
 ## partner's sheet (`WardenSheet`) under the same rule the save is read by.
-static func stranded_node(ids: Array[String]) -> String:
+## `ranks` says how many points each id stands for (a bare id is one); a
+## passive at rank three is three points of the depth below the next ring.
+## **A starter is granted, not placed**, so it is never stranded whatever
+## ring it sits in - Aegis Step lives in the Guard cluster and is free.
+static func stranded_node(ids: Array[String], ranks: Dictionary = {}) -> String:
 	var by_arm: Dictionary = {}
 	for id: String in ids:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
@@ -3186,9 +3219,9 @@ static func stranded_node(ids: Array[String]) -> String:
 		var placed: int = 0
 		for value: Variant in nodes:
 			var node := value as DisciplineNodeData
-			if node.depth_to_open() > placed:
+			if node.depth_to_open() > placed and not Balance.DISCIPLINE_STARTERS.has(node.id):
 				return node.id
-			placed += 1
+			placed += maxi(int(ranks.get(node.id, 1)), 1)
 	for id: String in ids:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if node != null and not node.parent_id.is_empty() and not ids.has(node.parent_id):
@@ -3272,8 +3305,34 @@ func skill_points_spent() -> int:
 	var spent: int = 0
 	for key: Variant in discipline_tree:
 		if not Balance.DISCIPLINE_STARTERS.has(String(key)):
-			spent += 1
+			spent += maxi(int(discipline_tree[key]), 1)
 	return spent
+
+
+## How many ranks of a node are held: 0, or 1 for a starter and any node
+## with one rank.
+func discipline_rank(id: String) -> int:
+	if discipline_tree.has(id):
+		return maxi(int(discipline_tree[id]), 1)
+	return 1 if Balance.DISCIPLINE_STARTERS.has(id) else 0
+
+
+## The first sworn Oath, or null.
+func sworn_oath() -> DisciplineNodeData:
+	return DisciplineUpgrades.oath_of(discipline_tree)
+
+
+## Every sworn Oath.
+func sworn_oaths() -> Array[DisciplineNodeData]:
+	return DisciplineUpgrades.oaths_of(discipline_tree)
+
+
+## How many Oaths this Warden may hold: one, or two once **Gatebroken**
+## (docs/GATEBROKEN_2026-09-28.md) - the one rule of the tree a build
+## cannot buy its way past, lifted for the one optional, hard thing the road
+## offers.
+func oaths_allowed() -> int:
+	return Balance.OATHS_GATEBROKEN if GatekeeperTrials.gatebroken_count() > 0 else 1
 
 
 func skill_points_free() -> int:
@@ -3290,7 +3349,7 @@ func discipline_depth(without: String = "") -> Dictionary:
 			continue
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if node != null:
-			depth[node.discipline] = int(depth.get(node.discipline, 0)) + 1
+			depth[node.discipline] = int(depth.get(node.discipline, 0)) + discipline_rank(id)
 	return depth
 
 
@@ -3320,8 +3379,10 @@ func reach_problem(id: String, run_act: int = 0) -> String:
 	var node: DisciplineNodeData = ContentDB.discipline_node(id)
 	if node == null:
 		return "That node does not exist."
-	if owns_discipline(id):
+	if owns_discipline(id) and discipline_rank(id) >= maxi(node.ranks, 1):
 		return "Already learned."
+	if owns_discipline(id):
+		return ""
 	if not discipline_open(node.discipline, run_act):
 		return "%s opens when Act %d is reached." % [node.discipline_name(),
 			Balance.DISCIPLINE_OPENS_AT_ACT[node.discipline]]
@@ -3333,6 +3394,14 @@ func reach_problem(id: String, run_act: int = 0) -> String:
 			and not owns_discipline(node.parent_id):
 		var parent: DisciplineNodeData = ContentDB.discipline_node(node.parent_id)
 		return "Learn %s first." % (parent.display_name if parent != null else node.parent_id)
+	if node.is_oath():
+		var sworn: Array[DisciplineNodeData] = sworn_oaths()
+		if sworn.size() >= oaths_allowed():
+			if oaths_allowed() > 1:
+				return "%s and %s are sworn - two Oaths, and no more." % [sworn[0].display_name,
+					sworn[1].display_name]
+			return "%s is sworn - one Oath at a time." % sworn[0].display_name
+		return ""
 	if not node.exclusive.is_empty():
 		for other: String in owned_disciplines():
 			var held: DisciplineNodeData = ContentDB.discipline_node(other)
@@ -3345,7 +3414,7 @@ func reach_problem(id: String, run_act: int = 0) -> String:
 ## tree in place rather than building a list: combat asks this on every swing.
 func learned_effect_value(effect_id: String) -> float:
 	var node: DisciplineNodeData = _learned_with_effect(effect_id)
-	return node.effect_value if node != null else 0.0
+	return node.effect_value * float(discipline_rank(node.id)) if node != null else 0.0
 
 
 func learned_effect(effect_id: String) -> bool:
@@ -3373,7 +3442,7 @@ func learn_discipline(id: String, run_act: int = 0) -> String:
 	var problem: String = learn_problem(id, run_act)
 	if not problem.is_empty():
 		return problem
-	discipline_tree[id] = 1
+	discipline_tree[id] = discipline_rank(id) + 1 if discipline_tree.has(id) else 1
 	var node: DisciplineNodeData = ContentDB.discipline_node(id)
 	var slot: int = node.slot_index()
 	if slot >= 0 and discipline_loadout[slot].is_empty():
@@ -3381,7 +3450,7 @@ func learn_discipline(id: String, run_act: int = 0) -> String:
 	if node.is_form() and not owns_discipline(discipline_form):
 		discipline_form = id
 	save_game()
-	EventBus.discipline_trained.emit(id, 1)
+	EventBus.discipline_trained.emit(id, discipline_rank(id))
 	return ""
 
 
@@ -3396,8 +3465,13 @@ func unlearn_problem(id: String) -> String:
 	if RunState.road_is_live():
 		return "The tree is reshaped in the Hold, between roads."
 	var remaining: Array[String] = owned_disciplines()
-	remaining.erase(id)
-	var stranded: String = _stranded(remaining)
+	var ranks: Dictionary = discipline_tree.duplicate()
+	if discipline_rank(id) > 1:
+		ranks[id] = discipline_rank(id) - 1
+	else:
+		remaining.erase(id)
+		ranks.erase(id)
+	var stranded: String = stranded_node(remaining, ranks)
 	if not stranded.is_empty():
 		var held: DisciplineNodeData = ContentDB.discipline_node(stranded)
 		return "%s stands on it - let that go first." % (held.display_name if held != null else stranded)
@@ -3408,7 +3482,10 @@ func unlearn_discipline(id: String) -> String:
 	var problem: String = unlearn_problem(id)
 	if not problem.is_empty():
 		return problem
-	discipline_tree.erase(id)
+	if discipline_rank(id) > 1:
+		discipline_tree[id] = discipline_rank(id) - 1
+	else:
+		discipline_tree.erase(id)
 	_clean_loadout()
 	save_game()
 	EventBus.discipline_tree_reshaped.emit()

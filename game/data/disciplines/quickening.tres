@@ -2,13 +2,14 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+ranks = 3
 kind = 2
 ring = 3
 tags = Array[String](["Mana", "Haste"])
 discipline = 3
 role = 5
 effect_id = "cast_haste_chain"
-effect_value = 0.18
+effect_value = 0.06
 id = "quickening"
 display_name = "Quickening"
 description = "Cast soon after casting and the next spell comes back quicker. The window closes the moment you stop."

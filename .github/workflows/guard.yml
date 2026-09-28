@@ -530,6 +530,8 @@ jobs:
           # three of twenty-seven nodes: every assertion asked for three
           # unique offers and got three unique offers - the same three.
           check "disciplines" --headless --path game res://tools/discipline_check.tscn
+          # The branches, the ranks and the Oaths move the numbers they name (2026-09-28).
+          check "discipline branches" --headless --path game res://tools/discipline_branch_check.tscn
           # Spells cost mana and Focus delivers what the Mansion promises.
           check "mana" --headless --path game res://tools/mana_check.tscn
           # A ranged spell that lands on the caster, lands instantly, or never

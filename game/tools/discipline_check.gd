@@ -30,8 +30,8 @@ func _ready() -> void:
 	# **A tripwire against loss, not a ceiling.** The count is asserted rather
 	# than derived on purpose - a node that vanishes from the data is a hero
 	# power silently disappearing, and nothing else in the project would notice.
-	_check(ContentDB.discipline_nodes.size() == 40,
-		"expected 40 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
+	_check(ContentDB.discipline_nodes.size() == 126,
+		"expected 126 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
 	# **A new Warden holds the free pair and nothing else**: the chain's first
 	# form and a Defense skill in its slot.
 	_check(RunState.learned_disciplines() == Balance.DISCIPLINE_STARTERS,
@@ -698,12 +698,14 @@ func _test_the_arcane_waits_for_the_second_act() -> void:
 		"while the melee trees open their whole first ring (%d of %d nodes)"
 			% [_melee_nodes_open(), _ring_one_melee()])
 	RunState.act = 2
-	_check(_arcane_nodes_open() >= 3,
+	# Two, since the branches: Spellblade and Wellspring. Spellblade's own
+	# branches wait for Spellblade.
+	_check(_arcane_nodes_open() >= 2,
 		"the run that reaches Act II opens the Arcane on the spot (%d nodes)"
 			% _arcane_nodes_open())
 	RunState.act = 1
 	MetaState.best_distance = Balance.act_start_distance(2)
-	_check(_arcane_nodes_open() >= 3,
+	_check(_arcane_nodes_open() >= 2,
 		"and an account that has reached Act II keeps it open on a new road (%d nodes)"
 			% _arcane_nodes_open())
 	_check(RunState.discipline_opens_at(arcane) == 2,
@@ -717,8 +719,11 @@ func _test_the_arcane_waits_for_the_second_act() -> void:
 func _ring_one_melee() -> int:
 	var count: int = 0
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		# A branch of an unlearned skill is in the first ring and not open, and
+		# a starter's branch is; the count is of what a new Warden can reach.
 		if node.ring == 1 and node.discipline != DisciplineNodeData.Discipline.ARCANE \
-				and not Balance.DISCIPLINE_STARTERS.has(node.id):
+				and not Balance.DISCIPLINE_STARTERS.has(node.id) \
+				and (node.parent_id.is_empty() or Balance.DISCIPLINE_STARTERS.has(node.parent_id)):
 			count += 1
 	return count
 
@@ -884,14 +889,15 @@ func _test_the_tree_is_well_formed() -> void:
 	var depth_table: Array[int] = Balance.DISCIPLINE_RING_DEPTH
 	var arms: int = DisciplineNodeData.DISCIPLINE_NAMES.size()
 	for arm: int in arms:
-		var per_ring: Array[int] = [0, 0, 0, 0]
+		var per_ring: Array[int] = [0, 0, 0, 0, 0]
 		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
 			if node.discipline == arm:
-				per_ring[clampi(node.ring - 1, 0, 3)] += 1
+				# Points, not nodes: a passive stands for its ranks.
+				per_ring[clampi(node.ring - 1, 0, 4)] += maxi(node.ranks, 1)
 		_check(per_ring[0] > 0, "%s has nothing in its first ring"
 			% DisciplineNodeData.DISCIPLINE_NAMES[arm])
 		var below: int = 0
-		for ring: int in 4:
+		for ring: int in 5:
 			if per_ring[ring] > 0:
 				_check(below >= depth_table[ring],
 					"%s ring %d wants %d learned below it and the arm holds %d"
@@ -899,7 +905,11 @@ func _test_the_tree_is_well_formed() -> void:
 							depth_table[ring], below])
 			below += per_ring[ring]
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		_check(node.ring >= 1 and node.ring <= 4, "%s sits in ring %d" % [node.id, node.ring])
+		_check(node.ring >= 1 and node.ring <= 5, "%s sits in ring %d" % [node.id, node.ring])
+		_check(node.ranks >= 1 and (node.ranks == 1 or node.kind == DisciplineNodeData.Kind.PASSIVE),
+			"%s has %d ranks and is not a passive" % [node.id, node.ranks])
+		_check(node.bane_id.is_empty() == (node.kind != DisciplineNodeData.Kind.OATH),
+			"%s: only an Oath carries a bane, and every Oath does" % node.id)
 		_check(int(node.kind) >= 0 and int(node.kind) < DisciplineNodeData.Kind.size(),
 			"%s names kind %d, which the enum does not have" % [node.id, int(node.kind)])
 		if node.is_form():
@@ -912,9 +922,15 @@ func _test_the_tree_is_well_formed() -> void:
 		if node.kind == DisciplineNodeData.Kind.UPGRADE:
 			var parent: DisciplineNodeData = ContentDB.discipline_node(node.parent_id)
 			if _checked(parent != null, "%s upgrades '%s', which is not a node" % [node.id, node.parent_id]):
-				_check(parent.kind == DisciplineNodeData.Kind.SKILL
-						and parent.discipline == node.discipline and parent.ring <= node.ring,
-					"%s must upgrade a skill of its own arm no deeper than itself" % node.id)
+				# An enhancement hangs off a skill or a form; a fork off an enhancement.
+				var off_enhancement: bool = parent.kind == DisciplineNodeData.Kind.UPGRADE \
+					and parent.exclusive.is_empty()
+				var fitting: bool = (node.is_fork() and off_enhancement) \
+					or (not node.is_fork() and parent.kind in [DisciplineNodeData.Kind.SKILL,
+						DisciplineNodeData.Kind.FORM])
+				_check(fitting and parent.discipline == node.discipline and parent.ring <= node.ring,
+					"%s must hang off a skill, a form or an enhancement of its own arm no deeper than itself"
+						% node.id)
 	_check(Balance.DISCIPLINE_EARLY_SLOT_TIER.size() == Balance.HERO_MAX_SPELL_SLOTS,
 		"the early-slot table must have one entry a slot")
 	var mansion: BuildingData = ContentDB.building("sanctum")
@@ -937,30 +953,67 @@ func _test_every_node_can_be_learned() -> void:
 	MetaState.first_clears = {}
 	for tier: CampaignTierData in ContentDB.tiers_sorted():
 		MetaState.first_clears[tier.id] = (1 << (summit)) - 1
-	for favour: int in DisciplineNodeData.DISCIPLINE_NAMES.size():
+	# **One walk a node, aimed at it.** Four walks each favouring an arm was the
+	# phase-1 shape and it stopped proving anything on 2026-09-28: with branches
+	# and forks the arms hold more than a capped Warden's points, and a walk that
+	# spends on whatever is open runs dry two clusters short of the top - thirty
+	# nodes read as unreachable that a player who wanted them reaches easily.
+	# So each node gets its own walk from a fresh tree: its ancestors first, then
+	# whatever in its own arm deepens the arm without closing the node - never a
+	# twin of its fork or of an ancestor's, never another Oath when it is one.
+	# A node no such walk reaches is genuinely authored out of reach.
+	var missing: PackedStringArray = []
+	for target: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if Balance.DISCIPLINE_STARTERS.has(target.id):
+			reached[target.id] = true
+			continue
 		_fresh_tree()
-		for id: String in RunState.learned_disciplines():
-			reached[id] = true
-		while true:
+		var chain: Array[DisciplineNodeData] = [target]
+		var forbidden: Dictionary = {}
+		var up: DisciplineNodeData = target
+		while up != null and not up.parent_id.is_empty():
+			up = ContentDB.discipline_node(up.parent_id)
+			if up != null:
+				chain.append(up)
+		for link: DisciplineNodeData in chain:
+			if not link.exclusive.is_empty():
+				forbidden[link.exclusive] = true
+			if link.is_oath():
+				forbidden["oath"] = true
+		var steps: int = 0
+		var why: String = ""
+		while steps < 64:
+			steps += 1
+			why = MetaState.learn_problem(target.id, summit)
+			if why.is_empty():
+				var answer: String = MetaState.learn_discipline(target.id, summit)
+				if _checked(answer.is_empty(), "learning %s refused: %s" % [target.id, answer]):
+					reached[target.id] = true
+				break
 			var take: String = ""
-			for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-				if not MetaState.learn_problem(node.id, summit).is_empty():
-					continue
-				if node.discipline == favour:
-					take = node.id
+			for link: DisciplineNodeData in chain:
+				if link != target and MetaState.learn_problem(link.id, summit).is_empty():
+					take = link.id
 					break
-				if take.is_empty():
-					take = node.id
+			if take.is_empty():
+				for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+					if node.discipline != target.discipline or node.id == target.id:
+						continue
+					if not node.exclusive.is_empty() and forbidden.has(node.exclusive):
+						continue
+					if node.is_oath() and forbidden.has("oath"):
+						continue
+					if MetaState.learn_problem(node.id, summit).is_empty():
+						take = node.id
+						break
 			if take.is_empty():
 				break
-			var answer: String = MetaState.learn_discipline(take, summit)
-			if not _checked(answer.is_empty(), "learning %s refused: %s" % [take, answer]):
+			var stepped: String = MetaState.learn_discipline(take, summit)
+			if not _checked(stepped.is_empty(), "learning %s on the way to %s refused: %s"
+					% [take, target.id, stepped]):
 				break
-			reached[take] = true
-	var missing: PackedStringArray = []
-	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if not reached.has(node.id):
-			missing.append(node.id)
+		if not reached.has(target.id):
+			missing.append("%s (%s)" % [target.id, why])
 	_check(missing.is_empty(), "no order of choices learns: %s" % ", ".join(missing))
 
 	# **One Normal clear is not the whole tree.** A Warden of the level a Normal
@@ -976,8 +1029,26 @@ func _test_every_node_can_be_learned() -> void:
 	MetaState.hero_level = Balance.HERO_MAX_LEVEL
 	for tier: CampaignTierData in ContentDB.tiers_sorted():
 		MetaState.first_clears[tier.id] = (1 << summit) - 1
-	print("[discipline] every node learnable; a full account earns %d points against %d nodes"
-		% [MetaState.skill_points_earned(), learnable])
+	# **And a full account cannot hold everything.** What may be held at once is
+	# every rank of every node less the twin of each fork pair and the other
+	# three Oaths, and it must exceed the points a capped Warden earns - or the
+	# forks and the Oath are not choices (docs/SKILL_TREE_D4_2026-09-28.md §2).
+	var groups: Dictionary = {}
+	var holdable: int = 0
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if Balance.DISCIPLINE_STARTERS.has(node.id):
+			continue
+		if node.exclusive.is_empty():
+			holdable += maxi(node.ranks, 1)
+		else:
+			groups[node.exclusive] = maxi(int(groups.get(node.exclusive, 0)), maxi(node.ranks, 1))
+	for group: Variant in groups:
+		holdable += int(groups[group])
+	_check(holdable > MetaState.skill_points_earned(),
+		"a full account earns %d points and the tree holds only %d at once - nothing is a choice"
+			% [MetaState.skill_points_earned(), holdable])
+	print("[discipline] every node learnable; a full account earns %d points against %d nodes, %d holdable at once"
+		% [MetaState.skill_points_earned(), learnable, holdable])
 	MetaState.hero_level = saved_level
 	MetaState.first_clears = saved_clears
 	_fresh_tree()
@@ -1095,30 +1166,43 @@ func _test_the_rings_and_the_loadout_hold() -> void:
 	var blood: int = DisciplineNodeData.Discipline.BLOOD
 	var ring_two: DisciplineNodeData = _first(blood, 2, DisciplineNodeData.Kind.SKILL)
 	var ring_one: DisciplineNodeData = null
-	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.discipline == blood and node.ring == 1 and not MetaState.owns_discipline(node.id):
-			ring_one = node
-			break
-	if _checked(ring_two != null and ring_one != null, "Blood needs a first- and second-ring node"):
+	if _checked(ring_two != null, "Blood needs a second-ring skill"):
 		_check(not MetaState.learn_problem(ring_two.id).is_empty(),
-			"%s must wait for its ring: Blood holds %d"
+			"%s must wait for its cluster: Blood holds %d"
 				% [ring_two.id, int(MetaState.discipline_depth().get(blood, 0))])
-		_check(MetaState.learn_discipline(ring_one.id).is_empty(), "a first-ring node must be learnable")
+		# Learn the first cluster through the door until the second opens - a
+		# cluster opens on points spent in the arm, so it takes more than one.
+		var learned_one: Array[String] = []
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.discipline != blood or node.ring != 1 or MetaState.owns_discipline(node.id):
+				continue
+			if not MetaState.learn_problem(node.id).is_empty():
+				continue
+			_check(MetaState.learn_discipline(node.id).is_empty(), "a first-cluster node must be learnable")
+			learned_one.append(node.id)
+			if MetaState.learn_problem(ring_two.id).is_empty():
+				break
+		ring_one = ContentDB.discipline_node(learned_one[0]) if not learned_one.is_empty() else null
 		_check(MetaState.learn_discipline(ring_two.id).is_empty(),
-			"%s must open once Blood holds %d" % [ring_two.id, Balance.DISCIPLINE_RING_DEPTH[1]])
+			"%s must open once Blood holds %d (holds %d)" % [ring_two.id, Balance.DISCIPLINE_RING_DEPTH[1],
+				int(MetaState.discipline_depth().get(blood, 0))])
 		# Letting go of what a deeper node stands on is refused; the deeper first.
-		_check(not MetaState.unlearn_problem(ring_one.id).is_empty(),
-			"%s stands on %s and must keep it" % [ring_two.id, ring_one.id])
-		_check(MetaState.unlearn_discipline(ring_two.id).is_empty()
-				and MetaState.unlearn_discipline(ring_one.id).is_empty(),
-			"letting go deepest first must succeed")
+		if ring_one != null:
+			_check(not MetaState.unlearn_problem(ring_one.id).is_empty(),
+				"%s stands on %s and must keep it" % [ring_two.id, ring_one.id])
+			_check(MetaState.unlearn_discipline(ring_two.id).is_empty()
+					and MetaState.unlearn_discipline(ring_one.id).is_empty(),
+				"letting go deepest first must succeed")
 	for id: String in Balance.DISCIPLINE_STARTERS:
 		_check(not MetaState.unlearn_problem(id).is_empty(), "the free pair cannot be let go: %s" % id)
 
 	# An upgrade waits for its skill.
 	var upgrade: DisciplineNodeData = null
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.kind == DisciplineNodeData.Kind.UPGRADE:
+		# An enhancement of a skill that is not free: a starter's branch never
+		# waits, because the starter is always held.
+		if node.kind == DisciplineNodeData.Kind.UPGRADE and not node.is_fork() \
+				and not Balance.DISCIPLINE_STARTERS.has(node.parent_id):
 			upgrade = node
 			break
 	if _checked(upgrade != null, "the tree must hold an upgrade"):
@@ -1411,6 +1495,27 @@ func _test_the_hold_screen_shapes_the_tree() -> void:
 	await get_tree().process_frame
 	screen.close()
 	_check(MetaState.serialized_save() == before, "opening and closing the screen must write nothing")
+	# The Basic cluster is the form's branches and a passive (2026-09-28), so
+	# the first skill opens at Core: a few points into the Blood arm first,
+	# through the real door, as a player spends their first levels.
+	var basics: int = 0
+	while basics < Balance.DISCIPLINE_RING_DEPTH[1] + 2:
+		var open: bool = false
+		for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+			if node.is_active_slot():
+				open = true
+				break
+		if open:
+			break
+		var spent: bool = false
+		for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+			if node.discipline == 0 and not node.is_oath() \
+					and MetaState.learn_problem(node.id).is_empty():
+				spent = MetaState.learn_discipline(node.id).is_empty()
+				break
+		if not spent:
+			break
+		basics += 1
 	screen.open()
 	await get_tree().process_frame
 	var buttons: Dictionary = screen.get("_nodes")
@@ -1423,6 +1528,9 @@ func _test_the_hold_screen_shapes_the_tree() -> void:
 		for b: int in range(a + 1, ids.size()):
 			var one: TextureButton = buttons[ids[a]]
 			var other: TextureButton = buttons[ids[b]]
+			# One arm is drawn at a time (2026-09-28); the others' buttons are hidden.
+			if not one.visible or not other.visible:
+				continue
 			if one.get_rect().grow(-2.0).intersects(other.get_rect().grow(-2.0)):
 				overlaps.append("%s/%s" % [ids[a], ids[b]])
 	_check(overlaps.is_empty(), "nodes drawn on top of each other: %s" % ", ".join(overlaps))
@@ -1435,14 +1543,19 @@ func _test_the_hold_screen_shapes_the_tree() -> void:
 			break
 	if _checked(pick != null, "a new Warden must see a skill open on the map"):
 		(buttons[pick.id] as TextureButton).pressed.emit()
+		# Selecting a node of another arm turns the trunk to that arm.
+		_check(int(screen.get("_arm")) == pick.discipline, "selecting a node must show its arm")
 		var learn: Button = screen.get("_learn_button")
 		_check(learn.visible and not learn.disabled, "an open node must offer Learn")
 		learn.pressed.emit()
 		_check(MetaState.owns_discipline(pick.id), "Learn must learn it")
+		# A skill learned into an empty slot fills it on the spot, so the button
+		# reads "In the slot" and is dimmed. Empty the slot by hand and re-select
+		# the node, which is the state the button was written for.
+		_check(MetaState.discipline_loadout[pick.slot_index()] == pick.id,
+			"a skill learned into an empty slot must fill it")
 		var use: Button = screen.get("_use_button")
-		_check(use.visible and not use.disabled, "a learned skill must offer its slot")
-		use.pressed.emit()
-		_check(MetaState.discipline_loadout[pick.slot_index()] == pick.id, "and the slot must take it")
+		_check(use.visible and use.disabled, "a skill already in its slot must say so and offer nothing")
 		var forget: Button = screen.get("_forget_button")
 		_check(forget.visible and not forget.disabled, "a learned node must offer Let go in the Hold")
 		forget.pressed.emit()
@@ -1455,6 +1568,16 @@ func _test_the_hold_screen_shapes_the_tree() -> void:
 		_check(MetaState.owns_discipline(pick.id), "one press of the reset must only arm it")
 		reset.pressed.emit()
 		_check(MetaState.discipline_tree.is_empty(), "the second press must let the tree go")
+		# The Use door itself, on a form: a second form sits at the Basic cluster
+		# and costs one point, and taking it up is the choice the button is for.
+		var form: DisciplineNodeData = ContentDB.discipline_node("cleaving_road")
+		if _checked(form != null and MetaState.learn_discipline(form.id).is_empty(),
+				"a second form must be learnable at the Basic cluster"):
+			(buttons[form.id] as TextureButton).pressed.emit()
+			var take: Button = screen.get("_use_button")
+			_check(take.visible and not take.disabled, "a learned form must offer to be taken up")
+			take.pressed.emit()
+			_check(MetaState.discipline_form == form.id, "and the chain must take the form")
 	screen.close()
 	screen.queue_free()
 	await get_tree().process_frame

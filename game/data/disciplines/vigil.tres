@@ -2,13 +2,14 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+ranks = 2
 kind = 2
 ring = 1
 tags = Array[String](["Command", "Town"])
 discipline = 1
 role = 3
 effect_id = "town_dodge_command"
-effect_value = 10.0
+effect_value = 5
 id = "vigil"
 display_name = "Vigil"
 description = "Perfect dodges near the Town Hall grant Command."

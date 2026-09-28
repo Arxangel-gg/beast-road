@@ -34,6 +34,9 @@ const AT_FORM: int = 3
 const AT_LEARNED: int = 4
 const AT_LOADOUT: int = 5
 const AT_WORN: int = 6
+## Appended 2026-09-28: how many Oaths this Warden may hold (Gatebroken). An
+## older row has none and reads as one.
+const AT_OATHS: int = 7
 
 ## The most nodes a row may name before it is read at all. Well past the whole
 ## tree; a row longer than this is not a Warden, it is a packet to refuse.
@@ -49,6 +52,8 @@ var ascension: int = 0
 var form: String = ""
 ## Every node the Warden holds, the free starters included, by id.
 var learned: Dictionary = {}
+## How many Oaths the row said its Warden may hold, 1 or 2.
+var oaths_allowed: int = 1
 var loadout: Array[String] = ["", "", "", ""]
 ## The pieces worn, one a slot at most, each `{kind, rarity, level, uid}`.
 var worn: Array[Dictionary] = []
@@ -67,7 +72,10 @@ var _by_effect: Dictionary = {}
 static func pack_mine() -> Array:
 	var tree: Array = []
 	for key: Variant in MetaState.discipline_tree:
-		tree.append(String(key))
+		# A rank rides the id as "id:3" (2026-09-28); a bare id is rank one, which
+		# is what an older build sends and reads.
+		var rank: int = MetaState.discipline_rank(String(key))
+		tree.append(String(key) if rank <= 1 else "%s:%d" % [key, rank])
 	tree.sort()
 	var pieces: Array = []
 	for piece: Dictionary in MetaState.worn_pieces():
@@ -85,6 +93,7 @@ static func pack_mine() -> Array:
 		tree,
 		MetaState.discipline_loadout.duplicate(),
 		pieces,
+		MetaState.oaths_allowed(),
 	]
 
 
@@ -100,6 +109,7 @@ static func from_row(row: Variant) -> WardenSheet:
 	sheet._read_placed(_array_at(given, AT_PLACED))
 	sheet.ascension = clampi(_int_at(given, AT_ASCENSION, 0), 0, Balance.ASCENSION_MAX)
 	sheet._read_worn(_array_at(given, AT_WORN))
+	sheet.oaths_allowed = clampi(_int_at(given, AT_OATHS, 1), 1, Balance.OATHS_GATEBROKEN)
 	sheet._read_learned(_array_at(given, AT_LEARNED))
 	sheet._read_form(_string_at(given, AT_FORM))
 	sheet._read_loadout(_array_at(given, AT_LOADOUT))
@@ -156,37 +166,53 @@ func _read_learned(values: Array) -> void:
 	learned = {}
 	for id: String in Balance.DISCIPLINE_STARTERS:
 		if ContentDB.discipline_node(id) != null:
-			learned[id] = true
+			learned[id] = 1
 	var tree: Array[String] = []
+	var ranks: Dictionary = {}
 	for value: Variant in values.slice(0, LEARNED_READ_MAX):
-		var id: String = String(value) if value is String else ""
-		if id.is_empty() or learned.has(id) or tree.has(id) \
-				or ContentDB.discipline_node(id) == null:
+		var text: String = String(value) if value is String else ""
+		var id: String = text.get_slice(":", 0)
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if id.is_empty() or learned.has(id) or tree.has(id) or node == null:
 			continue
 		tree.append(id)
+		ranks[id] = clampi(int(text.get_slice(":", 1)) if text.contains(":") else 1, 1, maxi(node.ranks, 1))
+	# Trimmed to the points the level could have earned, ranks counted, off
+	# the end - a rank first, then the node.
 	var most: int = points_ceiling(level)
-	if tree.size() > most:
-		tree.resize(most)
+	var spent: int = 0
+	for id: String in tree:
+		spent += int(ranks[id])
+	while spent > most and not tree.is_empty():
+		var last: String = tree[tree.size() - 1]
+		if int(ranks[last]) > 1:
+			ranks[last] = int(ranks[last]) - 1
+		else:
+			tree.remove_at(tree.size() - 1)
+			ranks.erase(last)
+		spent -= 1
 	var exclusive: Dictionary = {}
 	var kept: Array[String] = []
 	for id: String in tree:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if not node.exclusive.is_empty():
-			if exclusive.has(node.exclusive):
+			var allowed: int = oaths_allowed if node.is_oath() else 1
+			if int(exclusive.get(node.exclusive, 0)) >= allowed:
 				continue
-			exclusive[node.exclusive] = true
+			exclusive[node.exclusive] = int(exclusive.get(node.exclusive, 0)) + 1
 		kept.append(id)
 	var held: Array[String] = []
 	for id: Variant in learned:
 		held.append(String(id))
 	held.append_array(kept)
-	var stranded: String = MetaState.stranded_node(held)
+	var stranded: String = MetaState.stranded_node(held, ranks)
 	while not stranded.is_empty() and kept.has(stranded):
 		kept.erase(stranded)
 		held.erase(stranded)
-		stranded = MetaState.stranded_node(held)
+		ranks.erase(stranded)
+		stranded = MetaState.stranded_node(held, ranks)
 	for id: String in kept:
-		learned[id] = true
+		learned[id] = int(ranks[id])
 	_by_effect = {}
 	for id: String in Balance.DISCIPLINE_STARTERS:
 		_index_effect(id)
@@ -283,7 +309,30 @@ static func trained_value_of(sheet: WardenSheet, effect_id: String) -> float:
 	if sheet == null:
 		return DisciplineEffects.trained_value(effect_id)
 	var node: DisciplineNodeData = sheet._learned_with_effect(effect_id)
-	return node.effect_value if node != null else 0.0
+	return node.effect_value * float(maxi(int(sheet.learned.get(node.id, 1)), 1)) \
+		if node != null else 0.0
+
+
+## What a Warden's branches do to one skill or form, by key - bounded, see
+## `DisciplineUpgrades`. Null is this machine's own Warden.
+static func upgrade_of(sheet: WardenSheet, skill_id: String, key: String) -> float:
+	return DisciplineUpgrades.value(
+		MetaState.discipline_tree if sheet == null else sheet.learned, skill_id, key)
+
+
+## The same for whichever learned skill casts a spell.
+static func spell_upgrade_of(sheet: WardenSheet, spell_id: String, key: String) -> float:
+	return DisciplineUpgrades.for_spell(
+		MetaState.discipline_tree if sheet == null else sheet.learned, spell_id, key)
+
+
+## The sworn Oath's boon or bane, by key.
+static func boon_of(sheet: WardenSheet, key: String) -> float:
+	return DisciplineUpgrades.boon(MetaState.discipline_tree if sheet == null else sheet.learned, key)
+
+
+static func bane_of(sheet: WardenSheet, key: String) -> float:
+	return DisciplineUpgrades.bane(MetaState.discipline_tree if sheet == null else sheet.learned, key)
 
 
 static func trained_of(sheet: WardenSheet, effect_id: String) -> bool:

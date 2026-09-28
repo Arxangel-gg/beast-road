@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 2
+tags = Array[String](["Frost", "Beam"])
+parent_id = "frost_lance_rite_keen"
+exclusive = "frost_lance_rite_fork"
+discipline = 3
+role = 2
+effect_id = "up_status_wet"
+effect_value = 2.5
+id = "frost_lance_rite_soaking"
+display_name = "Soaking Lance"
+description = "What Frost Lance strikes is soaked for two and a half seconds."

@@ -2174,7 +2174,13 @@ one cape fifteen times.
 `ui_stalkers_shadowcloak.png` · `ui_ashen_shroud.png` ·
 `ui_emberweave_cape.png` · `ui_glassthread_mantle.png` ·
 `ui_pilgrims_wrap.png` · `ui_bannermans_cape.png` ·
-`ui_chainbreakers_cloak.png`
+`ui_chainbreakers_cloak.png` ·
+`ui_gatekeepers_mantle_normal.png` · `ui_gatekeepers_mantle_nightmare.png` ·
+`ui_gatekeepers_mantle_hell.png`
+
+The three Mantles (2026-09-28, `docs/GATEBROKEN_2026-09-28.md`) are trophies the
+Gatekeeper alone pays, one a road; their icons are the Glassthread Mantle's
+painting turned toward each road's colour until PixelLab returns.
 
 Four of these were drawn twice. Hand armour generates as leg armour unless the
 prompt insists on fingers, and a ring generates as a slab unless it insists on
@@ -2259,6 +2265,58 @@ glance.
 `discipline_sky_lance_rite.png` · `discipline_the_long_reach.png` ·
 `discipline_siphoning_veil.png` · `discipline_stonefall_rite.png` ·
 `discipline_quickening.png` · `discipline_echo_of_the_weave.png`
+
+The branches, the Oaths and the Spellblade, added 2026-09-28 with the tree's
+second phase (`docs/SKILL_TREE_D4_2026-09-28.md`). Same 192×192. A branch's
+icon is its skill's medallion with a shipped relic laid over a corner - the gold
+orb for an enhancement, an emblem of what the fork does for a fork - and an
+Oath wears its relic large over the arm's form; all composed by
+`tools/compose_discipline_icons.py` while PixelLab's allowance is spent, and
+each replaced by overwriting its file.
+
+`discipline_aegis_step_lasting.png` · `discipline_aegis_step_swift.png` ·
+`discipline_aegis_step_wide.png` · `discipline_beasts_breath_hotter.png` ·
+`discipline_beasts_breath_long.png` · `discipline_bulwark_ward_hallowed.png` ·
+`discipline_bulwark_ward_lasting.png` · `discipline_bulwark_ward_quick.png` ·
+`discipline_call_bear_bulwark.png` · `discipline_call_bear_lasting.png` ·
+`discipline_call_bear_maul.png` · `discipline_call_crow_carrion.png` ·
+`discipline_call_crow_lasting.png` · `discipline_call_crow_murder.png` ·
+`discipline_call_hart_antlered.png` · `discipline_call_hart_fleet.png` ·
+`discipline_call_hart_lasting.png` · `discipline_call_ram_horns.png` ·
+`discipline_call_ram_lasting.png` · `discipline_call_ram_quick.png` ·
+`discipline_call_serpent_lasting.png` · `discipline_call_serpent_quick.png` ·
+`discipline_call_serpent_venom.png` · `discipline_call_wolf_fang.png` ·
+`discipline_call_wolf_lasting.png` · `discipline_call_wolf_worrying.png` ·
+`discipline_chain_hook_barbed.png` · `discipline_chain_hook_gaff.png` ·
+`discipline_chain_hook_long.png` · `discipline_cleaving_road_avalanche.png` ·
+`discipline_cleaving_road_heavier.png` · `discipline_cleaving_road_wide.png` ·
+`discipline_consecrated_chain_bastion.png` · `discipline_consecrated_chain_brighter.png` ·
+`discipline_consecrated_chain_searing.png` · `discipline_crimson_tempest_exsanguinate.png` ·
+`discipline_crimson_tempest_wide.png` · `discipline_dawn_bell_louder.png` ·
+`discipline_dawn_bell_peal.png` · `discipline_ember_fall_rite_cinder_rain.png` ·
+`discipline_ember_fall_rite_lasting.png` · `discipline_ember_fall_rite_wide.png` ·
+`discipline_frost_lance_rite_keen.png` · `discipline_frost_lance_rite_shattering.png` ·
+`discipline_frost_lance_rite_soaking.png` · `discipline_hemorrhage_edge_deeper.png` ·
+`discipline_hemorrhage_edge_draught.png` · `discipline_hemorrhage_edge_weeping.png` ·
+`discipline_iron_roar_iron_skin.png` · `discipline_iron_roar_lasting.png` ·
+`discipline_iron_roar_war_cry.png` · `discipline_judgment_brand_bright.png` ·
+`discipline_judgment_brand_lasting.png` · `discipline_judgment_brand_ruin.png` ·
+`discipline_marrow_drain_deep.png` · `discipline_marrow_drain_hollowing.png` ·
+`discipline_marrow_drain_wide.png` · `discipline_oath_deep_well.png` ·
+`discipline_oath_kept_gate.png` · `discipline_oath_no_retreat.png` ·
+`discipline_oath_red_road.png` · `discipline_red_pursuit_hound.png` ·
+`discipline_red_pursuit_long.png` · `discipline_red_pursuit_sever.png` ·
+`discipline_sanguine_guard_clotting.png` · `discipline_sanguine_guard_lasting.png` ·
+`discipline_sanguine_guard_quick.png` · `discipline_siphoning_veil_deep.png` ·
+`discipline_siphoning_veil_lasting.png` · `discipline_siphoning_veil_quick.png` ·
+`discipline_sky_lance_rite_keen.png` · `discipline_sky_lance_rite_rend.png` ·
+`discipline_sky_lance_rite_storm.png` · `discipline_spellblade.png` ·
+`discipline_spellblade_arc_bolt.png` · `discipline_spellblade_attunement.png` ·
+`discipline_spellblade_keener.png` · `discipline_stonefall_rite_crushing.png` ·
+`discipline_stonefall_rite_quarry.png` · `discipline_stonefall_rite_wide.png` ·
+`discipline_thorn_volley_rite_hungry.png` · `discipline_thorn_volley_rite_more.png` ·
+`discipline_thorn_volley_rite_wall.png` · `discipline_tremor_deep.png` ·
+`discipline_tremor_rubble.png` · `discipline_tremor_wide.png`
 
 The four families share blackened iron and aged brass; Blood uses controlled
 crimson, Holy uses ivory-gold, and Berserk uses ember-orange so discipline

@@ -3,7 +3,7 @@
 [resource]
 script = ExtResource("1")
 kind = 0
-ring = 3
+ring = 4
 tags = Array[String](["Storm"])
 discipline = 3
 role = 4

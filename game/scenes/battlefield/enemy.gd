@@ -2612,7 +2612,11 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 		# damage multiplier on everything the hero touches: the node asks you to
 		# pick the body the towers should finish, and a brand you cannot help but
 		# apply is not a choice.
-		brand(Balance.DISCIPLINE_BRAND_SECONDS, attack_node.effect_value)
+		# Bright Brand and Lasting Judgment: the form's branches, by the striker.
+		brand(Balance.DISCIPLINE_BRAND_SECONDS
+				+ WardenSheet.upgrade_of(striker, attack_node.id, "form_brand_seconds"),
+			attack_node.effect_value
+				+ WardenSheet.upgrade_of(striker, attack_node.id, "form_brand_power"))
 	if attack_node != null and attack_node.effect_id == "bleed_finisher":
 		# The finisher is the only hit whose authored base damage reaches the last
 		# chain value. Apply a bounded three-second bleed; it uses the shared status
@@ -2933,6 +2937,10 @@ func apply_wet(seconds: float) -> void:
 
 
 ## Wet by water that hit it, by rain heavy enough, or by a flood at the knee.
+func is_burning() -> bool:
+	return _burn_left > 0.0
+
+
 func is_wet() -> bool:
 	return _wet_left > 0.0 or RunState.rain_intensity >= Balance.WET_RAIN_FROM \
 		or RunState.flood >= Balance.FLOOD_KNEE

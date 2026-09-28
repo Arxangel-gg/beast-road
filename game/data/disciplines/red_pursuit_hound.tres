@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 2
+tags = Array[String](["Movement", "Mark"])
+parent_id = "red_pursuit_long"
+exclusive = "red_pursuit_fork"
+discipline = 0
+role = 0
+effect_id = "up_kill_mana"
+effect_value = 0.1
+id = "red_pursuit_hound"
+display_name = "Bloodhound"
+description = "Red Pursuit: a kill on the way refunds a tenth of the pool."

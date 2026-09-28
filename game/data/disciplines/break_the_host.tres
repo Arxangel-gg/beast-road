@@ -2,10 +2,11 @@
 [ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
+exclusive = "beasts_breath_fork"
 kind = 3
-ring = 3
+ring = 4
 tags = Array[String](["Road"])
-parent_id = "beasts_breath"
+parent_id = "beasts_breath_hotter"
 discipline = 2
 role = 5
 effect_id = "elite_extend_ultimate"

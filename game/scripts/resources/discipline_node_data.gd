@@ -47,7 +47,18 @@ enum Kind { SKILL, FORM, PASSIVE, UPGRADE, OATH }
 ## `Balance.DISCIPLINE_RING_DEPTH` - **counted rather than graphed**: a count
 ## cannot author an unreachable node the way a hand-drawn graph can, and this
 ## project lost `call_wolf` to exactly that once.
-@export_range(1, 4) var ring: int = 1
+@export_range(1, 5) var ring: int = 1
+## What each ring is, on the trunk the Hold draws: the clusters of
+## docs/SKILL_TREE_D4_2026-09-28.md. Indexed by `ring - 1`.
+const CLUSTER_NAMES: Array[String] = ["Basic", "Core", "Guard", "Ultimate", "Oath"]
+## How many times a passive may be learned. Each rank costs a point and the
+## effect is `effect_value` a rank - the per-rank value is authored as the old
+## single value over the ranks, so the top rank is worth what the node was.
+@export_range(1, 5) var ranks: int = 1
+## An Oath's bane: the rule it pays for its boon with, read by the same
+## consumers the boon's key is. Empty on every other kind.
+@export var bane_id: String = ""
+@export var bane_value: float = 0.0
 
 ## The skill an upgrade changes, and the group of upgrades it excludes.
 @export var parent_id: String = ""
@@ -79,6 +90,24 @@ func depth_to_open() -> int:
 
 func is_form() -> bool:
 	return kind == Kind.FORM
+
+
+func is_oath() -> bool:
+	return kind == Kind.OATH
+
+
+func is_upgrade() -> bool:
+	return kind == Kind.UPGRADE
+
+
+## An enhancement hangs off its skill and excludes nothing; a fork hangs off
+## the enhancement and excludes its twin.
+func is_fork() -> bool:
+	return kind == Kind.UPGRADE and not exclusive.is_empty()
+
+
+func cluster_name() -> String:
+	return CLUSTER_NAMES[clampi(ring - 1, 0, CLUSTER_NAMES.size() - 1)]
 
 
 func get_sprite_path() -> String:

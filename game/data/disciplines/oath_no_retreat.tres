@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 4
+ring = 5
+tags = Array[String](["Oath", "Movement"])
+exclusive = "oath"
+discipline = 2
+role = 5
+effect_id = "oath_dash_strike"
+effect_value = 0.6
+bane_id = "oath_no_evade"
+bane_value = 1
+id = "oath_no_retreat"
+display_name = "No Retreat"
+description = "The dash strikes everything it crosses for 60% of a finisher. There is no perfect evade."

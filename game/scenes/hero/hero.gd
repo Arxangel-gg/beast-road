@@ -485,8 +485,7 @@ func _ready() -> void:
 	spells.mana_refunded.connect(func(share: float) -> void:
 		mana = minf(mana + mana_max() * share, mana_max())
 		EventBus.hero_mana_changed.emit(mana, mana_max()))
-	spells.ward_requested.connect(func(share: float) -> void:
-		health.add_shield(health.max_hp * share))
+	spells.ward_requested.connect(grant_ward)
 	spells.armor_requested.connect(_on_armor_requested)
 	spells.wound_guard_requested.connect(_on_wound_guard_requested)
 	spells.dash_refund_requested.connect(refund_dash)
@@ -1050,7 +1049,13 @@ func damage_multiplier() -> float:
 	# that working rule 3 forbids and a fourth form would have had to find.
 	var form: DisciplineNodeData = WardenSheet.form_of(sheet)
 	if form != null:
-		multiplier *= 1.0 + form.form_damage
+		# And the form's enhancement (`form_power`), the one branch that reaches
+		# every swing - which is why `curve_report` reads it.
+		multiplier *= 1.0 + form.form_damage + WardenSheet.upgrade_of(sheet, form.id, "form_power")
+	# **The Kept Gate**'s bane: with no tower in reach the Warden hits softer.
+	var gate: float = WardenSheet.bane_of(sheet, "oath_no_tower_penalty")
+	if gate > 0.0 and not _tower_in_reach():
+		multiplier *= 1.0 - gate
 	# **No Ground Given**, spent on the finisher and on nothing else. Asked here
 	# rather than applied at the evade, so the bonus rides the swing the card
 	# names rather than whatever the hero happened to do next.
@@ -1070,6 +1075,9 @@ func _apply_permanent_bonuses() -> void:
 	var wound_scale: float = maxf(1.0 - float(RunState.hero_wounds) \
 		* Balance.HERO_WOUND_HP_PENALTY, 0.4)
 	var share: float = health.current_hp / health.max_hp if health.max_hp > 0.0 else 1.0
+	# **The Red Road**'s bane: draughts, fish and the well heal half. Its own
+	# lifesteal arrives through `heal_unscaled`.
+	health.heal_scale = 1.0 - WardenSheet.bane_of(sheet, "oath_heal_halved")
 	health.max_hp = (Balance.HERO_MAX_HP + WardenSheet.value_of(sheet, Modifiers.HERO_MAX_HP)) \
 		* (1.0 + bonus + felled + _vigour_bonus()) * wound_scale
 	if _is_partner_body():
@@ -1129,14 +1137,17 @@ func _on_blink(to: Vector2) -> void:
 
 ## The pool's size and refill, both deepened by Focus.
 func mana_max() -> float:
-	return Balance.HERO_MANA_BASE \
-		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)) * Balance.HERO_MANA_PER_FOCUS
+	# **The Deep Well**: a far deeper pool, paid for in `mana_regen`.
+	return (Balance.HERO_MANA_BASE \
+		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)) * Balance.HERO_MANA_PER_FOCUS) \
+		* (1.0 + WardenSheet.boon_of(sheet, "oath_mana_pool"))
 
 
 func mana_regen() -> float:
 	return (Balance.HERO_MANA_REGEN
 		+ float(WardenSheet.attribute_of(sheet, RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS) \
-		* maxf(WardenSheet.multiplier_of(sheet, Modifiers.MANA_REGEN), 0.0)
+		* maxf(WardenSheet.multiplier_of(sheet, Modifiers.MANA_REGEN), 0.0) \
+		* (1.0 - WardenSheet.bane_of(sheet, "oath_no_regen"))
 
 
 ## Pays for a cast. False, and nothing spent, when the pool cannot cover it.
@@ -1181,6 +1192,7 @@ func _tick_mana(delta: float) -> void:
 	if mana < cap:
 		mana = minf(mana + mana_regen() * delta, cap)
 		RunState.hero_mana = mana
+	_cast_discount_left = maxf(_cast_discount_left - delta, 0.0)
 	# The HUD is told a few times a second rather than every frame; a bar
 	# cannot show sixty updates a second and the bus does not need them.
 	_mana_announce_left -= delta
@@ -1261,7 +1273,7 @@ func _on_fish_eaten(fish_id: String) -> void:
 	if kind.heal_fraction > 0.0:
 		health.heal(health.max_hp * kind.heal_fraction)
 	if kind.shield_fraction > 0.0:
-		health.add_shield(health.max_hp * kind.shield_fraction)
+		grant_ward(kind.shield_fraction)
 	if kind.mana_fraction > 0.0:
 		mana = minf(mana + mana_max() * kind.mana_fraction, mana_max())
 		RunState.hero_mana = mana
@@ -1322,6 +1334,110 @@ func cleanse_disables() -> void:
 
 ## Gives back a share of the dash cooldown. Red Pursuit, and any later node
 ## that wants the same currency.
+## **The forms' branches and the Oaths that reach the body**, each a door the
+## swing calls by name (`HeroAttack._form_branches`).
+
+## A ward on the Warden - and **The Kept Gate**: the nearest tower gets a
+## share of it. Every ward the Warden gains comes through here.
+func grant_ward(share: float) -> void:
+	if share <= 0.0 or health == null:
+		return
+	health.add_shield(health.max_hp * share)
+	var tower_share: float = WardenSheet.boon_of(sheet, "oath_ward_tower")
+	if tower_share <= 0.0:
+		return
+	var nearest: Node2D = null
+	var best: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Node2D
+		if tower == null:
+			continue
+		var apart: float = tower.global_position.distance_to(global_position)
+		if apart < best:
+			best = apart
+			nearest = tower
+	if nearest == null:
+		return
+	if nearest.has_method("ward"):
+		nearest.call("ward", share * tower_share)
+		Vfx.ring(nearest.global_position, 64.0, Color(0.95, 0.85, 0.5, 0.8), 0.4, 4.0)
+
+
+## A heal the Red Road's bane does not touch: its own lifesteal, and the
+## Red Draught's.
+func heal_unscaled(amount: float) -> void:
+	if health != null:
+		health.heal(amount, false)
+
+
+## Spellblade: the finisher gives a share of the pool back.
+func refund_mana_share(share: float) -> void:
+	if share <= 0.0:
+		return
+	mana = minf(mana + mana_max() * share, mana_max())
+	RunState.hero_mana = mana
+	EventBus.hero_mana_changed.emit(mana, mana_max())
+
+
+## Attunement: the finisher opens a window in which one cast is cheaper.
+var _cast_discount_left: float = 0.0
+
+
+func note_finisher_landed() -> void:
+	_cast_discount_left = Balance.DISCIPLINE_CAST_DISCOUNT_SECONDS
+
+
+## The discount the next cast takes, spent by the asking.
+func cast_discount() -> float:
+	if _cast_discount_left <= 0.0:
+		return 0.0
+	_cast_discount_left = 0.0
+	var form: DisciplineNodeData = WardenSheet.form_of(sheet)
+	return WardenSheet.upgrade_of(sheet, form.id, "form_finisher_cast_discount") if form != null else 0.0
+
+
+## Whether a tower stands within the radiant reach, asked a few times a second
+## at most: `damage_multiplier` is asked on every swing.
+var _tower_near: bool = false
+var _tower_checked_msec: int = -1000
+
+
+func _tower_in_reach() -> bool:
+	var now: int = Time.get_ticks_msec()
+	if now - _tower_checked_msec < 200:
+		return _tower_near
+	_tower_checked_msec = now
+	_tower_near = false
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Node2D
+		if tower != null and tower.global_position.distance_to(global_position) \
+				<= Balance.DISCIPLINE_RADIANT_TOWER_REACH:
+			_tower_near = true
+			break
+	return _tower_near
+
+
+## **No Retreat**: the dash strikes everything it crosses for a share of a
+## finisher, through the same door every blow of the Warden's goes through.
+func _dash_strike() -> void:
+	var share: float = WardenSheet.boon_of(sheet, "oath_dash_strike")
+	if share <= 0.0 or field == null:
+		return
+	var blow: float = Balance.HERO_ATTACK_DAMAGE[Balance.HERO_CHAIN_LENGTH - 1] \
+		* damage_multiplier() * share
+	var from: Vector2 = global_position
+	var to: Vector2 = from + _dash_direction * Balance.HERO_DASH_DISTANCE
+	for enemy: Enemy in field.enemies_near((from + to) * 0.5,
+			Balance.HERO_DASH_DISTANCE * 0.5 + Balance.DISCIPLINE_DASH_STRIKE_WIDTH):
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(enemy.global_position, from, to)
+		if closest.distance_to(enemy.global_position) \
+				> Balance.DISCIPLINE_DASH_STRIKE_WIDTH + enemy.contact_radius():
+			continue
+		DamageLedger.credit_as(DamageLedger.WARDEN)
+		if enemy.take_damage(blow, from, Balance.HERO_ATTACK_KNOCKBACK[0], true, sheet):
+			Vfx.spark(enemy.combat_origin(), Color(1.0, 0.62, 0.3), 8, _dash_direction, 240.0)
+
+
 func refund_dash(fraction: float) -> void:
 	if fraction <= 0.0:
 		return
@@ -1466,6 +1582,10 @@ func _show_a_perfect_evade() -> void:
 
 func _on_evaded(into: float, from: Vector2) -> void:
 	if into > Balance.HERO_PERFECT_EVADE_WINDOW:
+		return
+	# **No Retreat**: there is no perfect evade. The dash still has its frames;
+	# what is gone is the reward for the timing, which is the Oath's price.
+	if WardenSheet.bane_of(sheet, "oath_no_evade") > 0.0:
 		return
 	EventBus.hero_perfect_evade.emit(global_position)
 	_show_a_perfect_evade()
@@ -2346,6 +2466,7 @@ func _try_dash() -> void:
 	_lock_frames("dash")
 	_spawn_dash_ghosts()
 	EventBus.hero_dashed.emit(Balance.HERO_DASH_IFRAMES)
+	_dash_strike()
 
 
 ## Sized so the lunge covers `distance` while decaying linearly to zero over
@@ -3173,7 +3294,7 @@ func use_carried_item() -> bool:
 			ItemData.Effect.WARD:
 				if not RunState.spend_item(kind.id):
 					return false
-				health.add_shield(health.max_hp * kind.effect_value)
+				grant_ward(kind.effect_value)
 				Vfx.ring(combat_origin(), 104.0, Color(0.60, 0.78, 1.0, 0.82), 0.55, 7.0)
 				Vfx.spark(global_position, Color("cfe2ff"), 16, Vector2.UP, 150.0)
 			_:

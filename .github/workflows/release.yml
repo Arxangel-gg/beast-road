@@ -152,6 +152,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/extension_platform_check.tscn
           run_godot_clean --headless --path game res://tools/reanchor_check.tscn
           run_godot_clean --headless --path game res://tools/discipline_check.tscn
+          run_godot_clean --headless --path game res://tools/discipline_branch_check.tscn
           run_godot_clean --headless --path game res://tools/mana_check.tscn
           run_godot_clean --headless --path game res://tools/fishing_check.tscn
           run_godot_clean --headless --path game res://tools/rift_check.tscn

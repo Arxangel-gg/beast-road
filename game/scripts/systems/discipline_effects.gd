@@ -76,6 +76,56 @@ const IMPLEMENTED: Array[String] = [
 	"focus_ward",
 	"cast_haste_chain",
 	"spell_echo",
+	# **The branches** (2026-09-28, docs/SKILL_TREE_D4_2026-09-28.md): what an
+	# enhancement or a fork does to the skill it hangs off, read through
+	# `DisciplineUpgrades` at the one place each number is made. A spell's in
+	# `SpellCaster`; a form's in `HeroAttack` and `Hero`.
+	"up_power",
+	"up_cooldown",
+	"up_reach",
+	"up_radius",
+	"up_duration",
+	"up_extra",
+	"up_shove",
+	"up_status_burn",
+	"up_status_wet",
+	"up_status_brand",
+	"up_status_bleed",
+	"up_vs_wet",
+	"up_vs_bleeding",
+	"up_kill_mana",
+	"up_kill_cooldown",
+	"up_heal",
+	"up_ward",
+	"form_power",
+	"form_finisher_heal",
+	"form_finisher_arc",
+	"form_bleed_every_hit",
+	"form_splash_burn",
+	"form_splash_shield",
+	"form_vs_branded",
+	"form_brand_power",
+	"form_brand_seconds",
+	"form_finisher_dash_refund",
+	"form_finisher_mana",
+	"form_finisher_bolt",
+	"form_finisher_cast_discount",
+	# **The Oaths**: a boon each, paid for by a bane (`bane_id`) the same
+	# consumers read. Sworn one at a time.
+	"oath_lifesteal",
+	"oath_ward_tower",
+	"oath_dash_strike",
+	"oath_mana_pool",
+]
+
+
+## The banes an Oath may name. Listed beside the boons for the same reason: a
+## bane read by nothing is an Oath that pays nothing for its boon.
+const BANES: Array[String] = [
+	"oath_heal_halved",
+	"oath_no_tower_penalty",
+	"oath_no_evade",
+	"oath_no_regen",
 ]
 
 ## Authored, described to the player, and not yet read by anything.

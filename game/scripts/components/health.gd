@@ -143,10 +143,15 @@ func take_damage(amount: float, from: Vector2) -> bool:
 	return true
 
 
-func heal(amount: float) -> void:
+## What a heal is worth here. The Red Road halves what draughts, fish and
+## the well give and leaves its own lifesteal whole (`scaled` false).
+var heal_scale: float = 1.0
+
+
+func heal(amount: float, scaled: bool = true) -> void:
 	if is_dead or amount <= 0.0:
 		return
-	current_hp = minf(current_hp + amount, max_hp)
+	current_hp = minf(current_hp + amount * (heal_scale if scaled else 1.0), max_hp)
 	changed.emit(current_hp, max_hp)
 
 

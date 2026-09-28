@@ -180,7 +180,7 @@ static func roll(kinds: Array, tier_order: int, rng: RandomNumberGenerator) -> D
 	var eligible: Array = []
 	var total: float = 0.0
 	for kind: GearData in kinds:
-		if kind.min_tier > tier_order:
+		if kind.min_tier > tier_order or kind.trophy:
 			continue
 		eligible.append(kind)
 		total += maxf(kind.weight, 0.0)

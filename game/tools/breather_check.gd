@@ -100,6 +100,20 @@ func _ready() -> void:
 	# slow drain that fails this on a long run.
 	if _field.hero != null and _field.hero.health != null:
 		_field.hero.health.add_invulnerability(_seconds + 60.0)
+	# **And it stands inside the walls.** Invulnerable is not out of the fight:
+	# the spawn is sixteen units outside the sanctuary, so a road body that
+	# reached a Warden it could not hurt swung at it for the rest of the run,
+	# nothing's health moved, and the stall watchdog - which reads the town's,
+	# the bodies' and the towers' pools and never the hero's - read a duel
+	# nothing can end as a wave that cannot clear. Seen on the guard sweep of
+	# 2026-09-28: a Canopy Stalker stood at (33, 345) for 75 seconds until the
+	# rescue drove it off and the log said WARNING, on a seeded gate, about one
+	# run in three - a coin toss decided by which body reached the spawn first.
+	# The sanctuary is the game's own rule for a Warden nothing may target
+	# (owner, 2026-09-17), asked by every road body and every animal, so the
+	# hero stands on the town and the invulnerability is the belt under the
+	# braces.
+	_field.hero.global_position = _field.town_position()
 	# The hero is intentionally playable during safe planning. It must be the
 	# active battlefield avatar even though towers and the next formation wait.
 	if not _field.hero.is_in_group(Hero.GROUP) \

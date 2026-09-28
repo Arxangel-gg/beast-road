@@ -47,6 +47,10 @@ enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE }
 
 ## Earliest campaign tier that may drop it, by order.
 @export var min_tier: int = 0
+## **A trophy is paid by one thing and never rolled, stocked or forged**
+## (2026-09-28): the Gatekeeper's Mantle. `Stash.roll`, the Smithy and the
+## Ledger's pickers all skip it, so the only way to hold one is the road.
+@export var trophy: bool = false
 
 ## How far this weapon reaches, and how fast it swings, against the baseline.
 ##

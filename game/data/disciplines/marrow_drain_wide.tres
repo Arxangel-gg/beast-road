@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 2
+tags = Array[String](["Blood", "Area"])
+parent_id = "marrow_drain"
+discipline = 0
+role = 2
+effect_id = "up_radius"
+effect_value = 0.25
+id = "marrow_drain_wide"
+display_name = "Wide Drain"
+description = "Marrow Drain reaches 25% wider."

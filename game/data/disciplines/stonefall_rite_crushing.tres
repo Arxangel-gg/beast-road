@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 4
+tags = Array[String](["Earth", "Area"])
+parent_id = "stonefall_rite_wide"
+exclusive = "stonefall_rite_fork"
+discipline = 3
+role = 4
+effect_id = "up_shove"
+effect_value = 0.6
+id = "stonefall_rite_crushing"
+display_name = "Crushing"
+description = "Stonefall shoves 60% harder."

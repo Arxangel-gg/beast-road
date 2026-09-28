@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 4
+tags = Array[String](["Road", "Ward"])
+parent_id = "dawn_bell"
+discipline = 1
+role = 4
+effect_id = "up_radius"
+effect_value = 0.3
+id = "dawn_bell_louder"
+display_name = "Louder Bell"
+description = "Dawn Bell reaches 30% wider."

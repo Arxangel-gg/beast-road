@@ -1253,6 +1253,14 @@ func is_vulnerable() -> bool:
 ## A blow from the world - a funnel, a stone - through the same health every
 ## enemy's swing reaches, so the repair, the flames and the collapse all
 ## follow.
+## A ward of a share of this tower's health: what the Kept Gate and the
+## Bastion Hymn give it. Refused on a fallen tower, as `repair` is.
+func ward(share: float) -> void:
+	if _health == null or _health.is_dead or share <= 0.0:
+		return
+	_health.add_shield(_health.max_hp * share)
+
+
 func hurt(amount: float, from: Vector2) -> void:
 	if _health == null or _health.is_dead or amount <= 0.0:
 		return

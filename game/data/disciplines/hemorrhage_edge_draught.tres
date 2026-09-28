@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 1
+tags = Array[String](["Finisher", "Bleed"])
+parent_id = "hemorrhage_edge_deeper"
+exclusive = "hemorrhage_edge_fork"
+discipline = 0
+role = 0
+effect_id = "form_finisher_heal"
+effect_value = 0.3
+id = "hemorrhage_edge_draught"
+display_name = "Red Draught"
+description = "Hemorrhage Edge: the finisher heals 30% of what it deals."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 4
+ring = 5
+tags = Array[String](["Oath", "Radiant"])
+exclusive = "oath"
+discipline = 1
+role = 5
+effect_id = "oath_ward_tower"
+effect_value = 0.5
+bane_id = "oath_no_tower_penalty"
+bane_value = 0.2
+id = "oath_kept_gate"
+display_name = "The Kept Gate"
+description = "A ward you gain also wards the nearest tower for half of it. With no tower in reach you hit 20% softer."
