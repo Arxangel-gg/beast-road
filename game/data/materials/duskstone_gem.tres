@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+gem_key = "hero_damage"
 kind = 2
 rarity = 3
 description = "Found past the camps, in the dark, by people who went looking."

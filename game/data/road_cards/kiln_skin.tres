@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "kiln_skin"
+display_name = "Kiln Skin"
+description = "Rare card. A tower near you that is struck burns what struck it."
+rarity = 2
+first_act = 3
+branch = 1
+tags = Array[String](["Fire", "Arsenal", "Retort"])
+card_text = "Touch the wall and the wall touches back."
+weapon = "kiln_skin"

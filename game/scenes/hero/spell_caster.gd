@@ -253,6 +253,9 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 		# asked of the hero, who holds the window, and spent by the asking.
 		var discount: float = float(hero.call("cast_discount")) if hero.has_method("cast_discount") else 0.0
 		var cost: float = spell.cost() * (1.0 - discount)
+		# And Clear Mind, Focus's thresholds, on every cast.
+		if hero.has_method("cast_cost_scale"):
+			cost *= float(hero.call("cast_cost_scale"))
 		if not bool(hero.call("spend_mana", cost)):
 			cast_starved.emit(slot)
 			return false

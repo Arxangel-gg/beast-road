@@ -404,6 +404,30 @@ func _on_changed(current: float, maximum: float) -> void:
 	EventBus.town_health_changed.emit(current, maximum)
 
 
+## A ward on the wall, a share of its own pool - the Gate Ward's door
+## (docs/ARSENAL_DEFENSIVE_2026-09-28.md). Every ward the town gains comes
+## through here, so a ceiling on it has one place to live.
+func ward(share: float) -> void:
+	if health == null or health.is_dead or share <= 0.0:
+		return
+	health.add_shield(health.max_hp * share)
+	Vfx.ring(global_position, radius() * 0.9, Color(0.95, 0.88, 0.6, 0.7), 0.5, 5.0)
+
+
+## A mend of a share of what the wall is missing, held under
+## `ARSENAL_MEND_TOWN_CEILING` a call: the Quartermaster sells the rest. A
+## whole wall is mended by nothing, and says so.
+func mend(share: float) -> bool:
+	if health == null or health.is_dead or share <= 0.0:
+		return false
+	var missing: float = health.max_hp - health.current_hp
+	if missing <= 0.5:
+		return false
+	health.heal(minf(missing * share, health.max_hp * Balance.ARSENAL_MEND_TOWN_CEILING))
+	Vfx.ring(global_position, radius() * 0.6, Color(0.6, 0.9, 0.65, 0.6), 0.45, 4.0)
+	return true
+
+
 func _on_died(_from: Vector2) -> void:
 	if _ended:
 		return

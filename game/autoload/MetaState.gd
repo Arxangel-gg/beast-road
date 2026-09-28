@@ -1487,6 +1487,19 @@ func _read_stash(data: Dictionary) -> void:
 		# and reads back unmarked, so `SAVE_VERSION` did not move for this.
 		if bool(piece.get("favourite", false)):
 			restored["favourite"] = true
+		# Additive again (2026-09-28): gems set and temperings spent. Read
+		# clean - a gem that is not a material, or not a gem, or one past the
+		# sockets the rarity has, is dropped rather than trusted.
+		var gems: Array = []
+		for gem_id: Variant in piece.get("gems", []) as Array:
+			var gem: MaterialData = ContentDB.material(String(gem_id)) if gem_id is String else null
+			if gem != null and gem.kind == MaterialData.Kind.GEM and gems.size() < Stash.sockets(restored):
+				gems.append(String(gem_id))
+		if not gems.is_empty():
+			restored["gems"] = gems
+		var tempers: int = clampi(int(piece.get("tempers", 0)), 0, Balance.GEAR_TEMPER_MAX)
+		if tempers > 0:
+			restored["tempers"] = tempers
 		# Additive in the same way, and for a system that did not exist when
 		# these were written: a piece saved before trading has no name and is
 		# given one here. `Stash.make` has already put a fresh one on `restored`,
@@ -1600,6 +1613,88 @@ func is_equipped_index(index: int) -> bool:
 
 ## Wears the piece at a stash position, or takes the slot off with -1.
 ## **The one door**, so a screen cannot write a position into a map of names.
+## **Sets a gem in a piece** (docs/GEAR_REWORK_2026-09-28.md §3). The gem is
+## spent from the store, the piece carries its id, and the table is rebuilt.
+## Returns why not, or "" when it landed.
+func socket_gem(piece_uid: int, gem_id: String) -> String:
+	if TradeBooth.is_trading():
+		return "Not while a trade is open."
+	var index: int = Stash.index_of(stash, piece_uid)
+	if index < 0:
+		return "That piece is not in the stash."
+	var piece: Dictionary = stash[index]
+	var problem: String = Stash.socket_problem(piece, gem_id, ContentDB.gear(String(piece.get("kind", ""))))
+	if not problem.is_empty():
+		return problem
+	if material_count(gem_id) <= 0:
+		return "You hold no %s." % ContentDB.material(gem_id).display_name
+	if not spend_material(gem_id, 1):
+		return "The gem was gone."
+	var gems: Array = piece.get("gems", []) as Array
+	gems = gems.duplicate()
+	gems.append(gem_id)
+	piece["gems"] = gems
+	save_game()
+	EventBus.stash_changed.emit()
+	return ""
+
+
+## Pries a gem out, for Marks, and hands it back to the store.
+func unsocket_gem(piece_uid: int, at: int) -> String:
+	if TradeBooth.is_trading():
+		return "Not while a trade is open."
+	var index: int = Stash.index_of(stash, piece_uid)
+	if index < 0:
+		return "That piece is not in the stash."
+	var piece: Dictionary = stash[index]
+	var gems: Array = (piece.get("gems", []) as Array).duplicate()
+	if at < 0 or at >= gems.size():
+		return "No gem there."
+	var gem_id: String = String(gems[at])
+	var cost: int = Stash.unsocket_cost(gem_id)
+	if marks < cost:
+		return "That takes %d Marks." % cost
+	marks -= cost
+	gems.remove_at(at)
+	if gems.is_empty():
+		piece.erase("gems")
+	else:
+		piece["gems"] = gems
+	gain_material(gem_id, 1)
+	save_game()
+	EventBus.stash_changed.emit()
+	return ""
+
+
+## **Tempers a piece** (docs/GEAR_REWORK_2026-09-28.md §4): a new name, which
+## is what rerolls its secondaries and its legendary affixes; the kind, the
+## rarity, the level, the sockets and the gems stay, and so does its place in
+## the equipped map. Bounded by `GEAR_TEMPER_MAX` and priced to climb.
+func temper_gear(piece_uid: int) -> String:
+	if TradeBooth.is_trading():
+		return "Not while a trade is open."
+	var index: int = Stash.index_of(stash, piece_uid)
+	if index < 0:
+		return "That piece is not in the stash."
+	var piece: Dictionary = stash[index]
+	var cost: Dictionary = Stash.temper_cost(piece)
+	if cost.is_empty():
+		return "It has been tempered as far as it can be."
+	if shards < int(cost["shards"]) or marks < int(cost["marks"]):
+		return "That takes %d Shards and %d Marks." % [int(cost["shards"]), int(cost["marks"])]
+	shards -= int(cost["shards"])
+	marks -= int(cost["marks"])
+	var renamed: int = Stash.new_uid()
+	piece["uid"] = renamed
+	piece["tempers"] = Stash.tempers(piece) + 1
+	for slot: Variant in equipped.keys():
+		if int(equipped[slot]) == piece_uid:
+			equipped[slot] = renamed
+	save_game()
+	EventBus.stash_changed.emit()
+	return ""
+
+
 func equip(slot: int, index: int) -> void:
 	if index < 0:
 		equipped.erase(slot)

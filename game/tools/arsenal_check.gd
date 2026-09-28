@@ -74,9 +74,10 @@ func _ready() -> void:
 	await _test_every_weapon_lands()
 	await _test_a_chain_reaction_ends()
 	await _test_it_freezes_with_the_field()
+	await _test_the_defence()
 
 	for stage: String in ["authored", "deal", "seats", "formula", "reacts", "lands", "ends",
-			"freezes"]:
+			"freezes", "defence"]:
 		_check(_reached.has(stage),
 			"'%s' never reached its end - it aborted partway, and every check it had not made is unmade" % stage)
 	_hold([])
@@ -169,16 +170,45 @@ func _test_every_weapon_is_authored() -> void:
 		if weapon == null:
 			continue
 		named[weapon.id] = true
-		_check(weapon.damage > 0.0 and weapon.cooldown > 0.0 and weapon.crowd > 0.0,
-			"%s: damage, cadence and crowd must all be positive" % weapon.id)
 		_check(weapon.level_damage.size() == Balance.AUGMENT_MAX_LEVEL
 				and weapon.level_count.size() == Balance.AUGMENT_MAX_LEVEL
 				and weapon.level_radius.size() == Balance.AUGMENT_MAX_LEVEL,
 			"%s: every level table holds one entry a level" % weapon.id)
-		for level: int in range(2, Balance.AUGMENT_MAX_LEVEL + 1):
-			_check(weapon.modelled_dps(level) > weapon.modelled_dps(level - 1),
-				"%s: level %d must be stronger than level %d, or taking it again is a wasted pick"
-					% [weapon.id, level, level - 1])
+		if weapon.is_defensive():
+			# **A defence has a number of its own and no hit to model.** Its
+			# ladder climbs the share, the stones or the ring rather than a blow,
+			# and the curve reads it as nothing (docs/ARSENAL_DEFENSIVE_2026-09-28.md §2).
+			_check(weapon.cooldown > 0.0, "%s: a defence still has a cadence" % weapon.id)
+			_check(is_zero_approx(weapon.modelled_dps(1)) and is_zero_approx(weapon.modelled_dps(5)),
+				"%s: a defence must model as nothing, and it reads %.2f" % [weapon.id, weapon.modelled_dps(5)])
+			for level: int in range(2, Balance.AUGMENT_MAX_LEVEL + 1):
+				_check(_defence_worth(weapon, level) > _defence_worth(weapon, level - 1),
+					"%s: level %d must be worth more than level %d, or taking it again is a wasted pick"
+						% [weapon.id, level, level - 1])
+			match weapon.pattern:
+				ArsenalWeaponData.Pattern.WARD, ArsenalWeaponData.Pattern.MEND:
+					_check(weapon.share > 0.0 and weapon.share_at(Balance.AUGMENT_MAX_LEVEL) <= (
+						Balance.ARSENAL_WARD_CEILING if weapon.pattern == ArsenalWeaponData.Pattern.WARD
+						else Balance.ARSENAL_MEND_CEILING),
+						"%s: a share, and one inside its ceiling at level V" % weapon.id)
+				ArsenalWeaponData.Pattern.RETORT:
+					_check(weapon.damage > 0.0 and weapon.radius > 0.0, "%s: a retort hits, and reaches" % weapon.id)
+				ArsenalWeaponData.Pattern.GUARD:
+					_check(weapon.count > 0 and weapon.radius > 0.0, "%s: a guard has stones on a ring" % weapon.id)
+				ArsenalWeaponData.Pattern.FIELD:
+					_check(weapon.radius > 0.0 and weapon.slow < 1.0, "%s: a field reaches, and slows" % weapon.id)
+			if not card.evolves_from.is_empty():
+				var base_weapon: ArsenalWeaponData = ContentDB.road_card(card.evolves_from).weapon_data() \
+					if ContentDB.road_card(card.evolves_from) != null else null
+				_check(base_weapon != null and _defence_worth(weapon, 1) >= _defence_worth(base_weapon, Balance.AUGMENT_MAX_LEVEL),
+					"%s must be worth at least what %s is at its last level, or evolving is a loss" % [id, card.evolves_from])
+		else:
+			_check(weapon.damage > 0.0 and weapon.cooldown > 0.0 and weapon.crowd > 0.0,
+				"%s: damage, cadence and crowd must all be positive" % weapon.id)
+			for level: int in range(2, Balance.AUGMENT_MAX_LEVEL + 1):
+				_check(weapon.modelled_dps(level) > weapon.modelled_dps(level - 1),
+					"%s: level %d must be stronger than level %d, or taking it again is a wasted pick"
+						% [weapon.id, level, level - 1])
 		# **A count the runtime never reads is a model that lies.** A pulse, a
 		# trail, a burst and a tower's volley fire once where they stand, so a
 		# count or a count that grows would multiply the curve's figure and
@@ -200,12 +230,40 @@ func _test_every_weapon_is_authored() -> void:
 			_check(catalyst != null and not catalyst.is_weapon() and not catalyst.keystone,
 				"%s evolves with '%s', which is not a catalyst" % [id, card.evolves_with])
 			_check(card.max_level() == 1, "%s is the top of a weapon and must not level" % id)
-			if base != null and base.weapon_data() != null:
+			if base != null and base.weapon_data() != null and not weapon.is_defensive():
 				_check(weapon.modelled_dps(1) > base.weapon_data().modelled_dps(Balance.AUGMENT_MAX_LEVEL),
 					"%s must be stronger than %s at its last level, or evolving is a loss" % [id, base.id])
 	for id: Variant in ContentDB.arsenal_weapons:
 		_check(named.has(String(id)), "the weapon '%s' is fired by no card" % id)
+	# **The deck's ratio** (docs/ARSENAL_DEFENSIVE_2026-09-28.md §3): a hand with
+	# nothing to keep you standing is a way of killing and nothing else.
+	var weapons: int = 0
+	var defences: int = 0
+	for id: String in _weapon_cards():
+		var weapon: ArsenalWeaponData = ContentDB.road_card(id).weapon_data()
+		if weapon == null:
+			continue
+		weapons += 1
+		if weapon.is_defensive():
+			defences += 1
+	_check(float(defences) >= float(weapons) * Balance.ARSENAL_DEFENCE_SHARE,
+		"%d of %d weapons are defence - under the %.0f%% the deck is held to"
+			% [defences, weapons, Balance.ARSENAL_DEFENCE_SHARE * 100.0])
 	_reached["authored"] = true
+
+
+## What a defence is worth at a level: its share, its stones or its ring.
+func _defence_worth(weapon: ArsenalWeaponData, level: int) -> float:
+	match weapon.pattern:
+		ArsenalWeaponData.Pattern.WARD, ArsenalWeaponData.Pattern.MEND:
+			return weapon.share_at(level)
+		ArsenalWeaponData.Pattern.GUARD:
+			# Stones arrive at III and V; the ring widens a step at every level,
+			# so no level is a wasted pick.
+			return float(weapon.count_at(level)) * 100.0 + weapon.damage_at(level) + weapon.radius_at(level)
+		ArsenalWeaponData.Pattern.FIELD:
+			return weapon.radius_at(level)
+	return weapon.damage_at(level) * weapon.radius_at(level)
 
 
 func _fires_once(weapon: ArsenalWeaponData) -> bool:
@@ -290,6 +348,10 @@ func _test_the_seats() -> void:
 		"a weapon on the town must be the party's")
 	_check(Augments.seat_keeps(ContentDB.road_card("quickening_oil")),
 		"a catalyst is read per Warden and must be that Warden's own")
+	_check(Augments.seat_keeps(ContentDB.road_card("lantern_ward")),
+		"a ward at a Warden's shoulder must be that Warden's own")
+	_check(not Augments.seat_keeps(ContentDB.road_card("masons_wisps")),
+		"a mend on the towers must be the party's")
 	_reached["seats"] = true
 
 
@@ -457,7 +519,7 @@ func _test_every_weapon_lands() -> void:
 	for id: String in _weapon_cards():
 		var card: RoadCardData = ContentDB.road_card(id)
 		var weapon: ArsenalWeaponData = card.weapon_data()
-		if weapon == null:
+		if weapon == null or weapon.is_defensive():
 			continue
 		await _clear_the_field()
 		var arsenal: Arsenal = _hero.arsenal if weapon.anchor == ArsenalWeaponData.Anchor.WARDEN \
@@ -609,6 +671,142 @@ func _two_towers() -> Array[Tower]:
 		_check(out[0].global_position.distance_to(out[1].global_position) <= Balance.ARSENAL_ARC_SPAN,
 			"the harness's two towers stand too far apart for an arc")
 	return out
+
+
+# --- The defence (docs/ARSENAL_DEFENSIVE_2026-09-28.md §5) ----------------------
+
+
+## Each of the five patterns through its real door on the real field: a ward
+## worth its share and no more, a mend of what is missing and nothing on a
+## whole pool, a retort that answers a blow and never fires alone, a guard that
+## swallows a shot and reforms, a field that slows what stands in it.
+func _test_the_defence() -> void:
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or breed == null or _hero.arsenal == null:
+		_check(false, "the harness needs a battlefield, a Warden and a breed")
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_field.effect_root.process_mode = Node.PROCESS_MODE_INHERIT
+	var arsenal: Arsenal = _hero.arsenal
+	var health: Health = _hero.health
+	var home: Vector2 = _field.town_position() + Vector2(900.0, 200.0)
+	await _clear_the_field()
+	_hero.global_position = home
+	_hero.velocity = Vector2.ZERO
+
+	# WARD: fires on its cadence, worth its share of the pool, and the ceiling
+	# holds whatever the data authors.
+	var ward: ArsenalWeaponData = ContentDB.arsenal_weapon("lantern_ward")
+	_hold(["lantern_ward"])
+	# The pool has no door that takes a ward away, so the harness clears it.
+	health.set("_shield", 0.0)
+	health.current_hp = health.max_hp
+	# **One firing, pinned.** A new card's clock starts part-way through its
+	# cadence on the Arsenal's own dice, so a wait of a cadence and a half held
+	# one firing on some runs and two on others - the mend read 9 against 5.
+	_pin_clock(arsenal, "lantern_ward")
+	await _wait_seconds(1.0)
+	var expected: float = health.max_hp * ward.share_at(1) * health.shield_scale
+	_check(health.shield() > 0.0 and absf(health.shield() - expected) <= expected * 0.15 + 1.0,
+		"Lantern Ward must ward %.0f (%.0f%% of the pool); it warded %.0f" % [expected, ward.share_at(1) * 100.0, health.shield()])
+	var armed: Arsenal.Armed = arsenal.get("_armed")["lantern_ward"]
+	var greedy: ArsenalWeaponData = ward.duplicate() as ArsenalWeaponData
+	greedy.share = 5.0
+	var kept_weapon: ArsenalWeaponData = armed.weapon
+	armed.weapon = greedy
+	_check(arsenal.guard_share(armed, Balance.ARSENAL_WARD_CEILING) <= Balance.ARSENAL_WARD_CEILING + 0.0001,
+		"a ward authored at five times the pool must be held to the ceiling")
+	armed.weapon = kept_weapon
+	_hold(["lantern_ward", "steadfast_salt"])
+	var salted: float = arsenal.guard_share(arsenal.get("_armed")["lantern_ward"], Balance.ARSENAL_WARD_CEILING)
+	_check(salted > ward.share_at(1), "Steadfast Salt must make a ward worth more")
+
+	# MEND: a share of what is missing, and nothing on a whole pool.
+	var mend: ArsenalWeaponData = ContentDB.arsenal_weapon("marrow_mend")
+	_hold(["marrow_mend"])
+	health.current_hp = health.max_hp
+	_pin_clock(arsenal, "marrow_mend")
+	await _wait_seconds(1.0)
+	_check(is_equal_approx(health.current_hp, health.max_hp), "a whole Warden was mended by something")
+	health.current_hp = health.max_hp * 0.4
+	var missing: float = health.max_hp - health.current_hp
+	_pin_clock(arsenal, "marrow_mend")
+	await _wait_seconds(1.0)
+	var rose: float = health.current_hp - health.max_hp * 0.4
+	var mend_expected: float = missing * mend.share_at(1) * health.heal_scale
+	_check(rose > 0.0 and absf(rose - mend_expected) <= mend_expected * 0.15 + 1.0,
+		"Marrow Mend must heal %.0f (%.0f%% of %.0f missing); it healed %.0f" % [mend_expected, mend.share_at(1) * 100.0, missing, rose])
+	health.current_hp = health.max_hp
+
+	# RETORT: nothing while the Warden is left alone; a burst on a blow, named in
+	# the ledger; and not a second burst inside the refractory.
+	var thorns: ArsenalWeaponData = ContentDB.arsenal_weapon("thornskin")
+	_hold(["thornskin"])
+	# The ward the first test left would swallow the blow whole, and a blow that
+	# takes nothing announces nothing.
+	health.set("_shield", 0.0)
+	var crowd: Array[Enemy] = _crowd(breed, home, 6, 60.0, 400.0)
+	arsenal.dealt.clear()
+	RunState.damage_ledger.clear()
+	await _wait_seconds(thorns.cooldown + 1.0)
+	_check(float(arsenal.dealt.get("thornskin", 0.0)) == 0.0,
+		"Thornskin fired at a crowd that had not struck the Warden")
+	DamageLedger.credit_as(DamageLedger.OTHER)
+	health.take_damage(3.0, home + Vector2.LEFT * 40.0)
+	await get_tree().process_frame
+	var first: float = float(arsenal.dealt.get("thornskin", 0.0))
+	_check(first > 0.0, "a blow on the Warden did not set Thornskin off")
+	_check(float(RunState.damage_ledger.get(DamageLedger.AUGMENT_PREFIX + "thornskin", 0.0)) > 0.0,
+		"the ledger does not name Thornskin")
+	health.take_damage(3.0, home + Vector2.LEFT * 40.0)
+	await get_tree().process_frame
+	_check(is_equal_approx(float(arsenal.dealt.get("thornskin", 0.0)), first),
+		"Thornskin burst twice inside its refractory")
+	health.current_hp = health.max_hp
+	await _clear_the_field()
+
+	# GUARD: swallows a shot in reach, spends a stone, refuses when spent, reforms.
+	var stones: ArsenalWeaponData = ContentDB.arsenal_weapon("guardian_stones")
+	_hold(["guardian_stones"])
+	await _wait_seconds(0.3)
+	var near: Vector2 = home + Vector2(stones.radius, 0.0)
+	_check(not arsenal.absorb(home + Vector2(900.0, 0.0)), "a shot far from the Warden was swallowed")
+	var swallowed: int = 0
+	for _shot: int in stones.count + 2:
+		if _field.absorb_hostile_shot(near):
+			swallowed += 1
+	_check(swallowed == stones.count, "Guardian Stones swallowed %d shots against %d stones" % [swallowed, stones.count])
+	await _wait_seconds(stones.cooldown + 0.5)
+	_check(arsenal.absorb(near), "a stone did not reform on its cadence")
+
+	# FIELD: a body inside is slowed, one outside is not, and nothing moved.
+	var field: ArsenalWeaponData = ContentDB.arsenal_weapon("frostbound_ring")
+	_hold(["frostbound_ring"])
+	var inside: Enemy = _crowd(breed, home + Vector2(field.radius * 0.5, 0.0), 1, 0.0, 400.0)[0]
+	var outside: Enemy = _crowd(breed, home + Vector2(field.radius * 2.5, 0.0), 1, 0.0, 400.0)[0]
+	var inside_at: Vector2 = inside.global_position
+	await _wait_seconds(Balance.ARSENAL_FIELD_TICK * 3.0)
+	_check(inside.targeting_speed() < outside.targeting_speed(),
+		"a body in Frostbound Ring walks at %.0f and one outside at %.0f" % [inside.targeting_speed(), outside.targeting_speed()])
+	_check(inside.is_wet(), "a body in a water field must be soaked")
+	_check(inside.global_position.distance_to(inside_at) < 2.0, "the field moved a body")
+	await _clear_the_field()
+	_hold([])
+	_reached["defence"] = true
+
+
+## Sets an armed card's clock so it fires once, soon, and not again inside
+## the harness's wait.
+func _pin_clock(arsenal: Arsenal, card_id: String) -> void:
+	var armed: Arsenal.Armed = arsenal.get("_armed").get(card_id, null) as Arsenal.Armed
+	if armed != null:
+		armed.clock = 0.3
+
+
+func _wait_seconds(seconds: float) -> void:
+	var started: int = Time.get_ticks_msec()
+	while float(Time.get_ticks_msec() - started) / 1000.0 < seconds:
+		await get_tree().process_frame
 
 
 # --- A chain reaction ends ------------------------------------------------------

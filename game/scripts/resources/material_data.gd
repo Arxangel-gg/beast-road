@@ -25,6 +25,11 @@ enum Kind { WOOD, ORE, GEM }
 ## 0 (common) to 3. A gem's rarity is what tilts the rarity of what is forged
 ## with it; wood and ore decide how good a piece the forge may attempt at all.
 @export_range(0, 3) var rarity: int = 0
+## **A gem set in a socket grants an affix on this `Modifiers` key**
+## (docs/GEAR_REWORK_2026-09-28.md §3), sized by the gem's rarity through
+## `GEAR_GEM_MAGNITUDE` and read by `Stash.gem_affixes`. Empty on wood and ore,
+## and on a gem that only ever decides the forge's rung.
+@export var gem_key: String = ""
 
 
 func get_sprite_path() -> String:

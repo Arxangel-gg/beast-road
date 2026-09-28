@@ -235,7 +235,12 @@ func _test_the_takes_are_takes() -> void:
 ## is a promise nobody keeps. Grepped rather than driven, because what this
 ## catches is *wiring* - which is the half that goes silently missing.
 func _test_every_effect_is_played_by_something() -> void:
-	var text: String = _all_game_source() + "\n" + _the_player_without_its_tables()
+	# **And the Arsenal's weapons name theirs in data** (2026-09-28): a weapon's
+	# `effect` is played through `Vfx.forge_play(weapon.effect, ...)`, so the
+	# call site is one line and the names are in `data/arsenal`. `arsenal_check`
+	# holds every one of those names to the catalogue; this holds the mirror.
+	var text: String = _all_game_source() + "\n" + _the_player_without_its_tables() \
+		+ "\n" + _weapon_effects()
 	for key: Variant in Vfx.FORGE_CATALOGUE:
 		var effect: String = String(key)
 		if Vfx.FORGE_HIT_BY_ELEMENT.values().has(effect):
@@ -245,6 +250,16 @@ func _test_every_effect_is_played_by_something() -> void:
 			continue
 		_check(text.contains('"%s"' % effect),
 			"nothing plays %s, so its sheet ships and never draws" % effect)
+
+
+## Every effect a weapon of the Arsenal names, as the literals a grep can see.
+func _weapon_effects() -> String:
+	var out: PackedStringArray = []
+	for value: Variant in ContentDB.arsenal_weapons.values():
+		var weapon := value as ArsenalWeaponData
+		if weapon != null and not weapon.effect.is_empty():
+			out.append('"%s"' % weapon.effect)
+	return "\n".join(out)
 
 
 ## `Vfx` with its two catalogue literals cut out.

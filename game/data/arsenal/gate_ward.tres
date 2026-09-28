@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "gate_ward"
+display_name = "Gate Ward"
+description = "Every fifteen seconds the gate gains a ward of a twentieth."
+pattern = 8
+anchor = 2
+element = 3
+tint = Color(0.95, 0.90, 0.70, 1)
+damage = 0.0
+cooldown = 15.0
+share = 0.05
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.0, 1.0, 1.0, 1.0])
+effect = "ward"

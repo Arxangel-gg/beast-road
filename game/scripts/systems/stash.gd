@@ -356,6 +356,91 @@ static func legendary_affixes(piece: Dictionary, kind: GearData) -> Array[GearAf
 	return out
 
 
+# --- Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4) ----------------
+#
+# Two additive fields on the piece: `gems`, the ids of the gems set in it, and
+# `tempers`, how often it has been renamed. Absent, a piece reads as unsocketed
+# and untempered, which is every piece written before this.
+
+
+## Sockets a piece has, by its rarity.
+static func sockets(piece: Dictionary) -> int:
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, Balance.GEAR_SOCKETS.size() - 1)
+	return Balance.GEAR_SOCKETS[rarity]
+
+
+## The gems set in a piece, by id, in the order they were set.
+static func gems(piece: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for value: Variant in piece.get("gems", []) as Array:
+		if value is String:
+			out.append(String(value))
+	return out
+
+
+static func tempers(piece: Dictionary) -> int:
+	return maxi(int(piece.get("tempers", 0)), 0)
+
+
+## **What the set gems grant**: one entry a gem, `{key, magnitude, gem}`, the
+## key the gem authors and the magnitude its rarity's, under the ceiling. Read
+## by `Modifiers._add_gear` beside the legendary affixes, so a tower asking
+## for a number still gets one number.
+static func gem_affixes(piece: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for gem_id: String in gems(piece):
+		var gem: MaterialData = ContentDB.material(gem_id)
+		if gem == null or gem.gem_key.is_empty():
+			continue
+		var rarity: int = clampi(gem.rarity, 0, Balance.GEAR_GEM_MAGNITUDE.size() - 1)
+		out.append({
+			"key": gem.gem_key,
+			"magnitude": minf(Balance.GEAR_GEM_MAGNITUDE[rarity], Balance.GEAR_GEM_CEILING),
+			"gem": gem_id,
+		})
+	return out
+
+
+## Why a gem may not be set in a piece, or "" when it may. **One key a piece**:
+## a gem whose key the piece already carries, by another gem or by a legendary
+## affix, is refused - two sockets hold two different things.
+static func socket_problem(piece: Dictionary, gem_id: String, kind: GearData) -> String:
+	var gem: MaterialData = ContentDB.material(gem_id)
+	if gem == null or gem.kind != MaterialData.Kind.GEM:
+		return "That is not a gem."
+	if gem.gem_key.is_empty():
+		return "%s grants nothing set; it is for the forge." % gem.display_name
+	if gems(piece).size() >= sockets(piece):
+		return "No socket free." if sockets(piece) > 0 else "This piece has no socket."
+	for held: Dictionary in gem_affixes(piece):
+		if String(held["key"]) == gem.gem_key:
+			return "It already carries %s." % Modifiers.label(gem.gem_key)
+	if kind != null:
+		for affix: GearAffixData in legendary_affixes(piece, kind):
+			if affix.effect_id == gem.gem_key:
+				return "It already carries %s." % Modifiers.label(gem.gem_key)
+	return ""
+
+
+## What prying a gem out costs, in Marks.
+static func unsocket_cost(gem_id: String) -> int:
+	var gem: MaterialData = ContentDB.material(gem_id)
+	return Balance.GEAR_UNSOCKET_MARKS * ((gem.rarity if gem != null else 0) + 1)
+
+
+## What the next tempering of a piece costs, or {} when it has had its last.
+static func temper_cost(piece: Dictionary) -> Dictionary:
+	var done: int = tempers(piece)
+	if done >= Balance.GEAR_TEMPER_MAX:
+		return {}
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, Balance.GEAR_TEMPER_SHARDS.size() - 1)
+	var climb: float = pow(Balance.GEAR_TEMPER_STEP, float(done))
+	return {
+		"shards": int(ceil(float(Balance.GEAR_TEMPER_SHARDS[rarity]) * climb)),
+		"marks": int(ceil(float(Balance.GEAR_TEMPER_MARKS[rarity]) * climb)),
+	}
+
+
 ## The piece's whole name: rarity, kind, and its affixes' words - "Runed
 ## Ashfall Glaive of Embers", "Chainlit Hearty Oathbound Helm".
 static func display_name(piece: Dictionary, kind: GearData) -> String:

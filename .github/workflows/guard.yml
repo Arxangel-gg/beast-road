@@ -731,6 +731,7 @@ jobs:
           check "feel" --headless --path game res://tools/feel_check.tscn
           check "stagger" --headless --path game res://tools/stagger_check.tscn
           check "gear set" --headless --path game res://tools/gear_set_check.tscn
+          check "gear sockets" --headless --path game res://tools/gear_socket_check.tscn
           # The stash drawn at the worst case it can be asked to draw: the top
           # rarity at full level in every slot, and a complete set. The card
           # sizes itself from a *count*, and a count is exactly the kind of

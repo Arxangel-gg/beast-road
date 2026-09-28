@@ -153,6 +153,17 @@ Long Burn (duration), Kindled Heart (Arsenal power).
 A Stormcrown by the end of Act II made that act softer than the first. A
 weapon that has evolved is not dealt again - it became the evolution.
 
+### The defence (2026-09-28)
+
+Ten cards that keep an anchor standing rather than kill for it - a ward, a
+mend, a retort, a guard and a field, over the three anchors - with a catalyst
+of their own (Steadfast Salt, `arsenal_guard`) and two evolutions. They are
+the roster's other half and are designed, bounded and measured in
+`ARSENAL_DEFENSIVE_2026-09-28.md`; the short of it is that pure defence
+carries `modelled_dps` of zero and so moves the curve by exactly nothing, and
+that a ward is a share of the anchor's own pool and a mend a share of what it
+is missing, under ceilings the data cannot lift.
+
 ### Refused, and why
 
 - **Every universal multiplier** ("Kindled Heart for the whole game", Echo Cast on

@@ -29,7 +29,7 @@ signal closed()
 ## once the eight gear slots and "All" are laid out.
 const TOOL_COLUMNS: int = 3
 
-const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
+const ATTRIBUTE_NAMES: Array[String] = RunState.ATTRIBUTE_NAMES
 
 var _panel: PanelContainer
 var _list: VBoxContainer
@@ -702,6 +702,11 @@ const MENU_UPGRADE: int = 2
 const MENU_KEEP: int = 3
 const MENU_SELL: int = 4
 const MENU_BREAK: int = 5
+const MENU_TEMPER: int = 6
+## Set a gem: `MENU_SOCKET_FROM + i` names the i-th gem kind in `_gem_kinds()`;
+## pry one out: `MENU_UNSOCKET_FROM + i` names the i-th socket.
+const MENU_SOCKET_FROM: int = 100
+const MENU_UNSOCKET_FROM: int = 200
 
 ## The open menu, so a second press replaces it rather than stacking on it.
 var _menu: PopupMenu = null
@@ -774,6 +779,13 @@ func _row(index: int) -> Container:
 	if kind != null:
 		lines = Stash.affixes(piece, kind).size() \
 			+ Stash.legendary_affixes(piece, kind).size()
+	# The gems, the empty sockets and the tempering are lines too, or the card
+	# clips exactly the lines that say what a piece can still take.
+	lines += Stash.gem_affixes(piece).size()
+	if Stash.sockets(piece) > Stash.gems(piece).size():
+		lines += 1
+	if Stash.tempers(piece) > 0:
+		lines += 1
 	# **Two to a row**, so the bonuses use the card's width instead of running
 	# down one narrow column beside two thirds of empty plate. A six-affix piece
 	# was two hundred units tall; it is three rows now.
@@ -857,6 +869,19 @@ func _row(index: int) -> Container:
 				ATTRIBUTE_NAMES[which]], tint))
 		for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
 			said.append(_stat_line(legend.line(), tint.lightened(0.2)))
+		# The set gems and the empty sockets, so what a piece can still take is
+		# read on the line the player chooses on.
+		for gem: Dictionary in Stash.gem_affixes(piece):
+			var stone: MaterialData = ContentDB.material(String(gem["gem"]))
+			said.append(_stat_line("%s: %s +%d%%" % [stone.display_name if stone != null else String(gem["gem"]),
+				Modifiers.label(String(gem["key"])), int(round(float(gem["magnitude"]) * 100.0))],
+				tint.lightened(0.35)))
+		var free_sockets: int = Stash.sockets(piece) - Stash.gems(piece).size()
+		if free_sockets > 0:
+			said.append(_stat_line("%d empty socket%s" % [free_sockets, "" if free_sockets == 1 else "s"],
+				Color("8d968f")))
+		if Stash.tempers(piece) > 0:
+			said.append(_stat_line("Tempered x%d" % Stash.tempers(piece), Color("8d968f")))
 		var grid := GridContainer.new()
 		grid.columns = CARD_COLUMNS
 		grid.add_theme_constant_override("h_separation", 22)
@@ -985,6 +1010,39 @@ func _open_item_menu(index: int, near: Control) -> void:
 			MENU_UPGRADE)
 		menu.set_item_disabled(menu.get_item_index(MENU_UPGRADE),
 			MetaState.shards < int(cost["shards"]) or MetaState.marks < int(cost["marks"]))
+	# Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4), each with
+	# its price on it before anything is spent - the Forge's own rule.
+	var sockets: int = Stash.sockets(piece)
+	if sockets > 0:
+		menu.add_separator()
+		var set_gems: Array[String] = Stash.gems(piece)
+		for at: int in set_gems.size():
+			var gem: MaterialData = ContentDB.material(set_gems[at])
+			menu.add_item("Pry out %s  ·  %d marks" % [gem.display_name if gem != null else set_gems[at],
+				Stash.unsocket_cost(set_gems[at])], MENU_UNSOCKET_FROM + at)
+			menu.set_item_disabled(menu.get_item_index(MENU_UNSOCKET_FROM + at),
+				MetaState.marks < Stash.unsocket_cost(set_gems[at]))
+		var kinds: Array[MaterialData] = _gem_kinds()
+		for at: int in kinds.size():
+			var gem: MaterialData = kinds[at]
+			var held: int = MetaState.material_count(gem.id)
+			var problem: String = Stash.socket_problem(piece, gem.id, kind)
+			menu.add_item("Set %s  ·  socket %d of %d  ·  %d held" % [gem.display_name,
+				mini(set_gems.size() + 1, sockets), sockets, held], MENU_SOCKET_FROM + at)
+			menu.set_item_disabled(menu.get_item_index(MENU_SOCKET_FROM + at),
+				held <= 0 or not problem.is_empty())
+			if not problem.is_empty():
+				menu.set_item_tooltip(menu.get_item_index(MENU_SOCKET_FROM + at), problem)
+	var temper: Dictionary = Stash.temper_cost(piece)
+	if temper.is_empty():
+		menu.add_item("Tempered %d of %d times" % [Stash.tempers(piece), Balance.GEAR_TEMPER_MAX], MENU_TEMPER)
+		menu.set_item_disabled(menu.get_item_index(MENU_TEMPER), true)
+	else:
+		menu.add_item("Temper (reroll its bonuses)  ·  %d shards, %d marks  ·  %d of %d" % [
+			int(temper["shards"]), int(temper["marks"]), Stash.tempers(piece) + 1, Balance.GEAR_TEMPER_MAX],
+			MENU_TEMPER)
+		menu.set_item_disabled(menu.get_item_index(MENU_TEMPER),
+			MetaState.shards < int(temper["shards"]) or MetaState.marks < int(temper["marks"]))
 	menu.add_separator()
 	menu.add_item("Unmark as kept" if marked else "Mark as kept", MENU_KEEP)
 	menu.add_item("Sell  ·  %d marks" % Stash.sell_price(piece), MENU_SELL)
@@ -998,9 +1056,42 @@ func _open_item_menu(index: int, near: Control) -> void:
 	menu.popup(Rect2i(Vector2i(at), Vector2i(340, 0)))
 
 
+## A gear door's answer, said and heard, and the list re-read.
+func _attempt_gear(answer: String) -> void:
+	if answer.is_empty():
+		Sfx.play_group("sfx_hit_stone", -6.0)
+	else:
+		Sfx.play("sfx_ui_deny", -4.0)
+		EventBus.preparation_warning.emit(answer)
+	_refresh()
+
+
 ## One place every action a piece has is carried out, so the menu and anything
 ## that ever drives it cannot disagree about what "sell" does.
+## The gems that grant something set, in a fixed order for the menu.
+func _gem_kinds() -> Array[MaterialData]:
+	var out: Array[MaterialData] = []
+	for value: Variant in ContentDB.materials.values():
+		var gem := value as MaterialData
+		if gem != null and gem.kind == MaterialData.Kind.GEM and not gem.gem_key.is_empty():
+			out.append(gem)
+	out.sort_custom(func(a: MaterialData, b: MaterialData) -> bool: return a.rarity < b.rarity)
+	return out
+
+
 func _do_item_action(index: int, id: int) -> void:
+	if id >= MENU_UNSOCKET_FROM and index >= 0 and index < MetaState.stash.size():
+		_attempt_gear(MetaState.unsocket_gem(Stash.uid(MetaState.stash[index]), id - MENU_UNSOCKET_FROM))
+		return
+	if id >= MENU_SOCKET_FROM and index >= 0 and index < MetaState.stash.size():
+		var kinds: Array[MaterialData] = _gem_kinds()
+		var at: int = id - MENU_SOCKET_FROM
+		if at >= 0 and at < kinds.size():
+			_attempt_gear(MetaState.socket_gem(Stash.uid(MetaState.stash[index]), kinds[at].id))
+		return
+	if id == MENU_TEMPER and index >= 0 and index < MetaState.stash.size():
+		_attempt_gear(MetaState.temper_gear(Stash.uid(MetaState.stash[index])))
+		return
 	if index < 0 or index >= MetaState.stash.size():
 		return
 	var piece: Dictionary = MetaState.stash[index]

@@ -1402,10 +1402,10 @@ const BRANCH_WORD: Array[String] = ["Warden", "Rampart", "Hearth"]
 ## `from` -> `to` when the card is taken again, so a level is a visible change.
 ## By `ArsenalWeaponData.Pattern` and `Anchor`, appended as those are.
 const WEAPON_SHAPE: Array[String] = ["Orbit", "Seeker", "Chain", "Pulse", "Trail",
-	"Strike", "On a kill", "Arc"]
+	"Strike", "On a kill", "Arc", "Ward", "Mend", "Retort", "Guard", "Field"]
 const WEAPON_PLACE: Array[String] = ["at your side", "on every tower", "at the town"]
 const WEAPON_UNIT: Array[String] = ["orbs", "bolts", "jumps", "", "", "falls", "spirits",
-	"arcs"]
+	"arcs", "", "", "", "stones", ""]
 
 
 static func weapon_rows(card: RoadCardData, from: int, to: int) -> Array:
@@ -1415,10 +1415,23 @@ static func weapon_rows(card: RoadCardData, from: int, to: int) -> Array:
 	var shape: String = WEAPON_SHAPE[clampi(int(weapon.pattern), 0, WEAPON_SHAPE.size() - 1)]
 	var place: String = WEAPON_PLACE[clampi(int(weapon.anchor), 0, WEAPON_PLACE.size() - 1)]
 	var rows: Array = [[shape, place]]
-	var hit_from: float = Arsenal.preview_hit(weapon, from)
-	var hit_to: float = Arsenal.preview_hit(weapon, to)
-	rows.append(["Hit", ("%d" % int(round(hit_to))) if from == to
-		else ("%d → %d" % [int(round(hit_from)), int(round(hit_to))])])
+	# **A defence says its share, never a hit** (docs/ARSENAL_DEFENSIVE_2026-09-28.md):
+	# a ward as a share of the pool, a mend of what is missing, a field its slow.
+	match weapon.pattern:
+		ArsenalWeaponData.Pattern.WARD:
+			rows.append(["Ward", _share_text(weapon, from, to, "of health")])
+		ArsenalWeaponData.Pattern.MEND:
+			rows.append(["Mends", _share_text(weapon, from, to, "of what is missing")])
+		ArsenalWeaponData.Pattern.FIELD:
+			rows.append(["Slows", "%d%%" % int(round((1.0 - weapon.slow) * 100.0))])
+		ArsenalWeaponData.Pattern.GUARD:
+			if weapon.damage > 0.0:
+				rows.append(["Throws back", "%d" % int(round(Arsenal.preview_hit(weapon, to)))])
+		_:
+			var hit_from: float = Arsenal.preview_hit(weapon, from)
+			var hit_to: float = Arsenal.preview_hit(weapon, to)
+			rows.append(["Hit", ("%d" % int(round(hit_to))) if from == to
+				else ("%d → %d" % [int(round(hit_from)), int(round(hit_to))])])
 	var unit: String = WEAPON_UNIT[clampi(int(weapon.pattern), 0, WEAPON_UNIT.size() - 1)]
 	if not unit.is_empty():
 		var many_from: int = weapon.count_at(from)
@@ -1427,12 +1440,25 @@ static func weapon_rows(card: RoadCardData, from: int, to: int) -> Array:
 			else ("%d → %d" % [many_from, many_to])])
 	if weapon.every_kills > 0:
 		rows.append(["Every", "%d kills" % weapon.every_kills])
-	elif weapon.pattern != ArsenalWeaponData.Pattern.ON_KILL:
+	elif weapon.pattern == ArsenalWeaponData.Pattern.RETORT:
+		rows.append(["When struck", "once in %.1f s" % weapon.cooldown])
+	elif weapon.pattern == ArsenalWeaponData.Pattern.GUARD:
+		rows.append(["A stone reforms", "every %.0f s" % weapon.cooldown])
+	elif weapon.pattern != ArsenalWeaponData.Pattern.ON_KILL \
+			and weapon.pattern != ArsenalWeaponData.Pattern.FIELD:
 		rows.append(["Every", "%.1f s" % weapon.cooldown])
 	if not card.evolves_from.is_empty():
 		var base: RoadCardData = ContentDB.road_card(card.evolves_from)
 		rows.append(["Evolves", base.display_name if base != null else card.evolves_from])
 	return rows
+
+
+static func _share_text(weapon: ArsenalWeaponData, from: int, to: int, of: String) -> String:
+	var pct_from: int = int(round(weapon.share_at(from) * 100.0))
+	var pct_to: int = int(round(weapon.share_at(to) * 100.0))
+	if pct_from == pct_to:
+		return "%d%% %s" % [pct_to, of]
+	return "%d%% → %d%% %s" % [pct_from, pct_to, of]
 
 
 ## **Opens the oldest banked augment draft**, dealing it if it has not been.

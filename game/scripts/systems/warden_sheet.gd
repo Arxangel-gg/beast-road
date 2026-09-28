@@ -84,6 +84,7 @@ static func pack_mine() -> Array:
 			"rarity": int(piece.get("rarity", 0)),
 			"level": int(piece.get("level", 1)),
 			"uid": int(piece.get("uid", 0)),
+			"gems": Stash.gems(piece),
 		})
 	return [
 		MetaState.hero_level,
@@ -151,12 +152,23 @@ func _read_worn(values: Array) -> void:
 		if kind == null or slots.has(kind.slot):
 			continue
 		slots[kind.slot] = true
-		worn.append({
+		var piece: Dictionary = {
 			"kind": kind_id,
 			"rarity": clampi(_as_int(raw.get("rarity", 0), 0), 0, Stash.RARITY_NAMES.size() - 1),
 			"level": clampi(_as_int(raw.get("level", 1), 1), 1, Stash.MAX_LEVEL),
 			"uid": _as_int(raw.get("uid", 0), 0),
-		})
+		}
+		# Gems, cleaned as the save reads them: a real gem, no more than the
+		# rarity's sockets. A row from an older build carries none.
+		var gems: Array = []
+		if raw.get("gems", null) is Array:
+			for gem_id: Variant in raw["gems"] as Array:
+				var gem: MaterialData = ContentDB.material(String(gem_id)) if gem_id is String else null
+				if gem != null and gem.kind == MaterialData.Kind.GEM and gems.size() < Stash.sockets(piece):
+					gems.append(String(gem_id))
+		if not gems.is_empty():
+			piece["gems"] = gems
+		worn.append(piece)
 
 
 ## Nodes: ones this build has, then no more than the most points that level
@@ -288,6 +300,26 @@ static func attribute_of(sheet: WardenSheet, which: int) -> int:
 	if which < 0 or which >= sheet.placed.size():
 		return 0
 	return sheet.placed[which] + sheet._gear_points[which]
+
+
+## **How many perk tiers an attribute has reached** (docs/GEAR_REWORK_2026-09-28.md
+## §2): placed and worn together over the threshold, to the ceiling. A partner's
+## sheet answers for the partner, so the host's copy of a guest reads the
+## guest's thresholds.
+static func perk_tiers(sheet: WardenSheet, which: int) -> int:
+	return clampi(attribute_of(sheet, which) / Balance.ATTRIBUTE_THRESHOLD, 0,
+		Balance.ATTRIBUTE_PERK_TIERS)
+
+
+## What an attribute's perk is worth to this Warden: its tiers times the share
+## one tier is authored at. Nought with no tier, and nought for an attribute
+## with no perk authored.
+static func perk_of(sheet: WardenSheet, which: int) -> float:
+	var tiers: int = perk_tiers(sheet, which)
+	if tiers <= 0:
+		return 0.0
+	var perk: AttributePerkData = ContentDB.attribute_perk(which)
+	return float(tiers) * perk.per_tier if perk != null else 0.0
 
 
 ## A Warden key's summed magnitude: the part of the table everybody shares, and

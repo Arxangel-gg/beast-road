@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "lantern_ward"
+display_name = "Lantern Ward"
+description = "Every nine seconds a ward of a tenth of your health closes over you."
+pattern = 8
+anchor = 0
+element = 3
+tint = Color(1.00, 0.92, 0.60, 1)
+damage = 0.0
+cooldown = 9.0
+share = 0.1
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.0, 1.0, 1.0, 1.0])
+effect = "ward"

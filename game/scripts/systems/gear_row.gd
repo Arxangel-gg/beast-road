@@ -109,6 +109,13 @@ static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 	# means by reading it once.
 	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
 		parts.append(legend.line())
+	# And the set gems, so a gemmed piece on the trade table or the Ledger reads
+	# as the piece it is.
+	for gem: Dictionary in Stash.gem_affixes(piece):
+		var stone: MaterialData = ContentDB.material(String(gem["gem"]))
+		parts.append("+%d%% %s (%s)" % [int(round(float(gem["magnitude"]) * 100.0)),
+			Modifiers.label(String(gem["key"])),
+			stone.display_name if stone != null else String(gem["gem"])])
 	return ", ".join(parts)
 
 

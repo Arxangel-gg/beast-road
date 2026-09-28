@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+gem_key = "mana_regen"
 kind = 2
 rarity = 1
 description = "Warm in the hand. A smith sets one and the work comes out better."

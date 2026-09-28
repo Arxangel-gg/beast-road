@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "marrow_mend"
+display_name = "Marrow Mend"
+description = "Uncommon card. Every seven seconds, an eighth of what you are missing comes back."
+rarity = 1
+first_act = 1
+branch = 0
+tags = Array[String](["Water", "Arsenal", "Mend"])
+card_text = "The road takes. Something in the marrow keeps a ledger."
+weapon = "marrow_mend"

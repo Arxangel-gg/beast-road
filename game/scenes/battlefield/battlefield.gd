@@ -3489,6 +3489,13 @@ func absorb_hostile_shot(at: Vector2) -> bool:
 	for tower: Tower in _mirror_towers:
 		if is_instance_valid(tower) and tower.absorb(at):
 			return true
+	# And a Warden's Guardian Stones (docs/ARSENAL_DEFENSIVE_2026-09-28.md): a
+	# mirror worn rather than built, asked through the same door.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var warden := node as Hero
+		if warden != null and warden.arsenal != null and is_instance_valid(warden.arsenal) \
+				and warden.arsenal.absorb(at):
+			return true
 	return false
 
 

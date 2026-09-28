@@ -123,6 +123,11 @@ const FORGE_CATALOGUE: Dictionary = {
 	"hit_physical": ForgeTurn.FREE,
 	"nova": ForgeTurn.FREE,
 	"ward": ForgeTurn.FREE,
+	# The defence (docs/ARSENAL_DEFENSIVE_2026-09-28.md).
+	"mend_motes": ForgeTurn.UPRIGHT,
+	"thorn_burst": ForgeTurn.FREE,
+	"guard_shatter": ForgeTurn.FREE,
+	"frost_ring": ForgeTurn.FREE,
 	"beam_end": ForgeTurn.AIMED,
 	"meteor_bloom": ForgeTurn.UPRIGHT,
 	"meteor_trail": ForgeTurn.AIMED,

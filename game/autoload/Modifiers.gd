@@ -56,6 +56,10 @@ const ARSENAL_COUNT: String = "arsenal_count"
 const ARSENAL_AREA: String = "arsenal_area"
 const ARSENAL_DURATION: String = "arsenal_duration"
 const ARSENAL_POWER: String = "arsenal_power"
+## And what its wards and mends are worth (Steadfast Salt, 2026-09-28). Read by
+## the five defensive patterns and nothing else: Kindled Heart moves the blows
+## and never these.
+const ARSENAL_GUARD: String = "arsenal_guard"
 
 # --- Keystones (2026-09-25) ------------------------------------------------------
 #
@@ -117,6 +121,7 @@ const LABELS: Dictionary = {
 	ARSENAL_AREA: "Arsenal reach",
 	ARSENAL_DURATION: "Arsenal duration",
 	ARSENAL_POWER: "Arsenal power",
+	ARSENAL_GUARD: "Arsenal guard",
 	KEYSTONE_COLD_SNAP: "Cold Snap",
 	KEYSTONE_TINDERSTRIKE: "Tinderstrike",
 	KEYSTONE_TIMBERWRIGHT: "Timberwright",
@@ -153,6 +158,7 @@ const WARDEN_KEYS: Array[String] = [
 	HERO_DAMAGE, HERO_MAX_HP, HERO_SPEED, DASH_COOLDOWN,
 	MANA_REGEN, SPELL_POWER, COMPANION_DAMAGE, KNOCKBACK,
 	ARSENAL_HASTE, ARSENAL_COUNT, ARSENAL_AREA, ARSENAL_DURATION, ARSENAL_POWER,
+	ARSENAL_GUARD,
 ]
 
 
@@ -291,6 +297,10 @@ static func _add_gear(into: Dictionary, pieces: Array[Dictionary]) -> void:
 			if affix.effect_id.is_empty():
 				continue
 			into[affix.effect_id] = float(into.get(affix.effect_id, 0.0)) + affix.magnitude
+		# And a set gem (docs/GEAR_REWORK_2026-09-28.md §3): an affix the player
+		# chose rather than found, on the same table by the same door.
+		for gem: Dictionary in Stash.gem_affixes(piece):
+			into[String(gem["key"])] = float(into.get(String(gem["key"]), 0.0)) + float(gem["magnitude"])
 	# And what matches. A set tier is a relic the player assembled rather than
 	# found, and it lands where a relic lands - so nothing downstream learns that
 	# sets exist either.

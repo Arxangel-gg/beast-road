@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AttributePerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/attribute_perk_data.gd" id="1_perk"]
+
+[resource]
+script = ExtResource("1_perk")
+attribute = 0
+per_tier = 0.06
+unit = "the finisher hits harder by"
+id = "might"
+display_name = "Heavy Hand"
+description = "Every ten points of Might: the last blow of the chain lands harder."

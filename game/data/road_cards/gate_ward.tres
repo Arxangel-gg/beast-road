@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "gate_ward"
+display_name = "Gate Ward"
+description = "Rare card. Every fifteen seconds the gate gains a ward of a twentieth."
+rarity = 2
+first_act = 2
+branch = 2
+tags = Array[String](["Air", "Arsenal", "Ward"])
+card_text = "What the road wants is behind this. So is a light."
+weapon = "gate_ward"

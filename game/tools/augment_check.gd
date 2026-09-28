@@ -128,6 +128,14 @@ func _test_cards_level() -> void:
 		if card.is_weapon():
 			var weapon: ArsenalWeaponData = card.weapon_data()
 			_check(card.max_level() == Balance.AUGMENT_MAX_LEVEL, "%s levels to %d" % [card.id, card.max_level()])
+			# A defence models as nothing (docs/ARSENAL_DEFENSIVE_2026-09-28.md
+			# §2) and grows by its share, its stones or its ring instead.
+			if weapon != null and weapon.is_defensive():
+				_check(weapon.share_at(Balance.AUGMENT_MAX_LEVEL) > weapon.share_at(1)
+						or weapon.count_at(Balance.AUGMENT_MAX_LEVEL) > weapon.count_at(1)
+						or weapon.radius_at(Balance.AUGMENT_MAX_LEVEL) > weapon.radius_at(1),
+					"%s grows nothing across five levels" % card.id)
+				continue
 			_check(weapon != null and weapon.modelled_dps(Balance.AUGMENT_MAX_LEVEL) > weapon.modelled_dps(1),
 				"%s grows nothing across five levels" % card.id)
 			continue

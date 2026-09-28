@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "kiln_skin"
+display_name = "Kiln Skin"
+description = "A tower near you that is struck burns what struck it; once every three seconds a tower."
+pattern = 10
+anchor = 1
+element = 0
+tint = Color(1.00, 0.55, 0.25, 1)
+damage = 12.0
+cooldown = 3.0
+radius = 80.0
+burn_share = 0.5
+crowd = 2.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.4])
+effect = "hit_fire"

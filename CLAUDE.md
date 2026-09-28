@@ -11076,6 +11076,144 @@ one run in three: the coin was which body reached the spawn first. The
 sanctuary is the game's own rule for a Warden nothing may target, so the hero
 stands on the town.
 
+**The Arsenal keeps you standing, as of 2026-09-28.** Owner: *"the rest of the
+autonomous augments, both offensive and defensive ones with enough of them to
+make a decent ratio that will keep players invested in wanting to play to try
+to get the ones they want ... the best game juicy vfx for all of them using
+Forge VFX"*. `docs/ARSENAL_DEFENSIVE_2026-09-28.md` is the design. Twenty-three
+weapons were all ways of killing; nothing in the deck answered how to still be
+standing when the wave is over.
+
+**Five patterns, each a thing the field already did, on the Arsenal's clock**:
+a WARD (`Hero.grant_ward`, `Tower.ward`, the new `TownCore.ward`), a MEND
+(`Health.heal`, `Tower.repair`, `TownCore.mend`), a RETORT (a burst at the
+anchor when it is struck, through `strike_body` and the ledger like every
+Arsenal blow), a GUARD (stones that swallow hostile shots, asked by
+`Battlefield.absorb_hostile_shot` after the mirrors), and a FIELD (a ring that
+slows and soaks what stands in it). Ten cards over the three anchors, a
+catalyst (Steadfast Salt, `arsenal_guard`, read by the five and nothing else)
+and two evolutions; the deck is fifty.
+
+**The bound is the offensive bound's mirror: a way of not dying, never a
+stat.** A ward is a share of the anchor's *own* pool and a mend a share of what
+it is *missing*, so a level-1 and a level-100 Warden hold the same card and it
+means the same to each; `ARSENAL_WARD_CEILING`, `_MEND_CEILING` and
+`_MEND_TOWN_CEILING` hold every firing whatever the data or the hand say, and
+the wall's is lowest because the Quartermaster sells its repair for Gold. A
+field slows and never moves (morale's own bound); a guard swallows a shot and
+never a blow; a retort fires only when something has landed. **Pure defence
+moves the curve by exactly nothing** - `modelled_dps` is zero for all five, so
+`curve_report` reads the same band - and the deck is held to
+`ARSENAL_DEFENCE_SHARE` of its weapons being defence.
+
+Four forged sheets came with it (`mend_motes`, `thorn_burst`, `guard_shatter`,
+`frost_ring`), and two of them were wrong on the first contact strip: the thorns
+were `spokes`, which are widest at the tip - the one shape a thorn is not - and
+`lobes` at a high power are what a point is; and `squashed(0.5)` stands a ring
+**up** rather than laying it down, so a ground ring wants `2.0`. Neither is a
+number a gate reads; both were the photograph's.
+
+`arsenal_check` grew a `defence` stage on the real field: the ward worth its
+share and no more (a share of five times the pool planted, held to the
+ceiling), the mend of what is missing and nothing on a whole pool, the retort
+silent beside a crowd for a whole cadence and answering a blow once inside its
+refractory, the guard swallowing exactly its stones and reforming one, the
+field slowing the body inside and leaving the one outside alone and moving
+neither, and the ratio.
+
+**And the tree commit had broken every spirit companion, found by the sweep
+the same morning.** The phase-2 patch dropped `Companion.extend()` into the
+middle of `_ready` - after the anchor line it was given - so the rest of the
+constructor (the spirit's scale, its Resolve, its power, its sprite, its bar)
+became the body of a function nothing called. `spirit_check` read *"alpha is
+-1.00"* - a sprite that was never built. **A patch anchored on the last line
+of a block lands inside the block**; anchor on a function's own signature or
+on the blank lines after it. `spirit_check` and `companion_check` were not on
+the gate list for the tree, because the list was chosen by what the tree
+*reads* and `Companion` was touched for one door - `grep -l` for every file the
+patch writes to is the list.
+
+**Every ten points in an attribute is a named perk, as of 2026-09-28.** Owner:
+*"stat attributes rework and gear rework so that players can have better
+customization options that are more in depth and polished."*
+`docs/GEAR_REWORK_2026-09-28.md` is the design; this is its §2. Five attributes
+were five multipliers, and twenty of everything read exactly like forty of one
+thing spread thin - there was nothing to *commit* to.
+
+**A threshold unlocks a tier, to four, and a tier moves one number through a
+door the game already has**: Heavy Hand on the finisher, Second Wind on a pool
+nothing has struck for `HERO_REGEN_QUIET`, Light Step on the dash's rest,
+Clear Mind on a cast's cost, Unbowed on a shove. Each is an
+`AttributePerkData` in `data/attribute_perks/` (working rule 3 - a perk is a
+file), read through `WardenSheet.perk_of`, which answers for a partner's sheet
+exactly as it answers for this machine's own.
+
+**The bound is the levelling bound, and it is the whole argument for this being
+safe.** A perk is *reached* by points on the capped scale (working rule 7) and
+adds none; `attribute_check` holds "one point a level" first and hardest, as it
+always has, and now drives every perk through its door on a real hero and reads
+the points back unchanged. **Heavy Hand is the one tier that touches a blow, so
+`curve_report` carries it** - weighed by the finisher's share of the chain, as
+part of the levelling scale - and the other four move survival and mobility,
+which the curve deliberately does not model. A gem, a card or a node that
+raised a *perk* rather than a point would be a third road onto the levelling
+scale and needs its own decision.
+
+**The Warden card says where the next tier is**, on the attribute's own row,
+because a threshold nobody can see is a coincidence rather than a build - the
+same sentence the discipline synergies were listed under.
+
+**A piece has sockets, and a piece can be tempered, as of 2026-09-28.**
+`docs/GEAR_REWORK_2026-09-28.md` §3-4, the second half of the owner's gear
+rework. A piece from Fine up carries sockets by rarity (`GEAR_SOCKETS`), a gem
+from the road's seams set in one grants an affix on a `Modifiers` key sized by
+the gem's rarity, and tempering gives a piece a **new name** - which, because
+its secondaries and its legendary affixes have been rolled from its `uid`
+since 2026-09-11, is the whole of a reroll.
+
+**Two bounds, each the one something older is already held to.**
+
+- **A gem is a legendary affix the player chose, under the legendary ceiling.**
+  `GEAR_GEM_CEILING` sits below `GEAR_LEGENDARY_CEILING`, the affix lands in the
+  same flat table by the same door (`Modifiers._add_gear`), and one key a piece
+  - a gem whose key the piece already carries, by another gem or by its own
+  affix, is refused - so two sockets can never stack past what one affix may
+  move. Nothing downstream learns that gems exist.
+- **A material is still an input to the Smithy and nothing else** (2026-09-13).
+  Setting a gem spends it; prying it out gives it *back*, for Marks - Diablo
+  II destroyed the gem, and a material the road gave up is not the forge's to
+  eat. The Marks are the price of changing one's mind.
+
+**Tempering is bounded by `GEAR_TEMPER_MAX` and priced to climb**, in Shards
+and Marks by rarity, because a piece that can be rerolled for ever is a slot
+machine with the drop tables as its reels. What stays is the kind, the rarity,
+the level, the gems and the piece's place in the equipped map - which is keyed
+by uid (2026-09-22), so a rename has to move the key or the Warden is undressed
+by their own reroll. Both doors refuse while a trade is open, since a uid is
+what the table names a piece by.
+
+**It amends nothing in working rule 7 and adds two additive fields to a
+piece**: `gems` and `tempers`. A piece on disk without them reads as unsocketed
+and untempered, `SAVE_VERSION` did not move, and the read is *clean* - an
+unknown id, a log in a socket, a third gem on a two-socket piece or a tempering
+count of ninety-nine each read back as a piece the game could have produced.
+`_read_stash` rebuilds every piece through `Stash.make` and copies only the
+fields it knows, so a field it does not know is a gem that vanishes on the next
+launch; that is why the gate drives the real serializer and the real parser
+rather than reading the dictionary back. A partner's pieces carry their gems on
+the wire (`WardenSheet` packs and reads them, cleaned the same way), so a
+Warden is as strong on the host's screen as on their own.
+
+**The row says it**: the set gems by name and what they grant, how many sockets
+are empty, and how often the piece was tempered, on the line a player chooses
+on - and the row's height counts those lines, or the card would clip exactly the
+ones that say what a piece can still take. `gear_socket_check` (both bars)
+drives all of it: the tables, every gem key read by something outside the
+table, setting and prying for exactly the gem, one key a piece found by
+scanning names for one whose own affix carries a gem's key, the trade lock,
+three temperings at a climbing price and a fourth refused, the save round trip
+with planted rows, a partner's sheet, and the screen.
+
 **The forge window judges a sheet the way it will be seen, as of 2026-09-28.**
 Owner: *"Elevate our Forge VFX tool."* The window of 2026-09-22 played one take,
 square and upright, alone. Every rule the game applies to a sheet is now a

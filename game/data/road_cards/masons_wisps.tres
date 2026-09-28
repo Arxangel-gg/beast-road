@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "masons_wisps"
+display_name = "Mason's Wisps"
+description = "Uncommon card. Every six seconds each tower near you mends a twentieth of what it is missing."
+rarity = 1
+first_act = 1
+branch = 1
+tags = Array[String](["Earth", "Arsenal", "Mend"])
+card_text = "Small hands in the mortar, working while you fight."
+weapon = "masons_wisps"

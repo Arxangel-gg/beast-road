@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "thornskin"
+display_name = "Thornskin"
+description = "Struck, thorns burst round you and bite whatever is close; once every few seconds."
+pattern = 10
+anchor = 0
+element = 2
+tint = Color(0.55, 0.80, 0.35, 1)
+damage = 14.0
+cooldown = 2.5
+radius = 90.0
+knockback = 60.0
+crowd = 3.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.4])
+effect = "thorn_burst"

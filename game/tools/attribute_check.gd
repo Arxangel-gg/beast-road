@@ -50,6 +50,7 @@ func _ready() -> void:
 	_test_the_affix_tables_reach()
 	_test_an_older_save_keeps_its_hero()
 	await _test_the_hero_reads_resolve()
+	await _test_thresholds_are_perks_not_points()
 
 	Sfx.stop_immediately()
 	Vfx.clear()
@@ -57,7 +58,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print("[attributes] PASS - %d checks: five named, no new points, gear that wants them, and a capped fifth"
+		print("[attributes] PASS - %d checks: five named, no new points, gear that wants them, a capped fifth, and thresholds that are perks"
 			% _checks)
 	else:
 		push_error("[attributes] FAIL - %d problem(s)" % _failures)
@@ -130,6 +131,120 @@ func _test_a_level_still_grants_one_point() -> void:
 		"there is no sixth attribute to spend into")
 	_check(RunState.attribute(RunState.Attribute.RESOLVE) >= 1,
 		"a point placed in Resolve must be readable back")
+
+
+## **A threshold is a perk, never a point** (docs/GEAR_REWORK_2026-09-28.md §2).
+##
+## Driven through the doors rather than read off the table: the finisher's
+## multiplier on a real hero at the opener and at the last blow, the dash's
+## rest, a cast's cost, a shove, and the quiet regen on a real pool - and the
+## points the perk was reached with are exactly the points the Warden had.
+func _test_thresholds_are_perks_not_points() -> void:
+	var kept: Array = RunState.hero_attributes.duplicate()
+	var kept_points: int = RunState.hero_attribute_points
+	var might: int = RunState.Attribute.MIGHT
+	for which: int in RunState.Attribute.size():
+		_check(ContentDB.attribute_perk(which) != null,
+			"%s has no perk authored" % RunState.attribute_name(which))
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	RunState.hero_attribute_points = 3
+	_check(WardenSheet.perk_tiers(null, might) == 0, "no points, no tier")
+	RunState.hero_attributes[might] = Balance.ATTRIBUTE_THRESHOLD - 1
+	_check(WardenSheet.perk_tiers(null, might) == 0, "one point short of the threshold is no tier")
+	RunState.hero_attributes[might] = Balance.ATTRIBUTE_THRESHOLD
+	_check(WardenSheet.perk_tiers(null, might) == 1, "the threshold is the first tier")
+	RunState.hero_attributes[might] = Balance.ATTRIBUTE_THRESHOLD * (Balance.ATTRIBUTE_PERK_TIERS + 3)
+	_check(WardenSheet.perk_tiers(null, might) == Balance.ATTRIBUTE_PERK_TIERS,
+		"the tiers stop at the ceiling")
+	_check(RunState.hero_attribute_points == 3 and RunState.attribute(might)
+			== Balance.ATTRIBUTE_THRESHOLD * (Balance.ATTRIBUTE_PERK_TIERS + 3),
+		"a perk must neither spend nor grant a point")
+	# A partner's sheet answers for the partner. The row packs the account
+	# (`MetaState`), and a sheet is cleaned to what its level could have
+	# placed, so the account is stood up as a levelled Warden for the pack.
+	var kept_meta: Array = MetaState.hero_attributes.duplicate()
+	var kept_level: int = MetaState.hero_level
+	MetaState.hero_level = Balance.ATTRIBUTE_THRESHOLD * Balance.ATTRIBUTE_PERK_TIERS + 1
+	MetaState.hero_attributes = [Balance.ATTRIBUTE_THRESHOLD * Balance.ATTRIBUTE_PERK_TIERS, 0, 0, 0, 0]
+	var row: Array = WardenSheet.pack_mine()
+	MetaState.hero_attributes = kept_meta
+	MetaState.hero_level = kept_level
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	var partner: WardenSheet = WardenSheet.from_row(row)
+	_check(WardenSheet.perk_tiers(partner, might) == Balance.ATTRIBUTE_PERK_TIERS
+			and WardenSheet.perk_tiers(null, might) == 0,
+		"a partner's thresholds must be read off the partner's sheet (%d tiers)" % WardenSheet.perk_tiers(partner, might))
+
+	# The doors, on a real hero.
+	var field := EnemyField.new()
+	add_child(field)
+	var hero := (load("res://scenes/hero/hero.tscn") as PackedScene).instantiate() as Hero
+	field.add_child(hero)
+	await get_tree().process_frame
+	var perk: AttributePerkData = ContentDB.attribute_perk(might)
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	hero.attack.set("_step", 0)
+	var opener_plain: float = hero.damage_multiplier()
+	hero.attack.set("_step", Balance.HERO_CHAIN_LENGTH - 1)
+	var finisher_plain: float = hero.damage_multiplier()
+	RunState.hero_attributes[might] = Balance.ATTRIBUTE_THRESHOLD * 2
+	var finisher_heavy: float = hero.damage_multiplier()
+	hero.attack.set("_step", 0)
+	var opener_heavy: float = hero.damage_multiplier()
+	var might_alone: float = 1.0 + float(Balance.ATTRIBUTE_THRESHOLD * 2) * Balance.HERO_MIGHT_PER_POINT
+	_check(is_equal_approx(opener_heavy / opener_plain, might_alone),
+		"Heavy Hand must leave the opener to Might alone (%.3f against %.3f)" % [opener_heavy / opener_plain, might_alone])
+	_check(is_equal_approx(finisher_heavy / finisher_plain, might_alone * (1.0 + 2.0 * perk.per_tier)),
+		"two tiers of Heavy Hand must land %.0f%% on the finisher (%.3f against %.3f)"
+			% [2.0 * perk.per_tier * 100.0, finisher_heavy / finisher_plain, might_alone * (1.0 + 2.0 * perk.per_tier)])
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	var rest_plain: float = hero.dash_cooldown()
+	RunState.hero_attributes[RunState.Attribute.SWIFTNESS] = Balance.ATTRIBUTE_THRESHOLD
+	var swift: AttributePerkData = ContentDB.attribute_perk(RunState.Attribute.SWIFTNESS)
+	_check(is_equal_approx(hero.dash_cooldown(), rest_plain * (1.0 - swift.per_tier)),
+		"Light Step must rest the dash sooner by one tier")
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	_check(is_equal_approx(hero.cast_cost_scale(), 1.0), "no Focus tier, full price")
+	RunState.hero_attributes[RunState.Attribute.FOCUS] = Balance.ATTRIBUTE_THRESHOLD * 3
+	var focus: AttributePerkData = ContentDB.attribute_perk(RunState.Attribute.FOCUS)
+	_check(is_equal_approx(hero.cast_cost_scale(), 1.0 - 3.0 * focus.per_tier),
+		"three tiers of Clear Mind must take %.0f%% off a cast" % (3.0 * focus.per_tier * 100.0))
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	hero.shove(Vector2(200.0, 0.0))
+	var shoved_plain: float = (hero.get("_shoved") as Vector2).length()
+	hero.set("_shoved", Vector2.ZERO)
+	RunState.hero_attributes[RunState.Attribute.RESOLVE] = Balance.ATTRIBUTE_THRESHOLD
+	hero.shove(Vector2(200.0, 0.0))
+	var shoved_unbowed: float = (hero.get("_shoved") as Vector2).length()
+	var resolve: AttributePerkData = ContentDB.attribute_perk(RunState.Attribute.RESOLVE)
+	_check(shoved_plain > 0.0 and is_equal_approx(shoved_unbowed / shoved_plain, 1.0 - resolve.per_tier),
+		"Unbowed must shove one tier less (%.3f of the plain shove)" % (shoved_unbowed / maxf(shoved_plain, 0.001)))
+	hero.set("_shoved", Vector2.ZERO)
+	# Second Wind on a real pool: nothing without Vigour, a rise with it, and
+	# only once the Warden has been quiet.
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
+	hero.health.current_hp = hero.health.max_hp * 0.5
+	hero.set("_quiet_since", Balance.HERO_REGEN_QUIET + 1.0)
+	hero.call("_tick_timers", 1.0)
+	_check(is_equal_approx(hero.health.current_hp, hero.health.max_hp * 0.5),
+		"Second Wind healed a Warden with no tier of Vigour")
+	RunState.hero_attributes[RunState.Attribute.VIGOUR] = Balance.ATTRIBUTE_THRESHOLD
+	hero.set("_quiet_since", 0.0)
+	hero.call("_tick_timers", 1.0)
+	_check(is_equal_approx(hero.health.current_hp, hero.health.max_hp * 0.5),
+		"Second Wind healed a Warden that was struck a second ago")
+	hero.set("_quiet_since", Balance.HERO_REGEN_QUIET + 1.0)
+	hero.call("_tick_timers", 1.0)
+	var vigour: AttributePerkData = ContentDB.attribute_perk(RunState.Attribute.VIGOUR)
+	var rose: float = hero.health.current_hp - hero.health.max_hp * 0.5
+	_check(absf(rose - hero.health.max_hp * vigour.per_tier) < 0.5,
+		"one tier of Second Wind must return %.0f%% of the pool a second; it returned %.1f of %.0f"
+			% [vigour.per_tier * 100.0, rose, hero.health.max_hp])
+	hero.queue_free()
+	field.queue_free()
+	await get_tree().process_frame
+	RunState.hero_attributes = kept
+	RunState.hero_attribute_points = kept_points
 
 
 ## Gear that *is* Resolve, not gear that happens to carry some.

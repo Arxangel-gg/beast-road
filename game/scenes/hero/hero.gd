@@ -295,6 +295,8 @@ var party_slot: int = 1:
 		party_slot = clampi(value, 1, Balance.COOP_MAX_PLAYERS)
 		_apply_party_colour()
 var _flash_left: float = 0.0
+## Seconds since anything struck this Warden - **Second Wind**'s clock.
+var _quiet_since: float = 0.0
 var _impact_direction: Vector2 = Vector2.UP
 ## Motion the hero did not ask for: the beast's footfall, and a boss slam.
 ##
@@ -1062,6 +1064,10 @@ func damage_multiplier() -> float:
 	if _guard_left > 0.0 and attack != null \
 			and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
 		multiplier *= 1.0 + WardenSheet.trained_value_of(sheet, "block_finisher")
+	# **Heavy Hand** (docs/GEAR_REWORK_2026-09-28.md §2): Might's thresholds
+	# land on the finisher and on nothing else, beside the form's own.
+	if attack != null and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
+		multiplier *= 1.0 + WardenSheet.perk_of(sheet, RunState.Attribute.MIGHT)
 	return multiplier
 
 
@@ -1636,9 +1642,23 @@ func _on_evaded(into: float, from: Vector2) -> void:
 
 
 func dash_cooldown_ratio() -> float:
-	if Balance.HERO_DASH_COOLDOWN <= 0.0:
+	var full: float = dash_cooldown()
+	if full <= 0.0:
 		return 0.0
-	return _dash_cooldown_left / Balance.HERO_DASH_COOLDOWN
+	return _dash_cooldown_left / full
+
+
+## **Light Step**: the dash rests sooner by Swiftness's tiers. The one place
+## the rest is decided, so the ring and the refusal agree.
+func dash_cooldown() -> float:
+	return Balance.HERO_DASH_COOLDOWN \
+		* (1.0 - WardenSheet.perk_of(sheet, RunState.Attribute.SWIFTNESS))
+
+
+## **Clear Mind**: what a cast costs, as a share of the authored cost, by
+## Focus's tiers. Asked by the caster before it pays.
+func cast_cost_scale() -> float:
+	return 1.0 - WardenSheet.perk_of(sheet, RunState.Attribute.FOCUS)
 
 
 ## Movement, from whoever is driving this hero.
@@ -1691,6 +1711,16 @@ func _tick_timers(delta: float) -> void:
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_beast_stun_left = maxf(_beast_stun_left - delta, 0.0)
+	# **Second Wind**: out of the fight - nothing has struck this Warden for
+	# `HERO_REGEN_QUIET` - a share of the pool a second comes back, by Vigour's
+	# tiers. Unscaled, so the Red Road's bane and Resolve's heal scale leave it
+	# alone: it is the body's own, not a draught.
+	_quiet_since += delta
+	if health != null and not health.is_dead and _quiet_since >= Balance.HERO_REGEN_QUIET \
+			and health.current_hp < health.max_hp:
+		var wind: float = WardenSheet.perk_of(sheet, RunState.Attribute.VIGOUR)
+		if wind > 0.0:
+			health.heal(health.max_hp * wind * delta, false)
 	_shoved = _shoved.move_toward(Vector2.ZERO, Balance.HERO_SHOVE_DECAY * delta)
 	_pulse_left = maxf(_pulse_left - delta, 0.0)
 	if _veil_left > 0.0:
@@ -2459,7 +2489,7 @@ func _try_dash() -> void:
 	var move_input: Vector2 = _move_input()
 	_dash_direction = move_input.normalized() if move_input.length() > 0.1 else _aim
 	_dash_left = Balance.HERO_DASH_DURATION
-	_dash_cooldown_left = Balance.HERO_DASH_COOLDOWN
+	_dash_cooldown_left = dash_cooldown()
 	_dash_refunded = false
 	health.add_invulnerability(Balance.HERO_DASH_IFRAMES)
 	animator.dash(_dash_direction, Balance.HERO_DASH_DURATION)
@@ -2535,6 +2565,7 @@ func _apply_attack_impulse(direction: Vector2, distance: float,
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
+	_quiet_since = 0.0
 	# **A blow that lands throws the rider** (owner, 2026-09-21). Health lost,
 	# not merely a hit: a ward that swallowed the whole blow emits `damaged`
 	# with nothing taken, and the co-op mirror - which learns of a blow only as
@@ -2692,6 +2723,9 @@ func shove(push: Vector2) -> void:
 	if not is_alive() or push.is_zero_approx() or not health.accepts_damage():
 		return
 	var speed: float = minf(push.length(), Balance.shove_ceiling())
+	# **Unbowed**: a blow shoves this Warden less by Resolve's tiers. A shape,
+	# never a size - the blow's damage is untouched.
+	speed *= 1.0 - WardenSheet.perk_of(sheet, RunState.Attribute.RESOLVE)
 	# The total, not the new push: two slams landing on the same frame would
 	# otherwise sum past the bound `HERO_SHOVE_MAX_TRAVEL` is there to hold.
 	_shoved = (_shoved + push.normalized() * speed).limit_length(

@@ -70,6 +70,10 @@ class Armed extends RefCounted:
 	var last_step: Vector2 = Vector2.INF
 	## Arcs standing this moment, as pairs of points.
 	var arcs: Array[PackedVector2Array] = []
+	## A guard's stones standing this moment; -1 before the first tick sets them.
+	var stones: int = -1
+	## A field's next ring.
+	var pulse: float = 0.0
 
 
 func _ready() -> void:
@@ -88,6 +92,14 @@ func _ready() -> void:
 	add_child(_glow)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.augment_hand_changed.connect(rearm)
+	# **A retort answers a blow** (docs/ARSENAL_DEFENSIVE_2026-09-28.md): the
+	# Warden's own pool for the Arsenal at their side, and the board's two
+	# announcements for the one on the board.
+	if hero != null and is_instance_valid(hero) and hero.health != null:
+		hero.health.damaged.connect(_on_warden_struck)
+	if board != null:
+		EventBus.tower_struck.connect(_on_tower_struck)
+		EventBus.town_struck.connect(_on_town_struck)
 	rearm()
 
 
@@ -288,6 +300,16 @@ func _tick_weapon(armed: Armed, delta: float) -> void:
 		ArsenalWeaponData.Pattern.ORBIT:
 			_tick_orbit(armed, delta)
 			return
+		ArsenalWeaponData.Pattern.RETORT:
+			# Its clock is a refractory, spent by a blow rather than by time.
+			armed.clock = maxf(armed.clock - delta, 0.0)
+			return
+		ArsenalWeaponData.Pattern.GUARD:
+			_tick_guard(armed, delta)
+			return
+		ArsenalWeaponData.Pattern.FIELD:
+			_tick_field(armed, delta)
+			return
 		ArsenalWeaponData.Pattern.TRAIL:
 			_tick_trail(armed)
 			return
@@ -318,6 +340,10 @@ func _fire(armed: Armed) -> bool:
 			return _fire_nova(armed)
 		ArsenalWeaponData.Pattern.STRIKE:
 			return _fire_strikes(armed)
+		ArsenalWeaponData.Pattern.WARD:
+			return _fire_ward(armed)
+		ArsenalWeaponData.Pattern.MEND:
+			return _fire_mend(armed)
 	return false
 
 
@@ -408,6 +434,245 @@ func strike_body(armed: Armed, enemy: Enemy, amount: float, from: Vector2,
 	dealt[armed.card.id] = float(dealt.get(armed.card.id, 0.0)) + amount
 	hits[armed.card.id] = int(hits.get(armed.card.id, 0)) + 1
 	return true
+
+
+# --- The defence (docs/ARSENAL_DEFENSIVE_2026-09-28.md) -------------------------
+
+
+## **A ward or a mend is a share of the anchor's own pool, never a figure.** The
+## authored share up its ladder, worth more by the guard catalyst, and never
+## past the ceiling whatever the data or the hand say.
+func guard_share(armed: Armed, ceiling: float) -> float:
+	var share: float = armed.weapon.share_at(armed.level)
+	share *= 1.0 + maxf(_value(Modifiers.ARSENAL_GUARD), 0.0)
+	return clampf(share, 0.0, ceiling)
+
+
+## A ward on the anchor. On the Warden through `Hero.grant_ward`, which the
+## Kept Gate already reads; on a tower through `Tower.ward`; on the wall through
+## `TownCore.ward`. Aegis of the Road spreads a Warden's ward to every Warden
+## and the towers near them.
+func _fire_ward(armed: Armed) -> bool:
+	var weapon: ArsenalWeaponData = armed.weapon
+	var share: float = guard_share(armed, Balance.ARSENAL_WARD_CEILING)
+	if share <= 0.0:
+		return false
+	var fired: bool = false
+	match weapon.anchor:
+		ArsenalWeaponData.Anchor.WARDEN:
+			if hero == null or not is_instance_valid(hero) or hero.health == null:
+				return false
+			if hero.health.shield() >= hero.health.max_hp * Balance.HEALTH_SHIELD_CEILING - 0.5:
+				return false
+			hero.grant_ward(share)
+			_show_guard(weapon, hero.global_position, 1.0)
+			fired = true
+			if weapon.spread:
+				for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+					var other := node as Hero
+					if other != null and other != hero and other.is_alive():
+						other.grant_ward(share)
+						_show_guard(weapon, other.global_position, 1.0)
+				for tower: Tower in _towers_near_wardens():
+					tower.ward(share)
+					_show_guard(weapon, tower.global_position, 0.8)
+		ArsenalWeaponData.Anchor.TOWERS:
+			for tower: Tower in armed_towers():
+				tower.ward(share)
+				_show_guard(weapon, tower.global_position, 0.8)
+				fired = true
+		ArsenalWeaponData.Anchor.TOWN:
+			var town: Node = board.town if board != null else null
+			if town != null and is_instance_valid(town) and town.has_method("ward"):
+				town.call("ward", share)
+				_show_guard(weapon, board.town_position(), 2.2)
+				fired = true
+	return fired
+
+
+## A mend of a share of what the anchor is missing. **A whole anchor is mended
+## by nothing**: the weapon keeps its shot and looks again soon.
+func _fire_mend(armed: Armed) -> bool:
+	var weapon: ArsenalWeaponData = armed.weapon
+	var share: float = guard_share(armed, Balance.ARSENAL_MEND_CEILING)
+	if share <= 0.0:
+		return false
+	var fired: bool = false
+	match weapon.anchor:
+		ArsenalWeaponData.Anchor.WARDEN:
+			if hero == null or not is_instance_valid(hero) or hero.health == null:
+				return false
+			var missing: float = hero.health.max_hp - hero.health.current_hp
+			if missing <= 0.5:
+				return false
+			hero.health.heal(missing * share)
+			_show_guard(weapon, hero.global_position, 1.0)
+			fired = true
+		ArsenalWeaponData.Anchor.TOWERS:
+			for tower: Tower in armed_towers():
+				if not tower.needs_repair():
+					continue
+				tower.repair((1.0 - tower.health_ratio()) * share, true)
+				_show_guard(weapon, tower.global_position, 0.8)
+				fired = true
+		ArsenalWeaponData.Anchor.TOWN:
+			var town: Node = board.town if board != null else null
+			if town != null and is_instance_valid(town) and town.has_method("mend") \
+					and bool(town.call("mend", share)):
+				_show_guard(weapon, board.town_position(), 2.2)
+				fired = true
+	return fired
+
+
+## The towers within a Warden's reach, asked of the field the Warden stands on -
+## the Arsenal at a Warden's side has no board of its own.
+func _towers_near_wardens() -> Array[Tower]:
+	var out: Array[Tower] = []
+	var field: Battlefield = (hero.field as Battlefield) if hero != null and is_instance_valid(hero) else board
+	if field == null:
+		return out
+	var reach: float = Balance.ARSENAL_TOWER_REACH * Balance.ARSENAL_TOWER_REACH
+	for tower: Tower in field.all_towers():
+		if tower == null or not is_instance_valid(tower) or not tower.is_vulnerable():
+			continue
+		for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+			var warden := node as Hero
+			if warden != null and warden.is_alive() \
+					and warden.global_position.distance_squared_to(tower.global_position) <= reach:
+				out.append(tower)
+				break
+	return out
+
+
+## The forged sheet a defence plays where it lands, sized to the anchor.
+func _show_guard(weapon: ArsenalWeaponData, at: Vector2, scale: float) -> void:
+	var effect: String = weapon.effect if not weapon.effect.is_empty() else "ward"
+	Vfx.forge_play(effect, at + Vector2(0.0, -24.0 * scale), 120.0 * scale, weapon.tint)
+	Vfx.ring(at, 40.0 * scale, Color(weapon.tint, 0.55), 0.35, 3.0)
+
+
+## **A retort answers a blow**: the bodies at the anchor take a burst, through
+## the same door every Arsenal blow uses, at most once a cadence - and never
+## when the anchor is left alone, which is what separates it from a nova.
+func _retort(armed: Armed, anchor: Vector2, from: Vector2) -> void:
+	if armed.clock > 0.0 or not _may_fight():
+		return
+	var weapon: ArsenalWeaponData = armed.weapon
+	var reach: float = radius_for(weapon, armed.level)
+	var hit: float = hit_for(weapon, armed.level)
+	var struck: bool = false
+	for enemy: Enemy in bodies():
+		if enemy.global_position.distance_to(anchor) <= reach + enemy.contact_radius() * 0.5:
+			if strike_body(armed, enemy, hit, anchor):
+				struck = true
+	if not struck:
+		return
+	armed.clock = cadence(weapon)
+	Vfx.forge_play(weapon.effect if not weapon.effect.is_empty() else "burst",
+		anchor, reach * 2.0, weapon.tint)
+	Vfx.ring(anchor, reach, Color(weapon.tint, 0.7), 0.28, 4.0)
+	Vfx.spark(anchor, weapon.tint, 8, (anchor - from).normalized(), 160.0)
+
+
+func _on_warden_struck(amount: float, _from: Vector2) -> void:
+	if amount <= 0.0 or hero == null or not is_instance_valid(hero):
+		return
+	for armed: Armed in _armed.values():
+		if armed.weapon.pattern == ArsenalWeaponData.Pattern.RETORT \
+				and armed.weapon.anchor == ArsenalWeaponData.Anchor.WARDEN:
+			_retort(armed, hero.global_position, _from)
+
+
+func _on_tower_struck(at: Vector2) -> void:
+	for armed: Armed in _armed.values():
+		if armed.weapon.pattern != ArsenalWeaponData.Pattern.RETORT \
+				or armed.weapon.anchor != ArsenalWeaponData.Anchor.TOWERS:
+			continue
+		for tower: Tower in armed_towers():
+			if tower.origin().distance_to(at) <= 8.0:
+				_retort(armed, tower.global_position, at)
+				break
+
+
+func _on_town_struck(from: Vector2) -> void:
+	if board == null:
+		return
+	for armed: Armed in _armed.values():
+		if armed.weapon.pattern == ArsenalWeaponData.Pattern.RETORT \
+				and armed.weapon.anchor == ArsenalWeaponData.Anchor.TOWN:
+			_retort(armed, board.town_position(), from)
+
+
+## The stones turn, and a missing one reforms on the cadence.
+func _tick_guard(armed: Armed, delta: float) -> void:
+	var weapon: ArsenalWeaponData = armed.weapon
+	armed.angle = fposmod(armed.angle + Balance.ARSENAL_GUARD_SPIN * delta, TAU)
+	var full: int = count_for(weapon, armed.level)
+	if armed.stones < 0:
+		armed.stones = full
+		return
+	if armed.stones >= full:
+		return
+	armed.clock -= delta
+	if armed.clock <= 0.0:
+		armed.stones += 1
+		armed.clock = cadence(weapon)
+		if hero != null and is_instance_valid(hero):
+			Vfx.spark(hero.global_position, weapon.tint, 5, Vector2.UP, 90.0)
+
+
+## **A guard swallows a shot and never a blow.** Asked by the field for every
+## hostile shot in flight, after the mirrors. A stone is spent; Stone Choir
+## throws the shot back as bolts from where it was caught.
+func absorb(at: Vector2) -> bool:
+	if hero == null or not is_instance_valid(hero) or not _may_fight():
+		return false
+	for armed: Armed in _armed.values():
+		var weapon: ArsenalWeaponData = armed.weapon
+		if weapon.pattern != ArsenalWeaponData.Pattern.GUARD or armed.stones <= 0:
+			continue
+		var ring: float = radius_for(weapon, armed.level)
+		if at.distance_to(hero.global_position) > ring + Balance.ARSENAL_GUARD_REACH:
+			continue
+		if armed.stones >= count_for(weapon, armed.level):
+			armed.clock = cadence(weapon)
+		armed.stones -= 1
+		Vfx.forge_play(weapon.effect if not weapon.effect.is_empty() else "hit_earth",
+			at, 90.0, weapon.tint)
+		Vfx.spark(at, weapon.tint, 7, (at - hero.global_position).normalized(), 150.0)
+		if weapon.damage > 0.0:
+			var from_points: Array[Vector2] = [at]
+			_fire_seekers(armed, from_points)
+		return true
+	return false
+
+
+## The ring's bite, on its own tick: slowed, and soaked if it is water. Nothing
+## is moved - a status the fight already has, on bodies that walked in.
+func _tick_field(armed: Armed, delta: float) -> void:
+	var weapon: ArsenalWeaponData = armed.weapon
+	armed.clock -= delta
+	armed.pulse -= delta
+	if armed.clock > 0.0:
+		return
+	armed.clock = Balance.ARSENAL_FIELD_TICK
+	var reach: float = radius_for(weapon, armed.level)
+	var anchors: Array[Vector2] = _anchors(armed)
+	var caught: bool = false
+	for anchor: Vector2 in anchors:
+		for enemy: Enemy in bodies():
+			if enemy.global_position.distance_to(anchor) > reach + enemy.contact_radius() * 0.5:
+				continue
+			caught = true
+			if weapon.slow < 1.0:
+				enemy.apply_slow(weapon.slow, Balance.ARSENAL_FIELD_TICK * 2.2)
+			if weapon.element == TowerData.Element.WATER:
+				enemy.apply_wet(Balance.WET_SECONDS)
+	if armed.pulse <= 0.0 and caught:
+		armed.pulse = Balance.ARSENAL_FIELD_PULSE
+		for anchor: Vector2 in anchors:
+			Vfx.forge_play(weapon.effect if not weapon.effect.is_empty() else "nova",
+				anchor, reach * 2.0, weapon.tint)
 
 
 # --- Orbit --------------------------------------------------------------------
@@ -851,8 +1116,13 @@ func _tick_records(delta: float) -> void:
 
 func _draw() -> void:
 	for armed: Armed in _armed.values():
-		if armed.weapon.pattern == ArsenalWeaponData.Pattern.ORBIT:
-			_draw_orbit(armed)
+		match armed.weapon.pattern:
+			ArsenalWeaponData.Pattern.ORBIT:
+				_draw_orbit(armed)
+			ArsenalWeaponData.Pattern.GUARD:
+				_draw_guard(armed)
+			ArsenalWeaponData.Pattern.FIELD:
+				_draw_field(armed)
 	for record: Dictionary in _records:
 		var armed: Armed = _armed.get(record["card"], null) as Armed
 		if armed == null:
@@ -875,6 +1145,30 @@ func _draw_orbit(armed: Armed) -> void:
 			var angle: float = armed.angle + TAU * float(index) / float(count)
 			_draw_head(armed.weapon, anchor + Vector2.from_angle(angle) * ring,
 				Balance.ARSENAL_ORB_SIZE, angle + PI * 0.5)
+
+
+## The stones standing this moment, on the guard's ring.
+func _draw_guard(armed: Armed) -> void:
+	if armed.stones <= 0:
+		return
+	var full: int = maxi(count_for(armed.weapon, armed.level), 1)
+	var ring: float = radius_for(armed.weapon, armed.level)
+	for anchor: Vector2 in _anchors(armed):
+		for index: int in armed.stones:
+			var angle: float = armed.angle + TAU * float(index) / float(full)
+			_draw_head(armed.weapon, anchor + Vector2.from_angle(angle) * ring,
+				Balance.ARSENAL_ORB_SIZE, angle + PI * 0.5)
+
+
+## The field's ring: an ellipse on the ground in the weapon's colour, breathing.
+func _draw_field(armed: Armed) -> void:
+	var reach: float = radius_for(armed.weapon, armed.level)
+	var breath: float = 0.75 + 0.25 * sin(_clock * 2.4)
+	for anchor: Vector2 in _anchors(armed):
+		draw_set_transform(anchor, 0.0, Vector2(1.0, 0.5))
+		draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(armed.weapon.tint, 0.35 * breath), 3.0)
+		draw_arc(Vector2.ZERO, reach * 0.82, 0.0, TAU, 48, Color(armed.weapon.tint, 0.12 * breath), 8.0)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## A weapon's head: the element's painted projectile when it has one, turning

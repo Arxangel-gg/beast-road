@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+gem_key = "slow_strength"
 kind = 2
 rarity = 2
 description = "It frosts the anvil it is set on. Worth the ruined gloves."

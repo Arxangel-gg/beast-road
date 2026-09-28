@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AttributePerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/attribute_perk_data.gd" id="1_perk"]
+
+[resource]
+script = ExtResource("1_perk")
+attribute = 3
+per_tier = 0.04
+unit = "spells cost less mana by"
+id = "focus"
+display_name = "Clear Mind"
+description = "Every ten points of Focus: every cast costs less."

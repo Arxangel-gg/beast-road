@@ -657,9 +657,15 @@ func _mansion_hero(tier: int) -> void:
 		var placed: int = RunState.hero_attributes[index]
 		var total: int = RunState.attribute(index)
 		var worn: int = total - placed
-		var row := _row("%s%s  %d%s\n%s" % ["+  " if spendable else "", names[index],
+		# The threshold's perk (docs/GEAR_REWORK_2026-09-28.md §2): what the
+		# attribute has unlocked and where its next tier is, on the row.
+		var perk: AttributePerkData = ContentDB.attribute_perk(index)
+		var perk_line: String = ""
+		if perk != null:
+			perk_line = "\n" + perk.line(WardenSheet.perk_tiers(null, index), total)
+		var row := _row("%s%s  %d%s\n%s%s" % ["+  " if spendable else "", names[index],
 			total, "   (%d placed + %d worn)" % [placed, worn] if worn > 0 else "",
-			blurbs[index]], 54.0)
+			blurbs[index], perk_line], 54.0 if perk == null else 68.0)
 		row.disabled = not spendable
 		row.pressed.connect(func() -> void:
 			_attempt(RunState.spend_attribute_point(index)))

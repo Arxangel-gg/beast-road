@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "hearthstone"
+display_name = "Hearthstone"
+description = "Uncommon card. Every ten seconds the wall mends a little of what it is missing."
+rarity = 1
+first_act = 1
+branch = 2
+tags = Array[String](["Earth", "Arsenal", "Mend"])
+card_text = "The fire at the centre of the town remembers the stones whole."
+weapon = "hearthstone"

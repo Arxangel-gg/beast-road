@@ -218,6 +218,57 @@ def compose(card_id):
         place(c, hue(spell('tremor'), 0.5, 0.8, 1.1), (64, 96), 90)
         place(c, spell('frost_lance'), (64, 56), 112, angle=-45)
         return glow(c, (140, 210, 255), 0.6)
+    # The defence (2026-09-28, docs/ARSENAL_DEFENSIVE_2026-09-28.md).
+    if card_id == 'lantern_ward':
+        place(c, spell('bulwark_ward'), (64, 64), 118)
+        return glow(c, (255, 225, 150), 0.7, 8)
+    if card_id == 'marrow_mend':
+        place(c, hue(spell('marrow_drain'), 0.28, 0.85, 1.15), (64, 64), 118)
+        return glow(c, (150, 240, 200), 0.55)
+    if card_id == 'thornskin':
+        c = orbit(spell('thorn_volley'), 6, 40, 52)
+        place(c, spell('bulwark_ward'), (64, 64), 62)
+        return glow(c, (140, 210, 90), 0.45)
+    if card_id == 'guardian_stones':
+        c = orbit(hue(spell('stonefall'), 0.0, 0.35, 0.95), 3, 40, 46, radial=False)
+        place(c, spell('bulwark_ward'), (64, 64), 54)
+        return glow(c, (200, 180, 140), 0.4)
+    if card_id == 'frostbound_ring':
+        place(c, hue(spell('cinder_nova'), 0.52, 0.9, 1.1), (64, 72), 124)
+        place(c, spell('bulwark_ward'), (64, 56), 52)
+        return glow(c, (140, 210, 255), 0.6)
+    if card_id == 'masons_wisps':
+        place(c, tower('mason_shrine'), (64, 72), 96)
+        c2 = orbit(hue(spell('cinder_nova'), 0.12, 0.6, 1.1), 3, 44, 34, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (230, 210, 150), 0.45)
+    if card_id == 'ward_lattice':
+        place(c, tower('wind_relay'), (64, 74), 94)
+        place(c, spell('bulwark_ward'), (64, 40), 58)
+        return glow(c, (200, 220, 255), 0.5)
+    if card_id == 'kiln_skin':
+        place(c, tower('flash_kiln'), (64, 72), 94)
+        place(c, spell('cinder_nova'), (64, 64), 84)
+        return glow(c, (255, 140, 60), 0.55)
+    if card_id == 'hearthstone':
+        place(c, hue(spell('cinder_nova'), 0.06, 0.8, 1.1), (64, 64), 120)
+        place(c, relic(11), (64, 62), 70)
+        return glow(c, (255, 210, 120), 0.45)
+    if card_id == 'gate_ward':
+        place(c, tower('stonewatch'), (64, 76), 96)
+        place(c, spell('bulwark_ward'), (64, 38), 56)
+        return glow(c, (255, 235, 170), 0.5)
+    if card_id == 'steadfast_salt':
+        place(c, relic(40), (64, 64), 104)
+        return glow(c, (220, 220, 240), 0.4)
+    if card_id == 'aegis_of_the_road':
+        c = orbit(spell('bulwark_ward'), 4, 38, 46, radial=False)
+        place(c, spell('bulwark_ward'), (64, 64), 64)
+        return glow(c, (255, 240, 170), 0.8, 8)
+    if card_id == 'stone_choir':
+        c = orbit(hue(spell('stonefall'), 0.0, 0.35, 0.95), 4, 40, 44, radial=False)
+        place(c, hue(spell('cinder_nova'), 0.08, 0.5, 1.0), (64, 64), 58)
+        return glow(c, (220, 200, 150), 0.55)
     raise KeyError(card_id)
 
 
@@ -227,7 +278,10 @@ IDS = ['ember_wisps', 'frost_shards', 'seeking_flames', 'chain_spark', 'thunderc
        'quickening_oil', 'twin_casting', 'wider_wake', 'long_burn', 'kindled_heart',
        'sunwheel', 'stormcrown', 'worldbreaker', 'briar_sea',
        'sawstones', 'ice_needles', 'arcane_missiles', 'flame_nova', 'frost_nova',
-       'flame_trail', 'frost_trail', 'lightning_strike', 'ice_pillar']
+       'flame_trail', 'frost_trail', 'lightning_strike', 'ice_pillar',
+       'lantern_ward', 'marrow_mend', 'thornskin', 'guardian_stones', 'frostbound_ring',
+       'masons_wisps', 'ward_lattice', 'kiln_skin', 'hearthstone', 'gate_ward',
+       'steadfast_salt', 'aegis_of_the_road', 'stone_choir']
 
 if __name__ == '__main__':
     import sys

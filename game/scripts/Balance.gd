@@ -675,6 +675,25 @@ const ARSENAL_ARC_LIFT: float = 70.0
 const ARSENAL_STRIKE_SHAKE: float = 0.35
 ## The bodies a strike weighs when it looks for the thickest knot. [TUNE]
 const ARSENAL_KNOT_CANDIDATES: int = 28
+# --- The defence (docs/ARSENAL_DEFENSIVE_2026-09-28.md) ---------------------------
+## **A ward or a mend is a share of the anchor's own pool, never a figure**, and
+## no card, catalyst or level may lift a firing past these - the ward as a share
+## of the pool, the mend as a share of what is missing. The wall's mend is held
+## lower still: it is the loss condition, and the Quartermaster sells its repair
+## for Gold, which a free mend must not undercut. [TUNE]
+const ARSENAL_WARD_CEILING: float = 0.35
+const ARSENAL_MEND_CEILING: float = 0.50
+const ARSENAL_MEND_TOWN_CEILING: float = 0.04
+## A field bites its slow this often, and plays its ring this often. [TUNE]
+const ARSENAL_FIELD_TICK: float = 0.5
+const ARSENAL_FIELD_PULSE: float = 2.0
+## A guard's stones swallow a shot this far beyond their ring, and turn this
+## fast. `speed` on a guard is what Stone Choir throws back with. [TUNE]
+const ARSENAL_GUARD_REACH: float = 30.0
+const ARSENAL_GUARD_SPIN: float = 1.6
+## **The deck's ratio**: at least this share of the weapons must be defence, or
+## the hand is a way of killing with nothing to keep you standing. [TUNE]
+const ARSENAL_DEFENCE_SHARE: float = 0.25
 
 
 static func arsenal_act_scale(act: int) -> float:
@@ -1085,6 +1104,14 @@ const DISCIPLINE_RADIANT_RADIUS: float = 150.0
 ## tower, and enough that fighting well is worth more than standing at the base.
 ## [TUNE]
 const HERO_MIGHT_PER_POINT: float = 0.011
+## **Thresholds** (docs/GEAR_REWORK_2026-09-28.md §2): every this many points in
+## an attribute, placed and worn together, unlocks a tier of its perk, to this
+## many tiers. A perk moves one number through a door the game has and adds no
+## point; what each tier is worth is authored on `data/attribute_perks/`. Out of
+## the fight means nothing has struck the Warden for `HERO_REGEN_QUIET`. [TUNE]
+const ATTRIBUTE_THRESHOLD: int = 10
+const ATTRIBUTE_PERK_TIERS: int = 4
+const HERO_REGEN_QUIET: float = 6.0
 const HERO_VIGOUR_PER_POINT: float = 0.010
 const HERO_SWIFTNESS_MOVE_PER_POINT: float = 0.0055
 const HERO_SWIFTNESS_ATTACK_PER_POINT: float = 0.006
@@ -10325,6 +10352,24 @@ const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2]
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12
+# --- Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4) ------------------
+## Sockets a piece carries, by rarity: none under Fine, two from Chainbroken.
+const GEAR_SOCKETS: Array[int] = [0, 0, 1, 1, 1, 2, 2]
+## What a set gem's affix moves its key by, by the gem's rarity - **under the
+## legendary ceiling**, so a gem is never the whole piece. [TUNE]
+const GEAR_GEM_MAGNITUDE: Array[float] = [0.03, 0.05, 0.07, 0.09]
+const GEAR_GEM_CEILING: float = 0.09
+## Prying a gem out costs this many Marks a rung of the gem's rarity, and
+## returns the gem: a material the road gave up is not the Smithy's to eat.
+const GEAR_UNSOCKET_MARKS: int = 25
+## Tempering - a new name, so a fresh roll of the secondaries and the legendary
+## affixes - is bounded: this many times a piece, at Shards and Marks by rarity
+## that climb by `GEAR_TEMPER_STEP` each time. A piece rerolled for ever is a
+## slot machine with the drop tables as its reels. [TUNE]
+const GEAR_TEMPER_MAX: int = 3
+const GEAR_TEMPER_SHARDS: Array[int] = [3, 6, 12, 24, 50, 100, 200]
+const GEAR_TEMPER_MARKS: Array[int] = [8, 16, 32, 70, 150, 320, 700]
+const GEAR_TEMPER_STEP: float = 1.6
 
 ## **How far one tier of a matched set may move a scaled number.**
 ##

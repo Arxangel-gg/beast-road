@@ -32,6 +32,18 @@ enum Pattern {
 	ON_KILL,
 	## Lightning hangs between two anchors and bites what crosses it.
 	ARC,
+	# --- The defence (docs/ARSENAL_DEFENSIVE_2026-09-28.md) --------------------
+	# Appended, never inserted: every `.tres` names its pattern by number.
+	## On a cadence, the anchor gains a ward worth a share of its own pool.
+	WARD,
+	## On a cadence, the anchor heals a share of what it is missing.
+	MEND,
+	## When the anchor is struck, a burst hits the bodies at it, once a cadence.
+	RETORT,
+	## Stones orbit the Warden and swallow hostile shots; one reforms on a cadence.
+	GUARD,
+	## Bodies inside a ring round the anchor are slowed and wetted while they stand in it.
+	FIELD,
 }
 
 enum Anchor {
@@ -92,6 +104,15 @@ enum Anchor {
 ## The forged effect played where it lands, from `Vfx.FORGE_CATALOGUE`.
 @export var effect: String = ""
 
+## **The defence's number**: a WARD's share of the anchor's pool, a MEND's share
+## of what the anchor is missing, at level I; `level_damage` is its ladder.
+## Never a figure - a Warden at level 100 and one at level 1 hold the same card
+## and it means the same to each (docs/ARSENAL_DEFENSIVE_2026-09-28.md §2).
+@export var share: float = 0.0
+## Aegis of the Road: a Warden's ward also falls on every other Warden and on
+## the towers near them.
+@export var spread: bool = false
+
 
 ## A weapon has no picture of its own: the card carries the icon.
 func get_sprite_path() -> String:
@@ -115,5 +136,21 @@ func radius_at(level: int) -> float:
 ## cadence - the one line `curve_report` and `arsenal_check` both read, so they
 ## cannot disagree about what a weapon is supposed to do.
 func modelled_dps(level: int) -> float:
+	# **Pure defence moves the curve by exactly nothing**, and a retort is
+	# modelled at zero as well: it fires only when something has already
+	# landed a blow on the anchor, and a best case that assumed the Warden is
+	# hit on a schedule would model a player the road never produces.
+	if is_defensive():
+		return 0.0
 	return damage_at(level) * (1.0 + burn_share) * float(maxi(count_at(level), 1)) \
 		* crowd / maxf(cooldown, 0.05)
+
+
+## Whether this is one of the five defensive patterns.
+func is_defensive() -> bool:
+	return pattern in [Pattern.WARD, Pattern.MEND, Pattern.RETORT, Pattern.GUARD, Pattern.FIELD]
+
+
+## The share at a level: the authored share up the same ladder a hit climbs.
+func share_at(level: int) -> float:
+	return share * level_damage[clampi(level - 1, 0, level_damage.size() - 1)]

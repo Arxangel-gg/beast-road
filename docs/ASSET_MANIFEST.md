@@ -2361,6 +2361,16 @@ more weapons, each an existing pattern in an element it lacked, 128×128.
 `card_flame_nova.png` · `card_frost_nova.png` · `card_flame_trail.png` ·
 `card_frost_trail.png` · `card_lightning_strike.png` · `card_ice_pillar.png`
 
+**The defence** (2026-09-28, `docs/ARSENAL_DEFENSIVE_2026-09-28.md`): ten wards,
+mends, retorts, guards and fields, one catalyst and two evolutions, 128×128,
+composed as the weapons are.
+
+`card_lantern_ward.png` · `card_marrow_mend.png` · `card_thornskin.png` ·
+`card_guardian_stones.png` · `card_frostbound_ring.png` · `card_masons_wisps.png` ·
+`card_ward_lattice.png` · `card_kiln_skin.png` · `card_hearthstone.png` ·
+`card_gate_ward.png` · `card_steadfast_salt.png` · `card_aegis_of_the_road.png` ·
+`card_stone_choir.png`
+
 These are **composed from the game's own painted art** - the spell icons, three
 relics and two towers - because PixelLab's allowance was spent until 2026-10-11 and
 the production gate refuses a placeholder. A weapon is an effect rather than an
@@ -2777,6 +2787,18 @@ with `python tools/vfx_forge/forge.py <id>`, or from the standalone app in
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
+| `forge_mend_motes.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_mend_motes_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_mend_motes_02.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_thorn_burst.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_thorn_burst_01.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_thorn_burst_02.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_guard_shatter.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_guard_shatter_01.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_guard_shatter_02.png` | 1344×96 | T | `#FFFFFF` |
+| `forge_frost_ring.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_frost_ring_01.png` | 1536×96 | T | `#FFFFFF` |
+| `forge_frost_ring_02.png` | 1536×96 | T | `#FFFFFF` |
 | `forge_beam_end.png` | 1344×96 | T | `#FFFFFF` |
 | `forge_beam_end_01.png` | 1344×96 | T | `#FFFFFF` |
 | `forge_beam_end_02.png` | 1344×96 | T | `#FFFFFF` |

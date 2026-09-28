@@ -102,6 +102,7 @@ var omens: Dictionary = {}
 var road_cards: Dictionary = {}
 ## The Arsenal's weapons (2026-09-27), fired by the Road Cards that name them.
 var arsenal_weapons: Dictionary = {}
+var attribute_perks: Dictionary = {}
 
 ## Wayside encounters and their choices (2026-09-25). See `WaysideData`.
 var wayside_encounters: Dictionary = {}
@@ -163,6 +164,7 @@ func _ready() -> void:
 	omens = _load_dir("res://data/omens")
 	road_cards = _load_dir("res://data/road_cards")
 	arsenal_weapons = _load_dir("res://data/arsenal")
+	attribute_perks = _load_dir("res://data/attribute_perks")
 	wayside_encounters = _load_dir("res://data/wayside")
 	wayside_choices = _load_dir("res://data/wayside_choices")
 	fish_kinds = _load_dir("res://data/fish")
@@ -212,6 +214,15 @@ func road_card(id: String) -> RoadCardData:
 
 func arsenal_weapon(id: String) -> ArsenalWeaponData:
 	return arsenal_weapons.get(id, null) as ArsenalWeaponData
+
+
+## The perk an attribute's thresholds unlock, or null for one with none authored.
+func attribute_perk(attribute: int) -> AttributePerkData:
+	for value: Variant in attribute_perks.values():
+		var perk := value as AttributePerkData
+		if perk != null and perk.attribute == attribute:
+			return perk
+	return null
 
 
 func wayside(id: String) -> WaysideData:

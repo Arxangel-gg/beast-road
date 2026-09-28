@@ -453,6 +453,15 @@ func _discipline_scale() -> float:
 	var scale: float = 1.0 + (form.form_damage + WardenSheet.upgrade_of(null, form.id, "form_power")
 		if form != null else 0.0)
 	scale *= 1.0 + WardenSheet.trained_value_of(null, "active_attack_speed")
+	# **Heavy Hand** (docs/GEAR_REWORK_2026-09-28.md §2): Might's tiers on the
+	# finisher, weighed by the finisher's share of the chain's damage - the one
+	# perk that touches a blow, carried as part of the levelling scale.
+	var chain: float = 0.0
+	for hit: float in Balance.HERO_ATTACK_DAMAGE:
+		chain += hit
+	if chain > 0.0:
+		var last: float = Balance.HERO_ATTACK_DAMAGE[Balance.HERO_ATTACK_DAMAGE.size() - 1]
+		scale *= 1.0 + last / chain * WardenSheet.perk_of(null, RunState.Attribute.MIGHT)
 	return scale
 
 
