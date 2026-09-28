@@ -171,7 +171,7 @@ func _show_score(summary: Dictionary) -> void:
 	if _score_label != null:
 		_score_label.text = "Score  %s        %s" % [
 			_grouped(int(_pending_row.get("score", 0))),
-			tier.display_name if tier != null else "Normal"]
+			tier.display_name if tier != null else "Long Road"]
 	if _name_field != null:
 		# Empty rather than pre-filled with the fallback: a field showing
 		# "Oathless" reads as a name already chosen, and the player posts it.
