@@ -39,6 +39,10 @@ const CARD_TURN_SECONDS: float = 2.6
 const CARD_ART_SCALE: float = 1.0
 ## Drawn above anything the yard sorts. A rider's overlay is z 2.
 const CHROME_Z: int = 100
+## How many layers above the room its chrome sits: one for the thumb's
+## controls, which stand one above the place they drive, and this one over
+## them. See `_chrome`.
+const CHROME_LAYERS_ABOVE: int = 2
 ## The card's inset from its carved frame, and the width its left column keeps
 ## so a profession row with its train button never pushes the doors' grid.
 const CARD_INSET: int = 18
@@ -165,7 +169,7 @@ func _build_frame() -> void:
 	# paddock is y-sorted, so the chrome and the card - z 0, drawn later - had
 	# horses walking over them (photographed 2026-09-21).
 	frame.z_index = CHROME_Z
-	add_child(frame)
+	_chrome().add_child(frame)
 
 	# The doors' markers, first in the frame so the bar and the prompt stand
 	# over them. See `HoldBeacons`.
@@ -257,13 +261,40 @@ func _strip_button(text: String, on: Callable) -> Button:
 	return button
 
 
+## **The chrome is on a layer of its own, above the yard's sky** (owner,
+## 2026-09-28: *"The Hold gets a dark overlay cast over everything including
+## the UIs"*). The Hold's hour is a `CanvasModulate` under the yard, and a
+## `CanvasModulate` tints its whole canvas - so the bar, the prompt, the door
+## markers and the card were graded like the buildings, and at midnight the
+## interface went dark with the valley. A layer of its own is the one
+## exemption Godot has, and it follows this room's visibility, because a
+## nested layer does not hide with its parent.
+var _chrome_layer: CanvasLayer = null
+
+
+func _chrome() -> CanvasLayer:
+	if _chrome_layer == null:
+		_chrome_layer = CanvasLayer.new()
+		_chrome_layer.name = "Chrome"
+		_chrome_layer.layer = layer + CHROME_LAYERS_ABOVE
+		_chrome_layer.visible = visible
+		add_child(_chrome_layer)
+		visibility_changed.connect(_follow_visibility)
+	return _chrome_layer
+
+
+func _follow_visibility() -> void:
+	if _chrome_layer != null and is_instance_valid(_chrome_layer):
+		_chrome_layer.visible = visible
+
+
 func _build_panel() -> void:
 	_card_root = Control.new()
 	_card_root.name = "Card"
 	_card_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_card_root.visible = false
 	_card_root.z_index = CHROME_Z
-	add_child(_card_root)
+	_chrome().add_child(_card_root)
 
 	var dim := ColorRect.new()
 	dim.name = "Dim"

@@ -85,6 +85,7 @@ func _ready() -> void:
 	_test_the_seats_are_the_sessions()
 	_test_the_warden_wears_their_own_dye()
 	_test_a_stranger_wears_their_gear()
+	await _test_the_chrome_is_above_the_sky()
 	await _test_the_crowd_changes_and_does_things()
 	_test_the_shelf_refreshes_by_rule()
 	_test_buying_never_prints_marks()
@@ -100,7 +101,7 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news"]:
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1330,3 +1331,43 @@ func _says(lines: Array[Dictionary], words: String) -> bool:
 		if String(line.get("text", "")).to_lower().contains(words.to_lower()):
 			return true
 	return false
+
+
+## **The Hold's chrome is above its sky** (owner, 2026-09-28: *"The Hold gets a
+## dark overlay cast over everything including the UIs"*). The hour is a
+## `CanvasModulate` under the yard and a `CanvasModulate` tints its whole
+## canvas, so the bar, the prompt, the markers and the card were graded like
+## the buildings. They stand on a layer of their own now, above the thumb's
+## controls, and it follows the room's visibility - a nested layer does not
+## hide with its parent, and `is_visible_in_tree` cannot see a hidden layer,
+## which is why this reads the layer itself.
+func _test_the_chrome_is_above_the_sky() -> void:
+	var hub := HubScreen.new()
+	add_child(hub)
+	await get_tree().process_frame
+	var chrome: CanvasLayer = hub.get_node_or_null("Chrome") as CanvasLayer
+	_check(chrome != null, "the Hold has no chrome layer of its own")
+	if chrome == null:
+		hub.queue_free()
+		_reached["chrome"] = true
+		return
+	_check(chrome.layer > hub.layer, "the chrome sits under the room (%d against %d)" % [chrome.layer, hub.layer])
+	_check(chrome.layer > hub.layer + 1,
+		"the chrome sits under the thumb's controls, which stand one above the room")
+	for what: String in ["Frame", "Card"]:
+		var node: Node = hub.find_child(what, true, false)
+		_check(node != null and node.get_parent() == chrome,
+			"the Hold's %s is not on the chrome layer, so the hour's tint reaches it" % what)
+	var sky: Node = hub.find_child("HoldSky", true, false)
+	_check(sky != null and sky is CanvasModulate and (sky as CanvasItem).get_canvas_layer_node() == hub,
+		"the Hold's sky is not the room's own canvas, so this test compares the wrong thing")
+	_check(not chrome.visible, "the chrome is shown while the Hold is not")
+	hub.open()
+	await get_tree().process_frame
+	_check(chrome.visible, "opening the Hold did not show its chrome")
+	hub.close()
+	await get_tree().process_frame
+	_check(not chrome.visible, "closing the Hold left its chrome on screen")
+	hub.queue_free()
+	await get_tree().process_frame
+	_reached["chrome"] = true
