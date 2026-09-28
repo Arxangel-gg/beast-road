@@ -81,35 +81,27 @@ func _ready() -> void:
 ## over the whole limb, whose tip is legitimately in its own shadow.
 const STUB_COLUMNS: float = 42.0
 const ROOT_SHARE: float = 0.30
-## **The band the root may sit in, against the stub it continues**, and it is
-## a band *below* one rather than a match - which is an amendment recorded
-## rather than made quietly (2026-09-22, tenth report).
+## **The band the root may sit in, against the stub it continues: a match.**
 ##
-## `grade_tail_to_stub.py` paints the root to the stub's own colour, and after
-## it the two paintings agreed to within one percent on mean, spread and
-## saturation - and a magnified crop of the render still showed a seam. What
-## no global statistic can see is *which part of the body the limb leaves*:
-## the Worldstrider's back is pale plated stone and its haunch is deep shadow
-## under hanging vine, and the tail comes out of the haunch painted at the
-## brightness of the back. `seat_tail_in_shadow.py` grades it into that
-## shadow, hardest at the root and easing to the tip, so the root is
-## deliberately darker than the stub now.
-##
-## Both ends are held: a root brighter than the stub is the fault this has
-## been reported for ten times, and one darker than the floor is a limb that
-## has stopped being the same animal in the other direction.
-const ROOT_SHADE_FLOOR: float = 0.68
-const ROOT_SHADE_CEILING: float = 0.94
-## **And the whole limb, against the same stub.** A band rather than a match,
-## and below one for the same reason the root is: the limb hangs where the
-## body is dark. Widened on 2026-09-22 when the colour match moved from a flat
-## gain (`grade_tail_to_stub.py`, retired) to a per-channel histogram match
-## against the hide (`match_tail_palette.py`), which brings the body's moss
-## and the body's deep crevices with it - and a distribution with the hide's
-## share of near-black in it measures darker than one without, which is the
-## point of having it.
-const LIMB_SHADE_FLOOR: float = 0.62
-const LIMB_SHADE_CEILING: float = 1.05
+## This was a band *below* one for a day (2026-09-22, tenth report): the
+## limb was deliberately seated darker than the stub on the theory that it
+## hangs in the haunch's shadow, and the gate held it there. The owner
+## reported the tail as not the body's colour eleven more times, and on
+## 2026-09-28 the paintings were finally compared with the ones the generator
+## made: **the original tail already measured the body to the digit** - lum
+## 0.271 against the hide's 0.256-0.276, hue 76 against 75-78, and 0.89-0.95
+## of the stub's brightness at the root. Every painting pass since 2026-09-21
+## had moved it away, and the last one was enforced here. The originals are
+## restored, the tools that repainted them are retired, and this holds that a
+## tail frame is the stub's own brightness within a tenth above and a fifth
+## below - the generator's own walk frames sit as low as 0.83 at the root.
+const ROOT_SHADE_FLOOR: float = 0.80
+const ROOT_SHADE_CEILING: float = 1.10
+## **And the whole limb, against the same stub**, the same match. The tip is
+## a little in its own shadow and the moss a little lighter; a tenth covers
+## both, and a limb outside it has been repainted again.
+const LIMB_SHADE_FLOOR: float = 0.85
+const LIMB_SHADE_CEILING: float = 1.10
 
 
 func _test_the_tail_continues_the_stub() -> void:
@@ -138,15 +130,14 @@ func _test_the_tail_continues_the_stub() -> void:
 			var theirs: float = stub[channel] / stub_lum
 			_check(absf(mine - theirs) <= 0.06,
 				("%s roots in a different colour from the stub it continues "
-					+ "(channel %d, %.3f against %.3f); run tools/grade_tail_to_stub.py")
+					+ "(channel %d, %.3f against %.3f) - restore the generated painting")
 					% [path.get_file(), channel, mine, theirs])
 		# And the light, seated in the haunch's shadow rather than matched.
 		var shade: float = root_lum / stub_lum
 		_check(shade >= ROOT_SHADE_FLOOR and shade <= ROOT_SHADE_CEILING,
 			("%s roots at %.2f of the stub's brightness, outside %.2f-%.2f - "
-				+ "above it the limb is the pale back leaving a dark haunch, which "
-				+ "is the seam; below it, it has stopped being the same animal. "
-				+ "Run tools/seat_tail_in_shadow.py")
+				+ "the tail has been repainted away from the body again; restore "
+				+ "the generated painting (2026-09-28)")
 				% [path.get_file(), shade, ROOT_SHADE_FLOOR, ROOT_SHADE_CEILING])
 		var whole: Color = BeastTailSpline._surface_mean(tail, 0.0, 1.0, 0.0, 1.0)
 		var lum: float = whole.get_luminance() / stub_lum
