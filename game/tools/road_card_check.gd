@@ -97,12 +97,15 @@ func _test_every_card_is_authored() -> void:
 			"%s has no icon at %s" % [card.id, card.get_sprite_path()])
 		# **A weapon card fires a weapon rather than moving a number**
 		# (2026-09-27, the Arsenal): it must name one that exists and deals
-		# something. Whether it lands is `arsenal_check`'s question.
+		# something - or, since 2026-09-28, one that keeps you standing
+		# instead: a ward, a mend, a retort, a guard or a field deals nothing
+		# by design, and `is_defensive` is the weapon's own word for it.
+		# Whether it lands or wards is `arsenal_check`'s question.
 		if card.is_weapon():
 			_checked += 1
 			var weapon: ArsenalWeaponData = card.weapon_data()
-			_check(weapon != null and weapon.damage > 0.0,
-				"%s names the weapon '%s', which does not exist or deals nothing" % [card.id, card.weapon])
+			_check(weapon != null and (weapon.damage > 0.0 or weapon.is_defensive()),
+				"%s names the weapon '%s', which does not exist, or deals nothing without being a defence" % [card.id, card.weapon])
 			continue
 		_checked += 1
 		_check(omen_check_keys().has(card.effect_id),
@@ -302,7 +305,7 @@ func omen_check_keys() -> Dictionary:
 		Modifiers.KEYSTONE_HUNTERS_MARK: true,
 		Modifiers.ARSENAL_HASTE: true, Modifiers.ARSENAL_COUNT: true,
 		Modifiers.ARSENAL_AREA: true, Modifiers.ARSENAL_DURATION: true,
-		Modifiers.ARSENAL_POWER: true,
+		Modifiers.ARSENAL_POWER: true, Modifiers.ARSENAL_GUARD: true,
 	}
 
 

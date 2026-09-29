@@ -11121,6 +11121,16 @@ refractory, the guard swallowing exactly its stones and reforming one, the
 field slowing the body inside and leaving the one outside alone and moving
 neither, and the ratio.
 
+**And the release sweep found the gate the defence's list had missed.**
+`road_card_check` held that a weapon card names a weapon that *deals
+something*, and that every effect key is one `Modifiers` resolves - both true
+until a ward, a mend, a retort, a guard and a field arrived dealing nothing by
+design and Steadfast Salt moved `arsenal_guard`. Amended deliberately: a weapon
+may deal nothing if it `is_defensive()`, and `arsenal_guard` joins the resolved
+keys beside the four catalysts. It was not on the gate list for the defence
+because that list was chosen by what the defence *reads*, and this gate reads
+`RoadCardData` - the grep-the-readers lesson, paid for again.
+
 **And the tree commit had broken every spirit companion, found by the sweep
 the same morning.** The phase-2 patch dropped `Companion.extend()` into the
 middle of `_ready` - after the anchor line it was given - so the rest of the

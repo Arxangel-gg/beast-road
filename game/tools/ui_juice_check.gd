@@ -38,6 +38,7 @@ const EXEMPT_SCREENS: Array[String] = [
 	"boss_fall_card.gd",   # a full-screen card with no controls
 	"coop_party_portrait.gd",  # a drawn portrait
 	"milestone_cinematic.gd",  # rich text and a fade, no plates
+	"arsenal_strip.gd",    # a drawn readout of the hand: an arc and pips a tile, nothing pressable
 	"story_intro.gd",      # the same, four panels of it
 	"audio_debug.gd",      # a developer readout, never shipped
 	"gear_compare.gd",     # a card the Market opens; enrolled with its screen
