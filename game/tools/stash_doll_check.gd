@@ -294,11 +294,12 @@ func _test_the_card_never_covers_its_row(compare: GearCompare) -> void:
 			var covered: float = seat.intersection(here).get_area()
 			_check(covered <= 0.0,
 				"the card at %s covers the hovered row at %s" % [seat, here])
-			seats[seat.position.y < lane.get_center().y] = true
+			# Which side of the *row* the card sat: above (true) or below.
+			seats[seat.end.y <= here.position.y] = true
 			card.mouse_exited.emit()
 			await get_tree().process_frame
 	_check(seats.has(true) and seats.has(false),
-		"the card only ever took one seat (%s); the other was never forced" % [seats.keys()])
+		"the card only ever sat on one side of the row (%s); a row high in the lane takes it below, a row low takes it above" % [seats.keys()])
 	MetaState.stash.resize(before)
 	scroll.scroll_vertical = 0
 	_screen.open()

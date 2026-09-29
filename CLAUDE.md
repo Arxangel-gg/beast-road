@@ -11291,7 +11291,19 @@ content as it settles rather than keeping the lie. The gate holds the settled
 height under the ceiling, holds the card clear of every row from both ends of
 the lane and insists both seats were taken, and holds the card centred on the
 lane after a refit - the narrow picture had it half off the right of the
-screen, where the wide lane's centre had been.
+screen, where the wide lane's centre had been. **And two fixed seats were
+not enough**: the release sweep's shared profile laid a row exactly between
+them, where neither cleared it even at the ceiling, and the settled card
+covered it by six units. The card is pinned against the row now - just above
+it when the ceiling fits above, just below when it fits below, growing away
+from it - which is what a tooltip does and what leaves the row being read
+uncovered on any layout; the two fixed seats are only the fallback for a row
+with no room either side, and the gate holds that both sides were taken. The
+card follows the hovered row's own `item_rect_changed` and the lane's, because
+a refit re-lays the panel over several passes and a rect read on a frame count
+is a rect read mid-layout: the filter grid's, read for the fallback seat, put
+the card off the bottom of a narrow screen. The fallback seats off the lane's
+top now, and whatever is read, the card at its ceiling is clamped on screen.
 
 **Three harnesses were still writing positions into a map of names**, found
 by grepping for the shape rather than by anything failing: `stash_render_check`

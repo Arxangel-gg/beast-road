@@ -162,6 +162,7 @@ func _build() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 	_scroll = scroll
+	scroll.item_rect_changed.connect(_on_compare_row_moved)
 
 	# **The filters scroll with the list.**
 	#
@@ -937,6 +938,8 @@ const COMPARE_LIFT: float = 36.0
 ## safe for the card that settles, since the settled card is inside it;
 ## `stash_doll_check` holds the settled height under this.
 const COMPARE_TALL: float = 480.0
+## Air between the card and the row it sits against.
+const COMPARE_GAP: float = 8.0
 
 const CARD_HEIGHT: float = 118.0
 
@@ -1187,6 +1190,14 @@ func _compare_to_worn(piece: Dictionary, row: Control = null) -> void:
 	_compare_row = row
 	if _compare.visible:
 		_seat_compare(row)
+		# **The card follows the row.** A refit re-lays the panel over several
+		# passes and a wheel scrolls the list under the pointer; the row's own
+		# rect signal fires after each move, which is the one moment its rect
+		# is true - a frame count after a refit read it mid-layout and seated
+		# the card off the bottom of a narrow screen.
+		if row != null and is_instance_valid(row) \
+				and not row.item_rect_changed.is_connected(_on_compare_row_moved):
+			row.item_rect_changed.connect(_on_compare_row_moved)
 
 
 ## The card's two seats, in the layer's own space - which is the screen's,
@@ -1211,44 +1222,67 @@ func _seat_compare(row: Control) -> void:
 		var lane: Rect2 = _scroll.get_global_rect()
 		centre_x = lane.get_center().x
 		scroll_top = lane.position.y
+	# The fallback's upper seat is the lane's own top. The filter grid's rect
+	# was read here once and it is a child re-laid *after* the lane, so between
+	# a refit's passes it read where the grid had been - which seated the card
+	# off the bottom of a narrow screen.
 	var top_y: float = scroll_top
-	if _tools != null and is_instance_valid(_tools) and _tools.is_visible_in_tree():
-		# The grid scrolls with the list; scrolled off, the seat is the top of
-		# the lane rather than the header it would otherwise cover.
-		top_y = maxf(_tools.global_position.y, scroll_top)
 	var left: float = clampf(centre_x - wide * 0.5, 0.0, maxf(screen.x - wide, 0.0))
 	var floor_y: float = screen.y - COMPARE_LIFT
-	var seats: Array[Rect2] = [
-		Rect2(left, top_y, wide, COMPARE_TALL),
-		Rect2(left, floor_y - COMPARE_TALL, wide, COMPARE_TALL),
-	]
-	var pick: int = 0
+	# **Against the row first, and the two fixed seats only when the row leaves
+	# no room.** Two fixed seats - over the filter grid, along the bottom - can
+	# never both clear a row that sits between them, and the release sweep of
+	# 2026-09-29 laid one exactly there on its shared profile: the settled card
+	# overlapped it by six units. So the card is pinned just above the hovered
+	# row when the ceiling fits above it, just below when it fits below, and
+	# grows away from the row from that edge - which is what a tooltip does, and
+	# what leaves the row being read uncovered on any layout. Only a row with
+	# no room either side falls back to whichever fixed seat covers it least.
+	var anchor_y: float = top_y
+	var grow: int = Control.GROW_DIRECTION_END
 	if row != null and is_instance_valid(row):
 		var hovered: Rect2 = row.get_global_rect()
-		var least: float = INF
-		for which: int in seats.size():
-			var covered: float = seats[which].intersection(hovered).get_area()
-			if covered < least:
-				least = covered
-				pick = which
-	# A zero rect at the seat, grown by the card's own minimum size - so the
+		if hovered.position.y - COMPARE_GAP - COMPARE_TALL >= 0.0:
+			anchor_y = hovered.position.y - COMPARE_GAP
+			grow = Control.GROW_DIRECTION_BEGIN
+		elif hovered.end.y + COMPARE_GAP + COMPARE_TALL <= screen.y:
+			anchor_y = hovered.end.y + COMPARE_GAP
+			grow = Control.GROW_DIRECTION_END
+		else:
+			var top_seat := Rect2(left, top_y, wide, COMPARE_TALL)
+			var bottom_seat := Rect2(left, floor_y - COMPARE_TALL, wide, COMPARE_TALL)
+			if bottom_seat.intersection(hovered).get_area() < top_seat.intersection(hovered).get_area():
+				anchor_y = floor_y
+				grow = Control.GROW_DIRECTION_BEGIN
+	# Whatever was read, the card at its ceiling stays on the screen.
+	if grow == Control.GROW_DIRECTION_END:
+		anchor_y = clampf(anchor_y, 0.0, maxf(screen.y - COMPARE_TALL, 0.0))
+	else:
+		anchor_y = clampf(anchor_y, minf(COMPARE_TALL, screen.y), screen.y)
+	# A zero rect at the anchor, grown by the card's own minimum size - so the
 	# frame follows the content as it settles rather than keeping the lie.
 	_compare.offset_left = left
 	_compare.offset_right = left
-	if pick == 0:
-		_compare.grow_vertical = Control.GROW_DIRECTION_END
-		_compare.offset_top = top_y
-		_compare.offset_bottom = top_y
-	else:
-		_compare.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		_compare.offset_top = floor_y
-		_compare.offset_bottom = floor_y
+	_compare.grow_vertical = grow
+	_compare.offset_top = anchor_y
+	_compare.offset_bottom = anchor_y
 
 
 func _hide_compare() -> void:
+	if _compare_row != null and is_instance_valid(_compare_row) \
+			and _compare_row.item_rect_changed.is_connected(_on_compare_row_moved):
+		_compare_row.item_rect_changed.disconnect(_on_compare_row_moved)
 	_compare_row = null
 	if _compare != null and is_instance_valid(_compare):
 		_compare.hide_pair()
+
+
+func _on_compare_row_moved() -> void:
+	if _compare == null or not is_instance_valid(_compare) or not _compare.visible:
+		return
+	if _compare_row == null or not is_instance_valid(_compare_row):
+		return
+	_seat_compare(_compare_row)
 
 
 ## A refit moves the lane, and the card is seated in the lane's own space -
@@ -1261,7 +1295,10 @@ func _reseat_after_layout() -> void:
 	await get_tree().process_frame
 	if _compare == null or not is_instance_valid(_compare) or not _compare.visible:
 		return
-	_seat_compare(_compare_row if is_instance_valid(_compare_row) else null)
+	if _compare_row == null or not is_instance_valid(_compare_row):
+		_hide_compare()
+		return
+	_seat_compare(_compare_row)
 
 
 ## A card sits in a plain container so the list's own layout is unchanged.

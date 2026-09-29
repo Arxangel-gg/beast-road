@@ -36,7 +36,7 @@ func _ready() -> void:
 	_screen.open()
 	for _settle: int in 6:
 		await get_tree().process_frame
-	_hover_first_unworn()
+	await _hover_first_unworn()
 	for _settle: int in 6:
 		await get_tree().process_frame
 	await _save("user://stash_shot.png")
@@ -111,6 +111,15 @@ func _hover_first_unworn() -> void:
 		if not MetaState.is_equipped_index(at):
 			var card: Button = _first_button(stripe)
 			if card != null:
+				# **A row a player can hover is a row on the screen.** This emitted
+				# the hover on a row scrolled out of the lane, and the comparison
+				# card - correctly - sat clamped at the screen's edge beside
+				# nothing, which photographed as the card covering the list.
+				var scroll: ScrollContainer = _screen.get("_scroll") as ScrollContainer
+				if scroll != null:
+					scroll.ensure_control_visible(card)
+					await get_tree().process_frame
+					await get_tree().process_frame
 				card.mouse_entered.emit()
 			return
 		at += 1
