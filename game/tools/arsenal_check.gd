@@ -815,7 +815,7 @@ func _test_the_dice_are_the_runs() -> void:
 	var code: String = FileAccess.get_file_as_string("res://scripts/systems/arsenal.gd")
 	for line: String in code.split("
 "):
-		if line.contains("seed") and line.contains("get_instance_id"):
+		if line.contains(".seed =") and line.contains("get_instance_id"):
 			_check(false, "the Arsenal seeds its dice from its instance id, which is a count of what was allocated before it: %s" % line.strip_edges())
 			return
 	_check(code.contains("RunState.run_seed"), "the Arsenal's dice are not seeded from the run")

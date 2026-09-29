@@ -296,6 +296,10 @@ var _slip: Vector2 = Vector2.ZERO
 ## wanders, and when it may next sidestep a swing. Its own dice, seeded from
 ## its identity, so nothing it rolls moves the run's stream.
 var _temper := RandomNumberGenerator.new()
+## How many bodies this process has stood up, which with the run's seed is a
+## body's identity for its dice: the same road spawns the same bodies in the
+## same order, so the same body rolls the same nerve, cadence and second pounce.
+static var _spawn_serial: int = 0
 var _siege_share: float = 1.0
 var _dodge_ready: float = 0.0
 var _slip_left: float = 0.0
@@ -572,7 +576,16 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 
 
 func _ready() -> void:
-	_temper.seed = hash(get_instance_id())
+	# **Seeded by the run and the body's place in it, never by the instance
+	# id.** An instance id is a count of everything allocated before the node,
+	# so a seed drawn from it rolled a different nerve, cadence and second
+	# pounce for the same body whenever any script anywhere grew by a line - a
+	# comment added to `arsenal.gd` on 2026-09-28 moved every body's dice on CI
+	# and failed the v0.61.1 tag on a pounce `enemy_behaviour_check` had passed
+	# all day. A gate can only hold a dice-driven behaviour if the dice are the
+	# run's; the Arsenal learned the same lesson an hour earlier.
+	_spawn_serial += 1
+	_temper.seed = hash("enemy:%d:%d" % [RunState.run_seed, _spawn_serial])
 	_siege_share = _temper.randf_range(Balance.ENEMY_SIEGE_SHARE.x,
 		Balance.ENEMY_SIEGE_SHARE.y)
 	EventBus.hero_swing_started.connect(_on_hero_swing)

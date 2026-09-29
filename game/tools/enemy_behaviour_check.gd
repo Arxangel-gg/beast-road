@@ -63,6 +63,7 @@ func _ready() -> void:
 	await _test_a_pounce_covers_ground_and_leaves_none_behind()
 	await _test_a_pounce_lands_and_may_come_again()
 	await _test_a_swing_is_dealt_once()
+	_test_the_dice_are_the_runs()
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
@@ -133,6 +134,20 @@ func _test_every_behaviour_is_told_before_it_happens() -> void:
 ## property of all of them or it is not a guarantee. Hand-driven with the run
 ## stopped, which is `enemy_siege_trace`'s pattern, so nothing else on the field
 ## can move the body while it is being measured.
+## A body's dice are the run's and its place in it, never an allocation count:
+## seeded from `get_instance_id()`, every body rerolled its nerve, its cadence
+## and its second pounce whenever a script anywhere changed length, and this
+## gate's verdict moved with it.
+func _test_the_dice_are_the_runs() -> void:
+	var code: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	for line: String in code.split("
+"):
+		if line.contains(".seed =") and line.contains("get_instance_id"):
+			_check(false, "a body seeds its dice from its instance id: %s" % line.strip_edges())
+			return
+	_check(code.contains("RunState.run_seed"), "a body's dice are not seeded from the run")
+
+
 func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 	const FRAME: float = 1.0 / 60.0
 	var pouncers: Array[EnemyData] = []
@@ -176,6 +191,12 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 					committed = true
 					from = body.global_position
 					planned = float(body.get("_leap_distance"))
+					# **One pounce.** Half of these bodies roll a second leap at the
+					# first tell (2026-09-25), and a second leap's shove read here as
+					# the first one's residue - 412 units a second "left in `_slip`"
+					# on a Glassborn that had simply pounced again, which failed the
+					# v0.61.1 tag once the dice moved. The chain is its own test below.
+					body.set("_pounces_left", 0)
 					continue
 				if committed and interrupted and now == Enemy.State.COMMIT \
 						and frame % 7 == 0:

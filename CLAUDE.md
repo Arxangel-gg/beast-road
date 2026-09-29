@@ -11151,6 +11151,20 @@ from an instance id. **Bisect a save by deleting keys, never by nulling
 them**: a null aborts `adopt_save` on a cast and passes by leaving the loader
 unfinished, which is a comparison of two nothings wearing a bisect's clothes.
 
+**And the v0.61.1 tag failed on the same seed one file over.** Every body's
+own dice - `Enemy._temper`, the nerve, the cadence wander, the second pounce
+- were `hash(get_instance_id())`, so the *comment* added to `arsenal.gd` for
+the fix above moved every body's dice on CI, and `enemy_behaviour_check`
+failed a Glassborn that had rolled a second pounce: the gate's interrupted
+walk read the second leap's shove as the first one's residue. A body's dice
+are `hash("enemy:<run seed>:<spawn serial>")` now, the walk holds its body to
+one pounce (the chain is its own test), and both gates walk their subject's
+source for an RNG seeded from an instance id. **The rule this settles: a
+`RandomNumberGenerator` is seeded from the run and a stable name, never from
+`get_instance_id()`, a clock, or anything else that moves when an unrelated
+script grows by a line** - or every gate that reads the thing it rolls is a
+coin toss that a comment can flip.
+
 **And the tree commit had broken every spirit companion, found by the sweep
 the same morning.** The phase-2 patch dropped `Companion.extend()` into the
 middle of `_ready` - after the anchor line it was given - so the rest of the
