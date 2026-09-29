@@ -56,6 +56,7 @@ func _ready() -> void:
 	await _test_equipping_redresses_the_doll()
 	_test_the_sheet_names_the_tier()
 	await _test_the_doll_steps_aside()
+	await _test_the_card_follows_a_refit()
 	_test_the_bars_carry_it()
 	_screen.hide_screen()
 	_screen.queue_free()
@@ -237,11 +238,69 @@ func _test_the_comparison_card() -> void:
 	unworn_card.focus_exited.emit()
 	await get_tree().process_frame
 	_check(not compare.visible, "leaving the row with the pad did not close it")
+	await _test_the_card_never_covers_its_row(compare)
+	# That rebuilt the list, so the row is fetched again rather than kept.
+	rows = _rows()
+	if rows.size() < 3:
+		return
+	unworn_card = rows[2]["card"]
 	# Closing the screen closes the card with it.
 	unworn_card.mouse_entered.emit()
 	await get_tree().process_frame
 	_screen.hide_screen()
 	_check(not compare.visible, "the card outlived the screen")
+	_screen.open()
+	await get_tree().process_frame
+
+
+## The card takes one of two seats and never the one over the row it is
+## comparing. Both seats have to be seen taken, or a card nailed to one of
+## them passes every row it happens to miss. The lane is scrolled to its end
+## so a row stands where the filter grid was, which is what forces the bottom.
+func _test_the_card_never_covers_its_row(compare: GearCompare) -> void:
+	var scroll: ScrollContainer = _screen.get("_scroll") as ScrollContainer
+	_check(scroll != null, "the stash has no list scroll")
+	if scroll == null:
+		return
+	# A dozen more Rough weapons, so the lane scrolls a long way; taken back
+	# out after, since the tests after this count rows.
+	var before: int = MetaState.stash.size()
+	for extra: int in 12:
+		_receive(_kind_in(GearData.Slot.WEAPON, 1), 0, false)
+	_screen.open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var seats: Dictionary = {}
+	for pass_index: int in 2:
+		scroll.scroll_vertical = 0 if pass_index == 0 else 100000
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var lane: Rect2 = scroll.get_global_rect()
+		for row: Dictionary in _rows():
+			var card: Button = row["card"]
+			var here: Rect2 = card.get_global_rect()
+			if not lane.encloses(here):
+				continue
+			card.mouse_entered.emit()
+			# Two passes: the card's labels are unlaid on the frame of the hover.
+			await get_tree().process_frame
+			await get_tree().process_frame
+			if not compare.visible:
+				card.mouse_exited.emit()
+				continue
+			var seat: Rect2 = compare.get_global_rect()
+			_check(seat.size.y <= StashScreen.COMPARE_TALL,
+				"the card settled at %.0f tall, past the %.0f the seat is chosen against" % [seat.size.y, StashScreen.COMPARE_TALL])
+			var covered: float = seat.intersection(here).get_area()
+			_check(covered <= 0.0,
+				"the card at %s covers the hovered row at %s" % [seat, here])
+			seats[seat.position.y < lane.get_center().y] = true
+			card.mouse_exited.emit()
+			await get_tree().process_frame
+	_check(seats.has(true) and seats.has(false),
+		"the card only ever took one seat (%s); the other was never forced" % [seats.keys()])
+	MetaState.stash.resize(before)
+	scroll.scroll_vertical = 0
 	_screen.open()
 	await get_tree().process_frame
 
@@ -339,6 +398,40 @@ func _test_the_doll_steps_aside() -> void:
 	_screen.call("_refit")
 	await get_tree().process_frame
 	_check(doll != null and doll.visible, "back on a desktop the doll did not return")
+
+
+## A card seated by the lane must follow the lane when the screen changes
+## shape under it: photographed left half off the right of a narrow screen,
+## where the wide lane's centre had been.
+func _test_the_card_follows_a_refit() -> void:
+	var compare: GearCompare = _screen.get("_compare") as GearCompare
+	var scroll: ScrollContainer = _screen.get("_scroll") as ScrollContainer
+	var rows: Array[Dictionary] = _rows()
+	if compare == null or scroll == null or rows.size() < 3:
+		return
+	var card: Button = rows[2]["card"]
+	card.mouse_entered.emit()
+	await get_tree().process_frame
+	_check(compare.visible, "hovering before the refit did not open the card")
+	var scale_before: Vector2i = get_window().content_scale_size
+	get_window().size = Vector2i(700, 1000)
+	get_window().content_scale_size = Vector2i(700, 1000)
+	await get_tree().process_frame
+	_screen.call("_refit")
+	for _settle: int in 4:
+		await get_tree().process_frame
+	var screen: Rect2 = get_viewport().get_visible_rect()
+	var seat: Rect2 = compare.get_global_rect()
+	_check(screen.encloses(seat), "after the refit the card sits at %s, off a %s screen" % [seat, screen])
+	var lane: Rect2 = scroll.get_global_rect()
+	_check(absf(seat.get_center().x - lane.get_center().x) < 2.0,
+		"after the refit the card is centred at %.0f, the lane at %.0f" % [seat.get_center().x, lane.get_center().x])
+	card.mouse_exited.emit()
+	get_window().content_scale_size = scale_before
+	get_window().size = Vector2i(1920, 1080)
+	await get_tree().process_frame
+	_screen.call("_refit")
+	await get_tree().process_frame
 
 
 func _test_the_bars_carry_it() -> void:

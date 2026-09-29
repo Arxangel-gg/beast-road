@@ -43,6 +43,8 @@ var _sheet: VBoxContainer
 ## The comparison card the Market already draws, laid over the screen while a
 ## row is hovered or focused: what this piece would be instead of what is worn.
 var _compare: GearCompare
+## The row the card is comparing, so a refit can seat it again.
+var _compare_row: Control = null
 var _list: VBoxContainer
 var _header: Label
 var _note: Label
@@ -117,10 +119,9 @@ func _build() -> void:
 	# re-lays nothing: it is the Market's own card, anchored to the bottom of
 	# the screen exactly as the Market anchors it.
 	_compare = GearCompare.new()
-	_compare.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_compare.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_compare.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_compare.offset_bottom = -COMPARE_LIFT
+	_compare.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_compare.grow_horizontal = Control.GROW_DIRECTION_END
+	_compare.grow_vertical = Control.GROW_DIRECTION_END
 	add_child(_compare)
 
 	_header = Label.new()
@@ -435,6 +436,8 @@ func _refit() -> void:
 	var column: Control = _scroll.get_parent() as Control
 	_scroll.custom_minimum_size = Vector2(0.0,
 		UiMetrics.scroll_room_measured(_scroll, column, Balance.UI_PANEL_MARGIN))
+	if _compare != null and is_instance_valid(_compare) and _compare.visible:
+		_reseat_after_layout()
 
 
 ## The list, best first within each slot.
@@ -927,6 +930,13 @@ const TILE_ICON: float = 52.0
 const TILE_LABEL: float = 18.0
 ## How far above the bottom edge the comparison card sits.
 const COMPARE_LIFT: float = 36.0
+## The tallest the comparison card can be - a portrait over a two-line name,
+## five attribute lines, two legendary lines and a two-line verdict - which is
+## what the seat is chosen against, because the card's own minimum size is
+## unlaid on the frame a hover asks for it. A seat safe for a card this tall is
+## safe for the card that settles, since the settled card is inside it;
+## `stash_doll_check` holds the settled height under this.
+const COMPARE_TALL: float = 480.0
 
 const CARD_HEIGHT: float = 118.0
 
@@ -1043,8 +1053,8 @@ func _row(index: int) -> Container:
 	# mouse is a feature for one of the three ways this game is played. Never
 	# for a worn piece: comparing a piece with itself says nothing.
 	if not is_worn:
-		card.mouse_entered.connect(func() -> void: _compare_to_worn(piece))
-		card.focus_entered.connect(func() -> void: _compare_to_worn(piece))
+		card.mouse_entered.connect(func() -> void: _compare_to_worn(piece, card))
+		card.focus_entered.connect(func() -> void: _compare_to_worn(piece, card))
 		card.mouse_exited.connect(func() -> void: _hide_compare())
 		card.focus_exited.connect(func() -> void: _hide_compare())
 
@@ -1159,16 +1169,99 @@ func _row(index: int) -> Container:
 	return _wrap_card(card)
 
 
-## Lays the hovered piece beside whatever is worn in its slot.
-func _compare_to_worn(piece: Dictionary) -> void:
+## Lays the hovered piece beside whatever is worn in its slot - and never over
+## the row it is comparing.
+##
+## Photographed on 2026-09-28: anchored to the bottom of the screen as the
+## Market's card is, it covered the hovered row and every row under it, which
+## on a list that fills the screen is most of what the player is reading. The
+## Market's shelf is eight rows and leaves the bottom empty; the stash's list
+## does not. So the card takes the filter grid's own ground first - a block
+## nobody is pressing while they hover a row - and falls back to the bottom
+## only when the row is up there. `_seat_compare` picks whichever of the two
+## covers the hovered row least, so a row is never hidden by its own card.
+func _compare_to_worn(piece: Dictionary, row: Control = null) -> void:
 	if _compare == null or not is_instance_valid(_compare):
 		return
 	_compare.show_pair(piece)
+	_compare_row = row
+	if _compare.visible:
+		_seat_compare(row)
+
+
+## The card's two seats, in the layer's own space - which is the screen's,
+## since the card hangs off the layer and not off the panel: over the filter
+## grid, or along the bottom. Centred on the list rather than on the screen,
+## so the doll's column is never under it.
+##
+## **Chosen against a ceiling rather than the card's own height.** On the
+## frame a hover fills it, every autowrapped label in it is still unlaid and
+## reports the height it would have at a width of nothing - a thousand units
+## for a card that settles at about two hundred and sixty - so its minimum
+## size is a lie until the next layout pass. The card is anchored at its seat
+## and grows from there as that settles; the seat itself is picked against
+## the tallest the card can ever be (`COMPARE_TALL`), which errs toward
+## keeping clear of the row.
+func _seat_compare(row: Control) -> void:
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var wide: float = _compare.get_combined_minimum_size().x
+	var centre_x: float = screen.x * 0.5
+	var scroll_top: float = 0.0
+	if _scroll != null and is_instance_valid(_scroll) and _scroll.is_visible_in_tree():
+		var lane: Rect2 = _scroll.get_global_rect()
+		centre_x = lane.get_center().x
+		scroll_top = lane.position.y
+	var top_y: float = scroll_top
+	if _tools != null and is_instance_valid(_tools) and _tools.is_visible_in_tree():
+		# The grid scrolls with the list; scrolled off, the seat is the top of
+		# the lane rather than the header it would otherwise cover.
+		top_y = maxf(_tools.global_position.y, scroll_top)
+	var left: float = clampf(centre_x - wide * 0.5, 0.0, maxf(screen.x - wide, 0.0))
+	var floor_y: float = screen.y - COMPARE_LIFT
+	var seats: Array[Rect2] = [
+		Rect2(left, top_y, wide, COMPARE_TALL),
+		Rect2(left, floor_y - COMPARE_TALL, wide, COMPARE_TALL),
+	]
+	var pick: int = 0
+	if row != null and is_instance_valid(row):
+		var hovered: Rect2 = row.get_global_rect()
+		var least: float = INF
+		for which: int in seats.size():
+			var covered: float = seats[which].intersection(hovered).get_area()
+			if covered < least:
+				least = covered
+				pick = which
+	# A zero rect at the seat, grown by the card's own minimum size - so the
+	# frame follows the content as it settles rather than keeping the lie.
+	_compare.offset_left = left
+	_compare.offset_right = left
+	if pick == 0:
+		_compare.grow_vertical = Control.GROW_DIRECTION_END
+		_compare.offset_top = top_y
+		_compare.offset_bottom = top_y
+	else:
+		_compare.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_compare.offset_top = floor_y
+		_compare.offset_bottom = floor_y
 
 
 func _hide_compare() -> void:
+	_compare_row = null
 	if _compare != null and is_instance_valid(_compare):
 		_compare.hide_pair()
+
+
+## A refit moves the lane, and the card is seated in the lane's own space -
+## so it follows, once the containers have re-laid. Two passes, because a
+## wrapped label knows its height only once it has its width; photographed
+## before this, the narrow picture had the card where the wide lane's centre
+## had been, half off the right of the screen.
+func _reseat_after_layout() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _compare == null or not is_instance_valid(_compare) or not _compare.visible:
+		return
+	_seat_compare(_compare_row if is_instance_valid(_compare_row) else null)
 
 
 ## A card sits in a plain container so the list's own layout is unchanged.

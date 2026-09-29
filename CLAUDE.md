@@ -11231,6 +11231,24 @@ stash is opened for. **The doll steps aside** below `UI_STASH_DOLL_WIDTH` and
 on a thumb, because the list had a way out on every shape before the doll
 existed and must still.
 
+**And the comparison card dodges the row it compares.** Photographed
+(`stash_shot`, the first picture of the doll): anchored to the bottom of the
+screen exactly as the Market anchors its card, it covered the hovered row and
+every row under it - the Market's shelf is eight rows and leaves the bottom
+empty, and the stash's list fills the screen. The card has two seats now, over
+the filter grid (which nobody is pressing while they hover a row) and along
+the bottom, and `_seat_compare` takes whichever covers the hovered row least.
+**Chosen against a ceiling rather than the card's own height**: on the frame a
+hover fills it, every autowrapped label in it is unlaid and reports the height
+it would have at a width of nothing - a thousand units for a card that settles
+around four hundred - so the seat is picked against `COMPARE_TALL` and the card
+is anchored there as a zero rect that its minimum size grows, which follows the
+content as it settles rather than keeping the lie. The gate holds the settled
+height under the ceiling, holds the card clear of every row from both ends of
+the lane and insists both seats were taken, and holds the card centred on the
+lane after a refit - the narrow picture had it half off the right of the
+screen, where the wide lane's centre had been.
+
 **Three harnesses were still writing positions into a map of names**, found
 by grepping for the shape rather than by anything failing: `stash_render_check`
 (twice) and `trade_shot` wrote a stash index into `equipped`, which has been
