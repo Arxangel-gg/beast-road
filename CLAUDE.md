@@ -11131,6 +11131,26 @@ keys beside the four catalysts. It was not on the gate list for the defence
 because that list was chosen by what the defence *reads*, and this gate reads
 `RoadCardData` - the grep-the-readers lesson, paid for again.
 
+**The v0.61.0 tag failed on the Arsenal's dice, and the dice were an
+allocation count.** `arsenal_check` passed three times alone that day, failed
+in the local release sweep, and failed the tag on CI - every time on the same
+line, *"a body in Frostbound Ring walks at 0 and one outside at 0"*, which
+read first as the playtest's load and then as a save section leaking between
+gates. Eleven bisect variants of the shared save all failed, and the two that
+passed had only aborted the loader on a planted `null`. The cause was
+`_dice.seed = hash("arsenal:%d" % get_instance_id())`: an instance id is a
+count of everything allocated before the node, so a loaded save - any loaded
+save - moved every weapon's first clock. A field started part of the way
+through its two-second cooldown like a clocked weapon, and the gate waited
+three half-second ticks. **The tenth coin toss this project has shipped in a
+gate's clothes, and the first worn by an allocation count.** The dice are the
+run's now, salted by whose Arsenal it is (`_owner_name`), a field bites on
+its first tick because a ring that lets bodies through for two seconds reads
+as a card that did nothing, and the gate walks the source for a seed drawn
+from an instance id. **Bisect a save by deleting keys, never by nulling
+them**: a null aborts `adopt_save` on a cast and passes by leaving the loader
+unfinished, which is a comparison of two nothings wearing a bisect's clothes.
+
 **And the tree commit had broken every spirit companion, found by the sweep
 the same morning.** The phase-2 patch dropped `Companion.extend()` into the
 middle of `_ready` - after the anchor line it was given - so the rest of the

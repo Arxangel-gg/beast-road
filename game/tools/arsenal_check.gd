@@ -75,6 +75,7 @@ func _ready() -> void:
 	await _test_a_chain_reaction_ends()
 	await _test_it_freezes_with_the_field()
 	await _test_the_defence()
+	_test_the_dice_are_the_runs()
 
 	for stage: String in ["authored", "deal", "seats", "formula", "reacts", "lands", "ends",
 			"freezes", "defence"]:
@@ -780,6 +781,12 @@ func _test_the_defence() -> void:
 	_check(arsenal.absorb(near), "a stone did not reform on its cadence")
 
 	# FIELD: a body inside is slowed, one outside is not, and nothing moved.
+	# **Within three ticks of the hold**, which is the invariant the v0.61.0
+	# tag failed on: a field started part of the way through its *cooldown*
+	# like a clocked weapon, on dice seeded from the Arsenal's instance id, so
+	# whether the first bite landed inside this wait depended on how many
+	# objects a loaded save had allocated. A field stands the moment it is
+	# held now, and the dice are the run's - the source walk below holds both.
 	var field: ArsenalWeaponData = ContentDB.arsenal_weapon("frostbound_ring")
 	_hold(["frostbound_ring"])
 	var inside: Enemy = _crowd(breed, home + Vector2(field.radius * 0.5, 0.0), 1, 0.0, 400.0)[0]
@@ -801,6 +808,17 @@ func _pin_clock(arsenal: Arsenal, card_id: String) -> void:
 	var armed: Arsenal.Armed = arsenal.get("_armed").get(card_id, null) as Arsenal.Armed
 	if armed != null:
 		armed.clock = 0.3
+
+
+## The Arsenal's dice are the run's, never an allocation count.
+func _test_the_dice_are_the_runs() -> void:
+	var code: String = FileAccess.get_file_as_string("res://scripts/systems/arsenal.gd")
+	for line: String in code.split("
+"):
+		if line.contains("seed") and line.contains("get_instance_id"):
+			_check(false, "the Arsenal seeds its dice from its instance id, which is a count of what was allocated before it: %s" % line.strip_edges())
+			return
+	_check(code.contains("RunState.run_seed"), "the Arsenal's dice are not seeded from the run")
 
 
 func _wait_seconds(seconds: float) -> void:

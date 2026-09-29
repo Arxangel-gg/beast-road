@@ -84,7 +84,15 @@ func _ready() -> void:
 	position = Vector2.ZERO
 	z_as_relative = false
 	z_index = Balance.VFX_Z - 1
-	_dice.seed = hash("arsenal:%d" % get_instance_id())
+	# **Seeded by the run and by whose Arsenal this is, never by the instance
+	# id.** An instance id is a count of everything allocated before this node,
+	# so a seed drawn from it made every weapon's first clock a function of
+	# whether a save had been loaded: `arsenal_check` passed on a fresh profile
+	# and failed on the sweep's, deterministically, on a ring whose first bite
+	# was drawn in 0.4 to 2.0 seconds against a wait of 1.5 - and it failed the
+	# v0.61.0 tag the same way. The tenth coin toss this project has shipped in a
+	# gate's clothes, and the first worn by an allocation count.
+	_dice.seed = hash("arsenal:%s:%d" % [_owner_name(), RunState.run_seed])
 	_glow = _Glow.new()
 	_glow.arsenal = self
 	_glow.show_behind_parent = true
@@ -101,6 +109,13 @@ func _ready() -> void:
 		EventBus.tower_struck.connect(_on_tower_struck)
 		EventBus.town_struck.connect(_on_town_struck)
 	rearm()
+
+
+## Whose Arsenal this is, for the dice: a Warden's by seat, or the board's.
+func _owner_name() -> String:
+	if hero != null and is_instance_valid(hero):
+		return "warden:%d" % hero.party_slot
+	return "board"
 
 
 # --- The hand -----------------------------------------------------------------
@@ -129,6 +144,11 @@ func rearm() -> void:
 			armed.card = card
 			armed.weapon = weapon
 			armed.clock = _dice.randf_range(0.2, 1.0) * weapon.cooldown
+			# A field is standing the moment it is held: a ring dealt mid-wave
+			# that let bodies walk through it for two seconds read as a card
+			# that did nothing. Its cadence is its tick, not its cooldown.
+			if weapon.pattern == ArsenalWeaponData.Pattern.FIELD:
+				armed.clock = 0.0
 			armed.angle = _dice.randf() * TAU
 			_armed[id] = armed
 		armed.level = clampi(int(wanted[id]), 1, Balance.AUGMENT_MAX_LEVEL)
