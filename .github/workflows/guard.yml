@@ -405,7 +405,11 @@ jobs:
           check "augment seats" --headless --path game res://tools/augment_seat_check.tscn
           # The Arsenal: every weapon lands through the one door, is what the curve
           # models, scales by one formula, ends its chain reactions and freezes.
-          check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
+          # Measures every weapon over five of its own cadences on a real field -
+          # minutes even at the gate's own time scale - and the default ceiling
+          # timed out on a shared runner on every push from 2026-09-27.
+          CHECK_TIMEOUT=360 \
+            check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn
           # The Warden's bars stand above every head it can wear, with MP and SP beneath HP.

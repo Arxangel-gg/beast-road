@@ -566,6 +566,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			_beam_spell = spell
 			_beam_left = _duration(spell)
 			_beam_aim = aim
+			_beam_tick_left = 0.0
 		SpellData.Kind.COMPANION:
 			_summon(spell, origin, aim)
 		SpellData.Kind.METEOR:
@@ -811,22 +812,48 @@ func _drain(origin: Vector2, aim: Vector2, spell: SpellData, power: float) -> vo
 
 ## When the beam's terminus is next drawn. Run-scoped and read by nothing.
 var _beam_spark: float = 0.0
+## Time to the beam's next blow; zero at a cast, so the first lands at once.
+var _beam_tick_left: float = 0.0
 
 
 func _tick_beam(delta: float, origin: Vector2) -> void:
 	if _beam_spell == null:
 		return
 	var reach: float = maxf(_radius(_beam_spell), 120.0)
-	var tick_damage: float = _beam_spell.damage * delta \
-		* WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet) \
-		* (1.0 + _up(_beam_spell, "up_power"))
-	# A line, approximated by walking spheres along the aim — cheap, and exact
-	# enough for something that is already a cone of fire.
-	var steps: int = 6
-	for i: int in steps:
-		var point: Vector2 = origin + _beam_aim * (reach * float(i + 1) / float(steps))
-		for enemy: Enemy in field.enemies_near(point, reach * 0.28):
-			_land(enemy, tick_damage, origin, 0.0, _beam_spell.element, _beam_spell, false)
+	# **The blow lands on a clock; the picture is drawn every frame** (owner,
+	# 2026-09-30: *"Optimize skill vfx including ultimates which cause
+	# significant FPS loss"*). This dealt `damage * delta` on every frame to
+	# every body in the line, and every blow a body takes stands up a number,
+	# sparks, blood, a recoil and a camera impact - so a channelled ultimate
+	# held over a crowd was thousands of hit effects a second, which is where
+	# the frame went. `SPELL_BEAM_TICK_HZ` ticks a second at `damage / hz` is
+	# the same damage a second; the first lands on the frame the channel opens,
+	# and a slow frame catches up rather than under-dealing.
+	_beam_tick_left -= delta
+	var ticks: int = 0
+	while _beam_tick_left <= 0.0 and ticks < 4:
+		_beam_tick_left += 1.0 / Balance.SPELL_BEAM_TICK_HZ
+		ticks += 1
+		var tick_damage: float = _beam_spell.damage / Balance.SPELL_BEAM_TICK_HZ \
+			* WardenSheet.multiplier_of(sheet, Modifiers.HERO_DAMAGE) * focus_power_of(sheet) \
+			* (1.0 + _up(_beam_spell, "up_power"))
+		# A line, approximated by walking spheres along the aim — cheap, and
+		# exact enough for something that is already a cone of fire.
+		var steps: int = 6
+		# **One blow a body a tick, worth every sphere it stood in.** The spheres
+		# overlap by design - a body along the line stands in about three - and
+		# each used to land its own blow, so a beam was three numbers, three
+		# sprays and three recoils a tick on every body. The damage a body took
+		# is exactly what it was; it arrives as one blow.
+		var struck: Dictionary = {}
+		for i: int in steps:
+			var point: Vector2 = origin + _beam_aim * (reach * float(i + 1) / float(steps))
+			for enemy: Enemy in field.enemies_near(point, reach * 0.28):
+				struck[enemy] = int(struck.get(enemy, 0)) + 1
+		for enemy: Enemy in struck:
+			if is_instance_valid(enemy):
+				_land(enemy, tick_damage * float(struck[enemy]), origin, 0.0,
+					_beam_spell.element, _beam_spell, false)
 	# **Where the beam ends, a few times a second rather than every frame.**
 	# An aimed sheet laid along the beam's own angle, so the spray it throws
 	# runs back up the beam instead of into the ground it is burning. On its

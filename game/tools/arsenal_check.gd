@@ -43,6 +43,14 @@ const CROWD_BODIES: int = 14
 const CROWD_RADIUS: float = 240.0
 ## The ring a trail's Warden walks through the crowd.
 const WALK_RING: float = 150.0
+## The landing stage measures every weapon over five of its own cadences on a
+## real field, which at one second a second was five and a half minutes on a
+## quiet machine and past the guard's 240-second ceiling on a shared runner
+## (the guard workflow was red on every push from 2026-09-27). The clocks it
+## measures - the weapons', the crowd's, the strikes' - all run on delta, so
+## the engine's clock is turned up for that stage and `elapsed` is counted in
+## the same game seconds the cadences are authored in.
+const LANDS_TIME_SCALE: float = 3.0
 
 var _failures: int = 0
 var _checks: int = 0
@@ -517,6 +525,7 @@ func _test_every_weapon_lands() -> void:
 	if ground != null:
 		ground.enemy_hp_regen = 0.0
 	var towers: Array[Tower] = await _two_towers()
+	Engine.time_scale = LANDS_TIME_SCALE
 	for id: String in _weapon_cards():
 		var card: RoadCardData = ContentDB.road_card(id)
 		var weapon: ArsenalWeaponData = card.weapon_data()
@@ -540,12 +549,15 @@ func _test_every_weapon_lands() -> void:
 		_check(arsenal.armed_cards().has(id), "%s: the Arsenal did not arm it" % id)
 		var before: float = _pool(crowd)
 		var elapsed: float = 0.0
-		var started: int = Time.get_ticks_msec()
 		if killers:
 			# A kill-weapon needs deaths: bodies with nothing in them, felled by
 			# the harness through the ordinary door.
 			var fodder: Array[Enemy] = _crowd(breed, where, weapon.every_kills + 4, 60.0, 0.01)
 			for body: Enemy in fodder:
+				# A kill-weapon's own burst can fell the next body first, and at the
+				# stage's time scale it is freed before its turn.
+				if not is_instance_valid(body) or body.is_dying():
+					continue
 				DamageLedger.credit_as(DamageLedger.OTHER)
 				body.take_damage(100000.0, where, 0.0)
 				await get_tree().process_frame
@@ -554,7 +566,7 @@ func _test_every_weapon_lands() -> void:
 		var window: float = maxf(MEASURE_SECONDS, weapon.cooldown * 5.0)
 		while elapsed < window:
 			await get_tree().process_frame
-			elapsed = float(Time.get_ticks_msec() - started) / 1000.0
+			elapsed += get_process_delta_time()
 			if weapon.pattern == ArsenalWeaponData.Pattern.TRAIL:
 				# A trail is laid by walking, so the Warden walks a ring through
 				# the crowd at a walker's pace.
@@ -587,6 +599,7 @@ func _test_every_weapon_lands() -> void:
 			_check(ratio >= MODEL_LOW and ratio <= MODEL_HIGH,
 				("%s dealt %.1f a second against a model of %.1f (%.2fx) - the curve is "
 					+ "measuring a weapon the fight does not have") % [id, dealt / maxf(elapsed, 0.01), model, ratio])
+	Engine.time_scale = 1.0
 	await _clear_the_field()
 	_hold([])
 	if ground != null:

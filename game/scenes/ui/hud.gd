@@ -3537,8 +3537,18 @@ func _place_preparation_panel() -> void:
 			_ride_on_button.custom_minimum_size.y = 34.0
 		# Lower, on a desktop (owner brief, 2026-09-12): tucked just above the
 		# bottom band rather than a third of the way up the screen.
+		#
+		# **Hung from its foot and grown upward** (owner, 2026-09-30: *"Preparation
+		# panel with countdown timer overlaps the Heal button"*). The card was
+		# given 116 units and holds a title, a 38pt clock, a line, RIDE ON, the
+		# speed and - after a purchase - UNDO, which is more than that; a Control
+		# cannot be smaller than its minimum, so the excess grew *down* past the
+		# offsets into the combat row, where Heal sits. A zero rect at the foot
+		# that the minimum size grows upward can never reach the row, whatever
+		# the card holds tomorrow.
+		_preparation_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 		_preparation_panel.offset_bottom = -(_bottom_band_height() + Balance.PREPARATION_PANEL_LIFT)
-		_preparation_panel.offset_top = _preparation_panel.offset_bottom - 116.0
+		_preparation_panel.offset_top = _preparation_panel.offset_bottom
 
 
 
@@ -5114,10 +5124,10 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_wave_preview.offset_top = 214.0 if showing else 158.0
 		_fit_centred(_wave_preview, 360.0 if showing else 420.0)
 	if _preparation_panel != null:
-		# Lower, on a desktop (owner brief, 2026-09-12): tucked just above the
-		# bottom band rather than a third of the way up the screen.
-		_preparation_panel.offset_bottom = -(_bottom_band_height() + Balance.PREPARATION_PANEL_LIFT)
-		_preparation_panel.offset_top = _preparation_panel.offset_bottom - 116.0
+		# One placement rule, the same one the builder uses - a second copy of
+		# it here is how the card kept a 116-unit box after the builder stopped
+		# giving it one.
+		_place_preparation_panel()
 	# **The command panel is anchored top left**, and these two lines wrote
 	# bottom-right offsets onto it: `offset_top = -276` against `PRESET_TOP_LEFT`
 	# puts the whole panel 276 units *above* the top of the screen. This function

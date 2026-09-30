@@ -3803,6 +3803,16 @@ const SPELL_FORGE_MIN_REACH: float = 70.0
 ## than every frame**: a sheet a frame is sixty sprites a second for as long
 ## as the channel runs, and a beam already draws its own line. [TUNE]
 const SPELL_BEAM_END_INTERVAL: float = 0.12
+## How many times a second a channelled beam lands its blow (owner, 2026-09-30:
+## *"Optimize skill vfx including ultimates which cause significant FPS
+## loss"*). A beam dealt `damage * delta` on every frame to every body in its
+## line, and every blow a body takes stands up a number, sparks, blood, a
+## recoil and a camera impact - a channelled ultimate over twenty bodies at
+## 180 Hz was thirty-six hundred hit effects a second. A tick this often at
+## `damage / hz` is the same damage a second and a twentieth of the effects
+## at a high frame rate. Twenty, because `discipline_branch_check` reads one
+## tick of a twentieth of a second off a body and that figure is unchanged.
+const SPELL_BEAM_TICK_HZ: float = 20.0
 const SPELL_BEAM_END_SHARE: float = 0.55
 
 ## **What the rest of the forged catalogue is drawn at**, where the caller has

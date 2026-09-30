@@ -78,6 +78,7 @@ func _ready() -> void:
 	await _test_both_sheets_carry_the_clock()
 	await _test_the_clock_hides_when_there_is_no_deadline()
 	await _test_the_tooltip_clears_the_preparation_card()
+	await _test_the_card_never_enters_the_row()
 	_test_three_wells_and_each_dearer_than_the_last()
 	await _test_the_well_row_says_how_many_stand()
 
@@ -292,6 +293,32 @@ func _test_the_clock_hides_when_there_is_no_deadline() -> void:
 ## **Above the card, never behind it.** The box is placed from a hovered row's
 ## own Y, so it is put exactly where the card is and then measured - and the
 ## card is drawn over it, so a box that merely overlaps is a box nobody reads.
+## **The card grows upward, never down into the combat row** (owner, 2026-09-30:
+## *"Preparation panel with countdown timer overlaps the Heal button"*). It is
+## measured with UNDO showing, which is the tallest the card gets, because the
+## overlap only arrived once the card held more than the box it was given.
+func _test_the_card_never_enters_the_row() -> void:
+	var card := _hud.get("_preparation_panel") as Control
+	var row := _hud.get("_bottom_row") as Control
+	var undo := _hud.get("_undo_button") as Control
+	_check(card != null and row != null, "the harness needs the card and the combat row")
+	if card == null or row == null:
+		return
+	card.visible = true
+	if undo != null:
+		undo.visible = true
+	for _f: int in 3:
+		await get_tree().process_frame
+	var seat: Rect2 = card.get_global_rect()
+	var band: Rect2 = row.get_global_rect()
+	_check(seat.size.y > 0.0 and band.size.y > 0.0, "the card or the row has no size")
+	_check(seat.end.y <= band.position.y + 0.5,
+		"the preparation card at %s reaches into the combat row at %s" % [seat, band])
+	_check(seat.position.y >= 0.0, "the preparation card at %s is off the top of the screen" % seat)
+	if undo != null:
+		undo.visible = false
+
+
 func _test_the_tooltip_clears_the_preparation_card() -> void:
 	var card := _hud.get("_preparation_panel") as Control
 	var box := _hud.get("_build_tooltip") as Control

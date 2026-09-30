@@ -74,6 +74,7 @@ func _ready() -> void:
 	_test_only_a_true_channel_roots_the_caster()
 	_test_the_strike_is_seen_falling(meteor, volley)
 	_test_the_beam_is_drawn()
+	await _test_the_beam_lands_on_a_clock()
 	await _finish()
 
 
@@ -366,6 +367,53 @@ func _dummy(at: Vector2) -> Enemy:
 	_field.add_child(foe)
 	foe.global_position = at
 	return foe
+
+
+## **A held beam lands `SPELL_BEAM_TICK_HZ` blows a second and no more, and the
+## same damage a second whatever the frame rate** (owner, 2026-09-30). Before
+## this it landed a blow on every frame, and every blow is a number, sparks,
+## blood and a recoil - a channelled ultimate over a crowd was the frame.
+## Driven at two frame rates, because a cadence that only holds at one is a
+## cadence that fails on the owner's 180 Hz screen or on a phone.
+func _test_the_beam_lands_on_a_clock() -> void:
+	var beam: SpellData = null
+	for id: Variant in ContentDB.spells:
+		var spell: SpellData = ContentDB.spells[id] as SpellData
+		if spell != null and spell.kind == SpellData.Kind.BEAM and spell.is_channelled:
+			beam = spell
+			break
+	if beam == null:
+		return
+	var dealt: Array[float] = []
+	var blows: Array[int] = []
+	for frame: float in [1.0 / 180.0, 1.0 / 30.0]:
+		var foe: Enemy = _dummy(Vector2(140.0, 0.0))
+		foe.health.max_hp = 100000.0
+		foe.health.current_hp = 100000.0
+		var count: Array[int] = [0]
+		foe.health.damaged.connect(func(_amount: float, _from: Vector2) -> void: count[0] += 1)
+		_equip(beam)
+		_caster.cancel_channel()
+		_caster.clear_cooldowns()
+		_caster.try_cast(0, Vector2.RIGHT, Vector2.ZERO)
+		var held: float = 0.0
+		while held < 1.0 - frame * 0.5:
+			_caster.tick(frame, Vector2.RIGHT, Vector2.ZERO)
+			held += frame
+		_caster.cancel_channel()
+		dealt.append(100000.0 - foe.health.current_hp)
+		blows.append(count[0])
+		await _clear([foe])
+	var hz: int = int(Balance.SPELL_BEAM_TICK_HZ)
+	for index: int in blows.size():
+		_checked += 1
+		_check(blows[index] >= hz - 1 and blows[index] <= hz + 1,
+			"%s held for a second landed %d blows against a clock of %d a second"
+				% [beam.id, blows[index], hz])
+	_checked += 1
+	_check(dealt[0] > 0.0 and absf(dealt[1] - dealt[0]) <= dealt[0] * 0.08,
+		"%s dealt %.1f a second at 180 Hz and %.1f at 30 Hz - the clock changes the damage"
+			% [beam.id, dealt[0], dealt[1]])
 
 
 ## Frees the bodies and lets the tree actually drop them, so the run does not
