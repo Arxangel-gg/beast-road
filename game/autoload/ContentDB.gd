@@ -594,7 +594,41 @@ func chronicle_objectives_sorted() -> Array[ChronicleObjectiveData]:
 	return out
 
 
+## **Sorted once** (2026-09-30). The tree's order never changes while the game
+## runs, and this sorted a hundred and twenty-six nodes with a lambda on every
+## call - which `DisciplineUpgrades.oaths_of` made on every read of the
+## Warden's mana, regeneration and damage, half a millisecond each. Kept, and
+## worked out again only if the number of nodes changes: nothing edits the
+## table at runtime, and a gate that adds a node changes its size. A copy is
+## handed out, so no caller can reorder the kept list.
+var _sorted_nodes: Array[DisciplineNodeData] = []
+var _sorted_oaths: Array[DisciplineNodeData] = []
+var _sorted_from: int = -1
+
+
 func discipline_nodes_sorted() -> Array[DisciplineNodeData]:
+	_keep_sorted()
+	return _sorted_nodes.duplicate()
+
+
+## Only the Oaths, in the tree's order - what `oaths_of` walks.
+func discipline_oaths_sorted() -> Array[DisciplineNodeData]:
+	_keep_sorted()
+	return _sorted_oaths
+
+
+func _keep_sorted() -> void:
+	if discipline_nodes.size() == _sorted_from and not _sorted_nodes.is_empty():
+		return
+	_sorted_from = discipline_nodes.size()
+	_sorted_nodes = _discipline_nodes_sorted_worked()
+	_sorted_oaths.clear()
+	for node: DisciplineNodeData in _sorted_nodes:
+		if node.kind == DisciplineNodeData.Kind.OATH:
+			_sorted_oaths.append(node)
+
+
+func _discipline_nodes_sorted_worked() -> Array[DisciplineNodeData]:
 	var out: Array[DisciplineNodeData] = []
 	for value: Variant in discipline_nodes.values():
 		var node := value as DisciplineNodeData

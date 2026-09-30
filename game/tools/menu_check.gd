@@ -246,8 +246,7 @@ func _ready() -> void:
 			# Only a literal second argument: `on_button(button, "id", ...)`. A
 			# name worked out at run time is the caller's to check.
 			var comma: int = text.find(",", at)
-			var line_end: int = text.find("
-", at)
+			var line_end: int = text.find("\n", at)
 			if comma < 0 or (line_end >= 0 and comma > line_end):
 				continue
 			var open_quote: int = comma + 1

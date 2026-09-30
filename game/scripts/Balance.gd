@@ -4803,6 +4803,11 @@ const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2
 ## frame; what a 144 Hz screen does not need is the triangle arrays rebuilt
 ## 144 times a second for sparks that live a third of a second.
 const VFX_INK_HZ: float = 60.0
+## How often the Warden's SP is told to the HUD while it moves, and how big a
+## change is told at once (`Hero._tick_stamina`). Emptying and filling are
+## always told on the step they happen.
+const HERO_STAMINA_ANNOUNCE_SECONDS: float = 0.05
+const HERO_STAMINA_ANNOUNCE_STEP: float = 8.0
 ## World units past the camera's view inside which a decoration is still made
 ## (`ScreenCull.world_sees`): enough that a spark thrown just off the edge
 ## still flies in, and a pan of a step or two finds the fight already lit.

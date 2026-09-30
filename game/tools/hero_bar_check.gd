@@ -275,7 +275,14 @@ func _test_structure_alarm() -> void:
 
 func _test_wired() -> void:
 	var source: String = FileAccess.get_file_as_string("res://scenes/hero/hero.gd")
-	var start: int = source.find("func _physics_process_measured(")
-	var body: String = source.substr(start, 400) if start >= 0 else ""
-	_check(body.contains("_place_bars(delta)"), "the hero's tick never stands the bars")
+	# **Every rendered frame, not every physics step** (amended 2026-09-30): the
+	# bars are a picture, and the step runs three times a frame on a 180 Hz
+	# screen. The invariant is unchanged - something stands them every frame.
+	var start: int = source.find("\nfunc _process(")
+	var body: String = source.substr(start, 600) if start >= 0 else ""
+	_check(body.contains("_place_bars(delta)"), "the hero's frame never stands the bars")
+	var step: int = source.find("func _physics_process_measured(")
+	var step_end: int = source.find("\nfunc ", step + 5)
+	_check(step >= 0 and not source.substr(step, step_end - step).contains("_place_bars("),
+		"the bars are stood inside the physics step again, three times a frame on a fast screen")
 	_reached.append("wired")

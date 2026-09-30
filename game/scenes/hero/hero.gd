@@ -173,6 +173,7 @@ var _stamina_said: float = -1.0
 var _swing_paid: bool = false
 var _stamina_said_low: float = 0.0
 var _mana_announce_left: float = 0.0
+var _stamina_announce_left: float = 0.0
 
 ## **Riding** (owner brief, 2026-09-17). What is saddled while the Warden is
 ## up, null on foot; the bound is written on `MountData` and is one sentence -
@@ -518,9 +519,7 @@ func _physics_process_measured(delta: float) -> void:
 	var mark: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_tick_timers(delta)
 	_profile_part(&"h_timers", mark)
-	var part: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
-	_place_bars(delta)
-	_profile_part(&"h_bars", part)
+	var part: int = 0
 
 	if not is_alive():
 		_tick_respawn(delta)
@@ -529,7 +528,6 @@ func _physics_process_measured(delta: float) -> void:
 	part = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_aim = _compute_aim()
 	_update_facing(delta)
-	_update_aim_guide()
 	_profile_part(&"h_aim", part)
 	part = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_tick_swim(delta)
@@ -1847,7 +1845,15 @@ func _tick_stamina(delta: float) -> void:
 		# instant the legs give out and getting a stride out of it.
 		if _winded and stamina >= Balance.HERO_SPRINT_FLOOR:
 			_winded = false
-	if not is_equal_approx(stamina, _stamina_said):
+	# **Told as the mana is, not every step** (2026-09-30): a bar cannot show a
+	# hundred and eighty updates a second, and every one re-wrote the HUD's
+	# tooltip and the bar's name. Whole points, a few times a second, and at once
+	# when the pool empties or fills - the two moments a player acts on.
+	_stamina_announce_left -= delta
+	if not is_equal_approx(stamina, _stamina_said) and (_stamina_announce_left <= 0.0
+			or stamina <= 0.0 or stamina >= max_stamina()
+			or absf(stamina - _stamina_said) >= Balance.HERO_STAMINA_ANNOUNCE_STEP):
+		_stamina_announce_left = Balance.HERO_STAMINA_ANNOUNCE_SECONDS
 		_stamina_said = stamina
 		EventBus.hero_stamina_changed.emit(stamina, max_stamina())
 
@@ -3553,6 +3559,17 @@ func telling_blow(enemy: Node2D) -> float:
 	if RunState.rng("combat").randf() >= chance:
 		return 1.0
 	return 2.0
+
+
+## **What is drawn follows the frame, not the physics step** (2026-09-30). The
+## bars over the head and the aim guide are pictures: they ran inside every
+## physics step, which since the step follows the display is three times a frame
+## on a 180 Hz screen, and only the last of the three was ever seen.
+func _process(delta: float) -> void:
+	var part: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
+	_place_bars(delta)
+	_update_aim_guide()
+	_profile_part(&"h_bars", part)
 
 
 ## One part of the physics tick into its own bucket, when anybody is measuring.

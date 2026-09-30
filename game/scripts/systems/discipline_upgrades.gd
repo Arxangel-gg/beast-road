@@ -88,8 +88,8 @@ static func for_spell(learned: Dictionary, spell_id: String, key: String) -> flo
 ## settling hold the count - this only reads what is held.
 static func oaths_of(learned: Dictionary) -> Array[DisciplineNodeData]:
 	var out: Array[DisciplineNodeData] = []
-	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.kind == DisciplineNodeData.Kind.OATH and learned.has(node.id):
+	for node: DisciplineNodeData in ContentDB.discipline_oaths_sorted():
+		if learned.has(node.id):
 			out.append(node)
 	return out
 
