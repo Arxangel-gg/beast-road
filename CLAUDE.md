@@ -11781,6 +11781,42 @@ reads its roofline once a painting** (`Tower._roofline`): every build and
 upgrade was a `get_image`, which on a real renderer is a copy back from the GPU.
 `frame_budget_check` holds both, and named both planted.
 
+**A held wave says what it paid, and a change of view is a cut, as of
+2026-09-30.** Two looks, each held by a gate and each moving no number:
+
+- **`WaveHarvest`**: the message line says *"Wave 12 held · 34 fell · +86 Gold
+  +12 Wood"* when a wave closes, read off the run's purse at the wave's start
+  and end and the deaths between. The economy is "tower money is taken off the
+  enemies the player kills" (2026-08-27), and that is only a decision if the
+  player can see what a wave was worth. A wallet that ended lower (a heal paid
+  mid-wave) is left out: a harvest, not a ledger. `town_alert_check` holds the
+  purse unchanged by the saying of it, and named the planted disconnection.
+- **`ScopeCut`**: the battlefield, the Town and Yuri were swapped on one frame,
+  which reads as a hiccup. A 0.24 s fade in from near-black covers the seam, on
+  a layer just under the HUD (the interface did not change, so it does not
+  darken), taking no click, and not on a run's first scope. Headless draws
+  nothing, so `feel_check` holds it by the source.
+
+**Android waits two and a half hours for its release.** On v0.61.2 the Release
+job queued thirty-six minutes behind the Android one and runs about fifty-five
+minutes with two hundred and ten gates; the APK built, waited its sixty
+minutes, and gave up half an hour before the release appeared.
+
+**What the rest of Act X's slow frames are, measured on the renderer
+(2026-09-30, full loadout, 180 Hz physics): 11.6 ms average (86 fps), p99
+23.0 ms, no hitch over 33 ms.** Of 304 frames over 17 ms in sixty seconds,
+most carry about seven milliseconds of script - the rest is the renderer's own
+variance (3.7 ms CPU and 3.6 ms GPU on an average frame) and a physics
+catch-up. The frames with a single-system spike are events: a save (a
+level-up, a first sighting or a gear pickup writes the whole account - 0.8 ms
+to build the text and 1.2 ms to write it with a full stash, and a level-up
+with a sighting in one frame is two), an animal arriving, and a burst of
+sound starts. **In play at Act X those are a few a minute**; the perf harness
+exaggerates saves because a fresh account sees every breed for the first time
+and its own dressing saves 331 times. Coalescing saves to one a frame, and a
+staggered phase for the cadenced redraws, are the two levers left if the p99
+is ever the thing to move.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
