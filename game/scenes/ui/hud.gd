@@ -275,6 +275,8 @@ const BOSS_TRACK_TOUCH_TOP: float = 78.0
 const MESSAGE_TOP: float = 90.0
 ## Two lines of the banner's own size: it wraps on a narrow screen.
 const MESSAGE_HEIGHT: float = 64.0
+const MESSAGE_FADE_IN: float = 0.16
+const MESSAGE_FADE_OUT: float = 0.45
 const MESSAGE_TOUCH_TOP: float = 130.0
 
 ## How wide the banner is allowed to be, as a half-width, in each layout.
@@ -535,6 +537,8 @@ const ACTION_ROW_GAP: float = 8.0
 
 var _message: Label
 var _message_left: float = 0.0
+## How long the banner's line has been showing, for its fade in.
+var _message_age: float = 99.0
 ## What the wave paid, said when it is held (`WaveHarvest`).
 var _harvest: WaveHarvest = WaveHarvest.new()
 var _top_bar: HBoxContainer
@@ -928,8 +932,13 @@ func _process_measured(delta: float) -> void:
 		_request_command(CommandSystemScript.LAST_STAND)
 	if _message_left > 0.0:
 		_message_left -= delta
+		_message_age += delta
+		# In over a beat and out over a longer one, so a line arrives and
+		# leaves rather than blinking on and off (2026-09-30).
+		_message.modulate.a = clampf(_message_age / MESSAGE_FADE_IN, 0.0, 1.0) 			* clampf(_message_left / MESSAGE_FADE_OUT, 0.0, 1.0)
 		if _message_left <= 0.0:
 			_message.text = ""
+			_message.modulate.a = 1.0
 	if _raid_panel.visible:
 		_update_raid_panel()
 	if _rift_panel != null and _rift_panel.visible:
@@ -4051,6 +4060,7 @@ func _on_command_order_used(order_id: String, _lane: int, _slot: int, _at: Vecto
 func _show_message(text: String) -> void:
 	_message.text = _trimmed(text)
 	_message_left = 3.0
+	_message_age = 0.0
 	_clear_region_card()
 
 
