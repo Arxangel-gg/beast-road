@@ -3273,6 +3273,7 @@ func _build_footfalls() -> void:
 	_footfalls.ground = ground_colour
 	_footfalls.watching = _watched_point
 	_footfalls.leaves = _leaf_near
+	_footfalls.water = water_depth_at
 	_footfalls.z_index = Balance.FOOTFALL_Z
 	(entity_root if entity_root != null else self).add_child(_footfalls)
 

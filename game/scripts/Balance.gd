@@ -12942,6 +12942,22 @@ const FOOTFALL_PUFF_SIZE: float = 0.42
 ## something a boot kicked up.
 const FOOTFALL_Z: int = BLOOD_GROUND_Z + 1
 
+## **Footprints that stay a while** (`Tracks`, 2026-09-30). How long a print
+## lasts on the field's clock and the share of that it holds before fading; how
+## big it is against the body's footprint, how much longer than wide, and how
+## far from the line walked the two feet land; how much darker than the earth
+## and how opaque at its heaviest; the most held at once over everything; and
+## the effects budget below which none is laid. A look, never a fact. [TUNE]
+const TRACK_LIFE: float = 16.0
+const TRACK_HOLD: float = 0.4
+const TRACK_SIZE: float = 0.9
+const TRACK_LENGTH: float = 1.55
+const TRACK_SPREAD: float = 0.28
+const TRACK_DARKEN: float = 0.5
+const TRACK_ALPHA: float = 0.62
+const TRACK_MAX: int = 768
+const TRACK_WEIGHT_FLOOR: float = 0.25
+
 ## What each kind of body weighs, against an ordinary road body at one. Read by
 ## the one line in each body that registers it, so a breed, an animal or a mount
 ## carries the mass its own data implies rather than a number typed beside it.

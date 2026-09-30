@@ -71,6 +71,10 @@ var watching: Callable = Callable()
 var leaves: Callable = Callable()
 
 var _marks: GroundMarks = null
+## How deep water stands at a point: a print is never laid in it. Handed in,
+## as `ground` is.
+var water: Callable = Callable()
+var _tracks: Tracks = null
 var _seen: Dictionary = {}
 var _clock: float = 0.0
 
@@ -123,6 +127,13 @@ static func hush(node: Node2D, quiet: bool) -> void:
 
 
 func _ready() -> void:
+	# The prints first, so the dust a stride throws is drawn over the print it
+	# leaves (2026-09-30).
+	_tracks = Tracks.new()
+	_tracks.name = "Tracks"
+	_tracks.ground = ground
+	_tracks.water = water
+	add_child(_tracks)
 	_marks = GroundMarks.new()
 	_marks.name = "Marks"
 	_marks.ground = ground
@@ -171,9 +182,14 @@ func _walk(elapsed: float) -> void:
 		var carried: float = 0.0
 		var travelled: float = 0.0
 		var way := Vector2.ZERO
+		# Which foot comes down next, so the prints alternate either side of
+		# the line walked.
+		var foot: float = 1.0
 		if was is Array:
 			var last: Vector2 = (was as Array)[0] as Vector2
 			carried = float((was as Array)[1])
+			if (was as Array).size() > 2:
+				foot = float((was as Array)[2])
 			way = at - last
 			travelled = way.length()
 		var tread: Vector3 = body.get_meta(&"tread", Vector3.ZERO) as Vector3
@@ -183,14 +199,20 @@ func _walk(elapsed: float) -> void:
 		if effort < Balance.FOOTFALL_MOVING or weight <= 0.01:
 			# Standing still lays nothing, and neither does a body nudged a few
 			# units by the crowd grid or breathing on the spot.
-			here[id] = [at, 0.0]
+			here[id] = [at, 0.0, foot]
 			continue
 		carried += travelled
 		var stride: float = maxf(tread.x * Balance.FOOTFALL_STRIDE, 4.0)
+		var heading: Vector2 = way.normalized()
 		while carried >= stride:
 			carried -= stride
-			_step(at, way.normalized(), tread, effort, weight)
-		here[id] = [at, carried]
+			_step(at, heading, tread, effort, weight)
+			# The print lands where the stride did, which is behind the body by
+			# whatever of the walk is still carried.
+			if _tracks != null:
+				_tracks.press(at - heading * carried, heading, tread.x, tread.y, foot, weight)
+			foot = -foot
+		here[id] = [at, carried, foot]
 	_seen = here
 	_marks.bound(Balance.FOOTFALL_MAX_MARKS)
 
@@ -253,6 +275,11 @@ func _leaf_burst(at: Vector2, way: Vector2, effort: float, weight: float,
 ## How many marks are alive. For the gate, which measures rather than asserts.
 func live_marks() -> int:
 	return _marks.live() if _marks != null else 0
+
+
+## The prints, for the gate.
+func tracks() -> Tracks:
+	return _tracks
 
 
 ## `FrameProfile` bucket "footfalls": the real work is `_process_measured` above.

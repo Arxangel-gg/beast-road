@@ -48,6 +48,7 @@ func _ready() -> void:
 	await _test_the_ground_decides_the_colour()
 	_test_every_body_that_walks_declares_a_tread()
 	await _test_the_plants_answer_by_size()
+	await _test_the_ground_keeps_the_prints()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -352,6 +353,68 @@ func _test_the_plants_answer_by_size() -> void:
 	for node: Node2D in [small, large, deer, ghost]:
 		node.queue_free()
 	field.queue_free()
+	await get_tree().process_frame
+
+
+## **Footprints** (`Tracks`, 2026-09-30): one a stride, either side of the line
+## walked in turn, none standing still or in water or below the effects floor,
+## gone whole once they have faded, and never more than the cap holds.
+func _test_the_ground_keeps_the_prints() -> void:
+	var feet: Footfalls = _stand_up()
+	var body: Node2D = _puppet(Balance.ENEMY_BODY_RADIUS, 1.0, 100.0)
+	await get_tree().process_frame
+	var tracks: Tracks = feet.tracks()
+	_check(tracks != null, "the footfalls must lay prints")
+	if tracks == null:
+		return
+	_march(feet, body, Vector2.ZERO, 0.0, 20)
+	_check(tracks.showing() == 0, "standing still left %d prints" % tracks.showing())
+	_march(feet, body, Vector2.RIGHT, 100.0, 30)
+	var stride: float = Balance.ENEMY_BODY_RADIUS * Balance.FOOTFALL_STRIDE
+	var walked: float = 100.0 * 30.0 / Balance.FOOTFALL_HZ
+	var expected: int = int(walked / stride)
+	_check(absi(tracks.showing() - expected) <= 1,
+		"a walk of %.0f units at a %.0f stride left %d prints, not about %d" % [walked, stride,
+		tracks.showing(), expected])
+	var chunks: Array = tracks.get("_chunks")
+	var alternates: bool = true
+	var last_side: float = 0.0
+	for chunk: Variant in chunks:
+		for one: Dictionary in (chunk as Tracks.TrackChunk).prints:
+			var side: float = signf((one["at"] as Vector2).y - body.global_position.y)
+			if side == 0.0 or side == last_side:
+				alternates = false
+			last_side = side
+	_check(alternates, "the prints must fall either side of the line walked, in turn")
+	# Below the effects floor, nothing.
+	var before: int = tracks.showing()
+	tracks.press(Vector2(0.0, 500.0), Vector2.RIGHT, 20.0, 1.0, 1.0, Balance.TRACK_WEIGHT_FLOOR * 0.5)
+	_check(tracks.showing() == before, "a print was laid below the effects floor")
+	# Faded, and gone whole.
+	tracks._process(Balance.TRACK_LIFE + 0.1)
+	_check(tracks.showing() == 0 and tracks.chunk_count() == 0,
+		"faded prints must be freed: %d showing on %d canvases" % [tracks.showing(), tracks.chunk_count()])
+	# The cap.
+	_march(feet, body, Vector2.RIGHT, 100.0, int(float(Balance.TRACK_MAX) * 3.0 * stride
+		/ (100.0 / Balance.FOOTFALL_HZ)))
+	_check(tracks.chunk_count() * Tracks.CHUNK <= Balance.TRACK_MAX + Tracks.CHUNK,
+		"%d canvases of prints against a cap of %d" % [tracks.chunk_count(), Balance.TRACK_MAX])
+	_check(tracks.showing() > Balance.TRACK_MAX / 2, "the cap must be reached, held %d" % tracks.showing())
+	feet.get_parent().queue_free()
+	body.queue_free()
+	# Never in water.
+	var scope := Node2D.new()
+	add_child(scope)
+	var wet := Footfalls.new()
+	wet.ground = func(_at: Vector2) -> Color: return Color(0.5, 0.4, 0.3)
+	wet.water = func(_at: Vector2) -> float: return 1.0
+	scope.add_child(wet)
+	var swimmer: Node2D = _puppet(Balance.ENEMY_BODY_RADIUS, 1.0, 100.0)
+	await get_tree().process_frame
+	_march(wet, swimmer, Vector2.RIGHT, 100.0, 30)
+	_check(wet.tracks().showing() == 0, "a body in water left %d prints" % wet.tracks().showing())
+	scope.queue_free()
+	swimmer.queue_free()
 	await get_tree().process_frame
 
 
