@@ -365,13 +365,18 @@ func _test_a_loosed_breath_chases() -> void:
 	hero.health.damaged.connect(func(amount: float, _from: Vector2) -> void: blows.append(amount))
 	var origin: Vector2 = Vector2(2600.0, 2600.0)
 
-	for case: Array in [[0.40, true, "inside its arc"], [1.25, false, "far outside its arc"]]:
+	# The second case is an ultra (the longer beam) at a target past the arc: the
+	# only case long enough for the line to reach its bound, so it is the one
+	# that proves the bound is there.
+	for case: Array in [[0.40, true, "inside its arc", false],
+			[0.95, false, "past its arc", true]]:
 		blows.clear()
 		hero.global_position = origin + Vector2.RIGHT.rotated(float(case[0])) * 300.0
 		hero.velocity = Vector2.ZERO
 		var strike := EnemyGroundStrike.new()
 		strike.shape = EnemyGroundStrike.Shape.LINE
 		strike.breath = "fire"
+		strike.ultra = bool(case[3])
 		strike.reach = 420.0
 		strike.half_width = 30.0
 		strike.damage = 25.0
