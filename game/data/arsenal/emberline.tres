@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "emberline"
+display_name = "Emberline"
+description = "A line of fire hangs between towers near you and burns what crosses it."
+pattern = 7
+anchor = 1
+element = 0
+tint = Color(1.0, 0.55, 0.25, 1)
+damage = 6.5
+cooldown = 0.9
+count = 2
+radius = 26.0
+duration = 2.0
+burn_share = 0.5
+crowd = 0.5
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "fire"

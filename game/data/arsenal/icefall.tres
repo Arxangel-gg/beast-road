@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "icefall"
+display_name = "Icefall"
+description = "Ice falls on bodies near the town and slows what it lands on. More of it as it grows."
+pattern = 5
+anchor = 2
+element = 1
+tint = Color(0.6, 0.86, 1.0, 1)
+damage = 15.0
+cooldown = 2.4
+count = 2
+radius = 60.0
+reach = 900.0
+slow = 0.7
+crowd = 1.2
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "water"
+effect = "hit_water"

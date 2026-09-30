@@ -2381,7 +2381,7 @@ composed as the weapons are.
 `card_guardian_stones.png` · `card_frostbound_ring.png` · `card_masons_wisps.png` ·
 `card_ward_lattice.png` · `card_kiln_skin.png` · `card_hearthstone.png` ·
 `card_gate_ward.png` · `card_steadfast_salt.png` · `card_aegis_of_the_road.png` ·
-`card_stone_choir.png`
+`card_stone_choir.png` · `card_gale_blades.png` · `card_hurled_stones.png` · `card_tidal_chain.png` · `card_wildfire_leap.png` · `card_rockslide.png` · `card_quake_pulse.png` · `card_static_wake.png` · `card_meteor_shard.png` · `card_pyre_spirits.png` · `card_frost_wraiths.png` · `card_bone_shards.png` · `card_tidewall.png` · `card_static_skin.png` · `card_wind_stones.png` · `card_dawn_salve.png` · `card_sucking_mire.png` · `card_brazier_wisps.png` · `card_tidewire.png` · `card_emberline.png` · `card_storm_beacon.png` · `card_glacier_shards.png` · `card_forge_ward.png` · `card_cinder_salve.png` · `card_thorn_bastion.png` · `card_tide_bell.png` · `card_icefall.png` · `card_watchfire_crows.png` · `card_wellspring.png`
 
 These are **composed from the game's own painted art** - the spell icons, three
 relics and two towers - because PixelLab's allowance was spent until 2026-10-11 and

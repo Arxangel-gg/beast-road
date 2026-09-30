@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tide_bell"
+display_name = "Tide Bell"
+description = "Rare card. The town rings a bell of water that soaks and slows everything near it."
+rarity = 2
+first_act = 3
+branch = 2
+tags = Array[String](["Water", "Arsenal", "Nova", "Town"])
+card_text = "Every body at the gate hears it, and every one is wet."
+weapon = "tide_bell"

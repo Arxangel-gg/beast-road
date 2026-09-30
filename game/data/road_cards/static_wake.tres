@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "static_wake"
+display_name = "Static Wake"
+description = "Uncommon card. Where you walk the air crackles, stinging what stands in it - hardest on the soaked."
+rarity = 1
+first_act = 3
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Trail"])
+card_text = "Your footsteps hum for a while after you leave."
+weapon = "static_wake"

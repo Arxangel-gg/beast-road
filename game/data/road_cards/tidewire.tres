@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tidewire"
+display_name = "Tidewire"
+description = "Uncommon card. A line of water hangs between towers near you and soaks and slows what crosses it."
+rarity = 1
+first_act = 3
+branch = 1
+tags = Array[String](["Water", "Arsenal", "Arc", "Tower"])
+card_text = "Cross it and walk the rest of the way wet."
+weapon = "tidewire"

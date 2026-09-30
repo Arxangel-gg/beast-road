@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "bone_shards"
+display_name = "Bone Shards"
+description = "A body you kill breaks into shards that fly at the ones beside it."
+pattern = 6
+anchor = 0
+element = 2
+tint = Color(0.9, 0.86, 0.74, 1)
+damage = 9.0
+cooldown = 1.0
+count = 2
+reach = 380.0
+speed = 520.0
+knockback = 30.0
+crowd = 1.0
+level_count = Array[int]([0, 0, 1, 1, 2])
+head = "earth"
+effect = "hit_physical"

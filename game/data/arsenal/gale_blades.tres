@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "gale_blades"
+display_name = "Gale Blades"
+description = "Blades of wind circle you and throw back what they cut. More blades as it grows."
+pattern = 0
+anchor = 0
+element = 3
+tint = Color(0.78, 0.92, 1.0, 1)
+damage = 5.0
+cooldown = 0.6
+count = 2
+radius = 105.0
+speed = 3.6
+knockback = 40.0
+crowd = 0.72
+level_damage = Array[float]([1.0, 1.2, 1.45, 1.7, 2.0])
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "air"
+effect = "hit_air"

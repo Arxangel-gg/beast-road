@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "forge_ward"
+display_name = "Forge Ward"
+description = "Rare card. Every ten seconds each tower near you gains a ward of a tenth."
+rarity = 2
+first_act = 3
+branch = 1
+tags = Array[String](["Fire", "Arsenal", "Ward", "Tower"])
+card_text = "Tempered, and then tempered again."
+weapon = "forge_ward"

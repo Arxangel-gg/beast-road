@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tidewall"
+display_name = "Tidewall"
+description = "Every seven and a half seconds, a ward of a twelfth of your health."
+pattern = 8
+anchor = 0
+element = 1
+tint = Color(0.55, 0.82, 1.0, 1)
+damage = 0.0
+cooldown = 7.5
+share = 0.08
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.0, 1.0, 1.0, 1.0])
+effect = "ward"

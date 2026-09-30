@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "emberline"
+display_name = "Emberline"
+description = "Rare card. A line of fire hangs between towers near you and burns what crosses it."
+rarity = 2
+first_act = 4
+branch = 1
+tags = Array[String](["Fire", "Arsenal", "Arc", "Tower"])
+card_text = "The towers have drawn a line, and it is lit."
+weapon = "emberline"

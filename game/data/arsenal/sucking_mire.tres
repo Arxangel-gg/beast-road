@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "sucking_mire"
+display_name = "Sucking Mire"
+description = "Bodies within the ring wade through mud at six tenths of their pace."
+pattern = 12
+anchor = 0
+element = 2
+tint = Color(0.6, 0.5, 0.34, 1)
+damage = 0.0
+cooldown = 2.0
+radius = 110.0
+slow = 0.6
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.0, 1.0, 1.0, 1.0])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.1, 1.25, 1.4, 1.6])
+effect = "quake_dust"

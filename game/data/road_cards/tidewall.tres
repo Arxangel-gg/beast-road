@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tidewall"
+display_name = "Tidewall"
+description = "Uncommon card. Every seven and a half seconds, a ward of a twelfth of your health."
+rarity = 1
+first_act = 2
+branch = 0
+tags = Array[String](["Water", "Arsenal", "Ward"])
+card_text = "Water stands between you and the blow, and then it is gone."
+weapon = "tidewall"

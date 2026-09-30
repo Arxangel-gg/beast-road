@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "frost_wraiths"
+display_name = "Frost Wraiths"
+description = "Uncommon card. A body you kill lets a cold shade go that slows the next one it finds."
+rarity = 1
+first_act = 3
+branch = 0
+tags = Array[String](["Water", "Arsenal", "On kill"])
+card_text = "The dead are cold, and they share it."
+weapon = "frost_wraiths"

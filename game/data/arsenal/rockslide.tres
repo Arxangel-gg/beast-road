@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "rockslide"
+display_name = "Rockslide"
+description = "A stone caroms from body to body, heavier than it looks."
+pattern = 2
+anchor = 0
+element = 2
+tint = Color(0.78, 0.66, 0.48, 1)
+damage = 13.0
+cooldown = 1.8
+count = 2
+reach = 360.0
+knockback = 50.0
+crowd = 1.0
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "earth"
+effect = "slam_impact"

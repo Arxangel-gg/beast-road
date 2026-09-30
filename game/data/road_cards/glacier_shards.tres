@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "glacier_shards"
+display_name = "Glacier Shards"
+description = "Rare card. Every fourteen kills on the road, ice falls from the towers near you and slows what it lands on."
+rarity = 2
+first_act = 3
+branch = 1
+tags = Array[String](["Water", "Arsenal", "Strike", "Tower"])
+card_text = "The towers have been saving the cold."
+weapon = "glacier_shards"

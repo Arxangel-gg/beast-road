@@ -11451,6 +11451,23 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   toward its arm. The Hold's Disciplines page carries a **Primary** row of every
   form. `discipline_check` and `warden_sheet_check` had their "must be learned"
   invariants amended and dated, and a partner's row may name any real form.
+- **The cape, the top and the trousers have colours of their own.** Three look
+  keys, appended after the skin so an older partner's row still means what it
+  did, each an index into `WardenLook.CLOTH_COLOURS` with 0 as worn. The cape's
+  choice wins over its kind's tint in `WardenDress.outfit`. The top and the
+  trousers are found in the shader off the painting - warm linen at value 0.76,
+  warm grey at 0.33, measured on the base sheets - and the steel of heavy armour
+  is cool (hue 0.62), so a warm, quiet band finds the cloth and leaves the plate
+  and the skin. Only on a dressed body. **Not photographed yet**: the bands were
+  set from measured pixels, and the Glass's own preview is the picture to check.
+- **The Arsenal is sixty-seven weapons.** Twenty-eight more
+  (`tools/author_arsenal_2026_09_30.py`), every pattern in the elements and on
+  the anchors it lacked, each its sibling's mechanics so `arsenal_check`
+  measures it the way it measures the sibling, and each inside the power its
+  anchor already spans (the script asserts it), so `curve_report`'s best hand
+  is unchanged and what the wave buys is choice. Spread over Acts I to IV and
+  three rarities; icons composed from shipped paintings as before. The deck
+  holds its quarter of defence (twenty of sixty-seven).
 
 ### The three escape hatches - and why there are only three
 

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "glacier_shards"
+display_name = "Glacier Shards"
+description = "Every fourteen kills on the road, ice falls from the towers near you and slows what it lands on."
+pattern = 5
+anchor = 1
+element = 1
+tint = Color(0.6, 0.86, 1.0, 1)
+damage = 10.0
+cooldown = 5.0
+radius = 80.0
+slow = 0.7
+every_kills = 14
+crowd = 1.8
+level_count = Array[int]([0, 0, 0, 0, 0])
+head = "water"
+effect = "frost_ring"

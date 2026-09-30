@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wildfire_leap"
+display_name = "Wildfire Leap"
+description = "Uncommon card. Fire jumps from body to body and leaves each one burning. More jumps as it grows."
+rarity = 1
+first_act = 3
+branch = 0
+tags = Array[String](["Fire", "Arsenal", "Chain"])
+card_text = "A spark that remembers every body it has been in."
+weapon = "wildfire_leap"

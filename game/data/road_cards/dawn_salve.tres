@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "dawn_salve"
+display_name = "Dawn Salve"
+description = "Uncommon card. Every five and a half seconds you heal a sixteenth of what you are missing."
+rarity = 1
+first_act = 3
+branch = 0
+tags = Array[String](["Fire", "Arsenal", "Mend"])
+card_text = "Warmth, a little at a time, is still warmth."
+weapon = "dawn_salve"

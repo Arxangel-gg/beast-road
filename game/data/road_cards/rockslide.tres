@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "rockslide"
+display_name = "Rockslide"
+description = "Rare card. A stone caroms from body to body, heavier than it looks."
+rarity = 2
+first_act = 4
+branch = 0
+tags = Array[String](["Earth", "Arsenal", "Chain"])
+card_text = "It does not stop because something is in the way."
+weapon = "rockslide"

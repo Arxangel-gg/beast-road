@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tidal_chain"
+display_name = "Tidal Chain"
+description = "Uncommon card. Water leaps from body to body and leaves each one soaked - lightning follows a wet road further."
+rarity = 1
+first_act = 2
+branch = 0
+tags = Array[String](["Water", "Arsenal", "Chain"])
+card_text = "The tide does not ask which of them is next."
+weapon = "tidal_chain"

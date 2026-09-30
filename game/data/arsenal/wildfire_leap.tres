@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wildfire_leap"
+display_name = "Wildfire Leap"
+description = "Fire jumps from body to body and leaves each one burning. More jumps as it grows."
+pattern = 2
+anchor = 0
+element = 0
+tint = Color(1.0, 0.55, 0.22, 1)
+damage = 8.0
+cooldown = 1.6
+count = 3
+reach = 380.0
+duration = 2.0
+burn_share = 0.4
+crowd = 1.0
+level_count = Array[int]([0, 1, 2, 3, 4])
+head = "fire"
+effect = "hit_fire"

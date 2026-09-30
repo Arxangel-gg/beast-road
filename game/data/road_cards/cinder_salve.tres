@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cinder_salve"
+display_name = "Cinder Salve"
+description = "Uncommon card. Every five seconds the towers near you mend a little of what they are missing."
+rarity = 1
+first_act = 2
+branch = 1
+tags = Array[String](["Fire", "Arsenal", "Mend", "Tower"])
+card_text = "Warm mortar sets faster."
+weapon = "cinder_salve"

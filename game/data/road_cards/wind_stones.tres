@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wind_stones"
+display_name = "Wind Stones"
+description = "Rare card. A pebble of wind circles you and swallows one shot; it reforms every six and a half seconds."
+rarity = 2
+first_act = 3
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Guard"])
+card_text = "An arrow that meets the wind forgets where it was going."
+weapon = "wind_stones"

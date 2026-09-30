@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wellspring"
+display_name = "Wellspring"
+description = "Rare card. Every eight seconds the town's wall mends a little of what it is missing."
+rarity = 2
+first_act = 4
+branch = 2
+tags = Array[String](["Water", "Arsenal", "Mend", "Town"])
+card_text = "The town drinks, and stands a little straighter."
+weapon = "wellspring"

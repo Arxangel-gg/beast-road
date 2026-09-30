@@ -269,6 +269,127 @@ def compose(card_id):
         c = orbit(hue(spell('stonefall'), 0.0, 0.35, 0.95), 4, 40, 44, radial=False)
         place(c, hue(spell('cinder_nova'), 0.08, 0.5, 1.0), (64, 64), 58)
         return glow(c, (220, 200, 150), 0.55)
+    # The second wave (2026-09-30): each pattern in the elements and on the
+    # anchors it lacked, composed from the same paintings.
+    if card_id == 'gale_blades':
+        blade = hue(spell('sky_lance'), 0.43, 0.35, 1.25)
+        c = orbit(blade, 3, 32, 92)
+        return glow(c, (190, 225, 255), 0.9, 8)
+    if card_id == 'hurled_stones':
+        rock = hue(spell('stonefall'), 0.0, 0.5, 1.0)
+        for at, size in (((34, 88), 44), ((64, 62), 54), ((96, 36), 62)):
+            place(c, rock, at, size, angle=-20)
+        return glow(c, (210, 180, 140), 0.35)
+    if card_id == 'tidal_chain':
+        wave = hue(spell('sky_lance'), 0.43, 0.9, 1.05)
+        place(c, wave, (30, 42), 104, angle=-35)
+        place(c, wave, (64, 74), 104, angle=35)
+        place(c, wave, (98, 46), 104, angle=-35)
+        return glow(c, (110, 190, 255), 0.7)
+    if card_id == 'wildfire_leap':
+        flame = hue(spell('sky_lance'), 0.93, 1.1, 1.05)
+        place(c, flame, (30, 42), 104, angle=-35)
+        place(c, flame, (64, 74), 104, angle=35)
+        place(c, flame, (98, 46), 104, angle=-35)
+        return glow(c, (255, 140, 60), 0.7)
+    if card_id == 'rockslide':
+        rock = hue(spell('stonefall'), 0.0, 0.4, 0.95)
+        place(c, rock, (30, 40), 50)
+        place(c, rock, (64, 78), 58)
+        place(c, rock, (98, 44), 50)
+        return glow(c, (200, 170, 130), 0.4)
+    if card_id == 'quake_pulse':
+        place(c, hue(spell('tremor'), 0.0, 0.8, 1.0), (64, 64), 124)
+        place(c, hue(spell('stonefall'), 0.0, 0.5, 1.0), (64, 64), 54)
+        return glow(c, (210, 180, 130), 0.4)
+    if card_id == 'static_wake':
+        spark = hue(spell('cinder_nova'), 0.55, 0.6, 1.15)
+        for at, size in (((26, 100), 38), ((52, 76), 50), ((80, 52), 62), ((104, 26), 44)):
+            place(c, spark, at, size)
+        return glow(c, (170, 200, 255), 0.6)
+    if card_id == 'meteor_shard':
+        place(c, spell('stonefall'), (70, 70), 96)
+        place(c, spell('ember_fall'), (44, 40), 70, angle=-30)
+        return glow(c, (255, 150, 70), 0.6)
+    if card_id == 'pyre_spirits':
+        place(c, hue(spell('marrow_drain'), 0.95, 1.1, 1.1), (64, 64), 118)
+        return glow(c, (255, 130, 60), 0.6)
+    if card_id == 'frost_wraiths':
+        place(c, hue(spell('marrow_drain'), 0.5, 0.9, 1.15), (64, 64), 118)
+        return glow(c, (140, 210, 255), 0.6)
+    if card_id == 'bone_shards':
+        place(c, hue(spell('marrow_drain'), 0.12, 0.25, 1.25), (64, 64), 118)
+        return glow(c, (235, 225, 200), 0.45)
+    if card_id == 'tidewall':
+        place(c, hue(spell('bulwark_ward'), 0.5, 0.9, 1.05), (64, 64), 118)
+        return glow(c, (120, 200, 255), 0.7, 8)
+    if card_id == 'static_skin':
+        c = orbit(spell('sky_lance'), 6, 40, 46)
+        place(c, spell('bulwark_ward'), (64, 64), 62)
+        return glow(c, (170, 200, 255), 0.5)
+    if card_id == 'wind_stones':
+        c = orbit(hue(spell('stonefall'), 0.55, 0.3, 1.2), 3, 40, 44, radial=False)
+        place(c, hue(spell('bulwark_ward'), 0.5, 0.5, 1.1), (64, 64), 54)
+        return glow(c, (200, 225, 255), 0.45)
+    if card_id == 'dawn_salve':
+        place(c, hue(spell('marrow_drain'), 0.08, 0.9, 1.2), (64, 64), 118)
+        return glow(c, (255, 210, 130), 0.6)
+    if card_id == 'sucking_mire':
+        place(c, hue(spell('cinder_nova'), 0.1, 0.35, 0.7), (64, 72), 124)
+        place(c, hue(spell('bulwark_ward'), 0.1, 0.3, 0.8), (64, 56), 52)
+        return glow(c, (150, 120, 80), 0.5)
+    if card_id == 'brazier_wisps':
+        place(c, tower('ember_spire'), (64, 72), 96)
+        c2 = orbit(spell('ember_fall'), 3, 46, 36, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (255, 150, 70), 0.45)
+    if card_id == 'tidewire':
+        place(c, tower('tide_caller'), (26, 76), 70)
+        place(c, tower('tide_caller'), (102, 76), 70)
+        place(c, hue(spell('sky_lance'), 0.43, 0.9, 1.05), (64, 44), 108, angle=90)
+        return glow(c, (110, 190, 255), 0.5)
+    if card_id == 'emberline':
+        place(c, tower('sear_coil'), (26, 76), 70)
+        place(c, tower('sear_coil'), (102, 76), 70)
+        place(c, hue(spell('sky_lance'), 0.93, 1.1, 1.05), (64, 44), 108, angle=90)
+        return glow(c, (255, 140, 60), 0.5)
+    if card_id == 'storm_beacon':
+        place(c, tower('stormvane'), (50, 78), 96)
+        place(c, spell('sky_lance'), (94, 36), 70, angle=-45)
+        return glow(c, (170, 200, 255), 0.45)
+    if card_id == 'glacier_shards':
+        place(c, tower('glacier'), (50, 78), 96)
+        place(c, spell('frost_lance'), (94, 36), 70, angle=-45)
+        return glow(c, (140, 210, 255), 0.45)
+    if card_id == 'forge_ward':
+        place(c, tower('bellows_forge'), (64, 74), 94)
+        place(c, hue(spell('bulwark_ward'), 0.95, 1.0, 1.05), (64, 40), 58)
+        return glow(c, (255, 170, 90), 0.5)
+    if card_id == 'cinder_salve':
+        place(c, tower('flash_kiln'), (64, 72), 96)
+        c2 = orbit(hue(spell('cinder_nova'), 0.05, 0.8, 1.15), 3, 44, 34, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (255, 190, 120), 0.45)
+    if card_id == 'thorn_bastion':
+        place(c, tower('bulwark'), (64, 74), 96)
+        c2 = orbit(spell('thorn_volley'), 5, 44, 40)
+        c.alpha_composite(c2)
+        return glow(c, (140, 210, 90), 0.4)
+    if card_id == 'tide_bell':
+        place(c, hue(spell('tremor'), 0.5, 0.9, 1.1), (64, 64), 124)
+        place(c, relic(11), (64, 62), 84)
+        return glow(c, (120, 200, 255), 0.4)
+    if card_id == 'icefall':
+        place(c, hue(spell('cinder_nova'), 0.52, 0.9, 1.1), (78, 88), 76)
+        for at, size in (((30, 40), 112), ((58, 58), 118), ((88, 44), 112)):
+            place(c, spell('frost_lance'), at, size, angle=-60)
+        return glow(c, (140, 210, 255), 1.0, 8)
+    if card_id == 'watchfire_crows':
+        place(c, spell('call_crow'), (64, 66), 112)
+        return glow(c, (190, 215, 255), 0.5)
+    if card_id == 'wellspring':
+        place(c, tower('healing_well'), (64, 70), 100)
+        return glow(c, (120, 200, 255), 0.5)
     raise KeyError(card_id)
 
 
@@ -281,7 +402,35 @@ IDS = ['ember_wisps', 'frost_shards', 'seeking_flames', 'chain_spark', 'thunderc
        'flame_trail', 'frost_trail', 'lightning_strike', 'ice_pillar',
        'lantern_ward', 'marrow_mend', 'thornskin', 'guardian_stones', 'frostbound_ring',
        'masons_wisps', 'ward_lattice', 'kiln_skin', 'hearthstone', 'gate_ward',
-       'steadfast_salt', 'aegis_of_the_road', 'stone_choir']
+       'steadfast_salt', 'aegis_of_the_road', 'stone_choir',
+       'gale_blades',
+       'hurled_stones',
+       'tidal_chain',
+       'wildfire_leap',
+       'rockslide',
+       'quake_pulse',
+       'static_wake',
+       'meteor_shard',
+       'pyre_spirits',
+       'frost_wraiths',
+       'bone_shards',
+       'tidewall',
+       'static_skin',
+       'wind_stones',
+       'dawn_salve',
+       'sucking_mire',
+       'brazier_wisps',
+       'tidewire',
+       'emberline',
+       'storm_beacon',
+       'glacier_shards',
+       'forge_ward',
+       'cinder_salve',
+       'thorn_bastion',
+       'tide_bell',
+       'icefall',
+       'watchfire_crows',
+       'wellspring']
 
 if __name__ == '__main__':
     import sys

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "pyre_spirits"
+display_name = "Pyre Spirits"
+description = "A body you kill lets a flame go to hunt the next one."
+pattern = 6
+anchor = 0
+element = 0
+tint = Color(1.0, 0.5, 0.25, 1)
+damage = 11.0
+cooldown = 0.8
+count = 1
+reach = 400.0
+speed = 480.0
+duration = 2.0
+burn_share = 0.3
+crowd = 1.0
+level_damage = Array[float]([1.0, 1.2, 1.45, 1.7, 2.0])
+level_count = Array[int]([0, 0, 1, 1, 2])
+head = "fire"
+effect = "hit_fire"

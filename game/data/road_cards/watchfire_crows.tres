@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "watchfire_crows"
+display_name = "Watchfire Crows"
+description = "Uncommon card. A body that dies near the town lets a crow of wind go that strikes the ones beside it."
+rarity = 1
+first_act = 3
+branch = 2
+tags = Array[String](["Air", "Arsenal", "On kill", "Town"])
+card_text = "The watch keeps birds, and the birds keep watch."
+weapon = "watchfire_crows"

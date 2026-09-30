@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "quake_pulse"
+display_name = "Quake Pulse"
+description = "Uncommon card. The ground bucks around you and throws the bodies back."
+rarity = 1
+first_act = 2
+branch = 0
+tags = Array[String](["Earth", "Arsenal", "Nova"])
+card_text = "Stamp once. The road answers."
+weapon = "quake_pulse"

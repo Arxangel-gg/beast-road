@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tide_bell"
+display_name = "Tide Bell"
+description = "The town rings a bell of water that soaks and slows everything near it."
+pattern = 3
+anchor = 2
+element = 1
+tint = Color(0.55, 0.82, 1.0, 1)
+damage = 18.0
+cooldown = 5.0
+radius = 360.0
+slow = 0.75
+knockback = 60.0
+crowd = 4.0
+level_damage = Array[float]([1.0, 1.35, 1.75, 2.2, 2.7])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.08, 1.16, 1.24, 1.35])
+effect = "frost_ring"

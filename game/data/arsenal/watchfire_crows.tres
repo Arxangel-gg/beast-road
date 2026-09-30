@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "watchfire_crows"
+display_name = "Watchfire Crows"
+description = "A body that dies near the town lets a crow of wind go that strikes the ones beside it."
+pattern = 6
+anchor = 2
+element = 3
+tint = Color(0.8, 0.88, 1.0, 1)
+damage = 14.0
+cooldown = 1.0
+radius = 80.0
+reach = 700.0
+crowd = 2.0
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.4])
+effect = "hit_air"

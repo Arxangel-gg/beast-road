@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "gale_blades"
+display_name = "Gale Blades"
+description = "Uncommon card. Blades of wind circle you and throw back what they cut. More blades as it grows."
+rarity = 1
+first_act = 2
+branch = 0
+tags = Array[String](["Air", "Arsenal", "Orbit"])
+card_text = "The road's wind learned your name and keeps close."
+weapon = "gale_blades"
