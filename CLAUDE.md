@@ -11959,6 +11959,16 @@ them out under each craft - the kept one lit and said, a choice waiting, the
 rest dimmed at the level they open - because a choice nobody can see coming is
 not a build. `hold_card_shot` is the photograph.
 
+**A boss makes an entrance, and the Guide was describing a game that had
+moved on, as of 2026-09-30.** The first time an act boss is on the screen the
+ground takes its weight - dust, a ring the width of it, a shake weighted by
+distance, a stone knock and its name (`Enemy._tick_entrance`, once, a look).
+And four Guide pages and a lore entry still described the retired Road Cards,
+the ten-node Arcane tree and a craft with no talents: rewritten from the code,
+with two new pages (the sandbox, Hardcore) photographed by `guide_shots`.
+**The Guide is a model of the game and goes stale the way this file does** -
+read its pages against the systems before a release, not only its pictures.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
