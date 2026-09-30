@@ -171,6 +171,13 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 			if body == null:
 				continue
 			_run.process_mode = Node.PROCESS_MODE_DISABLED
+			# **No sidestep while this is measured** (2026-09-30). A light body may
+			# dodge a swing it reads (`_on_hero_swing`), and a dodge writes `_slip`
+			# too - 90 units over 0.22 s, 409 a second - so a Warden's swing landing
+			# near the probe read here as a pounce's residue: the guard run of
+			# 1f07c694 failed a Glassborn on 413 units a second, and four local
+			# runs did not. The dodge is its own test; this one measures the leap.
+			body.set("_dodge_ready", Time.get_ticks_msec() / 1000.0 + 3600.0)
 			# Far from the town, so nothing steals the target, and with the quarry
 			# inside the leap but outside the arm - which is what `_behaviour_wants_to`
 			# asks for - and inside `ENEMY_HERO_AGGRO_RANGE`, or it is not a target.
@@ -213,6 +220,10 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 				body.call("_process", FRAME)
 			var drift: float = walked_from.distance_to(body.global_position) / (10.0 * FRAME)
 			var slip: Vector2 = body.get("_slip") as Vector2
+			# A slip that carries a timer - the snow's, a dodge's - is cleared by
+			# that timer; what this holds is the one that carries none.
+			if float(body.get("_slip_left")) > 0.0:
+				slip = Vector2.ZERO
 			_run.process_mode = Node.PROCESS_MODE_INHERIT
 
 			var tag: String = "%s%s" % [breed.id, " (interrupted)" if interrupted else ""]
