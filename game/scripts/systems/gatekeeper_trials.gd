@@ -81,7 +81,10 @@ static func mantle_for(tier_id: String) -> Dictionary:
 	var tier: CampaignTierData = ContentDB.tiers.get(tier_id, null) as CampaignTierData
 	var order: int = tier.order if tier != null else 0
 	var rarity: int = clampi(Stash.RARITY_NAMES.find("Oathbound") + order, 0, Stash.RARITY_NAMES.size() - 1)
-	return Stash.make(kind.id, rarity)
+	# A trophy is made well (2026-09-30): the Gatekeeper's Mantle is a Masterwork.
+	var mantle: Dictionary = Stash.make(kind.id, rarity)
+	mantle["quality"] = Stash.QUALITY_NAMES.size() - 1
+	return mantle
 
 
 ## The rung an act offers, or 0 for an act that offers none.

@@ -11469,6 +11469,33 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   three rarities; icons composed from shipped paintings as before. The deck
   holds its quarter of defence (twenty of sixty-seven).
 
+**Gear has a make, and an eighth rarity, as of 2026-09-30.** Owner: *"Need way
+more loot variety and qualities/rarities."* Two things, both on the gear scale
+and neither above it.
+
+**Unchained is the rung above Beastcalled**, 1.14 of it in points - a smaller
+step again, the ladder continuing to flatten as it did for Chainbroken and
+Beastcalled - with the Ledger stocking it at `0.001` so it stays something
+found. Every table keyed by rarity grew an entry, and `balance_test`'s keyed
+table walk now names the list colour, the legendary count, the sockets and both
+temper prices, because the stash's own `RARITY_COLOURS` had five entries for
+seven rarities and read Chainbroken and Beastcalled as Epic through the clamp -
+the silent short table that walk exists to find.
+
+**Every piece has a make**: Cracked, ordinary, Superior or Masterwork, worth
+0.9, 1, 1.07 and 1.15 of its points, rolled from its name on
+`GEAR_QUALITY_WEIGHTS` so the average make is one. **Mean-preserving is the
+bound**: the gear scale the campaign tiers are tuned against does not move, and
+what the spread adds is something to farm inside it - two Masterwork pieces
+are the reason to keep killing the same act. It is stored on the piece when
+rolled (`quality`, absent for ordinary), so tempering a piece renames it
+without re-rolling its make; read back clamped, so a hand-edited value is a
+make the game has. The Gatekeeper's Mantle is always Masterwork, because it is
+a trophy rather than a roll. `gear_affix_check` holds the weights' mean, that a
+make scales points and nothing else, that it survives the save, a partner's
+sheet and a temper, and that two pieces differing only in make are not the same
+piece.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

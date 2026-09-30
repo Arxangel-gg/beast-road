@@ -28,6 +28,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_test_the_data()
 	_test_the_roll()
+	_test_the_make()
 	MetaState.resume_saves()
 	if _failures > 0:
 		push_error("[affixes] FAIL - %d of %d" % [_failures, _checked])
@@ -123,6 +124,102 @@ func _test_the_roll() -> void:
 			if rarity == Stash.RARITY_NAMES.size() - 1:
 				top_seen += first.size()
 	_check(top_seen > 0, "the top rarity actually wears affixes")
+
+
+## **A piece's make** (owner, 2026-09-30: "qualities/rarities"). The weights
+## put the average make at one, so the gear scale's middle does not move; a
+## drop's make follows those weights over many names; a make scales the
+## points and nothing else; absent is ordinary, so an old piece is untouched;
+## two pieces of different make are different gear to a trade; and the name
+## says so. Unchained, the rung above Beastcalled, steps up by less than the
+## rung below it did.
+func _test_the_make() -> void:
+	var total: float = 0.0
+	var mean: float = 0.0
+	for index: int in Balance.GEAR_QUALITY_WEIGHTS.size():
+		total += Balance.GEAR_QUALITY_WEIGHTS[index]
+		mean += Balance.GEAR_QUALITY_WEIGHTS[index] * Stash.QUALITY_SCALE[index]
+	_check(Balance.GEAR_QUALITY_WEIGHTS.size() == Stash.QUALITY_NAMES.size()
+		and Stash.QUALITY_SCALE.size() == Stash.QUALITY_NAMES.size(), "every make needs a weight and a scale")
+	_check(absf(mean / total - 1.0) < 0.01,
+		"the average make is %.3f - it must sit at one, or the gear scale moves" % (mean / total))
+	var counts: Array[int] = [0, 0, 0, 0]
+	for name: int in 20000:
+		counts[Stash.quality_for_name(Stash.new_uid())] += 1
+	for index: int in counts.size():
+		var wanted: float = Balance.GEAR_QUALITY_WEIGHTS[index] / total
+		var seen: float = float(counts[index]) / 20000.0
+		_check(absf(seen - wanted) < 0.02,
+			"%s drops %.3f of the time against %.3f authored" % [Stash.QUALITY_NAMES[index], seen, wanted])
+	# The strongest kind, so a make's tenth is never lost to rounding. The first
+	# cut asked for six base points, no kind has more than five, and every check
+	# below this line silently never ran: a comparison of nothing.
+	var kind: GearData = null
+	for value: Variant in ContentDB.gear_kinds.values():
+		var candidate := value as GearData
+		if candidate != null and not candidate.trophy \
+				and (kind == null or candidate.base_points > kind.base_points):
+			kind = candidate
+	_check(kind != null, "no gear kind to measure a make on")
+	if kind != null:
+		var plain: Dictionary = Stash.make(kind.id, 4, 3)
+		var master: Dictionary = plain.duplicate()
+		master["quality"] = 3
+		var cracked: Dictionary = plain.duplicate()
+		cracked["quality"] = 0
+		_check(Stash.quality(plain) == Stash.QUALITY_ORDINARY, "a piece with no make must read as ordinary")
+		_check(Stash.points(master, kind) > Stash.points(plain, kind) and Stash.points(cracked, kind) < Stash.points(plain, kind),
+			"a Masterwork must grant more than ordinary and a Cracked piece less (%d, %d, %d)"
+			% [Stash.points(cracked, kind), Stash.points(plain, kind), Stash.points(master, kind)])
+		_check(not Stash.same_gear(plain, master), "a trade could swap an ordinary piece for a Masterwork of the same kind")
+		_check(Stash.display_name(master, kind).begins_with("Masterwork ") and not Stash.display_name(plain, kind).begins_with(" "),
+			"a Masterwork must say so in its name, and an ordinary piece say nothing")
+		_test_the_make_travels(kind)
+	var mantle: Dictionary = GatekeeperTrials.mantle_for("normal")
+	_check(mantle.is_empty() or Stash.quality(mantle) == Stash.QUALITY_NAMES.size() - 1,
+		"the Gatekeeper's Mantle is a trophy and must always be a Masterwork")
+	var top: int = Stash.RARITY_NAMES.size() - 1
+	_check(Stash.RARITY_NAMES[top] == "Unchained", "the top of the ladder is Unchained")
+	_check(Stash.RARITY_POINTS[top] / Stash.RARITY_POINTS[top - 1]
+		< Stash.RARITY_POINTS[top - 1] / Stash.RARITY_POINTS[top - 2],
+		"Unchained must step up by less than Beastcalled did - longer, never steeper")
+
+
+## **The make goes where the piece goes**: through the real save and its
+## reader (a planted make of 99 reads back as the best the game has), through a
+## temper (which renames the piece and must not re-roll its make), and onto a
+## partner's sheet. The account is put back exactly as it was afterwards.
+func _test_the_make_travels(kind: GearData) -> void:
+	var restore: String = MetaState.serialized_save()
+	var worn: Dictionary = Stash.make(kind.id, 4, 3)
+	worn["quality"] = 3
+	var planted: Dictionary = Stash.make(kind.id, 1, 2)
+	planted["quality"] = 99
+	MetaState.stash.append(worn)
+	MetaState.stash.append(planted)
+	MetaState.adopt_save(MetaState.parse_save_text(MetaState.serialized_save()))
+	var back: int = Stash.index_of(MetaState.stash, Stash.uid(worn))
+	var odd: int = Stash.index_of(MetaState.stash, Stash.uid(planted))
+	_check(back >= 0 and Stash.quality(MetaState.stash[back]) == 3,
+		"a Masterwork came back from the save as something else")
+	_check(odd >= 0 and Stash.quality(MetaState.stash[odd]) == Stash.QUALITY_NAMES.size() - 1,
+		"a make of 99 must read back as the best make the game has")
+	if back < 0:
+		MetaState.adopt_save(MetaState.parse_save_text(restore))
+		return
+	MetaState.shards = 1000000
+	MetaState.marks = 1000000
+	var why: String = MetaState.temper_gear(Stash.uid(MetaState.stash[back]))
+	_check(why.is_empty() and Stash.quality(MetaState.stash[back]) == 3,
+		"tempering re-rolled a piece's make (%s)" % why)
+	MetaState.equip(kind.slot, back)
+	var sheet: WardenSheet = WardenSheet.from_row(WardenSheet.pack_mine())
+	var carried: bool = false
+	for piece: Dictionary in sheet.worn:
+		if String(piece.get("kind", "")) == kind.id and Stash.quality(piece) == 3:
+			carried = true
+	_check(carried, "a partner's sheet dropped the make of a worn Masterwork")
+	MetaState.adopt_save(MetaState.parse_save_text(restore))
 
 
 func _check(passed: bool, message: String) -> void:

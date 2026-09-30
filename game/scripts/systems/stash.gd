@@ -37,6 +37,12 @@ const RARITY_NAMES: Array[String] = [
 	# breaks neither, is one word doing two opposite jobs. The equipped state
 	# is called Equipped everywhere now and this is the battered rung.
 	"Rough", "Sound", "Fine", "Runed", "Oathbound", "Chainbroken", "Beastcalled",
+	# **Unchained** (owner, 2026-09-30: "Need way more loot variety and
+	# qualities/rarities"). Above Beastcalled, because cutting the chain off
+	# Yuri is the end of the story and nothing the beast answered to outranks
+	# the beast walking free. Appended, never inserted: a piece names its
+	# rarity by number.
+	"Unchained",
 ]
 
 ## Multiplier on a kind's base points, per rarity.
@@ -49,11 +55,28 @@ const RARITY_NAMES: Array[String] = [
 ## geometric run would have given. What the new rarities mostly buy is breadth -
 ## see `Balance.GEAR_AFFIX_COUNT`, where they are the only pieces that dress
 ## three and four attributes.
-const RARITY_POINTS: Array[float] = [1.0, 1.35, 1.8, 2.4, 3.2, 3.9, 4.6]
+## Unchained (2026-09-30) steps 1.14 above Beastcalled - smaller again, so the
+## ladder grew longer and not steeper, which is the bound the last two rungs
+## were added under.
+const RARITY_POINTS: Array[float] = [1.0, 1.35, 1.8, 2.4, 3.2, 3.9, 4.6, 5.25]
 
 ## What each rarity is worth when sold, and yields when broken.
-const RARITY_MARKS: Array[int] = [12, 26, 55, 120, 260, 560, 1200]
-const RARITY_SHARDS: Array[int] = [1, 2, 5, 11, 24, 52, 112]
+const RARITY_MARKS: Array[int] = [12, 26, 55, 120, 260, 560, 1200, 2600]
+const RARITY_SHARDS: Array[int] = [1, 2, 5, 11, 24, 52, 112, 240]
+
+## **A piece's make, beside its rarity** (owner, 2026-09-30: "qualities").
+## Cracked, ordinary, Superior or Masterwork, rolled when a piece drops from
+## its own new name - never from the run's dice, so no seeded roll moved -
+## and stored, so a tempering that renames the piece does not reroll it.
+## **Mean-preserving**: the weights (`Balance.GEAR_QUALITY_WEIGHTS`) put the
+## average make at one, so the gear scale the campaign tiers are tuned
+## against keeps its middle and gains a spread worth farming - a Masterwork
+## is the reason to keep running a rarity already found. Absent is ordinary,
+## so every piece from before this reads exactly as it did.
+const QUALITY_NAMES: Array[String] = ["Cracked", "", "Superior", "Masterwork"]
+const QUALITY_SCALE: Array[float] = [0.9, 1.0, 1.07, 1.15]
+const QUALITY_ORDINARY: int = 1
+const QUALITY_COLOURS: Array[Color] = [Color("a08e84"), Color(0, 0, 0, 0), Color("9fd7a8"), Color("f2d27a")]
 
 ## Levels a piece may be upgraded through, and what each level adds.
 const MAX_LEVEL: int = 5
@@ -132,7 +155,8 @@ static func index_of(pieces: Array, wanted_uid: int) -> int:
 static func same_gear(a: Dictionary, b: Dictionary) -> bool:
 	return String(a.get("kind", "")) == String(b.get("kind", "")) \
 		and int(a.get("rarity", -1)) == int(b.get("rarity", -2)) \
-		and int(a.get("level", -1)) == int(b.get("level", -2))
+		and int(a.get("level", -1)) == int(b.get("level", -2)) \
+		and quality(a) == quality(b)
 
 
 ## Whether the player has marked this piece to be left alone.
@@ -201,7 +225,31 @@ static func roll(kinds: Array, tier_order: int, rng: RandomNumberGenerator) -> D
 	var rarity: int = 0
 	while rarity < RARITY_NAMES.size() - 1 and rng.randf() < step:
 		rarity += 1
-	return make(chosen.id, rarity)
+	var piece: Dictionary = make(chosen.id, rarity)
+	var made: int = quality_for_name(int(piece["uid"]))
+	if made != QUALITY_ORDINARY:
+		piece["quality"] = made
+	return piece
+
+
+## A piece's make: Cracked, ordinary, Superior or Masterwork.
+static func quality(piece: Dictionary) -> int:
+	return clampi(int(piece.get("quality", QUALITY_ORDINARY)), 0, QUALITY_NAMES.size() - 1)
+
+
+## **The make a name rolls**, against `GEAR_QUALITY_WEIGHTS`: arithmetic off
+## the name, as the affixes are, so no dice move.
+static func quality_for_name(name: int) -> int:
+	var weights: Array[float] = Balance.GEAR_QUALITY_WEIGHTS
+	var total: float = 0.0
+	for weight: float in weights:
+		total += weight
+	var pick: float = float(_mixed(name >> 5) % 10000) / 10000.0 * total
+	for index: int in weights.size():
+		pick -= weights[index]
+		if pick < 0.0:
+			return index
+	return QUALITY_ORDINARY
 
 
 ## Attribute points a piece grants.
@@ -217,7 +265,7 @@ static func points(piece: Dictionary, kind: GearData) -> int:
 	if kind.slot >= 0 and kind.slot < Balance.GEAR_SLOT_WEIGHT.size():
 		worn = Balance.GEAR_SLOT_WEIGHT[kind.slot]
 	var scaled: float = float(kind.base_points) * RARITY_POINTS[rarity] \
-		* (1.0 + float(level - 1) * LEVEL_POINTS) * worn
+		* (1.0 + float(level - 1) * LEVEL_POINTS) * worn * QUALITY_SCALE[quality(piece)]
 	# Never zero. A minor slot grants less; it never grants nothing, or
 	# wearing something would be indistinguishable from wearing nothing.
 	return maxi(1, int(round(scaled)))
@@ -456,6 +504,9 @@ static func display_name(piece: Dictionary, kind: GearData) -> String:
 	var words: String = kind.display_name
 	if not prefixes.is_empty():
 		words = " ".join(prefixes) + " " + words
+	var make_name: String = QUALITY_NAMES[quality(piece)]
+	if not make_name.is_empty():
+		words = make_name + " " + words
 	if not suffixes.is_empty():
 		words += " " + " ".join(suffixes)
 	return words
@@ -478,6 +529,12 @@ const RARITY_COLOURS: Array[Color] = [
 	Color("6fbf7d"),  # Fine
 	Color("6f8fdf"),  # Runed
 	Color("e0a94f"),  # Oathbound
+	# **Five colours for seven rarities until 2026-09-30**, so a Chainbroken and
+	# a Beastcalled row were drawn in Oathbound's gold - the clamp this array is
+	# read through hid it. `balance_test` holds it to the rarity count now.
+	Color("e0663f"),  # Chainbroken
+	Color("f4efd9"),  # Beastcalled
+	Color("8ff0ff"),  # Unchained
 ]
 
 

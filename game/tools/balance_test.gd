@@ -2998,6 +2998,12 @@ func _test_gear_pickup_escalates() -> void:
 		"drop colour": Balance.GEAR_RARITY_COLOURS,
 		"affix count": Balance.GEAR_AFFIX_COUNT,
 		"ledger supply": Balance.EXCHANGE_BASELINE_SUPPLY,
+		# Five colours for seven rarities until 2026-09-30, clamped in silence.
+		"list colour": Stash.RARITY_COLOURS,
+		"legendary count": Balance.GEAR_LEGENDARY_COUNT,
+		"sockets": Balance.GEAR_SOCKETS,
+		"temper shards": Balance.GEAR_TEMPER_SHARDS,
+		"temper marks": Balance.GEAR_TEMPER_MARKS,
 	}
 	for name: String in keyed:
 		var table: Array = keyed[name] as Array

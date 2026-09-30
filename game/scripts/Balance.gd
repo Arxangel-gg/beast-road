@@ -773,7 +773,7 @@ const EXCHANGE_FILL_BEST_MULTIPLIER: float = 3.0
 ## Oathbound piece is something a Warden found and mostly keeps. This is what
 ## makes the Ledger a place to round out a build rather than to buy one.
 const EXCHANGE_BASELINE_SUPPLY: Array[float] = [
-	1.0, 0.82, 0.5, 0.22, 0.07, 0.02, 0.005,
+	1.0, 0.82, 0.5, 0.22, 0.07, 0.02, 0.005, 0.001,
 ]
 
 ## How far the community's actual listings pull supply off that baseline.
@@ -882,7 +882,7 @@ const LOOT_LIGHT_PULSE_RATE: float = 2.4
 
 const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
-	Color("b486d9"), Color("e8b85c"), Color("e0663f"), Color("f4efd9")]
+	Color("b486d9"), Color("e8b85c"), Color("e0663f"), Color("f4efd9"), Color("8ff0ff")]
 
 # --- What finding a piece feels like -----------------------------------------
 #
@@ -899,20 +899,20 @@ const GEAR_RARITY_COLOURS: Array[Color] = [
 # with a colour.
 
 ## Ring radius at the pickup, per rarity.
-const GEAR_PICKUP_RING: Array[float] = [58.0, 70.0, 96.0, 140.0, 210.0, 258.0, 312.0]
+const GEAR_PICKUP_RING: Array[float] = [58.0, 70.0, 96.0, 140.0, 210.0, 258.0, 312.0, 366.0]
 
 ## How long that ring takes to open. Slower reads as bigger.
-const GEAR_PICKUP_RING_LIFE: Array[float] = [0.30, 0.32, 0.40, 0.52, 0.70, 0.82, 0.96]
+const GEAR_PICKUP_RING_LIFE: Array[float] = [0.30, 0.32, 0.40, 0.52, 0.70, 0.82, 0.96, 1.1]
 
 ## Rays thrown off the pickup. Zero for the bottom two: nothing happened.
-const GEAR_PICKUP_RAYS: Array[int] = [0, 0, 8, 14, 22, 28, 36]
+const GEAR_PICKUP_RAYS: Array[int] = [0, 0, 8, 14, 22, 28, 36, 44]
 
 ## Peak screen flash in the rarity's own colour. The top two only.
-const GEAR_PICKUP_FLASH: Array[float] = [0.0, 0.0, 0.0, 0.07, 0.16, 0.22, 0.30]
+const GEAR_PICKUP_FLASH: Array[float] = [0.0, 0.0, 0.0, 0.07, 0.16, 0.22, 0.30, 0.36]
 
 ## Camera kick. Reserved for the top rarity, so the screen moves for exactly one
 ## thing in the loot system and the player learns what that thing is.
-const GEAR_PICKUP_SHAKE: Array[float] = [0.0, 0.0, 0.0, 0.0, 7.0, 9.5, 12.0]
+const GEAR_PICKUP_SHAKE: Array[float] = [0.0, 0.0, 0.0, 0.0, 7.0, 9.5, 12.0, 14.0]
 
 ## Marks paid for finishing a run, before the tier multiplier.
 const RUN_MARKS_REWARD: int = 45
@@ -3255,7 +3255,12 @@ const FISH_STASH_CAPACITY: int = 40
 ## and never magnitude - the same bound the affixes themselves were built under.
 ## The ceiling is however many attributes a hero has - four until Resolve was
 ## added on 2026-09-13, five after. [TUNE]
-const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3, 4, 5]
+const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3, 4, 5, 5]
+## **What a piece's make is weighted as**: Cracked, ordinary, Superior,
+## Masterwork (2026-09-30). Against `Stash.QUALITY_SCALE` the average make is
+## one - 0.22 x 0.9 + 0.5 + 0.22 x 1.07 + 0.06 x 1.15 - so the spread is
+## something to farm and the gear scale's middle does not move. [TUNE]
+const GEAR_QUALITY_WEIGHTS: Array[float] = [22.0, 50.0, 22.0, 6.0]
 
 ## How the budget divides across those bonuses. Each row sums to one, which is
 ## what keeps the total identical to a single-bonus piece of the same rarity.
@@ -10387,13 +10392,13 @@ const WILDLIFE_PREY_BITE_SHARE: float = 0.55
 # scale (working rule 7) stays the scale. [TUNE]
 
 ## Legendary affixes per rarity, indexed like `Stash.RARITY_NAMES`.
-const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2]
+const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2, 3]
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12
 # --- Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4) ------------------
 ## Sockets a piece carries, by rarity: none under Fine, two from Chainbroken.
-const GEAR_SOCKETS: Array[int] = [0, 0, 1, 1, 1, 2, 2]
+const GEAR_SOCKETS: Array[int] = [0, 0, 1, 1, 1, 2, 2, 3]
 ## What a set gem's affix moves its key by, by the gem's rarity - **under the
 ## legendary ceiling**, so a gem is never the whole piece. [TUNE]
 const GEAR_GEM_MAGNITUDE: Array[float] = [0.03, 0.05, 0.07, 0.09]
@@ -10406,8 +10411,8 @@ const GEAR_UNSOCKET_MARKS: int = 25
 ## that climb by `GEAR_TEMPER_STEP` each time. A piece rerolled for ever is a
 ## slot machine with the drop tables as its reels. [TUNE]
 const GEAR_TEMPER_MAX: int = 3
-const GEAR_TEMPER_SHARDS: Array[int] = [3, 6, 12, 24, 50, 100, 200]
-const GEAR_TEMPER_MARKS: Array[int] = [8, 16, 32, 70, 150, 320, 700]
+const GEAR_TEMPER_SHARDS: Array[int] = [3, 6, 12, 24, 50, 100, 200, 400]
+const GEAR_TEMPER_MARKS: Array[int] = [8, 16, 32, 70, 150, 320, 700, 1500]
 const GEAR_TEMPER_STEP: float = 1.6
 
 ## **How far one tier of a matched set may move a scaled number.**

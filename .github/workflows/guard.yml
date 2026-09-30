@@ -407,8 +407,9 @@ jobs:
           # models, scales by one formula, ends its chain reactions and freezes.
           # Measures every weapon over five of its own cadences on a real field -
           # minutes even at the gate's own time scale - and the default ceiling
-          # timed out on a shared runner on every push from 2026-09-27.
-          CHECK_TIMEOUT=360 \
+          # timed out on a shared runner on every push from 2026-09-27. 480 since
+          # 2026-09-30: sixty-seven weapons measure in 223 s on the owner's machine.
+          CHECK_TIMEOUT=480 \
             check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn

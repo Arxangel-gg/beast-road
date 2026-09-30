@@ -1500,6 +1500,11 @@ func _read_stash(data: Dictionary) -> void:
 				gems.append(String(gem_id))
 		if not gems.is_empty():
 			restored["gems"] = gems
+		# The make (2026-09-30), additive like the rest: absent is ordinary.
+		var made: int = clampi(int(piece.get("quality", Stash.QUALITY_ORDINARY)), 0,
+			Stash.QUALITY_NAMES.size() - 1)
+		if made != Stash.QUALITY_ORDINARY:
+			restored["quality"] = made
 		var tempers: int = clampi(int(piece.get("tempers", 0)), 0, Balance.GEAR_TEMPER_MAX)
 		if tempers > 0:
 			restored["tempers"] = tempers
