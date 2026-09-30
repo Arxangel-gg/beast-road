@@ -219,6 +219,20 @@ func _open_and_measure(screen: Node, name: String, shape: Vector2i) -> void:
 	_check(exits > 0,
 		"%s at %s has no way out at all" % [name, shape])
 
+	# 4. **Every label with words in it shows a line** (2026-09-30). A clipped,
+	# wrapping Label has no minimum height, and the HUD's banner was one pixel
+	# tall for three weeks while every gate that read its text passed. Scrolled
+	# out of a list is not the fault; a label that is not tall enough to hold a
+	# line anywhere is.
+	for node: Node in _all(screen):
+		var label := node as Label
+		if label == null or not label.is_visible_in_tree() 				or label.text.strip_edges().is_empty():
+			continue
+		var line: float = float(label.get_line_height())
+		_check(label.size.y + 1.0 >= line,
+			"%s at %s: the label '%s' is %.0f tall for a %.0f line - said, and not seen"
+				% [name, shape, label.text.left(40), label.size.y, line])
+
 	# 2. The panel itself.
 	for node: Node in _all(screen):
 		var panel := node as PanelContainer
