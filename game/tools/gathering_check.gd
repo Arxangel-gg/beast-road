@@ -577,6 +577,13 @@ func _test_a_swing_pays_what_the_node_holds(patch: Gathering) -> void:
 func _swing_away(patch: Gathering, seam: GatherNodeData, novice: bool) -> Dictionary:
 	var nodes: Array = patch.get("_nodes") as Array
 	patch.set("_working", 0)
+	# **The same dice for the novice and the master** (2026-09-30). The patch's
+	# roll is randomized, and "a novice finds the gem no more often than a
+	# master" read 31 against 28 on one run in several: a coin toss wearing a
+	# gate's clothes. Every swing draws the same number of rolls, so seeding
+	# both measurements alike compares the two thresholds on the same draws,
+	# which is the comparison this was always making.
+	(patch.get("_roll") as RandomNumberGenerator).seed = 20260930
 	var ore_before: int = MetaState.material_count(seam.material_id)
 	var gem_before: int = MetaState.material_count(seam.bonus_material_id)
 	var stone_before: int = RunState.currency(seam.currency_id)

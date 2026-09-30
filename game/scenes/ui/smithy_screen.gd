@@ -188,10 +188,10 @@ func _pick_defaults() -> void:
 			continue
 		match kind.kind:
 			MaterialData.Kind.WOOD:
-				if _unusable(_wood, Balance.FORGE_WOOD_COST):
+				if _unusable(_wood, Forge.wood_cost()):
 					_wood = kind.id
 			MaterialData.Kind.ORE:
-				if _unusable(_ore, Balance.FORGE_ORE_COST):
+				if _unusable(_ore, Forge.ore_cost()):
 					_ore = kind.id
 			_:
 				if _unusable(_gem, Balance.FORGE_GEM_COST):
@@ -234,9 +234,9 @@ func _refresh() -> void:
 		_result.text = ""
 		return
 
-	_rows.add_child(_heading_row("Wood  ·  %d needed" % Balance.FORGE_WOOD_COST))
+	_rows.add_child(_heading_row("Wood  ·  %d needed" % Forge.wood_cost()))
 	_add_choices(MaterialData.Kind.WOOD)
-	_rows.add_child(_heading_row("Ore  ·  %d needed" % Balance.FORGE_ORE_COST))
+	_rows.add_child(_heading_row("Ore  ·  %d needed" % Forge.ore_cost()))
 	_add_choices(MaterialData.Kind.ORE)
 	_rows.add_child(_heading_row("The gem to set  ·  1 needed"))
 	_add_choices(MaterialData.Kind.GEM)

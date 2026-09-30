@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "smith"
+level = 10
+key = "stock"
+amount = -0.25
+id = "smith_frugal_hand"
+display_name = "Frugal Hand"
+description = "A forge takes a quarter less wood and ore."

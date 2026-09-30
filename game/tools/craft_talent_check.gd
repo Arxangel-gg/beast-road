@@ -21,6 +21,7 @@ const READERS: Dictionary = {
 	"woodcutter": "res://scripts/systems/gathering.gd",
 	"miner": "res://scripts/systems/gathering.gd",
 	"farmer": "res://scripts/systems/farming.gd",
+	"smith": "res://scripts/systems/forge.gd",
 }
 
 var _failures: int = 0
@@ -173,6 +174,14 @@ func _test_what_they_move() -> void:
 	var hardy_fit: float = Farming.fit_for(crop, crop.temp_max + 6.0, (crop.wet_min + crop.wet_max) * 0.5, 20)
 	_check(hardy_fit > plain_fit, "Hardy Stock must bear ground further from the crop's band: %.3f -> %.3f"
 		% [plain_fit, hardy_fit])
+	# The Smith's, through the forge's own price: the stock a forge takes is
+	# what the refusal, the spend and the screen all read.
+	var plain_wood: int = Forge.wood_cost()
+	MetaState.choose_talent("smith_frugal_hand")
+	_check(Forge.wood_cost() < plain_wood and Forge.ore_cost() < Balance.FORGE_ORE_COST,
+		"Frugal Hand must take less wood and ore: %d of %d" % [Forge.wood_cost(), plain_wood])
+	MetaState.choose_talent("smith_quick_study")
+	_check(Forge.wood_cost() == plain_wood, "putting Frugal Hand down must restore the forge's price")
 	# The one door answers only its own craft and key.
 	MetaState.choose_talent("angler_quick_strike")
 	_check(is_equal_approx(CraftTalents.value("angler", "bite"), ContentDB.craft_talent("angler_quick_strike").amount)

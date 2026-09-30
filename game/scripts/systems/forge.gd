@@ -37,12 +37,12 @@ static func refusal(wood_id: String, ore_id: String, gem_id: String) -> String:
 		return "The forge needs ore."
 	if gem == null or gem.kind != MaterialData.Kind.GEM:
 		return "The forge needs a gem to set."
-	if MetaState.material_count(wood_id) < Balance.FORGE_WOOD_COST:
+	if MetaState.material_count(wood_id) < wood_cost():
 		return "Not enough %s: %d of %d." % [wood.display_name,
-			MetaState.material_count(wood_id), Balance.FORGE_WOOD_COST]
-	if MetaState.material_count(ore_id) < Balance.FORGE_ORE_COST:
+			MetaState.material_count(wood_id), wood_cost()]
+	if MetaState.material_count(ore_id) < ore_cost():
 		return "Not enough %s: %d of %d." % [ore.display_name,
-			MetaState.material_count(ore_id), Balance.FORGE_ORE_COST]
+			MetaState.material_count(ore_id), ore_cost()]
 	if MetaState.material_count(gem_id) < Balance.FORGE_GEM_COST:
 		return "No %s to set." % gem.display_name
 	var wanted: int = Balance.FORGE_GEM_LEVEL[clampi(gem.rarity, 0,
@@ -55,6 +55,22 @@ static func refusal(wood_id: String, ore_id: String, gem_id: String) -> String:
 	return ""
 
 
+## **What a forge takes of wood and of ore**, with the Smith's talent in it
+## (2026-09-30, Frugal Hand): one place, read by the refusal, the spend, the
+## refunds, the price the screen draws and the screen's own rows, so none of
+## them can disagree about what a forge costs.
+static func wood_cost() -> int:
+	return _stock_cost(Balance.FORGE_WOOD_COST)
+
+
+static func ore_cost() -> int:
+	return _stock_cost(Balance.FORGE_ORE_COST)
+
+
+static func _stock_cost(base: int) -> int:
+	return maxi(1, int(round(float(base) * (1.0 + CraftTalents.value("smith", "stock")))))
+
+
 ## Forges a piece. Returns the piece, or an empty dictionary and a refusal.
 ##
 ## **Validate, then spend, then make.** The order matters: a forge that spent
@@ -64,33 +80,49 @@ static func forge(wood_id: String, ore_id: String, gem_id: String) -> Dictionary
 	var refused: String = refusal(wood_id, ore_id, gem_id)
 	if not refused.is_empty():
 		return {"error": refused}
-	if not MetaState.spend_material(wood_id, Balance.FORGE_WOOD_COST):
+	if not MetaState.spend_material(wood_id, wood_cost()):
 		return {"error": "The wood was gone."}
-	if not MetaState.spend_material(ore_id, Balance.FORGE_ORE_COST):
+	if not MetaState.spend_material(ore_id, ore_cost()):
 		# Put the wood back. Nothing else in this project un-spends, and this
 		# one does because the alternative is silently eating a full stack on a
 		# race that should not be possible.
-		MetaState.gain_material(wood_id, Balance.FORGE_WOOD_COST)
+		MetaState.gain_material(wood_id, wood_cost())
 		return {"error": "The ore was gone."}
 	if not MetaState.spend_material(gem_id, Balance.FORGE_GEM_COST):
-		MetaState.gain_material(wood_id, Balance.FORGE_WOOD_COST)
-		MetaState.gain_material(ore_id, Balance.FORGE_ORE_COST)
+		MetaState.gain_material(wood_id, wood_cost())
+		MetaState.gain_material(ore_id, ore_cost())
 		return {"error": "The gem was gone."}
 
 	var piece: Dictionary = _strike(wood_id, ore_id, gem_id)
 	var before: int = MetaState.profession_level("smith")
-	var after: int = MetaState.gain_profession_xp("smith", Balance.FORGE_XP)
+	var after: int = MetaState.gain_profession_xp("smith", int(round(float(Balance.FORGE_XP)
+		* (1.0 + CraftTalents.value("smith", "xp")))))
 	if after > before:
 		EventBus.craft_levelled.emit("smith", after)
 	if not MetaState.take_gear(piece):
 		# Unreachable while `refusal` checks the stash first, and put back
 		# anyway: the one thing this function must never do is take a gem and
 		# hand back nothing, and "it cannot happen" is how that happens.
-		MetaState.gain_material(wood_id, Balance.FORGE_WOOD_COST)
-		MetaState.gain_material(ore_id, Balance.FORGE_ORE_COST)
+		MetaState.gain_material(wood_id, wood_cost())
+		MetaState.gain_material(ore_id, ore_cost())
 		MetaState.gain_material(gem_id, Balance.FORGE_GEM_COST)
 		return {"error": "The stash is full."}
+	_give_back(wood_id, ore_id, gem_id)
 	return piece
+
+
+## **What a practised Smith keeps** (2026-09-30, Keeper of Stones and
+## Stockwise): the gem back one forge in four, the wood and ore back about a
+## third of the time. Materials only, after the piece is made and banked, so a
+## forge still validates, spends and makes in that order.
+static func _give_back(wood_id: String, ore_id: String, gem_id: String) -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.randomize()
+	if dice.randf() < CraftTalents.value("smith", "gem_kept"):
+		MetaState.gain_material(gem_id, Balance.FORGE_GEM_COST)
+	if dice.randf() < CraftTalents.value("smith", "stock_kept"):
+		MetaState.gain_material(wood_id, wood_cost())
+		MetaState.gain_material(ore_id, ore_cost())
 
 
 ## The piece itself: a kind off the same tables, at a rarity the gem and the
@@ -142,9 +174,9 @@ static func _strike(wood_id: String, ore_id: String, gem_id: String,
 ## What the forge would cost, for the screen to draw before anything is spent.
 static func price(wood_id: String, ore_id: String, gem_id: String) -> Array[Dictionary]:
 	return [
-		{"id": wood_id, "need": Balance.FORGE_WOOD_COST,
+		{"id": wood_id, "need": wood_cost(),
 			"have": MetaState.material_count(wood_id)},
-		{"id": ore_id, "need": Balance.FORGE_ORE_COST,
+		{"id": ore_id, "need": ore_cost(),
 			"have": MetaState.material_count(ore_id)},
 		{"id": gem_id, "need": Balance.FORGE_GEM_COST,
 			"have": MetaState.material_count(gem_id)},

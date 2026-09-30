@@ -11934,12 +11934,14 @@ assembles its own subject cannot see the assembly.**
 **Craft talents, as of 2026-09-30.** `IDEAS_REVIEW_2026-09-23` §4.2 adopted
 them: at each of `CRAFT_TALENT_LEVELS` (10 and 20) a craft offers two talents
 and the Warden keeps one - the Angler's shorter wait *or* its wider bite window.
-Sixteen, as `CraftTalentData`, for the Angler, the Woodcutter, the Miner and the
-Farmer. **The Smith has none yet, deliberately**: every Smith number worth moving
-is on the gear scale (a piece's level, its make, the rung odds a maxed Smith is
-bounded against), and a talent there would be the third power scale arriving
-through the forge. When one is found that is time or materials rather than
-power, it is a file.
+Twenty, as `CraftTalentData`, for all five crafts. **The Smith's move
+materials and practice and never a piece**: every Smith number on the gear scale
+(a piece's level, its make, the rung odds a maxed Smith is bounded against) is
+out of bounds, so its talents are a forge that takes less stock, teaches more,
+or gives its gem or its stock back - `Forge.wood_cost` and `ore_cost` are the
+one price the refusal, the spend, the refunds and the Smithy's rows all read.
+This paragraph first said the Smith had none, and was right for the hour it
+took to find four that are time and materials rather than power.
 
 **It amends working rule 7 by one list, and the list is the profession bound.**
 `MetaState.craft_talents` keeps the chosen ids inside the professions block, so
