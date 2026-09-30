@@ -272,6 +272,14 @@ static func skin_mask_path(layer: String, state: String) -> String:
 	return art_root + layer + "/" + state + "_skin.png"
 
 
+## A body sheet's cloth mask (2026-09-30): the same layout, red where the
+## painting is the top and green where it is the trousers, made from the
+## frame's own bones by `tools/warden_rig/cloth_masks.py`. Heavy armour has
+## none, and reads as the painting as worn.
+static func cloth_mask_path(layer: String, state: String) -> String:
+	return art_root + layer + "/" + state + "_cloth.png"
+
+
 ## Everything a Warden wears, from their look and their gear, as the names the
 ## drawing needs. The one function the hero, the Hold and a partner's copy ask.
 static func outfit(look: Dictionary, weapon: GearData, armour: GearData,

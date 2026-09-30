@@ -11496,6 +11496,40 @@ make scales points and nothing else, that it survives the save, a partner's
 sheet and a temper, and that two pieces differing only in make are not the same
 piece.
 
+**The cape, the top and the trousers take a colour, and the cloth is found by
+its bones, as of 2026-09-30.** Owner: *"Players should be able to tint their
+appearance, such as the color of their cape or tops and bottoms etc."* Three
+entries appended to `WardenLook.KEYS` (never inserted, for the co-op reason that
+list already records), fourteen colours each on the Glass, and the cape's
+colour overrides the cape class's own tint in `WardenDress.outfit`.
+
+**The first cut found the cloth by colour in the shader, and the Glass's
+photograph refused it.** The linen top's own shadow sits at the trousers' value
+and saturation, so a dyed top wore a rim of trouser colour; the linen's
+brightest highlight has no hue, so it stayed white in blotches; and a bald
+crown's highlight took the top's dye. No threshold separates those, because
+they are the same colours in different places.
+
+**So cloth is a colour and a place, exactly as skin is.**
+`tools/warden_rig/cloth.py` marks a pixel cloth when it is quiet - not skin, not
+ink, not saturated leather, not cool steel - and the top or the trousers by
+which of the frame's own bones it lies nearest, the torso and upper arms or the
+thighs and shins above the boot. The head, the forearms and the boots compete
+for what is near them, each within a bounded reach: unbounded, a forearm hanging
+down the side in profile claimed the back half of the tunic, because in profile
+every bone projects onto nearly one line. Below the ankles is the boot whatever
+it is nearest, and only while standing - a Warden lying dead has ankles level
+with the hips. `cloth_masks.py` writes `<state>_cloth.png` beside every sheet,
+red the top and green the trousers, on the pack's own crop; the shader reads it
+texel for texel. **Heavy armour has none**: its plate is the top, and a dye on
+it would be paint on steel. Light armour's vest and bracers are leather and stay
+as painted. Known leaks, each a few pixels: a bracer over the thigh in a profile
+swing and a crown in one death frame. `warden_look_check` holds a mask the size
+of its sheet on every body that has one and none on heavy armour.
+
+**Owed**: a photograph of the masks on the Warden's Glass (`glass_shot` has the
+cloth looks) - the one that refused the first cut was the old classifier.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

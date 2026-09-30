@@ -48,13 +48,16 @@ uniform sampler2D skin_mask : filter_nearest, hint_default_black;
 uniform bool painted_bands = true;
 uniform vec3 skin_from = vec3(0.5);
 uniform vec3 skin_to = vec3(0.5);
-// **The cloth's colours** (owner, 2026-09-30). On a dressed body the top is a
-// warm off-white linen (measured: hue 0.08, saturation 0.14, value 0.76) and
-// the trousers a warm mid-grey (value 0.33); the steel of heavy armour is cool
-// (hue 0.62) and the leather saturated, so a warm, quiet band at each value
-// finds the cloth and leaves the rest. The chosen colour is what the band's
-// own middle becomes, so the folds and the shadow stay. Alpha nought is
-// the cloth as worn.
+// **The cloth's colours** (owner, 2026-09-30). Where the top and the trousers
+// are comes from `cloth_mask` - red the top, green the trousers - made from the
+// frame's own bones as the skin mask is. The first cut found them by colour in
+// here and could not: the linen's shadow sits at the trousers' value, and its
+// brightest highlight has no hue, so a dyed top wore a rim of trouser colour
+// and white blotches, and a bald crown's highlight took the top's dye. The
+// chosen colour is what the cloth's own middle becomes (top 0.76, trousers
+// 0.33, measured), so the folds and the shadow stay. Alpha nought is the
+// cloth as worn; no mask (the painted Warden, heavy armour) is black.
+uniform sampler2D cloth_mask : filter_nearest, hint_default_black;
 uniform vec4 cloth_top : source_color = vec4(0.0);
 uniform vec4 cloth_bottom : source_color = vec4(0.0);
 
@@ -93,7 +96,7 @@ vec3 look_to_rgb(vec3 c) {
 vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
 	float skin = 0.0;
 	bool cloth = !painted_bands && (cloth_top.a > 0.0 || cloth_bottom.a > 0.0);
-	if (distance(skin_to, skin_from) > 0.0005 || abs(look_leather) > 0.0005 || cloth) {
+	if (distance(skin_to, skin_from) > 0.0005 || abs(look_leather) > 0.0005) {
 		skin = texture(skin_mask, uv).a;
 		vec3 darker = rgb * skin_to / max(skin_from, vec3(0.001));
 		vec3 lighter = vec3(1.0) - (vec3(1.0) - rgb) * (vec3(1.0) - skin_to)
@@ -102,13 +105,9 @@ vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
 		rgb = mix(rgb, turned, skin);
 	}
 	if (cloth) {
-		vec3 fabric = look_to_hsv(art);
-		float warm = smoothstep(0.0, 0.02, fabric.x) * (1.0 - smoothstep(0.16, 0.2, fabric.x));
-		float top = warm * (1.0 - smoothstep(0.26, 0.32, fabric.y))
-			* smoothstep(0.52, 0.6, fabric.z) * (1.0 - skin) * cloth_top.a;
-		float bottom = warm * (1.0 - smoothstep(0.34, 0.42, fabric.y))
-			* smoothstep(0.16, 0.22, fabric.z) * (1.0 - smoothstep(0.5, 0.58, fabric.z))
-			* (1.0 - skin) * cloth_bottom.a;
+		vec4 where = texture(cloth_mask, uv);
+		float top = where.r * where.a * cloth_top.a;
+		float bottom = where.g * where.a * cloth_bottom.a;
 		float lit = look_to_hsv(rgb).z;
 		rgb = mix(rgb, clamp(cloth_top.rgb * (lit / 0.76), 0.0, 1.0), top);
 		rgb = mix(rgb, clamp(cloth_bottom.rgb * (lit / 0.33), 0.0, 1.0), bottom);

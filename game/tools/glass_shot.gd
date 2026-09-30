@@ -19,6 +19,10 @@ const LOOKS: Array = [
 	["mane", {"hair": 10, "hair_colour": 4, "beard": 5, "skin": 7}, 1],
 	["braids", {"hair": 17, "hair_colour": 6, "beard": 0, "skin": 2}, 2],
 	["afro", {"body": 1, "hair": 11, "hair_colour": 1, "beard": 0, "skin": 8}, 4],
+	# The cloth colours (2026-09-30): a crimson top on sea trousers, and a moss
+	# top on charcoal trousers on the female body.
+	["cloth", {"top_colour": 1, "bottom_colour": 7}, 0],
+	["cloth_female", {"body": 1, "top_colour": 4, "bottom_colour": 11, "skin": 3}, 0],
 ]
 
 

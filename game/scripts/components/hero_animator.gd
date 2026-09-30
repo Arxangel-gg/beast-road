@@ -335,6 +335,10 @@ func _hand_over_skin_mask() -> void:
 	var path: String = WardenDress.skin_mask_path(String(_outfit.get("body_layer", "")), _state_drawn)
 	material.set_shader_parameter("skin_mask",
 		WardenDress.texture(path) if WardenDress.exists(path) else null)
+	# And the cloth's, beside it (2026-09-30): where the top and the trousers are.
+	var cloth: String = WardenDress.cloth_mask_path(String(_outfit.get("body_layer", "")), _state_drawn)
+	material.set_shader_parameter("cloth_mask",
+		WardenDress.texture(cloth) if WardenDress.exists(cloth) else null)
 
 
 ## Which skin mask the sprite holds, for the gate.

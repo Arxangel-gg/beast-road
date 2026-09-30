@@ -247,12 +247,24 @@ func _test_the_cloth() -> void:
 	_check(text.contains("uniform vec4 cloth_top") and text.contains("uniform vec4 cloth_bottom")
 		and text.contains("!painted_bands && (cloth_top.a > 0.0"),
 		"the cloth colours must be declared and reach only a dressed body")
-	_check(text.contains("(1.0 - smoothstep(0.16, 0.2, fabric.x))") and text.contains("* (1.0 - skin) * cloth_top.a"),
-		"the cloth must be found by a warm hue off the painting and never on the skin")
-	# The steel of heavy armour is cool: its measured hue must sit outside the
-	# warm band the cloth is found in, or a dyed top would paint the plate.
-	var steel := Color(0.40, 0.44, 0.52)
-	_check(steel.h > 0.2, "the steel reference must read as cool")
+	# **Amended 2026-09-30, the same day.** The first cut found the cloth by
+	# colour and the Glass's photograph refused it; it reads the bones' mask now.
+	_check(text.contains("uniform sampler2D cloth_mask : filter_nearest, hint_default_black")
+		and text.contains("texture(cloth_mask, uv)"),
+		"the cloth must be found by its mask, texel for texel, and nowhere without one")
+	_check(FileAccess.get_file_as_string("res://scripts/components/hero_animator.gd").contains("\"cloth_mask\""),
+		"the animator never hands the sheet's cloth mask to the sprite")
+	for layer: String in ["male_base", "female_base", "male_light", "female_light"]:
+		var mask_path: String = WardenDress.cloth_mask_path(layer, "idle")
+		var sheet_path: String = WardenDress.art_root + layer + "/idle.png"
+		if not ResourceLoader.exists(sheet_path):
+			continue
+		var mask: Texture2D = load(mask_path) as Texture2D if ResourceLoader.exists(mask_path) else null
+		var sheet: Texture2D = load(sheet_path) as Texture2D
+		_check(mask != null and mask.get_size() == sheet.get_size(),
+			"%s has no cloth mask the size of its sheet" % layer)
+	_check(not ResourceLoader.exists(WardenDress.cloth_mask_path("male_heavy", "idle")),
+		"heavy armour has a cloth mask, and its plate would take the dye")
 	var sprite := Sprite2D.new()
 	add_child(sprite)
 	var dressed: Dictionary = WardenLook.plain()
