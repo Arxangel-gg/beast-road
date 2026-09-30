@@ -42,6 +42,8 @@ func read_arguments(arguments: PackedStringArray) -> void:
 
 
 func arm() -> void:
+	if OS.get_cmdline_user_args().has("--hold-saves"):
+		MetaState.hold_saves()
 	_dress()
 	for id: String in cards:
 		var card: RoadCardData = ContentDB.road_card(id)

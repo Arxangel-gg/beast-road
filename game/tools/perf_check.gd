@@ -102,6 +102,7 @@ var _build: bool = false
 ## `--loadout`: the whole Warden at once - see `tools/loadout_driver.gd`, which
 ## `perf_bisect --loadout` shares so both stand in the same frame.
 var _loadout: bool = false
+var _shots: Array[float] = []
 var _physics_rate: int = 0
 var _driver: Node = null
 ## `--hitch-profile`: the buckets of every frame are taken and thrown away,
@@ -252,6 +253,10 @@ func _ready() -> void:
 			_build = true
 		elif argument == "--loadout":
 			_loadout = true
+		elif argument.begins_with("--shot="):
+			# A photograph of the frame at these seconds of measured combat, to user://.
+			for stamp: String in argument.split("=")[1].split(",", false):
+				_shots.append(float(stamp))
 		elif argument.begins_with("--physics="):
 			# The physics step a display this fast would get (Graphics.physics_rate_for):
 			# an off-screen window sits on whatever screen is left, and the owner plays on 180 Hz.
@@ -550,6 +555,11 @@ func _process(delta: float) -> void:
 	if _elapsed - _fight_started < WARMUP_SECONDS:
 		return
 
+	if not _shots.is_empty() and _elapsed - _fight_started - WARMUP_SECONDS >= _shots[0]:
+		var at: float = _shots.pop_front()
+		var path: String = "user://perf_shot_%03d.png" % int(at)
+		get_viewport().get_texture().get_image().save_png(path)
+		print("[perf] shot at %.0fs -> %s" % [at, ProjectSettings.globalize_path(path)])
 	var ms: float = delta * 1000.0
 	_frame_ms.append(ms)
 	_worst_ms = maxf(_worst_ms, ms)

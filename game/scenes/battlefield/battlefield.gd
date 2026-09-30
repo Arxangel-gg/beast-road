@@ -74,6 +74,7 @@ var _footfalls: Footfalls = null
 var _tells: CombatTells = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
+var _kill_streak: KillStreak = null
 
 ## Closes the road behind a party turning for home. See `Withdrawal`.
 var _withdrawal: Withdrawal = null
@@ -3236,6 +3237,7 @@ func _build_fog() -> void:
 	_build_footfalls()
 	_build_combat_tells()
 	_build_arsenal()
+	_build_kill_streak()
 
 
 ## **Plants give way to whatever walks through them.**
@@ -3395,6 +3397,19 @@ func death_markers() -> DeathMarkers:
 ## that watches the field and draws, read by nothing - and because living under
 ## the battlefield is what freezes it for a raid (working rule 8) with nothing
 ## having to know it exists.
+## The streak over this machine's Warden (`KillStreak`). Never the party's:
+## each machine counts round its own.
+func _build_kill_streak() -> void:
+	_kill_streak = KillStreak.new()
+	_kill_streak.name = "KillStreak"
+	_kill_streak.hero_getter = func() -> Node2D: return hero
+	add_child(_kill_streak)
+
+
+func kill_streak() -> KillStreak:
+	return _kill_streak
+
+
 func _build_stragglers() -> void:
 	_stragglers = Stragglers.new()
 	# Battlefield extends EnemyField, so the field it watches is this node.

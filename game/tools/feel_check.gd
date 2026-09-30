@@ -40,6 +40,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_the_ear()
 	_test_a_burst_is_heard_as_its_first_few()
+	await _test_a_streak_counts_what_falls_near()
 	_test_a_dropped_sound_decides_nothing()
 	await _test_the_field()
 	_test_a_voice_comes_from_where_it_is()
@@ -137,6 +138,46 @@ func _test_the_ear() -> void:
 		("with nobody listening, a sound must play wherever it happened - "
 			+ "otherwise every headless gate hears a different game"))
 	Sfx.stop_immediately()
+
+
+## **A streak counts what falls near the Warden, and nothing else** (2026-09-30).
+## Kills close together near the Warden build it and reach a tier; a kill across
+## the map does not count; the window lapsing ends it. And it is a look: the
+## script names no run or account state at all, and the battlefield stands it up.
+func _test_a_streak_counts_what_falls_near() -> void:
+	var warden := Node2D.new()
+	add_child(warden)
+	var streak := KillStreak.new()
+	streak.hero_getter = func() -> Node2D: return warden
+	add_child(streak)
+	var near: Vector2 = Vector2(120.0, 0.0)
+	for _kill: int in Balance.KILL_STREAK_TIERS[0]:
+		EventBus.enemy_died.emit("probe", near)
+	_check(streak.count() == Balance.KILL_STREAK_TIERS[0] and streak.tier() == 0,
+		"%d kills beside the Warden made a streak of %d at tier %d"
+		% [Balance.KILL_STREAK_TIERS[0], streak.count(), streak.tier()])
+	EventBus.enemy_died.emit("probe", Vector2(Balance.KILL_STREAK_REACH * 3.0, 0.0))
+	_check(streak.count() == Balance.KILL_STREAK_TIERS[0],
+		"a kill across the map was counted in the Warden's streak")
+	var waited: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - waited < int(Balance.KILL_STREAK_WINDOW * 1000.0) + 120:
+		await get_tree().process_frame
+	_check(streak.count() == 0, "the streak outlived its window")
+	EventBus.enemy_died.emit("probe", near)
+	_check(streak.count() == 1, "a kill after the window did not start a new streak")
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/kill_streak.gd")
+	var code: String = ""
+	for line: String in source.split("\n"):
+		if not line.strip_edges().begins_with("#"):
+			code += line + "\n"
+	_check(not code.contains("RunState.") and not code.contains("MetaState."),
+		"the streak reads or writes the run - it must be a look and nothing else")
+	_check(FileAccess.get_file_as_string("res://scenes/battlefield/battlefield.gd")
+		.contains("_build_kill_streak()"), "nothing stands the streak up on the field")
+	streak.queue_free()
+	warden.queue_free()
+	Sfx.stop_immediately()
+	await get_tree().process_frame
 
 
 ## **A burst is heard as its first few sounds, and a flat one is never

@@ -4803,6 +4803,26 @@ const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2
 ## frame; what a 144 Hz screen does not need is the triangle arrays rebuilt
 ## 144 times a second for sparks that live a third of a second.
 const VFX_INK_HZ: float = 60.0
+## **A kill streak** (`KillStreak`): road bodies falling within
+## `KILL_STREAK_REACH` of this machine's Warden and `KILL_STREAK_WINDOW`
+## seconds of the last. The counter rides `KILL_STREAK_LIFT` above the Warden
+## from `KILL_STREAK_SHOW_FROM` kills; each tier says its word. A look and never
+## a fact: nothing reads a streak. [TUNE]
+const KILL_STREAK_REACH: float = 720.0
+const KILL_STREAK_WINDOW: float = 1.6
+const KILL_STREAK_SHOW_FROM: int = 3
+const KILL_STREAK_TIERS: Array[int] = [5, 10, 20, 35, 50, 75, 100]
+const KILL_STREAK_NAMES: Array[String] = ["Carnage", "Rampage", "Massacre", "Onslaught",
+	"Annihilation", "Cataclysm", "Unstoppable"]
+const KILL_STREAK_COLOURS: Array[Color] = [Color(1.0, 0.86, 0.5), Color(1.0, 0.7, 0.34),
+	Color(1.0, 0.5, 0.26), Color(1.0, 0.34, 0.3), Color(0.96, 0.4, 0.78), Color(0.72, 0.5, 1.0),
+	Color(0.56, 0.9, 1.0)]
+const KILL_STREAK_LIFT: float = 196.0
+const KILL_STREAK_COUNTER_SIZE: int = 26
+const KILL_STREAK_WORD_SIZE: int = 30
+const KILL_STREAK_RING: float = 90.0
+const KILL_STREAK_DB: float = -6.0
+const KILL_STREAK_PITCH_STEP: float = 0.05
 ## The most static circles whose change the fog patches in one tick before it
 ## rebuilds its static layer whole instead (`FogOfWar._update_static`). [TUNE]
 const FOG_PATCH_MAX: int = 12
