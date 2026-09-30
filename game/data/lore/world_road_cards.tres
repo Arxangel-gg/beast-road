@@ -5,10 +5,10 @@
 [resource]
 script = ExtResource("1_s")
 id = "world_road_cards"
-display_name = "Portents and Road Cards"
-title = "Portents and Road Cards"
+display_name = "Portents and the Arsenal"
+title = "Portents and the Arsenal"
 category = 0
 unlock_act = 0
 order = 6
 art = ""
-body = "When an act's boss falls, the road announces itself: three portents are offered and one is read, a bane and a boon kept for the rest of the run. At every crossroad a card is dealt too - three offered, one kept, and a hand that holds five. Both move numbers the game already has an opinion about, and nothing more, so a run built on them is still a run built on the roads."
+body = "When an act's boss falls, the road announces itself: three portents are offered and one is read, a bane and a boon kept for the rest of the run. And the road arms whoever walks it: every rank it grants deals three cards from the Arsenal - weapons that fight beside the Warden, catalysts that feed them, keystones that turn a rule - and one is kept. What the road gives, it gives for this road; none of it is carried home."

@@ -10,4 +10,4 @@ title = "Crossroads"
 category = "The Road"
 order = 11
 image = "res://art/guide/crossroads.png"
-body = "Every stretch of road ends at a fork. Each way has a difficulty and a reward: harder roads pay better. The choice is the party's; in co-op it is a vote. After the road is chosen, a Road Card is dealt."
+body = "Every stretch of road ends at a fork. Each way has a difficulty and a reward: harder roads pay better. The choice is the party's; in co-op it is a vote. After the road is chosen, the Arsenal deals a card."
