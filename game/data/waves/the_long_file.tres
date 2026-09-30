@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 0
+lane_pattern = 1
+minimum_act = 4
+selection_weight = 0.7
+count_scale = 1.35
+hp_scale = 0.82
+spawn_spacing_scale = 1.45
+id = "the_long_file"
+display_name = "The Long File"
+description = "One road, one column, and it does not seem to end."

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 1
+lane_pattern = 1
+minimum_act = 5
+selection_weight = 0.62
+count_scale = 0.7
+hp_scale = 1.05
+extra_elites = 3
+id = "champions_first"
+display_name = "Champions First"
+description = "Three champions at the head of one road, and nothing easy behind them."

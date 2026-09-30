@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 2
+lane_pattern = 3
+minimum_act = 9
+selection_weight = 0.8
+count_scale = 1.2
+hp_scale = 1.1
+extra_elites = 2
+id = "many_banners"
+display_name = "Many Banners"
+description = "Every road, the horde first and the banners last - by the time you see them it is too late to save anything for them."

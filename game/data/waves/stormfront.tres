@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 0
+lane_pattern = 3
+minimum_act = 6
+selection_weight = 0.8
+count_scale = 1.12
+hp_scale = 0.86
+speed_scale = 1.18
+spawn_spacing_scale = 0.7
+id = "stormfront"
+display_name = "Stormfront"
+description = "Every road at once, quick and thin, like weather coming in."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 2
+lane_pattern = 0
+minimum_act = 3
+minimum_act_wave = 5
+selection_weight = 0.4
+night_weight_multiplier = 3.0
+count_scale = 0.9
+speed_scale = 1.1
+signature_role = 4
+signature_count_per_lane = 1
+id = "night_diggers"
+display_name = "Night Diggers"
+description = "What comes in the dark comes from under the road, behind the ones you can see."

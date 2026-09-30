@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 1
+lane_pattern = 2
+minimum_act = 3
+selection_weight = 0.8
+count_scale = 0.9
+speed_scale = 1.08
+signature_role = 1
+signature_count_per_lane = 2
+id = "riders_ahead"
+display_name = "Riders Ahead"
+description = "The fast ones first, on two roads at once, and the rest of the road behind them."

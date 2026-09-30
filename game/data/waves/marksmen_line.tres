@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+formation = 2
+lane_pattern = 0
+minimum_act = 3
+minimum_act_wave = 4
+selection_weight = 0.85
+count_scale = 0.92
+hp_scale = 0.98
+signature_role = 3
+signature_count_per_lane = 2
+id = "marksmen_line"
+display_name = "Marksmen Behind a Wall"
+description = "The bodies come first and the shooters stay behind them, where the towers have to reach."
