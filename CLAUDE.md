@@ -11871,6 +11871,31 @@ seen** - the lesson `a-label-cannot-be-smaller-than-its-font` recorded the
 other way round - and the banner's 52-character trim is now a bound the
 Herald's own lines are held to.
 
+**Footprints stay a while, as of 2026-09-30.** One of the four second-rank
+juice items the 2026-09-15 triage deferred ("persistent footprints"), built
+now because the dust it sits beside exists. `Footfalls` already measures every
+body's stride; a stride also presses a print (`Tracks`) left and right of the
+line walked in turn, darker than the earth it lies on, holding and then fading
+over `TRACK_LIFE`. A look and never a fact: nothing reads a print, and it is
+laid only where the dust is - in view, moving, above the effects floor, never
+in water.
+
+**Built as the ground blood is**, because the blood already paid for the
+lesson: records in chunks, one canvas and one triangle array a chunk, rebuilt
+only when a print is laid into it, the fade in `track_ground.gdshader` off one
+clock uniform, a chunk freed whole once faded, and `TRACK_MAX` over everything.
+
+**It reads in sand and snow and hardly at all on a cobbled road**, which is
+what footprints do, and three passes of making the prints darker and larger
+were spent finding that out: the jungle road's texture is busy enough that a
+soft dark oval disappears into it, and the desert road shows a trodden line
+behind every column. `tracks_shot -- --act=2` is the photograph worth taking
+before retuning. The first cut looked invisible everywhere and the cause was
+not the drawing - a probe drew green triangles through the same call and the
+prints were there, measured darker at their centres - it was that a 5-by-8
+pixel print at play zoom is a smudge. **Measure the pixel before rewriting the
+painter.**
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
