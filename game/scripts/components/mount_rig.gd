@@ -201,15 +201,11 @@ func _measure(kind: MountData) -> void:
 	_content_height = float(CELL_H)
 	_content_width = float(CELL_W)
 	_content_floor = 0.0
-	# **A packed sheet is measured off the sheet** (2026-09-30). The packer puts
-	# the feet on the cell's bottom edge, so the animal is as tall as its tallest
-	# facing reaches up the cell - and that is *not* the base painting's height:
-	# the v3 sheets draw the animal a quarter larger than the rotation it was
-	# animated from. The seat is a share of this number, so a share of the
-	# painting seated every rider a hand too low and the near side then closed
-	# over a Warden standing behind the horse - photographed with the dressed
-	# Warden by `mount_shot`, and reported by the owner as riders not sitting
-	# on their mounts.
+	# **A packed sheet is measured off the sheet** (2026-09-30): the seat is a
+	# share of the animal as it is drawn, and the sheet is what is drawn. The
+	# base painting happened to agree within a few pixels (the pony reads 169
+	# against 173) - which is why this was not the fault behind riders not
+	# sitting, but nothing held the two together.
 	if not _sheets.is_empty():
 		_measure_sheet()
 		return

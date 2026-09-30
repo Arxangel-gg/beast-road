@@ -874,8 +874,7 @@ func _leave(run: Run) -> void:
 ## their mounts with the proper zsorting of the parts of the player that
 ## should be hidden behind the horse"*). Three faults, each photographed by
 ## `mount_shot` and none visible to a number until now: the dressed animator
-## wrote the offset whole and threw the seat away every frame; the seat was a
-## share of the base painting rather than of the larger sheet; and the near
+## wrote the offset whole and threw the seat away every frame, and the near
 ## side read the sheet's UV rather than its cell's, so it vanished in one
 ## facing and covered the whole rider in another.
 func _test_a_dressed_rider_sits() -> void:
@@ -898,8 +897,8 @@ func _test_a_dressed_rider_sits() -> void:
 	_check(absf((riding.offset.y - on_foot.offset.y) - seat.y) < 0.5,
 		"the dressed animator threw the seat away: %.1f against %.1f"
 		% [riding.offset.y - on_foot.offset.y, seat.y])
-	# The seat as a share of the sheet the horse is drawn from, never of the
-	# smaller base painting.
+	# The seat is a share of the horse as drawn: a sanity bound, since the
+	# painting and the sheet agree closely.
 	var sheet_tall: float = float(rig.get("_content_height"))
 	_check(sheet_tall > float(MountRig.CELL_H) * 0.6,
 		"the seat was measured off something smaller than the drawn horse (%.0f)" % sheet_tall)
