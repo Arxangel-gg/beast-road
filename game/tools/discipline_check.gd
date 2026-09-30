@@ -1279,7 +1279,13 @@ func _test_the_rings_and_the_loadout_hold() -> void:
 			other_form = node
 			break
 	if _checked(other_form != null, "the tree must hold a second form"):
-		_check(not RunState.try_choose_form(other_form.id).is_empty(), "an unlearned form cannot be taken up")
+		# **Amended 2026-09-30.** This held that an unlearned form cannot be taken
+		# up; a form is free to take up once its arm is open (owner: "Must be able
+		# to set it to any of the primary skills"), and learning it buys its branches.
+		var open_arm: bool = MetaState.form_problem(other_form.id, RunState.act).is_empty()
+		_check(RunState.try_choose_form(other_form.id).is_empty() == open_arm,
+			"an unlearned form of an open arm must be taken up, and of a closed arm refused")
+		RunState.try_choose_form(Balance.DISCIPLINE_STARTING_FORM)
 		_learn(other_form.id)
 		_check(RunState.try_choose_form(other_form.id).is_empty()
 				and RunState.chain_form() == other_form,
@@ -1578,6 +1584,35 @@ func _test_the_hold_screen_shapes_the_tree() -> void:
 			_check(take.visible and not take.disabled, "a learned form must offer to be taken up")
 			take.pressed.emit()
 			_check(MetaState.discipline_form == form.id, "and the chain must take the form")
+		# **Any open form is free to take up, learned or not** (owner,
+		# 2026-09-30: the primary skill could not be changed without a point).
+		var holy_form: DisciplineNodeData = ContentDB.discipline_node("consecrated_chain")
+		if holy_form != null and not MetaState.owns_discipline(holy_form.id):
+			var points_before: int = MetaState.skill_points_free()
+			var primary_pick: Button = screen.find_child("Primary_%s" % holy_form.id, true, false) as Button
+			_check(primary_pick != null and not primary_pick.disabled, "the Primary picker does not offer an unlearned open form")
+			if primary_pick != null:
+				primary_pick.pressed.emit()
+			_check(MetaState.discipline_form == holy_form.id and MetaState.skill_points_free() == points_before
+				and not MetaState.owns_discipline(holy_form.id),
+				"an open form must be taken up free and unlearned")
+		var primaries: Node = screen.find_child("Primaries", true, false)
+		_check(primaries != null and primaries.get_child_count() == MetaState.chain_forms().size()
+			and MetaState.chain_forms().size() >= 4,
+			"the Primary picker must offer every form of the chain")
+		# The Arcane's form waits for its arm, and takes up once the arm is open.
+		var arcane: DisciplineNodeData = ContentDB.discipline_node("spellblade")
+		var best_was: float = MetaState.best_distance
+		MetaState.best_distance = 0.0
+		_check(arcane != null and not MetaState.form_problem(arcane.id).is_empty()
+			and not MetaState.set_discipline_form(arcane.id).is_empty(),
+			"the Arcane's form must wait for its arm to open")
+		MetaState.best_distance = Balance.act_start_distance(2)
+		_check(arcane != null and MetaState.set_discipline_form(arcane.id).is_empty()
+			and MetaState.discipline_form == arcane.id,
+			"the Arcane's form must take up once Act II is reached")
+		MetaState.best_distance = best_was
+		MetaState.discipline_form = Balance.DISCIPLINE_STARTING_FORM
 	screen.close()
 	screen.queue_free()
 	await get_tree().process_frame

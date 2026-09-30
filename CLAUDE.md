@@ -11443,6 +11443,14 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   and focus frame are not installed yet**: they reskin every screen, and the
   handoff's own rule is that a large preview proves nothing about a 42px
   button, so they wait for a session that can photograph them.
+- **The primary attack is free to change.** A chain form had to be bought with
+  a skill point before it could be swung, so a Warden who had spent their
+  points was stuck with the one they started on. Any form of an open arm may be
+  taken up now (`MetaState.form_problem`) - the Arcane's from Act II, as its
+  tree - and learning a form still buys its enhancement and forks and counts
+  toward its arm. The Hold's Disciplines page carries a **Primary** row of every
+  form. `discipline_check` and `warden_sheet_check` had their "must be learned"
+  invariants amended and dated, and a partner's row may name any real form.
 
 ### The three escape hatches - and why there are only three
 

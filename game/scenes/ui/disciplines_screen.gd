@@ -56,6 +56,8 @@ var _learn_button: Button
 var _forget_button: Button
 var _use_button: Button
 var _loadout: VBoxContainer
+## Every form of the chain, one button each (2026-09-30).
+var _primaries: HFlowContainer
 var _reset_button: Button
 var _close_button: Button
 var _selected: String = ""
@@ -239,6 +241,18 @@ func _build_detail(detail: VBoxContainer) -> void:
 	_loadout.name = "Loadout"
 	_loadout.add_theme_constant_override("separation", 4)
 	detail.add_child(_loadout)
+	# **The primary attack, chosen directly** (owner, 2026-09-30). Every form
+	# of the chain as a button: free to take up once its arm is open.
+	var primary := Label.new()
+	primary.text = "PRIMARY"
+	primary.add_theme_font_size_override("font_size", 14)
+	primary.add_theme_color_override("font_color", GOLD)
+	detail.add_child(primary)
+	_primaries = HFlowContainer.new()
+	_primaries.name = "Primaries"
+	_primaries.add_theme_constant_override("h_separation", 4)
+	_primaries.add_theme_constant_override("v_separation", 4)
+	detail.add_child(_primaries)
 
 
 func _quiet_line(into: Control, size: int, colour: Color) -> Label:
@@ -506,6 +520,7 @@ func _refresh() -> void:
 				button.modulate = Color(0.42, 0.42, 0.46, 0.85)
 	_show_detail()
 	_build_loadout()
+	_build_primaries()
 	var anything: bool = not MetaState.discipline_tree.is_empty()
 	_reset_button.disabled = not anything
 	_reset_button.text = "Press again to let it all go" if _reset_armed else "Let the whole tree go"
@@ -572,10 +587,13 @@ func _show_detail() -> void:
 	var forget_problem: String = MetaState.unlearn_problem(node.id) if owned else ""
 	_forget_button.disabled = not forget_problem.is_empty()
 	_forget_button.tooltip_text = forget_problem
-	_use_button.visible = owned and (node.is_form() or node.is_active_slot())
+	# A form is free to take up once its arm is open, learned or not; a skill
+	# still has to be learned before it can sit in a slot.
+	_use_button.visible = (node.is_form() and MetaState.form_problem(node.id).is_empty()) \
+		or (owned and node.is_active_slot())
 	if node.is_form():
 		var here: bool = MetaState.discipline_form == node.id
-		_use_button.text = "The chain's form" if here else "Take up this form"
+		_use_button.text = "Your primary attack" if here else "Make this your primary attack"
 		_use_button.disabled = here
 	elif node.is_active_slot():
 		var here: bool = MetaState.discipline_loadout[node.slot_index()] == node.id
@@ -616,6 +634,33 @@ func _build_loadout() -> void:
 	for which: int in MetaState.oaths_allowed():
 		_loadout_row("Oath" if MetaState.oaths_allowed() == 1 else "Oath %d" % (which + 1),
 			sworn[which] if which < sworn.size() else null)
+
+
+## One button a form: the one in use lit, a closed arm's disabled with why.
+func _build_primaries() -> void:
+	if _primaries == null:
+		return
+	for child: Node in _primaries.get_children():
+		_primaries.remove_child(child)
+		child.queue_free()
+	for node: DisciplineNodeData in MetaState.chain_forms():
+		var id: String = node.id
+		var button := Button.new()
+		button.name = "Primary_%s" % id
+		button.text = node.display_name
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(0.0, 32.0)
+		button.set_pressed_no_signal(MetaState.discipline_form == id)
+		button.add_theme_color_override("font_color", ARM_COLOURS[node.discipline])
+		var problem: String = MetaState.form_problem(id)
+		button.disabled = not problem.is_empty()
+		button.tooltip_text = problem if not problem.is_empty() else (
+			"%s - the %s form of the chain. Free to take up; learn it to open its branches."
+			% [node.display_name, node.discipline_name()])
+		button.pressed.connect(func() -> void:
+			MetaState.set_discipline_form(id)
+			_refresh())
+		_primaries.add_child(button)
 
 
 func _loadout_row(label: String, node: DisciplineNodeData) -> void:

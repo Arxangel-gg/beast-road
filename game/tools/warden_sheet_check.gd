@@ -259,8 +259,17 @@ func _test_a_row_is_cleaned() -> void:
 	stray[WardenSheet.AT_FORM] = String(MetaState.discipline_form)
 	stray[WardenSheet.AT_LOADOUT] = MetaState.discipline_loadout.duplicate()
 	var unlearned: WardenSheet = WardenSheet.from_row(stray)
-	_check(unlearned.form == Balance.DISCIPLINE_STARTING_FORM or unlearned.learned.has(unlearned.form),
-		"a row with nothing learned kept the form %s" % unlearned.form)
+	# **Amended 2026-09-30.** This held that a form must be learned to be kept;
+	# any form is free to take up now (owner: "Must be able to set it to any of
+	# the primary skills"), so what a row may name is any real form, and what it
+	# may not is something that is not one.
+	var named_form: DisciplineNodeData = ContentDB.discipline_node(unlearned.form)
+	_check(named_form != null and named_form.is_form(),
+		"a row with nothing learned named %s as its form, which is not a form" % unlearned.form)
+	var fake: Array = WardenSheet.pack_mine()
+	fake[WardenSheet.AT_FORM] = "red_pursuit"
+	_check(WardenSheet.from_row(fake).form == Balance.DISCIPLINE_STARTING_FORM,
+		"a row naming a skill as its form kept it")
 	for slot: int in unlearned.loadout.size():
 		var id: String = unlearned.loadout[slot]
 		var node: DisciplineNodeData = ContentDB.discipline_node(id) if not id.is_empty() else null

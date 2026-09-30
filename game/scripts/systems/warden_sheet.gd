@@ -244,8 +244,9 @@ func _index_effect(id: String) -> void:
 
 func _read_form(id: String) -> void:
 	var node: DisciplineNodeData = ContentDB.discipline_node(id) if not id.is_empty() else null
-	form = id if node != null and node.is_form() and learned.has(id) \
-		else Balance.DISCIPLINE_STARTING_FORM
+	# Any form: taking one up is free (2026-09-30), so a partner's form is not a
+	# node they had to learn. What a form is worth is its own data either way.
+	form = id if node != null and node.is_form() else Balance.DISCIPLINE_STARTING_FORM
 
 
 ## A slot keeps its node only when the Warden holds it and it fits that slot:

@@ -3617,12 +3617,40 @@ func set_discipline_slot(slot: int, id: String) -> String:
 	return ""
 
 
-func set_discipline_form(id: String) -> String:
+## **The chain's form is the Warden's primary attack, and it is free to take
+## up** (owner, 2026-09-30: "Player cannot change their primary skill. Must
+## be able to set it to any of the primary skills including arcane if they
+## have it unlocked"). A form had to be bought with a skill point before it
+## could be swung, so a Warden who had spent their points was stuck with the
+## one they started on. Any form of an arm that is open may be taken up now;
+## learning one still buys what hangs off it - its enhancement and forks - and
+## counts toward its arm's depth. The Arcane's opens with Act II, as the tree
+## does.
+func form_problem(id: String, run_act: int = 0) -> String:
 	var node: DisciplineNodeData = ContentDB.discipline_node(id)
 	if node == null or not node.is_form():
 		return "That is not a form of the chain."
-	if not owns_discipline(id):
-		return "Learn it first."
+	if not discipline_open(node.discipline, run_act):
+		return "%s opens when Act %d is reached." % [node.discipline_name(),
+			Balance.DISCIPLINE_OPENS_AT_ACT[node.discipline]]
+	return ""
+
+
+## Every form of the chain, arm by arm: what the Primary picker offers.
+func chain_forms() -> Array[DisciplineNodeData]:
+	var out: Array[DisciplineNodeData] = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.is_form():
+			out.append(node)
+	out.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
+		return a.discipline < b.discipline if a.discipline != b.discipline else a.id < b.id)
+	return out
+
+
+func set_discipline_form(id: String, run_act: int = 0) -> String:
+	var problem: String = form_problem(id, run_act)
+	if not problem.is_empty():
+		return problem
 	discipline_form = id
 	save_game()
 	return ""
@@ -3637,7 +3665,6 @@ func _clean_loadout() -> void:
 		var node: DisciplineNodeData = ContentDB.discipline_node(id)
 		if node == null or not owns_discipline(id) or node.slot_index() != slot:
 			discipline_loadout[slot] = ""
-	var form: DisciplineNodeData = ContentDB.discipline_node(discipline_form)
-	if form == null or not form.is_form() or not owns_discipline(discipline_form):
+	if not form_problem(discipline_form).is_empty():
 		discipline_form = Balance.DISCIPLINE_STARTING_FORM
 

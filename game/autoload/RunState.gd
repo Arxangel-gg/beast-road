@@ -1309,12 +1309,12 @@ func try_equip_discipline(id: String) -> String:
 	return ""
 
 
-## Takes up a learned chain form, in Preparation. Announced as slot -1: the form
+## Takes up a chain form, in Preparation. Announced as slot -1: the form
 ## sits beside the four slots.
 func try_choose_form(id: String) -> String:
 	if not is_preparation():
 		return "Loadout changes are available only in Preparation."
-	var problem: String = MetaState.set_discipline_form(id)
+	var problem: String = MetaState.set_discipline_form(id, act)
 	if problem.is_empty():
 		EventBus.discipline_equipped.emit(-1, id)
 	return problem
