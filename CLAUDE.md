@@ -11527,8 +11527,10 @@ as painted. Known leaks, each a few pixels: a bracer over the thigh in a profile
 swing and a crown in one death frame. `warden_look_check` holds a mask the size
 of its sheet on every body that has one and none on heavy armour.
 
-**Owed**: a photograph of the masks on the Warden's Glass (`glass_shot` has the
-cloth looks) - the one that refused the first cut was the old classifier.
+**Photographed on 2026-09-30** (`glass_shot`, off-screen): a crimson top on sea
+trousers and a moss top on charcoal on the female body, both clean - no dye on
+skin, belt, lantern or boots. The waist cloth takes the trouser colour a shade
+lighter, because it is painted paler; that reads as cloth and was left.
 
 **Hardcore, as of 2026-09-30.** Owner: *"Hardcore players and leaderboards
 who lose everything including that save slot if they do not successfully
@@ -11689,6 +11691,48 @@ a wave's deaths landing together (loot, experience, the HUD answering the purse)
 a physics catch-up after a slow frame, and the six sound starts. The renderer's
 own clock is ~3.9 ms CPU and ~3.8 ms GPU; the GPU's time appears to add to the
 frame rather than overlap it in this renderer, so GPU work counts in full.
+
+**More of everything the road deals, from data alone, as of 2026-09-30.** The
+owner: *"The game needs more content and more content multipliers and more
+aesthetic appeal and polish and game juice!"* PixelLab is spent until 11
+October, so every addition here is a file built on art and mechanics that
+already ship - and each family was chosen because it multiplies with others:
+
+- **Wayside encounters 6 -> 12**: six ANIMAL scenes (the region's own animal is
+  laid, so no painting), every answer one boon and at most one bane through the
+  existing doors. `wayside_check` refuses a rest that costs nothing, which two
+  of the first drafts were.
+- **Matched sets 10 -> 20**, from forty-one kinds that dropped and belonged to no
+  set; tier keys and magnitudes in the existing range, each whole set measured
+  against the affix ceiling of its slots.
+- **Enemy marks 26 -> 36**, new combinations of existing fields, later acts
+  weighted so their pools grow; fifteen marks also favour the new skies.
+- **Road kinds 5 -> 10.** `balance_test` asserted exactly five (v4's checklist
+  count, not a locked bound) and now asserts at least five, more than a fork
+  shows, and that every road both costs and pays. That check found the
+  Provision Route promising "safer supply columns replace the best rare finds"
+  with nothing in it costing anything; it fields fewer elites now, which is the
+  cost it described, and a road's elite budget is clamped at none.
+- **Wave formations 24 -> 32**: shapes rather than sizes, count and health close
+  to what ships; the curve reads the same road.
+- **Weathers 5 -> 12, and every region has a sky of its own.** `weather_check`
+  walked `[1, 2, 3]` on a road of eleven acts - **the seventh hardcoded three-act
+  range** this file has recorded - and no weather named an act past III. Seven
+  skies own Acts IV to XI now, on a low base weight and a strong home favour so
+  every act is led by its own and every sky is reachable everywhere.
+  `WeatherData.ambience_bed` names the nearest bed for a sky without one.
+
+**A kill streak** (`KillStreak`): kills within `KILL_STREAK_REACH` of this
+machine's Warden and `KILL_STREAK_WINDOW` of each other build a counter over the
+Warden, and each tier (5 to 100) says its word with a ring, sparks and a
+rising chime. It counts kills *near* the Warden, towers included, because that
+is the knot the player watches coming apart. A look and never a fact:
+`feel_check` holds that the script names no run or account state at all.
+
+**Photographs off the screen.** `perf_check --shot=8,14` saves the frame at those
+seconds of combat, and every shot tool runs through `tools/perf_offscreen.sh` -
+which is how the Act X loadout, the new skies and the Glass's cloth were seen
+this session without covering the owner's screen.
 
 ### The three escape hatches - and why there are only three
 

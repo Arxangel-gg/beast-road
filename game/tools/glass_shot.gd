@@ -32,9 +32,12 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	var kept: Dictionary = MetaState.look.duplicate()
 	var out: String = "user://"
-	var args: PackedStringArray = OS.get_cmdline_user_args()
-	if args.size() > 0:
-		out = args[0]
+	# The first argument that is not a flag (`tools/perf_offscreen.sh` passes
+	# `--offscreen` ahead of the tool's own).
+	for argument: String in OS.get_cmdline_user_args():
+		if not argument.begins_with("--"):
+			out = argument
+			break
 	var glass := WardenGlass.new()
 	add_child(glass)
 	await get_tree().process_frame
