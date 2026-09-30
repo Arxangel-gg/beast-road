@@ -11817,6 +11817,60 @@ and its own dressing saves 331 times. Coalescing saves to one a frame, and a
 staggered phase for the cadenced redraws, are the two levers left if the p99
 is ever the thing to move.
 
+**The Herald, as of 2026-09-30: a body only the Warden can stop.**
+`DESIGN_DIRECTION_2026-09-22` section 2 named two answers to a late game that
+plays itself once every road is covered, and said the second - a Warden-only
+objective - was owed. Siege orders (2026-09-24) were the first. This is the
+second, and it is recorded as a decision because it changes what fast-forward
+costs.
+
+From `HERALD_FIRST_ACT` (III) a wave may carry one Herald
+(`HERALD_WAVE_CHANCE`): a runner of the region - never a breed that goes for
+towers - promoted by its own numbers (`HERALD_HEALTH_SCALE`,
+`HERALD_SPEED_SCALE`) rather than an elite's six-fold pool, because the point
+is that one Warden can catch it. It wears gold, and the edge of the screen
+points at it (`ThreatPointers.Kind.HERALD`, appended).
+
+**The board cannot see it**, and every door the board fires through says so:
+a tower does not choose it (`Enemy.hidden_from_the_board`, the one question
+beside a sleeping camp), a splash glances off it through the Mirrorhide door
+(`glances_tower_shots`), a trap neither springs on it nor bites it, a tower's
+ground does not burn it, and the board's Arsenal looks away while the
+Warden's does not. The funnel refuses a tower's or a trap's blow on it as
+well, so a door added tomorrow cannot forget.
+
+**Reaching the wall is a call, not a loss**: the next wave that sends bodies
+comes `HERALD_REINFORCE_SHARE` larger a road, once, and the board may shoot
+the Herald from then on, so the wave still ends through the ordinary door.
+**Run down first, it drops `HERALD_BOUNTY`**, a camp's purse split as a raze
+is and scaled by the act as a kill is. Like a camp it is optional income and
+`curve_report` does not model it; the reinforcement is a penalty for ignoring
+it and is not modelled either, because the curve's best case is a player who
+does not ignore it.
+
+**Rolled on its own stream** (`rng("heralds")`), and stood up plain with no
+draw from the rank stream, so a wave without a Herald deals exactly what it
+always dealt. **Solo for 1.0, and never on the Walk**, as the wayside
+encounters are: which machine's Warden ran it down is a relay question nobody
+has asked yet. `herald_check` (both bars, 71) drives the roll, the
+reinforcement on the director's own `_begin_wave`, a real tower firing beside
+it, the funnel, both Arsenals, the call on the real tick, the bounty and the
+arrow; seven faults were planted and all seven named. `herald_shot` is the
+photograph.
+
+**And the HUD banner had been one pixel tall since 2026-09-10.** A clipped,
+wrapping Label has no minimum height, and the banner is a free Control whose
+offsets never said how tall it was - so every line `_show_message` was given
+was clipped to a row of pixels: the wave's harvest above, the wall's alarm,
+the sanctuary, the fast-forward toll, a merchant, the mount's rest. Found by
+photographing the Herald's line and finding nothing where it should be.
+`town_alert_check` read the text back and passed for three weeks; it asks the
+frame for the banner's height now (`MESSAGE_HEIGHT`, two lines, on touch as
+well), and planted back it reads "1 tall for a line 31 tall". **Said is not
+seen** - the lesson `a-label-cannot-be-smaller-than-its-font` recorded the
+other way round - and the banner's 52-character trim is now a bound the
+Herald's own lines are held to.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
