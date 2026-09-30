@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "forty_spirits"
+display_name = "The Wild Answers"
+title = "The Wild Answers"
+description = "Bond forty spirits."
+stat = "spirits_bonded"
+threshold = 40.0
+icon = "upgrade"
+order = 37

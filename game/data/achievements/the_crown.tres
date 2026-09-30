@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "the_crown"
+display_name = "Under the Crown"
+title = "Under the Crown"
+description = "Reach the Final Ascent."
+stat = "highest_act"
+threshold = 11.0
+icon = "distance"
+order = 26

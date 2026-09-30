@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "five_wins"
+display_name = "The Road Knows You"
+title = "The Road Knows You"
+description = "Reach the summit five times."
+stat = "runs_won"
+threshold = 5.0
+icon = "upgrade"
+order = 40
