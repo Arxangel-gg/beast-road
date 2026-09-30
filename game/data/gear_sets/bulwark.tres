@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["bulwark_blade", "anchorplate_sabatons", "ironwill_barbute", "band_of_quiet_iron"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["tower_armour", "hero_max_hp"])
+tier_magnitudes = Array[float]([0.07, 0.1])
+tier_lines = Array[String](["Two: what you built stands a little longer.", "Four: and so do you."])
+aura_colour = Color(0.72, 0.78, 0.86, 0.90)
+id = "bulwark"
+display_name = "The Bulwark"
+description = "Iron made to be stood behind, by somebody who meant to stay."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["hearthkeeper_sigil", "roadwardens_mantle", "waystation_bell", "marchers_boots"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["town_max_hp", "resource_rate"])
+tier_magnitudes = Array[float]([0.08, 0.1])
+tier_lines = Array[String](["Two: the walls remember you.", "Four: and the road pays you back for it."])
+aura_colour = Color(0.98, 0.74, 0.46, 0.90)
+id = "hearthward"
+display_name = "Hearthward"
+description = "What a Warden carries so that somewhere is still home."

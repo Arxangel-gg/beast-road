@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["signet_of_still_water", "stillwater_mail", "stillstep_boots", "bracers_of_still_hands"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["dash_cooldown", "wave_foresight"])
+tier_magnitudes = Array[float]([-0.08, 1.0])
+tier_lines = Array[String](["Two: the step comes back sooner.", "Four: and you see one more wave coming."])
+aura_colour = Color(0.56, 0.80, 0.90, 0.90)
+id = "stillwater"
+display_name = "Stillwater"
+description = "Made for waiting, by people who were good at it."

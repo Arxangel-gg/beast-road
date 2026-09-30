@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["emberseed_pouch", "band_of_low_embers", "emberweave_cape", "ashwalk_greaves", "ashplate_greathelm"])
+tier_counts = Array[int]([2, 3, 5])
+tier_effects = Array[String](["burn_damage", "tower_damage", "hero_damage"])
+tier_magnitudes = Array[float]([0.1, 0.05, 0.07])
+tier_lines = Array[String](["Two: the fire takes better.", "Three: the towers burn hotter.", "Five: and so do you."])
+aura_colour = Color(1.00, 0.56, 0.30, 0.90)
+id = "emberseed"
+display_name = "Emberseed"
+description = "Ash on the outside, and something still burning under it."

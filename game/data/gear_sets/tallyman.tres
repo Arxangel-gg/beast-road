@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["tally_knife", "counting_gloves", "tally_ring", "ledgerkeepers_seal"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["build_cost", "kill_resources"])
+tier_magnitudes = Array[float]([-0.06, 0.09])
+tier_lines = Array[String](["Two: every tower costs a little less.", "Four: and every body is worth a little more."])
+aura_colour = Color(0.86, 0.82, 0.50, 0.90)
+id = "tallyman"
+display_name = "The Tallyman"
+description = "Everything counted, twice, and paid for once."

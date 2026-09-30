@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["rimebound_maul", "frostbound_treads", "avalanche_harness"])
+tier_counts = Array[int]([2, 3])
+tier_effects = Array[String](["slow_strength", "tower_damage"])
+tier_magnitudes = Array[float]([0.08, 0.06])
+tier_lines = Array[String](["Two: what you slow stays slow.", "Three: and the towers find it easier."])
+aura_colour = Color(0.62, 0.86, 1.00, 0.90)
+id = "rimebound"
+display_name = "Rimebound"
+description = "Cold that went into the metal and never came out."

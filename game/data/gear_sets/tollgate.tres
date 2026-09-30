@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["tollgate_barbute", "tollkeepers_bell", "cartographers_pendant", "drovers_gloves"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["resource_rate", "raid_charge"])
+tier_magnitudes = Array[float]([0.07, 0.12])
+tier_lines = Array[String](["Two: the road pays a toll to you now.", "Four: and a raid is ready sooner."])
+aura_colour = Color(0.90, 0.86, 0.66, 0.90)
+id = "tollgate"
+display_name = "Tollgate"
+description = "The kit of the ones who kept the gates when there were gates."
