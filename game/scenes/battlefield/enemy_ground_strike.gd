@@ -49,21 +49,75 @@ var mouth: Vector2 = Vector2.INF
 
 var _left: float = 0.0
 var _drawn: bool = false
+## What a dragon's breath chases once it is loosed (2026-09-30), or null.
+var track: Node2D = null
+## Seconds of the sweep left, or below zero before the breath is loosed.
+var _blasting: float = -1.0
+## Who a sweeping breath has struck already: each body at most once.
+var _struck: Dictionary = {}
+## The line the warning was drawn on, which the sweep may never leave by more
+## than `DRAGON_BREATH_TRACK_ARC`.
+var _home: Vector2 = Vector2.RIGHT
 
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 2
 	_left = maxf(delay, 0.05)
+	_home = aim
 	_tell()
 	queue_redraw()
 
 
 func _process_measured(delta: float) -> void:
+	if _blasting >= 0.0:
+		_sweep(delta)
+		return
 	_left -= delta
 	queue_redraw()
 	if _left <= 0.0:
 		_land()
+		if _sweeps():
+			_blasting = Balance.DRAGON_ULTRA_BLAST if ultra else Balance.DRAGON_BREATH_BLAST
+			return
 		queue_free()
+
+
+## A dragon's line is loosed for as long as its beam is drawn, and chases.
+func _sweeps() -> bool:
+	return not breath.is_empty() and shape == Shape.LINE
+
+
+func _sweep(delta: float) -> void:
+	_blasting -= delta
+	_track(delta)
+	strike_the_players(get_tree(), damage, blamed_on, func(at: Vector2) -> bool:
+		return _covers(at), knockback, global_position, _struck)
+	if _blasting <= 0.0:
+		queue_free()
+
+
+## The line turned toward what it is chasing: a bounded rate, a bounded arc
+## off the warned line, and nothing once the target has gone or fallen.
+func _track(delta: float) -> void:
+	if track == null or not is_instance_valid(track) or not track.is_inside_tree():
+		track = null
+		return
+	if track is Hero and not (track as Hero).is_alive():
+		return
+	var want: Vector2 = track.global_position - global_position
+	if want.length_squared() < 1.0:
+		return
+	var home: float = _home.angle()
+	var goal: float = home + clampf(angle_difference(home, want.angle()),
+		-Balance.DRAGON_BREATH_TRACK_ARC, Balance.DRAGON_BREATH_TRACK_ARC)
+	aim = Vector2.from_angle(rotate_toward(aim.angle(), goal,
+		delta * Balance.DRAGON_BREATH_TRACK_RATE))
+
+
+## Where the beam ends now: the picture reads it every frame, so the breath
+## and the blow are one line.
+func breath_end() -> Vector2:
+	return global_position + aim * reach
 
 
 ## The warning, drawn at exactly what the blow will do.
@@ -82,8 +136,10 @@ func _tell() -> void:
 		Vfx.ring(global_position, reach, Color(tint, 0.5),
 			_left * JuiceDirector.weight(JuiceDirector.Priority.TELEGRAPH), 5.0)
 	if not breath.is_empty() and shape == Shape.LINE:
-		DragonBreath.breathe(get_parent(), mouth if mouth != Vector2.INF else global_position,
+		var picture: DragonBreath = DragonBreath.breathe(get_parent(),
+			mouth if mouth != Vector2.INF else global_position,
 			global_position + aim * reach, half_width, breath, ultra, _left)
+		picture.source = self
 		return
 	Sfx.play("sfx_spell_cast", -9.0)
 
@@ -107,7 +163,8 @@ func _land() -> void:
 		Vfx.forge_play("shot_lance", global_position + aim * reach * 0.5,
 			reach, Color(tint, 0.85), aim.angle())
 	strike_the_players(get_tree(), damage, blamed_on, func(at: Vector2) -> bool:
-		return _covers(at), knockback, global_position)
+		return _covers(at), knockback, global_position,
+		_struck if _sweeps() else null)
 
 
 ## Whether a point is inside this blow.
@@ -137,14 +194,22 @@ func _covers(at: Vector2) -> bool:
 ## shove would only fight its own steering.
 static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 		covers: Callable, push: float = 0.0,
-		thrown_from: Vector2 = Vector2.ZERO) -> int:
+		thrown_from: Vector2 = Vector2.ZERO, struck_ids: Variant = null) -> int:
+	# `struck_ids`, when a Dictionary, is who a lasting blow has already caught:
+	# they are passed over, and whoever this call catches is written into it.
+	var once: Dictionary = struck_ids as Dictionary if struck_ids is Dictionary else {}
+	var keeping: bool = struck_ids is Dictionary
 	var struck: int = 0
 	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
 		var who := node as Hero
 		if who == null or not is_instance_valid(who) or not who.is_alive():
 			continue
+		if keeping and once.has(who.get_instance_id()):
+			continue
 		if not bool(covers.call(who.global_position)):
 			continue
+		if keeping:
+			once[who.get_instance_id()] = true
 		var health: Health = Health.of(who)
 		if health == null or not health.accepts_damage():
 			continue
@@ -163,8 +228,12 @@ static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 		var pet := node as Companion
 		if pet == null or not is_instance_valid(pet) or not pet.is_alive():
 			continue
+		if keeping and once.has(pet.get_instance_id()):
+			continue
 		if not bool(covers.call(pet.global_position)):
 			continue
+		if keeping:
+			once[pet.get_instance_id()] = true
 		# A spirit takes less from a blow aimed at the ground than the person
 		# standing on it. It is smaller and it is not the target.
 		pet.take_damage(amount * Balance.ENEMY_SHOT_SPIRIT_SHARE, pet.global_position)
@@ -173,6 +242,10 @@ static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 
 
 func _draw_measured() -> void:
+	# Loosed, the beam is `DragonBreath`'s to draw: a warning strip left under a
+	# beam that has moved on would be a telegraph pointing somewhere it is not.
+	if _blasting >= 0.0:
+		return
 	var ratio: float = 1.0 - clampf(_left / maxf(delay, 0.001), 0.0, 1.0)
 	if shape == Shape.CIRCLE:
 		# The circle fills from the middle out, so the player reads how long

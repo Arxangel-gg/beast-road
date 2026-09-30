@@ -13422,6 +13422,21 @@ const DRAGON_BREATH_PALETTES: Dictionary = {
 ## How long a breath burns after its warning, how long it takes to go, and how
 ## often a forged tongue and a scrap of the element are thrown down it. [TUNE]
 const DRAGON_BREATH_BLAST: float = 0.6
+## **A loosed breath chases what it was breathed at** (owner, 2026-09-30:
+## *"Dragon breath should interpolate lerp the end of the beam towards its
+## targets"*). The warning is drawn where the breath will start and does not
+## move; once loosed, a camp wyrm's line turns toward its target at
+## `DRAGON_BREATH_TRACK_RATE` radians a second and never more than
+## `DRAGON_BREATH_TRACK_ARC` off the line it warned, and a passing dragon's
+## far end walks toward the nearest Warden at `DRAGON_BREATH_TRACK_SPEED`,
+## never more than `DRAGON_BREATH_TRACK_REACH` from where it was aimed.
+## **Shape, never size**: the blow is dealt along the beam as it sweeps, and
+## to each body at most once - a sweep that outran somebody catches them, one
+## they outran does not, and nobody is hit twice. [TUNE]
+const DRAGON_BREATH_TRACK_RATE: float = 0.8
+const DRAGON_BREATH_TRACK_ARC: float = 0.55
+const DRAGON_BREATH_TRACK_SPEED: float = 240.0
+const DRAGON_BREATH_TRACK_REACH: float = 220.0
 const DRAGON_BREATH_FADE: float = 0.35
 const DRAGON_BREATH_TONGUE_EVERY: float = 0.07
 const DRAGON_BREATH_MATTER_EVERY: float = 0.05

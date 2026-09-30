@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_it_is_seen_as_the_thing_it_is()
 	_test_every_dragon_breathes_its_own()
 	await _test_the_breath_leaves_the_mouth()
+	await _test_a_loosed_breath_chases()
 	_test_every_beam_ends_softly()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -328,6 +329,127 @@ func _test_the_breath_leaves_the_mouth() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(camp.follow == null, "a breath far from the passing dragon was carried off by it")
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+
+
+## **A loosed breath chases what it was breathed at, and is still one blow**
+## (owner, 2026-09-30: *"Dragon breath should interpolate lerp the end of the
+## beam towards its targets"*). A camp wyrm's line holds still through its
+## warning, then turns toward its target and catches it - once, however many
+## frames the target stands in the beam - and never leaves its arc, so a
+## Warden who has moved far enough off the warned line is not followed. The
+## picture's far end is the blow's, frame for frame. A passing dragon's far
+## end walks toward the nearest Warden and never strays past its reach.
+func _test_a_loosed_breath_chases() -> void:
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var heroes: Array[Hero] = field.heroes() if field != null else []
+	if heroes.is_empty():
+		_check(false, "the field must have a Warden to chase")
+		run.queue_free()
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	field.resume()
+	var hero: Hero = heroes[0]
+	hero.health.max_hp = 100000.0
+	hero.health.current_hp = 100000.0
+	var blows: Array = []
+	hero.health.damaged.connect(func(amount: float, _from: Vector2) -> void: blows.append(amount))
+	var origin: Vector2 = Vector2(2600.0, 2600.0)
+
+	for case: Array in [[0.40, true, "inside its arc"], [1.25, false, "far outside its arc"]]:
+		blows.clear()
+		hero.global_position = origin + Vector2.RIGHT.rotated(float(case[0])) * 300.0
+		hero.velocity = Vector2.ZERO
+		var strike := EnemyGroundStrike.new()
+		strike.shape = EnemyGroundStrike.Shape.LINE
+		strike.breath = "fire"
+		strike.reach = 420.0
+		strike.half_width = 30.0
+		strike.damage = 25.0
+		strike.delay = 0.3
+		strike.aim = Vector2.RIGHT
+		strike.blamed_on = "a check"
+		strike.global_position = origin
+		strike.track = hero
+		field.add_child(strike)
+		var held_still: bool = true
+		var same_line: bool = true
+		var widest: float = 0.0
+		var started: int = Time.get_ticks_msec()
+		var picture: DragonBreath = null
+		while is_instance_valid(strike) and Time.get_ticks_msec() - started < 4000:
+			hero.global_position = origin + Vector2.RIGHT.rotated(float(case[0])) * 300.0
+			if picture == null:
+				for child: Node in field.get_children():
+					if child is DragonBreath and (child as DragonBreath).source == strike:
+						picture = child as DragonBreath
+			if int(strike.get("_blasting") if strike.get("_blasting") != null else -1.0) < 0 \
+					and float(strike.get("_blasting")) < 0.0 and not strike.aim.is_equal_approx(Vector2.RIGHT):
+				held_still = false
+			widest = maxf(widest, absf(strike.aim.angle()))
+			if picture != null and is_instance_valid(picture) \
+					and picture.to.distance_to(strike.breath_end()) > 1.0 and picture.source == strike:
+				await get_tree().process_frame
+				if is_instance_valid(strike) and is_instance_valid(picture) \
+						and picture.to.distance_to(strike.breath_end()) > 30.0:
+					same_line = false
+				continue
+			await get_tree().process_frame
+		_check(held_still, "the breath moved during its warning - the telegraph has to hold still")
+		_check(widest <= Balance.DRAGON_BREATH_TRACK_ARC + 0.01,
+			"the breath turned %.2f off its warned line, past its arc of %.2f"
+			% [widest, Balance.DRAGON_BREATH_TRACK_ARC])
+		_check(picture != null and same_line, "the beam drawn is not the line that strikes")
+		if bool(case[1]):
+			_check(blows.size() == 1 and absf(float(blows[0]) - 25.0) < 0.01,
+				"a Warden %s was struck %d times (%s) - a chase catches once"
+				% [String(case[2]), blows.size(), str(blows)])
+		else:
+			_check(blows.is_empty(), "a Warden %s was followed and struck" % String(case[2]))
+
+	# A lasting blow keeps who it caught: the same body twice is passed over,
+	# whatever window of invulnerability it did or did not have.
+	var once: Dictionary = {}
+	var everywhere: Callable = func(_at: Vector2) -> bool: return true
+	hero.health.set("_invulnerable_left", 0.0)
+	var first: int = EnemyGroundStrike.strike_the_players(get_tree(), 1.0, "a check", everywhere,
+		0.0, Vector2.ZERO, once)
+	hero.health.set("_invulnerable_left", 0.0)
+	var second: int = EnemyGroundStrike.strike_the_players(get_tree(), 1.0, "a check", everywhere,
+		0.0, Vector2.ZERO, once)
+	_check(first >= 1 and second == 0, "a lasting blow struck the same body twice (%d then %d)"
+		% [first, second])
+
+	# A passing dragon's breath: the far end walks toward the Warden, bounded.
+	var aimed: Vector2 = origin + Vector2(400.0, 0.0)
+	hero.global_position = aimed + Vector2(0.0, 320.0)
+	var hazard := GroundHazard.new()
+	hazard.field = field
+	hazard.mirror = true
+	hazard.plan = {"mode": "breath", "from": origin, "to": aimed, "origin": origin,
+		"element": "fire", "ultra": false, "width": 30.0, "warning": 0.2,
+		"travel": Balance.DRAGON_BREATH_BLAST, "share": 0.0, "tower_damage": 0.0,
+		"tint": Color.ORANGE, "blame": "a check"}
+	field.add_child(hazard)
+	var start_ms: int = Time.get_ticks_msec()
+	var strayed: float = 0.0
+	while is_instance_valid(hazard) and Time.get_ticks_msec() - start_ms < 3000:
+		hero.global_position = aimed + Vector2(0.0, 320.0)
+		strayed = maxf(strayed, hazard.breath_end().distance_to(aimed))
+		await get_tree().process_frame
+	_check(strayed > 20.0, "a passing dragon's breath never moved toward the Warden (%.0f)" % strayed)
+	_check(strayed <= Balance.DRAGON_BREATH_TRACK_REACH + 1.0,
+		"a passing dragon's breath strayed %.0f from where it was aimed, past %.0f"
+		% [strayed, Balance.DRAGON_BREATH_TRACK_REACH])
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()

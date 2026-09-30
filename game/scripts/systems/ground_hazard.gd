@@ -10,20 +10,30 @@ var _dust: float = 0.0
 var _hit: Dictionary = {}
 var _previous: Vector2
 var _erupted: bool = false
+## Where a breath's far end is now, and who it chases once loosed
+## (2026-09-30). Every machine chases its own nearest Warden; only the host's
+## copy strikes, so a guest's picture following its own copy of the same
+## Warden is a picture and nothing more.
+var _to: Vector2 = Vector2.ZERO
+var _chasing: Node2D = null
 
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 2
 	_previous = plan["from"] as Vector2
+	_to = plan["to"] as Vector2
 	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
 	# **The passing dragon's breath is the same picture as a war-camp wyrm's**
 	# (owner, 2026-09-22). The warning's exact edges are still drawn here; the
 	# breath itself - cone, tongues, element - is `DragonBreath`.
 	if String(plan["mode"]) == "breath":
-		DragonBreath.breathe(get_parent(), plan.get("origin", plan["from"]) as Vector2,
+		var picture: DragonBreath = DragonBreath.breathe(get_parent(),
+			plan.get("origin", plan["from"]) as Vector2,
 			plan["to"] as Vector2, float(plan["width"]),
 			String(plan.get("element", "fire")), bool(plan.get("ultra", false)),
 			float(plan["warning"]))
+		picture.source = self
+		_chasing = _nearest_warden(_to)
 
 
 func _process_measured(delta: float) -> void:
@@ -31,8 +41,10 @@ func _process_measured(delta: float) -> void:
 	var warning: float = float(plan["warning"])
 	var travel: float = float(plan["travel"])
 	var progress: float = clampf((_elapsed - warning) / maxf(travel, 0.001), 0.0, 1.0)
+	if String(plan["mode"]) == "breath" and _elapsed >= warning:
+		_chase(delta)
 	var start: Vector2 = plan["from"] as Vector2
-	var end: Vector2 = plan["to"] as Vector2
+	var end: Vector2 = _to
 	var head: Vector2 = start.lerp(end, progress)
 	if _elapsed >= warning and _elapsed <= warning + travel + delta:
 		if not _erupted:
@@ -58,6 +70,45 @@ func _process_measured(delta: float) -> void:
 	queue_redraw()
 	if _elapsed > warning + travel + Balance.EARTH_PATTERN_FADE:
 		queue_free()
+
+
+## The far end walked toward whoever it chases, bounded in speed and in how
+## far it may stray from where the breath was aimed.
+func _chase(delta: float) -> void:
+	if _chasing == null or not is_instance_valid(_chasing) or not _chasing.is_inside_tree():
+		_chasing = null
+		return
+	if _chasing is Hero and not (_chasing as Hero).is_alive():
+		return
+	var aimed: Vector2 = plan["to"] as Vector2
+	var goal: Vector2 = _chasing.global_position
+	var off: Vector2 = goal - aimed
+	if off.length() > Balance.DRAGON_BREATH_TRACK_REACH:
+		goal = aimed + off.normalized() * Balance.DRAGON_BREATH_TRACK_REACH
+	_to = _to.move_toward(goal, delta * Balance.DRAGON_BREATH_TRACK_SPEED)
+
+
+## The Warden nearest where a breath was aimed, outside the walls, or null.
+func _nearest_warden(at: Vector2) -> Node2D:
+	if field == null:
+		return null
+	var best: Node2D = null
+	var nearest: float = Balance.DRAGON_BREATH_TRACK_REACH * 2.0
+	for hero: Hero in field.heroes():
+		if hero == null or not is_instance_valid(hero) or not hero.is_alive():
+			continue
+		if field.inside_city(hero.global_position):
+			continue
+		var apart: float = hero.global_position.distance_to(at)
+		if apart < nearest:
+			nearest = apart
+			best = hero
+	return best
+
+
+## Where the beam ends now, for the picture.
+func breath_end() -> Vector2:
+	return _to
 
 
 func _strike(a: Vector2, b: Vector2) -> void:
@@ -98,7 +149,7 @@ func _strike(a: Vector2, b: Vector2) -> void:
 ## fire rather than earth, and it is the one mode here that is not a crack.
 func _draw_measured() -> void:
 	var a: Vector2 = to_local(plan["from"] as Vector2)
-	var b: Vector2 = to_local(plan["to"] as Vector2)
+	var b: Vector2 = to_local(_to)
 	var width: float = float(plan["width"])
 	var tint: Color = plan["tint"] as Color
 	var warning: float = float(plan["warning"])

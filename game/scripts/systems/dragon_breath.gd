@@ -56,6 +56,10 @@ var _seed: float = 0.0
 ## air: its mouth is read every frame, so the breath leaves the mouth as the
 ## body flies on (owner, 2026-09-30). The far end stays where it was aimed.
 var follow: Node2D = null
+## The blow the far end is read from while it lasts (2026-09-30): a breath
+## that chases its target is one line with the blow that deals it, so the
+## picture asks the blow where the beam ends rather than keeping its own.
+var source: Node = null
 
 
 ## The element a breath is drawn in, as three colours: a core, a body and a rim.
@@ -168,6 +172,11 @@ func _follow_the_mouth() -> void:
 func _process_measured(delta: float) -> void:
 	_age += delta
 	_follow_the_mouth()
+	if source != null:
+		if is_instance_valid(source) and source.has_method(&"breath_end"):
+			to = source.call(&"breath_end") as Vector2
+		else:
+			source = null
 	if _age >= warning:
 		if not _opened:
 			_open()

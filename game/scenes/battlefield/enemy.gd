@@ -1604,6 +1604,9 @@ func _release_bank() -> void:
 		if blow.ultra:
 			blow.delay *= Balance.DRAGON_ULTRA_WARNING
 		blow.mouth = combat_origin() + blow.aim * data.body_radius * 0.8
+		# What the loosed breath chases (2026-09-30). Validity before the cast.
+		if is_instance_valid(_target):
+			blow.track = _target
 	_field.add_child(blow)
 
 
