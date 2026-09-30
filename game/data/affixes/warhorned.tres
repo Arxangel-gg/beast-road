@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "warhorned"
+display_name = "Warhorned"
+description = "A horn the whole road can hear. Everything near it comes on faster and harder."
+damage_scale = 1.1
+aura_radius = 320.0
+aura_speed = 0.12
+aura_resistance = 0.08
+from_act = 9
+mark_colour = Color(0.86, 0.64, 0.36, 1)
+favoured_weather = Array[String](["duststorm"])

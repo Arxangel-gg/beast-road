@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "emberheart"
+display_name = "Emberheart"
+description = "It burns you going in, and on the way out."
+on_hit_burn = 18.0
+on_hit_burn_duration = 3.0
+death_blast_radius = 150.0
+death_blast_damage = 24.0
+from_act = 3
+mark_colour = Color(1.0, 0.46, 0.2, 1)
+favoured_weather = Array[String](["heatwave"])

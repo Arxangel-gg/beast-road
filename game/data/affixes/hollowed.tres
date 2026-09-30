@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hollowed"
+display_name = "Hollowed"
+description = "Something else is wearing it, and does not mind the first few blows."
+health_scale = 0.9
+spawn_guard = 50.0
+damage_resistance = 0.12
+from_act = 5
+mark_colour = Color(0.55, 0.5, 0.66, 1)
+favoured_weather = Array[String](["downpour"])

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bloodsworn"
+display_name = "Bloodsworn"
+description = "The closer it comes to dying, the faster it closes on you - and it is closing the wounds as it comes."
+health_scale = 1.1
+regeneration = 0.026
+frenzy_below = 0.3
+frenzy_speed = 1.35
+from_act = 6
+mark_colour = Color(0.78, 0.16, 0.2, 1)
+favoured_weather = Array[String](["heatwave"])

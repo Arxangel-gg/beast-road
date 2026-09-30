@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ironbanner"
+display_name = "Ironbanner"
+description = "Its own kind stand harder near it. Nothing else notices."
+health_scale = 1.2
+aura_radius = 260.0
+aura_resistance = 0.14
+aura_kin_only = true
+from_act = 6
+mark_colour = Color(0.66, 0.7, 0.78, 1)
+favoured_weather = Array[String](["clear"])

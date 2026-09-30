@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "gravebound"
+display_name = "Gravebound"
+description = "When it goes down it takes the ground with it, twice over."
+health_scale = 1.2
+death_blast_radius = 240.0
+death_blast_damage = 22.0
+death_chain = 2
+from_act = 8
+mark_colour = Color(0.5, 0.56, 0.5, 1)
+favoured_weather = Array[String](["snowfall"])
