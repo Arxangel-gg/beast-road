@@ -69,7 +69,9 @@ func _on_distance(total_distance: float, _to_crossroad: float) -> void:
 	# Applied on a phase step rather than every frame (`DAYNIGHT_PHASE_STEP`).
 	if absf(wanted - phase) < Balance.DAYNIGHT_PHASE_STEP:
 		return
+	var started: int = Time.get_ticks_usec()
 	_apply(wanted)
+	FrameProfile.add(&"daynight", started)
 
 
 ## True while the night difficulty modifiers apply. The sun's, never the deep's.

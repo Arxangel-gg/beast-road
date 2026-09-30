@@ -39,6 +39,7 @@ var _checks: int = 0
 func _ready() -> void:
 	MetaState.hold_saves()
 	_test_the_ear()
+	_test_a_burst_is_heard_as_its_first_few()
 	_test_a_dropped_sound_decides_nothing()
 	await _test_the_field()
 	_test_a_voice_comes_from_where_it_is()
@@ -135,6 +136,35 @@ func _test_the_ear() -> void:
 	_check(int(Sfx.debug_state().get("starts", 0)) > quiet,
 		("with nobody listening, a sound must play wherever it happened - "
 			+ "otherwise every headless gate hears a different game"))
+	Sfx.stop_immediately()
+
+
+## **A burst is heard as its first few sounds, and a flat one is never
+## refused** (2026-09-30). Twice the per-frame allowance of different world
+## sounds in one frame starts no more than the allowance; a flat sound in the
+## same frame still starts, because the interface, a telegraph and the wall
+## are never counted. Only while a camera listens.
+func _test_a_burst_is_heard_as_its_first_few() -> void:
+	Sfx.stop_immediately()
+	Sfx.listen_from(Vector2.ZERO)
+	var ids: Array = []
+	for id: Variant in (Sfx.get("_streams") as Dictionary).keys():
+		if String(id).begins_with("sfx_") and ids.size() < Balance.SFX_WORLD_STARTS_PER_FRAME * 2 + 1:
+			ids.append(String(id))
+	_check(ids.size() > Balance.SFX_WORLD_STARTS_PER_FRAME * 2,
+		"not enough distinct sounds to make a burst of")
+	var before: int = int(Sfx.debug_state().get("starts", 0))
+	for index: int in Balance.SFX_WORLD_STARTS_PER_FRAME * 2:
+		Sfx.play_at(String(ids[index]), Vector2(10.0, 0.0))
+	var world: int = int(Sfx.debug_state().get("starts", 0)) - before
+	_check(world >= 1 and world <= Balance.SFX_WORLD_STARTS_PER_FRAME,
+		"a burst of %d world sounds in one frame started %d, allowed %d"
+		% [Balance.SFX_WORLD_STARTS_PER_FRAME * 2, world, Balance.SFX_WORLD_STARTS_PER_FRAME])
+	var flat_before: int = int(Sfx.debug_state().get("starts", 0))
+	Sfx.play(String(ids[ids.size() - 1]))
+	_check(int(Sfx.debug_state().get("starts", 0)) == flat_before + 1,
+		"a flat sound in a full frame was refused - flat sounds are never counted")
+	Sfx.stop_listening()
 	Sfx.stop_immediately()
 
 

@@ -108,6 +108,9 @@ var _driver: Node = null
 ## that prints every frame halves the frame rate, and a stall that lives on
 ## a fast frame rate disappears under it (found 2026-09-30).
 var _hitch_profile: bool = false
+## `--profile-over=` prints the profile of every frame slower than this rather
+## than only the hitches, to see what the slowest one in a hundred is made of.
+var _profile_over_ms: float = HITCH_MS
 ## `--texture-churn`: which pictures leave the resource cache and come back.
 ## The hitch ledger could say "-2649 KB" and never which texture
 ## (2026-09-30), and 4.7 has no call that lists the renderer's textures - so
@@ -250,6 +253,8 @@ func _ready() -> void:
 			_loadout = true
 		elif argument == "--hitch-profile":
 			_hitch_profile = true
+		elif argument.begins_with("--profile-over="):
+			_profile_over_ms = float(argument.split("=")[1])
 		elif argument == "--texture-churn":
 			_texture_churn = true
 		elif argument == "--idle":
@@ -556,7 +561,7 @@ func _process(delta: float) -> void:
 	if _hitch_profile:
 		var fired: String = " ".join(_trace_fired)
 		_trace_fired.clear()
-		if ms > HITCH_MS:
+		if ms > _profile_over_ms:
 			print("[hitch-profile] %6.2fs %5.1f ms  phase %d\n    before: %s\n    before fired: %s\n    this: %s\n    this fired: %s"
 				% [_elapsed, ms, int(RunState.phase), _last_buckets, _last_fired.left(400), buckets,
 				fired.left(400)])

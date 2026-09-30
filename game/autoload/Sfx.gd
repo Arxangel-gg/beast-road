@@ -1909,7 +1909,7 @@ func _play_at_measured(id: String, at: Vector2, extra_db: float = 0.0,
 		play(id, extra_db, pitch_shift)
 		return
 	var away: float = _ear.distance_to(at)
-	if away > Balance.SFX_CUTOFF:
+	if away > Balance.SFX_CUTOFF or not _world_start_allowed():
 		return
 	play(id, extra_db + distance_db(away), pitch_shift)
 
@@ -1953,9 +1953,32 @@ func _play_group_at_measured(group: String, at: Vector2, extra_db: float = 0.0,
 		play_group(group, extra_db, pitch_shift)
 		return
 	var away: float = _ear.distance_to(at)
-	if away > Balance.SFX_CUTOFF:
+	if away > Balance.SFX_CUTOFF or not _world_start_allowed():
 		return
 	play_group(group, extra_db + distance_db(away), pitch_shift)
+
+
+## **A burst is heard as its first few sounds** (2026-09-30). Every start
+## builds a Vorbis decoder, about a quarter of a millisecond each, and a late
+## wave meeting a full board can land fourteen blows in one frame - measured
+## at 3.9 ms of sound starts in a single frame at Act X. Fourteen impacts on
+## one frame are one noise to a listener, so only `SFX_WORLD_STARTS_PER_FRAME`
+## world sounds may start in a frame; flat sounds - the interface, a
+## telegraph, the wall, an announcement - are never counted and never
+## refused. Only while a camera listens, so headless `play_at` is `play`.
+var _world_frame: int = -1
+var _world_starts: int = 0
+
+
+func _world_start_allowed() -> bool:
+	var frame: int = Engine.get_process_frames()
+	if frame != _world_frame:
+		_world_frame = frame
+		_world_starts = 0
+	if _world_starts >= Balance.SFX_WORLD_STARTS_PER_FRAME:
+		return false
+	_world_starts += 1
+	return true
 
 
 ## **The sound a piece of gear of `rarity` makes when it arrives.**
