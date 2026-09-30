@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+icon_id = "distance"
+promise = "A quiet road to mend on."
+consequence = "It pays little, and grows little."
+count_scale = 0.9
+hp_scale = 0.94
+damage_scale = 0.95
+resource_rate_scale = 0.88
+construction_scale = 0.9
+reward_currencies = {"food": 30}
+id = "pilgrim_way"
+display_name = "Pilgrim Way"
+description = "Lick your wounds and give up the road's income to do it."

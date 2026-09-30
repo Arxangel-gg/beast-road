@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+icon_id = "wave"
+promise = "Bodies come in tight knots - good ground for anything that hits more than one."
+consequence = "The knots arrive close together, and fast."
+spawn_spacing_scale = 0.78
+count_scale = 1.04
+reward_currencies = {"wood": 18, "gold": 16}
+id = "narrow_pass"
+display_name = "The Narrow Pass"
+description = "Meet the road packed tight and make your splash count."

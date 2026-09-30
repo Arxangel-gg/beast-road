@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+icon_id = "resource"
+promise = "Stone, and construction that moves quickly."
+consequence = "More bodies come up the cut behind you."
+construction_scale = 1.28
+count_scale = 1.06
+reward_currencies = {"stone": 36, "wood": 10}
+id = "quarry_cut"
+display_name = "The Quarry Cut"
+description = "Build fast on stone the road hands over, and hold more of them off."

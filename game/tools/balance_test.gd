@@ -2014,8 +2014,15 @@ func _test_wave_archetypes() -> void:
 
 
 func _test_road_archetypes() -> void:
-	_check(ContentDB.roads.size() == 5,
-		"crossroads must expose exactly five authored road archetypes")
+	# **At least five, amended 2026-09-30.** v4's checklist built five
+	# archetypes and this asserted five exactly; the owner asked for more
+	# content, and a fork deals `CROSSROAD_OPTIONS_SHOWN` of them shuffled, so
+	# more kinds is more variety at every fork. What every one must still do is
+	# below: say what it promises and what it costs, and trade one for the other.
+	_check(ContentDB.roads.size() >= 5,
+		"crossroads must expose at least the five authored road archetypes")
+	_check(ContentDB.roads.size() > Balance.CROSSROAD_OPTIONS_SHOWN,
+		"a fork must have more roads to deal than it shows, or it is not a draw")
 	_check(ContentDB.road_difficulties.size() == 3,
 		"roads must expose Guarded, Contested and Perilous tiers")
 	for value: Variant in ContentDB.roads.values():
@@ -2023,6 +2030,24 @@ func _test_road_archetypes() -> void:
 		_check(road != null and not road.promise.is_empty() \
 			and not road.consequence.is_empty(),
 			"every road card must state a gameplay promise and consequence")
+		if road == null:
+			continue
+		# **A trade, both ways.** Something must make the road harder or leaner
+		# and something must make it worth taking, or the card is a free gift or
+		# a trap - and the player is choosing between roads, not reading them.
+		var harder: bool = road.count_scale > 1.0 or road.hp_scale > 1.0 \
+			or road.damage_scale > 1.0 or road.speed_scale > 1.0 \
+			or road.elite_budget_bonus > 0.0 or road.distance_scale > 1.0 \
+			or road.resource_rate_scale < 1.0 or road.construction_scale < 1.0 \
+			or road.spawn_spacing_scale < 1.0 or road.elite_budget_bonus < 0.0
+		var kinder: bool = road.resource_rate_scale > 1.0 or road.construction_scale > 1.0 \
+			or road.count_scale < 1.0 or road.hp_scale < 1.0 or road.damage_scale < 1.0 \
+			or road.distance_scale < 1.0 or road.raid_charge_scale > 1.0 \
+			or road.guaranteed_regional_relic or road.guarantees_raid_charge \
+			or not road.reward_currencies.is_empty()
+		_check(harder and kinder,
+			"road '%s' must cost something and pay something (harder %s, kinder %s)"
+			% [road.id, str(harder), str(kinder)])
 	var guarded: RoadDifficultyData = ContentDB.road_difficulty("guarded")
 	var perilous: RoadDifficultyData = ContentDB.road_difficulty("perilous")
 	_check(guarded.reward_rolls == 1 and perilous.reward_rolls == 3 \

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+icon_id = "wave"
+promise = "A rich stretch, walked quickly."
+consequence = "What walks it hits harder and arrives sooner."
+distance_scale = 0.9
+damage_scale = 1.08
+speed_scale = 1.06
+reward_currencies = {"gold": 30}
+id = "ember_road"
+display_name = "The Ember Road"
+description = "Take the fast, hot road and meet it at the wall."

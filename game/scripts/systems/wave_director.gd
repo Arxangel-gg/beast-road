@@ -328,6 +328,10 @@ func _begin_wave() -> void:
 		elite_budget += road.elite_budget_bonus
 	if difficulty != null:
 		elite_budget += difficulty.elite_budget_bonus
+	# **A road may take elites away** (Provision Route, 2026-09-30), and never
+	# below none: a negative count would eat the formation's own authored extra
+	# elites below. The dice are drawn exactly as before.
+	elite_budget = maxf(elite_budget, 0.0)
 	var elite_count: int = int(floor(elite_budget))
 	if _rng.randf() < elite_budget - float(elite_count):
 		elite_count += 1

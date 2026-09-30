@@ -10,6 +10,7 @@ consequence = "Safer supply columns replace the best rare finds."
 resource_rate_scale = 1.22
 count_scale = 0.94
 hp_scale = 0.96
+elite_budget_bonus = -0.35
 reward_currencies = {"wood": 32, "food": 24, "gold": 18}
 id = "provision_route"
 display_name = "Provision Route"

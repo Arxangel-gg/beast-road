@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+icon_id = "raid_charge"
+promise = "Fewer bodies, and more of them champions - which drop better."
+consequence = "Elites lead the formations, and they hit like elites."
+count_scale = 0.9
+hp_scale = 1.04
+elite_budget_bonus = 0.6
+reward_currencies = {"gold": 20, "stone": 10}
+id = "hunters_path"
+display_name = "Hunter's Path"
+description = "Hunt the leaders for their spoils and accept a harder knot at the front."
