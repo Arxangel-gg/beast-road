@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "angler"
+level = 10
+key = "wait"
+amount = -0.2
+id = "angler_patient_line"
+display_name = "Patient Line"
+description = "The wait before a bite is a fifth shorter."

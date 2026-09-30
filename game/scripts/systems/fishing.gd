@@ -851,7 +851,8 @@ func _touch_down() -> void:
 
 func _splash_down() -> void:
 	_state = State.WAITING
-	_phase_total = _hooked.patience * lerpf(1.0, Balance.FISHING_SKILL_WAIT_FLOOR, _skill())
+	_phase_total = _hooked.patience * lerpf(1.0, Balance.FISHING_SKILL_WAIT_FLOOR, _skill()) \
+		* (1.0 + CraftTalents.value(PROFESSION, "wait"))
 	if _spot_hooked >= 0:
 		_phase_total *= 0.7
 	_phase_left = _phase_total
@@ -962,7 +963,8 @@ func _bite() -> void:
 			_hooked = came
 	_state = State.BITE
 	_phase_total = Balance.FISHING_BITE_WINDOW \
-		* lerpf(1.0, Balance.FISHING_SKILL_BITE_CEILING, _skill())
+		* lerpf(1.0, Balance.FISHING_SKILL_BITE_CEILING, _skill()) \
+		* (1.0 + CraftTalents.value(PROFESSION, "bite"))
 	_phase_left = _phase_total
 	_dip_float(14.0, 0.12)
 	_ripple_at(_pond, _float_at, 0.95)
@@ -982,7 +984,8 @@ func _slip() -> void:
 		_abandon("It slipped the hook.")
 		return
 	_state = State.WAITING
-	_phase_total = _hooked.patience * lerpf(1.0, Balance.FISHING_SKILL_WAIT_FLOOR, _skill())
+	_phase_total = _hooked.patience * lerpf(1.0, Balance.FISHING_SKILL_WAIT_FLOOR, _skill()) \
+		* (1.0 + CraftTalents.value(PROFESSION, "wait"))
 	_phase_left = _phase_total
 	_ripple_at(_pond, _float_at, 0.5)
 	Sfx.play("sfx_fish_escape")
@@ -1005,7 +1008,8 @@ func _hook() -> void:
 	_band_half = lerpf(Balance.FISHING_SAFE_BAND_MIN, Balance.FISHING_SAFE_BAND_MAX, _skill())
 	_band_centre = Balance.FISHING_SAFE_BAND_CENTRE
 	_band_drift = Balance.FISHING_BAND_DRIFT_BY_RARITY[rarity] \
-		* lerpf(1.0, Balance.FISHING_SKILL_DRIFT_FLOOR, _skill())
+		* lerpf(1.0, Balance.FISHING_SKILL_DRIFT_FLOOR, _skill()) \
+		* (1.0 + CraftTalents.value(PROFESSION, "drift"))
 	_band_velocity = 0.0
 	_band_turn_in = 0.0
 	_tension = _band_centre * 0.5
@@ -1302,6 +1306,7 @@ func _roll_fish(depth: float, in_spot: bool) -> FishData:
 			continue
 		var rank: float = float(kind.rarity) / top
 		var tilt: float = 1.0 + skill * Balance.FISHING_SKILL_RARE_BONUS * rank \
+			* (1.0 + CraftTalents.value(PROFESSION, "rare")) \
 			+ depth * Balance.FISHING_DEPTH_RARE_BONUS * rank \
 			+ (Balance.FISHING_BUBBLE_RARE_BONUS * rank if in_spot else 0.0)
 		var weight: float = maxf(kind.weight, 0.0) * tilt

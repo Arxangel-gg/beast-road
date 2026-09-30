@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "miner"
+level = 20
+key = "bonus"
+amount = 0.08
+id = "miner_rich_vein"
+display_name = "Rich Vein"
+description = "A swing more often breaks an extra piece of ore."

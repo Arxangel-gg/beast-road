@@ -317,16 +317,54 @@ func _read_materials(block: Dictionary) -> void:
 ## Reads the professions back, keeping only the ones the game names.
 func _read_professions(block: Dictionary) -> void:
 	profession_xp.clear()
+	craft_talents.clear()
 	var stored: Variant = block.get("xp", {})
-	if not (stored is Dictionary):
-		return
-	for key: Variant in (stored as Dictionary):
-		var id: String = String(key)
-		if not Balance.PROFESSIONS.has(id):
-			continue
-		var xp: float = maxf(float((stored as Dictionary)[key]), 0.0)
-		if xp > 0.0:
-			profession_xp[id] = minf(xp, profession_xp_to_cap())
+	if stored is Dictionary:
+		for key: Variant in (stored as Dictionary):
+			var id: String = String(key)
+			if not Balance.PROFESSIONS.has(id):
+				continue
+			var xp: float = maxf(float((stored as Dictionary)[key]), 0.0)
+			if xp > 0.0:
+				profession_xp[id] = minf(xp, profession_xp_to_cap())
+	# **Talents are read through the door that chooses them**, so a save can
+	# only ever hold what a Warden could have chosen: a known talent, of a
+	# level the craft has reached, one a level.
+	var chosen: Variant = block.get("talents", [])
+	if chosen is Array:
+		for id: Variant in (chosen as Array):
+			choose_talent(String(id))
+
+
+## Why `id` may not be chosen now, or "" when it may.
+func talent_problem(id: String) -> String:
+	var talent: CraftTalentData = ContentDB.craft_talent(id)
+	if talent == null or not Balance.PROFESSIONS.has(talent.craft):
+		return "No such talent."
+	if profession_level(talent.craft) < talent.level:
+		return "%s opens at %s level %d." % [talent.display_name,
+			talent.craft.capitalize(), talent.level]
+	return ""
+
+
+## Keeps `id`, putting down whichever talent of the same craft and level was
+## kept before. Returns why not, or "".
+func choose_talent(id: String) -> String:
+	var problem: String = talent_problem(id)
+	if not problem.is_empty():
+		return problem
+	var talent: CraftTalentData = ContentDB.craft_talent(id)
+	for held: String in craft_talents.duplicate():
+		var other: CraftTalentData = ContentDB.craft_talent(held)
+		if other != null and other.craft == talent.craft and other.level == talent.level:
+			craft_talents.erase(held)
+	if not craft_talents.has(id):
+		craft_talents.append(id)
+	return ""
+
+
+func has_talent(id: String) -> bool:
+	return craft_talents.has(id)
 
 
 ## Experience needed to leave `level`.
@@ -961,6 +999,11 @@ var fish: Dictionary = {}
 ## Additive: a save without a `professions` key reads back as level 1 in all
 ## of them, so `SAVE_VERSION` did not move.
 var profession_xp: Dictionary = {}
+## **The craft talents kept** (2026-09-30): one of the two a craft offers at each
+## of `Balance.CRAFT_TALENT_LEVELS`, by id. Saved inside the professions block,
+## so no new top-level key; additive, so a save without it reads as none chosen.
+## A talent touches only its own craft (working rule 7's profession bound).
+var craft_talents: Array[String] = []
 
 var settings: Dictionary = {
 	"chronicle_goal": "",
@@ -1247,6 +1290,7 @@ func erase_progress() -> void:
 	hold_pond = {}
 	last_tier_id = "normal"
 	profession_xp.clear()
+	craft_talents.clear()
 	materials.clear()
 	stash.clear()
 	equipped.clear()
@@ -2515,6 +2559,7 @@ func serialized_save() -> String:
 		},
 		"professions": {
 			"xp": profession_xp,
+			"talents": craft_talents,
 		},
 		# Additive, like the pantry and the spirits before it: a save written
 		# before the mines simply has no "materials" key and reads back empty,

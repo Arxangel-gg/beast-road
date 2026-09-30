@@ -43,6 +43,7 @@ var gather_nodes: Dictionary = {}
 var trail_signs: Dictionary = {}
 var crops: Dictionary = {}
 var materials: Dictionary = {}
+var craft_talents: Dictionary = {}
 
 ## First-run coach prompts. Content because the strings are player-facing and
 ## CLAUDE.md keeps those out of scripts.
@@ -172,6 +173,7 @@ func _ready() -> void:
 	trail_signs = _load_dir("res://data/trail_signs")
 	crops = _load_dir("res://data/crops")
 	materials = _load_dir("res://data/materials")
+	craft_talents = _load_dir("res://data/craft_talents")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -800,6 +802,10 @@ func crops_sorted() -> Array[CropData]:
 ## One material by id.
 func material(id: String) -> MaterialData:
 	return materials.get(id, null) as MaterialData
+
+
+func craft_talent(id: String) -> CraftTalentData:
+	return craft_talents.get(id, null) as CraftTalentData
 
 
 ## Every material, in a stable order.

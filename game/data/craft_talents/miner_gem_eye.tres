@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "miner"
+level = 20
+key = "side"
+amount = 0.5
+id = "miner_gem_eye"
+display_name = "Gem Eye"
+description = "The gem inside a seam comes out half again as often."

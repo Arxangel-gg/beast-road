@@ -210,7 +210,8 @@ func _dig(kind: GatherNodeData, at: Vector2, rng: RandomNumberGenerator) -> void
 func _swings_in(kind: GatherNodeData) -> int:
 	var level: int = MetaState.profession_level(kind.craft)
 	var share: float = float(level - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
-	return kind.swings + int(round(share * float(Balance.GATHER_SKILL_BONUS_SWINGS)))
+	return kind.swings + int(round(share * float(Balance.GATHER_SKILL_BONUS_SWINGS))) \
+		+ int(CraftTalents.value(kind.craft, "swings"))
 
 
 # --- Working -------------------------------------------------------------------
@@ -295,7 +296,7 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	var node: Dictionary = _nodes[_working]
 	var level: int = MetaState.profession_level(kind.craft)
 	var share: float = float(level - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
-	var extra: int = _extra_from_practice(share)
+	var extra: int = _extra_from_practice(share, kind.craft)
 	var amount: int = kind.material_per_swing + extra
 	var lucky: bool = extra > 0
 	MetaState.gain_material(kind.material_id, amount)
@@ -355,8 +356,9 @@ func _keystone_worked_out(kind: GatherNodeData, at: Vector2) -> void:
 
 ## One more of the material for every roll that lands. See
 ## `Balance.GATHER_BONUS_ROLLS`: bounded by the rolls, widened by practice.
-func _extra_from_practice(share: float) -> int:
-	var chance: float = Balance.GATHER_BONUS_CHANCE + share * Balance.GATHER_BONUS_CHANCE_SKILL
+func _extra_from_practice(share: float, craft: String = "") -> int:
+	var chance: float = Balance.GATHER_BONUS_CHANCE + share * Balance.GATHER_BONUS_CHANCE_SKILL \
+		+ CraftTalents.value(craft, "bonus")
 	var extra: int = 0
 	for _roll_index: int in Balance.GATHER_BONUS_ROLLS:
 		if _roll.randf() < chance:
@@ -380,7 +382,8 @@ func _pay_the_sides(kind: GatherNodeData, share: float) -> PackedStringArray:
 		_pay_currency(kind)
 		paid.append("+%d %s" % [kind.currency_per_swing, kind.currency_id.capitalize()])
 	if not kind.bonus_material_id.is_empty() and kind.bonus_chance > 0.0 \
-			and _roll.randf() < kind.bonus_chance * lift:
+			and _roll.randf() < kind.bonus_chance * lift \
+				* (1.0 + CraftTalents.value(kind.craft, "side")):
 		MetaState.gain_material(kind.bonus_material_id, 1)
 		var found: MaterialData = ContentDB.material(kind.bonus_material_id)
 		paid.append("+1 %s" % (found.display_name if found != null else kind.bonus_material_id))
@@ -487,7 +490,8 @@ func _stop_working(why: String = "") -> void:
 func _swing_seconds(kind: GatherNodeData) -> float:
 	var level: int = MetaState.profession_level(kind.craft)
 	var share: float = float(level - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
-	return kind.swing_seconds * lerpf(1.0, Balance.GATHER_SKILL_SPEED_FLOOR, share)
+	return kind.swing_seconds * lerpf(1.0, Balance.GATHER_SKILL_SPEED_FLOOR, share) \
+		* (1.0 + CraftTalents.value(kind.craft, "swing"))
 
 
 func _tick_node(index: int, delta: float) -> void:

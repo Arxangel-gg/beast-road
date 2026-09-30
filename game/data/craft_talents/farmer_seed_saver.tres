@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "farmer"
+level = 20
+key = "seed"
+amount = 0.15
+id = "farmer_seed_saver"
+display_name = "Seed Saver"
+description = "A harvest gives a seed back more often."

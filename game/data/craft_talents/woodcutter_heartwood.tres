@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CraftTalentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/craft_talent_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+craft = "woodcutter"
+level = 20
+key = "bonus"
+amount = 0.08
+id = "woodcutter_heartwood"
+display_name = "Heartwood"
+description = "A swing more often cuts an extra piece of timber."

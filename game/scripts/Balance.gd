@@ -3154,6 +3154,11 @@ const FISHING_RIPPLE_SLOTS: int = 8
 ## loop rather than three parallel bars. [TUNE]
 const PROFESSIONS: Array[String] = ["angler", "woodcutter", "miner", "smith", "farmer"]
 const PROFESSION_MAX_LEVEL: int = 20
+## **Craft talents** (2026-09-30, `CraftTalentData`): the levels a craft offers
+## a choice between two, and the most any share a talent moves may reach. A
+## talent touches only its own craft. [TUNE]
+const CRAFT_TALENT_LEVELS: Array[int] = [10, 20]
+const CRAFT_TALENT_CEILING: float = 0.5
 ## XP needed to leave level L is PROFESSION_XP_BASE * L^PROFESSION_XP_CURVE:
 ## 30 for the first level, about 1,700 in total to reach the cap - roughly
 ## a hundred and twenty fish, which is a player who fishes every act.

@@ -1033,6 +1033,12 @@ func _profession_row(id: String) -> void:
 	count.add_theme_color_override("font_color", Color("8d968f"))
 	card.add_child(count)
 
+	var talents := VBoxContainer.new()
+	talents.name = "Talents"
+	talents.add_theme_constant_override("separation", 4)
+	_fill_talents(talents, id)
+	card.add_child(talents)
+
 	if more != null:
 		var detail: VBoxContainer = _craft_detail(ladder)
 		detail.visible = false
@@ -1041,6 +1047,64 @@ func _profession_row(id: String) -> void:
 			detail.visible = on
 			more.text = "\u25b4" if on else "\u25be")
 	_card.add_child(card)
+
+
+## **A craft's talents on its card** (2026-09-30): the two it offers at each of
+## `Balance.CRAFT_TALENT_LEVELS`, the kept one lit, the ones the craft has not
+## reached shown dimmed with the level they open at - a choice nobody can see
+## coming is not a build. Pressing one keeps it and puts the other down, through
+## `MetaState.choose_talent`, which is the door the save is read through too.
+## What the kept one does is said under the row, because a touch has no hover.
+func _fill_talents(box: VBoxContainer, id: String) -> void:
+	for child: Node in box.get_children():
+		box.remove_child(child)
+		child.queue_free()
+	var level: int = MetaState.profession_level(id)
+	for at: int in Balance.CRAFT_TALENT_LEVELS:
+		var pair: Array[CraftTalentData] = CraftTalents.offered(id, at)
+		if pair.is_empty():
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var tag := Label.new()
+		tag.text = "Lv %d" % at
+		tag.add_theme_font_size_override("font_size", 12)
+		tag.add_theme_color_override("font_color", Color("8d968f"))
+		tag.custom_minimum_size = Vector2(42.0, 0.0)
+		tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(tag)
+		var kept: CraftTalentData = null
+		for talent: CraftTalentData in pair:
+			var button := Button.new()
+			button.name = talent.id
+			button.toggle_mode = true
+			button.text = talent.display_name
+			button.tooltip_text = talent.description
+			button.button_pressed = MetaState.has_talent(talent.id)
+			button.disabled = level < at
+			button.add_theme_font_size_override("font_size", 13)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if MetaState.has_talent(talent.id):
+				kept = talent
+			var chosen: String = talent.id
+			button.pressed.connect(func() -> void:
+				if MetaState.choose_talent(chosen).is_empty():
+					MetaState.save_game()
+					Sfx.play("sfx_profession_level", -6.0)
+				_fill_talents(box, id))
+			row.add_child(button)
+		box.add_child(row)
+		var said := Label.new()
+		said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		said.add_theme_font_size_override("font_size", 12)
+		said.add_theme_color_override("font_color", Color("b8ae98") if kept != null else Color("7d857f"))
+		if kept != null:
+			said.text = kept.description
+		elif level < at:
+			said.text = "Opens at %s level %d." % [id.capitalize(), at]
+		else:
+			said.text = "Choose one."
+		box.add_child(said)
 
 
 ## What this craft opens, rung by rung, and which rungs are still shut.

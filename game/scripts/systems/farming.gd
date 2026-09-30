@@ -249,13 +249,15 @@ func _grow(index: int, step: float) -> void:
 	var level: int = MetaState.profession_level(CRAFT)
 	var fit: float = fit_at(index)
 	if fit >= Balance.FARM_WILT_BELOW:
-		var pace: float = fit * (1.0 + float(level) * Balance.FARM_GROW_PER_LEVEL)
+		var pace: float = fit * (1.0 + float(level) * Balance.FARM_GROW_PER_LEVEL) \
+			* (1.0 + CraftTalents.value(CRAFT, "grow"))
 		_plots[index]["growth"] = minf(float(plot["growth"]) + step / maxf(crop.grow_distance, 1.0) * pace, 1.0)
 		_plots[index]["health"] = minf(float(plot["health"]) + step / Balance.FARM_WILT_DISTANCE * 0.5, 1.0)
 		_plots[index]["wilting"] = false
 		return
 	_plots[index]["wilting"] = true
-	var health: float = float(plot["health"]) - step / maxf(Balance.FARM_WILT_DISTANCE, 1.0)
+	var health: float = float(plot["health"]) - step / maxf(Balance.FARM_WILT_DISTANCE, 1.0) \
+		* (1.0 + CraftTalents.value(CRAFT, "wilt"))
 	_plots[index]["health"] = health
 	if health <= 0.0:
 		_dies(index)
@@ -294,8 +296,9 @@ func fit_here(crop: CropData, at: Vector2) -> float:
 ## Farmer's tolerance outside either. Static so the gate can read the rule
 ## without a field.
 static func fit_for(crop: CropData, temperature: float, wetness: float, level: int) -> float:
-	var tolerance_t: float = Balance.FARM_TOLERANCE_DEGREES + float(level) * Balance.FARM_TOLERANCE_PER_LEVEL
-	var tolerance_w: float = Balance.FARM_WET_TOLERANCE + float(level) * Balance.FARM_WET_TOLERANCE_PER_LEVEL
+	var hardy: float = 1.0 + CraftTalents.value(CRAFT, "tolerance")
+	var tolerance_t: float = (Balance.FARM_TOLERANCE_DEGREES + float(level) * Balance.FARM_TOLERANCE_PER_LEVEL) * hardy
+	var tolerance_w: float = (Balance.FARM_WET_TOLERANCE + float(level) * Balance.FARM_WET_TOLERANCE_PER_LEVEL) * hardy
 	var out_t: float = maxf(crop.temp_min - temperature, temperature - crop.temp_max)
 	var out_w: float = maxf(crop.wet_min - wetness, wetness - crop.wet_max)
 	var fit_t: float = 1.0 if out_t <= 0.0 else clampf(1.0 - out_t / maxf(tolerance_t, 0.001), 0.0, 1.0)
@@ -387,7 +390,8 @@ func harvest(index: int) -> bool:
 	MetaState.gain_profession_xp(CRAFT, crop.xp)
 	RunState.note_kept("harvests", 1.0)
 	var at: Vector2 = plot["at"]
-	var seed_back: bool = _roll().randf() < Balance.FARM_SEED_BACK_BASE + float(level) * Balance.FARM_SEED_BACK_PER_LEVEL
+	var seed_back: bool = _roll().randf() < Balance.FARM_SEED_BACK_BASE + float(level) * Balance.FARM_SEED_BACK_PER_LEVEL \
+		+ CraftTalents.value(CRAFT, "seed")
 	if seed_back:
 		RunState.add_seeds(crop.id, 1)
 	Vfx.word(at + Vector2(0.0, -26.0), "+%d Food" % food + (" · a seed" if seed_back else ""),
