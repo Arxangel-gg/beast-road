@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "den_feed"
+display_name = "Leave food by the den"
+hint = "Food, and your back turned. Its kind will know you for it."
+outcome = "You set it down and walk away slowly. When you look back the young are eating and she is watching you go."
+cost_currency = "food"
+cost_amount = 18
+boon = 3
+boon_amount = 4.0

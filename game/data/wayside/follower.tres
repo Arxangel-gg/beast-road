@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "follower"
+display_name = "A %s Following You"
+text = "It has kept pace at a distance since the last bend, stopping when you stop. It is not hunting. It is curious."
+scene = 1
+animal_rarity = 1
+first_act = 2
+weight = 1.0
+choice_ids = PackedStringArray("follow_share", "follow_lead")

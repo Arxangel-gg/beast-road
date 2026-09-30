@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "follow_lead"
+display_name = "Let it lead you"
+hint = "It knows where things are hidden. So does whatever it is afraid of."
+outcome = "It takes you to a hollow under roots where somebody once hid something - and something else has been waiting there."
+boon = 2
+boon_amount = 1.0
+bane = 6
+bane_amount = 1.0

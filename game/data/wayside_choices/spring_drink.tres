@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "spring_drink"
+display_name = "Drink beside it"
+hint = "A small fire to boil it by, clean water, and company that does not mind."
+outcome = "You boil what you drink. It watches the fire the whole time, and does not leave until you do."
+cost_currency = "wood"
+cost_amount = 12
+boon = 4
+boon_amount = 0.3

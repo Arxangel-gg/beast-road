@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "chain_break"
+display_name = "Break the links"
+hint = "Stone to strike with, and patience. It will be a while before it trusts anything."
+outcome = "Three blows and the rust gives. It is gone before the last link hits the ground."
+cost_currency = "stone"
+cost_amount = 25
+boon = 5
+boon_amount = 0.3

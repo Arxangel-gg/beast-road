@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "spring_bottle"
+display_name = "Fill every flask"
+hint = "Water a camp would pay for. It will not come back to a spring that smells of you."
+outcome = "You take all you can carry. When you look up it is gone, and the water has gone cloudy."
+boon = 1
+boon_currency = "gold"
+boon_amount = 34.0
+bane = 7
+bane_amount = 2.0

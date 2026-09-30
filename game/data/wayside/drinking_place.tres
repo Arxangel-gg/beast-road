@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "drinking_place"
+display_name = "A %s at a Hidden Spring"
+text = "Clear water rises between two stones where the map shows none, and an animal is drinking from it without hurry."
+scene = 1
+animal_rarity = 1
+first_act = 4
+weight = 0.9
+choice_ids = PackedStringArray("spring_drink", "spring_bottle")

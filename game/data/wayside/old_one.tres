@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "old_one"
+display_name = "An Old %s"
+text = "Grey at the muzzle and slow to rise, it watches you come without fear. It has seen a great many things walk this road."
+scene = 1
+animal_rarity = 2
+first_act = 5
+weight = 0.7
+choice_ids = PackedStringArray("old_sit", "old_end")

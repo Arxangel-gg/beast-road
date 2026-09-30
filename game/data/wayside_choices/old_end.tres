@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "old_end"
+display_name = "End its long road"
+hint = "Food for many days. The earth counts what is killed, and this one it counted for a long time."
+outcome = "It does not struggle. Afterwards the wind drops, and does not come back for a while."
+boon = 1
+boon_currency = "food"
+boon_amount = 45.0
+bane = 7
+bane_amount = 4.0

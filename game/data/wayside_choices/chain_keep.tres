@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "chain_keep"
+display_name = "Take the chain"
+hint = "Good iron is worth something. Leaving it bound is worth nothing to anyone."
+outcome = "You work the stake loose and take the chain with you. What you leave behind follows your scent."
+boon = 1
+boon_currency = "stone"
+boon_amount = 50.0
+bane = 6
+bane_amount = 1.0

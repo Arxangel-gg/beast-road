@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WaysideChoiceData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wayside_choice_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "grave_dig"
+display_name = "Dig beneath the stones"
+hint = "Whatever the Warden carried is still down there. The animal will not like it."
+outcome = "The stones come away and so does the animal, and it does not go far before it turns and calls."
+boon = 2
+boon_amount = 1.0
+bane = 6
+bane_amount = 1.0
