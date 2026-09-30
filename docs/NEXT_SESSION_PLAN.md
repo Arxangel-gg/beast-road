@@ -21,6 +21,44 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0e. Where things stand (2026-09-30, v0.64.0)
+
+**Shipped today, each gated on both bars and recorded in CLAUDE.md:** v0.62.0
+(the Act X performance pass and the owner's list of 2026-09-30), v0.63.0 (the
+Emberbound interface kit, the Herald, the wave's harvest line, the scope cut,
+footprints, eighteen achievements, every Guide picture re-shot) and v0.64.0
+(the sandbox, craft talents, the boss entrance, the Hold's act door, the Guide
+rewritten against the code).
+
+**Two faults worth knowing about because of their shape.** The HUD banner had
+been one pixel tall since 2026-09-10 - every `_show_message` line invisible
+while the gate read its text - and the Hold's "Start at an act" door had done
+nothing on every launch because the menu handed its screen over before the
+Hold existed, while `hold_check` wired its own. `layout_check` and
+`menu_layout_check` now ask for both, and `menu_layout_check` asks the real
+menu's Hold that every building has its door.
+
+**Guard is green again** (it was red from 2026-09-27 on the Arsenal's timeout,
+then once on a dodge read as a pounce's residue). Keep pushes spaced while a
+guard run is on the way to finishing, or `cancel-in-progress` drops it.
+
+**Open, in the order worth taking them:**
+
+1. **Smith talents** - the four other crafts have them. A Smith talent must
+   move time or materials, never a piece's level, make or rung odds (the gear
+   scale). If none is found that is safe, the Smith is fine without.
+2. **Cooking** (`IDEAS_REVIEW_2026-09-23` §4.4): fish plus a crop grown this
+   run, counted against `FISH_MEALS_PER_RUN`. Needs an effect for each crop
+   that is a fraction of something the Warden has (SP, a ward, a buff's
+   length), never a stat. Owner said build it if it is right for the game.
+3. **Heralds and wayside encounters in co-op** - both are solo for 1.0 and
+   say so; each needs the party asked through `PartyEvents`.
+4. **Anticipation audio on the telegraphs** and **post-battle settling**, the
+   last of the second-rank juice. The audio wants recordings.
+5. The content in section 3 below (music for Acts VI-X, boss themes, voices).
+
+---
+
 ## 0d. Augments (2026-09-26, later)
 
 **Built, gated and recorded in CLAUDE.md**: the draft on every road rank, cards
