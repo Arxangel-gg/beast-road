@@ -507,7 +507,84 @@ func order_siege() -> void:
 
 
 func targets_towers() -> bool:
+	# A Herald runs for the gate (2026-09-30): the board cannot see it, so it
+	# has no quarrel with the board until it has called.
+	if is_uncalled_herald():
+		return false
 	return (data != null and data.targets_towers) or _siege_order
+
+
+## **A Herald** (2026-09-30, `Heralds`): a body only a Warden can stop, until it
+## reaches the wall and calls. Set once, by the wave director, the frame it is
+## stood up.
+var _herald: bool = false
+var _herald_called: bool = false
+
+
+func make_herald() -> void:
+	if _herald:
+		return
+	_herald = true
+	_siege_order = false
+	_dress_as_herald()
+	EventBus.herald_rose.emit(_visual_origin())
+
+
+func is_herald() -> bool:
+	return _herald
+
+
+## True while the board may not touch this body: a Herald that has not called.
+func is_uncalled_herald() -> bool:
+	return _herald and not _herald_called and _state != State.DYING
+
+
+## **What the board may not touch**, asked by every door the board fires
+## through: a sleeping camp body and a Herald that has not called.
+func hidden_from_the_board() -> bool:
+	return (is_camp_mob() and not is_provoked()) or is_uncalled_herald()
+
+
+## The call: the wall is in reach. Said once; the board may shoot it from here.
+func _sound_the_call() -> void:
+	if _herald_called:
+		return
+	_herald_called = true
+	if _polish != null:
+		_polish.set_shader_parameter("aura_colour", Color(0.98, 0.3, 0.2, 1.0))
+	Vfx.ring(_visual_origin(), 150.0, Color(Balance.HERALD_TONE, 0.9), 0.6, 6.0)
+	EventBus.herald_called.emit(_visual_origin())
+
+
+## Gold, on the silhouette and on the ground: the tone every actionable thing
+## in this game wears, so it reads as "yours to go and do" rather than as one
+## more elite colour.
+func _dress_as_herald() -> void:
+	if sprite == null or sprite.texture == null:
+		return
+	var polish: ShaderMaterial = _polish if _polish != null else ActorPolishScript.attach(sprite)
+	_polish = polish
+	if polish != null:
+		polish.set_shader_parameter("outline_colour", Color(Balance.HERALD_TONE, 0.95))
+		polish.set_shader_parameter("outline_strength", 1.0)
+		polish.set_shader_parameter("aura_colour", Color(Balance.HERALD_TONE, 1.0))
+		polish.set_shader_parameter("aura_strength", Balance.RANK_AURA_STRENGTH_CHAMPION)
+		polish.set_shader_parameter("aura_speed", Balance.RANK_AURA_SPEED_ELITE * 1.6)
+		polish.set_shader_parameter("aura_width", Balance.RANK_AURA_WIDTH_CHAMPION)
+		polish.set_shader_parameter("aura_scale", Balance.RANK_AURA_SCALE)
+	if _mark == null:
+		_mark = Line2D.new()
+		var radius: float = float(sprite.texture.get_width()) * sprite.scale.x * 0.46
+		var points: PackedVector2Array = []
+		for i: int in 33:
+			points.append(Vector2.RIGHT.rotated(TAU * float(i) / 32.0)
+				* Vector2(1.0, 0.42) * radius)
+		_mark.points = points
+		_mark.width = 3.0
+		_mark.z_index = -1
+		add_child(_mark)
+	_mark.default_color = Color(Balance.HERALD_TONE, 0.9)
+	sprite.self_modulate = Color.WHITE.lerp(Balance.HERALD_TONE, Balance.RANK_TINT_STRENGTH * 0.5)
 
 
 ## The tower this body is going for right now, or null (2026-09-25). For the
@@ -542,6 +619,8 @@ func is_camp_returning() -> bool:
 
 
 func promoted_name() -> String:
+	if _herald and data != null:
+		return "Herald " + data.display_name
 	# An ordinary body a tier marked says its marks too (2026-09-25).
 	if (rank == Rank.COMMON and affixes.is_empty()) or data == null:
 		return data.display_name if data != null else ""
@@ -2047,6 +2126,12 @@ func _biting_back() -> Node2D:
 
 func _pick_target() -> Node2D:
 	var chosen: Node2D = _choose_target()
+	# **A Herald calls from the wall** (2026-09-30): the first time the town is
+	# in its reach, whatever it was looking at.
+	if is_uncalled_herald() and _field != null:
+		var gate: Node2D = _field.town_node()
+		if gate != null and is_instance_valid(gate) and _in_reach(gate):
+			_sound_the_call()
 	# **A body at the gate hits the gate, whatever it was walking at.**
 	#
 	# Traced on the owner's own banked front, 2026-09-21: the Dune Burrowers
@@ -2568,6 +2653,12 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	# lend its name to the next one (`DamageLedger`).
 	var source: String = DamageLedger.take_source()
 	if _state == State.DYING or data == null or puppet:
+		return false
+	# **The board cannot touch a Herald that has not called** (2026-09-30). Every
+	# door the board fires through already looks away from one; this is the
+	# funnel's word on it, so a door added tomorrow cannot forget.
+	if is_uncalled_herald() and (source.begins_with(DamageLedger.TOWER_PREFIX)
+			or source.begins_with(DamageLedger.TRAP_PREFIX)):
 		return false
 	# **Every blow in the game goes through here**, which is why the impact is
 	# announced here rather than at each of the thirty places that deal one.
@@ -3290,7 +3381,7 @@ func _tick_glance(delta: float) -> void:
 ## goes through - `Tower._hit` and `Projectile._apply` - and by nothing else,
 ## so the Warden's own blows always land.
 func glances_tower_shots() -> bool:
-	return _glancing and not puppet and _state != State.DYING
+	return (_glancing or is_uncalled_herald()) and not puppet and _state != State.DYING
 
 
 ## The shot that did not land, said out loud.
@@ -3364,6 +3455,8 @@ func _on_died(_from: Vector2) -> void:
 		payout *= Balance.CAMP_XP_SCALE
 	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
 	RunState.gain_road_xp(road_xp_worth())
+	if _herald and not _herald_called:
+		_pay_herald_bounty()
 	_drop_loot()
 	_drop_gear()
 	_drop_blueprint()
@@ -3428,6 +3521,23 @@ func dismiss() -> void:
 ## Rolled from the combat stream so a seeded replay drops the same things, and
 ## rounded up to at least one so a low-value enemy that *did* roll a drop never
 ## produces a pickup worth nothing.
+## **A Herald run down before the wall** (2026-09-30): a camp's purse, split
+## as a raze is, laid where it fell. Paid once, by the death that closes it.
+func _pay_herald_bounty() -> void:
+	var at: Vector2 = global_position
+	if _field != null and _field.has_method("spawn_loot"):
+		var places: Dictionary = {
+			RunState.GOLD: Vector2(-22.0, 0.0), RunState.FOOD: Vector2(22.0, 10.0),
+			RunState.STONE: Vector2(0.0, -18.0), RunState.WOOD: Vector2(0.0, 22.0),
+		}
+		var shares: Dictionary = Heralds.bounty(RunState.act)
+		for id: Variant in shares:
+			var amount: int = int(shares[id])
+			if amount > 0:
+				_field.spawn_loot(String(id), amount, at + (places.get(id, Vector2.ZERO) as Vector2))
+	EventBus.herald_fell.emit(_visual_origin())
+
+
 func _drop_loot() -> void:
 	if _field == null or not _field.has_method("spawn_loot"):
 		return

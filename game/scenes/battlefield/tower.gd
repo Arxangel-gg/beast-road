@@ -840,7 +840,7 @@ func _acquire_targets_now() -> Array[Enemy]:
 	# to a tower until something provokes it, and then it is fair game.
 	var candidates: Array[Enemy] = []
 	for enemy: Enemy in _field.enemies_near(origin(), reach):
-		if not enemy.is_camp_mob() or enemy.is_provoked():
+		if not enemy.hidden_from_the_board():
 			candidates.append(enemy)
 	if candidates.is_empty():
 		return found

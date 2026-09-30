@@ -112,7 +112,8 @@ func _physics_process_measured(delta: float) -> void:
 		return
 	_sense_left = 1.0 / Balance.TRAP_SENSE_HZ
 	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
-		if not enemy.is_dying():
+		# A Herald that has not called does not spring the board (2026-09-30).
+		if not enemy.is_dying() and not enemy.is_uncalled_herald():
 			fire()
 			return
 
@@ -145,7 +146,7 @@ func _bite() -> void:
 	if field == null or not field.has_method("enemies_near"):
 		return
 	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
-		if enemy.is_dying():
+		if enemy.is_dying() or enemy.is_uncalled_herald():
 			continue
 		if data.damage > 0.0:
 			DamageLedger.credit_as(DamageLedger.TRAP_PREFIX + data.id)

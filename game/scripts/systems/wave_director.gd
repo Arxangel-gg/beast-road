@@ -38,12 +38,25 @@ var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
 var _preview_archetype: WaveArchetypeData = null
 var _last_archetype_id: String = ""
+## A Herald reached the wall (2026-09-30): the next wave that sends bodies is
+## reinforced, once.
+var _herald_owed: bool = false
 
 
 func _ready() -> void:
 	_rng = RunState.rng("waves")
 	_wave_timer = Balance.WAVE_FIRST_PREPARATION
 	EventBus.act_started.connect(_on_act_started)
+	EventBus.herald_called.connect(_on_herald_called)
+
+
+func _on_herald_called(_at: Vector2) -> void:
+	_herald_owed = true
+
+
+## For the gate: whether the next wave is owed a Herald's reinforcement.
+func herald_owed() -> bool:
+	return _herald_owed
 
 
 func start() -> void:
@@ -303,6 +316,11 @@ func _begin_wave() -> void:
 		speed_multiplier *= difficulty.speed_scale
 		spacing_multiplier *= difficulty.spawn_spacing_scale
 	spacing_multiplier = maxf(spacing_multiplier, Balance.WAVE_ARCHETYPE_MIN_SPACING_SCALE)
+	# **A Herald's call** (2026-09-30): the wave after one reached the wall
+	# comes larger on every road it uses, once.
+	if _herald_owed:
+		per_lane = Heralds.reinforced(per_lane)
+		_herald_owed = false
 	var signature: EnemyData = _signature_enemy(archetype)
 
 	if archetype != null and archetype.delayed_adjacent_surge and lanes.size() >= 2:
@@ -351,6 +369,8 @@ func _begin_wave() -> void:
 	_order_the_siege()
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
+	_raise_a_herald(lanes, hp_multiplier, damage_multiplier, speed_multiplier,
+		spacing_multiplier)
 	_spawn_timer = 0.0
 	_wave_active = true
 	EventBus.wave_started.emit(wave, lanes)
@@ -640,7 +660,10 @@ func _spawn_next() -> void:
 		var hp: float = _hp_scale(lane) * float(entry.get("hp_scale", 1.0))
 		var dmg: float = _damage_scale(lane) * float(entry.get("damage_scale", 1.0))
 		var spd: float = _speed_scale(lane) * float(entry.get("speed_scale", 1.0))
-		var rank: Enemy.Rank = _roll_rank()
+		# A Herald is stood up plain and alone, with no draw from the rank
+		# stream: a Herald wave deals every other body exactly as it would have.
+		var rank: Enemy.Rank = Enemy.Rank.COMMON if bool(entry.get("herald", false)) \
+			else _roll_rank()
 		if rank == Enemy.Rank.CHAMPION:
 			# **A pack, and all of it the same.** One champion is a slightly
 			# tougher enemy; three wearing the same affix is a situation. The
@@ -660,7 +683,7 @@ func _spawn_next() -> void:
 			if rank == Enemy.Rank.ELITE:
 				worn = _roll_affixes(RunState.rng("rank").randi_range(
 					Balance.ELITE_AFFIX_MIN, Balance.ELITE_AFFIX_MAX))
-			elif rank == Enemy.Rank.COMMON:
+			elif rank == Enemy.Rank.COMMON and not bool(entry.get("herald", false)):
 				worn = _roll_marked_common()
 			_stand(entry, battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, worn))
 
@@ -670,11 +693,45 @@ func _spawn_next() -> void:
 	_spawn_timer = spacing
 
 
+## **A Herald on this wave, perhaps** (2026-09-30, `Heralds`). One entry, set
+## into the first half of the queue so it walks on among the wave rather than
+## after it, on a breed of this region that runs for the gate - a breed that
+## goes for towers is never a Herald, because the board cannot see one. Every
+## roll is drawn from the Herald's own stream, so a wave without one deals
+## exactly what it always dealt and a seeded road moves only where a Herald
+## rose.
+func _raise_a_herald(lanes: Array[int], hp_scale: float, damage_scale: float,
+		speed_scale: float, spacing_scale: float) -> void:
+	if lanes.is_empty() or not Heralds.may_rise(RunState.act):
+		return
+	var stream: RandomNumberGenerator = RunState.rng("heralds")
+	if stream.randf() >= Balance.HERALD_WAVE_CHANCE:
+		return
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var runners: Array[EnemyData] = []
+	if terrain != null:
+		for breed: EnemyData in _enemy_pool(terrain.enemy_ids):
+			if not breed.targets_towers and breed.category == EnemyData.Category.BREED:
+				runners.append(breed)
+	if runners.is_empty():
+		return
+	var breed: EnemyData = runners[stream.randi_range(0, runners.size() - 1)]
+	var entry: Dictionary = _spawn_entry(lanes[stream.randi_range(0, lanes.size() - 1)],
+		false, breed.id, hp_scale * Balance.HERALD_HEALTH_SCALE, damage_scale,
+		speed_scale * Balance.HERALD_SPEED_SCALE, spacing_scale)
+	entry["herald"] = true
+	var size: int = _spawn_queue.size()
+	var at: int = stream.randi_range(int(float(size) * 0.2), int(float(size) * 0.5))
+	_spawn_queue.insert(clampi(at, 0, size), entry)
+
+
 ## A body that has just been stood up takes whatever the queue entry ordered
 ## of it. One door, so a pack member and a lone body cannot differ.
 func _stand(entry: Dictionary, body: Enemy) -> void:
 	if body != null and bool(entry.get("siege", false)):
 		body.order_siege()
+	if body != null and bool(entry.get("herald", false)):
+		body.make_herald()
 
 
 ## **A formation is an order, never a roster** (2026-09-24). The queue is

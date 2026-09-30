@@ -351,6 +351,10 @@ func bodies() -> Array[Enemy]:
 			continue
 		if enemy.is_camp_mob() and not enemy.is_provoked():
 			continue
+		# A Herald that has not called is the Warden's to stop (2026-09-30):
+		# the weapons on the board look away from it, the Warden's own do not.
+		if board != null and enemy.is_uncalled_herald():
+			continue
 		_bodies.append(enemy)
 	return _bodies
 

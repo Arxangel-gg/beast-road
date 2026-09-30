@@ -21,7 +21,7 @@ extends Control
 ## An arrow at every elite, every camp and every animal would be the fog turned
 ## off. Nothing reads any of it and it moves no number.
 
-enum Kind { STRAGGLER, BOSS, BEAST, DRAGON }
+enum Kind { STRAGGLER, BOSS, BEAST, DRAGON, HERALD }
 
 var field: Battlefield = null
 var _targets: Array[Dictionary] = []
@@ -56,12 +56,16 @@ func _gather() -> void:
 			if body != null and is_instance_valid(body):
 				_targets.append({"node": body, "kind": Kind.STRAGGLER})
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		var boss := node as Enemy
-		if boss == null or boss.is_dying() or boss.data == null \
-				or boss.data.category != EnemyData.Category.BOSS \
-				or not field.is_ancestor_of(boss):
+		var body := node as Enemy
+		if body == null or body.is_dying() or body.data == null \
+				or not field.is_ancestor_of(body):
 			continue
-		_targets.append({"node": boss, "kind": Kind.BOSS})
+		if body.data.category == EnemyData.Category.BOSS:
+			_targets.append({"node": body, "kind": Kind.BOSS})
+		# A Herald the board cannot see is exactly what the player must go
+		# and find (2026-09-30).
+		elif body.is_uncalled_herald():
+			_targets.append({"node": body, "kind": Kind.HERALD})
 	var animals: Wildlife = field.wildlife_system()
 	if animals != null:
 		for sprite: Node2D in animals.hunting_sprites():

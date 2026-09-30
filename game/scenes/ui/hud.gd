@@ -753,6 +753,9 @@ func _ready() -> void:
 	EventBus.wave_started.connect(_on_harvest_begun)
 	EventBus.enemy_died.connect(_on_harvest_kill)
 	EventBus.wave_cleared.connect(_on_wave_held)
+	EventBus.herald_rose.connect(_on_herald_rose)
+	EventBus.herald_called.connect(_on_herald_called)
+	EventBus.herald_fell.connect(_on_herald_fell)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
 	EventBus.act_started.connect(_on_act)
 	EventBus.raid_available.connect(func(_s: float) -> void: _raid_button.disabled = false)
@@ -6612,6 +6615,20 @@ func _on_wave_held(wave_number: int) -> void:
 ## on every emission once the HUD that made it is freed.
 func _on_harvest_begun(_number: int, _lanes: Array) -> void:
 	_harvest.begin()
+
+
+## **A Herald said out loud** (2026-09-30): the three moments a player must
+## hear about, because the board will not answer any of them.
+func _on_herald_rose(_at: Vector2) -> void:
+	_show_message(Heralds.ROSE_LINE)
+
+
+func _on_herald_called(_at: Vector2) -> void:
+	_show_message(Heralds.CALLED_LINE)
+
+
+func _on_herald_fell(_at: Vector2) -> void:
+	_show_message(Heralds.FELL_LINE)
 
 
 func _on_harvest_kill(_enemy_id: String, _at: Vector2) -> void:

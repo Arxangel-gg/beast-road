@@ -1756,6 +1756,15 @@ func _ready() -> void:
 		var archetype: WaveArchetypeData = ContentDB.wave_archetype(archetype_id)
 		if archetype != null and archetype.formation != WaveArchetypeData.Formation.SCATTERED:
 			play_group("sfx_enemy_call_horn", -3.0))
+	# **A Herald** (2026-09-30): an announcement with a banner each time, so
+	# flat. It rises on the enemy's own horn, calls on a louder, lower one, and
+	# falls on the chime a relic makes, because what it drops is the reward.
+	EventBus.herald_rose.connect(func(_at: Vector2) -> void:
+		play_group("sfx_enemy_call_horn", -4.0, 0.08))
+	EventBus.herald_called.connect(func(_at: Vector2) -> void:
+		play_group("sfx_enemy_call_horn", 2.0, -0.12))
+	EventBus.herald_fell.connect(func(_at: Vector2) -> void:
+		play("sfx_relic_socket", -2.0))
 	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
 		play("sfx_spell_nova")
 		play("sfx_relic_socket", -3.0))

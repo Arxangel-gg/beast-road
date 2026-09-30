@@ -5416,6 +5416,24 @@ const WAVE_SIEGE_ORDER_SHARE: Array[float] = [
 	0.0, 0.0, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24,
 ]
 
+## **The Herald** (2026-09-30): `DESIGN_DIRECTION_2026-09-22` section 2's
+## second answer, a Warden-only objective. From `HERALD_FIRST_ACT`, a wave may
+## carry one body the board cannot see - no tower aims at it, no trap springs
+## on it, no weapon on the board reaches it - running for the gate. Reaching
+## the wall, it calls: the next wave comes `HERALD_REINFORCE_SHARE` larger a
+## road, and the board may shoot it from then on. Run down before it arrives,
+## it drops `HERALD_BOUNTY` (camp currency, split as a raze is, scaled by the
+## act as a kill is). It is a road body promoted by its own numbers rather
+## than an elite's six-fold pool, because the whole point is that one Warden
+## can catch it. Solo only, and never on the Walk. [TUNE]
+const HERALD_FIRST_ACT: int = 3
+const HERALD_WAVE_CHANCE: float = 0.12
+const HERALD_HEALTH_SCALE: float = 2.6
+const HERALD_SPEED_SCALE: float = 1.2
+const HERALD_REINFORCE_SHARE: float = 0.25
+const HERALD_BOUNTY: int = 64
+const HERALD_TONE: Color = Color(1.0, 0.8, 0.28)
+
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
 
@@ -6456,7 +6474,7 @@ const THREAT_POINTER_SIZE: float = 15.0
 const THREAT_POINTER_PULSE_HZ: float = 1.1
 const THREAT_POINTER_COLOURS: Array[Color] = [
 	Color(0.96, 0.36, 0.30), Color(0.98, 0.2, 0.2), Color(1.0, 0.62, 0.18),
-	Color(0.78, 0.45, 1.0),
+	Color(0.78, 0.45, 1.0), Color(1.0, 0.8, 0.28),
 ]
 ## **And the same mark in gold once the next swing would reach it** (owner,
 ## 2026-09-22). Red says "still standing, and it is over there"; gold says

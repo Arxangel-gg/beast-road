@@ -446,6 +446,13 @@ signal enemy_died(enemy_id: String, at: Vector2)
 ## from an id - Break the Host is the first of them.
 signal elite_fell(at: Vector2)
 
+## **A Herald** (2026-09-30): a body only the Warden can stop took the road,
+## reached the wall and called the next wave larger, or was run down before it
+## got there. Presentation listens; the wave director hears the call.
+signal herald_rose(at: Vector2)
+signal herald_called(at: Vector2)
+signal herald_fell(at: Vector2)
+
 ## The hero reached a new level, and how much is now unspent.
 signal hero_levelled(level: int, attribute_points: int, skill_points: int)
 
