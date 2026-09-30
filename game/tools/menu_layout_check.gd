@@ -96,6 +96,16 @@ func _sweep(shape: Vector2i) -> void:
 	var screen: Node = menu.get("_act_start")
 	_check(screen != null and hub != null and hub.get("act_start") == screen,
 		"the Hold must be handed the menu's act screen at %s" % shape)
+	# **And every building in the Hold has its door** (2026-09-30), asked of the
+	# real menu for the same reason: a station never handed a button is a
+	# building with nothing in it, and `hold_check` binds its own.
+	var yard: Object = hub.get("_yard") if hub != null else null
+	_check(yard != null, "the real menu's Hold has no yard to ask at %s" % shape)
+	if yard != null:
+		for door: String in ["Smithy", "Vendor", "Ledger", "Chronicle", "Leaderboard",
+				"Codex", "Pen", "Stable"]:
+			_check(bool(yard.call("bound", door)),
+				"the Hold's %s has no door on a new account at %s" % [door, shape])
 	# And the sandbox door opens it as the sandbox, on a new account too.
 	if hub != null and screen != null:
 		hub.call("_road_sandbox")
