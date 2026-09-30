@@ -2225,14 +2225,26 @@ were both tried and both came back as slivers.
 
 ### 5.12 Cursor states — `res://art/cursors/`
 
+The Pathfire family (2026-09-30), installed from `art_inbox/chatgpt/ui/cursors`
+byte for byte, each at three sizes.
+
+All 32×32, type T, placeholder colour `#D9CDB8`.
+
+`cursor_default_32.png` · `cursor_point_32.png` · `cursor_attack_32.png` · `cursor_build_32.png` · `cursor_repair_32.png` · `cursor_forbidden_32.png` · `cursor_busy_32.png` · `cursor_text_32.png` · `cursor_grab_32.png` · `cursor_grabbing_32.png` · `cursor_drop_allowed_32.png`
+
+All 48×48, type T, placeholder colour `#D9CDB8`.
+
+`cursor_default_48.png` · `cursor_point_48.png` · `cursor_attack_48.png` · `cursor_build_48.png` · `cursor_repair_48.png` · `cursor_forbidden_48.png` · `cursor_busy_48.png` · `cursor_text_48.png` · `cursor_grab_48.png` · `cursor_grabbing_48.png` · `cursor_drop_allowed_48.png`
+
 All 64×64, type T, placeholder colour `#D9CDB8`.
 
-`cursor_default.png` · `cursor_point.png` · `cursor_build.png` ·
-`cursor_attack.png` · `cursor_repair.png` · `cursor_busy.png`
+`cursor_default_64.png` · `cursor_point_64.png` · `cursor_attack_64.png` · `cursor_build_64.png` · `cursor_repair_64.png` · `cursor_forbidden_64.png` · `cursor_busy_64.png` · `cursor_text_64.png` · `cursor_grab_64.png` · `cursor_grabbing_64.png` · `cursor_drop_allowed_64.png`
 
-Cursor artwork is registered once by `CursorKit`; standard Control hover states
-inherit it while world interactions can explicitly request build, attack, or
-repair.
+Cursor artwork is registered once by `CursorKit`, at the size the screen's
+height calls for, with the hotspot the source manifest records for that size.
+Standard Control hover states inherit it; world interactions request build,
+attack or repair explicitly. `grab` is delivered for a drag nothing implements
+yet and is registered to no shape.
 
 ### 5.13 Discipline icons — `res://art/icons/disciplines/`
 

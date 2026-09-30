@@ -265,6 +265,44 @@ func _ready() -> void:
 		return
 	print("[menu] every icon a button names is on disk")
 
+	# **The cursors** (2026-09-30): every shape's art is on disk at all three
+	# sizes with its hotspot inside it, the screen picks a size, and no two
+	# meanings share a shape - building and repair used to be one shape here
+	# and another there.
+	var shapes: Dictionary = {}
+	for entry: Dictionary in CursorKit.SHAPES:
+		var shape: int = int(entry["shape"])
+		var role: String = String(entry["role"])
+		if shapes.has(shape) and shapes[shape] != role:
+			push_error("the cursor shape %d means both %s and %s" % [shape, shapes[shape], role])
+			get_tree().quit(1)
+			return
+		shapes[shape] = role
+		for size: int in CursorKit.SIZES:
+			var path: String = CursorKit.path_for(role, size)
+			var art: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
+			var hot: Vector2 = CursorKit.hotspot(entry, size)
+			if art == null or art.get_width() != size or hot.x < 0.0 or hot.y < 0.0 					or hot.x >= float(size) or hot.y >= float(size):
+				push_error("the %s cursor at %d is missing, the wrong size, or points outside itself" % [role, size])
+				get_tree().quit(1)
+				return
+	var roles: Array = shapes.values()
+	for needed: String in ["default", "point", "attack", "build", "repair", "forbidden", "busy", "text"]:
+		if not roles.has(needed):
+			push_error("no cursor shape shows %s" % needed)
+			get_tree().quit(1)
+			return
+	if CursorKit.size_for_screen(768) != 32 or CursorKit.size_for_screen(1080) != 48 			or CursorKit.size_for_screen(1440) != 48 or CursorKit.size_for_screen(2160) != 64:
+		push_error("the cursor size does not follow the screen")
+		get_tree().quit(1)
+		return
+	var hud_source: String = FileAccess.get_file_as_string("res://scenes/ui/hud.gd")
+	if hud_source.contains("Control.CURSOR_CAN_DROP") or hud_source.contains("Input.CURSOR_CAN_DROP") 			or hud_source.contains("Input.CURSOR_DRAG"):
+		push_error("the HUD still asks for a drag shape to mean building or a service")
+		get_tree().quit(1)
+		return
+	print("[menu] eleven cursors at three sizes, one meaning to a shape")
+
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()

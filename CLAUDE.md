@@ -11432,6 +11432,17 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   "marks"; `IconKit.ui` answers a missing file with nothing, in silence.
   `tools/draw_save_slot_glyph.py` draws both glyphs in the chrome language, and
   `menu_check` now refuses any literal icon a button names that is not on disk.
+- **The Pathfire cursors are installed**, all eleven at 32, 48 and 64 pixels,
+  copied from the inbox against the manifest's sha256, with that manifest's own
+  hotspot per size; `CursorKit` picks the size off the screen's height. **Each
+  meaning has one shape**: building was `CURSOR_DRAG` in `CursorKit` and
+  `CURSOR_CAN_DROP` in the HUD, which was also repair's. Placement is
+  `CURSOR_MOVE` and a service `CURSOR_HELP` now - shapes the game otherwise
+  never shows - and the drag shapes keep drag art for a drag nobody has built.
+  `menu_check` holds one meaning to a shape. **The kit's buttons, panels, slots
+  and focus frame are not installed yet**: they reskin every screen, and the
+  handoff's own rule is that a large preview proves nothing about a 42px
+  button, so they wait for a session that can photograph them.
 
 ### The three escape hatches - and why there are only three
 

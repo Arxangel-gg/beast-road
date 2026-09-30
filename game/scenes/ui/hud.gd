@@ -2159,7 +2159,7 @@ func _build_action_bar(bar: Container) -> void:
 		func() -> void: _report(battlefield.try_repair_town()))
 	_repair_button.tooltip_text = "Restore %d Town health during Preparation. Cost: %d Wood." % [
 		int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST]
-	_repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	_repair_button.mouse_default_cursor_shape = CursorKit.SERVICE_SHAPE
 	IconKit.on_button(_repair_button, "upgrade", 22)
 
 	# **The Quartermaster** (owner brief, 2026-09-13: gold needs continual
@@ -2169,7 +2169,7 @@ func _build_action_bar(bar: Container) -> void:
 	_orders_button = _add_button(bar,
 		"Orders",
 		func() -> void: _report(battlefield.try_standing_order(_standing_order())))
-	_orders_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	_orders_button.mouse_default_cursor_shape = CursorKit.SERVICE_SHAPE
 	IconKit.on_button(_orders_button, "gold", 22)
 
 	# **"Tend" out, "Heal" in.** It is the clearest word in English for what the
@@ -2185,7 +2185,7 @@ func _build_action_bar(bar: Container) -> void:
 			int(round(Balance.HERO_TEND_FRACTION * 100.0)), Balance.HERO_TEND_COST,
 			int(round(Balance.RATION_FRACTION * 100.0)), Balance.RATION_COST,
 			int(Balance.RATION_COOLDOWN), Balance.RATION_ESCALATION]
-	_tend_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	_tend_button.mouse_default_cursor_shape = CursorKit.SERVICE_SHAPE
 	IconKit.on_button(_tend_button, "hero_health", 22)
 	# **How close the larder is, when it is not close enough.** A greyed button
 	# says "no" and nothing else; a player who cannot read the Food counter
@@ -2224,7 +2224,7 @@ func _build_action_bar(bar: Container) -> void:
 	_ride_button = _add_button(bar,
 		"Ride",
 		func() -> void: TouchInput.ask_mount())
-	_ride_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	_ride_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	IconKit.on_button(_ride_button, "distance", 22)
 	# **The throw's cooldown, on the button it closes** (owner, 2026-09-21). A
 	# child of the button rather than a widget of its own, so it takes no room
@@ -2483,16 +2483,18 @@ func _on_build_mode_changed(building: bool) -> void:
 
 ## The pointer says which click you are about to make.
 ##
-## `CURSOR_CROSS` for a fight and `CURSOR_CAN_DROP` for building: two shapes the
-## OS already draws, rather than a custom texture that would have to be authored
-## at four sizes and would still be wrong on a phone. Cleared entirely outside
-## Preparation, where there is no choice to describe.
+## Attack for a fight and build for placing, through `CursorKit` so the HUD and
+## the battlefield cannot pick two different shapes for one meaning - which they
+## did until 2026-09-30, building on `CAN_DROP` here and on `DRAG` there.
+## Cleared entirely outside Preparation, where there is no choice to describe.
 func _apply_mode_cursor(building: bool) -> void:
 	if not RunState.can_build_now():
-		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		CursorKit.use_default()
 		return
-	Input.set_default_cursor_shape(Input.CURSOR_CAN_DROP if building
-		else Input.CURSOR_CROSS)
+	if building:
+		CursorKit.use_build()
+	else:
+		CursorKit.use_attack()
 
 
 func _update_mode_button() -> void:
@@ -5589,7 +5591,7 @@ func _refresh_build_panel() -> void:
 			var repair_button: Button = _add_button(_build_list, "Repair Tower", func() -> void:
 				_report(battlefield.try_repair_tower(anchor))
 				_refresh_build_panel())
-			repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+			repair_button.mouse_default_cursor_shape = CursorKit.SERVICE_SHAPE
 			var repair_figures: String = "Restore %d%% durability.\nCost: %d Wood." % [
 				int(round(Balance.TOWER_REPAIR_FRACTION * 100.0)), Balance.TOWER_REPAIR_WOOD_COST]
 			repair_button.mouse_entered.connect(func() -> void:

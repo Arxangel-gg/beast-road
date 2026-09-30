@@ -11281,6 +11281,12 @@ const SFX_FEMALE_STAND_IN_PITCH: float = 0.3
 ## How far from a blow the Warden it landed on may stand for the voice to be
 ## theirs, in world units. [TUNE]
 const SFX_VOICE_REACH: float = 160.0
+
+## **Which size the cursors are drawn at** (2026-09-30), by the height of the
+## screen in pixels: 64 from `LARGE_FROM`, 48 from `DESKTOP_FROM`, 32 below. A
+## cursor is drawn in screen pixels and never scaled with the interface. [TUNE]
+const CURSOR_SIZE_LARGE_FROM: int = 2000
+const CURSOR_SIZE_DESKTOP_FROM: int = 1000
 const FOG_EXPLORED_ALPHA: float = 0.5
 ## How far each thing of the party's can see.
 const FOG_VISION_HERO: float = 640.0
