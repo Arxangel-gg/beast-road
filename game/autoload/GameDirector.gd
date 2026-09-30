@@ -215,6 +215,10 @@ func _ready() -> void:
 	# marker stood. Lives as long as the game, which is what makes it the one
 	# thing still standing when the game did not end cleanly.
 	add_child(CrashWatch.new())
+	# A click answers, over every screen (2026-09-30). Never headless, where
+	# there is no cursor and a hundred gates would each stand one up.
+	if DisplayServer.get_name() != "headless":
+		add_child(CursorFx.new())
 	# An erased slot is somebody new, and is asked who they are again.
 	MetaState.slot_erased.connect(WardenGlass.forget)
 	EventBus.boss_defeated.connect(_on_boss_felled)

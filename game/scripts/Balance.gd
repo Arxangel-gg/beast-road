@@ -11290,6 +11290,15 @@ const SFX_VOICE_REACH: float = 160.0
 ## **Which size the cursors are drawn at** (2026-09-30), by the height of the
 ## screen in pixels: 64 from `LARGE_FROM`, 48 from `DESKTOP_FROM`, 32 below. A
 ## cursor is drawn in screen pixels and never scaled with the interface. [TUNE]
+## **A click answers** (owner, 2026-09-30; see `CursorFx`): a ring opening from
+## `CURSOR_FX_RING.x` to `.y` pixels over `CURSOR_FX_LIFE` seconds with
+## `CURSOR_FX_SPARKS` streaks `CURSOR_FX_SPARK_LENGTH` long, at most
+## `CURSOR_FX_MAX` presses drawn at once. [TUNE]
+const CURSOR_FX_RING: Vector2 = Vector2(5.0, 24.0)
+const CURSOR_FX_LIFE: float = 0.34
+const CURSOR_FX_SPARKS: int = 6
+const CURSOR_FX_SPARK_LENGTH: float = 9.0
+const CURSOR_FX_MAX: int = 10
 const CURSOR_SIZE_LARGE_FROM: int = 2000
 const CURSOR_SIZE_DESKTOP_FROM: int = 1000
 const FOG_EXPLORED_ALPHA: float = 0.5

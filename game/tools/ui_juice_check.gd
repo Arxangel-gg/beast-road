@@ -44,6 +44,7 @@ const EXEMPT_SCREENS: Array[String] = [
 	"gear_compare.gd",     # a card the Market opens; enrolled with its screen
 	"hud.gd",              # enrols itself beside the tint, not at _ready
 	"hold_beacons.gd",     # the Hold's door markers: one _draw, nothing pressable
+	"pool_marks.gd",       # the ward and the notches drawn on a pool bar, nothing pressable
 ]
 
 
@@ -64,6 +65,7 @@ func _ready() -> void:
 	await _test_a_plate_animates_without_being_touched()
 	await _test_dressing_a_plate_leaves_its_contents_first()
 	await _test_a_container_child_is_never_moved()
+	await _test_a_click_answers()
 	await _test_a_bar_flows_only_where_it_is_filled()
 	_test_no_two_controls_share_a_clock()
 	_test_every_screen_enrols()
@@ -407,6 +409,34 @@ func _finish() -> void:
 	else:
 		push_error("[ui-juice] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A click answers, briefly and within bounds** (2026-09-30): a press is
+## drawn, a flurry never draws more than the cap, the event is never
+## swallowed, it is all gone after its life, and nothing processes at rest.
+func _test_a_click_answers() -> void:
+	var fx := CursorFx.new()
+	add_child(fx)
+	await get_tree().process_frame
+	var kept: Variant = Graphics._value(Graphics.KEY_PARTICLES)
+	fx.press_at(Vector2(200.0, 200.0))
+	_check(fx.live() == 1 and fx.is_processing(), "a click drew nothing")
+	for index: int in 40:
+		fx.press_at(Vector2(200.0 + float(index), 200.0), index % 2 == 0)
+	_check(fx.live() <= Balance.CURSOR_FX_MAX,
+		"a flurry of clicks drew %d at once, past %d" % [fx.live(), Balance.CURSOR_FX_MAX])
+	var started: int = Time.get_ticks_msec()
+	while fx.live() > 0 and Time.get_ticks_msec() - started < 3000:
+		await get_tree().process_frame
+	_check(fx.live() == 0 and not fx.is_processing(),
+		"a click's ring outlived its life, or the layer kept processing at rest")
+	var src: String = FileAccess.get_file_as_string("res://scripts/systems/cursor_fx.gd")
+	_check(not src.contains("set_input_as_handled"),
+		"the cursor's answer swallows the click it answers")
+	_check(FileAccess.get_file_as_string("res://autoload/GameDirector.gd").contains("CursorFx.new()"),
+		"nothing stands the cursor's answer up")
+	fx.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, why: String) -> void:
