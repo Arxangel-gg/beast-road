@@ -124,6 +124,16 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_elapsed += delta
+	# **A draft is answered the way a player can: Later** (2026-09-30). A draft
+	# the road's rank banked opens with the breather and holds its clock while
+	# it is chosen - by design, playing alone - so a gate that leaves it open is
+	# measuring a breather waiting on a player who is not there. Whether one had
+	# been banked by the third breather depended on how many bodies the board
+	# had killed by then, which moved with the machine's load: green alone, red
+	# in the release sweep.
+	var ui: Node = _run.get("crossroad_ui") if _run != null else null
+	if ui != null and ui.has_method("is_augment_open") and bool(ui.call("is_augment_open")):
+		ui.call("close_augment_draft")
 
 	# Opening Preparation is player-controlled, so begin once the automated
 	# defence is established. Between-wave preparation is tested separately.
@@ -157,8 +167,17 @@ func _process(delta: float) -> void:
 		# countdown now and has to end on its own, so nothing here presses Ride On
 		# and overrunning the window is the failure.
 		if _breather_age > Balance.PREPARATION_BETWEEN_WAVES + 2.0:
-			push_error("A between-wave breather ran %.1fs without starting the wave"
-				% _breather_age)
+			# **Say what was holding it.** The first time this fired on a sweep it
+			# said only that the clock overran, and the three things that may
+			# hold a breather's clock - the build grace, an open draft, and the
+			# clock itself not running - could not be told apart afterwards.
+			push_error(("A between-wave breather ran %.1fs without starting the wave "
+				+ "(clock %.1f, grace %.2f, draft open %s, drafts waiting %d, paused %s, "
+				+ "deploying %s, bodies %d)") % [_breather_age,
+				float(_run.get("_preparation_left")), RunState.build_grace_left(),
+				str(ui != null and bool(ui.call("is_augment_open"))),
+				RunState.augments_waiting(), str(get_tree().paused),
+				str(_field.wave_director.is_deploying()), _field.enemy_count()])
 			_bail(1)
 			return
 
