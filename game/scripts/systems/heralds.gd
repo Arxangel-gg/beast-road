@@ -26,9 +26,11 @@ extends RefCounted
 ## it down is a question for the co-op relay nobody has asked yet. Never on the
 ## Walk, whose valley teaches the road before it teaches this.
 
-const ROSE_LINE: String = "A Herald runs for the gate. The towers cannot see it - catch it."
-const CALLED_LINE: String = "The Herald reached the wall. Its horn calls the next wave larger."
-const FELL_LINE: String = "The Herald is down before it could call. Its purse is yours."
+## Inside `HUD.MESSAGE_MAX_CHARS`, which `herald_check` holds: a line the
+## banner trims is a line that stops saying what it was for.
+const ROSE_LINE: String = "A Herald runs for the gate. Only you can stop it."
+const CALLED_LINE: String = "The Herald called. The next wave comes larger."
+const FELL_LINE: String = "The Herald is down. Its purse is yours."
 
 
 ## Whether a wave in `act` may carry a Herald at all.

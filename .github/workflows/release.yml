@@ -383,6 +383,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/hero_bar_check.tscn
           run_godot_clean --headless --path game res://tools/light_writer_check.tscn
           run_godot_clean --headless --path game res://tools/dead_target_check.tscn
+          run_godot_clean --headless --path game res://tools/herald_check.tscn
           run_godot_clean --headless --path game res://tools/wayside_check.tscn
           run_godot_clean --headless --path game res://tools/save_round_trip_check.tscn
           run_godot_clean --headless --path game res://tools/save_slot_check.tscn

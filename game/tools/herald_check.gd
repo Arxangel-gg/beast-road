@@ -283,6 +283,11 @@ func _test_the_board_looks_away() -> void:
 	_check(not mark.hidden_from_the_board(), "the board sees an ordinary body")
 	_check(herald.promoted_name().begins_with("Herald"), "a Herald is named one, found '%s'" % herald.promoted_name())
 	_check(_rose >= 1, "a Herald rising is said")
+	var banner := _run.hud.get("_message") as Label
+	_check(banner != null and banner.text == Heralds.ROSE_LINE,
+		"the HUD says a Herald rose, found '%s'" % (banner.text if banner != null else "no banner"))
+	for line: String in [Heralds.ROSE_LINE, Heralds.CALLED_LINE, Heralds.FELL_LINE]:
+		_check(line.length() <= HUD.MESSAGE_MAX_CHARS, "'%s' is longer than the banner shows" % line)
 	await get_tree().process_frame
 	var chosen: Array = tower.call("_acquire_targets_now")
 	_check(not chosen.has(herald), "a tower may not choose a Herald that has not called")

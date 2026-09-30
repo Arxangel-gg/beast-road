@@ -562,11 +562,17 @@ func _sound_the_call() -> void:
 func _dress_as_herald() -> void:
 	if sprite == null or sprite.texture == null:
 		return
-	var polish: ShaderMaterial = _polish if _polish != null else ActorPolishScript.attach(sprite)
-	_polish = polish
+	# The director dresses a Herald the frame it is stood up, before a stain
+	# material has been given; one dressed later still wears the gold outline on
+	# the stain it already has, which carries an outline and no aura.
+	if _polish == null and _blood == null:
+		_polish = ActorPolishScript.attach(sprite)
+	var worn: ShaderMaterial = _polish if _polish != null else _blood
+	if worn != null:
+		worn.set_shader_parameter("outline_colour", Color(Balance.HERALD_TONE, 0.95))
+		worn.set_shader_parameter("outline_strength", 1.0)
+	var polish: ShaderMaterial = _polish
 	if polish != null:
-		polish.set_shader_parameter("outline_colour", Color(Balance.HERALD_TONE, 0.95))
-		polish.set_shader_parameter("outline_strength", 1.0)
 		polish.set_shader_parameter("aura_colour", Color(Balance.HERALD_TONE, 1.0))
 		polish.set_shader_parameter("aura_strength", Balance.RANK_AURA_STRENGTH_CHAMPION)
 		polish.set_shader_parameter("aura_speed", Balance.RANK_AURA_SPEED_ELITE * 1.6)

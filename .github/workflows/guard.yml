@@ -418,6 +418,7 @@ jobs:
           # A light has one writer: its driver. Two strobed the menu's fires.
           check "light-writer" --headless --path game res://tools/light_writer_check.tscn
           check "dead target" --headless --path game res://tools/dead_target_check.tscn
+          check "herald" --headless --path game res://tools/herald_check.tscn
           # A wayside encounter asks, and every answer is a door the game already has.
           check "wayside"    --headless --path game res://tools/wayside_check.tscn
           # Every authored .tres actually became content. ContentDB warns and

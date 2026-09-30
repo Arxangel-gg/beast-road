@@ -55,6 +55,15 @@ func _test_a_wave_says_what_it_paid() -> void:
 		and banner.text.contains("+40"),
 		"a held wave says how many fell and what it paid (%s)" % banner.text)
 	_check(RunState.currency("gold") == purse, "saying what a wave paid moved the purse")
+	# **Said and seen are two things** (2026-09-30). A clipped, wrapping Label
+	# has no minimum height, and from 2026-09-10 the banner was 800 by 1 - every
+	# line it was given was clipped to a row of pixels while this gate read the
+	# text back and passed. Its height is asked of the frame now.
+	for _frame: int in 2:
+		await get_tree().process_frame
+	_check(banner.size.y >= float(banner.get_line_height()),
+		"the banner is %.0f tall for a line %d tall: said, and not seen" % [banner.size.y,
+		banner.get_line_height()])
 	_check(not hud.wave_harvest().is_open(), "the count closes with the wave")
 	# A kill after the wave is not the next wave's, and a wave never begun here
 	# says nothing when it is cleared.

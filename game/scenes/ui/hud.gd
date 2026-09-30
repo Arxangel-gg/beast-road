@@ -273,6 +273,8 @@ const COMMAND_BAR_TOP: float = 104.0
 const BOSS_TRACK_TOP: float = 62.0
 const BOSS_TRACK_TOUCH_TOP: float = 78.0
 const MESSAGE_TOP: float = 90.0
+## Two lines of the banner's own size: it wraps on a narrow screen.
+const MESSAGE_HEIGHT: float = 64.0
 const MESSAGE_TOUCH_TOP: float = 130.0
 
 ## How wide the banner is allowed to be, as a half-width, in each layout.
@@ -1251,6 +1253,15 @@ func _build_top_bar() -> void:
 	_message.clip_text = true
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message.offset_top = MESSAGE_TOP
+	# **And its height, stated.** A clipped, wrapping Label has no minimum
+	# height either, so a free one is exactly as tall as its offsets say - and
+	# nothing said, so from 2026-09-10 the banner was 800 by 1 and clipped every
+	# line it was given to a single row of pixels. `herald_check` photographed
+	# nothing where its line should have been and `town_alert_check`, which reads
+	# the text, could not see it. Two lines, because a narrow screen wraps.
+	_message.offset_bottom = MESSAGE_TOP + MESSAGE_HEIGHT
+	_message.max_lines_visible = 2
+	_message.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_fit_centred(_message, MESSAGE_HALF)
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_color", Color("e8a33d"))
@@ -5138,6 +5149,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_boss_box.offset_top = BOSS_TRACK_TOUCH_TOP if showing else BOSS_TRACK_TOP
 	if _message != null:
 		_message.offset_top = MESSAGE_TOUCH_TOP if showing else MESSAGE_TOP
+		_message.offset_bottom = _message.offset_top + MESSAGE_HEIGHT
 		_fit_centred(_message, MESSAGE_TOUCH_HALF if showing else MESSAGE_HALF)
 	if _state_label != null:
 		_state_label.offset_top = STATE_LABEL_TOUCH_TOP if showing else STATE_LABEL_TOP
