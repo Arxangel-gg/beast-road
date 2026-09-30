@@ -141,8 +141,18 @@ func _ready() -> void:
 	# closes it can never see the map at all. That is the second half of why the
 	# owner was looking at a minimap on top of the Call button while this was
 	# green: no bonded spirit, and no frame with the map in it.
+	# **The banner, saying something** (2026-09-30). It is empty in most
+	# frames, so this gate never measured it - and it was one pixel tall for
+	# three weeks. A line is put on it the way the game does, so it is measured
+	# at its size with words in it.
+	var hud_node: Node = run.get("hud")
+	if hud_node != null and hud_node.has_method("say"):
+		hud_node.call("say", "A Herald runs for the gate. Only you can stop it.")
+	for _f: int in 3:
+		await get_tree().process_frame
 	var resting: Array[Control] = _visible_widgets()
 	_notes.append("%d widgets at rest" % resting.size())
+	_check_labels_show_a_line(resting)
 	_note_the_bottom_row(run)
 	_check_overlap(resting)
 	_check_crowding(resting)
@@ -262,6 +272,27 @@ func _check_overflow(widgets: Array[Control]) -> void:
 			_path_of(control), control.get_class(),
 			needed.x, needed.y, got.x, got.y])
 	_notes.append("overflow: %d" % found)
+
+
+## **Every label with words in it is at least one line tall** (2026-09-30).
+## A clipped, wrapping Label has no minimum height, so a free one is exactly as
+## tall as its offsets say - the HUD banner was 800 by 1 for three weeks and
+## every line it was given was clipped to a row of pixels. Overflow cannot see
+## it (the label needs nothing it lacks) and overlap cannot (a row of pixels
+## covers nothing).
+func _check_labels_show_a_line(widgets: Array[Control]) -> void:
+	var found: int = 0
+	for control: Control in widgets:
+		var label := control as Label
+		if label == null or label.text.strip_edges().is_empty():
+			continue
+		var line: float = float(label.get_line_height())
+		if label.size.y + 1.0 >= line:
+			continue
+		found += 1
+		_failures.append("label shows no line: %s is %.0f tall for a %.0f line ('%s')" % [
+			_path_of(label), label.size.y, line, label.text.left(40)])
+	_notes.append("labels shorter than a line: %d" % found)
 
 
 ## Leaf widgets from different branches covering the same pixels.
