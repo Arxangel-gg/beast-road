@@ -4803,6 +4803,14 @@ const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2
 ## frame; what a 144 Hz screen does not need is the triangle arrays rebuilt
 ## 144 times a second for sparks that live a third of a second.
 const VFX_INK_HZ: float = 60.0
+## World units past the camera's view inside which a decoration is still made
+## (`ScreenCull.world_sees`): enough that a spark thrown just off the edge
+## still flies in, and a pan of a step or two finds the fight already lit.
+const VFX_CULL_MARGIN: float = 220.0
+## The spot and the moment inside which a second hit of the same painted or
+## forged picture is not drawn again (`VfxInk._crowded`). [TUNE]
+const VFX_CROWD_CELL: float = 40.0
+const VFX_CROWD_SECONDS: float = 0.06
 
 ## How far a painted plant is tinted toward its region's sampled palette, so it
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]

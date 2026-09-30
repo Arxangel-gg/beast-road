@@ -110,3 +110,4 @@ art_inbox/Pixellab/
 # Python bytecode from the VFX forge and the other tools.
 __pycache__/
 *.pyc
+game/override.cfg

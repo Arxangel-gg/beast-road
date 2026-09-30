@@ -66,12 +66,20 @@ func burst(body_at: Vector2, ground_at: Vector2, direction: Vector2,
 		else Vector2.from_angle(rng.randf() * TAU)
 	var count: int = rng.randi_range(Balance.VFX_BLOOD_DROPS_MIN,
 		Balance.VFX_BLOOD_DROPS_MAX)
+	# **Off the screen the drops land at once** (2026-09-30; see
+	# `ScreenCull.world_sees`): nobody sees them fly, and the ground still
+	# remembers the blow for when the camera gets there.
+	var unseen: bool = not ScreenCull.world_sees(self, body_at, size)
 	for index: int in count:
 		var spread: float = rng.randf_range(-Balance.VFX_BLOOD_LAND_SPREAD,
 			Balance.VFX_BLOOD_LAND_SPREAD)
 		var throw: float = size * rng.randf_range(0.28, 0.92)
 		var land: Vector2 = ground_at + along.rotated(spread) * throw \
 			+ Vector2.from_angle(rng.randf() * TAU) * size * rng.randf_range(0.04, 0.18)
+		if unseen:
+			if _ground != null and is_instance_valid(_ground):
+				_ground.droplet(land, size * rng.randf_range(0.055, 0.105) * 1.35, _rng)
+			continue
 		_origin.append(body_at)
 		_start.append(body_at + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0)))
 		_end.append(land)

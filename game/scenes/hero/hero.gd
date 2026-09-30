@@ -513,17 +513,27 @@ func _ready() -> void:
 
 
 func _physics_process_measured(delta: float) -> void:
+	# Sub-buckets of "hero" (2026-09-30): the tick is inclusive, and a Warden
+	# costing 1.9 ms a physics step said nothing about which part of it.
+	var mark: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_tick_timers(delta)
+	_profile_part(&"h_timers", mark)
+	var part: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_place_bars(delta)
+	_profile_part(&"h_bars", part)
 
 	if not is_alive():
 		_tick_respawn(delta)
 		return
 
+	part = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_aim = _compute_aim()
 	_update_facing(delta)
 	_update_aim_guide()
+	_profile_part(&"h_aim", part)
+	part = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_tick_swim(delta)
+	_profile_part(&"h_swim", part)
 
 	# **A swimmer still swings, slowly** (owner, 2026-09-16). This refused
 	# combat outright - "no weapon in the water: a swimmer has both hands full
@@ -538,6 +548,9 @@ func _physics_process_measured(delta: float) -> void:
 	# a swing thrown away rather than a dismount.
 	_tick_mount(delta)
 
+	if FrameProfile.enabled:
+		FrameProfile.add(&"h_pre", mark)
+		mark = Time.get_ticks_usec()
 	var combat_input: bool = can_fight()
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
@@ -599,6 +612,9 @@ func _physics_process_measured(delta: float) -> void:
 		attack.cancel()
 		spells.cancel_channel()
 
+	if FrameProfile.enabled:
+		FrameProfile.add(&"h_combat", mark)
+		mark = Time.get_ticks_usec()
 	var move_input: Vector2 = _move_input()
 	if _ram_left > 0.0:
 		velocity = _ram_direction * Balance.MOUNT_RAM_SPEED
@@ -633,9 +649,14 @@ func _physics_process_measured(delta: float) -> void:
 	if _ram_left > 0.0:
 		_tick_ram(delta, ram_from, unbounded)
 
+	if FrameProfile.enabled:
+		FrameProfile.add(&"h_move", mark)
+		mark = Time.get_ticks_usec()
 	animator.set_motion(velocity, move_speed(), delta)
 	_drive_frames()
 	_update_sprite(delta)
+	if FrameProfile.enabled:
+		FrameProfile.add(&"h_look", mark)
 
 
 ## Reads the water under the feet and moves the hero in or out of it.
@@ -3532,6 +3553,12 @@ func telling_blow(enemy: Node2D) -> float:
 	if RunState.rng("combat").randf() >= chance:
 		return 1.0
 	return 2.0
+
+
+## One part of the physics tick into its own bucket, when anybody is measuring.
+func _profile_part(key: StringName, started: int) -> void:
+	if FrameProfile.enabled:
+		FrameProfile.add(key, started)
 
 
 ## `FrameProfile` bucket "hero": the real work is `_physics_process_measured` above.

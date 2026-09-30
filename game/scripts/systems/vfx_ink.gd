@@ -160,6 +160,14 @@ func live() -> int:
 		+ _art.size() + _numbers.size() + _dust.size() + _streaks.size() + _beams.size()
 
 
+## Every kind's live count, for a diagnostic: what a busy frame is made of.
+func census() -> Dictionary:
+	return {"sparks": _sparks.size(), "rings": _rings.size(), "flashes": _flashes.size(),
+		"motes": _motes.size(), "rays": _rays.size(), "art": _art.size(),
+		"numbers": _numbers.size(), "dust": _dust.size(), "streaks": _streaks.size(),
+		"beams": _beams.size(), "embers": _ember_count}
+
+
 func live_streaks() -> int:
 	return _streaks.size()
 
@@ -260,6 +268,8 @@ func number_records() -> Array[Dictionary]:
 ## life, eased out.
 func spark(at: Vector2, direction: Vector2, colour: Color, speed: float,
 		always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, speed):
+		return
 	var angle: float
 	if direction == Vector2.ZERO:
 		angle = randf() * TAU
@@ -282,6 +292,8 @@ func spark(at: Vector2, direction: Vector2, colour: Color, speed: float,
 ## a faint wider halo, fading as it grows.
 func ring(at: Vector2, to_radius: float, colour: Color, life: float, width: float,
 		always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, to_radius):
+		return
 	_push(_rings, {
 		"at": at,
 		"radius": maxf(to_radius, 1.0),
@@ -296,6 +308,8 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float, width: floa
 ## A soft disc that swells to nearly twice its size and is gone in a sixth of
 ## a second - the light of a blow landing.
 func flash(at: Vector2, colour: Color, radius: float, always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, radius * 2.0):
+		return
 	_push(_flashes, {
 		"at": at,
 		"radius": maxf(radius, 1.0),
@@ -310,6 +324,8 @@ func flash(at: Vector2, colour: Color, radius: float, always: bool = false) -> v
 ## shot sheds behind it, what a spray throws, what a mote is.
 func mote(at: Vector2, drift: Vector2, colour: Color, size: float, life: float,
 		always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, drift.length() + size):
+		return
 	_push(_motes, {
 		"at": at,
 		"drift": drift,
@@ -325,6 +341,8 @@ func mote(at: Vector2, drift: Vector2, colour: Color, size: float, life: float,
 ## whole of it and fades - the burst round a build or an upgrade.
 func ray(at: Vector2, direction: Vector2, colour: Color, inner: float, outer: float,
 		life: float, always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, outer):
+		return
 	_push(_rays, {
 		"at": at,
 		"dir": direction,
@@ -349,6 +367,9 @@ func art(frames: Array[Texture2D], at: Vector2, rotation: float, scale: Vector2,
 		always: bool = false) -> void:
 	if frames.is_empty():
 		return
+	var reach: float = float(frames[0].get_width()) * maxf(absf(scale.x), absf(scale.y))
+	if not ScreenCull.world_sees(self, at, reach) or _crowded(at, frames[0]):
+		return
 	_push(_art, {
 		"frames": frames,
 		"sheet": 0,
@@ -370,6 +391,9 @@ func sheet(texture: Texture2D, cells: int, at: Vector2, rotation: float, scale: 
 		tint: Color, life: float, always: bool = false) -> void:
 	if texture == null or cells < 1:
 		return
+	var reach: float = float(texture.get_height()) * maxf(absf(scale.x), absf(scale.y))
+	if not ScreenCull.world_sees(self, at, reach) or _crowded(at, texture):
+		return
 	var frames: Array[Texture2D] = [texture]
 	_push(_art, {
 		"frames": frames,
@@ -389,6 +413,8 @@ func sheet(texture: Texture2D, cells: int, at: Vector2, rotation: float, scale: 
 ## A damage number: pops, rises and hangs, then falls back a little and fades.
 ## `big` is a critical or a finisher - larger, tilted, longer.
 func number(at: Vector2, text: String, colour: Color, big: bool) -> void:
+	if not ScreenCull.world_sees(self, at, 80.0):
+		return
 	var rise: float = Balance.VFX_NUMBER_RISE \
 		* (1.0 + (Balance.VFX_NUMBER_BIG_RISE_BONUS if big else 0.0))
 	_push(_numbers, {
@@ -411,6 +437,8 @@ func number(at: Vector2, text: String, colour: Color, big: bool) -> void:
 ## stood up as an octagon and three tweens (2026-09-24).
 func dust(at: Vector2, drift: Vector2, colour: Color, size: float, grow: float,
 		life: float, always: bool = false) -> void:
+	if not ScreenCull.world_sees(self, at, drift.length() + size * grow):
+		return
 	_push(_dust, {
 		"at": at,
 		"drift": drift,
@@ -459,6 +487,31 @@ func beam(from: Vector2, to: Vector2, width: float, colour: Color, life: float,
 		"age": 0.0,
 		"always": always,
 	}, Balance.VFX_INK_BEAMS_MAX)
+
+
+## **One picture of a kind on one spot at a time** (2026-09-30). Forty towers
+## converging on the body at the gate landed several painted and forged hits
+## on the same few pixels inside a twentieth of a second - each a large
+## additive or blended quad, and together one picture drawn five times over.
+## A hit of the same picture in the same `VFX_CROWD_CELL` inside
+## `VFX_CROWD_SECONDS` of the last is not drawn again; a different picture, a
+## different spot or a later moment always is. Never headless, like the cull.
+var _crowd: Dictionary = {}
+
+
+func _crowded(at: Vector2, picture: Texture2D) -> bool:
+	if not ScreenCull.culling():
+		return false
+	var cell := Vector2i((at / Balance.VFX_CROWD_CELL).floor())
+	var key: int = hash([cell, picture.get_instance_id()])
+	var now: int = Time.get_ticks_msec()
+	var last: int = int(_crowd.get(key, -100000))
+	if now - last < int(Balance.VFX_CROWD_SECONDS * 1000.0):
+		return true
+	if _crowd.size() > 512:
+		_crowd.clear()
+	_crowd[key] = now
+	return false
 
 
 func _push(into: Array[Dictionary], record: Dictionary, cap: int) -> void:

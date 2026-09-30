@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_the_roster_is_gathered_once_a_frame()
 	await _test_a_bar_is_one_item()
 	_test_the_ink_ages_on_its_clock()
+	await _test_nothing_is_made_where_nobody_looks()
 	Graphics.from_dictionary(held)
 	Vfx.bind_world(null)
 	await get_tree().process_frame
@@ -392,6 +393,78 @@ func _test_the_ink_ages_on_its_clock() -> void:
 			"the tick should step by everything banked (aged %.4f, wanted %.4f)"
 				% [stepped, small * 5.0 + tick])
 	ink.queue_free()
+
+
+## **Nothing is made where nobody is looking, and one spot holds one hit
+## picture at a time** (2026-09-30). Culling is forced on (headless has no
+## camera, so the game leaves it off there): a spark, a number, a dust puff, a
+## painted hit and a forged sheet far outside the view make no record, the
+## same ones in view do, and blood thrown out of view lands on the ground
+## without a drop in the air. Two of the same picture on one spot inside the
+## crowd window are one record; a second spot or a second picture is its own.
+## Culling off, nothing is refused.
+func _test_nothing_is_made_where_nobody_looks() -> void:
+	Vfx.bind_world(_world)
+	await get_tree().process_frame
+	var flat: VfxInk = Vfx.ink_flat()
+	var light: VfxInk = Vfx.ink()
+	var motes: BloodMotes = Vfx.blood_motes()
+	if flat == null or light == null or motes == null:
+		_check(false, "the ink and the blood stand under the world")
+		return
+	flat.clear()
+	light.clear()
+	motes.clear()
+	var seen: Vector2 = get_viewport().get_visible_rect().get_center()
+	var far: Vector2 = seen + Vector2(40000.0, 40000.0)
+	ScreenCull.override = 1
+	for at: Vector2 in [far, seen]:
+		Vfx.spark(at, Color.WHITE, 1, Vector2.UP, 120.0)
+		Vfx.number(at, 7.0, Color.WHITE)
+		Vfx.dust(at, Color(0.4, 0.3, 0.2), 1, 20.0)
+		Vfx.forge_burst(at, 80.0)
+		if at == far:
+			_check(light.live_sparks() == 0 and flat.live_numbers() == 0 and flat.live_dust() == 0
+				and light.live_art() == 0,
+				"a hit far outside the view still made records (%d sparks, %d numbers, %d dust, %d sheets)"
+				% [light.live_sparks(), flat.live_numbers(), flat.live_dust(), light.live_art()])
+	_check(light.live_sparks() == 1 and flat.live_numbers() == 1 and flat.live_dust() == 1,
+		"a hit in view made %d sparks, %d numbers, %d dust - it must make each"
+		% [light.live_sparks(), flat.live_numbers(), flat.live_dust()])
+	var ground: Node = Vfx.get("_ground") as Node
+	# Wiped first: at its cap a new mark only replaces the oldest, and the count holds.
+	if ground != null and ground.has_method("wipe"):
+		ground.call("wipe")
+	var marks_before: int = int(ground.call("marks")) if ground != null and ground.has_method("marks") else -1
+	Vfx.blood(far, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
+	_check(motes.live() == 0, "blood thrown out of view put %d drops in the air" % motes.live())
+	if marks_before >= 0:
+		_check(int(ground.call("marks")) > marks_before,
+			"blood thrown out of view left nothing on the ground - it must land at once")
+	Vfx.blood(seen, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
+	_check(motes.live() >= Balance.VFX_BLOOD_DROPS_MIN, "blood in view flew (%d drops)" % motes.live())
+	# The crowd: one picture, one spot, one moment.
+	light.clear()
+	Vfx.forge_burst(seen, 80.0)
+	var one: int = light.live_art()
+	Vfx.forge_burst(seen, 80.0)
+	Vfx.forge_burst(seen, 80.0)
+	_check(one >= 1 and light.live_art() == one,
+		"three of one forged picture on one spot at once drew %d records, wanted %d" % [light.live_art(), one])
+	Vfx.forge_burst(seen + Vector2(200.0, 0.0), 80.0)
+	_check(light.live_art() > one, "the same picture on another spot was refused as crowded")
+	ScreenCull.override = 0
+	light.clear()
+	flat.clear()
+	Vfx.spark(far, Color.WHITE, 1, Vector2.UP, 120.0)
+	Vfx.forge_burst(seen, 80.0)
+	Vfx.forge_burst(seen, 80.0)
+	_check(light.live_sparks() == 1 and light.live_art() >= 2,
+		"with culling off a spark out of view or a second picture on one spot was still refused")
+	ScreenCull.override = -1
+	light.clear()
+	flat.clear()
+	motes.clear()
 
 
 func _test_the_roster_is_gathered_once_a_frame() -> void:

@@ -67,6 +67,10 @@ var sieging: Callable = Callable()
 ## and how long is left on it.
 var _rings: Dictionary = {}
 var _clock: float = 0.0
+## Every arc of one repaint, handed to the renderer once (`_draw_measured`).
+var _points := PackedVector2Array()
+var _colours := PackedColorArray()
+var _indices := PackedInt32Array()
 ## The repaint's own clock (`RANGE_RING_REDRAW_HZ`).
 var _redraw_debt: float = 0.0
 
@@ -208,9 +212,20 @@ func _draw_measured() -> void:
 	var weight: float = Graphics.particle_scale()
 	if weight <= 0.01:
 		return
+	# **One buffer a repaint** (2026-09-30). Every ring was two triangle arrays
+	# of its own, and in the Compatibility renderer each is a new GPU buffer and
+	# a draw call: forty towers firing on Act X was a hundred of them thirty
+	# times a second, and the visual bisect read the tells at 2.3 ms with the
+	# loadout on. The arcs append to one set of arrays and are handed over once.
+	_points.clear()
+	_colours.clear()
+	_indices.clear()
 	_draw_rings(weight)
 	_draw_reach(weight)
 	_draw_siege_marks(weight)
+	if not _indices.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
+			_indices, _points, _colours)
 
 
 ## The rings, each fading on its own clock over its last moments only - a ring
@@ -312,9 +327,7 @@ func _arc(at: Vector2, radius: float, tint: Color, width: float,
 	var feather: float = 0.0 if whole else clampf(
 		deg_to_rad(Balance.RANGE_RING_ARC_FEATHER) / span, 0.0, 0.5)
 	var steps: int = maxi(int(round(float(Balance.RANGE_RING_SEGMENTS) * span / TAU)), 8)
-	var points: PackedVector2Array = []
-	var colours: PackedColorArray = []
-	var indices: PackedInt32Array = []
+	var base: int = _points.size()
 	var clear := Color(tint.r, tint.g, tint.b, 0.0)
 	for step: int in steps + 1:
 		var along: float = float(step) / float(steps)
@@ -323,19 +336,17 @@ func _arc(at: Vector2, radius: float, tint: Color, width: float,
 		var lit: Color = tint
 		if not whole:
 			lit.a *= smoothstep(0.0, feather, along) * smoothstep(0.0, feather, 1.0 - along)
-		points.append(at + out * (radius - width))
-		colours.append(clear)
-		points.append(at + out * radius)
-		colours.append(lit)
-		points.append(at + out * (radius + width))
-		colours.append(clear)
+		_points.append(at + out * (radius - width))
+		_colours.append(clear)
+		_points.append(at + out * radius)
+		_colours.append(lit)
+		_points.append(at + out * (radius + width))
+		_colours.append(clear)
 	for step: int in steps:
-		var a: int = step * 3
-		var b: int = (step + 1) * 3
-		indices.append_array([a, a + 1, b, b, a + 1, b + 1])
-		indices.append_array([a + 1, a + 2, b + 1, b + 1, a + 2, b + 2])
-	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(),
-		indices, points, colours)
+		var a: int = base + step * 3
+		var b: int = base + (step + 1) * 3
+		_indices.append_array([a, a + 1, b, b, a + 1, b + 1])
+		_indices.append_array([a + 1, a + 2, b + 1, b + 1, a + 2, b + 2])
 
 
 ## `FrameProfile` bucket "tells": the real work is `_process_measured` above.

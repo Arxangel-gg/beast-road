@@ -55,6 +55,13 @@ var _floor: bool = false
 var _run: Node = null
 
 
+## `--loadout`: the Warden holding and casting everything, from
+## `tools/loadout_driver.gd` - the frame `perf_check --loadout` measures.
+var _loadout: bool = false
+## The bodies a field must hold before it is held.
+const HOLD_AT_LEAST: int = 30
+
+
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--seconds="):
@@ -69,6 +76,8 @@ func _ready() -> void:
 			_settle_seconds = maxf(float(argument.split("=")[1]), 0.5)
 		elif argument == "--visuals":
 			_visuals = true
+		elif argument == "--loadout":
+			_loadout = true
 		elif argument == "--floor":
 			_floor = true
 	# **Headless frames are floored at 6.9 ms by a sleep, not by work** (found
@@ -111,6 +120,11 @@ func _boot() -> void:
 				if node is Battlefield:
 					PerfCheck.build_late_board(node as Battlefield, ContentDB.base_towers())
 					break
+	if _loadout:
+		var driver: Node = (load("res://tools/loadout_driver.gd") as GDScript).new()
+		driver.call("read_arguments", OS.get_cmdline_user_args())
+		add_child(driver)
+		driver.call("arm")
 	# The town is held at half so the run cannot end under the measurement: a
 	# late act's waves felled it partway through the first bisect, the run
 	# settled, the tree went away, and every group after that measured
@@ -137,6 +151,13 @@ func _boot() -> void:
 	# measures nothing the player will meet.
 	var until: int = Time.get_ticks_msec() + int(_settle_seconds * 1000.0)
 	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+	# **And a field worth holding** (2026-09-30). With the loadout the Warden
+	# cleared the wave before the settle ran out, and the table measured an
+	# empty road falling from 33 ms to 7 as the last of the blood settled - a
+	# frame nobody plays. Wait for the next wave to walk on, up to a minute.
+	var patience: int = Time.get_ticks_msec() + 60000
+	while not _idle and get_tree().get_nodes_in_group("enemies").size() < HOLD_AT_LEAST 			and Time.get_ticks_msec() < patience:
 		await get_tree().process_frame
 	print("[bisect] settled %.0fs in: %d enemies on the field" % [_settle_seconds,
 		get_tree().get_nodes_in_group("enemies").size()])
@@ -401,6 +422,7 @@ func _visual_groups() -> Dictionary:
 			"combat_tells.gd": key = "tells"
 			"footfalls.gd": key = "footfalls"
 			"foliage.gd": key = "foliage_host"
+			"arsenal.gd": key = "arsenal"
 			_:
 				if node is TileMapLayer:
 					key = "tiles"

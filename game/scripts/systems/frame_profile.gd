@@ -31,7 +31,7 @@ static func add(key: StringName, started_usec: int) -> void:
 
 ## The frame's buckets as one line, heaviest first, in milliseconds with the
 ## call count, and the buckets cleared for the next frame.
-static func take(top: int = 12) -> String:
+static func take(top: int = 40) -> String:
 	if _usec.is_empty():
 		return ""
 	var keys: Array = _usec.keys()

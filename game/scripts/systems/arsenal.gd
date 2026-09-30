@@ -51,8 +51,18 @@ var _bodies_frame: int = -1
 var _bodies: Array[Enemy] = []
 
 static var _heads: Dictionary = {}
+## **One hand-over a repaint** (2026-09-30; see `InkBatch`): the flat shapes,
+## the light, and one textured batch for each head picture drawn this frame.
+var _flat := InkBatch.new()
+var _light := InkBatch.new()
+var _head_batches: Dictionary = {}
+## Reused rather than made a shape at a time: the jitter of a bolt and the
+## spikes of a patch were a `RandomNumberGenerator.new()` each, every repaint.
+var _shape_dice := RandomNumberGenerator.new()
 
 const HEAD_FORMAT: String = "res://art/vfx/projectile_%s.png"
+## A shape laid on the ground: the camera looks down and slightly along.
+const GROUND: Vector2 = Vector2(1.0, 0.5)
 
 
 ## What one armed card is doing.
@@ -1186,6 +1196,10 @@ func _draw() -> void:
 				_draw_strike_warning(armed.weapon, record)
 			"patch":
 				_draw_patch(armed.weapon, record)
+	var item: RID = get_canvas_item()
+	_flat.flush(item)
+	for texture: Variant in _head_batches:
+		(_head_batches[texture] as InkBatch).flush(item, texture as Texture2D)
 
 
 func _draw_orbit(armed: Armed) -> void:
@@ -1216,10 +1230,8 @@ func _draw_field(armed: Armed) -> void:
 	var reach: float = radius_for(armed.weapon, armed.level)
 	var breath: float = 0.75 + 0.25 * sin(_clock * 2.4)
 	for anchor: Vector2 in _anchors(armed):
-		draw_set_transform(anchor, 0.0, Vector2(1.0, 0.5))
-		draw_arc(Vector2.ZERO, reach, 0.0, TAU, 48, Color(armed.weapon.tint, 0.35 * breath), 3.0)
-		draw_arc(Vector2.ZERO, reach * 0.82, 0.0, TAU, 48, Color(armed.weapon.tint, 0.12 * breath), 8.0)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_flat.ring(anchor, reach, 3.0, Color(armed.weapon.tint, 0.35 * breath), 48, GROUND)
+		_flat.ring(anchor, reach * 0.82, 8.0, Color(armed.weapon.tint, 0.12 * breath), 48, GROUND)
 
 
 ## A weapon's head: the element's painted projectile when it has one, turning
@@ -1227,23 +1239,22 @@ func _draw_field(armed: Armed) -> void:
 func _draw_head(weapon: ArsenalWeaponData, at: Vector2, size: float, angle: float) -> void:
 	var frames: Array = _frames_for(weapon.head)
 	if frames.is_empty():
-		draw_circle(at, size * 0.55, weapon.tint)
+		_flat.disc(at, size * 0.55, weapon.tint)
 		return
 	var texture: Texture2D = frames[int(_clock * 12.0) % frames.size()] as Texture2D
-	draw_set_transform(at, angle, Vector2.ONE)
-	draw_texture_rect(texture, Rect2(Vector2(-size, -size), Vector2(size, size) * 2.0),
-		false, weapon.tint.lightened(0.35))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var batch: InkBatch = _head_batches.get(texture, null) as InkBatch
+	if batch == null:
+		batch = InkBatch.new()
+		_head_batches[texture] = batch
+	batch.quad(at, size, angle, weapon.tint.lightened(0.35))
 
 
 func _draw_strike_warning(weapon: ArsenalWeaponData, record: Dictionary) -> void:
 	var at: Vector2 = record["at"] as Vector2
 	var blast: float = float(record["radius"])
 	var done: float = 1.0 - float(record["life"]) / maxf(float(record["full"]), 0.01)
-	draw_set_transform(at, 0.0, Vector2(1.0, 0.5))
-	draw_arc(Vector2.ZERO, blast, 0.0, TAU, 40, Color(0.05, 0.03, 0.02, 0.55), 4.0)
-	draw_arc(Vector2.ZERO, blast * done, 0.0, TAU, 40, Color(weapon.tint, 0.8), 3.0)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_flat.ring(at, blast, 4.0, Color(0.05, 0.03, 0.02, 0.55), 40, GROUND)
+	_flat.ring(at, blast * done, 3.0, Color(weapon.tint, 0.8), 40, GROUND)
 	var from: Vector2 = record.get("from", Vector2.INF) as Vector2
 	if from != Vector2.INF:
 		var arc_at: Vector2 = from.lerp(at, done) + Vector2(0.0, -sin(done * PI) * 140.0)
@@ -1258,14 +1269,14 @@ func _draw_patch(weapon: ArsenalWeaponData, record: Dictionary) -> void:
 	var reach: float = float(record["radius"])
 	var left: float = clampf(float(record["life"]) / maxf(float(record["full"]), 0.01), 0.0, 1.0)
 	var ink := Color(weapon.tint.darkened(0.55), 0.55 * left)
-	var dice := RandomNumberGenerator.new()
+	var dice: RandomNumberGenerator = _shape_dice
 	dice.seed = int(record["seed"])
 	for spike: int in 7:
 		var base: Vector2 = at + Vector2.from_angle(dice.randf() * TAU) \
-			* dice.randf_range(0.1, 0.8) * reach * Vector2(1.0, 0.5)
+			* dice.randf_range(0.1, 0.8) * reach * GROUND
 		var tall: float = dice.randf_range(10.0, 22.0) * (0.6 + 0.4 * left)
-		draw_colored_polygon(PackedVector2Array([base + Vector2(-4.0, 0.0),
-			base + Vector2(4.0, 0.0), base + Vector2(dice.randf_range(-3.0, 3.0), -tall)]), ink)
+		_flat.triangle(base + Vector2(-4.0, 0.0), base + Vector2(4.0, 0.0),
+			base + Vector2(dice.randf_range(-3.0, 3.0), -tall), ink)
 
 
 func _frames_for(head: String) -> Array:
@@ -1275,10 +1286,14 @@ func _frames_for(head: String) -> Array:
 		return _heads[head] as Array
 	var frames: Array = []
 	var base: String = HEAD_FORMAT % head
+	# `load_idle_frames` hands the painting back as frame zero already; putting
+	# it on the front again held the rest pose for two beats of every turn -
+	# the fault the tooltips and the traps shipped with on 2026-09-25.
 	if ResourceLoader.exists(base):
-		frames.append(load(base))
 		for frame: Texture2D in GameData.load_idle_frames(base):
 			frames.append(frame)
+		if frames.is_empty():
+			frames.append(load(base))
 	_heads[head] = frames
 	return frames
 
@@ -1286,6 +1301,7 @@ func _frames_for(head: String) -> Array:
 ## The additive half: glows under the heads, bolt trails, chains, arcs, and the
 ## light of a patch and a warning.
 func paint_light(on: CanvasItem) -> void:
+	_light.clear()
 	for armed: Armed in _armed.values():
 		var weapon: ArsenalWeaponData = armed.weapon
 		match weapon.pattern:
@@ -1307,7 +1323,7 @@ func paint_light(on: CanvasItem) -> void:
 		var tint: Color = armed.weapon.tint
 		match String(record["kind"]):
 			"bolt":
-				InkRibbon.ribbon(on, record["trail"] as PackedVector2Array, Transform2D.IDENTITY,
+				_light.ribbon(record["trail"] as PackedVector2Array, Transform2D.IDENTITY,
 					Balance.ARSENAL_BOLT_SIZE * 0.9, tint, 0.0, 0.8)
 				_soft(on, record["at"] as Vector2, Balance.ARSENAL_BOLT_SIZE * 1.9, Color(tint, 0.5))
 			"chain":
@@ -1318,14 +1334,13 @@ func paint_light(on: CanvasItem) -> void:
 			"patch":
 				var left: float = clampf(float(record["life"]) / maxf(float(record["full"]), 0.01),
 					0.0, 1.0)
-				on.draw_set_transform(record["at"] as Vector2, 0.0, Vector2(1.0, 0.5))
-				_soft(on, Vector2.ZERO, float(record["radius"]), Color(tint, 0.22 * left))
-				on.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				_light.soft_disc(record["at"] as Vector2, float(record["radius"]),
+					Color(tint, 0.22 * left), 12, GROUND)
 			"strike":
 				var done: float = 1.0 - float(record["life"]) / maxf(float(record["full"]), 0.01)
-				on.draw_set_transform(record["at"] as Vector2, 0.0, Vector2(1.0, 0.5))
-				_soft(on, Vector2.ZERO, float(record["radius"]), Color(tint, 0.18 + 0.25 * done))
-				on.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				_light.soft_disc(record["at"] as Vector2, float(record["radius"]),
+					Color(tint, 0.18 + 0.25 * done), 12, GROUND)
+	_light.flush(on.get_canvas_item())
 
 
 ## A jagged line of light between two points, flickering on the Arsenal's clock.
@@ -1333,27 +1348,18 @@ func _bolt_line(on: CanvasItem, a: Vector2, b: Vector2, tint: Color, strength: f
 	var steps: int = maxi(int(a.distance_to(b) / 26.0), 2)
 	var across: Vector2 = (b - a).normalized().orthogonal()
 	var points := PackedVector2Array([a])
-	var flicker := RandomNumberGenerator.new()
+	var flicker: RandomNumberGenerator = _shape_dice
 	flicker.seed = int(_clock * 30.0) + int(a.x) * 7 + int(b.y) * 13
 	for step: int in range(1, steps):
 		var t: float = float(step) / float(steps)
 		points.append(a.lerp(b, t) + across * flicker.randf_range(-14.0, 14.0))
 	points.append(b)
-	on.draw_polyline(points, Color(tint, 0.55 * strength), 7.0)
-	on.draw_polyline(points, Color(1.0, 1.0, 1.0, 0.85 * strength), 2.0)
+	_light.band(points, 7.0, Color(tint, 0.55 * strength))
+	_light.band(points, 2.0, Color(1.0, 1.0, 1.0, 0.85 * strength))
 
 
-func _soft(on: CanvasItem, at: Vector2, radius: float, colour: Color) -> void:
-	var points := PackedVector2Array([at])
-	var colours := PackedColorArray([colour])
-	var rim := Color(colour.r, colour.g, colour.b, 0.0)
-	for step: int in 13:
-		points.append(at + Vector2.from_angle(TAU * float(step) / 12.0) * radius)
-		colours.append(rim)
-	var indices := PackedInt32Array()
-	for step: int in 12:
-		indices.append_array([0, step + 1, step + 2])
-	RenderingServer.canvas_item_add_triangle_array(on.get_canvas_item(), indices, points, colours)
+func _soft(_on: CanvasItem, at: Vector2, radius: float, colour: Color) -> void:
+	_light.soft_disc(at, radius, colour)
 
 
 class _Glow extends Node2D:

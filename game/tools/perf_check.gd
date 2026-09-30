@@ -99,10 +99,43 @@ const CHECKPOINT_PATH: String = "user://beast_road_perf_checkpoint.json"
 
 var _seconds: float = 120.0
 var _build: bool = false
+## `--loadout`: the whole Warden at once - see `tools/loadout_driver.gd`, which
+## `perf_bisect --loadout` shares so both stand in the same frame.
+var _loadout: bool = false
+var _driver: Node = null
+## `--hitch-profile`: the buckets of every frame are taken and thrown away,
+## and printed only for a hitch and the frame before it - because a trace
+## that prints every frame halves the frame rate, and a stall that lives on
+## a fast frame rate disappears under it (found 2026-09-30).
+var _hitch_profile: bool = false
+## `--texture-churn`: which pictures leave the resource cache and come back.
+## The hitch ledger could say "-2649 KB" and never which texture
+## (2026-09-30), and 4.7 has no call that lists the renderer's textures - so
+## every picture under `res://art/` is watched by its imported path (the key
+## the cache actually holds it under) every `CHURN_SECONDS`, and a picture
+## that is dropped and loaded again is counted. Works headless.
+var _texture_churn: bool = false
+var _churn_paths: Dictionary = {}
+var _churn_cached: Dictionary = {}
+var _churn_counts: Dictionary = {}
+var _churn_left: float = 0.0
+const CHURN_SECONDS: float = 0.1
+var _last_buckets: String = ""
+## And the mean of every bucket over the measured frames, printed at the end:
+## the frame's standing cost by system, which a hitch list cannot give.
+var _bucket_ms: Dictionary = {}
+var _bucket_frames: int = 0
+var _ink_live: Dictionary = {}
+var _last_fired: String = ""
 var _idle: bool = false
 var _vsync_actual: int = -1
 ## Measure the display at its native size and mode rather than pinned 1080p.
 var _native: bool = false
+## `--offscreen`: the window is put beyond every monitor rather than on the
+## fastest one, so a windowed measurement never covers what the owner is doing
+## (2026-09-30). Pair it with `--no-focus` on the command line's project
+## override so it cannot take the keyboard either; see `tools/perf_offscreen.sh`.
+var _offscreen: bool = false
 var _checkpoint_path: String = CHECKPOINT_PATH
 ## High is the shipped, authored target and therefore the release budget. Ultra
 ## is intentionally an opt-in headroom mode; it can be profiled explicitly with
@@ -193,6 +226,8 @@ func _ready() -> void:
 				push_warning("Unknown quality preset '%s'; testing High." % requested)
 		elif argument == "--native":
 			_native = true
+		elif argument == "--offscreen":
+			_offscreen = true
 		elif argument.begins_with("--off="):
 			# Turns one feature off on top of the chosen preset, so the cost of a
 			# single thing can be measured instead of inferred from the gap between
@@ -211,6 +246,12 @@ func _ready() -> void:
 				_trace_to = float(span[1])
 		elif argument == "--build":
 			_build = true
+		elif argument == "--loadout":
+			_loadout = true
+		elif argument == "--hitch-profile":
+			_hitch_profile = true
+		elif argument == "--texture-churn":
+			_texture_churn = true
 		elif argument == "--idle":
 			# No wave at all, to separate "the scene exists" from "a fight is
 			# happening". Turning individual effects off never moved the frame
@@ -246,6 +287,13 @@ func _ready() -> void:
 		DisplayServer.window_set_current_screen(best)
 		DisplayServer.window_set_size(Vector2i(1920, 1080))
 		DisplayServer.window_set_position(DisplayServer.screen_get_position(best) + Vector2i(40, 40))
+		if _offscreen:
+			var far: Vector2i = Vector2i.ZERO
+			for screen: int in DisplayServer.get_screen_count():
+				var corner: Vector2i = DisplayServer.screen_get_position(screen) \
+					+ DisplayServer.screen_get_size(screen)
+				far = Vector2i(maxi(far.x, corner.x), maxi(far.y, corner.y))
+			DisplayServer.window_set_position(far + Vector2i(400, 400))
 	# **Headless frames are floored at 6.9 ms by a sleep, not by work** (found
 	# 2026-09-24): with nothing to draw, `OS.add_frame_delay` sleeps each frame
 	# out to `low_processor_mode_sleep_usec`, whose default is 6900 - so every
@@ -286,6 +334,11 @@ func _ready() -> void:
 
 	if _build:
 		_build_defence()
+	if _loadout:
+		_driver = (load("res://tools/loadout_driver.gd") as GDScript).new()
+		_driver.call("read_arguments", OS.get_cmdline_user_args())
+		add_child(_driver)
+		_driver.call("arm")
 	if not _idle:
 		_start_fighting()
 
@@ -381,11 +434,58 @@ func _build_defence() -> void:
 	build_late_board(field, towers)
 
 
+func _note_texture_churn(delta: float) -> void:
+	if _churn_paths.is_empty():
+		_collect_art("res://art")
+		for path: String in _churn_paths:
+			_churn_cached[path] = ResourceLoader.has_cached(String(_churn_paths[path]))
+		print("[churn] watching %d pictures" % _churn_paths.size())
+		return
+	_churn_left -= delta
+	if _churn_left > 0.0:
+		return
+	_churn_left = CHURN_SECONDS
+	for path: String in _churn_paths:
+		var now: bool = ResourceLoader.has_cached(String(_churn_paths[path]))
+		if now and not bool(_churn_cached[path]):
+			_churn_counts[path] = int(_churn_counts.get(path, 0)) + 1
+		_churn_cached[path] = now
+
+
+## Every picture under a folder, keyed by its path, holding the imported
+## path its `.import` names - which is what the cache is keyed by.
+func _collect_art(folder: String) -> void:
+	var dir: DirAccess = DirAccess.open(folder)
+	if dir == null:
+		return
+	for sub: String in dir.get_directories():
+		_collect_art(folder.path_join(sub))
+	for file: String in dir.get_files():
+		if not file.ends_with(".png.import"):
+			continue
+		var config := ConfigFile.new()
+		if config.load(folder.path_join(file)) != OK:
+			continue
+		var imported: String = String(config.get_value("remap", "path", ""))
+		if not imported.is_empty():
+			_churn_paths[folder.path_join(file.trim_suffix(".import"))] = imported
+
+
+## The pictures that were dropped and loaded again, most first.
+func _report_texture_churn() -> void:
+	var paths: Array = _churn_counts.keys()
+	paths.sort_custom(func(a: Variant, b: Variant) -> bool:
+		return int(_churn_counts[a]) > int(_churn_counts[b]))
+	print("[churn] %d pictures were loaded again after being dropped" % paths.size())
+	for index: int in mini(paths.size(), 30):
+		print("[churn]   %4d  %s" % [int(_churn_counts[paths[index]]), String(paths[index])])
+
+
 ## Leaves Preparation so waves actually arrive.
 ## Every signal on the bus, noted by name into the frame it fired in. A lambda
 ## with seven optional parameters accepts any arity the bus declares.
 func _listen_to_the_bus() -> void:
-	if _trace_to <= 0.0 or _listening:
+	if (_trace_to <= 0.0 and not _hitch_profile) or _listening:
 		return
 	_listening = true
 	FrameProfile.enabled = true
@@ -445,7 +545,29 @@ func _process(delta: float) -> void:
 	var nodes_now: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var textures_now: float = float(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED))
 	var bodies_now: int = get_tree().get_nodes_in_group("enemies").size()
-	var buckets: String = FrameProfile.take() if _trace_to > 0.0 else ""
+	if _texture_churn:
+		_note_texture_churn(delta)
+	var buckets: String = FrameProfile.take() if _trace_to > 0.0 or _hitch_profile else ""
+	if _hitch_profile:
+		var fired: String = " ".join(_trace_fired)
+		_trace_fired.clear()
+		if ms > HITCH_MS:
+			print("[hitch-profile] %6.2fs %5.1f ms  phase %d\n    before: %s\n    before fired: %s\n    this: %s\n    this fired: %s"
+				% [_elapsed, ms, int(RunState.phase), _last_buckets, _last_fired.left(400), buckets,
+				fired.left(400)])
+		_last_buckets = buckets
+		_last_fired = fired
+		_bucket_frames += 1
+		for ink: Variant in [Vfx.ink(), Vfx.ink_flat()]:
+			if ink is VfxInk:
+				var counts: Dictionary = (ink as VfxInk).census()
+				var side: String = "light." if (ink as VfxInk).additive else "flat."
+				for kind: String in counts:
+					_ink_live[side + kind] = float(_ink_live.get(side + kind, 0.0)) + float(counts[kind])
+		for piece: String in buckets.split(" ", false):
+			var pair: PackedStringArray = piece.split("=")
+			if pair.size() == 2:
+				_bucket_ms[pair[0]] = float(_bucket_ms.get(pair[0], 0.0)) + float(pair[1].split("/")[0])
 	if _trace_to > 0.0 and _elapsed >= _trace_from and _elapsed <= _trace_to:
 		print("[trace] %6.2fs %5.1f ms  nodes %+4d  bodies %+3d  %s" % [_elapsed, ms,
 			nodes_now - _nodes_last, bodies_now - _bodies_last, " ".join(_trace_fired)])
@@ -530,6 +652,23 @@ func _exit_tree() -> void:
 
 func _report() -> void:
 	_reported = true
+	if _hitch_profile and _bucket_frames > 0:
+		var names: Array = _bucket_ms.keys()
+		names.sort_custom(func(a: Variant, b: Variant) -> bool:
+			return float(_bucket_ms[a]) > float(_bucket_ms[b]))
+		var parts: PackedStringArray = []
+		for index: int in mini(names.size(), 28):
+			parts.append("%s %.2f" % [String(names[index]),
+				float(_bucket_ms[names[index]]) / float(_bucket_frames)])
+		print("[perf] mean ms a frame by bucket: %s" % ", ".join(parts))
+		var inks: PackedStringArray = []
+		for kind: String in _ink_live:
+			var mean: float = float(_ink_live[kind]) / float(_bucket_frames)
+			if mean >= 0.5:
+				inks.append("%s %.0f" % [kind, mean])
+		print("[perf] mean live ink records: %s" % ", ".join(inks))
+	if _texture_churn:
+		_report_texture_churn()
 	if not _fighting:
 		_failures.append("the run never left Preparation - nothing was measured")
 	_check_timing()
