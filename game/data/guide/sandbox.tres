@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "sandbox"
+display_name = "The sandbox"
+title = "The sandbox"
+category = "The Road"
+order = 67
+image = "res://art/guide/sandbox.png"
+body = "A sandbox road is every tower, a purse nothing on the board can empty, and any act you like - opened from the Hold, alone. Build whatever you want to try, on whichever battlefield the settings deal. Nothing you earn, find, unlock or lose on it is kept: your Warden is exactly as they were when you come back, and a sandbox road is never posted to the board."

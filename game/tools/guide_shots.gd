@@ -640,6 +640,21 @@ func _ready() -> void:
 		look["skin"] = 7
 		MetaState.look = WardenLook.dyed_as(look, 1)
 		_screen_shot(func() -> Node: return WardenGlass.new(), "Glass"))
+	# **The sandbox** (2026-09-30): the act screen opened as the sandbox, the
+	# door a player reading that page needs to recognise.
+	await _shot("sandbox", func() -> void:
+		_screen_shot(func() -> Node: return ActStartScreen.new(), "ActStart")
+		var screen: Node = get_node_or_null("ActStartShot")
+		if screen != null:
+			screen.call("open_sandbox"))
+	# **Hardcore** is sworn on the Wardens page, beside the slot it is sworn for.
+	# Read as between roads, which is when a Warden is sworn: in a live road the
+	# page refuses every button and says so, which is a picture of the refusal.
+	var was_live: bool = GameDirector.run_active
+	await _shot("hardcore", func() -> void:
+		GameDirector.run_active = false
+		_screen_shot(func() -> Node: return SaveSlotScreen.new(), "Slots"))
+	GameDirector.run_active = was_live
 	for node: Node in get_children():
 		if node.name.ends_with("Shot"):
 			node.queue_free()

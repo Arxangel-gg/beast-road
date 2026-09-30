@@ -5,17 +5,15 @@
 [resource]
 script = ExtResource("1_s")
 id = "arcane"
-display_name = "The Arcane"
-title = "The Arcane"
+display_name = "The Disciplines"
+title = "The Disciplines"
 category = "Fighting"
 order = 43
 image = "res://art/guide/arcane.png"
-body = "Three trees were a bruiser, a paladin and a berserker, and all three answered every question by walking at it. The Arcane is the fourth, and it fights from where it is standing.
+body = "The Disciplines are four arms of one tree - Blood, Holy, Berserk and the Arcane - kept on your account and learned in the Hold, or at the Hero Mansion on the road. Blood, Holy and Berserk fight up close; the Arcane fights from where it is standing, on mana rather than blood, and opens once the first act's boss has fallen.
 
-Five of its ten nodes simply hand you a spell: Ember Fall and Stonefall drop on a place you pointed at a moment ago, Frost Lance and Sky Lance flash along your aim, and Thorn Volley scatters over a patch of road. All five already existed and nothing in the tree wanted them.
+Each arm is five clusters - Basic, Core, Guard, Ultimate and its Oath - and points spent in an arm open its deeper clusters. A skill is three nodes: the skill, an enhancement that hangs off it, and two forks off the enhancement, of which you may hold one. Passives take ranks. Skill points come from levels and from each act boss's first fall on each difficulty; letting nodes go is free, in the Hold, between roads.
 
-The other five are what make it a build. WELLSPRING gives mana back on a kill, so casting is paced by fighting rather than by waiting. THE LONG REACH throws everything further - reach, not damage, because where you are standing is a caster's whole advantage. SIPHONING VEIL leaves a ward behind every cast, deepened by Focus. QUICKENING makes the next spell come back sooner if you cast soon after casting, and the window closes the moment you stop. ECHO OF THE WEAVE sometimes casts twice, the second for a fraction of the first.
+An Oath is an arm's key passive: a boon paid for with a bane, one sworn at a time - two, for a Warden who has beaten the Gatekeeper.
 
-Focus is the attribute that pays for all of it: a deeper pool, a faster refill, sharper spells and shorter cooldowns.
-
-The Arcane opens once the first act's boss has fallen; the other three are open from the start. Nothing locks you to one tree. What depth buys is access - a tier-three Arcane node wants two Arcane nodes already trained, so breadth is a real choice with a real cost rather than the only option."
+The Arcane's skills are the ranged spells: Ember Fall and Stonefall drop where you pointed a moment ago, Frost Lance and Sky Lance flash along your aim, and Thorn Volley scatters over a patch of road. Focus pays for all of it: a deeper pool, a faster refill, sharper spells and shorter cooldowns."

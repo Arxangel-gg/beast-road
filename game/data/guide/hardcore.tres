@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "hardcore"
+display_name = "Hardcore"
+title = "Hardcore"
+category = "Basics"
+order = 68
+image = "res://art/guide/hardcore.png"
+body = "A Hardcore Warden is sworn when they begin and never unsworn. They carry one wound, whatever would raise the ceiling. A road that does not come home - turned for home at a crossroad, or the summit - buries the slot: everything is lost and it begins again, and leaving mid-road, however it happens, is not coming home. A Hardcore Warden walks alone, and posts to a board of their own."
