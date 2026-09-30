@@ -394,11 +394,13 @@ func _ready() -> void:
 	health.evaded.connect(_on_evaded)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	health.changed.connect(_on_health_changed)
+	health.shield_changed.connect(_on_shield_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	# **Not joined here.** Presence is owned by `set_present`, which the scope
 	# calls when it becomes the live one. Joining on `_ready` put every scope's
 	# hero in play at once - and the raid's hero then stood at the raid's origin,
 	# inside the running battlefield, for wildlife to walk over and maul.
+	health_bar.set_segmented(true)
 	health_bar.bind(health)
 	# Built here rather than placed in the scene: it is co-op furniture, it draws
 	# nothing at all in a solo run, and adding it in code keeps one hero scene
@@ -792,6 +794,7 @@ func set_active(active: bool) -> void:
 		# re-assert the current value or they keep showing the other hero's.
 		if health != null:
 			health.changed.emit(health.current_hp, health.max_hp)
+			health.shield_changed.emit(health.shield())
 	elif is_in_group(GROUP):
 		remove_from_group(GROUP)
 
@@ -2746,9 +2749,24 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
+	# **This machine's own Warden only** (found 2026-09-30). Every body in the
+	# party runs this, so a partner struck on the host - or mirrored on a
+	# guest - wrote *their* health into `RunState.hero_hp`, which is the figure
+	# this machine's Warden is restored from, and flashed it on this machine's
+	# HUD bar and red vignette. A partner's bar is the one over their head.
+	if not is_local_player():
+		return
 	RunState.hero_hp = current
 	Modifiers.rebuild()
 	EventBus.hero_health_changed.emit(current, maximum)
+
+
+## The ward, for the HUD's bar. This machine's own Warden only, for the
+## reason above.
+func _on_shield_changed(remaining: float) -> void:
+	if not is_local_player() or health == null:
+		return
+	EventBus.hero_shield_changed.emit(remaining, health.max_hp)
 
 
 func _on_died(at: Vector2) -> void:

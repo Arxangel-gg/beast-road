@@ -41,6 +41,8 @@ func _ready() -> void:
 	await _test_it_crosses_warns_and_burns_and_hurts_nothing()
 	await _test_it_is_seen_as_the_thing_it_is()
 	_test_every_dragon_breathes_its_own()
+	await _test_the_breath_leaves_the_mouth()
+	_test_every_beam_ends_softly()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[dragon] PASS - %d checks: warned before it arrives, burns "
@@ -276,6 +278,88 @@ func _test_every_dragon_breathes_its_own() -> void:
 		"the release's damage must be decided before the breath's dice are rolled")
 	_check(dice_at < 0 or not source.substr(dice_at, 900).contains("blow.damage"),
 		"something after the breath's dice changes the release's damage")
+
+
+## **A breath leaves the mouth, and the mouth flies on** (owner, 2026-09-30).
+## Stood up where a flying dragon's mouth is, the breath finds that dragon,
+## starts at its mouth and follows it frame by frame; the far end stays where
+## the blow was aimed.
+func _test_the_breath_leaves_the_mouth() -> void:
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var sky: WeatherSky = field.sky() if field != null else null
+	if sky == null:
+		_check(false, "the field must have a sky to send one")
+		run.queue_free()
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	field.resume()
+	var wyrm: DragonPass = sky.send_dragon(Vector2(-2000.0, 0.0), Vector2(2000.0, 0.0))
+	if wyrm == null:
+		_check(false, "the sky refused to send one")
+		run.queue_free()
+		return
+	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS * 0.2, 12)
+	var mouth: Vector2 = wyrm.mouth()
+	var body: Vector2 = wyrm.global_position - Vector2(0.0, float(wyrm.get("_height")))
+	var heading: Vector2 = wyrm.get("_heading") as Vector2
+	_check((mouth - body).dot(heading) > 40.0,
+		"the mouth is not ahead of the body along its flight: %s from %s heading %s" % [mouth, body, heading])
+	var aim: Vector2 = wyrm.global_position + heading * 500.0 + Vector2(0.0, 200.0)
+	var breath: DragonBreath = DragonBreath.breathe(field, mouth, aim, 30.0, "fire", true, 0.4)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(breath.follow == wyrm, "a breath begun at a flying dragon's mouth did not find the dragon")
+	_check(breath.global_position.distance_to(wyrm.mouth()) < 1.0,
+		"the breath starts %.0f from the mouth" % breath.global_position.distance_to(wyrm.mouth()))
+	var started: Vector2 = breath.global_position
+	wyrm.advance(0.3, 6)
+	await get_tree().process_frame
+	_check(breath.global_position.distance_to(started) > 5.0 and breath.global_position.distance_to(wyrm.mouth()) < 1.0,
+		"the breath stayed where it began while the dragon flew on: %.0f moved, %.0f from the mouth"
+		% [breath.global_position.distance_to(started), breath.global_position.distance_to(wyrm.mouth())])
+	_check(breath.to.is_equal_approx(aim), "the far end moved with the dragon - the blow is aimed at the ground")
+	# A breath begun far from any dragon - a camp wyrm's - follows nothing.
+	var camp: DragonBreath = DragonBreath.breathe(field, wyrm.mouth() + Vector2(900.0, 900.0),
+		wyrm.mouth() + Vector2(1300.0, 900.0), 30.0, "fire", false, 0.4)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(camp.follow == null, "a breath far from the passing dragon was carried off by it")
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+
+
+## **Every beam ends in a soft point** (owner, 2026-09-30): no light at the
+## tip, the full band where the cap meets the beam, a point rather than a cut,
+## and the rows run end to end in order. Both painters use it.
+func _test_every_beam_ends_softly() -> void:
+	var tip: Vector2 = VfxInk.beam_cap(0.0)
+	var full: Vector2 = VfxInk.beam_cap(1.0)
+	_check(is_equal_approx(tip.x, Balance.BEAM_TIP_WIDTH) and is_zero_approx(tip.y),
+		"a beam's tip is %.2f wide at %.2f light - it should be a point with no light" % [tip.x, tip.y])
+	_check(is_equal_approx(full.x, 1.0) and is_equal_approx(full.y, 1.0), "the cap does not meet the beam whole")
+	_check(VfxInk.beam_cap(0.25).x > 0.4, "the cap is a spike, not a rounded nose")
+	var rows: PackedVector2Array = VfxInk.beam_rows(600.0, 20.0)
+	var ordered: bool = rows.size() > 4 and is_zero_approx(rows[0].x) and is_equal_approx(rows[rows.size() - 1].x, 600.0)
+	for index: int in range(1, rows.size()):
+		ordered = ordered and rows[index].x >= rows[index - 1].x
+	_check(ordered, "a beam's rows do not run end to end: %s" % rows)
+	_check(is_zero_approx(rows[0].y) and is_zero_approx(rows[rows.size() - 1].y), "a beam's two ends are not caps")
+	var short: PackedVector2Array = VfxInk.beam_rows(40.0, 30.0)
+	_check(short[Balance.BEAM_CAP_ROWS].x <= 40.0 * Balance.BEAM_CAP_MOST + 0.01, "a short beam's cap ate the beam")
+	var ink: String = FileAccess.get_file_as_string("res://scripts/systems/vfx_ink.gd")
+	var at: int = ink.find("func _draw_beams(")
+	_check(at >= 0 and ink.substr(at, 1400).contains("_beam_band(") and not ink.substr(at, 1400).contains("\t_strip(a, b"),
+		"the spell beams still end on a straight cut")
+	_check(FileAccess.get_file_as_string("res://scripts/systems/dragon_breath.gd").contains("VfxInk.beam_rows("),
+		"the dragon's hyperbeam still ends on a straight cut")
 
 
 func _check(condition: bool, why: String) -> void:

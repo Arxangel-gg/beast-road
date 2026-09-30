@@ -99,6 +99,8 @@ func publish_to(materials: Array) -> void:
 		material.set_shader_parameter("trample_extent", half_extent)
 		material.set_shader_parameter("trample_reach",
 			Balance.FOLIAGE_TRAMPLE_REACH if _on else 0.0)
+		material.set_shader_parameter("trample_jiggle", Balance.FOLIAGE_TRAMPLE_JIGGLE)
+		material.set_shader_parameter("trample_jiggle_hz", Balance.FOLIAGE_TRAMPLE_JIGGLE_HZ)
 
 
 func set_enabled(on: bool) -> void:
@@ -122,14 +124,46 @@ func _process_measured(delta: float) -> void:
 ## something walking north through a clump lays it north, which is what a
 ## trail through long grass actually looks like. A body standing still lays
 ## nothing new and what it already laid springs back under it.
+##
+## **Every tread, the animals included** (2026-09-30). The wildlife was never
+## on this list, so a deer crossing a meadow parted nothing; everything that
+## declares a tread to `Footfalls` is read now, so an animal added tomorrow
+## lays the grass without this file hearing about it. The old three groups
+## stay beside it for what has no tread - a spirit weighs nothing and never
+## registers one, and still brushes the stems.
 func _movers() -> Array[Node2D]:
 	var out: Array[Node2D] = []
-	for group: String in [Hero.GROUP_ANY, Enemy.GROUP, Companion.GROUP]:
+	var taken: Dictionary = {}
+	for group: StringName in [Footfalls.GROUP, Hero.GROUP_ANY, Enemy.GROUP, Companion.GROUP]:
 		for node: Node in get_tree().get_nodes_in_group(group):
 			var body := node as Node2D
-			if body != null and is_instance_valid(body):
-				out.append(body)
+			if body == null or not is_instance_valid(body) or taken.has(body.get_instance_id()):
+				continue
+			taken[body.get_instance_id()] = true
+			out.append(body)
 	return out
+
+
+## **How wide a body lays the plants and how hard**, as a radius and a
+## strength, off the tread `Footfalls` already reads: its size and its mass.
+## A body with no tread is measured by its contact radius and brushes at
+## `FOLIAGE_TRAMPLE_UNWEIGHED`. Static so the gate asks the same arithmetic.
+static func reach_of(body: Node2D) -> Vector2:
+	var size: float = 0.0
+	var mass: float = -1.0
+	if body.has_meta(&"tread"):
+		var tread: Vector3 = body.get_meta(&"tread", Vector3.ZERO) as Vector3
+		size = tread.x
+		mass = tread.y
+	elif body.has_method("contact_radius"):
+		size = float(body.call("contact_radius"))
+	var radius: float = Balance.FOLIAGE_TRAMPLE_RADIUS if size <= 0.0 else clampf(
+		size * Balance.FOLIAGE_TRAMPLE_SIZE_REACH,
+		Balance.FOLIAGE_TRAMPLE_RADIUS_MIN, Balance.FOLIAGE_TRAMPLE_RADIUS_MAX)
+	var strength: float = Balance.FOLIAGE_TRAMPLE_UNWEIGHED if mass < 0.0 else clampf(
+		Balance.FOLIAGE_TRAMPLE_STRENGTH_BASE + Balance.FOLIAGE_TRAMPLE_STRENGTH_PER_MASS * mass,
+		Balance.FOLIAGE_TRAMPLE_STRENGTH_MIN, Balance.FOLIAGE_TRAMPLE_STRENGTH_MAX)
+	return Vector2(radius, strength)
 
 
 func _stamp(delta: float) -> void:
@@ -165,13 +199,15 @@ func _stamp(delta: float) -> void:
 		# A body that has not really moved does not lay anything down.
 		if moved.length() < Balance.FOLIAGE_TRAMPLE_MIN_STEP:
 			continue
-		_press(at, moved.normalized(), Balance.FOLIAGE_TRAMPLE_RADIUS)
+		var reach: Vector2 = reach_of(body)
+		_press(at, moved.normalized(), reach.x, reach.y)
 	_last = seen
 	_publish_bytes()
 
 
-## One soft blob, strongest at the middle and nothing at the rim.
-func _press(at: Vector2, way: Vector2, radius: float) -> void:
+## One soft blob, strongest at the middle and nothing at the rim, pressed as
+## hard as `strength` - a rabbit half as hard as a Warden, a golem harder.
+func _press(at: Vector2, way: Vector2, radius: float, strength_scale: float = 1.0) -> void:
 	var reach: int = maxi(int(ceil(radius / maxf(cell, 1.0))), 1)
 	var centre: Vector2i = _cell_of(at)
 	for dy: int in range(-reach, reach + 1):
@@ -183,12 +219,16 @@ func _press(at: Vector2, way: Vector2, radius: float) -> void:
 			var away: float = Vector2(float(dx), float(dy)).length() / float(reach)
 			if away > 1.0:
 				continue
-			var strength: float = 1.0 - away * away
+			var strength: float = (1.0 - away * away) * strength_scale
 			var i: int = y * _across + x
 			if _in_live[i] == 0:
 				_in_live[i] = 1
 				_live.append(i)
-			_weight[i] = minf(_weight[i] + strength, 1.0)
+			# A body lays the plants only as far as its own weight: a rabbit
+			# walking slowly through a clump bends it, and does not flatten it
+			# however long it takes - only something heavy lays it right over.
+			var ceiling: float = minf(strength_scale, 1.0)
+			_weight[i] = maxf(_weight[i], minf(_weight[i] + strength, ceiling))
 			_push_x[i] = clampf(_push_x[i] + way.x * strength, -1.0, 1.0)
 			_push_y[i] = clampf(_push_y[i] + way.y * strength, -1.0, 1.0)
 

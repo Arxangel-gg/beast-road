@@ -47,6 +47,7 @@ func _ready() -> void:
 	await _test_the_marks_are_capped()
 	await _test_the_ground_decides_the_colour()
 	_test_every_body_that_walks_declares_a_tread()
+	await _test_the_plants_answer_by_size()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -55,7 +56,7 @@ func _ready() -> void:
 	Sfx.stop_immediately()
 	if _failures == 0:
 		print("[footfalls] PASS - %d checks: the stride, the mass, the cap, "
-			% _checks + "the colour and the bodies that declare a tread")
+			% _checks + "the colour, the bodies that declare a tread, and plants that part by size and jiggle")
 	else:
 		push_error("[footfalls] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
@@ -283,6 +284,75 @@ func _test_every_body_that_walks_declares_a_tread() -> void:
 		var source: String = FileAccess.get_file_as_string(path)
 		_check(source.contains("Footfalls.new()"),
 			"%s must stand up a painter or its bodies leave nothing" % path)
+
+
+## **The plants answer what walks through them by its size** (owner,
+## 2026-09-30). A small light body lays a narrow, gentle path and a big heavy
+## one a wide, hard swathe; an animal's tread is read like anything else's;
+## a body with no tread still brushes the stems; and the shader jiggles.
+## Driven through the real stamp, counting the cells the field laid.
+func _test_the_plants_answer_by_size() -> void:
+	var field := TrampleField.new()
+	field.half_extent = 2400.0
+	add_child(field)
+	var small: Node2D = _puppet(10.0, 0.4, 200.0)
+	var large: Node2D = _puppet(60.0, 1.9, 200.0)
+	small.global_position = Vector2(-1200.0, -1200.0)
+	large.global_position = Vector2(1200.0, 1200.0)
+	var small_reach: Vector2 = TrampleField.reach_of(small)
+	var large_reach: Vector2 = TrampleField.reach_of(large)
+	_check(large_reach.x > small_reach.x * 2.0 and large_reach.y > small_reach.y,
+		"a big heavy body should lay wider and harder than a small light one: %s against %s" % [large_reach, small_reach])
+	field._stamp(1.0 / 15.0)
+	for _step: int in 6:
+		small.global_position += Vector2(20.0, 0.0)
+		large.global_position += Vector2(20.0, 0.0)
+		field._stamp(1.0 / 15.0)
+	var small_cells: int = 0
+	var large_cells: int = 0
+	var small_most: float = 0.0
+	var large_most: float = 0.0
+	for y: int in field.cells_across():
+		for x: int in field.cells_across():
+			var at: Vector2 = Vector2((float(x) + 0.5) * field.cell - field.half_extent,
+				(float(y) + 0.5) * field.cell - field.half_extent)
+			var laid: float = field.pressed_at(at)
+			if laid <= 0.05:
+				continue
+			if at.x < 0.0:
+				small_cells += 1
+				small_most = maxf(small_most, laid)
+			else:
+				large_cells += 1
+				large_most = maxf(large_most, laid)
+	_check(small_cells > 0, "a small body walking through the grass laid nothing")
+	_check(large_cells > small_cells * 2, "a big body laid %d cells and a small one %d - size did not widen it" % [large_cells, small_cells])
+	_check(large_most > small_most, "a heavy body pressed %.2f and a light one %.2f" % [large_most, small_most])
+	# An animal is a sprite with a tread and nothing else; it is read.
+	var deer := Sprite2D.new()
+	add_child(deer)
+	var kind: WildlifeData = null
+	for value: Variant in ContentDB.wildlife_kinds.values():
+		var candidate := value as WildlifeData
+		if candidate != null and not candidate.flies:
+			kind = candidate
+			break
+	if kind != null:
+		Footfalls.register_animal(deer, kind, 1.0)
+	_check(field._movers().has(deer), "an animal walking the field is not one of the plants' movers")
+	var ghost := Node2D.new()
+	add_child(ghost)
+	ghost.add_to_group(Enemy.GROUP)
+	_check(field._movers().has(ghost) and is_equal_approx(TrampleField.reach_of(ghost).y, Balance.FOLIAGE_TRAMPLE_UNWEIGHED),
+		"a body with no tread should still brush the stems, gently")
+	var shader: String = Foliage.WIND_SHADER
+	_check(shader.contains("trample_jiggle") and shader.contains("wobble"), "the foliage does not jiggle")
+	_check(FileAccess.get_file_as_string("res://scripts/systems/trample_field.gd").contains("\"trample_jiggle\""),
+		"the field never hands the foliage its jiggle")
+	for node: Node2D in [small, large, deer, ghost]:
+		node.queue_free()
+	field.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, message: String) -> void:

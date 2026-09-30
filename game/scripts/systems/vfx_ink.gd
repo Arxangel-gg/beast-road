@@ -589,6 +589,75 @@ func _strip(head: Vector2, tail: Vector2, width: float, colour: Color, lit: floa
 			_indices.append(a + 3)
 
 
+## **How a beam's end is shaped** (2026-09-30): at a distance `u` into the cap,
+## from nothing at the tip to one where the cap meets the beam, how wide the
+## band is (a rounded curve that keeps a point, `BEAM_TIP_WIDTH` at the tip)
+## and how much of its light it carries (none at the tip). Static and shared
+## with `DragonBreath`, so every beam in the game ends the same way.
+static func beam_cap(u: float) -> Vector2:
+	var along: float = clampf(u, 0.0, 1.0)
+	var round_nose: float = sqrt(1.0 - (1.0 - along) * (1.0 - along))
+	var wide: float = lerpf(Balance.BEAM_TIP_WIDTH, 1.0, pow(round_nose, 1.35))
+	var light: float = along * along * (3.0 - 2.0 * along)
+	return Vector2(wide, light)
+
+
+## The distances along a beam of `length` at which its rows stand: a row
+## at each end, `BEAM_CAP_ROWS` through each cap, and nothing between the caps
+## because a straight band needs no more. Paired with how far each row is into
+## its cap (one in the middle).
+static func beam_rows(length: float, width: float) -> PackedVector2Array:
+	var cap: float = minf(width * Balance.BEAM_CAP_WIDTHS, length * Balance.BEAM_CAP_MOST)
+	var rows := PackedVector2Array()
+	if cap <= 0.01:
+		rows.append(Vector2(0.0, 1.0))
+		rows.append(Vector2(length, 1.0))
+		return rows
+	for step: int in Balance.BEAM_CAP_ROWS + 1:
+		var u: float = float(step) / float(Balance.BEAM_CAP_ROWS)
+		rows.append(Vector2(cap * u, u))
+	for step: int in range(Balance.BEAM_CAP_ROWS, -1, -1):
+		var u: float = float(step) / float(Balance.BEAM_CAP_ROWS)
+		rows.append(Vector2(length - cap * u, u))
+	return rows
+
+
+## A beam's band: `_strip`'s three lanes, laid on `beam_rows` so both ends
+## close in a soft pointed cap instead of stopping on a straight cut.
+func _beam_band(head: Vector2, tail: Vector2, width: float, colour: Color, lit: float,
+		tail_share: float) -> void:
+	var line: Vector2 = tail - head
+	var length: float = line.length()
+	if length < 0.1:
+		return
+	var along: Vector2 = line / length
+	var across: Vector2 = along.orthogonal()
+	var clear := Color(colour.r, colour.g, colour.b, 0.0)
+	var base: int = _points.size()
+	var rows: PackedVector2Array = beam_rows(length, width)
+	for row: Vector2 in rows:
+		var shape: Vector2 = beam_cap(row.y)
+		var t: float = row.x / length
+		var centre: Vector2 = head + along * row.x
+		var side: Vector2 = across * width * shape.x
+		_points.append(centre - side)
+		_colours.append(clear)
+		_points.append(centre)
+		_colours.append(Color(colour.r, colour.g, colour.b, lit * lerpf(1.0, tail_share, t) * shape.y))
+		_points.append(centre + side)
+		_colours.append(clear)
+	for step: int in rows.size() - 1:
+		var row: int = base + step * 3
+		for column: int in 2:
+			var a: int = row + column
+			_indices.append(a)
+			_indices.append(a + 1)
+			_indices.append(a + 3)
+			_indices.append(a + 1)
+			_indices.append(a + 4)
+			_indices.append(a + 3)
+
+
 ## A soft disc: solid in the middle, clear at the rim, `segments` wide.
 func _disc(centre: Vector2, radius: float, colour: Color, lit: float, segments: int) -> void:
 	var base: int = _points.size()
@@ -856,9 +925,9 @@ func _draw_beams(inverse: Transform2D) -> void:
 		var b: Vector2 = inverse * (record["to"] as Vector2)
 		var width: float = float(record["width"])
 		var pulse: float = 1.0 + 0.12 * sin(_ember_clock * 40.0 + float(record.get("seed", 0)))
-		_strip(a, b, width * 2.2 * pulse, colour, lit * 0.35, 0.8)
-		_strip(a, b, width * 0.9 * pulse, colour.lerp(Color.WHITE, 0.25), lit * 0.85, 0.85)
-		_strip(a, b, width * 0.28, Color.WHITE, lit, 0.9)
+		_beam_band(a, b, width * 2.2 * pulse, colour, lit * 0.35, 0.8)
+		_beam_band(a, b, width * 0.9 * pulse, colour.lerp(Color.WHITE, 0.25), lit * 0.85, 0.85)
+		_beam_band(a, b, width * 0.28, Color.WHITE, lit, 0.9)
 	_flush()
 
 

@@ -199,6 +199,10 @@ uniform float phase_jitter = 0.0;
 uniform sampler2D trample : hint_default_transparent, filter_linear;
 uniform float trample_extent = 1.0;
 uniform float trample_reach = 0.0;
+// **A laid plant jiggles** (2026-09-30): it wobbles about its lean on its own
+// phase, more as the push fades, so it overshoots and settles springing up.
+uniform float trample_jiggle = 0.0;
+uniform float trample_jiggle_hz = 3.4;
 
 void vertex() {
 	// Root to tip. Zero at the base means the plant stays where it grew.
@@ -226,7 +230,9 @@ void vertex() {
 		vec2 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
 		vec2 uv = world / (trample_extent * 2.0) + vec2(0.5);
 		vec3 laid = texture(trample, uv).rgb;
-		VERTEX += (laid.rg - vec2(0.5)) * 2.0 * laid.b * trample_reach * up * up;
+		float shiver = sin(TIME * trample_jiggle_hz * TAU + world.x * 0.021 + world.y * 0.017);
+		float wobble = 1.0 + trample_jiggle * shiver * (1.25 - laid.b * 0.6);
+		VERTEX += (laid.rg - vec2(0.5)) * 2.0 * laid.b * trample_reach * up * up * wobble;
 	}
 }
 """

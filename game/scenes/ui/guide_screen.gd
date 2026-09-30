@@ -47,6 +47,12 @@ var _close_button: Button
 var _title: Label
 var _category: String = ""
 var _tab_buttons: Dictionary = {}
+## The enlarged picture (2026-09-30): a dim over the Guide that closes on a
+## click, and the picture on it, which does not. Built on first use.
+var _zoom: Control = null
+var _zoom_picture: TextureRect = null
+var _press_at: Vector2 = Vector2.INF
+var _press_scroll: int = 0
 
 
 func _ready() -> void:
@@ -151,8 +157,121 @@ func open(category: String = "") -> void:
 func close() -> void:
 	if not visible:
 		return
+	close_picture()
 	visible = false
 	closed.emit()
+
+
+## **A picture made to open larger** on a click or a tap. `PASS` rather than
+## `STOP`, so a finger that lands on it can still drag the list; a press only
+## counts when it lifts where it landed and the list did not move under it.
+func _make_zoomable(picture: TextureRect) -> void:
+	picture.mouse_filter = Control.MOUSE_FILTER_PASS
+	picture.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	picture.tooltip_text = "Click to enlarge"
+	picture.gui_input.connect(_on_picture_input.bind(picture))
+
+
+func _on_picture_input(event: InputEvent, picture: TextureRect) -> void:
+	var button := event as InputEventMouseButton
+	if button == null or button.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if button.pressed:
+		_press_at = button.global_position
+		_press_scroll = _scroll.scroll_vertical if _scroll != null else 0
+		return
+	if _press_at == Vector2.INF:
+		return
+	var still: bool = button.global_position.distance_to(_press_at) <= Balance.GUIDE_ZOOM_TAP_SLOP \
+		and (_scroll == null or _scroll.scroll_vertical == _press_scroll)
+	_press_at = Vector2.INF
+	if still:
+		open_picture(picture.texture)
+
+
+## Whether a picture is open larger.
+func picture_open() -> bool:
+	return _zoom != null and _zoom.visible
+
+
+## **Opens a picture larger, over the Guide, never to the whole screen.**
+func open_picture(texture: Texture2D) -> void:
+	if texture == null:
+		return
+	if _zoom == null:
+		_build_zoom()
+	_zoom_picture.texture = texture
+	_zoom.visible = true
+	_fit_zoom()
+	_zoom.modulate.a = 0.0
+	_zoom_picture.scale = Vector2.ONE * 0.94
+	var grow: Tween = _zoom.create_tween().set_parallel(true)
+	grow.tween_property(_zoom, "modulate:a", 1.0, Balance.GUIDE_ZOOM_SECONDS)
+	grow.tween_property(_zoom_picture, "scale", Vector2.ONE, Balance.GUIDE_ZOOM_SECONDS) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	Sfx.play_group("sfx_ui_click")
+
+
+func close_picture() -> void:
+	if _zoom == null or not _zoom.visible:
+		return
+	_zoom.visible = false
+	_zoom_picture.texture = null
+
+
+func _build_zoom() -> void:
+	_zoom = Control.new()
+	_zoom.name = "PictureZoom"
+	_zoom.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_zoom)
+	_zoom.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.name = "Outside"
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_zoom.add_child(dim)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# A click outside the picture closes it: on the lift, so the press that
+	# closes it cannot fall through to the list underneath.
+	dim.gui_input.connect(func(event: InputEvent) -> void:
+		var button := event as InputEventMouseButton
+		if button != null and button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
+			close_picture())
+	_zoom_picture = TextureRect.new()
+	_zoom_picture.name = "Picture"
+	_zoom_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_zoom_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# STOP: a click on the picture is the player looking at it, not leaving.
+	_zoom_picture.mouse_filter = Control.MOUSE_FILTER_STOP
+	_zoom.add_child(_zoom_picture)
+	FrameKit.hang(_zoom_picture)
+	var hint := Label.new()
+	hint.name = "Hint"
+	hint.text = "Click outside the picture to close it"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_color_override("font_color", Color(0.86, 0.82, 0.72, 0.8))
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zoom.add_child(hint)
+
+
+## The picture at the largest size its own shape allows inside
+## `GUIDE_ZOOM_SHARE` of the screen, centred, with the hint under it.
+func _fit_zoom() -> void:
+	if _zoom == null or _zoom_picture.texture == null:
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var room: Vector2 = screen * Balance.GUIDE_ZOOM_SHARE
+	var art: Vector2 = _zoom_picture.texture.get_size()
+	var fit: float = minf(room.x / maxf(art.x, 1.0), room.y / maxf(art.y, 1.0))
+	var shown: Vector2 = (art * fit).floor()
+	_zoom_picture.size = shown
+	_zoom_picture.position = ((screen - shown) * 0.5).floor()
+	_zoom_picture.pivot_offset = shown * 0.5
+	var hint := _zoom.get_node_or_null("Hint") as Label
+	if hint != null:
+		hint.position = Vector2(0.0, _zoom_picture.position.y + shown.y + 10.0)
+		hint.size = Vector2(screen.x, 24.0)
+		hint.visible = hint.position.y + 24.0 <= screen.y
 
 
 func show_category(name: String) -> void:
@@ -208,6 +327,7 @@ func _section(section: GuideSectionData) -> Control:
 		# Hung rather than floated. A photograph with no edge reads as a hole in
 		# the panel rather than as something on it (owner brief, 2026-09-13).
 		FrameKit.hang(picture)
+		_make_zoomable(picture)
 		row.add_child(picture)
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -248,6 +368,7 @@ func _lore_row(entry: LoreEntryData) -> Control:
 		# Hung rather than floated. A photograph with no edge reads as a hole in
 		# the panel rather than as something on it (owner brief, 2026-09-13).
 		FrameKit.hang(picture)
+		_make_zoomable(picture)
 		row.add_child(picture)
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -470,11 +591,16 @@ func _refit() -> void:
 	var room: float = maxf(screen.y - 420.0, 120.0)
 	_scroll.custom_minimum_size = Vector2(0.0, clampf(screen.y * share, 120.0, room))
 	_panel.reset_size()
+	_fit_zoom()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause"):
-		close()
+		# An open picture is closed first: Escape backs out one step at a time.
+		if picture_open():
+			close_picture()
+		else:
+			close()
 		get_viewport().set_input_as_handled()

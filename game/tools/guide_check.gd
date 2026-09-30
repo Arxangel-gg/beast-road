@@ -14,7 +14,10 @@ extends Node
 ##   misspelt key reads zero forever and the achievement can never unlock,
 ##   silently. The keys are listed here, beside the reader, so adding a
 ##   statistic means adding it twice on purpose;
-## - the screen opens every category without complaint.
+## - the screen opens every category without complaint;
+## - **a picture opens larger on a tap and closes on a tap outside it**
+##   (2026-09-30): never to the whole screen, never on a drag, and a tap on
+##   the picture itself leaves it open.
 
 ## Mirror of the keys `MetaState.stat` answers. Keep the two together.
 const STATS: Array[String] = ["runs_started", "runs_won", "highest_act", "bosses_felled",
@@ -124,8 +127,51 @@ func _test_the_screen() -> void:
 		screen.open(category)
 		await get_tree().process_frame
 	_check(true, "every category opens")
+	screen.open(GuideScreen.CATEGORY_ORDER[0])
+	for _f: int in 3:
+		await get_tree().process_frame
+	var pictures: Array[TextureRect] = []
+	for node: Node in screen.find_children("*", "TextureRect", true, false):
+		var rect := node as TextureRect
+		if rect.gui_input.get_connections().size() > 0 and rect.texture != null:
+			pictures.append(rect)
+	_check(not pictures.is_empty(), "no picture in the Guide opens larger")
+	if not pictures.is_empty():
+		var picture: TextureRect = pictures[0]
+		var at: Vector2 = picture.get_global_rect().get_center()
+		# A drag is not a tap.
+		screen._on_picture_input(_click(at, true), picture)
+		screen._on_picture_input(_click(at + Vector2(0.0, 60.0), false), picture)
+		_check(not screen.picture_open(), "a drag across a picture opened it")
+		screen._on_picture_input(_click(at, true), picture)
+		screen._on_picture_input(_click(at, false), picture)
+		_check(screen.picture_open(), "a tap on a picture did not open it larger")
+		await get_tree().process_frame
+		var big: TextureRect = screen._zoom_picture
+		var screen_size: Vector2 = screen.get_viewport().get_visible_rect().size
+		_check(big.texture == picture.texture, "the enlarged picture is not the one tapped")
+		_check(big.size.x > picture.size.x and big.size.x <= screen_size.x * Balance.GUIDE_ZOOM_SHARE + 1.0
+			and big.size.y <= screen_size.y * Balance.GUIDE_ZOOM_SHARE + 1.0,
+			"the enlarged picture is %s on a %s screen - larger than the list's, never the whole screen" % [big.size, screen_size])
+		big.gui_input.emit(_click(big.get_global_rect().get_center(), false))
+		_check(screen.picture_open(), "a tap on the enlarged picture closed it")
+		var outside := screen._zoom.get_node("Outside") as ColorRect
+		outside.gui_input.emit(_click(Vector2(4.0, 4.0), false))
+		_check(not screen.picture_open(), "a tap outside the enlarged picture did not close it")
+		screen.open_picture(picture.texture)
+		screen.close()
+		_check(not screen.picture_open(), "closing the Guide left a picture open over nothing")
 	screen.queue_free()
 	await get_tree().process_frame
+
+
+func _click(at: Vector2, down: bool) -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = down
+	event.position = at
+	event.global_position = at
+	return event
 
 
 func _check(passed: bool, message: String) -> void:

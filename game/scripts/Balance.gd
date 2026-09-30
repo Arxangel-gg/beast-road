@@ -11047,6 +11047,76 @@ const HEALTH_BAR_RANK_FILL: Color = Color(0.62, 0.16, 0.2, 1.0)
 const HEALTH_BAR_RANK_HEIGHT: float = 9.0
 const HEALTH_BAR_RANK_TICKS: int = 4
 
+# --- The ward, the notches and the alarm (2026-09-30) -------------------------
+## **A ward is a bright segment after the health**, League of Legends' reading
+## (owner, 2026-09-30: "Player shield inspired by LoL, also HP bar segments on
+## players"). When health and ward together pass the pool the whole bar is
+## rescaled so both fit, which is what makes a big ward look big on a full
+## Warden. Drawn on every bar that has one, because a warded body in the road
+## is worth reading too. [TUNE]
+const HEALTH_BAR_SHIELD_COLOUR: Color = Color(0.9, 0.93, 0.97, 0.96)
+const HEALTH_BAR_SHIELD_EDGE: Color = Color(1.0, 1.0, 1.0, 1.0)
+## **A notch a hundred health, a heavy notch a thousand**, so how much a
+## Warden has is read off the bar rather than off a tooltip. The step widens
+## along this list when a pool would need more notches than the bar can show
+## (`HEALTH_BAR_SEGMENT_MOST` over a head, `UI_HERO_BAR_SEGMENT_MOST` in the
+## corner): ticks a pixel apart are a grey smear, not a count. [TUNE]
+const HEALTH_BAR_SEGMENT_STEPS: Array[float] = [100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0]
+const HEALTH_BAR_SEGMENT_MAJOR: float = 1000.0
+const HEALTH_BAR_SEGMENT_MOST: int = 10
+const UI_HERO_BAR_SEGMENT_MOST: int = 24
+## How far the HUD's ward and notches stand in from the bar's top and foot,
+## so they sit inside its frame. [TUNE]
+const UI_POOL_MARKS_INSET: float = 2.0
+
+# --- The Guide's pictures (2026-09-30) -----------------------------------------
+## **A picture opens larger on a click, never to the whole screen** (owner,
+## 2026-09-30: "Expand guide image with click to zoom/expand (not to
+## fullscreen still so they can click outside the image to unexpand").
+## `SHARE` is the most of the screen it may take; a click outside it closes
+## it. `TAP_SLOP` is how far a finger may drift and still be a tap rather
+## than the start of a scroll. [TUNE]
+const GUIDE_ZOOM_SHARE: float = 0.84
+const GUIDE_ZOOM_TAP_SLOP: float = 12.0
+const GUIDE_ZOOM_SECONDS: float = 0.16
+
+# --- Beam ends (2026-09-30) ------------------------------------------------------
+## **A beam ends in a soft, slightly pointed cap, never a cut** (owner,
+## 2026-09-30: "Beams should have soft rounded with slightly pointy and
+## feathered ends instead of abruptly cutoff end edges"). Over the last
+## `CAP` widths at each end the band narrows on a rounded curve to
+## `TIP_WIDTH` of itself - a round nose with a point on it - and its light
+## falls to nothing at the tip. The cap is never more than `CAP_MOST` of the
+## beam, so a short one is still mostly beam. [TUNE]
+const BEAM_CAP_WIDTHS: float = 1.6
+const BEAM_CAP_MOST: float = 0.3
+const BEAM_TIP_WIDTH: float = 0.08
+const BEAM_CAP_ROWS: int = 5
+## **A flying dragon breathes from its mouth, and the mouth moves** (owner,
+## 2026-09-30: "dragons breathing beams while flying should have their breath
+## beam's starting point anchored to their mouth"). The mouth is this share
+## of the painting's length ahead of its middle, read off the overhead art
+## (the head is at the top). A breath follows the nearest passing dragon
+## whose mouth is within `FOLLOW_REACH` of where it was begun; the far end
+## stays where the blow was committed. [TUNE]
+const DRAGON_MOUTH_FORWARD: float = 0.45
+const DRAGON_BREATH_FOLLOW_REACH: float = 90.0
+const HEALTH_BAR_SEGMENT_COLOUR: Color = Color(0.02, 0.02, 0.03, 0.6)
+## **A structure's frame lights as it falls** (owner, 2026-09-30:
+## "Building/tower HP bars need indicator frames that highlight more based on
+## how low a tower's HP is"). Nothing below `ALARM_FROM`; amber climbing to red
+## by `ALARM_FULL`, a glow round the frame that pulses faster the lower it
+## goes. A readout, so it changes no number. Redrawn at `ALARM_HZ` while it
+## pulses, because forty wounded towers at the frame rate is forty redraws a
+## frame for a pulse the eye reads at twenty. [TUNE]
+const HEALTH_BAR_ALARM_FROM: float = 0.6
+const HEALTH_BAR_ALARM_FULL: float = 0.15
+const HEALTH_BAR_ALARM_AMBER: Color = Color(1.0, 0.76, 0.3, 1.0)
+const HEALTH_BAR_ALARM_RED: Color = Color(1.0, 0.26, 0.16, 1.0)
+const HEALTH_BAR_ALARM_PULSE_SLOW: float = 0.8
+const HEALTH_BAR_ALARM_PULSE_FAST: float = 2.8
+const HEALTH_BAR_ALARM_HZ: float = 24.0
+
 
 # --- Build tooltips and the Preparation panel (2026-09-12) --------------------------
 ## The picture in a tower's or trap's tooltip: its height, and how fast an
@@ -11156,6 +11226,31 @@ const FOLIAGE_TRAMPLE_RADIUS: float = 54.0
 ## it a body standing still in long grass keeps pressing the same texel and
 ## the plants never come back up under it.
 const FOLIAGE_TRAMPLE_MIN_STEP: float = 1.5
+## **A plant answers what walks through it by its size and its weight**
+## (owner, 2026-09-30: "Plants need jiggle fx when any character walks
+## through them, tuned to the character's size, including players, wildlife
+## and enemies"). The width a body lays is its tread's own size times
+## `SIZE_REACH`, held between `RADIUS_MIN` and `RADIUS_MAX`, so a rabbit parts
+## the stems at its feet and a boss lays a swathe; how hard it presses is
+## `STRENGTH_BASE + STRENGTH_PER_MASS * mass`, held between the two bounds,
+## off the same tread `Footfalls` already reads. A body with no tread - a
+## spirit weighs nothing and never registers one - brushes at
+## `UNWEIGHED`. [TUNE]
+const FOLIAGE_TRAMPLE_SIZE_REACH: float = 2.1
+const FOLIAGE_TRAMPLE_RADIUS_MIN: float = 30.0
+const FOLIAGE_TRAMPLE_RADIUS_MAX: float = 150.0
+const FOLIAGE_TRAMPLE_STRENGTH_BASE: float = 0.35
+const FOLIAGE_TRAMPLE_STRENGTH_PER_MASS: float = 0.65
+const FOLIAGE_TRAMPLE_STRENGTH_MIN: float = 0.4
+const FOLIAGE_TRAMPLE_STRENGTH_MAX: float = 1.6
+const FOLIAGE_TRAMPLE_UNWEIGHED: float = 0.45
+## **And it jiggles.** A laid plant wobbles about its lean at `JIGGLE_HZ`,
+## each on its own phase by where it stands, the wobble growing as the push
+## fades so it overshoots and settles as it springs back up - a rustle while
+## a body is in it and a shiver after. Drawn in the vertex shader off the
+## same picture, so it costs nothing on the CPU. [TUNE]
+const FOLIAGE_TRAMPLE_JIGGLE: float = 0.85
+const FOLIAGE_TRAMPLE_JIGGLE_HZ: float = 3.4
 const FOG_EXPLORED_ALPHA: float = 0.5
 ## How far each thing of the party's can see.
 const FOG_VISION_HERO: float = 640.0

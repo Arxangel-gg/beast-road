@@ -23,6 +23,9 @@ extends Node
 
 ## The hero's health changed for any reason, including respawn.
 signal hero_health_changed(current_hp: float, max_hp: float)
+## The ward on this machine's own Warden, beside the pool it is measured
+## against, so the HUD's bar can draw it League's way (2026-09-30).
+signal hero_shield_changed(remaining: float, max_hp: float)
 ## Two fingers on the field changed their gap by this factor (above one: apart,
 ## closer in). Said by `TouchInput`, heard by the run, which zooms the battlefield
 ## and nothing else (owner, 2026-09-25).

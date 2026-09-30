@@ -1180,6 +1180,7 @@ func _build_health() -> void:
 	_health_bar.position = Vector2(0.0,
 		-Balance.TOWER_SPRITE_LIFT * 2.4 - Balance.TOWER_SORT_LIFT)
 	add_child(_health_bar)
+	_health_bar.set_structure(true)
 	_health_bar.bind(_health)
 	_build_damage_flames()
 

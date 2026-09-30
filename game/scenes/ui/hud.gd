@@ -365,6 +365,14 @@ var _hero_bar: ProgressBar
 ## The pale bite left behind when health drops, and where it is draining to.
 var _hero_trail: ColorRect = null
 var _hero_trail_share: float = 1.0
+## The ward and the notches over the health (2026-09-30), and what they are
+## drawn from: the Warden's health, its pool, the ward, and the share of the
+## pool the whole bar stands for - one, or more while a ward overflows it.
+var _hero_marks: PoolMarks = null
+var _hero_pool_now: float = 0.0
+var _hero_pool_max: float = 0.0
+var _hero_ward_now: float = 0.0
+var _hero_pool_total: float = 1.0
 ## What each resource counter reads now, and what it is counting toward.
 var _purse_shown: Dictionary = {}
 var _purse_target: Dictionary = {}
@@ -727,6 +735,7 @@ func _ready() -> void:
 	EventBus.town_struck.connect(_on_town_struck)
 	EventBus.tower_struck.connect(_on_tower_struck)
 	EventBus.hero_health_changed.connect(_on_hero_health)
+	EventBus.hero_shield_changed.connect(_on_hero_shield)
 	EventBus.hero_mana_changed.connect(_on_hero_mana)
 	EventBus.hero_stamina_changed.connect(_on_hero_stamina)
 	EventBus.hero_winded.connect(_on_hero_winded)
@@ -1136,6 +1145,12 @@ func _build_top_bar() -> void:
 	# **Under the frame and the sheen**, which `_make_bar` added first. A trail
 	# drawn over the frame reads as a crack across it.
 	_hero_bar.move_child(_hero_trail, 0)
+	# The ward and the notches, over the trail and under the sheen.
+	_hero_marks = PoolMarks.new()
+	_hero_marks.name = "Marks"
+	_hero_bar.add_child(_hero_marks)
+	_hero_marks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hero_bar.move_child(_hero_marks, 1)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
 
 	# Health over mana, in the width health had alone. The top bar is already
@@ -6388,8 +6403,9 @@ func _refresh_speed_button() -> void:
 
 func _on_hero_health(current: float, maximum: float) -> void:
 	var share: float = current / maximum if maximum > 0.0 else 0.0
-	_hero_bar.value = share
-	_hero_bar.tooltip_text = "Health %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	_hero_pool_now = current
+	_hero_pool_max = maximum
+	_show_hero_pool()
 	_say_the_pool(_hero_bar, current, maximum)
 	_paint_health(_hero_bar, share)
 	# **Pulsing under the critical share** (owner, 2026-09-16). Driven from here
@@ -6397,11 +6413,42 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	# one has to stop the moment a draught lands.
 	# Only a *loss* leaves a trail. Healing catches it up at once, or a draught
 	# would leave a pale streak behind it reading as damage.
-	if share >= _hero_trail_share:
-		_hero_trail_share = share
+	var shown: float = float(_hero_bar.value)
+	if shown >= _hero_trail_share:
+		_hero_trail_share = shown
 	_hero_critical = share > 0.0 and share <= Balance.UI_HEALTH_CRITICAL
 	if not _hero_critical:
 		_hero_bar.modulate = Color.WHITE
+
+
+## The Warden's ward (2026-09-30), drawn League's way on the same bar.
+func _on_hero_shield(remaining: float, maximum: float) -> void:
+	_hero_ward_now = maxf(remaining, 0.0)
+	if maximum > 0.0:
+		_hero_pool_max = maximum
+	_show_hero_pool()
+
+
+## **The health, the ward and the notches, on one scale.** Past the pool, the
+## bar stands for health and ward together, so a big ward on a whole Warden
+## still shows - League's rule. A change of scale is not a bite, so it moves
+## the trail with it rather than leaving a pale streak that reads as damage.
+func _show_hero_pool() -> void:
+	if _hero_bar == null:
+		return
+	var maximum: float = maxf(_hero_pool_max, 0.001)
+	var total: float = maxf(1.0, (_hero_pool_now + _hero_ward_now) / maximum)
+	var fill: float = clampf(_hero_pool_now / maximum / total, 0.0, 1.0)
+	if not is_equal_approx(total, _hero_pool_total):
+		_hero_pool_total = total
+		_hero_trail_share = fill
+	_hero_bar.value = fill
+	if _hero_marks != null:
+		_hero_marks.show_pool(fill, _hero_ward_now / maximum / total, maximum * total)
+	var tip: String = "Health %d / %d" % [int(floor(_hero_pool_now)), int(ceil(_hero_pool_max))]
+	if _hero_ward_now >= 1.0:
+		tip += "  ·  Ward %d" % int(floor(_hero_ward_now))
+	_hero_bar.tooltip_text = tip
 
 
 ## The colour a health bar is at this share: cyan whole, amber wounded, red

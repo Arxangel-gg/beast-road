@@ -74,6 +74,7 @@ func _ready() -> void:
 	_bar = (load("res://scenes/ui/health_bar.tscn") as PackedScene).instantiate()
 	_bar.position = Vector2(0.0, -Balance.BARRICADE_BAR_LIFT)
 	add_child(_bar)
+	_bar.set_structure(true)
 	_bar.bind(health)
 
 

@@ -11355,6 +11355,63 @@ the forge's or the game's. `forge_app/tools/app_shot` photographs it twice,
 plain and with every comparison on, because a control that draws nothing is
 the one thing this window exists to catch.
 
+**The owner's list of 2026-09-30, and where each item stands.** A long list
+arrived with a ChatGPT-made interface kit and cursor sets in
+`art_inbox/chatgpt/ui` (never delete that inbox). Built so far, each gated:
+
+- **The guard workflow was red since 2026-09-27 because one gate ran long.**
+  `arsenal_check`'s measuring stage waited real seconds for slow weapons;
+  it runs the clock at `LANDS_TIME_SCALE` and counts game seconds now, and its
+  guard line carries `CHECK_TIMEOUT=360`. The ratios it measures did not move.
+- **The ammunition key is B.** It was R, which is also Enter Raid.
+- **The Preparation card grows upward from its seat** and so can no longer sit
+  on the action row's Heal button; `preparation_check` holds the card clear of
+  the row with Undo showing.
+- **A spell beam lands on a clock** (`SPELL_BEAM_TICK_HZ`), one blow per body a
+  tick weighted by how many of its spheres cover it, so a channel is the same
+  damage at 30 and 180 frames a second and no longer a blow per sphere per frame.
+- **A card already held may be banished from an offer.** The deal offers a held
+  card to level it and `banish_for` refused it in silence, which is why "the
+  new card in a banished card's place" would not banish whenever it was a
+  level-up. The hand keeps the card at its level; the deck loses it for the
+  road. `augment_check`'s invariant was amended and dated.
+- **Leaving one behind wraps, scrolls and can be refused.** The hand is a
+  centred flow in a scroll rather than a row that ran off the right edge, and
+  Keep Hand backs out of the take.
+- **The Warden on the Disciplines page is sized to the room** (`WardenStage.fit_height`)
+  rather than cut off at the top.
+- **Loot bobs once it has settled** (`LOOT_BOB_*`), its glow shrinking with it.
+- **A structure's bar lights as it falls.** Silent above `HEALTH_BAR_ALARM_FROM`,
+  amber to red with a breathing glow and corner brackets by `ALARM_FULL`,
+  redrawn at `ALARM_HZ` while it pulses. Towers and barricades only.
+- **A ward is League's.** A bright segment after the health on the bar over
+  the head and the HUD's (`PoolMarks`), the bar rescaled when health and ward
+  pass the pool, notches every hundred health and heavy every thousand, the
+  step widening when a pool would need more notches than the bar can show.
+  **And a partner's health no longer reaches this machine's HUD**:
+  `Hero._on_health_changed` ran for every body in the party, so a partner struck
+  on the host wrote their health into `RunState.hero_hp` - the figure this
+  machine's Warden is restored from - and flashed it on this HUD and vignette.
+  It and the new ward signal answer for `is_local_player()` alone.
+- **A Guide picture opens larger on a tap** and closes on a tap outside it -
+  never the whole screen (`GUIDE_ZOOM_SHARE`), never on a drag, and Escape backs
+  out of the picture before the Guide.
+- **Every beam ends in a soft, slightly pointed cap** (`VfxInk.beam_cap`,
+  `beam_rows`), spell beams and the hyperbeam alike, and the dragon cones open
+  on a round nose. Photographed with `breath_shot`.
+- **A flying dragon breathes from its mouth, and the mouth moves.**
+  `DragonPass.mouth()` is the head end of the overhead painting at the flight
+  height; `DragonBreath` finds the passing dragon whose mouth it was begun at
+  (within `DRAGON_BREATH_FOLLOW_REACH`, because a relayed plan carries positions
+  and never a node) and follows it every frame, while the far end stays where
+  the blow was aimed. A camp wyrm's breath follows nothing.
+- **Plants part by the size and weight of what walks through them, animals
+  included, and jiggle.** `TrampleField` reads every tread `Footfalls` knows -
+  the wildlife was never on its list - lays a width from the tread's size and
+  a press from its mass, and a body can bend a plant only as far as its own
+  weight. The jiggle is the vertex shader's: a wobble about the lean that grows
+  as the push fades, so a plant overshoots and settles.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

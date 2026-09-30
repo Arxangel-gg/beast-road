@@ -197,7 +197,7 @@ func _breathe() -> void:
 	EventBus.world_hazard.emit("ground", {
 		"mode": "breath", "from": global_position, "to": target,
 		"element": String(chosen["element"]), "ultra": bool(chosen["ultra"]),
-		"origin": global_position - Vector2(0.0, _height),
+		"origin": mouth(),
 		"width": width, "warning": Balance.DRAGON_BREATH_WARNING,
 		"travel": 0.35, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
 		"tower_damage": 0.0, "tint": tint,
@@ -250,6 +250,17 @@ func _shadow(size: Vector2, turn: float, strength: float) -> void:
 	draw_texture_rect(_art, Rect2(-size * 0.5, size), false,
 		Color(0.0, 0.0, 0.0, clampf(strength, 0.0, 1.0)))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## **Where the breath leaves the body**, in the field's space: the head end of
+## the painting (it is drawn head-up and turned onto its heading), at the
+## height the body is flying. A landed body breathes from its own painting's
+## middle-top. `DragonBreath` reads this every frame (owner, 2026-09-30).
+func mouth() -> Vector2:
+	if _landed and _ground_art != null:
+		return global_position - Vector2(0.0, landed_size().y * 0.75)
+	var length: float = flying_size().y
+	return global_position + Vector2(0.0, -_height) + _heading * length * Balance.DRAGON_MOUTH_FORWARD
 
 
 ## The rarity step is the same on the ground as in the air: a Cairnwyrm that

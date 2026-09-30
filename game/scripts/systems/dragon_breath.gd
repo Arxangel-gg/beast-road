@@ -52,6 +52,10 @@ var _bolts: Array[PackedVector2Array] = []
 var _bolt_clock: float = 0.0
 var _dice := RandomNumberGenerator.new()
 var _seed: float = 0.0
+## The passing dragon this breath comes out of, when it came from one in the
+## air: its mouth is read every frame, so the breath leaves the mouth as the
+## body flies on (owner, 2026-09-30). The far end stays where it was aimed.
+var follow: Node2D = null
 
 
 ## The element a breath is drawn in, as three colours: a core, a body and a rim.
@@ -112,6 +116,9 @@ static func breathe(parent: Node, from_mouth: Vector2, to_end: Vector2,
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
+	if follow == null:
+		follow = _nearest_mouth(get_tree(), mouth)
+	_follow_the_mouth()
 	global_position = mouth
 	_dice.randomize()
 	_seed = _dice.randf() * 100.0
@@ -124,8 +131,43 @@ func _ready() -> void:
 	Sfx.play_at("sfx_spell_cast", mouth, 1.0)
 
 
+## **The passing dragon whose mouth is nearest `at`**, within
+## `DRAGON_BREATH_FOLLOW_REACH`, or null. Found rather than handed over,
+## because the breath is stood up from a relayed hazard plan and a plan
+## carries positions, never a node - a guest's own mirror of the dragon is
+## found the same way.
+static func _nearest_mouth(tree: SceneTree, at: Vector2) -> Node2D:
+	if tree == null:
+		return null
+	var best: Node2D = null
+	var nearest: float = Balance.DRAGON_BREATH_FOLLOW_REACH
+	for node: Node in tree.get_nodes_in_group(DragonPass.GROUP):
+		var pass_node := node as DragonPass
+		if pass_node == null or not pass_node.is_inside_tree():
+			continue
+		var apart: float = pass_node.mouth().distance_to(at)
+		if apart <= nearest:
+			nearest = apart
+			best = pass_node
+	return best
+
+
+func _follow_the_mouth() -> void:
+	if follow == null:
+		return
+	if not is_instance_valid(follow) or not follow.is_inside_tree():
+		follow = null
+		return
+	var pass_node := follow as DragonPass
+	if pass_node != null:
+		mouth = pass_node.mouth()
+		if is_inside_tree():
+			global_position = mouth
+
+
 func _process_measured(delta: float) -> void:
 	_age += delta
+	_follow_the_mouth()
 	if _age >= warning:
 		if not _opened:
 			_open()
@@ -336,14 +378,21 @@ func _draw_beam(b: Vector2, fade: float) -> void:
 		_band(points, shades, indices, b, across * wide, Color(tint, 0.0),
 			Color(tint, float(layer[2]) * fade))
 	BloodInk.paint(self, points, shades, indices)
+	# The arcs close in with the band at both ends (2026-09-30): an arc that ran
+	# to full width at the mouth and the tip was a hard white cut over a soft one.
+	var length: float = b.length()
+	var cap: float = minf(half_width * 1.25 * Balance.BEAM_CAP_WIDTHS, length * Balance.BEAM_CAP_MOST)
 	for hand: int in 2:
 		var helix := PackedVector2Array()
-		var turns: float = b.length() / 90.0
+		var tints := PackedColorArray()
+		var turns: float = length / 90.0
 		for index: int in 49:
 			var t: float = float(index) / 48.0
+			var shape: Vector2 = VfxInk.beam_cap(minf(t, 1.0 - t) * length / maxf(cap, 0.01))
 			var swing: float = sin(t * turns * TAU + _age * 32.0 + float(hand) * PI)
-			helix.append(b * t + across * swing * half_width * 0.95 * pulse)
-		draw_polyline(helix, Color(colours[0] as Color, 0.8 * fade), 2.2, true)
+			helix.append(b * t + across * swing * half_width * 0.95 * pulse * shape.x)
+			tints.append(Color(colours[0] as Color, 0.8 * fade * shape.y))
+		draw_polyline_colors(helix, tints, 2.2, true)
 
 
 ## One layer of the cone as rows of five vertices: transparent rims, a body
@@ -360,13 +409,16 @@ func _strip(points: PackedVector2Array, shades: PackedColorArray,
 		var lick: float = 1.0 + 0.2 * sin(_age * 13.0 + t * 9.0 + _seed + offset)
 		var half: float = lerpf(half_width * 0.28, half_width * 1.65, pow(t, 0.62)) \
 			* scale * lick
+		# A round nose at the mouth rather than a flat cut (2026-09-30).
+		var nose: Vector2 = VfxInk.beam_cap(t / 0.09)
+		half *= nose.x
 		var sway: float = sin(_age * 7.0 + t * 5.0 + offset) * half * 0.1
 		var centre: Vector2 = b * t + across * sway
 		# Brightest near the mouth, thinning out at the front, and the front
 		# itself feathered away - a breath ending on a straight cut reads as a
 		# shape rather than as something still rolling.
 		var strength: float = alpha * lerpf(1.0, 0.6, t) \
-			* clampf((1.0 - t) / 0.2, 0.0, 1.0)
+			* clampf((1.0 - t) / 0.2, 0.0, 1.0) * lerpf(0.55, 1.0, nose.y)
 		points.append(centre + across * half)
 		shades.append(Color(rim, 0.0))
 		points.append(centre + across * half * 0.5)
@@ -385,21 +437,32 @@ func _strip(points: PackedVector2Array, shades: PackedColorArray,
 				a + lane + 1, c + lane + 1, c + lane])
 
 
-## A straight band from the mouth to `b`, transparent at both edges.
+## A band from the mouth to `b`, transparent at both edges and closing in a
+## soft pointed cap at both ends (2026-09-30) - the ends every beam in the
+## game shares (`VfxInk.beam_cap`), never a straight cut.
 func _band(points: PackedVector2Array, shades: PackedColorArray,
 		indices: PackedInt32Array, b: Vector2, side: Vector2, rim: Color,
 		spine: Color) -> void:
+	var length: float = b.length()
+	if length < 0.1:
+		return
+	var along: Vector2 = b / length
 	var first: int = points.size()
-	for end: Vector2 in [Vector2.ZERO, b]:
-		points.append(end + side)
+	var rows: PackedVector2Array = VfxInk.beam_rows(length, side.length())
+	for row: Vector2 in rows:
+		var shape: Vector2 = VfxInk.beam_cap(row.y)
+		var at: Vector2 = along * row.x
+		points.append(at + side * shape.x)
 		shades.append(rim)
-		points.append(end)
-		shades.append(spine)
-		points.append(end - side)
+		points.append(at)
+		shades.append(Color(spine, spine.a * shape.y))
+		points.append(at - side * shape.x)
 		shades.append(rim)
-	for lane: int in 2:
-		indices.append_array([first + lane, first + lane + 1, first + 3 + lane,
-			first + lane + 1, first + 4 + lane, first + 3 + lane])
+	for step: int in rows.size() - 1:
+		var row: int = first + step * 3
+		for lane: int in 2:
+			indices.append_array([row + lane, row + lane + 1, row + 3 + lane,
+				row + lane + 1, row + 4 + lane, row + 3 + lane])
 
 
 ## A soft disc: a bright middle falling to a clear rim.

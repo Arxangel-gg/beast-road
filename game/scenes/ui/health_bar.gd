@@ -45,6 +45,17 @@ var _flash: float = 0.0
 ## and a partner's stamina never crosses the wire, so theirs shows mana alone.
 var _pools: PackedFloat32Array = PackedFloat32Array([-1.0, -1.0])
 var _pool_colours: Array[Color] = [Color(Balance.UI_MANA_INDIGO), Color(Balance.UI_STAMINA_GREEN)]
+## The pool the bar stands for, and the ward on top of it as a share of that
+## pool (2026-09-30). Drawn League's way: a bright segment after the health,
+## the whole bar rescaled when the two together pass the pool.
+var _max_hp: float = 0.0
+var _shield_share: float = 0.0
+## Notched every `HEALTH_BAR_SEGMENT_STEPS` health: the Warden's bar.
+var _segmented: bool = false
+## A tower's or a wall's: the frame lights as it falls.
+var _structure: bool = false
+var _alarm_clock: float = 0.0
+var _alarm_redraw_left: float = 0.0
 
 
 func _ready() -> void:
@@ -72,11 +83,77 @@ func _ready() -> void:
 func bind(health: Health) -> void:
 	if _bound != null and _bound.changed.is_connected(_on_changed):
 		_bound.changed.disconnect(_on_changed)
+	if _bound != null and _bound.shield_changed.is_connected(_on_shield):
+		_bound.shield_changed.disconnect(_on_shield)
 	_bound = health
 	if _bound == null:
 		return
 	_bound.changed.connect(_on_changed)
+	_bound.shield_changed.connect(_on_shield)
 	_on_changed(_bound.current_hp, _bound.max_hp)
+
+
+## Notches every so much health (the Warden's bar). A readout: nothing reads it.
+func set_segmented(on: bool) -> void:
+	_segmented = on
+	queue_redraw()
+
+
+## A tower's or a wall's bar, whose frame lights as the structure falls.
+func set_structure(on: bool) -> void:
+	_structure = on
+	_wake_for_alarm()
+	queue_redraw()
+
+
+## **How much health one notch stands for**, for a pool of `pool` and at most
+## `most` notches. The first step on the list that fits; past the last, the
+## last. Static so the HUD's bar and the one over the head cannot disagree.
+static func segment_step(pool: float, most: int) -> float:
+	for step: float in Balance.HEALTH_BAR_SEGMENT_STEPS:
+		if pool / step <= float(most):
+			return step
+	return Balance.HEALTH_BAR_SEGMENT_STEPS[Balance.HEALTH_BAR_SEGMENT_STEPS.size() - 1]
+
+
+## **How loudly a structure's frame calls**: nothing above `ALARM_FROM`, all of
+## it at `ALARM_FULL` and below. A share, so the gate can read it.
+static func alarm_for(ratio: float) -> float:
+	if ratio <= 0.0:
+		return 0.0
+	return clampf((Balance.HEALTH_BAR_ALARM_FROM - ratio)
+		/ (Balance.HEALTH_BAR_ALARM_FROM - Balance.HEALTH_BAR_ALARM_FULL), 0.0, 1.0)
+
+
+func alarm() -> float:
+	return alarm_for(_ratio) if _structure else 0.0
+
+
+## The ward as a share of the pool, and whether the bar is rescaled for it.
+func shield_share() -> float:
+	return _shield_share
+
+
+## The share of the pool the whole bar stands for: one, or health and ward
+## together when they pass it.
+func scale_total() -> float:
+	return maxf(1.0, _ratio + _shield_share)
+
+
+func _on_shield(remaining: float) -> void:
+	var share: float = remaining / _max_hp if _max_hp > 0.0 else 0.0
+	share = maxf(share, 0.0)
+	if is_equal_approx(share, _shield_share):
+		return
+	_shield_share = share
+	if hide_until_damaged:
+		visible = _ratio < 1.0 or _shield_share > 0.0
+	queue_redraw()
+
+
+func _wake_for_alarm() -> void:
+	if alarm() > 0.0:
+		set_process(true)
 
 
 func _apply_size() -> void:
@@ -128,17 +205,31 @@ func _on_changed(current: float, maximum: float) -> void:
 	elif ratio > _trail_ratio:
 		_trail_ratio = ratio
 	_ratio = ratio
+	_max_hp = maximum
+	if _bound != null:
+		_shield_share = _bound.shield() / maximum if maximum > 0.0 else 0.0
+	_wake_for_alarm()
 	_apply_size()
 	if hide_until_damaged:
-		visible = ratio < 1.0
+		visible = ratio < 1.0 or _shield_share > 0.0
 
 
 func _process_measured(delta: float) -> void:
 	_flash = maxf(_flash - delta / Balance.HEALTH_BAR_FLASH_SECONDS, 0.0)
+	var alarmed: bool = alarm() > 0.0
+	if alarmed:
+		_alarm_clock += delta
 	if _trail_ratio <= _ratio + 0.0005 and _flash <= 0.0:
 		_trail_ratio = _ratio
-		_apply_size()
-		set_process(false)
+		if not alarmed:
+			_apply_size()
+			set_process(false)
+			return
+		# Only the pulse is moving: redrawn on its own clock.
+		_alarm_redraw_left -= delta
+		if _alarm_redraw_left <= 0.0:
+			_alarm_redraw_left = 1.0 / Balance.HEALTH_BAR_ALARM_HZ
+			_apply_size()
 		return
 	if _trail_ratio <= _ratio + 0.0005:
 		_trail_ratio = _ratio
@@ -166,13 +257,30 @@ func _bar_rect() -> Rect2:
 func _draw_measured() -> void:
 	var rect: Rect2 = _bar_rect()
 	draw_rect(rect, _background_colour)
+	# League's rule: health and ward together never overflow the bar - past the
+	# pool, the whole bar stands for both.
+	var total: float = scale_total()
+	var fill_w: float = rect.size.x * _ratio / total
 	if _trail_ratio > _ratio:
-		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _trail_ratio, rect.size.y)),
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x * minf(_trail_ratio / total, 1.0), rect.size.y)),
 			Balance.HEALTH_BAR_TRAIL_COLOUR)
 	if _ratio > 0.0:
-		draw_rect(Rect2(rect.position, Vector2(rect.size.x * _ratio, rect.size.y)),
+		draw_rect(Rect2(rect.position, Vector2(fill_w, rect.size.y)),
 			_fill_colour.lerp(Color.WHITE, _flash * Balance.HEALTH_BAR_FLASH_GAIN))
+	if _shield_share > 0.0:
+		var ward_w: float = minf(rect.size.x * _shield_share / total, rect.size.x - fill_w)
+		if ward_w > 0.0:
+			draw_rect(Rect2(rect.position.x + fill_w, rect.position.y, ward_w, rect.size.y),
+				Balance.HEALTH_BAR_SHIELD_COLOUR)
+			# A lit leading edge, so a thin ward still reads as a thing.
+			draw_rect(Rect2(rect.position.x + fill_w, rect.position.y, minf(1.0, ward_w), rect.size.y),
+				Balance.HEALTH_BAR_SHIELD_EDGE)
+	if _segmented:
+		_draw_notches(rect, _max_hp * total, Balance.HEALTH_BAR_SEGMENT_MOST)
 	var outline: Color = Balance.HEALTH_BAR_RANK_FRAME if _ranked else Balance.HEALTH_BAR_FRAME_OUTLINE
+	var calling: float = alarm()
+	if calling > 0.0:
+		outline = _alarm_colour(calling)
 	_frame(rect.grow(1.0), outline)
 	_draw_pools(rect)
 	if _ranked:
@@ -189,6 +297,53 @@ func _draw_measured() -> void:
 		# Bevel: light along the top, shade along the bottom.
 		draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), Balance.HEALTH_BAR_FRAME_LIGHT)
 		draw_rect(Rect2(rect.position.x, rect.end.y - 1.0, rect.size.x, 1.0), Balance.HEALTH_BAR_FRAME_SHADE)
+	if calling > 0.0:
+		_draw_alarm(rect, calling)
+
+
+## Amber climbing to red as the structure falls.
+func _alarm_colour(calling: float) -> Color:
+	if calling < 0.5:
+		return Balance.HEALTH_BAR_FRAME_OUTLINE.lerp(Balance.HEALTH_BAR_ALARM_AMBER, calling * 2.0)
+	return Balance.HEALTH_BAR_ALARM_AMBER.lerp(Balance.HEALTH_BAR_ALARM_RED, (calling - 0.5) * 2.0)
+
+
+## **The glow round a falling structure's frame**: two rings outside it that
+## breathe, brighter and faster the lower it goes, and a corner bracket on
+## each end at the loudest - the frame is the thing that highlights, so the
+## bar's fill still says exactly how much is left.
+func _draw_alarm(rect: Rect2, calling: float) -> void:
+	var rate: float = lerpf(Balance.HEALTH_BAR_ALARM_PULSE_SLOW, Balance.HEALTH_BAR_ALARM_PULSE_FAST, calling)
+	var pulse: float = 0.5 + 0.5 * sin(_alarm_clock * TAU * rate)
+	var tone: Color = _alarm_colour(calling)
+	_frame(rect.grow(2.0), Color(tone, calling * lerpf(0.45, 1.0, pulse)))
+	_frame(rect.grow(3.0), Color(tone, calling * lerpf(0.12, 0.5, pulse)))
+	if calling >= 0.5:
+		var arm: float = 4.0
+		var bright := Color(tone.lightened(0.25), clampf(calling * pulse + 0.25, 0.0, 1.0))
+		for corner: Vector2 in [rect.grow(4.0).position, Vector2(rect.grow(4.0).end.x - 1.0, rect.grow(4.0).position.y),
+				Vector2(rect.grow(4.0).position.x, rect.grow(4.0).end.y - 1.0), rect.grow(4.0).end - Vector2.ONE]:
+			var sx: float = 1.0 if corner.x < rect.get_center().x else -1.0
+			var sy: float = 1.0 if corner.y < rect.get_center().y else -1.0
+			draw_rect(Rect2(minf(corner.x, corner.x + sx * (arm - 1.0)), corner.y, arm, 1.0), bright)
+			draw_rect(Rect2(corner.x, minf(corner.y, corner.y + sy * (arm - 1.0)), 1.0, arm), bright)
+
+
+## Notches across the bar: one every `segment_step` health, heavier every
+## `HEALTH_BAR_SEGMENT_MAJOR`. A light notch is the top half of the bar and a
+## heavy one the whole of it, which is how League draws the difference.
+func _draw_notches(rect: Rect2, pool: float, most: int) -> void:
+	if pool <= 0.0:
+		return
+	var step: float = segment_step(pool, most)
+	var hp: float = step
+	while hp < pool - 0.5:
+		var x: float = floorf(rect.position.x + rect.size.x * hp / pool)
+		var heavy: bool = step < Balance.HEALTH_BAR_SEGMENT_MAJOR \
+			and is_zero_approx(fmod(hp, Balance.HEALTH_BAR_SEGMENT_MAJOR))
+		var tall: float = rect.size.y if heavy or step >= Balance.HEALTH_BAR_SEGMENT_MAJOR else ceilf(rect.size.y * 0.55)
+		draw_rect(Rect2(x, rect.position.y, 1.0, tall), Balance.HEALTH_BAR_SEGMENT_COLOUR)
+		hp += step
 
 
 ## The thin mana and stamina bars under the health, the same width, framed
