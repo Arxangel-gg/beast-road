@@ -11440,9 +11440,8 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   `CURSOR_MOVE` and a service `CURSOR_HELP` now - shapes the game otherwise
   never shows - and the drag shapes keep drag art for a drag nobody has built.
   `menu_check` holds one meaning to a shape. **The kit's buttons, panels, slots
-  and focus frame are not installed yet**: they reskin every screen, and the
-  handoff's own rule is that a large preview proves nothing about a 42px
-  button, so they wait for a session that can photograph them.
+  and focus frame were installed later the same day** - see the Emberbound
+  note below.
 - **The primary attack is free to change.** A chain form had to be bought with
   a skill point before it could be swung, so a Warden who had spent their
   points was stuck with the one they started on. Any form of an open arm may be
@@ -11733,6 +11732,54 @@ is the knot the player watches coming apart. A look and never a fact:
 seconds of combat, and every shot tool runs through `tools/perf_offscreen.sh` -
 which is how the Act X loadout, the new skies and the Glass's cloth were seen
 this session without covering the owner's screen.
+
+**The interface wears the Emberbound kit, as of 2026-09-30.** The owner's
+ChatGPT-made kit in `art_inbox/chatgpt/ui` (the inbox stays; it is the only
+master): deep teal plates with gold horns, installed under the runtime names and
+built into the theme by `ThemeBuilder` - buttons with their own pressed and
+disabled art rather than a tinted hover, the main, dark, inset and tooltip
+panels, the ability slot, and the gold focus brackets standing four units
+outside what they frame. Two variations: **PrimaryButton** in the kit's ember
+(New run and its Resume, RIDE ON) and **DangerButton** in its red (the pause
+menu's Leave, Erase progress, Break all).
+
+**The buttons are the kit's 2x export resampled to 192x48**, not its 1x. The kit
+drew a 64 px button with 20 px horns and this game's buttons are 34 to 54 px
+tall, where a 20 px horn is half the button and a 34 px RIDE ON cannot hold both;
+at 0.75 the horn is 15 px and the slice is the kit's own 28/20 at that scale.
+The focus frame likewise, to 96. `tools/install_ui_kit.py` is the recipe: it
+checks every source against the kit's own sha256, copies or resamples, and
+writes the manifest rows; running it twice changes nothing.
+
+**`UiTint` was recalibrated for dark art**, as the kit's handoff asked: `PLATE`
+0.80 to 0.95 and `SHADE_FLOOR` 0.74 to 0.84, because taking a fifth off a deep
+teal left a button nearly black on a night road - the opposite fault from the
+pale grey plates those numbers answered; `REACH` 0.50 to 0.35 so a sunset leans
+the teal rather than turning it brown. **The focus slot is no longer tinted**:
+the brackets say where a pad or a keyboard is, and must read the same under
+every light. The slot inset is 0.16 for the thinner border.
+
+**Photographed before it was believed** - the menu at 1920x1080 and 1280x720,
+the Warden's Glass, the Hold at noon and at midnight, the stash with its
+comparison card, and the HUD's Preparation card and slots - off the screen, by a
+runner that forces a windowed, unfocusable window beyond every monitor (the
+project opens fullscreen, which would have snapped to the owner's screen).
+`menu_shot --no-glass` photographs the menu as a returning player sees it.
+**The hero button is not installed**: its horns are a horizontal three-slice
+that wants the button's height fixed near 132, and the menu's column does not
+give it that.
+
+**The board's tabs wrap.** The release sweep of v0.62.0 named the leaderboard
+at 430x932: three tiers and the Hardcore toggle are four thumb buttons wider than
+an upright phone, a box cannot be narrower than its children, and Close was
+pushed partly off the screen. An `HFlowContainer`, as the codex already was.
+
+**Traps and barricades look for bodies on a clock** (`TRAP_SENSE_HZ` 30,
+`BARRICADE_SENSE_HZ` 10), on a phase taken from their tile rather than a die: on
+a 180 Hz screen twenty traps walked the road 3,600 times a second. **A tower
+reads its roofline once a painting** (`Tower._roofline`): every build and
+upgrade was a `get_image`, which on a real renderer is a copy back from the GPU.
+`frame_budget_check` holds both, and named both planted.
 
 ### The three escape hatches - and why there are only three
 

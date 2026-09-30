@@ -3474,6 +3474,8 @@ func _build_preparation_panel() -> void:
 	column.add_child(_preparation_label)
 	_ride_on_button = _add_button(column, "RIDE ON", func() -> void: ride_on_requested.emit())
 	_ride_on_button.set_meta(UiMetrics.SELF_SIZED, true)
+	# The one button in Preparation that moves the road on.
+	_ride_on_button.theme_type_variation = &"PrimaryButton"
 	_ride_on_button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT,
 		Balance.UI_TOUCH_PREPARATION_BUTTON_HEIGHT)
 	_ride_on_button.custom_minimum_size.y = 34.0

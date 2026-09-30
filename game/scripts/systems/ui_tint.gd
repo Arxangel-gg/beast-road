@@ -25,18 +25,26 @@ extends RefCounted
 ## (115, 103, 107). At 0.50 it reads as warm without the buttons ceasing to
 ## look like the same buttons, which is the line this must not cross: the
 ## interface should belong to the scene, not be repainted by it. [TUNE]
-const REACH: float = 0.50
+##
+## 0.35 since the Emberbound kit (2026-09-30): its plates are a deep teal with
+## gold horns, and at 0.50 a sunset turned the teal brown - the interface
+## stopped looking like its own art rather than belonging to the scene.
+const REACH: float = 0.35
 
 ## How much of the scene's own *value* the frames take, and how dark that may
 ## ever make them. See `_normalised`: without these the interface could follow
 ## the light's colour and never its brightness. [TUNE]
 const SHADE: float = 0.55
-const SHADE_FLOOR: float = 0.74
+const SHADE_FLOOR: float = 0.84
 ## How far every plate sits below the art it was authored at, whatever the
 ## scene. The buttons were drawn pale so they would read on any backdrop, and
 ## against this game's near-black scenes that reads as an interface pasted over
 ## a painting - reported twice. [TUNE]
-const PLATE: float = 0.80
+##
+## 0.95 since the Emberbound kit (2026-09-30), whose plates were painted dark
+## already: taking a fifth off a deep teal left a button nearly black on a
+## night road, which is the opposite fault from the one this answered.
+const PLATE: float = 0.95
 
 ## Controls that have opted in. A group rather than a walk from the root,
 ## because the HUD rebuilds parts of itself and a cached list would go stale.
@@ -178,7 +186,10 @@ static func _normalised(tint: Color) -> Color:
 
 
 ## The stylebox slots a button or a panel actually draws itself from.
-const _SLOTS: Array[String] = ["normal", "hover", "pressed", "focus",
+##
+## Not `focus`: the focus brackets are the one frame that must read the same
+## under every light, because they say where a pad or a keyboard is.
+const _SLOTS: Array[String] = ["normal", "hover", "pressed",
 	"disabled", "panel"]
 
 static var _wanted: Color = Color.WHITE

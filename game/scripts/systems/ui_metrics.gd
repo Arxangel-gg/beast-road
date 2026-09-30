@@ -51,8 +51,11 @@ const PAD_PANEL_Y: int = 32
 ##
 ## A fraction rather than pixels because the slot is drawn stretched: a fixed
 ## inset would be right at one size and wrong at every other.
-const SLOT_INSET_X: float = 0.23
-const SLOT_INSET_Y: float = 0.20
+##
+## 0.16 since the Emberbound slot (2026-09-30): a thin gold-edged border and
+## small corner plates, about a sixth of the width.
+const SLOT_INSET_X: float = 0.16
+const SLOT_INSET_Y: float = 0.16
 
 ## The plain dark frame is a thin border and needs far less.
 const PAD_DARK_X: int = 20

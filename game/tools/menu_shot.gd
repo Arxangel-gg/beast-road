@@ -36,6 +36,10 @@ func _ready() -> void:
 			feather = float(argument.trim_prefix("--feather="))
 		elif argument.begins_with("--root="):
 			root = float(argument.trim_prefix("--root="))
+		elif argument == "--no-glass":
+			# A new Warden is shown the Glass before the menu; this photographs
+			# the menu itself, as a returning player sees it.
+			WardenGlass.mark_offered()
 		elif argument.begins_with("--force-grade="):
 			# **The decisive test for "does the tail get the body's grade".**
 			# Painting the body a colour nothing else in the scene is and then

@@ -1018,6 +1018,7 @@ func _build_data(column: VBoxContainer) -> void:
 	_erase_button.text = ERASE_LABEL
 	_erase_button.custom_minimum_size = Vector2(0.0, 54.0)
 	_erase_button.add_theme_color_override("font_color", Color(0.92, 0.53, 0.45))
+	_erase_button.theme_type_variation = &"DangerButton"
 	IconKit.on_button(_erase_button, "close", 22)
 	_erase_button.pressed.connect(_on_erase_pressed)
 	column.add_child(_erase_button)

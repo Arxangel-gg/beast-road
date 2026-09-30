@@ -158,6 +158,10 @@ func _ready() -> void:
 	# warning that the hero is nearly dead, which is why `Vfx.clear` and
 	# `Vfx.clear_vignette` are two functions.
 	Vfx.clear_vignette()
+	# The road is what the front door is for: it wears the kit's ember, and a
+	# banked front's Resume copies it below.
+	if new_run_button != null:
+		new_run_button.theme_type_variation = &"PrimaryButton"
 	ScreenFit.set_menu_layout(true)
 	get_viewport().size_changed.connect(_fit_menu)
 	TouchInput.shown_changed.connect(func(_showing: bool) -> void: _fit_menu.call_deferred())
@@ -1066,7 +1070,7 @@ func _build_walk_button() -> void:
 	button.text = "Walk the valley"
 	button.tooltip_text = ("One night in the last hold, west to east, learning what a Warden does - and it ends with the chain coming off.")
 	button.custom_minimum_size = new_run_button.custom_minimum_size
-	button.theme_type_variation = new_run_button.theme_type_variation
+	button.theme_type_variation = settings_button.theme_type_variation
 	IconKit.on_button(button, "distance", 26)
 	column.add_child(button)
 	column.move_child(button, new_run_button.get_index())

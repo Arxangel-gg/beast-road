@@ -34,6 +34,8 @@ func _ready() -> void:
 	# button that does not quit, directly above the one that does.
 	IconKit.on_button(resume_button, "pressure_arrow", 24)
 	IconKit.on_button(menu_button, "close", 24)
+	# The one button here that throws something away wears the kit's red.
+	menu_button.theme_type_variation = &"DangerButton"
 	_menu_text = menu_button.text
 
 	_build_settings()

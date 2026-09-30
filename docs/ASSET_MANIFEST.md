@@ -3043,11 +3043,23 @@ a non-square target just letterboxes the art and shrinks it.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ui_panel.png` | 256×256 | T | `#1A2428` |
-| `ui_panel_dark.png` | 256×256 | T | `#0E1518` |
-| `ui_button.png` | 256×88 | T | `#2E4048` |
-| `ui_button_hover.png` | 256×88 | T | `#3E5660` |
-| `ui_slot.png` | 128×128 | T | `#232F33` |
+| `ui_panel.png` | 256×256 | T | `#14262C` |
+| `ui_panel_dark.png` | 256×256 | T | `#0E1C22` |
+| `ui_button.png` | 192×48 | T | `#1E3440` |
+| `ui_button_hover.png` | 192×48 | T | `#2A4654` |
+| `ui_slot.png` | 128×128 | T | `#14262C` |
+| `ui_button_pressed.png` | 192×48 | T | `#14242C` |
+| `ui_button_disabled.png` | 192×48 | T | `#242C30` |
+| `ui_button_primary.png` | 192×48 | T | `#7A4410` |
+| `ui_button_primary_hover.png` | 192×48 | T | `#955418` |
+| `ui_button_primary_pressed.png` | 192×48 | T | `#5A300A` |
+| `ui_button_danger.png` | 192×48 | T | `#6A1C18` |
+| `ui_button_danger_hover.png` | 192×48 | T | `#842420` |
+| `ui_button_danger_pressed.png` | 192×48 | T | `#4A1210` |
+| `ui_panel_inset.png` | 256×256 | T | `#10222A` |
+| `ui_panel_tooltip.png` | 256×256 | T | `#0E1E24` |
+| `ui_slot_selected.png` | 128×128 | T | `#1C2E34` |
+| `ui_focus_frame.png` | 96×96 | T | `#E8A33D` |
 | `ui_bar_fill.png` | 128×16 | T | `#C4552E` |
 | `ui_bar_back.png` | 128×16 | T | `#141C1F` |
 | `ui_bar_frame.png` | 24×24 | T | `#6B6257` |

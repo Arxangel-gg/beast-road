@@ -41,6 +41,13 @@ const INK_DIM: Color = Color(0.52, 0.5, 0.45, 0.55)
 const GOLD: Color = Color(0.90980, 0.63922, 0.23922)
 const OUTLINE: Color = Color(0.02, 0.04, 0.05, 0.9)
 
+# --- Slices ------------------------------------------------------------------
+# The kit's own nine-slice margins at the size the frames are installed at.
+const BUTTON_SLICE_X: int = 21
+const BUTTON_SLICE_Y: int = 15
+const FOCUS_SLICE: int = 17
+const FOCUS_EXPAND: float = 4.0
+
 # Padding lives in UiMetrics, not here. The running game needs the same numbers
 # to line runtime-positioned children up with the theme, and it cannot see this
 # file — `export_presets.cfg` excludes `tools/*` from the build.
@@ -72,21 +79,21 @@ static func build() -> Dictionary:
 
 	# --- Buttons -------------------------------------------------------------
 	#
-	# Pressed reuses the hover frame darkened rather than getting art of its own:
-	# the lit inner edge is what says "this one", and dimming it reads as the
-	# button taking the weight of the click.
-	# Vertical margins are deliberately under the art's own 20px border. The
-	# top and bottom of this frame are a uniform iron bar with no features along
-	# their length, so letting a few pixels of it stretch is invisible - whereas
-	# reserving the full 20 on a 54px button leaves 14px of middle and the frame
-	# swallows the button. The corner bolts are the part that must not stretch,
-	# and those are held by the horizontal margins.
-	var normal: StyleBox = _frame("ui_button", 34, 34, 15, 16, problems)
-	var hover: StyleBox = _frame("ui_button_hover", 34, 34, 15, 16, problems)
-	var pressed: StyleBox = _frame("ui_button_hover", 34, 34, 15, 16, problems,
-		Color(0.72, 0.66, 0.56))
-	var disabled: StyleBox = _frame("ui_button", 34, 34, 15, 16, problems,
-		Color(0.55, 0.55, 0.55, 0.7))
+	# **The Emberbound kit, as of 2026-09-30** (`art_inbox/chatgpt/ui`, the
+	# owner's). Every state has art of its own now, pressed and disabled
+	# included, so nothing is tinted to fake one: a darkened hover frame read as
+	# the same button in worse light. The frames are the kit's 2x export resampled
+	# to 192x48, because the kit drew a 64 px button with 20 px horns and this
+	# game's buttons are 34-54 px tall; the slice is the kit's own 28/20 at that
+	# scale, so a 34 px RIDE ON still holds both horns.
+	var normal: StyleBox = _frame("ui_button", BUTTON_SLICE_X, BUTTON_SLICE_X,
+		BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems)
+	var hover: StyleBox = _frame("ui_button_hover", BUTTON_SLICE_X, BUTTON_SLICE_X,
+		BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems)
+	var pressed: StyleBox = _frame("ui_button_pressed", BUTTON_SLICE_X, BUTTON_SLICE_X,
+		BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems)
+	var disabled: StyleBox = _frame("ui_button_disabled", BUTTON_SLICE_X, BUTTON_SLICE_X,
+		BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems)
 
 	# Symmetric, and deep enough to clear the corner bolts rather than merely the
 	# straight run of frame between them.
@@ -103,10 +110,10 @@ static func build() -> Dictionary:
 	theme.set_stylebox("hover", "Button", hover)
 	theme.set_stylebox("pressed", "Button", pressed)
 	theme.set_stylebox("disabled", "Button", disabled)
-	# Focus stays a drawn outline. The art has no focus state, and tinting the
-	# hover frame for it would make a keyboard-focused button indistinguishable
-	# from the one under the mouse.
-	theme.set_stylebox("focus", "Button", _focus_ring())
+	# Focus is the kit's gold corner brackets, drawn a little outside the button
+	# so they frame it rather than sit on its horns - a keyboard or pad focus
+	# must never look like the hover under the mouse.
+	theme.set_stylebox("focus", "Button", _focus_frame(problems))
 
 	theme.set_color("font_color", "Button", INK)
 	theme.set_color("font_hover_color", "Button", INK_BRIGHT)
@@ -118,27 +125,55 @@ static func build() -> Dictionary:
 	if display_font != null:
 		theme.set_font("font", "Button", display_font)
 
+	# The two loud buttons. **Primary** is the one thing a screen is for - begin
+	# the road, ride on - in the kit's ember; **Danger** is the one that throws
+	# something away, in its blood red. Variations of Button, so a screen opts in
+	# with one line and everything else about the button is the theme's.
+	for variation: Array in [["PrimaryButton", "ui_button_primary"],
+			["DangerButton", "ui_button_danger"]]:
+		var type: String = variation[0]
+		var art: String = variation[1]
+		theme.set_type_variation(type, "Button")
+		var loud: Dictionary = {
+			"normal": _frame(art, BUTTON_SLICE_X, BUTTON_SLICE_X, BUTTON_SLICE_Y,
+				BUTTON_SLICE_Y, problems),
+			"hover": _frame(art + "_hover", BUTTON_SLICE_X, BUTTON_SLICE_X,
+				BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems),
+			"pressed": _frame(art + "_pressed", BUTTON_SLICE_X, BUTTON_SLICE_X,
+				BUTTON_SLICE_Y, BUTTON_SLICE_Y, problems),
+		}
+		for state: String in loud:
+			var style: StyleBox = loud[state]
+			_pad(style, UiMetrics.PAD_BUTTON_X, UiMetrics.PAD_BUTTON_X, UiMetrics.PAD_BUTTON_Y,
+				UiMetrics.PAD_BUTTON_Y)
+			theme.set_stylebox(state, type, style)
+		theme.set_color("font_color", type, INK_BRIGHT)
+		theme.set_color("font_hover_color", type, Color.WHITE)
+
 	# --- Panels --------------------------------------------------------------
-	# Re-measured for the 2026-09-11 art: the stone frame runs 22-28px into
-	# the 256 square and the corner plates a little further, so 30 clears them.
-	var panel: StyleBox = _frame("ui_panel", 30, 30, 30, 30, problems)
+	# The kit's slices, measured again on its art: the main frame's horns reach
+	# about 40 px along each edge, the dark frame's 24, the inset's a thin
+	# border, the tooltip's corner plates 28.
+	var panel: StyleBox = _frame("ui_panel", 44, 44, 44, 44, problems)
 	_pad(panel, UiMetrics.PAD_PANEL_X, UiMetrics.PAD_PANEL_X, UiMetrics.PAD_PANEL_Y, UiMetrics.PAD_PANEL_Y)
 	theme.set_stylebox("panel", "PanelContainer", panel)
 	theme.set_stylebox("panel", "Panel", panel)
 
 	# The plain frame for things that float over the game and must not compete
 	# with it: tooltips and popups.
-	var dark: StyleBox = _frame("ui_panel_dark", 22, 22, 22, 22, problems)
+	var dark: StyleBox = _frame("ui_panel_dark", 24, 24, 24, 24, problems)
 	_pad(dark, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_Y, UiMetrics.PAD_DARK_Y)
 	theme.set_stylebox("panel", "PopupPanel", dark)
-	theme.set_stylebox("panel", "TooltipPanel", dark)
+	var tooltip: StyleBox = _frame("ui_panel_tooltip", 28, 28, 28, 28, problems)
+	_pad(tooltip, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_Y, UiMetrics.PAD_DARK_Y)
+	theme.set_stylebox("panel", "TooltipPanel", tooltip)
 	theme.set_color("font_color", "TooltipLabel", INK)
 
 	# A panel *inside* a panel must not repeat the ornate frame - riveted iron
 	# nested in riveted iron reads as a rendering mistake. The stat preview in the
 	# build panel is the case that needs this.
 	theme.set_type_variation("InnerPanel", "PanelContainer")
-	var inner: StyleBox = _frame("ui_panel_dark", 22, 22, 22, 22, problems)
+	var inner: StyleBox = _frame("ui_panel_inset", 16, 16, 16, 16, problems)
 	_pad(inner, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_X, UiMetrics.PAD_DARK_Y, UiMetrics.PAD_DARK_Y)
 	theme.set_stylebox("panel", "InnerPanel", inner)
 
@@ -226,6 +261,21 @@ static func _pad(style: StyleBox, left: int, right: int, top: int, bottom: int) 
 	style.content_margin_right = float(right)
 	style.content_margin_top = float(top)
 	style.content_margin_bottom = float(bottom)
+
+
+## The kit's focus brackets, standing `FOCUS_EXPAND` outside what they frame.
+static func _focus_frame(problems: PackedStringArray) -> StyleBox:
+	var style: StyleBox = _frame("ui_focus_frame", FOCUS_SLICE, FOCUS_SLICE, FOCUS_SLICE,
+		FOCUS_SLICE, problems)
+	var textured := style as StyleBoxTexture
+	if textured == null:
+		return _focus_ring()
+	textured.draw_center = false
+	textured.expand_margin_left = FOCUS_EXPAND
+	textured.expand_margin_right = FOCUS_EXPAND
+	textured.expand_margin_top = FOCUS_EXPAND
+	textured.expand_margin_bottom = FOCUS_EXPAND
+	return textured
 
 
 static func _focus_ring() -> StyleBoxFlat:

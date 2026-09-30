@@ -696,6 +696,7 @@ func _build_tools() -> void:
 		sweep.custom_minimum_size = Vector2(0.0, TAB_HEIGHT)
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sweep.add_theme_font_size_override("font_size", 14)
+		sweep.theme_type_variation = &"DangerButton"
 		# A full row each: "Break all Worn" beside a slot filter reads as another
 		# filter, and it is the one control on this screen that destroys things.
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
