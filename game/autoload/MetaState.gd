@@ -985,6 +985,9 @@ var settings: Dictionary = {
 	# How much the ground remembers when blood is on (2026-09-30): Low (1) or
 	# High (2). Declared here or it is dropped on load and reverts.
 	"blood_level": 1,
+	# Whether the Warden's Glass turns its Warden on its own (2026-09-30), a
+	# preference about a screen rather than anything about the Warden.
+	"glass_turntable": true,
 	# Whether an augment draft opens the moment it is earned, holding the road,
 	# or waits for the breather (2026-09-26). Solo only; off by default, so a
 	# fight is never interrupted unless the player asked for it.

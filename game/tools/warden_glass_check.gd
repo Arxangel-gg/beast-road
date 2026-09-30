@@ -204,6 +204,18 @@ func _test_the_shortcuts(glass: WardenGlass) -> void:
 	plain["body"] = 1
 	_check(WardenLook.same(MetaState.look, plain), "as painted did not keep the body and clear the rest: %s" % str(MetaState.look))
 	_press(_button(glass, "Body0"))
+	# The turntable (owner, 2026-09-30): held still and turning again, and
+	# remembered, because the stage turning is a preference about the screen.
+	var spin := _button(glass, "Turntable")
+	_check(spin != null and spin.toggle_mode, "the glass has no turntable toggle")
+	if spin != null:
+		var stage: WardenStage = glass.get("_stage") as WardenStage
+		spin.button_pressed = false
+		_check(not stage.turntable and not bool(MetaState.settings.get("glass_turntable", true)),
+			"holding the Warden still did not stop the stage, or was not remembered")
+		spin.button_pressed = true
+		_check(stage.turntable and bool(MetaState.settings.get("glass_turntable", false)),
+			"turning the Warden again did not start the stage")
 	glass.close()
 	_reached["shortcuts"] = true
 

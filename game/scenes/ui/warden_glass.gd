@@ -248,6 +248,25 @@ func _build_preview() -> Control:
 	right.custom_minimum_size = Vector2(44.0, 36.0)
 	right.pressed.connect(_turn.bind(1))
 	turns.add_child(right)
+	# **Whether the pedestal turns on its own** (owner, 2026-09-30: *"Toggle
+	# button for the player avatar spinning"*). Remembered, because somebody
+	# who wants to study one side of a face wants it still every time; the
+	# arrows still turn a held Warden a facing at a time.
+	var spin := Button.new()
+	spin.name = "Turntable"
+	spin.toggle_mode = true
+	spin.text = "Turning"
+	spin.tooltip_text = "Turn the Warden on its own, or hold it still"
+	spin.custom_minimum_size = Vector2(0.0, 36.0)
+	spin.button_pressed = bool(MetaState.settings.get("glass_turntable", true))
+	_stage.turntable = spin.button_pressed
+	spin.toggled.connect(func(on: bool) -> void:
+		_stage.turntable = on
+		spin.text = "Turning" if on else "Still"
+		MetaState.settings["glass_turntable"] = on
+		MetaState.save_game())
+	spin.text = "Turning" if spin.button_pressed else "Still"
+	turns.add_child(spin)
 	_gear_toggle = CheckButton.new()
 	_gear_toggle.name = "ShowGear"
 	_gear_toggle.text = "Wearing my gear"
