@@ -70,11 +70,17 @@ const GRAIN: int = Balance.UI_PIXEL_FILTER_MASK_GRAIN
 ## Roots whose text the world's grid steps over. The world's grid is always
 ## under the interface, so these are the strings parented into a scope - the
 ## town's tier captions are the reported case.
-var world_roots: Array[Node] = []
+var world_roots: Array[Node] = []:
+	set(value):
+		world_roots = value
+		_stale = true
 
 ## Roots whose text the interface's grid steps over, and only while that grid is
 ## on.
-var ui_roots: Array[Node] = []
+var ui_roots: Array[Node] = []:
+	set(value):
+		ui_roots = value
+		_stale = true
 
 ## The interface's grid. A `PixelGrid` rather than a `PixelFilter`, because the
 ## main menu has the grid without the layer.
@@ -91,6 +97,20 @@ var _ui_rects: Array[Rect2] = []
 var _on: bool = false
 var _ui: bool = false
 var _signature: int = 0
+## **The controls that can carry type, kept rather than found every frame**
+## (2026-09-30). The walk descended every node under every root on every
+## frame, and the world's roots are the battlefield, the town and the beast -
+## thousands of bodies, plants, torches and shots for the handful of strings
+## among them. Measured at Act X it was most of the three and a half
+## milliseconds the pixel filter cost. The roots are walked once when they are
+## handed over; after that a Control joining the tree under one of them is
+## added the moment it arrives and one leaving is dropped, so the list is
+## always the walk's answer. Every frame only the watched controls are read -
+## whether shown, what they say, where they are - so the mask is as exact as
+## it was. Keyed by instance id to [control, kind, over the interface]: kind 0
+## a string it draws, 1 a tab strip, 2 a control naming its own rectangles.
+var _watched: Dictionary = {}
+var _stale: bool = true
 
 
 func _ready() -> void:
@@ -104,6 +124,8 @@ func _ready() -> void:
 	# screen, which is how a setting reads as broken.
 	add_to_group(Graphics.SETTINGS_GROUP)
 	refresh_from_settings()
+	get_tree().node_added.connect(_on_node_added)
+	get_tree().node_removed.connect(_on_node_removed)
 
 
 func refresh_from_settings() -> void:
@@ -153,20 +175,106 @@ func _process(_delta: float) -> void:
 	_gather()
 
 
+func _on_node_added(node: Node) -> void:
+	var control := node as Control
+	if control == null or _stale:
+		return
+	for root: Variant in world_roots:
+		if is_instance_valid(root) and ((root as Node) == node or (root as Node).is_ancestor_of(node)):
+			_watch(control, false)
+			return
+	for root: Variant in ui_roots:
+		if is_instance_valid(root) and ((root as Node) == node or (root as Node).is_ancestor_of(node)):
+			_watch(control, true)
+			return
+
+
+func _on_node_removed(node: Node) -> void:
+	if node is Control:
+		_watched.erase(node.get_instance_id())
+
+
+func _watch(control: Control, ui: bool) -> void:
+	if control == self:
+		return
+	var kind: int = -1
+	if DRAWN.has(control.get_class()):
+		kind = 0
+	elif control is TabContainer:
+		kind = 1
+	elif control.has_method("crisp_rects"):
+		kind = 2
+	if kind >= 0:
+		_watched[control.get_instance_id()] = [control, kind, ui]
+
+
+## Every control under a root that can carry type, shown or not - whether it
+## is shown is asked when it is read, every frame, so a panel opening needs
+## no walk.
+func _collect(from: Variant, ui: bool) -> void:
+	if from == null or not is_instance_valid(from):
+		return
+	var node: Node = from as Node
+	if node == null or node == self:
+		return
+	var control: Control = node as Control
+	if control != null:
+		_watch(control, ui)
+	for child: Node in node.get_children():
+		_collect(child, ui)
+
+
+## One watched control's rectangles, if it is shown and says something: the
+## same three cases the walk read, asked of one control rather than a tree.
+##
+## **Type a script painted itself** names its own rectangles (`crisp_rects`):
+## `BarName` writes HP, MP and SP with `draw_string`, so its class is `Control`
+## and no class list could see it - the grid ran over those captions until it
+## said where they were. **A TabContainer's tabs** are drawn by an internal
+## `TabBar` that is not in `get_children()`, and the bar's own rect is held
+## rather than the container's, which is as big as the page under it.
+func _read(entry: Array, into: Array[Rect2]) -> void:
+	var held: Variant = entry[0]
+	if not is_instance_valid(held):
+		return
+	var control: Control = held as Control
+	if control == null or not control.is_inside_tree() or not control.is_visible_in_tree():
+		return
+	match int(entry[1]):
+		0:
+			if _says_something(control):
+				into.append(control.get_global_rect())
+		1:
+			var bar: TabBar = (control as TabContainer).get_tab_bar()
+			if bar != null and is_instance_valid(bar) and bar.is_visible_in_tree():
+				into.append(bar.get_global_rect())
+		2:
+			for rect: Variant in control.call("crisp_rects"):
+				into.append(rect as Rect2)
+
+
 ## Walks the roots and records where every piece of type is standing.
 func _gather() -> void:
 	_rects.clear()
 	_ui_rects.clear()
-
-	# `Variant` loop variables, because a typed one casts on assignment - so a
-	# root freed while this was watching it would throw here, before `_walk`
-	# could guard it. Same reason the walk and the release both take one.
-	for root: Variant in world_roots:
-		_walk(root, _rects)
+	if _stale:
+		_stale = false
+		_watched.clear()
+		# `Variant` loop variables, because a typed one casts on assignment - so
+		# a root freed while this was watching it would throw here, before
+		# `_collect` could guard it. Same reason the release takes one.
+		for root: Variant in world_roots:
+			_collect(root, false)
+		for root: Variant in ui_roots:
+			_collect(root, true)
+	for entry: Variant in _watched.values():
+		if not bool((entry as Array)[2]):
+			_read(entry as Array, _rects)
 	_ui_rects.append_array(_rects)
 	if _ui:
-		for root: Variant in ui_roots:
-			_walk(root, _ui_rects)
+		for entry: Variant in _watched.values():
+			if bool((entry as Array)[2]):
+				_read(entry as Array, _ui_rects)
 
 	# **Stamped only when something moved.** A mask is a texture upload, and a
 	# screenful of captions whose rectangles are identical this frame is the
@@ -226,56 +334,6 @@ func _clear_masks() -> void:
 		world_filter_grid.set_text_mask(null, 0)
 	if ui_filter_grid != null and is_instance_valid(ui_filter_grid):
 		ui_filter_grid.set_text_mask(null, 0)
-
-
-## Takes a `Variant` for the same reason the release does: a root freed while
-## this was watching it cannot be typed as a `Node` without throwing on the spot.
-func _walk(from: Variant, into: Array[Rect2]) -> void:
-	if from == null or not is_instance_valid(from):
-		return
-	var node: Node = from as Node
-	if node == null:
-		return
-	if node == self:
-		return
-	var control: Control = node as Control
-	if control != null:
-		if not control.is_visible_in_tree():
-			# A hidden branch draws nothing, so nothing under it needs
-			# protecting - and descending anyway would hold open a rectangle of
-			# screen where a closed panel used to be.
-			return
-		if DRAWN.has(control.get_class()) and _says_something(control):
-			into.append(control.get_global_rect())
-		# **Type a script painted itself, which `get_class` can never see.**
-		# `BarName` writes "HP", "MP" and "SP" on the pool bars with
-		# `draw_string`, because a Label cannot be smaller than its own font
-		# and one anchored to an eight-pixel bar hangs off the bottom of it.
-		# So its class is `Control`, it is on no list here, and the grid ran
-		# straight over the three captions in the top corner of the HUD -
-		# which is exactly what the owner reported.
-		#
-		# A method rather than another class name: anything that draws its own
-		# lettering can say where, and nothing here has to know what it is.
-		# **A TabContainer's tabs are drawn by a child nothing walks to.** The
-		# strip of tab labels belongs to an internal `TabBar` that is not in
-		# `get_children()`, so the grid ran straight over the words on the
-		# settings screen's tabs and over nothing else on it - which is the
-		# owner's report of 2026-09-17, and the same shape as `BarName`.
-		#
-		# The bar's own rect rather than the container's: a `TabContainer` is as
-		# big as the page inside it, and holding *that* open would take the
-		# whole settings screen out of the grid.
-		elif control is TabContainer:
-			var bar: TabBar = (control as TabContainer).get_tab_bar()
-			if bar != null and is_instance_valid(bar) \
-					and bar.is_visible_in_tree():
-				into.append(bar.get_global_rect())
-		elif control.has_method("crisp_rects"):
-			for rect: Variant in control.call("crisp_rects"):
-				into.append(rect as Rect2)
-	for child: Node in node.get_children():
-		_walk(child, into)
 
 
 ## Whether this control has anything on it worth stepping over. An empty label

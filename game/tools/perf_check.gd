@@ -319,6 +319,11 @@ func _ready() -> void:
 			"foliage": Graphics.set_switch(Graphics.KEY_FOLIAGE, 0.0)
 			"lights": _kill_lights()
 			"flames": _kill_emitters()
+			"grade": Graphics.set_switch(Graphics.KEY_GRADE, false)
+			"bloom": Graphics.set_switch(Graphics.KEY_BLOOM, false)
+			"pixel": Graphics.set_switch(Graphics.KEY_PIXEL_FILTER, false)
+			"fog": Graphics.set_switch(Graphics.KEY_FOG, false)
+			"water": Graphics.set_switch(Graphics.KEY_WATER_REFRACTION, false)
 			_: push_warning("Unknown --off feature '%s'." % feature)
 	# The player's stored cap is irrelevant to a throughput test. Apply the
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
@@ -660,7 +665,13 @@ func _report() -> void:
 		for index: int in mini(names.size(), 28):
 			parts.append("%s %.2f" % [String(names[index]),
 				float(_bucket_ms[names[index]]) / float(_bucket_frames)])
+		var total: float = 0.0
+		for name: Variant in names:
+			# e_, h_, t_ and j_ are parts of enemy, hero, tower and the juice, already inside them.
+			if not (String(name).begins_with("e_") or String(name).begins_with("h_") or String(name).begins_with("t_") or String(name).begins_with("j_")):
+				total += float(_bucket_ms[name])
 		print("[perf] mean ms a frame by bucket: %s" % ", ".join(parts))
+		print("[perf] top-level buckets sum to %.2f ms a frame" % (total / float(_bucket_frames)))
 		var inks: PackedStringArray = []
 		for kind: String in _ink_live:
 			var mean: float = float(_ink_live[kind]) / float(_bucket_frames)

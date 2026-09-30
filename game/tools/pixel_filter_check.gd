@@ -73,6 +73,7 @@ func _ready() -> void:
 	_test_the_grid_scales_with_the_screen()
 	await _test_headless_engages_nothing()
 	await _test_the_type_is_held_out_of_the_grid()
+	await _test_type_that_arrives_later_is_held_out()
 	await _test_the_type_is_never_touched()
 	await _test_a_freed_control_is_not_written_to()
 	await _test_marked_up_text_is_held_out_too()
@@ -236,6 +237,48 @@ func _test_the_type_is_held_out_of_the_grid() -> void:
 		+ "nothings is the most dangerous shape a check can take, and a "
 		+ "`CrispText` that finds no strings passes every other test here")
 
+	crisp.queue_free()
+	root.queue_free()
+
+
+## **Type that arrives while the filter runs is held out on the next frame,
+## and let go when it leaves** (2026-09-30). The filter keeps a list of the
+## controls that can carry type rather than walking every root every frame,
+## and the list is only right if a label added later joins it and one taken
+## away leaves it - a list built once would hold the first frame's type for
+## ever. And the walk must not have come back: the source is read for it.
+func _test_type_that_arrives_later_is_held_out() -> void:
+	var root := Control.new()
+	root.size = Vector2(400.0, 200.0)
+	var first := Label.new()
+	first.text = "Act I"
+	first.size = Vector2(120.0, 40.0)
+	root.add_child(first)
+	add_child(root)
+	var crisp: CrispText = _crisp_over(root)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var before: int = crisp.drawn()
+	var panel := Control.new()
+	var later := Label.new()
+	later.text = "The Last Terrace"
+	later.position = Vector2(0.0, 80.0)
+	later.size = Vector2(300.0, 40.0)
+	panel.add_child(later)
+	root.add_child(panel)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(crisp.drawn() == before + 1,
+		"a label added while the filter ran was not held out (%d before, %d after)"
+		% [before, crisp.drawn()])
+	panel.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(crisp.drawn() == before,
+		"a label taken away was still held out (%d, wanted %d)" % [crisp.drawn(), before])
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/crisp_text.gd")
+	_check(not source.contains("func _walk("),
+		"the filter walks every root every frame again")
 	crisp.queue_free()
 	root.queue_free()
 

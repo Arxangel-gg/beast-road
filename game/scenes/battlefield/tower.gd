@@ -1417,8 +1417,15 @@ func _tick_step_wobble(delta: float) -> void:
 	# that the structure still reads as standing square on its plot - a tower
 	# rotated to face a flank would be lying on its side (the perspective rule,
 	# 2026-09-14).
+	# **A tower nobody can see keeps its clocks and moves nothing** (2026-09-30).
+	# Forty towers on four roads, most of them off the screen, each asked what it
+	# would lean at and wrote its rotation, scale and position every frame. The
+	# clocks above and below still run, so a tower panned onto is mid-breath and
+	# mid-recoil, exactly where it would have been. Never headless
+	# (`ScreenCull.culling`).
+	var unseen: bool = ScreenCull.culling() and not ScreenCull.sees(sprite, Balance.VFX_CULL_MARGIN)
 	_aim_left -= delta
-	if _aim_left <= 0.0:
+	if _aim_left <= 0.0 and not unseen:
 		_aim_left = Balance.TOWER_AIM_INTERVAL
 		_aim_goal = _aim_wanted()
 	_aim = _aim.lerp(_aim_goal, clampf(delta * Balance.TOWER_AIM_EASE, 0.0, 1.0))
@@ -1438,6 +1445,8 @@ func _tick_step_wobble(delta: float) -> void:
 	if _jolt_left > 0.0:
 		swell = sin(PI * (1.0 - _jolt_left
 			/ maxf(Balance.TOWER_UPGRADE_JOLT_SECONDS, 0.01)))
+	if unseen:
+		return
 	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY
 		+ _aim.x * Balance.TOWER_AIM_DEGREES)
 	# The kick rides *on top of* the idle rather than replacing it. Two systems

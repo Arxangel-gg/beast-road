@@ -762,8 +762,14 @@ func _process_measured(delta: float) -> void:
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	_t = Time.get_ticks_usec()
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
-	_update_sprite(delta)
-	_update_blood(delta)
+	# **A body nobody can see is not dressed** (2026-09-30): its facing, its
+	# frames, its tint and its blood are pictures, and a late wave is mostly off
+	# the screen. Everything `_update_sprite` writes is worked out from the
+	# body's state, so the frame it comes into view it is dressed whole. Never
+	# headless (`ScreenCull.culling`).
+	if not ScreenCull.culling() or ScreenCull.sees(sprite, Balance.VFX_CULL_MARGIN):
+		_update_sprite(delta)
+		_update_blood(delta)
 	FrameProfile.add(&"e_look", _t)
 
 
