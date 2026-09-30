@@ -297,6 +297,29 @@ func _test_a_boss_quickens_as_it_breaks(field: Battlefield, hero: Hero) -> void:
 			% [pressed, rested])
 	enemy.queue_free()
 	await get_tree().process_frame
+	await _test_a_boss_makes_one_entrance(field, hero, boss)
+
+
+## **A boss makes an entrance, once** (2026-09-30): the first time it is on the
+## screen the ground takes its weight - headless, where every place is on the
+## screen, that is its first tick - and never again.
+func _test_a_boss_makes_one_entrance(field: Battlefield, hero: Hero, boss: EnemyData) -> void:
+	var entrances: Array[int] = [0]
+	var ear: Callable = func(_at: Vector2, weight: float) -> void:
+		if is_equal_approx(weight, Balance.BOSS_ENTRANCE_IMPACT):
+			entrances[0] += 1
+	EventBus.camera_impact.connect(ear)
+	var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) 		.instantiate() as Enemy
+	enemy.setup(boss, RunState.act, field, 1.0, 1.0, 1.0)
+	field.add_child(enemy)
+	enemy.global_position = hero.global_position + Vector2.LEFT * 900.0
+	for _frame: int in 12:
+		await get_tree().process_frame
+	EventBus.camera_impact.disconnect(ear)
+	_check(enemy.made_entrance(), "a boss on the screen must make its entrance")
+	_check(entrances[0] == 1, "a boss made %d entrances, not one" % entrances[0])
+	enemy.queue_free()
+	await get_tree().process_frame
 
 
 ## One slam, landed on a hero standing still, and how far it moved them.

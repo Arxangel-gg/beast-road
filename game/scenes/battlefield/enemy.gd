@@ -545,6 +545,37 @@ func hidden_from_the_board() -> bool:
 	return (is_camp_mob() and not is_provoked()) or is_uncalled_herald()
 
 
+## **A boss makes an entrance** (2026-09-30): the second-rank juice the
+## 2026-09-15 triage deferred. A boss is announced when it spawns - a banner,
+## the music, a flat shake - and then walks on from the edge of the map, so the
+## moment the player actually meets it was a body walking into view like any
+## other. The first time it is on the screen the ground takes its weight: dust,
+## a ring the width of it, a shake weighted by distance like every blow, a knock,
+## and its name over it. Once, and a look - nothing reads any of it.
+var _made_entrance: bool = false
+
+
+func _tick_entrance() -> void:
+	if _made_entrance or data == null or data.category != EnemyData.Category.BOSS:
+		return
+	if not ScreenCull.world_sees(self, global_position, Balance.BOSS_ENTRANCE_MARGIN):
+		return
+	_made_entrance = true
+	var at: Vector2 = global_position
+	var wide: float = maxf(data.body_radius * Balance.BOSS_ENTRANCE_RING, 60.0)
+	Vfx.dust(at, Color(0.46, 0.4, 0.32, 0.7), Balance.BOSS_ENTRANCE_DUST, wide)
+	Vfx.ring(at, wide, Color(1.0, 0.82, 0.5, 0.85), 0.6, 6.0)
+	EventBus.camera_impact.emit(at, Balance.BOSS_ENTRANCE_IMPACT)
+	Sfx.play_group_at("sfx_hit_stone", at, Balance.BOSS_ENTRANCE_DB)
+	Vfx.word(_visual_origin() + Vector2(0.0, -wide * 0.6), data.display_name.to_upper(),
+		Color(1.0, 0.82, 0.5), Balance.BOSS_ENTRANCE_WORD)
+
+
+## For the gate.
+func made_entrance() -> bool:
+	return _made_entrance
+
+
 ## The call: the wall is in reach. Said once; the board may shoot it from here.
 func _sound_the_call() -> void:
 	if _herald_called:
@@ -781,6 +812,7 @@ func _process_measured(delta: float) -> void:
 		_tick_puppet(delta)
 		return
 
+	_tick_entrance()
 	_hunted_left = maxf(_hunted_left - delta, 0.0)
 	var _t: int = Time.get_ticks_usec()
 	_tick_status(delta)

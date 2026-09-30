@@ -5432,6 +5432,16 @@ const WAVE_SIEGE_ORDER_SHARE: Array[float] = [
 ## than an elite's six-fold pool, because the whole point is that one Warden
 ## can catch it. Solo only, and never on the Walk. [TUNE]
 const HERALD_FIRST_ACT: int = 3
+## **A boss's entrance** (`Enemy._tick_entrance`, 2026-09-30): how far past the
+## edge of the screen it counts as in view, the ring against its body, the dust,
+## the weight of the shake, the knock's level and the size of its name. A look,
+## never a fact. [TUNE]
+const BOSS_ENTRANCE_MARGIN: float = 40.0
+const BOSS_ENTRANCE_RING: float = 2.6
+const BOSS_ENTRANCE_DUST: int = 16
+const BOSS_ENTRANCE_IMPACT: float = 1.4
+const BOSS_ENTRANCE_DB: float = 2.0
+const BOSS_ENTRANCE_WORD: int = 36
 ## **A sandbox road's purse**, in each of the four currencies (2026-09-30,
 ## `IDEAS_REVIEW_2026-09-23` §4.3): enough that nothing on the board is out of
 ## reach, on a road where nothing is kept. [TUNE]
