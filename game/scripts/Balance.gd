@@ -9925,6 +9925,12 @@ const UI_ZOOM_TOWN_STOP: float = 0.92
 ## `CAMERA_SCOPE_PUSH_DETENTS` it takes to cross, each within
 ## `CAMERA_SCOPE_PUSH_WINDOW` of the last. [TUNE]
 const CAMERA_SCOPE_PUSH_DETENTS: int = 2
+## **A change of view is a cut from dark** (`ScopeCut`): how long the fade in
+## lasts, how dark it starts and the dark it starts from. Under the HUD and a
+## look only. [TUNE]
+const SCOPE_CUT_SECONDS: float = 0.24
+const SCOPE_CUT_ALPHA: float = 0.72
+const SCOPE_CUT_COLOUR: Color = Color(0.02, 0.02, 0.03)
 const CAMERA_SCOPE_PUSH_SETTLE: float = 0.35
 const CAMERA_SCOPE_PUSH_WINDOW: float = 0.9
 ## A pinch's version: how far past the band's end the fingers must keep going,

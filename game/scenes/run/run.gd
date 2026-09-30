@@ -99,6 +99,10 @@ func _ready() -> void:
 	beast.visible = false
 	town.process_mode = Node.PROCESS_MODE_DISABLED
 	beast.process_mode = Node.PROCESS_MODE_DISABLED
+	# A change of view is a cut from dark, under the HUD (2026-09-30).
+	var cut := ScopeCut.new()
+	cut.name = "ScopeCut"
+	add_child(cut)
 
 	# The frame governs the preset while the player has chosen none
 	# (2026-09-24). Said on the HUD through a callable, so the governor holds

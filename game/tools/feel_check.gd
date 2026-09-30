@@ -41,6 +41,7 @@ func _ready() -> void:
 	_test_the_ear()
 	_test_a_burst_is_heard_as_its_first_few()
 	await _test_a_streak_counts_what_falls_near()
+	_test_a_scope_change_is_a_cut()
 	_test_a_dropped_sound_decides_nothing()
 	await _test_the_field()
 	_test_a_voice_comes_from_where_it_is()
@@ -144,6 +145,28 @@ func _test_the_ear() -> void:
 ## Kills close together near the Warden build it and reach a tier; a kill across
 ## the map does not count; the window lapsing ends it. And it is a look: the
 ## script names no run or account state at all, and the battlefield stands it up.
+## **A change of view is a cut from dark, under the HUD** (2026-09-30). Headless
+## there is no picture, so the rule is read off the source: the run stands it
+## up, it sits below the HUD's layer, it takes no click, and it names no run or
+## account state - a look and nothing else.
+func _test_a_scope_change_is_a_cut() -> void:
+	var run_source: String = FileAccess.get_file_as_string("res://scenes/run/run.gd")
+	_check(run_source.contains("ScopeCut.new()"), "nothing stands the scope cut up")
+	var hud_source: String = FileAccess.get_file_as_string("res://scenes/ui/hud.gd")
+	var at: int = hud_source.find("\tlayer = ")
+	var hud_layer: int = int(hud_source.substr(at + 9, 4).strip_edges()) if at >= 0 else -1
+	_check(hud_layer > 0 and ScopeCut.LAYER < hud_layer,
+		"the scope cut (layer %d) is not under the HUD (layer %d)" % [ScopeCut.LAYER, hud_layer])
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/scope_cut.gd")
+	var code: String = ""
+	for line: String in source.split("\n"):
+		if not line.strip_edges().begins_with("#"):
+			code += line + "\n"
+	_check(code.contains("MOUSE_FILTER_IGNORE"), "the scope cut can take a click")
+	_check(not code.contains("RunState.") and not code.contains("MetaState."),
+		"the scope cut reads or writes the run - it must be a look and nothing else")
+
+
 func _test_a_streak_counts_what_falls_near() -> void:
 	var warden := Node2D.new()
 	add_child(warden)
