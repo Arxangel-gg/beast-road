@@ -13,4 +13,4 @@ aura_speed = 0.12
 aura_resistance = 0.08
 from_act = 9
 mark_colour = Color(0.86, 0.64, 0.36, 1)
-favoured_weather = Array[String](["duststorm"])
+favoured_weather = Array[String](["duststorm", "highland_squall"])

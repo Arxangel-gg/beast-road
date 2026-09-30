@@ -13,4 +13,4 @@ death_blast_damage = 30.0
 death_chain = 3
 mark_colour = Color(0.62, 0.8, 1, 1)
 from_act = 4
-favoured_weather = Array[String](["downpour"])
+favoured_weather = Array[String](["downpour", "thunderstorm"])

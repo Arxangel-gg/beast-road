@@ -13,4 +13,4 @@ death_blast_radius = 150.0
 death_blast_damage = 24.0
 from_act = 3
 mark_colour = Color(1.0, 0.46, 0.2, 1)
-favoured_weather = Array[String](["heatwave"])
+favoured_weather = Array[String](["heatwave", "ashfall"])
