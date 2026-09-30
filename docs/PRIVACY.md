@@ -33,6 +33,10 @@ time the game starts or you open the board.
 
 Where it goes: a Supabase database at `xscyioampvjfqcciccie.supabase.co`.
 
+A Hardcore Warden's run goes to a board of its own (the `runs_hardcore` table
+beside `runs`) with exactly the same fields. A buried Warden's run is not kept
+on the machine afterwards, because the account it would be kept on is gone.
+
 ### The Long Ledger: prices, never pieces
 
 When a piece you listed on the Ledger sells, the game publishes what it sold

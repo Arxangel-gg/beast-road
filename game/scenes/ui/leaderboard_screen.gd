@@ -23,6 +23,10 @@ var _note: Label
 var _tabs: HBoxContainer
 var _close_button: Button
 var _tier_id: String = "normal"
+## Which board: the ordinary one or the Hardcore one (2026-09-30). A toggle
+## beside the tiers rather than a fourth tier, because every tier has both.
+var _hardcore: bool = false
+var _hardcore_button: Button
 var _scroll: ScrollContainer
 
 
@@ -126,6 +130,9 @@ func open() -> void:
 	# default 1920x1080 and came out taller than the phone it was drawn on -
 	# and no `size_changed` follows, because the resize already happened.
 	_refit()
+	# Opened on the board this Warden plays: a Hardcore Warden looks first at
+	# the Hardcore board.
+	_hardcore = MetaState.hardcore
 	_build_tabs()
 	_select(MetaState.last_tier_id)
 	_close_button.grab_focus()
@@ -155,27 +162,41 @@ func _build_tabs() -> void:
 		button.custom_minimum_size = Vector2(150.0, 36.0)
 		button.pressed.connect(_select.bind(tier.id))
 		_tabs.add_child(button)
+	_hardcore_button = Button.new()
+	_hardcore_button.name = "HardcoreTab"
+	_hardcore_button.text = "Hardcore"
+	_hardcore_button.toggle_mode = true
+	_hardcore_button.button_pressed = _hardcore
+	_hardcore_button.tooltip_text = ("Wardens with one wound, whose slot is "
+		+ "buried if they do not come home.")
+	_hardcore_button.custom_minimum_size = Vector2(150.0, 36.0)
+	_hardcore_button.pressed.connect(func() -> void:
+		_hardcore = _hardcore_button.button_pressed
+		_select(_tier_id))
+	_tabs.add_child(_hardcore_button)
 
 
 func _select(tier_id: String) -> void:
 	_tier_id = tier_id
 	var tier: CampaignTierData = ContentDB.tier(tier_id)
-	_heading.text = "Leaderboard  ·  %s" % (tier.display_name if tier != null else tier_id)
+	_heading.text = "Leaderboard  ·  %s%s" % [tier.display_name if tier != null else tier_id,
+		"  ·  Hardcore" if _hardcore else ""]
 	for index: int in _tabs.get_child_count():
 		var button := _tabs.get_child(index) as Button
-		if button != null:
+		if button != null and button != _hardcore_button:
 			button.button_pressed = button.text == (tier.display_name if tier != null else "")
 
 	# Shown from the save first and replaced when the network answers, rather
 	# than showing nothing until it does.
-	_fill(Leaderboard.local_board(tier_id), false)
+	_fill(Leaderboard.local_board(tier_id, _hardcore), false)
 	_note.text = "Reading the board…"
-	Leaderboard.fetch(tier_id)
+	Leaderboard.fetch(tier_id, _hardcore)
 
 
-func _on_board_loaded(tier_id: String, rows: Array, from_network: bool) -> void:
+func _on_board_loaded(tier_id: String, rows: Array, from_network: bool,
+		hardcore: bool) -> void:
 	# A board that arrived after the player switched tabs is not this board.
-	if tier_id != _tier_id:
+	if tier_id != _tier_id or hardcore != _hardcore:
 		return
 	_fill(rows, from_network)
 

@@ -519,6 +519,7 @@ jobs:
           # the account costs somebody a save, which is the only loss in this
           # project that neither git nor a re-import can undo.
           check "save slots" --headless --path game res://tools/save_slot_check.tscn
+          check "hardcore" --headless --path game res://tools/hardcore_check.tscn
           # An extension with no library for a platform the game ships to
           # constructs happily and then fails at runtime, on that platform
           # only. WebRTC shipped without an Android binary and co-op could

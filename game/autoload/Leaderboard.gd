@@ -37,12 +37,17 @@ const ANON_KEY: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 ## The table. Named for what a row is, not for what the screen showing it is.
 const TABLE: String = "runs"
+## **The Hardcore board is a table of its own** (2026-09-30), with exactly the
+## contract `runs` has - `docs/LEADERBOARD.md` says why a table rather than a
+## tier or a column. Until its SQL is run a post there answers an error and
+## is queued like any offline post.
+const HARDCORE_TABLE: String = "runs_hardcore"
 
 ## How long any one request may take. Short, because nothing waits on it and a
 ## request that has not answered in this long is not going to.
 ## Emitted when a fetch lands. `rows` is newest-query-first and already sorted by
 ## score; `from_network` is false when the local board answered instead.
-signal board_loaded(tier_id: String, rows: Array, from_network: bool)
+signal board_loaded(tier_id: String, rows: Array, from_network: bool, hardcore: bool)
 
 ## Emitted after a submission resolves, either way. The screen uses it to stop
 ## saying "sending".
@@ -61,10 +66,21 @@ func _ready() -> void:
 
 ## Sends one finished run. Returns immediately.
 func submit(summary: Dictionary, tier: CampaignTierData) -> void:
-	var row: Dictionary = Score.row(summary, tier, MetaState.player_name,
-		MetaState.hero_level, ProjectSettings.get_setting("application/config/version", "dev"),
+	# The Warden who ran it, read off the summary: a buried Hardcore Warden's
+	# account is already a new one by the time the debrief is read, and its name
+	# and level are gone with it.
+	var row: Dictionary = Score.row(summary, tier,
+		String(summary.get("warden", MetaState.player_name)),
+		int(summary.get("warden_level", MetaState.hero_level)),
+		ProjectSettings.get_setting("application/config/version", "dev"),
 		_new_submission_id())
-	_remember_locally(row)
+	if bool(summary.get("hardcore", false)):
+		row[Score.BOARD_KEY] = Score.HARDCORE_BOARD
+	# A buried Warden's run is not kept on this machine: the account it would be
+	# kept on is the new one, and a new Warden's own board holding the dead one's
+	# run is a thing the burial was supposed to take.
+	if not bool(summary.get("buried", false)):
+		_remember_locally(row)
 	if not _network_allowed():
 		_queue(row)
 		submitted.emit(false, "Saved locally. It will send from a normal game session.")
@@ -74,9 +90,9 @@ func submit(summary: Dictionary, tier: CampaignTierData) -> void:
 
 ## Asks for one tier's board. Answers through `board_loaded`, always — with
 ## network rows if they arrive, with the local board if they do not.
-func fetch(tier_id: String) -> void:
+func fetch(tier_id: String, hardcore: bool = false) -> void:
 	if not _network_allowed():
-		board_loaded.emit(tier_id, local_board(tier_id), false)
+		board_loaded.emit(tier_id, local_board(tier_id, hardcore), false, hardcore)
 		return
 
 	# Opening the board is the moment a player is both online and looking, which
@@ -85,7 +101,7 @@ func fetch(tier_id: String) -> void:
 	# player who watched it fail had no way to ask for another go.
 	_flush_pending()
 	var query: String = "%s/%s?select=%s&tier=eq.%s&order=score.desc&limit=%d" % [
-		ENDPOINT, TABLE, ",".join(Score.FIELDS), tier_id.uri_encode(),
+		ENDPOINT, table_for(hardcore), ",".join(Score.FIELDS), tier_id.uri_encode(),
 		Balance.LEADERBOARD_PAGE_SIZE]
 	var request: HTTPRequest = _request()
 	request.request_completed.connect(
@@ -95,19 +111,24 @@ func fetch(tier_id: String) -> void:
 			var response: Dictionary = _parse(result, code, body)
 			var rows: Array = response.get("rows", []) as Array
 			if not bool(response.get("ok", false)):
-				board_loaded.emit(tier_id, local_board(tier_id), false)
+				board_loaded.emit(tier_id, local_board(tier_id, hardcore), false, hardcore)
 			else:
-				board_loaded.emit(tier_id, rows, true), CONNECT_ONE_SHOT)
+				board_loaded.emit(tier_id, rows, true, hardcore), CONNECT_ONE_SHOT)
 	if request.request(query, _headers(), HTTPClient.METHOD_GET) != OK:
 		_release(request)
-		board_loaded.emit(tier_id, local_board(tier_id), false)
+		board_loaded.emit(tier_id, local_board(tier_id, hardcore), false, hardcore)
 
 
 ## This save's own best runs on a tier, best first. Always available.
-func local_board(tier_id: String) -> Array:
+## The table a board lives in.
+static func table_for(hardcore: bool) -> String:
+	return HARDCORE_TABLE if hardcore else TABLE
+
+
+func local_board(tier_id: String, hardcore: bool = false) -> Array:
 	var out: Array = []
 	for row: Dictionary in MetaState.best_runs:
-		if String(row.get("tier", "")) == tier_id:
+		if String(row.get("tier", "")) == tier_id and Score.is_hardcore(row) == hardcore:
 			out.append(row)
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("score", 0)) > int(b.get("score", 0)))
@@ -135,6 +156,10 @@ func is_own(row: Dictionary) -> bool:
 
 
 func _post(row: Dictionary) -> void:
+	# The board rides beside the row and is never posted: both tables share one
+	# schema, and a column a table lacks is refused.
+	var table: String = table_for(Score.is_hardcore(row))
+	var body: Dictionary = Score.clean_row(row)
 	var request: HTTPRequest = _request()
 	request.request_completed.connect(
 		func(result: int, code: int, _headers: PackedStringArray,
@@ -153,8 +178,8 @@ func _post(row: Dictionary) -> void:
 	# Without this the insert answers with the row it wrote, which is a response
 	# body nobody reads.
 	headers.append("Prefer: resolution=ignore-duplicates,return=minimal")
-	if request.request("%s/%s?on_conflict=submission_id" % [ENDPOINT, TABLE], headers,
-			HTTPClient.METHOD_POST, JSON.stringify(row)) != OK:
+	if request.request("%s/%s?on_conflict=submission_id" % [ENDPOINT, table], headers,
+			HTTPClient.METHOD_POST, JSON.stringify(body)) != OK:
 		_release(request)
 		_queue(row)
 		submitted.emit(false, "Could not reach the board.")
@@ -260,7 +285,7 @@ func _flush_pending() -> void:
 			# Repaired on the way out, not merely on the way in. A row queued by
 			# an older build carries whatever that build wrote, and a fix applied
 			# only at construction would leave the already-stuck rows stuck.
-			_post(Score.clean_row(row as Dictionary))
+			_post(Score.clean_kept(row as Dictionary))
 
 
 func _request() -> HTTPRequest:

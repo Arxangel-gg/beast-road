@@ -755,6 +755,26 @@ var tutorial_done: bool = false
 ## which is a new account - and an account that has played is kept out of the
 ## tutorial by `runs_started` rather than by this.
 var tutorial_walk_done: bool = false
+## **Hardcore** (owner, 2026-09-30: "Hardcore players and leaderboards who lose
+## everything including that save slot if they do not successfully extract,
+## and only have 1/1 wounds possible ever"). Chosen once, when a slot is
+## begun, and never taken off: `set_hardcore` refuses an account that has run
+## a road. A Hardcore Warden carries one wound, walks alone, and a road that
+## ends any way but extraction or the summit buries the slot - the account is
+## wiped and, past the first slot, its file is gone.
+var hardcore: bool = false
+## **Whether a Hardcore road is out and not yet come home.** Written when a
+## road begins and cleared only by a return or the summit, and read at every
+## launch: a Warden who quit, crashed or pulled the plug on a road they had
+## not extracted from has not extracted, so the slot is buried when it next
+## opens. That is the only rule that cannot be dodged by closing the game.
+var hardcore_road_live: bool = false
+## Set when a Hardcore Warden was buried outside a run's own debrief - by a
+## load that found a road never brought home, or by leaving the road from the
+## pause menu - so the menu can say why the Warden is gone. Never saved.
+var hardcore_buried_on_load: bool = false
+## Said when a Hardcore Warden is buried: the slot and why.
+signal hardcore_buried(index: int, why: String)
 
 
 ## One read for every statistic an achievement may name. Unknown keys read
@@ -1247,6 +1267,8 @@ func erase_progress() -> void:
 	achievements.clear()
 	tutorial_done = false
 	tutorial_walk_done = false
+	hardcore = false
+	hardcore_road_live = false
 	runs_won = 0
 	best_distance = 0.0
 	total_enemies_killed = 0
@@ -1561,7 +1583,7 @@ func _read_board(data: Dictionary) -> void:
 	if best_value is Array:
 		for entry: Variant in best_value as Array:
 			if entry is Dictionary:
-				best_runs.append(Score.clean_row(entry as Dictionary))
+				best_runs.append(Score.clean_kept(entry as Dictionary))
 			if best_runs.size() >= Balance.LEADERBOARD_LOCAL_MAX:
 				break
 
@@ -1570,7 +1592,7 @@ func _read_board(data: Dictionary) -> void:
 	if pending_value is Array:
 		for entry: Variant in pending_value as Array:
 			if entry is Dictionary:
-				pending_runs.append(Score.clean_row(entry as Dictionary))
+				pending_runs.append(Score.clean_kept(entry as Dictionary))
 			if pending_runs.size() >= Balance.LEADERBOARD_PENDING_MAX:
 				break
 
@@ -2157,6 +2179,7 @@ func slot_summary(index: int) -> Dictionary:
 		"act": 0,
 		"ascension": 0,
 		"played": 0,
+		"hardcore": false,
 	}
 	if index < 0 or index >= Balance.SAVE_SLOTS:
 		return out
@@ -2171,6 +2194,7 @@ func slot_summary(index: int) -> Dictionary:
 		out["marks"] = marks
 		out["act"] = ActStart.furthest_act()
 		out["ascension"] = ascension
+		out["hardcore"] = hardcore
 		return out
 	var data: Dictionary = parse_save_text(read_committed_text(path))
 	if data.is_empty():
@@ -2187,6 +2211,7 @@ func slot_summary(index: int) -> Dictionary:
 	# than stored - the same reading `ActStart.furthest_act` takes of the live
 	# account, so a card and the act picker cannot disagree.
 	out["act"] = _act_reached(float(stats_block.get("best_distance", 0.0)))
+	out["hardcore"] = bool(stats_block.get("hardcore", false))
 	return out
 
 
@@ -2196,6 +2221,64 @@ func _act_reached(distance: float) -> int:
 		if distance >= Balance.act_start_distance(act):
 			reached = act
 	return clampi(reached, 1, Balance.ACT_COUNT)
+
+
+## **Makes this Warden Hardcore**, which only a Warden who has never run a road
+## may become, and nobody may stop being. "" or why not.
+func set_hardcore() -> String:
+	if hardcore:
+		return ""
+	if runs_started > 0 or RunState.road_is_live():
+		return "Only a Warden who has never walked a road can take the Hardcore oath."
+	hardcore = true
+	hardcore_road_live = false
+	save_game()
+	return ""
+
+
+## A Hardcore road begins: it is live until it comes home.
+func hardcore_road_began() -> void:
+	if not hardcore:
+		return
+	hardcore_road_live = true
+	save_game()
+
+
+## A Hardcore road came home - extracted or the summit - and the slot lives.
+func hardcore_road_home() -> void:
+	hardcore_road_live = false
+
+
+## **Buries this Hardcore Warden**: the account is wiped as a new account is
+## (`adopt_save({})`, for the reason `_adopt_new_account` gives), and past the
+## first slot the file is deleted so the slot reads empty. The first slot's
+## file is the historic save and is never deleted; it is written over as a new
+## account instead. Refused while saves are held, so no gate can bury a real
+## Warden, and a no-op on an account that is not Hardcore.
+func bury_hardcore(why: String) -> bool:
+	if not hardcore or _saves_held > 0:
+		return false
+	var index: int = _slot
+	_adopt_new_account()
+	# The tail of `_ready`: a slot begun again is a new account and gets what a
+	# new account gets - the starting roster and the starting weapon.
+	_seed_starting_roster()
+	_seed_starting_gear()
+	if index == 0:
+		save_game()
+	else:
+		var path: String = slot_path(index)
+		for doomed: String in [path, path + SAVE_TEMP_SUFFIX]:
+			if FileAccess.file_exists(doomed):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(doomed))
+	hardcore_buried.emit(index, why)
+	return true
+
+
+## Read at every load: a Hardcore road that never came home buries the slot.
+func _bury_if_the_road_was_left() -> void:
+	if hardcore and hardcore_road_live:
+		hardcore_buried_on_load = bury_hardcore("the road was left without extracting")
 
 
 ## **Throws a slot away**, file and backups, and touches nothing else.
@@ -2440,6 +2523,8 @@ func serialized_save() -> String:
 			"achievements": achievements,
 			"tutorial_done": tutorial_done,
 			"tutorial_walk_done": tutorial_walk_done,
+			"hardcore": hardcore,
+			"hardcore_road_live": hardcore_road_live,
 		},
 		"board": {
 			"name": player_name,
@@ -2495,6 +2580,10 @@ func load_save() -> void:
 		if data.is_empty():
 			return
 	adopt_save(data)
+	# **A Hardcore road that never came home is not coming home.** Asked here,
+	# on the read, because it is the one rule quitting, a crash or a pulled plug
+	# cannot step round: the flag was written when the road began.
+	_bury_if_the_road_was_left()
 
 
 ## **Reads an account out of a parsed save**, which is everything `load_save`
@@ -2562,6 +2651,10 @@ func adopt_save(data: Dictionary) -> void:
 	achievements = _unique_string_array(stats.get("achievements", []))
 	tutorial_done = bool(stats.get("tutorial_done", false))
 	tutorial_walk_done = bool(stats.get("tutorial_walk_done", false))
+	# Both written and parsed: a once-only flag that is serialized and never read
+	# back is the fault that once handed out a free sword every launch.
+	hardcore = bool(stats.get("hardcore", false))
+	hardcore_road_live = hardcore and bool(stats.get("hardcore_road_live", false))
 
 	_read_settings(data.get("settings", {}) as Dictionary)
 	_settle_disciplines()

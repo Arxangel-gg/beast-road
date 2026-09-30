@@ -33,6 +33,11 @@ var _close_button: Button
 ## on the menu: a single press that deletes a Warden is a press somebody makes
 ## by accident exactly once.
 var _armed: int = -1
+## The slot whose Hardcore oath has been pressed once and waits for the second.
+var _armed_hardcore: int = -1
+const HARDCORE_TIP: String = ("Hardcore: one wound, alone, and a road that "
+	+ "does not come home buries this Warden - the slot begins again. It "
+	+ "cannot be taken off.")
 
 
 func _ready() -> void:
@@ -170,7 +175,9 @@ func _card(summary: Dictionary) -> Control:
 	card.add_child(row)
 
 	var title := Label.new()
-	title.text = "Warden %d%s" % [index + 1, "   ·   playing now" if current else ""]
+	title.text = "Warden %d%s%s" % [index + 1,
+		"   ·   HARDCORE" if bool(summary.get("hardcore", false)) else "",
+		"   ·   playing now" if current else ""]
 	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color",
 		Color("e8a33d") if current else Color("c9d3d0"))
@@ -195,6 +202,38 @@ func _card(summary: Dictionary) -> Control:
 	play.disabled = current or not _between_runs()
 	play.pressed.connect(func() -> void: _play(index))
 	buttons.add_child(play)
+
+	# **Hardcore is sworn when a Warden begins** (owner, 2026-09-30): an empty
+	# slot may be begun as one, and a Warden who has never walked a road may
+	# swear it - twice pressed, because it is never taken off.
+	if not exists:
+		var hard := Button.new()
+		hard.name = "Hardcore%d" % index
+		hard.text = "Begin Hardcore"
+		hard.tooltip_text = HARDCORE_TIP
+		hard.custom_minimum_size = Vector2(0.0, 40.0)
+		hard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hard.disabled = not _between_runs()
+		hard.pressed.connect(func() -> void: _play(index, true))
+		buttons.add_child(hard)
+	elif current and not MetaState.hardcore and MetaState.runs_started == 0:
+		var swear := Button.new()
+		swear.name = "Hardcore%d" % index
+		swear.text = "Swear Hardcore" if _armed_hardcore != index \
+			else "Hardcore for good?  ·  press again"
+		swear.tooltip_text = HARDCORE_TIP
+		swear.custom_minimum_size = Vector2(0.0, 40.0)
+		swear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		swear.disabled = not _between_runs()
+		swear.pressed.connect(func() -> void:
+			if _armed_hardcore != index:
+				_armed_hardcore = index
+				swear.text = "Hardcore for good?  ·  press again"
+				return
+			_armed_hardcore = -1
+			MetaState.set_hardcore()
+			refresh())
+		buttons.add_child(swear)
 
 	# **The first Warden has no Erase**, and the button says why rather than
 	# being missing: the historic save is what every other slot is measured
@@ -235,10 +274,12 @@ func _card(summary: Dictionary) -> Control:
 ## **A new Warden is made here, not at the first road** (owner, 2026-09-27).
 ## Beginning an empty slot opens the Warden's Glass at once, because a new slot
 ## is a new person and choosing who they are is what beginning one means.
-func _play(index: int) -> void:
+func _play(index: int, hardcore: bool = false) -> void:
 	if not MetaState.use_slot(index):
 		refresh()
 		return
+	if hardcore:
+		MetaState.set_hardcore()
 	refresh()
 	if WardenGlass.should_offer():
 		await GameDirector.offer_glass()

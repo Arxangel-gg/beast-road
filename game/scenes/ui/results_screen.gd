@@ -148,6 +148,7 @@ func _submit() -> void:
 	# retype their name every run will stop posting after two.
 	MetaState.player_name = chosen
 	MetaState.save_game()
+	_pending_summary["warden"] = chosen
 	_submit_button.disabled = true
 	_submit_note.text = "Sending…"
 	Leaderboard.submit(_pending_summary, ContentDB.tier(RunState.tier_id))
@@ -166,16 +167,20 @@ func _on_submitted(ok: bool, message: String) -> void:
 func _show_score(summary: Dictionary) -> void:
 	_pending_summary = summary
 	var tier: CampaignTierData = ContentDB.tier(RunState.tier_id)
-	_pending_row = Score.row(summary, tier, MetaState.player_name,
-		MetaState.hero_level, "", "preview")
+	# The Warden who ran it, off the summary: a buried Hardcore Warden's account
+	# is a new one by now.
+	var warden: String = String(summary.get("warden", MetaState.player_name))
+	_pending_row = Score.row(summary, tier, warden,
+		int(summary.get("warden_level", MetaState.hero_level)), "", "preview")
 	if _score_label != null:
-		_score_label.text = "Score  %s        %s" % [
+		_score_label.text = "Score  %s        %s%s" % [
 			_grouped(int(_pending_row.get("score", 0))),
-			tier.display_name if tier != null else "Long Road"]
+			tier.display_name if tier != null else "Long Road",
+			"  ·  Hardcore" if bool(summary.get("hardcore", false)) else ""]
 	if _name_field != null:
 		# Empty rather than pre-filled with the fallback: a field showing
 		# "Oathless" reads as a name already chosen, and the player posts it.
-		_name_field.text = MetaState.player_name
+		_name_field.text = warden
 	if _submit_button != null:
 		_submit_button.disabled = false
 	if _submit_note != null:
@@ -370,6 +375,9 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# as a homecoming rather than as a fall.
 	var returned: bool = bool(summary.get("returned", false))
 	title.text = "The sanctuary" if victory else ("Home again" if returned else "The road ends here")
+	var buried: bool = bool(summary.get("buried", false))
+	if buried:
+		title.text = "The Warden is gone"
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.
 	menu_button.grab_focus.call_deferred()
@@ -465,7 +473,13 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# **What the road paid whatever happened.** Levels, materials, fish, gear
 	# and spirits are the account's and stay; on a loss this is the answer to
 	# "was that worth anything", and it is asked before the unlock list.
-	lines.append_array(_kept_lines(summary.get("kept", {}), victory or returned))
+	# **A buried Hardcore Warden kept nothing** - the road said so before it
+	# began - so the kept list would be a list of things already taken.
+	if buried:
+		lines.append_array(["", "BURIED  ·  the Hardcore oath is kept: this Warden "
+			+ "and everything they held are gone, and the slot begins again."])
+	else:
+		lines.append_array(_kept_lines(summary.get("kept", {}), victory or returned))
 	# **And the front, when one was just banked.**
 	#
 	# Banking a front is the whole reason to turn for home, and this screen never

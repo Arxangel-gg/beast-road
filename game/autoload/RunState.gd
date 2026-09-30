@@ -1729,6 +1729,10 @@ func hearthmend() -> void:
 
 
 func max_wounds() -> int:
+	# **One wound, ever, in Hardcore** (owner, 2026-09-30): nothing raises it -
+	# no relic, no card, no node - because "1/1" is the whole of the oath.
+	if MetaState.hardcore:
+		return 1
 	return Balance.HERO_MAX_WOUNDS + hero_max_wounds_bonus
 
 

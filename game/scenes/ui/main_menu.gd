@@ -206,6 +206,7 @@ func _ready() -> void:
 	_build_version_label()
 	_dress_seed_row()
 	_build_crash_notice()
+	_build_buried_notice()
 
 	# Wired after every door has been built, so the watcher sees all of them.
 	_watch_the_doors()
@@ -688,6 +689,8 @@ func _build_coop_button() -> void:
 	_coop_button = button
 	(_coop as CoopScreenScript).closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void:
+		if MetaState.hardcore:
+			return
 		if not MetaState.tutorial_done:
 			# Owner brief, 2026-09-12, amended 2026-09-17: a run that *ends*
 			# is what opens it, however it ended. The button says so.
@@ -700,6 +703,12 @@ func _build_coop_button() -> void:
 ## Co-op waits for the first run to end, and says so.
 func _refresh_coop_gate() -> void:
 	if _coop_button == null:
+		return
+	if MetaState.hardcore:
+		_coop_button.text = "Co-op  \u00b7  Hardcore walks alone"
+		_coop_button.tooltip_text = ("A Hardcore Warden takes no shared road: "
+			+ "whether a road came home would be somebody else's to decide.")
+		_coop_button.modulate = Color(0.72, 0.72, 0.75)
 		return
 	if MetaState.tutorial_done:
 		_coop_button.text = "Co-op"
@@ -1262,6 +1271,26 @@ func _build_crash_notice() -> void:
 		_show_settings(true)
 		_settings.show_support_report()
 		notice.queue_free())
+	var column: Node = new_run_button.get_parent()
+	column.add_child(notice)
+	column.move_child(notice, 0)
+
+
+## **Said once, when a Hardcore Warden was buried off the debrief** - by a
+## launch that found a road never brought home, or by leaving one. The run's
+## own debrief says it when the Warden falls; these are the two ways that
+## have no debrief, and a slot that is suddenly a new account with nothing
+## said would read as a lost save.
+func _build_buried_notice() -> void:
+	if not MetaState.hardcore_buried_on_load:
+		return
+	MetaState.hardcore_buried_on_load = false
+	var notice := Button.new()
+	notice.name = "BuriedNotice"
+	notice.text = ("Your Hardcore Warden did not come home, and is gone. "
+		+ "This slot begins again.")
+	notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	notice.pressed.connect(func() -> void: notice.queue_free())
 	var column: Node = new_run_button.get_parent()
 	column.add_child(notice)
 	column.move_child(notice, 0)

@@ -27,6 +27,10 @@ extends RefCounted
 ## rewarding them would pay for hoarding and for building towers that were never
 ## needed.
 
+## Which board a kept row belongs to, beside it rather than in it.
+const BOARD_KEY: String = "board"
+const HARDCORE_BOARD: String = "hardcore"
+
 ## Every field a submitted run carries, in the order a board shows them.
 const FIELDS: Array[String] = ["submission_id", "name", "tier", "score", "act",
 	"wave", "hero_level", "duration", "victory", "seed", "version"]
@@ -125,6 +129,22 @@ static func clean_row(entry: Dictionary) -> Dictionary:
 		"seed": str(entry.get("seed", "")).left(32),
 		"version": safe_version(String(entry.get("version", ""))),
 	}
+
+
+## A row as the save keeps it: the public schema, plus which board it belongs
+## to when that is the Hardcore one (2026-09-30). The board rides beside the row
+## and never in a post - `Leaderboard._post` sends `clean_row` - because the
+## tables share one schema and PostgREST refuses a column a table lacks.
+static func clean_kept(entry: Dictionary) -> Dictionary:
+	var out: Dictionary = clean_row(entry)
+	if String(entry.get(BOARD_KEY, "")) == HARDCORE_BOARD:
+		out[BOARD_KEY] = HARDCORE_BOARD
+	return out
+
+
+## Whether a kept row belongs to the Hardcore board.
+static func is_hardcore(entry: Dictionary) -> bool:
+	return String(entry.get(BOARD_KEY, "")) == HARDCORE_BOARD
 
 
 ## A version string the board will actually accept.

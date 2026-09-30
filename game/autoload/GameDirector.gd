@@ -253,6 +253,13 @@ func goto_splash() -> void:
 
 
 func goto_menu() -> void:
+	# **Leaving a Hardcore road any way but home is not coming home**
+	# (owner, 2026-09-30). The pause menu said so before the press; the slot is
+	# buried here rather than at the next launch, so the menu can say why.
+	if run_active and not RunState.walking and MetaState.hardcore \
+			and MetaState.hardcore_road_live:
+		MetaState.hardcore_buried_on_load = MetaState.bury_hardcore(
+			"left the road without turning for home")
 	run_active = false
 	get_tree().paused = false
 	GameSpeed.reset()
@@ -347,6 +354,12 @@ func _play_intro() -> void:
 ## through.
 func start_run(requested_seed: int = 0, resume_front: bool = false,
 		from_act: int = 0, doctrine_id: String = "") -> void:
+	# **A Hardcore Warden walks alone** (2026-09-30). Whether a shared road came
+	# home is the host's to decide, and a slot that could be buried by somebody
+	# else's choice at a crossroad is not an oath the player swore. The co-op
+	# doors refuse first; this is the net under them.
+	if MetaState.hardcore and Coop.is_networked():
+		Coop.leave()
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	# The world is rolled and announced **before** the cinematic, not after.
 	#
@@ -430,6 +443,9 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	if consumed_cache:
 		MetaState.save_game()
 	run_active = true
+	# Written before the first step: from here until it comes home, a Hardcore
+	# road that ends any other way - a fall, the pause menu, a crash - buries.
+	MetaState.hardcore_road_began()
 	current_scope = Scope.BATTLEFIELD
 	get_tree().paused = false
 	GameSpeed.reset()
@@ -626,6 +642,12 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		return
 	run_active = false
 	_note_the_road_home()
+	# **Hardcore** (owner, 2026-09-30): home or the summit keeps the Warden, and
+	# every other ending buries them - after the debrief is built, so the road
+	# they fell on is still told.
+	var buried: bool = MetaState.hardcore and not (victory or returned)
+	if MetaState.hardcore and not buried:
+		MetaState.hardcore_road_home()
 	# A run is one shared thing, so it ends for both. Announced before the
 	# summary is built: the guest has its own summary to build from its own
 	# RunState, and waiting would leave it standing in its town with no report.
@@ -690,6 +712,11 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		"earth": RunState.earth_events.duplicate(true),
 		"damage": RunState.damage_ledger.duplicate(true),
 		"augments": RunState.levels_of(),
+		# Who ran it, for the board: a buried Warden's account is a new one by
+		# the time the debrief is read.
+		"hardcore": MetaState.hardcore,
+		"warden": MetaState.player_name,
+		"warden_level": MetaState.hero_level,
 	}
 	var unlocks: Array[String] = _pay_out_unlocks(victory)
 
@@ -755,6 +782,13 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	summary["chronicle"] = completed
 	summary["chronicle_tools"] = chronicle_tools
 
+	if buried:
+		summary["buried"] = true
+		summary["unlocks"] = []
+		summary["chronicle"] = []
+		summary["tools"] = 0
+		summary["sigils"] = 0
+		MetaState.bury_hardcore("fell on the road")
 	EventBus.run_ended.emit(victory, summary)
 
 

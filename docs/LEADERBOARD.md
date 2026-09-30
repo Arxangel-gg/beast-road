@@ -113,6 +113,62 @@ Do not add update or delete grants. The anon key is a public client identifier;
 the grants, constraints, and Row Level Security policies above are the security
 boundary.
 
+## The Hardcore board (2026-09-30)
+
+Hardcore Wardens - one wound, and a road that is not extracted from buries the
+slot - post to a table of their own, `runs_hardcore`, with exactly the
+contract `runs` has. **A table of its own rather than a tier or a column**,
+because the live `runs` table checks `tier in ('normal', 'nightmare',
+'hell')` and PostgREST refuses an insert that names a column the table does
+not have: either change would have broken every ordinary submission until
+the SQL was run. With a separate table, the only thing that waits on the SQL
+is the Hardcore board itself, and until it is run a Hardcore post answers
+`PGRST205` and is queued like any offline post.
+
+Run this once, after the SQL above:
+
+```sql
+create table if not exists public.runs_hardcore (like public.runs including all);
+
+create index if not exists runs_hardcore_tier_score_created_idx
+  on public.runs_hardcore (tier, score desc, created_at asc);
+
+alter table public.runs_hardcore enable row level security;
+
+revoke all on table public.runs_hardcore from anon, authenticated;
+grant select on table public.runs_hardcore to anon, authenticated;
+grant insert (
+  submission_id, name, tier, score, act, wave, hero_level, duration,
+  victory, seed, version
+) on table public.runs_hardcore to anon, authenticated;
+
+drop policy if exists "hardcore runs are publicly readable" on public.runs_hardcore;
+create policy "hardcore runs are publicly readable"
+  on public.runs_hardcore for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "bounded hardcore runs may be submitted" on public.runs_hardcore;
+create policy "bounded hardcore runs may be submitted"
+  on public.runs_hardcore for insert
+  to anon, authenticated
+  with check (
+    char_length(name) between 1 and 20
+    and name !~ '[[:cntrl:]]'
+    and tier in ('normal', 'nightmare', 'hell')
+    and score between 0 and 999999999
+    and act between 1 and 3
+    and wave between 0 and 100000
+    and hero_level between 1 and 100
+    and duration between 0 and 86400
+    and char_length(seed) <= 32
+    and char_length(version) between 1 and 32
+  );
+```
+
+`like public.runs including all` copies the columns, the defaults and the
+check constraints, so the two tables cannot drift apart in shape.
+
 ## Verification
 
 1. Run `res://tools/leaderboard_check.tscn` headless. It proves scoring,

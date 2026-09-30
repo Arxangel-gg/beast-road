@@ -11530,6 +11530,53 @@ of its sheet on every body that has one and none on heavy armour.
 **Owed**: a photograph of the masks on the Warden's Glass (`glass_shot` has the
 cloth looks) - the one that refused the first cut was the old classifier.
 
+**Hardcore, as of 2026-09-30.** Owner: *"Hardcore players and leaderboards
+who lose everything including that save slot if they do not successfully
+extract, and only have 1/1 wounds possible ever."* Four rules, each a decision:
+
+- **Sworn when a Warden begins, never taken off.** An empty slot may be begun as
+  Hardcore, and a Warden who has never walked a road may swear it (pressed
+  twice). `MetaState.set_hardcore` refuses anybody who has run a road, because
+  an oath taken after the fact is not an oath. Stored under `stats` beside
+  `tutorial_done`, written and parsed, so no top-level save key and no
+  `SAVE_VERSION` move.
+- **One wound, whatever raises the ceiling.** `RunState.max_wounds` answers one
+  for a Hardcore Warden before any bonus is read.
+- **A road that does not come home buries the slot.** Home is a return from a
+  crossroad or the summit; every other ending buries. **The rule that cannot be
+  dodged is the load**: `hardcore_road_live` is written when a road begins and
+  cleared only by coming home, and `load_save` buries a slot that finds it
+  standing - so quitting, a crash or a pulled plug is a road that did not come
+  home. A fall buries in `_settle_run` after the debrief is built, so the road is
+  still told; leaving from the pause menu buries in `goto_menu`, and the pause
+  menu says so before the press. Burying is `adopt_save({})` - the same door
+  that makes every new slot - then the starting roster and weapon; the first
+  slot's file is written over as a new account (it is the historic save and is
+  never deleted), any other slot's file is deleted.
+- **A Hardcore Warden walks alone.** Whether a shared road came home is the
+  host's to decide, and a slot that could be buried by somebody else's choice at
+  a crossroad is not an oath the player swore. The co-op door says so, the Hold
+  never puts a road to or from a Hardcore seat, and `start_run` leaves any
+  session as the net under both.
+
+**Its own board.** A Hardcore run posts to `runs_hardcore`, a table with
+exactly the contract `runs` has (`docs/LEADERBOARD.md` has the SQL, and it is
+the owner's to run - until it is, a Hardcore post is queued like any offline
+post). The board a row belongs to rides beside it in the save
+(`Score.clean_kept`) and never in a post, because the tables share one schema.
+The debrief carries who ran it (`warden`, `warden_level`), since a buried
+Warden's account is a new one by the time the Submit button is pressed, and a
+buried Warden's run is not kept on the new account's own board. The board
+screen has a Hardcore toggle beside the tiers.
+
+`hardcore_check` (both bars) drives it through the real `load_save`,
+`_settle_run`, `Leaderboard.submit` and `SaveSlotScreen` in a `slot_root`
+fixture: the oath and its refusal, the save round trip, one wound, a road left
+buried on the next load in both slot kinds, a road come home and an ordinary
+Warden left alone, a fall buried with its debrief intact, a return and the
+summit kept, the board kept apart through the outbox and the save, the pause
+menu's warning, and the three doors it cannot walk read off the source.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

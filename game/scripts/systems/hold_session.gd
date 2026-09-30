@@ -625,7 +625,8 @@ var _offer_left: float = 0.0
 ## Host side: put a road to the party. Returns false when there is nobody to
 ## ask, which is the solo case and is the caller's cue to simply go.
 func offer_run(kind: int, act: int, detail: String) -> bool:
-	if not Coop.is_host() or occupied() < 2:
+	# A Hardcore host walks alone: the road goes without being put to anybody.
+	if not Coop.is_host() or occupied() < 2 or MetaState.hardcore:
 		return false
 	_answers.clear()
 	_offer = kind
@@ -641,7 +642,8 @@ func reply(accepted: bool) -> void:
 		return
 	var line: CoopRelay = Coop.relay()
 	if line != null:
-		line.request(CoopRelay.Request.PARTY_RUN_REPLY, [accepted])
+		# A Hardcore Warden answers no to every shared road, whatever was pressed.
+		line.request(CoopRelay.Request.PARTY_RUN_REPLY, [accepted and not MetaState.hardcore])
 
 
 ## Whether every seat has answered. Host side.
