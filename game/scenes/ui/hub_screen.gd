@@ -1239,6 +1239,9 @@ func _tap_at(screen_at: Vector2) -> void:
 	if _yard == null:
 		return
 	var at: Vector2 = _yard_point(screen_at)
+	# On a building or a person: use it, or walk to it and use it there.
+	if _yard.click_at(at):
+		return
 	var within: bool = _yard.warden_at().distance_to(at) <= Balance.HOLD_REACH
 	if within and not _yard.focus().is_empty():
 		_yard.use_focus()

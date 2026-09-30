@@ -93,6 +93,7 @@ func _ready() -> void:
 	_test_the_commission_costs_more()
 	_test_the_pond_is_bounded()
 	await _test_a_thumb_drives_the_hold()
+	await _test_a_click_uses_what_it_lands_on()
 	await _test_the_doors_say_what_waits()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
@@ -101,7 +102,8 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome"]:
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome",
+			"click"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1195,6 +1197,104 @@ func _test_a_thumb_drives_the_hold() -> void:
 		MetaState.settings[TouchInput.TOUCH_KEY] = kept_touch
 	TouchInput.refresh()
 	_reached["thumb"] = true
+
+
+## **A click on a building or a person uses it** (owner, 2026-09-30), from in
+## reach at once and from out of reach by walking there first; a click on
+## nothing walks; any other order drops a walk that was going to open
+## something; the hover lights and lets go; and a Warden standing still turns
+## to where they are pointed.
+func _test_a_click_uses_what_it_lands_on() -> void:
+	var hub := HubScreen.new()
+	add_child(hub)
+	hub.visible = true
+	var yard: HoldYard = hub._yard
+	yard.set_driving(true)
+	await _frames(3)
+	# A station with a door, and a point inside its painting that lands on it and
+	# not on a keeper standing in front of it.
+	var target: Dictionary = {}
+	var spot: Vector2 = Vector2.INF
+	var opened: Array = []
+	var door := Button.new()
+	add_child(door)
+	door.pressed.connect(func() -> void: opened.append(true))
+	for station: Dictionary in yard._stations:
+		if String(station["door"]).is_empty() or station["node"] == null:
+			continue
+		# Bound first: a door never adopted is a building with nothing in it,
+		# and neither the focus nor a click will use one.
+		yard.bind(String(station["door"]), door)
+		var box: Rect2 = yard._hit_box(station["node"] as Sprite2D)
+		for ix: int in 7:
+			for iy: int in 7:
+				var probe: Vector2 = box.position + box.size * Vector2(
+					(float(ix) + 0.5) / 7.0, (float(iy) + 0.5) / 7.0)
+				if yard.interactable_at(probe) == String(station["id"]):
+					spot = probe
+					break
+			if spot != Vector2.INF:
+				break
+		if spot != Vector2.INF:
+			target = station
+			break
+	_check(not target.is_empty(), "no building in the Hold can be clicked")
+	if not target.is_empty():
+		var id: String = String(target["id"])
+		var reach: Vector2 = (target["at"] as Vector2) + Vector2(0.0, 40.0)
+
+		# From across the yard: walk there, then open it.
+		yard._seats[0]["at"] = yard._on_ground(yard.at_cell(HoldYard.ENTRY))
+		if yard.in_reach(id):
+			yard._seats[0]["at"] = reach + Vector2(900.0, 0.0)
+		_check(yard.click_at(spot), "a click on %s did not land on it" % id)
+		_check(opened.is_empty() and yard._pending_use == id and yard._walk_to != Vector2.INF,
+			"a click on %s from out of reach should walk there first, not open it" % id)
+		yard._seats[0]["at"] = reach
+		await _frames(2)
+		_check(opened.size() == 1 and yard._pending_use.is_empty(),
+			"arriving at %s did not open it (%d)" % [id, opened.size()])
+
+		# In reach: at once, and through the screen's own tap as well.
+		_check(yard.click_at(spot) and opened.size() == 2,
+			"a click on %s in reach did not open it" % id)
+		var on_screen: Vector2 = yard.position + spot * yard.scale.x
+		hub._tap_at(on_screen)
+		_check(opened.size() == 3, "the screen's own click did not reach %s" % id)
+
+		# Any other order drops a walk that was going to open something.
+		yard._seats[0]["at"] = reach + Vector2(900.0, 0.0)
+		yard.click_at(spot)
+		Input.action_press(&"move_left")
+		await _frames(2)
+		Input.action_release(&"move_left")
+		_check(yard._pending_use.is_empty(), "walking away did not cancel the click")
+
+		# The hover lights and lets go, and the cursor points while it is over.
+		yard._set_hover(id)
+		_check(yard._cursor_pointing and yard._hover_node == target["node"],
+			"hovering %s did not light it" % id)
+		yard._set_hover("")
+		_check(not yard._cursor_pointing
+			and (target["node"] as Sprite2D).self_modulate == Color.WHITE,
+			"a hover that moved off %s left it lit" % id)
+	door.queue_free()
+
+	var corner: Vector2 = Vector2(-HoldYard.YARD.x * 0.5 + 60.0, HoldYard.YARD.y * 0.5 - 60.0)
+	_check(not yard.click_at(corner), "a click on bare ground claimed to land on something")
+
+	# Standing still, the Warden turns to where they are pointed.
+	var at: Vector2 = yard.warden_at()
+	yard.turn_warden_toward(at + Vector2(300.0, -Balance.HOLD_CURSOR_CHEST))
+	_check((yard._seats[0]["facing"] as Vector2).x > 0.9, "the Warden did not turn to a point east of them")
+	yard.turn_warden_toward(at + Vector2(-300.0, -Balance.HOLD_CURSOR_CHEST))
+	_check((yard._seats[0]["facing"] as Vector2).x < -0.9, "the Warden did not turn to a point west of them")
+	var src: String = FileAccess.get_file_as_string("res://scripts/systems/hold_yard.gd")
+	_check(src.contains("\t\t_face_the_cursor(seat)"),
+		"a standing Warden is never turned to the cursor")
+	hub.queue_free()
+	await _frames(2)
+	_reached["click"] = true
 
 
 func _touch(finger: int, at: Vector2, down: bool) -> void:

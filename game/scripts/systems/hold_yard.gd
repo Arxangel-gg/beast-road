@@ -473,6 +473,18 @@ var _heel: Sprite2D = null
 var _heel_at: Vector2 = Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _focus: String = ""
+## What the cursor is over, or "" (2026-09-30). Brightened, ringed on the
+## ground, and the cursor turns to a pointing hand; a click on it uses it.
+var _hover: String = ""
+var _hover_node: Sprite2D = null
+## What a click asked for from out of reach: the Warden walks to it and it is
+## used on arrival, as an ARPG does. Cleared by any other order.
+var _pending_use: String = ""
+## Whether the mouse is what the player is using. A pad or a thumb leaves the
+## Warden's facing to the stick, and the cursor sitting wherever it was last
+## left must not turn them.
+var _cursor_live: bool = false
+var _cursor_pointing: bool = false
 var _walk_to: Vector2 = Vector2.INF
 var _relay_clock: float = 0.0
 var _clock: float = 0.0
@@ -1894,6 +1906,168 @@ func use_focus() -> void:
 		_press(door)
 
 
+## Opens one thing by its id, whatever the Warden is nearest - the door a click
+## on a particular building or person opens.
+func use_id(id: String) -> void:
+	if id.is_empty():
+		return
+	var door: String = ""
+	for station: Dictionary in _stations:
+		if String(station["id"]) == id:
+			door = String(station["door"])
+	for person: Dictionary in _residents:
+		if String(person["id"]) == id:
+			door = String(person["door"])
+	entered.emit(id)
+	if not door.is_empty():
+		_press(door)
+
+
+## **A click on something usable uses it** (owner, 2026-09-30: *"All
+## interactables should be useable by simply left clicking on them while
+## within interaction range"*). In reach it opens at once; out of reach the
+## Warden walks to it and it opens on arrival. False when the click landed on
+## nothing usable, which leaves the screen to walk there instead.
+func click_at(at: Vector2) -> bool:
+	var id: String = interactable_at(at)
+	if id.is_empty():
+		_pending_use = ""
+		return false
+	if in_reach(id):
+		_pending_use = ""
+		use_id(id)
+	else:
+		_pending_use = id
+		walk_toward(_reach_point(id))
+	return true
+
+
+## What usable thing a yard point lands on: inside a building's or a person's
+## own painting, less its margin, the one drawn in front winning. "" for none.
+func interactable_at(at: Vector2) -> String:
+	var best: String = ""
+	var front: float = -INF
+	for person: Dictionary in _residents:
+		var sprite := person["node"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite) or not sprite.is_visible_in_tree():
+			continue
+		var box: Rect2 = _hit_box(sprite)
+		if box.has_point(at) and box.end.y > front:
+			front = box.end.y
+			best = String(person["id"])
+	for station: Dictionary in _stations:
+		var node := station["node"] as Sprite2D
+		if node == null or not is_instance_valid(node) or not node.is_visible_in_tree():
+			continue
+		# The focus's own rule: a door never adopted is a building with nothing in it.
+		if station["button"] == null and not String(station["door"]).is_empty():
+			continue
+		var box: Rect2 = _hit_box(node)
+		if box.has_point(at) and box.end.y > front:
+			front = box.end.y
+			best = String(station["id"])
+	return best
+
+
+## Whether the Warden stands close enough to use a thing, by the focus's own
+## measure - so a click and the Interact key can never disagree about reach.
+func in_reach(id: String) -> bool:
+	if _seats.is_empty():
+		return false
+	var point: Vector2 = _reach_point(id)
+	return point != Vector2.INF \
+		and (_seats[0]["at"] as Vector2).distance_to(point) < Balance.HOLD_REACH
+
+
+func _reach_point(id: String) -> Vector2:
+	for person: Dictionary in _residents:
+		if String(person["id"]) == id:
+			return person["at"] as Vector2
+	for station: Dictionary in _stations:
+		if String(station["id"]) == id:
+			return (station["at"] as Vector2) + Vector2(0.0, 40.0)
+	return Vector2.INF
+
+
+## A painting's box in yard coordinates, less its transparent margin.
+func _hit_box(sprite: Sprite2D) -> Rect2:
+	var xf: Transform2D = get_global_transform().affine_inverse() * sprite.get_global_transform()
+	var box: Rect2 = xf * sprite.get_rect()
+	return box.grow_individual(-box.size.x * Balance.HOLD_HIT_INSET.x,
+		-box.size.y * Balance.HOLD_HIT_INSET.y, -box.size.x * Balance.HOLD_HIT_INSET.x, 0.0)
+
+
+## What the cursor is over, once a frame, and the one who was brightened put
+## back. A look and nothing else: nothing reads the hover but the drawing.
+func _find_hover() -> void:
+	var over: String = ""
+	if _driving and _cursor_live and not TouchInput.is_showing():
+		over = interactable_at(get_local_mouse_position())
+	_set_hover(over)
+	if _hover_node != null and is_instance_valid(_hover_node):
+		var glow: float = Balance.HOLD_HOVER_GLOW \
+			+ Balance.HOLD_HOVER_BREATH * sin(_clock * 5.0)
+		_hover_node.self_modulate = Color(glow, glow, glow * 0.96, 1.0)
+
+
+func _set_hover(id: String) -> void:
+	if id == _hover and (id.is_empty() or _hover_node != null):
+		return
+	if _hover_node != null and is_instance_valid(_hover_node):
+		_hover_node.self_modulate = Color.WHITE
+	_hover = id
+	_hover_node = null
+	for person: Dictionary in _residents:
+		if String(person["id"]) == id:
+			_hover_node = person["node"] as Sprite2D
+	for station: Dictionary in _stations:
+		if String(station["id"]) == id:
+			_hover_node = station["node"] as Sprite2D
+	var pointing: bool = not id.is_empty()
+	if pointing != _cursor_pointing:
+		_cursor_pointing = pointing
+		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if pointing
+			else Input.CURSOR_ARROW)
+
+
+## A click from out of reach, served when the Warden gets there.
+func _serve_pending() -> void:
+	if _pending_use.is_empty() or not _driving:
+		return
+	if in_reach(_pending_use):
+		var id: String = _pending_use
+		_pending_use = ""
+		_walk_to = Vector2.INF
+		use_id(id)
+	elif _walk_to == Vector2.INF:
+		_pending_use = ""
+
+
+## **A Warden standing still looks at the cursor**, the road's own rule
+## (`Hero._update_facing`): walking looks where they are going, standing looks
+## where the mouse is.
+func _face_the_cursor(seat: Dictionary) -> void:
+	if not _cursor_live or TouchInput.is_showing():
+		return
+	_face_point(seat, get_local_mouse_position())
+
+
+## The Warden turned toward a yard point, measured from their chest - the
+## cursor's door, and the gate's, which has no mouse to move.
+func turn_warden_toward(point: Vector2) -> void:
+	if not _seats.is_empty():
+		_face_point(_seats[0], point)
+
+
+func _face_point(seat: Dictionary, point: Vector2) -> void:
+	var at: Vector2 = seat["at"] as Vector2
+	var chest: Vector2 = at + Vector2(0.0, lift_at(at) - Balance.HOLD_CURSOR_CHEST)
+	var towards: Vector2 = point - chest
+	if towards.length() < Balance.HOLD_CURSOR_DEADZONE:
+		return
+	seat["facing"] = towards.normalized()
+
+
 func _press(door: String) -> void:
 	for station: Dictionary in _stations:
 		if String(station["door"]) != door:
@@ -1914,6 +2088,8 @@ func set_driving(on: bool) -> void:
 	_driving = on
 	if not on:
 		_walk_to = Vector2.INF
+		_pending_use = ""
+		_set_hover("")
 
 
 func is_driving() -> bool:
@@ -1922,6 +2098,17 @@ func is_driving() -> bool:
 
 func _exit_tree() -> void:
 	TouchInput.leave_place(self)
+	_set_hover("")
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_cursor_live = not TouchInput.is_showing()
+	elif event is InputEventScreenTouch or event is InputEventJoypadButton:
+		_cursor_live = false
+	elif event is InputEventJoypadMotion \
+			and absf((event as InputEventJoypadMotion).axis_value) > 0.4:
+		_cursor_live = false
 
 
 ## What a thumb's button says for whatever is in reach: a building is entered
@@ -1962,6 +2149,8 @@ func _process(delta: float) -> void:
 	_breathe(delta)
 	_follow_the_sun()
 	_find_focus()
+	_find_hover()
+	_serve_pending()
 	queue_redraw()
 
 
@@ -1984,6 +2173,7 @@ func _drive_warden(delta: float) -> void:
 		way = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 		if way.length_squared() > 0.01:
 			_walk_to = Vector2.INF
+			_pending_use = ""
 		elif _walk_to != Vector2.INF:
 			var step: Vector2 = _walk_to - (seat["at"] as Vector2)
 			if step.length() > 16.0:
@@ -2020,6 +2210,8 @@ func _drive_warden(delta: float) -> void:
 		running = Balance.HOLD_SPRINT_SPEED
 	var speed: float = Balance.HOLD_WALK_SPEED * running \
 		* (Balance.HOLD_MOUNT_SPEED if riding else 1.0)
+	if _driving and way.length_squared() <= 0.01 and not riding:
+		_face_the_cursor(seat)
 	_step(seat, way, delta, speed)
 	_tick_ride(seat, way, delta, speed)
 	_relay(delta)
@@ -2517,6 +2709,22 @@ func _draw() -> void:
 		var pulse: float = 0.55 + 0.25 * sin(_clock * 3.4)
 		draw_arc(lit, Balance.HOLD_REACH * 0.5, 0.0, TAU, 40,
 			Color(0.91, 0.64, 0.24, pulse), 3.0)
+	# **And what the cursor is over**: a flattened ring on its ground with a
+	# wave leaving it, gold when a click would open it now and pale when the
+	# Warden would have to walk there first.
+	if not _hover.is_empty():
+		var spot: Vector2 = _reach_point(_hover)
+		if spot != Vector2.INF:
+			spot += Vector2(0.0, lift_at(spot))
+			var tint: Color = Color(0.95, 0.70, 0.30) if in_reach(_hover) \
+				else Color(0.66, 0.84, 0.96)
+			var wave: float = fmod(_clock * 1.4, 1.0)
+			draw_set_transform(spot, 0.0, Vector2(1.0, 0.42))
+			draw_arc(Vector2.ZERO, 46.0, 0.0, TAU, 44,
+				Color(tint.r, tint.g, tint.b, 0.62 + 0.22 * sin(_clock * 5.0)), 3.0)
+			draw_arc(Vector2.ZERO, 46.0 + 30.0 * wave, 0.0, TAU, 44,
+				Color(tint.r, tint.g, tint.b, 0.5 * (1.0 - wave)), 2.0)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## A fence a post at a time, with a gate on the path side: a rectangle of line

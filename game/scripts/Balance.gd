@@ -12280,6 +12280,21 @@ const HOLD_SPRINT_SPEED: float = HERO_SPRINT_SPEED
 ## needs precision is a hub people fight with.
 const HOLD_REACH: float = 120.0
 
+## **The Hold answers the cursor** (owner, 2026-09-30: *"Look in direction of
+## cursor should work at the hold as well as clicking on interactables to use
+## them"*). A Warden standing still turns to the cursor, measured from about
+## chest height `HOLD_CURSOR_CHEST` above the feet and ignored inside
+## `HOLD_CURSOR_DEADZONE`, so a cursor resting on the Warden does not spin them.
+## A click lands on a building or a person inside its painting, inset by
+## `HOLD_HIT_INSET` (a share of the width, and of the height from the top)
+## because every painting carries transparent margin; the hovered one
+## brightens to `HOLD_HOVER_GLOW` and breathes by `HOLD_HOVER_BREATH`. [TUNE]
+const HOLD_CURSOR_CHEST: float = 60.0
+const HOLD_CURSOR_DEADZONE: float = 28.0
+const HOLD_HIT_INSET: Vector2 = Vector2(0.16, 0.06)
+const HOLD_HOVER_GLOW: float = 1.22
+const HOLD_HOVER_BREATH: float = 0.06
+
 ## **The Hold's doors say so, from quiet to loud** (owner, 2026-09-27; see
 ## `HoldBeacons`). Every door wears a small gem `HOLD_BEACON_LIFT` over its roof,
 ## bobbing by `HOLD_BEACON_BOB` at `HOLD_BEACON_BOB_RATE`; walking within
