@@ -11,18 +11,23 @@ extends CanvasLayer
 ## **Under the HUD, never over it**: the interface is the one thing that did not
 ## change, and darkening it with the world would say it had. So this is its own
 ## layer just below the HUD's, and it never takes a click. **A look and nothing
-## else**: it reads the scope signal and changes no number. The first scope of a
-## run is not cut, because the road already arrives under its own card.
+## else**: it reads the scope signal and changes no number. Nothing in a run's
+## first second is cut, because the road already arrives under its own card -
+## and that is a clock rather than "the first switch", which is what the first
+## cut keyed on: the run's opening scope is never announced, so the first
+## switch a player made was the one it skipped, and the photograph showed it.
 
 const LAYER: int = 19
 
 var _rect: ColorRect
 var _left: float = 0.0
 var _last_scope: int = -1
+var _born_msec: int = 0
 
 
 func _ready() -> void:
 	layer = LAYER
+	_born_msec = Time.get_ticks_msec()
 	_rect = ColorRect.new()
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rect.color = Color(Balance.SCOPE_CUT_COLOUR, 0.0)
@@ -34,7 +39,7 @@ func _ready() -> void:
 
 
 func _on_scope_changed(scope: int) -> void:
-	var first: bool = _last_scope < 0
+	var first: bool = Time.get_ticks_msec() - _born_msec < int(Balance.SCOPE_CUT_SETTLE * 1000.0)
 	var same: bool = scope == _last_scope
 	_last_scope = scope
 	if first or same or DisplayServer.get_name() == "headless":

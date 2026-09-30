@@ -9931,6 +9931,7 @@ const CAMERA_SCOPE_PUSH_DETENTS: int = 2
 const SCOPE_CUT_SECONDS: float = 0.24
 const SCOPE_CUT_ALPHA: float = 0.72
 const SCOPE_CUT_COLOUR: Color = Color(0.02, 0.02, 0.03)
+const SCOPE_CUT_SETTLE: float = 1.0
 const CAMERA_SCOPE_PUSH_SETTLE: float = 0.35
 const CAMERA_SCOPE_PUSH_WINDOW: float = 0.9
 ## A pinch's version: how far past the band's end the fingers must keep going,

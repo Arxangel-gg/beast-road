@@ -22,9 +22,12 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	var viewport_size := Vector2i(1280, 592)
 	var touch: bool = true
+	var scope_cut: bool = false
 	for argument: String in OS.get_cmdline_user_args():
 		if argument == "--desktop":
 			touch = false
+		if argument == "--scope-cut":
+			scope_cut = true
 		if argument.begins_with("--viewport="):
 			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
 			if dimensions.size() == 2:
@@ -55,6 +58,16 @@ func _ready() -> void:
 	TouchInput.refresh()
 	await _settle(0.6)
 	await _shot("opening")
+	if scope_cut:
+		# The cut from dark, caught a few frames into its fade (`ScopeCut`):
+		# the world darkened, the HUD above it untouched.
+		await _settle(Balance.SCOPE_CUT_SETTLE)
+		_run.switch_scope(GameDirector.Scope.TOWN)
+		for _f: int in 3:
+			await get_tree().process_frame
+		await _shot("scope_cut")
+		_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+		await _settle(0.6)
 
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	await _settle(0.6)
