@@ -32,6 +32,7 @@ var _doctrine_id: String = ""
 ## **Opened as the sandbox** (2026-09-30): every act, no doctrine, and a road
 ## where nothing is kept.
 var _sandbox: bool = false
+var _heading: Label
 
 ## **Who takes the road, when somebody other than the front door asked.**
 ##
@@ -83,6 +84,7 @@ func _build() -> void:
 	_panel.add_child(column)
 
 	var heading := Label.new()
+	_heading = heading
 	heading.text = "START A ROAD"
 	heading.add_theme_font_size_override("font_size", 28)
 	heading.add_theme_color_override("font_color", Color("e8a33d"))
@@ -202,6 +204,7 @@ func refresh() -> void:
 		+ "This is not your banked front - that is Resume, and it stays where it "
 		+ "is. Every doctrine below spends the same purse; what you are choosing "
 		+ "is its shape.")
+	_heading.text = "THE SANDBOX" if _sandbox else "START A ROAD"
 	if _sandbox:
 		_note.text = ("A sandbox road: every tower, a purse nothing on the board can "
 			+ "empty, and any act. Nothing you earn, find, unlock or lose on it is "
@@ -247,8 +250,8 @@ func refresh() -> void:
 ## What this road opens with, read off the same doors that will open it.
 func _summary_text() -> String:
 	if _sandbox:
-		return ("%d of each currency, every tower, the wall whole and no board: "
-			+ "you build it.") % Balance.SANDBOX_PURSE
+		return ("%s of each currency, every tower, the wall whole and no board: "
+			+ "you build it.") % _grouped(Balance.SANDBOX_PURSE)
 	if _act <= 1:
 		return ("Act I opens with nothing built and nothing spare, which is the "
 			+ "game as it is meant to begin. No doctrine applies.")
@@ -264,6 +267,15 @@ func _summary_text() -> String:
 	return ("%d Gold, which %s spends on about %d emplacements and leaves roughly "
 		+ "%d in the purse. The board is built before the first wave; what is "
 		+ "spare is yours.") % [budget, doctrine.display_name, wanted, spare]
+
+
+static func _grouped(value: int) -> String:
+	var digits: String = str(value)
+	var out: String = ""
+	while digits.length() > 3:
+		out = "," + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	return digits + out
 
 
 func _doctrine_list() -> Array:
