@@ -20,7 +20,7 @@ var _panel: PanelContainer
 var _rows: VBoxContainer
 var _heading: Label
 var _note: Label
-var _tabs: HBoxContainer
+var _tabs: HFlowContainer
 var _close_button: Button
 var _tier_id: String = "normal"
 ## Which board: the ordinary one or the Hardcore one (2026-09-30). A toggle
@@ -69,8 +69,13 @@ func _build() -> void:
 	_heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_heading)
 
-	_tabs = HBoxContainer.new()
-	_tabs.add_theme_constant_override("separation", 6)
+	# **A row that wraps**, as the codex's does. Three tiers and the Hardcore
+	# toggle are four thumb-sized buttons, wider than an upright phone; a box
+	# cannot be narrower than its children, so it widened the whole panel
+	# past the screen's edge and put Close partly off it (2026-09-30).
+	_tabs = HFlowContainer.new()
+	_tabs.add_theme_constant_override("h_separation", 6)
+	_tabs.add_theme_constant_override("v_separation", 6)
 
 	_note = Label.new()
 	_note.add_theme_font_size_override("font_size", 13)
