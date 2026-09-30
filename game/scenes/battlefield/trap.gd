@@ -30,6 +30,9 @@ var _pulse: float = 0.0
 var _frames: Array[Texture2D] = []
 var _frame_clock: float = 0.0
 var _glow: Sprite2D = null
+## Seconds until the next look for a body (`TRAP_SENSE_HZ`); below zero until
+## the first tick gives it a phase of its own.
+var _sense_left: float = -1.0
 ## What level this trap was laid or raised to. The authored numbers are
 ## level one; every level above multiplies them (2026-09-13).
 var level: int = 1
@@ -102,6 +105,12 @@ func _physics_process_measured(delta: float) -> void:
 	# spending the same trap's triggers against their own copies of the enemies.
 	if puppet or field == null or not field.has_method("enemies_near"):
 		return
+	if _sense_left < 0.0:
+		_sense_left = float(posmod(tile.x * 7 + tile.y * 13, 10)) * 0.1 / Balance.TRAP_SENSE_HZ
+	_sense_left -= delta
+	if _sense_left > 0.0:
+		return
+	_sense_left = 1.0 / Balance.TRAP_SENSE_HZ
 	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
 		if not enemy.is_dying():
 			fire()

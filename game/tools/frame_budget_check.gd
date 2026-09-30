@@ -36,6 +36,8 @@ func _ready() -> void:
 	_test_the_ink_ages_on_its_clock()
 	await _test_nothing_is_made_where_nobody_looks()
 	_test_a_blow_rebuilds_nothing()
+	_test_the_roof_is_read_once_a_painting()
+	_test_traps_look_on_a_clock()
 	Graphics.from_dictionary(held)
 	Vfx.bind_world(null)
 	await get_tree().process_frame
@@ -516,6 +518,40 @@ func _test_a_blow_rebuilds_nothing() -> void:
 	RunState.hero_hp = float(held[2])
 	RunState.hero_wounds = int(held[3])
 	Modifiers.rebuild()
+
+
+## **A tower's roofline is read once a painting** (2026-09-30). It was read
+## off the texture on every build and upgrade, and `get_image` on a real
+## renderer is a copy back from the GPU. Asked twice, the same painting hands
+## back the very same answer; the damage fires still land on the roof.
+func _test_the_roof_is_read_once_a_painting() -> void:
+	var path: String = ""
+	for tower: TowerData in ContentDB.towers.values():
+		if ResourceLoader.exists(tower.get_sprite_path()):
+			path = tower.get_sprite_path()
+			break
+	_check(not path.is_empty(), "no tower painting to read a roofline off")
+	if path.is_empty():
+		return
+	var texture: Texture2D = load(path) as Texture2D
+	var first: Array = Tower._roofline(texture)
+	var again: Array = Tower._roofline(texture)
+	_check(not first.is_empty() and first.size() == 3 and not (first[2] as Array).is_empty(),
+		"%s has no roofline for its damage fires" % path.get_file())
+	_check(is_same(first, again), "a tower's roofline was read off the painting a second time")
+
+
+## **A trap and a barricade look for bodies on a clock**, not on every physics
+## tick (2026-09-30): the tick follows the display, and twenty traps on a
+## 180 Hz screen walked the road 3,600 times a second. Read off the source,
+## because the fault is a look placed before the clock rather than after it.
+func _test_traps_look_on_a_clock() -> void:
+	for path: String in ["res://scenes/battlefield/trap.gd", "res://scenes/battlefield/barricade.gd"]:
+		var source: String = FileAccess.get_file_as_string(path)
+		var clock: int = source.find("_sense_left -= delta")
+		var look: int = source.find("enemies_near(", source.find("func _physics_process"))
+		_check(clock >= 0 and look > clock,
+			"%s looks for bodies before its clock allows" % path.get_file())
 
 
 func _test_the_roster_is_gathered_once_a_frame() -> void:

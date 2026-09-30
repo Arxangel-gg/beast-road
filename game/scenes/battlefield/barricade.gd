@@ -32,6 +32,9 @@ var health: Health = null
 var _sprite: Sprite2D = null
 var _bar: HealthBar = null
 var _flash: float = 0.0
+## Seconds until the next grip (`BARRICADE_SENSE_HZ`); below zero until the
+## first tick gives it a phase of its own.
+var _sense_left: float = -1.0
 
 ## Which way the road runs under it, so the right piece is drawn.
 var facing: BarricadeData.Facing = BarricadeData.Facing.ACROSS
@@ -86,11 +89,17 @@ func _process_measured(delta: float) -> void:
 		_apply_wear()
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if data == null or data.slow_factor >= 1.0 or field == null:
 		return
 	if not field.has_method("enemies_near"):
 		return
+	if _sense_left < 0.0:
+		_sense_left = float(posmod(tile.x * 7 + tile.y * 13, 10)) * 0.1 / Balance.BARRICADE_SENSE_HZ
+	_sense_left -= delta
+	if _sense_left > 0.0:
+		return
+	_sense_left = 1.0 / Balance.BARRICADE_SENSE_HZ
 	# Anything pressed against it is held there. A wall that only had health
 	# would be a speed bump with extra steps; slowing what is hitting it is what
 	# makes a *partial* line worth building, because the gap is then faster than

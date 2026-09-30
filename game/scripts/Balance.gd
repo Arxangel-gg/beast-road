@@ -3975,6 +3975,17 @@ const BARRICADE_AHEAD_DOT: float = 0.45
 
 const BARRICADE_GRIP_RADIUS: float = 90.0
 const BARRICADE_GRIP_SECONDS: float = 0.6
+## **How often a trap and a barricade look for bodies** (2026-09-30). They
+## looked on every physics tick, and the tick follows the display: on a 180 Hz
+## screen twenty traps walked every body on the road 3,600 times a second. A
+## body walks about a unit in a thirtieth of a second, so a trap that looks
+## thirty times a second springs on the same body at the same place; a grip
+## that lasts `BARRICADE_GRIP_SECONDS` is renewed long before it lapses. Each
+## takes a phase from where it stands, so a road of them does not all look on
+## one tick - and never from a die, which would move every seeded roll after
+## it. [TUNE]
+const TRAP_SENSE_HZ: float = 30.0
+const BARRICADE_SENSE_HZ: float = 10.0
 
 # ------------------------------------------------------------------------------
 # Wildlife behavior and spacing

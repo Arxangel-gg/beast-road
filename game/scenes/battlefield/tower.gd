@@ -1297,30 +1297,58 @@ func repair(fraction: float, quiet: bool = false) -> void:
 func _build_damage_flames() -> void:
 	if sprite == null or sprite.texture == null:
 		return
-	var image: Image = sprite.texture.get_image()
-	if image == null or image.is_empty():
+	var roof: Array = _roofline(sprite.texture)
+	if roof.is_empty():
 		return
-	for fraction: float in [0.34, 0.62, 0.49]:
-		var column: int = clampi(int(round(float(image.get_width() - 1) * fraction)),
-			0, image.get_width() - 1)
-		var first_opaque: int = -1
-		for y: int in image.get_height():
-			if image.get_pixel(column, y).a > 0.2:
-				first_opaque = y
-				break
-		if first_opaque < 0:
-			continue
+	var width: int = roof[0]
+	var height: int = roof[1]
+	for point: Vector2i in roof[2]:
+		var column: int = point.x
+		var first_opaque: int = point.y
 		var fire := Flame.new()
 		fire.name = "DamageFlame%d" % _damage_flames.size()
-		var local_x: float = (float(column) - float(image.get_width()) * 0.5) * sprite.scale.x
-		var local_y: float = (float(first_opaque) - float(image.get_height()) * 0.5 \
-			+ float(image.get_height()) * 0.14) * sprite.scale.y
+		var local_x: float = (float(column) - float(width) * 0.5) * sprite.scale.x
+		var local_y: float = (float(first_opaque) - float(height) * 0.5 \
+			+ float(height) * 0.14) * sprite.scale.y
 		fire.position = sprite.position + Vector2(local_x, local_y)
 		fire.z_index = 2
 		add_child(fire)
 		fire.configure(11.0 + float(_damage_flames.size()) * 1.5)
 		fire.set_lit(false)
 		_damage_flames.append(fire)
+
+
+## **Where a painting's roof is, read once a painting** (2026-09-30). It was
+## read off the texture on every build and every upgrade - and `get_image` on
+## a real renderer is a copy back from the GPU, a frame's worth of stall each
+## time a player bought a level. The roofline is a fact about the art, so it
+## is kept by the texture's path: `[width, height, [Vector2i(column, row)]]`,
+## or empty for a painting with nothing opaque in it.
+static var _roofs: Dictionary = {}
+
+
+static func _roofline(texture: Texture2D) -> Array:
+	var key: String = texture.resource_path
+	if not key.is_empty() and _roofs.has(key):
+		return _roofs[key]
+	var found: Array = []
+	var image: Image = texture.get_image()
+	if image != null and not image.is_empty():
+		if image.is_compressed():
+			image.decompress()
+		var points: Array[Vector2i] = []
+		for fraction: float in [0.34, 0.62, 0.49]:
+			var column: int = clampi(int(round(float(image.get_width() - 1) * fraction)),
+				0, image.get_width() - 1)
+			for y: int in image.get_height():
+				if image.get_pixel(column, y).a > 0.2:
+					points.append(Vector2i(column, y))
+					break
+		if not points.is_empty():
+			found = [image.get_width(), image.get_height(), points]
+	if not key.is_empty():
+		_roofs[key] = found
+	return found
 
 
 ## Upgrade scaling changes the sprite silhouette in local space. Re-sampling
