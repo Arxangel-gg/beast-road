@@ -11896,6 +11896,41 @@ prints were there, measured darker at their centres - it was that a 5-by-8
 pixel print at play zoom is a smudge. **Measure the pixel before rewriting the
 painter.**
 
+**A sandbox road, as of 2026-09-30.** `IDEAS_REVIEW_2026-09-23` §4.3 adopted
+it: every tower, a full purse (`SANDBOX_PURSE` of each currency), any act, any
+battlefield, and nothing paid to the account - Core Keeper's creative mode, and
+the fastest way to try the map modes and the roster. The Hold offers it to a
+Warden alone, through the same act screen an act start uses, opened as the
+sandbox: all eleven acts, no doctrine, no board.
+
+**Nothing is kept by construction, not by a list of exceptions.** The account is
+written as it stands and then held (`MetaState.hold_saves`, the door every gate
+already trusts), so nothing earned, found, unlocked or lost on the road can
+reach the disk, and `GameDirector._release_sandbox` reads the account back from
+disk at every door a road leaves by - `_settle_run` and `goto_menu`. A crash
+keeps nothing either, because nothing was written. The alternative - a guard at
+each of the dozens of places a run writes to the account - is a list, and the
+first write somebody adds tomorrow would be missing from it.
+
+A sandbox is not posted (`Leaderboard.submit` refuses it), its debrief lists no
+payout and says it was a sandbox, the pause menu says leaving costs nothing, and
+a Hardcore Warden's sandbox fall buries nobody - the burial is refused while
+held anyway, and the debrief no longer says one happened. **Solo only**: whether
+a shared road is a sandbox would be the host's to decide for somebody else's
+account. `sandbox_check` (both bars) drives the real hold, opening and
+`_settle_run` in a `slot_root` fixture and compares the account as parsed JSON -
+a setting read back from disk is a float where the account held an int, which is
+the save format and not the sandbox.
+
+**And the Hold's "Start at an act" door had done nothing on every launch.** The
+main menu handed its act screen to the Hold beside building the screen, and the
+screen is built before the Hold is - so the hand-over found `_hub` null, and the
+door returned on its first line. `hold_check` built its own Hold and handed the
+screen over itself, so it passed. The hand-over is in `_build_hold` now, the
+screen is built for every Warden (a new one's sandbox door opened nothing
+either), and `menu_layout_check` asks the real menu for it. **A gate that
+assembles its own subject cannot see the assembly.**
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
