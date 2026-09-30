@@ -35,6 +35,7 @@ func _ready() -> void:
 	await _test_a_bar_is_one_item()
 	_test_the_ink_ages_on_its_clock()
 	await _test_nothing_is_made_where_nobody_looks()
+	_test_a_blow_rebuilds_nothing()
 	Graphics.from_dictionary(held)
 	Vfx.bind_world(null)
 	await get_tree().process_frame
@@ -465,6 +466,57 @@ func _test_nothing_is_made_where_nobody_looks() -> void:
 	light.clear()
 	flat.clear()
 	motes.clear()
+
+
+## **A blow rebuilds nothing, and the regional rules still follow the fight**
+## (2026-09-30). The Warden and the town answered every change of health with a
+## whole `Modifiers.rebuild`; they ask `refresh_conditions` now, which lays the
+## regional rules again only when one of their conditions flips. A region-one
+## relic still adds tower damage once the town is under seventy percent, a
+## region-two relic still adds speed once the Warden is under half, and both go
+## away when the line is crossed back.
+func _test_a_blow_rebuilds_nothing() -> void:
+	for path: String in ["res://scenes/hero/hero.gd", "res://scenes/battlefield/town_core.gd"]:
+		var source: String = FileAccess.get_file_as_string(path)
+		var at: int = source.find("func _on_health_changed") if path.contains("hero") 			else source.find("func _on_changed")
+		var end: int = source.find("
+func ", at + 5)
+		var body: String = source.substr(at, (end - at) if end > at else 1200)
+		_check(at >= 0 and not body.contains("Modifiers.rebuild()") and body.contains("refresh_conditions"),
+			"%s still rebuilds every modifier on a change of health" % path.get_file())
+	var held_relics: Array[String] = RunState.socketed_relics.duplicate()
+	var held: Array = [RunState.town_hp, RunState.town_max_hp, RunState.hero_hp, RunState.hero_wounds]
+	RunState.socketed_relics.clear()
+	for id: String in ["01", "09"]:
+		if ContentDB.relics.has(id):
+			RunState.socketed_relics.append(id)
+	RunState.town_max_hp = 1000.0
+	RunState.town_hp = 1000.0
+	RunState.hero_hp = Balance.HERO_MAX_HP
+	RunState.hero_wounds = 0
+	Modifiers.rebuild()
+	var whole_damage: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
+	var whole_speed: float = Modifiers.value(Modifiers.HERO_SPEED)
+	RunState.town_hp = 500.0
+	Modifiers.refresh_conditions()
+	_check(Modifiers.value(Modifiers.TOWER_DAMAGE) > whole_damage + 0.03,
+		"a damaged town no longer lifts tower damage through its regional relic")
+	RunState.hero_hp = Balance.HERO_MAX_HP * 0.3
+	Modifiers.refresh_conditions()
+	_check(Modifiers.value(Modifiers.HERO_SPEED) > whole_speed + 0.02,
+		"a wounded Warden no longer quickens through the regional relic")
+	RunState.town_hp = 1000.0
+	RunState.hero_hp = Balance.HERO_MAX_HP
+	Modifiers.refresh_conditions()
+	_check(is_equal_approx(Modifiers.value(Modifiers.TOWER_DAMAGE), whole_damage)
+		and is_equal_approx(Modifiers.value(Modifiers.HERO_SPEED), whole_speed),
+		"the regional rules outlived the conditions that called them")
+	RunState.socketed_relics = held_relics
+	RunState.town_hp = float(held[0])
+	RunState.town_max_hp = float(held[1])
+	RunState.hero_hp = float(held[2])
+	RunState.hero_wounds = int(held[3])
+	Modifiers.rebuild()
 
 
 func _test_the_roster_is_gathered_once_a_frame() -> void:

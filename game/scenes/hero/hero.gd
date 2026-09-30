@@ -2780,7 +2780,7 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	if not is_local_player():
 		return
 	RunState.hero_hp = current
-	Modifiers.rebuild()
+	Modifiers.refresh_conditions()
 	EventBus.hero_health_changed.emit(current, maximum)
 
 

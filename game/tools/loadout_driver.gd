@@ -42,6 +42,7 @@ func read_arguments(arguments: PackedStringArray) -> void:
 
 
 func arm() -> void:
+	_dress()
 	for id: String in cards:
 		var card: RoadCardData = ContentDB.road_card(id)
 		if card == null:
@@ -57,6 +58,32 @@ func arm() -> void:
 	for id: String in RunState.road_cards:
 		levels.append("%s %d" % [id, RunState.card_level(id)])
 	print("[loadout] %s; spells %s" % [", ".join(levels), ", ".join(spells)])
+
+
+## A Warden who reached Act X wears something in every slot and carries a full
+## stash: nine pieces at a high rarity, and the rest of the stash behind them,
+## because what is worn is read many times a physics tick and a new account
+## wearing one piece measured none of that.
+func _dress() -> void:
+	var kinds: Array = ContentDB.gear_kinds.values()
+	var rarity: int = mini(6, Balance.GEAR_AFFIX_COUNT.size() - 1)
+	for slot: int in GearData.Slot.size():
+		for value: Variant in kinds:
+			var kind := value as GearData
+			if kind != null and int(kind.slot) == slot and not kind.trophy:
+				if not MetaState.take_gear(Stash.make(kind.id, rarity, 30)):
+					break
+				MetaState.equip(slot, MetaState.stash.size() - 1)
+				break
+	var index: int = 0
+	while MetaState.stash.size() < Balance.STASH_CAPACITY - 4 and index < 400:
+		var kind := kinds[index % kinds.size()] as GearData
+		index += 1
+		if kind == null or kind.trophy:
+			continue
+		MetaState.take_gear(Stash.make(kind.id, index % 4, 10 + index % 20))
+	print("[loadout] wearing %d pieces, %d in the stash" % [MetaState.equipped.size(),
+		MetaState.stash.size()])
 
 
 func _process(delta: float) -> void:

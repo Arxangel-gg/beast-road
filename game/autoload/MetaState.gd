@@ -1623,13 +1623,26 @@ func equipped_piece(slot: int) -> Dictionary:
 ## `equipped` by uid is that the position is derived and can never go stale.
 ## A piece that has left the stash, or one whose kind does not belong in this
 ## slot, reads as nothing worn rather than as a stranger.
+##
+## **A hint, checked every time** (2026-09-30). The walk of a stash of a hundred
+## and sixty was most of an attribute read - 81 microseconds with nine pieces
+## worn - and the Warden reads attributes many times a physics tick. Where the
+## piece was last found is tried first and believed only if the piece there
+## still carries the name, so the position is still derived and still cannot
+## go stale; a stash that moved costs one walk, as it always did.
 func equipped_index(slot: int) -> int:
 	var uid: int = int(equipped.get(slot, 0))
 	if uid == 0:
 		return -1
-	var index: int = Stash.index_of(stash, uid)
-	if index < 0:
-		return -1
+	var index: int = int(_uid_hint.get(uid, -1))
+	if index < 0 or index >= stash.size() \
+			or int((stash[index] as Dictionary).get("uid", 0)) != uid:
+		index = Stash.index_of(stash, uid)
+		if index < 0:
+			return -1
+		if _uid_hint.size() > 64:
+			_uid_hint.clear()
+		_uid_hint[uid] = index
 	var kind: GearData = ContentDB.gear(String((stash[index] as Dictionary).get("kind", "")))
 	return index if kind != null and int(kind.slot) == slot else -1
 
@@ -1741,6 +1754,40 @@ func equip(slot: int, index: int) -> void:
 
 ## Attribute points every equipped piece grants, one entry per attribute.
 func gear_attribute_points() -> Array[int]:
+	# **Worked out once for what is worn** (2026-09-30). Every piece's bonuses
+	# are rolled from its own name on every read, and the answer only changes
+	# when what is worn does - so it is kept against exactly what it is made
+	# of: each slot's piece, its kind, its rarity and its level. Inside one frame
+	# the same worn map over the same stash is the same answer without asking.
+	var frame: int = Engine.get_process_frames() * 1000003 + Engine.get_physics_frames()
+	var worn_map: int = equipped.hash()
+	if frame == _worn_frame and worn_map == _worn_map and stash.size() == _worn_stash 			and _worn_points.size() == RunState.ATTRIBUTE_NAMES.size():
+		return _worn_points.duplicate()
+	_worn_frame = frame
+	_worn_map = worn_map
+	_worn_stash = stash.size()
+	var key: int = 1
+	for slot: Variant in equipped:
+		var worn: Dictionary = equipped_piece(int(slot))
+		if not worn.is_empty():
+			key = hash([key, int(slot), int(worn.get("uid", 0)), String(worn.get("kind", "")),
+				int(worn.get("rarity", 0)), int(worn.get("level", 0))])
+	if key == _worn_points_key and _worn_points.size() == RunState.ATTRIBUTE_NAMES.size():
+		return _worn_points.duplicate()
+	_worn_points_key = key
+	_worn_points = _gear_attribute_points_worked()
+	return _worn_points.duplicate()
+
+
+var _uid_hint: Dictionary = {}
+var _worn_points_key: int = 0
+var _worn_points: Array[int] = []
+var _worn_frame: int = -1
+var _worn_map: int = 0
+var _worn_stash: int = -1
+
+
+func _gear_attribute_points_worked() -> Array[int]:
 	var out: Array[int] = []
 	out.resize(RunState.ATTRIBUTE_NAMES.size())
 	out.fill(0)

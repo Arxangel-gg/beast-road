@@ -426,6 +426,7 @@ func _add_omen(omen: OmenData) -> void:
 ## damaged town, Sunglass rewards wounded mobility, and Rimebound converts act
 ## wounds into control. The rule keys off region data, never individual ids.
 func _apply_regional_adapters() -> void:
+	_conditions = _conditions_now()
 	for relic_id: String in RunState.socketed_relics:
 		var relic := ContentDB.relics.get(relic_id, null) as RelicData
 		if relic == null:
@@ -440,6 +441,38 @@ func _apply_regional_adapters() -> void:
 			3:
 				if RunState.hero_wounds > 0:
 					_totals[SLOW_STRENGTH] = float(_totals.get(SLOW_STRENGTH, 0.0)) + 0.025
+
+
+## **The part of the table that follows the fight** (2026-09-30). The regional
+## rules above read the town's health, the Warden's and the wounds, and the
+## Warden and the town used to answer every change of health with a whole
+## `rebuild` - every relic, portent and card, and every worn piece's affixes
+## rolled again from its name - on every blow in a siege and every tick of
+## regeneration. The rules only ever change when one of their three
+## conditions flips, so this asks whether one has and, if so, lays the rules
+## on the table the last rebuild left, which is all a rebuild would have done.
+var _conditions: int = -1
+
+
+func refresh_conditions() -> void:
+	if _conditions_now() == _conditions:
+		return
+	if _base_totals.is_empty() and not _totals.is_empty():
+		rebuild()
+		return
+	_totals = _base_totals.duplicate()
+	_apply_regional_adapters()
+
+
+func _conditions_now() -> int:
+	var bits: int = 0
+	if RunState.town_hp < RunState.town_max_hp * 0.70:
+		bits |= 1
+	if RunState.hero_hp > 0.0 and RunState.hero_hp < Balance.HERO_MAX_HP * 0.50:
+		bits |= 2
+	if RunState.hero_wounds > 0:
+		bits |= 4
+	return bits
 
 
 func _on_relics_changed(_relic_id: String) -> void:

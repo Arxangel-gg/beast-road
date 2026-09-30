@@ -400,7 +400,7 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 func _on_changed(current: float, maximum: float) -> void:
 	RunState.town_hp = current
 	RunState.town_max_hp = maximum
-	Modifiers.rebuild()
+	Modifiers.refresh_conditions()
 	EventBus.town_health_changed.emit(current, maximum)
 
 
