@@ -229,6 +229,42 @@ func _ready() -> void:
 		return
 	print("[menu] stash filters %d slots, All and the pantry" % GearData.Slot.size())
 
+	# **Every icon a button names is on disk** (2026-09-30). The Wardens and the
+	# Pen buttons both asked `IconKit` for "spirit", which was never drawn, so
+	# both carried no icon - and `IconKit.ui` answers a missing file with
+	# nothing, in silence. Walked off the source, because a missing icon errors
+	# nowhere and a picture of the menu is the only other thing that sees it.
+	var missing: Array[String] = []
+	for path: String in _scripts("res://scenes"):
+		var text: String = FileAccess.get_file_as_string(path)
+		var from: int = 0
+		while true:
+			var at: int = text.find("IconKit.on_button(", from)
+			if at < 0:
+				break
+			from = at + 1
+			# Only a literal second argument: `on_button(button, "id", ...)`. A
+			# name worked out at run time is the caller's to check.
+			var comma: int = text.find(",", at)
+			var line_end: int = text.find("
+", at)
+			if comma < 0 or (line_end >= 0 and comma > line_end):
+				continue
+			var open_quote: int = comma + 1
+			while open_quote < text.length() and text[open_quote] == " ":
+				open_quote += 1
+			if open_quote >= text.length() or text[open_quote] != "\"":
+				continue
+			var shut: int = text.find("\"", open_quote + 1)
+			var id: String = text.substr(open_quote + 1, shut - open_quote - 1)
+			if IconKit.ui(id) == null:
+				missing.append("%s names the icon \"%s\"" % [path.get_file(), id])
+	if not missing.is_empty():
+		push_error("buttons name icons that are not on disk: %s" % ", ".join(missing))
+		get_tree().quit(1)
+		return
+	print("[menu] every icon a button names is on disk")
+
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()
@@ -236,6 +272,19 @@ func _ready() -> void:
 	for _frame: int in 30:
 		await get_tree().process_frame
 	get_tree().quit(0)
+
+func _scripts(root: String) -> Array[String]:
+	var found: Array[String] = []
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return found
+	for entry: String in dir.get_directories():
+		found.append_array(_scripts(root.path_join(entry)))
+	for entry: String in dir.get_files():
+		if entry.ends_with(".gd"):
+			found.append(root.path_join(entry))
+	return found
+
 
 func _all(from: Node) -> Array[Node]:
 	var found: Array[Node] = [from]

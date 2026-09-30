@@ -205,6 +205,36 @@ func _ready() -> void:
 			+ "returns on its first line for them and they are silent on the "
 			+ "road: %s") % [mute.size(), ", ".join(mute)])
 
+	# **A Warden's voice is their own** (owner, 2026-09-30). Every voiced id
+	# resolves for both bodies; a female Warden never plays the male take at
+	# the male pitch; her own take is used once it is on disk; and no script
+	# plays a voiced id past `play_voice`, which is the one door that knows
+	# whose throat it is.
+	for voiced: Variant in Sfx.FEMALE_VOICES:
+		var id: String = String(voiced)
+		for female: bool in [false, true]:
+			var chosen: Array = Sfx.voice_for(id, female)
+			var take: String = String(chosen[0])
+			if not (Sfx.SOUNDS.has(take) or Sfx.GROUPS.has(take)):
+				failures.append("the voice \"%s\" resolves to \"%s\" for a %s Warden, which plays nothing"
+					% [id, take, "female" if female else "male"])
+			var own: String = String(Sfx.FEMALE_VOICES[id])
+			if female and take != own and is_zero_approx(float(chosen[1])):
+				failures.append("a female Warden's \"%s\" plays the male take at the male pitch" % id)
+			if female and (Sfx.SOUNDS.has(own) or Sfx.GROUPS.has(own)) and take != own:
+				failures.append("a female Warden's \"%s\" is recorded and not played" % id)
+			if not female and not is_zero_approx(float(chosen[1])):
+				failures.append("a male Warden's \"%s\" is pitched" % id)
+	for path: String in _every_script("res://"):
+		if path.ends_with("autoload/Sfx.gd") or path.contains("/tools/"):
+			continue
+		var text: String = FileAccess.get_file_as_string(path)
+		for voiced: Variant in Sfx.FEMALE_VOICES:
+			for call: String in ["Sfx.play(\"%s\"", "Sfx.play_at(\"%s\""]:
+				if text.contains(call % String(voiced)):
+					failures.append("%s plays the voice \"%s\" past `play_voice`, so a female Warden hears a man"
+						% [path, String(voiced)])
+
 	print("[audio] %d sounds, %d groups, %d mix rows"
 		% [paths.size(), Sfx.GROUPS.size(), Sfx.MIX.size()])
 	for problem: String in failures:
@@ -249,7 +279,7 @@ func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 			if line.strip_edges().begins_with("#"):
 				continue
 			for call: String in ["play_group(\"", "play_group_at(\"",
-					"Sfx.play(\"", "Sfx.play_at(\""]:
+					"Sfx.play(\"", "Sfx.play_at(\"", "play_voice(\""]:
 				var at: int = line.find(call)
 				if at < 0:
 					continue
@@ -265,6 +295,11 @@ func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
 				# GROUPS - but accepting both here costs nothing and keeps one
 				# walker: the failure being caught is a name nothing can resolve.
 				if Sfx.GROUPS.has(named) or Sfx.SOUNDS.has(named):
+					continue
+				# A voice owed its recording plays its stand-in until it lands
+				# (2026-09-30); the stand-in itself must resolve.
+				if call == "play_voice(\"" and Sfx.VOICE_STAND_INS.has(named) \
+						and (Sfx.SOUNDS.has(String(Sfx.VOICE_STAND_INS[named])) or Sfx.GROUPS.has(String(Sfx.VOICE_STAND_INS[named]))):
 					continue
 				bad.append(("%s:%d names the sound \"%s\", which is in neither "
 					+ "SOUNDS nor GROUPS - it plays nothing and says nothing")

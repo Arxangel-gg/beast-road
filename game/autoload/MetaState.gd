@@ -962,6 +962,9 @@ var settings: Dictionary = {
 	# and reverted on every launch - the fourth setting this dictionary has
 	# dropped. On by default, as every reader already assumed.
 	"blood_vfx": true,
+	# How much the ground remembers when blood is on (2026-09-30): Low (1) or
+	# High (2). Declared here or it is dropped on load and reverts.
+	"blood_level": 1,
 	# Whether an augment draft opens the moment it is earned, holding the road,
 	# or waits for the breather (2026-09-26). Solo only; off by default, so a
 	# fight is never interrupted unless the player asked for it.

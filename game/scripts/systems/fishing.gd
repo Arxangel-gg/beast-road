@@ -693,7 +693,7 @@ func _tick_bites(delta: float) -> void:
 				_ripple_at(index, swimmer.global_position, 0.9)
 				_stain_at(index, swimmer.global_position, 1.0)
 				Vfx.spark(swimmer.global_position, Color("c4552e"), 6, Vector2.UP, 150.0)
-				Sfx.play("sfx_water_bite")
+				Sfx.play_voice("sfx_water_bite", WardenLook.is_female(swimmer.get("look")))
 
 
 # --- Standing by the water -----------------------------------------------------

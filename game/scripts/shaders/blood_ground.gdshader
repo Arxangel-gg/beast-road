@@ -19,6 +19,10 @@ uniform float hold = 0.45;
 uniform float ground_alpha = 0.68;
 uniform vec4 fresh : source_color = vec4(0.48, 0.06, 0.07, 1.0);
 uniform vec4 dry : source_color = vec4(0.24, 0.07, 0.08, 1.0);
+// Seconds of the field's clock a mark takes to dry dark (2026-09-30). It was a
+// share of the life, and a High mark lasts until extraction, so it would never
+// have dried.
+uniform float dry_seconds = 428.0;
 
 void fragment() {
 	// UV: x is when the mark was laid on the field's clock, y how long it lasts.
@@ -27,6 +31,6 @@ void fragment() {
 	float life = max(UV.y, 0.01);
 	float t = clamp((clock - UV.x) / life, 0.0, 1.0);
 	float alpha = ground_alpha * (1.0 - smoothstep(hold, 1.0, t)) * COLOR.a;
-	float drying = clamp(t * 1.4, 0.0, 1.0) * 0.85 + COLOR.r * 0.15;
+	float drying = clamp((clock - UV.x) / max(dry_seconds, 1.0), 0.0, 1.0) * 0.85 + COLOR.r * 0.15;
 	COLOR = vec4(mix(fresh.rgb, dry.rgb, drying), alpha);
 }

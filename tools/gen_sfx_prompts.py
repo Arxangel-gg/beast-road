@@ -108,6 +108,28 @@ ROWS = [
      "a sharp pained grunt from an armoured figure taking a hit, muffled behind a mask"),
     ("sfx_hero_death", "sfx", "sfx", "1.2s", "ElevenLabs",
      "a body in armour hitting the ground hard and going still"),
+    # **The female Warden's own voice** (owner, 2026-09-30: "they're playing
+    # male sounds when hurt etc"). Until each is on disk, `Sfx.voice_for`
+    # plays the male take pitched up as a stand-in. Record three takes of the
+    # hurt cry, as the male one has, so a flurry of blows does not repeat.
+    ("sfx_hero_hurt_f", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "a woman warrior's sharp pained grunt as a blow lands, short and breathy through "
+     "clenched teeth, low in her range, no scream and no words"),
+    ("sfx_hero_death_f", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "a woman warrior's last pained breath as she falls, a short broken exhale, then "
+     "leather and a little armour settling on the ground and going still, no scream"),
+    ("sfx_hero_winded", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "a man out of breath after a hard sprint: two ragged heaving breaths, the second "
+     "catching in his throat, no words"),
+    ("sfx_hero_winded_f", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "a woman out of breath after a hard sprint: two ragged heaving breaths, the second "
+     "catching in her throat, no words"),
+    ("sfx_drown_f", "sfx", "sfx", "1.8s", "ElevenLabs",
+     "a woman drowning: a choked gasp, water rushing over, bubbles rising and going "
+     "quiet, a slow sink"),
+    ("sfx_water_bite_f", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "something under the water biting a swimming woman: a sudden churn, a wet snap "
+     "and her short pained gasp"),
     ("sfx_dash", "sfx", "sfx", "0.4s", "ElevenLabs",
      "a fast cloth-and-air whoosh, a figure moving suddenly, slightly unnatural"),
     ("sfx_footstep_dirt", "sfx", "sfx", "0.2s", "ElevenLabs",
@@ -1076,7 +1098,10 @@ def _present(sound_id: str, have: set) -> bool:
 # Names that match the sound pattern and are not sounds. Kept as an explicit
 # list rather than by making the scan cleverer: two settings keys are the entire
 # problem, and a deny-list somebody can read beats a regex nobody can.
-NOT_SOUNDS = {"sfx_volume", "music_volume", "ambience_volume", "weather_volume"}
+NOT_SOUNDS = {"sfx_volume", "music_volume", "ambience_volume", "weather_volume",
+              # An illustration in `audio_verify`'s own commentary of what a
+              # GROUPS row looks like, not a sound anybody asks for.
+              "sfx_x", "sfx_x_1"}
 
 
 def named_by_the_game() -> dict:

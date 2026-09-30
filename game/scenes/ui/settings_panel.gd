@@ -382,26 +382,42 @@ func _gait_row() -> HBoxContainer:
 
 ## Gore is optional presentation, never a combat-readability switch. Damage
 ## numbers, ordinary hit sparks and hostile red telegraphs stay enabled.
+##
+## **Off, Low or High** (owner, 2026-09-30): Low is the ten-minute memory, High
+## lasts until the party extracts and only rain and flood wash it.
 func _blood_vfx_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	var label: Label = _label("Blood effects")
+	row.name = "BloodRow"
+	row.add_theme_constant_override("separation", 8)
+	var label: Label = _label("Blood")
 	label.custom_minimum_size = Vector2(120.0, 0.0)
 	row.add_child(label)
-
-	var button := Button.new()
-	button.toggle_mode = true
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.button_pressed = bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true))
-	button.text = "On" if button.button_pressed else "Off"
-	button.tooltip_text = "Shows restrained blood on character hits. Danger cues and hit feedback stay on."
-	IconKit.on_button(button, "upgrade" if button.button_pressed else "close", 22)
-	button.toggled.connect(func(on: bool) -> void:
-		UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, on)
-		button.text = "On" if on else "Off"
-		IconKit.on_button(button, "upgrade" if on else "close", 22)
-		_queue_save())
-	row.add_child(button)
+	var hints: Array[String] = [
+		"No blood. Danger cues and hit feedback stay on.",
+		"Restrained blood that fades from the ground over ten minutes.",
+		"Blood stays on the ground until you extract; only rain and floods wash it away.",
+	]
+	var buttons: Array[Button] = []
+	for level: int in UserSettings.BLOOD_LEVEL_NAMES.size():
+		var button := Button.new()
+		button.name = "Blood%s" % UserSettings.BLOOD_LEVEL_NAMES[level]
+		button.text = UserSettings.BLOOD_LEVEL_NAMES[level]
+		button.toggle_mode = true
+		button.tooltip_text = hints[level]
+		button.custom_minimum_size = Vector2(0.0, 34.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		buttons.append(button)
+		row.add_child(button)
+	var show_level := func() -> void:
+		var now: int = UserSettings.blood_level()
+		for index: int in buttons.size():
+			buttons[index].set_pressed_no_signal(index == now)
+	for level: int in buttons.size():
+		buttons[level].pressed.connect(func() -> void:
+			UserSettings.set_blood_level(level)
+			show_level.call()
+			_queue_save())
+	show_level.call()
 	return row
 
 

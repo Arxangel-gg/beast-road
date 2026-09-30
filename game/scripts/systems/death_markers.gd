@@ -82,6 +82,7 @@ func _fall(hero: Hero) -> void:
 	var drowned: bool = hero.has_method("is_drowned") and hero.is_drowned()
 	var stone := DeathStone.new()
 	stone.drowned = drowned
+	stone.female = WardenLook.is_female(hero.look)
 	add_child(stone)
 	stone.global_position = at
 	_stones[id] = stone

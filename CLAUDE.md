@@ -11411,6 +11411,27 @@ arrived with a ChatGPT-made interface kit and cursor sets in
   a press from its mass, and a body can bend a plant only as far as its own
   weight. The jiggle is the vertex shader's: a wobble about the lean that grows
   as the push fades, so a plant overshoots and settles.
+- **A female Warden has her own voice.** Every voiced id - hurt, death,
+  winded, drowning, the pond's bite - goes through `Sfx.play_voice`, which plays
+  her `_f` take when it is on disk and until then the male take lifted by
+  `SFX_FEMALE_STAND_IN_PITCH`. The takes are prompted in `SFX_PROMPTS.md`, and
+  `audio_verify` refuses a voiced id played past `play_voice`. A blow names
+  where it landed and not whose it was, so `Sfx` asks the nearest Warden rather
+  than widening a signal every relay already binds.
+- **Blood is Off, Low or High.** `blood_vfx` stays the master switch every
+  reader asks; `blood_level` is how much the ground remembers when it is on, so
+  an old save reads exactly as it did. High lasts until extraction - the field
+  is freed with the road - holds `BLOOD_MARKS_HIGH`, and only rain and a flood
+  over `BLOOD_FLOOD_WASH_FROM` wash it. Drying is seconds now rather than a
+  share of the life, or a mark that lasts a campaign would never dry. **The
+  field is chunks of `CHUNK` marks**, each its own canvas, so a new droplet
+  rebuilds the newest chunk rather than every mark in GDScript; and a world
+  claimed again keeps its field instead of standing a second beside it.
+- **The Wardens and the Pen buttons have icons.** Both asked `IconKit` for
+  "spirit", which was never drawn, and the crossroad's Turn for Home asked for
+  "marks"; `IconKit.ui` answers a missing file with nothing, in silence.
+  `tools/draw_save_slot_glyph.py` draws both glyphs in the chrome language, and
+  `menu_check` now refuses any literal icon a button names that is not on disk.
 
 ### The three escape hatches - and why there are only three
 

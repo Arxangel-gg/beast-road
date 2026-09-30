@@ -292,7 +292,8 @@ func _add_extraction_offer() -> void:
 	_extract_button.custom_minimum_size = Vector2(0.0, 62.0)
 	_extract_button.add_theme_font_size_override("font_size", 21)
 	_extract_button.add_theme_color_override("font_color", Color("9fd7a8"))
-	IconKit.on_button(_extract_button, "marks", 24)
+	# The road home (2026-09-30): it asked for "marks", which was never drawn.
+	IconKit.on_button(_extract_button, "distance", 24)
 	_extract_button.pressed.connect(_choose_extraction)
 	box.add_child(_extract_button)
 	var note := Label.new()

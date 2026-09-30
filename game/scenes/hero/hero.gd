@@ -750,7 +750,7 @@ func _drown(at: Vector2) -> void:
 			Vector2.UP, 90.0)
 	if field != null and field.has_method("stir"):
 		field.call("stir", at, 1.0)
-	Sfx.play("sfx_drown")
+	Sfx.play_voice("sfx_drown", WardenLook.is_female(look))
 	EventBus.hero_drowned.emit(at)
 
 
@@ -2288,8 +2288,10 @@ func _give_out() -> void:
 	# pool is not taking a blow, and a game that says the same thing for both
 	# has taught the player to ignore the one that matters. The swim exit is
 	# the gasp already on disk; `docs/SFX_PROMPTS.md` lists a dedicated
-	# `sfx_hero_winded` as owed, the way the reed frog's croak was.
-	Sfx.play_at("sfx_swim_exit", global_position, Balance.HERO_WINDED_DB)
+	# `sfx_hero_winded` as owed, the way the reed frog's croak was, and
+	# `Sfx.VOICE_STAND_INS` plays the gasp until it lands - in her voice for a
+	# female Warden (2026-09-30).
+	Sfx.play_voice("sfx_hero_winded", WardenLook.is_female(look), global_position, Balance.HERO_WINDED_DB)
 
 
 ## Dust off the heels while running, on its own clock rather than every frame -

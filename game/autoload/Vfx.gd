@@ -346,9 +346,16 @@ func bind_world(node: Node2D) -> void:
 	# oldest child once the layer is full, which is right for transients and
 	# wrong for a stain: a busy wave would quietly delete the blood it had just
 	# spilled to make room for the sparks of the next hit.
-	_ground = BloodField.new()
-	_ground.name = "BloodField"
-	node.add_child(_ground)
+	# **The same ground when a world is claimed again** (2026-09-30). A scope
+	# claims its effects every time it becomes the live one - coming back from
+	# a raid is a claim - and a fresh field each time stood a second, third and
+	# fourth beside the first. High blood lasts until extraction, so the field
+	# a world already has is the one it keeps.
+	_ground = node.get_node_or_null("BloodField") as BloodField
+	if _ground == null:
+		_ground = BloodField.new()
+		_ground.name = "BloodField"
+		node.add_child(_ground)
 	_motes = BloodMotes.new()
 	_motes.name = "BloodMotes"
 	_motes.configure(_ground, _blood_rng.randi())

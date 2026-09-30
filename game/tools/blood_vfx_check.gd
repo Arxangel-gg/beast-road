@@ -218,6 +218,7 @@ func _test_persistent_blood() -> void:
 		"marks must be capped at %d, got %d" % [BloodField.MAX_SPLATS, field.marks()])
 	field.wipe()
 	_check(field.marks() == 0, "wiping the field must clear it between roads")
+	_test_off_low_and_high(field)
 
 	# Rain preserves the ten-minute dry promise while washing existing history at
 	# a deliberate faster rate. This exercises the same weather fact the runtime
@@ -324,6 +325,69 @@ func _test_the_title_screen_opens_clean() -> void:
 	menu.queue_free()
 	await get_tree().process_frame
 	RunState.set_phase(phase)
+
+
+## **Off, Low and High** (owner, 2026-09-30). Off lays nothing; Low forgets in
+## ten minutes and keeps its cap; High is still there after an hour of dry
+## weather, keeps more marks, spreads them over chunks so a new mark rebuilds
+## one canvas, and is washed by rain and by a flood. A save written before
+## the level existed reads as it did.
+func _test_off_low_and_high(field: BloodField) -> void:
+	var had_level: bool = MetaState.settings.has(UserSettings.BLOOD_LEVEL_KEY)
+	var old_level: Variant = MetaState.settings.get(UserSettings.BLOOD_LEVEL_KEY, 1)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	UserSettings.set_blood_level(UserSettings.BLOOD_OFF)
+	field.wipe()
+	field.splat(Vector2.ZERO, Vector2.RIGHT, 40.0, rng)
+	field.droplet(Vector2.ZERO, 3.0, rng)
+	_check(field.marks() == 0, "blood set Off laid %d marks" % field.marks())
+	_check(not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)), "Off did not turn the master switch off")
+	# A save from before the level: the switch on and no level reads as Low.
+	MetaState.settings[UserSettings.BLOOD_VFX_KEY] = true
+	MetaState.settings.erase(UserSettings.BLOOD_LEVEL_KEY)
+	_check(UserSettings.blood_level() == UserSettings.BLOOD_LOW, "an old save with blood on does not read as Low")
+	UserSettings.set_blood_level(UserSettings.BLOOD_LOW)
+	EventBus.weather_changed.emit("clear")
+	var flood_was: float = RunState.flood
+	RunState.flood = 0.0
+	field.wipe()
+	field.splat(Vector2.ZERO, Vector2.RIGHT, 40.0, rng)
+	field._process(Balance.BLOOD_GROUND_LIFE + 1.0)
+	_check(field.marks() == 0, "Low blood is still there after its ten minutes")
+	UserSettings.set_blood_level(UserSettings.BLOOD_HIGH)
+	field.wipe()
+	for index: int in BloodField.MAX_SPLATS + 60:
+		field.droplet(Vector2(float(index), 0.0), 3.0, rng)
+	_check(field.marks() == BloodField.MAX_SPLATS + 60,
+		"High kept %d of %d marks - it should hold more than Low's cap" % [field.marks(), BloodField.MAX_SPLATS + 60])
+	_check(field.chunk_count() >= (BloodField.MAX_SPLATS + 60) / BloodField.CHUNK,
+		"%d marks sit on %d canvases - a new mark would rebuild them all" % [field.marks(), field.chunk_count()])
+	for _hour: int in 6:
+		field._process(600.0)
+	_check(field.marks() == BloodField.MAX_SPLATS + 60, "High blood faded after an hour of dry weather")
+	for index: int in Balance.BLOOD_MARKS_HIGH + 80:
+		field.droplet(Vector2(float(index), 40.0), 3.0, rng)
+	_check(field.marks() <= Balance.BLOOD_MARKS_HIGH, "High is bounded at %d, it holds %d" % [Balance.BLOOD_MARKS_HIGH, field.marks()])
+	EventBus.weather_changed.emit("downpour")
+	_check(is_equal_approx(field.wash_multiplier(), Balance.BLOOD_HIGH_WASH), "rain does not wash High blood")
+	for _second: int in 120:
+		field._process(1.0)
+	_check(field.marks() == 0, "two minutes of downpour left %d marks of High blood" % field.marks())
+	EventBus.weather_changed.emit("clear")
+	field.droplet(Vector2.ZERO, 3.0, rng)
+	RunState.flood = 0.5
+	_check(field.wash_multiplier() > 1.0, "a flood does not wash the ground")
+	for _second: int in 120:
+		field._process(1.0)
+	_check(field.marks() == 0, "a flood left High blood standing")
+	RunState.flood = flood_was
+	field.wipe()
+	if had_level:
+		MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = old_level
+	else:
+		MetaState.settings.erase(UserSettings.BLOOD_LEVEL_KEY)
+	MetaState.settings[UserSettings.BLOOD_VFX_KEY] = true
 
 
 func _check(condition: bool, message: String) -> void:

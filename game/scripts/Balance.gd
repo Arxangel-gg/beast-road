@@ -6673,6 +6673,25 @@ const BLOOD_GROUND_Z: int = -3
 ## which is the thing blood on the ground exists not to be. It sits, then it
 ## goes. [TUNE]
 const BLOOD_GROUND_LIFE: float = 600.0
+## **High blood lasts until the party extracts** (owner, 2026-09-30). A mark's
+## life on High is this many seconds of the field's clock - fifty-odd hours,
+## longer than any campaign - and the field is freed with the road, so
+## what ends it is extraction, rain and flood. `MARKS_HIGH` bounds it all the
+## same, because "forever" on a field of four roads is a slideshow; the
+## chunks keep the cost of that bound to the newest canvas. [TUNE]
+const BLOOD_GROUND_LIFE_HIGH: float = 200000.0
+const BLOOD_MARKS_HIGH: int = 520
+## How fast rain and flood wash High blood: two hundred thousand seconds of
+## clock in about eighty seconds of downpour. Low keeps its own
+## `BLOOD_RAIN_WASH_MULTIPLIER`. [TUNE]
+const BLOOD_HIGH_WASH: float = 2500.0
+## How deep a flood must stand to wash the ground (`RunState.flood`, 0..1 of
+## the height that drowns). [TUNE]
+const BLOOD_FLOOD_WASH_FROM: float = 0.15
+## How long a mark takes to dry dark on the field's clock. Drying used to be
+## a share of the mark's life; a mark that lasts until extraction would then
+## never dry, so it is seconds now - the same seconds Low always took. [TUNE]
+const BLOOD_DRY_SECONDS: float = 428.0
 ## Sustained rain ages a stain this many times faster. Ten minutes of dry-field
 ## history becomes roughly two minutes under a downpour: visibly washed, never
 ## erased in one frame. [TUNE]
@@ -11251,6 +11270,17 @@ const FOLIAGE_TRAMPLE_UNWEIGHED: float = 0.45
 ## same picture, so it costs nothing on the CPU. [TUNE]
 const FOLIAGE_TRAMPLE_JIGGLE: float = 0.85
 const FOLIAGE_TRAMPLE_JIGGLE_HZ: float = 3.4
+
+## **A female Warden's voice, until her own takes are recorded** (owner,
+## 2026-09-30: "they're playing male sounds when hurt etc"). A voiced sound
+## with no `_f` take on disk plays the male take this much higher, which
+## lifts a grunt out of a man's range without turning it into a squeak. A
+## stand-in, and `docs/SFX_PROMPTS.md` lists every `_f` take it covers for.
+## [TUNE]
+const SFX_FEMALE_STAND_IN_PITCH: float = 0.3
+## How far from a blow the Warden it landed on may stand for the voice to be
+## theirs, in world units. [TUNE]
+const SFX_VOICE_REACH: float = 160.0
 const FOG_EXPLORED_ALPHA: float = 0.5
 ## How far each thing of the party's can see.
 const FOG_VISION_HERO: float = 640.0

@@ -20,6 +20,16 @@ const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume
 const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"
 const BLOOD_VFX_KEY: String = "blood_vfx"
+## **Blood is Off, Low or High** (owner, 2026-09-30). `blood_vfx` stays the
+## master switch every reader already asks - off is off - and this is how much
+## the ground remembers when it is on: Low the ten-minute memory, High until
+## the party extracts. So a save written before this reads as it did: off
+## stays off, on reads as Low.
+const BLOOD_LEVEL_KEY: String = "blood_level"
+const BLOOD_OFF: int = 0
+const BLOOD_LOW: int = 1
+const BLOOD_HIGH: int = 2
+const BLOOD_LEVEL_NAMES: Array[String] = ["Off", "Low", "High"]
 ## Whether an augment draft opens the moment it is earned (2026-09-26).
 const AUGMENT_AT_ONCE_KEY: String = "augment_at_once"
 
@@ -98,6 +108,20 @@ static func map_mode() -> String:
 
 static func value(key: String, fallback: Variant = null) -> Variant:
 	return MetaState.settings.get(key, fallback)
+
+
+static func blood_level() -> int:
+	if not bool(value(BLOOD_VFX_KEY, true)):
+		return BLOOD_OFF
+	return clampi(int(value(BLOOD_LEVEL_KEY, BLOOD_LOW)), BLOOD_LOW, BLOOD_HIGH)
+
+
+## Sets the level through both keys, so the switch and the level agree.
+static func set_blood_level(level: int) -> void:
+	var clamped: int = clampi(level, BLOOD_OFF, BLOOD_HIGH)
+	set_value(BLOOD_VFX_KEY, clamped > BLOOD_OFF)
+	if clamped > BLOOD_OFF:
+		set_value(BLOOD_LEVEL_KEY, clamped)
 
 
 static func number(key: String, fallback: float) -> float:

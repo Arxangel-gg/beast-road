@@ -16,7 +16,7 @@ prompt below.
 ---
 
 
-## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (60)
+## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (1)
 
 These calls are already wired to arrivals and hostile strikes. Missing
 files remain safely silent; adding the named OGG enables them without a
@@ -24,70 +24,12 @@ code change. Record these before the general backlog.
 
 | File | Length | Prompt |
 |---|---|---|
-| **`sfx_wildlife_moonstag.ogg`** | 1.3s | **one long rising cry from a huge old sika stag, airy and breath-heavy rather than a clean elk bugle, ending in a rough low breath, an animal throat not a choir, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_griffon.ogg`** | 1.0s | **one big eagle's ringing scream tearing straight down into a large cat's chest growl in one breath, a real heavy animal with chest resonance and audible grain rather than pure sub-bass, not a dragon and not a cinematic monster roar, close and dry, no wing loop, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_glimmerfox.ogg`** | 0.9s | **one bright fox cry sounding two pitches at once in one throat, a clear high call with a second rougher tone beating against it, an animal throat and never a synth or a human voice, dry and close, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hollowhorn.ogg`** | 1.3s | **one huge horned bull bellow pushed out of a deep chest, bison-like and territorial with real body resonance and a rough throat rasp over it so it still carries in a busy mix, a faint hollow woody colour to the throat rather than any metallic ring, an animal throat and never a horn blast, brass instrument or cinematic monster roar, close and dry, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_phoenix.ogg`** | 0.9s | **one large eagle-sized bird's full-chested scream with a fine bright ember crackle riding on the voice, the bird is the sound and the fire is only a grain in its throat, not a flame whoosh and not a magic effect, close and dry, no fire ambience, no reverb — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_ash_hound.ogg`** | 1.1s | **one hoarse hound bay breaking into a dry snarl, scorched rasping throat, open and carrying where a wolf growl is closed and low, a single call and never a run of baying, not a hellhound, no fire crackle, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_jackal.ogg`** | 0.9s | **one golden jackal yelp-call from a single animal, a short rising nasal whine snapping into two clipped yelps, brighter and yappier than a wolf, never a howl and never a pack chorus, dry and close, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_screestalker.ogg`** | 0.8s | **one short cough-growl from a low heavy-shouldered predator, chesty and grating with a coarse grain in the throat, no bark and no resolution at the end, an animal and not a monster, isolated, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_dune_fennec.ogg`** | 0.5s | **one fennec fox chirp-squeak running straight into a quick churr, high and excitable from a small desert canid, enough throat behind it to carry rather than a thin bird chirp, close and dry, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_lynx.ogg`** | 1.2s | **one solitary forest lynx yowl, hoarse and voiced with a rasp right through it, a wild cat throat and never a human cry or a housecat meow, no spit, isolated with no forest ambience — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_snow_lynx.ogg`** | 0.7s | **one hard chuff from a heavy mountain cat breaking straight into a clipped snarl, blunt and unvoiced at the front with the snarl carrying it, restrained and not a big-cat roar, isolated, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_steppe_horse.ogg`** | 1.0s | **one aggressive stallion squeal breaking into a hard nasal snort, equine and ragged, not a pig squeal and not a hollywood rearing whinny, close and dry, no hoofbeats, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_cliff_goat.ogg`** | 0.7s | **one wild mountain goat alarm bleat, nasal and wavering with a rough buzzing edge, wary rather than a comedy screaming goat, close and dry, no herd, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_frost_elk.ogg`** | 1.3s | **one short elk bugle, a rising reedy throat whistle breaking into one chuffing grunt, a wapiti not a brass horn and not a monster, close and dry, no valley echo, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_stag.ogg`** | 1.2s | **one red deer stag rutting roar, a rasping chest bellow, grainy throughout rather than a clean low rumble, not a lion and not a fantasy monster, close and dry, no forest reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_barkjack_woodpecker.ogg`** | 0.6s | **one short dry woodpecker drum burst on dead wood, a fast woody rattle of knocks that dies away on its own with no call after it, not an axe or a hammer strike, close and dry, no forest ambience, no reverb — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_bog_crane.ogg`** | 1.3s | **one common crane bugle, a loud rolling trumpeting call with a hard rattling burr from a long coiled windpipe, a bird's throat and not a brass instrument or music, one bird calling once and not a pair duetting, close and dry, no marsh ambience, no reverb — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_copper_pheasant.ogg`** | 0.8s | **one loud two-part pheasant crow, a harsh splitting shout with a hard break between the notes and a metallic ring to it, shouted and strident rather than croaked, one crow and nothing after it, no wing flutter, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_heron.ogg`** | 1.1s | **one long harsh grey heron squawk, a strangled tearing fraaank that starts loud and drags downward with a ragged break in it, drawn out and nasal rather than a short clean croak, close and dry, no water ambience, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_ptarmigan.ogg`** | 0.9s | **one dry rasping ptarmigan croak running into a short clattering cackle, low and mechanical, a bird's throat rather than a human belch, one utterance with no second call, close and dry, no wind, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_barkfang_wolverine.ogg`** | 1.0s | **one continuous wolverine threat growl, low and grinding with a gravelly rattle riding on the breath, a stocky real animal and never a film-trailer monster, no jaw snap, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_marsh_otter.ogg`** | 0.5s | **one short rising otter chirp-squeak, breathy and squeezed from a real animal throat rather than a blown or synthetic whistle, no splash, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_oreback_pangolin.ogg`** | 0.6s | **one blunt pangolin warning huff with a hard dry clatter of scales in it, a single forceful push of breath rather than a sustained hiss, close and cutting enough to sit in a battlefield mix, no digging, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hedgehog.ogg`** | 0.5s | **one short hedgehog alarm huff-snort, small and nasal with a hard pressured edge rather than a thin squeak, close and dry, no snuffling loop, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_steppe_marmot.ogg`** | 0.4s | **one piercing marmot alarm chirp, a single harsh shrieked note forced through the throat rather than a blown whistle, hard-edged and abrupt, no echo, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_snow_hare.ogg`** | 0.5s | **one harsh hare distress scream, open-throated and grainy with a rasping break in it, loud and close rather than a soft squeak, no thump, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_glass_lizard.ogg`** | 0.5s | **one short lizard huff, a single clipped open-mouthed puff of air with a faint dry rasp at the back of the throat rather than a sustained sibilant snake hiss, small and breathy and close, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_mireback_alligator.ogg`** | 1.2s | **one low alligator bellow, a single chesty resonant rumble with a rough throat rasp over it so it still carries in a busy mix, heavy-bodied rather than subsonic, a real bull gator and not a dinosaur or cinematic monster roar, close and dry, no water splash, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hit_fur.ogg`** | 0.2s | **one blade striking a badger-sized furred animal, a short blunt thump muffled by thick fur, dull and dry rather than wet, no animal cry, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hit_feather.ogg`** | 0.2s | **one blade striking a crow-sized bird, a dry papery burst of feathers over a light hollow body, not wet or meaty, no bird call, no wing flapping, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hit_scale.ogg`** | 0.2s | **one blade striking the overlapping scales of a large lizard, a hard dry clipped knock with a faint rasp under it, firm and not metallic, no hiss, no ring, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hit_shell.ogg`** | 0.25s | **one blade striking a hard animal shell, a blunt hollow knock that does not sink in, closer to dry hardwood than to metal with no ring, no crack, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hit_chitin.ogg`** | 0.18s | **one blade striking the hard shell of a large beetle, a tiny dry clipped tick with a little brittle body behind it, small but not thin, no crunch, no squelch, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hurt_small_beast.ogg`** | 0.4s | **one short sharp yelp from a marten-sized mammal taking a sudden blow, the shock of it rather than pain, a single clean cry that releases on its own instead of stopping dead mid-voice, mid-register with a little chest behind it and never a thin squeal, an animal throat and never a human voice, no whimper afterwards, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hurt_large_beast.ogg`** | 0.6s | **one short winded grunt forced out of a deer-sized animal taking a blow to the flank, chest-driven and startled, ending as the breath runs out rather than stopping dead mid-voice, a real animal and never a cinematic monster roar, no drawn-out cry, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hurt_bird.ogg`** | 0.4s | **one harsh startled squawk from a heron-sized bird taking a sudden blow, a single rough call with a scrape of breath in it that releases rather than stopping dead mid-voice, mid-register and never a shrill scream, one call and not a flurry, no wing flaps, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hurt_reptile.ogg`** | 0.35s | **one hard rush of breath forced out of a monitor-lizard-sized reptile taking a blow to the body, flat and voiceless with a short dry throat rattle closing it, not a sustained warning hiss and not a cry, dry and close, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_hurt_amphibian.ogg`** | 0.4s | **one short frog distress squall, a single bright open-throated cry with real throat body behind it and never a thin whistle, a frog throat and never a human scream, startled rather than comic, releasing as the air runs out instead of stopping dead mid-voice, no croak, no pond ambience, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_small_beast.ogg`** | 0.4s | **one short sharp yelp from a marten-sized animal that stops dead partway through the note, an animal throat not a person, nothing after the cut, no whimper, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_large_beast.ogg`** | 0.7s | **one chest-deep grunting cry from a deer-sized animal cut off abruptly partway through, a real animal and not a cinematic monster roar, no rattle, no gurgle, no body fall, isolated with no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_bird.ogg`** | 0.4s | **one clipped crow-sized bird call that stops halfway through a single note, cut off rather than fading out, no wing flaps, no flock, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_reptile.ogg`** | 0.5s | **one dry hiss from a medium-sized reptile that drops away and runs out of air, stopping abruptly rather than trailing off, no rattle, no long wheeze, no bite impact, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_amphibian.ogg`** | 0.35s | **one rubbery throaty frog croak cut off partway through, a shade fuller and deeper than a small tree frog, close and dry, no croak after it, no pond ambience, no insects, no reverb — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_shell.ogg`** | 0.4s | **one hard empty-sounding shell giving way under a last blow, a dry splintering crack inward and a short settle of fragments, like breaking a dry husk, nothing wet, no cry, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_death_chitin.ogg`** | 0.35s | **one small insect body collapsing under a last blow, a brief dry brittle crunch that stops at once, clean and papery rather than wet or squelching, no voice, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_fall_light.ogg`** | 0.5s | **one small limp animal body dropping onto packed earth, a single soft dull thud with a faint rustle after it, one impact only, no bounce, no cry, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_fall_heavy.ogg`** | 0.8s | **one large animal body collapsing onto packed earth, a heavy soft-bodied thud with weight behind it and a low dusty settle after, a real animal and not a deep sub-bass boom, no cry, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_blight_warning.ogg`** | 0.9s | **one laboured unsteady breath from a mid-sized animal with a faint dry rattle in it, ill and weakening rather than threatening, not a growl and not a monster, close and dry, no music sting, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_blight_frenzy.ogg`** | 1.0s | **one strained cry from a mid-sized animal pushed past what its throat can hold so that it cracks and cuts off partway through, grain and breath still in it, not a human scream and not a cinematic monster roar, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_blight_collapse.ogg`** | 0.9s | **one long tired exhale from a mid-sized animal as the last of the fight goes out of it, quiet and finished rather than a death throe, no whimper and no death rattle, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_nest_lay.ogg`** | 0.8s | **one small clutch of eggs settling into a nest, a short shuffle of down and dry grass with a single dull knock of shell against shell, soft and close, no bird call, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_egg_take.ogg`** | 0.7s | **one smooth egg lifted clear of a nest, dry grass and down giving way slowly and the shell sliding free, careful and furtive rather than triumphant, no shell knock, no chime or music sting, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_egg_hatch.ogg`** | 0.9s | **one small bird egg cracking open, fine brittle shell splitting with one thin chirp from inside at the end, close and over quickly, not a large creature hatching, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_savage_arrival.ogg`** | 1.4s | **one heavy chest bellow from a large animal announcing itself, resonance from the ribcage rather than a throaty snarl, powerful but not a cinematic monster roar and falling away rather than sustained, dry and close, no human voice, no reverb tail, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_trail_sign.ogg`** | 1.0s | **one small close crumble of damp earth and grit collapsing into a fresh animal print and settling, dry and hushed with a definite start, no chime, no musical tone, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_bond.ogg`** | 1.2s | **one calm animal breath easing out through the nose with a soft low contented rumble in the chest under it, close and dry and unhurried, no growl, no human voice, no chime, no fanfare, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_rift_out.ogg`** | 0.9s | **one short dry rip of heavy cloth torn and released in a single snap, small in scale and quick, no synth sweep, no choir, no reverb tail, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_wing_small.ogg`** | 0.5s | **one quick dry papery flutter of moth wings lifting off, tiny with almost no air moved, no insect buzz, no background — record 4 takes, saved as _1.._4; they rotate** |
-| **`sfx_wildlife_wing_large.ogg`** | 0.9s | **three or four heavy wingbeats as a large bird flushes up from the ground, real air moved and feathers under strain, one burst that ends rather than repeating, no bird call, no wind whoosh, no background — record 4 takes, saved as _1.._4; they rotate** |
+| **`sfx_wildlife_saltpan_monitor.ogg`** | 1.1s | **one long slow monitor lizard threat hiss, a broad open-mouthed rush of air pushed out of a big chest with a rough guttural edge under it, far bigger and slower than a thin snake warning, a real reptile and not a dinosaur or cinematic monster hiss, close and dry, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate** |
 
 ---
 
 
-## STILL TO RECORD (201)
+## STILL TO RECORD (140)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -96,73 +38,13 @@ missing stream - so none of these block a build.
 
 | File | Folder | Length | Tool | Prompt |
 |---|---|---|---|---|
-| `sfx_enemy_call_horde.ogg` | `sfx` | 1.2s | ElevenLabs | one human war cry from a massed infantry line, hoarse and guttural, a single shout not a crowd, dry and close, no music, no reverb tail |
-| `sfx_enemy_call_beast.ogg` | `sfx` | 1.4s | ElevenLabs | one throaty predator roar from a large four-legged beast, wet and ragged at the end, animal not demonic, isolated, no background |
-| `sfx_enemy_call_horn.ogg` | `sfx` | 1.8s | ElevenLabs | one blast on a crude battle horn made of horn or bone, two rough notes falling, carrying over open ground, no orchestra, no reverb wash |
-| `sfx_enemy_call_wraith.ogg` | `sfx` | 1.6s | ElevenLabs | one cold hollow shriek from something not alive, breathy and tuneless with a glassy edge, restrained not screaming, isolated |
-| `sfx_enemy_call_siege.ogg` | `sfx` | 1.5s | ElevenLabs | one deep stone-throated bellow from something enormous and slow, heavy chest resonance, ending in a grinding rumble, no music |
-| `sfx_enemy_call_swarm.ogg` | `sfx` | 1.0s | ElevenLabs | one sharp chittering screech from a small fast pack creature, insectile and rattling, dry and close, no background |
-| `sfx_wildlife_moonstag.ogg` | `sfx` | 1.3s | ElevenLabs | one long rising cry from a huge old sika stag, airy and breath-heavy rather than a clean elk bugle, ending in a rough low breath, an animal throat not a choir, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_griffon.ogg` | `sfx` | 1.0s | ElevenLabs | one big eagle's ringing scream tearing straight down into a large cat's chest growl in one breath, a real heavy animal with chest resonance and audible grain rather than pure sub-bass, not a dragon and not a cinematic monster roar, close and dry, no wing loop, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_glimmerfox.ogg` | `sfx` | 0.9s | ElevenLabs | one bright fox cry sounding two pitches at once in one throat, a clear high call with a second rougher tone beating against it, an animal throat and never a synth or a human voice, dry and close, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hollowhorn.ogg` | `sfx` | 1.3s | ElevenLabs | one huge horned bull bellow pushed out of a deep chest, bison-like and territorial with real body resonance and a rough throat rasp over it so it still carries in a busy mix, a faint hollow woody colour to the throat rather than any metallic ring, an animal throat and never a horn blast, brass instrument or cinematic monster roar, close and dry, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_phoenix.ogg` | `sfx` | 0.9s | ElevenLabs | one large eagle-sized bird's full-chested scream with a fine bright ember crackle riding on the voice, the bird is the sound and the fire is only a grain in its throat, not a flame whoosh and not a magic effect, close and dry, no fire ambience, no reverb — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_ash_hound.ogg` | `sfx` | 1.1s | ElevenLabs | one hoarse hound bay breaking into a dry snarl, scorched rasping throat, open and carrying where a wolf growl is closed and low, a single call and never a run of baying, not a hellhound, no fire crackle, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_jackal.ogg` | `sfx` | 0.9s | ElevenLabs | one golden jackal yelp-call from a single animal, a short rising nasal whine snapping into two clipped yelps, brighter and yappier than a wolf, never a howl and never a pack chorus, dry and close, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_screestalker.ogg` | `sfx` | 0.8s | ElevenLabs | one short cough-growl from a low heavy-shouldered predator, chesty and grating with a coarse grain in the throat, no bark and no resolution at the end, an animal and not a monster, isolated, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_dune_fennec.ogg` | `sfx` | 0.5s | ElevenLabs | one fennec fox chirp-squeak running straight into a quick churr, high and excitable from a small desert canid, enough throat behind it to carry rather than a thin bird chirp, close and dry, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_lynx.ogg` | `sfx` | 1.2s | ElevenLabs | one solitary forest lynx yowl, hoarse and voiced with a rasp right through it, a wild cat throat and never a human cry or a housecat meow, no spit, isolated with no forest ambience — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_snow_lynx.ogg` | `sfx` | 0.7s | ElevenLabs | one hard chuff from a heavy mountain cat breaking straight into a clipped snarl, blunt and unvoiced at the front with the snarl carrying it, restrained and not a big-cat roar, isolated, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_steppe_horse.ogg` | `sfx` | 1.0s | ElevenLabs | one aggressive stallion squeal breaking into a hard nasal snort, equine and ragged, not a pig squeal and not a hollywood rearing whinny, close and dry, no hoofbeats, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_cliff_goat.ogg` | `sfx` | 0.7s | ElevenLabs | one wild mountain goat alarm bleat, nasal and wavering with a rough buzzing edge, wary rather than a comedy screaming goat, close and dry, no herd, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_frost_elk.ogg` | `sfx` | 1.3s | ElevenLabs | one short elk bugle, a rising reedy throat whistle breaking into one chuffing grunt, a wapiti not a brass horn and not a monster, close and dry, no valley echo, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_stag.ogg` | `sfx` | 1.2s | ElevenLabs | one red deer stag rutting roar, a rasping chest bellow, grainy throughout rather than a clean low rumble, not a lion and not a fantasy monster, close and dry, no forest reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_barkjack_woodpecker.ogg` | `sfx` | 0.6s | ElevenLabs | one short dry woodpecker drum burst on dead wood, a fast woody rattle of knocks that dies away on its own with no call after it, not an axe or a hammer strike, close and dry, no forest ambience, no reverb — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_bog_crane.ogg` | `sfx` | 1.3s | ElevenLabs | one common crane bugle, a loud rolling trumpeting call with a hard rattling burr from a long coiled windpipe, a bird's throat and not a brass instrument or music, one bird calling once and not a pair duetting, close and dry, no marsh ambience, no reverb — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_copper_pheasant.ogg` | `sfx` | 0.8s | ElevenLabs | one loud two-part pheasant crow, a harsh splitting shout with a hard break between the notes and a metallic ring to it, shouted and strident rather than croaked, one crow and nothing after it, no wing flutter, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_heron.ogg` | `sfx` | 1.1s | ElevenLabs | one long harsh grey heron squawk, a strangled tearing fraaank that starts loud and drags downward with a ragged break in it, drawn out and nasal rather than a short clean croak, close and dry, no water ambience, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_ptarmigan.ogg` | `sfx` | 0.9s | ElevenLabs | one dry rasping ptarmigan croak running into a short clattering cackle, low and mechanical, a bird's throat rather than a human belch, one utterance with no second call, close and dry, no wind, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_barkfang_wolverine.ogg` | `sfx` | 1.0s | ElevenLabs | one continuous wolverine threat growl, low and grinding with a gravelly rattle riding on the breath, a stocky real animal and never a film-trailer monster, no jaw snap, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_marsh_otter.ogg` | `sfx` | 0.5s | ElevenLabs | one short rising otter chirp-squeak, breathy and squeezed from a real animal throat rather than a blown or synthetic whistle, no splash, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_oreback_pangolin.ogg` | `sfx` | 0.6s | ElevenLabs | one blunt pangolin warning huff with a hard dry clatter of scales in it, a single forceful push of breath rather than a sustained hiss, close and cutting enough to sit in a battlefield mix, no digging, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hedgehog.ogg` | `sfx` | 0.5s | ElevenLabs | one short hedgehog alarm huff-snort, small and nasal with a hard pressured edge rather than a thin squeak, close and dry, no snuffling loop, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_steppe_marmot.ogg` | `sfx` | 0.4s | ElevenLabs | one piercing marmot alarm chirp, a single harsh shrieked note forced through the throat rather than a blown whistle, hard-edged and abrupt, no echo, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_snow_hare.ogg` | `sfx` | 0.5s | ElevenLabs | one harsh hare distress scream, open-throated and grainy with a rasping break in it, loud and close rather than a soft squeak, no thump, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_glass_lizard.ogg` | `sfx` | 0.5s | ElevenLabs | one short lizard huff, a single clipped open-mouthed puff of air with a faint dry rasp at the back of the throat rather than a sustained sibilant snake hiss, small and breathy and close, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_mireback_alligator.ogg` | `sfx` | 1.2s | ElevenLabs | one low alligator bellow, a single chesty resonant rumble with a rough throat rasp over it so it still carries in a busy mix, heavy-bodied rather than subsonic, a real bull gator and not a dinosaur or cinematic monster roar, close and dry, no water splash, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hit_fur.ogg` | `sfx` | 0.2s | ElevenLabs | one blade striking a badger-sized furred animal, a short blunt thump muffled by thick fur, dull and dry rather than wet, no animal cry, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hit_feather.ogg` | `sfx` | 0.2s | ElevenLabs | one blade striking a crow-sized bird, a dry papery burst of feathers over a light hollow body, not wet or meaty, no bird call, no wing flapping, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hit_scale.ogg` | `sfx` | 0.2s | ElevenLabs | one blade striking the overlapping scales of a large lizard, a hard dry clipped knock with a faint rasp under it, firm and not metallic, no hiss, no ring, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hit_shell.ogg` | `sfx` | 0.25s | ElevenLabs | one blade striking a hard animal shell, a blunt hollow knock that does not sink in, closer to dry hardwood than to metal with no ring, no crack, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hit_chitin.ogg` | `sfx` | 0.18s | ElevenLabs | one blade striking the hard shell of a large beetle, a tiny dry clipped tick with a little brittle body behind it, small but not thin, no crunch, no squelch, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hurt_small_beast.ogg` | `sfx` | 0.4s | ElevenLabs | one short sharp yelp from a marten-sized mammal taking a sudden blow, the shock of it rather than pain, a single clean cry that releases on its own instead of stopping dead mid-voice, mid-register with a little chest behind it and never a thin squeal, an animal throat and never a human voice, no whimper afterwards, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hurt_large_beast.ogg` | `sfx` | 0.6s | ElevenLabs | one short winded grunt forced out of a deer-sized animal taking a blow to the flank, chest-driven and startled, ending as the breath runs out rather than stopping dead mid-voice, a real animal and never a cinematic monster roar, no drawn-out cry, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hurt_bird.ogg` | `sfx` | 0.4s | ElevenLabs | one harsh startled squawk from a heron-sized bird taking a sudden blow, a single rough call with a scrape of breath in it that releases rather than stopping dead mid-voice, mid-register and never a shrill scream, one call and not a flurry, no wing flaps, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hurt_reptile.ogg` | `sfx` | 0.35s | ElevenLabs | one hard rush of breath forced out of a monitor-lizard-sized reptile taking a blow to the body, flat and voiceless with a short dry throat rattle closing it, not a sustained warning hiss and not a cry, dry and close, no impact thud, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_hurt_amphibian.ogg` | `sfx` | 0.4s | ElevenLabs | one short frog distress squall, a single bright open-throated cry with real throat body behind it and never a thin whistle, a frog throat and never a human scream, startled rather than comic, releasing as the air runs out instead of stopping dead mid-voice, no croak, no pond ambience, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_small_beast.ogg` | `sfx` | 0.4s | ElevenLabs | one short sharp yelp from a marten-sized animal that stops dead partway through the note, an animal throat not a person, nothing after the cut, no whimper, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_large_beast.ogg` | `sfx` | 0.7s | ElevenLabs | one chest-deep grunting cry from a deer-sized animal cut off abruptly partway through, a real animal and not a cinematic monster roar, no rattle, no gurgle, no body fall, isolated with no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_bird.ogg` | `sfx` | 0.4s | ElevenLabs | one clipped crow-sized bird call that stops halfway through a single note, cut off rather than fading out, no wing flaps, no flock, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_reptile.ogg` | `sfx` | 0.5s | ElevenLabs | one dry hiss from a medium-sized reptile that drops away and runs out of air, stopping abruptly rather than trailing off, no rattle, no long wheeze, no bite impact, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_amphibian.ogg` | `sfx` | 0.35s | ElevenLabs | one rubbery throaty frog croak cut off partway through, a shade fuller and deeper than a small tree frog, close and dry, no croak after it, no pond ambience, no insects, no reverb — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_shell.ogg` | `sfx` | 0.4s | ElevenLabs | one hard empty-sounding shell giving way under a last blow, a dry splintering crack inward and a short settle of fragments, like breaking a dry husk, nothing wet, no cry, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_death_chitin.ogg` | `sfx` | 0.35s | ElevenLabs | one small insect body collapsing under a last blow, a brief dry brittle crunch that stops at once, clean and papery rather than wet or squelching, no voice, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_fall_light.ogg` | `sfx` | 0.5s | ElevenLabs | one small limp animal body dropping onto packed earth, a single soft dull thud with a faint rustle after it, one impact only, no bounce, no cry, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_fall_heavy.ogg` | `sfx` | 0.8s | ElevenLabs | one large animal body collapsing onto packed earth, a heavy soft-bodied thud with weight behind it and a low dusty settle after, a real animal and not a deep sub-bass boom, no cry, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_blight_warning.ogg` | `sfx` | 0.9s | ElevenLabs | one laboured unsteady breath from a mid-sized animal with a faint dry rattle in it, ill and weakening rather than threatening, not a growl and not a monster, close and dry, no music sting, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_blight_frenzy.ogg` | `sfx` | 1.0s | ElevenLabs | one strained cry from a mid-sized animal pushed past what its throat can hold so that it cracks and cuts off partway through, grain and breath still in it, not a human scream and not a cinematic monster roar, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_blight_collapse.ogg` | `sfx` | 0.9s | ElevenLabs | one long tired exhale from a mid-sized animal as the last of the fight goes out of it, quiet and finished rather than a death throe, no whimper and no death rattle, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_nest_lay.ogg` | `sfx` | 0.8s | ElevenLabs | one small clutch of eggs settling into a nest, a short shuffle of down and dry grass with a single dull knock of shell against shell, soft and close, no bird call, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_egg_take.ogg` | `sfx` | 0.7s | ElevenLabs | one smooth egg lifted clear of a nest, dry grass and down giving way slowly and the shell sliding free, careful and furtive rather than triumphant, no shell knock, no chime or music sting, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_egg_hatch.ogg` | `sfx` | 0.9s | ElevenLabs | one small bird egg cracking open, fine brittle shell splitting with one thin chirp from inside at the end, close and over quickly, not a large creature hatching, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_savage_arrival.ogg` | `sfx` | 1.4s | ElevenLabs | one heavy chest bellow from a large animal announcing itself, resonance from the ribcage rather than a throaty snarl, powerful but not a cinematic monster roar and falling away rather than sustained, dry and close, no human voice, no reverb tail, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_trail_sign.ogg` | `sfx` | 1.0s | ElevenLabs | one small close crumble of damp earth and grit collapsing into a fresh animal print and settling, dry and hushed with a definite start, no chime, no musical tone, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_bond.ogg` | `sfx` | 1.2s | ElevenLabs | one calm animal breath easing out through the nose with a soft low contented rumble in the chest under it, close and dry and unhurried, no growl, no human voice, no chime, no fanfare, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_rift_out.ogg` | `sfx` | 0.9s | ElevenLabs | one short dry rip of heavy cloth torn and released in a single snap, small in scale and quick, no synth sweep, no choir, no reverb tail, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_wing_small.ogg` | `sfx` | 0.5s | ElevenLabs | one quick dry papery flutter of moth wings lifting off, tiny with almost no air moved, no insect buzz, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_wildlife_wing_large.ogg` | `sfx` | 0.9s | ElevenLabs | three or four heavy wingbeats as a large bird flushes up from the ground, real air moved and feathers under strain, one burst that ends rather than repeating, no bird call, no wind whoosh, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_pen_graze.ogg` | `sfx` | 0.9s | ElevenLabs | one soft tear of grass cropped close to the ground with a short quiet chew after it, close and domestic, no animal call, no hoof steps, no background — record 4 takes, saved as _1.._4; they rotate |
-| `sfx_pen_settle.ogg` | `sfx` | 1.0s | ElevenLabs | one animal lowering its body weight into dry straw, the straw compressing under it and a short breath out through the nose, soft and domestic, no human voice, no hoof stamp, no background — record 4 takes, saved as _1.._4; they rotate |
+| `sfx_hero_hurt_f.ogg` | `sfx` | 0.4s | ElevenLabs | a woman warrior's sharp pained grunt as a blow lands, short and breathy through clenched teeth, low in her range, no scream and no words |
+| `sfx_hero_death_f.ogg` | `sfx` | 1.2s | ElevenLabs | a woman warrior's last pained breath as she falls, a short broken exhale, then leather and a little armour settling on the ground and going still, no scream |
+| `sfx_hero_winded.ogg` | `sfx` | 0.9s | ElevenLabs | a man out of breath after a hard sprint: two ragged heaving breaths, the second catching in his throat, no words |
+| `sfx_hero_winded_f.ogg` | `sfx` | 0.9s | ElevenLabs | a woman out of breath after a hard sprint: two ragged heaving breaths, the second catching in her throat, no words |
+| `sfx_drown_f.ogg` | `sfx` | 1.8s | ElevenLabs | a woman drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink |
+| `sfx_water_bite_f.ogg` | `sfx` | 0.4s | ElevenLabs | something under the water biting a swimming woman: a sudden churn, a wet snap and her short pained gasp |
+| `sfx_wildlife_saltpan_monitor.ogg` | `sfx` | 1.1s | ElevenLabs | one long slow monitor lizard threat hiss, a broad open-mouthed rush of air pushed out of a big chest with a rough guttural edge under it, far bigger and slower than a thin snake warning, a real reptile and not a dinosaur or cinematic monster hiss, close and dry, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate |
 | `music_act01_06.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
 | `music_act05_05.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
 | `music_act05_06.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
@@ -299,12 +181,13 @@ missing stream - so none of these block a build.
 
 ---
 
-## PROMPTED BUT NEVER PLAYED (223)
+## PROMPTED BUT NEVER PLAYED (156)
 
 Prompts for sounds nothing in the game names by literal. Not a fault - a
 few are chosen from data rather than written into code - but worth a
 glance before recording one, in case it is for something that was cut.
 
+`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_wildlife_saltpan_monitor`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
 
 ---
 
@@ -1593,7 +1476,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 162 files
+## Sound effects - 168 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -1667,6 +1550,54 @@ a sharp pained grunt from an armoured figure taking a hit, muffled behind a mask
 
 ```text
 a body in armour hitting the ground hard and going still.
+```
+
+### `sfx_hero_hurt_f`
+
+`game/audio/sfx/sfx_hero_hurt_f.ogg`  -  target length **0.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+a woman warrior's sharp pained grunt as a blow lands, short and breathy through clenched teeth, low in her range, no scream and no words.
+```
+
+### `sfx_hero_death_f`
+
+`game/audio/sfx/sfx_hero_death_f.ogg`  -  target length **1.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+a woman warrior's last pained breath as she falls, a short broken exhale, then leather and a little armour settling on the ground and going still, no scream.
+```
+
+### `sfx_hero_winded`
+
+`game/audio/sfx/sfx_hero_winded.ogg`  -  target length **0.9s**  -  suggested tool: **ElevenLabs**
+
+```text
+a man out of breath after a hard sprint: two ragged heaving breaths, the second catching in his throat, no words.
+```
+
+### `sfx_hero_winded_f`
+
+`game/audio/sfx/sfx_hero_winded_f.ogg`  -  target length **0.9s**  -  suggested tool: **ElevenLabs**
+
+```text
+a woman out of breath after a hard sprint: two ragged heaving breaths, the second catching in her throat, no words.
+```
+
+### `sfx_drown_f`
+
+`game/audio/sfx/sfx_drown_f.ogg`  -  target length **1.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+a woman drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink.
+```
+
+### `sfx_water_bite_f`
+
+`game/audio/sfx/sfx_water_bite_f.ogg`  -  target length **0.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+something under the water biting a swimming woman: a sudden churn, a wet snap and her short pained gasp.
 ```
 
 ### `sfx_dash`
@@ -2267,6 +2198,14 @@ one harsh hare distress scream, open-throated and grainy with a rasping break in
 
 ```text
 one short lizard huff, a single clipped open-mouthed puff of air with a faint dry rasp at the back of the throat rather than a sustained sibilant snake hiss, small and breathy and close, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate.
+```
+
+### `sfx_wildlife_saltpan_monitor`
+
+`game/audio/sfx/sfx_wildlife_saltpan_monitor.ogg`  -  target length **1.1s**  -  suggested tool: **ElevenLabs**
+
+```text
+one long slow monitor lizard threat hiss, a broad open-mouthed rush of air pushed out of a big chest with a rough guttural edge under it, far bigger and slower than a thin snake warning, a real reptile and not a dinosaur or cinematic monster hiss, close and dry, no scale rustle, no reverb, no background — record 4 takes, saved as _1.._4; they rotate.
 ```
 
 ### `sfx_wildlife_mireback_alligator`

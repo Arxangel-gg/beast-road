@@ -19,6 +19,8 @@ const DISSOLVE_SHADER: String = "res://scripts/shaders/stone_dissolve.gdshader"
 const SPLASH_ART: String = "res://art/vfx/splash.png"
 
 var drowned: bool = false
+## Whose stone: a drowned Warden's gasp is in their own voice (2026-09-30).
+var female: bool = false
 
 var _sprite: Sprite2D = null
 var _shadow: Sprite2D = null
@@ -76,7 +78,7 @@ func _land() -> void:
 	_fall = null
 	if drowned:
 		Vfx.sheet_burst(global_position, SPLASH_ART, 64.0, Color(0.9, 0.97, 1.0, 0.9))
-		Sfx.play_at("sfx_drown", global_position, Balance.DEATH_STONE_SOUND_DB)
+		Sfx.play_voice("sfx_drown", female, global_position, Balance.DEATH_STONE_SOUND_DB)
 	else:
 		Vfx.dust(global_position, Color(0.5, 0.45, 0.38), 9, 52.0)
 		# The stone lands where somebody fell, which in co-op is often not where

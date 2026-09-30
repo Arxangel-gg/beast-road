@@ -851,7 +851,7 @@ func _build_pen_button() -> void:
 	button.text = _pen_label()
 	button.custom_minimum_size = settings_button.custom_minimum_size
 	button.theme_type_variation = settings_button.theme_type_variation
-	IconKit.on_button(button, "spirit", 24)
+	IconKit.on_button(button, "pen", 24)
 	column.add_child(button)
 	column.move_child(button, settings_button.get_index())
 
@@ -932,7 +932,9 @@ func _build_slot_button() -> void:
 		+ "level, gear and banked road. Only between roads.")
 	button.custom_minimum_size = settings_button.custom_minimum_size
 	button.theme_type_variation = settings_button.theme_type_variation
-	IconKit.on_button(button, "spirit", 24)
+	# Its own glyph (owner, 2026-09-30): it asked for "spirit", which was never
+	# drawn, so the button carried no icon at all.
+	IconKit.on_button(button, "save_slot", 24)
 	column.add_child(button)
 	column.move_child(button, settings_button.get_index())
 

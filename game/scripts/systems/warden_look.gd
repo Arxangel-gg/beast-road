@@ -171,6 +171,12 @@ static func cleaned_value(key: String, value: float) -> Variant:
 	return clean(one).get(key, 0.0)
 
 
+## Whether a look is the female body - whose voice, not only whose sheets.
+static func is_female(look: Variant) -> bool:
+	var dictionary := look as Dictionary if look is Dictionary else {}
+	return int(dictionary.get(KEY_BODY, 0)) == 1
+
+
 static func is_plain(look: Dictionary) -> bool:
 	return is_undyed(look) and _default_choices(clean(look))
 

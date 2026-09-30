@@ -2063,7 +2063,7 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_relic.png` · `ui_war_horn.png` · `ui_raid_charge.png` ·
 `ui_distance.png` · `ui_city_health.png` · `ui_pressure_arrow.png` ·
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
-`ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
+`ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` · `ui_save_slot.png` · `ui_pen.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_gravebell_maul.png` · `ui_ratcatchers_awl.png` · `ui_oathkeeper_spear.png` · `ui_slagplate_cuirass.png` ·
 `ui_stillwater_mail.png` · `ui_thornweave_jack.png` · `ui_ashbone_totem.png` · `ui_drowned_bell.png` ·

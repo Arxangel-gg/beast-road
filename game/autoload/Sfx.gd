@@ -1716,7 +1716,8 @@ func _ready() -> void:
 	EventBus.hero_attack_landed.connect(_on_attack_landed)
 	EventBus.footfall.connect(_on_footfall)
 	EventBus.hero_damaged.connect(_on_hero_damaged)
-	EventBus.hero_died.connect(func(_at: Vector2) -> void: play("sfx_hero_death"))
+	EventBus.hero_died.connect(func(at: Vector2) -> void:
+		play_voice("sfx_hero_death", _female_at(at)))
 	EventBus.hero_dashed.connect(func(_i: float) -> void: play("sfx_dash"))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.tower_fired.connect(_on_tower_fired)
@@ -2124,8 +2125,77 @@ func _on_footfall(at: Vector2, mass: float) -> void:
 		play_at("sfx_footstep_dirt", at)
 
 
-func _on_hero_damaged(_amount: float, _from: Vector2, _at: Vector2) -> void:
-	play("sfx_hero_hurt")
+func _on_hero_damaged(_amount: float, _from: Vector2, at: Vector2) -> void:
+	play_voice("sfx_hero_hurt", _female_at(at))
+
+
+## Whether the Warden standing at `at` has the female body - the one nearest
+## it, within `SFX_VOICE_REACH`. A blow is announced with where it landed and
+## not whose it was, and widening a signal every listener already holds is
+## how a relay goes silent; the heroes are few and this is a walk of them.
+func _female_at(at: Vector2) -> bool:
+	if not is_inside_tree():
+		return false
+	var nearest: float = Balance.SFX_VOICE_REACH
+	var female: bool = false
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Node2D
+		if hero == null:
+			continue
+		var apart: float = hero.global_position.distance_to(at)
+		if apart <= nearest:
+			nearest = apart
+			female = WardenLook.is_female(hero.get("look"))
+	return female
+
+
+# --- A Warden's voice (2026-09-30) -----------------------------------------------
+
+## **Every voiced sound beside the take a female Warden uses.** Literals, so
+## `tools/gen_sfx_prompts.py` sees them as asked for and lists the ones still
+## to record; until one is on disk the male take plays pitched up by
+## `SFX_FEMALE_STAND_IN_PITCH` (owner, 2026-09-30).
+const FEMALE_VOICES: Dictionary = {
+	"sfx_hero_hurt": "sfx_hero_hurt_f",
+	"sfx_hero_death": "sfx_hero_death_f",
+	"sfx_hero_winded": "sfx_hero_winded_f",
+	"sfx_drown": "sfx_drown_f",
+	"sfx_water_bite": "sfx_water_bite_f",
+}
+## A voice owed its own recording, and what stands in for it until then.
+const VOICE_STAND_INS: Dictionary = {
+	"sfx_hero_winded": "sfx_swim_exit",
+}
+
+
+static func _resolves(id: String) -> bool:
+	return SOUNDS.has(id) or GROUPS.has(id)
+
+
+## **Which take a voice plays and how far it is pitched**, for a body: a
+## female Warden's own take when it is on disk, else the male take lifted by
+## `SFX_FEMALE_STAND_IN_PITCH`; a voice with no recording at all its stand-in.
+## Static so the gate asks the same question the game does.
+static func voice_for(id: String, female: bool) -> Array:
+	var base: String = id
+	if not _resolves(base) and VOICE_STAND_INS.has(base):
+		base = String(VOICE_STAND_INS[base])
+	if not female:
+		return [base, 0.0]
+	var own: String = String(FEMALE_VOICES.get(id, ""))
+	if not own.is_empty() and _resolves(own):
+		return [own, 0.0]
+	return [base, Balance.SFX_FEMALE_STAND_IN_PITCH]
+
+
+## Plays a Warden's voice for the body it belongs to - flat, or at `at` when
+## one is given.
+func play_voice(id: String, female: bool, at: Vector2 = Vector2.INF, extra_db: float = 0.0) -> void:
+	var chosen: Array = voice_for(id, female)
+	if at.is_finite():
+		play_at(String(chosen[0]), at, extra_db, float(chosen[1]))
+	else:
+		play(String(chosen[0]), extra_db, float(chosen[1]))
 
 
 func _on_enemy_died(_enemy_id: String, at: Vector2) -> void:
