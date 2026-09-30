@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "heralds"
+display_name = "Heralds"
+title = "Heralds"
+category = "The Road"
+order = 66
+image = "res://art/guide/heralds.png"
+body = "From the third act, a wave sometimes carries a Herald: a body of the road wearing gold, running for the gate. Your towers cannot see it - they will not aim at it, their blasts glance off it, your traps do not spring on it and the weapons on your board look away. Only you can stop it: your blade, your spells, your arrows, your spirit and your own weapons all reach it, and an arrow at the edge of the screen points to it. Catch it before the wall and it drops a purse the size of a camp's. Let it reach the wall and it sounds its horn: the next wave comes larger on every road, and your towers may shoot it from then on."

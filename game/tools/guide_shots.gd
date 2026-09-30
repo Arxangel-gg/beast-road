@@ -663,6 +663,11 @@ func _ready() -> void:
 			return Vector2.ZERO
 		ways.lay_for_test(data, _a_gather_node() + Vector2(-220.0, 60.0))
 		return ways.position_of(), Vector2(70.0, 60.0), 1.1)
+	# **A Herald running for the gate** (2026-09-30): gold on the road beside an
+	# ordinary body of its own breed - the one the board ignores and the Warden
+	# has to catch.
+	await _made_subject_shot("heralds", func() -> Vector2: return _raise_a_herald(),
+		Vector2(-150.0, 110.0), 1.2)
 	# **A bow with an arrow in the air.** It was a photograph of an ordinary
 	# wave, because the hero starts a run melee-only and nothing in this tool
 	# had ever put a bow in their hands.
@@ -1889,6 +1894,33 @@ func _report_light(tag: String) -> void:
 		% [tag, DayNight.darkness, str(DayNight.tint),
 			str(tint.color) if tint != null else "none", str(DayNight.underground),
 			str(run.battlefield.is_suspended()), ", ".join(veils)])
+
+
+## A Herald on a road, beside an ordinary body of its breed, both held where
+## they stand so the picture is of the gold rather than of a walk.
+func _raise_a_herald() -> Vector2:
+	var field: Battlefield = run.battlefield
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var breed: EnemyData = null
+	if terrain != null:
+		for id: String in terrain.enemy_ids:
+			var candidate: EnemyData = ContentDB.enemy(id)
+			if candidate != null and not candidate.targets_towers 					and candidate.category == EnemyData.Category.BREED:
+				breed = candidate
+				break
+	var route: PackedVector2Array = field.lane_path(1)
+	if breed == null or route.size() < 3:
+		print("[guide-shots] warning: no Herald to photograph")
+		return Vector2.ZERO
+	var here: Vector2 = route[clampi(int(float(route.size()) * 0.45), 1, route.size() - 2)]
+	var plain: Enemy = field.spawn_enemy(breed, 1, 60.0, -1.0, 0.001)
+	if plain != null:
+		plain.global_position = here + Vector2(-95.0, -10.0)
+	var herald: Enemy = field.spawn_enemy(breed, 1, 60.0, -1.0, 0.001)
+	if herald != null:
+		herald.global_position = here + Vector2(70.0, 6.0)
+		herald.make_herald()
+	return here
 
 
 ## A species that has had enough of being hunted, for the picture about it.
