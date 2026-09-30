@@ -69,6 +69,17 @@ var _static: PackedByteArray = PackedByteArray()
 var _static_key: int = 0
 var _mover_cells: PackedInt32Array = PackedInt32Array()
 var static_rebuilds: int = 0
+## **Only the circles that moved are stamped again** (2026-09-30). A torch's
+## reach drifts with its strength, and every time one crossed a cell the whole
+## static layer - a hundred torches, forty towers and the town - was stamped
+## from nothing: 6.4 ms in one frame at Act X, several times a minute. The
+## static sources are kept by the cell they stand in, and a change re-stamps
+## only the patch of cells the old and the new circle cover, from every static
+## circle that reaches into it - which is exactly what the whole layer would
+## hold there. More than `FOG_PATCH_MAX` changes in one tick is still a full
+## rebuild. `static_patches` counts, for the gate.
+var _static_entries: Dictionary = {}
+var static_patches: int = 0
 
 
 func _ready() -> void:
@@ -204,7 +215,11 @@ func _process_measured(delta: float) -> void:
 
 
 func _tick() -> void:
+	var mark: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	var found: Array = sources.call() if sources.is_valid() else []
+	if FrameProfile.enabled:
+		FrameProfile.add(&"f_sources", mark)
+		mark = Time.get_ticks_usec()
 	var statics: Array = []
 	var movers: Array = []
 	# The static set's fingerprint, in whole cells: a torch's reach drifts
@@ -226,7 +241,10 @@ func _tick() -> void:
 	var key: int = hash(fingerprint)
 	if key != _static_key or _static.size() != _explored.size():
 		_static_key = key
-		_rebuild_static(statics)
+		_update_static(statics)
+	if FrameProfile.enabled:
+		FrameProfile.add(&"f_static", mark)
+		mark = Time.get_ticks_usec()
 	# What a mover lit last tick goes back to the static layer's value.
 	for index: int in _mover_cells:
 		_bytes[index * 2 + 1] = _static[index]
@@ -235,7 +253,82 @@ func _tick() -> void:
 	for entry: Dictionary in movers:
 		_stamp(entry.get("at", Vector2.ZERO) as Vector2, float(entry.get("radius", 0.0)))
 	_upload()
+	if FrameProfile.enabled:
+		FrameProfile.add(&"f_stamp", mark)
+		mark = Time.get_ticks_usec()
 	_hide_the_unseen()
+	if FrameProfile.enabled:
+		FrameProfile.add(&"f_hide", mark)
+
+
+## The static layer brought up to date: a patch for each circle that moved,
+## or from scratch when there is no layer yet or too much moved at once.
+func _update_static(statics: Array) -> void:
+	var entries: Dictionary = {}
+	for entry: Dictionary in statics:
+		var at: Vector2 = entry.get("at", Vector2.ZERO)
+		var radius: float = float(entry.get("radius", 0.0))
+		var spot := Vector3i(roundi(at.x / cell), roundi(at.y / cell), int(radius / cell))
+		# Two sources in one cell (a torch beside a tower) are two entries.
+		var keyed := Vector3i(spot.x, spot.y, 0)
+		while entries.has(keyed):
+			keyed.z += 1
+		entries[keyed] = [at, radius, spot.z]
+	if _static.size() != _explored.size() or _static_entries.is_empty():
+		_static_entries = entries
+		_rebuild_static(statics)
+		return
+	var dirty: Array[Rect2i] = []
+	for spot: Variant in entries:
+		var now: Array = entries[spot]
+		var was: Variant = _static_entries.get(spot)
+		if was == null:
+			dirty.append(_cells_of(now[0], now[1]))
+		elif int((was as Array)[2]) != int(now[2]):
+			dirty.append(_cells_of(now[0], now[1]).merge(_cells_of((was as Array)[0], (was as Array)[1])))
+	for spot: Variant in _static_entries:
+		if not entries.has(spot):
+			var gone: Array = _static_entries[spot]
+			dirty.append(_cells_of(gone[0], gone[1]))
+	_static_entries = entries
+	if dirty.size() > Balance.FOG_PATCH_MAX:
+		_rebuild_static(statics)
+		return
+	for patch_cells: Rect2i in dirty:
+		_patch_static(patch_cells, statics)
+
+
+## The cells a circle can reach, clipped to the grid.
+func _cells_of(at: Vector2, radius: float) -> Rect2i:
+	var centre: Vector2 = (at + Vector2.ONE * half_extent) / cell
+	var reach: float = radius / cell
+	var x0: int = maxi(int(floor(centre.x - reach)), 0)
+	var x1: int = mini(int(ceil(centre.x + reach)), _across - 1)
+	var y0: int = maxi(int(floor(centre.y - reach)), 0)
+	var y1: int = mini(int(ceil(centre.y + reach)), _across - 1)
+	return Rect2i(x0, y0, maxi(x1 - x0 + 1, 0), maxi(y1 - y0 + 1, 0))
+
+
+## One patch of the static layer from scratch: cleared, then every static
+## circle that reaches into it stamped inside it, then the visible channel of
+## the patch - what `_rebuild_static` does, over a few cells.
+func _patch_static(cells: Rect2i, statics: Array) -> void:
+	if cells.size.x <= 0 or cells.size.y <= 0:
+		return
+	static_patches += 1
+	for y: int in range(cells.position.y, cells.end.y):
+		var row: int = y * _across
+		for x: int in range(cells.position.x, cells.end.x):
+			_static[row + x] = 0
+	for entry: Dictionary in statics:
+		var at: Vector2 = entry.get("at", Vector2.ZERO)
+		var radius: float = float(entry.get("radius", 0.0))
+		if _cells_of(at, radius).intersects(cells):
+			_stamp_into(true, at, radius, cells)
+	for y: int in range(cells.position.y, cells.end.y):
+		var row: int = y * _across
+		for x: int in range(cells.position.x, cells.end.x):
+			_bytes[(row + x) * 2 + 1] = _static[row + x]
 
 
 ## The static layer from scratch: every static circle, then the visible
@@ -267,7 +360,7 @@ func _stamp(at: Vector2, radius: float) -> void:
 ## the explored layer and the bytes kept beside it, so no pass over every
 ## cell is needed afterwards. A packed array is a value in GDScript, so the
 ## layer is chosen by flag rather than passed.
-func _stamp_into(into_static: bool, at: Vector2, radius: float) -> void:
+func _stamp_into(into_static: bool, at: Vector2, radius: float, clip: Rect2i = Rect2i()) -> void:
 	if radius <= 0.0:
 		return
 	var centre: Vector2 = (at + Vector2.ONE * half_extent) / cell
@@ -277,6 +370,11 @@ func _stamp_into(into_static: bool, at: Vector2, radius: float) -> void:
 	var x1: int = mini(int(ceil(centre.x + reach)), _across - 1)
 	var y0: int = maxi(int(floor(centre.y - reach)), 0)
 	var y1: int = mini(int(ceil(centre.y + reach)), _across - 1)
+	if clip.size.x > 0:
+		x0 = maxi(x0, clip.position.x)
+		x1 = mini(x1, clip.end.x - 1)
+		y0 = maxi(y0, clip.position.y)
+		y1 = mini(y1, clip.end.y - 1)
 	for y: int in range(y0, y1 + 1):
 		var row: int = y * _across
 		var dy: float = float(y) + 0.5 - centre.y

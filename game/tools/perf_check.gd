@@ -102,6 +102,7 @@ var _build: bool = false
 ## `--loadout`: the whole Warden at once - see `tools/loadout_driver.gd`, which
 ## `perf_bisect --loadout` shares so both stand in the same frame.
 var _loadout: bool = false
+var _physics_rate: int = 0
 var _driver: Node = null
 ## `--hitch-profile`: the buckets of every frame are taken and thrown away,
 ## and printed only for a hitch and the frame before it - because a trace
@@ -251,6 +252,10 @@ func _ready() -> void:
 			_build = true
 		elif argument == "--loadout":
 			_loadout = true
+		elif argument.begins_with("--physics="):
+			# The physics step a display this fast would get (Graphics.physics_rate_for):
+			# an off-screen window sits on whatever screen is left, and the owner plays on 180 Hz.
+			_physics_rate = int(argument.split("=")[1])
 		elif argument == "--hitch-profile":
 			_hitch_profile = true
 		elif argument.begins_with("--profile-over="):
@@ -333,6 +338,9 @@ func _ready() -> void:
 	# The player's stored cap is irrelevant to a throughput test. Apply the
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
 	Engine.max_fps = 0
+	if _physics_rate > 0:
+		Engine.physics_ticks_per_second = _physics_rate
+		Engine.max_physics_steps_per_frame = maxi(Engine.max_physics_steps_per_frame, 6)
 
 	RunState.reset(false, _seed)
 	if _act > 1:

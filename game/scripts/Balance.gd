@@ -4803,6 +4803,9 @@ const ENEMY_HOWLER_SENSE_SECONDS: float = 0.2
 ## frame; what a 144 Hz screen does not need is the triangle arrays rebuilt
 ## 144 times a second for sparks that live a third of a second.
 const VFX_INK_HZ: float = 60.0
+## The most static circles whose change the fog patches in one tick before it
+## rebuilds its static layer whole instead (`FogOfWar._update_static`). [TUNE]
+const FOG_PATCH_MAX: int = 12
 ## How many world sounds may start in one frame (`Sfx._world_start_allowed`);
 ## the rest of a burst is refused. Flat sounds are never counted. [TUNE]
 const SFX_WORLD_STARTS_PER_FRAME: int = 6

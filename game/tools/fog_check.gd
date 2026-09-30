@@ -51,6 +51,7 @@ func _ready() -> void:
 	await _test_bodies_in_the_fog_are_not_drawn()
 	await _test_a_fog_hides_only_its_own_scope()
 	await _test_the_minimap_reads_the_same_fog()
+	await _test_a_moved_circle_is_patched_exactly()
 	_test_the_toggle_exists()
 	await _test_every_dungeon_stage_is_fresh()
 
@@ -255,6 +256,56 @@ func _test_a_fog_hides_only_its_own_scope() -> void:
 		"and must not leave them hidden when it goes - which is what a raid did")
 	body.queue_free()
 	await _settle()
+
+## **A static circle that moves is patched, and the patch is exactly the whole
+## layer** (2026-09-30). Two fogs over the same statics: one patched through a
+## run of changes - a torch's reach growing a cell, one going out, one lit,
+## two in one cell - and one rebuilt from nothing every time. The static layer
+## and the bytes must agree after every step, and a single change must have
+## been a patch rather than a rebuild.
+func _test_a_moved_circle_is_patched_exactly() -> void:
+	var holder := Node2D.new()
+	add_child(holder)
+	var lights: Array = [
+		{"at": Vector2(-400.0, 0.0), "radius": 300.0, "static": true},
+		{"at": Vector2(-150.0, 60.0), "radius": 260.0, "static": true},
+		{"at": Vector2(-150.0, 60.0), "radius": 180.0, "static": true},
+		{"at": Vector2(500.0, -300.0), "radius": 350.0, "static": true},
+	]
+	var patched := FogOfWar.new()
+	var whole := FogOfWar.new()
+	for fog: FogOfWar in [patched, whole]:
+		fog.hide_groups = []
+		fog.scope = holder
+		fog.sources = func() -> Array: return lights
+		holder.add_child(fog)
+	await get_tree().process_frame
+	var steps: Array[Callable] = [
+		func() -> void: lights[0]["radius"] = 300.0 + BattleGrid.TILE * 1.5,
+		func() -> void: lights.remove_at(3),
+		func() -> void: lights.append({"at": Vector2(900.0, 700.0), "radius": 240.0, "static": true}),
+		func() -> void: lights[2]["radius"] = 60.0,
+	]
+	patched.call("_tick")
+	var rebuilds: int = patched.static_rebuilds
+	var step_index: int = 0
+	for step: Callable in steps:
+		step.call()
+		patched.call("_tick")
+		whole.set("_static_entries", {})
+		whole.set("_static_key", -1)
+		whole.call("_tick")
+		_check(patched.get("_static") == whole.get("_static"),
+			"after change %d the patched static layer differs from a whole rebuild" % step_index)
+		_check(patched.get("_bytes") == whole.get("_bytes"),
+			"after change %d the patched fog's pixels differ from a whole rebuild" % step_index)
+		step_index += 1
+	_check(patched.static_rebuilds == rebuilds and patched.static_patches >= steps.size(),
+		"a single circle's change rebuilt the whole layer (%d rebuilds, %d patches)"
+		% [patched.static_rebuilds - rebuilds, patched.static_patches])
+	holder.queue_free()
+	await get_tree().process_frame
+
 
 ## The minimap draws against the fog's own texture rather than a second copy.
 ## Two sources of truth would drift, and the drift would be a map that says
