@@ -87,6 +87,24 @@ func _sweep(shape: Vector2i) -> void:
 		if not (node is CanvasLayer or node is Control):
 			continue
 		await _open_and_measure(node, _name_of(node), shape)
+	# **The Hold is handed the menu's act screen** (2026-09-30). The hand-over
+	# sat beside the act screen's construction, which runs before the Hold is
+	# built, so it found nothing to hand to and the Hold's "Start at an act"
+	# door did nothing on every launch - while `hold_check`, which builds its
+	# own Hold and hands the screen over itself, passed. Asked of the real menu.
+	var hub: Node = menu.get("_hub")
+	var screen: Node = menu.get("_act_start")
+	_check(screen != null and hub != null and hub.get("act_start") == screen,
+		"the Hold must be handed the menu's act screen at %s" % shape)
+	# And the sandbox door opens it as the sandbox, on a new account too.
+	if hub != null and screen != null:
+		hub.call("_road_sandbox")
+		await _settle()
+		_check((screen as CanvasLayer).visible and bool(screen.call("is_sandbox")),
+			"the Hold's sandbox door must open the act screen as the sandbox at %s" % shape)
+		await _open_and_measure(screen, "act start (sandbox)", shape, "open_sandbox")
+		screen.set("take_the_road", Callable())
+		hub.call("close")
 	await _test_diagnostics(menu as MainMenu, shape)
 	await _test_codex_rotation(menu as MainMenu, shape)
 
@@ -139,11 +157,12 @@ func _test_rich_text_scaling() -> void:
 	label.free()
 
 
-func _open_and_measure(screen: Node, name: String, shape: Vector2i) -> void:
+func _open_and_measure(screen: Node, name: String, shape: Vector2i,
+		opener: String = "open") -> void:
 	# Opened the way a player opens it. A panel measured while hidden reports the
 	# sizes it had before its container ran, which is the state nobody sees.
-	if screen.has_method("open"):
-		screen.call("open")
+	if screen.has_method(opener):
+		screen.call(opener)
 	elif screen is CanvasLayer:
 		(screen as CanvasLayer).visible = true
 	elif screen is Control:

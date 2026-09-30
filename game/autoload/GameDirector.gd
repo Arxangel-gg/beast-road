@@ -260,11 +260,12 @@ func goto_menu() -> void:
 	# **Leaving a Hardcore road any way but home is not coming home**
 	# (owner, 2026-09-30). The pause menu said so before the press; the slot is
 	# buried here rather than at the next launch, so the menu can say why.
-	if run_active and not RunState.walking and MetaState.hardcore \
-			and MetaState.hardcore_road_live:
+	if run_active and not RunState.walking and not RunState.sandbox \
+			and MetaState.hardcore and MetaState.hardcore_road_live:
 		MetaState.hardcore_buried_on_load = MetaState.bury_hardcore(
 			"left the road without turning for home")
 	run_active = false
+	_release_sandbox()
 	get_tree().paused = false
 	GameSpeed.reset()
 	CursorKit.use_default()
@@ -357,7 +358,15 @@ func _play_intro() -> void:
 ## is `refresh_terrain`, the one function everything regional already goes
 ## through.
 func start_run(requested_seed: int = 0, resume_front: bool = false,
-		from_act: int = 0, doctrine_id: String = "") -> void:
+		from_act: int = 0, doctrine_id: String = "", sandbox: bool = false) -> void:
+	# **A sandbox road keeps nothing** (2026-09-30). The account is written as
+	# it stands, then held: nothing earned, found, unlocked or lost on this road
+	# can reach the disk, and `_release_sandbox` reads the account back from it
+	# when the road ends - so a crash keeps nothing either. Alone only: whether
+	# a shared road is a sandbox would be the host's to decide for somebody
+	# else's account.
+	if sandbox and not _hold_for_sandbox():
+		return
 	# **A Hardcore Warden walks alone** (2026-09-30). Whether a shared road came
 	# home is the host's to decide, and a slot that could be buried by somebody
 	# else's choice at a crossroad is not an oath the player swore. The co-op
@@ -378,6 +387,7 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
 	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
+	RunState.sandbox = sandbox
 	# **The map this road is laid on.** The host's own choice - a lone player is
 	# a host - or, for a guest, the host's word heard beside the seed. A banked
 	# front overrides both below, because it comes back on the map it was
@@ -409,7 +419,9 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	# for, because a banked front is a thing the player earned and an act start
 	# is always available.
 	else:
-		if from_act > 0:
+		if sandbox:
+			_open_the_sandbox(maxi(from_act, 1))
+		elif from_act > 0:
 			ActStart.begin(from_act, doctrine_id)
 		# **A road not resumed is a road given up.** Owner ruling, 2026-09-17:
 		# taking a fresh road, *or* starting at an act, clears the banked front
@@ -649,7 +661,8 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	# **Hardcore** (owner, 2026-09-30): home or the summit keeps the Warden, and
 	# every other ending buries them - after the debrief is built, so the road
 	# they fell on is still told.
-	var buried: bool = MetaState.hardcore and not (victory or returned)
+	var buried: bool = MetaState.hardcore and not (victory or returned) \
+		and not RunState.sandbox
 	if MetaState.hardcore and not buried:
 		MetaState.hardcore_road_home()
 	# A run is one shared thing, so it ends for both. Announced before the
@@ -793,7 +806,57 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		summary["tools"] = 0
 		summary["sigils"] = 0
 		MetaState.bury_hardcore("fell on the road")
+	# **A sandbox paid nothing**, and says so: the debrief lists no unlocks,
+	# Tools or Sigils, and the account is read back from disk before it is
+	# shown, so the screen and the account agree.
+	if RunState.sandbox:
+		summary["sandbox"] = true
+		summary["unlocks"] = []
+		summary["chronicle"] = []
+		summary["tools"] = 0
+		summary["sigils"] = 0
+		_release_sandbox()
 	EventBus.run_ended.emit(victory, summary)
+
+
+## Whether a sandbox road is holding the account's saves.
+var _sandbox_held: bool = false
+
+
+## The account written as it stands, then held. Refused on a shared road and
+## while a sandbox already holds it.
+func _hold_for_sandbox() -> bool:
+	if Coop.is_networked() or _sandbox_held:
+		return false
+	MetaState.save_game()
+	MetaState.hold_saves()
+	_sandbox_held = true
+	return true
+
+
+## The road put down at `act` with the sandbox's purse, and every tower opened
+## for it - the account's roster is read back from disk when the road ends.
+func _open_the_sandbox(act: int) -> void:
+	ActStart.begin_sandbox(act)
+	for tower: TowerData in ContentDB.base_towers():
+		if not MetaState.unlocked_towers.has(tower.id):
+			MetaState.unlocked_towers.append(tower.id)
+
+
+## **The account as it was**: the saves let go and the account read back from
+## the disk it was written to when the sandbox began. Idempotent, and asked at
+## every door a road leaves by.
+func _release_sandbox() -> void:
+	if not _sandbox_held:
+		return
+	_sandbox_held = false
+	MetaState.resume_saves()
+	MetaState.load_save()
+
+
+## For the gate: whether a sandbox is holding the account.
+func sandbox_holding() -> bool:
+	return _sandbox_held
 
 
 ## Felling an act boss widens the roster by one tower, permanently.

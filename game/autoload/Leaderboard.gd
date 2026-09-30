@@ -69,6 +69,10 @@ func submit(summary: Dictionary, tier: CampaignTierData) -> void:
 	# The Warden who ran it, read off the summary: a buried Hardcore Warden's
 	# account is already a new one by the time the debrief is read, and its name
 	# and level are gone with it.
+	# **A sandbox road is not posted** (2026-09-30): its purse was a gift.
+	if bool(summary.get("sandbox", false)):
+		submitted.emit(false, "A sandbox road is not posted.")
+		return
 	var row: Dictionary = Score.row(summary, tier,
 		String(summary.get("warden", MetaState.player_name)),
 		int(summary.get("warden_level", MetaState.hero_level)),

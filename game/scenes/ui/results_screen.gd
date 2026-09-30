@@ -378,6 +378,14 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	var buried: bool = bool(summary.get("buried", false))
 	if buried:
 		title.text = "The Warden is gone"
+	# **A sandbox road ends as one** (2026-09-30): nothing was kept, and it is
+	# not posted, and the screen says both before anybody looks for either.
+	if bool(summary.get("sandbox", false)):
+		title.text = "The sandbox closes"
+		if _submit_button != null:
+			_submit_button.disabled = true
+		if _submit_note != null:
+			_submit_note.text = "A sandbox road is not posted, and nothing on it was kept."
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.
 	menu_button.grab_focus.call_deferred()

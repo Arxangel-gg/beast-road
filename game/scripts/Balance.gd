@@ -5427,6 +5427,10 @@ const WAVE_SIEGE_ORDER_SHARE: Array[float] = [
 ## than an elite's six-fold pool, because the whole point is that one Warden
 ## can catch it. Solo only, and never on the Walk. [TUNE]
 const HERALD_FIRST_ACT: int = 3
+## **A sandbox road's purse**, in each of the four currencies (2026-09-30,
+## `IDEAS_REVIEW_2026-09-23` §4.3): enough that nothing on the board is out of
+## reach, on a road where nothing is kept. [TUNE]
+const SANDBOX_PURSE: int = 250000
 const HERALD_WAVE_CHANCE: float = 0.12
 const HERALD_HEALTH_SCALE: float = 2.6
 const HERALD_SPEED_SCALE: float = 1.2

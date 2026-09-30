@@ -29,6 +29,9 @@ var _close_button: Button
 
 var _act: int = 1
 var _doctrine_id: String = ""
+## **Opened as the sandbox** (2026-09-30): every act, no doctrine, and a road
+## where nothing is kept.
+var _sandbox: bool = false
 
 ## **Who takes the road, when somebody other than the front door asked.**
 ##
@@ -161,7 +164,21 @@ func _build() -> void:
 	_refit()
 
 
+## The sandbox's door: every act open, no doctrine, and nothing kept.
+func open_sandbox() -> void:
+	_sandbox = true
+	visible = true
+	_act = 1
+	refresh()
+	_close_button.grab_focus()
+
+
+func is_sandbox() -> bool:
+	return _sandbox
+
+
 func open() -> void:
+	_sandbox = false
 	visible = true
 	_act = ActStart.furthest_act()
 	if _doctrine_id.is_empty():
@@ -185,9 +202,14 @@ func refresh() -> void:
 		+ "This is not your banked front - that is Resume, and it stays where it "
 		+ "is. Every doctrine below spends the same purse; what you are choosing "
 		+ "is its shape.")
+	if _sandbox:
+		_note.text = ("A sandbox road: every tower, a purse nothing on the board can "
+			+ "empty, and any act. Nothing you earn, find, unlock or lose on it is "
+			+ "kept - your Warden is exactly as they were when you come back - and "
+			+ "it is not posted to the board.")
 	for child: Node in _acts.get_children():
 		child.queue_free()
-	var furthest: int = ActStart.furthest_act()
+	var furthest: int = Balance.ACT_COUNT if _sandbox else ActStart.furthest_act()
 	for act: int in range(1, furthest + 1):
 		var button := Button.new()
 		button.text = "Act %d" % act
@@ -202,7 +224,7 @@ func refresh() -> void:
 
 	for child: Node in _doctrines.get_children():
 		child.queue_free()
-	for doctrine: DoctrineData in _doctrine_list():
+	for doctrine: DoctrineData in ([] if _sandbox else _doctrine_list()):
 		var button := Button.new()
 		button.toggle_mode = true
 		button.button_pressed = doctrine.id == _doctrine_id
@@ -218,11 +240,15 @@ func refresh() -> void:
 
 	_summary.text = _summary_text()
 	# Act I needs no doctrine - it *is* the walk, and there is nothing to outfit.
-	_begin_button.text = "Take the road from Act %d" % _act
+	_begin_button.text = ("Open the sandbox at Act %d" if _sandbox
+		else "Take the road from Act %d") % _act
 
 
 ## What this road opens with, read off the same doors that will open it.
 func _summary_text() -> String:
+	if _sandbox:
+		return ("%d of each currency, every tower, the wall whole and no board: "
+			+ "you build it.") % Balance.SANDBOX_PURSE
 	if _act <= 1:
 		return ("Act I opens with nothing built and nothing spare, which is the "
 			+ "game as it is meant to begin. No doctrine applies.")
@@ -252,6 +278,13 @@ func _doctrine_list() -> Array:
 
 
 func _begin() -> void:
+	if _sandbox:
+		close()
+		if take_the_road.is_valid():
+			take_the_road.call(_act, "")
+			return
+		GameDirector.start_run(0, false, _act, "", true)
+		return
 	if not ActStart.may_start(_act):
 		return
 	close()

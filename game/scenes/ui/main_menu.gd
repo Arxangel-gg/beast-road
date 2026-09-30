@@ -304,6 +304,11 @@ func _build_hold() -> void:
 	_hub = HubScreen.new()
 	_hub.name = "Hold"
 	add_child(_hub)
+	# **Handed the act screen here**, which is built before the Hold is: the
+	# hand-over beside the act screen found `_hub` still null on every launch,
+	# so the Hold's "Start at an act" door returned on its first line and did
+	# nothing (found 2026-09-30, adding the sandbox to the same screen).
+	_hub.act_start = _act_start
 	var button := Button.new()
 	button.name = "Hold"
 	button.text = "The Hold"
@@ -884,6 +889,17 @@ func _build_pen_button() -> void:
 ## every act you have reached, shown to somebody who has reached one, is a door
 ## that does nothing.
 func _build_act_start_button() -> void:
+	# **The screen always, the button once a second act is reached.** The
+	# Hold's sandbox opens this same screen for every Warden, a new one
+	# included (2026-09-30) - built only for a Warden past Act I, a new
+	# Warden's sandbox door opened nothing at all.
+	_act_start = ActStartScreenScript.new()
+	add_child(_act_start)
+	# **The Hold takes the road through this same screen**, rather than the
+	# three buttons of its own it used to carry - which passed no doctrine at
+	# all, so `ActStart.begin` refused and the run opened at Act I however
+	# high an act was chosen (owner, 2026-09-22). One screen, two callers; it
+	# is handed over in `_build_hold`, which runs after this.
 	if new_run_button == null or ActStart.furthest_act() <= 1:
 		return
 	var column: Node = new_run_button.get_parent()
@@ -901,14 +917,6 @@ func _build_act_start_button() -> void:
 	column.add_child(button)
 	column.move_child(button, new_run_button.get_index() + 1)
 
-	_act_start = ActStartScreenScript.new()
-	add_child(_act_start)
-	# **The Hold takes the road through this same screen**, rather than the
-	# three buttons of its own it used to carry - which passed no doctrine at
-	# all, so `ActStart.begin` refused and the run opened at Act I however
-	# high an act was chosen (owner, 2026-09-22). One screen, two callers.
-	if _hub != null:
-		_hub.act_start = _act_start
 	button.pressed.connect(func() -> void:
 		# The same cost and the same question: an act start is a new road, so
 		# it gives up the banked one exactly as a fresh run does.

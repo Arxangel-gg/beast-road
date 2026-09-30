@@ -73,15 +73,7 @@ static func begin(act: int, doctrine_id: String) -> bool:
 	var doctrine: DoctrineData = ContentDB.doctrine(doctrine_id)
 	if doctrine == null:
 		return false
-	RunState.act = clampi(act, 1, Balance.ACT_COUNT)
-	RunState.distance_travelled = Balance.act_start_distance(RunState.act)
-	# The wave number a walked campaign would be on. Read off the road rather
-	# than stored, so it moves with `ACT_ROAD_DISTANCE` instead of going stale.
-	RunState.wave_number = maxi(int(round(
-		RunState.distance_travelled / Balance.WAVE_ROAD_DISTANCE)), 0)
-	var terrain: TerrainData = ContentDB.terrain_for_act(RunState.act)
-	if terrain != null:
-		RunState.terrain_id = terrain.id
+	_lay_the_road(act)
 	var budget: int = budget_for(RunState.act)
 	# **The whole budget is granted, then spent.** Handing the purse over first
 	# and letting the doctrine buy from it is what makes the board a board the
@@ -116,6 +108,34 @@ static func begin(act: int, doctrine_id: String) -> bool:
 ## the first Preparation one after another, with Later as ever. The act bosses a
 ## walked road felled deal at their own floor; the rest deal as ranks, because a
 ## Tempering needs a hand to temper and this road starts without one.
+## Where the road is put down: the act, the distance, the wave a walked road
+## would be on and the region. One place, for an act start and a sandbox.
+static func _lay_the_road(act: int) -> void:
+	RunState.act = clampi(act, 1, Balance.ACT_COUNT)
+	RunState.distance_travelled = Balance.act_start_distance(RunState.act)
+	# The wave number a walked campaign would be on. Read off the road rather
+	# than stored, so it moves with `ACT_ROAD_DISTANCE` instead of going stale.
+	RunState.wave_number = maxi(int(round(
+		RunState.distance_travelled / Balance.WAVE_ROAD_DISTANCE)), 0)
+	var terrain: TerrainData = ContentDB.terrain_for_act(RunState.act)
+	if terrain != null:
+		RunState.terrain_id = terrain.id
+
+
+## **A sandbox road opens here** (2026-09-30): any act, a purse nothing on the
+## board can empty, the wall whole, the drafts a walked road would have dealt,
+## and no board - the point of a sandbox is building one. Act I opens where Act
+## I opens. Nothing here is kept; `GameDirector` reads the account back from
+## disk when the road ends.
+static func begin_sandbox(act: int) -> void:
+	if act > 1:
+		_lay_the_road(act)
+		bank_the_drafts(RunState.act)
+	for id: String in RunState.CURRENCIES:
+		RunState.currencies[id] = Balance.SANDBOX_PURSE
+	RunState.town_hp = RunState.town_max_hp
+
+
 static func bank_the_drafts(act: int) -> void:
 	var index: int = clampi(act - 1, 0, Balance.ACT_START_DRAFTS.size() - 1)
 	RunState.road_rank = maxi(Balance.ACT_START_ROAD_RANK[

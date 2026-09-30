@@ -1334,6 +1334,10 @@ func _show_road() -> void:
 	_road_button("Take the Road  ·  a new expedition",
 		func() -> void: _take_the_road(HoldSession.Road.FRESH, 1,
 			"a new expedition from Act I"))
+	# **A sandbox, alone** (2026-09-30): every tower, a full purse, any act,
+	# nothing kept. Never offered to a party - it is this account's to hold.
+	if not Coop.is_networked():
+		_road_button("Sandbox  ·  every tower, any act, nothing kept", _road_sandbox)
 	_road_button("Close", _hide_road)
 	_road_panel.visible = true
 
@@ -1379,6 +1383,19 @@ func _road_act_start() -> void:
 		_take_the_road(HoldSession.Road.ACT_START, act,
 			"a fresh road opening at Act %d" % act, doctrine)
 	act_start.open()
+
+
+## The act screen opened as the sandbox; it starts the road itself, alone.
+func _road_sandbox() -> void:
+	if act_start == null:
+		return
+	_hide_road()
+	suspend()
+	act_start.take_the_road = func(act: int, _doctrine: String) -> void:
+		act_start.take_the_road = Callable()
+		close()
+		GameDirector.start_run(0, false, act, "", true)
+	act_start.open_sandbox()
 
 
 ## Puts the banked front right, off the same bill the main menu spends.

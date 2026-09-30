@@ -163,6 +163,10 @@ var terrain_id: String = ""
 ## Run-scoped and never saved: a Walk quit halfway grants nothing and is
 ## offered again from the start.
 var walking: bool = false
+## **A sandbox road** (2026-09-30): every tower, a full purse, any act, and
+## nothing kept - `GameDirector` holds the account's saves for its length and
+## reads the account back from disk when it ends. Cleared by `reset`.
+var sandbox: bool = false
 
 var phase: Phase = Phase.PREPARATION
 var active_road_id: String = ""
@@ -695,6 +699,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		forks_open.append(false)
 	terrain_id = ""
 	walking = false
+	sandbox = false
 	# Classic unless a door that starts a real road says otherwise: a gate or a
 	# harness that resets the run gets the shipped map, whatever the machine's
 	# setting is - a check that measured whichever map its developer last chose

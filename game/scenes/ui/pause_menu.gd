@@ -101,6 +101,8 @@ static func leaving_costs() -> String:
 	if not GameDirector.run_active or RunState.walking \
 			or RunState.phase == RunState.Phase.ENDED:
 		return ""
+	if RunState.sandbox:
+		return "A sandbox road. Nothing on it is kept, whichever way you leave."
 	if MetaState.hardcore and MetaState.hardcore_road_live:
 		return ("This is a Hardcore road. Leaving without turning for home at a "
 			+ "crossroad buries this Warden: everything is lost, and the slot "
