@@ -11577,6 +11577,119 @@ Warden left alone, a fall buried with its debrief intact, a return and the
 summit kept, the board kept apart through the outbox and the save, the pause
 menu's warning, and the three doors it cannot walk read off the source.
 
+**The second half of the owner's list of 2026-09-30.** Five more, each gated:
+
+- **A dressed rider sits in the saddle.** Three faults, each photographed by
+  `mount_shot` once it seated the dressed Warden that ships rather than the old
+  painting: the dressed animator wrote the sprite's offset whole every frame and
+  threw away the seat the mount carries there, so the rider stood on the ground
+  behind the horse (the seat is a sprite meta now, `MountRig.seat_of`, and the
+  dress and every layer are laid on it); the near side of the horse read the
+  whole sheet's UV rather than its cell's, so it vanished facing east and covered
+  the rider facing north; and facing the camera the whole animal is in front of
+  its rider. The seat is measured off the sheet rather than the base painting -
+  a correction of form, recorded as such: the two agree within a few pixels and
+  that was never why riders stood.
+- **The Hold answers the cursor.** A Warden standing still turns to it (the
+  road's own rule: walking looks where you go). A left click inside a building's
+  or a person's painting opens it at once in reach, and from out of reach walks
+  there and opens it on arrival; any other order drops the errand. The hovered
+  one brightens and wears a ring on its ground - gold in reach, pale out of it.
+  `HoldYard.click_at` is the one door, and the screen's own tap goes through it.
+- **The Glass can hold its Warden still**: a Turning / Still toggle beside the
+  turn arrows, remembered in the settings (declared, so it survives the load).
+- **A loosed dragon breath chases what it was breathed at, and is still one
+  blow.** The warning holds still where the breath will start; once loosed, a
+  camp wyrm's line turns toward its target at a bounded rate
+  (`DRAGON_BREATH_TRACK_*`) and never more than its arc off the warned line, and
+  a passing dragon's far end walks toward the nearest Warden and never past its
+  reach from the aim. **Shape, never size**: the blow is dealt along the beam as
+  it sweeps, to each body at most once (`strike_the_players` keeps who it
+  caught), and the picture reads the blow's end every frame, so the beam drawn is
+  the line that strikes.
+- **A click answers** (`CursorFx`): one layer over every screen, in screen
+  space - a ring with a soft edge, a bright point and a few sparks, gold for the
+  left button and cool for the right. It never swallows the event, reads
+  nothing, turns off with the particles, draws at most `CURSOR_FX_MAX` presses and
+  does nothing at rest. Never headless.
+
+**Act X at its peak runs at eighty frames a second with the whole Warden
+firing, as of 2026-09-30.** The owner: *"60+fps even during the peaks of the
+heaviest waves of the last act and while the player is using all of their
+augments and skill abilities including ultimate abilities"*. Measured on the RTX
+3070 Ti at 1080p, High, forty level-8 towers on Act X's waves:
+
+    before     22.0 ms (45 fps)   the full loadout
+    after      12.3 ms (81 fps)   p99 22.9 ms, physics at 180 Hz
+    base       12.9 ms (77 fps)   the same board, no loadout
+
+**The measurement is the first half.** `perf_check --loadout` (shared with
+`perf_bisect` through `tools/loadout_driver.gd`) fills the hand with eight
+weapons at their last level, slots four spells with the ultimate last, dresses
+the Warden in a full high-rarity set over a full stash, and stands them in the
+thickest part of the fight swinging and casting every slot off cooldown on a
+pool that never runs dry. `tools/perf_offscreen.sh` runs it on the real
+renderer in an unfocusable window beyond every monitor, so a windowed
+measurement never covers the owner's screen (`--physics=180` models their
+display). `--hitch-profile` prints a per-system mean, an ink census and the
+profile of every frame slower than `--profile-over=`; `perf_bisect` waits for a
+field worth holding before it holds one.
+
+**What the frame was made of, and what changed**, in the order it was found:
+
+- **The Warden read a sort on every mana read.** `ContentDB.discipline_nodes_sorted`
+  sorted all 126 nodes with a lambda on every call, and `DisciplineUpgrades.oaths_of`
+  called it from `mana_max`, `mana_regen` and `damage_multiplier`. Kept, and worked
+  out again only when the node count changes: the Warden 0.75 -> 0.16 ms a
+  frame, the Arsenal 1.06 -> 0.27.
+- **An attribute read walked the stash for every worn piece** and rolled its
+  affixes again - 81 us with nine worn and a full stash, read many times a
+  physics step. A verified index hint and a memo keyed on exactly what the
+  points are made of: 0.9 us. The perf harness had worn one piece, so it never
+  saw it.
+- **A change of health rebuilt the whole modifier table** - every blow on the
+  town in a siege, every tick of regeneration. Health only reaches that table
+  through the regional relic rules, so `Modifiers.refresh_conditions` lays those
+  again only when one of their three conditions flips.
+- **The pixel filter's CrispText walked every node under every root every
+  frame** - the battlefield, the town and the beast - to find the strings to
+  hold out of the grid: 2.7 of the 3.5 ms the filter cost. It keeps the list of
+  text-bearing controls (added as they join, dropped as they leave) and reads only
+  their rectangles.
+- **The fog stamped its whole static layer** whenever a torch's reach crossed a
+  cell: 6.4 ms in one frame. It patches only the circles that moved, and
+  `fog_check` holds the patch identical to a whole rebuild through a run of
+  changes.
+- **Decorations are not made where nobody looks** (`ScreenCull.world_sees`,
+  `VFX_CULL_MARGIN`): sparks, rings, flashes, motes, rays, art, sheets, numbers
+  and dust; blood thrown off the screen lands on the ground at once so the marks
+  are there when the camera arrives; a tower off the screen keeps its clocks and
+  writes no transform; a body off the screen is not dressed. One painted or
+  forged hit picture per spot at a time (`VFX_CROWD_*`). Never headless, so no
+  gate measures a different game.
+- **Batching.** `CombatTells` handed every ring over as two triangle arrays of
+  its own - a hundred a repaint at Act X - and the Arsenal every glow, head,
+  ring, spike and bolt as its own command; `InkBatch` gives each one hand-over a
+  repaint (and one per head picture).
+- **A burst of blows is heard as its first six sounds.** Every start builds a
+  Vorbis decoder (~0.27 ms), and fourteen landed in one frame; at most
+  `SFX_WORLD_STARTS_PER_FRAME` world sounds start in a frame, and flat sounds -
+  the interface, telegraphs, the wall - are never counted.
+- **Smaller**: the Warden's bars and aim guide follow the frame rather than
+  every physics step (three a frame at 180 Hz); the SP bar is told a few times a
+  second rather than every step; a torch keeps eight embers aloft rather than
+  sixteen, under a cap of 400.
+
+Every change is a look or a cadence and none is a number the fight reads:
+`balance_test`, `curve_report` and the combat gates read the same fights. Each
+new check was planted against and named its fault.
+
+**What is left, and where.** The p99 is bursts rather than a standing cost:
+a wave's deaths landing together (loot, experience, the HUD answering the purse),
+a physics catch-up after a slow frame, and the six sound starts. The renderer's
+own clock is ~3.9 ms CPU and ~3.8 ms GPU; the GPU's time appears to add to the
+frame rather than overlap it in this renderer, so GPU work counts in full.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
