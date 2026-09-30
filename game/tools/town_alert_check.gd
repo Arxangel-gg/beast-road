@@ -24,8 +24,46 @@ var _failures: int = 0
 func _ready() -> void:
 	MetaState.hold_saves()
 	await _test_the_wall_and_the_sanctuary()
+	await _test_a_wave_says_what_it_paid()
 	MetaState.resume_saves()
 	_finish()
+
+
+## **A held wave says what it paid** (2026-09-30), on the same banner, from
+## the run's own purse and the deaths in between - and it moves nothing: the
+## purse after the line is exactly the purse before it.
+func _test_a_wave_says_what_it_paid() -> void:
+	RunState.reset()
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var hud: HUD = run.hud
+	if not _check(hud != null, "the run stands up a HUD"):
+		run.queue_free()
+		return
+	run.process_mode = Node.PROCESS_MODE_DISABLED
+	var banner: Label = hud.get("_message") as Label
+	EventBus.wave_started.emit(7, [0])
+	_check(hud.wave_harvest().is_open(), "a wave that begins is counted")
+	for _kill: int in 3:
+		EventBus.enemy_died.emit("probe", Vector2.ZERO)
+	RunState.gain_currency("gold", 40)
+	var purse: int = RunState.currency("gold")
+	EventBus.wave_cleared.emit(7)
+	_check(banner.text.contains("Wave 7 held") and banner.text.contains("3 fell")
+		and banner.text.contains("+40"),
+		"a held wave says how many fell and what it paid (%s)" % banner.text)
+	_check(RunState.currency("gold") == purse, "saying what a wave paid moved the purse")
+	_check(not hud.wave_harvest().is_open(), "the count closes with the wave")
+	# A kill after the wave is not the next wave's, and a wave never begun here
+	# says nothing when it is cleared.
+	EventBus.enemy_died.emit("probe", Vector2.ZERO)
+	var unsaid: String = hud.wave_harvest().close(8)
+	_check(unsaid.is_empty(), "a wave that was never counted was said (%s)" % unsaid)
+	run.queue_free()
+	for _frame: int in 10:
+		await get_tree().process_frame
 
 
 func _test_the_wall_and_the_sanctuary() -> void:

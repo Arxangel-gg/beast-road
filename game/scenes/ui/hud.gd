@@ -533,6 +533,8 @@ const ACTION_ROW_GAP: float = 8.0
 
 var _message: Label
 var _message_left: float = 0.0
+## What the wave paid, said when it is held (`WaveHarvest`).
+var _harvest: WaveHarvest = WaveHarvest.new()
 var _top_bar: HBoxContainer
 
 ## The rosette listens to EventBus.lane_pressure_changed itself, so the HUD only
@@ -748,6 +750,9 @@ func _ready() -> void:
 	EventBus.augment_queued.connect(_on_augments_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
 	EventBus.wave_started.connect(_on_wave)
+	EventBus.wave_started.connect(_on_harvest_begun)
+	EventBus.enemy_died.connect(_on_harvest_kill)
+	EventBus.wave_cleared.connect(_on_wave_held)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
 	EventBus.act_started.connect(_on_act)
 	EventBus.raid_available.connect(func(_s: float) -> void: _raid_button.disabled = false)
@@ -6592,6 +6597,30 @@ func _on_wave(number: int, lanes: Array) -> void:
 	_wave.text = "%d" % number
 	_message.text = "Wave %d  —  %s" % [number, ", ".join(names)]
 	_message_left = 2.0
+
+
+## The wave is held: say what it paid, on the message line, for as long as
+## the wave's own line was shown. A calm wave with nothing to say says nothing.
+func _on_wave_held(wave_number: int) -> void:
+	var line: String = _harvest.close(wave_number)
+	if line.is_empty():
+		return
+	_show_message(line)
+
+
+## Named methods rather than lambdas: a lambda on an autoload's signal errors
+## on every emission once the HUD that made it is freed.
+func _on_harvest_begun(_number: int, _lanes: Array) -> void:
+	_harvest.begin()
+
+
+func _on_harvest_kill(_enemy_id: String, _at: Vector2) -> void:
+	_harvest.note_kill()
+
+
+## The harvest being counted, for the gate.
+func wave_harvest() -> WaveHarvest:
+	return _harvest
 
 
 func _on_wave_archetype(number: int, archetype_id: String) -> void:
