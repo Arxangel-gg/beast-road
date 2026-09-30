@@ -44,9 +44,8 @@ guard run is on the way to finishing, or `cancel-in-progress` drops it.
 
 **Open, in the order worth taking them:**
 
-1. **Smith talents** - the four other crafts have them. A Smith talent must
-   move time or materials, never a piece's level, make or rung odds (the gear
-   scale). If none is found that is safe, the Smith is fine without.
+1. ~~**Smith talents**~~ - built the same evening: stock, practice, and the
+   gem or the stock given back. None touches a piece.
 2. **Cooking** (`IDEAS_REVIEW_2026-09-23` §4.4): fish plus a crop grown this
    run, counted against `FISH_MEALS_PER_RUN`. Needs an effect for each crop
    that is a fraction of something the Warden has (SP, a ward, a buff's
