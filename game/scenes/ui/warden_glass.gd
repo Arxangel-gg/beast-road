@@ -56,6 +56,8 @@ var _beard_section: VBoxContainer
 var _style_name: Label
 var _beard_name: Label
 var _skin_name: Label
+## The cape, top and trousers captions, by look key (2026-09-30).
+var _cloth_names: Dictionary = {}
 var _colour_name: Label
 var _dye_sliders: Dictionary = {}
 var _dye_rows: Dictionary = {}
@@ -307,6 +309,16 @@ func _build_choices(body: VBoxContainer) -> void:
 	_beard_grid.add_theme_constant_override("v_separation", 6)
 	_beard_section.add_child(_beard_grid)
 
+	# **The cloth's own colours** (owner, 2026-09-30): the cape, the top and the
+	# trousers, each a swatch row; "As worn" leaves the painting or the cape's
+	# kind to say.
+	for pair: Array in [["CAPE", WardenLook.KEY_CAPE_COLOUR], ["TOP", WardenLook.KEY_TOP_COLOUR],
+			["TROUSERS", WardenLook.KEY_BOTTOM_COLOUR]]:
+		var part := _section(body, String(pair[0]))
+		_cloth_names[String(pair[1])] = _caption(part)
+		part.add_child(_swatch_row(String(pair[1]), WardenLook.CLOTH_COLOURS.size(), _cloth_swatch_colour,
+			func(index: int) -> String: return WardenLook.CLOTH_NAMES[index]))
+
 	# The cloth: the three dyes and their presets, as the Hold's card had them.
 	var cloth := _section(body, "CLOTH")
 	for pair: Array in [["Cloak", WardenLook.KEY_CLOAK], ["Sash", WardenLook.KEY_SASH],
@@ -389,6 +401,11 @@ func _paint_swatch(button: Button, colour: Color) -> void:
 			box.shadow_color = Color(GOLD.r, GOLD.g, GOLD.b, 0.55)
 			box.shadow_size = 6
 		button.add_theme_stylebox_override(state, box)
+
+
+## A cloth swatch: the colour, or for "as worn" the linen it leaves.
+func _cloth_swatch_colour(index: int) -> Color:
+	return WardenLook.CLOTH_COLOURS[index] if index > 0 else Color8(214, 204, 186)
 
 
 func _skin_swatch_colour(index: int) -> Color:
@@ -580,6 +597,8 @@ func _choose(key: String, index: int) -> void:
 			colour = _skin_swatch_colour(index)
 		WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_HAIR, WardenLook.KEY_BEARD:
 			colour = WardenLook.hair_colour(now)
+		WardenLook.KEY_CAPE_COLOUR, WardenLook.KEY_TOP_COLOUR, WardenLook.KEY_BOTTOM_COLOUR:
+			colour = _cloth_swatch_colour(index)
 	_changed(colour)
 
 
@@ -635,7 +654,8 @@ func _refresh() -> void:
 		_body_buttons[index].disabled = not drawn and index != body
 		_body_buttons[index].tooltip_text = "" if drawn else "Still being drawn"
 	for key: String in [WardenLook.KEY_SKIN, WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR,
-			WardenLook.KEY_BEARD]:
+			WardenLook.KEY_BEARD, WardenLook.KEY_CAPE_COLOUR, WardenLook.KEY_TOP_COLOUR,
+			WardenLook.KEY_BOTTOM_COLOUR]:
 		var buttons: Array = _choices.get(key, [])
 		var chosen: int = int(look.get(key, 0))
 		for index: int in buttons.size():
@@ -657,6 +677,8 @@ func _refresh() -> void:
 		or WardenDress.body_name(look) == WardenDress.BODIES[0]
 	_beard_section.visible = beards
 	_skin_name.text = WardenLook.SKIN_NAMES[int(look[WardenLook.KEY_SKIN])]
+	for key: Variant in _cloth_names:
+		(_cloth_names[key] as Label).text = WardenLook.CLOTH_NAMES[int(look.get(key, 0))]
 	_colour_name.text = WardenLook.HAIR_COLOUR_NAMES[int(look[WardenLook.KEY_HAIR_COLOUR])]
 	_style_name.text = _head_name("hair", int(look[WardenLook.KEY_HAIR]))
 	_beard_name.text = _head_name("beard", int(look[WardenLook.KEY_BEARD]))

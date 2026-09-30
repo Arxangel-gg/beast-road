@@ -47,8 +47,38 @@ const KEY_BEARD: String = "beard"
 ## must still mean the dyes, the body, the hair and the beard. 0 is the skin as
 ## the body was painted, so an older row reads as the painting.
 const KEY_SKIN: String = "skin"
+## **The cloth's colours** (owner, 2026-09-30: "Players should be able to tint
+## their appearance, such as the color of their cape or tops and bottoms").
+## Indices into `CLOTH_COLOURS`, 0 the cloth as it was painted or as the cape
+## kind dyes it. **Appended last**, for the reason every key after the dyes
+## was: a partner on the build before this sends eight numbers and they must
+## still mean what they meant.
+const KEY_CAPE_COLOUR: String = "cape_colour"
+const KEY_TOP_COLOUR: String = "top_colour"
+const KEY_BOTTOM_COLOUR: String = "bottom_colour"
 const KEYS: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER,
-	KEY_BODY, KEY_HAIR, KEY_HAIR_COLOUR, KEY_BEARD, KEY_SKIN]
+	KEY_BODY, KEY_HAIR, KEY_HAIR_COLOUR, KEY_BEARD, KEY_SKIN,
+	KEY_CAPE_COLOUR, KEY_TOP_COLOUR, KEY_BOTTOM_COLOUR]
+## The cloth dyes, the first the cloth as worn. A colour here is the colour the
+## cloth's own middle is turned to, so its painted folds and shadow stay.
+const CLOTH_COLOURS: Array[Color] = [
+	Color(0, 0, 0, 0),      # as worn
+	Color8(150, 32, 38),    # crimson
+	Color8(166, 76, 38),    # rust
+	Color8(188, 142, 60),   # ochre
+	Color8(100, 122, 56),   # moss
+	Color8(42, 90, 54),     # forest
+	Color8(34, 112, 114),   # teal
+	Color8(46, 90, 154),    # sea
+	Color8(54, 62, 152),    # royal
+	Color8(102, 60, 140),   # violet
+	Color8(112, 42, 80),    # plum
+	Color8(48, 48, 54),     # charcoal
+	Color8(226, 216, 192),  # bone
+	Color8(198, 172, 130),  # sand
+]
+const CLOTH_NAMES: Array[String] = ["As worn", "Crimson", "Rust", "Ochre", "Moss",
+	"Forest", "Teal", "Sea", "Royal", "Violet", "Plum", "Charcoal", "Bone", "Sand"]
 ## The hue turns, which the dye shader reads.
 const DYES: Array[String] = [KEY_CLOAK, KEY_SASH, KEY_LEATHER]
 ## The hair colours a style may be drawn in. Every style is drawn once, in
@@ -100,6 +130,7 @@ const SKIN_NAMES: Array[String] = ["As painted", "Porcelain", "Fair", "Light", "
 ## place in the count is the same style on either body (`tools/warden_rig/heads.json`).
 const CHOICES: Dictionary = {
 	KEY_BODY: 2, KEY_HAIR: 19, KEY_HAIR_COLOUR: 10, KEY_BEARD: 7, KEY_SKIN: 10,
+	KEY_CAPE_COLOUR: 14, KEY_TOP_COLOUR: 14, KEY_BOTTOM_COLOUR: 14,
 }
 
 ## Looks worth one press, for a player who wants a Warden rather than three
@@ -169,6 +200,12 @@ static func cleaned_value(key: String, value: float) -> Variant:
 	var one: Dictionary = {}
 	one[key] = value
 	return clean(one).get(key, 0.0)
+
+
+## A cloth dye as a colour, transparent for "as worn".
+static func cloth_colour(look: Dictionary, key: String) -> Color:
+	var index: int = int(clean(look).get(key, 0))
+	return CLOTH_COLOURS[clampi(index, 0, CLOTH_COLOURS.size() - 1)]
 
 
 ## Whether a look is the female body - whose voice, not only whose sheets.
@@ -321,7 +358,8 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 	elif item.material != null:
 		return
 	else:
-		if (is_undyed(cleaned) and int(cleaned[KEY_SKIN]) == 0) or shader() == null:
+		if (is_undyed(cleaned) and int(cleaned[KEY_SKIN]) == 0 and int(cleaned[KEY_TOP_COLOUR]) == 0
+				and int(cleaned[KEY_BOTTOM_COLOUR]) == 0) or shader() == null:
 			return
 		material = ShaderMaterial.new()
 		material.shader = shader()
@@ -329,6 +367,10 @@ static func dress(item: CanvasItem, look: Dictionary) -> void:
 	material.set_shader_parameter("look_cloak", float(cleaned[KEY_CLOAK]))
 	material.set_shader_parameter("look_sash", float(cleaned[KEY_SASH]))
 	material.set_shader_parameter("look_leather", float(cleaned[KEY_LEATHER]))
+	# The top and the trousers (2026-09-30), on a dressed body's warm linen and
+	# grey cloth; transparent is as worn.
+	material.set_shader_parameter("cloth_top", cloth_colour(cleaned, KEY_TOP_COLOUR))
+	material.set_shader_parameter("cloth_bottom", cloth_colour(cleaned, KEY_BOTTOM_COLOUR))
 	# The skin turns only where a body sheet's mask says skin (set per sheet by
 	# `HeroAnimator`); on art with no mask this is a number nothing reads.
 	var painted: Color = WardenDress.skin_painted(WardenDress.body_name(cleaned))

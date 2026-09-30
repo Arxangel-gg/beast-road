@@ -48,6 +48,15 @@ uniform sampler2D skin_mask : filter_nearest, hint_default_black;
 uniform bool painted_bands = true;
 uniform vec3 skin_from = vec3(0.5);
 uniform vec3 skin_to = vec3(0.5);
+// **The cloth's colours** (owner, 2026-09-30). On a dressed body the top is a
+// warm off-white linen (measured: hue 0.08, saturation 0.14, value 0.76) and
+// the trousers a warm mid-grey (value 0.33); the steel of heavy armour is cool
+// (hue 0.62) and the leather saturated, so a warm, quiet band at each value
+// finds the cloth and leaves the rest. The chosen colour is what the band's
+// own middle becomes, so the folds and the shadow stay. Alpha nought is
+// the cloth as worn.
+uniform vec4 cloth_top : source_color = vec4(0.0);
+uniform vec4 cloth_bottom : source_color = vec4(0.0);
 
 vec3 look_to_hsv(vec3 c) {
 	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -83,13 +92,26 @@ vec3 look_to_rgb(vec3 c) {
 // `uv` reads the skin mask, which shares the sheet's layout texel for texel.
 vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
 	float skin = 0.0;
-	if (distance(skin_to, skin_from) > 0.0005 || abs(look_leather) > 0.0005) {
+	bool cloth = !painted_bands && (cloth_top.a > 0.0 || cloth_bottom.a > 0.0);
+	if (distance(skin_to, skin_from) > 0.0005 || abs(look_leather) > 0.0005 || cloth) {
 		skin = texture(skin_mask, uv).a;
 		vec3 darker = rgb * skin_to / max(skin_from, vec3(0.001));
 		vec3 lighter = vec3(1.0) - (vec3(1.0) - rgb) * (vec3(1.0) - skin_to)
 			/ max(vec3(1.0) - skin_from, vec3(0.001));
 		vec3 turned = clamp(mix(darker, lighter, step(skin_from, skin_to)), 0.0, 1.0);
 		rgb = mix(rgb, turned, skin);
+	}
+	if (cloth) {
+		vec3 fabric = look_to_hsv(art);
+		float warm = smoothstep(0.0, 0.02, fabric.x) * (1.0 - smoothstep(0.16, 0.2, fabric.x));
+		float top = warm * (1.0 - smoothstep(0.26, 0.32, fabric.y))
+			* smoothstep(0.52, 0.6, fabric.z) * (1.0 - skin) * cloth_top.a;
+		float bottom = warm * (1.0 - smoothstep(0.34, 0.42, fabric.y))
+			* smoothstep(0.16, 0.22, fabric.z) * (1.0 - smoothstep(0.5, 0.58, fabric.z))
+			* (1.0 - skin) * cloth_bottom.a;
+		float lit = look_to_hsv(rgb).z;
+		rgb = mix(rgb, clamp(cloth_top.rgb * (lit / 0.76), 0.0, 1.0), top);
+		rgb = mix(rgb, clamp(cloth_bottom.rgb * (lit / 0.33), 0.0, 1.0), bottom);
 	}
 	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005 && abs(look_leather) < 0.0005) {
 		return rgb;

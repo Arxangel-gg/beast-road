@@ -281,7 +281,9 @@ static func outfit(look: Dictionary, weapon: GearData, armour: GearData,
 		"body": body,
 		"body_layer": body_layer(body, armour),
 		"cape_layer": cape_layer(body, cape),
-		"cape_tint": cape_tint(cape),
+		# The player's own cape colour over the kind's (2026-09-30), when chosen.
+		"cape_tint": WardenLook.cloth_colour(look, WardenLook.KEY_CAPE_COLOUR)
+			if WardenLook.cloth_colour(look, WardenLook.KEY_CAPE_COLOUR).a > 0.0 else cape_tint(cape),
 		"grip": grip_of(weapon),
 		"held": held_path(weapon),
 		"held_grip": held_grip(weapon),

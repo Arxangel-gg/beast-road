@@ -32,6 +32,7 @@ func _ready() -> void:
 	_test_the_save_round_trip()
 	_test_the_three_sprites()
 	_test_the_shader_is_wired()
+	_test_the_cloth()
 	await _test_the_bound()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -206,6 +207,61 @@ func _test_the_shader_is_wired() -> void:
 			+ "the colour"))
 	_check(not include_text.contains("smoothstep(0.43, 0.47, hsv.x)"),
 		"the cloak band is still read off the tinted colour")
+
+
+## **The cloth's colours** (owner, 2026-09-30): the cape, the top and the
+## trousers are appended look keys, so an older row still means what it did;
+## each cleans into the palette; the cape's choice wins over its kind's tint
+## and "as worn" leaves the kind's; the shader finds warm linen and warm grey
+## and never the cool steel of armour, and only on a dressed body.
+func _test_the_cloth() -> void:
+	var at: int = WardenLook.KEYS.find(WardenLook.KEY_SKIN)
+	_check(WardenLook.KEYS.find(WardenLook.KEY_CAPE_COLOUR) > at
+		and WardenLook.KEYS.find(WardenLook.KEY_TOP_COLOUR) > at
+		and WardenLook.KEYS.find(WardenLook.KEY_BOTTOM_COLOUR) > at,
+		"the cloth keys must be appended after the skin, never inserted")
+	var old_row: Array = [0.1, 0.0, 0.0, 1, 3, 2, 0, 4]
+	var read: Dictionary = WardenLook.unpack(old_row)
+	_check(int(read[WardenLook.KEY_SKIN]) == 4 and int(read[WardenLook.KEY_TOP_COLOUR]) == 0
+		and int(read[WardenLook.KEY_CAPE_COLOUR]) == 0,
+		"an eight-number row from an older partner must keep its meaning and wear the cloth as worn")
+	_check(int(WardenLook.clean({WardenLook.KEY_TOP_COLOUR: 999})[WardenLook.KEY_TOP_COLOUR])
+		== WardenLook.CLOTH_COLOURS.size() - 1, "a cloth colour past the palette must be held to it")
+	_check(WardenLook.CLOTH_NAMES.size() == WardenLook.CLOTH_COLOURS.size()
+		and int(WardenLook.CHOICES[WardenLook.KEY_CAPE_COLOUR]) == WardenLook.CLOTH_COLOURS.size(),
+		"every cloth colour needs a name and a place in the choices")
+	var cape: GearData = null
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind != null and kind.slot == GearData.Slot.CAPE and kind.look_tint.a > 0.0:
+			cape = kind
+			break
+	if cape != null:
+		var own: Dictionary = WardenLook.plain()
+		_check(WardenDress.outfit(own, null, null, cape, null)["cape_tint"] == cape.look_tint,
+			"a cape worn as worn must keep its kind's colour")
+		own[WardenLook.KEY_CAPE_COLOUR] = 7
+		_check(WardenDress.outfit(own, null, null, cape, null)["cape_tint"] == WardenLook.CLOTH_COLOURS[7],
+			"a chosen cape colour must win over the kind's")
+	var text: String = FileAccess.get_file_as_string("res://scripts/shaders/warden_look.gdshaderinc")
+	_check(text.contains("uniform vec4 cloth_top") and text.contains("uniform vec4 cloth_bottom")
+		and text.contains("!painted_bands && (cloth_top.a > 0.0"),
+		"the cloth colours must be declared and reach only a dressed body")
+	_check(text.contains("(1.0 - smoothstep(0.16, 0.2, fabric.x))") and text.contains("* (1.0 - skin) * cloth_top.a"),
+		"the cloth must be found by a warm hue off the painting and never on the skin")
+	# The steel of heavy armour is cool: its measured hue must sit outside the
+	# warm band the cloth is found in, or a dyed top would paint the plate.
+	var steel := Color(0.40, 0.44, 0.52)
+	_check(steel.h > 0.2, "the steel reference must read as cool")
+	var sprite := Sprite2D.new()
+	add_child(sprite)
+	var dressed: Dictionary = WardenLook.plain()
+	dressed[WardenLook.KEY_TOP_COLOUR] = 1
+	WardenLook.dress(sprite, dressed)
+	var material := sprite.material as ShaderMaterial
+	_check(material != null and (material.get_shader_parameter("cloth_top") as Color) == WardenLook.CLOTH_COLOURS[1],
+		"a chosen top colour must dress a plain sprite and reach its material")
+	sprite.queue_free()
 
 
 ## **The bound.** A real hero, dressed, and every number it carries read
