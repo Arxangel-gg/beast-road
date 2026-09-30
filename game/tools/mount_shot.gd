@@ -45,6 +45,9 @@ const GROUND_TINT := Color(0.85, 0.78, 0.45, 0.55)
 ## The Warden's own idle sheet and its cell, matching `HeroAnimator`. Read
 ## rather than re-derived, so a repack of the hero moves this too.
 const RIDER_SHEET: String = "res://art/hero/hero_idle.png"
+## A cape on the rider, because a cape is the part of a Warden most likely to
+## hang the wrong side of a horse. Any cape kind that exists will do.
+const RIDER_CAPE: String = "bannermans_cape"
 
 var _stage: Node2D = null
 var _ground: float = 0.0
@@ -181,8 +184,7 @@ func _pose(kind: MountData, at: Vector2, facing: Vector2, state: String) -> Node
 	root.position = at
 	_stage.add_child(root)
 
-	var rider: Sprite2D = _warden_sprite(facing)
-	root.add_child(rider)
+	var rider: Sprite2D = _warden_sprite(facing, root)
 
 	var rig := MountRig.new()
 	rig.rider = rider
@@ -202,7 +204,7 @@ func _warden(at: Vector2, _facing: Vector2) -> Node2D:
 	var root := Node2D.new()
 	root.position = at
 	_stage.add_child(root)
-	root.add_child(_warden_sprite(Vector2.DOWN))
+	_warden_sprite(Vector2.DOWN, root)
 	return root
 
 
@@ -211,10 +213,31 @@ func _warden(at: Vector2, _facing: Vector2) -> Node2D:
 ## The row is picked with the same expression the animator uses - index 0 is
 ## east and grows clockwise because screen Y grows downward - so this picture
 ## and the game cannot disagree about which way the rider is looking.
-func _warden_sprite(facing: Vector2) -> Sprite2D:
+func _warden_sprite(facing: Vector2, root: Node2D) -> Sprite2D:
 	var sprite := Sprite2D.new()
 	sprite.centered = true
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	root.add_child(sprite)
+	# **The dressed Warden, since 2026-09-30** - the one that ships. The
+	# painted sheet below is the fallback for a build with no dress art, and a
+	# photograph of it said nothing about the fault the owner reported: the
+	# dressed animator writing the offset the saddle is carried in.
+	if WardenDress.available("male"):
+		var animator := HeroAnimator.new()
+		animator.sprite = sprite
+		root.add_child(animator)
+		var look: Dictionary = WardenLook.plain()
+		look["hair"] = 10
+		look["hair_colour"] = 4
+		look["beard"] = 5
+		animator.dress(WardenDress.outfit(look, ContentDB.gear(MetaState.STARTING_WEAPON),
+			null, ContentDB.gear(RIDER_CAPE), null))
+		animator.set_facing(facing)
+		animator.play("idle")
+		# Where the hero stands its sprite over its feet (`Hero._ready`), so the
+		# rider in this picture is where the rider on the road is.
+		sprite.position.y = -float(HeroAnimator.CELL_H) * Balance.HERO_FEET_ANCHOR
+		return sprite
 	if not ResourceLoader.exists(RIDER_SHEET):
 		return sprite
 	sprite.texture = load(RIDER_SHEET) as Texture2D

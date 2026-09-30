@@ -67,6 +67,7 @@ func _ready() -> void:
 	_test_a_dangling_name()
 	await _test_the_field()
 	await _test_the_paddock()
+	await _test_a_dressed_rider_sits()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[mount] PASS - %d checks: a gallop is bounded in speed and reach, "
@@ -866,6 +867,77 @@ func _leave(run: Run) -> void:
 	run.queue_free()
 	for _frame: int in 4:
 		await get_tree().process_frame
+
+
+## **The dressed Warden sits in the saddle, and the horse closes over the
+## right part of them** (2026-09-30, owner: *"Players do not properly sit on
+## their mounts with the proper zsorting of the parts of the player that
+## should be hidden behind the horse"*). Three faults, each photographed by
+## `mount_shot` and none visible to a number until now: the dressed animator
+## wrote the offset whole and threw the seat away every frame; the seat was a
+## share of the base painting rather than of the larger sheet; and the near
+## side read the sheet's UV rather than its cell's, so it vanished in one
+## facing and covered the whole rider in another.
+func _test_a_dressed_rider_sits() -> void:
+	if not WardenDress.available("male"):
+		return
+	var kind: MountData = ContentDB.mounts_sorted()[0]
+	var on_foot: Sprite2D = _dressed_rider(Vector2.RIGHT)
+	var riding: Sprite2D = _dressed_rider(Vector2.RIGHT)
+	var rig := MountRig.new()
+	rig.rider = riding
+	riding.get_parent().add_child(rig)
+	rig.show_mount(kind)
+	rig.set_facing(Vector2.RIGHT)
+	rig.play("idle")
+	rig._climb = 1.0
+	for _frame: int in 12:
+		await get_tree().process_frame
+	var seat: Vector2 = MountRig.seat_of(riding)
+	_check(seat.y < -10.0, "a dressed rider was not lifted into the saddle (seat %s)" % seat)
+	_check(absf((riding.offset.y - on_foot.offset.y) - seat.y) < 0.5,
+		"the dressed animator threw the seat away: %.1f against %.1f"
+		% [riding.offset.y - on_foot.offset.y, seat.y])
+	# The seat as a share of the sheet the horse is drawn from, never of the
+	# smaller base painting.
+	var sheet_tall: float = float(rig.get("_content_height"))
+	_check(sheet_tall > float(MountRig.CELL_H) * 0.6,
+		"the seat was measured off something smaller than the drawn horse (%.0f)" % sheet_tall)
+	var over := rig.get_node_or_null("MountNearSide") as Sprite2D
+	var material := over.material as ShaderMaterial if over != null else null
+	_check(material != null and over.visible, "a ridden horse has no near side over its rider")
+	if material != null:
+		var body: Sprite2D = rig.body()
+		var tall: float = float(body.texture.get_height())
+		_check(absf(float(material.get_shader_parameter("region_top"))
+			- body.region_rect.position.y / tall) < 0.001
+			and absf(float(material.get_shader_parameter("region_height"))
+			- body.region_rect.size.y / tall) < 0.001,
+			"the near side is read in the sheet's UV rather than its own cell's")
+		_check(float(material.get_shader_parameter("anchor")) > 0.2,
+			"in profile the near side must close at the saddle, not over the whole rider")
+		rig.set_facing(Vector2.DOWN)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_check(float(material.get_shader_parameter("anchor")) < 0.01,
+			"coming at the camera, the whole animal must be in front of its rider")
+	for sprite: Sprite2D in [on_foot, riding]:
+		sprite.get_parent().queue_free()
+	await get_tree().process_frame
+
+
+func _dressed_rider(facing: Vector2) -> Sprite2D:
+	var root := Node2D.new()
+	add_child(root)
+	var sprite := Sprite2D.new()
+	root.add_child(sprite)
+	var animator := HeroAnimator.new()
+	animator.sprite = sprite
+	root.add_child(animator)
+	animator.dress(WardenDress.outfit(WardenLook.plain(), null, null, null, null))
+	animator.set_facing(facing)
+	animator.play("idle")
+	return sprite
 
 
 func _check(condition: bool, why: String) -> void:

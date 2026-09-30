@@ -32,6 +32,8 @@ extends Node2D
 ## size. `tools/pack_mount_frames.py` writes them at exactly this and puts
 ## every pose's feet on the cell's own bottom edge, which is why the reader
 ## below can put the hooves on the node without measuring anything.
+## Where the seat is left on the rider's sprite for an animator to add.
+const SEAT_META: StringName = &"mount_seat"
 const CELL_W: int = 224
 const CELL_H: int = 224
 const DIRECTION_COUNT: int = 8
@@ -41,6 +43,8 @@ const DIRECTION_COUNT: int = 8
 const OVERLAY_SHADER: String = "res://scripts/shaders/mount_overlay.gdshader"
 ## How far the fade takes to close, as a share of the sprite's rect.
 const OVERLAY_FEATHER: float = 0.10
+## The facing index that looks straight at the camera (east is 0, clockwise).
+const FACING_CAMERA: int = 2
 
 ## What each state plays at, and whether it repeats. A gallop is the walk sheet
 ## driven faster when no gallop sheet exists, for the same reason the Warden's
@@ -197,9 +201,18 @@ func _measure(kind: MountData) -> void:
 	_content_height = float(CELL_H)
 	_content_width = float(CELL_W)
 	_content_floor = 0.0
-	# A packed sheet needs no measuring: the packer put the feet on the cell's
-	# bottom edge and the animal is as tall as it is. Only the single-painting
-	# fallback has margin to account for.
+	# **A packed sheet is measured off the sheet** (2026-09-30). The packer puts
+	# the feet on the cell's bottom edge, so the animal is as tall as its tallest
+	# facing reaches up the cell - and that is *not* the base painting's height:
+	# the v3 sheets draw the animal a quarter larger than the rotation it was
+	# animated from. The seat is a share of this number, so a share of the
+	# painting seated every rider a hand too low and the near side then closed
+	# over a Warden standing behind the horse - photographed with the dressed
+	# Warden by `mount_shot`, and reported by the owner as riders not sitting
+	# on their mounts.
+	if not _sheets.is_empty():
+		_measure_sheet()
+		return
 	if _base == null:
 		return
 	var picture: Image = _base.get_image()
@@ -213,6 +226,35 @@ func _measure(kind: MountData) -> void:
 	# How much empty canvas sits under the hooves, which is what the cell's
 	# bottom edge is being placed at.
 	_content_floor = float(picture.get_height() - used.end.y)
+
+
+## The tallest and widest the animal stands in its first pose, over all eight
+## facings, read once per mount off the idle sheet (or whichever sheet there
+## is). The feet are on each cell's bottom edge by construction, so a pose's
+## height is the cell's height less the empty rows above it.
+func _measure_sheet() -> void:
+	var sheet: Texture2D = null
+	for state: String in ["idle", "walk", "gallop"]:
+		if _sheets.has(state):
+			sheet = _sheets[state] as Texture2D
+			break
+	var picture: Image = sheet.get_image() if sheet != null else null
+	if picture == null:
+		return
+	var tallest: float = 0.0
+	var widest: float = 0.0
+	for row: int in DIRECTION_COUNT:
+		var cell := Rect2i(0, row * CELL_H, CELL_W, CELL_H)
+		if cell.end.y > picture.get_height() or cell.end.x > picture.get_width():
+			break
+		var used: Rect2i = picture.get_region(cell).get_used_rect()
+		if used.size.y <= 0:
+			continue
+		tallest = maxf(tallest, float(CELL_H - used.position.y))
+		widest = maxf(widest, float(used.size.x))
+	if tallest > 0.0:
+		_content_height = tallest
+		_content_width = widest
 
 
 ## The pool under the hooves, sized from the art rather than from a constant,
@@ -348,8 +390,23 @@ func _drive_near_side(anchor: float) -> void:
 	_over.flip_h = _sprite.flip_h
 	_over.modulate = _sprite.modulate
 	if _over_material != null:
+		# **Coming at the camera, the whole animal is in front of its rider.** Its
+		# head and neck are nearer than the person sitting behind them, so the
+		# near side opens from the top of the cell and only what rises above the
+		# horse's own outline - the shoulders, the head, the arms - is the rider.
+		# Every other facing closes at the saddle: going away the rump hides the
+		# legs and the head is beyond the rider, and in profile the barrel does.
+		var from: float = 0.0 if _direction == FACING_CAMERA else anchor
 		_over_material.set_shader_parameter("anchor",
-			clampf(anchor, 0.0, 1.0 - OVERLAY_FEATHER))
+			clampf(from, 0.0, 1.0 - OVERLAY_FEATHER))
+		var tall: float = float(_sprite.texture.get_height()) \
+			if _sprite.texture != null else 1.0
+		if _sprite.region_enabled and tall > 0.0:
+			_over_material.set_shader_parameter("region_top", _sprite.region_rect.position.y / tall)
+			_over_material.set_shader_parameter("region_height", _sprite.region_rect.size.y / tall)
+		else:
+			_over_material.set_shader_parameter("region_top", 0.0)
+			_over_material.set_shader_parameter("region_height", 1.0)
 
 
 ## How tall the mount is drawn, in world units. The seat is a share of it.
@@ -441,6 +498,7 @@ func _seat_sideways(x: float) -> void:
 		return
 	rider.offset.x += x - _seat_across
 	_seat_across = x
+	_publish_seat()
 
 
 func _seat(y: float) -> void:
@@ -454,6 +512,32 @@ func _seat(y: float) -> void:
 		return
 	rider.offset.y += y - _seat_applied
 	_seat_applied = y
+	_publish_seat()
+
+
+## **The seat, where an animator that writes the offset whole can read it.**
+##
+## The additive write above is right for a sprite nothing else sets, and the
+## dressed Warden's animator sets the offset whole on every frame it shows -
+## so it adds this before it writes. Either order in a frame lands the same
+## place: the animator writes base plus seat, and a change here moves the
+## offset by the difference.
+func _publish_seat() -> void:
+	if rider == null or not is_instance_valid(rider):
+		return
+	var seat := Vector2(_seat_across, _seat_applied)
+	if seat == Vector2.ZERO:
+		if rider.has_meta(SEAT_META):
+			rider.remove_meta(SEAT_META)
+	else:
+		rider.set_meta(SEAT_META, seat)
+
+
+## What a rider sprite is seated by, or zero on foot.
+static func seat_of(sprite: Sprite2D) -> Vector2:
+	if sprite == null or not sprite.has_meta(SEAT_META):
+		return Vector2.ZERO
+	return sprite.get_meta(SEAT_META, Vector2.ZERO) as Vector2
 
 
 ## The sprite the animal is drawn on.

@@ -367,6 +367,15 @@ func _show_dressed() -> void:
 	# pivot on the sprite's origin.
 	var offset := Vector2(float(origin[0]) - float(feet[0]),
 		float(origin[1]) - float(feet[1]) + PAINTED_FEET_BELOW_CENTRE)
+	# **Plus the saddle** (2026-09-30). `MountRig` seats its rider through the
+	# sprite's offset, the one channel nothing else on the hero touched - until
+	# the dressed Warden, which writes the offset whole on every frame it
+	# shows. So a dressed rider was put back on the ground under the horse one
+	# frame after being lifted into the saddle, and the near-side overlay then
+	# closed over a Warden standing behind the animal: the owner's "players do
+	# not properly sit on their mounts". The seat rides on the sprite as a
+	# meta the rig writes, and the dress and every layer are laid on it.
+	offset += MountRig.seat_of(sprite)
 	sprite.offset = offset
 	if _layers != null:
 		_layers.show_frame(_state_drawn, frame, _direction, offset, meta)

@@ -29,12 +29,21 @@ uniform float anchor : hint_range(0.0, 1.0) = 0.55;
 // this is the difference between a leg going behind something and a leg being
 // cut off.
 uniform float feather : hint_range(0.01, 0.5) = 0.10;
+// **Where the drawn cell sits in the texture, in UV** (2026-09-30). A
+// region-enabled sprite's `UV` is the *sheet's*, not the cell's, so on an
+// eight-row sheet the first row ran 0 to 0.125 and never reached the anchor -
+// the near side vanished facing east and covered the whole rider facing
+// north. Photographed by `mount_shot` with the dressed Warden. `MountRig`
+// hands in the cell's top and height so the anchor is read in the cell.
+uniform float region_top = 0.0;
+uniform float region_height = 1.0;
 
 void fragment() {
 	vec4 own = texture(TEXTURE, UV);
+	float v = clamp((UV.y - region_top) / max(region_height, 0.0001), 0.0, 1.0);
 	// Smooth rather than linear, so the near edge of the fade has no visible
 	// start - the same reason every soft edge in this project is a ramp with
 	// zero alpha at its outer vertex rather than one flat colour.
-	own.a *= smoothstep(anchor, anchor + feather, UV.y);
+	own.a *= smoothstep(anchor, anchor + feather, v);
 	COLOR = own;
 }
