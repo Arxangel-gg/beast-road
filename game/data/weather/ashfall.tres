@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([1.22, 0.86, 1.04, 0.92])
+acts = Array[int]([9])
+weight = 0.25
+favour = 9.6
+effect_line = "Fire drinks the ash; water chokes on it."
+precipitation = 2
+precipitation_density = 0.5
+wind = 0.2
+precipitation_wind = 0.08
+precipitation_speed = 0.35
+precipitation_size = 0.9
+precipitation_scatter = 0.4
+precipitation_tint = Color(0.42, 0.4, 0.38, 0.6)
+settles = false
+gloom = 0.38
+tint = Color(0.92, 0.86, 0.82, 1)
+temperature = 29.0
+wrathful = true
+snow_melt_scale = 3.0
+ambience_bed = "heatwave"
+id = "ashfall"
+display_name = "Ashfall"

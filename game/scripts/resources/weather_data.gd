@@ -143,6 +143,12 @@ enum Precipitation {
 ## Said once when this sky is hot enough to dry the wells.
 @export var heat_line: String = ""
 @export var heat_title: String = ""
+## **The bed this sky lies under** when it has none of its own in
+## `Ambience.WEATHER_BEDS` (2026-09-30): the id of the nearest one - a
+## thunderstorm under the downpour, ash under the heat. Empty is a quiet sky.
+## The same idea `TerrainData.ambience_bed` settled for the regions, and
+## `audio_verify` refuses a name that is not a bed.
+@export var ambience_bed: String = ""
 
 
 func scale_for(element: int) -> float:

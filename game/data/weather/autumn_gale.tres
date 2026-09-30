@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([1.05, 0.95, 0.92, 1.25])
+acts = Array[int]([5])
+weight = 0.25
+favour = 9.6
+effect_line = "The wind carries everything; the ground gives way under it."
+precipitation = 3
+precipitation_density = 0.5
+wind = 0.9
+precipitation_wind = 0.45
+precipitation_speed = 0.3
+precipitation_size = 0.6
+precipitation_scatter = 0.8
+precipitation_tint = Color(0.78, 0.46, 0.24, 0.34)
+gloom = 0.12
+tint = Color(1.0, 0.94, 0.86, 1)
+temperature = 11.0
+wrathful = true
+ambience_bed = "duststorm"
+id = "autumn_gale"
+display_name = "Autumn Gale"

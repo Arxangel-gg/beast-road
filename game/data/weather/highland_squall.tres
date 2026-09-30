@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([0.86, 1.08, 0.98, 1.22])
+acts = Array[int]([10, 11])
+weight = 0.25
+favour = 9.6
+effect_line = "The wind rules the heights; the cold dampens fire."
+precipitation = 1
+precipitation_density = 0.5
+wind = 0.95
+precipitation_wind = 0.35
+precipitation_speed = 3.0
+precipitation_tint = Color(0.8, 0.86, 0.96, 0.26)
+gloom = 0.3
+tint = Color(0.86, 0.9, 0.96, 1)
+temperature = 3.0
+wrathful = true
+rain_variability = 0.4
+snow_melt_scale = 4.0
+lightning_rate = 0.6
+ambience_bed = "downpour"
+id = "highland_squall"
+display_name = "Highland Squall"

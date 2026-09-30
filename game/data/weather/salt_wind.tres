@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([1.08, 0.86, 1.18, 1.05])
+acts = Array[int]([6])
+weight = 0.25
+favour = 9.6
+effect_line = "Salt scours the water away; stone holds."
+precipitation = 3
+precipitation_density = 0.55
+wind = 0.8
+precipitation_wind = 0.4
+precipitation_speed = 0.25
+precipitation_size = 0.5
+precipitation_scatter = 0.7
+precipitation_tint = Color(0.95, 0.94, 0.88, 0.3)
+gloom = 0.1
+tint = Color(1.02, 1.0, 0.94, 1)
+temperature = 33.0
+wrathful = true
+ambience_bed = "duststorm"
+id = "salt_wind"
+display_name = "Salt Wind"

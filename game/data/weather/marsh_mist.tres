@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([0.88, 1.15, 1.0, 0.92])
+acts = Array[int]([4])
+weight = 0.25
+favour = 9.6
+effect_line = "Water gathers; fire struggles in the damp."
+precipitation = 0
+precipitation_density = 0.0
+wind = 0.1
+gloom = 0.42
+tint = Color(0.84, 0.9, 0.86, 1)
+temperature = 12.0
+wrathful = false
+id = "marsh_mist"
+display_name = "Marsh Mist"

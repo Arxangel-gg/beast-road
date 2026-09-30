@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([0.82, 1.1, 1.14, 0.95])
+acts = Array[int]([8])
+weight = 0.25
+favour = 9.6
+effect_line = "Hail breaks on stone and water; fire hisses out."
+precipitation = 2
+precipitation_density = 0.7
+wind = 0.5
+precipitation_wind = 0.12
+precipitation_speed = 3.2
+precipitation_size = 0.55
+precipitation_scatter = 0.25
+precipitation_tint = Color(0.9, 0.95, 1.0, 0.75)
+settles = false
+gloom = 0.3
+tint = Color(0.9, 0.94, 1.0, 1)
+temperature = -3.0
+wrathful = true
+snow_melt_scale = 0.5
+ambience_bed = "downpour"
+id = "hailstorm"
+display_name = "Hailstorm"

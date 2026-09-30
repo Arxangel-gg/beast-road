@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeatherData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_weather"]
+
+[resource]
+script = ExtResource("1_weather")
+element_scale = Array[float]([0.8, 1.15, 0.95, 1.3])
+acts = Array[int]([7])
+weight = 0.25
+favour = 9.6
+effect_line = "Lightning finds the air towers; fire drowns."
+precipitation = 1
+precipitation_density = 0.85
+wind = 0.75
+precipitation_wind = 0.05
+precipitation_speed = 4.0
+precipitation_tint = Color(0.72, 0.8, 0.94, 0.3)
+gloom = 0.45
+tint = Color(0.74, 0.8, 0.9, 1)
+temperature = 14.0
+wrathful = true
+floods = true
+rain_variability = 0.55
+flood_line = "The steppe is under water. Everything on it slows, and the small things drown."
+flood_title = "FLOOD"
+snow_melt_scale = 6.0
+lightning_rate = 2.4
+ambience_bed = "downpour"
+id = "thunderstorm"
+display_name = "Thunderstorm"

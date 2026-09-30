@@ -35,7 +35,11 @@ func _ready() -> void:
 		for act: int in weather.acts:
 			owners[act] = String(weather.id) if not owners.has(act) else owners[act]
 
-	for act: int in [1, 2, 3]:
+	# **Every act on the road, the summit included** (2026-09-30). This walked
+	# `[1, 2, 3]` on a road of eleven - the seventh hardcoded three-act range
+	# this project has found - so no act past III had a sky of its own and
+	# nothing said so.
+	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
 		var share: Dictionary = _sample(act)
 		var line: PackedStringArray = []
 		var ids: Array = share.keys()

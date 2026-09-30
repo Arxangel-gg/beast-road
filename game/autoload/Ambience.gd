@@ -117,11 +117,16 @@ func stop() -> void:
 func play_weather(weather_id: String) -> void:
 	if weather_id == _weather_current:
 		return
-	if not WEATHER_BEDS.has(weather_id) or not ResourceLoader.exists(String(WEATHER_BEDS[weather_id])):
+	# A sky with no bed of its own lies under the one it names.
+	var bed_id: String = weather_id
+	if not WEATHER_BEDS.has(bed_id):
+		var sky: WeatherData = ContentDB.weather(weather_id)
+		bed_id = sky.ambience_bed if sky != null else ""
+	if not WEATHER_BEDS.has(bed_id) or not ResourceLoader.exists(String(WEATHER_BEDS[bed_id])):
 		stop_weather()
 		return
 	_weather_current = weather_id
-	var stream: AudioStream = load(WEATHER_BEDS[weather_id]) as AudioStream
+	var stream: AudioStream = load(WEATHER_BEDS[bed_id]) as AudioStream
 	if stream is AudioStreamOggVorbis:
 		(stream as AudioStreamOggVorbis).loop = true
 	_kill_weather_tween()

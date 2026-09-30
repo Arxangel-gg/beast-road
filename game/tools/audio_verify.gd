@@ -170,6 +170,14 @@ func _ready() -> void:
 	for key: Variant in Ambience.WEATHER_BEDS:
 		if not ResourceLoader.exists(String(Ambience.WEATHER_BEDS[key])):
 			failures.append("the weather bed \"%s\" has no file" % str(key))
+	# Every sky either has a bed, names one, or is quiet by leaving it empty.
+	for value: Variant in ContentDB.weathers.values():
+		var sky := value as WeatherData
+		if sky == null or Ambience.WEATHER_BEDS.has(sky.id) or sky.ambience_bed.is_empty():
+			continue
+		if not Ambience.WEATHER_BEDS.has(sky.ambience_bed):
+			failures.append("the sky \"%s\" lies under \"%s\", which is not a weather bed"
+				% [sky.id, sky.ambience_bed])
 
 	# **Every breed on the road has a voice, and it is one that exists.**
 	#
