@@ -11931,6 +11931,34 @@ screen is built for every Warden (a new one's sandbox door opened nothing
 either), and `menu_layout_check` asks the real menu for it. **A gate that
 assembles its own subject cannot see the assembly.**
 
+**Craft talents, as of 2026-09-30.** `IDEAS_REVIEW_2026-09-23` §4.2 adopted
+them: at each of `CRAFT_TALENT_LEVELS` (10 and 20) a craft offers two talents
+and the Warden keeps one - the Angler's shorter wait *or* its wider bite window.
+Sixteen, as `CraftTalentData`, for the Angler, the Woodcutter, the Miner and the
+Farmer. **The Smith has none yet, deliberately**: every Smith number worth moving
+is on the gear scale (a piece's level, its make, the rung odds a maxed Smith is
+bounded against), and a talent there would be the third power scale arriving
+through the forge. When one is found that is time or materials rather than
+power, it is a file.
+
+**It amends working rule 7 by one list, and the list is the profession bound.**
+`MetaState.craft_talents` keeps the chosen ids inside the professions block, so
+no top-level key moved; it is additive, and a save without it reads as none
+chosen. **A talent touches only its own craft**: one number, capped by
+`CRAFT_TALENT_CEILING`, read through `CraftTalents.value` in `fishing.gd`,
+`gathering.gd` or `farming.gd` and nowhere else - `craft_talent_check` walks
+every script for a reader outside those three. The Miner's gem and the
+Woodcutter's resin are materials, inputs to the Smithy and nothing else; no
+talent moves a run currency, because the host pays those off its own tables
+and a per-Warden talent there would be a number that crosses the wire.
+
+**Read back through the door that chooses** (`MetaState.choose_talent`), so a
+hand-edited save can only hold what a Warden could have chosen: a known talent,
+a level the craft has reached, one a level. The Warden's card in the Hold lays
+them out under each craft - the kept one lit and said, a choice waiting, the
+rest dimmed at the level they open - because a choice nobody can see coming is
+not a build. `hold_card_shot` is the photograph.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
