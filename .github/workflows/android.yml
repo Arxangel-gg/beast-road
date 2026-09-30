@@ -231,11 +231,19 @@ jobs:
           # exist yet, and the step failed having successfully made the thing.
           # A long wait costs a runner sitting idle; a short one costs the
           # download link on the web build, which 404s until somebody notices.
-          for attempt in $(seq 1 180); do
+          #
+          # **Two and a half hours, not sixty minutes** (2026-09-30). The
+          # release gate grew to two hundred and ten checks and runs about
+          # fifty-five minutes, and on v0.61.2 the Release job was queued
+          # thirty-six minutes behind this one - so it published an hour and a
+          # half after the tag, half an hour after this step had given up. A
+          # runner waiting is cheap; a release with no APK is not. GitHub's own
+          # job limit is six hours.
+          for attempt in $(seq 1 450); do
             if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
               break
             fi
-            if [ "$attempt" -eq 180 ]; then
+            if [ "$attempt" -eq 450 ]; then
               echo "::error title=Android::Release ${GITHUB_REF_NAME} never appeared, so the APK could not be attached. It built fine - download it from this run's artifacts."
               exit 1
             fi
