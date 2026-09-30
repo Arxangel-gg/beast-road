@@ -38,6 +38,8 @@ const SIZE := Vector2i(1280, 720)
 
 var run: Run = null
 var _written: PackedStringArray = []
+## Run off the screen: keep the window and never warp the real cursor.
+var _offscreen: bool = false
 
 ## **Which pictures this run is for**, empty meaning all of them.
 ##
@@ -115,7 +117,13 @@ func _ready() -> void:
 	# the monitor's own resolution through a Lanczos filter is. `_capture` crops
 	# to 16:9 before it resizes, so a screen of any shape is handled rather than
 	# squashed.
-	get_window().mode = Window.MODE_FULLSCREEN
+	# **Or off the screen** (2026-09-30): `--offscreen`, run through a windowed,
+	# unfocusable window beyond every monitor, keeps its window and never moves
+	# the real cursor - a photograph of the Guide must not take the owner's
+	# screen or their mouse while it is taken.
+	_offscreen = OS.get_cmdline_user_args().has("--offscreen")
+	if not _offscreen:
+		get_window().mode = Window.MODE_FULLSCREEN
 	_only = _asked_for()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	RunState.reset(false, 20260912)
@@ -1382,7 +1390,20 @@ func _park_on_hero() -> void:
 ## game centres.
 func _park_clear() -> void:
 	var view: Vector2 = get_viewport().get_visible_rect().size
-	Input.warp_mouse(Vector2(view.x * 0.02, view.y * 0.5))
+	_point_at(Vector2(view.x * 0.02, view.y * 0.5))
+
+
+## Puts the cursor at a point of the window: the real one when the tool owns the
+## screen, a synthetic motion when it runs off it, so the owner's mouse is never
+## taken.
+func _point_at(at: Vector2) -> void:
+	if not _offscreen:
+		Input.warp_mouse(at)
+		return
+	var motion := InputEventMouseMotion.new()
+	motion.position = at
+	motion.global_position = at
+	Input.parse_input_event(motion)
 
 
 ## The funnel being driven through a blaze, held by **id**: a `Tornado` dies on
@@ -1597,7 +1618,7 @@ func _look_at(at: Vector2) -> void:
 	# Only if it lands on the window: warping the cursor off-screen would leave
 	# the lean pointing at a place the camera can never reach.
 	if Rect2(Vector2.ZERO, view).has_point(on_screen):
-		Input.warp_mouse(on_screen)
+		_point_at(on_screen)
 
 
 ## **A worn-down animal with a rope closing on it.**
