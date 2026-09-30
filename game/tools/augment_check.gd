@@ -15,7 +15,7 @@ var _checks: int = 0
 ## Every test stamps this as its last line, so one that aborts on a runtime
 ## error - which stops that function and nothing else - cannot pass by omission.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 20
+const EXPECTED_TESTS: int = 22
 var _run: Run = null
 var _field: Battlefield = null
 
@@ -55,6 +55,8 @@ func _ready() -> void:
 		await _test_later_waits_for_the_next_breather()
 		await _test_at_once_holds_the_road()
 		await _test_the_strip_opens_a_draft()
+		await _test_a_banish_can_follow_a_banish()
+		await _test_leaving_one_behind_can_be_refused()
 		_test_the_new_keys_reach_their_readers()
 
 	MetaState.settings[UserSettings.AUGMENT_AT_ONCE_KEY] = false
@@ -436,7 +438,14 @@ func _test_the_draft() -> void:
 	RunState.queue_augment(Augments.SOURCE_RANK)
 	RunState.deal_next_augment()
 	RunState.augment_offer[0] = held
-	_check(not RunState.banish_augment(held), "a card in the hand was banished, levels and all")
+	# **Amended 2026-09-30.** This held that a card in the hand could not be
+	# banished; the deal offers a held card to level it, and the refusal - silent
+	# - is what the owner met as a replacement that would not banish. A held
+	# card banished leaves the deck for the road and stays in the hand at its level.
+	var level_kept: int = RunState.card_level(held)
+	_check(RunState.banish_augment(held) and RunState.road_cards.has(held)
+			and RunState.card_level(held) == level_kept and RunState.augment_banished.has(held),
+		"banishing a held card's offer did not leave the hand as it was and the deck without it")
 	RunState.reset(false, 20260926)
 	_finished += 1
 
@@ -936,6 +945,131 @@ func _test_later_waits_for_the_next_breather() -> void:
 
 ## **The strip opens a banked draft**: in a fight, playing alone, the road holds
 ## for it exactly as At once holds it.
+## **The replacement a banish deals can be banished in turn** (owner,
+## 2026-09-30: a second banish on the card dealt into the first one's place
+## would not take). Driven through the screen's own Banish toggle and card
+## buttons, twice in a row.
+func _test_a_banish_can_follow_a_banish() -> void:
+	var screen: CrossroadScreen = _run.crossroad_ui
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.augment_queue = []
+	RunState.augment_offer = []
+	RunState.augment_banishes = 2
+	RunState.augment_banished = []
+	RunState.queue_augment(Augments.SOURCE_RANK)
+	_run._enter_preparation(false)
+	for _frame: int in 6:
+		await get_tree().process_frame
+	_check(screen.is_augment_open(), "the draft did not open for the banish test")
+	var gone: Array[String] = []
+	for round: int in 2:
+		if RunState.augment_offer.is_empty():
+			break
+		screen._arm_banish()
+		for _frame: int in 3:
+			await get_tree().process_frame
+		var target: String = RunState.augment_offer[0]
+		var button: Button = screen._buttons.get(target, null) as Button
+		_check(button != null, "round %d: the card to banish has no button" % round)
+		if button == null:
+			break
+		button.pressed.emit()
+		for _frame: int in 4:
+			await get_tree().process_frame
+		gone.append(target)
+		_check(RunState.augment_banished.has(target) and not RunState.augment_offer.has(target),
+			"round %d: pressing %s with Banish armed did not banish it" % [round, target])
+		_check(RunState.augment_banishes == 1 - round,
+			"round %d: banishes read %d" % [round, RunState.augment_banishes])
+		_check(screen.is_augment_open(), "round %d: the draft closed on a banish" % round)
+	_check(gone.size() == 2 and gone[0] != gone[1],
+		"two banishes in a row did not take two different cards (%s)" % [gone])
+	RunState.skip_augment()
+	screen.close_augment_draft()
+	for _frame: int in 3:
+		await get_tree().process_frame
+	_finished += 1
+
+
+## **A full hand's drop choice shows every held card on the screen, and can be
+## refused** (owner, 2026-09-30: cards went off the right of the screen with
+## no scroll, and a take could not be abandoned).
+func _test_leaving_one_behind_can_be_refused() -> void:
+	var screen: CrossroadScreen = _run.crossroad_ui
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.augment_queue = []
+	RunState.augment_offer = []
+	var kept: Array[String] = RunState.road_cards.duplicate()
+	var kept_levels: Dictionary = RunState.road_card_levels.duplicate()
+	RunState.road_cards = []
+	RunState.road_card_levels = {}
+	var filler: Array[String] = []
+	for id: Variant in ContentDB.road_cards:
+		var card: RoadCardData = ContentDB.road_cards[id] as RoadCardData
+		if card != null and card.is_weapon() and not card.retired and card.first_act <= 1:
+			filler.append(card.id)
+	filler.sort()
+	for id: String in filler.slice(0, Balance.ROAD_CARD_HAND):
+		RunState.take_card_for(RunState._mine, id, "")
+	_check(RunState.road_cards.size() == Balance.ROAD_CARD_HAND,
+		"the harness could not fill the hand (%d)" % RunState.road_cards.size())
+	var offered: String = ""
+	for attempt: int in 6:
+		RunState.queue_augment(Augments.SOURCE_RANK)
+		_run._enter_preparation(false)
+		for _frame: int in 6:
+			await get_tree().process_frame
+		for id: String in RunState.augment_offer:
+			var card: RoadCardData = ContentDB.road_card(id)
+			if card != null and screen._needs_a_drop(card):
+				offered = id
+				break
+		if not offered.is_empty():
+			break
+		RunState.skip_augment()
+		screen.close_augment_draft()
+		for _frame: int in 3:
+			await get_tree().process_frame
+	_check(not offered.is_empty(), "no draft offered a new key to a full hand in six deals")
+	if not offered.is_empty():
+		var before_offer: Array[String] = RunState.augment_offer.duplicate()
+		var button: Button = screen._buttons.get(offered, null) as Button
+		if button != null:
+			button.pressed.emit()
+		for _frame: int in 10:
+			await get_tree().process_frame
+		var lane: Node = screen.find_child("HandLane", true, false)
+		var keep: Node = screen.find_child("KeepHand", true, false)
+		_check(lane != null and keep != null, "the drop choice has no scrolling lane or no way to refuse")
+		var shown: int = 0
+		var screen_rect: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+		for held: String in RunState.road_cards:
+			var card_button: Button = screen._buttons.get(held, null) as Button
+			if card_button == null:
+				continue
+			shown += 1
+			var rect: Rect2 = card_button.get_global_rect()
+			_check(rect.position.x >= screen_rect.position.x - 0.5 and rect.end.x <= screen_rect.end.x + 0.5,
+				"%s stands off the side of the screen at %s" % [held, rect])
+		_check(shown == RunState.road_cards.size(),
+			"the drop choice showed %d of %d held cards" % [shown, RunState.road_cards.size()])
+		if keep is Button:
+			(keep as Button).pressed.emit()
+		for _frame: int in 6:
+			await get_tree().process_frame
+		_check(screen.is_augment_open() and RunState.augment_offer == before_offer
+				and RunState.road_cards.size() == Balance.ROAD_CARD_HAND and screen._pending_take.is_empty(),
+			"keeping the hand did not put the draft back as it was")
+		RunState.skip_augment()
+		screen.close_augment_draft()
+		for _frame: int in 3:
+			await get_tree().process_frame
+	RunState.road_cards = kept
+	RunState.road_card_levels = kept_levels
+	Modifiers.rebuild()
+	_finished += 1
+
+
 func _test_the_strip_opens_a_draft() -> void:
 	var screen: CrossroadScreen = _run.crossroad_ui
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)

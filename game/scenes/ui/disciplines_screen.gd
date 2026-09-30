@@ -345,12 +345,22 @@ func _layout_map() -> void:
 		return
 	var clusters: int = DisciplineNodeData.CLUSTER_NAMES.size()
 	# The root's column holds the Warden; the clusters share the rest.
-	var root_wide: float = minf(_map.size.x * 0.12, 120.0)
+	#
+	# **The Warden is scaled to the column, never cut by it** (owner,
+	# 2026-09-30: *"Player avatar cutoff bug in disciplines at the Hold"*).
+	# The stage drew the figure at the Glass's scale - some 256 pixels tall -
+	# in a box 120 wide and 120 tall, so the map showed a torso. The column is
+	# a little wider, the stage takes most of the map's height, and the figure
+	# is fitted to that height.
+	var root_wide: float = minf(_map.size.x * 0.15, 150.0)
 	var room: float = _map.size.x - root_wide
 	_node_size = clampf(room / (float(clusters) * CLUSTER_WIDTH), 26.0, 54.0)
 	var column_wide: float = room / float(clusters)
-	_stage.size = Vector2(root_wide * 0.9, root_wide * 1.0)
-	_stage.position = Vector2(root_wide * 0.05, _map.size.y * 0.5 - _stage.size.y * 0.5)
+	var stage_tall: float = clampf((_map.size.y - HEADER_HEIGHT) * 0.72, 120.0, root_wide * 2.2)
+	_stage.size = Vector2(root_wide * 0.92, stage_tall)
+	_stage.position = Vector2(root_wide * 0.04,
+		HEADER_HEIGHT + (_map.size.y - HEADER_HEIGHT) * 0.5 - stage_tall * 0.5)
+	_stage.fit_height(stage_tall)
 	for id: String in _nodes:
 		(_nodes[id] as TextureButton).visible = false
 	for ring: int in range(1, clusters + 1):

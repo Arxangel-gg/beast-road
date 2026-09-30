@@ -438,7 +438,10 @@ func _process_measured(delta: float) -> void:
 		var pulse: float = 1.0 + sin(_life * Balance.LOOT_GLOW_SPEED) * 0.16
 		# The pool shrinks under a piece in the air, which is what says it is
 		# in the air: the glow is the shadow it throws.
-		var shrink: float = 1.0 / (1.0 + _height / 120.0)
+		# The bob lifts the picture off its pool a little, so the pool gives way
+		# under it: the same reading as the toss, at a whisper.
+		var bobbed: float = _height + (maxf(-_sprite.position.y - _height, 0.0) if _sprite != null else 0.0)
+		var shrink: float = 1.0 / (1.0 + bobbed / 120.0)
 		_glow.scale = Vector2.ONE * (_glow_size * pulse * shrink
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 	if _beacon != null and _attention:

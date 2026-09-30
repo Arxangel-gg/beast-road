@@ -154,6 +154,17 @@ func _on_pose_finished(state: String) -> void:
 		_animator.play(_pose, true)
 
 
+## Scales the figure so a Warden of `figure_art` art pixels stands `height`
+## screen pixels tall - for a stage that is given a column rather than a
+## pedestal's worth of room. The disciplines map stood a 256-pixel Warden in
+## a 120-pixel box (owner, 2026-09-30: *"Player avatar cutoff bug in
+## disciplines at the Hold"*).
+func fit_height(height: float, figure_art: float = 130.0) -> void:
+	art_scale = maxf(height, 1.0) / maxf(figure_art, 1.0)
+	if _stage != null:
+		_stage.scale = Vector2(art_scale, art_scale)
+
+
 func reset_turn() -> void:
 	_facing = SOUTH
 	_turn_left = turn_seconds

@@ -408,8 +408,11 @@ const LOOT_PLATE_FADE_RANGE: float = 620.0
 ## quarter of the hero's height. Large enough to be a thing lying on the road,
 ## small enough not to read as a crate.
 const LOOT_ICON_SIZE: float = 58.0
-const LOOT_BOB_SPEED: float = 5.0
-const LOOT_BOB_HEIGHT: float = 3.0
+## A settled piece bobs where it lies (owner, 2026-09-30: *"Loot pickup drops
+## should also bob in place after settling"*). It always had, at three
+## pixels - a hover nobody could see at play zoom.
+const LOOT_BOB_SPEED: float = 3.4
+const LOOT_BOB_HEIGHT: float = 7.0
 const LOOT_Z_INDEX: int = -2
 
 ## How much gear the stash holds.

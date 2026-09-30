@@ -2554,8 +2554,16 @@ func reroll_for(seat: AugmentSeat) -> bool:
 
 
 ## **Banishes a card for the rest of the road**, and deals its place again. A
-## card in the hand cannot be banished - it would take its own levels with it -
-## and a Tempering deals only what is held, so it has nothing to banish.
+## Tempering deals only what is held, so it has nothing to banish.
+##
+## **A card already in the hand may be banished from the deck** (owner,
+## 2026-09-30: *"Banishing an arsenal roll will not let players rebanish that
+## same slot offer's new offer"*). The deal offers a held card to level it,
+## and this refused to banish one - in silence - so the replacement dealt into
+## a banished card's place could not be banished whenever it was a level-up.
+## The hand keeps the card at the level it has; what leaves is its place in
+## the deck for this road, which is the player's own choice about a card they
+## do not want offered again.
 func banish_augment(card_id: String) -> bool:
 	if Coop.is_guest():
 		return augment_offer.has(card_id) and augment_banishes > 0 \
@@ -2564,8 +2572,7 @@ func banish_augment(card_id: String) -> bool:
 
 
 func banish_for(seat: AugmentSeat, card_id: String) -> bool:
-	if not seat.offer.has(card_id) or seat.banishes <= 0 \
-			or hand_of(seat).has(card_id) or seat.queue.is_empty() \
+	if not seat.offer.has(card_id) or seat.banishes <= 0 or seat.queue.is_empty() \
 			or seat.source == Augments.SOURCE_TEMPERING:
 		return false
 	seat.banishes -= 1

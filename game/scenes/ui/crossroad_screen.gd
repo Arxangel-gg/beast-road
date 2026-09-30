@@ -85,7 +85,8 @@ var _open_segment: int = 0
 
 ## The row the road cards sit in. Rebuilt per crossroad; relic rewards do not use
 ## it and stay in the column, which is the right shape for a list.
-var _road_row: HBoxContainer = null
+## The row the cards are dealt into: a box for a draft, a flow for a hand.
+var _road_row: Container = null
 
 ## **Whether the table holds an augment draft** (2026-09-26) rather than one of
 ## the crossroad's own choices. Set by `open_augment_draft` and dropped by every
@@ -1055,6 +1056,11 @@ func _entrance_cards() -> Array[Node]:
 	for child: Node in options_box.get_children():
 		if child is HBoxContainer:
 			out.append_array(child.get_children())
+		elif child is ScrollContainer:
+			# The drop choice's lane: a flow of cards inside a scroll.
+			for lane_child: Node in child.get_children():
+				if lane_child is FlowContainer:
+					out.append_array(lane_child.get_children())
 		else:
 			out.append(child)
 	return out
@@ -1232,10 +1238,11 @@ func open_road_card_choice() -> void:
 	# coding and the sheen actually mean something: a Common reads as stock and a
 	# Rare wears the travelling highlight.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = _card_row()
-	_road_row.add_theme_constant_override("separation", 22)
-	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var centred: HBoxContainer = _card_row()
+	centred.add_theme_constant_override("separation", 22)
+	centred.alignment = BoxContainer.ALIGNMENT_CENTER
+	centred.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_road_row = centred
 	options_box.add_child(_road_row)
 	for card_id: String in RunState.pending_road_cards:
 		var card: RoadCardData = ContentDB.road_card(card_id)
@@ -1305,22 +1312,43 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 	for child: Node in options_box.get_children():
 		child.queue_free()
 	title.text = "%s  ·  leave one behind" % card.display_name.to_upper()
-	# The hand is shown as the cards it is: choosing which of five to leave
-	# behind is a comparison between five things, and a column of rows does not
-	# support one.
+	# The hand is shown as the cards it is: choosing which of eight to leave
+	# behind is a comparison between eight things, and a column of rows does
+	# not support one.
+	#
+	# **A row that wraps, in a lane that scrolls** (owner, 2026-09-30: the list
+	# was *"not properly centered with cards going offscreen on the right side
+	# without scroll support"*). A hand of eight in one row is wider than any
+	# screen this game runs on, and an `HBoxContainer` does not know that.
+	# The cards flow into as many centred rows as the width allows, and the
+	# lane scrolls when two rows are taller than the panel - so a card is
+	# never off the edge in either direction.
 	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_road_row = _card_row()
-	_road_row.add_theme_constant_override("separation", 14)
-	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	options_box.add_child(_road_row)
+	var lane := ScrollContainer.new()
+	lane.name = "HandLane"
+	lane.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lane.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(lane, TouchInput.is_showing())
+	options_box.add_child(lane)
+	var flow := HFlowContainer.new()
+	flow.name = "Hand"
+	flow.alignment = FlowContainer.ALIGNMENT_CENTER
+	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	flow.add_theme_constant_override("h_separation", 14)
+	flow.add_theme_constant_override("v_separation", 14)
+	lane.add_child(flow)
+	_road_row = flow
 	for held: String in RunState.target_hand(card):
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other == null:
 			continue
 		var leave: Callable = on_leave if on_leave.is_valid() else _send_road_card
 		var level: int = RunState.card_level(other.id)
-		var what: Array = weapon_rows(other, level, level).slice(0, 2) if other.is_weapon() \
+		# The whole of what the card does, not its first two lines: a player
+		# is choosing what to give up, and a card cut to two lines reads as
+		# worth less than it is (owner: *"the list is too limited"*).
+		var what: Array = weapon_rows(other, level, level).slice(0, 4) if other.is_weapon() \
 			else [[effect_label(other.effect_id), effect_figure(other.effect_id, other.magnitude_at(level))]]
 		what.append(["Level", _level_word(other, level)])
 		what.append(["", "LEAVE THIS ONE"])
@@ -1331,8 +1359,31 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 	# `_play_card` seats each card in the row; adding it to the box as well
 	# asked a parented node for a second parent.
 	_road_row = null
+	# **And the choice can be refused** (owner: *"unable to abort the card
+	# upgrade selected if players decide not to leave any of their cards
+	# behind"*). Keeping the hand puts the draft back exactly as it was.
+	var foot := HBoxContainer.new()
+	foot.alignment = BoxContainer.ALIGNMENT_CENTER
+	var keep := Button.new()
+	keep.name = "KeepHand"
+	keep.text = "KEEP MY HAND  ·  take nothing"
+	keep.custom_minimum_size = Vector2(0.0, 46.0)
+	keep.add_theme_font_size_override("font_size", 18)
+	keep.tooltip_text = "Leave nothing behind and go back to the cards on the table."
+	keep.pressed.connect(_keep_the_hand)
+	foot.add_child(keep)
+	options_box.add_child(foot)
 	_dress_options()
 	panel.visible = true
+
+
+## Refuses the drop: the take is forgotten and the table is laid again.
+func _keep_the_hand() -> void:
+	_pending_take = ""
+	if _augment_open:
+		open_augment_draft()
+	else:
+		open_road_card_choice()
 
 
 func _send_road_card(card_id: String, drop: String) -> void:
@@ -1639,7 +1690,11 @@ func _choose_augment(card_id: String) -> void:
 		if _waits_on_the_host():
 			_resolving = RunState.banish_augment(card_id)
 			return
-		RunState.banish_augment(card_id)
+		if not RunState.banish_augment(card_id):
+			# Said rather than swallowed: a press that does nothing reads as a
+			# card that cannot be banished for a reason the player has to guess.
+			title.text = "%s  ·  nothing left to banish with" % title.text.get_slice("  ·  ", 0)
+			return
 		open_augment_draft()
 		return
 	var card: RoadCardData = ContentDB.road_card(card_id)
