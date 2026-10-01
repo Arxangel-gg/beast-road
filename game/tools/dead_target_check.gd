@@ -52,7 +52,8 @@ func _ready() -> void:
 	_field.town.health.floor_hp = _field.town.health.max_hp * 0.5
 	await _test_a_fallen_warden_is_let_go()
 	await _test_a_sheltered_warden_is_let_go()
-	for stage: String in ["fallen", "sheltered"]:
+	await _test_a_rest_carries_no_corpse()
+	for stage: String in ["fallen", "sheltered", "rest"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -171,3 +172,41 @@ func _test_a_sheltered_warden_is_let_go() -> void:
 	hero.health.floor_hp = 0.0
 	await _clear(bodies)
 	_reached.append("sheltered")
+
+
+## **A rest carries no corpse into the walk after it** (found on CI,
+## 2026-10-01). A body that struck just as its Warden fell rests, and the walk
+## that followed re-chose on its own first tick - a frame spent walking at the
+## dead. The live test above caught it about one run in several, when a
+## rest happened to end after the grace; this stands the case up on purpose:
+## a body resting with the Warden as its target, the Warden killed, and every
+## frame of the walk that follows read.
+func _test_a_rest_carries_no_corpse() -> void:
+	var hero: Hero = _field.hero
+	if not hero.is_alive():
+		hero.health.revive()
+	hero.set_present(true)
+	var spot: Vector2 = hero.global_position
+	var body: Enemy = _field.spawn_enemy(ContentDB.enemies.values()[0] as EnemyData, 0, 1.0)
+	body.global_position = spot + Vector2.RIGHT * 60.0
+	await get_tree().process_frame
+	body.set("_target", hero)
+	body.call("_enter", Enemy.State.RECOVER, 0.05)
+	hero.health.take_damage(hero.health.current_hp + 9999.0, spot)
+	var walked_at_the_dead: int = 0
+	var walked: int = 0
+	for _f: int in 30:
+		await get_tree().process_frame
+		if not is_instance_valid(body):
+			break
+		if int(body.get("_state")) == Enemy.State.WALKING:
+			walked += 1
+			if body.get("_target") == hero:
+				walked_at_the_dead += 1
+	_check(walked > 0, "the harness's resting body never walked again")
+	_check(walked_at_the_dead == 0,
+		"a body walked %d frame(s) at a Warden who fell while it rested" % walked_at_the_dead)
+	if is_instance_valid(body):
+		body.queue_free()
+	await get_tree().process_frame
+	_reached.append("rest")

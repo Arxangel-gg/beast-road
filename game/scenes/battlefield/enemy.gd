@@ -1810,6 +1810,15 @@ func _enter(state: State, duration: float) -> void:
 	if _state == State.COMMIT and state != State.COMMIT:
 		_slip = Vector2.ZERO
 		_slip_left = 0.0
+	# **A fallen target is not carried into a walk.** A body that struck just
+	# as its Warden fell rests, and the walk that follows re-chose on its first
+	# tick - one frame later, which is one frame spent walking at a corpse.
+	# `dead_target_check` caught it on CI when a combo's longer rest moved the
+	# frame past the grace. Dropped here, the one funnel every state change
+	# goes through, and the walk chooses again at once.
+	if state == State.WALKING and _target_fell():
+		_target = null
+		_retarget_left = 0.0
 	# A combo lives only between a wind-up and its blow: a stun, a rout, a
 	# behaviour or the end of the flurry each end it.
 	if state != State.WINDUP and state != State.STRIKE:
