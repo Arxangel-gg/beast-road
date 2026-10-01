@@ -767,6 +767,31 @@ jobs:
         with:
           path: build/web
 
+      - name: Lead the release body with the tag's own notes
+        # The notes are written into the annotated tag. Until 2026-09-30 the
+        # body carried the hidden mirror list and GitHub's changelog link and
+        # nothing a player could read, so the launcher's notes panel said "Full
+        # Changelog" and no more. The tag is fetched by name because a shallow
+        # tag checkout need not bring its annotation; a tag with no body (the
+        # one-line message `tools/release.ps1` writes) leaves the body as it
+        # was, and a failure here publishes without notes rather than not at all.
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          git fetch --force --depth=1 origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          if [ "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" != "tag" ]; then
+            echo "::notice title=Notes::${GITHUB_REF_NAME} is not an annotated tag; no notes to carry."
+            exit 0
+          fi
+          git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}" > tag_notes.md
+          touch release_body.md
+          if [ -s tag_notes.md ]; then
+            { cat tag_notes.md; printf '\n'; cat release_body.md; } > release_body.new
+            mv release_body.new release_body.md
+            echo "Release body leads with $(wc -l < tag_notes.md) lines of notes."
+          fi
+
       - name: Publish release
         # Only on a tag. A manual run builds and uploads artifacts without
         # publishing, which is what you want when rehearsing.
