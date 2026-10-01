@@ -9900,7 +9900,19 @@ const WRATH_CAP: float = 1.5
 ## feed itself. **A dragon is the exception, by the owner's word**: the
 ## dragons are stewards of the wrath, and what they kill is counted at
 ## `WRATH_DRAGON_KILL_SCALE` of a kill, floor and all.
-const WRATH_FALL_SCALE: Dictionary = {"earth": 0.3, "fire": 0.5, "flood": 0.3}
+##
+## **A road body's kill is grief too, as of 2026-10-01 (later)**, at "enemy" -
+## a share of a kill's heat and never the floor. It was counted as a person's
+## kill, and `earth_soak` measured what that does: on Act V with the Warden
+## never touching an animal, the road's bodies killed one and a half a minute
+## (every wolf that bit a passing column) and the earth sat at its ceiling half
+## the time, sending a quake every five minutes, a wildfire every two and a
+## half, and twelve dragons an hour - the event the design calls the rarest in
+## the game, on a road the player had done nothing to. The earth still minds
+## the road's killing, which is the owner's ruling; it no longer reads it as
+## the Warden's own, which is what karma, the floor and the over-hunting tally
+## are about.
+const WRATH_FALL_SCALE: Dictionary = {"earth": 0.3, "fire": 0.5, "flood": 0.3, "enemy": 0.25}
 const WRATH_DRAGON_KILL_SCALE: float = 2.0
 
 ## **Grief, where it happened** (`EarthGrief`). A kill lays its weight of grief

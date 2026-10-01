@@ -2572,7 +2572,8 @@ func _strike() -> void:
 	if _provoker_source != null and _target == _provoker:
 		var bite: float = data.contact_damage * _damage_scale \
 			* _enemy_damage_scale()
-		if _provoker_source.call("wound_sprite", _target, bite):
+		# The road's blow, never the Warden's: see `Wildlife.wound_sprite`.
+		if _provoker_source.call("wound_sprite", _target, bite, false, "enemy"):
 			Vfx.spark(_target.global_position, Color("c4552e"), 6,
 				(_target.global_position - global_position).normalized(), 190.0)
 		return

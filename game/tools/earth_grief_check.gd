@@ -52,6 +52,7 @@ func _ready() -> void:
 		EventBus.sky_warned.connect(func(_line: String, title: String) -> void: _said.append(title))
 		_test_by_cause()
 		await _test_a_strike_pays_nobody()
+		await _test_a_road_kill_pays_nobody()
 		_test_in_the_area()
 		_test_natural_wisdom()
 		_test_the_ground_presses()
@@ -59,7 +60,7 @@ func _ready() -> void:
 		_test_luck_and_the_cruel()
 		_test_temper()
 		_test_a_guest_breathes_the_same_ash()
-	_check(_finished == 9, "%d of 9 tests reached their end" % _finished)
+	_check(_finished == 10, "%d of 10 tests reached their end" % _finished)
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	GameDirector.run_active = false
 	_run.queue_free()
@@ -139,6 +140,55 @@ func _test_a_strike_pays_nobody() -> void:
 		and RunState.currency(RunState.FOOD) == food_before,
 		"an animal a strike killed paid the player as if they had hunted it")
 	_check(_heat() > 0.0 and is_zero_approx(_floor()), "a strike's kill was not the earth's grief")
+	_finished += 1
+
+
+## **A road body's kill pays the Warden nothing and is the earth's grief**
+## (2026-10-01). A body biting back at an animal that attacked it went through
+## `Wildlife.wound_sprite`, which booked every blow as the player's: the Warden
+## was paid the Food and the experience, the karma moved, and the earth counted
+## a person's kill - floor and all - for an animal the road killed. `earth_soak`
+## found it on a road where the Warden never touched an animal and the earth sat
+## at its ceiling. Driven through the same door the body calls, and the source
+## walked for the call, because the fault was a missing argument.
+func _test_a_road_kill_pays_nobody() -> void:
+	_calm()
+	var wild: Wildlife = _field.wildlife()
+	wild.clear()
+	var at: Vector2 = Vector2(1700.0, 1600.0)
+	var animal: Dictionary = _place(_grazer(), at)
+	var fell: Array[String] = []
+	var listen: Callable = func(_k: String, _a: Vector2, _r: int, _s: bool, cause: String) -> void:
+		fell.append(cause)
+	EventBus.wildlife_fell.connect(listen)
+	var food_before: int = RunState.currency(RunState.FOOD)
+	var xp_before: float = float(RunState.hero_xp)
+	var drops_before: int = get_tree().get_nodes_in_group(LootDrop.GROUP).size()
+	_check(wild.wound_sprite(animal["sprite"] as Node2D, 99999.0, false, "enemy"),
+		"a road body's blow found no animal")
+	await get_tree().process_frame
+	EventBus.wildlife_fell.disconnect(listen)
+	_check(get_tree().get_nodes_in_group(LootDrop.GROUP).size() == drops_before
+		and RunState.currency(RunState.FOOD) == food_before,
+		"an animal a road body killed dropped Food for the Warden")
+	_check(is_equal_approx(float(RunState.hero_xp), xp_before),
+		"an animal a road body killed paid the Warden experience")
+	_check(is_zero_approx(RunState.karma), "an animal a road body killed moved the Warden's karma")
+	_check(fell == ["enemy"], "a road body's kill was announced as %s" % str(fell))
+	_check(is_zero_approx(_floor()), "a road body's kill raised the earth's floor")
+	_check(is_equal_approx(_heat(), Balance.WRATH_HEAT_PER_KILL * float(Balance.WRATH_FALL_SCALE["enemy"])),
+		"a road body's kill was %.4f heat, not its share of a kill" % _heat())
+	# And the Warden's own arrow, through the same door with no word about
+	# whose it is, is still the Warden's.
+	_calm()
+	var game: Dictionary = _place(_grazer(), at + Vector2(80.0, 0.0))
+	_check(wild.wound_sprite(game["sprite"] as Node2D, 99999.0), "an arrow found no animal")
+	await get_tree().process_frame
+	_check(RunState.karma < 0.0 and _floor() > 0.0,
+		"the Warden's own arrow no longer counts as the Warden's kill")
+	var enemy: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	_check(enemy.contains('call("wound_sprite", _target, bite, false, "enemy")'),
+		"a road body bites back through the Warden's door")
 	_finished += 1
 
 

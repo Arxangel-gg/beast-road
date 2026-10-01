@@ -2282,7 +2282,17 @@ func wound_near(at: Vector2, radius: float, damage: float, by_player: bool = fal
 ## Host-only, like every other way an animal can be hurt: a guest that killed a
 ## wolf locally would be paying itself out and disagreeing with the host about
 ## what is standing on the field.
-func wound_sprite(sprite: Node2D, damage: float) -> bool:
+##
+## **Whose blow it was is the caller's to say** (2026-10-01). It defaulted to the
+## player's, and a road body biting back at a wolf came through here - so every
+## animal the road's own bodies killed paid the Warden its Food and experience,
+## counted toward the over-hunting tally that sends a savage after them, and
+## credited the bond as if they had bested it. Found by `earth_soak`, which
+## watched three wolves die on a road where the Warden never lifted a hand. A
+## road body's kill is `by_player` false, `cause` "enemy": the body falls and
+## pays nobody, exactly as a predator's kill does, and the earth still minds it.
+func wound_sprite(sprite: Node2D, damage: float, by_player: bool = true,
+		cause: String = "earth") -> bool:
 	if Coop.is_guest() or sprite == null:
 		return false
 	for index: int in range(_living.size() - 1, -1, -1):
@@ -2291,7 +2301,7 @@ func wound_sprite(sprite: Node2D, damage: float) -> bool:
 		if float(_living[index].get("dying", 0.0)) > 0.0 \
 				or float(_living[index].get("hp", 0.0)) <= 0.0:
 			return false
-		_wound(index, _living[index], damage)
+		_wound(index, _living[index], damage, by_player, cause)
 		return true
 	return false
 
