@@ -575,6 +575,7 @@ jobs:
           check "Escape closes the topmost thing first and a second Escape unpauses" --headless --path game res://tools/escape_check.tscn
           check "Enter opens the chat alone and in company, the Warden is still while typing, and the commands answer" --headless --path game res://tools/chat_check.tscn
           check "Every shot faces the way it is going: upright heads stay upright, painted heads keep their shape, a lob lies along its arc" --headless --path game res://tools/shot_facing_check.tscn
+          check "Click to move: a ground click walks there, a body is chased and struck only in reach, the bow chases to its reach, the builder keeps its clicks" --headless --path game res://tools/click_move_check.tscn
           check "no slider touches a button" --headless --path game res://tools/slider_clearance_check.tscn
           check "a body is met where it is drawn and reached the same from every side" --headless --path game res://tools/hitbox_check.tscn
           check "the comfort card writes nothing unless a slider moved" --headless --path game res://tools/comfort_card_check.tscn
