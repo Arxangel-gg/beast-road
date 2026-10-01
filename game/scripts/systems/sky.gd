@@ -118,11 +118,30 @@ var _dragon: DragonPass = null
 var wildfires: int = 0
 
 
+## **Where the earth was wronged** (2026-10-01). See `EarthGrief`.
+var grief: EarthGrief = null
+## The earth's luck, temper and wisdom draw here and never on `_rng`, so a
+## seeded run places the same blows on the same dice whatever karma did.
+var _fate: RandomNumberGenerator = null
+var _karma_told: int = 0
+var _grief_breath_left: float = 0.0
+var _aftershock_left: float = -1.0
+var _aftershock_magnitude: float = 0.0
+## For the gate: blows the earth's wisdom placed in grief, near misses luck
+## gave, blows laid on a cruel Warden, and great events.
+var grief_placed: int = 0
+var near_misses: int = 0
+var sought: int = 0
+var great_events: int = 0
+
+
 func _ready() -> void:
 	name = "Sky"
 	z_as_relative = false
 	_rng = RunState.rng("sky")
 	_zone_rng = RunState.rng("zones")
+	_fate = RunState.rng("earth_fate")
+	grief = EarthGrief.new()
 	_phases = Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)
 	_mirror = Coop.is_guest()
 	_build_sheen()
@@ -148,6 +167,9 @@ func _ready() -> void:
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.gathered.connect(_on_gathered)
 	EventBus.earth_offended.connect(_on_earth_offended)
+	EventBus.wildlife_fell.connect(_on_wildlife_fell)
+	EventBus.wildlife_tamed.connect(_on_wildlife_tamed)
+	EventBus.wildlife_robbed.connect(_on_wildlife_robbed)
 	_apply(ContentDB.weather(RunState.weather_id))
 	# **The earth starts angrier on the harder tiers** (2026-09-25).
 	if not _mirror:
@@ -314,19 +336,109 @@ func _tick_lightning(delta: float) -> void:
 	if hazard <= 0.0:
 		return
 	if _rng.randf() < hazard * delta:
-		strike_at(_pick_strike_point())
+		var at: Vector2 = _fated(_pick_strike_point(), false)
+		strike_at(at)
+		# **A great storm** strikes again around the first, at once.
+		if _great():
+			var burst: int = _fate.randi_range(Balance.WRATH_STORM_BURST.x, Balance.WRATH_STORM_BURST.y)
+			for _bolt: int in burst:
+				var around: Vector2 = at + Vector2.from_angle(_fate.randf() * TAU) \
+					* _fate.randf_range(Balance.WRATH_STORM_BURST_SPREAD * 0.3, Balance.WRATH_STORM_BURST_SPREAD)
+				if around.length() >= Balance.LIGHTNING_TOWN_CLEARANCE:
+					strike_at(around)
 
 
-## Somewhere on the field, never on the city.
+## Somewhere on the field, never on the city - and, when the earth has been
+## wronged, often where (`EarthGrief`): the earth answers where it was wronged.
+##
+## **The uniform point is drawn first and always**, on whatever stream the
+## caller handed in, so that stream moves exactly as it always did; only the
+## earth's own `_fate` decides whether grief takes the blow instead.
 func _pick_strike_point(rng: RandomNumberGenerator = null) -> Vector2:
 	if rng == null:
 		rng = _rng
+	var at: Vector2 = _uniform_point(rng)
+	if grief == null or _fate == null or grief.total() <= 0.0:
+		return at
+	var pull: float = clampf(grief.total() / Balance.WRATH_GRIEF_PULL_FULL, 0.0, 1.0) \
+		* Balance.WRATH_GRIEF_PULL_MAX
+	if _fate.randf() >= pull:
+		return at
+	var spot: Vector2 = grief.weighted_point(_fate)
+	var reach: float = BattleGrid.HALF_EXTENT * 0.86
+	if not spot.is_finite():
+		return at
+	spot = Vector2(clampf(spot.x, -reach, reach), clampf(spot.y, -reach, reach))
+	if spot.length() < Balance.LIGHTNING_TOWN_CLEARANCE:
+		return at
+	grief_placed += 1
+	return spot
+
+
+func _uniform_point(rng: RandomNumberGenerator) -> Vector2:
 	var reach: float = BattleGrid.HALF_EXTENT * 0.86
 	for _attempt: int in 12:
 		var at := Vector2(rng.randf_range(-reach, reach), rng.randf_range(-reach, reach))
 		if at.length() >= Balance.LIGHTNING_TOWN_CLEARANCE:
 			return at
 	return Vector2(reach * 0.7, reach * 0.7)
+
+
+## **Luck and karma, on a blow the earth has placed** (2026-10-01).
+##
+## A blow landing near a Warden is a near miss - moved away from them - with a
+## chance that good karma raises; and a *telegraphed* blow (a quake, a meteor, a
+## funnel) landing near a Warden whose karma is below nothing may be laid on
+## them instead: the earth finds the cruel. Never lightning, which gives no
+## warning - a blow from nowhere that sought you out would be the earth
+## cheating. The nearest Warden standing outside the walls is the one judged.
+func _fated(at: Vector2, telegraphed: bool) -> Vector2:
+	if _fate == null or field == null or not field.has_method("heroes"):
+		return at
+	var nearest: Hero = null
+	var gap: float = INF
+	for hero: Hero in field.call("heroes"):
+		if hero == null or not is_instance_valid(hero) or not hero.is_alive():
+			continue
+		if field.has_method("inside_city") and bool(field.call("inside_city", hero.global_position)):
+			continue
+		var distance: float = hero.global_position.distance_to(at)
+		if distance < gap:
+			gap = distance
+			nearest = hero
+	if nearest == null:
+		return at
+	var karma: float = RunState.karma
+	if gap <= Balance.WRATH_LUCK_REACH:
+		var luck: float = clampf(Balance.WRATH_LUCK_BASE + Balance.WRATH_LUCK_KARMA * karma,
+			0.0, Balance.WRATH_LUCK_MAX)
+		if _fate.randf() < luck:
+			near_misses += 1
+			var away: Vector2 = at - nearest.global_position
+			if away.length() < 1.0:
+				away = Vector2.from_angle(_fate.randf() * TAU)
+			return nearest.global_position + away.normalized() \
+				* maxf(gap, Balance.WRATH_LUCK_NUDGE)
+		return at
+	if telegraphed and karma < 0.0 and gap <= Balance.WRATH_LUCK_REACH * 4.0:
+		if _fate.randf() < -karma * Balance.WRATH_KARMA_SEEK:
+			sought += 1
+			return nearest.global_position
+	return at
+
+
+## **Whether the earth is in a great temper this time** - rare, rarer still for
+## a kind party - said once when it is.
+func _great() -> bool:
+	if _fate == null:
+		return false
+	var chance: float = clampf(Balance.WRATH_GREAT_CHANCE
+		+ maxf(-RunState.karma, 0.0) * Balance.WRATH_GREAT_KARMA, 0.0, Balance.WRATH_GREAT_MAX)
+	if _fate.randf() >= chance:
+		return false
+	great_events += 1
+	_tell("great", Vector2.ZERO, 0.0)
+	return true
 
 
 ## A strike lands: everything under it is hurt, the storm towers near it are
@@ -842,12 +954,44 @@ func _on_wildlife_killed(_kind_id: String, _food: int, at: Vector2, rarity: int,
 		scale *= Balance.WRATH_SHINY_SCALE
 	if grave:
 		scale *= Balance.WRATH_ELITE_KILL_SCALE
-	_count_kill(scale)
+	_count_kill(scale, at)
 	# A legendary is a moment the world notices: the shock, and the signs.
 	if rarity >= WildlifeData.Rarity.LEGENDARY:
 		shocks += 1
 		_shock_left = Balance.WRATH_SHOCK_SECONDS
 		_tell("legendary_slain", at, Balance.WRATH_SHOCK_SECONDS)
+
+
+## **An animal the earth itself, a fire, a flood or a dragon killed**
+## (2026-10-01). The earth's own and the fire's and the flood's are grief - heat
+## at `WRATH_FALL_SCALE` of a kill, never the floor, laid in the area; a
+## dragon's is counted as a kill and more, because the dragons are its
+## stewards (owner's word).
+func _on_wildlife_fell(_kind_id: String, at: Vector2, rarity: int, shiny: bool, cause: String) -> void:
+	if _mirror:
+		return
+	var scale: float = float(Balance.WRATH_RARITY_SCALE[clampi(rarity, 0, Balance.WRATH_RARITY_SCALE.size() - 1)])
+	if shiny:
+		scale *= Balance.WRATH_SHINY_SCALE
+	if cause == "dragon":
+		_count_kill(scale * Balance.WRATH_DRAGON_KILL_SCALE, at)
+		return
+	var share: float = float(Balance.WRATH_FALL_SCALE.get(cause, Balance.WRATH_FALL_SCALE["earth"]))
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale * share
+	if grief != null:
+		grief.add(at, scale * share)
+
+
+## A spirit bonded is a kindness the earth remembers.
+func _on_wildlife_tamed(_species_id: String, _pen_uid: String, _rarity: int, _shiny: bool) -> void:
+	if not _mirror:
+		RunState.shift_karma(Balance.KARMA_BOND)
+
+
+## An egg taken from a nest.
+func _on_wildlife_robbed(_species_id: String, _at: Vector2) -> void:
+	if not _mirror:
+		RunState.shift_karma(-Balance.KARMA_EGG)
 
 
 ## **Something the earth minds as it minds a kill** (2026-09-25): a wayside
@@ -867,10 +1011,13 @@ func note_grave_kill() -> void:
 	_count_kill(Balance.WRATH_ELITE_KILL_SCALE)
 
 
-func _count_kill(scale: float) -> void:
+func _count_kill(scale: float, at: Vector2 = Vector2.INF) -> void:
 	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL * scale, Balance.WRATH_FLOOR_CAP)
 	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale
 	_quiet = 0.0
+	# And grief where it happened, when there is a where.
+	if grief != null and at.is_finite():
+		grief.add(at, scale)
 
 
 ## A tree felled. A few are the road living; more than that inside the
@@ -896,7 +1043,22 @@ func anchors() -> int:
 ## shock lifts them, every anchor standing calms them.
 func hazard_boost() -> float:
 	var boost: float = Balance.WRATH_SHOCK_HAZARD if _shock_left > 0.0 else 1.0
+	# **The ground presses where it was wronged** (2026-10-01): a Warden
+	# standing in grief feels the earth's hazards harder.
+	boost *= 1.0 + Balance.WRATH_GRIEF_HAZARD \
+		* clampf(grief_under_wardens() / Balance.WRATH_GRIEF_FULL, 0.0, 1.0)
 	return boost / (1.0 + float(anchors()) * Balance.WRATH_ANCHOR_CALM)
+
+
+## The most grief any Warden on the field is standing in.
+func grief_under_wardens() -> float:
+	if grief == null or grief.total() <= 0.0 or field == null or not field.has_method("heroes"):
+		return 0.0
+	var most: float = 0.0
+	for hero: Hero in field.call("heroes"):
+		if hero != null and is_instance_valid(hero) and hero.is_alive():
+			most = maxf(most, grief.at(hero.global_position))
+	return most
 
 
 ## The wind over the field: the weather's own along the road, wandering on
@@ -1001,6 +1163,14 @@ func _quarter(index: int) -> float:
 func _tick_wrath(delta: float) -> void:
 	var half: float = maxf(Balance.WRATH_HEAT_HALF_LIFE, 1.0)
 	_wrath_heat *= pow(0.5, delta / half)
+	if grief != null:
+		grief.tick(delta)
+		_breathe_grief(delta)
+	_tick_karma(delta)
+	if _aftershock_left >= 0.0:
+		_aftershock_left -= delta
+		if _aftershock_left < 0.0 and _quake_warning_left <= 0.0 and _quake_left <= 0.0:
+			warn_quake(_aftershock_magnitude)
 	_shock_left = maxf(_shock_left - delta, 0.0)
 	_wind_still_left = maxf(_wind_still_left - delta, 0.0)
 	_quiet += delta
@@ -1035,6 +1205,44 @@ func _tick_wrath(delta: float) -> void:
 		_tell("unrest_%d" % tier, Vector2.ZERO, 0.0)
 	elif tier < _tier_told - 1:
 		_tier_told = tier
+
+
+## Karma drifts back toward nothing, and the road says so as it crosses a sign.
+func _tick_karma(delta: float) -> void:
+	RunState.karma = move_toward(RunState.karma, 0.0, Balance.KARMA_DRIFT * delta)
+	var karma: float = RunState.karma
+	if karma >= Balance.KARMA_SIGN_FROM and _karma_told != 1:
+		_karma_told = 1
+		_tell("kindness", Vector2.ZERO, 0.0)
+	elif karma <= -Balance.KARMA_SIGN_FROM and _karma_told != -1:
+		_karma_told = -1
+		_tell("reckoning", Vector2.ZERO, 0.0)
+	elif absf(karma) < Balance.KARMA_SIGN_FROM * 0.5:
+		_karma_told = 0
+
+
+## **Grieved ground in view breathes ash** - a dark haze and a few motes off
+## the strongest grief a few times a second. A look; nothing reads it.
+func _breathe_grief(delta: float) -> void:
+	_grief_breath_left -= delta
+	if _grief_breath_left > 0.0:
+		return
+	_grief_breath_left = 1.0 / Balance.WRATH_GRIEF_BREATH_HZ
+	if grief.total() < Balance.WRATH_GRIEF_SHOWN_FROM or Graphics.particle_scale() <= 0.0 \
+			or DisplayServer.get_name() == "headless":
+		return
+	for cell: Dictionary in grief.strongest(3):
+		var strength: float = clampf(float(cell["grief"]) / Balance.WRATH_GRIEF_FULL, 0.15, 1.0)
+		var at: Vector2 = (cell["at"] as Vector2) + Vector2(
+			_visual_rng.randf_range(-0.4, 0.4), _visual_rng.randf_range(-0.4, 0.4)) * Balance.WRATH_GRIEF_CELL
+		if not ScreenCull.world_sees(self, at, 160.0):
+			continue
+		Vfx.haze(at, Vector2(_visual_rng.randf_range(-6.0, 6.0), -10.0),
+			Color(0.16, 0.1, 0.12, 0.28 * strength), 90.0 + 60.0 * strength, 3.2)
+		for _mote: int in 2:
+			Vfx.mote(at + Vector2(_visual_rng.randf_range(-60.0, 60.0), 0.0),
+				Vector2(_visual_rng.randf_range(-8.0, 8.0), -_visual_rng.randf_range(18.0, 34.0)),
+				Color(0.42, 0.36, 0.34, 0.6 * strength), 2.6, 2.4)
 
 
 ## **The floor this tier's earth never falls below** (2026-09-25): where it
@@ -1081,7 +1289,13 @@ func _tick_wrath_events(delta: float) -> void:
 	# A quake: the square, so a calm earth never shakes. Warned first.
 	if _quake_left <= 0.0 and _quake_warning_left <= 0.0 \
 			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * boost * delta:
-		warn_quake(lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0)))
+		var magnitude: float = lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0))
+		warn_quake(magnitude)
+		# **A great quake is answered by an aftershock**, warned in its turn.
+		if _great():
+			_aftershock_magnitude = magnitude * Balance.WRATH_AFTERSHOCK_SHARE
+			_aftershock_left = Balance.QUAKE_WARNING_SECONDS + _fate.randf_range(
+				Balance.WRATH_AFTERSHOCK_DELAY.x, Balance.WRATH_AFTERSHOCK_DELAY.y)
 	# A wildfire: an angry earth, and ground dry enough where it tries. A
 	# flood stops it at the source; `start_wildfire` asks the ground.
 	if wildfire != null and RunState.flood <= Balance.WILDFIRE_FLOOD_STOPS \
@@ -1094,7 +1308,16 @@ func _tick_wrath_events(delta: float) -> void:
 	# A meteor: the fire towers' recent damage, sharpened by the anger.
 	var ash: float = clampf(RunState.ember / Balance.EMBER_FULL, 0.0, 1.0)
 	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * boost * delta:
-		drop_meteor()
+		var first: Meteor = drop_meteor()
+		# **A great fall is a shower**: more stones around the first, each with
+		# its own shadow to step out of.
+		if first != null and _great():
+			var stones: int = _fate.randi_range(Balance.WRATH_SHOWER_STONES.x, Balance.WRATH_SHOWER_STONES.y)
+			for _stone: int in stones:
+				var around: Vector2 = first.at + Vector2.from_angle(_fate.randf() * TAU) \
+					* _fate.randf_range(Balance.WRATH_SHOWER_SPREAD * 0.3, Balance.WRATH_SHOWER_SPREAD)
+				if around.length() >= Balance.LIGHTNING_TOWN_CLEARANCE:
+					drop_meteor(around)
 	# **And, rarely, something enormous crosses the sky.** The cube of the anger
 	# rather than the square: a quake is what a hard road costs, and a dragon is
 	# what the very end of the scale costs - so it is effectively impossible on a
@@ -1301,7 +1524,7 @@ func warn_quake(magnitude: float) -> void:
 	# **The place, chosen now.** It used to hum at the origin because a quake
 	# had no place; the wave does, so the warning names it and the epicentre
 	# a player backs away from is the one the crests leave.
-	_quake_at = _pick_strike_point(_rng) if field != null else Vector2.ZERO
+	_quake_at = _fated(_pick_strike_point(_rng), true) if field != null else Vector2.ZERO
 	_tell("quake", _quake_at, Balance.QUAKE_WARNING_SECONDS)
 
 
@@ -1313,7 +1536,7 @@ func warn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF, se
 	if not from.is_finite():
 		from = Vector2.RIGHT.rotated(_rng.randf() * TAU) * reach
 	if not target.is_finite():
-		target = Vector2(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.6, 0.6)) * reach
+		target = _fated(Vector2(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.6, 0.6)) * reach, true)
 	if seconds < 0.0:
 		seconds = Balance.TORNADO_SECONDS
 	_pending_tornado = {"from": from, "target": target, "seconds": seconds,
@@ -1495,6 +1718,7 @@ func drop_meteor(at: Vector2 = Vector2.INF) -> Meteor:
 			* _rng.randf_range(Balance.METEOR_SCATTER * 0.3, Balance.METEOR_SCATTER)
 		if at.length() < Balance.LIGHTNING_TOWN_CLEARANCE:
 			at = at.normalized() * Balance.LIGHTNING_TOWN_CLEARANCE
+		at = _fated(at, true)
 	var stone := Meteor.new()
 	stone.at = at
 	stone.field = field

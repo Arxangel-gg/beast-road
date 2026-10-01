@@ -427,6 +427,15 @@ var ember: float = 0.0
 var gale: float = 0.0
 var tide: float = 0.0
 var tremor: float = 0.0
+## **Karma** (2026-10-01): what the party has done to the living things on the
+## road, -1 to 1, and what the earth's luck reads. Hidden, like the wrath.
+## See `Balance.KARMA_*`.
+var karma: float = 0.0
+
+
+## Moves the party's karma, inside -1 to 1.
+func shift_karma(amount: float) -> void:
+	karma = clampf(karma + amount, -1.0, 1.0)
 ## The wind over the field this frame, as a vector; the sky writes it.
 var wind: Vector2 = Vector2.ZERO
 ## True while the party is somewhere the sky cannot reach: a raid camp under a
@@ -780,6 +789,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	gale = 0.0
 	tide = 0.0
 	tremor = 0.0
+	karma = 0.0
 	wind = Vector2.ZERO
 	# Restored from the account, not zeroed.
 	#

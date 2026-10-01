@@ -9648,6 +9648,94 @@ const WRATH_ELITE_KILL_SCALE: float = 2.5
 const WRATH_RARITY_SCALE: Array[float] = [1.0, 3.0, 8.0, 24.0]
 const WRATH_SHINY_SCALE: float = 1.5
 const WRATH_CAP: float = 1.5
+
+## **Every death the earth minds, in the area it happened** (owner, 2026-10-01:
+## *"Death of any wildlife from any means besides from other wildlife naturally
+## should affect the earth's wrath in the area. Earth's wrath needs to be
+## elevated ... wild and powerful and destructive and procedural with
+## randomness as well as natural wisdom and luck and karma factors."*).
+##
+## **By cause.** A person or a road body killing an animal is counted as it
+## always was. Everything else that is not the cycle - the earth's own blows,
+## a fire, a flood - is grief the earth feels for its own, worth
+## `WRATH_FALL_SCALE` of a kill by its cause and laid as heat alone, never on
+## the floor: an earth that raged at every animal its own quake killed would
+## feed itself. **A dragon is the exception, by the owner's word**: the
+## dragons are stewards of the wrath, and what they kill is counted at
+## `WRATH_DRAGON_KILL_SCALE` of a kill, floor and all.
+const WRATH_FALL_SCALE: Dictionary = {"earth": 0.3, "fire": 0.5, "flood": 0.3}
+const WRATH_DRAGON_KILL_SCALE: float = 2.0
+
+## **Grief, where it happened** (`EarthGrief`). A kill lays its weight of grief
+## across `WRATH_GRIEF_RADIUS` on cells of `WRATH_GRIEF_CELL`, fading on
+## `WRATH_GRIEF_HALF_LIFE`, no cell above `WRATH_GRIEF_CELL_CAP`.
+##
+## - **Natural wisdom**: a blow the earth places itself - a strike, a quake's
+##   epicentre, a fissure - lands in grieved ground with a chance that grows
+##   with the sheet's total grief over `WRATH_GRIEF_PULL_FULL`, to at most
+##   `WRATH_GRIEF_PULL_MAX`. Placed, never added: the same blows, aimed.
+## - **The ground presses**: a Warden standing in grief feels the earth's
+##   hazards up to `WRATH_GRIEF_HAZARD` more, at `WRATH_GRIEF_FULL` grief.
+## - Grieved ground in view breathes ash and a dark haze from
+##   `WRATH_GRIEF_SHOWN_FROM`, a few times a second at most.
+const WRATH_GRIEF_CELL: float = 640.0
+const WRATH_GRIEF_RADIUS: float = 900.0
+const WRATH_GRIEF_HALF_LIFE: float = 240.0
+const WRATH_GRIEF_CELL_CAP: float = 12.0
+const WRATH_GRIEF_PULL_FULL: float = 12.0
+const WRATH_GRIEF_PULL_MAX: float = 0.65
+const WRATH_GRIEF_HAZARD: float = 0.6
+const WRATH_GRIEF_FULL: float = 4.0
+const WRATH_GRIEF_SHOWN_FROM: float = 0.8
+const WRATH_GRIEF_BREATH_HZ: float = 3.0
+
+## **Karma** (`RunState.karma`, -1 to 1, the run's). What the party has done
+## to the living things on the road, and what the earth's dice remember of it:
+## a harmless animal killed costs `KARMA_HARMLESS_KILL` by its rarity, a
+## blighted one put out of its misery gives `KARMA_MERCY`, a spirit bonded
+## gives `KARMA_BOND`, an egg taken costs `KARMA_EGG`, a crop brought in gives
+## `KARMA_HARVEST`. A hunter that was coming for you costs nothing - that is
+## not cruelty. It drifts back toward nothing at `KARMA_DRIFT` a second.
+const KARMA_HARMLESS_KILL: float = 0.035
+const KARMA_MERCY: float = 0.06
+const KARMA_BOND: float = 0.05
+const KARMA_EGG: float = 0.08
+const KARMA_HARVEST: float = 0.01
+const KARMA_DRIFT: float = 0.0015
+## Said once as karma crosses this either way, and again only after it has come
+## back inside half of it.
+const KARMA_SIGN_FROM: float = 0.45
+
+## **Luck.** A blow the earth places within `WRATH_LUCK_REACH` of a Warden is
+## a near miss - moved `WRATH_LUCK_NUDGE` away - with a chance of
+## `WRATH_LUCK_BASE` plus `WRATH_LUCK_KARMA` times the karma, never above
+## `WRATH_LUCK_MAX`. And the other way: **the earth finds the cruel** - with a
+## chance of `WRATH_KARMA_SEEK` times how far below nothing the karma is, a
+## telegraphed blow (a quake, a meteor, a funnel's path) is laid on a Warden
+## rather than beside one. Never lightning, which has no warning: a blow from
+## nowhere that sought you out would be the earth cheating.
+const WRATH_LUCK_REACH: float = 320.0
+const WRATH_LUCK_NUDGE: float = 260.0
+const WRATH_LUCK_BASE: float = 0.08
+const WRATH_LUCK_KARMA: float = 0.35
+const WRATH_LUCK_MAX: float = 0.45
+const WRATH_KARMA_SEEK: float = 0.4
+
+## **Temper**: how hard the earth is in the mood to answer, rolled once an
+## event. Usually the event as authored; `WRATH_GREAT_CHANCE` of the time - more
+## with bad karma, up to `WRATH_GREAT_MAX` - it is *great*, and does it again:
+## a quake answered by an aftershock at `WRATH_AFTERSHOCK_SHARE`, a meteor by a
+## shower of `WRATH_SHOWER_STONES` more, a strike by `WRATH_STORM_BURST` more
+## around it. The same blows, more of them, said first ("THE EARTH ROARS").
+const WRATH_GREAT_CHANCE: float = 0.04
+const WRATH_GREAT_KARMA: float = 0.06
+const WRATH_GREAT_MAX: float = 0.12
+const WRATH_AFTERSHOCK_SHARE: float = 0.55
+const WRATH_AFTERSHOCK_DELAY: Vector2 = Vector2(5.0, 9.0)
+const WRATH_SHOWER_STONES: Vector2i = Vector2i(2, 4)
+const WRATH_SHOWER_SPREAD: float = 520.0
+const WRATH_STORM_BURST: Vector2i = Vector2i(2, 3)
+const WRATH_STORM_BURST_SPREAD: float = 360.0
 ## The legendary shock: for a while after a legendary dies the earth's events
 ## roll this many times as often. Not a certainty - "uncertainty makes it
 ## scarier" - and the world says so first: the wind stops, the birds go, the

@@ -445,6 +445,11 @@ signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)
 ## and whether it was an elite or a savage. The earth's wrath reads all of it.
 signal wildlife_killed(kind_id: String, food: int, at: Vector2, rarity: int, shiny: bool, grave: bool)
 
+## An animal died of something that is not a person, a road body or another
+## animal (2026-10-01): `cause` is "earth" (the earth's own blows), "fire",
+## "flood" or "dragon". Host side. The earth's wrath reads it, in the area.
+signal wildlife_fell(kind_id: String, at: Vector2, rarity: int, shiny: bool, cause: String)
+
 ## Young were born to a pair out on the road (the families, 2026-09-14): the
 ## species, how many arrived and where. Presentation and the debrief read it;
 ## nothing about a reward travels on it.

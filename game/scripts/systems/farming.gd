@@ -417,6 +417,8 @@ func _pay_food(crop: CropData, food: int) -> void:
 			relay.request(CoopRelay.Request.HARVEST_CROP, [crop.id])
 		return
 	RunState.gain_currency(RunState.FOOD, food)
+	# A crop brought in is a small kindness the earth remembers (2026-10-01).
+	RunState.shift_karma(Balance.KARMA_HARVEST)
 
 
 func _roll() -> RandomNumberGenerator:

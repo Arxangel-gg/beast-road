@@ -1239,7 +1239,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		if not Coop.is_guest():
 			var index: int = _living.find(animal)
 			if index >= 0:
-				_wound(index, animal, Balance.WILDFIRE_WILDLIFE_DPS * delta, false)
+				_wound(index, animal, Balance.WILDFIRE_WILDLIFE_DPS * delta, false, "fire")
 				if float(animal["dying"]) > 0.0:
 					return true
 		if float(animal["burning"]) <= 0.0:
@@ -2103,7 +2103,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			if prey.get("sprite", null) != quarry or float(prey.get("dying", 0.0)) > 0.0:
 				continue
 			var prey_kind := prey["data"] as WildlifeData
-			_wound(index, prey, prey_kind.max_hp * Balance.WILDLIFE_PREY_BITE_SHARE, false)
+			_wound(index, prey, prey_kind.max_hp * Balance.WILDLIFE_PREY_BITE_SHARE, false, "cycle")
 			# A landed bite is the only way the Wildblight travels, and only
 			# ever once per pair and once per carrier.
 			if _families != null:
@@ -2240,7 +2240,12 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, _step: int,
 ## Host-only for the same reason as everything else that can kill: a guest
 ## dropping a deer locally would pay itself out and disagree with the host about
 ## what is standing on the field.
-func wound_near(at: Vector2, radius: float, damage: float) -> bool:
+## **The earth's, not the player's** (2026-10-01): lightning is the one caller,
+## and an animal a strike kills paid the player Food and experience as if they
+## had hunted it - the one blow of the earth's that did. It is grief now, as
+## the quake's and the funnel's always were.
+func wound_near(at: Vector2, radius: float, damage: float, by_player: bool = false,
+		cause: String = "earth") -> bool:
 	if Coop.is_guest():
 		return false
 	var best: int = -1
@@ -2258,7 +2263,7 @@ func wound_near(at: Vector2, radius: float, damage: float) -> bool:
 			best_distance = distance
 	if best < 0:
 		return false
-	_wound(best, _living[best], damage)
+	_wound(best, _living[best], damage, by_player, cause)
 	return true
 
 
@@ -2374,7 +2379,8 @@ func _say_it_fell(kind: WildlifeData, animal: Dictionary, at: Vector2) -> void:
 ## Health rather than a one-hit kill, because the owner asked for size to matter:
 ## a rabbit should die to a swing and a deer should take a few, which is the only
 ## way "larger gives more" is a decision rather than a lottery.
-func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: bool = true) -> void:
+func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: bool = true,
+		cause: String = "earth") -> void:
 	if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
 		return
 	var kind := animal["data"] as WildlifeData
@@ -2459,6 +2465,12 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		# wolves do the hunting.
 		Vfx.dust(sprite.global_position, Color("c4552e"), 8, 50.0)
 		_say_it_fell(kind, animal, sprite.global_position)
+		# **Not the cycle, and the earth minds it** (2026-10-01): a quake, a
+		# fire or a dragon killing an animal is grief in the area. Another
+		# animal killing it is the cycle, and nothing.
+		if cause != "cycle":
+			EventBus.wildlife_fell.emit(kind.id, sprite.global_position,
+				WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)), cause)
 		notice(sprite.global_position, Balance.WILDLIFE_NOTICE_DEATH_REACH, Notice.DEATH, kind.id)
 		if _is_authority_with_company():
 			EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
@@ -2499,6 +2511,13 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# anyway, and a consequence for ending it would read as the world punishing
 	# the player for the only sensible answer to a frenzy. Everything else pays
 	# exactly what it always did, at this animal's own rarity.
+	# **Karma** (2026-10-01): a harmless animal killed costs it by its rarity;
+	# a hunter that was coming for you costs nothing; a mercy gives.
+	if WildlifeFamilies.is_sick(animal):
+		RunState.shift_karma(Balance.KARMA_MERCY)
+	elif not kind.is_hostile():
+		RunState.shift_karma(-Balance.KARMA_HARMLESS_KILL * float(Balance.WRATH_RARITY_SCALE[
+			clampi(WildlifeFamilies.rarity_of(animal), 0, Balance.WRATH_RARITY_SCALE.size() - 1)]))
 	if not WildlifeFamilies.is_sick(animal):
 		EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position,
 			WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)),
@@ -2617,7 +2636,8 @@ func scare_from(at: Vector2, radius: float) -> void:
 ## earth's own blows - a quake, a funnel, a meteor - reach all of them, and
 ## none of those is the player's doing, so `by_player` is false and nothing
 ## pays out or counts against the earth.
-func wound_within(at: Vector2, radius: float, damage: float, by_player: bool = false) -> int:
+func wound_within(at: Vector2, radius: float, damage: float, by_player: bool = false,
+		cause: String = "earth") -> int:
 	if Coop.is_guest() or damage <= 0.0:
 		return 0
 	var hit: int = 0
@@ -2630,7 +2650,7 @@ func wound_within(at: Vector2, radius: float, damage: float, by_player: bool = f
 			continue
 		if sprite.global_position.distance_to(at) > radius:
 			continue
-		_wound(index, animal, damage, by_player)
+		_wound(index, animal, damage, by_player, cause)
 		hit += 1
 	return hit
 
@@ -2652,7 +2672,7 @@ func burn_near(at: Vector2, radius: float, damage_now: float) -> void:
 			Vfx.spark(sprite.global_position, Balance.FLAME_MID, 5, Vector2.UP, 120.0)
 		animal["burning"] = Balance.WILDFIRE_BURNING_SECONDS
 		if damage_now > 0.0:
-			_wound(index, animal, damage_now, false)
+			_wound(index, animal, damage_now, false, "fire")
 
 
 ## The ground floods (owner brief, 2026-09-14): the flyers leave, the climbers
@@ -2710,6 +2730,9 @@ func _drown(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
 	if _is_authority_with_company():
 		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
+	if _is_authority_or_alone():
+		EventBus.wildlife_fell.emit(kind.id, sprite.global_position,
+			WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)), "flood")
 	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
 	animal["state"] = State.LEAVING
 

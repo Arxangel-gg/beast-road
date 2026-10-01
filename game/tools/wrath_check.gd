@@ -1193,6 +1193,9 @@ func _test_rarity_and_the_shock() -> void:
 	_check(_sky.hazard_boost() > 1.0, "the shock did not lift the earth's hazards")
 	_check(_sky.wind() == Vector2.ZERO, "the wind did not stop for the legendary")
 	_step(Balance.WRATH_SHOCK_SECONDS + 1.0)
+	# The kills above were laid as grief where they happened (2026-10-01), and
+	# grief under the Warden presses the hazards too - which is not the shock.
+	_sky.grief.clear()
 	_check(is_equal_approx(_sky.hazard_boost(), 1.0 / (1.0 + float(_sky.anchors()) * Balance.WRATH_ANCHOR_CALM)),
 		"the shock did not pass")
 	_sky.set("_wrath_floor", 0.0)

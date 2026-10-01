@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+announce = "The birds fall silent where you walk. The ground has learned your step."
+announce_title = "THE EARTH KNOWS YOU"
+colour = Color(0.6, 0.2, 0.25, 1)
+id = "reckoning"
+display_name = "The Earth Knows You"
