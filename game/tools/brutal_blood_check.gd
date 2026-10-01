@@ -7,8 +7,13 @@ extends Node
 ## - **Brutal is a fourth level**, above High, saved by number; High is still
 ##   High.
 ## - **A Brutal mark never fades on its own**: no time ages it away and no rain
-##   washes it; a flood short of heavy does nothing; a heavy flood carries a
-##   field of it away over its own long while.
+##   washes it; a flood short of heavy does nothing; a heavy flood thins it over
+##   a long while and **never takes it** - it holds at `BLOOD_BRUTAL_WASH_FLOOR`
+##   (owner, 2026-10-01: "Brutal blood is practically forever"). Amended on that
+##   date: this gate used to insist a held heavy flood washed the field clean.
+## - **Nothing Brutal is ever lost**: a mark the field lets go of past its cap
+##   is baked into the ground's stain map, and a pool that soaks away leaves a
+##   stain as deep as it stood. Deep pools soak away slower than shallow ones.
 ## - **Dense blood pools**, and only on Brutal: deep where it fell thickest,
 ##   creeping out and thinning as it spreads, soaking away slowly - faster
 ##   while the ground shakes.
@@ -17,8 +22,10 @@ extends Node
 ## - **It comes home with a banked front**, marks and pools, and on no other
 ##   level.
 ## - **The ground keeps its scars**: a dent is a bowl with a lip, a crack runs
-##   its line, a quake cracks and slumps the ground round where it broke, and
-##   the act's end clears it.
+##   its line, a quake cracks and slumps the ground round where it broke - and
+##   since 2026-10-01 the act's end **keeps** them, and so do the burns and the
+##   holes, and all three come home with a banked front (owner: "permanent for
+##   the entire continuation of all of the runs that journey continues").
 
 var _failures: int = 0
 var _checks: int = 0
@@ -48,11 +55,12 @@ func _ready() -> void:
 	if _blood != null:
 		_test_the_level()
 		_test_it_never_fades_but_to_a_heavy_flood()
+		_test_nothing_brutal_is_lost()
 		_test_it_pools_spreads_and_soaks()
 		await _test_it_slows_and_stains_what_wades()
 		_test_it_comes_home()
 		_test_the_ground_keeps_its_scars()
-	_check(_finished == 6, "%d of 6 tests reached their end" % _finished)
+	_check(_finished == 7, "%d of 7 tests reached their end" % _finished)
 	UserSettings.set_blood_level(UserSettings.BLOOD_LOW)
 	RunState.flood = 0.0
 	RunState.set_phase(RunState.Phase.PREPARATION)
@@ -106,11 +114,19 @@ func _test_it_never_fades_but_to_a_heavy_flood() -> void:
 	_check(is_equal_approx(_blood.wash_multiplier(), 1.0), "rain washes Brutal blood")
 	RunState.flood = Balance.BLOOD_BRUTAL_FLOOD_FROM - 0.1
 	_check(is_equal_approx(_blood.wash_multiplier(), 1.0), "a flood short of heavy washes Brutal blood")
-	RunState.flood = Balance.BLOOD_BRUTAL_FLOOD_FROM + 0.05
-	_age(Balance.BLOOD_BRUTAL_WASH_SECONDS * 0.25, 1.0)
-	_check(_blood.marks() == 1, "a heavy flood washed Brutal blood away in a quarter of its while")
-	_age(Balance.BLOOD_BRUTAL_WASH_SECONDS, 1.0)
-	_check(_blood.marks() == 0, "a heavy flood held its whole while did not wash Brutal blood away")
+	_age(600.0, 10.0)
+	_check(is_zero_approx(_blood.wash_clock()), "a flood short of heavy ran the flood clock")
+	# A heavy flood at the height that drowns, held ten times its own while.
+	RunState.flood = 1.0
+	_age(Balance.BLOOD_BRUTAL_WASH_TAU * 10.0, 10.0)
+	_check(_blood.marks() == 1, "a heavy flood took a Brutal mark away")
+	var left: float = _blood.brutal_left_of(0.0)
+	_check(left >= Balance.BLOOD_BRUTAL_WASH_FLOOR - 0.001,
+		"a heavy flood took a Brutal mark below its floor: %.2f left" % left)
+	_check(left < 0.95, "a heavy flood held ten times its while did not thin a Brutal mark at all (%.2f left)" % left)
+	# And it takes great depth: just past the threshold the clock barely moves.
+	var shallow: float = BloodField.brutal_flood_rate(Balance.BLOOD_BRUTAL_FLOOD_FROM + 0.02)
+	_check(shallow < 0.02, "a flood just past heavy thins Brutal blood at %.3f of its fastest" % shallow)
 	RunState.flood = 0.0
 	RunState.weather_id = "clear"
 	EventBus.weather_changed.emit("clear")
@@ -121,6 +137,66 @@ func _pour_a_fight(at: Vector2, splats: int) -> void:
 	for _i: int in splats:
 		_blood.splat(at + Vector2(_dice.randf_range(-30.0, 30.0), _dice.randf_range(-20.0, 20.0)),
 			Vector2.from_angle(_dice.randf() * TAU), Balance.VFX_BLOOD_DEATH_SIZE, _dice)
+
+
+## **Nothing Brutal is ever lost** (owner, 2026-10-01). The field's cap used to
+## throw the oldest mark away; past it now, the mark is baked into the stain map.
+func _test_nothing_brutal_is_lost() -> void:
+	_blood.wipe()
+	UserSettings.set_blood_level(UserSettings.BLOOD_BRUTAL)
+	var first: Vector2 = Vector2(-1500.0, -1500.0)
+	_blood.splat(first, Vector2.RIGHT, Balance.VFX_BLOOD_DEATH_SIZE, _dice)
+	for index: int in Balance.BLOOD_MARKS_BRUTAL + 40:
+		_blood.droplet(Vector2(1500.0, 1500.0) + Vector2(float(index % 40) * 6.0, float(index / 40) * 6.0),
+			2.5, _dice)
+	_check(_blood.held() <= Balance.BLOOD_MARKS_BRUTAL, "the field held %d marks past its cap" % _blood.held())
+	var stains: BloodStains = _blood.stains_if_any()
+	_check(stains != null and stains.baked > 0, "a Brutal mark past the cap was thrown away, not baked")
+	_check(stains != null and stains.coverage_at(first) > 0.2,
+		"the first mark's ground holds no stain after it was let go (%.2f)"
+			% (stains.coverage_at(first) if stains != null else 0.0))
+	# It comes home with the front.
+	var banked: Dictionary = Vfx.blood_snapshot()
+	_check(not String(banked.get("stains", "")).is_empty(), "a Brutal field banked no stain map")
+	var again := BloodField.new()
+	add_child(again)
+	again.restore(banked)
+	var restored: BloodStains = again.stains_if_any()
+	_check(restored != null and absf(restored.coverage_at(first) - stains.coverage_at(first)) < 0.02,
+		"the restored stain map does not hold the banked stain")
+	again.queue_free()
+	# A pool that soaks away leaves a stain, and a deep pool outlasts a shallow one.
+	var deep := BloodPools.new()
+	var shallow := BloodPools.new()
+	add_child(deep)
+	add_child(shallow)
+	deep.pour(Vector2(0.0, 0.0), 8.0, 10.0)
+	shallow.pour(Vector2(0.0, 0.0), 0.4, 10.0)
+	# Measured as how long each lasts, because a deep pool spreads over more
+	# ground and so loses a larger share early - what the owner asked for is a
+	# pool that stays, and a deeper one that stays longer.
+	var shallow_life: float = 0.0
+	while shallow.total() > 0.0 and shallow_life < 20000.0:
+		deep._simulate(2.0)
+		shallow._simulate(2.0)
+		shallow_life += 2.0
+	_check(shallow_life >= 150.0, "a thin pool of a few drops soaked away in %.0f seconds" % shallow_life)
+	_check(deep.total() > 0.0, "a deep pool was gone as soon as a shallow one (%.0f s)" % shallow_life)
+	var dried := BloodPools.new()
+	add_child(dried)
+	var ground := BloodStains.new()
+	add_child(ground)
+	dried.stains = ground
+	dried.pour(Vector2(40.0, 40.0), 0.02, 10.0)
+	for _step: int in 400:
+		dried._simulate(1.0)
+	_check(dried.total() <= 0.0, "a thin film never soaked away")
+	_check(ground.coverage_at(Vector2(40.0, 40.0)) > 0.05,
+		"a pool that soaked away left no stain on its ground")
+	for node: Node in [deep, shallow, dried, ground]:
+		node.queue_free()
+	_blood.wipe()
+	_finished += 1
 
 
 func _test_it_pools_spreads_and_soaks() -> void:
@@ -271,8 +347,39 @@ func _test_the_ground_keeps_its_scars() -> void:
 		if scars.height_at(probe) != 0.0:
 			broken += 1
 	_check(broken > 0, "nothing round the quake's epicentre was broken")
+	# **The act's end keeps them** (owner, 2026-10-01), the burns and the holes
+	# with them - amended from "the act's end clears it".
+	var burns: ScorchMarks = _field.scorch()
+	var holes: Craters = _field.craters()
+	var burnt: Vector2 = Vector2(-1500.0, 1500.0)
+	burns.stamp(burnt, 60.0, 1.0)
+	holes.open(Vector2(1500.0, -1500.0), 50.0)
+	var depth_before: float = scars.height_at(at)
+	var holes_before: int = holes.count()
 	_field.refresh_terrain()
-	_check(is_zero_approx(scars.height_at(at)), "the act's end left last act's scars on the ground")
+	_check(is_equal_approx(scars.height_at(at), depth_before), "the act's end healed the ground's scars")
+	_check(burns.marked_at(burnt), "the act's end cleared the burns")
+	_check(holes.count() == holes_before, "the act's end filled the craters (%d of %d left)"
+		% [holes.count(), holes_before])
+	# And all three come home with a banked front.
+	var banked: Dictionary = _field.ground_snapshot()
+	RunState.wave_number = maxi(RunState.wave_number, 3)
+	var front: Dictionary = Expedition.compose(_field)
+	_check(front.has("ground") and not String((front["ground"] as Dictionary).get("scars", "")).is_empty(),
+		"a banked front carries no ground")
+	RunState.ground_restore.clear()
+	Expedition.apply(front)
+	_check(not RunState.ground_restore.is_empty(), "applying a banked front left no ground to lay")
+	RunState.ground_restore.clear()
+	scars.clear()
+	burns.clear()
+	holes.clear()
+	_field.restore_ground(banked)
+	_check(absf(scars.height_at(at) - depth_before) < 0.02,
+		"the restored ground's dent is %.2f where it was %.2f" % [scars.height_at(at), depth_before])
+	_check(burns.marked_at(burnt), "the restored ground lost its burns")
+	_check(holes.count() == holes_before, "the restored ground has %d craters, not %d"
+		% [holes.count(), holes_before])
 	_finished += 1
 
 

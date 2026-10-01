@@ -53,6 +53,12 @@ var _material: ShaderMaterial = null
 var _since_redraw: float = 1.0 / REDRAW_HZ
 var _rain_wash: float = 1.0
 var _chunks: Array[BloodChunk] = []
+## **The flood clock** (Brutal, 2026-10-01): seconds of deep water the ground
+## has stood under, weighted by how deep. A Brutal mark is thinned by the flood
+## that has passed since it was laid, toward `BLOOD_BRUTAL_WASH_FLOOR` and never
+## past it; nothing else ages a Brutal mark.
+var _wash_clock: float = 0.0
+var _brutal_shown: float = -1.0
 
 
 ## One canvas of marks. It paints what it holds and drops what has faded.
@@ -89,8 +95,12 @@ class BloodChunk extends Node2D:
 				BloodInk.blob(points, colours, indices, origin + (one["at"] as Vector2),
 					float(one["r"]), carrier, float(one.get("seed", 0.0)),
 					one.get("long", Vector2.ZERO) as Vector2)
+			# On Brutal the second half is the flood clock it was laid at: its
+			# life is longer than any road, and the shader needs the wash.
+			var second: float = float(splat.get("wash_born", life)) \
+				if UserSettings.blood_level() >= UserSettings.BLOOD_BRUTAL else life
 			while uvs.size() < points.size():
-				uvs.append(Vector2(born, life))
+				uvs.append(Vector2(born, second))
 		marks = kept
 		if points.is_empty() or indices.is_empty():
 			return
@@ -116,12 +126,53 @@ func pools() -> BloodPools:
 		_pools = BloodPools.new()
 		add_child(_pools)
 		_pools.scars = Vfx.scars_above(get_parent())
+		_pools.stains = stains()
 	return _pools
 
 
 ## The pools if any were poured, else null - for the movers' read.
 func pools_if_any() -> BloodPools:
 	return _pools
+
+
+## **What Brutal never forgets** (`BloodStains`): the marks the field lets go of
+## and the pools that soak away, baked into one map. Made the first time one is.
+var _stains: BloodStains = null
+
+
+func stains() -> BloodStains:
+	if _stains == null:
+		_stains = BloodStains.new()
+		add_child(_stains)
+		move_child(_stains, 0)
+	return _stains
+
+
+func stains_if_any() -> BloodStains:
+	return _stains
+
+
+## The flood clock, for the gate.
+func wash_clock() -> float:
+	return _wash_clock
+
+
+## **How much of a Brutal mark a flood has left** after `flooded` seconds of
+## the flood clock: 1 untouched, falling toward `BLOOD_BRUTAL_WASH_FLOOR` and
+## never below it. The shader's own arithmetic, for the gate.
+static func brutal_washed_left(flooded: float) -> float:
+	var washed: float = clampf(1.0 - exp(-maxf(flooded, 0.0)
+		/ maxf(Balance.BLOOD_BRUTAL_WASH_TAU, 1.0)), 0.0, 1.0)
+	return lerpf(1.0, Balance.BLOOD_BRUTAL_WASH_FLOOR, washed)
+
+
+## **How fast a flood runs the flood clock**: nothing short of
+## `BLOOD_BRUTAL_FLOOD_FROM`, rising to one a second at the height that drowns -
+## so it takes great depth, and a long time at it, to thin Brutal blood at all.
+static func brutal_flood_rate(flood: float) -> float:
+	var deep: float = clampf((flood - Balance.BLOOD_BRUTAL_FLOOD_FROM)
+		/ maxf(1.0 - Balance.BLOOD_BRUTAL_FLOOD_FROM, 0.01), 0.0, 1.0)
+	return deep * deep
 
 
 ## **What a Brutal field banks with a front**: the newest marks, five numbers
@@ -144,12 +195,18 @@ func snapshot() -> Dictionary:
 			snappedf(float(mark.get("size", 0.0)), 0.01), snappedf(heading.x, 0.001),
 			snappedf(heading.y, 0.001), int(mark["seed"]),
 			snappedf(maxf(_clock - float(mark["born"]), 0.0), 0.1)])
-	return {"marks": flat, "pools": _pools.snapshot() if _pools != null else []}
+	return {"marks": flat, "pools": _pools.snapshot() if _pools != null else [],
+		"wash": snappedf(_wash_clock, 0.1),
+		"stains": _stains.snapshot() if _stains != null else ""}
 
 
 ## Lays a banked Brutal field down again: every mark from its seed at its age,
 ## and the pools as they were.
 func restore(stored: Dictionary) -> void:
+	_wash_clock = maxf(float(stored.get("wash", 0.0)), 0.0)
+	var stained: String = String(stored.get("stains", ""))
+	if not stained.is_empty():
+		stains().restore(stained)
 	var flat: Array = stored.get("marks", []) as Array
 	var level: int = UserSettings.BLOOD_BRUTAL
 	var at: int = 0
@@ -164,6 +221,7 @@ func restore(stored: Dictionary) -> void:
 			else make_splat(where, heading, size, seed)
 		mark["born"] = _clock - age
 		mark["life"] = life_for(level)
+		mark["wash_born"] = _wash_clock
 		_lay_quietly(mark, level)
 		at += 8
 	var pooled: Array = stored.get("pools", []) as Array
@@ -204,6 +262,10 @@ func _ready() -> void:
 		_material.set_shader_parameter("dry", Balance.BLOOD_DRY)
 		_material.set_shader_parameter("dry_seconds", Balance.BLOOD_DRY_SECONDS)
 		_material.set_shader_parameter("clock", _clock)
+		_material.set_shader_parameter("settled", Balance.BLOOD_BRUTAL_SETTLED)
+		_material.set_shader_parameter("settle_seconds", Balance.BLOOD_BRUTAL_SETTLE_SECONDS)
+		_material.set_shader_parameter("wash_tau", Balance.BLOOD_BRUTAL_WASH_TAU)
+		_material.set_shader_parameter("wash_floor", Balance.BLOOD_BRUTAL_WASH_FLOOR)
 		material = _material
 	set_process(false)
 	# A banked Brutal field, read once and erased - the way a tower's health is.
@@ -241,6 +303,7 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	# front can lay the very same mark again from five numbers.
 	var mark: Dictionary = make_splat(at, heading, size, rng.randi())
 	mark["born"] = _clock
+	mark["wash_born"] = _wash_clock
 	# Life is an authored promise: every mark that is not displaced by the
 	# bounded field survives its full memory. Randomising it below one quietly
 	# turned "600 seconds" into as little as eight minutes.
@@ -303,6 +366,7 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 		return
 	var mark: Dictionary = make_droplet(at, radius, rng.randi())
 	mark["born"] = _clock
+	mark["wash_born"] = _wash_clock
 	mark["life"] = life_for(level)
 	_lay(mark, level)
 
@@ -343,12 +407,17 @@ func _lay(mark: Dictionary, level: int) -> void:
 		pools().pour(mark["at"] as Vector2, Balance.BLOOD_POOL_PER_MARK * area, size * 0.45)
 	var cap: int = cap_for(level)
 	var total: int = held()
+	var forever: bool = level >= UserSettings.BLOOD_BRUTAL
 	while total > cap and not _chunks.is_empty():
 		var oldest: BloodChunk = _chunks[0]
 		if oldest.marks.is_empty():
 			_chunks.remove_at(0)
 			oldest.queue_free()
 			continue
+		# **Brutal forgets nothing** (2026-10-01): the mark the field lets go
+		# of becomes the ground's own stain rather than nothing at all.
+		if forever:
+			stains().bake(oldest.marks[0])
 		oldest.marks.remove_at(0)
 		oldest.dirty = true
 		total -= 1
@@ -402,15 +471,19 @@ func wash_multiplier() -> float:
 	return _wash_now()
 
 
+## How much of a Brutal mark laid at flood clock `wash_born` is left now.
+func brutal_left_of(mark_wash_born: float) -> float:
+	return brutal_washed_left(_wash_clock - mark_wash_born)
+
+
 ## **What ages the blood.** One in dry weather; rain washes Low at
 ## `BLOOD_RAIN_WASH_MULTIPLIER` and High at `BLOOD_HIGH_WASH`, and so does a
 ## flood deep enough to reach the ground - "only washing naturally from
 ## rain/flood rules" is the owner's own sentence.
 func _wash_now() -> float:
-	# **Brutal: only a heavy flood, and slowly** - rain does nothing at all.
+	# **Brutal: nothing ages it** - rain does nothing and a flood runs the
+	# flood clock instead, which thins a mark and never takes it (2026-10-01).
 	if UserSettings.blood_level() >= UserSettings.BLOOD_BRUTAL:
-		if RunState.flood >= Balance.BLOOD_BRUTAL_FLOOD_FROM:
-			return Balance.BLOOD_GROUND_LIFE_BRUTAL / maxf(Balance.BLOOD_BRUTAL_WASH_SECONDS, 1.0)
 		return 1.0
 	var wet: bool = _rain_wash > 1.0 or RunState.flood >= Balance.BLOOD_FLOOD_WASH_FROM
 	if not wet:
@@ -426,6 +499,9 @@ func wipe() -> void:
 	_chunks.clear()
 	if _pools != null:
 		_pools.clear()
+	if _stains != null:
+		_stains.clear()
+	_wash_clock = 0.0
 	set_process(false)
 	_since_redraw = 1.0 / REDRAW_HZ
 	queue_redraw()
@@ -433,10 +509,21 @@ func wipe() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta * _wash_now()
-	if _pools != null and RunState.flood >= Balance.BLOOD_BRUTAL_FLOOD_FROM:
-		_pools.wash(Balance.BLOOD_POOL_FLOOD_WASH, delta)
+	var brutal: bool = UserSettings.blood_level() >= UserSettings.BLOOD_BRUTAL
+	if brutal:
+		var rate: float = brutal_flood_rate(RunState.flood)
+		_wash_clock += delta * rate
+		if _pools != null and rate > 0.0:
+			_pools.wash(Balance.BLOOD_POOL_FLOOD_WASH * rate, delta)
+		if _stains != null:
+			_stains.set_wash(brutal_washed_left(_wash_clock))
 	if _material != null:
 		_material.set_shader_parameter("clock", _clock)
+		_material.set_shader_parameter("wash_clock", _wash_clock)
+		var shown: float = 1.0 if brutal else 0.0
+		if shown != _brutal_shown:
+			_brutal_shown = shown
+			_material.set_shader_parameter("brutal", shown)
 	if _clock >= _last_end:
 		# Everything has faded: drop it all and rest.
 		wipe()

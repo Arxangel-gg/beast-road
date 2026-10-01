@@ -697,6 +697,9 @@ const ARSENAL_BOLT_TURN: float = 9.0
 const ARSENAL_BOLT_HIT: float = 22.0
 ## A chain is drawn this far above the feet it strikes, and hangs this long.
 const ARSENAL_CHAIN_LIFT: float = 40.0
+## How far above the town a weapon on the town lets its shots go, so they leave
+## the walls rather than the ground the town stands on (2026-10-01). [TUNE]
+const ARSENAL_TOWN_LIFT: float = 90.0
 const ARSENAL_CHAIN_LIFE: float = 0.22
 ## An arc hangs this far above the towers' feet. [TUNE]
 const ARSENAL_ARC_LIFT: float = 70.0
@@ -6981,11 +6984,35 @@ const BLOOD_MARKS_HIGH: int = 520
 ## `BLOOD_BRUTAL_WASH_SECONDS`. Rain does nothing. The field keeps
 ## `BLOOD_MARKS_BRUTAL`, and a banked front carries the newest
 ## `BLOOD_BRUTAL_SAVED` home with it, and its pools.
+##
+## **Practically forever, as of the same day** (owner: *"Blood stains should be
+## permanent on brutal mode, never losing complete visibility ... only being
+## slightly reduced during extreme flooding but even then not completely
+## washing it all away and needing a long time and at great depths to affect it
+## significantly. Currently on brutal blood stains are still disappearing and
+## quickly"*). They were disappearing for two reasons: the field holds
+## `BLOOD_MARKS_BRUTAL` and a busy wave lays hundreds a second, so the oldest
+## were thrown away within moments; and a heavy flood ran every mark through
+## its whole life in `WASH_SECONDS`. Now a mark the field lets go of is baked
+## into `BloodStains` instead, a mark settles to `BLOOD_BRUTAL_SETTLED` of its
+## strength over `BLOOD_BRUTAL_SETTLE_SECONDS` and holds there, and a flood
+## runs a clock of its own - nothing short of `BLOOD_BRUTAL_FLOOD_FROM`, one a
+## second at the height that drowns - that thins a mark toward
+## `BLOOD_BRUTAL_WASH_FLOOR` over `BLOOD_BRUTAL_WASH_TAU` of it and never past.
+## [TUNE]
 const BLOOD_GROUND_LIFE_BRUTAL: float = 10000000.0
 const BLOOD_MARKS_BRUTAL: int = 900
 const BLOOD_BRUTAL_FLOOD_FROM: float = 0.85
-const BLOOD_BRUTAL_WASH_SECONDS: float = 150.0
 const BLOOD_BRUTAL_SAVED: int = 420
+const BLOOD_BRUTAL_SETTLED: float = 0.62
+const BLOOD_BRUTAL_SETTLE_SECONDS: float = 900.0
+const BLOOD_BRUTAL_WASH_TAU: float = 900.0
+const BLOOD_BRUTAL_WASH_FLOOR: float = 0.5
+## The baked stain map: a texel this many units across, uploaded at most this
+## often. A pool that soaks away bakes a stain this strong at its deepest. [TUNE]
+const BLOOD_STAIN_TEXEL: float = 4.0
+const BLOOD_STAIN_UPLOAD_HZ: float = 1.0
+const BLOOD_POOL_STAIN: float = 0.8
 
 ## **Pools** (`BloodPools`, Brutal only). Cells `BLOOD_POOL_CELL` across; a mark
 ## the size of a hit pours `BLOOD_POOL_PER_MARK`, more for a bigger one by its
@@ -7008,11 +7035,20 @@ const BLOOD_POOL_SLOW_FROM: float = 0.2
 const BLOOD_POOL_SLOW_MAX: float = 0.45
 const BLOOD_POOL_SPREAD_FROM: float = 0.06
 const BLOOD_POOL_VISCOSITY: float = 0.22
-const BLOOD_POOL_SOAK: float = 0.0012
-const BLOOD_POOL_FRESH_HALF_LIFE: float = 75.0
+## **Slower, and slower again the deeper it stands** (owner, 2026-10-01):
+## a cell soaks at `SOAK` over one plus its depth times `SOAK_DEPTH_SLOW`, and
+## stays fresh for its half-life times one plus its depth times
+## `FRESH_DEPTH_SLOW`. A shallow film is gone in minutes, a deep pool lasts
+## hours of the road. [TUNE]
+const BLOOD_POOL_SOAK: float = 0.00035
+const BLOOD_POOL_SOAK_DEPTH_SLOW: float = 3.0
+const BLOOD_POOL_FRESH_HALF_LIFE: float = 240.0
+const BLOOD_POOL_FRESH_DEPTH_SLOW: float = 1.5
 const BLOOD_POOL_SIM_HZ: float = 8.0
 const BLOOD_POOL_DRAW_HZ: float = 4.0
-const BLOOD_POOL_FLOOD_WASH: float = 0.0067
+## A share of every pool a second at the height that drowns, falling with the
+## flood's depth as the flood clock does. [TUNE]
+const BLOOD_POOL_FLOOD_WASH: float = 0.0025
 const BLOOD_WADE_PER_DEPTH: float = 26.0
 const BLOOD_WADE_MAX: float = 34.0
 ## How much higher a body's wade stain must climb before it is written again.
@@ -8522,6 +8558,11 @@ const UI_UPRIGHT_PANEL_ASPECT: float = 1.9
 ## a simulated Warden that has made no headway for `HOLD_PATH_STUCK_SECONDS`
 ## gives up its errand for another.
 const HOLD_PATH_STEP: float = 40.0
+## **How often a stranger in the Hold goes without**, by `Hero.DRESS_SLOTS`
+## place - weapon, armour, cape, helmet (2026-10-01). Rarely unarmed or in
+## linen, often capeless, mostly bareheaded so their hair is seen. A look only.
+## [TUNE]
+const HOLD_STRANGER_BARE: Array[float] = [0.08, 0.2, 0.4, 0.62]
 const HOLD_PATH_STUCK_SECONDS: float = 1.2
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
@@ -10660,7 +10701,10 @@ const METEOR_APPROACH_GLOW: float = 1.35
 const CRATER_Z: int = -18
 ## The oldest goes when the field is full. A cap rather than a fade, because a
 ## crater that healed over would be the one thing here that un-happened.
-const CRATER_MAX: int = 14
+## Raised from 14 when craters stopped being cleared with the act (2026-10-01):
+## a road of ten acts keeps its holes. A pit let go of past this still leaves its
+## bowl in the ground's scars, which keep everything. [TUNE]
+const CRATER_MAX: int = 48
 ## How far the raised lip stands outside the hole, as a share of its radius.
 const CRATER_RIM: float = 0.18
 ## The camera looks down and slightly along, so a circle on the ground is an
@@ -11655,6 +11699,38 @@ const HEALTH_BAR_SHIELD_EDGE: Color = Color(1.0, 1.0, 1.0, 1.0)
 const WARD_NUMBER_COLOUR: Color = Color(0.5, 0.82, 1.0, 1.0)
 ## How long the gains of a ward are gathered before they are said as one number.
 const WARD_POP_SECONDS: float = 0.25
+
+# --- The ward's shell (2026-10-01) ----------------------------------------------
+## **A ward is a shell of light round the Warden** (owner, 2026-10-01: "a shield
+## visualizer that is juicy ... and affected by amount of shield visually").
+## `WardShell` draws it; what it shows is the ward's share of the most a Warden
+## may hold (`HEALTH_SHIELD_CEILING`). A look: nothing reads any of these.
+##
+## The shell's half-size round the body at its thinnest, in world units, and how
+## much larger a full ward makes it. [TUNE]
+const WARD_SHELL_RADIUS: Vector2 = Vector2(54.0, 72.0)
+const WARD_SHELL_GROWTH: float = 0.18
+## Where the shell is centred, as a share of the way from the feet to the
+## Warden's combat origin. Above one stands it round the chest and head. [TUNE]
+const WARD_SHELL_CENTRE: float = 0.92
+## The least strength a shell that is there is drawn with, so a sliver of ward
+## still reads as a shell. [TUNE]
+const WARD_SHELL_STRENGTH_FLOOR: float = 0.08
+## How fast the drawn strength follows the ward, a share a second up and down:
+## up quickly so a grant lands, down more slowly so a blow reads as a blow. [TUNE]
+const WARD_SHELL_RISE: float = 3.0
+const WARD_SHELL_FALL: float = 1.4
+## How long the shell takes to come and go, in seconds. [TUNE]
+const WARD_SHELL_FADE: float = 0.18
+## A blow paid for: the least flash it makes, and how much more a whole ceiling's
+## worth of ward taken in one blow would add. [TUNE]
+const WARD_SHELL_FLASH_FLOOR: float = 0.35
+const WARD_SHELL_FLASH_PER_SHARE: float = 2.2
+const WARD_SHELL_FLASH_SECONDS: float = 0.42
+## How long a granted ward's rim takes to run in from the edge. [TUNE]
+const WARD_SHELL_RISE_SECONDS: float = 0.45
+## The shards a ward throws when it is emptied, before the particle scale. [TUNE]
+const WARD_SHELL_SHARDS: int = 14
 ## **A notch a hundred health, a heavy notch a thousand**, so how much a
 ## Warden has is read off the bar rather than off a tooltip. The step widens
 ## along this list when a pool would need more notches than the bar can show

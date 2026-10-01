@@ -58,6 +58,8 @@ var input: HeroInput = null
 @export var sprite: Sprite2D
 ## The ring a finished set turns at the feet. Presentation; read by nothing.
 var _set_aura: SetAura = null
+## The ward drawn as a shell round the body (2026-10-01). Read by nothing.
+var ward_shell: WardShell = null
 
 ## This hero's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
@@ -376,6 +378,15 @@ func _ready() -> void:
 	# knows what is worn.
 	_set_aura = SetAura.new()
 	add_child(_set_aura)
+	# **The ward as a shell round the body** (owner, 2026-10-01). Placed just
+	# after the sprite, so it lies over the Warden and under the bar above their
+	# head; it centres itself on the body, so it is not lifted with the parts
+	# above.
+	ward_shell = WardShell.new()
+	ward_shell.hero = self
+	add_child(ward_shell)
+	if sprite != null and sprite.get_parent() == self:
+		move_child(ward_shell, sprite.get_index() + 1)
 	# **Not lifted**, unlike the three lines above it. Those put back a
 	# *centre-authored* part that the depth shift moved; this node's own
 	# coordinates are the ground, which is what the shift just made the origin.

@@ -223,7 +223,9 @@ func _compose() -> void:
 		var who: String = yard.sim_key(index) if yard != null \
 			else MetaState.play_code + str(index)
 		_table[index]["pen"] = _simulated_pen(who)
-		_table[index]["look"] = _simulated_look(who)
+		var stranger: Dictionary = HoldYard.stranger_of(who)
+		_table[index]["look"] = WardenLook.pack(stranger["look"] as Dictionary)
+		_table[index]["gear"] = stranger["gear"]
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
@@ -467,25 +469,6 @@ static func _species_of(pen: Array) -> PackedStringArray:
 ## **They are scenery and nothing reads them.** No bond, no collection credit,
 ## no rarity that pays: a simulated seat holds no state worth forging, which
 ## is the bound the whole seat design rests on.
-## **A dye of its own for a Warden nobody is sitting in**, derived from the
-## same key its name and its pen are, so the figure called Marrow is the same
-## Marrow every visit and the four of them are four people rather than four
-## copies of the painted Warden (owner, 2026-09-22: *"other NPC players in the
-## Hold should also have random variations of their own procedurally"*).
-##
-## Inside `WardenLook.RANGE` like any dye a player could set, and nothing but
-## a dye: a simulated Warden holds no state worth forging, which is the bound
-## the whole seat idea rests on.
-static func _simulated_look(who: String) -> Array:
-	if who.is_empty():
-		return []
-	var cloak: float = (float(absi(hash(who + "cloak")) % 1000) / 999.0 * 2.0 - 1.0) \
-		* WardenLook.RANGE
-	var sash: float = (float(absi(hash(who + "sash")) % 1000) / 999.0 * 2.0 - 1.0) \
-		* WardenLook.RANGE
-	return WardenLook.pack({WardenLook.KEY_CLOAK: cloak, WardenLook.KEY_SASH: sash})
-
-
 static func _simulated_pen(who: String) -> Array:
 	# **Never a mythic.** `IDEAS_REVIEW_2026-09-15` staged those as the rarest
 	# things in the game - one legend a run, found by a trail of evidence - and

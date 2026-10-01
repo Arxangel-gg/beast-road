@@ -85,6 +85,7 @@ func _ready() -> void:
 	_test_the_seats_are_the_sessions()
 	_test_the_warden_wears_their_own_dye()
 	_test_a_stranger_wears_their_gear()
+	_test_the_strangers_are_dressed()
 	await _test_the_chrome_is_above_the_sky()
 	await _test_the_crowd_changes_and_does_things()
 	_test_the_shelf_refreshes_by_rule()
@@ -104,7 +105,7 @@ func _ready() -> void:
 	# comparison-of-two-nothings shape wearing a gate's clothes. Each test
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
-	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome",
+	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "strangers_dressed", "thumb", "news", "chrome",
 			"click", "menu_click", "stone_card"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
@@ -808,6 +809,88 @@ func _test_a_stranger_wears_their_gear() -> void:
 	session.queue_free()
 	yard.queue_free()
 	_reached["stranger_gear"] = true
+
+
+## **The Wardens nobody is sitting in are people, dressed** (owner, 2026-10-01:
+## *"AI players at the Hold should be random appearance including color and
+## looks selections as well as worn gear that affects appearance such as armor
+## and capes and weapons"*).
+##
+## Two halves. The roll: over a few hundred keys a stranger is mostly armed and
+## armoured, often caped, sometimes helmed, never in a trophy, in every cloth
+## colour and every body - measured over fixed keys rather than three seats,
+## because three seats is a coin toss. And the door: the session's table drew a
+## dye-only row over every simulated seat, which re-dressed each of them as the
+## bare body the moment it was drawn, so the figures are read after the session
+## has composed and drawn its own table.
+func _test_the_strangers_are_dressed() -> void:
+	var keys: int = 300
+	var worn: Array[int] = [0, 0, 0, 0]
+	var colours: Dictionary = {}
+	var bodies: Dictionary = {}
+	var trophies: int = 0
+	var stable: bool = true
+	for index: int in keys:
+		var who: String = "gate:stranger:%d" % index
+		var stranger: Dictionary = HoldYard.stranger_of(who)
+		stable = stable and str(stranger) == str(HoldYard.stranger_of(who))
+		var gear: Array = stranger["gear"] as Array
+		var look: Dictionary = stranger["look"] as Dictionary
+		bodies[int(look[WardenLook.KEY_BODY])] = true
+		colours[int(look[WardenLook.KEY_TOP_COLOUR])] = true
+		for place: int in gear.size():
+			var kind: GearData = ContentDB.gear(String(gear[place]))
+			if kind == null:
+				continue
+			worn[place] += 1
+			if kind.trophy:
+				trophies += 1
+			_check(kind.slot == Hero.DRESS_SLOTS[place],
+				"a stranger wears %s in the %d place, which is not its slot" % [kind.id, place])
+	_check(stable, "a stranger's roll differs between two asks of the same key")
+	_check(float(worn[0]) / keys > 0.8, "strangers are armed %d times in %d" % [worn[0], keys])
+	_check(float(worn[1]) / keys > 0.6, "strangers are armoured %d times in %d" % [worn[1], keys])
+	_check(worn[2] > keys / 4 and worn[2] < keys, "strangers wear capes %d times in %d" % [worn[2], keys])
+	_check(worn[3] > keys / 8, "strangers wear helmets %d times in %d" % [worn[3], keys])
+	_check(trophies == 0, "a stranger wore a trophy %d times" % trophies)
+	_check(colours.size() >= 10, "strangers' tops came in %d colours" % colours.size())
+	var bodies_drawn: int = 0
+	for body: String in WardenDress.BODIES:
+		if WardenDress.available(body):
+			bodies_drawn += 1
+	_check(bodies.size() == bodies_drawn, "strangers came in %d of %d bodies" % [bodies.size(), bodies_drawn])
+
+	var yard: HoldYard = _stand_a_yard()
+	var session := HoldSession.new()
+	session.yard = yard
+	add_child(session)
+	session._compose()
+	session._draw_table()
+	var dressed: int = 0
+	var outfits: Dictionary = {}
+	for index: int in range(1, yard.seats()):
+		if yard.seat_kind(index) != HoldSession.Seat.SIMULATED:
+			continue
+		var animator: HeroAnimator = yard.seat_state(index).get("animator") as HeroAnimator
+		var stranger: Dictionary = HoldYard.stranger_of(yard.sim_key(index))
+		var expected: Dictionary = WardenDress.outfit(stranger["look"] as Dictionary,
+			ContentDB.gear(String((stranger["gear"] as Array)[0])),
+			ContentDB.gear(String((stranger["gear"] as Array)[1])),
+			ContentDB.gear(String((stranger["gear"] as Array)[2])),
+			ContentDB.gear(String((stranger["gear"] as Array)[3])))
+		_check(wears(animator, expected) and animator != null
+				and str(animator._outfit.get("hair", "")) == str(expected.get("hair", "")),
+			"the session's table re-dressed stranger %d as something it was not rolled as" % index)
+		if animator != null:
+			dressed += 1
+			outfits[str(animator._outfit.get("body_layer", "")) + str(animator._outfit.get("hair", ""))
+				+ str(animator._outfit.get("held", ""))] = true
+	_check(dressed >= 2, "the session drew %d strangers" % dressed)
+	_check(outfits.size() >= mini(dressed, 2),
+		"%d strangers wore %d outfits between them" % [dressed, outfits.size()])
+	session.queue_free()
+	yard.queue_free()
+	_reached["strangers_dressed"] = true
 
 
 ## One real kind for each dressed slot - weapon, armour, cape, helmet - chosen

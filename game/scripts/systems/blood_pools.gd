@@ -28,6 +28,11 @@ var _half: float = 0.0
 var _across: int = 0
 var _depth: PackedFloat32Array = PackedFloat32Array()
 var _fresh: PackedFloat32Array = PackedFloat32Array()
+## The deepest each cell has stood since it last ran dry: what its stain is
+## baked at when it soaks away.
+var _peak: PackedFloat32Array = PackedFloat32Array()
+## Where a pool that soaks away leaves its stain (Brutal). Set by the field.
+var stains: BloodStains = null
 var _active: PackedInt32Array = PackedInt32Array()
 var _in_active: PackedByteArray = PackedByteArray()
 var _image: Image = null
@@ -57,6 +62,8 @@ func _init(half_extent: float = 0.0) -> void:
 	_depth.fill(0.0)
 	_fresh.resize(_across * _across)
 	_fresh.fill(0.0)
+	_peak.resize(_across * _across)
+	_peak.fill(0.0)
 	_in_active.resize(_across * _across)
 	_in_active.fill(0)
 	_bytes.resize(_across * _across * 2)
@@ -132,6 +139,7 @@ func pour(at: Vector2, volume: float, radius: float) -> void:
 		var index: int = cells[i]
 		var added: float = volume * weights[i] / sum
 		_depth[index] = minf(_depth[index] + added, Balance.BLOOD_POOL_MAX)
+		_peak[index] = maxf(_peak[index], _depth[index])
 		_fresh[index] = 1.0
 		_activate(index)
 		_write(index)
@@ -210,6 +218,7 @@ func clear() -> void:
 	for index: int in _active:
 		_depth[index] = 0.0
 		_fresh[index] = 0.0
+		_peak[index] = 0.0
 		_in_active[index] = 0
 		_write(index)
 	_active = PackedInt32Array()
@@ -240,8 +249,11 @@ func _simulate(step: float) -> void:
 	var slosh: float = Balance.BLOOD_POOL_QUAKE_SLOSH if _sloshing > 0.0 else 1.0
 	_sloshing = maxf(_sloshing - step, 0.0)
 	var flow_share: float = clampf(Balance.BLOOD_POOL_VISCOSITY * slosh * step, 0.0, 0.2)
+	# **Deep blood lasts** (owner, 2026-10-01: "pooled blood should have a much
+	# slower evaporate dry rate ... with deeper pools lasting even longer"): a
+	# cell soaks and dries more slowly the deeper it stands.
 	var soak: float = Balance.BLOOD_POOL_SOAK * step
-	var fresh_keep: float = pow(0.5, step / maxf(Balance.BLOOD_POOL_FRESH_HALF_LIFE, 1.0))
+	var half_life: float = maxf(Balance.BLOOD_POOL_FRESH_HALF_LIFE, 1.0)
 	var visiting: PackedInt32Array = _active.duplicate()
 	for index: int in visiting:
 		var depth: float = _depth[index]
@@ -263,8 +275,10 @@ func _simulate(step: float) -> void:
 				_fresh[neighbour] = maxf(_fresh[neighbour], _fresh[index] * 0.9)
 				_activate(neighbour)
 				_write(neighbour)
-		_depth[index] = maxf(_depth[index] - soak, 0.0)
-		_fresh[index] *= fresh_keep
+		var standing: float = _depth[index]
+		_depth[index] = maxf(standing - soak / (1.0 + standing * Balance.BLOOD_POOL_SOAK_DEPTH_SLOW), 0.0)
+		_fresh[index] *= pow(0.5, step / (half_life * (1.0 + standing * Balance.BLOOD_POOL_FRESH_DEPTH_SLOW)))
+		_peak[index] = maxf(_peak[index], _depth[index])
 		_write(index)
 	# Drop what has soaked away.
 	var kept: PackedInt32Array = PackedInt32Array()
@@ -272,8 +286,13 @@ func _simulate(step: float) -> void:
 		if _depth[index] > 0.002:
 			kept.append(index)
 		else:
+			# A pool that soaks away leaves its stain, as deep as it stood.
+			if stains != null and is_instance_valid(stains) and _peak[index] > 0.01:
+				stains.stamp_pool(_centre_of(index % _across, index / _across),
+					Balance.BLOOD_POOL_CELL * 0.75, _peak[index])
 			_depth[index] = 0.0
 			_fresh[index] = 0.0
+			_peak[index] = 0.0
 			_in_active[index] = 0
 			_write(index)
 	_active = kept
@@ -312,6 +331,7 @@ func restore(stored: Array) -> void:
 		if index >= 0 and index < _depth.size():
 			_depth[index] = clampf(float(stored[at + 1]) / 1000.0, 0.0, Balance.BLOOD_POOL_MAX)
 			_fresh[index] = clampf(float(stored[at + 2]) / 100.0, 0.0, 1.0)
+			_peak[index] = _depth[index]
 			_activate(index)
 			_write(index)
 		at += 3

@@ -11,8 +11,9 @@ extends Sprite2D
 ## read bilinearly, so a mark has soft edges without a shader - which is what
 ## lets this be looked at headless, unlike the flood's sheen.
 ##
-## Marks never fade within an act. `refresh_terrain` clears them when the road
-## changes region, which is the same moment the foliage regrows.
+## Marks never fade. They used to be cleared when the road changed region; since
+## 2026-10-01 they last the whole road and come home with a banked front (owner:
+## surface damage is "part of the rest of the acts and even beyond").
 
 var half_extent: float = 0.0
 var _across: int = 2
@@ -87,7 +88,31 @@ func stamp_count() -> int:
 	return _stamps
 
 
-## A new region is new ground.
+## **For a banked front**: the burns as a PNG in text, or "" when nothing burned.
+func snapshot() -> String:
+	if _stamps <= 0 or _across < 2:
+		return ""
+	var picture: Image = Image.create_from_data(_across, _across, false, Image.FORMAT_RGBA8, _bytes)
+	return Marshalls.raw_to_base64(picture.save_png_to_buffer())
+
+
+func restore(text: String) -> void:
+	if text.is_empty() or _across < 2:
+		return
+	var picture := Image.new()
+	if picture.load_png_from_buffer(Marshalls.base64_to_raw(text)) != OK:
+		push_warning("[ground] banked burns could not be read; the ground starts unburnt")
+		return
+	if picture.get_format() != Image.FORMAT_RGBA8:
+		picture.convert(Image.FORMAT_RGBA8)
+	if picture.get_width() != _across or picture.get_height() != _across:
+		picture.resize(_across, _across, Image.INTERPOLATE_BILINEAR)
+	_bytes = picture.get_data()
+	_stamps = maxi(_stamps, 1)
+	_dirty = true
+
+
+## Clears every burn: a new road is new ground.
 func clear() -> void:
 	_bytes.fill(0)
 	_stamps = 0

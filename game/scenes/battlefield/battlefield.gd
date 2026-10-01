@@ -679,6 +679,12 @@ func _setup_lighting() -> void:
 	_scorch.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
 	_scorch.z_index = Balance.SCORCH_Z
 	add_child(_scorch)
+	# **A banked front brings its ground home** (2026-10-01): the burns, the
+	# holes and the scars of the road so far, read once and erased - the way the
+	# blood and a tower's health are.
+	if not RunState.ground_restore.is_empty():
+		restore_ground(RunState.ground_restore.duplicate(true))
+	RunState.ground_restore.clear()
 	# The ground a disaster leaves charged, over the marks and under the field.
 	_zones = WrathZones.new()
 	add_child(_zones)
@@ -2628,14 +2634,15 @@ func refresh_terrain() -> void:
 	# them. Exactly the fault the comment at the top of this function warns
 	# about, in the one system whose documentation claimed to be handled here.
 	#
-	# The craters go with them: a hole in the Verdant Maw's road is not a hole in
-	# the Saltpan's, and "for the remainder of the act" is what was asked for.
-	if _scorch != null:
-		_scorch.clear()
-	if _craters != null:
-		_craters.clear()
-	if _scars != null:
-		_scars.clear()
+	# **And then it stopped being cleared at all** (owner, 2026-10-01: *"make sure
+	# that all surface damages on the earth including craters and earthquake
+	# remains etc should also be permanent for the entire continuation of all of
+	# the runs that journey continues ... They're part of the rest of the acts
+	# and even beyond."*). The burns, the holes and the scars stay through every
+	# act of the road and come home with a banked front (`ground_snapshot`).
+	# The note above is kept because the fault it records - a `clear` nothing
+	# called - is the reason the ground's memory has one owner, and that owner
+	# is now the road rather than the act.
 	# **And the fireflies, which had never been re-laid at all.** They gather
 	# over the treeline and over the ponds, seams and timber - every one of which
 	# this function has just re-laid - and they were built once in `_ready`, so
@@ -3593,6 +3600,25 @@ func scorch() -> ScorchMarks:
 ## when the region changes, which is what makes a crater last exactly the act.
 func craters() -> Craters:
 	return _craters
+
+
+## **The ground's memory, for a banked front** (2026-10-01): the scars, the
+## burns and the holes, each as the smallest thing that lays it down again.
+func ground_snapshot() -> Dictionary:
+	return {
+		"scars": _scars.snapshot() if _scars != null else "",
+		"scorch": _scorch.snapshot() if _scorch != null else "",
+		"craters": _craters.snapshot() if _craters != null else [],
+	}
+
+
+func restore_ground(stored: Dictionary) -> void:
+	if _scars != null:
+		_scars.restore(String(stored.get("scars", "")))
+	if _scorch != null:
+		_scorch.restore(String(stored.get("scorch", "")))
+	if _craters != null:
+		_craters.restore(stored.get("craters", []) as Array)
 
 
 ## The ground's depth map of what broke it this act (`GroundScars`).

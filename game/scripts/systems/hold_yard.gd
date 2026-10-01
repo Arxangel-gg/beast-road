@@ -1154,18 +1154,32 @@ func _build_seats() -> void:
 			own.seed = absi(hash("hold-seat:" + sim_key(index)))
 		_place(_seats[index])
 		# Somebody, rather than a copy of the player: a body, a haircut, a
-		# colour, a beard and a skin of their own, drawn from this visit's salt.
-		_dress_seat(index, _stranger_look(index), [])
+		# colour, a beard, a skin, cloth colours and gear of their own, drawn
+		# from this visit's salt.
+		var stranger: Dictionary = stranger_of(sim_key(index))
+		_dress_seat(index, stranger["look"] as Dictionary, stranger["gear"] as Array)
 	_dress_seat(0, WardenLook.worn(), Hero.worn_kinds())
 	_relabel()
 
 
-## A simulated Warden's look, rolled from the visit rather than the run's stream
-## (decoration never draws on a named stream). Plain cloth: a dye on a stranger
-## would read as the player's own colours.
-func _stranger_look(index: int) -> Dictionary:
+## **A simulated Warden, whole** (owner, 2026-10-01: *"AI players at the Hold
+## should be random appearance including color and looks selections as well as
+## worn gear that affects appearance such as armor and capes and weapons"*): a
+## body, a haircut, a colour, a beard, a skin, the three cloth colours, and four
+## pieces worn by kind - a weapon with a held picture, an armour, often a cape,
+## sometimes a helmet. Rolled from the seat's own key, never the run's stream
+## (decoration never draws on a named stream), so the figure called Marrow is
+## the same Marrow all visit.
+##
+## **One roll for both doors.** The session's table and the yard's own seats
+## both ask here: the table used to carry a dye-only row for a simulated seat,
+## which re-dressed every stranger as the bare body the moment a session drew
+## its table - four people reduced to four copies. A trophy is never worn: one
+## is paid by one fight and nothing else, and a stranger wearing one would say
+## otherwise.
+static func stranger_of(who: String) -> Dictionary:
 	var own := RandomNumberGenerator.new()
-	own.seed = absi(hash("hold-look:" + sim_key(index)))
+	own.seed = absi(hash("hold-look:" + who))
 	var look: Dictionary = WardenLook.plain()
 	var drawn: Array[int] = []
 	for body: int in WardenDress.BODIES.size():
@@ -1173,9 +1187,42 @@ func _stranger_look(index: int) -> Dictionary:
 			drawn.append(body)
 	look[WardenLook.KEY_BODY] = drawn[own.randi_range(0, drawn.size() - 1)] if not drawn.is_empty() else 0
 	for key: String in [WardenLook.KEY_HAIR, WardenLook.KEY_HAIR_COLOUR, WardenLook.KEY_BEARD,
-			WardenLook.KEY_SKIN]:
+			WardenLook.KEY_SKIN, WardenLook.KEY_CAPE_COLOUR, WardenLook.KEY_TOP_COLOUR,
+			WardenLook.KEY_BOTTOM_COLOUR]:
 		look[key] = own.randi_range(0, int(WardenLook.CHOICES[key]) - 1)
-	return WardenLook.clean(look)
+	var gear: Array = []
+	for place: int in Hero.DRESS_SLOTS.size():
+		var slot: int = Hero.DRESS_SLOTS[place]
+		var bare: float = float(Balance.HOLD_STRANGER_BARE[place]) \
+			if place < Balance.HOLD_STRANGER_BARE.size() else 0.0
+		var kinds: Array[String] = _wearable_kinds(slot)
+		if kinds.is_empty() or own.randf() < bare:
+			gear.append("")
+		else:
+			gear.append(kinds[own.randi_range(0, kinds.size() - 1)])
+	return {"look": WardenLook.clean(look), "gear": gear}
+
+
+static var _wearable: Dictionary = {}
+
+
+## The kinds a stranger may wear in a slot: anything but a trophy, and a weapon
+## only with a held picture, since one without is a fist round nothing.
+static func _wearable_kinds(slot: int) -> Array[String]:
+	if _wearable.has(slot):
+		return _wearable[slot]
+	var out: Array[String] = []
+	for id: Variant in ContentDB.gear_kinds:
+		var kind: GearData = ContentDB.gear(String(id))
+		if kind == null or kind.slot != slot or kind.trophy:
+			continue
+		if slot == GearData.Slot.WEAPON and WardenDress.held_path(kind).is_empty():
+			continue
+		out.append(kind.id)
+	out.sort()
+	if not out.is_empty():
+		_wearable[slot] = out
+	return out
 
 
 ## Dresses a seat's Warden: the look, and the gear by kind where it is known.

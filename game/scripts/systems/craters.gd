@@ -68,8 +68,33 @@ func open(at: Vector2, radius: float) -> void:
 	queue_redraw()
 
 
-## The region changed. Called beside `ScorchMarks.clear` in `refresh_terrain`,
-## because they answer the same question about the same ground.
+## **For a banked front**: every pit as its place and size, flat.
+func snapshot() -> Array:
+	var flat: Array = []
+	for pit: Dictionary in pits:
+		var at: Vector2 = pit["at"]
+		flat.append_array([snappedf(at.x, 0.1), snappedf(at.y, 0.1), snappedf(float(pit["radius"]), 0.1)])
+	return flat
+
+
+## Lays a banked road's pits down again, cooled - their heat went out long ago.
+func restore(flat: Array) -> void:
+	var at: int = 0
+	while at + 2 < flat.size():
+		var where := Vector2(float(flat[at]), float(flat[at + 1]))
+		var radius: float = float(flat[at + 2])
+		at += 3
+		if radius <= 1.0 or not where.is_finite():
+			continue
+		while pits.size() >= Balance.CRATER_MAX:
+			pits.pop_front()
+		pits.append({"at": where, "radius": radius, "seed": hash(where) & 0x7fffffff,
+			"opened": -Balance.CRATER_GLOW_SECONDS * 2.0})
+	queue_redraw()
+
+
+## Clears every pit. No longer called when the region changes (2026-10-01): a
+## hole the sky punched stays in the road for the rest of it.
 func clear() -> void:
 	if pits.is_empty():
 		return

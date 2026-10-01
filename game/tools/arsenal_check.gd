@@ -904,6 +904,29 @@ func _test_it_freezes_with_the_field() -> void:
 		await get_tree().process_frame
 		waited += get_process_delta_time()
 	_check(arsenal.records() > 0, "no bolt was ever in the air to freeze")
+	# **A Warden's bolt leaves the chest, not the boots** (owner, 2026-10-01:
+	# "Player augment projectiles should not originate from feet root"). The
+	# first point of its trail is where it was let go.
+	# Read off this weapon's own bolt: a kill-burst left in the air by the test
+	# before rightly rises from where its body fell.
+	var own: Dictionary = {}
+	var looked: float = 0.0
+	while own.is_empty() and looked < 6.0:
+		for record: Dictionary in arsenal._records:
+			if String(record.get("card", "")) == "seeking_flames" and record.has("trail"):
+				own = record
+				break
+		if own.is_empty():
+			await get_tree().process_frame
+			looked += get_process_delta_time()
+	_check(not own.is_empty(), "the Warden's own bolt was never in the air")
+	if not own.is_empty():
+		var trail: PackedVector2Array = own["trail"] as PackedVector2Array
+		var rise: float = _hero.global_position.y - trail[0].y
+		var chest: float = _hero.global_position.y - _hero.combat_origin().y
+		_check(trail.size() > 0 and rise >= chest * 0.8,
+			"a Warden's bolt left from %.0f units above the feet, where the chest is %.0f"
+				% [rise, chest])
 	if arsenal.records() > 0:
 		_field.suspend()
 		var at: Vector2 = arsenal._records[0]["at"] as Vector2

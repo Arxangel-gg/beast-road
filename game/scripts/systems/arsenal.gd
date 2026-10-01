@@ -398,7 +398,7 @@ func _tick_weapon(armed: Armed, delta: float) -> void:
 func _fire(armed: Armed) -> bool:
 	match armed.weapon.pattern:
 		ArsenalWeaponData.Pattern.SEEKER:
-			return _fire_seekers(armed, _anchors(armed))
+			return _fire_seekers(armed, _anchors(armed), _launches(armed))
 		ArsenalWeaponData.Pattern.CHAIN:
 			return _fire_chain(armed)
 		ArsenalWeaponData.Pattern.NOVA:
@@ -455,6 +455,42 @@ func _anchors(armed: Armed) -> Array[Vector2]:
 			if board != null:
 				out.append(board.town_position())
 	return out
+
+
+## **Where a weapon's shot leaves from**, beside each of `_anchors` in the
+## same order (owner, 2026-10-01: *"Player augment projectiles should not
+## originate from feet root"*). An anchor is where the weapon *stands* - the
+## ground the reach is measured on, as every body's place is - and a Warden's
+## anchor is their feet, so every bolt, orb and chain left the boots. A shot
+## leaves the Warden's chest, a tower's muzzle and the top of the town. A look:
+## reach, rings and every hit are still measured from the anchor.
+func _launches(armed: Armed) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	match armed.weapon.anchor:
+		ArsenalWeaponData.Anchor.WARDEN:
+			if hero != null and is_instance_valid(hero):
+				out.append(hero.combat_origin())
+		ArsenalWeaponData.Anchor.TOWERS:
+			for tower: Tower in armed_towers():
+				out.append(tower.origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
+		ArsenalWeaponData.Anchor.TOWN:
+			if board != null:
+				out.append(board.town_position() + Vector2(0.0, -Balance.ARSENAL_TOWN_LIFT))
+	return out
+
+
+## How far above its anchor a weapon's shots and orbs are drawn: the same rise
+## `_launches` takes, for the patterns that circle rather than fly.
+func _launch_lift(armed: Armed) -> Vector2:
+	match armed.weapon.anchor:
+		ArsenalWeaponData.Anchor.WARDEN:
+			if hero != null and is_instance_valid(hero):
+				return hero.combat_origin() - hero.global_position
+		ArsenalWeaponData.Anchor.TOWERS:
+			return Vector2(0.0, -Balance.TOWER_SORT_LIFT - Balance.TOWER_SPRITE_LIFT)
+		ArsenalWeaponData.Anchor.TOWN:
+			return Vector2(0.0, -Balance.ARSENAL_TOWN_LIFT)
+	return Vector2.ZERO
 
 
 # --- The blow -----------------------------------------------------------------
@@ -683,7 +719,7 @@ func _tick_guard(armed: Armed, delta: float) -> void:
 		armed.stones += 1
 		armed.clock = cadence(weapon)
 		if hero != null and is_instance_valid(hero):
-			Vfx.spark(hero.global_position, weapon.tint, 5, Vector2.UP, 90.0)
+			Vfx.spark(hero.combat_origin(), weapon.tint, 5, Vector2.UP, 90.0)
 
 
 ## **A guard swallows a shot and never a blow.** Asked by the field for every
@@ -777,27 +813,34 @@ func _tick_orbit(armed: Armed, delta: float) -> void:
 # --- Seekers ------------------------------------------------------------------
 
 
-func _fire_seekers(armed: Armed, from_points: Array[Vector2]) -> bool:
+## `from_points` are where the weapon stands, which is what its reach is
+## measured from; `launch_points`, beside them in the same order, are where the
+## bolts leave. A guard's caught shot passes none and leaves from where it was
+## caught.
+func _fire_seekers(armed: Armed, from_points: Array[Vector2],
+		launch_points: Array[Vector2] = []) -> bool:
 	var weapon: ArsenalWeaponData = armed.weapon
 	if from_points.is_empty():
 		return false
 	var count: int = count_for(weapon, armed.level)
 	var fired: bool = false
-	for from: Vector2 in from_points:
+	for place: int in from_points.size():
+		var from: Vector2 = from_points[place]
+		var launch: Vector2 = launch_points[place] if place < launch_points.size() else from
 		var targets: Array[Enemy] = _nearest(from, weapon.reach, count)
 		if targets.is_empty():
 			continue
 		for index: int in count:
 			var target: Enemy = targets[index % targets.size()]
-			var heading: Vector2 = (Hitbox.body_of(target) - from).normalized()
+			var heading: Vector2 = (Hitbox.body_of(target) - launch).normalized()
 			heading = heading.rotated(_dice.randf_range(-0.55, 0.55) \
 				+ (float(index) - float(count - 1) * 0.5) * 0.35)
-			_add_record({"kind": "bolt", "card": armed.card.id, "at": from + heading * 18.0,
+			_add_record({"kind": "bolt", "card": armed.card.id, "at": launch + heading * 18.0,
 				"velocity": heading * weapon.speed, "target": weakref(target),
-				"life": Balance.ARSENAL_BOLT_LIFE, "trail": PackedVector2Array([from]),
+				"life": Balance.ARSENAL_BOLT_LIFE, "trail": PackedVector2Array([launch]),
 				"damage": hit_for(weapon, armed.level)})
 		fired = true
-		Vfx.spark(from, weapon.tint, 4, Vector2.ZERO, 120.0)
+		Vfx.spark(launch, weapon.tint, 4, Vector2.ZERO, 120.0)
 	return fired
 
 
@@ -859,7 +902,9 @@ func _fire_chain(armed: Armed) -> bool:
 	var anchors: Array[Vector2] = _anchors(armed)
 	if anchors.is_empty():
 		return false
-	var start: Vector2 = anchors[0] + Vector2(0.0, -Balance.ARSENAL_CHAIN_LIFT)
+	var launches: Array[Vector2] = _launches(armed)
+	var start: Vector2 = launches[0] if not launches.is_empty() \
+		else anchors[0] + Vector2(0.0, -Balance.ARSENAL_CHAIN_LIFT)
 	var first: Array[Enemy] = _nearest(anchors[0], weapon.reach, 1)
 	if first.is_empty():
 		return false
@@ -1209,7 +1254,9 @@ func _draw() -> void:
 func _draw_orbit(armed: Armed) -> void:
 	var count: int = count_for(armed.weapon, armed.level)
 	var ring: float = radius_for(armed.weapon, armed.level)
-	for anchor: Vector2 in _anchors(armed):
+	var lift: Vector2 = _launch_lift(armed)
+	for ground: Vector2 in _anchors(armed):
+		var anchor: Vector2 = ground + lift
 		for index: int in count:
 			var angle: float = armed.angle + TAU * float(index) / float(count)
 			_draw_head(armed.weapon, anchor + Vector2.from_angle(angle) * ring,
@@ -1222,7 +1269,9 @@ func _draw_guard(armed: Armed) -> void:
 		return
 	var full: int = maxi(count_for(armed.weapon, armed.level), 1)
 	var ring: float = radius_for(armed.weapon, armed.level)
-	for anchor: Vector2 in _anchors(armed):
+	var lift: Vector2 = _launch_lift(armed)
+	for ground: Vector2 in _anchors(armed):
+		var anchor: Vector2 = ground + lift
 		for index: int in armed.stones:
 			var angle: float = armed.angle + TAU * float(index) / float(full)
 			_draw_head(armed.weapon, anchor + Vector2.from_angle(angle) * ring,
@@ -1315,9 +1364,10 @@ func paint_light(on: CanvasItem) -> void:
 			ArsenalWeaponData.Pattern.ORBIT:
 				var count: int = count_for(weapon, armed.level)
 				var ring: float = radius_for(weapon, armed.level)
+				var lift: Vector2 = _launch_lift(armed)
 				for anchor: Vector2 in _anchors(armed):
 					for index: int in count:
-						var orb: Vector2 = anchor + Vector2.from_angle(
+						var orb: Vector2 = anchor + lift + Vector2.from_angle(
 							armed.angle + TAU * float(index) / float(count)) * ring
 						_soft(on, orb, Balance.ARSENAL_ORB_SIZE * 1.8, Color(weapon.tint, 0.45))
 			ArsenalWeaponData.Pattern.ARC:

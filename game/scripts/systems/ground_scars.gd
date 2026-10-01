@@ -25,7 +25,9 @@ extends Sprite2D
 ## (`BloodPools`), and only until it is deep enough to cover them.
 ##
 ## **A picture.** Nothing about pathing, placement, building or damage asks the
-## depth map; it lasts the act, cleared where the craters and the scorch are.
+## depth map. It lasts the whole road - every act of it - and comes home with a
+## banked front (owner, 2026-10-01: "permanent for the entire continuation of
+## all of the runs that journey continues").
 
 var _half: float = 0.0
 var _across: int = 0
@@ -192,6 +194,40 @@ func _changed() -> void:
 	_dirty = true
 	visible = true
 	set_process(true)
+
+
+## **For a banked front**: the depth map as an 8-bit PNG in text - a height a
+## byte, half-way untouched - or "" when nothing was ever struck.
+func snapshot() -> String:
+	if stamps <= 0:
+		return ""
+	var bytes := PackedByteArray()
+	bytes.resize(_across * _across)
+	for index: int in _heights.size():
+		bytes[index] = clampi(int(round((clampf(_heights[index], -1.0, 1.0) * 0.5 + 0.5) * 255.0)), 0, 255)
+	var picture: Image = Image.create_from_data(_across, _across, false, Image.FORMAT_L8, bytes)
+	return Marshalls.raw_to_base64(picture.save_png_to_buffer())
+
+
+func restore(text: String) -> void:
+	if text.is_empty():
+		return
+	var picture := Image.new()
+	if picture.load_png_from_buffer(Marshalls.base64_to_raw(text)) != OK:
+		push_warning("[ground] banked scars could not be read; the ground starts whole")
+		return
+	if picture.get_format() != Image.FORMAT_L8:
+		picture.convert(Image.FORMAT_L8)
+	if picture.get_width() != _across or picture.get_height() != _across:
+		picture.resize(_across, _across, Image.INTERPOLATE_BILINEAR)
+	var bytes: PackedByteArray = picture.get_data()
+	for index: int in mini(bytes.size(), _heights.size()):
+		# A byte either side of the middle is the quantisation of nothing.
+		var height: float = float(bytes[index]) / 255.0 * 2.0 - 1.0
+		_heights[index] = 0.0 if absf(height) < 0.006 else height
+	stamps = maxi(stamps, 1)
+	_dirty_rect = Rect2i(Vector2i.ZERO, Vector2i(_across, _across))
+	_changed()
 
 
 func _process(delta: float) -> void:

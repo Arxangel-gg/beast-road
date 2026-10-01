@@ -186,6 +186,10 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		# **Brutal blood comes home with the front** (owner, 2026-10-01) - empty
 		# on every other level.
 		"blood": Vfx.blood_snapshot(),
+		# **And the ground's memory** (owner, 2026-10-01): the scars, burns and
+		# holes the road has taken, on every blood level - they are the earth's,
+		# not the blood's.
+		"ground": field.ground_snapshot() if field != null and field.has_method("ground_snapshot") else {},
 		"name": name,
 	}
 
@@ -244,6 +248,8 @@ static func apply(stored: Dictionary) -> bool:
 	RunState.momentum = float(stored.get("momentum", 0.0))
 	RunState.blood_restore = (stored.get("blood", {}) as Dictionary).duplicate(true) \
 		if stored.get("blood", {}) is Dictionary else {}
+	RunState.ground_restore = (stored.get("ground", {}) as Dictionary).duplicate(true) \
+		if stored.get("ground", {}) is Dictionary else {}
 	RunState.wayside_answered.clear()
 	for answered: Variant in (stored.get("wayside", []) as Array):
 		RunState.wayside_answered.append(int(answered))

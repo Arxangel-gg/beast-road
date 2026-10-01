@@ -434,6 +434,9 @@ var karma: float = 0.0
 ## **A banked Brutal field of blood**, laid again by the blood field when the
 ## road comes back and erased as it is read (2026-10-01).
 var blood_restore: Dictionary = {}
+## A banked front's ground - scars, burns, holes - laid once by the next field
+## to stand up and erased (2026-10-01).
+var ground_restore: Dictionary = {}
 
 
 ## Moves the party's karma, inside -1 to 1.
@@ -794,6 +797,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	tremor = 0.0
 	karma = 0.0
 	blood_restore = {}
+	ground_restore = {}
 	wind = Vector2.ZERO
 	# Restored from the account, not zeroed.
 	#
