@@ -40,6 +40,11 @@ func _ready() -> void:
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	# **Pausable, as it is in the game.** The run is a child of the root there and
+	# inherits the root's pausable mode; under this harness, which must keep
+	# counting while paused, it would inherit ALWAYS and hear every key the game
+	# never lets it hear - which is the very fault the second Escape was.
+	_run.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_run)
 	for _f: int in 12:
 		await get_tree().process_frame
