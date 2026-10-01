@@ -49,6 +49,12 @@ var mouth: Vector2 = Vector2.INF
 
 var _left: float = 0.0
 var _drawn: bool = false
+## Whether the anticipation has been decided, and the pitch it played at (zero
+## when it did not play) - for the gate.
+var _rise_decided: bool = false
+var rise_pitch: float = 0.0
+## How long the warning had left when the riser started.
+var rise_left: float = 0.0
 ## What a dragon's breath chases once it is loosed (2026-09-30), or null.
 var track: Node2D = null
 ## Seconds of the sweep left, or below zero before the breath is loosed.
@@ -73,6 +79,7 @@ func _process_measured(delta: float) -> void:
 		_sweep(delta)
 		return
 	_left -= delta
+	_anticipate()
 	queue_redraw()
 	if _left <= 0.0:
 		_land()
@@ -154,6 +161,37 @@ func _tell() -> void:
 	Sfx.play("sfx_spell_cast", -9.0)
 
 
+## **The anticipation** (2026-09-30): a riser that *ends* on the frame the
+## blow lands, so the last fraction of a warning is heard swelling toward the
+## hit. Decided once, on the frame it has to start: heard only by this
+## machine's Warden standing where the blow will land (or within
+## `TELEGRAPH_RISE_MARGIN`), because a riser for every mortar on the road is
+## noise and one for the blow coming down on *you* is the warning that matters.
+## Flat rather than placed, as every telegraph is (see `Sfx`). A warning shorter
+## than the riser plays it faster to fit; one too short for that has none.
+func _anticipate() -> void:
+	if _rise_decided or _blasting >= 0.0 or _left > Balance.TELEGRAPH_RISE_SECONDS:
+		return
+	_rise_decided = true
+	if _left <= 0.0 or Balance.TELEGRAPH_RISE_SECONDS / _left > Balance.TELEGRAPH_RISE_FASTEST:
+		return
+	var hero: Hero = _this_warden()
+	if hero == null or not _covers(hero.global_position, Balance.TELEGRAPH_RISE_MARGIN):
+		return
+	rise_pitch = Balance.TELEGRAPH_RISE_SECONDS / _left
+	rise_left = _left
+	Sfx.play_group("sfx_telegraph_rise", 0.0, rise_pitch - 1.0)
+
+
+## This machine's own Warden, standing.
+func _this_warden() -> Hero:
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Hero
+		if hero != null and is_instance_valid(hero) and hero.is_local_player() and hero.is_alive():
+			return hero
+	return null
+
+
 ## Everything of the player's inside the shape takes it.
 func _land() -> void:
 	EventBus.camera_impact.emit(global_position, Balance.ENEMY_SHOT_IMPACT_SHARE)
@@ -177,14 +215,14 @@ func _land() -> void:
 		_struck if _sweeps() else null)
 
 
-## Whether a point is inside this blow.
-func _covers(at: Vector2) -> bool:
+## Whether a point is inside this blow, or within `margin` of it.
+func _covers(at: Vector2, margin: float = 0.0) -> bool:
 	if shape == Shape.CIRCLE:
-		return global_position.distance_to(at) <= reach
+		return global_position.distance_to(at) <= reach + margin
 	var along: float = (at - global_position).dot(aim)
-	if along < 0.0 or along > reach:
+	if along < -margin or along > reach + margin:
 		return false
-	return absf((at - global_position).cross(aim)) <= half_width
+	return absf((at - global_position).cross(aim)) <= half_width + margin
 
 
 ## **One place that knows what "everything of the player's" means.**

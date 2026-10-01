@@ -385,7 +385,59 @@ func _test_the_field() -> void:
 		_check(RunState.enemies_killed == killed_before + 1,
 			"a body marked with an element must still count as a kill")
 
+	await _test_a_blow_is_anticipated(field)
 	await _leave(run)
+
+
+## **A warned blow swells toward its landing** (2026-09-30). A blow coming down
+## on the Warden starts the riser so that it ends on the frame the blow lands; a
+## blow far off, or one too quick for the riser, starts none.
+func _test_a_blow_is_anticipated(field: Battlefield) -> void:
+	var hero: Hero = field.hero
+	var at: Vector2 = hero.global_position
+	var near: EnemyGroundStrike = _strike(field, at, 1.4)
+	var far: EnemyGroundStrike = _strike(field, at + Vector2(2400.0, 0.0), 1.4)
+	var quick: EnemyGroundStrike = _strike(field, at, 0.2)
+	var before: int = int((Sfx.debug_state().get("active", {}) as Dictionary).get("sfx_telegraph_rise", 0))
+	var heard: bool = false
+	var near_pitch: float = 0.0
+	var near_left: float = 0.0
+	var far_pitch: float = -1.0
+	var quick_pitch: float = -1.0
+	var waited: float = 0.0
+	while waited < 2.0:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+		if is_instance_valid(near):
+			near_pitch = near.rise_pitch
+			near_left = near.rise_left
+		if is_instance_valid(far):
+			far_pitch = far.rise_pitch
+		if is_instance_valid(quick):
+			quick_pitch = quick.rise_pitch
+		var active: int = int((Sfx.debug_state().get("active", {}) as Dictionary).get("sfx_telegraph_rise", 0))
+		heard = heard or active > before
+	_check(near_pitch > 0.0 and heard, "a blow coming down on the Warden started no riser")
+	_check(near_left > 0.0 and absf(Balance.TELEGRAPH_RISE_SECONDS / near_pitch - near_left) < 0.01,
+		"the riser ends %.3fs from the landing, wanting it on the landing"
+			% absf(Balance.TELEGRAPH_RISE_SECONDS / maxf(near_pitch, 0.001) - near_left))
+	_check(near_pitch <= Balance.TELEGRAPH_RISE_FASTEST, "the riser played faster than its ceiling")
+	_check(is_zero_approx(far_pitch), "a blow far from the Warden started a riser (%.2f)" % far_pitch)
+	_check(is_zero_approx(quick_pitch), "a blow too quick for a riser started one (%.2f)" % quick_pitch)
+	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy_ground_strike.gd")
+	_check(source.contains("Sfx.play_group(\"sfx_telegraph_rise\"") and not source.contains("play_group_at(\"sfx_telegraph_rise\""),
+		"the riser is a telegraph and plays flat, never quietened by distance")
+
+
+func _strike(field: Battlefield, at: Vector2, delay: float) -> EnemyGroundStrike:
+	var strike := EnemyGroundStrike.new()
+	strike.shape = EnemyGroundStrike.Shape.CIRCLE
+	strike.reach = 90.0
+	strike.delay = delay
+	strike.damage = 0.0
+	strike.position = at
+	field.add_child(strike)
+	return strike
 
 
 func _settle(seconds: float) -> void:

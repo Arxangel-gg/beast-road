@@ -154,6 +154,7 @@ missing stream - so none of these block a build.
 | `sfx_drown.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.8s | ElevenLabs | a drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink |
 | `sfx_fish_cast_charge.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a fishing rod drawing back for a long cast: the line tightening and the rod creaking under tension, rising |
 | `sfx_fish_miss.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.3s | ElevenLabs | a fishing float landing on dry ground instead of water: a dull little thump and a rattle of line |
+| `sfx_telegraph_rise_1..3.ogg` **(synthesised by `tools/synth_telegraph_rise.py` - replace)** | `sfx` | 0.72s | ElevenLabs | a short ominous swell that rises to the instant of an impact and stops dead: rushing air and a low tone climbing in pitch, no hit at the end |
 | `sfx_camp_razed.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.4s | ElevenLabs | a raider camp falling: a collapsing tent, scattered embers, a low satisfied drum hit and a short brass note |
 | `sfx_fork_open.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.6s | ElevenLabs | a road barrier of logs and stakes tumbling apart: heavy timber crashing, rope snapping, rocks rolling, then a deep open chord |
 | `sfx_companion_summon.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.9s | ElevenLabs | a spirit animal arriving: a soft rush of wind with a warm three-note chime and a faint animal breath |
@@ -2622,6 +2623,18 @@ a drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a
 
 ```text
 a fishing rod drawing back for a long cast: the line tightening and the rod creaking under tension, rising.
+```
+
+### `sfx_telegraph_rise`
+
+`game/audio/sfx/sfx_telegraph_rise_1.ogg` (and `_2`, `_3`)  -  target length **0.72s, exactly**  -  suggested tool: **ElevenLabs**
+
+Played so that it ends on the frame a warned blow lands, so the length matters:
+keep each take 0.72s and let it stop dead at the end. The impact is a separate
+sound. Three takes, so a run of mortars does not repeat itself.
+
+```text
+a short ominous swell that rises to the instant of an impact and stops dead: rushing air and a low tone climbing in pitch, no hit at the end.
 ```
 
 ### `sfx_fish_miss`

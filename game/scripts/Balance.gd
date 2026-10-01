@@ -12102,6 +12102,16 @@ const ENEMY_SHOT_SPIRIT_SHARE: float = 0.6
 ## How hard an area blow shakes the camera, on the scale `camera_impact` reads.
 const ENEMY_SHOT_IMPACT_SHARE: float = 0.55
 
+## **The anticipation** (2026-09-30, `EnemyGroundStrike._anticipate`): a riser
+## that ends on the frame a warned blow lands, heard only by a Warden standing
+## where it will land or within `TELEGRAPH_RISE_MARGIN` of it.
+## `TELEGRAPH_RISE_SECONDS` is the recordings' own length; a warning shorter
+## than that plays the riser faster to fit, never faster than
+## `TELEGRAPH_RISE_FASTEST`, and a warning too short for that has no riser.
+const TELEGRAPH_RISE_SECONDS: float = 0.72
+const TELEGRAPH_RISE_MARGIN: float = 60.0
+const TELEGRAPH_RISE_FASTEST: float = 1.8
+
 
 # --- Woodcutting, mining and the forge (2026-09-13) ----------------------------
 ## **"There isn't enough to do in the game."**

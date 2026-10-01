@@ -1244,6 +1244,9 @@ const SOUNDS: Dictionary = {
 	"sfx_wildlife_hurt_large_beast_13": "res://audio/sfx/sfx_wildlife_hurt_large_beast_13.ogg",
 	"sfx_wildlife_hurt_large_beast_14": "res://audio/sfx/sfx_wildlife_hurt_large_beast_14.ogg",
 	"sfx_wildlife_hurt_large_beast_15": "res://audio/sfx/sfx_wildlife_hurt_large_beast_15.ogg",
+	"sfx_telegraph_rise_1": "res://audio/sfx/sfx_telegraph_rise_1.ogg",
+	"sfx_telegraph_rise_2": "res://audio/sfx/sfx_telegraph_rise_2.ogg",
+	"sfx_telegraph_rise_3": "res://audio/sfx/sfx_telegraph_rise_3.ogg",
 	"sfx_ui_click_1": "res://audio/sfx/sfx_ui_click_1.ogg",
 	"sfx_ui_click_2": "res://audio/sfx/sfx_ui_click_2.ogg",
 	"sfx_ui_click_3": "res://audio/sfx/sfx_ui_click_3.ogg",
@@ -1470,6 +1473,9 @@ const MIX: Dictionary = {
 	"sfx_water_bite":           {"db": -10.0, "pitch": 0.06, "limit": 1, "gap": 0.40},
 	"sfx_drown":                {"db": -8.0, "pitch": 0.02, "limit": 1, "gap": 1.00},
 	"sfx_fish_cast_charge":     {"db": -16.0, "pitch": 0.04, "limit": 1, "gap": 0.30},
+	# The anticipation (2026-09-30): no drift, because the riser is timed to end
+	# on the blow and a drift would end it early or late.
+	"sfx_telegraph_rise":       {"db": -11.0, "pitch": 0.0, "limit": 2, "gap": 0.12},
 	"sfx_fish_miss":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
 	"sfx_camp_razed":           {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
 	"sfx_fork_open":            {"db": -5.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
@@ -1668,6 +1674,7 @@ const GROUPS: Dictionary = {
 	"sfx_wildlife_wing_small": ["sfx_wildlife_wing_small_1", "sfx_wildlife_wing_small_2", "sfx_wildlife_wing_small_3", "sfx_wildlife_wing_small_4", "sfx_wildlife_wing_small_5", "sfx_wildlife_wing_small_6", "sfx_wildlife_wing_small_7", "sfx_wildlife_wing_small_8"],
 	"sfx_fish_miss": ["sfx_fish_miss_1", "sfx_fish_miss_2", "sfx_fish_miss_3", "sfx_fish_miss_4", "sfx_fish_miss_5", "sfx_fish_miss_6", "sfx_fish_miss_7", "sfx_fish_miss_8"],
 	"sfx_wildlife_hurt_large_beast": ["sfx_wildlife_hurt_large_beast_1", "sfx_wildlife_hurt_large_beast_2", "sfx_wildlife_hurt_large_beast_3", "sfx_wildlife_hurt_large_beast_4", "sfx_wildlife_hurt_large_beast_5", "sfx_wildlife_hurt_large_beast_6", "sfx_wildlife_hurt_large_beast_7", "sfx_wildlife_hurt_large_beast_8", "sfx_wildlife_hurt_large_beast_9", "sfx_wildlife_hurt_large_beast_10", "sfx_wildlife_hurt_large_beast_11", "sfx_wildlife_hurt_large_beast_12", "sfx_wildlife_hurt_large_beast_13", "sfx_wildlife_hurt_large_beast_14", "sfx_wildlife_hurt_large_beast_15"],
+	"sfx_telegraph_rise": ["sfx_telegraph_rise_1", "sfx_telegraph_rise_2", "sfx_telegraph_rise_3"],
 	"sfx_ui_click": ["sfx_ui_click_1", "sfx_ui_click_2", "sfx_ui_click_3"],
 	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3", "sfx_ui_hover_4", "sfx_ui_hover_5"],
 	"sfx_ui_move": ["sfx_ui_move_1", "sfx_ui_move_2", "sfx_ui_move_3"],
