@@ -398,6 +398,11 @@ func _test_a_blow_is_anticipated(field: Battlefield) -> void:
 	var near: EnemyGroundStrike = _strike(field, at, 1.4)
 	var far: EnemyGroundStrike = _strike(field, at + Vector2(2400.0, 0.0), 1.4)
 	var quick: EnemyGroundStrike = _strike(field, at, 0.2)
+	# Shorter than the riser and long enough for it: the riser is played faster
+	# to fit, which is the half a long warning never exercises.
+	var short: EnemyGroundStrike = _strike(field, at + Vector2(20.0, 0.0), 0.5)
+	var short_pitch: float = 0.0
+	var short_left: float = 0.0
 	var before: int = int((Sfx.debug_state().get("active", {}) as Dictionary).get("sfx_telegraph_rise", 0))
 	var heard: bool = false
 	var near_pitch: float = 0.0
@@ -415,6 +420,9 @@ func _test_a_blow_is_anticipated(field: Battlefield) -> void:
 			far_pitch = far.rise_pitch
 		if is_instance_valid(quick):
 			quick_pitch = quick.rise_pitch
+		if is_instance_valid(short):
+			short_pitch = short.rise_pitch
+			short_left = short.rise_left
 		var active: int = int((Sfx.debug_state().get("active", {}) as Dictionary).get("sfx_telegraph_rise", 0))
 		heard = heard or active > before
 	_check(near_pitch > 0.0 and heard, "a blow coming down on the Warden started no riser")
@@ -422,6 +430,10 @@ func _test_a_blow_is_anticipated(field: Battlefield) -> void:
 		"the riser ends %.3fs from the landing, wanting it on the landing"
 			% absf(Balance.TELEGRAPH_RISE_SECONDS / maxf(near_pitch, 0.001) - near_left))
 	_check(near_pitch <= Balance.TELEGRAPH_RISE_FASTEST, "the riser played faster than its ceiling")
+	_check(short_pitch > 1.2 and short_left > 0.0
+		and absf(Balance.TELEGRAPH_RISE_SECONDS / short_pitch - short_left) < 0.01,
+		"a half-second warning's riser ends %.3fs from the landing at %.2fx, wanting it played faster to land on it"
+			% [absf(Balance.TELEGRAPH_RISE_SECONDS / maxf(short_pitch, 0.001) - short_left), short_pitch])
 	_check(is_zero_approx(far_pitch), "a blow far from the Warden started a riser (%.2f)" % far_pitch)
 	_check(is_zero_approx(quick_pitch), "a blow too quick for a riser started one (%.2f)" % quick_pitch)
 	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy_ground_strike.gd")
