@@ -178,6 +178,7 @@ var _rerolls: int = Balance.AUGMENT_REROLLS_START
 ## Which deal a drafting build is handed. One seed of three-card offers is one
 ## player's luck, so a drafting build is read as a mean over several salts.
 var _draft_salt: int = 0
+var _dress_id: String = ""
 var _offer_count: int = Balance.ROAD_CARD_OFFER_COUNT
 var _draft_luck: int = 0
 var _rerolls_start: int = Balance.AUGMENT_REROLLS_START
@@ -205,6 +206,11 @@ func _ready() -> void:
 			_draft_luck = clampi(int(argument.split("=")[1]), 0, Balance.AUGMENT_LUCK_CAP)
 		elif argument == "--no-camp-drafts":
 			_camp_drafts = false
+		# **A Warden dressed for another road** (2026-10-01): the level, gear
+		# and ascension `--dress=` names, on the road `--tier=` names - the
+		# player who stepped up a road before gearing for it.
+		elif argument.begins_with("--dress="):
+			_dress_id = argument.split("=")[1]
 		elif argument.begins_with("--draft-salt="):
 			_draft_salt = int(argument.split("=")[1])
 		# Reporting only, like `--body-scale`: how much a draft's choice is
@@ -233,7 +239,7 @@ func _ready() -> void:
 		# The Warden is dressed for every act: nothing of it may reach the save.
 		MetaState.hold_saves()
 		if _ascension < 0:
-			_ascension = expected_rank_for_tier(RunState.tier().id)
+			_ascension = expected_rank_for_tier(_dress_tier().id)
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	var run: Run = packed.instantiate() as Run
 	add_child(run)
@@ -302,11 +308,18 @@ func _ready() -> void:
 ## points, its affixes and any set it makes reach the model the way they reach
 ## the fight. Named by slot rather than drawn, so the same tier is the same
 ## Warden on every run of the report.
+## The road whose expectation the Warden is dressed by: `--dress=`, or the
+## road being walked.
+func _dress_tier() -> CampaignTierData:
+	var named: CampaignTierData = ContentDB.tier(_dress_id) if not _dress_id.is_empty() else null
+	return named if named != null else RunState.tier()
+
+
 func _dress_expected(act: int) -> void:
 	if not _expected_warden or act == _dressed_act:
 		return
 	_dressed_act = act
-	var tier: CampaignTierData = RunState.tier()
+	var tier: CampaignTierData = _dress_tier()
 	if tier == null:
 		return
 	var level: int = tier.expected_level(mini(act, Balance.ACT_COUNT))
