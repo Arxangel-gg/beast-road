@@ -348,6 +348,14 @@ func _test_the_plants_answer_by_size() -> void:
 		"a body with no tread should still brush the stems, gently")
 	var shader: String = Foliage.WIND_SHADER
 	_check(shader.contains("trample_jiggle") and shader.contains("wobble"), "the foliage does not jiggle")
+	# **Gently, and only as it springs back** (owner, 2026-10-01: the jiggle was
+	# *"too extreme"*). Held flat under a body a plant is still, and the wobble
+	# is bounded well under the 0.85 that flapped.
+	_check(shader.contains("sin(clamp(laid.b, 0.0, 1.0) * PI)"),
+		"the jiggle no longer waits for the spring-back - a held plant flaps")
+	_check(Balance.FOLIAGE_TRAMPLE_JIGGLE <= 0.35 and Balance.FOLIAGE_TRAMPLE_JIGGLE_HZ <= 2.8,
+		"the jiggle is %.2f at %.1f Hz - the owner called 0.85 at 3.4 Hz too extreme"
+			% [Balance.FOLIAGE_TRAMPLE_JIGGLE, Balance.FOLIAGE_TRAMPLE_JIGGLE_HZ])
 	_check(FileAccess.get_file_as_string("res://scripts/systems/trample_field.gd").contains("\"trample_jiggle\""),
 		"the field never hands the foliage its jiggle")
 	for node: Node2D in [small, large, deer, ghost]:
