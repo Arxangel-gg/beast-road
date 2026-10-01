@@ -2518,13 +2518,38 @@ const ENEMY_CONTACT_INTERVAL: float = ENEMY_ATTACK_WINDUP + ENEMY_ATTACK_STRIKE 
 ## The camera has scaled its shake by distance since 2026-09-13 - a tower firing
 ## on the far road is a tremor and a blow beside the hero is a hit - and the
 ## audio never learned the same lesson, so the far tower was exactly as loud as
-## the near one. A sound at `SFX_NEAR` or closer plays at its authored level; by
-## `SFX_FAR` it has lost `SFX_FAR_DB`; past `SFX_CUTOFF` it is not played at all,
-## which also hands its voice back to something the player can actually hear.
-const SFX_NEAR: float = 420.0
-const SFX_FAR: float = 1800.0
-const SFX_FAR_DB: float = -17.0
-const SFX_CUTOFF: float = 3000.0
+## the near one. A sound at `SFX_NEAR` or closer plays at its authored level, and
+## past `SFX_CUTOFF` it is not played at all, which also hands its voice back to
+## something the player can actually hear.
+##
+## **Re-cut 2026-10-01** (owner: *"attenuation radius volume of sfx"*). It was a
+## straight line in decibels from `SFX_NEAR` to a floor at `SFX_FAR`, then flat
+## to the cutoff - so a sound two screens away held at the floor and then
+## vanished on a frame as it crossed the cutoff, and a footstep carried exactly
+## as far as an earthquake. Now it is how sound falls off in the open: a fixed
+## number of decibels for every doubling of distance past `SFX_NEAR`, eased to
+## silence over the last stretch before the cutoff so nothing pops out, and
+## every radius scaled by how far that kind of sound carries (`SFX_REACH`).
+const SFX_NEAR: float = 360.0
+const SFX_DB_PER_DOUBLING: float = 6.5
+const SFX_CUTOFF: float = 2800.0
+## Where, as a share of the cutoff, the fade to silence begins, and how much it
+## has taken by the cutoff itself. [TUNE]
+const SFX_EDGE_FADE_FROM: float = 0.72
+const SFX_EDGE_DB: float = -12.0
+## **How far a kind of sound carries**, as a multiple of `SFX_NEAR` and
+## `SFX_CUTOFF`, by the longest prefix of its id that is listed. A quake, a
+## meteor, a dragon and a funnel are heard across the field; a footstep, a coin
+## and a fish nibbling are heard where they are. Everything unlisted carries 1.
+## [TUNE]
+const SFX_REACH: Dictionary = {
+	"sfx_quake": 1.7, "sfx_meteor": 1.6, "sfx_tornado": 1.6, "sfx_thunder": 1.7,
+	"sfx_dragon": 1.6, "sfx_boss": 1.5, "sfx_camp_razed": 1.4, "sfx_wildfire": 1.3,
+	"sfx_chieftain": 1.4, "sfx_enemy_call": 1.3, "sfx_wildlife": 1.15,
+	"sfx_hit": 0.85, "sfx_dash": 0.8, "sfx_companion": 0.9, "sfx_spell": 0.95,
+	"sfx_footstep": 0.55, "sfx_loot": 0.6, "sfx_fish": 0.55, "sfx_pen": 0.6,
+	"sfx_ui": 0.6, "sfx_swim": 0.6, "sfx_water": 0.7,
+}
 
 ## **A tower leans at what it is about to shoot.**
 ##

@@ -1925,14 +1925,12 @@ func _play_at_measured(id: String, at: Vector2, extra_db: float = 0.0,
 		play(id, extra_db, pitch_shift)
 		return
 	var away: float = _ear.distance_to(at)
-	if away > Balance.SFX_CUTOFF or not _world_start_allowed():
+	var reach: float = reach_of(id)
+	if away > Balance.SFX_CUTOFF * reach or not _world_start_allowed():
 		return
-	play(id, extra_db + distance_db(away), pitch_shift)
+	play(id, extra_db + distance_db(away, reach), pitch_shift)
 
 
-## How much quieter a sound is at this distance. Flat inside `SFX_NEAR`, falling
-## to `SFX_FAR_DB` by `SFX_FAR`, and no further - a floor rather than a curve
-## running off to silence, because a distant tower should still be *there*.
 ## One of a group's takes, placed. The same `play_at` rules.
 ## **Which sounds are positional, and which are deliberately not.**
 ##
@@ -1969,9 +1967,10 @@ func _play_group_at_measured(group: String, at: Vector2, extra_db: float = 0.0,
 		play_group(group, extra_db, pitch_shift)
 		return
 	var away: float = _ear.distance_to(at)
-	if away > Balance.SFX_CUTOFF or not _world_start_allowed():
+	var reach: float = reach_of(group)
+	if away > Balance.SFX_CUTOFF * reach or not _world_start_allowed():
 		return
-	play_group(group, extra_db + distance_db(away), pitch_shift)
+	play_group(group, extra_db + distance_db(away, reach), pitch_shift)
 
 
 ## **A burst is heard as its first few sounds** (2026-09-30). Every start
@@ -2015,10 +2014,31 @@ func gear_arrived(rarity: int, extra_shift: float = 0.0) -> void:
 	play_group("sfx_loot_collect", float(rarity) * Balance.LOOT_RARITY_DB, shift)
 
 
-func distance_db(away: float) -> float:
-	var span: float = maxf(Balance.SFX_FAR - Balance.SFX_NEAR, 1.0)
-	var out: float = clampf((away - Balance.SFX_NEAR) / span, 0.0, 1.0)
-	return Balance.SFX_FAR_DB * out
+## How much quieter a sound is at this distance, for a sound that carries
+## `reach` times the standard radii: flat inside `SFX_NEAR`, then
+## `SFX_DB_PER_DOUBLING` for every doubling past it, then eased down a further
+## `SFX_EDGE_DB` over the last stretch before the cutoff - so a sound fades out
+## rather than stopping, and nothing is ever louder further away.
+static func distance_db(away: float, reach: float = 1.0) -> float:
+	var near: float = Balance.SFX_NEAR * maxf(reach, 0.05)
+	if away <= near:
+		return 0.0
+	var db: float = -Balance.SFX_DB_PER_DOUBLING * log(away / near) / log(2.0)
+	var cutoff: float = Balance.SFX_CUTOFF * maxf(reach, 0.05)
+	var fade_from: float = cutoff * Balance.SFX_EDGE_FADE_FROM
+	if away > fade_from:
+		db += Balance.SFX_EDGE_DB * smoothstep(fade_from, cutoff, away)
+	return db
+
+
+## How far a sound carries: the reach of the longest listed prefix of its id,
+## or 1. A take (`sfx_hit_stone_3`) carries what its group does.
+static func reach_of(id: String) -> float:
+	var best: String = ""
+	for prefix: String in Balance.SFX_REACH:
+		if id.begins_with(prefix) and prefix.length() > best.length():
+			best = prefix
+	return float(Balance.SFX_REACH[best]) if not best.is_empty() else 1.0
 
 
 ## `pitch_shift` is a *ratio* on top of the mix's own drift: 0.05 is five

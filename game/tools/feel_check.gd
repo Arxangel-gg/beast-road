@@ -109,23 +109,39 @@ func _test_the_ear() -> void:
 		"a sound at the ear must not be quietened: %.2f dB" % Sfx.distance_db(0.0))
 	_check(is_equal_approx(Sfx.distance_db(Balance.SFX_NEAR * 0.5), 0.0),
 		"a sound inside SFX_NEAR must play at its authored level")
-	_check(is_equal_approx(Sfx.distance_db(Balance.SFX_FAR), Balance.SFX_FAR_DB),
-		"a sound at SFX_FAR must have lost exactly SFX_FAR_DB")
-	_check(is_equal_approx(Sfx.distance_db(Balance.SFX_FAR * 4.0),
-			Balance.SFX_FAR_DB),
-		"the falloff must floor rather than run off to silence")
+	# **Re-cut 2026-10-01** (owner: *"attenuation radius volume of sfx"*): the
+	# invariants were a straight line to a floor at SFX_FAR and a floor held to
+	# the cutoff. What is held now is the open-air rule - a doubling of distance
+	# costs SFX_DB_PER_DOUBLING - and that a sound has faded to near silence by
+	# the time it reaches the cutoff, so crossing it is not a step.
+	var double: float = Sfx.distance_db(Balance.SFX_NEAR * 2.0) - Sfx.distance_db(Balance.SFX_NEAR * 4.0)
+	_check(absf(double - Balance.SFX_DB_PER_DOUBLING) < 0.01,
+		"a doubling of distance must cost %.1f dB, cost %.2f" % [Balance.SFX_DB_PER_DOUBLING, double])
+	var edge: float = Sfx.distance_db(Balance.SFX_CUTOFF - 1.0)
+	_check(edge <= -24.0,
+		"a sound at the cutoff must be all but gone before it is dropped, was %.1f dB" % edge)
 	# Monotonic, because a sound that got louder with distance would be worse
 	# than one that never changed at all.
-	var previous: float = 1.0
-	for step: int in 20:
-		var db: float = Sfx.distance_db(float(step) * Balance.SFX_FAR / 10.0)
-		_check(db <= previous + 0.001,
-			"the falloff rose with distance at %d: %.2f after %.2f"
-				% [step, db, previous])
-		previous = db
-	_check(Balance.SFX_CUTOFF > Balance.SFX_FAR,
-		"the cutoff must be past the floor or sounds vanish while still audible")
-	_check(Balance.SFX_FAR_DB < 0.0, "distance must make things quieter, not louder")
+	for reach: float in [0.55, 1.0, 1.7]:
+		var previous: float = 1.0
+		for step: int in 40:
+			var db: float = Sfx.distance_db(float(step) * Balance.SFX_CUTOFF * reach / 39.0, reach)
+			_check(db <= previous + 0.001,
+				"the falloff rose with distance at %d (reach %.2f): %.2f after %.2f"
+					% [step, reach, db, previous])
+			previous = db
+	# **A quake carries and a footstep does not.** At one distance the bigger
+	# sound is the louder, and the small one's cutoff comes far sooner.
+	var at: float = Balance.SFX_NEAR * 3.0
+	_check(Sfx.distance_db(at, Sfx.reach_of("sfx_quake")) > Sfx.distance_db(at, Sfx.reach_of("sfx_footstep_dirt")),
+		"at %.0f a quake is no louder than a footstep" % at)
+	_check(Sfx.reach_of("sfx_footstep_dirt_3") < 1.0 and Sfx.reach_of("sfx_quake") > 1.0,
+		"a footstep's take must carry less than standard and a quake more")
+	_check(is_equal_approx(Sfx.reach_of("sfx_never_listed"), 1.0),
+		"an unlisted sound must carry the standard reach")
+	for prefix: Variant in Balance.SFX_REACH:
+		_check(String(prefix).begins_with("sfx_") and float(Balance.SFX_REACH[prefix]) > 0.0,
+			"SFX_REACH lists %s, which is no sound id prefix or carries nothing" % prefix)
 	# **With nobody listening, the far side of the world is still audible.**
 	#
 	# This is the check that matters most to every *other* gate in this project.
