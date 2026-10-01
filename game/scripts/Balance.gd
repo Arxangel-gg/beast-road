@@ -2462,6 +2462,29 @@ const ENEMY_POUNCE_DAMAGE_SCALE: float = 1.25
 ## pounce a potential 3rd time as well, and way more rarely even a 4th pounce
 ## at maximum"*). [TUNE]
 const ENEMY_POUNCE_CHAIN_CHANCES: Array[float] = [0.5, 0.2, 0.1]
+
+## **A melee body may follow one blow with another** (owner, 2026-10-01:
+## *"Some melee enemies should have the ability to sometimes do combo strikes if
+## their target is still alive and in range from 1-3 strikes and maybe even more
+## lunge on 2nd and even more on 3rd. More powerful melee enemies might have a
+## chance for a 4th attack"*). Rolled once on the body's own dice when a swing
+## begins from a walk: each entry is the chance of one more strike given the one
+## before, so an ordinary body strikes once, sometimes twice, rarely three times,
+## and an elite, a champion, a camp lord or a boss may very rarely strike four.
+## [TUNE]
+const ENEMY_COMBO_CHANCES: Array[float] = [0.3, 0.3]
+const ENEMY_COMBO_CHANCES_STRONG: Array[float] = [0.45, 0.4, 0.3]
+## **Shape, never size**: each follow-up hits for this share of a swing and
+## leaves the body resting this much longer at the end, so a combo is the same
+## damage over the same time arriving as a flurry with an opening after it. The
+## first entry is the opening blow and is always a whole one. [TUNE]
+const ENEMY_COMBO_DAMAGE: Array[float] = [1.0, 0.75, 0.65, 0.6]
+const ENEMY_COMBO_RECOVERY_PER_STRIKE: float = 0.45
+## How far each follow-up lunges at its target while it winds up, by strike -
+## further each time - and how much of a swing's wind-up a follow-up keeps. A
+## tell still: a follow-up is never on the frame the last one landed. [TUNE]
+const ENEMY_COMBO_LUNGE: Array[float] = [0.0, 22.0, 38.0, 54.0]
+const ENEMY_COMBO_WINDUP_SCALE: float = 0.6
 ## A second pounce is told again, and quicker: the cat is already coiled.
 const ENEMY_POUNCE_CHAIN_WARNING: float = 0.6
 ## The chance a pounce that ends in reach is followed straight into a swing,

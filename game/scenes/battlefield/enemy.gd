@@ -251,6 +251,12 @@ var _pounces_left: int = 0
 var _leap_distance: float = 0.0
 var _pounce_landed: bool = false
 var _blow_scale: float = 1.0
+## The combo in hand (2026-10-01; `Balance.ENEMY_COMBO_*`): how many more strikes
+## follow this one, which strike of the combo this is, and how far the lunge of
+## the follow-up being wound up still has to carry the body.
+var _combo_left: int = 0
+var _combo_step: int = 0
+var _lunge_left: float = 0.0
 ## How long a guard this body is standing behind has left, and whose it is. A
 ## guard turns one blow; see `_absorb_guard`.
 var _guard_left: float = 0.0
@@ -1208,6 +1214,10 @@ func _tick_state(delta: float) -> void:
 			_throw_cooldown = maxf(_throw_cooldown - delta, 0.0)
 			if _target != null and _in_reach(_target):
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
+				# A melee swing begun from a walk decides its combo now, on the
+				# body's own dice; a shooter's never combos.
+				_combo_step = 0
+				_combo_left = combo_strikes(_temper, is_strong()) if may_combo() else 0
 				# Coil before the blow: the tell the player reads.
 				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
 				if _breakout_armed:
@@ -1241,9 +1251,13 @@ func _tick_state(delta: float) -> void:
 			if _target_fell():
 				_enter(State.WALKING, 0.0)
 				return
+			_tick_lunge(delta)
 			_state_left -= delta
 			if _state_left <= 0.0:
+				_blow_scale = Balance.ENEMY_COMBO_DAMAGE[clampi(_combo_step, 0,
+					Balance.ENEMY_COMBO_DAMAGE.size() - 1)]
 				_strike()
+				_blow_scale = 1.0
 				EventBus.enemy_attacked.emit(get_instance_id(), combat_origin(),
 					attack_reach())
 				_enter(State.STRIKE, Balance.ENEMY_ATTACK_STRIKE)
@@ -1253,6 +1267,8 @@ func _tick_state(delta: float) -> void:
 				animator.punch(toward, 1.1)
 		State.STRIKE:
 			_state_left -= delta
+			if _state_left <= 0.0 and _follow_up():
+				return
 			if _state_left <= 0.0:
 				# Recovery carries the breed's own cadence. `contact_interval`
 				# is a floor under the *whole* cycle, so what is spent here is
@@ -1264,11 +1280,14 @@ func _tick_state(delta: float) -> void:
 				# a shooter does not spam the moment its arm comes back.
 				var rest_share: float = 1.0 if data.role == EnemyData.Role.HOWLER \
 					else Balance.ENEMY_MELEE_RECOVERY_SCALE
+				# A combo rests the longer for every follow-up it threw - the
+				# opening that pays for the flurry.
+				var winded: float = float(_combo_step) * Balance.ENEMY_COMBO_RECOVERY_PER_STRIKE
 				_enter(State.RECOVER, maxf(Balance.ENEMY_ATTACK_RECOVERY,
 					data.contact_interval - Balance.ENEMY_ATTACK_WINDUP
 						- Balance.ENEMY_ATTACK_STRIKE)
 					* _temper.randf_range(Balance.ENEMY_CADENCE_WANDER.x,
-						Balance.ENEMY_CADENCE_WANDER.y) * rest_share)
+						Balance.ENEMY_CADENCE_WANDER.y) * rest_share + winded)
 				if _field != null and _target == _field.town_node() \
 						and data.role == EnemyData.Role.HOWLER:
 					_siege_share = maxf(_siege_share - _temper.randf_range(
@@ -1789,8 +1808,89 @@ func _enter(state: State, duration: float) -> void:
 	if _state == State.COMMIT and state != State.COMMIT:
 		_slip = Vector2.ZERO
 		_slip_left = 0.0
+	# A combo lives only between a wind-up and its blow: a stun, a rout, a
+	# behaviour or the end of the flurry each end it.
+	if state != State.WINDUP and state != State.STRIKE:
+		_combo_left = 0
+	if state != State.WINDUP:
+		_lunge_left = 0.0
 	_state = state
 	_state_left = duration
+
+
+## Whether this body throws combos at all: melee only - a shooter's blow is a
+## shot, a thrower's is a javelin - and never a puppet, whose state is told.
+func may_combo() -> bool:
+	return data != null and data.role != EnemyData.Role.HOWLER and not _throwing \
+		and not puppet
+
+
+## Elites, champions, camp lords and bosses: the bodies that may strike four.
+func is_strong() -> bool:
+	if data == null:
+		return false
+	return rank != Rank.COMMON or data.category == EnemyData.Category.BOSS \
+		or data.category == EnemyData.Category.CAMP_LORD \
+		or data.category == EnemyData.Category.ELITE
+
+
+## How many strikes follow the first, by the chance table for this kind of body:
+## each entry the chance of one more given the one before, stopping at the
+## first miss and never running past the list. Static, so the gate can roll it
+## without standing a body up.
+static func combo_strikes(dice: RandomNumberGenerator, strong: bool) -> int:
+	var table: Array[float] = Balance.ENEMY_COMBO_CHANCES_STRONG if strong \
+		else Balance.ENEMY_COMBO_CHANCES
+	var more: int = 0
+	for chance: float in table:
+		if dice.randf() >= chance:
+			break
+		more += 1
+	return more
+
+
+## The next strike of a combo, if one is in hand and the target is still there
+## to take it: alive, standing, and within the arm plus the lunge the next
+## strike carries. Wound up shorter than a swing - still told - and lunging
+## further each time. Returns whether it began one.
+func _follow_up() -> bool:
+	if _combo_left <= 0 or not may_combo():
+		return false
+	if _target == null or not is_instance_valid(_target) or _target_fell():
+		_combo_left = 0
+		return false
+	var next: int = _combo_step + 1
+	var lunge: float = Balance.ENEMY_COMBO_LUNGE[clampi(next, 0, Balance.ENEMY_COMBO_LUNGE.size() - 1)]
+	if _target_gap(_target) > attack_reach() + lunge:
+		_combo_left = 0
+		return false
+	_combo_left -= 1
+	_combo_step = next
+	var keep: int = _combo_left
+	_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP * Balance.ENEMY_COMBO_WINDUP_SCALE)
+	_combo_left = keep
+	_lunge_left = lunge
+	animator.squash(Balance.ANIM_HURT_SQUASH * (0.8 + 0.1 * float(next)))
+	return true
+
+
+## The lunge of a follow-up, carried over the front of its wind-up and stopped
+## short of walking into the target: the body closes, it does not shove.
+func _tick_lunge(delta: float) -> void:
+	if _lunge_left <= 0.0 or _target == null or not is_instance_valid(_target):
+		return
+	var gap: float = _target_gap(_target)
+	if gap <= attack_reach() * 0.55:
+		_lunge_left = 0.0
+		return
+	var window: float = Balance.ENEMY_ATTACK_WINDUP * Balance.ENEMY_COMBO_WINDUP_SCALE * 0.6
+	var speed: float = Balance.ENEMY_COMBO_LUNGE[Balance.ENEMY_COMBO_LUNGE.size() - 1] / maxf(window, 0.01)
+	var stride: float = minf(minf(_lunge_left, speed * delta), maxf(gap - attack_reach() * 0.55, 0.0))
+	if stride <= 0.0:
+		return
+	var toward: Vector2 = (_target.global_position - global_position).normalized()
+	_step(toward * (stride / maxf(delta, 0.0001)), delta)
+	_lunge_left -= stride
 
 
 ## Walks the lane's road toward the town, holding a fixed lateral offset so a

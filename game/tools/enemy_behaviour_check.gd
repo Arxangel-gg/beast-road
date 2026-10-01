@@ -38,6 +38,9 @@ var _failures: int = 0
 var _checks: int = 0
 var _run: Run = null
 var _field: Battlefield = null
+## Stamped by the combo test as its last statement: a runtime error stops the
+## function it is in and nothing else, so a test that died partway would pass.
+var _finished: int = 0
 
 
 func _ready() -> void:
@@ -65,6 +68,9 @@ func _ready() -> void:
 	await _test_a_swing_is_dealt_once()
 	_test_the_dice_are_the_runs()
 	_test_the_pounce_chain_is_rare_and_bounded()
+	_test_the_combo_is_rare_and_bounded()
+	await _test_a_melee_combo_follows_lunges_and_rests()
+	_check(_finished == 1, "the combo test never reached its end - look for a SCRIPT ERROR above")
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
@@ -354,6 +360,137 @@ func _test_the_pounce_chain_is_rare_and_bounded() -> void:
 	_check(Balance.ENEMY_POUNCE_CHAIN_CHANCES.size() == 3,
 		"the chain table lists %d leaps after the first - the owner set the most at four in all"
 			% Balance.ENEMY_POUNCE_CHAIN_CHANCES.size())
+
+
+## **A melee body strikes once, sometimes twice, rarely three times**, and only
+## the strong may very rarely strike four (owner, 2026-10-01). Rolled through
+## the one function the body rolls with, forty thousand times on fixed dice.
+func _test_the_combo_is_rare_and_bounded() -> void:
+	for strong: bool in [false, true]:
+		var dice := RandomNumberGenerator.new()
+		dice.seed = 20261002
+		var counts: Array[int] = [0, 0, 0, 0, 0]
+		var rolls: int = 40000
+		for _roll: int in rolls:
+			counts[clampi(Enemy.combo_strikes(dice, strong), 0, 4)] += 1
+		var kind: String = "a strong body" if strong else "an ordinary body"
+		var at_least_two: float = float(rolls - counts[0]) / float(rolls)
+		var three: float = float(counts[2] + counts[3] + counts[4]) / float(rolls)
+		_check(counts[4] == 0, "%s struck five times %d times" % [kind, counts[4]])
+		_check(at_least_two > 0.2 and at_least_two < 0.55,
+			"%s followed up %.3f of the time - sometimes, not always and not never" % [kind, at_least_two])
+		_check(three > 0.04 and three < 0.25, "%s struck three times %.3f of the time" % [kind, three])
+		if strong:
+			var four: float = float(counts[3]) / float(rolls)
+			_check(four > 0.02 and four < 0.09,
+				"a strong body struck four times %.4f of the time - rare, but possible" % four)
+		else:
+			_check(counts[3] == 0, "an ordinary body struck four times %d times - only the strong may" % counts[3])
+
+
+## **A combo follows only a target still there, lunges further each strike,
+## hits for less each follow-up and rests the longer for it** (2026-10-01).
+## One ordinary melee breed, the run stopped, the body driven by hand: a combo
+## of three forced on it lands three blows on a Warden standing in reach; one
+## whose quarry stepped back a little lunges to reach it; one whose quarry
+## stepped well away stops after the first; and across a dozen combos the
+## follow-up's blow is about the share of a swing it is authored at.
+func _test_a_melee_combo_follows_lunges_and_rests() -> void:
+	const FRAME: float = 1.0 / 60.0
+	var hero: Hero = _field.hero
+	var breed: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var candidate := value as EnemyData
+		if candidate != null and candidate.category == EnemyData.Category.BREED \
+				and candidate.role == EnemyData.Role.MARCHER \
+				and candidate.behaviour == EnemyData.Behaviour.NONE \
+				and candidate.thrown_shot_id.is_empty():
+			breed = candidate
+			break
+	if hero == null or hero.health == null or breed == null:
+		_check(false, "the combo test needs a hero and a plain marching breed")
+		_finished += 1
+		return
+	var hits: Array[float] = []
+	var counter := func(amount: float, _from: Vector2) -> void:
+		if amount > 0.0:
+			hits.append(amount)
+	hero.health.damaged.connect(counter)
+	var firsts: Array[float] = []
+	var seconds: Array[float] = []
+	for round: int in 14:
+		var body: Enemy = await _stage_a_pounce(breed.id)
+		if body == null:
+			continue
+		hero.health.heal(hero.health.max_hp)
+		hero.health.set("_invulnerable_left", 0.0)
+		hero.health.set("_shield", 0.0)
+		_field.hero.global_position = body.global_position + Vector2(body.attack_reach() * 0.5, 0.0)
+		hits.clear()
+		# Into the first wind-up, then the combo forced to three strikes.
+		var wound: bool = false
+		for _frame: int in 600:
+			body.call("_process", FRAME)
+			if int(body.get("_state")) == Enemy.State.WINDUP:
+				wound = true
+				break
+		_check(wound, "%s never swung at a Warden standing in its reach" % breed.id)
+		if not wound:
+			_run.process_mode = Node.PROCESS_MODE_INHERIT
+			continue
+		body.set("_combo_left", 2)
+		var mode: int = round % 3   # 0: stands still, 1: steps back a little, 2: steps away
+		var strikes: int = 0
+		var lunge_start: Vector2 = Vector2.INF
+		var lunged: float = 0.0
+		var rest: float = -1.0
+		for _frame: int in 900:
+			var before: int = int(body.get("_state"))
+			body.call("_process", FRAME)
+			var now: int = int(body.get("_state"))
+			if now == Enemy.State.STRIKE and before != Enemy.State.STRIKE:
+				strikes += 1
+				if strikes == 1 and mode == 1:
+					var away: Vector2 = (hero.global_position - body.global_position).normalized()
+					hero.global_position = body.global_position + away * (body.attack_reach() + 14.0)
+					lunge_start = body.global_position
+				elif strikes == 1 and mode == 2:
+					hero.global_position = body.global_position + Vector2(body.attack_reach() + 220.0, 0.0)
+			if strikes == 2 and lunge_start != Vector2.INF and lunged == 0.0:
+				lunged = body.global_position.distance_to(lunge_start)
+			if now == Enemy.State.RECOVER:
+				rest = float(body.get("_state_left"))
+				break
+		_run.process_mode = Node.PROCESS_MODE_INHERIT
+		match mode:
+			0:
+				_check(strikes == 3, "a combo of three on a Warden standing still struck %d times" % strikes)
+				_check(hits.size() == 3, "a combo of three landed %d blows" % hits.size())
+				_check(rest >= 2.0 * Balance.ENEMY_COMBO_RECOVERY_PER_STRIKE,
+					"a combo of three rested %.2fs - it should rest the longer for its two follow-ups" % rest)
+				if hits.size() >= 2:
+					firsts.append(hits[0])
+					seconds.append(hits[1])
+			1:
+				_check(strikes >= 2, "a Warden who stepped back inside the lunge was not followed")
+				_check(lunged > 8.0, "the follow-up closed %.1f units - it did not lunge" % lunged)
+			2:
+				_check(strikes == 1, "a Warden who stepped well away was still followed (%d strikes)" % strikes)
+	hero.health.damaged.disconnect(counter)
+	hero.health.heal(hero.health.max_hp)
+	var first_mean: float = 0.0
+	var second_mean: float = 0.0
+	for value: float in firsts:
+		first_mean += value / float(maxi(firsts.size(), 1))
+	for value: float in seconds:
+		second_mean += value / float(maxi(seconds.size(), 1))
+	var share: float = second_mean / maxf(first_mean, 0.001)
+	_check(firsts.size() >= 3, "only %d combos landed two blows to compare" % firsts.size())
+	_check(absf(share - Balance.ENEMY_COMBO_DAMAGE[1]) < 0.15,
+		"a follow-up hit for %.2f of the opening blow - authored at %.2f" % [share, Balance.ENEMY_COMBO_DAMAGE[1]])
+	_clear()
+	await get_tree().process_frame
+	_finished += 1
 
 
 ## One pouncer, far from the town, its quarry inside the leap and outside the
