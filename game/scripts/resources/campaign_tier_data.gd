@@ -29,6 +29,15 @@ extends GameData
 ## while a fight they can see going badly teaches them what to grind for.
 @export var boss_levels: Array[int] = [1, 1, 1]
 
+## **The gear a Warden arriving here is expected to wear** (2026-10-01): its
+## rarity in the first act (`x`) and the last (`y`), and its level the same
+## way. The balance is solved for this Warden - `curve_report --tier=` dresses
+## one in it - so a tier that asks for more than its own drops can give is a
+## wall, and one that asks for less is a holiday. Read by the report and the
+## gates, never by the fight.
+@export var expected_gear_rarity: Vector2i = Vector2i(0, 0)
+@export var expected_gear_level: Vector2i = Vector2i(1, 1)
+
 ## Multipliers on what the tier pays out, so a harder run is worth running.
 @export var xp_scale: float = 1.0
 @export var loot_scale: float = 1.0

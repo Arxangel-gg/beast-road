@@ -118,7 +118,8 @@ static func candidates(hand: Array, levels: Dictionary, act: int,
 
 
 ## **How likely a card is to be dealt.**
-static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array) -> float:
+static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array,
+		capacity: int = Balance.ROAD_CARD_HAND) -> float:
 	var weights: Array[float] = Balance.AUGMENT_RARITY_WEIGHTS
 	var rarity: int = int(card.rarity)
 	var value: float = weights[clampi(rarity, 0, weights.size() - 1)]
@@ -126,7 +127,7 @@ static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array) -> f
 	# odds toward the rare end without ever making a Common impossible.
 	value *= 1.0 + Balance.AUGMENT_LUCK_PER_CLEAN_WAVE * float(maxi(luck, 0)) * float(rarity)
 	if hand.has(card.id):
-		value *= Balance.AUGMENT_HELD_WEIGHT
+		value *= held_weight(hand.size(), capacity)
 	if card.keystone:
 		value *= Balance.AUGMENT_KEYSTONE_WEIGHT
 	var shared: int = 0
@@ -135,6 +136,14 @@ static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array) -> f
 			shared += 1
 	value *= 1.0 + Balance.AUGMENT_LEAN_PER_TAG * float(mini(shared, LEAN_TAGS_MAX))
 	return value
+
+
+## **How much more a held card's next level weighs**, by how full the hand is:
+## `AUGMENT_HELD_WEIGHT` in an empty hand, `AUGMENT_HELD_WEIGHT_FULL` in a full
+## one, by the square of the fill between.
+static func held_weight(held: int, capacity: int) -> float:
+	var fill: float = clampf(float(held) / float(maxi(capacity, 1)), 0.0, 1.0)
+	return lerpf(Balance.AUGMENT_HELD_WEIGHT, Balance.AUGMENT_HELD_WEIGHT_FULL, fill * fill)
 
 
 ## **Deals `count` cards on `dice`**, at `floor` or above where the deck holds
@@ -146,7 +155,7 @@ static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array) -> f
 ## never dealt together, and never two keystones.
 static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Array,
 		levels: Dictionary, act: int, banished: Array, luck: int, lean: Array,
-		exclude: Array = []) -> Array[String]:
+		exclude: Array = [], capacity: int = Balance.ROAD_CARD_HAND) -> Array[String]:
 	if count <= 0:
 		return []
 	var deck: Array[String] = candidates(hand, levels, act, banished)
@@ -164,7 +173,7 @@ static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Arra
 		var total: float = 0.0
 		var weights: Array[float] = []
 		for id: String in pool:
-			var w: float = weight(ContentDB.road_card(id), hand, luck, lean)
+			var w: float = weight(ContentDB.road_card(id), hand, luck, lean, capacity)
 			weights.append(w)
 			total += w
 		var roll: float = dice.randf() * total
@@ -198,8 +207,12 @@ static func deal_for(source: String, floor: int, exclude: Array = [],
 	var levels: Dictionary = RunState.levels_of(who)
 	if source == SOURCE_TEMPERING:
 		return temper(dice, hand, levels, count, exclude)
+	# How full the hand is decides how hard the deal leans to what it holds:
+	# the board's hand, and a Warden's own beside it when the hands are split.
+	var capacity: int = Balance.ROAD_CARD_HAND \
+		+ (Balance.AUGMENT_SEAT_HAND if RunState.hands_split else 0)
 	return deal(dice, count, floor, hand, levels, RunState.act, who.banished, who.luck,
-		RunState.augment_lean_tags(who), exclude)
+		RunState.augment_lean_tags(who), exclude, capacity)
 
 
 ## **Whether a card is one Warden's rather than the party's**, when a hand is

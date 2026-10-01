@@ -12627,6 +12627,126 @@ it holds that nothing above the Skip button takes clicks and presses it.
 `game/video/trailer.ogv` is 720p30 Theora; the 1080p60 MP4 and the ProRes
 master are in `trailer/out/` and are not in git.
 
+**The Hold talks, and the Disciplines scroll on a thumb, as of 2026-10-01.**
+The road's chat is one piece (`PartyChat`: the feed, the box, the commands and
+the keys) and the Hold carries it too, bottom left above the zoom, with a Say
+button in company; Enter opens it unless a button holds the focus. On a phone's
+column a Say square shows in company - exactly when the speed square does not.
+A guest heard that an animal died and never why, so its grief sheet stayed empty
+and it saw no ash: the host tells each patch of grief it lays
+(`Fact.GRIEF_LAID` = 89, only in company), and a guest lays what it is told and
+nothing of its own. On an upright phone the five clusters shared the width and a
+node came out 33 units across; on a touch layout a node is never smaller than
+`UI_DISCIPLINE_NODE_TOUCH_MIN` and the map scrolls instead. `chat_check`,
+`hold_check`, `earth_grief_check` and `mobile_fit_check` hold them.
+
+**Every road is measured against the Warden it expects, as of 2026-10-01.**
+The owner asked for a balance pass that *"considers augment builds ... difficult
+for all players but doable for the geared and skilled and cooperative ... for
+each and every wave of every act, of all difficulties ... including coop"*.
+What the measurement found is the decision, so it is recorded first.
+
+**The two harder roads were walls, and nothing could have said so.**
+`curve_report` measured the account it was handed, which in CI is a new one -
+so the Iron Road and the Chainmaker's Road had only ever been read against a
+level-1 Warden in no gear, which is a Warden nobody brings there. Asked against
+the Warden each tier *expects*, they read **1.02 and 1.87 mean pressure** - a
+pressure over one is a defence that cannot clear what the road sends, on
+average, for the whole campaign. Both were walls.
+
+**`--warden=expected` is that Warden** (`_dress_expected`), dressed per act and
+read through the same doors the fight reads: the level the tier's own bosses
+expect (`CampaignTierData.expected_level`), its points placed by
+`EXPECTED_ATTRIBUTE_SHARE` (mostly Might, then Vigour and Resolve), gear in all
+nine slots climbing through the tier's own `expected_gear_rarity` and
+`expected_gear_level` across the road a slot at a time, and the ascension rank
+the ladder says a Warden arriving there holds. Three faults in the model came
+out on the way, each a curve that read easier or harder than the game:
+
+- **The hero's Might reached the Arsenal and not the hero's own swing.** The
+  capability's hero term is multiplied by it now, as `Hero.damage_multiplier`
+  is.
+- **The dressed gear was the same pieces in every act.** `MetaState.gear_attribute_points`
+  is cached on the equipped names, so each act's pieces are named afresh.
+- **The tier's marks were not in the threat.** A share of a harder road's bodies
+  wear one or more marks, each multiplying health (`_mark_health`), and the
+  model sent unmarked bodies.
+
+**The re-tune.** The Iron Road's health 2.9 to **2.12**; the Chainmaker's 7.4 to
+**2.95** and its damage 2.8 to **2.25**. Measured, solo, expected Warden: the
+Iron Road **0.574** (acts 0.39 to 0.68), the Chainmaker's **0.677** (0.43 to
+0.82); the Long Road on a new account **0.446** (0.25 to 0.58). Each harder road
+is a harder curve against a stronger Warden, which is what a ladder of
+difficulties is; none of them is a wall. Co-op spread 9-12%.
+
+**Each road has its own band** (`TIER_BANDS`: 0.30-0.56, 0.48-0.66, 0.56-0.74)
+**and its own survival floor** (`TIER_SURVIVAL_FLOOR`: 3.0, 2.5 and 2.3 blows) -
+the fewest blows from the act's own average body the expected Warden can take,
+in any act. Flow is the edge of what a player can do, and the Chainmaker's Road
+is meant to be the sharpest edge; the floor is what keeps "sharp" from becoming
+"two hits and the run is gone". The release bar reports the two harder roads
+against their own Warden (`curve_report -- --tier=nightmare --warden=expected`
+and `--tier=hell`), and both fail a tag outside their band or under their floor.
+
+**Builds were measured, and a full hand was drafting into nothing.**
+`--build=best|warden|towers|town|draft` drafts toward one anchor (or, for
+`draft`, takes the best of each real offer `Augments.deal` makes and replaces
+the weakest card once the hand is full). On the Iron Road before the re-tune the
+best planned hand read 0.74, a Warden-only hand 0.82, a tower-only 0.97 and a
+town-only 1.06 - so a narrow build is harder, which is what choosing one costs,
+and in co-op the board and town builds do not grow with the party, which is
+right: a party splits roles. What the draft model found is that **a full hand
+was offered new cards about as often as an empty one**, so most drafts past the
+middle of the road offered nothing worth taking. `AUGMENT_HELD_WEIGHT_FULL`
+(5.0) is the weight a held card climbs to as the hand fills
+(`Augments.held_weight`, eased by the square of the fill), so a full hand is
+mostly offered levels for what it holds: the drafting Warden's late acts went
+0.90 to 0.78 and the road's mean 0.668 to 0.627.
+
+**The act climb has no dip.** `WAVE_ACT_HP_SCALE` was shaped so Act VIII read
+easier than Act VII (0.55 to 0.44). It climbs now, and the road reads 0.25 to
+0.58 act by act.
+
+**Bosses stand on their road's difficulty, as long as the act deserves, and as
+long against a party.** Three things, each found by a readout added to
+`curve_report` (`boss time-to-fall`):
+
+- **A boss took none of the tier.** Its health and blows were `BOSS_ACT_SCALE`
+  alone, so the Chainmaker's Road made every body on it three times tougher and
+  left the giant at the end of each act as it was on the Long Road.
+  `BossDirector.boss_health_scale` and `boss_damage_scale` are the one door for
+  both spawns (the act's boss and the Gatekeeper owed at the summit), and the
+  slam and volley ceilings rise with the tier's damage (`_tier_toughness`) -
+  they are shares of a Long Road Warden's health, and the Warden on a harder
+  road is tougher.
+- **Every boss fell in ten to fifteen modelled seconds, flat.** The Arsenal made
+  the defence several times what it was when the bosses were last tuned, and the
+  readout - against one body, so each weapon's `crowd` is taken out - put the
+  last boss as quick as the first. `BOSS_HEALTH_DEPTH` deepens the pool only
+  (the blows are held by their ceilings) as a climb: thirteen modelled seconds
+  at Act I, twenty-four at Act X. Act I is untouched.
+- **Four Wardens felled a boss in a fraction of the time**, because each brings
+  a sword, a spirit and an Arsenal and a boss is one body.
+  `COOP_BOSS_HEALTH_PER_PLAYER` (0.45) adds to its pool per Warden past the
+  first, through `Coop.player_count` as the waves do. **This re-cuts
+  `COOP_DESIGN` §5 for bosses alone** - "more enemies, never tougher ones" is
+  about the road, where toughness only adds duration and the dodge windows are
+  the design; a boss fight *is* its duration and its blows do not move.
+
+The readout is judged: every act's boss inside `BOSS_SECONDS_BAND` (9-40 model
+seconds) against one Warden, a party of four within `BOSS_PARTY_RATIO` of that,
+and the last boss slower than the first. Modelled seconds are a best case - the
+model lands every hit - so play is longer by however much misses, which is why
+the band is short. `boss_reach_check` holds the tier reaching both spawns and
+both ceilings.
+
+**What is still a judgement, and recorded as one.** The expected Warden's level,
+gear and attribute split are the tiers' own expectations rather than measured
+players; when real accounts exist, `--warden=account` against a played save is
+the check on them. The modelled best case is not a skilled player either - it
+assumes every hit lands and every Gold is spent - so the bands are set to leave
+room for both the misses and the mistakes.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

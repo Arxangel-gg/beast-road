@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_the_ladder_ramps()
 	_test_the_ceiling_actually_binds()
 	_test_every_slam_is_authored_inside_the_shove_bound()
+	_test_the_road_reaches_the_boss()
 	await _test_a_slam_actually_throws_the_player()
 	MetaState.resume_saves()
 	if _failures.is_empty():
@@ -50,6 +51,48 @@ func _check(condition: bool, why: String) -> void:
 	_checks += 1
 	if not condition:
 		_failures.append(why)
+
+
+## **A boss stands on its road's own difficulty** (2026-10-01). The tier's
+## health and damage reach the giant as they reach every body before it, and
+## its ceilings rise with the tier's damage, which is how much tougher the
+## Warden that road expects is. Both spawns - the act's boss and the Gatekeeper
+## owed at the summit - go through the same two scales, and the two ceilings in
+## the fight are scaled by the same toughness; read off the source, because a
+## spawn that forgot is a boss that walked back onto the Long Road.
+func _test_the_road_reaches_the_boss() -> void:
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		for act: int in [1, 5, 10]:
+			var base: float = Balance.BOSS_ACT_SCALE[act - 1]
+			var pool: float = base * Balance.BOSS_HEALTH_DEPTH[act - 1] * tier.hp_scale
+			_check(is_equal_approx(BossDirector.boss_health_scale(act, tier), pool),
+				"%s act %d's boss is not given the road's own health (%.2f against %.2f)"
+					% [tier.id, act, BossDirector.boss_health_scale(act, tier), pool])
+			# A party's giant is deeper and no harder: the pool grows by the
+			# Wardens present, the blows do not.
+			var party: float = pool * (1.0 + 3.0 * Balance.COOP_BOSS_HEALTH_PER_PLAYER)
+			_check(is_equal_approx(BossDirector.boss_health_scale(act, tier, 4), party),
+				"%s act %d's boss is not deepened for four Wardens (%.2f against %.2f)"
+					% [tier.id, act, BossDirector.boss_health_scale(act, tier, 4), party])
+			_check(is_equal_approx(BossDirector.boss_damage_scale(act, tier), base * tier.damage_scale),
+				"%s act %d's boss is not given the road's own damage" % [tier.id, act])
+	var director: String = FileAccess.get_file_as_string("res://scripts/systems/boss_director.gd")
+	_check(director.count("boss_health_scale(") >= 3 and director.count("boss_damage_scale(") >= 3,
+		"a boss is spawned somewhere without the road's own scales")
+	_check(director.count("Coop.player_count())") >= 2,
+		"a boss is spawned somewhere without the party it faces")
+	# And the road says what it expects before it is walked: the gear its own
+	# bosses are measured against is in the picker's tooltip, by rarity name.
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		var said: String = MainMenu.gear_expectation(tier)
+		_check(said.contains(Stash.RARITY_NAMES[tier.expected_gear_rarity.y]),
+			"%s's picker does not say the gear it expects: \"%s\"" % [tier.id, said])
+	_check(Balance.BOSS_HEALTH_DEPTH.size() == Balance.ACT_COUNT,
+		"BOSS_HEALTH_DEPTH has %d entries for %d acts" % [Balance.BOSS_HEALTH_DEPTH.size(), Balance.ACT_COUNT])
+	var enemy: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	_check(enemy.contains("boss_slam_ceiling(RunState.act) * _tier_toughness()")
+		and enemy.contains("boss_volley_shot_ceiling(RunState.act, shots) * _tier_toughness()"),
+		"a boss's ceilings are held to a Long Road Warden on every road")
 
 
 ## Every act's boss, in act order, or an empty array if a region names none.

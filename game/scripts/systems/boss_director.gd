@@ -59,7 +59,9 @@ func summon(act: int) -> bool:
 	var tier: CampaignTierData = RunState.tier()
 	if tier != null and tier.boss_marks > 0:
 		worn = EnemyMarks.roll(tier.boss_marks, act, RunState.weather_id, _rng)
-	_active = battlefield.spawn_enemy(data, lane, _boss_scale(act), -1.0, 1.0, false,
+	_active = battlefield.spawn_enemy(data, lane,
+		boss_health_scale(act, tier, Coop.player_count()) * RunState.enemy_escalation_multiplier(),
+		boss_damage_scale(act, tier) * RunState.enemy_escalation_multiplier(), 1.0, false,
 		Enemy.Rank.COMMON, worn)
 	if _active == null:
 		return false
@@ -115,7 +117,10 @@ func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
 	# act boss: he is the fight the player walked past, at the strength they
 	# walked past it.
 	var trial_act: int = GatekeeperTrials.STAGE_ACTS[GatekeeperTrials.STAGES - 1]
-	_escort = battlefield.spawn_enemy(keeper, lane, _boss_scale(trial_act))
+	var tier: CampaignTierData = RunState.tier()
+	_escort = battlefield.spawn_enemy(keeper, lane,
+		boss_health_scale(trial_act, tier, Coop.player_count()) * RunState.enemy_escalation_multiplier(),
+		boss_damage_scale(trial_act, tier) * RunState.enemy_escalation_multiplier())
 	if _escort == null:
 		return
 	EventBus.boss_spawned.emit(keeper.id, act)
@@ -125,9 +130,32 @@ func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
 
 ## Bosses scale with accumulated horn use like everything else, so a run that
 ## leaned on the horn meets a harder boss.
-func _boss_scale(act: int) -> float:
-	return RunState.enemy_escalation_multiplier() * Balance.BOSS_ACT_SCALE[
-		clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)]
+## **A boss stands on the road's own difficulty** (2026-10-01). Its health and
+## its blows were `BOSS_ACT_SCALE` and nothing else, so the tier that made every
+## body on the road two or three times tougher left the giant at the end of
+## each act exactly as it was on the Long Road - and the Warden that tier
+## expects, two and a half times stronger, walked through it. The tier's health
+## and damage reach the boss as they reach the bodies before it.
+static func boss_health_scale(act: int, tier: CampaignTierData, players: int = 1) -> float:
+	var at: int = clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)
+	return Balance.BOSS_ACT_SCALE[at] * Balance.BOSS_HEALTH_DEPTH[at] \
+		* (tier.hp_scale if tier != null else 1.0) * party_health_scale(players)
+
+
+## **A party fights the same giant for about as long as one Warden does**
+## (2026-10-01). Every Warden brings their own sword, spirit and Arsenal, and a
+## boss is one body, so four of them felled it in a fraction of the time - a
+## climax that was over before the music turned. `COOP_DESIGN` §5's rule - more
+## enemies, never tougher ones - is about the road, where toughness only adds
+## duration and the dodge windows are the design; a boss fight *is* its
+## duration, and its blows are untouched, so the windows are too. Health only.
+static func party_health_scale(players: int) -> float:
+	return 1.0 + float(maxi(players - 1, 0)) * Balance.COOP_BOSS_HEALTH_PER_PLAYER
+
+
+static func boss_damage_scale(act: int, tier: CampaignTierData) -> float:
+	var scale: float = Balance.BOSS_ACT_SCALE[clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)]
+	return scale * (tier.damage_scale if tier != null else 1.0)
 
 
 func _boss_for_act(act: int) -> EnemyData:

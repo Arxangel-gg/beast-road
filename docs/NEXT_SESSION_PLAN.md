@@ -21,6 +21,35 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0j. Where things stand (2026-10-01, night, v0.70.0)
+
+**v0.70.0** is the owner's balance pass - every road measured against the
+Warden it expects, builds and co-op included - plus the Hold's chat and the
+Disciplines on a thumb. All of it is in CLAUDE.md under "Every road is measured
+against the Warden it expects".
+
+- **The harder roads were walls** (1.02 and 1.87 mean pressure against their
+  own expected Warden) and are a ladder now: 0.446 / 0.574 / 0.677, each inside
+  its own band, each with a survival floor, both harder roads judged on the
+  release bar.
+- **A full augment hand is offered levels** for what it holds
+  (`AUGMENT_HELD_WEIGHT_FULL`), measured with the game's own deal.
+- **Bosses take the tier, climb in depth across the acts, and deepen for a
+  party** (`BOSS_HEALTH_DEPTH`, `COOP_BOSS_HEALTH_PER_PLAYER`), judged by a
+  boss time-to-fall band in `curve_report`.
+
+**What would make the balance trustworthy rather than modelled**: a played
+account on each road through `curve_report --warden=account`, and the owner's
+read of a boss fight's length on the Iron Road. The expected Warden is the
+tiers' own expectation, not a measured player.
+
+**Next, in order**: the trailer by ear (0i); the earth's temper and karma over a
+whole run (0h #3) - a soak that logs `RunState.karma`, the wrath floor and the
+temper events per act, so the curve of the earth's anger can be read the way
+the pressure curve is; then 0h's remaining items.
+
+---
+
 ## 0i. Where things stand (2026-10-01, evening, v0.69.0)
 
 **v0.69.0** carries the owner's list of 2026-10-01 after v0.68.1, each item

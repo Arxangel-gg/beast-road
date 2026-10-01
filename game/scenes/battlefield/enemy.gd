@@ -4565,6 +4565,17 @@ func _enemy_damage_scale() -> float:
 		* maxf(Modifiers.multiplier(Modifiers.ENEMY_DAMAGE), 0.0)
 
 
+## **How much tougher than the Long Road's Warden this road expects its own**
+## (2026-10-01): the tier's damage multiplier, which was chosen so the Warden it
+## expects survives the same number of blows a Long Road Warden does. The boss
+## ceilings are shares of a Long Road Warden's health; on a harder road they are
+## shares of that road's Warden, or a boss's blows would be capped at what
+## nobody walking that road would feel.
+func _tier_toughness() -> float:
+	var tier: CampaignTierData = RunState.tier()
+	return maxf(tier.damage_scale, 1.0) if tier != null else 1.0
+
+
 func _land_slam() -> void:
 	var damage: float = data.contact_damage * data.boss_slam_damage * _damage_scale \
 		* _enemy_damage_scale()
@@ -4573,7 +4584,7 @@ func _land_slam() -> void:
 	# Bounded by what a hero can live through. See `Balance.boss_slam_ceiling`:
 	# the authored multiplier decides the boss's character and the ceiling
 	# decides whether the player gets to be wrong about a telegraph once.
-	damage = minf(damage, Balance.boss_slam_ceiling(RunState.act))
+	damage = minf(damage, Balance.boss_slam_ceiling(RunState.act) * _tier_toughness())
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
 	Vfx.scar_dent(global_position, data.boss_slam_radius * 0.6, Balance.SCAR_SLAM_DEPTH * 1.4)
@@ -4610,7 +4621,7 @@ func _throw_volley(quarry: Node2D) -> void:
 	# **The shot, and the whole burst.** A boss that throws six has each of them
 	# bounded by the burst rather than by the single-shot share, so throwing
 	# more shots spreads a volley out instead of multiplying it.
-	damage = minf(damage, Balance.boss_volley_shot_ceiling(RunState.act, shots))
+	damage = minf(damage, Balance.boss_volley_shot_ceiling(RunState.act, shots) * _tier_toughness())
 	var aim: Vector2 = (quarry.global_position - combat_origin()).normalized()
 	# A boss's volley wears the boss's own shot (`EnemyData.volley_shot_id`).
 	_shot_paint = data.volley_shot()

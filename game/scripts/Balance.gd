@@ -569,8 +569,21 @@ const AUGMENT_LUCK_CAP: int = 8
 ## hand and in the Disciplines - by this share per shared tag, so a synergy can
 ## be built on purpose. [TUNE]
 const AUGMENT_LEAN_PER_TAG: float = 0.35
-## A held card's next level weighs this much more than a card not held. [TUNE]
+## A held card's next level weighs this much more than a card not held, in an
+## empty hand - rising to `AUGMENT_HELD_WEIGHT_FULL` as the hand fills, by the
+## square of how full it is (2026-10-01). [TUNE]
+##
+## **Why it rises.** At a flat 1.4 a full hand of twelve was mostly offered
+## cards it could only take by leaving one behind, so a player who took what was
+## good in front of them reached Act II with twelve level-one weapons and
+## levelled almost none: measured on the curve's draft model, a new player's
+## Long Road averaged 0.84 against the planner's 0.43 and passed 1.0 from Act
+## VII. The genre this is drawn from leans the deal toward what is held as the
+## slots fill, and so does this - by the square, so an empty hand still
+## explores and a full one is mostly offered its own next levels, with a
+## replacement still turning up now and then.
 const AUGMENT_HELD_WEIGHT: float = 1.4
+const AUGMENT_HELD_WEIGHT_FULL: float = 5.0
 ## Keystones in a draft, against an ordinary card of their rarity. [TUNE]
 const AUGMENT_KEYSTONE_WEIGHT: float = 0.4
 ## **The tools against luck.** Rerolls and banishes a road starts with, and the
@@ -1144,6 +1157,12 @@ const DISCIPLINE_RADIANT_RADIUS: float = 150.0
 ## tower, and enough that fighting well is worth more than standing at the base.
 ## [TUNE]
 const HERO_MIGHT_PER_POINT: float = 0.011
+## **How the Warden each road is balanced for places their points** (2026-10-01):
+## Might, Vigour, Swiftness, Focus, Resolve, as shares. A Warden who fights,
+## with a little of everything that keeps them standing - not the best build,
+## the expected one. Read by `curve_report` and the balance gates, never the
+## fight. [TUNE]
+const EXPECTED_ATTRIBUTE_SHARE: Array[float] = [0.55, 0.2, 0.05, 0.05, 0.15]
 ## **Thresholds** (docs/GEAR_REWORK_2026-09-28.md §2): every this many points in
 ## an attribute, placed and worn together, unlocks a tier of its perk, to this
 ## many tiers. A perk moves one number through a door the game has and adds no
@@ -5514,8 +5533,19 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Act II is 1.48, a step of 1.36, and the pressure it gave up is bought back
 ## as bodies (`WAVE_ACT_COUNT_SCALE` 2.18 to 2.30): more of them, each softer,
 ## which is the horde the Arsenal exists to answer.
+## **Shaped as a climb, 2026-10-01** (owner: balancing that keeps players
+## "on the edge of their potential" for every wave of every act). Measured, the
+## road peaked in Act VII at 0.55 and then *eased* - 0.44 in VIII, 0.46 in IX -
+## because past VII the purse's act scale and the Arsenal's grow faster than
+## the bodies do. A player who survived the hardest act in the game then
+## coasted through two. Health is the lever that moves pressure and nothing
+## else - income reads bodies, never their pools - so Acts V to X were set act
+## by act to a steady rise: 0.44, 0.47, 0.49, 0.51, 0.53 and 0.55, with the
+## summit, which reads Act X's entry, the peak. Not a smooth table, because
+## what it answers is not smooth: Act VII's health comes *down* because its
+## income has not yet caught up with it, and VIII's rises because it has.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.09, 1.48, 2.31, 2.84, 2.95, 2.98, 3.01, 3.00, 3.03, 3.05,
+	1.09, 1.48, 2.31, 2.84, 2.82, 3.05, 2.68, 3.48, 3.49, 3.29,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.02, 1.06, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20,
@@ -6349,6 +6379,27 @@ static func boss_slam_ceiling(act: int) -> float:
 const BOSS_ACT_SCALE: Array[float] = [
 	1.25, 1.90, 3.20, 4.20, 5.30, 6.50, 7.80, 9.20, 10.70, 12.30,
 ]
+
+## **How deep each act's boss is, on top of `BOSS_ACT_SCALE`** - health only
+## (2026-10-01). `BOSS_ACT_SCALE` sets a boss's blows and its pool together, and
+## the blows are held by the slam and volley ceilings above, so the pool is the
+## half that can be tuned on its own. `curve_report` reads how long each boss
+## stands against the defence a walked road holds: with the Arsenal it read ten
+## to fifteen seconds in every act - a best case, but a flat one, so the giant
+## at the end of Act X fell as quickly as the first. Shaped as a climb instead,
+## about thirteen modelled seconds at Act I to about twenty-four at Act X, which
+## in play (no Arsenal lands every hit, and the reinforcements split the fire)
+## is a short first boss and a long last one. Act I is untouched: the first boss
+## is where a new Warden learns what a boss is.
+const BOSS_HEALTH_DEPTH: Array[float] = [
+	1.00, 1.25, 1.15, 1.50, 1.60, 1.70, 1.70, 1.85, 1.70, 1.60,
+]
+
+## **What each Warden past the first adds to a boss's pool** (2026-10-01). A
+## boss is one body and every Warden brings their own sword, spirit and Arsenal;
+## see `BossDirector.party_health_scale`. Read against `curve_report`'s boss line
+## for four players, which is meant to read about as long as one Warden's.
+const COOP_BOSS_HEALTH_PER_PLAYER: float = 0.45
 
 ## Boss-phase reinforcements use the current wave curve, softened so the boss
 ## remains the centre of the encounter while the other lanes demand attention.

@@ -312,6 +312,34 @@ func _test_the_deal() -> void:
 			dealt_growing += 1
 	_check(dealt_growing > 0, "a held card that can still grow was never dealt again")
 
+	# **A full hand is offered its own cards** (2026-10-01). A held card's next
+	# level weighed the same in a full hand as in an empty one, so once the
+	# places were gone most drafts offered new cards that could only replace
+	# something. The weight climbs with the fill, and the deal is asked rather
+	# than the constant: the same held card, in a hand with no places left and
+	# in a hand with eleven, over the same dice.
+	_check(is_equal_approx(Augments.held_weight(0, Balance.ROAD_CARD_HAND), Balance.AUGMENT_HELD_WEIGHT)
+		and is_equal_approx(Augments.held_weight(Balance.ROAD_CARD_HAND, Balance.ROAD_CARD_HAND),
+			Balance.AUGMENT_HELD_WEIGHT_FULL),
+		"a held card weighs %.2f in an empty hand and %.2f in a full one"
+			% [Augments.held_weight(0, Balance.ROAD_CARD_HAND),
+				Augments.held_weight(Balance.ROAD_CARD_HAND, Balance.ROAD_CARD_HAND)])
+	var climbing: bool = true
+	for held: int in Balance.ROAD_CARD_HAND:
+		climbing = climbing and Augments.held_weight(held + 1, Balance.ROAD_CARD_HAND) \
+			>= Augments.held_weight(held, Balance.ROAD_CARD_HAND)
+	_check(climbing, "a held card weighs less as the hand fills")
+	var roomy: int = 0
+	var crowded: int = 0
+	for _i: int in 3000:
+		if Augments.deal(dice, 3, 0, hand, growing, Balance.ACT_COUNT, none, 0, none, [],
+				Balance.ROAD_CARD_HAND).has(grower.id):
+			roomy += 1
+		if Augments.deal(dice, 3, 0, hand, growing, Balance.ACT_COUNT, none, 0, none, [], 1).has(grower.id):
+			crowded += 1
+	_check(float(crowded) > float(roomy) * 2.0,
+		"a full hand was offered its own card %d times in 3000 against %d with room" % [crowded, roomy])
+
 	# **Luck and lean move the odds and nothing else.**
 	var plain: float = _share(dice, func(c: RoadCardData) -> bool: return int(c.rarity) > 0, 0, [])
 	var lucky: float = _share(dice, func(c: RoadCardData) -> bool: return int(c.rarity) > 0,

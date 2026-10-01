@@ -5,10 +5,12 @@
 [resource]
 script = ExtResource("1_t")
 order = 2
-hp_scale = 7.4
-damage_scale = 2.8
+hp_scale = 2.95
+damage_scale = 2.25
 speed_scale = 1.15
 boss_levels = Array[int]([80, 82, 84, 85, 87, 88, 90, 91, 93, 94])
+expected_gear_rarity = Vector2i(4, 5)
+expected_gear_level = Vector2i(5, 5)
 xp_scale = 5.0
 loot_scale = 3.6
 score_scale = 6.0

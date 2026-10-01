@@ -99,6 +99,50 @@ var _body_scale: float = 0.0
 ## ascension rank is - and `--no-augments` prints the road without them, so the
 ## size of what the drafts buy can be read as a difference.
 var _with_augments: bool = true
+## **Which road, and which Warden walks it** (2026-10-01: *"a difficulty
+## balancing that considers augment builds ... gear and levels ... of all
+## difficulties"*). `--tier=` measures the Long Road, the Iron Road or the
+## Chainmaker's Road; with a tier named the report dresses the Warden that tier
+## expects at each act - its boss level, the points placed by
+## `EXPECTED_ATTRIBUTE_SHARE`, and the gear `CampaignTierData.expected_gear_*`
+## names, worn through the doors a stash equips through - so what is measured
+## is the road against the Warden it was balanced for. `--warden=account`
+## measures the profile instead, as this report always did.
+var _tier_id: String = ""
+## The last row of every act in each party size's replay, kept so the boss
+## readout can be asked about a party as well as a Warden alone.
+var _party_act_rows: Dictionary = {}
+var _boss_failures: int = 0
+
+## **How long a boss may stand against the defence a walked road holds**, in
+## the model's best-case seconds (2026-10-01). Under the floor a giant is a
+## speed bump; over the ceiling it is the sponge reported on 2026-09-21. The
+## model lands every hit, so play is longer than this by however much of the
+## Arsenal misses - which is why the band is short.
+const BOSS_SECONDS_BAND: Vector2 = Vector2(9.0, 40.0)
+## And a party's boss stands about as long as one Warden's. The ceiling is
+## wide because the model's party hand lags a Warden's alone in Act III - the
+## seats draft at a solo road's pace on bigger waves - which reads 1.5x there
+## and about 1.1x everywhere else.
+const BOSS_PARTY_RATIO: Vector2 = Vector2(0.7, 1.6)
+## **Which build the draft makes** (2026-10-01). `best` is the planner this
+## report always had - a player who knows the deck and builds toward the summit.
+## `warden`, `towers` and `town` hold only weapons anchored there (and the
+## catalysts every build takes), so each kind of build can be measured against
+## the others. `draft` plans nothing: each pick is the best of three cards drawn
+## from what the game may deal, which is the player reading three cards at a
+## time rather than the one reading the whole deck.
+var _build: String = "best"
+var _draft_dice := RandomNumberGenerator.new()
+var _expected_warden: bool = false
+var _dressed_act: int = -1
+## What the dressed Warden stands with at each act: their health pool and the
+## share of every blow their Resolve and rank take off. For the survival line.
+var _expected_pool: Dictionary = {}
+var _expected_mitigation: Dictionary = {}
+var _expected_damage: Dictionary = {}
+## The fewest blows the expected Warden survives in any act, for the summary.
+var _survival_floor: float = 0.0
 var _road_kills: float = 0.0
 ## **The Arsenal the drafts have built so far** (2026-09-27): card id -> level,
 ## grown greedily a draft at a time and carried from wave to wave, because the
@@ -121,12 +165,28 @@ func _ready() -> void:
 			_with_companion = true
 		elif argument == "--no-augments":
 			_with_augments = false
+		elif argument.begins_with("--build="):
+			_build = argument.split("=")[1]
+		elif argument.begins_with("--tier="):
+			_tier_id = argument.split("=")[1]
+			_expected_warden = true
+		elif argument == "--warden=account":
+			_expected_warden = false
+		elif argument == "--warden=expected":
+			_expected_warden = true
 		# An override, so a scaling value can be swept without editing Balance
 		# and rebuilding an opinion each time. Reporting only - the game always
 		# reads the table.
 		elif argument.begins_with("--body-scale="):
 			_body_scale = maxf(float(argument.split("=")[1]), 0.01)
 	RunState.reset()
+	if not _tier_id.is_empty():
+		RunState.tier_id = _tier_id
+	if _expected_warden:
+		# The Warden is dressed for every act: nothing of it may reach the save.
+		MetaState.hold_saves()
+		if _ascension < 0:
+			_ascension = expected_rank_for_tier(RunState.tier().id)
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	var run: Run = packed.instantiate() as Run
 	add_child(run)
@@ -185,12 +245,121 @@ func _ready() -> void:
 	get_tree().quit(bad)
 
 
+## **The Warden this tier expects at this act**, dressed into the account.
+##
+## Level: the tier's own `expected_level`. Points: `level - 1`, placed by
+## `EXPECTED_ATTRIBUTE_SHARE`. Gear: a piece in every slot, of the kind in that
+## slot that favours the attribute the slot is dressed for, at the rarity and
+## level the tier names for this act - worn through `MetaState.equip`, so its
+## points, its affixes and any set it makes reach the model the way they reach
+## the fight. Named by slot rather than drawn, so the same tier is the same
+## Warden on every run of the report.
+func _dress_expected(act: int) -> void:
+	if not _expected_warden or act == _dressed_act:
+		return
+	_dressed_act = act
+	var tier: CampaignTierData = RunState.tier()
+	if tier == null:
+		return
+	var level: int = tier.expected_level(mini(act, Balance.ACT_COUNT))
+	MetaState.hero_level = level
+	var points: int = maxi(level - 1, 0)
+	var placed: Array[int] = []
+	var given: int = 0
+	for share: float in Balance.EXPECTED_ATTRIBUTE_SHARE:
+		var each: int = int(floor(float(points) * share))
+		placed.append(each)
+		given += each
+	placed[RunState.Attribute.MIGHT] += points - given
+	MetaState.hero_attributes = placed
+	# The run reads its own copy, taken when the road began: the dressed
+	# Warden has to be in both or the fight-side readers see a new one.
+	RunState.hero_attributes = placed.duplicate()
+	RunState.hero_level = level
+	var along: float = clampf(float(act - 1) / float(maxi(Balance.ACT_COUNT - 1, 1)), 0.0, 1.0)
+	var rarity_now: float = lerpf(float(tier.expected_gear_rarity.x), float(tier.expected_gear_rarity.y), along)
+	var level_now: float = lerpf(float(tier.expected_gear_level.x), float(tier.expected_gear_level.y), along)
+	var slots: int = GearData.Slot.size()
+	MetaState.stash.clear()
+	MetaState.equipped.clear()
+	for slot: int in slots:
+		var kind: GearData = _expected_kind(slot, tier.order)
+		if kind == null:
+			continue
+		# **A slot at a time.** Gear is found a piece at a time, so between two
+		# rarities a Warden wears some of each: each slot climbs at its own
+		# point of the road rather than all nine on one act, which made the
+		# curve jump where nothing in the game does.
+		var step: float = (float(slot) + 0.5) / float(slots)
+		var rarity: int = clampi(int(floor(rarity_now + step)), tier.expected_gear_rarity.x,
+			tier.expected_gear_rarity.y)
+		var gear_level: int = clampi(int(floor(level_now + step)), tier.expected_gear_level.x,
+			tier.expected_gear_level.y)
+		var piece: Dictionary = Stash.make(kind.id, rarity, gear_level)
+		# A fixed name, so the affixes a piece rolls from it are the same on
+		# every run of the report - and a new one each act, because what is
+		# worn is cached against the names worn and the whole walk is one frame.
+		piece["uid"] = 7000 + act * 100 + slot
+		if MetaState.take_gear(piece):
+			MetaState.equip(slot, MetaState.stash.size() - 1)
+	Modifiers.rebuild()
+	# What they stand with, through the same constants the hero reads: Vigour
+	# and the bosses already felled on this road for the pool, Resolve and
+	# the rank inside Resolve's ceiling for the share a blow loses.
+	var vigour: float = float(WardenSheet.attribute_of(null, RunState.Attribute.VIGOUR))
+	var resolve: float = float(WardenSheet.attribute_of(null, RunState.Attribute.RESOLVE))
+	_expected_pool[act] = (Balance.HERO_MAX_HP + WardenSheet.value_of(null, Modifiers.HERO_MAX_HP)) \
+		* (1.0 + vigour * Balance.HERO_VIGOUR_PER_POINT + float(act - 1) * Balance.BOSS_FELLED_VIGOUR)
+	_expected_mitigation[act] = minf(resolve * Balance.HERO_RESOLVE_MITIGATION_PER_POINT
+		+ minf(float(ascension_rank()) * Balance.ASCENSION_MITIGATION_PER_RANK,
+			Balance.ASCENSION_MITIGATION_CAP), Balance.HERO_RESOLVE_MITIGATION_CAP)
+	var might: float = float(WardenSheet.attribute_of(null, RunState.Attribute.MIGHT))
+	_expected_damage[act] = (1.0 + might * Balance.HERO_MIGHT_PER_POINT) * _core_scale(Modifiers.HERO_DAMAGE)
+
+
+## The attribute each slot is dressed for in the expected Warden.
+const _SLOT_LEANS: Array[int] = [
+	RunState.Attribute.MIGHT,      # Weapon
+	RunState.Attribute.VIGOUR,     # Armour
+	RunState.Attribute.MIGHT,      # Charm
+	RunState.Attribute.RESOLVE,    # Helmet
+	RunState.Attribute.MIGHT,      # Gloves
+	RunState.Attribute.SWIFTNESS,  # Boots
+	RunState.Attribute.MIGHT,      # Ring
+	RunState.Attribute.FOCUS,      # Amulet
+	RunState.Attribute.RESOLVE,    # Cape
+]
+
+
+## The kind for a slot: one that favours the slot's attribute where the slot
+## has one, the heaviest of those, and by name on a tie.
+func _expected_kind(slot: int, tier_order: int) -> GearData:
+	var lean: int = _SLOT_LEANS[slot] if slot < _SLOT_LEANS.size() else RunState.Attribute.MIGHT
+	var best: GearData = null
+	var best_any: GearData = null
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind == null or int(kind.slot) != slot or kind.trophy or kind.min_tier > tier_order:
+			continue
+		if best_any == null or _heavier(kind, best_any):
+			best_any = kind
+		if kind.attribute == lean and (best == null or _heavier(kind, best)):
+			best = kind
+	return best if best != null else best_any
+
+
+func _heavier(kind: GearData, than: GearData) -> bool:
+	return kind.base_points > than.base_points \
+		or (kind.base_points == than.base_points and kind.id < than.id)
+
+
 ## One wave, with the run wound forward to where that wave happens.
 func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		distance: float) -> Dictionary:
 	RunState.act = act
 	RunState.wave_number = wave
 	RunState.distance_travelled = distance
+	_dress_expected(act)
 	var terrain: TerrainData = ContentDB.terrain_for_act(act)
 	RunState.terrain_id = terrain.id if terrain != null else "jungle"
 	director._act_wave = act_wave
@@ -207,7 +376,12 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	var damage: float = director._damage_scale(0)
 	var speed: float = director._speed_scale(0)
 
-	var threat: float = float(bodies) * hp
+	# **And the marks the road's tier sets on its bodies** (2026-10-01): a share
+	# of the ordinary bodies wear one or more, each multiplying health by its
+	# own `health_scale`. Read off the act's own pool at the tier's floor share
+	# (the earth's anger lifts it in play), so the harder roads are measured
+	# with the bodies they actually send.
+	var threat: float = float(bodies) * hp * _mark_health(act)
 
 	# Killing pays for the next wall, so income is a function of the bodies
 	# already dealt with rather than of the clock. Modelling it as time-based
@@ -259,7 +433,13 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# **The Arsenal**, after the towers are bought, because a weapon on the
 	# towers stands on every one of them.
 	var arsenal: float = _arsenal_value(_arsenal, act) * standing
-	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) \
+	# **And the Warden's own Might** (2026-10-01). The Arsenal below has always
+	# carried it and the Warden's own swing never did, so a levelled Warden's
+	# blows were counted at a new one's - invisible on a new account, where
+	# Might is nought, and a real share of the late game for anybody else.
+	var might: float = 1.0 + float(WardenSheet.attribute_of(null, RunState.Attribute.MIGHT)) \
+		* Balance.HERO_MIGHT_PER_POINT
+	var capability: float = _hero_dps() * might * _core_scale(Modifiers.HERO_DAMAGE) \
 			* _discipline_scale() * float(_players) * standing \
 		+ _companion_dps() * float(_players) * standing \
 		+ towers + arsenal
@@ -272,7 +452,8 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
 		"rank": int(dealt.get("ranks", 0)), "drafts": int(dealt.get("drafts", 0)),
-		"arsenal": arsenal,
+		"arsenal": arsenal, "towers_dps": towers,
+		"arsenal_single": _arsenal_value(_arsenal, act, true) * standing,
 	}
 
 
@@ -321,10 +502,102 @@ func _print_survival() -> void:
 	# against and they are what carry a real Warden through Act X; printing
 	# "1.0 blows" without saying which hero is the misreading this project keeps
 	# recording, so the line says it rather than leaving it to be inferred.
+	_print_boss_time()
+	# **And the Warden the tier expects** (2026-10-01): their own pool and
+	# mitigation, dressed act by act, against the same body. This is the
+	# number the survival band is held to; the base line above is the floor.
+	if _expected_warden and not _expected_pool.is_empty():
+		var held_line: PackedStringArray = []
+		var fewest: float = INF
+		for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
+			var row: Dictionary = _last_row_of_act(act)
+			if row.is_empty() or not _expected_pool.has(act):
+				continue
+			var blow: float = contact * float(row["damage"]) * (1.0 - float(_expected_mitigation[act]))
+			var blows: float = float(_expected_pool[act]) / maxf(blow, 0.01)
+			fewest = minf(fewest, blows)
+			held_line.append("%d:%.1f" % [act, blows])
+		print("[curve] blows survived by act, EXPECTED Warden   %s" % " ".join(held_line))
+		_survival_floor = fewest
+		var power: PackedStringArray = []
+		for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
+			if _expected_damage.has(act):
+				power.append("%d:x%.2f" % [act, float(_expected_damage[act])])
+		print("[curve] expected Warden damage by act   %s" % " ".join(power))
 	print(("[curve]   ^ the base pool only. Levelling, Vigour and gear are the "
 		+ "two capped scales that carry a real Warden past act %d; what this "
 		+ "shows is the floor ascension lifts and by how much.")
 		% Balance.ACT_COUNT)
+
+
+## **How long each act's boss stands**, against the defence that reaches it
+## (2026-10-01). A readout like the survival line: a boss fight is not wave
+## pressure, and this is the one number that says whether a giant is a climax
+## or a speed bump on each road. The boss walks one road, so a quarter of the
+## board meets it; the Warden, their spirit and the whole Arsenal go to it.
+## Health through `BossDirector.boss_health_scale`, the road's own, so this
+## cannot disagree with the spawn.
+func _print_boss_time() -> void:
+	_boss_failures = 0
+	var solo: Dictionary = {}
+	for count: int in [1, Balance.COOP_MAX_PLAYERS]:
+		var rows: Dictionary = _party_act_rows.get(count, {})
+		if rows.is_empty():
+			continue
+		var line: PackedStringArray = []
+		for act: int in range(1, Balance.ACT_COUNT + 1):
+			var seconds: float = boss_seconds(act, rows.get(act, {}), count)
+			if seconds < 0.0:
+				continue
+			line.append("%d:%.0fs" % [act, seconds])
+			if count == 1:
+				solo[act] = seconds
+				if seconds < BOSS_SECONDS_BAND.x or seconds > BOSS_SECONDS_BAND.y:
+					printerr("[curve] act %d's boss stands %.0fs against one Warden, outside %.0f-%.0fs"
+						% [act, seconds, BOSS_SECONDS_BAND.x, BOSS_SECONDS_BAND.y])
+					_boss_failures += 1
+			elif solo.has(act):
+				var ratio: float = seconds / maxf(float(solo[act]), 0.01)
+				if ratio < BOSS_PARTY_RATIO.x or ratio > BOSS_PARTY_RATIO.y:
+					printerr("[curve] act %d's boss stands %.1fx as long against %d Wardens as against one, outside %.1f-%.1fx"
+						% [act, ratio, count, BOSS_PARTY_RATIO.x, BOSS_PARTY_RATIO.y])
+					_boss_failures += 1
+		print("[curve] boss time-to-fall, %d player%s   %s"
+			% [count, "" if count == 1 else "s", " ".join(line)])
+	if solo.has(1) and solo.has(Balance.ACT_COUNT) and float(solo[Balance.ACT_COUNT]) <= float(solo[1]):
+		printerr("[curve] the last act's boss falls no slower than the first's - the finale is not a climax")
+		_boss_failures += 1
+
+
+## How long one act's boss stands against the defence a row measured, or -1.
+func boss_seconds(act: int, row: Dictionary, players: int) -> float:
+	var terrain: TerrainData = ContentDB.terrain_for_act(act)
+	if row.is_empty() or terrain == null:
+		return -1.0
+	var boss: EnemyData = ContentDB.enemy(terrain.boss_id)
+	if boss == null:
+		return -1.0
+	var health: float = boss.max_hp * BossDirector.boss_health_scale(act, RunState.tier(), players)
+	var towers: float = float(row.get("towers_dps", 0.0))
+	var reach: float = float(row["capability"]) - towers - float(row["arsenal"]) \
+		+ towers / float(Balance.LANE_COUNT) + float(row.get("arsenal_single", 0.0))
+	return health / maxf(reach, 0.01)
+
+
+## What the tier's marks add to an average body's health in this act.
+func _mark_health(act: int) -> float:
+	var tier: CampaignTierData = RunState.tier()
+	if tier == null or tier.marked_share <= 0.0 or tier.marks_max <= 0:
+		return 1.0
+	var pool: Array[EnemyAffixData] = EnemyMarks.pool(act)
+	if pool.is_empty():
+		return 1.0
+	var mean: float = 0.0
+	for mark: EnemyAffixData in pool:
+		mean += mark.health_scale
+	mean /= float(pool.size())
+	var worn: float = (1.0 + float(tier.marks_max)) * 0.5
+	return 1.0 + tier.marked_share * (pow(mean, worn) - 1.0)
 
 
 ## The average blow a body that walks the road lands.
@@ -650,11 +923,19 @@ func _judge_party_scaling() -> int:
 			% spread + "limit %.0f%%" % PARTY_SPREAD_LIMIT)
 		failed += 1
 	for index: int in means.size():
-		if means[index] < PARTY_PRESSURE_FLOOR or means[index] > PARTY_PRESSURE_CEILING:
+		var band: Vector2 = _band()
+		if means[index] < band.x or means[index] > band.y:
 			printerr("[curve] %d players sits at %.3f, outside %.2f-%.2f"
-				% [index + 1, means[index], PARTY_PRESSURE_FLOOR,
-					PARTY_PRESSURE_CEILING])
+				% [index + 1, means[index], band.x, band.y])
 			failed += 1
+	# **And the Warden must be able to stand in it** (2026-10-01): the fewest
+	# blows from the act's own body the Warden this tier expects can take, in
+	# any act. Under it the road is lost to two hits rather than to a defence.
+	if _expected_warden and _survival_floor < _survival_band():
+		printerr("[curve] the expected Warden survives %.1f blows somewhere on this road, under %.1f"
+			% [_survival_floor, _survival_band()])
+		failed += 1
+	failed += _boss_failures
 	if failed == 0:
 		print("[curve] PASS - every party size plays the same curve")
 	return failed
@@ -790,6 +1071,35 @@ const PARTY_PRESSURE_FLOOR: float = 0.40
 const PARTY_PRESSURE_CEILING: float = 0.64
 
 
+## **The band each road is held to**, by which road and which Warden
+## (2026-10-01). The plain report - a new account on the Long Road - keeps the
+## band this file has always held. With a tier named, the Warden that tier
+## expects walks it and the bands climb: the Long Road a little under the new
+## account's (a levelled Warden), the Iron Road harder, the Chainmaker's Road
+## hardest - each one closer to the edge a best-case defence can answer, so
+## every road asks more of the Warden it was built for than the last one did.
+## [TUNE]
+const TIER_BANDS: Dictionary = {
+	"normal": Vector2(0.30, 0.56),
+	"nightmare": Vector2(0.48, 0.66),
+	"hell": Vector2(0.56, 0.74),
+}
+## The fewest blows from an act's own body the expected Warden may survive
+## anywhere on the road: fewer is a road lost to two hits rather than to a
+## defence. [TUNE]
+const TIER_SURVIVAL_FLOOR: Dictionary = {"normal": 3.0, "nightmare": 2.5, "hell": 2.3}
+
+
+func _band() -> Vector2:
+	if not _expected_warden or _tier_id.is_empty():
+		return Vector2(PARTY_PRESSURE_FLOOR, PARTY_PRESSURE_CEILING)
+	return TIER_BANDS.get(RunState.tier().id, Vector2(PARTY_PRESSURE_FLOOR, PARTY_PRESSURE_CEILING))
+
+
+func _survival_band() -> float:
+	return float(TIER_SURVIVAL_FLOOR.get(RunState.tier().id, 0.0))
+
+
 ## Replays the whole curve for one party size and averages the pressure.
 ##
 ## Rebuilt from the same `_measure` the table uses rather than scaled from the
@@ -841,6 +1151,9 @@ func _mean_pressure_for(count: int) -> float:
 		var row: Dictionary = _measure(director, wave, act, act_wave, distance)
 		total += float(row["pressure"])
 		samples += 1
+		if not _party_act_rows.has(count):
+			_party_act_rows[count] = {}
+		_party_act_rows[count][act] = row
 		var cycle: float = Balance.WAVE_INTERVAL \
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
@@ -992,8 +1305,9 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 ## nothing now is still taken when it is the plan's last step, which is how a
 ## catalyst gets into the hand before its weapon is ready.
 func _take_the_best_pick(act: int) -> bool:
-	if _target.is_empty():
+	if _target.is_empty() and _build != "draft":
 		_target = _plan_the_hand()
+	var offered: Array[String] = _offer_for_draft(act)
 	var now: float = _arsenal_value(_arsenal, act)
 	var best: Dictionary = {}
 	var gain: float = -1.0
@@ -1009,6 +1323,8 @@ func _take_the_best_pick(act: int) -> bool:
 			continue
 		if not _in_the_plan(card):
 			continue
+		if _build == "draft" and not offered.has(id):
+			continue
 		# The game's own rule for what a hand may be dealt, so the model never
 		# holds what a player could not.
 		if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
@@ -1022,7 +1338,10 @@ func _take_the_best_pick(act: int) -> bool:
 				continue
 			trial[id] = int(trial[id]) + 1
 		elif trial.size() >= Balance.ROAD_CARD_HAND:
-			continue
+			if _build != "draft":
+				continue
+			trial.erase(_weakest_held(trial, act))
+			trial[id] = 1
 		else:
 			trial[id] = 1
 		var worth: float = _arsenal_value(trial, act) - now
@@ -1035,12 +1354,85 @@ func _take_the_best_pick(act: int) -> bool:
 	return true
 
 
+## The held card whose loss costs the hand least, for a drafter leaving one
+## behind.
+func _weakest_held(hand: Dictionary, act: int) -> String:
+	var whole: float = _arsenal_value(hand, act)
+	var weakest: String = ""
+	var least: float = INF
+	for held: Variant in hand:
+		var without: Dictionary = hand.duplicate()
+		without.erase(held)
+		var loss: float = whole - _arsenal_value(without, act)
+		if loss < least:
+			least = loss
+			weakest = String(held)
+	return weakest
+
+
+## **Three cards a draft offers**, for the draft build: drawn without repeats
+## from what the game may deal this hand, on dice seeded by the act and the
+## pick so the report is the same on every run. Empty for the other builds,
+## which read the whole deck.
+func _offer_for_draft(act: int) -> Array[String]:
+	var out: Array[String] = []
+	if _build != "draft":
+		return out
+	var pool: Array[String] = []
+	var ids: Array[String] = []
+	for id: Variant in ContentDB.road_cards:
+		ids.append(String(id))
+	ids.sort()
+	for id: String in ids:
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card == null or card.retired or card.keystone or card.first_act > act:
+			continue
+		if not card.is_weapon() and not card.effect_id.begins_with("arsenal_"):
+			continue
+		if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
+			continue
+		pool.append(id)
+	_draft_dice.seed = hash([act, _arsenal_picks, _players, "draft"])
+	# **Dealt by the game's own deal**, weights and all, so a change to how
+	# the deal leans is measured here the day it is made. Only the cards the
+	# model fights with are kept from the deal; a keystone or a ward offered
+	# is a pick that adds nothing this model counts, which is what it is.
+	var hand: Array = _arsenal.keys()
+	for id: String in Augments.deal(_draft_dice, Balance.ROAD_CARD_OFFER_COUNT, 0, hand,
+			_arsenal, act, [], 0, []):
+		if pool.has(id):
+			out.append(id)
+	return out
+
+
 ## Whether a card is one the planned hand wants: in the plan, or the evolution a
 ## planned weapon and a planned catalyst earn together.
 func _in_the_plan(card: RoadCardData) -> bool:
+	if not _build_allows(card):
+		return false
+	if _build == "draft":
+		return true
 	if card.evolves_from.is_empty():
 		return _target.has(card.id)
 	return _target.has(card.evolves_from) and _target.has(card.evolves_with)
+
+
+## Whether this run's build would take a card at all: a weapon anchored where
+## the build is, or a catalyst, which every build takes.
+func _build_allows(card: RoadCardData) -> bool:
+	if _build == "best" or _build == "draft" or not card.is_weapon():
+		return true
+	var weapon: ArsenalWeaponData = card.weapon_data()
+	if weapon == null:
+		return true
+	match _build:
+		"warden":
+			return weapon.anchor == ArsenalWeaponData.Anchor.WARDEN
+		"towers":
+			return weapon.anchor == ArsenalWeaponData.Anchor.TOWERS
+		"town":
+			return weapon.anchor == ArsenalWeaponData.Anchor.TOWN
+	return true
 
 
 ## **The hand a player who plans builds toward**: eight cards chosen by what they
@@ -1060,7 +1452,7 @@ func _plan_the_hand() -> Array[String]:
 	ids.sort()
 	for id: String in ids:
 		var card: RoadCardData = ContentDB.road_card(id)
-		if card == null or card.retired or card.keystone:
+		if card == null or card.retired or card.keystone or not _build_allows(card):
 			continue
 		if not card.evolves_from.is_empty():
 			lines.append([id, card.evolves_from, card.evolves_with])
@@ -1123,7 +1515,7 @@ func _final_value(cards: Array[String], lines: Array) -> float:
 ## towers once for each tower in a Warden's reach - `ARSENAL_MODEL_TOWERS`, or
 ## fewer while the purse has bought fewer - (and an arc once, its count being
 ## the pairs), one on the town once.
-func _arsenal_value(hand: Dictionary, act: int) -> float:
+func _arsenal_value(hand: Dictionary, act: int, single: bool = false) -> float:
 	var power: float = 0.0
 	var haste: float = 0.0
 	var more: int = 0
@@ -1151,6 +1543,10 @@ func _arsenal_value(hand: Dictionary, act: int) -> float:
 			continue
 		var level: int = int(hand[id])
 		var dps: float = weapon.modelled_dps(level)
+		# **One body, for a boss** (2026-10-01): `modelled_dps` is a crowd's
+		# worth - a hit times the bodies it lands on - and a giant is one.
+		if single:
+			dps /= maxf(float(weapon.crowd), 1.0)
 		var shots: int = weapon.count_at(level)
 		if more > 0 and not _fires_once(weapon):
 			dps *= float(shots + mini(more, Balance.ARSENAL_COUNT_CEILING)) / float(maxi(shots, 1))

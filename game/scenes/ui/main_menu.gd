@@ -654,7 +654,7 @@ func _build_tier_row() -> void:
 		# level the road starts and where it finishes.
 		button.tooltip_text = "%s\nExpects level %d at the first act boss, %d at the last." % [
 			tier.summary, tier.expected_level(1),
-			tier.expected_level(Balance.ACT_COUNT)]
+			tier.expected_level(Balance.ACT_COUNT)] + "\n" + gear_expectation(tier)
 		button.button_pressed = tier.id == MetaState.last_tier_id
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func() -> void:
@@ -665,6 +665,21 @@ func _build_tier_row() -> void:
 		row.add_child(button)
 	column.add_child(row)
 	column.move_child(row, new_run_button.get_index())
+
+
+## **What a road expects a Warden to be wearing**, said beside the level it
+## expects (2026-10-01). These are the numbers `curve_report` measures each road
+## against: a road whose gear it never says is a wall a player finds by walking
+## into it.
+static func gear_expectation(tier: CampaignTierData) -> String:
+	var names: Array[String] = Stash.RARITY_NAMES
+	var low: String = names[clampi(tier.expected_gear_rarity.x, 0, names.size() - 1)]
+	var high: String = names[clampi(tier.expected_gear_rarity.y, 0, names.size() - 1)]
+	var rarity: String = low if low == high else "%s to %s" % [low, high]
+	var level: Vector2i = tier.expected_gear_level
+	var levels: String = "level %d" % level.x if level.x == level.y \
+		else "levels %d to %d" % [level.x, level.y]
+	return "Its bosses expect %s gear, upgraded to %s." % [rarity, levels]
 
 
 ## The shared board is always reachable. With no network it becomes this save's
