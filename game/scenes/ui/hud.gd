@@ -58,7 +58,11 @@ const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 ## the list moves under them. See `_fit_right_sheet`, which is where the height
 ## is decided for both.
 ## Wide enough for the element rail and the towers it pulls out beside it.
-const BUILD_PANEL_WIDTH: float = 560.0
+## 560 until 2026-09-30, when a tower's name and its price were laid out side
+## by side rather than over each other: at 560 the column beside the rail held
+## "Brines..." and a price, and a name is what the list is read for. No wider:
+## at 680 the sheet ran under the Preparation card in the middle of the bottom.
+const BUILD_PANEL_WIDTH: float = 610.0
 ## **Wider on a thumb** (owner, 2026-09-25: "build menus for towers and traps have
 ## panels that are too small"). At 560 the tower column was narrow enough that
 ## "Ember Spire" ran into its own price. A landscape phone has the width; what it
@@ -6149,9 +6153,12 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
 
+	# The element's colour first: the price row reads the name's colour off the
+	# button and then stops the button drawing its own text, and an override
+	# set after it put the button's name back under the row's.
+	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	_attach_price(button, cost_map, affordable and not capped)
 	button.disabled = not affordable or capped
-	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	button.pressed.connect(func() -> void:
 		Sfx.play("sfx_tower_build", -4.0)
 		_report(battlefield.try_build(anchor, tower))
@@ -6304,24 +6311,100 @@ static func _row_mark_size() -> int:
 	return 48 if touch_ui() else 34
 
 
+## **A row's name and its price are laid out side by side, never over each
+## other** (owner, 2026-09-30: *"resolve the text overlap issue with the build
+## selection name and its resource costs. Fix issue with cutoffs on the
+## buttons"*). The price was a 150-unit label pinned over the right of the
+## button while the button drew its own name from the left, so a long name ran
+## under the price - "Stillwater Mirror 1/3" under "120 G  40 S" - and a price in
+## two currencies ran out past its 150 and was cut.
+##
+## The button keeps its text, because the hover, the figures box, the gates and
+## a screen reader all read it, and stops drawing it. A row inside lays the name
+## out to take whatever the price leaves, cut with an ellipsis rather than run
+## under anything, and the price as chips: one a currency, marked by its own icon
+## rather than an initial, and red when the purse cannot meet that one - so a
+## row that cannot be bought says *which* currency is short.
 func _attach_price(button: Button, cost: Dictionary, affordable: bool) -> void:
-	var parts: PackedStringArray = []
+	var name_colour: Color = button.get_theme_color(&"font_color")
+	for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color",
+			&"font_focus_color", &"font_hover_pressed_color", &"font_disabled_color"]:
+		button.add_theme_color_override(state, Color(0.0, 0.0, 0.0, 0.0))
+	button.add_theme_constant_override(&"outline_size", 0)
+	button.clip_contents = true
+	var row := HBoxContainer.new()
+	row.name = "Row"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = _row_text_left(button)
+	row.offset_right = -BUILD_ROW_PRICE_INSET
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.add_theme_constant_override("separation", 10)
+	button.add_child(row)
+	var label := Label.new()
+	label.name = "Name"
+	label.text = button.text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.clip_text = true
+	UiFonts.set_role(label, UiFonts.Role.BUTTON, button.get_theme_font_size(&"font_size"))
+	label.add_theme_color_override("font_color",
+		name_colour if affordable else Color(name_colour.r, name_colour.g, name_colour.b, 0.5))
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.05, 0.9))
+	label.add_theme_constant_override("outline_size", 4)
+	row.add_child(label)
+	var price := HBoxContainer.new()
+	price.name = "Price"
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.size_flags_horizontal = Control.SIZE_SHRINK_END
+	price.add_theme_constant_override("separation", BUILD_PRICE_CHIP_GAP)
+	row.add_child(price)
 	for id: String in RunState.CURRENCIES:
 		var amount: int = int(cost.get(id, 0))
-		if amount > 0:
-			parts.append("%d %s" % [amount, id.substr(0, 1).to_upper()])
-	var price := Label.new()
-	price.text = "  ".join(parts)
-	price.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	price.offset_left = -150.0
-	price.offset_right = -BUILD_ROW_PRICE_INSET
-	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	price.add_theme_font_size_override("font_size", 17)
-	price.add_theme_color_override("font_color",
-		Color("d8cfba") if affordable else Color(0.62, 0.44, 0.38))
-	button.add_child(price)
+		if amount <= 0:
+			continue
+		var chip := HBoxContainer.new()
+		chip.name = "Chip_%s" % id
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_theme_constant_override("separation", 3)
+		var mark: TextureRect = IconKit.rect(id, BUILD_PRICE_ICON)
+		if mark != null:
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			chip.add_child(mark)
+		var figure := Label.new()
+		figure.text = str(amount) if mark != null else "%d %s" % [amount, id.substr(0, 1).to_upper()]
+		figure.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		figure.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		UiFonts.set_role(figure, UiFonts.Role.BUTTON, 16)
+		var short: bool = RunState.currency(id) < amount
+		figure.add_theme_color_override("font_color",
+			BUILD_PRICE_SHORT if short else (Color("e8dcc2") if affordable else Color(0.70, 0.66, 0.58)))
+		figure.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.05, 0.9))
+		figure.add_theme_constant_override("outline_size", 4)
+		chip.add_child(figure)
+		price.add_child(chip)
+
+
+## Where a row's own laid-out text starts: past the frame's padding and the
+## painting the button draws at its left.
+func _row_text_left(button: Button) -> float:
+	var left: float = 0.0
+	var frame: StyleBox = button.get_theme_stylebox(&"normal")
+	if frame != null:
+		left += frame.get_margin(SIDE_LEFT)
+	if button.icon != null:
+		left += float(button.icon.get_width()) + float(button.get_theme_constant(&"h_separation"))
+	return left
+
+
+## The price chips' icon and spacing, and the colour of a currency the purse
+## cannot meet.
+const BUILD_PRICE_ICON: float = 18.0
+const BUILD_PRICE_CHIP_GAP: int = 9
+const BUILD_PRICE_SHORT: Color = Color(0.93, 0.42, 0.36)
 
 
 func _show_build_detail(text: String) -> void:

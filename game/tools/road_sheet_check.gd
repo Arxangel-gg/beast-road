@@ -295,6 +295,7 @@ func _hover_every_row(list: Control, which: String, art_owed: int) -> void:
 			await get_tree().process_frame
 			continue
 		offers += 1
+		_check_name_beside_price(row, which)
 		# Every figures builder in the HUD ends with the price, and a bare
 		# description carries no line break. Both tells, because the fault this
 		# exists for produced exactly a one-line description.
@@ -320,6 +321,36 @@ func _hover_every_row(list: Control, which: String, art_owed: int) -> void:
 	_check(bare <= art_owed,
 		"%s: %d offers show no picture and only %d are owed art - the rest are "
 			% [which, bare, art_owed] + "rows that were never given one")
+
+
+## **A row's name and its price never share pixels** (owner, 2026-09-30:
+## *"resolve the text overlap issue with the build selection name and its
+## resource costs. Fix issue with cutoffs on the buttons"*). The price was a
+## label pinned over the right of the button while the button drew its own name
+## from the left, so a long name ran under it and a two-currency price ran out
+## of its box. Asked of the laid-out rectangles: the name and the price are
+## disjoint, the price lies wholly inside its button, and the button no longer
+## draws a second copy of its name under the row's.
+func _check_name_beside_price(row: Button, which: String) -> void:
+	var laid: Control = row.get_node_or_null("Row") as Control
+	if laid == null:
+		_check(false, "%s: the offer %s has no laid-out name and price row" % [which, _quoted(row.text)])
+		return
+	var named: Control = laid.get_node_or_null("Name") as Control
+	var price: Control = laid.get_node_or_null("Price") as Control
+	if named == null or price == null:
+		_check(false, "%s: the offer %s is missing its name or its price" % [which, _quoted(row.text)])
+		return
+	var name_rect: Rect2 = named.get_global_rect()
+	var price_rect: Rect2 = price.get_global_rect()
+	_check(not name_rect.intersects(price_rect),
+		"%s: the offer %s has its name %s over its price %s" % [which, _quoted(row.text),
+			name_rect, price_rect])
+	_check(row.get_global_rect().grow(1.0).encloses(price_rect),
+		"%s: the offer %s has its price %s outside its button %s - cut off" % [which,
+			_quoted(row.text), price_rect, row.get_global_rect()])
+	_check(row.get_theme_color(&"font_color").a <= 0.01,
+		"%s: the offer %s still draws its own name under the row's" % [which, _quoted(row.text)])
 
 
 ## The build sheet either fits or scrolls, and never grows past the column.
