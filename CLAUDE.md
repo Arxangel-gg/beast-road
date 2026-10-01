@@ -12511,6 +12511,27 @@ gated on both bars.
   began each beat with no corner (`MENU_DRAGON_LIFT`, `MENU_DRAGON_DOWNSTROKE`,
   held by `dragon_check`).
 
+**Two more from the same day, after the release sweep.**
+
+- **The stash folds its tools on a thumb.** Seventeen thumb-height filters and
+  tools were the whole first screen of the stash on a phone either way up, and
+  every rectangle rule passed - everything was on the screen and nothing
+  overlapped. Compact buttons were tried and refused: 64 units is about 49
+  screen pixels on a sideways phone, under a thumb. On a touch layout the
+  filters and tools fold behind one thumb-sized bar that says what is showing
+  ("Show: All · Sort, sweep and sell"); every tool keeps its size and its own
+  handler, and choosing a filter folds them again. An upright screen gives the
+  stash its height. `mobile_fit_check` opens a stash with gear and holds a row
+  in view before scrolling - **a screen whose purpose is a list must show the
+  list**, which no rectangle rule can see - and the old stash failed it.
+- **No object is kept in a static.** The Hold's route lattice was cached in a
+  `static var` to be laid once a session; an object a static keeps outlives
+  every scene into the engine's own shutdown, and v0.68.1's release crashed at
+  a Linux exit (`exit 139`, no error line) in `pad_focus_check`, which walks
+  the Hold. It lives on the yard now, built once a menu. Windows passed the
+  same check three times in three, which is the recorded shape of a Linux-only
+  exit crash: re-run once, then remove the thing that outlives the tree.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

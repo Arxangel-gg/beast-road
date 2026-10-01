@@ -57,8 +57,8 @@ recorded in CLAUDE.md:
 **Open, in the order worth taking them:**
 
 1. Phones, past fitting: on an upright phone the Disciplines' nodes are small
-   (a horizontal scroll at a fixed node size would be the answer), and the
-   stash on a sideways phone shows its nine filters before any gear.
+   (a horizontal scroll at a fixed node size would be the answer). The stash's
+   filters fold behind a bar on a thumb now (2026-10-01, after v0.68.1).
 2. The owner playing a road with click to move on: it changes how the whole
    game is controlled, and the defaults (pick slop, reach share, the give-up
    clock) want a hand on them.
