@@ -40,6 +40,32 @@ extends GameData
 ## is where its seeds are first found.
 @export var regions: Array[String] = []
 
+## **What it lends a dish** (2026-09-30, `RunState.cook`). Cooked with a fish
+## from the pantry, a crop pulled this run adds one more thing to the meal -
+## and each is a share of something the Warden already has, read at the hero
+## and clamped there by `Balance.COOK_DISH_CEILING`. **Never health**: what a
+## meal heals is the fish's, so the recovery economy the meal cap bounds is
+## exactly what it was. **Never a stat**: nothing here is an attribute point.
+@export_range(0.0, 1.0, 0.01) var dish_stamina: float = 0.0
+@export_range(0.0, 1.0, 0.01) var dish_ward: float = 0.0
+@export_range(0.0, 1.0, 0.01) var dish_mana: float = 0.0
+## How much longer the fish's own meal lasts, as a share of it.
+@export_range(0.0, 1.0, 0.01) var dish_lingers: float = 0.0
+
+
+## What it lends a dish, said the way the pantry says what a fish restores.
+func dish_text() -> String:
+	var parts: PackedStringArray = []
+	if dish_stamina > 0.0:
+		parts.append("%d%% stamina" % int(round(dish_stamina * 100.0)))
+	if dish_ward > 0.0:
+		parts.append("%d%% ward" % int(round(dish_ward * 100.0)))
+	if dish_mana > 0.0:
+		parts.append("%d%% mana" % int(round(dish_mana * 100.0)))
+	if dish_lingers > 0.0:
+		parts.append("the meal lasts %d%% longer" % int(round(dish_lingers * 100.0)))
+	return ", ".join(parts)
+
 
 ## The art of one growth stage, 0 to 3.
 func stage_path(stage: int) -> String:

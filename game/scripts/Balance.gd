@@ -11862,6 +11862,13 @@ const FISH_SHARE_RANGE: float = 190.0
 const FISH_BUFF_SECONDS: Array[float] = [12.0, 18.0, 26.0, 36.0]
 const FISH_BUFF_DAMAGE: Array[float] = [0.06, 0.11, 0.18, 0.28]
 const FISH_BUFF_SPEED: Array[float] = [0.04, 0.07, 0.11, 0.16]
+## **Cooking** (2026-09-30, `RunState.cook`): a fish from the pantry and a crop
+## pulled this run, one meal. Every harvest lays its crop in the basket as well
+## as paying its Food, up to `COOK_BASKET_CAP` of a kind, and the basket is the
+## run's. `COOK_DISH_CEILING` is the most any one thing a crop lends may be
+## worth, whatever the data says. [TUNE]
+const COOK_BASKET_CAP: int = 3
+const COOK_DISH_CEILING: float = 0.6
 ## How long a fed spirit stops eating for, by the fish's rarity.
 const FISH_SPIRIT_FULL_SECONDS: Array[float] = [25.0, 45.0, 75.0, 120.0]
 ## And how much of its health a fish puts back into a spirit.

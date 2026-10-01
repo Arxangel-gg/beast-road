@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+dish_mana = 0.3
 rarity = 2
 food_yield = 75
 xp = 20

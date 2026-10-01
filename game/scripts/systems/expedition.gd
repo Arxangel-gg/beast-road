@@ -101,6 +101,7 @@ const STATE_KEYS: Array[String] = [
 	"hearthmends_used",
 	"kept",
 	"seeds",
+	"basket",
 	"last_scar_offered", "last_scar_pending", "last_scar_active", "last_scar_resolved",
 	"last_scar_failed", "last_scar_pursuer_spawned", "last_scar_pursuer_defeated",
 	"last_scar_min_town_ratio", "mender_sparks_claimed_by_act", "mender_eligible_elites_by_act",

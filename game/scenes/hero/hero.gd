@@ -495,6 +495,7 @@ func _ready() -> void:
 	spells.wound_guard_requested.connect(_on_wound_guard_requested)
 	spells.dash_refund_requested.connect(refund_dash)
 	EventBus.fish_eaten.connect(_on_fish_eaten)
+	EventBus.dish_eaten.connect(_on_dish_eaten)
 	EventBus.fish_given.connect(_on_fish_given)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
@@ -1273,12 +1274,14 @@ var _meal_damage: float = 0.0
 var _meal_speed: float = 0.0
 
 
-## Whatever the fish was worth, for however long its rarity buys.
-func take_meal_buff(kind: FishData) -> void:
+## Whatever the fish was worth, for however long its rarity buys - and a share
+## longer for a dish whose crop lingers.
+func take_meal_buff(kind: FishData, lingers: float = 0.0) -> void:
 	if kind == null:
 		return
 	var tier: int = clampi(int(kind.rarity), 0, Balance.FISH_BUFF_SECONDS.size() - 1)
-	_meal_left = maxf(_meal_left, Balance.FISH_BUFF_SECONDS[tier])
+	_meal_left = maxf(_meal_left, Balance.FISH_BUFF_SECONDS[tier]
+		* (1.0 + clampf(lingers, 0.0, Balance.COOK_DISH_CEILING)))
 	_meal_damage = maxf(_meal_damage, Balance.FISH_BUFF_DAMAGE[tier])
 	_meal_speed = maxf(_meal_speed, Balance.FISH_BUFF_SPEED[tier])
 
@@ -1293,21 +1296,46 @@ func _tick_meal(delta: float) -> void:
 
 
 func _on_fish_eaten(fish_id: String) -> void:
+	_eat_meal(fish_id, "")
+
+
+func _on_dish_eaten(fish_id: String, crop_id: String) -> void:
+	_eat_meal(fish_id, crop_id)
+
+
+## One meal: the fish's restores and its buff, and what a crop lends a dish.
+## The crop's shares are clamped here, where they are spent, so no data can lend
+## more than `COOK_DISH_CEILING` - and none of them heals, which is the fish's.
+func _eat_meal(fish_id: String, crop_id: String) -> void:
 	if health == null or health.is_dead or not is_local_player():
 		return
 	var kind: FishData = ContentDB.fish(fish_id)
 	if kind == null:
 		return
+	var crop: CropData = ContentDB.crop(crop_id) if not crop_id.is_empty() else null
+	var cap: float = Balance.COOK_DISH_CEILING
 	if kind.heal_fraction > 0.0:
 		health.heal(health.max_hp * kind.heal_fraction)
-	if kind.shield_fraction > 0.0:
-		grant_ward(kind.shield_fraction)
-	if kind.mana_fraction > 0.0:
-		mana = minf(mana + mana_max() * kind.mana_fraction, mana_max())
+	var ward: float = kind.shield_fraction + (clampf(crop.dish_ward, 0.0, cap) if crop != null else 0.0)
+	if ward > 0.0:
+		grant_ward(ward)
+	var mana_share: float = kind.mana_fraction + (clampf(crop.dish_mana, 0.0, cap) if crop != null else 0.0)
+	if mana_share > 0.0:
+		mana = minf(mana + mana_max() * mana_share, mana_max())
 		RunState.hero_mana = mana
 		EventBus.hero_mana_changed.emit(mana, mana_max())
-	take_meal_buff(kind)
+	if crop != null and crop.dish_stamina > 0.0:
+		stamina = minf(stamina + max_stamina() * clampf(crop.dish_stamina, 0.0, cap), max_stamina())
+		_stamina_said = stamina
+		EventBus.hero_stamina_changed.emit(stamina, max_stamina())
+	take_meal_buff(kind, crop.dish_lingers if crop != null else 0.0)
 	Vfx.ring(combat_origin(), 54.0, kind.rarity_colour(), 0.4, 4.0)
+	if crop != null:
+		# A dish says so: a second, warmer ring and a little steam.
+		Vfx.ring(combat_origin(), 78.0, Color(0.96, 0.78, 0.46, 0.8), 0.5, 3.0)
+		Vfx.spark(combat_origin() + Vector2(0.0, -18.0), Color(0.95, 0.9, 0.82, 0.7), 8, Vector2.UP, 60.0)
+		Vfx.word(combat_origin() + Vector2(0.0, -40.0), "%s with %s" % [kind.display_name, crop.display_name],
+			Color(0.98, 0.84, 0.52), Balance.GATHER_WORD_SIZE)
 	Sfx.play("sfx_ui_confirm", -2.0)
 
 

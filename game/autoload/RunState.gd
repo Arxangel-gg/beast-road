@@ -821,6 +821,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	kept.clear()
 	earth_events.clear()
 	seeds.clear()
+	basket.clear()
 	carried_eggs.clear()
 	# A fresh road: whatever happened to the last animal was settled when that
 	# run ended, and a flag carried across runs would lose one for a death it
@@ -1195,6 +1196,37 @@ func _take_a_fish(id: String) -> String:
 	if not MetaState.spend_fish(id):
 		return "You have none of those."
 	meals_eaten += 1
+	return ""
+
+
+## **Cooks a fish with a crop and eats it** (2026-09-30). One meal - the cap
+## counts the fish, as it does for every other way a fish leaves the pantry - and
+## the dish carries the fish's restores and its buff plus what the crop lends
+## (`CropData.dish_*`), which is never health and never a stat. Every refusal is
+## checked before anything is spent, so a dish that cannot be made costs neither
+## the fish nor the crop.
+func cook(fish_id: String, crop_id: String) -> String:
+	if not GameDirector.run_active:
+		return "Fish are eaten on the road, not between runs."
+	var kind: FishData = ContentDB.fish(fish_id)
+	if kind == null:
+		return "No such fish."
+	var crop: CropData = ContentDB.crop(crop_id)
+	if crop == null:
+		return "No such crop."
+	if MetaState.fish_count(fish_id) <= 0:
+		return "You have none of those."
+	if basket_count(crop_id) <= 0:
+		return "You have no %s in the basket." % crop.display_name
+	if meals_eaten >= Balance.FISH_MEALS_PER_RUN:
+		return "You have eaten all you can stomach this run."
+	if not MetaState.spend_fish(fish_id):
+		return "You have none of those."
+	meals_eaten += 1
+	basket[crop_id] = basket_count(crop_id) - 1
+	if basket_count(crop_id) <= 0:
+		basket.erase(crop_id)
+	EventBus.dish_eaten.emit(fish_id, crop_id)
 	return ""
 
 
@@ -1897,6 +1929,11 @@ var kept: Dictionary = {}
 ## rule 7 as the Angler's craft is. See `Farming`.
 var seeds: Dictionary = {}
 
+## **The basket** (2026-09-30): crops pulled this run, by id, for the pot.
+## Run scoped like the seeds - working rule 7 is untouched - and banked with a
+## front for the same reason they are. See `cook`.
+var basket: Dictionary = {}
+
 ## The sex of each bonded spirit summoned this run, by bond key.
 ##
 ## Decided once and kept for the run (owner brief, 2026-09-14), so dismissing
@@ -1958,6 +1995,16 @@ func take_seed(id: String) -> bool:
 
 func seed_count(id: String) -> int:
 	return int(seeds.get(id, 0))
+
+
+func add_to_basket(id: String) -> void:
+	if ContentDB.crop(id) == null:
+		return
+	basket[id] = mini(int(basket.get(id, 0)) + 1, Balance.COOK_BASKET_CAP)
+
+
+func basket_count(id: String) -> int:
+	return int(basket.get(id, 0))
 
 
 func note_earth(kind: String) -> void:

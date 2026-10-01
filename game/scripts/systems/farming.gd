@@ -389,6 +389,8 @@ func harvest(index: int) -> bool:
 	_pay_food(crop, food)
 	MetaState.gain_profession_xp(CRAFT, crop.xp)
 	RunState.note_kept("harvests", 1.0)
+	# And into the basket, for the pot (2026-09-30). Personal, as the seeds are.
+	RunState.add_to_basket(crop.id)
 	var at: Vector2 = plot["at"]
 	var seed_back: bool = _roll().randf() < Balance.FARM_SEED_BACK_BASE + float(level) * Balance.FARM_SEED_BACK_PER_LEVEL \
 		+ CraftTalents.value(CRAFT, "seed")

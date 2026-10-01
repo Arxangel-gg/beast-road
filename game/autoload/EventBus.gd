@@ -77,6 +77,9 @@ signal fish_caught(fish_id: String, food: int)
 ## A fish was eaten out of the stash.
 signal fish_eaten(fish_id: String)
 
+## A fish was cooked with a crop pulled this run and eaten (2026-09-30).
+signal dish_eaten(fish_id: String, crop_id: String)
+
 ## What the Warden is carrying from the mines and the treeline changed. The
 ## Smithy and the Hold read it; nothing in a run does.
 signal materials_changed()

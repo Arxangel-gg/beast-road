@@ -10,4 +10,4 @@ title = "The pantry"
 category = "Fishing & Water"
 order = 18
 image = "res://art/guide/pantry.png"
-body = "Caught fish go to the pantry in the stash and survive the run. Eat up to three a run for health, a ward or mana - never a stat. Each pond holds four fish and then reads as fished out."
+body = "Caught fish go to the pantry in the stash and survive the run. Eat up to three a run for health, a ward or mana - never a stat. A crop you pulled this run can go in the pot with a fish: choose it at the top of the pantry and Eat becomes Cook. It is still one meal, and the crop adds stamina, a ward, mana or a longer meal - never health. Each pond holds four fish and then reads as fished out."

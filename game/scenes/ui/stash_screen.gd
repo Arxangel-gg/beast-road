@@ -78,6 +78,8 @@ var _upgrades_only: bool = false
 ## straight to the label, because `_refresh` rewrites that label - the same trap
 ## that made every error message in the town sheet invisible.
 var _message: String = ""
+## The crop the pantry is cooking with, or "" to eat a fish plain (2026-09-30).
+var _cook_with: String = ""
 
 
 func _ready() -> void:
@@ -826,12 +828,65 @@ func _build_pantry() -> void:
 		_list.add_child(empty)
 		return
 
+	if GameDirector.run_active and not RunState.basket.is_empty():
+		_list.add_child(_pot_row())
+	elif RunState.basket_count(_cook_with) <= 0:
+		_cook_with = ""
 	var ids: Array = MetaState.fish.keys()
 	ids.sort()
 	for value: Variant in ids:
 		var kind: FishData = ContentDB.fish(String(value))
 		if kind != null:
 			_list.add_child(_fish_row(kind))
+
+
+## **The pot** (2026-09-30): what this run's basket holds, and which crop the
+## next meal is cooked with. One choice for the whole pantry rather than a
+## button for every fish and every crop - a row of twelve buttons is a grid
+## nobody reads. Choosing a crop turns every fish's Eat into Cook.
+func _pot_row() -> Container:
+	if RunState.basket_count(_cook_with) <= 0:
+		_cook_with = ""
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 6)
+	var label := Label.new()
+	label.text = "Cook with"
+	label.add_theme_color_override("font_color", Color("d9c8a3"))
+	row.add_child(label)
+	var plain := Button.new()
+	plain.text = "Nothing"
+	plain.toggle_mode = true
+	plain.button_pressed = _cook_with.is_empty()
+	plain.tooltip_text = "Eat a fish as it is."
+	plain.custom_minimum_size = Vector2(0.0, ACTION_HEIGHT)
+	plain.pressed.connect(func() -> void:
+		_cook_with = ""
+		_refresh())
+	row.add_child(plain)
+	var ids: Array = RunState.basket.keys()
+	ids.sort()
+	for value: Variant in ids:
+		var crop: CropData = ContentDB.crop(String(value))
+		if crop == null or RunState.basket_count(crop.id) <= 0:
+			continue
+		var pick := Button.new()
+		pick.text = "%s ×%d" % [crop.display_name, RunState.basket_count(crop.id)]
+		pick.toggle_mode = true
+		pick.button_pressed = _cook_with == crop.id
+		pick.tooltip_text = "Pulled this run. Cooked with a fish it adds %s. Still one meal." % crop.dish_text()
+		pick.custom_minimum_size = Vector2(0.0, ACTION_HEIGHT)
+		var art: String = crop.get_sprite_path()
+		if ResourceLoader.exists(art):
+			pick.icon = load(art) as Texture2D
+			pick.expand_icon = true
+			pick.add_theme_constant_override("icon_max_width", 32)
+		var id: String = crop.id
+		pick.pressed.connect(func() -> void:
+			_cook_with = id
+			_refresh())
+		row.add_child(pick)
+	return row
 
 
 func _fish_row(kind: FishData) -> Container:
@@ -899,12 +954,22 @@ func _fish_row(kind: FishData) -> Container:
 	var eat := Button.new()
 	eat.text = "Eat"
 	eat.custom_minimum_size = Vector2(96.0, ACTION_HEIGHT)
+	var crop: CropData = ContentDB.crop(_cook_with) if not _cook_with.is_empty() else null
+	if crop != null:
+		eat.text = "Cook"
+		eat.tooltip_text = "Cooked with %s: adds %s. One meal." % [crop.display_name, crop.dish_text()]
+		label.text += "\n+ %s: %s" % [crop.display_name, crop.dish_text()]
 	# Asked of `RunState`, which owns every reason this can fail, rather than
 	# tested here - so the meal cap cannot be bypassed by a second caller.
 	eat.pressed.connect(func() -> void:
-		_message = RunState.eat_fish(kind.id)
-		if _message.is_empty():
-			_message = "Ate the %s." % kind.display_name
+		if crop != null:
+			_message = RunState.cook(kind.id, crop.id)
+			if _message.is_empty():
+				_message = "Ate the %s with %s." % [kind.display_name, crop.display_name]
+		else:
+			_message = RunState.eat_fish(kind.id)
+			if _message.is_empty():
+				_message = "Ate the %s." % kind.display_name
 		_refresh())
 	row.add_child(eat)
 	return row
