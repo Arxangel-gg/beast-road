@@ -1445,7 +1445,15 @@ const BEAST_SPEED_FLOOR: float = 0.5
 
 ## Enemy count spikes over the final stretch of each act as the ramp signal
 ## into the boss (GDD §6).
-const ACT_BOSS_RAMP_DISTANCE: float = 100.0
+##
+## **A stretch, not a wave** (2026-10-01). At 100 units this was written when a
+## wave walked about that far; a late wave now walks nearly a hundred units on
+## its own, so the whole surge landed on the act's last wave as one step of
+## +20-25% after a flat stretch - and on the Chainmaker's Road that one wave read
+## past what a best-case defence can answer. Over this distance it climbs across
+## the act's last few waves, the HUD's red "BOSS IS COMING" line says so for the
+## whole climb, and the peak is the same height approached rather than hit.
+const ACT_BOSS_RAMP_DISTANCE: float = 400.0
 
 # ==============================================================================
 # RAID — GDD §3.4
@@ -5559,8 +5567,14 @@ const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 ## peak is wanted; three multipliers arriving together is not. Count carries less
 ## of it now, since bodies are what the ramp was already adding through its own
 ## growth curve. [TUNE]
-const ACT_BOSS_RAMP_COUNT: float = 0.10
-const ACT_BOSS_RAMP_STATS: float = 0.14
+##
+## **Lower again once the ramp became a stretch** (2026-10-01, 0.10 and 0.14):
+## spread over the act's last few waves the same height is felt for several
+## waves rather than one, and the Chainmaker's Road's final stretch held past
+## what a best-case defence answers for three waves running. The climb is the
+## point; its height only has to say the boss is close.
+const ACT_BOSS_RAMP_COUNT: float = 0.08
+const ACT_BOSS_RAMP_STATS: float = 0.10
 
 ## Later regions remain dominated by their own breed while veterans from
 ## earlier terrain occasionally break up a predictable procession.

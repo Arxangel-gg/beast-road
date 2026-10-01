@@ -1025,9 +1025,50 @@ func _judge_escalation() -> int:
 				+ "holiday in the middle of the road")
 				% [index + 1, means[index], act_one])
 			failed += 1
+	failed += _judge_the_surge()
 	if failed == 0:
 		print("[curve] PASS - the road escalates and no act is a holiday")
 	return failed
+
+
+## **The boss is approached, not hit** (2026-10-01). The surge into each act's
+## boss used to land on the act's last wave alone, a step of +0.15 to +0.21
+## after a flat stretch - a wall rather than a climb. It climbs across
+## `ACT_BOSS_RAMP_DISTANCE` now, and this holds the climb: no step into an
+## act's last waves may be larger than `SURGE_STEP_LIMIT`, and the last wave
+## must stand above the wave the stretch began on.
+##
+## From Act II. Act I is where the first board is bought, and the model buys a
+## tower every second wave there - exactly as fast as the surge climbs - so its
+## last stretch reads flat at about 0.22 on every road, which is the opening
+## envelope `balance_test` owns rather than a missing climb.
+func _judge_the_surge() -> int:
+	var failed: int = 0
+	for act: int in range(2, Balance.ACT_COUNT + 1):
+		var waves: Array[float] = []
+		for row: Dictionary in _rows:
+			if int(row["act"]) == act:
+				waves.append(float(row["pressure"]))
+		if waves.size() < SURGE_WAVES + 1:
+			continue
+		var stretch: Array[float] = waves.slice(waves.size() - SURGE_WAVES - 1)
+		for index: int in range(1, stretch.size()):
+			var step: float = stretch[index] - stretch[index - 1]
+			if step > SURGE_STEP_LIMIT:
+				printerr("[curve] act %d's surge into its boss steps %+.2f in one wave (%.2f -> %.2f), over %.2f"
+					% [act, step, stretch[index - 1], stretch[index], SURGE_STEP_LIMIT])
+				failed += 1
+		if stretch[stretch.size() - 1] <= stretch[0]:
+			printerr("[curve] act %d does not climb into its boss (%.2f -> %.2f)"
+				% [act, stretch[0], stretch[stretch.size() - 1]])
+			failed += 1
+	return failed
+
+
+## How many waves the surge into a boss is read over, and the largest step it
+## may take between two of them. [TUNE]
+const SURGE_WAVES: int = 4
+const SURGE_STEP_LIMIT: float = 0.10
 
 
 ## How much harder the last three acts must be than the first three, and how
