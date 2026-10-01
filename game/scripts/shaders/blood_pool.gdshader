@@ -45,8 +45,11 @@ void fragment() {
 		vec2 scar_uv = world / (2.0 * scar_extent) + 0.5;
 		dent = max(-(texture(scars, scar_uv).r * 2.0 - 1.0), 0.0);
 	}
-	// Thin, fresh blood runs into the dents; deep or dry blood does not care.
-	float conform = fresh * (1.0 - smoothstep(0.06, 0.4, depth));
+	// Thin, fresh blood runs into the dents; deep or dry blood does not care -
+	// unless the dent is a crater, deep enough to shape a pool however deep it
+	// stands (owner, 2026-10-01).
+	float crater = smoothstep(0.5, 0.85, dent);
+	float conform = fresh * max(1.0 - smoothstep(0.06, 0.4, depth), crater);
 	float shown = depth + dent * conform * 0.35;
 	// An irregular meniscus: the edge wanders by a little noise, then is cut
 	// sharply - blood stands on the ground, it does not fade into it.
