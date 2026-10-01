@@ -456,8 +456,14 @@ func _test_the_wiring() -> void:
 	var tower: String = FileAccess.get_file_as_string("res://scenes/battlefield/tower.gd")
 	_check(tower.contains("hidden_from_the_board()"), "a tower asks what the board may not see")
 	var heralds: String = FileAccess.get_file_as_string("res://scripts/systems/heralds.gd")
-	_check(heralds.contains("Coop.is_networked()") and heralds.contains("RunState.walking"),
-		"a Herald is solo only and never on the Walk")
+	# Amended 2026-09-30: a Herald was solo only and now rises on a shared road
+	# too, rolled by the host alone - the host deals the waves - and told to a
+	# partner by `CoopRelay.Fact.HERALD` (`rejoin_check` drives that).
+	_check(heralds.contains("Coop.is_guest()") and heralds.contains("RunState.walking"),
+		"a Herald is rolled by the host alone and never on the Walk")
+	var body_script: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	_check(body_script.count("_tell_the_party(") >= 4,
+		"a Herald's rising, call and fall must each be told to a partner's screen")
 	var director: String = FileAccess.get_file_as_string("res://scripts/systems/wave_director.gd")
 	var body: String = director.get_slice("func _raise_a_herald", 1).get_slice("\nfunc ", 0)
 	_check(not body.contains("_rng") and body.contains("RunState.rng(\"heralds\")"),

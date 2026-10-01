@@ -528,6 +528,19 @@ func make_herald() -> void:
 	_siege_order = false
 	_dress_as_herald()
 	EventBus.herald_rose.emit(_visual_origin())
+	_tell_the_party(0)
+
+
+## The host tells a partner's screen what a Herald did (2026-09-30). Never a
+## guest, whose puppet only ever repeats what it was told.
+func _tell_the_party(state: int) -> void:
+	if net_id > 0 and Coop.is_networked() and not Coop.is_guest():
+		EventBus.coop_herald.emit(net_id, state)
+
+
+## The call, said on a guest's puppet because the host said it.
+func call_from_the_wall() -> void:
+	_sound_the_call()
 
 
 func is_herald() -> bool:
@@ -585,6 +598,7 @@ func _sound_the_call() -> void:
 		_polish.set_shader_parameter("aura_colour", Color(0.98, 0.3, 0.2, 1.0))
 	Vfx.ring(_visual_origin(), 150.0, Color(Balance.HERALD_TONE, 0.9), 0.6, 6.0)
 	EventBus.herald_called.emit(_visual_origin())
+	_tell_the_party(1)
 
 
 ## Gold, on the silhouette and on the ground: the tone every actionable thing
@@ -3587,6 +3601,7 @@ func _pay_herald_bounty() -> void:
 			if amount > 0:
 				_field.spawn_loot(String(id), amount, at + (places.get(id, Vector2.ZERO) as Vector2))
 	EventBus.herald_fell.emit(_visual_origin())
+	_tell_the_party(2)
 
 
 func _drop_loot() -> void:

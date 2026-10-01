@@ -89,6 +89,9 @@ func _test_the_welcome_is_the_world() -> void:
 		return
 	told.net_id = 7
 	also.net_id = 8
+	# A Herald running for the gate (2026-09-30): the welcome must say so, or a
+	# guest who joined mid-wave sees a plain body the board will not shoot.
+	also.make_herald()
 	# And a boss mid-fight, a phase in.
 	var bosses: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.BOSS)
 	var boss: Enemy = _field.spawn_enemy(bosses[0], 3, 1.0) if not bosses.is_empty() else null
@@ -126,6 +129,11 @@ func _test_the_welcome_is_the_world() -> void:
 	_check(int(kinds.get(CoopRelay.Fact.BOSS_SPAWNED, 0)) == 1 and int(kinds.get(CoopRelay.Fact.BOSS_PHASE_CHANGED, 0)) == 1,
 		"the boss, as a boss, in the phase it reached")
 	_check(int(kinds.get(CoopRelay.Fact.LOOT_SPAWNED, 0)) == 1, "the coin on the ground")
+	_check(int(kinds.get(CoopRelay.Fact.HERALD, 0)) == 1, "the Herald, once (%d)" % int(kinds.get(CoopRelay.Fact.HERALD, 0)))
+	for fact: Array in facts:
+		if int(fact[0]) == CoopRelay.Fact.HERALD:
+			_check(int(fact[1][0]) == 8 and int(fact[1][1]) == 0,
+				"as the body it is, risen and not yet called (%s)" % str(fact[1]))
 	var gold_told: int = -1
 	var ids: Array[int] = []
 	var anchors: Array = []
@@ -197,9 +205,61 @@ func _test_the_welcome_is_the_world() -> void:
 		if drop != null and drop.net_id == 3:
 			drops += 1
 	_check(drops == 1, "the coin lies where it lay")
+	await _test_the_herald_on_a_guest(line)
 	Coop._state = Coop.State.OFFLINE
 	if line != null:
 		line.report_violations = true
+	await get_tree().process_frame
+
+
+## **A Herald on a partner's screen** (2026-09-30): the welcome dressed the
+## puppet, a call is heard, a fall is said - and on the host every one of those
+## is told to the party, by the body's id.
+func _test_the_herald_on_a_guest(line: CoopRelay) -> void:
+	var herald: Enemy = null
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Enemy
+		if body != null and body.puppet and body.net_id == 8:
+			herald = body
+	_check(herald != null and herald.is_herald() and herald.is_uncalled_herald(),
+		"the welcome dressed the guest's Herald, uncalled")
+	if herald == null or line == null:
+		return
+	var said: Array[int] = []
+	var on_fell := func(_at: Vector2) -> void: said.append(2)
+	var on_called := func(_at: Vector2) -> void: said.append(1)
+	EventBus.herald_fell.connect(on_fell)
+	EventBus.herald_called.connect(on_called)
+	line.call("_replay", CoopRelay.Fact.HERALD, [8, 1])
+	await get_tree().process_frame
+	_check(not herald.is_uncalled_herald() and said.has(1), "the host's call is heard on the guest")
+	line.call("_replay", CoopRelay.Fact.HERALD, [8, 2])
+	await get_tree().process_frame
+	_check(said.has(2), "and its fall is said there")
+	EventBus.herald_fell.disconnect(on_fell)
+	EventBus.herald_called.disconnect(on_called)
+
+	# The host tells the party, and a guest never does.
+	var told: Array = []
+	var on_told := func(net_id: int, state: int) -> void: told.append([net_id, state])
+	EventBus.coop_herald.connect(on_told)
+	var fresh: Enemy = _field.spawn_enemy(ContentDB.enemy("bogkin"), 1, 1.0)
+	if fresh != null:
+		fresh.net_id = 21
+		fresh.make_herald()
+		_check(told.is_empty(), "a guest's Herald tells nobody (%s)" % str(told))
+		fresh.queue_free()
+	Coop._state = Coop.State.HOSTING
+	var hosted: Enemy = _field.spawn_enemy(ContentDB.enemy("bogkin"), 1, 1.0)
+	if hosted != null:
+		hosted.net_id = 22
+		hosted.make_herald()
+		hosted.call_from_the_wall()
+		_check(told.has([22, 0]) and told.has([22, 1]),
+			"the host tells the party a Herald rose and called (%s)" % str(told))
+		hosted.queue_free()
+	EventBus.coop_herald.disconnect(on_told)
+	Coop._state = Coop.State.CONNECTED
 	await get_tree().process_frame
 
 

@@ -87,6 +87,7 @@ func _ready() -> void:
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	EventBus.enemy_struck.connect(_on_enemy_struck)
 	EventBus.coop_enemy_struck.connect(_on_coop_enemy_struck)
+	EventBus.coop_herald.connect(_on_coop_herald)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
 	# announcing it. Nothing to spawn here, but the identity counter must not
@@ -467,6 +468,23 @@ func _on_coop_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
 		enemy.strike_remote(at, shot_id)
 
 
+## **A Herald on the host's road** (2026-09-30). The puppet is dressed in gold,
+## the edge of the screen points at it and the line is said, exactly as on the
+## host - and nothing here decides anything: the call, the reinforcement and
+## the purse are the host's, and the purse arrives as the loot it drops.
+func _on_coop_herald(net_id: int, state: int) -> void:
+	if not Coop.is_guest():
+		return
+	var enemy: Enemy = _puppets.get(net_id, null) as Enemy
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	enemy.make_herald()
+	if state == 1:
+		enemy.call_from_the_wall()
+	elif state == 2:
+		EventBus.herald_fell.emit(enemy.global_position)
+
+
 # --- The welcome (2026-09-14) --------------------------------------------------------
 
 ## Everything a guest whose field has just stood up needs to be standing in
@@ -536,6 +554,9 @@ func compose_welcome(peer: int = 0) -> Array:
 		facts.append([CoopRelay.Fact.ENEMY_SPAWNED, [enemy.net_id, enemy.data.id, enemy.lane,
 			enemy.global_position, enemy.hp_scale(), enemy.damage_scale(), enemy.speed_scale(),
 			enemy.oath_pursuer, int(enemy.rank), mark_ids(enemy)]])
+		if enemy.is_herald():
+			facts.append([CoopRelay.Fact.HERALD,
+				[enemy.net_id, 0 if enemy.is_uncalled_herald() else 1]])
 		# A boss is a body and an announcement: the bar, the theme and the phase
 		# it has already reached.
 		if enemy.data.category == EnemyData.Category.BOSS:

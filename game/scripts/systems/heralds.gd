@@ -22,9 +22,14 @@ extends RefCounted
 ## raze is. So fast-forwarding a wave with a Herald in it costs something the
 ## player can see, and the Warden's place on the field is a decision again.
 ##
-## **Solo for 1.0**, as the wayside encounters are: which machine's Warden ran
-## it down is a question for the co-op relay nobody has asked yet. Never on the
-## Walk, whose valley teaches the road before it teaches this.
+## **In co-op since 2026-09-30.** Which machine's Warden ran it down turned out
+## not to matter: the host simulates every Warden, so a partner's sword lands on
+## the host's Herald as the host's own does, and the purse is the run's and
+## arrives on every screen as the loot it drops. What a partner needed was to
+## *see* it - the gold, the arrow, the lines - and that is one fact by the
+## body's net id (`CoopRelay.Fact.HERALD`). Rolled by the host alone, because
+## the host deals the waves. Never on the Walk, whose valley teaches the road
+## before it teaches this.
 
 ## Inside `HUD.MESSAGE_MAX_CHARS`, which `herald_check` holds: a line the
 ## banner trims is a line that stops saying what it was for.
@@ -35,7 +40,7 @@ const FELL_LINE: String = "The Herald is down. Its purse is yours."
 
 ## Whether a wave in `act` may carry a Herald at all.
 static func may_rise(act: int) -> bool:
-	if Coop.is_networked() or RunState.walking:
+	if Coop.is_guest() or RunState.walking:
 		return false
 	return act >= Balance.HERALD_FIRST_ACT
 

@@ -349,6 +349,11 @@ signal enemy_struck(net_id: int, at: Vector2, shot_id: String)
 ## The host's enemy landed a blow, for the guest to draw. Cosmetic only.
 signal coop_enemy_struck(net_id: int, at: Vector2, shot_id: String)
 
+## A Herald on the host's road (2026-09-30): `state` is 0 when it rises, 1 when
+## it calls from the wall and 2 when it is run down. The guest dresses its
+## puppet and says the line; everything that matters is the host's.
+signal coop_herald(net_id: int, state: int)
+
 signal build_mode_changed(building: bool)
 
 ## Who is in the party and which seat each of them holds. Host-authored.

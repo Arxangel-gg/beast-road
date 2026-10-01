@@ -204,6 +204,10 @@ enum Fact {
 	## weapons from these; the blows are still the host's alone - a guest's
 	## bodies are puppets and refuse them.
 	ARSENAL_SEAT = 87,
+	## **A Herald, by the body's net id** (2026-09-30): risen, called or run
+	## down. A state rather than three facts, because a guest who missed the
+	## rising and heard the call must still dress the body it is told about.
+	HERALD = 88,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -571,6 +575,7 @@ func _fact_bindings() -> Array:
 		["augment_choice_asked", _on_augment_choice_asked],
 		["road_rank_gained", _on_road_rank_gained],
 		["coop_enemy_struck", _on_coop_enemy_struck],
+		["coop_herald", _on_coop_herald],
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
 		["act_started", _on_act_started],
@@ -863,6 +868,10 @@ static func augment_hand_args() -> Array:
 
 func _on_coop_enemy_struck(net_id: int, at: Vector2, shot_id: String) -> void:
 	_relay(Fact.ENEMY_STRUCK, [net_id, at, shot_id])
+
+
+func _on_coop_herald(net_id: int, state: int) -> void:
+	_relay(Fact.HERALD, [net_id, state])
 
 
 func _on_coop_party_roster(rows: Array) -> void:
@@ -1334,6 +1343,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.PARTY_EVENT_AWAY:
 			if args.size() == 2:
 				bus.coop_party_event_away.emit(int(args[0]), bool(args[1]))
+		Fact.HERALD:
+			if args.size() == 2:
+				bus.coop_herald.emit(int(args[0]), int(args[1]))
 		Fact.ENEMY_STRUCK:
 			# The third element names the shot thrown (2026-09-21), so a guest
 			# draws the breed's own head rather than the roster's plain rune.
