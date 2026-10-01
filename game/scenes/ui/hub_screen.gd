@@ -255,6 +255,12 @@ func _build_frame() -> void:
 	zoom_corner.offset_top = -58.0
 	zoom_corner.offset_right = 282.0
 	zoom_corner.offset_bottom = -18.0
+	# **Grows upward from its corner** (owner, 2026-10-01: the slider read as
+	# top-aligned beside its buttons). On a touch layout the buttons are a
+	# thumb tall, and a corner growing downward from a forty-unit row hung their
+	# lower half off the bottom of the screen - so the slider, centred on the
+	# whole button, sat level with the top of what could be seen of it.
+	zoom_corner.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	frame.add_child(zoom_corner)
 	_build_zoom(zoom_corner)
 
@@ -657,6 +663,7 @@ func _build_zoom(into: Control) -> void:
 	into.add_child(row)
 
 	var out := Button.new()
+	out.name = "ZoomOut"
 	out.text = "-"
 	out.focus_mode = Control.FOCUS_NONE
 	out.custom_minimum_size = Vector2(34.0, 0.0)
@@ -665,6 +672,7 @@ func _build_zoom(into: Control) -> void:
 	row.add_child(out)
 
 	_zoom_slider = HSlider.new()
+	_zoom_slider.name = "ZoomSlider"
 	_zoom_slider.min_value = Balance.HOLD_ZOOM_MIN
 	_zoom_slider.max_value = Balance.HOLD_ZOOM_MAX
 	_zoom_slider.step = 0.01
@@ -689,6 +697,7 @@ func _build_zoom(into: Control) -> void:
 	row.add_child(pad)
 
 	var closer := Button.new()
+	closer.name = "ZoomIn"
 	closer.text = "+"
 	closer.focus_mode = Control.FOCUS_NONE
 	closer.custom_minimum_size = Vector2(34.0, 0.0)

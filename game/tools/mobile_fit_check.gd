@@ -79,6 +79,7 @@ func _ready() -> void:
 	await _measure_the_glass_closes()
 	await _measure_settings()
 	await _measure_scene("MainMenu", "res://scenes/ui/main_menu.tscn")
+	await _measure_the_hold()
 	ScreenFit.set_menu_layout(false)
 	for _f: int in 3:
 		await get_tree().process_frame
@@ -186,6 +187,41 @@ func _measure_the_glass_closes() -> void:
 		_check(choices.size.y >= 160.0,
 			"the Glass's choices are given %.0f units at %s - nothing to choose from" % [choices.size.y, _shape])
 	glass.queue_free()
+	await get_tree().process_frame
+
+
+## **The Hold**, stood up by the real menu as a player reaches it, measured by
+## the same rules - and its zoom row held to one more (owner, 2026-10-01: *"the
+## zoom slider in the Hold in the bottom left corner should be centered
+## vertically in the middle of the height of the buttons to the left and right
+## of it"*): the slider's middle on the buttons' middle line.
+func _measure_the_hold() -> void:
+	var menu: Node = (load("res://scenes/ui/main_menu.tscn") as PackedScene).instantiate()
+	add_child(menu)
+	await _settle()
+	var hub := menu.get("_hub") as HubScreen
+	_check(hub != null, "the real menu has no Hold to measure")
+	if hub == null:
+		menu.queue_free()
+		await get_tree().process_frame
+		return
+	hub.open()
+	await _settle()
+	_measure("Hold", hub, false)
+	var slider := hub.find_child("ZoomSlider", true, false) as Control
+	var out := hub.find_child("ZoomOut", true, false) as Control
+	var closer := hub.find_child("ZoomIn", true, false) as Control
+	_check(slider != null and out != null and closer != null, "the Hold's zoom row is missing a part")
+	if slider != null and out != null and closer != null:
+		var middle: float = slider.get_global_rect().get_center().y
+		for button: Control in [out, closer]:
+			var line: float = button.get_global_rect().get_center().y
+			_check(absf(middle - line) <= TOLERANCE,
+				"the Hold's zoom slider sits %.0f units off the middle of %s at %s (slider %s, button %s)"
+					% [middle - line, button.name, _shape, slider.get_global_rect(), button.get_global_rect()])
+			_check(_view.grow(TOLERANCE).encloses(button.get_global_rect()),
+				"the Hold's %s is off the screen at %s (%s)" % [button.name, _shape, button.get_global_rect()])
+	menu.queue_free()
 	await get_tree().process_frame
 
 
