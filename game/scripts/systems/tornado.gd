@@ -38,6 +38,8 @@ var wander: float = Balance.TORNADO_WANDER
 ## A fire whirl: seconds left carrying fire, after crossing a wildfire.
 var _fire_left: float = 0.0
 var _ignite_timer: float = 0.0
+## The pull, the lift and the throw (2026-09-30). The host's only.
+var _catch: TornadoCatch = null
 
 
 func _ready() -> void:
@@ -50,6 +52,11 @@ func _ready() -> void:
 	_mirror = Coop.is_guest()
 	_build_debris()
 	EventBus.coop_tornado_moved.connect(_on_moved_elsewhere)
+	if not _mirror and field != null:
+		_catch = TornadoCatch.new()
+		_catch.funnel = self
+		_catch.field = field
+		add_child(_catch)
 
 
 func _build_debris() -> void:
@@ -172,6 +179,9 @@ func _hurt(delta: float) -> void:
 			if was and not tower.is_vulnerable():
 				towers_felled += 1
 	for enemy: Enemy in field.enemies_near(at, Balance.TORNADO_AOE):
+		# What the funnel is carrying it hurts in the carrying.
+		if _catch != null and _catch.carries(enemy):
+			continue
 		var away: float = enemy.global_position.distance_to(at)
 		var inside: bool = away <= Balance.TORNADO_WAKE
 		var amount: float = ((Balance.TORNADO_WAKE_DPS if inside else Balance.TORNADO_AOE_DPS) + fire_more) \
@@ -181,9 +191,16 @@ func _hurt(delta: float) -> void:
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:
 		hero_pool = field.hero.health.max_hp
+	# The ones it is carrying are passed over - they are hurt in the carrying -
+	# and it no longer shoves outward: the funnel pulls (`TornadoCatch`).
+	var carried: Dictionary = {}
+	if _catch != null:
+		for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+			if _catch.carries(node):
+				carried[node.get_instance_id()] = true
 	EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.TORNADO_HERO_SHARE_PER_SECOND * delta,
 		"", func(where: Vector2) -> bool: return where.distance_to(at) <= Balance.TORNADO_AOE,
-		Balance.TORNADO_PUSH * delta, at)
+		0.0, at, carried)
 	var animals: Wildlife = field.wildlife()
 	if animals != null:
 		animals.wound_within(at, Balance.TORNADO_AOE, Balance.TORNADO_WILDLIFE_DPS * delta, false)
@@ -200,6 +217,10 @@ func _on_moved_elsewhere(where: Vector2, is_burning: bool) -> void:
 
 
 func _die() -> void:
+	# Everybody it was carrying is put down before the funnel fades.
+	if _catch != null and is_instance_valid(_catch):
+		_catch.queue_free()
+		_catch = null
 	Vfx.dust(at, Color(0.42, 0.36, 0.28), 14, Balance.TORNADO_AOE * 0.6)
 	# Where it fell apart the air stays charged for a while.
 	if not _mirror and field != null and field.zones() != null:

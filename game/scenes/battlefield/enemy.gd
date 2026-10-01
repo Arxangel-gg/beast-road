@@ -2835,6 +2835,19 @@ func shove(from: Vector2, strength: float) -> void:
 	_add_hitstun(Balance.ENEMY_HITSTUN)
 
 
+## **Carried a little way by the wind** (2026-09-30): a tornado's pull. Moved
+## rather than knocked, so it neither stuns nor stacks with a shove, and held
+## inside the map by the same rule every step is.
+func drift(by: Vector2) -> void:
+	if _state == State.DYING or by.is_zero_approx():
+		return
+	var into: Vector2 = global_position + by
+	var scope: EnemyField = field()
+	if scope != null:
+		into = scope.hold_inside(into)
+	global_position = into
+
+
 ## Chain Hook drags things in. Expressed as its own operation rather than as
 ## negative knockback, so knockback resistance does not accidentally make an
 ## enemy immune to being pulled.

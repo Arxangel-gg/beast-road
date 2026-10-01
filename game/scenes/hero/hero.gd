@@ -2742,6 +2742,18 @@ func mender_seconds_left() -> float:
 
 ## Throw this hero, without hurting them.
 ##
+## **Carried a little way by the wind** (2026-09-30): a tornado's pull, a step
+## at a time. Moved rather than shoved, so a Warden walking away from the
+## funnel at full pace outwalks it, and held inside the map.
+func drift(by: Vector2) -> void:
+	if not is_alive() or by.is_zero_approx():
+		return
+	var into: Vector2 = global_position + by
+	if field != null and field.has_method("hold_inside"):
+		into = field.call("hold_inside", into) as Vector2
+	global_position = into
+
+
 ## The boss slam is the caller that needed this: `boss_slam_knockback` was
 ## authored for eleven bosses and read by nothing, so a telegraphed blow that
 ## covered four hundred units moved the player not at all.

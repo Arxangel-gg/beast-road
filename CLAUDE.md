@@ -12143,6 +12143,40 @@ give up. And also add even more arsenal options and varieties."*
   Bell, Cairnfall, Ember Rain) and four of not dying (Cinder Skin, Ember Stones,
   Stone Rampart, Wellspring Tide). Icons composed from shipped paintings.
 
+**A tornado pulls, lifts and throws, as of 2026-09-30.** Owner: *"Tornados
+should have a tiny tiny little damage bump on everything including towers, and
+should cause nearby characters to get pulled closer to it a bit, some might be
+able to outpace it if further, some might get pulled into it and take damage as
+they spin around in it and up the funnel and eventually getting thrown out in
+their momentum's direction once reaching the top of the tornado, if they're
+still alive by then, and even taking a bit of fall damage with juicy landing
+vfx."*
+
+`TornadoCatch`, one node a funnel, the host's only (the funnel's own `_mirror`
+rule). **The pull** is `TORNADO_PULL_SPEED` at the wake's edge falling to nothing
+at `TORNADO_PULL_REACH`, applied as `drift` - moved, never shoved, so it neither
+stuns nor stacks - and it replaces the funnel's old outward shove, which pushed
+the other way. A Warden walking away outwalks it; the roster does not. **The
+catch**: a body that reaches `TORNADO_CATCH_RADIUS` is carried round the funnel
+and up it for `TORNADO_LIFT_SECONDS`, hurt as the wake hurts and passed over by
+the funnel's own blows, then thrown out along its spin - its momentum - and lands
+a throw's length away with a fall (`TORNADO_FALL_HERO_SHARE` of a Warden's pool,
+`TORNADO_FALL_DAMAGE` by the act for a body), dust, a ring, a forged hit, a
+stone knock and a weighted shake. **While aloft a body's own processing stands
+still**: its walk and swing would fight the hand carrying it, and an enemy's
+hitstun is capped by design so it cannot hold one. Health still answers every
+blow, and a body that falls while aloft is put down on the spot; a funnel that
+dies mid-carry puts everybody down. **Never lifted**: a boss, a camp lord, a
+Warden inside the walls, a body let go in the last `TORNADO_RECATCH_SECONDS`; at
+most `TORNADO_CATCH_MAX` at once.
+
+Every damage figure is about a twelfth up, which keeps a straight pass under a
+tower's pool and a parked funnel inside `wrath_check`'s twelve seconds.
+`wrath_check` drives it on real frames with the funnel held still: a Warden in
+its reach is drawn in, a body at its heart is caught with its processing
+stilled, rises, is let go a throw's length away and pays the fall, and a boss
+is never lifted.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

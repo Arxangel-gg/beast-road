@@ -56,6 +56,7 @@ func _ready() -> void:
 		await _test_the_wildfire()
 		await _test_the_rain_puts_fire_out()
 		await _test_the_tornado()
+		await _test_the_funnel_pulls_lifts_and_throws()
 		await _test_the_meteor()
 		await _test_chain_lightning()
 		await _test_water_feeds_the_water_towers()
@@ -620,6 +621,90 @@ func _test_the_tornado() -> void:
 	await get_tree().process_frame
 	bystander.queue_free()
 	await get_tree().process_frame
+
+
+## **The funnel pulls, lifts and throws** (owner, 2026-09-30). Held still, so
+## what is measured is the catch and not the walk: a Warden standing out in
+## its reach is drawn in a little, a body that reaches its heart is carried up
+## with its own processing still and thrown out along its spin, landing hurt by
+## the fall a throw's length away with its processing back - and a boss is
+## pulled but never lifted.
+func _test_the_funnel_pulls_lifts_and_throws() -> void:
+	await _clear_towers()
+	var at: Vector2 = _pocket(3)
+	var funnel: Tornado = _sky.spawn_tornado(at, at + Vector2(10.0, 0.0), 40.0)
+	_check(funnel != null, "a funnel to be caught by")
+	if funnel == null:
+		return
+	await get_tree().process_frame
+	funnel.set_process(false)
+	funnel.at = at
+	funnel.position = at
+	var catch: TornadoCatch = funnel.find_child("TornadoCatch", false, false) as TornadoCatch
+	_check(catch != null, "the funnel stood up no catch")
+	if catch == null:
+		return
+
+	# The pull, on a Warden standing in its reach.
+	var hero: Hero = _field.hero
+	var stand: Vector2 = at + Vector2(Balance.TORNADO_WAKE + 160.0, 0.0)
+	hero.global_position = stand
+	var started: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 400:
+		await get_tree().process_frame
+	var drawn: float = stand.distance_to(at) - hero.global_position.distance_to(at)
+	_check(drawn > 5.0, "a Warden %d units from the funnel was not drawn in (%.1f)"
+		% [int(stand.distance_to(at)), drawn])
+	hero.global_position = at + Vector2(Balance.TORNADO_PULL_REACH * 3.0, 0.0)
+
+	# The catch, the carry, the throw and the fall.
+	var body: Enemy = _body(at + Vector2(Balance.TORNADO_CATCH_RADIUS * 0.5, 0.0), 60.0)
+	var boss_data: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.category == EnemyData.Category.BOSS:
+			boss_data = kind
+			break
+	var boss: Enemy = _field.spawn_enemy(boss_data, 0, 40.0) if boss_data != null else null
+	if boss != null:
+		boss.global_position = at + Vector2(-Balance.TORNADO_CATCH_RADIUS * 0.5, 0.0)
+	var whole: float = body.health.current_hp
+	var lifted: bool = false
+	var stilled: bool = false
+	var highest: float = 0.0
+	started = Time.get_ticks_msec()
+	var flight_ms: int = int((Balance.TORNADO_LIFT_SECONDS + Balance.TORNADO_THROW_SECONDS + 0.6) * 1000.0)
+	while Time.get_ticks_msec() - started < flight_ms:
+		await get_tree().process_frame
+		if not is_instance_valid(body):
+			break
+		if catch.carries(body):
+			lifted = true
+			stilled = stilled or body.process_mode == Node.PROCESS_MODE_DISABLED
+			highest = maxf(highest, at.y - body.global_position.y)
+		if boss != null and is_instance_valid(boss):
+			boss.global_position = at + Vector2(-Balance.TORNADO_CATCH_RADIUS * 0.5, 0.0)
+			_check(not catch.carries(boss), "the funnel lifted a boss")
+	_check(lifted, "a body at the funnel's heart was never caught")
+	_check(stilled, "a body carried by the funnel kept its own processing running")
+	_check(highest > Balance.TORNADO_LIFT_HEIGHT * 0.5,
+		"a body carried by the funnel rose only %.0f of the %.0f it should" % [highest, Balance.TORNADO_LIFT_HEIGHT])
+	if is_instance_valid(body):
+		_check(not catch.carries(body) and body.process_mode != Node.PROCESS_MODE_DISABLED,
+			"a body thrown out of the funnel was never let go")
+		var landed: float = body.global_position.distance_to(at)
+		_check(landed > Balance.TORNADO_THROW_DISTANCE * 0.6,
+			"a body thrown out of the funnel landed %.0f from it" % landed)
+		_check(body.health.current_hp < whole - Balance.TORNADO_FALL_DAMAGE * 0.5,
+			"the fall cost a thrown body nothing")
+		body.queue_free()
+	if boss != null and is_instance_valid(boss):
+		boss.queue_free()
+	funnel.seconds_left = 0.0
+	funnel.set_process(true)
+	funnel._process(0.1)
+	for _frame: int in 3:
+		await get_tree().process_frame
 
 
 ## A stone lands near a tower, hurts it and everything around, and marks the

@@ -10198,11 +10198,38 @@ const TORNADO_SPIN: float = 9.0
 ## to a funnel becomes something you watched happen and could have answered,
 ## rather than something that had already happened. `wrath_check` holds both
 ## ends of it. [TUNE]
-const TORNADO_TOWER_DPS: float = 150.0
-const TORNADO_WAKE_DPS: float = 120.0
-const TORNADO_AOE_DPS: float = 18.0
-const TORNADO_HERO_SHARE_PER_SECOND: float = 0.06
-const TORNADO_WILDLIFE_DPS: float = 12.0
+##
+## **A touch more, on everything** (owner, 2026-09-30: "Tornados should have a
+## tiny tiny little damage bump on everything including towers"): about a
+## twelfth, which keeps the straight pass under a tower's pool and the parked
+## funnel inside `wrath_check`'s twelve seconds.
+const TORNADO_TOWER_DPS: float = 162.0
+const TORNADO_WAKE_DPS: float = 130.0
+const TORNADO_AOE_DPS: float = 20.0
+const TORNADO_HERO_SHARE_PER_SECOND: float = 0.065
+const TORNADO_WILDLIFE_DPS: float = 13.0
+## **The pull, the lift and the throw** (owner, 2026-09-30; `TornadoCatch`).
+## The pull is `TORNADO_PULL_SPEED` at the wake's edge falling to nothing at
+## `TORNADO_PULL_REACH` - a Warden walks at 200 and outwalks it, the roster at
+## 28 to 68 does not. A body reaching `TORNADO_CATCH_RADIUS` is carried round
+## and `TORNADO_LIFT_HEIGHT` up for `TORNADO_LIFT_SECONDS`, thrown
+## `TORNADO_THROW_DISTANCE` along its spin over `TORNADO_THROW_SECONDS`, and
+## lands for a fall: `TORNADO_FALL_HERO_SHARE` of a Warden's pool, or
+## `TORNADO_FALL_DAMAGE` scaled by the act for a body. [TUNE]
+const TORNADO_PULL_REACH: float = 460.0
+const TORNADO_PULL_SPEED: float = 140.0
+const TORNADO_CATCH_RADIUS: float = 60.0
+const TORNADO_LIFT_SECONDS: float = 1.4
+const TORNADO_LIFT_HEIGHT: float = 300.0
+const TORNADO_CARRY_SPIN: float = 7.0
+const TORNADO_THROW_DISTANCE: float = 380.0
+const TORNADO_THROW_SECONDS: float = 0.75
+const TORNADO_THROW_ARC: float = 120.0
+const TORNADO_FALL_HERO_SHARE: float = 0.05
+const TORNADO_FALL_DAMAGE: float = 40.0
+const TORNADO_LANDING_IMPACT: float = 0.35
+const TORNADO_CATCH_MAX: int = 8
+const TORNADO_RECATCH_SECONDS: float = 3.0
 const TORNADO_PUSH: float = 900.0
 const TORNADO_Z: int = 38
 
