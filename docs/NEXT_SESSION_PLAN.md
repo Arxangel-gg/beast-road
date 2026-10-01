@@ -29,11 +29,13 @@ Disciplines on a thumb. All of it is in CLAUDE.md under "Every road is measured
 against the Warden it expects".
 
 - **The harder roads were walls** (1.02 and 1.87 mean pressure against their
-  own expected Warden) and are a ladder now: 0.446 / 0.574 / 0.677, each inside
+  own expected Warden) and are a ladder now: 0.448 / 0.577 / 0.657, each inside
   its own band, each with a survival floor, both harder roads judged on the
   release bar.
 - **A full augment hand is offered levels** for what it holds
   (`AUGMENT_HELD_WEIGHT_FULL`), measured with the game's own deal.
+- **The surge into each boss climbs over the act's last few waves** rather than
+  landing on one (`ACT_BOSS_RAMP_DISTANCE` 400, judged in `curve_report`).
 - **Bosses take the tier, climb in depth across the acts, and deepen for a
   party** (`BOSS_HEALTH_DEPTH`, `COOP_BOSS_HEALTH_PER_PLAYER`), judged by a
   boss time-to-fall band in `curve_report`.

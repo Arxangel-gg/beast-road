@@ -12673,9 +12673,9 @@ out on the way, each a curve that read easier or harder than the game:
   model sent unmarked bodies.
 
 **The re-tune.** The Iron Road's health 2.9 to **2.12**; the Chainmaker's 7.4 to
-**2.95** and its damage 2.8 to **2.25**. Measured, solo, expected Warden: the
-Iron Road **0.574** (acts 0.39 to 0.68), the Chainmaker's **0.677** (0.43 to
-0.82); the Long Road on a new account **0.446** (0.25 to 0.58). Each harder road
+**2.85** and its damage 2.8 to **2.25**. Measured, solo, expected Warden: the
+Iron Road **0.577** (acts 0.40 to 0.69), the Chainmaker's **0.657** (0.42 to
+0.78); the Long Road on a new account **0.448** (0.26 to 0.59). Each harder road
 is a harder curve against a stronger Warden, which is what a ladder of
 difficulties is; none of them is a wall. Co-op spread 9-12%.
 
@@ -12704,8 +12704,24 @@ mostly offered levels for what it holds: the drafting Warden's late acts went
 0.90 to 0.78 and the road's mean 0.668 to 0.627.
 
 **The act climb has no dip.** `WAVE_ACT_HP_SCALE` was shaped so Act VIII read
-easier than Act VII (0.55 to 0.44). It climbs now, and the road reads 0.25 to
-0.58 act by act.
+easier than Act VII (0.55 to 0.44). It climbs now, and the road reads 0.26 to
+0.59 act by act.
+
+**And the surge into each boss is a climb rather than a wall.**
+`ACT_BOSS_RAMP_DISTANCE` was 100 units, written when a wave walked about that
+far; a late wave walks nearly a hundred on its own, so the whole surge landed on
+an act's last wave as one step of +0.15 to +0.21 after a flat stretch, and on
+the Chainmaker's Road that one wave read 1.19 - past what a best-case defence
+answers. Over 400 units it climbs across the act's last few waves, under the
+HUD's red "boss is coming" line for the whole climb, a little lower
+(`ACT_BOSS_RAMP_COUNT` 0.08, `_STATS` 0.10) because a height felt for four waves
+is more than the same height felt for one. Measured: the Long Road's last
+stretch into Act X 0.63 to 0.77, the Chainmaker's 0.92 to 1.11 - the one place
+on the hardest road a Warden needs more than the road expects, which is where
+the hardest road's hardest moment should be. `curve_report` holds no step over
+`SURGE_STEP_LIMIT` (0.10) inside an act's last four waves, and the last above
+the first, from Act II - Act I is where the first board is bought, a tower every
+second wave, which flattens its stretch at 0.22 and is the opening envelope's.
 
 **Bosses stand on their road's difficulty, as long as the act deserves, and as
 long against a party.** Three things, each found by a readout added to
