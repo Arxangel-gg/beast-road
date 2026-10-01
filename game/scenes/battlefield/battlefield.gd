@@ -74,6 +74,7 @@ var _footfalls: Footfalls = null
 var _tells: CombatTells = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
+var _settling: Settling = null
 var _kill_streak: KillStreak = null
 
 ## Closes the road behind a party turning for home. See `Withdrawal`.
@@ -3238,6 +3239,7 @@ func _build_fog() -> void:
 	_build_combat_tells()
 	_build_arsenal()
 	_build_kill_streak()
+	_build_settling()
 
 
 ## **Plants give way to whatever walks through them.**
@@ -3409,6 +3411,18 @@ func _build_kill_streak() -> void:
 
 func kill_streak() -> KillStreak:
 	return _kill_streak
+
+
+## **The road settles after a held wave** (2026-09-30). A child of the field, so
+## a raid freezes it with everything else here.
+func _build_settling() -> void:
+	_settling = Settling.new()
+	_settling.field = self
+	add_child(_settling)
+
+
+func settling() -> Settling:
+	return _settling
 
 
 func _build_stragglers() -> void:

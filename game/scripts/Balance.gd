@@ -6599,6 +6599,21 @@ const VFX_MUZZLE_LIFE: float = 0.13
 ## readable silhouette without needing large opaque screen flashes. [TUNE]
 const VFX_RAY_LIFE: float = 0.24
 const VFX_DUST_LIFE: float = 0.48
+
+## **The road settles after a held wave** (2026-09-30, `Settling`). Deaths are
+## counted in cells of `SETTLE_CELL`; the `SETTLE_SPOTS` cells where at least
+## `SETTLE_MIN_FALLEN` fell hang with haze and embers for `SETTLE_SECONDS`, a
+## puff `SETTLE_HZ` times a second, thinning as they go. A haze lives
+## `SETTLE_HAZE_LIFE` and drifts `SETTLE_WIND_CARRY` along a full wind; an ember
+## rises on `SETTLE_EMBER_CHANCE` of the puffs. A look, never a fact. [TUNE]
+const SETTLE_CELL: float = 160.0
+const SETTLE_SPOTS: int = 4
+const SETTLE_MIN_FALLEN: int = 3
+const SETTLE_SECONDS: float = 5.0
+const SETTLE_HZ: float = 7.0
+const SETTLE_HAZE_LIFE: float = 2.6
+const SETTLE_WIND_CARRY: float = 60.0
+const SETTLE_EMBER_CHANCE: float = 0.7
 const VFX_BUILD_SHAKE: float = 4.0
 const VFX_BOSS_PHASE_SHAKE: float = 11.0
 

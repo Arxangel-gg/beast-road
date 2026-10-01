@@ -386,7 +386,45 @@ func _test_the_field() -> void:
 			"a body marked with an element must still count as a kill")
 
 	await _test_a_blow_is_anticipated(field)
+	await _test_the_road_settles(field)
 	await _leave(run)
+
+
+## **The road settles after a held wave** (2026-09-30): the cell where most fell
+## hangs with haze for `SETTLE_SECONDS` and then is clean; a cell where too few
+## fell does not; a new wave stops it at once; and it writes nothing.
+func _test_the_road_settles(field: Battlefield) -> void:
+	var settling: Settling = field.settling()
+	_check(settling != null, "the field has no Settling")
+	if settling == null:
+		return
+	var thick := Vector2(400.0, 400.0)
+	var thin := Vector2(-900.0, 400.0)
+	EventBus.wave_started.emit(99, [])
+	for _n: int in Balance.SETTLE_MIN_FALLEN + 2:
+		settling._on_enemy_died("bogkin", thick + Vector2(randf_range(-20.0, 20.0), 0.0))
+	settling._on_enemy_died("bogkin", thin)
+	settling._on_wave_cleared(99)
+	var spots: Array[Dictionary] = settling.spots()
+	_check(spots.size() == 1, "%d spots settled, wanting the one where most fell" % spots.size())
+	if spots.size() == 1:
+		var cell: float = Balance.SETTLE_CELL
+		_check((spots[0]["at"] as Vector2).distance_to(thick) < cell,
+			"the settling is at %s, not where the bodies fell" % str(spots[0]["at"]))
+	await _settle(Balance.SETTLE_SECONDS * 0.5)
+	_check(not settling.spots().is_empty(), "the settling was gone halfway through")
+	await _settle(Balance.SETTLE_SECONDS * 0.5 + 0.3)
+	_check(settling.spots().is_empty(), "the settling outlived SETTLE_SECONDS")
+	for _n: int in Balance.SETTLE_MIN_FALLEN + 2:
+		settling._on_enemy_died("bogkin", thick)
+	settling._on_wave_cleared(100)
+	_check(not settling.spots().is_empty(), "a second held wave settles too")
+	settling._on_wave_started(101, [])
+	_check(settling.spots().is_empty(), "a new wave did not stop the settling")
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/settling.gd")
+	var reads: int = source.count("RunState.")
+	_check(reads == source.count("RunState.wind"),
+		"Settling touches RunState for more than the wind - a look must write nothing")
 
 
 ## **A warned blow swells toward its landing** (2026-09-30). A blow coming down

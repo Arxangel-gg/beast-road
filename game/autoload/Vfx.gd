@@ -693,6 +693,15 @@ func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0, fini
 			Balance.VFX_DUST_LIFE * randf_range(0.8, 1.25), finish_when_paused)
 
 
+## **A haze**: one slow puff of dust that lives `life` and drifts `drift` over
+## it, growing as it goes - what hangs over a fought-out stretch of road
+## (`Settling`). Flat ink, like every dust.
+func haze(at: Vector2, drift: Vector2, colour: Color, size: float, life: float) -> void:
+	if world == null or _ink_flat == null:
+		return
+	_ink_flat.dust(at, drift, colour, size, 2.2, life, false)
+
+
 ## One authored-feeling construction beat shared by new towers and upgrades.
 func build_burst(at: Vector2, colour: Color, upgrade: bool = false) -> void:
 	dust(at, Color(0.36, 0.28, 0.18, 0.38), 8 if upgrade else 6,
