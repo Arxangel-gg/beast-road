@@ -12790,6 +12790,11 @@ Measured over twelve minutes of Act V on the Long Road:
 | two a minute | 1.04 | 29% | quakes, fires, dragons |
 | six a minute | 1.38 | 86% | seventy quakes |
 
+On the Chainmaker's Road in Act VIII, whose tier holds the earth's floor up, a
+Warden who hunts nothing reads 0.58 and one who hunts two a minute 1.27, at the
+cap two thirds of the time: the hardest road's earth is angrier, and still the
+Warden's to provoke.
+
 `earth_grief_check` drives the door both ways and walks the body's call; planted
 back, it named five things.
 
