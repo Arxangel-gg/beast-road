@@ -21,6 +21,31 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0g. Where things stand (2026-10-01, v0.67.0)
+
+**v0.66.0** shipped cooking, a Herald for two, the telegraph riser and the
+settling road. **v0.67.0** answers the owner's list of 2026-10-01 in full, each
+item gated on both bars and recorded in CLAUDE.md: the resumed gate's health on
+the HUD, Escape closing the topmost thing first (`escape_check`), a second's
+click guard on every table of cards, a one-second hover dwell in the
+Disciplines, the Warden's Stone coming back after its doors, sliders clear of
+buttons (`slider_clearance_check`), sound falling off per doubling with a reach
+per kind, gentler plants, rarer third and fourth pounces, melee combos, one
+`Hitbox` for reach and for meeting a body (`hitbox_check`), and blood by the
+blow - where it struck, as much as it took, as big as the body.
+
+**Open, in the order worth taking them:**
+
+1. The owner playing a road: combos and the hitbox change what a fight feels
+   like, and that is not a number. Watch the combo shares against the curve's
+   last waves if the road reads harder.
+2. After 2026-10-11 (PixelLab): helmets, the rest of the heavy armour and capes,
+   the 31 staged augments, chop and mine animations, bespoke Arsenal icons.
+3. Recordings the owner can commission, each prompted in `SFX_PROMPTS.md`.
+4. A stain for promoted bodies: elites and champions wear `actor_polish` and so
+   carry no stain and no wounds. Folding the wound uniforms into that shader is
+   the way, and it wants the same photograph.
+
 ## 0f. Where things stand (2026-09-30, late, v0.65.0 and after)
 
 **v0.65.0** answers the owner's list of 2026-09-30 in full: four font roles at

@@ -750,8 +750,13 @@ func _test_the_meteor() -> void:
 func _test_chain_lightning() -> void:
 	_dry()
 	var at: Vector2 = Vector2(-800.0, -800.0)
-	var first: Enemy = _body(at + Vector2(140.0, 0.0))
-	var second: Enemy = _body(at + Vector2(140.0 + Balance.CHAIN_RANGE * 1.4, 0.0))
+	# The first body stands just past the strike's own reach, so only the arc
+	# can reach it. A blow meets a body anywhere from its feet up (`Hitbox`,
+	# 2026-10-01), so 'past the reach' is measured to the feet: at 140 the strike
+	# itself met the feet and there was nothing left for an arc to do.
+	var beside: float = (Balance.LIGHTNING_RADIUS + Balance.CHAIN_RANGE) * 0.5
+	var first: Enemy = _body(at + Vector2(beside, 0.0))
+	var second: Enemy = _body(at + Vector2(beside + Balance.CHAIN_RANGE * 1.4, 0.0))
 	await get_tree().process_frame
 	var first_hp: float = first.health.current_hp
 	var second_hp: float = second.health.current_hp
