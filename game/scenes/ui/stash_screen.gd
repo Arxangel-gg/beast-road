@@ -927,8 +927,10 @@ const STAGE_HEIGHT: float = 210.0
 const STAGE_TURN_SECONDS: float = 3.2
 const STAGE_ART_SCALE: float = 1.4
 const TILE_COLUMNS: int = 3
-const TILE_SIZE: float = 84.0
-const TILE_ICON: float = 52.0
+const TILE_SIZE: float = 88.0
+## 52 inside an 84 tile until 2026-09-30 (owner: "Make stash slot icons a
+## little larger"); the doll's column still holds three of them.
+const TILE_ICON: float = 64.0
 const TILE_LABEL: float = 18.0
 ## How far above the bottom edge the comparison card sits.
 const COMPARE_LIFT: float = 36.0
