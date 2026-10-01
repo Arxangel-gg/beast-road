@@ -97,8 +97,12 @@ func _test_it_never_fades_but_to_a_heavy_flood() -> void:
 	_blood.splat(Vector2(400.0, 1200.0), Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE, _dice)
 	_age(200000.0, 5000.0)
 	_check(_blood.marks() == 1, "a Brutal mark faded away with nothing but time")
-	RunState.weather_id = "storm"
-	EventBus.weather_changed.emit("storm")
+	RunState.weather_id = "downpour"
+	EventBus.weather_changed.emit("downpour")
+	# A downpour is rain to the field: High would wash under it.
+	UserSettings.set_blood_level(UserSettings.BLOOD_HIGH)
+	_check(_blood.wash_multiplier() > 1.0, "the harness's downpour is no rain to the blood field")
+	UserSettings.set_blood_level(UserSettings.BLOOD_BRUTAL)
 	_check(is_equal_approx(_blood.wash_multiplier(), 1.0), "rain washes Brutal blood")
 	RunState.flood = Balance.BLOOD_BRUTAL_FLOOD_FROM - 0.1
 	_check(is_equal_approx(_blood.wash_multiplier(), 1.0), "a flood short of heavy washes Brutal blood")

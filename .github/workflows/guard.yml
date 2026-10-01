@@ -579,6 +579,7 @@ jobs:
           check "The animals hear the road: deaths by distance, kin and the herd, blasts and clashes, the birds, a remembered fright, one pass" --headless --path game res://tools/wildlife_notice_check.tscn
           check "The earth minds every death in the area: by cause, grief, wisdom, the pressing ground, karma, luck, the cruel sought, the great temper" --headless --path game res://tools/earth_grief_check.tscn
           check "A wild dragon weighs the weak and the near, takes everything on its line once, feeds the wrath and grows with it" --headless --path game res://tools/dragon_wild_check.tscn
+          check "Brutal blood: never fades but to a heavy flood, pools that creep, slow and stain, banked with the front; scars that remember every blow" --headless --path game res://tools/brutal_blood_check.tscn
           check "no slider touches a button" --headless --path game res://tools/slider_clearance_check.tscn
           check "a body is met where it is drawn and reached the same from every side" --headless --path game res://tools/hitbox_check.tscn
           check "the comfort card writes nothing unless a slider moved" --headless --path game res://tools/comfort_card_check.tscn
