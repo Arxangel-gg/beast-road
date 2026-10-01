@@ -29,6 +29,10 @@ func _ready() -> void:
 	RunState.act = 6
 
 	RunState.queue_augment(Augments.SOURCE_RANK)
+	# The table as it arrives, still guarded: dim, and not yet taking a press.
+	for _f: int in 12:
+		await get_tree().process_frame
+	await _shoot("augment_shot_guarded")
 	await _let_the_deal_land()
 	await _shoot("augment_shot_fresh")
 
