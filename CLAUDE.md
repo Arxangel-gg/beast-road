@@ -12255,6 +12255,20 @@ one on the real field; the first planting of an unfitted riser passed, because a
 long warning starts it at its natural speed, and the half-second case is what
 names it.
 
+**The road settles after a held wave, as of 2026-09-30**, which closes the
+second rank of the 2026-09-15 juice triage (boss entrances, footprints, the
+riser above and this). "Music drops, dust drifts, embers remain": the music has
+eased in Preparation since 2026-09-23, and `Settling` is the rest - deaths
+counted by cell during a wave, and the densest cells hanging with a slow haze on
+the wind and embers rising for `SETTLE_SECONDS` once it is held. A new wave stops
+it at once. Ink records only (`Vfx.haze`, `Vfx.mote`), thinned by the particle
+scale and the juice director, and a child of the field so a raid freezes it.
+**The first photograph read as nothing**: dust at a fifth of an alpha on the
+jungle's dark ground is a smudge, which no gate could have said, so the haze is
+twice as thick as the number first chosen. `feel_check` holds the spot, its end,
+a thin cell staying clean, a new wave stopping it and that it writes nothing;
+`settling_shot` is the picture.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
