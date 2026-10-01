@@ -2463,6 +2463,12 @@ const ENEMY_POUNCE_DAMAGE_SCALE: float = 1.25
 ## at maximum"*). [TUNE]
 const ENEMY_POUNCE_CHAIN_CHANCES: Array[float] = [0.5, 0.2, 0.1]
 
+## **A body can be met from its feet to its upper chest** (2026-10-01; see
+## `Hitbox`): the stroke a blow or a shot is measured to runs from the feet up
+## through the body's centre to this share of the way from feet to centre -
+## 1 would end at the centre, and the chest is a little past it. [TUNE]
+const HITBOX_STROKE_SHARE: float = 1.35
+
 ## **A melee body may follow one blow with another** (owner, 2026-10-01:
 ## *"Some melee enemies should have the ability to sometimes do combo strikes if
 ## their target is still alive and in range from 1-3 strikes and maybe even more

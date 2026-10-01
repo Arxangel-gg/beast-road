@@ -379,7 +379,11 @@ func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:
 		# Fixed here rather than at each caller because this is the one
 		# broadphase they all share: towers, spells, arrows, barricades,
 		# companions and wildlife every one of them arrive through this list.
-		if enemy.combat_origin().distance_squared_to(point) <= radius_squared:
+		#
+		# **And to the whole body, feet to chest** (2026-10-01, `Hitbox`): a
+		# point that reaches any of the stroke reaches the body - which is what
+		# a blast landing at a giant's knees and an arrow at its chest both are.
+		if Hitbox.meet(enemy, point).distance_squared_to(point) <= radius_squared:
 			found.append(enemy)
 	return found
 

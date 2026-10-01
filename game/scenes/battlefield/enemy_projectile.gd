@@ -442,11 +442,7 @@ static func _trail_taper() -> Curve:
 
 
 static func _combat_origin(node: Node2D) -> Vector2:
-	if node.has_method("combat_origin"):
-		var origin: Variant = node.call("combat_origin")
-		if origin is Vector2:
-			return origin as Vector2
-	return node.global_position
+	return Hitbox.body_of(node)
 
 
 ## The ribbon behind the head, in world space so it stays put as the head

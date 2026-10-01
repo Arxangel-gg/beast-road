@@ -789,7 +789,7 @@ func _fire_seekers(armed: Armed, from_points: Array[Vector2]) -> bool:
 			continue
 		for index: int in count:
 			var target: Enemy = targets[index % targets.size()]
-			var heading: Vector2 = (target.global_position - from).normalized()
+			var heading: Vector2 = (Hitbox.body_of(target) - from).normalized()
 			heading = heading.rotated(_dice.randf_range(-0.55, 0.55) \
 				+ (float(index) - float(count - 1) * 0.5) * 0.35)
 			_add_record({"kind": "bolt", "card": armed.card.id, "at": from + heading * 18.0,
@@ -812,7 +812,7 @@ func _tick_bolt(record: Dictionary, delta: float) -> bool:
 	var velocity: Vector2 = record["velocity"] as Vector2
 	var speed: float = maxf(velocity.length(), 1.0)
 	if target != null and is_instance_valid(target):
-		var wanted: Vector2 = (target.global_position - at).normalized() * speed
+		var wanted: Vector2 = (Hitbox.body_of(target) - at).normalized() * speed
 		velocity = velocity.lerp(wanted, clampf(Balance.ARSENAL_BOLT_TURN * delta, 0.0, 1.0))
 	at += velocity * delta
 	record["velocity"] = velocity
@@ -823,7 +823,7 @@ func _tick_bolt(record: Dictionary, delta: float) -> bool:
 		trail.remove_at(0)
 	record["trail"] = trail
 	if target != null and is_instance_valid(target) and armed != null \
-			and at.distance_to(target.global_position) <= Balance.ARSENAL_BOLT_HIT \
+			and Hitbox.gap(target, at) <= Balance.ARSENAL_BOLT_HIT \
 				+ target.contact_radius() * 0.5:
 		strike_body(armed, target, float(record["damage"]), at)
 		Vfx.impact(at, armed.weapon.element, armed.weapon.tint, 58.0)

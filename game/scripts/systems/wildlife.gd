@@ -1985,7 +1985,11 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, _step: int,
 		var sprite := animal["sprite"] as Sprite2D
 		if sprite == null or not is_instance_valid(sprite):
 			continue
-		var toward: Vector2 = sprite.global_position - at
+		# **To the animal's body, feet to chest** (2026-10-01, `Hitbox`): the
+		# swing leaves the Warden's chest and an animal's sprite stands at its
+		# feet, so a hare to the south was out of reach and one to the north was
+		# struck from too far.
+		var toward: Vector2 = Hitbox.meet(sprite, at) - at
 		var distance: float = toward.length()
 		if distance > reach + Balance.WILDLIFE_KILL_REACH_BONUS:
 			continue

@@ -2516,7 +2516,11 @@ func _target_gap(target: Node2D) -> float:
 		# `edge` is already the nearest point on the city's own sprite, so the
 		# distance to it is the whole answer.
 		return maxf(at.distance_to(edge), 0.0)
-	return combat_origin().distance_to(target.global_position) - _field.target_radius(target)
+	# **On the ground, feet to feet** (2026-10-01, `Hitbox`). This measured from
+	# this body's chest to its target's feet, so the same gap was two different
+	# answers: a body south of the Warden swung from far off and one north had
+	# to stand on them, and the taller the body the worse it was.
+	return Hitbox.ground_gap(self, target) - _field.target_radius(target)
 
 
 func _in_reach(target: Node2D) -> bool:

@@ -511,9 +511,12 @@ func _strike() -> void:
 		var id: int = enemy.get_instance_id()
 		if _hit_ids.has(id):
 			continue
-		# The body, not the feet - see `EnemyField.enemies_near`. A swing arc
-		# measured to the floor meant aiming at an enemy's chest missed them.
-		var to: Vector2 = enemy.combat_origin() - _swing_origin
+		# **The body from its feet to its chest, not a point on it** (see
+		# `Hitbox`, 2026-10-01). Measured to the floor, aiming at a chest
+		# missed; measured to the chest alone, a giant was hard to reach from
+		# its south and easy from its north. The nearest point of its stroke is
+		# where this swing meets it, and the bearing the arc judges.
+		var to: Vector2 = Hitbox.meet(enemy, _swing_origin) - _swing_origin
 		var distance: float = to.length()
 		if distance > reach + enemy.contact_radius():
 			continue

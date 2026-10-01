@@ -210,7 +210,7 @@ func _load_head_art() -> void:
 func _aim() -> void:
 	_aimed = true
 	if _target != null and is_instance_valid(_target):
-		_direction = (_target.global_position - global_position).normalized()
+		_direction = (_aim_point() - global_position).normalized()
 	rotation = _direction.angle()
 
 
@@ -226,7 +226,7 @@ func _process_measured(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target) or _target.is_dying():
 		_target = null
 	else:
-		var wanted: Vector2 = (_target.global_position - global_position).normalized()
+		var wanted: Vector2 = (_aim_point() - global_position).normalized()
 		_direction = _direction.lerp(wanted, clampf(Balance.PROJECTILE_TURN_RATE * delta, 0.0, 1.0)).normalized()
 
 	global_position += _direction * speed * delta
@@ -255,8 +255,20 @@ func _process_measured(delta: float) -> void:
 
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS
-		if global_position.distance_to(_target.global_position) <= reach:
+		var met: float = global_position.distance_to(_target.global_position) \
+			if _shot == TowerData.Shot.LOB else Hitbox.gap(_target, global_position)
+		if met <= reach:
 			_impact()
+
+
+## **Where the shot flies** (2026-10-01, `Hitbox`): at the middle of the body it
+## was fired at - it used to home on the feet, so every bolt, lance and pellet
+## struck the ground under what it hit. A lob still comes down where the body
+## stands, because a lob lands.
+func _aim_point() -> Vector2:
+	if _shot == TowerData.Shot.LOB:
+		return _target.global_position
+	return Hitbox.body_of(_target)
 
 
 ## What a lob does every frame: its picture rises on an arc over the straight
