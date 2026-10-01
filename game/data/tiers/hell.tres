@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_t")
 order = 2
-hp_scale = 2.85
+hp_scale = 2.0
 damage_scale = 2.25
 speed_scale = 1.15
 boss_levels = Array[int]([80, 82, 84, 85, 87, 88, 90, 91, 93, 94])

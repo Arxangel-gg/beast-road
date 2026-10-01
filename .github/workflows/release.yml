@@ -299,9 +299,12 @@ jobs:
           # about pacing. Printing it on every release gives the curve a history
           # attached to builds people actually played.
           run_godot_clean --headless --path game res://tools/curve_report.tscn
-          # And each harder road against the Warden it expects (2026-10-01): the
+          # And every road against the Warden it expects (2026-10-01): the
           # level, gear and ascension its own bosses are tuned against, each with
           # its own band and the fewest blows that Warden must be able to take.
+          # Each band is held against the hand a player drafts from three cards,
+          # as a mean over four deals, with no act past the edge.
+          run_godot_clean --headless --path game res://tools/curve_report.tscn -- --tier=normal --warden=expected
           run_godot_clean --headless --path game res://tools/curve_report.tscn -- --tier=nightmare --warden=expected
           run_godot_clean --headless --path game res://tools/curve_report.tscn -- --tier=hell --warden=expected
           # The wilderness is interactive but is never a structure attacker;

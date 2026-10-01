@@ -12854,6 +12854,73 @@ script error. It waits in game seconds and holds the Warden on the pool now;
 planted with a Warden who never stains, it names it. That is the third
 frame-counted wait in a day - grep a new gate for `in 3:` before trusting it.
 
+**The roads are balanced against the hand a player draws, as of 2026-10-01
+(late).** Measuring every augment build on every road for the owner's ask -
+*"balancing that considers augment builds ... doable for the geared and skilled
+and cooperative"* - found that the bands had been held against a hand nobody can
+hold. `curve_report`'s planner picks every draft from **the whole deck**; a
+player drafts from three cards. Re-measured as a player meets it, the
+Chainmaker's Road read 1.07 and the Iron Road 0.91 - past the edge from Act IV -
+while the planner read 0.66 and 0.58 inside their bands.
+
+**Three things were tried on the deal and only one was the fault.**
+
+- **An earned evolution was a lottery ticket.** `may_deal` let it into the deck
+  only once earned and then weighed it as an Epic among eighty cards - one draft
+  in three hundred. **It is dealt first at the next draft now**
+  (`Augments.earned_evolution`), on any source's floor; a player who does not
+  want it banishes it, and a reroll that turned it away is honoured as for any
+  card.
+- **No card said what evolves with what.** Only the evolution named its weapon,
+  so a recipe was found in the data or by luck - and a synergy found by accident
+  is a coincidence rather than a build. Both halves now carry an *Evolves* row
+  (`CrossroadScreen.evolution_line_text`), marking the half already held, and
+  the deal weighs the other half of a begun pair by `AUGMENT_PAIR_WEIGHT`.
+  `Augments.evolution_lines` is the one list the deal, the cards and the curve
+  read.
+- **Neither moved the number much, and that is the finding.** Four cards an
+  offer, twelve rerolls and a purse of luck each moved the drafted road by a
+  percent. The hand fills by Act II and then grows, which is the genre; the gap
+  to the planner - a drafted hand holds about 0.60 of its defence - is what
+  reading the whole deck is worth, and no deal a player can be handed closes it.
+
+**So the model drafts the way a player does, and the band is judged there.**
+`curve_report` models the boss draft at its Rare floor, the Tempering as held
+cards to grow, rerolls and the skipped draft that banks one, and **the first
+camp razed in each act** (for every build: the outskirts were built for that
+draft). The `reader` build drafts from three and reads what the cards say - an
+earned evolution, then a level on a weapon whose catalyst it holds, then the
+other half of a pair, never leaving half a pair behind. `--draft-salt=` deals a
+different hand; one deal is one player's luck.
+
+`_judge_the_drafted_road` replays the solo road as a reader over
+`DRAFT_SALTS` (4) deals and holds the **mean in the road's band** and **the worst
+act at or under `DRAFT_PEAK_CEILING` (1.0)** - a climax at the edge of what the
+drafted defence answers, never past it. The planner is printed beside it as what
+mastery of the deck buys, and its band is no longer judged. **That is an
+amendment to a gate's invariant, made on a measurement**: the old band held a
+hand the game cannot deal.
+
+**The harder roads came down to meet it**, on health alone, because pressure is
+bodies times health over capability and health divides straight through:
+the Iron Road's `hp_scale` 2.12 to **1.55**, the Chainmaker's Road 2.85 to
+**2.0**. Damage, gear, experience and loot are untouched, so the harder roads
+still hit harder and still pay more. Measured, the drafted hand, solo:
+
+| Road | Mean | Act I | Climax | Planner |
+|---|---|---|---|---|
+| Long Road (expected Warden) | 0.533 | 0.22 | 0.69 | 0.342 |
+| Long Road (new account) | 0.616 | 0.22 | 0.84 | 0.415 |
+| Iron Road | 0.627 | 0.25 | 0.82 | 0.384 |
+| Chainmaker's Road | 0.704 | 0.26 | 0.93 | 0.417 |
+
+Every act of the ladder is ordered, Long below Iron below Chainmaker's; the
+hardest road's last acts sit just under the edge, which is where a player at the
+edge of their potential should be; and a player who masters the deck finds every
+road about forty percent lighter. Bosses fall in 11 to 20 model seconds on every
+road, party spread holds at 10-13%, and a party's drafted road reads about a
+seventh lighter than a Warden alone's.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

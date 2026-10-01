@@ -36,6 +36,11 @@ const STREAM: String = "augments"
 ## deep build must not crowd the rest of the deck out of every draft.
 const LEAN_TAGS_MAX: int = 3
 
+## The evolution lines, read off the deck once and again only when it changes.
+## Strings, never objects: a static outlives the tree.
+static var _lines: Array = []
+static var _lines_from: int = -1
+
 
 ## The rarity floor a source deals at, by `RoadCardData.Rarity`.
 static func floor_for(source: String) -> int:
@@ -128,6 +133,8 @@ static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array,
 	value *= 1.0 + Balance.AUGMENT_LUCK_PER_CLEAN_WAVE * float(maxi(luck, 0)) * float(rarity)
 	if hand.has(card.id):
 		value *= held_weight(hand.size(), capacity)
+	if pairs_with(card.id, hand):
+		value *= Balance.AUGMENT_PAIR_WEIGHT
 	if card.keystone:
 		value *= Balance.AUGMENT_KEYSTONE_WEIGHT
 	var shared: int = 0
@@ -136,6 +143,36 @@ static func weight(card: RoadCardData, hand: Array, luck: int, lean: Array,
 			shared += 1
 	value *= 1.0 + Balance.AUGMENT_LEAN_PER_TAG * float(mini(shared, LEAN_TAGS_MAX))
 	return value
+
+
+## **Every evolution line in the deck**, as `[evolution, weapon, catalyst]` by
+## the evolution's id - the one list the deal, the cards and the curve read, so
+## the three cannot disagree about what pairs with what.
+static func evolution_lines() -> Array:
+	if _lines_from == ContentDB.road_cards.size():
+		return _lines
+	_lines = []
+	var ids: Array = ContentDB.road_cards.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var card: RoadCardData = ContentDB.road_card(String(id))
+		if card != null and not card.retired and not card.evolves_from.is_empty():
+			_lines.append([card.id, card.evolves_from, card.evolves_with])
+	_lines_from = ContentDB.road_cards.size()
+	return _lines
+
+
+## **Whether `id` is the other half of an evolution the hand has begun**: the
+## catalyst of a held weapon, or the weapon of a held catalyst, for a line the
+## hand has not already evolved.
+static func pairs_with(id: String, hand: Array) -> bool:
+	for line: Variant in evolution_lines():
+		var parts: Array = line as Array
+		if hand.has(parts[0]) or parts[2] == "":
+			continue
+		if (id == parts[2] and hand.has(parts[1])) or (id == parts[1] and hand.has(parts[2])):
+			return true
+	return false
 
 
 ## **How much more a held card's next level weighs**, by how full the hand is:
@@ -169,6 +206,19 @@ static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Arra
 		at -= 1
 		pool = _at_or_above(deck, at)
 	var dealt: Array[String] = []
+	# **An earned evolution is offered at the next draft** (2026-10-01). It
+	# was weighed by its rarity like any card - an Epic in a deck of eighty,
+	# about one draft in three hundred - so a player who levelled a weapon to
+	# its last level and held its catalyst almost never saw what they had
+	# earned, and only a player who read the whole deck ever evolved. The genre
+	# this is drawn from hands an earned evolution over at the next chance; so
+	# does this, ahead of the dice and in the first place, and a player who does
+	# not want it may banish it. A reroll that excluded it is honoured, as it is
+	# for any card, so it returns at the draft after.
+	var earned: String = earned_evolution(deck)
+	if not earned.is_empty():
+		dealt.append(earned)
+		pool = _without_key_of(pool, ContentDB.road_card(earned))
 	while dealt.size() < count and not pool.is_empty():
 		var total: float = 0.0
 		var weights: Array[float] = []
@@ -185,14 +235,31 @@ static func deal(dice: RandomNumberGenerator, count: int, floor: int, hand: Arra
 				break
 		var card: RoadCardData = ContentDB.road_card(pool[chosen])
 		dealt.append(card.id)
-		pool = pool.filter(func(id: String) -> bool:
-			var other: RoadCardData = ContentDB.road_card(id)
-			if other.id == card.id:
-				return false
-			if card.keystone:
-				return not other.keystone
-			return other.keystone or other.key() != card.key())
+		pool = _without_key_of(pool, card)
 	return dealt
+
+
+## **The first evolution a deck holds**, or nothing. A deck holds one only when
+## `may_deal` says it is earned - the weapon at its last level and the catalyst
+## held - so this is "an evolution waiting", in the deck's own order.
+static func earned_evolution(deck: Array[String]) -> String:
+	for id: String in deck:
+		var card: RoadCardData = ContentDB.road_card(id)
+		if card != null and not card.evolves_from.is_empty():
+			return id
+	return ""
+
+
+## What is left of a pool once `card` is dealt: never the same card twice, never
+## two cards on one key, and never two keystones.
+static func _without_key_of(pool: Array[String], card: RoadCardData) -> Array[String]:
+	return pool.filter(func(id: String) -> bool:
+		var other: RoadCardData = ContentDB.road_card(id)
+		if other.id == card.id:
+			return false
+		if card.keystone:
+			return not other.keystone
+		return other.keystone or other.key() != card.key())
 
 
 ## **What a source deals now**, on the run's own state.

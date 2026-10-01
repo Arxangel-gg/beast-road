@@ -584,6 +584,14 @@ const AUGMENT_LEAN_PER_TAG: float = 0.35
 ## replacement still turning up now and then.
 const AUGMENT_HELD_WEIGHT: float = 1.4
 const AUGMENT_HELD_WEIGHT_FULL: float = 5.0
+## **The other half of an evolution the hand has begun** (2026-10-01): the
+## catalyst of a held weapon, or the weapon of a held catalyst, weighs this much
+## more. Lean already leans toward shared tags so a synergy can be built on
+## purpose; an evolution is the strongest synergy in the deck and shared no tag
+## with its own catalyst, so a player who did not read the whole deck almost
+## never held both halves. The cards now say what pairs with what - this is the
+## deal agreeing with them. [TUNE]
+const AUGMENT_PAIR_WEIGHT: float = 3.0
 ## Keystones in a draft, against an ordinary card of their rarity. [TUNE]
 const AUGMENT_KEYSTONE_WEIGHT: float = 0.4
 ## **The tools against luck.** Rerolls and banishes a road starts with, and the

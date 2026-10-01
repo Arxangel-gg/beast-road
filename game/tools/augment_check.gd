@@ -356,6 +356,38 @@ func _test_the_deal() -> void:
 		var again: Array[String] = Augments.deal(dice, 3, 0, none, levels, Balance.ACT_COUNT, none, 0, none, first)
 		for id: String in again:
 			_check(not first.has(id), "a reroll dealt %s straight back from a deep deck" % id)
+
+	# **An earned evolution comes at the next draft** (2026-10-01). Weighed as
+	# an Epic among eighty it was dealt about one draft in three hundred, so a
+	# player who had earned one almost never saw it. Chain Spark at its last
+	# level with its catalyst held earns Stormcrown: first in every draft, on
+	# every source's floor; never when banished, never straight back after a
+	# reroll turned it away, and never with the catalyst missing.
+	var spark: RoadCardData = ContentDB.road_card("chain_spark")
+	var crown: RoadCardData = ContentDB.road_card("stormcrown")
+	_check(spark != null and crown != null and crown.evolves_from == spark.id,
+		"the evolution the deal is held against is not authored as it was")
+	if spark != null and crown != null:
+		var earned_hand: Array = [spark.id, crown.evolves_with]
+		var earned_levels: Dictionary = {spark.id: spark.max_level(), crown.evolves_with: 1}
+		var first_every_time: bool = true
+		for _i: int in 200:
+			for at_floor: int in [0, Balance.AUGMENT_FLOOR_BOSS, Balance.AUGMENT_FLOOR_MYTHIC]:
+				var offer: Array[String] = Augments.deal(dice, 3, at_floor, earned_hand,
+					earned_levels, Balance.ACT_COUNT, none, 0, none)
+				first_every_time = first_every_time and offer.size() == 3 and offer[0] == crown.id
+		_check(first_every_time, "an earned evolution was not dealt first in every draft")
+		_check(not Augments.deal(dice, 3, 0, earned_hand, earned_levels, Balance.ACT_COUNT,
+			[crown.id], 0, none).has(crown.id), "a banished evolution was dealt")
+		_check(not Augments.deal(dice, 3, 0, earned_hand, earned_levels, Balance.ACT_COUNT,
+			none, 0, none, [crown.id]).has(crown.id),
+			"a reroll that turned an evolution away was dealt it straight back")
+		var unearned: Dictionary = {spark.id: spark.max_level()}
+		var never: bool = true
+		for _i: int in 400:
+			never = never and not Augments.deal(dice, 3, 0, [spark.id], unearned,
+				Balance.ACT_COUNT, none, 0, none).has(crown.id)
+		_check(never, "an evolution was dealt with its catalyst missing")
 	_finished += 1
 
 

@@ -66,6 +66,31 @@ func _ready() -> void:
 	await _let_the_deal_land()
 	await _shoot("augment_shot_level")
 
+	# **A card that names its pair** (2026-10-01): a hand holding Chain Spark,
+	# dealt until a card with an *Evolves* row is on the table - Chain Spark's
+	# own next level, or Quickening Oil marking the half already held.
+	RunState.skip_augment()
+	run.crossroad_ui.close_augment_draft()
+	RunState.take_road_card("chain_spark")
+	RunState.queue_augment(Augments.SOURCE_CAMP)
+	run._augments_put_off = false
+	for _f: int in 20:
+		await get_tree().process_frame
+	for _attempt: int in 16:
+		var names: bool = false
+		for id: String in RunState.augment_offer:
+			names = names or not CrossroadScreen.evolution_line_text(id,
+				RunState.road_cards).is_empty()
+		if names:
+			break
+		RunState.augment_rerolls = 6
+		RunState.reroll_augment()
+		run.crossroad_ui.open_augment_draft()
+		for _f: int in 6:
+			await get_tree().process_frame
+	await _let_the_deal_land()
+	await _shoot("augment_shot_evolves")
+
 	RunState.skip_augment()
 	run.crossroad_ui.close_augment_draft()
 	DamageLedger.note("tower:ember_spire", 5200.0)

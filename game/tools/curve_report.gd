@@ -112,6 +112,8 @@ var _tier_id: String = ""
 ## The last row of every act in each party size's replay, kept so the boss
 ## readout can be asked about a party as well as a Warden alone.
 var _party_act_rows: Dictionary = {}
+## Pressure summed by act over the last replay, as (sum, waves).
+var _replay_acts: Dictionary = {}
 var _boss_failures: int = 0
 
 ## **How long a boss may stand against the defence a walked road holds**, in
@@ -131,8 +133,20 @@ const BOSS_PARTY_RATIO: Vector2 = Vector2(0.7, 1.6)
 ## catalysts every build takes), so each kind of build can be measured against
 ## the others. `draft` plans nothing: each pick is the best of three cards drawn
 ## from what the game may deal, which is the player reading three cards at a
-## time rather than the one reading the whole deck.
+## time rather than the one reading the whole deck. `reader` drafts from the
+## same three and reads what they say: an earned evolution first, then a level
+## on a weapon whose catalyst it holds, then the other half of a pair it has
+## begun, and otherwise the best of the three - and never leaves half a pair
+## behind. The cards name their pairs since 2026-10-01, so this is the player
+## the draft is now written for; `draft` stays as the floor, the player who
+## reads nothing but the numbers.
 var _build: String = "best"
+
+
+## Whether this build drafts from what the game deals rather than reading the
+## whole deck.
+func _drafts() -> bool:
+	return _build == "draft" or _build == "reader"
 var _draft_dice := RandomNumberGenerator.new()
 var _expected_warden: bool = false
 var _dressed_act: int = -1
@@ -149,6 +163,26 @@ var _road_kills: float = 0.0
 ## drafts only ever grow. See `_deal_the_augments_so_far`.
 var _arsenal: Dictionary = {}
 var _arsenal_picks: int = 0
+## **The kinds of draft a drafting build has taken** (2026-10-01): an act's boss
+## deals at its Rare floor and a Tempering offers held cards to grow, and the
+## rerolls a road holds. The planner reads the whole deck for every pick, so for
+## it the kind never mattered; for a player drafting from three it is most of
+## what separates a good draft from a bad one.
+var _boss_picks: int = 0
+var _camp_picks: int = 0
+## Whether the model razes the first camp of each act for its draft;
+## `--no-camp-drafts` measures a player who never leaves the road.
+var _camp_drafts: bool = true
+var _temper_picks: int = 0
+var _rerolls: int = Balance.AUGMENT_REROLLS_START
+## Which deal a drafting build is handed. One seed of three-card offers is one
+## player's luck, so a drafting build is read as a mean over several salts.
+var _draft_salt: int = 0
+var _offer_count: int = Balance.ROAD_CARD_OFFER_COUNT
+var _draft_luck: int = 0
+var _rerolls_start: int = Balance.AUGMENT_REROLLS_START
+var _draft_floor: int = Balance.AUGMENT_FLOOR_RANK
+var _tempering: bool = false
 ## The hand the main run held at the end of each act, for the readout.
 var _hand_by_act: Dictionary = {}
 ## The hand the model builds toward, planned once a pass - see `_plan_the_hand`.
@@ -167,6 +201,19 @@ func _ready() -> void:
 			_with_augments = false
 		elif argument.begins_with("--build="):
 			_build = argument.split("=")[1]
+		elif argument.begins_with("--luck="):
+			_draft_luck = clampi(int(argument.split("=")[1]), 0, Balance.AUGMENT_LUCK_CAP)
+		elif argument == "--no-camp-drafts":
+			_camp_drafts = false
+		elif argument.begins_with("--draft-salt="):
+			_draft_salt = int(argument.split("=")[1])
+		# Reporting only, like `--body-scale`: how much a draft's choice is
+		# worth, read without a game change.
+		elif argument.begins_with("--offer-count="):
+			_offer_count = maxi(int(argument.split("=")[1]), 1)
+		elif argument.begins_with("--rerolls="):
+			_rerolls_start = maxi(int(argument.split("=")[1]), 0)
+			_rerolls = _rerolls_start
 		elif argument.begins_with("--tier="):
 			_tier_id = argument.split("=")[1]
 			_expected_warden = true
@@ -229,6 +276,7 @@ func _ready() -> void:
 	_print_table()
 	var bad: int = _judge_party_scaling()
 	bad += _judge_escalation()
+	bad += _judge_the_drafted_road()
 
 	# Tear gameplay down before draining audio. The full run owns deferred
 	# wildlife arrivals; stopping Sfx first allowed one of those callbacks to
@@ -952,6 +1000,10 @@ func _judge_party_scaling() -> int:
 		failed += 1
 	for index: int in means.size():
 		var band: Vector2 = _band()
+		# The band is the drafted hand's (`_judge_the_drafted_road`); the
+		# planner reads the whole deck and is what mastery buys.
+		if _with_augments:
+			break
 		if means[index] < band.x or means[index] > band.y:
 			printerr("[curve] %d players sits at %.3f, outside %.2f-%.2f"
 				% [index + 1, means[index], band.x, band.y])
@@ -967,6 +1019,86 @@ func _judge_party_scaling() -> int:
 	if failed == 0:
 		print("[curve] PASS - every party size plays the same curve")
 	return failed
+
+
+## **The road against the hand a player draws** (2026-10-01).
+##
+## The bands were held against the planner, and the planner takes its every
+## pick from the whole deck - a hand no player can draw, since a draft is three
+## cards. Measured over six deals with the boss's floor, the Temperings, the
+## rerolls and the camp's draft all modelled, a player drafting from three and
+## reading what the cards say held about 0.60 of the planner's defence, and the
+## Chainmaker's Road read 1.00 for them - past the edge from Act VI. Neither
+## four cards an offer nor twelve rerolls nor a purse of luck moved it: the hand
+## fills by Act II and then grows, which is the genre, and the gap is what
+## reading the whole deck is worth.
+##
+## So a named road's band is held against the drafted hand, as a mean over
+## `DRAFT_SALTS` deals because one deal is one player's luck, and the worst act
+## of that mean must stay at or under `DRAFT_PEAK_CEILING`: a climax at the edge
+## of what the drafted defence answers, never past it. The planner is printed
+## beside it as what mastery of the deck buys, and is no longer the thing judged.
+const DRAFT_SALTS: int = 4
+const DRAFT_PEAK_CEILING: float = 1.0
+
+
+func _judge_the_drafted_road() -> int:
+	if _players != 1 or _body_scale > 0.0 or _build != "best" or not _with_augments:
+		return 0
+	var build_was: String = _build
+	var salt_was: int = _draft_salt
+	_build = "reader"
+	var means: Array[float] = []
+	var by_act: Dictionary = {}
+	for salt: int in DRAFT_SALTS:
+		_draft_salt = salt
+		means.append(_mean_pressure_for(1))
+		for act: Variant in _replay_acts:
+			var sums: Vector2 = _replay_acts[act]
+			by_act[act] = float(by_act.get(act, 0.0)) + sums.x / maxf(sums.y, 1.0)
+	_build = build_was
+	_draft_salt = salt_was
+	var mean: float = 0.0
+	for value: float in means:
+		mean += value
+	mean /= float(means.size())
+	var worst: float = 0.0
+	var worst_act: int = 0
+	var acts: PackedStringArray = []
+	var keys: Array = by_act.keys()
+	keys.sort()
+	for act: Variant in keys:
+		var value: float = float(by_act[act]) / float(DRAFT_SALTS)
+		acts.append("%d:%.2f" % [int(act), value])
+		if value > worst:
+			worst = value
+			worst_act = int(act)
+	var band: Vector2 = _band()
+	var each: PackedStringArray = []
+	for value: float in means:
+		each.append("%.3f" % value)
+	print("[curve] the road a player drafts, mean of %d deals   %.3f  (each %s)   planner %.3f"
+		% [DRAFT_SALTS, mean, " ".join(each), _mean_of_rows()])
+	print("[curve] the road a player drafts, by act   %s" % " ".join(acts))
+	var failed: int = 0
+	if mean < band.x or mean > band.y:
+		printerr("[curve] the drafted road sits at %.3f, outside %.2f-%.2f" % [mean, band.x, band.y])
+		failed += 1
+	if worst > DRAFT_PEAK_CEILING:
+		printerr("[curve] the drafted road's Act %d reads %.2f, past the edge at %.2f"
+			% [worst_act, worst, DRAFT_PEAK_CEILING])
+		failed += 1
+	if failed == 0:
+		print("[curve] PASS - the road a player drafts sits in its band and never past the edge")
+	return failed
+
+
+## The planner's mean over the main walk.
+func _mean_of_rows() -> float:
+	var total: float = 0.0
+	for row: Dictionary in _rows:
+		total += float(row["pressure"])
+	return total / maxf(float(_rows.size()), 1.0)
 
 
 ## **Does the campaign get harder as it goes?**
@@ -1190,13 +1322,19 @@ func _mean_pressure_for(count: int) -> float:
 	var kills_banked: float = _road_kills
 	var hand_banked: Dictionary = _arsenal.duplicate()
 	var picks_banked: int = _arsenal_picks
+	var kinds_banked: Array[int] = [_boss_picks, _temper_picks, _rerolls, _camp_picks]
 	_road_kills = 0.0
 	_arsenal = {}
 	_arsenal_picks = 0
+	_boss_picks = 0
+	_temper_picks = 0
+	_camp_picks = 0
+	_rerolls = _rerolls_start
 	var target_banked: Array[String] = _target.duplicate()
 	_target = []
 	var total: float = 0.0
 	var samples: int = 0
+	_replay_acts = {}
 	var director := WaveDirector.new()
 	var wave: int = 0
 	var distance: float = 0.0
@@ -1223,6 +1361,8 @@ func _mean_pressure_for(count: int) -> float:
 		if not _party_act_rows.has(count):
 			_party_act_rows[count] = {}
 		_party_act_rows[count][act] = row
+		var sums: Vector2 = _replay_acts.get(act, Vector2.ZERO)
+		_replay_acts[act] = sums + Vector2(float(row["pressure"]), 1.0)
 		var cycle: float = Balance.WAVE_INTERVAL \
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
@@ -1235,6 +1375,10 @@ func _mean_pressure_for(count: int) -> float:
 	_road_kills = kills_banked
 	_arsenal = hand_banked
 	_arsenal_picks = picks_banked
+	_boss_picks = kinds_banked[0]
+	_temper_picks = kinds_banked[1]
+	_rerolls = kinds_banked[2]
+	_camp_picks = kinds_banked[3]
 	_target = target_banked
 	return total / maxf(float(samples), 1.0)
 
@@ -1344,7 +1488,33 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 	while xp >= RunState.road_rank_cost(ranks):
 		xp -= RunState.road_rank_cost(ranks)
 		ranks += 1
-	var drafts: int = ranks + (act - 1) + (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
+	var bosses: int = act - 1
+	var tempers: int = (wave - 1) / Balance.AUGMENT_HOLDFAST_WAVES
+	# **The first camp razed in each act deals a draft** (2026-10-01). The
+	# outskirts were built to be walked into for it, and a model that never
+	# took one measured a player who never left the road. One an act, at
+	# the act's start, as `RunState.note_camp_augment` deals it; the other
+	# detours - raids, rifts, legends - are still left out.
+	var camps: int = act if _camp_drafts else 0
+	var drafts: int = ranks + bosses + tempers + camps
+	if _drafts():
+		while _boss_picks < bosses:
+			_boss_picks += 1
+			_arsenal_picks += 1
+			_draft_floor = Balance.AUGMENT_FLOOR_BOSS
+			_take_the_best_pick(act)
+		while _camp_picks < camps:
+			_camp_picks += 1
+			_arsenal_picks += 1
+			_draft_floor = Balance.AUGMENT_FLOOR_CAMP
+			_take_the_best_pick(act)
+		_draft_floor = Balance.AUGMENT_FLOOR_RANK
+		while _temper_picks < tempers:
+			_temper_picks += 1
+			_arsenal_picks += 1
+			_tempering = true
+			_take_the_best_pick(act)
+			_tempering = false
 	while _arsenal_picks < drafts:
 		_arsenal_picks += 1
 		if not _take_the_best_pick(act):
@@ -1374,12 +1544,40 @@ func _deal_the_augments_so_far(act: int, wave: int) -> Dictionary:
 ## nothing now is still taken when it is the plan's last step, which is how a
 ## catalyst gets into the hand before its weapon is ready.
 func _take_the_best_pick(act: int) -> bool:
-	if _target.is_empty() and _build != "draft":
+	if _target.is_empty() and not _drafts():
 		_target = _plan_the_hand()
 	var offered: Array[String] = _offer_for_draft(act)
+	var choice: Dictionary = _best_of(act, offered)
+	# **A draft that offers nothing is rerolled, and skipped if it still does**,
+	# as a player does with the tools the road hands them: two rerolls to start,
+	# and a skipped draft banks one.
+	if _drafts() and not _tempering and _offers_nothing(choice):
+		if _rerolls > 0:
+			_rerolls -= 1
+			choice = _best_of(act, _offer_for_draft(act, offered))
+		if _offers_nothing(choice):
+			_rerolls = mini(_rerolls + 1, Balance.AUGMENT_REROLLS_MAX)
+			return true
+	var best: Dictionary = choice["hand"]
+	if best.is_empty():
+		return false
+	_arsenal = best
+	return true
+
+
+## Whether the best of an offer adds nothing and says nothing.
+func _offers_nothing(choice: Dictionary) -> bool:
+	return (choice["hand"] as Dictionary).is_empty() \
+		or (int(choice["rank"]) <= 0 and float(choice["gain"]) <= 0.0)
+
+
+## **The best pick among `offered`**, or the whole deck for a build that reads
+## it: the hand it makes, what it says to a reader, and what it adds.
+func _best_of(act: int, offered: Array[String]) -> Dictionary:
 	var now: float = _arsenal_value(_arsenal, act)
 	var best: Dictionary = {}
 	var gain: float = -1.0
+	var rank: int = -1
 	var ids: Array[String] = []
 	for id: Variant in ContentDB.road_cards:
 		ids.append(String(id))
@@ -1392,7 +1590,7 @@ func _take_the_best_pick(act: int) -> bool:
 			continue
 		if not _in_the_plan(card):
 			continue
-		if _build == "draft" and not offered.has(id):
+		if _drafts() and not offered.has(id):
 			continue
 		# The game's own rule for what a hand may be dealt, so the model never
 		# holds what a player could not.
@@ -1407,29 +1605,52 @@ func _take_the_best_pick(act: int) -> bool:
 				continue
 			trial[id] = int(trial[id]) + 1
 		elif trial.size() >= Balance.ROAD_CARD_HAND:
-			if _build != "draft":
+			if not _drafts():
 				continue
-			trial.erase(_weakest_held(trial, act))
+			var leaving: String = _weakest_held(trial, act)
+			if leaving.is_empty():
+				continue
+			trial.erase(leaving)
 			trial[id] = 1
 		else:
 			trial[id] = 1
 		var worth: float = _arsenal_value(trial, act) - now
-		if worth > gain:
+		var priority: int = _reader_priority(card) if _build == "reader" else 0
+		# Nothing to say and nothing gained is not a pick, as it never was.
+		if priority == 0 and worth <= -1.0:
+			continue
+		if priority > rank or (priority == rank and worth > gain):
+			rank = priority
 			gain = worth
 			best = trial
-	if best.is_empty():
-		return false
-	_arsenal = best
-	return true
+	return {"hand": best, "rank": rank, "gain": gain}
+
+
+## **What a card says to a reader**, as a rank among the three: an earned
+## evolution, then a level on a weapon whose catalyst is held, then the other
+## half of a pair begun, then nothing to say. The numbers break a tie.
+func _reader_priority(card: RoadCardData) -> int:
+	var hand: Array = _arsenal.keys()
+	if not card.evolves_from.is_empty():
+		return 3
+	if hand.has(card.id):
+		for line: Variant in Augments.evolution_lines():
+			var parts: Array = line as Array
+			if parts[1] == card.id and hand.has(parts[2]) and not hand.has(parts[0]):
+				return 2
+		return 0
+	return 1 if Augments.pairs_with(card.id, hand) else 0
 
 
 ## The held card whose loss costs the hand least, for a drafter leaving one
-## behind.
+## behind - and for a reader, never half of a pair it has begun.
 func _weakest_held(hand: Dictionary, act: int) -> String:
 	var whole: float = _arsenal_value(hand, act)
 	var weakest: String = ""
 	var least: float = INF
 	for held: Variant in hand:
+		if _build == "reader" and Augments.pairs_with(String(held), hand.keys()):
+			continue
 		var without: Dictionary = hand.duplicate()
 		without.erase(held)
 		var loss: float = whole - _arsenal_value(without, act)
@@ -1443,9 +1664,9 @@ func _weakest_held(hand: Dictionary, act: int) -> String:
 ## from what the game may deal this hand, on dice seeded by the act and the
 ## pick so the report is the same on every run. Empty for the other builds,
 ## which read the whole deck.
-func _offer_for_draft(act: int) -> Array[String]:
+func _offer_for_draft(act: int, exclude: Array[String] = []) -> Array[String]:
 	var out: Array[String] = []
-	if _build != "draft":
+	if not _drafts():
 		return out
 	var pool: Array[String] = []
 	var ids: Array[String] = []
@@ -1461,14 +1682,17 @@ func _offer_for_draft(act: int) -> Array[String]:
 		if not Augments.may_deal(card, _arsenal.keys(), _arsenal, []):
 			continue
 		pool.append(id)
-	_draft_dice.seed = hash([act, _arsenal_picks, _players, "draft"])
+	_draft_dice.seed = hash([act, _arsenal_picks, _players, "draft", _draft_salt])
 	# **Dealt by the game's own deal**, weights and all, so a change to how
 	# the deal leans is measured here the day it is made. Only the cards the
 	# model fights with are kept from the deal; a keystone or a ward offered
 	# is a pick that adds nothing this model counts, which is what it is.
 	var hand: Array = _arsenal.keys()
-	for id: String in Augments.deal(_draft_dice, Balance.ROAD_CARD_OFFER_COUNT, 0, hand,
-			_arsenal, act, [], 0, []):
+	var dealt: Array[String] = Augments.temper(_draft_dice, hand, _arsenal,
+		_offer_count) if _tempering \
+		else Augments.deal(_draft_dice, _offer_count, _draft_floor, hand,
+			_arsenal, act, [], _draft_luck, [], exclude)
+	for id: String in dealt:
 		if pool.has(id):
 			out.append(id)
 	return out
@@ -1479,7 +1703,7 @@ func _offer_for_draft(act: int) -> Array[String]:
 func _in_the_plan(card: RoadCardData) -> bool:
 	if not _build_allows(card):
 		return false
-	if _build == "draft":
+	if _drafts():
 		return true
 	if card.evolves_from.is_empty():
 		return _target.has(card.id)
@@ -1489,7 +1713,7 @@ func _in_the_plan(card: RoadCardData) -> bool:
 ## Whether this run's build would take a card at all: a weapon anchored where
 ## the build is, or a catalyst, which every build takes.
 func _build_allows(card: RoadCardData) -> bool:
-	if _build == "best" or _build == "draft" or not card.is_weapon():
+	if _build == "best" or _drafts() or not card.is_weapon():
 		return true
 	var weapon: ArsenalWeaponData = card.weapon_data()
 	if weapon == null:

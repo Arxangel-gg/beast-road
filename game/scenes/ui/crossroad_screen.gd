@@ -1750,6 +1750,9 @@ func augment_rows(card: RoadCardData) -> Array:
 	if card.max_level() > 1:
 		rows.append(["Level", ("%s → %s" % [RunState.act_numeral(now),
 			RunState.act_numeral(next)]) if held else _level_word(card, next)])
+	var evolves: String = evolution_line_text(card.id, RunState.target_hand(card))
+	if not evolves.is_empty():
+		rows.append(["Evolves", evolves])
 	var branch_word: String = BRANCH_WORD[clampi(int(card.branch), 0, BRANCH_WORD.size() - 1)]
 	rows.append(["Branch", ("%s keystone" % branch_word) if card.branch_needs > 0 else branch_word])
 	var replaces: String = "" if held else _replacement_for(card)
@@ -1758,6 +1761,33 @@ func augment_rows(card: RoadCardData) -> Array:
 	elif not held and RunState.hand_is_full_for(card):
 		rows.append(["Hand", "full"])
 	return rows
+
+
+## **What a card evolves with, said on both halves** (2026-10-01). Only the
+## evolution itself had ever named its weapon, so the pairing was something a
+## player found in the data or by luck - and a synergy found by accident is a
+## coincidence rather than a build. The weapon names its evolution and the
+## catalyst it wants; the catalyst names the weapon and what it becomes; the
+## half the hand already holds is marked. Empty for a card in no line.
+static func evolution_line_text(id: String, hand: Array) -> String:
+	var said: Array[String] = []
+	for line: Variant in Augments.evolution_lines():
+		var parts: Array = line as Array
+		var evolution: RoadCardData = ContentDB.road_card(String(parts[0]))
+		var weapon: RoadCardData = ContentDB.road_card(String(parts[1]))
+		var catalyst: RoadCardData = ContentDB.road_card(String(parts[2]))
+		if evolution == null or weapon == null:
+			continue
+		if id == weapon.id:
+			var text: String = "into %s at V" % evolution.display_name
+			if catalyst != null:
+				text += ", with %s%s" % [catalyst.display_name,
+					" (held)" if hand.has(catalyst.id) else ""]
+			said.append(text)
+		elif catalyst != null and id == catalyst.id:
+			said.append("%s%s into %s" % [weapon.display_name,
+				" (held)" if hand.has(weapon.id) else "", evolution.display_name])
+	return "; ".join(said)
 
 
 ## "II of V" - a card's level against how far it can grow.
