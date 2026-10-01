@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "ember_rain"
+display_name = "Ember Rain"
+description = "Uncommon card. Burning cinders fall where the towers near you are aiming."
+rarity = 1
+first_act = 3
+branch = 1
+tags = Array[String](["Fire", "Arsenal", "Tower", "Kill"])
+card_text = "The towers learned to throw what the forge spits out."
+weapon = "ember_rain"

@@ -366,13 +366,17 @@ func _test_the_draft() -> void:
 	RunState.reset(false, 20260926)
 	RunState.act = Balance.ACT_COUNT
 	var keys: Dictionary = {}
-	for card: RoadCardData in _sorted_cards():
-		if RunState.road_cards.size() >= Balance.ROAD_CARD_HAND:
-			break
-		if card.keystone or keys.has(card.effect_id) or card.rarity < RoadCardData.Rarity.RARE:
-			continue
-		keys[card.effect_id] = true
-		RunState.take_road_card(card.id)
+	# Rare first, then anything: a hand of twelve (2026-09-30) is more distinct
+	# keys than the Rare cards alone hold.
+	for least: int in [RoadCardData.Rarity.RARE, RoadCardData.Rarity.COMMON]:
+		for card: RoadCardData in _sorted_cards():
+			if RunState.road_cards.size() >= Balance.ROAD_CARD_HAND:
+				break
+			var held: bool = RunState.road_cards.has(card.id)
+			if card.keystone or keys.has(card.effect_id) or card.rarity < least or held:
+				continue
+			keys[card.effect_id] = true
+			RunState.take_road_card(card.id)
 	_check(RunState.road_card_hand_is_full(), "the harness could not fill a hand")
 	var new_key: String = ""
 	for _attempt: int in 40:

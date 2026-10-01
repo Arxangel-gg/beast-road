@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+burn_share = 0.3
+duration = 2.0
+id = "cinder_skin"
+display_name = "Cinder Skin"
+description = "When you are struck, embers burst from you at whatever is close."
+pattern = 10
+anchor = 0
+element = 0
+tint = Color(1.0, 0.55, 0.28, 1)
+damage = 14.0
+cooldown = 2.5
+radius = 90.0
+knockback = 60.0
+crowd = 3.0
+level_damage = Array[float]([1.0, 1.2, 1.4, 1.65, 1.9])
+level_count = Array[int]([0, 0, 0, 0, 0])
+level_radius = Array[float]([1.0, 1.1, 1.2, 1.3, 1.4])
+effect = "thorn_burst"

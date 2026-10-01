@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "quarry_arc"
+display_name = "Quarry Arc"
+description = "Uncommon card. The towers near you lob a stone over the front line and into the crowd behind it."
+rarity = 1
+first_act = 2
+branch = 1
+tags = Array[String](["Earth", "Arsenal", "Arc", "Tower"])
+card_text = "A wall that throws itself, one block at a time."
+weapon = "quarry_arc"

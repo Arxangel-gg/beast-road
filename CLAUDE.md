@@ -12122,6 +12122,27 @@ and more juice ... though still optimized."*
 Wardens: the two over the one, the one once the two are struck, and no line
 once all three are.
 
+**A hand of twelve and a deck of seventy-nine, as of 2026-09-30.** Owner:
+*"Players should be able to collect and have even more arsenal cards available
+in their capacity limit cap. Raise it to the next appropriate amount so there can
+be one more row to scroll down in their list when choosing what arsenal card to
+give up. And also add even more arsenal options and varieties."*
+
+- **`ROAD_CARD_HAND` 8 to 12** - a row of the leave-one-behind list holds four.
+  Four more places hold four more levelled weapons, and measured that put solo
+  pressure at 0.407 against the 0.40 floor; **`ARSENAL_ACT_SCALE` is a tenth
+  flatter from Act II** (Act I untouched for the opening envelope), which reads
+  0.436 solo and 0.47-0.48 for parties. `augment_check`'s full-hand harness fills
+  from Rare cards first and then from anything, because twelve distinct keys is
+  more than the Rare cards alone hold - a harness change, not an invariant one.
+- **Twelve more weapons** (`tools/author_arsenal_2026_09_30b.py`), each a copy of
+  a sibling with the same pattern and anchor in an element that pairing lacked -
+  so `arsenal_check` measures it as it measures the sibling - with its element's
+  own touch: only fire burns, water slows what it soaks. Eight ways of killing
+  (Quarry Arc, Tide Motes, Cairn Stones, Hearth Flare, Bedrock Shrug, Drowned
+  Bell, Cairnfall, Ember Rain) and four of not dying (Cinder Skin, Ember Stones,
+  Stone Rampart, Wellspring Tide). Icons composed from shipped paintings.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -390,6 +390,67 @@ def compose(card_id):
     if card_id == 'wellspring':
         place(c, tower('healing_well'), (64, 70), 100)
         return glow(c, (120, 200, 255), 0.5)
+    # The third wave (2026-09-30, later): the same paintings, new elements.
+    if card_id == 'quarry_arc':
+        place(c, tower('granite_ballista'), (26, 80), 66)
+        place(c, tower('granite_ballista'), (102, 80), 66)
+        rock = hue(spell('stonefall'), 0.0, 0.5, 1.0)
+        for at, size in (((44, 46), 30), ((64, 34), 36), ((84, 46), 30)):
+            place(c, rock, at, size)
+        return glow(c, (210, 180, 140), 0.45)
+    if card_id == 'tide_motes':
+        place(c, tower('tide_caller'), (64, 72), 96)
+        c2 = orbit(hue(spell('frost_lance'), 0.0, 0.9, 1.1), 3, 46, 40, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (120, 200, 255), 0.5)
+    if card_id == 'cairn_stones':
+        place(c, tower('mason_shrine'), (64, 72), 96)
+        c2 = orbit(hue(spell('stonefall'), 0.0, 0.45, 1.0), 3, 46, 34, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (210, 185, 140), 0.45)
+    if card_id == 'hearth_flare':
+        place(c, hue(spell('cinder_nova'), 0.0, 1.15, 1.1), (64, 64), 124)
+        place(c, relic(11), (64, 62), 70)
+        return glow(c, (255, 150, 70), 0.55)
+    if card_id == 'bedrock_shrug':
+        place(c, hue(spell('tremor'), 0.0, 0.55, 0.95), (64, 70), 124)
+        rock = hue(spell('stonefall'), 0.0, 0.4, 0.95)
+        for at, size in (((32, 40), 34), ((96, 40), 34), ((64, 28), 30)):
+            place(c, rock, at, size)
+        return glow(c, (205, 175, 130), 0.4)
+    if card_id == 'drowned_bell':
+        place(c, hue(spell('marrow_drain'), 0.52, 0.9, 1.0), (64, 70), 112)
+        place(c, hue(relic(11), 0.5, 0.6, 1.0), (64, 58), 64)
+        return glow(c, (110, 180, 255), 0.55)
+    if card_id == 'cairnfall':
+        rock = hue(spell('stonefall'), 0.0, 0.55, 1.05)
+        place(c, rock, (30, 36), 40, angle=-10)
+        place(c, rock, (62, 62), 52, angle=-10)
+        place(c, rock, (96, 92), 62, angle=-10)
+        return glow(c, (215, 185, 140), 0.5)
+    if card_id == 'ember_rain':
+        place(c, tower('flash_kiln'), (64, 92), 70)
+        ember = hue(spell('ember_fall'), 0.0, 1.1, 1.1)
+        for at, size in (((32, 30), 38), ((64, 22), 42), ((96, 34), 38)):
+            place(c, ember, at, size, angle=-25)
+        return glow(c, (255, 140, 60), 0.6)
+    if card_id == 'cinder_skin':
+        c = orbit(hue(spell('ember_fall'), 0.0, 1.1, 1.1), 6, 40, 40)
+        place(c, spell('bulwark_ward'), (64, 64), 62)
+        return glow(c, (255, 140, 60), 0.5)
+    if card_id == 'ember_stones':
+        c = orbit(hue(spell('cinder_nova'), 0.04, 1.0, 1.1), 3, 40, 42, radial=False)
+        place(c, spell('bulwark_ward'), (64, 64), 54)
+        return glow(c, (255, 160, 80), 0.5)
+    if card_id == 'stone_rampart':
+        place(c, tower('stonewatch'), (64, 76), 96)
+        place(c, hue(spell('bulwark_ward'), 0.0, 0.3, 0.9), (64, 38), 56)
+        return glow(c, (210, 190, 150), 0.45)
+    if card_id == 'wellspring_tide':
+        place(c, tower('stillwater_mirror'), (64, 72), 96)
+        c2 = orbit(hue(spell('cinder_nova'), 0.52, 0.8, 1.15), 3, 44, 34, centre=(64, 58), radial=False)
+        c.alpha_composite(c2)
+        return glow(c, (130, 200, 255), 0.45)
     raise KeyError(card_id)
 
 
@@ -430,7 +491,10 @@ IDS = ['ember_wisps', 'frost_shards', 'seeking_flames', 'chain_spark', 'thunderc
        'tide_bell',
        'icefall',
        'watchfire_crows',
-       'wellspring']
+       'wellspring',
+       'quarry_arc', 'tide_motes', 'cairn_stones', 'hearth_flare', 'bedrock_shrug',
+       'drowned_bell', 'cairnfall', 'ember_rain', 'cinder_skin', 'ember_stones',
+       'stone_rampart', 'wellspring_tide']
 
 if __name__ == '__main__':
     import sys

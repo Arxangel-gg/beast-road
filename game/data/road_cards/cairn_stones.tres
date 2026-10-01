@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cairn_stones"
+display_name = "Cairn Stones"
+description = "Uncommon card. Stones circle the towers near you and knock back what walks into them."
+rarity = 1
+first_act = 3
+branch = 1
+tags = Array[String](["Earth", "Arsenal", "Orbit", "Tower"])
+card_text = "Every tower keeps a few of its own foundations awake."
+weapon = "cairn_stones"

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cairnfall"
+display_name = "Cairnfall"
+description = "Stones fall from the walls on the thickest knot of bodies at the gate."
+pattern = 5
+anchor = 2
+element = 2
+tint = Color(0.82, 0.72, 0.52, 1)
+damage = 18.0
+cooldown = 2.2
+count = 2
+radius = 60.0
+reach = 900.0
+crowd = 1.2
+level_count = Array[int]([0, 1, 1, 2, 3])
+head = "earth"
+effect = "meteor_bloom"

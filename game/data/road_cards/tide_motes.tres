@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tide_motes"
+display_name = "Tide Motes"
+description = "Common card. Beads of water circle the towers near you and soak what they touch - lightning follows a wet road."
+rarity = 0
+first_act = 1
+branch = 1
+tags = Array[String](["Water", "Arsenal", "Orbit", "Tower"])
+card_text = "The towers drink from the same river you do."
+weapon = "tide_motes"

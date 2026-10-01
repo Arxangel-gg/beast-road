@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "wellspring_tide"
+display_name = "Wellspring Tide"
+description = "Uncommon card. The towers near you are mended on a clock by a share of what they are missing."
+rarity = 1
+first_act = 3
+branch = 1
+tags = Array[String](["Water", "Arsenal", "Mend", "Tower"])
+card_text = "The river under the road runs through the towers too."
+weapon = "wellspring_tide"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "ember_stones"
+display_name = "Ember Stones"
+description = "Rare card. A coal circles you and swallows one shot; it reforms on its clock."
+rarity = 2
+first_act = 3
+branch = 0
+tags = Array[String](["Fire", "Arsenal", "Guard"])
+card_text = "A spark that has decided you are worth keeping."
+weapon = "ember_stones"

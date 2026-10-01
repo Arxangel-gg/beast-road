@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "cairnfall"
+display_name = "Cairnfall"
+description = "Rare card. Stones fall from the walls on the thickest knot of bodies at the gate."
+rarity = 2
+first_act = 4
+branch = 2
+tags = Array[String](["Earth", "Arsenal", "Strike"])
+card_text = "The wall gives up a little of itself to keep the rest standing."
+weapon = "cairnfall"

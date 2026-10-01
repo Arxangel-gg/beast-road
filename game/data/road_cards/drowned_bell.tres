@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "drowned_bell"
+display_name = "Drowned Bell"
+description = "Uncommon card. A body that falls near the gate lets go a cold toll that slows the next one."
+rarity = 1
+first_act = 3
+branch = 2
+tags = Array[String](["Water", "Arsenal", "Kill"])
+card_text = "Somewhere under the town a bell still rings for the drowned."
+weapon = "drowned_bell"

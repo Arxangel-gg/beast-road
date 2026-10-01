@@ -509,7 +509,7 @@ const ROAD_CARD_OFFER_COUNT: int = 3
 ## hand is where a run's build lives rather than a handful of refusals. The
 ## bound is unchanged in kind - one card per effect key, one keystone - and in
 ## size it is eight numbers at their levelled ceiling. [TUNE]
-const ROAD_CARD_HAND: int = 8
+const ROAD_CARD_HAND: int = 12
 
 ## **Augments** (owner request, 2026-09-26; `docs/SKILL_TREE_REWORK_2026-09-26.md`
 ## section 8). A card that moves a fraction levels I to V when it is taken again,
@@ -622,7 +622,12 @@ const AUGMENT_SEAT_HAND: int = 4
 ## quarter easier than the band (0.34 solo) with the Arsenal three quarters of
 ## the defence. This ladder puts a planning player back at 0.46 solo and 0.41
 ## for four, the Arsenal a fifth of the defence in Act I and 55-66% after.
-const ARSENAL_ACT_SCALE: Array[float] = [1.00, 1.30, 1.50, 1.70, 1.80, 1.90, 2.00, 2.10, 2.20, 2.30, 2.40]
+## **A tenth flatter from Act II, as of 2026-09-30**, when the hand grew from
+## eight to twelve (owner: "one more row ... in their capacity limit cap"):
+## four more places hold four more levelled weapons, and the old ladder put
+## solo pressure at 0.407 against a floor of 0.40. Act I is untouched - the
+## opening envelope is measured against it.
+const ARSENAL_ACT_SCALE: Array[float] = [1.00, 1.20, 1.36, 1.52, 1.62, 1.70, 1.78, 1.86, 1.94, 2.02, 2.10]
 ## **Focus shortens a weapon's cadence** exactly as it shortens a spell's, per
 ## point and to the spell's own cap, so the attribute that makes a caster makes
 ## an Arsenal. With the cadence catalyst, a weapon never fires more often than

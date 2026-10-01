@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ArsenalWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/arsenal_weapon_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+burn_share = 0.3
+duration = 2.0
+id = "ember_rain"
+display_name = "Ember Rain"
+description = "Burning cinders fall where the towers near you are aiming."
+pattern = 5
+anchor = 1
+element = 0
+tint = Color(1.0, 0.55, 0.25, 1)
+damage = 12.0
+cooldown = 6.0
+every_kills = 12
+radius = 70.0
+crowd = 1.8
+level_count = Array[int]([0, 0, 0, 0, 0])
+head = "fire"
+effect = "slam_impact"

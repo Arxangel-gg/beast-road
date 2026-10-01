@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoadCardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "stone_rampart"
+display_name = "Stone Rampart"
+description = "Uncommon card. The gate takes a ward of stone on a clock."
+rarity = 1
+first_act = 3
+branch = 2
+tags = Array[String](["Earth", "Arsenal", "Ward"])
+card_text = "Every mason who ever worked on this town is still working."
+weapon = "stone_rampart"
