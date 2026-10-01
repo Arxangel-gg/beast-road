@@ -12470,6 +12470,47 @@ detail.
   no chat, and a promoted body still wears no wound stain (it does wear the
   wade stain).
 
+**The owner's third list of 2026-10-01, and what each answer is.** Each is
+gated on both bars.
+
+- **Every screen fits a phone, on the canvas the game hands it.** The Warden's
+  Glass put Done below a sideways phone's edge, and a new account could not
+  make its Warden - six thumb-sized rows of its own buttons were taller than
+  the screen. The Glass and the Disciplines size their own buttons for the
+  screen they are on (`UI_GLASS_SHORT_SCREEN`, `UI_GLASS_BUTTON_*`), give up
+  their explanation on a short screen, take an upright screen's height
+  (`UI_UPRIGHT_PANEL_ASPECT`), and the tree's nodes are as large as the width
+  allows and no taller than the height does. `mobile_fit_check` stands every
+  screen opened outside a road, the main menu, the Hold, the settings and the
+  pause menu at a phone's shape and holds every pressable control on the
+  screen and clear of the next, a way out of every screen, and the Glass's
+  choices given room. **It measures on the canvas the game hands each screen**:
+  the menu and the Hold switch the portrait menu layout on, which is a 900-wide
+  canvas rather than the road's 1680, and measured on the road's an upright
+  phone read as passing while the real Glass gave its choices no height at all.
+  Planted with the previous Glass, it named both phone shapes.
+- **The Hold's zoom row grows upward from its corner.** On a touch layout its
+  buttons are a thumb tall, and a corner growing downward from a forty-unit row
+  hung their lower half off the screen, so the slider - centred on the whole
+  button - sat level with the top of what could be seen. The fit check holds the
+  slider on the buttons' middle line.
+- **The people in the Hold find their way** (`HoldPaths`, `hold_path_check`).
+  A lattice over the yard joined by the yard's own `step_is_legal`, a route on
+  it pulled tight, walked by the player's click-to-walk, the simulated Wardens
+  and the residents; somewhere unreachable is walked to its edge and given up,
+  and a simulated Warden making no headway gives up its errand. **The slope rule
+  is read step by step, so it depends on the step**: a flight entered from its
+  side is a small rise over a long step and a cliff over a short one, and the
+  first routes, judged in long strides, walked figures into the side of a
+  flight. A straight walk is surveyed exactly, cell to cell, and a stretch whose
+  height moves is walked at a walker's own pace. Laid once a session (a quarter
+  of a second); a route is a couple of milliseconds.
+- **The menu's dragon rides its own wingbeat**: up while the wings sweep down -
+  measured off the flight sheet, frames 3 and 4 - and a steady glide down the
+  rest of the beat that is the push's own average, so it returns to where it
+  began each beat with no corner (`MENU_DRAGON_LIFT`, `MENU_DRAGON_DOWNSTROKE`,
+  held by `dragon_check`).
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

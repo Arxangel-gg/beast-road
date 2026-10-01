@@ -48,16 +48,25 @@ recorded in CLAUDE.md:
   that breaks the ground, lit as normals with rough floors; a gloss term for
   steel and pale stone on every lit body (`gloss_shot`).
 
+- **The third list** (CLAUDE.md, same date): every screen fits a phone
+  (`mobile_fit_check`, upright and sideways, on the menu's own canvas), the
+  Hold's zoom row grows upward, the Hold's people route round banks, flights,
+  the pond and the fire (`hold_path_check`), and the menu's dragon rides its
+  wingbeat (`dragon_check`).
+
 **Open, in the order worth taking them:**
 
-1. The owner playing a road with click to move on: it changes how the whole
+1. Phones, past fitting: on an upright phone the Disciplines' nodes are small
+   (a horizontal scroll at a fixed node size would be the answer), and the
+   stash on a sideways phone shows its nine filters before any gear.
+2. The owner playing a road with click to move on: it changes how the whole
    game is controlled, and the defaults (pick slop, reach share, the give-up
    clock) want a hand on them.
-2. Watch the earth's new temper and karma over a whole run: great events and
+3. Watch the earth's new temper and karma over a whole run: great events and
    the cruel being sought are rolled off the anger the curve never modelled.
-3. A guest sees no grief breath, the chat has no touch button and the Hold has
+4. A guest sees no grief breath, the chat has no touch button and the Hold has
    no chat.
-4. After 2026-10-11 (PixelLab): helmets, heavy armour and capes, the 31 staged
+5. After 2026-10-11 (PixelLab): helmets, heavy armour and capes, the 31 staged
    augments, chop and mine animations, bespoke Arsenal icons.
 
 ## 0g. Where things stand (2026-10-01, v0.67.0)
