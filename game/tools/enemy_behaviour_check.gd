@@ -218,13 +218,27 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 					# champion falling nearby does. Nothing calls `_end_behaviour`
 					# on that path.
 					body.shake_morale(9.0)
+					# **Read again after the shake.** The rout it causes is a
+					# state change *between* this frame's readings, and judged
+					# on the reading from before it the walk never saw the
+					# commitment end - it ran its whole 1200 frames and read
+					# whatever the body was doing twenty seconds later, which
+					# one roll in six was a fresh pounce in the air (found
+					# 2026-10-01 on CI: "left 519 units a second of drift").
+					now = int(body.get("_state"))
 				if committed and now != Enemy.State.COMMIT and before == Enemy.State.COMMIT:
 					covered = from.distance_to(body.global_position)
 					break
 			# Ten more frames of ordinary walking, which is where a residue shows.
 			var walked_from: Vector2 = body.global_position
+			# What the body did in those frames, said when the reading fails:
+			# a number alone has sent this gate's readers guessing twice.
+			var states: Array[String] = ["%s at the end" % Enemy.State.keys()[int(body.get("_state"))]]
 			for _frame: int in 10:
 				body.call("_process", FRAME)
+				var named: String = Enemy.State.keys()[int(body.get("_state"))]
+				if states[states.size() - 1] != named:
+					states.append(named)
 			var drift: float = walked_from.distance_to(body.global_position) / (10.0 * FRAME)
 			var slip: Vector2 = body.get("_slip") as Vector2
 			# A slip that carries a timer - the snow's, a dodge's - is cleared by
@@ -252,7 +266,8 @@ func _test_a_pounce_covers_ground_and_leaves_none_behind() -> void:
 					+ "off the road for the rest of its life. Only the snow's slip "
 					+ "carries a timer, so nothing ever clears this one.")
 					% [tag, slip.length(), breed.move_speed,
-						"sideways" if slip.length() > breed.move_speed else "wide"])
+						"sideways" if slip.length() > breed.move_speed else "wide"]
+					+ " (then: %s; pounces left %d)" % [", ".join(states), int(body.get("_pounces_left"))])
 			_check(drift <= maxf(breed.move_speed, 1.0) * 1.6,
 				("%s moves at %.0f units a second after its pounce against an "
 					+ "authored walk of %.0f") % [tag, drift, breed.move_speed])
