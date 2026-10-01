@@ -418,7 +418,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _controls_live():
 		return
 	if in_place():
-		_place_input(event)
+		if place_input(event):
+			get_viewport().set_input_as_handled()
 		return
 
 	# The dash button is checked first: it sits inside the right stick's corner,
@@ -457,16 +458,22 @@ func _unhandled_input(event: InputEvent) -> void:
 ## **In a place, one stick and the place's buttons.** The aiming stick is not
 ## live here - there is nothing to swing at - so the right side of the glass
 ## stays a tap on the yard, which is still how a thumb says "stand there".
-func _place_input(event: InputEvent) -> void:
+##
+## **Public, and a door rather than a listener** (2026-09-30). A place may own the
+## glass under its controls - the Hold's backdrop takes every click on the yard
+## so that nothing underneath it can - and a touch a control has taken never
+## reaches `_unhandled_input`. So the place hands its touches here, and the
+## stick, the buttons and the pinch answer them exactly as they would have.
+## True when one of them took the event.
+func place_input(event: InputEvent) -> bool:
+	if not _controls_live() or not in_place():
+		return false
 	for button: TouchButton in [_dash, _enter, _ride]:
 		if button.visible and button.consume(event, Rect2(button.position, button.size)):
-			get_viewport().set_input_as_handled()
-			return
+			return true
 	if _sticks[0].consume(event, zone(false)):
-		get_viewport().set_input_as_handled()
-		return
-	if _track_the_pinch(event):
-		get_viewport().set_input_as_handled()
+		return true
+	return _track_the_pinch(event)
 
 
 ## Where the place's buttons sit: the bottom-right corner, lifted clear of the

@@ -94,6 +94,7 @@ func _ready() -> void:
 	_test_the_pond_is_bounded()
 	await _test_a_thumb_drives_the_hold()
 	await _test_a_click_uses_what_it_lands_on()
+	await _test_a_click_reaches_the_yard_through_the_menu()
 	await _test_the_doors_say_what_waits()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
@@ -103,7 +104,7 @@ func _ready() -> void:
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
 	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome",
-			"click"]:
+			"click", "menu_click"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1295,6 +1296,109 @@ func _test_a_click_uses_what_it_lands_on() -> void:
 	hub.queue_free()
 	await _frames(2)
 	_reached["click"] = true
+
+
+## **A real click, through the real menu, lands on the door it is over** (owner,
+## 2026-09-30: *"Left clicking on interactables still doesn't work such as in
+## the hold"*).
+##
+## The test above calls `click_at` and the screen's `_tap_at` by hand, and both
+## were right all along. What was wrong is what a click meets on the way: the
+## Hold is a layer over a main menu that is still standing, the yard is a
+## `Node2D`, and so a click on the smithy was taken by the menu's title art and
+## a click over the stable pressed the hidden menu's own Hold button. Only a
+## click pushed through the viewport, over the composition the game actually
+## builds, can see that - so this stands the real menu up, opens its Hold, and
+## clicks every door it can see while every menu button underneath is watched.
+func _test_a_click_reaches_the_yard_through_the_menu() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	MetaState.settings["tutorial_seen"] = true
+	MetaState.story_intro_seen = true
+	WardenGlass.mark_offered()
+	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate() as Control
+	add_child(menu)
+	await _frames(20)
+	var hub: HubScreen = menu.get("_hub") as HubScreen
+	_check(hub != null, "the real menu has no Hold")
+	if hub == null:
+		menu.queue_free()
+		_reached["menu_click"] = true
+		return
+	hub.open()
+	await _frames(10)
+	var yard: HoldYard = hub._yard
+	# Every button the menu itself owns - not the ones adopted into the Hold,
+	# which the Hold reparents and presses on purpose.
+	var under: Array = []
+	for node: Node in menu.find_children("*", "BaseButton", true, false):
+		if hub.is_ancestor_of(node):
+			continue
+		var button := node as BaseButton
+		button.pressed.connect(func() -> void: under.append(button.name))
+	var room: Rect2 = get_viewport().get_visible_rect().grow_individual(-60.0, -200.0, -60.0, -140.0)
+	var start: Vector2 = yard.warden_at()
+	var clicked: int = 0
+	for station: Dictionary in yard._stations:
+		var id: String = String(station["id"])
+		var node := station["node"] as Sprite2D
+		if node == null or yard.interactable_at(yard._hit_box(node).get_center()) != id:
+			continue
+		# Far enough that two frames of walking cannot arrive and open it: an
+		# arrival opens the real door, and the road's panel would then stand over
+		# every later click.
+		if start.distance_to(yard._reach_point(id)) < Balance.HOLD_REACH * 3.0:
+			continue
+		var spot: Vector2 = yard._hit_box(node).get_center()
+		var screen: Vector2 = yard.get_global_transform_with_canvas() * spot
+		if not room.has_point(screen):
+			continue
+		yard._pending_use = ""
+		yard._walk_to = Vector2.INF
+		_click(screen)
+		await _frames(2)
+		clicked += 1
+		_check(yard._pending_use == id,
+			("a real click on %s at %s did not reach it - the yard never heard it "
+				+ "(the control under the mouse was %s)") % [id, screen,
+				_hovered_at(screen)])
+		# Back where it started, so the yard does not pan the next door away.
+		yard._pending_use = ""
+		yard._walk_to = Vector2.INF
+		yard._seats[0]["at"] = start
+		await _frames(2)
+	_check(clicked >= 4, "only %d doors were on screen to click - the test measured nothing" % clicked)
+	# Bare ground walks there, through the same backdrop.
+	var ground: Vector2 = get_viewport().get_visible_rect().size * Vector2(0.5, 0.62)
+	if yard.interactable_at(yard.get_global_transform_with_canvas().affine_inverse() * ground).is_empty():
+		yard._walk_to = Vector2.INF
+		_click(ground)
+		await _frames(2)
+		_check(yard._walk_to != Vector2.INF, "a real click on bare ground did not walk the Warden")
+	_check(under.is_empty(),
+		"clicking the yard pressed the menu's own buttons underneath it: %s" % [under])
+	hub.close()
+	menu.queue_free()
+	await _frames(3)
+	_reached["menu_click"] = true
+
+
+func _click(at: Vector2) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = at
+	motion.global_position = at
+	get_viewport().push_input(motion)
+	for down: bool in [true, false]:
+		var press := InputEventMouseButton.new()
+		press.button_index = MOUSE_BUTTON_LEFT
+		press.pressed = down
+		press.position = at
+		press.global_position = at
+		get_viewport().push_input(press)
+
+
+func _hovered_at(at: Vector2) -> String:
+	var over: Control = get_viewport().gui_get_hovered_control()
+	return String(over.get_path()) if over != null else "nothing"
 
 
 func _touch(finger: int, at: Vector2, down: bool) -> void:

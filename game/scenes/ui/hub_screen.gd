@@ -138,8 +138,19 @@ func _build() -> void:
 	back.name = "Backdrop"
 	back.color = Color(0.04, 0.05, 0.05, 1.0)
 	back.set_anchors_preset(Control.PRESET_FULL_RECT)
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# **The backdrop takes the mouse** (owner, 2026-09-30: *"Left clicking on
+	# interactables still doesn't work"*). The Hold is a layer drawn over a main
+	# menu that is still there, and the yard is a `Node2D` - so a click on the
+	# smithy fell through the painted yard onto whatever menu control stood
+	# beneath it: the menu's title art took it, and a click over the stable
+	# pressed the hidden menu's own Hold button. The yard's taps arrived by
+	# `_unhandled_input`, which a click the menu had used never reaches. The
+	# backdrop is opaque, so it is the honest owner of every click on the yard,
+	# and it hands them to the same rule the unhandled path uses.
+	back.mouse_filter = Control.MOUSE_FILTER_STOP
+	back.gui_input.connect(_on_backdrop_input)
 	add_child(back)
+	_backdrop = back
 
 	_yard = HoldYard.new()
 	add_child(_yard)
@@ -1270,11 +1281,43 @@ func _unhandled_input(event: InputEvent) -> void:
 			_yard.use_focus()
 		get_viewport().set_input_as_handled()
 		return
+	if _yard_click(event):
+		get_viewport().set_input_as_handled()
+
+
+## The backdrop's own clicks and wheel - which is every click on the yard, since
+## the backdrop is under all of it and over everything the Hold covers.
+func _on_backdrop_input(event: InputEvent) -> void:
+	if not visible or _suspended:
+		return
+	# The thumb's controls stand over the yard and read the glass in
+	# `_unhandled_input`, which a touch this backdrop has taken never reaches -
+	# so they are handed it first, and answer it as they always did.
+	if (event is InputEventScreenTouch or event is InputEventScreenDrag) \
+			and TouchInput.place_input(event):
+		_backdrop.accept_event()
+		return
+	if _wheel_zoom(event):
+		_backdrop.accept_event()
+		return
+	if _card_root != null and _card_root.visible:
+		return
+	if _yard_click(event):
+		_backdrop.accept_event()
+
+
+## The backdrop under the yard, which owns the yard's clicks.
+var _backdrop: ColorRect = null
+
+
+## One left click or tap on the yard: walk there, or open what is in reach.
+## True when it was the yard's to take.
+func _yard_click(event: InputEvent) -> bool:
 	# A tap walks there; a tap on something already in reach opens it, which is
 	# the only way a thumb can both cross a yard and use a door in it.
 	var click := event as InputEventMouseButton
 	if click == null or click.button_index != MOUSE_BUTTON_LEFT:
-		return
+		return false
 	# **On glass, the lift rather than the press** (2026-09-27). Godot sends
 	# the mouse it emulates from finger 0 *before* the touch itself, so on the
 	# press no stick or button has claimed the finger yet and a thumb landing
@@ -1284,14 +1327,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if TouchInput.is_showing():
 		if click.pressed:
 			_press_at = click.position
-			return
+			return true
 		if TouchInput.owns_pointer() \
 				or click.position.distance_to(_press_at) > Balance.TOUCH_TAP_SLOP:
-			return
+			return true
 	elif not click.pressed:
-		return
+		return true
 	_tap_at(click.position)
-	get_viewport().set_input_as_handled()
+	return true
 
 
 ## Where the last press on glass went down, so a lift can tell a tap from a drag.
