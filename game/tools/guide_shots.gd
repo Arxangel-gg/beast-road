@@ -466,12 +466,19 @@ func _ready() -> void:
 	# stash - which is the fault in miniature.
 	await _shot("gear", func() -> void:
 		_pick_tab(stash, GearData.name_of_slot(GearData.Slot.WEAPON)))
-	await _shot("pantry", func() -> void: _pick_tab(stash, "Fish"))
+	# **The pot** (2026-09-30): a crop of this run's basket chosen, so the page
+	# about the pantry shows Eat becoming Cook.
+	await _shot("pantry", func() -> void:
+		RunState.basket = {"barley": 2, "glowcap": 1}
+		stash.set("_cook_with", "glowcap")
+		_pick_tab(stash, "Fish"))
 	# **A catch to share** (owner: "Sharing a catch doesn't show fish or the
 	# ability to share it"). Both buttons the section is about are offered only
 	# when there is somebody to take the fish, so the picture needed a wounded
 	# player beside the hero before it could show either of them.
 	await _shot("sharing_fish", func() -> void:
+		RunState.basket.clear()
+		stash.set("_cook_with", "")
 		_stand_a_hurt_partner(); stash.call("_refresh"))
 	# **The Ledger is the Ledger, not the stash.** Reported by the owner as the
 	# trading picture being wrong; it was a photograph of a different screen.
