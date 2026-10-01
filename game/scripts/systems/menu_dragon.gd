@@ -60,6 +60,9 @@ var _crossing: float = -1.0
 var _high: float = 0.5
 var _rightward: bool = true
 var _tint: Color = Color(0.1, 0.09, 0.12, 0.5)
+## **The rise and fall the wingbeat gives**, one beat sampled, -1 at the top of
+## the lift and +1 at the bottom of the glide. See `lift_at`.
+var _lift: PackedFloat32Array = PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -69,6 +72,7 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		_texture = load(path) as Texture2D
 		_frames = GameData.load_idle_frames(path)
+		_lift = lift_curve(_frames.size())
 	# Never immediately: a dragon on the first frame of the first launch is a
 	# mascot rather than a rare thing.
 	_wait = _rng.randf_range(Balance.MENU_DRAGON_GAP.x, Balance.MENU_DRAGON_GAP.y)
@@ -115,6 +119,66 @@ func _begin() -> void:
 	_high = _rng.randf_range(Balance.MENU_DRAGON_BAND.x, Balance.MENU_DRAGON_BAND.y)
 
 
+## **Where the wingbeat has carried the body, -1 to 1** (owner, 2026-10-01:
+## *"a little bit of smooth vertical sway that is naturally timed with their
+## wing flapping animation so that their flaps give them lift as they gently
+## glide back down before the next flap"*). Negative is up the screen.
+func lift_at(beat: float) -> float:
+	if _lift.is_empty() or _frames.is_empty():
+		return 0.0
+	var count: float = float(_frames.size())
+	var phase: float = fposmod(beat * Balance.MENU_DRAGON_BEAT_RATE, count) / count
+	var at: float = phase * float(_lift.size())
+	var index: int = int(at) % _lift.size()
+	return lerpf(_lift[index], _lift[(index + 1) % _lift.size()], at - floorf(at))
+
+
+## **One wingbeat's height, worked out from when the wings sweep down.**
+##
+## Lift comes from the downstroke, so the body is pushed up while the wings
+## sweep from their highest frame to their lowest - `MENU_DRAGON_DOWNSTROKE`,
+## measured off the flight sheet - and sinks the rest of the beat, slowly and
+## steadily, the way a glide loses height. The push is a smooth pulse and the
+## sink is the pulse's own average, so the body comes back to where it began
+## each beat and the motion has no corner in it anywhere: velocity rises and
+## falls, it never jumps.
+static func lift_curve(frames: int) -> PackedFloat32Array:
+	var samples: int = 96
+	var out := PackedFloat32Array()
+	if frames <= 0:
+		return out
+	var centre: float = Balance.MENU_DRAGON_DOWNSTROKE.x / float(frames)
+	var half: float = Balance.MENU_DRAGON_DOWNSTROKE.y / float(frames)
+	var push := PackedFloat32Array()
+	var mean: float = 0.0
+	for sample: int in samples:
+		var phase: float = (float(sample) + 0.5) / float(samples)
+		var gap: float = absf(phase - centre)
+		gap = minf(gap, 1.0 - gap)
+		var value: float = pow(cos(PI * 0.5 * gap / half), 2.0) if gap < half else 0.0
+		push.append(value)
+		mean += value / float(samples)
+	# Up is negative: the push lifts, the steady sink brings it back down.
+	var height: float = 0.0
+	var low: float = INF
+	var high: float = -INF
+	for sample: int in samples:
+		height += -(push[sample] - mean)
+		out.append(height)
+	var centre_of: float = 0.0
+	for value: float in out:
+		centre_of += value / float(samples)
+	for sample: int in samples:
+		out[sample] -= centre_of
+		low = minf(low, out[sample])
+		high = maxf(high, out[sample])
+	var reach: float = maxf(absf(low), absf(high))
+	if reach > 0.0:
+		for sample: int in samples:
+			out[sample] /= reach
+	return out
+
+
 ## Whether one is crossing right now. For the gate.
 func crossing() -> bool:
 	return _crossing >= 0.0
@@ -139,6 +203,8 @@ func _draw() -> void:
 	# It sinks a little as it crosses, which is all the animation a silhouette
 	# at this size needs and reads as a long glide rather than a slide.
 	y += sin(_crossing * PI) * _span.y * Balance.MENU_DRAGON_SAG
+	# And it rides its own wingbeat: up on the downstroke, gliding down after.
+	y += lift_at(_beat) * _span.y * Balance.MENU_DRAGON_LIFT
 	# Fading in and out at the edges rather than clipping: the shape is huge
 	# and popping one on at full strength is a jump cut.
 	var edge: float = clampf(sin(_crossing * PI) * 2.2, 0.0, 1.0)

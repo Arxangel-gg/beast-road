@@ -10032,6 +10032,17 @@ const MENU_DRAGON_BAND: Vector2 = Vector2(0.14, 0.33)
 ## crosses and how fast the swallows do - see `MenuDragon`. [TUNE]
 const MENU_DRAGON_BEAT_RATE: float = 4.0
 const MENU_DRAGON_SAG: float = 0.035
+## **The lift each wingbeat gives** (owner, 2026-10-01), as a share of the
+## screen's height either way: about a tenth of the dragon's own height, so it
+## reads as weight being carried rather than as a bob.
+const MENU_DRAGON_LIFT: float = 0.011
+## Where in the flight sheet the wings sweep down, in frames: the middle of the
+## downstroke and half its width. Measured off `dragon_flight` - the wings are
+## highest on frames 0 to 2 (the mean height of the painted pixels sits at 36
+## to 39 of 96) and drop to 52 and 60 on frames 3 and 4 - so the push is
+## centred between the frame they leave the top and the frame they reach the
+## bottom. A redrawn sheet re-measures this, never the curve.
+const MENU_DRAGON_DOWNSTROKE: Vector2 = Vector2(3.5, 1.4)
 ## How dark against the sky. A silhouette, never a hole cut in the picture -
 ## the mistake the menu's birds, its Warden and its vines each made once.
 const MENU_DRAGON_ALPHA: float = 0.52

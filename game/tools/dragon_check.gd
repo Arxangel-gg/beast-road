@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _test_a_loosed_breath_chases()
 	await _test_the_breath_aims_where_it_catches_most()
 	_test_every_beam_ends_softly()
+	await _test_the_menu_dragon_rides_its_wings()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[dragon] PASS - %d checks: warned before it arrives, burns "
@@ -531,6 +532,59 @@ func _test_every_beam_ends_softly() -> void:
 		"the spell beams still end on a straight cut")
 	_check(FileAccess.get_file_as_string("res://scripts/systems/dragon_breath.gd").contains("VfxInk.beam_rows("),
 		"the dragon's hyperbeam still ends on a straight cut")
+
+
+## **The menu's dragon rides its own wingbeat** (owner, 2026-10-01: *"a little
+## bit of smooth vertical sway that is naturally timed with their wing flapping
+## animation so that their flaps give them lift as they gently glide back down
+## before the next flap"*): up while the wings sweep down, down the rest of
+## the beat, back where it began each beat, and never a jump.
+func _test_the_menu_dragon_rides_its_wings() -> void:
+	var dragon := MenuDragon.new()
+	add_child(dragon)
+	await get_tree().process_frame
+	var frames: int = dragon._frames.size()
+	_check(frames >= 4, "the menu dragon has %d flight frames - nothing to time a lift to" % frames)
+	if frames < 4:
+		dragon.queue_free()
+		return
+	var beat: float = float(frames) / Balance.MENU_DRAGON_BEAT_RATE
+	var samples: int = 600
+	var rise: float = 0.0
+	var sink: float = 0.0
+	var biggest_jump: float = 0.0
+	var low: float = INF
+	var high: float = -INF
+	var mean: float = 0.0
+	var last: float = dragon.lift_at(0.0)
+	for sample: int in range(1, samples + 1):
+		var at: float = beat * float(sample) / float(samples)
+		var now: float = dragon.lift_at(at)
+		var shown: int = int(at * Balance.MENU_DRAGON_BEAT_RATE) % frames
+		# Which way the wings are going on the frame being shown: down from
+		# the frame they leave the top to the frame they reach the bottom.
+		if shown == 3 or shown == 4:
+			rise += now - last
+		elif shown == 0 or shown == 1:
+			sink += now - last
+		biggest_jump = maxf(biggest_jump, absf(now - last))
+		low = minf(low, now)
+		high = maxf(high, now)
+		mean += now / float(samples)
+		last = now
+	_check(rise < -0.6, "the menu dragon does not rise while its wings sweep down (moved %.2f)" % rise)
+	_check(sink > 0.1, "the menu dragon does not glide down while its wings come up (moved %.2f)" % sink)
+	_check(absf(dragon.lift_at(0.0) - dragon.lift_at(beat)) < 0.02,
+		"the menu dragon ends a wingbeat %.2f from where it began - it drifts" % (dragon.lift_at(beat) - dragon.lift_at(0.0)))
+	_check(biggest_jump < 0.05, "the menu dragon's lift jumps %.3f in a hundredth of a beat" % biggest_jump)
+	_check(low < -0.9 and high > 0.9 and absf(mean) < 0.05,
+		"the menu dragon's lift runs %.2f to %.2f about %.2f, not -1 to 1 about nothing" % [low, high, mean])
+	# And it is drawn: the picture asks for the lift by name.
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/menu_dragon.gd")
+	var drawing: String = source.substr(source.find("func _draw()"))
+	_check(drawing.contains("lift_at(_beat)"), "the menu dragon works its lift out and does not draw it")
+	dragon.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, why: String) -> void:
