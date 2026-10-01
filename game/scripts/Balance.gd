@@ -11456,7 +11456,12 @@ const FOG_UNEXPLORED_ALPHA: float = 0.93
 ## Weighted by the square of height exactly as the wind is, so the root stays
 ## where it grew - a plant that slid sideways would read as scenery coming
 ## loose rather than as grass being walked through.
-const FOLIAGE_TRAMPLE_REACH: float = 26.0
+##
+## **Tuned down 2026-10-01** (owner: *"Foliage jiggle is too extreme when a
+## player goes through them so all jiggles need to be tuned down to be more
+## natural"*): 26 to 18 here, the heaviest press 1.6 to 1.2, and the jiggle
+## below a third of what it was, slower, and only while a plant springs back.
+const FOLIAGE_TRAMPLE_REACH: float = 18.0
 ## How long a laid plant takes to stand back up, as an exponential time
 ## constant in seconds. Long enough to leave a visible wake behind a running
 ## hero, short enough that a wave's worth of bodies does not flatten a region
@@ -11485,15 +11490,17 @@ const FOLIAGE_TRAMPLE_RADIUS_MAX: float = 150.0
 const FOLIAGE_TRAMPLE_STRENGTH_BASE: float = 0.35
 const FOLIAGE_TRAMPLE_STRENGTH_PER_MASS: float = 0.65
 const FOLIAGE_TRAMPLE_STRENGTH_MIN: float = 0.4
-const FOLIAGE_TRAMPLE_STRENGTH_MAX: float = 1.6
+const FOLIAGE_TRAMPLE_STRENGTH_MAX: float = 1.2
 const FOLIAGE_TRAMPLE_UNWEIGHED: float = 0.45
-## **And it jiggles.** A laid plant wobbles about its lean at `JIGGLE_HZ`,
-## each on its own phase by where it stands, the wobble growing as the push
-## fades so it overshoots and settles as it springs back up - a rustle while
-## a body is in it and a shiver after. Drawn in the vertex shader off the
-## same picture, so it costs nothing on the CPU. [TUNE]
-const FOLIAGE_TRAMPLE_JIGGLE: float = 0.85
-const FOLIAGE_TRAMPLE_JIGGLE_HZ: float = 3.4
+## **And it jiggles, a little.** A laid plant wobbles about its lean at
+## `JIGGLE_HZ`, each on its own phase by where it stands - **only while it
+## springs back**: held flat under a body it is still, and the wobble swells
+## and fades over the spring-back, so it reads as a stem settling rather than a
+## plant flapping (2026-10-01; it was 0.85 at 3.4 Hz and it flapped). Drawn in
+## the vertex shader off the same picture, so it costs nothing on the CPU.
+## [TUNE]
+const FOLIAGE_TRAMPLE_JIGGLE: float = 0.26
+const FOLIAGE_TRAMPLE_JIGGLE_HZ: float = 2.2
 
 ## **A female Warden's voice, until her own takes are recorded** (owner,
 ## 2026-09-30: "they're playing male sounds when hurt etc"). A voiced sound
