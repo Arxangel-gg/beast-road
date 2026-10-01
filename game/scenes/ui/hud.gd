@@ -558,6 +558,12 @@ var _message_age: float = 99.0
 ## What the wave paid, said when it is held (`WaveHarvest`).
 var _harvest: WaveHarvest = WaveHarvest.new()
 var _top_bar: HBoxContainer
+## **The breather's clock in the Town and on Yuri** (owner, 2026-10-01). The
+## Preparation card is the battlefield's and stays there; this is the same clock,
+## painted by the same `_paint_sheet_clocks`, under the top bar of the other two
+## views, so a player who went to the Town to raise a building still sees how
+## long they have.
+var _scope_clock: PanelContainer = null
 
 ## The rosette listens to EventBus.lane_pressure_changed itself, so the HUD only
 ## has to decide whether it is on screen.
@@ -745,6 +751,7 @@ func _ready() -> void:
 	_build_region_card()
 	_build_tutorial_coach()
 	_build_preparation_panel()
+	_build_scope_clock()
 	_build_command_panel()
 	_build_threat_pointers()
 	_refit_banners()  # once the whole HUD exists
@@ -3644,6 +3651,69 @@ func _update_rift_panel() -> void:
 		int(round(float(state.get("fill", 0.0)) * 100.0)), float(state.get("time_left", 0.0))]
 
 
+## The breather's clock for the Town and Yuri: a title, the sheet clock's bar
+## and its line, under the top bar. Shown only there, only in a timed breather.
+func _build_scope_clock() -> void:
+	_scope_clock = PanelContainer.new()
+	_scope_clock.name = "ScopeClock"
+	_scope_clock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scope_clock.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_scope_clock.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	add_child(_scope_clock)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 3)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scope_clock.add_child(column)
+	var title := Label.new()
+	title.text = "PREPARATION"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color("e8a33d"))
+	column.add_child(title)
+	# Read across a room rather than leaned over: larger than a sheet's.
+	var entry: Dictionary = _build_sheet_clock(column)
+	(entry["line"] as Label).add_theme_font_size_override("font_size", 17)
+	(entry["bar"] as ProgressBar).custom_minimum_size.y = 12.0
+	column.move_child(title, 0)
+	_scope_clock.visible = false
+	_place_scope_clock()
+
+
+## Under the top bar, centred, as wide as the screen allows.
+func _place_scope_clock() -> void:
+	if _scope_clock == null:
+		return
+	var wide: float = get_viewport().get_visible_rect().size.x
+	var half: float = minf(Balance.UI_SCOPE_CLOCK_WIDTH * 0.5, wide * 0.5 - BANNER_MARGIN)
+	var top: float = (_top_bar.offset_top + maxf(_top_bar.size.y, 24.0) + Balance.UI_TOP_BAR_GAP) \
+		if _top_bar != null else 64.0
+	if _journey_bar != null and is_instance_valid(_journey_bar):
+		top = maxf(top, _journey_bar.position.y + _journey_bar.size.y + Balance.UI_TOP_BAR_GAP)
+	_scope_clock.offset_left = -half
+	_scope_clock.offset_right = half
+	_scope_clock.offset_top = top
+	_scope_clock.offset_bottom = top
+
+
+## Whether the Town's and Yuri's clock is up: either of those views, in a timed
+## breather. Asked whenever the view, the phase or the clock moves.
+func _refresh_scope_clock(seconds_left: float) -> void:
+	if _scope_clock == null:
+		return
+	var scope: int = int(GameDirector.current_scope)
+	var away: bool = scope == int(GameDirector.Scope.TOWN) or scope == int(GameDirector.Scope.BEAST)
+	_scope_clock.visible = away and RunState.is_preparation() and seconds_left > 0.0 \
+		and GameDirector.run_active
+
+
+## The clock last painted, so a view change can say it without waiting a frame.
+var _last_preparation_left: float = 0.0
+
+
+func scope_clock() -> PanelContainer:
+	return _scope_clock
+
+
 func _build_preparation_panel() -> void:
 	_preparation_panel = PanelContainer.new()
 	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -3825,6 +3895,7 @@ func _seat_journey_bar() -> void:
 	_journey_bar.position = Vector2(24.0,
 		_top_bar.offset_top + maxf(_top_bar.size.y, 24.0) + Balance.UI_TOP_BAR_GAP)
 	_seat_command_panel()
+	_place_scope_clock()
 
 
 ## **The command panel hangs below the second row, measured off that row.**
@@ -4092,6 +4163,9 @@ func _on_phase_changed(phase: int, _previous: int) -> void:
 		or phase == int(RunState.Phase.FINAL_ASCENT)
 	_preparation_panel.visible = preparing \
 		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
+	if not preparing:
+		_last_preparation_left = 0.0
+	_refresh_scope_clock(_last_preparation_left)
 	_command_panel.visible = commanding and _command_panel_wanted()
 	if preparing:
 		_last_stand_spent = false
@@ -4111,6 +4185,8 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	_paint_the_clock(seconds_left)
 	_tick_the_countdown(seconds_left)
 	_paint_sheet_clocks(seconds_left)
+	_last_preparation_left = seconds_left
+	_refresh_scope_clock(seconds_left)
 
 
 ## What the breather says it is doing. Three states, because the countdown has
@@ -7106,6 +7182,8 @@ func _on_scope_changed(scope: int) -> void:
 		_threat_pointers.visible = on_field
 	if _preparation_panel != null:
 		_preparation_panel.visible = on_field and RunState.is_preparation()
+	_place_scope_clock()
+	_refresh_scope_clock(_last_preparation_left)
 	if _spell_bar != null:
 		_spell_bar.visible = on_field or in_raid
 		if _arsenal_strip != null:

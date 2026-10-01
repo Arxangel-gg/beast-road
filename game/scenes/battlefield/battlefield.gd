@@ -3148,6 +3148,16 @@ func _near_a_warden(at: Vector2) -> bool:
 	return false
 
 
+## The towers whose alarm is up: struck within `TOWER_STRUCK_SECONDS`. For the
+## minimap and the screen's edge (2026-10-01).
+func towers_under_attack() -> Array[Tower]:
+	var out: Array[Tower] = []
+	for tower: Tower in all_towers():
+		if tower != null and is_instance_valid(tower) and tower.struck_recently():
+			out.append(tower)
+	return out
+
+
 func all_towers() -> Array[Tower]:
 	# **Rebuilt only when a tower comes or goes.** Every walking body asks for
 	# this list two or three times a frame - taunt, siege target, grudge - and

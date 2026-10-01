@@ -77,6 +77,7 @@ func _ready() -> void:
 	_test_the_grace_is_not_can_build_now()
 	await _test_both_sheets_carry_the_clock()
 	await _test_the_clock_hides_when_there_is_no_deadline()
+	await _test_the_town_and_yuri_carry_the_clock()
 	await _test_the_tooltip_clears_the_preparation_card()
 	await _test_the_card_never_enters_the_row()
 	_test_three_wells_and_each_dearer_than_the_last()
@@ -231,8 +232,9 @@ func _test_both_sheets_carry_the_clock() -> void:
 ## bar, because `_dress_bar` did not read the colour it was handed. Urgent
 ## seconds must actually turn the fill.
 func _test_painting_the_clock_builds_nothing(clocks: Array) -> void:
-	_check(clocks.size() == 2,
-		("exactly two sheet clocks are expected, found %d - per-frame work in "
+	# Three since 2026-10-01: the two sheets and the Town's and Yuri's clock.
+	_check(clocks.size() == 3,
+		("exactly three sheet clocks are expected, found %d - per-frame work in "
 			+ "the painter multiplies with this list") % clocks.size())
 	var before: Array[int] = []
 	for entry: Variant in clocks:
@@ -286,6 +288,54 @@ func _test_the_clock_hides_when_there_is_no_deadline() -> void:
 		var box := (entry as Dictionary)["box"] as Control
 		_check(not box.visible,
 			"a sheet clock is showing an empty bar where there is no deadline")
+
+
+## **The Town and Yuri carry the clock** (owner, 2026-10-01: *"A countdown
+## progress bar needs to also be visible in the town and beast scope views during
+## preparation"*). Driven through the run's own `switch_scope` and the bus, so
+## what is checked is the wiring: up in both other views in a timed breather,
+## down on the battlefield (the card is the battlefield's), down without a
+## deadline, down in a fight, and under the top bar rather than across it.
+func _test_the_town_and_yuri_carry_the_clock() -> void:
+	var clock: PanelContainer = _hud.scope_clock()
+	_check(clock != null, "the HUD has no clock for the Town and Yuri")
+	if clock == null:
+		return
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var half: float = Balance.PREPARATION_BETWEEN_WAVES * 0.5
+	_run.set("_preparation_left", half)
+	for scope: int in [int(GameDirector.Scope.TOWN), int(GameDirector.Scope.BEAST)]:
+		_run.switch_scope(scope as GameDirector.Scope)
+		EventBus.preparation_changed.emit(half, true)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_check(clock.visible, "the clock is not shown in scope %d during a timed breather" % scope)
+		var screen: Rect2 = get_viewport().get_visible_rect()
+		var rect: Rect2 = clock.get_global_rect()
+		_check(screen.encloses(rect), "the scope clock stands off the screen at %s" % rect)
+		var top: Control = _hud.get("_top_bar") as Control
+		if top != null:
+			_check(rect.position.y >= top.get_global_rect().end.y - 1.0,
+				"the scope clock sits across the top bar (%s against %s)" % [rect, top.get_global_rect()])
+	var entry: Dictionary = (_hud.get("_sheet_clocks") as Array).back() as Dictionary
+	_check(absf((entry["bar"] as ProgressBar).value - 0.5) < 0.05,
+		"the scope clock reads %.2f at half the breather" % (entry["bar"] as ProgressBar).value)
+	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	await get_tree().process_frame
+	_check(not clock.visible, "the scope clock is shown on the battlefield beside the card")
+	_run.switch_scope(GameDirector.Scope.TOWN)
+	_run.set("_preparation_left", 0.0)
+	EventBus.preparation_changed.emit(0.0, true)
+	await get_tree().process_frame
+	_check(not clock.visible, "the scope clock is shown in the Town with no deadline")
+	_run.set("_preparation_left", half)
+	EventBus.preparation_changed.emit(half, true)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	await get_tree().process_frame
+	_check(not clock.visible, "the scope clock is still up once the fight began")
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	await get_tree().process_frame
 
 
 # --- the tooltip ---------------------------------------------------------------

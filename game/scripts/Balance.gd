@@ -6641,8 +6641,17 @@ const THREAT_POINTER_SIZE: float = 15.0
 const THREAT_POINTER_PULSE_HZ: float = 1.1
 const THREAT_POINTER_COLOURS: Array[Color] = [
 	Color(0.96, 0.36, 0.30), Color(0.98, 0.2, 0.2), Color(1.0, 0.62, 0.18),
-	Color(0.78, 0.45, 1.0), Color(1.0, 0.8, 0.28),
+	Color(0.78, 0.45, 1.0), Color(1.0, 0.8, 0.28), Color(1.0, 0.3, 0.42),
 ]
+## **A tower under attack** (owner, 2026-10-01): its alarm lasts this long after
+## the last blow that took something, pulses a ring this wide at its foot this
+## often, blinks on the minimap this many times a second, and points from the
+## screen's edge while it is off the screen. A look: nothing reads it. [TUNE]
+const TOWER_STRUCK_SECONDS: float = 4.0
+const TOWER_STRUCK_PULSE: float = 0.7
+const TOWER_STRUCK_RING: float = 92.0
+const TOWER_STRUCK_COLOUR: Color = Color(1.0, 0.3, 0.42)
+const MINIMAP_STRUCK_HZ: float = 2.2
 ## **And the same mark in gold once the next swing would reach it** (owner,
 ## 2026-09-22). Red says "still standing, and it is over there"; gold says
 ## "and you are close enough". The colour every actionable thing in this game
@@ -11731,6 +11740,10 @@ const WARD_SHELL_FLASH_SECONDS: float = 0.42
 const WARD_SHELL_RISE_SECONDS: float = 0.45
 ## The shards a ward throws when it is emptied, before the particle scale. [TUNE]
 const WARD_SHELL_SHARDS: int = 14
+
+## How wide the breather's clock stands under the top bar in the Town and on
+## Yuri (2026-10-01). [TUNE]
+const UI_SCOPE_CLOCK_WIDTH: float = 460.0
 ## **A notch a hundred health, a heavy notch a thousand**, so how much a
 ## Warden has is read off the bar rather than off a tooltip. The step widens
 ## along this list when a pool would need more notches than the bar can show

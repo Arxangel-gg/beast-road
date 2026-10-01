@@ -24,10 +24,68 @@ var _failures: int = 0
 func _ready() -> void:
 	MetaState.hold_saves()
 	await _test_the_wall_and_the_sanctuary()
+	await _test_a_tower_under_attack_is_marked()
 	await _test_a_wave_says_what_it_paid()
 	await _test_the_ward_is_said_on_the_bar()
 	MetaState.resume_saves()
 	_finish()
+
+
+## **A tower under attack is marked where it stands, on the map and at the
+## screen's edge** (owner, 2026-10-01: *"Towers under attack need more
+## indicators as well as on the minimap"*). Driven through the tower's own
+## health with a real source, as a body's blow arrives: the alarm rises, the
+## field lists it for the minimap and the edge, the edge's arrows include it,
+## and the alarm goes down on its own clock. A blow from nowhere (the world's
+## door, which already says itself) raises nothing.
+func _test_a_tower_under_attack_is_marked() -> void:
+	RunState.reset()
+	RunState.gain_every_currency(999999)
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var hud: HUD = run.hud
+	if not _check(field != null and hud != null, "the run stands up a field and a HUD"):
+		run.queue_free()
+		return
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var anchor: Vector2i = field.free_anchor_near(0)
+	var built: String = field.try_build(anchor, ContentDB.base_towers()[0])
+	_check(built.is_empty(), "a tower can be built for the alarm (%s)" % built)
+	var tower: Tower = field.tower_at_anchor(anchor)
+	if not _check(tower != null, "the tower stands"):
+		run.queue_free()
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	var health: Health = tower.get("_health") as Health
+	_check(not tower.struck_recently() and field.towers_under_attack().is_empty(),
+		"a tower nothing struck is marked under attack")
+	health.take_damage(5.0, tower.global_position + Vector2(60.0, 0.0))
+	_check(tower.struck_recently(), "a tower a body struck raised no alarm")
+	_check(field.towers_under_attack().has(tower), "the field does not list a struck tower for the map")
+	var pointers: ThreatPointers = hud.get("_threat_pointers") as ThreatPointers
+	if _check(pointers != null, "the HUD has no edge pointers"):
+		pointers.field = field
+		pointers.call("_gather")
+		var kinds: Array = []
+		for target: Variant in (pointers.get("_targets") as Array):
+			kinds.append(int((target as Dictionary)["kind"]))
+		_check(kinds.has(ThreatPointers.Kind.TOWER), "the screen's edge has no arrow for a struck tower: %s" % str(kinds))
+		_check(Balance.THREAT_POINTER_COLOURS.size() > ThreatPointers.Kind.TOWER,
+			"a struck tower's arrow has no colour of its own")
+	var map_source: String = FileAccess.get_file_as_string("res://scenes/ui/minimap.gd")
+	_check(map_source.contains("towers_under_attack"), "the minimap never asks which towers are under attack")
+	tower.call("_tick_alarm", Balance.TOWER_STRUCK_SECONDS + 0.5)
+	_check(not tower.struck_recently() and field.towers_under_attack().is_empty(),
+		"a tower's alarm outlived its clock")
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
 
 
 ## **The HP bar says how big the ward is** (owner, 2026-10-01: *"There's no

@@ -21,7 +21,7 @@ extends Control
 ## An arrow at every elite, every camp and every animal would be the fog turned
 ## off. Nothing reads any of it and it moves no number.
 
-enum Kind { STRAGGLER, BOSS, BEAST, DRAGON, HERALD }
+enum Kind { STRAGGLER, BOSS, BEAST, DRAGON, HERALD, TOWER }
 
 var field: Battlefield = null
 var _targets: Array[Dictionary] = []
@@ -84,6 +84,10 @@ func _gather() -> void:
 		var dragon := node as DragonPass
 		if dragon != null and is_instance_valid(dragon) and dragon.is_landed():
 			_targets.append({"node": dragon, "kind": Kind.DRAGON})
+	# **A tower under attack, off the screen** (owner, 2026-10-01): the board
+	# is the player's, so where it is being hit is always worth an arrow.
+	for tower: Tower in field.towers_under_attack():
+		_targets.append({"node": tower, "kind": Kind.TOWER})
 
 
 ## Where each arrow stands and which way it points, for everything off the

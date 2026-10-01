@@ -287,8 +287,38 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 	refresh_modifiers()
 
 
+## **A tower under attack says so where it stands** (owner, 2026-10-01: "Towers
+## under attack need more indicators as well as on the minimap"). Seconds left
+## of its alarm: set by a blow that took something, read by the minimap and the
+## screen's edge, and pulsed here as a red ring at its foot.
+var _struck_left: float = 0.0
+var _struck_pulse: float = 0.0
+
+
+func struck_recently() -> bool:
+	return _struck_left > 0.0
+
+
+## How fresh the alarm is: 1 the moment a blow lands, falling to nothing.
+func struck_share() -> float:
+	return clampf(_struck_left / maxf(Balance.TOWER_STRUCK_SECONDS, 0.01), 0.0, 1.0)
+
+
+func _tick_alarm(delta: float) -> void:
+	if _struck_left <= 0.0:
+		return
+	_struck_left = maxf(_struck_left - delta, 0.0)
+	_struck_pulse -= delta
+	if _struck_pulse > 0.0:
+		return
+	_struck_pulse = Balance.TOWER_STRUCK_PULSE
+	var reach: float = Balance.TOWER_STRUCK_RING * (0.8 + 0.4 * struck_share())
+	Vfx.ring(origin(), reach, Color(Balance.TOWER_STRUCK_COLOUR, 0.55 + 0.35 * struck_share()), 0.5, 4.0)
+
+
 func _process_measured(delta: float) -> void:
 	var _t: int = Time.get_ticks_usec()
+	_tick_alarm(delta)
 	_tick_step_wobble(delta)
 	FrameProfile.add(&"t_wobble", _t)
 	_impact_left = maxf(_impact_left - delta, 0.0)
@@ -1165,6 +1195,9 @@ func _build_health() -> void:
 	_health.revive()
 	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
 		if amount > 0.0 and from != Vector2.ZERO:
+			if _struck_left <= 0.0:
+				_struck_pulse = 0.0
+			_struck_left = Balance.TOWER_STRUCK_SECONDS
 			EventBus.tower_struck.emit(origin())
 		Vfx.number(origin(), amount, Color("d9cdb8"))
 		Vfx.spark(origin(), Color("a78f6d"), 5,

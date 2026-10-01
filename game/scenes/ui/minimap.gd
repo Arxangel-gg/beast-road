@@ -278,6 +278,21 @@ func _draw_marks() -> void:
 		if fog != null and not fog.sees(drop.global_position):
 			continue
 		_mark_diamond(_to_map(drop.global_position), dot * 0.9, Balance.MINIMAP_LOOT)
+	# **A tower under attack blinks red and rings out** (owner, 2026-10-01), over
+	# the fog, because the board is the player's and they know where it stands.
+	if battlefield.has_method("towers_under_attack"):
+		var beat: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.001 * TAU
+			* Balance.MINIMAP_STRUCK_HZ)
+		var wave: float = fmod(float(Time.get_ticks_msec()) * 0.001 * Balance.MINIMAP_STRUCK_HZ, 1.0)
+		for tower: Tower in battlefield.call("towers_under_attack"):
+			var at: Vector2 = _to_map(tower.global_position)
+			var reach: float = maxf(size.x / 70.0, 2.0) * (1.25 + 0.35 * beat)
+			_marks.draw_rect(Rect2(at - Vector2.ONE * (reach + 1.5), Vector2.ONE * (reach + 1.5) * 2.0),
+				Balance.MINIMAP_FRAME_OUTLINE)
+			_marks.draw_rect(Rect2(at - Vector2.ONE * reach, Vector2.ONE * reach * 2.0),
+				Color(Balance.TOWER_STRUCK_COLOUR, 0.65 + 0.35 * beat))
+			_marks.draw_arc(at, reach * (1.4 + 2.2 * wave), 0.0, TAU, 20,
+				Color(Balance.TOWER_STRUCK_COLOUR, 0.9 * (1.0 - wave)), 1.5)
 	# Companions, then heroes on top of everything.
 	for node: Node in tree.get_nodes_in_group(Companion.GROUP):
 		var companion: Node2D = node as Node2D
