@@ -3028,12 +3028,27 @@ func mend_expedition() -> String:
 	for id: Variant in bill:
 		if int(materials.get(String(id), 0)) < int(bill[id]):
 			return "Not enough %s." % String(id).replace("_", " ")
-	if marks < price:
-		return "The Hold wants %d Marks for the gate; you have %d." \
-			% [price, marks]
+	# **The gate in ore and timber when they are held, Marks otherwise**
+	# (2026-09-30: "cheaper and more accessible/gatherable"). Materials first,
+	# because the mines are the between-runs economy the towers are already
+	# mended from; the whole bill, towers and gate together, must be covered
+	# before a single unit is spent.
+	var gate_bill: Dictionary = Expedition.gate_materials(expedition)
+	var in_stone: bool = price > 0
+	for id: Variant in gate_bill:
+		if int(materials.get(String(id), 0)) < int(bill.get(id, 0)) + int(gate_bill[id]):
+			in_stone = false
+	if price > 0 and not in_stone and marks < price:
+		return "The gate wants %d Marks or %s; you have neither." % [price,
+			" and ".join(PackedStringArray(gate_bill.keys().map(func(id: Variant) -> String:
+				return "%d %s" % [int(gate_bill[id]), String(id).replace("_", " ")])))]
 	for id: Variant in bill:
 		spend_material(String(id), int(bill[id]))
-	marks -= price
+	if in_stone:
+		for id: Variant in gate_bill:
+			spend_material(String(id), int(gate_bill[id]))
+	else:
+		marks -= price
 	expedition = Expedition.mend(expedition)
 	save_game()
 	return ""

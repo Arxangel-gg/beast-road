@@ -12046,6 +12046,82 @@ by a factor: the ultimates the most (Sky Lance 24 to 40 mana, Stonefall 26 to
 42, Beast's Breath 45 to 60), the summons to 52, mobility the least (Rift Step
 15 to 20). Every cost stays under the 100-point pool a new Warden holds.
 
+**A build row lays its name beside its price, and the top colour reaches the
+armour, as of 2026-09-30.** Three of the owner's list, each a picture first.
+
+- **Build and road rows** (*"resolve the text overlap issue with the build
+  selection name and its resource costs. Fix issue with cutoffs on the
+  buttons"*). The price was a 150-unit label pinned over the right of the button
+  while the button drew its own name from the left, so a long name ran under the
+  price and a two-currency price ran out of its box. `HUD._attach_price` keeps
+  the button's text - the hover, the figures box and the gates read it - and
+  stops drawing it; a row inside lays the name out to take what the price leaves,
+  cut with an ellipsis, and the price as chips with each currency's own icon,
+  red on the one the purse is short of. The desktop sheet is 610 wide (560
+  before): wide enough for a name, and no wider, because 680 ran under the
+  Preparation card. `road_sheet_check` holds, on every offer at four shapes,
+  that the name and the price are disjoint, the price lies inside its button,
+  and the button no longer draws its own name.
+- **The stash's slot marks** are 64 inside 88-unit tiles (52 inside 84).
+- **The top colour reaches the armour** (*"The colors set on the player tops in
+  the warden glass do not properly cover the tops properly anymore"*). Under
+  light armour the top a player reads is the leather vest, and under heavy it is
+  the breastplate; the cloth mask left both alone, so a chosen colour reached a
+  linen sleeve and a hem, and on plate nothing at all. **That re-cuts the
+  2026-09-30 line that "a dye on plate would be paint on steel"**: the mask's
+  blue channel is now the armour over the torso and the upper arms
+  (`tools/warden_rig/cloth.py` `armour_top`, above the belt, honouring the skin
+  mask only at the collar and on the arms, not the lantern's), and the shader
+  *lacquers* it - the top's hue and most of its colour over the armour's own
+  light, its brightest highlights left nearly white - rather than painting it as
+  linen. Heavy layers have masks now. `warden_look_check` holds a mask the size
+  of every sheet, armour on every armour layer and none on a bare body, and
+  `glass_shot` photographs light and heavy armour, male and female.
+
+**The gate mends cheaper, and in ore and timber, as of 2026-09-30.** Owner:
+*"Make mending base repairs at main menu cheaper and more accessible/
+gatherable."* **That re-cuts the 2026-09-22 bound** that a fallen gate must cost
+more Marks than the return that wore it (so a withdrawal's wear could not be
+refunded out of its own payout). The owner weighed that against a front nobody
+can afford to resume and chose the other side. `FORTIFY_GATE_MARKS_SHARE` is
+0.40 (1.25), the towers' timber-and-ore bill a third lighter
+(`FORTIFY_REPAIR_PER_HEALTH` 0.011), and the gate can instead be paid in the
+commonest ore and timber (`Expedition.gate_materials`, `FORTIFY_GATE_ORE_PER_MARK`)
+- taken first when the Warden holds them, Marks otherwise, the whole bill
+checked before a unit is spent. The bill says both prices. `expedition_check`
+holds the new bound: a fallen gate costs less than a return and never nothing,
+never less on a later act or a harder road, and a Warden with only ore and
+timber mends it for exactly the materials quoted and no Marks.
+
+**A dragon's breath comes out over its mouth and aims where it catches most,
+as of 2026-09-30.** Owner: *"Dragon breath should zsort ontop of dragon's mouth
+not behind it, and the dragons should be able to more smartly aim their breaths
+so that they can make the best impact on as many targets in its range at any
+given time during its breath attacks and smoothly interpolating ... more polish
+and more juice ... though still optimized."*
+
+- **Over the mouth.** A passing dragon draws at `DRAGON_Z` (900, absolute) and
+  its breath drew at the effects layer, under its own jaw. A breath that
+  follows a flying dragon draws one step above it.
+- **The line that catches most.** `DragonBreath.best_line` fans
+  `DRAGON_BREATH_AIM_STEPS` candidate lines across the arc and scores the
+  Wardens each would cover *that the blow has not struck yet* - a blow lands on
+  a body once, so a sweep is worth what it still has to reach - breaking ties
+  toward where the breath already points, so a breath with nothing new to reach
+  holds still rather than twitching. The camp wyrm's line turns to it eased
+  (`DRAGON_BREATH_TRACK_EASE`) under the old rate's ceiling; a passing dragon's
+  far end walks to it inside its old reach. The nearest Warden is the fallback
+  when no line reaches anybody new. **Shape, never size**: the blow is the same
+  blow, decided before the dice, and each body is still struck at most once.
+- **Contact.** Where the beam meets the ground it throws its element on a clock
+  (`DRAGON_BREATH_CONTACT_EVERY`) - a forged hit the beam's width, sparks off
+  the ground, the ground's dust - and one light rides the end while it burns.
+  Ink records and one light, so a sweep costs what a standing breath does.
+
+`dragon_check` holds the z order on a real flying dragon and the aim on three
+Wardens: the two over the one, the one once the two are struck, and no line
+once all three are.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

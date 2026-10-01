@@ -5063,7 +5063,10 @@ const MOMENTUM_MAX: float = 0.60
 ## something to put right, which is the whole reason the withdrawal wears it -
 ## but a bill that makes resuming worse than starting fresh is a bill that
 ## deletes the feature it is attached to.
-const FORTIFY_REPAIR_PER_HEALTH: float = 0.017
+##
+## Owner, 2026-09-30: *"Make mending base repairs at main menu cheaper and more
+## accessible/gatherable."* A third off again, 0.017 to 0.011.
+const FORTIFY_REPAIR_PER_HEALTH: float = 0.011
 
 ## **What the Hold charges to mend the gate**, as a share of what a return from
 ## that front pays, per point of wall missing. Owner, 2026-09-22: *"The Hold
@@ -5089,7 +5092,23 @@ const FORTIFY_REPAIR_PER_HEALTH: float = 0.017
 ## between an unaffordable bill and abandoning a campaign: a lightly worn gate
 ## costs a little, and a gate that fell to the withdrawal's floor costs more
 ## than the road that broke it earned. [TUNE]
-const FORTIFY_GATE_MARKS_SHARE: float = 1.25
+##
+## **Re-cut 2026-09-30, below one** (owner: *"Make mending base repairs at main
+## menu cheaper and more accessible/gatherable"*). The bound above was that a
+## fallen gate must cost more than the return that wore it, so a withdrawal's
+## wear could not be refunded out of its own payout. The owner has weighed that
+## against a front nobody can afford to resume and chosen the other side: a
+## fallen gate is now well under a return, so resuming is never the worse of the
+## two choices. What survives is that it is never free and that it climbs with
+## the act and the tier the front stands in - `expedition_check` holds both.
+const FORTIFY_GATE_MARKS_SHARE: float = 0.40
+
+## **The gate can be mended with what the mines give**, instead of Marks
+## (2026-09-30, the same ruling's "gatherable"): this many units of the
+## commonest ore per Mark the Marks price would ask, and half as much timber.
+## Ore first because a gate is stone; timber because it is also beams. The
+## Marks door stays for a Warden who has not been out to the seams. [TUNE]
+const FORTIFY_GATE_ORE_PER_MARK: float = 1.5
 
 const PEN_CAPACITY: int = 12
 
@@ -13562,6 +13581,16 @@ const DRAGON_BREATH_TRACK_RATE: float = 0.8
 const DRAGON_BREATH_TRACK_ARC: float = 0.55
 const DRAGON_BREATH_TRACK_SPEED: float = 240.0
 const DRAGON_BREATH_TRACK_REACH: float = 220.0
+## **The breath aims at the line that catches most** (owner, 2026-09-30): this
+## many candidate lines across its arc, scored by the Wardens each would cover
+## that the blow has not struck yet; and the turn toward the winner eases in at
+## this rate under `DRAGON_BREATH_TRACK_RATE`'s ceiling. [TUNE]
+const DRAGON_BREATH_AIM_STEPS: int = 13
+const DRAGON_BREATH_TRACK_EASE: float = 6.0
+## How often the end of a breath scorches where it lands, and how bright the
+## light that rides it is. [TUNE]
+const DRAGON_BREATH_CONTACT_EVERY: float = 0.09
+const DRAGON_BREATH_END_LIGHT: float = 1.4
 const DRAGON_BREATH_FADE: float = 0.35
 const DRAGON_BREATH_TONGUE_EVERY: float = 0.07
 const DRAGON_BREATH_MATTER_EVERY: float = 0.05

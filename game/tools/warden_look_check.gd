@@ -254,7 +254,15 @@ func _test_the_cloth() -> void:
 		"the cloth must be found by its mask, texel for texel, and nowhere without one")
 	_check(FileAccess.get_file_as_string("res://scripts/components/hero_animator.gd").contains("\"cloth_mask\""),
 		"the animator never hands the sheet's cloth mask to the sprite")
-	for layer: String in ["male_base", "female_base", "male_light", "female_light"]:
+	# **Amended 2026-09-30, a second time.** Heavy armour had no mask and this
+	# held that it must not, because a cloth dye caught the steel's highlights
+	# and nothing else. The owner reported the top colour "not covering the
+	# tops", which is what a Warden in plate or in a leather vest saw: the vest
+	# and the breastplate are the top a player reads. Every armour layer's torso
+	# is the mask's blue channel now, lacquered rather than painted, and the bare
+	# body has none.
+	for layer: String in ["male_base", "female_base", "male_light", "female_light",
+			"male_heavy", "female_heavy"]:
 		var mask_path: String = WardenDress.cloth_mask_path(layer, "idle")
 		var sheet_path: String = WardenDress.art_root + layer + "/idle.png"
 		if not ResourceLoader.exists(sheet_path):
@@ -263,8 +271,17 @@ func _test_the_cloth() -> void:
 		var sheet: Texture2D = load(sheet_path) as Texture2D
 		_check(mask != null and mask.get_size() == sheet.get_size(),
 			"%s has no cloth mask the size of its sheet" % layer)
-	_check(not ResourceLoader.exists(WardenDress.cloth_mask_path("male_heavy", "idle")),
-		"heavy armour has a cloth mask, and its plate would take the dye")
+		if mask == null:
+			continue
+		var armoured: int = _blue_texels(mask.get_image())
+		if layer.ends_with("_base"):
+			_check(armoured == 0, "%s is a bare body and its mask marks %d texels as armour" % [layer, armoured])
+		else:
+			_check(armoured > 400,
+				"%s marks only %d texels as the armour over its top - a chosen top colour would not reach it"
+					% [layer, armoured])
+	_check(text.contains("where.b * where.a * cloth_top.a"),
+		"the shader never lacquers the armour over the top")
 	var sprite := Sprite2D.new()
 	add_child(sprite)
 	var dressed: Dictionary = WardenLook.plain()
@@ -313,6 +330,21 @@ func _test_the_bound() -> void:
 		"the hero's own sprite must carry the dye it was told")
 	hero.queue_free()
 	await get_tree().process_frame
+
+
+## How many texels of a cloth mask are the armour's blue.
+func _blue_texels(image: Image) -> int:
+	if image == null:
+		return 0
+	if image.is_compressed():
+		image.decompress()
+	var count: int = 0
+	for y: int in range(0, image.get_height(), 2):
+		for x: int in range(0, image.get_width(), 2):
+			var texel: Color = image.get_pixel(x, y)
+			if texel.a > 0.5 and texel.b > 0.5 and texel.r < 0.5:
+				count += 1
+	return count
 
 
 func _check(condition: bool, why: String) -> void:

@@ -75,12 +75,26 @@ func _process_measured(delta: float) -> void:
 ## The far end walked toward whoever it chases, bounded in speed and in how
 ## far it may stray from where the breath was aimed.
 func _chase(delta: float) -> void:
+	var aimed: Vector2 = plan["to"] as Vector2
+	# **The far end that catches the most it has not caught** (owner,
+	# 2026-09-30), anywhere within the track's reach of where it was aimed;
+	# the nearest Warden only when no line reaches anybody new.
+	var origin: Vector2 = plan.get("origin", plan["from"]) as Vector2
+	var span: float = origin.distance_to(aimed)
+	if span > 1.0:
+		var home: float = (aimed - origin).angle()
+		var arc: float = atan2(Balance.DRAGON_BREATH_TRACK_REACH, span)
+		var best: float = DragonBreath.best_line(get_tree(), origin, home, arc, span,
+			float(plan["width"]), _hit, (_to - origin).angle())
+		if best != INF:
+			_to = _to.move_toward(origin + Vector2.from_angle(best) * span,
+				delta * Balance.DRAGON_BREATH_TRACK_SPEED)
+			return
 	if _chasing == null or not is_instance_valid(_chasing) or not _chasing.is_inside_tree():
 		_chasing = null
 		return
 	if _chasing is Hero and not (_chasing as Hero).is_alive():
 		return
-	var aimed: Vector2 = plan["to"] as Vector2
 	var goal: Vector2 = _chasing.global_position
 	var off: Vector2 = goal - aimed
 	if off.length() > Balance.DRAGON_BREATH_TRACK_REACH:

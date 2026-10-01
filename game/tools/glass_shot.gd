@@ -23,6 +23,13 @@ const LOOKS: Array = [
 	# top on charcoal trousers on the female body.
 	["cloth", {"top_colour": 1, "bottom_colour": 7}, 0],
 	["cloth_female", {"body": 1, "top_colour": 4, "bottom_colour": 11, "skin": 3}, 0],
+	# The top colour over armour (2026-09-30): a vest and a breastplate are the
+	# top a player reads, lacquered rather than painted. `armour` names the
+	# armour look worn for the photograph.
+	["cloth_light", {"top_colour": 1, "bottom_colour": 7, "armour": "light"}, 0],
+	["cloth_heavy", {"top_colour": 4, "bottom_colour": 11, "armour": "heavy"}, 0],
+	["cloth_heavy_female", {"body": 1, "top_colour": 2, "bottom_colour": 7, "skin": 3,
+		"armour": "heavy"}, 0],
 ]
 
 
@@ -45,7 +52,12 @@ func _ready() -> void:
 		var look: Dictionary = WardenLook.plain()
 		var choices: Dictionary = entry[1]
 		for key: Variant in choices:
+			if key == "armour":
+				_wear_armour(String(choices[key]))
+				continue
 			look[key] = choices[key]
+		if not choices.has("armour"):
+			MetaState.equip(GearData.Slot.ARMOUR, -1)
 		if int(look.get("body", 0)) == 1 and not WardenDress.available("female"):
 			look["body"] = 0
 		MetaState.look = WardenLook.dyed_as(look, int(entry[2]))
@@ -61,3 +73,14 @@ func _ready() -> void:
 	MetaState.look = kept
 	MetaState.resume_saves()
 	get_tree().quit()
+
+
+## Puts a piece of armour of `look` in the held stash and wears it.
+func _wear_armour(look: String) -> void:
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind == null or kind.slot != GearData.Slot.ARMOUR or kind.look != look:
+			continue
+		MetaState.stash.append(Stash.make(kind.id, 3, 10))
+		MetaState.equip(GearData.Slot.ARMOUR, MetaState.stash.size() - 1)
+		return

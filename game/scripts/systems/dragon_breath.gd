@@ -122,6 +122,14 @@ func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
 	if follow == null:
 		follow = _nearest_mouth(get_tree(), mouth)
+	# **Over the mouth it leaves, never under it** (owner, 2026-09-30: "Dragon
+	# breath should zsort ontop of dragon's mouth not behind it"). A passing
+	# dragon draws at `DRAGON_Z` - absolute, above the whole field - and the
+	# breath at the effects layer, so the breath came out from under its own
+	# jaw. A breath that follows a dragon draws one step above it.
+	if follow != null:
+		z_as_relative = false
+		z_index = follow.z_index + 1
 	_follow_the_mouth()
 	global_position = mouth
 	_dice.randomize()
@@ -190,6 +198,11 @@ func _process_measured(delta: float) -> void:
 			if _matter_clock <= 0.0:
 				_matter_clock = Balance.DRAGON_BREATH_MATTER_EVERY
 				_throw_matter()
+			_contact_clock -= delta
+			if _contact_clock <= 0.0:
+				_contact_clock = Balance.DRAGON_BREATH_CONTACT_EVERY
+				_scorch_the_contact()
+		_carry_the_light()
 	if element == "storm" or ultra:
 		_bolt_clock -= delta
 		if _bolt_clock <= 0.0:
@@ -222,6 +235,92 @@ func _open() -> void:
 	EventBus.camera_impact.emit(mouth.lerp(to, 0.5), weight)
 	for sound: String in _sounds():
 		Sfx.play_at(sound, mouth.lerp(to, 0.35), 1.6)
+
+
+## **Where the beam meets the ground** (owner, 2026-09-30: "more polish and
+## more juice ... super juicy and aesthetically appealing though still
+## optimized"). The end of the breath is where it lands, so it throws its
+## element there on a clock - a forged hit the width of the beam, a spray off
+## the ground, and a breath of the ground's own dust - and a light rides the
+## end while it burns. All of it ink records and one light, so a sweep costs
+## what a standing breath costs.
+func _scorch_the_contact() -> void:
+	var colours: Array = palette(element)
+	var along: Vector2 = (to - mouth).normalized()
+	var size: float = half_width * (2.4 if ultra else 1.8)
+	Vfx.forge_hit(_hit_element(), to, size, colours[1] as Color)
+	Vfx.spark(to, colours[0] as Color, 4 if ultra else 3, -along, 160.0)
+	Vfx.dust(to, (colours[2] as Color).darkened(0.4), 2, half_width * 0.6)
+
+
+## A light at the end of the beam for as long as it burns, given back when it
+## goes out.
+func _carry_the_light() -> void:
+	var live: float = _age - warning
+	if live > blast:
+		if _end_light != null and is_instance_valid(_end_light):
+			_end_light.queue_free()
+			_end_light = null
+		return
+	if _end_light == null and Graphics.particle_scale() > 0.05:
+		_end_light = PointLight2D.new()
+		_end_light.texture = LightKit.falloff_texture()
+		_end_light.color = palette(element)[1] as Color
+		_end_light.energy = Balance.DRAGON_BREATH_END_LIGHT
+		_end_light.texture_scale = half_width / 64.0 * (3.0 if ultra else 2.2)
+		_end_light.top_level = true
+		add_child(_end_light)
+	if _end_light != null:
+		_end_light.global_position = to
+		_end_light.energy = Balance.DRAGON_BREATH_END_LIGHT * (0.8 + 0.2 * sin(_age * 31.0))
+
+
+var _contact_clock: float = 0.0
+var _end_light: PointLight2D = null
+
+
+## **Where a breath should point to catch the most it has not caught yet**
+## (owner, 2026-09-30: "the dragons should be able to more smartly aim their
+## breaths so that they can make the best impact on as many targets in its
+## range at any given time"). Candidate lines fan across `arc` either side of
+## `home`; each scores the Wardens it would cover that the blow has not
+## already struck - a blow lands on a body once, so a sweep is worth what it
+## has still to reach - with a little for lying near the middle of the band,
+## and the line nearest where the breath already points breaks a tie, so a
+## breath with nothing new to reach holds still rather than twitching.
+## `Vector2.INF` when no candidate reaches anybody.
+static func best_line(tree: SceneTree, from: Vector2, home: float, arc: float,
+		reach: float, half: float, struck: Dictionary, now: float) -> float:
+	if tree == null:
+		return INF
+	var targets: Array[Vector2] = []
+	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		if struck.has(who.get_instance_id()):
+			continue
+		if who.global_position.distance_to(from) > reach + half:
+			continue
+		targets.append(who.global_position)
+	if targets.is_empty():
+		return INF
+	var best: float = INF
+	var best_score: float = 0.0
+	var steps: int = Balance.DRAGON_BREATH_AIM_STEPS
+	for index: int in steps:
+		var angle: float = home + lerpf(-arc, arc, float(index) / float(maxi(steps - 1, 1)))
+		var end: Vector2 = from + Vector2.from_angle(angle) * reach
+		var score: float = 0.0
+		for at: Vector2 in targets:
+			var off: float = Geometry2D.get_closest_point_to_segment(at, from, end).distance_to(at)
+			if off <= half:
+				score += 1.0 + 0.25 * (1.0 - off / maxf(half, 1.0))
+		score -= absf(angle_difference(now, angle)) * 0.01
+		if score > best_score:
+			best_score = score
+			best = angle
+	return best
 
 
 ## A tongue rolled from the mouth down the line, a little further each time.

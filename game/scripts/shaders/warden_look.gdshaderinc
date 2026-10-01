@@ -111,6 +111,20 @@ vec3 warden_look(vec3 rgb, vec3 art, vec2 uv) {
 		float lit = look_to_hsv(rgb).z;
 		rgb = mix(rgb, clamp(cloth_top.rgb * (lit / 0.76), 0.0, 1.0), top);
 		rgb = mix(rgb, clamp(cloth_bottom.rgb * (lit / 0.33), 0.0, 1.0), bottom);
+		// **The armour over the top, lacquered** (2026-09-30). Blue in the mask is
+		// the leather vest or the breastplate a player reads as their top. Painted
+		// like linen it lost its grain and its shine, so it takes the top's hue and
+		// most of its colour and keeps its own light - and its brightest highlights
+		// stay nearly white, which is what makes steel read as steel.
+		float armour = where.b * where.a * cloth_top.a;
+		if (armour > 0.0) {
+			vec3 own = look_to_hsv(rgb);
+			vec3 dye = look_to_hsv(cloth_top.rgb);
+			float armour_shine = smoothstep(0.72, 1.0, own.z);
+			float sat = mix(own.y, dye.y, 0.85) * (1.0 - armour_shine * 0.75);
+			float val = own.z * mix(1.0, clamp(dye.z / 0.7, 0.55, 1.15), 0.5);
+			rgb = mix(rgb, look_to_rgb(vec3(dye.x, sat, val)), armour);
+		}
 	}
 	if (abs(look_cloak) < 0.0005 && abs(look_sash) < 0.0005 && abs(look_leather) < 0.0005) {
 		return rgb;

@@ -53,7 +53,7 @@ func _ready() -> void:
 	if _failures == 0:
 		print(("[expedition] PASS - %d checks: a front is banked whole or "
 			+ "refused whole, the fortress comes back as hurt as it was left, "
-			+ "the gate's repair is dearer than the run it broke, the account "
+			+ "the gate mends for Marks or for ore and timber, never free and never dearer than a return, the account "
 			+ "is untouched, and momentum never reaches a fight")
 			% _checks)
 	else:
@@ -156,13 +156,21 @@ func _test_the_hold_sells_the_gate_repair() -> void:
 	_check(MetaState.marks == 100000,
 		"and it took %d Marks for it" % (100000 - MetaState.marks))
 
-	# --- Dearer than letting the run go, on every road there is ---------------
+	# --- Cheaper than letting the run go, never free, on every road ----------
+	#
+	# **Amended 2026-09-30** (owner: "Make mending base repairs at main menu
+	# cheaper and more accessible/gatherable"). This held that a fallen gate
+	# must cost *more* than the return that wore it; the owner chose the other
+	# side of that trade. What it holds now is that resuming is never the worse
+	# choice - a fallen gate costs less than a return pays - and that it is
+	# never free and never cheaper on a harder road or a later act.
 	#
 	# Every act and every tier, because a guarantee is a property of all of
 	# them or it is not a guarantee - and `loot_scale` runs 1.0 to 3.6, so a
-	# price that ignored the tier would invert on Hell and nowhere else.
+	# price that ignored the tier would read the same on Hell as on the Long Road.
 	for tier: CampaignTierData in ContentDB.tiers_sorted():
 		RunState.tier_id = tier.id
+		var last: int = 0
 		for act: int in range(1, Balance.ACT_COUNT + 2):
 			var fallen: Dictionary = front.duplicate(true)
 			fallen["act"] = act
@@ -173,11 +181,38 @@ func _test_the_hold_sells_the_gate_repair() -> void:
 				("the price's model of the payout drifted from the payout on "
 					+ "%s act %d: %d against %d")
 					% [tier.id, act, Expedition.homecoming_worth(fallen), paid])
-			_check(Expedition.gate_price(fallen) > paid,
+			var gate: int = Expedition.gate_price(fallen)
+			_check(gate > 0 and gate < paid,
 				("a fallen gate on %s act %d costs %d Marks against the %d a "
-					+ "return pays - attrition refunded out of its own payout")
-					% [tier.id, act, Expedition.gate_price(fallen), paid])
+					+ "return pays - it should be under a return and never free")
+					% [tier.id, act, gate, paid])
+			_check(gate >= last, "the gate on %s act %d is cheaper than the act before" % [tier.id, act])
+			last = gate
 	RunState.tier_id = kept_tier
+
+	# --- Or in what the mines give --------------------------------------------
+	var stony: Dictionary = front.duplicate(true)
+	stony["wall"] = Balance.HOMECOMING_WALL_FLOOR
+	var gate_bill: Dictionary = Expedition.gate_materials(stony)
+	_check(gate_bill.size() == 2, "the gate has no price in ore and timber: %s" % gate_bill)
+	_check(Expedition.bill_text(stony).contains("Marks")
+			and Expedition.bill_text(stony).contains(" or "),
+		"the bill must say the gate is Marks or materials, said '%s'" % Expedition.bill_text(stony))
+	var kept_materials: Dictionary = MetaState.materials.duplicate(true)
+	MetaState.expedition = stony.duplicate(true)
+	MetaState.marks = 0
+	for id: Variant in gate_bill:
+		MetaState.materials[String(id)] = int(gate_bill[id]) + 5
+	var stone_ok: String = MetaState.mend_expedition()
+	_check(stone_ok.is_empty(), "a Warden with the ore and timber was refused: '%s'" % stone_ok)
+	_check(is_equal_approx(Expedition.wall_share(MetaState.expedition), 1.0),
+		"the gate paid for in ore and timber came back at %.2f" % Expedition.wall_share(MetaState.expedition))
+	for id: Variant in gate_bill:
+		_check(int(MetaState.materials.get(String(id), 0)) == 5,
+			"the gate took %d %s against the %d it was priced at"
+				% [int(gate_bill[id]) + 5 - int(MetaState.materials.get(String(id), 0)), id, int(gate_bill[id])])
+	_check(MetaState.marks == 0, "a gate paid in materials took Marks as well")
+	MetaState.materials = kept_materials
 
 	# --- Short of Marks: refuses, and spends nothing --------------------------
 	var worn: Dictionary = front.duplicate(true)

@@ -395,6 +395,16 @@ static func gate_price(stored: Dictionary) -> int:
 		* Balance.FORTIFY_GATE_MARKS_SHARE)))
 
 
+## **The gate in what the mines give** (2026-09-30): ore and timber, the other
+## way to pay `gate_price`. Empty when the gate is whole.
+static func gate_materials(stored: Dictionary) -> Dictionary:
+	var marks: int = gate_price(stored)
+	if marks <= 0:
+		return {}
+	var ore: int = maxi(1, int(ceil(float(marks) * Balance.FORTIFY_GATE_ORE_PER_MARK)))
+	return {_cheapest(MaterialData.Kind.ORE): ore, _cheapest(MaterialData.Kind.WOOD): maxi(1, ore / 2)}
+
+
 ## The commonest material of a kind: mending wants the plentiful stuff, never
 ## the Duskstone somebody walked past three camps for.
 static func _cheapest(kind: int) -> String:
@@ -510,8 +520,16 @@ static func bill_text(stored: Dictionary) -> String:
 		return "Nothing out there is damaged."
 	var parts: PackedStringArray = []
 	if marks > 0:
-		parts.append("%d Marks for the gate (you have %d)"
-			% [marks, MetaState.marks])
+		var stone: PackedStringArray = []
+		var gate_bill: Dictionary = gate_materials(stored)
+		var gate_ids: Array = gate_bill.keys()
+		gate_ids.sort()
+		for id: Variant in gate_ids:
+			var kind: MaterialData = ContentDB.materials.get(String(id), null) as MaterialData
+			stone.append("%d %s" % [int(gate_bill[id]),
+				String(id) if kind == null else kind.display_name])
+		parts.append("the gate for %d Marks (you have %d) or %s"
+			% [marks, MetaState.marks, " and ".join(stone)])
 	var ids: Array = bill.keys()
 	ids.sort()
 	for id: Variant in ids:

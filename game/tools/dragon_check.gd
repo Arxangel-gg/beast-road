@@ -43,6 +43,7 @@ func _ready() -> void:
 	_test_every_dragon_breathes_its_own()
 	await _test_the_breath_leaves_the_mouth()
 	await _test_a_loosed_breath_chases()
+	await _test_the_breath_aims_where_it_catches_most()
 	_test_every_beam_ends_softly()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -314,6 +315,10 @@ func _test_the_breath_leaves_the_mouth() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(breath.follow == wyrm, "a breath begun at a flying dragon's mouth did not find the dragon")
+	# **Over the mouth, never under it** (owner, 2026-09-30).
+	_check(not breath.z_as_relative and breath.z_index > wyrm.z_index,
+		"the breath draws at %d under the dragon at %d - it comes out from under its own jaw"
+			% [breath.z_index, wyrm.z_index])
 	_check(breath.global_position.distance_to(wyrm.mouth()) < 1.0,
 		"the breath starts %.0f from the mouth" % breath.global_position.distance_to(wyrm.mouth()))
 	var started: Vector2 = breath.global_position
@@ -460,6 +465,45 @@ func _test_a_loosed_breath_chases() -> void:
 	Ambience.stop_immediately()
 	run.queue_free()
 	for _frame: int in 12:
+		await get_tree().process_frame
+
+
+## **A breath aims at the line that catches the most it has not caught**
+## (owner, 2026-09-30: "the dragons should be able to more smartly aim their
+## breaths so that they can make the best impact on as many targets in its
+## range"). Two Wardens on one side of the warned line and one nearer it on the
+## other: the breath turns to the two. Once those two are struck - a blow lands
+## on a body once - it turns to the one still to reach; once all three are, no
+## line is worth turning to.
+func _test_the_breath_aims_where_it_catches_most() -> void:
+	var origin := Vector2.ZERO
+	var heroes: Array[Hero] = []
+	for placed: Array in [[0.30, 300.0], [-0.30, 250.0], [-0.30, 360.0]]:
+		var hero := (load("res://scenes/hero/hero.tscn") as PackedScene).instantiate() as Hero
+		add_child(hero)
+		hero.global_position = origin + Vector2.RIGHT.rotated(float(placed[0])) * float(placed[1])
+		# In play, which is what the breath asks the group for.
+		hero.set_present(true)
+		heroes.append(hero)
+	await get_tree().process_frame
+	var struck: Dictionary = {}
+	var first: float = DragonBreath.best_line(get_tree(), origin, 0.0,
+		Balance.DRAGON_BREATH_TRACK_ARC, 420.0, 30.0, struck, 0.0)
+	_check(first != INF and absf(first - (-0.30)) < 0.1,
+		"the breath turned to %.2f rather than to the two Wardens at -0.30" % first)
+	struck[heroes[1].get_instance_id()] = true
+	struck[heroes[2].get_instance_id()] = true
+	var second: float = DragonBreath.best_line(get_tree(), origin, 0.0,
+		Balance.DRAGON_BREATH_TRACK_ARC, 420.0, 30.0, struck, first)
+	_check(second != INF and absf(second - 0.30) < 0.1,
+		"with the two struck the breath turned to %.2f rather than to the one left at 0.30" % second)
+	struck[heroes[0].get_instance_id()] = true
+	_check(DragonBreath.best_line(get_tree(), origin, 0.0, Balance.DRAGON_BREATH_TRACK_ARC,
+			420.0, 30.0, struck, second) == INF,
+		"with everybody struck the breath still found a line worth turning to")
+	for hero: Hero in heroes:
+		hero.queue_free()
+	for _frame: int in 4:
 		await get_tree().process_frame
 
 

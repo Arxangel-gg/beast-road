@@ -28,11 +28,13 @@ import skin
 
 
 def write(body: str, game: str) -> int:
-    # **Not heavy armour**: its top and trousers are plate and mail, and a dye
-    # there caught the steel's near-white highlights and nothing else. A layer
-    # with no cloth mask samples black, which is the painting as worn.
-    layers = [layer for layer in pack.layer_names(body)
-              if not pack.is_cape(layer) and not layer.endswith("_heavy")]
+    # **Heavy armour too, since 2026-09-30.** It had none - its top and trousers
+    # are plate and mail, and a cloth dye there caught the steel's near-white
+    # highlights and nothing else - so a Warden in plate chose a top colour and
+    # saw nothing change. Its torso is the blue channel now, lacquered rather
+    # than painted (`cloth.armour_top`); its linen and trousers are what the
+    # quiet test finds, which on plate is little or nothing.
+    layers = [layer for layer in pack.layer_names(body) if not pack.is_cape(layer)]
     per_layer = {layer: pack.animation_frames(layer) for layer in pack.layer_names(body)}
     base = body + "_base"
     wanted = set(animations.ANIMATIONS)
@@ -71,6 +73,10 @@ def write(body: str, game: str) -> int:
                     painted = np.zeros((image.height, image.width, 4), dtype=np.uint8)
                     painted[top] = (255, 0, 0, 255)
                     painted[bottom] = (0, 255, 0, 255)
+                    # The armour over the torso, lacquered by the top's colour.
+                    if not layer.endswith("_base"):
+                        armour = cloth.armour_top(image, joints, rig_frames[facing].stature, top)
+                        painted[armour] = (0, 0, 255, 255)
                     sheet.alpha_composite(Image.fromarray(painted, "RGBA").crop(box),
                                           (col * cell[0], row * cell[1]))
             out = os.path.join(game, "art", "hero", "dress", layer, state + "_cloth.png")

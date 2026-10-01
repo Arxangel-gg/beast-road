@@ -99,19 +99,29 @@ func _sweep(delta: float) -> void:
 ## The line turned toward what it is chasing: a bounded rate, a bounded arc
 ## off the warned line, and nothing once the target has gone or fallen.
 func _track(delta: float) -> void:
-	if track == null or not is_instance_valid(track) or not track.is_inside_tree():
-		track = null
-		return
-	if track is Hero and not (track as Hero).is_alive():
-		return
-	var want: Vector2 = track.global_position - global_position
-	if want.length_squared() < 1.0:
-		return
 	var home: float = _home.angle()
-	var goal: float = home + clampf(angle_difference(home, want.angle()),
-		-Balance.DRAGON_BREATH_TRACK_ARC, Balance.DRAGON_BREATH_TRACK_ARC)
-	aim = Vector2.from_angle(rotate_toward(aim.angle(), goal,
-		delta * Balance.DRAGON_BREATH_TRACK_RATE))
+	# **The line that catches the most it has not caught** (owner, 2026-09-30),
+	# inside the warned arc; the body it was breathed at only when no line
+	# reaches anybody new.
+	var goal: float = DragonBreath.best_line(get_tree(), global_position, home,
+		Balance.DRAGON_BREATH_TRACK_ARC, reach, half_width, _struck, aim.angle())
+	if goal == INF:
+		if track == null or not is_instance_valid(track) or not track.is_inside_tree():
+			track = null
+			return
+		if track is Hero and not (track as Hero).is_alive():
+			return
+		var want: Vector2 = track.global_position - global_position
+		if want.length_squared() < 1.0:
+			return
+		goal = home + clampf(angle_difference(home, want.angle()),
+			-Balance.DRAGON_BREATH_TRACK_ARC, Balance.DRAGON_BREATH_TRACK_ARC)
+	# **Eased, never snapped**: the turn slows as it arrives, under the
+	# rate's ceiling, so a sweep reads as a head turning rather than a needle.
+	var now: float = aim.angle()
+	var step: float = clampf(angle_difference(now, goal) * Balance.DRAGON_BREATH_TRACK_EASE * delta,
+		-delta * Balance.DRAGON_BREATH_TRACK_RATE, delta * Balance.DRAGON_BREATH_TRACK_RATE)
+	aim = Vector2.from_angle(now + step)
 
 
 ## Where the beam ends now: the picture reads it every frame, so the breath
