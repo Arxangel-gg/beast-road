@@ -583,6 +583,18 @@ func close() -> void:
 	closed.emit()
 
 
+## **Escape closes the glass, and only the glass** (owner, 2026-10-01). It had
+## no answer of its own, so the press fell through to the Hold under it, which
+## put the Warden's stone card away and left the glass standing over the yard -
+## and closing the glass then landed on the yard rather than the stone it was
+## opened from. Under the Hold this is a child of the room, so it hears the
+## press first.
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and (event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause")):
+		get_viewport().set_input_as_handled()
+		close()
+
+
 ## Whether anything was changed while the glass was open.
 func touched() -> bool:
 	return _touched

@@ -77,6 +77,9 @@ var _portrait_frames: int = 1
 ## True while a door from this room is open over it. The room hides so the
 ## door's screen is on top, and comes back when the door closes.
 var _suspended: bool = false
+## Whether the Warden's stone card was open when a door stepped the room
+## aside, so closing that door comes back to the card (`open`).
+var _card_was_open: bool = false
 var _rename_edit: LineEdit = null
 
 var _yard: HoldYard = null
@@ -419,6 +422,7 @@ func suspend() -> void:
 	if not visible or _suspended:
 		return
 	_suspended = true
+	_card_was_open = _card_root != null and _card_root.visible
 	if _frame != null:
 		_frame.visible = false
 	if _card_root != null:
@@ -504,6 +508,18 @@ func open() -> void:
 		_frame.visible = true
 	if _yard != null:
 		_yard.set_driving(true)
+	# **Back to the stone, not to the yard** (owner, 2026-10-01: *"Closing a sub
+	# UI of the Warden stone should return back to the Warden stone instead of
+	# requiring reopening the Warden stone again"*). A door pressed from the
+	# card stepped the card aside with the rest of the chrome; the room comes
+	# back through here when that door closes, and the card comes back with it
+	# - a door walked up to in the yard was not opened from the card, and
+	# returns to the yard as it always did.
+	if _card_was_open and _card_root != null:
+		_card_was_open = false
+		_card_root.visible = true
+		if _yard != null:
+			_yard.set_driving(false)
 	if _session != null:
 		_session.open()
 		_session.introduce()
@@ -521,6 +537,7 @@ func close() -> void:
 	if not visible:
 		return
 	visible = false
+	_card_was_open = false
 	if _yard != null:
 		_yard.set_driving(false)
 	if _session != null:

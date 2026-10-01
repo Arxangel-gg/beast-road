@@ -95,6 +95,7 @@ func _ready() -> void:
 	await _test_a_thumb_drives_the_hold()
 	await _test_a_click_uses_what_it_lands_on()
 	await _test_a_click_reaches_the_yard_through_the_menu()
+	await _test_the_stone_card_comes_back()
 	await _test_the_doors_say_what_waits()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
@@ -104,7 +105,7 @@ func _ready() -> void:
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
 	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "thumb", "news", "chrome",
-			"click", "menu_click"]:
+			"click", "menu_click", "stone_card"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1380,6 +1381,82 @@ func _test_a_click_reaches_the_yard_through_the_menu() -> void:
 	menu.queue_free()
 	await _frames(3)
 	_reached["menu_click"] = true
+
+
+## **Closing a door opened from the stone comes back to the stone** (owner,
+## 2026-10-01: *"Closing a sub UI of the Warden stone should return back to the
+## Warden stone instead of requiring reopening the Warden stone again"*).
+##
+## Through the real menu, because the return is the menu's: a door's screen
+## closing is heard by `MainMenu._on_door_closed`, which opens the room again.
+## A door pressed from the card comes back to the card; one walked up to in the
+## yard comes back to the yard. And Escape in the Glass closes the Glass and
+## nothing under it - it had no answer of its own, so the Hold's put the card
+## away and left the Glass standing over the yard.
+func _test_the_stone_card_comes_back() -> void:
+	MetaState.settings["tutorial_seen"] = true
+	MetaState.story_intro_seen = true
+	WardenGlass.mark_offered()
+	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate() as Control
+	add_child(menu)
+	await _frames(20)
+	var hub: HubScreen = menu.get("_hub") as HubScreen
+	var chronicle: CanvasLayer = menu.get("_chronicle") as CanvasLayer
+	_check(hub != null and chronicle != null, "the real menu has no Hold or no Chronicle")
+	if hub == null or chronicle == null:
+		menu.queue_free()
+		_reached["stone_card"] = true
+		return
+	hub.open()
+	await _frames(4)
+	var card: Control = hub.get("_card_root") as Control
+	var door: Button = hub.find_child("Chronicle", true, false) as Button
+
+	# From the card: the door's screen opens over the Hold, and closing it comes
+	# back to the card.
+	hub.call("_show_card")
+	await _frames(2)
+	_check(card.visible, "the Warden's stone card did not open")
+	door.pressed.emit()
+	await _frames(3)
+	_check(chronicle.visible, "the Chronicle did not open from the card")
+	_check(not card.visible, "the card stood over the Chronicle it opened")
+	chronicle.call("hide_screen")
+	await _frames(3)
+	_check(hub.visible and not hub.is_suspended(), "the room did not come back after the Chronicle")
+	_check(card.visible, "closing a door opened from the stone landed in the yard, not on the stone")
+
+	# From the yard: the same door returns to the yard.
+	hub.call("_hide_card")
+	await _frames(2)
+	door.pressed.emit()
+	await _frames(3)
+	chronicle.call("hide_screen")
+	await _frames(3)
+	_check(not card.visible, "a door walked up to in the yard came back to the stone card")
+
+	# The Glass, opened from the card, closes on Escape and leaves the card.
+	hub.call("_show_card")
+	await _frames(2)
+	var glass_door: Button = hub.find_child("OpenGlass", true, false) as Button
+	_check(glass_door != null, "the card has no door to the Glass")
+	if glass_door != null:
+		glass_door.pressed.emit()
+		await _frames(3)
+		var glass: CanvasLayer = hub.get("_glass") as CanvasLayer
+		_check(glass != null and glass.visible, "the Glass did not open from the card")
+		var escape := InputEventKey.new()
+		escape.keycode = KEY_ESCAPE
+		escape.physical_keycode = KEY_ESCAPE
+		escape.pressed = true
+		get_viewport().push_input(escape)
+		await _frames(3)
+		_check(glass != null and not glass.visible, "Escape did not close the Glass")
+		_check(card.visible, "Escape in the Glass also put the stone card away")
+	hub.close()
+	menu.queue_free()
+	await _frames(3)
+	_reached["stone_card"] = true
 
 
 func _click(at: Vector2) -> void:
