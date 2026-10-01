@@ -90,7 +90,7 @@ func _build() -> void:
 
 	var heading := Label.new()
 	heading.text = "BEFORE THE ROAD"
-	heading.add_theme_font_size_override("font_size", 28)
+	UiFonts.set_role(heading, UiFonts.Role.TITLE, 28)
 	heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(heading)
 

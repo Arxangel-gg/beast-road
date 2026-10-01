@@ -98,7 +98,7 @@ func _build() -> void:
 
 	var heading := Label.new()
 	heading.text = "THE DISCIPLINES"
-	heading.add_theme_font_size_override("font_size", 28)
+	UiFonts.set_role(heading, UiFonts.Role.TITLE, 28)
 	heading.add_theme_color_override("font_color", GOLD)
 	column.add_child(heading)
 	_points = Label.new()
@@ -211,7 +211,7 @@ func _node_button(node: DisciplineNodeData) -> TextureButton:
 func _build_detail(detail: VBoxContainer) -> void:
 	_detail_name = Label.new()
 	_detail_name.name = "NodeName"
-	_detail_name.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(_detail_name, UiFonts.Role.HEADING, 22)
 	_detail_name.add_theme_color_override("font_color", GOLD)
 	_detail_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail.add_child(_detail_name)
@@ -417,7 +417,7 @@ func _centre_of(id: String) -> Vector2:
 
 
 func _draw_map() -> void:
-	var font: Font = ThemeDB.fallback_font
+	var font: Font = UiFonts.face(UiFonts.Role.HEADING)
 	var clusters: int = DisciplineNodeData.CLUSTER_NAMES.size()
 	var root_wide: float = minf(_map.size.x * 0.12, 120.0)
 	var column_wide: float = (_map.size.x - root_wide) / float(clusters)

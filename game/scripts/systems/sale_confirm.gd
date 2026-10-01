@@ -89,7 +89,7 @@ func _build(title: String, giving: String, getting: String,
 	var heading := Label.new()
 	heading.text = title
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(heading, UiFonts.Role.HEADING, 22)
 	heading.add_theme_color_override("font_color", Balance.UI_CONFIRM_HEADING)
 	column.add_child(heading)
 

@@ -93,7 +93,7 @@ func _build() -> void:
 		header.add_child(keeper)
 
 	_heading = Label.new()
-	_heading.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(_heading, UiFonts.Role.HEADING, 22)
 	_heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_heading)
 
@@ -241,7 +241,7 @@ func _stall(kind: MountData) -> Container:
 		var flavour := Label.new()
 		flavour.text = kind.description
 		flavour.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		flavour.add_theme_font_size_override("font_size", 13)
+		UiFonts.set_role(flavour, UiFonts.Role.FLAVOUR, 14)
 		flavour.add_theme_color_override("font_color", Color("7d8479"))
 		column.add_child(flavour)
 

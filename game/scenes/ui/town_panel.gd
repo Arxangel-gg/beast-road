@@ -62,6 +62,7 @@ var _tree_filter: int = -1
 
 
 func _ready() -> void:
+	UiFonts.set_role(get_node_or_null(^"Panel/Box/Title") as Control, UiFonts.Role.TITLE)
 	# Every plate, button and bar on this screen gets the standing animation
 	# and the hover hologram (owner, 2026-09-17). **Deferred**, because a
 	# screen builds its own children further down this same function -

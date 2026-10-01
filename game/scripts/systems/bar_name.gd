@@ -65,7 +65,7 @@ func _ready() -> void:
 func _draw_measured() -> void:
 	if text.is_empty():
 		return
-	var font: Font = get_theme_default_font()
+	var font: Font = UiFonts.face(UiFonts.Role.BUTTON)
 	if font == null:
 		return
 	# Sat on the bar's own middle rather than on a baseline, so a 7px bar and a

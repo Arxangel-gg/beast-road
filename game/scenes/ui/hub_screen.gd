@@ -193,7 +193,7 @@ func _build_frame() -> void:
 
 	var title := Label.new()
 	title.text = "THE HOLD"
-	title.add_theme_font_size_override("font_size", 26)
+	UiFonts.set_role(title, UiFonts.Role.TITLE, 26)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	top.add_child(title)
 
@@ -330,7 +330,7 @@ func _build_panel() -> void:
 
 	var title := Label.new()
 	title.text = "THE WARDEN"
-	title.add_theme_font_size_override("font_size", 28)
+	UiFonts.set_role(title, UiFonts.Role.TITLE, 28)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(title)
 
@@ -794,7 +794,7 @@ func _card_after_portrait() -> void:
 	_card.add_child(name_row)
 	var name_line := Label.new()
 	name_line.text = MetaState.player_name if not MetaState.player_name.is_empty() else "Oathless"
-	name_line.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(name_line, UiFonts.Role.HEADING, 22)
 	name_line.add_theme_color_override("font_color", Color("f2e6d0"))
 	name_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(name_line)

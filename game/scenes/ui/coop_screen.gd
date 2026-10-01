@@ -172,7 +172,7 @@ func _build() -> void:
 
 	var title := Label.new()
 	title.text = "Co-op"
-	title.add_theme_font_size_override("font_size", 30)
+	UiFonts.set_role(title, UiFonts.Role.TITLE, 30)
 	column.add_child(title)
 
 	var blurb := Label.new()

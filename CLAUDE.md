@@ -11971,6 +11971,43 @@ with two new pages (the sandbox, Hardcore) photographed by `guide_shots`.
 **The Guide is a model of the game and goes stale the way this file does** -
 read its pages against the systems before a release, not only its pictures.
 
+**Four faces, each for what it is best at, as of 2026-09-30.** Owner: *"The
+game still needs better fonts and multiple fonts to be used each the best one for
+the best purpose."* The game bundled four and drew with one - and, measured, drew
+that one at its lightest.
+
+**Every word had rendered at weight 400 since 2026-09-20.** The theme wrapped the
+body face in a `FontVariation` keyed `{"wght": 500}` and the buttons `{"wght":
+700}`, and a weight keyed by the axis's *name* parses, matches nothing and leaves
+the font at its default - the trap the memory directory recorded on 2026-09-14,
+walked into again six days later. `UiFonts.WGHT` is the tag as an integer and
+`UiFonts.face(role)` is the one place a weight is set; `run_tool.gd -- theme`
+asks it rather than building faces of its own.
+
+**The roles** (`UiFonts.Role`): **Body**, Atkinson Hyperlegible Next at 500, for
+everything read for more than a few words; **Button**, the same face at 620,
+because a button wants a real bold *and* has to fit its plate (Cinzel is a third
+wider at the same size); **Title**, Cinzel at 700, for a screen's name, a
+cinematic, an ending - read a few words at a time, never a paragraph; **Heading**,
+Alegreya Sans SC Bold, for a panel's own header and a section label; **Flavour**,
+Alegreya at 500, for lore, a portent's line, an encounter's words, the story
+panels - words in the world rather than interface; and **Impact**, Atkinson at
+800, for numbers that fly. `UiFonts.set_role(control, role, size)` is how a
+label opts in. Both display faces fall back to the body face for the arrows and
+diamonds they lack, and the faces a fallback is set on are kept alive, because a
+`FontFile` nobody holds is freed and the next `load` has no chain.
+
+**Seven `_draw` sites drew in Godot's own Open Sans** - the kill streak, the
+placement cursor's legend, the revive prompt, the discipline tree's cluster names
+and the touch buttons' labels among them - because `ThemeDB.fallback_font` is the
+engine's face and not the project theme's. They draw in their roles now.
+
+`font_glyph_check` holds all of it: every role with a weight is *measured*
+against the same face at 400 and must be wider, no script keys the axis by its
+name, the theme's default and button faces are `UiFonts`' own, and none of the
+listed draw sites reads the engine's face. The 48 interface gates passed at every
+shape with the heavier faces.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

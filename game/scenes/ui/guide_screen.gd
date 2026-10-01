@@ -90,7 +90,7 @@ func _build() -> void:
 
 	_title = Label.new()
 	_title.text = "THE GUIDE"
-	_title.add_theme_font_size_override("font_size", 28)
+	UiFonts.set_role(_title, UiFonts.Role.TITLE, 28)
 	_title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_title)
 
@@ -376,7 +376,10 @@ func _lore_row(entry: LoreEntryData) -> Control:
 	row.add_child(text)
 	if entry.is_unlocked():
 		text.add_child(_heading(entry.title))
-		text.add_child(_paragraph(entry.body))
+		# A chapter of the world is read as words in it, not as interface.
+		var words: Label = _paragraph(entry.body)
+		UiFonts.set_role(words, UiFonts.Role.FLAVOUR, 16)
+		text.add_child(words)
 	else:
 		var locked: Label = _heading("Reach Act %d" % entry.unlock_act)
 		locked.add_theme_color_override("font_color", Color("6d6960"))
@@ -555,7 +558,7 @@ func _skin(lit: bool = true) -> StyleBoxFlat:
 func _heading(text: String, size: int = 20) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", size)
+	UiFonts.set_role(label, UiFonts.Role.HEADING, size)
 	label.add_theme_color_override("font_color", Color("efe3c6"))
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label

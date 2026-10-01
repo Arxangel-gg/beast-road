@@ -94,7 +94,7 @@ func _build() -> void:
 		header.add_child(keeper)
 
 	_heading = Label.new()
-	_heading.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(_heading, UiFonts.Role.HEADING, 22)
 	_heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_heading)
 

@@ -199,7 +199,7 @@ func _draw_measured() -> void:
 	# found the trap panel has no way to learn what the second colour means, and
 	# a legend nobody reads is not a legend.
 	if _road and not occupied:
-		var font: Font = ThemeDB.fallback_font
+		var font: Font = UiFonts.face(UiFonts.Role.BUTTON)
 		if font != null:
 			var say: String = "road - lay a trap or raise a barricade"
 			var width: float = font.get_string_size(say,

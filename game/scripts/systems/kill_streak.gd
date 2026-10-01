@@ -35,7 +35,7 @@ var _font: Font = null
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z + 3
-	_font = ThemeDB.fallback_font
+	_font = UiFonts.face(UiFonts.Role.IMPACT)
 	EventBus.enemy_died.connect(_on_enemy_died)
 
 

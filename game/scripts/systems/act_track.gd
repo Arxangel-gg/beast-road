@@ -23,7 +23,7 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(WIDTH, HEIGHT)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_font = get_theme_default_font()
+	_font = UiFonts.face(UiFonts.Role.BUTTON)
 
 
 func _process(_delta: float) -> void:

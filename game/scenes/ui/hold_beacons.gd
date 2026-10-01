@@ -150,7 +150,7 @@ func _edge_point(room: Rect2, target: Vector2) -> Vector2:
 
 
 func _draw() -> void:
-	var font: Font = get_theme_default_font()
+	var font: Font = UiFonts.face(UiFonts.Role.HEADING)
 	for id: String in marks:
 		var mark: Dictionary = marks[id]
 		if bool(mark["arrow"]):

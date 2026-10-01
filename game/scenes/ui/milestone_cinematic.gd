@@ -108,13 +108,13 @@ func _build() -> void:
 
 	_eyebrow = Label.new()
 	_eyebrow.name = "Eyebrow"
-	_eyebrow.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(_eyebrow, UiFonts.Role.HEADING, 22)
 	_eyebrow.add_theme_color_override("font_color", Color("e9ae55"))
 	copy.add_child(_eyebrow)
 
 	_title = Label.new()
 	_title.name = "Title"
-	_title.add_theme_font_size_override("font_size", 56)
+	UiFonts.set_role(_title, UiFonts.Role.TITLE, 56)
 	_title.add_theme_color_override("font_color", Color("fff2d1"))
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(_title)
@@ -122,7 +122,7 @@ func _build() -> void:
 	_body = RichTextLabel.new()
 	_body.name = "Body"
 	_body.custom_minimum_size = Vector2(0.0, 58.0)
-	_body.add_theme_font_size_override("font_size", 23)
+	UiFonts.set_role(_body, UiFonts.Role.FLAVOUR, 23)
 	_body.add_theme_color_override("default_color", Color("d8cfbd"))
 	_body.fit_content = true
 	_body.scroll_active = false

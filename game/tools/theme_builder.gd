@@ -25,11 +25,10 @@ extends RefCounted
 
 const ART: String = "res://art/ui/"
 const OUTPUT: String = "res://ui_theme.tres"
-const BODY_FONT: String = "res://fonts/AtkinsonHyperlegibleNext-Variable.ttf"
-## Carved Roman capitals, for everything the game says loudly.
-##
-## A readable interface face with a real bold weight for buttons.
-const DISPLAY_FONT: String = "res://fonts/AtkinsonHyperlegibleNext-Variable.ttf"
+## The faces are `UiFonts`' roles, built and weighted there and nowhere else
+## (2026-09-30): the running game draws with the same faces, and the weight axis
+## has to be keyed by its tag as an integer, which this file once got wrong for
+## ten days - `{"wght": 700}` parses and moves nothing.
 
 # --- Palette -----------------------------------------------------------------
 # Kept identical to the previous hand-authored theme: the art changes, the
@@ -57,25 +56,12 @@ static func build() -> Dictionary:
 	theme.default_font_size = 18
 
 	var problems: PackedStringArray = []
-	var body_font: Font = load(BODY_FONT) as Font if ResourceLoader.exists(BODY_FONT) else null
-	var display_font: Font = load(DISPLAY_FONT) as Font \
-		if ResourceLoader.exists(DISPLAY_FONT) else null
-	if body_font == null:
-		problems.append("missing %s" % BODY_FONT)
-	else:
-		var body_weight := FontVariation.new()
-		body_weight.base_font = body_font
-		body_weight.variation_opentype = {"wght": 500}
-		body_font = body_weight
-		theme.default_font = body_font
-	if display_font == null:
-		problems.append("missing %s" % DISPLAY_FONT)
-
-	if display_font != null:
-		var heading_weight := FontVariation.new()
-		heading_weight.base_font = display_font
-		heading_weight.variation_opentype = {"wght": 700}
-		display_font = heading_weight
+	var body_font: Font = UiFonts.face(UiFonts.Role.BODY)
+	var button_font: Font = UiFonts.face(UiFonts.Role.BUTTON)
+	for path: String in [UiFonts.BODY, UiFonts.DISPLAY, UiFonts.BOOK, UiFonts.SMALL_CAPS]:
+		if not ResourceLoader.exists(path):
+			problems.append("missing %s" % path)
+	theme.default_font = body_font
 
 	# --- Buttons -------------------------------------------------------------
 	#
@@ -122,8 +108,7 @@ static func build() -> Dictionary:
 	theme.set_color("font_outline_color", "Button", OUTLINE)
 	theme.set_constant("outline_size", "Button", 4)
 	theme.set_font_size("font_size", "Button", 17)
-	if display_font != null:
-		theme.set_font("font", "Button", display_font)
+	theme.set_font("font", "Button", button_font)
 
 	# The two loud buttons. **Primary** is the one thing a screen is for - begin
 	# the road, ride on - in the kit's ember; **Danger** is the one that throws
@@ -206,13 +191,12 @@ static func build() -> Dictionary:
 	theme.set_constant("outline_size", "Label", 5)
 	theme.set_color("font_color", "LineEdit", INK)
 	theme.set_stylebox("normal", "LineEdit", _sunken())
-	if body_font != null:
-		theme.set_font("font", "Label", body_font)
-		theme.set_font("font", "LineEdit", body_font)
-		theme.set_font("normal_font", "RichTextLabel", body_font)
-	if display_font != null:
-		theme.set_font("bold_font", "RichTextLabel", display_font)
-		theme.set_font("font", "TooltipLabel", display_font)
+	theme.set_font("font", "Label", body_font)
+	theme.set_font("font", "LineEdit", body_font)
+	theme.set_font("normal_font", "RichTextLabel", body_font)
+	theme.set_font("bold_font", "RichTextLabel", button_font)
+	# A tooltip is a paragraph, and a paragraph in a bold is a wall.
+	theme.set_font("font", "TooltipLabel", body_font)
 	theme.set_color("default_color", "RichTextLabel", INK)
 
 	# --- Scrollbars ----------------------------------------------------------

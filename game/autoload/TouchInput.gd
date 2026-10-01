@@ -1189,9 +1189,7 @@ class TouchButton extends Control:
 		# The game's own face, fitted to the plate, with an outline so it reads
 		# over a lit field. The fallback font was the engine's, beside a HUD that
 		# is not.
-		var font: Font = get_theme_font("font", "Label")
-		if font == null:
-			font = ThemeDB.fallback_font
+		var font: Font = UiFonts.face(UiFonts.Role.BUTTON)
 		var size_px: int = int(side * 0.22)
 		var extent: Vector2 = font.get_string_size(label,
 			HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_px)

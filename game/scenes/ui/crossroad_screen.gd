@@ -207,6 +207,7 @@ func shows_the_road() -> bool:
 
 
 func _ready() -> void:
+	UiFonts.set_role(get_node_or_null(^"Panel/Art/Box/Title") as Control, UiFonts.Role.TITLE)
 	EventBus.coop_road_votes.connect(_on_coop_road_votes)
 	_rng = RunState.rng("roads")
 	panel.visible = false
@@ -704,6 +705,7 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 
 	var words: Label = _card_line(flavour, 14, Color("a8b0aa"),
 		HORIZONTAL_ALIGNMENT_CENTER)
+	UiFonts.set_role(words, UiFonts.Role.FLAVOUR, 15)
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.custom_minimum_size.x = 0.0
 	words.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -2220,7 +2222,7 @@ func _flash_partner_pick(picked_id: String) -> void:
 	# whole point of this label is to still be readable after it does.
 	var mark := Label.new()
 	mark.text = "THEY CHOSE"
-	mark.add_theme_font_size_override("font_size", 22)
+	UiFonts.set_role(mark, UiFonts.Role.HEADING, 22)
 	mark.add_theme_color_override("font_color", Balance.COOP_PARTNER_TINT)
 	mark.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.03, 0.95))
 	mark.add_theme_constant_override("outline_size", 6)

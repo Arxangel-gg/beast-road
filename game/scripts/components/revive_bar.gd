@@ -61,7 +61,7 @@ func _draw_measured() -> void:
 	# is saying the same thing twice, and a downed player has enough on screen.
 	if progress > 0.0:
 		return
-	var font: Font = ThemeDB.fallback_font
+	var font: Font = UiFonts.face(UiFonts.Role.BUTTON)
 	if font == null:
 		return
 	var hint: String = "Hold E"

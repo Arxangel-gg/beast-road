@@ -63,7 +63,7 @@ func _build() -> void:
 
 	_heading = Label.new()
 	_heading.text = "THE PEN"
-	_heading.add_theme_font_size_override("font_size", 28)
+	UiFonts.set_role(_heading, UiFonts.Role.TITLE, 28)
 	_heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_heading)
 

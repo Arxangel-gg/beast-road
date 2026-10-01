@@ -147,7 +147,7 @@ func _build() -> void:
 
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 40)
+	UiFonts.set_role(_title, UiFonts.Role.TITLE, 40)
 	_title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_title)
 
@@ -155,7 +155,7 @@ func _build() -> void:
 	_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_line.fit_content = true
 	_line.scroll_active = false
-	_line.add_theme_font_size_override("font_size", 21)
+	UiFonts.set_role(_line, UiFonts.Role.FLAVOUR, 21)
 	_line.add_theme_color_override("default_color", Color("cdc3ad"))
 	column.add_child(_line)
 

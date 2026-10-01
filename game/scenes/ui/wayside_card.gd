@@ -59,14 +59,14 @@ func _build() -> void:
 
 	_title = Label.new()
 	_title.name = "Title"
-	_title.add_theme_font_size_override("font_size", 26)
+	UiFonts.set_role(_title, UiFonts.Role.TITLE, 26)
 	_title.add_theme_color_override("font_color", Color("e8a33d"))
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_title)
 
 	_text = Label.new()
 	_text.name = "Text"
-	_text.add_theme_font_size_override("font_size", 16)
+	UiFonts.set_role(_text, UiFonts.Role.FLAVOUR, 17)
 	_text.add_theme_color_override("font_color", Color("c9d2cf"))
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_text)

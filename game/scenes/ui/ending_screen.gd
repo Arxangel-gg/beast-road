@@ -57,6 +57,9 @@ var _rolling: bool = false
 
 
 func _ready() -> void:
+	UiFonts.set_role(get_node_or_null(^"Box/Title") as Control, UiFonts.Role.TITLE)
+	UiFonts.set_role(get_node_or_null(^"Box/Body") as Control, UiFonts.Role.FLAVOUR, 22)
+	UiFonts.set_role(get_node_or_null(^"Credits") as Control, UiFonts.Role.FLAVOUR)
 	# Every plate, button and bar on this screen gets the standing animation
 	# and the hover hologram (owner, 2026-09-17). **Deferred**, because a
 	# screen builds its own children further down this same function -

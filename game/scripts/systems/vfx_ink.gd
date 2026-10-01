@@ -129,13 +129,11 @@ func _ready() -> void:
 	if additive:
 		var glow: CanvasItemMaterial = LightKit.additive_material()
 		material = glow
+	# Numbers that fly are read in a fifth of a second over anything: the
+	# heaviest cut of the body face (`UiFonts.Role.IMPACT`).
+	_font = UiFonts.face(UiFonts.Role.IMPACT)
 	var theme: Theme = ThemeDB.get_project_theme()
-	if theme != null and theme.default_font != null:
-		_font = theme.default_font
-		_font_size = theme.default_font_size
-	else:
-		_font = ThemeDB.fallback_font
-		_font_size = ThemeDB.fallback_font_size
+	_font_size = theme.default_font_size if theme != null else ThemeDB.fallback_font_size
 
 
 func clear() -> void:
