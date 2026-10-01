@@ -155,6 +155,22 @@ func _test_the_ear() -> void:
 		("with nobody listening, a sound must play wherever it happened - "
 			+ "otherwise every headless gate hears a different game"))
 	Sfx.stop_immediately()
+	# **And with an ear, each sound is dropped at its own reach.** Driven through
+	# `play_at` itself, because a reach the table knows and the door ignores is a
+	# footstep heard across the field.
+	Sfx.listen_from(Vector2.ZERO)
+	var heard: int = int(Sfx.debug_state().get("starts", 0))
+	Sfx.play_group_at("sfx_footstep_dirt", Vector2(Balance.SFX_CUTOFF * 0.7, 0.0))
+	_check(int(Sfx.debug_state().get("starts", 0)) == heard,
+		"a footstep %.0f away was played - it carries %.2f of the standard reach"
+			% [Balance.SFX_CUTOFF * 0.7, Sfx.reach_of("sfx_footstep_dirt")])
+	heard = int(Sfx.debug_state().get("starts", 0))
+	Sfx.play_at("sfx_quake", Vector2(Balance.SFX_CUTOFF * 1.2, 0.0))
+	_check(int(Sfx.debug_state().get("starts", 0)) > heard,
+		"a quake %.0f away was dropped - it carries %.2f of the standard reach"
+			% [Balance.SFX_CUTOFF * 1.2, Sfx.reach_of("sfx_quake")])
+	Sfx.stop_listening()
+	Sfx.stop_immediately()
 
 
 ## **A streak counts what falls near the Warden, and nothing else** (2026-09-30).
