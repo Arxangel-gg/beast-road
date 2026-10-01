@@ -49,12 +49,12 @@ func _gather() -> void:
 	if field == null or not is_instance_valid(field) or not field.is_inside_tree() \
 			or not field.visible:
 		return
-	var stragglers: Node = field.get("_stragglers") as Node
-	if stragglers != null and is_instance_valid(stragglers) and stragglers.has_method("marked"):
-		for id: Variant in stragglers.call("marked"):
-			var body := instance_from_id(int(id)) as Node2D
-			if body != null and is_instance_valid(body):
-				_targets.append({"node": body, "kind": Kind.STRAGGLER})
+	# **One arrow a body, and the most particular wins.** A Herald or a boss in
+	# the last of a wave is a straggler too, and the first cut drew both arrows
+	# at one body - found by CI, where the wave reached its tail sooner than it
+	# did here. So the bodies that are something more are gathered first, and a
+	# straggler is pointed at only if nothing else already points at it.
+	var pointed: Dictionary = {}
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var body := node as Enemy
 		if body == null or body.is_dying() or body.data == null \
@@ -62,10 +62,20 @@ func _gather() -> void:
 			continue
 		if body.data.category == EnemyData.Category.BOSS:
 			_targets.append({"node": body, "kind": Kind.BOSS})
+			pointed[body.get_instance_id()] = true
 		# A Herald the board cannot see is exactly what the player must go
 		# and find (2026-09-30).
 		elif body.is_uncalled_herald():
 			_targets.append({"node": body, "kind": Kind.HERALD})
+			pointed[body.get_instance_id()] = true
+	var stragglers: Node = field.get("_stragglers") as Node
+	if stragglers != null and is_instance_valid(stragglers) and stragglers.has_method("marked"):
+		for id: Variant in stragglers.call("marked"):
+			if pointed.has(int(id)):
+				continue
+			var body := instance_from_id(int(id)) as Node2D
+			if body != null and is_instance_valid(body):
+				_targets.append({"node": body, "kind": Kind.STRAGGLER})
 	var animals: Wildlife = field.wildlife_system()
 	if animals != null:
 		for sprite: Node2D in animals.hunting_sprites():

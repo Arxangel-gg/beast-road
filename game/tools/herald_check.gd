@@ -426,6 +426,15 @@ func _test_the_arrow() -> void:
 	add_child(pointers)
 	var herald: Enemy = _stand(breed, _field.town_position() + Vector2(1800.0, 0.0), true)
 	await get_tree().process_frame
+	# **And marked as one of the wave's last bodies**, which is what CI saw and
+	# this machine did not: a Herald in the tail of a wave is a straggler too,
+	# and the first cut drew two arrows at it. Marked by hand so whether the
+	# wave has reached its tail is not a coin toss in this gate.
+	var stragglers: Node = _field.get("_stragglers") as Node
+	if stragglers != null:
+		var marked: Array[int] = stragglers.get("_marked")
+		if not marked.has(herald.get_instance_id()):
+			marked.append(herald.get_instance_id())
 	pointers.call("_gather")
 	var kinds: Array[int] = []
 	for target: Dictionary in pointers.get("_targets"):
@@ -435,6 +444,19 @@ func _test_the_arrow() -> void:
 	_check(Balance.THREAT_POINTER_COLOURS.size() > ThreatPointers.Kind.HERALD,
 		"a Herald's arrow has a colour of its own")
 	herald.call("_sound_the_call")
+	# Called, it is an ordinary body the board may shoot: still one of the
+	# wave's last it wears the straggler's arrow and no Herald's...
+	pointers.call("_gather")
+	var after: Array[int] = []
+	for target: Dictionary in pointers.get("_targets"):
+		if target["node"] == herald:
+			after.append(int(target["kind"]))
+	_check(stragglers == null or after == [ThreatPointers.Kind.STRAGGLER],
+		"a called Herald in the tail of a wave is pointed at as a straggler and nothing else, found %s" % str(after))
+	# ...and not one of them, it wears none at all.
+	if stragglers != null:
+		var marked: Array[int] = stragglers.get("_marked")
+		marked.erase(herald.get_instance_id())
 	pointers.call("_gather")
 	var still: bool = false
 	for target: Dictionary in pointers.get("_targets"):
