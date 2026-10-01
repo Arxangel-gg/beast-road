@@ -11858,6 +11858,22 @@ it, the funnel, both Arsenals, the call on the real tick, the bounty and the
 arrow; seven faults were planted and all seven named. `herald_shot` is the
 photograph.
 
+**Amended later the same day: a Herald rises on a shared road too.** The
+question "which machine's Warden ran it down" turned out to need no answer: the
+host simulates every Warden, so a partner's sword lands on the host's Herald as
+the host's own does, and the purse is the run's and reaches every screen as the
+loot it drops. What a partner lacked was the sight of it - a plain body the
+board would not shoot, with no gold, no arrow and no lines. The host tells the
+party when a Herald rises, calls and falls (`CoopRelay.Fact.HERALD` = 88, by the
+body's net id, a state rather than three facts so a guest who missed the rising
+still dresses the body it hears call), the welcome says so for a guest who
+joins mid-wave, and a guest never tells anybody. Rolled by the host alone,
+because the host deals the waves. `rejoin_check` carries a Herald through the
+welcome and replays its call and fall as a guest; three planted faults were
+named. **The wayside encounters stay solo**: an answer is a choice the party
+would have to be asked, which is `PartyEvents`' conversation, and a card the
+field freezes for cannot freeze for one Warden of four.
+
 **And the HUD banner had been one pixel tall since 2026-09-10.** A clipped,
 wrapping Label has no minimum height, and the banner is a free Control whose
 offsets never said how tall it was - so every line `_show_message` was given
