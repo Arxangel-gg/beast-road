@@ -12371,6 +12371,105 @@ both bars.
   rather than the stain material and so carries no stain at all, as before -
   recorded so it is not taken for this change missing a case.
 
+**The owner's second list of 2026-10-01, and the decisions in it.** Each is
+gated on both bars; what follows is the part that is a decision rather than a
+detail.
+
+- **Click to move, League's way** (`ClickMove`, orders on `LocalHeroInput`).
+  A left click on the ground walks there and a held button steers; a click on
+  a body or an animal chases it and swings only once the swing reaches it, and
+  keeps swinging until it falls; F on a body does the same with the bow to the
+  bow's reach, and an empty quiver chases into the swing instead. A body the
+  fog takes is chased to where it was last seen. **The order is input**: it
+  produces a walk, an aim and a press, so the hero has no branch for it and a
+  guest's orders cross the wire as the walk and the swing they become. A key
+  or a stick ends any order; **Ctrl and a click swings where it points**; the
+  Game tab's *Left click* setting turns it off (on by default, the owner's
+  ask). While building is open a click on ground a sheet would open for is the
+  builder's (`PlacementCursor.takes_click`, the same two questions `_click_at`
+  acts on); a click on a body is still an order, and its release opens no
+  sheet. A mouse only - a thumb has its sticks. The cursor is the crossed
+  swords over something a click would chase and the plain arrow over ground in
+  a fight. `click_use_check`'s promise that a click elsewhere swings was
+  **amended**: true with the setting off; with it on, such a click is an order.
+- **The animals hear the road** (`Wildlife.notice`). Blows (off
+  `camera_impact`, by the square root of the weight), deaths (a body's, a
+  Warden's, an animal's own), strikes and the war horn are news, merged where
+  they overlap and capped at `WILDLIFE_NOTICE_MAX` a frame - a fight of forty
+  bodies costs one pass. Grazers near it run, further off lift their heads;
+  their own kind falling is heard from anywhere in earshot; **a herd runs
+  together**, one hop and never a chain; predators with nothing to hunt may
+  drift toward a fight; the birds that live off a battle come to a death; a
+  blast or the sky sends everything running, predators included. **A fright is
+  remembered** (`WILDLIFE_FEAR_MEMORY`) and wandering walks round its ground.
+  A frenzy, a grudge and a savage answer nothing. Host only.
+- **The earth minds every death, in the area** (`EarthGrief`, `Sky`). An
+  animal killed by the earth's own blows, a fire or a flood is now
+  `wildlife_fell` with a cause and counts as **heat at its share of a kill,
+  never the floor** - an earth that raged at every animal its own quake killed
+  would feed itself. **A dragon's kill counts as a kill and more** (owner: the
+  dragons are the wrath's stewards). Another animal's kill is still the cycle
+  and nothing. **Lightning no longer pays the player** for an animal it kills -
+  it was the one blow of the earth's that did. Every kill lays **grief where it
+  happened**, fading on its half-life, and the earth's own blows lean into
+  grieved ground (natural wisdom) - **placed, never added**: the uniform point
+  is drawn first and always, so the caller's stream moves exactly as it did,
+  and only the earth's own `earth_fate` stream decides. A Warden standing in
+  grief feels the hazards harder, bounded. **Karma** (`RunState.karma`, the
+  run's): a harmless kill costs it, a mercy, a bond and a harvest give, an egg
+  costs; it drifts home and the road says so as it crosses a sign. **Luck**:
+  a blow landing near a Warden may be a near miss, likelier for the kind; **the
+  earth seeks the cruel** with a telegraphed blow - a quake, a meteor, a
+  funnel's path - and never with lightning, which gives no warning. **Temper**:
+  rare great events (rarer for the kind) strike again - an aftershock, a
+  meteor shower, a burst of strikes - the same blows, more of them, said first.
+  Grieved ground in view breathes ash. `earth_grief_check`.
+- **A wild dragon is pure destruction** (`DragonBreath.wild_marks`). A passing
+  dragon's breath weighs every living thing in reach - Wardens, spirits, road
+  and camp bodies, animals - the way Aurelion Sol would: the near and the
+  weak, most of all what this breath would finish, a Warden above a body; it
+  breathes first at the heaviest and sweeps along the line that weighs most.
+  It takes everything on its line once, by authored shares, a boss scorched and
+  never melted (`DRAGON_WILD_BODY_CAP`). A camp wyrm's breath is still the
+  camp's and strikes only the party. **It grows with the anger**
+  (`DRAGON_WRATH_GROWTH`), and a guest is told how much in the plan.
+- **Brutal blood** (`UserSettings.BLOOD_BRUTAL`, appended, never inserted). A
+  Brutal mark lives longer than any campaign; **rain does nothing**; only a
+  flood at `BLOOD_BRUTAL_FLOOD_FROM` or more washes it, over
+  `BLOOD_BRUTAL_WASH_SECONDS`. **It comes home with a banked front** - the
+  newest marks, five numbers and an age each, rebuilt from their own seeds,
+  and the pools - read once by the next road's blood field and erased; it is
+  never wiped between acts. **Pools** (`BloodPools`, Brutal only): a mark pours
+  its volume; deeper than its neighbours it creeps out at
+  `BLOOD_POOL_VISCOSITY` (blood-slow, measured on a photograph) and soaks away,
+  faster while the ground shakes. **The one gameplay number**: a pool slows
+  every mover through one door (`Vfx.blood_slow`), to `BLOOD_POOL_SLOW_MAX` at
+  `BLOOD_POOL_FULL`. **What wades through it is stained to that height for the
+  rest of its life** (`wade_stain.gdshaderinc`, in both body shaders); the
+  dressed Warden names its painted feet row (`HeroAnimator.feet_row`) because
+  its node stands below the paint. It adds one key to a banked front and none
+  to the account; `SAVE_VERSION` did not move.
+- **The ground remembers what struck it** (`GroundScars`): a depth map a
+  `SCAR_TEXEL` apart that slams, mortars, lobs, strikes, landings, fissures,
+  meteors (craters) and quakes (cracks and slumps) stamp, cleared with the
+  craters at the act's end. **Drawn as light** - the depth map's slope is a
+  normal lit from the sun's side, dent floors are rough with grit and
+  occluded, read on the art's own pixel grid and banded, because a smooth read
+  over pixel-art ground photographed as mist. Thin fresh blood gathers in the
+  dents first, and only until it covers them; dried blood does not. **A quake
+  marks what it shook**: cracks and slumps, trees shedding leaves, standing
+  blood sloshing. A picture: nothing about pathing, building or damage reads
+  it.
+- **Normal and roughness**: the scars above are the ground's, and every lit
+  body and tower now reads **roughness off its own painting**
+  (`ACTOR_SHADE_GLOSS`): grey, bright paint - steel, pale stone - throws back a
+  light's highlight, cloth and fur do not. Zero at `shade_strength` 0, so an
+  undressed material is still the engine's own formula. Subtle by design.
+- **Not done, and recorded so it is not assumed**: a guest sees no grief
+  breath (grief is the host's), the chat has no touch button and the Hold has
+  no chat, and a promoted body still wears no wound stain (it does wear the
+  wade stain).
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
