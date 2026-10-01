@@ -2309,6 +2309,37 @@ const HERO_ATTACK_RANGE: Array[float] = [95.0, 95.0, 115.0]
 ## Total width of the swing arc in degrees, centred on the aim direction.
 const HERO_ATTACK_ARC_DEGREES: Array[float] = [110.0, 110.0, 170.0]
 
+## **Click to move** (owner, 2026-10-01: *"Clicking on the battlefield should
+## move to the location ... and only attack the clicked target if and when the
+## attack is in range ... and if the click was on a valid target to then
+## automatically pursue that target until it is in range of the attack,
+## inspired by league of legends"*). See `ClickMove` and `LocalHeroInput`.
+##
+## - `ARRIVE`: how near the destination the Warden's feet stop.
+## - `PICK_SLOP`: how far outside a body's own outline a click still lands on
+##   it - a moving body is a small target and a near miss should not walk the
+##   Warden into it.
+## - `REACH_SHARE` / `RANGED_SHARE`: the share of the swing's reach, and of the
+##   bow's, at which the chase stops and the attack begins, so a body that steps
+##   back as the blow comes still meets it.
+## - `STUCK_SECONDS` / `STUCK_PROGRESS`: an order that has not brought the
+##   Warden this much nearer in this long is given up - a tower or a cliff in
+##   the way reads as the Warden stopping, never as a Warden pushing at a wall.
+## - `DRAG_HZ`: how often a held button moves the destination under the cursor.
+## - `MARK_SECONDS`: how long the marker at a click lasts.
+## - `HOVER_HZ`: how often the cursor asks what it is over.
+const CLICK_MOVE_ARRIVE: float = 10.0
+const CLICK_MOVE_PICK_SLOP: float = 22.0
+const CLICK_MOVE_REACH_SHARE: float = 0.9
+const CLICK_MOVE_RANGED_SHARE: float = 0.85
+const CLICK_MOVE_STUCK_SECONDS: float = 0.7
+const CLICK_MOVE_STUCK_PROGRESS: float = 14.0
+const CLICK_MOVE_DRAG_HZ: float = 15.0
+const CLICK_MOVE_MARK_SECONDS: float = 0.55
+const CLICK_MOVE_HOVER_HZ: float = 20.0
+const CLICK_MOVE_GROUND_COLOUR: Color = Color(0.45, 1.0, 0.62, 1.0)
+const CLICK_MOVE_TARGET_COLOUR: Color = Color(1.0, 0.32, 0.26, 1.0)
+
 ## Impulse applied to everything the swing connects with.
 const HERO_ATTACK_KNOCKBACK: Array[float] = [170.0, 190.0, 420.0]
 

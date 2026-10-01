@@ -162,6 +162,7 @@ func _build() -> void:
 	game.add_child(_gait_row())
 	game.add_child(_blood_vfx_row())
 	game.add_child(_augment_draft_row())
+	game.add_child(_click_to_move_row())
 	game.add_child(_separator())
 	game.add_child(_map_mode_row())
 	game.add_child(_separator())
@@ -440,6 +441,32 @@ func _augment_draft_row() -> HBoxContainer:
 	button.toggled.connect(func(on: bool) -> void:
 		UserSettings.set_value(UserSettings.AUGMENT_AT_ONCE_KEY, on)
 		button.text = "At once" if on else "At the breather"
+		_queue_save())
+	row.add_child(button)
+	return row
+
+
+## **What a left click on the battlefield does** (2026-10-01).
+func _click_to_move_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "ClickToMoveRow"
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Left click")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+	var button := Button.new()
+	button.name = "ClickToMove"
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.button_pressed = UserSettings.click_to_move()
+	button.text = "Move and attack" if button.button_pressed else "Swing where you point"
+	button.tooltip_text = ("Move and attack: a click on the ground walks there, a click on "
+		+ "an enemy or an animal chases it and attacks once it is in reach, and F on one "
+		+ "does the same with the bow. Hold the button to steer. Ctrl and a click swings "
+		+ "where you point either way. Swing where you point: every click is a swing.")
+	button.toggled.connect(func(on: bool) -> void:
+		UserSettings.set_value(UserSettings.CLICK_TO_MOVE_KEY, on)
+		button.text = "Move and attack" if on else "Swing where you point"
 		_queue_save())
 	row.add_child(button)
 	return row

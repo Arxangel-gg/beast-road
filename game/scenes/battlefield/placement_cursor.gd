@@ -96,6 +96,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# mouse already had everywhere else in this interface.
 	if TouchInput.owns_pointer():
 		return
+	# A press `ClickMove` took as an order on a body is that order's whole
+	# click - the Warden going for the body on the tile is not also a sheet
+	# opening under it.
+	if ClickMove.press_was_order:
+		return
 	_click_at(get_global_mouse_position())
 
 
@@ -117,10 +122,7 @@ func _on_field_tapped(at: Vector2) -> void:
 ## What a click at `world` does: open the tile's sheet, or a road's.
 func _click_at(world: Vector2) -> void:
 	var tile: Vector2i = _anchor_at(world)
-	# An occupied tile is still worth clicking: that is how a built tower is
-	# inspected, upgraded and sold. Only genuinely unbuildable ground is ignored,
-	# so a misclick on a road does not close whatever the player had open.
-	if _field.placement_problem(tile).is_empty() or not RunState.tile_is_empty(tile):
+	if _opens_tile(tile):
 		tile_clicked.emit(tile)
 		get_viewport().set_input_as_handled()
 		return
@@ -131,9 +133,31 @@ func _click_at(world: Vector2) -> void:
 	# offsetting it half a footprint would lay it on the tile beside the one the
 	# player pointed at.
 	var exact: Vector2i = BattleGrid.world_to_tile(world)
-	if _field.grid.cell_at(exact) == BattleGrid.Cell.ROAD:
+	if _opens_road(exact):
 		road_tile_clicked.emit(exact)
 		get_viewport().set_input_as_handled()
+
+
+## An occupied tile is still worth clicking: that is how a built tower is
+## inspected, upgraded and sold. Only genuinely unbuildable ground is ignored,
+## so a misclick on a road does not close whatever the player had open.
+func _opens_tile(tile: Vector2i) -> bool:
+	return _field.placement_problem(tile).is_empty() or not RunState.tile_is_empty(tile)
+
+
+func _opens_road(exact: Vector2i) -> bool:
+	return _field.grid.cell_at(exact) == BattleGrid.Cell.ROAD
+
+
+## **Whether a click at `world` is the builder's** (2026-10-01): while building
+## is open, a click on ground a sheet would open for is a click on that sheet,
+## and `ClickMove` leaves it alone rather than walking the Warden off. Asked by
+## the same two questions `_click_at` acts on, so the two cannot disagree about
+## which ground is whose.
+func takes_click(world: Vector2) -> bool:
+	if not _is_active() or _field == null or not _field.visible:
+		return false
+	return _opens_tile(_anchor_at(world)) or _opens_road(BattleGrid.world_to_tile(world))
 
 
 ## Which anchor the mouse is over.

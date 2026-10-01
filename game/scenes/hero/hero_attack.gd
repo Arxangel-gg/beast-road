@@ -345,10 +345,8 @@ func would_hit(origin: Vector2, aim: Vector2, step: int) -> Array[Node2D]:
 			var enemy := body as Enemy
 			if enemy != null and enemy.is_dying():
 				continue
-			var middle: Vector2 = enemy.combat_origin() if enemy != null \
-				else body.global_position
-			var wide: float = enemy.contact_radius() if enemy != null \
-				else Balance.ENEMY_BODY_RADIUS
+			var middle: Vector2 = _middle_of(body)
+			var wide: float = _width_of(body)
 			var to: Vector2 = middle - origin
 			var distance: float = to.length()
 			if distance > reach + wide:
@@ -358,6 +356,32 @@ func would_hit(origin: Vector2, aim: Vector2, step: int) -> Array[Node2D]:
 			seen[body.get_instance_id()] = true
 			out.append(body)
 	return out
+
+
+## **Whether the next blow of the chain reaches `body` from `origin`**, aimed
+## straight at it - the question a click-to-move order asks before it stops
+## chasing and starts swinging (2026-10-01). The same middle, width and reach
+## `would_hit` judges by, so the chase never stops short of a blow that would
+## land or swings at one that cannot. `share` brings the line in a little, so a
+## body stepping back as the blow comes still meets it.
+func reaches(origin: Vector2, body: Node2D, share: float = 1.0) -> bool:
+	if body == null or not is_instance_valid(body):
+		return false
+	var at: int = clampi(_step, 0, Balance.HERO_ATTACK_RANGE.size() - 1)
+	var reach: float = Balance.HERO_ATTACK_RANGE[at] * reach_scale()
+	return origin.distance_to(_middle_of(body)) <= (reach + _width_of(body)) * share
+
+
+## Where a body is judged from, for a swing: a road body's own middle, anything
+## else's position.
+static func _middle_of(body: Node2D) -> Vector2:
+	var enemy := body as Enemy
+	return enemy.combat_origin() if enemy != null else body.global_position
+
+
+static func _width_of(body: Node2D) -> float:
+	var enemy := body as Enemy
+	return enemy.contact_radius() if enemy != null else Balance.ENEMY_BODY_RADIUS
 
 
 ## Bodies standing in this swing's arc right now, hit or not.

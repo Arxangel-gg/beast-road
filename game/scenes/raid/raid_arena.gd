@@ -118,6 +118,13 @@ func _ready() -> void:
 	_footfalls.watching = _watched_point
 	_footfalls.z_index = Balance.FOOTFALL_Z
 	(entity_root if entity_root != null else self).add_child(_footfalls)
+	# **A click is an order in a camp and a maze as well** (2026-10-01): the
+	# Warden fighting one is the same Warden, with the same hands.
+	var orders := ClickMove.new()
+	orders.name = "ClickMove"
+	orders.setup(self)
+	orders.z_index = Balance.FOOTFALL_Z + 1
+	(entity_root if entity_root != null else self).add_child(orders)
 	set_process(false)
 
 

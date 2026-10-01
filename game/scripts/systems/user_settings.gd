@@ -32,6 +32,12 @@ const BLOOD_HIGH: int = 2
 const BLOOD_LEVEL_NAMES: Array[String] = ["Off", "Low", "High"]
 ## Whether an augment draft opens the moment it is earned (2026-09-26).
 const AUGMENT_AT_ONCE_KEY: String = "augment_at_once"
+## **What a left click on the battlefield does** (owner, 2026-10-01). On, a click
+## on the ground walks there and a click on a body chases it and attacks once
+## it is in reach - League's click to move. Off, a click swings where it points,
+## as it always did. On by default because the owner asked for it; Ctrl held
+## swings where it points either way.
+const CLICK_TO_MOVE_KEY: String = "click_to_move"
 
 ## Two more comfort scales, added 2026-09-16 out of the forwarded accessibility
 ## notes (#182-#195), and put here rather than in `Graphics` because the shake
@@ -132,6 +138,11 @@ static func number(key: String, fallback: float) -> float:
 ## breather. Solo only: on a shared road a draft never holds the party's field.
 static func augment_at_once() -> bool:
 	return bool(value(AUGMENT_AT_ONCE_KEY, false))
+
+
+## Whether a left click on the battlefield is an order (see `CLICK_TO_MOVE_KEY`).
+static func click_to_move() -> bool:
+	return bool(value(CLICK_TO_MOVE_KEY, true))
 
 
 ## The interface size, clamped - a save may hold anything.

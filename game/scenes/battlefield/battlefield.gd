@@ -215,6 +215,8 @@ var grid: BattleGrid = null
 
 ## Draws the build footprint under the mouse and turns a click into an anchor.
 var placement: PlacementCursor = null
+## Clicks on the field as orders - walk there, or chase and attack (2026-10-01).
+var click_move: ClickMove = null
 ## The hovered offer, drawn where it would stand. See `preview_tower`.
 var build_ghost: BuildGhost = null
 
@@ -258,6 +260,12 @@ func _ready() -> void:
 	placement.name = "PlacementCursor"
 	placement.setup(self)
 	slot_root.add_child(placement)
+	click_move = ClickMove.new()
+	click_move.name = "ClickMove"
+	click_move.setup(self)
+	# On the ground, under every body: the rings are drawn at their feet.
+	click_move.z_index = Balance.FOOTFALL_Z + 1
+	slot_root.add_child(click_move)
 	build_ghost = BuildGhost.new()
 	build_ghost.name = "BuildGhost"
 	slot_root.add_child(build_ghost)
