@@ -106,6 +106,20 @@ var _augment_open: bool = false:
 var _scrim: ColorRect = null
 ## Which `_fit_play_cards` is the current one; see its first lines.
 var _fit_generation: int = 0
+## **The click guard** (owner, 2026-10-01; `Balance.CARD_TABLE_CLICK_GUARD`).
+## Armed when the table appears from nothing and lifted a while after its last
+## card has been dealt; a redraw - a reroll, a banish, going back from the
+## leave-one-behind table - is the player's own doing and does not re-arm it.
+var _guard_until_msec: int = 0
+## Set when the table appears and spent by the deal that follows it, which is
+## the deal the guard is measured from.
+var _guard_pending: bool = false
+var _guard_generation: int = 0
+## **The documented seam** for the gate that holds the guard. Headless, every
+## gate that drives a card presses it on the frame it appears, which is the
+## whole point of a gate and would read here as a player clicking too soon -
+## so the guard is off headless unless a gate turns it on to measure it.
+static var guard_in_tests: bool = false
 ## Banish is armed: the next card pressed leaves the deck rather than the draft.
 var _banishing: bool = false
 var _last_scar_button: Button = null
@@ -217,6 +231,91 @@ func _ready() -> void:
 	EventBus.coop_road_card_chosen.connect(_on_coop_road_card_chosen)
 	EventBus.augment_offer_changed.connect(_on_augment_offer_changed)
 	EventBus.coop_last_scar_accepted.connect(_on_coop_last_scar_accepted)
+	panel.visibility_changed.connect(_on_panel_shown)
+
+
+## The table appears: the guard is armed and the table settles in.
+func _on_panel_shown() -> void:
+	if not panel.visible:
+		_guard_pending = false
+		return
+	_guard_generation += 1
+	if not _guard_applies():
+		_guard_until_msec = 0
+		return
+	_guard_pending = true
+	# A floor for a table with no dealt cards (the pass home): a second from now.
+	_guard_until_msec = Time.get_ticks_msec() + int(Balance.CARD_TABLE_CLICK_GUARD * 1000.0)
+	_arm_lift_after(Balance.CARD_TABLE_CLICK_GUARD, _guard_generation)
+	panel.pivot_offset = panel.size * 0.5
+	panel.modulate.a = 0.0
+	panel.scale = Vector2.ONE * Balance.CARD_TABLE_ARRIVE_SCALE
+	var arrive: Tween = create_tween().set_parallel(true)
+	arrive.tween_property(panel, "modulate:a", 1.0, Balance.CARD_TABLE_ARRIVE_SECONDS) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	arrive.tween_property(panel, "scale", Vector2.ONE, Balance.CARD_TABLE_ARRIVE_SECONDS) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _guard_applies() -> bool:
+	return guard_in_tests or DisplayServer.get_name() != "headless"
+
+
+## Whether a press on the table would be refused right now.
+func is_guarded() -> bool:
+	return Time.get_ticks_msec() < _guard_until_msec
+
+
+## Every press on a table goes through here.
+func _guarded(button: Control, on_press: Callable) -> void:
+	if is_guarded():
+		_refuse_early(button)
+		return
+	on_press.call()
+
+
+## A press too soon: a small shake of the card and the refusal sound, so a
+## player who clicked through the table sees it was the table's choice, not a
+## card that did nothing.
+func _refuse_early(button: Control) -> void:
+	UiSound.deny()
+	if button == null or not is_instance_valid(button):
+		return
+	button.pivot_offset = button.size * 0.5
+	var shake: Tween = create_tween()
+	for turn: float in [-0.035, 0.03, -0.018, 0.0]:
+		shake.tween_property(button, "rotation", turn, 0.045)
+
+
+## The guard lifts `seconds` from now, if the table is still the one it was
+## armed for: every card lights up in turn.
+func _arm_lift_after(seconds: float, generation: int) -> void:
+	_dim_the_table(true)
+	get_tree().create_timer(seconds, true, false, true).timeout.connect(func() -> void:
+		if generation != _guard_generation or is_guarded() or not panel.visible:
+			return
+		_dim_the_table(false))
+
+
+func _dim_the_table(dim: bool) -> void:
+	var step: int = 0
+	for node: Node in _entrance_cards():
+		var card := node as Control
+		if card == null or not is_instance_valid(card) or card.is_queued_for_deletion():
+			continue
+		var level: float = Balance.CARD_TABLE_GUARD_DIM if dim else 1.0
+		var to := Color(level, level, level, card.modulate.a)
+		if dim:
+			card.modulate = to
+			continue
+		var light: Tween = create_tween()
+		light.tween_interval(float(step) * CARD_ENTRANCE_STAGGER * 0.5)
+		light.tween_property(card, "modulate:r", 1.0, Balance.CARD_TABLE_ARM_SECONDS)
+		light.parallel().tween_property(card, "modulate:g", 1.0, Balance.CARD_TABLE_ARM_SECONDS)
+		light.parallel().tween_property(card, "modulate:b", 1.0, Balance.CARD_TABLE_ARM_SECONDS)
+		step += 1
+	if not dim and step > 0:
+		Sfx.play_group("sfx_ui_move", -12.0)
 
 
 func open(segment_index: int) -> void:
@@ -295,7 +394,7 @@ func _add_extraction_offer() -> void:
 	_extract_button.add_theme_color_override("font_color", Color("9fd7a8"))
 	# The road home (2026-09-30): it asked for "marks", which was never drawn.
 	IconKit.on_button(_extract_button, "distance", 24)
-	_extract_button.pressed.connect(_choose_extraction)
+	_extract_button.pressed.connect(_guarded.bind(_extract_button, _choose_extraction))
 	box.add_child(_extract_button)
 	var note := Label.new()
 	# **It says that leaving is a fight now** (2026-09-16). The card used to end
@@ -363,7 +462,7 @@ func _add_reroll() -> void:
 	button.text = "Redraw this pair  ·  %d left this run" % RunState.crossroad_rerolls_left
 	button.custom_minimum_size = Vector2(0.0, 46.0)
 	button.add_theme_font_size_override("font_size", 18)
-	button.pressed.connect(_reroll)
+	button.pressed.connect(_guarded.bind(button, _reroll))
 	options_box.add_child(button)
 
 
@@ -387,7 +486,7 @@ func _add_last_scar_offer() -> void:
 	_last_scar_button.custom_minimum_size = Vector2(0.0, 48.0)
 	_last_scar_button.add_theme_color_override("font_color", Color("ef8065"))
 	IconKit.on_button(_last_scar_button, "last_scar", 24)
-	_last_scar_button.pressed.connect(_accept_last_scar)
+	_last_scar_button.pressed.connect(_guarded.bind(_last_scar_button, _accept_last_scar))
 	box.add_child(_last_scar_button)
 	# **What the vow actually asks, in words.** `offer_line` says it plainly -
 	# "take no new Wound, keep the Town Hall above 60%, and bring down the
@@ -630,7 +729,7 @@ func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
 	button.add_theme_stylebox_override("pressed", _card_face(tint, 0.5))
 	button.add_theme_stylebox_override("focus", _card_face(tint, 0.35))
 	button.tooltip_text = "%s\n%s" % [name_line, flavour]
-	button.pressed.connect(on_press)
+	button.pressed.connect(_guarded.bind(button, on_press))
 	_buttons[id] = button
 
 	var face := VBoxContainer.new()
@@ -858,7 +957,7 @@ func _add_treasure_card(id: String, name_line: String, body: String,
 	button.tooltip_text = "%s\n%s" % [name_line, body]
 	if ResourceLoader.exists(icon_path):
 		UiMetrics.row_icon(button, load(icon_path), 48)
-	button.pressed.connect(on_press)
+	button.pressed.connect(_guarded.bind(button, on_press))
 	_buttons[id] = button
 	box.add_child(button)
 
@@ -998,12 +1097,24 @@ func _fit_play_cards() -> void:
 		deal.tween_property(card, "scale", Vector2.ONE, CARD_DEAL_SECONDS) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		card.set_meta(&"juice_tween", deal)
+		if _guard_pending:
+			card.modulate = Color(Balance.CARD_TABLE_GUARD_DIM, Balance.CARD_TABLE_GUARD_DIM,
+				Balance.CARD_TABLE_GUARD_DIM, card.modulate.a)
 		if not card.mouse_entered.is_connected(_lift_card):
 			card.mouse_entered.connect(_lift_card.bind(card, true))
 			card.focus_entered.connect(_lift_card.bind(card, true))
 			card.mouse_exited.connect(_lift_card.bind(card, false))
 			card.focus_exited.connect(_lift_card.bind(card, false))
 		step += 1
+	# **The guard is measured from the deal**, the last card's flip being the
+	# last transition the table makes: a second after that, not after the panel
+	# appeared, which on a slow frame could be before the cards had landed.
+	if _guard_pending and step > 0:
+		_guard_pending = false
+		var dealt: float = float(step - 1) * CARD_ENTRANCE_STAGGER + CARD_DEAL_SECONDS
+		var wait: float = dealt + Balance.CARD_TABLE_CLICK_GUARD
+		_guard_until_msec = maxi(_guard_until_msec, Time.get_ticks_msec() + int(wait * 1000.0))
+		_arm_lift_after(wait, _guard_generation)
 
 
 ## Waits `frames` layout passes; false if the screen left the tree meanwhile.
@@ -1148,7 +1259,7 @@ func _homecoming_card(text: String, go_home: bool) -> Button:
 	button.custom_minimum_size = Vector2(CARD_WIDTH, 96.0)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	button.pressed.connect(_decide_homecoming.bind(go_home))
+	button.pressed.connect(_guarded.bind(button, _decide_homecoming.bind(go_home)))
 	return button
 
 
@@ -1712,7 +1823,7 @@ func _tool_button(text: String, on_press: Callable) -> Button:
 	button.text = text
 	button.custom_minimum_size = Vector2(0.0, 46.0)
 	button.add_theme_font_size_override("font_size", 18)
-	button.pressed.connect(on_press)
+	button.pressed.connect(_guarded.bind(button, on_press))
 	return button
 
 
@@ -1845,7 +1956,7 @@ func _add_option(road: RoadData, difficulty: RoadDifficultyData) -> void:
 	button.add_theme_font_size_override("font_size", 21)
 	button.add_theme_color_override("font_color", difficulty.card_colour)
 	IconKit.on_button(button, road.icon_id, 26)
-	button.pressed.connect(func() -> void: _choose(road.id, difficulty.id))
+	button.pressed.connect(_guarded.bind(button, func() -> void: _choose(road.id, difficulty.id)))
 	_buttons[road.id] = button
 	_offers.append(PackedStringArray([road.id, difficulty.id]))
 	box.add_child(button)

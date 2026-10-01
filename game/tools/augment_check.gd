@@ -15,7 +15,7 @@ var _checks: int = 0
 ## Every test stamps this as its last line, so one that aborts on a runtime
 ## error - which stops that function and nothing else - cannot pass by omission.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 22
+const EXPECTED_TESTS: int = 23
 var _run: Run = null
 var _field: Battlefield = null
 
@@ -56,6 +56,7 @@ func _ready() -> void:
 		await _test_at_once_holds_the_road()
 		await _test_the_strip_opens_a_draft()
 		await _test_a_banish_can_follow_a_banish()
+		await _test_a_table_ignores_a_press_too_soon()
 		await _test_leaving_one_behind_can_be_refused()
 		_test_the_new_keys_reach_their_readers()
 
@@ -989,6 +990,77 @@ func _test_a_banish_can_follow_a_banish() -> void:
 	_check(gone.size() == 2 and gone[0] != gone[1],
 		"two banishes in a row did not take two different cards (%s)" % [gone])
 	RunState.skip_augment()
+	screen.close_augment_draft()
+	for _frame: int in 3:
+		await get_tree().process_frame
+	_finished += 1
+
+
+## **A table does not take a press the moment it appears** (owner, 2026-10-01:
+## *"Protection to prevent accidentally picking an augment card when the screen
+## comes up in the middle of combat etc. It should protect from clicking for an
+## extra second until after everything has loaded and settled its
+## transitions"*). Through the card's own button, with the guard turned on by
+## its seam - headless gates press a card on the frame it appears, which is the
+## very thing the guard refuses. A press inside the guard takes nothing and is
+## shaken off; a press after it takes the card; a redraw the player made (a
+## reroll) is not guarded again; and Later, which decides nothing, is.
+func _test_a_table_ignores_a_press_too_soon() -> void:
+	var screen: CrossroadScreen = _run.crossroad_ui
+	CrossroadScreen.guard_in_tests = true
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.augment_queue = []
+	RunState.augment_offer = []
+	RunState.augment_rerolls = 3
+	var held_before: int = RunState.road_cards.size()
+	var levels_before: Dictionary = RunState.road_card_levels.duplicate()
+	RunState.queue_augment(Augments.SOURCE_RANK)
+	_run._enter_preparation(false)
+	for _frame: int in 4:
+		await get_tree().process_frame
+	_check(screen.is_augment_open(), "the draft did not open for the guard test")
+	_check(screen.is_guarded(), "a draft that has just appeared is not guarded")
+	var first: String = RunState.augment_offer[0] if not RunState.augment_offer.is_empty() else ""
+	var button: Button = screen._buttons.get(first, null) as Button
+	_check(button != null, "the guarded draft has no card to press")
+	if button != null:
+		button.pressed.emit()
+		for _frame: int in 3:
+			await get_tree().process_frame
+		_check(screen.is_augment_open() and RunState.augment_offer.has(first),
+			"a press the moment the draft appeared took %s" % first)
+		_check(RunState.road_cards.size() == held_before and RunState.road_card_levels == levels_before,
+			"a press inside the guard changed the hand")
+	# Through the guard: a deal's worth plus the guard, in wall seconds.
+	var until: int = Time.get_ticks_msec() + int((Balance.CARD_TABLE_CLICK_GUARD + 1.0) * 1000.0)
+	while screen.is_guarded() and Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+	_check(not screen.is_guarded(), "the guard never lifted")
+	_check(Balance.CARD_TABLE_CLICK_GUARD >= 1.0,
+		"the guard is %.2fs - the owner asked for a second" % Balance.CARD_TABLE_CLICK_GUARD)
+	# A reroll is the player's own redraw: no second guard.
+	var reroll: Button = null
+	for node: Node in screen.find_children("*", "Button", true, false):
+		if (node as Button).text.begins_with("Reroll"):
+			reroll = node as Button
+			break
+	if reroll != null and not reroll.disabled:
+		reroll.pressed.emit()
+		for _frame: int in 6:
+			await get_tree().process_frame
+		_check(not screen.is_guarded(), "a reroll the player pressed guarded the table again")
+	var now: String = RunState.augment_offer[0] if not RunState.augment_offer.is_empty() else ""
+	var pick: Button = screen._buttons.get(now, null) as Button
+	_check(pick != null, "no card to take after the guard")
+	if pick != null:
+		pick.pressed.emit()
+		for _frame: int in 6:
+			await get_tree().process_frame
+		_check(not RunState.augment_offer.has(now) or not screen.is_augment_open(),
+			"a press after the guard did not take %s" % now)
+	CrossroadScreen.guard_in_tests = false
+	RunState.augment_queue = []
+	RunState.augment_offer = []
 	screen.close_augment_draft()
 	for _frame: int in 3:
 		await get_tree().process_frame

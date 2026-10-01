@@ -594,6 +594,24 @@ const AUGMENT_FLOOR_MYTHIC: int = 3
 ## from the first photograph, where the crossroad's painting hid it). Dark
 ## enough that the cards' pale text holds against a sunlit field. [TUNE]
 const AUGMENT_DRAFT_SCRIM := Color(0.02, 0.03, 0.04, 0.68)
+## **A table of cards does not take a press the moment it appears** (owner,
+## 2026-10-01: *"Protection to prevent accidentally picking an augment card
+## when the screen comes up in the middle of combat etc. It should protect from
+## clicking for an extra second until after everything has loaded and settled
+## its transitions"*). A draft, a fork, a relic or a portent can arrive under a
+## mouse that was mid-swing; this is how long after the last card has finished
+## being dealt that a press still does nothing. Escape is not guarded - closing
+## is deliberate, and nothing is decided by it. [TUNE]
+const CARD_TABLE_CLICK_GUARD: float = 1.0
+## How dim a guarded card is, and how quickly it lights when the guard lifts.
+## The light-up is the table saying "now" without a word. [TUNE]
+const CARD_TABLE_GUARD_DIM: float = 0.62
+const CARD_TABLE_ARM_SECONDS: float = 0.2
+## How the table itself arrives: a fade and a settle from a little smaller,
+## so a draft opening over the fight reads as something laid down rather than
+## a screen that cut in. [TUNE]
+const CARD_TABLE_ARRIVE_SECONDS: float = 0.2
+const CARD_TABLE_ARRIVE_SCALE: float = 0.965
 ## **Each Warden's own hand in co-op** (per-Warden hands, 2026-09-26): the cards
 ## that act on one hero - damage, health, speed, dash, mana, spells, companion.
 ## Beside the party's board of `ROAD_CARD_HAND`, so a Warden in company holds a
