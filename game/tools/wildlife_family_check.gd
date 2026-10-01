@@ -55,6 +55,12 @@ func _ready() -> void:
 		var enemy := node as Enemy
 		if enemy != null and not enemy.is_camp_mob():
 			enemy.queue_free()
+	# **And nobody else arrives** (2026-10-01). Every animal a test needs is
+	# placed by the test; one the road brings mid-courtship is a fright the
+	# test did not author, and on a machine at thirty frames a second the road
+	# had brought nine of them by the time the pair was meant to be carrying.
+	# The hush the field already has for a frightening blow, held open.
+	_animals.set("_hush_left", 1.0e9)
 	await get_tree().process_frame
 
 	_test_the_species_are_authored_sensibly()
@@ -323,7 +329,9 @@ func _test_a_companion_may_court_and_may_be_refused() -> void:
 	if busy != null:
 		_check(not spirit.may_court(),
 			"a companion with a body in front of it is busy")
-		var paired: bool = await _watch_for_pair(spirit, 180)
+		# In seconds: 180 frames is three seconds on one machine and five on
+		# another, and a busy spirit is busy for as long as the body stands.
+		var paired: bool = await _watch_for_pair_for(spirit, 1.5)
 		_check(not paired, "and a busy companion courts nothing")
 		busy.queue_free()
 		await _let_the_swing_finish(spirit)
@@ -425,6 +433,13 @@ func _stand_a_companion(kind: WildlifeData, key: String) -> Companion:
 	spirit.setup(form, _field.hero, _field)
 	_field.add_child(spirit)
 	spirit.global_position = at + Vector2(24.0, 0.0)
+	# **A pool nothing here can empty** (2026-10-01): this gate asks whether a
+	# spirit courts, and the wolf the first section stands beside it to prove
+	# a wolf is no mate is also a wolf - given eight seconds on a slow runner
+	# it put the spirit down, and every later section measured a spirit
+	# recovering. A probe that dies mid-measurement reads as the feature broken.
+	spirit.set("_max_hp", 1.0e9)
+	spirit.set("_hp", 1.0e9)
 	# **The hero has to be holding it.** `Battlefield._process` is what tells
 	# the ecology who is standing here, and it reads `hero.spirit` - a
 	# companion added to the field and owned by nobody is a node the families
@@ -491,7 +506,12 @@ func _stand_a_body_near(at: Vector2) -> Enemy:
 		var breed := value as EnemyData
 		if breed == null or breed.category != EnemyData.Category.BREED:
 			continue
-		var body: Enemy = _field.spawn_enemy(breed, 0, 9999.0, 1.0, 0.0, false)
+		# **Harmless** (2026-10-01). It is here to be something in front of the
+		# spirit, and at full damage it was also something that could down
+		# the spirit before the courtship this section exists to watch - which
+		# v0.70.0's release met on CI's slower runner: "it is down, recovering
+		# for 35s", and the pair never formed.
+		var body: Enemy = _field.spawn_enemy(breed, 0, 9999.0, 0.001, 0.0, false)
 		if body == null:
 			continue
 		body.global_position = at + Vector2(40.0, 0.0)
@@ -581,9 +601,25 @@ func _test_a_pair_courts_through_its_stages_and_bears() -> void:
 	var ear: Callable = func(_id: String, count: int, _at: Vector2) -> void:
 		litters.append(count)
 	EventBus.wildlife_born.connect(ear)
+	var father: Dictionary = pair[1]
+	var was: int = WildlifeFamilies.Court.NONE
 	for _frame: int in 6000:
 		await get_tree().process_frame
-		reached[int(mother.get("court", 0))] = true
+		var now: int = int(mother.get("court", 0))
+		reached[now] = true
+		# **A refusal is retried, as the road retries it** (2026-10-01). The
+		# appraisal is a roll the design caps below certain, and how many draws
+		# come before it depends on how long the frames are: on a machine at
+		# thirty frames a second the first roll refused, the retry clock ran,
+		# and arrivals filling the field interrupted every second try - so the
+		# gate measured the dice, not the courtship. A pair that falls back to
+		# nothing is settled again where it stands and asked again.
+		if now == WildlifeFamilies.Court.NONE and was != WildlifeFamilies.Court.NONE:
+			for one: Dictionary in [mother, father]:
+				one["state"] = Wildlife.State.SETTLED
+				one["goal"] = (one["sprite"] as Sprite2D).global_position
+				one["court_cooldown"] = 0.0
+		was = now
 		# Carrying: the clock is wound rather than waited out. A deer's
 		# gestation is forty seconds of road, which is the design and is not
 		# something a gate should sit through - what is being tested is that
@@ -656,8 +692,17 @@ func _test_births_are_budgeted_and_counted() -> void:
 	var cub: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.BABY})
 	_check(not cub.is_empty(), "the budget is checked by the families, not by the spawner")
 	# The budget is what `_give_birth` respects; drive it through a real pair.
-	_families.births_this_act = Balance.WILDLIFE_BIRTHS_PER_ACT
+	#
+	# **Spent after the pair is stood, never before** (2026-10-01).
+	# `_stand_a_pair` clears the field, and clearing resets the act's births to
+	# nothing - so this spent the budget and then refunded it, and passed only
+	# because 2,200 headless frames ran out before a pair could mate. On a
+	# machine at thirty frames a second there was time, the deer bore young,
+	# and the gate read its own harness as the rule broken. It waits in game
+	# seconds now, with the gestation wound as the pair test winds it, so a
+	# budget that is ignored is a birth inside the window.
 	var pair: Array[Dictionary] = await _stand_a_pair("deer")
+	_families.births_this_act = Balance.WILDLIFE_BIRTHS_PER_ACT
 	if pair.size() == 2:
 		var mother: Dictionary = pair[0]
 		# Counted off the birth itself rather than off the population, which an
@@ -667,8 +712,15 @@ func _test_births_are_budgeted_and_counted() -> void:
 		var ear: Callable = func(_id: String, count: int, _at: Vector2) -> void:
 			litters.append(count)
 		EventBus.wildlife_born.connect(ear)
-		for _frame: int in 2200:
+		var waited: float = 0.0
+		var window: float = Balance.WILDLIFE_COURT_ASSESS_SECONDS \
+			+ Balance.WILDLIFE_MATING_SECONDS + 6.0
+		while waited < window:
 			await get_tree().process_frame
+			waited += get_process_delta_time()
+			if int(mother.get("court", 0)) == WildlifeFamilies.Court.OUTCOME \
+					and float(mother.get("gestation", 0.0)) > 0.1:
+				mother["gestation"] = 0.05
 			if not litters.is_empty():
 				break
 		EventBus.wildlife_born.disconnect(ear)

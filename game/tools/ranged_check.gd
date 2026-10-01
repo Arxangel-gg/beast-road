@@ -32,7 +32,8 @@ class ArrowWildlife extends Wildlife:
 		for body: Node2D in bodies:
 			found.append({"body": body, "at": body.global_position})
 		return found
-	func wound_sprite(body: Node2D, _damage: float) -> bool:
+	func wound_sprite(body: Node2D, _damage: float, _by_player: bool = true,
+			_cause: String = "earth") -> bool:
 		hits[body.get_instance_id()] = int(hits.get(body.get_instance_id(), 0)) + 1
 		return true
 
