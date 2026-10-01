@@ -29,6 +29,13 @@ var text: String = ""
 ## all need current/max values and percentages displayed within their progress
 ## bars"). Drawn at the right end, as the name is at the left.
 var value_text: String = ""
+## **What a ward adds, said after the figures** (owner, 2026-10-01: *"There's no
+## indication for how much of the shielded part of the HP is provided extra to
+## the player"*). The bar draws the ward as a bright segment after the health,
+## which says a ward is there and not how big; this says the number, in the
+## ward's own colour, so the segment and the figure are read as one thing.
+var extra_text: String = ""
+var extra_tint: Color = Balance.WARD_NUMBER_COLOUR
 var font_size: int = 11
 var inset: float = 5.0
 var tint: Color = Color(0.96, 0.94, 0.90, 0.95)
@@ -77,11 +84,21 @@ func _draw_measured() -> void:
 	if not value_text.is_empty():
 		var wide: float = font.get_string_size(value_text, HORIZONTAL_ALIGNMENT_LEFT,
 			-1.0, font_size).x
-		var right := Vector2(size.x - inset - wide, at.y)
+		var extra_wide: float = 0.0
+		if not extra_text.is_empty():
+			extra_wide = font.get_string_size(extra_text, HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0, font_size).x + float(font_size) * 0.45
+		var right := Vector2(size.x - inset - wide - extra_wide, at.y)
 		draw_string_outline(font, right, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
 			font_size, 4, outline)
 		draw_string(font, right, value_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
 			font_size, tint)
+		if not extra_text.is_empty():
+			var after := Vector2(size.x - inset - extra_wide + float(font_size) * 0.45, at.y)
+			draw_string_outline(font, after, extra_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+				font_size, 4, outline)
+			draw_string(font, after, extra_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+				font_size, extra_tint)
 
 
 ## `FrameProfile` bucket "d_bar_name": the real work is `_draw_measured` above.

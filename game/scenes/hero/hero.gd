@@ -2838,9 +2838,48 @@ func _on_health_changed(current: float, maximum: float) -> void:
 ## The ward, for the HUD's bar. This machine's own Warden only, for the
 ## reason above.
 func _on_shield_changed(remaining: float) -> void:
+	_note_ward(remaining)
 	if not is_local_player() or health == null:
 		return
 	EventBus.hero_shield_changed.emit(remaining, health.max_hp)
+
+
+## **A ward said where it lands** (owner, 2026-10-01). A ward granted showed
+## only as the bar's segment growing, so a Holy Aegis, an Arsenal ward and a
+## cooked frost root all arrived in silence. What a ward *adds* rises over the
+## Warden in the ward's own colour; what a blow takes off it is the blow's own
+## number, as it always was.
+##
+## Gathered over `WARD_POP_SECONDS` and said once, because some wards arrive in
+## steps a frame apart and a "+3" every frame is noise rather than news. Every
+## Warden's, since the number is a picture of their body; nothing reads it.
+var _ward_last: float = 0.0
+var _ward_owed: float = 0.0
+var _ward_clock: float = 0.0
+
+
+func _note_ward(remaining: float) -> void:
+	if remaining > _ward_last + 0.5:
+		_ward_owed += remaining - _ward_last
+	_ward_last = maxf(remaining, 0.0)
+
+
+func _tick_ward_pop(delta: float) -> void:
+	if _ward_owed <= 0.0:
+		_ward_clock = 0.0
+		return
+	_ward_clock += delta
+	if _ward_clock < Balance.WARD_POP_SECONDS:
+		return
+	if _ward_owed >= 1.0:
+		Vfx.ward_number(combat_origin(), _ward_owed)
+	_ward_owed = 0.0
+	_ward_clock = 0.0
+
+
+## What has been gathered and not yet said, for the gate.
+func ward_owed() -> float:
+	return _ward_owed
 
 
 func _on_died(at: Vector2) -> void:
@@ -3616,6 +3655,7 @@ func _process(delta: float) -> void:
 	var part: int = Time.get_ticks_usec() if FrameProfile.enabled else 0
 	_place_bars(delta)
 	_update_aim_guide()
+	_tick_ward_pop(delta)
 	_profile_part(&"h_bars", part)
 
 

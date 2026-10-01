@@ -590,6 +590,22 @@ func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> voi
 	_ink_flat.number(at, str(int(round(amount))), colour, big)
 
 
+## What a ward added, over the Warden it landed on (2026-10-01). A number like a
+## blow's, in the ward's own colour and signed, so it cannot be read as damage.
+## The count of wards said, for the gate.
+var wards_said: int = 0
+
+
+func ward_number(at: Vector2, amount: float) -> void:
+	if amount < 1.0:
+		return
+	wards_said += 1
+	if world == null or _ink_flat == null:
+		return
+	_ink_flat.number(at + Vector2(0.0, -18.0), "+%d" % int(round(amount)),
+		Balance.WARD_NUMBER_COLOUR, false)
+
+
 ## A short bright cone where a tower fired from, plus the element's own flash.
 ##
 ## The third beat of the shot, and the one that had no art. A tower firing is

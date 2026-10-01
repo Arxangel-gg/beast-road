@@ -78,6 +78,10 @@ func _ready() -> void:
 	EventBus.phase_changed.emit(int(RunState.Phase.ROAD_BATTLE), int(RunState.Phase.PREPARATION))
 	# The command panel twice (2026-09-25): down to its faded meter while no
 	# order is affordable, and open on the one order that is.
+	# A ward on the Warden (2026-10-01), so the HP bar's "+N" is in the
+	# picture: the widest the bar's own figures get.
+	if _run.battlefield != null and _run.battlefield.hero != null:
+		_run.battlefield.hero.health.add_shield(180.0)
 	RunState.command = 10.0
 	EventBus.command_changed.emit(10.0, Balance.COMMAND_MAX)
 	await _settle(0.6)

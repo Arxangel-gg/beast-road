@@ -210,6 +210,24 @@ func _test_ward_and_notches(hero: Hero) -> void:
 		"a blow under the ward should spend the ward and not the health")
 	hero.health.revive(1.0)
 	_check(is_zero_approx(bar.shield_share()), "a revive clears the ward and the bar did not")
+	# **A ward is said where it lands** (2026-10-01): two wards inside one
+	# window are one number, said once the window closes; a blow on a ward says
+	# nothing of its own.
+	hero._tick_ward_pop(Balance.WARD_POP_SECONDS + 1.0)
+	var said_before: int = Vfx.wards_said
+	hero.health.add_shield(30.0 / hero.health.shield_scale)
+	hero.health.add_shield(20.0 / hero.health.shield_scale)
+	_check(absf(hero.ward_owed() - 50.0) < 0.5,
+		"two wards in one window should gather to 50, they gathered %.1f" % hero.ward_owed())
+	hero._tick_ward_pop(Balance.WARD_POP_SECONDS * 0.4)
+	_check(Vfx.wards_said == said_before, "a ward was said before its window closed")
+	hero._tick_ward_pop(Balance.WARD_POP_SECONDS)
+	_check(Vfx.wards_said == said_before + 1,
+		"two wards in one window should be said once, they were said %d times" % (Vfx.wards_said - said_before))
+	hero.health.take_damage(20.0, Vector2.ZERO)
+	hero._tick_ward_pop(Balance.WARD_POP_SECONDS * 2.0)
+	_check(Vfx.wards_said == said_before + 1, "a blow on a ward was said as a ward")
+	hero.health.revive(1.0)
 	# Notches: a hundred a notch while that fits, wider steps when it would not.
 	_check(is_equal_approx(HealthBar.segment_step(400.0, 10), 100.0), "400 health notches every 100")
 	_check(is_equal_approx(HealthBar.segment_step(2000.0, 10), 250.0), "2000 health over ten notches steps to 250")

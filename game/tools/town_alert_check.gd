@@ -25,8 +25,44 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	await _test_the_wall_and_the_sanctuary()
 	await _test_a_wave_says_what_it_paid()
+	await _test_the_ward_is_said_on_the_bar()
 	MetaState.resume_saves()
 	_finish()
+
+
+## **The HP bar says how big the ward is** (owner, 2026-10-01: *"There's no
+## indication for how much of the shielded part of the HP is provided extra to
+## the player"*). Driven through the Warden's own health, so the figure is the
+## one the ward signal carried and not one the gate set: a ward gives "+N" in
+## the ward's colour after the health's figures, a blow on it lowers N, and a
+## ward spent to nothing says nothing.
+func _test_the_ward_is_said_on_the_bar() -> void:
+	RunState.reset()
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var hud: HUD = run.hud
+	var hero: Hero = run.battlefield.hero if run.battlefield != null else null
+	if not _check(hud != null and hero != null, "the run stands up a HUD and a Warden"):
+		run.queue_free()
+		return
+	run.process_mode = Node.PROCESS_MODE_DISABLED
+	_check(hud.hero_ward_said() == "", "an unwarded Warden's bar says a ward: '%s'" % hud.hero_ward_said())
+	hero.health.add_shield(60.0 / hero.health.shield_scale)
+	_check(hud.hero_ward_said() == "+60", "a ward of 60 reads '%s' on the bar" % hud.hero_ward_said())
+	hero.health.take_damage(25.0, Vector2.ZERO)
+	var left: float = hero.health.shield()
+	_check(left < 59.0 and hud.hero_ward_said() == "+%d" % int(floor(left)),
+		"a ward of 60 struck down to %.1f reads '%s'" % [left, hud.hero_ward_said()])
+	hero.health.floor_hp = hero.health.max_hp * 0.5
+	while hero.health.shield() > 0.0:
+		hero.health.take_damage(10.0, Vector2.ZERO)
+	_check(hud.hero_ward_said() == "", "a ward spent to nothing still reads '%s'" % hud.hero_ward_said())
+	hero.health.floor_hp = 0.0
+	run.queue_free()
+	for _frame: int in 4:
+		await get_tree().process_frame
 
 
 ## **A held wave says what it paid** (2026-09-30), on the same banner, from

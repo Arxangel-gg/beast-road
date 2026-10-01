@@ -11367,6 +11367,13 @@ const HEALTH_BAR_RANK_TICKS: int = 4
 ## is worth reading too. [TUNE]
 const HEALTH_BAR_SHIELD_COLOUR: Color = Color(0.9, 0.93, 0.97, 0.96)
 const HEALTH_BAR_SHIELD_EDGE: Color = Color(1.0, 1.0, 1.0, 1.0)
+## A ward's own number, over the Warden and after the HP bar's figures
+## (2026-10-01): a cold blue rather than the segment's near-white, because the
+## figure is drawn on that segment and has to read against it, and never green,
+## so it is never read as a heal.
+const WARD_NUMBER_COLOUR: Color = Color(0.5, 0.82, 1.0, 1.0)
+## How long the gains of a ward are gathered before they are said as one number.
+const WARD_POP_SECONDS: float = 0.25
 ## **A notch a hundred health, a heavy notch a thousand**, so how much a
 ## Warden has is read off the bar rather than off a tooltip. The step widens
 ## along this list when a pool would need more notches than the bar can show

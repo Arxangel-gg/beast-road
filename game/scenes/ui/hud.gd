@@ -6700,6 +6700,35 @@ func _show_hero_pool() -> void:
 	if _hero_ward_now >= 1.0:
 		tip += "  ·  Ward %d" % int(floor(_hero_ward_now))
 	_hero_bar.tooltip_text = tip
+	_say_the_ward()
+
+
+## The ward's figure on the bar, after the health's own (owner, 2026-10-01).
+## The tooltip said it to a mouse that happened to rest there and to nobody
+## else; the bar is what is read in a fight.
+func _say_the_ward() -> void:
+	if _hero_bar == null:
+		return
+	for child: Node in _hero_bar.get_children():
+		var mark := child as BarName
+		if mark == null:
+			continue
+		var said: String = "+%d" % int(floor(_hero_ward_now)) if _hero_ward_now >= 1.0 else ""
+		if said != mark.extra_text:
+			mark.extra_text = said
+			mark.queue_redraw()
+		return
+
+
+## What the HP bar says the ward is, for the gate.
+func hero_ward_said() -> String:
+	if _hero_bar == null:
+		return ""
+	for child: Node in _hero_bar.get_children():
+		var mark := child as BarName
+		if mark != null:
+			return mark.extra_text
+	return ""
 
 
 ## The colour a health bar is at this share: cyan whole, amber wounded, red
