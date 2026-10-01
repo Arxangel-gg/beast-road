@@ -184,6 +184,18 @@ static func build() -> Dictionary:
 	theme.set_stylebox("slider", "HSlider", track)
 	theme.set_stylebox("grabber_area", "HSlider", filled)
 	theme.set_stylebox("grabber_area_highlight", "HSlider", filled)
+	# **The vertical slider wears the same rail** (2026-10-01). The HUD's zoom
+	# ladder is the only one, and with nothing set it drew Godot's own grey bar,
+	# full-bleed to its rect - so its filled end ran into the button under it
+	# (owner: *"Padding so that sliders do not overlap UI elements such as
+	# buttons"*). Same art, its thickness in the horizontal margins instead.
+	var track_v: StyleBox = _frame("ui_bar_back", 0, 0, 0, 0, problems)
+	_pad(track_v, 5, 5, 0, 0)
+	var filled_v: StyleBox = _frame("ui_bar_fill", 0, 0, 0, 0, problems)
+	_pad(filled_v, 5, 5, 0, 0)
+	theme.set_stylebox("slider", "VSlider", track_v)
+	theme.set_stylebox("grabber_area", "VSlider", filled_v)
+	theme.set_stylebox("grabber_area_highlight", "VSlider", filled_v)
 
 	# --- Text ----------------------------------------------------------------
 	theme.set_color("font_color", "Label", INK)

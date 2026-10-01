@@ -674,7 +674,19 @@ func _build_zoom(into: Control) -> void:
 	_zoom_slider.tooltip_text = "How close the Hold is drawn"
 	_zoom_slider.value_changed.connect(func(level: float) -> void:
 		set_zoom(level))
-	row.add_child(_zoom_slider)
+	# **Clear of the buttons either side, and on their middle line** (owner,
+	# 2026-10-01: *"Padding so that sliders do not overlap UI elements such as
+	# buttons"*). It ran from one button's edge to the other's and sat on the
+	# row's top, so its ends met the "-" and the "+" and it read as part of them.
+	_zoom_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var pad := MarginContainer.new()
+	pad.name = "ZoomPad"
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pad.add_theme_constant_override("margin_left", 12)
+	pad.add_theme_constant_override("margin_right", 12)
+	pad.add_child(_zoom_slider)
+	row.add_child(pad)
 
 	var closer := Button.new()
 	closer.text = "+"

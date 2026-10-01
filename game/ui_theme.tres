@@ -313,6 +313,20 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fxvuh"]
+content_margin_left = 5.0
+content_margin_top = 0.0
+content_margin_right = 5.0
+content_margin_bottom = 0.0
+texture = ExtResource("3_5y56j")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rlpa7"]
+content_margin_left = 5.0
+content_margin_top = 0.0
+content_margin_right = 5.0
+content_margin_bottom = 0.0
+texture = ExtResource("4_g4wr8")
+
 [resource]
 default_font = SubResource("FontVariation_jq0ff")
 default_font_size = 18
@@ -369,3 +383,6 @@ VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_c0vnd")
 VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_2bn35")
 VScrollBar/styles/scroll = SubResource("StyleBoxFlat_71itw")
 VScrollBar/styles/scroll_focus = SubResource("StyleBoxFlat_aarqx")
+VSlider/styles/grabber_area = SubResource("StyleBoxTexture_fxvuh")
+VSlider/styles/grabber_area_highlight = SubResource("StyleBoxTexture_fxvuh")
+VSlider/styles/slider = SubResource("StyleBoxTexture_rlpa7")

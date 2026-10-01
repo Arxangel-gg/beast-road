@@ -194,6 +194,9 @@ const BOTTOM_BAND: float = SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN
 ## should not have to learn that they are different sizes to know they are
 ## different things.
 const NAV_ICON_SIZE: float = 66.0
+## Clear space above and below the zoom rail, so neither its grabber nor its
+## filled end ever reaches the buttons it stands between.
+const ZOOM_SLIDER_PAD: float = 10.0
 const NAV_ICON_ART: int = 46
 const NAV_TOUCH_ICON_SIZE: float = 92.0
 const NAV_TOUCH_ICON_ART: int = 72
@@ -1363,7 +1366,17 @@ func _build_zoom_slider(bar: Container) -> void:
 		if _zoom_following:
 			return
 		zoom_set.emit(v))
-	holder.add_child(_zoom_slider)
+	# **Room either side of the rail** (owner, 2026-10-01: *"Padding so that
+	# sliders do not overlap UI elements such as buttons"*). The rail ran the
+	# full height of its cell, so its filled end met the button under it and its
+	# grabber the one above at either end of its travel.
+	var pad := MarginContainer.new()
+	pad.name = "ZoomPad"
+	pad.mouse_filter = Control.MOUSE_FILTER_PASS
+	pad.add_theme_constant_override("margin_top", int(ZOOM_SLIDER_PAD))
+	pad.add_theme_constant_override("margin_bottom", int(ZOOM_SLIDER_PAD))
+	pad.add_child(_zoom_slider)
+	holder.add_child(pad)
 	bar.add_child(holder)
 	_size_zoom_slider()
 
@@ -1379,7 +1392,10 @@ func _size_zoom_slider() -> void:
 	if _zoom_slider == null:
 		return
 	var side: float = NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE
-	_zoom_slider.custom_minimum_size = Vector2(side, side * 2.2)
+	# The padding comes out of the slider rather than adding to the column, so
+	# the column is exactly as tall as it was and a landscape phone keeps its
+	# pause button.
+	_zoom_slider.custom_minimum_size = Vector2(side, side * 2.2 - ZOOM_SLIDER_PAD * 2.0)
 	_zoom_slider.set_meta(UiMetrics.SELF_SIZED, true)
 
 
