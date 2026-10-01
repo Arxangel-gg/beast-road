@@ -78,6 +78,19 @@ func _ready() -> void:
 
 # --- Building ------------------------------------------------------------------
 
+## **The screen's own buttons - the arms and the way out - sized here for the
+## screen it is on** (owner, 2026-10-01: *"ensure all of the UIs are perfect on
+## mobile"*). Inflated to a thumb's full height they were taller than a phone
+## held sideways, and Done was drawn below it.
+var _chrome: Array[Control] = []
+var _sub: Label = null
+
+
+func _keep_sized(control: Control) -> void:
+	control.set_meta(UiMetrics.SELF_SIZED, true)
+	_chrome.append(control)
+
+
 func _build() -> void:
 	var dim := ColorRect.new()
 	dim.name = "Dim"
@@ -119,6 +132,7 @@ func _build() -> void:
 	sub.add_theme_color_override("font_color", QUIET)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(sub)
+	_sub = sub
 
 	var tabs := HBoxContainer.new()
 	tabs.name = "Arms"
@@ -134,6 +148,7 @@ func _build() -> void:
 		tab.pressed.connect(_show_arm.bind(arm))
 		tabs.add_child(tab)
 		_tabs.append(tab)
+		_keep_sized(tab)
 
 	_split = BoxContainer.new()
 	_split.name = "Split"
@@ -182,6 +197,7 @@ func _build() -> void:
 	_reset_button.custom_minimum_size = Vector2(0.0, 44.0)
 	_reset_button.pressed.connect(_reset)
 	actions.add_child(_reset_button)
+	_keep_sized(_reset_button)
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_child(gap)
@@ -191,12 +207,16 @@ func _build() -> void:
 	_close_button.custom_minimum_size = Vector2(140.0, 44.0)
 	_close_button.pressed.connect(close)
 	actions.add_child(_close_button)
+	_keep_sized(_close_button)
 	_refit()
 
 
 func _node_button(node: DisciplineNodeData) -> TextureButton:
 	var button := TextureButton.new()
 	button.name = "Node_%s" % node.id
+	# Sized by the map's own layout, never inflated for a thumb: a node a
+	# thumb's height tall overlapped every node under it on a phone.
+	button.set_meta(UiMetrics.SELF_SIZED, true)
 	button.ignore_texture_size = true
 	button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	button.focus_mode = Control.FOCUS_ALL
@@ -316,14 +336,30 @@ func _refit() -> void:
 	if _panel == null:
 		return
 	var screen: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-	var wide: float = minf(screen.x * 0.96, 1280.0)
-	var tall: float = minf(screen.y * 0.94, 820.0)
-	_panel.custom_minimum_size = Vector2(wide, tall)
 	# Side by side where there is width for both; stacked on an upright screen.
 	_split.vertical = screen.x < screen.y * 1.1
+	var wide: float = minf(screen.x * 0.96, 1280.0)
+	# An upright screen gives the tree its height, as it does the Glass.
+	var cap: float = maxf(820.0, screen.x * Balance.UI_UPRIGHT_PANEL_ASPECT) if _split.vertical else 820.0
+	var tall: float = minf(screen.y * 0.94, cap)
+	_panel.custom_minimum_size = Vector2(wide, tall)
+	# A short screen gives up the explanation and sizes the arms and the way
+	# out to fit, as the Glass does.
+	var short: bool = screen.y < Balance.UI_GLASS_SHORT_SCREEN
+	var touch: bool = TouchInput.is_showing()
+	var button_height: float = Balance.UI_GLASS_BUTTON_DESKTOP
+	if touch:
+		button_height = Balance.UI_GLASS_BUTTON_SHORT if short else Balance.UI_GLASS_BUTTON_TOUCH
+	for control: Control in _chrome:
+		control.custom_minimum_size.y = button_height
+	if _sub != null:
+		_sub.visible = not short
+	# **The map takes what is left** - the split fills the panel - rather than
+	# demanding a floor of its own: a floor worked out against a mouse's
+	# buttons put Done below a touch screen's edge once the buttons grew.
 	var map_wide: float = wide - 400.0 if not _split.vertical else wide - 40.0
-	var map_tall: float = tall - 240.0 if not _split.vertical else tall * 0.5
-	_map.custom_minimum_size = Vector2(maxf(map_wide, 320.0), maxf(map_tall, 260.0))
+	var map_tall: float = 160.0 if not _split.vertical else tall * 0.42
+	_map.custom_minimum_size = Vector2(maxf(map_wide, 320.0), map_tall)
 
 
 # --- The map -------------------------------------------------------------------
@@ -380,7 +416,16 @@ func _layout_map() -> void:
 	# is fitted to that height.
 	var root_wide: float = minf(_map.size.x * 0.15, 150.0)
 	var room: float = _map.size.x - root_wide
-	_node_size = clampf(room / (float(clusters) * CLUSTER_WIDTH), 26.0, 54.0)
+	# **As large as the width allows and no taller than the height does**: a
+	# column of rows taller than the map ran its last nodes under each other.
+	var deepest: float = 0.0
+	for ring: int in range(1, clusters + 1):
+		var depth: float = 0.0
+		for node: DisciplineNodeData in _column(_arm, ring):
+			depth += ROW_HEIGHT if node.kind == DisciplineNodeData.Kind.PASSIVE else FORK_RISE * 2.0 + 1.1
+		deepest = maxf(deepest, depth)
+	var by_height: float = (_map.size.y - HEADER_HEIGHT - 8.0) / maxf(deepest, 1.0)
+	_node_size = clampf(minf(room / (float(clusters) * CLUSTER_WIDTH), by_height), 18.0, 54.0)
 	var column_wide: float = room / float(clusters)
 	var stage_tall: float = clampf((_map.size.y - HEADER_HEIGHT) * 0.72, 120.0, root_wide * 2.2)
 	_stage.size = Vector2(root_wide * 0.92, stage_tall)

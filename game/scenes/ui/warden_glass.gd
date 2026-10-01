@@ -65,6 +65,14 @@ var _hair_materials: Array[ShaderMaterial] = []
 var _face_materials: Array[ShaderMaterial] = []
 var _pose_buttons: Array[Button] = []
 var _gear_toggle: CheckButton
+## **The Glass's own buttons - turning, posing and the way out** - sized by the
+## Glass for the screen it is on rather than inflated to a thumb's full height
+## (owner, 2026-10-01: *"the Warden's glass on mobile does not properly fit the
+## UI so I cannot create my character on a new install to even play"*). On a
+## landscape phone six thumb-sized rows were taller than the screen, and Done -
+## the only way past this screen on a new account - was drawn below it.
+var _chrome: Array[Control] = []
+var _sub: Label
 
 var _pose: String = "idle"
 var _show_gear: bool = true
@@ -153,6 +161,7 @@ func _build() -> void:
 	sub.add_theme_color_override("font_color", QUIET)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(sub)
+	_sub = sub
 
 	_split = BoxContainer.new()
 	_split.name = "Split"
@@ -185,6 +194,7 @@ func _build() -> void:
 	surprise.custom_minimum_size = Vector2(0.0, 44.0)
 	surprise.pressed.connect(_surprise)
 	actions.add_child(surprise)
+	_keep_sized(surprise)
 	var plain := Button.new()
 	plain.name = "Plain"
 	plain.text = "As painted"
@@ -192,6 +202,7 @@ func _build() -> void:
 	plain.custom_minimum_size = Vector2(0.0, 44.0)
 	plain.pressed.connect(_as_painted)
 	actions.add_child(plain)
+	_keep_sized(plain)
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_child(gap)
@@ -201,7 +212,14 @@ func _build() -> void:
 	_close_button.custom_minimum_size = Vector2(140.0, 44.0)
 	_close_button.pressed.connect(close)
 	actions.add_child(_close_button)
+	_keep_sized(_close_button)
 	_refit()
+
+
+## One of the Glass's own buttons: sized here, by `_refit`, for the screen.
+func _keep_sized(control: Control) -> void:
+	control.set_meta(UiMetrics.SELF_SIZED, true)
+	_chrome.append(control)
 
 
 func _build_preview() -> Control:
@@ -232,6 +250,7 @@ func _build_preview() -> Control:
 	left.custom_minimum_size = Vector2(44.0, 36.0)
 	left.pressed.connect(_turn.bind(-1))
 	turns.add_child(left)
+	_keep_sized(left)
 	for index: int in POSES.size():
 		var pose := Button.new()
 		pose.name = "Pose%s" % POSE_NAMES[index]
@@ -240,6 +259,7 @@ func _build_preview() -> Control:
 		pose.custom_minimum_size = Vector2(0.0, 36.0)
 		pose.pressed.connect(_set_pose.bind(POSES[index]))
 		turns.add_child(pose)
+		_keep_sized(pose)
 		_pose_buttons.append(pose)
 	var right := Button.new()
 	right.name = "TurnRight"
@@ -248,6 +268,7 @@ func _build_preview() -> Control:
 	right.custom_minimum_size = Vector2(44.0, 36.0)
 	right.pressed.connect(_turn.bind(1))
 	turns.add_child(right)
+	_keep_sized(right)
 	# **Whether the pedestal turns on its own** (owner, 2026-09-30: *"Toggle
 	# button for the player avatar spinning"*). Remembered, because somebody
 	# who wants to study one side of a face wants it still every time; the
@@ -267,6 +288,7 @@ func _build_preview() -> Control:
 		MetaState.save_game())
 	spin.text = "Turning" if spin.button_pressed else "Still"
 	turns.add_child(spin)
+	_keep_sized(spin)
 	_gear_toggle = CheckButton.new()
 	_gear_toggle.name = "ShowGear"
 	_gear_toggle.text = "Wearing my gear"
@@ -275,6 +297,7 @@ func _build_preview() -> Control:
 		_show_gear = on
 		_refresh_preview())
 	column.add_child(_gear_toggle)
+	_keep_sized(_gear_toggle)
 	return frame
 
 
@@ -609,14 +632,34 @@ func _refit() -> void:
 	if _panel == null:
 		return
 	var screen: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-	var wide: float = minf(screen.x * 0.94, 1100.0)
-	var tall: float = minf(screen.y * 0.92, 720.0)
-	_panel.custom_minimum_size = Vector2(wide, tall)
 	# Side by side where there is width for both; stacked on an upright screen,
 	# where a preview beside the pickers leaves neither room to be read.
 	_split.vertical = screen.x < screen.y * 1.1
-	_stage.custom_minimum_size = Vector2(minf(320.0, wide * 0.42), minf(360.0, tall * 0.5)) \
-		if not _split.vertical else Vector2(0.0, minf(300.0, tall * 0.38))
+	var wide: float = minf(screen.x * 0.96, 1100.0)
+	# **An upright screen gives the Glass its height.** Held to 720 like a
+	# desktop's, an upright phone's Glass was a card in the middle of the glass
+	# with the Warden on it and no room left for a single choice.
+	var cap: float = maxf(720.0, screen.x * Balance.UI_UPRIGHT_PANEL_ASPECT) if _split.vertical else 720.0
+	var tall: float = minf(screen.y * 0.94, cap)
+	_panel.custom_minimum_size = Vector2(wide, tall)
+	# **Short screens give up the sub-heading and size the Glass's own buttons
+	# to fit**, a thumb's height where there is room for one and a compact
+	# one where there is not; the choices themselves keep their full thumb
+	# size inside their scroll, which is where a thumb spends its time here.
+	var short: bool = screen.y < Balance.UI_GLASS_SHORT_SCREEN
+	var touch: bool = TouchInput.is_showing()
+	var button_height: float = Balance.UI_GLASS_BUTTON_DESKTOP
+	if touch:
+		button_height = Balance.UI_GLASS_BUTTON_SHORT if short else Balance.UI_GLASS_BUTTON_TOUCH
+	for control: Control in _chrome:
+		control.custom_minimum_size.y = button_height
+	if _sub != null:
+		_sub.visible = not short
+	# The Warden takes what is left rather than demanding a floor of its own.
+	if not _split.vertical:
+		_stage.custom_minimum_size = Vector2(minf(320.0, wide * 0.4), 0.0 if short else minf(360.0, tall * 0.5))
+	else:
+		_stage.custom_minimum_size = Vector2(0.0, minf(300.0, tall * 0.32))
 
 
 # --- What a press does ---------------------------------------------------------

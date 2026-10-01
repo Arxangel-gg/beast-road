@@ -330,6 +330,11 @@ jobs:
           # scope rail 1490px tall or an ability slot stretched to 356. Both ran
           # off a landscape screen for months while this gate said PASS.
           check "layout (phone landscape)" --headless --path game res://tools/layout_check.tscn   -- --touch=on --viewport=1280x592
+          # Every screen opened outside a road fits a phone, upright and sideways, on
+          # the canvas the menu hands it (owner, 2026-10-01: the Glass did not fit,
+          # and a new account could not make its Warden).
+          check "mobile fit (phone)" --headless --path game res://tools/mobile_fit_check.tscn -- --viewport=430x932
+          check "mobile fit (phone landscape)" --headless --path game res://tools/mobile_fit_check.tscn -- --viewport=1280x592
           # 4K and ultrawide, since 2026-09-21: the 4K shape found the currency icons
           # stretched under the boss line on the runs where the weather label
           # carried its temperature. Desktop shapes nobody had photographed.

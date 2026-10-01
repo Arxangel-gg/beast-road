@@ -32,6 +32,11 @@ var _active: PackedInt32Array = PackedInt32Array()
 var _in_active: PackedByteArray = PackedByteArray()
 var _image: Image = null
 var _texture: ImageTexture = null
+## **The texture's bytes, kept as the sheet changes** - two a cell, depth and
+## freshness - so an upload is one native copy rather than a pixel at a time
+## for every cell that holds blood: after a long Brutal act that is thousands,
+## and a GDScript `set_pixel` each was a hitch four times a second.
+var _bytes: PackedByteArray = PackedByteArray()
 var _dirty: bool = false
 var _sim_left: float = 0.0
 var _draw_left: float = 0.0
@@ -54,6 +59,8 @@ func _init(half_extent: float = 0.0) -> void:
 	_fresh.fill(0.0)
 	_in_active.resize(_across * _across)
 	_in_active.fill(0)
+	_bytes.resize(_across * _across * 2)
+	_bytes.fill(0)
 
 
 func _ready() -> void:
@@ -127,6 +134,7 @@ func pour(at: Vector2, volume: float, radius: float) -> void:
 		_depth[index] = minf(_depth[index] + added, Balance.BLOOD_POOL_MAX)
 		_fresh[index] = 1.0
 		_activate(index)
+		_write(index)
 		_total += added
 	_dirty = true
 	visible = true
@@ -185,6 +193,7 @@ func wash(rate: float, delta: float) -> void:
 	var keep: float = maxf(1.0 - rate * delta, 0.0)
 	for index: int in _active:
 		_depth[index] *= keep
+		_write(index)
 	_recount()
 	_dirty = true
 
@@ -202,6 +211,7 @@ func clear() -> void:
 		_depth[index] = 0.0
 		_fresh[index] = 0.0
 		_in_active[index] = 0
+		_write(index)
 	_active = PackedInt32Array()
 	_total = 0.0
 	_dirty = true
@@ -252,8 +262,10 @@ func _simulate(step: float) -> void:
 				_depth[neighbour] += moved
 				_fresh[neighbour] = maxf(_fresh[neighbour], _fresh[index] * 0.9)
 				_activate(neighbour)
+				_write(neighbour)
 		_depth[index] = maxf(_depth[index] - soak, 0.0)
 		_fresh[index] *= fresh_keep
+		_write(index)
 	# Drop what has soaked away.
 	var kept: PackedInt32Array = PackedInt32Array()
 	for index: int in _active:
@@ -263,6 +275,7 @@ func _simulate(step: float) -> void:
 			_depth[index] = 0.0
 			_fresh[index] = 0.0
 			_in_active[index] = 0
+			_write(index)
 	_active = kept
 	_recount()
 	_dirty = true
@@ -273,13 +286,8 @@ func _upload() -> void:
 	visible = _total > 0.0
 	if _image == null or _texture == null:
 		return
-	# Only the cells that hold blood, and their neighbours that just lost it,
-	# change - but a whole upload is one call and cheaper than tracking which.
-	_image.fill(Color(0.0, 0.0, 0.0, 1.0))
-	var range_max: float = maxf(Balance.BLOOD_POOL_MAX, 0.001)
-	for index: int in _active:
-		_image.set_pixel(index % _across, index / _across,
-			Color(clampf(_depth[index] / range_max, 0.0, 1.0), clampf(_fresh[index], 0.0, 1.0), 0.0, 1.0))
+	# One native copy of the bytes the sheet has kept as it changed.
+	_image.set_data(_across, _across, false, Image.FORMAT_RG8, _bytes)
 	_texture.update(_image)
 
 
@@ -305,11 +313,18 @@ func restore(stored: Array) -> void:
 			_depth[index] = clampf(float(stored[at + 1]) / 1000.0, 0.0, Balance.BLOOD_POOL_MAX)
 			_fresh[index] = clampf(float(stored[at + 2]) / 100.0, 0.0, 1.0)
 			_activate(index)
+			_write(index)
 		at += 3
 	_recount()
 	_dirty = true
 	visible = _total > 0.0
 	set_process(true)
+
+
+## The cell's two bytes, as the texture holds them.
+func _write(index: int) -> void:
+	_bytes[index * 2] = clampi(int(_depth[index] / maxf(Balance.BLOOD_POOL_MAX, 0.001) * 255.0), 0, 255)
+	_bytes[index * 2 + 1] = clampi(int(_fresh[index] * 255.0), 0, 255)
 
 
 func _activate(index: int) -> void:

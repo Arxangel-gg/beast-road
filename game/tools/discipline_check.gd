@@ -187,13 +187,19 @@ func _test_mercy_under_fire() -> void:
 	# The reachable revive: hold a Draught, go down, get up.
 	RunState.take_item("resurrection_draught")
 	hero.health.take_damage(hero.health.max_hp * 2.0, Vector2.LEFT)
-	for _f: int in 12:
+	# **In seconds, and the furthest it went** (2026-10-01): a shove is spent
+	# over a few tenths of a second and the body then walks back at the hero,
+	# so a reading taken after a dozen headless frames was 5 pixels or 18 by
+	# the machine's load, and one taken later was the walk back.
+	var waited: float = 0.0
+	var furthest: float = 0.0
+	while waited < 0.5:
 		await get_tree().process_frame
+		waited += get_process_delta_time()
+		furthest = maxf(furthest, foe.global_position.distance_to(before))
 
 	_check(hero.is_alive(), "the Draught did not stand the hero back up")
-	_check(foe.global_position.distance_to(before) > 8.0,
-		"Mercy Under Fire moved a body %.1f pixels"
-			% foe.global_position.distance_to(before))
+	_check(furthest > 8.0, "Mercy Under Fire moved a body %.1f pixels" % furthest)
 	_check(is_equal_approx(foe.health.current_hp, hp_before),
 		"Mercy Under Fire dealt damage; it is meant to be a shove, not a blow")
 	# Torn down deliberately and waited out. `queue_free` on the field alone,

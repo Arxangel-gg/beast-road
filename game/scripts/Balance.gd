@@ -8503,6 +8503,19 @@ const UI_TOUCH_SCALE: float = 2.0
 ## Absolute floors keep small desktop-only utility controls from remaining tiny
 ## merely because 1.68 times tiny is still tiny. [TUNE]
 const UI_TOUCH_MIN_TARGET_HEIGHT: float = 120.0
+## **The Warden's Glass on a phone** (owner, 2026-10-01). Under
+## `UI_GLASS_SHORT_SCREEN` units tall - a phone held sideways is about 777 - the Glass's own
+## buttons are `UI_GLASS_BUTTON_SHORT` high rather than a full thumb, so its way
+## out stays on the screen; with room to spare they are `UI_GLASS_BUTTON_TOUCH`,
+## and with a mouse `UI_GLASS_BUTTON_DESKTOP`.
+const UI_GLASS_SHORT_SCREEN: float = 840.0
+const UI_GLASS_BUTTON_SHORT: float = 64.0
+const UI_GLASS_BUTTON_TOUCH: float = 92.0
+const UI_GLASS_BUTTON_DESKTOP: float = 44.0
+## How tall a stacked screen - the Glass, the Disciplines - may be against its
+## width on an upright screen: most of a phone held upright, rather than a
+## desktop's card in the middle of it.
+const UI_UPRIGHT_PANEL_ASPECT: float = 1.9
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
 ## Portrait menus can enlarge text without shrinking the combat HUD canvas. [TUNE]
