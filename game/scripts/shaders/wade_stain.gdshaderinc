@@ -10,7 +10,7 @@
 // grained; x below zero is a body that has waded through nothing.
 
 uniform vec2 wade_band = vec2(-1.0, -1.0);
-uniform vec3 wade_colour : source_color = vec3(0.30, 0.04, 0.05);
+uniform vec3 wade_colour : source_color = vec3(0.34, 0.03, 0.04);
 
 vec3 wade_blood(vec3 rgb, float alpha, vec2 in_cell) {
 	if (wade_band.x < 0.0 || alpha <= 0.001) {
@@ -25,6 +25,6 @@ vec3 wade_blood(vec3 rgb, float alpha, vec2 in_cell) {
 	}
 	float down = clamp((in_cell.y - top) / max(wade_band.y - wade_band.x, 1.0), 0.0, 1.0);
 	float grain = fract(sin(dot(floor(in_cell), vec2(12.9898, 78.233))) * 43758.5453);
-	float amount = mix(0.55, 0.9, down) * (0.82 + 0.18 * grain);
+	float amount = mix(0.72, 0.95, down) * (0.85 + 0.15 * grain);
 	return mix(rgb, wade_colour * (0.78 + 0.22 * grain), amount);
 }

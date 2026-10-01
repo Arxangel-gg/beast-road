@@ -18,8 +18,18 @@ uniform float scar_enabled = 0.0;
 uniform float scar_extent = 1.0;
 uniform float pool_extent = 1.0;
 
-float depth_of(vec2 uv) {
-	return texture(TEXTURE, uv).r * depth_range;
+// Value noise for the pool's edge: blood has an irregular meniscus, not the
+// round edge of a filtered texel.
+float hash12(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float value_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x),
+		mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
 void fragment() {
@@ -38,22 +48,33 @@ void fragment() {
 	// Thin, fresh blood runs into the dents; deep or dry blood does not care.
 	float conform = fresh * (1.0 - smoothstep(0.06, 0.4, depth));
 	float shown = depth + dent * conform * 0.35;
-	float alpha = smoothstep(0.03, 0.2, shown) * alpha_max;
+	// An irregular meniscus: the edge wanders by a little noise, then is cut
+	// sharply - blood stands on the ground, it does not fade into it.
+	vec2 grain_uv = UV / TEXTURE_PIXEL_SIZE;
+	shown += (value_noise(grain_uv * 1.7) - 0.5) * 0.09 + (value_noise(grain_uv * 5.3) - 0.5) * 0.03;
+	float alpha = smoothstep(0.07, 0.11, shown) * alpha_max;
 	if (alpha <= 0.001) {
 		discard;
 	}
+	// A darker rim where the meniscus thins, as dried blood rings a pool.
+	float rim = smoothstep(0.07, 0.11, shown) - smoothstep(0.11, 0.2, shown);
 	vec3 base = mix(dry_colour, fresh_colour, clamp(fresh, 0.0, 1.0));
-	// Deeper is darker, as a pool is.
-	base *= mix(1.0, 0.62, smoothstep(0.1, 1.2, depth));
+	// Deeper is darker, as a pool is, and the rim darker again.
+	base *= mix(1.0, 0.5, smoothstep(0.1, 1.2, depth));
+	base *= 1.0 - rim * 0.35;
 	// Wet: a highlight off the pool's own slope, and a slow sheen.
 	vec2 px = TEXTURE_PIXEL_SIZE;
-	float dx = depth_of(UV + vec2(px.x, 0.0)) - depth_of(UV - vec2(px.x, 0.0));
-	float dy = depth_of(UV + vec2(0.0, px.y)) - depth_of(UV - vec2(0.0, px.y));
+	// Inline, not a helper: TEXTURE is not reachable from a function of ours.
+	float dx = (texture(TEXTURE, UV + vec2(px.x, 0.0)).r - texture(TEXTURE, UV - vec2(px.x, 0.0)).r) * depth_range;
+	float dy = (texture(TEXTURE, UV + vec2(0.0, px.y)).r - texture(TEXTURE, UV - vec2(0.0, px.y)).r) * depth_range;
 	vec3 normal = normalize(vec3(-dx * 2.5, -dy * 2.5, 1.0));
 	vec3 light = normalize(vec3(-0.45, -0.7, 0.55));
 	vec3 half_v = normalize(light + vec3(0.0, 0.0, 1.0));
-	float gloss = pow(max(dot(normal, half_v), 0.0), 36.0) * fresh * smoothstep(0.05, 0.3, depth);
-	float sheen = 0.05 * fresh * smoothstep(0.08, 0.4, depth)
-		* (0.5 + 0.5 * sin(TIME * 1.3 + UV.x * 140.0 + UV.y * 95.0));
-	COLOR = vec4(base + vec3(0.9, 0.55, 0.5) * gloss * 0.55 + vec3(sheen), alpha);
+	float wet = fresh * smoothstep(0.08, 0.35, depth);
+	float gloss = pow(max(dot(normal, half_v), 0.0), 28.0) * wet;
+	// The sky in it: a pale streak where the surface faces the light, moving
+	// slowly with the ripple a still pool still has.
+	float ripple = value_noise(grain_uv * 0.9 + vec2(TIME * 0.12, TIME * 0.07));
+	float sky = smoothstep(0.62, 0.95, dot(normal, normalize(vec3(-0.3, -0.85, 0.45))) + ripple * 0.18) * wet;
+	COLOR = vec4(base + vec3(1.0, 0.72, 0.68) * gloss * 0.9 + vec3(0.42, 0.3, 0.3) * sky * 0.35, alpha);
 }

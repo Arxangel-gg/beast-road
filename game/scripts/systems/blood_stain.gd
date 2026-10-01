@@ -127,11 +127,19 @@ static func wound(material: ShaderMaterial, sprite: Sprite2D, at: Vector2, share
 ## sprite's own cell from `units` above its feet down to them, written to
 ## whichever body material it wears - `blood_stain` and `actor_polish` both
 ## read it. The caller keeps the highest it has reached; it never comes down.
-static func wade(material: ShaderMaterial, sprite: Sprite2D, feet: Vector2, units: float) -> void:
+##
+## `feet_texel` names the row of the cell the painted feet stand on, when the
+## caller knows it better than the node's position does - the dressed Warden's
+## sheets carry it per facing, and its node stands a little below the paint.
+static func wade(material: ShaderMaterial, sprite: Sprite2D, feet: Vector2, units: float,
+		feet_texel: float = -1.0) -> void:
 	if material == null or sprite == null or sprite.texture == null or units <= 0.0:
 		return
 	var bottom: float = texel_of(sprite, feet).y
 	var top: float = texel_of(sprite, feet - Vector2(0.0, units)).y
+	if feet_texel >= 0.0:
+		top = feet_texel - absf(bottom - top)
+		bottom = feet_texel
 	material.set_shader_parameter("wade_band", Vector2(minf(top, bottom), maxf(top, bottom) + 2.0))
 
 

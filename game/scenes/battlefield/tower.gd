@@ -153,6 +153,7 @@ func _ready() -> void:
 	# Keeper look, on towers first. No material, no shading - the low preset.
 	if _impact_material != null:
 		_impact_material.set_shader_parameter("shade_strength", Balance.TOWER_SHADE_STRENGTH)
+		_impact_material.set_shader_parameter("shade_gloss", Balance.ACTOR_SHADE_GLOSS)
 		_impact_material.set_shader_parameter("shade_relief", Balance.TOWER_SHADE_RELIEF)
 		_impact_material.set_shader_parameter("shade_reach", Balance.TOWER_SHADE_REACH)
 		_impact_material.set_shader_parameter("shade_gain", Balance.TOWER_SHADE_GAIN)

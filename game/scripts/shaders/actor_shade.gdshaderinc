@@ -23,6 +23,12 @@ uniform float shade_relief = 2.2;
 uniform float shade_reach = 6.0;
 // How far a facet turned to a point light is lit past the plain additive light.
 uniform float shade_gain = 1.4;
+// **Roughness, read off the painting** (owner, 2026-10-01: *"extra detail with
+// normal and roughness material shader data while keeping our game
+// optimized"*). Grey, bright paint is steel and polished stone and catches a
+// light's highlight; saturated or dark paint - cloth, leather, fur, moss - is
+// rough and does not. How strongly the smooth parts shine.
+uniform float shade_gloss = 0.55;
 
 // **The form, not the bricks.** Mostly the silhouette with a little of the
 // painting's brightness: read off the brightness alone, every mortar line
@@ -66,10 +72,24 @@ void light() {
 	// a shaded side still reads as the same stone, and the sun darkening a whole
 	// face to black read as a burnt tower.
 	float turned = lean > 0.0 ? lean : lean * 0.45;
+	// The highlight a smooth surface throws back: a half-vector between the
+	// light and the eye, sharp on steel and absent on cloth.
+	float shade_shine = 0.0;
+	if (shade_strength > 0.001 && shade_gloss > 0.001) {
+		float hi = max(COLOR.r, max(COLOR.g, COLOR.b));
+		float lo = min(COLOR.r, min(COLOR.g, COLOR.b));
+		float smooth_paint = (1.0 - smoothstep(0.08, 0.3, hi - lo)) * smoothstep(0.32, 0.78, hi);
+		if (smooth_paint > 0.01) {
+			vec3 half_way = normalize(LIGHT_DIRECTION + vec3(0.0, 0.0, 1.0));
+			shade_shine = pow(max(dot(normalize(NORMAL), half_way), 0.0), mix(6.0, 28.0, smooth_paint))
+				* smooth_paint * shade_gloss * shade_strength;
+		}
+	}
 	if (LIGHT_IS_DIRECTIONAL && shade_strength > 0.001) {
-		LIGHT = vec4(COLOR.rgb * LIGHT_COLOR.rgb * LIGHT_ENERGY * turned, LIGHT_COLOR.a);
+		LIGHT = vec4(COLOR.rgb * LIGHT_COLOR.rgb * LIGHT_ENERGY * turned
+			+ LIGHT_COLOR.rgb * LIGHT_ENERGY * shade_shine * 0.35, LIGHT_COLOR.a);
 	} else {
 		LIGHT = vec4(LIGHT_COLOR.rgb * COLOR.rgb * LIGHT_ENERGY
-			* max(1.0 + turned * shade_gain, 0.0), LIGHT_COLOR.a);
+			* max(1.0 + turned * shade_gain, 0.0) + LIGHT_COLOR.rgb * LIGHT_ENERGY * shade_shine, LIGHT_COLOR.a);
 	}
 }

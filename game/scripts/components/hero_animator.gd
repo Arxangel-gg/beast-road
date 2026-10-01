@@ -207,6 +207,20 @@ func _say_which_bands(painted: bool) -> void:
 		material.set_shader_parameter("painted_bands", painted)
 
 
+## **The row of the cell the painted feet stand on** (2026-10-01), for the
+## blood a Warden wades through: the sheet carries it per facing, and the node
+## stands a little below the paint. -1 for a body that is not dressed.
+func feet_row() -> float:
+	if not dressed():
+		return -1.0
+	var meta: Dictionary = WardenDress.meta(String(_outfit["body"]), _state_drawn)
+	if meta.is_empty():
+		return -1.0
+	var origin: Array = meta["origin"]
+	var feet: Array = (meta.get("foot", {}) as Dictionary).get(FACING_NAMES[_direction], [0.0, 0.0])
+	return float(feet[1]) - float(origin[1])
+
+
 func dressed() -> bool:
 	return not _outfit.is_empty()
 

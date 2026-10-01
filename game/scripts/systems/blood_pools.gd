@@ -72,8 +72,8 @@ func _ready() -> void:
 		if shader != null:
 			var made := ShaderMaterial.new()
 			made.shader = shader
-			made.set_shader_parameter("fresh_colour", Balance.BLOOD_FRESH)
-			made.set_shader_parameter("dry_colour", Balance.BLOOD_DRY)
+			made.set_shader_parameter("fresh_colour", Balance.BLOOD_POOL_FRESH)
+			made.set_shader_parameter("dry_colour", Balance.BLOOD_POOL_DRY)
 			made.set_shader_parameter("depth_range", Balance.BLOOD_POOL_MAX)
 			material = made
 		_wire_scars()

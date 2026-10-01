@@ -24,5 +24,6 @@ static func dress(material: ShaderMaterial, sprite: CanvasItem) -> void:
 	material.set_shader_parameter("shade_relief", Balance.BODY_SHADE_RELIEF)
 	material.set_shader_parameter("shade_reach", Balance.BODY_SHADE_REACH)
 	material.set_shader_parameter("shade_gain", Balance.BODY_SHADE_GAIN)
+	material.set_shader_parameter("shade_gloss", Balance.ACTOR_SHADE_GLOSS)
 	if sprite != null:
 		sprite.light_mask |= Balance.SUN_RELIEF_LAYER

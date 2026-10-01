@@ -4810,6 +4810,11 @@ const BODY_SHADE_STRENGTH: float = 1.0
 const BODY_SHADE_RELIEF: float = 3.6
 const BODY_SHADE_REACH: float = 8.0
 const BODY_SHADE_GAIN: float = 2.2
+## **Roughness off the painting** (owner, 2026-10-01): how strongly grey,
+## bright paint - steel, pale stone - throws back a light's highlight on a body
+## or a tower the light is turned up on. Cloth, leather and fur are read as
+## rough and shine not at all. See `actor_shade.gdshaderinc`.
+const ACTOR_SHADE_GLOSS: float = 0.55
 
 ## **Bloom** (2026-09-24, from the forwarded VFX videos): bright things bleed
 ## light into the dark around them, inside the colour grade's own pass. The
@@ -7002,7 +7007,7 @@ const BLOOD_POOL_FULL: float = 1.0
 const BLOOD_POOL_SLOW_FROM: float = 0.2
 const BLOOD_POOL_SLOW_MAX: float = 0.45
 const BLOOD_POOL_SPREAD_FROM: float = 0.06
-const BLOOD_POOL_VISCOSITY: float = 0.9
+const BLOOD_POOL_VISCOSITY: float = 0.22
 const BLOOD_POOL_SOAK: float = 0.0012
 const BLOOD_POOL_FRESH_HALF_LIFE: float = 75.0
 const BLOOD_POOL_SIM_HZ: float = 8.0
@@ -7021,7 +7026,7 @@ const BLOOD_WADE_STEP: float = 1.5
 ## `SCAR_LOB_RADIUS`, a dragon touching down `SCAR_LANDING_DEPTH`, a strike
 ## `SCAR_STRIKE_DEPTH`. A meteor leaves a crater; a quake its cracks and slumps;
 ## a fissure or a trail a gouge along its line.
-const SCAR_TEXEL: float = 16.0
+const SCAR_TEXEL: float = 10.0
 const SCAR_Z: int = -20
 const SCAR_UPLOAD_HZ: float = 4.0
 const SCAR_SLAM_DEPTH: float = 0.32
@@ -7093,6 +7098,9 @@ const BLOOD_MOTE_STREAK: float = 0.010
 ## Fresh, and dried. The second is where a stain ends up, which is what makes an
 ## old mark read as old rather than merely faint.
 const BLOOD_FRESH: Color = Color(0.48, 0.06, 0.07)
+## The pools' own colours, darker than a fresh spatter: a pool is deep.
+const BLOOD_POOL_FRESH: Color = Color(0.34, 0.025, 0.035)
+const BLOOD_POOL_DRY: Color = Color(0.16, 0.035, 0.04)
 const BLOOD_DRY: Color = Color(0.24, 0.07, 0.08)
 
 ## How much of a character's sprite is stained at nothing-left health.

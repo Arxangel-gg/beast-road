@@ -174,7 +174,7 @@ func quake(epicentre: Vector2, reach: float, magnitude: float) -> void:
 	var slumps: int = 4 + int(round(magnitude * 6.0))
 	for index: int in slumps:
 		var spot: Vector2 = epicentre + Vector2.from_angle(_dice.randf() * TAU) * _dice.randf_range(80.0, reach * 0.8)
-		dent(spot, _dice.randf_range(40.0, 90.0), 0.18 + magnitude * 0.2, 0.2)
+		dent(spot, _dice.randf_range(30.0, 64.0), 0.06 + magnitude * 0.1, 0.25)
 		stamps -= 1
 	stamps += 1
 

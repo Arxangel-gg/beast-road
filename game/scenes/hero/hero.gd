@@ -3249,7 +3249,8 @@ func _update_sprite(_delta: float) -> void:
 	var waded: float = Vfx.blood_wade(global_position)
 	if waded > _waded + Balance.BLOOD_WADE_STEP:
 		_waded = waded
-		BloodStain.wade(sprite.material as ShaderMaterial, sprite, global_position, _waded)
+		BloodStain.wade(sprite.material as ShaderMaterial, sprite, global_position, _waded,
+			frames.feet_row() if frames != null else -1.0)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
 	BloodStain.drive_impact(_blood, _flash_left)
