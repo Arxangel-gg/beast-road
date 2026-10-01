@@ -12269,6 +12269,108 @@ twice as thick as the number first chosen. `feel_check` holds the spot, its end,
 a thin cell staying clean, a new wave stopping it and that it writes nothing;
 `settling_shot` is the picture.
 
+**The owner's list of 2026-10-01, and what each answer is.** Each is gated on
+both bars.
+
+- **A resumed gate shows its own health.** The HUD is built after the
+  battlefield, so a front restored with its wall at 40% wrote that ratio before
+  the HUD existed and the bar was born whole. The HUD seeds the bar from
+  `RunState` when it is built. `expedition_check` resumes a hurt wall and reads
+  the bar.
+- **Escape closes the topmost thing first** (`Run.escape`). One press closes one
+  thing, in the order they stack: what the crossroad screen can refuse (the
+  leave-one-behind table, an armed Banish, the draft as Later), a wayside card
+  (Walk on), the Town's sheet, the build and road sheets, then the Town or Yuri
+  back to the battlefield **at the zoom it had when the view left it**; only with
+  nothing left does it pause. A fork, a relic, a portent and the pass home are
+  decisions rather than menus and are never closed by a key. **A second Escape
+  closes the pause menu**: opening it pauses the tree and the run with it, so
+  `PauseMenu` answers the press itself, settings first. A pad's B is "back" -
+  it closes and leaves a scope and never pauses. `escape_check` drives real key
+  presses through the viewport; **its harness makes the run pausable**, because
+  under an always-running harness the run inherited ALWAYS and heard the key
+  the game never lets it hear - the planted deaf pause menu passed until then.
+- **A table of cards ignores a press for a second after it is dealt**
+  (`CARD_TABLE_CLICK_GUARD`, measured from the last card's flip, not from the
+  panel appearing). Every press on a draft, a fork, a relic, a portent or the
+  pass home goes through `CrossroadScreen._guarded`; a press too soon shakes the
+  card and is refused, the guarded cards are dimmed and light up in turn when
+  the guard lifts, and the table now fades and settles in rather than cutting.
+  A redraw the player made (a reroll, a banish, going back) is not guarded
+  again; Escape is never guarded. Off headless unless a gate turns it on
+  (`CrossroadScreen.guard_in_tests`), because every gate presses a card on the
+  frame it appears.
+- **The Disciplines tree selects on hover only after the pointer rests a
+  second** (`DISCIPLINE_HOVER_DWELL`), filling a ring round the node as it
+  does; a press, a tap and the pad's focus still select at once.
+- **Closing a door opened from the Warden's Stone comes back to the Stone.** A
+  door on the card stepped the card aside with the rest of the chrome
+  (`HubScreen.suspend`) and the room came back without it; the room now
+  remembers the card was open. The Glass had no Escape of its own, so the press
+  fell through to the Hold and put the card away under it.
+- **Sliders stand clear of buttons.** The HUD's zoom rail ran full height
+  between two buttons in Godot's grey; it is padded inside its cell (the column
+  height unchanged) and wears the game's bar art (`VSlider` in the theme). The
+  Hold's zoom row is padded and centred, and the Glass's presets sit a breath
+  below the last dye. `slider_clearance_check` stands every screen with a slider
+  at two shapes and holds eight units between every slider and button, and a
+  source walk names a screen with a slider it does not stand.
+- **Sound falls off as sound does**: `SFX_DB_PER_DOUBLING` past `SFX_NEAR`,
+  eased to silence over the last stretch before the cutoff, every radius scaled
+  by how far that kind of sound carries (`SFX_REACH`, by prefix: a quake 1.7, a
+  footstep 0.55). It was a straight line to a floor held to the cutoff, so a
+  sound vanished on a frame and a footstep carried as far as an earthquake.
+  `feel_check`'s invariants were amended and say so, and it drives a footstep
+  and a quake through `play_at` with an ear.
+- **Plants part more gently and shiver only as they spring back**: the lean
+  26 to 18, the heaviest press 1.6 to 1.2, the jiggle 0.85 at 3.4 Hz to 0.26 at
+  2.2, and the wobble shaped by `sin(laid * PI)` - still under a body, still
+  once it stands. `footfall_check` holds both.
+- **A wild cat may pounce a third time rarely and a fourth very rarely**
+  (`ENEMY_POUNCE_CHAIN_CHANCES` 0.5, 0.2, 0.1 - each the chance of one more
+  given the one before; never a fifth, because the list ends).
+- **A melee body may follow a blow with a combo** (`ENEMY_COMBO_*`): rolled on
+  the body's own dice when a swing begins from a walk - an ordinary body strikes
+  once, sometimes twice, rarely three times; an elite, a champion, a camp lord
+  or a boss may very rarely strike four. A follow-up comes only while the target
+  is alive and within the arm plus the lunge it carries, lunges further each
+  strike, is wound up shorter but still told, hits for a share of a swing, and
+  the body rests longer for every follow-up it threw. **Shape, never size**: the
+  shares and the rest are set so a combo is the same damage over about the same
+  time, arriving as a flurry with an opening after it. A shooter, a thrower and
+  a puppet never combo. `enemy_behaviour_check` rolls both tables and drives a
+  forced combo on a real body - three blows standing still, a lunge to a Warden
+  who stepped back, none after one who stepped away, the follow-up's share.
+- **Hitboxes** (`Hitbox`). Two questions were being answered with each other.
+  *How far apart two bodies stand* is the ground: a body measured its reach from
+  its own chest to its target's feet, so the same gap read 102 to the north and
+  230 to the south on the tallest breed. It is feet to feet now. *Whether a blow
+  meets a body* is the picture: a body can be met anywhere on a stroke from its
+  feet to its upper chest (`HITBOX_STROKE_SHARE`), which is what the Warden's
+  swing, the shared broadphase `enemies_near`, an animal struck by a swing, the
+  Arsenal's bolts and a tower's shot are measured to. **A tower's straight shot
+  homed on the feet** and struck the ground under what it hit; it flies at the
+  body now, and a lob still lands where the body stands. `hitbox_check` holds
+  the stroke, the four-sided reach, a real tower's shot landing on the body, and
+  an animal's painted middle.
+- **Blood by the blow.** One door (`Vfx.blood_from_blow`): the point is the side
+  of the body's stroke facing the attacker, a little way in and wandering by the
+  body's own size on the blood's own dice; the splash is sized by the square
+  root of the share of the pool the blow took and by the body's radius, and the
+  drops thrown - so the marks the ground keeps - grow with it. The same point is
+  handed to the body's stain shader as a wound in its own cell's texels (turning
+  with a flip, kept per cell on a sheet): the stain gathers round the last four
+  wounds, wider and fresher by the share, and thins elsewhere; wounds fade over
+  `BLOOD_WOUND_FADE_SECONDS` and go when the body heals clean. The Warden picks
+  the point, stains it and hands it to the splash, so the two agree. An animal
+  has no stain material and no blow direction in its funnel, so its blood is
+  sized by share and size only. `blood_vfx_check` holds the sizes, the drops,
+  the texel mapping, the wounds and their fading; `blood_shot` photographs the
+  splash by blow and the wounds on a body.
+- **The stain on promoted bodies**: an elite or champion wears `actor_polish`
+  rather than the stain material and so carries no stain at all, as before -
+  recorded so it is not taken for this change missing a case.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
