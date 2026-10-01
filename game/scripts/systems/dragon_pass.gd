@@ -22,6 +22,10 @@ var wildfire: Wildfire = null
 var lit: int = 0
 var rarity: int = 0
 var authored_plan: Dictionary = {}
+## **How much larger the anger draws it** (2026-10-01): 1 at a calm earth,
+## `1 + DRAGON_WRATH_GROWTH` at the wrath's ceiling. Set by the sky that sends
+## it and carried to a guest in the plan, so both draw the same beast.
+var fury: float = 1.0
 
 var _art: Texture2D = null
 var _ground_art: Texture2D = null
@@ -103,6 +107,7 @@ func _ready() -> void:
 		rarity = clampi(int(authored_plan.get("rarity", 0)), 0, Balance.DRAGON_RARITY_WEIGHTS.size() - 1)
 		_landing = authored_plan.get("landing", _landing) as Vector2
 		_will_land = bool(authored_plan.get("land", false))
+		fury = float(authored_plan.get("fury", fury))
 		_curve = authored_plan.get("curve", _curve) as Vector2
 		_load_ground_art()
 	_height = Balance.DRAGON_HEIGHT
@@ -177,15 +182,14 @@ func _breathe() -> void:
 	if _mirror or _random.randf() > Balance.DRAGON_BREATH_CHANCE:
 		return
 	var target: Vector2 = global_position + _heading * Balance.DRAGON_BREATH_REACH
+	# **Whatever is most worth breathing on** (2026-10-01): weighed among every
+	# living thing in reach, the weak and the near first - Aurelion Sol's eye.
 	if field != null:
-		var nearest: float = Balance.DRAGON_BREATH_REACH
-		for hero: Hero in field.heroes():
-			if hero == null or not hero.is_alive() or field.inside_city(hero.global_position):
-				continue
-			var distance: float = global_position.distance_to(hero.global_position)
-			if distance < nearest:
-				nearest = distance
-				target = hero.global_position
+		var share: float = Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP)
+		var best: Vector2 = DragonBreath.heaviest(DragonBreath.wild_marks(get_tree(), field,
+			global_position, Balance.DRAGON_BREATH_REACH, {}, share))
+		if best.is_finite():
+			target = best
 	var tint: Color = _kind.dragon_breath_tint if _kind != null else Color(1.0, 0.4, 0.12)
 	# Its own element or plain fire, and the fire wyrm's ultra now and then,
 	# off the pass's own dice so both machines draw the same breath.
@@ -205,7 +209,7 @@ func _breathe() -> void:
 		"origin": mouth(),
 		"width": width, "warning": Balance.DRAGON_BREATH_WARNING,
 		"travel": sweep, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
-		"tower_damage": 0.0, "tint": tint,
+		"tower_damage": 0.0, "tint": tint, "wild": true,
 		"blame": _kind.display_name if _kind != null else "dragon"})
 	if wildfire != null and (_kind == null or _kind.dragon_ignites):
 		if wildfire.ignite_near(target, Balance.DRAGON_FIRE_RADIUS, Balance.DRAGON_FIRE_CHANCE, false):
@@ -271,7 +275,7 @@ func mouth() -> Vector2:
 ## The rarity step is the same on the ground as in the air: a Cairnwyrm that
 ## was a fifth larger overhead used to land at the common size.
 func rarity_scale() -> float:
-	return 1.0 + float(rarity) * Balance.DRAGON_RARITY_SIZE_STEP
+	return (1.0 + float(rarity) * Balance.DRAGON_RARITY_SIZE_STEP) * fury
 
 
 func flying_size() -> Vector2:
@@ -388,7 +392,7 @@ func advance(seconds: float, steps: int = 40) -> void:
 func encounter_plan() -> Dictionary:
 	return {"from": from, "to": to, "landing": _landing, "land": _will_land,
 		"curve": _curve, "variant": _kind.id if _kind != null else "",
-		"rarity": rarity}
+		"rarity": rarity, "fury": fury}
 
 
 ## `FrameProfile` bucket "d_dragon_pass": the real work is `_draw_measured` above.

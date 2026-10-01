@@ -1689,6 +1689,8 @@ func send_dragon(from: Vector2 = Vector2.INF, to: Vector2 = Vector2.INF,
 	var wyrm := DragonPass.new()
 	wyrm.from = from
 	wyrm.to = to
+	# **Drawn larger the angrier the earth** (2026-10-01).
+	wyrm.fury = 1.0 + Balance.DRAGON_WRATH_GROWTH * clampf(wrath() / Balance.WRATH_CAP, 0.0, 1.0)
 	wyrm.field = field
 	wyrm.authored_plan = plan
 	wyrm.wildfire = wildfire

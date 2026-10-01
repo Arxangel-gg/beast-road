@@ -295,7 +295,7 @@ static func best_line(tree: SceneTree, from: Vector2, home: float, arc: float,
 		reach: float, half: float, struck: Dictionary, now: float) -> float:
 	if tree == null:
 		return INF
-	var targets: Array[Vector2] = []
+	var targets: Array[Dictionary] = []
 	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
 		var who := node as Hero
 		if who == null or not is_instance_valid(who) or not who.is_alive():
@@ -304,8 +304,16 @@ static func best_line(tree: SceneTree, from: Vector2, home: float, arc: float,
 			continue
 		if who.global_position.distance_to(from) > reach + half:
 			continue
-		targets.append(who.global_position)
-	if targets.is_empty():
+		targets.append({"at": who.global_position, "weight": 1.0})
+	return best_line_among(targets, from, home, arc, reach, half, now)
+
+
+## **The line that weighs most**, among `marks` (`{at, weight}`), inside `arc`
+## of `home`. INF when no line reaches anything. Ties go to where the breath
+## already points, so a breath with nothing new to reach holds still.
+static func best_line_among(marks: Array[Dictionary], from: Vector2, home: float,
+		arc: float, reach: float, half: float, now: float) -> float:
+	if marks.is_empty():
 		return INF
 	var best: float = INF
 	var best_score: float = 0.0
@@ -314,14 +322,102 @@ static func best_line(tree: SceneTree, from: Vector2, home: float, arc: float,
 		var angle: float = home + lerpf(-arc, arc, float(index) / float(maxi(steps - 1, 1)))
 		var end: Vector2 = from + Vector2.from_angle(angle) * reach
 		var score: float = 0.0
-		for at: Vector2 in targets:
+		for mark: Dictionary in marks:
+			var at: Vector2 = mark["at"]
 			var off: float = Geometry2D.get_closest_point_to_segment(at, from, end).distance_to(at)
 			if off <= half:
-				score += 1.0 + 0.25 * (1.0 - off / maxf(half, 1.0))
+				score += float(mark["weight"]) * (1.0 + 0.25 * (1.0 - off / maxf(half, 1.0)))
 		score -= absf(angle_difference(now, angle)) * 0.01
 		if score > best_score:
 			best_score = score
 			best = angle
+	return best
+
+
+## **Everything a wild dragon may breathe on, weighed the way Aurelion Sol
+## would** (owner, 2026-10-01): the Wardens, their spirits, every road and camp
+## body and every animal within `reach` of `from` not yet struck, each worth
+## more the nearer it is, the more it is already hurt and - most of all - if
+## this breath would finish it. `hero_share` is what the breath takes from a
+## Warden, so a Warden it would finish is weighed as one.
+static func wild_marks(tree: SceneTree, field: Battlefield, from: Vector2, reach: float,
+		struck: Dictionary, hero_share: float) -> Array[Dictionary]:
+	var marks: Array[Dictionary] = []
+	if tree == null:
+		return marks
+	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		if struck.has(who.get_instance_id()):
+			continue
+		if field != null and field.inside_city(who.global_position):
+			continue
+		var pool: Health = who.health
+		if pool == null:
+			continue
+		_weigh(marks, who.global_position, from, reach, pool.current_hp, pool.max_hp,
+			pool.max_hp * hero_share, Balance.DRAGON_AIM_WARDEN)
+	for node: Node in tree.get_nodes_in_group(Companion.GROUP):
+		var pet := node as Companion
+		if pet == null or not is_instance_valid(pet) or not pet.is_alive():
+			continue
+		if struck.has(pet.get_instance_id()):
+			continue
+		_weigh(marks, pet.global_position, from, reach, 1.0, 1.0, 0.0, 1.0)
+	if field != null:
+		for body: Enemy in field.living_bodies():
+			if not is_instance_valid(body) or body.is_dying() or struck.has(body.get_instance_id()):
+				continue
+			var health: Health = body.health
+			if health == null:
+				continue
+			_weigh(marks, body.global_position, from, reach, health.current_hp, health.max_hp,
+				wild_blow(health.max_hp), 1.0)
+		var wildlife: Wildlife = field.wildlife()
+		if wildlife != null:
+			for animal: Dictionary in wildlife.living():
+				var sprite := animal.get("sprite", null) as Sprite2D
+				var kind := animal.get("data", null) as WildlifeData
+				if sprite == null or kind == null or not is_instance_valid(sprite):
+					continue
+				if float(animal.get("dying", 0.0)) > 0.0 or struck.has(sprite.get_instance_id()):
+					continue
+				var full: float = Wildlife.pool_of(animal)
+				_weigh(marks, sprite.global_position, from, reach, float(animal.get("hp", 0.0)),
+					full, full * Balance.DRAGON_WILD_BEAST_SHARE, 1.0)
+	return marks
+
+
+## What a wild breath takes from a body of `pool`: a share of it, capped by the
+## act so a boss is scorched and never melted.
+static func wild_blow(pool: float) -> float:
+	var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
+		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
+	return minf(pool * Balance.DRAGON_WILD_BODY_SHARE, Balance.DRAGON_WILD_BODY_CAP * act_scale)
+
+
+static func _weigh(marks: Array[Dictionary], at: Vector2, from: Vector2, reach: float,
+		current: float, full: float, blow: float, scale: float) -> void:
+	var distance: float = at.distance_to(from)
+	if distance > reach:
+		return
+	var weight: float = 1.0 + Balance.DRAGON_AIM_NEAR * (1.0 - distance / maxf(reach, 1.0))
+	if blow > 0.0 and current <= blow:
+		weight += Balance.DRAGON_AIM_LAST_HIT
+	elif full > 0.0:
+		weight += Balance.DRAGON_AIM_WEAK * (1.0 - clampf(current / full, 0.0, 1.0))
+	marks.append({"at": at, "weight": weight * scale})
+
+
+## The single most worth breathing on, or INF.
+static func heaviest(marks: Array[Dictionary]) -> Vector2:
+	var best: Vector2 = Vector2.INF
+	var most: float = 0.0
+	for mark: Dictionary in marks:
+		if float(mark["weight"]) > most:
+			most = float(mark["weight"])
+			best = mark["at"]
 	return best
 
 

@@ -13989,6 +13989,37 @@ const DRAGON_BREATH_WARNING: float = 1.5
 const DRAGON_BREATH_REACH: float = 560.0
 const DRAGON_BREATH_WIDTH: float = 38.0
 const DRAGON_BREATH_HERO_SHARE: float = 0.10
+
+## **A wild dragon is pure destruction** (owner, 2026-10-01: *"Dragons should
+## target all characters, not just players. The wild ones not in camps. They
+## should be characters of pure destruction that aim their breaths towards the
+## most ideal targets like challenger ranked aurelion sol would breath on last
+## hitting weak enemies as well as prioritizing the nearest targets available
+## as well and just interpolating between any and all targets in range"*).
+##
+## A passing dragon's breath strikes Wardens, their spirits, road and camp
+## bodies and animals alike; a camp wyrm's is still the camp's and strikes the
+## party. What it takes from each, once a breath: a Warden its
+## `DRAGON_BREATH_HERO_SHARE`, a body `DRAGON_WILD_BODY_SHARE` of its pool to at
+## most `DRAGON_WILD_BODY_CAP` scaled by the act, an animal
+## `DRAGON_WILD_BEAST_SHARE` of its pool.
+##
+## **The aim, Aurelion Sol's**: every living thing in reach is weighed, and the
+## line that weighs most is the one breathed along. A body is worth 1, more by
+## `DRAGON_AIM_NEAR` the nearer it stands, more by `DRAGON_AIM_WEAK` the more it
+## is already hurt, and `DRAGON_AIM_LAST_HIT` more if this breath would finish
+## it; a Warden is worth `DRAGON_AIM_WARDEN` times as much again.
+const DRAGON_WILD_BODY_SHARE: float = 0.4
+const DRAGON_WILD_BODY_CAP: float = 220.0
+const DRAGON_WILD_BEAST_SHARE: float = 0.7
+const DRAGON_AIM_NEAR: float = 0.8
+const DRAGON_AIM_WEAK: float = 0.9
+const DRAGON_AIM_LAST_HIT: float = 2.0
+const DRAGON_AIM_WARDEN: float = 1.3
+## **And it grows with the anger** (owner): a dragon is drawn up to
+## `DRAGON_WRATH_GROWTH` larger at the wrath's ceiling. Its size only - the
+## breath is the breath.
+const DRAGON_WRATH_GROWTH: float = 0.6
 const MOUNT_IDLE_BREATH_AMOUNT: float = 0.012
 const MOUNT_IDLE_BREATH_RATE: float = 1.8
 const DRAGON_RARITY_WEIGHTS: Array[float] = [0.75, 0.20, 0.045, 0.005]

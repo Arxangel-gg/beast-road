@@ -84,8 +84,16 @@ func _chase(delta: float) -> void:
 	if span > 1.0:
 		var home: float = (aimed - origin).angle()
 		var arc: float = atan2(Balance.DRAGON_BREATH_TRACK_REACH, span)
-		var best: float = DragonBreath.best_line(get_tree(), origin, home, arc, span,
-			float(plan["width"]), _hit, (_to - origin).angle())
+		# A wild dragon weighs everything living; a breath that is not wild
+		# weighs the Wardens alone, as it always did.
+		var best: float = INF
+		if bool(plan.get("wild", false)):
+			best = DragonBreath.best_line_among(DragonBreath.wild_marks(get_tree(), field,
+				origin, span + float(plan["width"]), _hit, float(plan["share"])),
+				origin, home, arc, span, float(plan["width"]), (_to - origin).angle())
+		else:
+			best = DragonBreath.best_line(get_tree(), origin, home, arc, span,
+				float(plan["width"]), _hit, (_to - origin).angle())
 		if best != INF:
 			_to = _to.move_toward(origin + Vector2.from_angle(best) * span,
 				delta * Balance.DRAGON_BREATH_TRACK_SPEED)
@@ -138,6 +146,8 @@ func _strike(a: Vector2, b: Vector2) -> void:
 			var damage: float = hero.health.max_hp * float(plan["share"])
 			RunState.note_blow(String(plan["blame"]), damage)
 			hero.health.take_damage(damage, a)
+	if bool(plan.get("wild", false)):
+		_strike_the_wild(a, b, width)
 	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
 		var tower := node as Tower
 		if tower == null or _hit.has(tower.get_instance_id()):
@@ -146,6 +156,38 @@ func _strike(a: Vector2, b: Vector2) -> void:
 				tower.global_position, a, b)) <= width:
 			_hit[tower.get_instance_id()] = true
 			tower.hurt(float(plan["tower_damage"]), a)
+
+
+## **A wild dragon's breath takes everything on its line** (2026-10-01): the
+## Wardens above, and here their spirits, every road and camp body and every
+## animal - each once a breath. An animal it kills is the dragon's, and the
+## earth counts it (`wildlife_fell`, "dragon").
+func _strike_the_wild(a: Vector2, b: Vector2, width: float) -> void:
+	var covers: Callable = func(at: Vector2) -> bool:
+		return at.distance_to(Geometry2D.get_closest_point_to_segment(at, a, b)) <= width
+	var hero_pool: float = field.hero.health.max_hp if field.hero != null and field.hero.health != null \
+		else 100.0
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var pet := node as Companion
+		if pet == null or not is_instance_valid(pet) or not pet.is_alive() or _hit.has(pet.get_instance_id()):
+			continue
+		if not bool(covers.call(pet.global_position)):
+			continue
+		_hit[pet.get_instance_id()] = true
+		pet.take_damage(hero_pool * float(plan["share"]) * Balance.ENEMY_SHOT_SPIRIT_SHARE, a)
+	for body: Enemy in field.living_bodies():
+		if not is_instance_valid(body) or body.is_dying() or _hit.has(body.get_instance_id()):
+			continue
+		var reach: float = width + body.contact_radius()
+		if body.global_position.distance_to(Geometry2D.get_closest_point_to_segment(
+				body.global_position, a, b)) > reach:
+			continue
+		_hit[body.get_instance_id()] = true
+		DamageLedger.credit_as(DamageLedger.EARTH)
+		body.take_damage(DragonBreath.wild_blow(body.health.max_hp), a, 0.0)
+	var wildlife: Wildlife = field.wildlife()
+	if wildlife != null:
+		wildlife.wound_where(covers, Balance.DRAGON_WILD_BEAST_SHARE, "dragon", _hit)
 
 
 ## **The earth breaks the same way wherever it breaks.**

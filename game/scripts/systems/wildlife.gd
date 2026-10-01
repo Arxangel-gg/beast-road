@@ -2655,6 +2655,38 @@ func wound_within(at: Vector2, radius: float, damage: float, by_player: bool = f
 	return hit
 
 
+## **An animal's whole pool**, as its bar measures it: its species', larger for
+## an elite.
+static func pool_of(animal: Dictionary) -> float:
+	var kind := animal.get("data", null) as WildlifeData
+	if kind == null:
+		return 1.0
+	return kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal.get("elite", false)) else 1.0)
+
+
+## **Hurts every animal `covers` says a blow covers, once** - a share of its own
+## pool - for a blow shaped like a line or anything else (2026-10-01: a wild
+## dragon's breath). `struck` is who it has caught already, by sprite id, and
+## whoever this catches is written into it. Host side; never the player's.
+func wound_where(covers: Callable, share: float, cause: String, struck: Dictionary) -> int:
+	if Coop.is_guest() or share <= 0.0:
+		return 0
+	var hit: int = 0
+	for index: int in _living.size():
+		var animal: Dictionary = _living[index]
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite) or struck.has(sprite.get_instance_id()):
+			continue
+		if not bool(covers.call(sprite.global_position)):
+			continue
+		struck[sprite.get_instance_id()] = true
+		_wound(index, animal, pool_of(animal) * share, false, cause)
+		hit += 1
+	return hit
+
+
 ## Caught by a fire: burning for a while, hurt by it every frame, and running.
 func burn_near(at: Vector2, radius: float, damage_now: float) -> void:
 	if Coop.is_guest():
