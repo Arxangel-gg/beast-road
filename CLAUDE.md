@@ -12192,6 +12192,36 @@ length along the flight. `arsenal_dungeon_shot` is the photograph: a rift, five
 weapons and a ring of bodies, four frames a fifth of a second apart. The
 Arsenal is the only caller, so nothing else moved.
 
+**There is cooking now, and the 2026-09-15 refusal is what it was built
+against, as of 2026-09-30.** That paragraph said cooking would return only as
+"a reason to combine several materials into something the road cannot drop",
+with "an effect that is not more health", and still answering
+`FISH_MEALS_PER_RUN`. `IDEAS_REVIEW_2026-09-23` §4.4 adopted it on exactly those
+terms and the owner had said to build it if it was right. It is those three
+conditions, built:
+
+- **A fish from the pantry and a crop pulled this run.** Every harvest still
+  pays its Food and now also lays its crop in a basket (`RunState.basket`, up
+  to `COOK_BASKET_CAP` of a kind), which is the run's like the seeds and is
+  banked with a front. The pantry offers the basket at its top; choosing a crop
+  turns every fish's Eat into Cook (`RunState.cook`).
+- **One meal.** The cap counts the fish, as it does for eating, the spirit and
+  a partner, so a dish is one of the three and never a fourth. Every refusal is
+  checked before anything is spent.
+- **Never health, never a stat.** A crop lends a share of something the Warden
+  already has - stamina, a ward, mana, or the fish's own buff lasting longer
+  (`CropData.dish_*`) - clamped at the hero by `COOK_DISH_CEILING`. What a meal
+  heals is the fish's, so the recovery economy the cap bounds is unchanged.
+
+It makes the plot worth tending past its Food: barley is the runner's bread,
+frost root and the stone melon ward, glowcap is mana, and an ember pepper keeps
+a meal's fire burning longer. Nothing crosses the wire - the basket is personal
+as the seeds are, and a meal is eaten by the Warden who cooked it.
+`cooking_check` (both bars) harvests for real and cooks on the real hero: the
+dish heals what its fish heals to the point, and lends exactly what its crop
+says; the fourth meal is refused cooked as plain; a crop authored at 500% lends
+the ceiling; the basket rides a banked front; the pantry's Cook cooks.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -878,9 +878,11 @@ func _pot_row() -> Container:
 		pick.custom_minimum_size = Vector2(0.0, ACTION_HEIGHT)
 		var art: String = crop.get_sprite_path()
 		if ResourceLoader.exists(art):
+			# Scaled by `icon_max_width` rather than `expand_icon`: an expanded
+			# icon adds nothing to a button's minimum width, and a button sized
+			# to its words then draws the picture at no width at all.
 			pick.icon = load(art) as Texture2D
-			pick.expand_icon = true
-			pick.add_theme_constant_override("icon_max_width", 32)
+			pick.add_theme_constant_override("icon_max_width", 34)
 		var id: String = crop.id
 		pick.pressed.connect(func() -> void:
 			_cook_with = id
