@@ -886,17 +886,34 @@ func _test_a_frenzy_works_on_a_species_that_never_fought() -> void:
 	_check(WildlifeFamilies.blight_bite(one, kind) > 0.0,
 		"a frenzied rabbit can hurt something (%.1f)" % WildlifeFamilies.blight_bite(one, kind))
 	# The hero stands near it. A healthy rabbit runs; a frenzied one comes.
-	_field.hero.global_position = sprite.global_position + Vector2(150.0, 0.0)
+	#
+	# **Standing, whole, and outside the walls** (2026-10-01). On CI's slower
+	# runner the road had killed the Warden by the time this test began - it
+	# read "bites it (0 -> 0)" - and a dead Warden is no quarry, so a working
+	# frenzy failed three checks. Stood up whole, held above half for the test
+	# so the bite can be read and cannot finish them, and stood on the side
+	# away from the town so the sanctuary cannot hide them either.
+	var hero: Hero = _field.hero
+	hero.health.revive(1.0)
+	var floor_was: float = hero.health.floor_hp
+	hero.health.floor_hp = hero.health.max_hp * 0.5
+	var away: Vector2 = sprite.global_position.normalized() \
+		if sprite.global_position.length() > 1.0 else Vector2.RIGHT
+	hero.global_position = sprite.global_position + away * 150.0
 	var quarry: Node2D = _animals.call("_quarry_for", sprite.global_position, kind, sprite, true, false)
-	_check(quarry != null, "a frenzied grazer finds something to attack")
-	var before: float = _field.hero.health.current_hp
+	_check(quarry != null, "a frenzied grazer finds something to attack (Warden alive %s, sheltered %s)"
+		% [hero.is_alive(), _animals.call("_sheltered", hero.global_position)])
+	var before: float = hero.health.current_hp
 	var closed: bool = false
-	for _frame: int in 900:
+	var waited: float = 0.0
+	while waited < 15.0:
 		await get_tree().process_frame
-		if sprite.global_position.distance_to(_field.hero.global_position) < kind.attack_range:
+		waited += get_process_delta_time()
+		if sprite.global_position.distance_to(hero.global_position) < kind.attack_range:
 			closed = true
-		if _field.hero.health.current_hp < before:
+		if hero.health.current_hp < before:
 			break
+	hero.health.floor_hp = floor_was
 	_check(closed, "and closes on it")
 	_check(_field.hero.health.current_hp < before,
 		"and bites it (%.0f -> %.0f)" % [before, _field.hero.health.current_hp])

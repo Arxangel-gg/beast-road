@@ -12921,6 +12921,16 @@ road about forty percent lighter. Bosses fall in 11 to 20 model seconds on every
 road, party spread holds at 10-13%, and a party's drafted road reads about a
 seventh lighter than a Warden alone's.
 
+**And Guard went red on v0.70.2 for a dead Warden.** `wildlife_family_check`'s
+frenzy test read "bites it (0 -> 0)" on CI: over the long slow run the road had
+killed the Warden before the test began, and a dead Warden is no quarry, so a
+working frenzy failed three checks. Reproduced exactly by killing the Warden
+first; the test now stands the Warden up whole, holds them above half for the
+bite, stands them on the side away from the walls, waits in seconds, and says in
+its failure line whether the Warden was alive and sheltered. Planted with a
+frenzy that lends no reach, it names the frenzy. **A harness that reads a
+probe it did not stand up this test is reading whatever the last test left.**
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
