@@ -916,6 +916,19 @@ static func streak_at(record: Dictionary, t: float) -> Vector2:
 	return at
 
 
+## **A painted head keeps its own shape** (owner, 2026-10-01: *"Some
+## projectiles are not properly oriented"*). The head was drawn into a square,
+## and every painting it draws is twice as long as it is tall and points along
+## its length - so an arrow, a lance and a fireball came out as stubby diamonds
+## that read as pointing either way, the Arsenal's fault of 2026-09-30 in a
+## second painter. Its own aspect now, and a quarter longer than the square was
+## wide, because a head in flight is read by its length.
+static func streak_head_box(painted: Vector2, size: float) -> Vector2:
+	var aspect: float = painted.x / maxf(painted.y, 1.0)
+	var length: float = size * 2.5
+	return Vector2(length, length / maxf(aspect, 0.25))
+
+
 ## A streak's head on its way, its ghosts behind it, and its painted frames
 ## when it has them - drawn every frame it lives, so a stone falling for a
 ## second is a stone seen falling.
@@ -954,9 +967,9 @@ func _draw_streaks(inverse: Transform2D) -> void:
 				Color(colour.lerp(Color.WHITE, 0.6), colour.a))
 			continue
 		var frame: Texture2D = frames[int(float(record["age"]) * Balance.VFX_STREAK_FRAME_RATE) % frames.size()]
+		var box: Vector2 = streak_head_box(frame.get_size(), size)
 		draw_set_transform(where, angle, Vector2.ONE)
-		draw_texture_rect(frame, Rect2(-size, -size, size * 2.0, size * 2.0), false,
-			colour.lightened(0.3))
+		draw_texture_rect(frame, Rect2(-box * 0.5, box), false, colour.lightened(0.3))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

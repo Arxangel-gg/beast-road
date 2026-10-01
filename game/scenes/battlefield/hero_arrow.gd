@@ -92,7 +92,10 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_field):
 		for enemy: Enemy in _field.enemies_near(middle, distance * 0.5 + radius):
 			if not enemy.is_dying():
-				candidates.append({"body": enemy, "at": enemy.combat_origin()})
+				# Where the flight meets the body's stroke, feet to chest
+				# (`Hitbox`, 2026-10-01), rather than its middle alone - an
+				# arrow loosed at a giant's knees strikes the giant.
+				candidates.append({"body": enemy, "at": Hitbox.meet(enemy, middle)})
 	var impacts: Array[Dictionary] = []
 	for candidate: Dictionary in candidates:
 		var body := candidate["body"] as Node2D

@@ -326,7 +326,8 @@ func _draw_measured() -> void:
 	var sway: Vector2 = Vector2(0.0, sin(_life * 11.0) * wobble)
 	var turn: float = _life * spin * TAU
 	draw_circle(sway, size * (1.55 + pulse * 0.16), Color(tint, 0.12 + pulse * 0.08))
-	draw_set_transform(sway, turn, Vector2.ONE)
+	var pose: Vector2 = head_pose(head, rotation, _direction)
+	draw_set_transform(sway, turn + pose.x, Vector2(pose.y, 1.0))
 	match head:
 		EnemyShotData.Head.ORB:
 			draw_circle(Vector2.ZERO, size * 1.05, shell_tint)
@@ -425,6 +426,23 @@ func _draw_measured() -> void:
 				rune_spin + PI * 1.72, 12, Color(tint, 0.68),
 				Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## **How a head is held against the shot's own frame** (owner, 2026-10-01:
+## *"Some projectiles are not properly oriented"*). Returns the extra turn and
+## the mirror across the path, as (turn, mirror).
+##
+## The node turns with the flight, which is right for a head that *points* - a
+## dart, a shard, a leaf, a flame - and wrong for one that has an up: a skull
+## and a bell were drawn upright in that turned frame, so every one thrown
+## leftward flew upside down and every one thrown up the screen lay on its
+## side. An upright head is turned back to the world's up and mirrored to face
+## the way it is going, so a skull flies face first and the right way up in
+## every direction. Everything else is held as it was.
+static func head_pose(which: int, turned: float, heading: Vector2) -> Vector2:
+	if which == EnemyShotData.Head.SKULL or which == EnemyShotData.Head.BELL:
+		return Vector2(-turned, -1.0 if heading.x < 0.0 else 1.0)
+	return Vector2(0.0, 1.0)
 
 
 static func _closed(points: PackedVector2Array) -> PackedVector2Array:

@@ -288,6 +288,28 @@ func _tick_lob() -> void:
 	var arc: float = sin(progress * PI)
 	_lift = arc * Balance.PROJECTILE_LOB_HEIGHT * _tier_scale()
 	_peak_lift = maxf(_peak_lift, _lift)
+	# How steeply the picture is climbing or falling for every unit it covers
+	# on the ground: the arc's own slope, so the head can lie along it.
+	_lob_slope = cos(progress * PI) * PI * Balance.PROJECTILE_LOB_HEIGHT * _tier_scale() \
+		/ maxf(_lob_total, 1.0)
+
+
+## How far the picture is climbing (negative) or falling for each unit of
+## ground, while a lob is in the air.
+var _lob_slope: float = 0.0
+
+
+## **A lobbed head lies along its arc** (owner, 2026-10-01: *"Some projectiles
+## are not properly oriented"*). The node turns with its ground heading, which
+## is the whole of a straight shot's flight; a lob's picture climbs and then
+## falls while the node runs level, so a fire lob rose and came down still
+## pointing at the horizon. The extra turn that lays the head on the arc's own
+## slope - up out of the tower, level at the top, nose down into the body.
+func lob_tilt() -> float:
+	if _shot != TowerData.Shot.LOB:
+		return 0.0
+	var tangent: Vector2 = _direction + Vector2(0.0, -_lob_slope)
+	return wrapf(tangent.angle() - _direction.angle(), -PI, PI)
 
 
 ## Where the picture is: the shot's own position, lifted by a lob's arc.
@@ -343,15 +365,16 @@ func _draw_measured() -> void:
 		_flush()
 	var stretch: Vector2 = Balance.PROJECTILE_LANCE_STRETCH \
 		if _shot == TowerData.Shot.LANCE else Vector2.ONE
+	var tilt: float = lob_tilt()
 	if not _head_frames.is_empty():
 		var frame: Texture2D = _head_frames[int(_life * Balance.VFX_ART_FRAME_RATE) % _head_frames.size()]
 		var scale: float = Balance.PROJECTILE_ART_SCALE * _tier_scale()
-		draw_set_transform(at, _spin, stretch * scale)
+		draw_set_transform(at, _spin + tilt, stretch * scale)
 		draw_texture(frame, -frame.get_size() * 0.5, colour.lerp(Color.WHITE, 0.35))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	else:
 		# The authored silhouette, with a soft rim.
-		draw_set_transform(at, _spin, stretch)
+		draw_set_transform(at, _spin + tilt, stretch)
 		_begin()
 		_soft_polygon(_head_shape, colour.lerp(Color.WHITE, 0.55), 1.0)
 		_flush()
@@ -406,7 +429,7 @@ func _draw_glow_only(on: CanvasItem) -> void:
 	# Turned with the flight as the head is: the glow child is top-level, so
 	# the node's own rotation does not reach it (2026-09-24 - a lance's
 	# stretched glow lay across the world's x axis whatever way it flew).
-	on.draw_set_transform(at, rotation + _spin, Balance.PROJECTILE_LANCE_STRETCH \
+	on.draw_set_transform(at, rotation + _spin + lob_tilt(), Balance.PROJECTILE_LANCE_STRETCH \
 		if _shot == TowerData.Shot.LANCE else Vector2.ONE)
 	_begin()
 	_soft_polygon(_glow_shape, colour, lit)
