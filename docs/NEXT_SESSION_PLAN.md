@@ -56,6 +56,15 @@ climb now, and `curve_report` prints one road body against the Warden alone.
 real fight for one Warden - the readout says 1.4 to 3.5 s a body for the
 expected Warden, and that wants the owner's play before it is believed.
 
+**The bands are held against the hand a player draws** (v0.71.0, CLAUDE.md "The
+roads are balanced against the hand a player draws"). The planner read the whole
+deck; a drafted hand holds about 0.60 of its defence, and the Iron and
+Chainmaker's Roads were walls for it. Their health came down (1.55, 2.0), an
+earned evolution is dealt at the next draft, and both halves of a pair say so.
+**What would settle it**: a played run on the Iron Road by somebody who has not
+read the deck - `curve_report --build=reader --draft-salt=N` is the model of that
+player, and one deal can still put the last acts past 1.0.
+
 **Next, in order**: the trailer by ear (0i); read `earth_soak` on a harder road and
 in a late act before calling the earth's tuning done (0h #3); then 0h's
 remaining items.
