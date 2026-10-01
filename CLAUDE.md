@@ -12008,6 +12008,44 @@ name, the theme's default and button faces are `UiFonts`' own, and none of the
 listed draw sites reads the engine's face. The 48 interface gates passed at every
 shape with the heavier faces.
 
+**Every arm can fill slot 1, and the primary is on the bar, as of
+2026-09-30.** Owner: *"Arcane primary skill still doesnt go into skill slot 1
+even when chosen as equipped. Ensure its resolved and all primary skills are
+useable perfectly, as well as all other skills."*
+
+**Two things were true at once, and neither was a bug in the code.** The chain's
+form - Spellblade for the Arcane - is the swing on the attack button and sits
+*beside* the four slots, by the 2026-09-26 design; and the bar never said so, so
+a Warden who took it up looked along the bar, found slot 1 as it was, and read
+the choice as having done nothing. And the Arcane and Holy had **no Attack skill
+at all**: their only Attack-role nodes were forms, so a Warden who lived in
+either arm could never fill slot 1 from their own tree.
+
+- **The primary has a tile** (`HUD._primary_tile`), first on the ability bar, in
+  the arm's tint, with the attack key in the corner a slot wears its digit
+  (`LMB`). A picture: it casts nothing. A form taken up in Preparation is on the
+  bar at once (`discipline_equipped` rebuilds it). Desktop only - on a thumb the
+  right stick *is* the primary and the row has no width to give.
+- **Arcane Bolt** (a short violet beam, the Arcane's) and **Radiant Smite** (the
+  dawn called down on a point, Holy's) are Attack skills with an enhancement and
+  two forks each, every number from the existing branch vocabulary. Icons are
+  composed from shipped art (`tools/compose_discipline_icons.py`).
+- **Every arm's Attack skill sits in its Basic cluster** - Red Pursuit and Chain
+  Hook moved there from Core - so slot 1 can be filled the moment an arm is
+  open. That closes the gap recorded on 2026-09-26 ("a new Warden's Attack slot
+  is empty until ring II").
+
+`discipline_check` holds it: the node tripwire moved 126 to 134 with the reason
+beside it, every arm has an Attack skill with a spell in its Basic cluster, and
+on a real run's HUD the tile names the form in use and follows a form taken up
+in Preparation.
+
+**Spells cost more and wait longer** (owner, same message). About a third more
+mana and a tenth to a fifth longer cooldowns, each spell set by hand rather than
+by a factor: the ultimates the most (Sky Lance 24 to 40 mana, Stonefall 26 to
+42, Beast's Breath 45 to 60), the summons to 52, mobility the least (Rift Step
+15 to 20). Every cost stays under the 100-point pool a new Warden holds.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

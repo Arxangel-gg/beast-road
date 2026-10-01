@@ -133,6 +133,16 @@ def compose(node, nodes):
         emblem = halo(fit(relic(EMBLEMS.get(node['effect'], 80)), 108), tint, 0.9, 12)
         lay(base, emblem, (96, 98))
         return base
+    if node['id'] == 'arcane_bolt':
+        # The Arcane's Attack skill (2026-09-30): Sky Lance's medallion turned
+        # toward the Weave's violet, with the thrown bolt laid across it - the
+        # same bolt the Spellblade's Arc Bolt fork wears, because it is the
+        # same thread of the Weave, thrown on purpose rather than off a swing.
+        return arcane_bolt_icon(icon('sky_lance_rite'), SIZE)
+    if node['id'] == 'radiant_smite':
+        # Holy's Attack skill (2026-09-30): Bulwark Ward's pillar of light, with
+        # the dawn's starburst where the pillar starts - light called down.
+        return radiant_smite_icon(icon('bulwark_ward'), SIZE)
     if node['id'] == 'spellblade':
         base = icon('frost_lance_rite')
         if base is None:
@@ -142,6 +152,62 @@ def compose(node, nodes):
         lay(base, blade, (96, 96))
         return base
     return None
+
+
+def arcane_bolt_icon(base, size):
+    if base is None:
+        return None
+    base = base.copy().resize((size, size), Image.LANCZOS)
+    r, g, b, a = base.split()
+    # Toward the Weave's violet: the red lifted to meet the blue and the green
+    # held down, so the same stroke of lightning reads as a thrown thread rather
+    # than as Sky Lance's storm. The light is kept, which is what a bolt is.
+    base = Image.merge('RGBA', (r.point(lambda v: min(255, int(v * 0.92 + 38))),
+        g.point(lambda v: int(v * 0.62)), b.point(lambda v: min(255, int(v * 1.05 + 8))), a))
+    glow = halo(base, (190, 150, 255), 0.35, max(3, size // 24))
+    out = Image.new('RGBA', (size, size))
+    out.alpha_composite(glow.resize((size, size), Image.LANCZOS) if glow.size != (size, size) else glow)
+    out.alpha_composite(base)
+    return out
+
+
+def pale_gold(source, size):
+    """A mark turned to the dawn's pale gold - a hue turn and a lift, so a fire
+    burst reads as light rather than as flame."""
+    rgba = source.resize((size, size), Image.LANCZOS)
+    alpha = rgba.split()[3]
+    h, sat, v = rgba.convert('RGB').convert('HSV').split()
+    out = Image.merge('HSV', (h.point(lambda _: 32), sat.point(lambda x: int(x * 0.55)),
+        v.point(lambda x: min(255, int(x * 1.08 + 10))))).convert('RGB').convert('RGBA')
+    out.putalpha(alpha)
+    return out
+
+
+def radiant_smite_icon(base, size):
+    if base is None:
+        return None
+    base = ImageEnhance.Brightness(base.copy().resize((size, size), Image.LANCZOS)).enhance(0.8)
+    burst_source = Image.open(os.path.join(GAME, 'art', 'icons', 'spells', 'spell_cinder_nova.png')).convert('RGBA')
+    burst = halo(fit(pale_gold(burst_source, 192), int(size * 0.46)), (255, 236, 170), 0.9, max(3, size // 18))
+    lay(base, burst, (size * 0.5, size * 0.3))
+    return base
+
+
+def violet_bolt(source, size):
+    """Sky Lance's spell mark, its hue turned to the Weave's violet. A hue turn
+    rather than a channel mix: the mark is yellow, and mixing yellow's red up
+    and its green down gives pink, not violet."""
+    rgba = source.resize((size, size), Image.LANCZOS)
+    alpha = rgba.split()[3]
+    h, sat, v = rgba.convert('RGB').convert('HSV').split()
+    h = h.point(lambda _: 196)
+    out = Image.merge('HSV', (h, sat.point(lambda x: int(x * 0.85)), v)).convert('RGB').convert('RGBA')
+    out.putalpha(alpha)
+    glow = halo(out, (190, 150, 255), 0.45, max(3, size // 24))
+    canvas = Image.new('RGBA', (size, size))
+    canvas.alpha_composite(glow.resize((size, size), Image.LANCZOS))
+    canvas.alpha_composite(out)
+    return canvas
 
 
 def main():
@@ -161,6 +227,19 @@ def main():
             continue
         image.save(target)
         made.append(node['id'])
+    # The Arcane Bolt's spell icon, from the same rule at the spell bar's size.
+    spell_target = os.path.join(GAME, 'art', 'icons', 'spells', 'spell_arcane_bolt.png')
+    spell_icon = violet_bolt(Image.open(os.path.join(GAME, 'art', 'icons', 'spells', 'spell_sky_lance.png')).convert('RGBA'), 96)
+    if spell_icon is not None:
+        spell_icon.save(spell_target)
+    # Radiant Smite's spell icon: Ember Fall's falling stone turned to the
+    # dawn's pale gold - the same fall, of light rather than of fire.
+    smite = pale_gold(Image.open(os.path.join(GAME, 'art', 'icons', 'spells', 'spell_ember_fall.png')).convert('RGBA'), 96)
+    glow = halo(smite, (255, 236, 170), 0.5, 4)
+    canvas = Image.new('RGBA', (96, 96))
+    canvas.alpha_composite(glow.resize((96, 96), Image.LANCZOS))
+    canvas.alpha_composite(smite)
+    canvas.save(os.path.join(GAME, 'art', 'icons', 'spells', 'spell_radiant_smite.png'))
     print('composed %d icons' % len(made))
     if len(sys.argv) > 1:
         cols = 12

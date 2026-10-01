@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_s8djb")
 element = 0
-mana_cost = 45.0
+mana_cost = 60.0
 kind = 7
-cooldown = 20.0
+cooldown = 23.0
 damage = 120.0
 effect_radius = 340.0
 duration = 2.5

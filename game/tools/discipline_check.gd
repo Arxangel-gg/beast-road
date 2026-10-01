@@ -15,7 +15,7 @@ var _refund_asked: float = 0.0
 ## A stand-in hero for the cleanse test: it only has to say it was cleansed.
 const RECORDER_SOURCE: String = "extends Node2D\nvar cleansed: bool = false\nfunc cleanse_disables() -> void:\n\tcleansed = true\n"
 var _blinked_to: Vector2 = Vector2.INF
-const EXPECTED_TESTS: int = 10
+const EXPECTED_TESTS: int = 11
 
 
 func _ready() -> void:
@@ -30,8 +30,26 @@ func _ready() -> void:
 	# **A tripwire against loss, not a ceiling.** The count is asserted rather
 	# than derived on purpose - a node that vanishes from the data is a hero
 	# power silently disappearing, and nothing else in the project would notice.
-	_check(ContentDB.discipline_nodes.size() == 126,
-		"expected 126 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
+	#
+	# 126 until 2026-09-30, when the Arcane and Holy each gained an Attack skill
+	# (Arcane Bolt, Radiant Smite) with its enhancement and two forks.
+	_check(ContentDB.discipline_nodes.size() == 134,
+		"expected 134 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
+	# **Every arm can fill the first slot from its own tree** (owner, 2026-09-30:
+	# "Arcane primary skill still doesnt go into skill slot 1"). The Arcane and
+	# Holy had no Attack skill at all - their only Attack-role nodes were forms,
+	# which sit beside the slots - so a Warden who lived in either arm could
+	# never fill slot 1 without buying from another. In the Basic cluster, where
+	# a Warden who has just opened the arm can reach it.
+	for arm: int in DisciplineNodeData.Discipline.size():
+		var found: String = ""
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.discipline == arm and node.is_active_slot() and node.slot_index() == 0 \
+					and node.ring == 1 and not node.spell_id.is_empty():
+				found = node.id
+		_check(not found.is_empty(),
+			"the %s arm has no Attack skill in its Basic cluster - a Warden living in it can never fill slot 1"
+				% DisciplineNodeData.DISCIPLINE_NAMES[arm])
 	# **A new Warden holds the free pair and nothing else**: the chain's first
 	# form and a Defense skill in its slot.
 	_check(RunState.learned_disciplines() == Balance.DISCIPLINE_STARTERS,
@@ -74,6 +92,7 @@ func _ready() -> void:
 	_test_the_slots_open_on_the_road()
 	await _test_the_forms_do_what_they_say()
 	await _test_the_hold_screen_shapes_the_tree()
+	await _test_the_primary_stands_on_the_bar()
 
 	# **A script error aborts its own function and nothing else.**
 	# This gate printed PASS with three SCRIPT ERRORs above it, because the two
@@ -1359,6 +1378,45 @@ func _test_the_slots_open_on_the_road() -> void:
 ## the finisher "gains force for each enemy struck" and Consecrated Chain that
 ## it "splashes radiant damage near defenses". Driven through a real finisher
 ## into real bodies.
+## **The primary attack is on the bar** (owner, 2026-09-30: *"Arcane primary
+## skill still doesnt go into skill slot 1 even when chosen as equipped"*). The
+## form sits beside the four slots and the bar never said so: a Warden who took
+## up the Spellblade found slot 1 as it was and read the choice as having done
+## nothing. Driven on the real run's HUD: the tile wears the form in use, and a
+## form taken up in Preparation is on the bar the moment it is chosen.
+func _test_the_primary_stands_on_the_bar() -> void:
+	_fresh_tree()
+	RunState.reset()
+	MetaState.best_distance = Balance.act_end_distance(Balance.DISCIPLINE_OPENS_AT_ACT[3]) + 10.0
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var hud: HUD = run.hud
+	var tile: Control = hud.find_child("PrimaryTile", true, false) as Control if hud != null else null
+	_check(tile != null, "the bar has no tile for the primary attack")
+	if tile != null:
+		var named: Label = tile.get_node("Name") as Label
+		_check(named.text == RunState.chain_form().display_name.to_upper(),
+			"the primary's tile says %s while the form in use is %s"
+				% [named.text, RunState.chain_form().display_name])
+		_check(tile.get_parent() == hud.get("_spell_bar") and tile.get_index() == 0,
+			"the primary's tile is not first on the ability bar")
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var problem: String = RunState.try_choose_form("spellblade")
+	_check(problem.is_empty(), "the Spellblade could not be taken up in Preparation: %s" % problem)
+	for _frame: int in 4:
+		await get_tree().process_frame
+	tile = hud.find_child("PrimaryTile", true, false) as Control if hud != null else null
+	_check(tile != null and (tile.get_node("Name") as Label).text == "SPELLBLADE",
+		"the Spellblade, taken up, is not what the primary's tile says")
+	run.queue_free()
+	for _frame: int in 6:
+		await get_tree().process_frame
+	MetaState.discipline_form = Balance.DISCIPLINE_STARTING_FORM
+	_finished += 1
+
+
 func _test_the_forms_do_what_they_say() -> void:
 	var field := EnemyField.new()
 	add_child(field)

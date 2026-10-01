@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_mvvgn")
 element = 0
-mana_cost = 25.0
-cooldown = 9.0
+mana_cost = 34.0
+cooldown = 10.5
 damage = 55.0
 effect_radius = 210.0
 knockback = 140.0

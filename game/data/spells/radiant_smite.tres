@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 9
+mana_cost = 13.0
+cooldown = 3.2
+damage = 70.0
+cast_range = 340.0
+effect_radius = 95.0
+id = "radiant_smite"
+display_name = "Radiant Smite"
+description = "A pillar of the dawn, called down where you point."

@@ -773,6 +773,8 @@ func _ready() -> void:
 	EventBus.raid_available.connect(func(_s: float) -> void: _refresh_state_label())
 	EventBus.weakened_ended.connect(_refresh_state_label)
 	EventBus.spells_changed.connect(_rebuild_spell_bar)
+	# A form taken up in Preparation changes the primary's tile.
+	EventBus.discipline_equipped.connect(_on_discipline_equipped)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
@@ -4701,13 +4703,18 @@ func _rebuild_spell_bar() -> void:
 	_grade_the_interface.call_deferred(true)
 	if _spell_bar == null:
 		return
+	# Out of the bar before it is freed: a child queued for freeing still holds
+	# its name until the frame ends, and the new one added beside it is renamed.
 	for child: Node in _spell_bar.get_children():
+		_spell_bar.remove_child(child)
 		child.queue_free()
 	_spell_buttons.clear()
 	_spell_icons.clear()
 	_spell_labels.clear()
 	_spell_cooldowns.clear()
 
+	if not touch_ui():
+		_spell_bar.add_child(_primary_tile())
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		var slot_size: Vector2 = _spell_slot_size()
 		var discipline: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
@@ -4863,6 +4870,98 @@ func _rebuild_spell_bar() -> void:
 	# running it here and again from `_on_touch_layout_changed` is one pass.
 	if touch_ui():
 		UiMetrics.apply_touch_tree(_spell_bar, true)
+
+
+## **The primary attack has a place on the bar** (owner, 2026-09-30: *"Arcane
+## primary skill still doesnt go into skill slot 1 even when chosen as
+## equipped"*). The chain's form is the swing on the attack button and sits
+## beside the four slots rather than in the first of them - which the screen
+## never said: a Warden who took up the Spellblade looked along the bar, found
+## the Attack slot as it was, and read the choice as having done nothing. So the
+## form stands in front of the slots in a tile of its own, with the attack key
+## where a slot wears its number, and the slots keep their numbers.
+##
+## A picture: it casts nothing and is pressed by nothing, because the swing is
+## the attack button. Not on a thumb, where the right stick *is* the primary and
+## the row has no width to give.
+func _primary_tile() -> Control:
+	var slot_size: Vector2 = _spell_slot_size()
+	var form: DisciplineNodeData = RunState.chain_form()
+	var frame := Control.new()
+	frame.name = "PrimaryTile"
+	frame.custom_minimum_size = slot_size
+	frame.size_flags_vertical = Control.SIZE_SHRINK_END
+	frame.mouse_filter = Control.MOUSE_FILTER_STOP
+	var inset := Vector2(slot_size.x * UiMetrics.SLOT_INSET_X, slot_size.y * UiMetrics.SLOT_INSET_Y)
+	var slot_texture: Texture2D = load(SLOT_TEXTURE) if ResourceLoader.exists(SLOT_TEXTURE) else null
+	if slot_texture != null:
+		var plate := TextureRect.new()
+		plate.texture = slot_texture
+		plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+		plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		plate.stretch_mode = TextureRect.STRETCH_SCALE
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The arm's own colour in the ironwork, so the primary reads as a
+		# different kind of thing from the four slots beside it.
+		if form != null:
+			plate.self_modulate = Color.WHITE.lerp(PRIMARY_ARM_TINT[form.discipline], 0.35)
+		frame.add_child(plate)
+	var key := Label.new()
+	key.name = "Key"
+	# The corner a slot wears its digit in: a mouse button as its three-letter
+	# name, because "Left click" runs across the icon.
+	key.text = _short_key(KeyBindings.label_for(&"attack"))
+	key.position = Vector2(inset.x, inset.y - 2.0)
+	key.add_theme_font_size_override("font_size", 11)
+	key.add_theme_color_override("font_color", Color("f4ddb0"))
+	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(key)
+	var icon := TextureRect.new()
+	icon.name = "Icon"
+	icon.size = Vector2(SPELL_ICON_SIZE, SPELL_ICON_SIZE)
+	icon.position = Vector2((slot_size.x - SPELL_ICON_SIZE) * 0.5,
+		(slot_size.y - SPELL_ICON_SIZE) * 0.5 - inset.y * 0.5)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if form != null and ResourceLoader.exists(form.get_sprite_path()):
+		icon.texture = load(form.get_sprite_path())
+	frame.add_child(icon)
+	var name_label := Label.new()
+	name_label.name = "Name"
+	var across: float = slot_size.x - inset.x
+	name_label.size = Vector2(across, 15.0)
+	name_label.position = Vector2((slot_size.x - across) * 0.5, slot_size.y - inset.y - 16.0)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 9)
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.text = form.display_name.to_upper() if form != null else "PRIMARY"
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(name_label)
+	if form != null:
+		frame.tooltip_text = "Primary attack · %s\n%s\nSwung on %s; chosen in the Hold's Disciplines." \
+			% [form.display_name, form.description, KeyBindings.label_for(&"attack")]
+	return frame
+
+
+## The ironwork tint a primary tile takes from its arm: Blood, Holy, Berserk,
+## the Arcane - the tree's own four.
+const PRIMARY_ARM_TINT: Array[Color] = [Color(0.85, 0.32, 0.28), Color(0.96, 0.86, 0.52),
+	Color(0.95, 0.55, 0.22), Color(0.58, 0.62, 1.0)]
+
+
+static func _short_key(label: String) -> String:
+	match label.to_lower():
+		"left click", "left mouse", "mouse left":
+			return "LMB"
+		"right click", "right mouse", "mouse right":
+			return "RMB"
+	return label
+
+
+func _on_discipline_equipped(_slot: int, _id: String) -> void:
+	_rebuild_spell_bar()
 
 
 func _spell_icon(spell: SpellData) -> Texture2D:

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 kind = 3
-ring = 2
+ring = 1
 tags = Array[String](["Pull", "Mark"])
 parent_id = "chain_hook_long"
 exclusive = "chain_hook_fork"

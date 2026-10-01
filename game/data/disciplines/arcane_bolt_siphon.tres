@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 3
+ring = 1
+tags = Array[String](["Spell", "Ranged"])
+parent_id = "arcane_bolt_honed"
+exclusive = "arcane_bolt_fork"
+discipline = 3
+role = 0
+effect_id = "up_kill_mana"
+effect_value = 0.06
+id = "arcane_bolt_siphon"
+display_name = "Weave-Drinker"
+description = "A body Arcane Bolt finishes gives back six parts in a hundred of the pool."

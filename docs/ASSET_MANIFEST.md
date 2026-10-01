@@ -1669,6 +1669,13 @@ and the companion sprites already carry the animal itself.
 `spell_call_wolf.png` · `spell_call_bear.png` · `spell_call_crow.png` ·
 `spell_call_hart.png` · `spell_call_ram.png` · `spell_call_serpent.png`
 
+The Arcane's and Holy's Attack skills, added 2026-09-30, so a mage and a
+paladin can fill the first slot from their own arm. Sky Lance's mark turned to
+the Weave's violet and Ember Fall's turned to the dawn's pale gold, composed by `tools/compose_discipline_icons.py` while PixelLab's allowance is
+spent.
+
+`spell_arcane_bolt.png` · `spell_radiant_smite.png`
+
 ### 5.9d Barricades — `res://art/barricades/`
 
 All 96×96, type T, placeholder colour `#B89A70`.
@@ -2329,6 +2336,16 @@ each replaced by overwriting its file.
 `discipline_thorn_volley_rite_hungry.png` · `discipline_thorn_volley_rite_more.png` ·
 `discipline_thorn_volley_rite_wall.png` · `discipline_tremor_deep.png` ·
 `discipline_tremor_rubble.png` · `discipline_tremor_wide.png`
+
+The Arcane Bolt and Radiant Smite and their branches, added 2026-09-30: the
+Arcane's and Holy's first Attack skills, in their Basic clusters. Same 192×192;
+Sky Lance's medallion turned to violet and Bulwark Ward's with the dawn's burst
+over it, and the branches wear the usual emblems.
+
+`discipline_arcane_bolt.png` · `discipline_arcane_bolt_honed.png` ·
+`discipline_arcane_bolt_siphon.png` · `discipline_arcane_bolt_quickened.png` ·
+`discipline_radiant_smite.png` · `discipline_radiant_smite_bright.png` ·
+`discipline_radiant_smite_brand.png` · `discipline_radiant_smite_mercy.png`
 
 The four families share blackened iron and aged brass; Blood uses controlled
 crimson, Holy uses ivory-gold, and Berserk uses ember-orange so discipline

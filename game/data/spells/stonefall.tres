@@ -6,8 +6,8 @@
 script = ExtResource("1")
 element = 2
 kind = 9
-mana_cost = 26.0
-cooldown = 10.0
+mana_cost = 42.0
+cooldown = 13.0
 damage = 62.0
 effect_radius = 165.0
 cast_range = 430.0

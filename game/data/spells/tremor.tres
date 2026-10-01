@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_71r8l")
 element = 2
-mana_cost = 30.0
+mana_cost = 40.0
 kind = 4
-cooldown = 11.0
+cooldown = 12.5
 damage = 34.0
 effect_radius = 260.0
 knockback = 520.0

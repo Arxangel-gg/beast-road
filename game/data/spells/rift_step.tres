@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_55wbn")
 kind = 0
-mana_cost = 15.0
-cooldown = 7.0
+mana_cost = 20.0
+cooldown = 8.0
 cast_range = 420.0
 id = "rift_step"
 display_name = "Rift Step"
