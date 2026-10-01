@@ -58,7 +58,8 @@ func _ready() -> void:
 		_test_karma()
 		_test_luck_and_the_cruel()
 		_test_temper()
-	_check(_finished == 8, "%d of 8 tests reached their end" % _finished)
+		_test_a_guest_breathes_the_same_ash()
+	_check(_finished == 9, "%d of 9 tests reached their end" % _finished)
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	GameDirector.run_active = false
 	_run.queue_free()
@@ -157,6 +158,39 @@ func _place(kind: WildlifeData, at: Vector2) -> Dictionary:
 	(animal["sprite"] as Sprite2D).global_position = at
 	animal["state"] = Wildlife.State.SETTLED
 	return animal
+
+
+## **A guest breathes the same ash** (2026-10-01). The host tells each patch of
+## grief it lays (`coop_grief_laid`) only in company, and a guest's sheet lays
+## what it is told and nothing of its own - a kill a guest's copy hears lays
+## nothing, because why an animal died is the host's to know.
+func _test_a_guest_breathes_the_same_ash() -> void:
+	_calm()
+	var told: Array[Vector2] = []
+	var listen := func(at: Vector2, _amount: float) -> void: told.append(at)
+	EventBus.coop_grief_laid.connect(listen)
+	var here: Vector2 = Vector2(-1500.0, 1400.0)
+	EventBus.wildlife_killed.emit("stag", 3, here, 2, false, false)
+	_check(told.is_empty(), "grief was told to a guest on a solo road")
+	_calm()
+	Coop.set("_state", Coop.State.HOSTING)
+	EventBus.wildlife_killed.emit("stag", 3, here, 2, false, false)
+	Coop.set("_state", Coop.State.OFFLINE)
+	_check(told.size() == 1 and told[0].is_equal_approx(here),
+		"the host did not tell its grief to a guest (%d told)" % told.size())
+	var host_has: float = _sky.grief.at(here)
+	# The same sky as a guest's: told grief lands, its own kills lay none.
+	_calm()
+	_sky.set("_mirror", true)
+	EventBus.wildlife_killed.emit("stag", 3, here, 2, false, false)
+	_check(_sky.grief.total() <= 0.0, "a guest laid grief of its own from a kill it heard")
+	EventBus.coop_grief_laid.emit(here, float(Balance.WRATH_RARITY_SCALE[2]))
+	_check(absf(_sky.grief.at(here) - host_has) < host_has * 0.02 + 0.001,
+		"a guest's told grief is %.3f where the host's is %.3f" % [_sky.grief.at(here), host_has])
+	_sky.set("_mirror", false)
+	EventBus.coop_grief_laid.disconnect(listen)
+	_calm()
+	_finished += 1
 
 
 func _test_in_the_area() -> void:

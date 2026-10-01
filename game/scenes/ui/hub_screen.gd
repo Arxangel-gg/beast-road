@@ -103,6 +103,12 @@ var _card_root: Control = null
 var _frame: Control = null
 var _prompt: Label = null
 var _note: Label = null
+## **The Hold talks** (2026-10-01): the road's own chat, in the room, so a
+## party gathering before a road can say so. `PartyChat` is the one piece the
+## road's HUD uses too; the Say button is a thumb's Enter, shown in company.
+var _chat: PartyChat = null
+var _chat_button: Button = null
+var _zoom_corner: Control = null
 var _doors_button: Button = null
 var _public_button: Button = null
 var _bar: GridContainer = null
@@ -223,6 +229,11 @@ func _build_frame() -> void:
 	_public_button = _strip_button("Doors", _toggle_public)
 	_strip_button("Invite", _invite)
 	_strip_button("Find a Hold", _find)
+	_chat_button = _strip_button("Say", func() -> void:
+		if _chat != null:
+			_chat.toggle())
+	_chat_button.name = "Say"
+	_chat_button.tooltip_text = "Talk to the people in the Hold  (Enter)"
 	_close_button = _strip_button("Close", close)
 
 	_note = Label.new()
@@ -262,7 +273,23 @@ func _build_frame() -> void:
 	# whole button, sat level with the top of what could be seen of it.
 	zoom_corner.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	frame.add_child(zoom_corner)
+	_zoom_corner = zoom_corner
 	_build_zoom(zoom_corner)
+
+	# The feed above the zoom, bottom left - the same corner the road keeps it
+	# in, so a player's eye goes to one place for their party wherever they are.
+	_chat = PartyChat.new()
+	_chat.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_chat.offset_left = 22.0
+	_chat.offset_right = 22.0 + Balance.PARTY_LOG_WIDTH
+	_chat.offset_bottom = -110.0
+	_chat.offset_top = -470.0
+	# Enter opens it unless a button holds the focus: a keyboard walking the
+	# bar presses what it is on, as it always did.
+	_chat.available = func() -> bool:
+		var focus: Control = get_viewport().gui_get_focus_owner()
+		return visible and (focus == null or focus == _chat.box)
+	frame.add_child(_chat)
 
 	_build_road_panel(frame)
 	EventBus.party_run_offered.connect(_on_road_offered)
@@ -575,9 +602,18 @@ func _hide_card() -> void:
 # ---------------------------------------------------------------- the session
 
 
+## The room's chat, for a gate.
+func chat() -> PartyChat:
+	return _chat
+
+
 func _refresh_bar() -> void:
 	if _public_button == null:
 		return
+	# Say is for company: alone, Enter still opens a note to self, and a
+	# button for talking to nobody is a button nobody needs.
+	if _chat_button != null:
+		_chat_button.visible = Coop.is_networked()
 	var open_doors: bool = HoldSession.is_public()
 	_public_button.text = "Doors: open" if open_doors else "Doors: closed"
 	if _session != null and _session.occupied() > 1:
@@ -1273,6 +1309,11 @@ func _refit() -> void:
 	# for a worse one.
 	if _bar != null:
 		_bar.columns = 5 if screen.x >= 900.0 else (3 if screen.x >= 620.0 else 2)
+	# The feed sits on the zoom corner, however tall a thumb made it.
+	if _chat != null and _zoom_corner != null:
+		var lift: float = maxf(_zoom_corner.size.y, 40.0) + 18.0 + 14.0
+		_chat.offset_bottom = -lift
+		_chat.offset_top = -lift - minf(360.0, screen.y * 0.4)
 	if _road_panel != null:
 		var road: Control = _road_rows
 		if road != null:

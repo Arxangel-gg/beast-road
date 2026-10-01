@@ -168,6 +168,7 @@ func _ready() -> void:
 	EventBus.gathered.connect(_on_gathered)
 	EventBus.earth_offended.connect(_on_earth_offended)
 	EventBus.wildlife_fell.connect(_on_wildlife_fell)
+	EventBus.coop_grief_laid.connect(_on_grief_told)
 	EventBus.wildlife_tamed.connect(_on_wildlife_tamed)
 	EventBus.wildlife_robbed.connect(_on_wildlife_robbed)
 	_apply(ContentDB.weather(RunState.weather_id))
@@ -183,6 +184,10 @@ func _process(delta: float) -> void:
 		_tick_warnings(delta)
 		_tick_quake(delta)
 		_drive_visuals(delta)
+		# The told grief fades on the host's clock and breathes its ash.
+		if grief != null:
+			grief.tick(delta)
+			_breathe_grief(delta)
 		return
 	_clock += delta
 	_tick_rain(delta)
@@ -979,8 +984,7 @@ func _on_wildlife_fell(_kind_id: String, at: Vector2, rarity: int, shiny: bool, 
 		return
 	var share: float = float(Balance.WRATH_FALL_SCALE.get(cause, Balance.WRATH_FALL_SCALE["earth"]))
 	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale * share
-	if grief != null:
-		grief.add(at, scale * share)
+	_lay_grief(at, scale * share)
 
 
 ## A spirit bonded is a kindness the earth remembers.
@@ -1017,8 +1021,26 @@ func _count_kill(scale: float, at: Vector2 = Vector2.INF) -> void:
 	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale
 	_quiet = 0.0
 	# And grief where it happened, when there is a where.
-	if grief != null and at.is_finite():
-		grief.add(at, scale)
+	if at.is_finite():
+		_lay_grief(at, scale)
+
+
+## Grief on this sheet, and told to a guest: the one place the host lays it.
+func _lay_grief(at: Vector2, amount: float) -> void:
+	if grief == null or _mirror:
+		return
+	grief.add(at, amount)
+	if Coop.is_networked():
+		EventBus.coop_grief_laid.emit(at, amount)
+
+
+## **A guest's sheet, laid by what the host tells it** (2026-10-01): the same
+## patches at the same strengths, faded on the same half-life, so the ash
+## breathes over the same ground on both screens. A picture: a guest rolls no
+## blow and reads no hazard from it.
+func _on_grief_told(at: Vector2, amount: float) -> void:
+	if _mirror and grief != null and at.is_finite() and amount > 0.0:
+		grief.add(at, amount)
 
 
 ## A tree felled. A few are the road living; more than that inside the

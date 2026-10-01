@@ -98,6 +98,7 @@ func _ready() -> void:
 	await _test_a_click_reaches_the_yard_through_the_menu()
 	await _test_the_stone_card_comes_back()
 	await _test_the_doors_say_what_waits()
+	await _test_the_hold_talks()
 	# **A test that aborted must not read as a test that passed.** A GDScript
 	# runtime error - which is what every fault in this batch was - stops the
 	# function it happens in and nothing else. So planting the act-start fault
@@ -106,7 +107,7 @@ func _ready() -> void:
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
 	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "strangers_dressed", "thumb", "news", "chrome",
-			"click", "menu_click", "stone_card"]:
+			"click", "menu_click", "stone_card", "talks"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1705,6 +1706,67 @@ func _says(lines: Array[Dictionary], words: String) -> bool:
 ## controls, and it follows the room's visibility - a nested layer does not
 ## hide with its parent, and `is_visible_in_tree` cannot see a hidden layer,
 ## which is why this reads the layer itself.
+## **The Hold talks** (2026-10-01): the road's chat in the room. Enter opens it
+## with nothing focused and a line said goes to the party's bus; a button with
+## the focus keeps Enter; Say is shown in company and not alone.
+func _test_the_hold_talks() -> void:
+	var hub := HubScreen.new()
+	add_child(hub)
+	await get_tree().process_frame
+	hub.open()
+	for _f: int in 4:
+		await get_tree().process_frame
+	var chat: PartyChat = hub.chat()
+	_check(chat != null and chat.is_visible_in_tree(), "the Hold has no chat in the room")
+	if chat == null:
+		hub.queue_free()
+		_reached["talks"] = true
+		return
+	var said: Array[String] = []
+	var listen := func(_slot: int, text: String) -> void: said.append(text)
+	EventBus.coop_chat.connect(listen)
+	get_viewport().gui_release_focus()
+	_push_enter()
+	await get_tree().process_frame
+	_check(chat.is_chatting(), "Enter in the Hold, with nothing focused, did not open the chat")
+	chat.box.text = "anyone for Act IV?"
+	_push_enter()
+	await get_tree().process_frame
+	_check(not chat.is_chatting(), "Enter in the Hold sent the line and left the box open")
+	_check(said.has("anyone for Act IV?"), "a line said in the Hold never reached the party's bus")
+	# A button holding the focus keeps Enter for itself.
+	var close_button := hub.get("_close_button") as Button
+	_check(close_button != null, "the Hold has no Close button to hold the focus")
+	if close_button != null:
+		close_button.grab_focus()
+		await get_tree().process_frame
+		_check(not chat.may_open(), "the chat would take Enter from a focused button")
+		get_viewport().gui_release_focus()
+	EventBus.coop_chat.disconnect(listen)
+	var say := hub.find_child("Say", true, false) as Button
+	_check(say != null and not say.visible, "Say shows with nobody to talk to")
+	Coop.set("_state", Coop.State.HOSTING)
+	hub.call("_refresh_bar")
+	_check(say != null and say.visible, "Say is hidden in company")
+	Coop.set("_state", Coop.State.OFFLINE)
+	hub.call("_refresh_bar")
+	hub.close()
+	hub.queue_free()
+	await get_tree().process_frame
+	_reached["talks"] = true
+
+
+func _push_enter() -> void:
+	var down := InputEventKey.new()
+	down.keycode = KEY_ENTER
+	down.physical_keycode = KEY_ENTER
+	down.pressed = true
+	get_viewport().push_input(down)
+	var up := down.duplicate() as InputEventKey
+	up.pressed = false
+	get_viewport().push_input(up)
+
+
 func _test_the_chrome_is_above_the_sky() -> void:
 	var hub := HubScreen.new()
 	add_child(hub)

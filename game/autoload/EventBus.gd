@@ -435,6 +435,10 @@ signal coop_wildlife_removed(net_id: int)
 
 ## A host-authored wildlife death starts the same fall on every peer.
 signal coop_wildlife_died(net_id: int)
+
+## Grief laid on the host's sheet, told to a guest so it breathes the same ash
+## (2026-10-01). A picture on the guest: nothing there reads grief.
+signal coop_grief_laid(at: Vector2, amount: float)
 ## A thief's sack and cover, decided by the host: whether it carries anything
 ## now and whether it is lying low. The guest dresses its puppet to match.
 signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)

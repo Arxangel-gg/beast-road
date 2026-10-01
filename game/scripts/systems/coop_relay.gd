@@ -208,6 +208,11 @@ enum Fact {
 	## down. A state rather than three facts, because a guest who missed the
 	## rising and heard the call must still dress the body it is told about.
 	HERALD = 88,
+	## **Grief laid, where and how much** (2026-10-01). The guest hears that an
+	## animal died and never why, so it cannot tell the deaths the earth minds;
+	## the host tells it each patch it lays and the guest's sheet fades it on
+	## the same clock, so both screens breathe ash over the same ground.
+	GRIEF_LAID = 89,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -551,6 +556,7 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_wildlife_died", _on_coop_wildlife_died],
+		["coop_grief_laid", _on_coop_grief_laid],
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_wildlife_family", _on_coop_wildlife_family],
 		["coop_wildlife_born", _on_coop_wildlife_born],
@@ -721,6 +727,10 @@ func _on_coop_wildlife_removed(net_id: int) -> void:
 
 func _on_coop_wildlife_died(net_id: int) -> void:
 	_relay(Fact.WILDLIFE_DIED, [net_id])
+
+
+func _on_coop_grief_laid(at: Vector2, amount: float) -> void:
+	_relay(Fact.GRIEF_LAID, [at, amount])
 
 
 func _on_coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool) -> void:
@@ -1243,6 +1253,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WILDLIFE_DIED:
 			if args.size() == 1:
 				bus.coop_wildlife_died.emit(int(args[0]))
+		Fact.GRIEF_LAID:
+			if args.size() == 2 and args[0] is Vector2:
+				bus.coop_grief_laid.emit(args[0] as Vector2, float(args[1]))
 		Fact.WILDLIFE_SACK:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))

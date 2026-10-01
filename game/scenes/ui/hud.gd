@@ -416,18 +416,13 @@ var _ride_button: Button
 ## there is nothing to build and the question does not arise.
 var _mode_button: Button
 
-## The party feed and the box a player types into.
+## The party feed and the box a player types into: `PartyChat`'s, held here
+## by name for every reader that already asked for them.
+var _chat: PartyChat = null
 var _party_log: PartyLog = null
 var _chat_box: LineEdit = null
-## Lines this machine has sent, newest last, for Up and Down (2026-10-01).
-var _chat_sent: Array[String] = []
-## Where Up and Down stand in that list; its size is "a new line".
-var _chat_recall: int = 0
-## When each of the last few lines was sent, for the burst guard.
-var _chat_times: Array[int] = []
-## The roll's own dice: a roll is a game between people and moves nothing in
-## the run, so it never touches the run's streams.
-var _chat_dice := RandomNumberGenerator.new()
+## The chat's own square on a thumb's column (2026-10-01), shown in company.
+var _chat_nav: Button = null
 var _tend_button: Button
 var _tend_progress: ProgressBar
 ## Whether healing is both needed and affordable. Drives the pulse below.
@@ -724,6 +719,11 @@ func _ready() -> void:
 	_build_fishing_panel()
 	_build_spirit_panel()
 	_build_party_panel()
+	# Company arriving or leaving changes which square a thumb's column shows:
+	# the speed alone, the chat in company. A named method, never a lambda - a
+	# lambda on an autoload outlives the HUD that made it.
+	EventBus.coop_partner_joined.connect(_on_company_changed)
+	EventBus.coop_partner_left.connect(_on_company_changed)
 	EventBus.achievement_unlocked.connect(func(id: String) -> void:
 		var achievement := ContentDB.achievements.get(id, null) as AchievementData
 		if achievement != null:
@@ -1792,6 +1792,18 @@ func _build_nav_bar() -> void:
 	_speed_nav.name = "SpeedSquare"
 	_speed_nav.text = "1x"
 	_nav_buttons.append(_speed_nav)
+	# **The chat, for a thumb** (2026-10-01). A phone has no Enter, so the box
+	# had no way to open on one. Shown only in company, where there is somebody
+	# to talk to - which is exactly when the speed square is not, so the column
+	# never holds both. A press opens the box (and the phone's keyboard with
+	# it); a second press sends what is in it.
+	_chat_nav = _add_icon_button(bar, "", "Chat with the party  (Enter)",
+		func() -> void:
+			if _chat != null:
+				_chat.toggle())
+	_chat_nav.name = "ChatSquare"
+	_chat_nav.text = "Say"
+	_nav_buttons.append(_chat_nav)
 
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
@@ -2457,53 +2469,23 @@ func _slim(button: Button) -> void:
 ## reported. Alone, a line is a note to self and the commands still answer:
 ## `/roll`, `/time`, `/help`.
 func _build_party_feed() -> void:
-	var column := VBoxContainer.new()
-	column.name = "PartyFeed"
-	column.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	column.offset_left = 18.0
-	column.offset_bottom = -_bottom_band_height() - 14.0
-	column.offset_top = -520.0
-	column.offset_right = Balance.PARTY_LOG_WIDTH + 18.0
-	column.alignment = BoxContainer.ALIGNMENT_END
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(column)
-
-	_party_log = PartyLog.new()
-	_party_log.name = "PartyLog"
-	column.add_child(_party_log)
-
-	_chat_box = LineEdit.new()
-	_chat_box.name = "ChatBox"
-	_chat_box.max_length = Balance.CHAT_MAX_LENGTH
-	_chat_box.visible = false
-	_chat_box.custom_minimum_size = Vector2(Balance.PARTY_LOG_WIDTH, 0.0)
-	_chat_box.text_submitted.connect(_on_chat_submitted)
-	# A box that looks like a channel: dark, a gold rule, the party's own
-	# colour on the caret, so it reads as the log's own line rather than as a
-	# settings field dropped on the road.
-	var field := StyleBoxFlat.new()
-	field.bg_color = Color(0.03, 0.04, 0.05, 0.86)
-	field.border_color = Color(0.86, 0.72, 0.42, 0.55)
-	field.set_border_width_all(1)
-	field.set_corner_radius_all(5)
-	field.content_margin_left = 10.0
-	field.content_margin_right = 10.0
-	field.content_margin_top = 5.0
-	field.content_margin_bottom = 5.0
-	for state: String in ["normal", "focus", "read_only"]:
-		_chat_box.add_theme_stylebox_override(state, field)
-	_chat_box.add_theme_color_override("font_color", Color("ece6d8"))
-	_chat_box.add_theme_color_override("font_placeholder_color", Color(0.62, 0.58, 0.52, 0.8))
-	_chat_box.add_theme_color_override("caret_color", Color("f2dfa8"))
-	column.add_child(_chat_box)
-	_chat_dice.randomize()
+	_chat = PartyChat.new()
+	_chat.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_chat.offset_left = 18.0
+	_chat.offset_bottom = -_bottom_band_height() - 14.0
+	_chat.offset_top = -520.0
+	_chat.offset_right = Balance.PARTY_LOG_WIDTH + 18.0
+	_chat.available = func() -> bool: return GameDirector.run_active
+	add_child(_chat)
+	_party_log = _chat.feed
+	_chat_box = _chat.box
 
 
-## Enter opens the box; Enter sends and closes it; Escape closes it unsent.
+## The minimap and the fast-forward, on keys a chat box would otherwise eat.
+## The chat's own keys - Enter, Escape, Up and Down - are `PartyChat`'s.
 ##
-## Handled in `_input` rather than `_unhandled_input` for the same reason Tab is:
-## a LineEdit with focus eats the key before an unhandled handler ever sees it,
-## so the second Enter would never reach this.
+## In `_input` rather than `_unhandled_input` for the same reason Tab is: a
+## LineEdit with focus eats the key before an unhandled handler ever sees it.
 func _input(event: InputEvent) -> void:
 	var chatting: bool = _chat_box != null and is_instance_valid(_chat_box) and _chat_box.visible
 	if event.is_action_pressed(&"toggle_minimap") and not chatting:
@@ -2518,172 +2500,21 @@ func _input(event: InputEvent) -> void:
 		_toggle_game_speed()
 		get_viewport().set_input_as_handled()
 		return
-	if not _chat_available():
-		return
-	if _chat_box.visible and event.is_action_pressed(&"ui_cancel"):
-		_close_chat()
-		get_viewport().set_input_as_handled()
-		return
-	# Up and Down walk back through what this machine has said, as League's
-	# box does - the line said a moment ago is the one most often said again.
-	if _chat_box.visible and key != null and key.pressed \
-			and key.keycode in [KEY_UP, KEY_DOWN]:
-		_recall_chat(-1 if key.keycode == KEY_UP else 1)
-		get_viewport().set_input_as_handled()
-		return
-	if not _is_chat_key(event):
-		return
-	if _chat_box.visible:
-		_on_chat_submitted(_chat_box.text)
-	else:
-		open_chat()
-	get_viewport().set_input_as_handled()
-
-
-## Enter, or the keypad's Enter: the `chat` action names the main one, and a
-## hand on the keypad presses the other without thinking about it.
-func _is_chat_key(event: InputEvent) -> bool:
-	if event.is_action_pressed(&"chat"):
-		return true
-	var key := event as InputEventKey
-	return key != null and key.pressed and not key.echo \
-		and key.physical_keycode == KEY_KP_ENTER
-
-
-func _chat_available() -> bool:
-	return _chat_box != null and is_instance_valid(_chat_box) \
-		and _chat_box.is_inside_tree() and GameDirector.run_active
 
 
 ## Opens the box over the log's history.
 func open_chat() -> void:
-	if not _chat_available():
-		return
-	_chat_box.placeholder_text = ("Party  ·  Enter to send, /help for commands"
-		if Coop.is_networked() else "Say something  ·  /help for commands")
-	_chat_box.visible = true
-	_chat_recall = _chat_sent.size()
-	_chat_box.grab_focus()
-	if _party_log != null:
-		_party_log.set_open(true)
+	if _chat != null:
+		_chat.open_chat()
 
 
 func is_chatting() -> bool:
-	return _chat_box != null and is_instance_valid(_chat_box) and _chat_box.visible
+	return _chat != null and _chat.is_chatting()
 
 
-func _recall_chat(step: int) -> void:
-	if _chat_sent.is_empty():
-		return
-	_chat_recall = clampi(_chat_recall + step, 0, _chat_sent.size())
-	_chat_box.text = _chat_sent[_chat_recall] if _chat_recall < _chat_sent.size() else ""
-	_chat_box.caret_column = _chat_box.text.length()
-
-
-## A line typed and sent: a command for this machine is answered here, and a
-## line that travels is emitted - not sent. The relay forwards it and the host
-## passes it on to the rest of the party; this machine draws its own copy from
-## the same signal, so every screen reads the same text the same way.
-func _on_chat_submitted(text: String) -> void:
-	var line: Dictionary = ChatLine.parse(text)
-	_close_chat()
-	var kind: int = int(line["kind"])
-	if kind == ChatLine.Kind.EMPTY:
-		return
-	_remember_chat(ChatLine.clean(text))
-	match kind:
-		ChatLine.Kind.HELP:
-			_say_to_self("Enter opens and sends, Escape closes, Up and Down recall.")
-			for command: Dictionary in ChatLine.COMMANDS:
-				_say_to_self("%s  -  %s" % [String(command["usage"]), String(command["says"])])
-			return
-		ChatLine.Kind.CLEAR:
-			if _party_log != null:
-				_party_log.clear()
-			return
-		ChatLine.Kind.TIME:
-			_say_to_self("%s on the road  ·  Act %d  ·  wave %d" % [
-				ChatLine.stamp(RunState.run_time_seconds).trim_prefix("[").trim_suffix("]"),
-				RunState.act, RunState.wave_number])
-			return
-		ChatLine.Kind.MUTE, ChatLine.Kind.UNMUTE:
-			_mute_by_name(String(line.get("name", "")), kind == ChatLine.Kind.MUTE)
-			return
-		ChatLine.Kind.UNKNOWN:
-			var why: String = String(line.get("why", ""))
-			_say_to_self(why if not why.is_empty()
-				else "No command /%s. /help lists them." % String(line.get("word", "")))
-			return
-	if not _chat_may_send():
-		_say_to_self("Slow down - your party is still reading.")
-		return
-	var rolled: int = 0
-	if kind == ChatLine.Kind.ROLL:
-		rolled = _chat_dice.randi_range(1, int(line["most"]))
-	var slot: int = Coop.party().slot()
-	EventBus.coop_chat.emit(maxi(slot, 1), ChatLine.wire(line, rolled))
-
-
-func _say_to_self(text: String) -> void:
-	if _party_log != null:
-		_party_log.say_system(text)
-
-
-func _remember_chat(text: String) -> void:
-	if text.is_empty():
-		return
-	if _chat_sent.is_empty() or _chat_sent.back() != text:
-		_chat_sent.append(text)
-	while _chat_sent.size() > Balance.CHAT_HISTORY:
-		_chat_sent.pop_front()
-
-
-## **A burst is a few lines, never a flood.** `CHAT_BURST` lines inside
-## `CHAT_BURST_SECONDS`, then the box says so rather than sending: a party of
-## four reading a wall of text in a wave is a party losing the wave.
-func _chat_may_send() -> bool:
-	var now: int = Time.get_ticks_msec()
-	var window: int = int(Balance.CHAT_BURST_SECONDS * 1000.0)
-	while not _chat_times.is_empty() and now - _chat_times[0] > window:
-		_chat_times.pop_front()
-	if _chat_times.size() >= Balance.CHAT_BURST:
-		return false
-	_chat_times.append(now)
-	return true
-
-
-## Mutes or unmutes a seat by the start of its name - this screen only, and
-## never the player's own seat, since a player cannot be rude to themselves.
-func _mute_by_name(name_text: String, mute: bool) -> void:
-	var wanted: String = name_text.strip_edges().to_lower()
-	if wanted.is_empty():
-		_say_to_self("/%s wants a name." % ("mute" if mute else "unmute"))
-		return
-	if _party_log == null:
-		return
-	var own: int = Coop.party().slot()
-	for slot: int in range(1, Balance.PARTY_COLOURS.size() + 1):
-		var seat: CoopParty.Seat = Coop.party().seat_for_slot(slot)
-		if seat == null or slot == own or not seat.name.to_lower().begins_with(wanted):
-			continue
-		if mute:
-			_party_log.muted_slots[slot] = true
-			_say_to_self("%s is muted on this screen." % seat.name)
-		else:
-			_party_log.muted_slots.erase(slot)
-			_say_to_self("%s can be heard again." % seat.name)
-		return
-	_say_to_self("Nobody in the party is called \"%s\"." % name_text.strip_edges())
-
-
-func _close_chat() -> void:
-	if _chat_box == null or not is_instance_valid(_chat_box):
-		return
-	_chat_box.text = ""
-	_chat_box.visible = false
-	_chat_box.release_focus()
-	if _party_log != null:
-		_party_log.set_open(false)
+## The chat itself, for a gate.
+func chat() -> PartyChat:
+	return _chat
 
 
 ## The mode button says what pressing it *gives you*, not what mode you are in.
@@ -6874,6 +6705,10 @@ func _toggle_game_speed() -> void:
 			% int(round(Balance.GAME_SPEED_FAST_TOLL * 100.0)))
 
 
+func _on_company_changed(_peer: int) -> void:
+	_refresh_speed_button()
+
+
 func _refresh_speed_button() -> void:
 	if _speed_button == null:
 		return
@@ -6883,12 +6718,18 @@ func _refresh_speed_button() -> void:
 	_speed_button.tooltip_text = ("Run the road at double speed. P toggles it. The road "
 		+ "pays %d%% less in spoils and trickle while it runs fast. Alone only - a "
 		+ "partner's clock is the host's.") % int(round(Balance.GAME_SPEED_FAST_TOLL * 100.0))
+	var resized: bool = false
 	if _speed_nav != null and is_instance_valid(_speed_nav):
 		var was: bool = _speed_nav.visible
 		_speed_nav.text = "2x" if GameSpeed.is_fast() else "1x"
 		_speed_nav.visible = touch_ui() and GameSpeed.allowed()
-		if was != _speed_nav.visible:
-			_size_nav_bar()
+		resized = was != _speed_nav.visible
+	if _chat_nav != null and is_instance_valid(_chat_nav):
+		var was_chat: bool = _chat_nav.visible
+		_chat_nav.visible = touch_ui() and Coop.is_networked()
+		resized = resized or was_chat != _chat_nav.visible
+	if resized:
+		_size_nav_bar()
 
 
 func _on_hero_health(current: float, maximum: float) -> void:

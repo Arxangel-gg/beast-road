@@ -50,8 +50,9 @@ func _ready() -> void:
 	await _test_the_wire()
 	await _test_burst_mute_and_recall()
 	_test_the_controls_page_names_it()
+	await _test_a_thumb_has_a_say_square()
 
-	var expected: int = 6
+	var expected: int = 7
 	_check(_finished == expected, "%d of %d tests reached their end" % [_finished, expected])
 	if get_tree().paused:
 		GameDirector.set_paused(false)
@@ -74,6 +75,39 @@ func _ready() -> void:
 	for _frame: int in 10:
 		await get_tree().process_frame
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A phone has no Enter** (2026-10-01): in company a thumb's column carries
+## a Say square that opens the box and, pressed again, sends what is in it;
+## alone it is not there, where the speed square is.
+func _test_a_thumb_has_a_say_square() -> void:
+	var kept_touch: Variant = MetaState.settings.get(TouchInput.TOUCH_KEY, false)
+	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	TouchInput.refresh()
+	await get_tree().process_frame
+	var square := _hud.find_child("ChatSquare", true, false) as Button
+	_check(square != null, "a thumb's column has no Say square")
+	if square != null:
+		_check(not square.visible, "the Say square shows on a solo road")
+		Coop.set("_state", Coop.State.HOSTING)
+		EventBus.coop_partner_joined.emit(2)
+		await get_tree().process_frame
+		_check(square.visible, "the Say square is hidden in company")
+		square.pressed.emit()
+		await get_tree().process_frame
+		_check(_hud.is_chatting(), "the Say square did not open the chat")
+		(_hud.get("_chat_box") as LineEdit).text = "on my way"
+		square.pressed.emit()
+		await get_tree().process_frame
+		_check(not _hud.is_chatting(), "the Say square's second press did not send the line")
+		Coop.set("_state", Coop.State.OFFLINE)
+		EventBus.coop_partner_left.emit(2)
+		await get_tree().process_frame
+		_check(not square.visible, "the Say square stayed after company left")
+	MetaState.settings[TouchInput.TOUCH_KEY] = kept_touch
+	TouchInput.refresh()
+	await get_tree().process_frame
+	_finished += 1
 
 
 # --- Helpers ----------------------------------------------------------------
@@ -193,7 +227,7 @@ func _test_the_wire() -> void:
 
 func _test_burst_mute_and_recall() -> void:
 	_log.clear()
-	_hud.set("_chat_times", [] as Array[int])
+	_hud.chat().forget_burst()
 	for i: int in Balance.CHAT_BURST + 1:
 		await _say("burst %d" % i)
 	_check(_log_has("burst %d" % (Balance.CHAT_BURST - 1)), "a burst's last allowed line was held")
