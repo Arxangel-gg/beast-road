@@ -4717,6 +4717,19 @@ Files: `plant_saltpan_bush_idle_01.png` … `plant_saltpan_bush_idle_03.png`
 
 ---
 
+### 5.36 The trailer — `res://video/`
+
+One film, not art: the trailer the game opens with (2026-10-01), cut from the
+running game by `trailer/capture.sh` and `trailer/build.py`. Theora video and
+Vorbis audio in an Ogg file, 1280 by 720 at 30 frames a second, about 75
+seconds. `asset_report` reads pictures under `res://art/` only, so this row is
+for people; `trailer_check` is what holds the file - that it ships, loads as a
+video and runs between 60 and 90 seconds.
+
+| File | Format | Source |
+|---|---|---|
+| trailer.ogv | Theora + Vorbis, 1280x720, 30 fps | `trailer/build.py` from `trailer/edit.json` |
+
 ## 6. Subject prompts
 
 Drop each `SUBJECT` into the matching stem from §3.

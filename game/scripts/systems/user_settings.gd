@@ -42,6 +42,10 @@ const AUGMENT_AT_ONCE_KEY: String = "augment_at_once"
 ## as it always did. On by default because the owner asked for it; Ctrl held
 ## swings where it points either way.
 const CLICK_TO_MOVE_KEY: String = "click_to_move"
+## **Whether the trailer opens the game** (owner, 2026-10-01), once a launch,
+## between the splash and the menu. On by default; the menu's door plays it
+## whatever this says.
+const TRAILER_KEY: String = "trailer_at_startup"
 
 ## Two more comfort scales, added 2026-09-16 out of the forwarded accessibility
 ## notes (#182-#195), and put here rather than in `Graphics` because the shake
@@ -147,6 +151,10 @@ static func augment_at_once() -> bool:
 ## Whether a left click on the battlefield is an order (see `CLICK_TO_MOVE_KEY`).
 static func click_to_move() -> bool:
 	return bool(value(CLICK_TO_MOVE_KEY, true))
+
+
+static func trailer_at_startup() -> bool:
+	return bool(value(TRAILER_KEY, true))
 
 
 ## The interface size, clamped - a save may hold anything.

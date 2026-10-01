@@ -163,6 +163,7 @@ func _build() -> void:
 	game.add_child(_blood_vfx_row())
 	game.add_child(_augment_draft_row())
 	game.add_child(_click_to_move_row())
+	game.add_child(_trailer_row())
 	game.add_child(_separator())
 	game.add_child(_map_mode_row())
 	game.add_child(_separator())
@@ -613,6 +614,30 @@ func _map_mode_row() -> VBoxContainer:
 		blurb.text = MapModes.blurb_of(id)
 		_queue_save())
 	return box
+
+
+## **The trailer** (2026-10-01): whether it opens the game, and a door to it.
+func _trailer_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "TrailerRow"
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Trailer")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+	var button := Button.new()
+	button.name = "TrailerAtStartup"
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.button_pressed = UserSettings.trailer_at_startup()
+	button.text = "Play on startup" if button.button_pressed else "Not on startup"
+	button.tooltip_text = ("Whether the trailer plays once when the game opens, before the "
+		+ "menu. Escape, Enter, Space, a pad button or Skip ends it at any time.")
+	button.toggled.connect(func(on: bool) -> void:
+		UserSettings.set_value(UserSettings.TRAILER_KEY, on)
+		button.text = "Play on startup" if on else "Not on startup"
+		_queue_save())
+	row.add_child(button)
+	return row
 
 
 func _tutorial_row() -> HBoxContainer:

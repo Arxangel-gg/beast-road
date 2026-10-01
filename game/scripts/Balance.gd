@@ -6228,6 +6228,22 @@ const RAID_PARTIAL_REWARD_KILLS: int = 60
 ## Seconds the studio splash holds before the menu. [TUNE]
 const SPLASH_DURATION: float = 1.25
 
+## **The trailer** (owner, 2026-10-01), played once a launch between the splash
+## and the menu. The fade in and out, how long before the Skip button shows and
+## how bright it rests, its margin, and the fail-open clocks: a stream that has
+## not moved for `TRAILER_STALL_SECONDS` is given up on, and none may run past
+## its own length plus `TRAILER_GRACE_SECONDS` (or `TRAILER_LONGEST` when it
+## does not say). A player whose screen-flash scale is under
+## `TRAILER_REDUCED_FLASH` is not shown it at startup. [TUNE]
+const TRAILER_FADE_SECONDS: float = 0.35
+const TRAILER_SKIP_DELAY: float = 0.6
+const TRAILER_SKIP_ALPHA: float = 0.72
+const TRAILER_SKIP_MARGIN: float = 28.0
+const TRAILER_STALL_SECONDS: float = 2.5
+const TRAILER_GRACE_SECONDS: float = 4.0
+const TRAILER_LONGEST: float = 120.0
+const TRAILER_REDUCED_FLASH: float = 0.5
+
 ## Crossfade between scopes. [TUNE]
 const SCOPE_FADE_TIME: float = 0.22
 

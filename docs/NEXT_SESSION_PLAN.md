@@ -21,6 +21,37 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0i. Where things stand (2026-10-01, evening, v0.69.0)
+
+**v0.69.0** carries the owner's list of 2026-10-01 after v0.68.1, each item
+gated on both bars and recorded in CLAUDE.md under "What the owner's list of
+2026-10-01 settled":
+
+- **A ward is a shell** (`ward_shell_check`): hex seams, a rim, motes by its
+  share, a flash where a blow lands, shards when it breaks.
+- **Arsenal shots leave the chest**, a tower's top and the town's lift - never
+  the feet (`arsenal_check`).
+- **The Hold's strangers are dressed**: body, hair, skin, cloth colours and a
+  weapon, armour, cape and helm, rolled from the seat (`hold_check`).
+- **Brutal blood and the ground's damage are permanent for the journey**:
+  baked stains past the cap, a settled floor, a flood that only thins, dried
+  pools that leave a stain, and scars, scorch and craters kept between acts and
+  banked with the front (`brutal_blood_check`).
+- **The breather's clock in the Town and on Yuri** (`preparation_check`), and
+  **a tower under attack** marked at its foot, on the minimap and at the
+  screen's edge (`town_alert_check`).
+- **The trailer**: filmed from the running game (`trailer/`), played once a
+  launch between the splash and the menu when welcome, skippable by every key
+  and button, failing open (`trailer_check`). The MP4 and the ProRes master are
+  in `trailer/out/` on this machine and not in git.
+
+**Open, for the owner**: whether to attach the MP4 to a GitHub release or host
+it elsewhere (it is 1080p60, ~60 MB); the four owner decisions of 0h stand.
+
+**Next, in order**: watch the trailer on a real screen with sound - the cut and
+the music join were judged from frames and spectra, not by ear; then the
+remaining items of 0h.
+
 ## 0h. Where things stand (2026-10-01, late, v0.68.0)
 
 **v0.67.0 never published**: its Release job failed on `dead_target_check`, the

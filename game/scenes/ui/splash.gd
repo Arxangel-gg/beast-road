@@ -1,7 +1,8 @@
 class_name Splash
 extends Control
 
-## Studio splash. Holds for SPLASH_DURATION, then hands off to the menu.
+## Studio splash. Holds for SPLASH_DURATION, then hands off to the trailer when
+## it is welcome and to the menu otherwise (`GameDirector.after_splash`).
 ## Any key or click skips it — never make someone watch a logo twice.
 
 @export var logo: TextureRect
@@ -30,4 +31,4 @@ func _unhandled_input(event: InputEvent) -> void:
 func _advance() -> void:
 	set_process(false)
 	set_process_unhandled_input(false)
-	GameDirector.goto_menu()
+	GameDirector.after_splash()

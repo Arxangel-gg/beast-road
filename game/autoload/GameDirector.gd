@@ -18,12 +18,16 @@ enum Scope {
 
 const SPLASH_SCENE: String = "res://scenes/ui/splash.tscn"
 const MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
+const TRAILER_SCENE: String = "res://scenes/ui/trailer_player.tscn"
 const RUN_SCENE: String = "res://scenes/run/run.tscn"
 
 var current_scope: Scope = Scope.BATTLEFIELD
 
 ## True between run_started and run_ended.
 var run_active: bool = false
+## Whether the trailer has opened this launch already (2026-10-01): once a
+## launch, so a player is never made to watch it twice in a sitting.
+var trailer_shown: bool = false
 
 ## When the road was taken, on the wall clock.
 ##
@@ -254,6 +258,22 @@ func _exit_tree() -> void:
 
 func goto_splash() -> void:
 	_change(SPLASH_SCENE)
+
+
+## **Out of the splash**: the trailer when it is welcome, the menu otherwise.
+## Here and only here - `goto_menu` is every other way to the menu, and a
+## trailer that opened whenever somebody left a road would be a punishment.
+func after_splash() -> void:
+	if TrailerPlayer.should_autoplay():
+		play_trailer()
+	else:
+		goto_menu()
+
+
+## The trailer, from the splash or the menu's own door. It ends at the menu.
+func play_trailer() -> void:
+	trailer_shown = true
+	_change(TRAILER_SCENE)
 
 
 func goto_menu() -> void:

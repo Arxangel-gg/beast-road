@@ -1038,6 +1038,9 @@ var settings: Dictionary = {
 	# What a left click on the battlefield does (2026-10-01): walk there or
 	# chase what it landed on, League's way - or swing where it points.
 	"click_to_move": true,
+	# Whether the trailer opens the game, once a launch (2026-10-01). Declared
+	# here or it is dropped on load and every choice reverts.
+	"trailer_at_startup": true,
 	# The layout new roads are laid on (2026-09-23). Declared here or it is
 	# dropped on load and every choice reverts to Classic on the next launch.
 	"map_mode": MapModes.CLASSIC,

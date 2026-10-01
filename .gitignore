@@ -111,3 +111,8 @@ art_inbox/Pixellab/
 __pycache__/
 *.pyc
 game/override.cfg
+
+# Trailer intermediates: filmed shots, edits, the archival master. Large and
+# regenerable by trailer/capture.sh and trailer/build.py.
+/trailer/work/
+/trailer/out/

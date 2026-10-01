@@ -1,0 +1,155 @@
+{
+  "about": "The cut of the Wilderhold trailer. Each cut takes `len` seconds of a filmed shot starting `in` seconds after it rolled; `dissolve` blends it in over the cut before it; a `title` is laid over it from `t_in` for `t_len` seconds. trailer/build.py reads this.",
+  "fade_in": 1.0,
+  "fade_out": 1.6,
+  "sfx_db": -9.0,
+  "grade": "eq=brightness=0.015:contrast=1.04:saturation=1.06",
+  "loudness": {
+    "I": -14.0,
+    "TP": -1.0
+  },
+  "runtime": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "kbps": 3600,
+    "aq": 4
+  },
+  "music": {
+    "file": "game/audio/music/music_menu.ogg",
+    "sections": [
+      {
+        "from": 0.0,
+        "to": 22.5
+      },
+      {
+        "from": 128.0
+      }
+    ],
+    "seam": 2.5,
+    "search": 1.5,
+    "fade_out": 4.0,
+    "gain_db": 0.0
+  },
+  "cuts": [
+    {
+      "shot": "beast",
+      "in": 0.5,
+      "len": 7.6,
+      "crop": [
+        1600,
+        900,
+        160,
+        40
+      ],
+      "sfx_db": -4.0,
+      "title": "The last city walks.",
+      "t_in": 1.3,
+      "t_len": 3.8
+    },
+    {
+      "shot": "town",
+      "in": 1.0,
+      "len": 5.5,
+      "dissolve": 0.8
+    },
+    {
+      "shot": "wide",
+      "in": 1.0,
+      "len": 5.5,
+      "dissolve": 0.5,
+      "title": "Four roads to defend.",
+      "t_in": 0.8,
+      "t_len": 3.4
+    },
+    {
+      "shot": "build",
+      "in": 0.6,
+      "len": 4.6,
+      "title": "Build between the waves.",
+      "t_in": 0.6,
+      "t_len": 3.0
+    },
+    {
+      "shot": "warden",
+      "in": 1.5,
+      "len": 5.6,
+      "title": "Hold the line yourself.",
+      "t_in": 0.5,
+      "t_len": 3.0
+    },
+    {
+      "shot": "spells",
+      "in": 1.0,
+      "len": 4.8
+    },
+    {
+      "shot": "tornado",
+      "in": 1.5,
+      "len": 4.2
+    },
+    {
+      "shot": "storm",
+      "in": 2.4,
+      "len": 5.0,
+      "title": "The earth keeps score.",
+      "t_in": 0.6,
+      "t_len": 3.0
+    },
+    {
+      "shot": "dragon",
+      "in": 2.6,
+      "len": 5.4
+    },
+    {
+      "shot": "boss",
+      "in": 0.8,
+      "len": 5.2,
+      "title": "Every act ends in a giant.",
+      "t_in": 0.8,
+      "t_len": 3.0
+    },
+    {
+      "shot": "peak",
+      "in": 1.0,
+      "len": 5.4
+    },
+    {
+      "shot": "warden",
+      "in": 5.8,
+      "len": 1.4
+    },
+    {
+      "shot": "spells",
+      "in": 5.2,
+      "len": 1.4
+    },
+    {
+      "shot": "storm",
+      "in": 6.6,
+      "len": 1.4
+    },
+    {
+      "shot": "boss",
+      "in": 6.0,
+      "len": 1.4
+    },
+    {
+      "shot": "dragon",
+      "in": 6.0,
+      "len": 1.4
+    },
+    {
+      "shot": "peak",
+      "in": 5.5,
+      "len": 3.0
+    },
+    {
+      "shot": "menu",
+      "in": 0.5,
+      "len": 8.5,
+      "dissolve": 1.2,
+      "sfx_db": -30.0
+    }
+  ]
+}

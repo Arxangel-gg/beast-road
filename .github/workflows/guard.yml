@@ -417,6 +417,7 @@ jobs:
           CHECK_TIMEOUT=480 \
             check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
           check "A ward is a shell round the Warden, larger and stronger with more" --headless --path game res://tools/ward_shell_check.tscn
+          check "The trailer opens once, only when welcome, skips on every key and fails open" --headless --path game res://tools/trailer_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn
           # The Warden's bars stand above every head it can wear, with MP and SP beneath HP.

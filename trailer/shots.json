@@ -1,0 +1,18 @@
+{
+  "about": "Shot list for the Wilderhold trailer. Each shot is filmed from the real game by game/tools/trailer_capture.tscn; trailer/build.py films, cuts, scores and encodes them. Positions are world units; look_from/look_to are where the camera looks at the start and end of the shot (relative to what it follows, if anything); zoom is the battlefield camera's.",
+  "shots": [
+    {"id": "beast", "stage": "beast", "act": 1, "seed": 20261001, "seconds": 9.0, "daylight": 0.04, "map": "keep"},
+    {"id": "town", "stage": "town", "act": 1, "seed": 20261002, "seconds": 8.0, "daylight": 0.2, "town_full": true, "zoom_from": 1.0, "zoom_to": 1.12, "look_from": [0, 20], "look_to": [0, -10], "map": "keep"},
+    {"id": "wide", "stage": "wide", "act": 4, "seed": 20261003, "seconds": 9.0, "daylight": 0.3, "towers": 4, "level": 6, "zoom_from": 0.5, "zoom_to": 0.58, "look_from": [0, 60], "look_to": [0, 0], "map": "confluence_rings", "settle": 30.0, "hero_at": [700, 0]},
+    {"id": "warden", "stage": "warden", "act": 2, "seed": 20261004, "seconds": 9.0, "daylight": 0.28, "cards": ["sunwheel", "pyre_spirits", "sentry_wisps"], "card_levels": 3, "lane": 1, "out": 650, "zoom_from": 1.42, "zoom_to": 1.5, "look_from": [0, -40], "look_to": [0, -50], "map": "keep"},
+    {"id": "build", "stage": "build", "act": 1, "seed": 20261005, "seconds": 9.0, "daylight": 0.3, "lane": 2, "out": 560, "count": 5, "every": 0.55, "zoom_from": 1.02, "zoom_to": 1.1, "look_from": [0, 0], "look_to": [0, -20], "map": "citadel"},
+    {"id": "spells", "stage": "warden", "act": 4, "seed": 20261006, "seconds": 9.0, "daylight": 0.33, "cast": true, "cards": ["arcane_missiles", "flame_trail"], "card_levels": 3, "spells": ["ember_fall", "thorn_volley", "cinder_nova", "beasts_breath"], "lane": 3, "out": 680, "zoom_from": 1.15, "zoom_to": 1.25, "look_from": [0, -40], "look_to": [0, -40], "map": "beast_axis"},
+    {"id": "storm", "stage": "storm", "act": 3, "seed": 20261007, "seconds": 9.0, "daylight": 0.78, "weather": "downpour", "flood": 0.55, "quake_at": 3.2, "zoom_from": 0.72, "zoom_to": 0.8, "look_from": [-40, 0], "look_to": [40, -20], "map": "confluence"},
+    {"id": "tornado", "stage": "tornado", "act": 2, "seed": 20261008, "seconds": 9.0, "daylight": 0.45, "zoom_from": 0.72, "zoom_to": 0.76, "look_from": [-80, 0], "look_to": [80, 0], "map": "keep"},
+    {"id": "dragon", "stage": "dragon", "act": 6, "seed": 20261009, "seconds": 9.0, "daylight": 0.3, "zoom_from": 0.82, "zoom_to": 0.86, "look_from": [0, 120], "look_to": [0, 120], "map": "citadel", "lead": 1.0},
+    {"id": "boss", "stage": "boss", "act": 1, "seed": 20261010, "seconds": 9.0, "daylight": 0.5, "cards": ["sunwheel", "stormcrown"], "zoom_from": 0.6, "zoom_to": 0.68, "map": "confluence_rings"},
+    {"id": "peak", "stage": "peak", "act": 10, "seed": 20260922, "seconds": 9.0, "daylight": 0.36, "cards": ["sunwheel", "stormcrown", "worldbreaker", "arcane_missiles", "flame_trail", "pyre_spirits", "sentry_wisps", "emberline"], "spells": ["thorn_volley", "ember_fall", "cinder_nova", "beasts_breath"], "zoom_from": 0.84, "zoom_to": 0.74, "map": "citadel"},
+    {"id": "crossroad", "stage": "crossroad", "act": 2, "seed": 20261011, "seconds": 6.0, "hud": true, "map": "keep"},
+    {"id": "menu", "stage": "menu", "seconds": 10.0, "clean": true}
+  ]
+}

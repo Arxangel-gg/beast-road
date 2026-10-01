@@ -205,6 +205,7 @@ func _ready() -> void:
 	_build_leaderboard_button()
 	_build_hold()
 	_build_guide_button()
+	_build_trailer_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 	_build_version_label()
@@ -749,6 +750,26 @@ func _build_guide_button() -> void:
 	add_child(_guide)
 	_guide.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _guide.open())
+
+
+## **Watch the trailer** (owner, 2026-10-01), beside the Guide: the same film
+## the game opens with, whenever a player wants it again. Only when the build
+## carries it.
+func _build_trailer_button() -> void:
+	if settings_button == null or not TrailerPlayer.available():
+		return
+	var column: Node = settings_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Trailer"
+	button.text = "Watch trailer"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "pressure_arrow", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+	button.pressed.connect(GameDirector.play_trailer)
 
 
 func _build_leaderboard_button() -> void:

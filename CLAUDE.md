@@ -12435,8 +12435,10 @@ detail.
   (`DRAGON_WRATH_GROWTH`), and a guest is told how much in the plan.
 - **Brutal blood** (`UserSettings.BLOOD_BRUTAL`, appended, never inserted). A
   Brutal mark lives longer than any campaign; **rain does nothing**; only a
-  flood at `BLOOD_BRUTAL_FLOOD_FROM` or more washes it, over
-  `BLOOD_BRUTAL_WASH_SECONDS`. **It comes home with a banked front** - the
+  flood at `BLOOD_BRUTAL_FLOOD_FROM` or more thins it, and since 2026-10-01
+  never past `BLOOD_BRUTAL_WASH_FLOOR` (see the note of that date - this
+  sentence said a flood *washed* it, over a clock that no longer exists).
+  **It comes home with a banked front** - the
   newest marks, five numbers and an age each, rebuilt from their own seeds,
   and the pools - read once by the next road's blood field and erased; it is
   never wiped between acts. **Pools** (`BloodPools`, Brutal only): a mark pours
@@ -12451,8 +12453,9 @@ detail.
   to the account; `SAVE_VERSION` did not move.
 - **The ground remembers what struck it** (`GroundScars`): a depth map a
   `SCAR_TEXEL` apart that slams, mortars, lobs, strikes, landings, fissures,
-  meteors (craters) and quakes (cracks and slumps) stamp, cleared with the
-  craters at the act's end. **Drawn as light** - the depth map's slope is a
+  meteors (craters) and quakes (cracks and slumps) stamp - cleared with the
+  craters at the act's end until 2026-10-01, and kept for the whole journey
+  since (see the note of that date). **Drawn as light** - the depth map's slope is a
   normal lit from the sun's side, dent floors are rough with grit and
   occluded, read on the art's own pixel grid and banded, because a smooth read
   over pixel-art ground photographed as mist. Thin fresh blood gathers in the
@@ -12531,6 +12534,98 @@ gated on both bars.
   the Hold. It lives on the yard now, built once a menu. Windows passed the
   same check three times in three, which is the recorded shape of a Linux-only
   exit crash: re-run once, then remove the thing that outlives the tree.
+
+**What the owner's list of 2026-10-01 settled.** Eight items; each is gated
+on both bars and what follows is the part that is a decision.
+
+- **A ward is a shell, and its look is its size** (`WardShell`,
+  `ward_shell.gdshader`). One quad behind the body, drawn additively: hex seams,
+  a fresnel rim, motes that switch on with the ward's share of the pool, and a
+  ripple, a core and a flash where a blow lands, turned toward the blow. It
+  grows with what is held (`WARD_SHELL_RADIUS`, `WARD_SHELL_GROWTH`), rises
+  when a ward is granted and breaks into shards (`WARD_SHELL_SHARDS`) when the
+  last of it goes. A look: `Health` owns the ward and nothing reads the shell.
+  `ward_shell_check` holds the growth, the flash, the break and the absence.
+- **An Arsenal shot leaves the chest, not the feet.** `Arsenal._launches`
+  answers where a weapon is loosed from - the Warden's `combat_origin`, a
+  tower's top, the town lifted by `ARSENAL_TOWN_LIFT` - and every seeker, chain
+  and orbit is drawn from there while what it measures to stays the anchor, so
+  the range a weapon reaches did not move. `arsenal_check` reads a real bolt's
+  first point.
+- **The Hold's strangers are dressed.** `HoldYard.stranger_of(who)` rolls a
+  body, hair, beard, skin, three cloth colours and a weapon, armour, cape and
+  helm (each slot bare at `HOLD_STRANGER_BARE`) from the seat's own name, and
+  the session table and the yard both read it - the table used to overwrite
+  every stranger with a dye-only row, which is why they all looked alike.
+  `hold_check` holds a dressed, varied Hold.
+- **Brutal blood is permanent** (owner: *"Brutal blood is practically
+  forever"*). Three things were taking it: the mark cap evicted the oldest marks
+  outright, a flood aged marks through their whole life, and a dried pool left
+  nothing behind. A mark the cap lets go of is **baked** into a stain map
+  (`BloodStains`, a texel every `BLOOD_STAIN_TEXEL`), so the ground keeps it
+  however much more falls; a mark settles to `BLOOD_BRUTAL_SETTLED` and holds
+  there; a flood thins it on its **own clock** (`BLOOD_BRUTAL_WASH_TAU`, by
+  depth past `BLOOD_BRUTAL_FLOOD_FROM`) and never below
+  `BLOOD_BRUTAL_WASH_FLOOR`; and a pool that soaks away **stamps a stain as deep
+  as it stood**, soaking slower the deeper it is
+  (`BLOOD_POOL_SOAK_DEPTH_SLOW`). The stain map comes home with a banked front,
+  so a road's blood is the road's for the whole journey. `brutal_blood_check`
+  (7 tests) holds it.
+- **The ground's damage is permanent too** (owner: *"all surface damages on the
+  earth including craters and earthquake remains ... permanent for the entire
+  continuation of all of the runs that journey continues"*). `refresh_terrain`
+  no longer clears the scars, the scorch or the craters at an act's end, and
+  `Battlefield.ground_snapshot` banks all three with the front
+  (`RunState.ground_restore`, read once by the next field). `CRATER_MAX` rose to
+  48 because an act no longer frees the old ones. **This re-cuts "lasts the
+  act"**, recorded in the two notes above.
+- **The Town and Yuri carry the breather's clock** (`HUD._scope_clock`): the
+  same bar the build sheets paint, under the top bar, shown only in a timed
+  breather and only in those two views.
+- **A tower under attack says so where it stands**: a red ring pulses at its
+  foot for `TOWER_STRUCK_SECONDS` after a blow that took something, it blinks
+  and rings out on the minimap, and the screen's edge points at it while it is
+  off the screen (`ThreatPointers.Kind.TOWER`, appended). A look:
+  `town_alert_check` holds all three.
+- **The game opens with a trailer** - the next note.
+
+**The trailer is filmed from the running game, as of 2026-10-01.** The owner:
+*"make the trailer for our game, and I want it implemented in the beginning of
+the game before the main menu transitions in"*, with a forwarded brief and the
+instruction to use my own judgement. Three decisions.
+
+**Every frame is the game.** `tools/trailer_capture.gd` stands a seeded road up
+through the doors a player's road uses, dresses the Warden as the Hold rolls a
+stranger, and films one shot a process with Godot's Movie Maker in an
+unfocusable window beyond every monitor (`trailer/capture.sh`); the shot list
+is data (`trailer/shots.json`): the stage, the act, the seed, the layout, the
+light, the weather and where the camera starts and ends. Nothing is painted
+into the picture in the game - the titles are laid on in the edit, in the
+game's own Title face. **Never the Classic layout**: its roads are the pinwheel
+the owner retired, and a trailer is a first impression. The edit, the score,
+the loudness and the three encodes are `trailer/build.py` against
+`trailer/edit.json`; the score is the game's own main theme, its quiet opening
+joined to its build where the two sound most alike.
+
+**It plays once a launch, out of the splash and nowhere else, and only when
+welcome.** `GameDirector.after_splash` is the one door from the splash;
+`goto_menu` - every other way to the menu - never plays it, so leaving a road
+is never punished with a film. Welcome means: the setting on (Settings › Game,
+`trailer_at_startup`, declared), the file in the build, not shown this launch,
+not the web (a browser refuses sound before a gesture), and **not for a player
+who turned the screen flashes down** past `TRAILER_REDUCED_FLASH` - the flashiest
+minute of the game is not what somebody who asked for fewer flashes asked for
+first. The menu's **Watch trailer** door plays it whatever the setting says.
+
+**It always lets go.** Escape, Enter, Space, a pad's A, B, Start or Back, and the
+Skip button end it; a missing file goes straight to the menu; a stream that has
+not moved for `TRAILER_STALL_SECONDS`, one that stops, and one that runs past its
+length plus `TRAILER_GRACE_SECONDS` all go on with a line in the log. It plays on
+the music bus, letterboxed. `trailer_check` (both bars) holds all of it -
+except the click, which headless cannot route (the viewport hovers nothing), so
+it holds that nothing above the Skip button takes clicks and presses it.
+`game/video/trailer.ogv` is 720p30 Theora; the 1080p60 MP4 and the ProRes
+master are in `trailer/out/` and are not in git.
 
 ### The three escape hatches - and why there are only three
 
