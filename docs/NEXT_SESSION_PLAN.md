@@ -21,6 +21,45 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0h. Where things stand (2026-10-01, late, v0.68.0)
+
+**v0.67.0 never published**: its Release job failed on `dead_target_check`, the
+flake fixed by "A body resting when its Warden falls walks on at nobody" one
+commit after the tag. **v0.68.0** carries both lists of 2026-10-01: everything
+v0.67.0 had, the codex's bonded-only toggle, the ward on the HP bar and
+popped as it lands, a League-style chat (Enter, recall, /commands, rolls,
+mutes), 88 voice takes, shots that face their flight, water of every kind
+putting fire out - and the second list, each item gated on both bars and
+recorded in CLAUDE.md:
+
+- **Click to move** (`click_move_check`): a click walks or chases, swings only
+  in reach, F chases to the bow's reach, Ctrl swings where it points, the
+  builder keeps its clicks; a setting on the Game tab.
+- **The animals hear the road** (`wildlife_notice_check`): news by distance,
+  kin and the herd, blasts and clashes, the birds, a remembered fright.
+- **The earth minds every death in the area** (`earth_grief_check`): death by
+  cause, grief that leans the earth's blows and presses the ground, karma,
+  luck, the cruel sought out, a rare great temper.
+- **A wild dragon is pure destruction** (`dragon_wild_check`): Aurelion Sol's
+  aim over every living thing, its kills on the wrath, grown by the anger.
+- **Brutal blood and the ground's scars** (`brutal_blood_check`, `brutal_shot`):
+  a fourth level that never fades but to a heavy flood, pools that creep,
+  slow and stain what wades, banked with a front; a depth map of every blow
+  that breaks the ground, lit as normals with rough floors; a gloss term for
+  steel and pale stone on every lit body (`gloss_shot`).
+
+**Open, in the order worth taking them:**
+
+1. The owner playing a road with click to move on: it changes how the whole
+   game is controlled, and the defaults (pick slop, reach share, the give-up
+   clock) want a hand on them.
+2. Watch the earth's new temper and karma over a whole run: great events and
+   the cruel being sought are rolled off the anger the curve never modelled.
+3. A guest sees no grief breath, the chat has no touch button and the Hold has
+   no chat.
+4. After 2026-10-11 (PixelLab): helmets, heavy armour and capes, the 31 staged
+   augments, chop and mine animations, bespoke Arsenal icons.
+
 ## 0g. Where things stand (2026-10-01, v0.67.0)
 
 **v0.66.0** shipped cooking, a Herald for two, the telegraph riser and the
