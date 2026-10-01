@@ -109,16 +109,6 @@ func build(bounds: Rect2, step: float, stands: Callable, survey: Callable, legal
 					_graph.connect_points(id, other, true)
 
 
-## **The same lattice, asked through another yard.** The Hold's ground never
-## changes, so the lattice is laid once a session and every later Hold borrows
-## it - its doors are that Hold's own, because the one that laid it may be gone.
-func rebind(stands: Callable, survey: Callable, legal: Callable, height: Callable) -> void:
-	_stands = stands
-	_survey = survey
-	_legal = legal
-	_height = height
-
-
 ## How many places the lattice has. For the gate.
 func size() -> int:
 	return _graph.get_point_count()

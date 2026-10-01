@@ -726,20 +726,16 @@ func _height_at(at: Vector2) -> float:
 
 
 ## The lattice everybody's routes are found on, laid once the fire is down -
-## **once a session**, since the Hold's ground is authored and never moves: a
-## quarter of a second spent every time somebody walked into the Hold would be
-## a hitch on a door the player uses between every road.
-static var _laid: HoldPaths = null
-
-
+## **once a yard**, which is once a menu: the yard is built with the menu and
+## lives as long as it, so the quarter of a second it costs is spent while the
+## menu loads rather than at the Hold's door. It was held in a static once, to
+## be laid once a session; an object a static keeps outlives every scene into
+## the engine's own shutdown, and the release run crashed there on Linux, so
+## the saving is not worth it.
 func _build_paths() -> void:
-	if _laid == null:
-		_laid = HoldPaths.new()
-		_laid.build(Rect2(-YARD * 0.5, YARD), Balance.HOLD_PATH_STEP, stands_at, _survey,
-			step_is_legal, _height_at)
-	else:
-		_laid.rebind(stands_at, _survey, step_is_legal, _height_at)
-	_paths = _laid
+	_paths = HoldPaths.new()
+	_paths.build(Rect2(-YARD * 0.5, YARD), Balance.HOLD_PATH_STEP, stands_at, _survey,
+		step_is_legal, _height_at)
 
 
 ## The way from one point to another, or straight there before the lattice exists.

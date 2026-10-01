@@ -77,6 +77,7 @@ func _ready() -> void:
 	for entry: Array in _screens:
 		await _measure_screen(String(entry[0]), entry[1] as GDScript)
 	await _measure_the_glass_closes()
+	await _measure_the_stash_shows_gear()
 	await _measure_settings()
 	await _measure_scene("MainMenu", "res://scenes/ui/main_menu.tscn")
 	await _measure_the_hold()
@@ -224,6 +225,66 @@ func _measure_the_hold() -> void:
 			_check(_view.grow(TOLERANCE).encloses(button.get_global_rect()),
 				"the Hold's %s is off the screen at %s (%s)" % [button.name, _shape, button.get_global_rect()])
 	menu.queue_free()
+	await get_tree().process_frame
+
+
+## **The stash shows gear on its first screen.** On a phone held sideways its
+## seventeen tools, a thumb tall in three columns, were the whole first screen,
+## and the gear the screen exists for was below them - which no rectangle rule
+## above can see, because everything was on the screen and nothing overlapped.
+## So a stash with gear in it is opened, and some row of gear must lie inside
+## the list's window before anything is scrolled.
+func _measure_the_stash_shows_gear() -> void:
+	var kept: Array = MetaState.stash.duplicate(true)
+	var kinds: Array = ContentDB.gear_kinds.keys()
+	for index: int in 12:
+		MetaState.stash.append(Stash.make(String(kinds[index % kinds.size()]), index % 4, 1))
+	var stash := StashScreen.new()
+	add_child(stash)
+	await get_tree().process_frame
+	stash.open()
+	await _settle()
+	await _settle()
+	var scroll := stash.get("_scroll") as ScrollContainer
+	var list := stash.get("_list") as Control
+	_check(scroll != null and list != null, "the stash has no list to read")
+	if scroll != null and list != null:
+		var window: Rect2 = scroll.get_global_rect()
+		var seen: int = 0
+		for row: Node in list.get_children():
+			var control := row as Control
+			if control != null and control.is_visible_in_tree() \
+					and window.intersection(control.get_global_rect()).size.y >= 24.0:
+				seen += 1
+		_check(seen > 0, "the stash at %s shows no gear before it is scrolled (the list's window is %s)"
+			% [_shape, window])
+	# **Folded, and every tool still reached.** On a thumb the bar opens the
+	# filters and tools, each of them is held to the same rules as any screen,
+	# and choosing a filter folds them again so the gear is back in view.
+	var fold := stash.find_child("ToolsFold", true, false) as Button
+	var tools := stash.get("_tools") as Control
+	if fold != null and fold.is_visible_in_tree() and tools != null:
+		_check(not tools.is_visible_in_tree(), "the stash's tools are open before the bar is pressed at %s" % _shape)
+		fold.pressed.emit()
+		await _settle()
+		_check(tools.is_visible_in_tree(), "pressing the stash's bar did not open its tools at %s" % _shape)
+		_measure("StashTools", stash, true)
+		var tab: Button = null
+		for child: Node in tools.get_children():
+			var button := child as Button
+			if button != null and button.toggle_mode:
+				tab = button
+				break
+		if tab != null:
+			tab.pressed.emit()
+			await _settle()
+			var refold := stash.find_child("ToolsFold", true, false) as Button
+			var tools_now := stash.get("_tools") as Control
+			_check(refold != null and tools_now != null and not tools_now.is_visible_in_tree(),
+				"choosing a filter did not fold the stash's tools again at %s" % _shape)
+	stash.queue_free()
+	MetaState.stash.clear()
+	MetaState.stash.append_array(kept)
 	await get_tree().process_frame
 
 

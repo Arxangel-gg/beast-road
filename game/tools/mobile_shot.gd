@@ -53,6 +53,10 @@ func _ready() -> void:
 			wanted = argument.trim_prefix("--screens=").split(",")
 	RunState.reset()
 	RunState.gain_every_currency(500)
+	# Some gear, so the stash is photographed as a player sees it rather than empty.
+	var kinds: Array = ContentDB.gear_kinds.keys()
+	for index: int in 12:
+		MetaState.stash.append(Stash.make(String(kinds[index % kinds.size()]), index % 4, 1))
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.12, 0.14, 0.13)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

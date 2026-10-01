@@ -61,6 +61,14 @@ const FILTER_PANTRY: int = -2
 ## Which slot the list is filtered to, -1 for all gear, or `FILTER_PANTRY` for
 ## the fish. A stash of ninety-six is not a list you read; it is one you search.
 var _filter: int = -1
+## **On a thumb the filters and tools fold behind one bar** (owner,
+## 2026-10-01: *"ensure all of the UIs are perfect on mobile"*). Seventeen of
+## them a thumb tall were the whole first screen of the stash on a phone either
+## way up, and the gear the screen exists for was below them. Folded, every one
+## keeps its thumb's height and its own handler; the bar says what is showing,
+## opens them, and choosing a filter folds them again.
+var _fold: Button = null
+var _tools_open: bool = false
 
 ## **Which way the list is read.** By slot is the default and is what this
 ## screen has always done - it answers "is any of this better than what I am
@@ -178,6 +186,14 @@ func _build() -> void:
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner.add_theme_constant_override("separation", 8)
 	scroll.add_child(inner)
+
+	_fold = Button.new()
+	_fold.name = "ToolsFold"
+	_fold.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fold.pressed.connect(func() -> void:
+		_tools_open = not _tools_open
+		_show_fold())
+	inner.add_child(_fold)
 
 	_tools = GridContainer.new()
 	_tools.columns = TOOL_COLUMNS
@@ -421,14 +437,18 @@ func _refit() -> void:
 	if _tools != null:
 		_tools.columns = TOOL_COLUMNS if screen.x >= Balance.UI_STASH_WIDE_FILTERS \
 			else TOOL_COLUMNS - 1
+	_show_fold()
 	# The doll takes its column only where the screen has one to give; the
 	# panel grows by exactly that column when it does.
 	var doll_shown: bool = _doll_fits(screen)
 	if _doll != null:
 		_doll.visible = doll_shown
+	# An upright screen gives the stash its height, as it does the Glass: held
+	# to a desktop's 860 the list was a band across the middle of a phone.
+	var cap: float = maxf(860.0, screen.x * Balance.UI_UPRIGHT_PANEL_ASPECT)         if screen.x < screen.y * 1.1 else 860.0
 	_panel.custom_minimum_size = Vector2(
 		minf(940.0 + (DOLL_WIDTH + 14.0 if doll_shown else 0.0), screen.x - Balance.UI_PANEL_MARGIN * 2.0),
-		minf(screen.y * 0.82, 860.0))
+		minf(screen.y * 0.82, cap))
 	# **Measured, not guessed.** This reserved a flat 300 for "heading, note, the
 	# tool row and Close" - written when the filters were one row of three. They
 	# became a three-column grid of nine plus two sweep buttons on 2026-09-01 and
@@ -635,6 +655,7 @@ func _build_tools() -> void:
 				+ "meals left this run.")
 		tab.pressed.connect(func() -> void:
 			_filter = index
+			_tools_open = false
 			_refresh())
 		_tools.add_child(tab)
 
@@ -751,6 +772,29 @@ func _build_tools() -> void:
 				else "Asked to trade. Waiting for an answer."
 			_refresh())
 		_tools.add_child(trade)
+	_show_fold()
+
+
+## The bar and the grid as the layout asks: folded on a thumb unless opened,
+## always open with a mouse, where there is room for every tool and a row of
+## gear at once.
+func _show_fold() -> void:
+	if _fold == null or _tools == null:
+		return
+	var folding: bool = TouchInput.is_showing()
+	_fold.visible = folding
+	_tools.visible = not folding or _tools_open
+	_fold.text = "Hide filters and tools" if _tools_open \
+		else "Show: %s  ·  Sort, sweep and sell" % _filter_name()
+
+
+## What the list is showing, in the words its filter wears.
+func _filter_name() -> String:
+	if _filter == FILTER_PANTRY:
+		return "Fish"
+	if _filter < 0:
+		return "All"
+	return GearData.name_of_slot(_filter)
 
 
 func _partner_name() -> String:
