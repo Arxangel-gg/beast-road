@@ -48,6 +48,14 @@ tiers' own expectation, not a measured player.
 **The earth's temper is measured** (`earth_soak`, CLAUDE.md "The earth answers the
 Warden"): the road's own kills had pinned it at the cap; they are grief now.
 
+**The arenas fight at the road's strength** (v0.70.2, CLAUDE.md "A raid, a rift
+and a dungeon stand at the road's strength"): every raid, rift and dungeon body
+had been base strength on every act and road, and their pay was flat. Both
+climb now, and `curve_report` prints one road body against the Warden alone.
+**Not yet read by a person**: an arena on a late act of a harder road is now a
+real fight for one Warden - the readout says 1.4 to 3.5 s a body for the
+expected Warden, and that wants the owner's play before it is believed.
+
 **Next, in order**: the trailer by ear (0i); read `earth_soak` on a harder road and
 in a late act before calling the earth's tuning done (0h #3); then 0h's
 remaining items.

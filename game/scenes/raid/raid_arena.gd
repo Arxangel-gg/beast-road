@@ -348,7 +348,12 @@ func _spawn(data: EnemyData, at: Vector2, scale: float) -> Enemy:
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return null
-	enemy.setup(data, 0, self, scale)
+	# **At the road's own strength** (2026-10-01), as a camp's bodies are: the
+	# arena's own escalation is a step above what the road sends now, never a
+	# step above Act I's base. `curve_report` reads what that asks of a Warden
+	# alone - one body in one to three and a half seconds across the acts.
+	enemy.setup(data, 0, self, scale * WaveDirector.road_hp_scale(),
+		scale * WaveDirector.road_damage_scale())
 	enemy.position = at
 	entity_root.add_child(enemy)
 	return enemy
@@ -458,7 +463,8 @@ func _build_reward(result: Dictionary) -> Dictionary:
 	if bool(result.get("chieftain", false)):
 		# Full clear defaults to the Oath resolution until the dedicated outcome
 		# chooser lands; this keeps the current one-click reward path save-safe.
-		reward["resources"] = 200
+		# By the act, as a road kill is: the camp stood at the road's strength.
+		reward["resources"] = int(round(200.0 * Balance.kill_act_scale(RunState.act)))
 		reward["captive_id"] = _captive_id()
 		reward["leader_resolution"] = Balance.LEADER_RESOLUTIONS[0]
 		reward["relic_id"] = _pick_relic()
@@ -468,7 +474,7 @@ func _build_reward(result: Dictionary) -> Dictionary:
 
 	# Partial extraction scales with how much damage was actually done.
 	var ratio: float = clampf(float(reward["kills"]) / float(Balance.RAID_PARTIAL_REWARD_KILLS), 0.0, 1.0)
-	reward["resources"] = int(round(160.0 * ratio))
+	reward["resources"] = int(round(160.0 * ratio * Balance.kill_act_scale(RunState.act)))
 	RunState.raids_completed += 1
 	return reward
 

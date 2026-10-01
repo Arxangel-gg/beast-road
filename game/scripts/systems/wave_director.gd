@@ -881,29 +881,37 @@ func act_speed_scale(lane: int) -> float:
 
 
 func _hp_scale(lane: int) -> float:
+	return road_hp_scale() * _situational_scale(lane, 1.0) \
+		* _opening_scale(Balance.WAVE_OPENING_HP_SCALE, _act_wave)
+
+
+func _damage_scale(lane: int) -> float:
+	return road_damage_scale() * _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT) \
+		* _opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, _act_wave)
+
+
+## **What the road's own bodies stand at right now, anywhere** (2026-10-01):
+## the wave's growth, the act's ladder and the road's difficulty, and nothing
+## of a lane's dark or the opening's breath, which are this field's. Static so
+## a raid, a rift and a dungeon - which have no director - ask the same door
+## the road does; they fielded their region's breeds at base strength on every
+## act and every road, so an Act X raid on the Chainmaker's Road was paper.
+static func road_hp_scale() -> float:
 	var tier: CampaignTierData = RunState.tier()
 	# Scaled by the length of the road, so the curve this rate was solved
 	# into is the curve the player walks however many waves it now takes.
 	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * Balance.run_growth_scale() * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
-	scale *= _situational_scale(lane, 1.0)
-	scale *= _opening_scale(Balance.WAVE_OPENING_HP_SCALE, _act_wave)
-	if tier != null:
-		scale *= tier.hp_scale
-	return scale
+	return scale * (tier.hp_scale if tier != null else 1.0)
 
 
-func _damage_scale(lane: int) -> float:
+static func road_damage_scale() -> float:
 	var tier: CampaignTierData = RunState.tier()
 	var scale: float = 1.0 + Balance.WAVE_DAMAGE_GROWTH * Balance.run_growth_scale() * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_DAMAGE_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_DAMAGE_SCALE.size() - 1)]
-	scale *= _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT)
-	scale *= _opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, _act_wave)
-	if tier != null:
-		scale *= tier.damage_scale
-	return scale
+	return scale * (tier.damage_scale if tier != null else 1.0)
 
 
 func _speed_scale(lane: int) -> float:

@@ -41,6 +41,7 @@ func _ready() -> void:
 	await _test_a_rift_fills_and_closes()
 	await _test_a_dungeon_has_a_door()
 	await _test_a_collapse_pays_only_what_was_banked()
+	await _test_the_deep_stands_at_the_road()
 	_test_the_reward_is_only_what_the_road_pays()
 
 	# The rift opening put the raid theme on; a playback alive at exit is a
@@ -146,7 +147,9 @@ func _test_a_rift_fills_and_closes() -> void:
 	if _rewards.size() == 1:
 		var reward: Dictionary = _rewards[0]
 		_check(int(reward["stages"]) == 1, "one stage banked")
-		_check(int(reward["resources"]) == Balance.RIFT_RESOURCES_PER_STAGE, "a stage pays its resources")
+		# The stage's own figure rather than the constant: a stage pays by the
+		# act since 2026-10-01, and the act scale is held below.
+		_check(int(reward["resources"]) == RiftArena._stage_resources(1), "a stage pays its resources")
 		_check(int(reward["shards"]) == Balance.RIFT_SHARDS_PER_STAGE, "and its Shards")
 		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE, "and its gear")
 		_check(String(reward["relic_id"]).is_empty(), "a rift is not a dungeon and pays no relic")
@@ -198,7 +201,7 @@ func _test_a_dungeon_has_a_door() -> void:
 		var reward: Dictionary = _rewards[0]
 		_check(int(reward["stages"]) == 2, "two stages banked; got %d" % int(reward["stages"]))
 		# Stage two's currency burst from its chest; only stage one is paid here.
-		_check(int(reward["resources"]) == Balance.RIFT_RESOURCES_PER_STAGE,
+		_check(int(reward["resources"]) == RiftArena._stage_resources(1),
 			"a stage whose chest was opened is not paid twice: got %d" % int(reward["resources"]))
 		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE * 2,
 			"two stages of gear, one rolled at the exit and one carried from the chest")
@@ -253,6 +256,46 @@ func _test_a_collapse_pays_only_what_was_banked() -> void:
 		"dying in the rift must pay nothing")
 	rift.queue_free()
 	await get_tree().process_frame
+
+
+## **A body under the road stands at the road's strength, and a stage pays by
+## the act** (2026-10-01). Arenas fielded their region's breeds at base health
+## on every act and every road, so an Act VII rift on the Chainmaker's Road was
+## paper - and paid what an Act II rift paid. Driven through the arena's own
+## `_spawn`, which the raid, the rift, the dungeon, the chieftain and the
+## guardian all go through, on a late act and the hardest road.
+func _test_the_deep_stands_at_the_road() -> void:
+	var act_was: int = RunState.act
+	var tier_was: String = RunState.tier_id
+	var wave_was: int = RunState.wave_number
+	RunState.act = 7
+	RunState.tier_id = "hell"
+	RunState.wave_number = 300
+	var rift: RiftArena = await _arena()
+	rift.open(RiftArena.Kind.RIFT, Vector2.ZERO)
+	rift.set_process(false)
+	var breed: EnemyData = ContentDB.enemy("bogkin")
+	var body: Enemy = rift._spawn(breed, Vector2(120.0, 0.0), 1.0) if breed != null else null
+	_check(body != null, "the arena stands a body up")
+	if body != null:
+		var hp: float = float(body.get("_hp_scale"))
+		var hit: float = float(body.get("_damage_scale"))
+		_check(is_equal_approx(hp, WaveDirector.road_hp_scale()),
+			"a body in the deep stands at the road's health: %.2f against %.2f"
+				% [hp, WaveDirector.road_hp_scale()])
+		_check(is_equal_approx(hit, WaveDirector.road_damage_scale()),
+			"and hits at the road's weight: %.2f against %.2f"
+				% [hit, WaveDirector.road_damage_scale()])
+		_check(hp > 5.0, "an Act VII body on the hardest road is no base-strength body: %.2f" % hp)
+	var paid: int = RiftArena._stage_resources(1)
+	var want: int = int(round(float(Balance.RIFT_RESOURCES_PER_STAGE) * Balance.kill_act_scale(7)))
+	_check(paid == want and paid > Balance.RIFT_RESOURCES_PER_STAGE,
+		"an Act VII stage pays by the act, as a kill does: %d against %d" % [paid, want])
+	rift.queue_free()
+	await get_tree().process_frame
+	RunState.act = act_was
+	RunState.tier_id = tier_was
+	RunState.wave_number = wave_was
 
 
 ## The bound: every key a reward may carry, so a new kind of payment cannot

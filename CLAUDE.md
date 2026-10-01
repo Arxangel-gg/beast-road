@@ -12809,6 +12809,43 @@ and then refunding it by clearing the field, which passed only because 2,200 fas
 frames ran out before a birth. That last one was a gate holding nothing; planted
 with the budget ignored, it names it now.
 
+**A raid, a rift and a dungeon stand at the road's strength, as of
+2026-10-01.** Found while measuring the road for the owner's "perfectly balanced
+for every wave of every act" ask: every arena fielded its region's breeds at
+`setup(data, 0, self, scale)` - the arena's own escalation over the breed's
+*base* pool - on every act and every road. The road's act ladder, its wave
+growth and its difficulty never reached them, so an Act X rift on the
+Chainmaker's Road was fought against bodies some seventy times softer than the
+road beside it, and a raid was the safest place on the map.
+
+`WaveDirector.road_hp_scale()` and `road_damage_scale()` are the road's own
+strength as statics - the wave's growth, the act's ladder and the tier, and
+nothing of a lane's dark or the opening's breath, which are a field's - so the
+director and the arenas ask one door. `RaidArena._spawn` multiplies its
+escalation by them, and the rift, the dungeon, the chieftain and the guardian
+all go through it. **The arena's own escalation is a step above what the road
+sends now, never a step above Act I's base.**
+
+**The pay climbs with it, at the source.** A raid's clear and partial pay, a raid
+chest and a rift stage are multiplied by `Balance.kill_act_scale` - the scale a
+road kill is paid by - where the figure is made rather than where it is applied,
+because a rift's chest bursts the same stage figure on the floor that the exit
+pays and the two must not disagree. Act II's 0.833 applies here as it does on
+the road.
+
+**What that asks of a Warden alone is now a readout.** An arena is the Warden
+with no board, so `curve_report` prints *one road body against the Warden
+alone* - the act's own roster by mean health against the Warden's sword, spirit
+and own weapons: 1.2 s in Act I to 3.2 s in Act X on the Long Road, 1.4 to 3.5 s
+on the Chainmaker's Road, for the expected Warden of each. It fails nothing; a
+judgement of arena pacing would be a second model of the fight.
+
+`rift_check` drives the arena's own `_spawn` on Act VII on the hardest road and
+holds the body's health and blow to the road's figures, and the stage's pay to
+the kill scale; planted with the old `setup(..., scale)` it names the body.
+Its two Act II reads of `RIFT_RESOURCES_PER_STAGE` read the stage's own figure
+now - a harness amendment, the invariant (a stage paid once) unmoved.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

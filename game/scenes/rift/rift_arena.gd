@@ -564,8 +564,14 @@ func _banked_stage(stage: int) -> Dictionary:
 
 ## What one stage's currency is worth: the second a quarter more than the
 ## first, the third half more, and so on.
+##
+## **And by the act, as a road kill is** (2026-10-01): the bodies a stage is
+## fought through stand at the road's own strength now, so what it pays climbs
+## with the road too. Here rather than where the reward is applied, because the
+## chest pays this same figure on the floor and the two must not disagree.
 static func _stage_resources(stage: int) -> int:
-	return int(round(float(Balance.RIFT_RESOURCES_PER_STAGE) * (1.0 + 0.25 * float(stage - 1))))
+	return int(round(float(Balance.RIFT_RESOURCES_PER_STAGE) * (1.0 + 0.25 * float(stage - 1))
+		* Balance.kill_act_scale(RunState.act)))
 
 
 ## At a dungeon's door: down, or out.

@@ -439,10 +439,9 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# Might is nought, and a real share of the late game for anybody else.
 	var might: float = 1.0 + float(WardenSheet.attribute_of(null, RunState.Attribute.MIGHT)) \
 		* Balance.HERO_MIGHT_PER_POINT
-	var capability: float = _hero_dps() * might * _core_scale(Modifiers.HERO_DAMAGE) \
-			* _discipline_scale() * float(_players) * standing \
-		+ _companion_dps() * float(_players) * standing \
-		+ towers + arsenal
+	var warden: float = _hero_dps() * might * _core_scale(Modifiers.HERO_DAMAGE) \
+			* _discipline_scale() * standing + _companion_dps() * standing
+	var capability: float = warden * float(_players) + towers + arsenal
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -454,6 +453,9 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"rank": int(dealt.get("ranks", 0)), "drafts": int(dealt.get("drafts", 0)),
 		"arsenal": arsenal, "towers_dps": towers,
 		"arsenal_single": _arsenal_value(_arsenal, act, true) * standing,
+		# One Warden with nothing but what they carry - their sword, their
+		# spirit and their own weapons - against one body: what an arena asks.
+		"warden_single": warden + _arsenal_value(_arsenal, act, true, true) * standing,
 	}
 
 
@@ -564,9 +566,35 @@ func _print_boss_time() -> void:
 					_boss_failures += 1
 		print("[curve] boss time-to-fall, %d player%s   %s"
 			% [count, "" if count == 1 else "s", " ".join(line)])
+	_print_warden_alone()
 	if solo.has(1) and solo.has(Balance.ACT_COUNT) and float(solo[Balance.ACT_COUNT]) <= float(solo[1]):
 		printerr("[curve] the last act's boss falls no slower than the first's - the finale is not a climax")
 		_boss_failures += 1
+
+
+## **How long one of an act's road bodies stands against the Warden alone**
+## (2026-10-01). A readout for the arenas: a raid, a rift and a dungeon are the
+## Warden with no board, so this is the figure their bodies are fought at if
+## they stand at the road's own strength. The act's own roster, by mean health.
+func _print_warden_alone() -> void:
+	var line: PackedStringArray = []
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var row: Dictionary = _last_row_of_act(act)
+		var terrain: TerrainData = ContentDB.terrain_for_act(act)
+		if row.is_empty() or terrain == null:
+			continue
+		var total: float = 0.0
+		var count: int = 0
+		for id: String in terrain.enemy_ids:
+			var breed: EnemyData = ContentDB.enemy(id)
+			if breed != null:
+				total += breed.max_hp
+				count += 1
+		if count == 0:
+			continue
+		var health: float = total / float(count) * float(row["hp"])
+		line.append("%d:%.1fs" % [act, health / maxf(float(row.get("warden_single", 0.0)), 0.01)])
+	print("[curve] one road body against the Warden alone   %s" % " ".join(line))
 
 
 ## How long one act's boss stands against the defence a row measured, or -1.
@@ -1556,7 +1584,8 @@ func _final_value(cards: Array[String], lines: Array) -> float:
 ## towers once for each tower in a Warden's reach - `ARSENAL_MODEL_TOWERS`, or
 ## fewer while the purse has bought fewer - (and an arc once, its count being
 ## the pairs), one on the town once.
-func _arsenal_value(hand: Dictionary, act: int, single: bool = false) -> float:
+func _arsenal_value(hand: Dictionary, act: int, single: bool = false,
+		warden_only: bool = false) -> float:
 	var power: float = 0.0
 	var haste: float = 0.0
 	var more: int = 0
@@ -1581,6 +1610,8 @@ func _arsenal_value(hand: Dictionary, act: int, single: bool = false) -> float:
 		var card: RoadCardData = ContentDB.road_card(String(id))
 		var weapon: ArsenalWeaponData = card.weapon_data() if card != null else null
 		if weapon == null:
+			continue
+		if warden_only and weapon.anchor != ArsenalWeaponData.Anchor.WARDEN:
 			continue
 		var level: int = int(hand[id])
 		var dps: float = weapon.modelled_dps(level)

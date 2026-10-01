@@ -74,6 +74,8 @@ func _open() -> void:
 	var tier: CampaignTierData = RunState.tier()
 	if tier != null:
 		reward = int(round(float(reward) * tier.loot_scale))
+	# And by the act, as the camp's own pay is (2026-10-01).
+	reward = int(round(float(reward) * Balance.kill_act_scale(RunState.act)))
 	# Paid as scattered drops rather than straight into the purse, so opening a
 	# chest is a thing that happens on the ground in front of the player instead
 	# of a number changing in the corner of the screen.
