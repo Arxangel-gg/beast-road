@@ -416,6 +416,7 @@ jobs:
           # 2026-09-30: sixty-seven weapons measure in 223 s on the owner's machine.
           CHECK_TIMEOUT=480 \
             check "arsenal"    --headless --path game res://tools/arsenal_check.tscn
+          check "A ward is a shell round the Warden, larger and stronger with more" --headless --path game res://tools/ward_shell_check.tscn
           # Every piece of gear says how it is worn, and every weapon is held on the body.
           check "dress"      --headless --path game res://tools/dress_check.tscn
           # The Warden's bars stand above every head it can wear, with MP and SP beneath HP.
