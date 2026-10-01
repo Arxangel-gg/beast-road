@@ -2648,10 +2648,15 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 	var body_at: Vector2 = combat_origin()
 	_impact_direction = (body_at - from).normalized()
 	BloodStain.strike(_blood, _impact_direction)
+	# **Where the blow landed**, chosen once and handed on, so the wound on the
+	# Warden and the blood thrown from them start at the same place (2026-10-01).
+	var struck: Vector2 = Vfx.struck_point(self, from, contact_radius())
+	if health != null:
+		BloodStain.wound(_blood, sprite, struck, amount / maxf(health.max_hp, 1.0))
 	animator.impact_frame()
 	animator.recoil(from, body_at, 1.0)
 	_lock_frames("hurt")
-	EventBus.hero_damaged.emit(amount, from, body_at)
+	EventBus.hero_damaged.emit(amount, from, struck)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
 
 
@@ -3197,6 +3202,8 @@ func _update_sprite(_delta: float) -> void:
 		WardenLook.dress(sprite, look)
 		_dress_warden()
 	BloodStain.drive(_blood, health.ratio(), _delta)
+	# A wound is kept in the cell's texels; the sheet steps through its frames.
+	BloodStain.follow_cell(_blood, sprite)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
 	BloodStain.drive_impact(_blood, _flash_left)

@@ -6860,6 +6860,40 @@ const VFX_BLOOD_DROPS_MAX: int = 9
 const VFX_BLOOD_ARC: Vector2 = Vector2(18.0, 46.0)
 const VFX_BLOOD_LAND_SPREAD: float = 0.68
 
+## **Blood by the blow** (owner, 2026-10-01: *"Blood splashes off of characters
+## should occur from a procedural but close part to where the character was
+## struck on its sprite, instead of just at its origin. And the blood shaders
+## should prioritize targeting that part of the character for its blood, and
+## make it more significant and spread based on how much hp percentage was lost
+## from that strike. And the amount of blood that splashes and stains the ground
+## should also be relative to how much HP a character lost from that strike, as
+## well as how big of a character it is"*).
+##
+## Where: the side of the body's stroke facing the blow (`Hitbox.meet`), this
+## share of its radius in toward the attacker, wandering by this share of its
+## radius - procedural, and close. [TUNE]
+const BLOOD_STRUCK_INSET: float = 0.55
+const BLOOD_STRUCK_JITTER: float = 0.35
+## How much: the splash's size at a scratch and at a blow that takes the whole
+## pool (the square root of the share between them, so the small blows that are
+## most of a fight still read), times the body's radius against the roster's
+## ordinary one, held between the two body bounds. The drops thrown - and the
+## marks they leave on the ground - grow with the size, held between the two
+## drop bounds. [TUNE]
+const BLOOD_SHARE_SCALE: Vector2 = Vector2(0.45, 2.0)
+const BLOOD_BODY_RADIUS_REFERENCE: float = 26.0
+const BLOOD_BODY_SCALE: Vector2 = Vector2(0.55, 2.2)
+const BLOOD_DROPS_SCALE: Vector2 = Vector2(0.5, 2.6)
+## On the body: the last few wounds are kept, each a spot on the painting the
+## stain gathers round - wider and fresher the more of the pool the blow took -
+## fading over `BLOOD_WOUND_FADE_SECONDS`. Away from every wound the stain the
+## body's health asks for thins to `BLOOD_WOUND_ELSEWHERE` of itself. [TUNE]
+const BLOOD_WOUNDS: int = 4
+const BLOOD_WOUND_RADIUS_TEXELS: Vector2 = Vector2(5.0, 24.0)
+const BLOOD_WOUND_FRESH: Vector2 = Vector2(0.18, 0.95)
+const BLOOD_WOUND_FADE_SECONDS: float = 30.0
+const BLOOD_WOUND_ELSEWHERE: float = 0.35
+
 ## Blood on the ground.
 ##
 ## Below anything that walks, above the road it stains: loot sits at -2 and the

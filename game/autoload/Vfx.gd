@@ -1552,6 +1552,41 @@ func blood(at: Vector2, direction: Vector2, size: float,
 	_motes.burst(at, floor_at, direction, size, _blood_rng)
 
 
+## **Where a blow from `from` met `body`** (2026-10-01): the side of its stroke
+## facing the blow, a little way in toward the attacker, wandering a little by
+## the body's own size on the blood's own dice - never the run's. The blood, the
+## spark and the stain on the body all start here, so the three agree.
+func struck_point(body: Node2D, from: Vector2, radius: float) -> Vector2:
+	var on: Vector2 = Hitbox.meet(body, from)
+	var toward: Vector2 = from - on
+	toward = toward.normalized() if toward.length() > 0.001 else Vector2.ZERO
+	var wander := Vector2(_blood_rng.randf_range(-1.0, 1.0), _blood_rng.randf_range(-1.0, 1.0)) \
+		* radius * Balance.BLOOD_STRUCK_JITTER
+	return on + toward * radius * Balance.BLOOD_STRUCK_INSET + wander
+
+
+## How big the blood of a blow is: by the share of the pool it took and by how
+## big the body is (see `BLOOD_SHARE_SCALE`). Static and pure, for the gate.
+static func blood_size(lost: float, pool: float, radius: float) -> float:
+	var share: float = clampf(lost / maxf(pool, 1.0), 0.0, 1.0)
+	var by_share: float = lerpf(Balance.BLOOD_SHARE_SCALE.x, Balance.BLOOD_SHARE_SCALE.y, sqrt(share))
+	var by_body: float = clampf(radius / Balance.BLOOD_BODY_RADIUS_REFERENCE,
+		Balance.BLOOD_BODY_SCALE.x, Balance.BLOOD_BODY_SCALE.y)
+	return Balance.VFX_BLOOD_HIT_SIZE * by_share * by_body
+
+
+## **The blood a blow draws**, from where it struck, as much as it took, thrown
+## away from the attacker and landing round the body's feet. Returns where it
+## struck, for the stain on the body. `at` is a struck point already chosen.
+func blood_from_blow(body: Node2D, from: Vector2, lost: float, pool: float, radius: float,
+		at: Vector2 = Vector2.INF) -> Vector2:
+	var struck: Vector2 = at if at != Vector2.INF else struck_point(body, from, radius)
+	var away: Vector2 = struck - from
+	away = away.normalized() if away.length() > 0.001 else Vector2.UP
+	blood(struck, away, blood_size(lost, pool, radius), Hitbox.feet_of(body))
+	return struck
+
+
 func flash_at(at: Vector2, colour: Color, radius: float, finish_when_paused: bool = false) -> void:
 	if world == null or _ink == null:
 		return
@@ -1851,8 +1886,12 @@ func _on_hero_damaged(amount: float, from: Vector2, at: Vector2) -> void:
 	var direction: Vector2 = (at - from).normalized()
 	spark(at, Color("ff8a7a"), 8, direction, 200.0)
 	var hero: Hero = Hero.nearest_on_field(get_tree(), at)
-	blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE,
-		hero.global_position if hero != null else Vector2.INF)
+	# From where the blow struck (the Warden chose the point and stained it
+	# there), as much as it took of the Warden's pool.
+	if hero != null and hero.health != null:
+		blood_from_blow(hero, from, amount, hero.health.max_hp, hero.contact_radius(), at)
+	else:
+		blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE, Vector2.INF)
 	# **The blow the player most needs to feel.** Every elemental impact in
 	# the game has had a forged hit since the catalogue landed and the one
 	# landing on the Warden had none. A hard star at the point of contact -

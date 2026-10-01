@@ -64,8 +64,13 @@ func burst(body_at: Vector2, ground_at: Vector2, direction: Vector2,
 		size: float, rng: RandomNumberGenerator) -> void:
 	var along: Vector2 = direction.normalized() if direction.length_squared() > 0.001 \
 		else Vector2.from_angle(rng.randf() * TAU)
-	var count: int = rng.randi_range(Balance.VFX_BLOOD_DROPS_MIN,
-		Balance.VFX_BLOOD_DROPS_MAX)
+	# **As much as the blow drew** (2026-10-01): a scratch on a hare throws a
+	# few drops and a blow that halves a giant throws a spray, and every drop
+	# that lands leaves its mark - so the ground remembers in proportion too.
+	var much: float = clampf(size / Balance.VFX_BLOOD_HIT_SIZE,
+		Balance.BLOOD_DROPS_SCALE.x, Balance.BLOOD_DROPS_SCALE.y)
+	var count: int = maxi(int(round(float(rng.randi_range(Balance.VFX_BLOOD_DROPS_MIN,
+		Balance.VFX_BLOOD_DROPS_MAX)) * much)), 2)
 	# **Off the screen the drops land at once** (2026-09-30; see
 	# `ScreenCull.world_sees`): nobody sees them fly, and the ground still
 	# remembers the blow for when the camera gets there.

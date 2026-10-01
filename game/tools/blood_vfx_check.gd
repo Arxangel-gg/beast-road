@@ -62,6 +62,7 @@ func _ready() -> void:
 	_check(found_at_target, "hero blood must appear on the Warden named by the damage fact")
 	_test_persistent_blood()
 	_test_the_shape_of_a_blob()
+	_test_blood_by_the_blow()
 	_test_the_vignette_belongs_to_the_run()
 	await _test_the_title_screen_opens_clean()
 
@@ -103,6 +104,96 @@ func _ready() -> void:
 ## ground field parented into the effects layer gets evicted by the effect cap
 ## the moment a fight gets busy, and a stain driven from health does nothing at
 ## all if the material never attaches.
+## **Blood by the blow** (owner, 2026-10-01): from where the body was struck,
+## as much as the blow took, as big as the body is - in the air, on the ground
+## and on the body itself.
+func _test_blood_by_the_blow() -> void:
+	# How much: by the share of the pool, and by the body.
+	var scratch: float = Vfx.blood_size(2.0, 100.0, 26.0)
+	var quarter: float = Vfx.blood_size(25.0, 100.0, 26.0)
+	var whole: float = Vfx.blood_size(100.0, 100.0, 26.0)
+	var big: float = Vfx.blood_size(25.0, 100.0, 52.0)
+	var small: float = Vfx.blood_size(25.0, 100.0, 13.0)
+	_check(scratch < quarter and quarter < whole,
+		"a bigger share of the pool must bleed more: %.1f, %.1f, %.1f" % [scratch, quarter, whole])
+	_check(big > quarter and small < quarter,
+		"a bigger body must bleed more for the same share: %.1f, %.1f, %.1f" % [small, quarter, big])
+	_check(is_equal_approx(Vfx.blood_size(500.0, 100.0, 26.0), whole),
+		"a blow past the whole pool must not bleed more than the whole pool")
+	# The drops thrown - and so the marks on the ground - grow with it.
+	var motes := BloodMotes.new()
+	add_child(motes)
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 7
+	motes.burst(Vector2.ZERO, Vector2(0.0, 40.0), Vector2.RIGHT, scratch, dice)
+	var few: int = motes.live()
+	motes.queue_free()
+	motes = BloodMotes.new()
+	add_child(motes)
+	dice.seed = 7
+	motes.burst(Vector2.ZERO, Vector2(0.0, 40.0), Vector2.RIGHT, big * 1.6, dice)
+	var many: int = motes.live()
+	motes.queue_free()
+	_check(many > few, "a heavy blow on a big body threw %d drops and a scratch %d" % [many, few])
+
+	# Where: on the body, at the point a blow from that side met it.
+	var sprite := Sprite2D.new()
+	var image := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	sprite.texture = ImageTexture.create_from_image(image)
+	sprite.scale = Vector2(2.0, 2.0)
+	add_child(sprite)
+	sprite.global_position = Vector2(100.0, 100.0)
+	var texel: Vector2 = BloodStain.texel_of(sprite, Vector2(120.0, 90.0))
+	_check(texel.is_equal_approx(Vector2(42.0, 27.0)),
+		"a point right of and above the middle of a 64-texel body is texel %s, not (42, 27)" % texel)
+	sprite.flip_h = true
+	texel = BloodStain.texel_of(sprite, Vector2(120.0, 90.0))
+	_check(texel.is_equal_approx(Vector2(22.0, 27.0)),
+		"a flipped body's wound is texel %s - it must turn with the body" % texel)
+	sprite.flip_h = false
+	sprite.region_enabled = true
+	sprite.region_rect = Rect2(64.0, 0.0, 64.0, 64.0)
+	_check(BloodStain.texel_of(sprite, Vector2(120.0, 90.0)).is_equal_approx(Vector2(42.0, 27.0)),
+		"a sheet's cell must keep a wound in the cell's own texels")
+	sprite.region_enabled = false
+
+	# The stain gathers round the wounds, wider and fresher by the share.
+	var material: ShaderMaterial = BloodStain.attach(sprite, 11)
+	_check(material != null, "a body must wear the stain")
+	if material != null:
+		BloodStain.wound(material, sprite, Vector2(120.0, 90.0), 0.05)
+		BloodStain.wound(material, sprite, Vector2(80.0, 110.0), 0.8)
+		var kept: Array = BloodStain.wounds_of(material)
+		_check(kept.size() == 2, "two blows kept %d wounds" % kept.size())
+		if kept.size() == 2:
+			var light: Vector4 = kept[0]
+			var heavy: Vector4 = kept[1]
+			_check(heavy.z > light.z and heavy.w > light.w,
+				"a heavy blow's wound must be wider and fresher than a light one's: %s, %s" % [light, heavy])
+		for extra: int in Balance.BLOOD_WOUNDS + 3:
+			BloodStain.wound(material, sprite, Vector2(100.0, 100.0), 0.2)
+		_check(BloodStain.wounds_of(material).size() == Balance.BLOOD_WOUNDS,
+			"a body keeps %d wounds - it must keep the last %d" % [
+				BloodStain.wounds_of(material).size(), Balance.BLOOD_WOUNDS])
+		BloodStain.fade_wounds(material, false, Balance.BLOOD_WOUND_FADE_SECONDS + 1.0)
+		_check(BloodStain.wounds_of(material).is_empty(), "wounds must fade over their own seconds")
+		BloodStain.wound(material, sprite, Vector2(100.0, 100.0), 0.5)
+		BloodStain.fade_wounds(material, true, 0.01)
+		_check(BloodStain.wounds_of(material).is_empty(), "a body healed clean must let its wounds go")
+	sprite.queue_free()
+
+	# The shader reads them, and the doors that strike a body tell it where.
+	var shader: String = FileAccess.get_file_as_string(BloodStain.SHADER_PATH)
+	_check(shader.contains("uniform vec4 wounds[4]") and shader.contains("cell_origin")
+		and shader.contains("wound_elsewhere"), "the stain shader no longer reads the wounds")
+	var enemy: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	_check(enemy.count("Vfx.blood_from_blow(") >= 2 and enemy.count("BloodStain.wound(") >= 2,
+		"a body struck, and a body mirrored struck, must bleed from where it was struck")
+	var hero: String = FileAccess.get_file_as_string("res://scenes/hero/hero.gd")
+	_check(hero.contains("Vfx.struck_point(") and hero.contains("BloodStain.wound("),
+		"the Warden must bleed from where the blow landed")
+
+
 ## **What blood is shaped like**, which nothing could see before.
 ##
 ## Both blood canvases drew with `draw_circle` until 2026-09-16 - a perfectly

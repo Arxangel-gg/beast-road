@@ -31,6 +31,14 @@ uniform float outline_strength : hint_range(0.0, 1.0) = 0.82;
 uniform vec4 impact_colour : source_color = vec4(1.0, 0.82, 0.62, 1.0);
 uniform vec2 impact_direction = vec2(0.0, -1.0);
 uniform float impact_strength : hint_range(0.0, 1.0) = 0.0;
+// **Where the blows landed** (2026-10-01): the last few wounds, each a texel of
+// the body's own cell (x, y), how far the stain gathers round it (z) and how
+// fresh it is (w); and where the current cell starts on the texture, so a
+// wound stays on the body as a sheet steps through its frames.
+uniform vec4 wounds[4];
+uniform vec2 cell_origin = vec2(0.0);
+// How thin the stain runs away from every wound, once there is one.
+uniform float wound_elsewhere = 0.35;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -87,14 +95,33 @@ void fragment() {
 	if (body_a > 0.001) {
 		COLOR.rgb = state_shine(COLOR.rgb, UV, px, body_a);
 	}
-	if (stain > 0.001) {
+	// The wounds first: how near this texel is to where a blow landed, and how
+	// fresh the nearest is. With any wound kept, the health's stain gathers
+	// round them and thins elsewhere; each wound also bleeds a spot of its own.
+	vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);
+	vec2 in_cell = texel - cell_origin;
+	float near_wound = 0.0;
+	float fresh = 0.0;
+	float any_wound = 0.0;
+	for (int i = 0; i < 4; i++) {
+		vec4 w = wounds[i];
+		if (w.w <= 0.0) {
+			continue;
+		}
+		any_wound = 1.0;
+		float reach = 1.0 - smoothstep(w.z * 0.3, max(w.z, 1.0), distance(in_cell, w.xy));
+		near_wound = max(near_wound, reach);
+		fresh = max(fresh, reach * w.w);
+	}
+	float weight = mix(1.0, wound_elsewhere + 1.4 * near_wound, any_wound);
+	float bled = clamp(stain * weight + fresh * 0.6, 0.0, 1.0);
+	if (bled > 0.001) {
 		// Texel coordinates, not UV, so the speckle lands on the art's own
 		// pixels and stays crisp at every zoom.
-		vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);
 		// Broad and mid-frequency fields form readable clots rather than isolated
 		// one-pixel confetti. Taking the strongest immediate neighbour thickens
 		// those clots while the fine field keeps their edges scattered.
-		float threshold = 0.82 - stain * 0.76;
+		float threshold = 0.82 - bled * 0.76;
 		float n = stain_field(texel);
 		n = max(n, stain_field(texel + vec2(1.0, 0.0)) - 0.035);
 		n = max(n, stain_field(texel + vec2(0.0, 1.0)) - 0.035);

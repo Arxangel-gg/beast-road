@@ -84,6 +84,54 @@ func _ready() -> void:
 		await get_tree().process_frame
 	await _shot("burst")
 
+	# **By the blow** (2026-10-01): left to right, a scratch, a quarter and a
+	# whole pool on an ordinary body, then the same quarter on a body twice the
+	# size - the splash and the drops thrown grow with both.
+	Vfx.clear()
+	for index: int in 4:
+		var share: float = [0.04, 0.25, 1.0, 0.25][index]
+		var radius: float = [26.0, 26.0, 26.0, 52.0][index]
+		Vfx.blood(Vector2(_across.x * (0.14 + float(index) * 0.24), _across.y * 0.5),
+			Vector2.RIGHT, Vfx.blood_size(share * 100.0, 100.0, radius),
+			Vector2(_across.x * (0.14 + float(index) * 0.24), _across.y * 0.62))
+	for _f: int in 8:
+		await get_tree().process_frame
+	await _shot("by_blow")
+
+	# **The wound on the body**: the same painting three times - stained by its
+	# health alone, struck once on the right shoulder by a hard blow, and struck
+	# three times low on the left by light ones.
+	Vfx.clear()
+	var art: Texture2D = load("res://art/enemies/enemy_marcher.png") as Texture2D 		if ResourceLoader.exists("res://art/enemies/enemy_marcher.png") else null
+	if art == null:
+		for value: Variant in ContentDB.enemies.values():
+			var breed := value as EnemyData
+			if breed != null and ResourceLoader.exists(breed.get_sprite_path()):
+				art = load(breed.get_sprite_path()) as Texture2D
+				break
+	for index: int in 3:
+		var body := Sprite2D.new()
+		body.texture = art
+		body.scale = Vector2.ONE * 2.2
+		body.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		body.position = Vector2(_across.x * (0.22 + float(index) * 0.28), _across.y * 0.5)
+		body.z_index = 20
+		_stage.add_child(body)
+		var material: ShaderMaterial = BloodStain.attach(body, 401 + index)
+		if material == null:
+			continue
+		material.set_shader_parameter("stain", 0.18)
+		var cell: Vector2 = art.get_size() * body.scale
+		if index == 1:
+			BloodStain.wound(material, body, body.position + Vector2(cell.x * 0.16, -cell.y * 0.18), 0.6)
+		elif index == 2:
+			for hit: int in 3:
+				BloodStain.wound(material, body, body.position
+					+ Vector2(-cell.x * (0.10 + 0.04 * float(hit)), cell.y * (0.05 + 0.06 * float(hit))), 0.08)
+	for _f: int in 4:
+		await get_tree().process_frame
+	await _shot("wounds")
+
 	Vfx.clear()
 	Vfx.bind_world(null)
 	MusicPlayer.stop_immediately()

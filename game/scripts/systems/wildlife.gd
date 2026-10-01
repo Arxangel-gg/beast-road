@@ -2197,8 +2197,14 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		Sfx.play_group_at(cry, body_at, -4.0, voice_pitch(kind, float(animal.get("size", 1.0))))
 	Vfx.spark(body_at, Color("c4552e"), 6,
 		Vector2.UP, 170.0)
+	# **As much as the blow took, and as big as the animal is** (2026-10-01):
+	# a hare nicked bleeds a little and a bear opened up bleeds a lot.
+	var pool: float = kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
+	var taken: float = Balance.HERO_ATTACK_DAMAGE[0] if damage < 0.0 else damage
+	var radius: float = Balance.BLOOD_BODY_RADIUS_REFERENCE * maxf(kind.scale, 0.2) \
+		* float(animal.get("size", 1.0))
 	Vfx.blood(body_at, Vector2.UP,
-		Balance.VFX_BLOOD_HIT_SIZE if float(animal["hp"]) > 0.0 \
+		Vfx.blood_size(taken, pool, radius) if float(animal["hp"]) > 0.0 \
 		else Balance.VFX_BLOOD_DEATH_SIZE * 0.75, sprite.global_position)
 	if float(animal["hp"]) > 0.0:
 		# Being hit is also a very good reason to leave - for a harmless

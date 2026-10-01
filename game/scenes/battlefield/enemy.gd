@@ -1154,8 +1154,10 @@ func _react_to_mirrored_hit(lost: float) -> void:
 	var from: Vector2 = global_position + facing * 24.0
 	var body_at: Vector2 = _visual_origin()
 	Vfx.number(body_at, lost, Color("ffe3b0"), lost >= data.max_hp * 0.4)
-	Vfx.spark(body_at, Color("ffcf9a"), 4, -facing, 170.0)
-	Vfx.blood(body_at, -facing, Balance.VFX_BLOOD_HIT_SIZE, global_position)
+	var pool: float = health.max_hp if health != null else data.max_hp
+	var struck: Vector2 = Vfx.blood_from_blow(self, from, lost, pool, contact_radius())
+	Vfx.spark(struck, Color("ffcf9a"), 4, -facing, 170.0)
+	BloodStain.wound(_blood, sprite, struck, lost / maxf(pool, 1.0))
 	if animator != null:
 		animator.recoil(from, global_position,
 			clampf(lost / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
@@ -2920,8 +2922,12 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	var body_at: Vector2 = _visual_origin()
 	Vfx.number(body_at, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
 	var hit_direction: Vector2 = (global_position - from).normalized()
-	Vfx.spark(body_at, Color("ffcf9a"), 4, hit_direction, 170.0)
-	Vfx.blood(body_at, hit_direction, Balance.VFX_BLOOD_HIT_SIZE, global_position)
+	# **From where it struck, as much as it took** (2026-10-01): the spark, the
+	# blood and the wound on the body all start at the one point the blow met.
+	var pool: float = health.max_hp if health != null else data.max_hp
+	var struck: Vector2 = Vfx.blood_from_blow(self, from, incoming, pool, contact_radius())
+	Vfx.spark(struck, Color("ffcf9a"), 4, hit_direction, 170.0)
+	BloodStain.wound(_blood, sprite, struck, incoming / maxf(pool, 1.0))
 	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
 	animator.impact_frame()
 	var away: Vector2 = global_position - from
