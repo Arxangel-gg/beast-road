@@ -707,6 +707,9 @@ func _tick_ready(angler: Node2D, still: bool) -> void:
 		return
 	_pond = near
 	_state = State.READY
+	_offer_at = _ponds[near]["at"] as Vector2
+	# A pond is clicked anywhere on its water, not only at its middle.
+	_offer_reach = maxf((_ponds[near]["half"] as Vector2).x, (_ponds[near]["half"] as Vector2).y)
 	if _is_swimming(angler):
 		_set_prompt("Get out of the water to cast", "")
 		return
@@ -1354,14 +1357,21 @@ func _holding(angler: Node2D) -> bool:
 ## is the same line and the same arbitration.
 const PROMPT_OWNER: StringName = &"fishing"
 
+## Where the offer this system is speaking about stands, and how wide a click on
+## it is - see `EventBus.lands_on_prompt`. Set before every line it says.
+var _offer_at: Vector2 = Vector2.INF
+var _offer_reach: float = 0.0
+
 
 func _set_prompt(text: String, button: String) -> void:
+	if not text.is_empty():
+		EventBus.point_prompt(PROMPT_OWNER, _offer_at, _offer_reach)
 	# Deduped only while this system still holds the line - see
 	# `EventBus.claim_prompt`.
 	if text == _prompt and button == _prompt_button \
 			and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", _offer_at, _offer_reach):
 		return
 	_prompt = text
 	_prompt_button = button

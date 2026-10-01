@@ -445,6 +445,12 @@ func _test_the_work_says_what_it_did(field: Battlefield, patch: Gathering) -> vo
 	_check(not ready_text.to_lower().contains("worked out"),
 		"a seam off cooldown must stop calling itself worked out, got \"%s\""
 			% ready_text)
+	# **And it says where it stands** (2026-09-30), so a left click on the seam
+	# is a press of Interact rather than a swing past it.
+	_check(EventBus.prompt_at() == (seam["at"] as Vector2)
+			and EventBus.lands_on_prompt(seam["at"] as Vector2),
+		"the seam offering work said it stands at %s, not at %s - a click on it "
+			% [EventBus.prompt_at(), seam["at"]] + "would swing instead of mine")
 	EventBus.interact_prompt.disconnect(listen)
 
 	# And the swing itself has to say what it paid. A grep, because the readout

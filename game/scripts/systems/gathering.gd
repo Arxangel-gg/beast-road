@@ -250,6 +250,8 @@ func _process_measured(delta: float) -> void:
 	var kind: GatherNodeData = ContentDB.gather_node(String(_nodes[near]["id"]))
 	if kind == null:
 		return
+	_offer_at = _nodes[near]["at"] as Vector2
+	_offer_reach = 0.0
 	_set_prompt("%s  ·  %s" % [_verb(kind), kind.display_name], "WORK", _kind_of(kind))
 	var source := who.get("input") as HeroInput
 	if source != null and source.pressed(HeroInput.BUTTON_INTERACT):
@@ -614,6 +616,11 @@ const PROMPT_OWNER: StringName = &"gathering"
 ## The two things this system offers. One owner, so the prompt line still
 ## dedupes as one; two kinds, so the symbol over the hero's head is a pickaxe at
 ## a seam and an axe at a stand of timber.
+## Where the offer this system is speaking about stands, and how wide a click on
+## it is - see `EventBus.lands_on_prompt`. Set before every line it says.
+var _offer_at: Vector2 = Vector2.INF
+var _offer_reach: float = 0.0
+
 const PROMPT_KIND_TIMBER: StringName = &"timber"
 const PROMPT_KIND_SEAM: StringName = &"seam"
 
@@ -630,6 +637,8 @@ func _kind_of(kind: GatherNodeData) -> StringName:
 
 
 func _set_prompt(text: String, button: String, kind: StringName = &"") -> void:
+	if not text.is_empty():
+		EventBus.point_prompt(PROMPT_OWNER, _offer_at, _offer_reach)
 	# **Deduped only while this system still holds the line.** Six systems share
 	# it; one that has lost it has to say its piece again rather than sit on a
 	# cache that no longer describes the screen. See `EventBus.claim_prompt`.
@@ -637,7 +646,7 @@ func _set_prompt(text: String, button: String, kind: StringName = &"") -> void:
 			and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
 	if not EventBus.claim_prompt(PROMPT_OWNER, text,
-			kind if not kind.is_empty() else PROMPT_OWNER):
+			kind if not kind.is_empty() else PROMPT_OWNER, _offer_at, _offer_reach):
 		return
 	_prompt = text
 	_prompt_button = button

@@ -473,6 +473,8 @@ jobs:
           # one it is played on. Eleven had accumulated before anybody looked at
           # a phone.
           check "font glyphs" --headless --path game res://tools/font_glyph_check.tscn
+          # A left click on what the field is offering uses it (2026-09-30).
+          check "click to use" --headless --path game res://tools/click_use_check.tscn
           # Every menu panel, opened at phone size, with its way out on screen.
           # layout_check builds the *run* and measures the HUD; nothing ever
           # opened a main-menu panel at a phone shape and looked. The same bug

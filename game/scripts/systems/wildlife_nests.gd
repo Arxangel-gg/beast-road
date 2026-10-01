@@ -220,6 +220,8 @@ func _tick_prompt() -> void:
 		_say("", "")
 		return
 	var nest: Dictionary = _nests[_near]
+	_offer_at = nest["at"] as Vector2
+	_offer_reach = 0.0
 	var kind := nest["kind"] as WildlifeData
 	var left: int = (nest["clutch"] as Array).size()
 	_say("Take an egg  ·  %s  ·  %d in the nest" % [kind.display_name, left],
@@ -390,13 +392,20 @@ func _local_hero() -> Node2D:
 ## The name this system speaks on the shared prompt line under.
 const PROMPT_OWNER: StringName = &"nests"
 
+## Where the offer this system is speaking about stands, and how wide a click on
+## it is - see `EventBus.lands_on_prompt`. Set before every line it says.
+var _offer_at: Vector2 = Vector2.INF
+var _offer_reach: float = 0.0
+
 
 func _say(text: String, button: String) -> void:
+	if not text.is_empty():
+		EventBus.point_prompt(PROMPT_OWNER, _offer_at, _offer_reach)
 	# Deduped only while this system still holds the shared prompt line - see
 	# `EventBus.claim_prompt`.
 	if text == _prompt and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", _offer_at, _offer_reach):
 		return
 	_prompt = text
 	EventBus.interact_prompt.emit(text, button)

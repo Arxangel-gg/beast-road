@@ -50,10 +50,37 @@ func aim(previous: Vector2) -> Vector2:
 	return HeroInput.aim_at(from, hero.get_global_mouse_position(), previous)
 
 
+## **A left click on what the field is offering uses it** (owner, 2026-09-30:
+## *"All interactables should be useable by simply left clicking on them while
+## within interaction range"*). The prompt line is only ever held while the
+## Warden is in reach of something, and it says where that something stands;
+## a click whose point lands there is a press of Interact and not a swing, and
+## the button held after it is the reel, the cast and the cut. A click anywhere
+## else is the swing it always was.
+##
+## Only the mouse: a pad's attack button is never a click, and a phone has its
+## own button wearing the prompt.
+func _click_uses() -> bool:
+	if hero == null or TouchInput.is_showing():
+		return false
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		return false
+	return EventBus.lands_on_prompt(hero.get_global_mouse_position())
+
+
+## Whether the left button that is down went down on the offer.
+var _using_click: bool = false
+
+
 func _read_press(button: int) -> bool:
 	match button:
 		BUTTON_ATTACK:
-			return Input.is_action_just_pressed(&"attack")
+			if not Input.is_action_just_pressed(&"attack"):
+				return false
+			# Each press decides afresh, so a click that once landed on an offer
+			# can never eat the next swing.
+			_using_click = _click_uses()
+			return not _using_click
 		BUTTON_DASH:
 			return Input.is_action_just_pressed(&"dash")
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
@@ -70,6 +97,9 @@ func _read_press(button: int) -> bool:
 		# press twice.
 		return Input.is_action_just_pressed(&"use_item")
 	if button == BUTTON_INTERACT:
+		if Input.is_action_just_pressed(&"attack") and _click_uses():
+			_using_click = true
+			return true
 		return Input.is_action_just_pressed(&"interact")
 	# **The mount key** (2026-09-17). Not rebindable and not on the pad, for the
 	# reason recorded in the memory directory: every rebindable action needs a
@@ -91,7 +121,7 @@ func _read_hold(mask: int) -> bool:
 	# The reel. The touch button drives the action itself, so one read serves
 	# a key, a pad button and a thumb.
 	if mask == HOLD_INTERACT:
-		return Input.is_action_pressed(&"interact")
+		return Input.is_action_pressed(&"interact") or _click_still_down()
 	# **The sprint key** (2026-09-17). Its own action, so it can be found in the
 	# settings screen and moved - which is the half that was missing, not the
 	# sprint. On a pad it shares the dash button, so this reads true while A is
@@ -106,8 +136,16 @@ func _read_hold(mask: int) -> bool:
 	# Tested *after* the holds, so a future hold sharing this value cannot shadow
 	# it the way this branch once shadowed the revive.
 	if mask == BUTTON_ATTACK:
-		return Input.is_action_pressed(&"attack")
+		return Input.is_action_pressed(&"attack") and not _click_still_down()
 	return false
+
+
+## The click that used the offer, still held - and forgotten the moment the
+## button comes up, so the next click is asked again.
+func _click_still_down() -> bool:
+	if _using_click and not Input.is_action_pressed(&"attack"):
+		_using_click = false
+	return _using_click
 
 
 func is_local() -> bool:

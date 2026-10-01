@@ -30,6 +30,11 @@ extends Node2D
 
 const PROMPT_OWNER: StringName = &"wayside"
 
+## Where the offer this system is speaking about stands, and how wide a click on
+## it is - see `EventBus.lands_on_prompt`. Set before every line it says.
+var _offer_at: Vector2 = Vector2.INF
+var _offer_reach: float = 0.0
+
 var grid: BattleGrid = null
 var field: Node = null
 var host: Node2D = null
@@ -262,6 +267,8 @@ func _process_measured(delta: float) -> void:
 	var data: WaysideData = ContentDB.wayside(String(_laid["id"]))
 	if data == null:
 		return
+	_offer_at = _laid["at"] as Vector2
+	_offer_reach = 0.0
 	_set_prompt("Look  ·  %s" % title_of(data))
 	var source := who.get("input") as HeroInput
 	if source != null and source.pressed(HeroInput.BUTTON_INTERACT):
@@ -363,12 +370,14 @@ func _local_hero() -> Node2D:
 
 
 func _set_prompt(text: String) -> void:
+	if not text.is_empty():
+		EventBus.point_prompt(PROMPT_OWNER, _offer_at, _offer_reach)
 	if text == _prompt and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
 	if text.is_empty() and EventBus.prompt_owner() != PROMPT_OWNER:
 		_prompt = ""
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", _offer_at, _offer_reach):
 		return
 	_prompt = text
 	EventBus.interact_prompt.emit(text, "LOOK" if not text.is_empty() else "")

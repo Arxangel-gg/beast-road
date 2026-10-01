@@ -119,14 +119,18 @@ var _prompt_owner: StringName = &""
 ## Anybody with something to say may take it. **A clear is only honoured from
 ## whoever is currently holding it**, which is the whole of the fix: a system
 ## with nothing to say can no longer speak over one that has.
-func claim_prompt(owner: StringName, text: String, kind: StringName = &"") -> bool:
+func claim_prompt(owner: StringName, text: String, kind: StringName = &"",
+		at: Vector2 = Vector2.INF, reach: float = 0.0) -> bool:
 	if text.is_empty():
 		if _prompt_owner != owner:
 			return false
 		_prompt_owner = &""
 		_prompt_kind = &""
+		_prompt_at = Vector2.INF
 		return true
 	_prompt_owner = owner
+	_prompt_at = at
+	_prompt_reach = reach if reach > 0.0 else Balance.INTERACT_CLICK_REACH
 	# **What kind of thing is offering**, for the symbol over the hero's head
 	# (owner, 2026-09-16). Defaults to the owner, which is right for seven of
 	# the eight: only `gathering` covers two different things - a stone seam and
@@ -136,6 +140,35 @@ func claim_prompt(owner: StringName, text: String, kind: StringName = &"") -> bo
 
 
 var _prompt_kind: StringName = &""
+
+## **Where the thing offering stands, and how far round it a click lands on it**
+## (owner, 2026-09-30: *"All interactables should be useable by simply left
+## clicking on them while within interaction range"*). The line already says
+## *that* something is in reach; this says *where*, so a left click on it can be
+## a press of Interact rather than a swing. `Vector2.INF` when the owner did not
+## say, which no click can land on.
+var _prompt_at: Vector2 = Vector2.INF
+var _prompt_reach: float = 0.0
+
+
+## Moves the point of an offer its owner already holds - two seams of one kind
+## side by side say the same words, and the line is deduped on the words.
+func point_prompt(owner: StringName, at: Vector2, reach: float = 0.0) -> void:
+	if owner != _prompt_owner or _prompt_owner.is_empty():
+		return
+	_prompt_at = at
+	_prompt_reach = reach if reach > 0.0 else Balance.INTERACT_CLICK_REACH
+
+
+## Whether a world point lands on what the line is offering.
+func lands_on_prompt(point: Vector2) -> bool:
+	return not _prompt_owner.is_empty() and _prompt_at != Vector2.INF \
+		and point.distance_to(_prompt_at) <= _prompt_reach
+
+
+## Where the offer stands, `Vector2.INF` for nowhere a click could reach.
+func prompt_at() -> Vector2:
+	return _prompt_at if not _prompt_owner.is_empty() else Vector2.INF
 
 
 ## What is being offered, for anything that wants to draw it rather than say it.

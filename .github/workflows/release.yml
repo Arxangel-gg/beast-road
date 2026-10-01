@@ -361,6 +361,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/exchange_check.tscn
           run_godot_clean --headless --path game res://tools/foliage_art_check.tscn
           run_godot_clean --headless --path game res://tools/font_glyph_check.tscn
+          run_godot_clean --headless --path game res://tools/click_use_check.tscn
           run_godot_clean --headless --path game res://tools/morale_check.tscn
           # night_check is deliberately NOT here, and guard.yml says why: it reads
           # pixels and the runners are headless, where every grab returns null from

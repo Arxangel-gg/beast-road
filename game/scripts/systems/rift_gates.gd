@@ -177,6 +177,8 @@ func _process_measured(delta: float) -> void:
 		_set_prompt("", "")
 		return
 	var kind: int = int(_gates[near]["kind"])
+	_offer_at = _gates[near]["at"] as Vector2
+	_offer_reach = 0.0
 	_set_prompt(_prompt_for(kind),
 		"ENTER")
 	var source := angler.get("input") as HeroInput
@@ -257,14 +259,21 @@ func _local_hero() -> Node2D:
 ## The name this system speaks on the shared prompt line under.
 const PROMPT_OWNER: StringName = &"rift_gates"
 
+## Where the offer this system is speaking about stands, and how wide a click on
+## it is - see `EventBus.lands_on_prompt`. Set before every line it says.
+var _offer_at: Vector2 = Vector2.INF
+var _offer_reach: float = 0.0
+
 
 func _set_prompt(text: String, button: String) -> void:
+	if not text.is_empty():
+		EventBus.point_prompt(PROMPT_OWNER, _offer_at, _offer_reach)
 	# Deduped only while this system still holds the shared prompt line - see
 	# `EventBus.claim_prompt`.
 	if text == _prompt and button == _prompt_button \
 			and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", _offer_at, _offer_reach):
 		return
 	_prompt = text
 	_prompt_button = button

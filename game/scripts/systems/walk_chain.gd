@@ -124,7 +124,7 @@ func _say(near: bool, holding: bool) -> void:
 			EventBus.interact_prompt.emit("", "")
 		_prompt = ""
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", global_position):
 		return
 	_prompt = text
 	EventBus.interact_prompt.emit(text, "interact")

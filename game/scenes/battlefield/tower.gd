@@ -542,7 +542,9 @@ func _say(text: String, button: String) -> void:
 	if wanted == _prompting and not wanted \
 			and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if wanted:
+		EventBus.point_prompt(PROMPT_OWNER, global_position)
+	if not EventBus.claim_prompt(PROMPT_OWNER, text, &"", global_position):
 		return
 	_prompting = wanted
 	EventBus.interact_prompt.emit(text, button)

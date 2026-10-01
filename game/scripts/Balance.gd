@@ -10831,6 +10831,12 @@ const AMPHIBIAN_WAKE_SECONDS: float = 0.9
 const INTERACT_BADGE_Z: int = 8
 const INTERACT_BADGE_ART: String = "res://art/icons/ui/ui_interact_%s.png"
 const INTERACT_BADGE_SIZE: float = 46.0
+
+## How far round something the field is offering a left click still lands on it
+## (2026-09-30), for an owner that does not say. About a seam's painting: wide
+## enough that a click on the picture is a click on the thing, and no wider -
+## a click beside it is the swing the player meant.
+const INTERACT_CLICK_REACH: float = 72.0
 ## How long it takes to arrive and to go. Eased rather than switched, so walking
 ## along a line of seams shows the symbol travelling rather than flickering.
 const INTERACT_BADGE_FADE: float = 0.16
