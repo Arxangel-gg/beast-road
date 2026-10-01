@@ -434,7 +434,8 @@ func _test_banking_and_coming_back() -> void:
 	# --- And put back down ----------------------------------------------------
 	RunState.reset(false, 0)
 	_check(RunState.towers.is_empty(), "a reset must leave no fortress")
-	_check(Expedition.apply(snapshot), "a readable front refused to be applied")
+	# The worn front, so the field and the HUD can be asked about the gate.
+	_check(Expedition.apply(hurt), "a readable front refused to be applied")
 	_check(RunState.act == 3 and RunState.wave_number == 27,
 		"the front came back at Act %d Wave %d" % [RunState.act, RunState.wave_number])
 	_check(RunState.towers.size() == anchors.size(),
@@ -470,6 +471,18 @@ func _test_banking_and_coming_back() -> void:
 	var rebuilt: Tower = resumed.battlefield.tower_at_anchor(anchors[0])
 	_check(rebuilt != null and absf(rebuilt.health_ratio() - hurt_ratio) < 0.02,
 		"live restored tower lost its saved damage")
+	# **And the gate, on the field and on the screen** (owner, 2026-10-01: "City
+	# base health does not properly load when continuing"). The field always had
+	# it; the HUD is built after the field and its bar was born full, so a front
+	# that came home at 40% read as whole until its first blow.
+	var gate: TownCore = resumed.battlefield.town
+	_check(gate != null and absf(gate.health.current_hp / maxf(gate.health.max_hp, 1.0) - 0.4) < 0.02,
+		"the resumed gate stands at %.2f on a front that came home at 0.40"
+			% (gate.health.current_hp / maxf(gate.health.max_hp, 1.0) if gate != null else -1.0))
+	var bar: ProgressBar = resumed.hud.get("_town_bar") as ProgressBar
+	_check(bar != null and absf(bar.value - 0.4) < 0.02,
+		"the HUD shows the resumed gate at %.2f on a front that came home at 0.40"
+			% (bar.value if bar != null else -1.0))
 	await _leave(resumed)
 
 	# **And the account is exactly where it was.** An expedition carries the road.

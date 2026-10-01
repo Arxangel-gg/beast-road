@@ -855,6 +855,12 @@ func _ready() -> void:
 	_on_preparation_changed(0.0, true)
 	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
 	_on_hero_wounds_changed(RunState.hero_wounds, RunState.max_wounds())
+	# **The gate as the run holds it** (owner, 2026-10-01: "City base health
+	# does not properly load when continuing from the last successful
+	# extraction"). The battlefield is built before the HUD, so the town said its
+	# restored health before this bar was listening - and the bar is born full.
+	# A resumed front came home at 40% and read as whole until its first blow.
+	_on_town_health(RunState.town_hp, RunState.town_max_hp)
 	_refresh_recovery_status()
 	_refresh_xp_bar()
 	_build_minimap()
