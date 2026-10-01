@@ -10230,7 +10230,9 @@ const TORNADO_FALL_DAMAGE: float = 40.0
 const TORNADO_LANDING_IMPACT: float = 0.35
 const TORNADO_CATCH_MAX: int = 8
 const TORNADO_RECATCH_SECONDS: float = 3.0
-const TORNADO_PUSH: float = 900.0
+## `TORNADO_PUSH` (900) shoved bodies out of the funnel until 2026-09-30, when the
+## funnel began to pull (`TornadoCatch`); the push is gone rather than left
+## authored and unread.
 const TORNADO_Z: int = 38
 
 ## Meteors: a hazard of `METEOR_RATE * ember / EMBER_FULL * (0.3 + wrath)`,

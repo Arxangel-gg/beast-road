@@ -254,7 +254,10 @@ func _scorch_the_contact() -> void:
 
 
 ## A light at the end of the beam for as long as it burns, given back when it
-## goes out.
+## goes out. Made by `LightKit.add_light` on a holder that rides the end, so its
+## driver is the one writer of its energy and its flicker (`light_writer_check`:
+## the first cut wrote the energy itself every frame beside nothing, which is
+## exactly the second writer that strobed the menu's fires).
 func _carry_the_light() -> void:
 	var live: float = _age - warning
 	if live > blast:
@@ -263,20 +266,19 @@ func _carry_the_light() -> void:
 			_end_light = null
 		return
 	if _end_light == null and Graphics.particle_scale() > 0.05:
-		_end_light = PointLight2D.new()
-		_end_light.texture = LightKit.falloff_texture()
-		_end_light.color = palette(element)[1] as Color
-		_end_light.energy = Balance.DRAGON_BREATH_END_LIGHT
-		_end_light.texture_scale = half_width / 64.0 * (3.0 if ultra else 2.2)
+		_end_light = Node2D.new()
 		_end_light.top_level = true
 		add_child(_end_light)
+		LightKit.add_light(_end_light, palette(element)[1] as Color,
+			half_width * 2.0 * (3.0 if ultra else 2.2), Balance.DRAGON_BREATH_END_LIGHT,
+			Balance.TORCH_FLICKER)
 	if _end_light != null:
 		_end_light.global_position = to
-		_end_light.energy = Balance.DRAGON_BREATH_END_LIGHT * (0.8 + 0.2 * sin(_age * 31.0))
 
 
 var _contact_clock: float = 0.0
-var _end_light: PointLight2D = null
+## The holder of the light at the end of the beam, freed with it.
+var _end_light: Node2D = null
 
 
 ## **Where a breath should point to catch the most it has not caught yet**
