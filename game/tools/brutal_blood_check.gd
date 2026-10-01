@@ -270,12 +270,23 @@ func _test_it_slows_and_stains_what_wades() -> void:
 		_check(made.get_shader_parameter("wade_band") == band, "the wade stain washed off on dry ground")
 	var hero: Hero = _field.hero
 	hero.global_position = at
-	for _f: int in 3:
-		await get_tree().process_frame
+	# **In game seconds, never in frames** (2026-10-01). The Warden's look is
+	# written on a physics tick, and three headless frames can pass inside one
+	# sixtieth of a second with no tick in them - the release sweep read an
+	# unset band as a script error on a contended machine. Held on the pool
+	# for the wait, so a shove off it cannot read as a stain that never came.
 	var worn := hero.sprite.material as ShaderMaterial
+	var hero_band: Variant = null
+	var waited: float = 0.0
+	while waited < 0.5 and hero_band == null:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+		hero.global_position = at
+		worn = hero.sprite.material as ShaderMaterial
+		hero_band = worn.get_shader_parameter("wade_band") if worn != null else null
 	if worn != null:
-		var hero_band: Vector2 = worn.get_shader_parameter("wade_band")
-		_check(hero_band.x >= 0.0, "the Warden waded through a pool and kept no stain")
+		_check(hero_band is Vector2 and (hero_band as Vector2).x >= 0.0,
+			"the Warden waded through a pool and kept no stain (%s)" % str(hero_band))
 	body.queue_free()
 	_finished += 1
 

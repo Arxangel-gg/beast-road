@@ -12846,6 +12846,14 @@ the kill scale; planted with the old `setup(..., scale)` it names the body.
 Its two Act II reads of `RIFT_RESOURCES_PER_STAGE` read the stage's own figure
 now - a harness amendment, the invariant (a stage paid once) unmoved.
 
+**And the release sweep found one more frame-counted wait.**
+`brutal_blood_check` waited three frames for the Warden's wade stain, which is
+written on a physics tick; three quick headless frames can pass with no tick in
+them, and on a contended machine the band read as unset and the gate died on a
+script error. It waits in game seconds and holds the Warden on the pool now;
+planted with a Warden who never stains, it names it. That is the third
+frame-counted wait in a day - grep a new gate for `in 3:` before trusting it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
