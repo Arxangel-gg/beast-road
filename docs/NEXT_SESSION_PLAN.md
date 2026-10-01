@@ -45,10 +45,12 @@ account on each road through `curve_report --warden=account`, and the owner's
 read of a boss fight's length on the Iron Road. The expected Warden is the
 tiers' own expectation, not a measured player.
 
-**Next, in order**: the trailer by ear (0i); the earth's temper and karma over a
-whole run (0h #3) - a soak that logs `RunState.karma`, the wrath floor and the
-temper events per act, so the curve of the earth's anger can be read the way
-the pressure curve is; then 0h's remaining items.
+**The earth's temper is measured** (`earth_soak`, CLAUDE.md "The earth answers the
+Warden"): the road's own kills had pinned it at the cap; they are grief now.
+
+**Next, in order**: the trailer by ear (0i); read `earth_soak` on a harder road and
+in a late act before calling the earth's tuning done (0h #3); then 0h's
+remaining items.
 
 ---
 

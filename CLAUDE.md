@@ -12763,6 +12763,47 @@ the check on them. The modelled best case is not a skilled player either - it
 assumes every hit lands and every Gold is spent - so the bands are set to leave
 room for both the misses and the mistakes.
 
+**The earth answers the Warden, not the road, as of 2026-10-01 (night).**
+`earth_soak` is a report: the real road at an act with a defended board, the
+Warden parked in the town, a scripted hunt (`--hunt=` harmless animals a game
+minute, through the same door every blow on an animal takes), and the earth's
+anger, the karma, the deaths by cause and every event it sends printed a game
+minute at a time. It is the plan's item three - the earth's temper over a run -
+and its first run was a finding rather than a reading.
+
+**With the Warden touching no animal, the earth reached its ceiling in seven
+minutes** and sent twelve dragons, eighteen quakes and twenty-four wildfires an
+hour. A road body biting back at a wolf went through `Wildlife.wound_sprite`,
+which booked every blow as the player's: the Warden was paid the Food and the
+experience, the over-hunting tally ticked toward a savage sent after them, the
+bond counted a kill, and the earth counted a person's kill, floor and all. The
+door takes whose blow it was now; a road body's is `false, "enemy"`, pays
+nobody, and is grief at `WRATH_FALL_SCALE["enemy"]` (a quarter of a kill's heat,
+never the floor) - the earth still minds the road's killing, which is the
+owner's ruling of 2026-09-14, and no longer reads it as the Warden's own.
+Measured over twelve minutes of Act V on the Long Road:
+
+| the Warden kills | mean anger | at the cap | an hour of it |
+|---|---|---|---|
+| nothing | 0.37 | 0% | ten wildfires |
+| half an animal a minute | 0.43 | 0% | a funnel, a few fires |
+| two a minute | 1.04 | 29% | quakes, fires, dragons |
+| six a minute | 1.38 | 86% | seventy quakes |
+
+`earth_grief_check` drives the door both ways and walks the body's call; planted
+back, it named five things.
+
+**And v0.70.0's release failed on a gate that passed here four times in four**,
+`wildlife_family_check` on CI's slower runner. `--frame-delay 30` reproduced it
+locally, which is the technique worth keeping: **a slower machine is a
+command-line flag away**, and three harness faults were behind it - a busy body
+at full damage and a wolf left beside the spirit long enough on a slow machine
+to put it down, a first appraisal that may refuse with the road bringing in
+animals that frightened the retry, and the birth-budget test spending the budget
+and then refunding it by clearing the field, which passed only because 2,200 fast
+frames ran out before a birth. That last one was a gate holding nothing; planted
+with the budget ignored, it names it now.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
