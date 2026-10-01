@@ -18,7 +18,10 @@ extends Node
 ## 2. **A click that lands there is Interact and not a swing**, and the button
 ##    held after it is the hold the cast, the reel and the cut read.
 ## 3. **A click anywhere else is the swing it always was**, and a click that once
-##    used an offer never eats the next swing.
+##    used an offer never eats the next swing. *Amended 2026-10-01*: that is
+##    true with click to move turned off. With it on (the default), a click
+##    anywhere else is an order `ClickMove` reads and not a swing - and the
+##    click on the offer is still the offer's, which is held both ways.
 ## 4. **A pad's attack button is never a click**, however the mouse happens to be
 ##    resting.
 ##
@@ -114,6 +117,28 @@ func _test_a_click_on_the_offer_is_interact() -> void:
 
 
 func _test_a_click_elsewhere_is_a_swing() -> void:
+	# With click to move on, a click beside the offer is an order, not a swing;
+	# the offer is still the click's.
+	UserSettings.set_value(UserSettings.CLICK_TO_MOVE_KEY, true)
+	await _move_mouse(Vector2(640.0, 360.0))
+	_press_left(true)
+	var spot: Vector2 = _hero.get_global_mouse_position()
+	EventBus.claim_prompt(&"click_use_check", "Mine  ·  Copper", &"", spot + Vector2(400.0, 0.0), 60.0)
+	_check(not _input.pressed(HeroInput.BUTTON_ATTACK),
+		"with click to move on, a click beside the offer swung instead of being an order")
+	await get_tree().process_frame
+	_press_left(false)
+	await get_tree().process_frame
+	_press_left(true)
+	spot = _hero.get_global_mouse_position()
+	EventBus.claim_prompt(&"click_use_check", "Mine  ·  Copper", &"", spot, 60.0)
+	_check(_input.pressed(HeroInput.BUTTON_INTERACT),
+		"with click to move on, a click on the offer did not use it")
+	await get_tree().process_frame
+	_press_left(false)
+	await get_tree().process_frame
+	# And with it off, every other click is the swing it always was.
+	UserSettings.set_value(UserSettings.CLICK_TO_MOVE_KEY, false)
 	await _move_mouse(Vector2(640.0, 360.0))
 	_press_left(true)
 	var where: Vector2 = _hero.get_global_mouse_position()
@@ -141,6 +166,7 @@ func _test_a_click_elsewhere_is_a_swing() -> void:
 	_press_left(false)
 	await get_tree().process_frame
 	EventBus.claim_prompt(&"click_use_check", "")
+	UserSettings.set_value(UserSettings.CLICK_TO_MOVE_KEY, true)
 
 
 func _test_a_pad_press_is_never_a_click() -> void:
