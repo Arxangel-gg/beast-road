@@ -10703,6 +10703,41 @@ const WILDLIFE_ALERT_SECONDS: float = 1.4
 const WILDLIFE_NOTICE_SCALE: float = 1.6
 ## How far a nervous grazer walks off from a thing it noticed but did not flee.
 const WILDLIFE_RELOCATE_DISTANCE: float = 220.0
+
+## **What the road tells the animals** (owner, 2026-10-01: *"Wildlife should
+## receive threat notifications sent from threatful events if in range of
+## receiving the notices. Make AI behaviors smarter. Keep it optimized and
+## efficient."*). See `Wildlife.notice`.
+##
+## - `CLASH_REACH`: how far a blow is heard at a weight of one; a blow's reach
+##   goes with the square root of its weight, so a swing is heard across a
+##   clearing and a meteor across the field. Lighter than `CLASH_MIN` says
+##   nothing; heavier than `BLAST_FROM` is a blast everything runs from.
+## - `DEATH_REACH`, `STORM_REACH`, `HORN_REACH`: a death, a strike and the war
+##   horn.
+## - `FLEE_SHARE`: inside this share of what it heard, a grazer runs; further
+##   off, it lifts its head and watches the place.
+## - `MAX`: notices taken in a frame, merged where they overlap - a fight of
+##   forty bodies is one sound, not forty.
+## - `KIN_REACH`: a grazer that runs takes the rest of its kind within this
+##   with it - one hop, never a chain.
+## - `FEAR_MEMORY` / `FEAR_RADIUS`: how long a fright is remembered and how
+##   wide the ground it was on is walked round.
+## - `DRAWN_CHANCE` / `DRAWN_SHARE`: how often a predator with nothing to hunt
+##   drifts toward a fight's sounds, and how far its haunt moves toward them.
+const WILDLIFE_NOTICE_CLASH_REACH: float = 520.0
+const WILDLIFE_NOTICE_CLASH_MIN: float = 0.12
+const WILDLIFE_NOTICE_BLAST_FROM: float = 1.5
+const WILDLIFE_NOTICE_DEATH_REACH: float = 620.0
+const WILDLIFE_NOTICE_STORM_REACH: float = 1100.0
+const WILDLIFE_NOTICE_HORN_REACH: float = 1500.0
+const WILDLIFE_NOTICE_FLEE_SHARE: float = 0.6
+const WILDLIFE_NOTICE_MAX: int = 12
+const WILDLIFE_KIN_REACH: float = 420.0
+const WILDLIFE_FEAR_MEMORY: float = 24.0
+const WILDLIFE_FEAR_RADIUS: float = 380.0
+const WILDLIFE_DRAWN_CHANCE: float = 0.55
+const WILDLIFE_DRAWN_SHARE: float = 0.65
 ## A predator's bite on prey, as a share of the prey's health, and the frames
 ## it uses to say so.
 const WILDLIFE_PREY_BITE_SHARE: float = 0.55

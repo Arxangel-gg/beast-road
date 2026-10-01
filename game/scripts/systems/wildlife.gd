@@ -116,6 +116,14 @@ func _ready() -> void:
 	EventBus.coop_wildlife_born.connect(_on_coop_born)
 	EventBus.coop_wildlife_removed.connect(_on_coop_removed)
 	EventBus.coop_wildlife_died.connect(_on_coop_died)
+	# **What the road tells them** (2026-10-01): blows, deaths, strikes and the
+	# horn, heard where they happen. Methods rather than lambdas, so a freed
+	# field drops its connections with it.
+	EventBus.camera_impact.connect(_on_impact_heard)
+	EventBus.enemy_died.connect(_on_death_heard)
+	EventBus.hero_died.connect(_on_hero_death_heard)
+	EventBus.lightning_struck.connect(_on_strike_heard)
+	EventBus.war_horn_activated.connect(_on_horn_heard)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
 		_refresh_kinds()
 		# Old residents leave with the old act rather than lingering into ground
@@ -334,6 +342,7 @@ func _process_measured(delta: float) -> void:
 			_batch_clock = BATCH_INTERVAL
 			_send_batch()
 	_hush_left = maxf(_hush_left - delta, 0.0)
+	_hear()
 	_arrival_clock -= delta
 	if _arrival_clock <= 0.0:
 		_arrival_clock = ARRIVAL_INTERVAL
@@ -343,6 +352,220 @@ func _process_measured(delta: float) -> void:
 		if _tick_one(_living[index], delta):
 			continue
 		_retire(index)
+
+
+# --- What the road tells the animals (2026-10-01) ----------------------------------------
+
+## **Kinds of news**, by what an animal does on hearing it.
+##
+## - CLASH: a blow. Grazers near it run and further off lift their heads; a
+##   predator with nothing to hunt may drift toward it.
+## - DEATH: something fell. The same, and its own kind runs whatever the
+##   distance, and the birds that live off a battle come to it.
+## - BLAST / STORM: a meteor, a strike, a dragon landing. Everything runs,
+##   predators included - nothing out here stands its ground against the sky.
+## - HORN: the war horn. The grazers run; a predator has heard horns before.
+enum Notice { CLASH, DEATH, BLAST, STORM, HORN }
+
+## This frame's news, merged, waiting to be heard.
+var _notices: Array[Dictionary] = []
+## Notices heard and animals that answered one. For the gate.
+var notices_heard: int = 0
+var animals_told: int = 0
+
+
+## **Tell the animals something happened here.** Heard by everything inside
+## `reach` - more or less of it by the listener's own temperament - on the next
+## frame, by the host alone: a guest's animals are the host's. Merged with any
+## news of the same kind already this frame and close by, and capped at
+## `WILDLIFE_NOTICE_MAX`, so a fight of forty bodies costs one pass, not forty.
+## `species` names the kind that died, for its own to answer harder.
+func notice(at: Vector2, reach: float, kind: int, species: String = "") -> void:
+	if Coop.is_guest() or reach <= 0.0 or _living.is_empty():
+		return
+	for queued: Dictionary in _notices:
+		if int(queued["kind"]) != kind or String(queued["species"]) != species:
+			continue
+		if (queued["at"] as Vector2).distance_squared_to(at) < reach * reach * 0.25:
+			queued["reach"] = maxf(float(queued["reach"]), reach)
+			return
+	if _notices.size() >= Balance.WILDLIFE_NOTICE_MAX:
+		return
+	_notices.append({"at": at, "reach": reach, "kind": kind, "species": species})
+
+
+func _on_impact_heard(at: Vector2, power: float) -> void:
+	if power < Balance.WILDLIFE_NOTICE_CLASH_MIN:
+		return
+	var reach: float = Balance.WILDLIFE_NOTICE_CLASH_REACH * clampf(sqrt(power), 0.3, 2.0)
+	notice(at, reach, Notice.BLAST if power >= Balance.WILDLIFE_NOTICE_BLAST_FROM else Notice.CLASH)
+
+
+func _on_death_heard(_enemy_id: String, at: Vector2) -> void:
+	notice(at, Balance.WILDLIFE_NOTICE_DEATH_REACH, Notice.DEATH)
+
+
+func _on_hero_death_heard(at: Vector2) -> void:
+	notice(at, Balance.WILDLIFE_NOTICE_DEATH_REACH, Notice.DEATH)
+
+
+func _on_strike_heard(at: Vector2, _radius: float) -> void:
+	notice(at, Balance.WILDLIFE_NOTICE_STORM_REACH, Notice.STORM)
+
+
+func _on_horn_heard(_duration: float) -> void:
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Node2D
+		if hero != null:
+			notice(hero.global_position, Balance.WILDLIFE_NOTICE_HORN_REACH, Notice.HORN)
+
+
+## This frame's news, heard by every animal in range of it.
+func _hear() -> void:
+	if _notices.is_empty():
+		return
+	var news: Array[Dictionary] = _notices
+	_notices = []
+	for item: Dictionary in news:
+		notices_heard += 1
+		var at: Vector2 = item["at"]
+		var reach: float = float(item["reach"])
+		# The widest anything hears is half again the reach - a wary grazer.
+		var widest: float = reach * 1.5
+		for animal: Dictionary in _living:
+			var sprite := animal.get("sprite", null) as Sprite2D
+			if sprite == null or not is_instance_valid(sprite):
+				continue
+			var distance_squared: float = sprite.global_position.distance_squared_to(at)
+			if distance_squared > widest * widest:
+				continue
+			if _answer(animal, sprite, item, sqrt(distance_squared)):
+				animals_told += 1
+
+
+## How much further than the reach this animal hears: the skittish hear more.
+static func hearing_of(kind: WildlifeData) -> float:
+	if kind.is_hostile():
+		return 1.0
+	return clampf(kind.skittish_radius / 220.0, 0.75, 1.5)
+
+
+## **One animal answers one piece of news**, by its own temperament. Returns
+## whether it did anything.
+func _answer(animal: Dictionary, sprite: Sprite2D, item: Dictionary, distance: float) -> bool:
+	var kind := animal.get("data", null) as WildlifeData
+	if kind == null or float(animal.get("dying", 0.0)) > 0.0 or bool(animal.get("treed", false)):
+		return false
+	var state: int = int(animal["state"])
+	if state == State.LEAVING or state == State.ARRIVING:
+		return false
+	# A frenzy, a grudge and a savage sent after the player answer nothing: what
+	# they want is not news.
+	if WildlifeFamilies.is_frenzied(animal) or bool(animal.get("angered", false)) \
+			or bool(animal.get("savage", false)):
+		return false
+	var at: Vector2 = item["at"]
+	var reach: float = float(item["reach"]) * hearing_of(kind)
+	if distance > reach:
+		return false
+	var news: int = int(item["kind"])
+	var hostile: bool = kind.is_hostile()
+	var hunting: bool = state == State.STALKING or state == State.STRIKING
+	match news:
+		Notice.BLAST, Notice.STORM:
+			return _bolt_from_news(animal, sprite, at, true)
+		Notice.HORN:
+			if hostile:
+				return false
+			return _bolt_from_news(animal, sprite, at, true)
+	# A clash or a death. The birds that come *because* of a battle come to it.
+	if not hostile and kind.skittish_radius <= 0.0:
+		if news != Notice.DEATH:
+			return false
+		animal["home"] = at
+		animal["goal"] = _settled(at + Vector2(_rng.randf_range(-70.0, 70.0),
+			_rng.randf_range(-40.0, 40.0)))
+		if state != State.SETTLED:
+			animal["state"] = State.SETTLED
+		return true
+	if hostile:
+		# A predator busy with a hunt keeps at it; one with nothing to do may
+		# go and see what the noise was - the wounded are easy meat.
+		if hunting or _rng.randf() > Balance.WILDLIFE_DRAWN_CHANCE:
+			return false
+		var home: Vector2 = animal.get("home", sprite.global_position) as Vector2
+		animal["home"] = _settled(home.lerp(at, Balance.WILDLIFE_DRAWN_SHARE))
+		return true
+	# A grazer. Its own kind dying is a reason to run from anywhere it heard it.
+	var kin: bool = news == Notice.DEATH and String(item["species"]) == kind.id
+	if kin or distance <= reach * Balance.WILDLIFE_NOTICE_FLEE_SHARE:
+		return _bolt_from_news(animal, sprite, at, true)
+	if state == State.SETTLED or state == State.GRAZING:
+		animal["state"] = State.ALERT
+		animal["alert_left"] = Balance.WILDLIFE_ALERT_SECONDS
+		animal["alert_from"] = at
+		animal["frame_clock"] = 0.0
+		_remember_fear(animal, at)
+		return true
+	return false
+
+
+## Runs from `at` and remembers it - and, for a grazer, takes the rest of its
+## kind nearby with it, once.
+func _bolt_from_news(animal: Dictionary, sprite: Sprite2D, at: Vector2, alarm_kin: bool) -> bool:
+	var kind := animal["data"] as WildlifeData
+	var state: int = int(animal["state"])
+	# Already running from something at least as near: leave it be.
+	if state == State.FLEEING and animal.has("fear_at") \
+			and sprite.global_position.distance_to(animal["fear_at"] as Vector2) \
+			<= sprite.global_position.distance_to(at):
+		return false
+	animal["state"] = State.FLEEING
+	animal["drinking"] = false
+	animal["goal"] = _bolt_target(sprite.global_position, at)
+	_remember_fear(animal, at)
+	if alarm_kin and not kind.is_hostile():
+		_alarm_kin(animal, sprite, kind, at)
+	return true
+
+
+## The rest of a grazer's kind close by run with it - one hop, never a chain.
+func _alarm_kin(caller: Dictionary, sprite: Sprite2D, kind: WildlifeData, at: Vector2) -> void:
+	var reach_squared: float = Balance.WILDLIFE_KIN_REACH * Balance.WILDLIFE_KIN_REACH
+	for other: Dictionary in _living:
+		if other == caller or other.get("data", null) != kind:
+			continue
+		var body := other.get("sprite", null) as Sprite2D
+		if body == null or not is_instance_valid(body):
+			continue
+		if body.global_position.distance_squared_to(sprite.global_position) > reach_squared:
+			continue
+		if float(other.get("dying", 0.0)) > 0.0 or bool(other.get("treed", false)):
+			continue
+		var state: int = int(other["state"])
+		if state == State.LEAVING or state == State.ARRIVING or WildlifeFamilies.is_frenzied(other):
+			continue
+		if _bolt_from_news(other, body, at, false):
+			animals_told += 1
+
+
+## A fright remembered: wandering walks round the ground it happened on until
+## `WILDLIFE_FEAR_MEMORY` has passed.
+func _remember_fear(animal: Dictionary, at: Vector2) -> void:
+	animal["fear_at"] = at
+	animal["fear_left"] = Balance.WILDLIFE_FEAR_MEMORY
+
+
+## A wander goal moved off ground the animal remembers being frightened on.
+func _clear_of_fear(animal: Dictionary, goal: Vector2) -> Vector2:
+	if float(animal.get("fear_left", 0.0)) <= 0.0 or not animal.has("fear_at"):
+		return goal
+	var feared: Vector2 = animal["fear_at"] as Vector2
+	var off: Vector2 = goal - feared
+	if off.length() >= Balance.WILDLIFE_FEAR_RADIUS:
+		return goal
+	var away: Vector2 = off.normalized() if off.length() > 1.0 else Vector2.RIGHT.rotated(_rng.randf() * TAU)
+	return _settled(feared + away * Balance.WILDLIFE_FEAR_RADIUS)
 
 
 ## Mirrored animals: walk to where the host said, and animate from that.
@@ -986,6 +1209,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 
 	animal["patience"] = float(animal["patience"]) - delta
 	animal["swing"] = maxf(float(animal["swing"]) - delta, 0.0)
+	if animal.has("fear_left"):
+		animal["fear_left"] = maxf(float(animal["fear_left"]) - delta, 0.0)
 
 	# Up a tree with the water under it. Nothing else happens to a climber
 	# until the flood falls; then it comes down and carries on as it was.
@@ -1172,10 +1397,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 							animal["drinking"] = true
 							animal["goal"] = rim
 						else:
-							animal["goal"] = _wander_from(animal["home"] as Vector2, kind)
+							animal["goal"] = _clear_of_fear(animal,
+								_wander_from(animal["home"] as Vector2, kind))
 					else:
-						animal["goal"] = _wander_from(animal["home"] as Vector2, kind,
-							WildlifeFamilies.roam_scale(animal))
+						animal["goal"] = _clear_of_fear(animal, _wander_from(
+							animal["home"] as Vector2, kind, WildlifeFamilies.roam_scale(animal)))
 
 	_animate(animal, sprite, delta, moving)
 	return true
@@ -2233,6 +2459,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		# wolves do the hunting.
 		Vfx.dust(sprite.global_position, Color("c4552e"), 8, 50.0)
 		_say_it_fell(kind, animal, sprite.global_position)
+		notice(sprite.global_position, Balance.WILDLIFE_NOTICE_DEATH_REACH, Notice.DEATH, kind.id)
 		if _is_authority_with_company():
 			EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
 		animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
@@ -2258,6 +2485,8 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		* bounty))
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
 	_say_it_fell(kind, animal, sprite.global_position)
+	# Its own kind hears it fall, and the birds come (2026-10-01).
+	notice(sprite.global_position, Balance.WILDLIFE_NOTICE_DEATH_REACH, Notice.DEATH, kind.id)
 	if field != null and field.has_method("spawn_loot"):
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
 	if kind.hoards or not (animal.get("loot", []) as Array).is_empty():
