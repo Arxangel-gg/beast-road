@@ -12238,6 +12238,23 @@ dish heals what its fish heals to the point, and lends exactly what its crop
 says; the fourth meal is refused cooked as plain; a crop authored at 500% lends
 the ceiling; the basket rides a banked front; the pantry's Cook cooks.
 
+**A warned blow swells toward its landing, as of 2026-09-30.** The second-rank
+juice the 2026-09-15 triage deferred - "anticipation audio on the telegraphs" -
+built for the blows a body throws at a place (`EnemyGroundStrike`). A riser
+starts on the frame it must so that it *ends* on the frame the blow lands; a
+warning shorter than the riser plays it faster to fit, up to
+`TELEGRAPH_RISE_FASTEST`, and one too short has none. **Only for this machine's
+Warden standing in the shape** (or `TELEGRAPH_RISE_MARGIN` of it): a riser for
+every mortar on the road is noise, and one for the blow coming down on you is
+the warning. Flat, as every telegraph is, and with no pitch drift in its mix row,
+because a drift would end it early or late. The three takes are synthesised by
+`tools/synth_telegraph_rise.py` and prompted in `SFX_PROMPTS.md` for a recording
+to replace them - keep a replacement exactly 0.72s, since the length is the
+timing. `feel_check` drives a near blow, a far one, a quick one and a half-second
+one on the real field; the first planting of an unfitted riser passed, because a
+long warning starts it at its natural speed, and the half-second case is what
+names it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
