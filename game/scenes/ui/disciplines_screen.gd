@@ -41,6 +41,16 @@ const HEADER_HEIGHT: float = 34.0
 var _panel: PanelContainer
 var _split: BoxContainer
 var _map: Control
+## **The tree scrolls rather than shrinks on a thumb** (2026-10-01). On an
+## upright phone the five clusters shared the width and a node came out a
+## third of a fingertip; past `UI_DISCIPLINE_NODE_TOUCH_MIN` the map keeps its
+## node size and this scrolls it, sideways and down.
+var _map_scroll: ScrollContainer
+## Where the Warden's column ends and how wide a cluster's column is, decided
+## by `_layout_map` and read by `_draw_map`, so the trunk is drawn where the
+## nodes stand.
+var _root_wide: float = 120.0
+var _column_wide: float = 160.0
 var _stage: WardenStage
 var _nodes: Dictionary = {}
 var _node_size: float = 40.0
@@ -156,15 +166,24 @@ func _build() -> void:
 	_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(_split)
 
+	_map_scroll = ScrollContainer.new()
+	_map_scroll.name = "MapScroll"
+	UiMetrics.prepare_scroll(_map_scroll, TouchInput.is_showing())
+	# Both ways: a tree too wide for an upright screen and too deep for a
+	# sideways one. The vertical rail stays the contract's.
+	_map_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_map_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_map_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_map_scroll.custom_minimum_size = Vector2(360.0, 360.0)
+	_map_scroll.resized.connect(_layout_map)
+	_split.add_child(_map_scroll)
 	_map = Control.new()
 	_map.name = "Map"
 	_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_map.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_map.custom_minimum_size = Vector2(360.0, 360.0)
 	_map.clip_contents = true
 	_map.draw.connect(_draw_map)
-	_map.resized.connect(_layout_map)
-	_split.add_child(_map)
+	_map_scroll.add_child(_map)
 
 	_stage = WardenStage.new()
 	_stage.name = "Warden"
@@ -358,8 +377,8 @@ func _refit() -> void:
 	# demanding a floor of its own: a floor worked out against a mouse's
 	# buttons put Done below a touch screen's edge once the buttons grew.
 	var map_wide: float = wide - 400.0 if not _split.vertical else wide - 40.0
-	var map_tall: float = 160.0 if not _split.vertical else tall * 0.42
-	_map.custom_minimum_size = Vector2(maxf(map_wide, 320.0), map_tall)
+	var map_tall: float = 160.0 if not _split.vertical else tall * 0.48
+	_map_scroll.custom_minimum_size = Vector2(maxf(map_wide, 320.0), map_tall)
 
 
 # --- The map -------------------------------------------------------------------
@@ -414,8 +433,11 @@ func _layout_map() -> void:
 	# in a box 120 wide and 120 tall, so the map showed a torso. The column is
 	# a little wider, the stage takes most of the map's height, and the figure
 	# is fitted to that height.
-	var root_wide: float = minf(_map.size.x * 0.15, 150.0)
-	var room: float = _map.size.x - root_wide
+	# The visible window, which the content fills when it fits and outgrows,
+	# scrolling, when a node would come out too small to press.
+	var window: Vector2 = _map_scroll.size if _map_scroll != null and _map_scroll.size.x > 1.0 else _map.size
+	var root_wide: float = minf(window.x * 0.15, 150.0)
+	var room: float = window.x - root_wide
 	# **As large as the width allows and no taller than the height does**: a
 	# column of rows taller than the map ran its last nodes under each other.
 	var deepest: float = 0.0
@@ -424,13 +446,23 @@ func _layout_map() -> void:
 		for node: DisciplineNodeData in _column(_arm, ring):
 			depth += ROW_HEIGHT if node.kind == DisciplineNodeData.Kind.PASSIVE else FORK_RISE * 2.0 + 1.1
 		deepest = maxf(deepest, depth)
-	var by_height: float = (_map.size.y - HEADER_HEIGHT - 8.0) / maxf(deepest, 1.0)
+	var by_height: float = (window.y - HEADER_HEIGHT - 8.0) / maxf(deepest, 1.0)
 	_node_size = clampf(minf(room / (float(clusters) * CLUSTER_WIDTH), by_height), 18.0, 54.0)
-	var column_wide: float = room / float(clusters)
-	var stage_tall: float = clampf((_map.size.y - HEADER_HEIGHT) * 0.72, 120.0, root_wide * 2.2)
+	_node_size = maxf(_node_size, smallest_node())
+	var column_wide: float = maxf(room / float(clusters), _node_size * CLUSTER_WIDTH)
+	var content: Vector2 = Vector2(root_wide + column_wide * float(clusters),
+		maxf(window.y, HEADER_HEIGHT + 8.0 + deepest * _node_size + _node_size))
+	# Grown only when it has to: a content as wide as the window adds no rail.
+	var wanted: Vector2 = Vector2(maxf(content.x - 1.0, 0.0), maxf(content.y - 1.0, 0.0))         if content.x > window.x + 1.0 or content.y > window.y + 1.0 else Vector2.ZERO
+	if not _map.custom_minimum_size.is_equal_approx(wanted):
+		_map.custom_minimum_size = wanted
+	_root_wide = root_wide
+	_column_wide = column_wide
+	var map_tall: float = maxf(content.y, window.y)
+	var stage_tall: float = clampf((window.y - HEADER_HEIGHT) * 0.72, 120.0, root_wide * 2.2)
 	_stage.size = Vector2(root_wide * 0.92, stage_tall)
 	_stage.position = Vector2(root_wide * 0.04,
-		HEADER_HEIGHT + (_map.size.y - HEADER_HEIGHT) * 0.5 - stage_tall * 0.5)
+		HEADER_HEIGHT + (window.y - HEADER_HEIGHT) * 0.5 - stage_tall * 0.5)
 	_stage.fit_height(stage_tall)
 	for id: String in _nodes:
 		(_nodes[id] as TextureButton).visible = false
@@ -441,7 +473,7 @@ func _layout_map() -> void:
 		for node: DisciplineNodeData in rows:
 			tall += _node_size * (ROW_HEIGHT if node.kind == DisciplineNodeData.Kind.PASSIVE
 				else FORK_RISE * 2.0 + 1.1)
-		var y: float = maxf((_map.size.y - HEADER_HEIGHT - tall) * 0.5 + HEADER_HEIGHT, HEADER_HEIGHT + _node_size)
+		var y: float = maxf((map_tall - HEADER_HEIGHT - tall) * 0.5 + HEADER_HEIGHT, HEADER_HEIGHT + _node_size)
 		for node: DisciplineNodeData in rows:
 			var passive: bool = node.kind == DisciplineNodeData.Kind.PASSIVE
 			var row_tall: float = _node_size * (ROW_HEIGHT if passive else FORK_RISE * 2.0 + 1.1)
@@ -457,6 +489,17 @@ func _layout_map() -> void:
 					_place(forks[index].id, at + Vector2(step * 2.0, rise))
 			y += row_tall
 	_map.queue_redraw()
+
+
+## The smallest a node may be drawn: a fingertip on a touch layout, and the
+## old floor otherwise, so a desktop's map is exactly what it was.
+static func smallest_node() -> float:
+	return Balance.UI_DISCIPLINE_NODE_TOUCH_MIN if TouchInput.is_showing() else 18.0
+
+
+## The visible window onto the map, for a gate.
+func map_scroll() -> ScrollContainer:
+	return _map_scroll
 
 
 func _place(id: String, at: Vector2) -> void:
@@ -476,8 +519,8 @@ func _centre_of(id: String) -> Vector2:
 func _draw_map() -> void:
 	var font: Font = UiFonts.face(UiFonts.Role.HEADING)
 	var clusters: int = DisciplineNodeData.CLUSTER_NAMES.size()
-	var root_wide: float = minf(_map.size.x * 0.12, 120.0)
-	var column_wide: float = (_map.size.x - root_wide) / float(clusters)
+	var root_wide: float = _root_wide
+	var column_wide: float = _column_wide
 	var colour: Color = ARM_COLOURS[_arm]
 	var depth: int = int(MetaState.discipline_depth().get(_arm, 0))
 	# The trunk: one line through the clusters, lit as far as the arm is open.

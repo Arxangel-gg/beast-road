@@ -76,6 +76,7 @@ func _ready() -> void:
 	RunState.gain_every_currency(500)
 	for entry: Array in _screens:
 		await _measure_screen(String(entry[0]), entry[1] as GDScript)
+	await _measure_the_discipline_nodes()
 	await _measure_the_glass_closes()
 	await _measure_the_stash_shows_gear()
 	await _measure_settings()
@@ -160,6 +161,35 @@ func _measure_settings() -> void:
 
 ## **The one a new account cannot get past**: Done on the screen, pressable,
 ## and closing the glass when pressed.
+## **A Discipline node is a fingertip on a thumb** (2026-10-01). Five clusters
+## shared an upright phone's width and a node came out a third of one; the tree
+## scrolls instead now, so every node of the arm on show is at least
+## `UI_DISCIPLINE_NODE_TOUCH_MIN`, and the map's window is what scrolls.
+func _measure_the_discipline_nodes() -> void:
+	var screen := DisciplinesScreen.new()
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await _settle()
+	var smallest: float = INF
+	var shown: int = 0
+	for node: Node in _all(screen):
+		var button := node as TextureButton
+		if button == null or not button.is_visible_in_tree():
+			continue
+		shown += 1
+		smallest = minf(smallest, minf(button.size.x, button.size.y))
+	_check(shown > 0, "Disciplines at %s: no node of the arm on show is visible" % _shape)
+	_check(smallest >= Balance.UI_DISCIPLINE_NODE_TOUCH_MIN - 0.5,
+		"Disciplines at %s: a node is %.0f across on a thumb, under the %.0f a fingertip needs"
+			% [_shape, smallest, Balance.UI_DISCIPLINE_NODE_TOUCH_MIN])
+	var scroll: ScrollContainer = screen.map_scroll()
+	_check(scroll != null and _view.grow(TOLERANCE).encloses(scroll.get_global_rect()),
+		"Disciplines at %s: the tree's window is off the screen" % _shape)
+	screen.queue_free()
+	await get_tree().process_frame
+
+
 func _measure_the_glass_closes() -> void:
 	var glass := WardenGlass.new()
 	add_child(glass)

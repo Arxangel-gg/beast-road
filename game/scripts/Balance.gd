@@ -8590,6 +8590,11 @@ const HOLD_PATH_STEP: float = 40.0
 const HOLD_STRANGER_BARE: Array[float] = [0.08, 0.2, 0.4, 0.62]
 const HOLD_PATH_STUCK_SECONDS: float = 1.2
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
+## **A Discipline node is never smaller than a fingertip on a thumb**
+## (2026-10-01): past this the tree scrolls rather than shrinking. In the
+## logical units the portrait menu layout draws in, about the size of a
+## thumb's target. [TUNE]
+const UI_DISCIPLINE_NODE_TOUCH_MIN: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
 ## Portrait menus can enlarge text without shrinking the combat HUD canvas. [TUNE]
 const UI_PORTRAIT_MENU_WIDTH: float = 900.0
