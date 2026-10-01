@@ -1338,9 +1338,10 @@ func _begin_behaviour() -> bool:
 		return false
 	_behaviour_aim = _behaviour_heading()
 	if data.behaviour == EnemyData.Behaviour.POUNCE:
-		# Once or twice, decided at the first tell on the body's own dice, so the
-		# run's stream does not move and a cat never pounces a third time.
-		_pounces_left = 1 if _temper.randf() < Balance.ENEMY_POUNCE_AGAIN_CHANCE else 0
+		# How many more leaps, decided at the first tell on the body's own dice,
+		# so the run's stream does not move: rarely a third, very rarely a
+		# fourth, never a fifth.
+		_pounces_left = extra_pounces(_temper)
 		_size_the_leap()
 	_tell_behaviour(_behaviour_warning())
 	return true
@@ -1547,6 +1548,19 @@ func _leap_length() -> float:
 
 func _leap_decay() -> float:
 	return _leap_speed() / _leap_seconds()
+
+
+## How many leaps follow the first, by `ENEMY_POUNCE_CHAIN_CHANCES`: each
+## entry is the chance of one more given the one before, so the chain stops at
+## the first miss and can never run past the end of the list. Static, so the
+## gate can roll it a thousand times without standing a cat up.
+static func extra_pounces(dice: RandomNumberGenerator) -> int:
+	var more: int = 0
+	for chance: float in Balance.ENEMY_POUNCE_CHAIN_CHANCES:
+		if dice.randf() >= chance:
+			break
+		more += 1
+	return more
 
 
 ## Again, a swing, or the opening (2026-09-25).

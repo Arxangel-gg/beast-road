@@ -64,6 +64,7 @@ func _ready() -> void:
 	await _test_a_pounce_lands_and_may_come_again()
 	await _test_a_swing_is_dealt_once()
 	_test_the_dice_are_the_runs()
+	_test_the_pounce_chain_is_rare_and_bounded()
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
@@ -326,6 +327,33 @@ func _test_a_pounce_lands_and_may_come_again() -> void:
 	hero.health.heal(hero.health.max_hp)
 	_clear()
 	await get_tree().process_frame
+
+
+## **A cat leaps up to four times, and the later leaps are rare** (owner,
+## 2026-10-01: *"rarely pounce a potential 3rd time as well, and way more rarely
+## even a 4th pounce at maximum"*). The chain is rolled through the one function
+## the body rolls it with, forty thousand times on fixed dice, and measured:
+## about half of chains take a second leap, about a tenth a third, about one in
+## a hundred a fourth, and none a fifth.
+func _test_the_pounce_chain_is_rare_and_bounded() -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = 20261001
+	var counts: Array[int] = [0, 0, 0, 0, 0]
+	var rolls: int = 40000
+	for _roll: int in rolls:
+		var more: int = Enemy.extra_pounces(dice)
+		counts[clampi(more, 0, 4)] += 1
+	var second: float = float(counts[1] + counts[2] + counts[3] + counts[4]) / float(rolls)
+	var third: float = float(counts[2] + counts[3] + counts[4]) / float(rolls)
+	var fourth: float = float(counts[3] + counts[4]) / float(rolls)
+	_check(counts[4] == 0, "%d chains ran past a fourth leap" % counts[4])
+	_check(absf(second - 0.5) < 0.02, "a second leap came %.3f of the time, not about half" % second)
+	_check(third > 0.07 and third < 0.13, "a third leap came %.3f of the time - it should be rare, about a tenth" % third)
+	_check(fourth > 0.005 and fourth < 0.016,
+		"a fourth leap came %.4f of the time - it should be very rare, about one in a hundred" % fourth)
+	_check(Balance.ENEMY_POUNCE_CHAIN_CHANCES.size() == 3,
+		"the chain table lists %d leaps after the first - the owner set the most at four in all"
+			% Balance.ENEMY_POUNCE_CHAIN_CHANCES.size())
 
 
 ## One pouncer, far from the town, its quarry inside the leap and outside the

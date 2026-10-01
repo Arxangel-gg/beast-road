@@ -2454,9 +2454,14 @@ const ENEMY_BEHAVIOUR_INTERVAL: float = 9.0
 #
 ## What a pounce that connects hits for, as a share of the breed's swing.
 const ENEMY_POUNCE_DAMAGE_SCALE: float = 1.25
-## The chance a pounce is followed by a second one, rolled once at the first
-## tell on the body's own dice - so a cat pounces once or twice, never more.
-const ENEMY_POUNCE_AGAIN_CHANCE: float = 0.5
+## **How long a pounce chain runs**, rolled once at the first tell on the
+## body's own dice: each entry is the chance of one more leap given the one
+## before. Half of all chains have a second leap, a tenth a third, and one in a
+## hundred a fourth - and never a fifth, because the list ends (owner,
+## 2026-10-01: *"The wild cat beast enemies should also be able to rarely
+## pounce a potential 3rd time as well, and way more rarely even a 4th pounce
+## at maximum"*). [TUNE]
+const ENEMY_POUNCE_CHAIN_CHANCES: Array[float] = [0.5, 0.2, 0.1]
 ## A second pounce is told again, and quicker: the cat is already coiled.
 const ENEMY_POUNCE_CHAIN_WARNING: float = 0.6
 ## The chance a pounce that ends in reach is followed straight into a swing,
