@@ -1069,6 +1069,14 @@ const SKILL_POINTS_PER_FIRST_CLEAR: int = 1
 ## Basic, Core, Guard, Ultimate, Oath, each opening at this many points
 ## spent in its own arm. Counted rather than graphed.
 const DISCIPLINE_RING_DEPTH: Array[int] = [0, 3, 7, 11, 15]
+## **How long the pointer must rest on a node before it becomes the selected
+## one** (owner, 2026-10-01: *"only change to skill on hover if held on the
+## selection for over 1 second, so that players will still be able to move
+## their mouse over to the UI buttons on the right over the rest of the
+## selections without unintentionally changing their skill selection"*). A
+## press, a tap and the pad's focus still select at once - only a pointer
+## passing over waits. [TUNE]
+const DISCIPLINE_HOVER_DWELL: float = 1.0
 ## The most a branch may move a number of the skill it hangs off, as a
 ## share, whatever the data authors. Counted keys (a second stone, two more
 ## thorns) are not shares and are not bounded by it.

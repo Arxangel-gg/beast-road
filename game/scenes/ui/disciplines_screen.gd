@@ -61,6 +61,10 @@ var _primaries: HFlowContainer
 var _reset_button: Button
 var _close_button: Button
 var _selected: String = ""
+## The node the pointer is resting on and how long it has rested, for the dwell
+## (`Balance.DISCIPLINE_HOVER_DWELL`). Empty when the pointer is on nothing.
+var _dwell_id: String = ""
+var _dwell_held: float = 0.0
 var _reset_armed: bool = false
 
 
@@ -202,8 +206,16 @@ func _node_button(node: DisciplineNodeData) -> TextureButton:
 	button.tooltip_text = node.display_name
 	var id: String = node.id
 	button.pressed.connect(_select.bind(id))
-	button.focus_entered.connect(_select.bind(id))
-	button.mouse_entered.connect(_select.bind(id))
+	# The pad's focus selects at once - it moves only when somebody means it to.
+	# A pointer passing over on its way to the buttons on the right does not: it
+	# has to rest for the dwell, and leaving before then changes nothing. The
+	# focus a hover hands a button is not a pad's, so it is told apart by
+	# whether the pointer is the one resting there.
+	button.focus_entered.connect(func() -> void:
+		if _dwell_id != id:
+			_select(id))
+	button.mouse_entered.connect(_begin_dwell.bind(id))
+	button.mouse_exited.connect(_end_dwell.bind(id))
 	_nodes[id] = button
 	return button
 
@@ -484,6 +496,10 @@ func _draw_map() -> void:
 				HORIZONTAL_ALIGNMENT_CENTER, radius * 2.0, 11, INK if rank > 0 else QUIET)
 		if node.id == _selected:
 			_map.draw_arc(at, radius + 7.0, 0.0, TAU, 40, GOLD, 3.0, true)
+		elif node.id == _dwell_id and dwell_share() > 0.0:
+			# The rest, filling clockwise from the top toward the selection.
+			_map.draw_arc(at, radius + 7.0, -PI * 0.5, -PI * 0.5 + TAU * dwell_share(), 40,
+				Color(GOLD, 0.75), 3.0, true)
 
 
 ## "learned" (at its top rank), "open" - learnable, or a rank up - or "closed".
@@ -525,6 +541,47 @@ func _refresh() -> void:
 	_reset_button.disabled = not anything
 	_reset_button.text = "Press again to let it all go" if _reset_armed else "Let the whole tree go"
 	_map.queue_redraw()
+
+
+func _begin_dwell(id: String) -> void:
+	_dwell_id = id
+	_dwell_held = 0.0
+	if _map != null:
+		_map.queue_redraw()
+
+
+func _end_dwell(id: String) -> void:
+	if _dwell_id != id:
+		return
+	_dwell_id = ""
+	_dwell_held = 0.0
+	if _map != null:
+		_map.queue_redraw()
+
+
+## Counts the pointer's rest and selects the node once it has rested long
+## enough. The ring that fills around the node while it does is the dwell said
+## out loud: a selection that changes a second after the pointer stops, with
+## nothing on screen saying why, reads as lag.
+func _process(delta: float) -> void:
+	if not visible or _dwell_id.is_empty():
+		return
+	if _dwell_id == _selected:
+		return
+	_dwell_held += delta
+	if _dwell_held >= Balance.DISCIPLINE_HOVER_DWELL:
+		var id: String = _dwell_id
+		_dwell_held = 0.0
+		_select(id)
+	if _map != null:
+		_map.queue_redraw()
+
+
+## How far the pointer's rest has come, 0 to 1, or 0 when nothing is resting.
+func dwell_share() -> float:
+	if _dwell_id.is_empty() or _dwell_id == _selected:
+		return 0.0
+	return clampf(_dwell_held / Balance.DISCIPLINE_HOVER_DWELL, 0.0, 1.0)
 
 
 func _select(id: String) -> void:

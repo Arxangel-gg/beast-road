@@ -15,7 +15,7 @@ var _refund_asked: float = 0.0
 ## A stand-in hero for the cleanse test: it only has to say it was cleansed.
 const RECORDER_SOURCE: String = "extends Node2D\nvar cleansed: bool = false\nfunc cleanse_disables() -> void:\n\tcleansed = true\n"
 var _blinked_to: Vector2 = Vector2.INF
-const EXPECTED_TESTS: int = 11
+const EXPECTED_TESTS: int = 12
 
 
 func _ready() -> void:
@@ -92,6 +92,7 @@ func _ready() -> void:
 	_test_the_slots_open_on_the_road()
 	await _test_the_forms_do_what_they_say()
 	await _test_the_hold_screen_shapes_the_tree()
+	await _test_a_hover_must_rest_to_select()
 	await _test_the_primary_stands_on_the_bar()
 
 	# **A script error aborts its own function and nothing else.**
@@ -1539,6 +1540,70 @@ func _finisher(attack: HeroAttack, origin: Vector2, aim: Vector2) -> void:
 	attack.set("_announced", false)
 	attack.set("_radiant_done", false)
 	attack.call("_strike")
+
+
+## **A pointer passing over a node does not select it** (owner, 2026-10-01:
+## *"only change to skill on hover if held on the selection for over 1
+## second"*). It rests for `DISCIPLINE_HOVER_DWELL` first, filling a ring; it
+## may leave before then and change nothing; a press and a pad's focus still
+## select at once. Driven through the buttons' own signals, the way the
+## pointer and the pad reach them, in wall seconds - headless frames are
+## nothing like sixty a second.
+func _test_a_hover_must_rest_to_select() -> void:
+	var screen := DisciplinesScreen.new()
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await get_tree().process_frame
+	var buttons: Dictionary = screen.get("_nodes")
+	var arm: int = int(screen.get("_arm"))
+	var shown: Array[String] = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.discipline == arm and (buttons[node.id] as TextureButton).visible:
+			shown.append(node.id)
+	if not _checked(shown.size() >= 3, "the arm shows %d nodes - too few to hover across" % shown.size()):
+		screen.queue_free()
+		_finished += 1
+		return
+	var first: String = shown[0]
+	var passing: String = shown[1]
+	var focused: String = shown[2]
+	(buttons[first] as TextureButton).pressed.emit()
+	_check(String(screen.get("_selected")) == first, "a press must select at once")
+
+	# Passing over: in and out inside the dwell changes nothing.
+	(buttons[passing] as TextureButton).mouse_entered.emit()
+	await _wall_seconds(Balance.DISCIPLINE_HOVER_DWELL * 0.4)
+	_check(String(screen.get("_selected")) == first,
+		"a pointer resting %.1fs moved the selection to %s" % [Balance.DISCIPLINE_HOVER_DWELL * 0.4, passing])
+	var share: float = float(screen.call("dwell_share"))
+	_check(share > 0.1 and share < 0.9, "the dwell ring reads %.2f partway through the rest" % share)
+	(buttons[passing] as TextureButton).mouse_exited.emit()
+	await _wall_seconds(Balance.DISCIPLINE_HOVER_DWELL * 1.2)
+	_check(String(screen.get("_selected")) == first,
+		"a pointer that passed over %s selected it after it had left" % passing)
+	_check(float(screen.call("dwell_share")) == 0.0, "the dwell ring stayed after the pointer left")
+
+	# Resting: the selection follows once the dwell is out.
+	(buttons[passing] as TextureButton).mouse_entered.emit()
+	await _wall_seconds(Balance.DISCIPLINE_HOVER_DWELL * 1.3)
+	_check(String(screen.get("_selected")) == passing,
+		"a pointer resting %.1fs on %s did not select it" % [Balance.DISCIPLINE_HOVER_DWELL * 1.3, passing])
+	(buttons[passing] as TextureButton).mouse_exited.emit()
+
+	# A pad's focus, with no pointer resting on the node, selects at once.
+	(buttons[focused] as TextureButton).focus_entered.emit()
+	_check(String(screen.get("_selected")) == focused, "a pad's focus must select at once")
+	screen.close()
+	screen.queue_free()
+	await get_tree().process_frame
+	_finished += 1
+
+
+func _wall_seconds(span: float) -> void:
+	var until: int = Time.get_ticks_msec() + int(span * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
 
 
 ## **The Hold's screen shapes the tree through its own buttons** (2026-09-26),
