@@ -778,6 +778,7 @@ jobs:
           # every station presses a door that exists, the shelf keeps its
           # stock across a restart, and buying is always dearer than selling.
           check "hold" --headless --path game res://tools/hold_check.tscn
+          check "hold routes" --headless --path game res://tools/hold_path_check.tscn
           # The Walk pays its ledger once and moves no statistic, no level and
           # no purse - and a once-only flag that is never read back is a fault
           # this project has already shipped.

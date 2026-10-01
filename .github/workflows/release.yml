@@ -252,6 +252,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/journey_check.tscn
           run_godot_clean --headless --path game res://tools/act_start_check.tscn
           run_godot_clean --headless --path game res://tools/hold_check.tscn
+          run_godot_clean --headless --path game res://tools/hold_path_check.tscn
           run_godot_clean --headless --path game res://tools/tutorial_walk_check.tscn
           run_godot_clean --headless --path game res://tools/mount_check.tscn
           run_godot_clean --headless --path game res://tools/ascension_check.tscn

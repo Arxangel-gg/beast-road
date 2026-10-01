@@ -486,6 +486,12 @@ var _pending_use: String = ""
 var _cursor_live: bool = false
 var _cursor_pointing: bool = false
 var _walk_to: Vector2 = Vector2.INF
+## **The way there**, found once when the walk is asked for and followed point
+## by point, so a click on the far side of a bank walks round to the flight
+## rather than into the earth face (owner, 2026-10-01). See `HoldPaths`.
+var _walk_route: PackedVector2Array = PackedVector2Array()
+var _routed_to: Vector2 = Vector2.INF
+var _paths: HoldPaths = null
 var _relay_clock: float = 0.0
 var _clock: float = 0.0
 ## Off while a door is open over the Hold, so the Warden does not walk away
@@ -593,6 +599,7 @@ func _ready() -> void:
 	_build_houses()
 	if _glow != null:
 		_glow.over_fires(_fires)
+	_build_paths()
 	set_process(true)
 
 
@@ -632,6 +639,129 @@ func step_is_legal(from: Vector2, to: Vector2) -> bool:
 			and _bonfire.refuses(to) and not _bonfire.refuses(from):
 		return false
 	return _land.step_is_legal(from, to) if _land != null else true
+
+
+## Where a person may stand: on ground, inside the yard's own edge, and not in
+## the fire. The same three things `_step` and `step_is_legal` hold a walker to.
+func stands_at(at: Vector2) -> bool:
+	var edge: Vector2 = YARD * 0.5 - Vector2(40.0, 40.0)
+	if absf(at.x) > edge.x or absf(at.y) > edge.y:
+		return false
+	if _land != null and not _land.is_ground(at):
+		return false
+	return _bonfire == null or not is_instance_valid(_bonfire) or not _bonfire.refuses(at)
+
+
+## **What a straight walk crosses**, exactly: every cell of the map the line
+## passes through, walked cell to cell (Amanatides and Woo) rather than read at
+## points. A cell no one may stand on anywhere on the way, the yard's edge or
+## the fire refuse it; one flat level all the way is plain; anything else - a
+## flight, a change of shelf - is sloped and read for its slope by `HoldPaths`.
+func _survey(from: Vector2, to: Vector2) -> int:
+	if _land == null:
+		return HoldPaths.Ground.SLOPED
+	var edge: Vector2 = YARD * 0.5 - Vector2(40.0, 40.0)
+	if absf(from.x) > edge.x or absf(from.y) > edge.y or absf(to.x) > edge.x or absf(to.y) > edge.y:
+		return HoldPaths.Ground.BLOCKED
+	var size: float = _land.cell_size()
+	var origin: Vector2 = _land.extent().position
+	var a: Vector2 = (from - origin) / size
+	var b: Vector2 = (to - origin) / size
+	var cell := Vector2i(floori(a.x), floori(a.y))
+	var last := Vector2i(floori(b.x), floori(b.y))
+	var d: Vector2 = b - a
+	var step_x: int = 1 if d.x > 0.0 else -1
+	var step_y: int = 1 if d.y > 0.0 else -1
+	var reach_x: float = INF
+	var each_x: float = INF
+	if absf(d.x) > 0.000001:
+		reach_x = (float(cell.x + (1 if step_x > 0 else 0)) - a.x) / d.x
+		each_x = absf(1.0 / d.x)
+	var reach_y: float = INF
+	var each_y: float = INF
+	if absf(d.y) > 0.000001:
+		reach_y = (float(cell.y + (1 if step_y > 0 else 0)) - a.y) / d.y
+		each_y = absf(1.0 / d.y)
+	var level: int = -1
+	var plain: bool = true
+	for _guard: int in 512:
+		var mark: String = _land.mark(cell)
+		if Elevation.LEVEL.has(mark):
+			var here: int = int(Elevation.LEVEL[mark])
+			if level < 0:
+				level = here
+			elif here != level:
+				plain = false
+		elif Elevation.WAY.has(mark):
+			plain = false
+		else:
+			return HoldPaths.Ground.BLOCKED
+		if cell == last or minf(reach_x, reach_y) > 1.0:
+			break
+		if reach_x < reach_y:
+			reach_x += each_x
+			cell.x += step_x
+		else:
+			reach_y += each_y
+			cell.y += step_y
+	# The fire: read only where the walk comes near it, at a walker's pace.
+	if _bonfire != null and is_instance_valid(_bonfire):
+		var fire: Vector2 = _bonfire.global_position
+		var reach: float = _bonfire.keep_out / minf(Balance.HOLD_BONFIRE_SQUASH, 1.0) + 4.0
+		var along: Vector2 = to - from
+		var t: float = 0.0
+		if along.length_squared() > 0.0001:
+			t = clampf((fire - from).dot(along) / along.length_squared(), 0.0, 1.0)
+		if (from + along * t).distance_to(fire) < reach:
+			var samples: int = maxi(1, int(ceil(along.length() / 2.0)))
+			for sample: int in samples:
+				if _bonfire.refuses(from.lerp(to, float(sample + 1) / float(samples))):
+					return HoldPaths.Ground.BLOCKED
+	return HoldPaths.Ground.PLAIN if plain else HoldPaths.Ground.SLOPED
+
+
+## The ground's height in levels, for the routes.
+func _height_at(at: Vector2) -> float:
+	return _land.height_at(at) if _land != null else 0.0
+
+
+## The lattice everybody's routes are found on, laid once the fire is down -
+## **once a session**, since the Hold's ground is authored and never moves: a
+## quarter of a second spent every time somebody walked into the Hold would be
+## a hitch on a door the player uses between every road.
+static var _laid: HoldPaths = null
+
+
+func _build_paths() -> void:
+	if _laid == null:
+		_laid = HoldPaths.new()
+		_laid.build(Rect2(-YARD * 0.5, YARD), Balance.HOLD_PATH_STEP, stands_at, _survey,
+			step_is_legal, _height_at)
+	else:
+		_laid.rebind(stands_at, _survey, step_is_legal, _height_at)
+	_paths = _laid
+
+
+## The way from one point to another, or straight there before the lattice exists.
+func route(from: Vector2, to: Vector2) -> PackedVector2Array:
+	if _paths == null:
+		return PackedVector2Array([to])
+	return _paths.route(from, to)
+
+
+## The lattice itself. For the gate.
+func paths() -> HoldPaths:
+	return _paths
+
+
+## **One step along a route**: the direction to the next point on it, dropping
+## each point as it is reached. Zero when the route is walked.
+func _follow(walked: PackedVector2Array, at: Vector2, near: float) -> Vector2:
+	while not walked.is_empty() and at.distance_to(walked[0]) <= near:
+		walked.remove_at(0)
+	if walked.is_empty():
+		return Vector2.ZERO
+	return (walked[0] - at).normalized()
 
 
 ## A step that gives ground rather than sticking against a bank.
@@ -2178,11 +2308,16 @@ func _drive_warden(delta: float) -> void:
 			_walk_to = Vector2.INF
 			_pending_use = ""
 		elif _walk_to != Vector2.INF:
-			var step: Vector2 = _walk_to - (seat["at"] as Vector2)
-			if step.length() > 16.0:
-				way = step.normalized()
-			else:
+			# Routed once for each place asked for, then followed.
+			if _routed_to != _walk_to:
+				_routed_to = _walk_to
+				_walk_route = route(seat["at"] as Vector2, _walk_to)
+			way = _follow(_walk_route, seat["at"] as Vector2, 16.0)
+			if way.length_squared() <= 0.01:
+				# Arrived - or as near as the ground goes, which is where a walk
+				# to somewhere unreachable stops rather than pressing on a bank.
 				_walk_to = Vector2.INF
+				_routed_to = Vector2.INF
 	if hands and _dash_rest <= 0.0 and Input.is_action_just_pressed(&"dash"):
 		# Dashing where they are pointing, or where they are facing if they are
 		# standing still - a dash that went nowhere because no key was down is a
@@ -2309,7 +2444,12 @@ func _drift(seat: Dictionary, delta: float) -> void:
 		if float(seat["left"]) <= 0.0:
 			var own := seat["rng"] as RandomNumberGenerator
 			var errand: Dictionary = _errand(own)
-			seat["to"] = errand["at"]
+			var walked: PackedVector2Array = route(seat["at"] as Vector2, errand["at"] as Vector2)
+			seat["route"] = walked
+			# **Where the route ends is where it is going**: an errand the
+			# ground cannot reach is done at the nearest place that can be.
+			seat["to"] = walked[walked.size() - 1] if not walked.is_empty() else seat["at"]
+			seat["stuck"] = 0.0
 			seat["doing"] = errand["doing"]
 			seat["busy"] = 0.0
 			seat["left"] = own.randf_range(Balance.HOLD_NPC_PAUSE.x,
@@ -2321,9 +2461,37 @@ func _drift(seat: Dictionary, delta: float) -> void:
 		if gap.length() <= 12.0:
 			seat["facing"] = Vector2.UP if absf(gap.x) < 1.0 else gap.normalized()
 			_busy(seat, delta)
-	var step: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
-	var way: Vector2 = step.normalized() if step.length() > 12.0 else Vector2.ZERO
+	var way: Vector2 = Vector2.ZERO
+	if int(seat["kind"]) == HoldSession.Seat.SIMULATED and seat.has("route"):
+		var walking: PackedVector2Array = seat["route"]
+		way = _follow(walking, seat["at"] as Vector2, 12.0)
+		seat["route"] = walking
+	else:
+		var step: Vector2 = (seat["to"] as Vector2) - (seat["at"] as Vector2)
+		way = step.normalized() if step.length() > 12.0 else Vector2.ZERO
+	var was: Vector2 = seat["at"] as Vector2
 	_step(seat, way, delta, Balance.HOLD_WALK_SPEED * 0.72)
+	if int(seat["kind"]) == HoldSession.Seat.SIMULATED:
+		_mind_the_stuck(seat, was, way, delta)
+
+
+## **A figure that has stopped getting anywhere gives up the errand** and picks
+## another, rather than walking on the spot against something for the rest of
+## its pause. A route makes this rare; something standing in a doorway does not.
+func _mind_the_stuck(seat: Dictionary, was: Vector2, way: Vector2, delta: float) -> void:
+	if way.length_squared() <= 0.01:
+		seat["stuck"] = 0.0
+		return
+	var moved: float = was.distance_to(seat["at"] as Vector2)
+	if moved >= Balance.HOLD_WALK_SPEED * 0.72 * delta * 0.25:
+		seat["stuck"] = 0.0
+		return
+	seat["stuck"] = float(seat.get("stuck", 0.0)) + delta
+	if float(seat["stuck"]) >= Balance.HOLD_PATH_STUCK_SECONDS:
+		seat["stuck"] = 0.0
+		seat["left"] = 0.0
+		seat["route"] = PackedVector2Array()
+		seat["to"] = seat["at"]
 
 
 ## One figure moving: the frames, the facing, and the edge of the yard.
@@ -2396,14 +2564,27 @@ func _mind_the_stall(person: Dictionary, delta: float) -> void:
 			person["to"] = home + Vector2(_rng.randf_range(-70.0, 70.0),
 				_rng.randf_range(-40.0, 40.0))
 	var at: Vector2 = person["at"] as Vector2
-	var step: Vector2 = (person["to"] as Vector2) - at
-	var walking: bool = step.length() > 4.0
+	# **Routed, and routed again only when where they are going has moved a
+	# stride**: pacing at the bench moves the target a little every frame, and
+	# finding a way across the yard sixty times a second for a pixel of shift
+	# is the cost without the point.
+	var target: Vector2 = person["to"] as Vector2
+	if not person.has("routed_to") or (person["routed_to"] as Vector2).distance_to(target) > 24.0:
+		person["routed_to"] = target
+		person["route"] = route(at, target)
+	var walked: PackedVector2Array = person["route"]
+	var heading: Vector2 = _follow(walked, at, 4.0)
+	person["route"] = walked
+	var short_way: float = at.distance_to(target)
+	if heading.length_squared() <= 0.01 and short_way > 4.0 and short_way < 24.0 \
+			and step_is_legal(at, target):
+		heading = (target - at).normalized()
+	var walking: bool = heading.length_squared() > 0.01
 	if walking:
 		# Through the same shelf rule the Warden walks under, so a resident on an
 		# errand cannot stroll up a bank the player has to find the stair for.
-		at = _slide(at, at
-			+ step.normalized() * Balance.HOLD_WALK_SPEED * 0.35 * delta)
-		sprite.flip_h = step.x < 0.0
+		at = _slide(at, at + heading * Balance.HOLD_WALK_SPEED * 0.35 * delta)
+		sprite.flip_h = heading.x < 0.0
 	person["at"] = at
 	# **What this person is doing, decided in one place.** A resident standing
 	# still on their own patch works; one crossing the yard walks; one who

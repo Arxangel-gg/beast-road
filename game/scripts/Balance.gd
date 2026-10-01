@@ -8516,6 +8516,13 @@ const UI_GLASS_BUTTON_DESKTOP: float = 44.0
 ## width on an upright screen: most of a phone held upright, rather than a
 ## desktop's card in the middle of it.
 const UI_UPRIGHT_PANEL_ASPECT: float = 1.9
+## **The Hold's routes** (owner, 2026-10-01: smarter pathfinding for the people
+## in it). `HOLD_PATH_STEP` is how far apart the lattice's points stand - under
+## half a terrace cell, so a flight a cell wide is two points and is found - and
+## a simulated Warden that has made no headway for `HOLD_PATH_STUCK_SECONDS`
+## gives up its errand for another.
+const HOLD_PATH_STEP: float = 40.0
+const HOLD_PATH_STUCK_SECONDS: float = 1.2
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
 ## Portrait menus can enlarge text without shrinking the combat HUD canvas. [TUNE]
