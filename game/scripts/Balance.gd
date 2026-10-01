@@ -6962,6 +6962,79 @@ const BLOOD_GROUND_LIFE: float = 600.0
 ## chunks keep the cost of that bound to the newest canvas. [TUNE]
 const BLOOD_GROUND_LIFE_HIGH: float = 200000.0
 const BLOOD_MARKS_HIGH: int = 520
+
+## **Brutal** (owner, 2026-10-01), above High: *"blood stains on the ground ...
+## should never completely fade out unless washed away by a flood and even then
+## over a prolonged enough time at maximum depth, and even then it would have to
+## be a heavy flood as even a light rain may be insufficient ... Even restoring
+## from a successful extraction point should restore the blood state if on
+## brutal mode, furthermore it should also continue across progressing acts."*
+##
+## A Brutal mark lives `BLOOD_GROUND_LIFE_BRUTAL` - longer than any campaign -
+## and nothing washes it but a flood at `BLOOD_BRUTAL_FLOOD_FROM` of its height
+## or more, which carries a whole field of it away over
+## `BLOOD_BRUTAL_WASH_SECONDS`. Rain does nothing. The field keeps
+## `BLOOD_MARKS_BRUTAL`, and a banked front carries the newest
+## `BLOOD_BRUTAL_SAVED` home with it, and its pools.
+const BLOOD_GROUND_LIFE_BRUTAL: float = 10000000.0
+const BLOOD_MARKS_BRUTAL: int = 900
+const BLOOD_BRUTAL_FLOOD_FROM: float = 0.85
+const BLOOD_BRUTAL_WASH_SECONDS: float = 150.0
+const BLOOD_BRUTAL_SAVED: int = 420
+
+## **Pools** (`BloodPools`, Brutal only). Cells `BLOOD_POOL_CELL` across; a mark
+## the size of a hit pours `BLOOD_POOL_PER_MARK`, more for a bigger one by its
+## area; depth runs to `BLOOD_POOL_MAX`. Deeper than `BLOOD_POOL_SPREAD_FROM` it
+## creeps into its neighbours at `BLOOD_POOL_VISCOSITY`, and everything soaks
+## into the ground at `BLOOD_POOL_SOAK` a second, fresh blood darkening on
+## `BLOOD_POOL_FRESH_HALF_LIFE`. A flood heavy enough to wash Brutal blood
+## carries `BLOOD_POOL_FLOOD_WASH` of the pools away a second.
+##
+## **The one number that moves a fight**: past `BLOOD_POOL_SLOW_FROM` a pool
+## slows whatever walks through it, to `BLOOD_POOL_SLOW_MAX` off at
+## `BLOOD_POOL_FULL`. The same for every mover. And whatever wades through one
+## keeps its stain up to `BLOOD_WADE_PER_DEPTH` units a unit of depth, to
+## `BLOOD_WADE_MAX`, for as long as it lives.
+const BLOOD_POOL_CELL: float = 20.0
+const BLOOD_POOL_PER_MARK: float = 0.35
+const BLOOD_POOL_MAX: float = 2.0
+const BLOOD_POOL_FULL: float = 1.0
+const BLOOD_POOL_SLOW_FROM: float = 0.2
+const BLOOD_POOL_SLOW_MAX: float = 0.45
+const BLOOD_POOL_SPREAD_FROM: float = 0.06
+const BLOOD_POOL_VISCOSITY: float = 0.9
+const BLOOD_POOL_SOAK: float = 0.0012
+const BLOOD_POOL_FRESH_HALF_LIFE: float = 75.0
+const BLOOD_POOL_SIM_HZ: float = 8.0
+const BLOOD_POOL_DRAW_HZ: float = 4.0
+const BLOOD_POOL_FLOOD_WASH: float = 0.0067
+const BLOOD_WADE_PER_DEPTH: float = 26.0
+const BLOOD_WADE_MAX: float = 34.0
+## How much higher a body's wade stain must climb before it is written again.
+const BLOOD_WADE_STEP: float = 1.5
+
+## **The ground's scars** (`GroundScars`): a depth map a texel every
+## `SCAR_TEXEL` units, drawn at `SCAR_Z` - over the scorch, under the craters'
+## own geometry and under every drop of blood - and uploaded at most
+## `SCAR_UPLOAD_HZ` times a second. What a blow leaves: a slam or a mortar
+## `SCAR_SLAM_DEPTH` deep across its ring, a lob landing `SCAR_LOB_DEPTH` across
+## `SCAR_LOB_RADIUS`, a dragon touching down `SCAR_LANDING_DEPTH`, a strike
+## `SCAR_STRIKE_DEPTH`. A meteor leaves a crater; a quake its cracks and slumps;
+## a fissure or a trail a gouge along its line.
+const SCAR_TEXEL: float = 16.0
+const SCAR_Z: int = -20
+const SCAR_UPLOAD_HZ: float = 4.0
+const SCAR_SLAM_DEPTH: float = 0.32
+const SCAR_LOB_DEPTH: float = 0.18
+const SCAR_LOB_RADIUS: float = 26.0
+const SCAR_LANDING_DEPTH: float = 0.4
+const SCAR_STRIKE_DEPTH: float = 0.22
+const SCAR_FISSURE_DEPTH: float = 0.45
+## How far a quake's cracks run from where it broke, at its strongest.
+const SCAR_QUAKE_REACH: float = 1100.0
+## Blood sloshes when the ground shakes: pools creep this many times as fast
+## while a quake runs.
+const BLOOD_POOL_QUAKE_SLOSH: float = 4.0
 ## How fast rain and flood wash High blood: two hundred thousand seconds of
 ## clock in about eighty seconds of downpour. Low keeps its own
 ## `BLOOD_RAIN_WASH_MULTIPLIER`. [TUNE]

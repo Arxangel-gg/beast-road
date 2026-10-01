@@ -6,6 +6,7 @@ shader_type canvas_item;
 #include "res://scripts/shaders/actor_state.gdshaderinc"
 #include "res://scripts/shaders/warden_look.gdshaderinc"
 #include "res://scripts/shaders/actor_shade.gdshaderinc"
+#include "res://scripts/shaders/wade_stain.gdshaderinc"
 
 // Blood on a character, as speckle rather than tint.
 //
@@ -129,6 +130,10 @@ void fragment() {
 		// Multiplied by alpha so nothing stains the empty space around the
 		// silhouette - blood belongs on the character, not in its bounding box.
 		COLOR.rgb = mix(COLOR.rgb, blood_colour, mask * 0.88 * COLOR.a);
+	}
+	// What it waded through, up to the height it waded.
+	if (body_a > 0.001) {
+		COLOR.rgb = wade_blood(COLOR.rgb, body_a, in_cell);
 	}
 	// The body turned to the light (2026-09-25): the same relief towers read,
 	// off the painting rather than off the stained, dyed colour above.

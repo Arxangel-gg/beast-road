@@ -397,6 +397,7 @@ func _blood_vfx_row() -> HBoxContainer:
 		"No blood. Danger cues and hit feedback stay on.",
 		"Restrained blood that fades from the ground over ten minutes.",
 		"Blood stays on the ground until you extract; only rain and floods wash it away.",
+		"Blood never fades. It pools where the fighting is thickest, slows whatever wades through it and stains it, comes home with a banked road, and only a heavy flood held a long while washes it away.",
 	]
 	var buttons: Array[Button] = []
 	for level: int in UserSettings.BLOOD_LEVEL_NAMES.size():

@@ -106,6 +106,88 @@ class BloodChunk extends Node2D:
 			indices, points, colours, uvs)
 
 
+## **The pools under Brutal blood**, made the first time one is poured, and a
+## field banked with a front laid again when this ground is first stood up.
+var _pools: BloodPools = null
+
+
+func pools() -> BloodPools:
+	if _pools == null:
+		_pools = BloodPools.new()
+		add_child(_pools)
+		_pools.scars = Vfx.scars_above(get_parent())
+	return _pools
+
+
+## The pools if any were poured, else null - for the movers' read.
+func pools_if_any() -> BloodPools:
+	return _pools
+
+
+## **What a Brutal field banks with a front**: the newest marks, five numbers
+## and an age each, and the pools. Empty on any other level.
+func snapshot() -> Dictionary:
+	if UserSettings.blood_level() < UserSettings.BLOOD_BRUTAL:
+		return {}
+	var all: Array[Dictionary] = []
+	for chunk: BloodChunk in _chunks:
+		for mark: Dictionary in chunk.marks:
+			if mark.has("seed"):
+				all.append(mark)
+	var start: int = maxi(all.size() - Balance.BLOOD_BRUTAL_SAVED, 0)
+	var flat: Array = []
+	for index: int in range(start, all.size()):
+		var mark: Dictionary = all[index]
+		var at: Vector2 = mark["at"]
+		var heading: Vector2 = mark.get("heading", Vector2.ZERO)
+		flat.append_array([snappedf(at.x, 0.1), snappedf(at.y, 0.1), int(mark.get("kind", 0)),
+			snappedf(float(mark.get("size", 0.0)), 0.01), snappedf(heading.x, 0.001),
+			snappedf(heading.y, 0.001), int(mark["seed"]),
+			snappedf(maxf(_clock - float(mark["born"]), 0.0), 0.1)])
+	return {"marks": flat, "pools": _pools.snapshot() if _pools != null else []}
+
+
+## Lays a banked Brutal field down again: every mark from its seed at its age,
+## and the pools as they were.
+func restore(stored: Dictionary) -> void:
+	var flat: Array = stored.get("marks", []) as Array
+	var level: int = UserSettings.BLOOD_BRUTAL
+	var at: int = 0
+	while at + 7 < flat.size():
+		var where := Vector2(float(flat[at]), float(flat[at + 1]))
+		var kind: int = int(flat[at + 2])
+		var size: float = float(flat[at + 3])
+		var heading := Vector2(float(flat[at + 4]), float(flat[at + 5]))
+		var seed: int = int(flat[at + 6])
+		var age: float = float(flat[at + 7])
+		var mark: Dictionary = make_droplet(where, size, seed) if kind == 1 \
+			else make_splat(where, heading, size, seed)
+		mark["born"] = _clock - age
+		mark["life"] = life_for(level)
+		_lay_quietly(mark, level)
+		at += 8
+	var pooled: Array = stored.get("pools", []) as Array
+	if not pooled.is_empty():
+		pools().restore(pooled)
+	_repaint_dirty()
+
+
+## Lays a mark without pouring it again - a restored mark's blood is already in
+## the restored pools.
+func _lay_quietly(mark: Dictionary, _level: int) -> void:
+	var chunk: BloodChunk = _chunks.back() if not _chunks.is_empty() else null
+	if chunk == null or chunk.marks.size() >= CHUNK:
+		chunk = BloodChunk.new()
+		chunk.field = self
+		chunk.use_parent_material = true
+		add_child(chunk)
+		_chunks.append(chunk)
+	chunk.marks.append(mark)
+	chunk.dirty = true
+	_last_end = maxf(_last_end, _clock + float(mark["life"]) - (_clock - float(mark["born"])))
+	set_process(true)
+
+
 func _ready() -> void:
 	# Under everything that walks on it, and above the ground it stains.
 	z_index = Balance.BLOOD_GROUND_Z
@@ -124,6 +206,10 @@ func _ready() -> void:
 		_material.set_shader_parameter("clock", _clock)
 		material = _material
 	set_process(false)
+	# A banked Brutal field, read once and erased - the way a tower's health is.
+	if not RunState.blood_restore.is_empty() and UserSettings.blood_level() >= UserSettings.BLOOD_BRUTAL:
+		restore.call_deferred(RunState.blood_restore.duplicate(true))
+	RunState.blood_restore.clear()
 
 
 ## The field's clock, for the chunks and the gate.
@@ -135,10 +221,14 @@ func clock() -> float:
 ## is the ten-minute memory; High lasts until the party extracts - the field is
 ## freed with the road - and only rain and flood wash it (owner, 2026-09-30).
 static func life_for(level: int) -> float:
+	if level >= UserSettings.BLOOD_BRUTAL:
+		return Balance.BLOOD_GROUND_LIFE_BRUTAL
 	return Balance.BLOOD_GROUND_LIFE_HIGH if level >= UserSettings.BLOOD_HIGH else Balance.BLOOD_GROUND_LIFE
 
 
 static func cap_for(level: int) -> int:
+	if level >= UserSettings.BLOOD_BRUTAL:
+		return Balance.BLOOD_MARKS_BRUTAL
 	return Balance.BLOOD_MARKS_HIGH if level >= UserSettings.BLOOD_HIGH else MAX_SPLATS
 
 
@@ -147,6 +237,21 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	var level: int = UserSettings.blood_level()
 	if level <= UserSettings.BLOOD_OFF:
 		return
+	# **From a seed of its own** (2026-10-01), so a Brutal field banked with a
+	# front can lay the very same mark again from five numbers.
+	var mark: Dictionary = make_splat(at, heading, size, rng.randi())
+	mark["born"] = _clock
+	# Life is an authored promise: every mark that is not displaced by the
+	# bounded field survives its full memory. Randomising it below one quietly
+	# turned "600 seconds" into as little as eight minutes.
+	mark["life"] = life_for(level)
+	_lay(mark, level)
+
+
+## A spatter's mark, its outline rolled from `seed` alone.
+static func make_splat(at: Vector2, heading: Vector2, size: float, seed: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
 	var blobs: Array = []
 	var count: int = rng.randi_range(Balance.BLOOD_BLOBS_MIN, Balance.BLOOD_BLOBS_MAX)
 	var along: Vector2 = heading.normalized() if heading.length_squared() > 0.001 \
@@ -185,11 +290,8 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 			# the mark, which is one number rather than two authored shapes.
 			"long": along.rotated(spread * 0.5) * throw * Balance.BLOOD_STREAK,
 		})
-	# Life is an authored promise: every mark that is not displaced by the
-	# bounded field survives its full memory. Randomising it below one quietly
-	# turned "600 seconds" into as little as eight minutes.
-	_lay({"at": at, "blobs": blobs, "born": _clock, "life": life_for(level),
-		"tone": rng.randf()}, level)
+	return {"at": at, "blobs": blobs, "tone": rng.randf(), "kind": 0, "size": size,
+		"heading": heading, "seed": seed}
 
 
 ## One procedural droplet, added when its visible ballistic mote reaches the
@@ -199,16 +301,24 @@ func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
 	var level: int = UserSettings.blood_level()
 	if level <= UserSettings.BLOOD_OFF:
 		return
-	_lay({
+	var mark: Dictionary = make_droplet(at, radius, rng.randi())
+	mark["born"] = _clock
+	mark["life"] = life_for(level)
+	_lay(mark, level)
+
+
+static func make_droplet(at: Vector2, radius: float, seed: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	return {
 		"at": at,
 		"blobs": [{"at": Vector2.ZERO,
 			"r": maxf(radius * rng.randf_range(0.78, 1.22), 1.4),
 			"seed": rng.randf() * 1000.0,
 			"long": Vector2.ZERO}],
-		"born": _clock,
-		"life": life_for(level),
 		"tone": rng.randf(),
-	}, level)
+		"kind": 1, "size": radius, "heading": Vector2.ZERO, "seed": seed,
+	}
 
 
 ## Lays a mark into the newest chunk, opening one when it is full, and drops the
@@ -223,6 +333,14 @@ func _lay(mark: Dictionary, level: int) -> void:
 		_chunks.append(chunk)
 	chunk.marks.append(mark)
 	chunk.dirty = true
+	# **Brutal blood pools** where it falls thick (2026-10-01): the mark pours
+	# its volume, by its area against a hit's, into the sheet under it.
+	if level >= UserSettings.BLOOD_BRUTAL:
+		var size: float = float(mark.get("size", Balance.VFX_BLOOD_HIT_SIZE))
+		if int(mark.get("kind", 0)) == 1:
+			size *= 2.0
+		var area: float = pow(size / Balance.VFX_BLOOD_HIT_SIZE, 2.0)
+		pools().pour(mark["at"] as Vector2, Balance.BLOOD_POOL_PER_MARK * area, size * 0.45)
 	var cap: int = cap_for(level)
 	var total: int = held()
 	while total > cap and not _chunks.is_empty():
@@ -289,6 +407,11 @@ func wash_multiplier() -> float:
 ## flood deep enough to reach the ground - "only washing naturally from
 ## rain/flood rules" is the owner's own sentence.
 func _wash_now() -> float:
+	# **Brutal: only a heavy flood, and slowly** - rain does nothing at all.
+	if UserSettings.blood_level() >= UserSettings.BLOOD_BRUTAL:
+		if RunState.flood >= Balance.BLOOD_BRUTAL_FLOOD_FROM:
+			return Balance.BLOOD_GROUND_LIFE_BRUTAL / maxf(Balance.BLOOD_BRUTAL_WASH_SECONDS, 1.0)
+		return 1.0
 	var wet: bool = _rain_wash > 1.0 or RunState.flood >= Balance.BLOOD_FLOOD_WASH_FROM
 	if not wet:
 		return 1.0
@@ -301,6 +424,8 @@ func wipe() -> void:
 	for chunk: BloodChunk in _chunks:
 		chunk.queue_free()
 	_chunks.clear()
+	if _pools != null:
+		_pools.clear()
 	set_process(false)
 	_since_redraw = 1.0 / REDRAW_HZ
 	queue_redraw()
@@ -308,6 +433,8 @@ func wipe() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta * _wash_now()
+	if _pools != null and RunState.flood >= Balance.BLOOD_BRUTAL_FLOOD_FROM:
+		_pools.wash(Balance.BLOOD_POOL_FLOOD_WASH, delta)
 	if _material != null:
 		_material.set_shader_parameter("clock", _clock)
 	if _clock >= _last_end:

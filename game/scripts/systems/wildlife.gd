@@ -1327,7 +1327,13 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	var speed: float = kind.speed * _savage_speed(animal) \
 		* WildlifeFamilies.speed_scale(animal)
 	if not kind.flies:
-		speed *= RunState.flood_slow()
+		speed *= RunState.flood_slow() * Vfx.blood_slow(sprite.global_position)
+		# And what it waded through stays on it (2026-10-01, Brutal blood).
+		var waded: float = Vfx.blood_wade(sprite.global_position)
+		if waded > float(animal.get("waded", 0.0)) + Balance.BLOOD_WADE_STEP:
+			animal["waded"] = waded
+			BloodStain.wade(animal.get("impact", null) as ShaderMaterial, sprite,
+				sprite.global_position, waded)
 	if state == State.FLEEING or state == State.LEAVING:
 		speed *= kind.flee_speed_scale
 	# **Arriving and leaving cross the edge on purpose**; everything else stays

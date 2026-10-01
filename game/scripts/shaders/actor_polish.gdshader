@@ -4,12 +4,15 @@ shader_type canvas_item;
 // unpromoted enemy wears - see the include's header for why neither shader may
 // own that state alone.
 #include "res://scripts/shaders/actor_state.gdshaderinc"
+#include "res://scripts/shaders/wade_stain.gdshaderinc"
 
 uniform vec4 outline_colour : source_color = vec4(0.035, 0.045, 0.05, 0.94);
 uniform float outline_strength : hint_range(0.0, 1.0) = 0.82;
 uniform vec4 impact_colour : source_color = vec4(1.0, 0.82, 0.62, 1.0);
 uniform vec2 impact_direction = vec2(0.0, -1.0);
 uniform float impact_strength : hint_range(0.0, 1.0) = 0.0;
+// Where the current cell starts on a sheet, for the wade stain (2026-10-01).
+uniform vec2 cell_origin = vec2(0.0);
 
 // --- Promoted aura -----------------------------------------------------------
 //
@@ -181,6 +184,7 @@ void fragment() {
 	float near = min(min(left_a, right_a), min(up_a, down_a));
 	body = state_body(body, UV, px, source.a, near);
 	body = state_shine(body, UV, px, source.a);
+	body = wade_blood(body, source.a, floor(UV / px) - cell_origin);
 	vec4 composed = vec4(body, source.a);
 	vec4 rim = vec4(outline_colour.rgb, outline * outline_colour.a);
 	vec4 painted = mix(rim, composed, composed.a);

@@ -2248,7 +2248,8 @@ static func distance_to_leg(at: Vector2, from: Vector2, to: Vector2) -> float:
 
 
 func current_speed() -> float:
-	var speed: float = targeting_speed()
+	# A pool of blood drags at the feet (2026-10-01, Brutal blood).
+	var speed: float = targeting_speed() * Vfx.blood_slow(global_position)
 	if data.role != EnemyData.Role.HOWLER:
 		var howler: Enemy = _nearby_howler()
 		if howler != null:
@@ -4237,6 +4238,10 @@ func _scan_for_howler() -> Enemy:
 ## wounded. It also does a job a health bar cannot - in a pack of eight, the one
 ## that is nearly dead is the one worth finishing, and this says so without
 ## making the player read eight bars.
+## The highest a pool of blood has reached up this body, in world units.
+var _waded: float = 0.0
+
+
 func _update_blood(delta: float) -> void:
 	# Asked once, not once a frame. `attach` answers null for a sprite that
 	# already has a material, so retrying on null meant retrying for ever.
@@ -4244,6 +4249,11 @@ func _update_blood(delta: float) -> void:
 		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
 	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
+	# **What it waded through stays on it**, whichever material it wears.
+	var waded: float = Vfx.blood_wade(global_position)
+	if waded > _waded + Balance.BLOOD_WADE_STEP:
+		_waded = waded
+		BloodStain.wade(sprite.material as ShaderMaterial, sprite, global_position, _waded)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
 	if _flash_left > 0.0 or _impact_shown:
@@ -4566,6 +4576,7 @@ func _land_slam() -> void:
 	damage = minf(damage, Balance.boss_slam_ceiling(RunState.act))
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
+	Vfx.scar_dent(global_position, data.boss_slam_radius * 0.6, Balance.SCAR_SLAM_DEPTH * 1.4)
 	Vfx.light_burst(global_position, Color(1.0, 0.7, 0.42), data.boss_slam_radius * 1.8, 1.2, 0.35)
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
 	# The forged shock at the slam's own radius: the picture of the blow the

@@ -179,6 +179,8 @@ func _land() -> void:
 	# nothing about a crater crosses the wire.
 	if pits != null and is_instance_valid(pits):
 		pits.open(at, Balance.METEOR_RADIUS * 0.55)
+	# And the ground's own memory of it, for the blood to gather in.
+	Vfx.scar_crater(at, Balance.METEOR_RADIUS * 0.55)
 	if field != null and field.climate() != null:
 		field.climate().add_heat(at, Balance.CLIMATE_HEAT_PER_METEOR, Balance.METEOR_RADIUS * 1.5)
 	if not _mirror:

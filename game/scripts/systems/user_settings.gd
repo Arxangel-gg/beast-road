@@ -29,7 +29,11 @@ const BLOOD_LEVEL_KEY: String = "blood_level"
 const BLOOD_OFF: int = 0
 const BLOOD_LOW: int = 1
 const BLOOD_HIGH: int = 2
-const BLOOD_LEVEL_NAMES: Array[String] = ["Off", "Low", "High"]
+## **Brutal** (owner, 2026-10-01): never fades but to a heavy flood, pools and
+## slows, stains whoever wades, and comes home with a banked front. Appended,
+## never inserted - the level is saved by number.
+const BLOOD_BRUTAL: int = 3
+const BLOOD_LEVEL_NAMES: Array[String] = ["Off", "Low", "High", "Brutal"]
 ## Whether an augment draft opens the moment it is earned (2026-09-26).
 const AUGMENT_AT_ONCE_KEY: String = "augment_at_once"
 ## **What a left click on the battlefield does** (owner, 2026-10-01). On, a click
@@ -119,12 +123,12 @@ static func value(key: String, fallback: Variant = null) -> Variant:
 static func blood_level() -> int:
 	if not bool(value(BLOOD_VFX_KEY, true)):
 		return BLOOD_OFF
-	return clampi(int(value(BLOOD_LEVEL_KEY, BLOOD_LOW)), BLOOD_LOW, BLOOD_HIGH)
+	return clampi(int(value(BLOOD_LEVEL_KEY, BLOOD_LOW)), BLOOD_LOW, BLOOD_BRUTAL)
 
 
 ## Sets the level through both keys, so the switch and the level agree.
 static func set_blood_level(level: int) -> void:
-	var clamped: int = clampi(level, BLOOD_OFF, BLOOD_HIGH)
+	var clamped: int = clampi(level, BLOOD_OFF, BLOOD_BRUTAL)
 	set_value(BLOOD_VFX_KEY, clamped > BLOOD_OFF)
 	if clamped > BLOOD_OFF:
 		set_value(BLOOD_LEVEL_KEY, clamped)

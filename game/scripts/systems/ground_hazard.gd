@@ -50,6 +50,7 @@ func _process_measured(delta: float) -> void:
 		if not _erupted:
 			_erupted = true
 			if String(plan["mode"]) == "fissure":
+				Vfx.scar_crack(start, end, float(plan["width"]) * 0.5, Balance.SCAR_FISSURE_DEPTH)
 				for index: int in Balance.EARTH_DEBRIS_BURSTS:
 					Vfx.impact(start.lerp(end, float(index) / float(Balance.EARTH_DEBRIS_BURSTS - 1)),
 						TowerData.Element.EARTH, Color(0.65, 0.49, 0.3), float(plan["width"]) * 2.0)
@@ -66,6 +67,7 @@ func _process_measured(delta: float) -> void:
 				Vfx.dust(head, Color(0.38, 0.29, 0.18), 5, float(plan["width"]) * 1.8)
 				if String(plan["mode"]) == "trail":
 					Vfx.impact(head, TowerData.Element.EARTH, Color(0.65, 0.49, 0.3), float(plan["width"]) * 1.5)
+					Vfx.scar_dent(head, float(plan["width"]) * 0.7, Balance.SCAR_FISSURE_DEPTH * 0.6)
 		_previous = head
 	queue_redraw()
 	if _elapsed > warning + travel + Balance.EARTH_PATTERN_FADE:

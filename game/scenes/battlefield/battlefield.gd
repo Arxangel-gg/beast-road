@@ -671,6 +671,10 @@ func _setup_lighting() -> void:
 	# The ground's memory and the fire that writes on it, under the sky.
 	_craters = Craters.new()
 	add_child(_craters)
+	# **What the ground remembers of what struck it** (2026-10-01), under the
+	# craters' own geometry and under every drop of blood.
+	_scars = GroundScars.new()
+	add_child(_scars)
 	_scorch = ScorchMarks.new()
 	_scorch.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
 	_scorch.z_index = Balance.SCORCH_Z
@@ -2630,6 +2634,8 @@ func refresh_terrain() -> void:
 		_scorch.clear()
 	if _craters != null:
 		_craters.clear()
+	if _scars != null:
+		_scars.clear()
 	# **And the fireflies, which had never been re-laid at all.** They gather
 	# over the treeline and over the ponds, seams and timber - every one of which
 	# this function has just re-laid - and they were built once in `_ready`, so
@@ -3587,6 +3593,14 @@ func scorch() -> ScorchMarks:
 ## when the region changes, which is what makes a crater last exactly the act.
 func craters() -> Craters:
 	return _craters
+
+
+## The ground's depth map of what broke it this act (`GroundScars`).
+func scars() -> GroundScars:
+	return _scars
+
+
+var _scars: GroundScars = null
 
 
 ## The nearest standing tower to a point within `radius`, or null.

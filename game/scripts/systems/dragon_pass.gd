@@ -363,6 +363,7 @@ func _touch_down() -> void:
 	if field != null:
 		tone = field.ground_colour(_landing)
 	Vfx.dust(_landing, tone.lightened(0.15), 16, landed_size().x * 0.45)
+	Vfx.scar_dent(_landing, landed_size().x * 0.32, Balance.SCAR_LANDING_DEPTH)
 	Vfx.ring(_landing, landed_size().x * 0.55, Color(tone.r, tone.g, tone.b, 0.5), 0.5, 5.0)
 	EventBus.camera_impact.emit(_landing, Balance.DRAGON_LAND_IMPACT)
 	Sfx.play_group_at("sfx_hit_stone", _landing, 2.0)

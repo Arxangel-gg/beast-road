@@ -431,6 +431,9 @@ var tremor: float = 0.0
 ## road, -1 to 1, and what the earth's luck reads. Hidden, like the wrath.
 ## See `Balance.KARMA_*`.
 var karma: float = 0.0
+## **A banked Brutal field of blood**, laid again by the blood field when the
+## road comes back and erased as it is read (2026-10-01).
+var blood_restore: Dictionary = {}
 
 
 ## Moves the party's karma, inside -1 to 1.
@@ -790,6 +793,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	tide = 0.0
 	tremor = 0.0
 	karma = 0.0
+	blood_restore = {}
 	wind = Vector2.ZERO
 	# Restored from the account, not zeroed.
 	#

@@ -123,6 +123,18 @@ static func wound(material: ShaderMaterial, sprite: Sprite2D, at: Vector2, share
 	_send(material, wounds)
 
 
+## **Blood to the height a body waded** (owner, 2026-10-01): the band of the
+## sprite's own cell from `units` above its feet down to them, written to
+## whichever body material it wears - `blood_stain` and `actor_polish` both
+## read it. The caller keeps the highest it has reached; it never comes down.
+static func wade(material: ShaderMaterial, sprite: Sprite2D, feet: Vector2, units: float) -> void:
+	if material == null or sprite == null or sprite.texture == null or units <= 0.0:
+		return
+	var bottom: float = texel_of(sprite, feet).y
+	var top: float = texel_of(sprite, feet - Vector2(0.0, units)).y
+	material.set_shader_parameter("wade_band", Vector2(minf(top, bottom), maxf(top, bottom) + 2.0))
+
+
 ## Where a world point falls on a sprite's own cell, in texels of that cell.
 static func texel_of(sprite: Sprite2D, at: Vector2) -> Vector2:
 	var cell: Vector2 = cell_size(sprite)

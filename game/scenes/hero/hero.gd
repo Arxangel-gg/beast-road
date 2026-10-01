@@ -113,6 +113,8 @@ var field: EnemyField = null:
 		_refresh_spirit()
 
 var _aim: Vector2 = Vector2.RIGHT
+## The highest a pool of blood has reached up this Warden, in world units.
+var _waded: float = 0.0
 
 ## Which way the hero is *looking*, which is not always where they are aiming.
 ##
@@ -637,7 +639,7 @@ func _physics_process_measured(delta: float) -> void:
 		# nothing. Symmetric with every other mover on the field and capped in
 		# `RunState.wind_push`; see the note on `Balance.WIND_PUSH_MAX`.
 		velocity = move_input * move_speed() * movement_scale \
-			* RunState.wind_push(move_input)
+			* RunState.wind_push(move_input) * Vfx.blood_slow(global_position)
 	velocity += _lunge_velocity + _shoved
 
 	var ram_from: Vector2 = global_position
@@ -3243,6 +3245,11 @@ func _update_sprite(_delta: float) -> void:
 	BloodStain.drive(_blood, health.ratio(), _delta)
 	# A wound is kept in the cell's texels; the sheet steps through its frames.
 	BloodStain.follow_cell(_blood, sprite)
+	# **What it waded through stays on it** (2026-10-01, Brutal blood).
+	var waded: float = Vfx.blood_wade(global_position)
+	if waded > _waded + Balance.BLOOD_WADE_STEP:
+		_waded = waded
+		BloodStain.wade(sprite.material as ShaderMaterial, sprite, global_position, _waded)
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
 	BloodStain.drive_impact(_blood, _flash_left)

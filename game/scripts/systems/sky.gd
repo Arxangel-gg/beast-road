@@ -487,6 +487,7 @@ func strike_at(at: Vector2) -> void:
 			field.climate().add_heat(at, Balance.CLIMATE_HEAT_PER_STRIKE, Balance.LIGHTNING_RADIUS * 1.5)
 		_dry_lightning(at)
 	EventBus.lightning_struck.emit(at, radius)
+	Vfx.scar_dent(at, radius * 0.22, Balance.SCAR_STRIKE_DEPTH)
 
 
 ## **Every bolt in the air, put out.**
@@ -1426,6 +1427,7 @@ func _open_the_ground_wave(shares: int) -> void:
 func _on_earthquake_seen(magnitude: float, seconds: float,
 		at: Vector2 = Vector2.ZERO, rings: int = 0) -> void:
 	RunState.note_earth("quakes")
+	_quake_marks(at, magnitude)
 	if _mirror:
 		_quake_magnitude = magnitude
 		_quake_left = seconds
@@ -1441,6 +1443,35 @@ func _on_earthquake_seen(magnitude: float, seconds: float,
 			field.add_child(seen)
 	EventBus.camera_shake_requested.emit(magnitude * Balance.QUAKE_SHAKE, seconds)
 	Sfx.play("sfx_quake", 0.0)
+
+
+## **What a quake leaves on what it shook** (owner, 2026-10-01: *"Earthquake
+## events should also leave some procedural effects naturally on what they
+## affect"*): the ground cracked out from the epicentre and slumped in patches
+## (`GroundScars.quake`), the trees near it shedding leaves, and standing blood
+## sloshing out wider for a while. Drawn on every machine from the same fact.
+func _quake_marks(at: Vector2, magnitude: float) -> void:
+	if field == null:
+		return
+	if field.has_method("scars"):
+		var ground: GroundScars = field.call("scars") as GroundScars
+		if ground != null:
+			ground.quake(at, Balance.SCAR_QUAKE_REACH, magnitude)
+	var blood: BloodField = Vfx.blood_field()
+	var pools: BloodPools = blood.pools_if_any() if blood != null else null
+	if pools != null:
+		pools.agitate(Balance.QUAKE_WARNING_SECONDS + 4.0 * magnitude)
+	if field.has_method("tree_positions") and Graphics.particle_scale() > 0.0:
+		var shed: int = 0
+		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
+			if trunk.distance_to(at) > Balance.SCAR_QUAKE_REACH or shed >= 24:
+				continue
+			shed += 1
+			for _leaf: int in 3:
+				Vfx.mote(trunk + Vector2(_visual_rng.randf_range(-30.0, 30.0), -_visual_rng.randf_range(60.0, 110.0)),
+					Vector2(_visual_rng.randf_range(-20.0, 20.0), _visual_rng.randf_range(30.0, 60.0)),
+					Color(0.42, 0.5, 0.24, 0.85).lerp(Color(0.55, 0.4, 0.2, 0.85), _visual_rng.randf()),
+					3.2, 1.6)
 
 
 ## Tremors while it lasts: dust thrown up around whoever is watching.

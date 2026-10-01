@@ -325,8 +325,15 @@ func _load_particle_art() -> void:
 		_spark_texture = load(SPARK_TEXTURE_PATH) as Texture2D
 
 
+## **The ground's scars in the world bound now**, or null where the world keeps
+## none (2026-10-01). Every blow that breaks the ground stamps through the
+## `scar_*` doors below, which do nothing where there is nothing to stamp.
+var scars: GroundScars = null
+
+
 func bind_world(node: Node2D) -> void:
 	world = node
+	scars = scars_above(node)
 	_container = null
 	_ink = null
 	_ink_flat = null
@@ -377,6 +384,61 @@ func ink() -> VfxInk:
 
 func ink_flat() -> VfxInk:
 	return _ink_flat if _ink_flat != null and is_instance_valid(_ink_flat) else null
+
+
+## **The scars of the scope a node sits in** - the world bound for effects is
+## often a layer under the battlefield rather than the battlefield itself, so
+## the answer is looked for up the tree.
+static func scars_above(node: Node) -> GroundScars:
+	var at: Node = node
+	while at != null:
+		if at.has_method("scars"):
+			return at.call("scars") as GroundScars
+		at = at.get_parent()
+	return null
+
+
+## A dent in the ground: a slam, a mortar, a lob, a strike, a landing.
+func scar_dent(at: Vector2, radius: float, depth: float) -> void:
+	if scars != null and is_instance_valid(scars):
+		scars.dent(at, radius, depth)
+
+
+## A gouge along a line: a fissure, a crack.
+func scar_crack(from: Vector2, to: Vector2, width: float, depth: float) -> void:
+	if scars != null and is_instance_valid(scars):
+		scars.crack(from, to, width, depth)
+
+
+func scar_crater(at: Vector2, radius: float) -> void:
+	if scars != null and is_instance_valid(scars):
+		scars.crater(at, radius)
+
+
+## The blood on the ground, for the gates and the banked front.
+func blood_field() -> BloodField:
+	return _ground if _ground != null and is_instance_valid(_ground) else null
+
+
+## **What a pool of blood takes off a mover's speed here** - 1 with none
+## (2026-10-01, Brutal blood). Every mover asks this one door.
+func blood_slow(at: Vector2) -> float:
+	var field: BloodField = blood_field()
+	var pools: BloodPools = field.pools_if_any() if field != null else null
+	return pools.slow_at(at) if pools != null and pools.total() > 0.0 else 1.0
+
+
+## How high up a body standing here the blood reaches, in world units.
+func blood_wade(at: Vector2) -> float:
+	var field: BloodField = blood_field()
+	var pools: BloodPools = field.pools_if_any() if field != null else null
+	return pools.wade_at(at) if pools != null and pools.total() > 0.0 else 0.0
+
+
+## What a Brutal field banks with a front, or nothing.
+func blood_snapshot() -> Dictionary:
+	var field: BloodField = blood_field()
+	return field.snapshot() if field != null else {}
 
 
 ## The blood in the air, for the gates. Null before a world is bound.

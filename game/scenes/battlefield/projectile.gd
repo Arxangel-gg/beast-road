@@ -610,6 +610,7 @@ func _impact() -> void:
 	if _shot == TowerData.Shot.LOB:
 		Vfx.dust(global_position, Color(colour.darkened(0.35), 0.5), 8, 62.0 * _tier_scale())
 		EventBus.camera_impact.emit(global_position, Balance.PROJECTILE_LOB_IMPACT * _tier_scale())
+		Vfx.scar_dent(global_position, Balance.SCAR_LOB_RADIUS * _tier_scale(), Balance.SCAR_LOB_DEPTH)
 	_release()
 
 

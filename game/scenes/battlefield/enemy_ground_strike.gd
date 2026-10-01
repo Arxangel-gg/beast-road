@@ -197,6 +197,7 @@ func _land() -> void:
 	EventBus.camera_impact.emit(global_position, Balance.ENEMY_SHOT_IMPACT_SHARE)
 	if shape == Shape.CIRCLE:
 		Vfx.ring(global_position, reach, Color(tint, 0.82), 0.28, 6.0)
+		Vfx.scar_dent(global_position, reach * 0.7, Balance.SCAR_SLAM_DEPTH)
 		Vfx.dust(global_position, Color(tint.r * 0.5, tint.g * 0.45, tint.b * 0.4), 10, reach * 0.6)
 		# **The mortar's own sheet, at the radius the telegraph promised.** A
 		# flat ellipse lying on the ground, which is what tells a lob from a
@@ -205,6 +206,7 @@ func _land() -> void:
 		Vfx.forge_play("shot_lob", global_position, reach * 2.0, Color(tint, 0.85))
 	elif breath.is_empty():
 		var tip: Vector2 = global_position + aim * reach
+		Vfx.scar_crack(global_position, tip, half_width * 0.6, Balance.SCAR_SLAM_DEPTH * 0.7)
 		Vfx.spark(tip, tint, 8, aim, 220.0)
 		Vfx.flash_at(global_position + aim * reach * 0.5, Color(tint, 0.5), half_width * 2.0)
 		# And the lance's, laid along the line it was thrown down.

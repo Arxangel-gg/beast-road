@@ -183,6 +183,9 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		# and was banked on Classic.
 		"map_mode": RunState.map_mode,
 		"map_varied": RunState.map_varied,
+		# **Brutal blood comes home with the front** (owner, 2026-10-01) - empty
+		# on every other level.
+		"blood": Vfx.blood_snapshot(),
 		"name": name,
 	}
 
@@ -239,6 +242,8 @@ static func apply(stored: Dictionary) -> bool:
 	RunState.wave_number = int(stored.get("wave", 1))
 	RunState.distance_travelled = float(stored.get("distance", 0.0))
 	RunState.momentum = float(stored.get("momentum", 0.0))
+	RunState.blood_restore = (stored.get("blood", {}) as Dictionary).duplicate(true) \
+		if stored.get("blood", {}) is Dictionary else {}
 	RunState.wayside_answered.clear()
 	for answered: Variant in (stored.get("wayside", []) as Array):
 		RunState.wayside_answered.append(int(answered))
