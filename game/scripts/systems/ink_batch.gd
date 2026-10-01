@@ -121,10 +121,15 @@ func band(line: PackedVector2Array, width: float, colour: Color) -> void:
 
 ## A textured quad `half` from its middle each way, turned by `angle` - where a
 ## `draw_set_transform` and a `draw_texture_rect` were.
-func quad(at: Vector2, half: float, angle: float, colour: Color) -> void:
+## `aspect` is the painting's height over its width (2026-09-30): a 2:1 head
+## drawn into a square was a stubby diamond that could be read as pointing
+## either way. The texture's top is on the left of its heading, as it is
+## painted - `orthogonal` turns a heading anticlockwise, which on a screen
+## whose y runs down is the painting's top.
+func quad(at: Vector2, half: float, angle: float, colour: Color, aspect: float = 1.0) -> void:
 	var base: int = points.size()
 	var right: Vector2 = Vector2.from_angle(angle) * half
-	var down: Vector2 = right.orthogonal()
+	var down: Vector2 = -right.orthogonal() * aspect
 	points.append(at - right - down)
 	points.append(at + right - down)
 	points.append(at + right + down)

@@ -1250,7 +1250,10 @@ func _draw_head(weapon: ArsenalWeaponData, at: Vector2, size: float, angle: floa
 	if batch == null:
 		batch = InkBatch.new()
 		_head_batches[texture] = batch
-	batch.quad(at, size, angle, weapon.tint.lightened(0.35))
+	# At the painting's own proportions, and a little longer for it: the head
+	# is read by its length along the flight.
+	batch.quad(at, size * 1.25, angle, weapon.tint.lightened(0.35),
+		float(texture.get_height()) / maxf(float(texture.get_width()), 1.0))
 
 
 func _draw_strike_warning(weapon: ArsenalWeaponData, record: Dictionary) -> void:

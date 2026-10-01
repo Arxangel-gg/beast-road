@@ -12177,6 +12177,21 @@ its reach is drawn in, a body at its heart is caught with its processing
 stilled, rises, is let go a throw's length away and pays the fall, and a boss
 is never lifted.
 
+**The Arsenal flew the right way and was drawn upside down and squashed, as of
+2026-09-30.** Owner: *"Projectiles from arsenals looked like they might have
+been direction flipped in dungeons."* Measured before anything was changed: in a
+rift a seeker steers at its target and an orbit turns the way it is authored, so
+nothing flies backwards. What the eye was reading was the head. `InkBatch.quad`
+drew every painting into a square and took `Vector2.orthogonal()` - which on a
+screen whose y runs down is *up* - as its "down", so a 2:1 needle painted
+pointing right became a stubby diamond, mirrored top to bottom, that reads as
+pointing either way, and on a dark dungeon floor with no ground to read against
+that is a bolt flying backwards. The quad takes the painting's own aspect now,
+right way up, and the head is drawn a quarter longer because it is read by its
+length along the flight. `arsenal_dungeon_shot` is the photograph: a rift, five
+weapons and a ring of bodies, four frames a fifth of a second apart. The
+Arsenal is the only caller, so nothing else moved.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
