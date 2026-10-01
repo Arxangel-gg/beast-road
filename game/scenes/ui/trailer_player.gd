@@ -87,6 +87,8 @@ func _ready() -> void:
 	_player.bus = AudioBuses.MUSIC
 	frame.add_child(_player)
 	_build_skip()
+	# The Skip button answers being touched as every button in the game does.
+	UiJuice.enrol.call_deferred(get_tree(), self)
 	_cover = ColorRect.new()
 	_cover.color = Color.BLACK
 	_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
