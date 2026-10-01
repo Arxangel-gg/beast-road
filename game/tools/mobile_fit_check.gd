@@ -140,9 +140,11 @@ func _measure_pause_menu() -> void:
 
 
 func _measure_settings() -> void:
+	# Anchored and offset to the whole screen, never sized by hand: a size set
+	# on a control stretched between its anchors is overridden after _ready
+	# and says so as a warning, which the release bar reads as a failure.
 	var host := Control.new()
-	host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	host.size = _view.size
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(host)
 	var panel := SettingsPanel.new()
 	host.add_child(panel)
