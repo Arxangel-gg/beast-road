@@ -63,14 +63,55 @@ func ignite_near(at: Vector2, radius: float, chance: float = 1.0, by_player: boo
 		return false
 	if chance < 1.0 and _rng.randf() > chance:
 		return false
-	# Nothing catches in a downpour, and nothing at all under water.
-	if RunState.rain_intensity > Balance.WILDFIRE_RAIN_STOPS or RunState.flood > Balance.WILDFIRE_FLOOD_STOPS:
+	# Nothing catches where water stands or falls - see `water_here`.
+	if not water_here(at).is_empty():
 		return false
 	var plant: Dictionary = _nearest_unburnt(at, radius)
-	if plant.is_empty():
+	if plant.is_empty() or not water_here(plant["at"] as Vector2).is_empty():
 		return false
 	_light(plant, 0, by_player)
 	return true
+
+
+## **What water stands or falls on a point, or "" for none** (owner,
+## 2026-10-01: *"ensure that fire naturally cannot occur on the ground during a
+## flood and that fires are put out on flooded grounds and rain and snow and
+## hail"*). One question, asked before anything catches, before a fire spreads
+## and on every tick a fire burns - so a fire cannot light where it would be
+## put out, and nothing lit by any door (a tower, a keystone, a dragon, the
+## sky) gets round it.
+##
+## - **"flood"**: water standing on the field at all. The old bound was half
+##   the flood's height, so a field under a hand's depth of water still caught.
+## - **"soaked"**: the ground under the point at the climate's flooded band -
+##   a water tower's corner, a basin a flood left - even with the sky dry.
+## - **"rain"** and **"snow"**: rain, snow and hail falling past a drizzle. Hail
+##   is snow in this sky's grammar. A dust storm is something falling too, and
+##   it never wet anything: it read as rain and shortened every fire under it.
+func water_here(at: Vector2) -> String:
+	if RunState.flood > Balance.WILDFIRE_FLOOD_DOUSES:
+		return "flood"
+	var falling: String = _water_falling()
+	if not falling.is_empty() and RunState.rain_intensity > Balance.WILDFIRE_WEATHER_DOUSES:
+		return falling
+	var ground: Climate = field.climate() if field != null else null
+	if ground != null and ground.wetness_at(at) >= Balance.CLIMATE_WET_BANDS[Climate.WetBand.FLOODED - 1]:
+		return "soaked"
+	return ""
+
+
+## What is falling, if it is water: "rain", "snow", or "" for dust or nothing.
+## A sky forced to rain by a gate or a storm with no authored kind is rain.
+func _water_falling() -> String:
+	var weather: WeatherData = ContentDB.weather(RunState.weather_id)
+	if weather == null:
+		return "rain"
+	match weather.precipitation:
+		WeatherData.Precipitation.DUST:
+			return ""
+		WeatherData.Precipitation.SNOW:
+			return "snow"
+	return "rain"
 
 
 ## The field's foliage, found when first needed: it is planted after the sky
@@ -144,10 +185,11 @@ func _on_lit_elsewhere(at: Vector2) -> void:
 func _process_measured(delta: float) -> void:
 	if _fires.is_empty():
 		return
-	# Rain shortens every fire; a flood ends them all.
-	var quench: float = 1.0 + RunState.rain_intensity * Balance.WILDFIRE_RAIN_QUENCH
+	# A drizzle shortens every fire; water standing or falling puts it out
+	# (`water_here`). Dust is not water.
+	var wet_sky: float = RunState.rain_intensity if not _water_falling().is_empty() else 0.0
+	var quench: float = 1.0 + wet_sky * Balance.WILDFIRE_RAIN_QUENCH
 	var ground: Climate = field.climate() if field != null else null
-	var drowned: bool = RunState.flood > Balance.WILDFIRE_FLOOD_STOPS
 	_scare_timer -= delta
 	var scare: bool = _scare_timer <= 0.0
 	if scare:
@@ -165,6 +207,27 @@ func _process_measured(delta: float) -> void:
 		# the ground it burns on.
 		var soaked: float = ground.wetness_at(at) if ground != null else 0.0
 		fire["left"] = float(fire["left"]) - delta * (quench + soaked * Balance.CLIMATE_WET_QUENCH_FIRE)
+		# **Doused** where water stands or falls: the flame sinks and hisses
+		# out over `WILDFIRE_DOUSE_SECONDS` rather than vanishing on a frame,
+		# which read as the fire being switched off.
+		var water: String = water_here(at)
+		if not water.is_empty():
+			var doused: float = float(fire.get("doused", 0.0)) + delta
+			fire["doused"] = doused
+			var flame_now: Flame = fire["flame"]
+			if flame_now != null and is_instance_valid(flame_now):
+				var left_share: float = clampf(1.0 - doused / Balance.WILDFIRE_DOUSE_SECONDS, 0.0, 1.0)
+				flame_now.scale = Vector2.ONE * lerpf(0.25, 1.0, left_share)
+				flame_now.modulate.a = lerpf(0.35, 1.0, left_share)
+			var steam: float = float(fire.get("steam", 0.0)) - delta
+			if steam <= 0.0:
+				steam = Balance.WILDFIRE_STEAM_TICK
+				Vfx.dust(at + Vector2(0.0, -Balance.WILDFIRE_FLAME_LIFT * 0.5),
+					Color(0.82, 0.86, 0.9, 0.7), 3, 36.0)
+			fire["steam"] = steam
+			if doused >= Balance.WILDFIRE_DOUSE_SECONDS:
+				_burn_out(index, true)
+				continue
 		if embers:
 			# Drawn on both machines: a guest sees the same fire going the same
 			# way, and nothing about it is read.
@@ -188,8 +251,8 @@ func _process_measured(delta: float) -> void:
 			if float(fire["spread"]) <= 0.0:
 				fire["spread"] = Balance.WILDFIRE_SPREAD_TICK
 				_try_spread(at, int(fire.get("generation", 0)), bool(fire.get("player", false)))
-		if drowned or float(fire["left"]) <= 0.0:
-			_burn_out(index, drowned)
+		if float(fire["left"]) <= 0.0:
+			_burn_out(index, false)
 	if _fires.is_empty():
 		_blaze_lit = 0
 		# A blaze that burnt a real patch leaves it charged for the fire towers.
@@ -229,7 +292,8 @@ func _try_spread(at: Vector2, generation: int, by_player: bool = false) -> void:
 	var most: int = int(round(Balance.WILDFIRE_MAX_LIT * (Balance.WILDFIRE_HOT_LIT_SCALE if hot else 1.0)))
 	if _blaze_lit >= most:
 		return
-	var dry: float = clampf(1.0 - RunState.rain_intensity * 2.0, 0.0, 1.0)
+	var wet_sky: float = RunState.rain_intensity if not _water_falling().is_empty() else 0.0
+	var dry: float = clampf(1.0 - wet_sky * 2.0, 0.0, 1.0)
 	if ground != null:
 		dry = minf(dry, ground.dryness_at(at) / (Balance.WILDFIRE_HOT_SPREAD if hot else 1.0))
 	if hot:
@@ -244,7 +308,8 @@ func _try_spread(at: Vector2, generation: int, by_player: bool = false) -> void:
 	var plant: Dictionary = _nearest_unburnt(at + Vector2(_rng.randf_range(-1.0, 1.0),
 		_rng.randf_range(-1.0, 1.0)) * Balance.WILDFIRE_SPREAD_RADIUS * 0.5
 		+ RunState.wind * Balance.WILDFIRE_WIND_DRIFT, Balance.WILDFIRE_SPREAD_RADIUS)
-	if not plant.is_empty() and (plant["at"] as Vector2).distance_to(at) > 4.0:
+	if not plant.is_empty() and (plant["at"] as Vector2).distance_to(at) > 4.0 \
+			and water_here(plant["at"] as Vector2).is_empty():
 		_light(plant, generation + 1, by_player)
 
 
@@ -258,7 +323,13 @@ func _burn_out(index: int, drowned: bool) -> void:
 		flame.queue_free()
 	_fires.remove_at(index)
 	if drowned:
-		Vfx.dust(at, Color(0.55, 0.6, 0.65), 6, 40.0)
+		# Put out by water: a puff of steam and a hiss, and the plant stands -
+		# singed, not burnt.
+		doused_count += 1
+		Vfx.dust(at, Color(0.78, 0.82, 0.86, 0.8), 8, 52.0)
+		Sfx.play_group_at("sfx_fire_douse", at)
+		if marks != null:
+			marks.stamp(at, Balance.WILDFIRE_SCORCH_RADIUS * 0.5, Balance.WILDFIRE_SCORCH_STRENGTH * 0.35)
 		return
 	burnt_count += 1
 	if bool(fire.get("player", false)):
@@ -301,6 +372,10 @@ func heat_at(at: Vector2, radius: float) -> float:
 		if away <= radius:
 			total += 1.0 - away / maxf(radius, 1.0) * 0.5
 	return total
+
+
+## How many fires water has put out, for the gate.
+var doused_count: int = 0
 
 
 func fire_count() -> int:

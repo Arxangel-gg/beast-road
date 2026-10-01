@@ -260,12 +260,20 @@ func _test_the_fire_reads_the_ground() -> void:
 	_check(seed_at.is_finite(), "a thicket for the fire")
 	if not seed_at.is_finite():
 		return
-	# Soaked: it burns alone and goes out.
+	# **Amended 2026-10-01** (owner: *"fire naturally cannot occur on the
+	# ground during a flood and ... fires are put out on flooded grounds"*).
+	# This held that a plant on ground soaked to the flooded band could still
+	# be lit by hand and burn alone; ground that wet now refuses a fire
+	# outright (`Wildfire.water_here`). What it was guarding - wet ground does
+	# not carry a fire - is held one band down, on ground wet but not flooded:
+	# lit by hand, it burns alone and goes out.
 	_climate.reset(1.0)
+	_check(not fire.ignite_near(seed_at, 20.0, 1.0), "a plant on ground soaked to a flood caught fire")
+	_climate.reset((Balance.CLIMATE_WET_BANDS[1] + Balance.CLIMATE_WET_BANDS[2]) * 0.5)
 	_check(fire.ignite_near(seed_at, 20.0, 1.0), "a plant on wet ground refused to be lit by hand")
 	for _i: int in 40:
 		fire._process(0.5)
-	_check(fire.lit_count == 1, "a fire on soaked ground spread to %d plants" % fire.lit_count)
+	_check(fire.lit_count == 1, "a fire on wet ground spread to %d plants" % fire.lit_count)
 	fire.call("_clear")
 	# Tinder: it spreads. The soaked plant went out for good - wet ground
 	# quenches - so this lights the nearest of its neighbours.

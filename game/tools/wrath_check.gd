@@ -542,9 +542,77 @@ func _test_the_rain_puts_fire_out() -> void:
 	_dry()
 	_fire.ignite_near(plants[0]["at"], 20.0, 1.0)
 	RunState.flood = 0.8
-	_fire._process(0.1)
+	_douse_out()
 	_check(_fire.fire_count() == 0, "a flood left a fire burning")
 	RunState.flood = 0.0
+	await _test_water_of_every_kind(plants)
+	await get_tree().process_frame
+
+
+## Runs the fire's clock for long enough that water must have put it out.
+func _douse_out() -> void:
+	var seconds: float = 0.0
+	while _fire.fire_count() > 0 and seconds < Balance.WILDFIRE_DOUSE_SECONDS * 1.5:
+		_fire._process(0.1)
+		seconds += 0.1
+
+
+## **Water of every kind puts fire out, and dust does not** (owner,
+## 2026-10-01: *"ensure that fire naturally cannot occur on the ground during a
+## flood and that fires are put out on flooded grounds and rain and snow and
+## hail"*). Snow and hail douse as rain does; a shallow flood refuses a fire
+## where half a flood used to be needed; ground soaked to the flooded band
+## refuses one with the sky dry; a fire put out by water leaves its plant
+## standing and is heard; and a dust storm - something falling, never wet -
+## neither refuses nor douses.
+func _test_water_of_every_kind(plants: Array[Dictionary]) -> void:
+	var spot: Vector2 = plants[0]["at"]
+	# The plant furthest from the first, so soaking one place leaves the other
+	# dry: the climate's cells are wide, and wetness is read between them.
+	var other: Vector2 = spot
+	for plant: Dictionary in plants:
+		if (plant["at"] as Vector2).distance_to(spot) > other.distance_to(spot):
+			other = plant["at"]
+	for sky: String in ["snowfall", "hailstorm"]:
+		_dry()
+		_check(_fire.ignite_near(spot, 20.0, 1.0), "the harness could not light a plant before the %s" % sky)
+		var doused: int = _fire.doused_count
+		var burnt: int = _fire.burnt_count
+		_weather(sky)
+		_sky.forced_intensity = 0.6
+		_sky._process(0.1)
+		_check(not _fire.water_here(spot).is_empty(), "%s falling is not water on the ground" % sky)
+		_douse_out()
+		_check(_fire.fire_count() == 0, "a fire burned on through the %s" % sky)
+		_check(_fire.doused_count > doused, "the %s did not put the fire out - it burned out" % sky)
+		_check(_fire.burnt_count == burnt, "a fire the %s put out still burnt its plant away" % sky)
+		_check(not _fire.ignite_near(other, 20.0, 1.0), "a plant caught fire in the %s" % sky)
+	_dry()
+	_weather("duststorm")
+	_sky.forced_intensity = 1.0
+	_sky._process(0.1)
+	_check(_fire.water_here(spot).is_empty(), "a dust storm reads as water")
+	_check(_fire.ignite_near(spot, 20.0, 1.0), "a dust storm refused a fire")
+	var dust_seconds: float = 0.0
+	while dust_seconds < Balance.WILDFIRE_DOUSE_SECONDS * 2.0:
+		_fire._process(0.1)
+		dust_seconds += 0.1
+	_check(_fire.fire_count() > 0, "a dust storm put a fire out")
+	_fire.call("_clear")
+	_dry()
+	RunState.flood = Balance.WILDFIRE_FLOOD_DOUSES + 0.02
+	_check(not _fire.ignite_near(spot, 20.0, 1.0),
+		"a plant caught fire under a flood %.2f deep" % RunState.flood)
+	RunState.flood = 0.0
+	var ground: Climate = _field.climate()
+	if ground != null:
+		ground.add_wet(spot, 4.0, Balance.CLIMATE_CELL_TILES * BattleGrid.TILE * 1.5)
+		_check(_fire.water_here(spot) == "soaked", "ground soaked to a flood reads '%s'" % _fire.water_here(spot))
+		_check(not _fire.ignite_near(spot, 20.0, 1.0), "a plant on soaked ground caught fire under a dry sky")
+		if _fire.water_here(other).is_empty():
+			_check(_fire.ignite_near(other, 20.0, 1.0), "soaked ground in one place refused a fire everywhere")
+		_fire.call("_clear")
+	_dry()
 	await get_tree().process_frame
 
 

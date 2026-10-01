@@ -1007,6 +1007,8 @@ ROWS = [
      "an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and settles, with small stones rattling"),
     ("sfx_wildfire", "sfx", "sfx", "2.0s", "ElevenLabs",
      "dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices"),
+    ("sfx_fire_douse", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "a small brush fire put out by rain: a sharp hiss of steam that thins away, a soft wet thump under it, a last few dying crackles, no voices"),
     ("sfx_tornado", "sfx", "sfx", "2.6s", "ElevenLabs",
      "a tornado passing near: a huge low howl with grit hissing through it and a rising whine, no music"),
     ("sfx_meteor_whistle", "sfx", "sfx", "2.2s", "ElevenLabs",
@@ -1056,6 +1058,8 @@ PLACEHOLDER_IDS = {
     "sfx_well_drink", "sfx_party_prompt", "sfx_party_accept", "sfx_party_decline",
     "sfx_achievement", "sfx_dungeon_collapse", "sfx_chest_open", "sfx_dungeon_exit",
     "sfx_raid_window", "sfx_chieftain_roar", "sfx_raid_extract",
+    # 2026-10-01
+    "sfx_fire_douse",
 }
 
 

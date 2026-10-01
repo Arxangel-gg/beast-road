@@ -50,7 +50,7 @@ code change. Record these before the general backlog.
 ---
 
 
-## STILL TO RECORD (134)
+## STILL TO RECORD (135)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -180,6 +180,7 @@ missing stream - so none of these block a build.
 | `sfx_thunder_far.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 3.4s | ElevenLabs | distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain |
 | `sfx_quake.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 3.2s | ElevenLabs | an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and settles, with small stones rattling |
 | `sfx_wildfire.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.0s | ElevenLabs | dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices |
+| `sfx_fire_douse.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | a small brush fire put out by rain: a sharp hiss of steam that thins away, a soft wet thump under it, a last few dying crackles, no voices |
 | `sfx_tornado.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.6s | ElevenLabs | a tornado passing near: a huge low howl with grit hissing through it and a rising whine, no music |
 | `sfx_meteor_whistle.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.2s | ElevenLabs | a meteor falling: a thin descending whistle that grows into a roar over two seconds, no impact |
 | `sfx_meteor_impact.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.4s | ElevenLabs | a meteor hitting earth: a huge deep thud, a blast of gravel, and a long low aftershock, no fire |
@@ -1491,7 +1492,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 168 files
+## Sound effects - 169 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -2733,6 +2734,14 @@ an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and
 
 ```text
 dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices.
+```
+
+### `sfx_fire_douse`
+
+`game/audio/sfx/sfx_fire_douse.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+a small brush fire put out by rain: a sharp hiss of steam that thins away, a soft wet thump under it, a last few dying crackles, no voices.
 ```
 
 ### `sfx_tornado`

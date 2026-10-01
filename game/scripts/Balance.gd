@@ -10281,9 +10281,16 @@ const WILDFIRE_WILDLIFE_DPS: float = 9.0
 const WILDFIRE_BURNING_SECONDS: float = 4.0
 const WILDFIRE_SCARE_RADIUS: float = 260.0
 const WILDFIRE_SCARE_TICK: float = 0.5
-const WILDFIRE_RAIN_STOPS: float = 0.75
 const WILDFIRE_RAIN_QUENCH: float = 3.0
 const WILDFIRE_FLOOD_STOPS: float = 0.5
+## **Water puts fire out** (owner, 2026-10-01). Any standing flood above this,
+## and rain, snow or hail falling harder than this, refuse a fire and douse a
+## burning one over `WILDFIRE_DOUSE_SECONDS`, puffing steam every
+## `WILDFIRE_STEAM_TICK`. A drizzle under the bound only shortens a fire.
+const WILDFIRE_FLOOD_DOUSES: float = 0.06
+const WILDFIRE_WEATHER_DOUSES: float = 0.12
+const WILDFIRE_DOUSE_SECONDS: float = 1.4
+const WILDFIRE_STEAM_TICK: float = 0.22
 const WILDFIRE_TOWER_CHANCE: float = 0.03
 const WILDFIRE_TOWER_REACH: float = 90.0
 const WILDFIRE_TOWER_BUFF: float = 0.22

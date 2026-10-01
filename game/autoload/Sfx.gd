@@ -1335,6 +1335,9 @@ const SOUNDS: Dictionary = {
 	"sfx_water_bite_f_10": "res://audio/sfx/sfx_water_bite_f_10.ogg",
 	"sfx_water_bite_f_11": "res://audio/sfx/sfx_water_bite_f_11.ogg",
 	"sfx_water_bite_f_12": "res://audio/sfx/sfx_water_bite_f_12.ogg",
+	"sfx_fire_douse_1": "res://audio/sfx/sfx_fire_douse_1.ogg",
+	"sfx_fire_douse_2": "res://audio/sfx/sfx_fire_douse_2.ogg",
+	"sfx_fire_douse_3": "res://audio/sfx/sfx_fire_douse_3.ogg",
 	"sfx_ui_click_1": "res://audio/sfx/sfx_ui_click_1.ogg",
 	"sfx_ui_click_2": "res://audio/sfx/sfx_ui_click_2.ogg",
 	"sfx_ui_click_3": "res://audio/sfx/sfx_ui_click_3.ogg",
@@ -1570,6 +1573,9 @@ const MIX: Dictionary = {
 	"sfx_hero_winded_f":        {"db": -6.0, "pitch": 0.04, "limit": 1, "gap": 0.80},
 	"sfx_water_bite_f":         {"db": -10.0, "pitch": 0.04, "limit": 1, "gap": 0.40},
 	"sfx_drown_f":              {"db": -8.0, "pitch": 0.02, "limit": 1, "gap": 1.00},
+	# A fire put out by water (2026-10-01): a few at once when a downpour
+	# douses a blaze, never a wall of hiss.
+	"sfx_fire_douse":           {"db": -10.0, "pitch": 0.12, "limit": 3, "gap": 0.10},
 	"sfx_fish_cast_charge":     {"db": -16.0, "pitch": 0.04, "limit": 1, "gap": 0.30},
 	# The anticipation (2026-09-30): no drift, because the riser is timed to end
 	# on the blow and a drift would end it early or late.
@@ -1779,6 +1785,7 @@ const GROUPS: Dictionary = {
 	"sfx_hero_winded": ["sfx_hero_winded_1", "sfx_hero_winded_2", "sfx_hero_winded_3", "sfx_hero_winded_4", "sfx_hero_winded_5", "sfx_hero_winded_6", "sfx_hero_winded_7", "sfx_hero_winded_8", "sfx_hero_winded_9", "sfx_hero_winded_10", "sfx_hero_winded_11"],
 	"sfx_hero_winded_f": ["sfx_hero_winded_f_1", "sfx_hero_winded_f_2", "sfx_hero_winded_f_3", "sfx_hero_winded_f_4", "sfx_hero_winded_f_5", "sfx_hero_winded_f_6", "sfx_hero_winded_f_7", "sfx_hero_winded_f_8", "sfx_hero_winded_f_9"],
 	"sfx_water_bite_f": ["sfx_water_bite_f_1", "sfx_water_bite_f_2", "sfx_water_bite_f_3", "sfx_water_bite_f_4", "sfx_water_bite_f_5", "sfx_water_bite_f_6", "sfx_water_bite_f_7", "sfx_water_bite_f_8", "sfx_water_bite_f_9", "sfx_water_bite_f_10", "sfx_water_bite_f_11", "sfx_water_bite_f_12"],
+	"sfx_fire_douse": ["sfx_fire_douse_1", "sfx_fire_douse_2", "sfx_fire_douse_3"],
 	"sfx_ui_click": ["sfx_ui_click_1", "sfx_ui_click_2", "sfx_ui_click_3"],
 	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3", "sfx_ui_hover_4", "sfx_ui_hover_5"],
 	"sfx_ui_move": ["sfx_ui_move_1", "sfx_ui_move_2", "sfx_ui_move_3"],
