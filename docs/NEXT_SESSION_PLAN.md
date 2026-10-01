@@ -21,6 +21,37 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0f. Where things stand (2026-09-30, late, v0.65.0 and after)
+
+**v0.65.0** answers the owner's list of 2026-09-30 in full: four font roles at
+their real weights, a left click on the Hold's doors and on everything the field
+offers, Arcane Bolt and Radiant Smite so every arm fills slot 1 and the primary
+on the bar, spells a third dearer and a little slower, build rows that lay name
+and price side by side, larger stash slot marks, the Glass's top colour on the
+armour, a cheaper gate mend payable in ore and timber, dragon breath drawn over
+the jaw that aims at the most Wardens and eases, a hand of twelve with twelve
+more Arsenal weapons, a tornado that pulls, lifts and throws, and Arsenal heads
+drawn the right way up. **Release bodies now lead with the tag's notes**, so the
+launcher shows them (`release.yml`, "Lead the release body with the tag's own
+notes"); tag with `git tag -a vX -F notes.txt`, a subject line and then the body.
+
+**Built after the tag, each gated on both bars and recorded in CLAUDE.md:**
+cooking (`cooking_check`), a Herald on a shared road (`rejoin_check`), the
+anticipation riser on telegraphs (`feel_check`) and the road settling after a
+held wave (`feel_check`). The second rank of the 2026-09-15 juice triage is now
+closed. **The wayside encounters stay solo**, recorded with the reason.
+
+**Open, in the order worth taking them:**
+
+1. Release the batch above as v0.66.0 once its sweep is green.
+2. After 2026-10-11 (PixelLab): helmets, the rest of the heavy armour and capes,
+   the 31 staged augments, chop and mine animations, bespoke Arsenal icons.
+3. Recordings the owner can commission, each prompted in `SFX_PROMPTS.md`: the
+   telegraph riser (keep it 0.72s exactly), the female voice takes, music for
+   Acts VI to X and the boss themes.
+4. The owner playing a road with augments, cooking and the settling - what reads
+   as juice and what as noise is not a number.
+
 ## 0e. Where things stand (2026-09-30, v0.64.0)
 
 **Shipped today, each gated on both bars and recorded in CLAUDE.md:** v0.62.0
