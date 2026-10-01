@@ -53,6 +53,17 @@ var _tab_bar: HFlowContainer
 ## which it is.
 var _search: String = ""
 var _search_edit: LineEdit = null
+## **Only the spirits already bonded** (owner, 2026-10-01: *"A toggle button on
+## the codex's spirit tab to only show bonded wildlife"*). The journal lists every
+## species the road can bond, which is the right page for a player hunting the
+## next one and the wrong one for a player choosing who walks with them.
+##
+## Kept on the screen for the process rather than in the save: it is a way of
+## reading a page, not a fact about the Warden, and the settings table drops a
+## key it does not declare. It sits beside the search because both narrow the
+## page the same way, and it is shown only on the spirits' page.
+var _bonded_only: bool = false
+var _bonded_toggle: CheckButton = null
 var _rows: VBoxContainer
 var _close_button: Button
 var _panel: PanelContainer
@@ -277,6 +288,11 @@ func _refresh() -> void:
 	_style_tabs()
 	if _search_edit != null:
 		_search_edit.custom_minimum_size.y = \
+			TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
+	if _bonded_toggle != null:
+		_bonded_toggle.visible = _tab == TAB_SPIRITS
+		_bonded_toggle.set_pressed_no_signal(_bonded_only)
+		_bonded_toggle.custom_minimum_size.y = \
 			TAB_TOUCH_HEIGHT if _grow_for_touch else TAB_HEIGHT
 	if _tab == TAB_SPIRITS:
 		_note.text = ("Every animal the road can bond. What one eats is what "
@@ -539,7 +555,26 @@ func _build_search() -> HBoxContainer:
 		if _scroll != null:
 			_scroll.scroll_vertical = 0)
 	line.add_child(_search_edit)
+
+	_bonded_toggle = CheckButton.new()
+	_bonded_toggle.name = "BondedOnly"
+	_bonded_toggle.text = "Bonded only"
+	_bonded_toggle.tooltip_text = "Show only the spirits that already walk with you."
+	_bonded_toggle.focus_mode = Control.FOCUS_ALL
+	_bonded_toggle.custom_minimum_size.y = TAB_HEIGHT
+	_bonded_toggle.set_meta(UiMetrics.SELF_SIZED, true)
+	_bonded_toggle.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, TAB_TOUCH_HEIGHT)
+	_bonded_toggle.visible = false
+	_bonded_toggle.toggled.connect(_on_bonded_only)
+	line.add_child(_bonded_toggle)
 	return line
+
+
+func _on_bonded_only(on: bool) -> void:
+	_bonded_only = on
+	_refresh()
+	if _scroll != null:
+		_scroll.scroll_vertical = 0
 
 
 ## Whether an entry answers what was typed. Empty matches everything, which is
@@ -691,13 +726,42 @@ func _build_spirit_journal() -> void:
 	for kind: WildlifeData in species:
 		if not _matches("wildlife", kind, "Wildlife Spirits"):
 			continue
+		if _bonded_only and not _any_bonded(kind):
+			continue
 		hits += 1
 		_rows.add_child(_spirit_species_row(kind))
 		if _spirit_open == kind.id:
 			for variant: String in SpiritBond.variants_of(kind.id):
+				# Opened under the toggle, a species shows the spirits it has
+				# given and nothing it still owes.
+				if _bonded_only and not MetaState.spirit_is_bonded(variant):
+					continue
 				_rows.add_child(_spirit_variant_row(kind, variant))
 	if hits == 0:
-		_rows.add_child(_nothing_found())
+		if _bonded_only and _search.is_empty():
+			_rows.add_child(_none_bonded())
+		else:
+			_rows.add_child(_nothing_found())
+
+
+## Whether any of a species' variants walks with the Warden yet.
+func _any_bonded(kind: WildlifeData) -> bool:
+	for variant: String in SpiritBond.variants_of(kind.id):
+		if MetaState.spirit_is_bonded(variant):
+			return true
+	return false
+
+
+## Said, for the reason `_nothing_found` is: an empty page under a toggle reads
+## as a fault in the page rather than as an answer.
+func _none_bonded() -> Label:
+	var label := Label.new()
+	label.text = ("No spirit walks with you yet. Meet an animal often enough on "
+		+ "the road and its spirit will.")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", FONT_BODY)
+	label.add_theme_color_override("font_color", Color("9b917f"))
+	return label
 
 
 func _spirit_note() -> Label:

@@ -139,6 +139,8 @@ func _test_the_pages() -> void:
 	_check(_count_rows(screen) == spirits,
 		"clearing the search must put the whole journal back")
 
+	await _test_bonded_only(screen, spirits)
+
 	# A search that finds nothing says so, rather than drawing an empty panel.
 	screen.set("_tab", CodexScreen.TAB_ALL)
 	screen.set("_search", "zzzqqxnothingatall")
@@ -181,6 +183,67 @@ func _test_the_pages() -> void:
 	screen.set("_search", "")
 	screen.queue_free()
 	await get_tree().process_frame
+
+
+## **The spirits' page can show only what is bonded** (owner, 2026-10-01).
+## Driven through the toggle itself, pressed as a player presses it: a filter
+## that worked when its flag was set by hand and was never reached by the
+## button is the shape this project has paid for before.
+func _test_bonded_only(screen: CodexScreen, spirits: int) -> void:
+	var toggle := screen.get("_bonded_toggle") as CheckButton
+	_check(toggle != null, "the spirits' page has no Bonded only toggle")
+	if toggle == null:
+		return
+	screen.set("_tab", CodexScreen.TAB_ALL)
+	screen.call("_refresh")
+	await get_tree().process_frame
+	_check(not toggle.visible, "the Bonded only toggle shows on a page that is not the spirits'")
+	screen.set("_tab", CodexScreen.TAB_SPIRITS)
+	screen.call("_refresh")
+	await get_tree().process_frame
+	_check(toggle.visible, "the Bonded only toggle is not shown on the spirits' page")
+
+	var saved: Dictionary = MetaState.spirit_bonded.duplicate(true)
+	MetaState.spirit_bonded.clear()
+	toggle.button_pressed = true
+	await get_tree().process_frame
+	_check(_count_rows(screen) == 0,
+		"with nothing bonded the toggle must show no species, drew %d" % _count_rows(screen))
+	var said: bool = false
+	for label: Node in _labels_under(screen.get("_rows") as Node):
+		if (label as Label).text.to_lower().contains("no spirit walks with you"):
+			said = true
+	_check(said, "an empty bonded page must say why it is empty")
+
+	# One variant of each of two species bonded: exactly two species drawn,
+	# and opening one shows its one spirit and nothing it still owes.
+	var animals: Array[WildlifeData] = ContentDB.wildlife()
+	animals.sort_custom(func(a: WildlifeData, b: WildlifeData) -> bool:
+		return a.display_name < b.display_name)
+	var first: WildlifeData = animals[0]
+	var second: WildlifeData = animals[animals.size() - 1]
+	MetaState.spirit_bonded[SpiritBond.variants_of(first.id)[0]] = true
+	MetaState.spirit_bonded[SpiritBond.variants_of(second.id)[0]] = true
+	screen.call("_refresh")
+	await get_tree().process_frame
+	_check(_count_rows(screen) == 2,
+		"two bonded species must draw two rows, drew %d" % _count_rows(screen))
+	screen.set("_spirit_open", first.id)
+	screen.call("_refresh")
+	await get_tree().process_frame
+	_check(_count_rows(screen) == 3,
+		"an opened species under the toggle must show only its bonded spirit, drew %d rows"
+			% _count_rows(screen))
+
+	toggle.button_pressed = false
+	await get_tree().process_frame
+	screen.set("_spirit_open", "")
+	screen.call("_refresh")
+	await get_tree().process_frame
+	_check(_count_rows(screen) == spirits,
+		"turning the toggle off must put the whole journal back, drew %d of %d"
+			% [_count_rows(screen), spirits])
+	MetaState.spirit_bonded = saved
 
 
 ## How many rows a tab draws.
