@@ -5640,6 +5640,19 @@ func _show_selected_range(on: bool) -> void:
 		tower.show_range(on)
 
 
+## **Escape closes a sheet before it pauses** (owner, 2026-10-01). The road
+## sheet first, because it opens over the build sheet's place; then the build
+## sheet. Returns whether one closed.
+func close_top_sheet() -> bool:
+	if _road_panel != null and _road_panel.visible:
+		_close_road_panel()
+		return true
+	if _build_panel != null and _build_panel.visible:
+		_close_build_panel()
+		return true
+	return false
+
+
 func _close_build_panel() -> void:
 	if _build_panel == null or not _build_panel.visible:
 		return

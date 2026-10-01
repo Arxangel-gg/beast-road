@@ -56,6 +56,24 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu_pressed)
 
 
+## **A second Escape closes it** (owner, 2026-10-01: *"Pressing Esc again
+## while on the pause screen should close the pause menu"*). The run opens this
+## menu and then stops hearing keys, because opening it pauses the tree and the
+## run is not `PROCESS_MODE_ALWAYS` - so nothing heard the second press. This
+## screen is, and answers it through `toggle`, which closes the settings first
+## and the menu after.
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_open():
+		return
+	if event.is_action_pressed(&"pause") or event.is_action_pressed(&"ui_cancel"):
+		get_viewport().set_input_as_handled()
+		toggle()
+
+
+func is_open() -> bool:
+	return panel.visible or (_settings != null and _settings.visible)
+
+
 ## **Leaving is said before it is done** (2026-09-21, roadmap §7.2: "a player
 ## who quits mid-act should be *told* what they will lose"). A road banks only
 ## when the party turns for home at a crossroad, so a quit from here abandons

@@ -34,6 +34,10 @@ var _crisp: CrispText = null
 var _walk: TutorialWalk = null
 
 var _scope: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
+## Where the battlefield's zoom stood when the view last left it for the Town or
+## Yuri, as a share of its band; negative until it has left once. Escape puts it
+## back there (`return_to_field`).
+var _field_zoom_share: float = -1.0
 
 ## Set while a raid or crossroad has taken over, so scope switching is refused
 ## rather than silently leaving a frozen battlefield behind.
@@ -302,7 +306,13 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"pause"):
-		pause_ui.toggle()
+		get_viewport().set_input_as_handled()
+		escape(true)
+		return
+	# A pad's B - or Escape, if a player has moved Pause to another key - is
+	# "back" and never "pause": it closes what is open and leaves a scope, and
+	# with nothing to close it does nothing at all.
+	if event.is_action_pressed(&"ui_cancel") and escape(false):
 		get_viewport().set_input_as_handled()
 		return
 	if _locked:
@@ -500,6 +510,61 @@ func _clear_push() -> void:
 	_pinch_overshoot = 1.0
 
 
+## **Escape, topmost first** (owner, 2026-10-01: *"Pressing Esc while any menu
+## is open should close the highest layer menu first each time it's pressed and
+## if there's nothing open then it can go to the pause menu. The town and beast
+## scopes can also be returned to the battlefield scope with Esc at the last
+## zoom the screen was at before entering either of the scopes."*).
+##
+## One press closes one thing, in the order they stack: what the crossroad
+## screen can refuse (the leave-one-behind table, an armed Banish, the draft
+## itself as Later), a wayside card (Walk on), the Town's sheet, the build and
+## road sheets, and then the Town or Yuri back to the battlefield. Only with
+## nothing left does it pause. A fork, a relic, a portent and the pass home are
+## decisions rather than menus, so they are not closed - the run pauses over
+## them, as it always did. The crossroad screen's layers are asked even while
+## the run is locked, because a crossroad is exactly when it is locked; the rest
+## are not, so a raid or a cinematic still pauses on the first press. The pause
+## menu answers the press after it opened itself (`PauseMenu._unhandled_input`),
+## because opening it pauses the tree and this node with it.
+##
+## Returns whether it did anything. `may_pause` is false for "back" (`ui_cancel`
+## alone), which closes and leaves but never pauses.
+func escape(may_pause: bool) -> bool:
+	if crossroad_ui != null and crossroad_ui.close_top_layer():
+		return true
+	if _wayside_card != null and _wayside_card.visible:
+		_wayside_card.close()
+		return true
+	if not _locked:
+		if town_panel != null and town_panel.is_open():
+			town_panel.close()
+			return true
+		if hud != null and hud.close_top_sheet():
+			return true
+		if _scope == GameDirector.Scope.TOWN or _scope == GameDirector.Scope.BEAST:
+			return_to_field()
+			return true
+	if not may_pause:
+		return false
+	pause_ui.toggle()
+	return true
+
+
+## Back onto the battlefield **at the zoom it had when the view left it**, so
+## a look at the Town or at Yuri costs nothing about how the fight was framed.
+## A return by the wheel still lands at the band's end (`_zoom_back_to_field`),
+## because there the zoom is the motion that brought the player back.
+func return_to_field() -> void:
+	_clear_push()
+	if _scope == GameDirector.Scope.BEAST:
+		beast.set_zoomed_out(false)
+	switch_scope(GameDirector.Scope.BATTLEFIELD)
+	var rig := battlefield.camera as CameraRig
+	if rig != null and _field_zoom_share >= 0.0:
+		rig.set_zoom_share(_field_zoom_share)
+
+
 ## In is the Town, out is Yuri.
 func _cross_from_field(direction: int) -> void:
 	if direction > 0:
@@ -601,6 +666,10 @@ func switch_scope(scope: GameDirector.Scope) -> void:
 
 	# A push half-built toward one end must not carry into another view.
 	_clear_push()
+	if _scope == GameDirector.Scope.BATTLEFIELD:
+		var rig := battlefield.camera as CameraRig
+		if rig != null:
+			_field_zoom_share = rig.zoom_share()
 	_scope = scope
 	GameDirector.current_scope = scope
 

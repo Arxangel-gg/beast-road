@@ -1374,10 +1374,41 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 	keep.add_theme_font_size_override("font_size", 18)
 	keep.tooltip_text = "Leave nothing behind and go back to the cards on the table."
 	keep.pressed.connect(_keep_the_hand)
+	_keep_hand_button = keep
 	foot.add_child(keep)
 	options_box.add_child(foot)
 	_dress_options()
 	panel.visible = true
+
+
+## The refusal on the leave-one-behind table, while that table is the one
+## showing. Escape presses it (`close_top_layer`).
+var _keep_hand_button: Button = null
+
+
+## **What Escape may close here, topmost first** (owner, 2026-10-01: *"Pressing
+## Esc while any menu is open should close the highest layer menu first each
+## time it's pressed"*). Only what can be refused without deciding anything:
+## the leave-one-behind table goes back to the cards, a Banish armed by mistake
+## is disarmed, and the draft is put off - **Later**, which banks it exactly as
+## the button does. A fork, a relic, a portent and the pass home are decisions
+## the road is waiting on, so Escape leaves them alone and the run pauses
+## instead. Returns whether anything closed.
+func close_top_layer() -> bool:
+	if not is_open():
+		return false
+	if is_instance_valid(_keep_hand_button) \
+			and _keep_hand_button.is_inside_tree() \
+			and not _keep_hand_button.is_queued_for_deletion():
+		_keep_the_hand()
+		return true
+	if not _augment_open:
+		return false
+	if _banishing:
+		_arm_banish()
+		return true
+	close_augment_draft()
+	return true
 
 
 ## Refuses the drop: the take is forgotten and the table is laid again.
