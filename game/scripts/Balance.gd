@@ -8651,6 +8651,14 @@ const PARTY_LOG_WIDTH: float = 420.0
 ## Bounded because it arrives from the network and is drawn: a line long enough
 ## to fill the screen is a line long enough to hide a wave behind. [TUNE]
 const CHAT_MAX_LENGTH: int = 140
+## The chat as League's (2026-10-01): how many lines a burst may be inside how
+## long before the box asks the speaker to slow down, how many of a player's
+## own lines Up and Down remember, and how many of the log's lines come back
+## while the box is open.
+const CHAT_BURST: int = 4
+const CHAT_BURST_SECONDS: float = 5.0
+const CHAT_HISTORY: int = 20
+const CHAT_OPEN_LINES: int = 10
 
 ## How many friends may be kept, and how often the list is refreshed.
 ##

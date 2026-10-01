@@ -2169,7 +2169,10 @@ func _drive_warden(delta: float) -> void:
 		_relay(delta)
 		return
 	var way := Vector2.ZERO
-	if _driving:
+	# The Warden's card has a name field: a name typed into it walked the
+	# Warden across the square letter by letter. See `TextFocus`.
+	var hands: bool = _driving and not TextFocus.typing(self)
+	if hands:
 		way = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 		if way.length_squared() > 0.01:
 			_walk_to = Vector2.INF
@@ -2180,7 +2183,7 @@ func _drive_warden(delta: float) -> void:
 				way = step.normalized()
 			else:
 				_walk_to = Vector2.INF
-	if _driving and _dash_rest <= 0.0 and Input.is_action_just_pressed(&"dash"):
+	if hands and _dash_rest <= 0.0 and Input.is_action_just_pressed(&"dash"):
 		# Dashing where they are pointing, or where they are facing if they are
 		# standing still - a dash that went nowhere because no key was down is a
 		# press that did nothing.
@@ -2195,7 +2198,7 @@ func _drive_warden(delta: float) -> void:
 	# second one. There is nothing here to fight, so none of the road's reasons
 	# to be put on your feet apply - what a mount buys in the Hold is the size
 	# of the place, and the yard is three and a half thousand units across.
-	if _driving and Input.is_action_just_pressed(&"mount"):
+	if hands and Input.is_action_just_pressed(&"mount"):
 		_toggle_ride(seat, way)
 	var riding: bool = bool(seat.get("riding", false))
 	# **Sprinting here costs nothing.** Owner, 2026-09-18: *"Players should
@@ -2206,7 +2209,7 @@ func _drive_warden(delta: float) -> void:
 	# thousand units across that makes you walk is the size working against
 	# the place. The Warden's own pool is never read and never spent.
 	var running: float = 1.0
-	if _driving and Input.is_action_pressed(&"sprint"):
+	if hands and Input.is_action_pressed(&"sprint"):
 		running = Balance.HOLD_SPRINT_SPEED
 	var speed: float = Balance.HOLD_WALK_SPEED * running \
 		* (Balance.HOLD_MOUNT_SPEED if riding else 1.0)

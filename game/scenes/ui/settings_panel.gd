@@ -1084,6 +1084,14 @@ func _build_controls(column: VBoxContainer) -> void:
 	for entry: Dictionary in KeyBindings.REBINDABLE:
 		list.add_child(_binding_row(entry))
 
+	# The keys that do not move, listed so they can be found - see
+	# `KeyBindings.FIXED`.
+	var fixed_note: Label = _label("Fixed keys", 15)
+	fixed_note.add_theme_color_override("font_color", Color(0.86, 0.78, 0.6, 0.95))
+	list.add_child(fixed_note)
+	for entry: Dictionary in KeyBindings.FIXED:
+		list.add_child(_fixed_row(entry))
+
 	var reset := Button.new()
 	reset.text = "Reset all keys"
 	reset.custom_minimum_size = Vector2(0.0, 44.0)
@@ -1093,6 +1101,23 @@ func _build_controls(column: VBoxContainer) -> void:
 		_refresh_bindings()
 		_queue_save())
 	column.add_child(reset)
+
+
+func _fixed_row(entry: Dictionary) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "Fixed_" + String(entry["label"]).validate_node_name()
+	row.add_theme_constant_override("separation", 14)
+	var name_label: Label = _label(String(entry["label"]))
+	name_label.custom_minimum_size = Vector2(180.0, 0.0)
+	row.add_child(name_label)
+	var key_label: Label = _label(KeyBindings.label_for(entry["action"])
+		if entry.has("action") else String(entry["key"]))
+	key_label.custom_minimum_size = Vector2(190.0, 34.0)
+	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	key_label.add_theme_color_override("font_color", Color(0.82, 0.8, 0.74, 0.9))
+	row.add_child(key_label)
+	return row
 
 
 func _binding_row(entry: Dictionary) -> HBoxContainer:

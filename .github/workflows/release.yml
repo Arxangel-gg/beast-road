@@ -166,6 +166,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/game_speed_check.tscn
           run_godot_clean --headless --path game res://tools/qol_check.tscn
           run_godot_clean --headless --path game res://tools/escape_check.tscn
+          run_godot_clean --headless --path game res://tools/chat_check.tscn
           run_godot_clean --headless --path game res://tools/slider_clearance_check.tscn
           run_godot_clean --headless --path game res://tools/hitbox_check.tscn
           run_godot_clean --headless --path game res://tools/comfort_card_check.tscn

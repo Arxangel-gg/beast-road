@@ -11,6 +11,8 @@ extends HeroInput
 
 
 func move() -> Vector2:
+	if _typing():
+		return Vector2.ZERO
 	# The stick when it is pushed, the keys otherwise — rather than one device
 	# being selected in a menu. A player with a pad in their hands and a keyboard
 	# on the desk uses both without telling the game which.
@@ -72,7 +74,16 @@ func _click_uses() -> bool:
 var _using_click: bool = false
 
 
+## **Nothing a hand does reaches the Warden while the player is typing**
+## (2026-10-01). A line typed into the chat walked, swung and cast with every
+## letter, because the keys are polled rather than heard - see `TextFocus`.
+func _typing() -> bool:
+	return hero != null and TextFocus.typing(hero)
+
+
 func _read_press(button: int) -> bool:
+	if _typing():
+		return false
 	match button:
 		BUTTON_ATTACK:
 			if not Input.is_action_just_pressed(&"attack"):
@@ -111,6 +122,8 @@ func _read_press(button: int) -> bool:
 
 
 func _read_hold(mask: int) -> bool:
+	if _typing():
+		return false
 	if mask == HOLD_REVIVE:
 		# The touch button is asked as well as the key. There is no `revive`
 		# action a thumb can reach, so on a phone this was always false and a

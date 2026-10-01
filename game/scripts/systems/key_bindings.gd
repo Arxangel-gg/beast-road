@@ -61,6 +61,24 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"pause", "label": "Pause"},
 ]
 
+## **The keys that are not rebindable, said on the same page** (2026-10-01).
+## The chat had a key since it was written and the Controls page never listed
+## it, which is how it came to be reported as having none. These stay fixed for
+## a reason each: Enter is what every chat in every game opens with and a letter
+## would be typed into the box it opened; the pad is full, so none of them has
+## a button (see the memory note on `REBINDABLE`); and the rest are view keys.
+## `action` names the action whose key is read, so a key changed in the project
+## is said correctly here; `key` is for the ones no action owns.
+const FIXED: Array[Dictionary] = [
+	{"action": &"chat", "label": "Chat: open, send"},
+	{"key": "Up / Down", "label": "Chat: say a line again"},
+	{"key": "Esc", "label": "Close the topmost thing, then pause"},
+	{"action": &"toggle_minimap", "label": "Map"},
+	{"key": "P", "label": "Fast forward (alone)"},
+	{"key": "Wheel", "label": "Zoom, and the Town and Yuri past its ends"},
+]
+
+
 ## Controller bindings, added on top of the shipped keyboard ones.
 ##
 ## Held here rather than in `project.godot` for two reasons. The project file
