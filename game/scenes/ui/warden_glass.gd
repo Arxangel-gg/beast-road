@@ -356,6 +356,11 @@ func _build_choices(body: VBoxContainer) -> void:
 			MetaState.dye_as_preset(index)
 			_changed(Color.from_hsv(float(index) / float(WardenLook.PRESETS.size()), 0.5, 1.0)))
 		presets.add_child(preset)
+	# A breath between the last dye's rail and the presets under it, which sat
+	# six pixels below it (2026-10-01, `slider_clearance_check`).
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0.0, 8.0)
+	cloth.add_child(gap)
 	cloth.add_child(presets)
 
 

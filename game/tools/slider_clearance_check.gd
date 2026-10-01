@@ -23,7 +23,7 @@ extends Node
 ## so a screen with a slider that is not on the list below is named by a source
 ## walk.
 
-const CLEARANCE: float = 6.0
+const CLEARANCE: float = 8.0
 const SHAPES: Array[Vector2i] = [Vector2i(1920, 1080), Vector2i(1280, 592)]
 ## Every script that builds a slider, and the screen here that stands it up.
 const COVERED: Array[String] = [
