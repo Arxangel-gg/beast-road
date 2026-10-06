@@ -101,11 +101,9 @@ func _on_partner_levelled(seat: int, level: int) -> void:
 	if body == null:
 		return
 	var at: Vector2 = body.global_position
-	Vfx.rays(at, Balance.PARTY_JUICE_LEVEL, 10, 96.0)
-	Vfx.spark(at, Balance.PARTY_JUICE_LEVEL, 14, Vector2.UP, 190.0)
-	Vfx.ring(at, 110.0, Color(Balance.PARTY_JUICE_LEVEL, 0.7), 0.5, 4.0)
-	Vfx.word(at + Vector2(0.0, -70.0), "LEVEL %d" % level,
-		Balance.PARTY_JUICE_LEVEL, 28)
+	# The same pillar this machine's own Warden gets (2026-10-06), through the
+	# one door, so the two cannot drift; smaller and in the party's gold.
+	Vfx.level_burst(at, level, false)
 	# Quieter than your own: it is somebody else's moment and you are still in a
 	# fight. The same reasoning the distance ear is built on.
 	Sfx.play_at("sfx_ui_confirm", at, Balance.PARTY_JUICE_QUIETER)

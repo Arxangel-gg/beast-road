@@ -2273,7 +2273,7 @@ func targeting_speed() -> float:
 	if _alert_left > 0.0:
 		speed *= Balance.ENEMY_ALERT_SPEED_SCALE
 	if _boss_phase > 0:
-		speed *= 1.0 + data.phase_speed_bonus * float(_boss_phase)
+		speed *= 1.0 + data.phase_speed_bonus * _phase_share()
 	if RunState.horn_active:
 		speed *= Balance.HORN_ENEMY_SPEED_SCALE
 	return speed
@@ -2635,7 +2635,7 @@ func _strike() -> void:
 			* _mark_scale(&"damage_scale")
 			* _enemy_damage_scale(), RunState.rng("combat"))
 	if _boss_phase > 0:
-		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+		damage *= 1.0 + data.phase_damage_bonus * _phase_share()
 	if data.role != EnemyData.Role.HOWLER:
 		var howler: Enemy = _nearby_howler()
 		if howler != null:
@@ -2752,7 +2752,17 @@ func boss_phase() -> int:
 ## How much sooner a boss in this phase slams and throws. One in phase zero;
 ## see `Balance.BOSS_PHASE_TEMPO`.
 func _phase_tempo() -> float:
-	return 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * float(maxi(_boss_phase, 0)))
+	return 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * _phase_share())
+
+
+## How far through its phases this boss is, 0 before the first break and 1 in
+## the last (2026-10-06): the tempo, the speed bonus and the damage bonus
+## climb by this rather than by the count, so a boss that breaks eleven
+## times ends where its data says and not eleven times past it.
+func _phase_share() -> float:
+	if data == null or data.phase_thresholds.is_empty() or _boss_phase <= 0:
+		return 0.0
+	return clampf(float(_boss_phase) / float(data.phase_thresholds.size()), 0.0, 1.0)
 
 
 func apply_boss_phase(phase: int) -> void:
@@ -4628,7 +4638,7 @@ func _land_slam() -> void:
 	var damage: float = data.contact_damage * data.boss_slam_damage * _damage_scale \
 		* _enemy_damage_scale()
 	if _boss_phase > 0:
-		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+		damage *= 1.0 + data.phase_damage_bonus * _phase_share()
 	# Bounded by what a hero can live through. See `Balance.boss_slam_ceiling`:
 	# the authored multiplier decides the boss's character and the ceiling
 	# decides whether the player gets to be wrong about a telegraph once.
@@ -4664,7 +4674,7 @@ func _throw_volley(quarry: Node2D) -> void:
 	var damage: float = data.contact_damage * data.boss_volley_damage * _damage_scale \
 		* _enemy_damage_scale()
 	if _boss_phase > 0:
-		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+		damage *= 1.0 + data.phase_damage_bonus * _phase_share()
 	var shots: int = maxi(data.boss_volley_shots, 1)
 	# **The shot, and the whole burst.** A boss that throws six has each of them
 	# bounded by the burst rather than by the single-shot share, so throwing

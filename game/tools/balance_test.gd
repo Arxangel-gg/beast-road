@@ -2659,12 +2659,30 @@ func _test_enemies_walk_the_road(field: Battlefield) -> void:
 
 func _test_boss_phases() -> void:
 	var director: BossDirector = _run.boss_director
-	for act: int in range(1, Balance.ACT_COUNT + 1):
+	# **One break per act, spread evenly, the first boss at half** (owner,
+	# 2026-10-06; two phases for every boss until then). Held to the spread
+	# `Balance.boss_phase_breaks` states rather than to a count alone, and
+	# through the summit, because the Chainmaker is an act boss too.
+	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
 		var boss: EnemyData = director._boss_for_act(act)
-		_check(boss != null and boss.phase_thresholds.size() == 2,
-			"every act boss must have two encounter phases")
+		_check(boss != null and boss.phase_thresholds.size() == act,
+			"the Act %d boss must break %d times, breaks %d" % [act, act,
+				boss.phase_thresholds.size() if boss != null else -1])
+		if boss != null:
+			var expected: Array[float] = Balance.boss_phase_breaks(act)
+			for which: int in mini(expected.size(), boss.phase_thresholds.size()):
+				_check(absf(boss.phase_thresholds[which] - expected[which]) < 0.002,
+					"the Act %d boss's break %d sits at %.3f, not %.3f" % [act, which + 1,
+						boss.phase_thresholds[which], expected[which]])
+			for which: int in range(1, boss.phase_thresholds.size()):
+				_check(boss.phase_thresholds[which] < boss.phase_thresholds[which - 1],
+					"the Act %d boss's breaks must fall in order" % act)
 		_check(boss != null and boss.phase_names.size() == boss.phase_thresholds.size(),
 			"boss phase thresholds and names must stay aligned")
+	var first: EnemyData = director._boss_for_act(1)
+	_check(first != null and first.phase_thresholds.size() == 1
+			and is_equal_approx(first.phase_thresholds[0], 0.5),
+		"the first boss must break once, at half")
 	# Exercise the live threshold contract once. Reinforcement composition itself
 	# is data-tested above and the soak test covers spawning under load.
 	director._defeated_acts.clear()
@@ -2674,7 +2692,10 @@ func _test_boss_phases() -> void:
 	_check(boss_enemy != null, "summoned boss must remain active")
 	if boss_enemy != null:
 		var health: Health = Health.of(boss_enemy)
-		health.take_damage(health.max_hp * 0.36, Vector2.ZERO)
+		# Just past its first break, wherever the data put it.
+		var first_break: float = boss_enemy.data.phase_thresholds[0] \
+			if not boss_enemy.data.phase_thresholds.is_empty() else 0.5
+		health.take_damage(health.max_hp * (1.0 - first_break + 0.02), Vector2.ZERO)
 		_check(director._active_phase >= 1,
 			"boss must enter a new phase after crossing its first health threshold")
 		boss_enemy.queue_free()

@@ -1683,6 +1683,15 @@ const LIGHT_BURST_GROUP: StringName = &"light_bursts"
 var _light_bursts: Array[PointLight2D] = []
 
 
+## How many burst lights are alive, for a gate.
+func live_light_bursts() -> int:
+	var alive: int = 0
+	for old: Variant in _light_bursts:
+		if is_instance_valid(old):
+			alive += 1
+	return alive
+
+
 func light_burst(at: Vector2, colour: Color, radius: float, energy: float,
 		life: float = 0.35, finish_when_paused: bool = false) -> void:
 	if world == null or not Graphics.light_bursts():
@@ -2078,13 +2087,48 @@ func _on_boss_defeated_juice(_boss_id: String, _act: int) -> void:
 ## Rays rather than a ring: a ring reads as an area of effect, and this is not
 ## one - nothing on the field has been touched, the player has.
 func _on_hero_levelled(level: int, _attribute_points: int, _skill_points: int) -> void:
-	var at: Vector2 = _hero_position()
-	rays(at, Color(1.0, 0.85, 0.42), 10, 96.0)
-	spark(at, Color(1.0, 0.9, 0.6), 14, Vector2.UP, 190.0)
+	level_burst(_hero_position(), level, true)
+
+
+## **Levelling up, Diablo's way** (owner, 2026-10-06). A pillar of gold light
+## out of the ground over the Warden for `LEVEL_PILLAR_SECONDS`, two rings
+## leaving the feet, rays, `LEVEL_BURST_MOTES` motes rising through the
+## pillar, a real light so the towers near are lit by it, the forged columns
+## and the word. **One function for this machine's Warden and for a partner's
+## body** (`PartyJuice._on_partner_levelled`, off `coop_partner_levelled`), so
+## the two cannot drift: a partner's is the same picture in the party's own
+## gold, a little smaller, and quieter - it is somebody else's moment and you
+## are still in a fight. Records on the ink and one light; nothing reads it.
+func level_burst(at: Vector2, level: int, own: bool = true) -> void:
+	var gold: Color = Color(1.0, 0.86, 0.46) if own else Balance.PARTY_JUICE_LEVEL
+	var size: float = 1.0 if own else 0.82
+	# The pillar: a feathered band straight up out of the feet, widening as
+	# the rings leave and fading as it climbs.
+	beam(at, at + Vector2(0.0, -Balance.LEVEL_PILLAR_HEIGHT * size),
+		Balance.LEVEL_PILLAR_WIDTH * size, Color(gold.r, gold.g, gold.b, 0.85),
+		Balance.LEVEL_PILLAR_SECONDS)
+	beam(at, at + Vector2(0.0, -Balance.LEVEL_PILLAR_HEIGHT * size * 0.7),
+		Balance.LEVEL_PILLAR_WIDTH * size * 0.38, Color(1.0, 0.97, 0.86, 0.95),
+		Balance.LEVEL_PILLAR_SECONDS * 0.8)
+	ring(at, 76.0 * size, Color(gold.r, gold.g, gold.b, 0.85), 0.42, 5.0)
+	ring(at, 150.0 * size, Color(gold.r, gold.g, gold.b, 0.6), 0.8, 3.0)
+	rays(at, gold, 12, 110.0 * size)
+	spark(at, Color(1.0, 0.92, 0.66), 16, Vector2.UP, 210.0 * size)
+	# Motes rising through the pillar, each on its own line and clock.
+	for index: int in Balance.LEVEL_BURST_MOTES:
+		var across: float = randf_range(-Balance.LEVEL_PILLAR_WIDTH * 0.6, Balance.LEVEL_PILLAR_WIDTH * 0.6) * size
+		var start: Vector2 = at + Vector2(across, randf_range(-20.0, 10.0))
+		mote(start, Vector2(across * 0.3, -randf_range(90.0, 220.0) * size),
+			Color(gold.r, gold.g, gold.b, randf_range(0.55, 0.95)),
+			randf_range(2.4, 5.0) * size, randf_range(0.7, Balance.LEVEL_PILLAR_SECONDS + 0.3))
+	flash_at(at + Vector2(0.0, -40.0 * size), gold, 64.0 * size)
+	light_burst(at + Vector2(0.0, -60.0 * size), gold, Balance.LEVEL_BURST_LIGHT_RADIUS * size,
+		Balance.LEVEL_BURST_LIGHT_ENERGY * size, 0.7)
 	# Columns of light out of the ground and a ring at the feet. Upright, so
 	# it is never turned - what it is a picture of knows where down is.
-	forge_play("level_up", at, FORGE_LEVEL_REACH, Color(1.0, 0.88, 0.52))
-	word(at + Vector2(0.0, -70.0), "LEVEL %d" % level, Color(1.0, 0.88, 0.5), 30)
+	forge_play("level_up", at, FORGE_LEVEL_REACH * size, Color(gold.r, gold.g, gold.b, 1.0))
+	word(at + Vector2(0.0, -70.0), "LEVEL %d" % level, Color(gold.r, gold.g, gold.b, 1.0),
+		30 if own else 28)
 
 
 ## Back on your feet. A short exhale, not a celebration.

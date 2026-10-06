@@ -4890,6 +4890,18 @@ const BLOOM_STRENGTH_NIGHT: float = 0.70
 ## decaying over its life. Capped, because every light re-draws what stands
 ## under it, and the oldest gives way. It stands `LIGHT_BURST_HEIGHT` high so a
 ## shaded tower beside it is lit from above and across.
+## **Levelling up, Diablo's way** (owner, 2026-10-06: "Player level-up VFX on
+## battlefield, co-op replicated, Diablo-style"). A pillar of gold light out of
+## the ground over the Warden, two rings leaving the feet, motes rising and a
+## real light the towers are lit by - the same picture, quieter, at a partner's
+## body when the wire says they levelled. A look and nothing else.
+const LEVEL_PILLAR_HEIGHT: float = 240.0
+const LEVEL_PILLAR_WIDTH: float = 34.0
+const LEVEL_PILLAR_SECONDS: float = 0.9
+const LEVEL_BURST_MOTES: int = 24
+const LEVEL_BURST_LIGHT_RADIUS: float = 260.0
+const LEVEL_BURST_LIGHT_ENERGY: float = 1.3
+
 const LIGHT_BURST_MAX: int = 4
 const LIGHT_BURST_HEIGHT: float = 160.0
 
@@ -12648,7 +12660,26 @@ const BOSS_SLAM_COMMIT: float = 0.85
 ## by this share. The slam is the same slam and the volley the same volley,
 ## sooner: a rate the fight already has, which is the bound every boss ability
 ## is held to. `boss_reach_check` measures it on a real body.
-const BOSS_PHASE_TEMPO: float = 0.22
+## **0.22 a phase until 2026-10-06; 0.44 over the whole fight since.** Owner:
+## "Act boss phases on HP thresholds; Act 1 boss 2 phases at 50%; each act +1
+## phase." An act boss breaks as many times as its act number, the breaks
+## spread evenly through its pool, so the Chainmaker breaks eleven times - and
+## a tempo, a speed bonus and a damage bonus that each climbed *per phase*
+## would have made him swing four times a second at the end. All three climb
+## by the **share** of the fight's phases entered (`Enemy._phase_share`), so
+## what a boss's data authors is where it stands in its last phase, whatever
+## its act, and the two-phase bosses of 2026-09-21 end exactly where they did.
+## `boss_phase_breaks` is the spread `balance_test` holds the data to.
+const BOSS_PHASE_TEMPO: float = 0.44
+
+
+## Where an act boss's breaks sit: one per act, spread evenly through its pool,
+## so the first boss breaks once at half (owner, 2026-10-06).
+static func boss_phase_breaks(act: int) -> Array[float]:
+	var out: Array[float] = []
+	for k: int in range(1, maxi(act, 1) + 1):
+		out.append(1.0 - float(k) / float(maxi(act, 1) + 1))
+	return out
 
 ## What a slam does besides damage: it throws you.
 ##

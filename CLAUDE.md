@@ -13143,6 +13143,41 @@ and its emplacements would be refunded rather than found standing.
   and with a finger. If the owner can say whether it happens on a desktop or a
   phone and on which click, that is the next repro to write.
 
+**An act boss breaks as many times as its act number, as of 2026-10-06.**
+Owner: *"Act boss phases on HP thresholds; Act 1 boss 2 phases at 50%; each
+act +1 phase."* Every boss had two breaks at about two thirds and one third.
+The breaks are one per act now, spread evenly through the pool
+(`Balance.boss_phase_breaks`): the first boss once at half, the Chainmaker
+eleven times. Sixty-six phase names were authored, each boss's own.
+
+**The scaling had to change with it, and that is the decision.** The tempo,
+the speed bonus and the damage bonus each climbed *per phase*
+(`BOSS_PHASE_TEMPO` 0.22 a phase, `phase_speed_bonus` 0.14 a phase) - fine
+for two, and eleven of them would have had Kharok swinging four times a second
+in his last phase. All three climb by the **share** of the fight's phases
+entered (`Enemy._phase_share`), so what a boss's data authors is where it
+stands in its last phase whatever its act: `BOSS_PHASE_TEMPO` is 0.44 over the
+whole fight and every boss's bonuses were doubled, which is exactly where the
+two-phase bosses of 2026-09-21 ended. The phase shake is bounded at four
+breaks' worth. The Chainmaker's reinforcements come on two roads rather than
+four, because eleven breaks on four roads is forty-four wardens.
+`balance_test` holds every act boss to the spread and the first to half;
+`boss_reach_check` measures the tempo and the speed by share on a real body
+and holds the Chainmaker's last phase to the authored bonus - planted with the
+per-phase rule back, it read him walking at 2.65 of his pace.
+
+**Levelling up is a pillar of light, as of the same date.** Owner: *"Player
+level-up VFX on battlefield, co-op replicated, Diablo-style."* A level was
+rays, sparks, a forged sheet and the word; a partner's was the same four
+written out a second time in `PartyJuice`. `Vfx.level_burst` is the one
+function: a pillar of gold out of the ground (`LEVEL_PILLAR_*`, two beams on
+the additive ink), two rings leaving the feet, rays, `LEVEL_BURST_MOTES` motes
+rising through it, a real light so the towers near are lit by it, the forged
+columns and the word - and `PartyJuice._on_partner_levelled` calls it with
+`own = false`, smaller and in the party's gold, so the two cannot drift.
+Records and one light; nothing reads it. `feel_check` counts the pillar, the
+rings and the motes off the ink and holds both callers to the one door.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

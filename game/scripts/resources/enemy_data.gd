@@ -368,6 +368,12 @@ func repertoire() -> Array[EnemyShotData]:
 ## Boss encounter phases. Empty for non-bosses. Crossing each health ratio in
 ## order triggers the matching name, reinforcements, and another step of the
 ## authored speed/damage escalation. This keeps boss identity in .tres content.
+##
+## **An act boss breaks as many times as its act number** (owner, 2026-10-06),
+## the breaks spread evenly (`Balance.boss_phase_breaks`), the first boss once
+## at half. The speed and damage bonuses are what the boss carries in its
+## **last** phase, reached by the share of phases entered - not a step per
+## phase, which eleven phases would have multiplied past any tuning.
 @export var phase_thresholds: Array[float] = []
 @export var phase_names: Array[String] = []
 @export var phase_reinforcement_enemy_id: String = ""

@@ -419,7 +419,38 @@ func _test_the_field() -> void:
 
 	await _test_a_blow_is_anticipated(field)
 	await _test_the_road_settles(field)
+	_test_a_level_is_a_pillar_of_light(field)
 	await _leave(run)
+
+
+## **Levelling up is a pillar of light** (owner, 2026-10-06), on the ink and
+## nothing else, and a partner's level goes through the same door - both held
+## by the source, because the fault either way is an omission.
+func _test_a_level_is_a_pillar_of_light(field: Battlefield) -> void:
+	var light: VfxInk = Vfx.ink()
+	_check(light != null, "no additive ink to draw a level on")
+	if light == null:
+		return
+	light.clear()
+	var at: Vector2 = field.hero.global_position if field.hero != null else Vector2.ZERO
+	var lights_before: int = Vfx.live_light_bursts()
+	Vfx.level_burst(at, 7, true)
+	_check(light.live_beams() >= 2, "a level drew %d pillars, wanted the pillar and its core" % light.live_beams())
+	_check(light.live_rings() >= 2, "a level drew %d rings, wanted two leaving the feet" % light.live_rings())
+	_check(light.live() >= Balance.LEVEL_BURST_MOTES + 2, "a level drew %d records, too few for its motes" % light.live())
+	_check(Vfx.live_light_bursts() == lights_before + 1 or not Graphics.light_bursts(),
+		"a level threw %d lights, wanted one" % (Vfx.live_light_bursts() - lights_before))
+	light.clear()
+	Vfx.level_burst(at, 7, false)
+	_check(light.live_beams() >= 2 and light.live_rings() >= 2,
+		"a partner's level is not the same picture (%d pillars, %d rings)" % [light.live_beams(), light.live_rings()])
+	light.clear()
+	var juice: String = FileAccess.get_file_as_string("res://scripts/systems/party_juice.gd")
+	_check(juice.contains("Vfx.level_burst(at, level, false)"),
+		"a partner's level does not go through the one door")
+	var vfx: String = FileAccess.get_file_as_string("res://autoload/Vfx.gd")
+	_check(vfx.contains("level_burst(_hero_position(), level, true)"),
+		"this machine's level does not go through the one door")
 
 
 ## **The road settles after a held wave** (2026-09-30): the cell where most fell

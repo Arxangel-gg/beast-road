@@ -323,12 +323,21 @@ func _test_a_boss_quickens_as_it_breaks(field: Battlefield, hero: Hero) -> void:
 	_check(is_equal_approx(rested, boss.boss_slam_interval),
 		"in phase zero the slam waits its authored %.1f s, waited %.1f"
 			% [boss.boss_slam_interval, rested])
+	# **By the share of its phases, not the count** (2026-10-06): two phases in
+	# is the whole of a two-phase boss's climb, and the authored speed bonus
+	# is what it carries there.
+	var phases: int = maxi(boss.phase_thresholds.size(), 1)
+	var calm_speed: float = enemy.targeting_speed()
 	enemy.apply_boss_phase(2)
 	enemy.call("_begin_slam")
 	var pressed: float = float(enemy.get("_slam_left"))
 	enemy.call("_throw_volley", hero)
 	var pressed_volley: float = float(enemy.get("_volley_left"))
-	var expected: float = 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * 2.0)
+	var share: float = minf(2.0 / float(phases), 1.0)
+	var expected: float = 1.0 / (1.0 + Balance.BOSS_PHASE_TEMPO * share)
+	_check(is_equal_approx(enemy.targeting_speed(), calm_speed * (1.0 + boss.phase_speed_bonus * share)),
+		"%d of %d phases in, the boss should walk at %.2f of its pace, walks %.2f" % [2, phases,
+			1.0 + boss.phase_speed_bonus * share, enemy.targeting_speed() / maxf(calm_speed, 0.001)])
 	_check(is_equal_approx(pressed / maxf(rested, 0.001), expected),
 		"two phases in, the slam should wait %.2f of its clock, waits %.2f"
 			% [expected, pressed / maxf(rested, 0.001)])
@@ -338,6 +347,25 @@ func _test_a_boss_quickens_as_it_breaks(field: Battlefield, hero: Hero) -> void:
 	_check(pressed < rested and pressed > rested * 0.5,
 		"a pressed boss should be sooner and never twice as fast, %.1f against %.1f"
 			% [pressed, rested])
+	# And a boss that breaks eleven times ends where a boss that breaks twice
+	# does: the last phase carries the authored bonus and no more.
+	var deep: EnemyData = ContentDB.enemy("chainmaker")
+	if deep != null:
+		var kharok := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+		kharok.setup(deep, RunState.act, field, 1.0, 1.0, 1.0)
+		field.add_child(kharok)
+		kharok.global_position = hero.global_position + Vector2.LEFT * 400.0
+		var walk: float = kharok.targeting_speed()
+		kharok.apply_boss_phase(deep.phase_thresholds.size())
+		_check(is_equal_approx(kharok.targeting_speed(), walk * (1.0 + deep.phase_speed_bonus)),
+			"in his last of %d phases the Chainmaker walks at %.2f of his pace, not the authored %.2f"
+				% [deep.phase_thresholds.size(), kharok.targeting_speed() / maxf(walk, 0.001),
+					1.0 + deep.phase_speed_bonus])
+		kharok.call("_begin_slam")
+		var last_wait: float = float(kharok.get("_slam_left"))
+		_check(last_wait > deep.boss_slam_interval * 0.5,
+			"in his last phase the Chainmaker slams every %.1f s - more than twice as fast as authored" % last_wait)
+		kharok.queue_free()
 	enemy.queue_free()
 	await get_tree().process_frame
 	await _test_a_boss_makes_one_entrance(field, hero, boss)

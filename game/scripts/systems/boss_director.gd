@@ -206,7 +206,8 @@ func _enter_phase(phase: int) -> void:
 		if phase - 1 < _active.data.phase_names.size() else "Phase %d" % (phase + 1)
 	_spawn_phase_reinforcements(phase)
 	EventBus.boss_phase_changed.emit(_active.data.id, phase, phase_name)
-	EventBus.camera_shake_requested.emit(15.0 + float(phase) * 3.0, 0.8)
+	# Bounded: eleven breaks at three more each would be a shake of fifty.
+	EventBus.camera_shake_requested.emit(15.0 + 3.0 * minf(float(phase), 4.0), 0.8)
 
 
 ## Reinforcements arrive on lanes other than the boss's own. The player's
