@@ -47,9 +47,9 @@ is the hand-over, in the order to do it.
 4. **Photograph the Disciplines avatar** (owner item 27, fixed in 41042adf and
    never photographed): `WardenStage.figure_rect` on the Disciplines page.
 5. **Owner items not started**: 2 (an Arsenal page in the Guide - needs a
-   `guide_shots` photograph), 3 (a legendary affix granting a skill upgrade,
-   ruling R7 - design it under the branch vocabulary in
-   `DisciplineUpgrades`), 23 (a juicier end-of-run report), 25 (Wild Rift
+   `guide_shots` photograph), 3 (a legendary affix granting a skill branch,
+   ruling R7 - **designed**, with its six bounds, in
+   `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`; build it against that), 23 (a juicier end-of-run report), 25 (Wild Rift
    layout inspiration - a triage, then owner ruling), 29, 30, 32, 34 (the beast
    tail - twelve passes; CLAUDE.md 2026-09-28 says the restored paintings
    match, so photograph before touching anything), 35, 36.

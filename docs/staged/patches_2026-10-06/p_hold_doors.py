@@ -7,26 +7,23 @@ r'''	{"id": "stable", "door": "Stable", "art": "res://art/city/building_granary_
 ''',
 r'''	{"id": "stable", "door": "Stable", "art": "res://art/city/building_granary_tier_02.png",
 		"label": "The Stable", "cell": Vector2i(8, 20)},
-	# **Four doors that stood on the front door until 2026-10-06** (owner:
+	# **Three doors that stood on the front door until 2026-10-06** (owner:
 	# "Move Watch Trailer, Guide, Co-op and Warden slots into the Hold as juicy
-	# animated interactables; remove from main menu; elevate the Hold"). Each is
-	# the menu's own button adopted into the room, as every door here is, so the
+	# animated interactables; remove from main menu; elevate the Hold"). Co-op
+	# was already here - "The Gate" below is its door. Each of these is the
+	# menu's own button adopted into the room, as every door here is, so the
 	# screen it opens and the way back are untouched; what is new is a building
 	# to walk up to, with the gem, the beacon and the badge every station wears.
 	# The Guide is an archive on the upper shelf beside the Codex and the
 	# Chronicle, where the books are; the trailer plays from a lookout on the
-	# eastern shelf; the muster for a party stands on the raised pocket east of
-	# the gate, which is where a party would gather before the road; and the
-	# Hall of Wardens - which Warden walks out of here - stands on the eastern
-	# shelf under the Ledger. **This re-cuts the 2026-09-22 line** that choosing
+	# eastern shelf; and the Hall of Wardens - which Warden walks out of here -
+	# stands on the eastern shelf under the Ledger. **This re-cuts the 2026-09-22 line** that choosing
 	# a Warden from inside a room the Warden owns is the wrong way round; the
 	# owner asked for it by name, and the slot screen refuses mid-road as before.
 	{"id": "archive", "door": "Guide", "art": "res://art/city/building_town_hall_tier_02.png",
 		"label": "The Archive", "cell": Vector2i(14, 4)},
 	{"id": "lookout", "door": "Trailer", "art": "res://art/city/building_watchtower_tier_02.png",
 		"label": "The Lookout", "cell": Vector2i(31, 7)},
-	{"id": "muster", "door": "Coop", "art": "res://art/city/building_scavenging_post_tier_02.png",
-		"label": "The Muster", "cell": Vector2i(30, 17)},
 	{"id": "hall", "door": "Wardens", "art": "res://art/city/building_treasury_tier_02.png",
 		"label": "The Hall of Wardens", "cell": Vector2i(31, 11)},
 ''')])
@@ -37,12 +34,13 @@ r'''	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Stable"
 			"Codex", "Leaderboard", "WalkAgain"]:
 		var found: Node = column.get_node_or_null(door)
 ''',
-r'''	# The Guide, the trailer, co-op and the Wardens moved in on 2026-10-06
-	# (owner: "remove from main menu; elevate the Hold"); the front door keeps
-	# the road, the first Walk, the Hold, Settings and Quit.
+r'''	# The Guide, the trailer and the Wardens moved in on 2026-10-06 (owner:
+	# "remove from main menu; elevate the Hold"); co-op was adopted on its own
+	# line above since the Hold was built. The front door keeps the road, the
+	# first Walk, the Hold, Settings and Quit.
 	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Stable",
 			"Chronicle",
-			"Codex", "Leaderboard", "WalkAgain", "Guide", "Trailer", "Coop", "Wardens"]:
+			"Codex", "Leaderboard", "WalkAgain", "Guide", "Trailer", "Wardens"]:
 		var found: Node = column.get_node_or_null(door)
 ''')])
 
@@ -63,11 +61,12 @@ r'''	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "stra
 r'''func _click(at: Vector2) -> void:
 	var motion := InputEventMouseMotion.new()
 ''',
-r'''## **The Guide, the trailer, co-op and the Wardens are doors in the Hold and
-## not on the front door** (owner, 2026-10-06). Through the real menu: each
-## button stands in the Hold's grid, bound to a building of its own in the
-## yard, and the front door's column no longer holds it; pressing the Guide's
-## door from the Hold opens the Guide over the room and closing it comes back.
+r'''## **The Guide, the trailer and the Wardens are doors in the Hold and not on
+## the front door** (owner, 2026-10-06), beside co-op, which already was.
+## Through the real menu: each button stands in the Hold's grid, bound to a
+## building of its own in the yard, and the front door's column no longer
+## holds it; pressing the Guide's door from the Hold opens the Guide over the
+## room and closing it comes back.
 func _test_the_four_doors_moved_in() -> void:
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
@@ -85,7 +84,7 @@ func _test_the_four_doors_moved_in() -> void:
 		return
 	var yard: HoldYard = hub.get("_yard") as HoldYard
 	var grid: Node = hub.get("_grid") as Node
-	for door: String in ["Guide", "Coop", "Wardens"]:
+	for door: String in ["Guide", "Wardens", "Coop"]:
 		var button: Node = grid.get_node_or_null(door) if grid != null else null
 		_check(button is Button, "the Hold's doors have no %s" % door)
 		_check(column.get_node_or_null(door) == null, "the front door still carries %s" % door)

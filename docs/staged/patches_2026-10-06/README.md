@@ -18,8 +18,9 @@ the file's own line endings are kept.
   (it reads the tab's count off the `unlocked` meta now rather than the text).
   Photograph: `phone_hud_shot -- --viewport=1280x592` and `430x932`, the
   sheet states.
-- **`p_hold_doors.py` - the Guide, the trailer, co-op and the Wardens move
-  into the Hold** (owner item 33): four stations in `HoldYard.STATIONS` bound
+- **`p_hold_doors.py` - the Guide, the trailer and the Wardens move into
+  the Hold** (owner item 33; co-op already has "The Gate"): three stations in
+  `HoldYard.STATIONS` bound
   to the menu's own buttons through `HubScreen.adopt`, so each door's handler
   and its way back are untouched; the front door keeps the road, the first
   Walk, the Hold, Settings and Quit. Gate: `hold_check` (a new stage,
