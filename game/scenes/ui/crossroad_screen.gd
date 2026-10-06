@@ -28,6 +28,10 @@ signal extraction_chosen()
 ## An augment draft closed - taken, skipped, or put off till later. The run lets
 ## the field go on it if it was the one that held it.
 signal augment_closed()
+## Another card took the table from an open draft (a fork, a portent, the pass
+## home). The draft stays banked and is not put off; the run lets a field it
+## froze for the draft go, unless the fork now owns it.
+signal augment_yielded()
 
 ## Whether the fork offers the road home at all, and what it pays. Set by the
 ## run before it opens the screen, because whether a return may be taken is a
@@ -319,7 +323,7 @@ func _dim_the_table(dim: bool) -> void:
 
 
 func open(segment_index: int) -> void:
-	_augment_open = false
+	_yield_the_draft()
 	if not RunState.pending_road_relics.is_empty():
 		open_relic_reward(segment_index)
 		return
@@ -609,7 +613,7 @@ func draw_offers(segment_index: int) -> Array[Dictionary]:
 ## Relic Hunt resolves only after its danger has been survived. Present its
 ## authored regional reward before the next road (or the act boss) can begin.
 func open_relic_reward(followup_segment: int = -1) -> void:
-	_augment_open = false
+	_yield_the_draft()
 	# **A card with nothing on it is a dead end**, and a caller guarding is not
 	# the same as the screen being safe - `Run` checks the pool before calling,
 	# and the Guide's own shot tool did not, which is how a "RELIC HUNT COMPLETE"
@@ -1187,7 +1191,7 @@ func _entrance_cards() -> Array[Node]:
 ## second flow would be a second place for the co-op handshake to be subtly
 ## wrong. The card leads with the **cost**, because the cost is the decision.
 func open_omen_choice() -> void:
-	_augment_open = false
+	_yield_the_draft()
 	# The same refusal, for the same reason. `Run._offer_omens` will not open on
 	# fewer than three cards; this is what stops a second caller from doing so.
 	if RunState.pending_omens.is_empty():
@@ -1230,7 +1234,7 @@ func open_omen_choice() -> void:
 ## pays now, what the next act would pay, and what a fall keeps - so the
 ## decision is made with the numbers in view rather than remembered.
 func open_homecoming(act: int, home_marks: int, next_marks: int, fall_marks: int) -> void:
-	_augment_open = false
+	_yield_the_draft()
 	_road_row = null
 	_relic_followup_segment = -1
 	_buttons.clear()
@@ -1338,7 +1342,7 @@ var _pending_take: String = ""
 ## pair travel, as one request. Sending the take and the drop separately would
 ## have made a disconnect between them leave a hand of four.
 func open_road_card_choice() -> void:
-	_augment_open = false
+	_yield_the_draft()
 	_road_row = null
 	_relic_followup_segment = -1
 	_buttons.clear()
@@ -1726,6 +1730,22 @@ func close_augment_draft() -> void:
 	if was:
 		panel.visible = false
 		augment_closed.emit()
+
+
+## **Another card takes the table from an open draft.** Every door onto this
+## panel - the fork, the relic, the pass home, the portent, the road card -
+## used to drop the draft with a bare `_augment_open = false`, and a draft
+## opened by the at-once door had frozen the field for itself: nothing then
+## released it, so a boss falling on At once left the road suspended for the
+## rest of the run (`boss_draft_check`, owner report 2026-10-06). The draft
+## stays banked; what is said is only that the table changed hands.
+func _yield_the_draft() -> void:
+	var was: bool = _augment_open
+	_augment_open = false
+	_banishing = false
+	_pending_take = ""
+	if was:
+		augment_yielded.emit()
 
 
 func is_augment_open() -> bool:

@@ -80,6 +80,11 @@ var ask_homecoming: bool = DisplayServer.get_name() != "headless"
 ## `_ride_home` returns on its first line headless and no gate could reach a
 ## line of it. The same documented seam `MusicPlayer.test_slots` is.
 var withdrawal_test_seconds: float = -1.0
+## How long a gate holds the boss-fall card headless, where it otherwise takes
+## no time at all. `boss_draft_check` sets it: the seconds the card is up are
+## where the at-once draft opens and freezes the field, and that is the window
+## the portent and the pass home used to take the table in.
+var fallen_card_test_seconds: float = 0.0
 ## The phase the field was in when a rift gate was taken, so the road only
 ## resumes if it was moving.
 var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
@@ -144,6 +149,7 @@ func _ready() -> void:
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
 	EventBus.road_card_taken.connect(_on_road_card_taken)
 	crossroad_ui.augment_closed.connect(_on_augment_closed)
+	crossroad_ui.augment_yielded.connect(_on_augment_yielded)
 	EventBus.augment_queued.connect(_on_augment_queued)
 	EventBus.augment_open_requested.connect(_on_augment_open_requested)
 	EventBus.road_rank_gained.connect(_on_road_rank_gained)
@@ -1755,6 +1761,11 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 func _offer_banked_augments() -> void:
 	if crossroad_ui == null or _drafts_elsewhere() or RunState.walking or _locked:
 		return
+	# **A field frozen for a draft that is no longer on the table is a
+	# stranded road**, whatever door dropped the draft. The yield above is the
+	# door that says so; this is the floor under any door that forgets.
+	if _augment_froze_field and not crossroad_ui.is_open():
+		_release_the_frozen_field()
 	if _augments_put_off or RunState.augments_waiting() <= 0:
 		return
 	if not RunState.is_preparation() or RunState.build_grace_left() > 0.0:
@@ -1780,6 +1791,22 @@ func _augment_holds_the_clock() -> bool:
 func _on_augment_closed() -> void:
 	# Closed with drafts still banked is Later: they wait for the next breather.
 	_augments_put_off = RunState.augments_waiting() > 0
+	_release_the_frozen_field()
+
+
+## The table was taken from an open draft by another card. Not Later - the
+## player chose nothing - so the draft comes back the moment the table is
+## free. The field the draft froze is let go now, unless the fork has it:
+## `_open_crossroad` suspends before it opens and `_leave_the_crossroad`
+## resumes, and a resume in between would run the road under the fork.
+func _on_augment_yielded() -> void:
+	if _locked:
+		_augment_froze_field = false
+		return
+	_release_the_frozen_field()
+
+
+func _release_the_frozen_field() -> void:
 	if _augment_froze_field:
 		_augment_froze_field = false
 		battlefield.resume()
@@ -1887,7 +1914,16 @@ func wayside_card() -> WaysideCard:
 ## time or it is not punctuation.
 func _show_the_fallen(boss_id: String, act: int) -> void:
 	var boss: EnemyData = ContentDB.enemy(boss_id)
-	if boss == null or DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless":
+		# **The card takes seconds in play and none headless**, and that gap is
+		# where a draft opened by the at-once door used to freeze the field
+		# under the card and be dropped by the portent laid over it
+		# (`boss_draft_check`). The seam holds the card for a gate, as
+		# `withdrawal_test_seconds` holds the walk out.
+		if fallen_card_test_seconds > 0.0:
+			await get_tree().create_timer(fallen_card_test_seconds).timeout
+		return
+	if boss == null:
 		return
 	var card := BossFallCard.new()
 	add_child(card)
