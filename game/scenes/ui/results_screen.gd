@@ -27,6 +27,33 @@ var _submit_note: Label
 var _ascend_button: Button
 var _pending_row: Dictionary = {}
 
+## **The strip** (owner, 2026-10-06, item 23: "a juicy end-of-run report with
+## icons, sections, progress bars"): a row of stat tiles under the title, each
+## an icon, a number that counts up and a caption, and under them two bars -
+## the Warden's experience with the road's share lit, and the road itself with
+## the acts ticked. All of it is read off the summary the body already reads,
+## so a tile and a line cannot disagree. A readout: nothing reads it back but
+## the gate, through `tile_targets` and `bar_shares`.
+var _tiles: HFlowContainer
+var _bars: VBoxContainer
+var _tile_targets: Dictionary = {}
+var _bar_shares: Dictionary = {}
+
+const TILE_WIDTH: float = 176.0
+## Screen left above and below the report for the HUD strip that survives
+## the end.
+const PANEL_REVEAL: float = 96.0
+const COUNT_SECONDS: float = 0.9
+const SECTION_ICON: int = 20
+const GOLD_HEX: String = "e8a33d"
+## Which section headers wear which mark. Matched by prefix, on the plain line
+## before it is coloured, so a header is decorated and a statistic is not.
+const SECTION_ICONS: Dictionary = {
+	"DEFENCE": "city_health", "THE EARTH": "element_earth", "KEPT": "relic",
+	"DAMAGE": "raid_charge", "THE FRONT": "build", "CHRONICLE": "road_token",
+	"Added to the pool": "blueprint", "BURIED": "wounds", "Tools ": "resource",
+}
+
 
 func _ready() -> void:
 	UiFonts.set_role(get_node_or_null(^"Panel/Box/Title") as Control, UiFonts.Role.TITLE)
@@ -61,6 +88,7 @@ func _ready() -> void:
 	# frame. Twelve lines of statistics against riveted ironwork is a lot of
 	# texture behind a lot of small type, and the plate is what makes it legible.
 	_plate_body()
+	_build_strip()
 	panel.add_theme_stylebox_override("panel",
 		_style_with_alpha(panel.get_theme_stylebox("panel"), 0.82))
 	_build_board_row()
@@ -287,6 +315,10 @@ func _leave() -> void:
 ## describes a run, and the Walk is not one.
 func _show_the_valley(summary: Dictionary) -> void:
 	title.text = "The valley took you"
+	if _tiles != null:
+		_tiles.visible = false
+	if _bars != null:
+		_bars.visible = false
 	menu_button.grab_focus.call_deferred()
 	var lines: PackedStringArray = []
 	if bool(summary.get("town_fell", false)):
@@ -390,6 +422,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.
 	menu_button.grab_focus.call_deferred()
+	_fill_strip(summary, buried or bool(summary.get("sandbox", false)))
 
 	var unlocks: Array = summary.get("unlocks", [])
 	var chronicle: Array = summary.get("chronicle", [])
@@ -527,7 +560,8 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# run has just gone wrong, which is the moment they screenshot it.
 	lines.append("")
 	lines.append(BuildInfo.diagnostics())
-	KeywordTextScript.apply(body, "\n".join(lines))
+	body.bbcode_enabled = true
+	body.text = _bbcode_of(lines)
 
 	# Measured after the text is in, so the panel is only as tall as it needs to
 	# be and the scroll only appears when the debrief actually overruns.
@@ -553,8 +587,12 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		var viewport_height: float = get_viewport().get_visible_rect().size.y
 		# Leave a real top reveal for the one HUD strip that survives the end.
 		# The report is already translucent, but covering the whole frame still
-		# makes the battlefield feel replaced rather than preserved.
-		var available: float = viewport_height - 190.0 - fixed_height \
+		# makes the battlefield feel replaced rather than preserved. The panel's
+		# own frame is measured rather than guessed: with the tiles and the bars
+		# in the column (2026-10-06), a literal slack left the exit button off
+		# the bottom of a 1440p screen.
+		var frame: float = panel.get_theme_stylebox("panel").get_minimum_size().y
+		var available: float = viewport_height - PANEL_REVEAL - frame - fixed_height \
 			- separation * float(fixed_controls)
 		scroll_box.custom_minimum_size = Vector2(0.0,
 			minf(wanted, maxf(220.0, available)))
@@ -562,6 +600,211 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	panel.visible = true
 	get_tree().paused = true
 	menu_button.grab_focus()
+
+
+## The body's lines as BBCode: every word `KeywordText` colours, and a section
+## header wearing its mark in the report's gold. The mark is an `[img]` the
+## parsed text does not carry, so every gate that reads the words reads them.
+func _bbcode_of(lines: PackedStringArray) -> String:
+	var out: PackedStringArray = []
+	for line: String in lines:
+		var marked: String = KeywordTextScript.bbcode(line)
+		var icon: String = _section_icon(line)
+		if not icon.is_empty():
+			marked = "[img=%dx%d]%sui_%s.png[/img]  [color=#%s]%s[/color]" % [
+				SECTION_ICON, SECTION_ICON, IconKit.UI_DIR, icon, GOLD_HEX, marked]
+		out.append(marked)
+	return "\n".join(out)
+
+
+func _section_icon(line: String) -> String:
+	for prefix: String in SECTION_ICONS:
+		if line.begins_with(prefix) and IconKit.ui(String(SECTION_ICONS[prefix])) != null:
+			return String(SECTION_ICONS[prefix])
+	return ""
+
+
+## The tiles' row and the bars' box, between the title and the body.
+func _build_strip() -> void:
+	var column: Node = title.get_parent()
+	if column == null:
+		return
+	var at: int = title.get_index() + 1
+	_tiles = HFlowContainer.new()
+	_tiles.name = "Tiles"
+	_tiles.alignment = FlowContainer.ALIGNMENT_CENTER
+	_tiles.add_theme_constant_override("h_separation", 10)
+	_tiles.add_theme_constant_override("v_separation", 8)
+	_tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_tiles)
+	column.move_child(_tiles, at)
+	_bars = VBoxContainer.new()
+	_bars.name = "Bars"
+	_bars.add_theme_constant_override("separation", 4)
+	_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_bars)
+	column.move_child(_bars, at + 1)
+
+
+## What the tiles say, read off the summary. `nothing_banked` is a buried
+## Hardcore Warden or a sandbox: the road paid the account nothing, so the
+## experience bar shows the account as it stands and lights no share.
+func _fill_strip(summary: Dictionary, nothing_banked: bool) -> void:
+	if _tiles == null or _bars == null:
+		return
+	_tiles.visible = true
+	_bars.visible = true
+	for child: Node in _tiles.get_children():
+		child.queue_free()
+	for child: Node in _bars.get_children():
+		child.queue_free()
+	_tile_targets.clear()
+	_bar_shares.clear()
+	var grouped: Callable = func(value: int) -> String: return _grouped(value)
+	var clock: Callable = func(value: int) -> String: return "%d:%02d" % [value / 60, value % 60]
+	var act: int = int(summary.get("act", 1))
+	# Five, one row at the panel's width: the act is on the road bar's own line.
+	_add_tile("wave", "killed", int(summary.get("kills", 0)), grouped)
+	_add_tile("distance", "of %s road" % _grouped(int(Balance.JOURNEY_TOTAL_DISTANCE)),
+		int(summary.get("distance", 0)), grouped)
+	_add_tile("build", "towers built", int(summary.get("towers_built", 0)), grouped)
+	_add_tile("resource", "resources earned", int(summary.get("resources_earned", 0)), grouped)
+	_add_tile("war_horn", "in combat", int(summary.get("time", 0)), clock)
+
+	# **The Warden's experience**, with the road's share lit. Read off the
+	# account rather than the summary: the level and the pool are the account's,
+	# and the summary carries only what the road added.
+	var kept: Dictionary = summary.get("kept", {})
+	var level: int = MetaState.hero_level
+	var needed: float = RunState.hero_xp_for_level(level)
+	var capped: bool = level >= Balance.HERO_MAX_LEVEL or is_inf(needed) or needed <= 0.0
+	var gained: float = 0.0 if nothing_banked else float(kept.get("xp", 0.0))
+	var levels: int = 0 if nothing_banked else int(round(float(kept.get("levels", 0.0))))
+	var xp_share: float = 1.0 if capped else clampf(MetaState.hero_xp / needed, 0.0, 1.0)
+	var xp_gain: float = 0.0 if capped else clampf(gained / needed, 0.0, xp_share)
+	var left: String = "Warden level %d" % level
+	if levels > 0:
+		left = "Warden level %d  →  %d" % [maxi(level - levels, 1), level]
+	var right: String = "at the cap" if capped else "%s / %s XP" % [
+		_grouped(int(round(MetaState.hero_xp))), _grouped(int(round(needed)))]
+	if gained > 0.0 and not capped:
+		right += "   +%s this road" % _grouped(int(round(gained)))
+	if not nothing_banked:
+		_add_bar("xp", "hero_health", left, right, Color("9b8fc4"), xp_share, xp_gain)
+
+	# **The road**, with the acts ticked, so where the run ended is a place on
+	# a line rather than a number against another number.
+	var total: float = maxf(Balance.JOURNEY_TOTAL_DISTANCE, 1.0)
+	var ticks: PackedFloat32Array = PackedFloat32Array()
+	for boundary: int in range(1, Balance.ACT_COUNT + 1):
+		ticks.append(Balance.act_end_distance(boundary) / total)
+	var walked: float = clampf(float(summary.get("distance", 0.0)) / total, 0.0, 1.0)
+	_add_bar("road", "distance", "The road", "%d%% walked   ·   act %d of %d" % [
+		int(round(walked * 100.0)), act, Balance.FINAL_ASCENT_ACT], Color("c98a3a"), walked, 0.0, ticks)
+
+
+func _add_tile(icon_id: String, caption: String, target: int, format: Callable) -> void:
+	var plate := PanelContainer.new()
+	plate.name = "Tile_" + caption.validate_node_name()
+	plate.custom_minimum_size = Vector2(TILE_WIDTH, 0.0)
+	# A flat plate with a hairline of the report's gold, not the kit's carved
+	# frame: photographed, the frame's horns were most of a 176-unit tile and
+	# the number sat small in the middle of ornament.
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.08, 0.09, 0.72)
+	style.border_color = Color(0.91, 0.64, 0.24, 0.38)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	plate.add_theme_stylebox_override("panel", style)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 0)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	var icon: TextureRect = IconKit.rect(icon_id, 26.0)
+	if icon != null:
+		row.add_child(icon)
+	var number := Label.new()
+	number.name = "Number"
+	UiFonts.set_role(number, UiFonts.Role.IMPACT, 28)
+	number.add_theme_color_override("font_color", Color(GOLD_HEX))
+	number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(number)
+	var words := Label.new()
+	words.name = "Caption"
+	words.text = caption
+	UiFonts.set_role(words, UiFonts.Role.HEADING, 13)
+	words.add_theme_color_override("font_color", Color("b8ae98"))
+	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(row)
+	box.add_child(words)
+	plate.add_child(box)
+	_tiles.add_child(plate)
+	_tile_targets[caption] = target
+	_count_up(number, target, format)
+
+
+## The number climbs to its figure over `COUNT_SECONDS`. Headless there is
+## nobody to watch it climb, and every gate reads the tile on the next frame.
+func _count_up(number: Label, target: int, format: Callable) -> void:
+	if DisplayServer.get_name() == "headless" or target <= 0:
+		number.text = String(format.call(target))
+		return
+	number.text = String(format.call(0))
+	var tween: Tween = create_tween()
+	tween.tween_method(func(value: float) -> void:
+		number.text = String(format.call(int(round(value)))), 0.0, float(target), COUNT_SECONDS) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+
+func _add_bar(key: String, icon_id: String, left: String, right: String, tint: Color,
+		share: float, gain: float, ticks: PackedFloat32Array = PackedFloat32Array()) -> void:
+	var box := VBoxContainer.new()
+	box.name = "Bar_" + key
+	box.add_theme_constant_override("separation", 2)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var icon: TextureRect = IconKit.rect(icon_id, 18.0)
+	if icon != null:
+		row.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = left
+	UiFonts.set_role(name_label, UiFonts.Role.HEADING, 14)
+	name_label.add_theme_color_override("font_color", Color(GOLD_HEX))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+	var figure := Label.new()
+	figure.text = right
+	figure.add_theme_font_size_override("font_size", 14)
+	figure.add_theme_color_override("font_color", Color("b8ae98"))
+	row.add_child(figure)
+	box.add_child(row)
+	var bar := ReportBar.new()
+	bar.name = "Bar"
+	bar.tint = tint
+	bar.custom_minimum_size = Vector2(0.0, 14.0)
+	box.add_child(bar)
+	_bars.add_child(box)
+	bar.present(share, gain, ticks)
+	_bar_shares[key] = {"share": bar.share, "gain": bar.gain, "ticks": bar.ticks.size()}
+
+
+## For the gate: what each tile will say once it has counted, by caption.
+func tile_targets() -> Dictionary:
+	return _tile_targets.duplicate()
+
+
+## For the gate: what each bar shows, by key.
+func bar_shares() -> Dictionary:
+	return _bar_shares.duplicate(true)
 
 
 ## What the run just banked, or nothing if it banked nothing.

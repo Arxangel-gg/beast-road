@@ -162,12 +162,43 @@ func _test_the_debrief_says_both() -> void:
 		"wave": 5, "kills": 12, "deaths": 1, "last_blow": "lightning for 40", "time": 90.0,
 		"planning_time": 20.0, "kept": {"xp": 120.0, "levels": 2.0, "materials": 3.0, "gear": 1.0},
 		"earth": {"strikes": 2, "quakes": 1}, "unlocks": [], "chronicle": []}
+	# **The strip** (2026-10-06): the tiles and the bars are read off the same
+	# summary as the body, and the experience bar off the account - so the
+	# account is set to a known level and pool first.
+	var kept_level: int = MetaState.hero_level
+	var kept_xp: float = MetaState.hero_xp
+	MetaState.hero_level = 3
+	MetaState.hero_xp = 50.0
 	screen.call("show_results", false, summary)
 	await get_tree().process_frame
+	var tiles: Dictionary = screen.call("tile_targets")
+	_check(int(tiles.get("killed", -1)) == 12, "the killed tile says 12 (%s)" % str(tiles.get("killed")))
+	_check(int(tiles.get("in combat", -1)) == 90, "the combat tile holds the seconds")
+	_check(tiles.size() == 5, "five tiles, one row (%d)" % tiles.size())
+	var killed_tile: Node = screen.get("_tiles").get_node_or_null("Tile_killed")
+	var number: Label = killed_tile.find_child("Number", true, false) as Label \
+		if killed_tile != null else null
+	_check(number != null and number.text == "12", "headless, the tile has already counted (%s)"
+		% (number.text if number != null else "no tile"))
+	var bars: Dictionary = screen.call("bar_shares")
+	var needed: float = RunState.hero_xp_for_level(3)
+	var xp: Dictionary = bars.get("xp", {})
+	_check(is_equal_approx(float(xp.get("share", -1.0)), 50.0 / needed),
+		"the experience bar shows the account's pool (%.4f for %.4f)" % [float(xp.get("share", -1.0)), 50.0 / needed])
+	_check(is_equal_approx(float(xp.get("gain", -1.0)), 50.0 / needed),
+		"the road's +120 XP lights the whole of a 50-point pool (%.4f)" % float(xp.get("gain", -1.0)))
+	var road: Dictionary = bars.get("road", {})
+	_check(is_equal_approx(float(road.get("share", -1.0)), 10.0 / Balance.JOURNEY_TOTAL_DISTANCE),
+		"the road bar shows the distance walked")
+	_check(int(road.get("ticks", 0)) == Balance.ACT_COUNT, "the road bar ticks every act")
+	MetaState.hero_level = kept_level
+	MetaState.hero_xp = kept_xp
 	var body: RichTextLabel = screen.get("body") as RichTextLabel
 	_check(body != null, "the results screen has a body")
 	if body != null:
 		var text: String = body.get_parsed_text()
+		_check(body.text.contains("[img=") and body.text.find("[img=") < body.text.find("DEFENCE"),
+			"the DEFENCE section wears its mark")
 		_check(text.contains("THE EARTH"), "the debrief does not name the earth")
 		_check(text.contains("2 strikes") and text.contains("1 quake"), "the debrief does not count what the earth did")
 		_check(text.contains("KEPT") and text.contains("+120 XP") and text.contains("2 levels")
@@ -184,5 +215,15 @@ func _test_the_debrief_says_both() -> void:
 		var text: String = body.get_parsed_text()
 		_check(not text.contains("THE EARTH"), "a quiet run's debrief names the earth")
 		_check(text.contains("nothing this time"), "an empty run should say so")
+	var quiet: Dictionary = screen.call("bar_shares")
+	_check(is_zero_approx(float((quiet.get("xp", {}) as Dictionary).get("gain", 1.0))),
+		"a road that paid nothing lights no share of the bar")
+	# A buried Warden's report shows no experience bar: the account it would
+	# read is a new one, and a bar for it would read as something kept.
+	summary["buried"] = true
+	screen.call("show_results", false, summary)
+	await get_tree().process_frame
+	_check(not (screen.call("bar_shares") as Dictionary).has("xp"), "a burial shows no experience bar")
+	summary.erase("buried")
 	screen.queue_free()
 	await get_tree().process_frame

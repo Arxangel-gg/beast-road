@@ -47,13 +47,15 @@ is the hand-over, in the order to do it.
 4. **Photograph the Disciplines avatar** (owner item 27, fixed in 41042adf and
    never photographed): `WardenStage.figure_rect` on the Disciplines page.
 5. **Owner items not started**: 2 (an Arsenal page in the Guide - needs a
-   `guide_shots` photograph), 23 (a juicier end-of-run report), 29, 30, 32,
+   `guide_shots` photograph), 29, 30, 32,
    34 (the beast tail - twelve passes; CLAUDE.md 2026-09-28 says the restored
    paintings match, so photograph before touching anything), 35, 36. **Item 3
    (ruling R7, a legendary affix granting a skill branch) is built** against
    `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md` and recorded in CLAUDE.md
    ("A legendary piece may carry a branch of the tree"); the Disciplines
-   page's gold ring on a granted node is not yet photographed.
+   page's gold ring on a granted node is not yet photographed. **Item 23
+   (the end-of-run report) is built and photographed** - CLAUDE.md "The end
+   of a run is a report with tiles, bars and marks".
 6. **Art is unblocked.** The project MCP holds pixellab-a since 2026-10-06
    with 4,883 generations (Tier 2, resets 2026-11-06); call `get_balance`
    first and note which account answers. Land the staged augment pass

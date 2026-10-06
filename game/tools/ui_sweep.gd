@@ -19,6 +19,11 @@ var _index: int = 0
 var _screens: Array[Dictionary] = []
 var _current: Node = null
 var _shots_dir: String = DEFAULT_SHOTS
+## `--only=a,b` photographs only the named screens. The main menu offers the
+## Warden's Glass to a brand-new account, and the Glass is the director's and
+## outlives the menu - so a sweep that opens the menu first photographs every
+## later screen through it.
+var _only: PackedStringArray = PackedStringArray()
 
 
 func _ready() -> void:
@@ -29,20 +34,26 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--output="):
 			_shots_dir = argument.trim_prefix("--output=")
+		elif argument.begins_with("--only="):
+			_only = argument.trim_prefix("--only=").split(",", false)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_shots_dir))
 	_screens = [
 		{"name": "main_menu", "make": _main_menu},
 		{"name": "settings", "make": _settings},
 		{"name": "leaderboard", "make": _leaderboard},
 		{"name": "crossroad", "make": _crossroad},
-		{"name": "results_win", "make": _results.bind(true)},
-		{"name": "results_loss", "make": _results.bind(false)},
+		# The report's tiles count up and its bars rise over about a second,
+		# so it is photographed once they have settled.
+		{"name": "results_win", "make": _results.bind(true), "settle": 1.6},
+		{"name": "results_loss", "make": _results.bind(false), "settle": 1.6},
 	]
 	_run.call_deferred()
 
 
 func _run() -> void:
 	for screen: Dictionary in _screens:
+		if not _only.is_empty() and not _only.has(String(screen["name"])):
+			continue
 		_current = (screen["make"] as Callable).call()
 		if _current == null:
 			print("[sweep] %s SKIPPED" % screen["name"])
@@ -53,6 +64,9 @@ func _run() -> void:
 		# usually zero and always a lie.
 		await get_tree().process_frame
 		await get_tree().process_frame
+		var settle: float = float(screen.get("settle", 0.0))
+		if settle > 0.0:
+			await get_tree().create_timer(settle, true).timeout
 		await RenderingServer.frame_post_draw
 
 		var image: Image = get_viewport().get_texture().get_image()

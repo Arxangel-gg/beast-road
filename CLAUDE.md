@@ -13355,6 +13355,45 @@ The Disciplines page wears a worn grant in the Oath's gold ring on its node,
 which is the one screen change the design allowed itself. Measured on the
 roll: ninety grantable branches, 24.4% of affix-bearing pieces at Oathbound.
 
+**The end of a run is a report with tiles, bars and marks, as of 2026-10-06.**
+Owner item 23: *"a juicy end-of-run report with icons, sections, progress bars
+(XP etc)"*. The debrief was a column of statistics in one face; it opens now
+with a row of five tiles under the title - killed, road walked, towers built,
+resources earned, time in combat - each a mark, a number in the impact face
+that counts up over `COUNT_SECONDS`, and a caption; under them **the Warden's
+experience bar with the road's share lit** at the end of the fill, and **the
+road itself with the acts ticked**, so where the run ended is a place on a
+line; and every section header in the body wears its mark in the report's
+gold (`SECTION_ICONS`).
+
+**It is read off the summary the body already reads, so a tile and a line
+cannot disagree**, and `ReportBar` is drawn rather than a `ProgressBar` for two
+reasons: a `ProgressBar` has two styleboxes and this bar has three bands, and a
+drawn control is exactly the rect it is given, which is the `a-label-cannot-be-
+smaller-than-its-font` lesson in the one column that measures its own height.
+A mark is an `[img]` the parsed text does not carry, so every gate that reads
+the body's words reads them unchanged. **A readout reads**: nothing reads the
+strip back but `debrief_check`, through `tile_targets` and `bar_shares`.
+
+**Two things the account decides.** The experience bar is the account's level
+and pool, with the summary's `kept.xp` as the lit share, clamped to the fill -
+so after a level-up the whole of the new level's fill is lit, which is what the
+road paid of it. A buried Hardcore Warden's report shows no experience bar (the
+account it would read is a new one, and a bar for it would read as something
+kept), and a sandbox lights no share.
+
+**Photographed before it was believed, twice.** The first picture had six tiles
+on the kit's carved `InnerPanel`, whose horns were most of a 176-unit tile with
+the number small in the middle of ornament, the sixth wrapped alone onto a
+second row, and the exit button off the bottom of a 1440p screen - the scroll's
+height took a literal 190 of slack for the panel's frame, which the tiles and
+the bars had eaten. Five tiles on a flat plate with a hairline of gold, one row;
+the panel's frame is measured off its stylebox (`PANEL_REVEAL` is the only
+literal left). The headless count-up finishes at once, and `ui_sweep` takes
+`--only=` and a per-screen settle so a report is photographed after its numbers
+have climbed - and without the Glass over it, which the sweep's main menu
+offers to a brand-new account and which outlives the menu.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
