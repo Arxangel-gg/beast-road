@@ -80,6 +80,13 @@ const CLUSTER_NAMES: Array[String] = ["Basic", "Core", "Guard", "Ultimate", "Oat
 ## than matched by effect id in `Hero.damage_multiplier`, which is where the
 ## three forms' 8%, 5% and 4% lived until 2026-09-26.
 @export var form_damage: float = 0.0
+## **This form throws the chain** (owner, 2026-10-06: the Arcane's primary is
+## "magic projectile basic attack enemies at range for MP"). The attack
+## looses the chain's own blow along the aim as a bolt, at its own step and
+## its own damage, for `Balance.CHAIN_BOLT_MANA_COST` of the pool; with the
+## pool short of it the chain is swung as steel. Authored on the form rather
+## than matched by arm, so a second thrown form is a file.
+@export var form_thrown: bool = false
 
 
 ## How many nodes of this node's own arm must be learned before it opens.

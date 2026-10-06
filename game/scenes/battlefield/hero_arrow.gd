@@ -69,6 +69,35 @@ func launch(field: EnemyField, from: Vector2, heading: Vector2,
 		else Color("e8d9b0")
 
 
+## **The chain thrown as a bolt** (owner, 2026-10-06). The same flight the
+## arrow has - the same sweep, the same stroke, the same wildlife - carrying a
+## blow that is the chain's own rather than a bow's, which `on_strike` lands
+## through `HeroAttack`'s own door so the brand, the form's branches and the
+## hit's sound all happen exactly as they do for a swing. No ammunition: a
+## bolt has nothing to burn or slow with and no blast, and `_land` reads
+## `ammo` null as that.
+func launch_bolt(field: EnemyField, from: Vector2, heading: Vector2, blow: float,
+		shove: float, pierce_count: int, tint: Color, on_strike: Callable) -> void:
+	_field = field
+	if field != null:
+		_wildlife = field.get_node_or_null("Wildlife") as Wildlife
+	ammo = null
+	_heading = heading.normalized() if heading.length() > 0.001 else Vector2.RIGHT
+	damage = blow
+	knockback = shove
+	speed = Balance.CHAIN_BOLT_SPEED
+	pierce = maxi(pierce_count, 1)
+	travel = Balance.CHAIN_BOLT_TRAVEL
+	global_position = from
+	rotation = _heading.angle()
+	_tint = tint
+	_on_strike = on_strike
+
+
+## Who lands a bolt's blow, when it is the chain's rather than the bow's.
+var _on_strike: Callable = Callable()
+
+
 func _ready() -> void:
 	z_index = Balance.VFX_Z
 	_trail = Line2D.new()
@@ -153,6 +182,10 @@ static func contact_distance(start: Vector2, heading: Vector2, distance: float,
 
 
 func _strike(enemy: Enemy) -> void:
+	if _on_strike.is_valid():
+		_on_strike.call(enemy, global_position)
+		Vfx.spark(global_position, _tint, 7, -_heading, 240.0)
+		return
 	DamageLedger.credit_as(DamageLedger.ARROW)
 	enemy.take_damage(damage, global_position, knockback, false)
 	if ammo == null:

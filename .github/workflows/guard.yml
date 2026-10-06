@@ -574,6 +574,7 @@ jobs:
           # return it pays in full.
           check "the road home" --headless --path game res://tools/homecoming_check.tscn
           check "the boss draft" --headless --path game res://tools/boss_draft_check.tscn
+          check "the thrown chain" --headless --path game res://tools/chain_bolt_check.tscn
           check "the repaired front" --headless --path game res://tools/release_repair_check.tscn
           check "every body at the wall hits the wall" --headless --path game res://tools/enemy_siege_check.tscn
           check "loot falls as pieces" --headless --path game res://tools/loot_juice_check.tscn

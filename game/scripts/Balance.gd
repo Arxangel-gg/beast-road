@@ -2347,6 +2347,22 @@ const HERO_ATTACK_RANGE: Array[float] = [95.0, 95.0, 115.0]
 ## Total width of the swing arc in degrees, centred on the aim direction.
 const HERO_ATTACK_ARC_DEGREES: Array[float] = [110.0, 110.0, 170.0]
 
+## **A thrown chain** (owner, 2026-10-06: the Arcane's primary is a "magic
+## projectile basic attack ... at range for MP"). A form authored
+## `form_thrown` looses the chain's own blow as a bolt along the aim - the
+## same `HERO_ATTACK_DAMAGE` at the same step through the same
+## `damage_multiplier`, so `curve_report` reads the same hero - and what the
+## range costs is mana a bolt. Short of the cost the chain is swung as steel,
+## so the form never leaves a Warden unarmed. The finisher's wide arc becomes
+## a bolt that passes through a few bodies, which is the shape of the third
+## blow and not its size.
+const CHAIN_BOLT_MANA_COST: float = 4.0
+const CHAIN_BOLT_SPEED: float = 1100.0
+const CHAIN_BOLT_TRAVEL: float = 440.0
+const CHAIN_BOLT_FINISHER_PIERCE: int = 3
+## The Weave's violet, the Arcane arm's own tint on the ability bar.
+const CHAIN_BOLT_TINT: Color = Color(0.72, 0.52, 1.0)
+
 ## **Click to move** (owner, 2026-10-01: *"Clicking on the battlefield should
 ## move to the location ... and only attack the clicked target if and when the
 ## attack is in range ... and if the click was on a valid target to then

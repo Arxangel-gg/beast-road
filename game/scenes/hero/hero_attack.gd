@@ -62,6 +62,12 @@ var drag: float = 1.0
 var _radiant_done: bool = false
 
 var _phase: Phase = Phase.READY
+## **The chain is thrown this tick**: the form is a thrown one and the owner
+## can pay a bolt. Set by the hero every tick from its own form and pool, so a
+## partner body throws by its own sheet and a drained pool swings steel.
+var thrown: bool = false
+## The bolt of this swing has left; the rest of its active window sweeps nothing.
+var _thrown_this_swing: bool = false
 var _step: int = 0
 var _phase_left: float = 0.0
 
@@ -295,7 +301,10 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 	_hit_ids.clear()
 	_announced = false
 	_radiant_done = false
-	lunge_requested.emit(_swing_aim, Balance.HERO_ATTACK_LUNGE[_step])
+	_thrown_this_swing = false
+	# A thrown chain does not lunge: the blow travels, the body stands.
+	if not (thrown and _form_is_thrown()):
+		lunge_requested.emit(_swing_aim, Balance.HERO_ATTACK_LUNGE[_step])
 	# Announced on the swing, not on the hit. Feedback for an action the player
 	# took has to happen even when the action accomplishes nothing.
 	EventBus.hero_swing_started.emit(_step, _swing_origin)
@@ -405,6 +414,100 @@ func _count_in_arc(reach: float, half_arc: float) -> int:
 ## Once a swing, only when a tower stands within `DISCIPLINE_RADIANT_TOWER_REACH`
 ## of the Warden, onto the bodies round the blow that the swing itself missed -
 ## a share of the finisher, never a second finisher.
+## Whether the form this body swings is a thrown one, by its own sheet.
+func _form_is_thrown() -> bool:
+	var form: DisciplineNodeData = WardenSheet.form_of(sheet) \
+		if own_stash or sheet != null else null
+	return form != null and form.form_thrown
+
+
+## **One body, one blow of the chain** - the door the arc sweep and the thrown
+## bolt both land through, so Open Vein, Brand of Ruin, the ledger, the
+## striker's sheet and Weeping Edge cannot disagree between a swing and a
+## throw. The blow dealt, or -1 if the body refused it.
+func _land_on(enemy: Enemy, damage: float, knockback: float, finisher: bool,
+		form: DisciplineNodeData, origin: Vector2) -> float:
+	var id: int = enemy.get_instance_id()
+	if _hit_ids.has(id):
+		return -1.0
+	# **Open Vein.** Rolled per body, because the card is about *isolated*
+	# enemies and a crowd has none in it - a roll per swing would hand the
+	# whole crowd one verdict.
+	var blow: float = damage
+	var owner := get_parent() as Node
+	if owner != null and owner.has_method("telling_blow"):
+		blow *= float(owner.call("telling_blow", enemy))
+		if blow > damage:
+			Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
+				_swing_aim, 240.0)
+	# **Brand of Ruin**: the finisher strikes a branded body harder.
+	if finisher and form != null and enemy.is_branded():
+		blow *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_vs_branded")
+	DamageLedger.credit_as(DamageLedger.WARDEN)
+	if not enemy.take_damage(blow, origin, knockback, true, sheet):
+		return -1.0
+	_hit_ids[id] = true
+	# **Weeping Edge**: every hit in the chain opens the Bleed, at a share of
+	# the finisher's. The finisher's own is `enemy.gd`'s.
+	if not finisher and form != null and form.effect_id == "bleed_finisher":
+		var weep: float = WardenSheet.upgrade_of(sheet, form.id, "form_bleed_every_hit")
+		if weep > 0.0:
+			enemy.apply_burn(blow * form.effect_value * weep / Balance.DISCIPLINE_STATUS_SECONDS,
+				Balance.DISCIPLINE_STATUS_SECONDS)
+	return blow
+
+
+## **The chain is thrown** (owner, 2026-10-06). On the first active frame of a
+## swing whose form is thrown and whose owner can pay, the blow leaves as a
+## bolt along the aim instead of sweeping an arc: the same step, the same
+## damage, the same knockback, landing through `_land_on` when it meets a
+## body. Returns false when the pool could not pay after all, and the swing
+## is steel.
+func _throw_the_chain(form: DisciplineNodeData, damage: float, knockback: float,
+		finisher: bool) -> bool:
+	var owner := get_parent() as Node
+	if owner == null or not owner.has_method("spend_mana"):
+		return false
+	if not bool(owner.call("spend_mana", Balance.CHAIN_BOLT_MANA_COST)):
+		return false
+	var field: EnemyField = owner.get("field") as EnemyField
+	if field == null:
+		return false
+	var bolt := HeroArrow.new()
+	var tint: Color = Balance.CHAIN_BOLT_TINT
+	bolt.launch_bolt(field, _swing_origin + _swing_aim * Balance.HERO_ARROW_MUZZLE,
+		_swing_aim, damage, knockback,
+		Balance.CHAIN_BOLT_FINISHER_PIERCE if finisher else 1, tint,
+		_bolt_landed.bind(finisher, form, _step))
+	field.add_child(bolt)
+	Vfx.flash_at(_swing_origin + _swing_aim * Balance.HERO_ARROW_MUZZLE, tint, 22.0)
+	Vfx.spark(_swing_origin + _swing_aim * Balance.HERO_ARROW_MUZZLE, tint, 6, _swing_aim, 260.0)
+	EventBus.ranged_shot_fired.emit(_swing_origin, Balance.CHAIN_BOLT_TRAVEL, _swing_aim)
+	return true
+
+
+## A thrown blow met a body. Everything a landed swing says, said for one body:
+## the form's branches, the hit, the hitstop and the shake.
+func _bolt_landed(enemy: Enemy, at: Vector2, finisher: bool, form: DisciplineNodeData,
+		step: int) -> void:
+	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+		return
+	var damage: float = Balance.HERO_ATTACK_DAMAGE[step] * damage_multiplier
+	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[step] \
+		* WardenSheet.multiplier_of(sheet, Modifiers.KNOCKBACK)
+	var blow: float = _land_on(enemy, damage, knockback, finisher, form, at)
+	if blow < 0.0:
+		return
+	if form != null and own_stash:
+		_form_branches(form, finisher, 1, blow, Balance.CHAIN_BOLT_TRAVEL)
+	landed.emit(step, 1, at)
+	var hide: int = int(enemy.data.hide) if enemy.data != null else 0
+	EventBus.hero_attack_landed.emit(step, 1, at, hide)
+	EventBus.hitstop_requested.emit(Balance.HERO_ATTACK_HITSTOP[step] * 0.5
+		* float(Balance.HIDE_HITSTOP_SCALE[clampi(hide, 0, Balance.HIDE_HITSTOP_SCALE.size() - 1)]))
+	EventBus.camera_impact.emit(at, Balance.HERO_ATTACK_SHAKE[step] * 0.6)
+
+
 func _radiant_splash(amount: float, reach: float, form: DisciplineNodeData = null) -> void:
 	if _radiant_done or amount <= 0.0:
 		return
@@ -515,6 +618,17 @@ func _strike() -> void:
 	var form: DisciplineNodeData = WardenSheet.form_of(sheet) \
 		if own_stash or sheet != null else null
 	var finisher: bool = _step >= Balance.HERO_CHAIN_LENGTH - 1
+	# **A thrown form looses the blow once**, on the first active frame, and
+	# the rest of the window sweeps nothing: the bolt is the swing. A pool that
+	# cannot pay after all makes this swing steel, which is the only way a
+	# press can ever do nothing.
+	if _thrown_this_swing:
+		return
+	if thrown and form != null and form.form_thrown:
+		if _throw_the_chain(form, damage, knockback, finisher):
+			_thrown_this_swing = true
+			_announced = true
+			return
 	# **Wide Cleave**: the finisher's arc is wider.
 	if finisher and form != null:
 		half_arc *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_finisher_arc")
@@ -548,32 +662,11 @@ func _strike() -> void:
 		# is always in the arc rather than sometimes unhittable.
 		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
 			continue
-		# **Open Vein.** Rolled per body, because the card is about *isolated*
-		# enemies and a crowd has none in it - a roll per swing would hand the
-		# whole crowd one verdict.
-		var blow: float = damage
-		var owner := get_parent() as Node
-		if owner != null and owner.has_method("telling_blow"):
-			blow *= float(owner.call("telling_blow", enemy))
-			if blow > damage:
-				Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
-					_swing_aim, 240.0)
-		# **Brand of Ruin**: the finisher strikes a branded body harder.
-		if finisher and form != null and enemy.is_branded():
-			blow *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_vs_branded")
-		DamageLedger.credit_as(DamageLedger.WARDEN)
-		if not enemy.take_damage(blow, _swing_origin, knockback, true, sheet):
+		var blow: float = _land_on(enemy, damage, knockback, finisher, form, _swing_origin)
+		if blow < 0.0:
 			continue
-		_hit_ids[id] = true
 		hits += 1
 		dealt += blow
-		# **Weeping Edge**: every hit in the chain opens the Bleed, at a share of
-		# the finisher's. The finisher's own is `enemy.gd`'s.
-		if not finisher and form != null and form.effect_id == "bleed_finisher":
-			var weep: float = WardenSheet.upgrade_of(sheet, form.id, "form_bleed_every_hit")
-			if weep > 0.0:
-				enemy.apply_burn(blow * form.effect_value * weep / Balance.DISCIPLINE_STATUS_SECONDS,
-					Balance.DISCIPLINE_STATUS_SECONDS)
 		# The first body struck decides what the hit sounds and looks like.
 		if struck_hide < 0 and enemy.data != null:
 			struck_hide = int(enemy.data.hide)

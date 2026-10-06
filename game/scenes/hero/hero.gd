@@ -564,12 +564,16 @@ func _physics_process_measured(delta: float) -> void:
 		FrameProfile.add(&"h_pre", mark)
 		mark = Time.get_ticks_usec()
 	var combat_input: bool = can_fight()
+	# **A thrown chain is paid in mana, not breath** (owner, 2026-10-06): the
+	# Arcane's form looses a bolt for a share of the pool, and only with the
+	# pool short of it is the chain steel and the press gated on SP.
+	attack.thrown = _chain_is_thrown()
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
 			or input.held(HeroInput.HOLD_ATTACK)):
 		# **A swing costs SP** (owner, 2026-09-22), so a Warden with nothing
 		# left cannot swing until it comes back - said once at the feet.
-		if stamina >= Balance.HERO_ATTACK_SP_COST[0]:
+		if attack.thrown or stamina >= Balance.HERO_ATTACK_SP_COST[0]:
 			attack.request()
 		elif input.pressed(HeroInput.BUTTON_ATTACK) and _stamina_said_low <= 0.0:
 			_stamina_said_low = 1.0
@@ -2531,7 +2535,8 @@ func _spend_on_swing(delta: float) -> void:
 	if attack == null:
 		return
 	var swinging: bool = attack.is_swinging()
-	if swinging and not _swing_paid:
+	# A thrown swing was paid from the pool when the bolt left.
+	if swinging and not _swing_paid and not attack.thrown:
 		var step: int = clampi(int(attack.get("_step")), 0,
 			Balance.HERO_ATTACK_SP_COST.size() - 1)
 		stamina = maxf(stamina - Balance.HERO_ATTACK_SP_COST[step], 0.0)
@@ -3652,6 +3657,16 @@ func is_guarded() -> bool:
 ## Rolled per body rather than per swing, so a finisher into a crowd is not a
 ## lottery ticket for the whole crowd - the node's own text is about *isolated*
 ## enemies, and a crowd has none in it by definition.
+## **Whether this body's chain is thrown this tick**: its form is a thrown one
+## (`form_thrown`, the Arcane's) and the pool can pay a bolt. Read off the
+## body's own sheet, so a partner's copy on the host throws by the partner's
+## form; a pool short of the cost makes the press steel rather than nothing.
+func _chain_is_thrown() -> bool:
+	var form: DisciplineNodeData = WardenSheet.form_of(sheet) \
+		if is_local_player() or sheet != null else null
+	return form != null and form.form_thrown and mana >= Balance.CHAIN_BOLT_MANA_COST
+
+
 func telling_blow(enemy: Node2D) -> float:
 	var chance: float = WardenSheet.trained_value_of(sheet, "isolated_crit")
 	if chance <= 0.0 or enemy == null or field == null:
