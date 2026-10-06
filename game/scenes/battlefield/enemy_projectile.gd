@@ -470,10 +470,18 @@ func draw_ribbon(on: CanvasItem) -> void:
 	if _history.size() < 2:
 		return
 	var inverse: Transform2D = on.get_global_transform().affine_inverse()
-	InkRibbon.ribbon(on, _history, inverse, Balance.ENEMY_PROJECTILE_WIDTH * trail_scale,
-		Color(shell_tint, 0.90), 0.0, 1.0)
+	var width: float = trail_width()
+	InkRibbon.ribbon(on, _history, inverse, width, Color(shell_tint, 0.90), 0.0, 1.0)
 	InkRibbon.ribbon(on, _history, inverse,
-		Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH * trail_scale, Color(core_tint, 0.88), 0.0, 1.0)
+		width * Balance.ENEMY_PROJECTILE_FILAMENT_SHARE, Color(core_tint, 0.88), 0.0, 1.0)
+
+
+## **As wide as the head it follows** (owner, 2026-10-06): a share of the head's
+## drawn diameter, times the shot's authored trail weight. A head of one is the
+## width the ribbon always was.
+func trail_width() -> float:
+	return maxf(Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 2.0 * head_scale
+		* Balance.ENEMY_PROJECTILE_TRAIL_WIDTH_SHARE * trail_scale, 1.0)
 
 
 class EnemyShotGlow extends Node2D:

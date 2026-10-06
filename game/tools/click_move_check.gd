@@ -52,7 +52,8 @@ func _ready() -> void:
 		await _test_what_a_click_may_chase()
 		await _test_the_builders_clicks_are_the_builders()
 		await _test_ctrl_and_the_setting()
-	_check(_finished == 9, "%d of 9 tests reached their end" % _finished)
+		await _test_the_hovered_body_is_lit()
+	_check(_finished == 10, "%d of 10 tests reached their end" % _finished)
 	if _run != null:
 		RunState.set_phase(RunState.Phase.PREPARATION)
 		GameDirector.run_active = false
@@ -357,6 +358,48 @@ func _test_ctrl_and_the_setting() -> void:
 	_check(_orders.move() == Vector2.ZERO, "a walk order still steered with click to move turned off")
 	_check(not _moves.live(), "click orders stayed live with the setting off")
 	UserSettings.set_value(UserSettings.CLICK_TO_MOVE_KEY, true)
+	_finished += 1
+
+
+## **What the cursor is over is lit** (owner, 2026-10-06): a body under the
+## cursor wears the hover outline on its own material, and leaving it puts the
+## outline back exactly as it was - driven through the hover tick with the
+## gate's own cursor point, because a headless viewport has no mouse.
+func _test_the_hovered_body_is_lit() -> void:
+	var orders: ClickMove = _field.click_move
+	_check(orders != null, "the field has no ClickMove")
+	if orders == null:
+		return
+	var body: Enemy = await _a_still_body(Vector2(900.0, 300.0))
+	await get_tree().process_frame
+	# The stain material arrives on the body's first blood tick; a still body
+	# may not have had one, and the harness is standing the body up, not
+	# testing the tick.
+	body.call("_update_blood", 0.016)
+	var material := body.sprite.material as ShaderMaterial
+	_check(material != null, "the probe body wears no material to light")
+	var colour_was: Variant = material.get_shader_parameter("outline_colour") if material != null else null
+	var strength_was: Variant = material.get_shader_parameter("outline_strength") if material != null else null
+	orders.hover_test_point = body.global_position
+	orders.set("_hover_left", 0.0)
+	orders.call("_tick_hover", 0.1)
+	_check(ClickMove.is_lit(body), "the body under the cursor is not lit")
+	if material != null:
+		_check(material.get_shader_parameter("outline_colour") == Balance.HOVER_OUTLINE_COLOUR,
+			"the hovered body's outline is %s, not the hover colour" % str(material.get_shader_parameter("outline_colour")))
+	orders.hover_test_point = Vector2(-4000.0, -4000.0)
+	orders.set("_hover_left", 0.0)
+	orders.call("_tick_hover", 0.1)
+	_check(not ClickMove.is_lit(body), "the body stays lit after the cursor leaves")
+	if material != null:
+		_check(material.get_shader_parameter("outline_colour") == colour_was
+				and material.get_shader_parameter("outline_strength") == strength_was,
+			"leaving did not put the outline back (%s / %s)" % [
+				str(material.get_shader_parameter("outline_colour")),
+				str(material.get_shader_parameter("outline_strength"))])
+	orders.hover_test_point = Vector2.INF
+	body.queue_free()
+	await get_tree().process_frame
 	_finished += 1
 
 

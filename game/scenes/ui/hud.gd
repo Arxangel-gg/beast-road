@@ -254,6 +254,20 @@ const HERO_BAR_WIDTH: float = 180.0
 const TOP_BAR_FULL_WIDTH: float = 2200.0
 
 const COMMAND_BAR_WIDTH: float = 236.0
+## **The command panel on a thumb** (owner, 2026-10-06: "Command UI too large
+## on mobile"). The touch pass inflated each order to a thumb's full height, so
+## one affordable order was a plate a thumb and a half tall over a corner of
+## the field, under a line of text about targeting that a thumb cannot act on.
+## On a touch layout the orders are tiles the action row's way - mark above
+## word, a row of three, sized here and kept from the touch pass - and the
+## target line is not shown; the panel is a little wider for the row.
+## Measured at the phone shapes: a tile with its forty-pixel mark over a
+## twelve-point word lays out at 102, and the panel with the meter row over
+## three of them at 196 - against a single order at 139 in a panel of 233
+## before, with two more orders waiting to stack under it.
+const COMMAND_TILE_SIZE: Vector2 = Vector2(84.0, 104.0)
+const COMMAND_BAR_TOUCH_WIDTH: float = 296.0
+const COMMAND_PANEL_TOUCH_MAX_HEIGHT: float = 208.0
 const COMMAND_BAR_TOP: float = 104.0
 
 ## Where the boss track sits, and where it moves to for a thumb.
@@ -3951,6 +3965,45 @@ func _build_command_panel() -> void:
 		"command_last_stand", "Press C: the Town Hall is protected for 3 seconds and every tower attack resets. Once per battle.")
 
 
+## How wide the open command panel is: wider on a thumb for its row of tiles.
+func _command_width() -> float:
+	return COMMAND_BAR_TOUCH_WIDTH if touch_ui() else COMMAND_BAR_WIDTH
+
+
+## **The orders as tiles on a thumb** (owner, 2026-10-06), and back to rows off
+## it - the action row's own rule (`_tile_the_actions`), after the touch pass
+## for the same reason: `UiMetrics` grows a control the first time and restores
+## exactly that on the way back, so a tile sized here is undone by the pass
+## that grew it. `SELF_SIZED`, so the pass never inflates a tile to a thumb's
+## full height again.
+func _tile_the_orders(showing: bool) -> void:
+	for value: Variant in _command_buttons.values():
+		var button := value as Button
+		if button == null:
+			continue
+		if showing:
+			button.set_meta(IconKit.ICON_ON_TOP, true)
+			button.set_meta(UiMetrics.SELF_SIZED, true)
+			button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+			button.custom_minimum_size = COMMAND_TILE_SIZE
+			button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			IconKit.redress(button)
+			# The font after the mark: `redress` lays the icon, and the pass that
+			# ran before this grew whatever size the button had.
+			button.add_theme_font_size_override("font_size", 12)
+		elif button.has_meta(IconKit.ICON_ON_TOP):
+			button.remove_meta(IconKit.ICON_ON_TOP)
+			button.remove_meta(UiMetrics.SELF_SIZED)
+			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+			button.custom_minimum_size = Vector2(54.0, 34.0)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			IconKit.redress(button)
+
+
 ## Each order's key and name, for `_action_label` - at build and whenever the
 ## touch layout changes, so a phone never shows a keyboard's letter.
 const COMMAND_ORDER_NAMES: Dictionary = {
@@ -4113,12 +4166,13 @@ func _shape_the_command_panel(open: bool) -> void:
 	var changed: bool = open != _command_open
 	_command_open = open
 	if _command_target != null:
-		_command_target.visible = open
+		# A thumb aims by the stick, not by pointing at a target line.
+		_command_target.visible = open and not touch_ui()
 	if _command_orders != null:
 		_command_orders.visible = open
 	_command_panel.self_modulate.a = 1.0 if open else 0.0
 	_command_panel.offset_right = _command_panel.offset_left \
-		+ (COMMAND_BAR_WIDTH if open else 0.0)
+		+ (_command_width() if open else 0.0)
 	_command_panel.offset_bottom = _command_panel.offset_top
 	_command_panel.reset_size()
 	var alpha: float = Balance.UI_COMMAND_READY_ALPHA if open else Balance.UI_COMMAND_IDLE_ALPHA
@@ -5390,6 +5444,8 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
 	_tile_the_actions(showing)
+	# After the pass, for the same reason the action tiles are (2026-10-06).
+	_tile_the_orders(showing)
 	_place_preparation_panel()
 	_size_build_controls(_build_panel)
 	_size_build_controls(_road_panel)

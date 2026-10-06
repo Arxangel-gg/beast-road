@@ -210,7 +210,18 @@ func _tick_hover(delta: float) -> void:
 	if _hover_left > 0.0:
 		return
 	_hover_left = 1.0 / Balance.CLICK_MOVE_HOVER_HZ
-	_hover = body_at(get_global_mouse_position())
+	var over: Node2D = body_at(hover_test_point if hover_test_point != Vector2.INF
+		else get_global_mouse_position())
+	if over != _hover:
+		_light(_hover, false)
+	# Lit on every tick rather than on the change alone: a body's stain
+	# material arrives on its first blood tick, so one hovered on the frame it
+	# spawned had the lit mark on the body and nothing on its material, and
+	# stayed dark until the cursor left. `_light` is idempotent - it keeps the
+	# painted outline once and refuses to keep a hover's - so this is a few
+	# uniform reads a second.
+	_light(over, true)
+	_hover = over
 	var want: int = Input.CURSOR_CROSS
 	if _hover == null:
 		want = Input.CURSOR_MOVE if RunState.is_preparation() and GameDirector.build_mode \
@@ -238,6 +249,59 @@ func _tick_drag(delta: float) -> void:
 	orders.order_move(get_global_mouse_position())
 
 
+## The gate's seam: where the cursor is, when it is set, because a headless
+## viewport has no mouse to rest on a body. `Vector2.INF` in a shipping game.
+var hover_test_point: Vector2 = Vector2.INF
+
+## Which uniforms a lit body was wearing, so leaving puts them back exactly.
+const HOVER_META: StringName = &"hover_outline_was"
+
+
+## **Lights the body under the cursor, or puts it back** (owner, 2026-10-06).
+## Through the outline every body shader already draws - `outline_colour` and
+## `outline_strength` on `blood_stain` and `actor_polish` alike - so an enemy,
+## an elite in its polish and an animal in its impact material all answer, and
+## no body needs a second material to be pointed at. What was worn is kept on
+## the material and restored, never guessed from the shader's defaults.
+func _light(body: Node2D, on: bool) -> void:
+	if body == null or not is_instance_valid(body):
+		return
+	# The lit state is the body's, whatever it wears: a body's stain material
+	# arrives on its first tick, and one that has not drawn yet is still the
+	# body under the cursor.
+	if on:
+		body.set_meta(HOVER_META, true)
+	elif body.has_meta(HOVER_META):
+		body.remove_meta(HOVER_META)
+	var material := _material_of(body)
+	if material == null:
+		return
+	if on:
+		if not material.has_meta(HOVER_META):
+			material.set_meta(HOVER_META, [material.get_shader_parameter("outline_colour"),
+				material.get_shader_parameter("outline_strength")])
+		material.set_shader_parameter("outline_colour", Balance.HOVER_OUTLINE_COLOUR)
+		material.set_shader_parameter("outline_strength", Balance.HOVER_OUTLINE_STRENGTH)
+	elif material.has_meta(HOVER_META):
+		var was: Array = material.get_meta(HOVER_META)
+		material.set_shader_parameter("outline_colour", was[0])
+		material.set_shader_parameter("outline_strength", was[1])
+		material.remove_meta(HOVER_META)
+
+
+## The material a body draws with: an enemy's is on its sprite, an animal's on
+## the sprite that is the body.
+static func _material_of(body: Node2D) -> ShaderMaterial:
+	var enemy := body as Enemy
+	var item: CanvasItem = enemy.sprite if enemy != null and enemy.sprite != null else body as CanvasItem
+	return (item.material as ShaderMaterial) if item != null else null
+
+
+## Whether a body is lit as hovered, for the gate.
+static func is_lit(body: Node2D) -> bool:
+	return body != null and is_instance_valid(body) and body.has_meta(HOVER_META)
+
+
 func _ordered_body() -> Node2D:
 	var orders: LocalHeroInput = _orders()
 	if orders == null or orders.order == LocalHeroInput.Order.NONE \
@@ -253,7 +317,10 @@ func _draw() -> void:
 	if chased != null:
 		_ring_under(chased, Balance.CLICK_MOVE_TARGET_COLOUR, 1.0)
 	if _hover != null and _hover != chased:
-		_ring_under(_hover, Balance.CLICK_MOVE_TARGET_COLOUR, 0.45)
+		# Brighter, and breathing, so what a click would chase reads as lit
+		# before the click (2026-10-06).
+		_ring_under(_hover, Balance.CLICK_MOVE_TARGET_COLOUR,
+			Balance.HOVER_RING_STRENGTH * (0.85 + 0.15 * sin(_clock * 7.0)))
 	for mark: Dictionary in _marks:
 		var share: float = float(mark["age"]) / Balance.CLICK_MOVE_MARK_SECONDS
 		var at: Vector2 = to_local(mark["at"] as Vector2)

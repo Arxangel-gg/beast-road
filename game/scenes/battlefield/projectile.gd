@@ -412,8 +412,8 @@ func draw_light(on: CanvasItem) -> void:
 			var along: Vector2 = (_history[index + 1] - _history[index - 1]).normalized()
 			points[index] += along.orthogonal() * randf_range(-Balance.PROJECTILE_CHAIN_JITTER,
 				Balance.PROJECTILE_CHAIN_JITTER)
-	var width: float = Balance.PROJECTILE_WIDTH * _tier_scale()
-	var filament: float = Balance.PROJECTILE_FILAMENT_WIDTH * _tier_scale()
+	var width: float = trail_width()
+	var filament: float = width * Balance.PROJECTILE_FILAMENT_SHARE
 	if _shot == TowerData.Shot.LANCE:
 		width *= 0.8
 		filament *= 1.7
@@ -540,14 +540,45 @@ func has_hot_core() -> bool:
 
 
 func look() -> Dictionary:
-	var width: float = Balance.PROJECTILE_WIDTH * _tier_scale()
+	var width: float = trail_width()
 	if _shot == TowerData.Shot.LANCE:
 		width *= 0.8
 	return {
 		"trail": width,
+		"head": head_height(),
+		"floor": trail_floor(),
 		"glow_alpha": _glow_alpha(0.22 if not _head_frames.is_empty() else 0.30),
 		"hot": has_hot_core(),
 	}
+
+
+## How tall the head is drawn, in units: the painting at its scale, or the
+## authored silhouette's own height. What the trail's width is a share of.
+func head_height() -> float:
+	if not _head_frames.is_empty():
+		var frame: Texture2D = _head_frames[0]
+		return float(frame.get_height()) * Balance.PROJECTILE_ART_SCALE * _tier_scale()
+	var low: float = 0.0
+	var high: float = 0.0
+	for point: Vector2 in _head_shape:
+		low = minf(low, point.y)
+		high = maxf(high, point.y)
+	return maxf(high - low, 1.0)
+
+
+## **The ribbon is as wide as the head it follows** (owner, 2026-10-06): a
+## share of the head's drawn height, so a painted head twice another's drags a
+## ribbon twice as wide, and a tier's larger head a larger one. At the
+## authored silhouette it is exactly `PROJECTILE_WIDTH` by the tier, which is
+## what it always was.
+func trail_width() -> float:
+	return maxf(head_height() * Balance.PROJECTILE_TRAIL_WIDTH_SHARE, trail_floor())
+
+
+## The least a ribbon may be: a dart of a head would drag a hairline, and a
+## hairline is what every shot read as before 2026-09-24.
+func trail_floor() -> float:
+	return Balance.PROJECTILE_WIDTH * _tier_scale() * Balance.PROJECTILE_TRAIL_FLOOR_SHARE
 
 
 func _tier_step() -> int:

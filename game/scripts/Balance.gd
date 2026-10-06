@@ -2396,6 +2396,14 @@ const CLICK_MOVE_MARK_SECONDS: float = 0.55
 const CLICK_MOVE_HOVER_HZ: float = 20.0
 const CLICK_MOVE_GROUND_COLOUR: Color = Color(0.45, 1.0, 0.62, 1.0)
 const CLICK_MOVE_TARGET_COLOUR: Color = Color(1.0, 0.32, 0.26, 1.0)
+## **What the cursor is over is lit** (owner, 2026-10-06: "Cursor VFX juice and
+## highlighting"). The hovered body's own outline - the shader's `outline_*`
+## uniforms every body already wears - turns this colour at this strength while
+## the cursor rests on it, and the ring under it breathes brighter; it is put
+## back exactly as it was when the cursor leaves. A look: nothing reads it.
+const HOVER_OUTLINE_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.96)
+const HOVER_OUTLINE_STRENGTH: float = 1.0
+const HOVER_RING_STRENGTH: float = 0.75
 
 ## Impulse applied to everything the swing connects with.
 const HERO_ATTACK_KNOCKBACK: Array[float] = [170.0, 190.0, 420.0]
@@ -5781,6 +5789,11 @@ const ENEMY_PROJECTILE_SPEED: float = 400.0
 ## the hot filament is bright enough to compete with tower projectiles. [TUNE]
 const ENEMY_PROJECTILE_WIDTH: float = 11.0
 const ENEMY_PROJECTILE_FILAMENT_WIDTH: float = 3.0
+## A hostile shot's ribbon as a share of its head's drawn diameter (2026-10-06),
+## so a shot authored with a bigger head drags a wider trail; at a head of one
+## it is the width it was. The authored `trail` weight still multiplies it.
+const ENEMY_PROJECTILE_TRAIL_WIDTH_SHARE: float = 0.6875
+const ENEMY_PROJECTILE_FILAMENT_SHARE: float = 0.27
 const ENEMY_PROJECTILE_HEAD_RADIUS: float = 8.0
 const ENEMY_PROJECTILE_RUNE_RADIUS: float = 15.0
 const ENEMY_PROJECTILE_RUNE_WIDTH: float = 2.0
@@ -7488,6 +7501,18 @@ const PROJECTILE_LIGHT_ENERGY: float = 0.7
 
 ## Hot filament inside the elemental ribbon and occasional shedding motes.
 const PROJECTILE_FILAMENT_WIDTH: float = 1.65
+
+## **A trail is as wide as the head it follows** (owner, 2026-10-06: "Trail VFX
+## width scaling to projectile width"). The ribbon was `PROJECTILE_WIDTH` by
+## the tier alone, so a shot whose painted head is twice another's dragged the
+## same thread. It is this share of the head's drawn height now - the
+## silhouette's or the painting's - which at the authored silhouette is
+## exactly the width it was, and the filament the same share of the ribbon.
+const PROJECTILE_TRAIL_WIDTH_SHARE: float = 0.5
+const PROJECTILE_FILAMENT_SHARE: float = 0.33
+## And never thinner than this share of what it was: a dart's head is a few
+## units tall and its ribbon must still read as a ribbon.
+const PROJECTILE_TRAIL_FLOOR_SHARE: float = 0.6
 const PROJECTILE_MOTE_INTERVAL: float = 0.055
 const PROJECTILE_MOTE_LIFE: float = 0.22
 

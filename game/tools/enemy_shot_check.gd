@@ -778,6 +778,15 @@ func _a_shooter(field: Battlefield, at: Node2D, shot: int) -> Enemy:
 	# shot that resolved on nobody.
 	enemy.setup(posed, 0, field, 1.0, 1.0, 1.0)
 	field.add_child(enemy)
+	# **Held still**, as the repertoire walk holds its probe. A live body
+	# chooses its own target and throws on its own clock; since a body that
+	# sights the Warden widens its aggro circle (2026-10-06), a howler's 210
+	# reaches the hero standing 220 off, and the probe threw a second, rolled
+	# shot of its own into the measuring window - "took 406 from a strike of
+	# 400", by exactly one of its own blows. The shot under test is loosed by
+	# hand and needs no tick of the body's.
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
 	enemy.global_position = at.global_position + Vector2.RIGHT * 220.0
 	enemy.set("_target", at)
 	return enemy

@@ -13178,6 +13178,41 @@ columns and the word - and `PartyJuice._on_partner_levelled` calls it with
 Records and one light; nothing reads it. `feel_check` counts the pillar, the
 rings and the motes off the ink and holds both callers to the one door.
 
+**Three more from the owner's list of 2026-10-06: a ribbon as wide as its
+head, a body lit under the cursor, and command tiles on a thumb.** Each is a
+look and never a fact, gated on both bars, planted and named.
+
+- **A shot's trail is a share of its head** (`PROJECTILE_TRAIL_WIDTH_SHARE`,
+  with a floor so a dart never drags a hairline; the hostile shot's own share
+  beside it). The ribbon used to be one width for every shot, so a level-10
+  shell flew on a level-1 thread. `projectile_tier_check` reads the width off
+  the shot against its head at every level.
+- **The body under the cursor is lit**: its own outline - the `outline_*`
+  uniforms every body shader already wears - turns gold at full strength and
+  the ring under it breathes brighter, put back exactly as it was when the
+  cursor leaves. The lit mark is the body's and the paint is the material's,
+  because a body's stain material arrives on its first blood tick; the hover is
+  re-lit on every tick for the same reason, since one hovered on the frame it
+  spawned stayed dark. Photographed (`tower_juice_shot`, which now rests the
+  cursor on its first body): the rim is one texel and reads thin at play zoom
+  - a wider rim is a shader uniform away and is still owed.
+- **The command panel on a thumb is a row of tiles** - mark above word, three
+  wide, the target line hidden - where the touch pass had inflated one order to
+  a plate a thumb and a half tall over a corner of the field. Tiled *after*
+  `UiMetrics.apply_touch_tree`, which is the action row's own rule: the pass
+  grows a control once and restores exactly that, so a tile sized before it is
+  undone by it. `road_sheet_check` fills Command at the phone shapes and holds
+  the tile's height, the panel's and the columns.
+
+**And `enemy_shot_check` went red on a body that sighted the Warden.** The
+probe stands 220 units off a howler whose aggro is 210; since a sighted body
+widens its circle (the alert of the same day), the live probe chose the hero
+on its own and threw a rolled shot of its own into the measuring window - read
+as "took 406 from a strike of 400", by exactly one of its blows. The probe is
+held still now, as the repertoire walk's already was. The first theory - grief
+laid for every wound leaning the hazards - was wrong: grief boosts the earth's
+own hazards and never a shot, and it was checked before anything was changed.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

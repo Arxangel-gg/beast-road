@@ -8,6 +8,10 @@ extends Node
 ##
 ##   godot --path game res://tools/tower_juice_shot.tscn
 ##
+## The cursor rests on the first body (`ClickMove.hover_test_point`), so the
+## hover highlight of 2026-10-06 - the outline and the breathing ring - is in
+## the same picture as the ribbons it was built beside.
+##
 ## Four frames land in `user://` as `tower_juice_<n>.png`, a third of a second
 ## apart, so a shot is caught leaving, flying and landing.
 
@@ -58,10 +62,15 @@ func _ready() -> void:
 			if tower != null and tower.anchor == anchor:
 				built.append(tower)
 	var breed: EnemyData = ContentDB.enemy("bogkin")
+	var first: Enemy = null
 	for tower: Tower in built:
 		var body: Enemy = _field.spawn_enemy(breed, 0, 80.0, -1.0, 0.001)
 		if body != null:
 			body.global_position = tower.origin() + Vector2(0.0, 260.0)
+			if first == null:
+				first = body
+	if first != null and _field.click_move != null:
+		_field.click_move.hover_test_point = first.global_position
 	_field.hero.global_position = centre + Vector2(0.0, 120.0)
 	for _f: int in 30:
 		await get_tree().process_frame

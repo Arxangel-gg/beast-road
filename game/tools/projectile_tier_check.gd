@@ -66,6 +66,27 @@ func _ready() -> void:
 	_check(first_hot == Balance.PROJECTILE_HOT_TIER,
 		"the white core must arrive at level %d, arrived at %d"
 			% [Balance.PROJECTILE_HOT_TIER, first_hot])
+	# **A trail is as wide as the head it follows** (2026-10-06): the ribbon is
+	# a share of the head's drawn height at every level, and a hostile shot's a
+	# share of its head's diameter times its authored trail weight.
+	for level: int in looks.size():
+		var here: Dictionary = looks[level]
+		_check(is_equal_approx(float(here["trail"]),
+				maxf(float(here["head"]) * Balance.PROJECTILE_TRAIL_WIDTH_SHARE, float(here["floor"]))),
+			"level %d's trail is %.2f wide under a head %.2f tall - not the head's share"
+				% [level + 1, float(here["trail"]), float(here["head"])])
+	var hostile := EnemyProjectile.take()
+	hostile.head_scale = 2.0
+	hostile.trail_scale = 1.5
+	_check(is_equal_approx(hostile.trail_width(), Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 4.0
+			* Balance.ENEMY_PROJECTILE_TRAIL_WIDTH_SHARE * 1.5),
+		"a hostile shot with a head twice the size drags a ribbon of %.2f" % hostile.trail_width())
+	hostile.head_scale = 1.0
+	hostile.trail_scale = 1.0
+	_check(is_equal_approx(hostile.trail_width(), Balance.ENEMY_PROJECTILE_WIDTH),
+		"a hostile shot's plain ribbon is %.2f, not the %.2f it always was"
+			% [hostile.trail_width(), Balance.ENEMY_PROJECTILE_WIDTH])
+	hostile.queue_free()
 	print("[projectile] trail %.1f -> %.1f, glow %.2f -> %.2f, white core from level %d"
 		% [float(looks[0]["trail"]), float(looks[looks.size() - 1]["trail"]),
 			float(looks[0]["glow_alpha"]),

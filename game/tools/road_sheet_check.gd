@@ -902,6 +902,42 @@ func _test_the_command_panel_is_on_screen() -> void:
 			var theirs: Rect2 = readout.get_global_rect()
 			_check(not rect.intersects(theirs),
 				"the command panel %s overlaps %s at %s" % [rect, readout.name, theirs])
+	# **With every order affordable, the panel is tiles on a thumb and rows on
+	# a desktop** (owner, 2026-10-06: "Command UI too large on mobile"). The
+	# touch pass had inflated one order to a plate a thumb and a half tall.
+	RunState.gain_command(Balance.COMMAND_MAX)
+	for _f: int in 8:
+		await get_tree().process_frame
+	var orders: GridContainer = _hud.get("_command_orders") as GridContainer
+	var target: Control = _hud.get("_command_target") as Control
+	_check(orders != null and target != null, "the command panel has no orders or no target line")
+	if orders != null and target != null:
+		var shown: int = 0
+		for child: Node in orders.get_children():
+			var order := child as Button
+			if order == null or not order.visible:
+				continue
+			shown += 1
+			if _touch:
+				_check(order.size.y <= HUD.COMMAND_TILE_SIZE.y + 1.0 and order.has_meta(IconKit.ICON_ON_TOP),
+					"on a thumb the order %s is %.0f tall and %s a tile" % [order.name, order.size.y,
+						"is" if order.has_meta(IconKit.ICON_ON_TOP) else "is not"])
+			else:
+				_check(not order.has_meta(IconKit.ICON_ON_TOP),
+					"on a desktop the order %s is tiled" % order.name)
+		_check(shown >= 3, "with Command full only %d orders are offered" % shown)
+		var open_rect: Rect2 = panel.get_global_rect()
+		_notes.append("command panel open at %.0fx%.0f" % [open_rect.size.x, open_rect.size.y])
+		if _touch:
+			_check(open_rect.size.y <= HUD.COMMAND_PANEL_TOUCH_MAX_HEIGHT,
+				"on a thumb the open command panel is %.0f tall" % open_rect.size.y)
+			_check(not target.visible, "on a thumb the target line is shown")
+			_check(orders.columns == 3, "on a thumb the orders are not one row")
+		else:
+			_check(target.visible and orders.columns == 1, "on a desktop the orders are not a column under the target line")
+		_check_on_screen(panel, "the open command panel")
+	RunState.command = 10.0
+	EventBus.command_changed.emit(RunState.command, Balance.COMMAND_MAX)
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	for _f: int in 4:
 		await get_tree().process_frame
