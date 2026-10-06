@@ -168,6 +168,7 @@ func _ready() -> void:
 	EventBus.gathered.connect(_on_gathered)
 	EventBus.earth_offended.connect(_on_earth_offended)
 	EventBus.wildlife_fell.connect(_on_wildlife_fell)
+	EventBus.wildlife_bled.connect(_on_wildlife_bled)
 	EventBus.coop_grief_laid.connect(_on_grief_told)
 	EventBus.wildlife_tamed.connect(_on_wildlife_tamed)
 	EventBus.wildlife_robbed.connect(_on_wildlife_robbed)
@@ -985,6 +986,33 @@ func _on_wildlife_fell(_kind_id: String, at: Vector2, rarity: int, shiny: bool, 
 	var share: float = float(Balance.WRATH_FALL_SCALE.get(cause, Balance.WRATH_FALL_SCALE["earth"]))
 	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale * share
 	_lay_grief(at, scale * share)
+
+
+## **Blood spilled is heat, before the kill** (owner, 2026-10-06). A wound
+## costs the earth `WRATH_BLOOD_SHARE` of what a kill of that animal costs, by
+## the share of its pool the blow took - the blood of a whole animal sums to
+## half its kill, and the kill still pays in full on top (the rarity's extra).
+## Heat only, never the floor, and grief in the area: blood is the hour's
+## anger, a death the road's. A Warden's blow at full; a road body's at the
+## enemy's own share, as its kills are; the cycle - an animal's bite - and the
+## earth's own blows at nothing, because those are the cycle.
+func _on_wildlife_bled(_kind_id: String, at: Vector2, rarity: int, shiny: bool,
+		share: float, cause: String) -> void:
+	if _mirror or share <= 0.0:
+		return
+	var who: float = 0.0
+	if cause == "player":
+		who = 1.0
+	elif cause == "enemy":
+		who = float(Balance.WRATH_FALL_SCALE["enemy"])
+	if who <= 0.0:
+		return
+	var scale: float = float(Balance.WRATH_RARITY_SCALE[clampi(rarity, 0, Balance.WRATH_RARITY_SCALE.size() - 1)])
+	if shiny:
+		scale *= Balance.WRATH_SHINY_SCALE
+	var weight: float = scale * Balance.WRATH_BLOOD_SHARE * clampf(share, 0.0, 1.0) * who
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * weight
+	_lay_grief(at, weight)
 
 
 ## A spirit bonded is a kindness the earth remembers.

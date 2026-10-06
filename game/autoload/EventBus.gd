@@ -454,6 +454,12 @@ signal wildlife_killed(kind_id: String, food: int, at: Vector2, rarity: int, shi
 ## "flood" or "dragon". Host side. The earth's wrath reads it, in the area.
 signal wildlife_fell(kind_id: String, at: Vector2, rarity: int, shiny: bool, cause: String)
 
+## An animal bled (2026-10-06): `share` is how much of its pool the blow took,
+## `cause` is "player" for a Warden's blow, "enemy" for a road body's, and the
+## earth's own causes or "cycle" otherwise. Host side. The earth's wrath reads
+## it as heat, never the floor.
+signal wildlife_bled(kind_id: String, at: Vector2, rarity: int, shiny: bool, share: float, cause: String)
+
 ## Young were born to a pair out on the road (the families, 2026-09-14): the
 ## species, how many arrived and where. Presentation and the debrief read it;
 ## nothing about a reward travels on it.
@@ -811,8 +817,10 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 ## guest.
 signal coop_hero_state(rows: Array)
 
-## The host dropped loot and gave it an identity.
-signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2, lead: bool)
+## The host dropped loot and gave it an identity. `batch_total` is what the
+## whole handful was worth, for the lead's plate (2026-10-06).
+signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2, lead: bool,
+	batch_total: int)
 
 ## That loot was picked up — on the host's say-so.
 signal coop_loot_taken(net_id: int)

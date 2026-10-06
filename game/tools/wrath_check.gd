@@ -45,6 +45,7 @@ func _ready() -> void:
 	if _sky != null and _fire != null:
 		_sky.events_enabled = false
 		_test_wrath_rises_and_cools()
+		_test_blood_is_heat()
 		await _test_the_earth_answers_on_its_own()
 		await _test_acts_ease_the_wrath()
 		await _test_rarity_and_the_shock()
@@ -235,6 +236,66 @@ func _test_wrath_rises_and_cools() -> void:
 		- Balance.WRATH_FLOOR_RECOVERY_PER_SECOND * Balance.WRATH_HEAT_HALF_LIFE * 3.0 - 0.001,
 		"the floor cooled away too: %.3f" % cooled)
 	_check(is_equal_approx(RunState.wrath, cooled), "RunState.wrath is not what the sky says")
+
+
+## **Blood spilled is heat** (owner, 2026-10-06). A wound costs a share of a
+## kill by the share of the pool it took and by whose blow it was; the cycle
+## and the earth's own blows cost nothing; the floor never moves. Measured on
+## the heat through the signal, and then through a real wound on a real animal
+## so the funnel is proved to say it.
+func _test_blood_is_heat() -> void:
+	_sky.set("_wrath_heat", 0.0)
+	var floor_was: float = float(_sky.get("_wrath_floor"))
+	var unit: float = Balance.WRATH_HEAT_PER_KILL * Balance.WRATH_BLOOD_SHARE
+	EventBus.wildlife_bled.emit("rabbit", Vector2.ZERO, 0, false, 1.0, "player")
+	_check(is_equal_approx(float(_sky.get("_wrath_heat")), unit),
+		"a whole rabbit's blood is %.4f of heat, not %.4f" % [float(_sky.get("_wrath_heat")), unit])
+	_sky.set("_wrath_heat", 0.0)
+	EventBus.wildlife_bled.emit("rabbit", Vector2.ZERO, 0, false, 0.25, "player")
+	_check(is_equal_approx(float(_sky.get("_wrath_heat")), unit * 0.25),
+		"a quarter of a rabbit's blood is %.4f, not a quarter of %.4f" % [float(_sky.get("_wrath_heat")), unit])
+	_sky.set("_wrath_heat", 0.0)
+	EventBus.wildlife_bled.emit("rabbit", Vector2.ZERO, 2, false, 1.0, "player")
+	_check(is_equal_approx(float(_sky.get("_wrath_heat")), unit * Balance.WRATH_RARITY_SCALE[2]),
+		"a rare animal's blood is %.4f, not %.4f" % [float(_sky.get("_wrath_heat")),
+			unit * Balance.WRATH_RARITY_SCALE[2]])
+	_sky.set("_wrath_heat", 0.0)
+	EventBus.wildlife_bled.emit("rabbit", Vector2.ZERO, 0, false, 1.0, "enemy")
+	_check(is_equal_approx(float(_sky.get("_wrath_heat")), unit * float(Balance.WRATH_FALL_SCALE["enemy"])),
+		"a road body's bite bled %.4f of heat, not the enemy's share %.4f"
+			% [float(_sky.get("_wrath_heat")), unit * float(Balance.WRATH_FALL_SCALE["enemy"])])
+	for cause: String in ["cycle", "earth", "fire", "flood", "dragon"]:
+		_sky.set("_wrath_heat", 0.0)
+		EventBus.wildlife_bled.emit("rabbit", Vector2.ZERO, 0, false, 1.0, cause)
+		_check(float(_sky.get("_wrath_heat")) == 0.0, "blood drawn by %s cost heat" % cause)
+	_check(is_equal_approx(float(_sky.get("_wrath_floor")), floor_was), "blood moved the floor")
+	# Through the real wound, on a real animal.
+	var animals: Node = _field.get_node_or_null("Wildlife")
+	var kind: WildlifeData = ContentDB.wildlife_kinds.get("rabbit", null) as WildlifeData
+	_check(animals != null and kind != null, "the harness has no wildlife or no rabbit to wound")
+	if animals != null and kind != null:
+		var heard: Array = []
+		var listen := func(_id: String, _at: Vector2, _rarity: int, _shiny: bool, share: float, cause: String) -> void:
+			heard.append([share, cause])
+		EventBus.wildlife_bled.connect(listen)
+		animals.call("_spawn", kind, Vector2(600.0, 600.0))
+		var living: Array = animals.get("_living")
+		var sprite: Node2D = null
+		if not living.is_empty():
+			sprite = (living[living.size() - 1] as Dictionary).get("sprite") as Node2D
+		_sky.set("_wrath_heat", 0.0)
+		var bite: float = kind.max_hp * 0.3
+		var wounded: bool = sprite != null and bool(animals.call("wound_sprite", sprite, bite, true, "player"))
+		_check(wounded, "the harness could not wound a rabbit")
+		_check(heard.size() == 1 and is_equal_approx(float(heard[0][0]), 0.3)
+				and String(heard[0][1]) == "player",
+			"a real wound of a third of a rabbit said %s" % str(heard))
+		_check(is_equal_approx(float(_sky.get("_wrath_heat")), unit * 0.3),
+			"a real wound of a third of a rabbit cost %.4f of heat, not %.4f"
+				% [float(_sky.get("_wrath_heat")), unit * 0.3])
+		EventBus.wildlife_bled.disconnect(listen)
+		animals.call("clear")
+	_sky.set("_wrath_heat", 0.0)
 
 
 ## The crossroad's harsh skies grow likelier with wrath.

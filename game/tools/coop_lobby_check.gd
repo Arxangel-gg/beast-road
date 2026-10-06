@@ -15,11 +15,25 @@ func _ready() -> void:
 	var regions: Dictionary = {}
 	for slot: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
 		var portrait := CoopPartyPortrait.new()
-		add_child(portrait)
+		# **Configured before it is added, which is the lobby's own order**
+		# (`CoopScreen._update_party_view`). This gate added first and so could
+		# not see the dressed body drawn half a cell too high (2026-10-06).
 		portrait.configure(slot, "Warden %d" % slot,
 			CoopParty.colour_of(slot), Balance.PARTY_COLOUR_NAMES[slot - 1],
 			slot == 1)
+		add_child(portrait)
+		# The painted frame is read before any frame passes, because the
+		# idle phase is what the stagger check below reads off it.
 		var region: Rect2 = portrait.frame_region()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var stage: WardenStage = portrait.get("_stage") as WardenStage
+		if stage != null and stage.visible and stage.animator().dressed():
+			_check(not stage.sprite().centered,
+				"seat %d's dressed body is drawn centred - half a cell too high, its head off the card" % slot)
+			var room := Rect2(Vector2.ZERO, stage.size)
+			_check(room.encloses(stage.figure_rect()),
+				"seat %d's Warden stands at %s, outside its %s card" % [slot, stage.figure_rect(), room])
 		_check(region.size == Vector2(168.0, 160.0),
 			"seat %d must crop one authored hero frame" % slot)
 		_check(is_equal_approx(region.position.y, 320.0),

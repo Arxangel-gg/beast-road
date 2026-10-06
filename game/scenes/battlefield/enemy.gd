@@ -1169,6 +1169,9 @@ func _react_to_mirrored_hit(lost: float) -> void:
 ## The retarget clock and this body's own phase on it (from its identity, so
 ## the run's stream is not drawn on and two machines agree).
 var _retarget_left: float = 0.0
+## How long this body stays alert after last seeing the Warden
+## (`ENEMY_ALERT_SECONDS`, 2026-10-06); zero is a body that has seen nobody.
+var _alert_left: float = 0.0
 var _retarget_phase: float = -1.0
 ## The nearest howler, re-asked on `ENEMY_HOWLER_SENSE_SECONDS`: `current_speed`
 ## is read every frame a body walks, and the scan was every body against
@@ -1184,6 +1187,7 @@ func _tick_state(delta: float) -> void:
 	# went on swinging at a Warden who had died (owner report, measured: three
 	# of six bodies struck a corpse for four seconds).
 	_retarget_left -= delta
+	_alert_left = maxf(_alert_left - delta, 0.0)
 	match _state:
 		State.WALKING:
 			_grudge_left = maxf(_grudge_left - delta, 0.0)
@@ -1289,7 +1293,8 @@ func _tick_state(delta: float) -> void:
 					data.contact_interval - Balance.ENEMY_ATTACK_WINDUP
 						- Balance.ENEMY_ATTACK_STRIKE)
 					* _temper.randf_range(Balance.ENEMY_CADENCE_WANDER.x,
-						Balance.ENEMY_CADENCE_WANDER.y) * rest_share + winded)
+						Balance.ENEMY_CADENCE_WANDER.y) * rest_share
+					* alert_recovery_scale() + winded)
 				if _field != null and _target == _field.town_node() \
 						and data.role == EnemyData.Role.HOWLER:
 					_siege_share = maxf(_siege_share - _temper.randf_range(
@@ -2264,6 +2269,9 @@ func current_speed() -> float:
 func targeting_speed() -> float:
 	var speed: float = data.move_speed * _speed_scale * _slow_factor * RunState.flood_slow()
 	speed *= _mark_speed()
+	# Quicker with the Warden in sight (2026-10-06).
+	if _alert_left > 0.0:
+		speed *= Balance.ENEMY_ALERT_SPEED_SCALE
 	if _boss_phase > 0:
 		speed *= 1.0 + data.phase_speed_bonus * float(_boss_phase)
 	if RunState.horn_active:
@@ -2364,6 +2372,7 @@ func _choose_target() -> Node2D:
 	# was a free wall.
 	var hero: Node2D = _field.nearest_foe(global_position) if _field.has_method("nearest_foe") \
 		else _field.nearest_hero(global_position)
+	_sight(hero)
 	var town: Node2D = _field.town_node()
 	# A barricade is not chosen over the hero: a wall does not distract somebody
 	# already in a fight. It is chosen over the *town*, because it is the thing
@@ -2472,9 +2481,47 @@ func _foe_stands(foe: Node2D) -> bool:
 ## How near the Warden has to be before this body breaks off to fight them.
 ## Further for a melee body (2026-09-25): see `ENEMY_MELEE_AGGRO_SCALE`.
 func hero_aggro_range() -> float:
+	var reach: float = _base_aggro_range()
+	# Further for a body that has seen them (2026-10-06).
+	if _alert_left > 0.0:
+		reach *= Balance.ENEMY_ALERT_AGGRO_SCALE
+	return reach
+
+
+## The aggro circle before sight widens it.
+func _base_aggro_range() -> float:
 	if data != null and data.role == EnemyData.Role.HOWLER:
 		return Balance.ENEMY_HERO_AGGRO_RANGE
 	return Balance.ENEMY_HERO_AGGRO_RANGE * Balance.ENEMY_MELEE_AGGRO_SCALE
+
+
+## **A body that has seen the Warden fights like it** (owner, 2026-10-06).
+## Noted on the choosing cadence, from the foe `_choose_target` already found,
+## so sighting costs no scan of its own; remembered for `ENEMY_ALERT_SECONDS`
+## so a Warden at the edge of sight does not flicker it. Never a boss, whose
+## tempo is its phases', and never a camp body, which has a circle of its own.
+## What it moves is the walk, the rest between swings and the aggro circle -
+## never the blow.
+func _sight(foe: Node2D) -> void:
+	if foe == null or not is_instance_valid(foe) or not _foe_stands(foe):
+		return
+	if is_camp_mob() or data == null or data.category == EnemyData.Category.BOSS:
+		return
+	var sight: float = _base_aggro_range() * Balance.ENEMY_SIGHT_SCALE
+	if global_position.distance_to(foe.global_position) <= sight:
+		_alert_left = Balance.ENEMY_ALERT_SECONDS
+
+
+## Whether this body has the Warden in mind: seen inside its sight circle
+## within the last `ENEMY_ALERT_SECONDS`.
+func is_alert() -> bool:
+	return _alert_left > 0.0
+
+
+## What the rest between swings is multiplied by: shorter while alert, one
+## otherwise. The STRIKE arm reads it where the rest is decided.
+func alert_recovery_scale() -> float:
+	return Balance.ENEMY_ALERT_RECOVERY_SCALE if _alert_left > 0.0 else 1.0
 
 
 func attack_reach() -> float:

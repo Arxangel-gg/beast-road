@@ -5741,6 +5741,24 @@ const ENEMY_HERO_AGGRO_RANGE: float = 210.0
 const ENEMY_MELEE_AGGRO_SCALE: float = 1.2
 const ENEMY_MELEE_RECOVERY_SCALE: float = 0.8
 
+## **A body that has seen the Warden fights like it** (owner, 2026-10-06:
+## "Enemy AI on sight: more aggression, move speed, attack speed, range").
+## Sighting is a Warden or their spirit inside `ENEMY_SIGHT_SCALE` of the
+## body's own aggro circle, read where it already chooses a target - on the
+## choosing cadence, so it costs no scan of its own - and remembered for
+## `ENEMY_ALERT_SECONDS`, so a Warden stepping in and out of the edge does not
+## flicker it. While alert the body walks faster, rests less between swings
+## (the wind-up is untouched: the tell stays the tell), and breaks off for the
+## Warden from further out. **Damage never moves** - a blow is the same blow,
+## which is what lets `curve_report` still read the same waves - and a boss
+## and a camp body are never alert, because a boss's tempo is its phases' and a
+## camp has a circle of its own. [TUNE]
+const ENEMY_SIGHT_SCALE: float = 1.8
+const ENEMY_ALERT_SECONDS: float = 3.0
+const ENEMY_ALERT_SPEED_SCALE: float = 1.15
+const ENEMY_ALERT_RECOVERY_SCALE: float = 0.85
+const ENEMY_ALERT_AGGRO_SCALE: float = 1.25
+
 ## Howlers and the Drowned Choir fire slow committed shots. Their target can
 ## leave the marked destination before impact; this is pressure, not hitscan.
 const ENEMY_RANGED_RANGE: float = 330.0
@@ -9948,6 +9966,16 @@ const WRATH_CAP: float = 1.5
 ## the Warden's own, which is what karma, the floor and the over-hunting tally
 ## are about.
 const WRATH_FALL_SCALE: Dictionary = {"earth": 0.3, "fire": 0.5, "flood": 0.3, "enemy": 0.25}
+
+## **Blood spilled is heat** (owner, 2026-10-06: "Wildlife blood spilled, by
+## players or enemies, raises wrath proportional to the blood, plus extra on
+## kill by rarity"). A wound costs this share of what a kill of that animal
+## costs, by the share of its pool the blow took - so the blood of a whole
+## animal sums to half its kill, and the kill still pays in full on top. Heat
+## only, never the floor: blood is the hour's anger, a death the road's. A
+## Warden's blow at full, a road body's at `WRATH_FALL_SCALE["enemy"]`, and
+## the cycle - an animal's bite - and the earth's own blows at nothing. [TUNE]
+const WRATH_BLOOD_SHARE: float = 0.5
 const WRATH_DRAGON_KILL_SCALE: float = 2.0
 
 ## **Grief, where it happened** (`EarthGrief`). A kill lays its weight of grief

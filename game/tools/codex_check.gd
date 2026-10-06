@@ -244,6 +244,37 @@ func _test_bonded_only(screen: CodexScreen, spirits: int) -> void:
 	await get_tree().process_frame
 	_check(_count_rows(screen) == 2,
 		"two bonded species must draw two rows, drew %d" % _count_rows(screen))
+	# **The frame says the rarity of the best bond** (owner, 2026-10-06). The
+	# first's picture is framed in its one bond's tint; bonding a rarer variant
+	# re-frames it in the rarer one's; a species nothing is bonded of keeps the
+	# book's own frame.
+	var first_variant: String = SpiritBond.variants_of(first.id)[0]
+	var first_tint: Color = FrameKit.tint_of(_species_art(screen, first))
+	_check(first_tint.is_equal_approx(screen.bond_frame_tint(
+			SpiritBond.rarity_of(first_variant), SpiritBond.shiny_of(first_variant))),
+		"a bonded species' picture is framed in %s, not its bond's rarity" % first_tint)
+	var rarest: String = first_variant
+	for variant: String in SpiritBond.variants_of(first.id):
+		if SpiritBond.rarity_of(variant) > SpiritBond.rarity_of(rarest):
+			rarest = variant
+	MetaState.spirit_bonded[rarest] = true
+	screen.call("_refresh")
+	await get_tree().process_frame
+	var rarest_tint: Color = screen.bond_frame_tint(SpiritBond.rarity_of(rarest), SpiritBond.shiny_of(rarest))
+	_check(rarest != first_variant and FrameKit.tint_of(_species_art(screen, first)).is_equal_approx(rarest_tint),
+		"a rarer bond did not re-frame the species' picture (%s against %s)"
+			% [FrameKit.tint_of(_species_art(screen, first)), rarest_tint])
+	_check(not rarest_tint.is_equal_approx(first_tint), "two rarities wear one frame")
+	MetaState.spirit_bonded.erase(rarest)
+	toggle.button_pressed = false
+	screen.call("_refresh")
+	await get_tree().process_frame
+	var unbonded: WildlifeData = animals[1]
+	_check(FrameKit.tint_of(_species_art(screen, unbonded)).is_equal_approx(FrameKit.CORNER),
+		"a species nothing is bonded of wears a rarity's frame")
+	toggle.button_pressed = true
+	screen.call("_refresh")
+	await get_tree().process_frame
 	screen.set("_spirit_open", first.id)
 	screen.call("_refresh")
 	await get_tree().process_frame
@@ -263,6 +294,16 @@ func _test_bonded_only(screen: CodexScreen, spirits: int) -> void:
 
 
 ## How many rows a tab draws.
+## The picture on a species' row, found by the art it draws.
+func _species_art(screen: CodexScreen, kind: WildlifeData) -> TextureRect:
+	var path: String = kind.get_sprite_path()
+	for node: Node in (screen.get("_rows") as Node).find_children("*", "TextureRect", true, false):
+		var art := node as TextureRect
+		if art != null and art.texture != null and art.texture == load(path):
+			return art
+	return null
+
+
 func _rows_on(screen: CodexScreen, tab: int) -> int:
 	screen.set("_tab", tab)
 	screen.call("_refresh")

@@ -338,6 +338,20 @@ func _refresh() -> void:
 	UiMetrics.apply_touch_tree(self, _grow_for_touch)
 
 
+## **The frame says the rarity of the best bond** (owner, 2026-10-06: "Codex:
+## rarity-themed frames per bonded wildlife"). A species nothing is bonded of
+## wears the book's own frame; one with a bond wears the tint the rank sheen
+## and the journal's rows already use for that rarity, shiny included, so the
+## journal reads at a glance which animals walk with you and how rare they
+## are. Public so the gate reads the same rule the row does.
+func bond_frame_tint(rarity: int, shiny: bool) -> Color:
+	if rarity < 0:
+		return FrameKit.CORNER
+	var tint: Color = SpiritBond.tint(rarity, shiny)
+	tint.a = 0.95
+	return tint
+
+
 ## The numbers behind an entry, on a second line.
 ##
 ## **Only what a player could have worked out by fighting it**, which is the rule
@@ -789,13 +803,22 @@ func _spirit_species_row(kind: WildlifeData) -> PanelContainer:
 	var bonded: int = 0
 	var met: int = 0
 	var equipped: bool = false
+	# The best bond of the species decides the frame its picture wears.
+	var best_rarity: int = -1
+	var best_shiny: bool = false
 	for variant: String in SpiritBond.variants_of(kind.id):
 		if MetaState.spirit_is_bonded(variant):
 			bonded += 1
+			var rarity: int = SpiritBond.rarity_of(variant)
+			var shiny: bool = SpiritBond.shiny_of(variant)
+			if rarity > best_rarity or (rarity == best_rarity and shiny and not best_shiny):
+				best_rarity = rarity
+				best_shiny = shiny
 		if MetaState.spirit_is_known(variant):
 			met += 1
 		if MetaState.equipped_spirit == variant:
 			equipped = true
+	var frame_tint: Color = bond_frame_tint(best_rarity, best_shiny)
 
 	# **A panel with a button laid over it, rather than a button with the
 	# content anchored inside one.** A `Button` is not a `Container`, so an
@@ -808,6 +831,10 @@ func _spirit_species_row(kind: WildlifeData) -> PanelContainer:
 	var skin := StyleBoxFlat.new()
 	skin.bg_color = Color(1.0, 1.0, 1.0, 0.028) if met > 0 else Color(0.0, 0.0, 0.0, 0.10)
 	skin.border_color = Color(0.86, 0.72, 0.42, 0.16 if met > 0 else 0.06)
+	if bonded > 0:
+		# The row's own hairline takes the bond's colour too, faintly, so the
+		# frame and the row read as one thing.
+		skin.border_color = Color(frame_tint.r, frame_tint.g, frame_tint.b, 0.34)
 	skin.set_border_width_all(1)
 	skin.set_corner_radius_all(6)
 	skin.content_margin_left = ROW_PAD_X
@@ -829,7 +856,7 @@ func _spirit_species_row(kind: WildlifeData) -> PanelContainer:
 	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	FrameKit.hang(art)
+	FrameKit.hang(art, frame_tint)
 	var path: String = kind.get_sprite_path()
 	if ResourceLoader.exists(path):
 		art.texture = load(path)

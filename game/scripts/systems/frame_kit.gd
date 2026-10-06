@@ -78,8 +78,26 @@ static func hang(on: Control, tint: Color = CORNER) -> Control:
 	overlay.name = "Frame"
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The tint is kept on the overlay rather than captured, so a gate can read
+	# what colour a frame was hung in (2026-10-06, the codex's rarity frames).
+	overlay.set_meta(TINT_META, tint)
 	overlay.draw.connect(func() -> void:
-		draw_frame(overlay, Rect2(Vector2.ZERO, overlay.size), tint))
+		draw_frame(overlay, Rect2(Vector2.ZERO, overlay.size),
+			overlay.get_meta(TINT_META, tint) as Color))
 	on.resized.connect(func() -> void: overlay.queue_redraw())
 	on.add_child(overlay)
 	return overlay
+
+
+## Where a hung frame keeps its tint.
+const TINT_META: StringName = &"frame_tint"
+
+
+## The tint a control's hung frame was given, or the default when it has none.
+static func tint_of(on: Control) -> Color:
+	if on == null:
+		return CORNER
+	var overlay: Node = on.get_node_or_null("Frame")
+	if overlay == null or not overlay.has_meta(TINT_META):
+		return CORNER
+	return overlay.get_meta(TINT_META) as Color

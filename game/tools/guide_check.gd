@@ -36,6 +36,10 @@ func _ready() -> void:
 	_test_lore()
 	_test_achievements()
 	await _test_the_screen()
+	# A runtime error inside the screen test stops it and nothing else, so the
+	# count of checks is not a proof that they ran (2026-09-22): the probe
+	# stamps its own end.
+	_check(_probe_done, "the viewport probe never reached its end - look for a SCRIPT ERROR above")
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	for _f: int in 10:
@@ -161,8 +165,106 @@ func _test_the_screen() -> void:
 		screen.open_picture(picture.texture)
 		screen.close()
 		_check(not screen.picture_open(), "closing the Guide left a picture open over nothing")
+	# **Through the viewport, as a player's mouse and a player's finger do**
+	# (owner, 2026-10-06: "Guide expanded image zooms back out when clicking
+	# it"). The checks above hand events to the handlers, which proves the
+	# functions and not the picking: a control that is not where it is drawn,
+	# or one under another that takes the click, passes them and fails a
+	# player. These push real presses at the screen and ask what happened.
+	if not pictures.is_empty():
+		screen.open(GuideScreen.CATEGORY_ORDER[0])
+		for _f: int in 3:
+			await get_tree().process_frame
+		# Reopening rebuilt the list, so the pictures above are freed: the
+		# first cut of this probe read one and aborted before a check ran -
+		# and the gate printed PASS over it.
+		var fresh: Array[TextureRect] = []
+		for node: Node in screen.find_children("*", "TextureRect", true, false):
+			var rect := node as TextureRect
+			if rect.gui_input.get_connections().size() > 0 and rect.texture != null:
+				fresh.append(rect)
+		_check(not fresh.is_empty(), "no picture in the reopened Guide opens larger")
+		if fresh.is_empty():
+			screen.queue_free()
+			await get_tree().process_frame
+			return
+		var picture: TextureRect = fresh[0]
+		# Scrolled into view first: a picture below the window's edge is one
+		# no click can land on, and the first cut of this probe clicked the
+		# first picture of the category wherever its list had put it.
+		var list := screen.get("_scroll") as ScrollContainer
+		if list != null:
+			list.ensure_control_visible(picture)
+			for _f: int in 3:
+				await get_tree().process_frame
+		var at: Vector2 = picture.get_global_rect().get_center()
+		var window: Rect2 = get_viewport().get_visible_rect()
+		_check(window.has_point(at), "the picture to click sits at %s, outside the %s window" % [at, window])
+		await _real_click(at)
+		_check(screen.picture_open(), "a real click on a picture did not open it larger (over %s at %s)"
+			% [_hovered_name(), at])
+		if screen.picture_open():
+			var big_at: Vector2 = screen._zoom_picture.get_global_rect().get_center()
+			await _real_click(big_at)
+			_check(screen.picture_open(), "a real click on the enlarged picture closed it")
+			await _real_click(big_at)
+			_check(screen.picture_open(), "a second real click on the enlarged picture closed it")
+			await _real_click(Vector2(4.0, 4.0))
+			_check(not screen.picture_open(), "a real click outside the enlarged picture did not close it")
+		# A finger: a touch the engine turns into the mouse a phone's tap is.
+		await _real_tap(at)
+		_check(screen.picture_open(), "a real tap on a picture did not open it larger")
+		if screen.picture_open():
+			var big_at: Vector2 = screen._zoom_picture.get_global_rect().get_center()
+			await _real_tap(big_at)
+			_check(screen.picture_open(), "a real tap on the enlarged picture closed it")
+			await _real_tap(Vector2(4.0, 4.0))
+			_check(not screen.picture_open(), "a real tap outside the enlarged picture did not close it")
+		screen.close()
+	_probe_done = true
 	screen.queue_free()
 	await get_tree().process_frame
+
+
+## What the viewport thinks the pointer is over, for a failure line.
+func _hovered_name() -> String:
+	var over: Control = get_viewport().gui_get_hovered_control()
+	return String(over.get_path()) if over != null else "nothing"
+
+
+## A press and a release at a screen point, through the viewport's own picking.
+func _real_click(at: Vector2) -> void:
+	# In the canvas's own coordinates: the project stretches `canvas_items`, so
+	# a logical point pushed as a window point lands somewhere else entirely -
+	# the first cut of this probe clicked nothing and said so.
+	var motion := InputEventMouseMotion.new()
+	motion.position = at
+	motion.global_position = at
+	get_viewport().push_input(motion, true)
+	await get_tree().process_frame
+	get_viewport().push_input(_click(at, true), true)
+	await get_tree().process_frame
+	get_viewport().push_input(_click(at, false), true)
+	for _f: int in 2:
+		await get_tree().process_frame
+
+
+## A finger down and up at a screen point, through `Input` so the engine
+## emulates the mouse from it exactly as it does for a phone's tap.
+func _real_tap(at: Vector2) -> void:
+	# A finger arrives in window pixels, so the canvas point is taken out
+	# through the stretch the window applies.
+	var in_window: Vector2 = get_viewport().get_final_transform() * at
+	for down: bool in [true, false]:
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.position = in_window
+		touch.pressed = down
+		Input.parse_input_event(touch)
+		for _f: int in 2:
+			await get_tree().process_frame
+	for _f: int in 2:
+		await get_tree().process_frame
 
 
 func _click(at: Vector2, down: bool) -> InputEventMouseButton:
@@ -172,6 +274,9 @@ func _click(at: Vector2, down: bool) -> InputEventMouseButton:
 	event.position = at
 	event.global_position = at
 	return event
+
+
+var _probe_done: bool = false
 
 
 func _check(passed: bool, message: String) -> void:

@@ -115,7 +115,15 @@ func _ready() -> void:
 			_sheets[state] = load(path) as Texture2D
 	if sprite != null and not _sheets.is_empty():
 		sprite.region_enabled = true
-		sprite.centered = true
+		# **Centred for the painted sheets, never over a dress already worn**
+		# (owner, 2026-10-06: the co-op avatar bug). The lobby configures a
+		# seat's card before it adds it to the tree, so `dress` had set the
+		# sprite top-left for the dressed cell and this line then put it back
+		# in the middle: the cell drew half a cell too high and left, the
+		# head off the card's top, while the layers kept the top-left maths
+		# and the sword hung below the boots. The Hold's card dresses after
+		# adding and never saw it.
+		sprite.centered = _outfit.is_empty()
 
 
 ## Put the Warden in an outfit from `WardenDress.outfit`. Does nothing - the

@@ -62,6 +62,7 @@ func _ready() -> void:
 	_test_split_sums_exactly()
 	await _test_a_piece_is_thrown_lands_and_settles()
 	await _test_one_lamp_per_batch()
+	await _test_every_pickup_is_named()
 	await _test_a_mirror_flies_the_same_arc()
 	await _test_a_pouch_spills_what_it_carried()
 	await _test_a_quiver_pays_a_bow_and_nothing_else()
@@ -245,6 +246,55 @@ func _test_one_lamp_per_batch() -> void:
 	await get_tree().process_frame
 	var lone: Array[LootDrop] = _pieces_at(lone_at, RunState.WOOD)
 	_check(lone.size() == 1 and _lamps_under(lone[0]) == 1, "a lone piece lost its light")
+	await _clear_field_loot()
+
+
+## **Every pickup is named, and a handful says what it is worth** (owner,
+## 2026-10-06). The lead of a batch wears the plate with the batch's whole
+## worth; the other pieces wear none; a lone coin is named without a number;
+## a recovery is named as its data names it; and a mirror told the batch's
+## worth says the same thing the host's lead does.
+func _test_every_pickup_is_named() -> void:
+	var at := Vector2(300.0, -900.0)
+	_field.spawn_loot(RunState.GOLD, 27, at)
+	await get_tree().process_frame
+	var pieces: Array[LootDrop] = _pieces_at(at, RunState.GOLD)
+	_check(pieces.size() > 1, "twenty-seven gold fell as one piece")
+	var plates: int = 0
+	var lead_words: String = ""
+	for piece: LootDrop in pieces:
+		var plate: Label = piece.get("_plate") as Label
+		if plate != null and plate.visible:
+			plates += 1
+			lead_words = plate.text
+		_check(piece.batch_total == 27, "a piece of the batch carries %d as its worth, not 27" % piece.batch_total)
+	_check(plates == 1, "a batch of %d pieces wears %d plates, not one" % [pieces.size(), plates])
+	_check(lead_words == "27 Gold", "the lead's plate says '%s', not '27 Gold'" % lead_words)
+	var lone_at := Vector2(-300.0, -900.0)
+	_field.spawn_loot(RunState.GOLD, 1, lone_at)
+	await get_tree().process_frame
+	var lone: Array[LootDrop] = _pieces_at(lone_at, RunState.GOLD)
+	var lone_plate: Label = lone[0].get("_plate") as Label if lone.size() == 1 else null
+	_check(lone_plate != null and lone_plate.visible and lone_plate.text == "Gold",
+		"a lone coin's plate says '%s', not 'Gold'" % (lone_plate.text if lone_plate != null else "nothing"))
+	var orb_at := Vector2(0.0, -900.0)
+	_field.spawn_loot(Balance.HEALING_ORB_ID, 1, orb_at)
+	await get_tree().process_frame
+	var orbs: Array[LootDrop] = _pieces_at(orb_at, Balance.HEALING_ORB_ID)
+	var named: GameData = ContentDB.recovery_drop(Balance.HEALING_ORB_ID) as GameData
+	var orb_plate: Label = orbs[0].get("_plate") as Label if orbs.size() == 1 else null
+	_check(named != null and orb_plate != null and orb_plate.visible and orb_plate.text == named.display_name,
+		"a healing orb's plate says '%s', not its data's '%s'" % [
+			orb_plate.text if orb_plate != null else "nothing",
+			named.display_name if named != null else "?"])
+	var mirror_at := Vector2(600.0, -900.0)
+	_field.mirror_loot(9901, RunState.GOLD, 3, mirror_at, true, 27)
+	await get_tree().process_frame
+	var mirrors: Array[LootDrop] = _pieces_at(mirror_at, RunState.GOLD)
+	var mirror_plate: Label = mirrors[0].get("_plate") as Label if mirrors.size() == 1 else null
+	_check(mirror_plate != null and mirror_plate.visible and mirror_plate.text == "27 Gold",
+		"a mirrored lead told its batch's worth says '%s', not '27 Gold'"
+			% (mirror_plate.text if mirror_plate != null else "nothing"))
 	await _clear_field_loot()
 
 

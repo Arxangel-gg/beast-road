@@ -2454,6 +2454,14 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	Vfx.blood(body_at, Vector2.UP,
 		Vfx.blood_size(taken, pool, radius) if float(animal["hp"]) > 0.0 \
 		else Balance.VFX_BLOOD_DEATH_SIZE * 0.75, sprite.global_position)
+	# **Blood spilled is heat** (owner, 2026-10-06: "wrath proportional to
+	# blood, plus extra on kill by rarity"). The earth is told what share of
+	# the animal's pool the blow took and whose blow it was; what that costs
+	# is the sky's to decide (`Sky._on_wildlife_bled`). On the one funnel every
+	# wound goes through, so a wound from a new door cannot forget to say so.
+	EventBus.wildlife_bled.emit(kind.id, sprite.global_position,
+		WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)),
+		clampf(taken / maxf(pool, 1.0), 0.0, 1.0), "player" if by_player else cause)
 	if float(animal["hp"]) > 0.0:
 		# Being hit is also a very good reason to leave - for a harmless
 		# animal always, away from the blow; for a hostile one sometimes: it

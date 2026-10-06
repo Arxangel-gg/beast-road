@@ -74,6 +74,7 @@ func _ready() -> void:
 	await _test_a_guard_turns_one_blow_and_is_spent()
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
+	await _test_a_body_that_sees_the_warden_quickens()
 	_finish()
 
 
@@ -708,6 +709,62 @@ func _test_a_release_gives_back_only_what_was_banked() -> void:
 	_check(float(warden.get("_behaviour_bank")) <= 1.0,
 		"and it must never overfill (%0.3f)" % float(warden.get("_behaviour_bank")))
 	_clear()
+
+
+## **A body that has seen the Warden fights like it** (owner, 2026-10-06).
+## Measured through the doors the fight reads - `targeting_speed`,
+## `hero_aggro_range` and the rest scale the STRIKE arm multiplies by - with the
+## Warden stood out of sight, then inside the sight circle but outside the
+## aggro circle, then out of sight again: the body quickens on sight, keeps it
+## in mind for a while, and forgets. A boss is never alert.
+func _test_a_body_that_sees_the_warden_quickens() -> void:
+	var body: Enemy = await _spawn("bogkin")
+	if body == null:
+		return
+	var hero: Hero = _field.hero
+	var far: Vector2 = body.global_position + Vector2(5000.0, 0.0)
+	hero.global_position = far
+	body.call("_pick_target")
+	_check(not body.is_alert(), "a body with nobody in sight is alert")
+	var calm_speed: float = body.targeting_speed()
+	var calm_aggro: float = body.hero_aggro_range()
+	var calm_rest: float = body.alert_recovery_scale()
+	_check(is_equal_approx(calm_rest, 1.0), "a calm body rests at %.2f of its rest, not all of it" % calm_rest)
+	# Inside the sight circle, outside the aggro circle.
+	hero.global_position = body.global_position + Vector2(calm_aggro * 1.4, 0.0)
+	body.call("_pick_target")
+	_check(body.is_alert(), "a Warden inside the sight circle did not alert the body")
+	_check(is_equal_approx(body.targeting_speed(), calm_speed * Balance.ENEMY_ALERT_SPEED_SCALE),
+		"an alert body walks at %.1f against a calm %.1f" % [body.targeting_speed(), calm_speed])
+	_check(body.hero_aggro_range() > calm_aggro,
+		"an alert body breaks off no further (%.0f against %.0f)" % [body.hero_aggro_range(), calm_aggro])
+	_check(body.alert_recovery_scale() < calm_rest,
+		"an alert body rests as long between swings (%.2f)" % body.alert_recovery_scale())
+	# Out of sight again: kept in mind for a while, then forgotten.
+	hero.global_position = far
+	body.call("_pick_target")
+	_check(body.is_alert(), "the alert is forgotten the moment the Warden steps out of sight")
+	var until: int = Time.get_ticks_msec() + int((Balance.ENEMY_ALERT_SECONDS + 0.6) * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+	_check(not body.is_alert(), "a body that lost sight of the Warden stays alert for good")
+	_check(is_equal_approx(body.targeting_speed(), calm_speed),
+		"a body that forgot the Warden still walks at %.1f" % body.targeting_speed())
+	body.queue_free()
+	# A boss is never alert.
+	var boss: Enemy = null
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed != null and breed.category == EnemyData.Category.BOSS:
+			boss = await _spawn(breed.id)
+			break
+	if boss != null:
+		hero.global_position = boss.global_position + Vector2(boss.hero_aggro_range() * 1.4, 0.0)
+		boss.call("_pick_target")
+		_check(not boss.is_alert(), "a boss was alerted - its tempo is its phases'")
+		boss.queue_free()
+	hero.global_position = far
+	await get_tree().process_frame
 
 
 func _spawn(breed_id: String) -> Enemy:

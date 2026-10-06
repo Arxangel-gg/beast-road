@@ -83,6 +83,11 @@ var _taken: bool = false
 ## measure where the piece will land.
 var lead: bool = true
 var siblings: int = 1
+## What the whole batch was worth, carried on every piece of it, so the lead's
+## plate can say "27 Gold" over a handful (owner, 2026-10-06: every pickup
+## named, with its quantity when stacked). Zero on a piece that is not
+## currency; a mirror is told it with the piece.
+var batch_total: int = 0
 var _height: float = 0.0
 var _lift: float = 0.0
 var _bounces: int = 0
@@ -311,6 +316,7 @@ func reset_for_pool() -> void:
 	_glow_size = Balance.LOOT_GLOW_SIZE
 	lead = true
 	siblings = 1
+	batch_total = 0
 	_height = 0.0
 	_lift = 0.0
 	_bounces = 0
@@ -1210,6 +1216,13 @@ func _place_plate() -> void:
 
 
 ## What the plate says, or nothing at all.
+##
+## **Every pickup is named, and a handful says what it is worth** (owner,
+## 2026-10-06: "All pickup drops get a nametag and quantity if stacked"). The
+## plate used to stand on gear and blueprints alone; a coin, a crate, an orb
+## and a quiver were pictures the player had to learn. A plain piece is named
+## for its currency, a batch for its whole worth on the lead - "27 Gold" over
+## nine coins, never nine plates - and a recovery for what its data calls it.
 func _plate_text() -> String:
 	if not gear.is_empty():
 		var kind: GearData = ContentDB.gear(String(gear.get("kind", "")))
@@ -1217,8 +1230,28 @@ func _plate_text() -> String:
 			return kind.slot_name()
 		return "Gear"
 	if not blueprint.is_empty():
+		var plan := ContentDB.blueprints.get(blueprint, null) as BlueprintData
+		if plan != null and not plan.display_name.is_empty():
+			return "Blueprint  \u00b7  %s" % plan.display_name
 		return "Blueprint"
-	return ""
+	if currency.is_empty():
+		return ""
+	var words: String = _currency_words()
+	var worth: int = maxi(batch_total, amount)
+	if RunState.CURRENCIES.has(currency) and worth > 1:
+		return "%d %s" % [worth, words]
+	return words
+
+
+## A run currency by the name the purse uses; a recovery by its data's own;
+## anything else by its id, capitalised, so a new kind is never a blank plate.
+func _currency_words() -> String:
+	if RunState.CURRENCIES.has(currency):
+		return RunState.currency_name(currency)
+	var data := ContentDB.recovery_drop(currency) as GameData
+	if data != null and not data.display_name.is_empty():
+		return data.display_name
+	return currency.capitalize()
 
 
 ## A lamp taken on the budget is given back with the piece, however it left:

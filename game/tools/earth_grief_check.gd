@@ -176,8 +176,13 @@ func _test_a_road_kill_pays_nobody() -> void:
 	_check(is_zero_approx(RunState.karma), "an animal a road body killed moved the Warden's karma")
 	_check(fell == ["enemy"], "a road body's kill was announced as %s" % str(fell))
 	_check(is_zero_approx(_floor()), "a road body's kill raised the earth's floor")
-	_check(is_equal_approx(_heat(), Balance.WRATH_HEAT_PER_KILL * float(Balance.WRATH_FALL_SCALE["enemy"])),
-		"a road body's kill was %.4f heat, not its share of a kill" % _heat())
+	# **Amended 2026-10-06, blood spilled is heat**: the killing blow took the
+	# whole pool, so it bleeds `WRATH_BLOOD_SHARE` of a kill at the enemy's own
+	# share on top of the fall's share. Still never the floor (held above).
+	var owed: float = Balance.WRATH_HEAT_PER_KILL * float(Balance.WRATH_FALL_SCALE["enemy"]) \
+		* (1.0 + Balance.WRATH_BLOOD_SHARE)
+	_check(is_equal_approx(_heat(), owed),
+		"a road body's kill was %.4f heat, not its share of a kill and its blood (%.4f)" % [_heat(), owed])
 	# And the Warden's own arrow, through the same door with no word about
 	# whose it is, is still the Warden's.
 	_calm()

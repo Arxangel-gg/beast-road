@@ -13084,6 +13084,65 @@ and its emplacements would be refunded rather than found standing.
   frozen air and opens the real door; planted without the sweep it named all
   three.
 
+**Six more from the owner's list of 2026-10-06, each gated on both bars.**
+
+- **Every pickup is named, and a handful says what it is worth.** The plate
+  stood on gear and blueprints alone; a coin, a crate, an orb and a quiver were
+  pictures the player had to learn. `LootDrop._plate_text` names a plain piece
+  for its currency, a batch for its whole worth on the lead - "27 Gold" over
+  nine coins, never nine plates - and a recovery for what its data calls it.
+  `batch_total` rides every piece and crosses the wire as a sixth element of
+  `LOOT_SPAWNED` (four and five still read); the welcome carries the lead flag
+  and the worth too, which it never had, so a rejoining guest no longer saw a
+  lamp and a plate on every mirrored coin. `loot_juice_check` reads the plates.
+- **A body that has seen the Warden fights like it.** Sighting is a Warden or
+  their spirit inside `ENEMY_SIGHT_SCALE` of the body's own aggro circle, read
+  where it already chooses a target so it costs no scan of its own, and kept
+  for `ENEMY_ALERT_SECONDS`. Alert, a body walks `ENEMY_ALERT_SPEED_SCALE`
+  faster, rests `ENEMY_ALERT_RECOVERY_SCALE` of its rest between swings (the
+  wind-up is untouched: the tell stays the tell) and breaks off for the Warden
+  from `ENEMY_ALERT_AGGRO_SCALE` further out. **Damage never moves**, so
+  `curve_report` reads the same waves; a boss and a camp body are never alert.
+  `enemy_behaviour_check` stands the Warden out of sight, inside sight and out
+  again and reads the three doors the fight reads.
+- **Blood spilled is heat.** `EventBus.wildlife_bled` leaves the one funnel
+  every wound goes through with the share of the pool the blow took and whose
+  blow it was; `Sky._on_wildlife_bled` adds `WRATH_BLOOD_SHARE` of a kill's
+  heat by that share, so the blood of a whole animal sums to half its kill and
+  the kill still pays in full on top (the rarity's extra). Heat only, never the
+  floor, and grief in the area; a Warden's blow at full, a road body's at the
+  enemy's own share, the cycle and the earth's own blows at nothing.
+  `earth_grief_check`'s "a road body's kill is its share of a kill" was
+  **amended**: the killing blow bleeds too. `wrath_check` drives the signal and
+  a real wound on a real rabbit.
+- **The codex frames a bonded species in its best bond's rarity.**
+  `CodexScreen.bond_frame_tint`, the tint the rank sheen and the journal's rows
+  already use, on the species' picture and faintly on its row; `FrameKit.hang`
+  keeps its tint on the overlay so `codex_check` can read it. The book's own
+  frame for a species nothing is bonded of.
+- **The co-op avatar was the painted-sheet centring over a dress already
+  worn.** `HeroAnimator._ready` set `sprite.centered = true` unconditionally,
+  and the lobby configures a seat's card *before* adding it to the tree - so
+  `dress` had set the sprite top-left for the dressed cell and `_ready` put it
+  back in the middle: the cell drew half a cell too high and left, the head off
+  the card's top, while the layers kept the top-left maths and the sword hung
+  below the boots. The Hold's card dresses after adding and never saw it, and
+  `coop_lobby_check` added before configuring and never saw it either - a gate
+  that assembles its subject in a different order than the game cannot see the
+  order. It builds in the lobby's order now and holds the dressed body
+  uncentred and the figure inside the card. `coop_portrait_probe` is the
+  diagnostic that found it, kept; `coop_screen_shot` marks the Glass offered,
+  because a fresh profile is a brand-new Warden and the menu asked for their
+  look over the lobby.
+- **The Guide's zoom-out-on-click is not reproduced, and the probe stays.**
+  `guide_check` now pushes real presses through the viewport's own picking - a
+  mouse click and a finger's tap, in the canvas's coordinates, since the
+  project stretches `canvas_items` and a logical point pushed as a window point
+  lands somewhere else - at a list picture, at the enlarged picture twice, and
+  outside it: the picture opens, stays open, stays open, closes, with the mouse
+  and with a finger. If the owner can say whether it happens on a desktop or a
+  phone and on which click, that is the next repro to write.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

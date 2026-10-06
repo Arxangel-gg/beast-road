@@ -1726,11 +1726,12 @@ func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 		drop.setup(currency, values[index], at)
 		drop.lead = index == 0
 		drop.siblings = values.size()
+		drop.batch_total = amount
 		if Coop.is_host() and Coop.partner_present():
 			_loot_net_id += 1
 			drop.net_id = _loot_net_id
 			EventBus.coop_loot_spawned.emit(drop.net_id, currency, values[index], at,
-				drop.lead)
+				drop.lead, amount)
 		(_feedback_root if _feedback_root != null else self).add_child(drop)
 
 
@@ -1765,11 +1766,12 @@ func _make_room_for_loot() -> void:
 
 ## Puts a mirrored coin on a guest's field. Draws only; the host banks it.
 func mirror_loot(net_id: int, currency: String, amount: int, at: Vector2,
-		lead: bool = true) -> void:
+		lead: bool = true, batch_total: int = 0) -> void:
 	var drop: LootDrop = LootDrop.take()
 	drop.setup(currency, amount, at)
 	drop.net_id = net_id
 	drop.lead = lead
+	drop.batch_total = batch_total
 	drop.puppet = true
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 

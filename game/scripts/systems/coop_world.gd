@@ -343,12 +343,12 @@ func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
 
 
 func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
-		at: Vector2, lead: bool = true) -> void:
+		at: Vector2, lead: bool = true, batch_total: int = 0) -> void:
 	if not Coop.is_guest():
 		return
 	var battlefield := field as Battlefield
 	if battlefield != null:
-		battlefield.mirror_loot(net_id, currency, amount, at, lead)
+		battlefield.mirror_loot(net_id, currency, amount, at, lead, batch_total)
 
 
 ## The host says that coin was picked up. Guest side.
@@ -577,8 +577,11 @@ func compose_welcome(peer: int = 0) -> Array:
 			facts.append([CoopRelay.Fact.GEAR_DROPPED,
 				[drop.net_id, drop.gear, drop.global_position, drop.player_dropped]])
 		elif not drop.currency.is_empty():
+			# With its lead flag and its batch's worth (2026-10-06): a welcome
+			# that said neither handed every mirrored coin a lamp and a plate.
 			facts.append([CoopRelay.Fact.LOOT_SPAWNED,
-				[drop.net_id, drop.currency, drop.amount, drop.global_position]])
+				[drop.net_id, drop.currency, drop.amount, drop.global_position,
+					drop.lead, drop.batch_total]])
 	return facts
 
 
