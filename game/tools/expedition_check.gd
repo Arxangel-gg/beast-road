@@ -49,6 +49,7 @@ func _ready() -> void:
 	_test_a_worn_gate_is_offered_a_mend()
 	_test_the_hold_sells_the_gate_repair()
 	await _test_banking_and_coming_back()
+	await _test_a_front_comes_home_on_new_ground()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[expedition] PASS - %d checks: a front is banked whole or "
@@ -356,6 +357,12 @@ func _test_banking_and_coming_back() -> void:
 	var before_account: Array = [MetaState.hero_level, MetaState.stash.size(),
 		MetaState.unlocked_towers.size()]
 	print("[expedition] opening original field")
+	# On Keep, which is a road a player can be on. A bare reset lays the
+	# authored reference ground, and a front banked there comes home on Keep
+	# by design (2026-10-06) - so the emplacements this test stands up would be
+	# refunded on resume rather than found standing.
+	RunState.map_mode = MapModes.KEEP
+	RunState.map_varied = false
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(run)
 	for _frame: int in 20:
@@ -501,6 +508,111 @@ func _test_banking_and_coming_back() -> void:
 			+ "last secured crossroads rather than to Act I"))
 	MetaState.abandon_expedition()
 	_check(not MetaState.has_expedition(), "the front could not be given up")
+
+
+## **A front banked on the retired layout comes home on Keep, and what cannot
+## stand on the new ground is refunded at the road's own prices** (2026-10-06).
+## A tower planted on what is road in Keep and a trap on what is open ground
+## there are each taken down before they are stood up, their price comes back
+## to the purse, and a tower on ground Keep does offer is left exactly as it
+## was. Nothing is created: the gate reads the purse back against the prices
+## the field itself quotes.
+func _test_a_front_comes_home_on_new_ground() -> void:
+	# **A new account's roads are Random** (owner, 2026-10-06). Read off the
+	# declared default and off the reader's own fallback rather than off this
+	# profile, which a sweep shares with every other gate.
+	# The declared default is a line in the settings table, and the table is
+	# what the loader keeps keys by - an undeclared key is dropped on load
+	# (`undeclared-save-keys-vanish-silently`). A source walk is the honest
+	# proof of a declaration: the default value is not a constant expression
+	# the script can hand back.
+	var meta_source: String = FileAccess.get_file_as_string("res://autoload/MetaState.gd")
+	_check(meta_source.contains('"map_mode": MapModes.RANDOM,'),
+		"the declared map_mode setting is Random")
+	var setting_was: Variant = MetaState.settings.get(UserSettings.MAP_MODE_KEY, null)
+	MetaState.settings.erase(UserSettings.MAP_MODE_KEY)
+	_check(UserSettings.map_mode() == MapModes.RANDOM,
+		"an account with no map setting reads Random, got %s" % UserSettings.map_mode())
+	MetaState.settings[UserSettings.MAP_MODE_KEY] = MapModes.LEGACY_CLASSIC
+	_check(UserSettings.map_mode() == MapModes.KEEP,
+		"a setting saved as the retired layout reads Keep, got %s" % UserSettings.map_mode())
+	if setting_was == null:
+		MetaState.settings.erase(UserSettings.MAP_MODE_KEY)
+	else:
+		MetaState.settings[UserSettings.MAP_MODE_KEY] = setting_was
+	RunState.reset(false, 0)
+	var keep := BattleGrid.new(4242, MapModes.KEEP)
+	var road_tile := Vector2i(-1, -1)
+	var open_tile := Vector2i(-1, -1)
+	var trap_tile := Vector2i(-1, -1)
+	var margin: int = BattleGrid.OUTSKIRTS + 6
+	for y: int in range(margin, BattleGrid.OUTSKIRTS + BattleGrid.CORE_SIZE - 6):
+		for x: int in range(margin, BattleGrid.OUTSKIRTS + BattleGrid.CORE_SIZE - 6):
+			var tile := Vector2i(x, y)
+			if road_tile.x < 0 and keep.cell_at(tile) == BattleGrid.Cell.ROAD \
+					and keep.cell_at(tile + Vector2i(1, 1)) == BattleGrid.Cell.ROAD:
+				road_tile = tile
+			elif open_tile.x < 0 and keep.footprint_is_open(tile):
+				open_tile = tile
+			elif open_tile.x >= 0 and trap_tile.x < 0 \
+					and keep.cell_at(tile) == BattleGrid.Cell.OPEN \
+					and (tile - open_tile).length() >= 4.0:
+				trap_tile = tile
+	_check(road_tile.x >= 0 and open_tile.x >= 0 and trap_tile.x >= 0,
+		"Keep offers a road tile, an open plot and an open tile apart from it")
+	var kind: TowerData = ContentDB.tower(_a_tower())
+	var trap: TrapData = null
+	for value: Variant in ContentDB.traps.values():
+		trap = value as TrapData
+		if trap != null:
+			break
+	var front: Dictionary = {
+		"version": Expedition.VERSION, "seed": 4242, "act": 2, "wave": 9,
+		"wall": 1.0, "purse": {RunState.GOLD: 500}, "momentum": 0.0, "tier": "normal",
+		"map_mode": MapModes.LEGACY_CLASSIC, "map_varied": false,
+		"towers": [
+			{"x": road_tile.x, "y": road_tile.y, "kind": kind.id, "level": 3,
+				"priority": 0, "path": 0, "health": 1.0},
+			{"x": open_tile.x, "y": open_tile.y, "kind": kind.id, "level": 1,
+				"priority": 0, "path": 0, "health": 0.6},
+		],
+	}
+	_check(Expedition.is_readable(front), "the front with the retired layout's name is readable")
+	_check(Expedition.apply(front), "and it applies")
+	_check(RunState.map_mode == MapModes.KEEP,
+		"a front banked on the retired layout comes home on Keep (got %s)" % RunState.map_mode)
+	_check(not RunState.map_varied, "and on Keep as designed, never varied")
+	if trap != null:
+		RunState.set_trap(trap_tile, trap.id, trap.triggers)
+	var purse_before: int = RunState.currency(RunState.GOLD)
+	var expected: int = int(Battlefield.cost_of(kind).get(RunState.GOLD, 0))
+	for level: int in range(1, 3):
+		expected += Battlefield.upgrade_cost_of(level)
+	if trap != null:
+		expected += int(trap.cost.get(RunState.GOLD, 0))
+	print("[expedition] standing the front on Keep")
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	_check(field != null and field.grid != null and field.grid.mode == MapModes.KEEP,
+		"the field was laid on Keep")
+	_check(not RunState.towers.has(road_tile), "the tower on Keep's road was taken down")
+	_check(RunState.towers.has(open_tile), "and the tower on open ground still stands")
+	_check(not RunState.traps.has(trap_tile), "the trap on open ground was taken down")
+	for anchor: Vector2i in RunState.towers:
+		_check(field.grid.footprint_is_open(anchor) or field.tower_at_anchor(anchor) != null,
+			"every emplacement left stands on ground the layout offers")
+	var refunded: int = RunState.currency(RunState.GOLD) - purse_before
+	_check(refunded == expected,
+		"the purse came back by exactly what the fallen emplacements cost (%d against %d)"
+			% [refunded, expected])
+	var worn: Tower = field.tower_at_anchor(open_tile)
+	_check(worn != null and worn.health_ratio() < 0.7,
+		"the standing tower came home as hurt as it was banked")
+	await _leave(run)
+	RunState.reset(false, 0)
 
 
 func _a_tower() -> String:

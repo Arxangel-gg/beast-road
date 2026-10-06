@@ -117,7 +117,7 @@ const MAP_MODE_KEY: String = "map_mode"
 ## The layout chosen for new roads - a layout or Random - sanitised, because a
 ## save may hold anything.
 static func map_mode() -> String:
-	return MapModes.sanitise_choice(value(MAP_MODE_KEY, MapModes.CLASSIC))
+	return MapModes.sanitise_choice(value(MAP_MODE_KEY, MapModes.RANDOM))
 
 
 static func value(key: String, fallback: Variant = null) -> Variant:

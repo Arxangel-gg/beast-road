@@ -309,6 +309,13 @@ func _ready() -> void:
 	# an influence on the scatter, and every one of them is built above this.
 	_grow_the_foliage()
 	claim_effects()
+	# **A front banked on ground this layout does not offer comes home with a
+	# refund** (2026-10-06, the authored layout retired for players): an
+	# emplacement whose footprint is road or wall here is taken down before
+	# it is stood up, and what it cost comes back to the purse at the road's
+	# own prices. Nothing is created: the Gold was spent once and is paid
+	# back once, and a tower that stands is left exactly as it was.
+	_refund_the_unstandable()
 	# Restored records predate these signal connections. Materialize them once.
 	for anchor: Vector2i in RunState.towers:
 		_on_tower_changed(anchor)
@@ -325,6 +332,56 @@ func _ready() -> void:
 	# arrives as the towers every guest is already told about.
 	if not RunState.pending_outfit.is_empty() and not Coop.is_guest():
 		ActStart.outfit(self)
+
+
+## Takes down every restored emplacement this grid cannot hold and pays its
+## price back: a tower whose footprint is not open ground, a trap or a
+## barricade whose tile is not road. Host only - a guest's board arrives as
+## facts. Returns what was refunded, by currency, for the gate.
+func _refund_the_unstandable() -> Dictionary:
+	var refunded: Dictionary = {}
+	if grid == null or Coop.is_guest():
+		return refunded
+	for anchor: Vector2i in RunState.towers.keys():
+		if grid.footprint_is_open(anchor):
+			continue
+		var entry: Dictionary = RunState.tower_entry(anchor)
+		var data: TowerData = ContentDB.tower(String(entry.get("tower_id", "")))
+		if data != null:
+			_add_cost(refunded, cost_of(data))
+			for level: int in range(1, int(entry.get("level", 1))):
+				var rung: int = upgrade_cost_of(level)
+				if rung > 0:
+					refunded[RunState.GOLD] = int(refunded.get(RunState.GOLD, 0)) + rung
+		RunState.towers.erase(anchor)
+		RunState.tower_health_restore.erase(anchor)
+	for tile: Vector2i in RunState.traps.keys():
+		if grid.cell_at(tile) == BattleGrid.Cell.ROAD:
+			continue
+		var trap: TrapData = RunState.trap_at(tile)
+		if trap != null:
+			_add_cost(refunded, trap.cost)
+		RunState.traps.erase(tile)
+	for tile: Vector2i in RunState.barricades.keys():
+		if grid.cell_at(tile) == BattleGrid.Cell.ROAD:
+			continue
+		var wall: BarricadeData = RunState.barricade_at(tile)
+		if wall != null:
+			_add_cost(refunded, wall.cost)
+		RunState.barricades.erase(tile)
+	if refunded.is_empty():
+		return refunded
+	for key: Variant in refunded:
+		RunState.gain_currency(String(key), int(refunded[key]))
+	EventBus.preparation_warning.emit(
+		"The road was laid anew. Emplacements that could not stand were refunded: %s."
+		% RunState.format_cost(refunded))
+	return refunded
+
+
+static func _add_cost(into: Dictionary, cost: Dictionary) -> void:
+	for key: Variant in cost:
+		into[String(key)] = int(into.get(String(key), 0)) + int(cost[key])
 
 
 func _process_measured(delta: float) -> void:

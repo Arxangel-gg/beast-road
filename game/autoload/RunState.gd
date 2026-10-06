@@ -180,14 +180,15 @@ var pending_road_relics: Array[String] = []
 var run_seed: int = 1
 ## Which battlefield layout this road is laid on (`MapModes`).
 ##
-## **The road's, not the machine's.** Classic after every reset; `start_run`
+## **The road's, not the machine's.** The authored reference after every
+## reset - a gate's ground, never a player's; `start_run`
 ## gives a new road the player's choice (a guest the host's), and a banked
 ## front comes back on the map it was banked on. The battlefield reads this and
 ## nothing else, so two machines on one road cannot build two maps.
-var map_mode: String = MapModes.CLASSIC
+var map_mode: String = MapModes.AUTHORED
 ## What the host said the road's layout is, heard beside the seed. A guest's
 ## `start_run` takes it; nothing else reads it.
-var relayed_map_mode: String = MapModes.CLASSIC
+var relayed_map_mode: String = MapModes.AUTHORED
 ## Whether this road's layout was laid varied - Random's proportions rolled from
 ## the seed. Carried with the mode everywhere the mode goes.
 var map_varied: bool = false
@@ -715,11 +716,12 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	terrain_id = ""
 	walking = false
 	sandbox = false
-	# Classic unless a door that starts a real road says otherwise: a gate or a
-	# harness that resets the run gets the shipped map, whatever the machine's
-	# setting is - a check that measured whichever map its developer last chose
-	# would be measuring a different game on every desk.
-	map_mode = MapModes.CLASSIC
+	# The authored core after every reset: the gates' ground, whatever the
+	# machine's setting is - a check that measured whichever map its developer
+	# last chose would be measuring a different game on every desk. A player's
+	# road is set by `start_run` through `MapModes.resolve`, which never lays
+	# it (2026-10-06).
+	map_mode = MapModes.AUTHORED
 	map_varied = false
 	phase = Phase.PREPARATION
 	active_road_id = ""

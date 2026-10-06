@@ -574,8 +574,9 @@ func _refresh_display_buttons() -> void:
 ## want six. Touching any switch moves the preset to Custom rather than silently
 ## disagreeing with the label above it.
 ## Replaying the tutorial is a game setting, not a data one.
-## Which battlefield new roads are laid on (2026-09-23): the shipped map and
-## every layout built beside it, so each can be played and Classic kept.
+## Which battlefield new roads are laid on (2026-09-23): every laid-out
+## battlefield, and Random, which is the default - the authored map is retired
+## for players (2026-10-06).
 ##
 ## A dropdown rather than a row of buttons: six names do not fit a phone's row,
 ## and a list that grows by one line per layout is the shape this will keep.

@@ -12972,6 +12972,76 @@ between physics ticks headless, which read as a feature that did nothing; and
 the pool and the breath are read at their low point, since both refill during
 the wait.
 
+**Three things from the owner's list of 2026-10-06, committed before their
+notes were written, so the notes are here.**
+
+- **The Warden on the Disciplines page fits its stage** (the second report of
+  the avatar cut off). `WardenStage` is a `SubViewportContainer` with `stretch`
+  on, so the viewport *is* the control and anything drawn past its top is cut -
+  and the feet stand at `feet_at` of the height, so the room a figure has is the
+  stretch above the feet line, not the whole box. `fit_height` fitted the whole
+  box; it fits that stretch now, with a hair of margin for the crown's
+  highlight, and `figure_rect` is the readout a gate holds the crown inside.
+- **A thumb can skip a cinematic.** The hold-to-skip answered touch already;
+  what a phone lacked was anything *saying* so. The touch layout shows a Skip
+  button the size of a thumb (`CINEMATIC_SKIP_BUTTON`) that ends the cinematic
+  through the same door the hold uses, and the hint reads in words a thumb can
+  act on. A keyboard layout shows none. `milestone_cinematic_check` holds both.
+- **Loot lies on blood, and the earth's wave runs under the bodies.** Three
+  z-orders named in `Balance` rather than typed where each thing was drawn:
+  `LOOT_Z_INDEX` (-1) above `BLOOD_GROUND_Z` (-3) and `BLOOD_POOL_Z` (-2), and
+  `GROUND_WAVE_Z` (-2) - the crests and the ripple - under every body at 0. A
+  look and nothing else; no gate reads a z-index, and the two were found by
+  the owner's eye.
+
+**The authored battlefield is retired for players, and Random is the default,
+as of 2026-10-06.** Owner: *"Default battlefield: Random (remove the classic
+completely from the game so that players do not get the swastika shaped map
+ever again)."* That re-cuts the 2026-09-23 ruling to "add and preserve", so it
+is recorded.
+
+**Retired, not deleted, and the distinction is load-bearing.** Several hundred
+checks stand bodies, ponds, towers and plots on the authored 45x45 core by
+coordinate - every fixture in the project was placed on it - so the map is
+still what a bare `RunState.reset()` lays, under the name `MapModes.AUTHORED`.
+What changed is that **no player door can reach it**: it is not in
+`MapModes.ALL`, `sanitise` never returns it, and every door a player's road
+goes through - `start_run`, a banked front, a relayed road, the Walk - either
+resolves the setting or sanitises what it was handed. `LEGACY_CLASSIC` is what
+the retired layout was called in a save or a front, and it reads as **Keep**:
+the plainest laid-out battlefield and a fixed one, so a front, a setting or a
+packet naming nothing the game has is laid the same way every time rather than
+rolled. The Walk is laid on Keep; its stops are placed against the field's own
+landmarks and needed no edit.
+
+**A front banked on the old map comes home on Keep, and what cannot stand there
+is refunded at the road's own prices.** `Battlefield._refund_the_unstandable`
+takes down a tower whose footprint is road or wall on the new ground and a trap
+or barricade whose tile is not road - before any of them is stood up - and pays
+back `cost_of` plus every rung bought, through `RunState.gain_currency`, with a
+line on screen saying so. Nothing is created: the Gold was spent once and is
+paid back once, and an emplacement on ground the new layout does offer is left
+exactly as it was, damage included. `expedition_check` injects a front naming
+the retired layout with a tower on what is road in Keep, a trap on open ground
+and a hurt tower on an open plot, stands the real Run, and reads the purse back
+against the field's own quotes; planted with the refund removed it names all
+three.
+
+**Two gate invariants were amended and both are recorded.** `map_mode_check`
+held "a grid made without a mode and a grid made as Classic are the same grid";
+it holds the authored reference to that now, holds that neither it nor the
+legacy name is in the dropdown or the pool, that the dropdown opens with Random
+and then Keep, and that the legacy name sanitises to Keep. And its "fresh
+account reads Random" check moved to `expedition_check`, because naming
+`UserSettings` from a `--script` gate loads `MetaState` as a dependency before
+the autoload instance exists, and `MetaState._ready` then finds a half-compiled
+`UserSettings` with no `apply_all` on it - two script errors after the gate's
+own PASS. **A `--script` gate may not name a class that reaches an autoload**,
+even one with only static functions. `expedition_check`'s banking harness lays
+its original field on Keep for the same reason a player's road is never
+authored: a front banked off the reference ground comes home on Keep by design,
+and its emplacements would be refunded rather than found standing.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

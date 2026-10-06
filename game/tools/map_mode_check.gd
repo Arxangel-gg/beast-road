@@ -40,8 +40,8 @@ var _failures: Array[String] = []
 
 func _init() -> void:
 	_check_sanitise()
-	var classic := BattleGrid.new(SEEDS[0])
-	_check_classic_is_classic(classic)
+	var classic := BattleGrid.new(SEEDS[0], MapModes.AUTHORED)
+	_check_authored_is_the_reference(classic)
 	var classic_ground: int = _core_anchors(classic)
 	print("[map-mode] classic: %s" % _describe(classic))
 
@@ -50,11 +50,9 @@ func _init() -> void:
 		if arg.begins_with("--shots="):
 			shots = arg.substr(8)
 
+	if not shots.is_empty():
+		_shoot(classic, shots)
 	for mode: String in MapModes.ids():
-		if mode == MapModes.CLASSIC:
-			if not shots.is_empty():
-				_shoot(classic, shots)
-			continue
 		var seeds: Array[int] = []
 		if mode == MapModes.WILD:
 			seeds.assign(SEEDS)
@@ -78,26 +76,46 @@ func _init() -> void:
 
 
 func _check_sanitise() -> void:
-	_check(MapModes.sanitise("nonsense") == MapModes.CLASSIC,
-		"an unknown mode must read as Classic, not reach the grid")
-	_check(MapModes.sanitise(7) == MapModes.CLASSIC, "a mode that is not text must read as Classic")
+	_check(MapModes.sanitise("nonsense") == MapModes.KEEP,
+		"an unknown mode must read as Keep, not reach the grid")
+	_check(MapModes.sanitise(7) == MapModes.KEEP, "a mode that is not text must read as Keep")
+	# **The retired layout is reachable by no player door** (owner, 2026-10-06).
+	_check(MapModes.sanitise(MapModes.LEGACY_CLASSIC) == MapModes.KEEP,
+		"a front or a setting that names the retired layout must read as Keep")
+	_check(MapModes.sanitise(MapModes.AUTHORED) == MapModes.KEEP,
+		"the authored reference must never come out of sanitise")
+	_check(not MapModes.ids().has(MapModes.AUTHORED) and not MapModes.ids().has(MapModes.LEGACY_CLASSIC),
+		"neither the reference nor the retired name is a layout a player can pick")
+	for choice: Dictionary in MapModes.choices():
+		_check(String(choice["id"]) != MapModes.AUTHORED and String(choice["id"]) != MapModes.LEGACY_CLASSIC,
+			"the dropdown offers %s" % String(choice["id"]))
 	for id: String in MapModes.ids():
 		_check(MapModes.sanitise(id) == id, "%s must survive sanitising" % id)
 		_check(not MapModes.label_of(id).is_empty() and not MapModes.blurb_of(id).is_empty(),
 			"%s needs a label and a line for the dropdown" % id)
-	_check(MapModes.ids()[0] == MapModes.CLASSIC,
-		"Classic is the default and must stay first in the dropdown")
+	_check(String(MapModes.choices()[0]["id"]) == MapModes.RANDOM,
+		"Random is the default and must stay first in the dropdown")
+	# That a fresh account's *setting* is Random is held by `expedition_check`,
+	# which runs under the autoloads. Naming `UserSettings` here loads
+	# `MetaState` as its dependency before the autoload instance exists, and
+	# `MetaState._ready` then finds a half-compiled `UserSettings` with no
+	# `apply_all` on it - two script errors after this gate's own PASS.
 
 
-## Classic without a mode, Classic by name, and the authored file: one map.
-func _check_classic_is_classic(classic: BattleGrid) -> void:
+## The reference without a mode, the reference by name, and the authored
+## file: one map - the ground every gate stands on. And a grid asked for by
+## the retired name is Keep, not this.
+func _check_authored_is_the_reference(classic: BattleGrid) -> void:
 	for seed_value: int in [SEEDS[0], SEEDS[2]]:
 		var plain := BattleGrid.new(seed_value)
-		var named := BattleGrid.new(seed_value, MapModes.CLASSIC)
+		var named := BattleGrid.new(seed_value, MapModes.AUTHORED)
 		_check(plain.cells == named.cells,
-			"seed %d: a grid made as Classic differs from one made without a mode" % seed_value)
+			"seed %d: a grid made as the reference differs from one made without a mode" % seed_value)
 		_check(str(plain.routes) == str(named.routes) and str(plain.far_routes) == str(named.far_routes),
-			"seed %d: Classic's routes differ from the unmoded grid's" % seed_value)
+			"seed %d: the reference's routes differ from the unmoded grid's" % seed_value)
+		var legacy := BattleGrid.new(seed_value, MapModes.LEGACY_CLASSIC)
+		_check(legacy.mode == MapModes.KEEP and legacy.cells != named.cells,
+			"seed %d: a grid asked for by the retired name must be Keep, not the retired map" % seed_value)
 	var text: String = FileAccess.get_file_as_string(BattleGrid.LAYOUT_PATH)
 	var parsed: Variant = JSON.parse_string(text)
 	var rows: Array = (parsed as Dictionary).get("tiles", []) if parsed is Dictionary else []
@@ -112,7 +130,7 @@ func _check_classic_is_classic(classic: BattleGrid) -> void:
 			# The outskirts overwrite the edge row at each entry, as they always have.
 			if road and cell != BattleGrid.Cell.ROAD and cell != BattleGrid.Cell.TOWN:
 				differ += 1
-	_check(differ == 0, "Classic's core no longer matches the authored file on %d road tiles" % differ)
+	_check(differ == 0, "the reference core no longer matches the authored file on %d road tiles" % differ)
 
 
 func _check_mode(grid: BattleGrid, mode: String, seed_value: int, classic_ground: int) -> void:
@@ -202,7 +220,8 @@ func _check_random() -> void:
 	var dealt: Dictionary = {}
 	for road_seed: int in range(1, 400):
 		var road: Array = MapModes.resolve(MapModes.RANDOM, road_seed)
-		_check(String(road[0]) != MapModes.CLASSIC, "Random dealt Classic on road %d" % road_seed)
+		_check(String(road[0]) != MapModes.AUTHORED and String(road[0]) != MapModes.LEGACY_CLASSIC,
+			"Random dealt the retired layout on road %d" % road_seed)
 		_check(String(road[0]) != MapModes.RANDOM, "Random resolved to itself on road %d" % road_seed)
 		_check(bool(road[1]), "Random laid road %d as designed rather than varied" % road_seed)
 		dealt[String(road[0])] = true
@@ -214,15 +233,18 @@ func _check_random() -> void:
 		var named: Array = MapModes.resolve(id, 5)
 		_check(String(named[0]) == id and not bool(named[1]),
 			"picking %s laid %s, varied %s" % [id, named[0], named[1]])
-	_check(MapModes.sanitise(MapModes.RANDOM) == MapModes.CLASSIC,
+	_check(MapModes.sanitise(MapModes.RANDOM) == MapModes.KEEP,
 		"Random must never reach the grid as a layout")
 	_check(MapModes.sanitise_choice(MapModes.RANDOM) == MapModes.RANDOM,
 		"Random must survive as a choice")
-	_check(String(MapModes.choices()[0]["id"]) == MapModes.CLASSIC
-		and String(MapModes.choices()[1]["id"]) == MapModes.RANDOM,
-		"the dropdown opens with Classic and then Random")
-	_check(BattleGrid.new(3, MapModes.CLASSIC, true).cells == BattleGrid.new(3).cells,
-		"Classic asked to vary must still be Classic")
+	# **Random leads the dropdown and the authored layout is not in it**
+	# (owner, 2026-10-06): the retired map is the gates' reference ground and
+	# nothing a player can choose.
+	_check(String(MapModes.choices()[0]["id"]) == MapModes.RANDOM
+		and String(MapModes.choices()[1]["id"]) == MapModes.KEEP,
+		"the dropdown opens with Random and then Keep")
+	_check(BattleGrid.new(3, MapModes.AUTHORED, true).cells == BattleGrid.new(3).cells,
+		"the authored reference asked to vary must still be the authored reference")
 
 
 ## Wild Roads: the same seed lays the same road, other seeds lay other roads,

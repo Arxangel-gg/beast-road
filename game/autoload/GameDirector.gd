@@ -511,6 +511,11 @@ func start_walk() -> void:
 	# too; headless, this returns before it waits for anything.
 	await offer_glass()
 	RunState.reset(false, 0)
+	# **The valley is Keep**: a fixed layout, never varied, so every stop
+	# resolves to the same ground on every machine. It was the authored
+	# core until that was retired for players (2026-10-06).
+	RunState.map_mode = MapModes.KEEP
+	RunState.map_varied = false
 	RunState.walking = true
 	# The valley is not a run: nothing about it is announced to a partner, the
 	# lobby row stays up, and the road's clock is not started - so the Market's

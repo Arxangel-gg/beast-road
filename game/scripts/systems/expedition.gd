@@ -180,7 +180,7 @@ static func compose(field: Battlefield, name: String = "") -> Dictionary:
 		"tier": RunState.tier_id,
 		# The map it was banked on, so it comes back on that map whatever the
 		# setting says by then. A front banked before modes existed has none,
-		# and was banked on Classic.
+		# and was banked on the retired layout, which reads as Keep.
 		"map_mode": RunState.map_mode,
 		"map_varied": RunState.map_varied,
 		# **Brutal blood comes home with the front** (owner, 2026-10-01) - empty
@@ -271,7 +271,10 @@ static func apply(stored: Dictionary) -> bool:
 	for id: String in RunState.CURRENCIES:
 		RunState.currencies[id] = int(purse.get(id, 0))
 	RunState.tier_id = String(stored.get("tier", RunState.tier_id))
-	RunState.map_mode = MapModes.sanitise(stored.get("map_mode", MapModes.CLASSIC))
+	# A front banked on the retired layout comes home on Keep; what cannot
+	# stand on the new ground is refunded when the field is built
+	# (`Battlefield._refund_the_unstandable`).
+	RunState.map_mode = MapModes.sanitise(stored.get("map_mode", MapModes.KEEP))
 	RunState.map_varied = bool(stored.get("map_varied", false))
 	# **The wall comes back as hurt as it was.** Same argument as the towers:
 	# a wall that healed on extraction is a wall nobody ever has to mend.

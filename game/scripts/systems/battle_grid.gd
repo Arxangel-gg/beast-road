@@ -197,12 +197,13 @@ var barriers: Array = []
 ## the torches and the lane ring depend on that - and the seed picks which.
 var camp_side: int = 1
 
-## Which layout this road is laid on (`MapModes`). Classic is the authored core
-## and every line below behaves exactly as it did before modes existed; the
-## others lay a generated core and mirror their camps (see `_side_of`).
-var mode: String = MapModes.CLASSIC
+## Which layout this road is laid on (`MapModes`). The authored core
+## (`MapModes.AUTHORED`, the gates' reference ground) behaves exactly as it did
+## before modes existed; the others lay a generated core and mirror their camps
+## (see `_side_of`).
+var mode: String = MapModes.AUTHORED
 ## Whether the layout was laid with its proportions rolled from the seed, which
-## is what Random asks for (`MapLayouts.lay`). Never true for Classic.
+## is what Random asks for (`MapLayouts.lay`). Never true for the authored core.
 var varied: bool = false
 
 var _lattice: Dictionary = {}
@@ -210,16 +211,18 @@ var _centre_cols: Array[int] = []
 var _centre_rows: Array[int] = []
 
 
-func _init(layout_seed: int = 0, map_mode: String = MapModes.CLASSIC,
+func _init(layout_seed: int = 0, map_mode: String = MapModes.AUTHORED,
 		map_varied: bool = false) -> void:
-	mode = MapModes.sanitise(map_mode)
-	varied = map_varied and mode != MapModes.CLASSIC
+	# The authored core is asked for by its own name and by nothing a player
+	# can say: `sanitise` never returns it (`MapModes.AUTHORED`).
+	mode = MapModes.AUTHORED if map_mode == MapModes.AUTHORED else MapModes.sanitise(map_mode)
+	varied = map_varied and mode != MapModes.AUTHORED
 	cells.resize(SIZE * SIZE)
 	cells.fill(Cell.OPEN)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = layout_seed
 	camp_side = 1 if rng.randf() < 0.5 else -1
-	if mode == MapModes.CLASSIC:
+	if mode == MapModes.AUTHORED:
 		_load_layout()
 	else:
 		_paste_core(MapLayouts.lay(mode, rng, varied))
@@ -454,14 +457,15 @@ func _lay_outskirts() -> void:
 
 ## Which side a lane's first camp branches to.
 ##
-## **Classic: the same side for all four**, so the outskirts are one shape
-## turned four times - which is part of what made the map a pinwheel, and is
-## kept because Classic is kept exactly. **Every other mode mirrors them**: the
+## **The authored core: the same side for all four**, so the outskirts are one
+## shape turned four times - which is part of what made the map a pinwheel,
+## and is kept because the reference ground is kept exactly. **Every other
+## mode mirrors them**: the
 ## east and west camps are each other's reflection across the north-south line,
 ## and the north and south camps across the east-west one, so no turn of the
 ## field maps it onto itself and nothing about it winds.
 func _side_of(lane: int) -> int:
-	if mode == MapModes.CLASSIC:
+	if mode == MapModes.AUTHORED:
 		return camp_side
 	return camp_side * (1 if lane < 2 else -1)
 
@@ -725,7 +729,7 @@ func _far_routes_for(lane: int, _near: Array) -> Array:
 func _walk_routes(entry: Vector2i) -> Array:
 	var centre: int = SIZE / 2
 	var goal := Vector2i(centre, centre)
-	if mode != MapModes.CLASSIC:
+	if mode != MapModes.AUTHORED:
 		return _walk_routes_bounded(entry, goal)
 	var found: Array = []
 	_walk(entry, goal, {entry: true}, [entry], found)
@@ -736,8 +740,9 @@ func _walk_routes(entry: Vector2i) -> Array:
 
 ## Every way in worth offering, found by a search that knows how far it is to go.
 ##
-## **Classic keeps the plain walk above, untouched**, because Classic is
-## preserved exactly. The generated layouts are more connected than the
+## **The authored core keeps the plain walk above, untouched**, because the
+## reference ground is preserved exactly. The generated layouts are more
+## connected than the
 ## authored core - a double wall is a grid - and a walk that stops at
 ## `ROUTES_PER_LANE_MAX` finds, in whatever order the lattice lists its
 ## neighbours, the first two dozen ways in rather than the shortest two dozen.
