@@ -58,6 +58,7 @@ func _ready() -> void:
 		await _test_the_rain_puts_fire_out()
 		await _test_the_tornado()
 		await _test_the_funnel_pulls_lifts_and_throws()
+		await _test_two_funnels_share_no_body()
 		await _test_the_meteor()
 		await _test_chain_lightning()
 		await _test_water_feeds_the_water_towers()
@@ -833,6 +834,89 @@ func _test_the_funnel_pulls_lifts_and_throws() -> void:
 	funnel.set_process(true)
 	funnel._process(0.1)
 	for _frame: int in 3:
+		await get_tree().process_frame
+
+
+## **A body is carried by one funnel, and whatever lets it go leaves it
+## running** (2026-10-06). Two funnels stood over one body: both lifted it,
+## both hurt it, and the second recorded "disabled" as the mode to put it back
+## to - so whichever let go last left it switched off for ever, and a body
+## that died up there was a corpse in DYING that never faded, never freed,
+## untargetable and on the field for the rest of the run. Driven as the
+## owner met it: two funnels held still, a body at the heart of both.
+func _test_two_funnels_share_no_body() -> void:
+	await _clear_towers()
+	var at: Vector2 = _pocket(3)
+	var first: Tornado = _sky.spawn_tornado(at, at + Vector2(10.0, 0.0), 40.0)
+	var second: Tornado = _sky.spawn_tornado(at + Vector2(30.0, 0.0), at + Vector2(40.0, 0.0), 40.0)
+	_check(first != null and second != null, "two funnels to stand over one body")
+	if first == null or second == null:
+		return
+	await get_tree().process_frame
+	for funnel: Tornado in [first, second]:
+		funnel.set_process(false)
+	first.at = at
+	first.position = at
+	second.at = at + Vector2(30.0, 0.0)
+	second.position = second.at
+	# And the sky itself refuses a third while these stand.
+	_sky.warn_tornado()
+	_check((_sky.get("_pending_tornado") as Dictionary).is_empty(),
+		"the sky warned of a second funnel while one stood")
+	var catches: Array[TornadoCatch] = [
+		first.find_child("TornadoCatch", false, false) as TornadoCatch,
+		second.find_child("TornadoCatch", false, false) as TornadoCatch]
+	_check(catches[0] != null and catches[1] != null, "both funnels stood a catch up")
+	if catches[0] == null or catches[1] == null:
+		return
+	_field.hero.global_position = at + Vector2(Balance.TORNADO_PULL_REACH * 3.0, 0.0)
+	# A body the lift alone cannot kill, and one it kills in the air.
+	var tough: Enemy = _body(at + Vector2(Balance.TORNADO_CATCH_RADIUS * 0.5, 0.0), 60.0)
+	var weak: Enemy = _body(at + Vector2(-Balance.TORNADO_CATCH_RADIUS * 0.5, 0.0), 0.02)
+	var whole: float = tough.health.current_hp
+	var carried_twice: bool = false
+	var lifted: bool = false
+	var started: int = Time.get_ticks_msec()
+	var flight_ms: int = int((Balance.TORNADO_LIFT_SECONDS + Balance.TORNADO_THROW_SECONDS + 1.0) * 1000.0)
+	var hurt_in_a_second: float = -1.0
+	while Time.get_ticks_msec() - started < flight_ms:
+		await get_tree().process_frame
+		if not is_instance_valid(tough):
+			break
+		var carriers: int = 0
+		for catch: TornadoCatch in catches:
+			if is_instance_valid(catch) and catch.carries(tough):
+				carriers += 1
+		lifted = lifted or carriers > 0
+		carried_twice = carried_twice or carriers > 1
+		if hurt_in_a_second < 0.0 and Time.get_ticks_msec() - started >= 1000:
+			hurt_in_a_second = whole - tough.health.current_hp
+	_check(lifted, "a body at the heart of two funnels was lifted by neither")
+	_check(not carried_twice, "a body was carried by two funnels at once")
+	var one_second: float = Balance.TORNADO_WAKE_DPS \
+		* Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0, Balance.WAVE_ACT_HP_SCALE.size() - 1)]
+	_check(hurt_in_a_second >= 0.0 and hurt_in_a_second <= one_second * 1.5,
+		"a body under two funnels was hurt %.0f in a second against one wake's %.0f"
+			% [hurt_in_a_second, one_second])
+	if is_instance_valid(tough):
+		_check(tough.process_mode != Node.PROCESS_MODE_DISABLED,
+			"a body let go of was left switched off (mode %d)" % tough.process_mode)
+		_check(not tough.has_meta(TornadoCatch.CARRIED_META), "a body let go of still wears the carried mark")
+	# The body the lift killed is a corpse that leaves, whoever switched it off.
+	var gone_by: int = Time.get_ticks_msec() + int(Balance.ENEMY_DEATH_FADE * 6.0 * 1000.0)
+	while is_instance_valid(weak) and Time.get_ticks_msec() < gone_by:
+		await get_tree().process_frame
+	_check(not is_instance_valid(weak),
+		"a body killed in the air never left the field (mode %d)"
+			% (weak.process_mode if is_instance_valid(weak) else -1))
+	if is_instance_valid(tough):
+		tough.queue_free()
+	for funnel: Tornado in [first, second]:
+		if is_instance_valid(funnel):
+			funnel.seconds_left = 0.0
+			funnel.set_process(true)
+			funnel._process(0.1)
+	for _frame: int in 6:
 		await get_tree().process_frame
 
 

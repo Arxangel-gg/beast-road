@@ -47,6 +47,21 @@ func _ready() -> void:
 	process_physics_priority = 100
 
 
+## **A body carried by any funnel wears this**, so a second funnel standing
+## beside the first cannot pick it up too. Two funnels at once was real: the
+## sky refuses a second *warning* while one is pending and nothing refused a
+## second funnel while one *stood*, and a body at the heart of both was lifted
+## by both - hurt twice over, moved by two hands, and the second catch
+## recorded "disabled" as the mode to put it back to, because the first had
+## already switched it off. Whichever let go last left it switched off for
+## ever: alive, a body standing still in its walking pose; dead, a corpse in
+## `DYING` whose fade never ticked and whose free never came - out of the
+## roster, untargetable, and on the field for the rest of the run. That is the
+## owner's report of 2026-10-06 ("potentially died but kept walking ...
+## untargetable by towers and players"), reproduced by `tornado_ghost_trace`.
+const CARRIED_META: StringName = &"tornado_carried"
+
+
 ## Whether a body is being carried, for the funnel's own blows to pass it over.
 func carries(body: Node) -> bool:
 	return body != null and _aloft.has(body.get_instance_id())
@@ -106,10 +121,17 @@ func _may_lift(body: Node2D) -> bool:
 	var id: int = body.get_instance_id()
 	if _let_go.has(id) and _clock - float(_let_go[id]) < Balance.TORNADO_RECATCH_SECONDS:
 		return false
+	# Another funnel's, or switched off by something that is not a funnel at
+	# all: in either case not ours to lift. A dying body is a corpse, and a
+	# corpse is not lifted either - the broadphase refuses it, but the hero
+	# list beside it does not.
+	if body.has_meta(CARRIED_META) or body.process_mode == Node.PROCESS_MODE_DISABLED:
+		return false
 	if body is Enemy:
 		var data: EnemyData = (body as Enemy).data
 		if data == null or data.category == EnemyData.Category.BOSS \
-				or data.category == EnemyData.Category.CAMP_LORD:
+				or data.category == EnemyData.Category.CAMP_LORD \
+				or (body as Enemy).is_dying():
 			return false
 	return true
 
@@ -118,11 +140,18 @@ func _catch(body: Node2D, at: Vector2) -> void:
 	if body is Hero:
 		(body as Hero).throw_from_saddle()
 	var sprite: Node2D = body.get("sprite") as Node2D
+	# **Never remember "disabled" as the mode to go back to.** `_may_lift`
+	# refuses a disabled body, so this cannot happen through the front door;
+	# it is the second bound on the same fault, for whatever door comes next.
+	var kept: Node.ProcessMode = body.process_mode
+	if kept == Node.PROCESS_MODE_DISABLED:
+		kept = Node.PROCESS_MODE_INHERIT
 	_aloft[body.get_instance_id()] = {
 		"body": body, "t": 0.0, "angle": (body.global_position - at).angle(),
 		"phase": 0, "kept_rotation": sprite.rotation if sprite != null else 0.0,
-		"kept_mode": body.process_mode,
+		"kept_mode": kept,
 	}
+	body.set_meta(CARRIED_META, true)
 	body.process_mode = Node.PROCESS_MODE_DISABLED
 	Sfx.play_at("sfx_tornado", body.global_position, 2.0)
 	Vfx.dust(body.global_position, Color(0.42, 0.36, 0.28), 6, 40.0)
@@ -220,7 +249,13 @@ func _drop(id: Variant, body: Node2D, upright: bool) -> void:
 		return
 	if flight.has("ground") and not upright:
 		body.global_position = flight["ground"] as Vector2
-	body.process_mode = flight.get("kept_mode", Node.PROCESS_MODE_INHERIT) as Node.ProcessMode
+	# A body let go always processes again: a frozen one is the ghost above.
+	var back: Node.ProcessMode = flight.get("kept_mode", Node.PROCESS_MODE_INHERIT) as Node.ProcessMode
+	if back == Node.PROCESS_MODE_DISABLED:
+		back = Node.PROCESS_MODE_INHERIT
+	body.process_mode = back
+	if body.has_meta(CARRIED_META):
+		body.remove_meta(CARRIED_META)
 	var sprite: Node2D = body.get("sprite") as Node2D
 	if sprite != null:
 		sprite.rotation = float(flight.get("kept_rotation", 0.0))

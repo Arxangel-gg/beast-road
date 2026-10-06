@@ -3681,6 +3681,7 @@ func _on_died(_from: Vector2) -> void:
 	_death_left = Balance.ENEMY_DEATH_FADE
 	remove_from_group(GROUP)
 	health_bar.visible = false
+	_let_the_death_finish()
 	RunState.enemies_killed += 1
 	# A promoted body is worth what it cost to bring down.
 	var spoils: float = float(data.resource_value)
@@ -3771,6 +3772,25 @@ func dismiss() -> void:
 	remove_from_group(GROUP)
 	remove_from_group(SUMMON_GROUP)
 	health_bar.visible = false
+	_let_the_death_finish()
+
+
+## **A corpse leaves whether or not it is allowed to process** (2026-10-06).
+## The fade is `_tick_death`'s, which runs only while this node processes - and
+## a body can die with its processing switched off: a tornado lifts one that
+## way, and two funnels on one body left it off for good (`TornadoCatch`). A
+## corpse in DYING that never ticks is out of the roster, untargetable, and on
+## the field for the rest of the run. The tree's own timer runs whatever this
+## node's mode is, a few fades later so an ordinary death is never cut short;
+## it reaches only a corpse that is still here.
+func _let_the_death_finish() -> void:
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	tree.create_timer(Balance.ENEMY_DEATH_FADE * 3.0, false).timeout.connect(
+		func() -> void:
+			if is_instance_valid(self) and is_inside_tree() and not is_queued_for_deletion():
+				queue_free())
 
 
 ## Scatters this kill's bonus loot, if it rolled any.

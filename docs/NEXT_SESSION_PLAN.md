@@ -21,6 +21,54 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0k. Where things stand (2026-10-06, for Opus 5.5)
+
+**Main is at the tornado ghost fix** (after 73dd5db6, the trail / hover /
+command-tile batch). **Nothing is pushed and v0.72.0 is not cut.** The owner
+asked that Fable stop running gates and leave the rest to Opus; this section
+is the hand-over, in the order to do it.
+
+1. **Push and release.** `bash tools/sweep.sh <scratch> release`, the three-line
+   guard/release/neither diff, `tools\release.ps1 -Version 0.72.0`. Everything
+   since v0.71.0 is gated and committed; the sweep is the only thing not run.
+2. **Apply the two staged patches** in `docs/staged/patches_2026-10-06/`
+   (owner items 31 and 33 - element-icon tabs on a thumb, and the Guide, the
+   trailer, co-op and the Wardens as doors in the Hold). The README there says
+   which gates and which photographs. The Hold's four station cells were chosen
+   by reading the layout; **photograph `hub_shot` before believing them.**
+3. **The hover rim is one texel** (owner item 8, built in 73dd5db6). The
+   outline in `blood_stain.gdshader` and `actor_polish.gdshader` is drawn into
+   the one transparent texel beside the body, so the gold reads thin at play
+   zoom. The polish: an `outline_width` uniform on both shaders (sample the four
+   neighbours at `px * outline_width`), set to 2 in `ClickMove._light` beside
+   the colour and the strength and restored with them (the meta array grows to
+   three), `click_move_check` reading it back, and `tower_juice_shot` - which
+   now rests the cursor on its first body - for the picture.
+4. **Photograph the Disciplines avatar** (owner item 27, fixed in 41042adf and
+   never photographed): `WardenStage.figure_rect` on the Disciplines page.
+5. **Owner items not started**: 2 (an Arsenal page in the Guide - needs a
+   `guide_shots` photograph), 3 (a legendary affix granting a skill upgrade,
+   ruling R7 - design it under the branch vocabulary in
+   `DisciplineUpgrades`), 23 (a juicier end-of-run report), 25 (Wild Rift
+   layout inspiration - a triage, then owner ruling), 29, 30, 32, 34 (the beast
+   tail - twelve passes; CLAUDE.md 2026-09-28 says the restored paintings
+   match, so photograph before touching anything), 35, 36.
+6. **Art-blocked until PixelLab resets on 2026-10-11**: items 4 (bespoke
+   Arsenal icons), 5 (the 31 staged augments), 14 (mortar towers), 17, 18, 20.
+   The VFX Creator effects the owner made are not reachable from the API or
+   the MCP (see CLAUDE.md, 2026-10-06); ask the owner to export them into
+   `art_inbox/pixellab/vfx/`, then they are catalogue rows and files.
+7. **The Guide zoom-out-on-click** (item 28) is not reproduced; `guide_check`
+   now drives real mouse and touch presses through the viewport and they pass.
+   Ask the owner: desktop or phone, and which click.
+
+**What the ghost was**, for the next report of its kind: two funnels at once,
+each lifting the same body, the second recording "disabled" as the mode to put
+it back to. `tornado_ghost_trace` prints every fact that decides "untargetable"
+and "fighting" twice a second across four ways down; the "kept walking and
+swinging" half was not reproduced, and if it is seen again the trace is the
+place to start.
+
 ## 0j. Where things stand (2026-10-01, night, v0.70.0)
 
 **v0.70.0** is the owner's balance pass - every road measured against the

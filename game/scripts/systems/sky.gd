@@ -1611,7 +1611,12 @@ func warn_quake(magnitude: float) -> void:
 
 ## The wind rises at the edge before the funnel is born there.
 func warn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF, seconds: float = -1.0) -> void:
-	if not _pending_tornado.is_empty():
+	# One pending, and one standing: a funnel lives `TORNADO_SECONDS`, which
+	# is longer than the roll between two warnings on an angry road, so two
+	# stood at once - and a body at the heart of both was carried by both
+	# (`TornadoCatch.CARRIED_META`). A second funnel is a second event, and
+	# the earth's "again" is the aftershock's and the shower's, not this one.
+	if not _pending_tornado.is_empty() or funnel_standing():
 		return
 	var reach: float = BattleGrid.HALF_EXTENT * 0.95
 	if not from.is_finite():
@@ -1626,6 +1631,17 @@ func warn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF, se
 
 
 ## Says a warning here and tells the guest, who says it there.
+## Whether a funnel is on the road right now - born, and not yet fading out.
+func funnel_standing() -> bool:
+	if field == null:
+		return false
+	for child: Node in field.get_children():
+		var funnel := child as Tornado
+		if funnel != null and is_instance_valid(funnel) and funnel.seconds_left > 0.0:
+			return true
+	return false
+
+
 func _tell(kind_id: String, at: Vector2, seconds: float) -> void:
 	_show_warning(kind_id, at, seconds)
 	if not _mirror:

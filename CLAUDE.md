@@ -13213,6 +13213,59 @@ held still now, as the repertoire walk's already was. The first theory - grief
 laid for every wound leaning the hazards - was wrong: grief boosts the earth's
 own hazards and never a shot, and it was checked before anything was changed.
 
+**Two funnels lifted one body, and what they put down was switched off for
+ever, as of 2026-10-06.** Owner: *"An enemy thrown by tornado potentially died
+but kept walking to city base untargetable by towers and players but able to
+melee fight players and hit city base breaking the game and run."*
+
+**Traced before anything was changed** (`tornado_ghost_trace`, a diagnostic
+kept beside `enemy_siege_trace`): a body thrown by one funnel is clean in
+every way it can come down - surviving the throw, killed in the air, killed by
+the fall, dropped by a funnel that died mid-carry. **Two funnels are the
+ghost.** The sky refused a second *warning* while one was pending and nothing
+refused a second funnel while one *stood*, and a funnel lives longer than the
+roll between two warnings on an angry road - so a body at the heart of both
+was lifted by both, hurt by both (285 a second against one wake's 142), and
+the second catch recorded `PROCESS_MODE_DISABLED` as the mode to put it back
+to, because the first had already switched it off. Whichever let go last left
+it switched off for ever: alive, a body standing still in its walking pose,
+dragged about by the funnel's pull (`drift` moves a disabled body); dead, a
+corpse in `DYING` whose fade never ticked and whose free never came - out of
+the roster, so no tower and no click could find it, and on the field for the
+rest of the run.
+
+**Three bounds, each one of them enough on its own.** A carried body wears
+`TornadoCatch.CARRIED_META` and `_may_lift` refuses it, a disabled body and a
+dying one; a catch never records "disabled" as the mode to go back to and a
+drop never restores it; and `Enemy._let_the_death_finish` frees a corpse on the
+tree's own timer a few fades on, whatever switched the node off - the fade is
+`_tick_death`'s, which runs only while the body processes. And the sky stands
+one funnel at a time (`WeatherSky.funnel_standing`): a second funnel is a second
+event, and the earth's "again" is the aftershock's and the shower's.
+`wrath_check` drives two funnels over one body and holds one carrier, one
+wake's damage, a body let go of running, and a body killed up there gone;
+planted with the old catch it named all three.
+
+**"Kept walking" is the half not reproduced**, and it is recorded as such: a
+body that leaves `DYING` is impossible by construction (every state write is
+guarded) and nothing was found that walks while out of the roster. What the
+trace produced is a body sliding in its walking pose under a funnel's pull and
+a corpse standing where it fell; if the owner meets a body that *swings* while
+no tower will shoot it, the trace is the place to start.
+
+**PixelLab's VFX Creator is not reachable from here, and that is recorded so
+nobody spends a session looking.** The owner made effects in the early-access
+VFX Creator and asked for variations and integration. The help agent says the
+Creator has no MCP tool and no documented endpoint; the gallery the MCP lists
+(857 images) holds none of them; every guessed REST path answers 404; both
+keys in `APK_Secrets/pixellab_secrets.txt` read $0.00 and 0 generations until
+2026-10-11, and that file holds the two keys and nothing else - no login was
+added. **The way in is an export**: the owner downloads each effect's sheet
+from the web Creator into `art_inbox/pixellab/vfx/` (never deleted after
+import), and from there it is `Vfx.FORGE_CATALOGUE` rows and files under the
+forge's own folder - the cell count is read off the sheet, so a strip of any
+length plays as it is.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
