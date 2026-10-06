@@ -49,18 +49,23 @@ is the hand-over, in the order to do it.
 5. **Owner items not started**: 2 (an Arsenal page in the Guide - needs a
    `guide_shots` photograph), 3 (a legendary affix granting a skill branch,
    ruling R7 - **designed**, with its six bounds, in
-   `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`; build it against that), 23 (a juicier end-of-run report), 25 (Wild Rift
-   layout inspiration - a triage, then owner ruling), 29, 30, 32, 34 (the beast
-   tail - twelve passes; CLAUDE.md 2026-09-28 says the restored paintings
-   match, so photograph before touching anything), 35, 36.
-6. **Art-blocked until PixelLab resets on 2026-10-11**: items 4 (bespoke
-   Arsenal icons), 5 (the 31 staged augments), 14 (mortar towers), 17, 18, 20.
-   The VFX Creator effects the owner made are not reachable from the API or
-   the MCP (see CLAUDE.md, 2026-10-06); ask the owner to export them into
-   `art_inbox/pixellab/vfx/`, then they are catalogue rows and files.
-7. **The Guide zoom-out-on-click** (item 28) is not reproduced; `guide_check`
-   now drives real mouse and touch presses through the viewport and they pass.
-   Ask the owner: desktop or phone, and which click.
+   `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`; build it against that), 23 (a
+   juicier end-of-run report), 29, 30, 32, 34 (the beast tail - twelve
+   passes; CLAUDE.md 2026-09-28 says the restored paintings match, so
+   photograph before touching anything), 35, 36.
+6. **Art is unblocked.** The project MCP holds pixellab-a since 2026-10-06
+   with 4,883 generations (Tier 2, resets 2026-11-06); call `get_balance`
+   first and note which account answers. Land the staged augment pass
+   (`docs/staged/augment_content_2026-09-26/`) first, then items 4 (bespoke
+   Arsenal icons), 14 (mortar towers), 17, 18, 20. The VFX Creator effects
+   the owner made are in neither account's gallery nor objects (CLAUDE.md,
+   2026-10-06); ask the owner to export them into `art_inbox/pixellab/vfx/`,
+   then they are catalogue rows and files.
+7. **The thumb cluster** (item 25, the mobile HUD):
+   `docs/MOBILE_HUD_WILD_RIFT_2026-10-06.md` is the design. Section 7 holds
+   three decisions for the owner; section 8 is the build order - the arc
+   first, hold-to-aim second. Item 28 (the Guide picture closing on a click)
+   was a request and is built.
 
 **What the ghost was**, for the next report of its kind: two funnels at once,
 each lifting the same body, the second recording "disabled" as the mode to put

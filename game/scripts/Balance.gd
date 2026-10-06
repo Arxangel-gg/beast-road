@@ -14032,6 +14032,12 @@ const UI_TOP_BAR_GAP: float = 8.0
 ## the command panel hung beneath it. Owner, 2026-09-22: "enough padding to not
 ## overlap any of those UI elements". [TUNE]
 const UI_COMMAND_PANEL_GAP: float = 14.0
+## How much of the Preparation card's own plate is drawn (owner, 2026-10-06:
+## "make the preparation panel semi-transparent"). Applied through the panel's
+## `self_modulate`, which is its frame and nothing under it, so the words and
+## the buttons stay whole however low this goes; `preparation_check` holds it
+## see-through and never gone. [TUNE]
+const PREPARATION_CARD_PLATE_ALPHA: float = 0.74
 
 
 # --- The pixel grid (owner, 2026-09-17) --------------------------------------

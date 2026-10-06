@@ -483,6 +483,16 @@ func _test_the_card_never_enters_the_row() -> void:
 	_check(seat.end.y <= band.position.y + 0.5,
 		"the preparation card at %s reaches into the combat row at %s" % [seat, band])
 	_check(seat.position.y >= 0.0, "the preparation card at %s is off the top of the screen" % seat)
+	# **See-through, and the words are not** (owner, 2026-10-06). The plate is
+	# faded through `self_modulate`, which never reaches a child; a fade on
+	# `modulate` would take the clock with it, and a plate at nothing is a
+	# clock floating on the road.
+	_check(card.self_modulate.a < 0.95 and card.self_modulate.a >= 0.5,
+		"the preparation card's plate is at %.2f - see-through, never gone" % card.self_modulate.a)
+	_check(is_equal_approx(card.modulate.a, 1.0), "the preparation card fades its words with its plate")
+	var clock := _hud.get("_preparation_clock") as Control
+	_check(clock != null and is_equal_approx(clock.modulate.a, 1.0)
+		and is_equal_approx(clock.self_modulate.a, 1.0), "the preparation clock is faded with the plate")
 	if undo != null:
 		undo.visible = false
 

@@ -13266,6 +13266,53 @@ import), and from there it is `Vfx.FORGE_CATALOGUE` rows and files under the
 forge's own folder - the cell count is read off the sheet, so a strip of any
 length plays as it is.
 
+**The owner's second message of 2026-10-06, and what it corrected.** Four
+things; the first two are built and gated, the third is designed, the fourth
+corrects a sentence above.
+
+- **Item 28 was a request, not a bug, and two sessions tried to reproduce
+  it.** The list read *"Guide expanded image zooms back out when clicking
+  it"*; the owner's own sentence of 2026-09-30 was *"Expanded guide image
+  should also zoom back out if clicking the expanded picture again, instead
+  of just clicking outside the zoomed picture, for convenience"*, and the
+  clarification today was *"on all platforms, whether clicked on the image or
+  outside the image"*. A numbered summary strips the modal verb. Built in
+  five minutes: a lift on the enlarged picture closes it as the dim does,
+  STOP so nothing beneath takes the press, and the hint says "Click anywhere
+  to close". `guide_check`'s invariant - *"a tap on the picture itself leaves
+  it open"* - was **amended** to the ask, and its viewport probe, written to
+  reproduce a fault that was never there, is kept because the picking it
+  proves is real. **Before diagnosing an item from a summarised list, read
+  the owner's sentence in the transcript**: "should" and "for convenience"
+  are a request.
+- **The Preparation card is see-through** (owner: *"make the preparation
+  panel semi-transparent with aesthetic polish"*). `PREPARATION_CARD_PLATE_ALPHA`
+  through the panel's `self_modulate` - its own plate and nothing under it,
+  the command panel's rule of 2026-09-25 - so the road shows through and the
+  clock, the words and RIDE ON stay whole; the title is the heading face over
+  a hairline in its own gold. `preparation_check` holds the plate under 0.95
+  and over 0.5 and the clock at full. Photographed off the screen with
+  `phone_hud_shot` on both layouts.
+- **Item 25 is the mobile HUD**, and the owner's Wild Rift screenshot is read
+  in `docs/MOBILE_HUD_WILD_RIFT_2026-10-06.md`: the attack as the corner
+  anchor, the abilities on an arc of equal thumb reach, size saying how often
+  a thing is pressed, the level-up chip outside the arc, a cancel zone for a
+  drag. Against that, our four slots are a row and the swing has no button.
+  The thumb cluster is designed with its geometry on the 1680-wide canvas,
+  the hold-to-aim gesture, the gates and the photographs, and three decisions
+  the owner takes before it is built. Nothing is built.
+- **PixelLab: the sentence above saying both keys read $0.00 and 0
+  generations was half wrong.** The REST `/v1/balance` reports **USD credits
+  only**; the MCP's `get_balance` is the only reader of subscription
+  generations. The owner re-added the project MCP with **pixellab-a**, and it
+  reads **4,883 of 5,000 generations (Tier 2, resets 2026-11-06)**; the spent
+  account until 2026-10-11 is pixellab-b, which the MCP held until today. So
+  the art-blocked items - 4, 5, 14, 17, 18, 20 - are unblocked, the staged
+  augment pass first. **The VFX Creator's effects are still in neither
+  account's gallery nor its objects** (pixellab-a: sixteen gallery images
+  from August, two hundred and four objects that are all the project's own),
+  so the export route above stands for them.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

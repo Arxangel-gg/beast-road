@@ -15,9 +15,10 @@ extends Node
 ##   silently. The keys are listed here, beside the reader, so adding a
 ##   statistic means adding it twice on purpose;
 ## - the screen opens every category without complaint;
-## - **a picture opens larger on a tap and closes on a tap outside it**
-##   (2026-09-30): never to the whole screen, never on a drag, and a tap on
-##   the picture itself leaves it open.
+## - **a picture opens larger on a tap and closes on the next tap, on it or
+##   outside it** (2026-09-30; the tap on the picture itself since
+##   2026-10-06, the owner's convenience ask that two sessions had read as a
+##   bug to reproduce): never to the whole screen, never on a drag.
 
 ## Mirror of the keys `MetaState.stat` answers. Keep the two together.
 const STATS: Array[String] = ["runs_started", "runs_won", "highest_act", "bosses_felled",
@@ -158,7 +159,8 @@ func _test_the_screen() -> void:
 			and big.size.y <= screen_size.y * Balance.GUIDE_ZOOM_SHARE + 1.0,
 			"the enlarged picture is %s on a %s screen - larger than the list's, never the whole screen" % [big.size, screen_size])
 		big.gui_input.emit(_click(big.get_global_rect().get_center(), false))
-		_check(screen.picture_open(), "a tap on the enlarged picture closed it")
+		_check(not screen.picture_open(), "a tap on the enlarged picture did not close it")
+		screen.open_picture(picture.texture)
 		var outside := screen._zoom.get_node("Outside") as ColorRect
 		outside.gui_input.emit(_click(Vector2(4.0, 4.0), false))
 		_check(not screen.picture_open(), "a tap outside the enlarged picture did not close it")
@@ -166,8 +168,10 @@ func _test_the_screen() -> void:
 		screen.close()
 		_check(not screen.picture_open(), "closing the Guide left a picture open over nothing")
 	# **Through the viewport, as a player's mouse and a player's finger do**
-	# (owner, 2026-10-06: "Guide expanded image zooms back out when clicking
-	# it"). The checks above hand events to the handlers, which proves the
+	# (written to reproduce "Guide expanded image zooms back out when clicking
+	# it", which turned out to be the owner's *ask* - see the file header - and
+	# kept because the picking it proves is real). The checks above hand
+	# events to the handlers, which proves the
 	# functions and not the picking: a control that is not where it is drawn,
 	# or one under another that takes the click, passes them and fails a
 	# player. These push real presses at the screen and ask what happened.
@@ -206,9 +210,9 @@ func _test_the_screen() -> void:
 		if screen.picture_open():
 			var big_at: Vector2 = screen._zoom_picture.get_global_rect().get_center()
 			await _real_click(big_at)
-			_check(screen.picture_open(), "a real click on the enlarged picture closed it")
-			await _real_click(big_at)
-			_check(screen.picture_open(), "a second real click on the enlarged picture closed it")
+			_check(not screen.picture_open(), "a real click on the enlarged picture did not close it")
+			await _real_click(at)
+			_check(screen.picture_open(), "a real click did not open the picture a second time")
 			await _real_click(Vector2(4.0, 4.0))
 			_check(not screen.picture_open(), "a real click outside the enlarged picture did not close it")
 		# A finger: a touch the engine turns into the mouse a phone's tap is.
@@ -217,7 +221,9 @@ func _test_the_screen() -> void:
 		if screen.picture_open():
 			var big_at: Vector2 = screen._zoom_picture.get_global_rect().get_center()
 			await _real_tap(big_at)
-			_check(screen.picture_open(), "a real tap on the enlarged picture closed it")
+			_check(not screen.picture_open(), "a real tap on the enlarged picture did not close it")
+			await _real_tap(at)
+			_check(screen.picture_open(), "a real tap did not open the picture a second time")
 			await _real_tap(Vector2(4.0, 4.0))
 			_check(not screen.picture_open(), "a real tap outside the enlarged picture did not close it")
 		screen.close()

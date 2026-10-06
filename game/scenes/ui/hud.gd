@@ -3583,6 +3583,13 @@ func _build_preparation_panel() -> void:
 	# Tucked just above the band instead, so the field above it is clear.
 	add_child(_preparation_panel)
 	_place_preparation_panel()
+	# **See-through** (owner, 2026-10-06: "make the preparation panel
+	# semi-transparent with aesthetic polish"). `self_modulate` is the panel's
+	# own plate and nothing under it - the command panel's rule of 2026-09-25 -
+	# so the road shows through the card while its words and its buttons stay
+	# whole. The ornate horns fade with the plate on purpose: a card resting
+	# on glass, rather than a frame hung in the air over a faded middle.
+	_preparation_panel.self_modulate.a = Balance.PREPARATION_CARD_PLATE_ALPHA
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 3)
@@ -3592,7 +3599,17 @@ func _build_preparation_panel() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
+	# The heading face (2026-09-30: a panel's own header is the small-caps
+	# role), over a hairline in the same gold, so the title reads as a header
+	# above the clock rather than as a third line of it.
+	UiFonts.set_role(title, UiFonts.Role.HEADING, 16)
 	column.add_child(title)
+	var rule := ColorRect.new()
+	rule.name = "Rule"
+	rule.color = Color(0.91, 0.64, 0.24, 0.42)
+	rule.custom_minimum_size = Vector2(0.0, 1.0)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(rule)
 	# **The clock, read from the corner of the eye.** The countdown used to live
 	# inside a sentence at 11pt - "the wave rolls in 6 sec" - which a player
 	# placing a tower on the far road never saw. It is its own line now, large

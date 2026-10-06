@@ -241,13 +241,22 @@ func _build_zoom() -> void:
 	_zoom_picture.name = "Picture"
 	_zoom_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_zoom_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	# STOP: a click on the picture is the player looking at it, not leaving.
+	# **A click on the picture closes it as well** (owner, 2026-10-06: *"Guide
+	# picture zoom back out on all platforms, whether clicked on the image or
+	# outside the image"* - a convenience asked for on 2026-09-30 and read as a
+	# bug for two sessions). STOP rather than PASS so the lift lands here and
+	# never on the dim or the list beneath; on the lift, as the dim closes, so
+	# the press that closes it cannot fall through to a picture below.
 	_zoom_picture.mouse_filter = Control.MOUSE_FILTER_STOP
+	_zoom_picture.gui_input.connect(func(event: InputEvent) -> void:
+		var button := event as InputEventMouseButton
+		if button != null and button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
+			close_picture())
 	_zoom.add_child(_zoom_picture)
 	FrameKit.hang(_zoom_picture)
 	var hint := Label.new()
 	hint.name = "Hint"
-	hint.text = "Click outside the picture to close it"
+	hint.text = "Click anywhere to close"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_color_override("font_color", Color(0.86, 0.82, 0.72, 0.8))
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
