@@ -12931,6 +12931,47 @@ its failure line whether the Warden was alive and sheltered. Planted with a
 frenzy that lends no reach, it names the frenzy. **A harness that reads a
 probe it did not stand up this test is reading whatever the last test left.**
 
+**A card laid over an at-once draft releases the field, as of 2026-10-06.**
+Owner: *"Defeating an act boss offers augments but does not pause on the
+augment selection and will go to act crossroads and prevent continuing to next
+act if the augment was not selected in time getting stuck and needing a game
+restart."* Reproduced before it was believed: with At once on, a boss's fall
+banks a draft and the at-once door opens it on the same frame and **freezes the
+field for it** - under the boss-fall card, which takes seconds in play. The
+pass home and the portent are then laid over the draft by doors that dropped it
+with a bare `_augment_open = false`, so nothing ever released the field; Ride
+On rode a suspended road and the run needed a restart. Five doors onto the
+crossroad table did it - the fork, the relic, the pass, the portent, the road
+card - and every one yields the draft through one function now
+(`_yield_the_draft`, `augment_yielded`): the draft stays banked and comes back
+the moment the table is free, the run lets a field it froze go unless the fork
+owns it, and a frozen field with nothing on the table is released on the next
+frame whatever door forgot. **Headless the boss card takes no time**, which is
+why `boss_draft_check` could not see it until `Run.fallen_card_test_seconds`
+held the card the way play does; the shipped code then failed six of its
+fifty-eight checks.
+
+**The Arcane's form throws the chain as a bolt for mana, as of 2026-10-06.**
+Owner: *"Players still cannot equip and set and use the arcane primary skill to
+magic projectile basic attack enemies at range for MP."* The form could be
+taken up; what it did was swing a sword with a mana refund, so there was
+nothing at range to use. `DisciplineNodeData.form_thrown`, authored on
+Spellblade: the attack looses **the chain's own blow** - the same step, the
+same `HERO_ATTACK_DAMAGE` through the same `damage_multiplier`, so
+`curve_report` reads the same hero - as a bolt along the aim for
+`CHAIN_BOLT_MANA_COST`, and swings steel when the pool cannot pay, so the form
+never leaves a Warden unarmed. The bolt rides `HeroArrow`'s flight and lands
+through `HeroAttack._land_on`, the one door the arc sweep lands through too,
+so Open Vein, Brand of Ruin, the ledger, the striker's sheet and the form's
+branches cannot differ between a swing and a throw; the finisher's wide arc
+becomes a bolt that passes through `CHAIN_BOLT_FINISHER_PIERCE` bodies, which
+is the shape of the third blow and not its size. A partner body throws by its
+own sheet. `chain_bolt_check` (both bars) drives the press a player makes.
+**Its presses are held until the swing starts**: a one-frame press falls
+between physics ticks headless, which read as a feature that did nothing; and
+the pool and the breath are read at their low point, since both refill during
+the wait.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

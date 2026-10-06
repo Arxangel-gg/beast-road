@@ -128,6 +128,37 @@ func _ready() -> void:
 	overlay.set("_pointer_held", true)
 	overlay.call("_process", Balance.MILESTONE_CINEMATIC_SKIP_HOLD_SECONDS + 0.01)
 	_check(bool(overlay.get("_skipped")), "held pointer input must skip on mobile")
+	# **A thumb gets a Skip button** (owner, 2026-10-06). The touch layout
+	# shows one the size of a thumb, inside the screen, and pressing it ends
+	# the cinematic as skipped through the same door the hold uses; a keyboard
+	# layout shows none.
+	var touch_was: Variant = MetaState.settings.get(TouchInput.TOUCH_KEY, null)
+	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	TouchInput.refresh()
+	overlay.call("_dress_for_touch")
+	var skip := overlay.get("_skip_button") as Button
+	_check(skip != null and skip.visible, "the touch layout shows a Skip button")
+	if skip != null:
+		var rect: Rect2 = skip.get_global_rect()
+		var view: Rect2 = Rect2(Vector2.ZERO, Vector2(get_viewport().get_visible_rect().size))
+		_check(rect.size.y >= 88.0 and rect.size.x >= 140.0,
+			"the Skip is the size of a thumb (%s)" % str(rect.size))
+		_check(view.encloses(rect), "and it is on the screen (%s)" % str(rect))
+		_check(String((overlay.get("_hint") as Label).text).contains("HOLD  ·  SKIP"),
+			"the touch hint says the hold in words a thumb can read")
+		overlay.set("_skipped", false)
+		overlay.set("_running", true)
+		skip.pressed.emit()
+		_check(bool(overlay.get("_skipped")), "pressing Skip ends the cinematic as skipped")
+	MetaState.settings[TouchInput.TOUCH_KEY] = false
+	TouchInput.refresh()
+	overlay.call("_dress_for_touch")
+	_check(skip == null or not skip.visible, "a keyboard layout shows no Skip button")
+	if touch_was == null:
+		MetaState.settings.erase(TouchInput.TOUCH_KEY)
+	else:
+		MetaState.settings[TouchInput.TOUCH_KEY] = touch_was
+	TouchInput.refresh()
 	overlay.set("_running", false)
 
 	# The live presentation must stop every system behind it and restore the

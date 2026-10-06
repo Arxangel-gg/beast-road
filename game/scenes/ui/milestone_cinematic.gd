@@ -24,6 +24,8 @@ var _advance: bool = false
 var _skipped: bool = false
 var _held: float = 0.0
 var _pointer_held: bool = false
+## The thumb's Skip, shown on the touch layout only.
+var _skip_button: Button = null
 var _tree_was_paused: bool = false
 
 
@@ -153,6 +155,54 @@ func _build() -> void:
 	_hold_bar.offset_bottom = -14.0
 	_hold_bar.modulate = Color(0.91, 0.64, 0.24, 0.0)
 	_root.add_child(_hold_bar)
+
+	# **A thumb gets a button** (owner, 2026-10-06: "Ability to skip cinematics
+	# on mobile"). The hold works on glass, and a sixteen-point hint at the
+	# bottom of a phone says so to nobody; a Skip the size of a thumb is the
+	# door a phone actually offers. Built for every layout and shown on the
+	# touch one, so a layout that switches mid-cinematic is still answered.
+	_skip_button = Button.new()
+	_skip_button.name = "Skip"
+	_skip_button.text = "SKIP"
+	_skip_button.focus_mode = Control.FOCUS_NONE
+	_skip_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_skip_button.offset_left = -38.0 - Balance.CINEMATIC_SKIP_BUTTON.x
+	_skip_button.offset_top = -70.0 - Balance.CINEMATIC_SKIP_BUTTON.y
+	_skip_button.offset_right = -38.0
+	_skip_button.offset_bottom = -70.0
+	_skip_button.pressed.connect(skip_now)
+	_root.add_child(_skip_button)
+	_dress_for_touch()
+	if not TouchInput.shown_changed.is_connected(_on_touch_shown):
+		TouchInput.shown_changed.connect(_on_touch_shown)
+
+
+func _on_touch_shown(_shown: bool) -> void:
+	_dress_for_touch()
+
+
+## The touch layout wears the button and a hint it can read; a keyboard's
+## layout keeps the hold and the key.
+func _dress_for_touch() -> void:
+	var touch: bool = TouchInput.is_showing()
+	if _skip_button != null:
+		_skip_button.visible = touch
+	if _hint != null:
+		_hint.text = "TAP  ·  CONTINUE     HOLD  ·  SKIP" if touch \
+			else "TAP / CONFIRM  ·  CONTINUE     HOLD ESC / TOUCH  ·  SKIP"
+		_hint.add_theme_font_size_override("font_size", 22 if touch else 16)
+		_hint.offset_top = -58.0 - (Balance.CINEMATIC_SKIP_BUTTON.y if touch else 0.0)
+		_hint.offset_bottom = -26.0 - (Balance.CINEMATIC_SKIP_BUTTON.y if touch else 0.0)
+
+
+## **Skipped by a press rather than a hold.** The same end the hold reaches,
+## through the same door, so the director, a partner and the gate cannot tell
+## the two apart.
+func skip_now() -> void:
+	if not _running or _skipped:
+		return
+	_skipped = true
+	GameDirector.skip_cinematic()
 
 
 func _scrim_texture() -> Texture2D:

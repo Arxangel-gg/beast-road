@@ -75,7 +75,10 @@ func _ready() -> void:
 	centered = false
 	position = Vector2(-_half, -_half)
 	scale = Vector2.ONE * Balance.BLOOD_POOL_CELL
-	z_index = 1
+	# Over the stains and the field, under the pieces lying in it and under the
+	# bodies wading through it: a pool drawn over a coin hid the coin (owner,
+	# 2026-10-06), and what wading does to a body is the wade stain's to show.
+	z_index = Balance.BLOOD_POOL_Z
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	if DisplayServer.get_name() != "headless":
 		_image = Image.create(_across, _across, false, Image.FORMAT_RG8)

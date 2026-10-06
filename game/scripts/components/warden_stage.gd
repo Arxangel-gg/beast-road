@@ -159,10 +159,25 @@ func _on_pose_finished(state: String) -> void:
 ## pedestal's worth of room. The disciplines map stood a 256-pixel Warden in
 ## a 120-pixel box (owner, 2026-09-30: *"Player avatar cutoff bug in
 ## disciplines at the Hold"*).
+## Fits the figure into a stage `height` tall. **This is a `SubViewportContainer`
+## with `stretch` on, so the viewport is exactly the control and anything
+## drawn past its top is cut** - and the feet stand at `feet_at` of the height,
+## so the room a figure has is the stretch above the feet line, not the whole
+## box. The first cut fitted the whole box and the crown of the Warden on the
+## Disciplines page was cut off at every size (owner, 2026-10-06, the second
+## report of it). A hair of margin keeps the crown's highlight inside.
 func fit_height(height: float, figure_art: float = 130.0) -> void:
-	art_scale = maxf(height, 1.0) / maxf(figure_art, 1.0)
+	art_scale = maxf(height, 1.0) * clampf(feet_at, 0.1, 1.0) * 0.97 / maxf(figure_art, 1.0)
 	if _stage != null:
 		_stage.scale = Vector2(art_scale, art_scale)
+
+
+## The painted figure's height on this stage, in the stage's own pixels, and
+## where its crown sits: for a gate that asks whether the Warden is whole.
+func figure_rect() -> Rect2:
+	var feet_y: float = size.y * feet_at
+	var tall: float = 130.0 * art_scale
+	return Rect2(size.x * 0.5 - tall * 0.3, feet_y - tall, tall * 0.6, tall)
 
 
 func reset_turn() -> void:

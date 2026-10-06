@@ -413,7 +413,10 @@ const LOOT_ICON_SIZE: float = 58.0
 ## pixels - a hover nobody could see at play zoom.
 const LOOT_BOB_SPEED: float = 3.4
 const LOOT_BOB_HEIGHT: float = 7.0
-const LOOT_Z_INDEX: int = -2
+## Above every kind of blood on the ground (field, stains, pools) and below
+## the bodies: a pickup under a Brutal pool was a pickup nobody could see
+## (owner, 2026-10-06).
+const LOOT_Z_INDEX: int = -1
 
 ## How much gear the stash holds.
 ##
@@ -7068,6 +7071,11 @@ const LOOT_TAKE_SPARKS: int = 9
 const LOOT_TAKE_SPEED: float = 190.0
 
 const BLOOD_GROUND_Z: int = -3
+## A Brutal pool lies over the field and the stains and under the loot.
+const BLOOD_POOL_Z: int = -2
+## The earth's crests and the ripple that bends the ground: under the loot and
+## every body, over the blood - the earth moves and what stands on it stands.
+const GROUND_WAVE_Z: int = -2
 
 ## How long a stain lasts, and how much of that it spends at full strength.
 ##
@@ -8587,6 +8595,9 @@ const MILESTONE_CINEMATIC_FADE_IN_SECONDS: float = 0.55
 const MILESTONE_CINEMATIC_HOLD_SECONDS: float = 3.4
 const MILESTONE_CINEMATIC_FADE_OUT_SECONDS: float = 0.4
 const MILESTONE_CINEMATIC_SKIP_HOLD_SECONDS: float = 0.9
+## The thumb's Skip on a cinematic (owner, 2026-10-06: "ability to skip
+## cinematics on mobile"): a thumb-sized button, shown on the touch layout.
+const CINEMATIC_SKIP_BUTTON: Vector2 = Vector2(150.0, 92.0)
 
 
 # ---------------------------------------------------------------------------

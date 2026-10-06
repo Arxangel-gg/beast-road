@@ -104,7 +104,10 @@ func configure(epicentre: Vector2, power: float, ring_count: int,
 
 
 func _ready() -> void:
-	z_index = Balance.VFX_Z - 2
+	# **On the ground, under every body** (owner, 2026-10-06: the crests and
+	# the ripple drew over the characters). A crest is earth, and earth is
+	# walked on.
+	z_index = Balance.GROUND_WAVE_Z
 	z_as_relative = false
 	global_position = Vector2.ZERO
 	JuiceDirector.note(JuiceDirector.Priority.TELEGRAPH)
@@ -124,7 +127,7 @@ func _build_ripple() -> void:
 	# screen space, because that is the only space in which a ring stays
 	# round whatever the camera is doing.
 	_ripple.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ripple.z_index = Balance.VFX_Z - 1
+	_ripple.z_index = Balance.GROUND_WAVE_Z
 	_ripple_material = ShaderMaterial.new()
 	_ripple_material.shader = load("res://scripts/shaders/quake_ripple.gdshader")
 	_ripple_material.set_shader_parameter("crest", Balance.QUAKE_RIPPLE_CREST)
