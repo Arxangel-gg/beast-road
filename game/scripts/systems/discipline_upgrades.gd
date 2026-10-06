@@ -43,6 +43,33 @@ static func root_of(node: DisciplineNodeData) -> String:
 	return at.id if at != null and at.kind != DisciplineNodeData.Kind.UPGRADE else ""
 
 
+## **The learned nodes plus the branches worn gear grants** (ruling R7,
+## `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`). A grant joins at rank one and
+## only where it changes something: a branch already learned gains nothing
+## from being granted as well, and a grant is dormant unless its skill is
+## learned or its form is the one in use - so a piece can never be a hidden
+## lever on a skill the Warden does not hold. A fork's granted twin joins
+## beside the learned fork, which is the one thing a grant does that the tree
+## refuses (§2.3). The sum is clamped where every branch is (`value`,
+## `for_spell`), so a grant is never a third road onto the levelling scale.
+static func with_grants(learned: Dictionary, grants: Dictionary, form_id: String) -> Dictionary:
+	if grants.is_empty():
+		return learned
+	var merged: Dictionary = learned.duplicate()
+	for id: Variant in grants:
+		var node_id: String = String(id)
+		if merged.has(node_id):
+			continue
+		var node: DisciplineNodeData = ContentDB.discipline_node(node_id)
+		if node == null or node.kind != DisciplineNodeData.Kind.UPGRADE:
+			continue
+		var root: String = root_of(node)
+		if root.is_empty() or not (learned.has(root) or root == form_id):
+			continue
+		merged[node_id] = 1
+	return merged
+
+
 ## Every branch value a skill or form holds, keyed by `effect_id`.
 static func for_skill(learned: Dictionary, skill_id: String) -> Dictionary:
 	var out: Dictionary = {}

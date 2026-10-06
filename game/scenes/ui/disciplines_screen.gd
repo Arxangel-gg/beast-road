@@ -595,6 +595,10 @@ func _draw_map() -> void:
 				_map.draw_arc(at, radius, 0.0, TAU, 32, Color(QUIET, 0.35), 1.5, true)
 		if node.is_oath() and MetaState.owns_discipline(node.id):
 			_map.draw_arc(at, radius + 5.0, 0.0, TAU, 40, GOLD, 2.0, true)
+		# A branch a worn piece grants (R7, 2026-10-06) wears the Oath's gold
+		# ring: the one screen change the design allowed itself.
+		if MetaState.branch_grants().has(node.id):
+			_map.draw_arc(at, radius + 5.0, 0.0, TAU, 40, GOLD, 2.0, true)
 		if node.is_form() and node.id == MetaState.discipline_form \
 				or (node.is_active_slot() and MetaState.discipline_loadout[node.slot_index()] == node.id):
 			_map.draw_arc(at, radius + 4.0, 0.0, TAU, 32, INK, 1.5, true)

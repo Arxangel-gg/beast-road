@@ -108,7 +108,7 @@ static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 	# Focus, +6% tower damage" and a player learns what the word on the name
 	# means by reading it once.
 	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
-		parts.append(legend.line())
+		parts.append(legend.line() + grant_note(legend))
 	# And the set gems, so a gemmed piece on the trade table or the Ledger reads
 	# as the piece it is.
 	for gem: Dictionary in Stash.gem_affixes(piece):
@@ -117,6 +117,20 @@ static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 			Modifiers.label(String(gem["key"])),
 			stone.display_name if stone != null else String(gem["gem"])])
 	return ", ".join(parts)
+
+
+## **A grant for a skill the Warden does not hold is dormant, and the row says
+## so** (R7, §2.5) - as a set piece says "3/5" - rather than reading as a
+## number that quietly does nothing. Live for a learned skill and for the form
+## in use.
+static func grant_note(legend: GearAffixData) -> String:
+	if legend == null or not legend.is_grant():
+		return ""
+	var root: String = DisciplineUpgrades.root_of(ContentDB.discipline_node(legend.branch_id))
+	if root.is_empty() or MetaState.owns_discipline(root) or root == MetaState.discipline_form:
+		return ""
+	var skill: DisciplineNodeData = ContentDB.discipline_node(root)
+	return " (dormant: %s not learned)" % (skill.display_name if skill != null else root)
 
 
 ## A band behind a row, edged in the piece's rarity.

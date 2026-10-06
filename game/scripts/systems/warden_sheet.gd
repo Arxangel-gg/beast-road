@@ -57,6 +57,9 @@ var oaths_allowed: int = 1
 var loadout: Array[String] = ["", "", "", ""]
 ## The pieces worn, one a slot at most, each `{kind, rarity, level, uid}`.
 var worn: Array[Dictionary] = []
+## The branches the worn pieces grant (R7), by node id - derived from `worn`
+## by the same roll this machine's own gear is read with.
+var grants: Dictionary = {}
 
 ## Worked out once on arrival, never sent.
 var _gear_points: Array[int] = [0, 0, 0, 0, 0]
@@ -264,6 +267,7 @@ func _read_loadout(values: Array) -> void:
 
 
 func _derive_gear() -> void:
+	grants = Stash.branch_grants_of(worn)
 	_gear_points = [0, 0, 0, 0, 0]
 	for piece: Dictionary in worn:
 		var kind: GearData = ContentDB.gear(String(piece["kind"]))
@@ -352,14 +356,21 @@ static func trained_value_of(sheet: WardenSheet, effect_id: String) -> float:
 ## What a Warden's branches do to one skill or form, by key - bounded, see
 ## `DisciplineUpgrades`. Null is this machine's own Warden.
 static func upgrade_of(sheet: WardenSheet, skill_id: String, key: String) -> float:
-	return DisciplineUpgrades.value(
-		MetaState.discipline_tree if sheet == null else sheet.learned, skill_id, key)
+	return DisciplineUpgrades.value(_branches_of(sheet), skill_id, key)
 
 
 ## The same for whichever learned skill casts a spell.
 static func spell_upgrade_of(sheet: WardenSheet, spell_id: String, key: String) -> float:
-	return DisciplineUpgrades.for_spell(
-		MetaState.discipline_tree if sheet == null else sheet.learned, spell_id, key)
+	return DisciplineUpgrades.for_spell(_branches_of(sheet), spell_id, key)
+
+
+## The tree a branch is read from: what is learned, plus what worn gear grants
+## (R7). Null is this machine's own Warden, as for every reader here.
+static func _branches_of(sheet: WardenSheet) -> Dictionary:
+	if sheet == null:
+		return DisciplineUpgrades.with_grants(MetaState.discipline_tree,
+			MetaState.branch_grants(), MetaState.discipline_form)
+	return DisciplineUpgrades.with_grants(sheet.learned, sheet.grants, sheet.form)
 
 
 ## The sworn Oath's boon or bane, by key.

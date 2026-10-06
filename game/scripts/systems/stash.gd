@@ -401,6 +401,66 @@ static func legendary_affixes(piece: Dictionary, kind: GearData) -> Array[GearAf
 				break
 		out.append(chosen)
 		pool.erase(chosen)
+	# **A branch grant takes one of the places** (ruling R7, 2026-10-06). About
+	# `GEAR_BRANCH_GRANT_SHARE` of the pieces that wear affixes at all carry,
+	# in the last of them, a branch of a skill rather than a number - drawn
+	# from the whole branch list on the piece's own name, so the same sword
+	# grants the same branch on every read and on a partner's sheet, and a
+	# tempering (a new name) is a new grant. A piece that grants moves one
+	# fewer number, which is the whole of what the grant costs.
+	if not out.is_empty():
+		var grant_roll: float = float(_mixed(seed_value + 104729) % 100000) / 100000.0
+		if grant_roll < Balance.GEAR_BRANCH_GRANT_SHARE:
+			var branches: Array[DisciplineNodeData] = grantable_branches()
+			if not branches.is_empty():
+				out[out.size() - 1] = grant_affix(branches[_mixed(seed_value + 1299709) % branches.size()])
+	return out
+
+
+## The branches a piece may grant: every enhancement and fork in the tree -
+## never a skill, an Oath or a form (`docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`
+## §2.4), and never a branch that moves nothing.
+static var _grantable: Array[DisciplineNodeData] = []
+static var _grant_affixes: Dictionary = {}
+
+
+static func grantable_branches() -> Array[DisciplineNodeData]:
+	if _grantable.is_empty():
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.kind == DisciplineNodeData.Kind.UPGRADE and not node.effect_id.is_empty() \
+					and not DisciplineUpgrades.root_of(node).is_empty():
+				_grantable.append(node)
+	return _grantable
+
+
+## The affix that grants one branch, made once and shared: a resource per
+## read would be an allocation on every stash change and every partner sheet.
+static func grant_affix(node: DisciplineNodeData) -> GearAffixData:
+	if _grant_affixes.has(node.id):
+		return _grant_affixes[node.id]
+	var affix := GearAffixData.new()
+	affix.id = "grant_" + node.id
+	affix.branch_id = node.id
+	affix.effect_id = ""
+	affix.magnitude = 0.0
+	affix.min_rarity = 3
+	affix.weight = 1.0
+	var root: DisciplineNodeData = ContentDB.discipline_node(DisciplineUpgrades.root_of(node))
+	affix.display_name = "of " + node.display_name
+	affix.description = "Grants %s, a branch of %s" % [node.display_name,
+		root.display_name if root != null else "a skill"]
+	_grant_affixes[node.id] = affix
+	return affix
+
+
+## The branches a set of worn pieces grants, by node id.
+static func branch_grants_of(pieces: Array[Dictionary]) -> Dictionary:
+	var out: Dictionary = {}
+	for piece: Dictionary in pieces:
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		for affix: GearAffixData in legendary_affixes(piece, kind):
+			if affix.is_grant():
+				out[affix.branch_id] = true
 	return out
 
 

@@ -11209,6 +11209,12 @@ const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2, 3]
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12
+## The share of affix-bearing pieces whose last affix is a branch grant rather
+## than a number (ruling R7, `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md` §4):
+## enough to be the thing a player tells a friend about, few enough that a
+## Beastcalled piece is still mostly its numbers. Rolled on the piece's own
+## name in `Stash.legendary_affixes`. [TUNE]
+const GEAR_BRANCH_GRANT_SHARE: float = 0.25
 # --- Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4) ------------------
 ## Sockets a piece carries, by rarity: none under Fine, two from Chainbroken.
 const GEAR_SOCKETS: Array[int] = [0, 0, 1, 1, 1, 2, 2, 3]

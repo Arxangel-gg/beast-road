@@ -1671,6 +1671,25 @@ func worn_pieces() -> Array[Dictionary]:
 	return out
 
 
+## **The branches the worn gear grants** (ruling R7, 2026-10-06), by node id.
+## Remembered on the names worn, as the attribute points are: the branch
+## readers ask on every swing and every cast, and the roll walks the affix
+## pool for every worn piece.
+var _grants_memo_names: String = ""
+var _grants_memo: Dictionary = {}
+
+
+func branch_grants() -> Dictionary:
+	var names: String = ""
+	for piece: Dictionary in worn_pieces():
+		names += "%d|" % Stash.uid(piece)
+	if names == _grants_memo_names:
+		return _grants_memo
+	_grants_memo_names = names
+	_grants_memo = Stash.branch_grants_of(worn_pieces())
+	return _grants_memo
+
+
 ## The piece worn in a slot, or an empty dictionary.
 func equipped_piece(slot: int) -> Dictionary:
 	var index: int = equipped_index(slot)

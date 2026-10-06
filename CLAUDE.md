@@ -13313,6 +13313,48 @@ corrects a sentence above.
   from August, two hundred and four objects that are all the project's own),
   so the export route above stands for them.
 
+**A legendary piece may carry a branch of the tree, as of 2026-10-06.** Ruling
+R7 of the skill-tree rework (2026-09-26: *"a legendary affix may grant a skill
+upgrade"*), designed in `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md` and built
+against its six bounds. About `GEAR_BRANCH_GRANT_SHARE` of the pieces that wear
+legendary affixes at all carry, in their last place, **an enhancement or a fork
+of a skill** rather than a number - Diablo IV's best-loved system, and the one
+piece of that triage still owed.
+
+**It is the tree's own node reached by a second road, never a new effect.**
+`GearAffixData.branch_id` names the branch; the affix itself is synthetic
+(`Stash.grant_affix`, made once per branch from the branch list, never a file),
+so a branch authored tomorrow is grantable the day it lands. The worn grants
+join the learned tree in one function, `DisciplineUpgrades.with_grants`, which
+every branch reader already reaches through `WardenSheet.upgrade_of` and
+`spell_upgrade_of` - this machine's own off `MetaState.branch_grants()`
+(remembered on the names worn, as the attribute points are), a partner's off
+the worn row its sheet already carries. The sum is clamped where every branch
+is, so a grant cannot be a third road onto the levelling scale.
+
+**What the bounds cost, each gated by `gear_affix_check`:** a grant takes an
+affix place, so a piece that grants moves one fewer number; a grant of a branch
+already learned adds nothing; a grant for a skill the Warden does not hold is
+**dormant** and the row says so (`GearRow.grant_note`: "dormant: Ember Fall not
+learned") rather than reading as a number that quietly does nothing; a skill, an
+Oath and a form are never granted - `Stash.grantable_branches` lists upgrades
+that move something and nothing else; and **a fork's twin may be granted while
+the other is learned**, which is the one deliberate loosening - the pair the
+tree refuses on learning, bought with a legendary place, both halves read and
+each inside the ceiling on its own. Rolled on the piece's own name, so the same
+sword grants the same branch on every read and on a partner's sheet, a
+tempering is a new grant, and **nothing was added to the save**: a piece is
+still `{kind, rarity, level, uid, gems, tempers}`.
+
+**The curve carries nothing new.** `curve_report._discipline_scale` reads the
+form's enhancement and nothing else of the tree, by the 2026-09-26 reasoning; a
+granted form enhancement is read by that same door, and a granted spell branch
+is outside the model exactly as a learned one is, held by the ceiling.
+
+The Disciplines page wears a worn grant in the Oath's gold ring on its node,
+which is the one screen change the design allowed itself. Measured on the
+roll: ninety grantable branches, 24.4% of affix-bearing pieces at Oathbound.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

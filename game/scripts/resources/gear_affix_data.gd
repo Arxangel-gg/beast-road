@@ -32,6 +32,13 @@ extends GameData
 ## Which slots may carry it, as `GearData.Slot` values. Empty means any.
 @export var slots: Array[int] = []
 @export_range(0.0, 10.0) var weight: float = 1.0
+## **A branch of a skill or a form this affix grants while the piece is worn**
+## (ruling R7, `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`), in place of a
+## `Modifiers` key: the tree's own node, reached by a second road. Empty on
+## every authored affix; the grants are made by `Stash.grant_affix` from the
+## branch list and are never files, so a branch added to the tree is grantable
+## the day it is authored.
+@export var branch_id: String = ""
 
 
 ## Whether the magnitude is a whole count rather than a fraction.
@@ -39,8 +46,15 @@ func is_counted() -> bool:
 	return effect_id == "chain_targets" or effect_id == "wave_foresight"
 
 
+## Whether this affix grants a branch rather than moving a number.
+func is_grant() -> bool:
+	return not branch_id.is_empty()
+
+
 ## The line a screen shows: "+6% tower damage" or "+1 chain target".
 func line() -> String:
+	if is_grant():
+		return description
 	if is_counted():
 		return description % ("%d" % int(round(magnitude)))
 	return description % ("%d%%" % int(round(absf(magnitude) * 100.0)))

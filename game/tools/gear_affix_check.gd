@@ -29,6 +29,7 @@ func _ready() -> void:
 	_test_the_data()
 	_test_the_roll()
 	_test_the_make()
+	_test_the_grants()
 	MetaState.resume_saves()
 	if _failures > 0:
 		push_error("[affixes] FAIL - %d of %d" % [_failures, _checked])
@@ -124,6 +125,151 @@ func _test_the_roll() -> void:
 			if rarity == Stash.RARITY_NAMES.size() - 1:
 				top_seen += first.size()
 	_check(top_seen > 0, "the top rarity actually wears affixes")
+
+
+## **A branch grant** (ruling R7, `docs/LEGENDARY_SKILL_AFFIX_2026-10-06.md`,
+## built 2026-10-06). Every grantable branch is an enhancement or a fork and
+## never a skill, an Oath or a form; about the authored share of affix-bearing
+## pieces carry one, in place of a number, and the same name grants the same
+## branch on every read; through the real door - a piece received, worn and
+## read by `WardenSheet.upgrade_of` - a grant is the branch's own value for a
+## learned skill, nothing for one not learned, the same on a partner's sheet,
+## nothing extra on a branch already learned, both forks when the twin is
+## granted, and never past the ceiling however many ranks a planted tree
+## claims. The modifier table gains no key from it.
+func _test_the_grants() -> void:
+	var branches: Array[DisciplineNodeData] = Stash.grantable_branches()
+	_check(branches.size() >= 20, "there are branches to grant (%d)" % branches.size())
+	for node: DisciplineNodeData in branches:
+		_check(node.kind == DisciplineNodeData.Kind.UPGRADE and not node.effect_id.is_empty(),
+			"grantable %s is a branch that moves something" % node.id)
+		_check(not node.is_oath() and not node.is_form(), "grantable %s is neither an Oath nor a form" % node.id)
+		var affix: GearAffixData = Stash.grant_affix(node)
+		_check(affix.is_grant() and affix.effect_id.is_empty() and affix.branch_id == node.id
+			and not affix.line().is_empty(), "the grant affix for %s names its branch and no key" % node.id)
+		_check(Stash.grant_affix(node) == affix, "the grant affix for %s is made once" % node.id)
+	# The share, over many names on the first kind of every slot that can wear one.
+	var kinds: Array = ContentDB.gear_sorted()
+	var kind: GearData = null
+	for candidate: Variant in kinds:
+		if (candidate as GearData) != null and not (candidate as GearData).trophy:
+			kind = candidate as GearData
+			break
+	_check(kind != null, "a kind to roll grants on")
+	if kind == null:
+		return
+	var rarity: int = 3
+	var granted: int = 0
+	var sampled: int = 0
+	var first_grant: GearAffixData = null
+	var first_uid: int = -1
+	for uid: int in range(1, 801):
+		var piece: Dictionary = {"kind": kind.id, "rarity": rarity, "level": 5, "uid": uid * 1000003}
+		var worn: Array[GearAffixData] = Stash.legendary_affixes(piece, kind)
+		if worn.is_empty():
+			continue
+		sampled += 1
+		for affix: GearAffixData in worn:
+			if affix.is_grant():
+				granted += 1
+				if first_grant == null:
+					first_grant = affix
+					first_uid = uid * 1000003
+	var share: float = float(granted) / maxf(float(sampled), 1.0)
+	_check(sampled >= 700 and share > Balance.GEAR_BRANCH_GRANT_SHARE * 0.6
+		and share < Balance.GEAR_BRANCH_GRANT_SHARE * 1.5,
+		"about %.0f%% of affix-bearing pieces carry a grant (%.1f%% of %d)" % [
+			Balance.GEAR_BRANCH_GRANT_SHARE * 100.0, share * 100.0, sampled])
+	_check(first_grant != null, "some name on %s rolls a grant" % kind.id)
+	if first_grant == null:
+		return
+	var totals: Dictionary = Modifiers.gear_totals([{"kind": kind.id, "rarity": rarity, "level": 5, "uid": first_uid}])
+	_check(not totals.has(""), "a grant puts no key on the modifier table")
+	# Through the real door: the piece worn, its branch read where a swing reads it.
+	var node: DisciplineNodeData = ContentDB.discipline_node(first_grant.branch_id)
+	var root: String = DisciplineUpgrades.root_of(node)
+	var root_node: DisciplineNodeData = ContentDB.discipline_node(root)
+	_check(root_node != null, "the granted branch %s has a root" % node.id)
+	if root_node == null:
+		return
+	var key: String = node.effect_id
+	var piece: Dictionary = Stash.make(kind.id, rarity, 5)
+	piece["uid"] = first_uid
+	MetaState.receive_gear(piece)
+	var index: int = MetaState.stash.size() - 1
+	MetaState.equip(kind.slot, index)
+	var kept_tree: Dictionary = MetaState.discipline_tree.duplicate()
+	var kept_form: String = MetaState.discipline_form
+	_check(MetaState.branch_grants().has(node.id), "the worn piece grants %s on the account" % node.id)
+	# Dormant: the skill not learned, the form not in use.
+	MetaState.discipline_tree.erase(root)
+	if root_node.is_form():
+		MetaState.discipline_form = ""
+	var asleep: float = WardenSheet.upgrade_of(null, root, key)
+	_check(is_zero_approx(asleep), "a grant for a skill not held is dormant (%.3f)" % asleep)
+	_check(GearRow.grant_note(first_grant).contains("dormant"), "the row says the grant is dormant")
+	# Live: the skill learned (or the form taken up).
+	if root_node.is_form():
+		MetaState.discipline_form = root
+	else:
+		MetaState.discipline_tree[root] = 1
+	var expected: float = node.effect_value if DisciplineUpgrades.COUNTED.has(key) \
+		else minf(node.effect_value, Balance.DISCIPLINE_UPGRADE_CEILING)
+	var awake: float = WardenSheet.upgrade_of(null, root, key)
+	_check(is_equal_approx(awake, expected), "a worn grant reads as its branch's own value (%.3f for %.3f)" % [awake, expected])
+	_check(GearRow.grant_note(first_grant).is_empty(), "the row says nothing for a live grant")
+	# A partner's sheet reads the same grant off the same worn row.
+	var sheet: WardenSheet = WardenSheet.from_row(WardenSheet.pack_mine())
+	_check(sheet.grants.has(node.id), "a partner's sheet carries the grant")
+	_check(is_equal_approx(WardenSheet.upgrade_of(sheet, root, key), expected),
+		"a partner reads the grant as this machine does")
+	# Learned as well: the grant adds nothing.
+	MetaState.discipline_tree[node.id] = 1
+	var learned_too: float = WardenSheet.upgrade_of(null, root, key)
+	_check(is_equal_approx(learned_too, expected), "a grant of a learned branch adds nothing (%.3f)" % learned_too)
+	MetaState.discipline_tree.erase(node.id)
+	# The twin: a learned fork beside its granted twin, both read - on any
+	# exclusive pair the tree holds, since the first grant above may be an
+	# enhancement with no twin.
+	var twin_seen: bool = false
+	var forks: Array[DisciplineNodeData] = Stash.grantable_branches()
+	for one: DisciplineNodeData in forks:
+		if one.exclusive.is_empty():
+			continue
+		for other: DisciplineNodeData in forks:
+			if other == one or other.exclusive != one.exclusive \
+					or DisciplineUpgrades.root_of(other) != DisciplineUpgrades.root_of(one):
+				continue
+			var fork_root: String = DisciplineUpgrades.root_of(one)
+			var learned: Dictionary = {fork_root: 1, other.id: 1}
+			var merged: Dictionary = DisciplineUpgrades.with_grants(learned, {one.id: true}, "")
+			var both: Dictionary = DisciplineUpgrades.for_skill(merged, fork_root)
+			var alone: Dictionary = DisciplineUpgrades.for_skill(learned, fork_root)
+			var expected_one: float = one.effect_value + (float(alone.get(one.effect_id, 0.0)))
+			_check(both.has(other.effect_id) and both.has(one.effect_id)
+				and is_equal_approx(float(both[one.effect_id]), expected_one),
+				"a granted twin (%s) is read beside the learned fork (%s)" % [one.id, other.id])
+			twin_seen = true
+			break
+		if twin_seen:
+			break
+	_check(twin_seen, "the tree holds an exclusive pair to grant across")
+	# The ceiling: a planted tree claiming fifty ranks of a share reads the ceiling.
+	if not DisciplineUpgrades.COUNTED.has(key):
+		var fat: Dictionary = {root: 1, node.id: 50}
+		_check(DisciplineUpgrades.value(fat, root, key) <= Balance.DISCIPLINE_UPGRADE_CEILING + 0.0001,
+			"a grant can never read past the ceiling")
+	# A different name on the same kind can grant a different branch.
+	var other_branch: bool = false
+	for uid: int in range(1, 801):
+		var probe: Dictionary = {"kind": kind.id, "rarity": rarity, "level": 5, "uid": uid * 1000003}
+		for affix: GearAffixData in Stash.legendary_affixes(probe, kind):
+			if affix.is_grant() and affix.branch_id != node.id:
+				other_branch = true
+	_check(other_branch, "another name grants another branch")
+	print("[affixes] grants: %d branches, %.1f%% of pieces, twin %s" % [branches.size(), share * 100.0, "seen" if twin_seen else "not found"])
+	MetaState.discipline_tree = kept_tree
+	MetaState.discipline_form = kept_form
 
 
 ## **A piece's make** (owner, 2026-09-30: "qualities/rarities"). The weights
