@@ -64,6 +64,14 @@ var _flow_timer: float = 0.0
 var _chest: DungeonChest = null
 var _exit: DungeonPortal = null
 var _stairs: DungeonPortal = null
+## The caches in the rooms off the way and the plates on the corridors
+## (2026-10-06), laid with the stage and swept with it. The caches opened on
+## this stage are counted for the debrief; what they paid is on the floor.
+var _caches: Array[DungeonCache] = []
+var _plates: Array[DungeonPlate] = []
+var _caches_opened: int = 0
+## The caches already paid, so a second press - or a second call - pays nothing.
+var _caches_paid: Array[DungeonCache] = []
 ## The look of the deep (2026-09-14): the floor and rock as one tile sheet,
 ## the sconces and the strewn floor, the air, and the dark of its own.
 var _tiles: DungeonTiles = null
@@ -150,9 +158,126 @@ func _begin_stage() -> void:
 		hero.set_present(true)
 	_refresh_flow()
 	claim_effects()
+	_caches_opened = 0
+	_lay_caches()
+	_lay_plates()
 	if not EventBus.enemy_died.is_connected(_on_enemy_died):
 		EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.rift_started.emit(int(kind), _stage, _stages)
+
+
+## **The caches** (2026-10-06): one crate in each of the deepest rooms the
+## main line does not end in, each holding `DUNGEON_CACHE_SHARE` of the
+## stage. Laid on the rift's own prop stream, so where a cache stands moves
+## no roll the guardian or a spawn is drawn on.
+func _lay_caches() -> void:
+	var maze: DungeonLayout = dungeon()
+	if maze == null:
+		return
+	var rooms: Array = []
+	for room: Rect2i in maze.rooms:
+		var centre: Vector2i = room.position + room.size / 2
+		if room.has_point(maze.deep) or room.has_point(maze.entry):
+			continue
+		var depth: int = maze.depth_of(maze.nearest_open(RaidLayout.tile_to_world(centre)))
+		if depth < 0:
+			continue
+		rooms.append([depth, room])
+	rooms.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) > int(b[0]))
+	for index: int in mini(Balance.DUNGEON_CACHES_PER_STAGE, rooms.size()):
+		var room: Rect2i = (rooms[index] as Array)[1]
+		var centre: Vector2i = room.position + room.size / 2
+		var cache := DungeonCache.new()
+		cache.name = "Cache%d" % (index + 1)
+		cache.arena = self
+		cache.stage = _stage
+		cache.position = RaidLayout.tile_to_world(maze.nearest_open(RaidLayout.tile_to_world(centre)))
+		_props_root().add_child(cache)
+		_caches.append(cache)
+
+
+## **The plates** (2026-10-06): on corridor floor between the entry and the
+## vault, never in a room and never within reach of either end, spaced so two
+## cannot be fired by one step.
+func _lay_plates() -> void:
+	var maze: DungeonLayout = dungeon()
+	if maze == null:
+		return
+	var wanted: int = Balance.DUNGEON_PLATES_PER_STAGE if kind == Kind.DUNGEON \
+		else Balance.RIFT_PLATES_PER_STAGE
+	var deepest: int = maxi(maze.deepest(), 1)
+	var candidates: Array[Vector2i] = []
+	for tile: Vector2i in maze.open_tiles():
+		var depth: int = maze.depth_of(tile)
+		if depth < int(deepest * 0.2) or depth > int(deepest * 0.9):
+			continue
+		if maxi(absi(tile.x - maze.entry.x), absi(tile.y - maze.entry.y)) < 5:
+			continue
+		if maxi(absi(tile.x - maze.deep.x), absi(tile.y - maze.deep.y)) < 4:
+			continue
+		var in_room: bool = false
+		for room: Rect2i in maze.rooms:
+			if room.grow(1).has_point(tile):
+				in_room = true
+				break
+		if in_room:
+			continue
+		candidates.append(tile)
+	var dice: RandomNumberGenerator = RunState.rng("rift_props")
+	for index: int in range(candidates.size() - 1, 0, -1):
+		var swap: int = dice.randi_range(0, index)
+		var held: Vector2i = candidates[index]
+		candidates[index] = candidates[swap]
+		candidates[swap] = held
+	var taken: Array[Vector2i] = []
+	for tile: Vector2i in candidates:
+		if taken.size() >= wanted:
+			break
+		var crowded: bool = false
+		for other: Vector2i in taken:
+			if maxi(absi(other.x - tile.x), absi(other.y - tile.y)) < Balance.DUNGEON_PLATE_SPACING:
+				crowded = true
+				break
+		if crowded:
+			continue
+		taken.append(tile)
+		var plate := DungeonPlate.new()
+		plate.name = "Plate%d" % taken.size()
+		plate.arena = self
+		plate.position = RaidLayout.tile_to_world(tile)
+		_props_root().add_child(plate)
+		_plates.append(plate)
+
+
+## A cache broken open: its share of the stage bursts on the floor, once.
+func open_cache(cache: DungeonCache) -> void:
+	if cache == null or not _caches.has(cache) or _caches_paid.has(cache):
+		return
+	_caches_paid.append(cache)
+	_caches_opened += 1
+	var at: Vector2 = cache.global_position
+	var share: int = _cache_pay(_stage)
+	var pieces: int = maxi(Balance.DUNGEON_CACHE_PIECES, 1)
+	for index: int in pieces:
+		var part: int = share / pieces + (1 if index < share % pieces else 0)
+		if part <= 0:
+			continue
+		var currency: String = RunState.CURRENCIES[_rng.randi_range(0, RunState.CURRENCIES.size() - 1)]
+		spawn_loot(currency, part, at)
+	Sfx.play_at("sfx_chest_open", at, -3.0)
+	Vfx.ring(at, Balance.RAID_CHEST_GLOW * 0.8, Balance.LOOT_GLOW_COLOUR, 0.5, 5.0)
+	Vfx.spark(at, Balance.LOOT_GLOW_COLOUR, 14, Vector2.UP, 240.0)
+	Vfx.flash_at(at, Color(1.0, 0.9, 0.6, 0.45), 90.0)
+	EventBus.camera_impact.emit(at, 0.25)
+
+
+## For the gate: the caches and the plates this stage holds.
+func caches() -> Array[DungeonCache]:
+	return _caches
+
+
+func plates() -> Array[DungeonPlate]:
+	return _plates
 
 
 ## The rock is dark and the floor is lit, so the maze reads the right way
@@ -458,7 +583,7 @@ func _stage_cleared() -> void:
 	_guardian_out = false
 	_guardian = null
 	_banked.append({"stage": _stage, "kills": _kills, "time": _stage_clock,
-		"chest_opened": false, "gear": []})
+		"chest_opened": false, "gear": [], "caches": _caches_opened})
 	_clear_enemies()
 	_at_door = true
 	_collapsing = false
@@ -497,6 +622,15 @@ func _sweep_props() -> void:
 	_chest = null
 	_exit = null
 	_stairs = null
+	for cache: DungeonCache in _caches:
+		if cache != null and is_instance_valid(cache):
+			cache.queue_free()
+	_caches.clear()
+	_caches_paid.clear()
+	for plate: DungeonPlate in _plates:
+		if plate != null and is_instance_valid(plate):
+			plate.queue_free()
+	_plates.clear()
 
 
 ## The way out, where the hero arrived. Opened at the door and by a collapse.
@@ -522,7 +656,7 @@ func open_chest(chest: DungeonChest) -> void:
 		return
 	entry["chest_opened"] = true
 	var at: Vector2 = chest.global_position
-	var resources: int = _stage_resources(chest.stage)
+	var resources: int = _stage_exit_pay(chest.stage)
 	var pieces: int = maxi(Balance.DUNGEON_CHEST_PIECES, 1)
 	for index: int in pieces:
 		var share: int = resources / pieces + (1 if index < resources % pieces else 0)
@@ -572,6 +706,19 @@ func _banked_stage(stage: int) -> Dictionary:
 static func _stage_resources(stage: int) -> int:
 	return int(round(float(Balance.RIFT_RESOURCES_PER_STAGE) * (1.0 + 0.25 * float(stage - 1))
 		* Balance.kill_act_scale(RunState.act)))
+
+
+## What one cache holds: its share of the stage's figure.
+static func _cache_pay(stage: int) -> int:
+	return int(round(float(_stage_resources(stage)) * Balance.DUNGEON_CACHE_SHARE))
+
+
+## What the vault's chest or the exit pays for a stage: the figure less every
+## cache's share (2026-10-06). The caches pay the rest when opened and forfeit
+## it when not, so the sum with every cache opened is the stage's figure
+## exactly - never more, which is the bound a rift pays under.
+static func _stage_exit_pay(stage: int) -> int:
+	return maxi(_stage_resources(stage) - _cache_pay(stage) * Balance.DUNGEON_CACHES_PER_STAGE, 0)
 
 
 ## At a dungeon's door: down, or out.
@@ -760,7 +907,7 @@ func _build_rift_reward(result: Dictionary) -> Dictionary:
 			for piece: Variant in entry.get("gear", []):
 				gear.append(piece)
 			continue
-		resources += _stage_resources(stage)
+		resources += _stage_exit_pay(stage)
 		for _piece: int in Balance.RIFT_GEAR_PER_STAGE:
 			var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
 				RunState.rng("gear"))
@@ -822,6 +969,9 @@ func status() -> Dictionary:
 		"chest": _chest != null and is_instance_valid(_chest),
 		"chest_opened": _chest != null and is_instance_valid(_chest) and _chest.is_opened(),
 		"exit_open": _exit != null and is_instance_valid(_exit) and _exit.open,
+		"caches": _caches.size(),
+		"caches_opened": _caches_opened,
+		"plates": _plates.size(),
 	}
 
 

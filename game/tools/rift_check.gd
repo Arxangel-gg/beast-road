@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_a_dungeon_has_a_door()
 	await _test_a_collapse_pays_only_what_was_banked()
 	await _test_the_deep_stands_at_the_road()
+	await _test_caches_and_plates()
 	_test_the_reward_is_only_what_the_road_pays()
 
 	# The rift opening put the raid theme on; a playback alive at exit is a
@@ -149,7 +150,10 @@ func _test_a_rift_fills_and_closes() -> void:
 		_check(int(reward["stages"]) == 1, "one stage banked")
 		# The stage's own figure rather than the constant: a stage pays by the
 		# act since 2026-10-01, and the act scale is held below.
-		_check(int(reward["resources"]) == RiftArena._stage_resources(1), "a stage pays its resources")
+		# **Amended 2026-10-06**: the exit pays the stage's figure less the
+		# caches' shares; the caches pay the rest when opened. The sum is held
+		# in `_test_caches_and_plates`.
+		_check(int(reward["resources"]) == RiftArena._stage_exit_pay(1), "a stage pays its resources")
 		_check(int(reward["shards"]) == Balance.RIFT_SHARDS_PER_STAGE, "and its Shards")
 		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE, "and its gear")
 		_check(String(reward["relic_id"]).is_empty(), "a rift is not a dungeon and pays no relic")
@@ -201,7 +205,7 @@ func _test_a_dungeon_has_a_door() -> void:
 		var reward: Dictionary = _rewards[0]
 		_check(int(reward["stages"]) == 2, "two stages banked; got %d" % int(reward["stages"]))
 		# Stage two's currency burst from its chest; only stage one is paid here.
-		_check(int(reward["resources"]) == RiftArena._stage_resources(1),
+		_check(int(reward["resources"]) == RiftArena._stage_exit_pay(1),
 			"a stage whose chest was opened is not paid twice: got %d" % int(reward["resources"]))
 		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE * 2,
 			"two stages of gear, one rolled at the exit and one carried from the chest")
@@ -209,6 +213,121 @@ func _test_a_dungeon_has_a_door() -> void:
 		_check(bool(reward["left"]), "and it says the player left")
 	rift.queue_free()
 	await get_tree().process_frame
+
+
+## **Caches and plates** (2026-10-06). The caches stand in rooms off the way,
+## on open floor, clear of the entry and the vault; one broken open pays its
+## share on the floor as drops, once; the exit pays the figure less the
+## caches' shares, and the two halves sum to the stage's figure exactly. The
+## plates stand on corridor floor in no room, spaced; a hero standing on one
+## fires a strike that takes the authored share of the hero's pool, a body on
+## one takes the share of its own, and a plate fires once until it rearms.
+func _test_caches_and_plates() -> void:
+	RunState.act = Balance.DUNGEON_EVERY_ACTS
+	_rewards.clear()
+	var rift: RiftArena = await _arena()
+	rift.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
+	rift.set_process(false)
+	var maze: DungeonLayout = rift.dungeon()
+	var caches: Array[DungeonCache] = rift.caches()
+	var plates: Array[DungeonPlate] = rift.plates()
+	_check(caches.size() == Balance.DUNGEON_CACHES_PER_STAGE,
+		"a stage lays %d caches (%d)" % [Balance.DUNGEON_CACHES_PER_STAGE, caches.size()])
+	_check(plates.size() == Balance.DUNGEON_PLATES_PER_STAGE,
+		"a dungeon lays %d plates (%d)" % [Balance.DUNGEON_PLATES_PER_STAGE, plates.size()])
+	for cache: DungeonCache in caches:
+		var tile: Vector2i = RaidLayout.world_to_tile(cache.global_position)
+		var in_room: bool = false
+		for room: Rect2i in maze.rooms:
+			if room.has_point(tile):
+				in_room = true
+		_check(maze.is_open(cache.global_position) and in_room, "a cache stands on a room's floor")
+		_check(maxi(absi(tile.x - maze.entry.x), absi(tile.y - maze.entry.y)) >= 3
+			and maxi(absi(tile.x - maze.deep.x), absi(tile.y - maze.deep.y)) >= 2,
+			"a cache stands clear of the entry and the vault")
+	for index: int in plates.size():
+		var plate: DungeonPlate = plates[index]
+		var tile: Vector2i = RaidLayout.world_to_tile(plate.global_position)
+		var in_room: bool = false
+		for room: Rect2i in maze.rooms:
+			if room.has_point(tile):
+				in_room = true
+		_check(maze.is_open(plate.global_position) and not in_room, "a plate stands on corridor floor")
+		_check(maxi(absi(tile.x - maze.entry.x), absi(tile.y - maze.entry.y)) >= 5, "a plate is clear of the entry")
+		for other: int in range(index + 1, plates.size()):
+			var there: Vector2i = RaidLayout.world_to_tile(plates[other].global_position)
+			_check(maxi(absi(there.x - tile.x), absi(there.y - tile.y)) >= Balance.DUNGEON_PLATE_SPACING,
+				"plates keep their spacing")
+	# The sum: every cache's share and the exit's pay are the stage's figure.
+	var figure: int = RiftArena._stage_resources(1)
+	_check(RiftArena._cache_pay(1) * Balance.DUNGEON_CACHES_PER_STAGE + RiftArena._stage_exit_pay(1) == figure,
+		"the caches and the exit sum to the stage's figure (%d + %d = %d)" % [
+			RiftArena._cache_pay(1) * Balance.DUNGEON_CACHES_PER_STAGE, RiftArena._stage_exit_pay(1), figure])
+	_check(RiftArena._cache_pay(1) > 0 and RiftArena._stage_exit_pay(1) > RiftArena._cache_pay(1),
+		"a cache is worth something and the exit is worth more")
+	# One broken open pays its share on the floor, once.
+	if not caches.is_empty():
+		var before: int = _loot_on(rift)
+		caches[0].open()
+		_check(_loot_on(rift) - before == RiftArena._cache_pay(1),
+			"a cache pays its share on the floor (%d for %d)" % [_loot_on(rift) - before, RiftArena._cache_pay(1)])
+		caches[0].open()
+		rift.open_cache(caches[0])
+		_check(_loot_on(rift) - before == RiftArena._cache_pay(1), "a cache opens once")
+		_check(int(rift.status()["caches_opened"]) == 1, "the stage counts the cache")
+	# A plate under the hero fires, and the strike takes the hero's share.
+	if not plates.is_empty() and rift.hero != null:
+		var plate: DungeonPlate = plates[0]
+		var pool: Health = Health.of(rift.hero)
+		pool.current_hp = pool.max_hp
+		rift.hero.global_position = plate.global_position
+		plate._process(0.05)
+		_check(not plate.armed and plate.fired == 1, "a hero on the plate fires it")
+		var strike: EnemyGroundStrike = null
+		for node: Node in rift.effect_root.get_children():
+			if node is EnemyGroundStrike:
+				strike = node
+		_check(strike != null and is_instance_valid(strike), "the plate stands a strike up")
+		if strike != null:
+			_check(strike.hurts_bodies and strike.body_field == rift
+				and is_equal_approx(strike.reach, Balance.DUNGEON_PLATE_REACH), "the strike is the plate's")
+			strike._process(Balance.DUNGEON_PLATE_DELAY + 0.05)
+			var taken: float = pool.max_hp - pool.current_hp
+			_check(is_equal_approx(taken, pool.max_hp * Balance.DUNGEON_PLATE_DAMAGE),
+				"the hero takes the plate's share of their own pool (%.1f of %.1f)" % [taken, pool.max_hp])
+		plate._process(0.05)
+		_check(plate.fired == 1, "a fired plate does not fire again before it rearms")
+		# Off the plate, a body on it fires it once it has rearmed, and takes its own share.
+		rift.hero.global_position = plate.global_position + Vector2(400.0, 0.0)
+		var breed: EnemyData = rift._pick_breed()
+		var body: Enemy = rift._spawn(breed, plate.global_position + Vector2(8.0, 0.0), 1.0)
+		await get_tree().process_frame
+		var body_pool: Health = Health.of(body)
+		var body_before: float = body_pool.current_hp
+		plate._process(Balance.DUNGEON_PLATE_REARM + 0.1)
+		plate._process(0.05)
+		_check(plate.armed == false and plate.fired == 2, "a body on the plate fires it once it has rearmed (%d)" % plate.fired)
+		var second: EnemyGroundStrike = null
+		for node: Node in rift.effect_root.get_children():
+			if node is EnemyGroundStrike:
+				second = node
+		if second != null:
+			second._process(Balance.DUNGEON_PLATE_DELAY + 0.05)
+			var body_taken: float = body_before - body_pool.current_hp
+			_check(is_equal_approx(body_taken, body_pool.max_hp * Balance.DUNGEON_PLATE_BODY_SHARE),
+				"a body takes the plate's share of its own pool (%.1f of %.1f)" % [body_taken, body_pool.max_hp])
+	rift.call("_finish", {"died": true})
+	rift.queue_free()
+	await get_tree().process_frame
+
+
+func _loot_on(rift: RiftArena) -> int:
+	var total: int = 0
+	for node: Node in rift.effect_root.get_children():
+		var drop := node as LootDrop
+		if drop != null and is_instance_valid(drop) and not drop.is_queued_for_deletion():
+			total += drop.amount
+	return total
 
 
 ## The clock collapses a stage. What was banked pays; what was in progress does not.

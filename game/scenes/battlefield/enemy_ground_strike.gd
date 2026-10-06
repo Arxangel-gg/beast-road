@@ -36,6 +36,13 @@ var aim: Vector2 = Vector2.RIGHT
 var tint: Color = Color(1.0, 0.5, 0.3, 1.0)
 ## Said out loud when the blow lands, so a debrief can name what killed you.
 var blamed_on: String = ""
+## **A dungeon's plate hurts the bodies as well** (2026-10-06): a share of
+## each body's own pool, over the bodies of `body_field` alone - never the
+## global group, which still holds the frozen road's formation under a rift.
+## Off for every blow a breed throws, which is every other strike there is.
+var hurts_bodies: bool = false
+var body_share: float = 0.0
+var body_field: EnemyField = null
 ## How hard this throws whoever it catches, in px/s. Zero for every shot the
 ## roster fires: a bolt that moved you would be a second mechanic to learn on
 ## top of the five shapes, and the shapes are the lesson.
@@ -215,6 +222,28 @@ func _land() -> void:
 	strike_the_players(get_tree(), damage, blamed_on, func(at: Vector2) -> bool:
 		return _covers(at), knockback, global_position,
 		_struck if _sweeps() else null)
+	if hurts_bodies:
+		_strike_the_bodies()
+
+
+## The bodies of the plate's own field inside the circle take a share of their
+## own pool, through the funnel every blow on a body goes through.
+func _strike_the_bodies() -> int:
+	if body_field == null or not is_instance_valid(body_field) or body_share <= 0.0:
+		return 0
+	var struck: int = 0
+	for body: Enemy in body_field.enemies_near(global_position, reach):
+		if not is_instance_valid(body) or body.field() != body_field or body.is_doomed():
+			continue
+		if not _covers(body.global_position):
+			continue
+		var pool: Health = Health.of(body)
+		var amount: float = (pool.max_hp if pool != null else 0.0) * body_share
+		if amount <= 0.0:
+			continue
+		body.take_damage(amount, global_position, 0.0)
+		struck += 1
+	return struck
 
 
 ## Whether a point is inside this blow, or within `margin` of it.

@@ -5788,7 +5788,6 @@ const ENEMY_PROJECTILE_SPEED: float = 400.0
 ## Layered hostile ribbon and head. The dark shell identifies enemy fire before
 ## the hot filament is bright enough to compete with tower projectiles. [TUNE]
 const ENEMY_PROJECTILE_WIDTH: float = 11.0
-const ENEMY_PROJECTILE_FILAMENT_WIDTH: float = 3.0
 ## A hostile shot's ribbon as a share of its head's drawn diameter (2026-10-06),
 ## so a shot authored with a bigger head drags a wider trail; at a head of one
 ## it is the width it was. The authored `trail` weight still multiplies it.
@@ -7499,8 +7498,6 @@ const PROJECTILE_IMPACT_FLASH: float = 17.0
 const PROJECTILE_LIGHT_RADIUS: float = 120.0
 const PROJECTILE_LIGHT_ENERGY: float = 0.7
 
-## Hot filament inside the elemental ribbon and occasional shedding motes.
-const PROJECTILE_FILAMENT_WIDTH: float = 1.65
 
 ## **A trail is as wide as the head it follows** (owner, 2026-10-06: "Trail VFX
 ## width scaling to projectile width"). The ribbon was `PROJECTILE_WIDTH` by
@@ -11315,6 +11312,31 @@ const DUNGEON_CHEST_PIECES: int = 12
 const DUNGEON_CHEST_REACH: float = 74.0
 const DUNGEON_CHEST_SCALE: float = 1.15
 const DUNGEON_LAST_STAGE_BONUS_GEAR: int = 1
+## **Caches** (2026-10-06, owner item 29): a stage's currency is split. The
+## vault's chest or the exit pays the figure less every cache's share, and
+## `DUNGEON_CACHES_PER_STAGE` crates in the deepest rooms off the way each
+## hold `DUNGEON_CACHE_SHARE` of it - paid on the floor when broken open,
+## forfeited if the stage ends with them shut. Exploring against the clock
+## is the decision; the sum with every cache opened is the stage's figure
+## exactly, so a rift still pays what the road pays and never more.
+const DUNGEON_CACHES_PER_STAGE: int = 2
+const DUNGEON_CACHE_SHARE: float = 0.12
+const DUNGEON_CACHE_PIECES: int = 5
+const DUNGEON_CACHE_SCALE: float = 0.9
+## **Pressure plates** (2026-10-06): iron plates on the corridors that fire a
+## telegraphed circle when anything stands on them - the hero or a body - and
+## rearm. The blow is a share of the hero's own pool and of a body's own,
+## through the same ground strike every mortar lands, so a plate can be
+## baited and is never a number the curve carries (it models no arena).
+const DUNGEON_PLATES_PER_STAGE: int = 3
+const RIFT_PLATES_PER_STAGE: int = 2
+const DUNGEON_PLATE_TRIGGER: float = 30.0
+const DUNGEON_PLATE_REACH: float = 120.0
+const DUNGEON_PLATE_DELAY: float = 0.7
+const DUNGEON_PLATE_DAMAGE: float = 0.14
+const DUNGEON_PLATE_BODY_SHARE: float = 0.3
+const DUNGEON_PLATE_REARM: float = 6.0
+const DUNGEON_PLATE_SPACING: int = 5
 ## The doors on the floor: reach, art scale and glow.
 const DUNGEON_PORTAL_REACH: float = 90.0
 const DUNGEON_PORTAL_SCALE: float = 0.7

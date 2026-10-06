@@ -13394,6 +13394,50 @@ literal left). The headless count-up finishes at once, and `ui_sweep` takes
 have climbed - and without the Glass over it, which the sweep's main menu
 offers to a brand-new account and which outlives the menu.
 
+**The deep has caches off the way and plates on the corridors, as of
+2026-10-06.** Owner item 29: *"Raids/rifts: more features, procedural dungeons,
+loot chests, interactables, traps, juice."* Triaged first, in
+`docs/IDEAS_REVIEW_2026-10-06_RIFTS.md`: most of the ask already ships under
+other names - the maze is procedural, the vault holds a chest, the doors are
+interactables, the collapse is a trap, the sconces and the runes are the juice
+- and the two real gaps were **a reason to leave the main line** and **a hazard
+that is not the clock**. Both are built and `rift_check` holds them.
+
+**A cache moves where a stage is paid, never how much.** `DungeonCache` is a
+crate in each of the two deepest rooms the main line does not end in. The
+vault's chest or the exit pays the stage's figure less every cache's share
+(`DUNGEON_CACHE_SHARE`), a cache broken open pays its share on the floor as
+drops through the same `spawn_loot` the chest bursts through, and a cache left
+shut when the stage ends forfeits it. The sum with every cache opened is the
+stage's figure exactly - `RiftArena._stage_exit_pay` and `_cache_pay` are the
+two halves and the gate holds their sum - so a rift still pays what the road
+pays and never more, and what the player decides is whether to go and look
+against the clock. **`rift_check`'s "a stage pays its resources" was amended**
+to the exit's half, and is recorded as such. Co-op needed nothing: a guest's
+arena lays and pays its own caches as it bursts its own chest.
+
+**A plate is the mortar's blow, placed by the dungeon.** `DungeonPlate` stands
+on corridor floor between the entry and the vault, never in a room and spaced
+so one step cannot fire two; anything on it - the hero, a spirit, a body -
+fires an `EnemyGroundStrike`, the node every ranged breed's ground blow is
+thrown through, so the tell is drawn at the blow's own radius, the riser
+swells toward it, and the debrief names it. The strike grew `hurts_bodies`,
+`body_share` and `body_field`: a share of each body's own pool over the bodies
+of that field alone - never the global group, which still holds the frozen
+road's formation under a rift. **Shares, never numbers**: `DUNGEON_PLATE_DAMAGE`
+of the hero's own pool and `DUNGEON_PLATE_BODY_SHARE` of a body's, so a plate
+on the Chainmaker's Road is as dangerous as one on the Long Road, never a wall
+for a new Warden, and nothing `curve_report` carries - it models no arena. A
+column can be baited across one, which is the first thing in the deep that is
+the player's to use rather than to survive.
+
+**Laid on a stream of their own** (`rift_props`), so where a plate stands moves
+no roll the guardian or a spawn is drawn on. Photographed with `dungeon_shot`:
+the first picture had the plates reading as specks under the deep's dark, so
+the rune is drawn additively and larger. What is next in the deep - a barred
+room and a lever, themed rooms, a mini-boss - is in the triage with why each
+waits.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
