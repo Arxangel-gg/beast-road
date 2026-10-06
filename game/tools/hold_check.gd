@@ -1537,6 +1537,63 @@ func _test_the_stone_card_comes_back() -> void:
 		await _frames(3)
 		_check(glass != null and not glass.visible, "Escape did not close the Glass")
 		_check(card.visible, "Escape in the Glass also put the stone card away")
+
+	# **The road from the stone** (owner, 2026-10-06): a new expedition and,
+	# with a front banked, the road back to it - through the door the gate's
+	# road panel uses, so a party is asked. A fresh road with a front banked
+	# asks before it throws the front away; the Walk's door stays beside them.
+	var went: Array = []
+	hub.set("road_test_hook", func(kind: int, act: int, _doctrine: String) -> void:
+		went.append([kind, act]))
+	var front_was: Dictionary = MetaState.expedition.duplicate(true)
+	MetaState.expedition = {}
+	hub.call("_show_card")
+	await _frames(2)
+	_check(hub.find_child("WalkAgain", true, false) != null, "the Walk's door left the card")
+	_check(hub.find_child("RoadContinue", true, false) == null,
+		"the stone offers a road back with no front banked")
+	var fresh: Button = hub.find_child("RoadNew", true, false) as Button
+	_check(fresh != null, "the stone card has no door to a new road")
+	if fresh != null:
+		fresh.pressed.emit()
+		await _frames(2)
+	_check(went == [[HoldSession.Road.FRESH, 1]],
+		"a fresh road with nothing banked did not simply go: %s" % str(went))
+	went.clear()
+	MetaState.expedition = {
+		"version": Expedition.VERSION, "seed": 4242, "act": 2, "wave": 9, "wall": 1.0,
+		"purse": {RunState.GOLD: 500}, "momentum": 0.0, "tier": "normal",
+		"map_mode": MapModes.KEEP, "map_varied": false, "towers": [],
+	}
+	_check(MetaState.has_expedition(), "the harness's banked front does not read")
+	hub.call("_show_card")
+	await _frames(2)
+	var back: Button = hub.find_child("RoadContinue", true, false) as Button
+	fresh = hub.find_child("RoadNew", true, false) as Button
+	_check(back != null, "with a front banked the stone offers no road back to it")
+	if fresh != null:
+		fresh.pressed.emit()
+		await _frames(2)
+		_check(went.is_empty() and fresh.text.contains("press again"),
+			"a fresh road with a front banked went without asking: %s / %s" % [str(went), fresh.text])
+		fresh.pressed.emit()
+		await _frames(2)
+		_check(went == [[HoldSession.Road.FRESH, 1]],
+			"the second press did not take the fresh road: %s" % str(went))
+	went.clear()
+	if back != null:
+		hub.call("_show_card")
+		await _frames(2)
+		back = hub.find_child("RoadContinue", true, false) as Button
+		if back != null:
+			back.pressed.emit()
+			await _frames(2)
+		_check(went == [[HoldSession.Road.CONTINUE, 2]],
+			"the road back did not continue the banked front at its act: %s" % str(went))
+	MetaState.expedition = front_was
+	hub.set("road_test_hook", Callable())
+	hub.call("_hide_card")
+	await _frames(2)
 	hub.close()
 	menu.queue_free()
 	await _frames(3)

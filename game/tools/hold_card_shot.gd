@@ -5,7 +5,7 @@ extends Node
 ## one at a level with a choice waiting, and the rest dimmed at the level they
 ## open at.
 ##
-##   godot --path game res://tools/hold_card_shot.tscn
+##   godot --path game res://tools/hold_card_shot.tscn [-- --top]
 ##
 ## Diagnostic only, never a gate: `craft_talent_check` holds the rules.
 
@@ -36,8 +36,11 @@ func _ready() -> void:
 	var begun: int = Time.get_ticks_msec()
 	while Time.get_ticks_msec() - begun < 1200:
 		await get_tree().process_frame
+	# `--top` photographs the head of the card instead - the look, the tree and
+	# the road's doors (2026-10-06) - and saves beside the professions' picture.
+	var top: bool = OS.get_cmdline_user_args().has("--top")
 	# The professions sit under the portrait: scroll the card down to them.
-	for node: Node in hub.find_children("*", "ScrollContainer", true, false):
+	for node: Node in ([] if top else hub.find_children("*", "ScrollContainer", true, false)):
 		var scroll := node as ScrollContainer
 		if scroll != null and scroll.is_visible_in_tree():
 			var first: Node = hub.find_child("Talents", true, false)
@@ -48,7 +51,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var image: Image = get_viewport().get_texture().get_image()
-	var path: String = "user://hold_card.png"
+	var path: String = "user://hold_card_top.png" if top else "user://hold_card.png"
 	image.save_png(path)
 	print("[hold-card-shot] card -> %s" % ProjectSettings.globalize_path(path))
 	Sfx.stop_immediately()

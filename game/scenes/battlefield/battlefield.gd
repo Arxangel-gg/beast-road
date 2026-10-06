@@ -534,6 +534,7 @@ func enter_preparation() -> void:
 	# live restores movement without allowing a hidden formation to advance.
 	entity_root.process_mode = Node.PROCESS_MODE_INHERIT
 	effect_root.process_mode = Node.PROCESS_MODE_DISABLED
+	clear_shots_in_flight()
 	if hero != null and not _hero_away:
 		hero.set_active(true)
 	if visible:
@@ -600,6 +601,8 @@ func _on_phase_cursor(_phase: int, _previous: int) -> void:
 	if Coop.is_guest():
 		effect_root.process_mode = Node.PROCESS_MODE_DISABLED \
 			if RunState.is_preparation() else Node.PROCESS_MODE_INHERIT
+		if RunState.is_preparation():
+			clear_shots_in_flight()
 	if not visible:
 		return
 	if RunState.is_preparation():
@@ -797,6 +800,29 @@ func _setup_lighting() -> void:
 func add_projectile(shot: Projectile, at: Vector2) -> void:
 	effect_root.add_child(shot)
 	shot.global_position = at
+
+
+## **What was in the air when the wave ended is taken out of it** (owner,
+## 2026-10-06: "Projectiles frozen once preparation starts should be
+## destroyed/removed/returned to the pool"). Preparation freezes the effect
+## root, so a tower's shot that had not landed hung at its muzzle through the
+## whole breather and flew on into the next wave, a tracer froze mid-fade, and
+## a tower's burning ground lay frozen on the road. A shot goes back to the pool
+## through the door every landing uses, so nothing about the pool's rule moves;
+## a tracer and a ground zone are freed. The blow a shot was carrying is simply
+## not dealt - the wave is over and nothing stands to take it. Asked by the
+## host's `enter_preparation` and by a guest's copy of it in `_on_phase_cursor`.
+## Returns how many were taken out, for the gate.
+func clear_shots_in_flight() -> int:
+	var cleared: int = 0
+	for child: Node in effect_root.get_children():
+		if child is Projectile:
+			(child as Projectile).withdraw()
+			cleared += 1
+		elif child is GroundZone or child is Line2D:
+			child.queue_free()
+			cleared += 1
+	return cleared
 
 
 ## Torches down both sides of every road: three stops each side, four roads,

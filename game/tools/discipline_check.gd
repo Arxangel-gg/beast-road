@@ -15,7 +15,7 @@ var _refund_asked: float = 0.0
 ## A stand-in hero for the cleanse test: it only has to say it was cleansed.
 const RECORDER_SOURCE: String = "extends Node2D\nvar cleansed: bool = false\nfunc cleanse_disables() -> void:\n\tcleansed = true\n"
 var _blinked_to: Vector2 = Vector2.INF
-const EXPECTED_TESTS: int = 12
+const EXPECTED_TESTS: int = 13
 
 
 func _ready() -> void:
@@ -92,6 +92,7 @@ func _ready() -> void:
 	_test_the_slots_open_on_the_road()
 	await _test_the_forms_do_what_they_say()
 	await _test_the_hold_screen_shapes_the_tree()
+	await _test_the_road_screen_learns_through_the_mansion()
 	await _test_a_hover_must_rest_to_select()
 	await _test_the_primary_stands_on_the_bar()
 
@@ -1603,6 +1604,114 @@ func _test_a_hover_must_rest_to_select() -> void:
 	screen.close()
 	screen.queue_free()
 	await get_tree().process_frame
+	_finished += 1
+
+
+## **The Mansion's copy of the screen learns through the road's own door**
+## (owner, 2026-10-06: the whole tree, on the road). The same screen with
+## `on_road` set: Learn goes through `RunState.try_learn_discipline`, so a
+## Mansion not yet built or a fight refuses it in the Mansion's own words and
+## learns nothing; the reset is not offered and Let go is refused; a form
+## taken up is announced to the bar; and the arms open against the act the run
+## is in, so the Arcane opens on the road that reached Act II.
+func _test_the_road_screen_learns_through_the_mansion() -> void:
+	var saved_level: int = MetaState.hero_level
+	var saved_run_active: bool = GameDirector.run_active
+	var saved_phase: int = RunState.phase
+	var saved_act: int = RunState.act
+	var saved_best: float = MetaState.best_distance
+	var saved_tier: int = RunState.building_tier("sanctum")
+	GameDirector.run_active = true
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.building_tiers["sanctum"] = 1
+	RunState.act = 1
+	MetaState.hero_level = 20
+	MetaState.best_distance = 0.0
+	_fresh_tree()
+	var screen := DisciplinesScreen.new()
+	screen.on_road = true
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await get_tree().process_frame
+	var buttons: Dictionary = screen.get("_nodes")
+	_check(not (screen.get("_reset_button") as Button).visible,
+		"the road's screen offers the reset that is the Hold's")
+	var pick: DisciplineNodeData = null
+	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+		if node.discipline == 0 and not node.is_oath() \
+				and MetaState.learn_problem(node.id, RunState.act).is_empty():
+			pick = node
+			break
+	if _checked(pick != null, "a new Warden must see a Blood node open on the road"):
+		(buttons[pick.id] as TextureButton).pressed.emit()
+		var learn: Button = screen.get("_learn_button")
+		var state: Label = screen.get("_detail_state")
+		_check(learn.visible and not learn.disabled,
+			"an open node must offer Learn in Preparation with the Mansion standing")
+		# Without the Mansion the door shuts, in the Mansion's words, and
+		# pressing it anyway learns nothing.
+		RunState.building_tiers["sanctum"] = 0
+		screen.call("_refresh")
+		_check(learn.disabled and state.text.contains("Mansion"),
+			"without the Mansion, Learn stays open or does not say why: %s" % state.text)
+		learn.pressed.emit()
+		_check(not MetaState.owns_discipline(pick.id), "Learn without the Mansion learned it anyway")
+		# In a fight, likewise.
+		RunState.building_tiers["sanctum"] = 1
+		RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+		screen.call("_refresh")
+		_check(learn.disabled and state.text.contains("Preparation"),
+			"in a fight, Learn stays open or does not say why: %s" % state.text)
+		learn.pressed.emit()
+		_check(not MetaState.owns_discipline(pick.id), "Learn in a fight learned it anyway")
+		RunState.set_phase(RunState.Phase.PREPARATION)
+		screen.call("_refresh")
+		learn.pressed.emit()
+		_check(MetaState.owns_discipline(pick.id),
+			"Learn in Preparation with the Mansion standing must learn it")
+		var forget: Button = screen.get("_forget_button")
+		_check(forget.visible and forget.disabled, "the road's screen offers Let go")
+	# A form taken up on the road is announced to the bar.
+	var heard: Array = []
+	var listen := func(slot: int, id: String) -> void:
+		heard.append([slot, id])
+	EventBus.discipline_equipped.connect(listen)
+	var holy: DisciplineNodeData = ContentDB.discipline_node("consecrated_chain")
+	var primary_pick: Button = (screen.find_child("Primary_%s" % holy.id, true, false) as Button
+		if holy != null else null)
+	if _checked(primary_pick != null and not primary_pick.disabled,
+			"the Primary picker on the road does not offer an open form"):
+		primary_pick.pressed.emit()
+		_check(MetaState.discipline_form == holy.id and heard == [[-1, holy.id]],
+			"a form taken up on the road did not reach the bar: %s" % str(heard))
+	EventBus.discipline_equipped.disconnect(listen)
+	# The arms open against the act the run is in.
+	var tabs: Array = screen.get("_tabs")
+	var arcane_tab: Button = tabs[3] as Button if tabs.size() >= 4 else null
+	RunState.act = 1
+	screen.call("_refresh")
+	_check(arcane_tab != null and arcane_tab.text.contains("Act"),
+		"the Arcane's tab in Act I does not say it waits: %s" % (arcane_tab.text if arcane_tab != null else "no tab"))
+	RunState.act = 2
+	screen.call("_refresh")
+	_check(arcane_tab != null and not arcane_tab.text.contains("Act"),
+		"the Arcane's tab on the road that reached Act II still says it waits: %s"
+			% (arcane_tab.text if arcane_tab != null else "no tab"))
+	screen.close()
+	screen.queue_free()
+	await get_tree().process_frame
+	RunState.act = saved_act
+	if saved_tier > 0:
+		RunState.building_tiers["sanctum"] = saved_tier
+	else:
+		RunState.building_tiers.erase("sanctum")
+	RunState.set_phase(saved_phase)
+	GameDirector.run_active = saved_run_active
+	MetaState.hero_level = saved_level
+	MetaState.best_distance = saved_best
+	MetaState.discipline_form = Balance.DISCIPLINE_STARTING_FORM
+	_fresh_tree()
 	_finished += 1
 
 

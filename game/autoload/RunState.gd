@@ -1338,11 +1338,22 @@ func attribute(which: int) -> int:
 ## **No Food, no cap, no offers** (owner ruling R5, 2026-09-26). A point is the
 ## price, and points come from levels and first clears; the ring a node sits in
 ## is the gate. A node learned here is kept when the road ends.
-func try_learn_discipline(id: String) -> String:
+## Why the road refuses to learn right now, or "": the Mansion's own two rules,
+## asked by the whole tree the Mansion opens (2026-10-06) before it offers
+## Learn, and by `try_learn_discipline` before it learns - one function, so the
+## screen and the door cannot disagree about when the road is closed.
+func learn_road_problem() -> String:
 	if not is_preparation():
 		return "The tree is learned in Preparation, or in the Hold."
 	if building_tier("sanctum") <= 0:
 		return "Build the Hero Mansion to learn on the road, or learn in the Hold between roads."
+	return ""
+
+
+func try_learn_discipline(id: String) -> String:
+	var refused: String = learn_road_problem()
+	if not refused.is_empty():
+		return refused
 	var problem: String = MetaState.learn_discipline(id, act)
 	if problem.is_empty():
 		_sync_discipline_spells()

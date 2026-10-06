@@ -116,6 +116,14 @@ var _note_left: float = 0.0
 ## The road out: the chooser the host presses, and the timed answer a guest is
 ## given when somebody else presses it.
 var _road_panel: PanelContainer = null
+## **A fresh road from the stone asks once when a front is banked** - the main
+## menu's own two-press rule: the first press says what it costs and the second
+## goes. Forgotten whenever the card is rebuilt.
+var _road_new_armed: bool = false
+## The gate's seam (2026-10-06): `_begin_road` hands the road here instead of
+## to the director when it is set, because a gate cannot start a run and keep
+## its scene. Empty in a shipping game, always.
+var road_test_hook: Callable = Callable()
 ## The menu's own act-start screen, handed over rather than rebuilt. See
 ## `_road_act_start`.
 var act_start: ActStartScreen = null
@@ -828,6 +836,7 @@ func _build_card() -> void:
 	for child: Node in _card.get_children():
 		_card.remove_child(child)
 		child.queue_free()
+	_road_new_armed = false
 
 	# **The Warden as they are** (2026-09-26): once the dressed body is drawn,
 	# the card stands the same stage the Warden's Glass turns - the body, the
@@ -922,6 +931,7 @@ func _card_after_portrait() -> void:
 	disciplines.custom_minimum_size = Vector2(0.0, 38.0)
 	disciplines.pressed.connect(_open_disciplines)
 	_card.add_child(disciplines)
+	_card_road_doors()
 
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
@@ -970,6 +980,60 @@ func _open_disciplines() -> void:
 		add_child(_disciplines)
 		_disciplines.closed.connect(_build_card)
 	_disciplines.open()
+
+
+## **The road, from the stone** (owner, 2026-10-06: "Warden's Stone at the Hold
+## should also be able to Continue Run or Start New Run instead of just Walk the
+## valley again"). The same two doors the road panel at the gate offers, through
+## the same `_take_the_road`, so a party is still asked first and the act
+## screen's own road is untouched. The Walk's door stays in the grid of doors
+## beside them, and a guest is told the road is the host's, as the gate tells
+## them.
+func _card_road_doors() -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0.0, 6.0)
+	_card.add_child(spacer)
+	var heading := Label.new()
+	heading.text = "THE ROAD"
+	heading.add_theme_font_size_override("font_size", 14)
+	heading.add_theme_color_override("font_color", Color("e8a33d"))
+	_card.add_child(heading)
+	if Coop.is_guest():
+		_line("The Hold's host takes the road. You will be asked.", Color("b8ae98"))
+		return
+	if MetaState.has_expedition():
+		var front: Dictionary = MetaState.expedition
+		var detail: String = Expedition.describe(front)
+		var back := Button.new()
+		back.name = "RoadContinue"
+		back.text = "Continue the road  ·  %s" % detail
+		back.tooltip_text = ("Pick the banked front up where it was left. The road will be "
+			+ "alive again; what you built will not have moved.")
+		back.custom_minimum_size = Vector2(0.0, 38.0)
+		back.pressed.connect(func() -> void:
+			_hide_card()
+			_take_the_road(HoldSession.Road.CONTINUE, int(front.get("act", 1)), detail))
+		_card.add_child(back)
+	var fresh := Button.new()
+	fresh.name = "RoadNew"
+	fresh.text = "Take the Road  ·  a new expedition"
+	fresh.tooltip_text = "A new expedition from Act I." + (
+		" This gives up the front you have banked." if MetaState.has_expedition() else "")
+	fresh.custom_minimum_size = Vector2(0.0, 38.0)
+	fresh.pressed.connect(_road_new_from_card.bind(fresh))
+	_card.add_child(fresh)
+
+
+## A fresh road throws a banked front away, so with one banked the first press
+## says so and the second goes - the main menu's rule, kept here.
+func _road_new_from_card(button: Button) -> void:
+	if MetaState.has_expedition() and not _road_new_armed:
+		_road_new_armed = true
+		button.text = "Give up the front?  ·  press again"
+		return
+	_road_new_armed = false
+	_hide_card()
+	_take_the_road(HoldSession.Road.FRESH, 1, "a new expedition from Act I")
 
 
 ## Shows a changed look on everything that draws this Warden in the Hold.
@@ -1594,6 +1658,9 @@ func _mend_the_front() -> void:
 
 func _begin_road(kind: int, act: int, doctrine: String = "") -> void:
 	_hide_road()
+	if road_test_hook.is_valid():
+		road_test_hook.call(kind, act, doctrine)
+		return
 	close()
 	match kind:
 		HoldSession.Road.CONTINUE:

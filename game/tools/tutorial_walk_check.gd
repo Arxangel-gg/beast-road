@@ -211,6 +211,9 @@ func _snapshot() -> Dictionary:
 		"gear": MetaState.stash.size(),
 		"spells": MetaState.unlocked_spells.size(),
 		"towers": MetaState.unlocked_towers.size(),
+		# The codex is account progress too (2026-10-06): a new Warden's book
+		# was a page of the valley's own bodies.
+		"codex": MetaState.codex_seen.size(),
 	}
 
 
@@ -223,6 +226,11 @@ func _test_the_walk_never_settles() -> void:
 	RunState.walking = true
 	GameDirector.run_active = true
 	var before: Dictionary = _snapshot()
+	# **And nothing met in the valley reaches the codex** (2026-10-06): the
+	# recorder every spawn goes through refuses while the Walk runs, so the
+	# snapshot below holds the book's size as well.
+	_check(not MetaState.record_seen("wildlife", "walk_probe_animal"),
+		"an animal met on the Walk was written into the codex")
 	# A win arriving mid-walk settles nothing and leaves the valley running.
 	GameDirector.end_run(true)
 	var after: Dictionary = _snapshot()

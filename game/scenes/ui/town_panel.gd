@@ -138,6 +138,11 @@ var _stash: StashScreen = null
 ## Kept for the same reason, and reached from the same place.
 var _ledger: ExchangeScreen = null
 
+## **The whole tree, over the sheet** (owner, 2026-10-06): the Hold's own
+## Disciplines screen, opened from the Mansion as the road's and kept once
+## built. It is the one place `DisciplinesScreen.on_road` is set.
+var _tree: DisciplinesScreen = null
+
 
 func _open_stash() -> void:
 	if _stash == null or not is_instance_valid(_stash):
@@ -169,7 +174,22 @@ func _open_ledger() -> void:
 
 func close() -> void:
 	panel.visible = false
+	# The tree goes with the sheet it was opened over: a scope change closes
+	# the sheet, and a tree left standing over the battlefield is a screen the
+	# player never asked for there. The sheet is hidden first so the tree's
+	# own closing does not rebuild a page nobody is looking at.
+	if _tree != null and _tree.visible:
+		_tree.close()
 	closed.emit()
+
+
+## The whole tree, if it stands over the sheet, and nothing else: one press of
+## Escape closes one thing (`Run.escape`, 2026-10-01). True when it closed one.
+func close_top_layer() -> bool:
+	if _tree != null and _tree.visible:
+		_tree.close()
+		return true
+	return false
 
 
 ## How much screen the docked sheet is taking, or 0 when it is not showing.
@@ -630,6 +650,37 @@ func _show_mansion() -> void:
 			_mansion_hero(tier)
 
 
+## **The door to the whole tree**, on every page of the Mansion (owner,
+## 2026-10-06). The Learn page lists what is open and the Tree page lists
+## everything as text; what neither could show is the shape - clusters,
+## branches and forks - which is what a build is read from. The Hold's own
+## screen draws it, and here it is the road's: learned in Preparation with the
+## Mansion standing, never let go.
+func _full_tree_door() -> void:
+	var free: int = RunState.skill_points()
+	var row: Button = _row("Open the whole tree  ·  %s" % (
+		"%d point%s to spend" % [free, "" if free == 1 else "s"] if free > 0
+		else "every arm, cluster and fork"), 48.0)
+	row.name = "OpenTree"
+	row.tooltip_text = ("The Disciplines as the Hold draws them. Learn and slot here in "
+		+ "Preparation with the Mansion standing; letting go stays the Hold's, between roads.")
+	row.pressed.connect(_open_full_tree)
+	actions.add_child(row)
+
+
+func _open_full_tree() -> void:
+	if _tree == null:
+		_tree = DisciplinesScreen.new()
+		_tree.name = "Disciplines"
+		_tree.on_road = true
+		add_child(_tree)
+		_tree.closed.connect(func() -> void:
+			if is_open():
+				_clear_notice()
+				_refresh())
+	_tree.open()
+
+
 ## Level, the five attributes, and the four ability slots — everything the hero
 ## *is* right now. Available whether or not the Mansion is built, because an
 ## earned attribute point is a reward already paid for, and making the player
@@ -640,6 +691,7 @@ func _mansion_hero(tier: int) -> void:
 		% [Balance.SKILL_POINTS_EARLY_LEVELS, Balance.SKILL_POINTS_LATER_EVERY]
 		+ "and one the first time each act's boss falls on each difficulty. "
 		+ "What the Warden learns is kept between roads.")
+	_full_tree_door()
 	actions.add_child(_heading("Attributes"))
 	if RunState.hero_attribute_points > 0:
 		_note("%d point%s to place. One arrives with every level." % [
@@ -768,6 +820,7 @@ func _mansion_training(tier: int) -> void:
 		_mansion_slot_picker()
 		return
 
+	_full_tree_door()
 	actions.add_child(_heading("Learn"))
 	var from_levels: int = MetaState.skill_points_for_level(RunState.hero_level)
 	var from_clears: int = MetaState.first_clears_count() * Balance.SKILL_POINTS_PER_FIRST_CLEAR
@@ -922,6 +975,7 @@ func _mansion_slot_picker() -> void:
 ## Every node in the game, with its state. Not a shop — a map. The Hold draws it
 ## as one; this is the road's list of the same thing.
 func _mansion_tree(_tier: int) -> void:
+	_full_tree_door()
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 4)
 	# Off the one list of trees, which is what gives the Arcane its button: a

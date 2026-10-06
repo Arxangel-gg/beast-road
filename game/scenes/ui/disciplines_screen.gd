@@ -28,6 +28,26 @@ const LEARNED: Color = Color("9fd48a")
 ## Each arm's colour, by `DisciplineNodeData.Discipline`.
 const ARM_COLOURS: Array[Color] = [Color("c8453a"), Color("f0d27a"), Color("e07a2e"),
 	Color("7fa8ff")]
+
+## What the page says under its heading, in the Hold and on the road.
+const HOLD_SUB: String = ("Kept between roads. Learn here or at the Hero Mansion on the road; "
+	+ "letting go is free, and only here. Points spent in an arm open its next cluster; "
+	+ "a skill's enhancement hangs off it, and one of its two forks off that.")
+const ROAD_SUB: String = ("The same tree the Hold draws. On the road it only grows: learn "
+	+ "here in Preparation with the Mansion standing, and put a skill in its slot; letting "
+	+ "go is the Hold's, between roads. Points spent in an arm open its next cluster.")
+
+## **Opened from the Hero Mansion on the road** (owner, 2026-10-06: "Full
+## Disciplines tree and skill points should be accessible during runs in the
+## town scope view from the Hero Mansion"). The same screen, the same nodes,
+## the same `MetaState` doors - behind the road's own two rules: a node is
+## learned in Preparation with the Mansion standing
+## (`RunState.try_learn_discipline`), a skill is slotted and a form taken up
+## through `try_equip_discipline` and `try_choose_form` so the bar hears it,
+## the arms open against the act this run is in, and letting go stays the
+## Hold's (`unlearn_problem` refuses on a live road; the reset is not
+## offered). Set before `open()`; `TownPanel` sets it and nothing else does.
+var on_road: bool = false
 const SLOT_NAMES: Array[String] = ["Attack", "Defense", "Power", "Ultimate"]
 ## How a skill's branches stand round it, in node sizes: the enhancement this
 ## far to the right, the forks this far again and this far up and down.
@@ -135,9 +155,7 @@ func _build() -> void:
 	_points.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_points)
 	var sub := Label.new()
-	sub.text = ("Kept between roads. Learn here or at the Hero Mansion on the road; "
-		+ "letting go is free, and only here. Points spent in an arm open its next cluster; "
-		+ "a skill's enhancement hangs off it, and one of its two forks off that.")
+	sub.text = HOLD_SUB
 	sub.add_theme_font_size_override("font_size", 13)
 	sub.add_theme_color_override("font_color", QUIET)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -331,6 +349,8 @@ func _action(into: Control, text: String, handler: Callable) -> Button:
 func open() -> void:
 	visible = true
 	_reset_armed = false
+	if _sub != null:
+		_sub.text = ROAD_SUB if on_road else HOLD_SUB
 	_stage.show_look(WardenLook.worn())
 	_stage.reset_turn()
 	if _selected.is_empty():
@@ -592,11 +612,29 @@ func _draw_map() -> void:
 
 ## "learned" (at its top rank), "open" - learnable, or a rank up - or "closed".
 func _state(id: String) -> String:
-	if MetaState.reach_problem(id) == "Already learned.":
+	if MetaState.reach_problem(id, _run_act()) == "Already learned.":
 		return "learned"
 	if MetaState.owns_discipline(id):
-		return "learned" if not MetaState.learn_problem(id).is_empty() else "open"
-	return "open" if MetaState.reach_problem(id).is_empty() else "closed"
+		return "learned" if not MetaState.learn_problem(id, _run_act()).is_empty() else "open"
+	return "open" if MetaState.reach_problem(id, _run_act()).is_empty() else "closed"
+
+
+## The act the arms are read against: the run's on the road, so the Arcane
+## opens on the road that fells the first boss (2026-09-21); the account's
+## furthest in the Hold, which `MetaState` reads for a zero.
+func _run_act() -> int:
+	return RunState.act if on_road else 0
+
+
+## Why Learn is refused for this node, from wherever the screen stands. On the
+## road the Mansion's own rules come first - Preparation, the Mansion standing
+## - and then the account's, read against the act this run is in.
+func _learn_problem(id: String) -> String:
+	if on_road:
+		var refused: String = RunState.learn_road_problem()
+		if not refused.is_empty():
+			return refused
+	return MetaState.learn_problem(id, _run_act())
 
 
 # --- The page ------------------------------------------------------------------
@@ -610,7 +648,7 @@ func _refresh() -> void:
 	for index: int in _tabs.size():
 		var arm_depth: int = int(MetaState.discipline_depth().get(index, 0))
 		_tabs[index].text = "%s  ·  %d" % [DisciplineNodeData.DISCIPLINE_NAMES[index], arm_depth]
-		if not MetaState.discipline_open(index):
+		if not MetaState.discipline_open(index, _run_act()):
 			_tabs[index].text = "%s  ·  Act %s" % [DisciplineNodeData.DISCIPLINE_NAMES[index],
 				RunState.act_numeral(Balance.DISCIPLINE_OPENS_AT_ACT[index])]
 	for id: String in _nodes:
@@ -626,6 +664,8 @@ func _refresh() -> void:
 	_build_loadout()
 	_build_primaries()
 	var anything: bool = not MetaState.discipline_tree.is_empty()
+	# Reshaping is the Hold's, between roads (2026-09-26).
+	_reset_button.visible = not on_road
 	_reset_button.disabled = not anything
 	_reset_button.text = "Press again to let it all go" if _reset_armed else "Let the whole tree go"
 	_map.queue_redraw()
@@ -704,7 +744,7 @@ func _show_detail() -> void:
 	_detail_tags.visible = not node.tags.is_empty()
 	_detail_text.text = node.description
 	var owned: bool = MetaState.owns_discipline(node.id)
-	var problem: String = MetaState.learn_problem(node.id)
+	var problem: String = _learn_problem(node.id)
 	var topped: bool = owned and MetaState.discipline_rank(node.id) >= node.ranks
 	if topped:
 		_detail_state.text = "Learned." if not Balance.DISCIPLINE_STARTERS.has(node.id) \
@@ -734,7 +774,7 @@ func _show_detail() -> void:
 	_forget_button.tooltip_text = forget_problem
 	# A form is free to take up once its arm is open, learned or not; a skill
 	# still has to be learned before it can sit in a slot.
-	_use_button.visible = (node.is_form() and MetaState.form_problem(node.id).is_empty()) \
+	_use_button.visible = (node.is_form() and MetaState.form_problem(node.id, _run_act()).is_empty()) \
 		or (owned and node.is_active_slot())
 	if node.is_form():
 		var here: bool = MetaState.discipline_form == node.id
@@ -797,13 +837,16 @@ func _build_primaries() -> void:
 		button.custom_minimum_size = Vector2(0.0, 32.0)
 		button.set_pressed_no_signal(MetaState.discipline_form == id)
 		button.add_theme_color_override("font_color", ARM_COLOURS[node.discipline])
-		var problem: String = MetaState.form_problem(id)
+		var problem: String = MetaState.form_problem(id, _run_act())
 		button.disabled = not problem.is_empty()
 		button.tooltip_text = problem if not problem.is_empty() else (
 			"%s - the %s form of the chain. Free to take up; learn it to open its branches."
 			% [node.display_name, node.discipline_name()])
 		button.pressed.connect(func() -> void:
-			MetaState.set_discipline_form(id)
+			if on_road:
+				RunState.try_choose_form(id)
+			else:
+				MetaState.set_discipline_form(id)
 			_refresh())
 		_primaries.add_child(button)
 
@@ -829,7 +872,14 @@ func _loadout_row(label: String, node: DisciplineNodeData) -> void:
 
 func _learn() -> void:
 	var node: DisciplineNodeData = ContentDB.discipline_node(_selected)
-	if node == null or not MetaState.learn_discipline(_selected).is_empty():
+	if node == null:
+		return
+	var refused: String = (RunState.try_learn_discipline(_selected) if on_road
+		else MetaState.learn_discipline(_selected))
+	if not refused.is_empty():
+		# Said on the page rather than swallowed: the state line reads the
+		# reason off the same door on the next refresh.
+		_refresh()
 		return
 	_stage.flourish(ARM_COLOURS[node.discipline])
 	_refresh()
@@ -845,9 +895,15 @@ func _use() -> void:
 	if node == null:
 		return
 	if node.is_form():
-		MetaState.set_discipline_form(node.id)
+		if on_road:
+			RunState.try_choose_form(node.id)
+		else:
+			MetaState.set_discipline_form(node.id)
 	elif node.is_active_slot():
-		MetaState.set_discipline_slot(node.slot_index(), node.id)
+		if on_road:
+			RunState.try_equip_discipline(node.id)
+		else:
+			MetaState.set_discipline_slot(node.slot_index(), node.id)
 	_refresh()
 
 

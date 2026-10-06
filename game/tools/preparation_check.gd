@@ -82,6 +82,8 @@ func _ready() -> void:
 	await _test_the_card_never_enters_the_row()
 	_test_three_wells_and_each_dearer_than_the_last()
 	await _test_the_well_row_says_how_many_stand()
+	await _test_the_air_is_cleared_at_preparation()
+	await _test_the_mansion_opens_the_whole_tree()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -93,8 +95,8 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[preparation] PASS - %d checks: the grace, the clock, the tooltip and the wells"
-			% _checks)
+		print(("[preparation] PASS - %d checks: the grace, the clock, the tooltip, the wells, "
+			+ "the air and the Mansion's tree") % _checks)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -103,6 +105,122 @@ func _check(condition: bool, why: String) -> void:
 	if not condition:
 		_failures += 1
 		push_error("[preparation] " + why)
+
+
+func _frames(count: int) -> void:
+	for _f: int in count:
+		await get_tree().process_frame
+
+
+## **What was in the air when the wave ended is taken out of it** (owner,
+## 2026-10-06). The air is frozen the way Preparation leaves it - a tower's
+## shot, a tracer and a burning patch stood in it - and then the real door is
+## opened: the shot goes back to the pool and the other two are freed, through
+## `enter_preparation` itself rather than the sweep it calls, because a sweep
+## nothing calls is the fault. The guest's copy of the door is held by a walk
+## of the source: a guest never reaches `enter_preparation`, and this harness
+## is a host.
+func _test_the_air_is_cleared_at_preparation() -> void:
+	var towers: Array = ContentDB.base_towers()
+	_check(not towers.is_empty(), "the roster has no base tower to fire")
+	if towers.is_empty():
+		return
+	var tower: TowerData = towers[0]
+	# Frozen first, as the breather leaves it, so the shot cannot fizzle on its
+	# own before the door is opened - the thing being measured is the door.
+	_field.effect_root.process_mode = Node.PROCESS_MODE_DISABLED
+	var shot: Projectile = Projectile.take()
+	shot.setup(null, tower, 10.0, 0.0, 1)
+	_field.add_projectile(shot, Vector2(300.0, 120.0))
+	_field.spawn_tracer(Vector2.ZERO, Vector2(120.0, 0.0), Color.WHITE)
+	_field.spawn_ground_zone(Vector2(200.0, 200.0), 1.0, 5.0, 60.0)
+	await _frames(2)
+	var standing: int = _in_the_air()
+	_check(standing >= 3, "the harness stood %d things in the air, wanted a shot, a tracer and a zone" % standing)
+	var pooled_before: int = NodePool.pooled(&"shot")
+	_field.enter_preparation()
+	await _frames(3)
+	_check(_in_the_air() == 0, "%d things still hang in the air after Preparation opened" % _in_the_air())
+	_check(NodePool.pooled(&"shot") == pooled_before + 1,
+		"the shot was freed rather than returned to the pool (%d pooled, was %d)"
+			% [NodePool.pooled(&"shot"), pooled_before])
+	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/battlefield.gd")
+	var cursor: int = source.find("func _on_phase_cursor(")
+	var guest: int = source.find("if Coop.is_guest():", cursor)
+	var sweep: int = source.find("clear_shots_in_flight()", guest)
+	var next_func: int = source.find("\nfunc ", cursor)
+	_check(cursor >= 0 and guest > cursor and sweep > guest and sweep < next_func,
+		"a guest told Preparation does not clear the shots it drew")
+
+
+func _in_the_air() -> int:
+	var count: int = 0
+	for child: Node in _field.effect_root.get_children():
+		if child is Projectile or child is GroundZone or child is Line2D:
+			count += 1
+	return count
+
+
+## **The Mansion opens the whole tree** (owner, 2026-10-06: "Full Disciplines
+## tree and skill points should be accessible during runs in the town scope
+## view from the Hero Mansion"). The Hold's own screen, over the Town's sheet,
+## as the road's: Learn goes through the road's door, the reset is not offered,
+## and a real Escape closes the tree and leaves the sheet under it. Driven
+## through the sheet's own door and the screen's own buttons.
+func _test_the_mansion_opens_the_whole_tree() -> void:
+	var panel: TownPanel = _run.get("town_panel") as TownPanel
+	_check(panel != null, "the run has no Town sheet")
+	if panel == null:
+		return
+	var level_was: int = MetaState.hero_level
+	var tier_was: int = RunState.building_tier("sanctum")
+	MetaState.hero_level = 20
+	MetaState.call("_read_disciplines", {})
+	RunState.building_tiers["sanctum"] = 1
+	panel.open("sanctum")
+	await _frames(2)
+	var door: Button = panel.find_child("OpenTree", true, false) as Button
+	_check(door != null, "the Mansion's sheet has no door to the whole tree")
+	if door != null:
+		door.pressed.emit()
+		await _frames(2)
+	var tree: DisciplinesScreen = panel.get("_tree") as DisciplinesScreen
+	_check(tree != null and tree.visible and tree.on_road,
+		"the whole tree did not open from the Mansion as the road's")
+	if tree != null and tree.visible:
+		var buttons: Dictionary = tree.get("_nodes")
+		var pick: DisciplineNodeData = null
+		for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+			if node.discipline == 0 and not node.is_oath() \
+					and MetaState.learn_problem(node.id, RunState.act).is_empty():
+				pick = node
+				break
+		_check(pick != null, "a new Warden must see a Blood node open on the road")
+		if pick != null:
+			(buttons[pick.id] as TextureButton).pressed.emit()
+			var learn: Button = tree.get("_learn_button")
+			_check(learn.visible and not learn.disabled,
+				"an open node must offer Learn in Preparation with the Mansion standing")
+			learn.pressed.emit()
+			_check(MetaState.owns_discipline(pick.id), "Learn from the Mansion's tree must learn it")
+		_check(not (tree.get("_reset_button") as Button).visible,
+			"the road's tree offers the reset that is the Hold's")
+		var escape := InputEventKey.new()
+		escape.keycode = KEY_ESCAPE
+		escape.physical_keycode = KEY_ESCAPE
+		escape.pressed = true
+		get_viewport().push_input(escape)
+		await _frames(3)
+		_check(not tree.visible, "Escape did not close the tree")
+		_check(panel.is_open(), "Escape in the tree also closed the Mansion's sheet under it")
+	panel.close()
+	await _frames(2)
+	if tier_was > 0:
+		RunState.building_tiers["sanctum"] = tier_was
+	else:
+		RunState.building_tiers.erase("sanctum")
+	MetaState.hero_level = level_was
+	MetaState.call("_read_disciplines", {})
 
 
 func _cursor() -> Node:

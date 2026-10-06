@@ -13042,6 +13042,48 @@ its original field on Keep for the same reason a player's road is never
 authored: a front banked off the reference ground comes home on Keep by design,
 and its emplacements would be refunded rather than found standing.
 
+**Four more from the owner's list of 2026-10-06, each gated on both bars.**
+
+- **A new Warden's codex is empty.** `MetaState.record_seen` refuses while
+  `RunState.walking`. Every recorder - a body's spawn, an animal's arrival, a
+  sky rolled - goes through that one door, so a brand-new account opened its
+  Codex to a page of the valley's own scripted bodies and animals. The Walk's
+  rule is that nothing in it reaches the account, and the codex is account
+  progress; a new slot was already empty by construction (`adopt_save({})`).
+  `codex_check` holds the door and `tutorial_walk_check`'s snapshot holds the
+  book's size across a Walk; planted back, both named it.
+- **The Warden's Stone takes the road.** The card carries *Continue the road*
+  when a front is banked and *Take the Road · a new expedition*, through the
+  same `_take_the_road` the gate's road panel uses - so a party is still asked,
+  and a guest is told the road is the host's. A fresh road with a front banked
+  asks before it throws the front away, which is the menu's two-press rule. The
+  Walk's door stays in the grid beside them. `HubScreen.road_test_hook` is the
+  gate's seam, because a gate cannot start a run and keep its scene;
+  `hold_check` drives both doors, the arming and the Walk door.
+- **The Mansion opens the whole tree.** `DisciplinesScreen.on_road`, set only
+  by `TownPanel`, puts the Hold's own screen over the Town's sheet behind the
+  road's two rules: Learn goes through `RunState.try_learn_discipline`
+  (Preparation, the Mansion standing), a slot and a form through
+  `try_equip_discipline` and `try_choose_form` so the bar hears it, the arms
+  open against the act the run is in, letting go is refused and the reset is
+  not offered. `RunState.learn_road_problem` is the one statement of the road's
+  refusals, read by the screen before it offers Learn and by the door before
+  it learns, so the two cannot disagree. Escape closes the tree before the
+  sheet (`TownPanel.close_top_layer`). `discipline_check` drives the screen as
+  the road's - a Mansion not built and a fight each refuse in the Mansion's
+  own words and learn nothing - and `preparation_check` drives the real
+  sheet's door and a real Escape; planted with the screen learning through the
+  Hold's door, the gate named it three times.
+- **The breather clears the air.** `Battlefield.clear_shots_in_flight`, from
+  `enter_preparation` and from a guest's phase cursor: a tower's shot goes back
+  to the pool through `Projectile.withdraw`, the door every landing uses, and
+  tracers and ground zones are freed. Preparation freezes the effect root, so a
+  shot that had not landed hung at its muzzle for the whole breather and flew
+  on into the next wave. The blow is not dealt - the wave is over and nothing
+  stands to take it. `preparation_check` stands a shot, a tracer and a zone in
+  frozen air and opens the real door; planted without the sweep it named all
+  three.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

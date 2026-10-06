@@ -543,6 +543,11 @@ func escape(may_pause: bool) -> bool:
 		_wayside_card.close()
 		return true
 	if not _locked:
+		# The whole tree over the Town's sheet closes before the sheet does
+		# (2026-10-06); its own `ui_cancel` answers first when it has the
+		# focus, and this is the same close for a press that reaches here.
+		if town_panel != null and town_panel.close_top_layer():
+			return true
 		if town_panel != null and town_panel.is_open():
 			town_panel.close()
 			return true

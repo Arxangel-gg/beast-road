@@ -152,6 +152,13 @@ func _release() -> void:
 	NodePool.give(&"shot", self, Balance.SHOT_POOL_MAX)
 
 
+## Taken out of the air without landing: the breather clears what the wave left
+## flying (`Battlefield.clear_shots_in_flight`, 2026-10-06). The blow is not
+## dealt; the shot goes back to the pool through the same door a landing uses.
+func withdraw() -> void:
+	_release()
+
+
 ## Everything a use decided, undone - the pool's rule. The glow layer is kept
 ## (it is what pooling saves); the light is not, because its driver is bound
 ## to it at `setup` and the budget slot goes back in `_exit_tree` as always.

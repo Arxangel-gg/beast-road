@@ -42,6 +42,22 @@ func _ready() -> void:
 	_check(MetaState.seen_count("enemy") == 1, "counted once, got %d"
 		% MetaState.seen_count("enemy"))
 
+	# **The Walk records nothing** (owner, 2026-10-06: a new Warden's codex is
+	# empty). Every recorder - a body's spawn, an animal's arrival, a sky rolled
+	# - goes through this one door, so the guard is held here and the Walk's
+	# own gate holds it on the real valley.
+	var walking_was: bool = RunState.walking
+	RunState.walking = true
+	_check(not MetaState.record_seen("enemy", "walk_probe_body"),
+		"a body met on the Walk must record nothing")
+	_check(not MetaState.has_seen("enemy", "walk_probe_body"),
+		"the valley wrote a body into the codex")
+	RunState.walking = false
+	_check(MetaState.record_seen("enemy", "walk_probe_body"),
+		"off the Walk the same body must record")
+	MetaState.codex_seen.erase("enemy:walk_probe_body")
+	RunState.walking = walking_was
+
 	# Kinds do not bleed into each other: "affix:cruel" is not "enemy:cruel".
 	MetaState.record_seen("affix", "cruel")
 	_check(not MetaState.has_seen("enemy", "cruel"),

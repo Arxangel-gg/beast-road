@@ -1086,6 +1086,16 @@ var settings: Dictionary = {
 func record_seen(kind: String, thing_id: String) -> bool:
 	if thing_id.is_empty():
 		return false
+	# **The valley teaches and records nothing** (owner, 2026-10-06: "New
+	# players and new slots should have an empty codex"). A new Warden's first
+	# road is the Walk, and every body, animal and sky the valley stands up came
+	# through here - so a brand-new account opened its Codex to a page of the
+	# valley's scripted bodies. The codex is account progress, and the Walk's
+	# own rule is that nothing in it reaches the account (`TutorialGrants`,
+	# 2026-09-17). Guarded at the one seam every recorder goes through rather
+	# than at each spawn, so a recorder added tomorrow cannot forget.
+	if RunState.walking:
+		return false
 	var key: String = "%s:%s" % [kind, thing_id]
 	if codex_seen.has(key):
 		return false
