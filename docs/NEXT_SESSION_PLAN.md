@@ -793,3 +793,13 @@ batteries):
    loadout: `perf_offscreen.sh ... perf_check --act=10 --build --loadout
    --physics=180`, the hitch budget, warm the elite-death and camp-raze first
    draws, coalesce saves.
+
+**The release sweep of 0f0e47af finished 233 of 235.** Two red, both from the
+content commit, both to fix before anything in 0m:
+
+- `stagger_check`: anchor_knight, its two variants and glacier_golem "cannot
+  plant" - the anchors and the golem lost their brace, most likely because the
+  variants or the new breeds changed what `brace_chance` is derived from (hide,
+  behaviour, knockback resistance). Check the variant .tres and the anchor's own.
+- `chronicle_check`: "Chronicle objective gate failed" - the twenty new deeds;
+  log at `$S/sweep_rel2/logs/185_res___tools_chronicle_check.log`.
