@@ -249,6 +249,11 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	# Paid before it resolves, and refused if it cannot be. A bare caster with
 	# no hero - the gates - casts for free, which is what they need.
 	if hero != null and hero.has_method("spend_mana"):
+		# **Both pools asked before either is spent** (2026-10-07): a step the
+		# breath cannot pay must not have taken the mana first.
+		if not can_pay(spell):
+			cast_starved.emit(slot)
+			return false
 		# Spellblade's Attunement makes the cast after a finisher cheaper -
 		# asked of the hero, who holds the window, and spent by the asking.
 		var discount: float = float(hero.call("cast_discount")) if hero.has_method("cast_discount") else 0.0
@@ -259,6 +264,8 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 		if not bool(hero.call("spend_mana", cost)):
 			cast_starved.emit(slot)
 			return false
+		if hero.has_method("spend_breath"):
+			hero.call("spend_breath", breath_cost(spell))
 
 	# **Quickening** lands on the cooldown this cast lays down, which is the
 	# *next* one the player waits for - a cast that shortened its own cooldown
@@ -277,6 +284,36 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	spell_cast.emit(slot, spell.id, origin)
 	EventBus.spell_cast.emit(spell.id, slot, origin)
 	return true
+
+
+## The mana a cast would draw right now: Attunement's window and Clear Mind
+## included, and nothing spent by the asking. What the bar dims against.
+func mana_cost(spell: SpellData) -> float:
+	if spell == null:
+		return 0.0
+	var cost: float = spell.cost()
+	if hero != null:
+		if hero.has_method("peek_cast_discount"):
+			cost *= 1.0 - float(hero.call("peek_cast_discount"))
+		if hero.has_method("cast_cost_scale"):
+			cost *= float(hero.call("cast_cost_scale"))
+	return cost
+
+
+## The breath a cast draws, and nothing for a spell that is only magic.
+func breath_cost(spell: SpellData) -> float:
+	return maxf(spell.stamina_cost, 0.0) if spell != null else 0.0
+
+
+## **Whether both pools can pay** - the one question the cast and the bar ask,
+## so a slot never reads ready for a cast that would be refused.
+func can_pay(spell: SpellData) -> bool:
+	if spell == null or hero == null:
+		return true
+	var mana: float = float(hero.get("mana"))
+	# A stand-in with no breath to ask (a gate's pool) is not refused for it.
+	var breath: float = float(hero.get("stamina")) if "stamina" in hero else INF
+	return mana >= mana_cost(spell) - 0.001 and breath >= breath_cost(spell) - 0.001
 
 
 ## The Sanctum shortens cooldowns, and so does the Mirrorfang core.

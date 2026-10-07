@@ -68,6 +68,14 @@ enum Kind {
 func cost() -> float:
 	return mana_cost if mana_cost > 0.0 else Balance.SPELL_MANA_COST_DEFAULT
 
+
+## **What a cast draws from the Warden's breath (SP) as well** (owner,
+## 2026-10-07: "Defensive spells like Aegis Step even that are movement as well
+## as magic should require both MP and SP"). Zero for a spell that is only
+## magic. A spell the body throws itself into - a step, a hook hauled in, a
+## stamp - is paid in both pools, and refused unless both can pay.
+@export var stamina_cost: float = 0.0
+
 @export var damage: float = 0.0
 
 ## Effect radius, or beam width for BEAM. 0 means self-targeted.

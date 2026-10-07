@@ -1462,11 +1462,29 @@ func note_finisher_landed() -> void:
 
 ## The discount the next cast takes, spent by the asking.
 func cast_discount() -> float:
+	var discount: float = peek_cast_discount()
+	_cast_discount_left = 0.0
+	return discount
+
+
+## The same share, without spending the window: what the ability bar shows.
+func peek_cast_discount() -> float:
 	if _cast_discount_left <= 0.0:
 		return 0.0
-	_cast_discount_left = 0.0
 	var form: DisciplineNodeData = WardenSheet.form_of(sheet)
 	return WardenSheet.upgrade_of(sheet, form.id, "form_finisher_cast_discount") if form != null else 0.0
+
+
+## Spends breath on a cast, or refuses without touching the pool.
+func spend_breath(cost: float) -> bool:
+	if cost <= 0.0:
+		return true
+	if stamina < cost:
+		return false
+	stamina -= cost
+	_stamina_rest = Balance.HERO_STAMINA_REGEN_DELAY
+	EventBus.hero_stamina_changed.emit(stamina, max_stamina())
+	return true
 
 
 ## Whether a tower stands within the radiant reach, asked a few times a second

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hvmtf")
+stamina_cost = 12.0
 mana_cost = 26.0
 cooldown = 7.0
 kind = 2

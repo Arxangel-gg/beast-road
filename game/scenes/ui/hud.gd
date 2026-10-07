@@ -5012,7 +5012,7 @@ func _rebuild_spell_bar() -> void:
 			name_label.text = discipline.display_name.to_upper()
 			button.tooltip_text = "%s · %s\n%s%s" % [discipline.discipline_name(),
 				discipline.slot_name(), discipline.description,
-				"\nCooldown: %.1fs" % spell.cooldown if spell != null else "\nModifies core combat"]
+				_spell_cost_line(spell) if spell != null else "\nModifies core combat"]
 			if spell != null:
 				button.pressed.connect(_cast.bind(slot))
 			else:
@@ -5030,8 +5030,8 @@ func _rebuild_spell_bar() -> void:
 		else:
 			icon.texture = _spell_icon(spell)
 			name_label.text = spell.display_name.to_upper()
-			button.tooltip_text = "%s\n%s\nCooldown: %.1fs" % [
-				spell.display_name, spell.description, spell.cooldown]
+			button.tooltip_text = "%s\n%s%s" % [
+				spell.display_name, spell.description, _spell_cost_line(spell)]
 			button.pressed.connect(_cast.bind(slot))
 		frame.add_child(button)
 		# Keep the interactive surface behind informational overlays.
@@ -5184,6 +5184,15 @@ func _say_where_abilities_live() -> void:
 	Sfx.play("sfx_ui_deny", -4.0)
 
 
+## What a cast costs and how long it waits, said the same way on every slot:
+## mana, and breath when the spell is a step or a haul as well as magic.
+func _spell_cost_line(spell: SpellData) -> String:
+	var line: String = "\nCost: %d MP" % int(round(spell.cost()))
+	if spell.stamina_cost > 0.0:
+		line += " + %d SP" % int(round(spell.stamina_cost))
+	return line + "  ·  Cooldown: %.1fs" % spell.cooldown
+
+
 func _update_spell_bar() -> void:
 	if _hero == null or not is_instance_valid(_hero):
 		return
@@ -5193,11 +5202,13 @@ func _update_spell_bar() -> void:
 			_spell_cooldowns[slot].text = ""
 			continue
 		var left: float = _hero.spells.cooldown_ratio(slot)
-		# A spell the pool cannot pay for reads as cold blue rather than dim
-		# grey, so "not yet" and "not enough" are told apart at a glance.
-		var starved: bool = _hero.mana < spell.cost()
+		# A spell the pools cannot pay for reads as cold blue rather than dim
+		# grey, so "not yet" and "not enough" are told apart at a glance - and
+		# it is *disabled* (owner, 2026-10-07), asked through the caster's own
+		# `can_pay` so the bar and the cast cannot disagree about MP or SP.
+		var starved: bool = not _hero.spells.can_pay(spell)
 		var button: Button = _spell_buttons[slot]
-		button.disabled = left > 0.0
+		button.disabled = left > 0.0 or starved
 		_spell_cooldowns[slot].text = "" if left <= 0.0 else "%.1f" % (left * spell.cooldown)
 		if left > 0.0:
 			_spell_icons[slot].modulate = Color(0.35, 0.35, 0.38, 0.45)

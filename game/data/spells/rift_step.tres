@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_55wbn")
+stamina_cost = 24.0
 kind = 0
 mana_cost = 20.0
 cooldown = 8.0

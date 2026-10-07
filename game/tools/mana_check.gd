@@ -11,7 +11,7 @@ extends Node
 ## pool, and reads the numbers back.
 
 ## A hero that only has a pool. The caster asks it to pay, and it says.
-const POOL_SOURCE: String = "extends Node2D\nvar mana: float = 100.0\nvar refused: int = 0\nfunc spend_mana(cost: float) -> bool:\n\tif mana < cost:\n\t\trefused += 1\n\t\treturn false\n\tmana -= cost\n\treturn true\n"
+const POOL_SOURCE: String = "extends Node2D\nvar mana: float = 100.0\nvar stamina: float = 100.0\nfunc spend_breath(cost: float) -> bool:\n\tif stamina < cost:\n\t\treturn false\n\tstamina -= cost\n\treturn true\nvar refused: int = 0\nfunc spend_mana(cost: float) -> bool:\n\tif mana < cost:\n\t\trefused += 1\n\t\treturn false\n\tmana -= cost\n\treturn true\n"
 
 var _failures: int = 0
 var _starved: int = 0
@@ -71,6 +71,26 @@ func _ready() -> void:
 		"and a refused cast must spend nothing")
 	_check(_starved == 1, "and say so once, so the HUD can flash the bar")
 	_check(paid.is_ready(0), "a refused cast must not start the cooldown")
+
+	# 3b. **A step is paid in breath as well** (owner, 2026-10-07): short of SP,
+	# the cast is refused and *neither* pool moves - the mana must not be taken
+	# for a step the legs cannot make - and the bar's question says the same.
+	_check(rift.stamina_cost > 0.0, "rift_step is a step and must cost breath")
+	stand_in.set("mana", 100.0)
+	stand_in.set("stamina", rift.stamina_cost * 0.5)
+	paid.clear_cooldowns()
+	_check(not paid.can_pay(rift), "the bar must read a step the breath cannot pay as unpayable")
+	_check(not paid.try_cast(0, Vector2.RIGHT, Vector2.ZERO), "a step the breath cannot pay must be refused")
+	_check(is_equal_approx(float(stand_in.get("mana")), 100.0)
+		and is_equal_approx(float(stand_in.get("stamina")), rift.stamina_cost * 0.5),
+		"a step refused for breath must spend neither pool")
+	stand_in.set("stamina", 100.0)
+	paid.clear_cooldowns()
+	_check(paid.can_pay(rift) and paid.try_cast(0, Vector2.RIGHT, Vector2.ZERO), "with both pools full the step goes off")
+	_check(is_equal_approx(float(stand_in.get("stamina")), 100.0 - rift.stamina_cost),
+		"and draws exactly its breath: %.1f" % float(stand_in.get("stamina")))
+	_check(is_equal_approx(float(stand_in.get("mana")), 100.0 - rift.cost()),
+		"and exactly its mana: %.1f" % float(stand_in.get("mana")))
 
 	# 4. Focus does what the Mansion says: harder spells, shorter cooldowns.
 	RunState.hero_attributes[RunState.Attribute.FOCUS] = 0

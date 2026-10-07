@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_cdeek")
+stamina_cost = 8.0
 mana_cost = 40.0
 kind = 6
 cooldown = 18.0

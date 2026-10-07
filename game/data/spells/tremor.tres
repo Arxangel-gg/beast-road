@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_71r8l")
+stamina_cost = 16.0
 element = 2
 mana_cost = 40.0
 kind = 4
