@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Here they come.", "Movement on the road.", "Weapons up.", "That is a lot of feet.")
+alert = false
+chance = 0.45
+id = "wave_start"
+display_name = "A wave"
+description = "What a mercenary says at this moment."

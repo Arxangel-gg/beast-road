@@ -28,6 +28,9 @@ var _result: Label
 var _close_button: Button
 ## A release asked once; the second press does it.
 var _releasing: String = ""
+## Seeds each Warden's line for one visit, so a line does not change under the
+## player every time a button redraws the rows.
+var _visit: int = 0
 
 
 func _ready() -> void:
@@ -103,6 +106,7 @@ func open() -> void:
 	visible = true
 	_result.text = ""
 	_releasing = ""
+	_visit += 1
 	MetaState.wake_rested_mercenaries()
 	_refresh()
 	_refit()
@@ -163,7 +167,7 @@ func _company_row(row: Dictionary) -> Control:
 	var uid: String = String(row.get("uid", ""))
 	var now: float = Time.get_unix_time_from_system()
 	var resting: bool = String(row.get("state", "")) == Mercenaries.STATE_RESTING
-	var line := _card_row(row)
+	var line := _card_row(row, "bedridden" if resting else "hold_talk")
 	var column: VBoxContainer = line.get_meta(&"column") as VBoxContainer
 	var status := Label.new()
 	status.add_theme_font_size_override("font_size", 14)
@@ -202,7 +206,7 @@ func _company_row(row: Dictionary) -> Control:
 
 
 func _offer_row(offer: Dictionary) -> Control:
-	var line := _card_row(offer)
+	var line := _card_row(offer, "stranger_pitch")
 	var column: VBoxContainer = line.get_meta(&"column") as VBoxContainer
 	var price := Label.new()
 	price.text = "%d Marks to hire  ·  then %d a road" % [Mercenaries.fee(offer), Mercenaries.contract(offer)]
@@ -221,7 +225,7 @@ func _offer_row(offer: Dictionary) -> Control:
 
 ## A row for one Warden: the Warden dressed as they are, their name and level,
 ## what they wear and what it is worth.
-func _card_row(row: Dictionary) -> HBoxContainer:
+func _card_row(row: Dictionary, moment: String = "") -> HBoxContainer:
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 12)
 	var portrait := WardenStage.new()
@@ -245,6 +249,20 @@ func _card_row(row: Dictionary) -> HBoxContainer:
 	name_line.add_theme_font_size_override("font_size", 18)
 	name_line.add_theme_color_override("font_color", Color("efe9dc"))
 	column.add_child(name_line)
+	# **What they say** (owner, 2026-10-07: talk to them in the Hold as well as on
+	# the road): a line of their own, from the same data the road speaks from.
+	if not moment.is_empty():
+		var dice := RandomNumberGenerator.new()
+		dice.seed = absi(hash("%s:%d" % [String(row.get("uid", "")), _visit]))
+		var said: String = MercenaryVoice.line_for(moment, String(row.get("name", "")), dice)
+		if not said.is_empty():
+			var quote := Label.new()
+			quote.name = "Says"
+			quote.text = "“%s”" % said
+			quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			UiFonts.set_role(quote, UiFonts.Role.FLAVOUR, 14)
+			quote.add_theme_color_override("font_color", Color("d9cfb8"))
+			column.add_child(quote)
 	var gear := Label.new()
 	gear.text = _gear_line(row)
 	gear.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

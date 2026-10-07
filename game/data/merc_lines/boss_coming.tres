@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Something big is coming down the road, {warden}.", "Ground's shaking. That is no ordinary body.", "Get the walls ready - the act's master is on its way.")
+alert = true
+chance = 1.0
+id = "boss_coming"
+display_name = "Something big"
+description = "What a mercenary says at this moment."

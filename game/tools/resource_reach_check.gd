@@ -58,10 +58,6 @@ const UNREAD: PackedStringArray = [
 	# see out of the window; it is kept for the codex and previews it was
 	# authored for, and asserted non-empty by `balance_test`.
 	"faction_data.gd:visual_identity",
-	# "How much darker the field reads, for the readability gate to account
-	# for" - and there is no readability gate. Kept rather than deleted because
-	# the number is right and the gate is a real thing to build.
-	"weather_data.gd:gloom",
 ]
 
 const RESOURCES: String = "res://scripts/resources"

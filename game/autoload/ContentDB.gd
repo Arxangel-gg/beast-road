@@ -108,6 +108,8 @@ var attribute_perks: Dictionary = {}
 ## Wayside encounters and their choices (2026-09-25). See `WaysideData`.
 var wayside_encounters: Dictionary = {}
 var wayside_choices: Dictionary = {}
+## What a mercenary says, by moment (2026-10-07).
+var merc_lines: Dictionary = {}
 
 ## Every kind of fish, by id. See `Fishing` for the ponds they come out of.
 var fish_kinds: Dictionary = {}
@@ -168,6 +170,7 @@ func _ready() -> void:
 	attribute_perks = _load_dir("res://data/attribute_perks")
 	wayside_encounters = _load_dir("res://data/wayside")
 	wayside_choices = _load_dir("res://data/wayside_choices")
+	merc_lines = _load_dir("res://data/merc_lines")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
 	trail_signs = _load_dir("res://data/trail_signs")
@@ -233,6 +236,10 @@ func wayside(id: String) -> WaysideData:
 
 func wayside_choice(id: String) -> WaysideChoiceData:
 	return wayside_choices.get(id, null) as WaysideChoiceData
+
+
+func merc_line(id: String) -> MercLineData:
+	return merc_lines.get(id, null) as MercLineData
 
 
 ## Every wayside encounter's id, sorted, so a weighted roll over them reads the

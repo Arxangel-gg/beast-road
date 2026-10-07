@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("{warden}! Get up!", "Warden's down - I'll hold them off!", "Up, {warden}, up! I can't do this alone.")
+alert = true
+chance = 1.0
+id = "warden_down"
+display_name = "The Warden down"
+description = "What a mercenary says at this moment."

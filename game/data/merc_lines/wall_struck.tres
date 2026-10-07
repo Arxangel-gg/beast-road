@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("They're at the wall!", "The gate is taking hits, {warden}.", "Something's chewing on the wall.")
+alert = true
+chance = 0.7
+id = "wall_struck"
+display_name = "The wall"
+description = "What a mercenary says at this moment."

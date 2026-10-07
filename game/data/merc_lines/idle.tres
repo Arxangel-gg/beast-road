@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Long road. Longer when you count the steps.", "My grandmother said the beast hums at night. I never heard it.", "Boots are holding. That is the best news I have.", "Somebody in the Hold owes me a drink. I forget who.", "Quiet. I do not trust quiet.", "If you see a good apple tree, Warden, say so.", "The air tastes of iron out here.", "I used to count the waves. Then I started counting the coin.", "You walk like somebody who has done this before.", "Do you think Yuri knows we are up here?")
+alert = false
+chance = 0.6
+id = "idle"
+display_name = "Musing"
+description = "What a mercenary says at this moment."

@@ -12,12 +12,23 @@ extends Node
 var field: Battlefield = null
 var _bodies: Dictionary = {}
 var _minds: Dictionary = {}
+## What the company says (`MercenaryVoice`) and the card a Warden talks to one
+## through (`MercenaryCard`).
+var voice: MercenaryVoice = null
+var card: MercenaryCard = null
+const PROMPT_OWNER: StringName = &"mercenary"
 
 
 func _ready() -> void:
 	name = "MercenaryCompany"
 	EventBus.mercenary_fell.connect(_on_fell)
 	EventBus.phase_changed.connect(_on_phase_changed)
+	voice = MercenaryVoice.new()
+	voice.company = self
+	add_child(voice)
+	card = MercenaryCard.new()
+	add_child(card)
+	card.ordered.connect(_on_ordered)
 	_muster.call_deferred()
 
 
@@ -48,6 +59,9 @@ func _muster() -> void:
 	for row: Dictionary in RunState.company:
 		if not bool(row.get("out", false)):
 			_stand(row)
+	for row: Dictionary in RunState.live_mercenaries():
+		voice.say(String(row.get("uid", "")), "road_start", true)
+		break
 	if not RunState.company_stayed_home.is_empty():
 		EventBus.company_news.emit("%s stayed home: the contract could not be paid."
 			% ", ".join(RunState.company_stayed_home))
@@ -95,6 +109,62 @@ func _physics_process(delta: float) -> void:
 		var hands := _minds[uid] as MercenaryInput
 		if found != null and hands != null:
 			hands.think(delta)
+	_offer_talk()
+
+
+## **Interact beside a mercenary to talk to it.** The prompt is offered only
+## while nothing else on the field holds the line - a seam, a pond or a gate
+## beside it keeps its own prompt - and the card closes when the Warden walks off.
+func _offer_talk() -> void:
+	if field == null or field.hero == null or not field.hero.is_alive():
+		return
+	var warden: Hero = field.hero
+	var nearest: Hero = null
+	var best: float = Balance.MERC_TALK_REACH
+	for found: Hero in bodies():
+		if not found.is_alive():
+			continue
+		var d: float = found.global_position.distance_to(warden.global_position)
+		if d < best:
+			best = d
+			nearest = found
+	if card != null and card.is_open() and (nearest == null or nearest.mercenary_uid != card.uid):
+		card.hide_card()
+	if nearest == null:
+		if EventBus.prompt_owner() == PROMPT_OWNER:
+			EventBus.claim_prompt(PROMPT_OWNER, "")
+			EventBus.interact_prompt.emit("", "")
+		return
+	var owner_now: StringName = EventBus.prompt_owner()
+	if not owner_now.is_empty() and owner_now != PROMPT_OWNER:
+		return
+	var said: String = "Talk  ·  %s" % String(RunState.company_row(nearest.mercenary_uid).get("name", ""))
+	if owner_now != PROMPT_OWNER:
+		if EventBus.claim_prompt(PROMPT_OWNER, said, PROMPT_OWNER, nearest.global_position):
+			EventBus.interact_prompt.emit(said, "TALK")
+	var hands := warden.input as HeroInput
+	if hands != null and hands.pressed(HeroInput.BUTTON_INTERACT):
+		if card.is_open():
+			card.hide_card()
+		else:
+			talk_to(nearest.mercenary_uid)
+
+
+## Opens the card on one mercenary.
+func talk_to(uid: String) -> void:
+	if card != null and body(uid) != null:
+		card.open_for(uid, mind(uid))
+
+
+## An order from the card: the mind takes it, and the mercenary says so.
+func _on_ordered(uid: String, order: int) -> void:
+	var hands: MercenaryInput = mind(uid)
+	if hands == null:
+		return
+	hands.command(order)
+	for entry: Array in MercenaryCard.ORDERS:
+		if int(entry[0]) == order and voice != null:
+			voice.say(uid, String(entry[2]), true)
 
 
 ## **It builds in the breather** (owner, 2026-10-07: mercenaries *"place their own
@@ -130,6 +200,8 @@ func spend(uid: String) -> Array[String]:
 			var anchor: Vector2i = field.free_anchor_near(lane, 4)
 			if field.placement_problem(anchor).is_empty() and field.build_for(uid, anchor, tower).is_empty():
 				bought.append(tower.id)
+				if voice != null:
+					voice.say(uid, "built")
 				EventBus.company_news.emit("%s raises a %s on its road." % [
 					String(RunState.company_row(uid).get("name", "")), tower.display_name])
 				continue

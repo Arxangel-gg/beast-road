@@ -14416,6 +14416,43 @@ empty, so "it cannot raise this tower" was true of no tower at all. The harness
 funds and asserts the build now - a refusal is only evidence when the thing it
 refuses exists.
 
+**Mercenaries, stage four: they talk, as of 2026-10-07.** What a mercenary says
+is data - `data/merc_lines`, one `MercLineData` a moment, its lines, whether it
+is a warning and how often it is spoken (working rule 9) - and `MercenaryVoice`
+only decides who speaks. It listens to what the road already announces: a wave,
+a boss, a Herald, a frenzy, the wall struck, a dragon, the earth stirring, the
+night and the day, the weather, a crossroad, a camp razed, the Warden falling,
+another of the company falling; and each mercenary notices itself hurt and up
+again, and now and then says something of its own. **The one who would have
+seen a thing says it**: a Herald is called by the mercenary nearest it, and a
+frenzy too far off to see is nobody's.
+
+**Restrained**, the forwarded list's own word for an announcer:
+`MERC_BARK_GAP` a mercenary and `MERC_COMPANY_GAP` the company, and **a warning
+is never held back for politeness** - an alert outranks both. A line shows over
+the speaker's head (`SpeechBubble`) and in the party's feed under its name.
+
+**Talking**: Interact beside one on the road opens `MercenaryCard` - a line of
+its own, its wounds and purse, and the four orders, answered aloud - without
+pausing the road. The prompt is offered only while nothing else holds the line
+(`EventBus.claim_prompt`), so a seam or a pond beside a mercenary keeps its own.
+In the Hold every Warden at the Inn says a line of its own: the company, the
+ones in bed, and the strangers making their pitch.
+
+**Every connection to an autoload is a named method**, never a lambda: a lambda
+on `EventBus` outlives the voice when the road is torn down and errors on every
+later emit - the recorded lesson, applied before it was paid for again.
+
+`mercenary_road_check` (111) walks every moment the code names against the data,
+every `{...}` in a line against the two that are filled, the gap both ways, the
+Herald's caller, the frenzy out of sight, the card's order and its answer, and
+the prompt. **Two plants first passed through it, both vacuously**: the gap was
+tested on a moment spoken 40% of the time, so a refusal could be the dice, and
+the Herald stood nearest the first body in the list, so "the nearest" and "the
+first" agreed. Each test now uses a case where the wrong answer differs from the
+right one. And `resource_reach_check` was red since the cinematic grade began
+reading weather `gloom`, which it listed as unread - taken off the list.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

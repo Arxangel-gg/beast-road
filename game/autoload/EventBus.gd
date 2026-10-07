@@ -575,6 +575,9 @@ signal mercenary_fell(uid: String, at: Vector2, wounds_left: int)
 signal mercenary_carried_off(uid: String)
 ## A line about the company for the HUD's message banner.
 signal company_news(text: String)
+## A mercenary said a line (`MercenaryVoice`): who, its name, the words, and
+## whether it is a warning. The party's feed writes it under the name.
+signal mercenary_said(uid: String, speaker: String, text: String, alert: bool)
 
 ## Something wants a brief global freeze on impact. Highest request wins.
 signal hitstop_requested(duration: float)

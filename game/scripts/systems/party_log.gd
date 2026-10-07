@@ -47,6 +47,7 @@ func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	EventBus.coop_chat.connect(_on_chat)
 	EventBus.party_notice.connect(_on_notice)
+	EventBus.mercenary_said.connect(_on_mercenary_said)
 	_backing = StyleBoxFlat.new()
 	_backing.bg_color = Color(0.03, 0.04, 0.05, 0.72)
 	_backing.border_color = Color(0.86, 0.72, 0.42, 0.28)
@@ -72,6 +73,18 @@ func _on_notice(slot: int, text: String) -> void:
 
 ## A line from this machine to its own player - a command's answer, a refusal.
 ## Grey, so it is never mistaken for somebody speaking.
+## A named method rather than a lambda: a lambda on an autoload's signal
+## outlives the node it captured, and every later line errors.
+func _on_mercenary_said(_uid: String, speaker: String, text: String, alert: bool) -> void:
+	say_mercenary(speaker, text, alert)
+
+
+## A mercenary's line, under its name, warm when it is a warning.
+func say_mercenary(speaker: String, text: String, alert: bool) -> void:
+	_add("[color=#c9b27a]%s[/color]  [color=%s]%s[/color]" % [ChatLine.escape(speaker),
+		"#ffd27a" if alert else "#e8e0cc", ChatLine.escape(text)], true, 0)
+
+
 func say_system(text: String) -> void:
 	_add("[color=#a39a88]%s[/color]" % ChatLine.escape(text), false, 0)
 

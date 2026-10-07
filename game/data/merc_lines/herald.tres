@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Herald on the road - that one's yours, {warden}. The towers won't see it.", "A Herald is running for the wall! Catch it!", "Gold-marked runner, heading in. Only you can stop it.")
+alert = true
+chance = 1.0
+id = "herald"
+display_name = "A Herald"
+description = "What a mercenary says at this moment."

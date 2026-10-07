@@ -11571,6 +11571,21 @@ const MERC_CARRY_SECONDS: float = 2.0
 const MERC_BUILD_DELAY: float = 2.5
 const MERC_BUILDS_PER_BREATHER: int = 2
 const MERC_TRAP_SEARCH: int = 8
+## **What the company says** (`MercenaryVoice`): the seconds one mercenary waits
+## between lines and the company waits between anybody's, how often one says
+## something of its own (a range), how far it may be from a thing and still be
+## the one who noticed it, how long a line holds over its head, how wide and how
+## high the bubble stands, and the talk card's width, lift and reach. [TUNE]
+const MERC_BARK_GAP: float = 9.0
+const MERC_COMPANY_GAP: float = 4.0
+const MERC_IDLE_SECONDS: Vector2 = Vector2(35.0, 75.0)
+const MERC_NOTICE_RADIUS: float = 900.0
+const MERC_BUBBLE_SECONDS: float = 3.5
+const MERC_BUBBLE_WIDTH: float = 260.0
+const MERC_BUBBLE_HEIGHT: float = 230.0
+const MERC_CARD_WIDTH: float = 620.0
+const MERC_CARD_LIFT: float = 220.0
+const MERC_TALK_REACH: float = 130.0
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

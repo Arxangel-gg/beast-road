@@ -51,9 +51,10 @@ func _ready() -> void:
 	await _test_it_fights()
 	_test_the_spoils()
 	_test_it_builds()
+	await _test_it_talks()
 	await _test_the_wounds()
 	_test_the_cut()
-	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "wounds", "cut"]:
+	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "talk", "wounds", "cut"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -214,6 +215,89 @@ func _test_it_builds() -> void:
 		_check(RunState.currencies == before_wallet, "selling a mercenary's tower filled the Warden's wallet")
 		_check(not RunState.tower_owners.has(owned[0]), "a sold tower kept its owner")
 	_reached.append("build")
+
+
+## **It talks** (stage four): every moment the company names is a file with
+## lines; an idle line waits its turn and a warning does not; the one nearest a
+## Herald is the one who calls it; a frenzy far off is nobody's to see; the
+## card opens on Interact's door, takes an order and the mercenary says so; and
+## the Warden standing beside one is offered the prompt.
+func _test_it_talks() -> void:
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/mercenary_voice.gd") 		+ FileAccess.get_file_as_string("res://scripts/systems/mercenary_company.gd") 		+ FileAccess.get_file_as_string("res://scenes/ui/mercenary_card.gd") 		+ FileAccess.get_file_as_string("res://scenes/ui/inn_screen.gd")
+	var named := RegEx.create_from_string("(?:say\\([^,]+, |_anyone\\(|_nearest\\(|line_for\\()\"([a-z_]+)\"")
+	var moments: Dictionary = {}
+	for found: RegExMatch in named.search_all(source):
+		moments[found.get_string(1)] = true
+	for entry: Array in MercenaryCard.ORDERS:
+		moments[String(entry[2])] = true
+	moments["bedridden"] = true
+	moments["hold_talk"] = true
+	moments["stranger_pitch"] = true
+	_check(moments.size() >= 20, "only %d moments are named in code" % moments.size())
+	for moment: Variant in moments:
+		var data: MercLineData = ContentDB.merc_line(String(moment))
+		_check(data != null and not data.lines.is_empty(), "the company says \"%s\" and no file has lines for it" % moment)
+	var braces := RegEx.create_from_string("\\{([a-z]+)\\}")
+	for value: Variant in ContentDB.merc_lines.values():
+		var data := value as MercLineData
+		for line: String in data.lines:
+			for found: RegExMatch in braces.search_all(line):
+				_check(found.get_string(1) in ["warden", "name"], "%s says {%s}, which nothing fills" % [data.id, found.get_string(1)])
+	var voice: MercenaryVoice = _field.company.voice
+	var bodies: Array[Hero] = _field.company.bodies()
+	if voice == null or bodies.size() < 2:
+		_check(false, "no voice or too few to talk")
+		return
+	var said: Array[String] = []
+	var listen := func(uid: String, _speaker: String, text: String, _alert: bool) -> void:
+		said.append(uid + "|" + text)
+	EventBus.mercenary_said.connect(listen)
+	var first: Hero = bodies[0]
+	var second: Hero = bodies[1]
+	# "boss_fell" is idle talk spoken every time it comes, so a refusal here is
+	# the gap and never the dice.
+	_check(ContentDB.merc_line("boss_fell").chance >= 1.0 and not ContentDB.merc_line("boss_fell").alert,
+		"the gap test needs a moment that is idle and always spoken")
+	var spoke: String = voice.say(first.mercenary_uid, "boss_fell", true)
+	_check(not spoke.is_empty(), "a forced line said nothing")
+	_check(SpeechBubble.say(first, "x") != null and first.get_node_or_null("SpeechBubble") != null,
+		"a line was said with nothing over the speaker's head")
+	_check(voice.say(second.mercenary_uid, "boss_fell").is_empty(),
+		"an idle line was said a moment after another")
+	_check(not voice.say(second.mercenary_uid, "herald").is_empty(), "a warning waited behind idle talk")
+	# The one nearest a Herald calls it.
+	first.global_position = _field.town_position() + Vector2(600.0, 0.0)
+	second.global_position = _field.town_position() + Vector2(-600.0, 0.0)
+	said.clear()
+	# Beside the second, so the nearest is not simply the first in the list.
+	EventBus.herald_rose.emit(_field.town_position() + Vector2(-700.0, 0.0))
+	_check(said.size() == 1 and said[0].begins_with(second.mercenary_uid + "|"),
+		"the Herald was not called by the one who saw it: %s" % str(said))
+	said.clear()
+	EventBus.wildlife_blighted.emit("wolf", _field.town_position() + Vector2(0.0, 5000.0))
+	_check(said.is_empty(), "a frenzy far off was seen by %s" % str(said))
+	# The card.
+	_field.company.talk_to(first.mercenary_uid)
+	_check(_field.company.card.is_open() and _field.company.card.uid == first.mercenary_uid, "the card did not open")
+	said.clear()
+	var hunt: Button = _field.company.card.find_child("Order%d" % MercenaryInput.Order.HUNT, true, false) as Button
+	_check(hunt != null, "the card has no Hunt order")
+	if hunt != null:
+		hunt.pressed.emit()
+		_check(_field.company.mind(first.mercenary_uid).order == MercenaryInput.Order.HUNT, "the card's order was not taken")
+		_check(said.size() == 1, "an order was not answered: %s" % str(said))
+	_field.company.card.hide_card()
+	# The prompt, standing beside one.
+	EventBus.claim_prompt(EventBus.prompt_owner(), "")
+	_field.hero.global_position = first.global_position + Vector2(40.0, 0.0)
+	(first.input as MercenaryInput).command(MercenaryInput.Order.GUARD)
+	for _f: int in 4:
+		await get_tree().physics_frame
+	_check(EventBus.prompt_owner() == MercenaryCompany.PROMPT_OWNER,
+		"a Warden beside a mercenary is offered %s, not a word with it" % EventBus.prompt_owner())
+	EventBus.mercenary_said.disconnect(listen)
+	_field.hero.global_position = _field.town_position()
+	_reached.append("talk")
 
 
 func _test_the_wounds() -> void:

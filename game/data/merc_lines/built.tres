@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Put my own coin into that tower. It had better shoot.", "Built something on my road. You're welcome.", "That's my tower. Paid for it myself.")
+alert = false
+chance = 0.8
+id = "built"
+display_name = "Building"
+description = "What a mercenary says at this moment."

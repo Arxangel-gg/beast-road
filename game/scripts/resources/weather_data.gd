@@ -46,7 +46,8 @@ extends GameData
 ## World tint while it holds, multiplied over the day/night grade.
 @export var tint: Color = Color.WHITE
 
-## How much darker the field reads, for the readability gate to account for.
+## How much darker the field reads. The colour grade lays it as the haze over
+## the darks (2026-10-07, `ColorGrade.wanted_weather`).
 @export_range(0.0, 1.0) var gloom: float = 0.0
 
 ## Player-facing one-liner for the HUD announcement.

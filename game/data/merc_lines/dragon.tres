@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MercLineData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merc_line_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lines = PackedStringArray("Look up! Look UP!", "Dragon overhead - find cover!", "That shadow is not a cloud.")
+alert = true
+chance = 1.0
+id = "dragon"
+display_name = "A dragon"
+description = "What a mercenary says at this moment."
