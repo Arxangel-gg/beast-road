@@ -16,6 +16,11 @@ extends Node2D
 ## scope changes, so switching does not leave the view sitting in another scope.
 @export var camera: Camera2D
 
+## Yuri was clicked or tapped: the way back to the battlefield (owner,
+## 2026-10-07). Asked of the run rather than done here - this scope shows state
+## and changes nothing.
+signal beast_selected
+
 
 
 ## The hour, on the walk's own tint.
@@ -91,6 +96,28 @@ var _woods: ParallaxScatter = null
 var _brush: ParallaxScatter = null
 ## How far into the act, with the crossroads marked.
 var _track: ActTrack = null
+
+
+## **A press on Yuri's own painting**, read off its pixels so the sky and the
+## ground around him stay what they are. A release rather than a press, as a
+## button answers, so a drag that began on him is not a click.
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or beast == null or not is_visible_in_tree():
+		return
+	var button := event as InputEventMouseButton
+	if button == null or button.button_index != MOUSE_BUTTON_LEFT or button.pressed:
+		return
+	if is_on_beast(beast.get_global_mouse_position()):
+		get_viewport().set_input_as_handled()
+		beast_selected.emit()
+
+
+## Whether a point in the scope's world lies on Yuri's painting.
+func is_on_beast(world: Vector2) -> bool:
+	if beast == null or beast.texture == null:
+		return false
+	var local: Vector2 = beast.to_local(world)
+	return beast.get_rect().has_point(local) and beast.is_pixel_opaque(local)
 
 
 func _ready() -> void:

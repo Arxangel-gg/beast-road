@@ -61,12 +61,13 @@ func _ready() -> void:
 	await _test_sheets_close_before_the_pause()
 	await _test_the_town_steps_back_to_the_field()
 	await _test_yuri_steps_back_to_the_field()
+	await _test_the_heart_of_either_view_steps_back()
 	await _test_the_draft_closes_layer_by_layer()
 	await _test_a_fork_is_not_closed()
 	await _test_a_wayside_card_walks_on()
 	await _test_back_never_pauses()
 
-	var expected: int = 9
+	var expected: int = 10
 	_check(_finished == expected, "%d of %d tests reached their end" % [_finished, expected])
 	if get_tree().paused:
 		GameDirector.set_paused(false)
@@ -256,6 +257,43 @@ func _test_yuri_steps_back_to_the_field() -> void:
 		"back from Yuri at zoom share %.2f, not the %.2f the field was framed at"
 		% [rig.zoom_share(), framed])
 	_check(not _pause_open(), "stepping back from Yuri paused the game as well")
+	_finished += 1
+
+
+## **The heart of either view is the way home** (owner, 2026-10-07): a press on
+## the Town Hall, and a tap on Yuri himself. The hall is pressed as its button is
+## pressed; Yuri is asked where his painting is - a point on it answers and the
+## sky beside him does not - and his signal is followed to the field.
+func _test_the_heart_of_either_view_steps_back() -> void:
+	_run.switch_scope(GameDirector.Scope.TOWN)
+	await get_tree().process_frame
+	var hall := _run.town.find_child("HallHit", true, false) as Button
+	_check(hall != null, "the Town Hall carries no button back to the field")
+	if hall != null:
+		hall.pressed.emit()
+		await get_tree().process_frame
+		_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD,
+			"pressing the Town Hall did not return to the battlefield")
+	_run.switch_scope(GameDirector.Scope.BEAST)
+	await get_tree().process_frame
+	var beast: Sprite2D = _run.beast.beast
+	var on: Vector2 = Vector2.INF
+	if beast != null and beast.texture != null:
+		var rect: Rect2 = beast.get_rect()
+		for step: int in 400:
+			var probe := rect.position + rect.size * Vector2(0.3 + 0.4 * float(step % 20) / 19.0,
+				0.3 + 0.4 * float(step / 20) / 19.0)
+			if beast.is_pixel_opaque(probe):
+				on = beast.to_global(probe)
+				break
+	_check(on != Vector2.INF and _run.beast.is_on_beast(on), "no point on Yuri's painting answers a press")
+	if beast != null:
+		var sky: Vector2 = beast.to_global(beast.get_rect().position - Vector2(400.0, 400.0))
+		_check(not _run.beast.is_on_beast(sky), "the sky beside Yuri answers a press as Yuri")
+	_run.beast.beast_selected.emit()
+	await get_tree().process_frame
+	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD,
+		"a press on Yuri did not return to the battlefield")
 	_finished += 1
 
 

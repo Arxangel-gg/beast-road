@@ -165,6 +165,11 @@ func _ready() -> void:
 		town_panel.open_merchant(merchant_id)
 		town.set_view_inset(town_panel.docked_width()))
 	town_panel.closed.connect(func() -> void: town.set_view_inset(0.0))
+	# **The heart of either view is the way home** (owner, 2026-10-07): the
+	# Town Hall in the town, Yuri himself from the walk. The same door Escape
+	# uses, so the field comes back at the zoom it had.
+	town.hall_selected.connect(return_to_field)
+	beast.beast_selected.connect(return_to_field)
 	# **The Walk, when the Warden is walking the valley** (owner brief,
 	# 2026-09-17). Stood up here because this is where the battlefield and the
 	# HUD are both in scope, and the Walk needs one to place its stops and the

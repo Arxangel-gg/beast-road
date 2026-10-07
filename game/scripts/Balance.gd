@@ -2521,6 +2521,10 @@ const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.65
 ## `curve_report` carries the health in its threat; the walk is a shape it does
 ## not model. [TUNE]
 const ENEMY_HEALTH_SCALE: float = 1.08
+## The square in the middle of the Town Hall that takes the Warden back to the
+## battlefield: the building's heart, small enough that the plots round it keep
+## their own presses. [TUNE]
+const TOWN_HALL_RETURN_SIZE: float = 220.0
 const ENEMY_MOVE_SPEED_SCALE: float = 1.06
 ## And a ranged body's blow a quarter lighter again: it is thrown from where the
 ## Warden cannot answer it, which is why it was named first. [TUNE]

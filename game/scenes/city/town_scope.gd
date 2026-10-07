@@ -29,6 +29,9 @@ signal plot_selected(building_id: String)
 
 ## Emitted when the player picks a merchant standing in the town.
 signal merchant_selected(merchant_id: String)
+## The Town Hall at the heart of the ring was pressed: the way back to the
+## battlefield (owner, 2026-10-07). The run decides what that means.
+signal hall_selected
 
 var _plots: Dictionary = {}
 
@@ -87,6 +90,7 @@ func _ready() -> void:
 	EventBus.merchant_settled.connect(func(_id: String) -> void: _refresh_merchants())
 	_refresh_hall()
 	_refresh_merchants()
+	_build_hall_button()
 
 
 ## The town sits on the beast's back, so it gets the same ground as the field.
@@ -434,6 +438,31 @@ func _on_construction_completed(building_id: String, _tier: int) -> void:
 		_refresh_hall()
 	else:
 		_refresh_plot(building_id)
+
+
+## **The hall is the way back.** A flat button over the middle of the Town
+## Hall, the size of the building's heart rather than its whole painting, so
+## the plots round it keep their own presses. It brightens under the pointer
+## and only brightens: the hall is not lifted, because it is the centre the
+## whole ring is laid out from.
+func _build_hall_button() -> void:
+	if hall_sprite == null or hall_sprite.get_parent() == null:
+		return
+	var button := Button.new()
+	button.name = "HallHit"
+	button.flat = true
+	var side: float = Balance.TOWN_HALL_RETURN_SIZE
+	button.size = Vector2(side, side)
+	button.position = hall_sprite.position - Vector2(side, side) * 0.5
+	button.tooltip_text = "Back to the battlefield"
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func() -> void: hall_selected.emit())
+	var lit := func(on: bool) -> void:
+		if is_instance_valid(hall_sprite):
+			hall_sprite.modulate = Color.WHITE.lightened(Balance.TOWN_HOVER_LIGHT) if on else Color.WHITE
+	button.mouse_entered.connect(func() -> void: lit.call(true))
+	button.mouse_exited.connect(func() -> void: lit.call(false))
+	hall_sprite.get_parent().add_child(button)
 
 
 func _refresh_hall() -> void:
