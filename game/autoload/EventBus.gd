@@ -442,6 +442,12 @@ signal coop_wildlife_died(net_id: int)
 ## Grief laid on the host's sheet, told to a guest so it breathes the same ash
 ## (2026-10-01). A picture on the guest: nothing there reads grief.
 signal coop_grief_laid(at: Vector2, amount: float)
+## The company as the host simulates it, a row a seat (2026-10-07). Host only.
+signal coop_company_state(rows: Array)
+## A mercenary carried off, and the seat of the player it belongs to.
+signal coop_company_carried(uid: String, master_slot: int)
+## A mercenary's line, by seat, for the guests' screens.
+signal coop_company_said(slot: int, text: String, alert: bool)
 ## A thief's sack and cover, decided by the host: whether it carries anything
 ## now and whether it is lying low. The guest dresses its puppet to match.
 signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)

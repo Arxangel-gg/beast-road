@@ -151,6 +151,28 @@ static func worn_kinds(row: Dictionary) -> Array[String]:
 	return out
 
 
+## **Each player's share of the party's seats** (owner, 2026-10-07: "each
+## mercenary counts as a player slot in the party so for example 2 real players
+## would each be able to bring 1 mercenary each for a full party of 4, or for
+## example 3 real players with 1 of them bringing a mercenary, or just 1 solo
+## player bringing up to 3"). The free seats divided by the players and rounded
+## up - so three players share the one seat left, first come - and never more
+## than the free seats or the roster holds.
+static func seats_for(players: int) -> int:
+	var free: int = maxi(Balance.COOP_MAX_PLAYERS - maxi(players, 1), 0)
+	var share: int = int(ceil(float(free) / float(maxi(players, 1))))
+	return clampi(share, 0, mini(free, Balance.MERC_ROSTER_MAX))
+
+
+## The seats no player sits on, lowest first.
+static func free_seats(taken: Array[int]) -> Array[int]:
+	var out: Array[int] = []
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		if not number in taken:
+			out.append(number)
+	return out
+
+
 ## A row read off a save, cleaned: a row the game could not have produced is
 ## refused (an empty dictionary) rather than trusted, the pen's rule.
 static func clean(stored: Variant) -> Dictionary:

@@ -133,6 +133,9 @@ func say(uid: String, moment: String, force: bool = false) -> String:
 	_company_quiet = 0.0
 	SpeechBubble.say(body, text, data.alert)
 	EventBus.mercenary_said.emit(uid, speaker, text, data.alert)
+	# The party hears it too: a line is drawn over the puppet on every screen.
+	if Coop.is_networked() and not Coop.is_guest():
+		EventBus.coop_company_said.emit(int(RunState.company_row(uid).get("slot", 0)), text, data.alert)
 	return text
 
 

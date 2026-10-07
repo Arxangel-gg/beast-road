@@ -11588,6 +11588,10 @@ const MERC_BUBBLE_HEIGHT: float = 230.0
 const MERC_CARD_WIDTH: float = 620.0
 const MERC_CARD_LIFT: float = 220.0
 const MERC_TALK_REACH: float = 130.0
+## **The company in co-op**: how often the host says where it is, and how often
+## a guest restates the company it brought until it sees it standing. [TUNE]
+const MERC_STATE_SECONDS: float = 0.1
+const MERC_RESTATE_SECONDS: float = 4.0
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

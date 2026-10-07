@@ -492,33 +492,54 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 ## **The company walks out** (2026-10-07): each mercenary marked to come, on its
 ## feet, takes the road if its contract can be paid, and stays home if not.
 ## Paid here rather than at the Inn because the contract is the road's - a
-## mercenary that never walks one is never charged. A guest's mercenaries are
-## stage five's; a guest takes none.
+## mercenary that never walks one is never charged.
+##
+## **A guest pays for its own** and its rows wait here marked `remote`: the host
+## stands them when the guest tells it who they are (`MercenaryCompany`), on
+## seats the host chooses. Each player brings at most its share of the free
+## seats (`Mercenaries.seats_for`), which `mercenaries_taking` already caps.
 func _muster() -> void:
 	RunState.company.clear()
 	RunState.company_stayed_home.clear()
-	if Coop.is_networked() and not Coop.is_host():
-		return
-	var seat: int = Coop.player_count() + 1
+	var guest: bool = Coop.is_networked() and not Coop.is_host()
+	var own: int = Coop.party().slot() if Coop.is_networked() and Coop.party().slot() > 0 else 1
+	var free: Array[int] = Mercenaries.free_seats(_party_seats())
 	for row: Dictionary in MetaState.mercenaries_taking():
 		var price: int = Mercenaries.contract(row)
-		if MetaState.marks < price:
+		if MetaState.marks < price or (not guest and free.is_empty()):
 			RunState.company_stayed_home.append(String(row.get("name", "")))
 			continue
 		MetaState.marks -= price
 		RunState.company.append({
 			"uid": String(row["uid"]),
 			"name": String(row.get("name", "")),
-			"slot": seat,
+			"slot": 0 if guest else free.pop_front(),
+			"master": own,
+			"remote": guest,
 			"wounds": Balance.MERC_WOUNDS,
 			"purse": 0,
 			"spoils": 0.0,
 			"earned": 0,
 			"out": false,
 		})
-		seat += 1
 	if not RunState.company.is_empty():
 		MetaState.save_game()
+
+
+## The seats the party's players sit on: this one alone, or every seat in a
+## session.
+func _party_seats() -> Array[int]:
+	var out: Array[int] = []
+	if not Coop.is_networked():
+		out.append(1)
+		return out
+	for seat: Variant in Coop.party().seats():
+		var number: int = int((seat as CoopParty.Seat).slot) if seat is CoopParty.Seat else 0
+		if number > 0:
+			out.append(number)
+	if out.is_empty():
+		out.append(maxi(Coop.party().slot(), 1))
+	return out
 
 
 ## **The Walk: the guided valley, and its own door.**

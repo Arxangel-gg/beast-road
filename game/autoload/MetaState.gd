@@ -3454,9 +3454,10 @@ func set_mercenary_taking(uid: String, on: bool) -> bool:
 	return true
 
 
-## The seats a mercenary may take: the party's seats less the players in it.
+## The seats a mercenary of this Warden's may take: this player's share of the
+## party's free seats (`Mercenaries.seats_for`).
 func mercenary_seats() -> int:
-	return clampi(Balance.COOP_MAX_PLAYERS - Coop.player_count(), 0, Balance.MERC_ROSTER_MAX)
+	return Mercenaries.seats_for(Coop.player_count())
 
 
 ## The mercenaries marked to walk out, on their feet, at most the seats free.

@@ -122,6 +122,7 @@ func _ready() -> void:
 	await _test_requests_travel_guest_to_host()
 	await _test_cosmetic_signals_stay_home()
 	await _test_world_facts_cross_the_wire()
+	await _test_the_company_crosses_the_wire()
 	await _test_a_refusal_is_addressed()
 	await _test_a_dropped_host_ends_the_guest_run()
 	await _test_a_late_guest_is_told_the_run()
@@ -622,6 +623,44 @@ func _test_a_refusal_is_addressed() -> void:
 
 
 ## The first recorded world row of a kind, or empty.
+## **The company crosses** (2026-10-07, mercenaries stage five): the host's
+## word on where its mercenaries stand, who was carried off and what one said
+## reaches the guest whole, and a guest's company reaches the host as a request
+## the host can attribute.
+func _test_the_company_crosses_the_wire() -> void:
+	var company: Array = []
+	_guest_bus.coop_company_state.connect(func(rows: Array) -> void: company.append(["state", rows]))
+	_guest_bus.coop_company_carried.connect(func(uid: String, master: int) -> void:
+		company.append(["carried", uid, master]))
+	_guest_bus.coop_company_said.connect(func(slot: int, text: String, alert: bool) -> void:
+		company.append(["said", slot, text, alert]))
+	var row: Array = [3, 2, "merc-1", "Marrow", Vector2(120.0, -40.0), 0.75, Vector2.RIGHT,
+		Vector2.UP, [1, 2, 3], ["", "", "", "", ""], 2]
+	_host_bus.coop_company_state.emit([row])
+	_host_bus.coop_company_carried.emit("merc-1", 2)
+	_host_bus.coop_company_said.emit(3, "Look up!", true)
+	await _settle(func() -> bool: return company.size() >= 3)
+	_check(company.size() == 3, "%d of three company facts crossed" % company.size())
+	for entry: Array in company:
+		match String(entry[0]):
+			"state":
+				var rows: Array = entry[1]
+				_check(rows.size() == 1 and (rows[0] as Array) == row, "the company's state arrived changed: %s" % str(rows))
+			"carried":
+				_check(String(entry[1]) == "merc-1" and int(entry[2]) == 2, "a carry-off arrived changed")
+			"said":
+				_check(int(entry[1]) == 3 and String(entry[2]) == "Look up!" and bool(entry[3]), "a line arrived changed")
+	var asked: Array = []
+	_host_bus.coop_request_received.connect(func(kind: int, args: Array, from: int) -> void:
+		if kind == CoopRelay.Request.MY_COMPANY:
+			asked.append([args, from]))
+	var guest_relay: CoopRelay = _guest.call("relay")
+	_check(guest_relay.request(CoopRelay.Request.MY_COMPANY, [[{"uid": "merc-9", "who": "x"}]]),
+		"a guest could not tell the host its company")
+	await _settle(func() -> bool: return not asked.is_empty())
+	_check(asked.size() == 1 and int(asked[0][1]) > 0, "a guest's company did not reach the host attributed")
+
+
 func _row(kind: String) -> Array:
 	for entry: Array in _guest_world:
 		if String(entry[0]) == kind:

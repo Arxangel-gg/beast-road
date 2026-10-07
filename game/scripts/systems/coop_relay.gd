@@ -213,6 +213,16 @@ enum Fact {
 	## the host tells it each patch it lays and the guest's sheet fades it on
 	## the same clock, so both screens breathe ash over the same ground.
 	GRIEF_LAID = 89,
+	## **The company** (2026-10-07; `docs/MERCENARIES_2026-10-07.md` stage five).
+	## The mercenaries the host simulates, every seat a row - where it is, how
+	## hurt, where it walks and aims, its look and kinds - so a guest draws them
+	## as puppets. A state, so a guest who missed one row reads the next.
+	COMPANY_STATE = 90,
+	## A mercenary carried off after its last wound, and whose it is: the guest
+	## it belongs to puts it to bed in its own account.
+	COMPANY_CARRIED = 91,
+	## A line a mercenary said, by seat - presentation only.
+	COMPANY_SAID = 92,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -349,6 +359,11 @@ enum Request {
 	## `banish`, `skip`), a card id and the card to leave. By id, never by what
 	## it is worth; the host checks it against that seat's own offer. 44.
 	AUGMENT_CHOICE = 44,
+	## **A guest's company** (2026-10-07): the mercenary records it paid to bring,
+	## so the host can stand them. Cleaned by `Mercenaries.clean` on arrival -
+	## the rules a save is read under - and seated within that guest's share of
+	## the party's free seats. Restated until the guest sees them standing. 45.
+	MY_COMPANY = 45,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -557,6 +572,9 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_wildlife_died", _on_coop_wildlife_died],
 		["coop_grief_laid", _on_coop_grief_laid],
+		["coop_company_state", _on_coop_company_state],
+		["coop_company_carried", _on_coop_company_carried],
+		["coop_company_said", _on_coop_company_said],
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_wildlife_family", _on_coop_wildlife_family],
 		["coop_wildlife_born", _on_coop_wildlife_born],
@@ -731,6 +749,18 @@ func _on_coop_wildlife_died(net_id: int) -> void:
 
 func _on_coop_grief_laid(at: Vector2, amount: float) -> void:
 	_relay(Fact.GRIEF_LAID, [at, amount])
+
+
+func _on_coop_company_state(rows: Array) -> void:
+	_relay(Fact.COMPANY_STATE, [rows])
+
+
+func _on_coop_company_carried(uid: String, master_slot: int) -> void:
+	_relay(Fact.COMPANY_CARRIED, [uid, master_slot])
+
+
+func _on_coop_company_said(slot: int, text: String, alert: bool) -> void:
+	_relay(Fact.COMPANY_SAID, [slot, text, alert])
 
 
 func _on_coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool) -> void:
@@ -1256,6 +1286,15 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.GRIEF_LAID:
 			if args.size() == 2 and args[0] is Vector2:
 				bus.coop_grief_laid.emit(args[0] as Vector2, float(args[1]))
+		Fact.COMPANY_STATE:
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_company_state.emit(args[0] as Array)
+		Fact.COMPANY_CARRIED:
+			if args.size() == 2:
+				bus.coop_company_carried.emit(String(args[0]), int(args[1]))
+		Fact.COMPANY_SAID:
+			if args.size() == 3:
+				bus.coop_company_said.emit(int(args[0]), String(args[1]), bool(args[2]))
 		Fact.WILDLIFE_SACK:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))

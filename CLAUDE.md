@@ -14453,6 +14453,44 @@ first" agreed. Each test now uses a case where the wrong answer differs from the
 right one. And `resource_reach_check` was red since the cinematic grade began
 reading weather `gloom`, which it listed as unread - taken off the list.
 
+**Mercenaries, stage five: in a party, as of 2026-10-07.** The owner: *"each
+mercenary counts as a player slot in the party so for example 2 real players
+would each be able to bring 1 mercenary each for a full party of 4, or ... 3
+real players with 1 of them bringing a mercenary, or just 1 solo player bringing
+up to 3."* `Mercenaries.seats_for(players)` is that rule in one line - the free
+seats divided by the players, rounded up, never past the free seats - so one
+player brings three, two bring one each, three share the last seat first come,
+and four bring none. `MetaState.mercenary_seats` asks it, so the Inn's "coming"
+toggles refuse past it.
+
+**The host simulates every mercenary, a guest's included**, because the host
+simulates every Warden. A guest pays its own contracts at the muster and tells
+the host its company (`Request.MY_COMPANY` = 45), **restated until it sees them
+standing** - a request sent once lands on nothing when the host's field is a
+frame behind, the race the dye and the sheet already paid for. The host admits
+it by the peer it arrived on, cleans every record by the rules a save is read
+under, seats it within that guest's share on seats no player and no other
+mercenary holds, and stands it following that guest's Warden.
+
+**Three facts, all presentation**: `COMPANY_STATE` (90) is every seat's place,
+health, walk, aim, look and kinds ten times a second, and a guest draws a puppet
+a seat - one that decides nothing, has no mind and takes no wound, and goes when
+the host stops naming it; `COMPANY_CARRIED` (91) tells the guest a mercenary of
+its own was carried off, so it goes to bed **in the account it belongs to**, never
+the host's; `COMPANY_SAID` (92) draws a line over the puppet. The spoils and the
+purse stay on the host, where the kills are paid; a guest's cut of its own payout
+is read off its own remote rows.
+
+`coop_check` sends the three facts and the request across the real loopback and
+compares them whole (a missing receive arm named as "2 of three"); the road gate
+holds the seat table, admission within the share, cleaned, never twice and never
+on a taken seat, and the puppets standing, wearing and going. **One plant hid
+behind a second cleaning**: a forged level admitted raw read clean on the body,
+because `WardenSheet.from_row` cleans the level again - the gate reads the
+admitted record now. And one harness lesson: a `grep && python` patch whose
+grep found nothing ran nothing and said nothing, and the gate went green on code
+that was never written.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

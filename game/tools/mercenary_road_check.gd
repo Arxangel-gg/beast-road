@@ -52,9 +52,10 @@ func _ready() -> void:
 	_test_the_spoils()
 	_test_it_builds()
 	await _test_it_talks()
+	await _test_the_party()
 	await _test_the_wounds()
 	_test_the_cut()
-	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "talk", "wounds", "cut"]:
+	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "talk", "party", "wounds", "cut"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -298,6 +299,59 @@ func _test_it_talks() -> void:
 	EventBus.mercenary_said.disconnect(listen)
 	_field.hero.global_position = _field.town_position()
 	_reached.append("talk")
+
+
+## **A party's seats** (stage five): each player's share of the free seats,
+## a guest's company admitted on the host within that share, cleaned, never
+## stood twice, never on a taken seat; and a guest's drawing of the company -
+## puppets that stand where the host says, wear what it says, and go when it
+## stops naming them.
+func _test_the_party() -> void:
+	_check(Mercenaries.seats_for(1) == 3 and Mercenaries.seats_for(2) == 1
+			and Mercenaries.seats_for(3) == 1 and Mercenaries.seats_for(4) == 0,
+		"the seats are %d, %d, %d and %d for one to four players" % [Mercenaries.seats_for(1),
+			Mercenaries.seats_for(2), Mercenaries.seats_for(3), Mercenaries.seats_for(4)])
+	var company: MercenaryCompany = _field.company
+	var before: int = RunState.company.size()
+	var records: Array = []
+	for index: int in 3:
+		var offered: Dictionary = Mercenaries.offer("guest:%d" % index, "Guest%d" % index, 30, RunState.tier())
+		if index == 0:
+			offered["level"] = 9999
+		records.append(offered)
+	var stood: int = company.admit(records, 2)
+	var seats: Array[int] = []
+	for row: Dictionary in RunState.company:
+		var seat: int = int(row.get("slot", 0))
+		_check(seat >= 1 and seat <= Balance.COOP_MAX_PLAYERS and not seat in seats,
+			"%s stands on seat %d, twice or off the table" % [String(row.get("name", "")), seat])
+		seats.append(seat)
+	_check(not 1 in seats, "a mercenary stands on the Warden's own seat")
+	_check(RunState.company.size() <= Balance.COOP_MAX_PLAYERS - 1,
+		"%d mercenaries beside one Warden" % RunState.company.size())
+	_check(stood == mini(3, Balance.COOP_MAX_PLAYERS - 1 - before), "the host stood %d of a guest's three, %d seats were free"
+		% [stood, Balance.COOP_MAX_PLAYERS - 1 - before])
+	for row: Dictionary in RunState.company:
+		if bool(row.get("guest", false)):
+			# The record itself, not the sheet: a sheet cleans its own level, so it
+			# would read clean whether or not the admission did.
+			_check(int(company.record(String(row["uid"])).get("level", 0)) <= Balance.HERO_MAX_LEVEL,
+				"a guest's forged mercenary was admitted as it was sent")
+	_check(company.admit(records, 2) == 0, "a guest's company was stood twice")
+	# The guest's drawing.
+	var rows: Array = [[3, 2, "merc-x", "Rue", _field.town_position() + Vector2(200.0, 0.0), 0.5,
+		Vector2.RIGHT, Vector2.UP, WardenLook.pack(WardenLook.plain()), ["", "", "", "", ""], 2]]
+	company.apply_state(rows)
+	var drawn: Hero = company.puppet(3)
+	_check(drawn != null and drawn.mercenary_uid == "merc-x", "a guest drew no puppet for the seat it was told")
+	if drawn != null:
+		_check(not drawn.is_local_player(), "a puppet reads as the player")
+		_check(absf(drawn.health.current_hp / drawn.health.max_hp - 0.5) < 0.01, "a puppet's health is not the host's")
+		_check(not (drawn.input is MercenaryInput), "a puppet has a mind of its own")
+	company.apply_state([])
+	await get_tree().process_frame
+	_check(company.puppet(3) == null, "a puppet the host stopped naming is still standing")
+	_reached.append("party")
 
 
 func _test_the_wounds() -> void:

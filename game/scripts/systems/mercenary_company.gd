@@ -17,6 +17,14 @@ var _minds: Dictionary = {}
 var voice: MercenaryVoice = null
 var card: MercenaryCard = null
 const PROMPT_OWNER: StringName = &"mercenary"
+## Who each mercenary standing here is: its record, from this account's roster
+## or from the guest that brought it (2026-10-07, stage five).
+var _records: Dictionary = {}
+## A guest's drawing of the company, by seat: puppets the host's state moves.
+var _puppets: Dictionary = {}
+var _state_left: float = 0.0
+var _told_empty: bool = true
+var _restate_left: float = 0.0
 
 
 func _ready() -> void:
@@ -29,6 +37,10 @@ func _ready() -> void:
 	card = MercenaryCard.new()
 	add_child(card)
 	card.ordered.connect(_on_ordered)
+	EventBus.coop_request_received.connect(_on_request)
+	EventBus.coop_company_state.connect(_on_company_state)
+	EventBus.coop_company_carried.connect(_on_company_carried)
+	EventBus.coop_company_said.connect(_on_company_said)
 	_muster.call_deferred()
 
 
@@ -57,7 +69,8 @@ func _muster() -> void:
 	if field == null:
 		return
 	for row: Dictionary in RunState.company:
-		if not bool(row.get("out", false)):
+		if not bool(row.get("out", false)) and not bool(row.get("remote", false)):
+			_records[String(row["uid"])] = MetaState.mercenary(String(row["uid"]))
 			_stand(row)
 	for row: Dictionary in RunState.live_mercenaries():
 		voice.say(String(row.get("uid", "")), "road_start", true)
@@ -70,7 +83,9 @@ func _muster() -> void:
 ## One mercenary on its seat.
 func _stand(row: Dictionary) -> Hero:
 	var uid: String = String(row.get("uid", ""))
-	var hired: Dictionary = MetaState.mercenary(uid)
+	var hired: Dictionary = _records.get(uid, {}) as Dictionary
+	if hired.is_empty():
+		hired = MetaState.mercenary(uid)
 	if hired.is_empty() or field == null or field.entity_root == null:
 		return null
 	var scene: PackedScene = load("res://scenes/hero/hero.tscn") as PackedScene
@@ -78,7 +93,7 @@ func _stand(row: Dictionary) -> Hero:
 	if hero == null:
 		return null
 	var hands := MercenaryInput.new(hero, uid)
-	hands.master = field.hero
+	hands.master = _master_body(int(row.get("master", 1)))
 	hands.field = field
 	# Before the tree, so `Hero._ready` never builds a keyboard for it.
 	hero.input = hands
@@ -110,6 +125,11 @@ func _physics_process(delta: float) -> void:
 		if found != null and hands != null:
 			hands.think(delta)
 	_offer_talk()
+	if Coop.is_networked():
+		if Coop.is_guest():
+			_tell_the_host_my_company(delta)
+		else:
+			_send_company_state(delta)
 
 
 ## **Interact beside a mercenary to talk to it.** The prompt is offered only
@@ -306,6 +326,235 @@ func carry_off(uid: String, after: float = 0.0) -> void:
 	var row: Dictionary = RunState.company_row(uid)
 	if not row.is_empty():
 		row["out"] = true
-	MetaState.send_mercenary_to_bed(uid)
+	# Its owner's account puts it to bed: this one's, or a guest's, told.
+	var master: int = int(row.get("master", 1)) if not row.is_empty() else 1
+	if Coop.is_networked() and master != _own_seat():
+		EventBus.coop_company_carried.emit(uid, master)
+	else:
+		MetaState.send_mercenary_to_bed(uid)
 	EventBus.company_news.emit("%s is carried back to the Hold, to a bed at the inn." % name_now)
 	EventBus.mercenary_carried_off.emit(uid)
+
+
+# --- Co-op (2026-10-07, stage five) ---------------------------------------------
+
+## This machine's seat: 1 alone.
+func _own_seat() -> int:
+	return Coop.party().slot() if Coop.is_networked() and Coop.party().slot() > 0 else 1
+
+
+## The Warden a mercenary follows: this machine's own, or the partner it came with.
+func _master_body(master: int) -> Hero:
+	if master == _own_seat() or field == null:
+		return field.hero if field != null else null
+	var party: CoopHeroes = field.get_node_or_null("CoopHeroes") as CoopHeroes
+	var found: Hero = party.body_for_slot(master) if party != null else null
+	return found if found != null else field.hero
+
+
+## **A guest's company, admitted by the host.** Each record is cleaned by the
+## rules a save is read under; a uid already standing is not stood twice; and a
+## guest brings at most its share of the free seats, on seats no player and no
+## other mercenary holds. Returns how many it stood.
+func admit(records: Array, master: int) -> int:
+	if field == null:
+		return 0
+	var share: int = Mercenaries.seats_for(Coop.player_count())
+	var brought: int = 0
+	var taken: Array[int] = []
+	for row: Dictionary in RunState.company:
+		taken.append(int(row.get("slot", 0)))
+		if int(row.get("master", 1)) == master:
+			brought += 1
+	if Coop.is_networked():
+		for seat: Variant in Coop.party().seats():
+			if seat is CoopParty.Seat:
+				taken.append((seat as CoopParty.Seat).slot)
+	else:
+		taken.append(_own_seat())
+	var stood: int = 0
+	for value: Variant in records:
+		var record: Dictionary = Mercenaries.clean(value)
+		if record.is_empty() or not RunState.company_row(String(record["uid"])).is_empty():
+			continue
+		if brought >= share:
+			break
+		var free: Array[int] = Mercenaries.free_seats(taken)
+		if free.is_empty():
+			break
+		var row: Dictionary = {
+			"uid": String(record["uid"]), "name": String(record.get("name", "")),
+			"slot": free[0], "master": master, "remote": false, "guest": true,
+			"wounds": Balance.MERC_WOUNDS, "purse": 0, "spoils": 0.0, "earned": 0, "out": false,
+		}
+		RunState.company.append(row)
+		taken.append(free[0])
+		_records[String(record["uid"])] = record
+		if _stand(row) != null:
+			stood += 1
+			brought += 1
+	return stood
+
+
+func _on_request(kind: int, args: Array, from: int) -> void:
+	if kind != CoopRelay.Request.MY_COMPANY or not Coop.is_networked() or Coop.is_guest():
+		return
+	# By the peer it arrived on, never by a seat named in the packet.
+	var master: int = Coop.party().slot_for_peer(from)
+	if master <= 0 or args.is_empty() or not (args[0] is Array):
+		return
+	admit(args[0] as Array, master)
+
+
+## A guest restates its company until it sees it standing - a request sent once
+## lands on nothing when the host's field is a frame behind.
+func _tell_the_host_my_company(delta: float) -> void:
+	var mine: Array = []
+	for row: Dictionary in RunState.company:
+		if bool(row.get("remote", false)) and not bool(row.get("out", false)) and not _seen(String(row["uid"])):
+			var record: Dictionary = MetaState.mercenary(String(row["uid"]))
+			if not record.is_empty():
+				mine.append(record)
+	if mine.is_empty():
+		return
+	_restate_left -= delta
+	if _restate_left > 0.0:
+		return
+	_restate_left = Balance.MERC_RESTATE_SECONDS
+	var relay: CoopRelay = Coop.relay()
+	if relay != null:
+		relay.request(CoopRelay.Request.MY_COMPANY, [mine])
+
+
+func _seen(uid: String) -> bool:
+	for slot: Variant in _puppets:
+		var puppet: Hero = _puppets[slot] as Hero
+		if puppet != null and is_instance_valid(puppet) and puppet.mercenary_uid == uid:
+			return true
+	return false
+
+
+## The host tells the party where the company is, ten times a second, and once
+## more when there is nobody left to tell about.
+func _send_company_state(delta: float) -> void:
+	_state_left -= delta
+	if _state_left > 0.0:
+		return
+	_state_left = Balance.MERC_STATE_SECONDS
+	var rows: Array = []
+	for row: Dictionary in RunState.company:
+		var found: Hero = body(String(row.get("uid", "")))
+		if found == null:
+			continue
+		var hands := found.input as MercenaryInput
+		var hurt: float = found.health.current_hp / maxf(found.health.max_hp, 1.0) if found.health != null else 1.0
+		rows.append([int(row.get("slot", 0)), int(row.get("master", 1)), String(row.get("uid", "")),
+			String(row.get("name", "")), found.global_position, hurt,
+			hands.move() if hands != null else Vector2.ZERO,
+			found.aim_direction(), WardenLook.pack(found.look), found.gear_kinds.duplicate(),
+			int(row.get("wounds", 0))])
+	if rows.is_empty() and _told_empty:
+		return
+	_told_empty = rows.is_empty()
+	EventBus.coop_company_state.emit(rows)
+
+
+## **A guest draws the company** the host simulates: a puppet a seat, moved by
+## the host's word, dressed as it is, named, and gone when the host stops naming
+## it. A puppet decides nothing - no mind, no swing, no wound.
+func _on_company_state(rows: Array) -> void:
+	if not Coop.is_networked() or not Coop.is_guest():
+		return
+	apply_state(rows)
+
+
+## The puppets, set from rows. A documented seam: a gate drives it with no wire.
+func apply_state(rows: Array) -> void:
+	var named: Dictionary = {}
+	for entry: Variant in rows:
+		var row := entry as Array
+		if row == null or row.size() < 11:
+			continue
+		var slot: int = clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS)
+		named[slot] = true
+		var puppet: Hero = _puppet(slot, String(row[2]), String(row[3]))
+		if puppet == null:
+			continue
+		puppet.global_position = puppet.global_position.lerp(row[4] as Vector2, Balance.COOP_POSITION_CORRECTION)
+		if puppet.health != null:
+			puppet.health.current_hp = clampf(float(row[5]), 0.0, 1.0) * puppet.health.max_hp
+		puppet.visible = float(row[5]) > 0.0
+		var hands := puppet.input as RemoteHeroInput
+		if hands != null:
+			hands.apply([row[6] as Vector2, row[7] as Vector2, 0, 0])
+		if row[8] is Array:
+			puppet.wear_look(row[8])
+		if row[9] is Array:
+			puppet.wear_gear(row[9])
+	for slot: Variant in _puppets.keys():
+		if not named.has(slot):
+			var gone: Hero = _puppets[slot] as Hero
+			if gone != null and is_instance_valid(gone):
+				gone.set_present(false)
+				gone.queue_free()
+			_puppets.erase(slot)
+
+
+## A puppet on a seat, built the first time it is named.
+func _puppet(slot: int, uid: String, speaker: String) -> Hero:
+	var known: Hero = _puppets.get(slot, null) as Hero
+	if known != null and is_instance_valid(known):
+		return known
+	if field == null or field.entity_root == null:
+		return null
+	var scene: PackedScene = load("res://scenes/hero/hero.tscn") as PackedScene
+	var hero := scene.instantiate() as Hero if scene != null else null
+	if hero == null:
+		return null
+	hero.input = RemoteHeroInput.new(hero)
+	hero.mercenary_uid = uid
+	hero.name = "MercenaryPuppet%d" % slot
+	hero.field = field
+	hero.party_slot = slot
+	hero.bounds_extent = Vector2.ONE * BattleGrid.play_extent()
+	hero.position = CoopHeroes.spawn_for_slot(slot, field.town_position())
+	field.entity_root.add_child(hero)
+	hero.set_present(true)
+	hero.set_active(false)
+	hero.set_nameplate(speaker)
+	_puppets[slot] = hero
+	return hero
+
+
+## Who a standing mercenary is, as admitted.
+func record(uid: String) -> Dictionary:
+	return _records.get(uid, {}) as Dictionary
+
+
+## The puppet on a seat, or null. For the gate.
+func puppet(slot: int) -> Hero:
+	var found: Hero = _puppets.get(slot, null) as Hero
+	return found if found != null and is_instance_valid(found) else null
+
+
+## A mercenary of this account's was carried off on the host's road: it goes to
+## bed here, in the account it belongs to.
+func _on_company_carried(uid: String, master: int) -> void:
+	if not Coop.is_networked() or not Coop.is_guest() or master != _own_seat():
+		return
+	var row: Dictionary = RunState.company_row(uid)
+	if not row.is_empty():
+		row["out"] = true
+	MetaState.send_mercenary_to_bed(uid)
+	EventBus.company_news.emit("%s is carried back to the Hold, to a bed at the inn."
+		% String(MetaState.mercenary(uid).get("name", "A mercenary")))
+
+
+## A line a mercenary said on the host's road, drawn over its puppet here.
+func _on_company_said(slot: int, text: String, alert: bool) -> void:
+	if not Coop.is_networked() or not Coop.is_guest():
+		return
+	var found: Hero = puppet(slot)
+	if found != null:
+		SpeechBubble.say(found, text, alert)
+		EventBus.mercenary_said.emit(found.mercenary_uid, found.name, text, alert)
