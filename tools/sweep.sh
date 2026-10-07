@@ -56,6 +56,11 @@ if [ $# -lt 1 ]; then
 fi
 SCRATCH="$1"; shift
 WHICH="${1:-guard}"
+# `SWEEP_JOBS=6 tools/sweep.sh ...` runs six gates at once. Serial is the
+# default and the reference; a gate that fails only in parallel is re-run alone
+# before it is believed, because a loaded machine is a slower one and a
+# frame-counted wait is a coin toss on a slow one.
+JOBS="${SWEEP_JOBS:-1}"
 
 mkdir -p "$SCRATCH/logs" "$SCRATCH/appdata"
 : > "$SCRATCH/results.tsv"
@@ -101,8 +106,17 @@ run_one() {
   slug="$(printf '%s' "$name" | tr -c 'a-zA-Z0-9' '_')"
   log="$SCRATCH/logs/${idx}_${slug}.log"
 
+  # In parallel every gate stands on a profile of its own, so two gates never
+  # write one save at once. That is stricter than CI, which shares one profile
+  # down a job - a gate that only passes after another wrote its state is a
+  # gate worth hearing about.
+  local appdata="$APPDATA"
+  if [ "$JOBS" -gt 1 ]; then
+    appdata="$SCRATCH/appdata/$idx"
+    mkdir -p "$appdata"
+  fi
   # shellcheck disable=SC2086
-  eval timeout 600 "\"$GODOT\"" $args > "$log" 2>&1
+  APPDATA="$appdata" LOCALAPPDATA="$appdata" eval timeout 600 "\"$GODOT\"" $args > "$log" 2>&1
   status=$?
 
   verdict="PASS"; why=""
@@ -137,8 +151,16 @@ echo "Derived ${#CALLS[@]} gates from $WHICH.yml"
 i=0
 for c in "${CALLS[@]}"; do
   i=$((i + 1))
-  run_one "$c" "$(printf '%02d' $i)"
+  if [ "$JOBS" -gt 1 ]; then
+    while [ "$(jobs -rp | wc -l)" -ge "$JOBS" ]; do
+      sleep 1
+    done
+    run_one "$c" "$(printf '%03d' $i)" &
+  else
+    run_one "$c" "$(printf '%02d' $i)"
+  fi
 done
+wait
 
 echo
 echo "=== SUMMARY ($WHICH) ==="
