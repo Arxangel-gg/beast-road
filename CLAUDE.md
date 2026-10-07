@@ -14720,6 +14720,47 @@ the ground, the check names ten plants lit. **A gate that drives a system for
 long enough lets it change the conditions the gate set** - the frozen field
 and the dying probe are this lesson's other costumes.
 
+**Five small things from the triage, as of 2026-10-07.** Each is gated and
+each was planted against.
+
+- **A perfect guard.** A shield raised no more than `SHIELD_PERFECT_WINDOW`
+  before a blow takes the whole of it, spends nothing of the guard, staggers
+  the body that struck from within reach through the door every stagger uses,
+  and is the shield's answer to No Ground Given: the next finisher is
+  empowered exactly as a perfect evade empowers it. **One a raise, and only a
+  raise after the guard was down `SHIELD_PERFECT_REARM`** - without the re-arm,
+  tapping the key every fifth of a second is a wall, and the existing shield
+  gate (a re-raise three frames after lowering) would have read every blow as
+  perfect. It deals nothing: a perfect guard is a blow that did not land.
+- **A hurt tower shows it, and a fallen one falls.** Past
+  `TOWER_SMOKE_FROM` of its pool gone it smokes from the roof, past
+  `TOWER_CRACKLE_FROM` it crackles, and it settles up to
+  `TOWER_HURT_LEAN_DEGREES` away from the side the last blow came from, by its
+  share, inside the one expression that owns the sprite's rotation; mended, it
+  straightens. Destroyed, the painting it last wore topples away from the blow
+  on a pivot at its foot before the rubble. **The rubble drew its shape from
+  `RunState.rng("wrath")`**, so every tower that broke moved every roll the
+  earth makes after it; it has dice of its own now, and the gate holds the
+  earth's stream unmoved across a break.
+- **Reforging** (`GEAR_REFORGE_*`): once in a piece's life the Smith gives back
+  everything mending took off what it holds, whole, for the deepest ore the
+  road gives up and Marks. Once, because without it a beloved piece is
+  disposable and without the bound mending would cost nothing. The flag rides
+  the piece and is read back by name - `_read_stash` rebuilds every piece
+  through `Stash.make`, and a field it does not copy vanishes on the next
+  launch.
+- **A personal best is said once** (`PersonalBest`), the moment the road passes
+  the furthest this account has walked (`RunState.best_to_beat`, taken when the
+  road begins), never on a first road (`PERSONAL_BEST_MIN_DISTANCE`), a Walk or
+  a sandbox, and again on the debrief's distance line.
+- **Codex mastery.** `MetaState.codex_kills` counts each enemy this account has
+  brought down - a statistic in shape, in the stats block, counted in memory and
+  written with the next save - and an entry grows through Encountered, Killed,
+  Studied and Mastered by its category (`CODEX_STUDIED_KILLS`,
+  `CODEX_MASTERED_KILLS`). Studied opens how it fights (its hide, its
+  behaviour, a shield); Mastered wears gold. Nothing in a fight reads a tier.
+  `codex_mastered` is a statistic and "Know Thy Foe" asks for ten.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
