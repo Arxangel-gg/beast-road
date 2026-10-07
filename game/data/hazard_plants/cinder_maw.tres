@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="HazardPlantData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hazard_plant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cinder_maw"
+display_name = "Cinder Maw"
+description = "A mouth of coals under the ash."
+behaviour = 2
+acts = Array[int]([9])
+weight = 1.0
+reach = 58.0
+trigger = 90.0
+spit_range = 0.0
+hero_share = 0.132
+body_share = 0.1584
+animal_share = 0.396
+telegraph = 0.55
+cooldown = 4.0
+out_seconds = 0.0
+slow = 1.0
+max_hp = 50.0
+scale = 1.05
+tint = Color(1.00, 0.45, 0.15, 1)

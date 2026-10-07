@@ -1342,7 +1342,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	var speed: float = kind.speed * _savage_speed(animal) \
 		* WildlifeFamilies.speed_scale(animal)
 	if not kind.flies:
-		speed *= RunState.flood_slow() * Vfx.blood_slow(sprite.global_position)
+		speed *= RunState.flood_slow() * Vfx.ground_slow(sprite.global_position)
 		# And what it waded through stays on it (2026-10-01, Brutal blood).
 		var waded: float = Vfx.blood_wade(sprite.global_position)
 		if waded > float(animal.get("waded", 0.0)) + Balance.BLOOD_WADE_STEP:
@@ -2983,7 +2983,11 @@ func _bolt_target(from: Vector2, threat: Vector2 = Vector2.INF) -> Vector2:
 ## because one reader cannot be forgotten and six writers can.
 func _settled(at: Vector2) -> Vector2:
 	var scope := field as EnemyField
-	return scope.hold_inside(at) if scope != null else at
+	var held: Vector2 = scope.hold_inside(at) if scope != null else at
+	# And never in thorns (2026-10-07): an animal crosses a patch if its way lies
+	# through one, and does not stop in it.
+	var plants: HazardPlants = field.call("hazards") as HazardPlants if field != null and field.has_method("hazards") else null
+	return plants.clear_of_thorns(held) if plants != null else held
 
 
 func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -> Vector2:
@@ -3066,6 +3070,10 @@ func _is_clear(point: Vector2) -> bool:
 	# them. Every placement path runs through here, including the social spread
 	# that puts the rest of a pack down.
 	if point.length() < Balance.WILDLIFE_SPAWN_CLEARANCE:
+		return false
+	# Not in thorns, nor in a pool of blood: an animal does not arrive into ground
+	# that slows it (2026-10-07).
+	if Vfx.ground_slow(point) < 1.0:
 		return false
 	if grid == null:
 		return true

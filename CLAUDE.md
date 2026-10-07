@@ -14570,6 +14570,70 @@ the youngest thing on the field.
 flies over a fresh carcass; and a carrion lord's elite look on a guest's screen,
 since a spawn crosses the wire without its rank.
 
+**Every region grows plants that hurt, as of 2026-10-07.** The owner: *"Each
+act should also have a variety of harmful plants that can hurt the players and
+other characters in different ways, from simply walking through them to
+outright spitting ranged projectiles at players and having different states to
+hide or come out and attack while out."*
+
+**Four ways to hurt, each a different question** (`HazardPlantData.Behaviour`,
+appended-only): **thorns** are always out, cut whatever wades in on a clock and
+slow it - go round; **a pod** rests full, swells when something comes near and
+bursts, then lies spent while it rests and regrows - see the swelling and step
+back; **a snapper** lies hidden as a mound and rears up to bite whoever stands
+by it - do not stand beside a mound; **a spitter** lies shut as a bud, opens for
+anything in its range, lobs at where the thing will be, and closes when nothing
+is left - leave its range or cut it down. Twenty-two plants, two to every
+region and the Crown, each painted in that region's own palette with its own
+foliage as the style image, in the states it wears.
+
+**Every blow but the thorns' is the mortar's blow**: a burst, a bite and a
+spit's splash each stand up an `EnemyGroundStrike`, so the tell is drawn at the
+radius the blow uses, the riser swells toward it, the debrief names the plant,
+and the blow reaches the players, the bodies and the animals through the doors
+every other blow uses. **Shares, never numbers**, as the dungeon's plates are:
+a blow is a share of the pool it lands on, a later region's a little sharper,
+so a plant on the Chainmaker's Road is as dangerous to a Warden as one on the
+Long Road.
+
+**A plant wounds a body and never kills one** (`HAZARD_BODY_FLOOR`,
+`EnemyGroundStrike.body_floor_share`): a spitter by a camp would otherwise farm
+it for a purse nobody earned. An animal may die of one, as the cycle - nobody
+is paid and the earth does not mind. **Thorns slow through one door**:
+`Vfx.ground_slow` is the blood pools and the thorns multiplied, and the Warden,
+a body and an animal all ask it; `blood_slow` stays the blood's own reading.
+
+**Placed the way the ponds, the seams and the wayside are** - from
+`Fishing.band_tiles`, on open outskirts ground with open ground round it, clear
+of the spawns, the town, the gates, the camps, the plots, the nodes, the
+wayside and the water - so a plant never takes a build spot and never stands on
+a road body's route. What it hurts is what leaves the road. From the run's seed
+on its own stream, re-laid in `refresh_terrain` with everything regional, fewer
+in the opening act, and never on the Walk. **A Warden can cut one down** - a few
+swings - and it hurts nothing until it grows back. The host decides what it
+hurts; a guest's plants open and shut on what they see and hurt nobody.
+
+**Three rules that keep them off the gates and out of the ecology**, each also
+the better design: a plant wakes for **a Warden or a body that has left the
+road** and never for an animal or a body walking its route (an animal is hurt
+only when it is caught in a blow or wades into thorns, and a spitter by a far
+leg would otherwise wound every column for free); **an animal never arrives
+into thorns and never settles in them** - `Wildlife._is_clear` asks the ground's
+slow and `_settled` moves a goal out of a patch; and **a spitter grows further
+than its own range from every place of work** (`HAZARD_SPITTER_MARGIN`), so a
+Warden fishing or felling is not spat at from across the water.
+
+`hazard_plant_check` (5411, both bars) lays every act on the real road and
+drives each behaviour on a real Warden and a real body. Seven faults were
+planted and all seven named; **one passed first**, because the clearance check
+read `clearance_for` - the function under test - and agreed with it whatever it
+said. It states the rule now. And a strike parented under the field's effect
+root never landed in Preparation, which is frozen, and the first cut of the
+plants did exactly that: a pod swollen while a Warden gathered would have burst
+at the next wave. They throw from their own node, which freezes only with the
+field. The Iron Maw's bite frames painted a jet of flame however it was asked
+and were dropped - it bites with its painting and the procedural lunge.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

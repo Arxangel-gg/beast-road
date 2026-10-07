@@ -110,6 +110,8 @@ var wayside_encounters: Dictionary = {}
 var wayside_choices: Dictionary = {}
 ## What a mercenary says, by moment (2026-10-07).
 var merc_lines: Dictionary = {}
+## The harmful plants, by id (2026-10-07, `HazardPlantData`).
+var hazard_plants: Dictionary = {}
 
 ## Every kind of fish, by id. See `Fishing` for the ponds they come out of.
 var fish_kinds: Dictionary = {}
@@ -171,6 +173,7 @@ func _ready() -> void:
 	wayside_encounters = _load_dir("res://data/wayside")
 	wayside_choices = _load_dir("res://data/wayside_choices")
 	merc_lines = _load_dir("res://data/merc_lines")
+	hazard_plants = _load_dir("res://data/hazard_plants")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
 	trail_signs = _load_dir("res://data/trail_signs")
@@ -240,6 +243,20 @@ func wayside_choice(id: String) -> WaysideChoiceData:
 
 func merc_line(id: String) -> MercLineData:
 	return merc_lines.get(id, null) as MercLineData
+
+
+func hazard_plant(id: String) -> HazardPlantData:
+	return hazard_plants.get(id, null) as HazardPlantData
+
+
+## Every harmful plant's id, sorted, so a weighted roll over them reads the
+## same order on every machine.
+func hazard_plant_ids() -> Array[String]:
+	var out: Array[String] = []
+	for key: Variant in hazard_plants.keys():
+		out.append(String(key))
+	out.sort()
+	return out
 
 
 ## Every wayside encounter's id, sorted, so a weighted roll over them reads the

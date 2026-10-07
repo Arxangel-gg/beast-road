@@ -690,7 +690,7 @@ func _physics_process_measured(delta: float) -> void:
 		# nothing. Symmetric with every other mover on the field and capped in
 		# `RunState.wind_push`; see the note on `Balance.WIND_PUSH_MAX`.
 		velocity = move_input * move_speed() * movement_scale \
-			* RunState.wind_push(move_input) * Vfx.blood_slow(global_position)
+			* RunState.wind_push(move_input) * Vfx.ground_slow(global_position)
 	velocity += _lunge_velocity + _shoved
 
 	var ram_from: Vector2 = global_position

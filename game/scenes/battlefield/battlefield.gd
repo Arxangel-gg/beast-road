@@ -60,6 +60,7 @@ var _rifts: RiftGates = null
 var _gathering: Gathering = null
 ## This act's wayside encounter, if the road has one (2026-09-25).
 var _wayside: Wayside = null
+var _hazards: HazardPlants = null
 var _farming: Farming = null
 var _treeline: Treeline = null
 ## What a mythical animal left behind, and where it is at the end of it.
@@ -1036,6 +1037,7 @@ func _build_foliage() -> void:
 	_build_trail()
 	_build_nests()
 	_build_wayside()
+	_build_hazards()
 
 
 func _build_ambient_life() -> void:
@@ -1203,6 +1205,32 @@ func _build_wayside() -> void:
 	_wayside.avoid_water = _taken_water()
 	add_child(_wayside)
 	_wayside.scatter()
+
+
+## **The region's harmful plants** (2026-10-07), after the wayside so they keep
+## clear of it as well as of everything it keeps clear of.
+func _build_hazards() -> void:
+	_hazards = HazardPlants.new()
+	_hazards.name = "HazardPlants"
+	_hazards.grid = grid
+	_hazards.field = self
+	# Sorted with the bodies, so a Warden in front of a plant is drawn over it.
+	_hazards.y_sort_enabled = true
+	_hazards.avoid = _hazards_taken()
+	_hazards.avoid_water = _taken_water()
+	entity_root.add_child(_hazards)
+	_hazards.scatter()
+
+
+func _hazards_taken() -> PackedVector2Array:
+	var taken: PackedVector2Array = _wayside_taken()
+	if _wayside != null and _wayside.laid_at() != Vector2.INF:
+		taken.append(_wayside.laid_at())
+	return taken
+
+
+func hazards() -> HazardPlants:
+	return _hazards
 
 
 func _wayside_taken() -> PackedVector2Array:
@@ -2774,6 +2802,11 @@ func refresh_terrain() -> void:
 		_wayside.avoid = _wayside_taken()
 		_wayside.avoid_water = _taken_water()
 		_wayside.scatter()
+	# And the harmful plants, which are the region's own.
+	if _hazards != null:
+		_hazards.avoid = _hazards_taken()
+		_hazards.avoid_water = _taken_water()
+		_hazards.scatter()
 	# And the nests: a clutch belongs to the ground it was laid on, and a
 	# species angered in one region does not follow the party into the next.
 	if _nests != null:

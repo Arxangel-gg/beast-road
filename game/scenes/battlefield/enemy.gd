@@ -2318,7 +2318,7 @@ static func distance_to_leg(at: Vector2, from: Vector2, to: Vector2) -> float:
 
 func current_speed() -> float:
 	# A pool of blood drags at the feet (2026-10-01, Brutal blood).
-	var speed: float = targeting_speed() * Vfx.blood_slow(global_position)
+	var speed: float = targeting_speed() * Vfx.ground_slow(global_position)
 	if data.role != EnemyData.Role.HOWLER:
 		var howler: Enemy = _nearby_howler()
 		if howler != null:

@@ -43,6 +43,14 @@ var blamed_on: String = ""
 var hurts_bodies: bool = false
 var body_share: float = 0.0
 var body_field: EnemyField = null
+## **A blow that wounds and never kills a body** (2026-10-07, harmful plants):
+## above zero, it never takes a body below this share of its own pool - a
+## plant beside a camp would otherwise be a free kill and a purse for nobody's
+## work.
+var body_floor_share: float = 0.0
+## A share of every animal's own pool inside the blow, as the cycle: nobody
+## is paid and the earth does not mind it. Zero touches no animal.
+var animal_share: float = 0.0
 ## How hard this throws whoever it catches, in px/s. Zero for every shot the
 ## roster fires: a bolt that moved you would be a second mechanic to learn on
 ## top of the five shapes, and the shapes are the lesson.
@@ -224,6 +232,10 @@ func _land() -> void:
 		_struck if _sweeps() else null)
 	if hurts_bodies:
 		_strike_the_bodies()
+	if animal_share > 0.0 and body_field != null and is_instance_valid(body_field) and body_field.has_method("wildlife"):
+		var wild: Wildlife = body_field.call("wildlife") as Wildlife
+		if wild != null:
+			wild.wound_where(func(at: Vector2) -> bool: return _covers(at), animal_share, "cycle", {})
 
 
 ## The bodies of the plate's own field inside the circle take a share of their
@@ -239,6 +251,8 @@ func _strike_the_bodies() -> int:
 			continue
 		var pool: Health = Health.of(body)
 		var amount: float = (pool.max_hp if pool != null else 0.0) * body_share
+		if body_floor_share > 0.0 and pool != null:
+			amount = minf(amount, pool.current_hp - pool.max_hp * body_floor_share)
 		if amount <= 0.0:
 			continue
 		DamageLedger.credit_as(DamageLedger.DEEP)

@@ -5278,6 +5278,117 @@ animated. The idle and the walk are pinned to the base at both ends.
 | `wildlife_vulture_fly_07.png` | 64×64 | T | `#4A3A34` |
 | `wildlife_vulture_fly_08.png` | 64×64 | T | `#4A3A34` |
 
+### 5.37c Harmful plants — `res://art/hazards/`
+
+Twenty-two plants that hurt (2026-10-07, `HazardPlantData`), two to every region
+and the Crown, each generated with that region's own `plant_<region>_bush.png`
+as its style image. The base painting is the plant out; `_hidden` is a pod
+spent, a mound closed or a bud shut, made as a PixelLab state of the same
+object; `_idle_NN` is a thorn patch's or a pod's breath and `_attack_NN` a
+snapper's bite or a spitter's recoil, each pinned to the painting at both ends.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `hazard_blister_gourd.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_blister_gourd_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_blister_gourd_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_blister_gourd_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_blister_gourd_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_bog_maw.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_bog_maw_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_bog_maw_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_bog_maw_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_bog_maw_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_brine_bladder.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_brine_bladder_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_brine_bladder_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_brine_bladder_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_brine_bladder_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_burrweed.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_burrweed_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_burrweed_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_burrweed_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_chainthorn.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_chainthorn_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_chainthorn_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_chainthorn_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cinder_maw.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cinder_maw_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cinder_maw_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cinder_maw_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cinder_maw_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cliff_nettle.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cliff_nettle_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cliff_nettle_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_cliff_nettle_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_ember_pod.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_ember_pod_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_ember_pod_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_ember_pod_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_ember_pod_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_frostbriar.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_frostbriar_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_frostbriar_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_frostbriar_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_gale_spitter.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_gale_spitter_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_gale_spitter_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_gale_spitter_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_gale_spitter_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_glass_bramble.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_glass_bramble_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_glass_bramble_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_glass_bramble_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_iron_maw.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_iron_maw_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_needle_cactus.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_needle_cactus_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_needle_cactus_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_needle_cactus_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_prism_spitter.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_prism_spitter_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_prism_spitter_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_prism_spitter_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_prism_spitter_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_puffcap.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_puffcap_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_puffcap_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_puffcap_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_puffcap_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rime_spitter.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rime_spitter_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rime_spitter_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rime_spitter_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rime_spitter_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rustbramble.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rustbramble_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rustbramble_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_rustbramble_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_saltthorn.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_saltthorn_idle_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_saltthorn_idle_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_saltthorn_idle_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_seedgun_pod.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_seedgun_pod_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_seedgun_pod_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_seedgun_pod_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_seedgun_pod_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_snapjaw.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_snapjaw_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_snapjaw_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_snapjaw_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_snapjaw_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_spitting_orchid.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_spitting_orchid_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_spitting_orchid_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_spitting_orchid_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_spitting_orchid_hidden.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_stalk_snapper.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_stalk_snapper_attack_01.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_stalk_snapper_attack_02.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_stalk_snapper_attack_03.png` | 128×128 | T | `#4E6A3A` |
+| `hazard_stalk_snapper_hidden.png` | 128×128 | T | `#4E6A3A` |
+
 ## 6. Subject prompts
 
 Drop each `SUBJECT` into the matching stem from §3.

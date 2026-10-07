@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="HazardPlantData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hazard_plant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frostbriar"
+display_name = "Frostbriar"
+description = "Cold enough to cut, and slow to let go."
+behaviour = 0
+acts = Array[int]([3])
+weight = 1.0
+reach = 62.0
+trigger = 0.0
+spit_range = 0.0
+hero_share = 0.027
+body_share = 0.0324
+animal_share = 0.054
+telegraph = 0.0
+cooldown = 0.0
+out_seconds = 0.0
+slow = 0.6
+max_hp = 60.0
+scale = 1.15
+tint = Color(0.70, 0.85, 1.00, 1)

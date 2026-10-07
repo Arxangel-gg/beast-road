@@ -158,6 +158,12 @@ func _predator_of_the_region() -> String:
 	return from[0]
 
 
+## Where this act's encounter stands, or `Vector2.INF` - for the plants that keep
+## clear of it.
+func laid_at() -> Vector2:
+	return _laid.get("at", Vector2.INF) as Vector2 if not _laid.is_empty() else Vector2.INF
+
+
 func _is_good_ground(at: Vector2) -> bool:
 	var half := Vector2.ONE * BattleGrid.TILE
 	var rim := Rect2(at - half, half * 2.0)

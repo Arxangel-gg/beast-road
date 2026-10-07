@@ -422,6 +422,26 @@ func blood_field() -> BloodField:
 
 ## **What a pool of blood takes off a mover's speed here** - 1 with none
 ## (2026-10-01, Brutal blood). Every mover asks this one door.
+## **What the ground does to a mover's speed at `at`** (2026-10-07): the blood
+## pools and the thorns, multiplied. The one door every mover asks - the Warden,
+## a body and an animal - so a new kind of slowing ground joins here once.
+func ground_slow(at: Vector2) -> float:
+	var keep: float = blood_slow(at)
+	var hazards: HazardPlants = _hazards.get_ref() as HazardPlants if _hazards != null else null
+	if hazards != null and is_instance_valid(hazards):
+		keep *= hazards.slow_at(at)
+	return keep
+
+
+## The field's harmful plants, held weakly: a field freed with its road takes
+## its thorns with it.
+var _hazards: WeakRef = null
+
+
+func bind_hazards(plants: HazardPlants) -> void:
+	_hazards = weakref(plants)
+
+
 func blood_slow(at: Vector2) -> float:
 	var field: BloodField = blood_field()
 	var pools: BloodPools = field.pools_if_any() if field != null else null

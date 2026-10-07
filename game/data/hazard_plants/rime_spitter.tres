@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="HazardPlantData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hazard_plant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rime_spitter"
+display_name = "Rime Spitter"
+description = "A flower that throws the cold at whatever moves."
+behaviour = 3
+acts = Array[int]([3])
+weight = 1.0
+reach = 46.0
+trigger = 0.0
+spit_range = 420.0
+hero_share = 0.0648
+body_share = 0.0864
+animal_share = 0.216
+telegraph = 0.9
+cooldown = 2.6
+out_seconds = 5.0
+slow = 1.0
+max_hp = 40.0
+scale = 1.05
+tint = Color(0.65, 0.85, 1.00, 1)

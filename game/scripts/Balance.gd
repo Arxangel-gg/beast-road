@@ -11637,6 +11637,31 @@ const CARRION_LORD_PILE: int = 6
 const CARRION_LORD_CHANCE: float = 0.25
 const CARRION_LORD_HEALTH: float = 1.3
 const CARRION_STAY_SECONDS: float = 90.0
+## **The harmful plants** (owner, 2026-10-07; `HazardPlants`). How many grow an
+## act and in the opening act, how many tries a lay may take a plant, how far
+## apart and from anything claimed, how often thorns cut, how long a bud takes
+## to open and a plant to close, how long a snapper stays up after it bites,
+## how far a spit leads a mover and how high it arcs, how far past a swing a
+## plant may be cut, how long a cut plant takes to grow back, the share of a
+## body's pool a plant never takes it under, and its frame rate. [TUNE]
+const HAZARD_PER_ACT: int = 12
+const HAZARD_PER_ACT_OPENING: int = 6
+const HAZARD_PLACEMENT_ATTEMPTS: int = 30
+const HAZARD_SPACING: float = 220.0
+const HAZARD_CONTACT_TICK: float = 0.5
+const HAZARD_OPEN_SECONDS: float = 0.5
+const HAZARD_CLOSE_SECONDS: float = 0.6
+const HAZARD_SNAP_LINGER: float = 1.2
+const HAZARD_SPIT_LEAD: float = 0.6
+const HAZARD_SPIT_ARC: float = 90.0
+const HAZARD_CUT_REACH: float = 30.0
+const HAZARD_REGROW_SECONDS: float = 75.0
+const HAZARD_BODY_FLOOR: float = 0.1
+const HAZARD_FRAME_RATE: float = 5.0
+## How much further than its range a spitter keeps from a place of work, and
+## how far past a thorn patch's edge an animal is put when it would settle in it.
+const HAZARD_SPITTER_MARGIN: float = 80.0
+const HAZARD_ANIMAL_BERTH: float = 30.0
 ## **What eats the dead** (`WildlifeFeeding`): how far a scavenger smells a
 ## corpse, how much further downwind (a share at full wind), how often it
 ## sniffs, how close it stands to eat, the seconds between bites and the meat a

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="HazardPlantData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hazard_plant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spitting_orchid"
+display_name = "Spitting Orchid"
+description = "It opens for anything that walks in its sight, and spits."
+behaviour = 3
+acts = Array[int]([1])
+weight = 1.0
+reach = 46.0
+trigger = 0.0
+spit_range = 420.0
+hero_share = 0.06
+body_share = 0.08
+animal_share = 0.2
+telegraph = 0.9
+cooldown = 2.6
+out_seconds = 5.0
+slow = 1.0
+max_hp = 40.0
+scale = 1.05
+tint = Color(0.75, 0.45, 0.85, 1)
