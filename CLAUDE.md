@@ -13481,6 +13481,63 @@ colour and the strength and puts back what was worn, which on every body that
 never set it is the default of one. `click_move_check` reads the width back
 both ways; `tower_juice_shot` is the photograph, cropped and enlarged.
 
+**The road is denser, and a sighted body leaves it to fight, as of
+2026-10-07.** Owner item 35: *"The game needs to be more epic and game juicy!
+Add more enemies per wave! Increase wildlife slightly. Balance nerf loot drops,
+resources, and xp to accommodate. Enemies need to be more hostile and
+dangerous! They need to be more aggressive and have better fighting AI so that
+they're better able to fight players within reason."* What is a decision rather
+than a number:
+
+- **A third more bodies from Act II, each softer and worth less.**
+  `WAVE_ACT_COUNT_SCALE` is 1.3 times what it was from Act II, `WAVE_ACT_HP_SCALE`
+  about four fifths, and `KILL_ACT_VALUE_SCALE` three quarters, so a wave is a
+  bigger crowd that breaks faster rather than a bigger purse. Act I is the
+  opening envelope and is untouched. Act IX's health came down a little and
+  Act X's up, so the climb ends where it did.
+- **The road rank's step absorbs the bodies.** A rank is paid in bodies, and the
+  first measurement said so loudly: thirty percent more of them dealt thirty
+  percent more drafts, and the denser road read *easier* - the drafted mean fell
+  from 0.62 to 0.53. `ROAD_RANK_STEP` went 32 to 42 and Act I's ranks come as
+  they did. **More bodies is a change to every system paid per body**, and the
+  road rank was the one nobody had in mind.
+- **The nerfs to accommodate**: loot pieces drop on half of kills for 17% of a
+  kill (0.55 and 0.22 before), an elite's gear 28% (32), a chest's 40% (44), and
+  experience per health 0.29 (0.30). The ordinary gear drop stays at the floor
+  `_test_gear_farming` holds - a hundred kills must usually pay - so the denser
+  road's extra rolls at it are the loot it brings by itself.
+- **Wildlife slightly**: the floor 12 to 14 and arrivals 0.78 to 0.85. The cap is
+  the frame's and does not move.
+- **Hostile**: a sighted body walks a fifth faster (1.15 before), rests 0.8 of
+  its rest (0.85), notices from twice its circle (1.8) and keeps the Warden in
+  mind four seconds (three); an ordinary body follows up 40% of the time (30).
+  The pounce chain is untouched: its odds are the owner's own words of
+  2026-10-01 and `enemy_behaviour_check` holds them.
+- **And a sighted body leaves the road to fight, within a leash**
+  (`Enemy._may_chase`, `ENEMY_CHASE_LEASH` 170). The road was held whatever a
+  body was looking at, so a Warden a body-length off a column was never reached
+  and every fight was the Warden's to start. An alert body now walks at a foe
+  standing within the leash of its road plus its own reach; further out it keeps
+  to the road, so standing clear of a column is still the answer, at a wider
+  margin. **The foe's distance to the road decides, never the body's own** - a
+  body that judged by where it stood would dither on the line - measured to the
+  leg it walks and the next, so a Warden at a bend is beside the road. Never a
+  camp body, a boss, a Herald, a puppet or an arena body. `enemy_behaviour_check`
+  drives a marcher on its own route both ways and named two planted faults - a
+  chase that never fires, and one with no leash. **Its first cut put the Warden
+  on the side the road bends toward**, where the chase is legitimate; the probe
+  takes the other side now.
+
+**Measured on a new account, the drafted road**: 0.610 against 0.616, acts 0.23
+to 0.84; the planner 0.409 against 0.415; party spread 8%; the Arsenal 29% of
+the defence in Act I and 47-70% after. **Against each road's own Warden**: the
+Long Road 0.526, the Iron Road 0.628, the Chainmaker's Road 0.705 - against
+0.533, 0.627 and 0.704 before - with every survival floor held. So the road is
+the same difficulty in the curve and a denser, angrier fight on the screen,
+which is what the curve cannot see: it models neither the chase nor the alert.
+The act-start purse, ranks and drafts were re-read off the same run.
+`balance_test` reads 46,114 assertions.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

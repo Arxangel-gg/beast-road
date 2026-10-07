@@ -75,6 +75,7 @@ func _ready() -> void:
 	await _test_a_shield_redirects_rather_than_reduces()
 	await _test_a_release_gives_back_only_what_was_banked()
 	await _test_a_body_that_sees_the_warden_quickens()
+	await _test_a_sighted_body_leaves_the_road_within_its_leash()
 	_finish()
 
 
@@ -765,6 +766,90 @@ func _test_a_body_that_sees_the_warden_quickens() -> void:
 		boss.queue_free()
 	hero.global_position = far
 	await get_tree().process_frame
+
+
+## **A sighted body leaves the road to fight a Warden beside it, and keeps to it
+## for one further off** (owner, 2026-10-07). Driven on the real tick: a marcher
+## stood on a leg of its own route, the Warden stood square off that leg, and
+## the body left alone for a second. Inside the leash it closes on the Warden
+## and is off its road; outside it - still inside the aggro circle, so the body
+## is aiming at the Warden - it walks its road and stays on it.
+func _test_a_sighted_body_leaves_the_road_within_its_leash() -> void:
+	_clear()
+	await get_tree().process_frame
+	var reach_off: float = 0.0
+	var beyond: float = 0.0
+	for case: int in 2:
+		var body: Enemy = await _spawn("bogkin")
+		if body == null:
+			return
+		var route: PackedVector2Array = body.get("_route")
+		if route.size() < 4:
+			_check(false, "the marcher needs a route of a few legs (%d points)" % route.size())
+			body.queue_free()
+			return
+		var leg: int = 1
+		var from: Vector2 = route[leg]
+		var to: Vector2 = route[leg + 1]
+		var on_road: Vector2 = from.lerp(to, 0.5)
+		var side: Vector2 = (to - from).normalized().orthogonal()
+		# The side the road does not bend toward: the chase reads the next leg
+		# too, so a Warden square off this leg can stand beside the next one.
+		if leg + 2 < route.size():
+			var probe: float = Balance.ENEMY_CHASE_LEASH * 2.0
+			if Enemy.distance_to_leg(on_road + side * probe, route[leg + 1], route[leg + 2]) \
+					< Enemy.distance_to_leg(on_road - side * probe, route[leg + 1], route[leg + 2]):
+				side = -side
+		body.global_position = on_road
+		body.set("_path_index", leg)
+		# A column holds a lateral offset off the road's line; the probe walks
+		# the line itself so a step off it is the chase and nothing else.
+		body.set("_lane_offset", 0.0)
+		if case == 1:
+			# Outside the leash but inside the circle a sighted body aims from.
+			beyond = Balance.ENEMY_CHASE_LEASH + body.attack_reach() + 40.0
+			_check(beyond < body.hero_aggro_range() * Balance.ENEMY_ALERT_AGGRO_SCALE,
+				"the outside case must stand inside the aggro circle to mean anything")
+		# Inside: well past the body's own arm, so it has to walk to swing.
+		reach_off = body.attack_reach() + 80.0
+		var off: float = reach_off if case == 0 else beyond
+		var hero: Hero = _field.hero
+		hero.global_position = on_road + side * off
+		var pool: Health = Health.of(hero)
+		if pool != null:
+			pool.current_hp = pool.max_hp
+		body.call("_pick_target")
+		body.set("_retarget_left", 0.0)
+		var start_gap: float = body.global_position.distance_to(hero.global_position)
+		var farthest: float = 0.0
+		# Driven by hand, as the pounce walk is: the harness's field sits in
+		# Preparation, where the entity root does not tick.
+		for _step: int in 72:
+			if not is_instance_valid(body):
+				break
+			body.call("_process", 1.0 / 60.0)
+			hero.global_position = on_road + side * off
+			if pool != null:
+				pool.current_hp = pool.max_hp
+			var leg_now: int = clampi(int(body.get("_path_index")), 0, route.size() - 2)
+			var away: float = Enemy.distance_to_leg(body.global_position,
+				route[leg_now], route[leg_now + 1])
+			farthest = maxf(farthest, away)
+		if not is_instance_valid(body):
+			_check(false, "the marcher died during the chase test")
+			return
+		var end_gap: float = body.global_position.distance_to(hero.global_position)
+		if case == 0:
+			_check(body.is_alert(), "a Warden %.0f off the road did not alert the marcher" % off)
+			_check(farthest > 30.0 and end_gap < start_gap - 30.0,
+				"a sighted marcher with the Warden %.0f off its road never left it (%.0f off at most, gap %.0f -> %.0f)"
+					% [off, farthest, start_gap, end_gap])
+		else:
+			_check(farthest < 30.0,
+				"a marcher left its road %.0f units for a Warden %.0f off it - past the leash of %.0f"
+					% [farthest, off, Balance.ENEMY_CHASE_LEASH])
+		body.queue_free()
+		await get_tree().process_frame
 
 
 func _spawn(breed_id: String) -> Enemy:

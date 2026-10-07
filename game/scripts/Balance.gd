@@ -185,11 +185,11 @@ const HERO_ACTIVE_SLOTS: int = 4
 ## owner's "more pickups should drop more often but maybe in less total
 ## quantity". `SUPPLY_CRATE_VALUE_SCALE` doubled with it so a crate is worth
 ## what a crate was.
-const LOOT_BONUS_SHARE: float = 0.22
+const LOOT_BONUS_SHARE: float = 0.17
 
 ## Chance a kill drops anything at all. Below one so drops are an event rather
 ## than a constant stream of coins to walk over. [TUNE]
-const LOOT_DROP_CHANCE: float = 0.55
+const LOOT_DROP_CHANCE: float = 0.50
 
 ## An elite or boss always drops, and drops more.
 const LOOT_ELITE_MULTIPLIER: float = 5.0
@@ -550,8 +550,16 @@ const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35, "tower_rate": 0.25
 ## hand was finished by Act IV and seven acts of drafts turned into rerolls.
 ## Solved against `curve_report`'s kill column: about six ranks across Act I
 ## and forty by the end of Act X. [TUNE]
+##
+## **The step is 42 since the bodies were lifted a third, 2026-10-07** (owner, 2026-10-07: "more epic ... Add more enemies per wave! Increase
+## wildlife slightly. Balance nerf loot drops, resources, and xp to accommodate").
+## A rank is paid in bodies, so thirty percent more of them from Act II on would
+## have dealt thirty percent more drafts and made the denser road *easier* -
+## measured, the drafted road fell from 0.62 to 0.53. The base is untouched, so
+## Act I's ranks come as they did, and the steeper step absorbs the later
+## bodies: the rank at each act's start is within one of what it was.
 const ROAD_RANK_BASE: float = 72.0
-const ROAD_RANK_STEP: float = 32.0
+const ROAD_RANK_STEP: float = 42.0
 ## What a kill is worth to the rank, by what was killed. A body is one; the
 ## things that are harder to kill are worth more. [TUNE]
 const ROAD_XP_BODY: float = 1.0
@@ -870,7 +878,7 @@ const GEAR_SLOT_WEIGHT: Array[float] = [
 const GEAR_TOTAL_SLOT_CEILING: float = 5.0
 
 ## Chance a raid chest also yields a piece of gear.
-const GEAR_CHEST_CHANCE: float = 0.44
+const GEAR_CHEST_CHANCE: float = 0.40
 
 ## Battlefield gear odds, by what died.
 ##
@@ -883,8 +891,12 @@ const GEAR_CHEST_CHANCE: float = 0.44
 ## The ordering is the part that must not move: a breed is a surprise, an elite
 ## is a prospect worth chasing across the field, and a boss always pays.
 ## `balance_test` holds the ordering and the floor. [TUNE]
+## **Elites 0.32 to 0.28 and chests 0.44 to 0.40, 2026-10-07** (owner, 2026-10-07: "more epic ... Add more enemies per wave! Increase
+## wildlife slightly. Balance nerf loot drops, resources, and xp to accommodate").
+## The ordinary drop stays where it is because it is already at the floor
+## `_test_gear_farming` holds - a hundred ordinary kills must usually pay.
 const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.019
-const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.32
+const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.28
 const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
 
 ## Extra pieces a boss leaves beyond the guaranteed one.
@@ -1095,7 +1107,7 @@ const HERO_XP_CURVE: float = 3.5
 ## The target is a Normal clear landing near 30 - the tier's own Act III boss
 ## expectancy - with Nightmare and Hell carrying the rest through their own XP
 ## multipliers. Measured with `tools/level_curve.tscn`. [TUNE]
-const HERO_XP_PER_HP: float = 0.30
+const HERO_XP_PER_HP: float = 0.29
 
 ## **Skill points, earned by the account** (owner rulings R1 and R2,
 ## 2026-09-26). One on each level up to `SKILL_POINTS_EARLY_LEVELS`, because the
@@ -1521,8 +1533,10 @@ const TOWER_SLOT_COUNT: int = 4
 ## Re-read 2026-09-26 on the denser road the augments are measured against.
 ## Re-read 2026-09-27 on the Arsenal's road: more bodies, each worth less, and
 ## again the same day once Act II took 2.30 bodies for its softer step.
+## Re-read 2026-10-07 on the denser road (a third more bodies from Act II, each
+## worth three quarters): the purse a walked road holds is a little lighter.
 const ACT_START_BUDGET: Array[int] = [
-	0, 1083, 2577, 4650, 7349, 10914, 15606, 21857, 29236, 38632,
+	0, 1095, 2343, 4074, 6367, 9337, 13126, 18145, 24250, 31906,
 ]
 
 ## **The drafts a walked road would have dealt by each act** (augments,
@@ -1531,11 +1545,12 @@ const ACT_START_BUDGET: Array[int] = [
 ## date as the purse above, and retyped with it. An act start banks them: the
 ## road is tuned against a hand that size, and one that arrived with none would
 ## be a harder road than the one it stands in for. [TUNE]
+## Both re-read 2026-10-07 with the purse, under the rank's steeper step.
 const ACT_START_ROAD_RANK: Array[int] = [
-	0, 6, 11, 16, 20, 24, 29, 33, 37, 42,
+	0, 6, 11, 15, 19, 23, 27, 31, 34, 38,
 ]
 const ACT_START_DRAFTS: Array[int] = [
-	0, 8, 15, 22, 28, 34, 41, 48, 54, 62,
+	0, 10, 17, 24, 31, 38, 46, 53, 59, 66,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
@@ -2577,8 +2592,11 @@ const HITBOX_STROKE_SHARE: float = 1.35
 ## before, so an ordinary body strikes once, sometimes twice, rarely three times,
 ## and an elite, a champion, a camp lord or a boss may very rarely strike four.
 ## [TUNE]
-const ENEMY_COMBO_CHANCES: Array[float] = [0.3, 0.3]
-const ENEMY_COMBO_CHANCES_STRONG: Array[float] = [0.45, 0.4, 0.3]
+## 0.3 to 0.4 for an ordinary body's first follow-up and 0.45 to 0.5 for the
+## strong, 2026-10-07 (owner: "more aggressive"), inside the 2026-10-01 words
+## `enemy_behaviour_check` holds: sometimes, rarely three, very rarely four.
+const ENEMY_COMBO_CHANCES: Array[float] = [0.4, 0.3]
+const ENEMY_COMBO_CHANCES_STRONG: Array[float] = [0.5, 0.4, 0.3]
 ## **Shape, never size**: each follow-up hits for this share of a swing and
 ## leaves the body resting this much longer at the end, so a combo is the same
 ## damage over the same time arriving as a flurry with an opening after it. The
@@ -4205,7 +4223,11 @@ const BARRICADE_SENSE_HZ: float = 10.0
 ## stretches with almost nothing alive in them. The floor is twelve and
 ## arrivals are likelier, so the road runs near its cap instead of near its
 ## floor - which is the difference the owner was reporting.
-const WILDLIFE_MIN: int = 12
+## **Fourteen and arrivals at 0.85, 2026-10-07** (owner, 2026-10-07: "more epic ... Add more enemies per wave! Increase
+## wildlife slightly. Balance nerf loot drops, resources, and xp to accommodate").
+## The cap is the frame's and does not move; the floor and the arrivals put the
+## road nearer it.
+const WILDLIFE_MIN: int = 14
 const WILDLIFE_MAX: int = 22
 
 ## How far a hero's swing reaches an animal, how much of the field an animal may
@@ -4219,7 +4241,7 @@ const WILDLIFE_MAX: int = 22
 const WILDLIFE_KILL_REACH_BONUS: float = 40.0
 const WILDLIFE_FORGET_DISTANCE: float = 2600.0
 const WILDLIFE_FLIER_LIFT: float = 54.0
-const WILDLIFE_ARRIVAL_CHANCE: float = 0.78
+const WILDLIFE_ARRIVAL_CHANCE: float = 0.85
 ## How far out from the town animals are placed.
 ##
 ## Widened from 1150: the ground being scattered across was barely larger than
@@ -5390,8 +5412,14 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## answer - five, twelve and twelve per cent for Acts I to III, twenty-two from
 ## IV - and the health table the rest, so the road is denser rather than only
 ## tougher. Measured against the modelled hand on a new account.
+## **And a third more from Act II, 2026-10-07** (owner, 2026-10-07: "more epic ... Add more enemies per wave! Increase
+## wildlife slightly. Balance nerf loot drops, resources, and xp to accommodate").
+## Act I is the opening envelope and is untouched. The extra bodies are paid for
+## out of each body's pool (`WAVE_ACT_HP_SCALE`), its worth
+## (`KILL_ACT_VALUE_SCALE`) and the road rank's step, so a wave is a bigger
+## crowd that breaks faster rather than a bigger purse and a faster hand.
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.41, 2.30, 2.63, 3.30, 3.60, 3.93, 4.16, 4.40, 4.62, 4.82,
+	1.41, 2.99, 3.42, 4.29, 4.68, 5.11, 5.41, 5.72, 6.01, 6.27,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -5602,8 +5630,11 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## summit, which reads Act X's entry, the peak. Not a smooth table, because
 ## what it answers is not smooth: Act VII's health comes *down* because its
 ## income has not yet caught up with it, and VIII's rises because it has.
+## **About four fifths of what it was from Act II, 2026-10-07**, because those
+## acts send a third more bodies (`WAVE_ACT_COUNT_SCALE`): the horde is wider,
+## each of it softer, and the road's total health a little above what it was.
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.09, 1.48, 2.31, 2.84, 2.82, 3.05, 2.68, 3.48, 3.49, 3.29,
+	1.09, 1.17, 1.82, 2.24, 2.23, 2.41, 2.12, 2.75, 2.70, 2.95,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.02, 1.06, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20,
@@ -5776,11 +5807,20 @@ const ENEMY_MELEE_RECOVERY_SCALE: float = 0.8
 ## which is what lets `curve_report` still read the same waves - and a boss
 ## and a camp body are never alert, because a boss's tempo is its phases' and a
 ## camp has a circle of its own. [TUNE]
-const ENEMY_SIGHT_SCALE: float = 1.8
-const ENEMY_ALERT_SECONDS: float = 3.0
-const ENEMY_ALERT_SPEED_SCALE: float = 1.15
-const ENEMY_ALERT_RECOVERY_SCALE: float = 0.85
-const ENEMY_ALERT_AGGRO_SCALE: float = 1.25
+## **Raised 2026-10-07** (owner: "more hostile and dangerous ... more
+## aggressive"): sight 1.8 to 2.0, memory 3 to 4 s, pace 1.15 to 1.2, rest 0.85
+## to 0.8, circle 1.25 to 1.35. Still never the blow.
+const ENEMY_SIGHT_SCALE: float = 2.0
+const ENEMY_ALERT_SECONDS: float = 4.0
+const ENEMY_ALERT_SPEED_SCALE: float = 1.2
+const ENEMY_ALERT_RECOVERY_SCALE: float = 0.8
+const ENEMY_ALERT_AGGRO_SCALE: float = 1.35
+## **How far off its road an alert body will follow a Warden** (owner,
+## 2026-10-07: "better able to fight players within reason"). Measured from the
+## road to the *foe*, plus the body's own reach, so a Warden fighting beside a
+## column is fought and one who stands well clear of it is not - the trade the
+## road rule was written for, at a wider margin. [TUNE]
+const ENEMY_CHASE_LEASH: float = 170.0
 
 ## Howlers and the Drowned Choir fire slow committed shots. Their target can
 ## leave the marked destination before impact; this is pressure, not hitscan.
@@ -5856,8 +5896,13 @@ const KILL_RESOURCE_SCALE: float = 0.264
 ## for a tower, clearing the opening must, every road covered by wave 12 - is
 ## the one stretch of this economy measured against a player learning the game,
 ## and `balance_test._test_opening_envelope` owns it.
+##
+## **Three quarters of what it was from Act II, 2026-10-07** (owner, 2026-10-07: "more epic ... Add more enemies per wave! Increase
+## wildlife slightly. Balance nerf loot drops, resources, and xp to accommodate").
+## Those acts send a third more bodies, so each pays a little under three
+## quarters and a wave's purse comes out a few percent lighter than it was.
 const KILL_ACT_VALUE_SCALE: Array[float] = [
-	1.0, 0.833, 0.90, 0.983, 1.10, 1.233, 1.367, 1.517, 1.667, 1.833,
+	1.0, 0.622, 0.672, 0.733, 0.821, 0.920, 1.020, 1.132, 1.244, 1.368,
 ]
 
 

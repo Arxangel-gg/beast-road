@@ -1937,10 +1937,44 @@ func _walk(delta: float) -> void:
 	#
 	# An animal biting it is the one exception: `_biting_back` only returns one
 	# already inside reach, so answering it costs no ground.
-	if _provoker == null or _target != _provoker:
+	if (_provoker == null or _target != _provoker) and not _may_chase(_target):
 		direction = _road_direction()
 
 	_advance(direction, delta)
+
+
+## **A sighted body leaves the road to fight a Warden beside it, within a
+## leash** (owner, 2026-10-07: enemies "more hostile and dangerous ... better
+## able to fight players within reason"). The road was held whatever a body
+## was looking at, so a Warden a body-length off a column was never reached and
+## the fight was always the Warden's to start. Now an alert body walks at a foe
+## standing within `ENEMY_CHASE_LEASH` of its road plus its own reach, and a
+## foe further out than that is left alone - so standing clear of a column is
+## still the player's answer, it simply takes more ground than it did.
+##
+## **The foe's distance to the road decides, never the body's own**, because a
+## body that judged by where it stood would step past the edge, read itself
+## outside, turn back, read itself inside and dither on the line. Measured to
+## the leg it is walking and the next, so a Warden at a bend is beside the road.
+## Never a camp body (its own circle), a boss, a Herald (a runner) or a puppet,
+## and only a body on a road at all - an arena body already walks at the hero.
+func _may_chase(target: Node2D) -> bool:
+	if target == null or not is_instance_valid(target) or puppet:
+		return false
+	if _alert_left <= 0.0 or is_camp_mob() or _herald:
+		return false
+	if data == null or data.category == EnemyData.Category.BOSS:
+		return false
+	if not (target is Hero or target is Companion) or not _foe_stands(target):
+		return false
+	if _route.size() < 2:
+		return false
+	var leg: int = clampi(_path_index, 0, _route.size() - 2)
+	var off_road: float = distance_to_leg(target.global_position, _route[leg], _route[leg + 1])
+	if leg + 2 < _route.size():
+		off_road = minf(off_road, distance_to_leg(target.global_position,
+			_route[leg + 1], _route[leg + 2]))
+	return off_road <= Balance.ENEMY_CHASE_LEASH + attack_reach()
 
 
 ## A camp body's step: at its quarry, home when it has strayed, or about its
