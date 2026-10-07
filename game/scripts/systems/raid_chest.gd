@@ -102,7 +102,7 @@ func _open() -> void:
 			EventBus.preparation_warning.emit("%s  %s  ·  %s"
 				% [Stash.rarity_name(piece), kind.display_name if kind else "Gear", outcome])
 
-	Sfx.play("sfx_relic_socket")
+	Sfx.play_at("sfx_relic_socket", global_position)
 	Vfx.ring(global_position, Balance.RAID_CHEST_GLOW * 0.8,
 		Balance.LOOT_GLOW_COLOUR, 0.5, 5.0)
 	EventBus.raid_chest_opened.emit(locked)

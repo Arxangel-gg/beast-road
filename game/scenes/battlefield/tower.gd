@@ -549,7 +549,7 @@ func _pour(_delta: float) -> void:
 	var healed: float = data.well_heal * Balance.WELL_EARLY_HEAL_SCALE * (1.0
 		+ float(maxi(level - 1, 0)) * Balance.WELL_HEAL_PER_LEVEL)
 	thirsty.drink_from_well(healed)
-	Sfx.play("sfx_well_drink")
+	Sfx.play_at("sfx_well_drink", global_position)
 	_say("", "")
 	_draught_ready = false
 	# **The pour is the well's firing pose.** Every tower authors three, and the
@@ -1372,7 +1372,7 @@ func repair(fraction: float, quiet: bool = false) -> void:
 		return
 	Vfx.ring(origin(), 74.0, Color(0.58, 0.88, 0.64, 0.65), 0.45, 5.0)
 	Vfx.spark(origin(), Color("b7e6c0"), 12, Vector2.UP, 150.0)
-	Sfx.play("sfx_tower_upgrade", -5.0)
+	Sfx.play_at("sfx_tower_upgrade", global_position, -5.0)
 
 
 ## Damage fires are anchored to the actual alpha silhouette, not fixed world

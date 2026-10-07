@@ -159,7 +159,7 @@ func _process_measured(delta: float) -> void:
 	_howl_timer -= delta
 	if _howl_timer <= 0.0:
 		_howl_timer = 2.4
-		Sfx.play("sfx_tornado", -4.0)
+		Sfx.play_at("sfx_tornado", at, -4.0)
 	_sync_timer -= delta
 	if _sync_timer <= 0.0:
 		_sync_timer = Balance.SKY_SYNC_INTERVAL

@@ -14111,6 +14111,42 @@ settled by the sky every frame so an aborted blow cannot leave it raised.
 body, each with the earth's hand and without - and the ladder, karma's tilt and
 the favour; planted with the hand ignored, it named it.
 
+**A sound is heard from its side, and through what stands between, as of
+2026-10-07.** Owner: *"Ensure that sounds are all properly playing location
+based if they're not UI etc, so that the player is better able to hear sounds
+spatially. If possible to make it with optimization, also include elements for
+occlusion from the environment on the audio."*
+
+`Sfx.play_at` quietened by distance and nothing else, so a blow left of the
+Warden and one right of them were the same sound. A voice is a plain
+`AudioStreamPlayer`, which cannot pan, and a per-voice filter is a bus effect -
+so placement is **ten buses under SFX** (`AudioBuses.ensure_placement`): a
+panner each from hard left to hard right in `PAN_STEPS`, held to
+`SFX_PAN_STRENGTH` so nothing is ever in one ear only, and the same again with a
+low-pass for a sound heard through a wall. A placed sound sends its voice to the
+one it wants for that one start (`Sfx.placement`); everything flat goes to SFX
+on every start, because a voice is reused. Built once; nothing a frame.
+
+**Occlusion is asked of the field the camera watches** (`EnemyField.
+occludes_sound`, handed to the ear by the camera rig): on the battlefield the
+town's walls, drawn in by `SFX_TOWN_WALL_INSET` so a blow at the gate is heard
+at the gate; in a raid or a rift every wall of the maze, walked half a tile at a
+time. A muffled sound is low-passed at `SFX_OCCLUDED_CUTOFF_HZ` and
+`SFX_OCCLUDED_DB` down. One line test a start, and there are at most
+`SFX_WORLD_STARTS_PER_FRAME` of those.
+
+**World sounds that played flat are placed**: the funnel's howl, a stone's
+impact, a raid chest and key, a well drunk from, a tower upgraded, a swimmer, a
+dash, a blink, a rift chest. **Still flat, on purpose and unchanged**: the
+interface, a telegraph, the wall struck, an announcement, thunder (which has its
+own distance and delay), and the crafts the Warden is standing at.
+
+`feel_check` holds a sound left of the ear panned left and right panned right,
+straight ahead centred, a walled one on the muffled bus with its low-pass and
+quieter, a placed voice on a placement bus and a flat one back on SFX, and every
+placement bus sending to SFX so the fader and the boss's hush reach it. Planted
+with the bus never set, it named it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

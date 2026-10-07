@@ -55,6 +55,26 @@ func _ready() -> void:
 		global_position = target.global_position
 
 
+## What stands between the ear and a sound, asked of the field this camera
+## watches - the first one up its tree (`EnemyField.occludes_sound`). Looked
+## for once.
+var _wall_asked: bool = false
+var _wall: Callable = Callable()
+
+
+func _sound_wall() -> Callable:
+	if _wall_asked:
+		return _wall
+	_wall_asked = true
+	var node: Node = get_parent()
+	while node != null:
+		if node.has_method("occludes_sound"):
+			_wall = Callable(node, "occludes_sound")
+			break
+		node = node.get_parent()
+	return _wall
+
+
 ## The ear goes where the eye is.
 ##
 ## Published from the rig rather than from the hero because what the player can
@@ -65,7 +85,7 @@ func _exit_tree() -> void:
 
 
 func _process_measured(delta: float) -> void:
-	Sfx.listen_from(global_position)
+	Sfx.listen_from(global_position, _sound_wall())
 	if beast_motion and UserSettings.dynamic_camera():
 		_tick_dynamic(delta)
 	var zoom_t: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)

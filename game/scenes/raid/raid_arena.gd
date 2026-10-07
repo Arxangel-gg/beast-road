@@ -67,6 +67,22 @@ var _rng := RandomNumberGenerator.new()
 ## The camp's terrain. Rebuilt per raid, so two camps are never the same shape.
 var layout: RaidLayout = null
 
+
+## **Rock stands between a sound and the ear** in a maze: the line from one to
+## the other is walked half a tile at a time, and any wall it crosses muffles
+## what is behind it. A camp's open ground muffles nothing.
+func occludes_sound(from: Vector2, to: Vector2) -> bool:
+	if layout == null:
+		return false
+	var a: Vector2 = to_local(from)
+	var b: Vector2 = to_local(to)
+	var steps: int = clampi(int(a.distance_to(b) / (RaidLayout.TILE * 0.5)), 1, 160)
+	for i: int in range(1, steps):
+		var tile: Vector2i = RaidLayout.world_to_tile(a.lerp(b, float(i) / float(steps)))
+		if RaidLayout.in_bounds(tile) and layout.cell_at(tile) == RaidLayout.Cell.WALL:
+			return true
+	return false
+
 ## Nodes rebuilt with the terrain, torn down between raids.
 var _terrain_root: Node2D = null
 ## The camp's furniture, in the sorted layer with the bodies.

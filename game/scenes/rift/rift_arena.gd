@@ -680,7 +680,7 @@ func open_chest(chest: DungeonChest) -> void:
 		Vfx.word(at + Vector2(0.0, -40.0 - 26.0 * float(gear.size())), label,
 			Stash.rarity_colour(piece), 22)
 	entry["gear"] = gear
-	Sfx.play("sfx_chest_open")
+	Sfx.play_at("sfx_chest_open", at)
 	Vfx.ring(at, Balance.RAID_CHEST_GLOW * 1.2, Balance.LOOT_GLOW_COLOUR, 0.6, 6.0)
 	Vfx.spark(at, Balance.LOOT_GLOW_COLOUR, 26, Vector2.UP, 320.0)
 	Vfx.rays(at, Balance.LOOT_GLOW_COLOUR, 10, 90.0)

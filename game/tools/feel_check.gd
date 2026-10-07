@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_a_streak_counts_what_falls_near()
 	_test_a_scope_change_is_a_cut()
 	_test_a_dropped_sound_decides_nothing()
+	await _test_a_sound_has_a_side_and_a_wall()
 	await _test_the_field()
 	_test_a_voice_comes_from_where_it_is()
 	await _test_the_hush_hands_the_room_back()
@@ -262,6 +263,83 @@ func _test_a_burst_is_heard_as_its_first_few() -> void:
 		"a flat sound in a full frame was refused - flat sounds are never counted")
 	Sfx.stop_listening()
 	Sfx.stop_immediately()
+
+
+## **A placed sound is heard from its side, and through what stands between**
+## (owner, 2026-10-07). Read off the real buses and the real voice: a sound
+## left of the ear goes to a bus panned left and one right to one panned right,
+## a sound the field says is behind a wall goes to the muffled bus with its
+## low-pass and is quieter, and a flat sound - the interface, a telegraph - goes
+## to SFX as it always did, on a voice a placed sound used a moment before.
+func _test_a_sound_has_a_side_and_a_wall() -> void:
+	# A frame of its own: the burst above spent this frame's world starts.
+	await get_tree().process_frame
+	Sfx.stop_immediately()
+	var walled: Array[bool] = [false]
+	var wall: Callable = func(_from: Vector2, _to: Vector2) -> bool: return walled[0]
+	Sfx.listen_from(Vector2.ZERO, wall)
+	var left: Dictionary = Sfx.placement(Vector2(-Balance.SFX_PAN_REACH, 0.0))
+	var right: Dictionary = Sfx.placement(Vector2(Balance.SFX_PAN_REACH, 0.0))
+	var middle: Dictionary = Sfx.placement(Vector2(0.0, 600.0))
+	_check(_pan_of(String(left["bus"])) < -0.3 and _pan_of(String(right["bus"])) > 0.3,
+		"a sound hard left is panned %.2f and hard right %.2f"
+		% [_pan_of(String(left["bus"])), _pan_of(String(right["bus"]))])
+	_check(absf(_pan_of(String(middle["bus"]))) < 0.01, "a sound straight ahead is not centred")
+	_check(not bool(left["muffled"]) and is_zero_approx(float(left["db"])),
+		"a sound with nothing between it and the ear was muffled")
+	walled[0] = true
+	var behind: Dictionary = Sfx.placement(Vector2(300.0, 0.0))
+	_check(bool(behind["muffled"]) and float(behind["db"]) < 0.0 and _has_low_pass(String(behind["bus"])),
+		"a sound behind a wall was not heard through it (%s)" % [behind])
+	walled[0] = false
+	# The voice: placed, then flat on the same pool.
+	Sfx.play_at("sfx_enemy_die", Vector2(-Balance.SFX_PAN_REACH * 0.9, 0.0))
+	var placed: AudioStreamPlayer = _last_voice()
+	_check(placed != null and placed.bus.begins_with("SFX_P"),
+		"a placed sound went to %s, not to a placement bus" % (placed.bus if placed != null else "no voice"))
+	Sfx.stop_immediately()
+	Sfx.play("sfx_ui_confirm")
+	var flat: AudioStreamPlayer = _last_voice()
+	_check(flat != null and flat.bus == AudioBuses.SFX,
+		"a flat sound went to %s - a reused voice kept the last placement" % (flat.bus if flat != null else "no voice"))
+	# Every placement bus reaches SFX, so the fader and the hush reach it.
+	for step: int in AudioBuses.PAN_STEPS:
+		for muffled: bool in [false, true]:
+			var index: int = AudioServer.get_bus_index(AudioBuses.placement_name(step, muffled))
+			_check(index >= 0 and AudioServer.get_bus_send(index) == AudioBuses.SFX,
+				"placement bus %s does not send to SFX" % AudioBuses.placement_name(step, muffled))
+	Sfx.stop_listening()
+	Sfx.stop_immediately()
+
+
+func _pan_of(bus_name: String) -> float:
+	var index: int = AudioServer.get_bus_index(bus_name)
+	if index < 0:
+		return 0.0
+	for effect: int in AudioServer.get_bus_effect_count(index):
+		var panner := AudioServer.get_bus_effect(index, effect) as AudioEffectPanner
+		if panner != null:
+			return panner.pan
+	return 0.0
+
+
+func _has_low_pass(bus_name: String) -> bool:
+	var index: int = AudioServer.get_bus_index(bus_name)
+	if index < 0:
+		return false
+	for effect: int in AudioServer.get_bus_effect_count(index):
+		if AudioServer.get_bus_effect(index, effect) is AudioEffectLowPassFilter:
+			return true
+	return false
+
+
+## The voice that started last: the playing one, of the pool.
+func _last_voice() -> AudioStreamPlayer:
+	for voice: Variant in (Sfx.get("_voices") as Array):
+		var player := voice as AudioStreamPlayer
+		if player != null and player.playing:
+			return player
+	return null
 
 
 ## **A dropped sound must decide nothing.**

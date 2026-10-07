@@ -2002,12 +2002,19 @@ func stop_immediately() -> void:
 ## hears what it always heard.
 var _ear: Vector2 = Vector2.ZERO
 var _listening: bool = false
+## What stands between the ear and a sound, asked of the field the camera
+## watches (`EnemyField.occludes_sound`). Empty where nothing is asked.
+var _occluder: Callable = Callable()
+## The bus the next voice started goes to, set by a placed sound for the one
+## start it makes. Empty is SFX itself.
+var _bus_next: String = ""
 
 
 ## The camera is watching here. Called each frame by the rig.
-func listen_from(point: Vector2) -> void:
+func listen_from(point: Vector2, occluder: Callable = Callable()) -> void:
 	_ear = point
 	_listening = true
+	_occluder = occluder
 
 
 ## Nobody is watching a field any more - a menu, a scope change, a gate.
@@ -2039,7 +2046,10 @@ func _play_at_measured(id: String, at: Vector2, extra_db: float = 0.0,
 	var reach: float = reach_of(id)
 	if away > Balance.SFX_CUTOFF * reach or not _world_start_allowed():
 		return
-	play(id, extra_db + distance_db(away, reach), pitch_shift)
+	var placed: Dictionary = placement(at)
+	_bus_next = String(placed["bus"])
+	play(id, extra_db + distance_db(away, reach) + float(placed["db"]), pitch_shift)
+	_bus_next = ""
 
 
 ## One of a group's takes, placed. The same `play_at` rules.
@@ -2081,7 +2091,10 @@ func _play_group_at_measured(group: String, at: Vector2, extra_db: float = 0.0,
 	var reach: float = reach_of(group)
 	if away > Balance.SFX_CUTOFF * reach or not _world_start_allowed():
 		return
-	play_group(group, extra_db + distance_db(away, reach), pitch_shift)
+	var placed: Dictionary = placement(at)
+	_bus_next = String(placed["bus"])
+	play_group(group, extra_db + distance_db(away, reach) + float(placed["db"]), pitch_shift)
+	_bus_next = ""
 
 
 ## **A burst is heard as its first few sounds** (2026-09-30). Every start
@@ -2140,6 +2153,21 @@ static func distance_db(away: float, reach: float = 1.0) -> float:
 	if away > fade_from:
 		db += Balance.SFX_EDGE_DB * smoothstep(fade_from, cutoff, away)
 	return db
+
+
+## **Where a sound sits for the ear**: the placement bus for how far across the
+## screen it is (`SFX_PAN_REACH` either side of the ear is hard over) and
+## whether the field says something stands between, with the decibels that
+## costs. A look-up and at most one line test a start - there are at most
+## `SFX_WORLD_STARTS_PER_FRAME` of those.
+func placement(at: Vector2) -> Dictionary:
+	AudioBuses.ensure_placement()
+	var across: float = clampf((at.x - _ear.x) / maxf(Balance.SFX_PAN_REACH, 1.0), -1.0, 1.0)
+	var step: int = clampi(int(round((across + 1.0) * 0.5 * float(AudioBuses.PAN_STEPS - 1))),
+		0, AudioBuses.PAN_STEPS - 1)
+	var muffled: bool = _occluder.is_valid() and bool(_occluder.call(_ear, at))
+	return {"bus": AudioBuses.placement_name(step, muffled),
+		"db": Balance.SFX_OCCLUDED_DB if muffled else 0.0, "muffled": muffled}
 
 
 ## How far a sound carries: the reach of the longest listed prefix of its id,
@@ -2203,6 +2231,9 @@ func _play_stream(id: String, stream: AudioStream, mix_id: String,
 	voice.pitch_scale = maxf((1.0 + randf_range(-drift, drift))
 		* (1.0 + pitch_shift), 0.05)
 	voice.volume_db = float(mix.get("db", -8.0)) + extra_db
+	# A placed sound to its pan and its wall; everything else to SFX, every
+	# start, because a voice is reused.
+	voice.bus = _bus_next if not _bus_next.is_empty() else AudioBuses.SFX
 	voice.play()
 
 	_next_allowed[limiter_id] = now + float(mix.get("gap", 0.04))

@@ -3422,6 +3422,23 @@ func _leaf_near(at: Vector2, within: float) -> Color:
 	return trees.leaf_near(at, within)
 
 
+## **The town stands between a sound and the ear** when the line from one to
+## the other crosses its walls - its own footprint drawn in a little, so a
+## sound at the gate is heard at the gate. Nothing else on the open field is
+## solid enough to muffle a blow.
+func occludes_sound(from: Vector2, to: Vector2) -> bool:
+	var walls: Rect2 = city_bounds()
+	if walls.size.x <= 1.0:
+		return false
+	walls = walls.grow(-minf(walls.size.x, walls.size.y) * Balance.SFX_TOWN_WALL_INSET)
+	if walls.has_point(from) or walls.has_point(to):
+		return false
+	var corners := PackedVector2Array([walls.position, Vector2(walls.end.x, walls.position.y),
+		walls.end, Vector2(walls.position.x, walls.end.y)])
+	return not Geometry2D.intersect_polyline_with_polygon(
+		PackedVector2Array([from, to]), corners).is_empty()
+
+
 ## What colour the earth is at a point.
 ##
 ## The road where there is a road and the region's own ground everywhere else,

@@ -736,11 +736,11 @@ func _tick_swim(delta: float) -> void:
 				Color(1.0, 1.0, 1.0, 0.8), true)
 			if field.has_method("stir"):
 				field.call("stir", global_position, 1.0)
-			Sfx.play("sfx_swim_enter")
+			Sfx.play_at("sfx_swim_enter", global_position)
 			EventBus.camera_shake_requested.emit(2.5, 0.12)
 		else:
 			Vfx.spark(global_position, Color(0.72, 0.86, 0.98), 10, Vector2.UP, 120.0)
-			Sfx.play("sfx_swim_exit")
+			Sfx.play_at("sfx_swim_exit", global_position)
 		if is_local_player():
 			EventBus.hero_swim_changed.emit(wet)
 	if not _swimming:
@@ -751,7 +751,7 @@ func _tick_swim(delta: float) -> void:
 		_swim_ripple_in = Balance.SWIM_RIPPLE_INTERVAL
 		if field.has_method("stir"):
 			field.call("stir", global_position, 0.45)
-		Sfx.play("sfx_swim_stroke", -6.0)
+		Sfx.play_at("sfx_swim_stroke", global_position, -6.0)
 
 
 ## Whether this hero is in the water.
@@ -1701,7 +1701,7 @@ func _show_a_perfect_evade() -> void:
 	Vfx.flash_at(global_position, Color(Balance.EVADE_TINT, 0.5),
 		Balance.EVADE_FLASH_RADIUS)
 	EventBus.camera_impact.emit(global_position, Balance.EVADE_SHAKE)
-	Sfx.play("sfx_dash", -4.0)
+	Sfx.play_at("sfx_dash", global_position, -4.0)
 
 
 func _on_evaded(into: float, from: Vector2) -> void:
@@ -1756,7 +1756,7 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	# Not the dash whoosh, which already played when the dash started - a reward
 	# that sounds like the thing it rewards is a reward nobody hears. The blink
 	# cue is crisp, short, and already means "you were not there".
-	Sfx.play("sfx_spell_blink", -4.0)
+	Sfx.play_at("sfx_spell_blink", global_position, -4.0)
 
 
 func dash_cooldown_ratio() -> float:

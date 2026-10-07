@@ -2852,6 +2852,17 @@ const SFX_CUTOFF: float = 2800.0
 ## has taken by the cutoff itself. [TUNE]
 const SFX_EDGE_FADE_FROM: float = 0.72
 const SFX_EDGE_DB: float = -12.0
+
+## **Placed sound** (owner, 2026-10-07). How far across from the ear a sound
+## is hard over, how far over that is (never only one ear), and what a wall
+## between does to it: a low-pass at this cutoff and a few decibels down.
+## The town's footprint is drawn in by `SFX_TOWN_WALL_INSET` of its smaller
+## side, so a blow at the gate is not heard through the gate. [TUNE]
+const SFX_PAN_REACH: float = 1100.0
+const SFX_PAN_STRENGTH: float = 0.7
+const SFX_OCCLUDED_CUTOFF_HZ: float = 900.0
+const SFX_OCCLUDED_DB: float = -5.0
+const SFX_TOWN_WALL_INSET: float = 0.18
 ## **How far a kind of sound carries**, as a multiple of `SFX_NEAR` and
 ## `SFX_CUTOFF`, by the longest prefix of its id that is listed. A quake, a
 ## meteor, a dragon and a funnel are heard across the field; a footstep, a coin

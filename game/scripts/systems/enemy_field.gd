@@ -388,6 +388,13 @@ func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:
 	return found
 
 
+## **Whether something stands between `from` and `to` that a sound would be
+## heard through** (2026-10-07). Nothing, on open ground; a field with walls
+## says so. Asked by `Sfx.placement` once a placed sound starts.
+func occludes_sound(_from: Vector2, _to: Vector2) -> bool:
+	return false
+
+
 ## Placeholder VFX hooks. Overridden where there is somewhere to put them.
 func spawn_tracer(_from: Vector2, _to: Vector2, _colour: Color) -> void:
 	pass

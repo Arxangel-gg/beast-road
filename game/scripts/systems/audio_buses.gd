@@ -21,6 +21,20 @@ const SFX: String = "SFX"
 const AMBIENCE: String = "Ambience"
 const WEATHER: String = "Weather"
 
+## **Where a sound is across the screen, and whether something stands
+## between it and the ear** (owner, 2026-10-07: *"Ensure that sounds are all
+## properly playing location based ... so that the player is better able to
+## hear sounds spatially. If possible to make it with optimization, also
+## include elements for occlusion from the environment on the audio."*).
+##
+## A voice is a plain `AudioStreamPlayer`, which cannot pan, and a per-voice
+## low-pass is a bus effect. So placement is a handful of buses under SFX - a
+## panner each, from hard left to hard right in `PAN_STEPS`, and the same
+## again with a low-pass for a sound heard through a wall - and a voice is
+## sent to the one its sound wants. Ten buses, built once, and nothing a frame.
+const PAN_STEPS: int = 5
+static var _placed: bool = false
+
 
 ## How much of the master fader is currently being let through, 0 to 1.
 ##
@@ -96,6 +110,41 @@ static func ensure() -> void:
 	AudioServer.set_bus_send(3, "Master")
 	AudioServer.set_bus_name(4, WEATHER)
 	AudioServer.set_bus_send(4, "Master")
+
+
+## Builds the placement buses, once. Each sends to SFX, so the player's sound
+## fader and the boss's hush reach a placed voice exactly as an unplaced one.
+static func ensure_placement() -> void:
+	if _placed and AudioServer.get_bus_index(placement_name(0, false)) >= 0:
+		return
+	ensure()
+	for muffled: bool in [false, true]:
+		for step: int in PAN_STEPS:
+			var name: String = placement_name(step, muffled)
+			if AudioServer.get_bus_index(name) >= 0:
+				continue
+			AudioServer.add_bus()
+			var index: int = AudioServer.bus_count - 1
+			AudioServer.set_bus_name(index, name)
+			AudioServer.set_bus_send(index, SFX)
+			var panner := AudioEffectPanner.new()
+			panner.pan = pan_of(step)
+			AudioServer.add_bus_effect(index, panner)
+			if muffled:
+				var through := AudioEffectLowPassFilter.new()
+				through.cutoff_hz = Balance.SFX_OCCLUDED_CUTOFF_HZ
+				AudioServer.add_bus_effect(index, through)
+	_placed = true
+
+
+static func placement_name(step: int, muffled: bool) -> String:
+	return "SFX_P%d%s" % [step, "_M" if muffled else ""]
+
+
+## The pan a placement step stands for, -1 hard left to 1 hard right, held to
+## `SFX_PAN_STRENGTH` so nothing is ever only in one ear.
+static func pan_of(step: int) -> float:
+	return lerpf(-1.0, 1.0, float(step) / float(PAN_STEPS - 1)) * Balance.SFX_PAN_STRENGTH
 
 
 ## Applies the settings faders to the buses. One place, so music and sfx cannot

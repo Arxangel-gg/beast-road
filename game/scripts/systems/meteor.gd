@@ -171,7 +171,7 @@ func _land() -> void:
 	Vfx.forge_play("meteor_bloom", at, Balance.METEOR_RADIUS * 2.2,
 		Color(1.0, 0.76, 0.46))
 	EventBus.camera_impact.emit(at, Balance.METEOR_SHAKE)
-	Sfx.play("sfx_meteor_impact", 0.0)
+	Sfx.play_at("sfx_meteor_impact", at, 0.0)
 	if marks != null:
 		marks.stamp(at, Balance.METEOR_RADIUS * 0.9, 1.0)
 	# **The hole, which outlives everything else here.** Opened on both machines
