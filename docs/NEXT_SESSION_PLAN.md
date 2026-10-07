@@ -763,3 +763,33 @@ on both phones with this build (models, resolutions, act, preset shown);
 item 2 for the fog quad and the weather veil, which still draw on Minimal;
 and item 5, the script side on the phone's CPU, once the readings say the
 GPU is no longer the wall.
+
+### 0m. The owner's message of 2026-10-07 (evening), recorded before the limit
+
+The release sweep of 0f0e47af was 58 PASS and no failure when the session
+stopped, still running (`$S/sweep_rel2.log`). Read its SUMMARY first.
+
+Then, in this order, on top of section 0l's scratch work (rescale, Bulwark,
+batteries):
+
+1. **Hold strangers**: randomized appearance, colours and worn gear for every
+   simulated Warden. `HoldYard.stranger_of(who)` already rolls body, hair,
+   beard, skin, three cloth colours and four gear slots; verify every seat goes
+   through it (table, yard, card) and photograph with `hold_shot`.
+2. **Every enemy a bit more health and a slightly faster walk.** One global
+   scale each (health and base speed), then re-measure `curve_report` on all
+   three roads with `--warden=expected`, the drafted road and the survival
+   floors.
+3. **A slight nerf to augments**: draft pace (`ROAD_RANK_STEP` up) and the
+   effects (`ARSENAL_ACT_SCALE`, catalysts, the defence ceilings). Hold the
+   bands.
+4. **The Arcane primary's reach is too short**: raise the chain bolt's range
+   (`CHAIN_BOLT_*`), `chain_bolt_check`.
+5. **A slight procedural look for every body**: hue, saturation and lightness
+   jitter through the coat uniforms the variants already wear, rolled on the
+   body's own dice (never an instance id), small enough never to read as an
+   elite or a mark; a phenotype-style gate.
+6. **Then optimise** Act X's busiest wave with the loaded board and the full
+   loadout: `perf_offscreen.sh ... perf_check --act=10 --build --loadout
+   --physics=180`, the hitch budget, warm the elite-death and camp-raze first
+   draws, coalesce saves.
