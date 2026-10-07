@@ -14678,6 +14678,17 @@ the body's motion alone - "the gnats draw in close into a tighter knot" rather
 than "surge forward". The swarms' buzz is owed a recording and the ledger says
 so.
 
+**A fall's debrief says what was killing you, as of 2026-10-07** (the triage's
+death recap). `RunState.note_blow` - already called by everything that lands a
+blow on a Warden - also keeps the last `DEATH_RECAP_KEEP` of them with their
+time, and `death_recap` groups the ones inside `DEATH_RECAP_SECONDS` of the last
+by source, heaviest first: "Last seconds   Ember Shaman x3 84  ·  Saltthorn x2
+12". One line answered *what* killed you; this answers what *was*, which is the
+difference between a fall from three things at once and one thing three times.
+On a fall and on a lost Walk, never on a victory or a return. Read nothing in
+the fight; nothing persists. `debrief_check` holds the window, the grouping, the
+order and the endings, and named both planted faults.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

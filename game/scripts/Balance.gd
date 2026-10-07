@@ -2918,6 +2918,12 @@ const TOWER_RISE_SCALE: float = 0.62
 ## embers. Wide enough to cover a status finishing the job, short enough that a
 ## body which walked away from a fire and died to a spear does not.
 const DEATH_ELEMENT_MEMORY: float = 2.5
+## **The death recap** (2026-10-07): how many blows a Warden took are kept,
+## how far back from the last of them the debrief looks, and how many sources
+## it names. [TUNE]
+const DEATH_RECAP_KEEP: int = 32
+const DEATH_RECAP_SECONDS: float = 8.0
+const DEATH_RECAP_LINES: int = 4
 const CROWD_RESIDUAL: float = 3.0
 
 const CROWD_CELL: float = 96.0

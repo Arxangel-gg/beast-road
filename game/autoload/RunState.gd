@@ -737,6 +737,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	# themselves do not, exactly like Gold. A quiver that carried over would make
 	# the first road of every later run trivial for anyone who stockpiled.
 	last_blow.clear()
+	recent_blows.clear()
 	ammo.clear()
 	ranged_id = ""
 	ammo_id = ""
@@ -1955,6 +1956,12 @@ func spend_command(cost: float, order_id: String) -> bool:
 ## screen has always owed the player: what killed me, and for how much.
 var last_blow: Dictionary = {}
 
+## **The last blows a Warden took** (2026-10-07, the death recap): what, how
+## hard and when, newest last, at most `DEATH_RECAP_KEEP`. The debrief groups
+## the final seconds of them by source - one line answers what killed you, and
+## this answers what was killing you.
+var recent_blows: Array[Dictionary] = []
+
 ## What the run keeps whatever happens to it: the account's gains, counted
 ## where each is banked, so the debrief can say what the road was worth even
 ## when it ended badly (the fifth forwarded list: "failure should produce
@@ -2056,6 +2063,35 @@ func note_blow(source_name: String, amount: float) -> void:
 	if source_name.is_empty() or amount <= 0.0:
 		return
 	last_blow = {"source": source_name, "amount": amount}
+	recent_blows.append({"source": source_name, "amount": amount,
+		"at": run_time_seconds + planning_time_seconds})
+	while recent_blows.size() > Balance.DEATH_RECAP_KEEP:
+		recent_blows.pop_front()
+
+
+## **The final seconds, by source**: every blow inside `DEATH_RECAP_SECONDS` of
+## the last, as `{source, count, total}` heaviest first, at most
+## `DEATH_RECAP_LINES`. Empty when nothing has landed.
+func death_recap() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if recent_blows.is_empty():
+		return out
+	var last: float = float(recent_blows[recent_blows.size() - 1]["at"])
+	var by: Dictionary = {}
+	for blow: Dictionary in recent_blows:
+		if last - float(blow["at"]) > Balance.DEATH_RECAP_SECONDS:
+			continue
+		var name: String = String(blow["source"])
+		var entry: Dictionary = by.get(name, {"source": name, "count": 0, "total": 0.0})
+		entry["count"] = int(entry["count"]) + 1
+		entry["total"] = float(entry["total"]) + float(blow["amount"])
+		by[name] = entry
+	for entry: Variant in by.values():
+		out.append(entry as Dictionary)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["total"]) > float(b["total"]))
+	if out.size() > Balance.DEATH_RECAP_LINES:
+		out.resize(Balance.DEATH_RECAP_LINES)
+	return out
 
 
 ## "a Rimewarded Bogkin for 34", or "" when nothing has landed yet.

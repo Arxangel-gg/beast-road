@@ -701,6 +701,7 @@ func _walk_summary() -> Dictionary:
 	return {
 		"walk": true,
 		"last_blow": RunState.last_blow_line(),
+		"recap": RunState.death_recap(),
 		"deaths": RunState.hero_deaths,
 		"wounds": RunState.hero_wounds,
 		"town_fell": RunState.hero_wounds < RunState.max_wounds(),
@@ -778,6 +779,7 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		"wave": RunState.wave_number,
 		"kills": RunState.enemies_killed,
 		"last_blow": RunState.last_blow_line(),
+		"recap": RunState.death_recap(),
 		"deaths": RunState.hero_deaths,
 		# Read by the board (`Score`), which the headless tools also load and so
 		# cannot ask the autoload itself.

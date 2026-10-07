@@ -23,6 +23,7 @@ func _ready() -> void:
 	_test_every_death_names_what_did_it()
 	_test_the_earth_is_counted_where_it_is_seen()
 	await _test_the_debrief_says_both()
+	await _test_the_last_seconds_are_told()
 	MetaState.resume_saves()
 	if _failures.is_empty():
 		print("[debrief] PASS - %d checks: the gains are counted where they are banked, "
@@ -34,6 +35,49 @@ func _ready() -> void:
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
 	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+
+## **The final seconds, by source** (2026-10-07, the death recap): a blow
+## older than the window is not in it, sources are grouped and the heaviest
+## comes first, and the debrief says it on a fall and never on a victory.
+func _test_the_last_seconds_are_told() -> void:
+	RunState.reset()
+	RunState.run_time_seconds = 0.0
+	RunState.note_blow("Bog Maw", 10.0)
+	RunState.run_time_seconds = 20.0
+	RunState.note_blow("Saltthorn", 5.0)
+	RunState.run_time_seconds = 21.0
+	RunState.note_blow("Saltthorn", 7.0)
+	RunState.run_time_seconds = 22.0
+	RunState.note_blow("Ember Shaman", 30.0)
+	var recap: Array[Dictionary] = RunState.death_recap()
+	_check(recap.size() == 2, "the recap names %d sources, not the two in its window" % recap.size())
+	if recap.size() == 2:
+		_check(String(recap[0]["source"]) == "Ember Shaman" and is_equal_approx(float(recap[0]["total"]), 30.0),
+			"the heaviest source does not come first")
+		_check(String(recap[1]["source"]) == "Saltthorn" and int(recap[1]["count"]) == 2 and is_equal_approx(float(recap[1]["total"]), 12.0),
+			"two blows from one source are not one line")
+	for entry: Dictionary in recap:
+		_check(String(entry["source"]) != "Bog Maw", "a blow from long before the end is in the last seconds")
+	var scene: PackedScene = load("res://scenes/ui/results_screen.tscn") as PackedScene
+	var screen: Node = scene.instantiate()
+	add_child(screen)
+	await get_tree().process_frame
+	var summary: Dictionary = {"victory": false, "seed": 1, "roads": [], "distance": 10.0, "act": 2,
+		"wave": 5, "kills": 12, "deaths": 1, "last_blow": "Ember Shaman for 30", "recap": recap,
+		"time": 90.0, "planning_time": 20.0, "kept": {}, "earth": {}, "unlocks": [], "chronicle": []}
+	screen.call("show_results", false, summary)
+	await get_tree().process_frame
+	var body: RichTextLabel = screen.get("body") as RichTextLabel
+	var fell: String = body.get_parsed_text() if body != null else ""
+	_check(fell.contains("Last seconds") and fell.contains("Ember Shaman x1 30") and fell.contains("Saltthorn x2 12"),
+		"a fall's debrief does not tell its last seconds")
+	screen.call("show_results", true, summary)
+	await get_tree().process_frame
+	_check(not body.get_parsed_text().contains("Last seconds"), "a victory's debrief tells last seconds nobody died in")
+	screen.queue_free()
+	RunState.reset()
+	await get_tree().process_frame
 
 
 ## **Every way a Warden can die names what did it.**

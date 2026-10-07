@@ -232,6 +232,22 @@ func _earth_lines(earth: Dictionary) -> PackedStringArray:
 
 
 ## What stays with the account, or the one line that says nothing did.
+## **The final seconds, by source** (2026-10-07): "Last seconds   Ember Shaman x3
+## 84  ·  Saltthorn x2 12", from the summary's `recap`, or "" when there is none.
+static func recap_line(summary: Dictionary) -> String:
+	var recap: Array = summary.get("recap", []) as Array
+	if recap.is_empty():
+		return ""
+	var parts: PackedStringArray = []
+	for entry: Variant in recap:
+		var row := entry as Dictionary
+		if row == null:
+			continue
+		parts.append("%s x%d %d" % [String(row.get("source", "?")), int(row.get("count", 0)),
+			int(round(float(row.get("total", 0.0))))])
+	return "Last seconds   %s" % "  ·  ".join(parts)
+
+
 func _kept_lines(kept: Dictionary, victory: bool) -> PackedStringArray:
 	var parts: PackedStringArray = []
 	var xp: int = int(round(float(kept.get("xp", 0.0))))
@@ -329,6 +345,9 @@ func _show_the_valley(summary: Dictionary) -> void:
 	var blow: String = String(summary.get("last_blow", ""))
 	if not blow.is_empty():
 		lines.append("Last blow   %s" % blow)
+	var seconds: String = recap_line(summary)
+	if not seconds.is_empty():
+		lines.append(seconds)
 	lines.append("")
 	lines.append("Nothing was lost. The Walk is offered again from the menu,")
 	lines.append("or skip it there and take the road with what it would have given.")
@@ -484,6 +503,10 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		# and "fell 3 times" is a statistic about it.
 		"Last blow   %s" % String(summary.get("last_blow", "")) \
 			if not String(summary.get("last_blow", "")).is_empty() else "",
+		# **And what was killing you** (2026-10-07): the final seconds, by source.
+		# A fall that came from three things at once reads differently from one
+		# that came from one thing three times, and only this line can say which.
+		recap_line(summary) if not victory and not returned else "",
 		"Raids %d   ·   Oathbound leaders %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
 		"",
 		"DEFENCE",
