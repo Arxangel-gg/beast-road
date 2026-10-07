@@ -14458,6 +14458,23 @@ const UI_BAR_JUICE_HZ: float = 24.0
 ## And the buttons along the bottom and the right: their frames only, through
 ## `UiTint.see_through`, so the words on them stay whole. [TUNE]
 const UI_BUTTON_SEE_THROUGH: float = 0.72
+## **The front door's buttons** (owner, 2026-10-07): how much of a plate is
+## left so the menu's painting shows through it, and the glow each wears
+## (`MenuButtonFx`): how often it redraws, how fast it eases into a hover, how
+## long a press flashes, embers a second at rest and under the pointer, how
+## many burst off a hover, how many at most, how fast they rise, and how long
+## the glint takes round the frame at rest and under the pointer. [TUNE]
+const MENU_BUTTON_ALPHA: float = 0.66
+const MENU_BUTTON_FX_HZ: float = 30.0
+const MENU_BUTTON_FX_EASE: float = 0.16
+const MENU_BUTTON_FX_FLASH: float = 0.3
+const MENU_BUTTON_FX_IDLE_RATE: float = 1.1
+const MENU_BUTTON_FX_HOVER_RATE: float = 7.0
+const MENU_BUTTON_FX_BURST: int = 12
+const MENU_BUTTON_FX_MAX: int = 48
+const MENU_BUTTON_FX_RISE: float = 34.0
+const MENU_BUTTON_FX_GLINT_SECONDS: float = 4.6
+const MENU_BUTTON_FX_GLINT_HOVER_SECONDS: float = 1.5
 
 
 # --- The pixel grid (owner, 2026-09-17) --------------------------------------

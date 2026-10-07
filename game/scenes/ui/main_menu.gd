@@ -170,6 +170,7 @@ func _ready() -> void:
 	_light_the_title()
 	_spark_the_title()
 	_grade_the_interface.call_deferred()
+	_juice_the_front_door.call_deferred()
 	# **The menu column scrolls.** It used to sit in a fixed 310px box anchored
 	# to the middle of the screen while holding far more than that - on a tall
 	# desktop the overflow happened to land on screen and nobody noticed, and on
@@ -1514,6 +1515,43 @@ func _grade_the_interface() -> void:
 	UiJuice.enrol(get_tree(), self)
 	UiJuice.set_glow(get_tree(), _menu_light())
 
+
+
+## **The front door lets the painting through, and is never quite still**
+## (owner, 2026-10-07). Every button still standing in the menu's own column
+## once the Hold has adopted its doors is made see-through and given a
+## `MenuButtonFx`; a button added later - Resume - is dressed as it arrives. A
+## door the Hold adopts carries its glow and the glow puts itself out there.
+func _juice_the_front_door() -> void:
+	var column: Control = front_column()
+	if column == null:
+		return
+	for child: Node in column.get_children():
+		_juice_door(child, column)
+	if not column.child_entered_tree.is_connected(_on_door_added):
+		column.child_entered_tree.connect(_on_door_added.bind(column))
+
+
+## The column of front doors.
+func front_column() -> Control:
+	var scroll := get_node_or_null("MenuScroll") as ScrollContainer
+	if scroll == null:
+		return null
+	return scroll.get_node_or_null("Buttons") as Control
+
+
+func _on_door_added(node: Node, column: Control) -> void:
+	_juice_door.call_deferred(node, column)
+
+
+func _juice_door(node: Node, column: Control) -> void:
+	if not is_instance_valid(node):
+		return
+	var button := node as Button
+	if button == null or not column.is_ancestor_of(button):
+		return
+	UiTint.see_through(button, Balance.MENU_BUTTON_ALPHA)
+	MenuButtonFx.dress(button, column, String(button.name))
 
 
 ## The menu's own light, taken off the stage rather than from the day cycle.

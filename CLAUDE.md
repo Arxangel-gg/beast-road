@@ -14223,6 +14223,31 @@ the frame it died. `feel_check` kills a real body from its left and reads it
 flashed, tipped right, shoved right and still there; a dismissed summon does
 not tip.
 
+**The front door lets the painting through and is never quite still, as of
+2026-10-07.** Owner: *"Make main menu buttons semitransparent and have game
+juicy vfx animations as they idle as well, and affect those also when hovered."*
+Every button still in the menu's own column once the Hold has adopted its doors
+is see-through (`MENU_BUTTON_ALPHA`, through `UiTint.see_through`, so a plate
+fades and the words never do) and wears a `MenuButtonFx`: one additive drawn
+child that breathes a rim and a band of light at rest, walks a glint round the
+frame and lets the odd ember rise; under the pointer or the pad's focus the rim
+burns, the glint runs with a second opposite, and embers burst; a press flashes.
+**Additive is the safety rule** the holograms live under: it can only add
+light. A door added later (Resume) is dressed as it arrives, and **a door the
+Hold adopts puts its glow out** - it is lit only while its column is an
+ancestor - so the Hold's grid stays the Hold's. A look: nothing reads it, its
+dice are its own, and the particle scale takes its embers to nothing.
+
+`menu_button_fx_check` (both bars) stands the real menu up and holds every door
+see-through and dressed, the glow answering rest, hover, focus, press and leave,
+the cap, a particle scale of nothing, a late door, and a door taken out of the
+column. Planted three ways - no see-through, a glow lit anywhere, embers that
+ignore the scale - and all three were named. **The menu hands its first door
+the pad's focus before the glow is dressed**, so a glow reads the focus it
+finds rather than waiting for a signal that has already gone; the gate gives
+that focus up before measuring a door at rest. `menu_shot --hover=NewRun`
+photographs a lit door.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

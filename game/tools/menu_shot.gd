@@ -27,6 +27,7 @@ func _ready() -> void:
 	var feather: float = -1.0
 	var root: float = -1.0
 	var forced: String = ""
+	var hover: String = ""
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--tag="):
 			tag = argument.trim_prefix("--tag=")
@@ -36,6 +37,9 @@ func _ready() -> void:
 			feather = float(argument.trim_prefix("--feather="))
 		elif argument.begins_with("--root="):
 			root = float(argument.trim_prefix("--root="))
+		elif argument.begins_with("--hover="):
+			# Holds the pointer over a front door, so its glow is photographed lit.
+			hover = argument.trim_prefix("--hover=")
 		elif argument == "--no-glass":
 			# A new Warden is shown the Glass before the menu; this photographs
 			# the menu itself, as a returning player sees it.
@@ -52,6 +56,14 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if wait > 0.0:
 		await get_tree().create_timer(wait).timeout
+	if not hover.is_empty():
+		var door := menu.find_child(hover, true, false) as Button
+		if door != null:
+			door.mouse_entered.emit()
+			await get_tree().create_timer(0.45).timeout
+		var column: Control = menu.call("front_column") as Control
+		if column != null:
+			print("[menu-shot] front column at %s" % str(column.get_global_rect()))
 	var flock: Node = menu.find_child("Birds", true, false)
 	if flock == null:
 		print("[menu-shot] no Birds node")
