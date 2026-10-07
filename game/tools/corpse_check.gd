@@ -268,6 +268,18 @@ func _test_the_road() -> void:
 		field.corpses._process(1.0 / 60.0)
 	_check((carried["at"] as Vector2).distance_to(bearer.global_position) < 20.0, "a carried carcass did not follow its carrier")
 	field.corpses.drop(carried)
+	# A carrier freed under its carcass lets it go, and the field ticks on: the
+	# cast of a freed carrier once stopped every corpse's tick for good.
+	var orphan: Dictionary = field.corpses.lay(spot + Vector2(-300.0, 0.0), spot + Vector2(-310.0, 0.0), 14.0)
+	var after: Dictionary = field.corpses.lay(spot + Vector2(-340.0, 60.0), spot + Vector2(-350.0, 60.0), 14.0)
+	var porter := Node2D.new()
+	field.add_child(porter)
+	field.corpses.carry(orphan, porter)
+	porter.free()
+	var aged: float = float(after["age"])
+	field.corpses._process(0.1)
+	_check(float(after["age"]) > aged + 0.05, "a carrier freed under its carcass stopped the corpses' tick")
+	_check(typeof(orphan.get("carried_by")) == TYPE_NIL, "a carcass still names a carrier that was freed")
 	# Contested: the outclassed yields.
 	var bear_kind: WildlifeData = ContentDB.wildlife_kinds.get("bear", null) as WildlifeData
 	_check(bear_kind != null, "no bear to contest a carcass")

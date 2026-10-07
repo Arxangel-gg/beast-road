@@ -204,8 +204,12 @@ func _process(delta: float) -> void:
 	while index < _corpses.size():
 		var corpse: Dictionary = _corpses[index]
 		corpse["age"] = float(corpse["age"]) + delta
-		var carrier: Node2D = corpse.get("carried_by", null) as Node2D
-		if carrier != null and is_instance_valid(carrier):
+		# **Validity before the cast.** An animal carrying a carcass can be freed
+		# under it, and `as` on a freed object is an engine error that stopped this
+		# whole tick on every frame after - every corpse froze (found 2026-10-07).
+		var held: Variant = corpse.get("carried_by", null)
+		var carrier: Node2D = held as Node2D if held != null and is_instance_valid(held) else null
+		if carrier != null:
 			corpse["at"] = (corpse["at"] as Vector2).lerp(carrier.global_position, minf(1.0, delta * 12.0))
 			corpse["height"] = 10.0
 			moving = true
