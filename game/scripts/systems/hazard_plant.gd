@@ -240,12 +240,12 @@ func _cut_the_waders() -> void:
 		var who := node as Hero
 		if who == null or not who.is_alive() or who.global_position.distance_to(global_position) > data.reach:
 			continue
-		var pool: Health = Health.of(who)
-		if pool == null or not pool.accepts_damage():
+		var health: Health = Health.of(who)
+		if health == null or not health.accepts_damage():
 			continue
-		var amount: float = pool.max_hp * data.hero_share
+		var amount: float = health.max_hp * data.hero_share
 		RunState.note_blow(data.display_name, amount)
-		pool.take_damage(amount, who.global_position)
+		health.take_damage(amount, who.global_position)
 		cut = true
 	var enemies := field as EnemyField
 	if enemies != null and data.body_share > 0.0:

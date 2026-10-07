@@ -14634,6 +14634,15 @@ at the next wave. They throw from their own node, which freezes only with the
 field. The Iron Maw's bite frames painted a jet of flame however it was asked
 and were dropped - it bites with its painting and the procedural lunge.
 
+**And v0.74.0 failed Guard on a variable's name.** `augment_check` walks every
+`.take_damage(` for the damage ledger's name, and exempts a hero's pool only
+when it is spelled `health.take_damage(`; the thorns spelled it `pool`. Ten gates
+walk that call's source, and none of them were on the plants' neighbour list,
+which was chosen by what the plants *read*. Before adding a `.take_damage(`
+anywhere, run every gate that greps for it:
+
+    grep -ln "take_damage(" game/tools/*_check.gd | xargs grep -l get_file_as_string
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
