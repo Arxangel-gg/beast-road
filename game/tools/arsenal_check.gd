@@ -544,6 +544,14 @@ func _test_every_weapon_lands() -> void:
 		var killers: bool = weapon.pattern == ArsenalWeaponData.Pattern.ON_KILL \
 			or weapon.every_kills > 0
 		var crowd: Array[Enemy] = _crowd(breed, where, CROWD_BODIES, CROWD_RADIUS, 400.0)
+		# **The crowd is held still**, not merely slowed: a body that does not walk
+		# still swings at a Warden or a tower in its reach, and a swing's combo
+		# lunges it off where it stood - off an arc's line, out of an orbit - at a
+		# moment the frame rate decides. On a slow machine Arc Lattice measured a
+		# third of its model because its one body lunged at the Warden mid-window.
+		# A held body still answers every blow: health is a call, not a tick.
+		for body: Enemy in crowd:
+			body.process_mode = Node.PROCESS_MODE_DISABLED
 		_hold([id])
 		arsenal.dealt.clear()
 		arsenal.hits.clear()
