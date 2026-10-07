@@ -459,6 +459,7 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 		# walked away from, and the press that does it asks first, because five
 		# hours of road is not a thing to lose to a misclick.
 		MetaState.clear_expedition()
+	_muster()
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed)
 	# The party is playing, so it is not looking for anybody. The row goes now
@@ -486,6 +487,38 @@ func start_run(requested_seed: int = 0, resume_front: bool = false,
 	get_tree().paused = false
 	GameSpeed.reset()
 	_change(RUN_SCENE)
+
+
+## **The company walks out** (2026-10-07): each mercenary marked to come, on its
+## feet, takes the road if its contract can be paid, and stays home if not.
+## Paid here rather than at the Inn because the contract is the road's - a
+## mercenary that never walks one is never charged. A guest's mercenaries are
+## stage five's; a guest takes none.
+func _muster() -> void:
+	RunState.company.clear()
+	RunState.company_stayed_home.clear()
+	if Coop.is_networked() and not Coop.is_host():
+		return
+	var seat: int = Coop.player_count() + 1
+	for row: Dictionary in MetaState.mercenaries_taking():
+		var price: int = Mercenaries.contract(row)
+		if MetaState.marks < price:
+			RunState.company_stayed_home.append(String(row.get("name", "")))
+			continue
+		MetaState.marks -= price
+		RunState.company.append({
+			"uid": String(row["uid"]),
+			"name": String(row.get("name", "")),
+			"slot": seat,
+			"wounds": Balance.MERC_WOUNDS,
+			"purse": 0,
+			"spoils": 0.0,
+			"earned": 0,
+			"out": false,
+		})
+		seat += 1
+	if not RunState.company.is_empty():
+		MetaState.save_game()
 
 
 ## **The Walk: the guided valley, and its own door.**

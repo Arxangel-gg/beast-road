@@ -836,6 +836,7 @@ func _ready() -> void:
 	EventBus.phase_changed.connect(_on_phase_changed)
 	EventBus.preparation_changed.connect(_on_preparation_changed)
 	EventBus.preparation_warning.connect(_show_message)
+	EventBus.company_news.connect(_show_message)
 	# The spirit collection, said out loud on the road. A discovery the player
 	# only finds later in a menu is a discovery that did not happen when it
 	# happened - and the shiny is the whole reason to look up from the fight.

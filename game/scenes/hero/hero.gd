@@ -298,6 +298,11 @@ var _pulse_left: float = 0.0
 ## Defaults to the origin, which is correct for a lone player: there is nothing
 ## to collide with.
 var spawn_point: Vector2 = Vector2.ZERO
+## **A mercenary's body** (2026-10-07): the uid of the hired Warden this body
+## is, or empty for a player. A mercenary is a partner's body driven by an AI
+## (`MercenaryInput`): it fights as its sheet, never as the Warden's account,
+## and its wounds are its own (`_fall_as_mercenary`).
+var mercenary_uid: String = ""
 
 ## Which seat at the table this hero belongs to, 1 to 4.
 ##
@@ -1428,7 +1433,13 @@ func _place_bars(delta: float) -> void:
 
 
 func is_local_player() -> bool:
+	if not mercenary_uid.is_empty():
+		return false
 	return not Coop.is_networked() or party_slot == Coop.party().slot()
+
+
+func is_mercenary() -> bool:
+	return not mercenary_uid.is_empty()
 
 
 ## Clears every disable on this hero. Bulwark Ward's cleanse, for the caster
@@ -3141,6 +3152,11 @@ func _on_died(at: Vector2) -> void:
 	# drawn sitting on a horse and its input stays muted, and a revive brings
 	# the Warden back still mounted and still unable to swing.
 	dismount()
+	# A mercenary falls on its own wounds, never the Warden's - and never on
+	# the Warden's draughts either.
+	if is_mercenary():
+		_fall_as_mercenary(at)
+		return
 	# Asked by *effect*, never by id. The hero's question is "do I hold anything
 	# that stops a death"; what a Draught is happens to be the answer today and
 	# a second revive item is now a file rather than another branch here.
@@ -3166,6 +3182,16 @@ func _on_died(at: Vector2) -> void:
 		return
 	_respawn_left = Balance.HERO_RESPAWN_DELAY
 	_respawn_fraction = Balance.HERO_WOUND_REVIVE_HP
+	_collapse(at)
+
+
+## **A mercenary falls** (2026-10-07): one of its own wounds, and it gets up
+## after the respawn a Warden gets - or, on its last, it is carried off the
+## road (`MercenaryCompany`) and lies in a bed at the Hold's inn.
+func _fall_as_mercenary(at: Vector2) -> void:
+	var left: int = RunState.mercenary_wounded(mercenary_uid)
+	_respawn_fraction = Balance.HERO_WOUND_REVIVE_HP
+	_respawn_left = Balance.HERO_RESPAWN_DELAY if left > 0 else INF
 	_collapse(at)
 
 
@@ -3210,6 +3236,13 @@ func _collapse(at: Vector2) -> void:
 		_lock_frames("death")
 	else:
 		sprite.visible = false
+	# A mercenary falling is not the Warden dying: it is counted and announced
+	# as itself, so the debrief, the death stones and the sound do not mistake
+	# it for the player.
+	if is_mercenary():
+		EventBus.mercenary_fell.emit(mercenary_uid, at,
+			int(RunState.company_row(mercenary_uid).get("wounds", 0)))
+		return
 	RunState.hero_deaths += 1
 	EventBus.hero_died.emit(at)
 
@@ -3248,7 +3281,8 @@ func _finish_respawn(to_spawn: bool = true) -> void:
 		global_position = spawn_point
 	# Standing again is standing on land, whatever took them down.
 	_drowned = false
-	RunState.hero_hp = -1.0
+	if not is_mercenary():
+		RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
 	_restore_presence()
 	_stand_back_up(_respawn_fraction)
@@ -3359,7 +3393,7 @@ func _apply_party_colour() -> void:
 	if not is_inside_tree():
 		return
 	var wanted: Color = CoopParty.colour_of(party_slot)
-	var showing: bool = Coop.player_count() > 1
+	var showing: bool = RunState.party_size() > 1
 
 	var mark: Node2D = get_node_or_null("PartyMark") as Node2D
 	if mark == null:

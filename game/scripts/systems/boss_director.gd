@@ -60,7 +60,7 @@ func summon(act: int) -> bool:
 	if tier != null and tier.boss_marks > 0:
 		worn = EnemyMarks.roll(tier.boss_marks, act, RunState.weather_id, _rng)
 	_active = battlefield.spawn_enemy(data, lane,
-		boss_health_scale(act, tier, Coop.player_count()) * RunState.enemy_escalation_multiplier(),
+		boss_health_scale(act, tier, RunState.party_size()) * RunState.enemy_escalation_multiplier(),
 		boss_damage_scale(act, tier) * RunState.enemy_escalation_multiplier(), 1.0, false,
 		Enemy.Rank.COMMON, worn)
 	if _active == null:
@@ -119,7 +119,7 @@ func _summon_the_gatekeeper_if_owed(act: int, boss_lane: int) -> void:
 	var trial_act: int = GatekeeperTrials.STAGE_ACTS[GatekeeperTrials.STAGES - 1]
 	var tier: CampaignTierData = RunState.tier()
 	_escort = battlefield.spawn_enemy(keeper, lane,
-		boss_health_scale(trial_act, tier, Coop.player_count()) * RunState.enemy_escalation_multiplier(),
+		boss_health_scale(trial_act, tier, RunState.party_size()) * RunState.enemy_escalation_multiplier(),
 		boss_damage_scale(trial_act, tier) * RunState.enemy_escalation_multiplier())
 	if _escort == null:
 		return

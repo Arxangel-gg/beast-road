@@ -504,6 +504,11 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# **What the earth did**, when it did anything. A run the sky struck twice
 	# and shook once was a different run, and the line that says so is the
 	# only readout the wrath will ever have.
+	# The company's cut (2026-10-07): a hired Warden takes its share of the
+	# payout, and a payout that says less than the road paid without saying why
+	# is a payout that reads as a bug.
+	if int(summary.get("company_cut", 0)) > 0:
+		lines.append("The company took %d Marks of the payout" % int(summary.get("company_cut", 0)))
 	lines.append_array(_earth_lines(summary.get("earth", {})))
 	# **What did the damage**, and what each augment added to it - the ledger the
 	# draft owes the player, so a card's worth is seen rather than taken on trust.

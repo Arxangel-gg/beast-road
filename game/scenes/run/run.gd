@@ -1748,6 +1748,10 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	# report, not a settlement.
 	if not bool(summary.get("walk", false)):
 		var marks: int = homecoming_marks(RunState.act, victory or returned)
+		# The company's cut of the payout (2026-10-07), said on the debrief.
+		var cut: int = RunState.company_cut(marks)
+		marks -= cut
+		summary["company_cut"] = cut
 		MetaState.marks += marks
 		MetaState.save_game()
 		summary["marks"] = marks

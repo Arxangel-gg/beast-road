@@ -11549,6 +11549,22 @@ const MERC_WOUNDS: int = 3
 const MERC_SPOILS_SHARE: float = 0.15
 const MERC_REWARD_SHARE: float = 0.12
 const MERC_NAME_MAX: int = 32
+## **A mercenary's mind** (`MercenaryInput`): how often it chooses what to
+## fight, how far from where its order puts it it will engage and how far a
+## hunt looks, how close it walks before swinging (a share of its reach), the
+## rest between its swings and between its dashes, the leash it keeps to its
+## anchor, the health share it falls back at and the share it returns at, and
+## how long it lies where it fell before being carried off. [TUNE]
+const MERC_THINK_SECONDS: float = 0.25
+const MERC_ENGAGE_RADIUS: float = 420.0
+const MERC_HUNT_RADIUS: float = 2400.0
+const MERC_CLOSE_SHARE: float = 0.8
+const MERC_SWING_GAP: float = 0.32
+const MERC_DASH_GAP: float = 4.0
+const MERC_LEASH: float = 170.0
+const MERC_RETREAT_SHARE: float = 0.25
+const MERC_RECOVER_SHARE: float = 0.6
+const MERC_CARRY_SECONDS: float = 2.0
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

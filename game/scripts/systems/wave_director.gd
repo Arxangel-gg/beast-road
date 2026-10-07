@@ -569,12 +569,14 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 ## damage instead adds duration rather than pressure and invalidates the dodge
 ## windows the whole combat design rests on.
 ##
-## Reads `Coop.player_count`, which answers on whether a partner is actually
+## Reads `RunState.party_size` - the players, which answers on whether a partner
+## is actually present, and every mercenary still on its feet (2026-10-07) -
+## rather than `Coop.player_count` alone. The players are counted on whether a partner is actually
 ## *present* rather than on whether a session is open - so a host listening alone
 ## still faces a one-player wave, and a partner dropping mid-act does not leave
 ## the survivor fighting a wave sized for two.
 func coop_body_scale() -> float:
-	return body_scale_for(Coop.player_count())
+	return body_scale_for(RunState.party_size())
 
 
 ## The same, for a player count that is not the live one.

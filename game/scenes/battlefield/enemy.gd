@@ -3780,7 +3780,7 @@ func road_xp_worth() -> float:
 		return Balance.ROAD_XP_CAMP
 	if is_camp_mob():
 		return worth
-	return worth / WaveDirector.body_scale_for(Coop.player_count())
+	return worth / WaveDirector.body_scale_for(RunState.party_size())
 
 
 func _on_died(_from: Vector2) -> void:

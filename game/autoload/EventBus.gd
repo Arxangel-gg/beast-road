@@ -568,6 +568,13 @@ signal camera_shake_requested(magnitude: float, duration: float)
 ## a full-strength impact; anything emitting one works that out from its
 ## own numbers rather than guessing a magnitude.
 signal camera_impact(at: Vector2, power: float)
+## **A mercenary fell** (2026-10-07): its uid, where, and the wounds it has
+## left - none means it is carried off the road.
+signal mercenary_fell(uid: String, at: Vector2, wounds_left: int)
+## A mercenary was carried off the road after its last wound.
+signal mercenary_carried_off(uid: String)
+## A line about the company for the HUD's message banner.
+signal company_news(text: String)
 
 ## Something wants a brief global freeze on impact. Highest request wins.
 signal hitstop_requested(duration: float)

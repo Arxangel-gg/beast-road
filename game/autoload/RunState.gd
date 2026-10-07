@@ -685,6 +685,9 @@ func _fresh_seed() -> int:
 ## run entirely (GDD §10).
 func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
+	company.clear()
+	company_stayed_home.clear()
+	tower_owners.clear()
 	distance_travelled = 0.0
 	taken_omens.clear()
 	pending_omens.clear()
@@ -2280,6 +2283,119 @@ func _scarcity(id: String, amount: int) -> int:
 	return whole
 
 
+## --- The company (2026-10-07) ----------------------------------------------
+
+## **The mercenaries on this road**: one row each - its uid, its name, the seat
+## it stands on, the wounds it has left, its purse of Gold and whether it has
+## been carried off. Taken at the road's start from `MetaState.mercenaries_taking`
+## with each contract paid (`GameDirector._muster`), and cleared by `reset`.
+var company: Array[Dictionary] = []
+## The names of the ones who stayed home because their contract could not be
+## paid, said once when the road opens.
+var company_stayed_home: Array[String] = []
+## Who paid for a tower: its anchor, and the uid of the mercenary that built it.
+## A tower nobody named here is the party's.
+var tower_owners: Dictionary = {}
+
+
+## **How many seats the party fills**: the players, and every mercenary still on
+## its feet. The road reads this wherever it sizes itself for a party - bodies,
+## a boss's pool, a rank's share, the income scale - so a mercenary costs the
+## road what a partner does (`docs/MERCENARIES_2026-10-07.md` §2).
+func party_size() -> int:
+	return clampi(Coop.player_count() + live_mercenaries().size(), 1, Balance.COOP_MAX_PLAYERS)
+
+
+## The mercenaries still on the road.
+func live_mercenaries() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for row: Dictionary in company:
+		if not bool(row.get("out", false)):
+			out.append(row)
+	return out
+
+
+## One mercenary's row on this road, or an empty dictionary.
+func company_row(uid: String) -> Dictionary:
+	for row: Dictionary in company:
+		if String(row.get("uid", "")) == uid:
+			return row
+	return {}
+
+
+## A mercenary's Gold on this road.
+func mercenary_purse(uid: String) -> int:
+	return int(company_row(uid).get("purse", 0))
+
+
+## What a price comes to for a mercenary: its whole sum, paid at par from its
+## Gold. A mercenary's purse is filled from kills and kills pay Gold, and a
+## tower's second currency is the Warden's wallet's business, never its own.
+static func par_total(cost: Dictionary) -> int:
+	var total: int = 0
+	for key: Variant in cost:
+		total += maxi(int(cost[key]), 0)
+	return total
+
+
+func mercenary_can_afford(uid: String, cost: Dictionary) -> bool:
+	var row: Dictionary = company_row(uid)
+	return not row.is_empty() and not bool(row.get("out", false)) \
+		and int(row.get("purse", 0)) >= par_total(cost)
+
+
+func mercenary_spend(uid: String, cost: Dictionary) -> bool:
+	if not mercenary_can_afford(uid, cost):
+		return false
+	var row: Dictionary = company_row(uid)
+	row["purse"] = int(row["purse"]) - par_total(cost)
+	return true
+
+
+## A refund that belongs to a mercenary goes back into its purse.
+func mercenary_refund(uid: String, amount: int) -> void:
+	var row: Dictionary = company_row(uid)
+	if not row.is_empty() and amount > 0:
+		row["purse"] = int(row.get("purse", 0)) + amount
+
+
+## **A wound** on a mercenary. Returns how many it has left; at none it is
+## carried off the road for the rest of it.
+func mercenary_wounded(uid: String) -> int:
+	var row: Dictionary = company_row(uid)
+	if row.is_empty():
+		return 0
+	var left: int = maxi(int(row.get("wounds", Balance.MERC_WOUNDS)) - 1, 0)
+	row["wounds"] = left
+	if left <= 0:
+		row["out"] = true
+	return left
+
+
+## The share of a kill that goes to the company, banked into each purse with
+## its fraction carried. Returns what was taken.
+func _pay_the_company(earned: float) -> float:
+	var live: Array[Dictionary] = live_mercenaries()
+	if live.is_empty() or earned <= 0.0:
+		return 0.0
+	var share: float = earned * Balance.MERC_SPOILS_SHARE
+	for row: Dictionary in live:
+		var carried: float = float(row.get("spoils", 0.0)) + share
+		var whole: int = int(floor(carried))
+		row["spoils"] = carried - float(whole)
+		row["purse"] = int(row.get("purse", 0)) + whole
+		row["earned"] = int(row.get("earned", 0)) + whole
+	return share * float(live.size())
+
+
+## The Marks the company takes off a run's payout: each mercenary that walked
+## out takes its share, carried off or not - it walked the road it was paid for.
+func company_cut(marks: int) -> int:
+	if company.is_empty() or marks <= 0:
+		return 0
+	return mini(marks, int(round(float(marks) * Balance.MERC_REWARD_SHARE * float(company.size()))))
+
+
 ## Adds a scaled enemy drop while retaining fractions across kills.
 func gain_kill_resources(base_amount: int) -> void:
 	if base_amount <= 0:
@@ -2290,8 +2406,11 @@ func gain_kill_resources(base_amount: int) -> void:
 	# Twice the bodies into one shared pool is twice the income, and the tower
 	# curve was tuned against one player earning. See the constant for why it is
 	# under one since the Arsenal.
-	if Coop.partner_present():
+	if party_size() > 1:
 		earned *= Balance.COOP_KILL_INCOME_SCALE
+	# **A mercenary's share of the spoils** (2026-10-07): off the top of every
+	# kill, into its own purse, which it spends on its own towers and traps.
+	earned -= _pay_the_company(earned)
 	kill_resource_remainder += earned
 	var whole: int = int(floor(kill_resource_remainder))
 	if whole <= 0:

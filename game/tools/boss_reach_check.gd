@@ -79,7 +79,10 @@ func _test_the_road_reaches_the_boss() -> void:
 	var director: String = FileAccess.get_file_as_string("res://scripts/systems/boss_director.gd")
 	_check(director.count("boss_health_scale(") >= 3 and director.count("boss_damage_scale(") >= 3,
 		"a boss is spawned somewhere without the road's own scales")
-	_check(director.count("Coop.player_count())") >= 2,
+	# Amended 2026-10-07: the party a boss faces is `RunState.party_size`, which
+	# counts a hired mercenary as a seat as well as a player - the invariant,
+	# that every spawn reads the party, is unchanged.
+	_check(director.count("RunState.party_size())") >= 2,
 		"a boss is spawned somewhere without the party it faces")
 	# And the road says what it expects before it is walked: the gear its own
 	# bosses are measured against is in the picker's tooltip, by rarity name.

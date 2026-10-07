@@ -14351,6 +14351,47 @@ alone - **a cap plant and a cleaning plant beside each other hid the second**,
 because the extra row the first let in pushed the forged row past the cap.
 `inn_shot` is the photograph.
 
+**Mercenaries, stage two: on the road, as of 2026-10-07.** A mercenary is a
+partner's body with an AI for hands. `GameDirector._muster` charges each
+contract as the road begins - a mercenary that cannot be paid stays home and the
+road says so - and `MercenaryCompany`, a child of the battlefield, stands each
+one on a seat after the players' as a `Hero` with `MercenaryInput`, its sheet
+(`Mercenaries.sheet_row`), its look and its worn kinds. **Nothing about the fight
+learns mercenaries exist**: the input writes a snapshot a partner's would, so
+every swing, dash and sprint is a press a player could make.
+
+**It counts as a seat, and the road reads one door for that.**
+`RunState.party_size` is the players and every mercenary still on its feet; the
+wave's bodies, a boss's pool, a rank's share and the income scale all read it
+where they read `Coop.player_count` before. `boss_reach_check`'s source walk named
+the old reader and was amended (the invariant - every spawn reads the party - is
+unchanged).
+
+**Its money is its own.** A share of every kill's spoils goes to its purse
+(`_pay_the_company`, the fraction carried); a purse pays a price **at par** -
+kills pay Gold and a tower's second currency is the Warden's wallet's business -
+and never touches the Warden's wallet. The payout's cut is its share, said on
+the debrief.
+
+**Its wounds are its own and it is never the player.** `Hero.is_local_player`
+is false for a mercenary, so the HUD, the camera and `RunState.hero_hp` are the
+Warden's alone; a fall is `EventBus.mercenary_fell`, never `hero_died`, so the
+debrief, the death stones and the sound do not mistake it for the Warden. Its
+last wound carries it off to a bed with its bill (`carry_off`) - at once, not at
+the settle, because it has left the road whatever the run does next.
+
+**The AI** follows, guards, hunts or holds the wall; every order gives way to
+falling back below a share of its health. **It leaves a Herald alone**, which is
+deliberate: a Herald is the Warden's to stop (2026-09-30), and a hired hand that
+ran it down would be the board doing it by another name.
+
+`mercenary_road_check` (both bars) stands the real road: the muster, the seats,
+the count, a fight, the spoils and the build price at par, three wounds and the
+bed, and the cut. Four planted faults were named. **Two harness lessons**: a
+Warden swings only in a fight's phase, so a gate measuring a swing in
+Preparation reads an AI that never fights; and a respawn is invulnerable on
+`is_invulnerable`, which `accepts_damage` does not cover.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
