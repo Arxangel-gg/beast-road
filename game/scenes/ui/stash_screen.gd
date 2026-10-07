@@ -1347,6 +1347,7 @@ func _compare_to_worn(piece: Dictionary, row: Control = null) -> void:
 ## keeping clear of the row.
 func _seat_compare(row: Control) -> void:
 	var screen: Vector2 = get_viewport().get_visible_rect().size
+	_compare.fit_within(screen.x - 16.0)
 	var wide: float = _compare.get_combined_minimum_size().x
 	var centre_x: float = screen.x * 0.5
 	var scroll_top: float = 0.0

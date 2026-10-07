@@ -27,6 +27,7 @@ var _dice := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	UiJuice.enrol.call_deferred(get_tree(), self)
 	layer = 60
 	_dice.randomize()
 	_panel = PanelContainer.new()

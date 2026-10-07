@@ -357,6 +357,7 @@ func _ware_row(piece: Dictionary, index: int, answer: int = GearCompare.Verdict.
 func _compare_to_worn(piece: Dictionary) -> void:
 	if _compare == null or not is_instance_valid(_compare):
 		return
+	_compare.fit_within(get_viewport().get_visible_rect().size.x - 16.0)
 	_compare.show_pair(piece)
 
 

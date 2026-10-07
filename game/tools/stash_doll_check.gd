@@ -145,6 +145,10 @@ func _kind_in(slot: int, skip: int = 0) -> GearData:
 ## A worn Chainbroken weapon, a worn Rough charm, and three unworn pieces: a
 ## Rough and a Sound weapon (both worse than the worn one) and a Fine helmet
 ## (better than the nothing worn there).
+## Whether the harness found a name that grants a branch for the worn sword.
+var _grant_named: bool = false
+
+
 func _stock() -> void:
 	MetaState.stash = []
 	MetaState.equipped = {}
@@ -163,7 +167,24 @@ func _receive(kind: GearData, rarity: int, wear: bool) -> void:
 	_check(kind != null, "a gear kind is needed for every slot the harness stocks")
 	if kind == null:
 		return
-	MetaState.receive_gear(Stash.make(kind.id, rarity, 1))
+	var piece: Dictionary = Stash.make(kind.id, rarity, 1)
+	# **The worn top piece always grants a skill branch**, whose line is a whole
+	# sentence: the comparison card is measured against its longest roll, never
+	# against whichever name the run happened to draw. The refit test failed on
+	# one sword in five before the line wrapped (release sweep, 2026-10-07).
+	if wear and rarity > 0:
+		var base: Variant = piece["uid"]
+		for attempt: int in 2000:
+			var granted: bool = false
+			for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
+				granted = granted or legend.is_grant()
+			if granted:
+				break
+			piece["uid"] = int(base) + attempt + 1
+		_grant_named = false
+		for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
+			_grant_named = _grant_named or legend.is_grant()
+	MetaState.receive_gear(piece)
 	if wear:
 		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
 
@@ -466,15 +487,22 @@ func _test_the_card_follows_a_refit() -> void:
 	await get_tree().process_frame
 	_check(compare.visible, "hovering before the refit did not open the card")
 	var scale_before: Vector2i = get_window().content_scale_size
-	get_window().size = Vector2i(700, 1000)
-	get_window().content_scale_size = Vector2i(700, 1000)
+	# **Narrower than two whole cards and their frame** (about 650), which the
+	# release sweep of 2026-10-07 reached by accident at 612 and this asks for
+	# on purpose: the card has to narrow to the screen, not stand off it.
+	get_window().size = Vector2i(560, 1000)
+	get_window().content_scale_size = Vector2i(560, 1000)
 	await get_tree().process_frame
 	_screen.call("_refit")
 	for _settle: int in 4:
 		await get_tree().process_frame
 	var screen: Rect2 = get_viewport().get_visible_rect()
 	var seat: Rect2 = compare.get_global_rect()
-	_check(screen.encloses(seat), "after the refit the card sits at %s, off a %s screen" % [seat, screen])
+	_check(screen.size.x < GearCompare.CARD_WIDTH * 2.0 + 140.0,
+		"the harness meant a screen narrower than two whole cards and got %.0f" % screen.size.x)
+	_check(_grant_named, "the harness found no name that grants a branch, so the card's longest line was never on it")
+	# Half a unit for the float a clamp to the screen's edge lands on (874.9999).
+	_check(screen.grow(0.5).encloses(seat), "after the refit the card sits at %s, off a %s screen" % [seat, screen])
 	var lane: Rect2 = scroll.get_global_rect()
 	_check(absf(seat.get_center().x - lane.get_center().x) < 2.0,
 		"after the refit the card is centred at %.0f, the lane at %.0f" % [seat.get_center().x, lane.get_center().x])

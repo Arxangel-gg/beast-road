@@ -47,6 +47,11 @@ enum Verdict { SAME, BETTER, WORSE, TRADE, EMPTY_SLOT }
 ## player recognises a piece by, and at list size it is a bullet point.
 const PORTRAIT: float = 96.0
 const CARD_WIDTH: float = 250.0
+## The narrowest a card may become on a small screen: still room for a
+## portrait and a short line, and never a column one word wide.
+const CARD_WIDTH_MIN: float = 150.0
+## The gap between the two cards.
+const CARD_GAP: float = 10.0
 
 var _held_card: VBoxContainer = null
 var _offered_card: VBoxContainer = null
@@ -67,7 +72,7 @@ func _build() -> void:
 	add_child(column)
 
 	var pair := HBoxContainer.new()
-	pair.add_theme_constant_override("separation", 10)
+	pair.add_theme_constant_override("separation", int(CARD_GAP))
 	pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(pair)
 
@@ -86,7 +91,7 @@ func _build() -> void:
 	_verdict.fit_content = true
 	_verdict.scroll_active = false
 	_verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_verdict.custom_minimum_size = Vector2(CARD_WIDTH * 2.0 + 10.0, 0.0)
+	_verdict.custom_minimum_size = Vector2(CARD_WIDTH * 2.0 + CARD_GAP, 0.0)
 	_verdict.add_theme_font_size_override("normal_font_size", 14)
 	_verdict.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_verdict)
@@ -98,6 +103,24 @@ func _card() -> VBoxContainer:
 	card.add_theme_constant_override("separation", 3)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return card
+
+
+## **Narrows the two cards to fit `width`, the room the screen gives it**, and
+## never past `CARD_WIDTH` or under `CARD_WIDTH_MIN`. Two fixed 250-unit cards
+## and their frame are about 650 wide, and the release sweep of 2026-10-07 gave
+## the stash a 612-unit upright screen: the card stood off its side. Every
+## line on a card wraps or is short, so a narrower card is a taller one.
+func fit_within(width: float) -> void:
+	var frame: float = 0.0
+	var plate: StyleBox = get_theme_stylebox("panel")
+	if plate != null:
+		frame = plate.get_content_margin(SIDE_LEFT) + plate.get_content_margin(SIDE_RIGHT)
+	var each: float = clampf((width - frame - CARD_GAP) * 0.5, CARD_WIDTH_MIN, CARD_WIDTH)
+	for card: VBoxContainer in [_held_card, _offered_card]:
+		if card != null:
+			card.custom_minimum_size.x = each
+	if _verdict != null:
+		_verdict.custom_minimum_size.x = each * 2.0 + CARD_GAP
 
 
 ## Shows the offered piece beside whatever is worn in its slot.
@@ -251,6 +274,7 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 	var what := Label.new()
 	what.text = "%s  ·  Level %d" % [kind.slot_name(), int(piece.get("level", 1))]
 	what.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	what.add_theme_font_size_override("font_size", 12)
 	what.add_theme_color_override("font_color", Color("8d968f"))
 	card.add_child(what)
@@ -281,7 +305,10 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 		card.add_child(_attribute_line(which,
 			"0 %s" % RunState.ATTRIBUTE_NAMES[which], WORSE))
 	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
-		card.add_child(_stat_line(legend.line(), Color("e8a33d")))
+		# **A legendary line wraps**: a granted branch is a sentence, and a card
+		# as wide as its longest roll is a card off the side of an upright screen
+		# on one sword in five (stash_doll_check, the release sweep of 2026-10-07).
+		card.add_child(_stat_line(legend.line(), Color("e8a33d"), true))
 
 
 ## What a piece grants, attribute by attribute. The same door the hero reads,
@@ -341,9 +368,11 @@ func _attribute_line(which: int, text: String, ink: Color) -> Control:
 	return row
 
 
-func _stat_line(text: String, ink: Color) -> Label:
+func _stat_line(text: String, ink: Color, wraps: bool = false) -> Label:
 	var line := Label.new()
 	line.text = text
+	if wraps:
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.add_theme_font_size_override("font_size", 13)
 	line.add_theme_color_override("font_color", ink)
