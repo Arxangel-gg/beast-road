@@ -442,7 +442,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# own `health_scale`. Read off the act's own pool at the tier's floor share
 	# (the earth's anger lifts it in play), so the harder roads are measured
 	# with the bodies they actually send.
-	var threat: float = float(bodies) * hp * _mark_health(act)
+	var threat: float = float(bodies) * hp * _mark_health(act) * Balance.ENEMY_HEALTH_SCALE
 
 	# Killing pays for the next wall, so income is a function of the bodies
 	# already dealt with rather than of the clock. Modelling it as time-based
@@ -653,7 +653,7 @@ func _print_warden_alone() -> void:
 				count += 1
 		if count == 0:
 			continue
-		var health: float = total / float(count) * float(row["hp"])
+		var health: float = total / float(count) * float(row["hp"]) * Balance.ENEMY_HEALTH_SCALE
 		line.append("%d:%.1fs" % [act, health / maxf(float(row.get("warden_single", 0.0)), 0.01)])
 	print("[curve] one road body against the Warden alone   %s" % " ".join(line))
 
@@ -666,7 +666,7 @@ func boss_seconds(act: int, row: Dictionary, players: int) -> float:
 	var boss: EnemyData = ContentDB.enemy(terrain.boss_id)
 	if boss == null:
 		return -1.0
-	var health: float = boss.max_hp * BossDirector.boss_health_scale(act, RunState.tier(), players)
+	var health: float = boss.max_hp * BossDirector.boss_health_scale(act, RunState.tier(), players) * Balance.ENEMY_HEALTH_SCALE
 	var towers: float = float(row.get("towers_dps", 0.0))
 	var reach: float = float(row["capability"]) - towers - float(row["arsenal"]) \
 		+ towers / float(Balance.LANE_COUNT) + float(row.get("arsenal_single", 0.0))

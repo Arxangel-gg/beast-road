@@ -12,6 +12,6 @@ regions = Array[String](["snow"])
 weight = 3.00
 patience = 5.0
 food = 7
-heal_fraction = 0.08
+heal_fraction = 0.064
 shield_fraction = 0.00
 mana_fraction = 0.04

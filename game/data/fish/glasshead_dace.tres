@@ -12,6 +12,6 @@ regions = Array[String](["desert"])
 weight = 3.00
 patience = 4.5
 food = 6
-heal_fraction = 0.05
+heal_fraction = 0.04
 shield_fraction = 0.05
 mana_fraction = 0.00

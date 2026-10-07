@@ -534,14 +534,14 @@ func _test_a_front_comes_home_on_new_ground() -> void:
 	_check(UserSettings.map_mode() == MapModes.RANDOM,
 		"an account with no map setting reads Random, got %s" % UserSettings.map_mode())
 	MetaState.settings[UserSettings.MAP_MODE_KEY] = MapModes.LEGACY_CLASSIC
-	_check(UserSettings.map_mode() == MapModes.KEEP,
+	_check(UserSettings.map_mode() == MapModes.FALLBACK,
 		"a setting saved as the retired layout reads Keep, got %s" % UserSettings.map_mode())
 	if setting_was == null:
 		MetaState.settings.erase(UserSettings.MAP_MODE_KEY)
 	else:
 		MetaState.settings[UserSettings.MAP_MODE_KEY] = setting_was
 	RunState.reset(false, 0)
-	var keep := BattleGrid.new(4242, MapModes.KEEP)
+	var keep := BattleGrid.new(4242, MapModes.FALLBACK)
 	var road_tile := Vector2i(-1, -1)
 	var open_tile := Vector2i(-1, -1)
 	var trap_tile := Vector2i(-1, -1)
@@ -579,7 +579,7 @@ func _test_a_front_comes_home_on_new_ground() -> void:
 	}
 	_check(Expedition.is_readable(front), "the front with the retired layout's name is readable")
 	_check(Expedition.apply(front), "and it applies")
-	_check(RunState.map_mode == MapModes.KEEP,
+	_check(RunState.map_mode == MapModes.FALLBACK,
 		"a front banked on the retired layout comes home on Keep (got %s)" % RunState.map_mode)
 	_check(not RunState.map_varied, "and on Keep as designed, never varied")
 	if trap != null:
@@ -596,7 +596,7 @@ func _test_a_front_comes_home_on_new_ground() -> void:
 	for _frame: int in 20:
 		await get_tree().process_frame
 	var field: Battlefield = run.battlefield
-	_check(field != null and field.grid != null and field.grid.mode == MapModes.KEEP,
+	_check(field != null and field.grid != null and field.grid.mode == MapModes.FALLBACK,
 		"the field was laid on Keep")
 	_check(not RunState.towers.has(road_tile), "the tower on Keep's road was taken down")
 	_check(RunState.towers.has(open_tile), "and the tower on open ground still stands")

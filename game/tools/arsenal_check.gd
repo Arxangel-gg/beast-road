@@ -376,13 +376,16 @@ func _test_the_formula() -> void:
 	_hold(["seeking_flames"])
 	RunState.act = 1
 	var base: float = arsenal.hit_for(weapon, 1)
-	_check(is_equal_approx(base, weapon.damage * arsenal.owner_multiplier()),
-		"a level I hit in Act I is %.2f, not its damage times the Warden's multiplier (%.2f)"
-			% [base, weapon.damage * arsenal.owner_multiplier()])
+	# Act I's rung of the ladder is read rather than taken as one: it has been
+	# 0.95 since the augment nerf of 2026-10-07.
+	var act_one: float = Balance.arsenal_act_scale(1)
+	_check(is_equal_approx(base, weapon.damage * arsenal.owner_multiplier() * act_one),
+		"a level I hit in Act I is %.2f, not its damage times the Warden's multiplier and Act I's rung (%.2f)"
+			% [base, weapon.damage * arsenal.owner_multiplier() * act_one])
 	_check(is_equal_approx(arsenal.hit_for(weapon, 5) / base, weapon.level_damage[4]),
 		"level V does not multiply the hit by its own table")
 	RunState.act = 6
-	_check(is_equal_approx(arsenal.hit_for(weapon, 1) / base, Balance.arsenal_act_scale(6)),
+	_check(is_equal_approx(arsenal.hit_for(weapon, 1) / base, Balance.arsenal_act_scale(6) / act_one),
 		"Act VI does not multiply the hit by the act ladder")
 	RunState.act = 1
 

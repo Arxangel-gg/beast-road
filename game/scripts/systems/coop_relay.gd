@@ -1446,9 +1446,9 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() >= 1 and args.size() <= 3:
 				# Heard before the run starts, so the guest's `start_run` lays
 				# the host's map, varied as the host's was. A host that sent no
-				# map sent Keep.
+				# map sent the fallback.
 				RunState.relayed_map_mode = MapModes.sanitise(args[1]) if args.size() >= 2 \
-					else MapModes.KEEP
+					else MapModes.FALLBACK
 				RunState.relayed_map_varied = args.size() == 3 and bool(args[2])
 				bus.coop_run_started.emit(int(args[0]))
 		Fact.WELCOME:

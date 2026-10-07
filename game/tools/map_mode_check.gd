@@ -76,13 +76,13 @@ func _init() -> void:
 
 
 func _check_sanitise() -> void:
-	_check(MapModes.sanitise("nonsense") == MapModes.KEEP,
-		"an unknown mode must read as Keep, not reach the grid")
-	_check(MapModes.sanitise(7) == MapModes.KEEP, "a mode that is not text must read as Keep")
+	_check(MapModes.sanitise("nonsense") == MapModes.FALLBACK,
+		"an unknown mode must read as the fallback, not reach the grid")
+	_check(MapModes.sanitise(7) == MapModes.FALLBACK, "a mode that is not text must read as the fallback")
 	# **The retired layout is reachable by no player door** (owner, 2026-10-06).
-	_check(MapModes.sanitise(MapModes.LEGACY_CLASSIC) == MapModes.KEEP,
-		"a front or a setting that names the retired layout must read as Keep")
-	_check(MapModes.sanitise(MapModes.AUTHORED) == MapModes.KEEP,
+	_check(MapModes.sanitise(MapModes.LEGACY_CLASSIC) == MapModes.FALLBACK,
+		"a front or a setting that names the retired layout must read as the fallback")
+	_check(MapModes.sanitise(MapModes.AUTHORED) == MapModes.FALLBACK,
 		"the authored reference must never come out of sanitise")
 	_check(not MapModes.ids().has(MapModes.AUTHORED) and not MapModes.ids().has(MapModes.LEGACY_CLASSIC),
 		"neither the reference nor the retired name is a layout a player can pick")
@@ -114,8 +114,8 @@ func _check_authored_is_the_reference(classic: BattleGrid) -> void:
 		_check(str(plain.routes) == str(named.routes) and str(plain.far_routes) == str(named.far_routes),
 			"seed %d: the reference's routes differ from the unmoded grid's" % seed_value)
 		var legacy := BattleGrid.new(seed_value, MapModes.LEGACY_CLASSIC)
-		_check(legacy.mode == MapModes.KEEP and legacy.cells != named.cells,
-			"seed %d: a grid asked for by the retired name must be Keep, not the retired map" % seed_value)
+		_check(legacy.mode == MapModes.FALLBACK and legacy.cells != named.cells,
+			"seed %d: a grid asked for by the retired name must be the fallback, not the retired map" % seed_value)
 	var text: String = FileAccess.get_file_as_string(BattleGrid.LAYOUT_PATH)
 	var parsed: Variant = JSON.parse_string(text)
 	var rows: Array = (parsed as Dictionary).get("tiles", []) if parsed is Dictionary else []
@@ -233,7 +233,7 @@ func _check_random() -> void:
 		var named: Array = MapModes.resolve(id, 5)
 		_check(String(named[0]) == id and not bool(named[1]),
 			"picking %s laid %s, varied %s" % [id, named[0], named[1]])
-	_check(MapModes.sanitise(MapModes.RANDOM) == MapModes.KEEP,
+	_check(MapModes.sanitise(MapModes.RANDOM) == MapModes.FALLBACK,
 		"Random must never reach the grid as a layout")
 	_check(MapModes.sanitise_choice(MapModes.RANDOM) == MapModes.RANDOM,
 		"Random must survive as a choice")
@@ -241,8 +241,8 @@ func _check_random() -> void:
 	# (owner, 2026-10-06): the retired map is the gates' reference ground and
 	# nothing a player can choose.
 	_check(String(MapModes.choices()[0]["id"]) == MapModes.RANDOM
-		and String(MapModes.choices()[1]["id"]) == MapModes.KEEP,
-		"the dropdown opens with Random and then Keep")
+		and String(MapModes.choices()[1]["id"]) == MapModes.CITADEL and MapModes.FALLBACK == MapModes.CITADEL,
+		"the dropdown opens with Random and then Citadel, which is the fallback (owner, 2026-10-07)")
 	_check(BattleGrid.new(3, MapModes.AUTHORED, true).cells == BattleGrid.new(3).cells,
 		"the authored reference asked to vary must still be the authored reference")
 

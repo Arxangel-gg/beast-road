@@ -362,7 +362,7 @@ static func roll_damage(nominal: float, rng: RandomNumberGenerator) -> float:
 
 
 func damage_at(level: int) -> float:
-	return damage * Balance.TOWER_LEVEL_DAMAGE[_level_index(level)]
+	return damage * Balance.TOWER_LEVEL_DAMAGE[_level_index(level)] * Balance.TOWER_DAMAGE_SCALE
 
 
 func interval_at(level: int) -> float:

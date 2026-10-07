@@ -274,7 +274,7 @@ static func apply(stored: Dictionary) -> bool:
 	# A front banked on the retired layout comes home on Keep; what cannot
 	# stand on the new ground is refunded when the field is built
 	# (`Battlefield._refund_the_unstandable`).
-	RunState.map_mode = MapModes.sanitise(stored.get("map_mode", MapModes.KEEP))
+	RunState.map_mode = MapModes.sanitise(stored.get("map_mode", MapModes.FALLBACK))
 	RunState.map_varied = bool(stored.get("map_varied", false))
 	# **The wall comes back as hurt as it was.** Same argument as the towers:
 	# a wall that healed on extraction is a wall nobody ever has to mend.

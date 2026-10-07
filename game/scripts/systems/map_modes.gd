@@ -40,7 +40,7 @@ extends RefCounted
 ## sanitises. `map_mode_check` holds that.
 const AUTHORED: String = "authored"
 ## What the retired layout was called in a banked front or an old setting. It
-## reads as Keep now, and a front banked on it comes home on Keep.
+## reads as the fallback now, and a front banked on it comes home there.
 const LEGACY_CLASSIC: String = "classic"
 const KEEP: String = "keep"
 const CITADEL: String = "citadel"
@@ -50,14 +50,18 @@ const FOUR_RINGS: String = "confluence_rings"
 const WILD: String = "wild"
 ## A choice in the dropdown and never a road: see `resolve`.
 const RANDOM: String = "random"
+## **The layout anything unnamed is laid on - Citadel, as of 2026-10-07**
+## (owner: "Default map should be Citadel instead of Keep"): a front, a setting
+## or a packet naming nothing this build has, and the Walk. It was Keep.
+const FALLBACK: String = CITADEL
 
 ## Every layout a road can be laid on. `label` is what the dropdown says;
 ## `blurb` is the line under it.
 const ALL: Array[Dictionary] = [
-	{"id": KEEP, "label": "Keep",
-		"blurb": "Two walls. Every road reaches the outer wall and doubles back along the inner one to a gate - towers between the walls hit the same column twice."},
 	{"id": CITADEL, "label": "Citadel",
 		"blurb": "One wall, two gates east and west. Every road arrives at a bastion; north and south ride the wall to a gate."},
+	{"id": KEEP, "label": "Keep",
+		"blurb": "Two walls. Every road reaches the outer wall and doubles back along the inner one to a gate - towers between the walls hit the same column twice."},
 	{"id": BEAST_AXIS, "label": "Beast-Axis",
 		"blurb": "Shaped like the beast: a spine through the town, ribs across it, a bow and a stern. The flanks cut through the ribs."},
 	{"id": CONFLUENCE, "label": "Confluence",
@@ -73,7 +77,7 @@ const RANDOM_CHOICE: Dictionary = {"id": RANDOM, "label": "Random",
 	"blurb": "Any layout, chosen for each new road - and laid with its own proportions, so no two roads are quite the same map."}
 
 
-## A layout this build knows, or Keep. A save or a packet may hold anything,
+## A layout this build knows, or the fallback. A save or a packet may hold anything,
 ## and an unknown layout - or Random, which is a choice rather than a map - must
 ## never reach the grid.
 static func sanitise(id: Variant) -> String:
@@ -81,10 +85,9 @@ static func sanitise(id: Variant) -> String:
 	for entry: Dictionary in ALL:
 		if String(entry["id"]) == text:
 			return text
-	# Keep: the plainest of the laid-out battlefields, and a fixed one, so a
-	# front, a setting or a relayed road that names nothing the game has is
-	# laid the same way every time rather than rolled.
-	return KEEP
+	# A fixed layout rather than a roll, so a front, a setting or a relayed
+	# road that names nothing the game has is laid the same way every time.
+	return FALLBACK
 
 
 ## A choice the dropdown may hold: any layout, or Random.

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_perk")
 attribute = 1
-per_tier = 0.01
+per_tier = 0.008
 unit = "of health a second comes back, out of the fight, by"
 id = "vigour"
 display_name = "Second Wind"

@@ -24,7 +24,10 @@ const ENEMY_SPAWN_RADIUS: float = 720
 
 ## Hero base movement speed. The GDD calls this the hero's most valuable stat:
 ## N tower -> S tower is ~2.5s, long enough that the choice costs something. [TUNE]
-const HERO_MOVE_SPEED: float = 200.0
+##
+## **192 since 2026-10-07** (owner: "reduce player base movement speed by a
+## tiny bit"), while every body on the road walks a little faster.
+const HERO_MOVE_SPEED: float = 192.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
@@ -525,7 +528,7 @@ const ROAD_CARD_HAND: int = 12
 ## pressure off every act from IV on. Levels are the way to reach the bound, never
 ## a way past it.
 const AUGMENT_MAX_LEVEL: int = 5
-const AUGMENT_LEVEL_SCALE: Array[float] = [1.0, 1.5, 1.9, 2.25, 2.5]
+const AUGMENT_LEVEL_SCALE: Array[float] = [1.0, 1.45, 1.8, 2.1, 2.35]
 const AUGMENT_LEVELLED_CEILING: float = ROAD_CARD_MAX_MAGNITUDE
 ## A card that helps by making something *smaller* - a price, a blow taken, a
 ## cooldown - is held under a lower ceiling, because a cost taken toward nothing
@@ -559,7 +562,9 @@ const AUGMENT_KEY_CEILING: Dictionary = {"tower_range": 0.35, "tower_rate": 0.25
 ## Act I's ranks come as they did, and the steeper step absorbs the later
 ## bodies: the rank at each act's start is within one of what it was.
 const ROAD_RANK_BASE: float = 72.0
-const ROAD_RANK_STEP: float = 42.0
+## **46 since 2026-10-07** (owner: augments "a slight nerf ... so that augments
+## are not so overpowered"): about a tenth fewer drafts down the road.
+const ROAD_RANK_STEP: float = 46.0
 ## What a kill is worth to the rank, by what was killed. A body is one; the
 ## things that are harder to kill are worth more. [TUNE]
 const ROAD_XP_BODY: float = 1.0
@@ -677,7 +682,9 @@ const AUGMENT_SEAT_HAND: int = 4
 ## four more places hold four more levelled weapons, and the old ladder put
 ## solo pressure at 0.407 against a floor of 0.40. Act I is untouched - the
 ## opening envelope is measured against it.
-const ARSENAL_ACT_SCALE: Array[float] = [1.00, 1.20, 1.36, 1.52, 1.62, 1.70, 1.78, 1.86, 1.94, 2.02, 2.10]
+## **About a sixteenth lighter at every act since 2026-10-07**, the other half of
+## the owner's augment nerf. [TUNE]
+const ARSENAL_ACT_SCALE: Array[float] = [0.95, 1.13, 1.28, 1.43, 1.52, 1.60, 1.67, 1.75, 1.82, 1.90, 1.97]
 ## **Focus shortens a weapon's cadence** exactly as it shortens a spell's, per
 ## point and to the spell's own cap, so the attribute that makes a caster makes
 ## an Arsenal. With the cadence catalyst, a weapon never fires more often than
@@ -745,9 +752,9 @@ const ARSENAL_KNOT_CANDIDATES: int = 28
 ## of the pool, the mend as a share of what is missing. The wall's mend is held
 ## lower still: it is the loss condition, and the Quartermaster sells its repair
 ## for Gold, which a free mend must not undercut. [TUNE]
-const ARSENAL_WARD_CEILING: float = 0.35
-const ARSENAL_MEND_CEILING: float = 0.50
-const ARSENAL_MEND_TOWN_CEILING: float = 0.04
+const ARSENAL_WARD_CEILING: float = 0.30
+const ARSENAL_MEND_CEILING: float = 0.40
+const ARSENAL_MEND_TOWN_CEILING: float = 0.032
 ## A field bites its slow this often, and plays its ring this often. [TUNE]
 const ARSENAL_FIELD_TICK: float = 0.5
 const ARSENAL_FIELD_PULSE: float = 2.0
@@ -1541,8 +1548,10 @@ const TOWER_SLOT_COUNT: int = 4
 ## again the same day once Act II took 2.30 bodies for its softer step.
 ## Re-read 2026-10-07 on the denser road (a third more bodies from Act II, each
 ## worth three quarters): the purse a walked road holds is a little lighter.
+## Re-read 2026-10-07 again: the new breeds sized to their regions pay a little
+## less, and the rank's step went 42 to 46.
 const ACT_START_BUDGET: Array[int] = [
-	0, 1095, 2343, 4074, 6367, 9337, 13126, 18145, 24250, 31906,
+	0, 943, 2018, 3508, 5483, 8040, 11303, 15625, 20882, 27474,
 ]
 
 ## **The drafts a walked road would have dealt by each act** (augments,
@@ -1553,10 +1562,10 @@ const ACT_START_BUDGET: Array[int] = [
 ## be a harder road than the one it stands in for. [TUNE]
 ## Both re-read 2026-10-07 with the purse, under the rank's steeper step.
 const ACT_START_ROAD_RANK: Array[int] = [
-	0, 6, 11, 15, 19, 23, 27, 31, 34, 38,
+	0, 5, 10, 14, 18, 22, 26, 29, 33, 37,
 ]
 const ACT_START_DRAFTS: Array[int] = [
-	0, 10, 17, 24, 31, 38, 46, 53, 59, 66,
+	0, 9, 16, 23, 30, 37, 45, 51, 58, 65,
 ]
 
 ## **The wall and the road arrive whole, and that is not generosity.**
@@ -2067,7 +2076,7 @@ const HERO_TEND_COST: int = 45
 ## that and still live, which is the difference between a mistake and a loss.
 ## [TUNE]
 const RATION_COST: int = 60
-const RATION_FRACTION: float = 0.18
+const RATION_FRACTION: float = 0.14
 const RATION_COOLDOWN: float = 22.0
 
 ## What each ration in the same fight adds to the price of the next.
@@ -2110,15 +2119,17 @@ const HEALING_ORB_ELITE_CHANCE: float = 0.22
 const HEALING_ORB_BOSS_CHANCE: float = 1.0
 
 ## What one orb restores, as a fraction of maximum health, before power scaling.
-const HEALING_ORB_BASE_FRACTION: float = 0.035
+## **Up a fifth, 2026-10-07** (owner: orbs "nearly unnoticeable") while every
+## other heal came down by about as much. [TUNE]
+const HEALING_ORB_BASE_FRACTION: float = 0.042
 
 ## How much the dropping enemy's own worth adds on top. Read off
 ## `resource_value`, which is the game's existing statement of how much an enemy
 ## is worth killing, so a new breed is tuned by the field it already fills in.
-const HEALING_ORB_POWER_PER_VALUE: float = 0.0016
+const HEALING_ORB_POWER_PER_VALUE: float = 0.0019
 
 ## The ceiling that keeps all of the above honest.
-const HEALING_ORB_MAX_FRACTION: float = 0.09
+const HEALING_ORB_MAX_FRACTION: float = 0.105
 
 # --- Supply crates ------------------------------------------------------------
 #
@@ -2174,14 +2185,14 @@ const MENDER_SPARK_PITY_ELITES: int = 3
 const MENDER_SPARK_MAX_PER_ACT: int = 1
 ## Small rescue up front, then meaningful recovery that still asks for safety.
 ## [TUNE]
-const MENDER_SPARK_IMMEDIATE_FRACTION: float = 0.06
-const MENDER_SPARK_REGEN_PER_SECOND: float = 0.015
+const MENDER_SPARK_IMMEDIATE_FRACTION: float = 0.048
+const MENDER_SPARK_REGEN_PER_SECOND: float = 0.012
 const MENDER_SPARK_DURATION: float = 6.0
 const MENDER_SPARK_BREAK_GRACE: float = 0.75
 
 ## The guaranteed Hearthmend repairs this fraction of the Town Hall before the
 ## enhanced service choice. [TUNE]
-const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.12
+const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.10
 
 ## Grace period after respawning, so you are not instantly re-killed.
 const HERO_RESPAWN_INVULN: float = 1.5
@@ -2381,8 +2392,12 @@ const HERO_ATTACK_ARC_DEGREES: Array[float] = [110.0, 110.0, 170.0]
 ## a bolt that passes through a few bodies, which is the shape of the third
 ## blow and not its size.
 const CHAIN_BOLT_MANA_COST: float = 4.0
-const CHAIN_BOLT_SPEED: float = 1100.0
-const CHAIN_BOLT_TRAVEL: float = 440.0
+## **640 since 2026-10-07** (owner: the Arcane primary "has too low range"): a
+## caster's basic blow reaches most of a bow's 720, and a little faster, so it
+## arrives in about the time it always did. Still short of the bow, which keeps
+## the longest reach and pays for it in arrows.
+const CHAIN_BOLT_SPEED: float = 1300.0
+const CHAIN_BOLT_TRAVEL: float = 640.0
 const CHAIN_BOLT_FINISHER_PIERCE: int = 3
 ## The Weave's violet, the Arcane arm's own tint on the ability bar.
 const CHAIN_BOLT_TINT: Color = Color(0.72, 0.52, 1.0)
@@ -2498,6 +2513,15 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 ## hard for me" - a level-100 geared Warden could not reach Act II). Survivability
 ## only, for the reason above: the ramp is untouched.
 const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.65
+## **Every body a tenth tougher and a little quicker, as of 2026-10-07** (owner:
+## "all enemies have a bit more health as they're all just a bit too weak ...
+## slightly faster base movement speeds"). One multiplier each, applied where a
+## body's pool and its walk are made, so every breed, rank, camp body, arena body
+## and boss moves together and the authored spread between them is untouched.
+## `curve_report` carries the health in its threat; the walk is a shape it does
+## not model. [TUNE]
+const ENEMY_HEALTH_SCALE: float = 1.08
+const ENEMY_MOVE_SPEED_SCALE: float = 1.06
 ## And a ranged body's blow a quarter lighter again: it is thrown from where the
 ## Warden cannot answer it, which is why it was named first. [TUNE]
 ##
@@ -3055,7 +3079,7 @@ const DISCIPLINE_BRAND_RING: float = 34.0
 ## how quickly a cast reaches it. Set so a tempest into a crowd reaches the cap
 ## and a tempest into one body does not, which is what makes it an area heal
 ## rather than a lifesteal.
-const DISCIPLINE_TEMPEST_LIFESTEAL: float = 0.22
+const DISCIPLINE_TEMPEST_LIFESTEAL: float = 0.17
 
 ## Knockback resistance at or above which Chain Hook reels the hero in instead of
 ## dragging the target out.
@@ -3808,6 +3832,14 @@ const TOWER_BASE_MAX_HP: float = 520.0
 ## It sits after the flat armour and its twenty-percent floor, so a Bastion's
 ## plate and this compound the way a hero's armour and Resolve do. [TUNE]
 const TOWER_DAMAGE_TAKEN_SCALE: float = 0.62
+## **Every tower's blow, one multiplier, as of 2026-10-07.** The owner made the
+## road tougher and the augments weaker in one message - "so that augments are
+## not so overpowered" - and the measured answer was a drafted road past every
+## band and the hardest road's Act X past the edge. The defence that was lost
+## comes back to the board rather than to the hand: a tower game whose towers
+## carry more of the fight. Read in `TowerData.damage_at`, so the curve, the
+## tooltips and the fight all see one number. [TUNE]
+const TOWER_DAMAGE_SCALE: float = 1.30
 ## **How hard a support tower may shoot, against the weakest gun in its own
 ## role** (owner, 2026-09-22: *"all towers need to deal some kind of damage
 ## ... except for the healing well"*).
@@ -3884,7 +3916,7 @@ const TOWER_ELEMENT_SECONDARY_COST: Array[int] = [0, 6, 10, 8]
 ## How much a well's draught grows per tower level, as a share of the authored
 ## figure. Upgrading a well should be worth doing and must not out-run the curve,
 ## so it uses the same shape as every other tower upgrade rather than a new one.
-const WELL_HEAL_PER_LEVEL: float = 0.22
+const WELL_HEAL_PER_LEVEL: float = 0.18
 
 ## How much faster a well refills per level, as a share taken off the wait.
 ## Bounded below by `WELL_MIN_REFILL` so a maxed well is still a well.

@@ -12,6 +12,6 @@ regions = Array[String]([])
 weight = 0.11
 patience = 26.0
 food = 60
-heal_fraction = 0.45
+heal_fraction = 0.36
 shield_fraction = 0.30
 mana_fraction = 0.45

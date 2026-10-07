@@ -695,7 +695,7 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 	_field = field
 	_hp_scale = hp_scale
 	_damage_scale = hp_scale if damage_scale < 0.0 else damage_scale
-	_speed_scale = speed_scale
+	_speed_scale = speed_scale * Balance.ENEMY_MOVE_SPEED_SCALE
 	_route = field.lane_route(lane_index)
 	# **What this body plants on the ground**, for the dust its stride throws up
 	# (owner, 2026-09-17). Every one of the three numbers is derived from what
@@ -750,7 +750,7 @@ func _ready() -> void:
 	# times a breed's health once - a body the owner hit for five minutes to
 	# take a quarter off. Nothing here is a twenty-minute wall.
 	var stacked: float = _hp_scale * _rank_scale().x * _mark_scale(&"health_scale")
-	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING)
+	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING) 		* Balance.ENEMY_HEALTH_SCALE
 	health.revive()
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)

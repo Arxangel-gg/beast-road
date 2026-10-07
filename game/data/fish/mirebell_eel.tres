@@ -12,6 +12,6 @@ regions = Array[String](["jungle"])
 weight = 0.45
 patience = 14.0
 food = 22
-heal_fraction = 0.30
+heal_fraction = 0.24
 shield_fraction = 0.00
 mana_fraction = 0.22
