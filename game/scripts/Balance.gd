@@ -8847,7 +8847,9 @@ const HOLD_PATH_STEP: float = 40.0
 ## place - weapon, armour, cape, helmet (2026-10-01). Rarely unarmed or in
 ## linen, often capeless, mostly bareheaded so their hair is seen. A look only.
 ## [TUNE]
-const HOLD_STRANGER_BARE: Array[float] = [0.08, 0.2, 0.4, 0.62]
+## Lowered 2026-10-07 (owner: strangers in "worn gear"): most wear armour and
+## a cape, and nearly half a helmet.
+const HOLD_STRANGER_BARE: Array[float] = [0.05, 0.12, 0.28, 0.5]
 const HOLD_PATH_STUCK_SECONDS: float = 1.2
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 ## **A Discipline node is never smaller than a fingertip on a thumb**

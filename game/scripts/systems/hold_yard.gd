@@ -1210,6 +1210,10 @@ static func stranger_of(who: String) -> Dictionary:
 			WardenLook.KEY_SKIN, WardenLook.KEY_CAPE_COLOUR, WardenLook.KEY_TOP_COLOUR,
 			WardenLook.KEY_BOTTOM_COLOUR]:
 		look[key] = own.randi_range(0, int(WardenLook.CHOICES[key]) - 1)
+	# **And the leather dyed** (owner, 2026-10-07: the strangers "randomized
+	# appearances and colors"): belts, boots, bracers and a vest turned to a
+	# colour of their own, so two strangers in one cloth still differ.
+	look[WardenLook.KEY_LEATHER] = own.randf_range(-0.5, 0.5)
 	var gear: Array = []
 	for place: int in Hero.DRESS_SLOTS.size():
 		var slot: int = Hero.DRESS_SLOTS[place]
