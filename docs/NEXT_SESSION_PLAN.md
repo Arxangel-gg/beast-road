@@ -21,6 +21,36 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0l. Where things stand (2026-10-07, usage limit reached mid-task)
+
+**v0.72.0 is tagged and was building on CI** (release sweep 235/235 after
+`node_pool_check`'s blueprint-plate amendment, be02e640). **0f0e47af is committed
+and not pushed**: twenty towers with the mortars' blind spot, twenty deeds, 85
+card paintings, 33 breeds and 164 variants, the tripled roster. Its gates
+(script, roster, facing, walk, structure art, content, codex, phenotype, tower
+juice, support, path, asset report) pass and both new checks named planted
+faults. A full release sweep of 0f0e47af was running into
+`C:\Users\Hamed\AppData\Local\Temp\claude\E--Arxangel-GameDev-BeastRoad\19c67aba-492a-46b1-b9b8-c51fb20d916f\scratchpad\sweep_rel2.log` - read its SUMMARY first.
+
+Prepared in scratch (`C:\Users\Hamed\AppData\Local\Temp\claude\E--Arxangel-GameDev-BeastRoad\19c67aba-492a-46b1-b9b8-c51fb20d916f\scratchpad`) and **not applied**, in this order:
+
+1. **Regional rescale** - `breedsescale_regional.py game` (run from the repo
+   root). Act I's mean body is +50% health against v0.72.0 because the new breeds
+   sit at the whole roster's role means; this brings each region's three to its
+   own. Re-measure with the act-mean script idea in `note_content.md`.
+2. **Bulwark path and ten batteries** - `fusions_pl\p_bulwark_battery.py` and
+   `fusions_pl\p_bulwark_gates.py` (run from `game\`), then
+   `fusions_pluthor_batteries.py game`. Art: all ten paintings are in
+   `fusions_plase_*.png`; idle and attack jobs are in `fusions_plnims.txt`
+   (run `frames.sh` to fetch; monsoon_spire's attack was never submitted).
+   Then `fusions_pl\install_batteries.py`, `--import`, restore project.godot,
+   gates: script, balance_test, tower_path, tower_juice, structure_art, asset
+   report, then the release sweep.
+3. **The record** - `note_content.md` is the CLAUDE.md entry for all of it
+   (`addnote.py`), with the curve measured today: Long Road 0.420 solo, Iron Road
+   0.391, Chainmaker's 0.422, every band PASS, before the rescale.
+4. Then the thumb cluster (item 25), on the design's own answers to its §7.
+
 ## 0k. Where things stand (2026-10-06, for Opus 5.5)
 
 **Main is at the tornado ghost fix** (after 73dd5db6, the trail / hover /
