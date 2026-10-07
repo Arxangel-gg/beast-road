@@ -14176,6 +14176,13 @@ const UI_COMMAND_PANEL_GAP: float = 14.0
 ## the buttons stay whole however low this goes; `preparation_check` holds it
 ## see-through and never gone. [TUNE]
 const PREPARATION_CARD_PLATE_ALPHA: float = 0.74
+## **The same for every card and sheet over the road** (owner, 2026-10-07: the
+## tutorial notices, the tower and trap sheets) - their own plate, through
+## `self_modulate`, so the words and the rows stay whole. [TUNE]
+const UI_PANEL_SEE_THROUGH: float = 0.80
+## And the buttons along the bottom and the right: their frames only, through
+## `UiTint.see_through`, so the words on them stay whole. [TUNE]
+const UI_BUTTON_SEE_THROUGH: float = 0.72
 
 
 # --- The pixel grid (owner, 2026-09-17) --------------------------------------

@@ -130,6 +130,17 @@ static func current() -> Color:
 ## Every stylebox it owns is duplicated before it is touched. They come from a
 ## shared `Theme` resource, so tinting one in place would tint every button in
 ## the game - including the ones on a screen that is not being graded at all.
+## **A control's frames drawn at a share of their alpha, its words whole**
+## (owner, 2026-10-07: the buttons along the bottom and the right should be
+## semi-transparent). The share rides the control as a meta and every re-tint
+## honours it, so a dawn grading the interface cannot make a button opaque again.
+static func see_through(control: Control, alpha: float) -> void:
+	if control == null:
+		return
+	control.set_meta(&"ui_see_through", clampf(alpha, 0.0, 1.0))
+	paint(control)
+
+
 static func paint(control: Control) -> void:
 	if control == null:
 		return
@@ -148,6 +159,9 @@ static func paint(control: Control) -> void:
 			control.add_theme_stylebox_override(slot, own)
 		var base: Color = own.get_meta(&"ui_tint_base", Color.WHITE) as Color
 		own.modulate_color = base * _wanted
+		# A frame asked to let the road through keeps that ask through every
+		# re-tint; the text is never in a stylebox, so it stays whole.
+		own.modulate_color.a *= float(control.get_meta(&"ui_see_through", 1.0))
 
 
 ## Keeps the tint's own brightness at one.

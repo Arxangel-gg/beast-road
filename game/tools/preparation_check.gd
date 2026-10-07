@@ -495,6 +495,30 @@ func _test_the_card_never_enters_the_row() -> void:
 		and is_equal_approx(clock.self_modulate.a, 1.0), "the preparation clock is faded with the plate")
 	if undo != null:
 		undo.visible = false
+	# **And every other card and sheet over the road, and the buttons along the
+	# bottom and the right** (owner, 2026-10-07). A plate through its own
+	# `self_modulate`; a button through its frames' alpha, which is a stylebox -
+	# so the word on it, which is not, is read back whole.
+	for name: String in ["_build_panel", "_road_panel", "_tutorial"]:
+		var plate := _hud.get(name) as Control
+		_check(plate != null and plate.self_modulate.a < 0.95 and plate.self_modulate.a >= 0.5,
+			"%s's plate is not see-through" % name)
+	var row_buttons: int = 0
+	for bar_name: String in ["_action_row", "_nav_bar"]:
+		var bar := _hud.get(bar_name) as Node
+		if bar == null:
+			continue
+		for child: Node in bar.find_children("*", "Button", true, false):
+			var button := child as Button
+			var frame := button.get_theme_stylebox("normal") as StyleBoxTexture
+			if frame == null:
+				continue
+			row_buttons += 1
+			_check(frame.modulate_color.a < 0.95 and frame.modulate_color.a >= 0.4,
+				"%s's frame is at %.2f - see-through, never gone" % [button.name, frame.modulate_color.a])
+			_check(is_equal_approx(button.modulate.a, 1.0) and is_equal_approx(button.self_modulate.a, 1.0),
+				"%s fades its words with its frame" % button.name)
+	_check(row_buttons >= 6, "only %d bar buttons were read for their frames" % row_buttons)
 
 
 func _test_the_tooltip_clears_the_preparation_card() -> void:

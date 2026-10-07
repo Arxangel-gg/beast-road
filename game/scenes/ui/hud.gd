@@ -1842,6 +1842,7 @@ func _build_nav_bar() -> void:
 	# out 240 and a column of six ran 1490px down a screen 1080 tall. The bottom
 	# three, zoom and the pause menu among them, were simply not on the phone.
 	for button: Button in _nav_buttons:
+		UiTint.see_through(button, Balance.UI_BUTTON_SEE_THROUGH)
 		button.set_meta(UiMetrics.SELF_SIZED, true)
 		button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, NAV_TOUCH_ICON_SIZE)
 	_size_nav_bar()
@@ -2404,6 +2405,7 @@ func _build_action_bar(bar: Container) -> void:
 	for child: Node in bar.get_children():
 		if child is Button:
 			_slim(child as Button)
+			UiTint.see_through(child as Button, Balance.UI_BUTTON_SEE_THROUGH)
 
 
 ## **The action row as tiles on a landscape phone**, and back to buttons off it.
@@ -2805,6 +2807,7 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 ## either of them. Gates do not check that a feature can be found.
 func _build_road_panel() -> void:
 	_road_panel = PanelContainer.new()
+	_road_panel.self_modulate.a = Balance.UI_PANEL_SEE_THROUGH
 	_road_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_road_panel.offset_left = -_sheet_width() - _build_panel_inset()
 	_road_panel.offset_right = -_build_panel_inset()
@@ -2992,6 +2995,7 @@ func _add_road_row(name: String, description: String, cost: Dictionary,
 ## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
+	_build_panel.self_modulate.a = Balance.UI_PANEL_SEE_THROUGH
 	# Anchored to the bottom and grown upward, into the space the command panel
 	# used to occupy.
 	#
@@ -5593,6 +5597,7 @@ func announce(kicker: String, title: String, note: String = "") -> void:
 ## owned by the HUD because every moment it teaches is a HUD moment.
 func _build_tutorial_coach() -> void:
 	_tutorial = TutorialCoach.new()
+	_tutorial.self_modulate.a = Balance.UI_PANEL_SEE_THROUGH
 	add_child(_tutorial)
 	# **The Walk owns the card while it runs**, and the coach is silent: two
 	# things teaching at once in the same corner is neither of them teaching.
@@ -5600,6 +5605,7 @@ func _build_tutorial_coach() -> void:
 		_tutorial.visible = false
 		_tutorial.process_mode = Node.PROCESS_MODE_DISABLED
 		_walk_card = WalkCard.new()
+		_walk_card.self_modulate.a = Balance.UI_PANEL_SEE_THROUGH
 		add_child(_walk_card)
 
 
