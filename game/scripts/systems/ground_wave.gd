@@ -76,11 +76,16 @@ var _rings: Array[Ring] = []
 var _elapsed: float = 0.0
 var _warned: float = 0.0
 var _dust_in: float = 0.0
-var _sheet_in: float = 0.0
 var _ripple: ColorRect = null
 var _ripple_material: ShaderMaterial = null
 var _reach: float = 0.0
 var _seen: RandomNumberGenerator = RandomNumberGenerator.new()
+## **The ground's own colour, in everything it throws** (2026-10-07): the
+## slabs, the dust and the chunks are this region's earth rather than one
+## brown for every road. Read once, where the ground breaks.
+var _earth: Color = Color(0.42, 0.34, 0.26)
+## Whether the break - the moment the hum ends - has been thrown yet.
+var _broke: bool = false
 
 
 ## Stands the wave up. `warning` may be zero for a wave that is already due -
@@ -101,6 +106,9 @@ func configure(epicentre: Vector2, power: float, ring_count: int,
 	# Decoration's own dice: where dust puffs along a crest may not depend on
 	# the run's stream, or turning the dust off would move every later roll.
 	_seen.seed = absi(hash("quake") + int(at.x) * 31 + int(at.y))
+	if field != null and field.has_method("ground_colour"):
+		_earth = (field.ground_colour(at) as Color).lerp(Color(0.5, 0.42, 0.32), 0.25)
+		_earth.a = 1.0
 
 
 func _ready() -> void:
@@ -289,7 +297,6 @@ func _tell(delta: float) -> void:
 	if Graphics.particle_scale() <= 0.0:
 		return
 	_dust_in -= delta
-	_sheet_in -= delta
 	if _elapsed < _warned:
 		# **Before anything moves, the ground says where.** A blow from
 		# nowhere is the thing every telegraph in this project refuses, and
@@ -302,26 +309,31 @@ func _tell(delta: float) -> void:
 				_seen.randf_range(-1.0, 1.0)) * near,
 				Color(0.40, 0.33, 0.25), 3, 44.0)
 		return
+	# **The break**: the moment the hum ends the ground gives at its centre -
+	# a burst of its own dust, chunks of it flung up, and the dust sheet
+	# where it all began.
+	if not _broke:
+		_broke = true
+		Vfx.dust(at, _earth, 14, Balance.QUAKE_TELL_RADIUS * 1.2)
+		Vfx.spark(at, _earth.darkened(0.35), Balance.QUAKE_BREAK_CHUNKS, Vector2.UP, 420.0)
+		Vfx.ring(at, Balance.QUAKE_TELL_RADIUS * 2.2, Color(_earth.r, _earth.g, _earth.b, 0.55), 0.7, 10.0)
+		Vfx.forge_play("quake_dust", at, Balance.QUAKE_FORGE_REACH * (1.2 + 0.6 * magnitude),
+			Color(_earth.r, _earth.g, _earth.b, 0.45))
 	if _dust_in <= 0.0:
 		_dust_in = Balance.QUAKE_DUST_INTERVAL
 		for ring: Ring in _rings:
 			if not ring.alive or ring.radius < 40.0:
 				continue
+			var spent: float = _spent(ring)
 			for _puff: int in Balance.QUAKE_DUST_PER_TICK:
 				var angle: float = _seen.randf() * TAU
 				var spot: Vector2 = at + Vector2.RIGHT.rotated(angle) * ring.radius
-				Vfx.dust(spot, Color(0.42, 0.34, 0.26), 4,
-					Balance.QUAKE_CREST_WIDTH * 0.7)
-	if _sheet_in <= 0.0:
-		_sheet_in = Balance.QUAKE_SHEET_INTERVAL
-		for ring: Ring in _rings:
-			if not ring.alive or ring.radius < 60.0:
-				continue
-			var angle: float = _seen.randf() * TAU
-			var spot: Vector2 = at + Vector2.RIGHT.rotated(angle) * ring.radius
-			Vfx.forge_play("quake_dust", spot,
-				Balance.QUAKE_FORGE_REACH * (0.7 + 0.5 * magnitude),
-				Color(0.70, 0.60, 0.46, 0.75))
+				Vfx.dust(spot, _earth, 5, Balance.QUAKE_CREST_WIDTH * 0.9)
+				# What the front lifts as it passes: chunks of the ground,
+				# thrown up and outward, fewer as it runs out.
+				if _seen.randf() < 1.0 - spent:
+					Vfx.spark(spot, _earth.darkened(0.4), 3,
+						(Vector2.RIGHT.rotated(angle) + Vector2.UP * 1.6).normalized(), 260.0)
 
 
 ## Feeds the shader the rings in the space it works in: aspect-corrected
@@ -385,6 +397,10 @@ func _draw_the_split() -> void:
 			+ 0.55 * absf(fmod(sin(float(index) * 12.9898) * 43758.5453, 1.0)))
 		var tip: Vector2 = to_local(at) + Vector2.RIGHT.rotated(angle) * absf(along)
 		draw_line(to_local(at), tip, Color(0.08, 0.06, 0.05, ink), 3.0 + 3.0 * ready, true)
+		# The lip of the crack catches the light as it lifts.
+		var lip: Color = _earth.lightened(0.5)
+		draw_line(to_local(at) + Vector2(0.0, -2.0), tip + Vector2(0.0, -2.0),
+			Color(lip.r, lip.g, lip.b, ink * 0.45), 1.5, true)
 	draw_circle(to_local(at), 10.0 + 16.0 * ready, Color(0.06, 0.05, 0.04, ink * 0.8))
 
 
@@ -411,6 +427,7 @@ func _draw_crest(ring: Ring) -> void:
 		return
 	var wide: float = Balance.QUAKE_CREST_WIDTH * (1.0 - 0.45 * spent)
 	var middle: Vector2 = to_local(at)
+	_draw_the_dust_front(ring, middle, wide, fade)
 	# A ring far out has more circumference to cover, so it is walked in more
 	# pieces - otherwise a distant crest is a dotted line of long dashes.
 	var steps: int = maxi(int(float(Balance.QUAKE_CREST_SEGMENTS)
@@ -470,16 +487,54 @@ func _draw_crest(ring: Ring) -> void:
 		for point: Vector2 in slab:
 			behind.append(middle + (point - middle) * (1.0 - thick * 0.30 / maxf(radius, 1.0)))
 		draw_colored_polygon(behind, Color(0.05, 0.04, 0.03, 0.62 * fade))
-		draw_colored_polygon(slab, Color(0.44 + 0.10 * dice2, 0.33, 0.20, 0.90 * fade))
+		var body: Color = _earth.darkened(0.12 - 0.12 * dice2)
+		draw_colored_polygon(slab, Color(body.r, body.g, body.b, 0.92 * fade))
 		# And the sun on the lifted edge, which is what says it is raised
 		# rather than painted.
-		draw_polyline(lit, Color(0.96, 0.84, 0.60, 0.80 * fade), 2.5, true)
+		var sun: Color = _earth.lightened(0.55)
+		draw_polyline(lit, Color(sun.r, sun.g, sun.b, 0.80 * fade), 2.5, true)
 		# A crack running back from the piece into the ground it has left.
 		if dice2 > 0.6:
 			var mid: Vector2 = Vector2.RIGHT.rotated((a0 + a1) * 0.5)
 			draw_line(middle + mid * (radius - thick * 0.5),
 				middle + mid * (radius - thick * 0.5 - wide * (0.4 + dice)),
 				Color(0.06, 0.05, 0.04, 0.50 * fade), 2.5, true)
+
+
+## **The dust the front throws up**: a soft band riding just behind the slabs,
+## clear at both edges and thickest a little behind the crest, in the
+## ground's own colour - so a crest reads as a wave of earth moving rather
+## than as a ring of separate pieces. One mesh.
+func _draw_the_dust_front(ring: Ring, middle: Vector2, wide: float, fade: float) -> void:
+	var inner: float = maxf(ring.radius - wide * Balance.QUAKE_FRONT_BEHIND, 0.0)
+	var mid: float = maxf(ring.radius - wide * 0.35, 0.0)
+	var outer: float = ring.radius + wide * 0.55
+	if outer <= 1.0:
+		return
+	var dust: Color = _earth.lerp(Color(0.6, 0.55, 0.48), 0.15)
+	var clear: Color = Color(dust.r, dust.g, dust.b, 0.0)
+	var thick: Color = Color(dust.r, dust.g, dust.b, Balance.QUAKE_FRONT_ALPHA * fade)
+	var steps: int = clampi(int(ring.radius / 18.0), 24, 160)
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
+	for step: int in steps + 1:
+		var angle: float = TAU * float(step) / float(steps)
+		var along: Vector2 = Vector2.RIGHT.rotated(angle)
+		# The front is uneven: thicker in places, as dust is.
+		var lumpy: float = 0.65 + 0.35 * _hash01(float(step % steps) * 2.31 + ring.born)
+		points.append(middle + along * inner)
+		colours.append(clear)
+		points.append(middle + along * mid)
+		colours.append(Color(thick.r, thick.g, thick.b, thick.a * lumpy))
+		points.append(middle + along * outer)
+		colours.append(clear)
+		if step > 0:
+			var a: int = (step - 1) * 3
+			var b: int = step * 3
+			indices.append_array([a, a + 1, b, a + 1, b + 1, b,
+				a + 1, a + 2, b + 1, a + 2, b + 2, b + 1])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
 
 
 ## A stable 0..1 from a number. Not the run's stream and not a generator:

@@ -14147,6 +14147,30 @@ quieter, a placed voice on a placement bus and a flat one back on SFX, and every
 placement bus sending to SFX so the fader and the boss's hush reach it. Planted
 with the bus never set, it named it.
 
+**The quake is made of its own ground, as of 2026-10-07.** Owner: *"Earthquake
+VFXs are also not game juicy or aesthetically appealing enough and need to be
+elevated and polished."* Photographed first (`quake_shot`): the crest was a ring
+of small orange lenses on a field that did not otherwise move, and a forged dust
+sheet rode the crest every sixth of a second as a chunky white swirl - at a
+crest's size the sheet's 96 pixels were blocks. What changed, every piece a look:
+
+- **Everything the quake throws is the region's earth** (`Battlefield.
+  ground_colour` where it breaks): the slabs, their sunlit lips, the dust and
+  the chunks. A Saltpan quake is pale and a Rustwood one red.
+- **A dust front rides each crest**: a soft band a little behind the slabs,
+  clear at both edges and lumpy along its length, one mesh a crest - so a crest
+  reads as a wave of earth moving rather than as a ring of separate pieces.
+- **The front lifts the ground as it passes**: chunks thrown up and outward
+  along it, fewer as it runs out.
+- **The break**: the moment the hum ends, a burst of dust, a spray of chunks, a
+  ring and the forged dust sheet at the centre - the one place the sheet is the
+  right size. Its clock along the crest is retired (`QUAKE_SHEET_INTERVAL`).
+- **The split's lips catch the light** while the earth hums.
+
+No number moved and no gate can see a picture: `wrath_check`, `forge_check` and
+`balance_reach_check` hold that the wave still strikes as it did, the sheet is
+still played, and every constant is read.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

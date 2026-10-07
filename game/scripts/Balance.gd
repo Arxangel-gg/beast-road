@@ -2853,6 +2853,13 @@ const SFX_CUTOFF: float = 2800.0
 const SFX_EDGE_FADE_FROM: float = 0.72
 const SFX_EDGE_DB: float = -12.0
 
+## **The quake, made of its own ground** (2026-10-07): how many chunks the
+## break throws, how far behind a crest its dust front trails (in crest
+## widths), and how thick that dust is at its densest. [TUNE]
+const QUAKE_BREAK_CHUNKS: int = 26
+const QUAKE_FRONT_BEHIND: float = 2.2
+const QUAKE_FRONT_ALPHA: float = 0.24
+
 ## **Placed sound** (owner, 2026-10-07). How far across from the ear a sound
 ## is hard over, how far over that is (never only one ear), and what a wall
 ## between does to it: a low-pass at this cutoff and a few decibels down.
@@ -10950,11 +10957,12 @@ const QUAKE_ENEMY_KNOCKBACK: float = 190.0
 ## and how often the ground puffs while they open.
 const QUAKE_TELL_RADIUS: float = 210.0
 const QUAKE_TELL_INTERVAL: float = 0.22
-## Dust and forged sheets along a running crest. On their own clocks, because
-## a puff a frame is a wall of sprites and this is decoration.
+## Dust and chunks along a running crest. On their own clock, because a puff a
+## frame is a wall of sprites and this is decoration. (The forged dust sheet
+## that rode the crest on a clock of its own is played once, at the break,
+## since 2026-10-07: at a crest's size it was a chunky white blob.)
 const QUAKE_DUST_INTERVAL: float = 0.10
 const QUAKE_DUST_PER_TICK: int = 5
-const QUAKE_SHEET_INTERVAL: float = 0.16
 ## How round the crest is drawn, and where along its run it leaves cracks.
 const QUAKE_CREST_SEGMENTS: int = 72
 ## How much of a crest's circumference is actually drawn. **Under one on
