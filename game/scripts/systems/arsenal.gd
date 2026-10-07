@@ -161,6 +161,10 @@ func rearm() -> void:
 				armed.clock = 0.0
 			armed.angle = _dice.randf() * TAU
 			_armed[id] = armed
+			# Its painting is read now, when the card is taken, rather than on its
+			# first throw (2026-10-07): a weapon is taken at a draft and first
+			# thrown in the thick of a fight, where reading the disk is a hitch.
+			_frames_for(weapon.head)
 		armed.level = clampi(int(wanted[id]), 1, Balance.AUGMENT_MAX_LEVEL)
 
 

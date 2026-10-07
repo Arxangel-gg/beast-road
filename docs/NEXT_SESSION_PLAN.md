@@ -34,11 +34,8 @@ their art, the stash's durability tiles and the idle-shield note.
 
 Left, in this order:
 
-1. **The Act X performance pass** (the evening list's last item): measure on
-   the renderer with `bash tools/perf_offscreen.sh <profile> res://tools/perf_check.tscn --act=10 --build --loadout --physics=180`
-   (League not running). The hitch budget failed at 5-12 a minute against 3 on
-   v0.72.0; the plan of 2026-10-07 names warming an elite's first death and a
-   camp's razing, and coalescing saves to one a frame.
+1. ~~The Act X performance pass~~ - **done**: 13.5 ms (74 fps), p99 22.9, 2.0
+   hitches a minute against 3. See CLAUDE.md, "Act X's peak meets the hitch budget".
 2. **Release v0.73.0**: `bash tools/sweep.sh <scratch> release`, the three-line
    guard/release/neither diff, push, `tools\release.ps1 -Version 0.73.0`.
 3. The thumb cluster (item 25), on the design's own answers to its §7.
@@ -60,7 +57,8 @@ faults. A full release sweep of 0f0e47af was running into
 
 Prepared in scratch (`C:\Users\Hamed\AppData\Local\Temp\claude\E--Arxangel-GameDev-BeastRoad\19c67aba-492a-46b1-b9b8-c51fb20d916f\scratchpad`) and **not applied**, in this order:
 
-1. **Regional rescale** - `breedsescale_regional.py game` (run from the repo
+1. **Regional rescale** - `breeds
+escale_regional.py game` (run from the repo
    root). Act I's mean body is +50% health against v0.72.0 because the new breeds
    sit at the whole roster's role means; this brings each region's three to its
    own. Re-measure with the act-mean script idea in `note_content.md`.

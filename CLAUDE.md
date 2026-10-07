@@ -13902,6 +13902,43 @@ painted by `tools/paint_still_idle.py` instead, beside Frostpoint and the
 Mirror. A photograph found every one of these faults; the bounds were read off
 the frames, not chosen. Run the picker on the next art batch before installing.
 
+**Act X's peak meets the hitch budget, as of 2026-10-07.** The evening list's
+last item: *"further optimize the game ... 60+FPS during the last act's most
+busy wave"*. Measured on the 180 Hz screen at 1080p, High, forty level-8 towers,
+the full loadout and the denser road of the same day:
+
+    before   15.7 ms (64 fps)   15.3 hitches a minute
+    after    13.5 ms (74 fps)   p99 22.9 ms, 2.0 hitches a minute (budget 3)
+
+**Every remaining hitch was an event, and the work was in what each event did
+that nobody would see.** Read off `--hitch-profile` and then timed headless:
+
+- **A spell's cooldown said so every tick of every slot**, to no listener at
+  all. It says it reached zero and nothing else; a reader that wants the sweep
+  polls `cooldown_ratio`.
+- **The shield piece and the damage multiplier were read every physics tick** -
+  three a frame at 180 Hz, each walking the worn gear. Once a frame now.
+- **A piece picked up was a whole modifier rebuild** for a table that came out
+  the same: the table reads only what is worn, so `Modifiers` compares the worn
+  pieces whole (wear and gems included) and lays nothing when they did not move.
+- **A save during a fight leaves the frame.** With a full stash a save is about
+  1.2 ms of text and 1.7 ms of disk; the text is still made on the frame (it
+  reads the account) and the atomic write goes to a worker, one at a time with
+  the newest waiting. **Every door that reads, deletes or replaces the file
+  waits first** (`MetaState.finish_writes`): a load, a slot summary, an erase, a
+  burial, a hold, and the game closing or a phone pausing. Headless and outside
+  a fight it is written on the frame as always, so no gate measures a save that
+  has not landed. `save_slot_check` drives it on and named both planted faults -
+  and the unwaited load genuinely read the older account, so the race is real.
+- **An Arsenal weapon's painting is read when it is armed**, at the draft, not
+  on its first throw mid-fight.
+
+**What is left is a menu opening in Preparation.** A banked draft opening is
+about 9 ms of building its cards (1.5 ms a card) and 6-9 ms of its first layout,
+plus the font cache rasterising the card faces' sizes - a 35 ms frame while
+nothing is being fought. Spreading it over frames is the lever if it ever
+matters; it is under the budget and was left.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
