@@ -57,6 +57,7 @@ func _ready() -> void:
 		await _test_the_wildfire()
 		await _test_the_rain_puts_fire_out()
 		await _test_the_tornado()
+		await _test_a_funnel_is_born_turns_and_dies()
 		await _test_the_funnel_pulls_lifts_and_throws()
 		await _test_two_funnels_share_no_body()
 		await _test_the_meteor()
@@ -750,6 +751,81 @@ func _test_the_tornado() -> void:
 	funnel._process(0.1)
 	await get_tree().process_frame
 	bystander.queue_free()
+	await get_tree().process_frame
+
+
+## **A funnel is born, turns one way, and comes apart** (owner, 2026-10-07:
+## the debris V sat under the column and turned whichever way it liked, and
+## the funnel appeared whole). One way round for the column, its debris and
+## what it carries, decided by where it was born so a guest agrees; grown from
+## the ground; lifting away at its end - and every one of those a look: the
+## funnel hurts from its first frame and nothing once it is coming apart.
+func _test_a_funnel_is_born_turns_and_dies() -> void:
+	var from: Vector2 = _pocket(2) + Vector2(-300.0, 0.0)
+	var to: Vector2 = from + Vector2(900.0, 40.0)
+	var funnel: Tornado = _sky.spawn_tornado(from, to, 40.0)
+	var twin: Tornado = _sky.spawn_tornado(from, to, 40.0)
+	_check(funnel != null and twin != null, "no funnel to watch be born")
+	if funnel == null or twin == null:
+		return
+	funnel.wander = 0.0
+	_check(absf(funnel.turning) == 1.0, "a funnel turns %.2f, not one way or the other" % funnel.turning)
+	_check(twin.turning == funnel.turning,
+		"two funnels born from the same two points turn different ways - a guest would see the other")
+	var sheet := funnel.get("_sheet") as Texture2D
+	if sheet != null:
+		var wanted: String = Vfx.FORGE_ART_FORMAT % Tornado.DEBRIS_SHEET if funnel.turning > 0.0 \
+			else Vfx.FORGE_TAKE_FORMAT % [Tornado.DEBRIS_SHEET, 1]
+		_check(sheet.resource_path == wanted,
+			"the funnel's debris is %s, a take that does not turn its way" % sheet.resource_path)
+	var catch := funnel.get_node_or_null("TornadoCatch") as TornadoCatch
+	if catch != null:
+		_check(float(catch.call("_turning")) == funnel.turning,
+			"what the funnel carries goes round the other way from the funnel")
+	twin.seconds_left = 0.0
+	twin._process(0.1)
+	# Born small, and grown.
+	var born: float = float(funnel.call("_height"))
+	_check(born < Balance.TORNADO_HEIGHT * 0.3, "a funnel is born %.0f tall - it did not grow" % born)
+	# It hurts from its first frame: a body at its foot is struck at once.
+	# Stood up out of its reach, then set in its wake but clear of its heart:
+	# a body at the heart is caught and carried, and is hurt in the carrying
+	# rather than by the wake this measures.
+	var body: Enemy = _body(from + Vector2(2400.0, 0.0), 40.0)
+	await get_tree().process_frame
+	var beside: Vector2 = Vector2(Balance.TORNADO_CATCH_RADIUS + 15.0, 0.0)
+	body.global_position = funnel.at + beside
+	var whole: float = body.health.current_hp
+	funnel._process(0.05)
+	_check(body.health.current_hp < whole, "a funnel still growing hurt nothing at its foot")
+	# Out of its reach while it grows, or the wake would kill it before the end.
+	body.global_position = from + Vector2(2400.0, 0.0)
+	var age: float = 0.0
+	while age < Balance.TORNADO_BIRTH_SECONDS + 0.2:
+		funnel.at = from
+		funnel.position = from
+		funnel._process(0.1)
+		age += 0.1
+	_check(absf(float(funnel.call("_height")) - Balance.TORNADO_HEIGHT) < Balance.TORNADO_HEIGHT * 0.02,
+		"a funnel grown for its birth stands %.0f tall, not its full height" % float(funnel.call("_height")))
+	# And comes apart: still in the field for a while, hurting nobody, then gone.
+	funnel.seconds_left = 0.0
+	funnel._process(0.05)
+	_check(is_instance_valid(funnel) and not funnel.is_queued_for_deletion(),
+		"a funnel's end was a cut, not a coming apart")
+	body.global_position = funnel.at + beside
+	var standing: float = body.health.current_hp
+	funnel._process(0.2)
+	_check(body.health.current_hp == standing, "a funnel coming apart still struck what stood in it")
+	var left: float = 0.0
+	while is_instance_valid(funnel) and not funnel.is_queued_for_deletion() \
+			and left < Balance.TORNADO_DEATH_SECONDS + 1.0:
+		funnel._process(0.1)
+		left += 0.1
+	_check(not is_instance_valid(funnel) or funnel.is_queued_for_deletion(),
+		"a funnel that came apart was never freed")
+	body.queue_free()
+	await get_tree().process_frame
 	await get_tree().process_frame
 
 

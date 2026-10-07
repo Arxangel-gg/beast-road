@@ -2684,6 +2684,59 @@ const ENEMY_POUNCE_CHAIN_CHANCES: Array[float] = [0.5, 0.2, 0.1]
 ## 1 would end at the centre, and the chest is a little past it. [TUNE]
 const HITBOX_STROKE_SHARE: float = 1.35
 
+## **The painted body is the hitbox** (owner, 2026-10-07: act bosses could not
+## be struck - see `Hitbox`). A body's spine runs from its feet to the crown of
+## its own painting, this far down from the topmost painted pixel, so a horn or
+## a crest is not the head.
+const HITBOX_CROWN_INSET: float = 0.04
+## How wide a body stands to a blow: a share of its painted width either side of
+## the spine. A painting carries arms, weapons and a shield, so the body is a
+## little narrower than all of it. [TUNE]
+const HITBOX_WIDTH_SHARE: float = 0.38
+## Never narrower than this share of the body's own footing, for a painting
+## drawn thin. [TUNE]
+const HITBOX_FOOTING_FLOOR: float = 0.85
+## A painting that cannot be read is taken as this much of its canvas.
+const HITBOX_PAINT_DEFAULT: Rect2 = Rect2(0.15, 0.08, 0.7, 0.88)
+## **A Warden's spine**: the crown stands this many times the chest's height
+## above the feet, and a Warden is this wide - a dressed body is a sheet of
+## cells rather than one painting, so it is measured off the chest. [TUNE]
+const HITBOX_WARDEN_CROWN: float = 1.9
+const HITBOX_WARDEN_RADIUS: float = 22.0
+## **The zones**, by the share of the painted height a blow lands at: legs
+## below the first, a head above the second, the torso between. [TUNE]
+const HITBOX_ZONE_LEGS_TOP: float = 0.36
+const HITBOX_ZONE_HEAD_FROM: float = 0.74
+## What a Warden's blow is worth on legs, torso and head, and the chance it is a
+## critical there. **The torso is the blow it always was** - about two percent
+## over, on average - so a Warden swinging at what stands in front of them
+## lands what they always landed; the legs are worth less and the head is a
+## weak point worth seeking. [TUNE]
+const HITBOX_ZONE_DAMAGE: Array[float] = [0.85, 1.0, 1.15]
+const HITBOX_ZONE_CRIT: Array[float] = [0.0, 0.04, 0.15]
+## What a critical multiplies a blow by. [TUNE]
+const HITBOX_CRIT_SCALE: float = 1.6
+## What a blow on a Warden's legs, torso and head is worth (owner: *"Players also
+## can take extra damage depending on where in their hitboxes they are hit"*). A
+## body the Warden's height meets the torso, a giant the head, a rat the shins.
+## [TUNE]
+const HITBOX_WARDEN_ZONE_DAMAGE: Array[float] = [0.85, 1.0, 1.25]
+## Where on a spine a body aims when it goes for the head on purpose.
+const HITBOX_HEAD_AIM_SHARE: float = 0.88
+## **The chance a body aims a blow at the head on purpose**, by role
+## (MARCHER, VANGUARD, WARDEN, HOWLER, BURROWER) - a shooter picks its mark, a
+## warden just hits what is in front of it. A boss reads the boss figure. [TUNE]
+const ENEMY_WEAKPOINT_AIM: Array[float] = [0.06, 0.12, 0.04, 0.18, 0.10]
+const ENEMY_WEAKPOINT_AIM_BOSS: float = 0.2
+## How far up its own body a blow is thrown from - the shoulder - so a body
+## the Warden's height strikes their chest and a giant strikes down on the
+## head (`Hitbox.aim_point`).
+const HITBOX_SHOULDER_SHARE: float = 0.7
+## The numbers a head blow and a critical wear, so the player reads where a
+## swing landed without a word.
+const HITBOX_HEAD_COLOUR: Color = Color(1.0, 0.82, 0.42)
+const HITBOX_CRIT_COLOUR: Color = Color(1.0, 0.95, 0.55)
+
 ## **A melee body may follow one blow with another** (owner, 2026-10-01:
 ## *"Some melee enemies should have the ability to sometimes do combo strikes if
 ## their target is still alive and in range from 1-3 strikes and maybe even more
@@ -8564,6 +8617,9 @@ const PATH_CORE_RADIUS: float = 70.0
 ## Width of the soft, noisy fringe *outside* the core, in pixels. Core plus
 ## fringe should land near the road's half-width (LANE_WIDTH * 1.6 / 2 = 88);
 ## more than that and the fringe is simply clipped. [TUNE]
+##
+## **Read again since 2026-10-07**: the baked road fades over this many world
+## units, half into the road and half over the ground (`PathBlend`).
 const PATH_EDGE_FADE: float = 39.0
 
 ## How hard the fringe is broken up, 0..1. Only ever moves where the fade
@@ -8592,10 +8648,6 @@ const PATH_TINT_ALPHA: float = 0.84
 const PATH_DARKEN: float = 0.76
 
 ## Sub-pixel shoulder blend between the baked lane mask and regional ground.
-## Kept near one source texel so it softens the cut-paper edge without turning
-## the pixel-art road itself blurry or widening build geometry. [TUNE]
-const PATH_EDGE_FEATHER_TEXELS: float = 1.15
-const PATH_EDGE_FEATHER_STRENGTH: float = 0.82
 
 ## Rain catches only the road's brighter texels and moves in long, faint bands.
 ## It is part of the existing road pass rather than another full-field layer.
@@ -10987,6 +11039,30 @@ const TORNADO_STREAK_TURNS: float = 1.35
 const TORNADO_STREAK_WIDTH: float = 5.0
 const TORNADO_HEIGHT: float = 420.0
 const TORNADO_SPIN: float = 9.0
+## **Born and dying** (2026-10-07): how long a funnel takes to rise out of the
+## dust devil it starts as, and to lift and thin away at its end. Both are the
+## picture's: the funnel blows, pulls and carries from its first frame.
+const TORNADO_BIRTH_SECONDS: float = 1.8
+const TORNADO_DEATH_SECONDS: float = 1.4
+## How hard the ground is felt where one rises, by `camera_impact`'s weight.
+const TORNADO_BIRTH_IMPACT: float = 0.25
+## The forged debris sheet's own geometry (`effects/funnel_debris.py`): its
+## throat and mouth as shares of the cell down from its top, and the mouth's
+## width as a share of the cell - read so the sheet is laid on the column
+## rather than centred on the funnel's feet.
+const TORNADO_SHEET_THROAT: float = 0.89
+const TORNADO_SHEET_MOUTH: float = 0.07
+const TORNADO_SHEET_MOUTH_WIDE: float = 0.74
+const TORNADO_SHEET_ALPHA: float = 0.55
+## The sheet is drawn in this many bands, thinning toward its mouth.
+const TORNADO_SHEET_BANDS: int = 6
+## The dust puffs riding the column: rings, puffs a ring, and their size at
+## the foot and at the top.
+const TORNADO_PUFF_RINGS: int = 9
+const TORNADO_PUFFS_PER_RING: int = 7
+const TORNADO_PUFF_SIZE: Vector2 = Vector2(44.0, 118.0)
+## What it has picked up, climbing it.
+const TORNADO_CHUNKS: int = 30
 ## **What a funnel takes off a tower it is standing on**, per second.
 ##
 ## It was 700, which with a 1.4-second pass through the 84-unit wake is 980

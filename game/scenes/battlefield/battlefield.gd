@@ -198,6 +198,9 @@ const PIECE: float = BattleGrid.TILE * float(ROAD_CELL) / ROAD_ART_SPAN
 ## whole texture pixels and cannot open a seam between independently laid pieces.
 const ROAD_BAKE_PPU: float = 0.5
 
+## How much smaller the copy of the road the fade reads is (`PathBlend`).
+const ROAD_SOFT_SCALE: int = 4
+
 var _path_tiles: Array = []
 var _path_variants_cache: Dictionary = {}
 
@@ -2906,6 +2909,13 @@ func _build_lanes() -> void:
 		if path.size() >= 2:
 			_bake_corridor(canvas, extent, path[0], path[1])
 
+	# A quarter-size mipmapped copy the material reads as a soft field, to fade
+	# the road into the ground (`PathBlend`). A copy, because one texture has one
+	# filter in the Compatibility renderer and the road itself is drawn nearest.
+	var soft: Image = canvas.duplicate() as Image
+	soft.resize(maxi(side / ROAD_SOFT_SCALE, 1), maxi(side / ROAD_SOFT_SCALE, 1),
+		Image.INTERPOLATE_BILINEAR)
+	soft.generate_mipmaps()
 	var surface := Sprite2D.new()
 	surface.name = "RoadSurface"
 	surface.texture = ImageTexture.create_from_image(canvas)
@@ -2918,7 +2928,8 @@ func _build_lanes() -> void:
 	# coherent regional texture through the existing alpha geometry. Wet sheen is
 	# still quality-gated independently inside PathBlend.
 	surface.material = PathBlend.material_for_surface(
-		RunState.terrain_id, Vector2(canvas.get_size()))
+		RunState.terrain_id, Vector2(canvas.get_size()), ImageTexture.create_from_image(soft),
+		ROAD_BAKE_PPU, float(ROAD_SOFT_SCALE))
 	lane_root.add_child(surface)
 
 

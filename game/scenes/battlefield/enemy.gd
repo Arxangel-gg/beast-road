@@ -2702,7 +2702,18 @@ func _strike() -> void:
 	# rather than the one that was rolled. `promoted_name` carries the affixes:
 	# being felled by a Rimewarded Ironhide Bogkin is a different story from a
 	# Bogkin, and the death screen should be able to tell it.
+	#
+	# **Where on the Warden it lands** (2026-10-07): the nearest of their body
+	# to this one's own middle, or their head when this body means to - and a
+	# head it cannot reach is not aimed at. A giant's blow falls on the head
+	# and a rat's on the shins.
 	if _target is Hero:
+		var for_head: bool = RunState.rng("zones").randf() < weakpoint_aim()
+		var point: Vector2 = Hitbox.aim_point(self, _target, for_head)
+		if for_head and Hitbox.body_of(self).distance_to(point) \
+				> attack_reach() + Hitbox.hit_radius(_target):
+			point = Hitbox.aim_point(self, _target, false)
+		damage *= Hitbox.zone_scale(_target, Hitbox.zone_at(_target, point))
 		RunState.note_blow(promoted_name(), damage)
 	# Whatever the affixes do to what they touch. Both may apply, and that is the
 	# combination working: Rimewarded and Emberclad chills *and* burns, with
@@ -2781,6 +2792,29 @@ func speak() -> void:
 	var shift: float = clampf(pow(1.0 / body, Balance.ENEMY_VOICE_PITCH_POWER),
 		Balance.WILDLIFE_VOICE_PITCH_MIN, Balance.WILDLIFE_VOICE_PITCH_MAX) - 1.0
 	Sfx.play_at(data.voice_sfx, global_position, 0.0, shift)
+
+
+## **The chance this body aims a blow at the head on purpose** (2026-10-07):
+## by its role, a boss by the boss figure.
+func weakpoint_aim() -> float:
+	if data == null:
+		return 0.0
+	if not data.phase_thresholds.is_empty():
+		return Balance.ENEMY_WEAKPOINT_AIM_BOSS
+	return Balance.ENEMY_WEAKPOINT_AIM[clampi(int(data.role), 0,
+		Balance.ENEMY_WEAKPOINT_AIM.size() - 1)]
+
+
+## **The zone the next blow landed on**, said by whoever dealt it so its
+## number can say so - a head gold, a critical gold and large. Spent by
+## that blow.
+var _blow_zone: int = -1
+var _blow_crit: bool = false
+
+
+func mark_blow(zone: int, crit: bool) -> void:
+	_blow_zone = zone
+	_blow_crit = crit
 
 
 func contact_radius() -> float:
@@ -3042,7 +3076,14 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
 	var body_at: Vector2 = _visual_origin()
-	Vfx.number(body_at, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
+	var shade: Color = Color("ffe3b0")
+	if _blow_crit:
+		shade = Balance.HITBOX_CRIT_COLOUR
+	elif _blow_zone == Hitbox.Zone.HEAD:
+		shade = Balance.HITBOX_HEAD_COLOUR
+	Vfx.number(body_at, incoming, shade, _blow_crit or incoming >= data.max_hp * 0.4)
+	_blow_zone = -1
+	_blow_crit = false
 	var hit_direction: Vector2 = (global_position - from).normalized()
 	# **From where it struck, as much as it took** (2026-10-01): the spark, the
 	# blood and the wound on the body all start at the one point the blow met.

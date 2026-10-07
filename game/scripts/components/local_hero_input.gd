@@ -235,7 +235,7 @@ func _reaches(warden: Hero, body: Node2D) -> bool:
 	var from: Vector2 = warden.combat_origin()
 	if order == Order.SHOOT:
 		var bow: RangedWeaponData = warden.ranged.weapon()
-		return bow != null and from.distance_to(Hitbox.meet(body, from)) \
+		return bow != null and Hitbox.reach_gap(body, from) \
 			<= bow.effective_range * Balance.CLICK_MOVE_RANGED_SHARE
 	return warden.attack.reaches(from, body, Balance.CLICK_MOVE_REACH_SHARE)
 

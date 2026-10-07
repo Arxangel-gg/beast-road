@@ -13939,6 +13939,125 @@ plus the font cache rasterising the card faces' sizes - a 35 ms frame while
 nothing is being fought. Spreading it over frames is the lever if it ever
 matters; it is under the budget and was left.
 
+**A body is its painting, and it has a head, as of 2026-10-07.** The owner:
+*"Act bosses are untargettable as the player goes to try to only hit the target
+between their legs and doesn't attack it there either ... All enemies and
+wildlife need proper hitboxes and different parts of the characters and player
+that are hit should deal different amounts of damage depending on how vital the
+area is etc with higher crit chances in the weakpoint areas."*
+
+**Two faults made a boss untargetable, and neither was the boss.** The hitbox of
+2026-10-01 was a thin stroke from the feet to the upper chest with the body's
+*ground* radius round it - right for a Warden-sized body, and for a giant three
+hundred units tall and two hundred wide a stick down its own middle: a click on
+its torso was a click on the ground, and the Warden walked in between its legs.
+And the swing's reach was measured to that stroke, so a Warden at its leg was
+out of reach of a body they were standing inside the picture of.
+
+**`Hitbox` is a capsule read off the painting now**: a spine from the feet to the
+crown of the base painting (its opaque bounds, measured once and kept as a
+value), as wide as `HITBOX_WIDTH_SHARE` of the painted width and never narrower
+than the footing. The Warden, whose dressed sheets are cells rather than one
+painting, is a spine to `HITBOX_WARDEN_CROWN` of their chest and
+`HITBOX_WARDEN_RADIUS` wide. `reach_gap` - the spine less the width - is what a
+swing, a click, a chase and an arrow ask; the shared broadphase still measures
+to the spine, so a tower, a blast and the curve read the same bodies they did.
+
+**The arc judges the middle or the nearest of the body** (`HeroAttack.in_arc`):
+the body's middle as it always was, so a cleave's widening still means what it
+says about the bodies beside the Warden - or the nearest point of its spine,
+which is what a Warden at a giant's leg is swinging at. A bearing to the whole
+width was tried and refused: it made every arc several times wider for a body
+close by, which is a balance change wearing a hitbox's clothes, and
+`discipline_branch_check`'s Wide Cleave named it.
+
+**Three zones, read by where a blow meets the spine** (`Hitbox.zone_at`): legs,
+torso, and a head that is a weak point - `HITBOX_ZONE_DAMAGE` 0.85 / 1.0 / 1.15
+and `HITBOX_ZONE_CRIT` 0 / 4% / 15% at `HITBOX_CRIT_SCALE`. The Warden's swing,
+the chain bolt and the arrow read them, through `HeroAttack._land_on`, with the
+crits on their own stream (`RunState.rng("zones")`) so nothing seeded moves; a
+head blow's number is gold and a critical's gold and large. **Bodies aim**: a
+blow is thrown from the body's shoulder (`HITBOX_SHOULDER_SHARE` up its spine) at
+the nearest of the Warden, so a giant strikes down on the head and a rat at the
+shins, and by its role a body sometimes reaches for the head on purpose
+(`ENEMY_WEAKPOINT_AIM`, a boss `_BOSS`) - a head the Warden takes
+`HITBOX_WARDEN_ZONE_DAMAGE` more on. **Towers and areas read no zone**, so the
+numbers the curve is tuned against do not move; `balance_test` and
+`curve_report` read the same waves.
+
+**`Hitbox.zone_crits` is off only in a gate that compares one blow's size
+against another's**, which is what `discipline_branch_check`'s ratios are:
+its Brand of Ruin test read a zone critical on one of its two blows as the
+branch failing. Nothing in the game writes it.
+
+`hitbox_check` (36) stands the widest boss and holds its painted width, a click
+on its chest picking it through `ClickMove.body_at`, a Warden inside its outline
+at its leg reaching it and a driven swing landing; the zones pay what they say
+off a real landing; and a giant strikes a Warden on the head. Its "well over
+the head" point was **amended** to the crown the spine now ends at. Planted
+back to the stick, it named four; zones paying nothing, three.
+`chain_bolt_check`'s near body was moved where the arc is after the swing's
+step - it had passed only because the old stroke's nearest point sat level with
+the Warden's chest - a harness change.
+
+**The road fades into the ground again, as of 2026-10-07.** Owner: *"Fix the
+path to ground transition to restore the smooth fade it had again."* The fade
+was the old strips' - their last `PATH_EDGE_FADE` units faded into the terrain
+with a threshold the noise pushed about - and it went when the baked mask
+replaced the strips in a10d1ff8: the mask's edge is the path tiles' own alpha,
+which is binary, so every shoulder became a staircase of three-texel steps cut
+out of the ground, and the four constants that described the fade sat on
+`balance_reach_check`'s unread list for a month.
+
+`PathBlend` reads the mask a second time as a soft field and fades across it,
+the noise moving where the edge falls and never how opaque the inside is - the
+strips' rule. **A quarter-size mipmapped copy** (`ROAD_SOFT_SCALE`), because the
+first cut read the very texture the sprite draws, and the Compatibility
+renderer keeps one filter per texture: the nearest the road is drawn with won,
+the field read as hard as the mask, and the photograph was the same staircase
+with nothing failed. One coarse read decides the far field, so open ground
+costs a single tap. `recovery_polish_check`'s "four-sample feather" was
+**amended** to the fade; `PATH_EDGE_FEATHER_*` are gone. `road_shot` takes
+`--zoom=` and `--at=` now, and waits out the fog before it shoots.
+
+**Plants cut off in rectangles were photographed beside it and not chased** -
+several jungle plants draw with a hard straight edge across them at play zoom.
+Recorded so it is looked at, not assumed to be the fog: the shot waits forty
+frames now and they are still there.
+
+**A funnel is born, turns one way, and comes apart, as of 2026-10-07.** The
+owner: the tornado's *"V shaped frame VFX ... is not in line with the rest of
+the body ... and has an offset downwards ... potentially spin the other way
+from when it's spawned ... spawn better and grow into the full tornado."*
+
+**The V was the forged debris sheet, played on the ink centred on the funnel's
+feet**, so its throat hung a third of the column below the ground; and it was a
+fresh take every quarter second, half of the takes turning the other way and
+flipped at random besides. It is drawn by the funnel now, its throat on the
+ground and its mouth at the column's own height and width, in bands that thin
+toward the top - drawn whole, its mouth was a ring of its biggest pieces over a
+column whose dust had thinned to nothing there, which was the lid the owner saw
+as a frame. The column fades to nothing at its top for the same reason.
+
+**`Tornado.turning`** is one way round for the column, its streaks, its debris
+take and what `TornadoCatch` carries and throws, decided from where the funnel
+was born and where it is going, so a guest told the same two points turns it the
+same way without a packet. **Born small**: a dust devil at the ground that rises
+and widens into the column over `TORNADO_BIRTH_SECONDS`, with a ring of grit
+and a shove of the camera; **and it dies by lifting and thinning** over
+`TORNADO_DEATH_SECONDS` rather than fading in place. Dust puffs ride the column
+and chunks of earth and the odd leaf climb it; the dust takes the ground's own
+colour (`Battlefield.ground_colour`). Every one of those is a look: the funnel
+blows, pulls and carries from its first frame and strikes nothing once it is
+coming apart. **A guest's funnel now dies on its own clock** - it never counted
+its seconds down, so a guest's copy stood until the host's was told to move.
+
+`wrath_check` holds all of it on the real funnel: one way for a twin born from
+the same points, its take, its carry, born short and grown to full, struck from
+its first frame, a coming-apart that strikes nothing and is freed. Planted with
+an instant birth and an instant death, it named both. `tornado_shot` is the
+photograph.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

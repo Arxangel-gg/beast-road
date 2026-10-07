@@ -221,11 +221,25 @@ func _test_shader_budget() -> void:
 	var repeat_value: Vector2 = road_material.get_shader_parameter("surface_repeat")
 	_check(repeat_value.x > 1.0 and repeat_value.y > 1.0,
 		"regional road detail must map continuously across the whole baked field")
-	_check(is_equal_approx(float(road_material.get_shader_parameter(
-		"edge_feather_texels")), Balance.PATH_EDGE_FEATHER_TEXELS)
-		and is_equal_approx(float(road_material.get_shader_parameter(
-			"edge_feather_strength")), Balance.PATH_EDGE_FEATHER_STRENGTH),
-		"road shoulders must retain their four-sample ground feather")
+	# **Amended 2026-10-07**: the shoulder is a fade over `PATH_EDGE_FADE`
+	# world units read off the mask's mipmaps, which replaced a one-texel
+	# feather that left every edge a staircase (owner: "restore the smooth fade
+	# it had"). Handed no mask, a road keeps the mask's own edge.
+	var fade_flag: Variant = road_material.get_shader_parameter("use_fade")
+	_check(fade_flag == null or is_zero_approx(float(fade_flag)),
+		"a road handed no mask must keep the mask's own edge")
+	var mask_image: Image = Image.create_empty(64, 64, false, Image.FORMAT_RGBA8)
+	mask_image.generate_mipmaps()
+	var faded: ShaderMaterial = PathBlend.material_for_surface("jungle",
+		Vector2(1824.0, 1824.0), ImageTexture.create_from_image(mask_image), 0.5, 4.0)
+	_check(is_equal_approx(float(faded.get_shader_parameter("use_fade")), 1.0)
+		and is_equal_approx(float(faded.get_shader_parameter("soft_scale")), 4.0)
+		and is_equal_approx(float(faded.get_shader_parameter("fade_texels")),
+			Balance.PATH_EDGE_FADE * 0.5 * 0.5)
+		and is_equal_approx(float(faded.get_shader_parameter("edge_noise")), Balance.PATH_EDGE_NOISE)
+		and is_equal_approx(float(faded.get_shader_parameter("noise_texels")),
+			Balance.PATH_NOISE_SCALE * 0.5),
+		"road shoulders must fade into the ground over PATH_EDGE_FADE, broken by noise")
 	PathBlend.set_weather("downpour")
 	if Graphics.polish_shaders():
 		_check(is_equal_approx(float(road_material.get_shader_parameter(

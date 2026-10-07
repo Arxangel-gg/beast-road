@@ -232,7 +232,14 @@ func _test_steel_when_the_pool_is_short() -> void:
 	var far: Enemy = await _stand(Vector2(FAR, 0.0))
 	# Inside the arm and the arc, and off the bolt's own line - a body on the
 	# line would stop a bolt and read as steel.
-	var near: Enemy = await _stand(Vector2(50.0, -60.0))
+	#
+	# **Amended 2026-10-07**, a harness change: the swing steps the Warden
+	# forward before it lands, and at (50, -60) that step put the body's
+	# middle 80 degrees off the aim. It passed only because the old stroke's
+	# nearest point was level with the Warden's chest; the arc judges the
+	# body's middle as well now (`HeroAttack.in_arc`), so the body stands
+	# where the arc is after the step.
+	var near: Enemy = await _stand(Vector2(70.0, -20.0))
 	var far_before: float = far.health.current_hp
 	var near_before: float = near.health.current_hp
 	var breath_before: float = _hero.stamina

@@ -54,6 +54,8 @@ class TowerProbe extends Node2D:
 
 func _ready() -> void:
 	MetaState.hold_saves()
+	# Blows are compared by ratio here; a zone's critical is a coin no test asked about.
+	Hitbox.zone_crits = false
 	GameDirector.run_active = false
 	_fresh()
 	RunState.reset(false, 20260928)
@@ -76,6 +78,7 @@ func _ready() -> void:
 	for stage: String in STAGES:
 		_check(_reached.has(stage), "'%s' never reached its end - a SCRIPT ERROR above aborted it" % stage)
 	_fresh()
+	Hitbox.zone_crits = true
 	MetaState.resume_saves()
 	Sfx.stop_immediately()
 	Vfx.clear()

@@ -186,8 +186,16 @@ func _strike(enemy: Enemy) -> void:
 		_on_strike.call(enemy, global_position)
 		Vfx.spark(global_position, _tint, 7, -_heading, 240.0)
 		return
+	# **Where it met the body** (2026-10-07): an arrow loosed at a head is a
+	# head shot, which is the one weak point a bow reaches on a giant.
+	var zone: int = Hitbox.zone_at(enemy, global_position)
+	var blow: float = damage * Hitbox.zone_scale(enemy, zone)
+	var crit: bool = Hitbox.roll_crit(zone, RunState.rng("zones"))
+	if crit:
+		blow *= Balance.HITBOX_CRIT_SCALE
+	enemy.mark_blow(zone, crit)
 	DamageLedger.credit_as(DamageLedger.ARROW)
-	enemy.take_damage(damage, global_position, knockback, false)
+	enemy.take_damage(blow, global_position, knockback, false)
 	if ammo == null:
 		return
 	# Status comes from the ammunition, applied through the same calls a tower

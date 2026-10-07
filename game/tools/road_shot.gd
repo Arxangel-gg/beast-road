@@ -21,9 +21,19 @@ func _ready() -> void:
 	var terrain_id: String = ""
 	var output_path: String = "user://road_shot.png"
 	var viewport_size := Vector2i.ZERO
+	# `--zoom=` and `--at=x,y` frame a stretch of road close up, which is where
+	# the edge between the road and the ground is judged (2026-10-07).
+	var zoom: float = 0.21
+	var at := Vector2.ZERO
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--output="):
 			output_path = argument.trim_prefix("--output=")
+		elif argument.begins_with("--zoom="):
+			zoom = argument.trim_prefix("--zoom=").to_float()
+		elif argument.begins_with("--at="):
+			var xy: PackedStringArray = argument.trim_prefix("--at=").split(",")
+			if xy.size() == 2:
+				at = Vector2(xy[0].to_float(), xy[1].to_float())
 		elif argument.begins_with("--viewport="):
 			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
 			if dimensions.size() == 2:
@@ -41,11 +51,19 @@ func _ready() -> void:
 
 	var cam := run.battlefield.camera as Camera2D
 	if cam != null:
-		cam.zoom = Vector2(0.21, 0.21)
-		cam.global_position = Vector2.ZERO
+		cam.zoom = Vector2(zoom, zoom)
+		cam.global_position = at
+		# A camera rig follows the hero; hold it on the point asked for.
+		cam.set_process(false)
+		cam.set_physics_process(false)
+	if run.battlefield.fog() != null:
+		run.battlefield.fog().reveal_all()
 	if run.hud != null:
 		run.hud.visible = false
-	for _f: int in 8:
+	# Long enough for the fog to stamp what `reveal_all` opened: it ticks ten
+	# times a second, and a shot taken before it does shows plants cut off at
+	# the cells it has not reached.
+	for _f: int in 40:
 		await get_tree().process_frame
 	var img: Image = get_viewport().get_texture().get_image()
 	img.save_png(output_path)

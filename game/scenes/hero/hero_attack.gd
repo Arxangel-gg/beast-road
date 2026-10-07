@@ -354,13 +354,13 @@ func would_hit(origin: Vector2, aim: Vector2, step: int) -> Array[Node2D]:
 			var enemy := body as Enemy
 			if enemy != null and enemy.is_dying():
 				continue
-			var middle: Vector2 = _middle_of(body)
-			var wide: float = _width_of(body)
-			var to: Vector2 = middle - origin
+			# The painted body (2026-10-07), as `_strike` measures it.
+			var wide: float = Hitbox.hit_radius(body)
+			var to: Vector2 = Hitbox.meet(body, origin) - origin
 			var distance: float = to.length()
-			if distance > reach + wide:
+			if distance - wide > reach:
 				continue
-			if distance > 0.001 and absf(aim.angle_to(to)) > half_arc:
+			if not in_arc(aim, origin, body, half_arc):
 				continue
 			seen[body.get_instance_id()] = true
 			out.append(body)
@@ -378,33 +378,44 @@ func reaches(origin: Vector2, body: Node2D, share: float = 1.0) -> bool:
 		return false
 	var at: int = clampi(_step, 0, Balance.HERO_ATTACK_RANGE.size() - 1)
 	var reach: float = Balance.HERO_ATTACK_RANGE[at] * reach_scale()
-	return origin.distance_to(_middle_of(body)) <= (reach + _width_of(body)) * share
-
-
-## Where a body is judged from, for a swing: a road body's own middle, anything
-## else's position.
-static func _middle_of(body: Node2D) -> Vector2:
-	var enemy := body as Enemy
-	return enemy.combat_origin() if enemy != null else body.global_position
-
-
-static func _width_of(body: Node2D) -> float:
-	var enemy := body as Enemy
-	return enemy.contact_radius() if enemy != null else Balance.ENEMY_BODY_RADIUS
+	# **To the body itself** (2026-10-07): the painted capsule less its width,
+	# never its middle. A boss's middle stands three hundred units above its
+	# feet, so a Warden at its shins was forever out of reach and walked in
+	# between its legs (owner: *"Act bosses are untargettable"*).
+	return Hitbox.reach_gap(body, origin) <= reach * share
 
 
 ## Bodies standing in this swing's arc right now, hit or not.
+## **Whether a body lies in a swing's arc** (2026-10-07). The middle of the
+## body, as it always was - so a cleave's arc means what it says about the
+## bodies beside the Warden - or the nearest of its painted body, which is what
+## a Warden standing at a giant's leg is swinging at. A body whose middle the
+## Warden is standing on is in every arc, rather than sometimes unhittable;
+## a nearest point that close says nothing about bearing and is not asked.
+static func in_arc(aim: Vector2, origin: Vector2, body: Node2D, half_arc: float) -> bool:
+	var to_middle: Vector2 = Hitbox.body_of(body) - origin
+	if to_middle.length() <= Balance.HITBOX_WARDEN_RADIUS:
+		return true
+	if absf(aim.angle_to(to_middle)) <= half_arc:
+		return true
+	var to_near: Vector2 = Hitbox.meet(body, origin) - origin
+	return to_near.length() > Balance.HITBOX_WARDEN_RADIUS \
+		and absf(aim.angle_to(to_near)) <= half_arc
+
+
 func _count_in_arc(reach: float, half_arc: float) -> int:
 	var count: int = 0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
 		if enemy == null or enemy.is_dying():
 			continue
-		var to: Vector2 = enemy.combat_origin() - _swing_origin
+		# Counted as the swing meets them (2026-10-07), so the crowd a cleave
+		# gains from is the crowd it strikes.
+		var to: Vector2 = Hitbox.meet(enemy, _swing_origin) - _swing_origin
 		var distance: float = to.length()
-		if distance > reach + enemy.contact_radius():
+		if distance - Hitbox.hit_radius(enemy) > reach:
 			continue
-		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
+		if not in_arc(_swing_aim, _swing_origin, enemy, half_arc):
 			continue
 		count += 1
 	return count
@@ -426,7 +437,8 @@ func _form_is_thrown() -> bool:
 ## striker's sheet and Weeping Edge cannot disagree between a swing and a
 ## throw. The blow dealt, or -1 if the body refused it.
 func _land_on(enemy: Enemy, damage: float, knockback: float, finisher: bool,
-		form: DisciplineNodeData, origin: Vector2) -> float:
+		form: DisciplineNodeData, origin: Vector2, zone: int = -1,
+		struck: Vector2 = Vector2.INF) -> float:
 	var id: int = enemy.get_instance_id()
 	if _hit_ids.has(id):
 		return -1.0
@@ -443,6 +455,18 @@ func _land_on(enemy: Enemy, damage: float, knockback: float, finisher: bool,
 	# **Brand of Ruin**: the finisher strikes a branded body harder.
 	if finisher and form != null and enemy.is_branded():
 		blow *= 1.0 + WardenSheet.upgrade_of(sheet, form.id, "form_vs_branded")
+	# **Where it landed** (2026-10-07): the legs are worth less, the head is a
+	# weak point, and a weak point is where a critical most often lands.
+	var crit: bool = false
+	if zone >= 0:
+		blow *= Hitbox.zone_scale(enemy, zone)
+		crit = Hitbox.roll_crit(zone, RunState.rng("zones"))
+		if crit:
+			blow *= Balance.HITBOX_CRIT_SCALE
+		enemy.mark_blow(zone, crit)
+		if crit and struck != Vector2.INF:
+			Vfx.spark(struck, Color(1.0, 0.9, 0.45), 10, _swing_aim, 300.0)
+			Vfx.ring(struck, 26.0, Color(1.0, 0.85, 0.4, 0.8), 0.22, 3.0)
 	DamageLedger.credit_as(DamageLedger.WARDEN)
 	if not enemy.take_damage(blow, origin, knockback, true, sheet):
 		return -1.0
@@ -495,7 +519,8 @@ func _bolt_landed(enemy: Enemy, at: Vector2, finisher: bool, form: DisciplineNod
 	var damage: float = Balance.HERO_ATTACK_DAMAGE[step] * damage_multiplier
 	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[step] \
 		* WardenSheet.multiplier_of(sheet, Modifiers.KNOCKBACK)
-	var blow: float = _land_on(enemy, damage, knockback, finisher, form, at)
+	var blow: float = _land_on(enemy, damage, knockback, finisher, form, at,
+		Hitbox.zone_at(enemy, at), at)
 	if blow < 0.0:
 		return
 	if form != null and own_stash:
@@ -656,13 +681,19 @@ func _strike() -> void:
 		# where this swing meets it, and the bearing the arc judges.
 		var to: Vector2 = Hitbox.meet(enemy, _swing_origin) - _swing_origin
 		var distance: float = to.length()
-		if distance > reach + enemy.contact_radius():
+		# To the painted body less its width (2026-10-07), so a giant is met by
+		# a swing at its leg rather than only at the line down its middle.
+		var width: float = Hitbox.hit_radius(enemy)
+		if distance - width > reach:
 			continue
-		# An enemy standing on top of the hero has no meaningful bearing, so it
-		# is always in the arc rather than sometimes unhittable.
-		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
+		# The middle as it always was, or the nearest of the painted body: a
+		# Warden at a giant's leg swings at the leg (`in_arc`).
+		if not in_arc(_swing_aim, _swing_origin, enemy, half_arc):
 			continue
-		var blow: float = _land_on(enemy, damage, knockback, finisher, form, _swing_origin)
+		var struck: Vector2 = Hitbox.struck_point(enemy, _swing_origin, _swing_aim,
+			reach + width)
+		var blow: float = _land_on(enemy, damage, knockback, finisher, form, _swing_origin,
+			Hitbox.zone_at(enemy, struck), struck)
 		if blow < 0.0:
 			continue
 		hits += 1

@@ -951,6 +951,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		return
 	var sprite := Sprite2D.new()
 	sprite.texture = load(path)
+	# What the hitbox is measured off, whatever frame the sprite wears.
+	sprite.set_meta(&"hitbox_paint", path)
 	sprite.scale = Vector2.ONE * kind.scale
 	# Walks or flies in from off the edge, so nothing pops into existence in the
 	# middle of a field somebody is looking at.
@@ -2223,13 +2225,20 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, _step: int,
 		# struck from too far.
 		var toward: Vector2 = Hitbox.meet(sprite, at) - at
 		var distance: float = toward.length()
-		if distance > reach + Balance.WILDLIFE_KILL_REACH_BONUS:
+		var width: float = Hitbox.hit_radius(sprite)
+		if distance - width > reach + Balance.WILDLIFE_KILL_REACH_BONUS:
 			continue
 		# In front of the swing, not merely near it. A blade that killed things
 		# behind the hero would be a strange thing to discover by accident.
-		if distance > 1.0 and toward.normalized().dot(forward) < 0.2:
+		if distance > maxf(width, 1.0) and toward.normalized().dot(forward) < 0.2:
 			continue
-		_wound(index, animal)
+		# Where on the animal it landed (2026-10-07), as on a road body.
+		var struck: Vector2 = Hitbox.struck_point(sprite, at, forward, reach + width)
+		var zone: int = Hitbox.zone_at(sprite, struck)
+		var bite: float = Balance.HERO_ATTACK_DAMAGE[0] * Hitbox.zone_scale(sprite, zone)
+		if Hitbox.roll_crit(zone, RunState.rng("zones")):
+			bite *= Balance.HITBOX_CRIT_SCALE
+		_wound(index, animal, bite)
 		return
 
 

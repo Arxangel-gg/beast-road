@@ -171,18 +171,19 @@ func _carry(at: Vector2, delta: float) -> void:
 		var sprite: Node2D = body.get("sprite") as Node2D
 		if int(flight["phase"]) == 0:
 			var rise: float = clampf(float(flight["t"]) / Balance.TORNADO_LIFT_SECONDS, 0.0, 1.0)
-			flight["angle"] = float(flight["angle"]) + Balance.TORNADO_CARRY_SPIN * delta
+			# Round the way the funnel turns (`Tornado.turning`).
+			flight["angle"] = float(flight["angle"]) + Balance.TORNADO_CARRY_SPIN * _turning() * delta
 			var ring: float = lerpf(Balance.TORNADO_CATCH_RADIUS, Balance.TORNADO_WAKE * 1.2, rise)
 			var ground: Vector2 = at + Vector2.from_angle(float(flight["angle"])) * ring * Vector2(1.0, 0.5)
 			var lift: float = Balance.TORNADO_LIFT_HEIGHT * (rise * (2.0 - rise))
 			body.global_position = ground - Vector2(0.0, lift)
 			flight["ground"] = ground
 			if sprite != null:
-				sprite.rotation += Balance.TORNADO_CARRY_SPIN * 1.6 * delta
+				sprite.rotation += Balance.TORNADO_CARRY_SPIN * 1.6 * _turning() * delta
 			_hurt_aloft(body, delta)
 			if rise >= 1.0:
 				# Thrown out along the way it was spinning: the tangent.
-				var tangent: Vector2 = Vector2.from_angle(float(flight["angle"]) + PI * 0.5)
+				var tangent: Vector2 = Vector2.from_angle(float(flight["angle"]) + PI * 0.5 * _turning())
 				var land: Vector2 = ground + tangent * Balance.TORNADO_THROW_DISTANCE
 				if field.has_method("hold_inside"):
 					land = field.hold_inside(land)
@@ -199,7 +200,7 @@ func _carry(at: Vector2, delta: float) -> void:
 				+ Balance.TORNADO_THROW_ARC * 4.0 * s * (1.0 - s)
 			body.global_position = ground - Vector2(0.0, height)
 			if sprite != null:
-				sprite.rotation += Balance.TORNADO_CARRY_SPIN * 0.8 * delta
+				sprite.rotation += Balance.TORNADO_CARRY_SPIN * 0.8 * _turning() * delta
 			if s >= 1.0:
 				_land(id, body)
 
@@ -281,3 +282,11 @@ func _release_all() -> void:
 
 func _exit_tree() -> void:
 	_release_all()
+
+
+## Which way the funnel turns, 1 or -1.
+func _turning() -> float:
+	if funnel == null or not is_instance_valid(funnel):
+		return 1.0
+	var way: Variant = funnel.get("turning")
+	return float(way) if way != null else 1.0

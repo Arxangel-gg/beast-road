@@ -15,6 +15,23 @@ extends Node2D
 ## ground, dust at the foot, debris climbing it. Nothing here needs a shader,
 ## which is why it can be looked at headless. The host moves it and hurts with
 ## it; a guest is told where it is (`coop_tornado_moved`) and draws it there.
+##
+## **One funnel, one way round, grown rather than placed** (owner, 2026-10-07:
+## *"Tornadoes have a V shaped frame VFX that is not in line with the rest of
+## the body ... and has an offset downwards ... and even potentially spin the
+## other way ... it should spawn better and grow into the full tornado"*). The
+## V was the forged debris sheet, played on the ink centred on the funnel's
+## *feet*, so its throat hung a third of the column below the ground; and it
+## was a fresh take every quarter second, half of them turning the other way,
+## flipped at random besides. The sheet is drawn here now, as part of the
+## funnel: its throat on the ground, its mouth at the column's own height and
+## width, leaning with it, and one take that turns the way the column turns.
+## Which way that is is the funnel's own (`turning`), decided where it was
+## born so both machines agree. And it is born small - a dust devil at the
+## ground that rises and widens into the column over `TORNADO_BIRTH_SECONDS`
+## - and it dies by lifting and thinning rather than by fading in place.
+## Every one of those is a look: the blow, the pull and the wake are the
+## funnel's from its first frame to its last, exactly as before.
 
 const GROUP: StringName = &"tornadoes"
 
@@ -40,6 +57,22 @@ var _fire_left: float = 0.0
 var _ignite_timer: float = 0.0
 ## The pull, the lift and the throw (2026-09-30). The host's only.
 var _catch: TornadoCatch = null
+## **Which way it turns**, 1 or -1: the column, the streaks, the debris and
+## what it carries all go round the same way. Decided from where it was born
+## and where it is going, so a guest told the same two points turns it the
+## same way without a packet.
+var turning: float = 1.0
+## Seconds since it was born, and since it began to come apart (-1 until it
+## does). Both are the picture's only.
+var _age: float = 0.0
+var _dying: float = -1.0
+## The forged debris, drawn as part of the funnel.
+const DEBRIS_SHEET: String = "funnel_debris"
+var _sheet: Texture2D = null
+var _sheet_cells: int = 1
+## The colour of the ground it is standing on, which is what it picks up.
+var _earth: Color = Color(0.42, 0.36, 0.28)
+var _earth_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -50,7 +83,12 @@ func _ready() -> void:
 	position = at
 	_rng = RunState.rng("wrath")
 	_mirror = Coop.is_guest()
+	turning = 1.0 if posmod(hash(Vector4i(int(round(at.x)), int(round(at.y)),
+		int(round(_target.x)), int(round(_target.y)))), 2) == 0 else -1.0
+	_load_sheet()
 	_build_debris()
+	_read_the_earth()
+	_born()
 	EventBus.coop_tornado_moved.connect(_on_moved_elsewhere)
 	if not _mirror and field != null:
 		_catch = TornadoCatch.new()
@@ -80,9 +118,27 @@ func _build_debris() -> void:
 
 
 func _process_measured(delta: float) -> void:
-	_spin += delta * Balance.TORNADO_SPIN
+	_age += delta
+	# It turns faster as it grows into itself, and slows as it comes apart.
+	_spin += delta * Balance.TORNADO_SPIN * turning * lerpf(0.35, 1.0, _grown()) \
+		* (1.0 - _dissolve() * 0.6)
 	queue_redraw()
+	if _dying >= 0.0:
+		_dying += delta
+		if _dying >= Balance.TORNADO_DEATH_SECONDS:
+			queue_free()
+		return
+	_earth_timer -= delta
+	if _earth_timer <= 0.0:
+		_earth_timer = 0.5
+		_read_the_earth()
 	if _mirror:
+		# A guest's copy keeps the same clock and the same edge, or it would
+		# stand on the field for the rest of the run after the host's had gone.
+		seconds_left -= delta
+		var edge: float = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
+		if seconds_left <= 0.0 or absf(at.x) > edge or absf(at.y) > edge:
+			_die()
 		return
 	seconds_left -= delta
 	# Wandering toward its point, then past it: the heading turns a little
@@ -99,14 +155,7 @@ func _process_measured(delta: float) -> void:
 	_dust_timer -= delta
 	if _dust_timer <= 0.0:
 		_dust_timer = 0.28
-		Vfx.dust(at, Color(0.42, 0.36, 0.28), 5, Balance.TORNADO_WAKE)
-		# **The debris caught in it**, on the wake's own clock. The sheet is
-		# the one looping effect in the catalogue - it comes back round to
-		# where it started - which is what lets it be played over and over
-		# while the funnel stands rather than reading as a repeated blow.
-		# Upright, because a funnel lying on its side is not a funnel.
-		Vfx.forge_play("funnel_debris", at, Balance.TORNADO_AOE * 1.6,
-			Color(0.78, 0.7, 0.58, 0.8))
+		Vfx.dust(at, _earth, 5, Balance.TORNADO_WAKE)
 	_howl_timer -= delta
 	if _howl_timer <= 0.0:
 		_howl_timer = 2.4
@@ -217,20 +266,22 @@ func _on_moved_elsewhere(where: Vector2, is_burning: bool) -> void:
 
 
 func _die() -> void:
+	if _dying >= 0.0:
+		return
 	# Everybody it was carrying is put down before the funnel fades.
 	if _catch != null and is_instance_valid(_catch):
 		_catch.queue_free()
 		_catch = null
-	Vfx.dust(at, Color(0.42, 0.36, 0.28), 14, Balance.TORNADO_AOE * 0.6)
+	Vfx.dust(at, _earth, 14, Balance.TORNADO_AOE * 0.6)
+	Vfx.ring(at, Balance.TORNADO_AOE * 0.6, Color(_earth.r, _earth.g, _earth.b, 0.28))
 	# Where it fell apart the air stays charged for a while.
 	if not _mirror and field != null and field.zones() != null:
 		field.zones().open("storm_core", at, Balance.ZONE_STORM_RADIUS)
 	if _debris != null:
 		_debris.emitting = false
-	var fade: Tween = create_tween()
-	fade.tween_property(self, "modulate:a", 0.0, 1.2)
-	fade.tween_callback(queue_free)
-	set_process(false)
+	# It lifts and thins over `TORNADO_DEATH_SECONDS` and is freed by its own
+	# clock (`_process_measured`); nothing it does after this is a blow.
+	_dying = 0.0
 
 
 ## The funnel: a column of dust that fades into the air at every edge, with
@@ -238,14 +289,172 @@ func _die() -> void:
 func _draw_measured() -> void:
 	_draw_the_foot()
 	_draw_the_column()
+	_draw_the_puffs()
+	_draw_the_debris()
+	_draw_the_chunks()
 	_draw_the_streaks()
+
+
+## **How far it has grown into itself**, 0 at its birth and 1 once it stands.
+func _grown() -> float:
+	return smoothstep(0.0, 1.0, _age / maxf(Balance.TORNADO_BIRTH_SECONDS, 0.01))
+
+
+## **How far it has come apart**, 0 standing and 1 gone.
+func _dissolve() -> float:
+	if _dying < 0.0:
+		return 0.0
+	return clampf(_dying / maxf(Balance.TORNADO_DEATH_SECONDS, 0.01), 0.0, 1.0)
+
+
+## How tall the column stands right now: it rises out of the ground as it is
+## born and lifts away as it dies.
+func _height() -> float:
+	return Balance.TORNADO_HEIGHT * lerpf(0.12, 1.0, _grown()) * (1.0 + _dissolve() * 0.35)
+
+
+## How solid the whole of it is drawn.
+func _presence() -> float:
+	return lerpf(0.25, 1.0, sqrt(_grown())) * (1.0 - _dissolve())
+
+
+## The forged debris, on the funnel's own clock and in its own shape: the
+## sheet's throat on the ground and its mouth at the column's top, as wide as
+## the column is there, leaning with it. One take, turning the funnel's way.
+func _draw_the_debris() -> void:
+	if _sheet == null or _sheet_cells <= 0:
+		return
+	var tall: float = float(_sheet.get_height())
+	var frame: int = int(_age * Balance.VFX_FORGE_FRAME_RATE) % _sheet_cells
+	var height: float = _height()
+	# The sheet's cone runs from its throat at FUNNEL_THROAT of the cell down
+	# from its top to its mouth at FUNNEL_MOUTH, and is FUNNEL_MOUTH_WIDE of the
+	# cell across at the mouth (`effects/funnel_debris.py`).
+	var cell_tall: float = height / (Balance.TORNADO_SHEET_THROAT - Balance.TORNADO_SHEET_MOUTH)
+	var cell_wide: float = _reach_at(1.0) * 2.0 / Balance.TORNADO_SHEET_MOUTH_WIDE
+	var top: float = -height - Balance.TORNADO_SHEET_MOUTH * cell_tall
+	var shade: Color = Color(1.0, 0.62, 0.3) if burning() else _earth.lightened(0.2)
+	# **In bands, thinning upward.** Drawn whole, its mouth was a ring of the
+	# sheet's biggest pieces at the top of a column whose dust has thinned to
+	# nothing there - a lid, and the very V that was reported. What is caught
+	# low, where the funnel is packed, is what reads as debris.
+	var bands: int = Balance.TORNADO_SHEET_BANDS
+	var left: float = _lean_at(0.5) - cell_wide * 0.5
+	for band: int in bands:
+		var from: float = float(band) / float(bands)
+		var to: float = float(band + 1) / float(bands)
+		# The band's share of the way from the mouth (0) to the throat (1).
+		var middle: float = lerpf(Balance.TORNADO_SHEET_MOUTH, Balance.TORNADO_SHEET_THROAT,
+			(from + to) * 0.5)
+		var low: float = inverse_lerp(Balance.TORNADO_SHEET_MOUTH, Balance.TORNADO_SHEET_THROAT, middle)
+		var tint: Color = shade
+		tint.a = Balance.TORNADO_SHEET_ALPHA * _presence() * pow(clampf(low, 0.0, 1.0), 1.6)
+		if tint.a <= 0.01:
+			continue
+		draw_texture_rect_region(_sheet,
+			Rect2(Vector2(left, top + from * cell_tall), Vector2(cell_wide, (to - from) * cell_tall)),
+			Rect2(Vector2(float(frame) * tall, from * tall), Vector2(tall, (to - from) * tall)), tint)
+
+
+## **Dust going round**: soft puffs on rings up the column, each turning with
+## it, bigger and thinner the higher they ride, lighter as they come round the
+## near side. What makes the column read as air full of dirt rather than as a
+## cone of paint.
+func _draw_the_puffs() -> void:
+	var dot: Texture2D = Flame.dot_texture()
+	var rings: int = Balance.TORNADO_PUFF_RINGS
+	var around: int = Balance.TORNADO_PUFFS_PER_RING
+	var presence: float = _presence()
+	var lit: bool = burning()
+	for ring: int in rings:
+		var t: float = (float(ring) + 0.5) / float(rings)
+		var reach: float = _reach_at(t)
+		var height: float = _height()
+		for j: int in around:
+			var jitter: float = fposmod(float(ring * 7 + j) * 0.6180339, 1.0)
+			var angle: float = TAU * (float(j) + jitter * 0.6) / float(around) \
+				+ _spin * lerpf(1.3, 0.7, t) + t * 3.0
+			var facing: float = sin(angle) * 0.5 + 0.5
+			var spot: Vector2 = Vector2(_lean_at(t) + cos(angle) * reach * 0.82,
+				-height * t + sin(angle) * reach * 0.2)
+			var size: float = lerpf(Balance.TORNADO_PUFF_SIZE.x, Balance.TORNADO_PUFF_SIZE.y, t) \
+				* (0.75 + jitter * 0.5)
+			var colour: Color = Color(1.0, 0.55, 0.22) if lit else _earth.lightened(facing * 0.25)
+			colour.a = (0.12 + 0.2 * facing) * pow(1.0 - t, 0.7) * presence
+			draw_texture_rect(dot, Rect2(spot - Vector2(size, size * 0.7) * 0.5,
+				Vector2(size, size * 0.7)), false, colour)
+
+
+## **What it has picked up**: chunks of earth and the odd leaf, climbing the
+## funnel as they go round it and spat out at the top. One mesh.
+func _draw_the_chunks() -> void:
+	var count: int = Balance.TORNADO_CHUNKS
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	var indices := PackedInt32Array()
+	var presence: float = _presence()
+	var height: float = _height()
+	for i: int in count:
+		var jitter: float = fposmod(float(i) * 0.6180339, 1.0)
+		var climb: float = lerpf(0.12, 0.3, fposmod(float(i) * 0.3719, 1.0))
+		var t: float = fposmod(jitter + _age * climb, 1.0)
+		var angle: float = float(i) * 2.399 + _spin * lerpf(1.7, 0.9, t)
+		var reach: float = _reach_at(t)
+		var facing: float = sin(angle) * 0.5 + 0.5
+		var spot: Vector2 = Vector2(_lean_at(t) + cos(angle) * reach * 0.9,
+			-height * t + sin(angle) * reach * 0.22)
+		var size: float = lerpf(2.5, 6.5, fposmod(float(i) * 0.7713, 1.0)) * lerpf(1.0, 1.4, facing)
+		var leaf: bool = i % 4 == 0
+		var colour: Color = Color(0.32, 0.5, 0.2) if leaf else _earth.darkened(0.45)
+		colour = colour.lightened(facing * 0.3)
+		colour.a = (0.35 + 0.6 * facing) * sin(t * PI) * presence
+		var turn: float = angle * 1.7 + float(i)
+		var first: int = points.size()
+		for corner: int in 4:
+			points.append(spot + Vector2.from_angle(turn + float(corner) * PI * 0.5) * size)
+			colours.append(colour)
+		indices.append_array([first, first + 1, first + 2, first, first + 2, first + 3])
+	if not indices.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colours)
+
+
+## The take that turns the way this funnel does. Even takes of the sheet turn
+## one way and odd takes the other (`effects/funnel_debris.py`).
+func _load_sheet() -> void:
+	var path: String = Vfx.FORGE_ART_FORMAT % DEBRIS_SHEET if turning > 0.0 \
+		else Vfx.FORGE_TAKE_FORMAT % [DEBRIS_SHEET, 1]
+	if not ResourceLoader.exists(path):
+		path = Vfx.FORGE_ART_FORMAT % DEBRIS_SHEET
+	if not ResourceLoader.exists(path):
+		return
+	_sheet = load(path) as Texture2D
+	if _sheet != null:
+		_sheet_cells = maxi(_sheet.get_width() / maxi(_sheet.get_height(), 1), 1)
+
+
+func _read_the_earth() -> void:
+	if field != null and field.has_method("ground_colour"):
+		var ground: Color = field.ground_colour(at)
+		# Lifted a little: dust in the air catches light the earth does not.
+		_earth = ground.lerp(Color(0.62, 0.56, 0.46), 0.35)
+		_earth.a = 1.0
+
+
+## **The birth**: the ground gives up a ring of grit where it rises, felt a
+## little by whoever is near. A look; the blow is the funnel's from now.
+func _born() -> void:
+	Vfx.dust(at, _earth, 10, Balance.TORNADO_WAKE * 1.4)
+	Vfx.ring(at, Balance.TORNADO_AOE * 0.7, Color(_earth.r, _earth.g, _earth.b, 0.55), 0.6, 6.0)
+	Vfx.spark(at, _earth.lightened(0.3), 16, Vector2.UP, 220.0)
+	EventBus.camera_impact.emit(at, Balance.TORNADO_BIRTH_IMPACT)
 
 
 ## How far out the funnel reaches at a height, and how far the column leans
 ## there. One function so the column, the streaks and the foot cannot disagree
 ## about where the funnel is.
 func _reach_at(t: float) -> float:
-	return lerpf(Balance.TORNADO_WAKE * 0.5, Balance.TORNADO_AOE * 0.9, t)
+	return lerpf(Balance.TORNADO_WAKE * 0.5, Balance.TORNADO_AOE * 0.9, t) \
+		* lerpf(0.4, 1.0, _grown()) * (1.0 + _dissolve() * 0.5)
 
 
 func _lean_at(t: float) -> float:
@@ -260,7 +469,9 @@ func _dust_at(t: float, across: float) -> Color:
 	# Dense at the foot where the funnel is packed with what it has picked up,
 	# thin at the top where it is only air. At 0.62 the first cut read as smoke
 	# against dark ground rather than as a column of dirt.
-	var alpha: float = lerpf(0.92, 0.2, t * t) * clampf(solid, 0.0, 1.0)
+	# To nothing at the top: a column that ends at a fifth of its density
+	# ends in a line, and the line was half of the reported V.
+	var alpha: float = lerpf(0.92, 0.0, pow(t, 1.3)) * clampf(solid, 0.0, 1.0) * _presence()
 	if burning():
 		# A fire whirl, lit from inside: hot and pale up the core, darker
 		# toward the edges where there is only smoke.
@@ -269,7 +480,10 @@ func _dust_at(t: float, across: float) -> Color:
 			lerpf(0.08, lerpf(0.1, 0.34, t), heat), alpha * 1.2)
 	# Thin dust at the edge catches more light than the packed core does.
 	var shade: float = lerpf(0.58, 0.19, clampf(solid, 0.0, 1.0)) + t * 0.16
-	return Color(shade, shade * 0.93, shade * 0.82, alpha)
+	# The ground it stands on, in the dust it lifts.
+	var dust: Color = Color(shade, shade * 0.93, shade * 0.82).lerp(
+		_earth * (shade / 0.45), 0.35)
+	return Color(dust.r, dust.g, dust.b, alpha)
 
 
 func _draw_the_column() -> void:
@@ -281,7 +495,7 @@ func _draw_the_column() -> void:
 		var t: float = float(ring) / float(rings - 1)
 		var reach: float = _reach_at(t)
 		var lean: float = _lean_at(t)
-		var height: float = -Balance.TORNADO_HEIGHT * t
+		var height: float = -_height() * t
 		for column: int in columns:
 			var across: float = lerpf(-1.0, 1.0, float(column) / float(columns - 1))
 			# The rim of a ring sits a little lower than its middle: the far
@@ -316,14 +530,14 @@ func _draw_the_streaks() -> void:
 			var angle: float = phase + t * TAU * Balance.TORNADO_STREAK_TURNS
 			var reach: float = _reach_at(t)
 			var here := Vector2(_lean_at(t) + cos(angle) * reach * 0.86,
-				-Balance.TORNADO_HEIGHT * t + sin(angle) * reach * 0.2)
+				-_height() * t + sin(angle) * reach * 0.2)
 			points.append(here + Vector2(0.0, -half))
 			points.append(here + Vector2(0.0, half))
 			# Bright as it comes round the near side, gone behind the column,
 			# and tapering away at the top and the foot.
 			var facing: float = clampf(sin(angle) * 0.5 + 0.5, 0.0, 1.0)
 			var ends: float = sin(t * PI)
-			var alpha: float = facing * ends * lerpf(0.55, 0.22, t)
+			var alpha: float = facing * ends * lerpf(0.55, 0.22, t) * _presence()
 			var grit: Color = Color(1.0, 0.72, 0.36, alpha * 1.4) if lit \
 				else Color(0.74, 0.69, 0.58, alpha)
 			colours.append(grit)
@@ -339,11 +553,19 @@ func _draw_the_streaks() -> void:
 ## throwing the ground outward, and clear in the middle where the funnel stands.
 func _draw_the_foot() -> void:
 	var steps: int = 20
-	var reach: float = Balance.TORNADO_WAKE * (0.95 + sin(_spin * 2.1) * 0.06)
+	# Wider while it is being born - the dust devil it grows out of - and as
+	# it comes apart, when what it was holding falls back to the ground.
+	var reach: float = Balance.TORNADO_WAKE * (0.95 + sin(_spin * 2.1) * 0.06) \
+		* (1.0 + (1.0 - _grown()) * 0.8 + _dissolve() * 0.9)
 	var lit: bool = burning()
-	var middle: Color = Color(0.62, 0.26, 0.09, 0.42) if lit else Color(0.22, 0.19, 0.15, 0.36)
-	var rim: Color = Color(0.9, 0.46, 0.16, 0.0) if lit else Color(0.5, 0.45, 0.37, 0.0)
-	var edge: Color = Color(0.86, 0.42, 0.14, 0.5) if lit else Color(0.46, 0.41, 0.34, 0.44)
+	var foot: float = clampf(lerpf(1.6, 1.0, _grown()) * (1.0 - _dissolve()), 0.0, 1.6)
+	var middle: Color = Color(0.62, 0.26, 0.09, 0.42) if lit \
+		else Color(_earth.r * 0.5, _earth.g * 0.5, _earth.b * 0.5, 0.36)
+	var rim: Color = Color(0.9, 0.46, 0.16, 0.0) if lit else Color(_earth.r, _earth.g, _earth.b, 0.0)
+	var edge: Color = Color(0.86, 0.42, 0.14, 0.5) if lit \
+		else Color(_earth.r * 0.95, _earth.g * 0.95, _earth.b * 0.95, 0.44)
+	middle.a *= foot
+	edge.a = minf(edge.a * foot, 0.7)
 	var points := PackedVector2Array([Vector2.ZERO])
 	var colours := PackedColorArray([middle])
 	for band: int in 2:

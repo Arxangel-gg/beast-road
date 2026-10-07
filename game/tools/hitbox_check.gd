@@ -52,16 +52,18 @@ func _ready() -> void:
 	await _test_reach_is_the_same_from_every_side()
 	await _test_a_tower_shot_lands_on_the_body()
 	_test_an_animal_is_its_painting()
+	await _test_a_boss_is_its_painting()
+	await _test_the_zones_pay_what_they_say()
 
-	_check(_finished == 4, "%d of 4 tests reached their end" % _finished)
+	_check(_finished == 6, "%d of 6 tests reached their end" % _finished)
 	_run.queue_free()
 	for _f: int in 6:
 		await get_tree().process_frame
 	GameDirector.run_active = false
 	MetaState.resume_saves()
 	if _failures == 0:
-		print(("[hitbox] PASS - %d checks: a body is met from its feet to its chest, "
-			+ "reached the same from every side, and a tower's shot lands on it") % _checks)
+		print(("[hitbox] PASS - %d checks: a body is its painting, feet to crown, "
+			+ "reached alike from every side, a boss's leg is the boss, and the zones pay") % _checks)
 	else:
 		push_error("[hitbox] FAIL - %d problem(s)" % _failures)
 	Sfx.stop_immediately()
@@ -117,9 +119,13 @@ func _test_the_stroke() -> void:
 	_check(Hitbox.gap(body, centre) < 0.01, "a blow at the middle does not meet the body")
 	var chest: Vector2 = feet + (centre - feet) * 1.3
 	_check(Hitbox.gap(body, chest) < 0.01, "a blow at the chest does not meet the body")
-	var over: Vector2 = feet + (centre - feet) * 2.6
-	_check(Hitbox.gap(body, over) > body.contact_radius(),
-		"a blow well over the head of %s meets it - the stroke has no top" % breed.id)
+	# **Amended 2026-10-07**: the spine's top is the crown of the painting now,
+	# not a share past the middle, so "well over the head" is measured off it.
+	var crown: Vector2 = Hitbox.top_of(body)
+	_check(crown.y < centre.y, "%s's crown is not above its middle" % breed.id)
+	var over: Vector2 = crown + (crown - feet) * 0.6
+	_check(Hitbox.reach_gap(body, over) > 0.0,
+		"a blow well over the head of %s meets it - the body has no top" % breed.id)
 	body.queue_free()
 	await get_tree().process_frame
 	_finished += 1
@@ -212,6 +218,144 @@ func _test_an_animal_is_its_painting() -> void:
 		"an animal's body is %s - not its painted middle" % Hitbox.body_of(sprite))
 	_check(Hitbox.feet_of(sprite) == Vector2(300.0, 400.0), "an animal's feet are not where it stands")
 	sprite.queue_free()
+	_finished += 1
+
+
+## **The widest act boss's painting**: where a stick down the middle was furthest
+## from the picture.
+func _widest_boss() -> EnemyData:
+	var best: EnemyData = null
+	var width: float = 0.0
+	for data: EnemyData in ContentDB.enemies_of_category(EnemyData.Category.BOSS):
+		var path: String = data.get_sprite_path()
+		if not ResourceLoader.exists(path):
+			continue
+		var share: Rect2 = Hitbox.paint_share(path)
+		var texture: Texture2D = load(path) as Texture2D
+		var wide: float = share.size.x * float(texture.get_width()) if texture != null else 0.0
+		if wide > width:
+			width = wide
+			best = data
+	return best
+
+
+## **A boss is its painting** (owner, 2026-10-07: *"Act bosses are untargettable
+## as the player goes to try to only hit the target between their legs and
+## doesn't attack it there either"*). Three things had to be true and none was:
+## the painted body is measured, a click on its chest picks it, and a Warden
+## standing at its leg reaches it and a swing from there lands.
+func _test_a_boss_is_its_painting() -> void:
+	var data: EnemyData = _widest_boss()
+	var boss: Enemy = await _spawn(data, Vector2(2600.0, 1900.0)) if data != null else null
+	_check(boss != null, "the harness needs an act boss")
+	var hero: Hero = _field.hero
+	if boss == null or hero == null:
+		_finished += 1
+		return
+	boss.health.max_hp = 1.0e7
+	boss.health.current_hp = 1.0e7
+	var painted: Rect2 = Hitbox.painted_rect(boss)
+	_check(painted.size.x > boss.contact_radius() * 2.0,
+		"%s's painted body is %s - it was never measured" % [data.id, painted])
+	_check(Hitbox.hit_radius(boss) > boss.contact_radius() * 1.5,
+		"%s stands %.0f wide to a blow on a painting %.0f wide - a stick down its middle"
+			% [data.id, Hitbox.hit_radius(boss) * 2.0, painted.size.x])
+	var chest := Vector2(painted.get_center().x + painted.size.x * 0.12,
+		painted.position.y + painted.size.y * 0.45)
+	_check(Hitbox.reach_gap(boss, chest) == 0.0,
+		"a point on %s's chest is %.0f from its body" % [data.id, Hitbox.reach_gap(boss, chest)])
+	# The fog is not this test's subject: a body the fog hides is refused a
+	# click by design, and the boss stands where nobody has looked yet.
+	boss.visible = true
+	if _field.click_move != null:
+		var picked: Node2D = _field.click_move.body_at(chest)
+		_check(picked == boss, "a click on %s's chest picked %s - it is read as the ground"
+			% [data.id, picked])
+	# A Warden at its leg: inside its painted outline, near the edge, where a
+	# line down its middle is furthest away - measured off the painting, so a
+	# hitbox that shrank back to a stick leaves the Warden out of reach.
+	hero.process_mode = Node.PROCESS_MODE_DISABLED
+	hero.global_position = boss.global_position + Vector2(painted.size.x * 0.42, 12.0)
+	var origin: Vector2 = hero.combat_origin()
+	_check(Hitbox.zone_at(hero, Hitbox.aim_point(boss, hero, false)) == Hitbox.Zone.HEAD,
+		"%s strikes a Warden below the head - a giant's blow falls from above" % data.id)
+	_check(hero.attack.reaches(origin, boss),
+		"a Warden beside %s's leg is out of its reach (%.0f from its body)"
+			% [data.id, Hitbox.reach_gap(boss, origin)])
+	var before: float = boss.health.current_hp
+	var aim: Vector2 = (Hitbox.meet(boss, origin) - origin).normalized()
+	hero.attack.cancel()
+	hero.attack.request()
+	for _i: int in 60:
+		hero.attack.tick(1.0 / 60.0, aim, origin)
+	_check(boss.health.current_hp < before,
+		"a swing from beside %s's leg took nothing - the Warden swings at the space between its legs"
+			% data.id)
+	hero.attack.cancel()
+	hero.process_mode = Node.PROCESS_MODE_INHERIT
+	hero.global_position = Vector2.ZERO
+	boss.queue_free()
+	await get_tree().process_frame
+	_finished += 1
+
+
+## **The zones pay what they say** (owner, 2026-10-07: *"different parts of the
+## characters ... that are hit should deal different amounts of damage depending
+## on how vital the area is etc with higher crit chances in the weakpoint
+## areas"*). Read off a real blow through the Warden's own landing door: the legs
+## never more than an unzoned blow, the head never less, the head's mean inside
+## what its scale and its crit can make it - and a body's blow on the Warden
+## lands where the two bodies' heights put it.
+func _test_the_zones_pay_what_they_say() -> void:
+	var breed: EnemyData = _tallest_breed()
+	var body: Enemy = await _spawn(breed, Vector2(2200.0, 1800.0))
+	var hero: Hero = _field.hero
+	if body == null or hero == null:
+		_check(false, "the harness needs a body and a Warden")
+		_finished += 1
+		return
+	var spine: PackedVector2Array = Hitbox.spine_of(body)
+	_check(Hitbox.zone_at(body, spine[0]) == Hitbox.Zone.LEGS, "a body's feet are not its legs")
+	_check(Hitbox.zone_at(body, spine[0].lerp(spine[1], 0.55)) == Hitbox.Zone.TORSO,
+		"a body's middle is not its torso")
+	_check(Hitbox.zone_at(body, spine[1]) == Hitbox.Zone.HEAD, "a body's crown is not its head")
+	body.health.max_hp = 1.0e7
+	body.health.current_hp = 1.0e7
+	hero.process_mode = Node.PROCESS_MODE_DISABLED
+	var origin: Vector2 = hero.combat_origin()
+	var dealt: Callable = func(zone: int) -> float:
+		var before: float = body.health.current_hp
+		hero.attack.set("_hit_ids", {})
+		hero.attack.call("_land_on", body, 100.0, 0.0, false, null, origin, zone, Vector2.INF)
+		return before - body.health.current_hp
+	var plain: float = float(dealt.call(-1))
+	var legs: float = float(dealt.call(Hitbox.Zone.LEGS))
+	_check(plain > 0.0, "an unzoned blow took nothing")
+	_check(legs > 0.0 and legs < plain, "a blow on the legs took %.1f against an unzoned %.1f" % [legs, plain])
+	var heads: float = 0.0
+	var lowest: float = INF
+	for _i: int in 60:
+		var one: float = float(dealt.call(Hitbox.Zone.HEAD))
+		heads += one
+		lowest = minf(lowest, one)
+	var mean: float = heads / 60.0
+	_check(lowest >= plain * Balance.HITBOX_ZONE_DAMAGE[Hitbox.Zone.HEAD] * 0.99,
+		"a head blow took %.1f, under the head's own scale on an unzoned %.1f" % [lowest, plain])
+	_check(mean <= plain * Balance.HITBOX_ZONE_DAMAGE[Hitbox.Zone.HEAD] * Balance.HITBOX_CRIT_SCALE,
+		"head blows averaged %.1f, past what a head and a crit can make of %.1f" % [mean, plain])
+	# A body's blow on the Warden falls from its own shoulder: the tallest
+	# breed's above the legs (a giant's on the head is the boss test's).
+	hero.global_position = body.global_position + Vector2(70.0, 0.0)
+	_check(Hitbox.zone_at(hero, Hitbox.aim_point(body, hero, false)) != Hitbox.Zone.LEGS,
+		"%s, the tallest breed, strikes a Warden on the legs" % breed.id)
+	_check(Hitbox.zone_at(hero, Hitbox.aim_point(body, hero, true)) == Hitbox.Zone.HEAD,
+		"a blow meant for the head is aimed elsewhere")
+	_check(Hitbox.zone_scale(hero, Hitbox.Zone.HEAD) > Hitbox.zone_scale(hero, Hitbox.Zone.TORSO),
+		"a Warden's head takes no more than their torso")
+	hero.process_mode = Node.PROCESS_MODE_INHERIT
+	hero.global_position = Vector2.ZERO
+	body.queue_free()
+	await get_tree().process_frame
 	_finished += 1
 
 

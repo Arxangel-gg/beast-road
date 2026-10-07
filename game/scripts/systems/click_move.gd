@@ -153,7 +153,9 @@ func body_at(at: Vector2) -> Node2D:
 	for enemy: Enemy in _field.enemies_near(at, PICK_REACH):
 		if not LocalHeroInput.can_target(enemy, wildlife):
 			continue
-		var gap: float = Hitbox.gap(enemy, at) - enemy.contact_radius()
+		# On the painted body, not a line down its middle (2026-10-07): a click
+		# on a boss's chest is a click on the boss.
+		var gap: float = Hitbox.reach_gap(enemy, at)
 		if gap <= Balance.CLICK_MOVE_PICK_SLOP and gap < best_gap:
 			best = enemy
 			best_gap = gap
@@ -163,7 +165,7 @@ func body_at(at: Vector2) -> Node2D:
 				continue
 			if not LocalHeroInput.can_target(sprite, wildlife):
 				continue
-			var gap: float = Hitbox.gap(sprite, at) - Balance.ENEMY_BODY_RADIUS
+			var gap: float = Hitbox.reach_gap(sprite, at)
 			if gap <= Balance.CLICK_MOVE_PICK_SLOP and gap < best_gap:
 				best = sprite
 				best_gap = gap
