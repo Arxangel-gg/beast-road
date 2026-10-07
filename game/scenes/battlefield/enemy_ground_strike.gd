@@ -241,6 +241,7 @@ func _strike_the_bodies() -> int:
 		var amount: float = (pool.max_hp if pool != null else 0.0) * body_share
 		if amount <= 0.0:
 			continue
+		DamageLedger.credit_as(DamageLedger.DEEP)
 		body.take_damage(amount, global_position, 0.0)
 		struck += 1
 	return struck

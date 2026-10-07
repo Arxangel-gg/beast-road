@@ -33,6 +33,9 @@ const EARTH: String = "earth"
 const WILDLIFE: String = "wildlife"
 const BURN: String = "burn"
 const SPELL: String = "spell"
+## A pressure plate in a rift (2026-10-06): the deep's own blow, which no card
+## multiplies, so it credits nothing.
+const DEEP: String = "deep"
 const TOWER_PREFIX: String = "tower:"
 const TRAP_PREFIX: String = "trap:"
 const AUGMENT_PREFIX: String = "augment:"
@@ -122,6 +125,8 @@ static func name_of(source: String) -> String:
 			return "The wild"
 		BURN:
 			return "Burning"
+		DEEP:
+			return "The deep's plates"
 	return "Everything else"
 
 
