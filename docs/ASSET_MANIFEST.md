@@ -3558,6 +3558,7 @@ resolution, and re-taken whenever a screen changes.
 | `heralds.png` | 1280×720 | O | `#1E2E33` |
 | `sandbox.png` | 1280×720 | O | `#1E2E33` |
 | `hardcore.png` | 1280×720 | O | `#1E2E33` |
+| `arsenal.png` | 1280×720 | O | `#1E2E33` |
 | `act_track.png` | 1280×720 | O | `#1E2E33` |
 | `bow.png` | 1280×720 | O | `#1E2E33` |
 | `camps.png` | 1280×720 | O | `#1E2E33` |

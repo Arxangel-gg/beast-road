@@ -122,9 +122,10 @@ func _add(markup: String, speech: bool, slot: int) -> void:
 	_lines.append({"node": line, "born": Time.get_ticks_msec(), "speech": speech, "slot": slot})
 	while _lines.size() > MAX_LINES:
 		var oldest: Dictionary = _lines.pop_front()
-		var node := oldest["node"] as RichTextLabel
-		if is_instance_valid(node):
-			node.queue_free()
+		# Validity before the cast: casting a freed line is an engine error.
+		var gone: Variant = oldest["node"]
+		if is_instance_valid(gone):
+			(gone as Node).queue_free()
 	_show_lines()
 	set_process(true)
 
@@ -132,9 +133,8 @@ func _add(markup: String, speech: bool, slot: int) -> void:
 ## Empties the log (`/clear`).
 func clear() -> void:
 	for entry: Dictionary in _lines:
-		var node := entry["node"] as RichTextLabel
-		if is_instance_valid(node):
-			node.queue_free()
+		if is_instance_valid(entry["node"]):
+			(entry["node"] as Node).queue_free()
 	_lines.clear()
 	queue_redraw()
 
@@ -147,8 +147,10 @@ func line_count() -> int:
 func shown_count() -> int:
 	var shown: int = 0
 	for entry: Dictionary in _lines:
+		if not is_instance_valid(entry["node"]):
+			continue
 		var node := entry["node"] as RichTextLabel
-		if is_instance_valid(node) and node.visible and node.modulate.a > 0.01:
+		if node.visible and node.modulate.a > 0.01:
 			shown += 1
 	return shown
 
@@ -157,9 +159,8 @@ func shown_count() -> int:
 func plain_lines() -> PackedStringArray:
 	var out := PackedStringArray()
 	for entry: Dictionary in _lines:
-		var node := entry["node"] as RichTextLabel
-		if is_instance_valid(node):
-			out.append(node.get_parsed_text())
+		if is_instance_valid(entry["node"]):
+			out.append((entry["node"] as RichTextLabel).get_parsed_text())
 	return out
 
 
@@ -191,9 +192,9 @@ func _show_lines() -> bool:
 	var count: int = _lines.size()
 	for i: int in count:
 		var entry: Dictionary = _lines[i]
-		var node := entry["node"] as RichTextLabel
-		if not is_instance_valid(node):
+		if not is_instance_valid(entry["node"]):
 			continue
+		var node := entry["node"] as RichTextLabel
 		var alpha: float = 0.0
 		if _open:
 			alpha = 1.0 if i >= count - Balance.CHAT_OPEN_LINES else 0.0

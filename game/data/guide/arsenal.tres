@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "arsenal"
+display_name = "The Arsenal"
+title = "The Arsenal"
+category = "The Road"
+order = 12
+image = "res://art/guide/arsenal.png"
+body = "The Arsenal is everything that fights beside you without being told. Most cards a draft deals are its weapons: orbs that circle you, bolts that seek the nearest body, sparks that leap from one to the next, novas, burning trails, strikes from above, blades that answer a kill and sweeping arcs - and, for the other half of a fight, wards, mends, retorts, guard stones and frost rings that keep you standing. A weapon fights from one of three places: at your side, from the towers near you, or from the town's walls. A tower weapon arms only the towers within reach of you, so where you stand decides which stretch of the road fights harder. Every weapon hits harder as its card levels from I to V, as the road goes deeper, and as your own damage grows: Might, your level and your gear all reach it. Catalysts feed the whole Arsenal - faster, more, wider, longer, harder - and from Act III a weapon at V with its catalyst held evolves into something new; each card says what it evolves with. Elements meet: water leaves a body wet, and lightning strikes a wet body harder and leaps further from it. The hand holds twelve, and the strip beside your ability slots shows each weapon's clock and its level."

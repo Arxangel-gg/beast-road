@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_s")
 id = "cards"
-display_name = "The Arsenal and portents"
-title = "The Arsenal and portents"
+display_name = "Drafts and portents"
+title = "Drafts and portents"
 category = "The Road"
-order = 12
+order = 13
 image = "res://art/guide/cards.png"
-body = "Every road rank the party earns deals a draft of three: a weapon that fights at your side or on your towers, a catalyst that feeds them, or a keystone that turns one rule of the road. Keep one; a card you already hold levels from I to V, and from Act III a weapon at V with its catalyst held evolves. The hand holds eight - past that, taking a card means leaving one behind. Reroll, Banish, Skip and Later are under the cards, and a draft earned mid-fight waits for the next breather. Portents are the other draw: read when an act's boss falls, each is a bane and a boon kept for the rest of the run, stacking with the ones before."
+body = "Every road rank the party earns deals a draft of three: a weapon of the Arsenal, a catalyst that feeds it, or a keystone that turns one rule of the road. A boss, the first camp razed in an act, a raid brought home and a rift closed each deal one too. Keep one; a card you already hold levels from I to V. The hand holds twelve - past that, taking a card means leaving one behind. Reroll, Banish, Skip and Later are under the cards, and a draft earned mid-fight waits for the next breather. Portents are the other draw: read when an act's boss falls, each is a bane and a boon kept for the rest of the run, stacking with the ones before."

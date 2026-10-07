@@ -688,6 +688,13 @@ func _ready() -> void:
 	# **A Herald running for the gate** (2026-09-30): gold on the road beside an
 	# ordinary body of its own breed - the one the board ignores and the Warden
 	# has to catch.
+	# **The Arsenal at work** (owner, 2026-10-06: "An Arsenal page for the
+	# Guide"): a Warden on a road holding weapons of three anchors, a ring of
+	# standing bodies, and the photograph taken once the weapons have fired.
+	await _made_subject_shot("arsenal", func() -> Vector2: return _arm_the_arsenal(),
+		Vector2(-40.0, 30.0), 1.25)
+	RunState.road_cards = [] as Array[String]
+	RunState.road_card_levels = {}
 	await _made_subject_shot("heralds", func() -> Vector2: return _raise_a_herald(),
 		Vector2(-150.0, 110.0), 1.2)
 	# **A bow with an arrow in the air.** It was a photograph of an ordinary
@@ -1920,6 +1927,35 @@ func _report_light(tag: String) -> void:
 
 ## A Herald on a road, beside an ordinary body of its breed, both held where
 ## they stand so the picture is of the gold rather than of a walk.
+func _arm_the_arsenal() -> Vector2:
+	var field: Battlefield = run.battlefield
+	RunState.road_cards = ["ember_wisps", "seeking_flames", "chain_spark", "frost_nova",
+		"sentry_wisps"] as Array[String]
+	for id: String in RunState.road_cards:
+		RunState.road_card_levels[id] = 4
+	var route: PackedVector2Array = field.lane_path(2)
+	if route.size() < 3:
+		print("[guide-shots] warning: no road to arm the Arsenal on")
+		return Vector2.ZERO
+	var here: Vector2 = route[clampi(int(float(route.size()) * 0.5), 1, route.size() - 2)]
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var breed: EnemyData = null
+	if terrain != null:
+		for id: String in terrain.enemy_ids:
+			var candidate: EnemyData = ContentDB.enemy(id)
+			if candidate != null and candidate.category == EnemyData.Category.BREED \
+					and candidate.role != EnemyData.Role.HOWLER:
+				breed = candidate
+				break
+	if breed != null:
+		for index: int in 7:
+			var body: Enemy = field.spawn_enemy(breed, 2, 60.0, -1.0, 0.001)
+			if body != null:
+				body.global_position = here + Vector2.from_angle(TAU * float(index) / 7.0) \
+					* (170.0 + 50.0 * float(index % 2))
+	return here
+
+
 func _raise_a_herald() -> Vector2:
 	var field: Battlefield = run.battlefield
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
