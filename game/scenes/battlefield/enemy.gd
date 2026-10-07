@@ -211,6 +211,16 @@ var _hitstun_refractory: float = 0.0
 var _flash_left: float = 0.0
 var _impact_direction: Vector2 = Vector2.UP
 var _death_left: float = 0.0
+## **The fall** (2026-10-07): where the killing blow came from, how long the
+## body has been falling, where its sprite stood, and the tint it died in.
+var _death_from: Vector2 = Vector2.ZERO
+var _death_age: float = -1.0
+var _death_home: Vector2 = Vector2.ZERO
+var _death_turn: float = 0.0
+var _death_tint: Color = Color.WHITE
+var _death_landed: bool = false
+## Whether it falls at all: a kill does, a dismissed summon only fades.
+var _death_falls: bool = false
 var _oath_mark: Line2D = null
 var _oath_mark_time: float = 0.0
 
@@ -3775,7 +3785,15 @@ func road_xp_worth() -> float:
 
 func _on_died(_from: Vector2) -> void:
 	_enter(State.DYING, 0.0)
-	_death_left = Balance.ENEMY_DEATH_FADE
+	_death_left = Balance.ENEMY_DEATH_FADE + _fall_seconds()
+	_death_from = _from
+	_death_age = -1.0
+	_death_landed = false
+	_death_falls = true
+	# The animator writes the sprite's place and turn every frame; the fall
+	# is the body's own now (`_topple`).
+	if animator != null and _fall_seconds() > 0.0:
+		animator.set_process(false)
 	remove_from_group(GROUP)
 	health_bar.visible = false
 	_let_the_death_finish()
@@ -3884,7 +3902,8 @@ func _let_the_death_finish() -> void:
 	var tree: SceneTree = get_tree()
 	if tree == null:
 		return
-	tree.create_timer(Balance.ENEMY_DEATH_FADE * 3.0, false).timeout.connect(
+	tree.create_timer((Balance.ENEMY_DEATH_FADE + Balance.ENEMY_DEATH_FALL_SECONDS) * 3.0,
+		false).timeout.connect(
 		func() -> void:
 			if is_instance_valid(self) and is_inside_tree() and not is_queued_for_deletion():
 				queue_free())
@@ -4136,11 +4155,23 @@ func _drop_blueprint() -> void:
 ## The fade survives as the fallback for a body with no material, because the
 ## alternative there is an enemy that vanishes between one frame and the next.
 func _tick_death(delta: float) -> void:
+	if _death_age < 0.0:
+		# The first frame of the fall: everything the death decided is decided.
+		_death_age = 0.0
+		if sprite != null:
+			_death_home = sprite.position
+			_death_turn = sprite.rotation
+			_death_tint = sprite.self_modulate
+	else:
+		_death_age += delta
 	_death_left -= delta
 	if _death_left <= 0.0:
 		queue_free()
 		return
-	var t: float = _death_left / Balance.ENEMY_DEATH_FADE
+	_topple()
+	# It comes apart only once it is down: the fade is the last
+	# `ENEMY_DEATH_FADE` of the death, never the fall.
+	var t: float = clampf(_death_left / Balance.ENEMY_DEATH_FADE, 0.0, 1.0)
 	var material: ShaderMaterial = _state_material()
 	if ActorState.carried(material):
 		var alight: float = ActorState.burn_level(_burn_left)
@@ -4154,6 +4185,54 @@ func _tick_death(delta: float) -> void:
 		ActorState.dissolve(material, 1.0 - t, alight, iced)
 	else:
 		sprite.modulate = Color(1.0, 1.0, 1.0, t)
+
+
+## **How long this body takes to go down** - none for a boss, whose fall is
+## the act's own cinematic.
+func _fall_seconds() -> float:
+	if data == null or data.category == EnemyData.Category.BOSS or sprite == null:
+		return 0.0
+	return Balance.ENEMY_DEATH_FALL_SECONDS
+
+
+## **A body goes down the way it was struck** (owner, 2026-10-07: *"Make
+## enemy and wildlife deaths more game juicy and transition animated"*). It
+## flashes white with the blow, is shoved back along it, hops, and tips over
+## onto its side about its own feet; when it lands the ground takes its weight
+## in a puff of its own dust; only then does it come apart. An air kill throws
+## it further. A look: the death, the drops and the count happened on the
+## frame it died, and none of this is read.
+func _topple() -> void:
+	if not _death_falls or sprite == null or data == null or _fall_seconds() <= 0.0:
+		return
+	var fall: float = clampf(_death_age / Balance.ENEMY_DEATH_FALL_SECONDS, 0.0, 1.0)
+	var eased: float = 1.0 - pow(1.0 - fall, 3.0)
+	var away: Vector2 = global_position - _death_from
+	away = away.normalized() if away.length_squared() > 1.0 else Vector2.RIGHT
+	var heavy: bool = rank != Rank.COMMON or data.category == EnemyData.Category.ELITE
+	var tip: float = Balance.ENEMY_DEATH_TIP * (0.55 if heavy else 1.0)
+	var side: float = signf(away.x) if absf(away.x) > 0.1 else (-1.0 if sprite.flip_h else 1.0)
+	var thrown: float = Balance.ENEMY_DEATH_SLIDE \
+		* (Balance.ENEMY_DEATH_AIR_THROW if _death_element == TowerData.Element.AIR else 1.0) \
+		* (0.6 if heavy else 1.0)
+	var turn: float = side * tip * eased
+	# About its feet, not its middle: a body falls over, it does not spin.
+	var feet := Vector2(0.0, sprite.get_rect().end.y * sprite.scale.y)
+	sprite.rotation = _death_turn + turn
+	sprite.position = _death_home + away * thrown * eased \
+		+ Vector2(0.0, -sin(fall * PI) * Balance.ENEMY_DEATH_HOP) + (feet - feet.rotated(turn))
+	var flash: float = clampf(1.0 - _death_age / Balance.ENEMY_DEATH_FLASH, 0.0, 1.0)
+	sprite.self_modulate = _death_tint.lerp(Color(2.2, 2.2, 2.2, _death_tint.a), flash)
+	if fall >= 1.0 and not _death_landed:
+		_death_landed = true
+		if Graphics.particle_scale() > 0.0:
+			var earth := Color(0.42, 0.36, 0.28)
+			if _field != null and _field.has_method("ground_colour"):
+				earth = _field.call("ground_colour", global_position) as Color
+			Vfx.dust(global_position + away * thrown, earth, 5 if not heavy else 9,
+				contact_radius() * 1.8)
+			if heavy:
+				EventBus.camera_impact.emit(global_position, Balance.IMPACT_FULL_SHARE * 0.2)
 
 
 ## Mass drives how heavily this thing moves. Derived rather than authored, so

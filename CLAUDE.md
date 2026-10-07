@@ -14203,6 +14203,26 @@ its shock under the cap, giving it up to a real body that steps on it - for a
 small share of its pool - and expiring. Planted with no carry and a toothless
 shock, it named both.
 
+**A body goes down the way it was struck, as of 2026-10-07.** Owner: *"Make
+enemy and wildlife deaths more game juicy and transition animated with VFX game
+juice."* A road body dissolved where it stood in a third of a second. Now it
+flashes white with the killing blow, is shoved back along it
+(`ENEMY_DEATH_SLIDE`, an air kill `ENEMY_DEATH_AIR_THROW` times further), hops,
+tips over onto its side **about its own feet** (`ENEMY_DEATH_TIP`, less for a
+promoted body), lands in a puff of the ground's own dust - a camera knock for a
+heavy one - and only then comes apart, over `ENEMY_DEATH_FALL_SECONDS` and
+then `ENEMY_DEATH_FADE`. A boss keeps its own fall, which is the act's
+cinematic, and a dismissed summon only fades. An animal, which already toppled,
+flashes and lands in its ground's dust too.
+
+**The animator lets go of a falling body**: `SpriteAnimator` writes the
+sprite's place and turn every frame from its own `_process`, after the body's,
+so the first cut of the fall was overwritten on every frame and the gate read a
+body lying flat at rest. A look: the kill, the drops and the count happened on
+the frame it died. `feel_check` kills a real body from its left and reads it
+flashed, tipped right, shoved right and still there; a dismissed summon does
+not tip.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

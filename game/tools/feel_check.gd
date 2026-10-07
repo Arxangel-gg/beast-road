@@ -496,6 +496,8 @@ func _test_the_field() -> void:
 			"a body marked with an element must still count as a kill")
 
 	await _test_a_blow_is_anticipated(field)
+	await _test_a_body_falls_the_way_it_was_struck(field, built.global_position
+		+ Vector2(0.0, built.effective_range() * 3.0 + 1400.0))
 	await _test_the_road_settles(field)
 	_test_a_level_is_a_pillar_of_light(field)
 	await _leave(run)
@@ -629,6 +631,38 @@ func _strike(field: Battlefield, at: Vector2, delay: float) -> EnemyGroundStrike
 	strike.position = at
 	field.add_child(strike)
 	return strike
+
+
+## **A body goes down the way it was struck** (owner, 2026-10-07): killed from
+## its left it is shoved and tips to its right about its feet, flashes white
+## with the blow, and comes apart only after it is down; a dismissed summon
+## only fades. Read off the real body's sprite.
+func _test_a_body_falls_the_way_it_was_struck(field: Battlefield, near: Vector2) -> void:
+	var body: Enemy = _stand_a_body(field, near + Vector2(0.0, 300.0))
+	if body == null:
+		_check(false, "no body to watch fall")
+		return
+	var home: Vector2 = body.sprite.position
+	body.take_damage(body.health.max_hp * 10.0, body.global_position + Vector2(-60.0, 0.0), 0.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(body.sprite.self_modulate.r > 1.2, "a killing blow did not flash the body white")
+	await _settle(Balance.ENEMY_DEATH_FALL_SECONDS + 0.04)
+	if is_instance_valid(body):
+		_check(body.sprite.rotation > 0.4, "a body struck from its left did not tip to its right (%.2f)"
+			% body.sprite.rotation)
+		_check(body.sprite.position.x > home.x + Balance.ENEMY_DEATH_SLIDE * 0.5,
+			"a body struck from its left was not shoved right (%.1f from %.1f)"
+			% [body.sprite.position.x, home.x])
+		_check(is_instance_valid(body) and body.is_dying() and not body.is_queued_for_deletion(),
+			"a body came apart before it was down")
+	var summoned: Enemy = _stand_a_body(field, near + Vector2(200.0, 300.0))
+	if summoned != null:
+		var turn: float = summoned.sprite.rotation
+		summoned.dismiss()
+		await _settle(Balance.ENEMY_DEATH_FADE * 0.6)
+		if is_instance_valid(summoned):
+			_check(absf(summoned.sprite.rotation - turn) < 0.01, "a dismissed summon fell over like a kill")
 
 
 func _settle(seconds: float) -> void:

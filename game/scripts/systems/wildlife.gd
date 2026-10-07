@@ -1739,6 +1739,17 @@ func _tick_dying(animal: Dictionary, sprite: Sprite2D, delta: float) -> bool:
 	if left <= 0.0:
 		return false
 	var through: float = 1.0 - left / Balance.WILDLIFE_DEATH_SECONDS
+	# **A flash with the blow, and the ground takes its weight** (2026-10-07):
+	# white for the first instant, and a puff of the ground's own dust as it
+	# lands on its side. A look, as the fall itself is.
+	var flash: float = clampf(1.0 - through * Balance.WILDLIFE_DEATH_SECONDS
+		/ Balance.ENEMY_DEATH_FLASH, 0.0, 1.0)
+	sprite.self_modulate = Color.WHITE.lerp(Color(2.2, 2.2, 2.2), flash)
+	if through >= 0.55 and not bool(animal.get("landed", false)):
+		animal["landed"] = true
+		if Graphics.particle_scale() > 0.0 and field != null and field.has_method("ground_colour"):
+			Vfx.dust(sprite.global_position, field.call("ground_colour", sprite.global_position) as Color,
+				4, 30.0 * float(animal["size"]) * (animal["data"] as WildlifeData).scale)
 	# Over onto its side, settling as it goes, and fading out at the end.
 	sprite.rotation = deg_to_rad(through * Balance.WILDLIFE_DEATH_ROLL
 		* (-1.0 if sprite.flip_h else 1.0))

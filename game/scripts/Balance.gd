@@ -3015,6 +3015,15 @@ const ENEMY_KNOCKBACK_DECAY: float = 900.0
 
 ## Time from death to the corpse disappearing.
 const ENEMY_DEATH_FADE: float = 0.35
+## **A body goes down before it comes apart** (2026-10-07): how long it falls,
+## how far over it tips (radians), how far the blow shoves it and how high it
+## hops, how far an air kill throws it, and how long it flashes white. [TUNE]
+const ENEMY_DEATH_FALL_SECONDS: float = 0.32
+const ENEMY_DEATH_TIP: float = 1.3
+const ENEMY_DEATH_SLIDE: float = 30.0
+const ENEMY_DEATH_HOP: float = 12.0
+const ENEMY_DEATH_AIR_THROW: float = 2.4
+const ENEMY_DEATH_FLASH: float = 0.1
 
 # ------------------------------------------------------------------------------
 # Stage 1 spawning
