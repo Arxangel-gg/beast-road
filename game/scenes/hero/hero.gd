@@ -247,7 +247,7 @@ var outfit: Dictionary = {}
 ## What a partner wears, by kind: weapon, armour, cape, helmet (2026-09-26).
 ## Told over the wire, because a partner's gear is another account's; this
 ## machine's own Warden reads its own save instead. Presentation only.
-var gear_kinds: Array[String] = ["", "", "", ""]
+var gear_kinds: Array[String] = ["", "", "", "", ""]
 ## **What this Warden brings to a fight, when it is not this machine's**
 ## (2026-09-26, COOP_DESIGN §11). Null for the Warden this machine plays - which
 ## reads the account exactly as it always did - and, on the host, the partner's
@@ -255,9 +255,11 @@ var gear_kinds: Array[String] = ["", "", "", ""]
 ## of those goes through `WardenSheet`'s static door with this as its first
 ## argument.
 var sheet: WardenSheet = null
-## The slots `gear_kinds` names, in order.
+## The slots `gear_kinds` names, in order. **The shield is appended**
+## (2026-10-07), never inserted: a row from a build that says four kinds still
+## means weapon, armour, cape and helmet, and reads as carrying no shield.
 const DRESS_SLOTS: Array[int] = [GearData.Slot.WEAPON, GearData.Slot.ARMOUR, GearData.Slot.CAPE,
-	GearData.Slot.HELMET]
+	GearData.Slot.HELMET, GearData.Slot.OFFHAND]
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
@@ -2118,8 +2120,7 @@ func _dress_warden() -> void:
 		# A partner: dressed from what the wire said it looks like and wears.
 		# Before this it was never dressed at all, and a dressed party drew
 		# every partner as the old painted Warden.
-		outfit = WardenDress.outfit(look, ContentDB.gear(gear_kinds[0]), ContentDB.gear(gear_kinds[1]),
-			ContentDB.gear(gear_kinds[2]), ContentDB.gear(gear_kinds[3]))
+		outfit = outfit_of(look, gear_kinds)
 	frames.dress(outfit)
 
 
@@ -2281,12 +2282,15 @@ func wear_look(row: Variant) -> void:
 
 ## This account's own worn gear, by kind, in `DRESS_SLOTS` order: what a guest
 ## tells the party and what a host packs for its own seat.
-## Four worn kinds as another machine said them, cleaned. A kind this build
+## The worn kinds another machine said, cleaned - five since the shield, and a
+## four-entry row from an older build reads as carrying none. A kind this build
 ## does not know, or one in a slot it was never cut for, is nothing - a packet
 ## may hold anything. The one rule for every place a partner's gear arrives:
 ## the road, the co-op lobby and the Hold (2026-09-26).
 static func clean_worn_kinds(row: Variant) -> Array[String]:
-	var wanted: Array[String] = ["", "", "", ""]
+	var wanted: Array[String] = []
+	wanted.resize(DRESS_SLOTS.size())
+	wanted.fill("")
 	if row is Array:
 		var given: Array = row
 		for index: int in mini(given.size(), DRESS_SLOTS.size()):
@@ -2295,6 +2299,19 @@ static func clean_worn_kinds(row: Variant) -> Array[String]:
 			if gear != null and gear.slot == DRESS_SLOTS[index]:
 				wanted[index] = kind
 	return wanted
+
+
+## **A Warden dressed from a row of kinds** (2026-10-07): the one door for every
+## place another player's gear is drawn - a partner on the road, the stage in
+## the lobby and the Hold, a stranger - so the shield, the fifth slot, cannot be
+## handed to one of them and forgotten by another. Cleaned here, since a row
+## may have come off a wire.
+static func outfit_of(look: Dictionary, row: Variant) -> Dictionary:
+	var kinds: Array[String] = clean_worn_kinds(row)
+	var gear: Array[GearData] = []
+	for kind: String in kinds:
+		gear.append(ContentDB.gear(kind) if not kind.is_empty() else null)
+	return WardenDress.outfit(look, gear[0], gear[1], gear[2], gear[3], gear[4])
 
 
 static func worn_kinds() -> Array[String]:
@@ -2329,7 +2346,7 @@ func _is_partner_body() -> bool:
 	return input != null and not input.is_local()
 
 
-## Told what a partner wears. Cleaned whole: four entries, each a kind this
+## Told what a partner wears. Cleaned whole: one entry a dress slot, each a kind this
 ## build knows in the slot it is named for, or nothing - a packet is not trusted
 ## to put a helmet in the weapon's hand.
 func wear_gear(row: Variant) -> void:

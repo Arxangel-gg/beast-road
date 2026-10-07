@@ -827,7 +827,9 @@ func _test_a_stranger_wears_their_gear() -> void:
 ## has composed and drawn its own table.
 func _test_the_strangers_are_dressed() -> void:
 	var keys: int = 300
-	var worn: Array[int] = [0, 0, 0, 0]
+	var worn: Array[int] = []
+	worn.resize(Hero.DRESS_SLOTS.size())
+	worn.fill(0)
 	var colours: Dictionary = {}
 	var bodies: Dictionary = {}
 	var trophies: int = 0
@@ -854,6 +856,8 @@ func _test_the_strangers_are_dressed() -> void:
 	_check(float(worn[1]) / keys > 0.6, "strangers are armoured %d times in %d" % [worn[1], keys])
 	_check(worn[2] > keys / 4 and worn[2] < keys, "strangers wear capes %d times in %d" % [worn[2], keys])
 	_check(worn[3] > keys / 8, "strangers wear helmets %d times in %d" % [worn[3], keys])
+	# The fifth is the shield (2026-10-07), carried by about a third.
+	_check(worn[4] > keys / 8 and worn[4] < keys / 2, "strangers carry shields %d times in %d" % [worn[4], keys])
 	_check(trophies == 0, "a stranger wore a trophy %d times" % trophies)
 	_check(colours.size() >= 10, "strangers' tops came in %d colours" % colours.size())
 	var bodies_drawn: int = 0

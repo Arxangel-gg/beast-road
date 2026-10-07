@@ -377,25 +377,42 @@ func _test_a_guests_dye_reaches_the_party() -> void:
 	heroes.call("_on_request", CoopRelay.Request.HERO_LOOK, [[0.9, 0.9]], 9999)
 	_check(is_equal_approx(float(partner.look.get("cloak", 0.0)), 0.3),
 		"a packet from an unseated peer dressed somebody's Warden")
-	# **And what it wears** (2026-09-26): four kinds by name, checked against
+	# **And what it wears** (2026-09-26): its kinds by name, checked against
 	# this build's content. Before this a partner was never dressed at all, and
 	# a party of dressed Wardens drew every partner as the old painted one.
 	var sword: String = "coalpaint_edge"
 	var cape: String = "roadwardens_mantle"
 	_check(ContentDB.gear(sword) != null and ContentDB.gear(cape) != null,
 		"the harness's sword or cape is not in the content any more")
+	# A four-kind row is what a build before the shield sends (2026-10-07): it
+	# still lands, as a Warden carrying none.
 	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[sword, "", cape, ""]], peer)
-	_check(partner.gear_kinds == [sword, "", cape, ""],
+	_check(partner.gear_kinds == [sword, "", cape, "", ""],
 		"a guest's gear never reached the host's mirror: %s" % str(partner.gear_kinds))
+	# **And the shield is the fifth** (2026-10-07): before it a partner's
+	# shield guarded on the host and was drawn on nobody's screen.
+	var shield: String = "ashwood_heater"
+	_check(ContentDB.gear(shield) != null and ContentDB.gear(shield).is_shield(),
+		"the harness's shield is not a shield in the content any more")
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[sword, "", cape, "", shield]], peer)
+	_check(partner.gear_kinds == [sword, "", cape, "", shield],
+		"a guest's shield never reached the host's mirror: %s" % str(partner.gear_kinds))
+	# Through the one door every partner, stage and stranger is dressed by. A
+	# single-process harness has no session, so the body reads as this
+	# machine's own and `_dress_warden` never takes the partner branch.
+	var dressed: Dictionary = Hero.outfit_of(partner.look, partner.gear_kinds)
+	_check(dressed != null and not String(dressed.get("shield", "")).is_empty()
+		or ContentDB.gear(sword).grip != GearData.Grip.ONE_HAND,
+		"a partner's shield in a free hand dresses no shield")
 	var packed_gear: Array = heroes.call("_gear_of", slot, partner) as Array
-	_check(packed_gear == [sword, "", cape, ""],
+	_check(packed_gear == [sword, "", cape, "", shield],
 		"the host packs %s for that seat - a third player would see it bare" % str(packed_gear))
 	# A kind in the wrong slot and a kind this build does not know are nothing.
-	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[cape, "no_such_kind", sword, ""]], peer)
-	_check(partner.gear_kinds == ["", "", "", ""],
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[cape, "no_such_kind", sword, "", sword]], peer)
+	_check(partner.gear_kinds == ["", "", "", "", ""],
 		"a packet put gear where it does not go: %s" % str(partner.gear_kinds))
 	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [[sword, "", cape, ""]], peer)
-	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [["", "", "", ""]], 9999)
+	heroes.call("_on_request", CoopRelay.Request.HERO_GEAR, [["", "", "", "", ""]], 9999)
 	_check(partner.gear_kinds[0] == sword, "a packet from an unseated peer undressed somebody's Warden")
 	partner.wear_gear([])
 	party.unseat(peer)

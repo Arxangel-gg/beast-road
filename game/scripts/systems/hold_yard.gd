@@ -1259,11 +1259,8 @@ func _dress_seat(index: int, look: Dictionary, kinds: Array) -> void:
 	var animator := _seats[index].get("animator") as HeroAnimator
 	if animator == null or animator.sprite == null:
 		return
-	var gear: Array[GearData] = []
-	for slot: int in 4:
-		gear.append(ContentDB.gear(String(kinds[slot])) if slot < kinds.size() and kinds[slot] is String else null)
 	WardenLook.dress(animator.sprite, look)
-	animator.dress(WardenDress.outfit(look, gear[0], gear[1], gear[2], gear[3]))
+	animator.dress(Hero.outfit_of(look, kinds))
 	if animator.dressed():
 		animator.sprite.position = Vector2(0.0, -HeroAnimator.PAINTED_FEET_BELOW_CENTRE)
 	else:

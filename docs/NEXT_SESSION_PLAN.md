@@ -41,9 +41,7 @@ Left, in this order:
    camp's razing, and coalescing saves to one a frame.
 2. **Release v0.73.0**: `bash tools/sweep.sh <scratch> release`, the three-line
    guard/release/neither diff, push, `tools\release.ps1 -Version 0.73.0`.
-3. **A partner's shield** is not drawn on a guest's screen: the wire carries
-   four dress kinds. Append the offhand as a fifth, tolerating a short row.
-4. The thumb cluster (item 25), on the design's own answers to its §7.
+3. The thumb cluster (item 25), on the design's own answers to its §7.
 
 PixelLab: about 2,370 generations were left on pixellab-a after the tower
 batch (resets 2026-11-06). `tools/pick_generated_frames.py` is the picker the

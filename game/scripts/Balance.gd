@@ -8915,7 +8915,9 @@ const HOLD_PATH_STEP: float = 40.0
 ## [TUNE]
 ## Lowered 2026-10-07 (owner: strangers in "worn gear"): most wear armour and
 ## a cape, and nearly half a helmet.
-const HOLD_STRANGER_BARE: Array[float] = [0.05, 0.12, 0.28, 0.5]
+## The fifth is the shield (2026-10-07): a third of strangers carry one, and
+## only those with a hand free for it are drawn with it.
+const HOLD_STRANGER_BARE: Array[float] = [0.05, 0.12, 0.28, 0.5, 0.66]
 const HOLD_PATH_STUCK_SECONDS: float = 1.2
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 ## **A Discipline node is never smaller than a fingertip on a thumb**

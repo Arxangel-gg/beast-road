@@ -13814,9 +13814,14 @@ its share of a blow from in front and never all of it, spends a guard that
 breaks at nothing and rests seven seconds, takes part of the shove, and slows
 the walk while raised. **A two-handed or paired weapon leaves no hand for one**:
 `Hero._shield_piece` and `WardenDress.outfit` both ask, so the shield neither
-guards nor shows. `durability_check` holds all of it on both bars. **Not
-built**: a partner's shield is not drawn on a guest's screen - the wire
-carries four dress kinds and the offhand is a fifth.
+guards nor shows. `durability_check` holds all of it on both bars. **And a
+partner carries it on every screen**: the shield is the fifth dress slot,
+appended to `Hero.DRESS_SLOTS` so a four-kind row from an older build still
+lands, as a Warden carrying none; and `Hero.outfit_of` is the one door a
+partner, the lobby's and the Hold's stage and a stranger are dressed by, so the
+fifth cannot be handed to one and forgotten by another. A third of the Hold's
+strangers carry one. `coop_heroes_check` named the shield dropped from that
+door.
 
 **Thirty towers an element, keeps and volleys, and a path that is the
 tower's own, as of 2026-10-07.** The owner: *"30 Towers/element + more combo

@@ -96,7 +96,7 @@ func _test_a_partner_wears_their_gear() -> void:
 	for row: Variant in host.to_wire():
 		if int((row as Array)[0]) == slot:
 			cleaned = (row as Array)[6]
-	_check(cleaned == ["", "", "", ""],
+	_check(cleaned == ["", "", "", "", ""],
 		"gear in the wrong slots must arrive as nothing, not as %s" % str(cleaned))
 	card.queue_free()
 	guest.queue_free()
