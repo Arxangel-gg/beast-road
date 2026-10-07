@@ -2838,6 +2838,9 @@ func serialized_save() -> String:
 			"owned": mounts,
 			"saddled": mount_saddled,
 		},
+		# The company (2026-10-07). Additive: a save without it is nobody hired,
+		# which is what a new account is.
+		"mercenaries": mercenaries,
 		# The Warden's dye: two numbers and nothing that reaches a fight.
 		"look": WardenLook.clean(look),
 		# The frontier. One snapshot, and an unreadable one is dropped on load
@@ -2966,6 +2969,7 @@ func adopt_save(data: Dictionary) -> void:
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_pen(data.get("pen", {}) as Dictionary)
 	_read_stable(data.get("stable", {}) as Dictionary)
+	_read_mercenaries(data.get("mercenaries", []))
 	vendor = data.get("vendor", {}) as Dictionary
 	look = WardenLook.clean(data.get("look", {}))
 	hold_pond = data.get("hold_pond", {}) as Dictionary
@@ -3314,6 +3318,181 @@ func mend_expedition() -> String:
 func abandon_expedition() -> void:
 	expedition = {}
 	save_game()
+
+
+## --- Mercenaries ------------------------------------------------------------
+
+## **The roster** (owner, 2026-10-07; `docs/MERCENARIES_2026-10-07.md`). Up to
+## `MERC_ROSTER_MAX` hired Wardens, each a record `Mercenaries.offer` rolled from
+## a stranger in the Hold. **This amends working rule 7 the way the pen did**: a
+## roster of individual characters, bounded, none of whom grows - a mercenary's
+## level and gear are what they were the day it was hired.
+var mercenaries: Array[Dictionary] = []
+
+
+func _read_mercenaries(stored: Variant) -> void:
+	mercenaries.clear()
+	var rows: Array = stored if stored is Array else []
+	for row: Variant in rows:
+		var kept: Dictionary = Mercenaries.clean(row)
+		if kept.is_empty() or mercenary(String(kept["uid"])).size() > 0:
+			continue
+		mercenaries.append(kept)
+		if mercenaries.size() >= Balance.MERC_ROSTER_MAX:
+			break
+
+
+## One hired mercenary by its name, or an empty dictionary.
+func mercenary(uid: String) -> Dictionary:
+	for row: Dictionary in mercenaries:
+		if String(row.get("uid", "")) == uid:
+			return row
+	return {}
+
+
+## Whether the stranger called `who` is already on the roster.
+func has_hired(who: String) -> bool:
+	for row: Dictionary in mercenaries:
+		if String(row.get("who", "")) == who:
+			return true
+	return false
+
+
+## What would stop this offer being hired, or "" when nothing would.
+func hire_problem(offer: Dictionary) -> String:
+	if RunState.road_is_live():
+		return "Not while a road is under way."
+	if offer.is_empty():
+		return "Nobody to hire."
+	if has_hired(String(offer.get("who", ""))):
+		return "Already in your company."
+	if mercenaries.size() >= Balance.MERC_ROSTER_MAX:
+		return "Your company is full. Release somebody first."
+	var price: int = Mercenaries.fee(offer)
+	if marks < price:
+		return "Not enough Marks: %d of %d." % [marks, price]
+	return ""
+
+
+## **Hires** a stranger for its fee. Validates, then spends, then adds.
+func hire_mercenary(offer: Dictionary) -> bool:
+	if not hire_problem(offer).is_empty():
+		return false
+	var row: Dictionary = Mercenaries.clean(offer)
+	if row.is_empty():
+		return false
+	marks -= Mercenaries.fee(row)
+	mercenaries.append(row)
+	save_game()
+	return true
+
+
+## **Releases** a mercenary, from its bed or not. Nothing is refunded; a road
+## under way keeps the company it set out with.
+func release_mercenary(uid: String) -> bool:
+	if RunState.road_is_live():
+		return false
+	for index: int in mercenaries.size():
+		if String(mercenaries[index].get("uid", "")) == uid:
+			mercenaries.remove_at(index)
+			save_game()
+			return true
+	return false
+
+
+## **Pays the bill** of a mercenary in a bed. Its rest still has to run out.
+func pay_mercenary_bill(uid: String) -> bool:
+	var row: Dictionary = mercenary(uid)
+	var owed: int = int(row.get("bill", 0))
+	if row.is_empty() or owed <= 0 or marks < owed:
+		return false
+	marks -= owed
+	row["bill"] = 0
+	_wake_if_rested(row)
+	save_game()
+	return true
+
+
+## Whether a mercenary may take the road now.
+func mercenary_ready(uid: String) -> bool:
+	var row: Dictionary = mercenary(uid)
+	return not row.is_empty() and Mercenaries.is_ready(row, Time.get_unix_time_from_system())
+
+
+## A rested mercenary whose bill is paid gets up.
+func _wake_if_rested(row: Dictionary) -> void:
+	if Mercenaries.is_ready(row, Time.get_unix_time_from_system()):
+		row["state"] = Mercenaries.STATE_READY
+		row["rest_until"] = 0.0
+
+
+## What would stop this mercenary walking out with the next road.
+func taking_problem(uid: String) -> String:
+	var row: Dictionary = mercenary(uid)
+	if row.is_empty():
+		return "Nobody by that name."
+	if RunState.road_is_live():
+		return "Not while a road is under way."
+	if not mercenary_ready(uid):
+		return "Still resting at the inn."
+	if not bool(row.get("taking", false)) and mercenaries_taking().size() >= mercenary_seats():
+		return "No seat left for another."
+	return ""
+
+
+## Marks a mercenary to walk out with the next road, or keeps it home.
+func set_mercenary_taking(uid: String, on: bool) -> bool:
+	var row: Dictionary = mercenary(uid)
+	if row.is_empty():
+		return false
+	if on and not taking_problem(uid).is_empty():
+		return false
+	if not on and RunState.road_is_live():
+		return false
+	row["taking"] = on
+	save_game()
+	return true
+
+
+## The seats a mercenary may take: the party's seats less the players in it.
+func mercenary_seats() -> int:
+	return clampi(Balance.COOP_MAX_PLAYERS - Coop.player_count(), 0, Balance.MERC_ROSTER_MAX)
+
+
+## The mercenaries marked to walk out, on their feet, at most the seats free.
+func mercenaries_taking() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var now: float = Time.get_unix_time_from_system()
+	for row: Dictionary in mercenaries:
+		if not bool(row.get("taking", false)) or not Mercenaries.is_ready(row, now):
+			continue
+		out.append(row)
+		if out.size() >= mercenary_seats():
+			break
+	return out
+
+
+## **Carried to the inn** after its third wound: a bill and a rest.
+func send_mercenary_to_bed(uid: String) -> void:
+	var row: Dictionary = mercenary(uid)
+	if row.is_empty():
+		return
+	row["state"] = Mercenaries.STATE_RESTING
+	row["bill"] = Mercenaries.bill(row)
+	row["rest_until"] = Time.get_unix_time_from_system() + Balance.MERC_REST_SECONDS
+	row["taking"] = false
+	save_game()
+
+
+## Called on opening the Hold: anybody rested and paid gets up.
+func wake_rested_mercenaries() -> void:
+	var changed: bool = false
+	for row: Dictionary in mercenaries:
+		if String(row.get("state", "")) == Mercenaries.STATE_RESTING:
+			_wake_if_rested(row)
+			changed = changed or String(row.get("state", "")) == Mercenaries.STATE_READY
+	if changed:
+		save_game()
 
 
 ## --- The pen ---------------------------------------------------------------

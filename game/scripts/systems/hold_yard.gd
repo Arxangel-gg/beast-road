@@ -123,6 +123,11 @@ const STATIONS: Array[Dictionary] = [
 		"label": "The Pond", "cell": Vector2i(26, 14)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
 		"label": "The Gate", "cell": Vector2i(22, 21)},
+	# **The inn** (owner, 2026-10-07): where a stranger in the yard is hired and a
+	# mercenary carried home after its third wound lies in a bed. On the lower
+	# yard by the road out, where somebody coming back from the road arrives.
+	{"id": "inn", "door": "Inn", "art": "res://art/city/building_inn.png",
+		"label": "The Inn", "cell": Vector2i(27, 20)},
 ]
 
 ## The people who live here rather than pass through.
@@ -2039,6 +2044,18 @@ func seat_name(index: int) -> String:
 
 func seats() -> int:
 	return _seats.size()
+
+
+## **The Wardens in the yard who could be hired** (2026-10-07): every seat the
+## game is simulating, by the key it was rolled from and the name it wears.
+## A real player's seat is never offered - they are a person, not a hire.
+func strangers() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for index: int in range(1, _seats.size()):
+		if int(_seats[index].get("kind", -1)) != HoldSession.Seat.SIMULATED:
+			continue
+		out.append({"who": sim_key(index), "name": String(_seats[index].get("name", ""))})
+	return out
 
 
 func warden_at() -> Vector2:

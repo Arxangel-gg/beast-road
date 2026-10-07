@@ -11529,6 +11529,26 @@ const GEAR_GLEAM_FROM_RARITY: int = 3
 const GEAR_GLEAM_FLOOR: float = 0.25
 const GEAR_GLEAM_SWEEP_SECONDS: Vector2 = Vector2(4.2, 1.8)
 const GEAR_GLEAM_MOTES: float = 7.0
+## **Mercenaries** (owner, 2026-10-07; `docs/MERCENARIES_2026-10-07.md`). How many
+## may be hired, how far below the hiring Warden's level a stranger may stand,
+## the fee in Marks (a base, a level, and a gear point), the contract each road
+## takes as a share of the fee, the bill after a third wound (a base and a
+## level), how long a mercenary rests at the inn on the wall clock, its wounds
+## a road, the share of every kill's spoils and of the run's Marks it takes,
+## and the longest name it may carry. [TUNE]
+const MERC_ROSTER_MAX: int = 3
+const MERC_LEVEL_SPREAD: int = 6
+const MERC_FEE_BASE: int = 120
+const MERC_FEE_PER_LEVEL: int = 14
+const MERC_FEE_PER_GEAR_POINT: int = 9
+const MERC_CONTRACT_SHARE: float = 0.18
+const MERC_BILL_BASE: int = 60
+const MERC_BILL_PER_LEVEL: int = 6
+const MERC_REST_SECONDS: float = 900.0
+const MERC_WOUNDS: int = 3
+const MERC_SPOILS_SHARE: float = 0.15
+const MERC_REWARD_SHARE: float = 0.12
+const MERC_NAME_MAX: int = 32
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

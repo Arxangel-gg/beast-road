@@ -1352,6 +1352,15 @@ A resident whose frames are missing is a stiller picture, never a hole.
 | `hold_steward.png` | 160×160 | T | `#3E5A42` |
 | `hold_stabler.png` | 160×160 | T | `#7A4A3A` |
 
+**The inn** (2026-10-07): where a hired Warden is kept and where one carried
+home after its third wound lies in a bed. One painting, front-on with a slight
+top-down angle like every building in the Hold, generated with a shipped Hold
+building as its style.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `building_inn.png` | 192×192 | T | `#6B5A3E` |
+
 
 ### 5.5b-iii The Hold's residents' frames — `res://art/city/`
 

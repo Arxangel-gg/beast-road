@@ -84,6 +84,12 @@ var _rename_edit: LineEdit = null
 
 var _yard: HoldYard = null
 
+
+## The room's yard, for a screen that needs to know who is standing in it.
+func yard() -> HoldYard:
+	return _yard
+
+
 ## How far in the Warden has pulled the view, over the fit. See
 ## `Balance.HOLD_ZOOM_MIN`.
 ##

@@ -321,6 +321,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/menu_button_fx_check.tscn
           run_godot_clean --headless --path game res://tools/cinematic_grade_check.tscn
           run_godot_clean --headless --path game res://tools/legendary_gleam_check.tscn
+          run_godot_clean --headless --path game res://tools/mercenary_check.tscn
           run_godot_clean --headless --path game res://tools/menu_layout_check.tscn
           # **The phone shapes, which the release bar was not checking at all.**
           # `layout_check` has run in guard since 2026-08-25 and never here, so a

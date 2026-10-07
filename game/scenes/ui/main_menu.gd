@@ -28,6 +28,8 @@ var _codex: CanvasLayer
 var _pen: CanvasLayer
 ## The stable's counter. See `_build_stable_button`.
 var _stable: StableScreen = null
+## The inn: hired Wardens and the strangers to hire. See `_build_inn_button`.
+var _inn: InnScreen = null
 var _act_start: CanvasLayer
 ## The Wardens this machine keeps (owner, 2026-09-22). See
 ## `_build_slot_button`.
@@ -199,6 +201,7 @@ func _ready() -> void:
 	_build_codex_button()
 	_build_pen_button()
 	_build_stable_button()
+	_build_inn_button()
 	_build_walk_button()
 	_build_resume_button()
 	_build_act_start_button()
@@ -330,7 +333,7 @@ func _build_hold() -> void:
 	# co-op's building, The Gate, had stood in the yard unbound since the Hold
 	# was built). The front door keeps the road, the first Walk, the Hold,
 	# Settings and Quit.
-	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Stable",
+	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Stable", "Inn",
 			"Chronicle",
 			"Codex", "Leaderboard", "WalkAgain", "Guide", "Trailer", "Wardens", "Coop"]:
 		var found: Node = column.get_node_or_null(door)
@@ -885,6 +888,32 @@ func _build_stable_button() -> void:
 		button.text = _stable_label()
 		_focus_home())
 	button.pressed.connect(func() -> void: _stable.open())
+
+
+## **The inn** (owner, 2026-10-07): hire the Wardens met in the Hold, keep the
+## company, and pay for the ones in a bed. Adopted into the Hold with every door.
+func _build_inn_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Inn"
+	button.text = "The Inn"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "roadwardens_helm", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+	_inn = InnScreen.new()
+	_inn.strangers = func() -> Array:
+		if _hub == null or _hub.yard() == null:
+			return []
+		return _hub.yard().strangers()
+	add_child(_inn)
+	_inn.closed.connect(func() -> void: _focus_home())
+	button.pressed.connect(func() -> void: _inn.open())
 
 
 ## What the stable door says. It names what is saddled, because that is the

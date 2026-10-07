@@ -265,6 +265,7 @@ jobs:
           check "front door glow" --headless --path game res://tools/menu_button_fx_check.tscn
           check "cinematic grade" --headless --path game res://tools/cinematic_grade_check.tscn
           check "legendary gleam" --headless --path game res://tools/legendary_gleam_check.tscn
+          check "mercenaries" --headless --path game res://tools/mercenary_check.tscn
           # Account objectives are finite, one-time and horizontal. This also
           # proves their save payload without touching the runner's real slot.
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn

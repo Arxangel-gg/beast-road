@@ -1375,7 +1375,15 @@ func _test_tiers_and_persistence() -> void:
 				# exactly where it was. The row shape is checked below, because
 				# a template quietly becoming a second expedition is what a
 				# top-level allowlist alone cannot see.
-				"build_template"],
+				"build_template",
+				# The company (2026-10-07): up to three hired Wardens, each a
+				# level, five placed points and the pieces it was hired in - the
+				# pen's amendment to rule 7 in a second costume, and the same
+				# bound: **none of them grows**. A mercenary's level and gear are
+				# what they were the day it was hired, so the roster holds no
+				# power a player earns by keeping it. `mercenary_check` holds that
+				# a hire moves the Marks and adds a row and nothing else.
+				"mercenaries"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

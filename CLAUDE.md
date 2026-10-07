@@ -14314,6 +14314,43 @@ drawn now (amended, the invariant unchanged). It was not on the list of gates
 run for the scale change, because that list was chosen by what the change
 read; `grep -l` for every class a change touches is the list.
 
+**Mercenaries, stage one: the Inn and the company, as of 2026-10-07.** Owner:
+the Wardens in the Hold may be hired for a procedural fee, charge for every road,
+lie in a bed at an inn after a third wound until a bill is paid, may be released,
+up to three, each taking a player's seat. The design and every decision it
+leaves open are `docs/MERCENARIES_2026-10-07.md`; this stage is the roster.
+
+**A mercenary is the stranger it was hired from.** `Mercenaries.offer` rolls a
+record from the stranger's own key in the yard (`HoldYard.strangers`), so the
+Warden who walks out of the Inn wears the look and the kinds `HoldYard.stranger_of`
+dressed them in - a level near the hiring Warden's and **never above it**, its
+points placed as `curve_report` places the expected Warden's, and pieces at the
+tier's expected rarity and level. The fee is Marks for its level and for what its
+gear is worth; the contract a share of that, each road; the bill a level's worth.
+
+**It amends working rule 7 the way the pen did** - a roster of individual
+characters, bounded at `MERC_ROSTER_MAX`, **none of whom grows**: a mercenary's
+level and pieces are what they were the day it was hired, so the roster holds no
+power a player earns by keeping it. `MetaState.mercenaries` is additive (absent is
+nobody hired) and cleaned on reading - a forged level, points past the budget, a
+piece the game has never heard of and a row past the cap are each refused or
+trimmed. `balance_test` names the key with that reasoning.
+
+**The bed is a bill and a rest, and both have to be done.** The rest is wall
+clock from the moment it was carried in, because the road is exactly what it
+cannot walk; paying does not skip it and resting does not pay it. A release works
+from the bed and refunds nothing; the roster is refused mid-road, the pen's rule.
+
+**The Inn is a door like every other**, adopted into the Hold with its building -
+a PixelLab painting front-on like the rest of the Hold, `building_inn.png` - and
+it reads every rule off `MetaState`. `mercenary_check` (both bars) holds the roll,
+the price, the hire moving the Marks and the roster and nothing else in the
+account, the cap and the seats, the bed both ways, a live road, the save and its
+cleaning, and the Inn's own buttons; four planted faults were named, one only
+alone - **a cap plant and a cleaning plant beside each other hid the second**,
+because the extra row the first let in pushed the forged row past the cap.
+`inn_shot` is the photograph.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
