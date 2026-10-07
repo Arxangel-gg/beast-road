@@ -286,17 +286,21 @@ func _build_tiles() -> void:
 		# **A worn-out piece's tile says so** (2026-10-07), D2's way: yellow worn,
 		# red broken, over whatever its rarity was.
 		var band: int = Stash.durability_band(piece) if worn else 0
+		# The edge too, not only the mark: a worn tile is ringed in gold, and the
+		# band has to win over that or a broken helmet reads as a whole one.
+		var edge: Color = Color(0.0, 0.0, 0.0, 0.0)
 		if band > 0:
 			tint = GearRow.durability_colour(band)
+			edge = tint
 		var tile := Button.new()
 		tile.name = "Tile%s" % GearData.name_of_slot(slot)
 		tile.toggle_mode = true
 		tile.button_pressed = _filter == slot
 		tile.custom_minimum_size = Vector2(TILE_SIZE, TILE_SIZE + TILE_LABEL)
-		tile.add_theme_stylebox_override("normal", _card_plate(tint, worn, 0.0))
-		tile.add_theme_stylebox_override("hover", _card_plate(tint, worn, 0.34))
-		tile.add_theme_stylebox_override("pressed", _card_plate(tint, worn, 0.5))
-		tile.add_theme_stylebox_override("focus", _card_plate(tint, worn, 0.34))
+		tile.add_theme_stylebox_override("normal", _card_plate(tint, worn, 0.0, edge))
+		tile.add_theme_stylebox_override("hover", _card_plate(tint, worn, 0.34, edge))
+		tile.add_theme_stylebox_override("pressed", _card_plate(tint, worn, 0.5, edge))
+		tile.add_theme_stylebox_override("focus", _card_plate(tint, worn, 0.34, edge))
 		tile.tooltip_text = ("%s %s\n%s" % [Stash.rarity_name(piece), kind.display_name,
 			GearRow.bonus_text(piece, kind)]) if worn else "Nothing worn as %s" % GearData.name_of_slot(slot).to_lower()
 		var face := VBoxContainer.new()
@@ -315,6 +319,12 @@ func _build_tiles() -> void:
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.texture = _art_at(kind.get_sprite_path()) if worn else _slot_mark(slot)
 		icon.modulate = tint.lerp(Color.WHITE, 0.45) if worn else Color(1.0, 1.0, 1.0, 0.32)
+		# **A shield with no hand free says so** (2026-10-07): beside a two-handed
+		# or paired weapon it is neither carried nor raised, and a tile that looked
+		# like any other worn piece would let a player think it guarded.
+		if worn and kind.is_shield() and not shield_has_a_hand():
+			icon.modulate.a = 0.4
+			tile.tooltip_text += "\nNo hand free: a two-handed or paired weapon leaves this shield unused."
 		face.add_child(icon)
 		# A dot a set gem, in the gem's own colour, under the mark.
 		var gems: Array[String] = Stash.gems(piece)
@@ -1454,9 +1464,16 @@ func _stat_line(text: String, tint: Color) -> Label:
 const WORN_GOLD: Color = Color(0.94, 0.78, 0.40)
 
 
-func _card_plate(tint: Color, worn: bool, lift: float) -> StyleBoxFlat:
+## Whether the weapon worn leaves a hand for a shield: nothing, or one-handed.
+static func shield_has_a_hand() -> bool:
+	var weapon: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+	var kind: GearData = ContentDB.gear(String(weapon.get("kind", ""))) if not weapon.is_empty() else null
+	return kind == null or kind.grip == GearData.Grip.ONE_HAND
+
+
+func _card_plate(tint: Color, worn: bool, lift: float, edge_over: Color = Color(0.0, 0.0, 0.0, 0.0)) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
-	var edge: Color = WORN_GOLD if worn else tint
+	var edge: Color = edge_over if edge_over.a > 0.0 else (WORN_GOLD if worn else tint)
 	box.bg_color = Color(0.068, 0.074, 0.078, 0.94).lerp(
 		Color(edge.r, edge.g, edge.b, 0.94),
 		(0.13 if worn else 0.05) + lift * 0.10)

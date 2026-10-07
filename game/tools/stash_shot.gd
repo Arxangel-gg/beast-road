@@ -10,6 +10,10 @@ extends Node
 ## a worn Oathbound armour, a worn Fine helmet, and a shelf of unworn pieces
 ## across every rarity, one of them an upgrade. The first unworn row is hovered
 ## so the comparison card is in the frame.
+##
+## **And it wears a shield, a worn armour and a broken helmet** (2026-10-07),
+## so the doll's Warden carries the offhand and its tiles show yellow and red;
+## a third picture stands the HUD's durability mannequin on a plate.
 
 const SIZE := Vector2i(1600, 900)
 const NARROW := Vector2i(1000, 700)
@@ -48,6 +52,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	await _save("user://stash_shot_narrow.png")
 	_screen.hide_screen()
+	await _shoot_the_mannequin()
 	MetaState.stash = stash_before
 	MetaState.equipped = equipped_before
 	MetaState.materials = materials_before
@@ -88,6 +93,10 @@ func _stock() -> void:
 	_receive(_kind_in(GearData.Slot.AMULET), 2, 1, false)
 	_receive(_kind_in(GearData.Slot.CAPE), 3, 2, false)
 	_receive(_kind_in(GearData.Slot.CHARM), 1, 1, false)
+	_receive(_kind_in(GearData.Slot.OFFHAND), 3, 3, true)
+	# One worn to yellow, one broken red: what the tiles and the mannequin show.
+	_wear_to(GearData.Slot.ARMOUR, Balance.GEAR_DURABILITY_YELLOW * 0.6)
+	_wear_to(GearData.Slot.HELMET, 0.0)
 	RunState.hero_attributes = [Balance.ATTRIBUTE_THRESHOLD * 2, Balance.ATTRIBUTE_THRESHOLD, 4, 2, 0]
 	Modifiers.rebuild()
 
@@ -98,6 +107,35 @@ func _receive(kind: GearData, rarity: int, level: int, wear: bool) -> void:
 	MetaState.receive_gear(Stash.make(kind.id, rarity, level))
 	if wear:
 		MetaState.equip(kind.slot, MetaState.stash.size() - 1)
+
+
+## Wears what is worn in `slot` down to `share` of what it holds.
+func _wear_to(slot: int, share: float) -> void:
+	var piece: Dictionary = MetaState.equipped_piece(slot)
+	if piece.is_empty():
+		return
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	var most: int = Stash.durability_max(piece, kind)
+	MetaState.wear_worn(slot, Stash.durability(piece, kind) - int(floor(most * share)))
+
+
+func _shoot_the_mannequin() -> void:
+	var plate := ColorRect.new()
+	plate.color = Color(0.1, 0.11, 0.1)
+	plate.size = Vector2(SIZE)
+	add_child(plate)
+	var doll := DurabilityDoll.new()
+	doll.position = Vector2(40, 40)
+	doll.size = Balance.DURABILITY_DOLL_SIZE * 3.0
+	add_child(doll)
+	get_window().size = Vector2i(380, 480)
+	get_viewport().set_content_scale_size(Vector2i(380, 480))
+	for _settle: int in 8:
+		await get_tree().process_frame
+	print("[stash-shot] mannequin bands: %s" % [doll.shown_bands()])
+	await _save("user://durability_doll_shot.png")
+	doll.queue_free()
+	plate.queue_free()
 
 
 func _hover_first_unworn() -> void:

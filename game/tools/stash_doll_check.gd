@@ -58,6 +58,7 @@ func _ready() -> void:
 	await _test_the_doll_steps_aside()
 	await _test_the_card_follows_a_refit()
 	_test_the_bars_carry_it()
+	await _test_a_worn_out_tile_says_so()
 	_screen.hide_screen()
 	_screen.queue_free()
 	await get_tree().process_frame
@@ -77,6 +78,56 @@ func _ready() -> void:
 	else:
 		push_error("[stash-doll] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A worn-out tile says so on its edge, and an idle shield says it is idle**
+## (2026-10-07). A worn tile is ringed in gold, and the first cut painted the
+## band only on the mark - so a broken helmet's tile read as a whole one, which
+## the stash's own photograph showed and no check did.
+func _test_a_worn_out_tile_says_so() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	_screen.call("_refit")
+	await get_tree().process_frame
+	var weapon_kind: GearData = null
+	for kind: GearData in ContentDB.gear_sorted():
+		if kind != null and kind.slot == GearData.Slot.WEAPON and kind.grip == GearData.Grip.TWO_HAND:
+			weapon_kind = kind
+			break
+	var shield_kind: GearData = _kind_in(GearData.Slot.OFFHAND)
+	_check(weapon_kind != null and shield_kind != null, "a two-handed weapon and a shield are needed")
+	if weapon_kind == null or shield_kind == null:
+		return
+	_receive(weapon_kind, 2, true)
+	_receive(shield_kind, 2, true)
+	_receive(_kind_in(GearData.Slot.ARMOUR), 2, true)
+	_receive(_kind_in(GearData.Slot.BOOTS), 2, true)
+	MetaState.wear_worn(GearData.Slot.ARMOUR, 99999)
+	var boots: Dictionary = MetaState.equipped_piece(GearData.Slot.BOOTS)
+	var boots_kind: GearData = ContentDB.gear(String(boots.get("kind", "")))
+	var made: int = Stash.durability(boots, boots_kind)
+	MetaState.wear_worn(GearData.Slot.BOOTS, made - int(floor(float(made) * Balance.GEAR_DURABILITY_YELLOW)))
+	_screen.call("_build_tiles")
+	await get_tree().process_frame
+	for pair: Array in [[GearData.Slot.ARMOUR, 2], [GearData.Slot.BOOTS, 1]]:
+		var tile: Button = _tile(int(pair[0]))
+		var box := tile.get_theme_stylebox("normal") as StyleBoxFlat if tile != null else null
+		var want: Color = GearRow.durability_colour(int(pair[1]))
+		_check(box != null and box.border_color.r == want.r and box.border_color.g == want.g
+			and box.border_color.b == want.b,
+			"the %s tile's edge is %s, not its band's %s" % [GearData.name_of_slot(int(pair[0])),
+				box.border_color if box != null else "nothing", want])
+	var idle: Button = _tile(GearData.Slot.OFFHAND)
+	_check(idle != null and idle.tooltip_text.contains("No hand free") and _mark(idle).modulate.a < 0.5,
+		"a shield beside a two-handed weapon reads as though it guarded")
+	for kind: GearData in ContentDB.gear_sorted():
+		if kind != null and kind.slot == GearData.Slot.WEAPON and kind.grip == GearData.Grip.ONE_HAND:
+			_receive(kind, 2, true)
+			break
+	_screen.call("_build_tiles")
+	await get_tree().process_frame
+	var carried: Button = _tile(GearData.Slot.OFFHAND)
+	_check(carried != null and not carried.tooltip_text.contains("No hand free") and _mark(carried).modulate.a > 0.9,
+		"a shield beside a one-handed weapon is shown as idle")
 
 
 # --- The account under test ---------------------------------------------------

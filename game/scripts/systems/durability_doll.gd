@@ -35,8 +35,13 @@ func _ready() -> void:
 	name = "DurabilityDoll"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tooltip_text = "Worn gear. Yellow gives half its benefits, red nothing - mend it at the Smith in the Hold."
-	EventBus.gear_wear_changed.connect(func(_slot: int, _band: int) -> void: refresh())
+	# A named method rather than a lambda, so the connection dies with the doll.
+	EventBus.gear_wear_changed.connect(_on_wear_changed)
 	EventBus.stash_changed.connect(refresh)
+	refresh()
+
+
+func _on_wear_changed(_slot: int, _band: int) -> void:
 	refresh()
 
 
