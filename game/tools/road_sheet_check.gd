@@ -970,8 +970,20 @@ func _open_build_sheet() -> void:
 	for row: Button in _rows_of(_hud.get("_build_list") as Control):
 		if not row.toggle_mode:
 			continue
-		# The rail writes the element's name and its count into the button.
-		var count: int = row.text.split(" ")[-1].to_int()
+		# The rail writes what each tab stands for on the button (2026-10-06);
+		# on a thumb the words are gone and the mark is the tab, so the count
+		# is read off the button and not off its text.
+		var count: int = int(row.get_meta(&"unlocked", row.text.split(" ")[-1].to_int()))
+		if _touch:
+			_check(row.text.is_empty() and row.icon != null
+					and row.size.x <= HUD.ELEMENT_TAB_TOUCH_SIZE + 1.0,
+				"on a thumb the element tab for %s is %.0f wide and says '%s' - the mark is the tab"
+					% [str(row.get_meta(&"element", -1)), row.size.x, row.text])
+			var foot: Label = row.get_node_or_null("Count") as Label
+			_check(foot != null and foot.text == "%d/%d" % [count, int(row.get_meta(&"total", -1))],
+				"the tab's foot does not say its count")
+		else:
+			_check(not row.text.is_empty(), "on a desktop an element tab lost its name")
 		if count > most:
 			most = count
 			fullest = row
@@ -980,6 +992,15 @@ func _open_build_sheet() -> void:
 	# gate opens this sheet more than once. The first cut pressed regardless
 	# and the second test measured the four-row rail with no element on it,
 	# which fits any screen and proved nothing.
+	# On a thumb the four marks are one row, so none is scrolled off before a
+	# tower is shown (2026-10-07).
+	if _touch:
+		var tops: Array[float] = []
+		for row: Button in _rows_of(_hud.get("_build_list") as Control):
+			if row.toggle_mode:
+				tops.append(row.global_position.y)
+		_check(tops.size() == 4 and absf(tops.max() - tops.min()) < 1.0,
+			"on a thumb the element tabs are not one row (tops %s)" % str(tops))
 	if fullest != null and not fullest.button_pressed:
 		fullest.pressed.emit()
 		for _f: int in 8:

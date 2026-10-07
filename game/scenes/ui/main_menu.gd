@@ -203,9 +203,11 @@ func _ready() -> void:
 	_build_act_start_button()
 	_build_slot_button()
 	_build_leaderboard_button()
-	_build_hold()
 	_build_guide_button()
 	_build_trailer_button()
+	# After every door it adopts: the Hold takes the Guide and the trailer off
+	# the front door, and a button built after it stays where it was built.
+	_build_hold()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 	_build_version_label()
@@ -322,9 +324,14 @@ func _build_hold() -> void:
 	_hub.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _hub.open())
 	_build_smithy_button(column)
+	# The Guide, the trailer, co-op and the Wardens moved in on 2026-10-06
+	# (owner: "Move Watch Trailer, Guide, Co-op and Warden slots into the Hold";
+	# co-op's building, The Gate, had stood in the yard unbound since the Hold
+	# was built). The front door keeps the road, the first Walk, the Hold,
+	# Settings and Quit.
 	for door: String in ["Stash", "Ledger", "Vendor", "Smithy", "Pen", "Stable",
 			"Chronicle",
-			"Codex", "Leaderboard", "WalkAgain"]:
+			"Codex", "Leaderboard", "WalkAgain", "Guide", "Trailer", "Wardens", "Coop"]:
 		var found: Node = column.get_node_or_null(door)
 		if found is Button:
 			_hub.adopt(found as Button)

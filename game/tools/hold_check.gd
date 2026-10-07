@@ -97,6 +97,7 @@ func _ready() -> void:
 	await _test_a_click_uses_what_it_lands_on()
 	await _test_a_click_reaches_the_yard_through_the_menu()
 	await _test_the_stone_card_comes_back()
+	await _test_the_four_doors_moved_in()
 	await _test_the_doors_say_what_waits()
 	await _test_the_hold_talks()
 	# **A test that aborted must not read as a test that passed.** A GDScript
@@ -107,7 +108,7 @@ func _ready() -> void:
 	# below stamps its own name as its last statement, and every stamp is
 	# accounted for here.
 	for stage: String in ["pond_fish", "act_start_door", "stranger_gear", "strangers_dressed", "thumb", "news", "chrome",
-			"click", "menu_click", "stone_card", "talks"]:
+			"click", "menu_click", "stone_card", "four_doors", "talks"]:
 		_check(_reached.has(stage),
 			("'%s' never reached its end - it aborted partway, and every check "
 				+ "it had not made yet is a check nobody made") % stage)
@@ -1598,6 +1599,59 @@ func _test_the_stone_card_comes_back() -> void:
 	menu.queue_free()
 	await _frames(3)
 	_reached["stone_card"] = true
+
+
+## **The Guide, the trailer and the Wardens are doors in the Hold and not on
+## the front door** (owner, 2026-10-06), beside co-op, which already was.
+## Through the real menu: each button stands in the Hold's grid, bound to a
+## building of its own in the yard, and the front door's column no longer
+## holds it; pressing the Guide's door from the Hold opens the Guide over the
+## room and closing it comes back.
+func _test_the_four_doors_moved_in() -> void:
+	MetaState.settings["tutorial_seen"] = true
+	MetaState.story_intro_seen = true
+	WardenGlass.mark_offered()
+	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate() as Control
+	add_child(menu)
+	await _frames(20)
+	var hub: HubScreen = menu.get("_hub") as HubScreen
+	var column: Node = (menu.get("new_run_button") as Button).get_parent() \
+		if menu.get("new_run_button") != null else null
+	_check(hub != null and column != null, "the real menu has no Hold or no column")
+	if hub == null or column == null:
+		menu.queue_free()
+		_reached["four_doors"] = true
+		return
+	var yard: HoldYard = hub.get("_yard") as HoldYard
+	var grid: Node = hub.get("_grid") as Node
+	for door: String in ["Guide", "Wardens", "Coop"]:
+		var button: Node = grid.get_node_or_null(door) if grid != null else null
+		_check(button is Button, "the Hold's doors have no %s" % door)
+		_check(column.get_node_or_null(door) == null, "the front door still carries %s" % door)
+		_check(yard != null and yard.bound(door), "%s has no building in the yard" % door)
+	# The trailer's door exists only when the film is in the build; where it
+	# is, it moved in with the others.
+	if TrailerPlayer.available():
+		_check(grid != null and grid.get_node_or_null("Trailer") is Button
+				and column.get_node_or_null("Trailer") == null and yard != null and yard.bound("Trailer"),
+			"the trailer's door did not move into the Hold")
+	# Pressing the Guide from the Hold opens it over the room, and closing it
+	# comes back to the room.
+	hub.open()
+	await _frames(4)
+	var guide_door: Button = grid.get_node_or_null("Guide") as Button if grid != null else null
+	var guide: CanvasLayer = menu.get("_guide") as CanvasLayer
+	if guide_door != null and guide != null:
+		guide_door.pressed.emit()
+		await _frames(3)
+		_check(guide.visible and hub.is_suspended(), "the Guide did not open over the Hold from its door")
+		guide.call("close")
+		await _frames(3)
+		_check(hub.visible and not hub.is_suspended(), "closing the Guide did not come back to the Hold")
+	hub.close()
+	menu.queue_free()
+	await _frames(3)
+	_reached["four_doors"] = true
 
 
 func _click(at: Vector2) -> void:

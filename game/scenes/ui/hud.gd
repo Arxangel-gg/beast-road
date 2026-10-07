@@ -72,6 +72,16 @@ const BUILD_PANEL_TOUCH_WIDTH: float = 760.0
 
 ## The element rail down the left of the build panel.
 const ELEMENT_RAIL_WIDTH: float = 150.0
+## **The tabs are the element's mark on a thumb** (owner, 2026-10-06: "Build-
+## tower menu tabs as element icons (mobile, maybe all)"). The rail spent 150
+## of the sheet's width on four names a glyph already says, and the touch pass
+## then inflated each to a thumb's full height; the tab is a square of the
+## mark now, the count rides under it, and the name is the tooltip.
+## **104, because that is what the button is**: the kit's button pads 34 a side,
+## so a 36-unit mark is a 104-unit tab whatever minimum is asked for, and a
+## square of it is a thumb's target with room to spare (2026-10-07, measured).
+const ELEMENT_TAB_TOUCH_SIZE: float = 104.0
+const ELEMENT_TAB_ICON_TOUCH: int = 36
 const BUILD_ROW_HEIGHT: float = 44.0
 const BUILD_ROW_GAP: int = 5
 
@@ -6238,9 +6248,22 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 
-	var rail := VBoxContainer.new()
+	# **On a thumb the four marks are one row over the list** (2026-10-07). A
+	# column of four thumb-sized squares is taller than a sideways phone gives
+	# the sheet, so the fourth element was scrolled off before a tower was
+	# shown; four squares side by side are a third of the sheet's width. On a
+	# desktop the rail stays a column of names beside the list.
+	var flyout := VBoxContainer.new()
+	flyout.add_theme_constant_override("separation", BUILD_ROW_GAP)
+	flyout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var rail: BoxContainer = HBoxContainer.new() if touch_ui() else VBoxContainer.new()
 	rail.add_theme_constant_override("separation", 6)
-	row.add_child(rail)
+	if touch_ui():
+		row.add_child(flyout)
+		flyout.add_child(rail)
+	else:
+		row.add_child(rail)
+		row.add_child(flyout)
 
 	var by_element: Dictionary = {}
 	for tower: TowerData in ContentDB.unlocked_base_towers():
@@ -6265,6 +6288,11 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 		var pick := Button.new()
 		pick.custom_minimum_size = Vector2(ELEMENT_RAIL_WIDTH, BUILD_ROW_HEIGHT)
 		var total: int = towers.size() + (locked.get(element, []) as Array).size()
+		# What the tab stands for, readable whatever it draws: the gate picks
+		# the fullest element off these rather than off the words.
+		pick.set_meta(&"element", element)
+		pick.set_meta(&"unlocked", towers.size())
+		pick.set_meta(&"total", total)
 		pick.text = "%s  %d/%d" % [TowerData.element_name(element), towers.size(), total]
 		pick.icon = IconKit.element_sized(element, 26)
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -6275,15 +6303,36 @@ func _element_rail(anchor: Vector2i) -> HBoxContainer:
 		pick.add_theme_color_override("font_color", TowerData.element_colour(element))
 		pick.tooltip_text = "%s  -  %d of %d unlocked" % [
 			TowerData.element_name(element), towers.size(), total]
+		if touch_ui():
+			# **The mark is the tab** (2026-10-06). Sized here and kept from the
+			# touch pass; the count sits in the tab's foot in the element's own
+			# colour, and the name stays in the tooltip.
+			pick.text = ""
+			pick.set_meta(IconKit.ICON_ON_TOP, true)
+			pick.set_meta(UiMetrics.SELF_SIZED, true)
+			pick.custom_minimum_size = Vector2(ELEMENT_TAB_TOUCH_SIZE, ELEMENT_TAB_TOUCH_SIZE)
+			pick.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			pick.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			pick.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+			pick.expand_icon = false
+			pick.icon = IconKit.element_sized(element, ELEMENT_TAB_ICON_TOUCH)
+			var count := Label.new()
+			count.name = "Count"
+			count.text = "%d/%d" % [towers.size(), total]
+			count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# Eleven, because the touch pass that follows grows every label;
+			# nine photographed as a smudge under the mark on a sideways phone.
+			count.add_theme_font_size_override("font_size", 11)
+			count.add_theme_color_override("font_color", TowerData.element_colour(element))
+			pick.add_child(count)
+			count.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+			count.offset_top = -20.0
+			count.offset_bottom = -4.0
 		pick.pressed.connect(func() -> void:
 			_build_element = -1 if _build_element == element else element
 			_refresh_build_panel())
 		rail.add_child(pick)
-
-	var flyout := VBoxContainer.new()
-	flyout.add_theme_constant_override("separation", BUILD_ROW_GAP)
-	flyout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(flyout)
 
 	if _build_element < 0 or not by_element.has(_build_element):
 		var hint: Label = _label("Pick an element to see its towers.", 14)

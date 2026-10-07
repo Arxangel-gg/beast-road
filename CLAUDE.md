@@ -13438,6 +13438,39 @@ the rune is drawn additively and larger. What is next in the deep - a barred
 room and a lever, themed rooms, a mini-boss - is in the triage with why each
 waits.
 
+**The Guide, the trailer, co-op and the Wardens are doors in the Hold, and a
+thumb's build tabs are marks in a row, as of 2026-10-07.** Owner items 31 and
+33 of 2026-10-06, staged that day as patch scripts and applied now; two faults
+in the staged half were found by running it, which is why staging is not
+shipping.
+
+- **The Hold adopted its doors before two of them existed.** `_build_hold` ran
+  before `_build_guide_button` and `_build_trailer_button`, so the Guide and
+  the trailer stayed on the front door while the yard stood buildings for them.
+  The Hold is built after every door it adopts now, and says so where it is
+  called.
+- **Co-op was never adopted.** The staged note said co-op "already has The
+  Gate" - and the yard did stand a building called that, bound to nothing. The
+  menu adopts its button now, so the front door is the road, the first Walk,
+  the Hold, Settings and Quit, as the owner asked.
+- **The tabs are the element's mark on a thumb, one row over the list.** As a
+  column of four thumb-sized squares the rail was taller than a sideways phone
+  gives the sheet and the fourth element was scrolled off before a tower was
+  shown; side by side they are a third of the sheet's width. A tab is 104
+  square, not the 76 the staged patch asked for, because the kit's button pads
+  34 a side round a 36-unit mark and a button is never smaller than its
+  content - photographed, the "76" tab was 104 all along. `road_sheet_check`
+  holds the row at both phone shapes; the desktop rail is a column of names, as
+  before.
+
+`hold_check` (the staged `four_doors` stage, co-op included), `menu_check`,
+`menu_layout_check`, `pad_focus_check`, `mobile_fit_check`, `road_sheet_check`
+at every shape and `layout_check` are green; `hold_shot` and `phone_hud_shot`
+are the photographs. **The yard's three new buildings stand where the staged
+patch put them** (the Archive on the upper shelf, the Lookout and the Hall of
+Wardens on the eastern one): the gate walks to each and the photograph shows
+them on stone, crowded on the east side but clear.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
