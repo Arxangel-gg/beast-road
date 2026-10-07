@@ -302,6 +302,9 @@ var _slip: Vector2 = Vector2.ZERO
 ## wanders, and when it may next sidestep a swing. Its own dice, seeded from
 ## its identity, so nothing it rolls moves the run's stream.
 var _temper := RandomNumberGenerator.new()
+## The seed this body's looks are rolled from (2026-10-07): its stature and the
+## small shift in its colouring. Never the dice it fights with.
+var _look_seed: int = 0
 ## How many bodies this process has stood up, which with the run's seed is a
 ## body's identity for its dice: the same road spawns the same bodies in the
 ## same order, so the same body rolls the same nerve, cadence and second pounce.
@@ -722,6 +725,10 @@ func _ready() -> void:
 	# run's; the Arsenal learned the same lesson an hour earlier.
 	_spawn_serial += 1
 	_temper.seed = hash("enemy:%d:%d" % [RunState.run_seed, _spawn_serial])
+	# **And its looks on dice of their own**, so how a body is coloured can
+	# never move how it fights: a draw from `_temper` would shift its nerve,
+	# its cadence and its second pounce.
+	_look_seed = hash("look:%d:%d" % [RunState.run_seed, _spawn_serial])
 	_siege_share = _temper.randf_range(Balance.ENEMY_SIEGE_SHARE.x,
 		Balance.ENEMY_SIEGE_SHARE.y)
 	EventBus.hero_swing_started.connect(_on_hero_swing)
@@ -4131,6 +4138,12 @@ func _apply_category_scale() -> void:
 			reference_height = float(sprite.texture.get_height()) if sprite.texture != null else 384.0
 	if sprite.texture != null:
 		visual_scale *= reference_height / maxf(float(sprite.texture.get_height()), 1.0)
+	# **No two of a kind are one body** (owner, 2026-10-07): an ordinary body
+	# stands a little taller or shorter than its breed, inside a band too
+	# narrow to be read as a rank - an elite is a third larger. Inside the
+	# scale rather than after it, so the feet stay on the ground.
+	if wears_a_look():
+		visual_scale *= stature()
 	sprite.scale = Vector2.ONE * visual_scale
 	if health_bar != null and sprite.texture != null:
 		_depth_lift = float(sprite.texture.get_height()) * visual_scale \
@@ -4377,12 +4390,49 @@ func _wear_coat() -> void:
 		return
 	_coated = sprite.material
 	var material := sprite.material as ShaderMaterial
-	if material == null or (absf(data.coat_hue) < 0.0005 and absf(data.coat_saturation) < 0.0005
-			and absf(data.coat_light) < 0.0005):
+	if material == null:
 		return
-	material.set_shader_parameter("coat_hue", data.coat_hue)
-	material.set_shader_parameter("coat_saturation", data.coat_saturation)
-	material.set_shader_parameter("coat_light", data.coat_light)
+	# The breed's own coat, plus this body's own small shift of it (owner,
+	# 2026-10-07: "a slight procedural variation that is aesthetically
+	# appealing"). The shift is a few degrees of hue and a few points of
+	# depth and light - enough that a column is a crowd of individuals, never
+	# enough to read as a variant, a rank or a mark.
+	var shift: Vector3 = look_shift()
+	var coat := Vector3(data.coat_hue, data.coat_saturation, data.coat_light) + shift
+	if absf(coat.x) < 0.0005 and absf(coat.y) < 0.0005 and absf(coat.z) < 0.0005:
+		return
+	material.set_shader_parameter("coat_hue", coat.x)
+	material.set_shader_parameter("coat_saturation", coat.y)
+	material.set_shader_parameter("coat_light", coat.z)
+
+
+## This body's own shift of its breed's colouring: hue, depth, light. Zero
+## for a rank, which wears its own material and is told apart by it, and for
+## a puppet, whose look is the host's to decide.
+func look_shift() -> Vector3:
+	if not wears_a_look():
+		return Vector3.ZERO
+	var dice := RandomNumberGenerator.new()
+	dice.seed = _look_seed
+	return Vector3(dice.randf_range(-1.0, 1.0) * Balance.ENEMY_LOOK_HUE,
+		dice.randf_range(-1.0, 1.0) * Balance.ENEMY_LOOK_SATURATION,
+		dice.randf_range(-1.0, 1.0) * Balance.ENEMY_LOOK_LIGHT)
+
+
+## Whether this body strays from its breed's look at all: an ordinary body of
+## the road at common rank. A rank, a boss and a camp lord are told apart by
+## their own marks, and a puppet's look is the host's.
+func wears_a_look() -> bool:
+	return data != null and not puppet and rank == Rank.COMMON and data.category == EnemyData.Category.BREED
+
+
+## How much taller or shorter than its breed this body stands.
+func stature() -> float:
+	if not wears_a_look():
+		return 1.0
+	var dice := RandomNumberGenerator.new()
+	dice.seed = _look_seed + 7919
+	return 1.0 + dice.randf_range(-1.0, 1.0) * Balance.ENEMY_LOOK_STATURE
 
 
 ## The coat this body's material wears, for the gate. A parameter never set

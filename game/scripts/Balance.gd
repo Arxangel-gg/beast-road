@@ -2526,6 +2526,16 @@ const ENEMY_HEALTH_SCALE: float = 1.08
 ## their own presses. [TUNE]
 const TOWN_HALL_RETURN_SIZE: float = 220.0
 const ENEMY_MOVE_SPEED_SCALE: float = 1.06
+## **How far one body's looks may stray from its breed's** (owner, 2026-10-07:
+## "give all enemies a slight procedural variation"). Hue in turns of the wheel,
+## depth and light as shares, stature as a share of its height - each rolled on
+## the body's own look dice and never on the dice it fights with. Narrow on
+## purpose: a variant is a tenth of the wheel away and an elite a third larger,
+## and neither may be mistaken for a body that merely rolled high. [TUNE]
+const ENEMY_LOOK_HUE: float = 0.022
+const ENEMY_LOOK_SATURATION: float = 0.12
+const ENEMY_LOOK_LIGHT: float = 0.08
+const ENEMY_LOOK_STATURE: float = 0.05
 ## And a ranged body's blow a quarter lighter again: it is thrown from where the
 ## Warden cannot answer it, which is why it was named first. [TUNE]
 ##

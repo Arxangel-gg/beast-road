@@ -143,8 +143,20 @@ func _test_two_wardens_do_not_see_each_other() -> void:
 	RunState.set_phase(RunState.Phase.ENDED)
 	_be_slot(0)
 	_write_a_warden("Ardwin", 11, 111)
+	# **Achievements and progress are the slot's own** (owner, 2026-10-07). The
+	# first Warden earns some of each - an achievement, a statistic it counts,
+	# a Chronicle deed and a Codex entry - and the second must arrive with none.
+	var deed: String = (ContentDB.chronicle_objectives_sorted()[0] as ChronicleObjectiveData).id
+	MetaState.achievements = ["ardwin_was_here"]
+	MetaState.bosses_felled = 7
+	MetaState.completed_objectives = [deed]
+	MetaState.codex_seen = ["enemy:bogkin"]
+	MetaState.save_game()
 
 	_check(MetaState.use_slot(1), "the second slot could not be entered")
+	_check(MetaState.achievements.is_empty() and MetaState.stat("bosses_felled") == 0.0
+			and MetaState.completed_objectives.is_empty() and MetaState.codex_seen.is_empty(),
+		"the second Warden arrived with the first one's achievements or progress")
 	_check(MetaState.slot() == 1, "entering a slot did not change which is live")
 	_check(MetaState.player_name != "Ardwin",
 		("the second Warden arrived wearing the first one's name, so a switch "
@@ -172,6 +184,9 @@ func _test_two_wardens_do_not_see_each_other() -> void:
 	_check(MetaState.player_name == "Ardwin" and MetaState.hero_level == 11
 			and MetaState.marks == 111,
 		"going back read something other than the first Warden")
+	_check(MetaState.achievements == ["ardwin_was_here"] and MetaState.stat("bosses_felled") == 7.0
+			and MetaState.completed_objectives == [deed] and MetaState.codex_seen == ["enemy:bogkin"],
+		"going back lost the first Warden's achievements or progress")
 	# The one this project loses gear to: a container carried across rather
 	# than cleared. The pen, the stable and the pantry are three different
 	# shapes and all three go through the same reset.

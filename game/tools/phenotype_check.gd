@@ -220,6 +220,7 @@ func _test_two_of_a_kind_wear_different_coats() -> void:
 			("%d animals wear %d different coats - the serial is not reaching "
 				+ "the seed") % [seen, coats.size()])
 	_test_a_variant_wears_its_coat(field)
+	_test_a_crowd_is_individuals(field)
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
@@ -257,18 +258,65 @@ func _test_a_variant_wears_its_coat(field: Battlefield) -> void:
 		return
 	body._update_blood(0.0)
 	var worn: Vector3 = body.coat_worn()
-	_check(is_equal_approx(worn.x, variant.coat_hue) and is_equal_approx(worn.y, variant.coat_saturation)
-			and is_equal_approx(worn.z, variant.coat_light),
-		"%s wears %s, authored %s" % [variant.id, worn,
-			Vector3(variant.coat_hue, variant.coat_saturation, variant.coat_light)])
+	# Authored coat plus the body's own small shift (2026-10-07) - amended from
+	# "exactly the authored coat" when every ordinary body began to stray a
+	# little from its breed.
+	var wanted: Vector3 = Vector3(variant.coat_hue, variant.coat_saturation, variant.coat_light) + body.look_shift()
+	_check(worn.distance_to(wanted) < 0.0005,
+		"%s wears %s, authored plus its own shift %s" % [variant.id, worn, wanted])
 	if plain != null:
 		plain._update_blood(0.0)
-		_check(plain.coat_worn().length() < 0.001, "%s, the parent, must wear its painting" % parent.id)
+		_check(plain.coat_worn().distance_to(plain.look_shift()) < 0.0005,
+			"%s, the parent, must wear its painting and its own shift" % parent.id)
 		plain.queue_free()
 	body.queue_free()
 	var shader: String = FileAccess.get_file_as_string("res://scripts/shaders/blood_stain.gdshader")
 	_check(shader.contains("uniform float coat_hue") and shader.contains("coat.x = fract(coat.x + coat_hue)"),
 		"the stain shader must turn a variant's coat")
+
+
+## **No two of a kind are one body** (owner, 2026-10-07): every ordinary body
+## strays a little from its breed in hue, depth, light and stature, inside
+## bands narrow enough never to be read as a variant or a rank - and a boss,
+## which is told apart by its own marks, strays not at all. Read off bodies the
+## real field stood up, and off the material they actually wear.
+func _test_a_crowd_is_individuals(field: Battlefield) -> void:
+	var breed: EnemyData = ContentDB.enemy("bogkin")
+	var shifts: Dictionary = {}
+	var statures: Array[float] = []
+	for index: int in 12:
+		var body: Enemy = field.spawn_enemy(breed, 0, 1.0)
+		if body == null:
+			continue
+		body._update_blood(0.0)
+		var shift: Vector3 = body.look_shift()
+		shifts["%.4f,%.4f,%.4f" % [shift.x, shift.y, shift.z]] = true
+		_check(absf(shift.x) <= Balance.ENEMY_LOOK_HUE + 0.0001 and absf(shift.y) <= Balance.ENEMY_LOOK_SATURATION + 0.0001
+				and absf(shift.z) <= Balance.ENEMY_LOOK_LIGHT + 0.0001,
+			"a %s strayed %s, past the look's bands" % [breed.id, shift])
+		_check(body.coat_worn().distance_to(shift) < 0.0005,
+			"a %s's material wears %s, not its shift %s" % [breed.id, body.coat_worn(), shift])
+		statures.append(body.stature())
+		_check(absf(body.stature() - 1.0) <= Balance.ENEMY_LOOK_STATURE + 0.0001,
+			"a %s stands %.3f of its breed, past the band" % [breed.id, body.stature()])
+		body.queue_free()
+	_check(shifts.size() >= 10, "twelve %s wore only %d different looks" % [breed.id, shifts.size()])
+	var spread: float = 0.0
+	for value: float in statures:
+		spread = maxf(spread, absf(value - 1.0))
+	_check(spread > Balance.ENEMY_LOOK_STATURE * 0.3, "twelve bodies all stood the same height")
+	var boss: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var data := value as EnemyData
+		if data != null and data.category == EnemyData.Category.BOSS:
+			boss = data
+			break
+	if boss != null:
+		var big: Enemy = field.spawn_enemy(boss, 0, 1.0)
+		if big != null:
+			_check(big.look_shift() == Vector3.ZERO and is_equal_approx(big.stature(), 1.0),
+				"a boss strays from its own look")
+			big.queue_free()
 
 
 func _test_the_split_moved_no_coat() -> void:
