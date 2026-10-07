@@ -121,7 +121,8 @@ func _build_skip() -> void:
 	_skip.focus_mode = Control.FOCUS_ALL
 	_skip.tooltip_text = "Escape, Enter or Space, or a pad's A, B or Start"
 	# A thumb's size on a touch layout, a button's otherwise.
-	_skip.custom_minimum_size = Vector2(176.0, 92.0) if TouchInput.is_showing() 		else Vector2(150.0, 52.0)
+	_skip.custom_minimum_size = Vector2(176.0, 92.0) if TouchInput.is_showing() \
+		else Vector2(150.0, 52.0)
 	_skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	_skip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_skip.grow_vertical = Control.GROW_DIRECTION_BEGIN

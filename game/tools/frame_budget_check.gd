@@ -480,7 +480,8 @@ func _test_nothing_is_made_where_nobody_looks() -> void:
 func _test_a_blow_rebuilds_nothing() -> void:
 	for path: String in ["res://scenes/hero/hero.gd", "res://scenes/battlefield/town_core.gd"]:
 		var source: String = FileAccess.get_file_as_string(path)
-		var at: int = source.find("func _on_health_changed") if path.contains("hero") 			else source.find("func _on_changed")
+		var at: int = source.find("func _on_health_changed") if path.contains("hero") \
+			else source.find("func _on_changed")
 		var end: int = source.find("\nfunc ", at + 5)
 		var body: String = source.substr(at, (end - at) if end > at else 1200)
 		_check(at >= 0 and not body.contains("Modifiers.rebuild()") and body.contains("refresh_conditions"),

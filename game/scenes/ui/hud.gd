@@ -993,7 +993,8 @@ func _process_measured(delta: float) -> void:
 		_message_age += delta
 		# In over a beat and out over a longer one, so a line arrives and
 		# leaves rather than blinking on and off (2026-09-30).
-		_message.modulate.a = clampf(_message_age / MESSAGE_FADE_IN, 0.0, 1.0) 			* clampf(_message_left / MESSAGE_FADE_OUT, 0.0, 1.0)
+		_message.modulate.a = clampf(_message_age / MESSAGE_FADE_IN, 0.0, 1.0) \
+			* clampf(_message_left / MESSAGE_FADE_OUT, 0.0, 1.0)
 		if _message_left <= 0.0:
 			_message.text = ""
 			_message.modulate.a = 1.0

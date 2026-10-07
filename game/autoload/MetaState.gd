@@ -1840,7 +1840,8 @@ func gear_attribute_points() -> Array[int]:
 	# the same worn map over the same stash is the same answer without asking.
 	var frame: int = Engine.get_process_frames() * 1000003 + Engine.get_physics_frames()
 	var worn_map: int = equipped.hash()
-	if frame == _worn_frame and worn_map == _worn_map and stash.size() == _worn_stash 			and _worn_points.size() == RunState.ATTRIBUTE_NAMES.size():
+	if frame == _worn_frame and worn_map == _worn_map and stash.size() == _worn_stash \
+			and _worn_points.size() == RunState.ATTRIBUTE_NAMES.size():
 		return _worn_points.duplicate()
 	_worn_frame = frame
 	_worn_map = worn_map

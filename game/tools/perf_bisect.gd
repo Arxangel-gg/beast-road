@@ -157,7 +157,8 @@ func _boot() -> void:
 	# empty road falling from 33 ms to 7 as the last of the blood settled - a
 	# frame nobody plays. Wait for the next wave to walk on, up to a minute.
 	var patience: int = Time.get_ticks_msec() + 60000
-	while not _idle and get_tree().get_nodes_in_group("enemies").size() < HOLD_AT_LEAST 			and Time.get_ticks_msec() < patience:
+	while not _idle and get_tree().get_nodes_in_group("enemies").size() < HOLD_AT_LEAST \
+			and Time.get_ticks_msec() < patience:
 		await get_tree().process_frame
 	print("[bisect] settled %.0fs in: %d enemies on the field" % [_settle_seconds,
 		get_tree().get_nodes_in_group("enemies").size()])

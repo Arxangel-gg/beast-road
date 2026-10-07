@@ -102,7 +102,8 @@ func _ready() -> void:
 	# health alone, struck once on the right shoulder by a hard blow, and struck
 	# three times low on the left by light ones.
 	Vfx.clear()
-	var art: Texture2D = load("res://art/enemies/enemy_marcher.png") as Texture2D 		if ResourceLoader.exists("res://art/enemies/enemy_marcher.png") else null
+	var art: Texture2D = load("res://art/enemies/enemy_marcher.png") as Texture2D \
+		if ResourceLoader.exists("res://art/enemies/enemy_marcher.png") else null
 	if art == null:
 		for value: Variant in ContentDB.enemies.values():
 			var breed := value as EnemyData

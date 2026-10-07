@@ -380,7 +380,8 @@ func _test_a_boss_makes_one_entrance(field: Battlefield, hero: Hero, boss: Enemy
 		if is_equal_approx(weight, Balance.BOSS_ENTRANCE_IMPACT):
 			entrances[0] += 1
 	EventBus.camera_impact.connect(ear)
-	var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) 		.instantiate() as Enemy
+	var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) \
+		.instantiate() as Enemy
 	enemy.setup(boss, RunState.act, field, 1.0, 1.0, 1.0)
 	field.add_child(enemy)
 	enemy.global_position = hero.global_position + Vector2.LEFT * 900.0

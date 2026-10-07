@@ -255,7 +255,8 @@ func _open_and_measure(screen: Node, name: String, shape: Vector2i,
 	# line anywhere is.
 	for node: Node in _all(screen):
 		var label := node as Label
-		if label == null or not label.is_visible_in_tree() 				or label.text.strip_edges().is_empty():
+		if label == null or not label.is_visible_in_tree() \
+				or label.text.strip_edges().is_empty():
 			continue
 		var line: float = float(label.get_line_height())
 		_check(label.size.y + 1.0 >= line,

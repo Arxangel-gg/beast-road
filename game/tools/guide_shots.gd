@@ -1927,7 +1927,8 @@ func _raise_a_herald() -> Vector2:
 	if terrain != null:
 		for id: String in terrain.enemy_ids:
 			var candidate: EnemyData = ContentDB.enemy(id)
-			if candidate != null and not candidate.targets_towers 					and candidate.category == EnemyData.Category.BREED:
+			if candidate != null and not candidate.targets_towers \
+					and candidate.category == EnemyData.Category.BREED:
 				breed = candidate
 				break
 	var route: PackedVector2Array = field.lane_path(1)

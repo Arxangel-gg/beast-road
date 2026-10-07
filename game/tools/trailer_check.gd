@@ -212,7 +212,9 @@ func _test_every_way_out() -> void:
 			var control := node as Control
 			if control == skip or control.is_ancestor_of(skip) or skip.is_ancestor_of(control):
 				continue
-			if control.get_index() > skip.get_index() and control.get_parent() == skip.get_parent() 					and control.mouse_filter != Control.MOUSE_FILTER_IGNORE 					and control.get_global_rect().intersects(rect):
+			if control.get_index() > skip.get_index() and control.get_parent() == skip.get_parent() \
+					and control.mouse_filter != Control.MOUSE_FILTER_IGNORE \
+					and control.get_global_rect().intersects(rect):
 				above.append(String(control.name))
 		_check(above.is_empty(), "%s lies over the Skip button and takes its clicks" % ", ".join(above))
 		skip.pressed.emit()

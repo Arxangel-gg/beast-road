@@ -281,7 +281,8 @@ func _ready() -> void:
 			var path: String = CursorKit.path_for(role, size)
 			var art: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
 			var hot: Vector2 = CursorKit.hotspot(entry, size)
-			if art == null or art.get_width() != size or hot.x < 0.0 or hot.y < 0.0 					or hot.x >= float(size) or hot.y >= float(size):
+			if art == null or art.get_width() != size or hot.x < 0.0 or hot.y < 0.0 \
+					or hot.x >= float(size) or hot.y >= float(size):
 				push_error("the %s cursor at %d is missing, the wrong size, or points outside itself" % [role, size])
 				get_tree().quit(1)
 				return
@@ -291,12 +292,14 @@ func _ready() -> void:
 			push_error("no cursor shape shows %s" % needed)
 			get_tree().quit(1)
 			return
-	if CursorKit.size_for_screen(768) != 32 or CursorKit.size_for_screen(1080) != 48 			or CursorKit.size_for_screen(1440) != 48 or CursorKit.size_for_screen(2160) != 64:
+	if CursorKit.size_for_screen(768) != 32 or CursorKit.size_for_screen(1080) != 48 \
+			or CursorKit.size_for_screen(1440) != 48 or CursorKit.size_for_screen(2160) != 64:
 		push_error("the cursor size does not follow the screen")
 		get_tree().quit(1)
 		return
 	var hud_source: String = FileAccess.get_file_as_string("res://scenes/ui/hud.gd")
-	if hud_source.contains("Control.CURSOR_CAN_DROP") or hud_source.contains("Input.CURSOR_CAN_DROP") 			or hud_source.contains("Input.CURSOR_DRAG"):
+	if hud_source.contains("Control.CURSOR_CAN_DROP") or hud_source.contains("Input.CURSOR_CAN_DROP") \
+			or hud_source.contains("Input.CURSOR_DRAG"):
 		push_error("the HUD still asks for a drag shape to mean building or a service")
 		get_tree().quit(1)
 		return
