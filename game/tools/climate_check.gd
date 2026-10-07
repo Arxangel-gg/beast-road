@@ -269,9 +269,17 @@ func _test_the_fire_reads_the_ground() -> void:
 	# lit by hand, it burns alone and goes out.
 	_climate.reset(1.0)
 	_check(not fire.ignite_near(seed_at, 20.0, 1.0), "a plant on ground soaked to a flood caught fire")
-	_climate.reset((Balance.CLIMATE_WET_BANDS[1] + Balance.CLIMATE_WET_BANDS[2]) * 0.5)
+	var soaked: float = (Balance.CLIMATE_WET_BANDS[1] + Balance.CLIMATE_WET_BANDS[2]) * 0.5
+	_climate.reset(soaked)
 	_check(fire.ignite_near(seed_at, 20.0, 1.0), "a plant on wet ground refused to be lit by hand")
+	# **The ground is held wet for the whole burn.** A fire dries the ground it
+	# burns on, and over the ten seconds a soaked plant burns it dried its own
+	# patch to 0.05-0.14 dryness by the seed's weather - a nonzero spread
+	# chance, so this failed v0.74.1's release on one seed in several. What it
+	# guards is that wet ground does not carry a fire; ground that has dried is
+	# no longer wet, and that half is the game working.
 	for _i: int in 40:
+		_climate.reset(soaked)
 		fire._process(0.5)
 	_check(fire.lit_count == 1, "a fire on wet ground spread to %d plants" % fire.lit_count)
 	fire.call("_clear")
