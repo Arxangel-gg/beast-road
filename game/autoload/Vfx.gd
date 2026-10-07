@@ -48,6 +48,14 @@ var _blood_rng := RandomNumberGenerator.new()
 var _screen: CanvasLayer
 var _flash: ColorRect
 var _vignette: ColorRect
+## **The edge of death, heard** (`NEAR_DEATH_*`): where the local Warden's health
+## wants the world's sound (`_near_target`), where it has eased to
+## (`_near_share`), the clock to the next heartbeat, and how many have played -
+## the last for the gate, which cannot hear them.
+var _near_target: float = 0.0
+var _near_share: float = 0.0
+var _beat_left: float = 0.0
+var heartbeats: int = 0
 var _flash_left: float = 0.0
 var _flash_total: float = 0.0
 var _flash_peak: float = 0.0
@@ -285,6 +293,7 @@ func _process(delta: float) -> void:
 	if _flame_sweep_left <= 0.0:
 		_flame_sweep_left = Balance.PARTICLE_CULL_INTERVAL
 		Flame.wake_the_seen()
+	_tick_near_death(delta)
 	if _town_cooldown > 0.0:
 		_town_cooldown = maxf(_town_cooldown - delta, 0.0)
 		if _town_cooldown <= 0.0 and _town_pending > 0.0:
@@ -493,6 +502,35 @@ func clear_vignette() -> void:
 	var material: ShaderMaterial = _vignette.material as ShaderMaterial
 	if material != null:
 		material.set_shader_parameter("strength", 0.0)
+	# The heart and the muffle go with the red edge, at once rather than eased:
+	# a run that has ended has nothing left to fade out of.
+	_near_target = 0.0
+	_near_share = 0.0
+	_beat_left = 0.0
+	AudioBuses.set_near_death(0.0)
+
+
+## How near death the world sounds, 0 to 1, as eased. For the gate.
+func near_death_share() -> float:
+	return _near_share
+
+
+## Eases the world's sound toward what the Warden's health wants, and beats the
+## heart on a clock that quickens as the share rises. Nothing reads either.
+func _tick_near_death(delta: float) -> void:
+	if _near_share == _near_target and _near_target <= 0.0:
+		return
+	_near_share = move_toward(_near_share, _near_target, delta * Balance.NEAR_DEATH_EASE)
+	AudioBuses.set_near_death(_near_share)
+	if _near_target <= 0.0:
+		_beat_left = 0.0
+		return
+	_beat_left -= delta
+	if _beat_left > 0.0:
+		return
+	_beat_left = lerpf(Balance.NEAR_DEATH_BEAT_SLOW, Balance.NEAR_DEATH_BEAT_FAST, _near_target)
+	heartbeats += 1
+	Sfx.play_group("sfx_heartbeat", lerpf(Balance.NEAR_DEATH_BEAT_QUIET_DB, 0.0, _near_target))
 
 
 ## How red the screen edge is, from 0 to `VFX_VIGNETTE_MAX`. For the gate, which
@@ -2225,6 +2263,10 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	var material: ShaderMaterial = _vignette.material as ShaderMaterial
 	if material != null:
 		material.set_shader_parameter("strength", danger * Balance.VFX_VIGNETTE_MAX)
+	# Under a fifth the world closes over and the heart comes up. **Nothing at
+	# none**: a Warden who is down has no heartbeat to hear, and a party waiting
+	# on a revive should hear the road it is waiting on.
+	_near_target = 0.0 if current <= 0.0 else clampf(1.0 - ratio / Balance.NEAR_DEATH_FROM, 0.0, 1.0)
 
 
 # --- Kill momentum -----------------------------------------------------------

@@ -1247,6 +1247,9 @@ const SOUNDS: Dictionary = {
 	"sfx_telegraph_rise_1": "res://audio/sfx/sfx_telegraph_rise_1.ogg",
 	"sfx_telegraph_rise_2": "res://audio/sfx/sfx_telegraph_rise_2.ogg",
 	"sfx_telegraph_rise_3": "res://audio/sfx/sfx_telegraph_rise_3.ogg",
+	"sfx_heartbeat_1": "res://audio/sfx/sfx_heartbeat_1.ogg",
+	"sfx_heartbeat_2": "res://audio/sfx/sfx_heartbeat_2.ogg",
+	"sfx_heartbeat_3": "res://audio/sfx/sfx_heartbeat_3.ogg",
 	"sfx_drown_f_1": "res://audio/sfx/sfx_drown_f_1.ogg",
 	"sfx_drown_f_2": "res://audio/sfx/sfx_drown_f_2.ogg",
 	"sfx_drown_f_3": "res://audio/sfx/sfx_drown_f_3.ogg",
@@ -1580,6 +1583,9 @@ const MIX: Dictionary = {
 	# The anticipation (2026-09-30): no drift, because the riser is timed to end
 	# on the blow and a drift would end it early or late.
 	"sfx_telegraph_rise":       {"db": -11.0, "pitch": 0.0, "limit": 2, "gap": 0.12},
+	# Near death (`Vfx`): one beat at a time, never crowded, a little drift so a
+	# run of them is a pulse rather than a loop.
+	"sfx_heartbeat":            {"db": -7.0, "pitch": 0.03, "limit": 1, "gap": 0.25},
 	"sfx_fish_miss":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
 	"sfx_camp_razed":           {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
 	"sfx_fork_open":            {"db": -5.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
@@ -1779,6 +1785,7 @@ const GROUPS: Dictionary = {
 	"sfx_fish_miss": ["sfx_fish_miss_1", "sfx_fish_miss_2", "sfx_fish_miss_3", "sfx_fish_miss_4", "sfx_fish_miss_5", "sfx_fish_miss_6", "sfx_fish_miss_7", "sfx_fish_miss_8"],
 	"sfx_wildlife_hurt_large_beast": ["sfx_wildlife_hurt_large_beast_1", "sfx_wildlife_hurt_large_beast_2", "sfx_wildlife_hurt_large_beast_3", "sfx_wildlife_hurt_large_beast_4", "sfx_wildlife_hurt_large_beast_5", "sfx_wildlife_hurt_large_beast_6", "sfx_wildlife_hurt_large_beast_7", "sfx_wildlife_hurt_large_beast_8", "sfx_wildlife_hurt_large_beast_9", "sfx_wildlife_hurt_large_beast_10", "sfx_wildlife_hurt_large_beast_11", "sfx_wildlife_hurt_large_beast_12", "sfx_wildlife_hurt_large_beast_13", "sfx_wildlife_hurt_large_beast_14", "sfx_wildlife_hurt_large_beast_15"],
 	"sfx_telegraph_rise": ["sfx_telegraph_rise_1", "sfx_telegraph_rise_2", "sfx_telegraph_rise_3"],
+	"sfx_heartbeat": ["sfx_heartbeat_1", "sfx_heartbeat_2", "sfx_heartbeat_3"],
 	"sfx_drown_f": ["sfx_drown_f_1", "sfx_drown_f_2", "sfx_drown_f_3", "sfx_drown_f_4", "sfx_drown_f_5", "sfx_drown_f_6", "sfx_drown_f_7", "sfx_drown_f_8", "sfx_drown_f_9", "sfx_drown_f_10", "sfx_drown_f_11", "sfx_drown_f_12"],
 	"sfx_hero_death_f": ["sfx_hero_death_f_1", "sfx_hero_death_f_2", "sfx_hero_death_f_3", "sfx_hero_death_f_4", "sfx_hero_death_f_5", "sfx_hero_death_f_6", "sfx_hero_death_f_7", "sfx_hero_death_f_8", "sfx_hero_death_f_9", "sfx_hero_death_f_10", "sfx_hero_death_f_11", "sfx_hero_death_f_12", "sfx_hero_death_f_13", "sfx_hero_death_f_14", "sfx_hero_death_f_15", "sfx_hero_death_f_16", "sfx_hero_death_f_17", "sfx_hero_death_f_18", "sfx_hero_death_f_19", "sfx_hero_death_f_20"],
 	"sfx_hero_hurt_f": ["sfx_hero_hurt_f_1", "sfx_hero_hurt_f_2", "sfx_hero_hurt_f_3", "sfx_hero_hurt_f_4", "sfx_hero_hurt_f_5", "sfx_hero_hurt_f_6", "sfx_hero_hurt_f_7", "sfx_hero_hurt_f_8", "sfx_hero_hurt_f_9", "sfx_hero_hurt_f_10", "sfx_hero_hurt_f_11", "sfx_hero_hurt_f_12", "sfx_hero_hurt_f_13", "sfx_hero_hurt_f_14", "sfx_hero_hurt_f_15", "sfx_hero_hurt_f_16", "sfx_hero_hurt_f_17", "sfx_hero_hurt_f_18", "sfx_hero_hurt_f_19", "sfx_hero_hurt_f_20", "sfx_hero_hurt_f_21", "sfx_hero_hurt_f_22", "sfx_hero_hurt_f_23", "sfx_hero_hurt_f_24"],

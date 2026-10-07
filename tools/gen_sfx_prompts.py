@@ -14,7 +14,8 @@ import io
 import os
 import re
 
-ROOT = "E:/Arxangel/GameDev/BeastRoad/"
+# The checkout this file lives in, so a worktree regenerates its own docs.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace("\\", "/") + "/"
 OUT = ROOT + "docs/SFX_PROMPTS.md"
 MANIFEST = ROOT + "game/audio/AUDIO_MANIFEST.md"
 
@@ -1036,6 +1037,11 @@ ROWS = [
      "a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing"),
     ("sfx_raid_extract", "sfx", "sfx", "1.0s", "ElevenLabs",
      "extracting from a raid: a rush of wind through a gap, a rising note, then quiet"),
+    # ---------------- warnings and the edge of death (2026-09-30, 2026-10-07) ----------------
+    ("sfx_telegraph_rise", "sfx", "sfx", "0.72s", "ElevenLabs",
+     "a short swelling riser that ends on a hit point: a breathy rush of air and a rising low tone that grows over three quarters of a second and stops dead, no impact, no music - keep it exactly 0.72s, the length is the timing - record 3 takes, saved as _1.._3; they rotate"),
+    ("sfx_heartbeat", "sfx", "sfx", "0.46s", "ElevenLabs",
+     "one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
 ]
 
 WILDLIFE_IDS = {row[0] for row in ROWS if row[0].startswith("sfx_wildlife_")}
@@ -1060,6 +1066,8 @@ PLACEHOLDER_IDS = {
     "sfx_raid_window", "sfx_chieftain_roar", "sfx_raid_extract",
     # 2026-10-01
     "sfx_fire_douse",
+    # 2026-10-07: the riser was synthesised on 2026-09-30 and never listed here
+    "sfx_telegraph_rise", "sfx_heartbeat",
 }
 
 

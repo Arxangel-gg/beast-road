@@ -12,24 +12,24 @@ and nothing fails a build: this list is the only way to find them.
 
 | Sound | First asked for at |
 |---|---|
-| `sfx_boss` | `game/scripts/Balance.gd:2581` |
-| `sfx_chieftain` | `game/scripts/Balance.gd:2582` |
-| `sfx_companion` | `game/scripts/Balance.gd:2583` |
-| `sfx_dragon` | `game/scripts/Balance.gd:2581` |
-| `sfx_enemy_call` | `game/scripts/Balance.gd:2582` |
-| `sfx_fish` | `game/scripts/Balance.gd:2584` |
-| `sfx_footstep` | `game/scripts/Balance.gd:2584` |
-| `sfx_hit` | `game/scripts/Balance.gd:2583` |
-| `sfx_loot` | `game/scripts/Balance.gd:2584` |
-| `sfx_meteor` | `game/scripts/Balance.gd:2580` |
-| `sfx_never_listed` | `game/tools/feel_check.gd:140` |
-| `sfx_pen` | `game/scripts/Balance.gd:2584` |
-| `sfx_spell` | `game/scripts/Balance.gd:2583` |
-| `sfx_swim` | `game/scripts/Balance.gd:2585` |
-| `sfx_thunder` | `game/scripts/Balance.gd:2580` |
-| `sfx_ui` | `game/scripts/Balance.gd:2585` |
-| `sfx_water` | `game/scripts/Balance.gd:2585` |
-| `sfx_wildlife` | `game/scripts/Balance.gd:2582` |
+| `sfx_boss` | `game/scripts/Balance.gd:2880` |
+| `sfx_chieftain` | `game/scripts/Balance.gd:2881` |
+| `sfx_companion` | `game/scripts/Balance.gd:2882` |
+| `sfx_dragon` | `game/scripts/Balance.gd:2880` |
+| `sfx_enemy_call` | `game/scripts/Balance.gd:2881` |
+| `sfx_fish` | `game/scripts/Balance.gd:2883` |
+| `sfx_footstep` | `game/scripts/Balance.gd:2883` |
+| `sfx_hit` | `game/scripts/Balance.gd:2882` |
+| `sfx_loot` | `game/scripts/Balance.gd:2883` |
+| `sfx_meteor` | `game/scripts/Balance.gd:2879` |
+| `sfx_never_listed` | `game/tools/feel_check.gd:141` |
+| `sfx_pen` | `game/scripts/Balance.gd:2883` |
+| `sfx_spell` | `game/scripts/Balance.gd:2882` |
+| `sfx_swim` | `game/scripts/Balance.gd:2884` |
+| `sfx_thunder` | `game/scripts/Balance.gd:2879` |
+| `sfx_ui` | `game/scripts/Balance.gd:2884` |
+| `sfx_water` | `game/scripts/Balance.gd:2884` |
+| `sfx_wildlife` | `game/scripts/Balance.gd:2881` |
 
 Add a row for each in `tools/gen_sfx_prompts.py` and re-run it, or
 record them now and drop them in `audio_inbox/`.
@@ -50,7 +50,7 @@ code change. Record these before the general backlog.
 ---
 
 
-## STILL TO RECORD (135)
+## STILL TO RECORD (137)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -194,16 +194,18 @@ missing stream - so none of these block a build.
 | `sfx_raid_window.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | an extraction window opening: a war horn's two-note call answered by a second horn, urgent |
 | `sfx_chieftain_roar.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.2s | ElevenLabs | a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing |
 | `sfx_raid_extract.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | extracting from a raid: a rush of wind through a gap, a rising note, then quiet |
+| `sfx_telegraph_rise.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.72s | ElevenLabs | a short swelling riser that ends on a hit point: a breathy rush of air and a rising low tone that grows over three quarters of a second and stops dead, no impact, no music - keep it exactly 0.72s, the length is the timing - record 3 takes, saved as _1.._3; they rotate |
+| `sfx_heartbeat.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.46s | ElevenLabs | one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate |
 
 ---
 
-## PROMPTED BUT NEVER PLAYED (156)
+## PROMPTED BUT NEVER PLAYED (157)
 
 Prompts for sounds nothing in the game names by literal. Not a fault - a
 few are chosen from data rather than written into code - but worth a
 glance before recording one, in case it is for something that was cut.
 
-`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_wildlife_saltpan_monitor`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
+`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_heartbeat`, `sfx_wildlife_saltpan_monitor`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
 
 ---
 
@@ -1492,7 +1494,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 169 files
+## Sound effects - 171 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -2846,6 +2848,22 @@ a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing.
 
 ```text
 extracting from a raid: a rush of wind through a gap, a rising note, then quiet.
+```
+
+### `sfx_telegraph_rise`
+
+`game/audio/sfx/sfx_telegraph_rise.ogg`  -  target length **0.72s**  -  suggested tool: **ElevenLabs**
+
+```text
+a short swelling riser that ends on a hit point: a breathy rush of air and a rising low tone that grows over three quarters of a second and stops dead, no impact, no music - keep it exactly 0.72s, the length is the timing - record 3 takes, saved as _1.._3; they rotate.
+```
+
+### `sfx_heartbeat`
+
+`game/audio/sfx/sfx_heartbeat.ogg`  -  target length **0.46s**  -  suggested tool: **ElevenLabs**
+
+```text
+one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate.
 ```
 
 ---

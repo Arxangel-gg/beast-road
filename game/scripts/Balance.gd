@@ -7650,6 +7650,23 @@ const MOMENTUM_SHAKE: float = 3.2
 const VFX_VIGNETTE_THRESHOLD: float = 0.5
 const VFX_VIGNETTE_MAX: float = 0.85
 
+## **The edge of death is heard as well as seen** (triage of 2026-10-07): under
+## `NEAR_DEATH_FROM` of the Warden's health the world's sound closes over - the
+## placed sounds, the ambience and the weather, through a low-pass down to
+## `NEAR_DEATH_CUTOFF_HZ` at nothing left - and a heartbeat comes up under it,
+## from one every `NEAR_DEATH_BEAT_SLOW` seconds at the line to one every
+## `NEAR_DEATH_BEAT_FAST` near the end. Flat sounds stay clear: the interface,
+## the telegraphs, the wall and the heart. Eased in over `NEAR_DEATH_EASE` a
+## second so a single blow does not snap the room shut. A look and a sound,
+## never a number. [TUNE]
+const NEAR_DEATH_FROM: float = 0.2
+const NEAR_DEATH_CUTOFF_HZ: float = 1100.0
+const NEAR_DEATH_EASE: float = 2.5
+const NEAR_DEATH_BEAT_SLOW: float = 1.05
+const NEAR_DEATH_BEAT_FAST: float = 0.52
+## How much quieter the heart is at the line than near the end, in decibels.
+const NEAR_DEATH_BEAT_QUIET_DB: float = -6.0
+
 ## Level the ambience bed settles at, in decibels. It is meant to be noticed
 ## only when it stops. [TUNE]
 const AMBIENCE_DB: float = -20.0

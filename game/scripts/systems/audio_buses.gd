@@ -56,6 +56,13 @@ static var _calm_effect: int = -1
 ## itself stalled the fade at a high frame rate, where every step is small.
 static var _calm_applied: float = -1.0
 
+## How near death the local Warden is, 0 (not) to 1 (nothing left): a low-pass
+## closing over the world's buses (`set_near_death`). The filter each bus wears,
+## by bus name, so it is found again whatever else that bus carries.
+static var _near: float = 0.0
+static var _near_applied: float = -1.0
+static var _near_filters: Dictionary = {}
+
 
 ## Lets the room back in, or takes it away. 1 is the game as mixed.
 static func set_hush(share: float) -> void:
@@ -98,6 +105,74 @@ static func calm_share() -> float:
 	return _calm
 
 
+## **Closes the world's sound over a Warden near death** (0 open, 1 shut to
+## `NEAR_DEATH_CUTOFF_HZ`). On the placed sounds, the ambience and the weather -
+## never the SFX bus itself, so what is played flat stays clear: the interface,
+## a telegraph's warning, the wall being struck, and the heart. Off entirely at
+## 0, so the game as mixed is the game as mixed.
+static func set_near_death(share: float) -> void:
+	_near = clampf(share, 0.0, 1.0)
+	var ends: bool = _near <= 0.0 or _near >= 1.0
+	if _near_applied >= 0.0 and (is_equal_approx(_near, _near_applied)
+			or (absf(_near - _near_applied) < 0.01 and not ends)):
+		return
+	_near_applied = _near
+	ensure()
+	var on: bool = _near > 0.002
+	var cutoff: float = exp(lerpf(log(20000.0), log(Balance.NEAR_DEATH_CUTOFF_HZ), _near))
+	for name: String in near_death_buses():
+		var bus: int = AudioServer.get_bus_index(name)
+		if bus < 0:
+			continue
+		var index: int = _near_filter_index(bus, name, on)
+		if index < 0:
+			continue
+		(AudioServer.get_bus_effect(bus, index) as AudioEffectLowPassFilter).cutoff_hz = cutoff
+		AudioServer.set_bus_effect_enabled(bus, index, on)
+
+
+static func near_death_share() -> float:
+	return _near
+
+
+## The buses the edge of death closes over: every placement bus, the ambience
+## and the weather.
+static func near_death_buses() -> PackedStringArray:
+	var out := PackedStringArray([AMBIENCE, WEATHER])
+	for muffled: bool in [false, true]:
+		for step: int in PAN_STEPS:
+			out.append(placement_name(step, muffled))
+	return out
+
+
+## Whether a bus is closed over and how far: `{on, cutoff}`. For the gate.
+static func near_death_state(name: String) -> Dictionary:
+	var bus: int = AudioServer.get_bus_index(name)
+	var filter := _near_filters.get(name, null) as AudioEffectLowPassFilter
+	if bus < 0 or filter == null:
+		return {"on": false, "cutoff": 20000.0}
+	for index: int in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, index) == filter:
+			return {"on": AudioServer.is_bus_effect_enabled(bus, index), "cutoff": filter.cutoff_hz}
+	return {"on": false, "cutoff": 20000.0}
+
+
+## Where this bus's near-death filter sits, putting one there if it is wanted
+## and missing - but never adding one only to switch it off.
+static func _near_filter_index(bus: int, name: String, wanted: bool) -> int:
+	var filter := _near_filters.get(name, null) as AudioEffectLowPassFilter
+	if filter != null:
+		for index: int in AudioServer.get_bus_effect_count(bus):
+			if AudioServer.get_bus_effect(bus, index) == filter:
+				return index
+	if not wanted:
+		return -1
+	filter = AudioEffectLowPassFilter.new()
+	AudioServer.add_bus_effect(bus, filter)
+	_near_filters[name] = filter
+	return AudioServer.get_bus_effect_count(bus) - 1
+
+
 static func ensure() -> void:
 	if AudioServer.get_bus_index(WEATHER) >= 0:
 		return
@@ -135,6 +210,9 @@ static func ensure_placement() -> void:
 				through.cutoff_hz = Balance.SFX_OCCLUDED_CUTOFF_HZ
 				AudioServer.add_bus_effect(index, through)
 	_placed = true
+	# A bus built after the edge of death closed in has not been closed over;
+	# the next call reapplies to every bus whatever it was told last.
+	_near_applied = -1.0
 
 
 static func placement_name(step: int, muffled: bool) -> String:
