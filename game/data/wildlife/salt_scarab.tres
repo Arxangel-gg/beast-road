@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+scavenges = true
+body = 5
+id = "salt_scarab"
+display_name = "Salt Scarab"
+description = "It rolls the dead into the salt, and the salt keeps them."
+rarity = 0
+temperament = 0
+movement_style = 4
+acts = Array[int]([6])
+weight = 0.6
+local_only = true
+group_min = 1
+group_max = 3
+social_spacing = 70.0
+group_cohesion = 0.25
+activity = 0.6
+speed = 60.0
+roam = 200.0
+skittish_radius = 220.0
+flee_speed_scale = 2.4
+flies = false
+scale = 1.0
+max_hp = 32.2
+food_min = 0
+food_max = 1
+xp_reward = 3
+art_faces_right = true
+stay_min = 30.0
+stay_max = 90.0

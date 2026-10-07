@@ -14643,6 +14643,41 @@ anywhere, run every gate that greps for it:
 
     grep -ln "take_damage(" game/tools/*_check.gd | xargs grep -l get_file_as_string
 
+**Every region has its insects, as of 2026-10-07.** The owner: *"a wide
+variety of insect species for each act's environments as part of wildlife,
+mostly hostile ones. Some that fly. Some that swarm."* Twenty-two, a crawler and
+a flyer for every region and the Crown: seventeen hostile and five harmless,
+eleven that crawl, four that fly alone and seven that swarm. All of it is data
+- `WildlifeData` files on the systems wildlife already has - and the art.
+
+**A swarm is one animal painted as a cloud.** Seven of the flyers are a dozen
+insects in one painting, animated churning, drawn from above so the field turns
+the cloud onto its heading. One record, one hitbox, one slot of the field's
+twenty-two: a swarm built as ten small animals would have been a third of the
+field's animals for one encounter, and the hostile cap would have been spent on
+a single cloud. It bites as often as a swarm should (a fast, light bite) and is
+answered by one sword.
+
+**Insects belong to their own ground** (`WildlifeData.local_only`, read by the
+one weight function). Every other animal is merely rarer away from the acts it
+lists; twenty-two insects at a fifth of their weight everywhere thinned *every*
+act's rarest tier under the floor `wildlife_spawn_check` holds so that a legend
+stays findable. **Act I had 1% headroom on that floor before any insect
+arrived**, so its two insects are rare there - which is also right: the opening
+act is the gentle one. If Act I ever needs more wildlife, it needs a little more
+legendary weight with it.
+
+**Painted with PixelLab**: the crawlers styled on the shipped scorpion, the
+flyers and swarms on the shipped glass moth, each animated idle, walk or wing,
+and every hostile one a five-frame strike - the rules `regression_check` holds.
+The crawlers came out facing the viewer rather than in profile; they are
+symmetric, so they mirror toward their motion and are recorded so in the facing
+ledger. Three strikes grew pale starbursts the bright-pixel measure could not
+see (it counts near-white, and these were grey) and were regenerated describing
+the body's motion alone - "the gnats draw in close into a tighter knot" rather
+than "surge forward". The swarms' buzz is owed a recording and the ledger says
+so.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

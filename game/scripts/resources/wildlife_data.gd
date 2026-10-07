@@ -68,8 +68,17 @@ func roll_weight(act: int) -> float:
 	base *= maxf(weight, 0.0)
 	if acts.is_empty() or acts.has(act):
 		return base
+	# A creature of one ground only - the insects of 2026-10-07 - is never met
+	# off it: twenty-two of them at a fifth of their weight everywhere thinned
+	# every act's rarest tier under the floor that keeps a legend findable.
+	if local_only:
+		return 0.0
 	# Out of its own region, and much rarer for it, but never impossible.
 	return base * 0.22
+
+## **Met only on its own ground** (2026-10-07). Off by default: most animals
+## wander, and are merely rarer away from the acts they list.
+@export var local_only: bool = false
 
 @export var temperament: Temperament = Temperament.PASSIVE
 @export var movement_style: MovementStyle = MovementStyle.FORAGER

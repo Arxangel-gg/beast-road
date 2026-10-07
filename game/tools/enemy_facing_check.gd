@@ -236,6 +236,11 @@ const WILDLIFE_FACING: Dictionary = {
 	# Painted from the raven by an image edit (2026-10-07), so it keeps the
 	# raven's profile: beak, ruff and body all lead to the right.
 	"vulture": true,
+	# The insects of 2026-10-07. The crawlers were painted facing the viewer and
+	# are symmetric, so mirroring one toward its motion changes nothing; the
+	# flyers and the swarms are drawn from above and turn onto their heading.
+	"bullet_ant": true, "sand_spider": true, "frost_tick": true, "bog_leech": true, "rust_mantis": true, "salt_scarab": true, "iron_centipede": true, "glass_spider": true, "cinder_beetle": true, "cliff_spider": true, "chainback_beetle": true,
+	"stingfly_swarm": false, "locust_swarm": false, "snow_gnat_swarm": false, "mosquito_swarm": false, "amber_fireflies": false, "brine_wasp": false, "horsefly_swarm": false, "prism_dragonfly": false, "ash_wasp_swarm": false, "gale_moth": false, "iron_hornet": false,
 }
 
 var _failures: PackedStringArray = []
