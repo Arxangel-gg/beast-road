@@ -28,6 +28,8 @@ func _ready() -> void:
 	_test_the_ways()
 	await _test_the_throw()
 	_test_the_rot()
+	_test_the_flies()
+	_test_brutal_bones_come_home()
 	await _test_the_shove()
 	_test_the_bite_and_the_cap()
 	await _test_the_road()
@@ -39,7 +41,7 @@ func _ready() -> void:
 		MetaState.settings.erase(UserSettings.BLOOD_VFX_KEY)
 	else:
 		MetaState.settings[UserSettings.BLOOD_VFX_KEY] = held_switch
-	for stage: String in ["paintings", "ways", "throw", "rot", "shove", "bite", "road"]:
+	for stage: String in ["paintings", "ways", "throw", "rot", "flies", "bones", "shove", "bite", "road"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -73,6 +75,56 @@ func _test_the_paintings() -> void:
 	_check(CorpseField.state_for(1.0) == 0 and CorpseField.state_for(0.4) == 1 and CorpseField.state_for(0.1) == 2,
 		"the meat shares do not choose the three paintings")
 	_reached.append("paintings")
+
+
+## **Flies over the dead**: none on a fresh carcass, a few once it has lain a
+## while and more on a bigger one, none on bones and none on one being carried.
+func _test_the_flies() -> void:
+	var corpse: Dictionary = {"age": 0.0, "meat": 1.0, "size": 0, "carried_by": null}
+	_check(CorpseField.flies_on(corpse) == 0, "a fresh carcass drew flies")
+	corpse["age"] = Balance.CORPSE_FLIES_FROM + 1.0
+	var small: int = CorpseField.flies_on(corpse)
+	_check(small > 0, "a carcass that has lain a while drew no flies")
+	corpse["size"] = 2
+	_check(CorpseField.flies_on(corpse) > small and CorpseField.flies_on(corpse) <= Balance.CORPSE_FLIES_MAX,
+		"a bigger carcass drew %d flies against %d" % [CorpseField.flies_on(corpse), small])
+	corpse["meat"] = 0.0
+	_check(CorpseField.flies_on(corpse) == 0, "bones drew flies")
+	corpse["meat"] = 1.0
+	var carrier := Node2D.new()
+	add_child(carrier)
+	corpse["carried_by"] = carrier
+	_check(CorpseField.flies_on(corpse) == 0, "a carcass being carried drew flies")
+	carrier.queue_free()
+	_reached.append("flies")
+
+
+## **Brutal bones come home**: in Brutal the bones are banked with the ground and
+## laid back where they lay through the battlefield's own doors; outside Brutal
+## nothing is banked; a malformed row is dropped.
+func _test_brutal_bones_come_home() -> void:
+	var field: CorpseField = _bare_field()
+	MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = UserSettings.BLOOD_BRUTAL
+	var bones: Dictionary = field.lay(Vector2(120.0, 40.0), Vector2(0.0, 40.0), 30.0, "bogkin")
+	bones["meat"] = 0.0
+	bones["height"] = 0.0
+	field.lay(Vector2(-200.0, 0.0), Vector2(0.0, 0.0), 30.0, "bogkin")
+	var banked: Array = field.bones_snapshot()
+	_check(banked.size() == 1, "Brutal banked %d rows for one set of bones" % banked.size())
+	var home: CorpseField = _bare_field()
+	home.restore_bones(banked + [["not", "a row"], 7])
+	_check(home.count() == 1, "the banked bones came home as %d corpses" % home.count())
+	if home.count() == 1:
+		var laid: Dictionary = home.corpses()[0]
+		_check((laid["at"] as Vector2).distance_to(bones["at"] as Vector2) < 0.5
+				and CorpseField.state_for(float(laid["meat"])) == 2,
+			"the bones came home somewhere else or with meat on them")
+	MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = UserSettings.BLOOD_HIGH
+	_check(field.bones_snapshot().is_empty(), "outside Brutal bones were banked")
+	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/battlefield.gd")
+	_check(source.contains("corpses.bones_snapshot()") and source.contains("corpses.restore_bones("),
+		"the battlefield's ground does not bank or lay the bones")
+	_reached.append("bones")
 
 
 func _test_the_ways() -> void:

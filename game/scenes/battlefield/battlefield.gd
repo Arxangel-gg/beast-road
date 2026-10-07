@@ -305,6 +305,9 @@ func _ready() -> void:
 	corpses = CorpseField.new()
 	corpses.name = "Corpses"
 	add_child(corpses)
+	if not _bones_to_lay.is_empty():
+		corpses.restore_bones(_bones_to_lay)
+		_bones_to_lay = []
 	company = MercenaryCompany.new()
 	company.field = self
 	add_child(company)
@@ -3846,6 +3849,7 @@ func ground_snapshot() -> Dictionary:
 		"scars": _scars.snapshot() if _scars != null else "",
 		"scorch": _scorch.snapshot() if _scorch != null else "",
 		"craters": _craters.snapshot() if _craters != null else [],
+		"bones": corpses.bones_snapshot() if corpses != null else [],
 	}
 
 
@@ -3856,6 +3860,12 @@ func restore_ground(stored: Dictionary) -> void:
 		_scorch.restore(String(stored.get("scorch", "")))
 	if _craters != null:
 		_craters.restore(stored.get("craters", []) as Array)
+	# The corpses are built after the ground on a fresh field, so banked bones
+	# wait for them there; on a field that already has them they are laid now.
+	_bones_to_lay = stored.get("bones", []) as Array if stored.get("bones", []) is Array else []
+	if corpses != null and not _bones_to_lay.is_empty():
+		corpses.restore_bones(_bones_to_lay)
+		_bones_to_lay = []
 
 
 ## The ground's depth map of what broke it this act (`GroundScars`).
@@ -3864,6 +3874,8 @@ func scars() -> GroundScars:
 
 
 var _scars: GroundScars = null
+## Banked bones waiting for the corpse field to exist (`restore_ground`).
+var _bones_to_lay: Array = []
 
 
 ## The nearest standing tower to a point within `radius`, or null.

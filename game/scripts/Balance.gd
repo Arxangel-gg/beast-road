@@ -11721,6 +11721,13 @@ const CORPSE_PUSH: float = 90.0
 const CORPSE_BITE_PULL: float = 40.0
 const CORPSE_BITE_HOP: float = 90.0
 const CORPSE_REDRAW_HZ: float = 6.0
+## **Flies over the dead** (owed since 2026-10-07): a carcass that has lain
+## `CORPSE_FLIES_FROM` seconds draws flies, a few more the bigger it is, up to
+## `CORPSE_FLIES_MAX`, until it is bones; the field redraws at `CORPSE_FLIES_HZ`
+## while any are in view. A look: nothing reads a fly. [TUNE]
+const CORPSE_FLIES_FROM: float = 10.0
+const CORPSE_FLIES_MAX: int = 6
+const CORPSE_FLIES_HZ: float = 14.0
 ## **A heap of the dead calls for what eats it** (`WildlifeCarrion`). How often
 ## the host looks, how far a pile reaches, the pile that calls vultures and the
 ## most that circle at once and the rest between flights, the pile that may call

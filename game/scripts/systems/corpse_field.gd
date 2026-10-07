@@ -33,6 +33,8 @@ enum Size { SMALL, MEDIUM, LARGE }
 var _corpses: Array[Dictionary] = []
 var _push_left: float = 0.0
 var _redraw_left: float = 0.0
+## The flies' own redraw clock (`CORPSE_FLIES_HZ`), apart from the corpses'.
+var _flies_left: float = 0.0
 var _clock: float = 0.0
 var _dice := RandomNumberGenerator.new()
 ## Never a static: an object a static keeps outlives the tree into the engine's
@@ -232,9 +234,37 @@ func _process(delta: float) -> void:
 		_push_left = 1.0 / Balance.CORPSE_PUSH_HZ
 		moving = _shoved_by_passers() or moving
 	_redraw_left -= delta
+	_flies_left -= delta
 	if moving or _redraw_left <= 0.0:
 		_redraw_left = 1.0 / Balance.CORPSE_REDRAW_HZ
 		queue_redraw()
+	elif _flies_left <= 0.0 and _flies_in_view():
+		_flies_left = 1.0 / Balance.CORPSE_FLIES_HZ
+		queue_redraw()
+
+
+## How many flies a carcass draws: none fresh, a few once it has lain a while,
+## more on a bigger one, none on bones or on one being carried. Public so the
+## gate reads the rule the drawing uses.
+static func flies_on(corpse: Dictionary) -> int:
+	if float(corpse.get("age", 0.0)) < Balance.CORPSE_FLIES_FROM:
+		return 0
+	if state_for(float(corpse.get("meat", 0.0))) >= 2:
+		return 0
+	var carrier: Variant = corpse.get("carried_by", null)
+	if carrier != null and is_instance_valid(carrier):
+		return 0
+	return mini(Balance.CORPSE_FLIES_MAX, 2 + int(corpse.get("size", 0)) * 2)
+
+
+## Whether any carcass with flies is where the camera can see, which is the only
+## time they are worth redrawing for. Never headless (`ScreenCull`).
+func _flies_in_view() -> bool:
+	for corpse: Dictionary in _corpses:
+		if flies_on(corpse) > 0 and (not ScreenCull.culling()
+				or ScreenCull.world_sees(self, corpse["at"] as Vector2, Balance.VFX_CULL_MARGIN)):
+			return true
+	return false
 
 
 ## One corpse's flight and slide. Returns whether it is still moving.
@@ -304,6 +334,64 @@ func _draw() -> void:
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		draw_texture_rect(texture, Rect2(at - Vector2(size.x * 0.5, size.y * 0.75 + height), size),
 			false, Color(1, 1, 1, alpha))
+		_draw_flies(corpse, at, size)
+
+
+## A few dark specks circling over a carcass, each on its own loop off the
+## field's clock, rising and dipping - and drawn, never simulated.
+func _draw_flies(corpse: Dictionary, at: Vector2, size: Vector2) -> void:
+	var flies: int = flies_on(corpse)
+	if flies <= 0:
+		return
+	var seed_phase: float = float(int(corpse["dir"]) * 7 + int(corpse["size"]) * 3) * 0.37
+	var reach: float = maxf(size.x * 0.28, 10.0)
+	for fly: int in flies:
+		var t: float = _clock * (5.0 + float(fly) * 1.3) + seed_phase + float(fly) * 2.1
+		var spot: Vector2 = at + Vector2(cos(t) * reach, sin(t * 1.37) * reach * 0.45 - size.y * 0.32
+			- 6.0 * sin(t * 2.3))
+		draw_circle(spot, 1.6, Color(0.07, 0.06, 0.05, 0.85))
+
+
+## **Brutal bones come home** (owed since 2026-10-07): in Brutal the bones of
+## the road are part of the ground, so a banked front carries them as it carries
+## the blood and the scars - a place, a way and a size each, and the kind.
+## Nothing outside Brutal, where bones fade anyway.
+func bones_snapshot() -> Array:
+	var out: Array = []
+	if UserSettings.blood_level() < UserSettings.BLOOD_BRUTAL:
+		return out
+	for corpse: Dictionary in _corpses:
+		if state_for(float(corpse["meat"])) < 2:
+			continue
+		var at: Vector2 = corpse["at"]
+		out.append([at.x, at.y, int(corpse["dir"]), int(corpse["size"]), String(corpse["kind"])])
+	return out
+
+
+## Lays banked bones back where they lay, read clean - a row of the wrong shape
+## is dropped, a way and a size are clamped, and never past the field's cap.
+func restore_bones(stored: Array) -> void:
+	for value: Variant in stored:
+		if _corpses.size() >= Balance.CORPSE_MAX:
+			break
+		if not (value is Array) or (value as Array).size() < 5:
+			continue
+		var row: Array = value
+		_corpses.append({
+			"at": Vector2(float(row[0]), float(row[1])),
+			"vel": Vector2.ZERO,
+			"height": 0.0,
+			"vy": 0.0,
+			"size": clampi(int(row[3]), 0, Balance.CORPSE_SIZE_SCALE.size() - 1),
+			"meat": 0.0,
+			"dir": clampi(int(row[2]), 0, DIRECTIONS.size() - 1),
+			"age": Balance.CORPSE_ROT_SECONDS,
+			"bones_for": 0.0,
+			"kind": String(row[4]),
+			"carried_by": null,
+			"spin": 0.0,
+		})
+	queue_redraw()
 
 
 func texture_for(state: int, direction: int) -> Texture2D:
