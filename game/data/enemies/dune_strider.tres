@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 1
+id = "dune_strider"
+display_name = "Dune Strider"
+description = "Long legs, a long hook, and no patience at all."
+role = 1
+max_hp = 56
+contact_damage = 12.8
+move_speed = 103.0
+body_radius = 24.0
+knockback_resistance = 0.09
+resource_value = 3

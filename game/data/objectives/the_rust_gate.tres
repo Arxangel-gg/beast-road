@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "the_rust_gate"
+display_name = "The Rust Gate"
+description = "Reach Act V and walk the city into the Rustwood."
+order = 13
+metric = 0
+target = 5.0
+comparison = 0
+minimum_act = 5
+tool_reward = 1

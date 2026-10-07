@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_vu077"]
+
+[resource]
+script = ExtResource("1_vu077")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 2.0
+hide = 2
+art_facing = 1
+role = 1
+max_hp = 20.2
+contact_damage = 7.4
+move_speed = 109.2
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "glassborn_brinecrust"
+display_name = "Brinecrust Veiled Skirmisher"
+description = "Crusted white with the old sea's salt."
+sprite_id = "veiled_skirmisher"
+variant_of = "glassborn"
+coat_hue = 0.0
+coat_saturation = -0.55
+coat_light = 0.18

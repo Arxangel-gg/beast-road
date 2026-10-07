@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+hide = 2
+art_facing = 0
+role = 2
+max_hp = 208.3
+contact_damage = 18.8
+move_speed = 31.2
+body_radius = 39.0
+knockback_resistance = 0.57
+resource_value = 5
+behaviour = 1
+behaviour_warning = 0.80
+behaviour_seconds = 3.20
+behaviour_recovery = 1.50
+behaviour_reach = 240.0
+behaviour_power = 0.0
+behaviour_interval = 10.0
+id = "stone_colossus_gilded"
+display_name = "Gilded Stone Colossus"
+description = "Gilt by the summit's light."
+sprite_id = "stone_colossus"
+variant_of = "stone_colossus"
+coat_hue = 0.1
+coat_saturation = 0.4
+coat_light = 0.06

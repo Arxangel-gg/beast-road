@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 1
+id = "bog_toadman"
+display_name = "Bog Toadman"
+description = "Fat with marsh water and meaner for it."
+role = 0
+max_hp = 100
+contact_damage = 11.5
+move_speed = 49.0
+body_radius = 30.0
+knockback_resistance = 0.18
+resource_value = 3

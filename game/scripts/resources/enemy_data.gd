@@ -86,6 +86,20 @@ func is_promoted() -> bool:
 ## is replaced by the authored faction roster. Empty keeps the conventional id.
 @export var sprite_id: String = ""
 
+## **A variant of another breed** (2026-10-07, owner: "3x More enemy variety for
+## every act"). Diablo's grammar - a Fallen, a Carver, a Devilkin - in this
+## game's: a breed of its own with its own name, numbers and behaviour, drawn
+## from its parent's painting (`sprite_id`) under a coat of its own. Empty for
+## a breed with its own art. The codex and the Guide group a variant under it.
+@export var variant_of: String = ""
+## The coat a variant wears over its parent's painting: a turn of the hue wheel
+## and shares of saturation and light, the same three numbers a wild animal's
+## coat is (`Phenotype`), set on whichever material the body wears. A look and
+## never a fact: nothing reads them but the shader.
+@export_range(-0.5, 0.5) var coat_hue: float = 0.0
+@export_range(-0.9, 0.9) var coat_saturation: float = 0.0
+@export_range(-0.6, 0.6) var coat_light: float = 0.0
+
 ## **Which way this breed's art faces, if it faces a way at all.**
 ##
 ## The field mirrors a body to face its travel, which is right for a sprite

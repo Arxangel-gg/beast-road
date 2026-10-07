@@ -1456,7 +1456,13 @@ const FINAL_ASCENT_ACT: int = ACT_COUNT + 1
 ## (`TerrainData.enemy_ids`, `elite_ids`, `veteran_ids`), and `roster_check`
 ## holds every act to its entry exactly - a pool larger than the table is a
 ## pool nobody re-read, and one smaller is a promise nobody kept.
-const ACT_UNIQUE_ENEMIES: Array[int] = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19]
+## **Three times as many, as of 2026-10-07** (owner: "3x More enemy variety for
+## every act"). It was 8 to 17 and 19 at the summit, the owner's table of
+## 2026-09-21; each act's count is tripled, which keeps the step between acts
+## (three now) and the summit's lift. Met by three new breeds a region, a
+## variant or two of every regional breed (`EnemyData.variant_of`), and
+## veterans from the nearest roads - never in Act I, which draws none.
+const ACT_UNIQUE_ENEMIES: Array[int] = [24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 57]
 
 ## Beast walking speed in distance units per second. At full speed this is
 ## ~15 min per act, ~45 min per run. [TUNE]
@@ -3821,7 +3827,9 @@ const TOWER_SUPPORT_DAMAGE_SHARE: float = 0.62
 ## exactly, over all four elements: the roster may not drift to nine of one
 ## and eleven of another, which is what "ten types each" means and is not
 ## something a total would catch. It was eight from 2026-09-14 until this.
-const TOWERS_PER_ELEMENT: int = 10
+const TOWERS_PER_ELEMENT: int = 15
+## How dark a mortar's blind spot is on the build ghost. [TUNE]
+const BUILD_GHOST_BLIND_FILL: float = 0.22
 const TOWER_REPAIR_FRACTION: float = 0.34
 const TOWER_REPAIR_WOOD_COST: int = 32
 ## What a run may reach with no Forge. Three rather than two because the levels

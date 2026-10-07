@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 4.2
+hide = 1
+art_facing = 1
+role = 1
+max_hp = 123.2
+contact_damage = 17.0
+move_speed = 89.4
+body_radius = 26.0
+knockback_resistance = 0.15
+resource_value = 3
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "chain_lancer_ironsworn"
+display_name = "Ironsworn Chainlancer"
+description = "Sworn to the Crown in iron."
+sprite_id = "chain_lancer"
+variant_of = "chain_lancer"
+coat_hue = 0.0
+coat_saturation = -0.6
+coat_light = -0.2

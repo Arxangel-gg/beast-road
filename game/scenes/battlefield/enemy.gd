@@ -4352,6 +4352,41 @@ func _scan_for_howler() -> Enemy:
 ## making the player read eight bars.
 ## The highest a pool of blood has reached up this body, in world units.
 var _waded: float = 0.0
+## The material a variant's coat was last set on. A body may change material -
+## the stain, then a promotion's polish - and the coat follows it in one check
+## rather than at every door a material is handed over.
+var _coated: Material = null
+
+
+## A variant's coat on whichever material the body wears (2026-10-07).
+func _wear_coat() -> void:
+	if data == null or sprite == null or sprite.material == _coated:
+		return
+	_coated = sprite.material
+	var material := sprite.material as ShaderMaterial
+	if material == null or (absf(data.coat_hue) < 0.0005 and absf(data.coat_saturation) < 0.0005
+			and absf(data.coat_light) < 0.0005):
+		return
+	material.set_shader_parameter("coat_hue", data.coat_hue)
+	material.set_shader_parameter("coat_saturation", data.coat_saturation)
+	material.set_shader_parameter("coat_light", data.coat_light)
+
+
+## The coat this body's material wears, for the gate. A parameter never set
+## reads null, which is the painting.
+func coat_worn() -> Vector3:
+	if sprite == null:
+		return Vector3.ZERO
+	var material := sprite.material as ShaderMaterial
+	if material == null:
+		return Vector3.ZERO
+	var worn := Vector3.ZERO
+	var names: Array[String] = ["coat_hue", "coat_saturation", "coat_light"]
+	for index: int in names.size():
+		var value: Variant = material.get_shader_parameter(names[index])
+		if value is float or value is int:
+			worn[index] = float(value)
+	return worn
 
 
 func _update_blood(delta: float) -> void:
@@ -4360,6 +4395,7 @@ func _update_blood(delta: float) -> void:
 	if not _blood_tried:
 		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
+	_wear_coat()
 	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
 	# **What it waded through stays on it**, whichever material it wears.
 	var waded: float = Vfx.blood_wade(global_position)

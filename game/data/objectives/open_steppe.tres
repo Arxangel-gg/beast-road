@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "open_steppe"
+display_name = "Open Steppe"
+description = "Reach Act VII and cross the open Iron Steppe."
+order = 47
+metric = 0
+target = 7.0
+comparison = 0
+minimum_act = 7
+tool_reward = 2

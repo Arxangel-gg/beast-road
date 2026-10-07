@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 4.1
+category = 0
+role = 4
+max_hp = 65.0
+contact_damage = 10.6
+move_speed = 77.0
+body_radius = 28.0
+knockback_resistance = 0.35
+raid_charge_value = 2.0
+resource_value = 3
+spawn_distance_scale = 0.66
+targets_towers = true
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "loam_lurker_fenbound"
+display_name = "Fenbound Loam Lurker"
+description = "The marsh owns it now."
+sprite_id = "loam_lurker"
+variant_of = "loam_lurker"
+coat_hue = 0.12
+coat_saturation = -0.1
+coat_light = -0.2

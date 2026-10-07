@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "clean_to_the_rust"
+display_name = "Clean to the Rust"
+description = "Reach Act V without suffering a wound."
+order = 63
+metric = 7
+target = 0.0
+comparison = 1
+minimum_act = 5
+tool_reward = 2

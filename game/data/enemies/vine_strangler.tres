@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 1
+id = "vine_strangler"
+display_name = "Vine Strangler"
+description = "Paints itself in leaf-green and waits where the road narrows."
+role = 0
+max_hp = 78
+contact_damage = 12.7
+move_speed = 57.0
+body_radius = 27.0
+knockback_resistance = 0.18
+resource_value = 3

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_beast"
+hide = 2
+art_facing = 1
+role = 1
+max_hp = 62.7
+contact_damage = 14.2
+move_speed = 103.0
+body_radius = 24.0
+knockback_resistance = 0.09
+resource_value = 3
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "crystal_stalker_clouded"
+display_name = "Clouded Crystal Stalker"
+description = "Glass gone grey and cold."
+sprite_id = "crystal_stalker"
+variant_of = "crystal_stalker"
+coat_hue = 0.0
+coat_saturation = -0.5
+coat_light = -0.2

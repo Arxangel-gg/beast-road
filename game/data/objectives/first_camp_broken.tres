@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "first_camp_broken"
+display_name = "First Camp Broken"
+description = "Break a camp before it can march."
+order = 22
+metric = 4
+target = 1.0
+comparison = 0
+minimum_act = 1
+tool_reward = 1

@@ -150,6 +150,42 @@ const ROSTER: Dictionary = {
 	"chain_lancer": 1,
 	"anchor_cantor": 0,
 	"shackle_brute": 1,
+	# The thirty-three of 2026-10-07, read off a 200px sheet and the ambiguous
+	# ones again at 384px. Four are square to the camera - two golems, a wraith
+	# and a hooded zealot - and the rest are drawn facing right.
+	"anchor_knight": 1,
+	"ash_wraith": 0,
+	"bog_toadman": 1,
+	"brine_eel": 1,
+	"chain_hound": 1,
+	"char_beetle": 1,
+	"clockwork_hound": 1,
+	"cloud_guard": 1,
+	"crown_zealot": 0,
+	"crystal_stalker": 1,
+	"drowned_knight": 1,
+	"dune_strider": 1,
+	"glacier_golem": 0,
+	"horde_axeman": 1,
+	"icefang_runner": 1,
+	"iron_treant": 1,
+	"jungle_leaper": 1,
+	"lava_golem": 1,
+	"mire_leech": 1,
+	"mirror_knight": 1,
+	"mosscap_brute": 1,
+	"rime_walker": 1,
+	"rust_scavenger": 1,
+	"salt_crab_knight": 1,
+	"saltpan_raider": 1,
+	"sand_skulker": 1,
+	"shard_crawler": 1,
+	"steppe_berserker": 1,
+	"stone_colossus": 0,
+	"sunscale_brute": 1,
+	"terrace_monk": 1,
+	"vine_strangler": 1,
+	"war_ox_chief": 1,
 }
 
 ## And the same record for the animals, for the same reason.
@@ -233,12 +269,22 @@ func _name_of(facing: int) -> String:
 
 
 ## A breed nobody decided about is the whole fault.
+## **A variant faces as its parent** (2026-10-07). It is the parent's painting
+## under a coat (`EnemyData.variant_of`), so the judgement was made once, on the
+## painting, and a second line per variant would be two records of one fact
+## free to disagree. Its own entry, if it has one, still wins.
+static func _recorded_id(breed: EnemyData) -> String:
+	if ROSTER.has(breed.id) or breed.variant_of.is_empty():
+		return breed.id
+	return breed.variant_of
+
+
 func _test_every_breed_has_a_recorded_facing() -> void:
 	for value: Variant in ContentDB.enemies.values():
 		var breed := value as EnemyData
 		if breed == null:
 			continue
-		_check(ROSTER.has(breed.id),
+		_check(ROSTER.has(_recorded_id(breed)),
 			("%s has no recorded facing - open its sprite, decide which way it is "
 				+ "drawn, and add it to ROSTER. Leaving it out means it defaults to "
 				+ "FRONT and never turns, which is how ten breeds ended up walking "
@@ -248,9 +294,9 @@ func _test_every_breed_has_a_recorded_facing() -> void:
 func _test_the_data_agrees_with_the_record() -> void:
 	for value: Variant in ContentDB.enemies.values():
 		var breed := value as EnemyData
-		if breed == null or not ROSTER.has(breed.id):
+		if breed == null or not ROSTER.has(_recorded_id(breed)):
 			continue
-		var wanted: int = int(ROSTER[breed.id])
+		var wanted: int = int(ROSTER[_recorded_id(breed)])
 		_check(int(breed.art_facing) == wanted,
 			"%s is authored %s and this gate records %s - one of the two is wrong"
 				% [breed.id, _name_of(int(breed.art_facing)), _name_of(wanted)])

@@ -46,6 +46,9 @@ var plot: Vector2 = Vector2.ZERO
 var frames: Array[Texture2D] = []
 var frame_rate: float = 0.0
 var breathes: bool = false
+## A mortar's blind spot, drawn as a darker disc inside the reach so the gap
+## close in is seen before the Gold is spent. 0 draws nothing.
+var blind_spot: float = 0.0
 
 var _clock: float = 0.0
 
@@ -60,6 +63,7 @@ func show_offer(art: Texture2D, picture_at: Vector2, reach_from: Vector2, radius
 		colour: Color, ground: Vector2 = Vector2.ZERO, loop: Array[Texture2D] = [],
 		loop_rate: float = 0.0, still_breathes: bool = false) -> void:
 	plot = ground
+	blind_spot = 0.0
 	frames = loop
 	frame_rate = loop_rate
 	breathes = still_breathes
@@ -102,6 +106,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if reach > 0.0:
 		_draw_reach(to_local(reach_at))
+	if blind_spot > 0.0:
+		_draw_blind_spot(to_local(reach_at))
 	if plot.x > 0.0 and plot.y > 0.0:
 		var ground := Rect2(to_local(reach_at) - plot * 0.5, plot)
 		draw_rect(ground, Color(tint.r, tint.g, tint.b, Balance.BUILD_GHOST_PLOT_FILL))
@@ -137,6 +143,22 @@ func pose() -> Texture2D:
 		if frame != null:
 			return frame
 	return texture
+
+
+## The mortar's blind spot: a dark disc under a dashed rim, so it reads as
+## ground the tower cannot touch rather than as a second, smaller reach.
+func _draw_blind_spot(centre: Vector2) -> void:
+	var steps: int = Balance.BUILD_GHOST_SEGMENTS
+	draw_circle(centre, blind_spot, Color(0.0, 0.0, 0.0, Balance.BUILD_GHOST_BLIND_FILL))
+	var dashes: int = maxi(steps / 2, 12)
+	for dash: int in dashes:
+		if dash % 2 == 1:
+			continue
+		var from: float = TAU * float(dash) / float(dashes)
+		var to: float = TAU * float(dash + 1) / float(dashes)
+		draw_arc(centre, blind_spot, from, to, 4,
+			Color(tint.r, tint.g, tint.b, Balance.BUILD_GHOST_RIM_ALPHA),
+			Balance.BUILD_GHOST_RIM_WIDTH * 0.75, true)
 
 
 ## A true circle - the reach is the same distance in every direction on the

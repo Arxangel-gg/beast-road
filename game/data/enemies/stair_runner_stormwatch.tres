@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 4.9
+role = 1
+max_hp = 67.2
+contact_damage = 13.8
+move_speed = 93.6
+body_radius = 24.0
+knockback_resistance = 0.05
+resource_value = 3
+art_facing = 1
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "stair_runner_stormwatch"
+display_name = "Stormwatch Stair Runner"
+description = "Keeps the high stairs in the weather."
+sprite_id = "stair_runner"
+variant_of = "stair_runner"
+coat_hue = 0.55
+coat_saturation = -0.2
+coat_light = -0.08

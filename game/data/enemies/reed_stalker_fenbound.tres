@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 5.0
+role = 1
+max_hp = 58.2
+contact_damage = 11.7
+move_speed = 87.4
+body_radius = 22.0
+knockback_resistance = 0.00
+resource_value = 3
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "reed_stalker_fenbound"
+display_name = "Fenbound Reed Stalker"
+description = "The marsh owns it now."
+sprite_id = "reed_stalker"
+variant_of = "reed_stalker"
+coat_hue = 0.12
+coat_saturation = -0.1
+coat_light = -0.2

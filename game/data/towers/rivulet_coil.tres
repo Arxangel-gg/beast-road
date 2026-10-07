@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 3
+juice_scale = 0.9
+role = 0
+element = 1
+damage = 7.0
+attack_interval = 0.5
+attack_range = 300.0
+extra_targets = 2
+slow_factor = 0.85
+slow_duration = 1.0
+id = "rivulet_coil"
+display_name = "Rivulet Coil"
+description = "Skirmisher. Water jumps from body to body and leaves each one wet - and a wet road carries lightning further. Water's first chain."

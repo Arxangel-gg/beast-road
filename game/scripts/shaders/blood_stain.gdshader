@@ -32,6 +32,12 @@ uniform float outline_strength : hint_range(0.0, 1.0) = 0.82;
 // How many texels out the rim reaches: one, as painted, unless the cursor lights
 // the body (`ClickMove._light`).
 uniform float outline_width : hint_range(1.0, 4.0) = 1.0;
+// A breed variant's coat (2026-10-07): the same three numbers, and the same
+// names, `actor_polish` wears for a wild animal's coat, so one door dresses
+// either material. Zero is the painting.
+uniform float coat_hue = 0.0;
+uniform float coat_saturation = 0.0;
+uniform float coat_light = 0.0;
 uniform vec4 impact_colour : source_color = vec4(1.0, 0.82, 0.62, 1.0);
 uniform vec2 impact_direction = vec2(0.0, -1.0);
 uniform float impact_strength : hint_range(0.0, 1.0) = 0.0;
@@ -85,6 +91,15 @@ void fragment() {
 	// over the painted cloth. A body with no dye is untouched in one branch.
 	if (COLOR.a > 0.001) {
 		COLOR.rgb = warden_look(COLOR.rgb, texture(TEXTURE, UV).rgb, UV);
+	}
+	// The variant's coat, before anything that happens to the body.
+	if (COLOR.a > 0.001 && (abs(coat_hue) > 0.0005 || abs(coat_saturation) > 0.0005
+			|| abs(coat_light) > 0.0005)) {
+		vec3 coat = look_to_hsv(COLOR.rgb);
+		coat.x = fract(coat.x + coat_hue);
+		coat.y = clamp(coat.y * (1.0 + coat_saturation), 0.0, 1.0);
+		coat.z = clamp(coat.z * (1.0 + coat_light), 0.0, 1.0);
+		COLOR.rgb = look_to_rgb(coat);
 	}
 	vec2 gradient = vec2(left_a - right_a, up_a - down_a);
 	if (COLOR.a > 0.001 && length(gradient) > 0.001 && impact_strength > 0.001) {

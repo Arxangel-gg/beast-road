@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_beast"
+hide = 1
+art_facing = 1
+role = 1
+max_hp = 69.4
+contact_damage = 12.9
+move_speed = 103.0
+body_radius = 25.0
+knockback_resistance = 0.09
+resource_value = 3
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "clockwork_hound_scorched"
+display_name = "Scorched Clockwork Hound"
+description = "Burned once and kept walking."
+sprite_id = "clockwork_hound"
+variant_of = "clockwork_hound"
+coat_hue = -0.03
+coat_saturation = 0.1
+coat_light = -0.28

@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 5.0
+category = 0
+role = 0
+max_hp = 38.1
+contact_damage = 7.4
+move_speed = 99.8
+body_radius = 22.0
+knockback_resistance = 0.0
+raid_charge_value = 1.0
+resource_value = 1
+spawn_distance_scale = 1.0
+targets_towers = false
+art_facing = 2
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "cinder_runner_cinderborn"
+display_name = "Cinderborn Cinder Runner"
+description = "Came out of the fire brighter than it went in."
+sprite_id = "cinder_runner"
+variant_of = "cinder_runner"
+coat_hue = 0.04
+coat_saturation = 0.35
+coat_light = 0.1

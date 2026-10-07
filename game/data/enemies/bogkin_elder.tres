@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 5.0
+category = 0
+max_hp = 31.4
+contact_damage = 9.0
+move_speed = 34.3
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "bogkin_elder"
+display_name = "Elder Coalpaint Raider"
+description = "Older than the road, and in no hurry to die."
+sprite_id = "coalpaint_raider"
+variant_of = "bogkin"
+coat_hue = 0.08
+coat_saturation = 0.15
+coat_light = -0.22

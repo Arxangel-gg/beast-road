@@ -388,6 +388,12 @@ func _enemy_detail(foe: EnemyData) -> String:
 	]
 	# The traits worth knowing before you meet the next one.
 	var traits: PackedStringArray = []
+	# A variant says what it is a variant of (2026-10-07): Diablo's Carver is a
+	# Fallen, and knowing that is half of reading it.
+	if not foe.variant_of.is_empty():
+		var parent: EnemyData = ContentDB.enemy(foe.variant_of)
+		if parent != null:
+			traits.append("a kind of %s" % parent.display_name)
 	if foe.role == EnemyData.Role.HOWLER:
 		traits.append("strikes at range")
 	if foe.targets_towers:

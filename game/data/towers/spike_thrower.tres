@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 5
+juice_scale = 1.3
+role = 2
+element = 2
+damage = 60.0
+attack_interval = 2.2
+attack_range = 570.0
+extra_targets = 1
+knockback = 80.0
+id = "spike_thrower"
+display_name = "Spike Thrower"
+description = "Sniper. Throws an iron-shod spike that passes through one body into the next and shoves both back."

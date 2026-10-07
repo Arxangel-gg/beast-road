@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 1
+juice_scale = 1.2
+role = 1
+element = 0
+damage = 20.0
+attack_interval = 1.5
+attack_range = 330.0
+extra_targets = 3
+burn_dps = 6.0
+burn_duration = 3.0
+id = "wildfire_coil"
+display_name = "Wildfire Coil"
+description = "Siege. Fire leaps from one body to the next three and leaves every one of them burning. The Sear Coil's heavier cousin, slower and crueller."

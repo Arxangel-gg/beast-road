@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 1
+role = 0
+max_hp = 87.4
+contact_damage = 13.5
+move_speed = 59.3
+body_radius = 27.0
+knockback_resistance = 0.18
+resource_value = 3
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "vine_strangler_elder"
+display_name = "Elder Vine Strangler"
+description = "Older than the road, and in no hurry to die."
+sprite_id = "vine_strangler"
+variant_of = "vine_strangler"
+coat_hue = 0.08
+coat_saturation = 0.15
+coat_light = -0.22

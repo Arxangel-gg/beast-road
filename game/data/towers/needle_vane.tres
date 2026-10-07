@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 7
+juice_scale = 0.9
+role = 0
+element = 3
+damage = 12.0
+attack_interval = 0.6
+attack_range = 380.0
+extra_targets = 1
+id = "needle_vane"
+display_name = "Needle Vane"
+description = "Skirmisher. Fires needles of wind that pass through one body into the next. Quick, and a little further than a skirmisher should reach."

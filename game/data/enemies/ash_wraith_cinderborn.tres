@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_wraith"
+hide = 3
+art_facing = 0
+role = 0
+max_hp = 82.9
+contact_damage = 13.5
+move_speed = 59.3
+body_radius = 26.0
+knockback_resistance = 0.18
+resource_value = 3
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "ash_wraith_cinderborn"
+display_name = "Cinderborn Ash Wraith"
+description = "Came out of the fire brighter than it went in."
+sprite_id = "ash_wraith"
+variant_of = "ash_wraith"
+coat_hue = 0.04
+coat_saturation = 0.35
+coat_light = 0.1

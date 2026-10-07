@@ -872,9 +872,15 @@ func _acquire_targets_now() -> Array[Enemy]:
 	# should meet the defence it is running into. So: a camp body is invisible
 	# to a tower until something provokes it, and then it is fair game.
 	var candidates: Array[Enemy] = []
+	# A mortar's blind spot (`TowerData.min_range`), measured from where the
+	# reach is measured from. Squared once rather than a root per body.
+	var blind: float = data.min_range * data.min_range
 	for enemy: Enemy in _field.enemies_near(origin(), reach):
-		if not enemy.hidden_from_the_board():
-			candidates.append(enemy)
+		if enemy.hidden_from_the_board():
+			continue
+		if blind > 0.0 and enemy.global_position.distance_squared_to(origin()) < blind:
+			continue
+		candidates.append(enemy)
 	if candidates.is_empty():
 		return found
 

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_beast"
+stagger_tolerance = 5.0
+role = 1
+max_hp = 30.2
+contact_damage = 8.5
+move_speed = 122.7
+body_radius = 25.0
+resource_value = 2
+art_facing = 1
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "wolf_rider_ironclad"
+display_name = "Ironclad Wolf Rider"
+description = "Wears more iron than sense."
+sprite_id = "wolf_rider"
+variant_of = "wolf_rider"
+coat_hue = 0.0
+coat_saturation = -0.55
+coat_light = -0.06

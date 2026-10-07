@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "a_hundred_hammers"
+display_name = "A Hundred Hammers"
+description = "Complete a hundred tower upgrades in a single journey."
+order = 68
+metric = 3
+target = 100.0
+comparison = 0
+minimum_act = 9
+tool_reward = 3

@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 2.2
+brace_chance = 0.22
+hide = 1
+art_facing = 2
+category = 0
+role = 1
+max_hp = 94.1
+contact_damage = 14.8
+move_speed = 95.7
+body_radius = 27.0
+knockback_resistance = 0.2
+raid_charge_value = 1.5
+resource_value = 4
+spawn_distance_scale = 0.88
+targets_towers = false
+aura_radius = 150.0
+aura_strength = 0.10
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "frost_herald_ironclad"
+display_name = "Ironclad Frost Herald"
+description = "Wears more iron than sense."
+sprite_id = "frost_herald"
+variant_of = "frost_herald"
+coat_hue = 0.0
+coat_saturation = -0.55
+coat_light = -0.06

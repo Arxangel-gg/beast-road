@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "no_camp_left"
+display_name = "No Camp Left"
+description = "Twenty-five camps answered for in one journey."
+order = 69
+metric = 4
+target = 25.0
+comparison = 0
+minimum_act = 9
+tool_reward = 3

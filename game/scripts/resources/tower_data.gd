@@ -69,6 +69,13 @@ enum TargetPriority {
 ## 0 means single target; above that, a splash radius in pixels.
 @export var aoe_radius: float = 0.0
 
+## **A mortar's blind spot** (2026-10-07, owner: "Long range mortar artillery
+## towers"). Bodies nearer the tower than this are never chosen, so the longest
+## arms on the road cannot drop a shell at their own feet and want a neighbour
+## close in. 0, as on every tower that is not a mortar, is no blind spot at all.
+## A reach and a choice of target, never a damage figure.
+@export var min_range: float = 0.0
+
 ## Extra targets a shot carries to after the first — chain lightning, piercing.
 @export var extra_targets: int = 0
 

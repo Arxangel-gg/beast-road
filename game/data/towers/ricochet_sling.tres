@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 5
+juice_scale = 0.9
+role = 0
+element = 2
+damage = 9.0
+attack_interval = 0.55
+attack_range = 300.0
+extra_targets = 2
+id = "ricochet_sling"
+display_name = "Ricochet Sling"
+description = "Skirmisher. A sling stone that caroms off the first body into the next two. Earth's first chain, and a cheap one."

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+behaviour = 1
+behaviour_warning = 0.80
+behaviour_seconds = 3.20
+behaviour_recovery = 1.50
+behaviour_reach = 240.0
+behaviour_power = 0.0
+behaviour_interval = 10.0
+hide = 2
+art_facing = 1
+id = "iron_treant"
+display_name = "Iron Treant"
+description = "The rust went into the wood and the wood went on growing."
+role = 2
+max_hp = 164
+contact_damage = 16.9
+move_speed = 32.0
+body_radius = 37.0
+knockback_resistance = 0.57
+resource_value = 4

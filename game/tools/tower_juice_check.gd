@@ -39,6 +39,7 @@ func _ready() -> void:
 	await _test_every_style_lands_the_same_hit()
 	await _test_a_broken_tower_is_not_a_sold_one()
 	await _test_a_ring_outlives_its_bodys_target()
+	await _test_a_mortar_cannot_reach_its_feet()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -322,6 +323,49 @@ func _test_every_style_lands_the_same_hit() -> void:
 			if leftover is Projectile:
 				leftover.queue_free()
 		await get_tree().process_frame
+		await get_tree().process_frame
+		lane = (lane + 1) % 4
+
+
+## **A mortar cannot drop a shell at its own feet** (2026-10-07). Every tower
+## that authors `min_range` is built on the real field, and its own choosing
+## door is asked about a body inside the blind spot and one beyond it - read
+## off the tower rather than the constant, because a blind spot the tower
+## never consults is a number on a card.
+func _test_a_mortar_cannot_reach_its_feet() -> void:
+	var breed: EnemyData = ContentDB.enemy("bogkin")
+	var mortars: Array[TowerData] = []
+	for value: Variant in ContentDB.towers.values():
+		var data := value as TowerData
+		if data != null and data.min_range > 0.0:
+			mortars.append(data)
+	_check(mortars.size() >= 4, "the road has its mortars (%d)" % mortars.size())
+	var lane: int = 0
+	for data: TowerData in mortars:
+		_check(data.min_range < data.attack_range * 0.5,
+			"%s: a blind spot of %.0f leaves little of a %.0f reach" % [data.id, data.min_range, data.attack_range])
+		RunState.set_phase(RunState.Phase.PREPARATION)
+		var anchor: Vector2i = _field.free_anchor_near(lane, 8)
+		var problem: String = _field.try_build(anchor, data)
+		_check(problem.is_empty(), "%s: must build (%s)" % [data.id, problem])
+		if not problem.is_empty():
+			continue
+		await get_tree().process_frame
+		var tower: Tower = _tower_at(anchor)
+		var near: Enemy = _field.spawn_enemy(breed, lane, 60.0, -1.0, 0.001)
+		var far: Enemy = _field.spawn_enemy(breed, lane, 60.0, -1.0, 0.001)
+		if tower == null or near == null or far == null:
+			_check(false, "%s: the harness needs a tower and two bodies" % data.id)
+			continue
+		near.global_position = tower.origin() + Vector2(data.min_range * 0.5, 0.0)
+		far.global_position = tower.origin() + Vector2(0.0, tower.effective_range() * 0.8)
+		await get_tree().process_frame
+		var chosen: Array[Enemy] = tower._acquire_targets_now()
+		_check(not chosen.has(near), "%s: chose a body inside its blind spot" % data.id)
+		_check(chosen.has(far), "%s: did not choose a body well inside its reach" % data.id)
+		near.queue_free()
+		far.queue_free()
+		_check(_field.try_sell(anchor).is_empty(), "%s: the harness must sell it" % data.id)
 		await get_tree().process_frame
 		lane = (lane + 1) % 4
 

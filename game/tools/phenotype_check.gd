@@ -219,6 +219,7 @@ func _test_two_of_a_kind_wear_different_coats() -> void:
 		_check(seen == 0 or coats.size() == seen,
 			("%d animals wear %d different coats - the serial is not reaching "
 				+ "the seed") % [seen, coats.size()])
+	_test_a_variant_wears_its_coat(field)
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
@@ -232,6 +233,44 @@ func _test_two_of_a_kind_wear_different_coats() -> void:
 ## coat; the draws are held here against the arithmetic `dress` always did,
 ## written out, for every species - because a reordered draw would re-coat every
 ## animal in the game and nothing would error.
+## **A breed variant wears its coat on the road** (2026-10-07). A variant is its
+## parent's painting under three numbers; authored and never set, it is the
+## parent walking under another name. Driven through the real door a body
+## dresses itself through (`_update_blood`), on a variant and on its parent.
+func _test_a_variant_wears_its_coat(field: Battlefield) -> void:
+	var variant: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var data := value as EnemyData
+		if data != null and not data.variant_of.is_empty() and absf(data.coat_hue) > 0.01:
+			variant = data
+			break
+	_check(variant != null, "the roster must hold a variant with a coat")
+	if variant == null:
+		return
+	var parent: EnemyData = ContentDB.enemy(variant.variant_of)
+	_check(parent != null and parent.get_sprite_path() == variant.get_sprite_path(),
+		"%s must be drawn from %s's painting" % [variant.id, variant.variant_of])
+	var body: Enemy = field.spawn_enemy(variant, 0, 1.0)
+	var plain: Enemy = field.spawn_enemy(parent, 0, 1.0) if parent != null else null
+	_check(body != null, "a variant must stand on the road")
+	if body == null:
+		return
+	body._update_blood(0.0)
+	var worn: Vector3 = body.coat_worn()
+	_check(is_equal_approx(worn.x, variant.coat_hue) and is_equal_approx(worn.y, variant.coat_saturation)
+			and is_equal_approx(worn.z, variant.coat_light),
+		"%s wears %s, authored %s" % [variant.id, worn,
+			Vector3(variant.coat_hue, variant.coat_saturation, variant.coat_light)])
+	if plain != null:
+		plain._update_blood(0.0)
+		_check(plain.coat_worn().length() < 0.001, "%s, the parent, must wear its painting" % parent.id)
+		plain.queue_free()
+	body.queue_free()
+	var shader: String = FileAccess.get_file_as_string("res://scripts/shaders/blood_stain.gdshader")
+	_check(shader.contains("uniform float coat_hue") and shader.contains("coat.x = fract(coat.x + coat_hue)"),
+		"the stain shader must turn a variant's coat")
+
+
 func _test_the_split_moved_no_coat() -> void:
 	for kind_value: Variant in ContentDB.wildlife_kinds.values():
 		var kind := kind_value as WildlifeData

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 1.2
+brace_chance = 0.45
+hide = 1
+art_facing = 2
+role = 2
+max_hp = 100.8
+contact_damage = 12.7
+move_speed = 46.8
+body_radius = 32.0
+knockback_resistance = 0.78
+resource_value = 4
+behaviour = 1
+behaviour_warning = 0.80
+behaviour_seconds = 3.20
+behaviour_recovery = 1.50
+behaviour_reach = 240.0
+behaviour_power = 0.0
+behaviour_interval = 10.0
+id = "glassguard_pallid"
+display_name = "Pallid Glassguard"
+description = "Long drowned and pale with it."
+sprite_id = "glassguard"
+variant_of = "glassguard"
+coat_hue = 0.0
+coat_saturation = -0.6
+coat_light = 0.16

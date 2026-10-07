@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 1
+id = "saltpan_raider"
+display_name = "Saltpan Raider"
+description = "Harpoons for fish when there are fish, and for people when there are not."
+role = 0
+max_hp = 83
+contact_damage = 12.1
+move_speed = 57.0
+body_radius = 27.0
+knockback_resistance = 0.18
+resource_value = 3

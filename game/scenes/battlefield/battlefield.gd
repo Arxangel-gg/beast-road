@@ -3180,6 +3180,8 @@ func preview_tower(tower_data: TowerData, anchor: Vector2i) -> void:
 		Vector2.ONE * BattleGrid.TILE * float(BattleGrid.FOOTPRINT),
 		GameData.load_idle_frames(tower_data.get_sprite_path()),
 		Balance.STRUCTURE_IDLE_FRAME_RATE, true)
+	build_ghost.blind_spot = tower_data.min_range
+	build_ghost.queue_redraw()
 
 
 ## A hovered trap on the road tile it would be laid on, inside its reach at the
@@ -3203,6 +3205,8 @@ func preview_upgrade(anchor: Vector2i, next_level: int) -> void:
 		return
 	build_ghost.show_offer(null, built.origin(), built.origin(),
 		built.reach_at_level(next_level), TowerData.element_colour(built.data.element))
+	build_ghost.blind_spot = built.data.min_range
+	build_ghost.queue_redraw()
 
 
 func clear_preview() -> void:

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "through_the_ash"
+display_name = "Through the Ash"
+description = "Reach Act IX and come through the Ashen Reach."
+order = 56
+metric = 0
+target = 9.0
+comparison = 0
+minimum_act = 9
+tool_reward = 2

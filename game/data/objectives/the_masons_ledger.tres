@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "the_masons_ledger"
+display_name = "The Mason's Ledger"
+description = "Complete sixty tower upgrades in a single journey."
+order = 38
+metric = 3
+target = 60.0
+comparison = 0
+minimum_act = 7
+tool_reward = 2

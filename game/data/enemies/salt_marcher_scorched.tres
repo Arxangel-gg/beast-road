@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 4.6
+art_facing = 1
+category = 0
+role = 0
+max_hp = 85.1
+contact_damage = 13.8
+move_speed = 60.3
+body_radius = 27.0
+knockback_resistance = 0.15
+raid_charge_value = 1.0
+resource_value = 2
+spawn_distance_scale = 1.0
+targets_towers = false
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "salt_marcher_scorched"
+display_name = "Scorched Salt Marcher"
+description = "Burned once and kept walking."
+sprite_id = "salt_marcher"
+variant_of = "salt_marcher"
+coat_hue = -0.03
+coat_saturation = 0.1
+coat_light = -0.28

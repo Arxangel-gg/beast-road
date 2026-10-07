@@ -8,6 +8,13 @@ PixelLab's allowance is spent until 2026-10-11 and the production-art gate
 refuses a placeholder, so every icon here is a new arrangement of shipped
 paintings - spell effects, relics and towers - never a shape drawn in code.
 A soft glow under each is the art's own alpha, blurred and tinted.
+
+**Superseded on 2026-10-07 by painted images** (owner: "bespoke Arsenal icons"
+and "Augment card images made with pixellab"). Every card it names now has a
+PixelLab painting in the style of the keystone icons, so this writes only a
+card whose icon is missing - a new card waiting for its painting - and never
+over a painted one. `--force` rewrites them all, which is a decision to
+throw the paintings away and should be taken as one.
 """
 import os, math
 from PIL import Image, ImageFilter, ImageEnhance, ImageChops
@@ -504,10 +511,14 @@ if __name__ == '__main__':
     os.makedirs(out, exist_ok=True)
     rows = (len(IDS) + 11) // 12
     sheet = Image.new('RGBA', (12 * 136 + 4, rows * 144 + 4), (34, 30, 28, 255))
+    force = '--force' in sys.argv
+    sys.argv = [a for a in sys.argv if a != '--force']
     for i, card_id in enumerate(IDS):
         icon = compose(card_id)
         assert icon.size == (SIZE, SIZE)
-        icon.save(os.path.join(out, 'card_%s.png' % card_id))
+        target = os.path.join(out, 'card_%s.png' % card_id)
+        if force or out != OUT or not os.path.exists(target):
+            icon.save(target)
         x = (i % 12) * 136 + 4
         y = (i // 12) * 144 + 4
         sheet.alpha_composite(icon, (x, y))

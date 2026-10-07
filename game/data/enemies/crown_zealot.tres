@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+hide = 0
+art_facing = 0
+id = "crown_zealot"
+display_name = "Crown Zealot"
+description = "Believes in the Crown more than the Crown ever believed in anything."
+role = 0
+max_hp = 83
+contact_damage = 12.7
+move_speed = 54.0
+body_radius = 27.0
+knockback_resistance = 0.18
+resource_value = 3

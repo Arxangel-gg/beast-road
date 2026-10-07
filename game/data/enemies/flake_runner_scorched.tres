@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 2.0
+hide = 2
+role = 1
+max_hp = 53.8
+contact_damage = 10.6
+move_speed = 91.5
+body_radius = 22.0
+knockback_resistance = 0.00
+resource_value = 3
+art_facing = 1
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.42
+behaviour_recovery = 1.20
+behaviour_reach = 280.0
+behaviour_power = 0.0
+behaviour_interval = 7.0
+id = "flake_runner_scorched"
+display_name = "Scorched Flake Runner"
+description = "Burned once and kept walking."
+sprite_id = "flake_runner"
+variant_of = "flake_runner"
+coat_hue = -0.03
+coat_saturation = 0.1
+coat_light = -0.28

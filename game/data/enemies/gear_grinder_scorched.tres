@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_siege"
+stagger_tolerance = 2.4
+hide = 1
+art_facing = 0
+targets_towers = true
+role = 0
+max_hp = 168.0
+contact_damage = 14.8
+move_speed = 31.2
+body_radius = 32.0
+knockback_resistance = 0.40
+resource_value = 4
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "gear_grinder_scorched"
+display_name = "Scorched Gear Grinder"
+description = "Burned once and kept walking."
+sprite_id = "gear_grinder"
+variant_of = "gear_grinder"
+coat_hue = -0.03
+coat_saturation = 0.1
+coat_light = -0.28

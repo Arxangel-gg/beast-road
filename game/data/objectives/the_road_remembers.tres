@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "the_road_remembers"
+display_name = "The Road Remembers"
+description = "Twelve thousand fall, and the Chainmaker with them."
+order = 90
+metric = 1
+target = 12000.0
+comparison = 0
+minimum_act = 11
+requires_victory = true
+tool_reward = 3

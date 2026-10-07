@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 8
+juice_scale = 0.9
+role = 0
+element = 0
+damage = 6.0
+attack_interval = 0.32
+attack_range = 260.0
+burn_dps = 4.0
+burn_duration = 2.0
+id = "spark_scatter"
+display_name = "Spark Scatter"
+description = "Skirmisher. Sprays a fan of sparks at whatever is closest, quickly, and sets a little of it alight. Short of reach and never short of fire."

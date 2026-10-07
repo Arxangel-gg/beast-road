@@ -155,6 +155,15 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"fissure_drum", "downburst",
 	"kindlers_eye", "frostpoint",
 	"granite_ballista", "lodestone_mast",
+	# The twenty of 2026-10-07, to fifteen an element (owner: "Need more towers,
+	# 15-30 instead of just 10 of each element", and "Long range mortar
+	# artillery towers"). The four mortars first, because they are the ones the
+	# owner named; then the rest a round of the elements at a time.
+	"ember_mortar", "breaker_mortar", "quarry_trebuchet", "thunder_mortar",
+	"spark_scatter", "rivulet_coil", "ricochet_sling", "needle_vane",
+	"brand_ballista", "pearl_sling", "spike_thrower", "storm_eye",
+	"wildfire_coil", "undertow", "gravel_bombard", "gust_cannon",
+	"magma_bastion", "fog_bank", "thornwall", "eye_of_the_storm",
 	# The well is last on purpose. It is the only tower that does not shoot, and
 	# a player offered one before they have learned what a road costs them will
 	# read it as a worse gun rather than as a trade.

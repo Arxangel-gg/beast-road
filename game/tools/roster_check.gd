@@ -65,11 +65,14 @@ func _test_every_act_names_its_count() -> void:
 	_check(table.size() == Balance.FINAL_ASCENT_ACT,
 		"the table names one count per act including the ascent (%d for %d acts)"
 			% [table.size(), Balance.FINAL_ASCENT_ACT])
-	_check(table[0] == 8, "Act I fields eight breeds (%d)" % table[0])
-	_check(table[table.size() - 1] == 19, "the summit fields nineteen (%d)" % table[table.size() - 1])
+	# **Amended 2026-10-07** (owner: "3x More enemy variety for every act"): the
+	# owner's table of 2026-09-21 - eight at Act I, one more each act, nineteen
+	# at the summit - tripled. What is held is the shape, three times over.
+	_check(table[0] == 24, "Act I fields twenty-four breeds (%d)" % table[0])
+	_check(table[table.size() - 1] == 57, "the summit fields fifty-seven (%d)" % table[table.size() - 1])
 	for index: int in range(1, Balance.ACT_COUNT):
-		_check(table[index] == table[index - 1] + 1,
-			"act %d fields one more breed than act %d (%d after %d)"
+		_check(table[index] == table[index - 1] + 3,
+			"act %d fields three more breeds than act %d (%d after %d)"
 				% [index + 1, index, table[index], table[index - 1]])
 	var acts: Array[TerrainData] = _terrains_by_act()
 	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_k4qo0"]
+
+[resource]
+script = ExtResource("1_k4qo0")
+voice_sfx = "sfx_enemy_call_swarm"
+stagger_tolerance = 1.6
+hide = 2
+category = 0
+role = 4
+max_hp = 80.6
+contact_damage = 12.7
+move_speed = 72.8
+body_radius = 30.0
+knockback_resistance = 0.4
+raid_charge_value = 2.0
+resource_value = 3
+spawn_distance_scale = 0.62
+targets_towers = true
+art_facing = 1
+behaviour = 4
+behaviour_warning = 0.90
+behaviour_seconds = 0.60
+behaviour_recovery = 1.40
+behaviour_reach = 360.0
+behaviour_power = 0.70
+behaviour_interval = 11.0
+id = "burrower_sunscorched"
+display_name = "Sunscorched Dune Burrower"
+description = "Baked until it stopped feeling the heat."
+sprite_id = "dune_burrower"
+variant_of = "burrower"
+coat_hue = -0.05
+coat_saturation = 0.3
+coat_light = -0.06

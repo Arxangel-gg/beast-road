@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_horde"
+stagger_tolerance = 4.5
+role = 0
+max_hp = 94.1
+contact_damage = 12.7
+move_speed = 47.8
+body_radius = 28.0
+knockback_resistance = 0.20
+resource_value = 3
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 5.00
+behaviour_recovery = 1.30
+behaviour_reach = 230.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
+id = "mire_shambler_fenbound"
+display_name = "Fenbound Mire Shambler"
+description = "The marsh owns it now."
+sprite_id = "mire_shambler"
+variant_of = "mire_shambler"
+coat_hue = 0.12
+coat_saturation = -0.1
+coat_light = -0.2

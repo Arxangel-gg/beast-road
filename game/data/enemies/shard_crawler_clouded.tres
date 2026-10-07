@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+voice_sfx = "sfx_enemy_call_swarm"
+hide = 2
+art_facing = 1
+role = 4
+max_hp = 82.9
+contact_damage = 13.0
+move_speed = 75.9
+body_radius = 30.0
+knockback_resistance = 0.4
+resource_value = 3
+raid_charge_value = 2.0
+spawn_distance_scale = 0.64
+targets_towers = true
+behaviour = 4
+behaviour_warning = 0.90
+behaviour_seconds = 0.60
+behaviour_recovery = 1.40
+behaviour_reach = 360.0
+behaviour_power = 0.70
+behaviour_interval = 11.0
+id = "shard_crawler_clouded"
+display_name = "Clouded Shard Crawler"
+description = "Glass gone grey and cold."
+sprite_id = "shard_crawler"
+variant_of = "shard_crawler"
+coat_hue = 0.0
+coat_saturation = -0.5
+coat_light = -0.2
