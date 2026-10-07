@@ -6040,7 +6040,13 @@ const TOOLS_PER_BLUEPRINT: int = 3
 ## Ceiling on the stored balance. Tools are spent automatically at the end of a
 ## run, so a balance only builds up once the roster is complete; the cap stops it
 ## growing into a meaningless number on the debrief. [TUNE]
-const TOOLS_MAX: int = 40
+##
+## **120 since 2026-10-07**: the roster is sixty towers and the Chronicle pays 83
+## Tools across 41 deeds, so a run that met several deeds at once was clamped at
+## 40 and lost the rest in silence - `chronicle_check` caught it as a deed paying
+## less than it says. The cap still bounds a finished account; it no longer eats
+## an unfinished one's pay.
+const TOOLS_MAX: int = 120
 
 ## Shared Chronicle progress, not simulation. Final progress is always sent
 ## before the run-end fact regardless of this interval. [TUNE]
