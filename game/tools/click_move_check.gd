@@ -380,6 +380,7 @@ func _test_the_hovered_body_is_lit() -> void:
 	_check(material != null, "the probe body wears no material to light")
 	var colour_was: Variant = material.get_shader_parameter("outline_colour") if material != null else null
 	var strength_was: Variant = material.get_shader_parameter("outline_strength") if material != null else null
+	var width_was: Variant = material.get_shader_parameter("outline_width") if material != null else null
 	orders.hover_test_point = body.global_position
 	orders.set("_hover_left", 0.0)
 	orders.call("_tick_hover", 0.1)
@@ -387,13 +388,17 @@ func _test_the_hovered_body_is_lit() -> void:
 	if material != null:
 		_check(material.get_shader_parameter("outline_colour") == Balance.HOVER_OUTLINE_COLOUR,
 			"the hovered body's outline is %s, not the hover colour" % str(material.get_shader_parameter("outline_colour")))
+		_check(material.get_shader_parameter("outline_width") == Balance.HOVER_OUTLINE_WIDTH,
+			"the hovered body's rim is %s texels, not the hover's %.0f" % [
+				str(material.get_shader_parameter("outline_width")), Balance.HOVER_OUTLINE_WIDTH])
 	orders.hover_test_point = Vector2(-4000.0, -4000.0)
 	orders.set("_hover_left", 0.0)
 	orders.call("_tick_hover", 0.1)
 	_check(not ClickMove.is_lit(body), "the body stays lit after the cursor leaves")
 	if material != null:
 		_check(material.get_shader_parameter("outline_colour") == colour_was
-				and material.get_shader_parameter("outline_strength") == strength_was,
+				and material.get_shader_parameter("outline_strength") == strength_was
+				and material.get_shader_parameter("outline_width") == width_was,
 			"leaving did not put the outline back (%s / %s)" % [
 				str(material.get_shader_parameter("outline_colour")),
 				str(material.get_shader_parameter("outline_strength"))])

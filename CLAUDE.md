@@ -13471,6 +13471,16 @@ patch put them** (the Archive on the upper shelf, the Lookout and the Hall of
 Wardens on the eastern one): the gate walks to each and the photograph shows
 them on stone, crowded on the east side but clear.
 
+**The hover's rim is two texels, as of 2026-10-07.** Owner item 8's gold
+outline on the body under the cursor was drawn into the one transparent texel
+beside the body and read as a hairline at play zoom. Both body shaders take an
+`outline_width` now and, only above one, sample the four neighbours at that
+width and the four diagonals that close its corners - eight reads paid by the
+one lit body. `ClickMove._light` sets it to `HOVER_OUTLINE_WIDTH` beside the
+colour and the strength and puts back what was worn, which on every body that
+never set it is the default of one. `click_move_check` reads the width back
+both ways; `tower_juice_shot` is the photograph, cropped and enlarged.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

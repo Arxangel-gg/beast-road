@@ -279,13 +279,16 @@ func _light(body: Node2D, on: bool) -> void:
 	if on:
 		if not material.has_meta(HOVER_META):
 			material.set_meta(HOVER_META, [material.get_shader_parameter("outline_colour"),
-				material.get_shader_parameter("outline_strength")])
+				material.get_shader_parameter("outline_strength"),
+				material.get_shader_parameter("outline_width")])
 		material.set_shader_parameter("outline_colour", Balance.HOVER_OUTLINE_COLOUR)
 		material.set_shader_parameter("outline_strength", Balance.HOVER_OUTLINE_STRENGTH)
+		material.set_shader_parameter("outline_width", Balance.HOVER_OUTLINE_WIDTH)
 	elif material.has_meta(HOVER_META):
 		var was: Array = material.get_meta(HOVER_META)
 		material.set_shader_parameter("outline_colour", was[0])
 		material.set_shader_parameter("outline_strength", was[1])
+		material.set_shader_parameter("outline_width", was[2] if was.size() > 2 else 1.0)
 		material.remove_meta(HOVER_META)
 
 

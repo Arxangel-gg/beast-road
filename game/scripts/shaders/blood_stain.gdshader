@@ -29,6 +29,9 @@ uniform float cluster_pixels : hint_range(2.0, 6.0) = 3.4;
 uniform float fine_scatter : hint_range(0.0, 0.5) = 0.24;
 uniform vec4 outline_colour : source_color = vec4(0.035, 0.045, 0.05, 0.94);
 uniform float outline_strength : hint_range(0.0, 1.0) = 0.82;
+// How many texels out the rim reaches: one, as painted, unless the cursor lights
+// the body (`ClickMove._light`).
+uniform float outline_width : hint_range(1.0, 4.0) = 1.0;
 uniform vec4 impact_colour : source_color = vec4(1.0, 0.82, 0.62, 1.0);
 uniform vec2 impact_direction = vec2(0.0, -1.0);
 uniform float impact_strength : hint_range(0.0, 1.0) = 0.0;
@@ -61,6 +64,18 @@ void fragment() {
 	float up_a = texture(TEXTURE, UV - vec2(0.0, px.y)).a;
 	float down_a = texture(TEXTURE, UV + vec2(0.0, px.y)).a;
 	float around = max(max(left_a, right_a), max(up_a, down_a));
+	// **A wider rim when asked** (2026-10-07): the hover's gold one texel wide
+	// read as a hairline at play zoom. Only a lit body pays the eight reads -
+	// the four at the width and the four diagonals that close its corners.
+	if (outline_width > 1.01) {
+		vec2 wide = px * outline_width;
+		around = max(around, max(
+			max(texture(TEXTURE, UV - vec2(wide.x, 0.0)).a, texture(TEXTURE, UV + vec2(wide.x, 0.0)).a),
+			max(texture(TEXTURE, UV - vec2(0.0, wide.y)).a, texture(TEXTURE, UV + vec2(0.0, wide.y)).a)));
+		around = max(around, max(
+			max(texture(TEXTURE, UV + px).a, texture(TEXTURE, UV - px).a),
+			max(texture(TEXTURE, UV + vec2(px.x, -px.y)).a, texture(TEXTURE, UV + vec2(-px.x, px.y)).a)));
+	}
 	float outline = max(around - COLOR.a, 0.0) * outline_strength;
 	if (COLOR.a <= 0.001 && outline > 0.001) {
 		COLOR = vec4(outline_colour.rgb, outline * outline_colour.a);

@@ -2403,6 +2403,9 @@ const CLICK_MOVE_TARGET_COLOUR: Color = Color(1.0, 0.32, 0.26, 1.0)
 ## back exactly as it was when the cursor leaves. A look: nothing reads it.
 const HOVER_OUTLINE_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.96)
 const HOVER_OUTLINE_STRENGTH: float = 1.0
+## Two texels, because one read as a hairline at play zoom (photographed with
+## `tower_juice_shot`, 2026-10-06). [TUNE]
+const HOVER_OUTLINE_WIDTH: float = 2.0
 const HOVER_RING_STRENGTH: float = 0.75
 
 ## Impulse applied to everything the swing connects with.
