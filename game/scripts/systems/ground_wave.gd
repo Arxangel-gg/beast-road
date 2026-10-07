@@ -204,7 +204,9 @@ func _strike_the_front(ring: Ring) -> void:
 			continue
 		var damage: float = hero.health.max_hp * hero_share * fade
 		RunState.note_blow("earthquake", damage)
+		EarthHand.open()
 		hero.health.take_damage(damage, at)
+		EarthHand.close()
 		# Thrown off their feet away from the split, which is the one thing
 		# the wave does that the old blow did not - and it moves nobody more
 		# than a shove already can.

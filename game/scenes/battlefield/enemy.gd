@@ -3035,7 +3035,9 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	var standing: float = health.current_hp
 	if not health.take_damage(incoming, from):
 		return false
-	DamageLedger.note(source, standing - maxf(health.current_hp, 0.0))
+	var lost: float = standing - maxf(health.current_hp, 0.0)
+	DamageLedger.note(source, lost)
+	_shed_blood(lost, source)
 	# A Prism Warden banks a capped share of what it is given.
 	_bank_blow(incoming)
 	_note_tower_blow(from)
@@ -4220,6 +4222,19 @@ func combat_origin() -> Vector2:
 
 func _visual_origin() -> Vector2:
 	return combat_origin()
+
+
+## **The earth watches the blood** (owner, 2026-10-07): a road body's at a
+## sliver of an animal's, a dragon's more than anything that walks - and
+## never what the earth itself struck (`EarthHand`, `DamageLedger.EARTH`).
+func _shed_blood(lost: float, source: String) -> void:
+	if lost <= 0.0 or puppet or data == null or health == null or health.max_hp <= 0.0:
+		return
+	if source == DamageLedger.EARTH or EarthHand.striking():
+		return
+	var dragon: bool = not data.breath_element.is_empty()
+	EventBus.blood_shed.emit(global_position, lost / health.max_hp,
+		"dragon" if dragon else "enemy", data.breath_element)
 
 
 ## The ring that says this one is not ordinary.

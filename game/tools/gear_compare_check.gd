@@ -39,6 +39,7 @@ func _ready() -> void:
 	_test_the_difference_is_measured_not_printed()
 	_test_a_trade_is_not_an_upgrade()
 	_test_the_market_opens_it_both_ways()
+	await _test_the_shelf_says_better_or_worse()
 
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -151,6 +152,105 @@ func _test_the_market_opens_it_both_ways() -> void:
 	_check(code.contains("_hide_compare"),
 		"nothing ever closes the comparison, so a card opened over the shelf "
 		+ "stays over it")
+
+
+## **The shelf wears the card's verdict, and Upgrades only keeps what is
+## better** (owner, 2026-10-07: *"A toggle button at the market to only show
+## better items than what the player is wearing. Each item's row in the market
+## should have a slight color indicator to show if it's better or worse"*).
+##
+## Driven through the real screen on a real shelf. A piece's affixes come from
+## its own name, so whether one is better is never assumed here: every row is
+## held to `GearCompare.verdict`, the card is held to the same answer, and the
+## shelf is stocked so that both a better and a worse piece are on it.
+func _test_the_shelf_says_better_or_worse() -> void:
+	var kind: GearData = _any_kind()
+	if kind == null:
+		_check(false, "no gear kinds for the shelf")
+		return
+	MetaState.equipped.clear()
+	var worn: Dictionary = Stash.make(kind.id, 2, 12)
+	MetaState.stash.append(worn)
+	MetaState.equip(int(kind.slot), MetaState.stash.size() - 1)
+	var stock: Array = []
+	for i: int in 6:
+		stock.append(Stash.make(kind.id, 0, 1))
+		stock.append(Stash.make(kind.id, Stash.RARITY_NAMES.size() - 1, 60))
+	var verdicts: Dictionary = {}
+	for piece: Dictionary in stock:
+		var answer: int = GearCompare.verdict(piece)
+		verdicts[answer] = true
+		# The card says the same thing, in its own ink.
+		_card.show_pair(piece)
+		var ink: Color = _verdict_ink()
+		if answer == GearCompare.Verdict.BETTER:
+			_check(ink.is_equal_approx(GearCompare.BETTER),
+				"the shelf calls a piece better and the card does not")
+		elif answer == GearCompare.Verdict.WORSE:
+			_check(ink.is_equal_approx(GearCompare.WORSE),
+				"the shelf calls a piece worse and the card does not")
+		elif answer == GearCompare.Verdict.TRADE:
+			_check(ink.is_equal_approx(GearCompare.SAME),
+				"the card named a winner for a trade")
+	_card.hide_pair()
+	_check(verdicts.has(GearCompare.Verdict.BETTER) and verdicts.has(GearCompare.Verdict.WORSE),
+		"the shelf was never stocked with both a better and a worse piece (%s)" % [verdicts.keys()])
+
+	var shelf_before: Variant = MetaState.vendor
+	MetaState.vendor = {"stock": stock, "rolled_at": Time.get_unix_time_from_system()}
+	var screen := VendorScreen.new()
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await get_tree().process_frame
+	var rows: Array = _wares(screen)
+	_check(rows.size() == stock.size(), "the Market drew %d of %d wares" % [rows.size(), stock.size()])
+	for row: Control in rows:
+		var answer: int = int(row.get_meta(&"verdict", -1))
+		var wash := row.get_theme_stylebox(&"panel") as StyleBoxFlat
+		var said := row.find_child("Verdict", true, false) as Label
+		_check(wash != null and Color(wash.border_color.r, wash.border_color.g,
+			wash.border_color.b).is_equal_approx(Color(GearCompare.verdict_colour(answer).r,
+			GearCompare.verdict_colour(answer).g, GearCompare.verdict_colour(answer).b)),
+			"a ware's edge is not its verdict's colour")
+		_check(said != null and said.text == GearCompare.verdict_word(answer),
+			"a ware does not say its verdict beside its price")
+	# Upgrades only: exactly the better pieces, and the empty-slot ones.
+	var button := screen.find_child("UpgradesOnly", true, false) as Button
+	_check(button != null, "the Market has no Upgrades only toggle")
+	if button != null:
+		button.button_pressed = true
+		await get_tree().process_frame
+		var kept: Array = _wares(screen)
+		var wanted: int = 0
+		for piece: Dictionary in stock:
+			var answer: int = GearCompare.verdict(piece)
+			if answer == GearCompare.Verdict.BETTER or answer == GearCompare.Verdict.EMPTY_SLOT:
+				wanted += 1
+		_check(kept.size() == wanted, "Upgrades only kept %d wares where %d are better"
+			% [kept.size(), wanted])
+		for row: Control in kept:
+			var answer: int = int(row.get_meta(&"verdict", -1))
+			_check(answer == GearCompare.Verdict.BETTER or answer == GearCompare.Verdict.EMPTY_SLOT,
+				"Upgrades only kept a ware that is not better")
+		button.button_pressed = false
+		await get_tree().process_frame
+		_check(_wares(screen).size() == stock.size(), "pressed again, the shelf did not come back whole")
+	screen.hide_screen()
+	screen.queue_free()
+	MetaState.vendor = shelf_before
+	MetaState.equipped.clear()
+	MetaState.stash.pop_back()
+
+
+func _wares(screen: Node) -> Array:
+	var out: Array = []
+	# By the verdict each row carries, not by name: siblings that share a name
+	# are renamed by the tree.
+	for node: Node in screen.find_children("*", "PanelContainer", true, false):
+		if node.has_meta(&"verdict") and not node.is_queued_for_deletion():
+			out.append(node)
+	return out
 
 
 # --- Harness -----------------------------------------------------------------

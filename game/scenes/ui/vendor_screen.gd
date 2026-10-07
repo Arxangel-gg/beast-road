@@ -43,6 +43,12 @@ var _result: Label
 var _close_button: Button
 var _art: TextureRect = null
 var _compare: GearCompare = null
+## **Upgrades only** (owner, 2026-10-07: *"A toggle button at the market to
+## only show better items than what the player is wearing"*): only wares
+## `GearCompare.verdict` calls better, or that fill an empty slot. A trade is
+## left out: the toggle is the question "what would I simply put on".
+var _upgrades_only: bool = false
+var _upgrades_button: Button = null
 
 
 func _ready() -> void:
@@ -146,6 +152,18 @@ func _build() -> void:
 	bottom.add_theme_constant_override("separation", 8)
 	column.add_child(bottom)
 
+	_upgrades_button = Button.new()
+	_upgrades_button.name = "UpgradesOnly"
+	_upgrades_button.toggle_mode = true
+	_upgrades_button.custom_minimum_size = Vector2(0.0, 44.0)
+	_upgrades_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_upgrades_button.tooltip_text = ("Only what beats what you are wearing in its "
+		+ "slot, in every attribute it moves - or fills a slot you have empty.")
+	_upgrades_button.toggled.connect(func(on: bool) -> void:
+		_upgrades_only = on
+		_refresh())
+	bottom.add_child(_upgrades_button)
+
 	var ledger := Button.new()
 	ledger.name = "LedgerDoor"
 	ledger.text = "The Long Ledger"
@@ -208,22 +226,58 @@ func _refresh() -> void:
 		+ "at the price she sells.\n" + VendorStock.refresh_line())
 
 	var stock: Array = VendorStock.wares()
+	if _upgrades_button != null:
+		_upgrades_button.set_pressed_no_signal(_upgrades_only)
+		_upgrades_button.text = "Upgrades  ·  showing" if _upgrades_only else "Upgrades only"
 	if stock.is_empty():
 		_rows.add_child(_line("The shelf is bare. Come back after a road."))
+	var shown: int = 0
 	for index: int in stock.size():
 		var piece: Variant = stock[index]
-		if piece is Dictionary:
-			_rows.add_child(_ware_row(piece as Dictionary, index))
+		if not piece is Dictionary:
+			continue
+		var answer: int = GearCompare.verdict(piece as Dictionary)
+		if _upgrades_only and answer != GearCompare.Verdict.BETTER \
+				and answer != GearCompare.Verdict.EMPTY_SLOT:
+			continue
+		_rows.add_child(_ware_row(piece as Dictionary, index, answer))
+		shown += 1
+	if _upgrades_only and shown == 0 and not stock.is_empty():
+		_rows.add_child(_line("Nothing on the shelf beats what you are wearing."))
 
 	_purse.text = "%d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 
 
-func _ware_row(piece: Dictionary, index: int) -> Container:
+## **A ware wears its verdict** (owner, 2026-10-07: *"Each item's row in the
+## market should have a slight color indicator to show if it's better or
+## worse than what the player has equipped"*): a faint wash of the
+## verdict's colour behind the row, an edge in it, and the word beside the
+## price - the card's own answer (`GearCompare.verdict`), so the shelf and
+## the card cannot disagree about a piece.
+func _ware_row(piece: Dictionary, index: int, answer: int = GearCompare.Verdict.SAME) -> Container:
 	var kind := ContentDB.gear_kinds.get(String(piece.get("kind", "")), null) as GearData
 	var tint: Color = Stash.rarity_colour(piece)
+	var judged: Color = GearCompare.verdict_colour(answer)
+
+	var plate := PanelContainer.new()
+	plate.name = "Ware"
+	plate.set_meta(&"verdict", answer)
+	var wash := StyleBoxFlat.new()
+	wash.bg_color = Color(judged.r, judged.g, judged.b, Balance.MARKET_VERDICT_WASH)
+	wash.border_color = Color(judged.r, judged.g, judged.b, 0.85)
+	wash.border_width_left = 4
+	wash.corner_radius_top_left = 4
+	wash.corner_radius_bottom_left = 4
+	wash.content_margin_left = 10.0
+	wash.content_margin_right = 4.0
+	wash.content_margin_top = 3.0
+	wash.content_margin_bottom = 3.0
+	plate.add_theme_stylebox_override(&"panel", wash)
+	plate.mouse_filter = Control.MOUSE_FILTER_PASS
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
+	plate.add_child(row)
 
 	var icon := TextureRect.new()
 	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
@@ -268,6 +322,16 @@ func _ware_row(piece: Dictionary, index: int) -> Container:
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(what)
 
+	var said_verdict := Label.new()
+	said_verdict.name = "Verdict"
+	said_verdict.text = GearCompare.verdict_word(answer)
+	said_verdict.add_theme_font_size_override("font_size", 14)
+	said_verdict.add_theme_color_override("font_color", judged)
+	said_verdict.custom_minimum_size = Vector2(Balance.MARKET_VERDICT_WIDTH, 0.0)
+	said_verdict.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	said_verdict.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(said_verdict)
+
 	var asking: int = VendorStock.price(piece)
 	var buy := Button.new()
 	buy.text = "%d Marks" % asking
@@ -280,12 +344,12 @@ func _ware_row(piece: Dictionary, index: int) -> Container:
 	# `mouse_entered` alone is a comparison for one of the three ways this game
 	# is played.
 	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.mouse_entered.connect(func() -> void: _compare_to_worn(piece))
-	row.mouse_exited.connect(func() -> void: _hide_compare())
+	plate.mouse_entered.connect(func() -> void: _compare_to_worn(piece))
+	plate.mouse_exited.connect(func() -> void: _hide_compare())
 	buy.focus_entered.connect(func() -> void: _compare_to_worn(piece))
 	buy.focus_exited.connect(func() -> void: _hide_compare())
 	row.add_child(buy)
-	return row
+	return plate
 
 
 ## Lays the hovered piece beside whatever is worn in its slot.

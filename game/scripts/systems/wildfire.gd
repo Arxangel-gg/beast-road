@@ -275,8 +275,10 @@ func _hurt_around(at: Vector2, delta: float) -> void:
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:
 		hero_pool = field.hero.health.max_hp
+	EarthHand.open()
 	EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.WILDFIRE_HERO_SHARE_PER_SECOND * delta,
 		"", func(where: Vector2) -> bool: return where.distance_to(at) <= radius)
+	EarthHand.close()
 	if animals != null:
 		animals.burn_near(at, radius, Balance.WILDFIRE_WILDLIFE_DPS * delta)
 

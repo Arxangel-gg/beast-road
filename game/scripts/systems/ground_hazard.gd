@@ -147,7 +147,9 @@ func _strike(a: Vector2, b: Vector2) -> void:
 		if hero.health.accepts_damage():
 			var damage: float = hero.health.max_hp * float(plan["share"])
 			RunState.note_blow(String(plan["blame"]), damage)
+			EarthHand.open()
 			hero.health.take_damage(damage, a)
+			EarthHand.close()
 	if bool(plan.get("wild", false)):
 		_strike_the_wild(a, b, width)
 	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):

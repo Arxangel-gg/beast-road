@@ -1707,6 +1707,16 @@ const ACT3_CLEAR_BONUS_RELIC_SLOTS: int = 1
 ## edge are the same circle and there is nowhere enemies do not come from.
 const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 
+## **The Warden is drawn a little smaller, and the camera comes in by the same
+## amount** (owner, 2026-10-07: *"Make the player a tiny bit smaller and
+## increase the zoom on the player by just as much so it's almost like nothing
+## changed but everything else in the world seems bigger compared to the
+## player"*). The Warden's picture only: the body's reach, its collider and
+## its hitbox are what they were, so no fight moves. Every zoom the Warden is
+## seen at below is divided by this, so the Warden stands on the screen at
+## the size it always did and the world around them is the bigger thing.
+const WARDEN_DRAW_SCALE: float = 0.92
+
 ## Camera zoom, per scope. Godot zooms IN above 1.0 and OUT below it.
 ##
 ## The battlefield is ~1800px across against a 1080px-tall viewport, and the
@@ -1714,7 +1724,7 @@ const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 ## decision loop — so it is pulled back far enough to hold the whole ring.
 ## The raid is an open arena with no lanes to read, so it sits closer and the
 ## swing stays legible. [TUNE]
-const CAMERA_ZOOM: float = 0.72
+const CAMERA_ZOOM: float = 0.72 / WARDEN_DRAW_SCALE
 ## Framed for the authored 45x45 field.
 ##
 ## 0.77 framed the old 30x30 arena, where the whole map was two screens across.
@@ -1723,16 +1733,16 @@ const CAMERA_ZOOM: float = 0.72
 ## map is built around happened entirely off screen. Pulled out to show about
 ## two thirds of the field's width at 1080p, which puts a fork and the ground
 ## either side of it in view together. [TUNE]
-const CAMERA_ZOOM_BATTLEFIELD: float = 0.52
-const CAMERA_ZOOM_RAID: float = 0.95
+const CAMERA_ZOOM_BATTLEFIELD: float = 0.52 / WARDEN_DRAW_SCALE
+const CAMERA_ZOOM_RAID: float = 0.95 / WARDEN_DRAW_SCALE
 
 ## Mouse-wheel battlefield range. The near end went one step closer on
 ## 2026-09-25 (owner: "one more zoom in level beyond the current max zoom in"):
 ## 1.00 to 1.10, one `CAMERA_ZOOM_STEP`. Past the near end is the Town and past
 ## the far end is Yuri, crossed only by a deliberate push
 ## (`CAMERA_SCOPE_PUSH_*`, owner 2026-09-27).
-const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38
-const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.10
+const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38 / WARDEN_DRAW_SCALE
+const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.10 / WARDEN_DRAW_SCALE
 
 ## The same three numbers, for a screen held in one hand.
 ##
@@ -1746,9 +1756,9 @@ const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.10
 ## So the default sits nearer, and the range moves with it: the far end still
 ## pulls back far enough to read the ring of lanes, and the near end goes closer
 ## than a desktop ever needs for the moments a thumb is fighting something. [TUNE]
-const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN: float = 0.52
+const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN: float = 0.52 / WARDEN_DRAW_SCALE
 ## One step closer on a thumb too (2026-09-25): 1.55 to 1.65.
-const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.65
+const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.65 / WARDEN_DRAW_SCALE
 
 
 ## How much closer every scene starts when a thumb is driving.
@@ -10242,6 +10252,25 @@ const WRATH_FALL_SCALE: Dictionary = {"earth": 0.3, "fire": 0.5, "flood": 0.3, "
 const WRATH_BLOOD_SHARE: float = 0.5
 const WRATH_DRAGON_KILL_SCALE: float = 2.0
 
+## **Blood that is not an animal's** (owner, 2026-10-07), as a common
+## animal's blood is 1 (`WRATH_RARITY_SCALE`): a road body a sliver of it,
+## a Warden a little more than most animals - common is 1 and uncommon 3 -
+## and a dragon past even a legend's 24, because the dragons are the wrath's
+## own stewards. Never the earth's own blows (`EarthHand`). [TUNE]
+const WRATH_BLOOD_BY_WHO: Dictionary = {"enemy": 0.05, "warden": 1.4, "dragon": 32.0}
+## How hard karma tilts the earth's judgement of blood: a road at its
+## cruellest makes each drop count this much more, and at its kindest half
+## of this less. [TUNE]
+const WRATH_KARMA_JUDGE: float = 0.6
+## **A dragon's element, favoured** (owner, 2026-10-07): each unit of its
+## blood's weight lifts its element's events by this share, to
+## `WRATH_FAVOUR_MAX` times, fading over `WRATH_FAVOUR_HALF_LIFE` seconds.
+## Stone leans to quakes, fire to blazes and stones from the sky, storm to
+## funnels and lightning, frost to rain heavy enough to flood. [TUNE]
+const WRATH_FAVOUR_GAIN: float = 0.1
+const WRATH_FAVOUR_MAX: float = 2.5
+const WRATH_FAVOUR_HALF_LIFE: float = 300.0
+
 ## **Grief, where it happened** (`EarthGrief`). A kill lays its weight of grief
 ## across `WRATH_GRIEF_RADIUS` on cells of `WRATH_GRIEF_CELL`, fading on
 ## `WRATH_GRIEF_HALF_LIFE`, no cell above `WRATH_GRIEF_CELL_CAP`.
@@ -11063,6 +11092,11 @@ const TORNADO_PUFFS_PER_RING: int = 7
 const TORNADO_PUFF_SIZE: Vector2 = Vector2(44.0, 118.0)
 ## What it has picked up, climbing it.
 const TORNADO_CHUNKS: int = 30
+
+## **The Market's verdict on a ware** (2026-10-07): how strongly a row is
+## washed in its colour, and the width its word is given.
+const MARKET_VERDICT_WASH: float = 0.10
+const MARKET_VERDICT_WIDTH: float = 96.0
 ## **What a funnel takes off a tower it is standing on**, per second.
 ##
 ## It was 700, which with a 1.4-second pass through the 84-unit wake is 980

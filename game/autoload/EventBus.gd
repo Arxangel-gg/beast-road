@@ -463,6 +463,12 @@ signal wildlife_fell(kind_id: String, at: Vector2, rarity: int, shiny: bool, cau
 ## it as heat, never the floor.
 signal wildlife_bled(kind_id: String, at: Vector2, rarity: int, shiny: bool, share: float, cause: String)
 
+## Blood shed by a body that is not an animal, by the share of its pool a
+## blow took (2026-10-07): `who` is "warden", "enemy" or "dragon", and
+## `element` the dragon's own breath. Never the earth's own blows
+## (`EarthHand`). Read by the sky alone, as heat on its hidden anger.
+signal blood_shed(at: Vector2, share: float, who: String, element: String)
+
 ## Young were born to a pair out on the road (the families, 2026-09-14): the
 ## species, how many arrived and where. Presentation and the debrief read it;
 ## nothing about a reward travels on it.

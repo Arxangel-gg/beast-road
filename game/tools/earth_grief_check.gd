@@ -60,7 +60,8 @@ func _ready() -> void:
 		_test_luck_and_the_cruel()
 		_test_temper()
 		_test_a_guest_breathes_the_same_ash()
-	_check(_finished == 10, "%d of 10 tests reached their end" % _finished)
+		await _test_blood_that_is_not_an_animals()
+	_check(_finished == 11, "%d of 11 tests reached their end" % _finished)
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	GameDirector.run_active = false
 	_run.queue_free()
@@ -75,6 +76,84 @@ func _ready() -> void:
 	for _frame: int in 10:
 		await get_tree().process_frame
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Blood that is not an animal's** (owner, 2026-10-07): a road body's a
+## sliver, a Warden's a little over a common animal's, a dragon's more than a
+## legend's; karma judges it; a dragon's element is favoured after; and the
+## earth's own blows on a Warden are not held against anybody. Driven through
+## the real doors: a real blow on the real Warden and on a real road body.
+func _test_blood_that_is_not_an_animals() -> void:
+	_calm()
+	RunState.karma = 0.0
+	var karma_now: Array[float] = [0.0]
+	var heat_of: Callable = func(who: String, element: String) -> float:
+		_calm()
+		# Set after the calm, which puts karma home.
+		RunState.karma = karma_now[0]
+		EventBus.blood_shed.emit(Vector2(900.0, 900.0), 1.0, who, element)
+		return _heat()
+	var animal: float = Balance.WRATH_HEAT_PER_KILL * Balance.WRATH_BLOOD_SHARE \
+		* float(Balance.WRATH_RARITY_SCALE[0])
+	var legend: float = Balance.WRATH_HEAT_PER_KILL * Balance.WRATH_BLOOD_SHARE \
+		* float(Balance.WRATH_RARITY_SCALE[Balance.WRATH_RARITY_SCALE.size() - 1])
+	var road: float = float(heat_of.call("enemy", ""))
+	var warden: float = float(heat_of.call("warden", ""))
+	var dragon: float = float(heat_of.call("dragon", "fire"))
+	_check(road > 0.0 and road < animal * 0.2, "a road body's whole pool was %.4f heat against a common animal's %.4f" % [road, animal])
+	_check(warden > animal and warden < animal * float(Balance.WRATH_RARITY_SCALE[1]),
+		"a Warden's blood (%.4f) is not a little over a common animal's (%.4f)" % [warden, animal])
+	_check(dragon > legend, "a dragon's blood (%.4f) is not more than a legend's (%.4f)" % [dragon, legend])
+	_check(_sky.favour("fire") > 1.0 and is_equal_approx(_sky.favour("stone"), 1.0),
+		"a fire dragon's blood did not favour fire alone")
+	_sky.set("_favour", {})
+	# Karma judges: a cruel road counts the same blood for more.
+	karma_now[0] = -1.0
+	var cruel: float = float(heat_of.call("warden", ""))
+	karma_now[0] = 1.0
+	var kind: float = float(heat_of.call("warden", ""))
+	karma_now[0] = 0.0
+	RunState.karma = 0.0
+	_check(cruel > warden and kind < warden, "karma did not judge the blood (cruel %.4f, kind %.4f, plain %.4f)"
+		% [cruel, kind, warden])
+	# The real doors.
+	var shed: Array = []
+	var listen: Callable = func(_at: Vector2, share: float, who: String, _element: String) -> void:
+		shed.append([who, share])
+	EventBus.blood_shed.connect(listen)
+	var hero: Hero = _field.hero
+	hero.health.max_hp = 1000.0
+	hero.health.current_hp = 1000.0
+	hero.health.take_damage(100.0, hero.global_position)
+	_check(shed.size() == 1 and String(shed[0][0]) == "warden" and absf(float(shed[0][1]) - 0.1) < 0.01,
+		"a blow on the Warden shed no blood the earth could see (%s)" % [shed])
+	shed.clear()
+	EarthHand.open()
+	hero.health.take_damage(100.0, hero.global_position)
+	EarthHand.close()
+	_check(shed.is_empty(), "the earth held its own blow on the Warden against them")
+	shed.clear()
+	var breed: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var data := value as EnemyData
+		if data != null and data.category == EnemyData.Category.BREED and data.breath_element.is_empty():
+			breed = data
+			break
+	var body: Enemy = _field.spawn_enemy(breed, 0, 60.0, -1.0, 0.001)
+	await get_tree().process_frame
+	body.health.max_hp = 1000.0
+	body.health.current_hp = 1000.0
+	body.take_damage(100.0, body.global_position, 0.0)
+	_check(shed.size() == 1 and String(shed[0][0]) == "enemy", "a blow on a road body shed no blood (%s)" % [shed])
+	shed.clear()
+	DamageLedger.credit_as(DamageLedger.EARTH)
+	body.take_damage(100.0, body.global_position, 0.0)
+	_check(shed.is_empty(), "the earth's own blow on a road body was held against the road")
+	EventBus.blood_shed.disconnect(listen)
+	body.queue_free()
+	hero.health.current_hp = hero.health.max_hp
+	_calm()
+	_finished += 1
 
 
 func _calm() -> void:

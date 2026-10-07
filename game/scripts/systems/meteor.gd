@@ -217,8 +217,10 @@ func _hurt() -> void:
 	var hero_pool: float = 100.0
 	if field.hero != null and field.hero.health != null:
 		hero_pool = field.hero.health.max_hp
+	EarthHand.open()
 	EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.METEOR_HERO_SHARE, "meteor",
 		func(where: Vector2) -> bool: return where.distance_to(at) <= radius, Balance.METEOR_PUSH, at)
+	EarthHand.close()
 	var animals: Wildlife = field.wildlife()
 	if animals != null:
 		animals.wound_within(at, radius, Balance.METEOR_WILDLIFE_DAMAGE, false)

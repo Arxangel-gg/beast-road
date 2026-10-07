@@ -217,7 +217,9 @@ func _hurt_aloft(body: Node2D, delta: float) -> void:
 		if health != null and health.accepts_damage():
 			var amount: float = health.max_hp * Balance.TORNADO_HERO_SHARE_PER_SECOND * delta
 			RunState.note_blow("a tornado", amount)
+			EarthHand.open()
 			health.take_damage(amount, body.global_position)
+			EarthHand.close()
 
 
 func _land(id: Variant, body: Node2D) -> void:
@@ -234,7 +236,9 @@ func _land(id: Variant, body: Node2D) -> void:
 		if health != null and health.accepts_damage():
 			var amount: float = health.max_hp * Balance.TORNADO_FALL_HERO_SHARE
 			RunState.note_blow("a tornado's fall", amount)
+			EarthHand.open()
 			health.take_damage(amount, at)
+			EarthHand.close()
 	Vfx.dust(at, Color(0.45, 0.38, 0.3), 10, 70.0)
 	Vfx.ring(at, 80.0, Color(0.85, 0.78, 0.66, 0.7), 0.35, 4.0)
 	Vfx.forge_hit("earth", at, 120.0, Color(0.8, 0.7, 0.55))

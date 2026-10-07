@@ -34,6 +34,14 @@ extends PanelContainer
 const BETTER: Color = Color(0.58, 0.84, 0.54)
 const WORSE: Color = Color(0.88, 0.45, 0.40)
 const SAME: Color = Color(0.62, 0.60, 0.56)
+## A trade is neither: a piece that gives where it takes.
+const TRADE: Color = Color(0.86, 0.72, 0.42)
+
+## **What a piece is against what is worn in its slot** (2026-10-07), one
+## answer for the card and for the Market's rows: better in every attribute
+## it moves, worse in every one, the same, a trade - or filling a slot that
+## is empty, which is better than nothing and says so.
+enum Verdict { SAME, BETTER, WORSE, TRADE, EMPTY_SLOT }
 
 ## The portrait at the top of a card. Large on purpose: the icon is the thing a
 ## player recognises a piece by, and at list size it is a bullet point.
@@ -119,6 +127,76 @@ func show_pair(piece: Dictionary) -> void:
 
 func hide_pair() -> void:
 	visible = false
+
+
+## The verdict on `offered` against what is worn in its slot. The same
+## arithmetic `_say_the_difference` writes out term by term.
+static func verdict(offered: Dictionary) -> int:
+	var kinds: Dictionary = ContentDB.gear_kinds
+	var offered_kind: GearData = kinds.get(String(offered.get("kind", "")), null) as GearData
+	if offered_kind == null:
+		return Verdict.SAME
+	var held: Dictionary = MetaState.equipped_piece(int(offered_kind.slot))
+	var held_kind: GearData = kinds.get(String(held.get("kind", "")), null) as GearData
+	if held.is_empty() or held_kind == null:
+		return Verdict.EMPTY_SLOT
+	var change: Array[int] = change_between(offered, offered_kind, held, held_kind)
+	var up: int = 0
+	var down: int = 0
+	for step: int in change:
+		if step > 0:
+			up += step
+		elif step < 0:
+			down -= step
+	if up == 0 and down == 0:
+		return Verdict.SAME
+	if down == 0:
+		return Verdict.BETTER
+	if up == 0:
+		return Verdict.WORSE
+	return Verdict.TRADE
+
+
+## Attribute by attribute, what `offered` gives over what `held` gives.
+static func change_between(offered: Dictionary, offered_kind: GearData,
+		held: Dictionary, held_kind: GearData) -> Array[int]:
+	var count: int = RunState.ATTRIBUTE_NAMES.size()
+	var change: Array[int] = []
+	change.resize(count)
+	change.fill(0)
+	if offered_kind != null and not offered.is_empty():
+		for affix: Dictionary in Stash.affixes(offered, offered_kind):
+			change[clampi(int(affix["attribute"]), 0, count - 1)] += int(affix["points"])
+	if held_kind != null and not held.is_empty():
+		for affix: Dictionary in Stash.affixes(held, held_kind):
+			change[clampi(int(affix["attribute"]), 0, count - 1)] -= int(affix["points"])
+	return change
+
+
+## The colour a verdict wears.
+static func verdict_colour(answer: int) -> Color:
+	match answer:
+		Verdict.BETTER, Verdict.EMPTY_SLOT:
+			return BETTER
+		Verdict.WORSE:
+			return WORSE
+		Verdict.TRADE:
+			return TRADE
+	return SAME
+
+
+## The word a verdict says.
+static func verdict_word(answer: int) -> String:
+	match answer:
+		Verdict.BETTER:
+			return "Better"
+		Verdict.WORSE:
+			return "Worse"
+		Verdict.TRADE:
+			return "Trade"
+		Verdict.EMPTY_SLOT:
+			return "Empty slot"
+	return "Same"
 
 
 ## One card: the portrait, the name, what it is, and what it grants.
@@ -281,17 +359,7 @@ func _stat_line(text: String, ink: Color) -> Label:
 func _say_the_difference(offered: Dictionary, offered_kind: GearData,
 		held: Dictionary, held_kind: GearData) -> void:
 	var count: int = RunState.ATTRIBUTE_NAMES.size()
-	var change: Array[int] = []
-	change.resize(count)
-	change.fill(0)
-
-	for affix: Dictionary in Stash.affixes(offered, offered_kind):
-		var which: int = clampi(int(affix["attribute"]), 0, count - 1)
-		change[which] += int(affix["points"])
-	if held_kind != null and not held.is_empty():
-		for affix: Dictionary in Stash.affixes(held, held_kind):
-			var which: int = clampi(int(affix["attribute"]), 0, count - 1)
-			change[which] -= int(affix["points"])
+	var change: Array[int] = change_between(offered, offered_kind, held, held_kind)
 
 	var said: PackedStringArray = []
 	var up: int = 0

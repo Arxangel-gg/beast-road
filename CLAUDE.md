@@ -14058,6 +14058,59 @@ its first frame, a coming-apart that strikes nothing and is freed. Planted with
 an instant birth and an instant death, it named both. `tornado_shot` is the
 photograph.
 
+**The Market says what is better, the Warden is a little smaller, and the earth
+minds human and dragon blood, as of 2026-10-07.** Three of the owner's list.
+
+- **The Market wears the comparison card's verdict on every row** (owner: *"A
+  toggle button at the market to only show better items ... Each item's row in
+  the market should have a slight color indicator to show if it's better or
+  worse"*). `GearCompare.verdict` is the card's own rule pulled out to be
+  shared: better in every attribute it moves, worse in every one, the same, a
+  trade, or filling an empty slot. A row is washed faintly in the verdict's
+  colour with an edge in it and says the word beside its price, and **Upgrades
+  only** keeps what is better or fills an empty slot - a trade is left out,
+  because the toggle is the question "what would I simply put on", which is the
+  card's own refusal to call a trade an upgrade. `gear_compare_check` stocks a
+  shelf with both, drives the real screen and its toggle, and holds the rows to
+  the card; planted with the toggle ignored, it named it.
+- **The Warden is drawn `WARDEN_DRAW_SCALE` (0.92) of their art and every zoom
+  they are seen at is divided by it** (owner: *"Make the player a tiny bit
+  smaller and increase the zoom on the player by just as much ... everything
+  else in the world seems bigger"*). The picture only: the reach, the collider
+  and the hitbox are what they were, so no fight moves. The rider's seat is
+  worked out in the world and written into the rider's own offset, which the
+  draw scale multiplies, so a mount reads the rider's scale off its sprite
+  (`draw_scale`) - a smaller Warden would otherwise have sunk into the saddle by
+  exactly what they shrank. The Hold's figures are drawn by the yard and are
+  unchanged.
+- **The earth minds blood that is not an animal's** (owner: *"affected to a
+  much much smaller amount by the bloodshed of enemies as well as players,
+  though significantly moreso for players ... Player bloodloss and wildlife
+  bloodloss should be similar with humans ... slightly more valuable ... Dragon
+  bloodshed should highly affect earth's wrath more than any character, and
+  cause the element of the dragon to take more favor ... smarter like it's a
+  spectator that is governing karma"*). `EventBus.blood_shed` from the one
+  funnel each body's blows go through, at the weight in `WRATH_BLOOD_BY_WHO`: a
+  road body 0.05 of a common animal, a Warden 1.4 (common is 1 and uncommon 3),
+  a dragon 32 (past a legend's 24). **Judged by karma**
+  (`WeatherSky.judgement`): a cruel road counts each drop for more and a kind
+  one for a little less. **A dragon's blood favours its element** in what the
+  earth sends next (`WeatherSky.favour`): stone the quakes, fire the blazes and
+  the stones from the sky, storm the funnels and the lightning, frost a rain
+  heavy enough to flood - to `WRATH_FAVOUR_MAX` times, fading on
+  `WRATH_FAVOUR_HALF_LIFE`. A road body's blood is heat alone; a Warden's and a
+  dragon's lay grief where it fell.
+
+**The earth does not hold its own blows against anybody** (`EarthHand`): a
+bolt, a stone, a funnel's wake and carry, a blaze, the ground wave and the
+hazards open its hand around the blow they strike, and blood shed inside it is
+not counted - an earth that raged at what its own quake cost would feed
+itself, which is the grief rule of 2026-10-01 again. A static depth counter,
+settled by the sky every frame so an aborted blow cannot leave it raised.
+`earth_grief_check` drives the doors - a real blow on the Warden and on a road
+body, each with the earth's hand and without - and the ladder, karma's tilt and
+the favour; planted with the hand ignored, it named it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

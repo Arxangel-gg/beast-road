@@ -247,9 +247,11 @@ func _hurt(delta: float) -> void:
 		for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
 			if _catch.carries(node):
 				carried[node.get_instance_id()] = true
+	EarthHand.open()
 	EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.TORNADO_HERO_SHARE_PER_SECOND * delta,
 		"", func(where: Vector2) -> bool: return where.distance_to(at) <= Balance.TORNADO_AOE,
 		0.0, at, carried)
+	EarthHand.close()
 	var animals: Wildlife = field.wildlife()
 	if animals != null:
 		animals.wound_within(at, Balance.TORNADO_AOE, Balance.TORNADO_WILDLIFE_DPS * delta, false)

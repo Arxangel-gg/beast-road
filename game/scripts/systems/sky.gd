@@ -96,6 +96,9 @@ var _visual_rng := RandomNumberGenerator.new()
 ## decays; hidden, sensed. See Balance under THE EARTH'S WRATH.
 var _wrath_floor: float = 0.0
 var _wrath_heat: float = 0.0
+## Dragons' blood lately spilled, by their element: what the earth sends next
+## leans that way (`favour`). Fades on `WRATH_FAVOUR_HALF_LIFE`.
+var _favour: Dictionary = {}
 ## A quake in progress: seconds left and how hard.
 var _quake_left: float = 0.0
 var _quake_magnitude: float = 0.0
@@ -169,6 +172,7 @@ func _ready() -> void:
 	EventBus.earth_offended.connect(_on_earth_offended)
 	EventBus.wildlife_fell.connect(_on_wildlife_fell)
 	EventBus.wildlife_bled.connect(_on_wildlife_bled)
+	EventBus.blood_shed.connect(_on_blood_shed)
 	EventBus.coop_grief_laid.connect(_on_grief_told)
 	EventBus.wildlife_tamed.connect(_on_wildlife_tamed)
 	EventBus.wildlife_robbed.connect(_on_wildlife_robbed)
@@ -190,6 +194,8 @@ func _process(delta: float) -> void:
 			grief.tick(delta)
 			_breathe_grief(delta)
 		return
+	# Nothing the earth struck last frame is still its blow.
+	EarthHand.settle()
 	_clock += delta
 	_tick_rain(delta)
 	_tick_flood(delta)
@@ -268,7 +274,7 @@ func intensity() -> float:
 		return clampf(forced_intensity, 0.0, 1.0)
 	if not _falling():
 		return 0.0
-	return clampf(_authored_density() * _scale, 0.0, 1.0)
+	return clampf(_authored_density() * _scale * favour("frost"), 0.0, 1.0)
 
 
 ## Rain held at its heaviest for long enough floods the ground.
@@ -334,7 +340,7 @@ func _hazard() -> float:
 	if over <= 0.0:
 		return 0.0
 	return _weather.lightning_rate / 60.0 * over * over \
-		* (1.0 + _charge * Balance.LIGHTNING_CHARGE_HAZARD)
+		* (1.0 + _charge * Balance.LIGHTNING_CHARGE_HAZARD) * favour("storm")
 
 
 func _tick_lightning(delta: float) -> void:
@@ -470,9 +476,11 @@ func strike_at(at: Vector2) -> void:
 		var hero_pool: float = 100.0
 		if field.hero != null and field.hero.health != null:
 			hero_pool = field.hero.health.max_hp
+		EarthHand.open()
 		EnemyGroundStrike.strike_the_players(get_tree(),
 			hero_pool * Balance.LIGHTNING_HERO_SHARE, "lightning",
 			func(where: Vector2) -> bool: return where.distance_to(at) <= radius)
+		EarthHand.close()
 		var animals: Wildlife = field.wildlife()
 		if animals != null:
 			animals.wound_near(at, radius, Balance.LIGHTNING_WILDLIFE_DAMAGE)
@@ -1015,6 +1023,47 @@ func _on_wildlife_bled(_kind_id: String, at: Vector2, rarity: int, shiny: bool,
 	_lay_grief(at, weight)
 
 
+## **Blood that is not an animal's** (owner, 2026-10-07: *"Player bloodloss
+## and wildlife bloodloss should be similar with humans ... slightly more
+## valuable ... than a majority of wildlife. Dragon bloodshed should highly
+## affect earth's wrath more than any character, and cause the element of
+## the dragon to take more favor"*). The same arithmetic an animal's blood
+## is held to (`_on_wildlife_bled`), at a weight for who bled: a road body a
+## sliver, a Warden a little over a common animal, a dragon past a legend.
+## Judged by karma, as a spectator would: a road walked cruelly makes every
+## drop count for more, and a kind one for a little less. A road body's
+## blood is heat alone - it is spilled everywhere, always, and grief laid
+## for every blow of every wave would be grief laid everywhere.
+func _on_blood_shed(at: Vector2, share: float, who: String, element: String) -> void:
+	if _mirror or share <= 0.0:
+		return
+	var scale: float = float(Balance.WRATH_BLOOD_BY_WHO.get(who, 0.0))
+	if scale <= 0.0:
+		return
+	var weight: float = scale * Balance.WRATH_BLOOD_SHARE * clampf(share, 0.0, 1.0) * judgement()
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * weight
+	if who != "enemy":
+		_lay_grief(at, weight)
+	if who == "dragon" and not element.is_empty():
+		_favour[element] = float(_favour.get(element, 0.0)) + weight
+
+
+## **How hard the earth judges a drop of blood right now**: by the road's
+## karma, harder when it has been cruel and a little softer when kind.
+func judgement() -> float:
+	var karma: float = clampf(RunState.karma, -1.0, 1.0)
+	return 1.0 + maxf(-karma, 0.0) * Balance.WRATH_KARMA_JUDGE \
+		- maxf(karma, 0.0) * Balance.WRATH_KARMA_JUDGE * 0.5
+
+
+## **How much a dragon's element is favoured** in what the earth sends next:
+## one, and more for every dragon's blood of that element spilled lately,
+## to `WRATH_FAVOUR_MAX`.
+func favour(element: String) -> float:
+	return 1.0 + minf(float(_favour.get(element, 0.0)) * Balance.WRATH_FAVOUR_GAIN,
+		Balance.WRATH_FAVOUR_MAX - 1.0)
+
+
 ## A spirit bonded is a kindness the earth remembers.
 func _on_wildlife_tamed(_species_id: String, _pen_uid: String, _rarity: int, _shiny: bool) -> void:
 	if not _mirror:
@@ -1214,6 +1263,10 @@ func _quarter(index: int) -> float:
 func _tick_wrath(delta: float) -> void:
 	var half: float = maxf(Balance.WRATH_HEAT_HALF_LIFE, 1.0)
 	_wrath_heat *= pow(0.5, delta / half)
+	if not _favour.is_empty():
+		var fading: float = pow(0.5, delta / maxf(Balance.WRATH_FAVOUR_HALF_LIFE, 1.0))
+		for element: Variant in _favour.keys():
+			_favour[element] = float(_favour[element]) * fading
 	if grief != null:
 		grief.tick(delta)
 		_breathe_grief(delta)
@@ -1339,7 +1392,7 @@ func _tick_wrath_events(delta: float) -> void:
 	var boost: float = hazard_boost()
 	# A quake: the square, so a calm earth never shakes. Warned first.
 	if _quake_left <= 0.0 and _quake_warning_left <= 0.0 \
-			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * boost * delta:
+			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * boost * favour("stone") * delta:
 		var magnitude: float = lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0))
 		warn_quake(magnitude)
 		# **A great quake is answered by an aftershock**, warned in its turn.
@@ -1350,15 +1403,17 @@ func _tick_wrath_events(delta: float) -> void:
 	# A wildfire: an angry earth, and ground dry enough where it tries. A
 	# flood stops it at the source; `start_wildfire` asks the ground.
 	if wildfire != null and RunState.flood <= Balance.WILDFIRE_FLOOD_STOPS \
-			and _rng.randf() < Balance.WILDFIRE_RATE * anger * boost * delta:
+			and _rng.randf() < Balance.WILDFIRE_RATE * anger * boost * favour("fire") * delta:
 		start_wildfire()
 	# A tornado: the earth's anger, or the storm towers' own running.
 	var whirl: float = anger + clampf(RunState.gale / Balance.GALE_FULL, 0.0, 1.0)
-	if _pending_tornado.is_empty() and _rng.randf() < Balance.TORNADO_RATE * whirl * boost * delta:
+	if _pending_tornado.is_empty() and _rng.randf() < Balance.TORNADO_RATE * whirl * boost \
+			* favour("storm") * delta:
 		warn_tornado()
 	# A meteor: the fire towers' recent damage, sharpened by the anger.
 	var ash: float = clampf(RunState.ember / Balance.EMBER_FULL, 0.0, 1.0)
-	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * boost * delta:
+	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * boost \
+			* favour("fire") * delta:
 		var first: Meteor = drop_meteor()
 		# **A great fall is a shower**: more stones around the first, each with
 		# its own shadow to step out of.

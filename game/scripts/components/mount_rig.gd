@@ -492,7 +492,7 @@ func _seat_sideways(x: float) -> void:
 		return
 	if is_equal_approx(x, _seat_across):
 		return
-	rider.offset.x += x - _seat_across
+	rider.offset.x += (x - _seat_across) / _rider_scale()
 	_seat_across = x
 	_publish_seat()
 
@@ -506,7 +506,8 @@ func _seat(y: float) -> void:
 		return
 	if is_equal_approx(y, _seat_applied):
 		return
-	rider.offset.y += y - _seat_applied
+	# World units into the rider's own, which its draw scale multiplies.
+	rider.offset.y += (y - _seat_applied) / _rider_scale()
 	_seat_applied = y
 	_publish_seat()
 
@@ -521,12 +522,20 @@ func _seat(y: float) -> void:
 func _publish_seat() -> void:
 	if rider == null or not is_instance_valid(rider):
 		return
-	var seat := Vector2(_seat_across, _seat_applied)
+	var seat := Vector2(_seat_across, _seat_applied) / _rider_scale()
 	if seat == Vector2.ZERO:
 		if rider.has_meta(SEAT_META):
 			rider.remove_meta(SEAT_META)
 	else:
 		rider.set_meta(SEAT_META, seat)
+
+
+## The scale a rider is drawn at beyond its art, named on its sprite by its
+## owner (`Hero` names `WARDEN_DRAW_SCALE`); one where nobody named it.
+func _rider_scale() -> float:
+	if rider == null or not is_instance_valid(rider):
+		return 1.0
+	return maxf(float(rider.get_meta(&"draw_scale", 1.0)), 0.01)
 
 
 ## What a rider sprite is seated by, or zero on foot.

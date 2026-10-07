@@ -376,6 +376,12 @@ func _ready() -> void:
 	# every centre-authored visual/physical part by the same amount preserves the
 	# picture and collision in world space, but gives the shared Y sorter the only
 	# depth key that is meaningful beside a tree or flower: ground contact.
+	# A little smaller than the art, the camera a little closer to match
+	# (`Balance.WARDEN_DRAW_SCALE`). Set before the lift is measured, so the
+	# feet stay on the ground they stand on.
+	if sprite != null:
+		sprite.scale = Vector2.ONE * Balance.WARDEN_DRAW_SCALE
+		sprite.set_meta(&"draw_scale", Balance.WARDEN_DRAW_SCALE)
 	_depth_lift = float(HeroAnimator.CELL_H) * sprite.scale.y \
 		* Balance.HERO_FEET_ANCHOR if sprite != null else 0.0
 	global_position.y += _depth_lift
@@ -2860,6 +2866,10 @@ func _apply_attack_impulse(direction: Vector2, distance: float,
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_quiet_since = 0.0
+	# **Human blood, which the earth minds a little more than most animals'**
+	# (owner, 2026-10-07), and never its own blows on the Warden.
+	if amount > 0.0 and health != null and health.max_hp > 0.0 and not EarthHand.striking():
+		EventBus.blood_shed.emit(global_position, amount / health.max_hp, "warden", "")
 	# **A blow that lands throws the rider** (owner, 2026-09-21). Health lost,
 	# not merely a hit: a ward that swallowed the whole blow emits `damaged`
 	# with nothing taken, and the co-op mirror - which learns of a blow only as
