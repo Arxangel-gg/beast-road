@@ -74,6 +74,13 @@ uniform float scatter : hint_range(0.0, 1.0) = 0.0;
 // reads as rain and costs a third.
 uniform float layers : hint_range(1.0, 3.0) = 3.0;
 
+// **A front** (2026-10-07): how far across the quad newly falling weather has
+// come, 0 to 1, from the side `front_from` points at. 1 is everywhere, which is
+// what every weather that is not arriving on a clear sky is.
+uniform float front : hint_range(0.0, 1.0) = 1.0;
+uniform vec2 front_from = vec2(-1.0, 0.0);
+uniform float front_edge = 0.14;
+
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -177,7 +184,21 @@ void fragment() {
 		// Ripples contribute less than they did. They are the detail that says
 		// the rain is hitting something, not something to look through.
 		float a = clamp(fall + land * 0.26, 0.0, 1.0) * tint.a * amount;
-		COLOR = vec4(tint.rgb, a);
+		// How far into the field from the front's own side this pixel is, 0 at
+		// that edge and 1 at the far one; reached once the front has passed it.
+		vec2 toward = -normalize(front_from);
+		float span = max(0.5 * (abs(toward.x) + abs(toward.y)), 0.001);
+		float into = clamp(dot(UV - vec2(0.5), toward) / (2.0 * span) + 0.5, 0.0, 1.0);
+		float reached = 1.0 - smoothstep(front - front_edge, front, into);
+		float done = step(0.999, front);
+		float rain = a * mix(reached, 1.0, done);
+		// The leading edge is a curtain - denser, darker rain walking in - so the
+		// line reads as weather arriving rather than as a mask being wiped.
+		float band = 1.0 - smoothstep(0.0, front_edge, abs(into - (front - front_edge * 0.5)));
+		float curtain = band * (1.0 - done) * amount * (0.16 + 0.5 * clamp(fall * 1.6, 0.0, 1.0));
+		float alpha = rain + curtain * (1.0 - rain);
+		vec3 shade = tint.rgb * 0.62;
+		COLOR = vec4(mix(shade, tint.rgb, rain / max(alpha, 0.001)), alpha);
 	}
 }
 """
@@ -190,6 +211,12 @@ var _material: ShaderMaterial = null
 ## a bug in the renderer.
 var _amount: float = 0.0
 var _wanted: float = 0.0
+## **The front** (`WEATHER_FRONT_SPEED`): how far across the field falling
+## weather that began on a clear sky has come, and the way it came from.
+var _front: float = 1.0
+var _front_from: Vector2 = Vector2.LEFT
+## How far the front walks a second, as a share of the sky's length along it.
+var _front_rate: float = 0.0
 
 ## How much snow is lying on the ground, 0..1.
 ##
@@ -258,6 +285,9 @@ func _process_measured(delta: float) -> void:
 	# downpour is not one rate. Both veils - the field's and the beast scope's -
 	# read the same number, so the two views agree about how hard it is coming
 	# down without either knowing the other exists.
+	if _front < 1.0:
+		_front = minf(_front + delta * _front_rate, 1.0)
+		_material.set_shader_parameter("front", _front)
 	var target: float = clampf(_wanted * RunState.rain_scale, 0.0, 1.0)
 	if not is_equal_approx(_amount, target):
 		_amount = move_toward(_amount, target,
@@ -340,6 +370,70 @@ func _apply(weather: WeatherData) -> void:
 	_material.set_shader_parameter("scatter", weather.precipitation_scatter)
 	if weather.precipitation == WeatherData.Precipitation.NONE:
 		_wanted = 0.0
+	# **A front comes in on a clear sky** and nowhere else: one falling weather
+	# turning into another is already falling everywhere.
+	if _wanted > 0.0 and _amount <= 0.01:
+		_begin_front(weather)
+
+
+## Starts a front from the side the wind blows from - the field's wind when it
+## has one, the weather's own lean when it does not.
+func _begin_front(weather: WeatherData) -> void:
+	var wind: Vector2 = RunState.wind
+	if wind.length() < 0.01:
+		wind = Vector2(signf(weather.precipitation_wind) if absf(weather.precipitation_wind) > 0.001 else 1.0, 0.0)
+	_front_from = -wind.normalized()
+	var toward: Vector2 = -_front_from
+	# The sky's length along the way the front walks, in world units: what one
+	# whole crossing is, so a speed and an edge in units become shares of it.
+	var length: float = maxf(_rect.size.x * (absf(toward.x) + absf(toward.y)), 1.0)
+	var edge: float = Balance.WEATHER_FRONT_EDGE / length
+	_front_rate = Balance.WEATHER_FRONT_SPEED / length
+	# **It starts just outside the view**, never at the far rim of the sky: the
+	# sky is several screens wide, and a front born at its edge would walk for
+	# seconds where nobody can see it while the rain was already falling.
+	_front = clampf(_share_at(_view_corner_nearest(toward)) - edge * 0.5, 0.0, 1.0)
+	_material.set_shader_parameter("front_from", _front_from)
+	_material.set_shader_parameter("front_edge", edge)
+	_material.set_shader_parameter("front", _front)
+
+
+## How far into the sky from the front's own side a world point is, 0 to 1 -
+## the shader's `into`, so the two cannot disagree about where the line is.
+func _share_at(world: Vector2) -> float:
+	var toward: Vector2 = -_front_from
+	var uv: Vector2 = (to_local(world) - _rect.position) / _rect.size
+	var span: float = maxf(0.5 * (absf(toward.x) + absf(toward.y)), 0.001)
+	return clampf((uv - Vector2(0.5, 0.5)).dot(toward) / (2.0 * span) + 0.5, 0.0, 1.0)
+
+
+## The corner of the view the front reaches first. Headless there is no camera,
+## and the view is the viewport's own rect, which is a fine place to start.
+func _view_corner_nearest(toward: Vector2) -> Vector2:
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return global_position
+	var view: Rect2 = viewport.get_canvas_transform().affine_inverse() * viewport.get_visible_rect()
+	var best: Vector2 = view.position
+	for corner: Vector2 in [view.position, view.position + Vector2(view.size.x, 0.0),
+			view.position + Vector2(0.0, view.size.y), view.end]:
+		if corner.dot(toward) < best.dot(toward):
+			best = corner
+	return best
+
+
+## How far a front has come, 0 to 1, the way it came from, and how fast it
+## walks as a share of the sky a second. For the gate.
+func front() -> float:
+	return _front
+
+
+func front_rate() -> float:
+	return _front_rate
+
+
+func front_from() -> Vector2:
+	return _front_from
 
 
 ## How heavy the precipitation currently reads, 0..1. For the systems that have

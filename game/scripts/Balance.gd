@@ -9620,6 +9620,16 @@ const WEATHER_VEIL_REACH: float = 2600.0
 const WEATHER_VEIL_CELLS: float = 34.0
 
 const WEATHER_FADE_SECONDS: float = 3.5
+## **A weather front** (triage of 2026-10-07): falling weather arriving on a
+## clear sky comes in as a line from the side the wind blows from, starting just
+## outside the view and walking across it at this many units a second - a line
+## of rain coming in rather than rain everywhere at once. Only the picture
+## travels: the weather's facts arrive as they always did. In world units, not
+## a share of the sky: the sky is several screens wide, and a share of it
+## crossed the screen in two seconds as a smear. [TUNE]
+const WEATHER_FRONT_SPEED: float = 380.0
+## How soft the front's edge is, in world units.
+const WEATHER_FRONT_EDGE: float = 200.0
 
 ## How long snow takes to cover the ground from bare, and to melt back, in
 ## seconds of continuous snowfall. [TUNE]

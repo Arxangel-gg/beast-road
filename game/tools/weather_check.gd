@@ -61,9 +61,10 @@ func _ready() -> void:
 				"act %d should feel like %s, but it is only %.0f%% of roads"
 					% [act, local, 100.0 * float(share.get(local, 0.0))])
 
+	_test_a_front_comes_in()
 	if _failures == 0:
 		print("[weather] PASS - every sky reachable everywhere, each act still "
-			+ "led by its own")
+			+ "led by its own, and rain on a clear sky comes in as a front")
 	else:
 		printerr("[weather] FAIL - %d problem(s)" % _failures)
 	Sfx.stop_immediately()
@@ -74,6 +75,49 @@ func _ready() -> void:
 		await get_tree().process_frame
 	Sfx.stop_immediately()
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A front** (triage of 2026-10-07): falling weather on a clear sky starts as
+## a front from the side the wind blows from, walks at its speed in world units,
+## and finishes; one falling weather turning into another starts no front.
+func _test_a_front_comes_in() -> void:
+	var veil := WeatherVeil.new()
+	add_child(veil)
+	var wind_was: Vector2 = RunState.wind
+	var rain: String = ""
+	var snow: String = ""
+	for value: Variant in ContentDB.weathers.values():
+		var weather := value as WeatherData
+		if weather == null:
+			continue
+		if weather.precipitation == WeatherData.Precipitation.RAIN and rain.is_empty():
+			rain = weather.id
+		if weather.precipitation == WeatherData.Precipitation.SNOW and snow.is_empty():
+			snow = weather.id
+	_check(not rain.is_empty() and not snow.is_empty(), "no rain or no snow to bring in")
+	RunState.wind = Vector2(-1.0, 0.0)
+	veil.call("_on_weather_changed", "clear")
+	veil.call("_process_measured", 10.0)
+	veil.call("_on_weather_changed", rain)
+	_check(veil.front() < 0.9, "rain on a clear sky fell everywhere at once (front %.2f)" % veil.front())
+	_check(veil.front_from().is_equal_approx(Vector2(1.0, 0.0)),
+		"a wind blowing west brought the front from %s, not the east" % veil.front_from())
+	# Its rate is its speed over the sky's length along it, in world units.
+	var length: float = veil.get("_rect").size.x
+	_check(is_equal_approx(veil.front_rate(), Balance.WEATHER_FRONT_SPEED / length),
+		"the front walks %.4f of the sky a second against %.4f" % [veil.front_rate(),
+			Balance.WEATHER_FRONT_SPEED / length])
+	var was: float = veil.front()
+	veil.call("_process_measured", 1.0)
+	_check(is_equal_approx(veil.front() - was, minf(veil.front_rate(), 1.0 - was)),
+		"a second moved the front %.3f, not its rate" % (veil.front() - was))
+	veil.call("_process_measured", 1.0 / maxf(veil.front_rate(), 0.001))
+	_check(is_equal_approx(veil.front(), 1.0), "the front never finished crossing (%.2f)" % veil.front())
+	veil.call("_process_measured", 10.0)
+	veil.call("_on_weather_changed", snow)
+	_check(is_equal_approx(veil.front(), 1.0), "rain turning to snow started a front (%.2f)" % veil.front())
+	RunState.wind = wind_was
+	veil.queue_free()
 
 
 ## What `roll_weather` actually produces over a long stretch of roads.
