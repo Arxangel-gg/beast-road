@@ -159,6 +159,12 @@ func scale_for(element: int) -> float:
 
 
 ## Whether this weather can appear in the given act.
+## **A weather's picture** (2026-10-07): a round window on its sky, shown in
+## the Codex. Weather had none, so its whole page was empty frames.
+func get_sprite_path() -> String:
+	return GameData.derive_path("icons/weather", "weather_", id)
+
+
 func allows_act(_act: int) -> bool:
 	# Every weather is possible in every act. Kept as a function because the
 	# question is a reasonable one to ask and a future weather may want to answer

@@ -85,6 +85,7 @@ func _ready() -> void:
 	_check(total > 20, "there must be something to find, counted %d" % total)
 	print("[codex] %d sections, %d entries to find" % [CodexScreen.SECTIONS.size(), total])
 
+	_test_every_page_has_pictures()
 	_test_mastery()
 	await _test_the_pages()
 
@@ -95,6 +96,28 @@ func _ready() -> void:
 	else:
 		printerr("[codex] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Every entry on every page has a picture on disk** (owner, 2026-10-07:
+## *"Weather and Marks of the Promoted in the Codex need images"*). Weather had
+## no art path at all and the marks named a folder nothing had ever been put
+## in, so two whole pages were empty frames - and nothing failed, because a
+## missing texture is simply not drawn.
+func _test_every_page_has_pictures() -> void:
+	for section: Dictionary in CodexScreen.SECTIONS:
+		var table: Variant = ContentDB.get(String(section["source"]))
+		if not (table is Dictionary):
+			continue
+		var missing: PackedStringArray = []
+		for value: Variant in (table as Dictionary).values():
+			var entry := value as GameData
+			if entry == null:
+				continue
+			var path: String = entry.get_sprite_path()
+			if path.is_empty() or not ResourceLoader.exists(path):
+				missing.append(entry.id)
+		_check(missing.is_empty(), "the %s page has no picture for %s" % [String(section["title"]),
+			", ".join(missing.slice(0, 8))])
 
 
 ## **Codex mastery** (triage of 2026-10-07): kills climb an enemy's entry

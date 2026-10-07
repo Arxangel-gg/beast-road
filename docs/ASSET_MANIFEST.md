@@ -2903,6 +2903,42 @@ Glassfall is cold silver and The Long Night is black against pale corona, becaus
 both portents are about the light changing and a warm version of either would
 read as one more piece of luggage.
 
+### 5.13g Mark icons — `res://art/icons/affixes/`
+
+All 128×128, type T, placeholder colour `#8A6A3A`.
+
+`affix_bannerborne.png` · `affix_beastcalled_mark.png` ·
+`affix_bloodsworn.png` · `affix_chainfed.png` · `affix_cruel.png` ·
+`affix_dreadful.png` · `affix_drowned_mark.png` · `affix_duskrunner.png` ·
+`affix_emberclad.png` · `affix_emberheart.png` · `affix_famished.png` ·
+`affix_frenzied.png` · `affix_galeshod.png` · `affix_glasswrought.png` ·
+`affix_gravebound.png` · `affix_hexbitten.png` · `affix_hollowed.png` ·
+`affix_ironbanner.png` · `affix_ironhide.png` · `affix_lastrites.png` ·
+`affix_leeching.png` · `affix_marrowfed.png` · `affix_mirrorhide.png` ·
+`affix_oathbound_mark.png` · `affix_packbound.png` · `affix_riftsick.png` ·
+`affix_rimewarded.png` · `affix_riven.png` · `affix_sootlung.png` ·
+`affix_sporebound.png` · `affix_stonecoat.png` · `affix_stormbound.png` ·
+`affix_swiftfoot.png` · `affix_tidecaller.png` · `affix_tollbearer.png` ·
+`affix_volatile.png` · `affix_warded.png` · `affix_warhorned.png`
+
+One per mark of the Promoted, shown in the Codex (2026-10-07). Each is the
+same family: a round iron-rimmed bronze medallion with the mark's motif raised
+on its face, so a page of marks reads as a set of war-badges rather than as
+thirty-eight unrelated pictures.
+
+### 5.13h Weather icons — `res://art/icons/weather/`
+
+All 128×128, type T, placeholder colour `#5A7A9A`.
+
+`weather_ashfall.png` · `weather_autumn_gale.png` · `weather_clear.png` ·
+`weather_downpour.png` · `weather_duststorm.png` · `weather_hailstorm.png` ·
+`weather_heatwave.png` · `weather_highland_squall.png` ·
+`weather_marsh_mist.png` · `weather_salt_wind.png` · `weather_snowfall.png` ·
+`weather_thunderstorm.png`
+
+One per weather, shown in the Codex (2026-10-07): a round window on the sky
+in a thin stone ring, showing the weather over the kind of ground it falls on.
+
 ### 5.13c Fish — `res://art/fish/`
 
 All 64×64, type T, placeholder colour `#7FA9C4`.
