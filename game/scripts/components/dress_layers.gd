@@ -147,6 +147,68 @@ func _build_parts() -> void:
 		part.centered = true
 
 
+## **A legendary weapon gleams in the hand** (owner, 2026-10-07). Every strip
+## of the held picture wears one gleam, so the sheen sweeps the weapon as one
+## picture; and the tip sheds motes in the rarity's colour (`_shed`). A
+## weapon below the first legendary rung wears nothing.
+var _gleam: ShaderMaterial = null
+var _gleam_rarity: int = -1
+var _shed_debt: float = 0.0
+## Its own dice: a decoration never draws on a stream anything else rolls.
+var _shed_dice := RandomNumberGenerator.new()
+
+
+func _gleam_held(rarity: int, held: String) -> void:
+	_gleam_rarity = rarity
+	_gleam = LegendaryGleam.material_for(rarity, held) if not held.is_empty() else null
+	for hand: int in 2:
+		for part: Sprite2D in (_over[hand] as Array) + (_under[hand] as Array):
+			part.material = _gleam
+			if _gleam != null:
+				part.set_meta(LegendaryGleam.META, rarity)
+			elif part.has_meta(LegendaryGleam.META):
+				part.remove_meta(LegendaryGleam.META)
+
+
+## The gleam the held weapon wears, or null.
+func held_gleam() -> ShaderMaterial:
+	return _gleam
+
+
+## Where the held weapon's tip is in the world, or `Vector2.INF` when none is
+## drawn. Every strip lays the picture with its grip on the node, so any one
+## of them carries the tip to the same place.
+func tip_in_world() -> Vector2:
+	if _texture == null:
+		return Vector2.INF
+	for hand: int in 2:
+		for part: Sprite2D in (_over[hand] as Array) + (_under[hand] as Array):
+			if part.visible:
+				return part.global_transform * Vector2(0.0, _tip - _grip.y)
+	return Vector2.INF
+
+
+## Motes off a legendary tip, on its rarity's rate. The game calls it each
+## frame; a gate calls it with a clock of its own and reads the count back.
+func shed(delta: float) -> int:
+	var strength: float = LegendaryGleam.tier(_gleam_rarity)
+	if _gleam == null or strength <= 0.0 or not is_visible_in_tree():
+		return 0
+	var tip: Vector2 = tip_in_world()
+	if tip == Vector2.INF:
+		return 0
+	_shed_debt += Balance.GEAR_GLEAM_MOTES * strength * delta * Graphics.particle_scale()
+	var shed_now: int = 0
+	var colour: Color = Stash.RARITY_COLOURS[clampi(_gleam_rarity, 0, Stash.RARITY_COLOURS.size() - 1)]
+	while _shed_debt >= 1.0:
+		_shed_debt -= 1.0
+		shed_now += 1
+		var drift := Vector2(_shed_dice.randf_range(-10.0, 10.0), _shed_dice.randf_range(-34.0, -18.0))
+		Vfx.mote(tip + Vector2(_shed_dice.randf_range(-4.0, 4.0), _shed_dice.randf_range(-4.0, 4.0)), drift,
+			colour.lerp(Color.WHITE, 0.35), _shed_dice.randf_range(1.6, 2.8), _shed_dice.randf_range(0.5, 0.9))
+	return shed_now
+
+
 ## The under-holder goes when this does. On deletion rather than on leaving the
 ## tree: a hero taken out of the tree and put back must come back dressed.
 func _notification(what: int) -> void:
@@ -198,6 +260,7 @@ func wear(outfit: Dictionary) -> void:
 	var held: String = String(outfit.get("held", ""))
 	var grip: Dictionary = outfit.get("held_grip", {})
 	_texture = WardenDress.texture(held) if not held.is_empty() else null
+	_gleam_held(int(outfit.get("held_rarity", -1)), held)
 	if _texture != null and not grip.is_empty():
 		_grip = grip["grip"]
 		_tip = float(grip["tip"])
@@ -358,6 +421,11 @@ func _show_head(socket: Array, offset: Vector2) -> void:
 func _process(delta: float) -> void:
 	if delta <= 0.0 or not visible:
 		return
+	# Motes only where the effects are drawn: a Warden on the Glass's stage
+	# stands in a viewport of its own, and the road's ink is not there.
+	if _gleam != null and DisplayServer.get_name() != "headless" and Vfx.world != null \
+			and is_instance_valid(Vfx.world) and Vfx.world.get_viewport() == get_viewport():
+		shed(delta)
 	var at: Vector2 = global_position
 	var travel: Vector2 = Vector2.ZERO
 	if _last_at != Vector2.INF:

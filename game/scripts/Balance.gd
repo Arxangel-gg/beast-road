@@ -11519,6 +11519,16 @@ const WILDLIFE_PREY_BITE_SHARE: float = 0.55
 
 ## Legendary affixes per rarity, indexed like `Stash.RARITY_NAMES`.
 const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2, 3]
+## **Legendary gear gleams** (owner, 2026-10-07: "Legendary gear should have
+## animations and game juicy vfx"). The first rarity that gleams - the first
+## that wears a legendary affix - how hard its gleam is against the top rung's
+## one, how long the sheen takes to cross a piece at the bottom and the top of
+## the ladder, and how many motes a second a legendary tip sheds at the top
+## rung. A look: nothing reads it. [TUNE]
+const GEAR_GLEAM_FROM_RARITY: int = 3
+const GEAR_GLEAM_FLOOR: float = 0.25
+const GEAR_GLEAM_SWEEP_SECONDS: Vector2 = Vector2(4.2, 1.8)
+const GEAR_GLEAM_MOTES: float = 7.0
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

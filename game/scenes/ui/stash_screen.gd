@@ -319,6 +319,8 @@ func _build_tiles() -> void:
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.texture = _art_at(kind.get_sprite_path()) if worn else _slot_mark(slot)
 		icon.modulate = tint.lerp(Color.WHITE, 0.45) if worn else Color(1.0, 1.0, 1.0, 0.32)
+		if worn:
+			LegendaryGleam.dress(icon, piece)
 		# **A shield with no hand free says so** (2026-10-07): beside a two-handed
 		# or paired weapon it is neither carried nor raised, and a tile that looked
 		# like any other worn piece would let a player think it guarded.
@@ -1219,6 +1221,7 @@ func _row(index: int) -> Container:
 		if ResourceLoader.exists(art):
 			icon.texture = load(art) as Texture2D
 		icon.modulate = tint.lerp(Color.WHITE, 0.45)
+		LegendaryGleam.dress(icon, piece)
 	frame.add_child(icon)
 	face.add_child(frame)
 

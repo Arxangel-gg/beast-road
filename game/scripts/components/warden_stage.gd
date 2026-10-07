@@ -102,6 +102,8 @@ func show_look(look: Dictionary, wearing_gear: bool = true) -> void:
 	var outfit: Dictionary = WardenDress.outfit(look, _worn(GearData.Slot.WEAPON), _worn(GearData.Slot.ARMOUR),
 		_worn(GearData.Slot.CAPE), _worn(GearData.Slot.HELMET), _worn(GearData.Slot.OFFHAND)) if wearing_gear \
 		else WardenDress.outfit(look, null, null, null, null)
+	if wearing_gear:
+		outfit["held_rarity"] = int(MetaState.equipped_piece(GearData.Slot.WEAPON).get("rarity", -1))
 	_wear(outfit, look)
 
 

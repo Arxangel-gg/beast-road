@@ -43,6 +43,7 @@ static func build(piece: Dictionary) -> HBoxContainer:
 		if ResourceLoader.exists(art):
 			icon.texture = load(art) as Texture2D
 		icon.modulate = Stash.rarity_colour(piece).lerp(Color.WHITE, 0.45)
+		LegendaryGleam.dress(icon, piece)
 	row.add_child(icon)
 
 	var text := VBoxContainer.new()

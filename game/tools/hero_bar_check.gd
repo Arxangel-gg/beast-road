@@ -106,7 +106,11 @@ func _top_of(path: String, region: Rect2) -> float:
 func _figure_top(hero: Hero) -> float:
 	var sprite: Sprite2D = hero.sprite
 	var body_path: String = WardenDress.art_root + String(hero.outfit["body_layer"]) + "/idle.png"
-	var top: float = sprite.position.y + sprite.offset.y + _top_of(body_path, sprite.region_rect)
+	# **As drawn**, at the sprite's own scale (amended 2026-10-07): the Warden is
+	# drawn at `WARDEN_DRAW_SCALE` now, and a head measured in the painting's
+	# own pixels stood the bars against a figure larger than the one on screen.
+	var s: float = sprite.scale.y
+	var top: float = sprite.position.y + (sprite.offset.y + _top_of(body_path, sprite.region_rect)) * s
 	var layers := sprite.get_node_or_null("Dress") as DressLayers
 	if layers == null:
 		return top
@@ -115,8 +119,8 @@ func _figure_top(hero: Hero) -> float:
 		var option: Dictionary = hero.outfit.get(pair[1], {})
 		if part == null or not part.visible or option.is_empty():
 			continue
-		top = minf(top, sprite.position.y + part.position.y + part.offset.y
-			+ _top_of(String(option["path"]), part.region_rect))
+		top = minf(top, sprite.position.y + (part.position.y + part.offset.y
+			+ _top_of(String(option["path"]), part.region_rect)) * s)
 	return top
 
 
@@ -181,8 +185,10 @@ func _test_follows_the_rider(hero: Hero) -> void:
 	var before: float = hero.health_bar.position.y
 	hero.sprite.offset.y -= 40.0
 	hero._place_bars(10.0)
-	_check(absf((before - hero.health_bar.position.y) - 40.0) < 0.5,
-		"a seat 40 higher moved the bars %.1f" % (before - hero.health_bar.position.y))
+	# A seat 40 painted pixels higher is 40 at the sprite's scale on screen.
+	var drawn: float = 40.0 * hero.sprite.scale.y
+	_check(absf((before - hero.health_bar.position.y) - drawn) < 0.5,
+		"a seat %.1f higher moved the bars %.1f" % [drawn, before - hero.health_bar.position.y])
 	_reached.append("rider")
 
 

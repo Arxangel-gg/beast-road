@@ -237,6 +237,7 @@ func _fill(card: VBoxContainer, piece: Dictionary, kind: GearData,
 	if ResourceLoader.exists(art):
 		portrait.texture = load(art) as Texture2D
 	portrait.modulate = tint.lerp(Color.WHITE, 0.5)
+	LegendaryGleam.dress(portrait, piece)
 	card.add_child(portrait)
 
 	var name_line := Label.new()

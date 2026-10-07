@@ -290,6 +290,7 @@ func _ware_row(piece: Dictionary, index: int, answer: int = GearCompare.Verdict.
 		if ResourceLoader.exists(art):
 			icon.texture = load(art) as Texture2D
 		icon.modulate = tint.lerp(Color.WHITE, 0.45)
+		LegendaryGleam.dress(icon, piece)
 	row.add_child(icon)
 
 	var column := VBoxContainer.new()

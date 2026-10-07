@@ -14279,6 +14279,41 @@ is read at mip 0" was a literal over `SCREEN_UV` and now reads the bent `uv` -
 (`docs/shots/grade_cinematic.png`): the cinematic half off and on, a marsh mist,
 and a heatwave in a boss fight under a heavy blow.
 
+**Legendary gear gleams, as of 2026-10-07.** Owner: *"Legendary gear should have
+animations and game juicy vfx."* A piece from the first rarity that wears a
+legendary affix (`GEAR_GLEAM_FROM_RARITY`, Runed, held to agree with
+`GEAR_LEGENDARY_COUNT`) wears `legendary_gleam.gdshader` on its own painting
+wherever it is drawn - a stash row, the paper doll's tile, the Market's shelf,
+the comparison card - and in the Warden's hand: a rim in the rarity's colour
+that breathes, a sheen sweeping the piece corner to corner, and crosses of
+light twinkling on it, harder and faster up the ladder, the top rung's sheen
+turning through the spectrum. `LegendaryGleam.dress` is the one door for an
+icon and takes a gleam off an icon reused for an ordinary piece.
+
+**The weapon in the hand gleams as one picture.** `DressLayers` cuts a held
+weapon into strips round the fists; every strip wears the *same* material and
+the sheen is read off the picture's own UV, so it sweeps through the grip
+unbroken. The tip sheds motes in the rarity's colour (`GEAR_GLEAM_MOTES`), on
+dice of its own, only where the road's ink is - never on the Glass's stage,
+whose Warden stands in a viewport of its own. This machine's Warden and its
+stage say how rare the weapon is (`outfit["held_rarity"]`); a partner's wire
+row carries kinds and not rarities, so a partner's weapon does not gleam yet.
+
+A look: nothing reads it. `legendary_gleam_check` (both bars) holds the ladder,
+the real stash's icons, a stash row, a ware and the card, the hand one material
+across every strip and cleared by an ordinary weapon, the motes at the scale
+and at none; three planted faults were named. **It found a real fault on its
+first run**: a piece's `uid` is an integer and `String()` has no constructor
+for one - a seed built that way errors and the icon wears nothing.
+
+**And `hero_bar_check` had been red since the Warden was drawn smaller**, the
+same day: it measured the head in the painting's own pixels while the bars,
+correctly, follow the sprite's scale, so a 40-pixel seat "moved the bars 36.8"
+and three hundred heads read as touching. The harness measures the head as
+drawn now (amended, the invariant unchanged). It was not on the list of gates
+run for the scale change, because that list was chosen by what the change
+read; `grep -l` for every class a change touches is the list.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

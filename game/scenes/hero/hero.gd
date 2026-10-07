@@ -2128,6 +2128,7 @@ func _dress_warden() -> void:
 		outfit = WardenDress.outfit(look, _worn_kind(GearData.Slot.WEAPON),
 			_worn_kind(GearData.Slot.ARMOUR), _worn_kind(GearData.Slot.CAPE),
 			_worn_kind(GearData.Slot.HELMET), _worn_kind(GearData.Slot.OFFHAND))
+		outfit["held_rarity"] = int(MetaState.equipped_piece(GearData.Slot.WEAPON).get("rarity", -1))
 	else:
 		# A partner: dressed from what the wire said it looks like and wears.
 		# Before this it was never dressed at all, and a dressed party drew
