@@ -256,6 +256,12 @@ static func quality_for_name(name: int) -> int:
 static func points(piece: Dictionary, kind: GearData) -> int:
 	if kind == null:
 		return 0
+	# **A worn-out piece gives what its wear allows** (owner, 2026-10-07): half
+	# when yellow, nothing when red. Read here, the one place a piece's worth
+	# on the attribute scale is made, so every reader agrees.
+	var kept: float = benefit_scale(piece)
+	if kept <= 0.0:
+		return 0
 	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_POINTS.size() - 1)
 	var level: int = clampi(int(piece.get("level", 1)), 1, MAX_LEVEL)
 	# The slot's own worth. A ring is not a breastplate, and this is where
@@ -268,7 +274,7 @@ static func points(piece: Dictionary, kind: GearData) -> int:
 		* (1.0 + float(level - 1) * LEVEL_POINTS) * worn * QUALITY_SCALE[quality(piece)]
 	# Never zero. A minor slot grants less; it never grants nothing, or
 	# wearing something would be indistinguishable from wearing nothing.
-	return maxi(1, int(round(scaled)))
+	return maxi(1, int(round(scaled * kept)))
 
 
 ## How many attributes a hero has. Here rather than reached for through an
@@ -311,6 +317,9 @@ static func affixes(piece: Dictionary, kind: GearData) -> Array[Dictionary]:
 	if kind == null:
 		return out
 	var budget: int = points(piece, kind)
+	# A broken piece has nothing to divide (2026-10-07).
+	if budget <= 0:
+		return out
 	var rarity: int = clampi(int(piece.get("rarity", 0)), 0,
 		Balance.GEAR_AFFIX_COUNT.size() - 1)
 	# **Never more bonuses than the budget can pay for.** Every share has a
@@ -457,11 +466,146 @@ static func grant_affix(node: DisciplineNodeData) -> GearAffixData:
 static func branch_grants_of(pieces: Array[Dictionary]) -> Dictionary:
 	var out: Dictionary = {}
 	for piece: Dictionary in pieces:
+		# A broken piece grants no branch until it is mended (2026-10-07).
+		if durability_band(piece) >= 2:
+			continue
 		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
 		for affix: GearAffixData in legendary_affixes(piece, kind):
 			if affix.is_grant():
 				out[affix.branch_id] = true
 	return out
+
+
+# --- Durability (owner, 2026-10-07) ----------------------------------------------
+#
+# "Equipment should have durability and need to be repaired at the smith in the
+# Hold ... Red needing to be repaired and providing no benefits until repaired.
+# Yellow gear providing half the benefits ... each time gear is repaired, its max
+# durability should decrease, more for red than yellow."
+#
+# Three additive fields on a piece, written the first time it wears: `dur`, what
+# is left; `dur_max`, what a repair restores it to; `dur_orig`, what it was made
+# with. Absent, a piece is whole - every piece written before this. Rings,
+# amulets and charms never wear. A partner's sheet carries only `dur_band`,
+# because the host needs to know how much a piece gives, not its history.
+
+## What a piece of this kind is made with. Zero for a kind that never wears.
+static func durability_original(piece: Dictionary, kind: GearData) -> int:
+	if kind == null or kind.slot < 0 or kind.slot >= Balance.GEAR_DURABILITY_BY_SLOT.size():
+		return 0
+	var base: int = Balance.GEAR_DURABILITY_BY_SLOT[kind.slot]
+	if base <= 0:
+		return 0
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)
+	return int(round(float(base) * (1.0 + float(rarity) * Balance.GEAR_DURABILITY_PER_RARITY)))
+
+
+## What a repair restores it to now.
+static func durability_max(piece: Dictionary, kind: GearData) -> int:
+	return maxi(int(piece.get("dur_max", durability_original(piece, kind))), 0)
+
+
+## What is left of it.
+static func durability(piece: Dictionary, kind: GearData) -> int:
+	var most: int = durability_max(piece, kind)
+	return clampi(int(piece.get("dur", most)), 0, most)
+
+
+## 0 whole enough, 1 yellow (worn - half its benefits), 2 red (broken - none).
+static func durability_band(piece: Dictionary) -> int:
+	if piece.has("dur_band"):
+		return clampi(int(piece["dur_band"]), 0, 2)
+	if not piece.has("dur"):
+		return 0
+	var left: int = int(piece["dur"])
+	if left <= 0:
+		return 2
+	var most: int = maxi(int(piece.get("dur_max", left)), 1)
+	return 1 if float(left) / float(most) <= Balance.GEAR_DURABILITY_YELLOW else 0
+
+
+## How much of its benefits a piece gives at its wear.
+static func benefit_scale(piece: Dictionary) -> float:
+	match durability_band(piece):
+		1:
+			return Balance.GEAR_DURABILITY_YELLOW_BENEFIT
+		2:
+			return 0.0
+	return 1.0
+
+
+## Wears a piece by `amount`. Returns whether its band moved, which is when the
+## things that read its benefits must be told.
+static func wear(piece: Dictionary, kind: GearData, amount: int) -> bool:
+	var made: int = durability_original(piece, kind)
+	if made <= 0 or amount <= 0:
+		return false
+	var before: int = durability_band(piece)
+	if not piece.has("dur_orig"):
+		piece["dur_orig"] = made
+	if not piece.has("dur_max"):
+		piece["dur_max"] = made
+	piece["dur"] = maxi(durability(piece, kind) - amount, 0)
+	return durability_band(piece) != before
+
+
+## What mending a piece costs, in Marks: by what is missing and by its rarity.
+## Nothing for a piece that is whole.
+static func repair_cost(piece: Dictionary, kind: GearData) -> int:
+	var missing: int = durability_max(piece, kind) - durability(piece, kind)
+	if missing <= 0:
+		return 0
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)
+	return maxi(1, int(ceil(float(missing) * Balance.GEAR_REPAIR_MARKS_PER_POINT
+		* (1.0 + float(rarity) * Balance.GEAR_REPAIR_RARITY_STEP))))
+
+
+## How far a repair takes the most it can hold down, by how worn it was: a
+## broken piece loses more than a worn one, which loses more than a scratched one.
+static func repair_loss(piece: Dictionary, kind: GearData) -> int:
+	var made: int = maxi(int(piece.get("dur_orig", durability_original(piece, kind))), 1)
+	var share: float = Balance.GEAR_REPAIR_LOSS[clampi(durability_band(piece), 0,
+		Balance.GEAR_REPAIR_LOSS.size() - 1)]
+	return maxi(1, int(round(float(made) * share)))
+
+
+## Mends a piece: whole again, and the most it holds a little lower, never
+## below `GEAR_DURABILITY_FLOOR` of what it was made with. Returns the Marks it
+## cost (0 when there was nothing to mend), and takes nothing itself - the door
+## that calls this spends them.
+static func repair(piece: Dictionary, kind: GearData) -> int:
+	var cost: int = repair_cost(piece, kind)
+	if cost <= 0:
+		return 0
+	var made: int = maxi(int(piece.get("dur_orig", durability_original(piece, kind))), 1)
+	var floor_at: int = maxi(1, int(round(float(made) * Balance.GEAR_DURABILITY_FLOOR)))
+	var most: int = maxi(durability_max(piece, kind) - repair_loss(piece, kind), floor_at)
+	piece["dur_orig"] = made
+	piece["dur_max"] = most
+	piece["dur"] = most
+	return cost
+
+
+## What wear does to a piece's worth: what is left of what it holds, and what it
+## holds of what it was made with. One for a whole, never-worn piece.
+static func durability_value_scale(piece: Dictionary) -> float:
+	if not piece.has("dur"):
+		return 1.0
+	var most: float = maxf(float(piece.get("dur_max", 1)), 1.0)
+	var made: float = maxf(float(piece.get("dur_orig", most)), 1.0)
+	var left: float = clampf(float(piece["dur"]) / most, 0.0, 1.0)
+	return (Balance.GEAR_DURABILITY_VALUE_FLOOR + (1.0 - Balance.GEAR_DURABILITY_VALUE_FLOOR) * left) \
+		* clampf(most / made, 0.0, 1.0)
+
+
+## **A shield's guard**, scaled as its points are by rarity and level.
+static func guard_capacity(piece: Dictionary, kind: GearData) -> float:
+	if kind == null or not kind.is_shield():
+		return 0.0
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_POINTS.size() - 1)
+	var level: int = clampi(int(piece.get("level", 1)), 1, MAX_LEVEL)
+	return kind.guard_capacity * (1.0 + float(rarity) * Balance.SHIELD_CAPACITY_PER_RARITY) \
+		* (1.0 + float(level - 1) * LEVEL_POINTS) * benefit_scale(piece)
 
 
 # --- Sockets and tempering (docs/GEAR_REWORK_2026-09-28.md §3-4) ----------------
@@ -654,7 +798,10 @@ static func rarity_colour(piece: Dictionary) -> Color:
 static func sell_price(piece: Dictionary) -> int:
 	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_MARKS.size() - 1)
 	var level: int = clampi(int(piece.get("level", 1)), 1, MAX_LEVEL)
-	return RARITY_MARKS[rarity] + int(round(float(level - 1) * float(RARITY_MARKS[rarity]) * 0.22))
+	var whole: int = RARITY_MARKS[rarity] + int(round(float(level - 1) * float(RARITY_MARKS[rarity]) * 0.22))
+	# **Wear is worth less** (owner, 2026-10-07: both the current and the most
+	# durability should affect its value). Never below one Mark.
+	return maxi(1, int(round(float(whole) * durability_value_scale(piece))))
 
 
 ## Shards yielded by breaking a piece.

@@ -89,6 +89,9 @@ static func pack_mine() -> Array:
 			"uid": int(piece.get("uid", 0)),
 			"gems": Stash.gems(piece),
 			"quality": Stash.quality(piece),
+			# Its wear's band (2026-10-07): what the host needs to give the piece
+			# what it gives here, and nothing of its history.
+			"dur_band": Stash.durability_band(piece),
 		})
 	return [
 		MetaState.hero_level,
@@ -163,6 +166,7 @@ func _read_worn(values: Array) -> void:
 			"uid": _as_int(raw.get("uid", 0), 0),
 			"quality": clampi(_as_int(raw.get("quality", Stash.QUALITY_ORDINARY), Stash.QUALITY_ORDINARY),
 				0, Stash.QUALITY_NAMES.size() - 1),
+			"dur_band": clampi(_as_int(raw.get("dur_band", 0), 0), 0, 2),
 		}
 		# Gems, cleaned as the save reads them: a real gem, no more than the
 		# rarity's sockets. A row from an older build carries none.

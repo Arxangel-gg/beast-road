@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 9
+attribute = 2
+base_points = 3
+weight = 1.0
+min_tier = 0
+guard_capacity = 70.0
+guard_share = 0.52
+guard_knockback = 0.4
+guard_arc = 140.0
+id = "mosshide_roundshield"
+display_name = "Mosshide Roundshield"
+description = "Hide stretched over a hoop of ash, green with the road's damp."

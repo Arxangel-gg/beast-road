@@ -1611,6 +1611,17 @@ func _read_stash(data: Dictionary) -> void:
 		# so this keeps the saved name when there is one rather than renaming
 		# every piece in the stash on every load - which would break an offer
 		# that was open across a save.
+		# **Its wear** (2026-10-07), additive: absent is a whole piece. Read
+		# clean - what is left never past what it holds, what it holds never past
+		# what it was made with, none below nothing.
+		if piece.has("dur"):
+			var fresh: int = Stash.durability_original(restored, ContentDB.gear(kind))
+			if fresh > 0:
+				var orig: int = clampi(int(piece.get("dur_orig", fresh)), 1, fresh * 4)
+				var most: int = clampi(int(piece.get("dur_max", orig)), 1, orig)
+				restored["dur_orig"] = orig
+				restored["dur_max"] = most
+				restored["dur"] = clampi(int(piece["dur"]), 0, most)
 		if piece.has("uid"):
 			restored["uid"] = int(piece["uid"])
 		else:
@@ -1694,12 +1705,66 @@ var _grants_memo: Dictionary = {}
 func branch_grants() -> Dictionary:
 	var names: String = ""
 	for piece: Dictionary in worn_pieces():
-		names += "%d|" % Stash.uid(piece)
+		names += "%d:%d|" % [Stash.uid(piece), Stash.durability_band(piece)]
 	if names == _grants_memo_names:
 		return _grants_memo
 	_grants_memo_names = names
 	_grants_memo = Stash.branch_grants_of(worn_pieces())
 	return _grants_memo
+
+
+## **Wears what is worn in a slot by `amount`** (2026-10-07), and says so when
+## its band moves - which is when every reader of its benefits must hear. Never
+## in the Walk, where nothing reaches the account, and nothing that never wears.
+func wear_worn(slot: int, amount: int) -> void:
+	if RunState.walking or amount <= 0:
+		return
+	var piece: Dictionary = equipped_piece(slot)
+	if piece.is_empty():
+		return
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if Stash.wear(piece, kind, amount):
+		# The worn points are kept against the frame; a band that moved is a new
+		# answer this frame, not the next.
+		_worn_frame = -1
+		EventBus.gear_wear_changed.emit(slot, Stash.durability_band(piece))
+
+
+## The worn slots whose piece is worn yellow or red, as `{slot: band}`.
+func worn_damage() -> Dictionary:
+	var out: Dictionary = {}
+	for slot: Variant in equipped:
+		var piece: Dictionary = equipped_piece(int(slot))
+		var band: int = Stash.durability_band(piece) if not piece.is_empty() else 0
+		if band > 0:
+			out[int(slot)] = band
+	return out
+
+
+## **Mends one piece at the Smith** (owner, 2026-10-07): for its Marks, whole
+## again, holding a little less. Between roads only, and refused - with
+## nothing taken - when the purse is short. Returns the reason, or "".
+func repair_piece(piece_uid: int) -> String:
+	if RunState.road_is_live():
+		return "Gear is mended in the Hold, between roads."
+	var index: int = Stash.index_of(stash, piece_uid)
+	if index < 0:
+		return "That piece is not in the stash."
+	var piece: Dictionary = stash[index]
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	var cost: int = Stash.repair_cost(piece, kind)
+	if cost <= 0:
+		return "It needs no mending."
+	if marks < cost:
+		return "Mending it costs %d Marks." % cost
+	var band: int = Stash.durability_band(piece)
+	marks -= Stash.repair(piece, kind)
+	_worn_frame = -1
+	for slot: Variant in equipped:
+		if equipped_index(int(slot)) == index and band > 0:
+			EventBus.gear_wear_changed.emit(int(slot), 0)
+	save_game()
+	return ""
 
 
 ## The piece worn in a slot, or an empty dictionary.
@@ -1863,7 +1928,7 @@ func gear_attribute_points() -> Array[int]:
 		var worn: Dictionary = equipped_piece(int(slot))
 		if not worn.is_empty():
 			key = hash([key, int(slot), int(worn.get("uid", 0)), String(worn.get("kind", "")),
-				int(worn.get("rarity", 0)), int(worn.get("level", 0))])
+				int(worn.get("rarity", 0)), int(worn.get("level", 0)), Stash.durability_band(worn)])
 	if key == _worn_points_key and _worn_points.size() == RunState.ATTRIBUTE_NAMES.size():
 		return _worn_points.duplicate()
 	_worn_points_key = key

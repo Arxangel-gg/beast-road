@@ -283,9 +283,13 @@ static func cloth_mask_path(layer: String, state: String) -> String:
 ## Everything a Warden wears, from their look and their gear, as the names the
 ## drawing needs. The one function the hero, the Hold and a partner's copy ask.
 static func outfit(look: Dictionary, weapon: GearData, armour: GearData,
-		cape: GearData, helmet: GearData) -> Dictionary:
+		cape: GearData, helmet: GearData, shield: GearData = null) -> Dictionary:
 	var body: String = body_name(look)
 	return {
+		# **A shield on the off hand** (2026-10-07): its own picture, carried in
+		# the left fist, and only with a hand free for it.
+		"shield": shield.get_sprite_path() if shield != null and shield.is_shield()
+			and grip_of(weapon) == GearData.Grip.ONE_HAND else "",
 		"body": body,
 		"body_layer": body_layer(body, armour),
 		"cape_layer": cape_layer(body, cape),

@@ -30,7 +30,12 @@ extends GameData
 ## by it, so a member slipped in before AMULET would move every amulet in every
 ## save onto a slot it was never cut for - silently, because a number is always
 ## a legal slot. A cape is a minor slot, worth what gloves and boots are.
-enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE }
+##
+## **OFFHAND is appended the same way** (owner, 2026-10-07: "let players wield
+## shields in an offhand slot and let them be able to use the shield to
+## guard"). A shield's worth is its guard (`guard_capacity` and the rest
+## below), so its slot weighs almost nothing on the attribute scale.
+enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE, OFFHAND }
 
 @export var slot: Slot = Slot.WEAPON
 
@@ -107,8 +112,27 @@ static func name_of_slot(which: int) -> String:
 			return "Ring"
 		Slot.CAPE:
 			return "Cape"
+		Slot.OFFHAND:
+			return "Shield"
 		_:
 			return "Amulet"
+
+
+## **A shield's guard** (owner, 2026-10-07). Read only for an OFFHAND kind.
+## `guard_capacity` is how much a raised guard withstands before it breaks, at
+## the lowest rarity and level - `Stash.guard_capacity` scales it; `guard_share`
+## is how much of a blow from in front it takes off (never all of it - a
+## guard is a mitigation, not a wall); `guard_knockback` how much of the shove
+## it takes off; `guard_arc` how wide in front it covers, in degrees.
+@export_range(0.0, 2000.0) var guard_capacity: float = 0.0
+@export_range(0.0, 0.9) var guard_share: float = 0.6
+@export_range(0.0, 0.9) var guard_knockback: float = 0.5
+@export_range(30.0, 360.0) var guard_arc: float = 150.0
+
+
+## Whether this kind is a shield a Warden can raise.
+func is_shield() -> bool:
+	return slot == Slot.OFFHAND and guard_capacity > 0.0
 
 
 func slot_name() -> String:

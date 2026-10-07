@@ -283,6 +283,11 @@ func _build_tiles() -> void:
 		var kind: GearData = ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
 		var worn: bool = kind != null
 		var tint: Color = Stash.rarity_colour(piece) if worn else Color("6f766f")
+		# **A worn-out piece's tile says so** (2026-10-07), D2's way: yellow worn,
+		# red broken, over whatever its rarity was.
+		var band: int = Stash.durability_band(piece) if worn else 0
+		if band > 0:
+			tint = GearRow.durability_colour(band)
 		var tile := Button.new()
 		tile.name = "Tile%s" % GearData.name_of_slot(slot)
 		tile.toggle_mode = true

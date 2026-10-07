@@ -164,6 +164,9 @@ const WARDEN_KEYS: Array[String] = [
 
 func _ready() -> void:
 	EventBus.stash_changed.connect(rebuild)
+	# A worn piece's wear crossing a band halves or ends its affixes, gems and
+	# set membership (2026-10-07), so the table is laid again.
+	EventBus.gear_wear_changed.connect(func(_slot: int, _band: int) -> void: rebuild())
 	EventBus.relic_socketed.connect(_on_relics_changed)
 	EventBus.relic_unsocketed.connect(_on_relics_changed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
@@ -293,14 +296,18 @@ static func _add_gear(into: Dictionary, pieces: Array[Dictionary]) -> void:
 	# `tower_damage` gets one number.
 	for piece: Dictionary in pieces:
 		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		# **By its wear** (2026-10-07): half a worn piece's, none of a broken one's.
+		var kept: float = Stash.benefit_scale(piece)
+		if kept <= 0.0:
+			continue
 		for affix: GearAffixData in Stash.legendary_affixes(piece, kind):
 			if affix.effect_id.is_empty():
 				continue
-			into[affix.effect_id] = float(into.get(affix.effect_id, 0.0)) + affix.magnitude
+			into[affix.effect_id] = float(into.get(affix.effect_id, 0.0)) + affix.magnitude * kept
 		# And a set gem (docs/GEAR_REWORK_2026-09-28.md §3): an affix the player
 		# chose rather than found, on the same table by the same door.
 		for gem: Dictionary in Stash.gem_affixes(piece):
-			into[String(gem["key"])] = float(into.get(String(gem["key"]), 0.0)) + float(gem["magnitude"])
+			into[String(gem["key"])] = float(into.get(String(gem["key"]), 0.0)) + float(gem["magnitude"]) * kept
 	# And what matches. A set tier is a relic the player assembled rather than
 	# found, and it lands where a relic lands - so nothing downstream learns that
 	# sets exist either.
@@ -315,6 +322,9 @@ static func _add_gear(into: Dictionary, pieces: Array[Dictionary]) -> void:
 static func _add_matched_sets(into: Dictionary, pieces: Array[Dictionary]) -> void:
 	var worn: Dictionary = {}
 	for piece: Dictionary in pieces:
+		# A broken piece is no part of a set until it is mended.
+		if Stash.durability_band(piece) >= 2:
+			continue
 		var kind_id: String = String(piece.get("kind", ""))
 		var set_data: GearSetData = ContentDB.gear_set_of(kind_id)
 		if set_data == null:

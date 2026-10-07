@@ -109,6 +109,11 @@ const HOLD_SPRINT: int = 1 << 16
 ## not be able to reach.
 const BUTTON_MOUNT: int = 1 << 17
 
+## **Raising a shield** (owner, 2026-10-07). Bit 18, above the rest for the
+## reason `BUTTON_MOUNT` gives. Held on a key; a pad and a thumb raise a shield
+## by standing still with one, because their buttons are full.
+const HOLD_GUARD: int = 1 << 18
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

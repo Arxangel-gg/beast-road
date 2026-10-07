@@ -465,7 +465,9 @@ const LOOT_Z_INDEX: int = -1
 ## **Raised 304 -> 336 on 2026-09-25, with the fifteen capes** - the ninth
 ## slot. Fifth time; 153 kinds is 306 before any slack and a tenth on top is
 ## 336. Same arithmetic, and the gate named it on the first run again.
-const STASH_CAPACITY: int = 336
+## **Raised 336 -> 380 on 2026-10-07, with the twelve shields** - the tenth
+## slot. Sixth time; the gate named it on the first run, as it always does.
+const STASH_CAPACITY: int = 380
 
 ## How many pieces one side may put on the trade table at once.
 ##
@@ -875,7 +877,48 @@ const GEAR_SLOT_WEIGHT: Array[float] = [
 	0.30,  # Ring
 	0.35,  # Amulet
 	0.40,  # Cape
+	0.05,  # Shield (2026-10-07): its worth is its guard, not its points
 ]
+
+## **Durability** (owner, 2026-10-07). What a piece of each slot is made with,
+## by `GearData.Slot` - zero for a charm, a ring and an amulet, which never wear -
+## and how much more each rarity holds. Yellow at `YELLOW` of what it holds, at
+## `YELLOW_BENEFIT` of its benefits; red at nothing left, at none. [TUNE]
+const GEAR_DURABILITY_BY_SLOT: Array[int] = [120, 100, 0, 80, 70, 70, 0, 0, 70, 90]
+const GEAR_DURABILITY_PER_RARITY: float = 0.15
+const GEAR_DURABILITY_YELLOW: float = 0.25
+const GEAR_DURABILITY_YELLOW_BENEFIT: float = 0.5
+## A repair: Marks a point of durability, and a step more for every rarity; and
+## the most it holds after, lowered by a share of what it was made with - by
+## band, whole, worn, broken - never below `FLOOR` of it. [TUNE]
+const GEAR_REPAIR_MARKS_PER_POINT: float = 0.35
+const GEAR_REPAIR_RARITY_STEP: float = 0.35
+const GEAR_REPAIR_LOSS: Array[float] = [0.01, 0.04, 0.10]
+const GEAR_DURABILITY_FLOOR: float = 0.30
+## What a worn piece sells for: never less than `VALUE_FLOOR` of a whole one's
+## price for what is left, times what it holds of what it was made with. [TUNE]
+const GEAR_DURABILITY_VALUE_FLOOR: float = 0.45
+## How fast gear wears. A blow that takes `WEAR_HIT_SHARE` of the Warden's pool
+## or more wears one worn piece of armour by a point; a landed swing wears the
+## weapon by a point one time in `WEAR_WEAPON_EVERY`; a guarded blow wears the
+## shield by a point for every `WEAR_GUARD_PER` it took. [TUNE]
+const GEAR_WEAR_HIT_SHARE: float = 0.03
+const GEAR_WEAR_WEAPON_EVERY: int = 30
+const GEAR_WEAR_GUARD_PER: float = 25.0
+## **A shield** (owner, 2026-10-07): how much more a rarity's shield withstands;
+## how long a broken guard rests before it can be raised again; how fast an
+## unbroken one recovers while lowered; how slowly a Warden walks behind it; and
+## how long standing still with one raises it on its own, which is how a pad and
+## a thumb guard - their buttons are full. [TUNE]
+const SHIELD_CAPACITY_PER_RARITY: float = 0.22
+const SHIELD_BREAK_COOLDOWN: float = 7.0
+const SHIELD_RECOVER_PER_SECOND: float = 0.12
+const SHIELD_GUARD_SPEED: float = 0.55
+const SHIELD_AUTO_GUARD_SECONDS: float = 0.35
+## A carried shield's height on the Warden, as a share of the body's own. [TUNE]
+const SHIELD_DRAWN_SHARE: float = 0.34
+## The worn-gear mannequin's box on the HUD. [TUNE]
+const DURABILITY_DOLL_SIZE: Vector2 = Vector2(96.0, 128.0)
 
 ## The most the whole loadout may be worth, against one weapon.
 ##

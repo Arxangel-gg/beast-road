@@ -426,6 +426,8 @@ func _read_hold(mask: int) -> bool:
 	# down and the hero engages at once.
 	if mask == HOLD_SPRINT:
 		return Input.is_action_pressed(&"sprint")
+	if mask == HOLD_GUARD:
+		return InputMap.has_action(&"guard") and Input.is_action_pressed(&"guard")
 	# The dash button held. The older way in, and still the only one on a thumb:
 	# the hero tells a tap from a hold, not this.
 	if mask == HOLD_DASH:
@@ -483,4 +485,6 @@ func snapshot(current_aim: Vector2) -> Array:
 		holds |= HOLD_DASH
 	if held(HOLD_SPRINT):
 		holds |= HOLD_SPRINT
+	if held(HOLD_GUARD):
+		holds |= HOLD_GUARD
 	return [move(), current_aim, buttons, holds]

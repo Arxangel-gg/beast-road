@@ -222,6 +222,7 @@ func _refresh() -> void:
 		+ "Experience %d of %d toward the next level." % [
 			int(progress.x), int(progress.y)])
 
+	_add_mending()
 	var held: Array[Dictionary] = MetaState.materials_held()
 	if held.is_empty():
 		_rows.add_child(_line("Nothing in the store yet. Chop a tree or break a "
@@ -400,6 +401,92 @@ func _strike() -> void:
 	# off the ground.
 	Sfx.play_group("sfx_hit_stone", -3.0)
 	Sfx.gear_arrived(int(piece.get("rarity", 0)))
+	_refresh()
+
+
+## **Mending** (owner, 2026-10-07: gear "need[s] to be repaired at the smith
+## in the Hold"). Every piece that has worn - what is worn first, then the rest
+## of the stash - with what is left, what it holds, its price and a button; and
+## one button for everything worn. Each press goes through
+## `MetaState.repair_piece`, which refuses with nothing taken when the purse is
+## short, so the row and the anvil cannot disagree about the price.
+func _add_mending() -> void:
+	var damaged: Array[Dictionary] = []
+	var worn_uids: Dictionary = {}
+	for piece: Dictionary in MetaState.worn_pieces():
+		worn_uids[Stash.uid(piece)] = true
+	for pass_worn: bool in [true, false]:
+		for value: Variant in MetaState.stash:
+			var piece: Dictionary = value
+			if worn_uids.has(Stash.uid(piece)) != pass_worn:
+				continue
+			var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+			if Stash.repair_cost(piece, kind) > 0:
+				damaged.append(piece)
+	if damaged.is_empty():
+		return
+	_rows.add_child(_heading_row("Mending  ·  %d Marks held" % MetaState.marks))
+	var worn_cost: int = 0
+	for piece: Dictionary in damaged:
+		if worn_uids.has(Stash.uid(piece)):
+			worn_cost += Stash.repair_cost(piece, ContentDB.gear(String(piece.get("kind", ""))))
+	if worn_cost > 0:
+		var all := Button.new()
+		all.name = "MendAllWorn"
+		all.text = "Mend everything worn  ·  %d Marks" % worn_cost
+		all.disabled = MetaState.marks < worn_cost
+		all.pressed.connect(_mend_all_worn)
+		_rows.add_child(all)
+	for piece: Dictionary in damaged.slice(0, 16):
+		_rows.add_child(_mend_row(piece, worn_uids.has(Stash.uid(piece))))
+
+
+func _mend_row(piece: Dictionary, worn: bool) -> HBoxContainer:
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var band: int = Stash.durability_band(piece)
+	var label := _line("%s%s  ·  %d / %d  (holds %d of %d)%s" % [
+		"Worn: " if worn else "", Stash.display_name(piece, kind) if kind != null else "?",
+		Stash.durability(piece, kind), Stash.durability_max(piece, kind),
+		Stash.durability_max(piece, kind), int(piece.get("dur_orig", Stash.durability_original(piece, kind))),
+		"  ·  BROKEN - gives nothing" if band == 2 else "  ·  worn - gives half" if band == 1 else ""])
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", GearRow.durability_colour(band))
+	row.add_child(label)
+	var cost: int = Stash.repair_cost(piece, kind)
+	var mend := Button.new()
+	mend.text = "Mend  ·  %d" % cost
+	mend.tooltip_text = ("Whole again. Every mending lowers what it can hold a little - a "
+		+ "broken piece the most - and a worn piece sells for less.")
+	mend.disabled = MetaState.marks < cost
+	var uid: int = Stash.uid(piece)
+	mend.pressed.connect(func() -> void: _mend(uid))
+	row.add_child(mend)
+	return row
+
+
+func _mend(uid: int) -> void:
+	var refused: String = MetaState.repair_piece(uid)
+	if refused.is_empty():
+		UiSound.confirm()
+		Sfx.play_group("sfx_hit_stone", -6.0)
+		_result.text = "Mended."
+	else:
+		UiSound.deny()
+		_result.text = refused
+	_refresh()
+
+
+func _mend_all_worn() -> void:
+	var mended: int = 0
+	for piece: Dictionary in MetaState.worn_pieces():
+		if MetaState.repair_piece(Stash.uid(piece)).is_empty():
+			mended += 1
+	if mended > 0:
+		UiSound.confirm()
+		Sfx.play_group("sfx_hit_stone", -6.0)
+	_result.text = "Mended %d piece%s." % [mended, "" if mended == 1 else "s"]
 	_refresh()
 
 

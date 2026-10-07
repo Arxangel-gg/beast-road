@@ -2397,6 +2397,19 @@ one cape fifteen times.
 `ui_gatekeepers_mantle_normal.png` · `ui_gatekeepers_mantle_nightmare.png` ·
 `ui_gatekeepers_mantle_hell.png`
 
+Twelve shields arrived with the **Shield** slot on 2026-10-07 (owner: "let
+players wield shields in an offhand slot"): a buckler to a wall of chain, in
+the same cold blue-grey steel and near-black leather, drawn with a shipped
+gear icon as the style image, and the same 128x128. The icon is also the
+shield the Warden carries in the left fist.
+
+`ui_pinewood_buckler.png` · `ui_mosshide_roundshield.png` ·
+`ui_roadwardens_targe.png` · `ui_ironbound_kite.png` ·
+`ui_ribcage_shield.png` · `ui_ashwood_heater.png` ·
+`ui_saltpan_pavise.png` · `ui_bastion_tower_shield.png` ·
+`ui_spiked_drum_shield.png` · `ui_glasswardens_ward.png` ·
+`ui_stormcrest_aegis.png` · `ui_chainbreakers_wall.png`
+
 The three Mantles (2026-09-28, `docs/GATEBROKEN_2026-09-28.md`) are trophies the
 Gatekeeper alone pays, one a road; their icons are the Glassthread Mantle's
 painting turned toward each road's colour until PixelLab returns.

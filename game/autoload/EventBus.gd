@@ -35,6 +35,9 @@ signal pinch_zoomed(factor: float)
 signal hero_mana_changed(current: float, maximum: float)
 ## SP: what is left to sprint on, and the full pool (owner, 2026-09-16).
 signal hero_stamina_changed(current: float, maximum: float)
+## A worn piece's wear crossed a band: 0 whole, 1 worn (half its benefits), 2
+## broken (none). The modifier table rebuilds on it; the mannequin redraws.
+signal gear_wear_changed(slot: int, band: int)
 ## **A partner's moment, to be drawn and nothing else** (owner, 2026-09-16).
 ##
 ## `seat` is which co-op seat it happened to, so the flourish lands over the

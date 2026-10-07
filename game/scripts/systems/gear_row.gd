@@ -91,6 +91,15 @@ static func build(piece: Dictionary) -> HBoxContainer:
 			set_text(kind)]
 		row.tooltip_text = kind.description
 	text.add_child(detail)
+	# **Its wear, when it has worn** (2026-10-07), in the colour of its band.
+	var wear: String = durability_text(piece, kind)
+	if not wear.is_empty():
+		var worn := Label.new()
+		worn.name = "Durability"
+		worn.add_theme_font_size_override("font_size", 12)
+		worn.add_theme_color_override("font_color", durability_colour(Stash.durability_band(piece)))
+		worn.text = wear
+		text.add_child(worn)
 	return row
 
 
@@ -99,8 +108,40 @@ static func build(piece: Dictionary) -> HBoxContainer:
 ## One function rather than one per screen, for the reason `GearRow` exists at
 ## all: a piece has to read identically in the stash, the trade window and the
 ## Ledger, and three call sites formatting their own is three chances to drift.
+## **A piece's wear, as a line** (2026-10-07): what is left, what it holds, and
+## what that costs it. Empty for a piece that has never worn or never will.
+static func durability_text(piece: Dictionary, kind: GearData) -> String:
+	if kind == null or Stash.durability_original(piece, kind) <= 0 or not piece.has("dur"):
+		return ""
+	var made: int = int(piece.get("dur_orig", Stash.durability_original(piece, kind)))
+	var most: int = Stash.durability_max(piece, kind)
+	var state: String = ""
+	match Stash.durability_band(piece):
+		1:
+			state = "  ·  worn - half its benefits"
+		2:
+			state = "  ·  BROKEN - nothing until mended"
+	return "Durability %d / %d%s%s" % [Stash.durability(piece, kind), most,
+		"  (was %d)" % made if most < made else "", state]
+
+
+## The colour a band reads in: whole, worn yellow, broken red.
+static func durability_colour(band: int) -> Color:
+	match band:
+		1:
+			return Color("e8c25a")
+		2:
+			return Color("e0584a")
+	return Color("9fb39a")
+
+
 static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 	var parts: PackedStringArray = []
+	# A shield says what its guard does first: that is what it is for.
+	if kind != null and kind.is_shield():
+		parts.append("Guard %d, takes %d%% of a blow, %d%% of the shove, %d°" % [
+			int(round(Stash.guard_capacity(piece, kind))), int(round(kind.guard_share * 100.0)),
+			int(round(kind.guard_knockback * 100.0)), int(round(kind.guard_arc))])
 	for affix: Dictionary in Stash.affixes(piece, kind):
 		var which: int = clampi(int(affix["attribute"]), 0, ATTRIBUTE_NAMES.size() - 1)
 		parts.append("+%d %s" % [int(affix["points"]), ATTRIBUTE_NAMES[which]])

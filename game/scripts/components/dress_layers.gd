@@ -79,6 +79,11 @@ var _texture: Texture2D = null
 var _grip: Vector2 = Vector2.ZERO
 var _tip: float = 0.0
 var _hilt: Vector2 = Vector2.ZERO
+## **A shield in the left fist** (2026-10-07): over the body when that fist is
+## in front of it, under it when it is behind.
+var _shield_over: Sprite2D
+var _shield_under: Sprite2D
+var _shield_texture: Texture2D = null
 
 
 ## The one way to dress a sprite: both holders, under and over, as its own
@@ -136,6 +141,10 @@ func _build_parts() -> void:
 			(_over[hand] as Array).append(_piece(self, "Weapon%d_%d" % [hand, i]))
 		for i: int in MAX_BANDS:
 			(_under[hand] as Array).append(_piece(behind, "WeaponBehind%d_%d" % [hand, i]))
+	_shield_over = _part(self, "Shield")
+	_shield_under = _part(behind, "ShieldBehind")
+	for part: Sprite2D in [_shield_over, _shield_under]:
+		part.centered = true
 
 
 ## The under-holder goes when this does. On deletion rather than on leaving the
@@ -197,6 +206,11 @@ func wear(outfit: Dictionary) -> void:
 		_texture = null
 	for hand: int in 2:
 		_hide_hand(hand)
+	var shield_path: String = String(outfit.get("shield", ""))
+	_shield_texture = load(shield_path) as Texture2D \
+		if not shield_path.is_empty() and ResourceLoader.exists(shield_path) else null
+	for part: Sprite2D in [_shield_over, _shield_under]:
+		part.visible = false
 	var tint: Color = outfit.get("cape_tint", Color(1, 1, 1, 0))
 	var cloth: Color = Color(tint.r, tint.g, tint.b, 1.0) if tint.a > 0.0 else CAPE_PLAIN
 	for part: Sprite2D in [_cape_back, _cape_front]:
@@ -227,6 +241,7 @@ func show_frame(state: String, frame: int, row: int, offset: Vector2, meta: Dict
 	var facing: String = HeroAnimator.FACING_NAMES[row] if row < HeroAnimator.FACING_NAMES.size() else ""
 	var table: Array = rows.get(facing, [])
 	_show_head(table[frame] if frame < table.size() else [], offset)
+	_show_shield(table[frame] if frame < table.size() else [], offset, meta)
 	if frame >= table.size() or _texture == null:
 		_hide_hand(0)
 		_hide_hand(1)
@@ -297,6 +312,26 @@ func _lay(hand: int, socket: Array, start: int, offset: Vector2, length: float, 
 		(over[i] as Sprite2D).visible = false
 	for i: int in range(used_under, under.size()):
 		(under[i] as Sprite2D).visible = false
+
+
+## The shield on the left fist's socket - [x, y, angle, reach, front] from 5 -
+## upright and facing the camera, over the body when the fist is in front.
+func _show_shield(socket: Array, offset: Vector2, meta: Dictionary) -> void:
+	if _shield_texture == null or socket.size() < 10:
+		_shield_over.visible = false
+		_shield_under.visible = false
+		return
+	var front: bool = int(socket[9]) == 1
+	var part: Sprite2D = _shield_over if front else _shield_under
+	var other: Sprite2D = _shield_under if front else _shield_over
+	other.visible = false
+	var stature: float = float(meta.get("stature", 150.0))
+	var side: float = stature * Balance.SHIELD_DRAWN_SHARE / maxf(float(_shield_texture.get_height()), 1.0)
+	part.texture = _shield_texture
+	part.position = offset + Vector2(float(socket[5]), float(socket[6]))
+	part.rotation = 0.0
+	part.scale = Vector2(side, side)
+	part.visible = true
 
 
 ## The hair and the beard on this frame's head point, in the view the head

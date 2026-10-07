@@ -56,6 +56,9 @@ var floor_hp: float = 0.0
 
 ## A scope-owned protection rule, evaluated at impact rather than on a timer.
 var damage_allowed: Callable = Callable()
+## **A guard** (2026-10-07): given what a blow would take and where it came
+## from, what it takes after a raised shield. Empty for anything with none.
+var guard_blow: Callable = Callable()
 
 
 func accepts_damage() -> bool:
@@ -113,6 +116,10 @@ func take_damage(amount: float, from: Vector2) -> bool:
 		evaded.emit(_invulnerable_granted - _invulnerable_left, from)
 		return false
 	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20) * damage_scale
+	# **A raised shield** (2026-10-07) takes its share before a ward does, so a
+	# ward pays only for what got past the guard. It never takes all of it.
+	if guard_blow.is_valid():
+		applied = maxf(float(guard_blow.call(applied, from)), 0.0)
 	# Shield first, and it can absorb a blow whole.
 	#
 	# **After mitigation, not before.** `flat_damage_reduction` is armour, and

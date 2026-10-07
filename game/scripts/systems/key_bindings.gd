@@ -74,6 +74,10 @@ const FIXED: Array[Dictionary] = [
 	{"key": "Up / Down", "label": "Chat: say a line again"},
 	{"key": "Esc", "label": "Close the topmost thing, then pause"},
 	{"action": &"toggle_minimap", "label": "Map"},
+	# A shield, held (2026-10-07). Fixed rather than rebindable for the reason
+	# above: the pad is full, and a pad and a thumb raise a shield by standing
+	# still with one instead.
+	{"action": &"guard", "label": "Raise a shield (hold) - standing still raises it too"},
 	{"key": "P", "label": "Fast forward (alone)"},
 	{"key": "Wheel", "label": "Zoom, and the Town and Yuri past its ends"},
 ]

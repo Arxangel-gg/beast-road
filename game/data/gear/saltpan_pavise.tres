@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 9
+attribute = 4
+base_points = 3
+weight = 1.0
+min_tier = 1
+guard_capacity = 150.0
+guard_share = 0.68
+guard_knockback = 0.7
+guard_arc = 160.0
+id = "saltpan_pavise"
+display_name = "Saltpan Pavise"
+description = "A crossbowman's wall from the salt flats, crusted white and twice as stubborn."

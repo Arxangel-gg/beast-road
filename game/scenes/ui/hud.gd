@@ -716,6 +716,8 @@ var _last_stand_spent: bool = false
 var _minimap: Minimap = null
 ## The same map, big and faint over the field (owner, 2026-10-07).
 var _minimap_overlay: Minimap = null
+## The mannequin that warns of worn gear (owner, 2026-10-07).
+var _durability_doll: DurabilityDoll = null
 
 ## The floor the right column was last laid out against. See
 ## `_refit_right_column`.
@@ -7384,6 +7386,10 @@ func _build_minimap() -> void:
 	# over it: it is a backdrop to the interface, never in front of it.
 	add_child(_minimap_overlay)
 	move_child(_minimap_overlay, 0)
+	_durability_doll = DurabilityDoll.new()
+	_durability_doll.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_durability_doll.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	add_child(_durability_doll)
 	# So the video settings reach it while a run is on screen.
 	add_to_group(Graphics.SETTINGS_GROUP)
 	_place_minimap()
@@ -7464,6 +7470,12 @@ func _place_minimap() -> void:
 	_minimap.offset_left = _minimap.offset_right - side
 	_minimap.offset_top = _right_column_floor()
 	_minimap.offset_bottom = _minimap.offset_top + side
+	if _durability_doll != null:
+		# Under the map, against the same right-hand edge, D2's corner of the screen.
+		_durability_doll.offset_right = _minimap.offset_right
+		_durability_doll.offset_left = _minimap.offset_right - Balance.DURABILITY_DOLL_SIZE.x
+		_durability_doll.offset_top = _minimap.offset_bottom + 10.0
+		_durability_doll.offset_bottom = _durability_doll.offset_top + Balance.DURABILITY_DOLL_SIZE.y
 	if _minimap_overlay != null:
 		var view: Vector2 = get_viewport().get_visible_rect().size
 		var big: float = minf(view.x, view.y) * Balance.MINIMAP_OVERLAY_SHARE

@@ -125,6 +125,19 @@ var _waded: float = 0.0
 ## used to be the aim vector alone, so a hero running east with the cursor
 ## resting west ran backwards the whole way.
 var _facing: Vector2 = Vector2.RIGHT
+## **The shield** (owner, 2026-10-07). Whether it is raised; what it can still
+## take; what it holds whole; how long a broken one rests; how long this
+## Warden has stood still, which raises it for a pad and a thumb.
+var _guarding: bool = false
+var _shield_left: float = 0.0
+var _shield_full: float = 0.0
+var _shield_broken_left: float = 0.0
+var _still_for: float = 0.0
+## **Wear** (2026-10-07): its own dice, never a run's stream; landed swings since
+## the weapon last wore; and the health last seen, to tell a blow from a heal.
+var _wear_dice := RandomNumberGenerator.new()
+var _wear_swings: int = 0
+var _wear_hp: float = -1.0
 
 ## Counts down while an attack owns the facing.
 var _facing_hold: float = 0.0
@@ -409,6 +422,9 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	health.changed.connect(_on_health_changed)
 	health.shield_changed.connect(_on_shield_changed)
+	health.guard_blow = _guard_blow
+	_wear_dice.randomize()
+	attack.landed.connect(_on_swing_landed_wear)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	# **Not joined here.** Presence is owned by `set_present`, which the scope
 	# calls when it becomes the live one. Joining on `_ready` put every scope's
@@ -559,6 +575,7 @@ func _physics_process_measured(delta: float) -> void:
 	# the fight starts where you stood. A press read after the refusal would be
 	# a swing thrown away rather than a dismount.
 	_tick_mount(delta)
+	_tick_guard(delta)
 
 	if FrameProfile.enabled:
 		FrameProfile.add(&"h_pre", mark)
@@ -1003,7 +1020,9 @@ func move_speed() -> float:
 	if _mount != null:
 		running = minf(_mount.gallop if _galloping else _mount.speed,
 			Balance.MOUNT_GALLOP_CEILING)
-	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * running \
+	# Behind a raised shield, a slower walk: the guard's price in ground.
+	var guarded: float = Balance.SHIELD_GUARD_SPEED if _guarding else 1.0
+	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * running * guarded \
 		* (1.0 if _swimming else RunState.flood_slow())
 
 
@@ -2094,7 +2113,7 @@ func _dress_warden() -> void:
 	if is_local_player():
 		outfit = WardenDress.outfit(look, _worn_kind(GearData.Slot.WEAPON),
 			_worn_kind(GearData.Slot.ARMOUR), _worn_kind(GearData.Slot.CAPE),
-			_worn_kind(GearData.Slot.HELMET))
+			_worn_kind(GearData.Slot.HELMET), _worn_kind(GearData.Slot.OFFHAND))
 	else:
 		# A partner: dressed from what the wire said it looks like and wears.
 		# Before this it was never dressed at all, and a dressed party drew
@@ -2102,6 +2121,145 @@ func _dress_warden() -> void:
 		outfit = WardenDress.outfit(look, ContentDB.gear(gear_kinds[0]), ContentDB.gear(gear_kinds[1]),
 			ContentDB.gear(gear_kinds[2]), ContentDB.gear(gear_kinds[3]))
 	frames.dress(outfit)
+
+
+## **The shield this Warden carries**, and what is worn with it: this machine's
+## own from the stash, a partner's from their sheet. Null with none - and with
+## a two-handed or paired weapon, which leaves no hand for one.
+func _shield_piece() -> Dictionary:
+	var pieces: Array[Dictionary] = sheet.worn if sheet != null else MetaState.worn_pieces()
+	var shield: Dictionary = {}
+	var free_hand: bool = true
+	for piece: Dictionary in pieces:
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		if kind == null:
+			continue
+		if kind.is_shield():
+			shield = piece
+		elif kind.slot == GearData.Slot.WEAPON and kind.grip != GearData.Grip.ONE_HAND:
+			free_hand = false
+	return shield if free_hand else {}
+
+
+func _shield_kind() -> GearData:
+	var piece: Dictionary = _shield_piece()
+	return ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
+
+
+## Whether the shield is raised now. For the guard's arc, the HUD and the gate.
+func is_guarding() -> bool:
+	return _guarding
+
+
+## What the raised guard can still take, as a share of what it holds whole;
+## negative while a broken one rests.
+func guard_ratio() -> float:
+	if _shield_broken_left > 0.0:
+		return -1.0
+	return _shield_left / _shield_full if _shield_full > 0.0 else 0.0
+
+
+## **Raised by the key, or by standing still with it** - a pad and a thumb have
+## no button left - and never while swinging, casting, riding or swimming. A
+## lowered guard comes back on its own; a broken one rests first.
+func _tick_guard(delta: float) -> void:
+	var piece: Dictionary = _shield_piece()
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
+	var full: float = Stash.guard_capacity(piece, kind)
+	if full <= 0.0:
+		_guarding = false
+		_shield_full = 0.0
+		_shield_left = 0.0
+		return
+	# A shield just taken up, or a better one, starts whole.
+	if _shield_full <= 0.0 and _shield_broken_left <= 0.0:
+		_shield_left = full
+	_shield_full = full
+	if _shield_broken_left > 0.0:
+		_guarding = false
+		_shield_broken_left = maxf(_shield_broken_left - delta, 0.0)
+		if _shield_broken_left <= 0.0:
+			_shield_left = full
+		return
+	var busy: bool = attack.is_swinging() or (spells != null and spells.is_channelling())
+	var moving: bool = input.move().length() > 0.15
+	_still_for = 0.0 if (moving or busy) else _still_for + delta
+	var wants: bool = input.held(HeroInput.HOLD_GUARD) or _still_for >= Balance.SHIELD_AUTO_GUARD_SECONDS
+	_guarding = wants and not busy and _mount == null and not _swimming and is_alive()
+	if not _guarding:
+		_shield_left = minf(_shield_left + full * Balance.SHIELD_RECOVER_PER_SECOND * delta, full)
+	_shield_left = minf(_shield_left, full)
+
+
+## Whether a point lies inside the raised shield's arc, in front of the Warden.
+func _in_guard_arc(source: Vector2) -> bool:
+	var kind: GearData = _shield_kind()
+	if kind == null:
+		return false
+	var toward: Vector2 = source - global_position
+	if toward.length() < 1.0:
+		return true
+	return rad_to_deg(absf(_facing.angle_to(toward))) <= kind.guard_arc * 0.5
+
+
+## **A blow against a raised shield**: its share taken off, never all of it,
+## up to what the guard can still take - what is past that lands whole - and
+## the shield worn by what it held. At nothing left it breaks and rests.
+func _guard_blow(applied: float, from: Vector2) -> float:
+	if not _guarding or applied <= 0.0 or not _in_guard_arc(from):
+		return applied
+	var kind: GearData = _shield_kind()
+	if kind == null:
+		return applied
+	var blocked: float = minf(applied * kind.guard_share, _shield_left)
+	_shield_left -= blocked
+	if is_local_player():
+		MetaState.wear_worn(GearData.Slot.OFFHAND,
+			maxi(1, int(ceil(blocked / Balance.GEAR_WEAR_GUARD_PER))))
+	var front: Vector2 = global_position + _facing * 26.0 + Vector2(0.0, -40.0)
+	Vfx.spark(front, Color(0.92, 0.88, 0.7), 6, -_facing, 140.0)
+	Sfx.play_group_at("sfx_hit_armour", global_position, -3.0)
+	if _shield_left <= 0.5:
+		_break_guard()
+	return applied - blocked
+
+
+func _break_guard() -> void:
+	_guarding = false
+	_shield_left = 0.0
+	_shield_broken_left = Balance.SHIELD_BREAK_COOLDOWN
+	Vfx.word(global_position + Vector2(0.0, -64.0), "Guard broken", Color(1.0, 0.55, 0.4), 22)
+	Vfx.ring(global_position + _facing * 26.0, 46.0, Color(1.0, 0.6, 0.4, 0.8), 0.35, 4.0)
+	Sfx.play_group_at("sfx_hit_stone", global_position)
+
+
+## **A blow wears what the Warden wears** (2026-10-07): one that takes a
+## real share of the pool wears a piece of armour, chosen on the wear's own
+## dice. A heal, or a scratch, wears nothing.
+func _wear_from_blow(current: float, maximum: float) -> void:
+	var before: float = _wear_hp
+	_wear_hp = current
+	if before < 0.0 or current >= before or maximum <= 0.0:
+		return
+	if (before - current) < maximum * Balance.GEAR_WEAR_HIT_SHARE:
+		return
+	var slots: Array[int] = []
+	for slot: int in [GearData.Slot.ARMOUR, GearData.Slot.HELMET, GearData.Slot.GLOVES,
+			GearData.Slot.BOOTS, GearData.Slot.CAPE]:
+		if not MetaState.equipped_piece(slot).is_empty():
+			slots.append(slot)
+	if not slots.is_empty():
+		MetaState.wear_worn(slots[_wear_dice.randi_range(0, slots.size() - 1)], 1)
+
+
+## A landed swing wears the weapon, one time in `GEAR_WEAR_WEAPON_EVERY`.
+func _on_swing_landed_wear(_step: int, _hits: int, _at: Vector2) -> void:
+	if not is_local_player():
+		return
+	_wear_swings += 1
+	if _wear_swings >= Balance.GEAR_WEAR_WEAPON_EVERY:
+		_wear_swings = 0
+		MetaState.wear_worn(GearData.Slot.WEAPON, 1)
 
 
 func _worn_kind(slot: int) -> GearData:
@@ -2839,6 +2997,12 @@ func shove(push: Vector2) -> void:
 	# **Unbowed**: a blow shoves this Warden less by Resolve's tiers. A shape,
 	# never a size - the blow's damage is untouched.
 	speed *= 1.0 - WardenSheet.perk_of(sheet, RunState.Attribute.RESOLVE)
+	# **A raised shield takes some of the shove too** - never all of it - when
+	# the blow came from in front of it (2026-10-07).
+	if _guarding and _in_guard_arc(global_position - push):
+		var kind: GearData = _shield_kind()
+		if kind != null:
+			speed *= 1.0 - kind.guard_knockback
 	# The total, not the new push: two slams landing on the same frame would
 	# otherwise sum past the bound `HERO_SHOVE_MAX_TRAVEL` is there to hold.
 	_shoved = (_shoved + push.normalized() * speed).limit_length(
@@ -2866,6 +3030,7 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	# HUD bar and red vignette. A partner's bar is the one over their head.
 	if not is_local_player():
 		return
+	_wear_from_blow(current, maximum)
 	RunState.hero_hp = current
 	Modifiers.refresh_conditions()
 	EventBus.hero_health_changed.emit(current, maximum)
