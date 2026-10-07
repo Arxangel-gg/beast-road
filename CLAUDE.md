@@ -14689,6 +14689,37 @@ On a fall and on a lost Walk, never on a victory or a return. Read nothing in
 the fight; nothing persists. `debrief_check` holds the window, the grouping, the
 order and the endings, and named both planted faults.
 
+**The edge of death is heard, as of 2026-10-07.** From the triage of the two
+forwarded lists: under `NEAR_DEATH_FROM` (a fifth) of the Warden's health the
+world closes over - a low-pass on every placement bus, the ambience and the
+weather, eased in over `NEAR_DEATH_EASE` and down to `NEAR_DEATH_CUTOFF_HZ` at
+the end - and a heartbeat comes up under it, quicker the nearer the end, on
+the red edge the vignette already draws. **The SFX bus itself is never closed
+over**, which is the whole design: a flat sound is one the player must hear
+whatever is happening - the interface, a telegraph's warning, the wall being
+struck - and the heart is played flat for the same reason. Nothing at zero
+health (a Warden who is down has no heart to hear, and a party waiting on a
+revive should hear the road), nothing once a run is settled, released at once
+with the red edge. A look and a sound, never a number. The heartbeat is a
+synthesised placeholder (`tools/synth_heartbeat.py`) prompted for a recording,
+and so is the telegraph riser, which had never been prompted at all.
+`near_death_check` (both bars) named five planted faults: the SFX bus closed
+over, the world snapped shut, a heart at zero health, the muffle outliving the
+red edge, and a heart that does not quicken.
+
+**And `gen_sfx_prompts.py` wrote into the main tree from any checkout** - its
+root was a typed path, so running it in a worktree rewrote the main tree's
+`SFX_PROMPTS.md` and `AUDIO_MANIFEST.md`. It writes into its own checkout now.
+
+**v0.74.1's release failed on `climate_check`, and it was the harness.** "A
+fire on wet ground does not spread" burned a soaked plant for twenty hand-ticked
+seconds - and a fire dries the ground it burns on, so by the seed's weather the
+patch reached 0.05-0.14 dryness and on some seeds caught its neighbour. The
+ground is held wet across the whole burn now; planted with a fire that ignores
+the ground, the check names ten plants lit. **A gate that drives a system for
+long enough lets it change the conditions the gate set** - the frozen field
+and the dying probe are this lesson's other costumes.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

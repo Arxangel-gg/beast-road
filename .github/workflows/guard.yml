@@ -269,6 +269,7 @@ jobs:
           check "mercenaries on the road" --headless --path game res://tools/mercenary_road_check.tscn
           check "corpses and carrion" --headless --path game res://tools/corpse_check.tscn
           check "harmful plants" --headless --path game res://tools/hazard_plant_check.tscn
+          check "the edge of death" --headless --path game res://tools/near_death_check.tscn
           # Account objectives are finite, one-time and horizontal. This also
           # proves their save payload without touching the runner's real slot.
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn
