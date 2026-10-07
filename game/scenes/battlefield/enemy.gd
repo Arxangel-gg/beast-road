@@ -1457,6 +1457,19 @@ func _facing_heading() -> Vector2:
 	return Vector2.LEFT if sprite != null and sprite.flip_h else Vector2.RIGHT
 
 
+## How long before this body may do its own thing again.
+##
+## **Its own authored figure when it has one** (owner, 2026-10-07: "enemies who
+## pounce should be able to pounce again after their pounce cooldown has
+## ended"). It was `maxf(authored, ENEMY_BEHAVIOUR_INTERVAL)`, and that floor of
+## nine seconds sat above every pounce the roster authors (six to eight), so a
+## cat that was written to leap every six seconds leapt every nine. A floor
+## that overrides what a breed declares is not a default; the default is for a
+## breed that declares nothing - the idiom `_behaviour_reach` already uses.
+func _behaviour_cooldown() -> float:
+	return data.behaviour_interval if data != null and data.behaviour_interval > 0.0 		else Balance.ENEMY_BEHAVIOUR_INTERVAL
+
+
 func _behaviour_warning() -> float:
 	return data.behaviour_warning if data.behaviour_warning > 0.0 \
 		else Balance.ENEMY_BEHAVIOUR_WARNING
@@ -1606,7 +1619,7 @@ func _after_the_pounce() -> void:
 			return
 	_pounces_left = 0
 	if alive and _in_reach(_target) and _temper.randf() < Balance.ENEMY_POUNCE_FOLLOW_CHANCE:
-		_behaviour_wait = maxf(data.behaviour_interval, Balance.ENEMY_BEHAVIOUR_INTERVAL)
+		_behaviour_wait = _behaviour_cooldown()
 		_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP * Balance.ENEMY_POUNCE_FOLLOW_WINDUP)
 		animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
 		return
@@ -1615,7 +1628,7 @@ func _after_the_pounce() -> void:
 
 func _end_behaviour() -> void:
 	_pounces_left = 0
-	_behaviour_wait = maxf(data.behaviour_interval, Balance.ENEMY_BEHAVIOUR_INTERVAL)
+	_behaviour_wait = _behaviour_cooldown()
 	_behaviour_bank = 0.0
 	# **The recovery is the opening.** It cannot act, it cannot move, and it is
 	# the only window some of these breeds ever give.

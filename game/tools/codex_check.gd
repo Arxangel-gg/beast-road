@@ -196,6 +196,33 @@ func _test_the_pages() -> void:
 		_check(not leaked,
 			"an unmet entry must not be found by a word in the text it is hiding")
 
+		# **And an unmet entry is "???", never its name** (owner, 2026-10-07: unknown
+		# entries in the codex should have a placeholder for their names). Found by
+		# its own name, it is not found at all - a search that answered to the name
+		# would be the page saying what it is hiding.
+		screen.set("_search", probe.display_name.to_lower())
+		screen.call("_refresh")
+		await get_tree().process_frame
+		var named_rows: int = 0
+		for row: Node in _row_nodes(screen):
+			for label: Node in _labels_under(row):
+				if (label as Label).text == probe.display_name:
+					named_rows += 1
+		_check(named_rows == 0, "an unmet %s answered a search for its own name" % probe.id)
+		screen.set("_search", "")
+		screen.call("_refresh")
+		await get_tree().process_frame
+		var unknowns: int = 0
+		var leaked_name: bool = false
+		for row: Node in _row_nodes(screen):
+			for label: Node in _labels_under(row):
+				if (label as Label).text == CodexScreen.UNKNOWN_NAME:
+					unknowns += 1
+				elif (label as Label).text == probe.display_name:
+					leaked_name = true
+		_check(unknowns >= 1, "an unmet entry must read %s on the page" % CodexScreen.UNKNOWN_NAME)
+		_check(not leaked_name, "an unmet %s still shows its name on the page" % probe.id)
+
 	screen.set("_search", "")
 	screen.queue_free()
 	await get_tree().process_frame

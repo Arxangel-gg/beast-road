@@ -602,15 +602,17 @@ func _on_bonded_only(on: bool) -> void:
 func _matches(kind: String, entry: GameData, section: String) -> bool:
 	if _search.is_empty():
 		return true
-	if entry.display_name.to_lower().contains(_search) \
-			or section.to_lower().contains(_search) \
-			or entry.id.to_lower().contains(_search):
+	if section.to_lower().contains(_search):
 		return true
-	# The description and the detail line only once the thing has been met -
-	# otherwise a search reads out the text of entries the page is deliberately
-	# withholding, which is the one thing an unfound row must not do.
+	# **An unknown entry's name is withheld too** (owner, 2026-10-07: unknown
+	# entries read "???"), so a search must not find one by the name the row is
+	# not showing, nor by the description it is withholding - that would be the
+	# page telling you what it is hiding.
 	if not MetaState.has_seen(kind, entry.id):
 		return false
+	if entry.display_name.to_lower().contains(_search) \
+			or entry.id.to_lower().contains(_search):
+		return true
 	return entry.description.to_lower().contains(_search) \
 		or _detail_for(kind, entry).to_lower().contains(_search)
 
@@ -630,6 +632,11 @@ func _roman(act: int) -> String:
 	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
 		"VI", "VII", "VIII", "IX", "X", "XI"]
 	return NUMERALS[clampi(act - 1, 0, NUMERALS.size() - 1)]
+
+
+## What an entry not yet met is called. A placeholder rather than the name: the
+## silhouette says something is there, and the name is what meeting it gives.
+const UNKNOWN_NAME: String = "???"
 
 
 ## One line. Found entries name themselves and say what they are; the rest show
@@ -700,14 +707,14 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	row.add_child(text)
 
 	var name_label := Label.new()
-	name_label.text = entry.display_name if found else "Not yet met"
+	name_label.text = entry.display_name if found else UNKNOWN_NAME
 	name_label.add_theme_font_size_override("font_size", FONT_NAME)
 	name_label.add_theme_color_override("font_color",
 		Color("efe3c6") if found else Color("6d6960"))
 	text.add_child(name_label)
 
 	var body := Label.new()
-	body.text = (entry.description + _detail_for(kind, entry)) if found else ""
+	body.text = (entry.description + _detail_for(kind, entry)) if found else "Not yet met."
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", FONT_BODY)
 	body.add_theme_color_override("font_color", Color("9d9484"))
@@ -883,10 +890,11 @@ func _spirit_species_row(kind: WildlifeData) -> PanelContainer:
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", FONT_NAME)
 	if met == 0:
-		# Named, because knowing the animal exists is what makes looking for it
-		# a thing to do - and nothing else is given away.
+		# Named once the animal has been seen on the road, and "???" until
+		# then (owner, 2026-10-07) - the silhouette says it exists.
 		title.text = "%s %s  ·  not yet met" % [
-			"v" if _spirit_open == kind.id else ">", kind.display_name]
+			"v" if _spirit_open == kind.id else ">",
+			kind.display_name if MetaState.has_seen("wildlife", kind.id) else UNKNOWN_NAME]
 		title.add_theme_color_override("font_color", Color("6d6556"))
 	else:
 		title.text = "%s %s  ·  %d of 8 bonded%s" % [

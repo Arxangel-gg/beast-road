@@ -65,6 +65,7 @@ func _ready() -> void:
 	_test_every_behaviour_is_told_before_it_happens()
 	await _test_a_pounce_covers_ground_and_leaves_none_behind()
 	await _test_a_pounce_lands_and_may_come_again()
+	await _test_a_pounce_comes_again_on_its_own_clock()
 	await _test_a_swing_is_dealt_once()
 	_test_the_dice_are_the_runs()
 	_test_the_pounce_chain_is_rare_and_bounded()
@@ -350,6 +351,38 @@ func _test_a_pounce_lands_and_may_come_again() -> void:
 	hero.health.heal(hero.health.max_hp)
 	_clear()
 	await get_tree().process_frame
+
+
+## **A pounce re-arms on the breed's own clock** (owner, 2026-10-07: "enemies
+## who pounce should be able to pounce again after their pounce cooldown has
+## ended"). Every pouncer's authored interval is shorter than the old floor of
+## `ENEMY_BEHAVIOUR_INTERVAL`, which held every one of them to nine seconds.
+## Read off the body after a real behaviour ends, through the door it ends by.
+func _test_a_pounce_comes_again_on_its_own_clock() -> void:
+	var measured: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or breed.behaviour != EnemyData.Behaviour.POUNCE:
+			continue
+		var body: Enemy = await _stage_a_pounce(breed.id)
+		if body == null:
+			continue
+		body.call("_end_behaviour")
+		var wait: float = float(body.get("_behaviour_wait"))
+		var authored: float = breed.behaviour_interval if breed.behaviour_interval > 0.0 			else Balance.ENEMY_BEHAVIOUR_INTERVAL
+		_check(is_equal_approx(wait, authored),
+			"%s waits %.1fs to pounce again where it authors %.1fs" % [breed.id, wait, authored])
+		measured += 1
+		# And once the clock has run, it pounces again at a Warden in its leap.
+		body.set("_behaviour_wait", 0.0)
+		body.set("_target", _field.hero)
+		body.call("_enter", Enemy.State.WALKING, 0.0)
+		_check(bool(body.call("_begin_behaviour")),
+			"%s's clock ran out with the Warden inside its leap and it never pounced again" % breed.id)
+		_run.process_mode = Node.PROCESS_MODE_INHERIT
+		_clear()
+		await get_tree().process_frame
+	_check(measured >= 8, "only %d pouncers were measured" % measured)
 
 
 ## **A cat leaps up to four times, and the later leaps are rare** (owner,
