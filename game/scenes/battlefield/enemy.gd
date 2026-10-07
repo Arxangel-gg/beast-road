@@ -3800,6 +3800,7 @@ func _on_died(_from: Vector2) -> void:
 	health_bar.visible = false
 	_let_the_death_finish()
 	RunState.enemies_killed += 1
+	MetaState.note_kill(data.id)
 	# A promoted body is worth what it cost to bring down.
 	var spoils: float = float(data.resource_value)
 	if is_camp_mob():

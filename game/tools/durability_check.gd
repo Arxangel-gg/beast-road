@@ -62,6 +62,7 @@ func _ready() -> void:
 	MetaState.marks = 0
 	_test_wear_and_its_benefits()
 	_test_mending()
+	_test_reforging()
 	_test_value()
 	_test_the_save_and_the_sheet()
 	GameDirector.run_active = true
@@ -80,6 +81,7 @@ func _ready() -> void:
 	_hero.input = _hands
 	_hero.global_position = Vector2(2000.0, 1700.0)
 	await _test_the_shield()
+	await _test_the_perfect_guard()
 	await _test_the_mannequin()
 	_finish()
 
@@ -189,6 +191,57 @@ func _test_mending() -> void:
 		MetaState.repair_piece(Stash.uid(worn))
 	_check(Stash.durability_max(worn, kind) >= int(round(float(made) * Balance.GEAR_DURABILITY_FLOOR)),
 		"forty mendings took it to %d, under its floor" % Stash.durability_max(worn, kind))
+	MetaState.stash = []
+	MetaState.equipped = {}
+	MetaState.marks = 0
+
+
+## **Reforging** (triage of 2026-10-07): once in a piece's life the Smith gives
+## back what mending took, for the deep ore and Marks - refused with nothing
+## taken when either is short, refused for a piece that has lost nothing, and
+## refused a second time; and the save remembers it was done.
+func _test_reforging() -> void:
+	var kind_id: String = _first_kind(GearData.Slot.BOOTS)
+	var kind: GearData = ContentDB.gear(kind_id)
+	var piece: Dictionary = _equip(kind_id, 4)
+	var made: int = Stash.durability_original(piece, kind)
+	MetaState.marks = 99999
+	_check(not Stash.can_reforge(piece, kind) and not MetaState.reforge_piece(Stash.uid(piece)).is_empty(),
+		"a piece that has lost nothing was offered a reforging")
+	for _round: int in 4:
+		MetaState.wear_worn(kind.slot, 9999)
+		MetaState.repair_piece(Stash.uid(piece))
+	var lowered: int = Stash.durability_max(piece, kind)
+	_check(lowered < made and Stash.can_reforge(piece, kind), "four mendings left it holding %d of %d" % [lowered, made])
+	var ore: int = Stash.reforge_ore(piece)
+	var price: int = Stash.reforge_marks(piece)
+	MetaState.materials.erase(Balance.GEAR_REFORGE_ORE)
+	MetaState.marks = price
+	_check(not MetaState.reforge_piece(Stash.uid(piece)).is_empty(), "a reforging with no ore went through")
+	_check(MetaState.marks == price and Stash.durability_max(piece, kind) == lowered,
+		"a refused reforging took something")
+	MetaState.materials[Balance.GEAR_REFORGE_ORE] = ore
+	MetaState.marks = price - 1
+	_check(not MetaState.reforge_piece(Stash.uid(piece)).is_empty(), "a reforging the purse cannot pay went through")
+	_check(MetaState.material_count(Balance.GEAR_REFORGE_ORE) == ore, "a refused reforging spent the ore")
+	MetaState.marks = price
+	_check(MetaState.reforge_piece(Stash.uid(piece)).is_empty(), "a reforging that can be paid was refused")
+	_check(Stash.durability_max(piece, kind) == made and Stash.durability(piece, kind) == made,
+		"reforged, it holds %d of %d and has %d" % [Stash.durability_max(piece, kind), made, Stash.durability(piece, kind)])
+	_check(MetaState.marks == 0 and MetaState.material_count(Balance.GEAR_REFORGE_ORE) == 0,
+		"reforging took %d Marks of %d and left %d ore" % [price - MetaState.marks, price,
+			MetaState.material_count(Balance.GEAR_REFORGE_ORE)])
+	MetaState.wear_worn(kind.slot, 9999)
+	MetaState.repair_piece(Stash.uid(piece))
+	MetaState.materials[Balance.GEAR_REFORGE_ORE] = 99
+	MetaState.marks = 99999
+	_check(MetaState.reforge_piece(Stash.uid(piece)) == "It has been reforged once already.",
+		"a piece was reforged twice")
+	var data: Dictionary = JSON.parse_string(MetaState.serialized_save()) as Dictionary
+	MetaState.adopt_save(data)
+	var back: Dictionary = MetaState.equipped_piece(kind.slot)
+	_check(bool(back.get("reforged", false)), "the save forgot a piece was reforged: %s" % back)
+	MetaState.materials.erase(Balance.GEAR_REFORGE_ORE)
 	MetaState.stash = []
 	MetaState.equipped = {}
 	MetaState.marks = 0
@@ -314,6 +367,68 @@ func _test_the_shield() -> void:
 		await _frames(3)
 		_check(not _hero.is_guarding(), "a two-handed weapon raised a shield")
 	_hands.hold = 0
+
+
+## **A perfect guard** (triage of 2026-10-07): raised on the instant, after the
+## guard was down long enough, it takes the whole blow and spends nothing, and
+## staggers the body that struck from in reach; one a raise; tapping the key
+## buys nothing; a blow after the window is an ordinary guard.
+func _test_the_perfect_guard() -> void:
+	_equip(_first_kind(GearData.Slot.WEAPON), 2)
+	_equip("ironbound_kite", 2)
+	_hero.call("_dress_warden")
+	var pool: float = _hero.health.max_hp
+	var body: Enemy = _field.spawn_enemy(ContentDB.enemies.values()[0] as EnemyData, 0, 1.0)
+	await _frames(2)
+	body.process_mode = Node.PROCESS_MODE_DISABLED
+	# Down long enough to re-arm it, then raised.
+	await _lower_then_raise(Balance.SHIELD_PERFECT_REARM + 0.2)
+	_check(_hero.is_guarding() and _hero.guard_is_perfect(), "a fresh raise after a real lowering is not perfect")
+	var facing: Vector2 = _hero.get("_facing") as Vector2
+	var from: Vector2 = _hero.global_position + facing * 70.0
+	body.global_position = from
+	var counted: int = _hero.perfect_guards
+	var ratio: float = _hero.guard_ratio()
+	_hero.health.current_hp = pool
+	_hero.health.take_damage(20.0, from)
+	_check(is_equal_approx(_hero.health.current_hp, pool),
+		"a perfect guard let %.1f of 20 through" % (pool - _hero.health.current_hp))
+	_check(_hero.perfect_guards == counted + 1, "a perfect guard was not counted")
+	_check(is_equal_approx(_hero.guard_ratio(), ratio),
+		"a perfect guard spent the guard (%.2f to %.2f)" % [ratio, _hero.guard_ratio()])
+	_check(float(body.get("_hitstun_left")) > 0.0, "the body that struck was not staggered")
+	# One a raise: the next blow in the same window is an ordinary guard.
+	_hero.health.current_hp = pool
+	_hero.health.take_damage(20.0, from)
+	_check(_hero.health.current_hp < pool and _hero.perfect_guards == counted + 1,
+		"a second blow in the same raise was perfect too")
+	# Tapping the key: lowered a moment and raised, no perfect guard.
+	await _lower_then_raise(0.0)
+	_check(_hero.is_guarding(), "a tapped guard did not come up")
+	_hero.health.current_hp = pool
+	_hero.health.take_damage(20.0, from)
+	_check(_hero.health.current_hp < pool and _hero.perfect_guards == counted + 1,
+		"tapping the guard key bought a perfect guard")
+	# Re-armed, but the blow comes after the window.
+	await _lower_then_raise(Balance.SHIELD_PERFECT_REARM + 0.2)
+	await _seconds(Balance.SHIELD_PERFECT_WINDOW + 0.15)
+	_hero.health.current_hp = pool
+	_hero.health.take_damage(20.0, from)
+	_check(_hero.health.current_hp < pool and _hero.perfect_guards == counted + 1,
+		"a blow after the window was perfect")
+	_hands.hold = 0
+	body.queue_free()
+
+
+func _lower_then_raise(down_for: float) -> void:
+	_hands.hold = 0
+	_hands.walk = Vector2.RIGHT
+	await _frames(3)
+	if down_for > 0.0:
+		await _seconds(down_for)
+	_hands.walk = Vector2.ZERO
+	_hands.hold = HeroInput.HOLD_GUARD
+	await _frames(2)
 
 
 func _test_the_mannequin() -> void:

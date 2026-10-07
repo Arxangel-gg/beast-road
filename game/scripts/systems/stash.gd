@@ -586,6 +586,38 @@ static func repair(piece: Dictionary, kind: GearData) -> int:
 	return cost
 
 
+## **Reforging** (`GEAR_REFORGE_*`): whether the Smith can give a piece back
+## what mending took - it has lost some of what it holds, and has never been
+## reforged.
+static func can_reforge(piece: Dictionary, kind: GearData) -> bool:
+	if piece.is_empty() or kind == null or bool(piece.get("reforged", false)):
+		return false
+	var made: int = int(piece.get("dur_orig", durability_original(piece, kind)))
+	return made > 0 and durability_max(piece, kind) < made
+
+
+## What reforging asks, in the deep ore and in Marks, by rarity.
+static func reforge_ore(piece: Dictionary) -> int:
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)
+	return Balance.GEAR_REFORGE_ORE_BASE + int(floor(float(rarity) * Balance.GEAR_REFORGE_ORE_PER_RARITY))
+
+
+static func reforge_marks(piece: Dictionary) -> int:
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)
+	return Balance.GEAR_REFORGE_MARKS + rarity * Balance.GEAR_REFORGE_MARKS_PER_RARITY
+
+
+## Gives a piece back what it was made with, whole, and marks it reforged so it
+## is never reforged again. Never past what it was made with. Takes nothing
+## itself - the door that calls this spends the price.
+static func reforge(piece: Dictionary, kind: GearData) -> void:
+	var made: int = maxi(int(piece.get("dur_orig", durability_original(piece, kind))), 1)
+	piece["dur_orig"] = made
+	piece["dur_max"] = made
+	piece["dur"] = made
+	piece["reforged"] = true
+
+
 ## What wear does to a piece's worth: what is left of what it holds, and what it
 ## holds of what it was made with. One for a whole, never-worn piece.
 static func durability_value_scale(piece: Dictionary) -> float:

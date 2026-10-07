@@ -421,7 +421,7 @@ func _add_mending() -> void:
 			if worn_uids.has(Stash.uid(piece)) != pass_worn:
 				continue
 			var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-			if Stash.repair_cost(piece, kind) > 0:
+			if Stash.repair_cost(piece, kind) > 0 or Stash.can_reforge(piece, kind):
 				damaged.append(piece)
 	if damaged.is_empty():
 		return
@@ -455,15 +455,40 @@ func _mend_row(piece: Dictionary, worn: bool) -> HBoxContainer:
 	label.add_theme_color_override("font_color", GearRow.durability_colour(band))
 	row.add_child(label)
 	var cost: int = Stash.repair_cost(piece, kind)
-	var mend := Button.new()
-	mend.text = "Mend  ·  %d" % cost
-	mend.tooltip_text = ("Whole again. Every mending lowers what it can hold a little - a "
-		+ "broken piece the most - and a worn piece sells for less.")
-	mend.disabled = MetaState.marks < cost
 	var uid: int = Stash.uid(piece)
-	mend.pressed.connect(func() -> void: _mend(uid))
-	row.add_child(mend)
+	if cost > 0:
+		var mend := Button.new()
+		mend.text = "Mend  ·  %d" % cost
+		mend.tooltip_text = ("Whole again. Every mending lowers what it can hold a little - a "
+			+ "broken piece the most - and a worn piece sells for less.")
+		mend.disabled = MetaState.marks < cost
+		mend.pressed.connect(func() -> void: _mend(uid))
+		row.add_child(mend)
+	if Stash.can_reforge(piece, kind):
+		var ore: int = Stash.reforge_ore(piece)
+		var price: int = Stash.reforge_marks(piece)
+		var ore_kind: MaterialData = ContentDB.material(Balance.GEAR_REFORGE_ORE)
+		var reforge := Button.new()
+		reforge.name = "Reforge"
+		reforge.text = "Reforge  ·  %d %s, %d" % [ore, ore_kind.display_name if ore_kind != null else "ore", price]
+		reforge.tooltip_text = ("Once in its life: everything mending took off what it holds is "
+			+ "given back, and it is whole. It can never be reforged again.")
+		reforge.disabled = MetaState.marks < price or MetaState.material_count(Balance.GEAR_REFORGE_ORE) < ore
+		reforge.pressed.connect(func() -> void: _reforge(uid))
+		row.add_child(reforge)
 	return row
+
+
+func _reforge(uid: int) -> void:
+	var refused: String = MetaState.reforge_piece(uid)
+	if refused.is_empty():
+		UiSound.confirm()
+		Sfx.play_group("sfx_hit_stone", -3.0)
+		_result.text = "Reforged - it holds all it was made with."
+	else:
+		UiSound.deny()
+		_result.text = refused
+	_refresh()
 
 
 func _mend(uid: int) -> void:

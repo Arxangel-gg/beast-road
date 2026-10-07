@@ -163,6 +163,10 @@ var terrain_id: String = ""
 ## Run-scoped and never saved: a Walk quit halfway grants nothing and is
 ## offered again from the start.
 var walking: bool = false
+## **The account's furthest road as this road began**, and whether passing it
+## has been said (`PersonalBest`). Run-scoped; nothing persists here.
+var best_to_beat: float = 0.0
+var best_called: bool = false
 ## **A sandbox road** (2026-09-30): every tower, a full purse, any act, and
 ## nothing kept - `GameDirector` holds the account's saves for its length and
 ## reads the account back from disk when it ends. Cleared by `reset`.
@@ -689,6 +693,8 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	company_stayed_home.clear()
 	tower_owners.clear()
 	distance_travelled = 0.0
+	best_to_beat = MetaState.best_distance
+	best_called = false
 	taken_omens.clear()
 	pending_omens.clear()
 	road_cards.clear()

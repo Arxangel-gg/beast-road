@@ -895,6 +895,16 @@ const GEAR_REPAIR_MARKS_PER_POINT: float = 0.35
 const GEAR_REPAIR_RARITY_STEP: float = 0.35
 const GEAR_REPAIR_LOSS: Array[float] = [0.01, 0.04, 0.10]
 const GEAR_DURABILITY_FLOOR: float = 0.30
+## **Reforging** (triage of 2026-10-07): once in a piece's life the Smith can
+## give back everything mending took off what it holds, whole again, for the
+## deepest ore the road gives up (`GEAR_REFORGE_ORE`, more by rarity) and
+## Marks. Once, because without it a beloved piece is disposable and without
+## the bound mending would cost nothing at all. [TUNE]
+const GEAR_REFORGE_ORE: String = "voidrock_ore"
+const GEAR_REFORGE_ORE_BASE: int = 1
+const GEAR_REFORGE_ORE_PER_RARITY: float = 0.5
+const GEAR_REFORGE_MARKS: int = 40
+const GEAR_REFORGE_MARKS_PER_RARITY: int = 30
 ## What a worn piece sells for: never less than `VALUE_FLOOR` of a whole one's
 ## price for what is left, times what it holds of what it was made with. [TUNE]
 const GEAR_DURABILITY_VALUE_FLOOR: float = 0.45
@@ -915,6 +925,18 @@ const SHIELD_BREAK_COOLDOWN: float = 7.0
 const SHIELD_RECOVER_PER_SECOND: float = 0.12
 const SHIELD_GUARD_SPEED: float = 0.55
 const SHIELD_AUTO_GUARD_SECONDS: float = 0.35
+## **A perfect guard** (triage of 2026-10-07): a guard raised no more than
+## `SHIELD_PERFECT_WINDOW` before a blow takes the whole of it and spends
+## nothing, and staggers a body that struck from within `SHIELD_PERFECT_MELEE_REACH`
+## (the nearest within `SHIELD_PERFECT_STAGGER_REACH` of where the blow came
+## from) for `SHIELD_PERFECT_STAGGER`. One a raise, and only a raise after the
+## guard was down `SHIELD_PERFECT_REARM` - tapping the key is not a wall. [TUNE]
+const SHIELD_PERFECT_WINDOW: float = 0.22
+const SHIELD_PERFECT_REARM: float = 0.6
+const SHIELD_PERFECT_STAGGER: float = 0.9
+const SHIELD_PERFECT_MELEE_REACH: float = 220.0
+const SHIELD_PERFECT_STAGGER_REACH: float = 90.0
+const SHIELD_PERFECT_COLOUR: Color = Color(1.0, 0.9, 0.55, 0.95)
 ## A carried shield's height on the Warden, as a share of the body's own. [TUNE]
 const SHIELD_DRAWN_SHARE: float = 0.34
 ## The worn-gear mannequin's box on the HUD. [TUNE]
@@ -6780,6 +6802,38 @@ const TOWER_SPRITE_LIFT: float = 42.0
 ## the same amount, and `Tower.origin()` hands the plot centre back to everything
 ## that measures range or spawns an effect, so nothing about the gameplay shifts.
 const TOWER_SORT_LIFT: float = 64.0
+
+## **Codex mastery** (triage of 2026-10-07): an enemy's entry grows as this
+## account brings it down - Encountered, Killed, Studied, Mastered - read by
+## its category (breed, elite, boss): studied at the first figure, mastered at
+## the second. Knowledge as progression, never power: nothing in a fight reads
+## a tier. [TUNE]
+const CODEX_STUDIED_KILLS: Array[int] = [25, 6, 2]
+const CODEX_MASTERED_KILLS: Array[int] = [150, 30, 5]
+const CODEX_KILLS_CEILING: int = 99999
+const CODEX_MASTERED_TINT: Color = Color(1.0, 0.82, 0.38, 0.95)
+
+## **A personal best, said** (`PersonalBest`): the road passing the furthest
+## this account has walked is said once, if that best is at least this far -
+## a first road has nothing worth beating. [TUNE]
+const PERSONAL_BEST_MIN_DISTANCE: float = 300.0
+const PERSONAL_BEST_COLOUR: Color = Color(1.0, 0.86, 0.45, 1.0)
+
+## **A hurt tower shows it** (triage of 2026-10-07): past `TOWER_SMOKE_FROM` of
+## its pool gone it smokes from the roof, thicker the further gone, past
+## `TOWER_CRACKLE_FROM` it crackles with sparks, and it settles up to
+## `TOWER_HURT_LEAN_DEGREES` away from the side the last blow came from, by the
+## share it has lost, easing back as it is mended. Fallen, it topples away from
+## the blow over `TOWER_FALL_SECONDS` before the rubble. A look, never a fact:
+## nothing reads any of it. [TUNE]
+const TOWER_SMOKE_FROM: float = 0.35
+const TOWER_SMOKE_EVERY: float = 0.5
+const TOWER_CRACKLE_FROM: float = 0.6
+const TOWER_CRACKLE_EVERY: float = 1.1
+const TOWER_HURT_LEAN_DEGREES: float = 6.0
+const TOWER_HURT_LEAN_EASE: float = 5.0
+const TOWER_FALL_SECONDS: float = 0.55
+const TOWER_FALL_DEGREES: float = 78.0
 
 ## Layer health bars draw on. Above the sorted world layer and below the cloud
 ## shadows, so a readout is never occluded by the thing it is reporting on or by

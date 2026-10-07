@@ -411,7 +411,56 @@ func _enemy_detail(foe: EnemyData) -> String:
 	var line: String = "\n" + "  ·  ".join(facts)
 	if not traits.is_empty():
 		line += "\n" + "  ·  ".join(traits)
+	# **What fighting it has taught** (codex mastery, 2026-10-07): the tier and
+	# how far to the next, and from Studied, how it fights.
+	line += "\n" + mastery_line(foe)
+	if MetaState.codex_tier(foe) >= MetaState.CodexTier.STUDIED:
+		var studied: PackedStringArray = studied_traits(foe)
+		if not studied.is_empty():
+			line += "\n" + "  ·  ".join(studied)
 	return line
+
+
+## The tier an enemy's entry has grown to, and the next step: "Studied  ·  40
+## felled  ·  mastered at 150". Public so the gate reads what the row says.
+static func mastery_line(foe: EnemyData) -> String:
+	var felled: int = MetaState.codex_kills_of(foe.id)
+	var index: int = clampi(int(foe.category), 0, Balance.CODEX_STUDIED_KILLS.size() - 1)
+	match MetaState.codex_tier(foe):
+		MetaState.CodexTier.MASTERED:
+			return "Mastered  ·  %d felled" % felled
+		MetaState.CodexTier.STUDIED:
+			return "Studied  ·  %d felled  ·  mastered at %d" % [felled, Balance.CODEX_MASTERED_KILLS[index]]
+		MetaState.CodexTier.KILLED:
+			return "Killed  ·  %d felled  ·  studied at %d" % [felled, Balance.CODEX_STUDIED_KILLS[index]]
+	return "Encountered  ·  not yet felled"
+
+
+## **How it fights**, opened by studying it - each true of the breed and none a
+## number: what it is made of, and what it does that a plain body does not.
+static func studied_traits(foe: EnemyData) -> PackedStringArray:
+	var out: PackedStringArray = []
+	match foe.hide:
+		EnemyData.Hide.ARMOUR:
+			out.append("plated - a blade rings off it")
+		EnemyData.Hide.STONE:
+			out.append("stone - blows chip it")
+		EnemyData.Hide.SPIRIT:
+			out.append("spirit - it comes apart in wisps")
+		_:
+			out.append("flesh - it bleeds")
+	match foe.behaviour:
+		EnemyData.Behaviour.POUNCE:
+			out.append("leaps at whoever is near")
+		EnemyData.Behaviour.ANCHOR:
+			out.append("plants itself and holds")
+		EnemyData.Behaviour.WARD:
+			out.append("wards the bodies beside it")
+		EnemyData.Behaviour.STORE:
+			out.append("stores its blows and lets them go")
+	if foe.brace_chance > 0.0:
+		out.append("braces behind a shield")
+	return out
 
 
 func _affix_detail(affix: EnemyAffixData) -> String:
@@ -675,7 +724,14 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	# Every entry gets an edge, found or not: a silhouette in a frame reads as
 	# a portrait waiting to be filled in, and one without reads as missing art.
-	FrameKit.hang(art)
+	# A mastered enemy wears gold, frame and border, so a page shows at a glance
+	# what this account knows best.
+	var mastered: bool = found and kind == "enemy" \
+		and MetaState.codex_tier(entry as EnemyData) == MetaState.CodexTier.MASTERED
+	FrameKit.hang(art, Balance.CODEX_MASTERED_TINT if mastered else FrameKit.CORNER)
+	if mastered:
+		skin.border_color = Balance.CODEX_MASTERED_TINT
+		skin.set_border_width_all(2)
 	var path: String = entry.get_sprite_path()
 	if ResourceLoader.exists(path):
 		art.texture = load(path)

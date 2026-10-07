@@ -24,7 +24,7 @@ extends Node
 const STATS: Array[String] = ["runs_started", "runs_won", "highest_act", "bosses_felled",
 	"total_enemies_killed", "camps_razed", "forks_opened", "war_camps_razed", "rifts_closed",
 	"dungeons_finished", "fish_caught_total", "swims", "coop_runs", "spirits_bonded",
-	"hero_level", "ascension", "best_distance", "codex_share"]
+	"hero_level", "ascension", "best_distance", "codex_share", "codex_mastered"]
 
 var _failures: int = 0
 var _checked: int = 0

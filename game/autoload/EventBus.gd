@@ -252,6 +252,10 @@ signal hero_respawned(at: Vector2)
 ## feedback can be drawn there; nothing about the reward travels on this.
 signal hero_perfect_evade(at: Vector2)
 
+## A raised shield caught a blow on the instant (`Hero._perfect_guard`): the
+## whole of it taken, nothing of the guard spent. Carries where, for feedback.
+signal hero_perfect_guard(at: Vector2)
+
 ## Act-long Wounds changed through a lethal down or Hearthmend.
 signal hero_wounds_changed(wounds: int, maximum: int)
 

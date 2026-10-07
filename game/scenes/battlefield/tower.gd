@@ -116,6 +116,17 @@ var _jolt_left: float = 0.0
 ## Where the sprite sits when nothing is shoving it.
 var _sprite_home: Vector2 = Vector2.ZERO
 
+## **What a hurt tower shows** (`TOWER_SMOKE_*`, `TOWER_HURT_LEAN_DEGREES`): the
+## side the last blow came from (+1 from the left, so it leans right), the lean
+## eased toward its share, and the clocks of its smoke and its crackle. Counted
+## for the gate; read by nothing.
+var _hurt_side: float = 1.0
+var _hurt_lean: float = 0.0
+var _smoke_left: float = 0.0
+var _crackle_left: float = 0.0
+var smoke_puffs: int = 0
+var crackles: int = 0
+
 ## True when the host decides this tower's shots and this machine only draws
 ## them. Set by `CoopWorld` on a guest; false in single player and on the host.
 var puppet: bool = false
@@ -1222,6 +1233,8 @@ func _build_health() -> void:
 	_health.revive()
 	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
 		if amount > 0.0 and from != Vector2.ZERO:
+			if absf(origin().x - from.x) > 1.0:
+				_hurt_side = signf(origin().x - from.x)
 			if _struck_left <= 0.0:
 				_struck_pulse = 0.0
 			_struck_left = Balance.TOWER_STRUCK_SECONDS
@@ -1278,7 +1291,7 @@ static func path_armour(path: int, tower_level: int) -> float:
 	return armour
 
 
-func _on_destroyed(_from: Vector2) -> void:
+func _on_destroyed(from: Vector2) -> void:
 	Vfx.spark(origin(), TowerData.element_colour(data.element), 18,
 		Vector2.ZERO, 260.0)
 	Vfx.ring(origin(), 110.0,
@@ -1294,6 +1307,7 @@ func _on_destroyed(_from: Vector2) -> void:
 	# identically.
 	Vfx.forge_burst(origin(), Balance.TOWER_BREAK_FORGE_REACH,
 		Color(TowerData.element_colour(data.element), 0.85))
+	_fall(from)
 	_leave_rubble()
 	RunState.towers_lost += 1
 	# **Broken, not sold.** Told apart here because nothing downstream can tell
@@ -1312,7 +1326,10 @@ func _leave_rubble() -> void:
 	var rubble := Polygon2D.new()
 	rubble.name = "Rubble"
 	var points: PackedVector2Array = PackedVector2Array()
-	var rng: RandomNumberGenerator = RunState.rng("wrath")
+	# **Its own dice.** This drew from the earth's `wrath` stream, so every tower
+	# that broke moved every roll the earth makes after it (2026-10-07).
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("rubble:%d:%d:%d" % [RunState.run_seed, anchor.x, anchor.y])
 	for s: int in 9:
 		var angle: float = TAU * float(s) / 9.0
 		points.append(Vector2(cos(angle), sin(angle) * 0.55) * rng.randf_range(26.0, 44.0))
@@ -1465,6 +1482,71 @@ func _refresh_damage_flames() -> void:
 			fire.set_intensity(clampf(0.45 + damage * 0.65, 0.0, 1.0))
 
 
+## **Smoke and a crackle off a hurt roof**, on clocks that keep running unseen
+## so a tower panned onto is mid-breath; nothing is drawn where nobody looks.
+func _tick_ruin(delta: float, lost: float, unseen: bool) -> void:
+	if lost < Balance.TOWER_SMOKE_FROM:
+		_smoke_left = 0.0
+		_crackle_left = 0.0
+		return
+	var deep: float = clampf((lost - Balance.TOWER_SMOKE_FROM) / (1.0 - Balance.TOWER_SMOKE_FROM), 0.0, 1.0)
+	var roof: Vector2 = origin() + Vector2(0.0, -Balance.TOWER_SORT_LIFT)
+	_smoke_left -= delta
+	if _smoke_left <= 0.0:
+		_smoke_left = Balance.TOWER_SMOKE_EVERY / lerpf(1.0, 2.2, deep)
+		if not unseen:
+			smoke_puffs += 1
+			Vfx.haze(roof, RunState.wind * 0.35 + Vector2(0.0, -46.0),
+				Color(0.16, 0.15, 0.14, lerpf(0.32, 0.55, deep)), lerpf(14.0, 26.0, deep), 2.6)
+	if lost < Balance.TOWER_CRACKLE_FROM:
+		_crackle_left = 0.0
+		return
+	_crackle_left -= delta
+	if _crackle_left <= 0.0:
+		_crackle_left = Balance.TOWER_CRACKLE_EVERY
+		if not unseen:
+			crackles += 1
+			Vfx.spark(roof, Color("ffb35a"), 4, Vector2.UP, 120.0)
+
+
+## **A fallen tower falls**: the painting it last wore, on a pivot at its foot,
+## toppled away from the side the blow came from and darkened as it goes, then
+## a knock of dust where it lands and gone. On the tower's own parent, which
+## outlives it, so it sorts where the tower stood; on its own clock, so a raid's
+## freeze holds it mid-fall with the field. A picture and nothing else.
+func _fall(from: Vector2) -> void:
+	if sprite == null or sprite.texture == null or get_parent() == null:
+		return
+	var away: float = _hurt_side
+	if from != Vector2.ZERO and absf(origin().x - from.x) > 1.0:
+		away = signf(origin().x - from.x)
+	var pivot := Node2D.new()
+	pivot.name = "Fallen_%s" % (data.id if data != null else "tower")
+	var ghost := Sprite2D.new()
+	ghost.texture = sprite.texture
+	ghost.centered = sprite.centered
+	ghost.offset = sprite.offset
+	ghost.flip_h = sprite.flip_h
+	ghost.position = sprite.position
+	ghost.scale = sprite.scale
+	ghost.rotation = sprite.rotation
+	ghost.modulate = sprite.modulate
+	pivot.add_child(ghost)
+	get_parent().add_child(pivot)
+	pivot.global_position = global_position
+	var lands: Vector2 = global_position + Vector2(away * Balance.TOWER_SORT_LIFT, 0.0)
+	var tween: Tween = pivot.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(pivot, "rotation", deg_to_rad(Balance.TOWER_FALL_DEGREES * away),
+		Balance.TOWER_FALL_SECONDS).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(ghost, "modulate", Color(0.42, 0.39, 0.36, 1.0), Balance.TOWER_FALL_SECONDS)
+	tween.chain().tween_callback(func() -> void:
+		Vfx.dust(lands, Color(0.42, 0.38, 0.32), 12, 80.0)
+		EventBus.camera_impact.emit(lands, 4.0))
+	tween.chain().tween_property(pivot, "modulate:a", 0.0, 0.35)
+	tween.chain().tween_callback(pivot.queue_free)
+
+
 func _pulse_impact(from: Vector2) -> void:
 	var away: Vector2 = origin() - from
 	_impact_left = Balance.HIT_FLASH_TIME
@@ -1557,10 +1639,16 @@ func _tick_step_wobble(delta: float) -> void:
 	if _jolt_left > 0.0:
 		swell = sin(PI * (1.0 - _jolt_left
 			/ maxf(Balance.TOWER_UPGRADE_JOLT_SECONDS, 0.01)))
+	var lost: float = 0.0
+	if _health != null and not _health.is_dead:
+		lost = 1.0 - _health.ratio()
+	_hurt_lean = move_toward(_hurt_lean, _hurt_side * lost * Balance.TOWER_HURT_LEAN_DEGREES,
+		Balance.TOWER_HURT_LEAN_EASE * delta)
+	_tick_ruin(delta, lost, unseen)
 	if unseen:
 		return
 	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY
-		+ _aim.x * Balance.TOWER_AIM_DEGREES)
+		+ _aim.x * Balance.TOWER_AIM_DEGREES + _hurt_lean)
 	# The kick rides *on top of* the idle rather than replacing it. Two systems
 	# assigning the same property is how the earlier sway and wobble bug happened,
 	# and a tower that stopped breathing while it recoiled would read as two

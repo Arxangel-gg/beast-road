@@ -493,7 +493,8 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	lines.append_array([
 		"Run seed   %09d" % int(summary.get("seed", 0)),
 		"Route   %s" % ("\n        ".join(route_lines) if not route_lines.is_empty() else "—"),
-		"Distance   %d of %d" % [int(summary.get("distance", 0)), int(Balance.JOURNEY_TOTAL_DISTANCE)],
+		"Distance   %d of %d%s" % [int(summary.get("distance", 0)), int(Balance.JOURNEY_TOTAL_DISTANCE),
+			"   ·   further than you have ever walked" if bool(summary.get("new_best_distance", false)) else ""],
 		"Reached act %d   ·   %s combat   ·   %s planning" % [
 			int(summary.get("act", 1)), duration, planning_duration],
 		"Killed %d   ·   fell %d times" % [int(summary.get("kills", 0)), int(summary.get("deaths", 0))],

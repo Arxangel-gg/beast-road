@@ -112,6 +112,10 @@ func _ready() -> void:
 	var cut := ScopeCut.new()
 	cut.name = "ScopeCut"
 	add_child(cut)
+	# A personal best is said once, the moment it happens (2026-10-07).
+	var best := PersonalBest.new()
+	best.name = "PersonalBest"
+	add_child(best)
 
 	# The frame governs the preset while the player has chosen none
 	# (2026-09-24). Said on the HUD through a callable, so the governor holds

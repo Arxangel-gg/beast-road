@@ -133,6 +133,14 @@ var _shield_left: float = 0.0
 var _shield_full: float = 0.0
 var _shield_broken_left: float = 0.0
 var _still_for: float = 0.0
+## **A perfect guard**: how long the guard has been up, how long it was down
+## before that, and whether this raise may still answer a blow perfectly - one
+## blow a raise, and only a raise that followed a real lowering
+## (`SHIELD_PERFECT_REARM`). `perfect_guards` counts them, for the gate.
+var _raised_for: float = 0.0
+var _lowered_for: float = 1000.0
+var _perfect_open: bool = false
+var perfect_guards: int = 0
 ## **Wear** (2026-10-07): its own dice, never a run's stream; landed swings since
 ## the weapon last wore; and the health last seen, to tell a blow from a heal.
 var _wear_dice := RandomNumberGenerator.new()
@@ -2205,6 +2213,31 @@ func guard_ratio() -> float:
 ## no button left - and never while swinging, casting, riding or swimming. A
 ## lowered guard comes back on its own; a broken one rests first.
 func _tick_guard(delta: float) -> void:
+	var was: bool = _guarding
+	_tick_guard_state(delta)
+	_note_guard_change(was, delta)
+
+
+## Keeps the clocks a perfect guard is judged on: a raise opens the window only
+## after the guard was down long enough, and the window runs from the raise.
+func _note_guard_change(was: bool, delta: float) -> void:
+	if _guarding and not was:
+		_perfect_open = _lowered_for >= Balance.SHIELD_PERFECT_REARM
+		_raised_for = 0.0
+	elif _guarding:
+		_raised_for += delta
+	elif was:
+		_lowered_for = 0.0
+	else:
+		_lowered_for += delta
+
+
+## Whether a blow landing now would meet a perfect guard.
+func guard_is_perfect() -> bool:
+	return _guarding and _perfect_open and _raised_for <= Balance.SHIELD_PERFECT_WINDOW
+
+
+func _tick_guard_state(delta: float) -> void:
 	var piece: Dictionary = _shield_piece()
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
 	var full: float = Stash.guard_capacity(piece, kind)
@@ -2253,6 +2286,10 @@ func _guard_blow(applied: float, from: Vector2) -> float:
 	var kind: GearData = _shield_kind()
 	if kind == null:
 		return applied
+	if guard_is_perfect():
+		_perfect_open = false
+		_perfect_guard(from)
+		return 0.0
 	var blocked: float = minf(applied * kind.guard_share, _shield_left)
 	_shield_left -= blocked
 	if is_local_player():
@@ -2266,9 +2303,45 @@ func _guard_blow(applied: float, from: Vector2) -> float:
 	return applied - blocked
 
 
+## **A perfect guard** (triage of 2026-10-07; `guard_is_perfect`): the whole
+## blow taken and nothing of the guard spent; the body that struck from within
+## reach staggered through the door every stagger uses; and it is the shield's
+## answer to No Ground Given - the next finisher is empowered exactly as a
+## perfect evade empowers it. It deals nothing: a perfect guard is a blow that
+## did not land, never one that was returned.
+func _perfect_guard(from: Vector2) -> void:
+	perfect_guards += 1
+	if WardenSheet.trained_of(sheet, "block_finisher"):
+		_guard_left = Balance.DISCIPLINE_GUARD_SECONDS
+	if is_local_player():
+		MetaState.wear_worn(GearData.Slot.OFFHAND, 1)
+	if field != null and from.distance_to(global_position) <= Balance.SHIELD_PERFECT_MELEE_REACH:
+		var nearest: Enemy = null
+		var best: float = INF
+		for body: Enemy in field.enemies_near(from, Balance.SHIELD_PERFECT_STAGGER_REACH):
+			var gap: float = body.global_position.distance_to(from)
+			if gap < best:
+				best = gap
+				nearest = body
+		if nearest != null:
+			nearest.apply_stagger(Balance.SHIELD_PERFECT_STAGGER)
+	EventBus.hero_perfect_guard.emit(global_position)
+	var front: Vector2 = global_position + _facing * 26.0 + Vector2(0.0, -40.0)
+	var back: Vector2 = (from - global_position).normalized()
+	if back.length() < 0.001:
+		back = _facing
+	Vfx.word(global_position + Vector2(0.0, -70.0), "Perfect guard", Balance.SHIELD_PERFECT_COLOUR, 24)
+	Vfx.ring(front, 64.0, Balance.SHIELD_PERFECT_COLOUR, 0.3, 5.0)
+	Vfx.spark(front, Balance.SHIELD_PERFECT_COLOUR, 14, back, 320.0)
+	Sfx.play_group_at("sfx_hit_armour", global_position, 2.0)
+	EventBus.camera_impact.emit(front, 0.35)
+
+
 func _break_guard() -> void:
 	_guarding = false
 	_shield_left = 0.0
+	_lowered_for = 0.0
+	_perfect_open = false
 	_shield_broken_left = Balance.SHIELD_BREAK_COOLDOWN
 	Vfx.word(global_position + Vector2(0.0, -64.0), "Guard broken", Color(1.0, 0.55, 0.4), 22)
 	Vfx.ring(global_position + _facing * 26.0, 46.0, Color(1.0, 0.6, 0.4, 0.8), 0.35, 4.0)

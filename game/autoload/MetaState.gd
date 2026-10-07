@@ -210,6 +210,15 @@ var unlocked_blueprints: Array[String] = []
 ## discoverable costs nothing here.
 var codex_seen: Array[String] = []
 
+## **How many of each breed this account has brought down** (codex mastery,
+## triage of 2026-10-07), by enemy id. A statistic in shape (working rule 7):
+## the codex grows an entry by it and nothing in a fight reads it. Counted in
+## memory as bodies fall and written with the next save - never a save a kill.
+var codex_kills: Dictionary = {}
+
+## The tiers an enemy's entry grows through.
+enum CodexTier { ENCOUNTERED, KILLED, STUDIED, MASTERED }
+
 # --- The pantry ---------------------------------------------------------------
 
 ## Reads the larder back, dropping anything that no longer names a fish.
@@ -863,6 +872,7 @@ func stat(key: String) -> float:
 		"hero_level": return float(hero_level)
 		"ascension": return float(ascension)
 		"best_distance": return best_distance
+		"codex_mastered": return float(codex_mastered_count())
 		"codex_share":
 			var total: int = 0
 			for source: String in ["enemies", "affixes", "wildlife_kinds", "weathers"]:
@@ -877,7 +887,8 @@ func has_stat(key: String) -> bool:
 	return key in ["runs_started", "runs_won", "highest_act", "bosses_felled",
 		"total_enemies_killed", "camps_razed", "forks_opened", "war_camps_razed",
 		"rifts_closed", "dungeons_finished", "fish_caught_total", "swims", "coop_runs",
-		"spirits_bonded", "hero_level", "ascension", "best_distance", "codex_share"]
+		"spirits_bonded", "hero_level", "ascension", "best_distance", "codex_share",
+		"codex_mastered"]
 
 
 ## Compares every achievement to its statistic and says so once for each
@@ -1134,6 +1145,40 @@ func record_seen(kind: String, thing_id: String) -> bool:
 	return true
 
 
+## One more of a breed brought down. Never on the Walk or in a sandbox,
+## whose roads reach nothing of the account.
+func note_kill(enemy_id: String) -> void:
+	if enemy_id.is_empty() or RunState.walking or RunState.sandbox:
+		return
+	codex_kills[enemy_id] = mini(int(codex_kills.get(enemy_id, 0)) + 1, Balance.CODEX_KILLS_CEILING)
+
+
+func codex_kills_of(enemy_id: String) -> int:
+	return int(codex_kills.get(enemy_id, 0))
+
+
+## How far this account has grown an enemy's entry.
+func codex_tier(foe: EnemyData) -> int:
+	if foe == null:
+		return CodexTier.ENCOUNTERED
+	var felled: int = codex_kills_of(foe.id)
+	var index: int = clampi(int(foe.category), 0, Balance.CODEX_STUDIED_KILLS.size() - 1)
+	if felled >= Balance.CODEX_MASTERED_KILLS[index]:
+		return CodexTier.MASTERED
+	if felled >= Balance.CODEX_STUDIED_KILLS[index]:
+		return CodexTier.STUDIED
+	return CodexTier.KILLED if felled > 0 else CodexTier.ENCOUNTERED
+
+
+## How many enemies this account has mastered. For the achievement.
+func codex_mastered_count() -> int:
+	var found: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		if codex_tier(value as EnemyData) == CodexTier.MASTERED:
+			found += 1
+	return found
+
+
 ## Whether something has been met.
 func has_seen(kind: String, thing_id: String) -> bool:
 	return codex_seen.has("%s:%s" % [kind, thing_id])
@@ -1332,6 +1377,7 @@ func erase_progress() -> void:
 	unlocked_spells.clear()
 	unlocked_blueprints.clear()
 	codex_seen.clear()
+	codex_kills.clear()
 	unlocked_terrains.clear()
 	unlocked_buildings.clear()
 	resource_cache.clear()
@@ -1660,6 +1706,9 @@ func _read_stash(data: Dictionary) -> void:
 				restored["dur_orig"] = orig
 				restored["dur_max"] = most
 				restored["dur"] = clampi(int(piece["dur"]), 0, most)
+		# Reforged once (2026-10-07): a flag, and it only ever closes a door.
+		if bool(piece.get("reforged", false)):
+			restored["reforged"] = true
 		if piece.has("uid"):
 			restored["uid"] = int(piece["uid"])
 		else:
@@ -1797,6 +1846,42 @@ func repair_piece(piece_uid: int) -> String:
 		return "Mending it costs %d Marks." % cost
 	var band: int = Stash.durability_band(piece)
 	marks -= Stash.repair(piece, kind)
+	_worn_frame = -1
+	for slot: Variant in equipped:
+		if equipped_index(int(slot)) == index and band > 0:
+			EventBus.gear_wear_changed.emit(int(slot), 0)
+	save_game()
+	return ""
+
+
+## **Reforges one piece at the Smith** (`GEAR_REFORGE_*`): everything mending
+## took off what it holds given back, whole, once in its life. Between roads
+## only; refused with nothing taken when the ore or the purse is short - and
+## both are checked before either is spent. Returns the reason, or "".
+func reforge_piece(piece_uid: int) -> String:
+	if RunState.road_is_live():
+		return "Gear is reforged in the Hold, between roads."
+	var index: int = Stash.index_of(stash, piece_uid)
+	if index < 0:
+		return "That piece is not in the stash."
+	var piece: Dictionary = stash[index]
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if bool(piece.get("reforged", false)):
+		return "It has been reforged once already."
+	if not Stash.can_reforge(piece, kind):
+		return "It holds all it was made with."
+	var ore: int = Stash.reforge_ore(piece)
+	var price: int = Stash.reforge_marks(piece)
+	var ore_name: String = ContentDB.material(Balance.GEAR_REFORGE_ORE).display_name 		if ContentDB.material(Balance.GEAR_REFORGE_ORE) != null else Balance.GEAR_REFORGE_ORE
+	if material_count(Balance.GEAR_REFORGE_ORE) < ore:
+		return "Reforging it takes %d %s." % [ore, ore_name]
+	if marks < price:
+		return "Reforging it costs %d Marks." % price
+	var band: int = Stash.durability_band(piece)
+	if not spend_material(Balance.GEAR_REFORGE_ORE, ore):
+		return "Reforging it takes %d %s." % [ore, ore_name]
+	marks -= price
+	Stash.reforge(piece, kind)
 	_worn_frame = -1
 	for slot: Variant in equipped:
 		if equipped_index(int(slot)) == index and band > 0:
@@ -2863,6 +2948,7 @@ func serialized_save() -> String:
 			"runs_won": runs_won,
 			"best_distance": best_distance,
 			"total_enemies_killed": total_enemies_killed,
+			"codex_kills": codex_kills,
 			"highest_act": highest_act,
 			"bosses_felled": bosses_felled,
 			"forks_opened": forks_opened,
@@ -2993,6 +3079,16 @@ func adopt_save(data: Dictionary) -> void:
 	runs_won = int(stats.get("runs_won", 0))
 	best_distance = float(stats.get("best_distance", 0.0))
 	total_enemies_killed = int(stats.get("total_enemies_killed", 0))
+	# Read clean: only breeds the content names, counts inside the ceiling.
+	codex_kills = {}
+	var kills_value: Variant = stats.get("codex_kills", {})
+	if kills_value is Dictionary:
+		for breed: Variant in kills_value as Dictionary:
+			if ContentDB.enemy(String(breed)) == null:
+				continue
+			var felled: int = clampi(int((kills_value as Dictionary)[breed]), 0, Balance.CODEX_KILLS_CEILING)
+			if felled > 0:
+				codex_kills[String(breed)] = felled
 	highest_act = maxi(int(stats.get("highest_act", 0)), 0)
 	bosses_felled = maxi(int(stats.get("bosses_felled", 0)), 0)
 	forks_opened = maxi(int(stats.get("forks_opened", 0)), 0)

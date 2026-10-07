@@ -85,6 +85,7 @@ func _ready() -> void:
 	_check(total > 20, "there must be something to find, counted %d" % total)
 	print("[codex] %d sections, %d entries to find" % [CodexScreen.SECTIONS.size(), total])
 
+	_test_mastery()
 	await _test_the_pages()
 
 	_restore_the_save()
@@ -94,6 +95,84 @@ func _ready() -> void:
 	else:
 		printerr("[codex] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Codex mastery** (triage of 2026-10-07): kills climb an enemy's entry
+## through its tiers by its category; the Walk and a sandbox count nothing; the
+## count survives a real save and reads back clean; the achievement's statistic
+## counts what is mastered; the row says the tier and, once studied, how the
+## enemy fights; and a body falling is counted where it falls.
+func _test_mastery() -> void:
+	var held: Dictionary = MetaState.codex_kills.duplicate()
+	MetaState.codex_kills.clear()
+	var breed: EnemyData = null
+	var boss: EnemyData = null
+	var plated: EnemyData = null
+	var ids: Array = ContentDB.enemies.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var foe := ContentDB.enemies[id] as EnemyData
+		if foe == null:
+			continue
+		if breed == null and foe.category == EnemyData.Category.BREED:
+			breed = foe
+		if boss == null and foe.category == EnemyData.Category.BOSS:
+			boss = foe
+		if plated == null and foe.hide == EnemyData.Hide.ARMOUR:
+			plated = foe
+	_check(breed != null and boss != null and plated != null, "the roster lacks a breed, a boss or a plated body")
+	if breed == null or boss == null or plated == null:
+		return
+	_check(MetaState.codex_tier(breed) == MetaState.CodexTier.ENCOUNTERED, "an unfelled breed is past Encountered")
+	MetaState.note_kill(breed.id)
+	_check(MetaState.codex_tier(breed) == MetaState.CodexTier.KILLED, "one felled is not Killed")
+	for _i: int in Balance.CODEX_STUDIED_KILLS[0] - 1:
+		MetaState.note_kill(breed.id)
+	_check(MetaState.codex_tier(breed) == MetaState.CodexTier.STUDIED,
+		"%d felled is not Studied" % Balance.CODEX_STUDIED_KILLS[0])
+	for _i: int in Balance.CODEX_MASTERED_KILLS[0] - Balance.CODEX_STUDIED_KILLS[0] - 1:
+		MetaState.note_kill(breed.id)
+	_check(MetaState.codex_tier(breed) == MetaState.CodexTier.STUDIED, "one short of mastery is Mastered")
+	MetaState.note_kill(breed.id)
+	_check(MetaState.codex_tier(breed) == MetaState.CodexTier.MASTERED,
+		"%d felled is not Mastered" % Balance.CODEX_MASTERED_KILLS[0])
+	_check(CodexScreen.mastery_line(breed).begins_with("Mastered"), "the row does not say Mastered")
+	for _i: int in Balance.CODEX_MASTERED_KILLS[2]:
+		MetaState.note_kill(boss.id)
+	_check(MetaState.codex_tier(boss) == MetaState.CodexTier.MASTERED,
+		"a boss felled %d times is not Mastered" % Balance.CODEX_MASTERED_KILLS[2])
+	_check(is_equal_approx(MetaState.stat("codex_mastered"), 2.0),
+		"the achievement's statistic counts %.0f mastered, not 2" % MetaState.stat("codex_mastered"))
+	for _i: int in Balance.CODEX_STUDIED_KILLS[0]:
+		MetaState.note_kill(plated.id)
+	_check(" ".join(CodexScreen.studied_traits(plated)).contains("plated"),
+		"a studied plated body does not say it is plated")
+	# The Walk and a sandbox reach nothing of the account.
+	var counted: int = MetaState.codex_kills_of(plated.id)
+	RunState.walking = true
+	MetaState.note_kill(plated.id)
+	RunState.walking = false
+	RunState.sandbox = true
+	MetaState.note_kill(plated.id)
+	RunState.sandbox = false
+	_check(MetaState.codex_kills_of(plated.id) == counted, "the Walk or a sandbox counted a kill")
+	# A real save: the count back exactly, a ghost breed dropped, the ceiling held.
+	MetaState.codex_kills["no_such_breed"] = 7
+	MetaState.codex_kills[plated.id] = Balance.CODEX_KILLS_CEILING * 3
+	MetaState.save_game()
+	MetaState.codex_kills.clear()
+	MetaState.load_save()
+	_check(MetaState.codex_kills_of(breed.id) == Balance.CODEX_MASTERED_KILLS[0],
+		"the save read back %d felled, not %d" % [MetaState.codex_kills_of(breed.id), Balance.CODEX_MASTERED_KILLS[0]])
+	_check(not MetaState.codex_kills.has("no_such_breed"), "a breed the content does not name came back from the save")
+	_check(MetaState.codex_kills_of(plated.id) == Balance.CODEX_KILLS_CEILING, "a count past the ceiling came back past it")
+	# A body falling is counted where it falls.
+	var source: String = FileAccess.get_file_as_string("res://scenes/battlefield/enemy.gd")
+	var died: int = source.find("func _on_died(")
+	var next: int = source.find("\nfunc ", died + 4)
+	_check(died >= 0 and source.substr(died, next - died).contains("MetaState.note_kill(data.id)"),
+		"a body's death does not count it for the codex")
+	MetaState.codex_kills = held
 
 
 ## **The tabs and the search, driven on the real screen** (owner, 2026-09-22:

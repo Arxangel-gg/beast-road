@@ -772,6 +772,9 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		"seed": RunState.run_seed,
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,
+		# Read before the best is settled below, so it says whether this road
+		# beat the one before it (`PersonalBest`).
+		"new_best_distance": PersonalBest.worth_saying(RunState.distance_travelled),
 		"act": RunState.act,
 		# The wave the run reached, which is the leaderboard's main progress
 		# term. `act` alone cannot carry it: two runs both "lost in Act II" are
