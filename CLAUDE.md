@@ -14248,6 +14248,37 @@ finds rather than waiting for a signal that has already gone; the gate gives
 that focus up before measuring a door at rest. `menu_shot --hover=NewRun`
 photographs a lit door.
 
+**The grade is cinematic, and moves with the moment, as of 2026-10-07.** Owner:
+*"cinematic atmospheric post-processing, dynamic where needed."* Everything is
+in the grade's existing pass, so it costs taps rather than a pass:
+
+- **A filmic shoulder** rolls the highlights toward white past a knee instead of
+  clipping them flat (`GRADE_SHOULDER`).
+- **Split toning**: the shadows lean cool (bluer at night), the lights warm and
+  take a share of the region's own tint - a chroma shift with the grey taken
+  out, so the frame does not move in brightness (`GRADE_SPLIT*`).
+- **Haze off the weather**: a weather's `gloom` and a standing flood lift the
+  darks toward the sky's colour, more toward the top of the screen - further
+  away from a camera looking down and along - and dark at night. None on the
+  menu and none underground (`RunState.wind_sheltered`), where there is no sky.
+- **Heat shimmer** past `GRADE_HEAT_FROM` degrees, toward the top of the screen,
+  calmer at night.
+- **Two moments**: a boss fight eases the frame tighter (vignette, contrast and
+  a breath of lens fringe), and a blow that shakes the camera hard (the
+  camera's own `IMPACT_SHAKE_HEAVY` and falloff) kicks a fringe that falls away
+  over `GRADE_FRINGE_SECONDS`. **The fringe answers the flash comfort scale**:
+  a player who turned flashes down did not ask for the lens to jump.
+
+All under the HUD, so the interface never shimmers or fringes, and all a look -
+nothing reads it. `cinematic_grade_check` (both bars) drives the driver - the
+weather, the menu, a rift, the night, a boss in and out, a light, a distant and
+a heavy blow, the comfort scale and the decay - and walks the shader for every
+uniform the driver sets; three plants were named. `polish_check`'s "the picture
+is read at mip 0" was a literal over `SCREEN_UV` and now reads the bent `uv` -
+**amended, the invariant unchanged**. `grade_shot` is the photograph
+(`docs/shots/grade_cinematic.png`): the cinematic half off and on, a marsh mist,
+and a heatwave in a boss fight under a heavy blow.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -434,7 +434,11 @@ func _check_the_bloom_and_the_splash() -> void:
 	var grade: String = FileAccess.get_file_as_string("res://scripts/shaders/color_grade.gdshader")
 	_check(grade.contains("filter_linear_mipmap"),
 		"the grade reads the screen without mipmaps, so the bloom has no blur to read")
-	_check(grade.contains("textureLod(screen_tex, SCREEN_UV, 0.0)"),
+	# Amended 2026-10-07: the picture is read through `uv`, which is
+	# `SCREEN_UV` bent by the heat shimmer - still at mip 0, which is the
+	# invariant; the literal was only ever where it was read from.
+	_check(grade.contains("vec3 colour = textureLod(screen_tex, uv, 0.0).rgb;")
+			and grade.contains("vec2 uv = SCREEN_UV;"),
 		"the picture must be read at mip 0 - an automatic level would soften the whole frame")
 	var driver: String = FileAccess.get_file_as_string("res://scripts/systems/color_grade.gd")
 	_check(driver.contains("if Graphics.bloom() else 0.0"),

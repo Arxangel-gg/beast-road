@@ -12403,6 +12403,35 @@ const POND_SUBMERGE_TINT: float = 0.62
 const GRADE_EASE: float = 1.6
 const GRADE_VIGNETTE: float = 0.26
 const GRADE_NIGHT_STRENGTH: float = 0.8
+## **The cinematic half of the grade** (owner, 2026-10-07: "cinematic
+## atmospheric post-processing, dynamic where needed"), all in the grade's one
+## pass. How hard the highlights roll off rather than clip; how far the shadows
+## cool and the lights warm, the colours they lean toward by day and by night,
+## and how much of the region's own tint the lights take; the haze a weather's
+## gloom and a flood lay over the darks, its colour by day and night, and its
+## ceiling; the heat shimmer, from the temperature it starts at, over how many
+## degrees it reaches full, and how far it bends the air (screen UV); and the
+## moments - how long a boss takes to tighten the frame and the lens fringe it
+## breathes, and the fringe a heavy blow kicks and how long it takes to fall
+## away (UV at the corners). Every one is a look. [TUNE]
+const GRADE_SHOULDER: float = 0.85
+const GRADE_SPLIT: float = 0.10
+const GRADE_SPLIT_SHADOW: Color = Color(0.30, 0.46, 0.60)
+const GRADE_SPLIT_SHADOW_NIGHT: Color = Color(0.22, 0.32, 0.66)
+const GRADE_SPLIT_HIGHLIGHT: Color = Color(1.0, 0.80, 0.56)
+const GRADE_SPLIT_REGION: float = 0.35
+const GRADE_HAZE_PER_GLOOM: float = 0.30
+const GRADE_HAZE_FLOOD: float = 0.08
+const GRADE_HAZE_MAX: float = 0.18
+const GRADE_HAZE_COLOUR: Color = Color(0.68, 0.70, 0.74)
+const GRADE_HAZE_NIGHT_COLOUR: Color = Color(0.10, 0.13, 0.20)
+const GRADE_HEAT_FROM: float = 30.0
+const GRADE_HEAT_SPAN: float = 10.0
+const GRADE_HEAT_SHIMMER: float = 0.0014
+const GRADE_BOSS_EASE: float = 2.4
+const GRADE_BOSS_FRINGE: float = 0.0012
+const GRADE_FRINGE_KICK: float = 0.0055
+const GRADE_FRINGE_SECONDS: float = 0.28
 
 
 # --- Tower auras, the collapse shown, traps that breathe (2026-09-12) ------------
