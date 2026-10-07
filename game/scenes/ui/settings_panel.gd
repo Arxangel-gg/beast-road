@@ -690,7 +690,10 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_pref_toggle_row("Bloom", Graphics.KEY_BLOOM, Graphics.bloom_chosen(),
 		"Torches, flames and spells bleed light into the dark around them. Rides the colour grade."))
 	column.add_child(_pref_toggle_row("Minimap", Graphics.KEY_MINIMAP, Graphics.minimap_shown(),
-		"The field at a glance. M toggles it in play."))
+		"The field at a glance. M cycles the minimap and the overlay in play."))
+	column.add_child(_pref_toggle_row("Map overlay", Graphics.KEY_MINIMAP_OVERLAY,
+		Graphics.minimap_overlay_shown(),
+		"The whole field laid big and faint over the middle of the screen."))
 	column.add_child(_pref_toggle_row("Tower ranges", Graphics.KEY_RANGE_TOWERS,
 		Graphics.tower_rings_shown(), "A tower's reach is ringed for a moment each time it fires."))
 	column.add_child(_pref_toggle_row("Enemy ranges", Graphics.KEY_RANGE_ENEMIES,

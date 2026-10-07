@@ -78,6 +78,9 @@ const KEY_GRADE: String = "color_grade"
 ## The bloom inside the grade's pass (2026-09-24). A look, never a fact.
 const KEY_BLOOM: String = "bloom"
 const KEY_MINIMAP: String = "minimap"
+## The same map laid big and faint over the middle of the field (owner,
+## 2026-10-07). M cycles neither, the minimap, the overlay, and both.
+const KEY_MINIMAP_OVERLAY: String = "minimap_overlay"
 ## **Attack range rings, each kind its own switch** (owner, 2026-09-22): the
 ## ring a tower draws when it fires and the one an enemy draws after it attacks.
 const KEY_RANGE_TOWERS: String = "range_rings_towers"
@@ -846,6 +849,23 @@ static func pond_fish() -> bool:
 ## Whether the minimap is shown. M toggles it in play as well.
 static func minimap_shown() -> bool:
 	return bool(_chosen.get(KEY_MINIMAP, true))
+
+
+## Whether the map is laid over the field as well. Off until chosen.
+static func minimap_overlay_shown() -> bool:
+	return bool(_chosen.get(KEY_MINIMAP_OVERLAY, false))
+
+
+## The next of the four the M key cycles through: neither, the minimap, the
+## overlay, both, and back to neither - as `[minimap, overlay]`.
+static func next_map_state(minimap: bool, overlay: bool) -> Array[bool]:
+	if not minimap and not overlay:
+		return [true, false]
+	if minimap and not overlay:
+		return [false, true]
+	if not minimap and overlay:
+		return [true, true]
+	return [false, false]
 
 
 static func tower_rings_shown() -> bool:

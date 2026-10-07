@@ -13,6 +13,10 @@ extends Control
 ## redraws every frame over the fog.
 
 var battlefield: Node = null
+## **Laid over the field rather than in a corner** (owner, 2026-10-07): no
+## ground, no frame and no fog of its own - the field under it already shows
+## those - so what is drawn is the roads, the places and the marks, faint.
+var overlay: bool = false
 
 var _fog_rect: TextureRect = null
 var _marks: Control = null
@@ -50,6 +54,9 @@ func _ready() -> void:
 	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_frame.draw.connect(_draw_frame)
 	add_child(_frame)
+	if overlay:
+		_frame.visible = false
+		clip_contents = false
 	EventBus.camp_cleared.connect(func(_lane: int, _tier: int) -> void: _dirty = true)
 	EventBus.camp_respawned.connect(func(_lane: int, _tier: int) -> void: _dirty = true)
 	EventBus.tower_changed.connect(func(_anchor: Vector2i) -> void: _dirty = true)
@@ -67,7 +74,7 @@ func _process(_delta: float) -> void:
 	var fog: FogOfWar = _fog()
 	if fog != null and _fog_rect.texture != fog.texture():
 		_fog_rect.texture = fog.texture()
-	_fog_rect.visible = fog != null and Graphics.fog_of_war()
+	_fog_rect.visible = fog != null and Graphics.fog_of_war() and not overlay
 	# The still things are also redrawn on a slow clock, because a camp that
 	# unlocks on a fork or a tower that levels says nothing the map listens to.
 	_still_clock -= _delta
@@ -94,7 +101,8 @@ func _to_map(at: Vector2) -> Vector2:
 
 
 func _draw_measured() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Balance.MINIMAP_GROUND)
+	if not overlay:
+		draw_rect(Rect2(Vector2.ZERO, size), Balance.MINIMAP_GROUND)
 	if battlefield == null or not is_instance_valid(battlefield):
 		return
 	var grid: BattleGrid = battlefield.get("grid") as BattleGrid
@@ -103,7 +111,8 @@ func _draw_measured() -> void:
 		var core: float = BattleGrid.CORE_HALF_EXTENT
 		var a: Vector2 = _to_map(Vector2(-core, -core))
 		var b: Vector2 = _to_map(Vector2(core, core))
-		draw_rect(Rect2(a, b - a), Balance.MINIMAP_CORE)
+		if not overlay:
+			draw_rect(Rect2(a, b - a), Balance.MINIMAP_CORE)
 		var width: float = maxf(size.x / 90.0, 1.5)
 		for route: Variant in grid.lane_paths:
 			_draw_road(route as PackedVector2Array, width)

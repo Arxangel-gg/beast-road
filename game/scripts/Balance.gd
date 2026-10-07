@@ -12413,6 +12413,11 @@ const WILDLIFE_TOP_DOWN_TURN: float = 7.0
 ## How solid the minimap is over the field, and its frame. A map that blocks
 ## the road it describes is worse than no map. [TUNE]
 const MINIMAP_OPACITY: float = 0.82
+## The overlay's share of the screen's shorter side, and how faint it is: big
+## enough to read the whole field at once, faint enough that the fight under it
+## is still the fight. [TUNE]
+const MINIMAP_OVERLAY_SHARE: float = 0.66
+const MINIMAP_OVERLAY_OPACITY: float = 0.42
 const MINIMAP_FRAME_THICK: float = 3.0
 const MINIMAP_FRAME_INNER: Color = Color(0.34, 0.29, 0.2, 0.9)
 const MINIMAP_CORNER: Color = Color(0.78, 0.68, 0.46, 0.95)

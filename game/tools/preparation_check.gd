@@ -84,6 +84,7 @@ func _ready() -> void:
 	await _test_the_well_row_says_how_many_stand()
 	await _test_the_air_is_cleared_at_preparation()
 	await _test_the_mansion_opens_the_whole_tree()
+	await _test_the_map_cycles_four_ways()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -120,6 +121,34 @@ func _frames(count: int) -> void:
 ## nothing calls is the fault. The guest's copy of the door is held by a walk
 ## of the source: a guest never reaches `enter_preparation`, and this harness
 ## is a host.
+## **M cycles four ways** (owner, 2026-10-07): neither, the minimap, the overlay,
+## both, and back to neither - driven through the HUD's own toggle on the real
+## field and read off the two maps' visibility, not off the settings.
+func _test_the_map_cycles_four_ways() -> void:
+	var mini := _hud.get("_minimap") as Control
+	var big := _hud.get("_minimap_overlay") as Control
+	_check(mini != null and big != null, "the HUD has no minimap or no overlay")
+	if mini == null or big == null:
+		return
+	_run.switch_scope(GameDirector.Scope.BATTLEFIELD)
+	Graphics.set_display(Graphics.KEY_MINIMAP, false)
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY, false)
+	_hud.call("_refresh_minimap_visible")
+	_check(not mini.visible and not big.visible, "neither map should show with both off")
+	var expected: Array = [[true, false], [false, true], [true, true], [false, false]]
+	for want: Array in expected:
+		_hud.call("_toggle_minimap")
+		await get_tree().process_frame
+		_check(mini.visible == bool(want[0]) and big.visible == bool(want[1]),
+			"M showed minimap %s and overlay %s, wanted %s" % [mini.visible, big.visible, want])
+	# The overlay sits behind every other piece of the interface and takes no
+	# press: it is a backdrop, never in front of a button.
+	_check(big.get_index() == 0, "the overlay is drawn over part of the interface")
+	_check(big.mouse_filter == Control.MOUSE_FILTER_IGNORE, "the overlay swallows presses")
+	Graphics.set_display(Graphics.KEY_MINIMAP, true)
+	_hud.call("_refresh_minimap_visible")
+
+
 func _test_the_air_is_cleared_at_preparation() -> void:
 	var towers: Array = ContentDB.base_towers()
 	_check(not towers.is_empty(), "the roster has no base tower to fire")

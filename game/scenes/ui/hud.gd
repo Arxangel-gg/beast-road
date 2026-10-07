@@ -714,6 +714,8 @@ var _last_stand_spent: bool = false
 
 
 var _minimap: Minimap = null
+## The same map, big and faint over the field (owner, 2026-10-07).
+var _minimap_overlay: Minimap = null
 
 ## The floor the right column was last laid out against. See
 ## `_refit_right_column`.
@@ -7362,6 +7364,15 @@ func _build_minimap() -> void:
 	_minimap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_minimap.modulate.a = Balance.MINIMAP_OPACITY
 	add_child(_minimap)
+	_minimap_overlay = Minimap.new()
+	_minimap_overlay.overlay = true
+	_minimap_overlay.battlefield = battlefield
+	_minimap_overlay.set_anchors_preset(Control.PRESET_CENTER)
+	_minimap_overlay.modulate.a = Balance.MINIMAP_OVERLAY_OPACITY
+	# First among the HUD's children, so every readout and button is drawn
+	# over it: it is a backdrop to the interface, never in front of it.
+	add_child(_minimap_overlay)
+	move_child(_minimap_overlay, 0)
 	# So the video settings reach it while a run is on screen.
 	add_to_group(Graphics.SETTINGS_GROUP)
 	_place_minimap()
@@ -7442,6 +7453,13 @@ func _place_minimap() -> void:
 	_minimap.offset_left = _minimap.offset_right - side
 	_minimap.offset_top = _right_column_floor()
 	_minimap.offset_bottom = _minimap.offset_top + side
+	if _minimap_overlay != null:
+		var view: Vector2 = get_viewport().get_visible_rect().size
+		var big: float = minf(view.x, view.y) * Balance.MINIMAP_OVERLAY_SHARE
+		_minimap_overlay.offset_left = -big * 0.5
+		_minimap_overlay.offset_right = big * 0.5
+		_minimap_overlay.offset_top = -big * 0.5
+		_minimap_overlay.offset_bottom = big * 0.5
 
 
 ## Shown on the battlefield, wanted, and not while a sheet is open over it.
@@ -7456,8 +7474,10 @@ func _refresh_minimap_visible() -> void:
 		return
 	var sheet_open: bool = (_build_panel != null and _build_panel.visible) \
 		or (_road_panel != null and _road_panel.visible)
-	_minimap.visible = Graphics.minimap_shown() and not sheet_open \
-		and int(GameDirector.current_scope) == GameDirector.Scope.BATTLEFIELD
+	var on_field: bool = int(GameDirector.current_scope) == GameDirector.Scope.BATTLEFIELD
+	_minimap.visible = Graphics.minimap_shown() and not sheet_open and on_field
+	if _minimap_overlay != null:
+		_minimap_overlay.visible = Graphics.minimap_overlay_shown() and not sheet_open and on_field
 	_stand_the_row_down(sheet_open)
 	if sheet_open:
 		_clear_region_card()
@@ -7499,9 +7519,17 @@ func _stand_the_row_down(sheet_open: bool) -> void:
 		_row_under_sheet = false
 
 
+## **M cycles four ways** (owner, 2026-10-07): neither, the minimap, the overlay,
+## both, and back to neither. Said on the banner, because a key that changes
+## something you cannot see yet reads as a key that did nothing.
 func _toggle_minimap() -> void:
-	Graphics.set_display(Graphics.KEY_MINIMAP, not Graphics.minimap_shown())
+	var next: Array[bool] = Graphics.next_map_state(Graphics.minimap_shown(),
+		Graphics.minimap_overlay_shown())
+	Graphics.set_display(Graphics.KEY_MINIMAP, next[0])
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY, next[1])
 	_refresh_minimap_visible()
+	_show_message("Map  ·  %s" % ("minimap and overlay" if next[0] and next[1]
+		else "minimap" if next[0] else "overlay" if next[1] else "hidden"))
 	MetaState.save_game()
 
 
