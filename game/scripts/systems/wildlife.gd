@@ -66,6 +66,10 @@ var host: Node2D = null
 var field: Node = null
 
 var _living: Array[Dictionary] = []
+## What eats the road's dead (`WildlifeFeeding`, 2026-10-07).
+var _feeding: WildlifeFeeding = null
+## What a heap of the dead calls down (`WildlifeCarrion`).
+var carrion: WildlifeCarrion = null
 var _arrival_clock: float = 0.0
 
 ## Seconds the road stays empty of wildlife, because something is coming.
@@ -98,6 +102,8 @@ func _ready() -> void:
 	# rabbit happened to turn up.
 	_rng.seed = hash("wildlife") ^ RunState.run_seed
 	_families = WildlifeFamilies.new(self)
+	_feeding = WildlifeFeeding.new(self)
+	carrion = WildlifeCarrion.new(self)
 	# A hero's swing is the only thing that can kill an animal, and it is heard
 	# rather than fought for: putting wildlife in the enemy group would have
 	# towers shooting rabbits and waves never ending, which is a far worse bug
@@ -348,6 +354,8 @@ func _process_measured(delta: float) -> void:
 		_arrival_clock = ARRIVAL_INTERVAL
 		if _hush_left <= 0.0:
 			_consider_arrival()
+	if carrion != null:
+		carrion.tick(delta)
 	for index: int in range(_living.size() - 1, -1, -1):
 		if _tick_one(_living[index], delta):
 			continue
@@ -1308,6 +1316,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		if _tick_hostile(animal, sprite, kind, delta):
 			return true
 
+	# **Carrion** (2026-10-07): an animal that eats the dead goes to them.
+	if kind.scavenges and _feeding != null and _is_authority_or_alone():
+		if _feeding.tick(animal, sprite, kind, delta):
+			return true
+
 	if int(animal["state"]) == State.SETTLED:
 		var scare: Vector2 = _threat_near(sprite.global_position, kind.skittish_radius) \
 			if _frightened(sprite.global_position, kind) else Vector2.INF
@@ -1747,6 +1760,12 @@ func _tick_dying(animal: Dictionary, sprite: Sprite2D, delta: float) -> bool:
 	sprite.self_modulate = Color.WHITE.lerp(Color(2.2, 2.2, 2.2), flash)
 	if through >= 0.55 and not bool(animal.get("landed", false)):
 		animal["landed"] = true
+		# Its corpse, where it landed (2026-10-07) - a butterfly leaves none.
+		var kind := animal["data"] as WildlifeData
+		if kind != null and not (kind.flies and kind.scale < Balance.CORPSE_FLYER_MIN_SCALE):
+			var facing: Vector2 = Vector2.LEFT if sprite.flip_h else Vector2.RIGHT
+			EventBus.body_fell.emit(sprite.global_position, sprite.global_position - facing * 10.0,
+				20.0 * float(animal["size"]) * kind.scale, kind.id, field)
 		if Graphics.particle_scale() > 0.0 and field != null and field.has_method("ground_colour"):
 			Vfx.dust(sprite.global_position, field.call("ground_colour", sprite.global_position) as Color,
 				4, 30.0 * float(animal["size"]) * (animal["data"] as WildlifeData).scale)

@@ -13,6 +13,7 @@ var _checks: int = 0
 
 
 func _ready() -> void:
+	MetaState.hold_saves()
 	var grade := ColorGrade.new()
 	add_child(grade)
 	await get_tree().process_frame
@@ -130,4 +131,5 @@ func _finish() -> void:
 		child.queue_free()
 	for _i: int in 10:
 		await get_tree().process_frame
+	MetaState.resume_saves()
 	get_tree().quit(0 if _failures == 0 else 1)

@@ -14491,6 +14491,85 @@ admitted record now. And one harness lesson: a `grep && python` patch whose
 grep found nothing ran nothing and said nothing, and the gate went green on code
 that was never written.
 
+**The road's dead lie where they fell, and what eats them comes, as of
+2026-10-07.** The owner: *"a variety of meaty ground corpses that enemies and
+wildlife that die leave in their place that other wildlife can come and eat or
+pull and carry away ... fight protectively over the food ... surrender ... bones
+that fade out after a very long amount of time ... In brutal mode make bones
+remain wherever they finally rested permanently"*, with *"ragdoll physics and
+impulse from the death blow ... ground bouncing from wildlife eating it and
+impact from characters pushing it, and have 8 directions"*. The triage of the
+same day (`docs/IDEAS_REVIEW_2026-10-07.md` §2.2) called it the missing link of
+the Living Battlefield: everything between a death and the bones.
+
+**A corpse is a record on one canvas** (`CorpseField`, a child of the field,
+under the bodies at `CORPSE_Z`): where it lies, how it moves, how much meat is
+left and which of eight ways it faces. One painted carcass in three states -
+fresh, eaten, bones, chosen by the meat (`CORPSE_FRESH_FROM`, `_EATEN_FROM`) -
+each lying eight ways, so a body thrown east lies east, scaled to the body that
+fell (`CORPSE_SIZE_SCALE`). **The blow decides the throw**: `EventBus.body_fell`
+is said when a body's fall *lands* - an enemy from `_death_from`, an animal from
+its facing - and the corpse is thrown along it, lifted, bounces once or twice
+and slides to rest; a boss, which has no fall, lays its corpse as it dies. A
+bite jolts it off the ground and pulls it toward the mouth; a body walking into
+it shoves it. **A spirit, stone and a flyer smaller than
+`CORPSE_FLYER_MIN_SCALE` leave nothing** - no meat on any of them.
+
+**It rots whether or not anything eats it** (`CORPSE_ROT_SECONDS`), lies as
+bones for `CORPSE_BONES_SECONDS` and fades - **never in Brutal**, where the bones
+stay where they finally rested. The field holds `CORPSE_MAX` and lets the oldest
+bones go first, because a fresh corpse is food somebody may be walking toward.
+
+**What eats it is the wildlife** (`WildlifeFeeding`). A species that eats the
+dead (`WildlifeData.scavenges`, eighteen of them with the vulture) smells a corpse from
+`FEED_SCENT_RADIUS` - **further downwind**, the first time the wind decides where
+an animal goes - walks to it and eats a bite at a time. One that carries
+(`carries_food`) may pick a small enough carcass up and eat it somewhere
+quieter. **Two at one carcass weigh each other** (`alpha_of`: pool, size, rank,
+a predator's pride): the outclassed by `FEED_YIELD_RATIO` yields and goes; two
+proud ones near a match fight over it through `wound_sprite` as the cycle - the
+earth does not mind it and nobody is paid. A fright, a flight or the road ends a
+meal.
+
+**A look and an ecology, never a fact**: a corpse blocks nothing, deals nothing
+and pays nothing, and an animal's meal moves no number in a fight. The host's
+animals eat the host's corpses; a guest's corpses rot on their own clock, since
+nothing about a carcass crosses the wire. Nothing persists. `corpse_check`
+(both bars) throws one and watches it bounce and settle, walks the eight ways of
+the compass, rots one to bones that fade and one in Brutal that does not, shoves,
+bites and caps the field, then on the real road kills a body and a spirit, sets a
+wolf beside a carcass and watches it eat, carries one and puts a bear at a wolf's
+carcass. **The compass was wrong in the first cut** - south, south-east, east is
+a *falling* angle on a screen whose y runs down, so every diagonal lay mirrored -
+and only a check of all eight ways, not the two axes, could see it.
+
+**And a heap calls for what eats it** (`WildlifeCarrion`). Every
+`CARRION_CHECK_SECONDS` the host finds the biggest pile of meat-bearing corpses.
+`CARRION_VULTURE_PILE` of them call vultures down onto it - **a new species**,
+painted from the shipped raven by an image edit so its profile, scale and outline
+are the raven's, its flight the raven's first wingbeat frame repainted - never
+more than `CARRION_VULTURES_MAX` at once and with a rest between flights. Past
+Act I, `CARRION_LORD_PILE` may call **a carrion lord**: the region's heaviest
+hunting scavenger grown to an elite and `CARRION_LORD_HEALTH` past it, with the
+heap as its home - so a predator that hunts anybody in its aggro now stands
+over the place the player made a slaughter of. One lord at a time, nothing past
+the field's or the hunters' cap, nothing while the road is hushed, and dice of
+its own so a heap moves no roll the arrivals are drawn on. The plants were
+named: no vultures, a lord in Act I, a hushed call, twelve vultures over a heap,
+and a second lord.
+
+**Two harness lessons.** A wolf is a predator, and `_tick_hostile` has first
+refusal on its frame - set beside a carcass near a camp body it went stalking
+and never ate, which is the ecology working; the gate stands it on the quietest
+ground the field offers. And the bones-first cap passed with the rule removed,
+because every corpse was the same age and the bones happened to be second in
+the list: **a tie is a coincidence a rule can hide behind**, so the bones are now
+the youngest thing on the field.
+
+**Owed**: Brutal bones banked with a front, as the blood and the scars are;
+flies over a fresh carcass; and a carrion lord's elite look on a guest's screen,
+since a spawn crosses the wire without its rank.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

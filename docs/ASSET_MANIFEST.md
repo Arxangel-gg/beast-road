@@ -5215,6 +5215,69 @@ video and runs between 60 and 90 seconds.
 |---|---|---|
 | trailer.ogv | Theora + Vorbis, 1280x720, 30 fps | `trailer/build.py` from `trailer/edit.json` |
 
+### 5.37 Corpses — `res://art/corpses/`
+
+What a death leaves on the ground (2026-10-07, `CorpseField`): one carcass in
+three states by the meat left on it - fresh, eaten and bones - each lying eight
+ways, so a body thrown east lies east. PixelLab object states of one carcass,
+low top-down, scaled by the field to the body that fell.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `corpse_fresh_south.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_south-east.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_east.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_north-east.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_north.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_north-west.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_west.png` | 64×64 | T | `#6E2A22` |
+| `corpse_fresh_south-west.png` | 64×64 | T | `#6E2A22` |
+| `corpse_eaten_south.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_south-east.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_east.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_north-east.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_north.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_north-west.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_west.png` | 64×64 | T | `#5A2E26` |
+| `corpse_eaten_south-west.png` | 64×64 | T | `#5A2E26` |
+| `corpse_bones_south.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_south-east.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_east.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_north-east.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_north.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_north-west.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_west.png` | 64×64 | T | `#C8BFA8` |
+| `corpse_bones_south-west.png` | 64×64 | T | `#C8BFA8` |
+
+### 5.37b The vulture — `res://art/wildlife/`
+
+What a heap of the dead calls down (2026-10-07, `WildlifeCarrion`). Painted from
+the shipped raven with an image edit, so the profile, the scale and the outline
+are the raven's; the flight is the raven's first wingbeat frame repainted, then
+animated. The idle and the walk are pinned to the base at both ends.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `wildlife_vulture.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_idle_01.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_idle_02.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_idle_03.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_idle_04.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_idle_05.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_move_01.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_move_02.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_move_03.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_move_04.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_move_05.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_01.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_02.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_03.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_04.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_05.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_06.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_07.png` | 64×64 | T | `#4A3A34` |
+| `wildlife_vulture_fly_08.png` | 64×64 | T | `#4A3A34` |
+
 ## 6. Subject prompts
 
 Drop each `SUBJECT` into the matching stem from §3.

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+scavenges = true
 body = 0
 vocal_sfx = "sfx_wildlife_barkfang_wolverine"
 haunts = "timber"

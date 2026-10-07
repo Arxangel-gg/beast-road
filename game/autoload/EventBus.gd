@@ -511,6 +511,10 @@ signal enemy_spawned(enemy_id: String, at: Vector2)
 
 ## An enemy reached zero HP. Kill credit, raid charge and drops read off this.
 signal enemy_died(enemy_id: String, at: Vector2)
+## **A body has hit the ground** (2026-10-07): where, what the blow came from,
+## how big it was, what it was, and the field it fell on - which lays its
+## corpse (`CorpseField`). Said when the fall lands, never at the blow.
+signal body_fell(at: Vector2, from: Vector2, radius: float, kind_id: String, scope: Node)
 
 ## An elite or a boss fell. Distinct from `enemy_died` because the things
 ## that care about a *leader* going down should not have to re-derive rank

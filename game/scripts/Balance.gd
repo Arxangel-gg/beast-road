@@ -11592,6 +11592,69 @@ const MERC_TALK_REACH: float = 130.0
 ## a guest restates the company it brought until it sees it standing. [TUNE]
 const MERC_STATE_SECONDS: float = 0.1
 const MERC_RESTATE_SECONDS: float = 4.0
+## **The meaty corpse** (owner, 2026-10-07; `CorpseField`). Its drawing depth,
+## how many lie at once, the contact radii that make a body small or large and
+## the scale each size is drawn at, the smallest flyer that leaves one, the
+## throw and the lift the death blow gives it, gravity, the bounce kept and the
+## slide's friction, the meat shares that make it eaten and bones, how long it
+## takes to rot to bones untouched, how long bones lie before fading (never in
+## Brutal) and the fade itself, how far a passer-by shoves it, how often that
+## is asked, how fast it slides when shoved, a bite's pull and hop, and how
+## often a resting field redraws. [TUNE]
+const CORPSE_Z: int = -2
+const CORPSE_MAX: int = 80
+const CORPSE_SMALL_BELOW: float = 22.0
+const CORPSE_LARGE_FROM: float = 44.0
+const CORPSE_SIZE_SCALE: Array[float] = [0.7, 1.0, 1.6]
+const CORPSE_FLYER_MIN_SCALE: float = 0.9
+const CORPSE_THROW: float = 150.0
+const CORPSE_LIFT: float = 230.0
+const CORPSE_GRAVITY: float = 900.0
+const CORPSE_BOUNCE: float = 0.35
+const CORPSE_FRICTION: float = 5.0
+const CORPSE_FRESH_FROM: float = 0.6
+const CORPSE_EATEN_FROM: float = 0.2
+const CORPSE_ROT_SECONDS: float = 420.0
+const CORPSE_BONES_SECONDS: float = 1500.0
+const CORPSE_FADE_SECONDS: float = 30.0
+const CORPSE_PUSH_REACH: float = 26.0
+const CORPSE_PUSH_HZ: float = 10.0
+const CORPSE_PUSH: float = 90.0
+const CORPSE_BITE_PULL: float = 40.0
+const CORPSE_BITE_HOP: float = 90.0
+const CORPSE_REDRAW_HZ: float = 6.0
+## **A heap of the dead calls for what eats it** (`WildlifeCarrion`). How often
+## the host looks, how far a pile reaches, the pile that calls vultures and the
+## most that circle at once and the rest between flights, the pile that may call
+## a carrion lord and the chance of it, how much tougher than an elite a lord
+## is, and how long either stays before it goes. [TUNE]
+const CARRION_CHECK_SECONDS: float = 6.0
+const CARRION_PILE_REACH: float = 220.0
+const CARRION_VULTURE_PILE: int = 3
+const CARRION_VULTURES_MAX: int = 4
+const CARRION_VULTURE_REST: float = 25.0
+const CARRION_LORD_PILE: int = 6
+const CARRION_LORD_CHANCE: float = 0.25
+const CARRION_LORD_HEALTH: float = 1.3
+const CARRION_STAY_SECONDS: float = 90.0
+## **What eats the dead** (`WildlifeFeeding`): how far a scavenger smells a
+## corpse, how much further downwind (a share at full wind), how often it
+## sniffs, how close it stands to eat, the seconds between bites and the meat a
+## bite takes (at scale one), the chance it carries the carcass off and the scale
+## that lets it carry a medium one, the margin a rival must clear to make it
+## yield, and how often two that hold their ground trade a blow and how hard (a
+## share of their own bite). [TUNE]
+const FEED_SCENT_RADIUS: float = 700.0
+const FEED_SCENT_WIND: float = 0.8
+const FEED_SCAN_SECONDS: float = 2.0
+const FEED_REACH: float = 34.0
+const FEED_BITE_SECONDS: float = 1.1
+const FEED_BITE: float = 0.06
+const FEED_CARRY_CHANCE: float = 0.3
+const FEED_CARRY_SCALE: float = 1.1
+const FEED_YIELD_RATIO: float = 1.6
+const FEED_FIGHT_SECONDS: float = 1.4
+const FEED_FIGHT_SHARE: float = 0.6
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

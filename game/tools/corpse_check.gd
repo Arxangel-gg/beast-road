@@ -1,0 +1,406 @@
+extends Node
+
+## **The meaty corpse and what eats it** (owner, 2026-10-07; `CorpseField`,
+## `WildlifeFeeding`).
+##
+## On a bare field: a corpse is thrown along the blow, lifted, bounces and comes
+## to rest; it lies one of eight ways and wears one of three paintings by the
+## meat on it, every one on disk; it rots to bones untouched and the bones fade -
+## never in Brutal; a passer-by shoves it; a bite takes meat and jolts it; the
+## field keeps a cap and lets bones go first. On a real road: a body killed
+## leaves a corpse where it lands, and a spirit leaves none; a scavenger smells
+## one further downwind, walks to it and eats it down; a carried carcass follows
+## its carrier; and at one carcass the outclassed rival yields.
+
+const TAG: String = "[corpse]"
+
+var _failures: int = 0
+var _checks: int = 0
+var _reached: Array[String] = []
+
+
+func _ready() -> void:
+	MetaState.hold_saves()
+	var held_blood: Variant = MetaState.settings.get(UserSettings.BLOOD_LEVEL_KEY, null)
+	var held_switch: Variant = MetaState.settings.get(UserSettings.BLOOD_VFX_KEY, null)
+	MetaState.settings[UserSettings.BLOOD_VFX_KEY] = true
+	_test_the_paintings()
+	_test_the_ways()
+	await _test_the_throw()
+	_test_the_rot()
+	await _test_the_shove()
+	_test_the_bite_and_the_cap()
+	await _test_the_road()
+	if held_blood == null:
+		MetaState.settings.erase(UserSettings.BLOOD_LEVEL_KEY)
+	else:
+		MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = held_blood
+	if held_switch == null:
+		MetaState.settings.erase(UserSettings.BLOOD_VFX_KEY)
+	else:
+		MetaState.settings[UserSettings.BLOOD_VFX_KEY] = held_switch
+	for stage: String in ["paintings", "ways", "throw", "rot", "shove", "bite", "road"]:
+		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
+	MusicPlayer.stop_immediately()
+	Sfx.stop_immediately()
+	Ambience.stop_immediately()
+	for child: Node in get_children():
+		child.queue_free()
+	for _f: int in 20:
+		await get_tree().process_frame
+	MetaState.resume_saves()
+	if _failures == 0:
+		print("%s PASS - %d checks: thrown, bounced, at rest, eight ways and three states, rotting to bones that fade except in Brutal, shoved, bitten, capped, laid by a death, smelt downwind, eaten, carried, contested, and a heap calling vultures and its lord" % [TAG, _checks])
+	else:
+		push_error("%s FAIL - %d of %d" % [TAG, _failures, _checks])
+	get_tree().quit(0 if _failures == 0 else 1)
+
+
+func _bare_field() -> CorpseField:
+	var scope := Node2D.new()
+	add_child(scope)
+	var field := CorpseField.new()
+	scope.add_child(field)
+	return field
+
+
+func _test_the_paintings() -> void:
+	var field: CorpseField = _bare_field()
+	for state: int in 3:
+		for way: int in 8:
+			_check(field.texture_for(state, way) != null,
+				"no painting for a %s corpse lying %s" % [CorpseField.STATES[state], CorpseField.DIRECTIONS[way]])
+	_check(CorpseField.state_for(1.0) == 0 and CorpseField.state_for(0.4) == 1 and CorpseField.state_for(0.1) == 2,
+		"the meat shares do not choose the three paintings")
+	_reached.append("paintings")
+
+
+func _test_the_ways() -> void:
+	_check(CorpseField.direction_for(Vector2.DOWN) == 0, "a corpse thrown south does not lie south")
+	for way: int in 8:
+		# The paintings' own compass: south, south-east, east ... on a screen whose y runs down.
+		var toward: Vector2 = Vector2.from_angle(PI * 0.5 - TAU * float(way) / 8.0)
+		_check(CorpseField.direction_for(toward) == way, "a corpse thrown %s lies %s" % [CorpseField.DIRECTIONS[way],
+			CorpseField.DIRECTIONS[CorpseField.direction_for(toward)]])
+	_check(CorpseField.direction_for(Vector2(1.0, 1.0)) == 1, "a corpse thrown down and right does not lie south-east")
+	var seen: Dictionary = {}
+	for step: int in 16:
+		seen[CorpseField.direction_for(Vector2.from_angle(TAU * float(step) / 16.0))] = true
+	_check(seen.size() == 8, "a full turn of throws lies only %d ways" % seen.size())
+	_check(CorpseField.size_for(10.0) == CorpseField.Size.SMALL and CorpseField.size_for(30.0) == CorpseField.Size.MEDIUM
+		and CorpseField.size_for(80.0) == CorpseField.Size.LARGE, "the sizes do not follow the body")
+	_reached.append("ways")
+
+
+func _test_the_throw() -> void:
+	var field: CorpseField = _bare_field()
+	var corpse: Dictionary = field.lay(Vector2(500.0, 500.0), Vector2(400.0, 500.0), 30.0)
+	var highest: float = 0.0
+	var landed: int = 0
+	var was_up: bool = false
+	for _i: int in 240:
+		field._process(1.0 / 60.0)
+		var height: float = float(corpse["height"])
+		highest = maxf(highest, height)
+		if was_up and height <= 0.0:
+			landed += 1
+		was_up = height > 0.0
+	# It is laid four units up; a blow that lifted nothing never climbs past that.
+	_check(highest > 6.0, "a corpse was not lifted by the blow (%.1f)" % highest)
+	_check(landed >= 2, "a corpse landed %d times - no bounce" % landed)
+	_check((corpse["at"] as Vector2).x > 510.0, "a corpse struck from the west did not slide east (%.1f)" % (corpse["at"] as Vector2).x)
+	_check((corpse["vel"] as Vector2).length() < 5.0 and float(corpse["height"]) <= 0.0, "a corpse never came to rest")
+	_reached.append("throw")
+
+
+func _test_the_rot() -> void:
+	MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = UserSettings.BLOOD_HIGH
+	var field: CorpseField = _bare_field()
+	var corpse: Dictionary = field.lay(Vector2.ZERO, Vector2(-10.0, 0.0), 30.0)
+	corpse["height"] = 0.0
+	corpse["vy"] = 0.0
+	corpse["vel"] = Vector2.ZERO
+	for _i: int in 100:
+		field._process(Balance.CORPSE_ROT_SECONDS / 90.0)
+	_check(CorpseField.state_for(float(corpse["meat"])) == 2, "a corpse left alone never rotted to bones")
+	for _i: int in 100:
+		field._process((Balance.CORPSE_BONES_SECONDS + Balance.CORPSE_FADE_SECONDS) / 90.0)
+	_check(field.count() == 0, "bones lay past their time")
+	MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = UserSettings.BLOOD_BRUTAL
+	var kept: CorpseField = _bare_field()
+	var old: Dictionary = kept.lay(Vector2.ZERO, Vector2(-10.0, 0.0), 30.0)
+	old["height"] = 0.0
+	old["vy"] = 0.0
+	old["vel"] = Vector2.ZERO
+	for _i: int in 200:
+		kept._process((Balance.CORPSE_ROT_SECONDS + Balance.CORPSE_BONES_SECONDS + Balance.CORPSE_FADE_SECONDS) / 50.0)
+	_check(kept.count() == 1, "Brutal bones faded - they are meant to become part of the ground")
+	MetaState.settings[UserSettings.BLOOD_LEVEL_KEY] = UserSettings.BLOOD_HIGH
+	_reached.append("rot")
+
+
+func _test_the_shove() -> void:
+	var field: CorpseField = _bare_field()
+	var corpse: Dictionary = field.lay(Vector2(2000.0, 2000.0), Vector2(1990.0, 2000.0), 20.0)
+	for _i: int in 240:
+		field._process(1.0 / 60.0)
+	var before: Vector2 = corpse["at"]
+	var walker := Node2D.new()
+	walker.add_to_group(Hero.GROUP_ANY)
+	add_child(walker)
+	walker.global_position = before + Vector2(-8.0, 0.0)
+	for _i: int in 30:
+		field._process(1.0 / 60.0)
+	_check((corpse["at"] as Vector2).x > before.x + 2.0, "a body standing in a corpse did not shove it")
+	walker.queue_free()
+	await get_tree().process_frame
+	_reached.append("shove")
+
+
+func _test_the_bite_and_the_cap() -> void:
+	var field: CorpseField = _bare_field()
+	var corpse: Dictionary = field.lay(Vector2.ZERO, Vector2(-10.0, 0.0), 30.0)
+	corpse["height"] = 0.0
+	corpse["vy"] = 0.0
+	var meat: float = float(corpse["meat"])
+	var taken: float = field.bite(corpse, 0.1, Vector2(40.0, 0.0))
+	_check(is_equal_approx(taken, 0.1) and float(corpse["meat"]) < meat, "a bite took no meat")
+	_check(float(corpse["vy"]) > 0.0, "a bite did not jolt the carcass off the ground")
+	_check(field.bite({}, 0.5, Vector2.ZERO) == 0.0, "a bite of nothing took something")
+	var bones: Dictionary = field.lay(Vector2(100.0, 0.0), Vector2(90.0, 0.0), 30.0)
+	bones["meat"] = 0.0
+	for index: int in Balance.CORPSE_MAX - 2:
+		field.lay(Vector2(float(index) * 3.0, 50.0), Vector2(float(index) * 3.0 - 10.0, 50.0), 20.0)
+	# The bones are the youngest thing on the field, so only the bones-first rule
+	# - never age alone - can choose them.
+	for each: Dictionary in field.corpses():
+		each["age"] = 100.0
+	bones["age"] = 0.0
+	for index: int in 12:
+		field.lay(Vector2(float(index) * 3.0, 80.0), Vector2(float(index) * 3.0 - 10.0, 80.0), 20.0)
+	_check(field.count() == Balance.CORPSE_MAX, "%d corpses against a cap of %d" % [field.count(), Balance.CORPSE_MAX])
+	_check(not field.corpses().has(bones), "the cap let a fresh corpse go before bare bones")
+	_check(field.pile_at(Vector2(60.0, 50.0), 200.0) > 5,
+		"a heap of corpses is not a pile")
+	_reached.append("bite")
+
+
+func _test_the_road() -> void:
+	RunState.reset(false, 20261007)
+	GameDirector.run_active = true
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _f: int in 12:
+		await get_tree().process_frame
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	run.call("switch_scope", GameDirector.Scope.BATTLEFIELD)
+	for _f: int in 12:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	field.wave_director.stop()
+	field.sky().events_enabled = false
+	field.town.health.floor_hp = field.town.health.max_hp * 0.5
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy != null and not enemy.is_camp_mob():
+			enemy.queue_free()
+	var animals: Wildlife = field.wildlife()
+	if animals != null:
+		animals.clear()
+		animals.set("_hush_left", 1.0e9)
+	_check(field.corpses != null, "the battlefield has no corpse field")
+	if field.corpses == null:
+		run.queue_free()
+		return
+	await get_tree().process_frame
+	# A body killed leaves its corpse where it lands; a spirit leaves none.
+	var before: int = field.corpses.count()
+	var flesh: Enemy = _stand_a_body(field, field.town_position() + Vector2(900.0, 900.0), EnemyData.Hide.FLESH)
+	if flesh != null:
+		await get_tree().process_frame
+		flesh.health.kill(flesh.global_position + Vector2(-50.0, 0.0))
+		await _wait(Balance.ENEMY_DEATH_FALL_SECONDS + 0.4)
+		_check(field.corpses.count() == before + 1, "a body killed left %d corpses" % (field.corpses.count() - before))
+	before = field.corpses.count()
+	var spirit: Enemy = _stand_a_body(field, field.town_position() + Vector2(-900.0, 900.0), EnemyData.Hide.SPIRIT)
+	if spirit != null:
+		await get_tree().process_frame
+		spirit.health.kill(spirit.global_position + Vector2(-50.0, 0.0))
+		await _wait(Balance.ENEMY_DEATH_FALL_SECONDS + 0.4)
+		_check(field.corpses.count() == before, "a spirit left a corpse")
+	# Smelt further downwind.
+	_check(WildlifeFeeding.scent_reach(Vector2(100.0, 0.0), Vector2.ZERO, Vector2.RIGHT)
+		> WildlifeFeeding.scent_reach(Vector2(-100.0, 0.0), Vector2.ZERO, Vector2.RIGHT),
+		"the wind does not carry the smell of a corpse")
+	if animals == null:
+		_check(false, "the field has no wildlife")
+		run.queue_free()
+		return
+	field.corpses.corpses().clear()
+	var wolf_kind: WildlifeData = ContentDB.wildlife_kinds.get("wolf", null) as WildlifeData
+	_check(wolf_kind != null and wolf_kind.scavenges and wolf_kind.carries_food, "the wolf does not eat and carry the dead")
+	if wolf_kind == null:
+		run.queue_free()
+		return
+	var spot: Vector2 = _quiet_ground(animals)
+	field.hero.global_position = spot + Vector2(0.0, 1100.0)
+	RunState.wind = Vector2.ZERO
+	var meal: Dictionary = field.corpses.lay(spot + Vector2(160.0, 0.0), spot + Vector2(150.0, 0.0), 30.0)
+	var wolf: Dictionary = animals.spawn_born(wolf_kind, spot, {"stage": WildlifeFamilies.Stage.ADULT, "rarity": 0})
+	_check(not wolf.is_empty(), "the harness could not place a wolf")
+	if wolf.is_empty():
+		run.queue_free()
+		return
+	wolf["state"] = Wildlife.State.SETTLED
+	wolf["patience"] = 9999.0
+	wolf["feed_scan"] = 0.0
+	var start: float = float(meal["meat"])
+	await _wait(12.0)
+	_check(int(wolf.get("bites", 0)) > 0, "a wolf beside a fresh corpse never ate from it (state %d, meal %s)"
+		% [int(wolf.get("state", -1)), "none" if (wolf.get("meal", {}) as Dictionary).is_empty() else "set"])
+	_check(float(meal["meat"]) < start - 0.05, "a wolf at a corpse took only %.2f of it" % (start - float(meal["meat"])))
+	# Carried: the carcass follows its carrier.
+	var carried: Dictionary = field.corpses.lay(spot + Vector2(-200.0, 0.0), spot + Vector2(-210.0, 0.0), 14.0)
+	var bearer: Sprite2D = wolf["sprite"] as Sprite2D
+	field.corpses.carry(carried, bearer)
+	bearer.global_position = spot + Vector2(-400.0, 200.0)
+	for _i: int in 60:
+		field.corpses._process(1.0 / 60.0)
+	_check((carried["at"] as Vector2).distance_to(bearer.global_position) < 20.0, "a carried carcass did not follow its carrier")
+	field.corpses.drop(carried)
+	# Contested: the outclassed yields.
+	var bear_kind: WildlifeData = ContentDB.wildlife_kinds.get("bear", null) as WildlifeData
+	_check(bear_kind != null, "no bear to contest a carcass")
+	if bear_kind != null:
+		var prize: Dictionary = field.corpses.lay(spot + Vector2(0.0, 300.0), spot + Vector2(0.0, 290.0), 40.0)
+		prize["vel"] = Vector2.ZERO
+		prize["vy"] = 0.0
+		prize["height"] = 0.0
+		wolf["meal"] = prize
+		wolf["feeding"] = true
+		wolf["state"] = Wildlife.State.SETTLED
+		bearer.global_position = prize["at"] as Vector2
+		var bear: Dictionary = animals.spawn_born(bear_kind, (prize["at"] as Vector2) + Vector2(20.0, 0.0),
+			{"stage": WildlifeFamilies.Stage.ADULT, "rarity": 2})
+		_check(not bear.is_empty(), "the harness could not place a bear")
+		if not bear.is_empty():
+			bear["meal"] = prize
+			bear["feeding"] = true
+			bear["state"] = Wildlife.State.SETTLED
+			bear["patience"] = 9999.0
+			_check(WildlifeFeeding.alpha_of(bear) > WildlifeFeeding.alpha_of(wolf) * Balance.FEED_YIELD_RATIO,
+				"the harness's bear does not outclass its wolf")
+			await _wait(1.0)
+			_check(int(wolf.get("yielded", 0)) > 0, "an outclassed wolf kept its place at a bear's carcass")
+	# **A heap calls for what eats it** (`WildlifeCarrion`): three dead call
+	# vultures down, a big heap past Act I may call its lord, one at a time, and
+	# nothing comes while the road is hushed or past the vultures' cap.
+	var carrion: WildlifeCarrion = animals.carrion
+	_check(carrion != null, "the wildlife has no carrion to answer a heap")
+	if carrion != null:
+		var held_act: int = RunState.act
+		field.corpses.corpses().clear()
+		animals.clear()
+		await get_tree().process_frame
+		animals.set("_hush_left", 0.0)
+		carrion.lord_chance = 1.0
+		var heap: Vector2 = _quiet_ground(animals)
+		field.hero.global_position = heap + Vector2(0.0, 1500.0)
+		for index: int in Balance.CARRION_VULTURE_PILE:
+			field.corpses.lay(heap + Vector2(float(index) * 24.0, 0.0), heap + Vector2(float(index) * 24.0 - 10.0, 0.0), 30.0)
+		var pile: Dictionary = WildlifeCarrion.biggest_pile(field.corpses)
+		_check(int(pile.get("count", 0)) == Balance.CARRION_VULTURE_PILE, "a heap of %d read as %d"
+			% [Balance.CARRION_VULTURE_PILE, int(pile.get("count", 0))])
+		RunState.act = 1
+		_check(carrion.consider() == "vultures", "a heap of the dead called no vultures")
+		_check(carrion.vulture_count() > 0, "vultures were called and none came")
+		for animal: Dictionary in animals.living():
+			if (animal["data"] as WildlifeData).id == WildlifeCarrion.VULTURE_ID:
+				_check((animal["goal"] as Vector2).distance_to(heap) < Balance.CARRION_PILE_REACH,
+					"a vulture was called to somewhere other than the heap")
+		_check(carrion.consider() == "", "a heap called vultures again before they rested")
+		for index: int in Balance.CARRION_LORD_PILE:
+			field.corpses.lay(heap + Vector2(float(index) * 20.0, 30.0), heap + Vector2(float(index) * 20.0 - 10.0, 30.0), 30.0)
+		carrion.set("_vulture_rest", 9999.0)
+		_check(carrion.consider() == "", "Act I called a carrion lord")
+		RunState.act = 2
+		_check(carrion.consider() == "lord", "a big heap past Act I called no lord at a certain chance")
+		var lords: Array[Dictionary] = []
+		for animal: Dictionary in animals.living():
+			if bool(animal.get("carrion_lord", false)):
+				lords.append(animal)
+		_check(lords.size() == 1, "%d carrion lords came" % lords.size())
+		if lords.size() == 1:
+			var lord: Dictionary = lords[0]
+			var lord_kind := lord["data"] as WildlifeData
+			_check(lord_kind.scavenges and lord_kind.is_hostile(), "the lord of a heap is not a hunting scavenger")
+			_check(bool(lord.get("elite", false)) and float(lord["hp"]) > lord_kind.max_hp * Balance.WILDLIFE_ELITE_HEALTH,
+				"the lord of a heap is no tougher than an elite")
+			_check((lord["home"] as Vector2).distance_to(heap) < Balance.CARRION_PILE_REACH, "the lord does not keep the heap")
+		_check(carrion.consider() != "lord", "a second lord came while the first lived")
+		animals.set("_hush_left", 1.0e9)
+		carrion.set("_vulture_rest", 0.0)
+		_check(carrion.consider() == "", "a hushed road called carrion")
+		animals.set("_hush_left", 0.0)
+		for _try: int in 10:
+			carrion.set("_vulture_rest", 0.0)
+			carrion.consider()
+		_check(carrion.vulture_count() <= Balance.CARRION_VULTURES_MAX, "%d vultures over a heap against a cap of %d"
+			% [carrion.vulture_count(), Balance.CARRION_VULTURES_MAX])
+		RunState.act = held_act
+		animals.set("_hush_left", 1.0e9)
+	run.queue_free()
+	GameDirector.run_active = false
+	for _f: int in 10:
+		await get_tree().process_frame
+	_reached.append("road")
+
+
+## Legal wildlife ground as far from every body as the field allows: a wolf is
+## a predator, and one that sees a camp body hunts it before it eats.
+func _quiet_ground(animals: Wildlife) -> Vector2:
+	var best: Vector2 = Vector2.ZERO
+	var best_gap: float = -1.0
+	for _try: int in 80:
+		var spot: Vector2 = animals.call("_clear_point") as Vector2
+		if spot == Vector2.ZERO:
+			continue
+		var gap: float = INF
+		for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+			var body := node as Node2D
+			if body != null and is_instance_valid(body):
+				gap = minf(gap, spot.distance_to(body.global_position))
+		if gap > best_gap:
+			best_gap = gap
+			best = spot
+	return best
+
+
+func _stand_a_body(field: Battlefield, at: Vector2, hide: int) -> Enemy:
+	var ids: Array = ContentDB.enemies.keys()
+	ids.sort()
+	for id: String in ids:
+		var data := ContentDB.enemies[id] as EnemyData
+		if data == null or data.category != EnemyData.Category.BREED or data.hide != hide:
+			continue
+		var body := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+		body.setup(data, RunState.act, field, 1.0, 1.0, 1.0)
+		field.add_child(body)
+		body.global_position = at
+		return body
+	_check(false, "no breed with that hide to kill")
+	return null
+
+
+func _wait(seconds: float) -> void:
+	var left: float = seconds
+	while left > 0.0:
+		left -= get_process_delta_time()
+		await get_tree().process_frame
+
+
+func _check(ok: bool, message: String) -> void:
+	_checks += 1
+	if not ok:
+		_failures += 1
+		push_error("%s %s" % [TAG, message])

@@ -27,6 +27,8 @@ var _fresh_build: Vector2i = Vector2i(-9999, -9999)
 @export var entity_root: Node2D
 ## The mercenaries on this road (`MercenaryCompany`).
 var company: MercenaryCompany = null
+## What deaths leave on the ground (`CorpseField`).
+var corpses: CorpseField = null
 @export var effect_root: Node2D
 @export var town: TownCore
 @export var hero: Hero
@@ -298,6 +300,10 @@ func _ready() -> void:
 	add_child(_coop_heroes)
 	# **The company** (2026-10-07): the mercenaries this road paid for, on their
 	# seats. Built every run; with nobody hired it stands nobody.
+	# **The corpses** (2026-10-07): what a death leaves on the ground.
+	corpses = CorpseField.new()
+	corpses.name = "Corpses"
+	add_child(corpses)
 	company = MercenaryCompany.new()
 	company.field = self
 	add_child(company)

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+scavenges = true
 body = 2
 mythic = true
 trail_signs = PackedStringArray("griffon_talon", "griffon_pinion", "griffon_kill", "griffon_scrape", "griffon_downdraft")

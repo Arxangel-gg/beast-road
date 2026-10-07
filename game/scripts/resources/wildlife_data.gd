@@ -497,6 +497,11 @@ enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS,
 ## for a wolf and wrong for a crane. A laying species leaves a **nest** instead:
 ## the same clutch, rolled the same way, sitting on the ground and hatching by
 ## road walked. See `WildlifeNests`.
+## **Eats the road's dead** (2026-10-07, `WildlifeFeeding`): smells a corpse,
+## walks to it and eats it, and contests it with another that came for it.
+@export var scavenges: bool = false
+## And may pick a carcass up to eat it somewhere quieter.
+@export var carries_food: bool = false
 @export var lays_eggs: bool = false
 ## How much road the clutch needs before it opens. Zero uses the roster default.
 @export_range(0.0, 400.0) var incubation_distance: float = 0.0

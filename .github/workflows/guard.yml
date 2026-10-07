@@ -267,6 +267,7 @@ jobs:
           check "legendary gleam" --headless --path game res://tools/legendary_gleam_check.tscn
           check "mercenaries" --headless --path game res://tools/mercenary_check.tscn
           check "mercenaries on the road" --headless --path game res://tools/mercenary_road_check.tscn
+          check "corpses and carrion" --headless --path game res://tools/corpse_check.tscn
           # Account objectives are finite, one-time and horizontal. This also
           # proves their save payload without touching the runner's real slot.
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn

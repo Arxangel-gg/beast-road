@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+scavenges = true
+carries_food = true
 body = 2
 breeds = true
 breeding_group = "hawk"

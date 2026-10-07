@@ -233,6 +233,9 @@ const WILDLIFE_FACING: Dictionary = {
 	"salt_crab": true, "scorpion": true, "snow_hare": true, "snow_lynx": false,
 	"squirrel": true, "stag": false, "steppe_horse": false,
 	"steppe_marmot": true, "tortoise": true, "viper": false, "wolf": false,
+	# Painted from the raven by an image edit (2026-10-07), so it keeps the
+	# raven's profile: beak, ruff and body all lead to the right.
+	"vulture": true,
 }
 
 var _failures: PackedStringArray = []

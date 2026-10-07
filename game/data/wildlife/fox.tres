@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+scavenges = true
+carries_food = true
 body = 0
 coat_pattern = 4
 coat_pattern_strength = 0.45

@@ -3790,6 +3790,8 @@ func _on_died(_from: Vector2) -> void:
 	_death_age = -1.0
 	_death_landed = false
 	_death_falls = true
+	if _fall_seconds() <= 0.0:
+		_leave_a_corpse.call_deferred()
 	# The animator writes the sprite's place and turn every frame; the fall
 	# is the body's own now (`_topple`).
 	if animator != null and _fall_seconds() > 0.0:
@@ -4187,6 +4189,15 @@ func _tick_death(delta: float) -> void:
 		sprite.modulate = Color(1.0, 1.0, 1.0, t)
 
 
+## **It leaves its corpse where it landed** (2026-10-07), thrown along the blow
+## that killed it - unless there is no meat on it: a spirit is nothing once it
+## goes, and stone is rubble, not food.
+func _leave_a_corpse() -> void:
+	if data == null or data.hide == EnemyData.Hide.SPIRIT or data.hide == EnemyData.Hide.STONE:
+		return
+	EventBus.body_fell.emit(global_position, _death_from, contact_radius(), data.id, _field)
+
+
 ## **How long this body takes to go down** - none for a boss, whose fall is
 ## the act's own cinematic.
 func _fall_seconds() -> float:
@@ -4225,6 +4236,7 @@ func _topple() -> void:
 	sprite.self_modulate = _death_tint.lerp(Color(2.2, 2.2, 2.2, _death_tint.a), flash)
 	if fall >= 1.0 and not _death_landed:
 		_death_landed = true
+		_leave_a_corpse()
 		if Graphics.particle_scale() > 0.0:
 			var earth := Color(0.42, 0.36, 0.28)
 			if _field != null and _field.has_method("ground_colour"):
