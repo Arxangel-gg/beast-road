@@ -133,9 +133,21 @@ func _check_authored_is_the_reference(classic: BattleGrid) -> void:
 	_check(differ == 0, "the reference core no longer matches the authored file on %d road tiles" % differ)
 
 
+## The core a grid was laid with, cut back out of the whole field.
+func _core_of(grid: BattleGrid) -> Array[int]:
+	var core: Array[int] = []
+	core.resize(MapLayouts.CORE * MapLayouts.CORE)
+	for y: int in MapLayouts.CORE:
+		for x: int in MapLayouts.CORE:
+			core[y * MapLayouts.CORE + x] = grid.cells[(y + BattleGrid.OUTSKIRTS) * BattleGrid.SIZE + x + BattleGrid.OUTSKIRTS]
+	return core
+
+
 func _check_mode(grid: BattleGrid, mode: String, seed_value: int, classic_ground: int) -> void:
 	var tag: String = "%s seed %d" % [mode, seed_value]
 	_check(grid.mode == mode, "%s: the grid says it is %s" % [tag, grid.mode])
+	# **Every lane can cross to another before the town** (owner, 2026-10-07).
+	_check(MapLayouts.lanes_join(_core_of(grid)), "%s: a lane reaches the others only through the town" % tag)
 	_check(grid.lane_paths.size() == Balance.LANE_COUNT and grid.routes.size() == Balance.LANE_COUNT,
 		"%s: every lane needs a road" % tag)
 	var town_node := Vector2i(BattleGrid.SIZE / 2, BattleGrid.SIZE / 2)
@@ -201,6 +213,7 @@ func _check_varied(mode: String, classic_ground: int, shots: String) -> void:
 	var shapes: Dictionary = {}
 	for seed_value: int in SEEDS:
 		var grid := BattleGrid.new(seed_value, mode, true)
+		_check(MapLayouts.lanes_join(_core_of(grid)), "%s varied seed %d: a lane reaches the others only through the town" % [mode, seed_value])
 		_check(grid.varied, "%s seed %d: asked for a varied road and got the named one" % [mode, seed_value])
 		_check_mode(grid, mode, seed_value, classic_ground)
 		var again := BattleGrid.new(seed_value, mode, true)

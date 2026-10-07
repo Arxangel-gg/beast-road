@@ -57,6 +57,9 @@ const VARIED_ATTEMPTS: int = 60
 const VARIED_MIN_WALK: int = 26
 const VARIED_MAX_LANE_RATIO: float = 1.45
 const VARIED_MIN_GROUND: int = 600
+## How much of the middle `lanes_join` closes off: the town and its gates, so
+## two lanes that meet only at the door do not count as joined.
+const LANES_JOIN_CLEAR: int = 4
 
 
 ## The core for `mode`, as `CORE * CORE` grid cells. `rng` is the layout's own
@@ -122,7 +125,40 @@ static func _sound(core: Array[int]) -> bool:
 		return false
 	if float(walks.max()) / float(walks.min()) > VARIED_MAX_LANE_RATIO:
 		return false
+	if not lanes_join(core):
+		return false
 	return _anchors(core) >= VARIED_MIN_GROUND
+
+
+## **Whether every lane can cross to another without the town** (owner,
+## 2026-10-07). Each entry walks the road with the town's middle closed off
+## (`LANES_JOIN_CLEAR` tiles round it), and must reach at least one other
+## entry. Public for `map_mode_check`.
+static func lanes_join(core: Array[int]) -> bool:
+	var entries: Array[Vector2i] = [Vector2i(MID, 0), Vector2i(CORE - 1, MID),
+		Vector2i(MID, CORE - 1), Vector2i(0, MID)]
+	for entry: Vector2i in entries:
+		var seen: Dictionary = {entry: true}
+		var queue: Array[Vector2i] = [entry]
+		var joined: bool = false
+		while not queue.is_empty() and not joined:
+			var at: Vector2i = queue.pop_back()
+			for step: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var next: Vector2i = at + step
+				if next.x < 0 or next.y < 0 or next.x >= CORE or next.y >= CORE or seen.has(next):
+					continue
+				if core[next.y * CORE + next.x] != BattleGrid.Cell.ROAD:
+					continue
+				if absi(next.x - MID) <= LANES_JOIN_CLEAR and absi(next.y - MID) <= LANES_JOIN_CLEAR:
+					continue
+				seen[next] = true
+				if entries.has(next) and next != entry:
+					joined = true
+					break
+				queue.append(next)
+		if not joined:
+			return false
+	return true
 
 
 static func _walk_from_town(core: Array[int]) -> Dictionary:
@@ -345,6 +381,20 @@ static func _four_rings(core: Array[int], plan: Dictionary) -> void:
 		_run_v(core, along * outer - across * strand, along * inner - across * strand)
 		_run_v(core, along * outer + across * strand, along * inner + across * strand)
 		_run_v(core, along * inner, along * 2)
+	# **And the rings meet** (owner, 2026-10-07: every lane must be able to
+	# join the others, never only walk straight to the town). Each ring's
+	# outer corner runs on round the field to its neighbour's, so the four
+	# outer bars and these joins make one road a body may cross over on -
+	# mirrored left to right, because the west and east rings share a plan.
+	var sides: Dictionary = plan["sides"]
+	for sx: int in [-1, 1]:
+		for pair: Array in [[-1, plan["north"]], [1, plan["south"]]]:
+			var sy: int = int(pair[0])
+			var end: Dictionary = pair[1]
+			var so: int = int(sides["outer"])
+			var eo: int = int(end["outer"])
+			_run(core, so * sx, int(sides["strand"]) * sy, so * sx, eo * sy)
+			_run(core, so * sx, eo * sy, int(end["strand"]) * sx, eo * sy)
 
 
 static func _run_v(core: Array[int], a: Vector2i, b: Vector2i) -> void:
@@ -438,6 +488,22 @@ static func _wild_roll(rng: RandomNumberGenerator) -> Dictionary:
 		nodes[edge[1]] = true
 	if count - nodes.size() + 1 < WILD_MIN_LOOPS:
 		return {}
+	# **Every lane joins another before the town** (owner, 2026-10-07). A
+	# network whose lanes meet only at the gate is four roads that share a
+	# door; one where each can cross to a neighbour is a road network.
+	var away: Dictionary = edges.duplicate()
+	for key: Variant in edges:
+		var edge: Array = edges[key] as Array
+		if edge[0] == town or edge[1] == town:
+			away.erase(key)
+	for entry: Vector2i in entries:
+		var joined: bool = false
+		var reach: Dictionary = _wild_reach(away, entry)
+		for other: Vector2i in entries:
+			if other != entry and reach.has(other):
+				joined = true
+		if not joined:
+			return {}
 	return edges
 
 
