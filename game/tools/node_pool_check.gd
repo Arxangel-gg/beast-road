@@ -195,8 +195,10 @@ func _test_a_piece_forgets_what_it_was() -> void:
 	_world.add_child(piece)
 	await _frames(3)
 	var plate := piece.get_node_or_null("PickupPlate") as Label
-	_check(plate != null and plate.visible and plate.text == "Blueprint",
-		"a blueprint on the ground wears its plate")
+	# The plate names the plan since 2026-10-06 ("Blueprint  ·  Ember Mortar"),
+	# so what is held is that it says it is a blueprint, not the exact words.
+	_check(plate != null and plate.visible and plate.text.begins_with("Blueprint"),
+		"a blueprint on the ground wears its plate (%s)" % (plate.text if plate != null else "none"))
 	var beacon := piece.get_node_or_null("PickupBeacon") as Sprite2D
 	_check(beacon != null, "and carries its spire")
 	_check(_lamps_under(piece) == 1,
