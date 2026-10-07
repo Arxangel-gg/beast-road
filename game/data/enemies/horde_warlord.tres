@@ -16,6 +16,7 @@ body_radius = 94.0
 knockback_resistance = 1.0
 resource_value = 185
 phase_thresholds = Array[float]([0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125])
+phase_events = Array[String](["", "", "tornado", "", "", "quake", ""])
 phase_names = Array[String](["The Horn Sounds", "The Outriders Turn", "Dust on the Horizon", "The Line Breaks", "No Quarter", "The Last Arrow", "She Rides"])
 phase_reinforcement_enemy_id = "steppehorde"
 phase_reinforcements_per_lane = 1

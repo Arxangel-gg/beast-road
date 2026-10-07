@@ -16,6 +16,7 @@ body_radius = 90.0
 knockback_resistance = 1.0
 resource_value = 120
 phase_thresholds = Array[float]([0.75, 0.5, 0.25])
+phase_events = Array[String](["", "quake", ""])
 phase_names = Array[String](["The Iron Levy", "The Slope Gives Way", "Crown of Ruin"])
 phase_reinforcement_enemy_id = "warden"
 phase_reinforcements_per_lane = 1

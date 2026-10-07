@@ -53,6 +53,7 @@ func _ready() -> void:
 	_test_the_road_goes_quiet(wildlife)
 	_test_a_savage_is_actually_savage(wildlife)
 	_test_a_hunter_keeps_to_the_players(wildlife)
+	_test_a_cull_is_remembered(wildlife)
 
 	if _failures == 0:
 		print("[wildlife] PASS - arrivals keep their distance, every tier is "
@@ -481,6 +482,37 @@ func _check(condition: bool, why: String) -> void:
 ## both places a bite is worked out - the spirit at your shoulder is bitten by
 ## different code from the hero, and applying a multiplier to one of the two is
 ## exactly the shape of the fault this is replacing.
+## **Population memory** (triage of 2026-10-07): a species the players cull
+## arrives less for the rest of the act, never less than its floor, and the
+## act's turn forgets it - through the real kill tally and the real weight.
+func _test_a_cull_is_remembered(wildlife: Wildlife) -> void:
+	var kinds: Array = wildlife.get("_kinds") as Array
+	var kind: WildlifeData = null
+	for value: Variant in kinds:
+		var candidate := value as WildlifeData
+		if candidate != null and not candidate.mythic and candidate.roll_weight(RunState.act) > 0.0:
+			kind = candidate
+			break
+	_check(kind != null, "no species to cull")
+	if kind == null:
+		return
+	var whole: float = float(wildlife.call("_tilted_weight", kind, 0.0))
+	for _kill: int in 8:
+		wildlife.call("_tally_hunt", kind)
+	var thinned: float = float(wildlife.call("_tilted_weight", kind, 0.0))
+	_check(thinned < whole * 0.7, "eight %s killed left its arrivals at %.2f of %.2f" % [kind.id, thinned, whole])
+	for _kill: int in 200:
+		wildlife.call("_tally_hunt", kind)
+	var floor_weight: float = float(wildlife.call("_tilted_weight", kind, 0.0))
+	_check(floor_weight > 0.0 and absf(floor_weight - whole * Balance.WILDLIFE_CULL_FLOOR) < 0.0001,
+		"a culled-out kind arrives at %.4f, not its floor %.4f" % [floor_weight, whole * Balance.WILDLIFE_CULL_FLOOR])
+	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
+	_check(is_equal_approx(float(wildlife.call("_tilted_weight", kind, 0.0)), whole),
+		"the act's turn did not forget the cull")
+	(wildlife.get("_hunt_tally") as Dictionary).clear()
+	(wildlife.get("_hunt_cooldown") as Dictionary).clear()
+
+
 func _test_a_savage_is_actually_savage(wildlife: Wildlife) -> void:
 	var kind: WildlifeData = null
 	for species: WildlifeData in ContentDB.wildlife():

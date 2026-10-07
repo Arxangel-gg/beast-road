@@ -15,6 +15,7 @@ body_radius = 102.0
 knockback_resistance = 1.0
 resource_value = 170
 phase_thresholds = Array[float]([0.857, 0.714, 0.571, 0.429, 0.286, 0.143])
+phase_events = Array[String](["", "", "tornado", "", "", "tornado"])
 phase_names = Array[String](["The Tide Remembers", "Undertow", "Salt in the Wound", "The Seventh Wave", "Pressure", "Everything Drowns Eventually"])
 phase_reinforcement_enemy_id = "salt_marcher"
 phase_reinforcements_per_lane = 1

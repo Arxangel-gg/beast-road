@@ -20,6 +20,8 @@ const GATEKEEPER_ID: String = "gatekeeper"
 var _defeated_acts: Array[int] = []
 var _active_phase: int = 0
 var _rng: RandomNumberGenerator
+## How many of the earth's events a break has called. For the gate.
+var phase_events_called: int = 0
 
 
 func _ready() -> void:
@@ -205,9 +207,35 @@ func _enter_phase(phase: int) -> void:
 	var phase_name: String = _active.data.phase_names[phase - 1] \
 		if phase - 1 < _active.data.phase_names.size() else "Phase %d" % (phase + 1)
 	_spawn_phase_reinforcements(phase)
+	_call_the_earth(phase)
 	EventBus.boss_phase_changed.emit(_active.data.id, phase, phase_name)
 	# Bounded: eleven breaks at three more each would be a shake of fifty.
 	EventBus.camera_shake_requested.emit(15.0 + 3.0 * minf(float(phase), 4.0), 0.8)
+
+
+## **A break calls the earth** (`EnemyData.phase_events`): the quake, the funnel
+## or the stone the break names, through the sky's own doors - warned the way
+## the earth warns, and the host's alone, because a guest is told the earth's
+## events as facts.
+func _call_the_earth(phase: int) -> void:
+	if _active == null or _active.data == null or Coop.is_guest() or battlefield == null:
+		return
+	var events: Array[String] = _active.data.phase_events
+	if phase - 1 < 0 or phase - 1 >= events.size():
+		return
+	var sky: WeatherSky = battlefield.sky()
+	if sky == null:
+		return
+	match events[phase - 1]:
+		"quake":
+			sky.warn_quake(Balance.BOSS_PHASE_QUAKE)
+		"tornado":
+			sky.warn_tornado()
+		"meteor":
+			sky.drop_meteor()
+		_:
+			return
+	phase_events_called += 1
 
 
 ## Reinforcements arrive on lanes other than the boss's own. The player's

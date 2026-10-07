@@ -132,6 +132,8 @@ func _ready() -> void:
 	EventBus.war_horn_activated.connect(_on_horn_heard)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
 		_refresh_kinds()
+		# A new region has not seen the culling the last one did.
+		_culled.clear()
 		# Old residents leave with the old act rather than lingering into ground
 		# they do not belong on - a deer standing in Act III ash is worse than an
 		# empty field.
@@ -883,7 +885,7 @@ func _tilted_weight(kind: WildlifeData, wildness: float) -> float:
 	# reaches the field is `place_mythic`, at the end of its own trail.
 	if kind.mythic:
 		return 0.0
-	var weight: float = kind.roll_weight(RunState.act)
+	var weight: float = kind.roll_weight(RunState.act) * cull_share(kind.id)
 	if wildness <= 0.0:
 		return weight
 	var lean: float = 1.0 + wildness * (Balance.WILDLIFE_WILDS_TILT - 1.0)
@@ -3719,6 +3721,16 @@ func threat_to(who: Node2D, radius: float) -> Vector2:
 var _hunt_tally: Dictionary = {}
 ## Seconds before each species may send another savage.
 var _hunt_cooldown: Dictionary = {}
+## **Population memory**: how many of each species the players have killed this
+## act, never decaying until the act turns. Read by the arrival weight
+## (`cull_share`), and by nothing that decides a fight.
+var _culled: Dictionary = {}
+
+
+## What share of its arrival weight a species keeps after this act's culling.
+func cull_share(species_id: String) -> float:
+	var killed: float = float(_culled.get(species_id, 0))
+	return maxf(Balance.WILDLIFE_CULL_FLOOR, 1.0 / (1.0 + killed * Balance.WILDLIFE_CULL_DAMPING))
 
 
 ## Ages the tallies and the cooldowns. Called from `_process`.
@@ -3742,6 +3754,7 @@ func _tick_hunt(delta: float) -> void:
 func _tally_hunt(kind: WildlifeData) -> void:
 	if kind == null or Coop.is_guest():
 		return
+	_culled[kind.id] = int(_culled.get(kind.id, 0)) + 1
 	if _hunt_cooldown.has(kind.id):
 		return
 	var tally: float = float(_hunt_tally.get(kind.id, 0.0)) + 1.0

@@ -6803,6 +6803,21 @@ const TOWER_SPRITE_LIFT: float = 42.0
 ## that measures range or spawns an effect, so nothing about the gameplay shifts.
 const TOWER_SORT_LIFT: float = 64.0
 
+## **A boss's break may call the earth** (`EnemyData.phase_events`, triage of
+## 2026-10-07): how hard the quake it calls is. A tornado and a meteor are the
+## earth's own, at the earth's own size. [TUNE]
+const BOSS_PHASE_QUAKE: float = 0.6
+## The events a break may call, and nothing else.
+const BOSS_PHASE_EVENTS: Array[String] = ["quake", "tornado", "meteor"]
+
+## **Population memory** (triage of 2026-10-07): a species the players have
+## culled this act arrives less for the rest of it - its arrival weight divided
+## by one plus `WILDLIFE_CULL_DAMPING` a kill, never below `WILDLIFE_CULL_FLOOR`
+## of itself, so a hunted-out kind is rare and never gone. The act's turn
+## forgets it. [TUNE]
+const WILDLIFE_CULL_DAMPING: float = 0.12
+const WILDLIFE_CULL_FLOOR: float = 0.3
+
 ## **A Riven body's pieces** (`EnemyAffixData.split_on_death`): each this share
 ## of the pool it came from, paid this share of a kill, and set this far apart
 ## where it fell. [TUNE]

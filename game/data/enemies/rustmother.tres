@@ -16,6 +16,7 @@ body_radius = 98.0
 knockback_resistance = 1.0
 resource_value = 155
 phase_thresholds = Array[float]([0.833, 0.667, 0.5, 0.333, 0.167])
+phase_events = Array[String](["", "", "tornado", "", "quake"])
 phase_names = Array[String](["Flaking", "Bark Splits", "Roots Tear Free", "The Canopy Comes Down", "The Whole Forest Leans"])
 phase_reinforcement_enemy_id = "glassguard"
 phase_reinforcements_per_lane = 1

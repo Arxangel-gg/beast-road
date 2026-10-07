@@ -16,6 +16,7 @@ body_radius = 110.0
 knockback_resistance = 1.0
 resource_value = 200
 phase_thresholds = Array[float]([0.889, 0.778, 0.667, 0.556, 0.444, 0.333, 0.222, 0.111])
+phase_events = Array[String](["", "", "quake", "", "", "quake", "", "meteor"])
 phase_names = Array[String](["Fracture", "Hairline", "The First Shard Falls", "Light Through the Cracks", "Spalling", "The Core Shows", "Glass Rain", "Ten Thousand Edges"])
 phase_reinforcement_enemy_id = "glassborn"
 phase_reinforcements_per_lane = 1

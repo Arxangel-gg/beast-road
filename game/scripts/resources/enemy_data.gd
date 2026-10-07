@@ -395,6 +395,12 @@ func repertoire() -> Array[EnemyShotData]:
 @export var phase_reinforcement_lanes: int = 2
 @export var phase_speed_bonus: float = 0.0
 @export var phase_damage_bonus: float = 0.0
+## **A break may call the earth** (triage of 2026-10-07): per break, "" or one
+## of `Balance.BOSS_PHASE_EVENTS` - a quake, a funnel, a falling stone - called
+## through the doors the earth's own events use, so each is telegraphed,
+## relayed to a guest and drawn as the earth draws it. A boss with none fights
+## exactly as it did.
+@export var phase_events: Array[String] = []
 
 # --- What an act boss does that the roster does not (2026-09-13) --------------
 #

@@ -15,6 +15,7 @@ body_radius = 90.0
 knockback_resistance = 1.0
 resource_value = 120
 phase_thresholds = Array[float]([0.667, 0.333])
+phase_events = Array[String](["", "tornado"])
 phase_names = Array[String](["Splintered Reflection", "A Thousand Fangs"])
 phase_reinforcement_enemy_id = "burrower"
 phase_reinforcements_per_lane = 1

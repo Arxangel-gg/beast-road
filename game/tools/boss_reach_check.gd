@@ -281,6 +281,7 @@ func _test_a_slam_actually_throws_the_player() -> void:
 			continue
 		travelled[ident] = await _throw_the_hero(field, hero, boss)
 	await _test_a_boss_quickens_as_it_breaks(field, hero)
+	await _test_a_break_calls_the_earth(run, field)
 	run.queue_free()
 	await get_tree().process_frame
 
@@ -302,6 +303,53 @@ func _test_a_slam_actually_throws_the_player() -> void:
 	_check(heavy > light * 1.6,
 		"the heaviest slam threw %.1f and the lightest %.1f - too close to be"
 			% [heavy, light] + " reading `boss_slam_knockback` at all")
+
+
+## **A break may call the earth** (`EnemyData.phase_events`, triage of
+## 2026-10-07). Every authored event is one the vocabulary names and sits on a
+## break the boss has; and on a real field the summit's own breaks warn a quake,
+## warn a funnel and drop a stone through the sky's own doors, while a break
+## that names nothing calls nothing.
+func _test_a_break_calls_the_earth(run: Run, field: Battlefield) -> void:
+	var authored: Dictionary = {}
+	for value: Variant in ContentDB.enemies.values():
+		var foe := value as EnemyData
+		if foe == null:
+			continue
+		_check(foe.phase_events.size() <= foe.phase_thresholds.size(),
+			"%s names %d break events for %d breaks" % [foe.id, foe.phase_events.size(), foe.phase_thresholds.size()])
+		for event: String in foe.phase_events:
+			_check(event.is_empty() or Balance.BOSS_PHASE_EVENTS.has(event),
+				"%s names a break event the earth has no door for: %s" % [foe.id, event])
+			if not event.is_empty():
+				authored[event] = true
+	for event: String in Balance.BOSS_PHASE_EVENTS:
+		_check(authored.has(event), "no boss's break ever calls a %s" % event)
+	var director: BossDirector = run.boss_director
+	var sky: WeatherSky = field.sky()
+	var chain: EnemyData = ContentDB.enemy("chainmaker")
+	if director == null or sky == null or chain == null:
+		_check(false, "the harness needs a director, a sky and the summit's boss")
+		return
+	var boss: Enemy = field.spawn_enemy(chain, 0, 1.0)
+	await get_tree().process_frame
+	boss.process_mode = Node.PROCESS_MODE_DISABLED
+	director.set("_active", boss)
+	var called: int = director.phase_events_called
+	director.call("_enter_phase", 1)
+	_check(director.phase_events_called == called, "a break that names nothing called the earth")
+	director.call("_enter_phase", chain.phase_events.find("quake") + 1)
+	_check(float(sky.get("_quake_warning_left")) > 0.0, "the summit's quake break warned no quake")
+	director.call("_enter_phase", chain.phase_events.find("tornado") + 1)
+	_check(not (sky.get("_pending_tornado") as Dictionary).is_empty() or sky.funnel_standing(),
+		"the summit's funnel break warned no funnel")
+	var stones: int = sky.meteors
+	director.call("_enter_phase", chain.phase_events.find("meteor") + 1)
+	_check(sky.meteors == stones + 1, "the summit's stone break dropped %d stones" % (sky.meteors - stones))
+	_check(director.phase_events_called == called + 3, "three breaks called %d events" % (director.phase_events_called - called))
+	director.set("_active", null)
+	boss.queue_free()
+	await get_tree().process_frame
 
 
 ## **A boss in a later phase slams and throws sooner** (2026-09-21), and by
