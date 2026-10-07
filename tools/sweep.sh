@@ -41,7 +41,9 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
-GODOT="$(find "$ROOT" -maxdepth 2 -name 'Godot_v*_console.exe' -print -quit)"
+# `GODOT` may name the executable, so a worktree without its own copy of the
+# engine can sweep with the main checkout's.
+GODOT="${GODOT:-$(find "$ROOT" -maxdepth 2 -name 'Godot_v*_console.exe' -print -quit)}"
 if [ -z "$GODOT" ] || [ ! -f "$GODOT" ]; then
   echo "No Godot console executable found under $ROOT." >&2
   echo "Expected something like Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe" >&2
