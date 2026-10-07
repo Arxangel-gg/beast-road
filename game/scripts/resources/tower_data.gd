@@ -61,6 +61,15 @@ enum TargetPriority {
 ## was offered its first parent's "Lance or Wildfire". Focus first, Spread
 ## second. Empty falls back to the element's names.
 @export var path_names: Array[String] = []
+
+## **What each path makes of this tower in particular** (owner, 2026-10-07:
+## "more specialization options with unique offerings catered for each
+## tower"). Focus, Spread, Bulwark: each names one status this tower already
+## carries - burn, slow, freeze, knockback, chain - that the path strengthens on
+## top of what every tower's path does. Empty derives one from the tower's own
+## statuses (`path_rider`), so every tower has three offerings of its own. The
+## path bound holds: a rider may only strengthen a status the tower has.
+@export var path_riders: Array[String] = []
 @export var parent_a: Element = Element.FIRE
 @export var parent_b: Element = Element.FIRE
 ## **A battery** (2026-10-07, owner: "more combination towers needed"). Offered
@@ -422,6 +431,56 @@ func extra_targets_at(level: int) -> int:
 	if extra_targets <= 0:
 		return 0
 	return extra_targets + int(floor(float(maxi(level, 1) - 1) / 2.0))
+
+
+## The statuses a rider may name, in the words the path buttons use.
+const RIDERS: Dictionary = {
+	"burn": "burns hotter", "slow": "slows deeper", "freeze": "freezes more often",
+	"knockback": "throws harder", "chain": "reaches one more",
+}
+
+
+## Whether this tower carries the status a rider would strengthen.
+func has_status(rider: String) -> bool:
+	match rider:
+		"burn":
+			return burn_dps > 0.0
+		"slow":
+			return slow_factor < 1.0
+		"freeze":
+			return freeze_chance > 0.0
+		"knockback":
+			return knockback > 0.0
+		"chain":
+			return extra_targets > 0
+	return false
+
+
+## **The status a path strengthens on this tower**, or "" for none. Authored
+## when `path_riders` names one the tower has; otherwise the tower's own, by the
+## path's character - Focus the single blow's sting, Spread what reaches the
+## crowd, Bulwark what holds the line.
+func path_rider(path: int) -> String:
+	if path <= Path.NONE or path > Path.BULWARK:
+		return ""
+	var index: int = path - 1
+	# **A chain rider is Spread's alone**: more targets is that path's whole
+	# character, and Focus and Bulwark are held to adding none (`tower_path_check`).
+	if index < path_riders.size() and has_status(path_riders[index]) and (path_riders[index] != "chain" or path == Path.SPREAD):
+		return path_riders[index]
+	var order: Array = [["burn", "freeze", "knockback", "slow"],
+		["chain", "slow", "burn", "knockback", "freeze"],
+		["slow", "knockback", "freeze", "burn"]][index]
+	for rider: String in order:
+		if has_status(rider):
+			return rider
+	return ""
+
+
+## The words a path's rider adds to its button: "and burns hotter".
+func rider_note(path: int) -> String:
+	var rider: String = path_rider(path)
+	return "" if rider.is_empty() else " Here it %s." % String(RIDERS.get(rider, ""))
 
 
 ## True when this combination is the one produced by the given pair, in either

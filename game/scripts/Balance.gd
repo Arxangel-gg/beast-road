@@ -12860,6 +12860,10 @@ const TOWER_BULWARK_ARMOUR: float = 4.0
 const TOWER_BULWARK_DAMAGE: float = -0.10
 const TOWER_CAPSTONE_BULWARK_HEALTH: float = 0.50
 const TOWER_CAPSTONE_BULWARK_ARMOUR: float = 4.0
+## **A path's rider** (2026-10-07): how much a path strengthens the one status
+## it names on a tower - burn, slow, freeze, knockback - and a chain rider reaches
+## one more. A status the tower already has, never a new one. [TUNE]
+const TOWER_PATH_RIDER: float = 1.4
 
 
 # --- An act boss fights (2026-09-13) -------------------------------------------------------

@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _test_the_split()
 	_test_the_bound()
 	_test_every_capstone_moves_a_real_number()
+	await _test_every_tower_has_its_own_offerings()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -59,6 +60,65 @@ func _ready() -> void:
 	else:
 		push_error("[tower-path] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Every tower's paths offer something of its own** (owner, 2026-10-07: "more
+## specialization options with unique offerings catered for each tower"). Every
+## tower with a status has a rider on some path; every rider names a status that
+## tower carries, so no path invents one; a chain rider is Spread's alone; and a
+## burn rider is measured on a real body - hotter on its path, as authored off it.
+func _test_every_tower_has_its_own_offerings() -> void:
+	var with_riders: int = 0
+	for value: Variant in ContentDB.towers.values():
+		var data := value as TowerData
+		if data == null or data.is_well():
+			continue
+		var any_status: bool = false
+		for rider: String in TowerData.RIDERS:
+			if data.has_status(rider):
+				any_status = true
+		var named: int = 0
+		for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD, TowerData.Path.BULWARK]:
+			var rider: String = data.path_rider(path)
+			if rider.is_empty():
+				continue
+			named += 1
+			_check(data.has_status(rider), "%s's %s rider %s is a status it does not carry" % [data.id, path, rider])
+			_check(rider != "chain" or path == TowerData.Path.SPREAD,
+				"%s rides a chain on path %d, which only Spread may" % [data.id, path])
+			_check(not data.rider_note(path).is_empty(), "%s's %s rider says nothing" % [data.id, path])
+		if any_status:
+			_check(named > 0, "%s carries a status and no path rides it" % data.id)
+			with_riders += 1
+	_check(with_riders >= 40, "only %d towers offer anything of their own" % with_riders)
+	# Measured: a burning tower's path that rides its burn, on a real body.
+	var burner: TowerData = null
+	var burning_path: int = TowerData.Path.NONE
+	for value: Variant in ContentDB.towers.values():
+		var data := value as TowerData
+		if data == null or data.burn_dps <= 0.0 or data.is_combination:
+			continue
+		for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD, TowerData.Path.BULWARK]:
+			if data.path_rider(path) == "burn":
+				burner = data
+				burning_path = path
+		if burner != null:
+			break
+	_check(burner != null, "no tower's path rides its burn")
+	if burner == null:
+		return
+	var field: Battlefield = _run.battlefield
+	var plain: Enemy = field.spawn_enemy(ContentDB.enemy("bogkin"), 0, 1.0)
+	var ridden: Enemy = field.spawn_enemy(ContentDB.enemy("bogkin"), 0, 1.0)
+	await get_tree().process_frame
+	Tower.apply_statuses(plain, burner, 1.0, "")
+	Tower.apply_statuses(ridden, burner, 1.0, burner.path_rider(burning_path))
+	var cold: float = float(plain.get("_burn_dps"))
+	var hot: float = float(ridden.get("_burn_dps"))
+	_check(hot > cold * 1.2 and cold > 0.0,
+		"%s's burn rider burned %.2f a second against %.2f plain" % [burner.id, hot, cold])
+	plain.queue_free()
+	ridden.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

@@ -5972,8 +5972,8 @@ func _refresh_build_panel() -> void:
 							battlefield.refresh_towers()
 							Sfx.play("sfx_tower_upgrade")
 						_refresh_build_panel())
-				pick.tooltip_text = TowerData.path_note(path)
-				_build_list.add_child(_label(TowerData.path_note(path), 13))
+				pick.tooltip_text = TowerData.path_note(path) + existing.rider_note(path)
+				_build_list.add_child(_label(TowerData.path_note(path) + existing.rider_note(path), 13))
 		elif RunState.tower_path(anchor) != TowerData.Path.NONE:
 			var taken: int = RunState.tower_path(anchor)
 			_build_list.add_child(_label("%s  ·  %s" % [

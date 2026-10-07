@@ -1103,8 +1103,11 @@ func _launch(enemy: Enemy) -> void:
 	# every projectile in the game was built as a level 1 shot no matter what
 	# fired it - the tier scaling existed, was correct, and did nothing.
 	shot.setup(enemy, data, rolled_damage(),
-		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK),
+		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK) * rider_scale("knockback"),
 		level)
+	# The path's rider rides the shot, so a status lands as strengthened from
+	# a lob as from a bolt.
+	shot.rider = data.path_rider(_path)
 	# The spreading path widens every blast this tower throws (2026-09-13).
 	shot.aoe_scale = path_aoe_scale()
 	_field.add_projectile(shot, origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
@@ -1123,7 +1126,7 @@ func _hit(enemy: Enemy) -> void:
 			* (enemy.shock_scale() if data.element == TowerData.Element.AIR else 1.0)
 		DamageLedger.credit_as(DamageLedger.TOWER_PREFIX + data.id)
 		enemy.take_damage(dealt, origin(),
-			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
+			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK) * rider_scale("knockback"))
 		# The earth remembers every element's work, each on its own clock. And
 		# a fire tower's shot may light the plant beside whatever it hit - a
 		# fire the player lit, which the earth holds against the road.
@@ -1138,18 +1141,30 @@ func _hit(enemy: Enemy) -> void:
 				enemy.apply_wet(Balance.WET_SECONDS)
 			TowerData.Element.EARTH:
 				RunState.tremor += dealt * Balance.TREMOR_PER_DAMAGE
-	var utility: float = data.utility_at(level)
+	# One place, shared with the shot, so a path's rider strengthens both.
+	Tower.apply_statuses(enemy, data, data.utility_at(level), data.path_rider(_path))
+
+
+## **A tower's statuses on a body it hit** - the one place they are applied,
+## from the tower's own hit and from its shot alike, so a rider strengthens both.
+## `rider` is the status the firing tower's path strengthens, or "".
+static func apply_statuses(enemy: Enemy, data: TowerData, utility: float, rider: String) -> void:
+	if enemy == null or data == null:
+		return
 	if data.slow_factor < 1.0:
 		# A stronger slow is a *lower* factor, so the relic subtracts.
-		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility
+		var deep: float = Balance.TOWER_PATH_RIDER if rider == "slow" else 1.0
+		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility * deep
 		enemy.apply_slow(maxf(slow - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1),
 			data.slow_duration * utility)
 	if data.burn_dps > 0.0:
-		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
+		var hot: float = Balance.TOWER_PATH_RIDER if rider == "burn" else 1.0
+		enemy.apply_burn(data.burn_dps * utility * hot * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
 			data.burn_duration * sqrt(utility))
-	if data.freeze_chance > 0.0 and RunState.rng("combat").randf() \
-			< minf(data.freeze_chance * utility, 0.82):
-		enemy.apply_freeze(1.2 * sqrt(utility))
+	if data.freeze_chance > 0.0:
+		var often: float = Balance.TOWER_PATH_RIDER if rider == "freeze" else 1.0
+		if RunState.rng("combat").randf() < minf(data.freeze_chance * utility * often, 0.82):
+			enemy.apply_freeze(1.2 * sqrt(utility))
 
 
 func effective_range() -> float:
@@ -1648,10 +1663,20 @@ func path_interval_scale() -> float:
 
 
 ## How many extra bodies it reaches on the spread path, capstone included.
+## **How much this tower's path strengthens one of its statuses** (2026-10-07):
+## the rider's scale for the status its path names on this tower, one for every
+## other status. A status the tower lacks is never named, so this never adds one.
+func rider_scale(status: String) -> float:
+	return Balance.TOWER_PATH_RIDER if data != null and _path != TowerData.Path.NONE \
+		and data.path_rider(_path) == status else 1.0
+
+
 func path_extra_targets() -> int:
+	# A chain rider reaches one more on whichever path names it.
+	var rider: int = 1 if rider_scale("chain") > 1.0 else 0
 	if _path != TowerData.Path.SPREAD:
-		return 0
-	var extra: int = Balance.TOWER_SPREAD_TARGETS
+		return rider
+	var extra: int = Balance.TOWER_SPREAD_TARGETS + rider
 	if level >= Balance.TOWER_CAPSTONE_LEVEL:
 		extra += Balance.TOWER_CAPSTONE_SPREAD_TARGETS
 	return extra

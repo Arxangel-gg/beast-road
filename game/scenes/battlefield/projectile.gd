@@ -41,6 +41,8 @@ var data: TowerData = null
 var tier: int = 1
 ## What the shot's blast is scaled by - a Spread capstone widens it.
 var aoe_scale: float = 1.0
+## The status the firing tower's path strengthens (2026-10-07), or "".
+var rider: String = ""
 
 var _target: Enemy = null
 var _direction: Vector2 = Vector2.RIGHT
@@ -671,17 +673,7 @@ func _apply(enemy: Enemy) -> void:
 	if damage > 0.0:
 		DamageLedger.credit_as(DamageLedger.TOWER_PREFIX + data.id if data != null else DamageLedger.OTHER)
 		enemy.take_damage(damage * enemy.brand_multiplier(), global_position, knockback)
-	var utility: float = data.utility_at(tier)
-	if data.slow_factor < 1.0:
-		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility
-		enemy.apply_slow(maxf(slow - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1),
-			data.slow_duration * utility)
-	if data.burn_dps > 0.0:
-		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
-			data.burn_duration * sqrt(utility))
-	if data.freeze_chance > 0.0 and RunState.rng("combat").randf() \
-			< minf(data.freeze_chance * utility, 0.82):
-		enemy.apply_freeze(1.2 * sqrt(utility))
+	Tower.apply_statuses(enemy, data, data.utility_at(tier), rider)
 
 
 func _find_field() -> Battlefield:
