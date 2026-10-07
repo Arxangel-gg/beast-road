@@ -37,10 +37,10 @@ func _ready() -> void:
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label.custom_minimum_size = Vector2(Balance.MERC_BUBBLE_WIDTH, 0.0)
 	_label.position = Vector2(-Balance.MERC_BUBBLE_WIDTH * 0.5, -Balance.MERC_BUBBLE_HEIGHT)
-	_label.add_theme_font_size_override("font_size", 15)
+	_label.add_theme_font_size_override("font_size", Balance.MERC_BUBBLE_FONT)
 	_label.add_theme_constant_override("outline_size", 6)
 	_label.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 0.92))
-	UiFonts.set_role(_label, UiFonts.Role.BODY, 15)
+	UiFonts.set_role(_label, UiFonts.Role.BODY, Balance.MERC_BUBBLE_FONT)
 	add_child(_label)
 	visible = false
 

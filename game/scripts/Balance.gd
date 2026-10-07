@@ -11581,7 +11581,9 @@ const MERC_COMPANY_GAP: float = 4.0
 const MERC_IDLE_SECONDS: Vector2 = Vector2(35.0, 75.0)
 const MERC_NOTICE_RADIUS: float = 900.0
 const MERC_BUBBLE_SECONDS: float = 3.5
-const MERC_BUBBLE_WIDTH: float = 260.0
+const MERC_BUBBLE_WIDTH: float = 340.0
+## The bubble's lettering, read at play zoom over a busy field.
+const MERC_BUBBLE_FONT: int = 20
 const MERC_BUBBLE_HEIGHT: float = 230.0
 const MERC_CARD_WIDTH: float = 620.0
 const MERC_CARD_LIFT: float = 220.0
