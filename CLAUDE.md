@@ -14801,6 +14801,28 @@ the coin toss into a certainty.
 A worktree passes the engine through `GODOT`, and its launcher has to be
 imported once before the launcher's pipeline test can find its classes.
 
+**A boss's break may call the earth, and a culled species arrives less, as of
+2026-10-07.** Two adapted items from the triage.
+
+- **Boss phase events** (`EnemyData.phase_events`): per break, "" or one of
+  `Balance.BOSS_PHASE_EVENTS` - a quake, a funnel, a falling stone - called by
+  `BossDirector._call_the_earth` through the sky's own doors (`warn_quake`,
+  `warn_tornado`, `drop_meteor`), so each is telegraphed the way the earth's
+  own events are, relayed to a guest as the same facts, and the host's alone.
+  Ten of the eleven act bosses name some; the first names none, so the opening
+  act's boss is still a boss and not a disaster. A boss authoring nothing fights
+  exactly as it did. `boss_reach_check` walks every authored event against the
+  vocabulary and the boss's breaks, and drives the summit's own breaks on a real
+  field - a quake warned, a funnel warned, a stone dropped, and nothing from a
+  break that names nothing.
+- **Population memory** (`Wildlife._culled`, `cull_share`): a species the
+  players kill this act arrives less for the rest of it - its arrival weight
+  divided by one plus `WILDLIFE_CULL_DAMPING` a kill, never below
+  `WILDLIFE_CULL_FLOOR` of itself, so a hunted-out kind is rare and never gone -
+  and the act's turn forgets it. Counted where the over-hunting tally already
+  counts, so a savage and a mercy kill do not cull. Run-scoped, host only, and
+  it moves no roll: the draw is the same one draw over different weights.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
