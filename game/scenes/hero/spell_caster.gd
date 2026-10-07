@@ -41,7 +41,8 @@ signal ward_requested(share: float)
 ## A spell resolved, for feedback and the HUD.
 signal spell_cast(slot: int, spell_id: String, at: Vector2)
 
-## A slot's cooldown changed, 0..1 remaining.
+## A slot's cooldown was cleared or ran out: said at 0, never on every tick -
+## a reader that wants the sweep polls `cooldown_ratio`.
 signal cooldown_changed(slot: int, ratio: float)
 
 var field: EnemyField = null
@@ -113,7 +114,14 @@ func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 		if _cooldowns[i] <= 0.0:
 			continue
 		_cooldowns[i] = maxf(_cooldowns[i] - delta, 0.0)
-		cooldown_changed.emit(i, cooldown_ratio(i))
+		# **Said when a slot comes ready, not on every tick** (2026-10-07). The
+		# bar polls `cooldown_ratio` itself, and this emitted for every cooling
+		# slot on every physics tick - each working out the whole effective
+		# cooldown, the Sanctum, gear-backed Focus and the tree's upgrades - for
+		# a signal nothing heard: about 720 a second at 180 Hz with four slots
+		# cooling, measured as half the Warden's combat tick at Act X.
+		if _cooldowns[i] <= 0.0:
+			cooldown_changed.emit(i, 0.0)
 
 	_chain_left = maxf(_chain_left - delta, 0.0)
 	if _ward_left > 0.0:

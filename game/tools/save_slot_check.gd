@@ -67,6 +67,8 @@ func _ready() -> void:
 	_test_erasing_one_leaves_the_others()
 	_test_the_backup_rule_holds_per_slot()
 	_test_no_shipping_path_skips_the_derivation()
+	_test_a_save_in_a_fight_lands_off_the_frame()
+	_test_every_door_on_the_file_waits_for_the_writer()
 
 	MetaState.hold_saves()
 	_close_the_fixture()
@@ -499,6 +501,102 @@ func _test_no_shipping_path_skips_the_derivation() -> void:
 ## Moves the whole naming scheme - saves, backups and the pointer - into a
 ## directory under the repository. `res://` keeps a headless gate inside the
 ## sandbox and can never alias a real `user://` slot.
+## **A save in a fight is written off the frame, and still lands** (2026-10-07).
+## Several in a row, as a pickup, a level and a first sighting in one frame are:
+## each leaves the frame, the file only ever moves forward, and what is on the
+## disk once the writer is done is the newest of them.
+func _test_a_save_in_a_fight_lands_off_the_frame() -> void:
+	RunState.set_phase(RunState.Phase.ENDED)
+	_be_slot(0)
+	_write_a_warden("Calder", 5, 50)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	# Headless writes on the frame unless a gate asks - so no other gate in the
+	# project measures a save that has not landed yet.
+	MetaState.marks = 51
+	MetaState.save_game()
+	_check(int(MetaState.get("_writer")) == -1,
+		"a headless save in a fight left the frame without being asked to")
+	MetaState.writes_off_frame_in_tests = true
+	for coin: int in [61, 62, 63, 64]:
+		MetaState.marks = coin
+		MetaState.save_game()
+	_check(int(MetaState.get("_writer")) != -1,
+		"a save in a fight was written on the frame - the disk is back in the hitch")
+	MetaState.finish_writes()
+	_check(int(MetaState.get("_writer")) == -1 and String(MetaState.get("_queued_path")).is_empty(),
+		"finish_writes returned with a write still on its way")
+	var landed: Dictionary = MetaState.parse_save_text(
+		MetaState.read_committed_text(MetaState.slot_path(0)))
+	var hero_marks: int = int((landed.get("stash", {}) as Dictionary).get("marks", -1))
+	_check(hero_marks == 64,
+		"the disk holds %d Marks after four saves in a fight - the newest was 64" % hero_marks)
+	# Out of the fight it is written on the frame again, as it always was.
+	RunState.set_phase(RunState.Phase.ENDED)
+	MetaState.marks = 65
+	MetaState.save_game()
+	_check(int(MetaState.get("_writer")) == -1,
+		"a save outside a fight left the frame")
+	MetaState.writes_off_frame_in_tests = false
+
+
+## **Every door that reads, deletes or replaces the file waits for the writer.**
+## Each is driven with a write queued, and must return with nothing on its way:
+## a load that did not wait reads an older account, a hold that did not wait
+## lets the real state land under a gate's scratch one, and a burial that did not
+## wait is a deleted slot the writer brings back from the dead.
+func _test_every_door_on_the_file_waits_for_the_writer() -> void:
+	RunState.set_phase(RunState.Phase.ENDED)
+	_be_slot(0)
+	_write_a_warden("Dunmore", 6, 70)
+	MetaState.writes_off_frame_in_tests = true
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+
+	MetaState.marks = 71
+	MetaState.save_game()
+	MetaState.marks = 0
+	MetaState.load_save()
+	_check(_writer_idle(), "a load returned with a write still on its way")
+	_check(MetaState.marks == 71,
+		"a load read %d Marks over a save of 71 still on its way" % MetaState.marks)
+
+	MetaState.marks = 72
+	MetaState.save_game()
+	MetaState.hold_saves()
+	_check(_writer_idle(), "a hold returned with a write still on its way")
+	MetaState.resume_saves()
+
+	RunState.set_phase(RunState.Phase.ENDED)
+	_check(MetaState.use_slot(1), "the harness could not reach slot 1")
+	_write_a_warden("Ember", 3, 30)
+	MetaState.hardcore = true
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	MetaState.marks = 31
+	MetaState.save_game()
+	_check(MetaState.bury_hardcore("the gate"), "the harness could not bury slot 1")
+	_check(_writer_idle(), "a burial returned with a write still on its way")
+	_check(not FileAccess.file_exists(MetaState.slot_path(1)),
+		"a buried slot came back from the dead: the write on its way landed after the burial")
+	MetaState.writes_off_frame_in_tests = false
+	RunState.set_phase(RunState.Phase.ENDED)
+	_be_slot(0)
+
+	# And the doors not driven here, read off the source: an omission is what
+	# a source walk sees.
+	var source: String = FileAccess.get_file_as_string("res://autoload/MetaState.gd")
+	for door: String in ["func load_save()", "func hold_saves()", "func bury_hardcore(",
+			"func erase_slot(", "func slot_summary(", "func _notification("]:
+		var at: int = source.find(door)
+		var end: int = source.find("
+func ", at + 1)
+		var body: String = source.substr(at, (end if end != -1 else source.length()) - at)
+		_check(at != -1 and body.contains("finish_writes()"),
+			"%s touches the save without waiting for the writer" % door)
+
+
+func _writer_idle() -> bool:
+	return int(MetaState.get("_writer")) == -1 and String(MetaState.get("_queued_path")).is_empty()
+
+
 func _open_the_fixture() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(FIXTURE_DIR))
 	MetaState.slot_root = FIXTURE_BASE

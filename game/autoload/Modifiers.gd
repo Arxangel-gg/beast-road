@@ -163,7 +163,7 @@ const WARDEN_KEYS: Array[String] = [
 
 
 func _ready() -> void:
-	EventBus.stash_changed.connect(rebuild)
+	EventBus.stash_changed.connect(_on_stash_changed)
 	# A worn piece's wear crossing a band halves or ends its affixes, gems and
 	# set membership (2026-10-07), so the table is laid again.
 	EventBus.gear_wear_changed.connect(func(_slot: int, _band: int) -> void: rebuild())
@@ -264,6 +264,7 @@ func rebuild() -> void:
 	# this machine's own (see `_own_totals`). Added in the order it always was,
 	# so the sum a solo road reads is the sum it always read.
 	var worn: Array[Dictionary] = MetaState.worn_pieces()
+	_worn_hash = worn.hash()
 	_own_totals = own_cards
 	_add_gear(_totals, worn)
 	_add_gear(_own_totals, worn)
@@ -277,6 +278,21 @@ func rebuild() -> void:
 	_add_speed_toll()
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
+
+
+## **A stash that moved without what is worn moving lays nothing**
+## (2026-10-07). The table reads the worn pieces and nothing else of the
+## stash, and a piece picked up at Act X's peak was a whole rebuild - over a
+## millisecond - on the frame it landed, for a table that came out the same.
+## What is worn is compared whole, wear and gems included, so a mend, an
+## equip or a gem set still lays it again.
+func _on_stash_changed() -> void:
+	if MetaState.worn_pieces().hash() == _worn_hash:
+		return
+	rebuild()
+
+
+var _worn_hash: int = 0
 
 
 ## **What a list of worn pieces puts in the table**: their legendary affixes and

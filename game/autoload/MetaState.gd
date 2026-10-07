@@ -1469,6 +1469,8 @@ func earn_next_roster_tower() -> String:
 
 
 func _ready() -> void:
+	# Woken only while a write is on the disk (`_start_writer`).
+	set_process(false)
 	# **Which Warden, before anything is read.** A missing or malformed pointer
 	# is slot 0, so a player who has never seen this feature reads the historic
 	# file on this launch exactly as they did on the last one.
@@ -2228,6 +2230,8 @@ var _saves_held: int = 0
 
 ## Stops this state from reaching the disk until `resume_saves` is called.
 func hold_saves() -> void:
+	# What was asked for before the hold is the real account: it lands first.
+	finish_writes()
 	_saves_held += 1
 
 
@@ -2439,6 +2443,7 @@ func slot_summary(index: int) -> Dictionary:
 		out["ascension"] = ascension
 		out["hardcore"] = hardcore
 		return out
+	finish_writes()
 	var data: Dictionary = parse_save_text(read_committed_text(path))
 	if data.is_empty():
 		return out
@@ -2501,6 +2506,8 @@ func hardcore_road_home() -> void:
 func bury_hardcore(why: String) -> bool:
 	if not hardcore or _saves_held > 0:
 		return false
+	# A write still on its way would bring the buried slot back from the dead.
+	finish_writes()
 	var index: int = _slot
 	_adopt_new_account()
 	# The tail of `_ready`: a slot begun again is a new account and gets what a
@@ -2541,6 +2548,7 @@ func erase_slot(index: int) -> bool:
 		return false
 	if _saves_held > 0:
 		return false
+	finish_writes()
 	var path: String = slot_path(index)
 	for doomed: String in [path, path + SAVE_TEMP_SUFFIX]:
 		if FileAccess.file_exists(doomed):
@@ -2555,10 +2563,106 @@ func save_game() -> void:
 	# `slot_path` and nothing else: the one derivation, so a Warden cannot be
 	# written to a file another Warden is read from.
 	var path: String = slot_path(_slot)
-	if not write_text_atomically(path, serialized_save()):
+	var text: String = serialized_save()
+	if _writes_off_the_frame():
+		_queue_write(path, text)
+		save_written.emit()
+		return
+	finish_writes()
+	if not write_text_atomically(path, text):
 		push_warning("MetaState: could not write the save: %s" % path)
 		return
 	save_written.emit()
+
+
+## **During a fight the write leaves the frame** (2026-10-07). A save is the
+## text and then the disk, and at Act X's peak with a full stash the disk was
+## over a millisecond and a half of a frame that had none to spare - a piece
+## picked up, a level, a first sighting, each one a hitch. The text is still
+## made here, on the frame, because it reads the account; what goes to a worker
+## is the write of that finished text, through the same atomic door.
+##
+## **One write at a time, and the newest wins**: a save asked for while one is
+## on the disk waits as the next, and a later one replaces it, so the file can
+## only ever move forward. **And every door that reads, deletes or replaces the
+## file waits first** (`finish_writes`): a load, a slot switch, an erase, a
+## burial, a hold and the game closing. Outside a fight, and headless unless a
+## gate asks, a save is written on the frame exactly as it always was.
+func _writes_off_the_frame() -> bool:
+	if DisplayServer.get_name() == "headless" and not writes_off_frame_in_tests:
+		return false
+	return RunState.is_command_combat()
+
+
+## Set by the gate that holds the writer; nothing else ever sets it.
+var writes_off_frame_in_tests: bool = false
+var _writer: int = -1
+var _writer_failed: String = ""
+var _queued_path: String = ""
+var _queued_text: String = ""
+
+
+func _queue_write(path: String, text: String) -> void:
+	_queued_path = path
+	_queued_text = text
+	if _writer == -1:
+		_start_writer()
+
+
+func _start_writer() -> void:
+	var path: String = _queued_path
+	var text: String = _queued_text
+	_queued_path = ""
+	_queued_text = ""
+	_writer = WorkerThreadPool.add_task(_write_off_frame.bind(path, text), false, "save")
+	set_process(true)
+
+
+func _write_off_frame(path: String, text: String) -> void:
+	if not write_text_atomically(path, text):
+		_writer_failed = path
+
+
+func _process(_delta: float) -> void:
+	if _writer == -1:
+		set_process(false)
+		return
+	if not WorkerThreadPool.is_task_completed(_writer):
+		return
+	_settle_writer()
+	if not _queued_path.is_empty():
+		_start_writer()
+
+
+func _settle_writer() -> void:
+	WorkerThreadPool.wait_for_task_completion(_writer)
+	_writer = -1
+	if not _writer_failed.is_empty():
+		push_warning("MetaState: could not write the save: %s" % _writer_failed)
+		_writer_failed = ""
+
+
+## **Everything asked for is on the disk when this returns.** Called by every
+## door that reads, deletes or replaces the save, and by the game closing.
+func finish_writes() -> void:
+	if _writer != -1:
+		_settle_writer()
+	if _queued_path.is_empty():
+		return
+	var path: String = _queued_path
+	var text: String = _queued_text
+	_queued_path = ""
+	_queued_text = ""
+	if not write_text_atomically(path, text):
+		push_warning("MetaState: could not write the save: %s" % path)
+
+
+## Waiting at every way the game can stop: closed, ended, freed, or - on a
+## phone - paused, after which the system may end it without another word.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_EXIT_TREE \
+			or what == NOTIFICATION_PREDELETE or what == NOTIFICATION_APPLICATION_PAUSED:
+		finish_writes()
 
 
 ## Writes `text` to `path` without ever leaving a half-written file there.
@@ -2781,6 +2885,7 @@ func serialized_save() -> String:
 
 
 func load_save() -> void:
+	finish_writes()
 	var path: String = slot_path(_slot)
 	var text: String = read_committed_text(path)
 	if text.is_empty():

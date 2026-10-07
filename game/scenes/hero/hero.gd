@@ -635,7 +635,13 @@ func _physics_process_measured(delta: float) -> void:
 				and input.pressed(HeroInput.spell_button(slot)):
 			spells.try_cast(slot, _aim, combat_origin())
 
-	attack.damage_multiplier = damage_multiplier()
+	# Once a frame rather than once a tick (2026-10-07): the multiplier reads
+	# the gear, the tree and every buff, and three ticks of one frame at
+	# 180 Hz cannot disagree about any of them. A swing reads it as it lands.
+	var tick_frame: int = Engine.get_process_frames()
+	if tick_frame != _multiplier_frame:
+		_multiplier_frame = tick_frame
+		attack.damage_multiplier = damage_multiplier()
 	attack.own_stash = is_local_player()
 	attack.partner_weapon = gear_kinds[0]
 	if combat_input:
@@ -2128,6 +2134,23 @@ func _dress_warden() -> void:
 ## own from the stash, a partner's from their sheet. Null with none - and with
 ## a two-handed or paired weapon, which leaves no hand for one.
 func _shield_piece() -> Dictionary:
+	# **Once a frame, not once a tick** (2026-10-07): the guard asks this on
+	# every physics tick, three a frame at 180 Hz, and each walked every worn
+	# piece. What is worn cannot change between two ticks of one frame.
+	var frame: int = Engine.get_process_frames()
+	if frame == _shield_frame:
+		return _shield_memo
+	_shield_frame = frame
+	_shield_memo = _find_shield_piece()
+	return _shield_memo
+
+
+var _shield_frame: int = -1
+var _multiplier_frame: int = -1
+var _shield_memo: Dictionary = {}
+
+
+func _find_shield_piece() -> Dictionary:
 	var pieces: Array[Dictionary] = sheet.worn if sheet != null else MetaState.worn_pieces()
 	var shield: Dictionary = {}
 	var free_hand: bool = true
