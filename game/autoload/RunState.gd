@@ -1548,6 +1548,7 @@ func clear_tower(anchor: Vector2i, broken_at: Vector2 = Vector2.ZERO) -> void:
 	if not towers.has(anchor):
 		return
 	towers.erase(anchor)
+	tower_owners.erase(anchor)
 	# Before `tower_changed` and synchronously, so a listener reading the pair
 	# sees the reason before it sees the consequence.
 	if broken_at != Vector2.ZERO:

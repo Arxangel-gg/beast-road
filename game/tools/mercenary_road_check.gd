@@ -50,9 +50,10 @@ func _ready() -> void:
 	_test_the_road_counts_it()
 	await _test_it_fights()
 	_test_the_spoils()
+	_test_it_builds()
 	await _test_the_wounds()
 	_test_the_cut()
-	for stage: String in ["muster", "seats", "count", "fight", "spoils", "wounds", "cut"]:
+	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "wounds", "cut"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -174,6 +175,45 @@ func _test_the_spoils() -> void:
 		"a mercenary's 40 at par did not come out of its purse")
 	_check(RunState.currency(RunState.GOLD) == gold, "a mercenary's purchase touched the Warden's wallet")
 	_reached.append("spoils")
+
+
+## **It builds from its own purse** through the field's payer doors: a tower is
+## its own, the Warden's wallet is never touched, the price comes out at par,
+## selling it pays the purse back, and it cannot raise somebody else's tower.
+func _test_it_builds() -> void:
+	var bodies: Array[Hero] = _field.company.bodies()
+	if bodies.is_empty():
+		return
+	var uid: String = bodies[0].mercenary_uid
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var row: Dictionary = RunState.company_row(uid)
+	row["purse"] = 6000
+	var wallet: Dictionary = RunState.currencies.duplicate()
+	var bought: Array[String] = _field.company.spend(uid)
+	_check(not bought.is_empty(), "a mercenary with a full purse bought nothing")
+	_check(RunState.currencies == wallet, "a mercenary's shopping moved the Warden's wallet")
+	var owned: Array[Vector2i] = []
+	for key: Variant in RunState.tower_owners:
+		if String(RunState.tower_owners[key]) == uid:
+			owned.append(key)
+	_check(not owned.is_empty(), "a mercenary's tower is not its own")
+	_check(int(row["purse"]) < 6000, "a mercenary's purchase came out of nothing")
+	# Nobody else's tower is its to raise.
+	RunState.gain_every_currency(5000)
+	var mine: Vector2i = _field.free_anchor_near(2, 4)
+	var built: String = _field.try_build(mine, ContentDB.unlocked_base_towers()[0])
+	_check(built.is_empty(), "the Warden could not build the tower the refusal is asked about: %s" % built)
+	row["purse"] = 6000
+	_check(not _field.upgrade_for(uid, mine).is_empty(), "a mercenary raised the Warden's tower")
+	# Selling its tower pays its purse, never the Warden's wallet.
+	if not owned.is_empty():
+		var before_purse: int = int(row["purse"])
+		var before_wallet: Dictionary = RunState.currencies.duplicate()
+		_check(_field.try_sell(owned[0]).is_empty(), "a mercenary's tower could not be sold")
+		_check(int(row["purse"]) > before_purse, "selling a mercenary's tower paid its purse nothing")
+		_check(RunState.currencies == before_wallet, "selling a mercenary's tower filled the Warden's wallet")
+		_check(not RunState.tower_owners.has(owned[0]), "a sold tower kept its owner")
+	_reached.append("build")
 
 
 func _test_the_wounds() -> void:

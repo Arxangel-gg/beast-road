@@ -2047,16 +2047,19 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 		return "%d wells is all a road can draw from." % Balance.WELL_LIMIT_PER_PLAYER
 
 	var build_cost: Dictionary = cost_of(tower_data)
-	if not RunState.can_afford_cost(build_cost):
+	if not _can_pay(build_cost):
 		return "Needs %s." % RunState.format_cost(build_cost)
-	RunState.spend_cost(build_cost)
+	_pay(build_cost)
 	# Said *before* the tower is set, because setting it is what makes the node:
 	# `RunState.set_tower` reaches `_sync_towers` on this same frame, so a flag
 	# raised afterwards is raised after the thing it was meant to reach.
 	_fresh_build = anchor
 	RunState.set_tower(anchor, tower_data.id, 1)
 	RunState.towers_built += 1
-	_note_purchase("tower", anchor, build_cost)
+	if _payer.is_empty():
+		_note_purchase("tower", anchor, build_cost)
+	else:
+		RunState.tower_owners[anchor] = _payer
 	Vfx.build_burst(BattleGrid.footprint_centre(anchor),
 		TowerData.element_colour(tower_data.element))
 	return ""
@@ -2087,12 +2090,13 @@ func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
 	if RunState.traps.has(tile):
 		return "Something is already laid here."
 	var cost: Dictionary = trap_data.cost
-	if not RunState.can_afford_cost(cost):
+	if not _can_pay(cost):
 		return "Needs %s." % RunState.format_cost(cost)
-	RunState.spend_cost(cost)
+	_pay(cost)
 	RunState.set_trap(tile, trap_data.id, trap_data.triggers)
 	RunState.traps_laid += 1
-	_note_purchase("trap", tile, cost)
+	if _payer.is_empty():
+		_note_purchase("trap", tile, cost)
 	Vfx.build_burst(BattleGrid.tile_to_world(tile), trap_data.colour)
 	return ""
 
@@ -2127,9 +2131,9 @@ func try_upgrade_trap(tile: Vector2i) -> String:
 	if RunState.trap_level(tile) >= Balance.TRAP_MAX_LEVEL:
 		return "%s is already at its last level." % kind.display_name
 	var cost: Dictionary = trap_upgrade_cost(tile)
-	if not RunState.can_afford_cost(cost):
+	if not _can_pay(cost):
 		return "Needs %s." % RunState.format_cost(cost)
-	RunState.spend_cost(cost)
+	_pay(cost)
 	if not RunState.upgrade_trap(tile):
 		return "Nothing is laid here."
 	Vfx.build_burst(BattleGrid.tile_to_world(tile), kind.colour)
@@ -2305,9 +2309,9 @@ func try_upgrade(anchor: Vector2i) -> String:
 	if level >= RunState.tower_level_cap():
 		return "Upgrade the Forge to unlock tower level %d." % (level + 1)
 	var cost: int = upgrade_cost_of(level)
-	if not RunState.can_afford_cost({RunState.GOLD: cost}):
+	if not _can_pay({RunState.GOLD: cost}):
 		return "Needs %d Gold." % cost
-	RunState.spend_cost({RunState.GOLD: cost})
+	_pay({RunState.GOLD: cost})
 	RunState.set_tower(anchor, tower_data.id, level + 1)
 	RunState.tower_upgrades += 1
 	return ""
@@ -2378,6 +2382,52 @@ func sell_refund(anchor: Vector2i) -> int:
 var _last_purchase: Dictionary = {}
 
 
+## **Who pays** (2026-10-07): empty is the Warden's wallet; a mercenary's uid is
+## that mercenary's purse, at par. Set only for the length of one purchase by
+## `build_for`, `upgrade_for` and `trap_for` - so every rule a purchase obeys
+## (Preparation only, the placement, the Forge, the fusion offer, the wells) is
+## the same rule for the company, and only the purse differs.
+var _payer: String = ""
+
+
+func _can_pay(cost: Dictionary) -> bool:
+	return RunState.can_afford_cost(cost) if _payer.is_empty() \
+		else RunState.mercenary_can_afford(_payer, cost)
+
+
+func _pay(cost: Dictionary) -> void:
+	if _payer.is_empty():
+		RunState.spend_cost(cost)
+	else:
+		RunState.mercenary_spend(_payer, cost)
+
+
+## A mercenary builds a tower from its own purse.
+func build_for(uid: String, anchor: Vector2i, tower_data: TowerData) -> String:
+	_payer = uid
+	var said: String = try_build(anchor, tower_data)
+	_payer = ""
+	return said
+
+
+## A mercenary raises one of its own towers.
+func upgrade_for(uid: String, anchor: Vector2i) -> String:
+	if String(RunState.tower_owners.get(anchor, "")) != uid:
+		return "Not its tower."
+	_payer = uid
+	var said: String = try_upgrade(anchor)
+	_payer = ""
+	return said
+
+
+## A mercenary lays a trap from its own purse.
+func trap_for(uid: String, tile: Vector2i, trap_data: TrapData) -> String:
+	_payer = uid
+	var said: String = try_place_trap(tile, trap_data)
+	_payer = ""
+	return said
+
+
 func _note_purchase(kind: String, at: Vector2i, cost: Dictionary) -> void:
 	_last_purchase = {"kind": kind, "at": at, "cost": cost.duplicate(),
 		"time": Time.get_ticks_msec() / 1000.0}
@@ -2421,6 +2471,19 @@ func try_sell(anchor: Vector2i) -> String:
 	var tower_data: TowerData = RunState.tower_at(anchor)
 	if tower_data == null:
 		return "Nothing built there."
+	# **A mercenary's tower is the mercenary's** (2026-10-07): it was paid from
+	# its purse, so selling it gives the purse back its share and never fills the
+	# Warden's wallet with Gold the company earned.
+	var owner: String = String(RunState.tower_owners.get(anchor, ""))
+	if not owner.is_empty() and not RunState.company_row(owner).is_empty():
+		var paid: int = build_cost_of(tower_data)
+		for l: int in range(1, RunState.level_at(anchor)):
+			paid += upgrade_cost_of(l)
+		RunState.mercenary_refund(owner, int(round(float(paid) * Balance.TOWER_SELL_REFUND)))
+		RunState.towers_sold += 1
+		RunState.clear_tower(anchor)
+		_refund_orphaned_fusions()
+		return ""
 	var level: int = RunState.level_at(anchor)
 	var spent: int = build_cost_of(tower_data)
 	for l: int in range(1, level):

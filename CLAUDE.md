@@ -14392,6 +14392,30 @@ Warden swings only in a fight's phase, so a gate measuring a swing in
 Preparation reads an AI that never fights; and a respawn is invulnerable on
 `is_invulnerable`, which `accepts_damage` does not cover.
 
+**Mercenaries, stage three: they build, as of 2026-10-07.** A moment into each
+breather (`MERC_BUILD_DELAY`) every mercenary on its feet makes a couple of
+purchases from its own purse: it raises its weakest tower, else builds the
+dearest tower the Warden has unlocked that its purse pays for on its own road,
+else lays a trap on the road nearest it.
+
+**One rule set, two purses.** `Battlefield.build_for`, `upgrade_for` and
+`trap_for` set a payer for the length of one purchase and call the ordinary
+`try_build`, `try_upgrade` and `try_place_trap` - so Preparation-only, the
+placement, the Forge's cap, the fusion offer and the wells bind the company
+exactly as they bind the Warden, and only `_can_pay`/`_pay` differ. A
+mercenary's tower is its own (`RunState.tower_owners`): it raises nobody else's,
+the Warden's undo never sees its purchases, and **selling one pays its purse**,
+never the Warden's wallet, so Gold the company earned cannot be laundered into
+the player's by a sale.
+
+`mercenary_road_check` grew the build test - bought, its own, the wallet
+untouched, at par, a sale paying the purse, refused on the Warden's tower - and
+three plants were named. **The ownership plant first passed through it**: the
+gate's own tower was never built, because the wallet it was bought from was
+empty, so "it cannot raise this tower" was true of no tower at all. The harness
+funds and asserts the build now - a refusal is only evidence when the thing it
+refuses exists.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

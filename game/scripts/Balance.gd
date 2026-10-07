@@ -11565,6 +11565,12 @@ const MERC_LEASH: float = 170.0
 const MERC_RETREAT_SHARE: float = 0.25
 const MERC_RECOVER_SHARE: float = 0.6
 const MERC_CARRY_SECONDS: float = 2.0
+## **A mercenary builds** in each breather: how long into Preparation it waits,
+## how many purchases it makes, and how many rings of tiles it searches for a
+## road tile to lay a trap on. [TUNE]
+const MERC_BUILD_DELAY: float = 2.5
+const MERC_BUILDS_PER_BREATHER: int = 2
+const MERC_TRAP_SEARCH: int = 8
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12
