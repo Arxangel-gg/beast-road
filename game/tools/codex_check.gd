@@ -348,6 +348,9 @@ func _test_bonded_only(screen: CodexScreen, spirits: int) -> void:
 	MetaState.spirit_bonded[SpiritBond.variants_of(second.id)[0]] = true
 	screen.call("_refresh")
 	await get_tree().process_frame
+	# Stepped on purpose: the pictures are mid-loop, as they are whenever a slow
+	# frame lands between a refresh and a read.
+	screen.call("_process", 1.0)
 	_check(_count_rows(screen) == 2,
 		"two bonded species must draw two rows, drew %d" % _count_rows(screen))
 	# **The frame says the rarity of the best bond** (owner, 2026-10-06). The
@@ -401,11 +404,17 @@ func _test_bonded_only(screen: CodexScreen, spirits: int) -> void:
 
 ## How many rows a tab draws.
 ## The picture on a species' row, found by the art it draws.
+## **Any frame of its loop, not only the painting.** The codex steps every
+## picture through its idle a few times a second, so a check that looked for
+## the base painting found nothing whenever a step landed between the refresh
+## and the read - a slow runner's frame - and read the book's own frame. It
+## failed v0.75.0's release once the first species alphabetically was animated.
 func _species_art(screen: CodexScreen, kind: WildlifeData) -> TextureRect:
 	var path: String = kind.get_sprite_path()
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
 	for node: Node in (screen.get("_rows") as Node).find_children("*", "TextureRect", true, false):
 		var art := node as TextureRect
-		if art != null and art.texture != null and art.texture == load(path):
+		if art != null and art.texture != null and (art.texture == load(path) or frames.has(art.texture)):
 			return art
 	return null
 
