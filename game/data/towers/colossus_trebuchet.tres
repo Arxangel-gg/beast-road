@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Keystone", "Rockfall", "Bastion"])
+shot = 1
+ambient = 5
+juice_scale = 1.4
+element = 2
+role = 1
+is_combination = true
+parent_a = 2
+parent_b = 2
+fuses_long_arms = true
+damage = 110.0
+attack_interval = 3.4
+attack_range = 800.0
+aoe_radius = 170.0
+min_range = 280.0
+knockback = 200.0
+id = "colossus_trebuchet"
+display_name = "Colossus Trebuchet"
+description = "The longest arm on the road throws a block of masonry that scatters what it lands among. Slow, and blind close in."

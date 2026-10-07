@@ -1448,7 +1448,8 @@ func set_tower_path(anchor: Vector2i, path: int) -> bool:
 	# asserting the constants.
 	if int(entry.get("level", 1)) < Balance.TOWER_SPECIALISE_LEVEL:
 		return false
-	if path != TowerData.Path.FOCUS and path != TowerData.Path.SPREAD:
+	if path != TowerData.Path.FOCUS and path != TowerData.Path.SPREAD \
+			and path != TowerData.Path.BULWARK:
 		return false
 	entry["path"] = path
 	towers[anchor] = entry
@@ -1634,11 +1635,13 @@ func combinations_for_tile(anchor: Vector2i) -> Array[Dictionary]:
 		# A fusion parent may not itself be a fusion.
 		if left.is_combination or right.is_combination:
 			continue
-		var made: TowerData = ContentDB.combination_for(left.element, right.element)
-		if made == null or seen.has(made.id):
-			continue
-		seen[made.id] = true
-		offered.append({"tower": made, "a": a, "b": b})
+		# Every combination this pair makes: its elemental fusion, and its
+		# battery when both are long arms (2026-10-07). The player chooses.
+		for made: TowerData in ContentDB.combinations:
+			if not made.fuses_from(left, right) or seen.has(made.id):
+				continue
+			seen[made.id] = true
+			offered.append({"tower": made, "a": a, "b": b})
 	return offered
 
 

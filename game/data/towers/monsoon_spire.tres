@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Downpour", "Monsoon", "Floodwall"])
+shot = 2
+ambient = 3
+juice_scale = 1.4
+element = 1
+role = 2
+is_combination = true
+parent_a = 1
+parent_b = 3
+fuses_long_arms = true
+damage = 70.0
+attack_interval = 2.0
+attack_range = 740.0
+extra_targets = 3
+slow_factor = 0.7
+slow_duration = 1.5
+id = "monsoon_spire"
+display_name = "Monsoon Spire"
+description = "A lance of storm water that runs through four bodies and leaves them all slow."

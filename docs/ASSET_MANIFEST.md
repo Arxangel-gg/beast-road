@@ -894,6 +894,16 @@ Files: `tower_steam_burst_idle_01.png` … `tower_steam_burst_idle_03.png`
 Files: `tower_stonewatch_idle_01.png` … `tower_stonewatch_idle_03.png`
 Files: `tower_stormvane_idle_01.png` … `tower_stormvane_idle_03.png`
 Files: `tower_tempest_idle_01.png` … `tower_tempest_idle_03.png`
+Files: `tower_sunfall_battery_idle_01.png` … `tower_sunfall_battery_idle_03.png`
+Files: `tower_geyser_mortar_idle_01.png` … `tower_geyser_mortar_idle_03.png`
+Files: `tower_magma_catapult_idle_01.png` … `tower_magma_catapult_idle_03.png`
+Files: `tower_comet_ballista_idle_01.png` … `tower_comet_ballista_idle_03.png`
+Files: `tower_hailstorm_battery_idle_01.png` … `tower_hailstorm_battery_idle_03.png`
+Files: `tower_mudslide_catapult_idle_01.png` … `tower_mudslide_catapult_idle_03.png`
+Files: `tower_monsoon_spire_idle_01.png` … `tower_monsoon_spire_idle_03.png`
+Files: `tower_colossus_trebuchet_idle_01.png` … `tower_colossus_trebuchet_idle_03.png`
+Files: `tower_sandstorm_bombard_idle_01.png` … `tower_sandstorm_bombard_idle_03.png`
+Files: `tower_thunderhead_spire_idle_01.png` … `tower_thunderhead_spire_idle_03.png`
 Files: `tower_tide_caller_idle_01.png` … `tower_tide_caller_idle_03.png`
 Files: `tower_zephyr_needle_idle_01.png` … `tower_zephyr_needle_idle_03.png`
 Files: `tower_cinder_moat_idle_01.png` … `tower_cinder_moat_idle_03.png`
@@ -1019,6 +1029,16 @@ Files: `tower_steam_burst_attack_01.png` … `tower_steam_burst_attack_03.png`
 Files: `tower_stonewatch_attack_01.png` … `tower_stonewatch_attack_03.png`
 Files: `tower_stormvane_attack_01.png` … `tower_stormvane_attack_03.png`
 Files: `tower_tempest_attack_01.png` … `tower_tempest_attack_03.png`
+Files: `tower_sunfall_battery_attack_01.png` … `tower_sunfall_battery_attack_03.png`
+Files: `tower_geyser_mortar_attack_01.png` … `tower_geyser_mortar_attack_03.png`
+Files: `tower_magma_catapult_attack_01.png` … `tower_magma_catapult_attack_03.png`
+Files: `tower_comet_ballista_attack_01.png` … `tower_comet_ballista_attack_03.png`
+Files: `tower_hailstorm_battery_attack_01.png` … `tower_hailstorm_battery_attack_03.png`
+Files: `tower_mudslide_catapult_attack_01.png` … `tower_mudslide_catapult_attack_03.png`
+Files: `tower_monsoon_spire_attack_01.png` … `tower_monsoon_spire_attack_03.png`
+Files: `tower_colossus_trebuchet_attack_01.png` … `tower_colossus_trebuchet_attack_03.png`
+Files: `tower_sandstorm_bombard_attack_01.png` … `tower_sandstorm_bombard_attack_03.png`
+Files: `tower_thunderhead_spire_attack_01.png` … `tower_thunderhead_spire_attack_03.png`
 Files: `tower_tide_caller_attack_01.png` … `tower_tide_caller_attack_03.png`
 Files: `tower_zephyr_needle_attack_01.png` … `tower_zephyr_needle_attack_03.png`
 
@@ -2722,6 +2742,16 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `tower_deep_freeze.png` | Water + Water | `#6FA8CF` |
 | `tower_bastion.png` | Earth + Earth | `#6E6350` |
 | `tower_tempest.png` | Air + Air | `#A79BD8` |
+| `tower_sunfall_battery.png` | Fire + Fire | `#D14A22` |
+| `tower_geyser_mortar.png` | Fire + Water | `#A17E77` |
+| `tower_magma_catapult.png` | Fire + Earth | `#9E6244` |
+| `tower_comet_ballista.png` | Fire + Air | `#B0729B` |
+| `tower_hailstorm_battery.png` | Water + Water | `#6FA8CF` |
+| `tower_mudslide_catapult.png` | Water + Earth | `#7C8A8E` |
+| `tower_monsoon_spire.png` | Water + Air | `#8B9BC2` |
+| `tower_colossus_trebuchet.png` | Earth + Earth | `#6E6350` |
+| `tower_sandstorm_bombard.png` | Earth + Air | `#8A7F90` |
+| `tower_thunderhead_spire.png` | Air + Air | `#A79BD8` |
 
 ### 5.15 Battlefield — `res://art/battlefield/`
 

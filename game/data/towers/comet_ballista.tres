@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Comet", "Meteor Train", "Starwall"])
+shot = 2
+ambient = 1
+juice_scale = 1.4
+element = 0
+role = 2
+is_combination = true
+parent_a = 0
+parent_b = 3
+fuses_long_arms = true
+damage = 90.0
+attack_interval = 2.4
+attack_range = 760.0
+extra_targets = 2
+burn_dps = 8.0
+burn_duration = 2.5
+id = "comet_ballista"
+display_name = "Comet Ballista"
+description = "A burning bolt thrown along the wind: the furthest body first, and the two behind it burn."

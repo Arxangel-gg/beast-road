@@ -12739,6 +12739,18 @@ const TOWER_CAPSTONE_FOCUS_RANGE: float = 0.30
 const TOWER_CAPSTONE_SPREAD_TARGETS: int = 2
 const TOWER_CAPSTONE_SPREAD_AOE: float = 0.35
 
+## **Bulwark: health, armour, and softer blows** (2026-10-07). The third path
+## answers siege orders rather than the wave: a tower that stands. Every number
+## is one a tower already has - `max_hp`, the `flat_damage_reduction` a taunting
+## tower wears, and its damage - so the path bound holds, and the price is the
+## damage the other two paths raise. Armour is flat and meets the 20% floor every
+## blow already has, so a Bulwark is never immune. [TUNE]
+const TOWER_BULWARK_HEALTH: float = 0.70
+const TOWER_BULWARK_ARMOUR: float = 4.0
+const TOWER_BULWARK_DAMAGE: float = -0.10
+const TOWER_CAPSTONE_BULWARK_HEALTH: float = 0.50
+const TOWER_CAPSTONE_BULWARK_ARMOUR: float = 4.0
+
 
 # --- An act boss fights (2026-09-13) -------------------------------------------------------
 ## **A boss that only has contact damage is a slow wall.**

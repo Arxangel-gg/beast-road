@@ -234,7 +234,12 @@ func _ready() -> void:
 ## Recomputed whenever the lane's contents or the terrain change, rather than
 ## every frame — these only move when the player builds something.
 func refresh_modifiers() -> void:
+	var was: int = _path
 	_path = RunState.tower_path(anchor)
+	# A Bulwark is taller in health than the tower it was, and only the path
+	# says so - the level has not moved.
+	if _path != was:
+		_refresh_health_for_level()
 	_damage_bonus = 0.0
 	_weather_scale = 1.0
 	_extra_chain_targets = 0
@@ -262,7 +267,8 @@ func refresh_modifiers() -> void:
 		# A taunting tower - the Bastion and its kin - is built to be hit, and
 		# wears armour for it (owner brief, 2026-09-14).
 		_health.flat_damage_reduction = _field.lane_armour(lane()) \
-			+ (Balance.TAUNT_TOWER_ARMOUR if data.taunts else 0.0)
+			+ (Balance.TAUNT_TOWER_ARMOUR if data.taunts else 0.0) \
+			+ path_armour(_path, level)
 		# **And every tower takes less of every blow** (owner, 2026-09-22).
 		# Here rather than in `hurt()` because `hurt()` is only the *world's*
 		# door - a body swinging at a tower and a shot landing on one both go
@@ -1231,9 +1237,30 @@ func _refresh_health_for_level() -> void:
 	if _health == null or data.max_hp <= 0.0:
 		return
 	var ratio: float = _health.ratio() if _health.max_hp > 0.0 else 1.0
-	_health.max_hp = data.max_hp * data.utility_at(level)
+	_health.max_hp = data.max_hp * data.utility_at(level) * path_health_scale(_path, level)
 	_health.current_hp = _health.max_hp * ratio
 	_health.changed.emit(_health.current_hp, _health.max_hp)
+
+
+## What the Bulwark path does to a tower's pool, capstone included. One for
+## every other path.
+static func path_health_scale(path: int, tower_level: int) -> float:
+	if path != TowerData.Path.BULWARK:
+		return 1.0
+	var taller: float = 1.0 + Balance.TOWER_BULWARK_HEALTH
+	if tower_level >= Balance.TOWER_CAPSTONE_LEVEL:
+		taller += Balance.TOWER_CAPSTONE_BULWARK_HEALTH
+	return taller
+
+
+## And the armour it wears for it.
+static func path_armour(path: int, tower_level: int) -> float:
+	if path != TowerData.Path.BULWARK:
+		return 0.0
+	var armour: float = Balance.TOWER_BULWARK_ARMOUR
+	if tower_level >= Balance.TOWER_CAPSTONE_LEVEL:
+		armour += Balance.TOWER_CAPSTONE_BULWARK_ARMOUR
+	return armour
 
 
 func _on_destroyed(_from: Vector2) -> void:
@@ -1595,6 +1622,8 @@ func _path_damage() -> float:
 			return focus
 		TowerData.Path.SPREAD:
 			return 1.0 + Balance.TOWER_SPREAD_DAMAGE
+		TowerData.Path.BULWARK:
+			return 1.0 + Balance.TOWER_BULWARK_DAMAGE
 		_:
 			return 1.0
 

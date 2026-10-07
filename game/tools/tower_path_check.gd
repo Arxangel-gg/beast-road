@@ -76,12 +76,12 @@ func _check(condition: bool, why: String) -> void:
 func _test_the_names_exist() -> void:
 	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
 			TowerData.Element.EARTH, TowerData.Element.AIR]:
-		for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD]:
+		for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD, TowerData.Path.BULWARK]:
 			_check(not TowerData.path_name(element, path).is_empty(),
 				"%s has no name for path %d" % [TowerData.element_name(element), path])
 			_check(not TowerData.capstone_note(element, path).is_empty(),
 				"%s path %d promises no capstone" % [TowerData.element_name(element), path])
-	for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD]:
+	for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD, TowerData.Path.BULWARK]:
 		_check(not TowerData.path_note(path).is_empty(), "path %d says nothing" % path)
 	_check(TowerData.path_name(TowerData.Element.FIRE, TowerData.Path.NONE).is_empty(),
 		"an unchosen path must have no name")
@@ -157,7 +157,8 @@ func _test_every_capstone_moves_a_real_number() -> void:
 	var named: PackedStringArray = []
 	for constant: String in ["TOWER_CAPSTONE_FOCUS_DAMAGE",
 			"TOWER_CAPSTONE_FOCUS_RANGE", "TOWER_CAPSTONE_SPREAD_TARGETS",
-			"TOWER_CAPSTONE_SPREAD_AOE"]:
+			"TOWER_CAPSTONE_SPREAD_AOE", "TOWER_CAPSTONE_BULWARK_HEALTH",
+			"TOWER_CAPSTONE_BULWARK_ARMOUR"]:
 		_check(code.contains(constant),
 			("%s is authored and the tower reads it nowhere - a capstone half "
 				+ "the player pays for and never receives") % constant)
@@ -167,11 +168,15 @@ func _test_every_capstone_moves_a_real_number() -> void:
 	# simply the better buy at the top of the ladder.
 	var focus: int = 0
 	var spread: int = 0
+	var bulwark: int = 0
 	for constant: String in named:
 		if constant.contains("FOCUS"):
 			focus += 1
-		else:
+		elif constant.contains("SPREAD"):
 			spread += 1
+		else:
+			bulwark += 1
+	_check(bulwark >= 2, "the Bulwark capstone lands %d effects" % bulwark)
 	_check(focus >= 2, "the Focus capstone lands %d effects against Spread's %d"
 		% [focus, spread])
 	_check(spread >= 2, "the Spread capstone lands %d effects against Focus's %d"
@@ -245,3 +250,35 @@ func _test_the_bound() -> void:
 				"the spreading path must widen the blast")
 			_check(second.path_interval_scale() < 1.0,
 				"the spreading path must fire faster")
+
+	# **And the Bulwark stands** (2026-10-07), on a third emplacement, measured
+	# on the tower's own pool and armour rather than read off the constants.
+	var third: Vector2i = field.free_anchor_near(3, 6)
+	if field.try_build(third, data).is_empty():
+		var wall: Tower = field.tower_at_anchor(third)
+		if wall != null:
+			RunState.set_tower(third, data.id, Balance.TOWER_SPECIALISE_LEVEL)
+			wall.upgrade_to(RunState.level_at(third))
+			wall.refresh_modifiers()
+			var plain_hp: float = wall._health.max_hp
+			var plain_armour: float = wall._health.flat_damage_reduction
+			var plain_damage: float = wall.effective_damage()
+			var plain_reach: float = wall.effective_range()
+			_check(RunState.set_tower_path(third, TowerData.Path.BULWARK), "the Bulwark must be a path one may take")
+			wall.refresh_modifiers()
+			_check(wall._health.max_hp > plain_hp * 1.5,
+				"the Bulwark must stand taller: %.0f against %.0f" % [wall._health.max_hp, plain_hp])
+			_check(wall._health.flat_damage_reduction > plain_armour,
+				"the Bulwark must wear armour: %.1f against %.1f" % [wall._health.flat_damage_reduction, plain_armour])
+			_check(wall.effective_damage() < plain_damage,
+				"the Bulwark must pay for it in damage: %.1f against %.1f" % [wall.effective_damage(), plain_damage])
+			_check(is_equal_approx(wall.effective_range(), plain_reach) and wall.path_extra_targets() == 0
+					and is_equal_approx(wall.path_aoe_scale(), 1.0),
+				"the Bulwark moves its pool, its armour and its damage, and nothing else")
+			var standing: float = wall._health.max_hp
+			RunState.set_tower(third, data.id, Balance.TOWER_CAPSTONE_LEVEL)
+			wall.upgrade_to(RunState.level_at(third))
+			wall.refresh_modifiers()
+			var plain_cap: float = data.max_hp * data.utility_at(Balance.TOWER_CAPSTONE_LEVEL)
+			_check(wall._health.max_hp / plain_cap > standing / maxf(plain_hp, 1.0),
+				"the Bulwark capstone must stand taller again at level %d" % Balance.TOWER_CAPSTONE_LEVEL)

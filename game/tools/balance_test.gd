@@ -2437,6 +2437,36 @@ func _test_free_placement(field: Battlefield) -> void:
 	_check(field.try_sell(far).is_empty(), "the parent must sell")
 	_check(RunState.tile_is_empty(gap), "an orphaned fusion must be refunded, not left standing")
 
+	# **Two long arms make a battery as well** (2026-10-07). A long gun beside a
+	# skirmisher is offered the elemental fusion alone; two long guns are
+	# offered both, and the player chooses.
+	RunState.towers.clear()
+	var mortar: TowerData = ContentDB.tower("ember_mortar")
+	var breaker: TowerData = ContentDB.tower("breaker_mortar")
+	_check(field.try_build(pocket, mortar).is_empty(), "a mortar must build")
+	_check(field.try_build(far, ContentDB.tower("tide_caller")).is_empty(), "beside it, a water skirmisher")
+	var single: Array[String] = []
+	for option: Dictionary in RunState.combinations_for_tile(gap):
+		single.append((option["tower"] as TowerData).id)
+	_check(single == ["steam_burst"],
+		"one long arm beside a short one is offered the elemental fusion alone: %s" % [single])
+	RunState.towers.clear()
+	_check(field.try_build(pocket, mortar).is_empty() and field.try_build(far, breaker).is_empty(),
+		"two mortars must build")
+	var both: Array[String] = []
+	for option: Dictionary in RunState.combinations_for_tile(gap):
+		both.append((option["tower"] as TowerData).id)
+	_check(both.has("steam_burst") and both.has("geyser_mortar") and both.size() == 2,
+		"two long arms must be offered their fusion and their battery: %s" % [both])
+	_check(field.try_build(gap, ContentDB.tower("geyser_mortar")).is_empty(), "the battery must build on the gap")
+	var batteries: int = 0
+	for value: TowerData in ContentDB.combinations:
+		if value.fuses_long_arms:
+			batteries += 1
+			_check(ContentDB.combination_for(value.parent_a, value.parent_b) != value,
+				"%s must never be the plain elemental answer" % value.id)
+	_check(batteries == 10, "every pair of elements has a battery (%d)" % batteries)
+
 	# Same-element neighbours resonate, which is now something the player
 	# arranges on the grid rather than something a fixed slot handed them.
 	RunState.towers.clear()

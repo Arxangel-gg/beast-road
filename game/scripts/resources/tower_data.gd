@@ -22,7 +22,13 @@ enum Element {
 ##
 ## Two paths on every element, which is what makes them learnable: FOCUS is
 ## fewer, harder, further; SPREAD is more, faster, wider.
-enum Path { NONE, FOCUS, SPREAD }
+##
+## **And a third, BULWARK, as of 2026-10-07** (owner: "more tower
+## specialization options and variety"): a tower that stands where it is hit -
+## more health, armour, and softer blows. Siege orders send the late road at the
+## board, and the two paths that existed both answered "kill faster". Appended,
+## never inserted: a banked front and a build template store the path by number.
+enum Path { NONE, FOCUS, SPREAD, BULWARK }
 
 
 enum Role {
@@ -57,6 +63,12 @@ enum TargetPriority {
 @export var path_names: Array[String] = []
 @export var parent_a: Element = Element.FIRE
 @export var parent_b: Element = Element.FIRE
+## **A battery** (2026-10-07, owner: "more combination towers needed"). Offered
+## only when both parents are long arms - a sniper or a siege piece - and offered
+## *beside* the pair's elemental fusion rather than instead of it, so two long
+## guns flanking a gap are a choice between the two. False for the ten fusions
+## that any two towers of their elements make.
+@export var fuses_long_arms: bool = false
 
 ## Damage per shot at level 1, before level, lane and terrain modifiers.
 @export var damage: float = 10.0
@@ -420,6 +432,20 @@ func matches_parents(a: Element, b: Element) -> bool:
 	return (parent_a == a and parent_b == b) or (parent_a == b and parent_b == a)
 
 
+## Whether two towers flanking a gap may fuse into this one: their elements, and
+## for a battery, that both of them are long arms.
+func fuses_from(left: TowerData, right: TowerData) -> bool:
+	if left == null or right == null or not matches_parents(left.element, right.element):
+		return false
+	return not fuses_long_arms or (left.is_long_arm() and right.is_long_arm())
+
+
+## A sniper or a siege piece that fires: what a battery is built from.
+func is_long_arm() -> bool:
+	return not is_combination and not is_well() and damage > 0.0 \
+		and (role == Role.SNIPER or role == Role.SIEGE)
+
+
 static func element_name(e: Element) -> String:
 	match e:
 		Element.WATER:
@@ -475,15 +501,15 @@ func _level_index(level: int) -> int:
 ## which is which at a glance.
 static func path_name(element: int, path: int) -> String:
 	const NAMES: Array[Array] = [
-		["Lance", "Wildfire"],
-		["Icespear", "Squall"],
-		["Boulder", "Scree"],
-		["Bolt", "Gale"],
+		["Lance", "Wildfire", "Hearthwall"],
+		["Icespear", "Squall", "Floewall"],
+		["Boulder", "Scree", "Rampart"],
+		["Bolt", "Gale", "Stormwall"],
 	]
-	if path == Path.NONE:
+	if path <= Path.NONE or path > Path.BULWARK:
 		return ""
 	var row: Array = NAMES[clampi(element, 0, NAMES.size() - 1)]
-	return String(row[0] if path == Path.FOCUS else row[1])
+	return String(row[path - 1])
 
 
 ## One line saying what the path does, for the sheet that offers it.
@@ -497,6 +523,11 @@ static func path_note(path: int) -> String:
 			return "The whole road: one more target, %d%% faster, %d%% wider, and softer blows." % [
 				int(round(Balance.TOWER_SPREAD_RATE * 100.0)),
 				int(round(Balance.TOWER_SPREAD_AOE * 100.0))]
+		Path.BULWARK:
+			return "Stands where it is hit: %d%% more health, %d armour, and %d%% softer blows." % [
+				int(round(Balance.TOWER_BULWARK_HEALTH * 100.0)),
+				int(round(Balance.TOWER_BULWARK_ARMOUR)),
+				int(round(-Balance.TOWER_BULWARK_DAMAGE * 100.0))]
 		_:
 			return ""
 
@@ -507,6 +538,8 @@ func path_label(path: int) -> String:
 		return path_names[0]
 	if path == Path.SPREAD and path_names.size() >= 2 and not path_names[1].is_empty():
 		return path_names[1]
+	if path == Path.BULWARK and path_names.size() >= 3 and not path_names[2].is_empty():
+		return path_names[2]
 	return path_name(element, path)
 
 
@@ -532,5 +565,10 @@ static func capstone_note(element: int, path: int) -> String:
 			return "%s Mastery: two more targets, and %d%% wider still." % [
 				path_name(element, path),
 				int(round(Balance.TOWER_CAPSTONE_SPREAD_AOE * 100.0))]
+		Path.BULWARK:
+			return "%s Mastery: %d%% more health again, and %d more armour." % [
+				path_name(element, path),
+				int(round(Balance.TOWER_CAPSTONE_BULWARK_HEALTH * 100.0)),
+				int(round(Balance.TOWER_CAPSTONE_BULWARK_ARMOUR))]
 		_:
 			return ""

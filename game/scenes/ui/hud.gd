@@ -5932,7 +5932,7 @@ func _refresh_build_panel() -> void:
 			_build_list.add_child(_label(
 				"%s has reached its fifth level. Choose what it becomes."
 					% existing.display_name, 15))
-			for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD]:
+			for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD, TowerData.Path.BULWARK]:
 				var named: String = existing.path_label(path)
 				var pick: Button = _add_button(_build_list, named,
 					func() -> void:

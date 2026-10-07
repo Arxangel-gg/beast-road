@@ -681,10 +681,12 @@ func base_towers() -> Array[TowerData]:
 	return out
 
 
-## The combination produced by a pair of elements, or null if there is none.
+## The elemental combination produced by a pair of elements, or null if there is
+## none. A battery is never this answer: it also asks what the parents are, so
+## `RunState.combinations_for_tile` is the door that offers it.
 func combination_for(a: TowerData.Element, b: TowerData.Element) -> TowerData:
 	for t: TowerData in combinations:
-		if t.matches_parents(a, b):
+		if t.matches_parents(a, b) and not t.fuses_long_arms:
 			return t
 	return null
 

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Thunderbolt", "Thunderhead", "Stormwall"])
+shot = 2
+ambient = 8
+juice_scale = 1.4
+element = 3
+role = 2
+is_combination = true
+parent_a = 3
+parent_b = 3
+fuses_long_arms = true
+damage = 66.0
+attack_interval = 1.9
+attack_range = 780.0
+extra_targets = 4
+id = "thunderhead_spire"
+display_name = "Thunderhead Spire"
+description = "Two long guns of air call one bolt from very far away, and it jumps through four more."

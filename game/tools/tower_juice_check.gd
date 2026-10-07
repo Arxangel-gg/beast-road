@@ -344,6 +344,11 @@ func _test_a_mortar_cannot_reach_its_feet() -> void:
 	for data: TowerData in mortars:
 		_check(data.min_range < data.attack_range * 0.5,
 			"%s: a blind spot of %.0f leaves little of a %.0f reach" % [data.id, data.min_range, data.attack_range])
+		# A battery (2026-10-07) stands only on a gap two long arms flank, so it
+		# is held to the ratio here and to the fusion in `balance_test`; the
+		# blind spot it fires through is the same lines of `Tower` either way.
+		if data.is_combination:
+			continue
 		RunState.set_phase(RunState.Phase.PREPARATION)
 		var anchor: Vector2i = _field.free_anchor_near(lane, 8)
 		var problem: String = _field.try_build(anchor, data)

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Slag Shot", "Lava Fall", "Basalt Wall"])
+shot = 1
+ambient = 1
+juice_scale = 1.4
+element = 0
+role = 1
+is_combination = true
+parent_a = 0
+parent_b = 2
+fuses_long_arms = true
+damage = 84.0
+attack_interval = 3.0
+attack_range = 760.0
+aoe_radius = 160.0
+min_range = 260.0
+ground_zone_dps = 14.0
+ground_zone_duration = 3.0
+id = "magma_catapult"
+display_name = "Magma Catapult"
+description = "A catapult that throws a ball of magma, and the ground it lands on burns for a while after. Blind close in."

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Hailstone", "Hailstorm", "Icewall"])
+shot = 1
+ambient = 4
+juice_scale = 1.4
+element = 1
+role = 1
+is_combination = true
+parent_a = 1
+parent_b = 1
+fuses_long_arms = true
+damage = 60.0
+attack_interval = 2.4
+attack_range = 740.0
+aoe_radius = 190.0
+min_range = 240.0
+slow_factor = 0.55
+slow_duration = 2.0
+freeze_chance = 0.12
+id = "hailstorm_battery"
+display_name = "Hailstorm Battery"
+description = "Two long guns of water drop hail on a wide stretch of road: everything under it slows, and now and then something freezes. Blind close in."
