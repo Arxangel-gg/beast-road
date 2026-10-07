@@ -120,6 +120,17 @@ extends GameData
 @export_range(0.0, 4.0) var tower_glance_seconds: float = 0.0
 @export_range(2.0, 20.0) var tower_glance_interval: float = 6.0
 
+## **Leeching** (triage of 2026-10-07): a share of what its own blow takes from
+## what it struck comes back into its pool. Shape, never size: the blow is the
+## blow it always was, and what it wins is a share of that.
+@export_range(0.0, 0.6) var lifesteal: float = 0.0
+## **Riven** (triage of 2026-10-07): where it falls it comes apart into this
+## many lesser bodies of its own breed, each `MARK_SPLIT_HEALTH_SHARE` of its
+## pool, carrying on along its road - counted by the wave like any body. A
+## split never splits again, wears no mark and drops nothing: what it carried
+## was paid by the body it came from.
+@export_range(0, 3) var split_on_death: int = 0
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("icons/affixes", "affix_", id)

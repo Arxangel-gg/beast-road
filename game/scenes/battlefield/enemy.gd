@@ -226,6 +226,10 @@ var _oath_mark_time: float = 0.0
 
 ## Lateral offset from the lane centre line, so a wave reads as a column.
 var _lane_offset: float = 0.0
+## **How much of a body this is** (a Riven split, 2026-10-07): 1 for any body
+## the road sent, `MARK_SPLIT_HEALTH_SHARE` for a piece of one - which is paid
+## that share of a kill, drops nothing, gives no road rank and never splits.
+var _split_share: float = 1.0
 
 ## Which leg of the road this enemy is walking. Only ever increases.
 var _path_index: int = 0
@@ -2758,7 +2762,55 @@ func _strike() -> void:
 	if _target is Companion:
 		(_target as Companion).take_damage(damage, combat_origin())
 		return
+	var before: float = target_health.current_hp
 	target_health.take_damage(damage, global_position)
+	_leech(before - target_health.current_hp)
+
+
+## **Leeching**: a share of what this blow took, back into this body's pool,
+## through the door every heal uses. Nothing at all when the blow took nothing.
+func _leech(taken: float) -> void:
+	var share: float = _affix_best(&"lifesteal")
+	if share <= 0.0 or taken <= 0.0 or health == null or health.is_dead:
+		return
+	health.heal(taken * share)
+	Vfx.mote(combat_origin(), Vector2(0.0, -30.0), Color(0.86, 0.12, 0.2, 0.85), 7.0, 0.5)
+
+
+## **Riven**: comes apart into lesser bodies of its own breed where it fell,
+## each taking up its road where it stood. The host's alone: a split is a body
+## the wave counts, and a guest is told it as one.
+func _split_apart() -> void:
+	var count: int = int(_affix_best(&"split_on_death"))
+	if count <= 0 or puppet or Coop.is_guest() or _split_share < 1.0 or is_camp_mob() \
+			or _route.size() < 2:
+		return
+	var battlefield := _field as Battlefield
+	if battlefield == null:
+		return
+	for index: int in count:
+		var piece: Enemy = battlefield.spawn_enemy(data, lane, _hp_scale * Balance.MARK_SPLIT_HEALTH_SHARE,
+			_damage_scale, _speed_scale / maxf(Balance.ENEMY_MOVE_SPEED_SCALE, 0.001))
+		if piece == null:
+			continue
+		var side: Vector2 = Vector2.from_angle(TAU * float(index) / float(count) + PI * 0.5) * Balance.MARK_SPLIT_SPREAD
+		piece.take_up_road(_route, _path_index, _lane_offset, global_position + side)
+		piece._split_share = Balance.MARK_SPLIT_HEALTH_SHARE
+	var colour: Color = Color(0.7, 0.85, 0.4)
+	for affix: EnemyAffixData in affixes:
+		if affix.split_on_death > 0:
+			colour = affix.mark_colour
+	Vfx.ring(combat_origin(), 70.0, Color(colour, 0.7), 0.35, 4.0)
+	Vfx.spark(combat_origin(), colour, 10, Vector2.ZERO, 160.0)
+
+
+## Takes up another body's road where it stands - a Riven split, carrying on
+## from where its parent fell rather than walking back to the spawn.
+func take_up_road(road: PackedVector2Array, index: int, offset: float, at: Vector2) -> void:
+	_route = road
+	_path_index = clampi(index, 0, maxi(road.size() - 1, 0))
+	_lane_offset = offset
+	global_position = at
 
 
 # --- Damage and status ------------------------------------------------------
@@ -3814,10 +3866,11 @@ func _on_died(_from: Vector2) -> void:
 	# more fight and pays a little more for it - never a champion's share.
 	if rank == Rank.COMMON and not affixes.is_empty():
 		spoils *= 1.0 + Balance.MARKED_REWARD_PER_MARK * float(affixes.size())
-	RunState.gain_kill_resources(int(round(spoils)))
+	RunState.gain_kill_resources(int(round(spoils * _split_share)))
 	_cold_snap()
 	_burst_on_death()
 	_mend_the_company()
+	_split_apart()
 	_elemental_end()
 	# XP scales with the enemy's health rather than an authored per-enemy number,
 	# so an elite is worth more than a runner with no second table to maintain,
@@ -3829,17 +3882,20 @@ func _on_died(_from: Vector2) -> void:
 	var payout: float = data.max_hp * _hp_scale * Balance.HERO_XP_PER_HP
 	if is_camp_mob():
 		payout *= Balance.CAMP_XP_SCALE
-	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
-	RunState.gain_road_xp(road_xp_worth())
+	RunState.gain_hero_xp(payout * _split_share * (tier.xp_scale if tier != null else 1.0))
+	if _split_share >= 1.0:
+		RunState.gain_road_xp(road_xp_worth())
 	if _herald and not _herald_called:
 		_pay_herald_bounty()
-	_drop_loot()
-	_drop_gear()
-	_drop_blueprint()
-	_drop_healing_orb()
-	_drop_supply_crate()
-	_drop_quiver()
-	_drop_mana_orb()
+	# A Riven piece drops nothing: what it carried, the body it came from paid.
+	if _split_share >= 1.0:
+		_drop_loot()
+		_drop_gear()
+		_drop_blueprint()
+		_drop_healing_orb()
+		_drop_supply_crate()
+		_drop_quiver()
+		_drop_mana_orb()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 		if _field != null and _field.has_method("try_spawn_mender_spark"):

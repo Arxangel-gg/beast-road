@@ -517,8 +517,10 @@ func _test_oaths_on_the_hero() -> void:
 	var evades: Array[int] = [0]
 	var counter: Callable = func(_at: Vector2) -> void: evades[0] += 1
 	EventBus.hero_perfect_evade.connect(counter)
+	var taught: int = MetaState.perfect_evades
 	hero.call("_on_evaded", 0.01, Vector2.ZERO)
 	_check(evades[0] == 1, "without the Oath a perfect evade is announced")
+	_check(MetaState.perfect_evades == taught + 1, "the account's teaching statistic missed a perfect evade")
 	_learn("oath_no_retreat")
 	hero.call("_on_evaded", 0.01, Vector2.ZERO)
 	_check(evades[0] == 1, "under No Retreat there is no perfect evade")

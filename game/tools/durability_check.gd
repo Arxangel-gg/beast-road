@@ -388,12 +388,14 @@ func _test_the_perfect_guard() -> void:
 	var from: Vector2 = _hero.global_position + facing * 70.0
 	body.global_position = from
 	var counted: int = _hero.perfect_guards
+	var taught: int = MetaState.perfect_guards
 	var ratio: float = _hero.guard_ratio()
 	_hero.health.current_hp = pool
 	_hero.health.take_damage(20.0, from)
 	_check(is_equal_approx(_hero.health.current_hp, pool),
 		"a perfect guard let %.1f of 20 through" % (pool - _hero.health.current_hp))
 	_check(_hero.perfect_guards == counted + 1, "a perfect guard was not counted")
+	_check(MetaState.perfect_guards == taught + 1, "the account's teaching statistic missed a perfect guard")
 	_check(is_equal_approx(_hero.guard_ratio(), ratio),
 		"a perfect guard spent the guard (%.2f to %.2f)" % [ratio, _hero.guard_ratio()])
 	_check(float(body.get("_hitstun_left")) > 0.0, "the body that struck was not staggered")
@@ -416,6 +418,7 @@ func _test_the_perfect_guard() -> void:
 	_hero.health.take_damage(20.0, from)
 	_check(_hero.health.current_hp < pool and _hero.perfect_guards == counted + 1,
 		"a blow after the window was perfect")
+	_check(MetaState.perfect_guards == taught + 1, "an ordinary guard was counted as a perfect one")
 	_hands.hold = 0
 	body.queue_free()
 

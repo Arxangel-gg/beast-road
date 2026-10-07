@@ -356,11 +356,13 @@ func _test_the_bounty() -> void:
 	var herald: Enemy = _stand(breed, spot, true)
 	await get_tree().process_frame
 	var fell_before: int = _fell
+	var taught: int = MetaState.heralds_felled
 	DamageLedger.credit_as(DamageLedger.WARDEN)
 	herald.take_damage(herald.health.current_hp * 10.0, _field.hero.global_position, 0.0, true)
 	for _f: int in 4:
 		await get_tree().process_frame
 	_check(_fell == fell_before + 1, "a Herald run down before the wall must say so once")
+	_check(MetaState.heralds_felled == taught + 1, "the account's teaching statistic missed a Herald run down")
 	var paid: Dictionary = _loot_near(spot)
 	var owed: Dictionary = Heralds.bounty(RunState.act)
 	for id: Variant in owed:

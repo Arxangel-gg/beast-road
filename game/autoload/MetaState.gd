@@ -216,6 +216,14 @@ var codex_seen: Array[String] = []
 ## memory as bodies fall and written with the next save - never a save a kill.
 var codex_kills: Dictionary = {}
 
+## **Teaching statistics** (triage of 2026-10-07): the moves the game wants a
+## player to find - a perfect evade, a perfect guard, a Herald run down -
+## counted for the achievements that teach them. Statistics in shape (working
+## rule 7), in the stats block, counted in memory and written with the next save.
+var perfect_evades: int = 0
+var perfect_guards: int = 0
+var heralds_felled: int = 0
+
 ## The tiers an enemy's entry grows through.
 enum CodexTier { ENCOUNTERED, KILLED, STUDIED, MASTERED }
 
@@ -873,6 +881,9 @@ func stat(key: String) -> float:
 		"ascension": return float(ascension)
 		"best_distance": return best_distance
 		"codex_mastered": return float(codex_mastered_count())
+		"perfect_evades": return float(perfect_evades)
+		"perfect_guards": return float(perfect_guards)
+		"heralds_felled": return float(heralds_felled)
 		"codex_share":
 			var total: int = 0
 			for source: String in ["enemies", "affixes", "wildlife_kinds", "weathers"]:
@@ -888,7 +899,7 @@ func has_stat(key: String) -> bool:
 		"total_enemies_killed", "camps_razed", "forks_opened", "war_camps_razed",
 		"rifts_closed", "dungeons_finished", "fish_caught_total", "swims", "coop_runs",
 		"spirits_bonded", "hero_level", "ascension", "best_distance", "codex_share",
-		"codex_mastered"]
+		"codex_mastered", "perfect_evades", "perfect_guards", "heralds_felled"]
 
 
 ## Compares every achievement to its statistic and says so once for each
@@ -982,6 +993,10 @@ func _wire_statistics() -> void:
 	EventBus.fork_opened.connect(func(_lane: int) -> void:
 		forks_opened += 1
 		check_achievements())
+	EventBus.herald_fell.connect(func(_at: Vector2) -> void:
+		if not RunState.walking and not RunState.sandbox:
+			heralds_felled += 1
+			check_achievements())
 	EventBus.hero_swim_changed.connect(func(swimming: bool) -> void:
 		if swimming:
 			swims += 1
@@ -1143,6 +1158,22 @@ func record_seen(kind: String, thing_id: String) -> bool:
 	codex_seen.append(key)
 	save_game()
 	return true
+
+
+## **A perfect evade or a perfect guard by this machine's own Warden** - the
+## hero asks, because only it knows whose body it is. Never on the Walk or in a
+## sandbox.
+func note_perfect(kind: String) -> void:
+	if RunState.walking or RunState.sandbox:
+		return
+	match kind:
+		"evade":
+			perfect_evades += 1
+		"guard":
+			perfect_guards += 1
+		_:
+			return
+	check_achievements()
 
 
 ## One more of a breed brought down. Never on the Walk or in a sandbox,
@@ -1418,6 +1449,9 @@ func erase_progress() -> void:
 	forks_opened = 0
 	war_camps_razed = 0
 	dungeons_finished = 0
+	perfect_evades = 0
+	perfect_guards = 0
+	heralds_felled = 0
 	fish_caught_total = 0
 	swims = 0
 	coop_runs = 0
@@ -2954,6 +2988,9 @@ func serialized_save() -> String:
 			"forks_opened": forks_opened,
 			"war_camps_razed": war_camps_razed,
 			"dungeons_finished": dungeons_finished,
+			"perfect_evades": perfect_evades,
+			"perfect_guards": perfect_guards,
+			"heralds_felled": heralds_felled,
 			"fish_caught_total": fish_caught_total,
 			"swims": swims,
 			"coop_runs": coop_runs,
@@ -3094,6 +3131,9 @@ func adopt_save(data: Dictionary) -> void:
 	forks_opened = maxi(int(stats.get("forks_opened", 0)), 0)
 	war_camps_razed = maxi(int(stats.get("war_camps_razed", 0)), 0)
 	dungeons_finished = maxi(int(stats.get("dungeons_finished", 0)), 0)
+	perfect_evades = maxi(int(stats.get("perfect_evades", 0)), 0)
+	perfect_guards = maxi(int(stats.get("perfect_guards", 0)), 0)
+	heralds_felled = maxi(int(stats.get("heralds_felled", 0)), 0)
 	fish_caught_total = maxi(int(stats.get("fish_caught_total", 0)), 0)
 	swims = maxi(int(stats.get("swims", 0)), 0)
 	coop_runs = maxi(int(stats.get("coop_runs", 0)), 0)

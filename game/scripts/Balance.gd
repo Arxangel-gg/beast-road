@@ -6803,6 +6803,12 @@ const TOWER_SPRITE_LIFT: float = 42.0
 ## that measures range or spawns an effect, so nothing about the gameplay shifts.
 const TOWER_SORT_LIFT: float = 64.0
 
+## **A Riven body's pieces** (`EnemyAffixData.split_on_death`): each this share
+## of the pool it came from, paid this share of a kill, and set this far apart
+## where it fell. [TUNE]
+const MARK_SPLIT_HEALTH_SHARE: float = 0.32
+const MARK_SPLIT_SPREAD: float = 26.0
+
 ## **Codex mastery** (triage of 2026-10-07): an enemy's entry grows as this
 ## account brings it down - Encountered, Killed, Studied, Mastered - read by
 ## its category (breed, elite, boss): studied at the first figure, mastered at

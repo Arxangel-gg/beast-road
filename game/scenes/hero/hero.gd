@@ -1731,6 +1731,8 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	if WardenSheet.bane_of(sheet, "oath_no_evade") > 0.0:
 		return
 	EventBus.hero_perfect_evade.emit(global_position)
+	if is_local_player():
+		MetaState.note_perfect("evade")
 	_show_a_perfect_evade()
 	# **No Ground Given.** A perfect evade is this game's block - the i-frame
 	# window is how a committed hit is answered - so it empowers the *next
@@ -2311,6 +2313,8 @@ func _guard_blow(applied: float, from: Vector2) -> float:
 ## did not land, never one that was returned.
 func _perfect_guard(from: Vector2) -> void:
 	perfect_guards += 1
+	if is_local_player():
+		MetaState.note_perfect("guard")
 	if WardenSheet.trained_of(sheet, "block_finisher"):
 		_guard_left = Balance.DISCIPLINE_GUARD_SECONDS
 	if is_local_player():

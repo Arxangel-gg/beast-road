@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_s")
-id = "level_seventy"
-display_name = "Hardened"
-title = "Hardened"
-description = "Reach hero level 70."
-stat = "hero_level"
-threshold = 70.0
-icon = "upgrade"
-order = 38
+id = "perfect_evade_one"
+display_name = "Not There"
+title = "Not There"
+description = "Dash through a blow on the instant it lands."
+stat = "perfect_evades"
+threshold = 1.0
+icon = "distance"
+order = 43

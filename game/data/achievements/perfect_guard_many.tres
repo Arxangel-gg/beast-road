@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1_s")
-id = "level_seventy"
-display_name = "Hardened"
-title = "Hardened"
-description = "Reach hero level 70."
-stat = "hero_level"
-threshold = 70.0
-icon = "upgrade"
-order = 38
+id = "perfect_guard_many"
+display_name = "A Wall of One"
+title = "A Wall of One"
+description = "Fifty perfect guards."
+stat = "perfect_guards"
+threshold = 50.0
+icon = "close"
+order = 46
