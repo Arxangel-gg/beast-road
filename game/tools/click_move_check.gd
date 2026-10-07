@@ -122,6 +122,16 @@ func _run_for(seconds: float, done: Callable = Callable()) -> void:
 
 ## A body that stands where it is put, with a pool nothing here empties by
 ## accident, out of the wave's count.
+## What the click saw, said when it found no body to chase.
+func _why_no_body(body: Enemy) -> String:
+	if not is_instance_valid(body):
+		return "the body was freed"
+	var picked: Node2D = _moves.body_at(Hitbox.body_of(body))
+	return "dying %s, hp %.0f, picked %s, targetable %s, order %d, pos %s" % [body.is_dying(), body.health.current_hp,
+		picked.name if picked != null else "nothing", LocalHeroInput.can_target(body, _moves.call("_wildlife")),
+		int(_orders.order), str(body.global_position)]
+
+
 func _a_still_body(at: Vector2, health: float = 400.0) -> Enemy:
 	var breed: EnemyData = ContentDB.enemy("bogkin")
 	var body: Enemy = _field.spawn_enemy(breed, 0, 1.0, 0.001, 0.001)
@@ -130,6 +140,11 @@ func _a_still_body(at: Vector2, health: float = 400.0) -> Enemy:
 	body.process_mode = Node.PROCESS_MODE_DISABLED
 	body.health.max_hp = health
 	body.health.current_hp = health
+	# **Seen where it stands.** It is spawned at the road's head, in the fog, and
+	# a fog tick landing before it was moved hid it there - so on a slow frame a
+	# click found nothing to chase. The fog looks again before the body is used,
+	# and it is drawn, or not, by where it now stands.
+	await _run_for(Balance.FOG_TICK * 2.5)
 	return body
 
 
@@ -227,10 +242,18 @@ func _test_the_bow_chases_to_its_own_reach() -> void:
 	if bow == null:
 		_finished += 1
 		return
-	var body: Enemy = await _a_still_body(start + Vector2(bow.effective_range * 1.4, 0.0), 2000.0)
+	# Pressed on a body the Warden can see, and then the Warden stands back out
+	# of sight with the order kept. It used to be pressed from out of sight on a
+	# body the fog had not yet looked at, which passed only while the fog was
+	# slower than the harness.
+	var far: Vector2 = start + Vector2(bow.effective_range * 1.4, 0.0)
+	_put_the_warden(far - Vector2(Balance.FOG_VISION_HERO * 0.5, 0.0))
+	var body: Enemy = await _a_still_body(far, 2000.0)
 	_loosed = 0
 	_moves._on_bow(Hitbox.body_of(body))
-	_check(_orders.order == LocalHeroInput.Order.SHOOT, "F on a body gave no bow order")
+	_check(_orders.order == LocalHeroInput.Order.SHOOT, "F on a body gave no bow order: %s" % _why_no_body(body))
+	_hero.global_position = start
+	_hero.velocity = Vector2.ZERO
 	var loosed_at: Array[float] = [-1.0]
 	# Out past the Warden's sight the fog takes the body; the chase walks on to
 	# where it was last seen and takes it up again - League's rule.
@@ -326,7 +349,8 @@ func _test_the_builders_clicks_are_the_builders() -> void:
 		"a click on a tile the builder opens a sheet for walked the Warden there")
 	var body: Enemy = await _a_still_body(tile_at)
 	_moves._on_press(Hitbox.body_of(body), false)
-	_check(_orders.order == LocalHeroInput.Order.ATTACK, "a click on a body while building gave no chase order")
+	_check(_orders.order == LocalHeroInput.Order.ATTACK, "a click on a body while building gave no chase order: %s"
+		% _why_no_body(body))
 	_check(ClickMove.press_was_order, "a press taken as an order on a body is not marked for the builder")
 	body.health.kill(_hero.global_position)
 	_orders.clear_order()
