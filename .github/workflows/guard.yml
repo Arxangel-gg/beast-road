@@ -272,6 +272,7 @@ jobs:
           check "the edge of death" --headless --path game res://tools/near_death_check.tscn
           check "a hurt tower and a fallen one" --headless --path game res://tools/tower_ruin_check.tscn
           check "a personal best said" --headless --path game res://tools/personal_best_check.tscn
+          check "leeching and riven marks" --headless --path game res://tools/mark_fields_check.tscn
           # Account objectives are finite, one-time and horizontal. This also
           # proves their save payload without touching the runner's real slot.
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn

@@ -14761,6 +14761,46 @@ each was planted against.
   behaviour, a shield); Mastered wears gold. Nothing in a fight reads a tier.
   `codex_mastered` is a statistic and "Know Thy Foe" asks for ten.
 
+**Two marks that change a fight's shape, and achievements that teach, as of
+2026-10-07.** The adapted half of the triage's "more mutations".
+
+- **Leeching** (`EnemyAffixData.lifesteal`) wins back a share of what its own
+  blow took, measured off the Warden's pool either side of the real blow and
+  healed through the door every heal uses. **Riven** (`split_on_death`) comes
+  apart where it falls into lesser bodies of its own breed, each
+  `MARK_SPLIT_HEALTH_SHARE` of its pool, which take up its road where it fell
+  (`Enemy.take_up_road`) rather than walking back to the spawn, are counted by
+  the wave, pay that share of a kill, give no road rank, drop nothing, wear no
+  mark and so never split again. The host's alone: a piece reaches a guest as
+  any spawned body does. `curve_report` reads a mark's `health_scale` and not
+  its pieces, so Riven's own scale is 0.9 and two pieces at a third bring the
+  whole to about one and a half - inside what the other marks already ask.
+  **A planted fault that removed the `_split_share` guard passed**, because a
+  piece has no mark to split with; the real protection is spawning pieces
+  without marks, and planted that way the gate names it. A guard that protects
+  nothing on its own is still worth keeping - but it is not what to plant.
+- **Teaching statistics**: `perfect_evades`, `perfect_guards` and
+  `heralds_felled`, counted for this machine's own Warden (the hero asks
+  `MetaState.note_perfect`, because only it knows whose body it is - the
+  signals fire for a partner's body on the host too), and five achievements
+  that ask for them. The second "Seasoned" (level seventy) is "Hardened".
+
+**And v0.75.0's release failed on `codex_check`, which was the harness.** The
+bonded-frame check found a species' picture by comparing it with the base
+painting, and the codex steps every picture through its idle loop - so
+whenever a step landed between the refresh and the read, the lookup found
+nothing and read the book's own frame. The insects made an animated species
+first in the alphabet. The gate now accepts any frame of the loop and steps
+the loop on purpose before reading; planted with the old lookup it fails every
+time. **`--frame-delay 60` did not reproduce it**, because the step boundary is
+about the clock rather than one long frame - forcing the step is what turned
+the coin toss into a certainty.
+
+**`sweep.sh` runs seven wide** (`SWEEP_JOBS=7`, each gate on its own profile):
+246 gates in about fifty minutes against four hours serially on this machine.
+A worktree passes the engine through `GODOT`, and its launcher has to be
+imported once before the launcher's pipeline test can find its classes.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -328,6 +328,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/near_death_check.tscn
           run_godot_clean --headless --path game res://tools/tower_ruin_check.tscn
           run_godot_clean --headless --path game res://tools/personal_best_check.tscn
+          run_godot_clean --headless --path game res://tools/mark_fields_check.tscn
           run_godot_clean --headless --path game res://tools/menu_layout_check.tscn
           # **The phone shapes, which the release bar was not checking at all.**
           # `layout_check` has run in guard since 2026-08-25 and never here, so a
