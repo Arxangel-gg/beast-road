@@ -347,9 +347,13 @@ func _draw_flies(corpse: Dictionary, at: Vector2, size: Vector2) -> void:
 	var reach: float = maxf(size.x * 0.28, 10.0)
 	for fly: int in flies:
 		var t: float = _clock * (5.0 + float(fly) * 1.3) + seed_phase + float(fly) * 2.1
-		var spot: Vector2 = at + Vector2(cos(t) * reach, sin(t * 1.37) * reach * 0.45 - size.y * 0.32
-			- 6.0 * sin(t * 2.3))
-		draw_circle(spot, 1.6, Color(0.07, 0.06, 0.05, 0.85))
+		var spot: Vector2 = at + Vector2(cos(t) * reach, sin(t * 1.37) * reach * 0.45 - size.y * 0.5
+			- 7.0 * sin(t * 2.3))
+		# A dark body and a pale glint of wing that flickers - a dark speck alone
+		# read as nothing on dark ground in the first photograph.
+		draw_circle(spot, 2.3, Color(0.05, 0.05, 0.04, 0.95))
+		if sin(t * 9.0) > -0.2:
+			draw_circle(spot + Vector2(1.3 * signf(cos(t)), -1.4), 1.4, Color(0.86, 0.9, 0.97, 0.7))
 
 
 ## **Brutal bones come home** (owed since 2026-10-07): in Brutal the bones of

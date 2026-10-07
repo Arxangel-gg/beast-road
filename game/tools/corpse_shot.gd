@@ -43,6 +43,8 @@ func _ready() -> void:
 			corpse["height"] = 0.0
 			corpse["dir"] = way
 			corpse["meat"] = meats[row]
+			# Old enough to have drawn its flies.
+			corpse["age"] = Balance.CORPSE_FLIES_FROM + 5.0
 	# A wolf at a fresh carcass, to the right of the grid.
 	var meal: Dictionary = field.corpses.lay(spot + Vector2(560.0, -60.0), spot + Vector2(540.0, -60.0), 40.0)
 	var wolf_kind := ContentDB.wildlife_kinds.get("wolf", null) as WildlifeData
