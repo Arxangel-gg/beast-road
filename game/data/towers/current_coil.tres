@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 3
+juice_scale = 1.2
+role = 1
+element = 1
+path_names = Array[String](["Riptide", "Flood Arc", "Dam"])
+damage = 18.0
+attack_interval = 1.4
+attack_range = 330.0
+extra_targets = 3
+slow_factor = 0.8
+slow_duration = 1.2
+id = "current_coil"
+display_name = "Current Coil"
+description = "Siege. A current that runs through the first body and on to three more, dragging each of them slow."

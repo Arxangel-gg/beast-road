@@ -77,11 +77,17 @@ func _test_the_roster_is_eight_an_element() -> void:
 	for tower: TowerData in ContentDB.base_towers():
 		per[int(tower.element)] = int(per.get(int(tower.element), 0)) + 1
 	var batteries: int = 0
+	var keeps: int = 0
+	var volleys: int = 0
 	for id: Variant in ContentDB.towers:
 		var tower: TowerData = ContentDB.towers[id] as TowerData
 		if tower != null and tower.is_combination:
 			if tower.fuses_long_arms:
 				batteries += 1
+			elif tower.fuses_wardens:
+				keeps += 1
+			elif tower.fuses_skirmishers:
+				volleys += 1
 			else:
 				fusions += 1
 	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
@@ -92,6 +98,10 @@ func _test_the_roster_is_eight_an_element() -> void:
 	# And one battery for every pair of elements (2026-10-07): two long arms
 	# side by side are offered both.
 	_check(batteries == 10, "ten batteries, not %d" % batteries)
+	# And a keep and a volley for every pair (2026-10-07): two walls, or two
+	# skirmishers, side by side are offered their own as well.
+	_check(keeps == 10, "ten keeps, not %d" % keeps)
+	_check(volleys == 10, "ten volleys, not %d" % volleys)
 	for id: String in ["flash_kiln", "bellows_forge", "stillwater_mirror", "mason_shrine", "wind_relay"]:
 		_check(MetaState.ROSTER_UNLOCK_ORDER.has(id), "%s must be earnable: it is not in the unlock order" % id)
 	var well: int = MetaState.ROSTER_UNLOCK_ORDER.find("healing_well")

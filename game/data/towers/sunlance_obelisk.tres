@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 9
+shot_tint = Color(1.0, 0.92, 0.55, 1)
+juice_scale = 1.35
+role = 2
+element = 0
+path_names = Array[String](["Noon Lance", "Corona", "Sunwall"])
+damage = 68.0
+attack_interval = 2.4
+attack_range = 620.0
+burn_dps = 3.0
+burn_duration = 1.5
+id = "sunlance_obelisk"
+display_name = "Sunlance Obelisk"
+description = "Sniper. Focuses the sun into a single lance that strikes the furthest body it can see. The heaviest single blow in fire's arsenal."

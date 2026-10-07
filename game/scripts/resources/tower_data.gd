@@ -78,6 +78,14 @@ enum TargetPriority {
 ## guns flanking a gap are a choice between the two. False for the ten fusions
 ## that any two towers of their elements make.
 @export var fuses_long_arms: bool = false
+## **A keep** (owner, 2026-10-07: "more combo towers"). Offered only when both
+## parents are walls - a Warden that fires and is neither a well nor a support
+## tower - and beside the pair's fusion, as a battery is. Two walls flanking a
+## gap become one wall that holds harder.
+@export var fuses_wardens: bool = false
+## **A volley** (same date). Offered only when both parents are skirmishers: two
+## quick guns flanking a gap become one that throws more at once.
+@export var fuses_skirmishers: bool = false
 
 ## Damage per shot at level 1, before level, lane and terrain modifiers.
 @export var damage: float = 10.0
@@ -496,7 +504,32 @@ func matches_parents(a: Element, b: Element) -> bool:
 func fuses_from(left: TowerData, right: TowerData) -> bool:
 	if left == null or right == null or not matches_parents(left.element, right.element):
 		return false
-	return not fuses_long_arms or (left.is_long_arm() and right.is_long_arm())
+	if fuses_long_arms:
+		return left.is_long_arm() and right.is_long_arm()
+	if fuses_wardens:
+		return left.is_wall() and right.is_wall()
+	if fuses_skirmishers:
+		return left.is_quick_gun() and right.is_quick_gun()
+	return true
+
+
+## True for a battery, a keep or a volley: a combination that asks what its
+## parents are as well as their elements, and so is never the plain fusion.
+func is_family() -> bool:
+	return fuses_long_arms or fuses_wardens or fuses_skirmishers
+
+
+## A Warden that fires and is neither a well nor a support tower: what a keep
+## is built from.
+func is_wall() -> bool:
+	return not is_combination and not is_well() and not is_support() and damage > 0.0 \
+		and role == Role.WARDEN
+
+
+## A skirmisher that fires: what a volley is built from.
+func is_quick_gun() -> bool:
+	return not is_combination and not is_well() and not is_support() and damage > 0.0 \
+		and role == Role.SKIRMISHER
 
 
 ## A sniper or a siege piece that fires: what a battery is built from.

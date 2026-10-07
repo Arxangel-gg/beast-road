@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Grit Wall", "Dust Devil", "Dune Keep"])
+shot = 3
+ambient = 5
+juice_scale = 1.25
+element = 2
+role = 3
+is_combination = true
+parent_a = 2
+parent_b = 3
+fuses_wardens = true
+damage = 10.0
+attack_interval = 1.0
+attack_range = 300.0
+aoe_radius = 200.0
+slow_factor = 0.8
+slow_duration = 1.0
+knockback = 100.0
+taunts = true
+max_hp = 1600.0
+id = "dust_keep"
+display_name = "Dust Keep"
+description = "Earth and air walls become a keep in a dust storm. It draws the road in, blinds it and blows it back."

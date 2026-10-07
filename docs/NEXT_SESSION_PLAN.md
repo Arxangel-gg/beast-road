@@ -21,6 +21,34 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0m. Where things stand (2026-10-07, late)
+
+Both of the owner's lists of 2026-10-07 are built and committed, each with its
+gate and its CLAUDE.md record: the tougher road and lighter heals (with the
+towers carrying the augment nerf), pounce re-arm, the Codex's ???, MP-and-SP
+casts with a dimming bar, the Town Hall and Yuri as doors, see-through panels
+and living bars, the M map cycle, varied bodies, dressed strangers, the
+dynamic camera, lanes that join, shields and durability with the Smith's mend,
+path riders, **thirty towers an element and twenty keeps and volleys** with
+their art, the stash's durability tiles and the idle-shield note.
+
+Left, in this order:
+
+1. **The Act X performance pass** (the evening list's last item): measure on
+   the renderer with `bash tools/perf_offscreen.sh <profile> res://tools/perf_check.tscn --act=10 --build --loadout --physics=180`
+   (League not running). The hitch budget failed at 5-12 a minute against 3 on
+   v0.72.0; the plan of 2026-10-07 names warming an elite's first death and a
+   camp's razing, and coalescing saves to one a frame.
+2. **Release v0.73.0**: `bash tools/sweep.sh <scratch> release`, the three-line
+   guard/release/neither diff, push, `tools\release.ps1 -Version 0.73.0`.
+3. **A partner's shield** is not drawn on a guest's screen: the wire carries
+   four dress kinds. Append the offhand as a fifth, tolerating a short row.
+4. The thumb cluster (item 25), on the design's own answers to its §7.
+
+PixelLab: about 2,370 generations were left on pixellab-a after the tower
+batch (resets 2026-11-06). `tools/pick_generated_frames.py` is the picker the
+next structure batch should go through before installing.
+
 ## 0l. Where things stand (2026-10-07, usage limit reached mid-task)
 
 **v0.72.0 is tagged and was building on CI** (release sweep 235/235 after

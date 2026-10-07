@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 5
+juice_scale = 0.85
+role = 0
+element = 2
+path_names = Array[String](["Shard", "Shrapnel", "Crystal Fence"])
+damage = 6.0
+attack_interval = 0.34
+attack_range = 270.0
+slow_factor = 0.9
+slow_duration = 0.6
+id = "shardspitter"
+display_name = "Shardspitter"
+description = "Skirmisher. Spits a fan of crystal shards at the nearest body, very quickly; what it hits stumbles."

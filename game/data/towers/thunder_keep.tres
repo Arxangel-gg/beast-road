@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Thunderclap", "Chain Storm", "Storm Keep"])
+shot = 4
+ambient = 8
+juice_scale = 1.25
+element = 3
+role = 3
+is_combination = true
+parent_a = 3
+parent_b = 3
+fuses_wardens = true
+damage = 11.0
+attack_interval = 0.8
+attack_range = 310.0
+extra_targets = 3
+knockback = 60.0
+taunts = true
+max_hp = 1400.0
+id = "thunder_keep"
+display_name = "Thunder Keep"
+description = "Two walls of air become a keep. It draws the road to it and lightning leaps from the first body to three more."

@@ -20,6 +20,9 @@ first frame, and every displacement here is zero at t = 0, so the loop closes on
 the base exactly. Only pixels of the moving part are touched, so the silhouette,
 the stone and the iron are the painting's own and the foot never moves.
 
+Shrapnel Volley and Landslide Cannon joined on 2026-10-07: the animator painted
+a burst beside each three times, whatever the prompt asked.
+
     python tools/paint_still_idle.py [--out DIR] [--only frostpoint,stillwater_mirror]
 """
 import argparse, math, os
@@ -166,7 +169,58 @@ def stillwater_mirror(base):
     return out
 
 
-RECIPES = {"frostpoint": frostpoint, "stillwater_mirror": stillwater_mirror}
+
+
+def _pulse(base, part, tint, lift_peak, glint_rows=None):
+    """Brighten `part` toward `tint` on the phase, and slide a one-pixel glint
+    band down it a step a frame: the shared shape of a small idle."""
+    out = []
+    h, w = base.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    ys = np.nonzero(part)[0]
+    top, bottom = (ys.min(), ys.max()) if ys.size else (0, h)
+    for t in range(1, FRAMES + 1):
+        f = base.copy()
+        lift = lift_peak * phase(t)
+        for c in range(3):
+            f[..., c] = np.where(part, f[..., c] + (tint[c] - f[..., c]) * lift, f[..., c])
+        centre = top + (bottom - top) * t / (FRAMES + 1)
+        band = (np.abs((yy - centre) - (xx - w / 2) * 0.5) < 1.5) & part
+        for c in range(3):
+            f[..., c] = np.where(band, f[..., c] + (255.0 - f[..., c]) * 0.6, f[..., c])
+        out.append(f)
+    return out
+
+
+def shrapnel_volley(base):
+    """The crystal shards in both launchers pulse and a glint runs down them
+    (2026-10-07): the animator drew a white streak across the stone three
+    times, whatever the prompt asked."""
+    a = base[..., 3]
+    r, g, b = base[..., 0], base[..., 1], base[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    crystal = (a > 32) & (b > r + 25) & (lum > 95)
+    return _pulse(base, crystal, (200.0, 236.0, 255.0), 0.45)
+
+
+def landslide_cannon(base):
+    """The rubble in the cannon's mouth breathes in the light (2026-10-07): the
+    animator painted a burst beside it three times, whatever the prompt asked.
+    The mouth is the top of the silhouette, and its stones are the lighter grey
+    there."""
+    a = base[..., 3]
+    r, g, b = base[..., 0], base[..., 1], base[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    ys = np.nonzero(a > 32)[0]
+    top = ys.min()
+    mouth = np.zeros(a.shape, bool)
+    mouth[top:top + 30, :] = True
+    rubble = mouth & (a > 32) & (lum > 120) & (np.abs(r - b) < 30)
+    return _pulse(base, rubble, (236.0, 228.0, 214.0), 0.35)
+
+
+RECIPES = {"frostpoint": frostpoint, "stillwater_mirror": stillwater_mirror,
+           "shrapnel_volley": shrapnel_volley, "landslide_cannon": landslide_cannon}
 
 
 def main():

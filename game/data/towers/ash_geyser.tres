@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 2
+juice_scale = 1.2
+role = 1
+element = 0
+path_names = Array[String](["Plume", "Ashfall", "Vent Wall"])
+damage = 22.0
+attack_interval = 1.6
+attack_range = 330.0
+extra_targets = 3
+burn_dps = 4.0
+burn_duration = 2.0
+id = "ash_geyser"
+display_name = "Ash Geyser"
+description = "Siege. A vent that coughs burning ash from body to body, three after the first, and leaves each of them alight."

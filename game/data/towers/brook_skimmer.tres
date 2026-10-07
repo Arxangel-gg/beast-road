@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 0
+ambient = 3
+juice_scale = 0.9
+role = 0
+element = 1
+path_names = Array[String](["Skip", "Spray", "Weir"])
+damage = 9.0
+attack_interval = 0.4
+attack_range = 300.0
+slow_factor = 0.88
+slow_duration = 0.8
+id = "brook_skimmer"
+display_name = "Brook Skimmer"
+description = "Skirmisher. Skims water at the nearest body quickly; each hit drags it a little."

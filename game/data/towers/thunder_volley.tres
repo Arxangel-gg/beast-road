@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Bolt", "Thunder Chain", "Static Fence"])
+shot = 4
+ambient = 8
+juice_scale = 1.05
+element = 3
+role = 0
+is_combination = true
+parent_a = 3
+parent_b = 3
+fuses_skirmishers = true
+damage = 10.0
+attack_interval = 0.38
+attack_range = 330.0
+extra_targets = 4
+id = "thunder_volley"
+display_name = "Thunder Volley"
+description = "Two air skirmishers become a volley of lightning that leaps from the nearest body to four more."

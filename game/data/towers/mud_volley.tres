@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Clodshot", "Mud Rain", "Bog Fence"])
+shot = 0
+ambient = 3
+juice_scale = 1.0
+element = 1
+role = 0
+is_combination = true
+parent_a = 1
+parent_b = 2
+fuses_skirmishers = true
+damage = 12.0
+attack_interval = 0.36
+attack_range = 310.0
+aoe_radius = 50.0
+slow_factor = 0.7
+slow_duration = 1.5
+id = "mud_volley"
+display_name = "Mud Volley"
+description = "Water and earth skirmishers become a volley of mud: each clod splashes and bogs the crowd down."

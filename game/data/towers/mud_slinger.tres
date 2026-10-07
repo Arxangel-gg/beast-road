@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 0
+ambient = 5
+juice_scale = 0.9
+role = 0
+element = 2
+path_names = Array[String](["Clod", "Mudsplash", "Mire Wall"])
+damage = 10.0
+attack_interval = 0.48
+attack_range = 300.0
+slow_factor = 0.75
+slow_duration = 1.5
+id = "mud_slinger"
+display_name = "Mud Slinger"
+description = "Skirmisher. Slings clods of mud at the nearest body; each one bogs it down."

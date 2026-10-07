@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 5
+juice_scale = 0.95
+role = 0
+element = 2
+path_names = Array[String](["Lash", "Root Snare", "Root Wall"])
+damage = 12.0
+attack_interval = 0.6
+attack_range = 370.0
+extra_targets = 1
+slow_factor = 0.85
+slow_duration = 1.0
+id = "root_lasher"
+display_name = "Root Lasher"
+description = "Skirmisher. Roots that lash through one body into the next and leave both tangled."

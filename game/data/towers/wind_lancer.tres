@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 7
+juice_scale = 0.95
+role = 0
+element = 3
+path_names = Array[String](["Gust Lance", "Streamer", "Wind Picket"])
+damage = 11.0
+attack_interval = 0.62
+attack_range = 400.0
+extra_targets = 2
+id = "wind_lancer"
+display_name = "Wind Lancer"
+description = "Skirmisher. Fires lances of wind that pass through two bodies after the first."

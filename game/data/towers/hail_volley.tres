@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Hailshot", "Hail Shower", "Frost Fence"])
+shot = 0
+ambient = 4
+juice_scale = 1.0
+element = 1
+role = 0
+is_combination = true
+parent_a = 1
+parent_b = 1
+fuses_skirmishers = true
+damage = 11.0
+attack_interval = 0.32
+attack_range = 320.0
+aoe_radius = 50.0
+slow_factor = 0.8
+slow_duration = 1.0
+freeze_chance = 0.05
+id = "hail_volley"
+display_name = "Hail Volley"
+description = "Two water skirmishers become a volley of hail: quick, each stone bursting small and slowing what it hits."

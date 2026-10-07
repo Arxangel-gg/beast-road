@@ -2466,6 +2466,33 @@ func _test_free_placement(field: Battlefield) -> void:
 			_check(ContentDB.combination_for(value.parent_a, value.parent_b) != value,
 				"%s must never be the plain elemental answer" % value.id)
 	_check(batteries == 10, "every pair of elements has a battery (%d)" % batteries)
+	# **And two walls make a keep, two skirmishers a volley** (2026-10-07), each
+	# beside the fusion and never instead of it.
+	for family: String in ["keep", "volley"]:
+		RunState.towers.clear()
+		var parent_a: TowerData = ContentDB.tower("magma_bastion" if family == "keep" else "spark_scatter")
+		var parent_b: TowerData = ContentDB.tower("fog_bank" if family == "keep" else "brinespitter")
+		_check(parent_a != null and parent_b != null, "the %s's parents must exist" % family)
+		if parent_a == null or parent_b == null:
+			continue
+		_check(field.try_build(pocket, parent_a).is_empty() and field.try_build(far, parent_b).is_empty(),
+			"two %s parents must build" % family)
+		var offered: Array[String] = []
+		var family_found: int = 0
+		for option: Dictionary in RunState.combinations_for_tile(gap):
+			var made: TowerData = option["tower"] as TowerData
+			offered.append(made.id)
+			if (family == "keep" and made.fuses_wardens) or (family == "volley" and made.fuses_skirmishers):
+				family_found += 1
+		_check(offered.has("steam_burst") and family_found == 1 and offered.size() == 2,
+			"two %ss must be offered their fusion and their %s: %s" % [family, family, offered])
+	RunState.towers.clear()
+	_check(field.try_build(pocket, mortar).is_empty() and field.try_build(far, ContentDB.tower("magma_bastion")).is_empty(),
+		"a mortar and a wall must build")
+	for option: Dictionary in RunState.combinations_for_tile(gap):
+		var made: TowerData = option["tower"] as TowerData
+		_check(not made.is_family(), "a mortar and a wall make no family combination: %s" % made.id)
+	RunState.towers.clear()
 
 	# Same-element neighbours resonate, which is now something the player
 	# arranges on the grid rather than something a fixed slot handed them.

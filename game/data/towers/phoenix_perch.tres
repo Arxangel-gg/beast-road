@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 1
+juice_scale = 1.3
+role = 2
+element = 0
+path_names = Array[String](["Talon", "Firewing", "Nest"])
+damage = 50.0
+attack_interval = 2.0
+attack_range = 600.0
+burn_dps = 5.0
+burn_duration = 2.0
+ground_zone_dps = 8.0
+ground_zone_duration = 3.0
+id = "phoenix_perch"
+display_name = "Phoenix Perch"
+description = "Sniper. A phoenix's feather of fire that strikes far down the road and leaves the ground there burning."

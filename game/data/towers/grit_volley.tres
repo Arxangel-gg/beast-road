@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Grit Blast", "Sand Gale", "Dust Fence"])
+shot = 3
+ambient = 5
+juice_scale = 1.0
+element = 2
+role = 0
+is_combination = true
+parent_a = 2
+parent_b = 3
+fuses_skirmishers = true
+damage = 9.0
+attack_interval = 0.3
+attack_range = 300.0
+knockback = 50.0
+id = "grit_volley"
+display_name = "Grit Volley"
+description = "Earth and air skirmishers become a volley of wind-blown grit that pushes the near crowd back."

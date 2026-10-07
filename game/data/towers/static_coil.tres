@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 8
+juice_scale = 0.9
+role = 3
+element = 3
+path_names = Array[String](["Discharge", "Static Field", "Grounding Wall"])
+damage = 7.0
+attack_interval = 0.8
+attack_range = 300.0
+extra_targets = 2
+slow_factor = 0.85
+slow_duration = 1.0
+id = "static_coil"
+display_name = "Static Coil"
+description = "Warden. A standing crackle that jumps from the nearest body to two more and leaves them stiff. It holds without calling."

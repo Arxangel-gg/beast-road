@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Scald", "Steam Cloud", "Boiler Keep"])
+shot = 3
+ambient = 2
+juice_scale = 1.25
+element = 0
+role = 3
+is_combination = true
+parent_a = 0
+parent_b = 1
+fuses_wardens = true
+damage = 11.0
+attack_interval = 1.0
+attack_range = 300.0
+aoe_radius = 200.0
+slow_factor = 0.75
+slow_duration = 1.5
+burn_dps = 5.0
+burn_duration = 2.0
+taunts = true
+max_hp = 1500.0
+id = "steam_keep"
+display_name = "Steam Keep"
+description = "Fire and water walls become a keep that breathes scalding steam: everything near it burns and wades."

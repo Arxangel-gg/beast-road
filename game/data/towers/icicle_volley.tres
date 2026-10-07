@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 4
+juice_scale = 0.9
+role = 0
+element = 1
+path_names = Array[String](["Needle", "Hailfan", "Icicle Fence"])
+damage = 7.0
+attack_interval = 0.4
+attack_range = 290.0
+slow_factor = 0.85
+slow_duration = 1.0
+freeze_chance = 0.04
+id = "icicle_volley"
+display_name = "Icicle Volley"
+description = "Skirmisher. Fires a fan of icicles at whatever is closest; now and then one freezes what it hits."

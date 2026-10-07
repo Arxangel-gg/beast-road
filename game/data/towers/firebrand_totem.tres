@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 1
+juice_scale = 0.9
+role = 0
+element = 0
+path_names = Array[String](["Brand", "Wildbrand", "Totem Ward"])
+damage = 8.0
+attack_interval = 0.5
+attack_range = 310.0
+extra_targets = 2
+burn_dps = 3.0
+burn_duration = 2.0
+id = "firebrand_totem"
+display_name = "Firebrand Totem"
+description = "Skirmisher. Fire leaps from the nearest body to two more and leaves all three burning."

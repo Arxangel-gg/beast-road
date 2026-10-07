@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 0
+ambient = 7
+juice_scale = 0.85
+role = 0
+element = 3
+path_names = Array[String](["Quill", "Flurry", "Aerie"])
+damage = 9.0
+attack_interval = 0.34
+attack_range = 330.0
+id = "feather_darter"
+display_name = "Feather Darter"
+description = "Skirmisher. Fires steel feathers at the nearest body faster than anything else on the road."

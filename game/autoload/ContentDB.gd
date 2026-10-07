@@ -686,7 +686,7 @@ func base_towers() -> Array[TowerData]:
 ## `RunState.combinations_for_tile` is the door that offers it.
 func combination_for(a: TowerData.Element, b: TowerData.Element) -> TowerData:
 	for t: TowerData in combinations:
-		if t.matches_parents(a, b) and not t.fuses_long_arms:
+		if t.matches_parents(a, b) and not t.is_family():
 			return t
 	return null
 

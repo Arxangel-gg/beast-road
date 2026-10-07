@@ -13577,6 +13577,326 @@ budget still fails**, at 5 to 12 a minute against 3; the one-offs are the next
 lever, and a warmup of what an elite's death and a camp's razing first draw is
 where to start.
 
+**The staged augment pass is not landed, and that is a decision, as of
+2026-10-07.** The owner's list of 2026-10-06 named "the 31 staged augments",
+and that pass (`docs/staged/augment_content_2026-09-26/`) is thirty-one cards
+that each move one `Modifiers` number - the kind of card the owner retired on
+2026-09-27 as "too similar to the relics and stuff players would get at
+crossroads". Landing them would put back what the Arsenal replaced, so only its
+one rule-changing card is worth having and the rest stays staged; the list's
+other half - "More augments and variety. Augment card images made with
+pixellab" - is answered by the Arsenal's paintings below. **If the owner wants
+the number cards back after all, that is a re-cut of 2026-09-27 and wants
+saying so.**
+
+**Every Arsenal card wears a painting, as of 2026-10-07.** Eighty-five PixelLab
+images (Pro Flash, 128 pixels, the keystone `card_cold_snap.png` as style with
+its palette off) replace the icons composed from spell and relic art on
+2026-09-27 - an orb ring for Ember Wisps, a stone tower with green wisps for
+Sentry Wisps, a hearth for Hearthstone. Two came back too small to read and were
+redrawn. `tools/compose_arsenal_icons.py` now writes only a missing icon, so a
+new card has a placeholder until its painting lands and no rerun can throw the
+paintings away; `--force` is the decision to.
+
+**Fifteen towers an element, and a mortar on each, as of 2026-10-07.** Owner:
+"Long range mortar artillery towers" and "Need more towers, 15-30 instead of
+just 10 of each element". Twenty towers, five an element, each a role-and-shot
+pairing its element lacked, every number inside its role's siblings so the
+curve reads a wider choice rather than a stronger board:
+
+- **The mortars**: Ember Mortar, Breaker Mortar, Quarry Trebuchet and Thunder
+  Mortar - siege, lobbed, 700 to 760 reach against the 330-600 the roster had,
+  a wide splash, slow.
+- **And a blind spot** (`TowerData.min_range`, 230-260): a body nearer than that
+  is never chosen, read in the one function that chooses
+  (`Tower._acquire_targets_now`), and the build ghost draws it as a dark disc
+  under a dashed rim. That is what makes the longest arm a choice rather than a
+  bigger gun - it wants a neighbour close in. A reach and a choice of target,
+  never a damage figure.
+- The first wardens of Fire and Air that draw the road onto themselves (Magma
+  Bastion, Eye of the Storm), two that slow what crosses their ground (Fog Bank,
+  Thornwall), water's and earth's first chains, a piercing ballista, a pearl
+  sling that freezes, a lance of deep water, and two blast cannons.
+
+Painted with Pro Flash objects at 192 (front-on, slight top-down, the Pyre
+Cannon as style, palette off), then an idle loop pinned back to the painting and
+an attack, each run through the scrubber and `lock_tower_frames.py`. Three
+attacks washed the tower white or changed its shape and were redrawn describing
+the motion alone. They join `ROSTER_UNLOCK_ORDER` after every gun and ahead of
+the well, mortars first. `TOWERS_PER_ELEMENT` is 15. `tower_juice_check` builds
+every mortar and asks its own choosing door about a body inside the blind spot
+and one beyond it; with the blind spot ignored it named all four. **Four snipers
+were first authored with a bolt and a siege piece with a lance**, which the same
+gate refuses - a sniper draws a lance, a siege piece throws something heavy -
+and the look was changed rather than the rule: a shot's style is a picture and
+never a number.
+
+**Twenty more deeds to pay for them** (owner: "Way more chronicles needed to
+accommodate for them all"): eighty Tools of towers is several runs of acts, so
+the Chronicle gained twenty deeds worth 44 Tools across every measure it already
+reads - acts reached through the later regions, kills to twelve thousand, ninety
+towers, a hundred upgrades, twenty-five camps, five oaths, a clean town and a
+clean Warden deep into the road. Data only.
+
+**Three times the enemy variety, as of 2026-10-07.** Owner: "3x More enemy
+variety for every act." `ACT_UNIQUE_ENEMIES` is the 2026-09-21 table tripled -
+24 at Act I, three more each act, 57 at the summit - and `roster_check` holds the
+new shape (amended and dated). It is met three ways:
+
+- **Thirty-three new breeds**, three a region, painted with Pro Flash at 192 in
+  each region's own style and animated idle, walk and attack. Ten marchers, eight
+  vanguards, eleven wardens and four burrowers; no new shooters, because every
+  shot is owned by exactly one breed and a shooter wants three of its own. Every
+  number sits on its role's mean across the shipped roster, and the kill values
+  average 3.39 against the roster's 3.42 - the 2026-09-21 lesson that a roster
+  authored below its average reads as a harder game.
+- **Variants, Diablo's grammar.** A region's own breeds come in up to two
+  variants named for the region - Blighted and Elder in the jungle, Hoarfrost
+  and Blackice in the snow, Gilded and Stormwatch on the Terrace - drawn from the
+  parent's painting (`sprite_id`) under a coat of their own
+  (`EnemyData.coat_hue`, `_saturation`, `_light`, the same three numbers and
+  uniform names a wild animal's coat uses, so one door dresses either material).
+  A variant is 12% tougher, 6% harder and 4% quicker than its parent and carries
+  a behaviour its role suits (a warden anchors, a vanguard pounces, a marcher
+  wards its neighbours, a burrower stores and releases). **Shooters have no
+  variants** (shot ownership), and a rider's thrown opener is not copied.
+  The codex says what a variant is "a kind of", and `enemy_facing_check` reads a
+  variant's facing through its parent - the judgement was made once, on the
+  painting. `phenotype_check` spawns a variant on the real field and reads its
+  coat back off the material, and its parent's as the painting; with the coat
+  left unworn it named the variant.
+- **Veterans from the nearest roads** fill each act to its count - never in Act
+  I, which the director never draws one in, so the jungle's twenty-four are its
+  nine breeds, thirteen variants and its two elites. **`roster_check` counts an
+  act's elites beside its breeds**, which the first authoring pass did not, so
+  every act came out two over; the fill now leaves the elites their places, and
+  no variant is written that no road fields (164 of them, every one listed).
+- **Shooters have no variants, and a rider's opener is not copied**, because every
+  shot is owned by exactly one breed.
+
+**What this does to the curve is measured below**, because variants are
+tougher
+than their parents and `curve_report` reads no breed's health.
+
+**The new breeds were the whole roster's average, and the jungle is not, found
+the same day.** `curve_report` reads no breed's health, so the variants' and new
+breeds' toughness was measured directly: each act's mean body, by the director's
+own draw (natives uniform, veterans at `WAVE_INVADER_CHANCE`), before and after.
+Act I's average body came out **half again as tough** (48 to 73 health) and a
+quarter harder-hitting, because the thirty-three were authored at the shipped
+roster's role means and the shipped roster's own breeds get tougher along the
+road - a new jungle warden stood at a late act's health. Each region's three are
+rescaled to that region's own breeds of their role (`rescale_regional.py` in the
+session's scratch, kept for the reasoning: the factor is softened to the 0.85
+power so a breed keeps a little of what made it distinct), and a variant keeps
+its step above the parent it was rescaled with. What remains is the variants'
+own step, which is the owner's "more aggressive and powerful enemies".
+**A roster average is not a regional one** - the 2026-09-21 lesson about the
+kill-value average, met again in health.
+
+**A third path, the Bulwark, as of 2026-10-07** (owner: "more tower
+specialization options and variety"). Focus and Spread both answer "kill
+faster"; siege orders send the late road at the board, and nothing let a tower
+answer "stand". `Path.BULWARK` is appended (a banked front and a build template
+store the path by number): 70% more health, 4 armour and 10% softer blows, a
+capstone of 50% more health and 4 more armour. Every number is one a tower
+already has - `max_hp`, the `flat_damage_reduction` a taunting tower wears, its
+damage - so the path bound holds, and armour still meets the 20% floor every
+blow has. Named per element: Hearthwall, Floewall, Rampart, Stormwall.
+`tower_path_check` builds one and reads the tower's own pool, armour, damage and
+reach back.
+
+**Ten batteries, the long-arm fusions, as of the same date** (owner: "more
+combination towers needed"). A combination was decided by its parents'
+elements alone, ten pairs and ten fusions. A battery is the second answer for
+each pair, offered **only when both parents are long arms** - a sniper or a
+siege piece - and offered *beside* the elemental fusion, so two long guns
+flanking a gap are a choice (v4 §13: the player chooses). `TowerData.fuses_from`
+is the one rule and `RunState.combinations_for_tile` the one door; the plain
+`ContentDB.combination_for` never answers a battery. Seven lob with a mortar's
+blind spot and three are snipers that lance; each is a step above the long arms
+it is made from and pays for its reach with a slow hand. Painted with Pro Flash
+objects styled on the shipped fusions, idle loops pinned to the painting, and
+attacks described as the body's motion. `balance_test` holds that a long arm
+beside a skirmisher is offered the elemental fusion alone, two long arms both,
+and that every pair has its battery.
+
+**A fifth element is not built, and that is a decision.** The owner floated
+"maybe more elements, including maybe the separation of air and electric". Air
+carries lightning everywhere it is read - the wet reactions, the storm towers,
+the Arsenal's air weapons, the earth's strain, the colourblind palette, the
+element tabs - and an element is indexed by number in every tower, weapon and
+save that names one. Splitting it is a re-cut of the reactions and every air
+tower's identity rather than an addition, and it waits for an owner ruling.
+
+**The rest of the owner's lists of 2026-10-07, each a commit and a gate.**
+What follows is the part of each that is a decision; the fixes are in the
+commits.
+
+- **The road is tougher and quicker, the Arsenal and every heal lighter, and
+  the towers carry the difference** (c5bf9f9e). Owner: *"all enemies have a bit
+  more health ... slightly faster"*, *"a slight nerf"* to augment drafting and
+  effects, *"reduce healing power from all sources"* while the healing orb was
+  *"nearly unnoticeable"*, and *"reduce player base movement speed by a tiny
+  bit"*. Bodies 1.08 and 1.06, the Warden 192 rather than 200, drafts a tenth
+  slower and cards a sixteenth lighter, every heal a fifth lighter at its own
+  number (well, fish, rations, Red Draught, Mercy of Dawn, Hollowing, the Red
+  Road, Second Wind, the Arsenal's mends) and the orb a fifth larger. **The
+  towers took what the augments lost** (`TOWER_DAMAGE_SCALE` 1.30), so every
+  road lands back in its band - drafted Long Road 0.608, Iron Road 0.655,
+  Chainmaker's 0.736 with Act X at 0.97 - and the harder road is a harder fight
+  rather than a different game. The Arcane bolt reaches 640. **Citadel is the
+  default layout, the fallback a retired front comes home on, and the Walk's
+  ground**, as the owner asked.
+- **A pounce re-arms on its own clock** (6900a9a2): every pouncer authors six
+  to eight seconds between leaps and a nine-second floor overrode all of them,
+  the 2026-09-25 lesson about `maxf(authored, default)` met again. **An unmet
+  Codex entry is "???"** and a search cannot find it by the name it hides.
+- **A step costs breath as well as mana** (c5c7777d). Owner: movement spells
+  *"should require both MP and SP"*. Rift Step, Chain Hook, Tremor, Ash Veil
+  and the Bulwark Ward draw SP beside MP; a cast asks both pools before spending
+  either, and **the ability bar asks the caster the same question**, so a slot
+  dims exactly when its cast would be refused - one rule, never two copies.
+- **The Town Hall and Yuri are doors** (97e4c335): a press on the hall's heart
+  or Yuri's painting goes back through the door Escape uses, at the zoom the
+  field had.
+- **The interface lets the road through** (317820af, 9769388b). Plates at 0.80
+  through `self_modulate` and the bottom and right buttons' frames at 0.72
+  through `UiTint.see_through`, which every re-tint honours - **a plate fades,
+  the words never do**. The bars draw their trough and fill at 0.84 under a whole
+  frame and carry `BarJuice`: an idle sheen and a breathing edge, and an answer
+  to every change sized by how much moved. One node a bar, plain rects, 24 Hz at
+  rest. A look and never a fact.
+- **M cycles the map** (b7652050): neither, the minimap, the overlay, both. The
+  overlay is the same map with no ground, frame or fog of its own, behind every
+  piece of the interface at 0.42, taking no press.
+- **No two of a kind are one body** (833c2e0d): a few degrees of hue, a little
+  depth and light and up to five percent of stature, rolled on look dice of
+  their own so a body's colouring never moves how it fights or any seeded roll.
+  Ranks, bosses and puppets keep their own looks.
+- **The Hold's strangers dye their leather and wear more** (65556881).
+- **A dynamic camera, off by default** (e7f57375): a few times a second the rig
+  judges what belongs in frame - the bodies the Warden fights, close; the ones
+  coming, further; the road otherwise - and eases toward it. A hand on the zoom
+  holds it off for six seconds, because a camera that fights the player is
+  worse than none.
+- **Every lane can cross to another before the town** (50a34c99). Owner: maps
+  must let lanes *"join other paths"*. Four Rings' rings now run on round the
+  field, and a Wild network is refused unless each entry reaches another without
+  the gate. `MapLayouts.lanes_join` is the rule, asked by `_sound` and by
+  `map_mode_check`, which named the unjoined rings when they were put back.
+- **Achievements and progress were already per slot** - they live in the save,
+  and a slot is a save - so the answer was a check rather than a change:
+  `save_slot_check` holds that a deed met in one slot is not met in another.
+
+**Shields, and gear that wears, as of 2026-10-07** (70f17fc2). Owner: shields
+in an offhand slot that guard *"with a limit to how much it can withstand"*,
+mitigating *"not completely"* and breaking onto a cooldown; equipment
+durability mended at the Smith, a Diablo II mannequin showing yellow (half the
+benefit) and red (none), each mending lowering what a piece holds - more for
+red - and durability bearing on value.
+
+**It amends working rule 7 by three numbers on a piece, and they only ever
+take away.** `dur`, `dur_max` and `dur_orig` ride the piece beside its uid;
+absent reads as whole, so `SAVE_VERSION` did not move. Wear moves a piece's
+benefit from whole to half to nothing and never above what its kind, rarity
+and level pay, so the capped gear scale is untouched as a ceiling; what
+changed is that keeping it there now costs Marks. **The Smith is the sink**:
+a mend is Marks, every mend lowers the ceiling (more for a broken piece, never
+below three tenths), and a worn piece sells for less - so a piece has a life,
+and farming replaces gear rather than only stacking it, which is the loop the
+owner asked gear to be on 2026-09-01.
+
+**A shield is a guard, never a wall.** `Slot.OFFHAND` is appended to the enum
+(data indexes it by number). Raised on Y or the mouse's side button - or by
+standing still, for a pad and a thumb, which have no button left - it takes
+its share of a blow from in front and never all of it, spends a guard that
+breaks at nothing and rests seven seconds, takes part of the shove, and slows
+the walk while raised. **A two-handed or paired weapon leaves no hand for one**:
+`Hero._shield_piece` and `WardenDress.outfit` both ask, so the shield neither
+guards nor shows. `durability_check` holds all of it on both bars. **Not
+built**: a partner's shield is not drawn on a guest's screen - the wire
+carries four dress kinds and the offhand is a fifth.
+
+**Thirty towers an element, keeps and volleys, and a path that is the
+tower's own, as of 2026-10-07.** The owner: *"30 Towers/element + more combo
+towers + more specialization options with unique offerings catered for each
+tower."* Three answers, each a decision.
+
+**Sixty more towers, fifteen an element, every one inside its role's band.**
+A tower's price is its role's (`TOWER_ROLE_GOLD`), so a new tower is a
+different answer at the same price rather than a better one: each was authored
+against its role's siblings' damage, rate, reach and pool, and varies by shape
+- a pierce, a chain, a blind spot, burning ground, a freeze, a shove, a taunt -
+rather than by size. Measured on every road: the drafted
+Long Road 0.608 (unchanged), the Iron Road 0.643 and the Chainmaker's 0.725
+(0.655 and 0.736 before) - a hair easier where a board has more to choose
+between, every band PASS, and `balance_test` at 49,246 assertions.
+`TOWERS_PER_ELEMENT` is 30 and `tower_support_check` holds it exactly. Each
+carries its own three path names, so a Lance or an Icespear is called what that
+tower would call it.
+
+**The art is PixelLab Pro Flash objects with a shipped tower as the style
+image**, one per element, `color_palette: false`, the perspective rule said in
+capitals in every prompt; an idle pinned to the base at both ends and an attack
+that describes the body's motion only, scrubbed and locked to the base by the
+project's own tools. Two bases came back empty or blotted and were redrawn.
+
+**The Tools ladder was re-priced so it stays a campaign rather than a career.**
+A hundred and twelve towers at four Tools was eighteen full campaigns - twice
+the road the hero's own hundred levels take - so a tower costs three
+(`TOOLS_PER_ROSTER_TOWER`) and a recipe two, and **the two shelves are woven**:
+a blueprint is bought after every `TOOLS_TOWERS_PER_BLUEPRINT` towers, because
+buying the whole roster first would have pushed every recipe sixty towers
+further back. Nothing about what Tools buy moved: ids, never power.
+
+**Keeps and volleys are two more families beside the batteries.** A keep is two
+walls fused - a Warden that fires and is neither a well nor a support
+(`TowerData.is_wall`) - and a volley two skirmishers (`is_quick_gun`); each is
+offered beside the pair's elemental fusion, never instead of it, through the
+same `fuses_from` door the battery uses. `is_family()` is the one question
+"is this ever the plain fusion's answer", asked by `ContentDB.combination_for`.
+Ten of each, one per pair of elements; `tower_support_check` counts all four
+families and `balance_test` builds two walls and two skirmishers and reads the
+offer back.
+
+**A path is the tower's own** (built and committed first, 8484a689): beside
+what every tower's Focus, Spread and Bulwark do, each path strengthens one
+status that tower already carries - `TowerData.path_rider`, authored or
+derived from the tower's statuses by the path's character - by
+`TOWER_PATH_RIDER`, and says so on its button. The statuses are applied in one
+place, `Tower.apply_statuses`, from a hit and from a shot alike, so a rider
+cannot work on one and not the other. The bound is the path bound: a rider
+strengthens a status the tower has and never adds one.
+
+**The stash's photograph found what its gate could not, as of the same date.**
+`stash_shot` now stocks a shield, an armour worn yellow and a helmet broken
+red, and photographs the HUD's mannequin on a plate. The mannequin was right;
+the paper-doll tiles were not - every worn tile is ringed in gold
+(`_card_plate`), so the durability band reached only the mark and a broken
+helmet's tile read as a whole one. The band wins the edge now. The same picture
+showed the Warden carrying a two-handed glaive and no shield, which is the rule
+(`WardenDress.outfit` and `Hero._shield_piece` both want a free hand) - and the
+shield's tile said nothing about it. It is dimmed and its tooltip says no hand
+is free. `stash_doll_check` holds both and named all three planted faults.
+
+**Tower art passes two measured filters at install** (`tools/pick_generated_frames.py`).
+The animator invents bright blobs and solid shapes: a white splat over a
+crossbow's idle, a staircase beside a pike rack in every idle frame. The picker
+scores each generated frame - new near-white pixels against the base, and new
+opaque pixels outside the base's silhouette - replaces an idle frame over either
+bound with the pinned base, keeps an attack's three calmest frames of four, and
+names any structure whose idle lost two frames so it can be generated again;
+four were, with a stricter prompt and a new seed. Idle frames are also
+clipped to the base's silhouette (`clip_to_base`), because the commonest
+invention was a puff or a crescent floating beside the structure; and the
+bright measure ignores white within a few pixels of the base's own, or ice,
+steam and glass shells read as artefacts. Two idles (Shrapnel Volley and
+Landslide Cannon) drew a burst three times whatever the prompt said, and are
+painted by `tools/paint_still_idle.py` instead, beside Frostpoint and the
+Mirror. A photograph found every one of these faults; the bounds were read off
+the frames, not chosen. Run the picker on the next art batch before installing.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

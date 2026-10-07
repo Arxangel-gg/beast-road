@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 7
+juice_scale = 0.9
+role = 0
+element = 3
+path_names = Array[String](["Edge", "Whirlwind", "Blade Hedge"])
+damage = 7.0
+attack_interval = 0.36
+attack_range = 270.0
+knockback = 40.0
+id = "whirlblade"
+display_name = "Whirlblade"
+description = "Skirmisher. Throws a fan of whirling blades at whatever is closest, and the wind behind them pushes it back."

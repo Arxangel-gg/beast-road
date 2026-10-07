@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 3
+ambient = 7
+juice_scale = 1.3
+role = 1
+element = 3
+path_names = Array[String](["Blast", "Gale Front", "Wind Wall"])
+damage = 22.0
+attack_interval = 1.5
+attack_range = 310.0
+aoe_radius = 100.0
+slow_factor = 0.85
+slow_duration = 1.0
+knockback = 180.0
+id = "gale_bombard"
+display_name = "Gale Bombard"
+description = "Siege. A blast of gale into the near crowd that throws it back and leaves it walking into the wind."

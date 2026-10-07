@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 0
+ambient = 2
+juice_scale = 1.1
+role = 3
+element = 0
+path_names = Array[String](["Coal Heart", "Ash Cloud", "Ember Keep"])
+damage = 9.0
+attack_interval = 1.1
+attack_range = 290.0
+aoe_radius = 160.0
+burn_dps = 4.0
+burn_duration = 3.5
+taunts = true
+max_hp = 880.0
+id = "smoulder_brazier"
+display_name = "Smoulder Brazier"
+description = "Warden. Draws the road to its coals and keeps everything near it smouldering. It burns slowly and for a long time."

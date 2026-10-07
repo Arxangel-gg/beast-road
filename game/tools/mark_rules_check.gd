@@ -383,7 +383,11 @@ func _test_a_marked_common_wears_an_outline_not_a_rank() -> void:
 		return
 	_check(marked.rank == Enemy.Rank.COMMON, "a marked common was promoted to a rank")
 	_check(marked.affixes.size() == 1, "a marked common wears %d marks, not 1" % marked.affixes.size())
-	_check(marked.sprite.scale.is_equal_approx(plain.sprite.scale),
+	# **Each body's own stature divided out** (2026-10-07): no two of a kind are
+	# one body any more, so two plain bogkin differ by up to a twentieth of their
+	# height on their look dice. What this holds is that a *mark* grows nothing,
+	# which is the same question asked of the body under its look.
+	_check((marked.sprite.scale / marked.stature()).is_equal_approx(plain.sprite.scale / plain.stature()),
 		"a marked common grew like an elite")
 	_check(marked.promoted_name().contains("Cruel"),
 		"a marked common does not say its mark: '%s'" % marked.promoted_name())

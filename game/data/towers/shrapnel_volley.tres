@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Shrapnel", "Stone Storm", "Shard Fence"])
+shot = 3
+ambient = 5
+juice_scale = 1.05
+element = 2
+role = 0
+is_combination = true
+parent_a = 2
+parent_b = 2
+fuses_skirmishers = true
+damage = 10.0
+attack_interval = 0.32
+attack_range = 300.0
+slow_factor = 0.9
+slow_duration = 0.6
+knockback = 40.0
+id = "shrapnel_volley"
+display_name = "Shrapnel Volley"
+description = "Two earth skirmishers become a volley of shrapnel that knocks the near crowd back and off its stride."

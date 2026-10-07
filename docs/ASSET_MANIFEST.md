@@ -840,6 +840,66 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_granite_ballista.png` | Stone | `#7A6E5C` |
 | `tower_downburst.png` | Storm | `#9B8FC4` |
 | `tower_lodestone_mast.png` | Storm | `#9B8FC4` |
+| `tower_cairn_mortar.png` | Stone | `#7A6E5C` |
+| `tower_flint_sling.png` | Stone | `#7A6E5C` |
+| `tower_obsidian_spear.png` | Stone | `#7A6E5C` |
+| `tower_shardspitter.png` | Stone | `#7A6E5C` |
+| `tower_menhir_guard.png` | Stone | `#7A6E5C` |
+| `tower_rumble_gong.png` | Stone | `#7A6E5C` |
+| `tower_ironwood_ballista.png` | Stone | `#7A6E5C` |
+| `tower_landslide_cannon.png` | Stone | `#7A6E5C` |
+| `tower_pebble_hail.png` | Stone | `#7A6E5C` |
+| `tower_bramble_keep.png` | Stone | `#7A6E5C` |
+| `tower_geode_lance.png` | Stone | `#7A6E5C` |
+| `tower_mud_slinger.png` | Stone | `#7A6E5C` |
+| `tower_scree_catapult.png` | Stone | `#7A6E5C` |
+| `tower_sandblaster.png` | Stone | `#7A6E5C` |
+| `tower_root_lasher.png` | Stone | `#7A6E5C` |
+| `tower_squall_mortar.png` | Storm | `#9B8FC4` |
+| `tower_feather_darter.png` | Storm | `#9B8FC4` |
+| `tower_skybolt_spire.png` | Storm | `#9B8FC4` |
+| `tower_whirlblade.png` | Storm | `#9B8FC4` |
+| `tower_cyclone_ward.png` | Storm | `#9B8FC4` |
+| `tower_arc_pylon.png` | Storm | `#9B8FC4` |
+| `tower_hawkeye_ballista.png` | Storm | `#9B8FC4` |
+| `tower_gale_bombard.png` | Storm | `#9B8FC4` |
+| `tower_static_coil.png` | Storm | `#9B8FC4` |
+| `tower_wind_lancer.png` | Storm | `#9B8FC4` |
+| `tower_storm_bell.png` | Storm | `#9B8FC4` |
+| `tower_lightning_rod.png` | Storm | `#9B8FC4` |
+| `tower_tempest_catapult.png` | Storm | `#9B8FC4` |
+| `tower_vortex_cannon.png` | Storm | `#9B8FC4` |
+| `tower_chime_sentinel.png` | Storm | `#9B8FC4` |
+| `tower_lantern_spitter.png` | Fire | `#C4552E` |
+| `tower_furnace_howitzer.png` | Fire | `#C4552E` |
+| `tower_firebrand_totem.png` | Fire | `#C4552E` |
+| `tower_floe_mortar.png` | Frost | `#7FA6BF` |
+| `tower_frostbolt_spire.png` | Frost | `#7FA6BF` |
+| `tower_brook_skimmer.png` | Frost | `#7FA6BF` |
+| `tower_icicle_volley.png` | Frost | `#7FA6BF` |
+| `tower_maelstrom_ward.png` | Frost | `#7FA6BF` |
+| `tower_rime_lancer.png` | Frost | `#7FA6BF` |
+| `tower_geyser_spout.png` | Frost | `#7FA6BF` |
+| `tower_current_coil.png` | Frost | `#7FA6BF` |
+| `tower_hailstone_sling.png` | Frost | `#7FA6BF` |
+| `tower_iceberg_bulwark.png` | Frost | `#7FA6BF` |
+| `tower_mist_lantern.png` | Frost | `#7FA6BF` |
+| `tower_deepwater_ballista.png` | Frost | `#7FA6BF` |
+| `tower_sleet_cannon.png` | Frost | `#7FA6BF` |
+| `tower_coral_bombard.png` | Frost | `#7FA6BF` |
+| `tower_rain_spout.png` | Frost | `#7FA6BF` |
+| `tower_cinder_wall.png` | Fire | `#C4552E` |
+| `tower_ember_crossbow.png` | Fire | `#C4552E` |
+| `tower_dragonmouth_spout.png` | Fire | `#C4552E` |
+| `tower_flare_beacon.png` | Fire | `#C4552E` |
+| `tower_hellfire_trebuchet.png` | Fire | `#C4552E` |
+| `tower_smoulder_brazier.png` | Fire | `#C4552E` |
+| `tower_sunlance_obelisk.png` | Fire | `#C4552E` |
+| `tower_ash_geyser.png` | Fire | `#C4552E` |
+| `tower_blaze_whirl.png` | Fire | `#C4552E` |
+| `tower_molten_ram.png` | Fire | `#C4552E` |
+| `tower_cinder_pike.png` | Fire | `#C4552E` |
+| `tower_phoenix_perch.png` | Fire | `#C4552E` |
 | `tower_ember_mortar.png` | Fire | `#C4552E` |
 | `tower_spark_scatter.png` | Fire | `#C4552E` |
 | `tower_brand_ballista.png` | Fire | `#C4552E` |
@@ -927,6 +987,86 @@ Files: `tower_fissure_drum_idle_01.png` … `tower_fissure_drum_idle_03.png`
 Files: `tower_granite_ballista_idle_01.png` … `tower_granite_ballista_idle_03.png`
 Files: `tower_downburst_idle_01.png` … `tower_downburst_idle_03.png`
 Files: `tower_lodestone_mast_idle_01.png` … `tower_lodestone_mast_idle_03.png`
+Files: `tower_pyre_keep_idle_01.png` … `tower_pyre_keep_idle_03.png`
+Files: `tower_rime_keep_idle_01.png` … `tower_rime_keep_idle_03.png`
+Files: `tower_ironstone_keep_idle_01.png` … `tower_ironstone_keep_idle_03.png`
+Files: `tower_thunder_keep_idle_01.png` … `tower_thunder_keep_idle_03.png`
+Files: `tower_steam_keep_idle_01.png` … `tower_steam_keep_idle_03.png`
+Files: `tower_obsidian_keep_idle_01.png` … `tower_obsidian_keep_idle_03.png`
+Files: `tower_firewind_keep_idle_01.png` … `tower_firewind_keep_idle_03.png`
+Files: `tower_mire_keep_idle_01.png` … `tower_mire_keep_idle_03.png`
+Files: `tower_frostgale_keep_idle_01.png` … `tower_frostgale_keep_idle_03.png`
+Files: `tower_dust_keep_idle_01.png` … `tower_dust_keep_idle_03.png`
+Files: `tower_ember_volley_idle_01.png` … `tower_ember_volley_idle_03.png`
+Files: `tower_hail_volley_idle_01.png` … `tower_hail_volley_idle_03.png`
+Files: `tower_shrapnel_volley_idle_01.png` … `tower_shrapnel_volley_idle_03.png`
+Files: `tower_thunder_volley_idle_01.png` … `tower_thunder_volley_idle_03.png`
+Files: `tower_scald_volley_idle_01.png` … `tower_scald_volley_idle_03.png`
+Files: `tower_slag_volley_idle_01.png` … `tower_slag_volley_idle_03.png`
+Files: `tower_flamegale_volley_idle_01.png` … `tower_flamegale_volley_idle_03.png`
+Files: `tower_mud_volley_idle_01.png` … `tower_mud_volley_idle_03.png`
+Files: `tower_rime_volley_idle_01.png` … `tower_rime_volley_idle_03.png`
+Files: `tower_grit_volley_idle_01.png` … `tower_grit_volley_idle_03.png`
+Files: `tower_cairn_mortar_idle_01.png` … `tower_cairn_mortar_idle_03.png`
+Files: `tower_flint_sling_idle_01.png` … `tower_flint_sling_idle_03.png`
+Files: `tower_obsidian_spear_idle_01.png` … `tower_obsidian_spear_idle_03.png`
+Files: `tower_shardspitter_idle_01.png` … `tower_shardspitter_idle_03.png`
+Files: `tower_menhir_guard_idle_01.png` … `tower_menhir_guard_idle_03.png`
+Files: `tower_rumble_gong_idle_01.png` … `tower_rumble_gong_idle_03.png`
+Files: `tower_ironwood_ballista_idle_01.png` … `tower_ironwood_ballista_idle_03.png`
+Files: `tower_landslide_cannon_idle_01.png` … `tower_landslide_cannon_idle_03.png`
+Files: `tower_pebble_hail_idle_01.png` … `tower_pebble_hail_idle_03.png`
+Files: `tower_bramble_keep_idle_01.png` … `tower_bramble_keep_idle_03.png`
+Files: `tower_geode_lance_idle_01.png` … `tower_geode_lance_idle_03.png`
+Files: `tower_mud_slinger_idle_01.png` … `tower_mud_slinger_idle_03.png`
+Files: `tower_scree_catapult_idle_01.png` … `tower_scree_catapult_idle_03.png`
+Files: `tower_sandblaster_idle_01.png` … `tower_sandblaster_idle_03.png`
+Files: `tower_root_lasher_idle_01.png` … `tower_root_lasher_idle_03.png`
+Files: `tower_squall_mortar_idle_01.png` … `tower_squall_mortar_idle_03.png`
+Files: `tower_feather_darter_idle_01.png` … `tower_feather_darter_idle_03.png`
+Files: `tower_skybolt_spire_idle_01.png` … `tower_skybolt_spire_idle_03.png`
+Files: `tower_whirlblade_idle_01.png` … `tower_whirlblade_idle_03.png`
+Files: `tower_cyclone_ward_idle_01.png` … `tower_cyclone_ward_idle_03.png`
+Files: `tower_arc_pylon_idle_01.png` … `tower_arc_pylon_idle_03.png`
+Files: `tower_hawkeye_ballista_idle_01.png` … `tower_hawkeye_ballista_idle_03.png`
+Files: `tower_gale_bombard_idle_01.png` … `tower_gale_bombard_idle_03.png`
+Files: `tower_static_coil_idle_01.png` … `tower_static_coil_idle_03.png`
+Files: `tower_wind_lancer_idle_01.png` … `tower_wind_lancer_idle_03.png`
+Files: `tower_storm_bell_idle_01.png` … `tower_storm_bell_idle_03.png`
+Files: `tower_lightning_rod_idle_01.png` … `tower_lightning_rod_idle_03.png`
+Files: `tower_tempest_catapult_idle_01.png` … `tower_tempest_catapult_idle_03.png`
+Files: `tower_vortex_cannon_idle_01.png` … `tower_vortex_cannon_idle_03.png`
+Files: `tower_chime_sentinel_idle_01.png` … `tower_chime_sentinel_idle_03.png`
+Files: `tower_lantern_spitter_idle_01.png` … `tower_lantern_spitter_idle_03.png`
+Files: `tower_furnace_howitzer_idle_01.png` … `tower_furnace_howitzer_idle_03.png`
+Files: `tower_firebrand_totem_idle_01.png` … `tower_firebrand_totem_idle_03.png`
+Files: `tower_floe_mortar_idle_01.png` … `tower_floe_mortar_idle_03.png`
+Files: `tower_frostbolt_spire_idle_01.png` … `tower_frostbolt_spire_idle_03.png`
+Files: `tower_brook_skimmer_idle_01.png` … `tower_brook_skimmer_idle_03.png`
+Files: `tower_icicle_volley_idle_01.png` … `tower_icicle_volley_idle_03.png`
+Files: `tower_maelstrom_ward_idle_01.png` … `tower_maelstrom_ward_idle_03.png`
+Files: `tower_rime_lancer_idle_01.png` … `tower_rime_lancer_idle_03.png`
+Files: `tower_geyser_spout_idle_01.png` … `tower_geyser_spout_idle_03.png`
+Files: `tower_current_coil_idle_01.png` … `tower_current_coil_idle_03.png`
+Files: `tower_hailstone_sling_idle_01.png` … `tower_hailstone_sling_idle_03.png`
+Files: `tower_iceberg_bulwark_idle_01.png` … `tower_iceberg_bulwark_idle_03.png`
+Files: `tower_mist_lantern_idle_01.png` … `tower_mist_lantern_idle_03.png`
+Files: `tower_deepwater_ballista_idle_01.png` … `tower_deepwater_ballista_idle_03.png`
+Files: `tower_sleet_cannon_idle_01.png` … `tower_sleet_cannon_idle_03.png`
+Files: `tower_coral_bombard_idle_01.png` … `tower_coral_bombard_idle_03.png`
+Files: `tower_rain_spout_idle_01.png` … `tower_rain_spout_idle_03.png`
+Files: `tower_cinder_wall_idle_01.png` … `tower_cinder_wall_idle_03.png`
+Files: `tower_ember_crossbow_idle_01.png` … `tower_ember_crossbow_idle_03.png`
+Files: `tower_dragonmouth_spout_idle_01.png` … `tower_dragonmouth_spout_idle_03.png`
+Files: `tower_flare_beacon_idle_01.png` … `tower_flare_beacon_idle_03.png`
+Files: `tower_hellfire_trebuchet_idle_01.png` … `tower_hellfire_trebuchet_idle_03.png`
+Files: `tower_smoulder_brazier_idle_01.png` … `tower_smoulder_brazier_idle_03.png`
+Files: `tower_sunlance_obelisk_idle_01.png` … `tower_sunlance_obelisk_idle_03.png`
+Files: `tower_ash_geyser_idle_01.png` … `tower_ash_geyser_idle_03.png`
+Files: `tower_blaze_whirl_idle_01.png` … `tower_blaze_whirl_idle_03.png`
+Files: `tower_molten_ram_idle_01.png` … `tower_molten_ram_idle_03.png`
+Files: `tower_cinder_pike_idle_01.png` … `tower_cinder_pike_idle_03.png`
+Files: `tower_phoenix_perch_idle_01.png` … `tower_phoenix_perch_idle_03.png`
 Files: `tower_ember_mortar_idle_01.png` … `tower_ember_mortar_idle_03.png`
 Files: `tower_spark_scatter_idle_01.png` … `tower_spark_scatter_idle_03.png`
 Files: `tower_brand_ballista_idle_01.png` … `tower_brand_ballista_idle_03.png`
@@ -1003,6 +1143,86 @@ Files: `tower_fissure_drum_attack_01.png` … `tower_fissure_drum_attack_03.png`
 Files: `tower_granite_ballista_attack_01.png` … `tower_granite_ballista_attack_03.png`
 Files: `tower_downburst_attack_01.png` … `tower_downburst_attack_03.png`
 Files: `tower_lodestone_mast_attack_01.png` … `tower_lodestone_mast_attack_03.png`
+Files: `tower_pyre_keep_attack_01.png` … `tower_pyre_keep_attack_03.png`
+Files: `tower_rime_keep_attack_01.png` … `tower_rime_keep_attack_03.png`
+Files: `tower_ironstone_keep_attack_01.png` … `tower_ironstone_keep_attack_03.png`
+Files: `tower_thunder_keep_attack_01.png` … `tower_thunder_keep_attack_03.png`
+Files: `tower_steam_keep_attack_01.png` … `tower_steam_keep_attack_03.png`
+Files: `tower_obsidian_keep_attack_01.png` … `tower_obsidian_keep_attack_03.png`
+Files: `tower_firewind_keep_attack_01.png` … `tower_firewind_keep_attack_03.png`
+Files: `tower_mire_keep_attack_01.png` … `tower_mire_keep_attack_03.png`
+Files: `tower_frostgale_keep_attack_01.png` … `tower_frostgale_keep_attack_03.png`
+Files: `tower_dust_keep_attack_01.png` … `tower_dust_keep_attack_03.png`
+Files: `tower_ember_volley_attack_01.png` … `tower_ember_volley_attack_03.png`
+Files: `tower_hail_volley_attack_01.png` … `tower_hail_volley_attack_03.png`
+Files: `tower_shrapnel_volley_attack_01.png` … `tower_shrapnel_volley_attack_03.png`
+Files: `tower_thunder_volley_attack_01.png` … `tower_thunder_volley_attack_03.png`
+Files: `tower_scald_volley_attack_01.png` … `tower_scald_volley_attack_03.png`
+Files: `tower_slag_volley_attack_01.png` … `tower_slag_volley_attack_03.png`
+Files: `tower_flamegale_volley_attack_01.png` … `tower_flamegale_volley_attack_03.png`
+Files: `tower_mud_volley_attack_01.png` … `tower_mud_volley_attack_03.png`
+Files: `tower_rime_volley_attack_01.png` … `tower_rime_volley_attack_03.png`
+Files: `tower_grit_volley_attack_01.png` … `tower_grit_volley_attack_03.png`
+Files: `tower_cairn_mortar_attack_01.png` … `tower_cairn_mortar_attack_03.png`
+Files: `tower_flint_sling_attack_01.png` … `tower_flint_sling_attack_03.png`
+Files: `tower_obsidian_spear_attack_01.png` … `tower_obsidian_spear_attack_03.png`
+Files: `tower_shardspitter_attack_01.png` … `tower_shardspitter_attack_03.png`
+Files: `tower_menhir_guard_attack_01.png` … `tower_menhir_guard_attack_03.png`
+Files: `tower_rumble_gong_attack_01.png` … `tower_rumble_gong_attack_03.png`
+Files: `tower_ironwood_ballista_attack_01.png` … `tower_ironwood_ballista_attack_03.png`
+Files: `tower_landslide_cannon_attack_01.png` … `tower_landslide_cannon_attack_03.png`
+Files: `tower_pebble_hail_attack_01.png` … `tower_pebble_hail_attack_03.png`
+Files: `tower_bramble_keep_attack_01.png` … `tower_bramble_keep_attack_03.png`
+Files: `tower_geode_lance_attack_01.png` … `tower_geode_lance_attack_03.png`
+Files: `tower_mud_slinger_attack_01.png` … `tower_mud_slinger_attack_03.png`
+Files: `tower_scree_catapult_attack_01.png` … `tower_scree_catapult_attack_03.png`
+Files: `tower_sandblaster_attack_01.png` … `tower_sandblaster_attack_03.png`
+Files: `tower_root_lasher_attack_01.png` … `tower_root_lasher_attack_03.png`
+Files: `tower_squall_mortar_attack_01.png` … `tower_squall_mortar_attack_03.png`
+Files: `tower_feather_darter_attack_01.png` … `tower_feather_darter_attack_03.png`
+Files: `tower_skybolt_spire_attack_01.png` … `tower_skybolt_spire_attack_03.png`
+Files: `tower_whirlblade_attack_01.png` … `tower_whirlblade_attack_03.png`
+Files: `tower_cyclone_ward_attack_01.png` … `tower_cyclone_ward_attack_03.png`
+Files: `tower_arc_pylon_attack_01.png` … `tower_arc_pylon_attack_03.png`
+Files: `tower_hawkeye_ballista_attack_01.png` … `tower_hawkeye_ballista_attack_03.png`
+Files: `tower_gale_bombard_attack_01.png` … `tower_gale_bombard_attack_03.png`
+Files: `tower_static_coil_attack_01.png` … `tower_static_coil_attack_03.png`
+Files: `tower_wind_lancer_attack_01.png` … `tower_wind_lancer_attack_03.png`
+Files: `tower_storm_bell_attack_01.png` … `tower_storm_bell_attack_03.png`
+Files: `tower_lightning_rod_attack_01.png` … `tower_lightning_rod_attack_03.png`
+Files: `tower_tempest_catapult_attack_01.png` … `tower_tempest_catapult_attack_03.png`
+Files: `tower_vortex_cannon_attack_01.png` … `tower_vortex_cannon_attack_03.png`
+Files: `tower_chime_sentinel_attack_01.png` … `tower_chime_sentinel_attack_03.png`
+Files: `tower_lantern_spitter_attack_01.png` … `tower_lantern_spitter_attack_03.png`
+Files: `tower_furnace_howitzer_attack_01.png` … `tower_furnace_howitzer_attack_03.png`
+Files: `tower_firebrand_totem_attack_01.png` … `tower_firebrand_totem_attack_03.png`
+Files: `tower_floe_mortar_attack_01.png` … `tower_floe_mortar_attack_03.png`
+Files: `tower_frostbolt_spire_attack_01.png` … `tower_frostbolt_spire_attack_03.png`
+Files: `tower_brook_skimmer_attack_01.png` … `tower_brook_skimmer_attack_03.png`
+Files: `tower_icicle_volley_attack_01.png` … `tower_icicle_volley_attack_03.png`
+Files: `tower_maelstrom_ward_attack_01.png` … `tower_maelstrom_ward_attack_03.png`
+Files: `tower_rime_lancer_attack_01.png` … `tower_rime_lancer_attack_03.png`
+Files: `tower_geyser_spout_attack_01.png` … `tower_geyser_spout_attack_03.png`
+Files: `tower_current_coil_attack_01.png` … `tower_current_coil_attack_03.png`
+Files: `tower_hailstone_sling_attack_01.png` … `tower_hailstone_sling_attack_03.png`
+Files: `tower_iceberg_bulwark_attack_01.png` … `tower_iceberg_bulwark_attack_03.png`
+Files: `tower_mist_lantern_attack_01.png` … `tower_mist_lantern_attack_03.png`
+Files: `tower_deepwater_ballista_attack_01.png` … `tower_deepwater_ballista_attack_03.png`
+Files: `tower_sleet_cannon_attack_01.png` … `tower_sleet_cannon_attack_03.png`
+Files: `tower_coral_bombard_attack_01.png` … `tower_coral_bombard_attack_03.png`
+Files: `tower_rain_spout_attack_01.png` … `tower_rain_spout_attack_03.png`
+Files: `tower_cinder_wall_attack_01.png` … `tower_cinder_wall_attack_03.png`
+Files: `tower_ember_crossbow_attack_01.png` … `tower_ember_crossbow_attack_03.png`
+Files: `tower_dragonmouth_spout_attack_01.png` … `tower_dragonmouth_spout_attack_03.png`
+Files: `tower_flare_beacon_attack_01.png` … `tower_flare_beacon_attack_03.png`
+Files: `tower_hellfire_trebuchet_attack_01.png` … `tower_hellfire_trebuchet_attack_03.png`
+Files: `tower_smoulder_brazier_attack_01.png` … `tower_smoulder_brazier_attack_03.png`
+Files: `tower_sunlance_obelisk_attack_01.png` … `tower_sunlance_obelisk_attack_03.png`
+Files: `tower_ash_geyser_attack_01.png` … `tower_ash_geyser_attack_03.png`
+Files: `tower_blaze_whirl_attack_01.png` … `tower_blaze_whirl_attack_03.png`
+Files: `tower_molten_ram_attack_01.png` … `tower_molten_ram_attack_03.png`
+Files: `tower_cinder_pike_attack_01.png` … `tower_cinder_pike_attack_03.png`
+Files: `tower_phoenix_perch_attack_01.png` … `tower_phoenix_perch_attack_03.png`
 Files: `tower_ember_mortar_attack_01.png` … `tower_ember_mortar_attack_03.png`
 Files: `tower_spark_scatter_attack_01.png` … `tower_spark_scatter_attack_03.png`
 Files: `tower_brand_ballista_attack_01.png` … `tower_brand_ballista_attack_03.png`
@@ -2765,6 +2985,26 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `tower_colossus_trebuchet.png` | Earth + Earth | `#6E6350` |
 | `tower_sandstorm_bombard.png` | Earth + Air | `#8A7F90` |
 | `tower_thunderhead_spire.png` | Air + Air | `#A79BD8` |
+| `tower_pyre_keep.png` | Fire + Fire | `#D14A22` |
+| `tower_rime_keep.png` | Water + Water | `#6FA8CF` |
+| `tower_ironstone_keep.png` | Earth + Earth | `#6E6350` |
+| `tower_thunder_keep.png` | Air + Air | `#A79BD8` |
+| `tower_steam_keep.png` | Fire + Water | `#A17E77` |
+| `tower_obsidian_keep.png` | Fire + Earth | `#9E6244` |
+| `tower_firewind_keep.png` | Fire + Air | `#B0729B` |
+| `tower_mire_keep.png` | Water + Earth | `#7C8A8E` |
+| `tower_frostgale_keep.png` | Water + Air | `#8B9BC2` |
+| `tower_dust_keep.png` | Earth + Air | `#8A7F90` |
+| `tower_ember_volley.png` | Fire + Fire | `#D14A22` |
+| `tower_hail_volley.png` | Water + Water | `#6FA8CF` |
+| `tower_shrapnel_volley.png` | Earth + Earth | `#6E6350` |
+| `tower_thunder_volley.png` | Air + Air | `#A79BD8` |
+| `tower_scald_volley.png` | Fire + Water | `#A17E77` |
+| `tower_slag_volley.png` | Fire + Earth | `#9E6244` |
+| `tower_flamegale_volley.png` | Fire + Air | `#B0729B` |
+| `tower_mud_volley.png` | Water + Earth | `#7C8A8E` |
+| `tower_rime_volley.png` | Water + Air | `#8B9BC2` |
+| `tower_grit_volley.png` | Earth + Air | `#8A7F90` |
 
 ### 5.15 Battlefield — `res://art/battlefield/`
 

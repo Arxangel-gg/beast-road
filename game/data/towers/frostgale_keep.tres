@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Hoarwind", "Blizzard Chain", "Frost Keep"])
+shot = 4
+ambient = 4
+juice_scale = 1.25
+element = 1
+role = 3
+is_combination = true
+parent_a = 1
+parent_b = 3
+fuses_wardens = true
+damage = 10.0
+attack_interval = 0.9
+attack_range = 310.0
+extra_targets = 3
+slow_factor = 0.7
+slow_duration = 1.5
+taunts = true
+max_hp = 1400.0
+freeze_chance = 0.06
+id = "frostgale_keep"
+display_name = "Frostgale Keep"
+description = "Water and air walls become a keep in a blizzard. Frost leaps from the first body to three more and some of them freeze."

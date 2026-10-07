@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 4
+juice_scale = 1.25
+role = 2
+element = 1
+path_names = Array[String](["Frostbolt", "Rime Burst", "Ice Spire"])
+damage = 54.0
+attack_interval = 2.1
+attack_range = 590.0
+slow_factor = 0.65
+slow_duration = 1.5
+id = "frostbolt_spire"
+display_name = "Frostbolt Spire"
+description = "Sniper. A long bolt of frost that strikes the furthest body and slows it hard."

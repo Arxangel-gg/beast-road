@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 2
+ambient = 8
+juice_scale = 1.3
+role = 2
+element = 3
+path_names = Array[String](["Skybolt", "Forked Bolt", "Lightning Wall"])
+damage = 58.0
+attack_interval = 2.1
+attack_range = 610.0
+extra_targets = 1
+id = "skybolt_spire"
+display_name = "Skybolt Spire"
+description = "Sniper. Calls a bolt down on the furthest body; it passes through that one into the next."

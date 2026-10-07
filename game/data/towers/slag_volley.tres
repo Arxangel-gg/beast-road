@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Slag Lance", "Slag Spray", "Slag Fence"])
+shot = 2
+ambient = 1
+juice_scale = 1.05
+element = 0
+role = 0
+is_combination = true
+parent_a = 0
+parent_b = 2
+fuses_skirmishers = true
+damage = 14.0
+attack_interval = 0.45
+attack_range = 400.0
+extra_targets = 2
+burn_dps = 4.0
+burn_duration = 2.0
+knockback = 30.0
+id = "slag_volley"
+display_name = "Slag Volley"
+description = "Fire and earth skirmishers become a volley of molten slag that passes through two bodies after the first."

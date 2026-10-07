@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+path_names = Array[String](["Rime Dart", "Frost Wind", "Rime Fence"])
+shot = 2
+ambient = 4
+juice_scale = 1.05
+element = 1
+role = 0
+is_combination = true
+parent_a = 1
+parent_b = 3
+fuses_skirmishers = true
+damage = 13.0
+attack_interval = 0.42
+attack_range = 410.0
+extra_targets = 2
+slow_factor = 0.8
+slow_duration = 1.0
+id = "rime_volley"
+display_name = "Rime Volley"
+description = "Water and air skirmishers become a volley of frost darts that pass through two bodies after the first."

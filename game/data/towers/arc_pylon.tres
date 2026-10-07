@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_new"]
+
+[resource]
+script = ExtResource("1_new")
+shot = 4
+ambient = 8
+juice_scale = 0.9
+role = 0
+element = 3
+path_names = Array[String](["Arc", "Chain Arc", "Pylon Fence"])
+damage = 8.0
+attack_interval = 0.5
+attack_range = 310.0
+extra_targets = 2
+id = "arc_pylon"
+display_name = "Arc Pylon"
+description = "Skirmisher. Arcs lightning into the nearest body and on to two more, quickly."

@@ -164,6 +164,24 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"brand_ballista", "pearl_sling", "spike_thrower", "storm_eye",
 	"wildfire_coil", "undertow", "gravel_bombard", "gust_cannon",
 	"magma_bastion", "fog_bank", "thornwall", "eye_of_the_storm",
+	# The sixty of 2026-10-07, to thirty an element (owner: "30 Towers/element").
+	# A round of the elements at a time, in the order they were authored, so a
+	# campaign meets one new tower of each element before the next of any.
+	"ember_crossbow", "floe_mortar", "cairn_mortar", "squall_mortar",
+	"dragonmouth_spout", "frostbolt_spire", "flint_sling", "feather_darter",
+	"cinder_pike", "brook_skimmer", "obsidian_spear", "skybolt_spire",
+	"flare_beacon", "icicle_volley", "shardspitter", "whirlblade",
+	"hellfire_trebuchet", "maelstrom_ward", "menhir_guard", "cyclone_ward",
+	"smoulder_brazier", "rime_lancer", "rumble_gong", "arc_pylon",
+	"sunlance_obelisk", "geyser_spout", "ironwood_ballista", "hawkeye_ballista",
+	"ash_geyser", "current_coil", "landslide_cannon", "gale_bombard",
+	"blaze_whirl", "hailstone_sling", "pebble_hail", "static_coil",
+	"molten_ram", "iceberg_bulwark", "bramble_keep", "wind_lancer",
+	"phoenix_perch", "mist_lantern", "geode_lance", "storm_bell",
+	"cinder_wall", "deepwater_ballista", "mud_slinger", "lightning_rod",
+	"lantern_spitter", "sleet_cannon", "scree_catapult", "tempest_catapult",
+	"furnace_howitzer", "coral_bombard", "sandblaster", "vortex_cannon",
+	"firebrand_totem", "rain_spout", "root_lasher", "chime_sentinel",
 	# The well is last on purpose. It is the only tower that does not shoot, and
 	# a player offered one before they have learned what a road costs them will
 	# read it as a worse gun rather than as a trade.
@@ -1191,6 +1209,15 @@ func award_tools(act_reached: int, victory: bool) -> Array[String]:
 			break                                   # roster complete
 		tools -= Balance.TOOLS_PER_ROSTER_TOWER
 		bought.append("tower:" + id)
+		# **A recipe every so many towers** (2026-10-07): the roster doubled to
+		# thirty an element, and buying it whole first would have pushed every
+		# blueprint sixty towers further back. The two shelves are woven now.
+		if roster_towers_owned() % Balance.TOOLS_TOWERS_PER_BLUEPRINT == 0 \
+				and tools >= Balance.TOOLS_PER_BLUEPRINT:
+			var plan: String = earn_next_blueprint()
+			if not plan.is_empty():
+				tools -= Balance.TOOLS_PER_BLUEPRINT
+				bought.append("blueprint:" + plan)
 	while tools >= Balance.TOOLS_PER_BLUEPRINT:
 		var id: String = earn_next_blueprint()
 		if id.is_empty():
@@ -1198,6 +1225,15 @@ func award_tools(act_reached: int, victory: bool) -> Array[String]:
 		tools -= Balance.TOOLS_PER_BLUEPRINT
 		bought.append("blueprint:" + id)
 	return bought
+
+
+## How many of the ladder's towers this account owns.
+func roster_towers_owned() -> int:
+	var owned: int = 0
+	for id: String in ROSTER_UNLOCK_ORDER:
+		if unlocked_towers.has(id):
+			owned += 1
+	return owned
 
 
 ## The next unknown recipe in stable content order, or an empty string.

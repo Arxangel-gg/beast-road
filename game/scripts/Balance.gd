@@ -3929,8 +3929,10 @@ const TOWER_SUPPORT_DAMAGE_SHARE: float = 0.62
 ## Named rather than left implicit because `tower_support_check` asserts it
 ## exactly, over all four elements: the roster may not drift to nine of one
 ## and eleven of another, which is what "ten types each" means and is not
-## something a total would catch. It was eight from 2026-09-14 until this.
-const TOWERS_PER_ELEMENT: int = 15
+## something a total would catch. It was eight from 2026-09-14, ten from
+## 2026-09-22, fifteen from 2026-10-07 and thirty since the same day (owner:
+## "30 Towers/element").
+const TOWERS_PER_ELEMENT: int = 30
 ## How dark a mortar's blind spot is on the build ghost. [TUNE]
 const BUILD_GHOST_BLIND_FILL: float = 0.22
 const TOWER_REPAIR_FRACTION: float = 0.34
@@ -6134,11 +6136,18 @@ const TOOLS_VICTORY_BONUS: int = 3
 ## What one roster tower costs. Eight towers at four each is thirty-two Tools,
 ## which is roughly four full runs - the roster widens over a campaign rather
 ## than over an evening. [TUNE]
-const TOOLS_PER_ROSTER_TOWER: int = 4
+##
+## **Three since 2026-10-07**, when the roster went to thirty an element: at
+## four, a hundred and twelve towers was eighteen full campaigns of Tools,
+## twice the road the hero's own hundred levels take. [TUNE]
+const TOOLS_PER_ROSTER_TOWER: int = 3
+## A recipe is bought after every this many roster towers (2026-10-07), so the
+## blueprints arrive across the ladder rather than after all of it. [TUNE]
+const TOOLS_TOWERS_PER_BLUEPRINT: int = 10
 ## What a recipe costs, against a tower's four. Cheaper because a blueprint is a
 ## smaller thing than a tower line - and because this shelf exists to keep Tools
 ## meaningful in the late account, not to become a second grind.
-const TOOLS_PER_BLUEPRINT: int = 3
+const TOOLS_PER_BLUEPRINT: int = 2
 
 ## Ceiling on the stored balance. Tools are spent automatically at the end of a
 ## run, so a balance only builds up once the roster is complete; the cap stops it

@@ -30,7 +30,7 @@ SEARCH = 6          # pixels of drift to search for
 # noise: run over them it erased 3,959 of the Mirror's 3,962 moving pixels,
 # which is how both towers shipped a loop identical to the painting (2026-09-25).
 # Their attack frames are generated and are still locked.
-AUTHORED_IDLE = {"frostpoint", "stillwater_mirror"}
+AUTHORED_IDLE = {"frostpoint", "stillwater_mirror", "shrapnel_volley", "landslide_cannon"}
 
 
 def load(path):
