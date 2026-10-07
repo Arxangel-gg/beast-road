@@ -132,6 +132,7 @@ func _ready() -> void:
 	_footfalls.name = "Footfalls"
 	_footfalls.ground = ground_colour
 	_footfalls.watching = _watched_point
+	_footfalls.bodies_near = enemies_near
 	_footfalls.z_index = Balance.FOOTFALL_Z
 	(entity_root if entity_root != null else self).add_child(_footfalls)
 	# **A click is an order in a camp and a maze as well** (2026-10-01): the

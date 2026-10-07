@@ -4237,6 +4237,19 @@ func _shed_blood(lost: float, source: String) -> void:
 		"dragon" if dragon else "enemy", data.breath_element)
 
 
+## **What this body lends its footprints** (`Tracks`, 2026-10-07): burning,
+## wet, or with the lightning still in it.
+func footprint_mark() -> int:
+	var marks: int = 0
+	if _burn_left > 0.0:
+		marks |= Tracks.MARK_BURN
+	if _wet_left > 0.0:
+		marks |= Tracks.MARK_WET
+	if _death_element == TowerData.Element.AIR and _death_element_left > 0.0:
+		marks |= Tracks.MARK_CHARGED
+	return marks
+
+
 ## The ring that says this one is not ordinary.
 ##
 ## **A promotion nobody can see is a promotion that does not exist.** Three tells,

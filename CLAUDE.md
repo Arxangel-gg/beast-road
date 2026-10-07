@@ -14171,6 +14171,38 @@ No number moved and no gate can see a picture: `wrath_check`, `forge_check` and
 `balance_reach_check` hold that the wave still strikes as it did, the sheet is
 still played, and every constant is read.
 
+**A footprint says what the foot was carrying, as of 2026-10-07.** Owner: *"All
+characters should leave footprints that are affected by influential factors to
+make them last longer etc or have vfx if affected by elements such as burn or
+wet or possibility for residue footstep from electricity remaining in a
+footstep that can provide an aftershock that can also chain again potentially,
+but is a rarer effect for footsteps, and walking on dirt/unpathed ground affects
+footsteps when returning to pathed ground, and vice versa."*
+
+- **How long a print holds** (`Tracks.life_scale`): to `TRACK_HEAVY_LIFE` under
+  the heaviest bodies, `TRACK_WET_LIFE` when wet (the rain lends every print half
+  of that), `TRACK_BURN_LIFE` scorched, and a little longer when it carries mud.
+- **A foot carries the ground it left**: a step onto ground `TRACK_CARRY_GAP`
+  different in colour carries the last one for `TRACK_CARRY_STEPS` steps - dirt
+  walked onto the road, road dust out over the dirt - remembered per walker.
+- **What a body lends its prints** (`footprint_mark`, an enemy's burn, wet and
+  air mark): scorched dark prints that smoke and spit an ember, wet dark prints
+  that splash in the rain, pale charged prints that crackle.
+- **A charged print bites back, rarely**: `TRACK_SHOCK_CHANCE` of a charged
+  body's prints keep their shock for `TRACK_SHOCK_SECONDS`, at most
+  `TRACK_SHOCK_MAX` at once, and the next road body to step on one takes
+  `TRACK_SHOCK_SHARE` of what a strike deals a road body, scaled by the act -
+  and `TRACK_SHOCK_CHAIN_CHANCE` of the time it jumps once more, for
+  `TRACK_SHOCK_CHAIN_SHARE` of that. **The one print in the game that is a
+  fact**, kept small on purpose: it is the board's lightning lingering, never a
+  weapon. Host only, on dice of the prints' own; a guest's prints only crackle.
+
+`footfall_check` holds every factor's direction, mud on the road for a few steps
+and clean after, a burning body's prints darker, and a charged print holding
+its shock under the cap, giving it up to a real body that steps on it - for a
+small share of its pool - and expiring. Planted with no carry and a toothless
+shock, it named both.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

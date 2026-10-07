@@ -70,6 +70,10 @@ var watching: Callable = Callable()
 ## foliage - a scope with no plants hands in nothing and throws no leaves.
 var leaves: Callable = Callable()
 
+## The road bodies near a point, handed on to the prints for a charged one's
+## aftershock.
+var bodies_near: Callable = Callable()
+
 var _marks: GroundMarks = null
 ## How deep water stands at a point: a print is never laid in it. Handed in,
 ## as `ground` is.
@@ -133,6 +137,7 @@ func _ready() -> void:
 	_tracks.name = "Tracks"
 	_tracks.ground = ground
 	_tracks.water = water
+	_tracks.bodies_near = bodies_near
 	add_child(_tracks)
 	_marks = GroundMarks.new()
 	_marks.name = "Marks"
@@ -210,7 +215,8 @@ func _walk(elapsed: float) -> void:
 			# The print lands where the stride did, which is behind the body by
 			# whatever of the walk is still carried.
 			if _tracks != null:
-				_tracks.press(at - heading * carried, heading, tread.x, tread.y, foot, weight)
+				_tracks.press(at - heading * carried, heading, tread.x, tread.y, foot, weight,
+					int(body.call("footprint_mark")) if body.has_method("footprint_mark") else 0, id)
 			foot = -foot
 		here[id] = [at, carried, foot]
 	_seen = here

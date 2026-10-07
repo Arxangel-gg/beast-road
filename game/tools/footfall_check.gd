@@ -49,6 +49,7 @@ func _ready() -> void:
 	_test_every_body_that_walks_declares_a_tread()
 	await _test_the_plants_answer_by_size()
 	await _test_the_ground_keeps_the_prints()
+	await _test_what_a_foot_carries()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -362,6 +363,121 @@ func _test_the_plants_answer_by_size() -> void:
 		node.queue_free()
 	field.queue_free()
 	await get_tree().process_frame
+
+
+## **What a foot carries, and what it was standing in** (owner, 2026-10-07).
+## A print lasts longer under a heavy body, in the wet and scorched; a foot off
+## the dirt carries it onto the road for a few steps and then does not; a
+## burning body's prints are scorched dark; and a charged print holds its shock
+## until a road body steps on it, then gives it up - on a real body's pool.
+func _test_what_a_foot_carries() -> void:
+	var grey := Color(0.5, 0.5, 0.5)
+	var plain: float = Tracks.life_scale(1.0, grey, 0, 0.0)
+	_check(Tracks.life_scale(3.0, grey, 0, 0.0) > plain, "a heavy body's prints last no longer")
+	_check(Tracks.life_scale(1.0, grey, Tracks.MARK_WET, 0.0) > plain, "a wet print lasts no longer")
+	_check(Tracks.life_scale(1.0, grey, Tracks.MARK_BURN, 0.0) > plain, "a scorched print lasts no longer")
+	# Off the dirt onto the road.
+	var scope := Node2D.new()
+	add_child(scope)
+	var feet := Footfalls.new()
+	var dirt := Color(0.48, 0.30, 0.14)
+	var road := Color(0.56, 0.56, 0.56)
+	feet.ground = func(at: Vector2) -> Color: return dirt if at.x < 0.0 else road
+	scope.add_child(feet)
+	var walker: Node2D = _marked_puppet(0)
+	await get_tree().process_frame
+	walker.global_position = Vector2(-500.0, 0.0)
+	feet._walk(1.0 / Balance.FOOTFALL_HZ)
+	_march(feet, walker, Vector2.RIGHT, 100.0, int(1300.0 / (100.0 / Balance.FOOTFALL_HZ)))
+	var plain_road: Color = road.darkened(Balance.TRACK_DARKEN)
+	var stride: float = Balance.ENEMY_BODY_RADIUS * Balance.FOOTFALL_STRIDE
+	var muddy: int = 0
+	var clean_late: bool = true
+	for chunk: Variant in feet.tracks().get("_chunks"):
+		for one: Dictionary in (chunk as Tracks.TrackChunk).prints:
+			var x: float = (one["at"] as Vector2).x
+			var ink: Color = one["colour"] as Color
+			var off: float = absf(ink.r - plain_road.r) + absf(ink.g - plain_road.g) + absf(ink.b - plain_road.b)
+			if x > stride * 0.5 and x < stride * 2.5 and off > 0.03:
+				muddy += 1
+			if x > stride * float(Balance.TRACK_CARRY_STEPS + 3) and off > 0.01:
+				clean_late = false
+	_check(muddy >= 1, "a foot off the dirt left no dirt on the road")
+	_check(clean_late, "a foot off the dirt was still muddy %d steps on" % (Balance.TRACK_CARRY_STEPS + 3))
+	scope.queue_free()
+	walker.queue_free()
+	# A burning body's prints are scorched; a charged body's keep their shock.
+	var scope2 := Node2D.new()
+	add_child(scope2)
+	var feet2 := Footfalls.new()
+	feet2.ground = func(_at: Vector2) -> Color: return Color(0.5, 0.4, 0.3)
+	scope2.add_child(feet2)
+	var field := EnemyField.new()
+	scope2.add_child(field)
+	var tracks: Tracks = null
+	await get_tree().process_frame
+	tracks = feet2.tracks()
+	tracks.bodies_near = field.enemies_near
+	var burning := Color(0.5, 0.4, 0.3)
+	tracks.press(Vector2(0.0, 0.0), Vector2.RIGHT, 20.0, 1.0, 1.0, 1.0, Tracks.MARK_BURN, 1)
+	tracks.press(Vector2(200.0, 0.0), Vector2.RIGHT, 20.0, 1.0, 1.0, 1.0, 0, 2)
+	var scorched: Color = Color.WHITE
+	var bare: Color = Color.WHITE
+	for chunk: Variant in tracks.get("_chunks"):
+		for one: Dictionary in (chunk as Tracks.TrackChunk).prints:
+			if (one["at"] as Vector2).x < 100.0:
+				scorched = one["colour"] as Color
+			else:
+				bare = one["colour"] as Color
+	_check(scorched.get_luminance() < bare.get_luminance() - 0.02,
+		"a burning body's print is no darker than a bare one (%.3f against %.3f)"
+		% [scorched.get_luminance(), bare.get_luminance()])
+	for index: int in 200:
+		tracks.press(Vector2(float(index) * 3.0, 400.0), Vector2.RIGHT, 20.0, 1.0, 1.0, 1.0,
+			Tracks.MARK_CHARGED, 3)
+	_check(tracks.charged_count() >= 1 and tracks.charged_count() <= Balance.TRACK_SHOCK_MAX,
+		"%d charged prints held after 200 charged steps, against a cap of %d"
+		% [tracks.charged_count(), Balance.TRACK_SHOCK_MAX])
+	var charged: Array = tracks.get("_charged")
+	var foe: Enemy = null
+	if not charged.is_empty():
+		var breed: EnemyData = null
+		for value: Variant in ContentDB.enemies.values():
+			var data := value as EnemyData
+			if data != null and data.category == EnemyData.Category.BREED:
+				breed = data
+				break
+		foe = (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+		foe.setup(breed, 0, field, 40.0)
+		field.add_child(foe)
+		await get_tree().process_frame
+		foe.global_position = (charged[0] as Dictionary)["at"] as Vector2
+		var whole: float = foe.health.current_hp
+		var holding: int = tracks.charged_count()
+		tracks._process(0.05)
+		_check(foe.health.current_hp < whole, "a road body stepped on a charged print and took nothing")
+		_check(tracks.charged_count() < holding, "a charged print kept its shock after giving it up")
+		_check(whole - foe.health.current_hp < foe.health.max_hp * 0.25,
+			"a charged print's shock took %.0f of %.0f - an aftershock is not a weapon"
+			% [whole - foe.health.current_hp, foe.health.max_hp])
+	tracks._process(Balance.TRACK_SHOCK_SECONDS + 0.1)
+	_check(tracks.charged_count() == 0, "a charged print held its shock past its time")
+	if foe != null:
+		foe.queue_free()
+	scope2.queue_free()
+
+
+## A puppet with a footprint mark of its own.
+func _marked_puppet(mark: int) -> Node2D:
+	var script := GDScript.new()
+	script.source_code = "extends Node2D\nvar mark: int = 0\nfunc footprint_mark() -> int:\n\treturn mark\n"
+	script.reload()
+	var body := Node2D.new()
+	body.set_script(script)
+	body.set("mark", mark)
+	add_child(body)
+	Footfalls.register(body, Balance.ENEMY_BODY_RADIUS, 1.0, 100.0)
+	return body
 
 
 ## **Footprints** (`Tracks`, 2026-09-30): one a stride, either side of the line

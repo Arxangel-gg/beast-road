@@ -14143,6 +14143,35 @@ const TRACK_DARKEN: float = 0.5
 const TRACK_ALPHA: float = 0.62
 const TRACK_MAX: int = 768
 const TRACK_WEIGHT_FLOOR: float = 0.25
+## **What makes a print last, and what it carries** (2026-10-07). The heaviest
+## bodies' prints last `TRACK_HEAVY_LIFE` times as long, a wet one
+## `TRACK_WET_LIFE` (rain lends half of that to every print), a scorched one
+## `TRACK_BURN_LIFE`. A foot that steps from one ground onto another - colours
+## `TRACK_CARRY_GAP` apart - carries the first for `TRACK_CARRY_STEPS` steps, up
+## to `TRACK_CARRY_SHARE` of its colour. [TUNE]
+const TRACK_HEAVY_LIFE: float = 1.8
+const TRACK_WET_LIFE: float = 1.7
+const TRACK_BURN_LIFE: float = 1.5
+const TRACK_WET_DARKEN: float = 0.3
+const TRACK_BURN_CHAR: float = 0.72
+const TRACK_CARRY_GAP: float = 0.12
+const TRACK_CARRY_STEPS: int = 6
+const TRACK_CARRY_SHARE: float = 0.75
+const TRACK_CARRY_WALKERS: int = 600
+## **A charged print**: how often a print a lightning-struck body leaves keeps
+## its charge, how many may hold one at once and for how long, how near a
+## body must step to take it, what it deals as a share of a strike on a road
+## body, and how often it jumps once more, how far and for how much. Rare and
+## small on purpose: it is the board's lightning lingering, not a weapon. [TUNE]
+const TRACK_SHOCK_CHANCE: float = 0.12
+const TRACK_SHOCK_MAX: int = 12
+const TRACK_SHOCK_SECONDS: float = 8.0
+const TRACK_SHOCK_RADIUS: float = 26.0
+const TRACK_SHOCK_SHARE: float = 0.12
+const TRACK_SHOCK_CHAIN_CHANCE: float = 0.35
+const TRACK_SHOCK_CHAIN_REACH: float = 180.0
+const TRACK_SHOCK_CHAIN_SHARE: float = 0.6
+const TRACK_SHOCK_CRACKLE: float = 0.45
 
 ## What each kind of body weighs, against an ordinary road body at one. Read by
 ## the one line in each body that registers it, so a breed, an animal or a mount
