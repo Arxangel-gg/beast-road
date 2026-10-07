@@ -102,6 +102,11 @@ var _layers: DressLayers = null
 # Which sheet's skin mask the sprite's material holds, so a mask is handed over
 # when the sheet changes rather than every frame.
 var _mask_drawn: String = ""
+# Every mask this body has handed over, kept by path (2026-10-07). A material
+# holds only the mask it is drawing, so the last state's pair was freed on every
+# change of state and read back off the disk the next time it came round -
+# eleven megabytes on a swing, which was most of Act X's hitch ledger.
+var _masks: Dictionary = {}
 ## The top of the dressed head, hair and all, in the cell's own pixels - taken
 ## off the standing frames once, when the Warden is dressed, so the bars
 ## above it hold still while the body swings. NAN while the painted Warden plays.
@@ -143,6 +148,7 @@ func dress(outfit: Dictionary) -> void:
 	_outfit = outfit
 	if changed_body:
 		_dress_sheets.clear()
+		_masks.clear()
 		_mask_drawn = ""
 	if _layers == null and sprite != null:
 		_layers = DressLayers.attach(sprite)
@@ -355,12 +361,22 @@ func _hand_over_skin_mask() -> void:
 		return
 	_mask_drawn = key
 	var path: String = WardenDress.skin_mask_path(String(_outfit.get("body_layer", "")), _state_drawn)
-	material.set_shader_parameter("skin_mask",
-		WardenDress.texture(path) if WardenDress.exists(path) else null)
+	material.set_shader_parameter("skin_mask", _mask(path))
 	# And the cloth's, beside it (2026-09-30): where the top and the trousers are.
 	var cloth: String = WardenDress.cloth_mask_path(String(_outfit.get("body_layer", "")), _state_drawn)
-	material.set_shader_parameter("cloth_mask",
-		WardenDress.texture(cloth) if WardenDress.exists(cloth) else null)
+	material.set_shader_parameter("cloth_mask", _mask(cloth))
+
+
+## A mask by path, read once a body and kept: null where the pack wrote none.
+func _mask(path: String) -> Texture2D:
+	if not _masks.has(path):
+		_masks[path] = WardenDress.texture(path) if WardenDress.exists(path) else null
+	return _masks[path]
+
+
+## How many masks this body keeps, for the gate.
+func masks_kept() -> int:
+	return _masks.size()
 
 
 ## Which skin mask the sprite holds, for the gate.

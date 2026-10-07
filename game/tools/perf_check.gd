@@ -212,6 +212,43 @@ var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
 
 
+## Puts the window beyond every monitor *beside the fastest one* (2026-10-07).
+## The far corner of the whole desktop is nearest whichever monitor holds it,
+## and on the machine this is tuned on that is the 60 Hz one - so an off-screen
+## run was throttled to sixty by the compositor and its timing went unasserted.
+## Windows paces a window by the monitor nearest it, so each side of the
+## fastest screen is tried and the first spot that touches no monitor and is
+## nearest the fastest is kept; failing that, the far corner as before.
+func _park_beside(best: int) -> void:
+	var size := Vector2i(1920, 1080)
+	var lo := Vector2i(1 << 30, 1 << 30)
+	var hi := Vector2i(-(1 << 30), -(1 << 30))
+	var rects: Array[Rect2i] = []
+	for screen: int in DisplayServer.get_screen_count():
+		var rect := Rect2i(DisplayServer.screen_get_position(screen), DisplayServer.screen_get_size(screen))
+		rects.append(rect)
+		lo = Vector2i(mini(lo.x, rect.position.x), mini(lo.y, rect.position.y))
+		hi = Vector2i(maxi(hi.x, rect.end.x), maxi(hi.y, rect.end.y))
+	var home: Rect2i = rects[best]
+	var spots: Array[Vector2i] = [
+		Vector2i(hi.x + 200, home.position.y + 40),
+		Vector2i(lo.x - size.x - 200, home.position.y + 40),
+		Vector2i(home.position.x + 40, hi.y + 200),
+		Vector2i(home.position.x + 40, lo.y - size.y - 200),
+	]
+	for spot: Vector2i in spots:
+		var touches: bool = false
+		for rect: Rect2i in rects:
+			if rect.intersects(Rect2i(spot, size)):
+				touches = true
+		if touches:
+			continue
+		DisplayServer.window_set_position(spot)
+		if DisplayServer.window_get_current_screen() == best:
+			return
+	DisplayServer.window_set_position(hi + Vector2i(400, 400))
+
+
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--seed="):
@@ -303,12 +340,7 @@ func _ready() -> void:
 		DisplayServer.window_set_size(Vector2i(1920, 1080))
 		DisplayServer.window_set_position(DisplayServer.screen_get_position(best) + Vector2i(40, 40))
 		if _offscreen:
-			var far: Vector2i = Vector2i.ZERO
-			for screen: int in DisplayServer.get_screen_count():
-				var corner: Vector2i = DisplayServer.screen_get_position(screen) \
-					+ DisplayServer.screen_get_size(screen)
-				far = Vector2i(maxi(far.x, corner.x), maxi(far.y, corner.y))
-			DisplayServer.window_set_position(far + Vector2i(400, 400))
+			_park_beside(best)
 	# **Headless frames are floored at 6.9 ms by a sleep, not by work** (found
 	# 2026-09-24): with nothing to draw, `OS.add_frame_delay` sleeps each frame
 	# out to `low_processor_mode_sleep_usec`, whose default is 6900 - so every

@@ -13538,6 +13538,45 @@ which is what the curve cannot see: it models neither the chase nor the alert.
 The act-start purse, ranks and drafts were re-read off the same run.
 `balance_test` reads 46,114 assertions.
 
+**A body keeps the masks it has read, and Act X is measured as it is played,
+as of 2026-10-07.** After the denser road of the same day, `perf_check --act=10
+--build --loadout` read 27 hitches over 33 ms in two minutes, and the ledger
+said twenty of them loaded eight or nine megabytes of texture. They were the
+dressed Warden's **skin and cloth masks** - about five megabytes each at a
+cell sheet's size - and a material holds only the mask it is drawing, so the
+last state's pair was freed on every change of state and read back off the
+disk when it came round again: a swing, a cast, a dash, each a load.
+`HeroAnimator` keeps every mask it has handed over by path (`_masks`), cleared
+only when the body changes, as `_dress_sheets` already kept the sheets.
+`dress_check` holds that coming back to idle hands over the very mask it read,
+and named the fault planted. Texture-loading hitches went from 20 of 27 to 3.
+
+**Two things about the measurement were wrong, and both are fixed in the tool.**
+
+- **The off-screen window was paced by the 60 Hz monitor.** `--offscreen` put
+  the window beyond the desktop's far corner, which is nearest the 60 Hz screen
+  on the machine this is tuned on, so the compositor throttled it to sixty and
+  the timing went unasserted. `perf_check._park_beside` tries each side of the
+  fastest screen and keeps the first spot that touches no monitor and is
+  nearest it; the report says "on screen 2 at 180 Hz".
+- **A brand-new account at Act X levels every few kills and meets everything
+  for the first time**, and a level and a first sighting each write the whole
+  account. `loadout_driver._season` stands the Warden the act expects - the
+  tier's own level, its points placed as `curve_report` places them - with the
+  act's roster, marks, animals and skies already in the codex.
+
+**Measured after, on the 180 Hz screen at 1080p, High, forty level-8 towers and
+the full loadout: 13 to 15 ms average (65-76 fps) and a p99 of 28-30 ms, the
+spread being run to run.** That is a fifth denser road than the 11.6 ms of
+2026-09-30. What the hitch frames are now, read off `--hitch-profile`: a
+physics catch-up after a slow frame (five to eight hero ticks at 180 Hz), the
+renderer's own variance, and rare one-offs - the first elite's fall (61 ms in
+its death path, loading half a megabyte of drop art) and a camp razed with an
+achievement and a save in the same frame (10 ms in the camps). **The hitch
+budget still fails**, at 5 to 12 a minute against 3; the one-offs are the next
+lever, and a warmup of what an elite's death and a camp's razing first draw is
+where to start.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

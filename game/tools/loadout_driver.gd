@@ -44,6 +44,7 @@ func read_arguments(arguments: PackedStringArray) -> void:
 func arm() -> void:
 	if OS.get_cmdline_user_args().has("--hold-saves"):
 		MetaState.hold_saves()
+	_season()
 	_dress()
 	for id: String in cards:
 		var card: RoadCardData = ContentDB.road_card(id)
@@ -66,6 +67,46 @@ func arm() -> void:
 ## stash: nine pieces at a high rarity, and the rest of the stash behind them,
 ## because what is worn is read many times a physics tick and a new account
 ## wearing one piece measured none of that.
+## The Warden this act expects, who has met this act before (2026-10-07). A
+## brand-new account at Act X levelled on every few kills and met every breed,
+## mark and animal for the first time - and a level and a first sighting each
+## write the whole account, so the measurement read a save every second or two
+## that a Warden who walked here never pays. The level is the tier's own
+## expectation, the points placed as `curve_report` places them, and the act's
+## roster, its marks, its animals and its skies are already in the codex.
+func _season() -> void:
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		var level: int = tier.expected_level(mini(RunState.act, Balance.ACT_COUNT))
+		var points: int = maxi(level - 1, 0)
+		var placed: Array[int] = []
+		var given: int = 0
+		for share: float in Balance.EXPECTED_ATTRIBUTE_SHARE:
+			var each: int = int(floor(float(points) * share))
+			placed.append(each)
+			given += each
+		placed[RunState.Attribute.MIGHT] += points - given
+		MetaState.hero_level = level
+		MetaState.hero_attributes = placed
+		RunState.hero_level = level
+		RunState.hero_attributes = placed.duplicate()
+		RunState.hero_xp = 0.0
+		MetaState.hero_xp = 0.0
+	var seen: Array[String] = []
+	for id: String in ContentDB.enemies.keys():
+		seen.append("enemy:" + id)
+	for id: String in ContentDB.affixes.keys():
+		seen.append("affix:" + id)
+	for id: String in ContentDB.wildlife_kinds.keys():
+		seen.append("wildlife:" + id)
+	for id: String in ContentDB.weathers.keys():
+		seen.append("weather:" + id)
+	for key: String in seen:
+		if not MetaState.codex_seen.has(key):
+			MetaState.codex_seen.append(key)
+	print("[loadout] level %d, %d things already met" % [RunState.hero_level, MetaState.codex_seen.size()])
+
+
 func _dress() -> void:
 	var kinds: Array = ContentDB.gear_kinds.values()
 	var rarity: int = mini(6, Balance.GEAR_AFFIX_COUNT.size() - 1)

@@ -918,6 +918,21 @@ func _test_the_skin_turns() -> void:
 	animator._process(0.0)
 	_check(animator.skin_mask_drawn() == "male_base/walk" and material.get_shader_parameter("skin_mask") == null,
 		"a sheet packed with no mask kept the last sheet's mask, which would turn whatever lies there")
+	# Back to idle hands over the mask already read (2026-10-07): a mask read
+	# again on every change of state was most of Act X's hitch ledger.
+	var idle_mask: Variant = null
+	animator.play("idle", true)
+	animator._process(0.0)
+	idle_mask = material.get_shader_parameter("skin_mask")
+	var kept: int = animator.masks_kept()
+	animator.play("walk", true)
+	animator._process(0.0)
+	animator.play("idle", true)
+	animator._process(0.0)
+	_check(idle_mask is Texture2D and material.get_shader_parameter("skin_mask") == idle_mask,
+		"coming back to idle read its skin mask again rather than handing over the one it read")
+	_check(animator.masks_kept() == kept and kept >= 2,
+		"a body does not keep the masks it has read: %d kept" % kept)
 	var tone_9: Color = WardenLook.SKIN_TONES[9]
 	var from: Variant = material.get_shader_parameter("skin_from")
 	var to: Variant = material.get_shader_parameter("skin_to")
