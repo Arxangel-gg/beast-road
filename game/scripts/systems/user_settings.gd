@@ -46,6 +46,10 @@ const CLICK_TO_MOVE_KEY: String = "click_to_move"
 ## between the splash and the menu. On by default; the menu's door plays it
 ## whatever this says.
 const TRAILER_KEY: String = "trailer_at_startup"
+## **Whether the battlefield's camera frames the fight on its own** (owner,
+## 2026-10-07): close in a fight, wider as bodies come, wide when calm. Off by
+## default - a camera that moves without being asked is a choice, not a given.
+const DYNAMIC_CAMERA_KEY: String = "dynamic_camera"
 
 ## Two more comfort scales, added 2026-09-16 out of the forwarded accessibility
 ## notes (#182-#195), and put here rather than in `Graphics` because the shake
@@ -151,6 +155,10 @@ static func augment_at_once() -> bool:
 ## Whether a left click on the battlefield is an order (see `CLICK_TO_MOVE_KEY`).
 static func click_to_move() -> bool:
 	return bool(value(CLICK_TO_MOVE_KEY, true))
+
+
+static func dynamic_camera() -> bool:
+	return bool(value(DYNAMIC_CAMERA_KEY, false))
 
 
 static func trailer_at_startup() -> bool:

@@ -163,6 +163,7 @@ func _build() -> void:
 	game.add_child(_blood_vfx_row())
 	game.add_child(_augment_draft_row())
 	game.add_child(_click_to_move_row())
+	game.add_child(_dynamic_camera_row())
 	game.add_child(_trailer_row())
 	game.add_child(_separator())
 	game.add_child(_map_mode_row())
@@ -443,6 +444,31 @@ func _augment_draft_row() -> HBoxContainer:
 	button.toggled.connect(func(on: bool) -> void:
 		UserSettings.set_value(UserSettings.AUGMENT_AT_ONCE_KEY, on)
 		button.text = "At once" if on else "At the breather"
+		_queue_save())
+	row.add_child(button)
+	return row
+
+
+## **Whether the camera frames the fight on its own** (2026-10-07).
+func _dynamic_camera_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "DynamicCameraRow"
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Camera")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+	var button := Button.new()
+	button.name = "DynamicCamera"
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.button_pressed = UserSettings.dynamic_camera()
+	button.text = "Dynamic" if button.button_pressed else "Where you leave it"
+	button.tooltip_text = ("Dynamic: the battlefield's zoom follows the fight - close when "
+		+ "you are fighting, wider as enemies come, wide when it is calm. Zooming by hand "
+		+ "holds it for a few seconds. Where you leave it: the zoom only moves when you move it.")
+	button.toggled.connect(func(on: bool) -> void:
+		UserSettings.set_value(UserSettings.DYNAMIC_CAMERA_KEY, on)
+		button.text = "Dynamic" if on else "Where you leave it"
 		_queue_save())
 	row.add_child(button)
 	return row

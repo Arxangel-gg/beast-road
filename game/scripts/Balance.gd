@@ -1746,6 +1746,20 @@ const CAMERA_ZOOM_STEP: float = 0.10
 ## follow, which is what makes it read as the camera pulling back rather than
 ## as the picture changing size.
 const CAMERA_ZOOM_LERP_SPEED: float = 6.0
+## **The dynamic camera** (owner, 2026-10-07). A body within `FIGHT_REACH` of the
+## Warden is a fight, framed close - never closer than `CLOSE_REACH` of road
+## around them; one within `AWARE_REACH` is coming, framed further; with neither,
+## `CALM_REACH` of road. Judged `HZ` times a second and eased at `EASE`, so the
+## view drifts rather than jumps; a hand on the zoom holds it off for
+## `MANUAL_HOLD` seconds. [TUNE]
+const CAMERA_DYNAMIC_FIGHT_REACH: float = 420.0
+const CAMERA_DYNAMIC_AWARE_REACH: float = 1100.0
+const CAMERA_DYNAMIC_CLOSE_REACH: float = 360.0
+const CAMERA_DYNAMIC_CALM_REACH: float = 900.0
+const CAMERA_DYNAMIC_MARGIN: float = 160.0
+const CAMERA_DYNAMIC_HZ: float = 4.0
+const CAMERA_DYNAMIC_EASE: float = 1.4
+const CAMERA_DYNAMIC_MANUAL_HOLD: float = 6.0
 
 ## Camera lag. Lower is snappier, higher is floatier.
 const CAMERA_SMOOTHING_SPEED: float = 8.0

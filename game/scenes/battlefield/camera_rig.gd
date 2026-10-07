@@ -38,6 +38,12 @@ var _shake_direction: Vector2 = Vector2.RIGHT
 ## Re-rolled per impact so two steps never tremble in exactly the same pattern.
 var _rumble_seed: float = 0.0
 
+## **The dynamic camera** (owner, 2026-10-07): the zoom it is easing toward, the
+## clock it is re-judged on, and how long a player's own zoom keeps it at bay.
+var _dynamic_goal: float = -1.0
+var _dynamic_clock: float = 0.0
+var _manual_until_msec: int = 0
+
 
 func _ready() -> void:
 	_rng.randomize()
@@ -60,6 +66,8 @@ func _exit_tree() -> void:
 
 func _process_measured(delta: float) -> void:
 	Sfx.listen_from(global_position)
+	if beast_motion and UserSettings.dynamic_camera():
+		_tick_dynamic(delta)
 	var zoom_t: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)
 	zoom = zoom.lerp(Vector2.ONE * _wanted_zoom, zoom_t)
 	if target != null and is_instance_valid(target):
@@ -100,6 +108,7 @@ func _start_zoom(authored: float) -> float:
 func zoom_by(steps: int) -> bool:
 	if steps == 0:
 		return false
+	_note_manual()
 	var before: float = _wanted_zoom
 	_wanted_zoom = clampf(_wanted_zoom + Balance.CAMERA_ZOOM_STEP * float(steps),
 		_zoom_floor(), _zoom_ceiling())
@@ -111,6 +120,7 @@ func zoom_by(steps: int) -> bool:
 func zoom_by_factor(factor: float) -> bool:
 	if factor <= 0.0 or is_equal_approx(factor, 1.0):
 		return false
+	_note_manual()
 	var before: float = _wanted_zoom
 	_wanted_zoom = clampf(_wanted_zoom * factor, _zoom_floor(), _zoom_ceiling())
 	return not is_equal_approx(before, _wanted_zoom)
@@ -135,11 +145,66 @@ func zoom_share() -> float:
 ## Puts the camera at a share of its band. Returns whether it moved, so a
 ## caller can tell "already there" from "done".
 func set_zoom_share(share: float) -> bool:
+	_note_manual()
 	var low: float = _zoom_floor()
 	var high: float = _zoom_ceiling()
 	var before: float = _wanted_zoom
 	_wanted_zoom = lerpf(low, high, clampf(share, 0.0, 1.0))
 	return not is_equal_approx(before, _wanted_zoom)
+
+
+## **The dynamic camera** (owner, 2026-10-07: "auto zooms the battlefield ...
+## zooming when the player is fighting and zooming out to dynamic amounts to
+## help focus important info into view"). A few times a second it judges what
+## should be in frame around the Warden - the bodies they are fighting, close;
+## the ones coming, further; nothing at all, the road around them - and eases
+## the zoom toward that, slowly enough that it never lurches. A player who zooms
+## by hand is obeyed for `CAMERA_DYNAMIC_MANUAL_HOLD`, then it takes over again.
+## Battlefield only, and a look: it frames the fight and decides nothing in it.
+func _tick_dynamic(delta: float) -> void:
+	_dynamic_clock -= delta
+	if _dynamic_clock <= 0.0:
+		_dynamic_clock = 1.0 / Balance.CAMERA_DYNAMIC_HZ
+		_dynamic_goal = dynamic_zoom()
+	if _dynamic_goal <= 0.0 or Time.get_ticks_msec() < _manual_until_msec:
+		return
+	var t: float = 1.0 - exp(-Balance.CAMERA_DYNAMIC_EASE * delta)
+	_wanted_zoom = lerpf(_wanted_zoom, _dynamic_goal, t)
+
+
+## The zoom that frames what matters around the Warden now, inside the band.
+## Public for the gate. -1 with nothing to follow.
+func dynamic_zoom() -> float:
+	if target == null or not is_instance_valid(target) or not is_inside_tree():
+		return -1.0
+	var centre: Vector2 = target.global_position
+	var fight: float = 0.0
+	var coming: float = 0.0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Enemy
+		if body == null or body.is_dying() or body.puppet:
+			continue
+		# A camp asleep on the outskirts is not a fight; one roused and running
+		# at the Warden is, and is counted like any body that near.
+		var gap: float = body.global_position.distance_to(centre)
+		if body.is_camp_mob() and gap > Balance.CAMERA_DYNAMIC_FIGHT_REACH:
+			continue
+		if gap <= Balance.CAMERA_DYNAMIC_FIGHT_REACH:
+			fight = maxf(fight, gap)
+		elif gap <= Balance.CAMERA_DYNAMIC_AWARE_REACH:
+			coming = maxf(coming, gap)
+	var reach: float = Balance.CAMERA_DYNAMIC_CALM_REACH
+	if fight > 0.0:
+		reach = maxf(fight + Balance.CAMERA_DYNAMIC_MARGIN, Balance.CAMERA_DYNAMIC_CLOSE_REACH)
+	elif coming > 0.0:
+		reach = coming + Balance.CAMERA_DYNAMIC_MARGIN
+	var view: Vector2 = get_viewport_rect().size
+	var wanted: float = minf(view.x, view.y) * 0.5 / maxf(reach, 1.0)
+	return clampf(wanted, _zoom_floor(), _zoom_ceiling())
+
+
+func _note_manual() -> void:
+	_manual_until_msec = Time.get_ticks_msec() + int(Balance.CAMERA_DYNAMIC_MANUAL_HOLD * 1000.0)
 
 
 func is_fully_zoomed_out() -> bool:

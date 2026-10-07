@@ -86,6 +86,7 @@ func _ready() -> void:
 	await _test_the_mansion_opens_the_whole_tree()
 	await _test_the_map_cycles_four_ways()
 	await _test_a_bar_answers_by_how_much_moved()
+	await _test_the_camera_frames_the_fight()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -130,6 +131,47 @@ func _frames(count: int) -> void:
 ## proportion - a sliver lifts fewer motes and a dimmer flash than a third of
 ## the bar. Driven on the HUD's own town bar by setting its value, which is
 ## what every reader of the bar does, and read off the juice that watches it.
+## **The dynamic camera frames the fight** (owner, 2026-10-07): close with a body
+## at the Warden's elbow, wide with nothing near, and a hand on the zoom holds
+## it off. Read off the rig's own judgement and its eased zoom on the real field.
+func _test_the_camera_frames_the_fight() -> void:
+	var rig := _field.camera as CameraRig
+	_check(rig != null, "the battlefield has no camera rig")
+	if rig == null:
+		return
+	_field.wave_director.stop()
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		node.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var calm: float = rig.dynamic_zoom()
+	var body: Enemy = _field.spawn_enemy(ContentDB.enemy("bogkin"), 0, 1.0)
+	_check(body != null, "the harness could not stand a body up")
+	if body == null:
+		return
+	body.global_position = _field.hero.global_position + Vector2(120.0, 0.0)
+	body.process_mode = Node.PROCESS_MODE_DISABLED
+	var close: float = rig.dynamic_zoom()
+	_check(close > calm + 0.01, "a body at the Warden's elbow framed %.2f, calm framed %.2f" % [close, calm])
+	UserSettings.set_value(UserSettings.DYNAMIC_CAMERA_KEY, true)
+	rig.reset_to_wide()
+	rig.set("_manual_until_msec", 0)
+	var before: float = float(rig.get("_wanted_zoom"))
+	for _f: int in 90:
+		await get_tree().process_frame
+	var eased: float = float(rig.get("_wanted_zoom"))
+	_check(eased > before + 0.02 and eased <= close + 0.001,
+		"the camera eased from %.2f to %.2f, wanting %.2f" % [before, eased, close])
+	rig.zoom_by(-1)
+	var held: float = float(rig.get("_wanted_zoom"))
+	for _f: int in 30:
+		await get_tree().process_frame
+	_check(is_equal_approx(float(rig.get("_wanted_zoom")), held),
+		"a hand on the zoom did not hold the dynamic camera off")
+	UserSettings.set_value(UserSettings.DYNAMIC_CAMERA_KEY, false)
+	body.queue_free()
+
+
 func _test_a_bar_answers_by_how_much_moved() -> void:
 	var bar := _hud.get("_town_bar") as ProgressBar
 	_check(bar != null, "the HUD has no town bar")
