@@ -85,6 +85,7 @@ func _ready() -> void:
 	await _test_the_air_is_cleared_at_preparation()
 	await _test_the_mansion_opens_the_whole_tree()
 	await _test_the_map_cycles_four_ways()
+	await _test_a_bar_answers_by_how_much_moved()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -124,6 +125,53 @@ func _frames(count: int) -> void:
 ## **M cycles four ways** (owner, 2026-10-07): neither, the minimap, the overlay,
 ## both, and back to neither - driven through the HUD's own toggle on the real
 ## field and read off the two maps' visibility, not off the settings.
+## **A bar answers by how much moved** (owner, 2026-10-07): see-through, with
+## the frame and the life drawn whole over it, and a change answered in
+## proportion - a sliver lifts fewer motes and a dimmer flash than a third of
+## the bar. Driven on the HUD's own town bar by setting its value, which is
+## what every reader of the bar does, and read off the juice that watches it.
+func _test_a_bar_answers_by_how_much_moved() -> void:
+	var bar := _hud.get("_town_bar") as ProgressBar
+	_check(bar != null, "the HUD has no town bar")
+	if bar == null:
+		return
+	var juice := bar.get_node_or_null("Juice") as BarJuice
+	_check(juice != null, "the town bar carries no juice")
+	if juice == null:
+		return
+	_check(bar.self_modulate.a < 0.95 and bar.self_modulate.a >= 0.5,
+		"the bar's trough and fill are at %.2f - see-through, never gone" % bar.self_modulate.a)
+	_check(is_equal_approx(juice.modulate.a, 1.0) and is_equal_approx(juice.self_modulate.a, 1.0),
+		"the bar's life is faded with its trough")
+	var span: float = bar.max_value - bar.min_value
+	bar.value = bar.max_value
+	for _f: int in 3:
+		await get_tree().process_frame
+	for _settle: int in 120:
+		if juice.motes_alive() == 0 and juice.flash_now() <= 0.0:
+			break
+		await get_tree().process_frame
+	bar.value = bar.max_value - span * 0.02
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var small_motes: int = juice.motes_alive()
+	var small_flash: float = juice.flash_now()
+	for _settle: int in 240:
+		if juice.motes_alive() == 0 and juice.flash_now() <= 0.0:
+			break
+		await get_tree().process_frame
+	var nodes_before: int = bar.get_child_count()
+	bar.value = bar.max_value - span * 0.42
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(juice.motes_alive() > small_motes and juice.flash_now() > small_flash,
+		"a third of the bar lifted %d motes at %.2f, a sliver %d at %.2f" % [juice.motes_alive(),
+			juice.flash_now(), small_motes, small_flash])
+	_check(small_motes > 0, "a sliver of the bar moved and nothing answered it")
+	_check(bar.get_child_count() == nodes_before, "a change stood up nodes on the bar")
+	bar.value = bar.max_value
+
+
 func _test_the_map_cycles_four_ways() -> void:
 	var mini := _hud.get("_minimap") as Control
 	var big := _hud.get("_minimap_overlay") as Control

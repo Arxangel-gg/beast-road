@@ -1604,6 +1604,8 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 	fill.border_width_bottom = 1
 	fill.border_color = colour.lightened(0.35)
 	bar.add_theme_stylebox_override("fill", fill)
+	# The colour the bar's life is drawn in: its sheen, its flash and its motes.
+	bar.set_meta(&"bar_colour", colour)
 
 	_dress_bar(bar)
 	return bar
@@ -1656,6 +1658,15 @@ func _dress_bar(bar: ProgressBar) -> void:
 	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(frame)
+	# **See-through, and alive** (owner, 2026-10-07). The trough and the fill
+	# through the bar's own `self_modulate`, which reaches neither its frame nor
+	# its name; and over all of it, the juice - an idle sheen, and an answer to
+	# every change sized by how much moved.
+	bar.self_modulate.a = Balance.UI_BAR_SEE_THROUGH
+	var juice := BarJuice.new()
+	juice.bar = bar
+	juice.colour = bar.get_meta(&"bar_colour", Color(1.0, 0.85, 0.5)) as Color
+	bar.add_child(juice)
 
 ## **What to multiply the fill art by so the bar comes out the colour it was
 ## asked for.**

@@ -14195,6 +14195,25 @@ const PREPARATION_CARD_PLATE_ALPHA: float = 0.74
 ## tutorial notices, the tower and trap sheets) - their own plate, through
 ## `self_modulate`, so the words and the rows stay whole. [TUNE]
 const UI_PANEL_SEE_THROUGH: float = 0.80
+## **The bars over the road** (owner, 2026-10-07): the trough and the fill drawn
+## at this share, their frames and names whole. [TUNE]
+const UI_BAR_SEE_THROUGH: float = 0.84
+## And their life (`BarJuice`). A change of `UI_BAR_JUICE_FULL_CHANGE` of the bar
+## or more is answered in full - the brightest flash, the most motes, the
+## biggest swell - and a sliver with a glint. The idle sheen walks the fill once
+## every `UI_BAR_JUICE_SHEEN_SECONDS` and the edge breathes on its own clock;
+## idle, a bar redraws at `UI_BAR_JUICE_HZ`, and every frame only while moving. [TUNE]
+const UI_BAR_JUICE_FULL_CHANGE: float = 0.30
+const UI_BAR_JUICE_BUMP: float = 0.07
+const UI_BAR_JUICE_MOTES: int = 16
+const UI_BAR_JUICE_MOTE_CAP: int = 40
+const UI_BAR_JUICE_FLASH_SECONDS: float = 0.45
+const UI_BAR_JUICE_MOTE_SECONDS: float = 0.75
+const UI_BAR_JUICE_CHUNK_SECONDS: float = 0.55
+const UI_BAR_JUICE_SHEEN_SECONDS: float = 3.4
+const UI_BAR_JUICE_BREATH_SECONDS: float = 1.8
+const UI_BAR_JUICE_SHEEN: float = 0.35
+const UI_BAR_JUICE_HZ: float = 24.0
 ## And the buttons along the bottom and the right: their frames only, through
 ## `UiTint.see_through`, so the words on them stay whole. [TUNE]
 const UI_BUTTON_SEE_THROUGH: float = 0.72

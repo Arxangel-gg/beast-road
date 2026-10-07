@@ -256,7 +256,9 @@ func _bar_rect() -> Rect2:
 ## its own draw call.
 func _draw_measured() -> void:
 	var rect: Rect2 = _bar_rect()
-	draw_rect(rect, _background_colour)
+	# The trough is see-through over the road (owner, 2026-10-07); the fill,
+	# the trail and the frame stay whole, because they are what is read.
+	draw_rect(rect, Color(_background_colour, _background_colour.a * Balance.UI_BAR_SEE_THROUGH))
 	# League's rule: health and ward together never overflow the bar - past the
 	# pool, the whole bar stands for both.
 	var total: float = scale_total()
