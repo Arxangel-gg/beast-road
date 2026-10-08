@@ -15197,6 +15197,45 @@ because with only saboteurs in a trap the trap never fires, so the bite-skip is
 only ever reached when an ordinary body springs it with a saboteur beside it.
 **A guard is tested in the case it guards**, not the case beside it.
 
+**Herds cross the road, as of 2026-10-07** (the triage's adapted "migrations":
+a herd crossing as one arrival through the existing arrival door). Once in a
+while an act (`WILDLIFE_MIGRATION_CHANCE` of acts, `WILDLIFE_MIGRATION_DELAY`
+into it), a herd of one of the act's own migrants - `WildlifeData.migrates`,
+twelve of them across eight acts: deer, wild horses, ptarmigan, three
+butterflies, scarabs, pheasants, hares, marmots, gale moths, vultures - walks
+across the field from one side of the Warden to the other at
+`WILDLIFE_MIGRATION_PACE` of its walk, a steady crossing rather than a flight,
+and is gone. The road says it in the species' own words
+(`WildlifeData.migration_line`, under the banner's 52 characters), on every
+screen (`Fact.WILDLIFE_MIGRATING` = 94).
+
+**It adds a sight and a chance, never a rule.** The herd is ordinary wildlife
+on the LEAVING state with a `migrating` flag that changes only its pace:
+predators hunt it, the news of a fight scatters it, a Warden may take one.
+**Never a hunter**, **inside the population cap** (a herd too small to be worth
+the name is refused and tried again in `WILDLIFE_MIGRATION_RETRY`), and its line
+is moved `WILDLIFE_MIGRATION_TOWN_CLEAR` off the town so a herd never walks
+through the walls. Whether and when an act's crossing comes, and the herd's
+shape, are on `_migration_dice`, seeded by the run and the act, so no roll the
+arrivals are drawn on moves; each animal still draws its own coat and shine as
+an arrival does.
+
+**Headless, the timer waits to be asked for** (`Wildlife.migrations_in_tests`),
+as the homecoming pass does: a herd arriving a minute into any long gate that
+measures the wildlife would be a coin toss across the suite.
+
+**And population memory was already built.** The triage listed "a species'
+arrival weight falling after it is culled" as unbuilt; `Wildlife.cull_share`
+has divided an arrival's weight by its kills since the hunting retaliation
+landed, and `wildlife_spawn_check` holds its floor. **A triage is a model of
+the code too** - grep for what a feature would read before building it.
+
+`migration_check` (896, both bars) holds the migrants, the plan - decided once,
+the same twice, near its authored share over thirty roads, and never moving the
+arrivals' dice - a herd of one species and one group walking a line clear of
+the town at its crossing pace, the timed path both on and off headless, the
+cap, and the wire. Four faults planted and named.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "A swarm of gale moths rides the wind past."
 body = 5
 id = "gale_moth"
 display_name = "Gale Moth"

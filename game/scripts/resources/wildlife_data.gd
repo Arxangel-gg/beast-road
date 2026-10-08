@@ -139,6 +139,12 @@ func roll_weight(act: int) -> float:
 ## How many arrive together. A fox is alone; deer are not.
 @export_range(1, 8) var group_min: int = 1
 @export_range(1, 8) var group_max: int = 1
+## **A migrant** (triage of 2026-10-07, adapted): a herd of this species may
+## cross the field once in a while an act, edge to edge at a steady pace, through
+## the arrival door every animal comes by. What the road says when it does is
+## the species' own line (working rule 9). Never a hunter.
+@export var migrates: bool = false
+@export var migration_line: String = ""
 
 ## Preferred room between members of the same arrival group. This is a soft
 ## steering radius, backed by a harder spawn clearance in Balance.

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "A column of salt scarabs is on the march."
 scavenges = true
 body = 5
 id = "salt_scarab"

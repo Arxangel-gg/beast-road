@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "Swallowtails are passing, a whole cloud of them."
 body = 5
 breeds = true
 breeding_group = "butterfly_swallowtail"

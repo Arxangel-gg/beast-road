@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "A kettle of vultures is passing over."
 scavenges = true
 body = 2
 id = "vulture"

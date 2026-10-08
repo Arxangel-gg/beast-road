@@ -226,6 +226,8 @@ enum Fact {
 	## **A ping** (2026-10-07): a seat, a ping id and a point - a word on the
 	## field. Host-authored: a guest asks with `Request.PING`.
 	PING = 93,
+	## **A herd is crossing** (2026-10-07): the species and the line it walks.
+	WILDLIFE_MIGRATING = 94,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -582,6 +584,7 @@ func _fact_bindings() -> Array:
 		["coop_company_carried", _on_coop_company_carried],
 		["coop_company_said", _on_coop_company_said],
 		["pinged", _on_pinged],
+		["wildlife_migrating", _on_wildlife_migrating],
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_wildlife_family", _on_coop_wildlife_family],
 		["coop_wildlife_born", _on_coop_wildlife_born],
@@ -772,6 +775,10 @@ func _on_coop_company_said(slot: int, text: String, alert: bool) -> void:
 
 func _on_pinged(slot: int, ping_id: String, at: Vector2) -> void:
 	_relay(Fact.PING, [slot, ping_id, at])
+
+
+func _on_wildlife_migrating(kind_id: String, from: Vector2, to: Vector2) -> void:
+	_relay(Fact.WILDLIFE_MIGRATING, [kind_id, from, to])
 
 
 func _on_coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool) -> void:
@@ -1309,6 +1316,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.PING:
 			if args.size() == 3 and args[2] is Vector2:
 				bus.pinged.emit(int(args[0]), String(args[1]), args[2] as Vector2)
+		Fact.WILDLIFE_MIGRATING:
+			if args.size() == 3 and args[1] is Vector2 and args[2] is Vector2:
+				bus.wildlife_migrating.emit(String(args[0]), args[1] as Vector2, args[2] as Vector2)
 		Fact.WILDLIFE_SACK:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))

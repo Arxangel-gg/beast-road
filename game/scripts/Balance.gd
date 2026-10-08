@@ -6842,6 +6842,19 @@ const BOSS_PHASE_EVENTS: Array[String] = ["quake", "tornado", "meteor"]
 ## forgets it. [TUNE]
 const WILDLIFE_CULL_DAMPING: float = 0.12
 const WILDLIFE_CULL_FLOOR: float = 0.3
+## **Migrations** (triage of 2026-10-07, adapted): the share of acts a herd
+## crosses in, when in the act it comes (seconds of road), how many walk and the
+## fewest worth sending, how far the crossing runs either side of the Warden, how
+## far its line keeps from the town, its pace against the species' own walk, and
+## how long a crossing the cap refused waits before it tries again. [TUNE]
+const WILDLIFE_MIGRATION_CHANCE: float = 0.6
+const WILDLIFE_MIGRATION_DELAY: Vector2 = Vector2(70.0, 260.0)
+const WILDLIFE_MIGRATION_SIZE: Vector2i = Vector2i(5, 9)
+const WILDLIFE_MIGRATION_MIN: int = 4
+const WILDLIFE_MIGRATION_HALF: float = 1900.0
+const WILDLIFE_MIGRATION_TOWN_CLEAR: float = 700.0
+const WILDLIFE_MIGRATION_PACE: float = 1.5
+const WILDLIFE_MIGRATION_RETRY: float = 20.0
 
 ## **A Riven body's pieces** (`EnemyAffixData.split_on_death`): each this share
 ## of the pool it came from, paid this share of a kill, and set this far apart

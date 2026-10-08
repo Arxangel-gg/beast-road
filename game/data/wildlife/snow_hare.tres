@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "Snow hares, dozens of them, streaming past."
 body = 0
 vocal_sfx = "sfx_wildlife_snow_hare"
 coat_pattern = 4

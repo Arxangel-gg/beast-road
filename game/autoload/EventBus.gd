@@ -456,6 +456,10 @@ signal coop_company_said(slot: int, text: String, alert: bool)
 ## the host (or alone) and relayed as `Fact.PING`; a guest asks for one with
 ## `Request.PING` and draws the host's answer. Every machine draws from this.
 signal pinged(slot: int, ping_id: String, at: Vector2)
+## **A herd is crossing** (2026-10-07): a migration began, of this species, from
+## one point toward another. Said by the machine that decides the animals and
+## relayed as `Fact.WILDLIFE_MIGRATING`, so the line is heard on every screen.
+signal wildlife_migrating(kind_id: String, from: Vector2, to: Vector2)
 ## A thief's sack and cover, decided by the host: whether it carries anything
 ## now and whether it is lying low. The guest dresses its puppet to match.
 signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "A covey of copper pheasants is on the move."
 body = 2
 vocal_sfx = "sfx_wildlife_copper_pheasant"
 lays_eggs = true

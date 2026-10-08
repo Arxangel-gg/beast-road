@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "The deer are moving. A herd is crossing."
 body = 1
 coat_pattern = 1
 coat_pattern_strength = 0.45

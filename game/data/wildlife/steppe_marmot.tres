@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+migrates = true
+migration_line = "The marmots are moving burrows."
 body = 0
 vocal_sfx = "sfx_wildlife_steppe_marmot"
 breeds = true

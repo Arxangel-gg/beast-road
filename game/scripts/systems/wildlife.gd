@@ -358,6 +358,7 @@ func _process_measured(delta: float) -> void:
 			_consider_arrival()
 	if carrion != null:
 		carrion.tick(delta)
+	_tick_migration(delta)
 	for index: int in range(_living.size() - 1, -1, -1):
 		if _tick_one(_living[index], delta):
 			continue
@@ -856,6 +857,140 @@ func _has_social_room(at: Vector2, clearance: float,
 				and at.distance_to(sprite.global_position) < clearance:
 			return false
 	return true
+
+
+# --- Migrations (2026-10-07) -------------------------------------------------
+
+## **A herd crossing** (triage of 2026-10-07, adapted: "a herd crossing as one
+## arrival through the existing arrival door"). Once in a while an act, a herd
+## of one of the act's own migrating grazers walks across the field from one
+## side of the Warden to the other and is gone. Everything it meets is what an
+## animal already meets - the predators hunt it, a blow sends it running, a
+## Warden can take one - so the crossing adds a sight and a chance, never a rule.
+##
+## **On dice of its own** (`_migration_dice`, seeded by the run and the act), so
+## no roll the arrivals, the families or the hunt are drawn on moves; **inside
+## the population cap**, so the frame is never asked for more animals than it
+## was measured under; and only on the machine that decides the animals.
+var _migration_dice := RandomNumberGenerator.new()
+var _migration_act: int = -1
+var _migration_left: float = -1.0
+## **Headless, a crossing waits to be asked for**, as the homecoming pass does:
+## a herd arriving a minute into any long gate that measures the wildlife would
+## be a coin toss across the whole suite. `migration_check` turns it on.
+static var migrations_in_tests: bool = false
+
+
+func _tick_migration(delta: float) -> void:
+	if not _is_authority_or_alone() or RunState.walking or not GameDirector.run_active:
+		return
+	if DisplayServer.get_name() == "headless" and not migrations_in_tests:
+		return
+	if _migration_act != RunState.act:
+		plan_migration(RunState.act)
+	if _migration_left < 0.0 or _hush_left > 0.0:
+		return
+	_migration_left -= delta
+	if _migration_left > 0.0:
+		return
+	_migration_left = -1.0 if start_migration() > 0 else Balance.WILDLIFE_MIGRATION_RETRY
+
+
+## Decides an act's crossing - whether there is one and when - once, from the
+## run's seed and the act.
+func plan_migration(act: int) -> void:
+	_migration_act = act
+	_migration_left = -1.0
+	_migration_dice.seed = absi(hash("migration:%d:%d" % [RunState.run_seed, act]))
+	if migrants_for(act).is_empty():
+		return
+	if _migration_dice.randf() > Balance.WILDLIFE_MIGRATION_CHANCE:
+		return
+	_migration_left = _migration_dice.randf_range(Balance.WILDLIFE_MIGRATION_DELAY.x,
+		Balance.WILDLIFE_MIGRATION_DELAY.y)
+
+
+## Seconds until this act's crossing, or -1 when there is none to come.
+func migration_due() -> float:
+	return _migration_left
+
+
+## The act's own migrants: species that cross, belong to the act and hunt nobody.
+static func migrants_for(act: int) -> Array[WildlifeData]:
+	var out: Array[WildlifeData] = []
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind != null and kind.migrates and not kind.is_hostile() and kind.acts.has(act):
+			out.append(kind)
+	return out
+
+
+func _town_point() -> Vector2:
+	if field != null and field.has_method("town_position"):
+		return field.call("town_position") as Vector2
+	return Vector2.ZERO
+
+
+## **The line a crossing walks**: through a point near the Warden, from one side
+## to the other, moved off the town when it would pass through it. Returns the
+## start and the end.
+func migration_line(heading: Vector2, near: Vector2) -> Array[Vector2]:
+	var along: Vector2 = heading.normalized()
+	var across: Vector2 = along.orthogonal()
+	var anchor: Vector2 = near
+	var off: float = (_town_point() - anchor).dot(across)
+	if absf(off) < Balance.WILDLIFE_MIGRATION_TOWN_CLEAR:
+		var side: float = -1.0 if off >= 0.0 else 1.0
+		anchor += across * side * (Balance.WILDLIFE_MIGRATION_TOWN_CLEAR - absf(off) + 40.0)
+	return [anchor - along * Balance.WILDLIFE_MIGRATION_HALF,
+		anchor + along * (Balance.WILDLIFE_MIGRATION_HALF + 400.0)]
+
+
+## Sends a herd across now - of `kind`, or of one of the act's migrants. Returns
+## how many walked on; none when the act has no migrant or the cap has no room
+## for a herd worth the name.
+func start_migration(kind: WildlifeData = null) -> int:
+	if not _is_authority_or_alone():
+		return 0
+	if kind == null:
+		var choices: Array[WildlifeData] = migrants_for(RunState.act)
+		if choices.is_empty():
+			return 0
+		kind = choices[_migration_dice.randi_range(0, choices.size() - 1)]
+	var cap: int = int(round(float(Balance.WILDLIFE_MAX) * Graphics.foliage_scale()))
+	var count: int = mini(_migration_dice.randi_range(Balance.WILDLIFE_MIGRATION_SIZE.x,
+		Balance.WILDLIFE_MIGRATION_SIZE.y), cap - _living.size())
+	if count < Balance.WILDLIFE_MIGRATION_MIN:
+		return 0
+	var near: Vector2 = _nearest_warden(Vector2.ZERO)
+	if near == Vector2.INF:
+		near = _town_point()
+	near += Vector2.from_angle(_migration_dice.randf() * TAU) * _migration_dice.randf_range(0.0, 380.0)
+	var heading: Vector2 = Vector2.from_angle(_migration_dice.randf() * TAU)
+	var line: Array[Vector2] = migration_line(heading, near)
+	var along: Vector2 = (line[1] - line[0]).normalized()
+	var across: Vector2 = along.orthogonal()
+	_group_id += 1
+	var walked: int = 0
+	for member: int in count:
+		var spread: Vector2 = across * _migration_dice.randf_range(-180.0, 180.0)
+		var behind: Vector2 = -along * (float(member) * 46.0 + _migration_dice.randf_range(0.0, 40.0))
+		var before: int = _living.size()
+		_spawn(kind, line[0] + spread, 0, _group_id)
+		if _living.size() == before:
+			continue
+		var animal: Dictionary = _living[_living.size() - 1]
+		var sprite := animal.get("sprite", null) as Node2D
+		if sprite == null:
+			continue
+		sprite.global_position = line[0] + spread + behind
+		animal["state"] = State.LEAVING
+		animal["goal"] = line[1] + spread
+		animal["home"] = line[0] + spread
+		animal["migrating"] = true
+		walked += 1
+	if walked > 0:
+		EventBus.wildlife_migrating.emit(kind.id, line[0], line[1])
+	return walked
 
 
 ## How many things out there would attack you, right now.
@@ -1370,7 +1505,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			animal["waded"] = waded
 			BloodStain.wade(animal.get("impact", null) as ShaderMaterial, sprite,
 				sprite.global_position, waded)
-	if state == State.FLEEING or state == State.LEAVING:
+	# A migrating herd walks its crossing at a steady pace; it is going
+	# somewhere, not running from something.
+	if bool(animal.get("migrating", false)) and state == State.LEAVING:
+		speed *= Balance.WILDLIFE_MIGRATION_PACE
+	elif state == State.FLEEING or state == State.LEAVING:
 		speed *= kind.flee_speed_scale
 	# **Arriving and leaving cross the edge on purpose**; everything else stays
 	# inside it, and so does where it is going. Held here, at the one reader of

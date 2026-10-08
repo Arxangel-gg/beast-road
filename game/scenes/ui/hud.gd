@@ -811,6 +811,7 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_harvest_kill)
 	EventBus.wave_cleared.connect(_on_wave_held)
 	EventBus.herald_rose.connect(_on_herald_rose)
+	EventBus.wildlife_migrating.connect(_on_wildlife_migrating)
 	EventBus.herald_called.connect(_on_herald_called)
 	EventBus.herald_fell.connect(_on_herald_fell)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
@@ -7133,6 +7134,14 @@ func _on_harvest_begun(_number: int, _lanes: Array) -> void:
 ## hear about, because the board will not answer any of them.
 func _on_herald_rose(_at: Vector2) -> void:
 	_show_message(Heralds.ROSE_LINE)
+
+
+## **A herd crossing, said** (2026-10-07), in the species' own words.
+func _on_wildlife_migrating(kind_id: String, _from: Vector2, _to: Vector2) -> void:
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind != null and kind.id == kind_id and not kind.migration_line.is_empty():
+			_show_message(kind.migration_line)
+			return
 
 
 func _on_herald_called(_at: Vector2) -> void:
