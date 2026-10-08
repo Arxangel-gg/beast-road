@@ -2901,6 +2901,14 @@ func mark_blow(zone: int, crit: bool) -> void:
 	_blow_crit = crit
 
 
+## **How big a corpse this body leaves** (owner, 2026-10-08: "Make the corpses
+## have larger sizes based on the size of the fallen character"): half the
+## larger side of its painting as drawn, never less than its footing.
+func corpse_reach() -> float:
+	var painted: Rect2 = Hitbox.painted_rect(self)
+	return maxf(contact_radius(), maxf(painted.size.x, painted.size.y) * 0.5)
+
+
 func contact_radius() -> float:
 	return data.body_radius if data != null else Balance.ENEMY_BODY_RADIUS
 
@@ -4308,7 +4316,7 @@ func _tick_death(delta: float) -> void:
 func _leave_a_corpse() -> void:
 	if data == null or data.hide == EnemyData.Hide.SPIRIT or data.hide == EnemyData.Hide.STONE:
 		return
-	EventBus.body_fell.emit(global_position, _death_from, contact_radius(), data.id, _field)
+	EventBus.body_fell.emit(global_position, _death_from, corpse_reach(), data.id, _field)
 
 
 ## **How long this body takes to go down** - none for a boss, whose fall is

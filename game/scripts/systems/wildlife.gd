@@ -1941,8 +1941,10 @@ func _tick_dying(animal: Dictionary, sprite: Sprite2D, delta: float) -> bool:
 		var kind := animal["data"] as WildlifeData
 		if kind != null and not (kind.flies and kind.scale < Balance.CORPSE_FLYER_MIN_SCALE):
 			var facing: Vector2 = Vector2.LEFT if sprite.flip_h else Vector2.RIGHT
+			var painted: Rect2 = Hitbox.painted_rect(sprite)
 			EventBus.body_fell.emit(sprite.global_position, sprite.global_position - facing * 10.0,
-				20.0 * float(animal["size"]) * kind.scale, kind.id, field)
+				maxf(20.0 * float(animal["size"]) * kind.scale,
+					maxf(painted.size.x, painted.size.y) * 0.5), kind.id, field)
 		if Graphics.particle_scale() > 0.0 and field != null and field.has_method("ground_colour"):
 			Vfx.dust(sprite.global_position, field.call("ground_colour", sprite.global_position) as Color,
 				4, 30.0 * float(animal["size"]) * (animal["data"] as WildlifeData).scale)

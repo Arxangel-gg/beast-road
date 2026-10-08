@@ -32,6 +32,7 @@ func _ready() -> void:
 	_test_brutal_bones_come_home()
 	await _test_the_shove()
 	_test_the_bite_and_the_cap()
+	_test_the_earth_takes_the_dead()
 	await _test_the_road()
 	if held_blood == null:
 		MetaState.settings.erase(UserSettings.BLOOD_LEVEL_KEY)
@@ -41,7 +42,8 @@ func _ready() -> void:
 		MetaState.settings.erase(UserSettings.BLOOD_VFX_KEY)
 	else:
 		MetaState.settings[UserSettings.BLOOD_VFX_KEY] = held_switch
-	for stage: String in ["paintings", "ways", "throw", "rot", "flies", "bones", "shove", "bite", "road"]:
+	for stage: String in ["paintings", "ways", "throw", "rot", "flies", "bones", "shove", "bite",
+			"earth", "road"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -56,6 +58,125 @@ func _ready() -> void:
 	else:
 		push_error("%s FAIL - %d of %d" % [TAG, _failures, _checks])
 	get_tree().quit(0 if _failures == 0 else 1)
+
+
+## **The earth's blows take the dead too, each its own way** (owner,
+## 2026-10-08: "Earthquakes, wildfires, floods, and tornadoes, should cause some
+## affected corpses to get destroyed including skeletons, each having varying
+## strengths and ways of disposing of the corpses"). Forty corpses laid for each
+## and every door driven directly, because each is a rule about the dead and
+## not about the disaster: some are taken and some are left, the way each
+## takes is its own, a smaller corpse goes before a larger, and what is not in
+## reach is never touched.
+func _test_the_earth_takes_the_dead() -> void:
+	# A quake's crest: thrown up, bones shattered, a carcass swallowed.
+	var field: CorpseField = _bare_field()
+	field.set("_dice", _seeded(11))
+	var bones: Array[Dictionary] = []
+	for index: int in 40:
+		var corpse: Dictionary = field.lay(Vector2.from_angle(float(index) * 0.157) * 300.0,
+			Vector2.ZERO, 30.0, "", 0.0 if index % 2 == 0 else 1.0)
+		corpse["vel"] = Vector2.ZERO
+		corpse["height"] = 0.0
+		corpse["vy"] = 0.0
+		bones.append(corpse)
+	var far: Dictionary = field.lay(Vector2(2000.0, 0.0), Vector2(1990.0, 0.0), 30.0)
+	field.quake_front(Vector2.ZERO, 280.0, 320.0, 0, 1.0)
+	var thrown: int = 0
+	for corpse: Dictionary in bones:
+		thrown += 1 if float(corpse["vy"]) > 0.0 else 0
+	_check(thrown == 40, "a quake's crest threw %d of the 40 corpses it crossed" % thrown)
+	var shattered: int = int(field.taken.get("shatter", 0))
+	var swallowed: int = int(field.taken.get("swallow", 0))
+	_check(shattered > 0 and shattered < 20, "a quake shattered %d of 20 skeletons" % shattered)
+	_check(swallowed > 0 and swallowed < 20, "a quake swallowed %d of 20 carcasses" % swallowed)
+	_check(shattered > swallowed, "a quake took carcasses (%d) as readily as bones (%d)" % [swallowed, shattered])
+	_check(not far.has("leaving") and float(far["vy"]) <= 0.0 or float(far["height"]) <= 4.0,
+		"a quake's crest reached a corpse two thousand units off")
+	field.quake_front(Vector2.ZERO, 280.0, 320.0, 0, 1.0)
+	_check(int(field.taken.get("shatter", 0)) == shattered, "one crest took the same dead twice")
+
+	# A fire: chars meat away and burns bones to ash, given time.
+	field = _bare_field()
+	field.set("_dice", _seeded(12))
+	for index: int in 40:
+		field.lay(Vector2(float(index % 8) * 8.0, float(index / 8) * 8.0), Vector2(-10.0, 0.0), 30.0)
+	var unburnt: Dictionary = field.lay(Vector2(900.0, 0.0), Vector2(890.0, 0.0), 30.0)
+	var fires := PackedVector2Array([Vector2(28.0, 16.0)])
+	for _step: int in 60:
+		field.burn_near(fires, 0.2)
+	var charred: int = 0
+	for corpse: Dictionary in field.corpses():
+		charred += 1 if float(corpse.get("charred", 0.0)) > 0.5 else 0
+	_check(int(field.taken.get("ash", 0)) > 0, "twelve seconds in a fire burned no bones to ash")
+	_check(float(unburnt["meat"]) > 0.9 and float(unburnt.get("charred", 0.0)) == 0.0,
+		"a fire nine hundred units off charred a corpse")
+
+	# A flood: floats the dead along the water and washes some away.
+	field = _bare_field()
+	field.set("_dice", _seeded(13))
+	var floated: Array[Dictionary] = []
+	for index: int in 40:
+		floated.append(field.lay(Vector2(float(index) * 30.0, 0.0), Vector2(float(index) * 30.0 - 5.0, 0.0),
+			10.0 if index % 2 == 0 else 90.0))
+	var starts: Array[Vector2] = []
+	for corpse: Dictionary in floated:
+		corpse["vel"] = Vector2.ZERO
+		starts.append(corpse["at"] as Vector2)
+	_check(not field.flood_tick(Balance.CORPSE_FLOOD_FROM * 0.5, Vector2.DOWN, 1.0),
+		"a flood under the corpses' knee moved them")
+	# Measured over the first step, before the water has taken either.
+	field.flood_tick(1.0, Vector2.DOWN, 0.2)
+	var drifted_small: float = (floated[0]["at"] as Vector2).y - starts[0].y
+	var drifted_large: float = (floated[1]["at"] as Vector2).y - starts[1].y
+	for _step: int in 50:
+		field.flood_tick(1.0, Vector2.DOWN, 0.2)
+	_check(drifted_small > 5.0 and drifted_small > drifted_large,
+		"a flood floated a small corpse %.0f and a large one %.0f down the water" % [drifted_small, drifted_large])
+	_check(int(field.taken.get("wash", 0)) > 0 and int(field.taken.get("wash", 0)) < 40,
+		"a flood washed away %d of 40" % int(field.taken.get("wash", 0)))
+
+	# A funnel: drags in from its reach, flings what reaches its heart, tears some.
+	field = _bare_field()
+	field.set("_dice", _seeded(14))
+	var dragged: Dictionary = field.lay(Vector2(300.0, 0.0), Vector2(290.0, 0.0), 30.0)
+	dragged["vel"] = Vector2.ZERO
+	var heart: Array[Dictionary] = []
+	for index: int in 30:
+		var corpse: Dictionary = field.lay(Vector2.from_angle(float(index)) * 20.0, Vector2.ZERO, 30.0)
+		corpse["height"] = 0.0
+		corpse["vy"] = 0.0
+		heart.append(corpse)
+	var outside: Dictionary = field.lay(Vector2(2000.0, 0.0), Vector2(1990.0, 0.0), 30.0)
+	field.tornado_tick(Vector2.ZERO, 1.0, 0.2)
+	_check((dragged["at"] as Vector2).x < 300.0, "a funnel did not drag in a corpse in its reach")
+	var flung: int = 0
+	for corpse: Dictionary in heart:
+		flung += 1 if float(corpse["vy"]) > 0.0 else 0
+	_check(flung == 30, "a funnel flung %d of the 30 corpses at its heart" % flung)
+	var torn: int = int(field.taken.get("tear", 0))
+	_check(torn > 0 and torn < 30, "a funnel tore %d of 30 apart" % torn)
+	_check(torn > int(_quake_rate_check(shattered)), "a funnel at its heart is no stronger than a quake's crest")
+	_check(not outside.has("leaving") and (outside["at"] as Vector2).x >= 1999.0,
+		"a funnel reached a corpse two thousand units off")
+
+	# And a corpse taken is drawn going, then gone.
+	var leaving: int = field.count()
+	field._process(Balance.CORPSE_LEAVE_SECONDS + 0.1)
+	_check(field.count() == leaving - torn, "%d corpses torn apart are still on the ground"
+		% (field.count() - (leaving - torn)))
+	_reached.append("earth")
+
+
+func _quake_rate_check(shattered: int) -> int:
+	# A funnel's heart takes more than half again what a crest crossing does.
+	return int(float(shattered) * 0.5)
+
+
+func _seeded(value: int) -> RandomNumberGenerator:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = value
+	return dice
 
 
 func _bare_field() -> CorpseField:
@@ -139,8 +260,17 @@ func _test_the_ways() -> void:
 	for step: int in 16:
 		seen[CorpseField.direction_for(Vector2.from_angle(TAU * float(step) / 16.0))] = true
 	_check(seen.size() == 8, "a full turn of throws lies only %d ways" % seen.size())
-	_check(CorpseField.size_for(10.0) == CorpseField.Size.SMALL and CorpseField.size_for(30.0) == CorpseField.Size.MEDIUM
-		and CorpseField.size_for(80.0) == CorpseField.Size.LARGE, "the sizes do not follow the body")
+	# **Amended 2026-10-08**: a corpse is sized by the body's painting rather
+	# than its footing, so the bands sit further out - a rabbit small, a
+	# soldier medium, a camp lord large.
+	_check(CorpseField.size_for(10.0) == CorpseField.Size.SMALL and CorpseField.size_for(45.0) == CorpseField.Size.MEDIUM
+		and CorpseField.size_for(90.0) == CorpseField.Size.LARGE, "the sizes do not follow the body")
+	var last_scale: float = 0.0
+	for reach: float in [5.0, 20.0, 40.0, 70.0, 120.0, 400.0]:
+		var scale: float = CorpseField.scale_for(reach)
+		_check(scale >= last_scale and scale >= Balance.CORPSE_SCALE_MIN and scale <= Balance.CORPSE_SCALE_MAX,
+			"a body of reach %.0f leaves a corpse at %.2f after one at %.2f" % [reach, scale, last_scale])
+		last_scale = scale
 	_reached.append("ways")
 
 
@@ -270,9 +400,18 @@ func _test_the_road() -> void:
 	var flesh: Enemy = _stand_a_body(field, field.town_position() + Vector2(900.0, 900.0), EnemyData.Hide.FLESH)
 	if flesh != null:
 		await get_tree().process_frame
+		var painted: Rect2 = Hitbox.painted_rect(flesh)
+		var long_side: float = maxf(painted.size.x, painted.size.y)
 		flesh.health.kill(flesh.global_position + Vector2(-50.0, 0.0))
 		await _wait(Balance.ENEMY_DEATH_FALL_SECONDS + 0.4)
 		_check(field.corpses.count() == before + 1, "a body killed left %d corpses" % (field.corpses.count() - before))
+		# **As big as the body that fell** (owner, 2026-10-08): the corpse lies
+		# about as long as the body's painting was, not the size of its feet.
+		if field.corpses.count() > before:
+			var laid: Dictionary = field.corpses.corpses()[field.corpses.count() - 1]
+			var length: float = Balance.CORPSE_ART_LENGTH * CorpseField.scale_of(laid)
+			_check(length >= long_side * 0.6 and length <= long_side * 1.2,
+				"a body painted %.0f long left a corpse %.0f long" % [long_side, length])
 	before = field.corpses.count()
 	var spirit: Enemy = _stand_a_body(field, field.town_position() + Vector2(-900.0, 900.0), EnemyData.Hide.SPIRIT)
 	if spirit != null:
@@ -413,6 +552,19 @@ func _test_the_road() -> void:
 			% [carrion.vulture_count(), Balance.CARRION_VULTURES_MAX])
 		RunState.act = held_act
 		animals.set("_hush_left", 1.0e9)
+	# **A real quake on the field crosses the dead** (2026-10-08), last because
+	# it frightens every animal on the field - the wave
+	# tells the corpse field where its crest is, which no door driven by hand
+	# can prove.
+	var epicentre: Vector2 = field.town_position() + Vector2(-1400.0, 900.0)
+	var shaken: Dictionary = field.corpses.lay(epicentre + Vector2(220.0, 0.0), epicentre, 30.0, "", 0.0)
+	shaken["vel"] = Vector2.ZERO
+	var selected: Array[String] = ["quake"]
+	field.sky().quake(1.0, selected, epicentre)
+	await _wait(1.2)
+	_check(shaken.has("quaked") or shaken.has("leaving"),
+		"a quake breaking two hundred units off never crossed the corpse")
+	field.corpses.corpses().clear()
 	run.queue_free()
 	GameDirector.run_active = false
 	for _f: int in 10:

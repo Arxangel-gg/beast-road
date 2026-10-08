@@ -173,6 +173,12 @@ func _process_measured(delta: float) -> void:
 			if not mirror:
 				_strike_the_front(ring)
 			_leave_the_fault(ring)
+			# The dead are thrown, shattered and swallowed on every machine:
+			# corpses are each machine's own picture.
+			if field != null and field.corpses != null:
+				var half: float = Balance.QUAKE_CREST_WIDTH * 0.5
+				field.corpses.quake_front(at, ring.radius - half, ring.radius + half,
+					_rings.find(ring), (1.0 - _spent(ring)) * magnitude)
 	_tell(delta)
 	_drive_ripple()
 	queue_redraw()

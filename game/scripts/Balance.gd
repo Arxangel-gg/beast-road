@@ -11924,9 +11924,58 @@ const MERC_RESTATE_SECONDS: float = 4.0
 ## often a resting field redraws. [TUNE]
 const CORPSE_Z: int = -2
 const CORPSE_MAX: int = 80
-const CORPSE_SMALL_BELOW: float = 22.0
-const CORPSE_LARGE_FROM: float = 44.0
 const CORPSE_SIZE_SCALE: Array[float] = [0.7, 1.0, 1.6]
+## **A corpse is as big as the body that fell** (owner, 2026-10-08: "Make the
+## corpses have larger sizes based on the size of the fallen character"). A
+## body is measured by its painting as drawn - half its larger side, never less
+## than its footing - and its corpse lies `BODY_SHARE` of that long, against
+## the `ART_LENGTH` pixels the corpse paintings are long, inside `SCALE_MIN`
+## and `SCALE_MAX`. The three size bands - how far it is thrown, how many flies,
+## what a scavenger may carry - follow the scale: small under
+## `SCALE_MEDIUM_FROM`, large from `SCALE_LARGE_FROM`. The three-step table above is what a corpse banked
+## before this reads as. [TUNE]
+const CORPSE_BODY_SHARE: float = 0.85
+const CORPSE_ART_LENGTH: float = 52.0
+const CORPSE_SCALE_MIN: float = 0.45
+const CORPSE_SCALE_MAX: float = 6.0
+const CORPSE_SCALE_MEDIUM_FROM: float = 1.1
+const CORPSE_SCALE_LARGE_FROM: float = 2.2
+
+## **The earth's blows take the dead too** (owner, 2026-10-08: "Earthquakes,
+## wildfires, floods, and tornadoes, should cause some affected corpses to get
+## destroyed including skeletons, each having varying strengths and ways of
+## disposing of the corpses as is naturally appropriate"). Each its own way and
+## its own strength, the smaller corpse always the likelier to go:
+##
+## - **a quake** throws every corpse its crest crosses into the air, shatters
+##   bones on `QUAKE_SHATTER` of crossings and swallows a carcass into the
+##   ground on `QUAKE_SWALLOW` - harder near where it broke;
+## - **a fire** within `FIRE_REACH` chars meat away at `FIRE_BURN` a second and
+##   burns bones to ash on `FIRE_ASH` a second - the strongest, given time;
+## - **a flood** past `FLOOD_FROM` floats the dead off along the wind at
+##   `FLOOD_DRIFT` units a second at full and washes them away on
+##   `FLOOD_WASH` a second at full;
+## - **a funnel** drags the dead in from `TORNADO_PULL`, flings what reaches its
+##   heart round its spin and tears it apart on `TORNADO_TEAR` of throws.
+##
+## Checked `DISASTER_HZ` times a second; a corpse going is drawn going over
+## `LEAVE_SECONDS`. A look and an ecology: nothing about a fight reads a corpse.
+## [TUNE]
+const CORPSE_DISASTER_HZ: float = 5.0
+const CORPSE_LEAVE_SECONDS: float = 0.6
+const CORPSE_QUAKE_HOP: float = 260.0
+const CORPSE_QUAKE_SHATTER: float = 0.45
+const CORPSE_QUAKE_SWALLOW: float = 0.2
+const CORPSE_FIRE_REACH: float = 90.0
+const CORPSE_FIRE_BURN: float = 0.12
+const CORPSE_FIRE_ASH: float = 0.18
+const CORPSE_FLOOD_FROM: float = 0.35
+const CORPSE_FLOOD_DRIFT: float = 70.0
+const CORPSE_FLOOD_WASH: float = 0.12
+const CORPSE_TORNADO_PULL: float = 380.0
+const CORPSE_TORNADO_DRAG: float = 160.0
+const CORPSE_TORNADO_FLING: float = 420.0
+const CORPSE_TORNADO_TEAR: float = 0.55
 const CORPSE_FLYER_MIN_SCALE: float = 0.9
 const CORPSE_THROW: float = 150.0
 const CORPSE_LIFT: float = 230.0
