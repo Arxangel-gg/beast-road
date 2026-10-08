@@ -3418,7 +3418,14 @@ func _test_preparation_envelope() -> void:
 	# crossroad or a boss, so the wall clock moves by about (40 x breather). Par
 	# has to contain that or every speed bonus falls for a change in pacing rather
 	# than in play - and runs recorded before the change become unbeatable.
-	var breather_minutes: float = 40.0 * Balance.PREPARATION_BETWEEN_WAVES
+	# **A lucky breather is longer** (2026-10-08), so par is held against the
+	# mean breather rather than the thirty, and the owner's sixty is a ceiling.
+	_check(Balance.PREPARATION_BETWEEN_WAVES + Balance.PREPARATION_LUCK_MAX_EXTRA * 2.0 <= 60.0,
+		"a doubled lucky breather may run past the sixty seconds the owner set")
+	var mean_extra: float = (Balance.PREPARATION_LUCK_MAX_EXTRA + 1.0) * 0.5 \
+		* (1.0 + Balance.PREPARATION_LUCK_DOUBLE_CHANCE)
+	var breather_minutes: float = 40.0 * (Balance.PREPARATION_BETWEEN_WAVES
+		+ Balance.PREPARATION_LUCK_CHANCE * mean_extra)
 	_check(Balance.SCORE_PAR_SECONDS > breather_minutes * 2.0,
 		"par (%.0fs) must leave real room for play beyond the %.0fs a run now "
 			% [Balance.SCORE_PAR_SECONDS, breather_minutes]

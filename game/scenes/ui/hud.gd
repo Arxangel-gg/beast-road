@@ -3272,7 +3272,7 @@ func _build_sheet_clock(into: Control) -> Dictionary:
 ## Paints every sheet clock. Called from `_on_preparation_changed`, so the
 ## sheets and the card are always saying the same thing.
 func _paint_sheet_clocks(seconds_left: float) -> void:
-	var whole: float = maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01)
+	var whole: float = maxf(RunState.preparation_full, 0.01)
 	var share: float = clampf(seconds_left / whole, 0.0, 1.0)
 	var timed: bool = seconds_left > 0.0
 	for entry: Dictionary in _sheet_clocks:
@@ -3292,7 +3292,8 @@ func _paint_sheet_clocks(seconds_left: float) -> void:
 		var tint: Color = Balance.UI_CLOCK_EASY
 		if seconds_left <= PREPARATION_URGENT_SECONDS:
 			tint = Balance.UI_CLOCK_URGENT
-		elif Balance.preparation_early_gold(seconds_left) <= Balance.PREPARATION_EARLY_GOLD_FLOOR:
+		elif Balance.preparation_early_gold(seconds_left, RunState.preparation_full) \
+				<= Balance.PREPARATION_EARLY_GOLD_FLOOR:
 			tint = Balance.UI_CLOCK_SOON
 		# **Repaint, never rebuild.** This was `_dress_bar(bar, tint)`, which adds
 		# a sheen and a frame and removes nothing - and never read the colour it
@@ -4129,7 +4130,7 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	if _preparation_label == null or _ride_on_button == null:
 		return
 	_ride_on_button.disabled = not ready
-	var reward: int = Balance.preparation_early_gold(seconds_left)
+	var reward: int = Balance.preparation_early_gold(seconds_left, RunState.preparation_full)
 	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
 	_preparation_label.text = _preparation_text(seconds_left, reward)
 	_paint_the_clock(seconds_left)
@@ -4202,7 +4203,8 @@ func _preparation_text(seconds_left: float, reward: int) -> String:
 	if reward > Balance.PREPARATION_EARLY_GOLD_FLOOR:
 		return "Ride on now for +%d Gold — the bonus drops every second." % reward
 	if reward > 0:
-		var left: float = ceil(Balance.preparation_bonus_seconds_left(seconds_left))
+		var left: float = ceil(Balance.preparation_bonus_seconds_left(seconds_left,
+			RunState.preparation_full))
 		return "+%d Gold if you ride on within %.0f sec, then the bonus is gone." % [reward, left]
 	return "No bonus left. The wave rolls in %.0f sec." % ceil(seconds_left)
 
@@ -7726,7 +7728,8 @@ func _paint_the_clock(seconds_left: float) -> void:
 	var tint: Color = Balance.UI_CLOCK_EASY
 	if seconds_left <= PREPARATION_URGENT_SECONDS:
 		tint = Balance.UI_CLOCK_URGENT
-	elif Balance.preparation_early_gold(seconds_left) <= Balance.PREPARATION_EARLY_GOLD_FLOOR:
+	elif Balance.preparation_early_gold(seconds_left, RunState.preparation_full) \
+			<= Balance.PREPARATION_EARLY_GOLD_FLOOR:
 		tint = Balance.UI_CLOCK_SOON
 	_preparation_clock.add_theme_color_override("font_color", tint)
 	# A beat on the last seconds, because a colour that never moves stops being

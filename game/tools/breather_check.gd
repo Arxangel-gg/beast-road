@@ -166,7 +166,7 @@ func _process(delta: float) -> void:
 		# The opposite of what this used to assert. A between-wave breather is a
 		# countdown now and has to end on its own, so nothing here presses Ride On
 		# and overrunning the window is the failure.
-		if _breather_age > Balance.PREPARATION_BETWEEN_WAVES + 2.0:
+		if _breather_age > RunState.preparation_full + 2.0:
 			# **Say what was holding it.** The first time this fired on a sweep it
 			# said only that the clock overran, and the three things that may
 			# hold a breather's clock - the build grace, an open draft, and the

@@ -2397,6 +2397,35 @@ const PREPARATION_MIN_SECONDS: float = 0.0
 ## `balance_test._test_preparation_envelope` holds both ends of this. [TUNE]
 const PREPARATION_BETWEEN_WAVES: float = 30.0
 
+## **A breather is sometimes longer** (owner, 2026-10-08: "Make preparation
+## time sometimes have a lucky chance of lasting more than 30 seconds to a
+## maximum of 45 seconds, and that extra duration bonus over 30s could get a
+## lucky chance to provide double the amount ... the preparation window should
+## always be somewhere random procedurally between 30s-60s"). On
+## `PREPARATION_LUCK_CHANCE` of breathers a whole number of seconds up to
+## `PREPARATION_LUCK_MAX_EXTRA` is added, and on `PREPARATION_LUCK_DOUBLE_CHANCE`
+## of those the extra is doubled - so a breather is never under the thirty and
+## never over sixty. **It pays no more Gold**: the early-departure award keeps
+## its shares of whatever length the breather got, so a long breather is time
+## and nothing else. Rolled from the run's seed and the wave the breather
+## follows, never a stream, so both machines of a party agree on it without a
+## packet and no other roll moves. [TUNE]
+const PREPARATION_LUCK_CHANCE: float = 0.35
+const PREPARATION_LUCK_MAX_EXTRA: float = 15.0
+const PREPARATION_LUCK_DOUBLE_CHANCE: float = 0.25
+
+
+## How long the breather after `wave` lasts, on the road with `seed`.
+static func preparation_length(seed: int, wave: int) -> float:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = hash("preparation:%d:%d" % [seed, wave])
+	if dice.randf() >= PREPARATION_LUCK_CHANCE:
+		return PREPARATION_BETWEEN_WAVES
+	var extra: float = float(dice.randi_range(1, int(PREPARATION_LUCK_MAX_EXTRA)))
+	if dice.randf() < PREPARATION_LUCK_DOUBLE_CHANCE:
+		extra *= 2.0
+	return PREPARATION_BETWEEN_WAVES + extra
+
 ## **How long after a wave closes before a build sheet may open** (owner,
 ## 2026-09-22). A wave ends synchronously - the director closes it, the run
 ## opens the breather and the cursor goes live inside one frame - so a player
@@ -2447,10 +2476,14 @@ const PREPARATION_EARLY_GOLD_DEADLINE_SHARE: float = 2.0 / 3.0
 ## source. A longer breather also means the bonus is *taken* less often, because
 ## the time is now worth using - so if anything this drifts income down, well
 ## inside noise.
-static func preparation_early_gold(seconds_left: float) -> int:
-	var elapsed: float = maxf(PREPARATION_BETWEEN_WAVES - seconds_left, 0.0)
-	var decay: float = preparation_early_gold_decay_seconds()
-	if elapsed >= preparation_early_gold_deadline_seconds():
+##
+## `full` is how long this breather is (`preparation_length`): the award keeps
+## its shares of it, so a lucky long breather pays the same Gold over more time.
+static func preparation_early_gold(seconds_left: float,
+		full: float = PREPARATION_BETWEEN_WAVES) -> int:
+	var elapsed: float = maxf(full - seconds_left, 0.0)
+	var decay: float = preparation_early_gold_decay_seconds(full)
+	if elapsed >= preparation_early_gold_deadline_seconds(full):
 		return 0
 	if elapsed >= decay:
 		return PREPARATION_EARLY_GOLD_FLOOR
@@ -2460,18 +2493,21 @@ static func preparation_early_gold(seconds_left: float) -> int:
 		PREPARATION_EARLY_GOLD_FLOOR)
 
 
-static func preparation_early_gold_decay_seconds() -> float:
-	return PREPARATION_BETWEEN_WAVES * PREPARATION_EARLY_GOLD_DECAY_SHARE
+static func preparation_early_gold_decay_seconds(
+		full: float = PREPARATION_BETWEEN_WAVES) -> float:
+	return full * PREPARATION_EARLY_GOLD_DECAY_SHARE
 
 
-static func preparation_early_gold_deadline_seconds() -> float:
-	return PREPARATION_BETWEEN_WAVES * PREPARATION_EARLY_GOLD_DEADLINE_SHARE
+static func preparation_early_gold_deadline_seconds(
+		full: float = PREPARATION_BETWEEN_WAVES) -> float:
+	return full * PREPARATION_EARLY_GOLD_DEADLINE_SHARE
 
 
 ## Seconds left before the early-departure award disappears entirely.
-static func preparation_bonus_seconds_left(seconds_left: float) -> float:
+static func preparation_bonus_seconds_left(seconds_left: float,
+		full: float = PREPARATION_BETWEEN_WAVES) -> float:
 	return maxf(seconds_left
-		- (PREPARATION_BETWEEN_WAVES - preparation_early_gold_deadline_seconds()), 0.0)
+		- (full - preparation_early_gold_deadline_seconds(full)), 0.0)
 
 ## How long a formation may fail to clear before the run moves on anyway.
 ##

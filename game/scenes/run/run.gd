@@ -1545,17 +1545,28 @@ func _enter_wave_breather(wave: int) -> bool:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
 	journey.stop()
-	_preparation_left = Balance.PREPARATION_BETWEEN_WAVES
+	RunState.preparation_full = Balance.preparation_length(RunState.run_seed, wave)
+	_preparation_left = RunState.preparation_full
 	_coverage_warning_acknowledged = true
 	EventBus.preparation_changed.emit(_preparation_left, true)
-	EventBus.preparation_warning.emit("The road is clear. Ride early for bonus Gold — the next wave rolls in %.0f seconds."
-		% Balance.PREPARATION_BETWEEN_WAVES)
+	EventBus.preparation_warning.emit(_breather_words(RunState.preparation_full))
 	return true
+
+
+## What the road says when a breather opens: longer, and longer still, on a
+## lucky wave.
+func _breather_words(full: float) -> String:
+	var extra: float = full - Balance.PREPARATION_BETWEEN_WAVES
+	if extra > Balance.PREPARATION_LUCK_MAX_EXTRA:
+		return "The road falls very still. Ride early for bonus Gold — the next wave rolls in %.0f seconds." % full
+	if extra > 0.0:
+		return "The road is quiet a while. Ride early for bonus Gold — the next wave rolls in %.0f seconds." % full
+	return "The road is clear. Ride early for bonus Gold — the next wave rolls in %.0f seconds." % full
 
 
 ## Ends a breather and lets the next wave come.
 func _end_wave_breather() -> void:
-	var reward: int = Balance.preparation_early_gold(_preparation_left)
+	var reward: int = Balance.preparation_early_gold(_preparation_left, RunState.preparation_full)
 	if reward > 0:
 		RunState.gain_currency(RunState.GOLD, reward)
 		EventBus.preparation_warning.emit("EARLY DEPARTURE  ·  +%d Gold" % reward)

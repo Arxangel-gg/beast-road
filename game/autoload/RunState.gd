@@ -163,6 +163,10 @@ var terrain_id: String = ""
 ## Run-scoped and never saved: a Walk quit halfway grants nothing and is
 ## offered again from the start.
 var walking: bool = false
+## **How long the breather now open is** (2026-10-08): the thirty, or more on a
+## lucky wave (`Balance.preparation_length`). Every reader of the clock reads
+## its whole from here, so the bar, the colour and the award all agree.
+var preparation_full: float = Balance.PREPARATION_BETWEEN_WAVES
 ## **The account's furthest road as this road began**, and whether passing it
 ## has been said (`PersonalBest`). Run-scoped; nothing persists here.
 var best_to_beat: float = 0.0
@@ -688,6 +692,7 @@ func _fresh_seed() -> int:
 ## Wipes everything. Called when a run begins, never mid-run — death wipes the
 ## run entirely (GDD §10).
 func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
+	preparation_full = Balance.PREPARATION_BETWEEN_WAVES
 	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
 	company.clear()
 	company_stayed_home.clear()

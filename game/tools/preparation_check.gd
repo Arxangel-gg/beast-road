@@ -88,6 +88,8 @@ func _ready() -> void:
 	await _test_a_bar_answers_by_how_much_moved()
 	await _test_the_camera_frames_the_fight()
 	await _test_the_last_ten_seconds_climb()
+	_test_a_breather_is_sometimes_longer()
+	await _test_a_long_breather_opens_long()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -143,6 +145,84 @@ func _test_the_last_ten_seconds_climb() -> void:
 	EventBus.preparation_changed.emit(0.0, true)
 	EventBus.preparation_changed.emit(-1.0, true)
 	_check(_hud.countdown_heard.is_empty(), "a breather with no deadline counted down")
+
+
+## **A breather is sometimes longer** (owner, 2026-10-08): never under thirty,
+## never over sixty, in whole seconds; longer on about the authored share of
+## waves and past forty-five only when the extra doubled; the same wave of the
+## same road always the same; and the Gold for riding on early keeps its shares
+## of whatever length the breather got, so a long one pays nothing more.
+func _test_a_breather_is_sometimes_longer() -> void:
+	var rolls: int = 0
+	var longer: int = 0
+	var past_half: int = 0
+	var bad: Array[String] = []
+	for road: int in 40:
+		for wave: int in range(1, 51):
+			var seed_value: int = 7001 + road * 131
+			var full: float = Balance.preparation_length(seed_value, wave)
+			rolls += 1
+			if full < 30.0 or full > 60.0 or not is_equal_approx(full, roundf(full)):
+				bad.append("%.2f" % full)
+			if full > Balance.PREPARATION_BETWEEN_WAVES:
+				longer += 1
+			if full > Balance.PREPARATION_BETWEEN_WAVES + Balance.PREPARATION_LUCK_MAX_EXTRA:
+				past_half += 1
+			if not is_equal_approx(full, Balance.preparation_length(seed_value, wave)):
+				bad.append("wave %d rolled twice differently" % wave)
+	_check(bad.is_empty(), "breathers rolled outside thirty to sixty whole seconds: %s" % [bad.slice(0, 6)])
+	var share: float = float(longer) / float(rolls)
+	_check(absf(share - Balance.PREPARATION_LUCK_CHANCE) < 0.05,
+		"%.0f%% of breathers were longer, against the authored %.0f%%"
+			% [share * 100.0, Balance.PREPARATION_LUCK_CHANCE * 100.0])
+	_check(past_half > 0 and past_half < longer / 3,
+		"%d of %d long breathers ran past forty-five - the doubling is never or always" % [past_half, longer])
+	for full: float in [30.0, 41.0, 60.0]:
+		_check(Balance.preparation_early_gold(full, full) == Balance.PREPARATION_EARLY_GOLD_MAX,
+			"a %.0fs breather does not pay the full award the instant it opens" % full)
+		_check(Balance.preparation_early_gold(full * (2.0 / 3.0) - 0.01, full)
+				== Balance.PREPARATION_EARLY_GOLD_FLOOR,
+			"a %.0fs breather's award has not reached its floor a third of the way" % full)
+		_check(Balance.preparation_early_gold(full / 3.0 - 0.01, full) == 0,
+			"a %.0fs breather's award is not gone two thirds of the way" % full)
+		_check(Balance.preparation_bonus_seconds_left(full, full) > full * 0.6,
+			"a %.0fs breather's bonus window is not its own two thirds" % full)
+
+
+## And the road opens one long when the roll says so: the clock, the whole the
+## HUD reads, the bar full at the start and the award at the start all agree.
+func _test_a_long_breather_opens_long() -> void:
+	var wave: int = 0
+	for candidate: int in range(2, 400):
+		if Balance.preparation_length(RunState.run_seed, candidate) > Balance.PREPARATION_BETWEEN_WAVES:
+			wave = candidate
+			break
+	_check(wave > 0, "no wave of this road rolled a long breather in four hundred")
+	if wave == 0:
+		return
+	var full: float = Balance.preparation_length(RunState.run_seed, wave)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_run.set("_breather", false)
+	_run.set("_breather_after_wave", 0)
+	_check(bool(_run.call("_enter_wave_breather", wave)), "the long breather did not open")
+	_check(is_equal_approx(RunState.preparation_full, full)
+			and is_equal_approx(float(_run.get("_preparation_left")), full),
+		"a breather rolled at %.0fs opened at %.1f (whole %.1f)"
+			% [full, float(_run.get("_preparation_left")), RunState.preparation_full])
+	EventBus.preparation_changed.emit(full, true)
+	await get_tree().process_frame
+	var ride := _hud.get("_ride_on_button") as Button
+	_check(ride != null and ride.text.contains("+%d" % Balance.PREPARATION_EARLY_GOLD_MAX),
+		"riding on at the start of a %.0fs breather is not offered the full award: '%s'"
+			% [full, ride.text if ride != null else "?"])
+	var clocks: Array = _hud.get("_sheet_clocks") as Array
+	for entry: Variant in clocks:
+		var bar := ((entry as Dictionary)["bar"] as ProgressBar)
+		_check(is_equal_approx(bar.value, 1.0),
+			"a sheet's clock reads %.2f at the start of a long breather" % bar.value)
+	_run.set("_breather", false)
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.preparation_full = Balance.PREPARATION_BETWEEN_WAVES
 
 
 func _check(condition: bool, why: String) -> void:
@@ -448,8 +528,10 @@ func _test_the_grace_shuts_the_click_path() -> void:
 ## And it ends. Measured by waiting it out rather than by clearing the stamp.
 func _test_the_clock_waits_the_grace_out() -> void:
 	var before: float = float(_run.get("_preparation_left"))
-	_check(is_equal_approx(before, Balance.PREPARATION_BETWEEN_WAVES),
-		"the breather must open at the full clock (%.1f)" % before)
+	_check(is_equal_approx(before, RunState.preparation_full)
+			and is_equal_approx(RunState.preparation_full,
+				Balance.preparation_length(RunState.run_seed, 1)),
+		"the breather must open at the full clock (%.1f of %.1f)" % [before, RunState.preparation_full])
 	# Half the grace: the clock must not have moved at all.
 	await get_tree().create_timer(Balance.BUILD_GRACE_SECONDS * 0.5).timeout
 	var during: float = float(_run.get("_preparation_left"))
