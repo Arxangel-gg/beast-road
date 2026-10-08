@@ -15343,6 +15343,24 @@ page keeps its old rows queued for deletion under the same name**, so a fresh
 row added beside one is renamed with an `@` prefix and `get_node` finds the
 dying one - the gate keys a row on a meta instead.
 
+**The thumb cluster was built, photographed and not shipped, as of
+2026-10-08.** Item 25's arc (docs/MOBILE_HUD_WILD_RIFT_2026-10-06.md) assumed
+the scope column ended near 380 on a landscape phone; it ends at 498, and with
+a spirit bonded the readout and the minimap stand under it to about 421. An arc
+solved against what is showing jumps when a spirit is called; one solved
+against what can show puts slot one 50 mm from the corner; moving the minimap
+lands it on the top-centre banners. §9 of the design has the numbers and the
+one arrangement that fits (a two-by-two fan), which costs the bow's trigger its
+place and so is the owner's call. **The slots stay a row.**
+
+**And the spirit readout fits its column on a thumb.** The order button of
+2026-10-07 pushed it to 291 of 240 at both phone shapes, over the column -
+`spirit_order_check` measured the pair's width on a desktop, where the touch
+pass has not grown the type. Both buttons clip and share the width now, and the
+toggle says "Home" on a thumb. **A width measured on a desktop says nothing
+about a thumb**: the phone shapes of `layout_check` are what caught it, and they
+are on both bars.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
