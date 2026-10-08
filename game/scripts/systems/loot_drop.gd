@@ -1226,6 +1226,10 @@ func _place_plate() -> void:
 func _plate_text() -> String:
 	if not gear.is_empty():
 		var kind: GearData = ContentDB.gear(String(gear.get("kind", "")))
+		# A unique is named on the ground: there is one a boss, and the walk to
+		# it is the moment the page about it exists for.
+		if kind != null and kind.is_unique():
+			return "Unique  \u00b7  %s" % kind.display_name
 		if kind != null:
 			return kind.slot_name()
 		return "Gear"

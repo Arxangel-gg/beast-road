@@ -155,6 +155,9 @@ func _test_the_drop() -> void:
 		_check(drop.net_id == 0, "a unique was laid as a shared drop")
 		_check(drop.global_position.distance_to(_hero.global_position) < 200.0, "the unique was laid away from the Warden")
 		_check(_run.get("_unique_paid_act") == 2, "the first fall's payment is not remembered against the repeat")
+		var named: String = String(drop.call("_plate_text"))
+		_check(named.contains(ContentDB.gear("sandglass_sabatons").display_name),
+			"a unique on the ground reads \"%s\" rather than its name" % named)
 	MetaState.note_first_clear(RunState.tier_id, 2)
 	await get_tree().process_frame
 	_check(_uniques_on_the_ground() == before + 1, "a second first fall of the same boss paid again")

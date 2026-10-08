@@ -74,6 +74,7 @@ const _STAGE_OF: Dictionary = {
 	"sandbox": 0.72, "mercenaries": 0.5, "hazard_plants": 0.05, "the_dead": 0.16,
 	"insects": 0.04,
 	"pings": 0.45,
+	"uniques": 0.5,
 }
 
 ## How many towers this run has put up, so each picture draws a different one.
@@ -764,6 +765,10 @@ func _ready() -> void:
 		Vector2(120.0, 100.0), 1.2)
 	await _made_subject_shot("pings", func() -> Vector2: return _ping_the_road(),
 		Vector2(0.0, 60.0), 1.0)
+	# The Warden stands back past the magnet's reach, or the piece is in the
+	# stash before the picture is taken and the page shows an empty road.
+	await _made_subject_shot("uniques", func() -> Vector2: return _pay_a_unique(),
+		Vector2(Balance.LOOT_MAGNET_RANGE + 80.0, -30.0), 1.25)
 
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])
@@ -2122,6 +2127,31 @@ func _ping_the_road() -> Vector2:
 	var lean: Vector2 = pings.wheel.centre() + Vector2(80.0, -60.0)
 	pings.wheel.pointer = func() -> Vector2: return lean
 	return at
+
+
+## **A unique paid** (2026-10-07): the Hoarfrost Signet laid at the Warden's
+## feet by the real door a boss's first fall opens, its banner over the road.
+func _pay_a_unique() -> Vector2:
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero
+	DayNight.call("_apply", 0.3)
+	_apt_post("uniques")
+	# A quiet road and a whole Warden: a picture about a reward is not a fight,
+	# and taken alone (`--only=uniques`) the road had walked bodies onto it.
+	field.wave_director.stop()
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		node.queue_free()
+	hero.health.current_hp = hero.health.max_hp
+	Vfx.clear_vignette()
+	# The pings page leaves its wheel open; this one is about the ground.
+	var pings: PingField = field.ping_field()
+	if pings != null:
+		pings.cancel_hold()
+		for mark: PingMark in pings.marks():
+			mark.queue_free()
+	var lies: Vector2 = hero.global_position + Vector2(300.0, 40.0)
+	run.pay_unique(3, lies)
+	return lies
 
 
 ## The map shown as asked - set, because M cycles four views.

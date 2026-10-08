@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "uniques"
+display_name = "Uniques"
+title = "Uniques"
+category = "Items & Gear"
+order = 74
+image = "res://art/guide/uniques.png"
+body = "Every act's boss guards a unique: a ring, an amulet, a charm, gloves or boots that changes a rule of how you fight rather than adding a number. Rootbinder's Grip roots the bodies round a finisher's kill; the Hoarfrost Signet spreads the chill of what you kill; Kharok's Sigil turns the nearest tower on whoever strikes your ward. The first time you fell a boss on each road, its unique drops at your feet - only for you, so in a party each player earns their own - and now and then it drops again on a later fall. A unique is never found anywhere else, never sold and never forged, and its row in the stash says its rule in its own words. Its attributes are those of any piece of its rarity: what it costs you is the slot."

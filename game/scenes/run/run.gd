@@ -1124,13 +1124,17 @@ func _on_first_clear_made(_tier_id: String, act: int) -> void:
 	pay_unique(act)
 
 
-func pay_unique(act: int) -> void:
+## `where` lays it somewhere other than the Warden's feet - the Guide's
+## photograph, which wants it on the ground rather than already picked up.
+func pay_unique(act: int, where: Vector2 = Vector2.INF) -> void:
 	var piece: Dictionary = Uniques.piece_for(act, RunState.tier_id)
 	if piece.is_empty() or battlefield == null:
 		return
 	var at: Vector2 = battlefield.town_position()
 	if battlefield.hero != null and is_instance_valid(battlefield.hero):
 		at = battlefield.hero.global_position + Vector2(48.0, 36.0)
+	if where != Vector2.INF:
+		at = where
 	battlefield.spawn_personal_gear(piece, at)
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
 	if kind != null:
