@@ -21,6 +21,28 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0o. Where things stand (2026-10-08, later)
+
+v0.77.0 shipped (the trailer's key catcher). Since then on `next`, each gated
+and recorded in CLAUDE.md:
+
+- **Map overlay opacity** is a slider under Map overlay (10-85%).
+- **Hired mercenaries walk out with the road** by default (they stayed home
+  until a toggle), the road names who came, and a company readout sits under
+  the spirit's on the HUD.
+- **The Arsenal's spirit cards are seen**: a flame, a ghost, a wraith rise out
+  of the body and hunt as their own paintings; a crow wheels out of its burst.
+  Three town cards (Crows, Drowned Bell, Soulfire) were crawling seekers for
+  want of `speed = 0.0` and are bursts now.
+- **Wildlife and companions level** (owner re-cut of the 2026-09-01 bound):
+  `WildlifeLevels`, `wildlife_level_check`.
+- **Guard runs on three shards**; it had outgrown its 60-minute ceiling.
+
+Next: the release sweep (running as this was written) and v0.78.0.
+
+Owed, unchanged: the thumb cluster's two-by-two fan (owner call on the bow's
+trigger), the swarm buzz recording, pings on a pad.
+
 ## 0n. Where things stand (2026-10-08)
 
 Everything in 0m, 0l and the owner's lists of 2026-10-07 is built; the ideas
