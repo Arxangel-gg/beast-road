@@ -12,6 +12,29 @@ as proposed. *Adapt* means the idea is right and the proposed shape is not.
 *Defer* means worth having and not now. *Refuse* means it contradicts a bound
 the project holds, and the bound is named.
 
+## Status, 2026-10-08
+
+Every *Adopt* row is built, and every *Adapt* row is either built or turned out
+to be built already. Read against the code rather than this list, because the
+list was wrong about three of them:
+
+| Item | Where it stands |
+|---|---|
+| Mercenaries (2.1) | Built, five stages - `mercenary_check`, `mercenary_road_check` |
+| The corpse and the Living Battlefield (2.2) | Built - `corpse_check` |
+| Death recap, personal best, perfect guard, durability restoration, codex mastery, teaching achievements, near-death, tower damage states (2.3) | Built |
+| Run history and the Hall (2.3) | Built as **the Cairn** - `cairn_check` |
+| Co-op ping wheel (2.3) | Built - `ping_check` |
+| More mutations (3) | Built: Leeching, Riven, and the death blast already was the hazard trail |
+| Build-defining uniques (3) | Built - `docs/UNIQUES_DESIGN_2026-10-07.md`, `unique_check` |
+| Boss phases that change the battlefield (3) | **Was already built** - `EnemyData.phase_events`, `boss_reach_check` |
+| Weather fronts (3) | **Was already built** - `WEATHER_FRONT_SPEED`, the weather veil |
+| Migrations (3) | Built - `migration_check` |
+| Population memory (3) | **Was already built** - `Wildlife.cull_share` |
+| Sabotage enemies (3) | Built as the Saboteur mark - `saboteur_check` |
+| Companion commands (3) | Built - `spirit_order_check` |
+| Between-wave decisions, Hold prosperity (3) | As written: the Quartermaster, the wayside and the pass; the Cairn first |
+
 **The test the lists themselves end on is a good one and is adopted as a
 working question:** *can this interact with at least three other Wilderhold
 systems?* It is how the corpse system below was chosen over a dozen isolated
