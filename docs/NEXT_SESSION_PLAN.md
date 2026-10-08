@@ -21,6 +21,22 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0p. Where things stand (2026-10-08, evening)
+
+v0.78.0 shipped. The owner's second list of 2026-10-08 - twelve items - is
+built on `next`, each gated and recorded in CLAUDE.md under "The owner's second
+list of 2026-10-08": the shield seen, the Controls page complete, the Hold's
+strangers dressed, no table over the trailer, the breather's countdown sounds,
+lucky breathers of thirty to sixty seconds, the trailer's dragon in every cut,
+dragons that sweep, retarget, rampage and walk side-on, corpses sized by the
+body and taken by the earth's blows, and manners at a carcass.
+
+Next: the release sweep and v0.79.0.
+
+Owed, unchanged: the thumb cluster's two-by-two fan (owner call on the bow's
+trigger), the swarm buzz recording, pings on a pad; and now recordings for the
+three countdown beats, which are synthesised placeholders.
+
 ## 0o. Where things stand (2026-10-08, later)
 
 v0.77.0 shipped (the trailer's key catcher). Since then on `next`, each gated

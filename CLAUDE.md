@@ -15457,6 +15457,114 @@ the one list, so a gate is still added in one place. With `GATE_SHARD` unset the
 function runs every gate, which is what `ci_validation_test` and a local sweep
 see.
 
+**The owner's second list of 2026-10-08, and what each answer is.** Twelve
+items; each is gated on both bars and what follows is the part that is a
+decision.
+
+- **A raised shield is seen, and a refused one says why.** "Unable to raise
+  shield" was a guard that rose and that nothing on screen showed:
+  `is_guarding()` was read by nothing. Raised, the shield comes up to the chest
+  on the side faced, and `GuardArc` draws the guard on the ground - dim for the
+  span, bright for what is left, gold on a perfect block, red while a broken
+  one rests. The key with nothing to raise says why over the Warden (none worn,
+  both hands on the weapon, worn through). **A mechanic with no picture reads
+  as a broken key.**
+- **The Controls page names every key**, Tab among them: four bound actions
+  were on no page. `chat_check` holds every action in the input map to the
+  page, bar the one developer key.
+- **The Hold's strangers walk dressed.** Alone, the session's table filled a
+  stranger's name and never its look or gear, so every walker was the bare
+  body while the Inn rolled the same key whole. `HoldSession._fill_stranger` is
+  the one door for alone and for a host. `hold_check` had driven the host's
+  `_compose`, which filled everything - **the gate drove the door that worked**.
+- **No table is laid over the trailer.** `Run.filming()` is asked at every door
+  a table opens by - a draft, a fork, a relic, a portent, the pass home - and
+  the trailer's Arsenal is its stage's to deal.
+- **The breather's last ten seconds climb** (`HUD.countdown_beat`): a tick for
+  ten to six, a brighter warning for five and four, a drum under a bell for
+  three, two and one, each pitched above the last, the countdown lifting and
+  flaring harder at each stage. Synthesised (`tools/synth_countdown.py`) and
+  prompted for a recording. `register_sfx.py` registers takes, not singles, so
+  a new sound is written `_1`; and it writes into its own checkout now.
+- **A breather is sometimes longer** (`Balance.preparation_length`): thirty
+  seconds, plus 1-15 on `PREPARATION_LUCK_CHANCE` of waves, that extra doubled
+  on `PREPARATION_LUCK_DOUBLE_CHANCE` of those - always thirty to sixty. **It
+  pays no more Gold**: the early award keeps its shares of whatever length the
+  breather got (`preparation_early_gold(seconds, full)`), as the owner asked.
+  Rolled from the run's seed and the wave, never a stream, so both machines
+  agree without a packet and no other roll moves; `RunState.preparation_full`
+  is the whole every clock reader reads. Untimed breathers are untouched, and
+  `balance_test`'s par is held against the mean breather and the sixty.
+- **The trailer's dragon is in every cut and over the pack in time.** It was
+  dealt on about half of trailers, and the world's pass - fifteen hundred units
+  off, a three-second warning, seven and a half to cross - left a six-second
+  moment following empty sky. `TrailerMomentData.always` deals it on every
+  trailer's last road; the stage sends it from the frame's edge on an authored
+  plan that lands it on the pack, and `DragonPass.hurry` cuts the warning and
+  the crossing. The world's own pass is unchanged and the gate holds both.
+
+**Dragons sweep, turn to the next best target, rampage and walk side-on.**
+
+- **A sweep** (`DragonBreath.plan_sweep`) is planned as a passing dragon
+  breathes: the arc of at most `DRAGON_SWEEP_SPAN` crossing the most weight of
+  two or more things, carried in the hazard plan so every machine runs the same
+  arc, and **warned whole** - both edges and the arc - because a sweep across
+  bodies the warning never showed is a blow from nowhere. Each body is still
+  struck once: shape, never size.
+- **The next best target** (`DragonBreath.next_target`): a breath with nothing
+  left where it points turns straight at the mark worth most within
+  `DRAGON_BREATH_RETARGET_ARC`, at `DRAGON_BREATH_RETARGET_RATE`. Aimed at the
+  mark itself, not chosen from the fan of lines `best_line` uses - **a fan's
+  spacing can fall either side of a body narrower than it**, and the first cut
+  oscillated at 0.62 radians short of a Warden it could see.
+- **This re-cuts the 2026-09-30 bound** that a loosed breath never leaves its
+  warned arc, so a Warden off the warned line was safe. Past the arc it turns
+  now - at a rate a sprinting Warden can outpace at range, which is where the
+  dodge moved to. `dragon_check`'s invariant was amended and dated: past the
+  arc it turns at the retargeting rate, and a Warden behind it is still not
+  followed.
+- **A landed dragon rampages**: up to three stops toward what is worth stamping
+  on, inside `DRAGON_RAMPAGE_LEASH` and off the walls and the water, **chosen
+  once by the host as it dives and carried in the plan** - so a guest's dragon
+  walks the same path without a second message - walked on the new side-on
+  frames, stamping, and taking off from where it ended rather than leaping back
+  to where it came down. **The take-off is measured on the step after it lifts**:
+  the lifting step holds still, and the first cut of the gate measured that one
+  and passed the leap.
+- **The four dragons walk side-on** (`enemy_dragon_<variant>_side_01..08.png`,
+  PixelLab, ground matched to the front-on painting), and a camp dragon walking
+  across the screen walks in profile and faces its way (`Enemy._side_frames`,
+  `ENEMY_SIDE_WALK_RATIO`); up or down the screen it walks front-on.
+
+**Corpses as big as the body that fell, and the earth takes the dead.**
+
+- A body is measured by its painting as drawn (`Enemy.corpse_reach`, an
+  animal's sprite) and lies about that long - a continuous scale, where three
+  fixed sizes had a soldier's corpse a third the length of the soldier. The
+  throw, the flies and what a scavenger may carry follow the band the scale
+  falls in; a banked bone carries its scale and an older row reads its band's.
+  `corpse_check`'s bands were amended to the painted measure.
+- Each of the earth's blows disposes of the dead its own way, **the smaller
+  corpse always likelier**: a quake's crest throws every corpse it crosses,
+  shatters bones and swallows carcasses (told by `GroundWave` on every machine,
+  since corpses are each machine's own picture); a fire chars meat and burns
+  bones to ash; a flood floats the dead along the water and washes some away;
+  a funnel drags them in, flings what reaches its heart round its spin and tears
+  some apart. A corpse taken is drawn going. In Brutal too: "some" was the
+  owner's word, and permanence is what nothing else takes.
+
+**Manners at a carcass.** A hunter that is no scavenger takes a fresh kill
+close by. Each animal comes to a meal **sharing or guarding**, by temperament;
+two that share eat side by side, and a guard holds its carcass and the corpses
+near it - the ones it will eat later - against anything that comes close. A
+**stand-off** is faced and then each may back off, likelier outclassed and
+likelier for one that only came to share; neither backing off is a fight whose
+**intent** is rolled by temperament - a spar of light blows the more hurt
+yields, a scare until one is at half, or to the death, with flight still open
+under `FEED_FLEE_HEALTH`. Every blow is the cycle's. **Two adult wolves of the
+other sex court rather than eat**, which is the ecology working and cost the
+gate's first run - a courting animal does nothing else.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
