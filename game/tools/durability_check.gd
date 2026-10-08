@@ -307,6 +307,13 @@ func _test_the_shield() -> void:
 	_hands.hold = HeroInput.HOLD_GUARD
 	await _frames(3)
 	_check(_hero.is_guarding(), "the guard key did not raise it")
+	# **And it is seen** (owner, 2026-10-08: "Unable to raise shield"): the arc
+	# on the ground comes up, and the dress draws the shield raised.
+	await _seconds(0.5)
+	var arc: GuardArc = _hero.guard_arc()
+	_check(arc != null and arc.shown() > 0.9, "a raised shield shows no guard on the ground")
+	var layers: DressLayers = _hero.frames.get("_layers") as DressLayers if _hero.frames != null else null
+	_check(layers == null or layers.raised, "the dress does not draw the shield raised")
 	_hands.walk = Vector2.ZERO
 	# A blow from in front: its share taken, never all of it.
 	var facing: Vector2 = _hero.get("_facing") as Vector2
@@ -366,6 +373,14 @@ func _test_the_shield() -> void:
 		_equip(heavy, 2)
 		await _frames(3)
 		_check(not _hero.is_guarding(), "a two-handed weapon raised a shield")
+		# And the key says why rather than doing nothing.
+		_hands.hold = 0
+		await _frames(2)
+		_hero.last_guard_refusal = ""
+		_hands.hold = HeroInput.HOLD_GUARD
+		await _frames(3)
+		_check(_hero.last_guard_refusal == "Both hands on the weapon",
+			"the guard key under a two-handed weapon said '%s'" % _hero.last_guard_refusal)
 	_hands.hold = 0
 
 

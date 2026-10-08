@@ -84,6 +84,16 @@ var _hilt: Vector2 = Vector2.ZERO
 var _shield_over: Sprite2D
 var _shield_under: Sprite2D
 var _shield_texture: Texture2D = null
+## **Raised** (2026-10-08): the shield up at the chest on the side the Warden
+## faces, rather than hanging from the left fist. Set by the hero each tick.
+var raised: bool = false
+## Where a raised shield is pushed for each facing row, in the order of
+## `HeroAnimator.FACING_NAMES`: out to the side faced, and a touch down toward
+## the camera when facing it.
+const RAISED_REACH: Array[Vector2] = [
+	Vector2(1.0, 0.0), Vector2(0.72, 0.22), Vector2(0.0, 0.3), Vector2(-0.72, 0.22),
+	Vector2(-1.0, 0.0), Vector2(-0.72, -0.1), Vector2(0.0, -0.12), Vector2(0.72, -0.1),
+]
 
 
 ## The one way to dress a sprite: both holders, under and over, as its own
@@ -304,7 +314,7 @@ func show_frame(state: String, frame: int, row: int, offset: Vector2, meta: Dict
 	var facing: String = HeroAnimator.FACING_NAMES[row] if row < HeroAnimator.FACING_NAMES.size() else ""
 	var table: Array = rows.get(facing, [])
 	_show_head(table[frame] if frame < table.size() else [], offset)
-	_show_shield(table[frame] if frame < table.size() else [], offset, meta)
+	_show_shield(table[frame] if frame < table.size() else [], offset, meta, row)
 	if frame >= table.size() or _texture == null:
 		_hide_hand(0)
 		_hide_hand(1)
@@ -379,19 +389,29 @@ func _lay(hand: int, socket: Array, start: int, offset: Vector2, length: float, 
 
 ## The shield on the left fist's socket - [x, y, angle, reach, front] from 5 -
 ## upright and facing the camera, over the body when the fist is in front.
-func _show_shield(socket: Array, offset: Vector2, meta: Dictionary) -> void:
+func _show_shield(socket: Array, offset: Vector2, meta: Dictionary, row: int = 0) -> void:
 	if _shield_texture == null or socket.size() < 10:
 		_shield_over.visible = false
 		_shield_under.visible = false
 		return
 	var front: bool = int(socket[9]) == 1
+	var stature: float = float(meta.get("stature", 150.0))
+	var side: float = stature * Balance.SHIELD_DRAWN_SHARE / maxf(float(_shield_texture.get_height()), 1.0)
+	var at: Vector2 = Vector2(float(socket[5]), float(socket[6]))
+	# Up at the chest and out to the side faced, over the body unless the Warden
+	# faces away - then it is beyond them, and the body covers it.
+	if raised and socket.size() > HEAD_SOCKET + 1:
+		var head := Vector2(float(socket[HEAD_SOCKET]), float(socket[HEAD_SOCKET + 1]))
+		var reach: Vector2 = RAISED_REACH[clampi(row, 0, RAISED_REACH.size() - 1)]
+		at = head + Vector2(0.0, stature * Balance.SHIELD_RAISED_CHEST) \
+			+ reach * stature * Balance.SHIELD_RAISED_REACH
+		front = row < 5
+		side *= Balance.SHIELD_RAISED_SCALE
 	var part: Sprite2D = _shield_over if front else _shield_under
 	var other: Sprite2D = _shield_under if front else _shield_over
 	other.visible = false
-	var stature: float = float(meta.get("stature", 150.0))
-	var side: float = stature * Balance.SHIELD_DRAWN_SHARE / maxf(float(_shield_texture.get_height()), 1.0)
 	part.texture = _shield_texture
-	part.position = offset + Vector2(float(socket[5]), float(socket[6]))
+	part.position = offset + at
 	part.rotation = 0.0
 	part.scale = Vector2(side, side)
 	part.visible = true

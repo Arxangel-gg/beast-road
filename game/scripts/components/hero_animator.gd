@@ -133,6 +133,13 @@ func _ready() -> void:
 
 ## Put the Warden in an outfit from `WardenDress.outfit`. Does nothing - the
 ## painted sheets keep playing - until that body's dress art is on disk.
+## **The shield raised or lowered** (2026-10-08): the dress draws it up at the
+## chest while the guard is up. A painted Warden carries no drawn shield.
+func set_guarding(on: bool) -> void:
+	if _layers != null:
+		_layers.raised = on
+
+
 func dress(outfit: Dictionary) -> void:
 	var body: String = String(outfit.get("body", ""))
 	if body.is_empty() or not WardenDress.available(body):

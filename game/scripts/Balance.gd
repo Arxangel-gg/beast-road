@@ -980,6 +980,23 @@ const SHIELD_CAPACITY_PER_RARITY: float = 0.22
 const SHIELD_BREAK_COOLDOWN: float = 7.0
 const SHIELD_RECOVER_PER_SECOND: float = 0.12
 const SHIELD_GUARD_SPEED: float = 0.55
+## **The raised shield, seen** (2026-10-08). Raised, the shield comes up to the
+## chest (`CHEST` of the Warden's stature below the head) and out toward the side
+## they face (`REACH`), a little larger (`SCALE`); and an arc on the ground in
+## front, `RADIUS` out and flattened by `FLATTEN`, shows the guard - dim for the
+## whole span, bright for what it can still take - easing in at `EASE` a second,
+## flaring for `FLASH_SECONDS` on a block and red while a broken one rests. A
+## look. [TUNE]
+const SHIELD_RAISED_CHEST: float = 0.26
+const SHIELD_RAISED_REACH: float = 0.16
+const SHIELD_RAISED_SCALE: float = 1.18
+const GUARD_ARC_RADIUS: float = 66.0
+const GUARD_ARC_FLATTEN: float = 0.55
+const GUARD_ARC_WIDTH: float = 4.0
+const GUARD_ARC_EASE: float = 7.0
+const GUARD_ARC_FLASH_SECONDS: float = 0.28
+const GUARD_ARC_COLOUR: Color = Color(0.92, 0.86, 0.62)
+const GUARD_ARC_BROKEN_COLOUR: Color = Color(1.0, 0.42, 0.32)
 const SHIELD_AUTO_GUARD_SECONDS: float = 0.35
 ## **A perfect guard** (triage of 2026-10-07): a guard raised no more than
 ## `SHIELD_PERFECT_WINDOW` before a blow takes the whole of it and spends

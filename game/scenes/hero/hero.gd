@@ -445,6 +445,9 @@ func _ready() -> void:
 	health.shield_changed.connect(_on_shield_changed)
 	EventBus.tower_destroyed.connect(_on_tower_fell_near)
 	health.guard_blow = _guard_blow
+	_guard_arc = GuardArc.new()
+	_guard_arc.hero = self
+	add_child(_guard_arc)
 	_wear_dice.randomize()
 	attack.landed.connect(_on_swing_landed_wear)
 	attack.lunge_requested.connect(_on_lunge_requested)
@@ -2290,6 +2293,42 @@ func _find_shield_piece() -> Dictionary:
 	return shield if free_hand else {}
 
 
+## The shield this Warden can raise now, or null. For the guard's picture.
+func shield_kind() -> GearData:
+	return _shield_kind()
+
+
+## Which way the Warden faces. For the guard's picture.
+func facing_vector() -> Vector2:
+	return _facing
+
+
+## **Why a shield cannot be raised**, or "" when it can (2026-10-08): said when
+## the guard key is pressed and nothing happens, which is the whole difference
+## between a broken key and a two-handed sword.
+func guard_refusal() -> String:
+	var pieces: Array[Dictionary] = sheet.worn if sheet != null else MetaState.worn_pieces()
+	var shield: Dictionary = {}
+	var shield_kind_now: GearData = null
+	var both_hands: bool = false
+	for piece: Dictionary in pieces:
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		if kind == null:
+			continue
+		if kind.is_shield():
+			shield = piece
+			shield_kind_now = kind
+		elif kind.slot == GearData.Slot.WEAPON and kind.grip != GearData.Grip.ONE_HAND:
+			both_hands = true
+	if shield.is_empty():
+		return "No shield worn"
+	if both_hands:
+		return "Both hands on the weapon"
+	if Stash.guard_capacity(shield, shield_kind_now) <= 0.0:
+		return "The shield is worn through"
+	return ""
+
+
 func _shield_kind() -> GearData:
 	var piece: Dictionary = _shield_piece()
 	return ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
@@ -2315,6 +2354,28 @@ func _tick_guard(delta: float) -> void:
 	var was: bool = _guarding
 	_tick_guard_state(delta)
 	_note_guard_change(was, delta)
+	if frames != null:
+		frames.set_guarding(_guarding)
+	# The key pressed and nothing can be raised: say why, once a press.
+	var key: bool = input.held(HeroInput.HOLD_GUARD)
+	if key and not _guard_key_was and is_local_player() and _shield_full <= 0.0:
+		var why: String = guard_refusal()
+		if not why.is_empty():
+			Vfx.word(global_position + Vector2(0.0, -64.0), why, Color(0.9, 0.84, 0.6), 18)
+			last_guard_refusal = why
+	_guard_key_was = key
+
+
+## The guard's picture on the ground (2026-10-08).
+var _guard_arc: GuardArc = null
+var _guard_key_was: bool = false
+## What the last refused press said, for the gate.
+var last_guard_refusal: String = ""
+
+
+## The guard's arc, for the gate.
+func guard_arc() -> GuardArc:
+	return _guard_arc
 
 
 ## Keeps the clocks a perfect guard is judged on: a raise opens the window only
@@ -2388,8 +2449,12 @@ func _guard_blow(applied: float, from: Vector2) -> float:
 	if guard_is_perfect():
 		_perfect_open = false
 		_perfect_guard(from)
+		if _guard_arc != null:
+			_guard_arc.flash(true)
 		return 0.0
 	var blocked: float = minf(applied * kind.guard_share, _shield_left)
+	if _guard_arc != null:
+		_guard_arc.flash(false)
 	_shield_left -= blocked
 	if is_local_player():
 		MetaState.wear_worn(GearData.Slot.OFFHAND,
