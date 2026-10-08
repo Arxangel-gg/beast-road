@@ -629,6 +629,8 @@ func elite_words() -> Array:
 			out.append([int(animal["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.CARRION_LORD])
 		elif bool(animal.get("savage", false)):
 			out.append([int(animal["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.SAVAGE])
+		if int(animal.get("level", 1)) > 1:
+			out.append([int(animal["net_id"]), WildlifeFamilies.Word.LEVEL, int(animal["level"])])
 	return out
 
 
@@ -680,6 +682,8 @@ func _on_coop_family(net_id: int, word: int, value: int) -> void:
 				dress_savage(animal, kind)
 			elif value == WildlifeFamilies.EliteKind.CARRION_LORD:
 				WildlifeCarrion.dress_lord(animal, kind)
+		WildlifeFamilies.Word.LEVEL:
+			grow(animal, value, true)
 		WildlifeFamilies.Word.STAGE:
 			animal["stage"] = value
 			animal["age"] = Balance.WILDLIFE_GROWTH_SECONDS \
@@ -1251,8 +1255,19 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# **Rolled once, here, and never again.** A shiny is decided when the animal
 	# is placed, so nothing the player does to one already on the field can
 	# reroll it - no walking away and back, no save-scumming a sighting.
+	# **The level it arrives at** (2026-10-08), read off its own name: one in the
+	# opening act and a little more further along, and nothing born arrives
+	# grown. A level is size and a deeper pool.
+	var level: int = 1 if not born.is_empty() else WildlifeLevels.arrival_level(identity, RunState.act)
+	if level > 1:
+		size *= WildlifeLevels.size_scale(level)
+		sprite.scale = Vector2.ONE * kind.scale * size
+	var tag: Label = _level_tag(bar)
 	_living.append({
 		"net_id": identity,
+		"level": level,
+		"xp": WildlifeLevels.xp_at(level),
+		"tag": tag,
 		"data": kind,
 		"shiny": shiny,
 		# Fixed when the animal is placed, and readable off it from that moment.
@@ -1282,7 +1297,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		"attack": GameData.load_attack_frames(path),
 		"frame_clock": _rng.randf() * 4.0,
 		"pause": 0.0,
-		"hp": kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if elite else 1.0),
+		"hp": kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if elite else 1.0) * WildlifeLevels.health_scale(level),
 		"elite": elite,
 		"size": size,
 		"swing": 0.0,
@@ -1442,6 +1457,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	# alone is slowly coming back, and a long-lived one that was hurt early in a
 	# region should not still be at a sliver when the road leaves it.
 	_mend(animal, kind, delta)
+	if _is_authority_or_alone():
+		earn(animal, WildlifeLevels.time_rate(kind) * delta)
 	_carry_bar(animal, kind)
 
 	# A thief decides its own frames: the loot it saw, the cover it runs to,
@@ -2284,6 +2301,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		var spirit := quarry as Companion
 		var bite: float = _bite_of(animal, kind)
 		spirit.take_damage(bite, sprite.global_position)
+		earn(animal, bite * Balance.WILDLIFE_LEVEL_XP_PER_DAMAGE)
 		if bool(animal.get("rabid", false)):
 			spirit.apply_poison(Balance.WILDLIFE_RABID_POISON_DPS, Balance.WILDLIFE_RABID_POISON_SECONDS)
 		if not kind.vocal_sfx.is_empty():
@@ -2301,7 +2319,12 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			if prey.get("sprite", null) != quarry or float(prey.get("dying", 0.0)) > 0.0:
 				continue
 			var prey_kind := prey["data"] as WildlifeData
-			_wound(index, prey, prey_kind.max_hp * Balance.WILDLIFE_PREY_BITE_SHARE, false, "cycle")
+			var bitten: float = prey_kind.max_hp * Balance.WILDLIFE_PREY_BITE_SHARE
+			_note_struck(prey, animal)
+			prey["killed_by"] = int(animal.get("net_id", 0))
+			_wound(index, prey, bitten, false, "cycle")
+			prey.erase("killed_by")
+			earn(animal, bitten * Balance.WILDLIFE_LEVEL_XP_PER_DAMAGE)
 			# A landed bite is the only way the Wildblight travels, and only
 			# ever once per pair and once per carrier.
 			if _families != null:
@@ -2321,8 +2344,12 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	var from: Vector2 = sprite.global_position
 	var enemy := quarry as Enemy
 	if enemy != null:
+		_watch_the_victim(enemy, animal)
+		_striking = animal
 		DamageLedger.credit_as(DamageLedger.WILDLIFE)
 		enemy.take_damage(power, from, kind.knockback, false)
+		_striking = {}
+		earn(animal, power * Balance.WILDLIFE_LEVEL_XP_PER_DAMAGE)
 		# It gets to bite back, if the animal is still standing on top of it when
 		# its next swing comes round. The road is not abandoned for this - see
 		# `Enemy.provoked_by`.
@@ -2333,7 +2360,11 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		var health: Health = Health.of(quarry)
 		if health != null:
 			RunState.note_blow(kind.display_name, power)
+			_watch_the_victim(quarry, animal)
+			_striking = animal
 			health.take_damage(power, from)
+			_striking = {}
+			earn(animal, power * Balance.WILDLIFE_LEVEL_XP_PER_DAMAGE)
 		if bool(animal.get("rabid", false)) and quarry.has_method("apply_poison"):
 			quarry.call("apply_poison", Balance.WILDLIFE_RABID_POISON_DPS,
 				Balance.WILDLIFE_RABID_POISON_SECONDS)
@@ -2550,14 +2581,19 @@ static func _carry_bar(animal: Dictionary, kind: WildlifeData) -> void:
 	bar.global_position = sprite.global_position + Vector2(
 		-Balance.WILDLIFE_BAR_WIDTH * 0.5,
 		-Balance.WILDLIFE_BAR_LIFT * kind.scale * size)
+	# **Hidden until hurt** (owner, 2026-10-08): the level shows beside the bar
+	# while the animal is not whole, and not otherwise - an elite's bar is out
+	# from the start and still says nothing of its level until it is struck.
+	var tag := animal.get("tag", null) as Label
+	if tag != null and is_instance_valid(tag):
+		tag.visible = bar.value < 0.999
 
 
 func _mend(animal: Dictionary, kind: WildlifeData, delta: float) -> void:
 	var hp: float = float(animal.get("hp", 0.0))
 	if hp <= 0.0 or float(animal.get("dying", 0.0)) > 0.0:
 		return
-	var full: float = kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH
-		if bool(animal.get("elite", false)) else 1.0)
+	var full: float = pool_of(animal)
 	if hp >= full:
 		animal["calm"] = float(animal.get("calm", 0.0)) + delta
 		return
@@ -2613,8 +2649,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	var bar := animal["bar"] as ProgressBar
 	if bar != null and is_instance_valid(bar):
 		bar.visible = true
-		var full: float = kind.max_hp \
-			* (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
+		var full: float = pool_of(animal)
 		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
 	# **Struck by a person is a fact the phase does not get to overrule.**
 	#
@@ -2646,7 +2681,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 		Vector2.UP, 170.0)
 	# **As much as the blow took, and as big as the animal is** (2026-10-01):
 	# a hare nicked bleeds a little and a bear opened up bleeds a lot.
-	var pool: float = kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
+	var pool: float = pool_of(animal)
 	var taken: float = Balance.HERO_ATTACK_DAMAGE[0] if damage < 0.0 else damage
 	var radius: float = Balance.BLOOD_BODY_RADIUS_REFERENCE * maxf(kind.scale, 0.2) \
 		* float(animal.get("size", 1.0))
@@ -2661,6 +2696,10 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	EventBus.wildlife_bled.emit(kind.id, sprite.global_position,
 		WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)),
 		clampf(taken / maxf(pool, 1.0), 0.0, 1.0), "player" if by_player else cause)
+	if float(animal["hp"]) > 0.0 and not WildlifeLevels.is_predatory(kind):
+		earn(animal, Balance.WILDLIFE_LEVEL_XP_SURVIVED)
+	if float(animal["hp"]) <= 0.0:
+		_pay_the_hunters(animal)
 	if float(animal["hp"]) > 0.0:
 		# Being hit is also a very good reason to leave - for a harmless
 		# animal always, away from the blow; for a hostile one sometimes: it
@@ -2716,6 +2755,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# A fawn is worth a fraction of a hind: the stage scales what the body
 	# gives, so a family is never worth more than the adults in it.
 	bounty *= WildlifeFamilies.yield_scale(animal)
+	bounty *= WildlifeLevels.yield_scale(int(animal.get("level", 1)))
 	var food: int = int(round(float(_rng.randi_range(kind.food_min, kind.food_max))
 		* bounty))
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
@@ -2884,7 +2924,8 @@ static func pool_of(animal: Dictionary) -> float:
 	var kind := animal.get("data", null) as WildlifeData
 	if kind == null:
 		return 1.0
-	return kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal.get("elite", false)) else 1.0)
+	return kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH if bool(animal.get("elite", false)) else 1.0) \
+		* WildlifeLevels.health_scale(int(animal.get("level", 1)))
 
 
 ## **Hurts every animal `covers` says a blow covers, once** - a share of its own
@@ -2994,6 +3035,154 @@ func _drown(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
 
 func _is_authority_or_alone() -> bool:
 	return not Coop.is_guest()
+
+
+# --- Levels (2026-10-08) -----------------------------------------------------------
+
+## The animal whose blow is landing now, so a death that blow causes knows its
+## killer. Empty between blows.
+var _striking: Dictionary = {}
+
+
+## **Experience for one animal** (owner, 2026-10-08). The host's alone - a guest
+## is told the level it reaches - and only while it stands.
+func earn(animal: Dictionary, amount: float) -> void:
+	if amount <= 0.0 or not _is_authority_or_alone() or float(animal.get("dying", 0.0)) > 0.0:
+		return
+	var xp: float = float(animal.get("xp", 0.0)) + amount
+	animal["xp"] = xp
+	# Every animal earns a little every frame, so the next threshold is kept
+	# rather than the curve walked each time.
+	if xp < float(animal.get("next_xp", -1.0)):
+		return
+	var reached: int = WildlifeLevels.level_for_xp(xp, Balance.WILDLIFE_LEVEL_MAX)
+	animal["next_xp"] = WildlifeLevels.xp_at(reached + 1) if reached < Balance.WILDLIFE_LEVEL_MAX else INF
+	if reached > int(animal.get("level", 1)):
+		grow(animal, reached, true)
+
+
+## **A level reached**: the body grows by it and the pool deepens by it, keeping
+## the share it had, and the tag says it. Said on the host's wire; a guest told
+## it draws the same growth.
+func grow(animal: Dictionary, level: int, announce: bool) -> void:
+	var kind := animal.get("data", null) as WildlifeData
+	var was: int = int(animal.get("level", 1))
+	level = clampi(level, 1, Balance.WILDLIFE_LEVEL_MAX)
+	if kind == null or level == was:
+		return
+	var full_before: float = pool_of(animal)
+	animal["level"] = level
+	animal["size"] = float(animal.get("size", 1.0)) * WildlifeLevels.size_scale(level) \
+		/ WildlifeLevels.size_scale(was)
+	if animal.has("hp") and full_before > 0.0:
+		animal["hp"] = float(animal["hp"]) / full_before * pool_of(animal)
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite != null and is_instance_valid(sprite):
+		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
+		Footfalls.register_animal(sprite, kind, float(animal["size"]))
+		if announce and level > was:
+			var at: Vector2 = sprite.global_position
+			Vfx.ring(at, 46.0 * kind.scale * float(animal["size"]), Balance.WILDLIFE_LEVEL_TAG_COLOUR, 0.55, 3.0)
+			Vfx.spark(at + Vector2(0.0, -20.0), Balance.WILDLIFE_LEVEL_TAG_COLOUR, 6, Vector2.UP, 120.0)
+	_paint_level(animal)
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_family.emit(int(animal.get("net_id", 0)), WildlifeFamilies.Word.LEVEL, level)
+
+
+## The tag a hurt animal wears beside its bar: a child of the bar, so it shows
+## only while the bar does, and hidden at full health by `_carry_bar`.
+static func _level_tag(bar: ProgressBar) -> Label:
+	if bar == null:
+		return null
+	var tag := Label.new()
+	tag.name = "Level"
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tag.add_theme_font_size_override("font_size", Balance.WILDLIFE_LEVEL_TAG_SIZE)
+	tag.add_theme_color_override("font_color", Balance.WILDLIFE_LEVEL_TAG_COLOUR)
+	tag.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	tag.add_theme_constant_override("outline_size", 4)
+	tag.size = Vector2(34.0, 14.0)
+	tag.position = Vector2(-37.0, Balance.WILDLIFE_BAR_HEIGHT * 0.5 - 7.0)
+	tag.visible = false
+	bar.add_child(tag)
+	return tag
+
+
+func _paint_level(animal: Dictionary) -> void:
+	var tag := animal.get("tag", null) as Label
+	if tag != null and is_instance_valid(tag):
+		tag.text = "Lv %d" % int(animal.get("level", 1))
+
+
+## What one animal says of its level, for the gate: `{level, xp, tag, shown}`.
+func level_reading(animal: Dictionary) -> Dictionary:
+	var tag := animal.get("tag", null) as Label
+	return {
+		"level": int(animal.get("level", 1)),
+		"xp": float(animal.get("xp", 0.0)),
+		"tag": tag.text if tag != null and is_instance_valid(tag) else "",
+		"shown": tag != null and is_instance_valid(tag) and tag.is_visible_in_tree(),
+	}
+
+
+## An animal struck one of its own: remembered on the struck, by name and time,
+## so a hunter who drew blood is paid an assist when something else finishes it.
+func _note_struck(victim: Dictionary, attacker: Dictionary) -> void:
+	var struck: Dictionary = victim.get("struck_by", {}) as Dictionary
+	struck[int(attacker.get("net_id", 0))] = Time.get_ticks_msec()
+	victim["struck_by"] = struck
+
+
+## **The hunters an animal's death pays**: whoever finished it a kill, and every
+## other hunter that struck it inside the window an assist.
+func _pay_the_hunters(victim: Dictionary) -> void:
+	var killer: int = int(victim.get("killed_by", -1))
+	_pay_from(victim.get("struck_by", {}) as Dictionary, killer)
+	victim.erase("struck_by")
+
+
+func _pay_from(struck: Dictionary, killer: int) -> void:
+	var now: int = Time.get_ticks_msec()
+	var window: int = int(Balance.WILDLIFE_ASSIST_SECONDS * 1000.0)
+	if killer > 0:
+		var finisher: Dictionary = animal_by_id(killer)
+		if not finisher.is_empty():
+			earn(finisher, Balance.WILDLIFE_LEVEL_XP_KILL)
+	for id: Variant in struck:
+		if int(id) == killer or now - int(struck[id]) > window:
+			continue
+		var helper: Dictionary = animal_by_id(int(id))
+		if not helper.is_empty():
+			earn(helper, Balance.WILDLIFE_LEVEL_XP_ASSIST)
+
+
+## A road body or a Warden an animal struck: its name kept on the victim, and the
+## victim's death heard once, so the kill and every assist inside the window are
+## paid whoever finished it.
+func _watch_the_victim(victim: Node, attacker: Dictionary) -> void:
+	if victim == null or not is_instance_valid(victim) or int(attacker.get("net_id", 0)) <= 0:
+		return
+	var struck: Dictionary = victim.get_meta(&"wild_struck", {}) as Dictionary
+	struck[int(attacker["net_id"])] = Time.get_ticks_msec()
+	victim.set_meta(&"wild_struck", struck)
+	if victim.has_meta(&"wild_watched"):
+		return
+	var health: Health = Health.of(victim)
+	if health == null:
+		return
+	victim.set_meta(&"wild_watched", true)
+	health.died.connect(_on_victim_died.bind(weakref(victim)))
+
+
+func _on_victim_died(_from: Vector2, ref: WeakRef) -> void:
+	var victim := ref.get_ref() as Node
+	if victim == null or not is_instance_valid(victim):
+		return
+	var struck: Dictionary = victim.get_meta(&"wild_struck", {}) as Dictionary
+	victim.set_meta(&"wild_struck", {})
+	_pay_from(struck, int(_striking.get("net_id", -1)) if not _striking.is_empty() else -1)
 
 
 var _flood_struck: bool = false

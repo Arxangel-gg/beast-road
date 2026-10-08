@@ -779,7 +779,9 @@ func _companion_dps() -> float:
 		if kind == null or kind.attack_interval <= 0.0:
 			continue
 		best = maxf(best, kind.damage / kind.attack_interval)
-	return best * Balance.SPIRIT_APEX_POWER
+	# **At the highest level a companion reaches** (2026-10-08): a best case,
+	# as every number this report models is, so a raised creature at its cap.
+	return best * Balance.SPIRIT_APEX_POWER * WildlifeLevels.companion_power(Balance.COMPANION_LEVEL_MAX_PEN)
 
 
 func _hero_dps() -> float:

@@ -514,6 +514,13 @@ var spirit_bonded: Dictionary = {}
 ## would be painful to migrate.
 var equipped_spirit: String = ""
 
+## **A spirit's experience, one for each species and rarity** (owner, 2026-10-08:
+## "Each rarity for any unlocked spirit companions get their own level"), keyed
+## by `WildlifeLevels.spirit_level_key`. A raised creature keeps its own on its
+## pen row. Bounded by the caps in `Balance`; additive, so a save without it
+## reads as every spirit at level one.
+var spirit_levels: Dictionary = {}
+
 ## **Living companions the Warden keeps**, each its own animal rather than an
 ## entry in a collection: `{uid, species, rarity, shiny, trait, born}`.
 ##
@@ -3051,6 +3058,7 @@ func serialized_save() -> String:
 			"encounters": spirit_encounters,
 			"bonded": spirit_bonded,
 			"equipped": equipped_spirit,
+			"levels": spirit_levels,
 		},
 		# The living ones. Additive for the same reason everything above it is:
 		# a save from before the pen reads back as an empty pen, which is what a
@@ -3788,6 +3796,9 @@ func _read_pen(stored: Dictionary) -> void:
 			# animal - which is what those animals were. See `pen_health`.
 			"health": clampf(float(animal.get("health", 1.0)), 0.0, 1.0),
 			"healed_at": float(animal.get("healed_at", 0.0)),
+			# Its own experience (2026-10-08), to the higher cap a mortal earns.
+			"xp": clampf(float(animal.get("xp", 0.0)), 0.0,
+				WildlifeLevels.companion_xp_at(Balance.COMPANION_LEVEL_MAX_PEN)),
 		})
 		if pen.size() >= Balance.PEN_CAPACITY:
 			break
@@ -4056,6 +4067,41 @@ func pen_stand_down() -> bool:
 
 
 ## The animal currently out of the pen, or an empty dictionary.
+## **A companion's experience**: a raised creature's own, a spirit's by species
+## and rarity (2026-10-08).
+func companion_xp(spirit_key: String, pen_uid: String = "") -> float:
+	if not pen_uid.is_empty():
+		return float(penned(pen_uid).get("xp", 0.0))
+	return float(spirit_levels.get(WildlifeLevels.spirit_level_key(spirit_key), 0.0))
+
+
+func companion_level(spirit_key: String, pen_uid: String = "") -> int:
+	return WildlifeLevels.companion_level(companion_xp(spirit_key, pen_uid), not pen_uid.is_empty())
+
+
+## Experience for a companion, kept to its cap. Returns the level reached when
+## it rose, nought otherwise. Written with the next save, never on its own -
+## a companion earns a little every blow.
+func gain_companion_xp(spirit_key: String, pen_uid: String, amount: float) -> int:
+	if amount <= 0.0:
+		return 0
+	var from_pen: bool = not pen_uid.is_empty()
+	var before: int = companion_level(spirit_key, pen_uid)
+	var most: float = WildlifeLevels.companion_xp_at(WildlifeLevels.companion_cap(from_pen))
+	if from_pen:
+		var row: Dictionary = penned(pen_uid)
+		if row.is_empty():
+			return 0
+		row["xp"] = minf(float(row.get("xp", 0.0)) + amount, most)
+	else:
+		var key: String = WildlifeLevels.spirit_level_key(spirit_key)
+		if key.is_empty():
+			return 0
+		spirit_levels[key] = minf(float(spirit_levels.get(key, 0.0)) + amount, most)
+	var after: int = companion_level(spirit_key, pen_uid)
+	return after if after > before else 0
+
+
 func pen_companion() -> Dictionary:
 	return penned(pen_taken) if not pen_taken.is_empty() else {}
 
@@ -4116,6 +4162,18 @@ func _read_spirits(block: Dictionary) -> void:
 		var stored: Variant = (block["bonded"] as Dictionary)[key]
 		spirit_bonded[String(key)] = String(stored) if stored is String else ""
 	equipped_spirit = String(block.get("equipped", ""))
+	spirit_levels = {}
+	var stored_levels: Variant = block.get("levels", {})
+	if stored_levels is Dictionary:
+		var most: float = WildlifeLevels.companion_xp_at(Balance.COMPANION_LEVEL_MAX_SPIRIT)
+		for key: Variant in (stored_levels as Dictionary):
+			var parts: PackedStringArray = String(key).split("|")
+			if parts.size() != 2 or ContentDB.wildlife_kinds.get(parts[0], null) == null \
+					or not parts[1].is_valid_int() or int(parts[1]) < 0 or int(parts[1]) > 3:
+				continue
+			var xp: float = clampf(float((stored_levels as Dictionary)[key]), 0.0, most)
+			if xp > 0.0:
+				spirit_levels[String(key)] = xp
 	# A spirit that is equipped but not bonded is a save somebody edited, or one
 	# written by a build whose thresholds were different. Clearing it is safer
 	# than summoning something the collection does not contain.

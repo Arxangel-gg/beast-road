@@ -92,6 +92,9 @@ var _bar: ProgressBar = null
 ## Read once at summon rather than per frame: it belongs to the bond, and the
 ## bond cannot change while the companion is standing on the field.
 var _temperament: SpiritTraitData = null
+## **Its level** (owner, 2026-10-08), read when it is called and raised as it
+## fights: a spirit's by species and rarity, a raised creature's its own.
+var level: int = 1
 var _moving: bool = false
 
 ## **Told what to do** (2026-10-07): a `MercenaryInput.Order` - follow, guard
@@ -237,6 +240,11 @@ func _ready() -> void:
 		_power *= SpiritBond.power_scale(SpiritBond.rarity_of(spirit_key),
 			SpiritBond.shiny_of(spirit_key))
 		_temperament = SpiritBond.trait_of_bond(spirit_key)
+		level = MetaState.companion_level(spirit_key, _pen_uid())
+		var grown: float = WildlifeLevels.companion_health(level)
+		_max_hp *= grown
+		_hp = _max_hp
+		_power *= WildlifeLevels.companion_power(level)
 
 	_sprite = Sprite2D.new()
 	_load_frames()
@@ -562,7 +570,9 @@ func _bite_wildlife(at: Vector2) -> void:
 		animals = field.call("wildlife_system")
 	if animals == null or not animals.has_method("wound_near"):
 		return
-	animals.call("wound_near", at, Balance.COMPANION_BITE_RADIUS, _swing_power())
+	var dealt: float = _swing_power()
+	animals.call("wound_near", at, Balance.COMPANION_BITE_RADIUS, dealt)
+	_learn(dealt * Balance.COMPANION_LEVEL_XP_PER_DAMAGE)
 	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
 	_cooldown = data.attack_interval
 	Sfx.play_at("sfx_companion_strike", global_position)
@@ -596,9 +606,12 @@ func _strike(quarry: Enemy) -> void:
 	# hero's swing, and the discipline nodes that key off a finisher must not
 	# fire for it.
 	DamageLedger.credit_as(DamageLedger.COMPANION)
-	quarry.take_damage(_swing_power(), global_position, data.knockback, false)
+	var dealt: float = _swing_power()
+	quarry.take_damage(dealt, global_position, data.knockback, false)
 	Vfx.spark(quarry.global_position, data.colour, 5,
 		(quarry.global_position - global_position).normalized(), 200.0)
+	_learn(dealt * Balance.COMPANION_LEVEL_XP_PER_DAMAGE
+		+ (Balance.COMPANION_LEVEL_XP_KILL if quarry.is_dying() else 0.0))
 	_scavenge(quarry)
 	# The bite's frames, where the species has them, over a lunge either way.
 	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
@@ -805,6 +818,30 @@ func _tick_poison(delta: float) -> void:
 
 func contact_radius() -> float:
 	return 30.0 * (data.scale if data != null else 1.0)
+
+
+## The raised creature this is, by its pen name, or "" for a spirit.
+func _pen_uid() -> String:
+	return MetaState.pen_taken if from_pen else ""
+
+
+## **Experience for what it does** (2026-10-08). Only this machine's own
+## companion teaches this account: a partner's walks on its own Warden's.
+## A level reached grows its blow and its pool at once, keeping its share.
+func _learn(amount: float) -> void:
+	if spirit_key.is_empty() or amount <= 0.0 or owner_hero == null \
+			or not is_instance_valid(owner_hero) or not owner_hero.is_local_player():
+		return
+	var reached: int = MetaState.gain_companion_xp(spirit_key, _pen_uid(), amount)
+	if reached <= level:
+		return
+	var share: float = spirit_health_ratio() if _max_hp > 0.0 else 1.0
+	_power *= WildlifeLevels.companion_power(reached) / WildlifeLevels.companion_power(level)
+	_max_hp *= WildlifeLevels.companion_health(reached) / WildlifeLevels.companion_health(level)
+	_hp = _max_hp * share
+	level = reached
+	Vfx.level_burst(global_position, reached, false)
+	EventBus.company_news.emit("%s reaches level %d." % [data.display_name, reached])
 
 
 func spirit_health_ratio() -> float:

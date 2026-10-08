@@ -110,6 +110,7 @@ func tick(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delta: float
 		animal["bite_left"] = Balance.FEED_BITE_SECONDS * _dice.randf_range(0.8, 1.3)
 		corpses.bite(meal, Balance.FEED_BITE * kind.scale, me)
 		animal["bites"] = int(animal.get("bites", 0)) + 1
+		wild.earn(animal, Balance.WILDLIFE_LEVEL_XP_MEAL)
 	wild._animate(animal, sprite, delta, false)
 	return true
 

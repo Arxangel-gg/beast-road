@@ -187,9 +187,9 @@ static func dress_lord(animal: Dictionary, kind: WildlifeData) -> void:
 	var sprite := animal.get("sprite", null) as Sprite2D
 	animal["carrion_lord"] = true
 	animal["elite"] = true
-	animal["size"] = Balance.WILDLIFE_ELITE_SCALE
+	animal["size"] = Balance.WILDLIFE_ELITE_SCALE * WildlifeLevels.size_scale(int(animal.get("level", 1)))
 	if sprite != null and is_instance_valid(sprite):
-		sprite.scale = Vector2.ONE * kind.scale * Balance.WILDLIFE_ELITE_SCALE
+		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
 		sprite.modulate = Balance.WILDLIFE_ELITE_TINT
 	var bar := animal.get("bar", null) as ProgressBar
 	if bar != null and is_instance_valid(bar):

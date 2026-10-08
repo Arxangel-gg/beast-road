@@ -716,6 +716,49 @@ const ARSENAL_MODEL_TOWERS: int = 5
 ## A bolt's life before it fizzles, and the ground walked between trail patches.
 ## [TUNE]
 const ARSENAL_BOLT_LIFE: float = 2.4
+
+# --- Levels on the road's animals and on companions (owner, 2026-10-08) --------
+## **An animal's level is the road's and grows it.** Experience to the next level
+## is `BASE * level ^ CURVE`; a level grows the body `GROWTH`, deepens the pool
+## `HEALTH` and pays `YIELD` more Food and experience for the kill, each a share
+## per level past the first. A bigger body bites harder by itself, because a bite
+## is scaled by the size it comes from. [TUNE]
+const WILDLIFE_LEVEL_MAX: int = 10
+const WILDLIFE_LEVEL_XP_BASE: float = 30.0
+const WILDLIFE_LEVEL_XP_CURVE: float = 1.35
+const WILDLIFE_LEVEL_GROWTH: float = 0.035
+const WILDLIFE_LEVEL_HEALTH: float = 0.07
+const WILDLIFE_LEVEL_YIELD: float = 0.05
+## **What earns it.** The peaceful learn by living (`TIME_XP_PEACEFUL` a second),
+## by surviving a wound and by a meal; a hunter lives slower still and learns by
+## its teeth - a share of every point of damage it deals, a kill, and an assist
+## for any target it struck inside `WILDLIFE_ASSIST_SECONDS` before something
+## else finished it. [TUNE]
+const WILDLIFE_LEVEL_TIME_XP_PEACEFUL: float = 0.08
+const WILDLIFE_LEVEL_TIME_XP_PREDATOR: float = 0.03
+const WILDLIFE_LEVEL_XP_SURVIVED: float = 6.0
+const WILDLIFE_LEVEL_XP_MEAL: float = 3.0
+const WILDLIFE_LEVEL_XP_PER_DAMAGE: float = 0.5
+const WILDLIFE_LEVEL_XP_KILL: float = 24.0
+const WILDLIFE_LEVEL_XP_ASSIST: float = 10.0
+const WILDLIFE_ASSIST_SECONDS: float = 8.0
+## One more possible arrival level for every this many acts. [TUNE]
+const WILDLIFE_LEVEL_ARRIVAL_ACTS: int = 3
+## The tag beside a hurt animal's bar. [TUNE]
+const WILDLIFE_LEVEL_TAG_SIZE: int = 11
+const WILDLIFE_LEVEL_TAG_COLOUR: Color = Color(1.0, 0.86, 0.5)
+## **A companion's level is the account's**, earned by what it deals and what it
+## kills: a spirit to `MAX_SPIRIT`, a raised creature to `MAX_PEN`, higher
+## because it can die. Each level is `POWER` more on its blow and `HEALTH` more
+## on its pool. [TUNE]
+const COMPANION_LEVEL_MAX_SPIRIT: int = 10
+const COMPANION_LEVEL_MAX_PEN: int = 20
+const COMPANION_LEVEL_XP_BASE: float = 60.0
+const COMPANION_LEVEL_XP_CURVE: float = 1.45
+const COMPANION_LEVEL_POWER: float = 0.03
+const COMPANION_LEVEL_HEALTH: float = 0.05
+const COMPANION_LEVEL_XP_PER_DAMAGE: float = 0.05
+const COMPANION_LEVEL_XP_KILL: float = 3.0
 ## **A spirit the eye can follow** (2026-10-08). It rises out of the body that
 ## fell for `RISE` seconds, `RISE_HEIGHT` up, growing and brightening, then
 ## hunts at `PACE` of its weapon's speed for up to `LIFE` seconds, drawn at

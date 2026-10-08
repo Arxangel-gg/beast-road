@@ -4379,6 +4379,12 @@ func _update_boss_track() -> void:
 ## clock once it is down. Owner brief, 2026-09-12: "companion healthbars should
 ## be visible once they're not full HP" and "some sort of hud indicator for
 ## their cooldown timer once they're dead".
+## A companion's name with its level (2026-10-08), the one place the readout
+## learns it.
+func _spirit_named(spirit: Companion) -> String:
+	return "%s  ·  Lv %d" % [spirit.data.display_name, spirit.level]
+
+
 func _build_spirit_panel() -> void:
 	_spirit_panel = VBoxContainer.new()
 	_spirit_panel.name = "SpiritPanel"
@@ -4483,7 +4489,7 @@ func _update_spirit_panel(delta: float) -> void:
 	if recovering > 0.0:
 		_spirit_clock_left = recovering
 		_spirit_panel.visible = true
-		_spirit_label.text = "%s re-forming  \u00b7  %ds" % [spirit.data.display_name, int(ceil(recovering))]
+		_spirit_label.text = "%s re-forming  \u00b7  %ds" % [_spirit_named(spirit), int(ceil(recovering))]
 		_spirit_bar.value = 1.0 - recovering / maxf(maxf(_spirit_clock_total, recovering), 0.01)
 		_spirit_bar.modulate = Color(0.75, 0.75, 0.85)
 		return
@@ -4492,11 +4498,11 @@ func _update_spirit_panel(delta: float) -> void:
 		# Whole, so no bar - but the panel stays for the toggle and the upkeep.
 		_spirit_panel.visible = true
 		_spirit_bar.visible = false
-		_spirit_label.text = "%s  ·  %d Food a minute" % [spirit.data.display_name,
+		_spirit_label.text = "%s  ·  %d Food a minute" % [_spirit_named(spirit),
 			int(round(RunState.spirit_upkeep(spirit.data)))]
 		return
 	_spirit_panel.visible = true
-	_spirit_label.text = "%s  \u00b7  %d%%" % [spirit.data.display_name, int(round(ratio * 100.0))]
+	_spirit_label.text = "%s  \u00b7  %d%%" % [_spirit_named(spirit), int(round(ratio * 100.0))]
 	_spirit_bar.value = ratio
 	_spirit_bar.modulate = Color(1.0, 0.45, 0.4).lerp(Color.WHITE, clampf(ratio * 1.5, 0.0, 1.0))
 	_spirit_clock_left = maxf(_spirit_clock_left - delta, 0.0)

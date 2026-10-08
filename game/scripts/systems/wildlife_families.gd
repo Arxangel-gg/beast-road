@@ -32,7 +32,8 @@ enum Blight { HEALTHY, WARNING, FRENZIED, COLLAPSING }
 ## says an animal was grown into something more than its kind - a savage sent
 ## after an over-hunter, or a carrion lord over a heap (`EliteKind`) - so a
 ## guest draws it as the host does instead of as an ordinary animal.
-enum Word { COURTING, BLIGHT, STAGE, ELITE }
+## Appended, never inserted: the wire carries these by number.
+enum Word { COURTING, BLIGHT, STAGE, ELITE, LEVEL }
 enum EliteKind { NONE, SAVAGE, CARRION_LORD }
 
 const HEART_ART: String = "res://art/vfx/heart.png"
@@ -187,8 +188,11 @@ static func blight_bite(animal: Dictionary, kind: WildlifeData) -> float:
 func _apply_stage(animal: Dictionary, kind: WildlifeData, announce: bool) -> void:
 	var stage: int = int(animal["stage"])
 	var elite: float = Balance.WILDLIFE_ELITE_SCALE if bool(animal.get("elite", false)) else 1.0
-	var before: float = float(animal.get("size", elite))
-	animal["size"] = elite * stage_scale(stage)
+	# A level grows the body too (2026-10-08): it is taken out before the stage
+	# is read off the size, and put back on.
+	var grown: float = WildlifeLevels.size_scale(int(animal.get("level", 1)))
+	var before: float = float(animal.get("size", elite * grown)) / grown
+	animal["size"] = elite * stage_scale(stage) * grown
 	var sprite := animal.get("sprite", null) as Sprite2D
 	if sprite != null and is_instance_valid(sprite):
 		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
