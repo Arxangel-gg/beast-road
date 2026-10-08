@@ -890,8 +890,10 @@ func _test_the_strangers_are_dressed() -> void:
 	var session := HoldSession.new()
 	session.yard = yard
 	add_child(session)
-	session._compose()
-	session._draw_table()
+	# **The door the Hold opens alone** (2026-10-08). This used to call the
+	# host's `_compose`, which filled every stranger - and passed while the
+	# solo path filled names and nothing else and dressed every walker bare.
+	session._read_session()
 	var dressed: int = 0
 	var outfits: Dictionary = {}
 	for index: int in range(1, yard.seats()):

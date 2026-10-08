@@ -193,7 +193,12 @@ func _read_session() -> void:
 			_table[index]["kind"] = Seat.LOCAL if index == 0 else Seat.SIMULATED
 			_table[index]["name"] = _my_name() if index == 0 else ""
 			_table[index]["peer"] = 0
-			_table[index]["pen"] = MetaState.pen if index == 0 else []
+			if index == 0:
+				_table[index]["pen"] = MetaState.pen
+				_table[index]["look"] = WardenLook.pack(WardenLook.worn())
+				_table[index]["gear"] = Hero.worn_kinds()
+			else:
+				_fill_stranger(index)
 		_draw_table()
 		return
 	if Coop.is_host():
@@ -201,6 +206,21 @@ func _read_session() -> void:
 		return
 	_mine = maxi(Coop.party().slot_for_peer(multiplayer.get_unique_id()), 0)
 	_draw_table()
+
+
+## **A stranger's seat, whole**: their animals, their look and their gear, rolled
+## from the yard's own key. One door for alone and for a host (owner,
+## 2026-10-08: "Player NPCs at the Hold do not have their visual appearances
+## properly set as they walk around the way they do at the Inn" - alone, the
+## table filled the name and nothing else, so its first redraw dressed every
+## stranger as the bare body while the Inn showed them dressed).
+func _fill_stranger(index: int) -> void:
+	var who: String = yard.sim_key(index) if yard != null \
+		else MetaState.play_code + str(index)
+	_table[index]["pen"] = _simulated_pen(who)
+	var stranger: Dictionary = HoldYard.stranger_of(who)
+	_table[index]["look"] = WardenLook.pack(stranger["look"] as Dictionary)
+	_table[index]["gear"] = stranger["gear"]
 
 
 ## Host only: who is here, and tell everybody.
@@ -220,12 +240,7 @@ func _compose() -> void:
 		# from `HoldYard.sim_key`, and a pen drawn from a different string puts
 		# one Warden's animals behind another's fence - which the note above
 		# warns about and which a per-visit salt would otherwise have caused.
-		var who: String = yard.sim_key(index) if yard != null \
-			else MetaState.play_code + str(index)
-		_table[index]["pen"] = _simulated_pen(who)
-		var stranger: Dictionary = HoldYard.stranger_of(who)
-		_table[index]["look"] = WardenLook.pack(stranger["look"] as Dictionary)
-		_table[index]["gear"] = stranger["gear"]
+		_fill_stranger(index)
 	_table[0]["kind"] = Seat.LOCAL
 	_table[0]["name"] = _my_name()
 	_table[0]["title"] = MetaState.warden_title()
