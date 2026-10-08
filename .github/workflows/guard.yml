@@ -550,6 +550,7 @@ jobs:
           check "saboteur" --headless --path game res://tools/saboteur_check.tscn
           check "migration" --headless --path game res://tools/migration_check.tscn
           check "uniques" --headless --path game res://tools/unique_check.tscn
+          check "spirit orders" --headless --path game res://tools/spirit_order_check.tscn
           check "craft talents" --headless --path game res://tools/craft_talent_check.tscn
           # An extension with no library for a platform the game ships to
           # constructs happily and then fails at runtime, on that platform

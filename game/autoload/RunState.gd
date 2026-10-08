@@ -691,6 +691,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
 	company.clear()
 	company_stayed_home.clear()
+	spirit_order = 0
 	tower_owners.clear()
 	distance_travelled = 0.0
 	best_to_beat = MetaState.best_distance
@@ -3286,6 +3287,11 @@ func item_with_effect(effect: int, automatic_only: bool = false) -> ItemData:
 ## companion called if the larder can pay for it, and a player who sent it
 ## away has sent it away for this run.
 var spirit_called: bool = true
+
+## **The order the spirit was given** (2026-10-07): a `MercenaryInput.Order`,
+## one command set for a spirit and a mercenary. Run-scoped, so a spirit that
+## re-forms or is called again keeps it, and a new road starts it following.
+var spirit_order: int = 0
 
 ## **Whether the animal taken out of the pen went down on this road.**
 ##

@@ -4411,7 +4411,25 @@ func _build_spirit_panel() -> void:
 	_spirit_button.focus_mode = Control.FOCUS_NONE
 	_spirit_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_spirit_button.pressed.connect(_toggle_spirit)
-	_spirit_panel.add_child(_spirit_button)
+	_spirit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# **The spirit's order beside it** (2026-10-07): the mercenaries' four,
+	# one command set for both, cycled with a press.
+	var spirit_row := HBoxContainer.new()
+	spirit_row.add_theme_constant_override("separation", 4)
+	spirit_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spirit_panel.add_child(spirit_row)
+	spirit_row.add_child(_spirit_button)
+	_spirit_order_button = Button.new()
+	_spirit_order_button.name = "SpiritOrder"
+	_spirit_order_button.focus_mode = Control.FOCUS_NONE
+	_spirit_order_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_spirit_order_button.pressed.connect(cycle_spirit_order)
+	spirit_row.add_child(_spirit_order_button)
+	# Side by side in the column's width only with the action row's padding:
+	# the theme's own would push the readout past its column.
+	_slim(_spirit_button)
+	_slim(_spirit_order_button)
+	_refresh_spirit_order()
 	EventBus.spirit_downed.connect(func(_key: String, seconds: float) -> void:
 		_spirit_clock_left = seconds
 		_spirit_clock_total = maxf(seconds, 0.01))
@@ -7596,9 +7614,32 @@ func _toggle_spirit() -> void:
 
 
 ## What the toggle says: the price of calling, or the word for sending home.
+var _spirit_order_button: Button = null
+
+
+## The spirit's next order: follow, guard here, hunt, hold the wall, follow.
+func cycle_spirit_order() -> void:
+	RunState.spirit_order = (RunState.spirit_order + 1) % MercenaryInput.Order.size()
+	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
+	if spirit != null and is_instance_valid(spirit):
+		spirit.command(RunState.spirit_order)
+	_refresh_spirit_order()
+
+
+func _refresh_spirit_order() -> void:
+	if _spirit_order_button == null:
+		return
+	for entry: Array in MercenaryCard.ORDERS:
+		if int(entry[0]) == RunState.spirit_order:
+			_spirit_order_button.text = String(entry[3])
+			_spirit_order_button.tooltip_text = "Your spirit's order: %s. Press for the next." % String(entry[1])
+	_spirit_order_button.visible = RunState.spirit_called
+
+
 func _refresh_spirit_button() -> void:
 	if _spirit_button == null or not is_instance_valid(_spirit_button):
 		return
+	_refresh_spirit_order()
 	if RunState.spirit_called:
 		_spirit_button.text = "Send home"
 		_spirit_button.tooltip_text = "Your spirit stops eating and leaves the field."

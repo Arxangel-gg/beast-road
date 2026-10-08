@@ -15287,6 +15287,37 @@ the repeat guard was named. The icons are PixelLab, styled on a shipped gear
 icon of each slot in the cold gear palette, and a contact sheet beside the
 shipped ones said they belong.
 
+**A spirit takes orders, as of 2026-10-07** (the triage's adapted "companion
+commands": one command set for a spirit and a mercenary). The spirit panel's
+second button cycles the mercenaries' own four orders (`MercenaryInput.Order`,
+their words from `MercenaryCard.ORDERS`): **Follow** as it always did, **Guard**
+the place its Warden stood when told - it stands there and looks round the post
+rather than round itself, so a body across the field does not draw it off -
+**Hunt** at `SPIRIT_HUNT_REACH_SCALE` of its own range, and **hold the Wall**,
+standing `SPIRIT_WALL_STAND` off the gate on its Warden's side. Told to stand
+somewhere, it leaves what hunts its Warden to the Warden.
+
+**And it heeds its own Warden's pings** as the company does - a GO is a post for
+a while, an ATTACK names the body, a COME brings it back - and nobody else's.
+Same reach, same seconds, same verbs.
+
+**Run-scoped** (`RunState.spirit_order`): a spirit that re-forms or is called
+again keeps its order, and a new road starts it following. Nothing persists.
+The order moves where a spirit stands and what it looks at, never a number.
+
+**The two buttons wear the action row's padding** (`HUD._slim`): with the
+theme's own, "Send home" beside "Follow" wanted 280 of the column's 240 and
+pushed the readout past it - caught by the gate measuring the widest pair the
+row can wear together, which is the only state that shows (the order hides
+while the spirit is home).
+
+`spirit_order_check` (27, both bars) stands a bonded spirit and drives the
+real button: each order, the post and its search, the hunt's reach, the wall's
+stand, the re-form, the pings, the new road and the width. Three faults
+planted and named. **`road_sheet_check`'s spirit key `fox:0` is not a real bond
+key** - it only ever made the readout show "sent home"; a gate that needs a
+spirit standing uses `SpiritBond.key`.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

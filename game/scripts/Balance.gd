@@ -4884,6 +4884,11 @@ const KEYSTONE_OFFER_CHANCE: float = 0.2
 ## rule's own reach, strength and seconds, every one the size the effect it
 ## re-routes already has. [TUNE]
 const UNIQUE_REPEAT_CHANCE: float = 0.08
+## **A spirit given an order** (2026-10-07): how much further than its own hunt
+## range it goes looking when told to hunt, and how far out from the gate it
+## stands when told to hold the wall. [TUNE]
+const SPIRIT_HUNT_REACH_SCALE: float = 1.8
+const SPIRIT_WALL_STAND: float = 320.0
 const UNIQUE_ROOT_REACH: float = 170.0
 const UNIQUE_ROOT_SLOW: float = 0.2
 const UNIQUE_ROOT_SECONDS: float = 1.6

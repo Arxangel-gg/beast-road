@@ -4024,6 +4024,9 @@ func _refresh_spirit() -> void:
 	spirit.spirit_key = wanted
 	spirit.from_pen = from_pen
 	spirit.setup(SpiritBond.companion_form(kind, wanted), self, field)
+	# The road's order, so a spirit that re-forms keeps what it was told.
+	if is_local_player():
+		spirit.command(RunState.spirit_order)
 	spirit.global_position = global_position \
 		+ Vector2.RIGHT.rotated(randf() * TAU) * 90.0
 	# Into the sorted layer with everything else that stands on the ground.

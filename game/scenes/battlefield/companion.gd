@@ -94,6 +94,87 @@ var _bar: ProgressBar = null
 var _temperament: SpiritTraitData = null
 var _moving: bool = false
 
+## **Told what to do** (2026-10-07): a `MercenaryInput.Order` - follow, guard
+## where it was told, hunt further afield, or hold the wall - one command set
+## for a spirit and a mercenary. Where it was told to guard is `post`.
+var order: int = MercenaryInput.Order.FOLLOW
+var post: Vector2 = Vector2.ZERO
+## A ping its Warden made, heeded for a while: where to be, and the body named.
+var _heed_at: Vector2 = Vector2.INF
+var _heed_left: float = 0.0
+var _heed_target: Enemy = null
+
+
+func command(new_order: int) -> void:
+	order = clampi(new_order, 0, MercenaryInput.Order.size() - 1)
+	post = owner_hero.global_position if owner_hero != null and is_instance_valid(owner_hero) else global_position
+	_heed_left = 0.0
+
+
+## Where its order puts it, with nothing to fight.
+func anchor() -> Vector2:
+	if _heed_left > 0.0 and _heed_at != Vector2.INF:
+		return _heed_at
+	match order:
+		MercenaryInput.Order.GUARD:
+			return post
+		MercenaryInput.Order.WALL:
+			if field != null and field.has_method("town_position"):
+				var town: Vector2 = field.call("town_position") as Vector2
+				var out: Vector2 = Vector2.DOWN
+				if owner_hero != null and is_instance_valid(owner_hero):
+					out = (owner_hero.global_position - town)
+				if out.length() < 1.0:
+					out = Vector2.DOWN
+				return town + out.normalized() * Balance.SPIRIT_WALL_STAND
+	return Vector2.INF
+
+
+## **A ping heard** (2026-10-07): a spirit heeds its own Warden's pings as the
+## company does - a GO is a post for a while, an ATTACK names a body, a COME
+## brings it back. Returns whether it heeded.
+func heed(ping: PingData, at: Vector2, pinger: Node2D) -> bool:
+	if ping == null or spirit_key.is_empty() or not is_alive():
+		return false
+	var point: Vector2 = at
+	match ping.heed:
+		PingData.Heed.NONE:
+			return false
+		PingData.Heed.COME:
+			if pinger == null or not is_instance_valid(pinger):
+				return false
+			point = pinger.global_position
+	if global_position.distance_to(point) > Balance.PING_HEED_REACH:
+		return false
+	_heed_at = point
+	_heed_left = Balance.PING_HEED_SECONDS
+	_heed_target = null
+	if ping.heed == PingData.Heed.ATTACK and field != null and field.has_method("enemies_near"):
+		var best_d: float = INF
+		for body: Enemy in field.enemies_near(at, Balance.PING_PICK_RADIUS):
+			if body.is_dying():
+				continue
+			var d: float = body.global_position.distance_squared_to(at)
+			if d < best_d:
+				best_d = d
+				_heed_target = body
+	return true
+
+
+func heeding() -> bool:
+	return _heed_left > 0.0
+
+
+func _on_pinged(seat: int, ping_id: String, at: Vector2) -> void:
+	var hero := owner_hero as Hero
+	if hero == null or not is_instance_valid(hero):
+		return
+	var own: int = hero.party_slot
+	if hero.is_local_player():
+		own = Coop.party().slot() if Coop.is_networked() and Coop.party().slot() > 0 else 1
+	if seat == own:
+		heed(ContentDB.ping(ping_id), at, hero)
+
 
 func setup(companion: CompanionData, hero: Node2D, arena: Node) -> void:
 	data = companion
@@ -106,6 +187,8 @@ func _ready() -> void:
 		queue_free()
 		return
 	add_to_group(GROUP)
+	# A named method, never a lambda: a lambda on an autoload outlives the node.
+	EventBus.pinged.connect(_on_pinged)
 	# **A raised animal scuffs the ground; a spirit does not.**
 	#
 	# That is the hide rule of the roster in a second place rather than a new
@@ -286,6 +369,8 @@ func _physics_process_measured(delta: float) -> void:
 			_go_down()
 			return
 	_cooldown = maxf(_cooldown - delta, 0.0)
+	if _heed_left > 0.0:
+		_heed_left = maxf(_heed_left - delta, 0.0)
 
 	var quarry: Enemy = _nearest_enemy()
 	# **What is hunting my owner comes first.** A wolf pack is wildlife, not an
@@ -293,7 +378,9 @@ func _physics_process_measured(delta: float) -> void:
 	# stood and watched while its owner was taken apart (owner brief,
 	# 2026-09-13). A threat nearer to the owner than the chosen body is
 	# answered instead.
-	var threat: Vector2 = _threat_to_owner()
+	# A spirit told to guard a place or hold the wall holds it: what hunts its
+	# Warden elsewhere is the Warden's to answer.
+	var threat: Vector2 = _threat_to_owner() if _answers_its_owner() else Vector2.INF
 	var guard: bool = threat != Vector2.INF
 	if guard and quarry != null and owner_hero != null and is_instance_valid(owner_hero):
 		guard = threat.distance_to(owner_hero.global_position) \
@@ -360,10 +447,19 @@ func may_court() -> bool:
 	return _nearest_enemy() == null
 
 
+## Whether what hunts its Warden is its business: following or hunting, yes;
+## told to stand somewhere, no.
+func _answers_its_owner() -> bool:
+	return order == MercenaryInput.Order.FOLLOW or order == MercenaryInput.Order.HUNT
+
+
 ## Where it wants to be: on top of something to hit, or near its summoner.
 func _goal(quarry: Enemy) -> Vector2:
 	if quarry != null:
 		return quarry.global_position
+	var told: Vector2 = anchor()
+	if told != Vector2.INF:
+		return told
 	# Beneath the fight and above the follow: a companion with nothing to
 	# answer goes to the animal it is courting, and stops following its
 	# owner about while it does.
@@ -395,13 +491,27 @@ func _nearest_enemy() -> Enemy:
 	if owner_hero != null and is_instance_valid(owner_hero):
 		hero_at = owner_hero.global_position
 
+	# A body a ping named is the body, for as long as the ping is heeded.
+	if _heed_left > 0.0 and _heed_target != null and is_instance_valid(_heed_target) \
+			and not _heed_target.is_dying():
+		return _heed_target
+	# **Where it looks, by its order**: round itself following, further afield
+	# hunting, and round the place it holds when told to stand somewhere - so a
+	# guarding spirit is not drawn off its post by a body across the field.
+	var centre: Vector2 = global_position
+	var reach: float = data.hunt_range
+	var told: Vector2 = anchor()
+	if order == MercenaryInput.Order.HUNT:
+		reach *= Balance.SPIRIT_HUNT_REACH_SCALE
+	elif told != Vector2.INF:
+		centre = told
 	var best: Enemy = null
 	var best_score: float = -INF
-	for enemy: Enemy in field.enemies_near(global_position, data.hunt_range):
+	for enemy: Enemy in field.enemies_near(centre, reach):
 		if enemy.is_dying():
 			continue
 		var distance: float = global_position.distance_to(enemy.global_position)
-		if distance >= data.hunt_range:
+		if centre.distance_to(enemy.global_position) >= reach:
 			continue
 		var score: float = -distance
 		match bias:

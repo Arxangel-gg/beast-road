@@ -11,10 +11,10 @@ extends CanvasLayer
 signal ordered(uid: String, order: int)
 
 const ORDERS: Array[Array] = [
-	[MercenaryInput.Order.FOLLOW, "Follow me", "order_follow"],
-	[MercenaryInput.Order.GUARD, "Guard here", "order_guard"],
-	[MercenaryInput.Order.HUNT, "Hunt", "order_hunt"],
-	[MercenaryInput.Order.WALL, "Hold the wall", "order_wall"],
+	[MercenaryInput.Order.FOLLOW, "Follow me", "order_follow", "Follow"],
+	[MercenaryInput.Order.GUARD, "Guard here", "order_guard", "Guard"],
+	[MercenaryInput.Order.HUNT, "Hunt", "order_hunt", "Hunt"],
+	[MercenaryInput.Order.WALL, "Hold the wall", "order_wall", "Wall"],
 ]
 
 var uid: String = ""
