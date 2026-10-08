@@ -1143,6 +1143,8 @@ func pay_unique(act: int, where: Vector2 = Vector2.INF) -> void:
 
 
 func _on_boss_defeated(boss_id: String, act: int) -> void:
+	if filming():
+		return
 	# **A unique, again** (2026-10-07): a boss whose unique this road already
 	# paid now and then drops it again. Rolled before the card, on the run's
 	# own stream; the first fall's own payment is `_on_first_clear_made`.
@@ -1317,7 +1319,7 @@ static func homecoming_marks(act: int, home: bool) -> int:
 ## beside it: the road is a decision about where to go and the card is what the
 ## last one taught, and putting both on one screen makes neither land.
 func _offer_road_cards() -> void:
-	if crossroad_ui == null or not RunState.pending_road_cards.is_empty():
+	if crossroad_ui == null or not RunState.pending_road_cards.is_empty() or filming():
 		return
 	var drawn: Array[String] = RoadCardData.offer(RunState.road_cards,
 		RunState.act, Balance.ROAD_CARD_OFFER_COUNT)
@@ -1328,7 +1330,7 @@ func _offer_road_cards() -> void:
 
 
 func _offer_omens() -> void:
-	if crossroad_ui == null or not RunState.pending_omens.is_empty():
+	if crossroad_ui == null or not RunState.pending_omens.is_empty() or filming():
 		return
 	var drawn: Array[String] = OmenData.offer(RunState.taken_omens, RunState.act,
 		Balance.OMEN_OFFER_COUNT)
@@ -1394,6 +1396,8 @@ func _on_crossroad_reached(segment_index: int) -> void:
 
 func _open_crossroad(segment_index: int) -> void:
 	_pending_crossroad = -1
+	if filming():
+		return
 	_locked = true
 	# The modal is part of safe planning time, not combat telemetry.
 	RunState.set_phase(RunState.Phase.PREPARATION)
@@ -1815,7 +1819,7 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 ## released at the end of a swing cannot press a card - and only on the machine
 ## that drafts.
 func _offer_banked_augments() -> void:
-	if crossroad_ui == null or _drafts_elsewhere() or RunState.walking or _locked:
+	if crossroad_ui == null or _drafts_elsewhere() or RunState.walking or _locked or filming():
 		return
 	# **A field frozen for a draft that is no longer on the table is a
 	# stranded road**, whatever door dropped the draft. The yield above is the
@@ -1830,6 +1834,16 @@ func _offer_banked_augments() -> void:
 			or battlefield.is_suspended():
 		return
 	crossroad_ui.open_augment_draft()
+
+
+## **A road under a trailer opens no table** (owner, 2026-10-08: "Arsenal/
+## Augments appear in the trailer requiring players to choose and obstructing
+## the view of the trailer!"). The trailer's road earns drafts by killing like
+## any road, and every one opened a screen that waited for a press while the
+## film ran on underneath it. Its Arsenal is the stage's to deal; a draft, a
+## fork, a relic, a portent and the pass home are never laid over a film.
+func filming() -> bool:
+	return TrailerPlayer.showing > 0
 
 
 ## Whether this machine's drafts are made somewhere else: a guest's, when the
@@ -1885,7 +1899,7 @@ func _on_augment_queued(_source: String, _waiting: int) -> void:
 
 
 func _open_augment_at_once() -> void:
-	if crossroad_ui == null or crossroad_ui.is_open() or _locked:
+	if crossroad_ui == null or crossroad_ui.is_open() or _locked or filming():
 		return
 	if _scope != GameDirector.Scope.BATTLEFIELD or not RunState.is_command_combat():
 		return
@@ -1903,7 +1917,7 @@ func _open_augment_at_once() -> void:
 ## shared road never stops for one player's cards, so there it waits for the
 ## breather.
 func _on_augment_open_requested() -> void:
-	if crossroad_ui == null or crossroad_ui.is_open() or _locked or _drafts_elsewhere():
+	if crossroad_ui == null or crossroad_ui.is_open() or _locked or _drafts_elsewhere() or filming():
 		return
 	if RunState.augments_waiting() <= 0 or _scope != GameDirector.Scope.BATTLEFIELD:
 		return

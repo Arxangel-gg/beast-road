@@ -319,6 +319,19 @@ func _test_it_plays() -> void:
 				_check(stage.field.hero.input is TrailerStage.Director, "the Warden is not in the director's hands")
 				_check(stage.run.journey == null or stage.run.journey.process_mode == Node.PROCESS_MODE_DISABLED,
 					"the road walks while it is filmed, and a crossroad would open over a moment")
+				# **No table is laid over a film** (owner, 2026-10-08: the
+				# Arsenal's draft opened over the trailer and waited for a
+				# press). A draft asked for, a portent and a fork, each through
+				# the door that opens it in play.
+				RunState.queue_augment("rank")
+				stage.run.call("_on_augment_open_requested")
+				stage.run.call("_offer_omens")
+				stage.run.call("_open_crossroad", 0)
+				var table: CrossroadScreen = stage.run.crossroad_ui
+				_check(stage.run.filming(), "the road does not know it is being filmed")
+				_check(table == null or not table.is_open(),
+					"a draft, a portent or a fork opened over the trailer")
+				_check(not stage.field.is_suspended(), "asking for a table froze the road under the film")
 	_check(player.reason == "finished", "the trailer ended '%s', not finished" % player.reason)
 	_check(player.filmed.size() >= 5, "the trailer filmed only %d moments: %s" % [player.filmed.size(), ", ".join(player.filmed)])
 	_given_back(before, held_before, "a finished trailer")
