@@ -59,8 +59,17 @@ env:
 
 jobs:
   compiles:
-    name: Does it load
+    name: Does it load (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
+    # **Split across three runners, as of 2026-10-08** - the answer the note
+    # below asked for the next time the ceiling was questioned. Each runner
+    # takes every third `check` in the one list in this file, so a gate is
+    # added in one place and lands on a shard by its position; nothing is kept
+    # twice. A failure on one shard does not cancel the others.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
     # A hard ceiling, because the thing this project actually suffers from is
     # hangs rather than failures: a check with no deadline turns a stall into a
     # silent seventy-six minute wait that nobody is watching.
@@ -87,6 +96,10 @@ jobs:
     # several runners at once - that fixes the wall-clock as well as the ceiling,
     # and it is what should happen the next time this number is questioned rather
     # than a fourth bump.
+    #
+    # It was: on 2026-10-08 a run of 250 gates went past 60 minutes with nothing
+    # failing, and the job is split instead (see `strategy` above). 60 now
+    # holds a third of the suite with the same headroom it was set for.
     timeout-minutes: 60
 
     steps:
@@ -129,13 +142,25 @@ jobs:
         run: timeout 300 godot --headless --editor --path game --quit
 
       - name: Load the game, the launcher, and the menu
+        env:
+          GATE_SHARD: ${{ matrix.shard }}
+          GATE_SHARDS: 3
         run: |
           set -euo pipefail
 
           # A Godot run that "succeeds" while printing script errors is the
           # normal failure here: exit status alone does not catch a parse error
           # in an autoload. Both are checked, and every call is bounded.
+          # Every third gate, by its place in this list (2026-10-08). With no
+          # shard set - a local run, the validation test - every gate runs.
+          gate_number=0
           check() {
+            if [ -n "${GATE_SHARD:-}" ]; then
+              gate_number=$(( ${gate_number:-0} + 1 ))
+              if [ $(( (gate_number - 1) % ${GATE_SHARDS:-3} )) -ne "$GATE_SHARD" ]; then
+                return 0
+              fi
+            fi
             local name="$1"; shift
             local log status
             log="$(mktemp)"
