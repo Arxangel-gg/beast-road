@@ -61,6 +61,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | One authored battlefield; procedural layouts cut (v4 §54) | cut for 1.0 | **DECIDED 2026-09-23: map modes in the settings, Random included. See below.** |
 | One painted Warden, the hooded skull (every sheet since v0.3) | not in the spec | **DECIDED 2026-09-25: a modular, customizable Warden, male and female, capes as a stat slot. See below.** |
 | Road Cards move one number, as a relic does (2026-09-11 bound) | not in the spec | **DECIDED 2026-09-27: augments are an Arsenal of weapons; the number cards retired. See below.** |
+| A bonded spirit carries no level and is no stronger for being owned longer (2026-09-01 bound) | not in the spec | **DECIDED 2026-10-08: companions and wildlife have levels. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -15371,6 +15372,90 @@ the player every key; the chat also stands down while `TrailerPlayer.showing`.
 `trailer_check` presses Enter over a standing road and past a node that eats it,
 and with the catcher not kept last it names the sweep's whole cascade. **A node
 that must hear a key before a scene it owns cannot hear it in its own `_input`.**
+
+**Hired mercenaries walk out with the road, as of 2026-10-08.** Owner: *"my
+mercenaries did not join me on the battlefield."* A hire defaulted to staying
+home (`taking: false`) and walked out only after a toggle at the Inn, while the
+hire itself said "they will walk with you". A hire now walks out unless it is
+kept home (`home`), and **the old flag is not read**, so every hire saved before
+this comes too - which is what hiring one was always said to mean. The road says
+who came, and who stayed home for want of Marks; and the HUD carries a company
+readout under the spirit's (`CompanyStrip`): one line a mercenary - name, order,
+a health bar and the wounds left - that reads "at the inn" once carried off and
+yields to a sheet on a thumb as the spirit's readout does. `layout_check` stands
+a company of three at every shape, because a clean profile has none and a
+readout that only draws with state is the readout CI never measures.
+
+**The Arsenal's spirits are seen, as of 2026-10-08.** Owner: *"Some
+arsenal/augments give spirits ... I have not seen any such thing happen."* Pyre
+Spirits, Marrow Seekers and Frost Wraiths let go a fourteen-unit head at 480
+units a second, gone in half a second. Each now rises out of the body that fell
+(`ARSENAL_SPIRIT_RISE`), then hunts at `ARSENAL_SPIRIT_PACE` of its speed as its
+own painting (`ArsenalWeaponData.spirit`, `art/vfx/spirit_*`, PixelLab with the
+card's art as style) - turned onto its heading and mirrored, never upside down,
+flying west. **The blow is the bolt's to the point**: a look and a pace.
+
+**And three town cards had never authored their speed.** Watchfire Crows,
+Drowned Bell and Soulfire took `ArsenalWeaponData.speed`'s default of 3, so the
+"burst" their descriptions, radii and the curve's own model (`_fires_once`) all
+described was a seeker crawling at three units a second that hit only what lay
+against the corpse. They are bursts now, and the crow is seen wheeling out of
+the body. **A field whose default means something in one pattern and something
+else in another is a default nobody should rely on**: `speed` is radians for an
+orbit and units for a bolt, and 3 is a sensible orbit and a broken burst.
+
+**Wildlife and companions have levels, as of 2026-10-08. Owner ruling:**
+*"Wildlife should have levels and be able to level up from xp ... Peaceful
+wildlife should level slower naturally, and predatory wildlife should level
+faster earned from the damage they inflict and from kills they get as well as
+assists ... Leveling up causes wildlife to grow bigger. Their levels are also
+hidden until they are hurt ... Companion spirits should also be able to level up
+from their earned XP to a lesser cap, while alive wildlife companions are able
+to reach a higher max level cap ... Each rarity for any unlocked spirit
+companions get their own level."* **That re-cuts the 2026-09-01 bound that "no
+spirit carries a level ... a bonded spirit is no stronger for having been owned
+longer"**, and the pen's "a raised companion is no stronger"; both are recorded
+in the table at the top of §1.
+
+`WildlifeLevels` is the rules, once, for both. **A wild animal's level is the
+road's and never persists**: it arrives at level one in the opening act and up to
+one more every `WILDLIFE_LEVEL_ARRIVAL_ACTS` acts, read off its own name and the
+run's seed rather than a die so no arrival roll moves; the peaceful learn by
+living, a wound survived and a meal, a hunter more slowly by living and fast by
+its teeth - a share of every point of damage, a kill, and an assist for any
+target (an animal, a road body or a Warden) it struck inside
+`WILDLIFE_ASSIST_SECONDS` before something else finished it. A level grows the
+body (`WILDLIFE_LEVEL_GROWTH`, which raises the bite too, because a bite is
+scaled by size), deepens the pool keeping its share, and pays more for the kill.
+The level is hidden until the animal is hurt and shown beside its bar while it is
+not whole - an elite's bar is out from the start and still says nothing of its
+level until struck. The host decides; a guest is told (`Word.LEVEL`, appended)
+and a late guest hears it in the welcome.
+
+**A companion's level is the account's**: one for each spirit species and rarity
+(`WildlifeLevels.spirit_level_key` - a shiny shares its rarity's), its own on the
+pen row for a raised creature, a spirit to `COMPANION_LEVEL_MAX_SPIRIT` and a
+mortal to `COMPANION_LEVEL_MAX_PEN`, each level `COMPANION_LEVEL_POWER` more blow
+and `COMPANION_LEVEL_HEALTH` more pool. **It amends working rule 7 the way the
+spirits did**, inside blocks that already exist - `spirits.levels` and the pen
+row's `xp` - additive and cleaned on reading, so `SAVE_VERSION` did not move.
+Only this machine's own companion teaches this account. **It is a power scale
+and it is modelled**: `curve_report --companion` carries the top level, a best
+case like every number the report models. `wildlife_level_check` (both bars)
+holds all of it; four faults were planted and named.
+
+**The save's JSON trims float precision**, so experience stored exactly at a
+threshold read back a hair under it and lost a level; `level_for_xp` tolerates
+the rounding. Anything compared against a threshold after a save round trip
+wants the same tolerance.
+
+**Guard runs on three runners, as of 2026-10-08.** Its main job went past its
+60-minute ceiling with nothing failing, the fourth time the suite outgrew that
+number, and the job's own note said the next time it should be split rather than
+bumped. A matrix of three shards; each takes every third `check` by position in
+the one list, so a gate is still added in one place. With `GATE_SHARD` unset the
+function runs every gate, which is what `ci_validation_test` and a local sweep
+see.
 
 ### The three escape hatches - and why there are only three
 
