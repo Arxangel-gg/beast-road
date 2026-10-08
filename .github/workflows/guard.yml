@@ -543,6 +543,7 @@ jobs:
           check "save slots" --headless --path game res://tools/save_slot_check.tscn
           check "hardcore" --headless --path game res://tools/hardcore_check.tscn
           check "sandbox" --headless --path game res://tools/sandbox_check.tscn
+          check "procedural-warden" --headless --path game res://tools/procedural_warden_check.tscn
           check "craft talents" --headless --path game res://tools/craft_talent_check.tscn
           # An extension with no library for a platform the game ships to
           # constructs happily and then fails at runtime, on that platform

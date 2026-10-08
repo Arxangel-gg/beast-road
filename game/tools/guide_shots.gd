@@ -52,6 +52,28 @@ var _offscreen: bool = false
 ##     godot --path game res://tools/guide_shots.tscn -- --only=fishing,reel
 var _only: PackedStringArray = []
 
+## **Who is in the picture** (owner, 2026-10-07: "a random procedural appearance
+## look and colors for the player as well as randomized procedural equipped gear
+## that is harmonious with the expectation for each phase of the player's
+## progression where the image would have naturally been taken"). Every picture
+## dresses its own Warden (`ProceduralWarden`), at the share of a career where a
+## player would first have stood in front of what it shows: the build sheet and
+## the ponds on a new Warden's first road, a rift or a Herald a little further
+## on, the earth's worst anger and the sandbox far along. A picture not named
+## here is a Warden somewhere on their first road, from the picture's own name,
+## so the Guide reads as many people rather than one. Every road starts in Act I,
+## so a veteran in the jungle is a veteran beginning another road.
+const _STAGE_OF: Dictionary = {
+	"warden_glass": 0.0, "hardcore": 0.01, "preparation": 0.01, "towers": 0.02,
+	"crossroads": 0.06, "arcane": 0.12, "arsenal": 0.1, "raids": 0.12,
+	"trap_levels": 0.15, "tower_paths": 0.18, "rifts": 0.2, "heralds": 0.22,
+	"cards": 0.2, "relics": 0.24, "coop": 0.25, "extraction": 0.28, "mounts": 0.3,
+	"boss_fight": 0.3, "attributes": 0.34, "mythic_trail": 0.36, "the_pen": 0.4,
+	"hunted": 0.4, "forge": 0.45, "quake": 0.46, "tornado": 0.5, "wrath": 0.52,
+	"meteor": 0.55, "stash": 0.5, "gear": 0.55, "trading": 0.58, "account": 0.62,
+	"sandbox": 0.72,
+}
+
 ## How many towers this run has put up, so each picture draws a different one.
 var _towers_built: int = 0
 
@@ -111,6 +133,12 @@ func _ready() -> void:
 	# been. Held saves, so nothing is written to the player's account.
 	for beat: MilestoneCinematicData in ContentDB.milestone_cinematics_sorted():
 		MetaState.mark_milestone_cinematic_seen(beat.id)
+	# **And every achievement already earned**, for the same reason: a fresh
+	# profile earns "Wet Boots" on the first swim and the banner said so across
+	# the middle of the swimming picture. Held saves, so nothing is written.
+	for id: Variant in ContentDB.achievements:
+		if not MetaState.achievements.has(String(id)):
+			MetaState.achievements.append(String(id))
 	# **Fullscreen, because the source frame is what decides the quality.**
 	#
 	# A 1280x720 window downsampled to the file is barely a downsample at all;
@@ -635,17 +663,10 @@ func _ready() -> void:
 				MetaState.mount_saddled = stock[0].id
 		MetaState.marks = maxi(MetaState.marks, 900)
 		_screen_shot(func() -> Node: return StableScreen.new(), "Stable"))
-	# **The Warden's Glass**, open on a dressed Warden: a mane and a full beard on
-	# brown skin, wearing whatever the account wears. The look is put back once
-	# the picture is taken, because every later shot draws this Warden.
-	var kept_look: Dictionary = MetaState.look.duplicate()
+	# **The Warden's Glass**, open on a Warden being made: the look is the
+	# picture's own procedural Warden (`_STAGE_OF`), at the very start of a
+	# career, which is when the Glass is offered.
 	await _shot("warden_glass", func() -> void:
-		var look: Dictionary = WardenLook.plain()
-		look["hair"] = 10
-		look["hair_colour"] = 4
-		look["beard"] = 5
-		look["skin"] = 7
-		MetaState.look = WardenLook.dyed_as(look, 1)
 		_screen_shot(func() -> Node: return WardenGlass.new(), "Glass"))
 	# **The sandbox** (2026-09-30): the act screen opened as the sandbox, the
 	# door a player reading that page needs to recognise.
@@ -665,7 +686,6 @@ func _ready() -> void:
 	for node: Node in get_children():
 		if node.name.ends_with("Shot"):
 			node.queue_free()
-	MetaState.look = kept_look
 	for _f: int in 8:
 		await get_tree().process_frame
 	# **A seam worth stopping at**, for the two sections about the crafts. They
@@ -1697,6 +1717,7 @@ func _taming_shot() -> void:
 func _deep_shot(id: String) -> void:
 	if not _wanted(id):
 		return
+	_dress_for(id)
 	await _settle()
 	run.battlefield.suspend()
 	run.rift.visible = true
@@ -2148,6 +2169,7 @@ func _walk(node: Node) -> Array[Node]:
 ## the picture is taken. That is the whole reason `bow` and `enemy_shots` were
 ## photographs of an ordinary wave.
 func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> void:
+	_dress_for(id)
 	await _settle()
 	await _take(id, setup, just_before)
 
@@ -2160,6 +2182,15 @@ func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> v
 ## second one between the drive and the shutter drained every flood, put out
 ## every blaze and freed every funnel one frame after it was made. Every weather
 ## picture was a photograph of a clear day.
+## Puts this picture's Warden on (`_STAGE_OF`). Only for a picture being taken,
+## and the same Warden every time the tool is run, because a roll is its key.
+func _dress_for(id: String) -> void:
+	if not _wanted(id):
+		return
+	var share: float = float(_STAGE_OF[id]) if _STAGE_OF.has(id) 		else 0.02 + float(absi(hash(id)) % 1000) / 1000.0 * 0.22
+	ProceduralWarden.wear(ProceduralWarden.roll_at("guide:" + id, share), self)
+
+
 func _take(id: String, setup: Callable, just_before: Callable = Callable()) -> void:
 	setup.call()
 	get_tree().paused = false
@@ -2378,6 +2409,7 @@ func _weather_shot(id: String, drive: Callable, let_it_run: int = 0,
 		just_before: Callable = Callable(), until: Callable = Callable()) -> void:
 	if not _wanted(id):
 		return
+	_dress_for(id)
 	await _settle()
 	_apt_post(id)
 	drive.call()
@@ -2408,6 +2440,7 @@ func _water_shot(id: String, bank: Vector2, want: int, zoom: float,
 		aim_at: Vector2 = Vector2.INF) -> void:
 	if not _wanted(id):
 		return
+	_dress_for(id)
 	await _settle()
 	var own_hands: HeroInput = run.battlefield.hero.input
 	_zoom(zoom)

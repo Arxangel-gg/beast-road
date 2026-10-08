@@ -2386,6 +2386,19 @@ func _worn_kind(slot: int) -> GearData:
 	return ContentDB.gear(String(piece.get("kind", ""))) if not piece.is_empty() else null
 
 
+## **Dressed again from the account** - the look and what is worn - for this
+## machine's own Warden when both have changed under it at once: the Guide's
+## photographs and the trailer put a procedural Warden on between pictures
+## (`ProceduralWarden.wear`). Presentation only.
+func redress() -> void:
+	if not is_local_player():
+		return
+	look = WardenLook.worn()
+	if _blood_tried and sprite != null:
+		WardenLook.dress(sprite, look)
+		_dress_warden()
+
+
 ## Told how a partner is dyed. Presentation only: nothing reads `look`.
 func wear_look(row: Variant) -> void:
 	var wanted: Dictionary = WardenLook.unpack(row)
