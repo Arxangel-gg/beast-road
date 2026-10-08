@@ -1,5 +1,11 @@
 # Build-defining uniques - design pass (2026-10-07)
 
+**Built 2026-10-07**, with the proposed answers to the three owner questions
+(a later fall repeats at `UNIQUE_REPEAT_CHANCE`, a unique trades like any piece,
+weapons wait) and one change, recorded in its row: VIII is "your spells brand
+what they strike", because borrowing a tower's element changed only a spell's
+tint and its wetness, too little to build around. `unique_check` holds it.
+
 *The triage of 2026-10-07 (`IDEAS_REVIEW_2026-10-07.md` §3) adapted
 "build-defining uniques" as **authored trophy pieces that carry a
 keystone-style re-route** - the Road Card bound, "when or what, never how much" -
@@ -34,8 +40,9 @@ by what the Warden wears.
 
 - **One unique kind per act boss**, eleven in all, the boss's own.
 - **The first fall of that boss on each road (tier) pays its unique once**, laid
-  where the boss fell, at the tier's trophy rarity - the Mantle's rule exactly,
-  so it is learnt once.
+  at the Warden's feet *on the machine whose account earned it* - a personal
+  drop with no relay, since a partner earns their own on their own machine - at
+  the tier's trophy rarity, the Mantle's rule.
 - **After the first, a later fall of that boss on that road has a small chance
   to drop it again** (`UNIQUE_REPEAT_CHANCE`, proposed 0.08), so a second copy
   for a partner or a stash is a farm rather than impossible. *(Owner question 1.)*
@@ -64,7 +71,7 @@ Each names the existing effect it re-routes and the one door that reads it.
 | V | **Gearwright's Charm** (charm) | When a tower in reach falls, the Warden's next finisher is empowered. | The perfect-evade empowerment (`No Ground Given`) on a new trigger |
 | VI | **Saltbound Band** (ring) | A ward you hold, when struck to nothing, slows what struck it. | The ward break (`WardShell`, `Health`) → `apply_slow` |
 | VII | **Horselord's Treads** (boots) | Sprinting through a body shoves it as the mount's charge does, for no damage. | The ram's shove (`MOUNT_RAM_*` knockback) on a sprint, damage zero |
-| VIII | **Prismheart** (amulet) | Your spells take the element of the last tower that fired near you. | `SpellData.element` at cast, read where the element reaches the world |
+| VIII | **Prismheart** (amulet) | Your spells brand what they strike, so the towers hit it harder. *(Changed when built: the first idea, borrowing a tower's element, moved only a tint and a wetness.)* | The Hemorrhage form's brand (`Enemy.brand`), on `SpellCaster._land` |
 | IX | **Emberwreath** (charm) | A burning body that dies lights the brush where it falls - Tinderstrike on burns rather than on the finisher. | `KEYSTONE_TINDERSTRIKE`'s door, a second trigger |
 | X | **Anchorchain Gauntlets** (gloves) | A finisher pulls the bodies in its arc a step toward you. | The Chain Hook's pull (`HOOK`) on the finisher |
 | Crown | **Kharok's Sigil** (ring) | A blow you take while warded is answered by the nearest tower, which fires at the striker. | `Tower` targeting (Hunter's Mark's door): the striker becomes the board's first choice |

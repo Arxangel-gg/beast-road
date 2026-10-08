@@ -4243,6 +4243,7 @@ func note_first_clear(tier_id: String, act: int) -> void:
 		return
 	first_clears[tier_id] = mask | bit
 	save_game()
+	EventBus.first_clear_made.emit(tier_id, act)
 
 
 func first_clears_count() -> int:

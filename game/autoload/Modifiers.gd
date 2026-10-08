@@ -70,6 +70,32 @@ const KEYSTONE_TINDERSTRIKE: String = "keystone_tinderstrike"
 const KEYSTONE_TIMBERWRIGHT: String = "keystone_timberwright"
 const KEYSTONE_SAPPERS_DUE: String = "keystone_sappers_due"
 const KEYSTONE_HUNTERS_MARK: String = "keystone_hunters_mark"
+## **The uniques** (2026-10-07): a flag a worn trophy puts in the table, read
+## by the one door the rule re-routes - a Warden key, so a partner reads its own.
+const UNIQUE_ROOTBINDER: String = "unique_rootbinder"
+const UNIQUE_SANDGLASS: String = "unique_sandglass"
+const UNIQUE_HOARFROST: String = "unique_hoarfrost"
+const UNIQUE_BOGWATER: String = "unique_bogwater"
+const UNIQUE_GEARWRIGHT: String = "unique_gearwright"
+const UNIQUE_SALTBOUND: String = "unique_saltbound"
+const UNIQUE_HORSELORD: String = "unique_horselord"
+const UNIQUE_PRISMHEART: String = "unique_prismheart"
+const UNIQUE_EMBERWREATH: String = "unique_emberwreath"
+const UNIQUE_ANCHORCHAIN: String = "unique_anchorchain"
+const UNIQUE_KHAROK: String = "unique_kharok"
+const UNIQUE_KEYS: Array[String] = [
+	UNIQUE_ROOTBINDER,
+	UNIQUE_SANDGLASS,
+	UNIQUE_HOARFROST,
+	UNIQUE_BOGWATER,
+	UNIQUE_GEARWRIGHT,
+	UNIQUE_SALTBOUND,
+	UNIQUE_HORSELORD,
+	UNIQUE_PRISMHEART,
+	UNIQUE_EMBERWREATH,
+	UNIQUE_ANCHORCHAIN,
+	UNIQUE_KHAROK,
+]
 
 
 ## **What each key is called on a card**, authored rather than derived.
@@ -127,6 +153,17 @@ const LABELS: Dictionary = {
 	KEYSTONE_TIMBERWRIGHT: "Timberwright",
 	KEYSTONE_SAPPERS_DUE: "Sapper's Due",
 	KEYSTONE_HUNTERS_MARK: "Hunter's Mark",
+	UNIQUE_ROOTBINDER: "Rootbinder's Grip",
+	UNIQUE_SANDGLASS: "Sandglass Sabatons",
+	UNIQUE_HOARFROST: "Hoarfrost Signet",
+	UNIQUE_BOGWATER: "Bogwater Amulet",
+	UNIQUE_GEARWRIGHT: "Gearwright's Charm",
+	UNIQUE_SALTBOUND: "Saltbound Band",
+	UNIQUE_HORSELORD: "Horselord's Treads",
+	UNIQUE_PRISMHEART: "Prismheart",
+	UNIQUE_EMBERWREATH: "Emberwreath",
+	UNIQUE_ANCHORCHAIN: "Anchorchain Gauntlets",
+	UNIQUE_KHAROK: "Kharok's Sigil",
 }
 
 
@@ -159,7 +196,7 @@ const WARDEN_KEYS: Array[String] = [
 	MANA_REGEN, SPELL_POWER, COMPANION_DAMAGE, KNOCKBACK,
 	ARSENAL_HASTE, ARSENAL_COUNT, ARSENAL_AREA, ARSENAL_DURATION, ARSENAL_POWER,
 	ARSENAL_GUARD,
-]
+] + UNIQUE_KEYS
 
 
 func _ready() -> void:
@@ -316,6 +353,9 @@ static func _add_gear(into: Dictionary, pieces: Array[Dictionary]) -> void:
 		var kept: float = Stash.benefit_scale(piece)
 		if kept <= 0.0:
 			continue
+		# A unique's rule is a flag: worn, it holds; broken, it does not.
+		if kind != null and kind.is_unique():
+			into[kind.unique_rule] = 1.0
 		for affix: GearAffixData in Stash.legendary_affixes(piece, kind):
 			if affix.effect_id.is_empty():
 				continue

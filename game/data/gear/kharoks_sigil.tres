@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 6
+attribute = 1
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_kharok"
+unique_text = "A blow you take while warded turns the nearest tower on whoever struck it."
+unique_act = 11
+id = "kharoks_sigil"
+display_name = "Kharok's Sigil"
+description = "The chain is broken. The seal is not."

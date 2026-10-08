@@ -15236,6 +15236,57 @@ arrivals' dice - a herd of one species and one group walking a line clear of
 the town at its crossing pace, the timed path both on and off headless, the
 cap, and the wire. Four faults planted and named.
 
+**Eleven uniques, one an act boss, as of 2026-10-07** (the triage's adapted
+"build-defining uniques"; the design is `docs/UNIQUES_DESIGN_2026-10-07.md`).
+A unique is a trophy trinket that **changes a rule of the Warden's fight** -
+Rootbinder's Grip, Sandglass Sabatons, Hoarfrost Signet, Bogwater Amulet,
+Gearwright's Charm, Saltbound Band, Horselord's Treads, Prismheart, Emberwreath,
+Anchorchain Gauntlets and Kharok's Sigil, for Acts I to XI - and says its rule
+on the row it is chosen from.
+
+**The bound is the keystones': when an effect fires or what it fires on, never
+how hard.** Each re-routes something the game already does onto a new trigger,
+at the door that effect already goes through: a finisher kill roots (the frost
+towers' slow), a dash slows what it crosses, a chilled kill passes its chill on
+(Cold Snap's door, worn), water spells chill, a fallen tower lends the next
+finisher No Ground Given's share, a broken ward slows its breaker, a sprint
+shoves (a charge's shove, no damage), spells brand (the Hemorrhage form's
+brand), a burning kill lights the brush (Tinderstrike's door), the finisher
+pulls rather than throws (the Chain Hook's pull), and a warded blow turns the
+board on the striker (Hunter's Mark's door). Every size is the size the
+re-routed effect already had. The budget of a unique is its rarity's, like any
+piece: what it costs is the slot.
+
+**A `Modifiers.UNIQUE_*` flag a worn piece puts in the table** (`_add_gear`, so
+a broken piece keeps none), every one a **Warden key**, so a partner's unique
+is read off the partner's worn row on the host through `WardenSheet.value_of` -
+the one door every rule asks (`Uniques.worn`). **A trophy, never rolled,
+stocked or forged**, trades like any piece.
+
+**Paid by a boss's first fall on each road**, for this machine's account:
+`MetaState.note_first_clear` says `first_clear_made`, and `Run.pay_unique` lays
+the piece at the Warden's feet as a **personal drop** (`spawn_personal_gear`,
+no relay and no net identity) - a partner earns their own on their own machine,
+and a shared drop would be one partner's reward picked up by the other. A later
+fall of the same boss drops it again on `UNIQUE_REPEAT_CHANCE`, rolled on a
+stream of its own. At the road's trophy rarity and made well, as the Mantle is.
+Nothing new persists: a unique is a kind id.
+
+**Prismheart changed when it was built.** The design had it borrow the element
+of the last tower that fired near the Warden; read against the code, an element
+moves only a spell's tint and its wetness, too little to build around. It brands
+instead. Recorded in the design doc's row.
+
+`unique_check` (145, both bars) holds the eleven - a trophy each, a rule the
+table resolves and a Warden key, its words, a trinket slot, an icon, one an act
+- never rolled in three thousand drops, the flag worn and not broken and a
+partner's carried, the drop laid once at the Warden's feet for this account, and
+every rule driven through its real door worn and not. Planted with no flag in
+the table, all eleven rules were named; planted with the first fall forgotten,
+the repeat guard was named. The icons are PixelLab, styled on a shipped gear
+icon of each slot in the cold gear palette, and a contact sheet beside the
+shipped ones said they belong.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

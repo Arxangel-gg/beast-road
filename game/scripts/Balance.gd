@@ -4879,6 +4879,28 @@ const ENEMY_CHAIN_LIFT: float = 44.0
 
 ## How often the last card of a draft is a keystone, on its own dice. [TUNE]
 const KEYSTONE_OFFER_CHANCE: float = 0.2
+## **The uniques** (docs/UNIQUES_DESIGN_2026-10-07.md): a later fall of a boss
+## whose unique is already paid on this road drops it again this often; and each
+## rule's own reach, strength and seconds, every one the size the effect it
+## re-routes already has. [TUNE]
+const UNIQUE_REPEAT_CHANCE: float = 0.08
+const UNIQUE_ROOT_REACH: float = 170.0
+const UNIQUE_ROOT_SLOW: float = 0.2
+const UNIQUE_ROOT_SECONDS: float = 1.6
+const UNIQUE_SAND_WIDTH: float = 60.0
+const UNIQUE_SAND_SLOW: float = 0.5
+const UNIQUE_SAND_SECONDS: float = 2.0
+const UNIQUE_BOG_CHILL: float = 0.35
+const UNIQUE_GEAR_REACH: float = 560.0
+const UNIQUE_SALT_REACH: float = 170.0
+const UNIQUE_SALT_SLOW: float = 0.35
+const UNIQUE_SALT_SECONDS: float = 2.5
+const UNIQUE_HORSE_REACH: float = 46.0
+const UNIQUE_HORSE_SHOVE: float = 260.0
+const UNIQUE_HORSE_GAP: float = 1.2
+const UNIQUE_PRISM_BRAND: float = 0.18
+const UNIQUE_ANCHOR_PULL: float = 300.0
+const UNIQUE_KHAROK_REACH: float = 200.0
 ## Cold Snap: how chilled a body must be for its death to pass the chill on,
 ## how far, and what share of its own chill each neighbour takes.
 const KEYSTONE_COLD_SNAP_MIN_CHILL: float = 0.2

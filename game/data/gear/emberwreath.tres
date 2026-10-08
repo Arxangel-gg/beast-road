@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 2
+attribute = 0
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_emberwreath"
+unique_text = "A burning body you kill lights the brush where it falls."
+unique_act = 9
+id = "emberwreath"
+display_name = "Emberwreath"
+description = "Ash in the morning, from what walked in at night."

@@ -1879,6 +1879,18 @@ func spawn_gear(piece: Dictionary, at: Vector2, by_a_player: bool = false) -> vo
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 
 
+## **A piece for this machine's account alone** (2026-10-07): a unique paid by
+## a boss's first fall here. Laid without a relay or a net identity, because a
+## partner earns their own on their own machine - shared, it would be one
+## partner's reward picked up by the other.
+func spawn_personal_gear(piece: Dictionary, at: Vector2) -> void:
+	if piece.is_empty():
+		return
+	var drop: LootDrop = LootDrop.take()
+	drop.setup_gear(piece, at)
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
 ## A piece a player put down, mirrored onto the other machine.
 ##
 ## Draws only, exactly as `mirror_loot` does: the host decides who picked it up

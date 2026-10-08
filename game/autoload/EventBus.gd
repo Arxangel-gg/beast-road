@@ -460,6 +460,10 @@ signal pinged(slot: int, ping_id: String, at: Vector2)
 ## one point toward another. Said by the machine that decides the animals and
 ## relayed as `Fact.WILDLIFE_MIGRATING`, so the line is heard on every screen.
 signal wildlife_migrating(kind_id: String, from: Vector2, to: Vector2)
+## **A boss fell for the first time on this road** (2026-10-07), for this
+## machine's own account: the moment its unique is paid. Local - each machine
+## keeps its own first clears - and never relayed.
+signal first_clear_made(tier_id: String, act: int)
 ## A thief's sack and cover, decided by the host: whether it carries anything
 ## now and whether it is lying low. The guest dresses its puppet to match.
 signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)

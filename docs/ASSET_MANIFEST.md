@@ -2628,6 +2628,14 @@ one cape fifteen times.
 `ui_gatekeepers_mantle_normal.png` · `ui_gatekeepers_mantle_nightmare.png` ·
 `ui_gatekeepers_mantle_hell.png`
 
+Eleven uniques arrived on 2026-10-07 (docs/UNIQUES_DESIGN_2026-10-07.md), one
+for each act boss, all trinkets so none needs art on the body, drawn with a
+shipped gear icon of the same slot as the style image and the cold gear palette:
+`ui_rootbinders_grip.png` · `ui_sandglass_sabatons.png` · `ui_hoarfrost_signet.png` ·
+`ui_bogwater_amulet.png` · `ui_gearwrights_charm.png` · `ui_saltbound_band.png` ·
+`ui_horselords_treads.png` · `ui_prismheart.png` · `ui_emberwreath.png` ·
+`ui_anchorchain_gauntlets.png` · `ui_kharoks_sigil.png`
+
 Twelve shields arrived with the **Shield** slot on 2026-10-07 (owner: "let
 players wield shields in an offhand slot"): a buckler to a wall of chain, in
 the same cold blue-grey steel and near-black leather, drawn with a shipped

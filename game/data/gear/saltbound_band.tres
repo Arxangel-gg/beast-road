@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 6
+attribute = 4
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_saltbound"
+unique_text = "When your ward breaks, what broke it is slowed."
+unique_act = 6
+id = "saltbound_band"
+display_name = "Saltbound Band"
+description = "Salt keeps. So does a grudge."

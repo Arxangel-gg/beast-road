@@ -3106,6 +3106,10 @@ func _take_damage_measured(amount: float, from: Vector2, knockback: float,
 	incoming *= 1.0 - clampf(maxf(_ally_aura(&"aura_resistance"), shelter),
 		0.0, 0.35)
 	var standing: float = health.current_hp
+	# Who struck, kept for a death that may come of it: a unique that answers
+	# the Warden's kill is the striker's, not the host's.
+	_killer_warden = active_hero
+	_killer_sheet = striker if active_hero else null
 	if not health.take_damage(incoming, from):
 		return false
 	var lost: float = standing - maxf(health.current_hp, 0.0)
@@ -3719,7 +3723,10 @@ func _burst_on_death() -> void:
 func _cold_snap() -> void:
 	if puppet or _chill < Balance.KEYSTONE_COLD_SNAP_MIN_CHILL:
 		return
-	if Modifiers.value(Modifiers.KEYSTONE_COLD_SNAP) <= 0.0:
+	# The keystone in a hand, or **the Hoarfrost Signet** on the Warden who
+	# killed it - the same door, worn.
+	if Modifiers.value(Modifiers.KEYSTONE_COLD_SNAP) <= 0.0 \
+			and not (_killer_warden and Uniques.worn(_killer_sheet, Modifiers.UNIQUE_HOARFROST)):
 		return
 	var share: float = _chill * Balance.KEYSTONE_COLD_SNAP_SHARE
 	for other: Enemy in _allies_in(Balance.KEYSTONE_COLD_SNAP_REACH):
@@ -3736,6 +3743,32 @@ var _hunted_left: float = 0.0
 
 func is_hunted() -> bool:
 	return _hunted_left > 0.0
+
+
+## Marked for the towers for `seconds` (Kharok's Sigil, beside Hunter's Mark).
+func mark_hunted(seconds: float) -> void:
+	_hunted_left = maxf(_hunted_left, seconds)
+
+
+## The Warden whose blow this body last took, for a death that comes of it.
+var _killer_warden: bool = false
+var _killer_sheet: WardenSheet = null
+
+
+## **Emberwreath** (a unique): a burning body the wearer kills lights the brush
+## where it falls - Tinderstrike's fire on a new trigger, a fire the player lit,
+## which the earth holds against the road as it holds any.
+func _ember_wreath() -> void:
+	if puppet or not is_burning() or not _killer_warden:
+		return
+	if not Uniques.worn(_killer_sheet, Modifiers.UNIQUE_EMBERWREATH):
+		return
+	var scope: Node = _field
+	if scope == null or not scope.has_method("wildfire"):
+		return
+	var fire: Wildfire = scope.call("wildfire") as Wildfire
+	if fire != null:
+		fire.ignite_near(global_position, Balance.KEYSTONE_TINDER_REACH, 1.0, true)
 
 
 ## **Stormbound**: the blast leaps rather than blooms (2026-09-25).
@@ -3879,6 +3912,7 @@ func _on_died(_from: Vector2) -> void:
 		spoils *= 1.0 + Balance.MARKED_REWARD_PER_MARK * float(affixes.size())
 	RunState.gain_kill_resources(int(round(spoils * _split_share)))
 	_cold_snap()
+	_ember_wreath()
 	_burst_on_death()
 	_mend_the_company()
 	_split_apart()

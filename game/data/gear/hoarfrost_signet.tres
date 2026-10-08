@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 6
+attribute = 3
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_hoarfrost"
+unique_text = "A body you kill while it is chilled passes its chill on."
+unique_act = 3
+id = "hoarfrost_signet"
+display_name = "Hoarfrost Signet"
+description = "Cold enough to burn the finger it sits on."

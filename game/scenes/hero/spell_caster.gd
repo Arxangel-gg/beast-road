@@ -778,6 +778,14 @@ func _land(enemy: Enemy, power: float, from: Vector2, knockback: float, element:
 	# A water spell leaves what it hits wet.
 	if element == TowerData.Element.WATER:
 		enemy.apply_wet(Balance.WET_SECONDS)
+		# **Bogwater Amulet** (a unique): and chills what it soaks - the flash
+		# freeze the wet already invites, on the spell itself.
+		if Uniques.worn(sheet, Modifiers.UNIQUE_BOGWATER):
+			enemy._add_chill(Balance.UNIQUE_BOG_CHILL)
+	# **Prismheart** (a unique): a spell brands what it strikes, as the
+	# Hemorrhage form's finisher does, so the towers hit it harder.
+	if Uniques.worn(sheet, Modifiers.UNIQUE_PRISMHEART):
+		enemy.brand(Balance.DISCIPLINE_BRAND_SECONDS, Balance.UNIQUE_PRISM_BRAND)
 	if spell == null:
 		return blow
 	var burn: float = _up(spell, "up_status_burn") + _up(spell, "up_status_bleed")

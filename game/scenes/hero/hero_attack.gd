@@ -467,10 +467,18 @@ func _land_on(enemy: Enemy, damage: float, knockback: float, finisher: bool,
 		if crit and struck != Vector2.INF:
 			Vfx.spark(struck, Color(1.0, 0.9, 0.45), 10, _swing_aim, 300.0)
 			Vfx.ring(struck, 26.0, Color(1.0, 0.85, 0.4, 0.8), 0.22, 3.0)
+	# **Anchorchain Gauntlets** (a unique): the finisher pulls rather than throws.
+	var anchored: bool = finisher and Uniques.worn(sheet, Modifiers.UNIQUE_ANCHORCHAIN)
 	DamageLedger.credit_as(DamageLedger.WARDEN)
-	if not enemy.take_damage(blow, origin, knockback, true, sheet):
+	if not enemy.take_damage(blow, origin, 0.0 if anchored else knockback, true, sheet):
 		return -1.0
 	_hit_ids[id] = true
+	if anchored and owner is Node2D:
+		enemy.pull_toward((owner as Node2D).global_position, Balance.UNIQUE_ANCHOR_PULL)
+	# **Rootbinder's Grip** (a unique): a finisher that kills roots the bodies
+	# round the kill - the slow every frost tower lays, on a new trigger.
+	if finisher and enemy.is_dying() and Uniques.worn(sheet, Modifiers.UNIQUE_ROOTBINDER):
+		_root_round(enemy.global_position)
 	# **Weeping Edge**: every hit in the chain opens the Bleed, at a share of
 	# the finisher's. The finisher's own is `enemy.gd`'s.
 	if not finisher and form != null and form.effect_id == "bleed_finisher":
@@ -479,6 +487,18 @@ func _land_on(enemy: Enemy, damage: float, knockback: float, finisher: bool,
 			enemy.apply_burn(blow * form.effect_value * weep / Balance.DISCIPLINE_STATUS_SECONDS,
 				Balance.DISCIPLINE_STATUS_SECONDS)
 	return blow
+
+
+## The bodies round a kill, rooted (Rootbinder's Grip).
+func _root_round(at: Vector2) -> void:
+	var owner := get_parent() as Node
+	var scope: EnemyField = owner.get("field") as EnemyField if owner != null else null
+	if scope == null:
+		return
+	for body: Enemy in scope.enemies_near(at, Balance.UNIQUE_ROOT_REACH):
+		if not body.is_dying():
+			body.apply_slow(Balance.UNIQUE_ROOT_SLOW, Balance.UNIQUE_ROOT_SECONDS)
+	Vfx.ring(at, Balance.UNIQUE_ROOT_REACH, Color(0.45, 0.72, 0.32, 0.8), 0.3, 4.0)
 
 
 ## **The chain is thrown** (owner, 2026-10-06). On the first active frame of a

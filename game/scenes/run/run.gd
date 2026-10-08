@@ -139,6 +139,7 @@ func _ready() -> void:
 		if line != null:
 			line.request(CoopRelay.Request.WELCOME)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.first_clear_made.connect(_on_first_clear_made)
 	EventBus.raid_ended.connect(_on_raid_ended)
 	EventBus.rift_requested.connect(_on_rift_requested)
 	EventBus.rift_ended.connect(_on_rift_ended)
@@ -1111,7 +1112,40 @@ func _begin_boss_preparation(act: int) -> void:
 		"FINAL PREPARATION  ·  the Act %d boss waits beyond this road." % act)
 
 
+## **A boss's unique, paid** (docs/UNIQUES_DESIGN_2026-10-07.md): its first
+## fall on this road, for this machine's account, laid at the Warden's feet.
+var _unique_paid_act: int = -1
+
+
+func _on_first_clear_made(_tier_id: String, act: int) -> void:
+	if RunState.walking:
+		return
+	_unique_paid_act = act
+	pay_unique(act)
+
+
+func pay_unique(act: int) -> void:
+	var piece: Dictionary = Uniques.piece_for(act, RunState.tier_id)
+	if piece.is_empty() or battlefield == null:
+		return
+	var at: Vector2 = battlefield.town_position()
+	if battlefield.hero != null and is_instance_valid(battlefield.hero):
+		at = battlefield.hero.global_position + Vector2(48.0, 36.0)
+	battlefield.spawn_personal_gear(piece, at)
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if kind != null:
+		EventBus.preparation_warning.emit("A UNIQUE  ·  %s  ·  %s" % [
+			kind.display_name.to_upper(), kind.unique_text])
+
+
 func _on_boss_defeated(boss_id: String, act: int) -> void:
+	# **A unique, again** (2026-10-07): a boss whose unique this road already
+	# paid now and then drops it again. Rolled before the card, on the run's
+	# own stream; the first fall's own payment is `_on_first_clear_made`.
+	if _unique_paid_act != act and not RunState.walking \
+			and RunState.rng("uniques").randf() < Balance.UNIQUE_REPEAT_CHANCE:
+		pay_unique(act)
+	_unique_paid_act = -1
 	# **The act ends on a card.** The kill lands, the field is wiped away and
 	# the thing that was killed is held up before the road ahead is offered
 	# (owner brief, 2026-09-13). Awaited, so a portent does not open behind it.

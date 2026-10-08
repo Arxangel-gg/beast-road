@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 5
+attribute = 2
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_sandglass"
+unique_text = "A dash slows every body it crosses."
+unique_act = 2
+id = "sandglass_sabatons"
+display_name = "Sandglass Sabatons"
+description = "The sand in the vials never runs out, only runs."

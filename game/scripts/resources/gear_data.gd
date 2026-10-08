@@ -56,6 +56,18 @@ enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET, CAPE, OF
 ## (2026-09-28): the Gatekeeper's Mantle. `Stash.roll`, the Smithy and the
 ## Ledger's pickers all skip it, so the only way to hold one is the road.
 @export var trophy: bool = false
+## **A unique** (docs/UNIQUES_DESIGN_2026-10-07.md): a trophy that changes a
+## rule of the Warden's fight - a `Modifiers.UNIQUE_*` key, read at the one door
+## the effect it re-routes already goes through - and the act whose boss pays
+## it. Empty and zero for every other piece. The rule is said on the row in its
+## own words.
+@export var unique_rule: String = ""
+@export var unique_text: String = ""
+@export var unique_act: int = 0
+
+
+func is_unique() -> bool:
+	return not unique_rule.is_empty()
 
 ## How far this weapon reaches, and how fast it swings, against the baseline.
 ##

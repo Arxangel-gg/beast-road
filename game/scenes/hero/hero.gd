@@ -443,6 +443,7 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	health.changed.connect(_on_health_changed)
 	health.shield_changed.connect(_on_shield_changed)
+	EventBus.tower_destroyed.connect(_on_tower_fell_near)
 	health.guard_blow = _guard_blow
 	_wear_dice.randomize()
 	attack.landed.connect(_on_swing_landed_wear)
@@ -1149,12 +1150,69 @@ func damage_multiplier() -> float:
 	# names rather than whatever the hero happened to do next.
 	if _guard_left > 0.0 and attack != null \
 			and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
-		multiplier *= 1.0 + WardenSheet.trained_value_of(sheet, "block_finisher")
+		var guard: float = WardenSheet.trained_value_of(sheet, "block_finisher")
+		if guard <= 0.0 and _guard_from_unique:
+			guard = Uniques.guard_share()
+		multiplier *= 1.0 + guard
 	# **Heavy Hand** (docs/GEAR_REWORK_2026-09-28.md §2): Might's thresholds
 	# land on the finisher and on nothing else, beside the form's own.
 	if attack != null and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
 		multiplier *= 1.0 + WardenSheet.perk_of(sheet, RunState.Attribute.MIGHT)
 	return multiplier
+
+
+## **A blow on the ward, answered** by the two uniques that care: Kharok's
+## Sigil turns the board on whoever struck (Hunter's Mark's door), and the
+## Saltbound Band slows it when the ward broke. The striker is the body
+## nearest where the blow came from.
+var _ward_struck: bool = false
+var _ward_broke: bool = false
+
+
+func _answer_the_ward(from: Vector2) -> void:
+	var struck: bool = _ward_struck
+	var broke: bool = _ward_broke
+	_ward_struck = false
+	_ward_broke = false
+	if not struck or field == null:
+		return
+	if Uniques.worn(sheet, Modifiers.UNIQUE_KHAROK):
+		var striker: Enemy = _nearest_enemy_to(from, Balance.UNIQUE_KHAROK_REACH)
+		if striker != null:
+			striker.mark_hunted(Balance.KEYSTONE_HUNT_SECONDS)
+	if broke and Uniques.worn(sheet, Modifiers.UNIQUE_SALTBOUND):
+		for enemy: Enemy in field.enemies_near(from, Balance.UNIQUE_SALT_REACH):
+			if not enemy.is_dying():
+				enemy.apply_slow(Balance.UNIQUE_SALT_SLOW, Balance.UNIQUE_SALT_SECONDS)
+		Vfx.ring(from, Balance.UNIQUE_SALT_REACH, Color(0.92, 0.94, 0.96, 0.7), 0.3, 4.0)
+
+
+func _nearest_enemy_to(at: Vector2, reach: float) -> Enemy:
+	var best: Enemy = null
+	var best_d: float = INF
+	for enemy: Enemy in field.enemies_near(at, reach):
+		if enemy.is_dying():
+			continue
+		var d: float = enemy.global_position.distance_squared_to(at)
+		if d < best_d:
+			best_d = d
+			best = enemy
+	return best
+
+
+## **Gearwright's Charm** (a unique): a tower falling near the Warden empowers
+## the next finisher, as a perfect evade does under No Ground Given - lent the
+## node's own share when it is not trained.
+var _guard_from_unique: bool = false
+
+
+func _on_tower_fell_near(_anchor: Vector2i, at: Vector2) -> void:
+	if not is_alive() or not Uniques.worn(sheet, Modifiers.UNIQUE_GEARWRIGHT):
+		return
+	if at.distance_to(global_position) > Balance.UNIQUE_GEAR_REACH:
+		return
+	_guard_left = Balance.DISCIPLINE_GUARD_SECONDS
+	_guard_from_unique = true
 
 
 ## Max HP after the Sanctum, relics and boss ascensions.
@@ -1581,6 +1639,44 @@ func _dash_strike() -> void:
 			Vfx.spark(enemy.combat_origin(), Color(1.0, 0.62, 0.3), 8, _dash_direction, 240.0)
 
 
+## **Sandglass Sabatons** (a unique): the dash slows every body it crosses - the
+## frost towers' slow, laid along the line the Warden ran.
+func _sand_trail() -> void:
+	if field == null or not Uniques.worn(sheet, Modifiers.UNIQUE_SANDGLASS):
+		return
+	var from: Vector2 = global_position
+	var to: Vector2 = from + _dash_direction * Balance.HERO_DASH_DISTANCE
+	for enemy: Enemy in field.enemies_near((from + to) * 0.5,
+			Balance.HERO_DASH_DISTANCE * 0.5 + Balance.UNIQUE_SAND_WIDTH):
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(enemy.global_position, from, to)
+		if closest.distance_to(enemy.global_position) > Balance.UNIQUE_SAND_WIDTH + enemy.contact_radius():
+			continue
+		enemy.apply_slow(Balance.UNIQUE_SAND_SLOW, Balance.UNIQUE_SAND_SECONDS)
+	Vfx.dust((from + to) * 0.5, Color(0.86, 0.74, 0.5), 8, Balance.HERO_DASH_DISTANCE * 0.5)
+
+
+## **Horselord's Treads** (a unique): sprinting through a body shoves it aside
+## as a charge does - for no damage, once a body a while.
+func _horselord(delta: float) -> void:
+	for id: Variant in _trodden.keys():
+		_trodden[id] = float(_trodden[id]) - delta
+		if float(_trodden[id]) <= 0.0:
+			_trodden.erase(id)
+	if field == null or not Uniques.worn(sheet, Modifiers.UNIQUE_HORSELORD):
+		return
+	for enemy: Enemy in field.enemies_near(global_position, Balance.UNIQUE_HORSE_REACH + 30.0):
+		if enemy.is_dying() or _trodden.has(enemy.get_instance_id()):
+			continue
+		if enemy.global_position.distance_to(global_position) > Balance.UNIQUE_HORSE_REACH + enemy.contact_radius():
+			continue
+		_trodden[enemy.get_instance_id()] = Balance.UNIQUE_HORSE_GAP
+		enemy.shove(global_position, Balance.UNIQUE_HORSE_SHOVE)
+		Vfx.dust(enemy.global_position, Color(0.7, 0.62, 0.5), 5, 26.0)
+
+
+var _trodden: Dictionary = {}
+
+
 func refund_dash(fraction: float) -> void:
 	if fraction <= 0.0:
 		return
@@ -1949,6 +2045,7 @@ func _tick_stamina(delta: float) -> void:
 			_kick_up_hooves(delta)
 		else:
 			_kick_up_dust(delta)
+			_horselord(delta)
 		if stamina <= 0.0:
 			_give_out()
 	else:
@@ -2899,6 +2996,7 @@ func _try_dash() -> void:
 	_spawn_dash_ghosts()
 	EventBus.hero_dashed.emit(Balance.HERO_DASH_IFRAMES)
 	_dash_strike()
+	_sand_trail()
 
 
 ## Sized so the lunge covers `distance` while decaying linearly to zero over
@@ -2968,6 +3066,7 @@ func _apply_attack_impulse(direction: Vector2, distance: float,
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_quiet_since = 0.0
+	_answer_the_ward(from)
 	# **Human blood, which the earth minds a little more than most animals'**
 	# (owner, 2026-10-07), and never its own blows on the Warden.
 	if amount > 0.0 and health != null and health.max_hp > 0.0 and not EarthHand.striking():
@@ -3212,6 +3311,11 @@ var _ward_clock: float = 0.0
 
 
 func _note_ward(remaining: float) -> void:
+	# A blow on the ward, said before the blow itself is (`Health` emits the
+	# ward's change first): Saltbound and Kharok's Sigil answer it there.
+	if remaining < _ward_last - 0.01:
+		_ward_struck = true
+		_ward_broke = remaining <= 0.0
 	if remaining > _ward_last + 0.5:
 		_ward_owed += remaining - _ward_last
 	_ward_last = maxf(remaining, 0.0)
@@ -3998,11 +4102,14 @@ func has_hurt_ally() -> bool:
 ## everything else the hero owns.
 func tick_guard(delta: float) -> void:
 	_guard_left = maxf(_guard_left - delta, 0.0)
+	if _guard_left <= 0.0:
+		_guard_from_unique = false
 
 
 ## And spent, by the swing that used it.
 func spend_guard() -> void:
 	_guard_left = 0.0
+	_guard_from_unique = false
 
 
 func is_guarded() -> bool:

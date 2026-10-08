@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 5
+attribute = 1
+base_points = 4
+weight = 0.0
+min_tier = 0
+trophy = true
+unique_rule = "unique_horselord"
+unique_text = "Sprinting through a body shoves it aside, as a charge does."
+unique_act = 7
+id = "horselords_treads"
+display_name = "Horselord's Treads"
+description = "The Steppe's riders did not go round."

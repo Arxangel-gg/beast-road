@@ -139,6 +139,9 @@ static func durability_colour(band: int) -> Color:
 static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 	var parts: PackedStringArray = []
 	# A shield says what its guard does first: that is what it is for.
+	# A unique says its rule first: the rule is why it is worn.
+	if kind != null and kind.is_unique():
+		parts.append("UNIQUE - " + kind.unique_text)
 	if kind != null and kind.is_shield():
 		parts.append("Guard %d, takes %d%% of a blow, %d%% of the shove, %d°" % [
 			int(round(Stash.guard_capacity(piece, kind))), int(round(kind.guard_share * 100.0)),
