@@ -427,16 +427,16 @@ func _test_the_draft() -> void:
 	RunState.reset(false, 20260926)
 	RunState.act = Balance.ACT_COUNT
 	var keys: Dictionary = {}
-	# Rare first, then anything: a hand of twelve (2026-09-30) is more distinct
-	# keys than the Rare cards alone hold.
+	# Rare first, then anything: a hand of thirty (2026-10-08) is more distinct
+	# keys than the Rare cards alone hold. Keyed as the hand keys a card.
 	for least: int in [RoadCardData.Rarity.RARE, RoadCardData.Rarity.COMMON]:
 		for card: RoadCardData in _sorted_cards():
 			if RunState.road_cards.size() >= Balance.ROAD_CARD_HAND:
 				break
 			var held: bool = RunState.road_cards.has(card.id)
-			if card.keystone or keys.has(card.effect_id) or card.rarity < least or held:
+			if card.keystone or card.retired or keys.has(card.key()) or card.rarity < least or held:
 				continue
-			keys[card.effect_id] = true
+			keys[card.key()] = true
 			RunState.take_road_card(card.id)
 	_check(RunState.road_card_hand_is_full(), "the harness could not fill a hand")
 	var new_key: String = ""
@@ -1139,13 +1139,23 @@ func _test_leaving_one_behind_can_be_refused() -> void:
 	var kept_levels: Dictionary = RunState.road_card_levels.duplicate()
 	RunState.road_cards = []
 	RunState.road_card_levels = {}
-	var filler: Array[String] = []
+	# A hand of thirty (2026-10-08) is more weapons than the opening act deals,
+	# so it is filled with later ones first and topped up from the opening's:
+	# the opening act's deck keeps weapons the hand does not hold, to offer.
+	var later: Array[String] = []
+	var early: Array[String] = []
 	for id: Variant in ContentDB.road_cards:
 		var card: RoadCardData = ContentDB.road_cards[id] as RoadCardData
-		if card != null and card.is_weapon() and not card.retired and card.first_act <= 1:
-			filler.append(card.id)
-	filler.sort()
-	for id: String in filler.slice(0, Balance.ROAD_CARD_HAND):
+		if card != null and card.is_weapon() and not card.retired:
+			if card.first_act <= 1:
+				early.append(card.id)
+			else:
+				later.append(card.id)
+	later.sort()
+	early.sort()
+	for id: String in later + early:
+		if RunState.road_cards.size() >= Balance.ROAD_CARD_HAND:
+			break
 		RunState.take_card_for(RunState._mine, id, "")
 	_check(RunState.road_cards.size() == Balance.ROAD_CARD_HAND,
 		"the harness could not fill the hand (%d)" % RunState.road_cards.size())

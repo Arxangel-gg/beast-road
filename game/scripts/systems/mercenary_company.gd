@@ -246,9 +246,21 @@ func spend(uid: String) -> Array[String]:
 		return bought
 	var lane: int = _lane_of(me)
 	for _purchase: int in Balance.MERC_BUILDS_PER_BREATHER:
+		# **Every other purchase is for the road's traps** (owner, 2026-10-08):
+		# raise one, else lay one; a wallet that can always afford a tower
+		# would otherwise never see a trap.
+		if _purchase % 2 == 1:
+			if _raise_a_trap(uid):
+				bought.append("trap raised")
+				continue
+			var laid: TrapData = _affordable_trap(uid)
+			if laid != null and _lay_a_trap(uid, me.global_position, laid):
+				bought.append(laid.id)
+				continue
 		var raised: Vector2i = _weakest_owned(uid)
 		if raised != Vector2i(-1, -1) and field.upgrade_for(uid, raised).is_empty():
 			bought.append("raise")
+			_specialise(raised)
 			continue
 		var tower: TowerData = _dearest_affordable(uid)
 		if tower != null:
@@ -285,13 +297,11 @@ func _lane_of(me: Hero) -> int:
 func _weakest_owned(uid: String) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var lowest: int = 1 << 30
-	for key: Variant in RunState.tower_owners:
-		if String(RunState.tower_owners[key]) != uid:
-			continue
+	for key: Variant in RunState.towers:
 		var anchor: Vector2i = key
 		var level: int = RunState.level_at(anchor)
 		if level < mini(Balance.TOWER_MAX_LEVEL, RunState.tower_level_cap()) and level < lowest:
-			if RunState.mercenary_can_afford(uid, {RunState.GOLD: Battlefield.upgrade_cost_of(level)}):
+			if RunState.can_afford_cost({RunState.GOLD: Battlefield.upgrade_cost_of(level)}):
 				lowest = level
 				best = anchor
 	return best
@@ -307,7 +317,7 @@ func _dearest_affordable(uid: String) -> TowerData:
 			continue
 		var cost: Dictionary = Battlefield.cost_of(tower)
 		var price: int = RunState.par_total(cost)
-		if RunState.mercenary_can_afford(uid, cost) and price > best_price:
+		if RunState.can_afford_cost(cost) and price > best_price:
 			best = tower
 			best_price = price
 	return best
@@ -316,9 +326,40 @@ func _dearest_affordable(uid: String) -> TowerData:
 func _affordable_trap(uid: String) -> TrapData:
 	for value: Variant in ContentDB.traps.values():
 		var trap := value as TrapData
-		if trap != null and RunState.mercenary_can_afford(uid, trap.cost):
+		if trap != null and RunState.can_afford_cost(trap.cost):
 			return trap
 	return null
+
+
+## **What a tower becomes at the split, by what it is** (owner, 2026-10-08:
+## mercenaries "choose specializations"): a wall holds, a quick gun spreads,
+## anything else focuses.
+static func path_for(tower: TowerData) -> int:
+	if tower == null:
+		return TowerData.Path.FOCUS
+	if tower.is_wall():
+		return TowerData.Path.BULWARK
+	if tower.is_quick_gun():
+		return TowerData.Path.SPREAD
+	return TowerData.Path.FOCUS
+
+
+## Chooses the path of a tower it has just raised to the split, if it has none.
+func _specialise(anchor: Vector2i) -> void:
+	RunState.set_tower_path(anchor, path_for(RunState.tower_at(anchor)))
+
+
+## Raises the trap on the board at the lowest level, if the wallet pays.
+func _raise_a_trap(uid: String) -> bool:
+	var best := Vector2i(-1, -1)
+	var lowest: int = 1 << 30
+	for key: Variant in RunState.traps:
+		var tile: Vector2i = key
+		var level: int = RunState.trap_level(tile)
+		if level < lowest:
+			lowest = level
+			best = tile
+	return best != Vector2i(-1, -1) and field.upgrade_trap_for(uid, best).is_empty()
 
 
 ## A trap on the road nearest it, tried outward ring by ring.

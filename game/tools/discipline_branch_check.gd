@@ -506,10 +506,14 @@ func _test_oaths_on_the_hero() -> void:
 	hero.health.current_hp = hero.health.max_hp * 0.2
 	var low: float = hero.health.current_hp
 	hero.health.heal(20.0)
-	_check(is_equal_approx(hero.health.current_hp - low, 10.0), "a draught of 20 heals 10 under the Red Road")
+	_check(is_equal_approx(hero.health.current_hp - low, 10.0 * Balance.HERO_HEAL_SCALE),
+		"a draught of 20 heals 10 under the Red Road, at the heal scale")
 	low = hero.health.current_hp
 	hero.heal_unscaled(20.0)
-	_check(is_equal_approx(hero.health.current_hp - low, 20.0), "and the Road's own lifesteal heals whole")
+	# **Amended 2026-10-08**: the Road's own lifesteal skips its bane and not
+	# the heal and blood scales every heal on a Warden now carries.
+	_check(is_equal_approx(hero.health.current_hp - low, 20.0 * Balance.HERO_HEAL_SCALE * Balance.BLOOD_HEAL_SCALE),
+		"and the Road's own lifesteal skips the bane")
 	MetaState.discipline_tree.erase("oath_red_road")
 	hero.call("_apply_permanent_bonuses")
 	_check(is_equal_approx(hero.health.heal_scale, Balance.HERO_HEAL_SCALE), "let go, heals are whole again")

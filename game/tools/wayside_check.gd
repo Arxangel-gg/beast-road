@@ -259,7 +259,7 @@ func _take_for_real(data: WaysideData, choice: WaysideChoiceData, hero: Hero) ->
 			WaysideChoiceData.Effect.SIGHTING:
 				expected["sightings"] = maxi(int(amount), 1)
 			WaysideChoiceData.Effect.HEAL:
-				expected["heal"] = minf(hero.health.max_hp * amount,
+				expected["heal"] = minf(hero.health.max_hp * amount * hero.health.heal_scale,
 					hero.health.max_hp - float(before["hp"]))
 			WaysideChoiceData.Effect.EXPERIENCE:
 				# Nothing at the cap: `gain_hero_xp` is a ceiling, and so is this.

@@ -6100,9 +6100,14 @@ const WAVE_VANGUARD_ROLES: Array[int] = [EnemyData.Role.WARDEN, EnemyData.Role.V
 ## wave". Acts I and II send none, so the opening envelope is untouched. The
 ## shape of a blow and never its size: the board takes attrition and the
 ## Warden has somewhere to be, and `curve_report` reads the same waves.
+## **Raised 2026-10-08** (owner: "increase enemy aggression against towers"):
+## about a third more of every wave goes at the board, from Act II.
 const WAVE_SIEGE_ORDER_SHARE: Array[float] = [
-	0.0, 0.0, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24,
+	0.0, 0.05, 0.11, 0.14, 0.16, 0.19, 0.22, 0.24, 0.27, 0.30, 0.32,
 ]
+## **The earth's blows on a tower land a little harder** (owner, 2026-10-08),
+## through `Tower.hurt`, the world's door - a road body's blow does not pass it.
+const DISASTER_TOWER_SCALE: float = 1.12
 
 ## **The Herald** (2026-09-30): `DESIGN_DIRECTION_2026-09-22` section 2's
 ## second answer, a Warden-only objective. From `HERALD_FIRST_ACT`, a wave may
@@ -11906,7 +11911,7 @@ const MERC_BILL_BASE: int = 100
 const MERC_BILL_PER_LEVEL: int = 10
 const MERC_REST_SECONDS: float = 900.0
 const MERC_WOUNDS: int = 3
-const MERC_SPOILS_SHARE: float = 0.25
+const MERC_SPOILS_SHARE: float = 0.2
 const MERC_REWARD_SHARE: float = 0.20
 const MERC_NAME_MAX: int = 32
 ## **A mercenary's mind** (`MercenaryInput`): how often it chooses what to
@@ -13303,7 +13308,7 @@ const MINIMAP_OVERLAY_OPACITY: float = 0.42
 ## the map overlay transparency"). The default above is the authored look; the
 ## floor keeps a map that is on from vanishing, and the ceiling keeps the fight
 ## under it the fight. [TUNE]
-const MINIMAP_OVERLAY_OPACITY_MIN: float = 0.10
+const MINIMAP_OVERLAY_OPACITY_MIN: float = 0.01
 ## **The company at a glance** (2026-10-08): how often the HUD's company lines
 ## are painted, how wide each one's health bar is, and how long after the road
 ## names who came it names who stayed home. A readout. [TUNE]

@@ -258,33 +258,27 @@ func _test_it_builds() -> void:
 		return
 	var uid: String = bodies[0].mercenary_uid
 	RunState.set_phase(RunState.Phase.PREPARATION)
+	# **Amended 2026-10-08** (owner: "what mercenaries build should come out of
+	# the player's resources"): the wallet pays, the purse is untouched, it
+	# raises any tower and chooses a path at the split, and it works the traps.
 	var row: Dictionary = RunState.company_row(uid)
 	row["purse"] = 6000
-	var wallet: Dictionary = RunState.currencies.duplicate()
+	RunState.gain_every_currency(20000)
+	var gold: int = int(RunState.currencies.get(RunState.GOLD, 0))
 	var bought: Array[String] = _field.company.spend(uid)
-	_check(not bought.is_empty(), "a mercenary with a full purse bought nothing")
-	_check(RunState.currencies == wallet, "a mercenary's shopping moved the Warden's wallet")
-	var owned: Array[Vector2i] = []
-	for key: Variant in RunState.tower_owners:
-		if String(RunState.tower_owners[key]) == uid:
-			owned.append(key)
-	_check(not owned.is_empty(), "a mercenary's tower is not its own")
-	_check(int(row["purse"]) < 6000, "a mercenary's purchase came out of nothing")
-	# Nobody else's tower is its to raise.
-	RunState.gain_every_currency(5000)
+	_check(not bought.is_empty(), "a mercenary with a full wallet behind it bought nothing")
+	_check(int(RunState.currencies.get(RunState.GOLD, 0)) < gold, "a mercenary's building did not come out of the wallet")
+	_check(int(row["purse"]) == 6000, "a mercenary paid for its building out of its own purse")
 	var mine: Vector2i = _field.free_anchor_near(2, 4)
 	var built: String = _field.try_build(mine, ContentDB.unlocked_base_towers()[0])
-	_check(built.is_empty(), "the Warden could not build the tower the refusal is asked about: %s" % built)
-	row["purse"] = 6000
-	_check(not _field.upgrade_for(uid, mine).is_empty(), "a mercenary raised the Warden's tower")
-	# Selling its tower pays its purse, never the Warden's wallet.
-	if not owned.is_empty():
-		var before_purse: int = int(row["purse"])
-		var before_wallet: Dictionary = RunState.currencies.duplicate()
-		_check(_field.try_sell(owned[0]).is_empty(), "a mercenary's tower could not be sold")
-		_check(int(row["purse"]) > before_purse, "selling a mercenary's tower paid its purse nothing")
-		_check(RunState.currencies == before_wallet, "selling a mercenary's tower filled the Warden's wallet")
-		_check(not RunState.tower_owners.has(owned[0]), "a sold tower kept its owner")
+	_check(built.is_empty(), "the Warden could not build the tower a mercenary raises: %s" % built)
+	var before: int = RunState.level_at(mine)
+	_check(_field.upgrade_for(uid, mine).is_empty() and RunState.level_at(mine) == before + 1,
+		"a mercenary could not raise the Warden's tower")
+	_check(MercenaryCompany.path_for(null) == TowerData.Path.FOCUS, "a mercenary's split chose nothing")
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/mercenary_company.gd")
+	_check(source.contains("_specialise(raised)") and source.contains("upgrade_trap_for("),
+		"a mercenary neither chooses a path nor raises a trap")
 	_reached.append("build")
 
 

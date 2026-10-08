@@ -2457,16 +2457,15 @@ var _last_purchase: Dictionary = {}
 var _payer: String = ""
 
 
+## **What a mercenary builds comes out of the Warden's wallet** (owner,
+## 2026-10-08). `_payer` still names whose tower it is and keeps the purchase
+## off the Warden's undo; the price is the wallet's, always.
 func _can_pay(cost: Dictionary) -> bool:
-	return RunState.can_afford_cost(cost) if _payer.is_empty() \
-		else RunState.mercenary_can_afford(_payer, cost)
+	return RunState.can_afford_cost(cost)
 
 
 func _pay(cost: Dictionary) -> void:
-	if _payer.is_empty():
-		RunState.spend_cost(cost)
-	else:
-		RunState.mercenary_spend(_payer, cost)
+	RunState.spend_cost(cost)
 
 
 ## A mercenary builds a tower from its own purse.
@@ -2477,12 +2476,18 @@ func build_for(uid: String, anchor: Vector2i, tower_data: TowerData) -> String:
 	return said
 
 
-## A mercenary raises one of its own towers.
+## A mercenary raises a tower - any tower on the board, from the wallet.
 func upgrade_for(uid: String, anchor: Vector2i) -> String:
-	if String(RunState.tower_owners.get(anchor, "")) != uid:
-		return "Not its tower."
 	_payer = uid
 	var said: String = try_upgrade(anchor)
+	_payer = ""
+	return said
+
+
+## A mercenary raises a trap, from the wallet.
+func upgrade_trap_for(uid: String, tile: Vector2i) -> String:
+	_payer = uid
+	var said: String = try_upgrade_trap(tile)
 	_payer = ""
 	return said
 
@@ -2546,7 +2551,7 @@ func try_sell(anchor: Vector2i) -> String:
 		var paid: int = build_cost_of(tower_data)
 		for l: int in range(1, RunState.level_at(anchor)):
 			paid += upgrade_cost_of(l)
-		RunState.mercenary_refund(owner, int(round(float(paid) * Balance.TOWER_SELL_REFUND)))
+		RunState.gain_currency(RunState.GOLD, int(round(float(paid) * Balance.TOWER_SELL_REFUND)))
 		RunState.towers_sold += 1
 		RunState.clear_tower(anchor)
 		_refund_orphaned_fusions()

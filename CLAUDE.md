@@ -15608,6 +15608,18 @@ passes its drafted band now, near its top - solo party means 0.563 new account,
 road to sit. `discipline_branch_check`'s Red Road scale was amended to carry
 `HERO_HEAL_SCALE`.
 
+**And the same day's last asks.** A mercenary's building comes out of the
+Warden's wallet (`Battlefield._can_pay` is the wallet always; `_payer` only
+names whose tower it is and keeps it off the undo), so its cut of the spoils is
+a wage and nothing else - the luxury at a loss the owner asked for. It raises
+any tower, chooses the path at the split by what the tower is
+(`MercenaryCompany.path_for`: a wall holds, a quick gun spreads, else focus),
+and every other purchase goes to the road's traps, raised before laid. The
+earth's blows on a tower land `DISASTER_TOWER_SCALE` harder through
+`Tower.hurt`, the world's door; a third more of every wave goes at the board,
+from Act II (`WAVE_SIEGE_ORDER_SHARE`); and the map overlay goes down to 1%.
+`mercenary_road_check`'s build test was amended to the wallet.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -366,7 +366,10 @@ func _test_the_hero_reads_resolve() -> void:
 	var bare_ward: float = hero.health.shield_scale
 	_check(is_equal_approx(bare_scale, 1.0),
 		"a hero with no Resolve stands exactly where every hero stood before it: %.3f" % bare_scale)
-	_check(is_equal_approx(bare_ward, 1.0), "and their wards are worth exactly what they were")
+	# **Amended 2026-10-08**: every ward on a Warden is `HERO_WARD_SCALE` of
+	# what it was, Resolve or none; what this holds is that no Resolve adds
+	# nothing on top of that.
+	_check(is_equal_approx(bare_ward, Balance.HERO_WARD_SCALE), "and their wards are worth exactly what they were")
 
 	RunState.hero_attributes[RunState.Attribute.RESOLVE] = 30
 	hero._apply_permanent_bonuses()

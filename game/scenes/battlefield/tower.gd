@@ -1366,7 +1366,7 @@ func ward(share: float) -> void:
 func hurt(amount: float, from: Vector2) -> void:
 	if _health == null or _health.is_dead or amount <= 0.0:
 		return
-	_health.take_damage(amount, from)
+	_health.take_damage(amount * Balance.DISASTER_TOWER_SCALE, from)
 
 
 func health_ratio() -> float:
