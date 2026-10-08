@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spells"
+display_name = "Calling the sky down"
+place = 2
+weight = 1.0
+first_act = 2
+last_act = 11
+seconds_min = 4.4
+seconds_max = 5.4
+zoom_min = 1.05
+zoom_max = 1.28
+daylight_min = 0.2
+daylight_max = 0.5
+lines = Array[String](["Call the sky down.", "Every Warden fights their own way."])
+line_chance = 0.6

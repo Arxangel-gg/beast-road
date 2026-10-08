@@ -12624,7 +12624,8 @@ length plus `TRAILER_GRACE_SECONDS` all go on with a line in the log. It plays o
 the music bus, letterboxed. `trailer_check` (both bars) holds all of it -
 except the click, which headless cannot route (the viewport hovers nothing), so
 it holds that nothing above the Skip button takes clicks and presses it.
-`game/video/trailer.ogv` is 720p30 Theora; the 1080p60 MP4 and the ProRes
+`game/video/trailer.ogv` was 720p30 Theora (retired from the build on 2026-10-07, when the
+trailer went live); the 1080p60 MP4 and the ProRes
 master are in `trailer/out/` and are not in git.
 
 **The Hold talks, and the Disciplines scroll on a thumb, as of 2026-10-01.**
@@ -14822,6 +14823,147 @@ imported once before the launcher's pipeline test can find its classes.
   and the act's turn forgets it. Counted where the over-hunting tally already
   counts, so a savage and a mercy kill do not cull. Run-scoped, host only, and
   it moves no roll: the draw is the same one draw over different weights.
+
+**Four smaller things of 2026-10-07, each gated.**
+
+- **Flies over the dead.** A carcass that has lain `CORPSE_FLIES_FROM` seconds
+  draws a few specks with a glint of wing circling it, more on a bigger one, up
+  to `CORPSE_FLIES_MAX`, until it is bones or something carries it off. Drawn,
+  never simulated, and redrawn on their own clock (`CORPSE_FLIES_HZ`) only while
+  one is in view. `CorpseField.flies_on` is the rule the drawing and
+  `corpse_check` both read.
+- **Brutal bones come home with a banked front**, as the blood and the scars do
+  (`CorpseField.bones_snapshot`, `restore_bones`, riding
+  `Battlefield.ground_snapshot`). Only in Brutal, where bones never fade; a row
+  of the wrong shape is dropped. Bones banked before the corpse field exists on
+  a fresh field wait for it (`_bones_to_lay`).
+- **A carcass whose carrier is freed lets go.** `CorpseField` cast the carrying
+  animal with `as` before asking whether it still existed - the fourth costume
+  of validity-before-the-cast - and every corpse froze while an engine error
+  printed each frame. One sweep caught it once, in `breather_check`.
+- **Rain on a clear sky comes in as a front** (`WeatherVeil`): from the side the
+  wind blows from, at `WEATHER_FRONT_SPEED` world units a second with a soft
+  edge of `WEATHER_FRONT_EDGE`, starting at the corner of the view nearest that
+  side, with a darker curtain riding the edge. Sized in world units, because a
+  front sized as a share of the sky - a quad some 6,700 units across - crossed
+  the view in a fraction of a second and nobody could see it. One falling
+  weather turning into another starts no front. Only the picture travels.
+- **The Codex's Weather and Marks pages have pictures**: thirty-eight marks and
+  twelve skies, painted with PixelLab and normalised to one size.
+  `WeatherData.get_sprite_path` derives the path; `codex_check` holds that
+  every entry of every page resolves to a picture on disk.
+
+**Two harness faults, both coin tosses under load.** `arsenal_check`'s arc
+lattice read 0.34 of its model under a seven-wide sweep: a crowd body's combo
+lunge carried it off the arc's line, so the measured crowd is held still now.
+And `click_move_check` clicked a probe the fog had not yet looked at.
+
+**A procedural Warden, as of 2026-10-07** (owner: "Regenerate Guide pictures
+that contain the player, and give a random procedural appearance look and
+colors for the player as well as randomized procedural equipped gear that is
+harmonious with the expectation for each phase of the player's progression").
+`ProceduralWarden.roll(key, tier, act)` is a Warden at that point of a career:
+a look (a body, a face, hair coloured as people's hair is, greyer the further
+along, a beard only on the body that grows one) with the cape, top and
+trousers as **one scheme** - an accent, a neighbour of it on the hue wheel or a
+neutral, over neutral trousers, the road's own colours early and the dear ones
+late - and a piece for every slot. **The pieces climb as a career does**: each
+class of weapon, armour, cape and helm has a stage of the career it is usually
+worn at (`_WEAPON_STAGE` and the rest), picked near where the Warden stands and
+now and then far from it; bare slots are common early and rare late; the
+rarity and level are the tier's own expectation at that act, a rung either way,
+as `curve_report` dresses its expected Warden; a shield only beside a free hand;
+and a trophy only on somebody who could have won it - the Gatekeeper's Mantle
+of the road before. Nothing in a roll is new to the game.
+
+**Wearing one writes the account, so it is done only under held saves**
+(`ProceduralWarden.wear` refuses otherwise), takes back the pieces it laid last
+time so a tool that dresses a Warden a picture never fills the stash, and
+re-dresses this machine's Warden through `Hero.redress`. `procedural_warden_check`
+(15,007, both bars) holds the key, every piece, the journey showing - a new
+Warden mostly in light armour and almost never plate, a veteran of the last
+road in plate a third of the time or more, helms, great helms, weapons, dear
+colours and rarity all climbing - the stages, and wearing. Planted three ways
+(stages ignored, old pieces left, a shield beside a two-hander with rarity
+ignored) and all three named.
+
+**Every Guide picture dresses its own Warden** (`guide_shots._dress_for`, in
+every door a picture is taken through), at the share of a career where a player
+would first stand in front of what it shows (`_STAGE_OF`): the Glass at the very
+start, the build sheet and the ponds on a first road, rifts and Heralds a
+little further on, the earth's anger, the forge and the Ledger far along, the
+sandbox later still. Every road starts in Act I, so a veteran in the jungle is
+a veteran beginning another road. The tool also marks every achievement earned
+under its held saves: a fresh profile earned "Wet Boots" on the first swim and
+the banner crossed the middle of the swimming picture.
+
+**The trailer is made live at every launch, as of 2026-10-07** (owner: "make
+the trailers procedurally generated in game at game launch instead of a
+pre-recorded video ... The player at any part in the trailer should be
+procedurally randomized to the expectation of where they would naturally be at
+that point. The battlefields should also be procedurally made to be at the
+points in those moments. And the moments shouldn't all be in the same act every
+time ... Hyper epic ... The player's look at and walking around etc should also
+be directed with randomized proceduralism that is natural").
+
+**One Warden's journey in three roads** (`TrailerPlan.make(seed)`, pure): one
+walked early (Acts I-III, the Long Road), one in the middle (IV-VII), one late
+(VIII-XI, as often on a harder road as not), each on its own layout, seed and
+light, the Warden the same person on all three - body, face, hair, skin - in the
+gear that point of the journey would have put on them. The moments
+(`TrailerMomentData`, `data/trailer/`, thirteen) are dealt by where in a cut
+they belong - an opening, a build-up, the body, a climax - each only in the acts
+it suits, none twice, the last always a climax; every line laid over one is
+data (working rule 9), and so are the acts, seconds, zoom and light each takes.
+
+**Every frame is the game** (`TrailerStage`): a real road through the doors a
+player's road uses, the board that act's purse buys built through `try_build`
+and climbed with a path at the split, the Arsenal as deep as the drafts by then
+deal through `take_road_card`, the spell slots the bosses have opened, a horse
+in the stable, the town raised as far as that act would have it - and a pack of
+the region's own breeds at the road's own strength sent onto the road ahead of
+the Warden for every fight, so the fight is there when the cut lands. **The road
+stands still while it is filmed**: its walk is what opens a crossroad, calls a
+boss and turns the day, and the first cut had a crossroad's screen over half of
+its moments. The Warden is directed (`TrailerStage.Director`, a `HeroInput`):
+a fight with a rhythm - in, a few swings with a breath between them, a step out
+and a dash, a spell when one is ready, how often each by the moment's own
+temper; a walk with pauses that look at what matters; watching a storm or a
+funnel come and backing off when it is close; a gallop and a charge into the
+front of the wave. The look turns at a rate, so a head swinging from the town
+to the horde reads as a person turning.
+
+**The cut** (`TrailerPlayer`): bars for a 2.2:1 picture; a card on black before
+each road naming its act and region, under which the road stands up with the
+world running fast (`TRAILER_SETUP_TIME_SCALE`); flash cuts between moments; a
+line laid over most of them in the Title face; slow motion for a breath on the
+biggest blows (`TRAILER_SLOWMO_FROM`); the wordmark and the tagline to close,
+into the menu with the main theme still playing (`MusicPlayer.hold_score`).
+About fifty seconds.
+
+**Nothing is kept, and it always lets go.** Saves are held for the whole of it
+and the account is read back from the disk when it ends - finished, skipped,
+mid-moment or mid-stand-up - exactly as a sandbox road's is; every road is
+`RunState.sandbox`; the clock, the light, the score and the thumb controls
+(`TouchInput.held_off`) are given back. Keys are read in `_input`, before the
+road below hears them (its Escape is the pause menu) - **a guard the gate cannot
+see**, because headless the road never eats a key: planted back to
+`_unhandled_input`, the gate still passed, and that is recorded rather than
+claimed. A machine showing a moment under `TRAILER_MIN_FPS` goes to the menu,
+and nothing runs past `TRAILER_LONGEST`. The opening rules are unchanged: the
+setting, once a launch, not headless, not the web, not for a player who turned
+the flashes down.
+
+**The filmed trailer is retired from the build** (`game/video/trailer.ogv`);
+`trailer/` still cuts a film for a store page. `trailer_check` (7,347, both
+bars) deals a hundred and twenty trailers and holds each to a journey, holds the
+moments as data with a recipe each, the opening rules, the one door out of the
+splash, a full playthrough with each road's Warden dressed as dealt, and the
+account given back byte for byte - compared as content, because an account read
+back from disk writes its keys in the file's order - after a finish and after
+every way out. Three planted faults were named: the account not read back, a
+moment dealt twice, and the road left walking. `trailer_shot` photographs a
+dealt trailer a frame every `--every=` seconds.
 
 ### The three escape hatches - and why there are only three
 

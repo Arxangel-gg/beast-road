@@ -1,26 +1,52 @@
 extends Node
 
-## Photographs the trailer playing in the game: the film letterboxed, the Skip
-## button in its corner. Diagnostic only, never a gate.
+## **Photographs the live trailer** (2026-10-07): deals one (`--seed=N`, or the
+## clock), plays it, and saves a frame every `--every=` seconds into
+## `user://trailer_shots/`, with the moment being filmed in the file's name. A
+## diagnostic, not a gate: a trailer is judged by eye.
 ##
-##   shot_offscreen.sh <profile> 1920 1080 res://tools/trailer_shot.tscn
-##
-## Written to `user://trailer_shot.png`, three seconds in.
+##   tools/perf_offscreen.sh <profile> res://tools/trailer_shot.tscn -- --seed=7 --every=0.8
+
+var _player: TrailerPlayer = null
+var _every: float = 0.8
+var _next: float = 0.6
+var _clock: float = 0.0
+var _count: int = 0
+var _out: String = "user://trailer_shots/"
 
 
 func _ready() -> void:
-	var player := (load("res://scenes/ui/trailer_player.tscn") as PackedScene).instantiate() as TrailerPlayer
-	player.leaves = false
-	add_child(player)
-	var start: int = Time.get_ticks_msec()
-	while Time.get_ticks_msec() - start < 3000:
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	var path: String = ProjectSettings.globalize_path("user://trailer_shot.png")
-	get_viewport().get_texture().get_image().save_png(path)
-	print("[trailer-shot] %s (%s)" % [path, player.reason if not player.reason.is_empty() else "playing"])
-	player.skip()
+	var seed: int = 0
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--seed="):
+			seed = int(argument.trim_prefix("--seed="))
+		elif argument.begins_with("--every="):
+			_every = float(argument.trim_prefix("--every="))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out))
+	_player = (load("res://scenes/ui/trailer_player.tscn") as PackedScene).instantiate() as TrailerPlayer
+	_player.leaves = false
+	_player.plan_seed = seed
+	_player.ended.connect(_on_ended)
+	add_child(_player)
+
+
+func _process(delta: float) -> void:
+	_clock += delta / maxf(Engine.time_scale, 0.01)
+	if _player == null or _clock < _next:
+		return
+	_next = _clock + _every
+	var image: Image = get_viewport().get_texture().get_image()
+	image.resize(960, 540, Image.INTERPOLATE_LANCZOS)
+	var label: String = _player.filmed[_player.filmed.size() - 1] if not _player.filmed.is_empty() else "card"
+	image.save_png(_out + "%03d_%s.png" % [_count, label])
+	_count += 1
+
+
+func _on_ended(why: String) -> void:
+	print("[trailer-shot] %s, %d frames, filmed %s" % [why, _count, ", ".join(_player.filmed)])
+	_player = null
+	await get_tree().create_timer(0.3).timeout
+	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
-	for _frame: int in 8:
-		await get_tree().process_frame
+	Ambience.stop_immediately()
 	get_tree().quit(0)

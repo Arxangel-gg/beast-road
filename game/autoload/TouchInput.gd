@@ -55,6 +55,9 @@ const ZONE_HEIGHT: float = 0.62
 const ZONE_WIDTH: float = 0.42
 
 var _showing: bool = false
+## **Held off** while something that is not the player's to drive stands a road
+## up - the live trailer - so the sticks never draw over it or eat its taps.
+var held_off: bool = false
 var _move := Vector2.ZERO
 var _aim := Vector2.ZERO
 var _attacking: bool = false
@@ -342,7 +345,7 @@ func _build() -> void:
 ## `_unhandled_input`, the button kept *consuming taps* on the front door - and
 ## an invisible button eats a press exactly as well as a visible one does.
 func _controls_live() -> bool:
-	return _showing and (_road_live() or _place_live())
+	return _showing and not held_off and (_road_live() or _place_live())
 
 
 func _road_live() -> bool:

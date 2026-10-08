@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tornado"
+display_name = "A funnel through the wave"
+place = 2
+weight = 0.8
+first_act = 2
+last_act = 11
+seconds_min = 4.6
+seconds_max = 5.6
+zoom_min = 0.7
+zoom_max = 0.8
+daylight_min = 0.3
+daylight_max = 0.5
+lines = Array[String](["The wind takes sides.", "Nothing on the road is safe."])
+line_chance = 0.6

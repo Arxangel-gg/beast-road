@@ -6634,20 +6634,39 @@ const RAID_PARTIAL_REWARD_KILLS: int = 60
 const SPLASH_DURATION: float = 1.25
 
 ## **The trailer** (owner, 2026-10-01), played once a launch between the splash
-## and the menu. The fade in and out, how long before the Skip button shows and
-## how bright it rests, its margin, and the fail-open clocks: a stream that has
-## not moved for `TRAILER_STALL_SECONDS` is given up on, and none may run past
-## its own length plus `TRAILER_GRACE_SECONDS` (or `TRAILER_LONGEST` when it
-## does not say). A player whose screen-flash scale is under
-## `TRAILER_REDUCED_FLASH` is not shown it at startup. [TUNE]
+## and the menu, and **made live at every launch** (2026-10-07). The fade in and
+## out, how long before the Skip button shows and how bright it rests, its
+## margin, and the ceiling no trailer may run past. A player whose screen-flash
+## scale is under `TRAILER_REDUCED_FLASH` is not shown it at startup. [TUNE]
 const TRAILER_FADE_SECONDS: float = 0.35
 const TRAILER_SKIP_DELAY: float = 0.6
 const TRAILER_SKIP_ALPHA: float = 0.72
 const TRAILER_SKIP_MARGIN: float = 28.0
-const TRAILER_STALL_SECONDS: float = 2.5
-const TRAILER_GRACE_SECONDS: float = 4.0
 const TRAILER_LONGEST: float = 120.0
 const TRAILER_REDUCED_FLASH: float = 0.5
+## How fast the world runs while a road stands up under a card, and the most
+## real seconds a stand-up may take before what is there is filmed. [TUNE]
+const TRAILER_SETUP_TIME_SCALE: float = 6.0
+const TRAILER_SETUP_SECONDS: float = 3.5
+## The least a road's card is held, and the closing wordmark's hold.
+const TRAILER_CARD_SECONDS: float = 1.7
+const TRAILER_CLOSING_SECONDS: float = 3.2
+## A cut between two moments of one road: down to black and up again.
+const TRAILER_CUT_SECONDS: float = 0.28
+## **Slow motion on the biggest blows**: a `camera_impact` at least this
+## heavy drops the world to `TRAILER_SLOWMO_SCALE` for a breath, and not again
+## for `TRAILER_SLOWMO_REST`.
+const TRAILER_SLOWMO_FROM: float = 0.7
+const TRAILER_SLOWMO_SCALE: float = 0.32
+const TRAILER_SLOWMO_SECONDS: float = 0.45
+const TRAILER_SLOWMO_REST: float = 3.0
+## A machine showing a moment slower than this goes straight to the menu: a
+## trailer at a slideshow's rate is worse than none.
+const TRAILER_MIN_FPS: float = 24.0
+## The canvas layer the cards, titles and bars are drawn on, above every HUD,
+## and the width-to-height of the picture between the bars.
+const TRAILER_LAYER: int = 110
+const TRAILER_ASPECT: float = 2.2
 
 ## Crossfade between scopes. [TUNE]
 const SCOPE_FADE_TIME: float = 0.22

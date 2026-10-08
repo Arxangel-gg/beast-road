@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "warden"
+display_name = "The Warden in the thick of it"
+place = 2
+weight = 1.4
+first_act = 1
+last_act = 11
+seconds_min = 4.6
+seconds_max = 5.8
+zoom_min = 1.2
+zoom_max = 1.5
+daylight_min = 0.16
+daylight_max = 0.45
+lines = Array[String](["Hold the line yourself.", "The Warden walks out to meet them."])
+line_chance = 0.7

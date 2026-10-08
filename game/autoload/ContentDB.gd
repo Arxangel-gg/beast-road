@@ -87,6 +87,8 @@ var mounts: Dictionary = {}
 ## The world's pages, the guide's sections and the account's achievements
 ## (owner brief, 2026-09-12). Data, like every string a player reads.
 var lore: Dictionary = {}
+## The kinds of moment the live trailer may show (`TrailerMomentData`).
+var trailer_moments: Dictionary = {}
 var guide_sections: Dictionary = {}
 var achievements: Dictionary = {}
 
@@ -162,6 +164,7 @@ func _ready() -> void:
 	gear_sets = _load_dir("res://data/gear_sets")
 	mounts = _load_dir("res://data/mounts")
 	lore = _load_dir("res://data/lore")
+	trailer_moments = _load_dir("res://data/trailer")
 	guide_sections = _load_dir("res://data/guide")
 	achievements = _load_dir("res://data/achievements")
 	merchants = _load_dir("res://data/merchants")
@@ -218,6 +221,11 @@ func omen(id: String) -> OmenData:
 
 func road_card(id: String) -> RoadCardData:
 	return road_cards.get(id, null) as RoadCardData
+
+
+## The trailer's own words (`data/ui/trailer_text.tres`).
+func trailer_text() -> TrailerText:
+	return ui_texts.get("trailer_text", null) as TrailerText
 
 
 func arsenal_weapon(id: String) -> ArsenalWeaponData:

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TrailerText" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_text.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trailer_text"
+display_name = "Trailer"
+act_card = "Act %s"
+road_lines = Array[String](["The road goes on.", "Further than anyone has walked.", "Every road ends somewhere.", "The beast does not stop."])
+opening = "The world broke. The road remains."
+tagline = "Hold the road."
+skip = "Skip"
+skip_hint = "Escape, Enter or Space, or a pad's A, B or Start"

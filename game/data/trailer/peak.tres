@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "peak"
+display_name = "The last act at its height"
+place = 3
+weight = 1.0
+first_act = 8
+last_act = 11
+seconds_min = 5.4
+seconds_max = 6.6
+zoom_min = 0.68
+zoom_max = 0.84
+daylight_min = 0.25
+daylight_max = 0.5
+lines = Array[String](["Hold the road to the end.", "Ten acts. One road. No retreat."])
+line_chance = 0.75

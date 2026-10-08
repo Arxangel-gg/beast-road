@@ -5238,18 +5238,13 @@ Files: `plant_saltpan_bush_idle_01.png` … `plant_saltpan_bush_idle_03.png`
 
 ---
 
-### 5.36 The trailer — `res://video/`
+### 5.36 The trailer — no file
 
-One film, not art: the trailer the game opens with (2026-10-01), cut from the
-running game by `trailer/capture.sh` and `trailer/build.py`. Theora video and
-Vorbis audio in an Ogg file, 1280 by 720 at 30 frames a second, about 75
-seconds. `asset_report` reads pictures under `res://art/` only, so this row is
-for people; `trailer_check` is what holds the file - that it ships, loads as a
-video and runs between 60 and 90 seconds.
-
-| File | Format | Source |
-|---|---|---|
-| trailer.ogv | Theora + Vorbis, 1280x720, 30 fps | `trailer/build.py` from `trailer/edit.json` |
+The trailer the game opens with is made live at every launch (2026-10-07,
+`TrailerPlan`, `TrailerStage`, `TrailerPlayer`) from the game's own roads, so
+it ships no film. The filmed cut of 2026-10-01 is retired from the build;
+`trailer/capture.sh` and `trailer/build.py` still cut a film for a store page,
+and `trailer_check` holds that none ships beside the live one.
 
 ### 5.37 Corpses — `res://art/corpses/`
 

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm"
+display_name = "The earth answers"
+place = 2
+weight = 1.0
+first_act = 2
+last_act = 11
+seconds_min = 4.8
+seconds_max = 5.8
+zoom_min = 0.7
+zoom_max = 0.82
+daylight_min = 0.55
+daylight_max = 0.8
+lines = Array[String](["The earth keeps score.", "Take too much, and the sky answers."])
+line_chance = 0.8

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wide"
+display_name = "Four roads"
+place = 1
+weight = 1.0
+first_act = 1
+last_act = 7
+seconds_min = 4.8
+seconds_max = 5.8
+zoom_min = 0.5
+zoom_max = 0.62
+daylight_min = 0.2
+daylight_max = 0.42
+lines = Array[String](["Four roads to defend.", "Every road leads to the gate."])
+line_chance = 0.85

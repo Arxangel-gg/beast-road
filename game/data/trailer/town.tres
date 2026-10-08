@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "town"
+display_name = "The city on its back"
+place = 0
+weight = 0.7
+first_act = 1
+last_act = 11
+seconds_min = 4.6
+seconds_max = 5.6
+zoom_min = 1.0
+zoom_max = 1.12
+daylight_min = 0.1
+daylight_max = 0.35
+lines = Array[String](["Everything you love rides on its back.", "A city on the back of a beast."])
+line_chance = 0.8

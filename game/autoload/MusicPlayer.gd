@@ -149,6 +149,8 @@ func _ready() -> void:
 ## Starts `track_id`, crossfading from whatever is playing. Re-requesting the
 ## current track is a no-op. `BATTLE` is answered by the act's playlist.
 func play(track_id: String, fade: float = FADE_TIME) -> void:
+	if not _held_score.is_empty() and track_id != _held_score:
+		return
 	if track_id == BATTLE:
 		_play_battle()
 		return
@@ -167,6 +169,8 @@ func play(track_id: String, fade: float = FADE_TIME) -> void:
 
 ## The boss's own theme, on a slow fade under a stinger. The playlist waits.
 func play_boss(act: int) -> void:
+	if not _held_score.is_empty():
+		return
 	_boss_holding = true
 	Sfx.play("sfx_boss_stinger")
 	var path: String = BOSS_FORMAT % act
@@ -190,7 +194,7 @@ func _boss_fell() -> void:
 
 ## The act's songs, dealt once per act and played end to end.
 func _play_battle(fade: float = FADE_TIME) -> void:
-	if _boss_holding:
+	if _boss_holding or not _held_score.is_empty():
 		return
 	var act: int = maxi(RunState.act, 1)
 	var fresh: bool = act != _playlist_act or _playlist.is_empty()
@@ -340,6 +344,26 @@ func _battle_track() -> String:
 ## Plays whatever the moment calls for. Safe to call repeatedly.
 func follow_situation() -> void:
 	play(for_situation())
+
+
+## **The score is held** (2026-10-07): the live trailer stands real roads up,
+## and every one of them would otherwise swap the music for a battle, a boss
+## or a crossroad. While held, nothing but `track_id` may play; released, the
+## soundtrack follows the situation again.
+var _held_score: String = ""
+
+
+func hold_score(track_id: String) -> void:
+	_held_score = track_id
+	play(track_id)
+
+
+func release_score() -> void:
+	_held_score = ""
+
+
+func score_held() -> bool:
+	return not _held_score.is_empty()
 
 
 func stop() -> void:
