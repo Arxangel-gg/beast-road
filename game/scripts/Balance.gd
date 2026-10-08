@@ -14782,6 +14782,17 @@ const UI_BAR_JUICE_HZ: float = 24.0
 ## And the buttons along the bottom and the right: their frames only, through
 ## `UiTint.see_through`, so the words on them stay whole. [TUNE]
 const UI_BUTTON_SEE_THROUGH: float = 0.72
+## **Frost** (`UiFrost`, owner, 2026-10-07): how much of a screen's main panel
+## is drawn, so the frosted world behind it shows through; a button on the
+## Hold's card; how much of a scrim's own colour lies over the blurred world;
+## how blurred that world is (a screen mip); and how bright the light drifting
+## over the glass is. A panel never goes below its share - readability is the
+## bound - and Low and below draw no frost at all. [TUNE]
+const UI_FROST_PANEL_ALPHA: float = 0.82
+const UI_FROST_BUTTON_ALPHA: float = 0.82
+const UI_FROST_WASH: float = 0.64
+const UI_FROST_BLUR_LOD: float = 2.8
+const UI_FROST_SHEEN: float = 0.045
 ## **The front door's buttons** (owner, 2026-10-07): how much of a plate is
 ## left so the menu's painting shows through it, and the glow each wears
 ## (`MenuButtonFx`): how often it redraws, how fast it eases into a hover, how

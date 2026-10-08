@@ -209,6 +209,8 @@ func _on_coop_failed(reason: String) -> void:
 
 
 func _ready() -> void:
+	# Every listed screen wears glass as it opens (`UiFrost`, 2026-10-07).
+	UiFrost.watch(get_tree())
 	# **Before anything draws.** The display face has no arrows and no geometric
 	# shapes; on desktop Godot borrows them from a system font and on Android
 	# there is nothing to borrow from, so they render as empty boxes. Chaining

@@ -40,6 +40,7 @@ func _ready() -> void:
 	_menu_text = menu_button.text
 
 	_build_settings()
+	_build_frost()
 	_build_warning()
 	_build_battlefield_line()
 	_build_ledger_line()
@@ -280,6 +281,34 @@ func _build_settings() -> void:
 	var box: Node = menu_button.get_parent()
 	box.add_child(_settings_button)
 	box.move_child(_settings_button, menu_button.get_index())
+
+
+## **The paused road behind frosted glass** (2026-10-07, `UiFrost`): the
+## world and its HUD blurred and a little dimmed behind the pause panel and
+## the settings, so the road is still there - recognisably the one being
+## played - without competing with the words. Shown only while one of the two
+## is, and it takes no clicks.
+var _frost: ColorRect = null
+
+
+func _build_frost() -> void:
+	_frost = ColorRect.new()
+	_frost.name = "PauseFrost"
+	_frost.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_frost.color = Color(0.015, 0.02, 0.022, 0.42)
+	_frost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frost.visible = false
+	panel.get_parent().add_child(_frost)
+	panel.get_parent().move_child(_frost, 0)
+	UiFrost.frost(_frost)
+	panel.visibility_changed.connect(_follow_frost)
+	if _settings != null:
+		_settings.visibility_changed.connect(_follow_frost)
+
+
+func _follow_frost() -> void:
+	if _frost != null:
+		_frost.visible = panel.visible or (_settings != null and _settings.visible)
 
 
 func _show_settings(showing: bool) -> void:

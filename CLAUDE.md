@@ -14965,6 +14965,46 @@ every way out. Three planted faults were named: the account not read back, a
 moment dealt twice, and the road left walking. `trailer_shot` photographs a
 dealt trailer a frame every `--every=` seconds.
 
+**The interface is frosted glass where it covers a place, as of 2026-10-07.**
+Owner: *"Elevate the Hold's UIs to have semi-transparency. Any UIs etc anywhere
+in the game that would benefit from being semi-transparent that aren't should
+be aesthetically made so with polish and game juice perfection."*
+
+**Two things, and only these** (`UiFrost`). A screen's dark scrim becomes
+frosted glass (`ui_frost.gdshader`): the world behind it read off the screen at
+a blurred mip (two mips mixed, because one shows its texels as blocks), washed
+in the scrim's *own* colour so a screen that wanted a darker room still gets
+one, darker toward the edges so the eye rests in the middle, and a faint band
+of light drifting over it. And the screen's main panel lets that through,
+through `self_modulate` - the panel's own frame and none of its children, the
+HUD sheets' rule - so **the words stay whole**. A panel never goes below
+`UI_FROST_PANEL_ALPHA`; readability is the bound.
+
+**Applied once, centrally**: `UiFrost.watch` (from `GameDirector._ready`)
+dresses every screen named in `UiFrost.SCREENS` a couple of frames after it
+arrives and once more, because screens build in `_ready` and again in `open`.
+A screen added tomorrow is one line there rather than a screen remembering to.
+The Hold's bar and zoom buttons are see-through as the HUD's bottom row is, the
+Warden's card is glass over a frosted yard, and the pause menu stands a frost
+of its own (`PauseFrost`) shown only while the pause panel or its settings are
+- the paused road blurred behind them and still recognisably the road.
+
+**Never on Low or below** (`frost_drawn_for`), because a blurred copy of the
+screen is a copy of the screen; the scrim stays the flat dark it was. Headless
+there is nothing to copy. **Named frost, not glass**, because `UI_GLASS_*`
+already belongs to the Warden's Glass screen and one word with two meanings is
+how one of them gets edited by mistake.
+
+`frost_check` (both bars) holds every listed name to a class, stands each
+listed screen up and opens it as a player does, and holds its scrim dressed,
+its panel at the frost's share and its words whole; the Hold's bar, zoom and
+card; the pause frost shown only with the pause menu and taking no clicks; and
+the draw rule. Three planted faults were named: the watcher never connected,
+panels left solid, the pause frost never shown. `frost_shot` photographs a door
+screen over the Hold and the pause menu over a road - the first take was a
+blank grey frame because `_save` awaits a drawn frame and was called without
+`await`, so the screen had been freed before the picture.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

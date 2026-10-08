@@ -318,6 +318,8 @@ func _strip_button(text: String, on: Callable) -> Button:
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(on)
+	# The yard shows through the bar's plates; the words stay whole.
+	UiTint.see_through(button, Balance.UI_BUTTON_SEE_THROUGH)
 	_bar.add_child(button)
 	return button
 
@@ -373,6 +375,10 @@ func _build_panel() -> void:
 	_panel.name = "Hold"
 	_panel.set_meta(UiMetrics.SELF_SIZED, true)
 	centre.add_child(_panel)
+	# **The Warden's card is glass** (2026-10-07): the yard behind it frosted
+	# and the card's plate letting it through, as every screen does.
+	UiFrost.frost(dim)
+	UiFrost.glass(_panel)
 
 	# **A margin inside the frame.** The panel's carved frame has an inner lip,
 	# and the card's text sat flush against the panel's edge under it - the
@@ -450,6 +456,7 @@ func adopt(button: Button) -> void:
 	button.custom_minimum_size = Vector2(0.0, 60.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(suspend)
+	UiTint.see_through(button, Balance.UI_FROST_BUTTON_ALPHA)
 	_grid.add_child(button)
 	if _yard != null:
 		_yard.bind(button.name, button)
@@ -719,6 +726,7 @@ func _build_zoom(into: Control) -> void:
 	out.custom_minimum_size = Vector2(34.0, 0.0)
 	out.pressed.connect(func() -> void:
 		set_zoom(_zoom - Balance.HOLD_ZOOM_STEP))
+	UiTint.see_through(out, Balance.UI_BUTTON_SEE_THROUGH)
 	row.add_child(out)
 
 	_zoom_slider = HSlider.new()
@@ -753,6 +761,7 @@ func _build_zoom(into: Control) -> void:
 	closer.custom_minimum_size = Vector2(34.0, 0.0)
 	closer.pressed.connect(func() -> void:
 		set_zoom(_zoom + Balance.HOLD_ZOOM_STEP))
+	UiTint.see_through(closer, Balance.UI_BUTTON_SEE_THROUGH)
 	row.add_child(closer)
 
 
