@@ -258,8 +258,13 @@ func _test_a_spammed_body_breaks_out(field: Battlefield, breed: EnemyData) -> vo
 	var clock: float = 0.0
 	while clock < 9.0 and landed.is_empty():
 		_strike(body, 1.0, Balance.HERO_ATTACK_KNOCKBACK[0])
-		armoured = armoured or body.is_breaking_out()
-		await _settle(0.3)
+		# Read every frame (2026-10-08): a quicker body's wind-up can begin and
+		# land between two readings a third of a second apart.
+		var waited: float = 0.0
+		while waited < 0.3:
+			armoured = armoured or (is_instance_valid(body) and body.is_breaking_out())
+			await get_tree().process_frame
+			waited += maxf(get_process_delta_time(), 0.001)
 		clock += 0.3
 		if not is_instance_valid(body):
 			break
