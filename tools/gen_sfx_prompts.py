@@ -1046,6 +1046,13 @@ ROWS = [
      "a short urgent three-note warning chime for a danger ping in a game interface: three quick bright struck bell notes falling, sharper and louder than a friendly chime but never harsh, dry, no reverb tail, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
     ("sfx_heartbeat", "sfx", "sfx", "0.46s", "ElevenLabs",
      "one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
+    # ---------------- the breather's countdown (2026-10-08) ----------------
+    ("sfx_countdown_tick", "sfx", "sfx", "0.12s", "ElevenLabs",
+     "one dry wooden clock tick for a game's countdown: a short crisp click of wood on wood, close and quiet, no ring, no reverb, no music, nothing else - played once a second for ten down to six, and pitched up a little each time by the game, so keep it neutral in pitch"),
+    ("sfx_countdown_warn", "sfx", "sfx", "0.2s", "ElevenLabs",
+     "one bright wood block struck with a short ringing tone underneath, sharper and more urgent than a clock tick but not alarming, dry, no reverb, no music, nothing else - played for the countdown's five and four, pitched up each time by the game"),
+    ("sfx_countdown_final", "sfx", "sfx", "0.55s", "ElevenLabs",
+     "one low war drum struck once with a small clear bell over it, the last three beats of a countdown before a battle: weighty and urgent, short tail, no reverb wash, no music, nothing else - played for three, two and one, pitched up each time by the game"),
 ]
 
 WILDLIFE_IDS = {row[0] for row in ROWS if row[0].startswith("sfx_wildlife_")}
@@ -1074,6 +1081,8 @@ PLACEHOLDER_IDS = {
     "sfx_telegraph_rise", "sfx_heartbeat",
     # 2026-10-07: the party's pings
     "sfx_ping", "sfx_ping_alert",
+    # 2026-10-08: the breather's countdown
+    "sfx_countdown_tick", "sfx_countdown_warn", "sfx_countdown_final",
 }
 
 

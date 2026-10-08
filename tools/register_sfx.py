@@ -14,7 +14,9 @@ import io
 import os
 import re
 
-ROOT = r"E:\Arxangel\GameDev\BeastRoad"
+# Its own checkout, never a fixed path: a worktree running this used to rewrite
+# the main checkout's Sfx.gd.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SFX_GD = os.path.join(ROOT, "game", "autoload", "Sfx.gd")
 SFX_DIR = os.path.join(ROOT, "game", "audio", "sfx")
 

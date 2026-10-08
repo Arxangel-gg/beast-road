@@ -4139,14 +4139,14 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	_refresh_scope_clock(seconds_left)
 
 
-## What the breather says it is doing. Three states, because the countdown has
-## three: the bonus is falling, the bonus is about to vanish, and the wave comes
-## regardless. One "time left" number would hide both cliffs the reward schedule
-## is built around, and the cliffs are the whole decision.
-## **The breather's last seconds are heard** (2026-09-25). A tick at ten and
-## at three, two and one, rising in pitch, and the countdown lifts on each - on
-## `scale`, which the label's container does not own. Only on a timed breather:
-## the others have no deadline to warn about.
+## **The breather's last ten seconds are heard, and they climb** (owner,
+## 2026-10-08: "Countdown SFX for the last 10 seconds of preparation with
+## increasing indication for the last 5 and especially the last 3"). Three
+## beats: a dry tick for ten to six, a brighter warning for five and four, and a
+## drum under a bell for three, two and one - each a little higher than the one
+## before, and the countdown lifts and flares harder at each stage, on `scale`
+## and `modulate`, which the label's container does not own. Only on a timed
+## breather: the others have no deadline to warn about.
 func _tick_the_countdown(seconds_left: float) -> void:
 	if seconds_left <= 0.0:
 		_prep_second_said = -1
@@ -4155,17 +4155,47 @@ func _tick_the_countdown(seconds_left: float) -> void:
 	if second == _prep_second_said:
 		return
 	_prep_second_said = second
-	if second != 10 and second > 3:
+	var beat: Dictionary = countdown_beat(second)
+	var sound: String = String(beat["id"])
+	if sound.is_empty():
 		return
-	Sfx.play_group("sfx_ui_move", -4.0 if second == 10 else -1.0,
-		0.0 if second == 10 else 0.08 * float(4 - second))
+	Sfx.play_group(sound, 0.0, float(beat["pitch"]))
+	countdown_heard.append(sound)
+	if countdown_heard.size() > 32:
+		countdown_heard.pop_front()
 	_preparation_label.pivot_offset = _preparation_label.size * 0.5
-	_preparation_label.scale = Vector2.ONE * (1.10 if second <= 3 else 1.05)
-	var settle: Tween = create_tween()
-	settle.tween_property(_preparation_label, "scale", Vector2.ONE, 0.28) \
+	_preparation_label.scale = Vector2.ONE * float(beat["lift"])
+	_preparation_label.modulate = beat["flare"] as Color
+	var settle: Tween = create_tween().set_parallel(true)
+	settle.tween_property(_preparation_label, "scale", Vector2.ONE, 0.32) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	settle.tween_property(_preparation_label, "modulate", Color.WHITE, 0.45)
 
 
+## The beats the countdown has said, oldest first. For the gate.
+var countdown_heard: Array[String] = []
+
+
+## **What one second of the countdown sounds and looks like**: the sound, how
+## far it is pitched up, how far the countdown lifts and the colour it flares.
+## Nothing before ten. A pure rule, so the gate can read the climb whole.
+static func countdown_beat(second: int) -> Dictionary:
+	if second > 10 or second < 1:
+		return {"id": "", "pitch": 0.0, "lift": 1.0, "flare": Color.WHITE}
+	if second >= 6:
+		return {"id": "sfx_countdown_tick", "pitch": 0.02 * float(10 - second),
+			"lift": 1.04, "flare": Color(1.0, 0.97, 0.9)}
+	if second >= 4:
+		return {"id": "sfx_countdown_warn", "pitch": 0.06 * float(6 - second),
+			"lift": 1.1, "flare": Color(1.25, 1.1, 0.75)}
+	return {"id": "sfx_countdown_final", "pitch": 0.1 * float(4 - second),
+		"lift": 1.2, "flare": Color(1.5, 1.05, 0.7)}
+
+
+## What the breather says it is doing. Three states, because the countdown has
+## three: the bonus is falling, the bonus is about to vanish, and the wave comes
+## regardless. One "time left" number would hide both cliffs the reward schedule
+## is built around, and the cliffs are the whole decision.
 func _preparation_text(seconds_left: float, reward: int) -> String:
 	if seconds_left <= 0.0:
 		return "Prepare as long as you need. The next wave waits for you."

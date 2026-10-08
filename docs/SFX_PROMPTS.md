@@ -12,24 +12,24 @@ and nothing fails a build: this list is the only way to find them.
 
 | Sound | First asked for at |
 |---|---|
-| `sfx_boss` | `game/scripts/Balance.gd:2902` |
-| `sfx_chieftain` | `game/scripts/Balance.gd:2903` |
-| `sfx_companion` | `game/scripts/Balance.gd:2904` |
-| `sfx_dragon` | `game/scripts/Balance.gd:2902` |
-| `sfx_enemy_call` | `game/scripts/Balance.gd:2903` |
-| `sfx_fish` | `game/scripts/Balance.gd:2905` |
-| `sfx_footstep` | `game/scripts/Balance.gd:2905` |
-| `sfx_hit` | `game/scripts/Balance.gd:2904` |
-| `sfx_loot` | `game/scripts/Balance.gd:2905` |
-| `sfx_meteor` | `game/scripts/Balance.gd:2901` |
+| `sfx_boss` | `game/scripts/Balance.gd:2975` |
+| `sfx_chieftain` | `game/scripts/Balance.gd:2976` |
+| `sfx_companion` | `game/scripts/Balance.gd:2977` |
+| `sfx_dragon` | `game/scripts/Balance.gd:2975` |
+| `sfx_enemy_call` | `game/scripts/Balance.gd:2976` |
+| `sfx_fish` | `game/scripts/Balance.gd:2978` |
+| `sfx_footstep` | `game/scripts/Balance.gd:2978` |
+| `sfx_hit` | `game/scripts/Balance.gd:2977` |
+| `sfx_loot` | `game/scripts/Balance.gd:2978` |
+| `sfx_meteor` | `game/scripts/Balance.gd:2974` |
 | `sfx_never_listed` | `game/tools/feel_check.gd:141` |
-| `sfx_pen` | `game/scripts/Balance.gd:2905` |
-| `sfx_spell` | `game/scripts/Balance.gd:2904` |
-| `sfx_swim` | `game/scripts/Balance.gd:2906` |
-| `sfx_thunder` | `game/scripts/Balance.gd:2901` |
-| `sfx_ui` | `game/scripts/Balance.gd:2906` |
-| `sfx_water` | `game/scripts/Balance.gd:2906` |
-| `sfx_wildlife` | `game/scripts/Balance.gd:2903` |
+| `sfx_pen` | `game/scripts/Balance.gd:2978` |
+| `sfx_spell` | `game/scripts/Balance.gd:2977` |
+| `sfx_swim` | `game/scripts/Balance.gd:2979` |
+| `sfx_thunder` | `game/scripts/Balance.gd:2974` |
+| `sfx_ui` | `game/scripts/Balance.gd:2979` |
+| `sfx_water` | `game/scripts/Balance.gd:2979` |
+| `sfx_wildlife` | `game/scripts/Balance.gd:2976` |
 
 Add a row for each in `tools/gen_sfx_prompts.py` and re-run it, or
 record them now and drop them in `audio_inbox/`.
@@ -50,7 +50,7 @@ code change. Record these before the general backlog.
 ---
 
 
-## STILL TO RECORD (139)
+## STILL TO RECORD (142)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -198,6 +198,9 @@ missing stream - so none of these block a build.
 | `sfx_ping.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.42s | ElevenLabs | a short clean two-note chime for a team ping in a game interface: a soft struck bell note and a brighter one a fifth above a twelfth of a second later, rising, clear and friendly, dry, no reverb tail, no music, nothing else - record 3 takes, saved as _1.._3; they rotate |
 | `sfx_ping_alert.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.46s | ElevenLabs | a short urgent three-note warning chime for a danger ping in a game interface: three quick bright struck bell notes falling, sharper and louder than a friendly chime but never harsh, dry, no reverb tail, no music, nothing else - record 3 takes, saved as _1.._3; they rotate |
 | `sfx_heartbeat.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.46s | ElevenLabs | one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate |
+| `sfx_countdown_tick.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.12s | ElevenLabs | one dry wooden clock tick for a game's countdown: a short crisp click of wood on wood, close and quiet, no ring, no reverb, no music, nothing else - played once a second for ten down to six, and pitched up a little each time by the game, so keep it neutral in pitch |
+| `sfx_countdown_warn.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.2s | ElevenLabs | one bright wood block struck with a short ringing tone underneath, sharper and more urgent than a clock tick but not alarming, dry, no reverb, no music, nothing else - played for the countdown's five and four, pitched up each time by the game |
+| `sfx_countdown_final.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.55s | ElevenLabs | one low war drum struck once with a small clear bell over it, the last three beats of a countdown before a battle: weighty and urgent, short tail, no reverb wash, no music, nothing else - played for three, two and one, pitched up each time by the game |
 
 ---
 
@@ -1496,7 +1499,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 173 files
+## Sound effects - 176 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -2882,6 +2885,30 @@ a short urgent three-note warning chime for a danger ping in a game interface: t
 
 ```text
 one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate.
+```
+
+### `sfx_countdown_tick`
+
+`game/audio/sfx/sfx_countdown_tick.ogg`  -  target length **0.12s**  -  suggested tool: **ElevenLabs**
+
+```text
+one dry wooden clock tick for a game's countdown: a short crisp click of wood on wood, close and quiet, no ring, no reverb, no music, nothing else - played once a second for ten down to six, and pitched up a little each time by the game, so keep it neutral in pitch.
+```
+
+### `sfx_countdown_warn`
+
+`game/audio/sfx/sfx_countdown_warn.ogg`  -  target length **0.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+one bright wood block struck with a short ringing tone underneath, sharper and more urgent than a clock tick but not alarming, dry, no reverb, no music, nothing else - played for the countdown's five and four, pitched up each time by the game.
+```
+
+### `sfx_countdown_final`
+
+`game/audio/sfx/sfx_countdown_final.ogg`  -  target length **0.55s**  -  suggested tool: **ElevenLabs**
+
+```text
+one low war drum struck once with a small clear bell over it, the last three beats of a countdown before a battle: weighty and urgent, short tail, no reverb wash, no music, nothing else - played for three, two and one, pitched up each time by the game.
 ```
 
 ---

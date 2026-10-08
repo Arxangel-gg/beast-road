@@ -1347,6 +1347,9 @@ const SOUNDS: Dictionary = {
 	"sfx_ping_alert_1": "res://audio/sfx/sfx_ping_alert_1.ogg",
 	"sfx_ping_alert_2": "res://audio/sfx/sfx_ping_alert_2.ogg",
 	"sfx_ping_alert_3": "res://audio/sfx/sfx_ping_alert_3.ogg",
+	"sfx_countdown_final_1": "res://audio/sfx/sfx_countdown_final_1.ogg",
+	"sfx_countdown_tick_1": "res://audio/sfx/sfx_countdown_tick_1.ogg",
+	"sfx_countdown_warn_1": "res://audio/sfx/sfx_countdown_warn_1.ogg",
 	"sfx_ui_click_1": "res://audio/sfx/sfx_ui_click_1.ogg",
 	"sfx_ui_click_2": "res://audio/sfx/sfx_ui_click_2.ogg",
 	"sfx_ui_click_3": "res://audio/sfx/sfx_ui_click_3.ogg",
@@ -1596,6 +1599,12 @@ const MIX: Dictionary = {
 	# time, and a burst of them from a party of four is heard as the first.
 	"sfx_ping":                 {"db": -6.0, "pitch": 0.02, "limit": 1, "gap": 0.12},
 	"sfx_ping_alert":           {"db": -4.0, "pitch": 0.02, "limit": 1, "gap": 0.12},
+	# The breather's last ten seconds (2026-10-08): no drift, because the HUD
+	# pitches each beat itself so the count climbs; one at a time, and a gap
+	# shorter than a second so no beat is ever swallowed.
+	"sfx_countdown_tick":       {"db": -9.0, "pitch": 0.0, "limit": 1, "gap": 0.3},
+	"sfx_countdown_warn":       {"db": -5.0, "pitch": 0.0, "limit": 1, "gap": 0.3},
+	"sfx_countdown_final":      {"db": -2.0, "pitch": 0.0, "limit": 1, "gap": 0.3},
 	"sfx_fish_miss":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
 	"sfx_camp_razed":           {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
 	"sfx_fork_open":            {"db": -5.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
@@ -1805,6 +1814,9 @@ const GROUPS: Dictionary = {
 	"sfx_fire_douse": ["sfx_fire_douse_1", "sfx_fire_douse_2", "sfx_fire_douse_3"],
 	"sfx_ping": ["sfx_ping_1", "sfx_ping_2", "sfx_ping_3"],
 	"sfx_ping_alert": ["sfx_ping_alert_1", "sfx_ping_alert_2", "sfx_ping_alert_3"],
+	"sfx_countdown_final": ["sfx_countdown_final_1"],
+	"sfx_countdown_tick": ["sfx_countdown_tick_1"],
+	"sfx_countdown_warn": ["sfx_countdown_warn_1"],
 	"sfx_ui_click": ["sfx_ui_click_1", "sfx_ui_click_2", "sfx_ui_click_3"],
 	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3", "sfx_ui_hover_4", "sfx_ui_hover_5"],
 	"sfx_ui_move": ["sfx_ui_move_1", "sfx_ui_move_2", "sfx_ui_move_3"],

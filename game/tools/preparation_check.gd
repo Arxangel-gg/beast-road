@@ -87,6 +87,7 @@ func _ready() -> void:
 	await _test_the_map_cycles_four_ways()
 	await _test_a_bar_answers_by_how_much_moved()
 	await _test_the_camera_frames_the_fight()
+	await _test_the_last_ten_seconds_climb()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -101,6 +102,47 @@ func _ready() -> void:
 		print(("[preparation] PASS - %d checks: the grace, the clock, the tooltip, the wells, "
 			+ "the air and the Mansion's tree") % _checks)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **The last ten seconds climb** (owner, 2026-10-08). The rule first - nothing
+## before ten, a tick to six, a warning to four, the final beat for the last
+## three, each pitched above the last and each stage lifting harder - then the
+## real HUD told a breather second by second through the signal the clock
+## sends, and what it said read back.
+func _test_the_last_ten_seconds_climb() -> void:
+	var expected: Array[String] = []
+	var pitch_was: float = -1.0
+	var lift_was: float = 0.0
+	for second: int in range(12, 0, -1):
+		var beat: Dictionary = HUD.countdown_beat(second)
+		var id: String = String(beat["id"])
+		if second > 10:
+			_check(id.is_empty(), "the countdown spoke at %d" % second)
+			continue
+		var want: String = "sfx_countdown_tick" if second >= 6 \
+			else ("sfx_countdown_warn" if second >= 4 else "sfx_countdown_final")
+		_check(id == want, "second %d played '%s' rather than '%s'" % [second, id, want])
+		_check(Sfx.GROUPS.has(id) or Sfx.SOUNDS.has(id), "the countdown's '%s' is no sound" % id)
+		var pitch: float = float(beat["pitch"])
+		if second < 10 and want == String(HUD.countdown_beat(second + 1)["id"]):
+			_check(pitch > pitch_was, "second %d is no higher than the one before" % second)
+		pitch_was = pitch
+		_check(float(beat["lift"]) >= lift_was, "second %d lifts less than the one before" % second)
+		lift_was = float(beat["lift"])
+		expected.append(want)
+	_check(float(HUD.countdown_beat(1)["lift"]) > float(HUD.countdown_beat(5)["lift"])
+		and float(HUD.countdown_beat(5)["lift"]) > float(HUD.countdown_beat(8)["lift"]),
+		"the last three, the last five and the rest do not lift harder in turn")
+	_hud.countdown_heard.clear()
+	for tenths: int in range(125, 0, -5):
+		EventBus.preparation_changed.emit(float(tenths) / 10.0, true)
+	await _frames(2)
+	_check(_hud.countdown_heard == expected,
+		"the HUD said %s over the last ten seconds, not %s" % [_hud.countdown_heard, expected])
+	_hud.countdown_heard.clear()
+	EventBus.preparation_changed.emit(0.0, true)
+	EventBus.preparation_changed.emit(-1.0, true)
+	_check(_hud.countdown_heard.is_empty(), "a breather with no deadline counted down")
 
 
 func _check(condition: bool, why: String) -> void:
