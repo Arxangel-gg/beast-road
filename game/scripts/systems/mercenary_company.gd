@@ -76,9 +76,43 @@ func _muster() -> void:
 	for row: Dictionary in RunState.live_mercenaries():
 		voice.say(String(row.get("uid", "")), "road_start", true)
 		break
+	# **The road says who came** (2026-10-08): a company nobody announced is a
+	# company the player does not know walked out with them.
+	var came: PackedStringArray = []
+	for row: Dictionary in CompanyStrip.own_rows():
+		came.append(String(row.get("name", "")))
+	if not came.is_empty():
+		EventBus.company_news.emit("%s %s out with you." % [_named(came),
+			"walks" if came.size() == 1 else "walk"])
 	if not RunState.company_stayed_home.is_empty():
-		EventBus.company_news.emit("%s stayed home: the contract could not be paid."
-			% ", ".join(RunState.company_stayed_home))
+		get_tree().create_timer(Balance.COMPANY_NEWS_GAP).timeout.connect(_say_who_stayed)
+
+
+func _say_who_stayed() -> void:
+	EventBus.company_news.emit("%s stayed home: no Marks for the contract."
+		% _named(PackedStringArray(RunState.company_stayed_home)))
+
+
+## "Ash", "Ash and Rue", "Ash, Rue and Fen".
+static func _named(names: PackedStringArray) -> String:
+	if names.size() <= 1:
+		return names[0] if names.size() == 1 else ""
+	return "%s and %s" % [", ".join(names.slice(0, names.size() - 1)), names[names.size() - 1]]
+
+
+## How whole a mercenary is on this road, 0 to 1, or -1 when nothing here draws
+## it: the body on a host, the puppet the host's word moves on a guest.
+func health_ratio(uid: String) -> float:
+	var found: Hero = body(uid)
+	if found == null:
+		for slot: Variant in _puppets:
+			var puppet_body: Hero = _puppets[slot] as Hero
+			if puppet_body != null and is_instance_valid(puppet_body) and puppet_body.mercenary_uid == uid:
+				found = puppet_body
+				break
+	if found == null or found.health == null or found.health.max_hp <= 0.0:
+		return -1.0
+	return clampf(found.health.current_hp / found.health.max_hp, 0.0, 1.0)
 
 
 ## One mercenary on its seat.

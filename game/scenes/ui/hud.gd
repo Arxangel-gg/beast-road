@@ -716,6 +716,8 @@ var _last_stand_spent: bool = false
 var _minimap: Minimap = null
 ## The same map, big and faint over the field (owner, 2026-10-07).
 var _minimap_overlay: Minimap = null
+## This Warden's company on the road, one line a mercenary (2026-10-08).
+var _company_strip: CompanyStrip = null
 ## The mannequin that warns of worn gear (owner, 2026-10-07).
 var _durability_doll: DurabilityDoll = null
 
@@ -746,6 +748,7 @@ func _ready() -> void:
 	_build_bottom_row()
 	_build_fishing_panel()
 	_build_spirit_panel()
+	_build_company_strip()
 	_build_party_panel()
 	# Company arriving or leaving changes which square a thumb's column shows:
 	# the speed alone, the chat in company. A named method, never a lambda - a
@@ -4456,6 +4459,7 @@ func _update_spirit_panel(delta: float) -> void:
 		return
 	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
 	_refresh_spirit_button()
+	_place_company_strip()
 	# Whatever this tick does to the panel's shape, the map and the sheet under
 	# it are put back under its lower edge. See `_refit_right_column`.
 	_refit_right_column()
@@ -7478,6 +7482,9 @@ func _right_column_floor() -> float:
 		var tall: float = maxf(_spirit_panel.size.y,
 			_spirit_panel.get_combined_minimum_size().y)
 		floor_at = maxf(floor_at, _spirit_panel.offset_top + tall + SPIRIT_PANEL_GAP)
+	if _company_strip != null and is_instance_valid(_company_strip) and _company_strip.visible:
+		floor_at = maxf(floor_at, _company_strip.offset_top
+			+ _company_strip.get_combined_minimum_size().y + SPIRIT_PANEL_GAP)
 	return maxf(floor_at, MINIMAP_TOP)
 
 
@@ -7840,6 +7847,33 @@ func _grade_the_interface(force: bool) -> void:
 ##
 ## Asked rather than assumed, and re-asked whenever the controls change, since
 ## the column's width moves with them.
+## **The company under the spirit readout** (2026-10-08): one line a mercenary,
+## in the right column's own width, so the map and the sheets hang under it as
+## they hang under the spirit. Like the readout it yields to a sheet a thumb is
+## using, because on a phone the column has no room for both.
+func _build_company_strip() -> void:
+	_company_strip = CompanyStrip.new()
+	_company_strip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_company_strip.field = battlefield
+	add_child(_company_strip)
+	_place_company_strip()
+
+
+func _place_company_strip() -> void:
+	if _company_strip == null or _spirit_panel == null:
+		return
+	if _company_strip.field == null and battlefield != null:
+		_company_strip.field = battlefield
+	_company_strip.stood_down = _build_panel != null and _build_panel.visible and touch_ui()
+	_company_strip.offset_left = _spirit_panel.offset_left
+	_company_strip.offset_right = _spirit_panel.offset_right
+	var top: float = _spirit_panel.offset_top
+	if _spirit_panel.visible:
+		top += maxf(_spirit_panel.size.y, _spirit_panel.get_combined_minimum_size().y) + SPIRIT_PANEL_GAP
+	_company_strip.offset_top = top
+	_company_strip.offset_bottom = top + _company_strip.get_combined_minimum_size().y
+
+
 func _place_spirit_panel() -> void:
 	if _spirit_panel == null:
 		return

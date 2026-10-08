@@ -17,6 +17,7 @@ var _reached: Array[String] = []
 var _run: Run = null
 var _field: Battlefield = null
 var _hero_died: int = 0
+var _heard_who_came: bool = false
 
 
 func _ready() -> void:
@@ -26,12 +27,13 @@ func _ready() -> void:
 	MetaState.hero_level = 30
 	MetaState.mercenaries = []
 	MetaState.marks = 100000
+	# Hired and nothing else: a hire walks out with the next road unless it is
+	# kept home (2026-10-08), so no toggle is pressed here.
 	for index: int in 3:
 		MetaState.hire_mercenary(Mercenaries.offer("road:%d" % index, "Merc%d" % index, 30, RunState.tier()))
-	for row: Dictionary in MetaState.mercenaries:
-		MetaState.set_mercenary_taking(String(row["uid"]), true)
 	RunState.reset(false, 20261007)
 	GameDirector.run_active = true
+	EventBus.company_news.connect(_on_company_news)
 	_test_the_muster()
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(_run)
@@ -47,6 +49,7 @@ func _ready() -> void:
 	_field.town.health.floor_hp = _field.town.health.max_hp * 0.5
 	EventBus.hero_died.connect(func(_at: Vector2) -> void: _hero_died += 1)
 	_test_the_seats()
+	await _test_the_strip()
 	_test_the_road_counts_it()
 	await _test_it_fights()
 	_test_the_spoils()
@@ -54,8 +57,10 @@ func _ready() -> void:
 	await _test_it_talks()
 	await _test_the_party()
 	await _test_the_wounds()
+	_test_the_strip_after_the_bed()
 	_test_the_cut()
-	for stage: String in ["muster", "seats", "count", "fight", "spoils", "build", "talk", "party", "wounds", "cut"]:
+	for stage: String in ["muster", "seats", "strip", "count", "fight", "spoils", "build", "talk", "party",
+			"wounds", "inn line", "cut"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -72,6 +77,11 @@ func _ready() -> void:
 	else:
 		push_error("%s FAIL - %d of %d" % [TAG, _failures, _checks])
 	get_tree().quit(0 if _failures == 0 else 1)
+
+
+func _on_company_news(text: String) -> void:
+	if text.contains("out with you"):
+		_heard_who_came = true
 
 
 func _test_the_muster() -> void:
@@ -109,6 +119,66 @@ func _test_the_seats() -> void:
 		_check(body.input is MercenaryInput, "%s has somebody else's hands" % body.name)
 	_check(_field.hero != null and _field.hero.is_local_player(), "the Warden stopped being the player")
 	_reached.append("seats")
+
+
+## **The company at a glance** (2026-10-08): the HUD carries one line for each
+## mercenary that walked out, naming it, its order and its wounds, with a bar
+## that follows its health - and the road named who came.
+func _test_the_strip() -> void:
+	var hud: Node = _run.get("hud")
+	var strip := hud.get("_company_strip") as CompanyStrip if hud != null else null
+	_check(strip != null, "the HUD has no company readout")
+	if strip == null:
+		return
+	strip.refresh()
+	_check(strip.visible, "a company on the road is not shown on the HUD")
+	var bodies: Array[Hero] = _field.company.bodies()
+	for body: Hero in bodies:
+		var reading: Dictionary = strip.row_reading(body.mercenary_uid)
+		var name_now: String = String(RunState.company_row(body.mercenary_uid).get("name", ""))
+		_check(not reading.is_empty() and String(reading["text"]).begins_with(name_now),
+			"the company readout does not name %s (%s)" % [name_now, reading])
+		_check(not reading.is_empty() and String(reading["text"]).contains("Follow"),
+			"the company readout does not say %s's order" % name_now)
+		_check(not reading.is_empty() and String(reading["wounds"]) == "%d/%d" % [Balance.MERC_WOUNDS, Balance.MERC_WOUNDS],
+			"%s's wounds read %s" % [name_now, reading.get("wounds", "")])
+	if not bodies.is_empty():
+		var hurt: Hero = bodies[0]
+		# The readout reads health, never how it was lost: set it, because a body
+		# fresh on the road is still untouchable for a moment.
+		var whole: float = hurt.health.current_hp
+		hurt.health.current_hp = hurt.health.max_hp * 0.6
+		strip.refresh()
+		var after: Dictionary = strip.row_reading(hurt.mercenary_uid)
+		_check(not after.is_empty() and bool(after["bar"]) and float(after["ratio"]) < 0.9,
+			"a mercenary hurt by two fifths reads %s on its bar" % after.get("ratio", -1.0))
+		hurt.health.current_hp = whole
+	var rect: Rect2 = strip.get_global_rect()
+	var view: Rect2 = strip.get_viewport_rect()
+	_check(view.encloses(rect), "the company readout %s is off the screen %s" % [rect, view])
+	var spirit := hud.get("_spirit_panel") as Control
+	if spirit != null and spirit.visible:
+		_check(not spirit.get_global_rect().intersects(rect),
+			"the company readout lies over the spirit readout")
+	_check(_heard_who_came, "the road never said who walked out")
+	_reached.append("strip")
+
+
+func _test_the_strip_after_the_bed() -> void:
+	var hud: Node = _run.get("hud")
+	var strip := hud.get("_company_strip") as CompanyStrip if hud != null else null
+	if strip == null:
+		return
+	strip.refresh()
+	var carried: int = 0
+	for row: Dictionary in RunState.company:
+		if bool(row.get("out", false)):
+			var reading: Dictionary = strip.row_reading(String(row["uid"]))
+			_check(not reading.is_empty() and String(reading["text"]).contains("inn") and not bool(reading["bar"]),
+				"a mercenary carried off reads %s" % reading)
+			carried += 1
+	_check(carried > 0, "nobody was carried off to read")
+	_reached.append("inn line")
 
 
 func _test_the_road_counts_it() -> void:

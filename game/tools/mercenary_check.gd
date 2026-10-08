@@ -102,6 +102,20 @@ func _test_hiring() -> void:
 	_check(MetaState.mercenaries.size() == Balance.MERC_ROSTER_MAX, "the company did not fill to its cap")
 	_check(not MetaState.hire_mercenary(Mercenaries.offer("yard:4", "Fen", 40, RunState.tier())),
 		"a fourth was hired past the cap")
+	# **A hire walks out unless kept home** (owner, 2026-10-08: "my mercenaries
+	# did not join me on the battlefield" - a hire stayed home until a toggle at
+	# the Inn said otherwise, while the hire itself said it would walk with you).
+	var fresh_uid: String = String(MetaState.mercenaries[0]["uid"])
+	_check(_coming(fresh_uid), "a fresh hire does not walk out with the next road")
+	_check(MetaState.set_mercenary_taking(fresh_uid, false) and not _coming(fresh_uid),
+		"a mercenary kept home still walks out")
+	_check(MetaState.set_mercenary_taking(fresh_uid, true) and _coming(fresh_uid),
+		"a mercenary sent again still stays home")
+	var written_before: Dictionary = (MetaState.mercenaries[0] as Dictionary).duplicate(true)
+	written_before.erase("home")
+	written_before["taking"] = false
+	_check(not bool(Mercenaries.clean(written_before).get("home", true)),
+		"a hire saved before the default changed reads as staying home")
 	# Seats: alone, every one may come.
 	for row: Dictionary in MetaState.mercenaries:
 		_check(MetaState.set_mercenary_taking(String(row["uid"]), true), "a ready mercenary could not be taken")
@@ -110,13 +124,20 @@ func _test_hiring() -> void:
 	_reached.append("hire")
 
 
+func _coming(uid: String) -> bool:
+	for row: Dictionary in MetaState.mercenaries_taking():
+		if String(row.get("uid", "")) == uid:
+			return true
+	return false
+
+
 func _test_the_bed() -> void:
 	var row: Dictionary = MetaState.mercenaries[0]
 	var uid: String = String(row["uid"])
 	MetaState.send_mercenary_to_bed(uid)
 	_check(String(row["state"]) == Mercenaries.STATE_RESTING, "a third wound did not put it in a bed")
 	_check(int(row["bill"]) == Mercenaries.bill(row), "the bill is not its level's bill")
-	_check(not bool(row["taking"]), "a mercenary in a bed is still coming")
+	_check(not _coming(uid), "a mercenary in a bed is still coming")
 	_check(not MetaState.mercenary_ready(uid), "a mercenary in a bed may take the road")
 	_check(not MetaState.set_mercenary_taking(uid, true), "a mercenary in a bed was taken")
 	MetaState.marks = int(row["bill"]) * 3

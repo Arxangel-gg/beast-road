@@ -13038,6 +13038,12 @@ const MINIMAP_OVERLAY_OPACITY: float = 0.42
 ## floor keeps a map that is on from vanishing, and the ceiling keeps the fight
 ## under it the fight. [TUNE]
 const MINIMAP_OVERLAY_OPACITY_MIN: float = 0.10
+## **The company at a glance** (2026-10-08): how often the HUD's company lines
+## are painted, how wide each one's health bar is, and how long after the road
+## names who came it names who stayed home. A readout. [TUNE]
+const COMPANY_STRIP_HZ: float = 6.0
+const COMPANY_STRIP_BAR_WIDTH: float = 70.0
+const COMPANY_NEWS_GAP: float = 3.2
 const MINIMAP_OVERLAY_OPACITY_MAX: float = 0.85
 const MINIMAP_FRAME_THICK: float = 3.0
 const MINIMAP_FRAME_INNER: Color = Color(0.34, 0.29, 0.2, 0.9)

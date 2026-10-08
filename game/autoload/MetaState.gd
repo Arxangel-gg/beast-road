@@ -3701,12 +3701,13 @@ func taking_problem(uid: String) -> String:
 		return "Not while a road is under way."
 	if not mercenary_ready(uid):
 		return "Still resting at the inn."
-	if not bool(row.get("taking", false)) and mercenaries_taking().size() >= mercenary_seats():
+	if bool(row.get("home", false)) and mercenaries_taking().size() >= mercenary_seats():
 		return "No seat left for another."
 	return ""
 
 
-## Marks a mercenary to walk out with the next road, or keeps it home.
+## Marks a mercenary to walk out with the next road, or keeps it home. A hire
+## walks out unless it is kept home (2026-10-08).
 func set_mercenary_taking(uid: String, on: bool) -> bool:
 	var row: Dictionary = mercenary(uid)
 	if row.is_empty():
@@ -3715,7 +3716,7 @@ func set_mercenary_taking(uid: String, on: bool) -> bool:
 		return false
 	if not on and RunState.road_is_live():
 		return false
-	row["taking"] = on
+	row["home"] = not on
 	save_game()
 	return true
 
@@ -3731,7 +3732,7 @@ func mercenaries_taking() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var now: float = Time.get_unix_time_from_system()
 	for row: Dictionary in mercenaries:
-		if not bool(row.get("taking", false)) or not Mercenaries.is_ready(row, now):
+		if bool(row.get("home", false)) or not Mercenaries.is_ready(row, now):
 			continue
 		out.append(row)
 		if out.size() >= mercenary_seats():
@@ -3747,7 +3748,6 @@ func send_mercenary_to_bed(uid: String) -> void:
 	row["state"] = Mercenaries.STATE_RESTING
 	row["bill"] = Mercenaries.bill(row)
 	row["rest_until"] = Time.get_unix_time_from_system() + Balance.MERC_REST_SECONDS
-	row["taking"] = false
 	save_game()
 
 

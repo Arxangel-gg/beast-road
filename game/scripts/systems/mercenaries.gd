@@ -54,7 +54,7 @@ static func offer(who: String, display: String, warden_level: int, tier: Campaig
 		"state": STATE_READY,
 		"rest_until": 0.0,
 		"bill": 0,
-		"taking": false,
+		"home": false,
 	}
 
 
@@ -217,5 +217,9 @@ static func clean(stored: Variant) -> Dictionary:
 		"state": state,
 		"rest_until": maxf(0.0, float(row.get("rest_until", 0.0))),
 		"bill": clampi(int(row.get("bill", 0)), 0, 1000000),
-		"taking": bool(row.get("taking", false)),
+		# **A hire walks out unless kept home** (owner, 2026-10-08: "my
+		# mercenaries did not join me on the battlefield"). The old `taking`
+		# flag defaulted to staying home and is not read: every row written
+		# before this comes, which is what hiring one was always said to mean.
+		"home": bool(row.get("home", false)),
 	}

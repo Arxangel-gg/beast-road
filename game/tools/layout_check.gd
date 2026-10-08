@@ -117,6 +117,14 @@ func _ready() -> void:
 	MetaState.mounts = [MOUNT]
 	MetaState.mount_saddled = MOUNT
 	RunState.reset()
+	# **And a company of three walked out with the road** (2026-10-08), for the
+	# spirit's reason: the company readout draws only with one, and the map and
+	# the sheets hang under it. Long names, because a name is what it clips.
+	var names: PackedStringArray = ["Ashwyn Greycloak", "Rue of the Low Fen", "Torvald Emberhand"]
+	for index: int in names.size():
+		RunState.company.append({"uid": "layout-%d" % index, "name": names[index],
+			"slot": index + 2, "master": 1, "remote": false, "wounds": Balance.MERC_WOUNDS,
+			"purse": 0, "spoils": 0.0, "earned": 0, "out": false})
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
 	var run: Node = load("res://scenes/run/run.tscn").instantiate()
@@ -148,6 +156,12 @@ func _ready() -> void:
 	var hud_node: Node = run.get("hud")
 	if hud_node != null and hud_node.has_method("say"):
 		hud_node.call("say", "A Herald runs for the gate. Only you can stop it.")
+	# The company readout must be drawn, or this gate measured its absence.
+	var strip := hud_node.get("_company_strip") as CompanyStrip if hud_node != null else null
+	if strip != null:
+		strip.refresh()
+	if strip == null or not strip.visible or strip.get_child_count() != 3:
+		_failures.append("the company readout is not on the screen with three mercenaries on the road")
 	for _f: int in 3:
 		await get_tree().process_frame
 	var resting: Array[Control] = _visible_widgets()

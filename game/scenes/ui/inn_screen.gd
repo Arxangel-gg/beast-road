@@ -192,7 +192,7 @@ func _company_row(row: Dictionary) -> Control:
 		pay.pressed.connect(func() -> void: _pay(uid))
 		buttons.add_child(pay)
 	elif not resting:
-		var taking: bool = bool(row.get("taking", false))
+		var taking: bool = not bool(row.get("home", false))
 		var take := _button("Coming" if taking else "Stays home", "Take")
 		take.toggle_mode = true
 		take.button_pressed = taking
@@ -287,7 +287,8 @@ func _gear_line(row: Dictionary) -> String:
 func _hire(offer: Dictionary) -> void:
 	if MetaState.hire_mercenary(offer):
 		UiSound.confirm()
-		_result.text = "%s takes your Marks and your hand. They will walk with you." % String(offer.get("name", ""))
+		_result.text = "%s takes your Marks and your hand, and walks out with your next road for %d a road." % [
+			String(offer.get("name", "")), Mercenaries.contract(offer)]
 	else:
 		UiSound.deny()
 		_result.text = MetaState.hire_problem(offer)
