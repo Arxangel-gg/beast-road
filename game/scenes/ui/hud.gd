@@ -4429,6 +4429,13 @@ func _build_spirit_panel() -> void:
 	# the theme's own would push the readout past its column.
 	_slim(_spirit_button)
 	_slim(_spirit_order_button)
+	# **And they share it rather than ask for it.** On a thumb the touch pass
+	# grows their type, and two buttons sized by their words wanted 291 of the
+	# readout's 240 - the order button went over the scope column at both phone
+	# shapes. Clipped and filling, they split whatever the column gives.
+	for button: Button in [_spirit_button, _spirit_order_button]:
+		button.clip_text = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_refresh_spirit_order()
 	EventBus.spirit_downed.connect(func(_key: String, seconds: float) -> void:
 		_spirit_clock_left = seconds
@@ -7641,7 +7648,8 @@ func _refresh_spirit_button() -> void:
 		return
 	_refresh_spirit_order()
 	if RunState.spirit_called:
-		_spirit_button.text = "Send home"
+		# Half the readout's width on a thumb, beside the order: the short word.
+		_spirit_button.text = "Home" if touch_ui() else "Send home"
 		_spirit_button.tooltip_text = "Your spirit stops eating and leaves the field."
 	else:
 		_spirit_button.text = "Call  ·  %d Food" % Balance.COMPANION_CALL_COST
