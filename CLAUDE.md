@@ -15169,6 +15169,34 @@ with their line continuations eaten - the recorded lesson - and each was put
 back with `chr(92)`. Write a continuation with the Edit tool, or build the
 backslash, never type it into a heredoc.
 
+**The Saboteur mark, as of 2026-10-07** (the triage's adapted "sabotage
+enemies": a mark that goes for a well or a trap rather than the wall, beside
+siege orders). `EnemyAffixData.sabotage`, from Act III, on its own medallion
+(PixelLab, styled on the shipped Leeching one with its palette off).
+
+**It goes for the board's helpers.** A saboteur chooses the nearest well or
+support tower of its lane (`Battlefield.helper_in_lane`) before anything else
+it would have chosen on the road, and falls back to the ordinary choice when
+its lane has none. Siege orders go for the nearest structure; this is the other
+answer to a board that plays itself, aimed at what the board leans on rather
+than what it shoots with.
+
+**It takes a trap apart rather than springing it**: one charge spent with no
+bite and a grey fizzle (`Trap.disarm_by`), **once a saboteur a trap** - so one
+standing in a pit cannot drain it and a column cannot strip a road in a frame -
+and a trap an ordinary body springs does not bite a saboteur standing in it.
+Shape, never size: its blow is the blow it always had, and `curve_report`, which
+reads a mark's `health_scale`, reads one.
+
+`saboteur_check` (21, both bars) stands the real field: a saboteur nearer a gun
+than a well goes for the well, an unmarked body does not and a sieging one takes
+the gun; a trap loses one charge to it and no health is taken; a second saboteur
+takes its own; and an ordinary body springs it while a saboteur beside it is
+spared. Three faults were planted and named - **the third passed first**,
+because with only saboteurs in a trap the trap never fires, so the bite-skip is
+only ever reached when an ordinary body springs it with a saboteur beside it.
+**A guard is tested in the case it guards**, not the case beside it.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

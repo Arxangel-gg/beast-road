@@ -1641,6 +1641,23 @@ func vulnerable_tower_in_lane(lane: int, from: Vector2) -> Node2D:
 	return nearest
 
 
+## **What a saboteur goes for** (2026-10-07): the nearest well or support tower
+## of its lane that can be hurt - the board's helpers rather than its guns.
+func helper_in_lane(lane: int, from: Vector2) -> Node2D:
+	var nearest: Tower = null
+	var nearest_squared: float = INF
+	for built: Tower in all_towers():
+		if built.lane() != lane or not built.is_vulnerable() or built.data == null:
+			continue
+		if not built.data.is_well() and not built.data.is_support():
+			continue
+		var distance_squared: float = built.global_position.distance_squared_to(from)
+		if distance_squared < nearest_squared:
+			nearest = built
+			nearest_squared = distance_squared
+	return nearest
+
+
 func lane_pressure(lane: int) -> float:
 	return _pressure[lane] if lane >= 0 and lane < _pressure.size() else 0.0
 

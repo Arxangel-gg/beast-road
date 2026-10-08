@@ -111,10 +111,20 @@ func _physics_process_measured(delta: float) -> void:
 	if _sense_left > 0.0:
 		return
 	_sense_left = 1.0 / Balance.TRAP_SENSE_HZ
+	var saboteurs: Array[Enemy] = []
 	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
 		# A Herald that has not called does not spring the board (2026-09-30).
-		if not enemy.is_dying() and not enemy.is_uncalled_herald():
-			fire()
+		if enemy.is_dying() or enemy.is_uncalled_herald():
+			continue
+		# A saboteur does not spring it: it takes it apart (2026-10-07).
+		if enemy.sabotages():
+			saboteurs.append(enemy)
+			continue
+		fire()
+		return
+	for saboteur: Enemy in saboteurs:
+		disarm_by(saboteur)
+		if _left <= 0:
 			return
 
 
@@ -137,6 +147,29 @@ func fire() -> void:
 			queue_free()
 
 
+## **Taken apart by a saboteur** (2026-10-07): one charge spent with no bite,
+## once a saboteur a trap, so a column of them cannot strip a road of traps in a
+## frame and one standing in it cannot drain it. Returns whether it took one.
+func disarm_by(saboteur: Enemy) -> bool:
+	if data == null or puppet or _left <= 0 or saboteur == null:
+		return false
+	var who: int = saboteur.get_instance_id()
+	if _disarmed_by.has(who):
+		return false
+	_disarmed_by[who] = true
+	_left -= 1
+	Vfx.spark(global_position, Color(0.62, 0.6, 0.55), 8, Vector2.UP, 120.0)
+	Vfx.dust(global_position, Color(0.5, 0.46, 0.4), 4, 18.0)
+	EventBus.trap_triggered.emit(tile, data.id, _left)
+	if _left <= 0:
+		RunState.clear_trap(tile)
+	return true
+
+
+## The saboteurs that have already taken a charge from this trap, by instance.
+var _disarmed_by: Dictionary = {}
+
+
 ## Everything the trap does to what stepped on it.
 ##
 ## Not scaled by hero damage, deliberately: a trap is the town's, not the hero's,
@@ -146,7 +179,7 @@ func _bite() -> void:
 	if field == null or not field.has_method("enemies_near"):
 		return
 	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
-		if enemy.is_dying() or enemy.is_uncalled_herald():
+		if enemy.is_dying() or enemy.is_uncalled_herald() or enemy.sabotages():
 			continue
 		if data.damage > 0.0:
 			DamageLedger.credit_as(DamageLedger.TRAP_PREFIX + data.id)

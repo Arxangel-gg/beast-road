@@ -452,6 +452,11 @@ func _frenzy() -> float:
 
 ## The largest value any worn affix contributes. Used where stacking would be
 ## absurd - two sources of resistance should not approach immunity.
+## Whether a mark it wears makes it a saboteur (2026-10-07).
+func sabotages() -> bool:
+	return _affix_best(&"sabotage") > 0.0
+
+
 func _affix_best(field_name: StringName) -> float:
 	var best: float = 0.0
 	for affix: EnemyAffixData in affixes:
@@ -2428,6 +2433,12 @@ func _choose_target() -> Node2D:
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
 	if taunt != null and is_instance_valid(taunt) and _taunted_by(taunt):
 		return taunt
+	# A saboteur goes for the board's helpers before anything else it would
+	# have chosen on the road (2026-10-07).
+	if sabotages():
+		var helper: Node2D = _field.helper_in_lane(lane, global_position)
+		if helper != null and is_instance_valid(helper):
+			return helper
 	if targets_towers():
 		var structure: Node2D = _field.vulnerable_tower_in_lane(lane, global_position)
 		if structure != null and is_instance_valid(structure):

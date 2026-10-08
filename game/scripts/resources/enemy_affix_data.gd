@@ -130,6 +130,12 @@ extends GameData
 ## split never splits again, wears no mark and drops nothing: what it carried
 ## was paid by the body it came from.
 @export_range(0, 3) var split_on_death: int = 0
+## **Saboteur** (triage of 2026-10-07, "a mark that goes for a well or a trap
+## rather than the wall"): it goes for the board's helpers - the wells and the
+## support towers of its lane - before the wall, and a trap it stands in is
+## disarmed rather than sprung, one charge spent with no bite, once a trap. The
+## shape of the fight, never its size: its blow is the blow it always had.
+@export var sabotage: bool = false
 
 
 func get_sprite_path() -> String:

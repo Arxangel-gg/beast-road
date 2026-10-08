@@ -2918,7 +2918,7 @@ All 128×128, type T, placeholder colour `#8A6A3A`.
 `affix_ironbanner.png` · `affix_ironhide.png` · `affix_lastrites.png` ·
 `affix_leeching.png` · `affix_marrowfed.png` · `affix_mirrorhide.png` ·
 `affix_oathbound_mark.png` · `affix_packbound.png` · `affix_riftsick.png` ·
-`affix_rimewarded.png` · `affix_riven.png` · `affix_sootlung.png` ·
+`affix_rimewarded.png` · `affix_riven.png` · `affix_saboteur.png` · `affix_sootlung.png` ·
 `affix_sporebound.png` · `affix_stonecoat.png` · `affix_stormbound.png` ·
 `affix_swiftfoot.png` · `affix_tidecaller.png` · `affix_tollbearer.png` ·
 `affix_volatile.png` · `affix_warded.png` · `affix_warhorned.png`

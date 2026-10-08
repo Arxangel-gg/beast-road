@@ -106,6 +106,11 @@ func vulnerable_tower_in_lane(_lane: int, _from: Vector2) -> Node2D:
 	return null
 
 
+## What a saboteur goes for (2026-10-07): only the battlefield has helpers.
+func helper_in_lane(_lane: int, _from: Vector2) -> Node2D:
+	return null
+
+
 ## The barricade an enemy is about to walk into, if any.
 ##
 ## Asked with a **heading**, not a lane, and that correction is the whole reason
