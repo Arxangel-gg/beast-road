@@ -1489,8 +1489,9 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		if _tick_hostile(animal, sprite, kind, delta):
 			return true
 
-	# **Carrion** (2026-10-07): an animal that eats the dead goes to them.
-	if kind.scavenges and _feeding != null and _is_authority_or_alone():
+	# **Carrion** (2026-10-07): an animal that eats the dead goes to them - and
+	# a hunter that would not mind a fresh one (2026-10-08).
+	if WildlifeFeeding.eats_the_dead(kind) and _feeding != null and _is_authority_or_alone():
 		if _feeding.tick(animal, sprite, kind, delta):
 			return true
 

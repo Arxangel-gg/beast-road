@@ -12057,6 +12057,55 @@ const FEED_CARRY_SCALE: float = 1.1
 const FEED_YIELD_RATIO: float = 1.6
 const FEED_FIGHT_SECONDS: float = 1.4
 const FEED_FIGHT_SHARE: float = 0.6
+
+## **Manners at a carcass** (owner, 2026-10-08: "Some may eat peacefully
+## together, some may feel territorial and try to protect the food for
+## themselves including other nearby ones to eat later, and so will fight other
+## wildlife that tries to come to eat as well, with both wildlife creatures
+## then potentially challenging each other if one or the other doesn't back
+## off, and then fighting to either test and size up each others strengths a
+## bit or to try to scare the other off, or may even decide to fight to the
+## death over it, and or fleeing before death").
+##
+## - **Who eats**: a scavenger smells any corpse; a hunter that is not one
+##   (`OPPORTUNIST`) takes a fresh one inside `OPPORTUNIST_SCENT` of the
+##   scavenger's reach - it would not mind.
+## - **Sharing or guarding**, decided as it comes to a meal: a guard chance by
+##   temperament (`GUARD_PREDATORY`, `GUARD_TERRITORIAL`, `GUARD_MEEK`). Two
+##   that share eat side by side. A guard holds its carcass and every corpse
+##   within `HOARD_REACH` of it - the ones it will eat later - against anything
+##   that comes within `GUARD_REACH`.
+## - **The stand-off**: the two face each other for `CHALLENGE_SECONDS`, then
+##   each may back off - `BACKOFF` at an even match, likelier the more it is
+##   outclassed and `SHARER_BACKOFF` times likelier for one that only came to
+##   share. One backing off yields; neither backing off is a fight.
+## - **The fight's intent**, rolled by temperament (`INTENT_PROUD`,
+##   `INTENT_MEEK`, as spar, scare and death): a **spar** trades
+##   `SPAR_BLOWS` light blows (`SPAR_SCALE`) and whoever is the more hurt
+##   yields; a **scare** fights until one is down to `SCARE_SHARE` of its pool
+##   and runs; a fight **to the death** hits `DEATH_SCALE` harder and stops when
+##   one dies - though under `FLEE_HEALTH` of its pool either may still run, on
+##   `FLEE_CHANCE` a second.
+##
+## Every blow goes through the cycle's own door: nobody is paid and the earth
+## does not mind. Host only, a look and an ecology. [TUNE]
+const FEED_OPPORTUNIST_SCENT: float = 0.45
+const FEED_GUARD_PREDATORY: float = 0.55
+const FEED_GUARD_TERRITORIAL: float = 0.75
+const FEED_GUARD_MEEK: float = 0.15
+const FEED_GUARD_REACH: float = 150.0
+const FEED_HOARD_REACH: float = 160.0
+const FEED_CHALLENGE_SECONDS: float = 1.6
+const FEED_BACKOFF: float = 0.35
+const FEED_SHARER_BACKOFF: float = 1.6
+const FEED_INTENT_PROUD: Array[float] = [0.35, 0.45, 0.2]
+const FEED_INTENT_MEEK: Array[float] = [0.6, 0.4, 0.0]
+const FEED_SPAR_BLOWS: int = 4
+const FEED_SPAR_SCALE: float = 0.4
+const FEED_SCARE_SHARE: float = 0.5
+const FEED_DEATH_SCALE: float = 1.6
+const FEED_FLEE_HEALTH: float = 0.3
+const FEED_FLEE_CHANCE: float = 0.5
 ## The largest fraction any single affix may move a scaled key by. The gate
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12

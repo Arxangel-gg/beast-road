@@ -33,6 +33,7 @@ func _ready() -> void:
 	await _test_the_shove()
 	_test_the_bite_and_the_cap()
 	_test_the_earth_takes_the_dead()
+	_test_manners_at_a_carcass()
 	await _test_the_road()
 	if held_blood == null:
 		MetaState.settings.erase(UserSettings.BLOOD_LEVEL_KEY)
@@ -43,7 +44,7 @@ func _ready() -> void:
 	else:
 		MetaState.settings[UserSettings.BLOOD_VFX_KEY] = held_switch
 	for stage: String in ["paintings", "ways", "throw", "rot", "flies", "bones", "shove", "bite",
-			"earth", "road"]:
+			"earth", "manners", "road", "bouts"]:
 		_check(_reached.has(stage), "'%s' never reached its end - a runtime error stopped it" % stage)
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -68,6 +69,95 @@ func _ready() -> void:
 ## not about the disaster: some are taken and some are left, the way each
 ## takes is its own, a smaller corpse goes before a larger, and what is not in
 ## reach is never touched.
+## **Manners at a carcass, played out** (owner, 2026-10-08): two wolves that
+## share eat side by side; a guard and a rival have it out and one goes; and a
+## fight to the death ends with the hurt one fleeing or dead.
+func _test_bouts_on_the_field(field: Battlefield, animals: Wildlife, wolf_kind: WildlifeData,
+		spot: Vector2) -> void:
+	var feeding: WildlifeFeeding = animals.get("_feeding") as WildlifeFeeding
+	_check(feeding != null, "the wildlife has no appetite")
+	if feeding == null or wolf_kind == null:
+		_reached.append("bouts")
+		return
+	animals.clear()
+	field.corpses.corpses().clear()
+	var feast: Dictionary = field.corpses.lay(spot + Vector2(0.0, -260.0), spot + Vector2(0.0, -270.0), 60.0)
+	feast["vel"] = Vector2.ZERO
+	feast["vy"] = 0.0
+	feast["height"] = 0.0
+	var pair: Array[Dictionary] = []
+	for side: float in [-18.0, 18.0]:
+		# Two males, kept from courting: a pair of the other sex court and
+		# a courting animal does nothing else.
+		var wolf: Dictionary = animals.spawn_born(wolf_kind, (feast["at"] as Vector2) + Vector2(side, 0.0),
+			{"stage": WildlifeFamilies.Stage.ADULT, "rarity": 0, "sex": WildlifeFamilies.Sex.MALE})
+		if wolf.is_empty():
+			continue
+		wolf["court_cooldown"] = INF
+		wolf["meal"] = feast
+		wolf["feeding"] = true
+		wolf["state"] = Wildlife.State.SETTLED
+		wolf["patience"] = 9999.0
+		wolf["feed_mood"] = WildlifeFeeding.Mood.SHARE
+		pair.append(wolf)
+	_check(pair.size() == 2, "the harness could not place two wolves")
+	if pair.size() < 2:
+		_reached.append("bouts")
+		return
+	await _wait(2.5)
+	_check(pair[0].get("meal", {}) == feast and pair[1].get("meal", {}) == feast
+		and (pair[0].get("bout", {}) as Dictionary).is_empty() and int(pair[0].get("bites", 0)) > 0
+		and int(pair[1].get("bites", 0)) > 0, "two wolves that share did not eat side by side")
+	# A guard: they have it out, and one goes.
+	pair[0]["feed_mood"] = WildlifeFeeding.Mood.GUARD
+	feeding.set("_dice", _seeded(41))
+	var had: int = 0
+	for value: Variant in feeding.bouts.values():
+		had += int(value)
+	var settled: bool = false
+	var started: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 20000:
+		var now: int = 0
+		for value: Variant in feeding.bouts.values():
+			now += int(value)
+		if now > had:
+			settled = true
+			break
+		await get_tree().process_frame
+	_check(settled, "a guard and a rival at one carcass never had it out (%s)" % [feeding.bouts])
+	var holding: int = 0
+	for wolf: Dictionary in pair:
+		holding += 1 if wolf.get("meal", {}) == feast else 0
+	_check(settled and holding <= 1, "after a stand-off both wolves still hold the carcass")
+	# To the death: the hurt one runs before it dies, or dies.
+	for wolf: Dictionary in pair:
+		wolf["meal"] = feast
+		wolf["feeding"] = true
+		wolf["state"] = Wildlife.State.SETTLED
+		wolf["feed_mood"] = WildlifeFeeding.Mood.GUARD
+		wolf.erase("bout")
+	pair[1]["hp"] = Wildlife.pool_of(pair[1]) * 0.4
+	feeding.call("_begin_bout", pair[0], pair[1], wolf_kind)
+	var bout: Dictionary = pair[0].get("bout", {}) as Dictionary
+	bout["intent"] = WildlifeFeeding.Intent.DEATH
+	bout["stage"] = WildlifeFeeding.Stage.FIGHT
+	var before: Dictionary = feeding.bouts.duplicate()
+	started = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 20000 and not (pair[0].get("bout", {}) as Dictionary).is_empty():
+		await get_tree().process_frame
+	var ended: String = ""
+	for key: Variant in feeding.bouts:
+		if int(feeding.bouts[key]) > int(before.get(key, 0)):
+			ended = String(key)
+	_check(ended == "death:fled" or ended == "death:won",
+		"a fight to the death ended as '%s'" % ended)
+	_check(int(pair[0].get("fought", 0)) + int(pair[1].get("fought", 0)) > 0,
+		"a fight to the death landed no blows")
+	animals.clear()
+	field.corpses.corpses().clear()
+	_reached.append("bouts")
+
+
 func _test_the_earth_takes_the_dead() -> void:
 	# A quake's crest: thrown up, bones shattered, a carcass swallowed.
 	var field: CorpseField = _bare_field()
@@ -166,6 +256,50 @@ func _test_the_earth_takes_the_dead() -> void:
 	_check(field.count() == leaving - torn, "%d corpses torn apart are still on the ground"
 		% (field.count() - (leaving - torn)))
 	_reached.append("earth")
+
+
+## **Manners at a carcass, as rules** (owner, 2026-10-08): who eats the dead,
+## who guards and who shares by temperament, what a fight is for, and who backs
+## off a stand-off - each measured over two thousand rolls rather than read.
+func _test_manners_at_a_carcass() -> void:
+	var hunter: WildlifeData = null
+	var meek: WildlifeData = null
+	for value: Variant in ContentDB.wildlife_kinds.values():
+		var kind := value as WildlifeData
+		if kind == null:
+			continue
+		if hunter == null and not kind.scavenges and kind.temperament == WildlifeData.Temperament.PREDATORY:
+			hunter = kind
+		if meek == null and not kind.scavenges and kind.temperament == WildlifeData.Temperament.PASSIVE:
+			meek = kind
+	_check(hunter != null and WildlifeFeeding.eats_the_dead(hunter),
+		"a hunter that is no scavenger would not take a fresh kill")
+	_check(meek != null and not WildlifeFeeding.eats_the_dead(meek), "a grazer eats the dead")
+	var dice: RandomNumberGenerator = _seeded(31)
+	for pair: Array in [[WildlifeData.Temperament.PREDATORY, Balance.FEED_GUARD_PREDATORY],
+			[WildlifeData.Temperament.TERRITORIAL, Balance.FEED_GUARD_TERRITORIAL],
+			[WildlifeData.Temperament.CAUTIOUS, Balance.FEED_GUARD_MEEK]]:
+		var probe := WildlifeData.new()
+		probe.temperament = int(pair[0])
+		var guards: int = 0
+		for _roll: int in 2000:
+			guards += 1 if WildlifeFeeding.roll_mood(probe, dice) == WildlifeFeeding.Mood.GUARD else 0
+		_check(absf(float(guards) / 2000.0 - float(pair[1])) < 0.04,
+			"temperament %d guarded %.0f%% of meals against %.0f%%"
+				% [int(pair[0]), float(guards) / 20.0, float(pair[1]) * 100.0])
+		var intents: Array[int] = [0, 0, 0]
+		for _roll: int in 2000:
+			intents[WildlifeFeeding.roll_intent(probe, dice)] += 1
+		if int(pair[0]) == WildlifeData.Temperament.CAUTIOUS:
+			_check(intents[WildlifeFeeding.Intent.DEATH] == 0, "a meek animal fought to the death over food")
+		else:
+			_check(intents[WildlifeFeeding.Intent.DEATH] > 200 and intents[WildlifeFeeding.Intent.SPAR] > 400,
+				"a proud animal's fights were %s spar, scare and death" % [intents])
+	_check(WildlifeFeeding.backoff_chance(100.0, 300.0, false) > WildlifeFeeding.backoff_chance(100.0, 100.0, false)
+		and WildlifeFeeding.backoff_chance(100.0, 100.0, true) > WildlifeFeeding.backoff_chance(100.0, 100.0, false)
+		and WildlifeFeeding.backoff_chance(1.0, 1000.0, true) <= 0.95,
+		"backing off a stand-off does not follow being outclassed and only sharing")
+	_reached.append("manners")
 
 
 func _quake_rate_check(shattered: int) -> int:
@@ -491,10 +625,14 @@ func _test_the_road() -> void:
 			bear["feeding"] = true
 			bear["state"] = Wildlife.State.SETTLED
 			bear["patience"] = 9999.0
+			# A bear that holds its carcass rather than one that shares it - a
+			# sharer lets an outclassed wolf eat beside it (2026-10-08).
+			bear["feed_mood"] = WildlifeFeeding.Mood.GUARD
 			_check(WildlifeFeeding.alpha_of(bear) > WildlifeFeeding.alpha_of(wolf) * Balance.FEED_YIELD_RATIO,
 				"the harness's bear does not outclass its wolf")
 			await _wait(1.0)
 			_check(int(wolf.get("yielded", 0)) > 0, "an outclassed wolf kept its place at a bear's carcass")
+	await _test_bouts_on_the_field(field, animals, wolf_kind, spot)
 	# **A heap calls for what eats it** (`WildlifeCarrion`): three dead call
 	# vultures down, a big heap past Act I may call its lord, one at a time, and
 	# nothing comes while the road is hushed or past the vultures' cap.
