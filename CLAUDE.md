@@ -15565,6 +15565,49 @@ under `FEED_FLEE_HEALTH`. Every blow is the cycle's. **Two adult wolves of the
 other sex court rather than eat**, which is the ecology working and cost the
 gate's first run - a courting animal does nothing else.
 
+**The owner's third list of 2026-10-08: on the edge, and a hired hand is a
+luxury.** The owner: *"Players should remain on the edge and need to be
+tactical and still for the most part barely get by ... everything in the game
+needs to feel balanced to maintain that feel."* What is a decision:
+
+- **A hired hand takes half of what the party is given.** `WardenSheet.borrowed`
+  is one for a player and `MERC_BORROWED_SHARE` for a mercenary, set when its
+  body wears its sheet: every bonus it reads off the party - relics, portents,
+  cards, the shared table - at half, its own gear whole. Its Arsenal deals,
+  wards, mends and slows at half (`Arsenal.borrowed`, `_slow_of`). It costs
+  about half again more (fee, contract, bill, cut), so it is a luxury bought at
+  a loss that helps a little.
+- **A hired hand answers an animal on it** (`MercenaryInput.wild_answer`, read
+  through `Wildlife.hunter_of`): whole, it fights to drive the animal off and
+  lets it go once it has taken `MERC_WILD_SCARE_SHARE` of its pool
+  (`Wildlife.scare_off`); hurt, it runs; a blighted animal, one sent after the
+  party, one that came back after it was driven off, and one it could not shake
+  in `MERC_WILD_CORNERED` are put down. It was already as targetable as a
+  Warden: both enemies and animals look for `Hero` bodies.
+- **The Arsenal gives less and reaches as far**: every blow through
+  `ARSENAL_POTENCY` (read by `hit_for`, a card's face and `curve_report`), every
+  ward and mend share through `ARSENAL_SHARE_POTENCY`, the catalysts' power,
+  haste and guard a quarter lower. Counts, jumps, reach and radius untouched.
+- **Heals and wards on a Warden are a fifth lighter** (`HERO_HEAL_SCALE`,
+  `HERO_WARD_SCALE`, folded into the pool's own heal and ward scales so every
+  source is reached by one number), and the blood arts' unscaled heals a further
+  fifth (`BLOOD_HEAL_SCALE`). **Slows leave a body walking**: `CHILL_SLOW_FLOOR`
+  0.34 to 0.44 and a slow's chill 0.42 to 0.35.
+- **Bodies a touch tougher, quicker, sharper-eyed and longer-armed**: health
+  1.12, speed 1.09, sight 2.2, aggro 220, melee arm 71, every shooter's reach
+  `ENEMY_RANGED_REACH_SCALE` past what it is authored.
+- **A hand of thirty**, rows of five on the leave-one-behind table; the HUD's
+  strip shows the first `ARSENAL_STRIP_MAX`, and the pause screen the whole hand.
+
+**Measured, and the first cut was a wall.** With all of it in, every road read
+about 9% past its band and Hell's Act X at 1.11. The towers took part of what
+the Arsenal lost (`TOWER_DAMAGE_SCALE` 1.30 to 1.40, `ARSENAL_POTENCY` 0.82 to
+0.88) and Hell's bodies came down a step (`hp_scale` 2.0 to 1.9). Every road
+passes its drafted band now, near its top - solo party means 0.563 new account,
+0.489 Long, 0.575 Iron, 0.616 Chainmaker's - which is where the owner asked the
+road to sit. `discipline_branch_check`'s Red Road scale was amended to carry
+`HERO_HEAL_SCALE`.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
