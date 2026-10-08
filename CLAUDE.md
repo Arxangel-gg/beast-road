@@ -15361,6 +15361,17 @@ toggle says "Home" on a thumb. **A width measured on a desktop says nothing
 about a thumb**: the phone shapes of `layout_check` are what caught it, and they
 are on both bars.
 
+**The trailer hears its keys first, as of 2026-10-08.** The release sweep caught
+Enter failing to skip it under load, with the saves held and a road left running.
+`_input` is called in **reverse tree order** - a descendant before its ancestor,
+a later root child before an earlier one - so the road the trailer films, which
+is the player's own descendant, heard the key first. `TrailerPlayer.KeyCatcher`
+is one node kept as the root's last child, called before everything, that hands
+the player every key; the chat also stands down while `TrailerPlayer.showing`.
+`trailer_check` presses Enter over a standing road and past a node that eats it,
+and with the catcher not kept last it names the sweep's whole cascade. **A node
+that must hear a key before a scene it owns cannot hear it in its own `_input`.**
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
