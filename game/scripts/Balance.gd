@@ -716,6 +716,19 @@ const ARSENAL_MODEL_TOWERS: int = 5
 ## A bolt's life before it fizzles, and the ground walked between trail patches.
 ## [TUNE]
 const ARSENAL_BOLT_LIFE: float = 2.4
+## **A spirit the eye can follow** (2026-10-08). It rises out of the body that
+## fell for `RISE` seconds, `RISE_HEIGHT` up, growing and brightening, then
+## hunts at `PACE` of its weapon's speed for up to `LIFE` seconds, drawn at
+## `SIZE` (half its width) and turning through its frames at `FPS`. A crow,
+## which bursts rather than hunts, wheels out of the body over `FLYOFF`.
+## Pictures and a pace: what a spirit strikes is the weapon's blow. [TUNE]
+const ARSENAL_SPIRIT_RISE: float = 0.45
+const ARSENAL_SPIRIT_RISE_HEIGHT: float = 54.0
+const ARSENAL_SPIRIT_PACE: float = 0.62
+const ARSENAL_SPIRIT_LIFE: float = 3.4
+const ARSENAL_SPIRIT_SIZE: float = 42.0
+const ARSENAL_SPIRIT_FPS: float = 9.0
+const ARSENAL_SPIRIT_FLYOFF: float = 1.1
 const ARSENAL_TRAIL_STEP: float = 72.0
 ## The Arsenal's drawing refreshes at this rate; its clocks run every frame.
 const ARSENAL_DRAW_HZ: float = 60.0

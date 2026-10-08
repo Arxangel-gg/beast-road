@@ -18,3 +18,4 @@ reach = 400.0
 speed = 480.0
 crowd = 1.0
 level_count = Array[int]([0, 0, 1, 1, 2])
+spirit = "marrow"

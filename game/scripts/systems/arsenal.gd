@@ -61,6 +61,7 @@ var _head_batches: Dictionary = {}
 var _shape_dice := RandomNumberGenerator.new()
 
 const HEAD_FORMAT: String = "res://art/vfx/projectile_%s.png"
+const SPIRIT_FORMAT: String = "res://art/vfx/spirit_%s.png"
 ## A shape laid on the ground: the camera looks down and slightly along.
 const GROUND: Vector2 = Vector2(1.0, 0.5)
 
@@ -839,16 +840,59 @@ func _fire_seekers(armed: Armed, from_points: Array[Vector2],
 			var heading: Vector2 = (Hitbox.body_of(target) - launch).normalized()
 			heading = heading.rotated(_dice.randf_range(-0.55, 0.55) \
 				+ (float(index) - float(count - 1) * 0.5) * 0.35)
+			if not weapon.spirit.is_empty():
+				_let_a_spirit_go(armed, launch, heading, target, index)
+				continue
 			_add_record({"kind": "bolt", "card": armed.card.id, "at": launch + heading * 18.0,
 				"velocity": heading * weapon.speed, "target": weakref(target),
 				"life": Balance.ARSENAL_BOLT_LIFE, "trail": PackedVector2Array([launch]),
 				"damage": hit_for(weapon, armed.level)})
 		fired = true
 		Vfx.spark(launch, weapon.tint, 4, Vector2.ZERO, 120.0)
+		if not weapon.spirit.is_empty():
+			_release_feel(weapon, launch)
 	return fired
 
 
+## **A spirit let go** (2026-10-08): a bolt record that rises out of the body
+## first, then hunts at a pace the eye can follow, drawn as its own painting.
+## The blow it carries is the bolt's, to the point.
+func _let_a_spirit_go(armed: Armed, launch: Vector2, heading: Vector2, target: Enemy,
+		index: int) -> void:
+	var weapon: ArsenalWeaponData = armed.weapon
+	var drift: Vector2 = Vector2(heading.x * 0.6, -1.0).normalized()
+	_add_record({"kind": "bolt", "card": armed.card.id, "at": launch,
+		"velocity": heading * weapon.speed * Balance.ARSENAL_SPIRIT_PACE, "target": weakref(target),
+		"life": Balance.ARSENAL_SPIRIT_LIFE, "trail": PackedVector2Array([launch]),
+		"damage": hit_for(weapon, armed.level), "spirit": true,
+		"rise": Balance.ARSENAL_SPIRIT_RISE, "drift": drift, "phase": float(index) * 1.7 + _dice.randf() * TAU})
+
+
+## What a spirit's leaving looks and sounds like where the body fell: a ring
+## of its colour opening on the ground, motes rising, and the summon's own call.
+func _release_feel(weapon: ArsenalWeaponData, at: Vector2) -> void:
+	Vfx.ring(at, 44.0, Color(weapon.tint, 0.85), 0.4, 3.0)
+	for mote: int in 5:
+		Vfx.mote(at + Vector2(_dice.randf_range(-16.0, 16.0), _dice.randf_range(-6.0, 6.0)),
+			Vector2(_dice.randf_range(-12.0, 12.0), _dice.randf_range(-70.0, -40.0)),
+			Color(weapon.tint, 0.9), _dice.randf_range(2.0, 3.6), _dice.randf_range(0.5, 0.9))
+	Sfx.play_at("sfx_companion_summon", at)
+
+
 func _tick_bolt(record: Dictionary, delta: float) -> bool:
+	if float(record.get("rise", 0.0)) > 0.0:
+		var rising: float = float(record["rise"])
+		record["rise"] = rising - delta
+		var lift: Vector2 = record.get("drift", Vector2.UP) as Vector2
+		var at_now: Vector2 = (record["at"] as Vector2) + lift \
+			* Balance.ARSENAL_SPIRIT_RISE_HEIGHT / Balance.ARSENAL_SPIRIT_RISE * delta
+		record["at"] = at_now
+		var rise_trail: PackedVector2Array = record["trail"] as PackedVector2Array
+		rise_trail.append(at_now)
+		while rise_trail.size() > 9:
+			rise_trail.remove_at(0)
+		record["trail"] = rise_trail
+		return true
 	var armed: Armed = _armed.get(record["card"], null) as Armed
 	var target: Enemy = (record["target"] as WeakRef).get_ref() as Enemy
 	var at: Vector2 = record["at"] as Vector2
@@ -1137,6 +1181,14 @@ func _burst_at(armed: Armed, at: Vector2) -> void:
 			strike_body(armed, enemy, hit, at)
 	Vfx.forge_play(weapon.effect if not weapon.effect.is_empty() else "burst",
 		at, blast * 2.0, weapon.tint)
+	# **A spirit that bursts rather than hunts is still seen leaving** (2026-10-08):
+	# it wheels once round the body at the burst's own reach and is gone. A
+	# picture: the blow above is the whole of what it does.
+	if not weapon.spirit.is_empty():
+		_add_record({"kind": "flyoff", "card": armed.card.id, "at": at, "radius": blast,
+			"life": Balance.ARSENAL_SPIRIT_FLYOFF, "full": Balance.ARSENAL_SPIRIT_FLYOFF,
+			"turn": 1.0 if _dice.randf() < 0.5 else -1.0, "phase": _dice.randf() * TAU})
+		_release_feel(weapon, at)
 
 
 # --- Arc ----------------------------------------------------------------------
@@ -1203,6 +1255,16 @@ func records() -> int:
 	return _records.size()
 
 
+## The records of one kind standing now, for a gate. The dictionaries themselves,
+## so a gate holding one watches it move.
+func records_of(kind: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for record: Dictionary in _records:
+		if String(record.get("kind", "")) == kind:
+			out.append(record)
+	return out
+
+
 func _tick_records(delta: float) -> void:
 	var kept: Array[Dictionary] = []
 	for record: Dictionary in _records:
@@ -1243,8 +1305,13 @@ func _draw() -> void:
 			continue
 		match String(record["kind"]):
 			"bolt":
-				_draw_head(armed.weapon, record["at"] as Vector2,
-					Balance.ARSENAL_BOLT_SIZE, (record["velocity"] as Vector2).angle())
+				if bool(record.get("spirit", false)):
+					_draw_spirit(armed.weapon, record)
+				else:
+					_draw_head(armed.weapon, record["at"] as Vector2,
+						Balance.ARSENAL_BOLT_SIZE, (record["velocity"] as Vector2).angle())
+			"flyoff":
+				_draw_flyoff(armed.weapon, record)
 			"strike":
 				_draw_strike_warning(armed.weapon, record)
 			"patch":
@@ -1339,6 +1406,77 @@ func _draw_patch(weapon: ArsenalWeaponData, record: Dictionary) -> void:
 			base + Vector2(dice.randf_range(-3.0, 3.0), -tall), ink)
 
 
+## Where a crow is along its wheel: out from the body, round it once at the
+## burst's reach and away upward, over its life.
+func flyoff_at(record: Dictionary) -> Vector2:
+	var done: float = 1.0 - float(record["life"]) / maxf(float(record["full"]), 0.01)
+	var turn: float = float(record.get("turn", 1.0))
+	var angle: float = float(record.get("phase", 0.0)) + turn * done * TAU * 0.85
+	var reach: float = float(record.get("radius", 60.0)) * (0.35 + done * 1.1)
+	return (record["at"] as Vector2) + Vector2.from_angle(angle) * reach * Vector2(1.0, 0.6) \
+		+ Vector2(0.0, -done * done * 180.0 - 30.0)
+
+
+func _draw_flyoff(weapon: ArsenalWeaponData, record: Dictionary) -> void:
+	var done: float = 1.0 - float(record["life"]) / maxf(float(record["full"]), 0.01)
+	var here: Vector2 = flyoff_at(record)
+	var ahead: Dictionary = record.duplicate()
+	ahead["life"] = maxf(float(record["life"]) - 0.05, 0.0)
+	var heading: Vector2 = flyoff_at(ahead) - here
+	var fade: float = clampf(minf(done * 6.0, (1.0 - done) * 4.0), 0.0, 1.0)
+	_paint_spirit(weapon.spirit, here, heading.angle(), Balance.ARSENAL_SPIRIT_SIZE,
+		fade, float(record.get("phase", 0.0)))
+
+
+func _draw_spirit(weapon: ArsenalWeaponData, record: Dictionary) -> void:
+	var rising: float = clampf(float(record.get("rise", 0.0)) / Balance.ARSENAL_SPIRIT_RISE, 0.0, 1.0)
+	var phase: float = float(record.get("phase", 0.0))
+	var bob: Vector2 = Vector2(0.0, sin(_clock * 7.0 + phase) * 3.0)
+	var heading: Vector2 = record["velocity"] as Vector2
+	if rising > 0.0:
+		heading = (record.get("drift", Vector2.UP) as Vector2).lerp(heading.normalized(), 1.0 - rising)
+	var fading: float = clampf(float(record["life"]) / 0.25, 0.0, 1.0)
+	_paint_spirit(weapon.spirit, (record["at"] as Vector2) + bob, heading.angle(),
+		Balance.ARSENAL_SPIRIT_SIZE * lerpf(1.0, 0.45, rising), (1.0 - rising * 0.6) * fading, phase)
+
+
+## One spirit's painting at `at`, turned onto `angle` and mirrored rather than
+## upside down when it flies west: every spirit is painted flying east.
+func _paint_spirit(spirit: String, at: Vector2, angle: float, half: float, alpha: float,
+		phase: float) -> void:
+	var frames: Array = spirit_frames(spirit)
+	if frames.is_empty():
+		_flat.disc(at, half * 0.5, Color(1.0, 1.0, 1.0, alpha))
+		return
+	var texture: Texture2D = frames[int((_clock + phase) * Balance.ARSENAL_SPIRIT_FPS) % frames.size()] as Texture2D
+	var batch: InkBatch = _head_batches.get(texture, null) as InkBatch
+	if batch == null:
+		batch = InkBatch.new()
+		_head_batches[texture] = batch
+	var aspect: float = float(texture.get_height()) / maxf(float(texture.get_width()), 1.0)
+	if cos(angle) < 0.0:
+		aspect = -aspect
+	batch.quad(at, half, angle, Color(1.0, 1.0, 1.0, alpha), aspect)
+
+
+## A spirit's frames: its painting and its idle loop, cached for the process.
+static func spirit_frames(spirit: String) -> Array:
+	if spirit.is_empty():
+		return []
+	var key: String = "spirit:" + spirit
+	if _heads.has(key):
+		return _heads[key] as Array
+	var frames: Array = []
+	var base: String = SPIRIT_FORMAT % spirit
+	if ResourceLoader.exists(base):
+		for frame: Texture2D in GameData.load_idle_frames(base):
+			frames.append(frame)
+		if frames.is_empty():
+			frames.append(load(base))
+	_heads[key] = frames
+	return frames
+
+
 func _frames_for(head: String) -> Array:
 	if head.is_empty():
 		return []
@@ -1384,9 +1522,14 @@ func paint_light(on: CanvasItem) -> void:
 		var tint: Color = armed.weapon.tint
 		match String(record["kind"]):
 			"bolt":
+				var spirit: bool = bool(record.get("spirit", false))
+				var size: float = Balance.ARSENAL_SPIRIT_SIZE * 0.7 if spirit else Balance.ARSENAL_BOLT_SIZE
 				_light.ribbon(record["trail"] as PackedVector2Array, Transform2D.IDENTITY,
-					Balance.ARSENAL_BOLT_SIZE * 0.9, tint, 0.0, 0.8)
-				_soft(on, record["at"] as Vector2, Balance.ARSENAL_BOLT_SIZE * 1.9, Color(tint, 0.5))
+					size * 0.9, tint, 0.0, 0.8)
+				_soft(on, record["at"] as Vector2, size * 1.9, Color(tint, 0.5))
+			"flyoff":
+				var fading: float = clampf(float(record["life"]) / maxf(float(record["full"]), 0.01) * 3.0, 0.0, 1.0)
+				_soft(on, flyoff_at(record), Balance.ARSENAL_SPIRIT_SIZE * 1.3, Color(tint, 0.4 * fading))
 			"chain":
 				var points: PackedVector2Array = record["points"] as PackedVector2Array
 				var fade: float = float(record["life"]) / maxf(float(record["full"]), 0.01)

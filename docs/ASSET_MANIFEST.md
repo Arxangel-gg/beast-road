@@ -5785,6 +5785,27 @@ its own wingbeat; every hostile one strikes on five frames.
 | `wildlife_stingfly_swarm_idle_03.png` | 64×64 | T | `#5A4E3A` |
 | `wildlife_stingfly_swarm_idle_04.png` | 64×64 | T | `#5A4E3A` |
 
+### 5.37e Arsenal spirits — `res://art/vfx/`
+
+What the four spirit cards of the Arsenal let go when a body falls near them
+(2026-10-08): a flame, a skull-headed ghost, a frost wraith and a crow of wind,
+each drawn flying east so the game turns it onto its heading and mirrors it to
+fly west. PixelLab Pro Flash, each card's own art as the style image; the idle
+frames are the clean frames of a pinned loop, the ones where the animator
+painted nothing ahead of the face. All 128x128, type T, placeholder colour `#9FC8E0`.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `spirit_pyre.png` | 128×128 | T | `#F07A2A` |
+| `spirit_marrow.png` | 128×128 | T | `#9FE0D0` |
+| `spirit_wraith.png` | 128×128 | T | `#A9C8F0` |
+| `spirit_crow.png` | 128×128 | T | `#3A3E52` |
+
+Files: `spirit_pyre_idle_01.png` … `spirit_pyre_idle_02.png`
+Files: `spirit_marrow_idle_01.png` … `spirit_marrow_idle_02.png`
+Files: `spirit_wraith_idle_01.png` … `spirit_wraith_idle_02.png`
+Files: `spirit_crow_idle_01.png` … `spirit_crow_idle_05.png`
+
 ## 6. Subject prompts
 
 Drop each `SUBJECT` into the matching stem from §3.

@@ -81,12 +81,13 @@ func _ready() -> void:
 	await _test_the_elements_react()
 	await _test_every_weapon_lands()
 	await _test_a_chain_reaction_ends()
+	await _test_the_spirits_are_seen()
 	await _test_it_freezes_with_the_field()
 	await _test_the_defence()
 	_test_the_dice_are_the_runs()
 
 	for stage: String in ["authored", "deal", "seats", "formula", "reacts", "lands", "ends",
-			"freezes", "defence"]:
+			"spirits", "freezes", "defence"]:
 		_check(_reached.has(stage),
 			"'%s' never reached its end - it aborted partway, and every check it had not made is unmade" % stage)
 	_hold([])
@@ -895,6 +896,89 @@ func _test_a_chain_reaction_ends() -> void:
 	await _clear_the_field()
 	_hold([])
 	_reached["ends"] = true
+
+
+## **A spirit is seen** (owner, 2026-10-08: "some arsenal/augments give spirits
+## ... I have not seen any such thing happen"). It was a fourteen-unit head gone
+## in half a second. Every spirit card's painting and loop load; a spirit rises
+## out of the body that fell before it hunts, strikes nothing while it rises,
+## then lands on the next body; and a crow, which bursts rather than hunts, is
+## seen wheeling out of the body it came from.
+func _test_the_spirits_are_seen() -> void:
+	for id: String in ["pyre_spirits", "marrow_seekers", "frost_wraiths", "watchfire_crows"]:
+		var spirit_weapon: ArsenalWeaponData = ContentDB.arsenal_weapon(id)
+		_check(spirit_weapon != null and not spirit_weapon.spirit.is_empty(), "%s lets no spirit go" % id)
+		if spirit_weapon != null:
+			var frames: int = Arsenal.spirit_frames(spirit_weapon.spirit).size()
+			_check(frames >= 3, "%s's spirit has %d frames to fly on" % [id, frames])
+	var breed: EnemyData = ContentDB.enemy(BREED)
+	if _field == null or _hero == null or breed == null:
+		return
+	await _clear_the_field()
+	for anchor: Variant in RunState.towers.keys():
+		RunState.clear_tower(anchor as Vector2i)
+	var weapon: ArsenalWeaponData = ContentDB.arsenal_weapon("pyre_spirits")
+	var where: Vector2 = _stand_for(weapon, [])
+	_hold(["pyre_spirits"], 1)
+	var arsenal: Arsenal = _hero.arsenal
+	await get_tree().process_frame
+	# Well clear of the Warden, so a spirit leaving the body cannot be mistaken
+	# for one leaving the Warden.
+	var fodder: Array[Enemy] = _crowd(breed, where + Vector2(0.0, 300.0), 1, 0.0, 0.01)
+	var prey: Array[Enemy] = _crowd(breed, where + Vector2(220.0, 300.0), 1, 0.0, 1.0)
+	_check(fodder.size() == 1 and prey.size() == 1, "the harness stood no bodies for the spirit")
+	if fodder.size() != 1 or prey.size() != 1:
+		return
+	var fell_at: Vector2 = fodder[0].global_position
+	var whole: float = prey[0].health.current_hp
+	DamageLedger.credit_as(DamageLedger.OTHER)
+	fodder[0].take_damage(100000.0, fell_at, 0.0)
+	var risen: Array[Dictionary] = []
+	# This card's own: the test before this one leaves its own spirits flying.
+	for record: Dictionary in arsenal.records_of("bolt"):
+		if bool(record.get("spirit", false)) and String(record.get("card", "")) == "pyre_spirits":
+			risen.append(record)
+	_check(not risen.is_empty(), "a body fell beside Pyre Spirits and no spirit rose")
+	if not risen.is_empty():
+		var spirit: Dictionary = risen[0]
+		var born: Vector2 = spirit["at"] as Vector2
+		# From the body, not the Warden: the blow that killed it shoves it, and
+		# the spirit leaves from where it was struck, so the body's own reach.
+		_check(born.distance_to(fell_at) < born.distance_to(where) and born.distance_to(fell_at) <= 160.0,
+			"the spirit left from %s, the body fell at %s and the Warden stands at %s"
+			% [born, fell_at, where])
+		await _seconds(Balance.ARSENAL_SPIRIT_RISE * 0.6)
+		_check((spirit["at"] as Vector2).y < born.y - 10.0,
+			"the spirit did not rise out of the body (%s from %s)" % [spirit["at"], born])
+		_check(is_instance_valid(prey[0]) and is_equal_approx(prey[0].health.current_hp, whole),
+			"the spirit struck while it was still rising")
+		await _seconds(2.6)
+		_check(not is_instance_valid(prey[0]) or prey[0].health.current_hp < whole,
+			"the spirit rose and never struck the next body")
+	await _clear_the_field()
+	# The crow: bursts where the body fell, and is seen leaving it.
+	var crows: ArsenalWeaponData = ContentDB.arsenal_weapon("watchfire_crows")
+	var board: Arsenal = _field.board_arsenal()
+	_check(board != null, "the battlefield has no board Arsenal for the crow")
+	if crows != null and board != null:
+		var near_town: Vector2 = _stand_for(crows, [])
+		_hold(["watchfire_crows"], 1)
+		await get_tree().process_frame
+		var last: Array[Enemy] = _crowd(breed, near_town, 1, 0.0, 0.01)
+		if not last.is_empty():
+			DamageLedger.credit_as(DamageLedger.OTHER)
+			last[0].take_damage(100000.0, near_town, 0.0)
+		var wheeling: Array[Dictionary] = board.records_of("flyoff")
+		_check(not wheeling.is_empty(), "a body fell by the town beside Watchfire Crows and no crow was seen")
+		if not wheeling.is_empty():
+			var start: Vector2 = board.flyoff_at(wheeling[0])
+			await _seconds(Balance.ARSENAL_SPIRIT_FLYOFF * 0.5)
+			var later: Vector2 = board.flyoff_at(wheeling[0])
+			_check(later.distance_to(start) > 30.0 and later.y < near_town.y,
+				"the crow did not wheel up out of the body (%s then %s)" % [start, later])
+	await _clear_the_field()
+	_hold([])
+	_reached["spirits"] = true
 
 
 # --- Freezes --------------------------------------------------------------------

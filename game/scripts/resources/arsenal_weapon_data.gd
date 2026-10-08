@@ -103,6 +103,12 @@ enum Anchor {
 @export var head: String = ""
 ## The forged effect played where it lands, from `Vfx.FORGE_CATALOGUE`.
 @export var effect: String = ""
+## **A spirit it lets go, drawn as itself** (2026-10-08: "some arsenal/augments
+## give spirits ... I have not seen any such thing happen"). The painting at
+## `res://art/vfx/spirit_<spirit>.png` with its idle frames, risen out of the
+## body that fell and flown at a pace the eye can follow; "" draws the head.
+## A look: what it strikes and for how much is the weapon's.
+@export var spirit: String = ""
 
 ## **The defence's number**: a WARD's share of the anchor's pool, a MEND's share
 ## of what the anchor is missing, at level I; `level_damage` is its ladder.
