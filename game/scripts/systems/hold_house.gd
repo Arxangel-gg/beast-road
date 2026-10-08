@@ -106,6 +106,17 @@ func span() -> float:
 	return float(_bays) * Balance.HOLD_HOUSE_BAY
 
 
+## What the house covers, from its foot: the wall and the roof seated on it,
+## the eaves out over both ends. The chimney is left out - a stack in front of
+## a sign is a stack, not a hidden building.
+func picture() -> Rect2:
+	var bay: float = Balance.HOLD_HOUSE_BAY
+	var over: float = bay * Balance.HOLD_HOUSE_OVERHANG
+	var tall: float = Balance.HOLD_HOUSE_WALL + Balance.HOLD_HOUSE_ROOF \
+		- Balance.HOLD_HOUSE_ROOF * Balance.HOLD_HOUSE_SEAT
+	return Rect2(-span() * 0.5 - over, -tall, span() + over * 2.0, tall)
+
+
 func _draw() -> void:
 	var bay: float = Balance.HOLD_HOUSE_BAY
 	var tall: float = Balance.HOLD_HOUSE_WALL

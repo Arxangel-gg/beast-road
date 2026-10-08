@@ -1360,6 +1360,7 @@ building as its style.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `building_inn.png` | 192×192 | T | `#6B5A3E` |
+| `building_cairn.png` | 192×192 | T | `#6B5A3E` |
 
 
 ### 5.5b-iii The Hold's residents' frames — `res://art/city/`

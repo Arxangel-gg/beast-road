@@ -122,12 +122,19 @@ const STATIONS: Array[Dictionary] = [
 	{"id": "pond", "door": "", "art": "res://art/foliage/prop_reeds.png",
 		"label": "The Pond", "cell": Vector2i(26, 14)},
 	{"id": "coop", "door": "Coop", "art": "res://art/city/plot_empty.png",
-		"label": "The Gate", "cell": Vector2i(22, 21)},
+		"label": "The Gate", "cell": Vector2i(23, 23)},
+	# **The Gate, the Inn and the Cairn stand in front of the cottages**, on the
+	# row by the road out: each was first put where a cottage already stood in
+	# front of it, and `hold_check` now refuses a door a cottage hides.
 	# **The inn** (owner, 2026-10-07): where a stranger in the yard is hired and a
 	# mercenary carried home after its third wound lies in a bed. On the lower
 	# yard by the road out, where somebody coming back from the road arrives.
 	{"id": "inn", "door": "Inn", "art": "res://art/city/building_inn.png",
-		"label": "The Inn", "cell": Vector2i(27, 20)},
+		"label": "The Inn", "cell": Vector2i(27, 23)},
+	# **The Cairn** (2026-10-07): a stone for every road walked, by the road out
+	# the Wardens left by - the fallen and the records.
+	{"id": "cairn", "door": "Cairn", "art": "res://art/city/building_cairn.png",
+		"label": "The Cairn", "cell": Vector2i(15, 24)},
 ]
 
 ## The people who live here rather than pass through.
@@ -3411,6 +3418,35 @@ func station_ids() -> Array[String]:
 	var out: Array[String] = []
 	for station: Dictionary in _stations:
 		out.append(String(station["id"]))
+	return out
+
+
+## The rect a station's painting covers in the yard, for a gate: a building a
+## cottage stands in front of is a door nobody can see.
+func station_picture(id: String) -> Rect2:
+	for station: Dictionary in _stations:
+		if String(station["id"]) != id:
+			continue
+		var sprite := station["node"] as Sprite2D
+		if sprite == null or sprite.texture == null:
+			return Rect2()
+		var size: Vector2 = sprite.texture.get_size() * sprite.scale.abs()
+		var middle: Vector2 = sprite.position + sprite.offset * sprite.scale.abs()
+		return Rect2(middle - size * 0.5, size)
+	return Rect2()
+
+
+## Every cottage's picture and the ground it stands on, which is what decides
+## whether it is drawn in front of something.
+func house_pictures() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for node: Node in _actors.get_children():
+		var house := node as HoldHouse
+		if house == null:
+			continue
+		var local: Rect2 = house.picture()
+		out.append({"rect": Rect2(house.position + local.position, local.size),
+			"ground": house.position.y})
 	return out
 
 

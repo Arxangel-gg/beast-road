@@ -40,6 +40,7 @@ var _screens: Array = [
 	["SmithyScreen", SmithyScreen],
 	["StableScreen", StableScreen],
 	["InnScreen", InnScreen],
+	["CairnScreen", CairnScreen],
 	["StashScreen", StashScreen],
 	["VendorScreen", VendorScreen],
 	["WaysideCard", WaysideCard],

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="CairnText" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/cairn_text.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cairn_text"
+display_name = "The Cairn"
+title = "The Cairn"
+note = "Every Warden who walked out of the Hold left a stone here. The fallen are remembered by where the road took them; the records stand for everyone who came after."
+fallen_heading = "The fallen"
+records_heading = "Records"
+walked_heading = "Roads walked"
+no_fallen = "No stone yet. Every road so far came home."
+no_records = "Walk a road and it will be measured here."
+fallen_line = "Act %s · %s · wave %d"
+fallen_detail = "%s · level %d · %s"
+cause_unknown = "The road took them."
+ago_minutes = "%d minutes ago"
+ago_hours = "%d hours ago"
+ago_days = "%d days ago"
+ago_now = "just now"
+record_names = {
+"act": "Furthest act reached",
+"distance": "Longest road walked",
+"kills": "Most fallen in one road",
+"time": "Longest time on one road",
+"towers": "Most towers raised in one road",
+"wave": "Furthest wave held"
+}
+walked_line = "%d roads · %d came home · %d reached the summit · %d fell"
+hardcore_mark = "Hardcore"
+record_act = "Act %s"
+record_hours = "%dh %02dm"
+record_minutes = "%dm %02ds"
+close = "Close"

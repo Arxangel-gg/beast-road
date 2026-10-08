@@ -224,6 +224,20 @@ var perfect_evades: int = 0
 var perfect_guards: int = 0
 var heralds_felled: int = 0
 
+## **The road's last runs** (triage of 2026-10-07, "run history and the Hall"):
+## the newest first, at most `RUN_HISTORY_MAX`, each a handful of numbers and
+## words about one road - how it ended, how far, what felled the Warden - and
+## the Warden's look and worn kinds, so the Cairn can draw them as they were.
+## **Run statistics in shape** (working rule 7 already sanctions those): nothing
+## here is power, and in the stats block, so no top-level key moved. Read clean
+## (`clean_run_row`): a row the game could not have written is dropped.
+var run_history: Array[Dictionary] = []
+## The best of each, kept past the list's length - a record set fifty roads ago
+## is still the record.
+var run_records: Dictionary = {}
+const RUN_RECORD_KEYS: Array[String] = ["kills", "wave", "act", "distance", "time", "towers"]
+const RUN_ENDINGS: Array[String] = ["fell", "home", "summit"]
+
 ## The tiers an enemy's entry grows through.
 enum CodexTier { ENCOUNTERED, KILLED, STUDIED, MASTERED }
 
@@ -1163,6 +1177,76 @@ func record_seen(kind: String, thing_id: String) -> bool:
 ## **A perfect evade or a perfect guard by this machine's own Warden** - the
 ## hero asks, because only it knows whose body it is. Never on the Walk or in a
 ## sandbox.
+## Writes a road into the history and its numbers into the records, as it is
+## settled. Never for the Walk or a sandbox: neither is a road the account walked.
+func remember_run(summary: Dictionary) -> void:
+	if RunState.walking or RunState.sandbox:
+		return
+	var ending: String = "summit" if bool(summary.get("victory", false)) 		else ("home" if bool(summary.get("returned", false)) else "fell")
+	var kinds: Array[String] = []
+	for slot: int in Hero.DRESS_SLOTS:
+		var piece: Dictionary = equipped_piece(slot)
+		kinds.append(String(piece.get("kind", "")))
+	var row: Dictionary = clean_run_row({
+		"at": int(Time.get_unix_time_from_system()),
+		"ended": ending,
+		"act": int(summary.get("act", 1)),
+		"wave": int(summary.get("wave", 0)),
+		"distance": int(float(summary.get("distance", 0.0))),
+		"kills": int(summary.get("kills", 0)),
+		"time": int(float(summary.get("time", 0.0))),
+		"towers": int(summary.get("towers_built", 0)),
+		"tier": RunState.tier_id,
+		"map": RunState.map_mode,
+		"level": hero_level,
+		"cause": String(summary.get("last_blow", "")) if ending == "fell" else "",
+		"hardcore": hardcore,
+		"coop": Coop.partner_present(),
+		"look": WardenLook.pack(look),
+		"gear": kinds,
+	})
+	if row.is_empty():
+		return
+	run_history.push_front(row)
+	while run_history.size() > Balance.RUN_HISTORY_MAX:
+		run_history.pop_back()
+	for key: String in RUN_RECORD_KEYS:
+		run_records[key] = maxi(int(run_records.get(key, 0)), int(row.get(key, 0)))
+
+
+## A history row as the game could have written it, or empty: known endings,
+## acts and tiers only, numbers inside their bounds, words cut short, a look and
+## worn kinds cleaned by the rules a partner's are.
+static func clean_run_row(raw: Variant) -> Dictionary:
+	if not (raw is Dictionary):
+		return {}
+	var given: Dictionary = raw
+	var ending: String = String(given.get("ended", ""))
+	if not RUN_ENDINGS.has(ending):
+		return {}
+	var tier: String = String(given.get("tier", ""))
+	if ContentDB.tier(tier) == null:
+		tier = ""
+	return {
+		"at": maxi(int(given.get("at", 0)), 0),
+		"ended": ending,
+		"act": clampi(int(given.get("act", 1)), 1, Balance.FINAL_ASCENT_ACT),
+		"wave": clampi(int(given.get("wave", 0)), 0, 100000),
+		"distance": clampi(int(given.get("distance", 0)), 0, 100000000),
+		"kills": clampi(int(given.get("kills", 0)), 0, 100000000),
+		"time": clampi(int(given.get("time", 0)), 0, 100000000),
+		"towers": clampi(int(given.get("towers", 0)), 0, 100000),
+		"tier": tier,
+		"map": MapModes.sanitise(String(given.get("map", ""))),
+		"level": clampi(int(given.get("level", 1)), 1, Balance.HERO_MAX_LEVEL),
+		"cause": String(given.get("cause", "")).left(96),
+		"hardcore": bool(given.get("hardcore", false)),
+		"coop": bool(given.get("coop", false)),
+		"look": WardenLook.pack(WardenLook.unpack(given.get("look", []))),
+		"gear": Hero.clean_worn_kinds(given.get("gear", [])),
+	}
+
+
 func note_perfect(kind: String) -> void:
 	if RunState.walking or RunState.sandbox:
 		return
@@ -2991,6 +3075,8 @@ func serialized_save() -> String:
 			"perfect_evades": perfect_evades,
 			"perfect_guards": perfect_guards,
 			"heralds_felled": heralds_felled,
+			"run_history": run_history,
+			"run_records": run_records,
 			"fish_caught_total": fish_caught_total,
 			"swims": swims,
 			"coop_runs": coop_runs,
@@ -3134,6 +3220,25 @@ func adopt_save(data: Dictionary) -> void:
 	perfect_evades = maxi(int(stats.get("perfect_evades", 0)), 0)
 	perfect_guards = maxi(int(stats.get("perfect_guards", 0)), 0)
 	heralds_felled = maxi(int(stats.get("heralds_felled", 0)), 0)
+	run_history.clear()
+	var history_value: Variant = stats.get("run_history", [])
+	if history_value is Array:
+		for raw: Variant in history_value as Array:
+			var row: Dictionary = clean_run_row(raw)
+			if not row.is_empty() and run_history.size() < Balance.RUN_HISTORY_MAX:
+				run_history.append(row)
+	run_records = {}
+	var records_value: Variant = stats.get("run_records", {})
+	for key: String in RUN_RECORD_KEYS:
+		var best: int = int((records_value as Dictionary).get(key, 0)) if records_value is Dictionary else 0
+		for row: Dictionary in run_history:
+			best = maxi(best, int(row.get(key, 0)))
+		# A stored record is the only memory of one set on a road that has since
+		# fallen off the list, so it is trusted - inside what a road can reach.
+		if key == "act":
+			best = mini(best, Balance.FINAL_ASCENT_ACT)
+		if best > 0:
+			run_records[key] = clampi(best, 0, 100000000)
 	fish_caught_total = maxi(int(stats.get("fish_caught_total", 0)), 0)
 	swims = maxi(int(stats.get("swims", 0)), 0)
 	coop_runs = maxi(int(stats.get("coop_runs", 0)), 0)

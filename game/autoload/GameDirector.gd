@@ -861,6 +861,8 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		MetaState.award_sigil()
 
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
+	# Into the Cairn: the road's history and its records (run statistics).
+	MetaState.remember_run(summary)
 	MetaState.total_enemies_killed += int(summary["kills"])
 	MetaState.highest_act = maxi(MetaState.highest_act, RunState.act)
 	# **The first run finishes the tutorial, and co-op opens on it.**

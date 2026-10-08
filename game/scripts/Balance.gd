@@ -6639,6 +6639,9 @@ const SPLASH_DURATION: float = 1.25
 ## margin, and the ceiling no trailer may run past. A player whose screen-flash
 ## scale is under `TRAILER_REDUCED_FLASH` is not shown it at startup. [TUNE]
 const TRAILER_FADE_SECONDS: float = 0.35
+## **The Cairn** (2026-10-07): how many of the last roads the account keeps.
+## Records are kept past it. [TUNE]
+const RUN_HISTORY_MAX: int = 24
 const TRAILER_SKIP_DELAY: float = 0.6
 const TRAILER_SKIP_ALPHA: float = 0.72
 const TRAILER_SKIP_MARGIN: float = 28.0

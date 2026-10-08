@@ -29,7 +29,7 @@ const SCREENS: Array[String] = [
 	"StashScreen", "CodexScreen", "ChronicleScreen", "DisciplinesScreen", "PenScreen",
 	"StableScreen", "InnScreen", "WardenGlass", "SaveSlotScreen", "GuideScreen",
 	"ActStartScreen", "LeaderboardScreen", "ExchangeScreen", "SmithyScreen",
-	"VendorScreen", "ComfortCard", "PauseMenu", "MercenaryCard",
+	"VendorScreen", "ComfortCard", "PauseMenu", "MercenaryCard", "CairnScreen",
 ]
 const FROST_SHADER: String = "res://scripts/shaders/ui_frost.gdshader"
 ## Marks a control already dressed, so a screen dressed twice is dressed once.

@@ -15059,6 +15059,62 @@ searched from there was in the water - so the pond moment searches from
 `heart`, three dry steps out. The cut's flash sits under the cover, so it
 lights the world as the cover lifts rather than lighting the black.
 
+**The Cairn: every road the account walked, kept, as of 2026-10-07.** The
+triage's "run history and the Hall" (items 39, 77 and 78). A run's debrief said
+what happened and was gone the moment it closed; nothing in the game remembered
+a road but the furthest distance. The Cairn is a stone in the Hold for every
+road: the fallen on one side - the last of them standing as they were, in the
+look and the worn kinds they fell in, on the Glass's own stage - and the
+records on the other, with how many roads were walked and how each ended.
+
+**It amends nothing in working rule 7: it is run statistics**, which the rule
+has sanctioned from the start. `MetaState.run_history` keeps the last
+`RUN_HISTORY_MAX` (24) settled roads, newest first - when, how it ended (fell,
+home or the summit), the act, the wave, the distance, the kills, the time, the
+towers, the road and the battlefield, the level, what felled the Warden, whether
+it was Hardcore or shared, and the look and worn kinds packed as the wire packs
+them. `run_records` keeps the best of each figure and **outlives the list**: a
+record set on a road that has since fallen off the end is still the record.
+Both live in the stats block beside `tutorial_done`, so no top-level key moved
+and `SAVE_VERSION` did not; a save without them reads as no roads walked.
+
+**One door writes**: `GameDirector._settle_run` calls `MetaState.remember_run`
+before the save, and it refuses the Walk and a sandbox, which are never the
+account's. A buried Hardcore Warden's stones go with the slot, which is the oath.
+
+**Read back clean**, as every list the save carries is: a row that is not a
+dictionary is dropped, an ending the game does not have is dropped, the act and
+level are clamped to the summit and the cap, a cause is cut to 96 characters,
+an unknown road reads as none, a piece in the wrong hand reads as nothing, and
+the records are recomputed as the best of what was stored and what the stones
+say. A stored record is trusted, because it is the only memory of one set on a
+road that has fallen off the list - inside what a road can reach: the act is
+held to the summit.
+
+**The screen is a readout** (`CairnScreen`, every word in `CairnText`): opening
+it changes no byte of the account. A time is written in hours and minutes, and
+a record value never wraps - autowrapped in a row it had no width of its own
+and came out one character a line, which only the photograph showed.
+
+**A building, a door, frosted.** `building_cairn.png` is a PixelLab painting
+front-on like the rest of the Hold; the Cairn is adopted into the Hold like
+every door and stands on the lower yard by the road out. It is on `UiFrost`'s
+screen list and walked by `pad_focus_check`. `cairn_check` (both bars) holds the
+memory, the refusals, the bound and the records outliving it, the clean read
+with five planted rows, the door, and the screen reading without writing.
+
+**Three doors in the Hold were drawn behind cottages, found by photographing
+the Cairn's.** The cottages were laid on 2026-09-17; the Gate, the Inn and the
+Cairn were each added since on a cell a cottage stood in front of - the Inn
+63% hidden, the Gate 48%, the Cairn entirely - and every rule in `hold_check`
+passed, because each asked whether a station could be walked to and none asked
+what was drawn over it. They stand on the row in front of the cottages now, by
+the road out, and `hold_check` refuses a cottage standing in front of a
+station over 15% of its picture (`HoldYard.station_picture`,
+`HoldHouse.picture`; a tie on the same row counts as in front, because the
+cottages are added after the stations). Run against the old cells it named all
+three.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

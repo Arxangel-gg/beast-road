@@ -420,6 +420,26 @@ func _test_the_yard_is_a_place() -> void:
 				"%s and %s stand %d apart, closer than a Warden's reach - one of "
 					% [one, other, int(apart)] + "them can never be the thing in front of you")
 
+	# **No cottage stands in front of a door.** The houses were laid on
+	# 2026-09-17 and three stations added since (the Gate, the Inn, the Cairn)
+	# were put on ground a cottage already stood in front of, so each was a door
+	# a Warden could walk to and never see - every rule here passed, because
+	# none of them asked what was drawn over what. A cottage behind a building
+	# is scenery; one in front of it, over a share of its picture, is the fault.
+	for one: String in ids:
+		var picture: Rect2 = yard.station_picture(one)
+		if picture.size.x <= 0.0:
+			continue
+		for house: Dictionary in yard.house_pictures():
+			var rect: Rect2 = house["rect"] as Rect2
+			var cover: Rect2 = rect.intersection(picture)
+			var share: float = cover.get_area() / picture.get_area()
+			# A tie is drawn in the order the yard adds them, and the houses come
+			# after the stations: standing on the same row is standing in front.
+			_check(float(house["ground"]) < picture.end.y - 1.0 or share < 0.15,
+				"a cottage stands in front of %s and covers %d%% of it - a door nobody can see"
+					% [one, int(share * 100.0)])
+
 	# And standing at a station puts **something that opens its door** in front
 	# of the Warden.
 	#
