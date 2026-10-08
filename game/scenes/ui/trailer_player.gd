@@ -97,6 +97,9 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_held = true
 	_phase_was = DayNight.phase
+	# The clock's owner at one, so every give-back below (`GameSpeed.restore`)
+	# returns to the world's own pace rather than to a fast-forward left on.
+	GameSpeed.reset()
 	TouchInput.held_off = true
 	MusicPlayer.hold_score("menu")
 	MetaState.settings["tutorial_seen"] = true
@@ -197,7 +200,6 @@ func _closing() -> void:
 		rise.tween_property(_logo, "modulate:a", 1.0, 0.7 / pace)
 		rise.tween_property(_logo, "scale", Vector2.ONE, 1.6 / pace).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	Sfx.play("sfx_boss_fall")
-	_kick_flash(0.55)
 	await _hold_until(_elapsed + Balance.TRAILER_CLOSING_SECONDS / pace)
 
 
@@ -294,19 +296,31 @@ func _process(delta: float) -> void:
 	if _slowmo_left > 0.0:
 		_slowmo_left -= real
 		if _slowmo_left <= 0.0:
-			Engine.time_scale = 1.0
+			GameSpeed.restore()
 	if _stage != null and _stage.is_rolling():
 		_frames += 1
 		_frame_time += real
+	_process_embers()
 	if _elapsed >= Balance.TRAILER_LONGEST / pace:
 		_end("timeout")
 
 
-## Whether the last moment ran at a frame rate worth showing.
+## Whether the last moment ran at a frame rate worth showing. Said in the log
+## for every moment, so a trailer cut short says which moment was too heavy.
 func _fast_enough() -> bool:
-	if _frames < 30 or _frame_time <= 0.0 or pace > 1.0:
+	if _frames < 30 or _frame_time <= 0.0:
 		return true
-	return float(_frames) / _frame_time >= Balance.TRAILER_MIN_FPS
+	var rate: float = float(_frames) / _frame_time
+	print("[trailer] %s at %.0f fps" % [filmed[filmed.size() - 1] if not filmed.is_empty() else "?", rate])
+	if pace > 1.0:
+		return true
+	# **Lighter before giving up**: a slow moment makes the rest lighter, and
+	# only a moment slow after that ends the trailer.
+	if rate < Balance.TRAILER_MIN_FPS * Balance.TRAILER_LIGHTEN_MARGIN and not _stage.light:
+		_stage.light = true
+		print("[trailer] lightening the rest")
+		return true
+	return rate >= Balance.TRAILER_MIN_FPS
 
 
 # --- Leaving ------------------------------------------------------------------
@@ -376,7 +390,6 @@ func _end(why: String) -> void:
 func _restore() -> void:
 	if _stage != null:
 		_stage.take_down()
-	Engine.time_scale = 1.0
 	GameSpeed.reset()
 	GameDirector.run_active = false
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
@@ -432,11 +445,8 @@ func _build_overlay() -> void:
 	_title.offset_right = 900.0
 	_title.offset_top = -260.0
 	_title.offset_bottom = -190.0
-	_cover = ColorRect.new()
-	_cover.color = Color.BLACK
-	_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(_cover)
+	# **The flash under the cover**: it lights the world as the cover lifts off
+	# it, rather than lighting the black and reading as a grey frame.
 	_flash = ColorRect.new()
 	_flash.color = Color(1.0, 0.96, 0.88, 0.0)
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -445,6 +455,11 @@ func _build_overlay() -> void:
 	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_flash.material = add
 	root.add_child(_flash)
+	_cover = ColorRect.new()
+	_cover.color = Color.BLACK
+	_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_child(_cover)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -471,8 +486,55 @@ func _build_overlay() -> void:
 		_logo.pivot_offset = Vector2(520.0, 190.0)
 		_logo.visible = false
 		root.add_child(_logo)
+	_build_embers(root)
 	_build_skip(root)
 	UiJuice.enrol.call_deferred(get_tree(), self)
+
+
+## **Embers rising over the cards**: a slow drift of sparks up from the bottom
+## of the black, lit while a card is up and let go when the road shows. Additive
+## and as many as the particle setting allows.
+var _embers: CPUParticles2D = null
+
+
+func _build_embers(parent: Control) -> void:
+	_embers = CPUParticles2D.new()
+	_embers.amount = maxi(int(round(56.0 * Graphics.particle_scale())), 8)
+	_embers.lifetime = 4.2
+	_embers.preprocess = 2.0
+	_embers.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_embers.direction = Vector2.UP
+	_embers.spread = 18.0
+	_embers.gravity = Vector2(0.0, -14.0)
+	_embers.initial_velocity_min = 38.0
+	_embers.initial_velocity_max = 92.0
+	_embers.scale_amount_min = 1.6
+	_embers.scale_amount_max = 3.6
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1.0, 0.72, 0.32, 0.0))
+	ramp.add_point(0.15, Color(1.0, 0.66, 0.28, 0.9))
+	ramp.set_color(ramp.get_point_count() - 1, Color(1.0, 0.4, 0.14, 0.0))
+	_embers.color_ramp = ramp
+	var add := CanvasItemMaterial.new()
+	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_embers.material = add
+	_embers.emitting = true
+	parent.add_child(_embers)
+	_place_embers()
+	get_viewport().size_changed.connect(_place_embers)
+
+
+func _place_embers() -> void:
+	if _embers == null:
+		return
+	var view: Vector2 = get_viewport_rect().size
+	_embers.position = Vector2(view.x * 0.5, view.y + 12.0)
+	_embers.emission_rect_extents = Vector2(view.x * 0.5, 8.0)
+
+
+func _process_embers() -> void:
+	if _embers != null:
+		_embers.modulate.a = clampf(_cover.color.a, 0.0, 1.0)
 
 
 func _label(parent: Control, role: UiFonts.Role, size: int, colour: Color) -> Label:

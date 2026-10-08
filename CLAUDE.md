@@ -15005,6 +15005,60 @@ screen over the Hold and the pause menu over a road - the first take was a
 blank grey frame because `_save` awaits a drawn frame and was called without
 `await`, so the screen had been freed before the picture.
 
+**Four Guide pages, and a Guide that had drawn the map over itself, as of
+2026-10-07.** The Inn and its Wardens, Plants that hurt, The dead and what eats
+them, and Insects - each a page with a photograph (`guide_shots`: the Inn
+stocked with strangers and one Warden already in the company, read as between
+roads; a spitter where the region grew one; carcasses fresh, eaten and picked
+to bones with the region's scavenger come to the meal; the region's own
+crawler and swarm), dressed by `ProceduralWarden` at the stage each is first
+met.
+
+**Photographing them found that every picture after the map page carried the
+map overlay.** The Guide showed the map with "press M, then press it again" -
+and M has cycled four views since the overlay arrived (neither, the minimap,
+the overlay, both), so two presses left the overlay drawn over the field in
+every later picture, the ones committed an hour earlier included. The view is
+set now (`_map_view`) and put back as it was found. **A switch that grows a
+state is a different control**, and every place that pressed it twice to undo
+it is wrong in silence; the Guide was the only such caller, by grep.
+
+**The trailer gained two moments and embers.** A quiet morning at the water
+(the Warden on a pond's bank at first light, looking out, then the cast - held
+and let go as a player casts), placed early in a cut because the calm is what
+makes the storm read; and a Herald run down (a pack sent, one of it promoted
+to the gold body only the Warden can stop, and the Warden sprinting it down).
+Embers drift up over every card, as many as the particle setting allows, and
+fade with the card. **The clock goes back through `GameSpeed`**: the first cut
+wrote `Engine.time_scale = 1.0`, which `game_speed_check` refuses anywhere -
+the release sweep's one failure - so the trailer resets the clock's owner when
+it starts and gives the clock back with `GameSpeed.restore()`.
+
+**A partner sees a savage and a carrion lord.** Both are grown on the host - the
+size, the tint, the bar, the savage's breathing aura - and a guest drew an
+ordinary animal. `WildlifeFamilies.Word.ELITE` is appended to the animal's
+family channel (`EliteKind`: a savage, a carrion lord), said when one is made
+and carried in the welcome after the spawns (`Wildlife.elite_words`), and a
+guest told it draws the look (`Wildlife.dress_savage`,
+`WildlifeCarrion.dress_lord`) - once, however often it is told. A look; what
+the animal does is the host's. `wildlife_spawn_check` holds the words, the
+welcome, the look and the guest's door; planted without the words, it named
+both.
+
+**What filming the live trailer taught, in four lines.** Every moment clears
+the air before it is staged - the last moment's forced storm let go and its
+bodies taken off - because a road of three moments otherwise filmed the third
+under the first one's rain with all three packs alive, at half the frame rate.
+The peak drafts no second Arsenal: the road's own draft is the hand an act
+that late deals. A machine that films a moment under one and a half times
+`TRAILER_MIN_FPS` gets a lighter trailer (`TrailerStage.light`: half-size
+packs, no peak) rather than none, and only a moment under the floor after that
+ends it; each moment's rate is in the log. And a pond's `at` is its *dig
+point*, which can be dry ground beside water that fell to one side - a bank
+searched from there was in the water - so the pond moment searches from
+`heart`, three dry steps out. The cut's flash sits under the cover, so it
+lights the world as the cover lifts rather than lighting the black.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

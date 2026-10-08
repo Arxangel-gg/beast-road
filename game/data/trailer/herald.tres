@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "herald"
+display_name = "Running down a Herald"
+place = 2
+weight = 0.9
+first_act = 3
+last_act = 11
+seconds_min = 4.6
+seconds_max = 5.6
+zoom_min = 0.95
+zoom_max = 1.15
+daylight_min = 0.2
+daylight_max = 0.45
+lines = Array[String](["Some things only you can stop.", "Run it down before the gate."])
+line_chance = 0.8

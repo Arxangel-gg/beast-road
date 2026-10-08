@@ -6663,6 +6663,9 @@ const TRAILER_SLOWMO_REST: float = 3.0
 ## A machine showing a moment slower than this goes straight to the menu: a
 ## trailer at a slideshow's rate is worse than none.
 const TRAILER_MIN_FPS: float = 24.0
+## A moment under this share above the floor makes the rest of the trailer
+## lighter (`TrailerStage.light`) rather than ending it.
+const TRAILER_LIGHTEN_MARGIN: float = 1.5
 ## The canvas layer the cards, titles and bars are drawn on, above every HUD,
 ## and the width-to-height of the picture between the bars.
 const TRAILER_LAYER: int = 110

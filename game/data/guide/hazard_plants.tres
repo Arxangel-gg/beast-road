@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "hazard_plants"
+display_name = "Plants that hurt"
+title = "Plants that hurt"
+category = "The Road"
+order = 70
+image = "res://art/guide/hazard_plants.png"
+body = "Every region grows plants that hurt, off the roads where you walk and fight. Thorns cut whatever wades through them and slow it - go round. A pod swells when something comes near and bursts - when it swells, step back. A snapper lies hidden as a mound and rears up to bite whoever stands beside it. A spitter opens for anything in its reach and lobs at where you will be - leave its reach or cut it down. Every one warns before it strikes, with a ring on the ground the size of the blow. They wake for you and for bodies that have left the road, never for one walking its route. A few swings cut one down, and it grows back in time."

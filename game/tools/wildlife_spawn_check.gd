@@ -54,6 +54,7 @@ func _ready() -> void:
 	_test_a_savage_is_actually_savage(wildlife)
 	_test_a_hunter_keeps_to_the_players(wildlife)
 	_test_a_cull_is_remembered(wildlife)
+	_test_a_partner_sees_the_elite(wildlife)
 
 	if _failures == 0:
 		print("[wildlife] PASS - arrivals keep their distance, every tier is "
@@ -539,6 +540,72 @@ func _test_a_savage_is_actually_savage(wildlife: Wildlife) -> void:
 	_check(savage_pace > plain_pace,
 		("a savage moves at %.2f of its kind's pace - it is sent to hunt, and "
 			+ "something that cannot close is not hunting") % savage_pace)
+
+
+## **A partner sees the elite** (2026-10-07): a savage and a carrion lord are
+## grown on the host, and each says so on the animal's family channel
+## (`Word.ELITE`) so a guest draws the same animal; a guest told the word draws
+## the look; the words are in the welcome for a guest who joins late; and the
+## look is applied once however often it is told.
+func _test_a_partner_sees_the_elite(wildlife: Wildlife) -> void:
+	var kind: WildlifeData = null
+	for species: WildlifeData in ContentDB.wildlife():
+		if species != null and species.damage > 0.0 and ResourceLoader.exists(species.get_sprite_path()):
+			kind = species
+			break
+	if kind == null:
+		_check(false, "no biting species to grow into an elite")
+		return
+	var living: Array = wildlife.get("_living") as Array
+	var heard: Array = []
+	var listen := func(net_id: int, word: int, value: int) -> void:
+		heard.append([net_id, word, value])
+	EventBus.coop_wildlife_family.connect(listen)
+	var target := Node2D.new()
+	wildlife.add_child(target)
+	wildlife.call("_spawn", kind, Vector2(900.0, 900.0))
+	var savage: Dictionary = living[living.size() - 1]
+	wildlife.call("_make_savage", savage, kind, target)
+	_check(heard.has([int(savage["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.SAVAGE]),
+		"a savage was made and the party was never told (%s)" % [heard])
+	wildlife.call("_spawn", kind, Vector2(1100.0, 900.0))
+	var lord: Dictionary = living[living.size() - 1]
+	WildlifeCarrion.make_lord(lord, kind, Vector2(1100.0, 900.0))
+	_check(heard.has([int(lord["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.CARRION_LORD]),
+		"a carrion lord was called and the party was never told")
+	var words: Array = wildlife.elite_words()
+	_check(words.has([int(savage["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.SAVAGE])
+		and words.has([int(lord["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.CARRION_LORD]),
+		"the welcome would not tell a late guest about the elites (%s)" % [words])
+	# A guest's plain animal, dressed by the word it is told.
+	wildlife.call("_spawn", kind, Vector2(1300.0, 900.0))
+	var plain: Dictionary = living[living.size() - 1]
+	var sprite := plain["sprite"] as Sprite2D
+	wildlife.dress_savage(plain, kind)
+	wildlife.dress_savage(plain, kind)
+	var auras: int = 0
+	for child: Node in sprite.get_children():
+		if child.name.begins_with("Savage"):
+			auras += 1
+	_check(is_equal_approx(sprite.scale.x, kind.scale * Balance.HUNT_SAVAGE_SCALE) and auras == 1,
+		"a guest told of a savage draws it at %.2f with %d auras" % [sprite.scale.x, auras])
+	var lord_look: Dictionary = {}
+	wildlife.call("_spawn", kind, Vector2(1500.0, 900.0))
+	lord_look = living[living.size() - 1]
+	WildlifeCarrion.dress_lord(lord_look, kind)
+	_check(is_equal_approx((lord_look["sprite"] as Sprite2D).scale.x, kind.scale * Balance.WILDLIFE_ELITE_SCALE),
+		"a guest told of a carrion lord draws an ordinary animal")
+	var source: String = FileAccess.get_file_as_string("res://scripts/systems/wildlife.gd")
+	_check(source.contains("WildlifeFamilies.Word.ELITE:"), "a guest never answers the elite word")
+	var world: String = FileAccess.get_file_as_string("res://scripts/systems/coop_world.gd")
+	_check(world.contains("elite_words()"), "the welcome does not carry the elites")
+	EventBus.coop_wildlife_family.disconnect(listen)
+	for animal: Dictionary in living:
+		var drawn := animal.get("sprite", null) as Node
+		if drawn != null and is_instance_valid(drawn):
+			drawn.queue_free()
+	living.clear()
+	target.queue_free()
 
 
 ## **A beast sent after the players hunts the players** (owner, 2026-09-22: they

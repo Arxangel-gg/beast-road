@@ -71,7 +71,8 @@ const _STAGE_OF: Dictionary = {
 	"boss_fight": 0.3, "attributes": 0.34, "mythic_trail": 0.36, "the_pen": 0.4,
 	"hunted": 0.4, "forge": 0.45, "quake": 0.46, "tornado": 0.5, "wrath": 0.52,
 	"meteor": 0.55, "stash": 0.5, "gear": 0.55, "trading": 0.58, "account": 0.62,
-	"sandbox": 0.72,
+	"sandbox": 0.72, "mercenaries": 0.5, "hazard_plants": 0.05, "the_dead": 0.16,
+	"insects": 0.04,
 }
 
 ## How many towers this run has put up, so each picture draws a different one.
@@ -554,14 +555,15 @@ func _ready() -> void:
 	# corner of the road, but the minimap is hidden until it is asked for - so
 	# the two sections about seeing where you are were illustrated by a road
 	# with no map on it.
-	await _shot("minimap", func() -> void:
-		if run.hud != null:
-			run.hud.call("_toggle_minimap"))
+	# **Set, never cycled** (2026-10-07). M cycles four views now - neither, the
+	# minimap, the overlay, both - so "press it, and press it again" left the
+	# overlay drawn over every picture after this one.
+	var map_was: Array[bool] = [Graphics.minimap_shown(), Graphics.minimap_overlay_shown()]
+	await _shot("minimap", func() -> void: _map_view(true, false))
 	# The fog itself is the thing the map is drawn from, so it is photographed
 	# with the map open beside it and the hero somewhere the road is unexplored.
 	await _shot("fog", func() -> void: _stand_at(_camp_centre()))
-	if run.hud != null:
-		run.hud.call("_toggle_minimap")
+	_map_view(map_was[0], map_was[1])
 	_stand_at(Vector2.ZERO)
 	# **A tower's paths are read on the tower's own sheet**, and only once it has
 	# reached the fifth level - which is the decision the section is about. The
@@ -733,6 +735,32 @@ func _ready() -> void:
 	await _shot("quartermaster", func() -> void:
 		_hurt_the_defences(); GameDirector.set_build_mode(true))
 	GameDirector.set_build_mode(false)
+
+	# --- What the road grew on 2026-10-07 --------------------------------------
+	# **The Inn**, with Marks enough for a hire to be lit.
+	# Strangers in the yard to hire and one Warden already in the company; read
+	# as between roads, which is when a company is hired.
+	var live_for_inn: bool = GameDirector.run_active
+	await _shot("mercenaries", func() -> void:
+		GameDirector.run_active = false
+		MetaState.marks = maxi(MetaState.marks, 6000)
+		var hired: Dictionary = Mercenaries.offer("guide:inn:0", "Brannoc", MetaState.hero_level, RunState.tier())
+		MetaState.hire_mercenary(hired)
+		var rows: Array = [{"who": "guide:inn:1", "name": "Marrow"}, {"who": "guide:inn:2", "name": "Ysolde"},
+			{"who": "guide:inn:3", "name": "Teodric"}, {"who": "guide:inn:4", "name": "Hale"}]
+		var inn := InnScreen.new()
+		inn.strangers = func() -> Array: return rows
+		_screen_shot(func() -> Node: return inn, "Inn"))
+	GameDirector.run_active = live_for_inn
+	for node: Node in get_children():
+		if node.name.ends_with("Shot"):
+			node.queue_free()
+	await _made_subject_shot("hazard_plants", func() -> Vector2: return _a_harmful_plant(),
+		Vector2(150.0, 120.0), 1.15)
+	await _made_subject_shot("the_dead", func() -> Vector2: return _leave_the_dead(),
+		Vector2(130.0, 120.0), 1.1)
+	await _made_subject_shot("insects", func() -> Vector2: return _call_the_insects(),
+		Vector2(120.0, 100.0), 1.2)
 
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])
@@ -1975,6 +2003,105 @@ func _arm_the_arsenal() -> Vector2:
 				body.global_position = here + Vector2.from_angle(TAU * float(index) / 7.0) \
 					* (170.0 + 50.0 * float(index % 2))
 	return here
+
+
+## **A plant that hurts**, the one most worth explaining: a spitter when the
+## region grew one, else whatever it grew nearest the road - and one planted
+## beside the Warden if the scatter laid none.
+func _a_harmful_plant() -> Vector2:
+	DayNight.call("_apply", 0.3)
+	var hazards: HazardPlants = run.battlefield.hazards()
+	var hero: Hero = run.battlefield.hero
+	if hazards == null or hero == null:
+		return Vector2.ZERO
+	var best: HazardPlant = null
+	for plant: HazardPlant in hazards.plants():
+		if plant == null or not is_instance_valid(plant) or plant.data == null:
+			continue
+		if best == null or int(plant.data.behaviour) > int(best.data.behaviour):
+			best = plant
+	if best == null:
+		var pool: Array[HazardPlantData] = HazardPlants.pool_for(RunState.act)
+		if pool.is_empty():
+			print("[guide-shots] warning: no harmful plant to photograph")
+			return Vector2.ZERO
+		best = hazards.plant_at(pool[pool.size() - 1], hero.global_position + Vector2(160.0, 40.0))
+		_stage(best)
+	return best.global_position
+
+
+## **The dead where they fell**: carcasses of the region's own breeds, fresh,
+## eaten and picked to bones, and something that eats them come to the meal.
+func _leave_the_dead() -> Vector2:
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero
+	DayNight.call("_apply", 0.3)
+	_apt_post("the_dead")
+	var at: Vector2 = hero.global_position + Vector2(160.0, 40.0)
+	if field.corpses == null:
+		return at
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var kinds: Array[String] = []
+	if terrain != null:
+		kinds.append_array(terrain.enemy_ids)
+	if kinds.is_empty():
+		kinds.append("")
+	var spots: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(70.0, 30.0), Vector2(-60.0, 40.0),
+		Vector2(40.0, -50.0), Vector2(-90.0, -30.0)]
+	var meat: Array[float] = [1.0, 1.0, 0.55, 0.3, 0.0]
+	for index: int in spots.size():
+		var corpse: Dictionary = field.corpses.lay(at + spots[index], at + spots[index] + Vector2(-40.0, 0.0),
+			30.0, kinds[index % kinds.size()], meat[index])
+		corpse["vel"] = Vector2.ZERO
+		corpse["height"] = 0.0
+		corpse["vy"] = 0.0
+		corpse["age"] = Balance.CORPSE_FLIES_FROM + 4.0
+	var animals: Wildlife = field.get("_wildlife") as Wildlife
+	var eater: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind != null and kind.scavenges and not kind.mythic and kind.acts.has(RunState.act):
+			eater = kind
+			break
+	if eater == null:
+		for kind: WildlifeData in ContentDB.wildlife():
+			if kind != null and kind.scavenges and not kind.mythic:
+				eater = kind
+				break
+	if animals != null and eater != null:
+		animals.call("_spawn", eater, at + Vector2(-150.0, 70.0))
+	return at
+
+
+## **The region's insects**, its own crawler and its own swarm beside the
+## Warden - the ones that belong to this ground and nowhere else.
+func _call_the_insects() -> Vector2:
+	var animals: Wildlife = run.battlefield.get("_wildlife") as Wildlife
+	var hero: Hero = run.battlefield.hero
+	DayNight.call("_apply", 0.3)
+	_apt_post("insects")
+	var at: Vector2 = hero.global_position + Vector2(150.0, 30.0)
+	if animals == null:
+		return at
+	var spots: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(90.0, 50.0), Vector2(-70.0, 60.0)]
+	var called: int = 0
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind == null or not kind.local_only or not kind.acts.has(RunState.act):
+			continue
+		animals.call("_spawn", kind, at + spots[called % spots.size()])
+		called += 1
+		if called >= spots.size():
+			break
+	if called == 0:
+		print("[guide-shots] warning: no insects belong to act %d" % RunState.act)
+	return at
+
+
+## The map shown as asked - set, because M cycles four views.
+func _map_view(minimap: bool, overlay: bool) -> void:
+	Graphics.set_display(Graphics.KEY_MINIMAP, minimap)
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY, overlay)
+	if run.hud != null:
+		run.hud.call("_refresh_minimap_visible")
 
 
 func _raise_a_herald() -> Vector2:

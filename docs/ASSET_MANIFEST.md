@@ -4076,6 +4076,10 @@ resolution, and re-taken whenever a screen changes.
 | `warden_glass.png` | 1280×720 | O | `#1E2E33` |
 | `wayside.png` | 1280×720 | O | `#1E2E33` |
 | `heralds.png` | 1280×720 | O | `#1E2E33` |
+| `mercenaries.png` | 1280×720 | O | `#1E2E33` |
+| `hazard_plants.png` | 1280×720 | O | `#1E2E33` |
+| `the_dead.png` | 1280×720 | O | `#1E2E33` |
+| `insects.png` | 1280×720 | O | `#1E2E33` |
 | `sandbox.png` | 1280×720 | O | `#1E2E33` |
 | `hardcore.png` | 1280×720 | O | `#1E2E33` |
 | `arsenal.png` | 1280×720 | O | `#1E2E33` |

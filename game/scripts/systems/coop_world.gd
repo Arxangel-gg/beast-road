@@ -569,6 +569,9 @@ func compose_welcome(peer: int = 0) -> Array:
 	if battlefield != null and battlefield.wildlife() != null:
 		for animal: Array in battlefield.wildlife().announced_animals():
 			facts.append([CoopRelay.Fact.WILDLIFE_SPAWNED, animal])
+		# After the spawns, so the animal each word names already stands.
+		for word: Array in battlefield.wildlife().elite_words():
+			facts.append([CoopRelay.Fact.WILDLIFE_FAMILY, word])
 	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
 		var drop := node as LootDrop
 		if drop == null or drop.net_id <= 0 or drop.is_taken():

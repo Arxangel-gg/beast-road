@@ -42,13 +42,14 @@ func _ready() -> void:
 	_saved_slot = MetaState.slot()
 	_test_the_plans()
 	_test_the_moments_are_data()
+	_test_a_slow_machine_gets_a_lighter_trailer()
 	_test_it_opens_only_when_welcome()
 	_test_out_of_the_splash_and_nowhere_else()
 	_open_the_fixture()
 	await _test_it_plays()
 	await _test_every_way_out()
 	_close_the_fixture()
-	for stage: String in ["plans", "moments", "welcome", "splash", "plays", "skips"]:
+	for stage: String in ["plans", "moments", "lighter", "welcome", "splash", "plays", "skips"]:
 		_check(_reached.has(stage), ("'%s' never reached its end - it aborted partway, and every "
 			+ "check it had not made yet is a check nobody made") % stage)
 	MetaState.resume_saves()
@@ -180,6 +181,32 @@ func _test_the_moments_are_data() -> void:
 	_check(text != null and not text.opening.is_empty() and not text.tagline.is_empty() and text.act_card.contains("%s"),
 		"the trailer's own words are missing")
 	_reached["moments"] = true
+
+
+## **A slow machine gets a lighter trailer before it gets none**: a moment a
+## little over the floor lightens the rest (half the bodies, no peak), and only
+## a moment under the floor after that ends it.
+func _test_a_slow_machine_gets_a_lighter_trailer() -> void:
+	var player := TrailerPlayer.new()
+	var stage := TrailerStage.new()
+	player.set("_stage", stage)
+	player.filmed = ["warden"]
+	player.set("_frames", 60)
+	player.set("_frame_time", 60.0 / 55.0)
+	_check(bool(player.call("_fast_enough")) and not stage.light, "a moment at 55 fps lightened the trailer")
+	player.set("_frame_time", 60.0 / (Balance.TRAILER_MIN_FPS * 1.2))
+	_check(bool(player.call("_fast_enough")) and stage.light,
+		"a slow moment ended the trailer instead of lightening the rest")
+	player.set("_frame_time", 60.0 / (Balance.TRAILER_MIN_FPS * 0.8))
+	_check(not bool(player.call("_fast_enough")), "a moment under the floor after lightening did not end it")
+	RunState.act = 9
+	var light_pack: int = int(stage.call("_pack_size"))
+	stage.light = false
+	var full_pack: int = int(stage.call("_pack_size"))
+	_check(light_pack < full_pack, "a lighter trailer sends packs of %d against %d" % [light_pack, full_pack])
+	stage.free()
+	player.free()
+	_reached["lighter"] = true
 
 
 # --- When it opens ------------------------------------------------------------------

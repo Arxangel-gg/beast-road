@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "mercenaries"
+display_name = "The Inn and its Wardens"
+title = "The Inn and its Wardens"
+category = "Companions"
+order = 69
+image = "res://art/guide/mercenaries.png"
+body = "The Inn in the Hold keeps Wardens for hire - the strangers you see about the yard. Hiring one costs Marks, and each road it walks with you costs its contract, paid when the road begins. A mercenary takes a seat in your party: alone you may bring three, and two players may bring one each. It fights at its own level in its own gear, keeps its own purse from the kills it shares, builds and raises towers of its own in Preparation, and talks: walk up to one on the road and press Interact to tell it to follow, to guard, to hunt or to hold the wall. On its third wound it is carried home to a bed at the Inn, and it will not walk out again until its bill is paid and it has rested. You may release one at any time, from its bed too."

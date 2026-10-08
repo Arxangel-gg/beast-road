@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "insects"
+display_name = "Insects"
+title = "Insects"
+category = "The Road"
+order = 72
+image = "res://art/guide/insects.png"
+body = "Every region has its insects, and most of them are hostile: crawlers that go for your ankles, flyers that dart in and out, and swarms - a cloud that moves and bites as one. To a blade a swarm is one creature: strike the cloud and you strike all of it. Insects keep to the ground they belong to, so each region's are its own, and the gentle ones - fireflies, a beetle minding its business - are as much a part of the road as the dangerous ones."

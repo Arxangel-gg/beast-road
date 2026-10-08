@@ -617,6 +617,20 @@ func _send_batch() -> void:
 		EventBus.coop_wildlife_batch.emit(entries)
 
 
+## Every animal the host grew into something more, as the arguments of the
+## family fact that says so - for a guest joining late, after the fact was sent.
+func elite_words() -> Array:
+	var out: Array = []
+	for animal: Dictionary in _living:
+		if int(animal.get("net_id", 0)) <= 0:
+			continue
+		if bool(animal.get("carrion_lord", false)):
+			out.append([int(animal["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.CARRION_LORD])
+		elif bool(animal.get("savage", false)):
+			out.append([int(animal["net_id"]), WildlifeFamilies.Word.ELITE, WildlifeFamilies.EliteKind.SAVAGE])
+	return out
+
+
 ## Every animal the host has announced, as the arguments its spawn fact
 ## carried, for the welcome (2026-09-14). Host side.
 func announced_animals() -> Array:
@@ -660,6 +674,11 @@ func _on_coop_family(net_id: int, word: int, value: int) -> void:
 			_families.dress_courting(animal, value)
 		WildlifeFamilies.Word.BLIGHT:
 			_families.dress_blight(animal, sprite, kind, value)
+		WildlifeFamilies.Word.ELITE:
+			if value == WildlifeFamilies.EliteKind.SAVAGE:
+				dress_savage(animal, kind)
+			elif value == WildlifeFamilies.EliteKind.CARRION_LORD:
+				WildlifeCarrion.dress_lord(animal, kind)
 		WildlifeFamilies.Word.STAGE:
 			animal["stage"] = value
 			animal["age"] = Balance.WILDLIFE_GROWTH_SECONDS \
@@ -3852,6 +3871,21 @@ func _make_savage(animal: Dictionary, kind: WildlifeData, hero: Node2D) -> void:
 	animal["hunt"] = INF
 	animal["state"] = State.STALKING
 	animal["goal"] = hero.global_position
+	dress_savage(animal, kind)
+	# A partner sees the savage it is being hunted by, not an ordinary animal.
+	EventBus.coop_wildlife_family.emit(int(animal.get("net_id", 0)), WildlifeFamilies.Word.ELITE,
+		WildlifeFamilies.EliteKind.SAVAGE)
+
+
+## **The savage's look**, on the host when one is made and on a guest when it
+## is told: bigger, tinted, a breathing aura under it. A look - what a savage
+## does is the host's.
+func dress_savage(animal: Dictionary, kind: WildlifeData) -> void:
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite == null or not is_instance_valid(sprite) or sprite.has_node("Savage"):
+		return
+	animal["savage"] = true
+	animal["elite"] = true
 	sprite.scale = Vector2.ONE * kind.scale * Balance.HUNT_SAVAGE_SCALE
 	sprite.modulate = Balance.HUNT_SAVAGE_TINT
 	var aura := Sprite2D.new()

@@ -171,14 +171,23 @@ func lord_kind() -> WildlifeData:
 ## Grows a freshly arrived animal into the heap's lord: an elite's size, tint and
 ## pool, and the heap as its home.
 static func make_lord(animal: Dictionary, kind: WildlifeData, at: Vector2) -> void:
-	var sprite := animal.get("sprite", null) as Sprite2D
-	animal["carrion_lord"] = true
-	animal["elite"] = true
-	animal["size"] = Balance.WILDLIFE_ELITE_SCALE
 	animal["hp"] = kind.max_hp * Balance.WILDLIFE_ELITE_HEALTH * Balance.CARRION_LORD_HEALTH
 	animal["home"] = at
 	animal["goal"] = at
 	animal["patience"] = maxf(float(animal.get("patience", 0.0)), Balance.CARRION_STAY_SECONDS)
+	dress_lord(animal, kind)
+	# A partner sees the lord over the heap, not an ordinary animal.
+	EventBus.coop_wildlife_family.emit(int(animal.get("net_id", 0)), WildlifeFamilies.Word.ELITE,
+		WildlifeFamilies.EliteKind.CARRION_LORD)
+
+
+## **The lord's look**, on the host when one is called and on a guest when it is
+## told: an elite's size and tint, its bar shown. A look; the pool is the host's.
+static func dress_lord(animal: Dictionary, kind: WildlifeData) -> void:
+	var sprite := animal.get("sprite", null) as Sprite2D
+	animal["carrion_lord"] = true
+	animal["elite"] = true
+	animal["size"] = Balance.WILDLIFE_ELITE_SCALE
 	if sprite != null and is_instance_valid(sprite):
 		sprite.scale = Vector2.ONE * kind.scale * Balance.WILDLIFE_ELITE_SCALE
 		sprite.modulate = Balance.WILDLIFE_ELITE_TINT

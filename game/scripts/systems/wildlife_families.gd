@@ -28,7 +28,12 @@ enum Court { NONE, SEEKING, APPROACHING, ASSESSING, MATING, OUTCOME, COOLDOWN }
 enum Blight { HEALTHY, WARNING, FRENZIED, COLLAPSING }
 
 ## What a family fact says (`coop_wildlife_family`): which of these changed.
-enum Word { COURTING, BLIGHT, STAGE }
+## **Appended, never inserted** - the number is the wire. ELITE (2026-10-07)
+## says an animal was grown into something more than its kind - a savage sent
+## after an over-hunter, or a carrion lord over a heap (`EliteKind`) - so a
+## guest draws it as the host does instead of as an ordinary animal.
+enum Word { COURTING, BLIGHT, STAGE, ELITE }
+enum EliteKind { NONE, SAVAGE, CARRION_LORD }
 
 const HEART_ART: String = "res://art/vfx/heart.png"
 const BLIGHT_ART: String = "res://art/vfx/blight.png"

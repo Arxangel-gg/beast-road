@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrailerMomentData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trailer_moment_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pond"
+display_name = "A quiet morning at the water"
+place = 1
+weight = 0.8
+first_act = 1
+last_act = 11
+seconds_min = 4.4
+seconds_max = 5.4
+zoom_min = 1.15
+zoom_max = 1.35
+daylight_min = 0.02
+daylight_max = 0.1
+lines = Array[String](["Not every hour is a fight.", "Some mornings are quiet."])
+line_chance = 0.7

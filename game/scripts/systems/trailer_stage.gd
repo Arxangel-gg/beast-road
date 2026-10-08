@@ -30,6 +30,10 @@ var field: Battlefield = null
 var road: Dictionary = {}
 var moment: Dictionary = {}
 var cancelled: bool = false
+## **Lighter**, once a moment has run slow on this machine (`TrailerPlayer`):
+## half the bodies a fight sends, and the heaviest moment filmed as an ordinary
+## fight - the trailer gets lighter rather than stopping before its climax.
+var light: bool = false
 ## Seconds a stand-up may take before it is given up on; and how fast the world
 ## runs while it is hidden under a card.
 var setup_time_scale: float = Balance.TRAILER_SETUP_TIME_SCALE
@@ -180,7 +184,7 @@ func take_down() -> void:
 	_rolling = false
 	_beats.clear()
 	_follow = null
-	Engine.time_scale = 1.0
+	GameSpeed.restore()
 	if run != null and is_instance_valid(run):
 		run.queue_free()
 	run = null
@@ -320,7 +324,7 @@ func _bring_a_wave() -> void:
 	while extra < 0.6 and not cancelled:
 		await get_tree().process_frame
 		extra += get_process_delta_time() / maxf(Engine.time_scale, 0.01)
-	Engine.time_scale = 1.0
+	GameSpeed.restore()
 
 
 # --- The moments ------------------------------------------------------------
@@ -338,6 +342,7 @@ func prepare(dealt: Dictionary) -> void:
 		DayNight.call("_apply", _phase)
 	if field == null:
 		return
+	_clear_the_air()
 	if field.hero != null and field.hero.is_mounted():
 		field.hero.dismount()
 	if run != null:
@@ -367,6 +372,23 @@ func is_rolling() -> bool:
 	return _rolling
 
 
+## **Every moment on a clean field.** The last moment's storm is let go - it
+## forced the rain to full and stood a flood, and left on it is a heavy screen
+## under every moment after it - and the bodies it sent are taken off, so a road
+## of three moments films three packs, not one pack and the two before it.
+func _clear_the_air() -> void:
+	var sky: WeatherSky = field.sky()
+	if sky != null and sky.forced_intensity >= 0.0:
+		sky.forced_intensity = -1.0
+		sky.set("_flood", 0.0)
+		RunState.flood = 0.0
+		var weather: String = String(road.get("weather", ""))
+		RunState.weather_id = weather if not weather.is_empty() else "clear"
+		EventBus.weather_changed.emit(RunState.weather_id)
+	for body: Enemy in _bodies():
+		body.queue_free()
+
+
 ## Rolls the moment for its seconds and returns when it is done.
 func roll(seconds: float) -> void:
 	_total = maxf(seconds, 0.1)
@@ -380,7 +402,10 @@ func _process(delta: float) -> void:
 	if not _rolling or field == null:
 		return
 	var real: float = delta / maxf(Engine.time_scale, 0.01)
-	if _phase >= 0.0:
+	# The light is held where the moment set it - re-applied only if something
+	# moved it, because applying it publishes to every light and tint on the
+	# field, and doing that every frame cost the heavy moments half their rate.
+	if _phase >= 0.0 and absf(DayNight.phase - _phase) > 0.0005:
 		DayNight.call("_apply", _phase)
 	_place_camera(1.0 - _left / _total, false)
 	_direct(delta)
@@ -479,6 +504,66 @@ func _stage_ride() -> void:
 	_follow_with(field.hero, (centre - from).normalized() * 160.0)
 
 
+## **A quiet morning at the water**: the Warden on a bank at first light, a
+## look out over the pond and a line cast into it - the calm a trailer needs
+## before its storm.
+func _stage_pond() -> void:
+	var ponds: Fishing = field.ponds()
+	var list: Array = ponds.get("_ponds") as Array if ponds != null else []
+	if list.is_empty():
+		await _stage_wide()
+		return
+	var pond: Dictionary = list[_dice.randi_range(0, list.size() - 1)]
+	# The heart, not the dig point: a pond's `at` can be dry ground beside water
+	# that fell to one side, and a bank searched from there is in the water.
+	var centre: Vector2 = pond.get("heart", pond.get("at", Vector2.ZERO)) as Vector2
+	var bank: Vector2 = _bank_of(centre)
+	_stand(bank)
+	_mode = &"pond"
+	_watch_point = centre
+	_cast_in = _dice.randf_range(0.5, 1.0)
+	_cast_hold = 0.0
+	var drift: Vector2 = moment.get("drift", Vector2.ZERO) as Vector2
+	_camera(bank.lerp(centre, 0.35) + drift * 30.0, bank.lerp(centre, 0.45) - drift * 20.0,
+		float(moment["zoom_from"]), float(moment["zoom_to"]))
+
+
+## A spot on dry ground at the edge of a pond, on its south side when it has
+## one, so the Warden faces the water and the camera both.
+func _bank_of(centre: Vector2) -> Vector2:
+	var best: Vector2 = centre + Vector2(0.0, 200.0)
+	var best_score: float = INF
+	for slice: int in 16:
+		var toward: Vector2 = Vector2.DOWN.rotated(TAU * float(slice) / 16.0)
+		for step: int in range(2, 40):
+			var at: Vector2 = centre + toward * float(step) * 18.0
+			# Dry here and for two steps further out: the edge of a pond is a
+			# slope of depth, and the first dry sample can be a wading spot.
+			if field.water_depth_at(at) <= 0.001 and field.water_depth_at(at + toward * 18.0) <= 0.001 					and field.water_depth_at(at + toward * 36.0) <= 0.001:
+				var score: float = float(step) + absf(toward.angle_to(Vector2.DOWN)) * 6.0
+				if score < best_score:
+					best_score = score
+					best = at + toward * 48.0
+				break
+	return best
+
+
+## **A Herald on the road**: a pack sent, one of it promoted to the gold body
+## only the Warden can stop, and the Warden sprinting it down.
+func _stage_herald() -> void:
+	var centre: Vector2 = _send_a_pack(_pack_size(), _a_stretch_of_road())
+	var herald: Enemy = _nearest_body(centre, 700.0)
+	if herald != null:
+		herald.make_herald()
+	_stand(centre + _from_side(_dice.randf_range(380.0, 460.0)))
+	_mode = &"fight"
+	_casting = false
+	if herald != null:
+		_director.foe = herald
+		_keep_foe = true
+	_follow_with(field.hero, moment.get("drift", Vector2.ZERO) as Vector2 * 50.0)
+
+
 ## The road at night: torches on every bend, the Warden fighting in the light
 ## of them.
 func _stage_night() -> void:
@@ -556,7 +641,7 @@ func _stage_boss() -> void:
 		return
 	Engine.time_scale = setup_time_scale
 	await _wait(0.5)
-	Engine.time_scale = 1.0
+	GameSpeed.restore()
 	if _gone():
 		return
 	var boss: Node2D = run.boss_director.get("_active") as Node2D
@@ -574,7 +659,11 @@ func _stage_boss() -> void:
 ## The last acts at their height: every road lined, the whole Arsenal turning,
 ## every spell thrown.
 func _stage_peak() -> void:
-	_draft_the_arsenal(Balance.ACT_COUNT)
+	# The road's own draft is already the hand an act this late deals; a
+	# second one put twice a real hand on the Warden and halved the frame rate.
+	if light:
+		await _stage_warden()
+		return
 	await _stage_spells()
 
 
@@ -594,6 +683,8 @@ var _watched: Node2D = null
 var _ride_target: Vector2 = Vector2.ZERO
 var _rammed: bool = false
 var _glance_left: float = 0.0
+var _cast_in: float = 0.0
+var _cast_hold: float = 0.0
 
 
 func _direct(delta: float) -> void:
@@ -611,6 +702,8 @@ func _direct(delta: float) -> void:
 			_direct_watch(delta)
 		&"ride":
 			_direct_ride(delta)
+		&"pond":
+			_direct_pond(delta)
 
 
 ## **A fight with a rhythm.** In, a few swings with a breath between them, now
@@ -697,6 +790,21 @@ func _direct_watch(delta: float) -> void:
 		# A shuffle: a step or two, the weight shifting, and still again.
 		_pause_left = _dice.randf_range(0.9, 1.8)
 		_director.goal = hero.global_position + Vector2(_dice.randf_range(-50.0, 50.0), _dice.randf_range(-30.0, 30.0))
+
+
+## **At the water.** Still, looking out over it, and after a breath the cast:
+## the interact held and let go, as a player casts.
+func _direct_pond(delta: float) -> void:
+	_director.goal = Vector2.INF
+	_director.look_at = _watch_point
+	if _cast_in > 0.0:
+		_cast_in -= delta
+		return
+	if _cast_hold < 0.75:
+		_cast_hold += delta
+		_director.hold |= HeroInput.HOLD_INTERACT
+		if _cast_hold <= delta:
+			_director.press |= HeroInput.BUTTON_INTERACT
 
 
 ## **The charge.** At a gallop down the road at the wave, and the ram the moment
@@ -871,7 +979,8 @@ func _route_index_near(road: PackedVector2Array, near: Vector2) -> int:
 ## How many bodies a fight moment sends: a handful in Act I, a crowd near the
 ## summit - more of them is most of what makes the late road look late.
 func _pack_size() -> int:
-	return clampi(6 + RunState.act * 2 + _dice.randi_range(-2, 3), 6, 30)
+	var size: int = clampi(6 + RunState.act * 2 + _dice.randi_range(-2, 3), 6, 24)
+	return maxi(size / 2, 5) if light else size
 
 
 # --- Helpers ------------------------------------------------------------------

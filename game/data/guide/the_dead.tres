@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "the_dead"
+display_name = "The dead and what eats them"
+title = "The dead and what eats them"
+category = "The Road"
+order = 71
+image = "res://art/guide/the_dead.png"
+body = "What falls on the road stays where it fell: a body or an animal goes down the way it was struck, and its carcass lies there, rotting to bones that fade. Flies find it first. Scavengers smell a carcass from a distance, further downwind, and come to eat; two at one meal size each other up, and the weaker gives way - or, too evenly matched, they fight over it. Leave enough dead in one heap and vultures come down onto it, and past the first act a heap may call something bigger: a carrion lord, one of the region's hunters grown huge, standing over the slaughter. With Brutal blood the bones never fade."
