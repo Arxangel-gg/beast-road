@@ -88,6 +88,7 @@ func _ready() -> void:
 	_test_every_page_has_pictures()
 	_test_mastery()
 	await _test_the_pages()
+	await _test_the_uniques()
 
 	_restore_the_save()
 	if _failures == 0:
@@ -440,6 +441,103 @@ func _species_art(screen: CodexScreen, kind: WildlifeData) -> TextureRect:
 		if art != null and art.texture != null and (art.texture == load(path) or frames.has(art.texture)):
 			return art
 	return null
+
+
+## **The uniques' page** (docs/UNIQUES_DESIGN_2026-10-07.md §6): every act
+## boss's trophy listed, withheld until held, its boss named once met, a
+## salvaged one still found, the Walk recording none, and a found unique never
+## counted into the share of the book the Codex achievement reads.
+func _test_the_uniques() -> void:
+	var all: Array[GearData] = Uniques.all()
+	_check(all.size() >= Balance.FINAL_ASCENT_ACT,
+		"the uniques' page has %d of %d act bosses" % [all.size(), Balance.FINAL_ASCENT_ACT])
+	for piece: GearData in all:
+		MetaState.codex_seen.erase("unique:%s" % piece.id)
+		var terrain: TerrainData = ContentDB.terrain_for_act(piece.unique_act)
+		if terrain != null:
+			MetaState.codex_seen.erase("enemy:%s" % terrain.boss_id)
+	var screen := CodexScreen.new()
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await get_tree().process_frame
+	_check(_rows_on(screen, CodexScreen.TAB_UNIQUES) == all.size(),
+		"the uniques' page drew %d rows for %d uniques" % [_count_rows(screen), all.size()])
+	var third: GearData = Uniques.kind_for_act(3)
+	_check(third != null, "Act III has no unique")
+	if third == null:
+		screen.queue_free()
+		return
+	var unfound: String = _row_text(screen, third)
+	_check(not unfound.contains(third.display_name) and unfound.contains("???"),
+		"an unfound unique gives its name away: %s" % unfound.replace("\n", " "))
+	_check(unfound.contains("Act III"), "an unfound unique does not say where it falls: %s" % unfound.replace("\n", " "))
+
+	var share: float = MetaState.stat("codex_share")
+	# A walked valley records nothing.
+	RunState.walking = true
+	_hold_and_drop(Uniques.piece_for(3, "normal"))
+	RunState.walking = false
+	_check(not MetaState.unique_found(third.id), "the Walk recorded a unique as found")
+	_hold_and_drop(Uniques.piece_for(3, "normal"))
+	_check(MetaState.unique_found(third.id), "a unique taken into the stash was not recorded")
+	_check(is_equal_approx(MetaState.stat("codex_share"), share),
+		"a found unique moved the book's share from %.3f to %.3f" % [share, MetaState.stat("codex_share")])
+	_rows_on(screen, CodexScreen.TAB_UNIQUES)
+	var held: String = _row_text(screen, third)
+	_check(held.contains(third.display_name) and held.contains(third.unique_text),
+		"a held unique's row does not name it and say its rule: %s" % held.replace("\n", " "))
+	var boss: EnemyData = ContentDB.enemies.get(ContentDB.terrain_for_act(3).boss_id, null) as EnemyData
+	if boss != null:
+		_check(not held.contains(boss.display_name), "a boss never met is named on the uniques' page")
+		MetaState.record_seen("enemy", boss.id)
+		_rows_on(screen, CodexScreen.TAB_UNIQUES)
+		_check(_row_text(screen, third).contains(boss.display_name), "a met boss is not named as where its unique falls")
+	# A full stash salvages a piece - and the trophy is still found.
+	var sixth: GearData = Uniques.kind_for_act(6)
+	if sixth != null:
+		var held_stash: Array = MetaState.stash.duplicate(true)
+		while MetaState.stash.size() < Balance.STASH_CAPACITY:
+			MetaState.stash.append(Stash.make(MetaState.STARTING_WEAPON, 0))
+		var result: Dictionary = MetaState.receive_gear(Uniques.piece_for(6, "normal"))
+		MetaState.stash.assign(held_stash)
+		_check(not bool(result.get("stored", true)), "the harness meant a full stash and it stored the piece")
+		_check(MetaState.unique_found(sixth.id), "a unique salvaged by a full stash was not recorded as found")
+	# The search finds a held unique by its name and never an unheld one.
+	var other: GearData = Uniques.kind_for_act(9)
+	if other != null:
+		screen.set("_search", other.display_name.to_lower())
+		_check(_rows_on(screen, CodexScreen.TAB_UNIQUES) == 0, "the search found a unique by a name the page withholds")
+		screen.set("_search", third.display_name.to_lower())
+		_check(_rows_on(screen, CodexScreen.TAB_UNIQUES) == 1, "the search did not find a held unique by its name")
+		screen.set("_search", "")
+	screen.queue_free()
+	await get_tree().process_frame
+
+
+## Takes a piece into the stash through the real door and puts it back down.
+func _hold_and_drop(piece: Dictionary) -> void:
+	if MetaState.take_gear(piece):
+		MetaState.stash.erase(piece)
+
+
+## Every word on one unique's row.
+func _row_text(screen: CodexScreen, piece: GearData) -> String:
+	var list := screen.get("_rows") as VBoxContainer
+	# The refresh before is queued for deletion and still holds the name, so
+	# the live row is found by walking past it rather than by `get_node`.
+	var row: Node = null
+	if list != null:
+		for child: Node in list.get_children():
+			if not child.is_queued_for_deletion() \
+					and String(child.get_meta(&"unique", "")) == piece.id:
+				row = child
+	if row == null:
+		return ""
+	var words: PackedStringArray = []
+	for label: Node in _labels_under(row):
+		words.append(String((label as Label).text))
+	return "\n".join(words)
 
 
 func _rows_on(screen: CodexScreen, tab: int) -> int:

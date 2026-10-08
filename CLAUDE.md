@@ -15318,6 +15318,31 @@ planted and named. **`road_sheet_check`'s spirit key `fox:0` is not a real bond
 key** - it only ever made the readout show "sent home"; a gate that needs a
 spirit standing uses `SpiritBond.key`.
 
+**The Codex has a Uniques page, as of 2026-10-08** (the uniques design's §6).
+Eleven rows in act order. A unique this account has held is named with its
+rule; one it has not is a silhouette, "???" and where it falls - the boss by
+name once the boss has been met, the rule the rest of the book keeps about
+names. The search never finds one by a name the page withholds.
+
+**Found is recorded where the stash takes a piece, and where a full stash
+breaks one into shards** (`MetaState._note_unique`, through `record_seen`, so
+the Walk records nothing): a trophy salvaged is still a trophy found. It is a
+`unique:` entry in the `codex_seen` list the save already keeps, so nothing new
+persists. **`codex_share` now counts only the four parts of the book a share is
+of** - it divided every `codex_seen` entry by those four tables, and a found
+unique would have pushed the Codex achievement past one.
+
+**A unique on the ground is named by its plate** ("Unique · Hoarfrost Signet")
+rather than its slot, and the Guide has a Uniques page whose photograph stands
+the Warden past the magnet's reach - the first cut stood them on the piece, and
+the page showed an empty road and "taken to the stash".
+
+`codex_check` holds the page, the withholding, the boss's name, the salvage, the
+Walk and the share; four faults were planted and all four named. **A refreshed
+page keeps its old rows queued for deletion under the same name**, so a fresh
+row added beside one is renamed with an `@` prefix and `get_node` finds the
+dying one - the gate keys a row on a meta instead.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

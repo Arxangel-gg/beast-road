@@ -776,7 +776,8 @@ func _ready() -> void:
 	# times a breed's health once - a body the owner hit for five minutes to
 	# take a quarter off. Nothing here is a twenty-minute wall.
 	var stacked: float = _hp_scale * _rank_scale().x * _mark_scale(&"health_scale")
-	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING) 		* Balance.ENEMY_HEALTH_SCALE
+	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING) \
+		* Balance.ENEMY_HEALTH_SCALE
 	health.revive()
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -1493,7 +1494,8 @@ func _facing_heading() -> Vector2:
 ## that overrides what a breed declares is not a default; the default is for a
 ## breed that declares nothing - the idiom `_behaviour_reach` already uses.
 func _behaviour_cooldown() -> float:
-	return data.behaviour_interval if data != null and data.behaviour_interval > 0.0 		else Balance.ENEMY_BEHAVIOUR_INTERVAL
+	return data.behaviour_interval if data != null and data.behaviour_interval > 0.0 \
+		else Balance.ENEMY_BEHAVIOUR_INTERVAL
 
 
 func _behaviour_warning() -> float:

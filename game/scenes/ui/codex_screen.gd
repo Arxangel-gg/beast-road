@@ -37,6 +37,11 @@ const SECTIONS: Array[Dictionary] = [
 ## opens to *do* something rather than to read.
 const TAB_ALL: int = 0
 const TAB_SPIRITS: int = -1
+## **The eleven uniques** (docs/UNIQUES_DESIGN_2026-10-07.md §6): each listed
+## by the act whose boss pays it, named and described once this account has
+## held one, and otherwise only where to go - a unique is found in one place,
+## and a page that hid even that would be a page about nothing.
+const TAB_UNIQUES: int = -2
 
 var _heading: Label
 var _note: Label
@@ -299,6 +304,11 @@ func _refresh() -> void:
 			+ "it costs to keep at your shoulder, and a rarer spirit is a "
 			+ "stronger one and eats like it.")
 		_build_spirit_journal()
+	elif _tab == TAB_UNIQUES:
+		_note.text = ("One trophy for every act boss, laid where it falls the "
+			+ "first time on each road. Each changes a rule of the fight rather "
+			+ "than how hard you hit.")
+		_build_unique_page()
 	else:
 		if _tab != TAB_ALL:
 			_note.text = ("What walks Act %s. Anything with no act of its "
@@ -366,6 +376,11 @@ func _detail_for(kind: String, entry: GameData) -> String:
 			return _enemy_detail(entry as EnemyData)
 		"affix":
 			return _affix_detail(entry as EnemyAffixData)
+		"unique":
+			var piece := entry as GearData
+			if piece == null:
+				return ""
+			return "\n%s\n%s" % [piece.unique_text, unique_source(piece)]
 		"wildlife":
 			var animal := entry as WildlifeData
 			if animal == null:
@@ -554,6 +569,7 @@ func _build_tab_bar() -> HFlowContainer:
 	for act: int in range(1, Balance.FINAL_ASCENT_ACT + 1):
 		_add_tab(_roman(act), act)
 	_add_tab("Spirits", TAB_SPIRITS)
+	_add_tab("Uniques", TAB_UNIQUES)
 	return _tab_bar
 
 
@@ -678,9 +694,7 @@ func _nothing_found() -> Label:
 ## An act as the road writes it. A table rather than the general algorithm,
 ## for the reason `boss_fall_card._roman` gives.
 func _roman(act: int) -> String:
-	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
-		"VI", "VII", "VIII", "IX", "X", "XI"]
-	return NUMERALS[clampi(act - 1, 0, NUMERALS.size() - 1)]
+	return _roman_static(act)
 
 
 ## What an entry not yet met is called. A placeholder rather than the name: the
@@ -771,11 +785,55 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 
 	var body := Label.new()
 	body.text = (entry.description + _detail_for(kind, entry)) if found else "Not yet met."
+	if kind == "unique" and not found:
+		body.text = "Not yet found. " + unique_source(entry as GearData)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", FONT_BODY)
 	body.add_theme_color_override("font_color", Color("9d9484"))
 	text.add_child(body)
 	return panel
+
+
+## The uniques' page: one row an act, in act order.
+func _build_unique_page() -> void:
+	var shown: Array[GameData] = []
+	var found: int = 0
+	for piece: GearData in Uniques.all():
+		if _matches("unique", piece, "Uniques"):
+			shown.append(piece)
+			if MetaState.unique_found(piece.id):
+				found += 1
+	if shown.is_empty():
+		_rows.add_child(_nothing_found())
+		return
+	_rows.add_child(_section_heading("Uniques  ·  %d / %d" % [found, shown.size()]))
+	for piece: GameData in shown:
+		var row: PanelContainer = _entry_row("unique", piece)
+		row.name = "Unique_%s" % piece.id
+		row.set_meta(&"unique", piece.id)
+		_rows.add_child(row)
+
+
+## Where a unique is found: its act, and its boss by name once the boss has
+## been met - the same rule the rest of the book keeps about names. Public so
+## the gate reads the sentence the row does.
+static func unique_source(piece: GearData) -> String:
+	if piece == null:
+		return ""
+	var act: String = _roman_static(piece.unique_act)
+	var terrain: TerrainData = ContentDB.terrain_for_act(piece.unique_act)
+	var boss: EnemyData = null
+	if terrain != null:
+		boss = ContentDB.enemies.get(terrain.boss_id, null) as EnemyData
+	if boss != null and MetaState.has_seen("enemy", boss.id):
+		return "Falls with %s, the Act %s boss." % [boss.display_name, act]
+	return "Falls with the Act %s boss." % act
+
+
+static func _roman_static(act: int) -> String:
+	const NUMERALS: Array[String] = ["I", "II", "III", "IV", "V",
+		"VI", "VII", "VIII", "IX", "X", "XI"]
+	return NUMERALS[clampi(act - 1, 0, NUMERALS.size() - 1)]
 
 
 # --- The Wildlife Spirit Journal ---------------------------------------------

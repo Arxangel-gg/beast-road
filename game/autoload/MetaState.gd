@@ -899,10 +899,16 @@ func stat(key: String) -> float:
 		"perfect_guards": return float(perfect_guards)
 		"heralds_felled": return float(heralds_felled)
 		"codex_share":
+			# Counted over the four parts of the book a share is of: a unique
+			# found is a page too, and over this total it would be a share
+			# past one.
 			var total: int = 0
-			for source: String in ["enemies", "affixes", "wildlife_kinds", "weathers"]:
-				total += (ContentDB.get(source) as Dictionary).size()
-			return float(codex_seen.size()) / float(maxi(total, 1))
+			var found: int = 0
+			for pair: Array in [["enemies", "enemy"], ["affixes", "affix"],
+					["wildlife_kinds", "wildlife"], ["weathers", "weather"]]:
+				total += (ContentDB.get(String(pair[0])) as Dictionary).size()
+				found += seen_count(String(pair[1]))
+			return float(found) / float(maxi(total, 1))
 		_:
 			return 0.0
 
@@ -1182,7 +1188,8 @@ func record_seen(kind: String, thing_id: String) -> bool:
 func remember_run(summary: Dictionary) -> void:
 	if RunState.walking or RunState.sandbox:
 		return
-	var ending: String = "summit" if bool(summary.get("victory", false)) 		else ("home" if bool(summary.get("returned", false)) else "fell")
+	var ending: String = "summit" if bool(summary.get("victory", false)) \
+		else ("home" if bool(summary.get("returned", false)) else "fell")
 	var kinds: Array[String] = []
 	for slot: int in Hero.DRESS_SLOTS:
 		var piece: Dictionary = equipped_piece(slot)
@@ -1990,7 +1997,8 @@ func reforge_piece(piece_uid: int) -> String:
 		return "It holds all it was made with."
 	var ore: int = Stash.reforge_ore(piece)
 	var price: int = Stash.reforge_marks(piece)
-	var ore_name: String = ContentDB.material(Balance.GEAR_REFORGE_ORE).display_name 		if ContentDB.material(Balance.GEAR_REFORGE_ORE) != null else Balance.GEAR_REFORGE_ORE
+	var ore_name: String = ContentDB.material(Balance.GEAR_REFORGE_ORE).display_name \
+		if ContentDB.material(Balance.GEAR_REFORGE_ORE) != null else Balance.GEAR_REFORGE_ORE
 	if material_count(Balance.GEAR_REFORGE_ORE) < ore:
 		return "Reforging it takes %d %s." % [ore, ore_name]
 	if marks < price:
@@ -2212,9 +2220,25 @@ func take_gear(piece: Dictionary) -> bool:
 	if piece.is_empty() or stash.size() >= Balance.STASH_CAPACITY:
 		return false
 	stash.append(piece)
+	_note_unique(piece)
 	save_game()
 	EventBus.stash_changed.emit()
 	return true
+
+
+## **A unique this account has held is a page in the Codex.** Recorded where
+## the stash takes a piece, and where a full stash breaks one into shards: a
+## trophy salvaged is still a trophy found, and the book is about the road.
+## Through `record_seen`, so the Walk records nothing.
+func _note_unique(piece: Dictionary) -> void:
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if kind != null and kind.is_unique():
+		record_seen("unique", kind.id)
+
+
+## Whether this account has held an act boss's unique.
+func unique_found(kind_id: String) -> bool:
+	return has_seen("unique", kind_id)
 
 
 ## Delivers a drop without ever deleting an earned reward. A free stash slot
@@ -2228,6 +2252,7 @@ func receive_gear(piece: Dictionary) -> Dictionary:
 		RunState.note_kept("gear", 1.0)
 		return {"stored": true, "shards": 0}
 	var salvaged: int = Stash.salvage_yield(piece)
+	_note_unique(piece)
 	shards += salvaged
 	save_game()
 	EventBus.stash_changed.emit()

@@ -539,7 +539,8 @@ func _bank_of(centre: Vector2) -> Vector2:
 			var at: Vector2 = centre + toward * float(step) * 18.0
 			# Dry here and for two steps further out: the edge of a pond is a
 			# slope of depth, and the first dry sample can be a wading spot.
-			if field.water_depth_at(at) <= 0.001 and field.water_depth_at(at + toward * 18.0) <= 0.001 					and field.water_depth_at(at + toward * 36.0) <= 0.001:
+			if field.water_depth_at(at) <= 0.001 and field.water_depth_at(at + toward * 18.0) <= 0.001 \
+					and field.water_depth_at(at + toward * 36.0) <= 0.001:
 				var score: float = float(step) + absf(toward.angle_to(Vector2.DOWN)) * 6.0
 				if score < best_score:
 					best_score = score

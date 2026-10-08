@@ -93,6 +93,8 @@ answer, which is the Warden-and-board coupling the late game was asked for.
 - The stash row and the comparison card say the rule in the piece's own words,
   in the legendary gleam's colour; the Codex gains a **Uniques** page listing
   the eleven with the boss that drops each and a "found" mark.
+  *Built 2026-10-08*: the page records a unique as found where the stash takes
+  it (or salvages it), and names the boss once the boss has been met.
 
 ## 7. Gate and art plan
 

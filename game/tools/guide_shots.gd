@@ -2372,7 +2372,8 @@ func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> v
 func _dress_for(id: String) -> void:
 	if not _wanted(id):
 		return
-	var share: float = float(_STAGE_OF[id]) if _STAGE_OF.has(id) 		else 0.02 + float(absi(hash(id)) % 1000) / 1000.0 * 0.22
+	var share: float = float(_STAGE_OF[id]) if _STAGE_OF.has(id) \
+		else 0.02 + float(absi(hash(id)) % 1000) / 1000.0 * 0.22
 	ProceduralWarden.wear(ProceduralWarden.roll_at("guide:" + id, share), self)
 
 

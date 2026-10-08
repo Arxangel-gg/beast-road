@@ -65,13 +65,22 @@ func _ready() -> void:
 	screen.call("_refresh")
 	await _shoot(screen, "spirit_open")
 
+	# Four uniques held, so the page shows a found row beside the withheld ones.
+	for act: int in [1, 3, 4, 7]:
+		var kind: GearData = Uniques.kind_for_act(act)
+		if kind != null:
+			MetaState.record_seen("unique", kind.id)
+	screen.set("_tab", CodexScreen.TAB_UNIQUES)
+	screen.call("_refresh")
+	await _shoot(screen, "uniques")
+
 	MetaState.codex_seen = _seen_before
 	MetaState.spirit_encounters = _encounters_before
 	MetaState.spirit_bonded = _bonded_before
 	MetaState.equipped_spirit = _equipped_before
 	MetaState.resume_saves()
 
-	print("[codex-shot] wrote four pages")
+	print("[codex-shot] wrote five pages")
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()
