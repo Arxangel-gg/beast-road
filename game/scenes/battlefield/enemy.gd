@@ -2631,7 +2631,7 @@ func attack_reach() -> float:
 	# obeyed" - because the readout ring reads this function, so the circle
 	# a player stands outside was 25 units wide of the resource's own number.
 	var authored: float = data.aura_radius
-	return authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE
+	return (authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE) * Balance.ENEMY_RANGED_REACH_SCALE
 
 
 ## Whether the ring touches the target.

@@ -107,6 +107,9 @@ func refresh() -> void:
 		own = rows.size()
 	if board != null and is_instance_valid(board) and board.board_arsenal() != null:
 		rows.append_array(board.board_arsenal().readout())
+	if rows.size() > Balance.ARSENAL_STRIP_MAX:
+		rows.resize(Balance.ARSENAL_STRIP_MAX)
+		own = mini(own, Balance.ARSENAL_STRIP_MAX)
 	visible = not rows.is_empty()
 	# Reuse the tiles: a strip rebuilt ten times a second would be ten
 	# allocations a second for a picture that mostly has not changed.

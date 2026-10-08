@@ -13,4 +13,4 @@ branch = 0
 tags = Array[String](["Arsenal"])
 card_text = "Rubbed into the seams. Nothing gives."
 effect_id = "arsenal_guard"
-effect_magnitude = 0.12
+effect_magnitude = 0.09

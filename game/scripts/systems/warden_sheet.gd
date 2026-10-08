@@ -47,6 +47,9 @@ var level: int = 1
 ## The seat the Warden sits in, set by the host when it wears the sheet: what
 ## finds that Warden's own augment cards (`Modifiers.seat_value`).
 var slot: int = 0
+## **The share of the party's bonuses this Warden takes** (2026-10-08): one for
+## a player, `MERC_BORROWED_SHARE` for a hired hand.
+var borrowed: float = 1.0
 var placed: Array[int] = [0, 0, 0, 0, 0]
 var ascension: int = 0
 var form: String = ""
@@ -337,10 +340,12 @@ static func perk_of(sheet: WardenSheet, which: int) -> float:
 ## A Warden key's summed magnitude: the part of the table everybody shares, and
 ## this Warden's own gear. Any other key is the board's and is read whole.
 static func value_of(sheet: WardenSheet, key: String) -> float:
-	if sheet == null or not Modifiers.WARDEN_KEYS.has(key):
+	if sheet == null:
 		return Modifiers.value(key)
-	return Modifiers.value(key) - Modifiers.own_value(key) \
-		+ float(sheet._gear_totals.get(key, 0.0)) + Modifiers.seat_value(sheet.slot, key)
+	if not Modifiers.WARDEN_KEYS.has(key):
+		return Modifiers.value(key) * sheet.borrowed
+	return (Modifiers.value(key) - Modifiers.own_value(key) + Modifiers.seat_value(sheet.slot, key)) \
+		* sheet.borrowed + float(sheet._gear_totals.get(key, 0.0))
 
 
 static func multiplier_of(sheet: WardenSheet, key: String) -> float:

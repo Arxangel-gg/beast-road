@@ -1230,7 +1230,7 @@ func _apply_permanent_bonuses() -> void:
 	var share: float = health.current_hp / health.max_hp if health.max_hp > 0.0 else 1.0
 	# **The Red Road**'s bane: draughts, fish and the well heal half. Its own
 	# lifesteal arrives through `heal_unscaled`.
-	health.heal_scale = 1.0 - WardenSheet.bane_of(sheet, "oath_heal_halved")
+	health.heal_scale = (1.0 - WardenSheet.bane_of(sheet, "oath_heal_halved")) * Balance.HERO_HEAL_SCALE
 	health.max_hp = (Balance.HERO_MAX_HP + WardenSheet.value_of(sheet, Modifiers.HERO_MAX_HP)) \
 		* (1.0 + bonus + felled + _vigour_bonus()) * wound_scale
 	if _is_partner_body():
@@ -1251,7 +1251,7 @@ func _apply_permanent_bonuses() -> void:
 	# it in the middle of an Iron Roar does not cancel the Roar.
 	health.damage_scale = minf(health.damage_scale, _resolve_scale()) \
 		if _armor_left > 0.0 else _resolve_scale()
-	health.shield_scale = _resolve_ward_scale()
+	health.shield_scale = _resolve_ward_scale() * Balance.HERO_WARD_SCALE
 	# Mana comes back the same way health does: what the last scope left, or
 	# full when there was no last scope.
 	if _is_partner_body():
@@ -1553,7 +1553,7 @@ func grant_ward(share: float) -> void:
 ## Red Draught's.
 func heal_unscaled(amount: float) -> void:
 	if health != null:
-		health.heal(amount, false)
+		health.heal(amount * Balance.HERO_HEAL_SCALE * Balance.BLOOD_HEAL_SCALE, false)
 
 
 ## Spellblade: the finisher gives a share of the pool back.
@@ -2624,6 +2624,8 @@ func wear_sheet(row: Variant) -> void:
 		return
 	sheet = WardenSheet.from_row(row)
 	sheet.slot = party_slot
+	if is_mercenary():
+		sheet.borrowed = Balance.MERC_BORROWED_SHARE
 	RunState.augment_seat(party_slot).learned_tags = sheet.tags()
 	if attack != null:
 		attack.sheet = sheet

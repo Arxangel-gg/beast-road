@@ -13,4 +13,4 @@ branch = 0
 tags = Array[String](["Arsenal"])
 card_text = "A drop on every mechanism, and everything turns sooner."
 effect_id = "arsenal_haste"
-effect_magnitude = 0.1
+effect_magnitude = 0.08

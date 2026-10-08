@@ -38,6 +38,14 @@ var _heed_left: float = 0.0
 var _heed_target: Enemy = null
 ## Its own dice: a decision never draws on a stream the road rolls.
 var _dice := RandomNumberGenerator.new()
+## **An animal on it** (owner, 2026-10-08): the animal being answered, its pool
+## when the answer began, how long it has been run from, and the animals already
+## driven off once, by their sprite - one that comes back is put down.
+enum WildAnswer { KILL, SCARE, FLEE }
+var _wild: Dictionary = {}
+var _wild_start: float = 0.0
+var _wild_fled: float = 0.0
+var _wild_spared: Dictionary = {}
 
 
 func _init(for_hero: Node2D = null, seed_name: String = "") -> void:
@@ -152,7 +160,13 @@ func think(delta: float) -> void:
 		_retreating = true
 		_target = null
 	var home: Vector2 = anchor()
-	if _retreating and field != null:
+	var wild: Dictionary = _wild_frame(body, share, delta)
+	if not wild.is_empty():
+		move = wild["move"] as Vector2
+		aim = wild["aim"] as Vector2
+		presses = int(wild["presses"])
+		holds = int(wild["holds"])
+	elif _retreating and field != null:
 		var town: Vector2 = field.town_position()
 		move = town - me
 		if move.length() < Balance.MERC_LEASH * 0.5:
@@ -195,6 +209,70 @@ func think(delta: float) -> void:
 	if move.length() > 1.0:
 		move = move.normalized()
 	apply([move, aim, presses, holds])
+
+
+## **What a hired Warden does about an animal on it**, as a rule a gate reads
+## (owner, 2026-10-08: "decide if they want to try to kill a wildlife if it
+## becomes necessary to, if not to attack it to scare it away without intending
+## to kill them if possible, but killing ones that must be put down as a means
+## of self defense if it's not possible to run away"). A blighted animal or one
+## sent after the party is put down, and so is one driven off once that came
+## back, or one run from for `MERC_WILD_CORNERED` that could not be shaken.
+## Hurt, it runs; otherwise it fights to drive the animal off.
+static func wild_answer(own_share: float, must_die: bool, came_back: bool, fled_for: float) -> int:
+	if must_die or came_back or fled_for >= Balance.MERC_WILD_CORNERED:
+		return WildAnswer.KILL
+	if own_share <= Balance.MERC_WILD_FLEE_SHARE:
+		return WildAnswer.FLEE
+	return WildAnswer.SCARE
+
+
+## One frame of answering an animal hunting this body, or empty when none is.
+func _wild_frame(body: Hero, share: float, delta: float) -> Dictionary:
+	var animals: Wildlife = field.wildlife() if field != null else null
+	var animal: Dictionary = animals.hunter_of(body, Balance.MERC_WILD_NOTICE) if animals != null else {}
+	if animal.is_empty():
+		_wild = {}
+		_wild_fled = 0.0
+		return {}
+	var sprite := animal.get("sprite", null) as Node2D
+	if sprite == null or not is_instance_valid(sprite):
+		return {}
+	var key: int = sprite.get_instance_id()
+	if not is_same(animal, _wild):
+		_wild = animal
+		_wild_start = float(animal.get("hp", 0.0))
+		_wild_fled = 0.0
+	var me: Vector2 = body.global_position
+	var at: Vector2 = sprite.global_position
+	var must_die: bool = bool(animal.get("rabid", false)) or animals.hunts_the_players(animal)
+	var answer: int = wild_answer(share, must_die, _wild_spared.has(key), _wild_fled)
+	var out: Dictionary = {"move": Vector2.ZERO, "aim": (at - me).normalized(), "presses": 0, "holds": 0}
+	if answer == WildAnswer.FLEE:
+		_wild_fled += delta
+		var away: Vector2 = (me - at).normalized()
+		out["move"] = away
+		out["holds"] = HeroInput.HOLD_SPRINT
+		if _dash_left <= 0.0 and me.distance_to(at) < Balance.MERC_WILD_NOTICE * 0.4:
+			out["aim"] = away
+			out["presses"] = HeroInput.BUTTON_DASH
+			_dash_left = Balance.MERC_DASH_GAP
+		return out
+	if answer == WildAnswer.SCARE \
+			and _wild_start - float(animal.get("hp", 0.0)) >= Wildlife.pool_of(animal) * Balance.MERC_WILD_SCARE_SHARE:
+		animals.scare_off(animal, me)
+		if _wild_spared.size() >= 16:
+			_wild_spared.clear()
+		_wild_spared[key] = true
+		_wild = {}
+		return {}
+	var reach: float = Balance.HERO_ATTACK_RANGE[0] * (body.attack.reach_scale() if body.attack != null else 1.0)
+	if me.distance_to(at) > reach * Balance.MERC_CLOSE_SHARE:
+		out["move"] = at - me
+	elif _swing_left <= 0.0:
+		out["presses"] = HeroInput.BUTTON_ATTACK
+		_swing_left = Balance.MERC_SWING_GAP
+	return out
 
 
 ## Picks what to fight: the nearest body inside its engage radius of where its

@@ -13,4 +13,4 @@ branch = 0
 tags = Array[String](["Arsenal"])
 card_text = "Your weapons burn with what you put into them."
 effect_id = "arsenal_power"
-effect_magnitude = 0.12
+effect_magnitude = 0.09

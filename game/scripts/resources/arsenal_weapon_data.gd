@@ -159,4 +159,5 @@ func is_defensive() -> bool:
 
 ## The share at a level: the authored share up the same ladder a hit climbs.
 func share_at(level: int) -> float:
-	return share * level_damage[clampi(level - 1, 0, level_damage.size() - 1)]
+	return share * level_damage[clampi(level - 1, 0, level_damage.size() - 1)] \
+		* Balance.ARSENAL_SHARE_POTENCY

@@ -29,6 +29,7 @@ func _ready() -> void:
 	_test_the_bed()
 	_test_a_live_road()
 	_test_the_save()
+	_test_the_wild_and_the_share()
 	await _test_the_inn()
 	MetaState.marks = held_marks
 	MetaState.mercenaries = held_roster
@@ -257,6 +258,33 @@ func _find(from: Node, named: String) -> Node:
 		if deeper != null:
 			return deeper
 	return null
+
+
+## **A hired hand answers an animal, and takes half** (owner, 2026-10-08): the
+## rule, row by row, and the doors the mind and the Arsenal answer it through.
+func _test_the_wild_and_the_share() -> void:
+	var kill: int = MercenaryInput.WildAnswer.KILL
+	_check(MercenaryInput.wild_answer(0.9, false, false, 0.0) == MercenaryInput.WildAnswer.SCARE,
+		"a whole hired hand does not try to drive an ordinary animal off")
+	_check(MercenaryInput.wild_answer(0.2, false, false, 0.0) == MercenaryInput.WildAnswer.FLEE,
+		"a hurt hired hand does not run from an animal")
+	_check(MercenaryInput.wild_answer(0.9, true, false, 0.0) == kill,
+		"a hired hand does not put down a blighted animal or one sent after the party")
+	_check(MercenaryInput.wild_answer(0.9, false, true, 0.0) == kill,
+		"a hired hand spares an animal that came back after it was driven off")
+	_check(MercenaryInput.wild_answer(0.2, false, false, Balance.MERC_WILD_CORNERED) == kill,
+		"a cornered hired hand keeps running rather than fighting")
+	var mind: String = FileAccess.get_file_as_string("res://scripts/components/mercenary_input.gd")
+	_check(mind.contains("hunter_of(") and mind.contains("scare_off("),
+		"the hired hand's mind does not ask who hunts it or drive anything off")
+	var arsenal: String = FileAccess.get_file_as_string("res://scripts/systems/arsenal.gd")
+	_check(arsenal.contains("* borrowed()") and arsenal.contains("_slow_of(weapon)"),
+		"a hired hand's Arsenal is not held to its share")
+	var sheet := WardenSheet.new()
+	sheet.borrowed = Balance.MERC_BORROWED_SHARE
+	_check(is_equal_approx(WardenSheet.value_of(sheet, Modifiers.TOWER_DAMAGE),
+		Modifiers.value(Modifiers.TOWER_DAMAGE) * Balance.MERC_BORROWED_SHARE),
+		"a hired hand reads the party's bonuses whole")
 
 
 func _check(ok: bool, message: String) -> void:

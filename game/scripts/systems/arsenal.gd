@@ -239,7 +239,7 @@ func armed_cards() -> Array[String]:
 ## level, the act, the owner's own damage multiplier and the Arsenal's power.
 func hit_for(weapon: ArsenalWeaponData, level: int) -> float:
 	return weapon.damage_at(level) * Balance.arsenal_act_scale(RunState.act) \
-		* owner_multiplier() * (1.0 + maxf(_value(Modifiers.ARSENAL_POWER), 0.0))
+		* owner_multiplier() * (1.0 + maxf(_value(Modifiers.ARSENAL_POWER), 0.0)) * borrowed()
 
 
 ## What the owner's own blows are multiplied by: the Warden's, or the party's
@@ -294,6 +294,19 @@ func radius_for(weapon: ArsenalWeaponData, level: int) -> float:
 
 func duration_for(weapon: ArsenalWeaponData) -> float:
 	return weapon.duration * (1.0 + maxf(_value(Modifiers.ARSENAL_DURATION), 0.0))
+
+
+## **A hired hand fights with half of what the hand gives** (owner,
+## 2026-10-08): a mercenary's Arsenal deals, wards, mends and slows at
+## `MERC_BORROWED_SHARE` of a Warden's. One for everybody else.
+func borrowed() -> float:
+	if hero != null and is_instance_valid(hero) and hero.sheet != null:
+		return hero.sheet.borrowed
+	return 1.0
+
+
+func _slow_of(weapon: ArsenalWeaponData) -> float:
+	return 1.0 - (1.0 - weapon.slow) * borrowed()
 
 
 func _value(key: String) -> float:
@@ -536,7 +549,7 @@ func strike_body(armed: Armed, enemy: Enemy, amount: float, from: Vector2,
 		var lasting: float = maxf(duration_for(weapon), 1.0)
 		enemy.apply_burn(amount * weapon.burn_share / lasting, lasting)
 	if weapon.slow < 1.0 and is_instance_valid(enemy) and not enemy.is_dying():
-		enemy.apply_slow(weapon.slow, Balance.ARSENAL_SLOW_SECONDS)
+		enemy.apply_slow(_slow_of(weapon), Balance.ARSENAL_SLOW_SECONDS)
 	dealt[armed.card.id] = float(dealt.get(armed.card.id, 0.0)) + amount
 	hits[armed.card.id] = int(hits.get(armed.card.id, 0)) + 1
 	return true
@@ -551,7 +564,7 @@ func strike_body(armed: Armed, enemy: Enemy, amount: float, from: Vector2,
 func guard_share(armed: Armed, ceiling: float) -> float:
 	var share: float = armed.weapon.share_at(armed.level)
 	share *= 1.0 + maxf(_value(Modifiers.ARSENAL_GUARD), 0.0)
-	return clampf(share, 0.0, ceiling)
+	return clampf(share, 0.0, ceiling) * borrowed()
 
 
 ## A ward on the anchor. On the Warden through `Hero.grant_ward`, which the
@@ -771,7 +784,7 @@ func _tick_field(armed: Armed, delta: float) -> void:
 				continue
 			caught = true
 			if weapon.slow < 1.0:
-				enemy.apply_slow(weapon.slow, Balance.ARSENAL_FIELD_TICK * 2.2)
+				enemy.apply_slow(_slow_of(weapon), Balance.ARSENAL_FIELD_TICK * 2.2)
 			if weapon.element == TowerData.Element.WATER:
 				enemy.apply_wet(Balance.WET_SECONDS)
 	if armed.pulse <= 0.0 and caught:

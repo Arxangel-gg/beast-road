@@ -517,7 +517,11 @@ const ROAD_CARD_OFFER_COUNT: int = 3
 ## hand is where a run's build lives rather than a handful of refusals. The
 ## bound is unchanged in kind - one card per effect key, one keystone - and in
 ## size it is eight numbers at their levelled ceiling. [TUNE]
-const ROAD_CARD_HAND: int = 12
+const ROAD_CARD_HAND: int = 30
+## **The HUD's Arsenal strip shows this many tiles** (2026-10-08): a hand of
+## thirty is wider than the combat row beside it, so the strip shows the first
+## dozen and the pause screen lists the whole hand.
+const ARSENAL_STRIP_MAX: int = 12
 
 ## **Augments** (owner request, 2026-09-26; `docs/SKILL_TREE_REWORK_2026-09-26.md`
 ## section 8). A card that moves a fraction levels I to V when it is taken again,
@@ -826,7 +830,32 @@ const ARSENAL_DEFENCE_SHARE: float = 0.25
 
 
 static func arsenal_act_scale(act: int) -> float:
-	return ARSENAL_ACT_SCALE[clampi(act - 1, 0, ARSENAL_ACT_SCALE.size() - 1)]
+	return ARSENAL_ACT_SCALE[clampi(act - 1, 0, ARSENAL_ACT_SCALE.size() - 1)] * ARSENAL_POTENCY
+
+## **What an Arsenal card gives is worth less** (owner, 2026-10-08: "reduce the
+## value of what they provide but do not reduce their effects such as jumps or
+## range"). Every weapon's blow, through the one act scale `hit_for`, the card's
+## face and `curve_report` all read; and every ward and mend share, through
+## `share_at`. A jump, a count, a reach and a radius are untouched.
+const ARSENAL_POTENCY: float = 0.88
+const ARSENAL_SHARE_POTENCY: float = 0.75
+
+## **A hired hand takes half of what the party is given** (owner, 2026-10-08):
+## a mercenary's own Arsenal, and every bonus it would read off the party -
+## relics, portents, cards, the shared table - at this share. Its own gear is
+## its own. Read through `WardenSheet.borrowed`, set when the body wears its
+## sheet.
+const MERC_BORROWED_SHARE: float = 0.5
+
+## **Every heal and every ward on a Warden is worth less** (owner, 2026-10-08:
+## "healing and wards need to be nerfed so that they're not so OP and dont give
+## passive playing and peace of mind"). Folded into the pool's own heal and
+## ward scales, so every source - a draught, a fish, the well, a mend, a branch,
+## a card - is reached by one number; the blood arts' own unscaled heals take
+## `BLOOD_HEAL_SCALE` on top.
+const HERO_HEAL_SCALE: float = 0.8
+const HERO_WARD_SCALE: float = 0.8
+const BLOOD_HEAL_SCALE: float = 0.8
 
 ## The largest a single card's magnitude may be, for keys read as a fraction.
 ##
@@ -1975,11 +2004,13 @@ const BEAST_STEP_WORLD_IMPULSE: float = 27.0
 
 ## Slowest an enemy ever walks, however much chill is on it. Never zero - a tower
 ## line that stops enemies outright stops the game with them.
-const CHILL_SLOW_FLOOR: float = 0.34
+## **Raised 2026-10-08** (owner: slows "too OP ... but not useless"): 0.34 to
+## 0.44, and a slow's chill 0.42 to 0.35 - a slowed body still walks.
+const CHILL_SLOW_FLOOR: float = 0.44
 
 ## Chill from a slow that would have stopped an enemy dead (factor 0). An
 ## authored slow_factor of 0.6 therefore contributes 0.4 of this. [TUNE]
-const CHILL_PER_SLOW: float = 0.42
+const CHILL_PER_SLOW: float = 0.35
 
 ## Chill from a dedicated freeze proc. A freeze tower is a chill engine now, and
 ## reaches the lock sooner than a plain slow rather than by a different rule.
@@ -2718,12 +2749,12 @@ const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.65
 ## and boss moves together and the authored spread between them is untouched.
 ## `curve_report` carries the health in its threat; the walk is a shape it does
 ## not model. [TUNE]
-const ENEMY_HEALTH_SCALE: float = 1.08
+const ENEMY_HEALTH_SCALE: float = 1.12
 ## The square in the middle of the Town Hall that takes the Warden back to the
 ## battlefield: the building's heart, small enough that the plots round it keep
 ## their own presses. [TUNE]
 const TOWN_HALL_RETURN_SIZE: float = 220.0
-const ENEMY_MOVE_SPEED_SCALE: float = 1.06
+const ENEMY_MOVE_SPEED_SCALE: float = 1.09
 ## **How far one body's looks may stray from its breed's** (owner, 2026-10-07:
 ## "give all enemies a slight procedural variation"). Hue in turns of the wheel,
 ## depth and light as shares, stature as a share of its height - each rolled on
@@ -4137,7 +4168,7 @@ const TOWER_DAMAGE_TAKEN_SCALE: float = 0.62
 ## comes back to the board rather than to the hand: a tower game whose towers
 ## carry more of the fight. Read in `TowerData.damage_at`, so the curve, the
 ## tooltips and the fight all see one number. [TUNE]
-const TOWER_DAMAGE_SCALE: float = 1.30
+const TOWER_DAMAGE_SCALE: float = 1.40
 ## **How hard a support tower may shoot, against the weakest gun in its own
 ## role** (owner, 2026-09-22: *"all towers need to deal some kind of damage
 ## ... except for the healing well"*).
@@ -6153,7 +6184,7 @@ const BATTLEFIELD_MAX_ENEMIES: int = 120
 ## **62 to 68, 2026-09-25** (owner: melee enemies "need to be a bit more
 ## aggressive and have a tiny bit more attack range"). A melee arm reaches this
 ## plus the body's own radius, so an ordinary breed swings from about 90.
-const ENEMY_ATTACK_RANGE: float = 68.0
+const ENEMY_ATTACK_RANGE: float = 71.0
 
 ## Visible tell before the blow lands. [TUNE]
 const ENEMY_ATTACK_WINDUP: float = 0.45
@@ -6165,7 +6196,7 @@ const ENEMY_ATTACK_STRIKE: float = 0.12
 const ENEMY_ATTACK_RECOVERY: float = 0.75
 
 ## An enemy will break off to hit the hero if the hero is this close. [TUNE]
-const ENEMY_HERO_AGGRO_RANGE: float = 210.0
+const ENEMY_HERO_AGGRO_RANGE: float = 220.0
 ## **A melee body notices the Warden further off and swings again sooner**
 ## (owner, 2026-09-25: "a bit more aggressive"). Melee only: a shooter already
 ## engages from its own range, and one that also closed from further would
@@ -6189,7 +6220,7 @@ const ENEMY_MELEE_RECOVERY_SCALE: float = 0.8
 ## **Raised 2026-10-07** (owner: "more hostile and dangerous ... more
 ## aggressive"): sight 1.8 to 2.0, memory 3 to 4 s, pace 1.15 to 1.2, rest 0.85
 ## to 0.8, circle 1.25 to 1.35. Still never the blow.
-const ENEMY_SIGHT_SCALE: float = 2.0
+const ENEMY_SIGHT_SCALE: float = 2.2
 const ENEMY_ALERT_SECONDS: float = 4.0
 const ENEMY_ALERT_SPEED_SCALE: float = 1.2
 const ENEMY_ALERT_RECOVERY_SCALE: float = 0.8
@@ -6203,7 +6234,11 @@ const ENEMY_CHASE_LEASH: float = 170.0
 
 ## Howlers and the Drowned Choir fire slow committed shots. Their target can
 ## leave the marked destination before impact; this is pressure, not hitscan.
-const ENEMY_RANGED_RANGE: float = 330.0
+const ENEMY_RANGED_RANGE: float = 345.0
+## **A shooter reaches a little further than it is authored** (owner,
+## 2026-10-08), read in `Enemy.attack_reach` and so by the ring a player
+## stands outside.
+const ENEMY_RANGED_REACH_SCALE: float = 1.05
 ## Raised alongside the tower shot, but by less: an enemy's shot has to stay
 ## dodgeable, and the hero has more ground to dodge into now. [TUNE]
 const ENEMY_PROJECTILE_SPEED: float = 400.0
@@ -11859,16 +11894,20 @@ const GEAR_GLEAM_MOTES: float = 7.0
 ## and the longest name it may carry. [TUNE]
 const MERC_ROSTER_MAX: int = 3
 const MERC_LEVEL_SPREAD: int = 6
-const MERC_FEE_BASE: int = 120
-const MERC_FEE_PER_LEVEL: int = 14
-const MERC_FEE_PER_GEAR_POINT: int = 9
-const MERC_CONTRACT_SHARE: float = 0.18
-const MERC_BILL_BASE: int = 60
-const MERC_BILL_PER_LEVEL: int = 6
+## **Raised 2026-10-08** (owner: a mercenary is "an expensive luxury at a loss
+## that still helps the player progress further than they would have without
+## them but still barely so"). The fee, the contract, the bill and the cut are
+## all about half again what they were.
+const MERC_FEE_BASE: int = 190
+const MERC_FEE_PER_LEVEL: int = 22
+const MERC_FEE_PER_GEAR_POINT: int = 14
+const MERC_CONTRACT_SHARE: float = 0.30
+const MERC_BILL_BASE: int = 100
+const MERC_BILL_PER_LEVEL: int = 10
 const MERC_REST_SECONDS: float = 900.0
 const MERC_WOUNDS: int = 3
-const MERC_SPOILS_SHARE: float = 0.15
-const MERC_REWARD_SHARE: float = 0.12
+const MERC_SPOILS_SHARE: float = 0.25
+const MERC_REWARD_SHARE: float = 0.20
 const MERC_NAME_MAX: int = 32
 ## **A mercenary's mind** (`MercenaryInput`): how often it chooses what to
 ## fight, how far from where its order puts it it will engage and how far a
@@ -11885,6 +11924,14 @@ const MERC_DASH_GAP: float = 4.0
 const MERC_LEASH: float = 170.0
 const MERC_RETREAT_SHARE: float = 0.25
 const MERC_RECOVER_SHARE: float = 0.6
+## **An animal on a hired hand** (owner, 2026-10-08), read by
+## `MercenaryInput.wild_answer`: noticed this close, driven off once it has
+## lost this share of its pool, run from below this share of the hand's own
+## health, and put down once it has been run from this long without shaking it.
+const MERC_WILD_NOTICE: float = 320.0
+const MERC_WILD_SCARE_SHARE: float = 0.3
+const MERC_WILD_FLEE_SHARE: float = 0.45
+const MERC_WILD_CORNERED: float = 3.0
 const MERC_CARRY_SECONDS: float = 2.0
 ## **A mercenary builds** in each breather: how long into Preparation it waits,
 ## how many purchases it makes, and how many rings of tiles it searches for a

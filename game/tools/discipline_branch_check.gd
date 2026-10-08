@@ -502,7 +502,7 @@ func _test_oaths_on_the_hero() -> void:
 	# The Red Road: draughts heal half, its own lifesteal does not.
 	_learn("oath_red_road")
 	hero.call("_apply_permanent_bonuses")
-	_check(is_equal_approx(hero.health.heal_scale, 0.5), "The Red Road must halve heals: scale %.2f" % hero.health.heal_scale)
+	_check(is_equal_approx(hero.health.heal_scale, 0.5 * Balance.HERO_HEAL_SCALE), "The Red Road must halve heals: scale %.2f" % hero.health.heal_scale)
 	hero.health.current_hp = hero.health.max_hp * 0.2
 	var low: float = hero.health.current_hp
 	hero.health.heal(20.0)
@@ -512,7 +512,7 @@ func _test_oaths_on_the_hero() -> void:
 	_check(is_equal_approx(hero.health.current_hp - low, 20.0), "and the Road's own lifesteal heals whole")
 	MetaState.discipline_tree.erase("oath_red_road")
 	hero.call("_apply_permanent_bonuses")
-	_check(is_equal_approx(hero.health.heal_scale, 1.0), "let go, heals are whole again")
+	_check(is_equal_approx(hero.health.heal_scale, Balance.HERO_HEAL_SCALE), "let go, heals are whole again")
 	# No Retreat: no perfect evade; the dash strikes what it crosses.
 	var evades: Array[int] = [0]
 	var counter: Callable = func(_at: Vector2) -> void: evades[0] += 1

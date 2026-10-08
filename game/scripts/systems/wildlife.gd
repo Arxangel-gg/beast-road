@@ -4042,10 +4042,20 @@ func apply_fog(fog: FogOfWar) -> void:
 ## the two states that mean it; a rabid animal counts wherever it is looking,
 ## because a rabid animal is hostile to everything.
 func threat_to(who: Node2D, radius: float) -> Vector2:
-	if who == null or not is_instance_valid(who):
+	var hunter: Dictionary = hunter_of(who, radius)
+	if hunter.is_empty():
 		return Vector2.INF
+	return (hunter["sprite"] as Node2D).global_position
+
+
+## **The nearest animal hunting `who`, as its record**, or empty: `threat_to`'s
+## question answered with the animal rather than where it stands, for a hired
+## hand's mind that has to decide what to do about it (2026-10-08).
+func hunter_of(who: Node2D, radius: float) -> Dictionary:
+	if who == null or not is_instance_valid(who):
+		return {}
 	var at: Vector2 = who.global_position
-	var best: Vector2 = Vector2.INF
+	var best: Dictionary = {}
 	var best_distance: float = radius
 	for animal: Dictionary in _living:
 		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
@@ -4061,8 +4071,20 @@ func threat_to(who: Node2D, radius: float) -> Vector2:
 		var distance: float = sprite.global_position.distance_to(at)
 		if distance < best_distance:
 			best_distance = distance
-			best = sprite.global_position
+			best = animal
 	return best
+
+
+## **Driven off** (2026-10-08): an animal a hired hand has hurt enough runs from
+## where it was struck and remembers it - never a blighted one or one sent after
+## the party, which do not scare.
+func scare_off(animal: Dictionary, from: Vector2) -> void:
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	if bool(animal.get("rabid", false)) or hunts_the_players(animal):
+		return
+	_bolt_from_news(animal, sprite, from, false)
 
 
 # --- The road notices a hunter (2026-09-13) ----------------------------------------------

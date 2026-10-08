@@ -1430,7 +1430,7 @@ func _open_drop_choice(card: RoadCardData, on_leave: Callable = Callable()) -> v
 	for child: Node in options_box.get_children():
 		child.queue_free()
 	title.text = "%s  ·  leave one behind" % card.display_name.to_upper()
-	# The hand is shown as the cards it is: choosing which of eight to leave
+	# The hand is shown as the cards it is: choosing which of thirty to leave
 	# behind is a comparison between eight things, and a column of rows does
 	# not support one.
 	#
