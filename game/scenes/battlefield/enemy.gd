@@ -92,6 +92,14 @@ enum State {
 var _walk_frames: Array[Texture2D] = []
 var _idle_frames: Array[Texture2D] = []
 var _idle_phase: float = 0.0
+## **A walk drawn side-on** (owner, 2026-10-08: "Dragons also need walking
+## sidescroller animations for all variations"): `<base>_side_NN.png`, painted
+## facing right. A breed with them walks in profile whenever it is going more
+## across the screen than up or down it, and faces the way it walks whatever its
+## front-on art says - a profile has a front and a back.
+var _side_frames: Array[Texture2D] = []
+## Whether this frame is drawn side-on. For the gate.
+var walking_side_on: bool = false
 
 ## The swing, drawn rather than implied.
 ##
@@ -807,6 +815,7 @@ func _ready() -> void:
 		# cycle alternating between standing and mid-stride reads as the sprite
 		# being swapped rather than animated. That was learned on the wildlife.
 		_walk_frames = GameData.load_move_frames(path)
+		_side_frames = GameData.load_state_frames(path, "side")
 		_idle_frames = GameData.load_idle_frames(path)
 		_attack_frames = GameData.load_attack_frames(path)
 	if not _walk_frames.is_empty():
@@ -4814,6 +4823,9 @@ func _update_sprite(delta: float = 0.0) -> void:
 		_aura_ring.position.x = _body_offset_x()
 
 	_advance_walk_frames(delta)
+	# A profile faces the way it walks, whatever the front-on art allows.
+	if walking_side_on:
+		sprite.flip_h = _motion.x < 0.0
 
 	var tint: Color = Color.WHITE
 	# **The tint is the fallback, not the effect.** Since 2026-09-01 fire, ice
@@ -4857,6 +4869,7 @@ func _update_sprite(delta: float = 0.0) -> void:
 ## Attack tells outrank idle and walk. Idle only fills recovery and stationary
 ## walking states; a frozen, stunned or dying body must never keep breathing.
 func _advance_walk_frames(delta: float) -> void:
+	walking_side_on = false
 	if sprite == null:
 		return
 	if _state == State.DYING or _freeze_left > 0.0 or _hitstun_left > 0.0:
@@ -4890,6 +4903,14 @@ func _advance_walk_frames(delta: float) -> void:
 			sprite.texture = _rest_texture
 		return
 	_idle_phase = 0.0
+	if not _side_frames.is_empty() \
+			and absf(_motion.x) > absf(_motion.y) * Balance.ENEMY_SIDE_WALK_RATIO:
+		walking_side_on = true
+		var side_density: float = float(_side_frames.size()) / maxf(Balance.ENEMY_WALK_CYCLE_FRAMES, 1.0)
+		_walk_phase += maxf(_motion.length() * Balance.ENEMY_WALK_FRAMES_PER_PIXEL,
+			Balance.ENEMY_WALK_FRAME_FLOOR) * side_density * delta
+		sprite.texture = _side_frames[int(_walk_phase) % _side_frames.size()]
+		return
 	if _walk_frames.is_empty():
 		return
 	# Distance-driven, with a floor. See `ENEMY_WALK_FRAME_FLOOR`: the cycle

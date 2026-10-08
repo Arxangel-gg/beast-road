@@ -410,6 +410,110 @@ static func _weigh(marks: Array[Dictionary], at: Vector2, from: Vector2, reach: 
 	marks.append({"at": at, "weight": weight * scale})
 
 
+## **The arc that crosses the most** (owner, 2026-10-08: "sweeps of its breath
+## over an area trying to fruit ninja as many targets"): among `marks` within
+## `reach` of `from` and `DRAGON_SWEEP_ARC` of `home`, the widest-weighted span
+## of at most `DRAGON_SWEEP_SPAN` holding `DRAGON_SWEEP_MIN_MARKS` or more,
+## padded by the beam's own half-width so the edges are covered. As
+## `Vector2(start, end)` absolute angles, starting at the end nearer `now`;
+## `Vector2.INF` when nothing is worth a sweep.
+static func plan_sweep(marks: Array[Dictionary], from: Vector2, home: float, reach: float,
+		half: float, now: float) -> Vector2:
+	var items: Array = []
+	for mark: Dictionary in marks:
+		var at: Vector2 = mark["at"]
+		var distance: float = at.distance_to(from)
+		if distance > reach + half or distance < 1.0:
+			continue
+		var off: float = angle_difference(home, (at - from).angle())
+		if absf(off) > Balance.DRAGON_SWEEP_ARC:
+			continue
+		items.append([off, float(mark["weight"]), atan2(half, distance)])
+	if items.size() < Balance.DRAGON_SWEEP_MIN_MARKS:
+		return Vector2.INF
+	items.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	var best: float = 0.0
+	var first: int = -1
+	var last: int = -1
+	for i: int in items.size():
+		var total: float = 0.0
+		var count: int = 0
+		for j: int in range(i, items.size()):
+			if float(items[j][0]) - float(items[i][0]) > Balance.DRAGON_SWEEP_SPAN:
+				break
+			total += float(items[j][1])
+			count += 1
+			if count >= Balance.DRAGON_SWEEP_MIN_MARKS and total > best:
+				best = total
+				first = i
+				last = j
+	if first < 0:
+		return Vector2.INF
+	var start: float = home + float(items[first][0]) - float(items[first][2])
+	var end: float = home + float(items[last][0]) + float(items[last][2])
+	if absf(angle_difference(now, end)) < absf(angle_difference(now, start)):
+		return Vector2(end, start)
+	return Vector2(start, end)
+
+
+## **The next best thing to turn to** when nothing is left where a breath
+## points (2026-10-08): the angle straight at the mark worth most within `arc`
+## of `now`, a nearer turn worth a little more. Aimed at the mark itself rather
+## than chosen from a fan of lines, because a fan's spacing can fall either side
+## of a body narrower than it and the breath would turn to nothing. INF when
+## nothing is in the arc.
+static func next_target(marks: Array[Dictionary], from: Vector2, now: float, arc: float) -> float:
+	var best: float = INF
+	var most: float = 0.0
+	for mark: Dictionary in marks:
+		var at: Vector2 = mark["at"]
+		if at.distance_squared_to(from) < 1.0:
+			continue
+		var angle: float = (at - from).angle()
+		var off: float = absf(angle_difference(now, angle))
+		if off > arc:
+			continue
+		var score: float = float(mark["weight"]) * (1.0 - 0.5 * off / maxf(arc, 0.001))
+		if score > most:
+			most = score
+			best = angle
+	return best
+
+
+## Where along a planned sweep a breath points, `progress` of the way through
+## it: from `aimed` onto the arc's start over the settling share, then across.
+static func sweep_angle(aimed: float, sweep: Vector2, progress: float) -> float:
+	var settle: float = Balance.DRAGON_SWEEP_SETTLE
+	if progress < settle:
+		return lerp_angle(aimed, sweep.x, smoothstep(0.0, 1.0, progress / maxf(settle, 0.001)))
+	var across: float = (progress - settle) / maxf(1.0 - settle, 0.001)
+	return lerp_angle(sweep.x, sweep.y, smoothstep(0.0, 1.0, clampf(across, 0.0, 1.0)))
+
+
+## The Wardens and their spirits within `reach` of `from` and not yet struck,
+## as marks: what a camp wyrm's breath may turn to.
+static func player_marks(tree: SceneTree, from: Vector2, reach: float,
+		struck: Dictionary) -> Array[Dictionary]:
+	var marks: Array[Dictionary] = []
+	if tree == null:
+		return marks
+	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		if struck.has(who.get_instance_id()) or who.global_position.distance_to(from) > reach:
+			continue
+		marks.append({"at": who.global_position, "weight": 1.0})
+	for node: Node in tree.get_nodes_in_group(Companion.GROUP):
+		var pet := node as Companion
+		if pet == null or not is_instance_valid(pet) or not pet.is_alive():
+			continue
+		if struck.has(pet.get_instance_id()) or pet.global_position.distance_to(from) > reach:
+			continue
+		marks.append({"at": pet.global_position, "weight": 0.6})
+	return marks
+
+
 ## The single most worth breathing on, or INF.
 static func heaviest(marks: Array[Dictionary]) -> Vector2:
 	var best: Vector2 = Vector2.INF

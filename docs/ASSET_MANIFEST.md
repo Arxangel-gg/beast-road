@@ -635,6 +635,15 @@ Files: `enemy_wyvern_tide_move_01.png` · `enemy_wyvern_tide_move_02.png` · `en
 Files: `enemy_wyvern_bramble_move_01.png` · `enemy_wyvern_bramble_move_02.png` · `enemy_wyvern_bramble_move_03.png` · `enemy_wyvern_bramble_move_04.png` · `enemy_wyvern_bramble_move_05.png` · `enemy_wyvern_bramble_move_06.png` · `enemy_wyvern_bramble_move_07.png` · `enemy_wyvern_bramble_move_08.png`
 Files: `enemy_wyvern_gale_move_01.png` · `enemy_wyvern_gale_move_02.png` · `enemy_wyvern_gale_move_03.png` · `enemy_wyvern_gale_move_04.png` · `enemy_wyvern_gale_move_05.png` · `enemy_wyvern_gale_move_06.png` · `enemy_wyvern_gale_move_07.png` · `enemy_wyvern_gale_move_08.png`
 
+#### Dragons walking side-on
+
+The camp dragons' walk drawn in profile, facing right (2026-10-08). All 256×192, type T, placeholder colour `#5A4A48`.
+
+Files: `enemy_dragon_fire_side_01.png` · `enemy_dragon_fire_side_02.png` · `enemy_dragon_fire_side_03.png` · `enemy_dragon_fire_side_04.png` · `enemy_dragon_fire_side_05.png` · `enemy_dragon_fire_side_06.png` · `enemy_dragon_fire_side_07.png` · `enemy_dragon_fire_side_08.png`
+Files: `enemy_dragon_frost_side_01.png` · `enemy_dragon_frost_side_02.png` · `enemy_dragon_frost_side_03.png` · `enemy_dragon_frost_side_04.png` · `enemy_dragon_frost_side_05.png` · `enemy_dragon_frost_side_06.png` · `enemy_dragon_frost_side_07.png` · `enemy_dragon_frost_side_08.png`
+Files: `enemy_dragon_stone_side_01.png` · `enemy_dragon_stone_side_02.png` · `enemy_dragon_stone_side_03.png` · `enemy_dragon_stone_side_04.png` · `enemy_dragon_stone_side_05.png` · `enemy_dragon_stone_side_06.png` · `enemy_dragon_stone_side_07.png` · `enemy_dragon_stone_side_08.png`
+Files: `enemy_dragon_storm_side_01.png` · `enemy_dragon_storm_side_02.png` · `enemy_dragon_storm_side_03.png` · `enemy_dragon_storm_side_04.png` · `enemy_dragon_storm_side_05.png` · `enemy_dragon_storm_side_06.png` · `enemy_dragon_storm_side_07.png` · `enemy_dragon_storm_side_08.png`
+
 #### Last Terrace walk frames
 
 All 192×192, type T, placeholder colour `#7A7C80`.

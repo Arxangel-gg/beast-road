@@ -33,6 +33,8 @@ func _ready() -> void:
 			String(plan.get("element", "fire")), bool(plan.get("ultra", false)),
 			float(plan["warning"]))
 		picture.source = self
+		# A sweep holds its fire for as long as it takes to cross.
+		picture.blast = maxf(picture.blast, float(plan["travel"]))
 		_chasing = _nearest_warden(_to)
 
 
@@ -83,6 +85,15 @@ func _chase(delta: float) -> void:
 	# the nearest Warden only when no line reaches anybody new.
 	var origin: Vector2 = plan.get("origin", plan["from"]) as Vector2
 	var span: float = origin.distance_to(aimed)
+	# **A planned sweep runs its arc** (2026-10-08), whatever is on it: the arc
+	# was warned whole, and each body on it is struck once.
+	var sweep: Vector2 = sweep_of(plan)
+	if sweep.is_finite() and span > 1.0:
+		var progress: float = clampf((_elapsed - float(plan["warning"]))
+			/ maxf(float(plan["travel"]), 0.001), 0.0, 1.0)
+		_to = origin + Vector2.from_angle(DragonBreath.sweep_angle((aimed - origin).angle(),
+			sweep, progress)) * span
+		return
 	if span > 1.0:
 		var home: float = (aimed - origin).angle()
 		var arc: float = atan2(Balance.DRAGON_BREATH_TRACK_REACH, span)
@@ -100,6 +111,21 @@ func _chase(delta: float) -> void:
 			_to = _to.move_toward(origin + Vector2.from_angle(best) * span,
 				delta * Balance.DRAGON_BREATH_TRACK_SPEED)
 			return
+		# **Nothing left where it points: the next best line** (owner,
+		# 2026-10-08), anywhere within the retargeting arc of where it points
+		# now, turned to at a bounded rate.
+		var now: float = (_to - origin).angle()
+		var marks: Array[Dictionary] = DragonBreath.wild_marks(get_tree(), field, origin,
+			span + float(plan["width"]), _hit, float(plan["share"])) \
+			if bool(plan.get("wild", false)) \
+			else DragonBreath.player_marks(get_tree(), origin, span + float(plan["width"]), _hit)
+		var next: float = DragonBreath.next_target(marks, origin, now,
+			Balance.DRAGON_BREATH_RETARGET_ARC)
+		if next != INF:
+			retargeted = true
+			_to = origin + Vector2.from_angle(rotate_toward(now, next,
+				delta * Balance.DRAGON_BREATH_RETARGET_RATE)) * span
+			return
 	if _chasing == null or not is_instance_valid(_chasing) or not _chasing.is_inside_tree():
 		_chasing = null
 		return
@@ -110,6 +136,20 @@ func _chase(delta: float) -> void:
 	if off.length() > Balance.DRAGON_BREATH_TRACK_REACH:
 		goal = aimed + off.normalized() * Balance.DRAGON_BREATH_TRACK_REACH
 	_to = _to.move_toward(goal, delta * Balance.DRAGON_BREATH_TRACK_SPEED)
+
+
+## Whether this breath has turned to a line beyond its warned arc. For the gate.
+var retargeted: bool = false
+
+
+## The sweep a plan carries, or `Vector2.INF`.
+static func sweep_of(of: Dictionary) -> Vector2:
+	var sweep: Variant = of.get("sweep", null)
+	if sweep is Vector2:
+		return sweep as Vector2
+	if sweep is Array and (sweep as Array).size() == 2:
+		return Vector2(float((sweep as Array)[0]), float((sweep as Array)[1]))
+	return Vector2.INF
 
 
 ## The Warden nearest where a breath was aimed, outside the walls, or null.
@@ -219,6 +259,7 @@ func _draw_measured() -> void:
 
 	if _elapsed < warning:
 		_draw_the_warning(a, b, side, width, tint, clampf(_elapsed / maxf(warning, 0.01), 0.0, 1.0))
+		_draw_the_arc(tint, clampf(_elapsed / maxf(warning, 0.01), 0.0, 1.0))
 		return
 
 	# Boundary and damage use the same width, including the committed trail.
@@ -255,6 +296,25 @@ func _draw_the_warning(a: Vector2, b: Vector2, side: Vector2, width: float,
 	# And the two edges, so the shape of what is coming is still exact.
 	draw_line(a + side, b + side, Color(tint, 0.30 + 0.34 * ready), 1.5, true)
 	draw_line(a - side, b - side, Color(tint, 0.30 + 0.34 * ready), 1.5, true)
+
+
+## **A sweep is warned whole**: both edges of the arc and the arc at its reach,
+## so what the breath will cross is on the ground before it crosses it.
+func _draw_the_arc(tint: Color, ready: float) -> void:
+	var sweep: Vector2 = sweep_of(plan)
+	if not sweep.is_finite():
+		return
+	var origin: Vector2 = to_local(plan.get("origin", plan["from"]) as Vector2)
+	var span: float = (plan.get("origin", plan["from"]) as Vector2).distance_to(plan["to"] as Vector2)
+	var colour := Color(tint, 0.22 + 0.4 * ready)
+	draw_line(origin, origin + Vector2.from_angle(sweep.x) * span, colour, 2.0, true)
+	draw_line(origin, origin + Vector2.from_angle(sweep.y) * span, colour, 2.0, true)
+	var points := PackedVector2Array()
+	var steps: int = 24
+	for index: int in steps + 1:
+		var angle: float = lerp_angle(sweep.x, sweep.y, float(index) / float(steps))
+		points.append(origin + Vector2.from_angle(angle) * span)
+	draw_polyline(points, colour, 2.0, true)
 
 
 ## The split itself: slabs of lifted earth either side of a dark seam.

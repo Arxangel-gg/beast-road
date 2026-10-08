@@ -59,6 +59,16 @@ var _own_art: bool = false
 var _clock: float = 0.0
 var _attack_left: float = 0.0
 var _touched_down: bool = false
+## **The rampage** (owner, 2026-10-08): the places a landed dragon stamps
+## toward, chosen once as it dives and carried in the plan; which it is on; its
+## walk, drawn side-on when it goes across the screen.
+var _rampage: Array[Vector2] = []
+var _rampage_index: int = 0
+var _walking: bool = false
+var _walk_clock: float = 0.0
+var _stomp_left: float = 0.0
+var _side_frames: Array[Texture2D] = []
+var _move_frames: Array[Texture2D] = []
 
 
 ## Every passing dragon, for anything that has to find one - the edge arrows.
@@ -116,6 +126,12 @@ func _ready() -> void:
 		fury = float(authored_plan.get("fury", fury))
 		_curve = authored_plan.get("curve", _curve) as Vector2
 		_load_ground_art()
+		if authored_plan.has("rampage"):
+			for value: Variant in authored_plan["rampage"] as Array:
+				if value is Vector2:
+					_rampage.append(value as Vector2)
+	if _will_land and _rampage.is_empty() and not _mirror and not authored_plan.has("rampage"):
+		_rampage = _plan_rampage()
 	_height = Balance.DRAGON_HEIGHT
 	_heading = (to - from).normalized()
 	_load_wings()
@@ -130,6 +146,7 @@ func _process_measured(delta: float) -> void:
 	_attack_left = maxf(_attack_left - delta, 0.0)
 	if _landed:
 		_land_left -= delta
+		_tick_rampage(delta)
 		_since_fire += delta
 		if _since_fire >= Balance.DRAGON_FIRE_INTERVAL:
 			_since_fire = 0.0
@@ -164,7 +181,8 @@ func _process_measured(delta: float) -> void:
 		if travelled >= 0.5 and not _has_landed:
 			_has_landed = true
 			_landed = true
-			_land_left = Balance.DRAGON_LAND_SECONDS
+			_land_left = Balance.DRAGON_LAND_SECONDS \
+				+ (Balance.DRAGON_RAMPAGE_EXTRA if not _rampage.is_empty() else 0.0)
 			_left = pass_seconds * 0.5
 			global_position = _landing
 			_height = 0.0
@@ -203,25 +221,136 @@ func _breathe() -> void:
 	var width: float = Balance.DRAGON_BREATH_WIDTH * float(chosen["width"])
 	if bool(chosen["ultra"]):
 		target = global_position + (target - global_position) * Balance.DRAGON_ULTRA_REACH
+	# **A sweep across as much as it can catch** (2026-10-08), planned here so
+	# every machine's picture runs the same arc; warned whole.
+	var sweep: Vector2 = Vector2.INF
+	if field != null:
+		var span: float = global_position.distance_to(target)
+		var share_now: float = Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP)
+		sweep = DragonBreath.plan_sweep(DragonBreath.wild_marks(get_tree(), field,
+			global_position, span + width, {}, share_now), global_position,
+			(target - global_position).angle(), span, width, (target - global_position).angle())
+		if sweep.is_finite():
+			target = global_position + Vector2.from_angle(sweep.x) * span
 	# The blow lasts as long as the beam is drawn (2026-09-30): it sweeps toward
 	# the Warden it chases, so a window shorter than the beam would be a beam
 	# still chasing somebody it can no longer hurt.
-	var sweep: float = Balance.DRAGON_ULTRA_BLAST if bool(chosen["ultra"]) \
+	var travel: float = Balance.DRAGON_ULTRA_BLAST if bool(chosen["ultra"]) \
 		else Balance.DRAGON_BREATH_BLAST
-	_attack_left = Balance.DRAGON_BREATH_WARNING + sweep
-	EventBus.world_hazard.emit("ground", {
+	if sweep.is_finite():
+		travel = maxf(travel, Balance.DRAGON_SWEEP_SECONDS)
+	_attack_left = Balance.DRAGON_BREATH_WARNING + travel
+	var hazard: Dictionary = {
 		"mode": "breath", "from": global_position, "to": target,
 		"element": String(chosen["element"]), "ultra": bool(chosen["ultra"]),
 		"origin": mouth(),
 		"width": width, "warning": Balance.DRAGON_BREATH_WARNING,
-		"travel": sweep, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
+		"travel": travel, "share": Balance.DRAGON_BREATH_HERO_SHARE * (1.0 + float(rarity) * Balance.DRAGON_RARITY_DAMAGE_STEP),
 		"tower_damage": 0.0, "tint": tint, "wild": true,
-		"blame": _kind.display_name if _kind != null else "dragon"})
+		"blame": _kind.display_name if _kind != null else "dragon"}
+	if sweep.is_finite():
+		hazard["sweep"] = [sweep.x, sweep.y]
+	last_breath = hazard
+	EventBus.world_hazard.emit("ground", hazard)
 	if wildfire != null and (_kind == null or _kind.dragon_ignites):
 		if wildfire.ignite_near(target, Balance.DRAGON_FIRE_RADIUS, Balance.DRAGON_FIRE_CHANCE, false):
 			lit += 1
 		if field != null and field.climate() != null:
 			field.climate().add_heat(target, Balance.DRAGON_HEAT, Balance.DRAGON_FIRE_RADIUS * 1.4)
+
+
+## The last breath it planned. For the gate.
+var last_breath: Dictionary = {}
+
+
+## **Where a landed dragon stamps toward** (owner, 2026-10-08: "going on a short
+## rampage landing somewhere"): the heaviest things within reach of where it
+## comes down, one after another, a little short of each, inside a leash and
+## off the walls and the water. Empty when nothing is worth the walk.
+func _plan_rampage() -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	if field == null or not is_inside_tree():
+		return out
+	var marks: Array[Dictionary] = DragonBreath.wild_marks(get_tree(), field, _landing,
+		Balance.DRAGON_RAMPAGE_REACH, {}, Balance.DRAGON_BREATH_HERO_SHARE)
+	var from_here: Vector2 = _landing
+	var clearance: float = landed_size().x * 0.5 if _ground_art != null else Balance.DRAGON_FIRE_RADIUS
+	for _stop: int in Balance.DRAGON_RAMPAGE_STOPS:
+		var best: Vector2 = Vector2.INF
+		var most: float = 0.0
+		for mark: Dictionary in marks:
+			var at: Vector2 = mark["at"]
+			if at.distance_to(from_here) < Balance.DRAGON_RAMPAGE_SHORT * 1.4:
+				continue
+			if float(mark["weight"]) > most:
+				most = float(mark["weight"])
+				best = at
+		if not best.is_finite():
+			break
+		var toward: Vector2 = best - from_here
+		var goal: Vector2 = from_here + toward.normalized() * maxf(toward.length() - Balance.DRAGON_RAMPAGE_SHORT, 0.0)
+		var off: Vector2 = goal - _landing
+		if off.length() > Balance.DRAGON_RAMPAGE_LEASH:
+			goal = _landing + off.normalized() * Balance.DRAGON_RAMPAGE_LEASH
+		goal = field.deflect_from_city(goal, clearance)
+		if absf(goal.x) >= BattleGrid.HALF_EXTENT or absf(goal.y) >= BattleGrid.HALF_EXTENT \
+				or field.water_depth_at(goal) > 0.0 or goal.distance_to(from_here) < 24.0:
+			break
+		out.append(goal)
+		from_here = goal
+		# The next stop is somewhere else: what it has stamped toward is spent.
+		var left: Array[Dictionary] = []
+		for mark: Dictionary in marks:
+			if (mark["at"] as Vector2).distance_to(best) > Balance.DRAGON_RAMPAGE_SHORT:
+				left.append(mark)
+		marks = left
+	return out
+
+
+## Walks the rampage, stamping as it goes.
+func _tick_rampage(delta: float) -> void:
+	_walking = false
+	if _rampage_index >= _rampage.size():
+		return
+	var goal: Vector2 = _rampage[_rampage_index]
+	var off: Vector2 = goal - global_position
+	if off.length() <= 4.0:
+		_rampage_index += 1
+		return
+	global_position += off.normalized() * minf(off.length(), Balance.DRAGON_RAMPAGE_SPEED * delta)
+	_heading = off.normalized()
+	_walking = true
+	_walk_clock += delta
+	_stomp_left -= delta
+	if _stomp_left <= 0.0:
+		_stomp_left = Balance.DRAGON_RAMPAGE_STEP_SECONDS
+		var tone: Color = field.ground_colour(global_position) if field != null else Color(0.5, 0.45, 0.4)
+		Vfx.dust(global_position, tone.lightened(0.12), 5, landed_size().x * 0.22)
+		EventBus.camera_impact.emit(global_position, Balance.DRAGON_RAMPAGE_STOMP)
+		Sfx.play_group_at("sfx_footstep_dirt", global_position, 8.0, -0.45)
+
+
+## Whether it is walking its rampage now, and how many stops it has. For the gate.
+func is_rampaging() -> bool:
+	return _walking
+
+
+func rampage_stops() -> int:
+	return _rampage.size()
+
+
+## The walk's frame and whether it is drawn side-on, by which way it goes.
+func _walk_frame() -> Texture2D:
+	if _side_frames.is_empty() or absf(_heading.x) <= absf(_heading.y) * Balance.ENEMY_SIDE_WALK_RATIO:
+		if _move_frames.is_empty():
+			return null
+		return _move_frames[int(_walk_clock * Balance.DRAGON_SIDE_WALK_HZ) % _move_frames.size()]
+	return _side_frames[int(_walk_clock * Balance.DRAGON_SIDE_WALK_HZ) % _side_frames.size()]
+
+
+func walking_side_on() -> bool:
+	return _walking and not _side_frames.is_empty() \
+		and absf(_heading.x) > absf(_heading.y) * Balance.ENEMY_SIDE_WALK_RATIO
 
 
 ## The shadow first, then the thing casting it.
@@ -248,6 +377,14 @@ func _draw_measured() -> void:
 		return
 	_shadow(size * shadow_scale(), turn, 0.55)
 	if _landed and _ground_art != null:
+		var walk: Texture2D = _walk_frame() if _walking else null
+		if walk != null:
+			var walk_size: Vector2 = walk.get_size() * Balance.DRAGON_SCALE * rarity_scale()
+			var flip: float = -1.0 if walking_side_on() and _heading.x < 0.0 else 1.0
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(flip, 1.0))
+			draw_texture_rect(walk, Rect2(Vector2(-walk_size.x * 0.5, -walk_size.y), walk_size), false)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
 		var ground_size: Vector2 = landed_size()
 		draw_texture_rect(landed_frame(), Rect2(Vector2(-ground_size.x * 0.5, -ground_size.y), ground_size), false)
 		return
@@ -272,6 +409,10 @@ func _shadow(size: Vector2, turn: float, strength: float) -> void:
 ## height the body is flying. A landed body breathes from its own painting's
 ## middle-top. `DragonBreath` reads this every frame (owner, 2026-09-30).
 func mouth() -> Vector2:
+	if walking_side_on():
+		var size: Vector2 = _side_frames[0].get_size() * Balance.DRAGON_SCALE * rarity_scale()
+		return global_position + Vector2(signf(_heading.x) * size.x * Balance.DRAGON_SIDE_MOUTH.x,
+			-size.y * Balance.DRAGON_SIDE_MOUTH.y)
 	if _landed and _ground_art != null:
 		return global_position - Vector2(0.0, landed_size().y * 0.75)
 	var length: float = flying_size().y
@@ -343,6 +484,8 @@ func _load_ground_art() -> void:
 	# A loaded sequence already carries the painting as frame zero.
 	_idle_frames = GameData.load_idle_frames(base)
 	_attack_frames = GameData.load_attack_frames(base)
+	_side_frames = GameData.load_state_frames(base, "side")
+	_move_frames = GameData.load_move_frames(base)
 
 
 func _load_wings() -> void:
@@ -377,6 +520,9 @@ func _touch_down() -> void:
 
 
 func _take_off() -> void:
+	# The second leg starts from wherever the rampage ended, not from where it
+	# came down - or it would leap back across the field to take off.
+	_landing = global_position
 	var tone: Color = Color(0.5, 0.45, 0.4)
 	if field != null:
 		tone = field.ground_colour(_landing)
@@ -409,7 +555,7 @@ func advance(seconds: float, steps: int = 40) -> void:
 func encounter_plan() -> Dictionary:
 	return {"from": from, "to": to, "landing": _landing, "land": _will_land,
 		"curve": _curve, "variant": _kind.id if _kind != null else "",
-		"rarity": rarity, "fury": fury}
+		"rarity": rarity, "fury": fury, "rampage": _rampage.duplicate()}
 
 
 ## `FrameProfile` bucket "d_dragon_pass": the real work is `_draw_measured` above.

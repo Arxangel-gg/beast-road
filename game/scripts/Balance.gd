@@ -5608,6 +5608,10 @@ const TRAIL_PLACEMENT_TRIES: int = 60
 ## [TUNE]
 const DRAGON_WARNING_SECONDS: float = 3.2
 const DRAGON_PASS_SECONDS: float = 7.5
+## **A body with a side-on walk uses it** when its motion is this many times
+## more across the screen than along it (2026-10-08). Under it, it walks in its
+## front-on frames. [TUNE]
+const ENEMY_SIDE_WALK_RATIO: float = 0.8
 ## **The trailer's dragon** (2026-10-08): it starts `REACH` from the pack it
 ## lands on, is warned for `WARNING`, crosses in `CROSSING` and lands on
 ## `LAND_CHANCE` of trailers - so it is over the pack inside three seconds of a
@@ -15318,6 +15322,52 @@ const EARTH_DEBRIS_BURSTS: int = 6
 const DRAGON_CURVE_WIDTH: float = 360.0
 const DRAGON_LAND_CHANCE: float = 0.45
 const DRAGON_LAND_SECONDS: float = 5.0
+
+## **A dragon that sweeps, retargets and rampages** (owner, 2026-10-08:
+## "Dragon firebreath targeting and interpolating to new targets if where it is
+## aiming does not have a valid target ... doing sweeps of its breath over an
+## area trying to fruit ninja as many targets in the sweep or arc motion ... and
+## even going on a short rampage landing somewhere").
+##
+## A **sweep** is planned when a breath is loosed: the arc of at most
+## `SWEEP_SPAN` radians, within `SWEEP_ARC` of where it was aimed, that crosses
+## the most weight of `SWEEP_MIN_MARKS` or more things - and the breath runs
+## along it for `SWEEP_SECONDS`, spending its first `SWEEP_SETTLE` share turning
+## from the warned line onto the arc. The warning draws the whole arc, so the
+## blow is never from nowhere, and each body is still struck once a breath:
+## shape, never size.
+##
+## A breath with nothing left where it points **turns to the next best line**
+## within `BREATH_RETARGET_ARC` of where it points, at `BREATH_RETARGET_RATE`
+## radians a second - interpolated, never snapped.
+##
+## A landed dragon **rampages**: it picks up to `RAMPAGE_STOPS` places worth
+## stamping toward within `RAMPAGE_REACH` of where it came down, stops
+## `RAMPAGE_SHORT` short of each, never strays past `RAMPAGE_LEASH`, walks at
+## `RAMPAGE_SPEED` and stays down `RAMPAGE_EXTRA` longer to do it - side-on, on
+## the walk frames, every `RAMPAGE_STEP_SECONDS` a stamp felt by distance at
+## `RAMPAGE_STOMP`. The places are chosen once, by the host, as it dives, and
+## carried in the plan so every machine walks the same path. [TUNE]
+const DRAGON_SWEEP_ARC: float = 1.2
+const DRAGON_SWEEP_SPAN: float = 1.4
+const DRAGON_SWEEP_MIN_MARKS: int = 2
+const DRAGON_SWEEP_SECONDS: float = 1.1
+const DRAGON_SWEEP_SETTLE: float = 0.2
+const DRAGON_BREATH_RETARGET_ARC: float = 1.3
+const DRAGON_BREATH_RETARGET_RATE: float = 1.1
+const DRAGON_RAMPAGE_REACH: float = 560.0
+const DRAGON_RAMPAGE_LEASH: float = 380.0
+const DRAGON_RAMPAGE_STOPS: int = 3
+const DRAGON_RAMPAGE_SHORT: float = 140.0
+const DRAGON_RAMPAGE_SPEED: float = 95.0
+const DRAGON_RAMPAGE_EXTRA: float = 3.5
+const DRAGON_RAMPAGE_STEP_SECONDS: float = 0.42
+const DRAGON_RAMPAGE_STOMP: float = 3.0
+## Where a side-on dragon's mouth is, as shares of its drawn width forward of
+## its middle and of its height above its feet; and how fast its walk turns
+## over.
+const DRAGON_SIDE_MOUTH: Vector2 = Vector2(0.4, 0.6)
+const DRAGON_SIDE_WALK_HZ: float = 7.0
 ## **Every dragon's breath, drawn** (owner, 2026-09-22). Three colours an
 ## element - a core, a body and a rim - for the cone `DragonBreath` draws;
 ## "plasma" is the fire wyrm's ultra: a white core in a violet sheath in a fire

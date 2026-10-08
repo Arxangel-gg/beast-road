@@ -128,6 +128,17 @@ func _track(delta: float) -> void:
 	var goal: float = DragonBreath.best_line(get_tree(), global_position, home,
 		Balance.DRAGON_BREATH_TRACK_ARC, reach, half_width, _struck, aim.angle())
 	if goal == INF:
+		# **Nothing left where it points: the next best line** (owner,
+		# 2026-10-08) - a Warden or a spirit anywhere within the retargeting
+		# arc of where it points now, turned to at a bounded rate.
+		var now_angle: float = aim.angle()
+		var next: float = DragonBreath.next_target(DragonBreath.player_marks(get_tree(),
+			global_position, reach + half_width, _struck), global_position, now_angle,
+			Balance.DRAGON_BREATH_RETARGET_ARC)
+		if next != INF:
+			aim = Vector2.from_angle(rotate_toward(now_angle, next,
+				delta * Balance.DRAGON_BREATH_RETARGET_RATE))
+			return
 		if track == null or not is_instance_valid(track) or not track.is_inside_tree():
 			track = null
 			return

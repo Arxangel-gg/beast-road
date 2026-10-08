@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _test_the_breath_leaves_the_mouth()
 	await _test_a_loosed_breath_chases()
 	await _test_the_breath_aims_where_it_catches_most()
+	await _test_it_sweeps_and_rampages()
 	_test_every_beam_ends_softly()
 	await _test_the_menu_dragon_rides_its_wings()
 	MetaState.resume_saves()
@@ -371,12 +372,20 @@ func _test_a_loosed_breath_chases() -> void:
 	hero.health.damaged.connect(func(amount: float, _from: Vector2) -> void: blows.append(amount))
 	var origin: Vector2 = Vector2(2600.0, 2600.0)
 
-	# The second case is an ultra (the longer beam) at a target past the arc: the
-	# only case long enough for the line to reach its bound, so it is the one
-	# that proves the bound is there.
-	for case: Array in [[0.40, true, "inside its arc", false],
-			[0.95, false, "past its arc", true]]:
+	# **Amended 2026-10-08** (owner: "interpolating to new targets if where it
+	# is aiming does not have a valid target to smartly aim its breath at the
+	# next best target"). A Warden past the warned arc with nothing else in reach
+	# is the next best target now, and is turned to - at the retargeting rate,
+	# never snapped, so the turn is read. One behind it, past where it may turn
+	# from where it points, is still not followed. The fifth figure is the
+	# widest the line may turn in each case.
+	for case: Array in [[0.40, true, "inside its arc", false, Balance.DRAGON_BREATH_TRACK_ARC],
+			[0.95, true, "past its arc with nothing else in reach", true,
+				Balance.DRAGON_BREATH_RETARGET_RATE * Balance.DRAGON_ULTRA_BLAST + 0.05],
+			[2.2, false, "behind it, past where it may turn", true, Balance.DRAGON_BREATH_TRACK_ARC]]:
 		blows.clear()
+		# The last case's blow left a window of invulnerability behind it.
+		hero.health.set("_invulnerable_left", 0.0)
 		hero.global_position = origin + Vector2.RIGHT.rotated(float(case[0])) * 300.0
 		hero.velocity = Vector2.ZERO
 		var strike := EnemyGroundStrike.new()
@@ -416,14 +425,14 @@ func _test_a_loosed_breath_chases() -> void:
 				continue
 			await get_tree().process_frame
 		_check(held_still, "the breath moved during its warning - the telegraph has to hold still")
-		_check(widest <= Balance.DRAGON_BREATH_TRACK_ARC + 0.01,
-			"the breath turned %.2f off its warned line, past its arc of %.2f"
-			% [widest, Balance.DRAGON_BREATH_TRACK_ARC])
+		_check(widest <= float(case[4]) + 0.01,
+			"the breath turned %.2f off its warned line, past its bound of %.2f (%s)"
+			% [widest, float(case[4]), String(case[2])])
 		_check(picture != null and same_line, "the beam drawn is not the line that strikes")
 		if bool(case[1]):
 			_check(blows.size() == 1 and absf(float(blows[0]) - 25.0) < 0.01,
-				"a Warden %s was struck %d times (%s) - a chase catches once"
-				% [String(case[2]), blows.size(), str(blows)])
+				"a Warden %s was struck %d times (%s) - a chase catches once (widest %.2f)"
+				% [String(case[2]), blows.size(), str(blows), widest])
 		else:
 			_check(blows.is_empty(), "a Warden %s was followed and struck" % String(case[2]))
 
@@ -461,6 +470,192 @@ func _test_a_loosed_breath_chases() -> void:
 	_check(strayed <= Balance.DRAGON_BREATH_TRACK_REACH + 1.0,
 		"a passing dragon's breath strayed %.0f from where it was aimed, past %.0f"
 		% [strayed, Balance.DRAGON_BREATH_TRACK_REACH])
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+
+
+## **A breath sweeps, and a landed dragon rampages** (owner, 2026-10-08:
+## "doing sweeps of its breath over an area trying to fruit ninja as many
+## targets in the sweep or arc motion ... and even going on a short rampage
+## landing somewhere" and "Dragons also need walking sidescroller animations").
+##
+## The sweep is planned across the most it can cross and nothing it cannot;
+## loosed on the field it runs its arc and strikes every body on it once and the
+## one off it never. A landed dragon plans stops toward what is worth stamping
+## on, inside its leash, walks them side-on, and takes off from where it ended
+## rather than leaping back to where it came down; a copy told its plan walks
+## the same path. A camp dragon walking across the screen walks in profile.
+func _test_it_sweeps_and_rampages() -> void:
+	# The plan, pure: three bodies inside one span and one alone on the far side.
+	var marks: Array[Dictionary] = []
+	for angle: float in [0.2, 0.5, 0.8, -1.0]:
+		marks.append({"at": Vector2.from_angle(angle) * 300.0, "weight": 1.0})
+	var planned: Vector2 = DragonBreath.plan_sweep(marks, Vector2.ZERO, 0.0, 400.0, 30.0, 0.0)
+	_check(planned.is_finite(), "three bodies inside one arc were not worth a sweep")
+	if planned.is_finite():
+		var low: float = minf(planned.x, planned.y)
+		var high: float = maxf(planned.x, planned.y)
+		_check(low <= 0.2 - 0.05 and high >= 0.8 + 0.05 and low > -0.9,
+			"the sweep %.2f..%.2f does not cross the three and leave the one" % [low, high])
+		_check(absf(planned.x) < absf(planned.y),
+			"the sweep did not start at the end nearer where the breath points")
+	var alone: Array[Dictionary] = [marks[3]]
+	_check(not DragonBreath.plan_sweep(alone, Vector2.ZERO, 0.0, 400.0, 30.0, 0.0).is_finite(),
+		"one body was planned a sweep")
+
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	if field == null or field.heroes().is_empty():
+		_check(false, "the sweep needs a field with a Warden")
+		run.queue_free()
+		return
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	field.resume()
+	var hero: Hero = field.heroes()[0]
+	hero.health.max_hp = 100000.0
+	hero.health.current_hp = 100000.0
+	var origin := Vector2(-2400.0, 2400.0)
+	hero.global_position = origin + Vector2(-1600.0, 0.0)
+	var breed: EnemyData = ContentDB.enemy("bogkin")
+	var bodies: Array[Enemy] = []
+	var struck: Dictionary = {}
+	for angle: float in [0.2, 0.5, 0.8, -1.0]:
+		var body: Enemy = field.spawn_enemy(breed, 0, 40.0, 0.0, 0.001)
+		if body == null:
+			continue
+		body.global_position = origin + Vector2.from_angle(angle) * 300.0
+		var id: int = body.get_instance_id()
+		struck[id] = 0
+		body.health.damaged.connect(func(_amount: float, _from: Vector2) -> void: struck[id] = int(struck[id]) + 1)
+		bodies.append(body)
+	await get_tree().process_frame
+	var sweep: Vector2 = DragonBreath.plan_sweep(DragonBreath.wild_marks(get_tree(), field,
+		origin, 430.0, {}, 0.0), origin, 0.0, 400.0, 30.0, 0.0)
+	_check(sweep.is_finite(), "the bodies on the field were not worth a sweep")
+	var hazard := GroundHazard.new()
+	hazard.field = field
+	hazard.plan = {"mode": "breath", "from": origin, "to": origin + Vector2(400.0, 0.0),
+		"origin": origin, "element": "fire", "ultra": false, "width": 30.0, "warning": 0.2,
+		"travel": Balance.DRAGON_SWEEP_SECONDS, "share": 0.0, "tower_damage": 0.0,
+		"tint": Color.ORANGE, "blame": "a check", "wild": true, "sweep": [sweep.x, sweep.y]}
+	field.add_child(hazard)
+	var last_angle: float = 0.0
+	var started: int = Time.get_ticks_msec()
+	while is_instance_valid(hazard) and Time.get_ticks_msec() - started < 5000:
+		for index: int in bodies.size():
+			if is_instance_valid(bodies[index]):
+				bodies[index].global_position = origin + Vector2.from_angle([0.2, 0.5, 0.8, -1.0][index]) * 300.0
+		last_angle = (hazard.breath_end() - origin).angle()
+		await get_tree().process_frame
+	_check(absf(angle_difference(last_angle, sweep.y)) < 0.05,
+		"the sweep ended at %.2f, not at the far end of its arc %.2f" % [last_angle, sweep.y])
+	var crossed: int = 0
+	for index: int in bodies.size():
+		var count: int = int(struck[bodies[index].get_instance_id()]) if is_instance_valid(bodies[index]) else -1
+		if index < 3:
+			_check(count == 1, "a body on the sweep was struck %d times, not once" % count)
+			crossed += 1 if count == 1 else 0
+		else:
+			_check(count == 0, "the body off the sweep was struck %d times" % count)
+	for body: Enemy in bodies:
+		if is_instance_valid(body):
+			body.queue_free()
+
+	# The rampage: bodies east of where it comes down.
+	var centre := origin + Vector2(0.0, -900.0)
+	var herd: Array[Enemy] = []
+	for offset: Vector2 in [Vector2(320.0, 10.0), Vector2(520.0, -40.0)]:
+		var body: Enemy = field.spawn_enemy(breed, 0, 40.0, 0.0, 0.001)
+		if body != null:
+			body.global_position = centre + offset
+			herd.append(body)
+	await get_tree().process_frame
+	var variant: String = ""
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.dragon_event_weight > 0.0 \
+				and not GameData.load_state_frames(kind.get_sprite_path(), "side").is_empty():
+			variant = kind.id
+			break
+	_check(not variant.is_empty(), "no dragon the sky sends has a side-on walk")
+	var wyrm := DragonPass.new()
+	wyrm.from = centre - Vector2(1200.0, 0.0)
+	wyrm.to = centre + Vector2(1200.0, 0.0)
+	wyrm.field = field
+	wyrm.authored_plan = {"variant": variant, "rarity": 0, "landing": centre, "land": true,
+		"fury": 1.0, "curve": Vector2.ZERO}
+	field.add_child(wyrm)
+	wyrm.set_process(false)
+	_check(wyrm.rampage_stops() >= 1, "a dragon landing beside a pack planned no rampage")
+	var plan: Dictionary = wyrm.encounter_plan()
+	for stop: Variant in plan.get("rampage", []) as Array:
+		_check((stop as Vector2).distance_to(centre) <= Balance.DRAGON_RAMPAGE_LEASH + 1.0,
+			"a rampage stop lies %.0f from where it came down, past its leash"
+				% (stop as Vector2).distance_to(centre))
+	var copy := DragonPass.new()
+	copy.from = plan["from"] as Vector2
+	copy.to = plan["to"] as Vector2
+	copy.authored_plan = plan
+	field.add_child(copy)
+	copy.set_process(false)
+	_check(copy.encounter_plan().get("rampage", []) == plan.get("rampage", []),
+		"a copy told the plan does not walk the same rampage")
+	copy.queue_free()
+	wyrm.advance(Balance.DRAGON_WARNING_SECONDS + Balance.DRAGON_PASS_SECONDS * 0.5 - 0.4, 60)
+	var landed_seen: bool = false
+	var walked: bool = false
+	var side_on: bool = false
+	var before: Vector2 = wyrm.global_position
+	var jump: float = 0.0
+	for _step: int in 400:
+		if not is_instance_valid(wyrm) or wyrm.is_queued_for_deletion():
+			break
+		var was_landed: bool = wyrm.is_landed()
+		var at: Vector2 = wyrm.global_position
+		wyrm.advance(0.05, 1)
+		if not is_instance_valid(wyrm):
+			break
+		landed_seen = landed_seen or wyrm.is_landed()
+		if wyrm.is_landed() and not was_landed:
+			before = wyrm.global_position
+		walked = walked or wyrm.is_rampaging()
+		side_on = side_on or wyrm.walking_side_on()
+		if was_landed and not wyrm.is_landed():
+			jump = wyrm.global_position.distance_to(at)
+			break
+	_check(landed_seen, "the rampaging dragon did not land")
+	_check(walked, "the landed dragon never walked its rampage")
+	_check(side_on, "a dragon walking east never walked side-on")
+	_check(jump < Balance.DRAGON_RAMPAGE_SPEED * 0.05 + 80.0,
+		"the dragon leapt %.0f units to take off - it took off from where it came down" % jump)
+	_check(before.distance_to(wyrm.global_position if is_instance_valid(wyrm) else before) > 20.0,
+		"the dragon never moved off where it came down")
+	if is_instance_valid(wyrm):
+		wyrm.queue_free()
+	for body: Enemy in herd:
+		if is_instance_valid(body):
+			body.queue_free()
+
+	# A camp dragon walking across the screen walks in profile, and up it does not.
+	var lord: Enemy = field.spawn_enemy(ContentDB.enemy(variant), 0, 1.0, 0.0, 0.001)
+	if lord != null:
+		lord.global_position = origin + Vector2(0.0, 1400.0)
+		await get_tree().process_frame
+		lord.set("_state", Enemy.State.WALKING)
+		lord.set("_motion", Vector2(60.0, 6.0))
+		lord.call("_advance_walk_frames", 0.1)
+		_check(lord.walking_side_on, "a camp dragon walking across the screen is not drawn side-on")
+		lord.set("_motion", Vector2(6.0, 60.0))
+		lord.call("_advance_walk_frames", 0.1)
+		_check(not lord.walking_side_on, "a camp dragon walking up the screen is drawn side-on")
+		lord.queue_free()
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
