@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "pings"
+display_name = "Pings"
+title = "Pings"
+category = "Co-op"
+order = 73
+image = "res://art/guide/pings.png"
+body = "A ping puts a word on the field for everybody: here, attack this, hold this, loot, fall back, help, on my way, danger. Tap K and the ping is about whatever is under the cursor - a body is an attack, a tower is a defend, something on the ground is loot, and anything else is here. Hold K and the wheel opens: lean toward a spoke and let go to send it, or let go in the middle to send nothing. Alt and a click pings at once. On a phone, hold the Say square. Each ping stands a few seconds over its point, is said in the party's feed, shows on the map, and is pointed at from the edge of the screen while it is off it. Your own mercenaries answer yours: they go where you said, fight what you named, or fall back to you."

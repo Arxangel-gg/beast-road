@@ -41,6 +41,7 @@ func _ready() -> void:
 	EventBus.coop_company_state.connect(_on_company_state)
 	EventBus.coop_company_carried.connect(_on_company_carried)
 	EventBus.coop_company_said.connect(_on_company_said)
+	EventBus.pinged.connect(_on_pinged)
 	_muster.call_deferred()
 
 
@@ -337,6 +338,36 @@ func carry_off(uid: String, after: float = 0.0) -> void:
 
 
 # --- Co-op (2026-10-07, stage five) ---------------------------------------------
+
+## **A ping heard by the pinging Warden's own company** (2026-10-07). Only the
+## machine that simulates them listens - a guest's puppets decide nothing - and
+## only a mercenary whose master made the ping heeds it, through the orders its
+## mind already has. One of them says so.
+func _on_pinged(seat: int, ping_id: String, at: Vector2) -> void:
+	if Coop.is_networked() and Coop.is_guest():
+		return
+	var data: PingData = ContentDB.ping(ping_id)
+	if data == null or data.heed == PingData.Heed.NONE:
+		return
+	var pinger: Hero = _master_body(seat)
+	var answering: String = ""
+	var nearest: float = INF
+	for uid: Variant in _minds:
+		var row: Dictionary = RunState.company_row(String(uid))
+		if int(row.get("master", 1)) != seat or bool(row.get("out", false)):
+			continue
+		var hands: MercenaryInput = _minds[uid] as MercenaryInput
+		var me: Hero = body(String(uid))
+		if hands == null or me == null or not me.is_alive():
+			continue
+		if hands.heed(data, at, pinger):
+			var d: float = me.global_position.distance_to(at)
+			if d < nearest:
+				nearest = d
+				answering = String(uid)
+	if not answering.is_empty() and voice != null:
+		voice.say(answering, "heeded", true)
+
 
 ## This machine's seat: 1 alone.
 func _own_seat() -> int:

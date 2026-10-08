@@ -31,6 +31,11 @@ var _dash_left: float = 0.0
 var _wander: Vector2 = Vector2.ZERO
 var _wander_left: float = 0.0
 var _retreating: bool = false
+## **A ping being heeded** (2026-10-07): where to be, the body to fight, and for
+## how long before the order it was given takes back over.
+var _heed_at: Vector2 = Vector2.ZERO
+var _heed_left: float = 0.0
+var _heed_target: Enemy = null
 ## Its own dice: a decision never draws on a stream the road rolls.
 var _dice := RandomNumberGenerator.new()
 
@@ -50,6 +55,43 @@ func command(new_order: int) -> void:
 	_think_left = 0.0
 
 
+## **Heeds a ping its master made** (2026-10-07), through what the mind can
+## already do: go somewhere, fight something, come back. Nothing it does here is
+## a new verb - a GO is a post for a while, an ATTACK is a target for a while,
+## and a COME is the pinging Warden's side. A ping further than
+## `PING_HEED_REACH` away is a walk, not an answer, and is let go. Returns
+## whether it was heeded.
+func heed(ping: PingData, at: Vector2, pinger: Node2D) -> bool:
+	var body := hero as Hero
+	if ping == null or body == null or not body.is_alive():
+		return false
+	var point: Vector2 = at
+	if ping.heed == PingData.Heed.COME:
+		if pinger == null or not is_instance_valid(pinger):
+			return false
+		point = pinger.global_position
+	elif ping.heed == PingData.Heed.NONE:
+		return false
+	if body.global_position.distance_to(point) > Balance.PING_HEED_REACH:
+		return false
+	_heed_at = point
+	_heed_left = Balance.PING_HEED_SECONDS
+	_heed_target = null
+	if ping.heed == PingData.Heed.ATTACK:
+		_heed_target = _nearest(at, Balance.PING_PICK_RADIUS)
+		_target = _heed_target
+	elif ping.heed == PingData.Heed.COME:
+		# Coming back is coming back: whatever it was fighting can wait.
+		_target = null
+	_think_left = 0.0
+	return true
+
+
+## Whether a ping is still being heeded.
+func heeding() -> bool:
+	return _heed_left > 0.0
+
+
 ## The one thing the AI is fighting, or null.
 func target() -> Enemy:
 	return _target if is_instance_valid(_target) and not _target.is_dying() else null
@@ -63,6 +105,8 @@ func is_retreating() -> bool:
 ## Where the current order says it should be.
 func anchor() -> Vector2:
 	var body := hero as Hero
+	if _heed_left > 0.0:
+		return _heed_at
 	match order:
 		Order.FOLLOW:
 			if master != null and is_instance_valid(master):
@@ -88,6 +132,10 @@ func think(delta: float) -> void:
 	_swing_left = maxf(0.0, _swing_left - delta)
 	_dash_left = maxf(0.0, _dash_left - delta)
 	_think_left -= delta
+	if _heed_left > 0.0:
+		_heed_left = maxf(0.0, _heed_left - delta)
+		if _heed_left <= 0.0:
+			_heed_target = null
 	if _think_left <= 0.0:
 		_think_left = Balance.MERC_THINK_SECONDS
 		_choose(body)
@@ -153,6 +201,11 @@ func think(delta: float) -> void:
 ## order puts it, or for HUNT anything on the road.
 func _choose(body: Hero) -> void:
 	if _retreating:
+		return
+	# A body a ping named is the body, for as long as the ping is heeded.
+	if _heed_left > 0.0 and _heed_target != null and is_instance_valid(_heed_target) \
+			and not _heed_target.is_dying():
+		_target = _heed_target
 		return
 	var home: Vector2 = anchor()
 	var reach: float = Balance.MERC_ENGAGE_RADIUS

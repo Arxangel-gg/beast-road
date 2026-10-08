@@ -346,6 +346,12 @@ func _click_uses() -> bool:
 var _using_click: bool = false
 
 
+## A left click with Alt held is a ping (2026-10-07).
+func _alt_click() -> bool:
+	return not TouchInput.is_showing() and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+		and Input.is_key_pressed(KEY_ALT)
+
+
 ## **Nothing a hand does reaches the Warden while the player is typing**
 ## (2026-10-01). A line typed into the chat walked, swung and cast with every
 ## letter, because the keys are polled rather than heard - see `TextFocus`.
@@ -360,6 +366,10 @@ func _read_press(button: int) -> bool:
 		BUTTON_ATTACK:
 			if not Input.is_action_just_pressed(&"attack"):
 				return _order_swings()
+			# **Alt and a click is a ping** (2026-10-07), never a swing: the press
+			# is a word to the party, and `PingField` has already heard it.
+			if _alt_click():
+				return false
 			# Each press decides afresh, so a click that once landed on an offer
 			# can never eat the next swing.
 			_using_click = _click_uses()
@@ -393,7 +403,7 @@ func _read_press(button: int) -> bool:
 		# press twice.
 		return Input.is_action_just_pressed(&"use_item")
 	if button == BUTTON_INTERACT:
-		if Input.is_action_just_pressed(&"attack") and _click_uses():
+		if Input.is_action_just_pressed(&"attack") and _click_uses() and not _alt_click():
 			_using_click = true
 			return true
 		return Input.is_action_just_pressed(&"interact")

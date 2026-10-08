@@ -21,7 +21,7 @@ extends Control
 ## An arrow at every elite, every camp and every animal would be the fog turned
 ## off. Nothing reads any of it and it moves no number.
 
-enum Kind { STRAGGLER, BOSS, BEAST, DRAGON, HERALD, TOWER }
+enum Kind { STRAGGLER, BOSS, BEAST, DRAGON, HERALD, TOWER, PING }
 
 var field: Battlefield = null
 var _targets: Array[Dictionary] = []
@@ -88,6 +88,12 @@ func _gather() -> void:
 	# is the player's, so where it is being hit is always worth an arrow.
 	for tower: Tower in field.towers_under_attack():
 		_targets.append({"node": tower, "kind": Kind.TOWER})
+	# **A ping off the screen** (2026-10-07): somebody asked the party to look
+	# there, so the edge points at it, in the ping's own colour.
+	var pings: PingField = field.ping_field()
+	if pings != null:
+		for mark: PingMark in pings.marks():
+			_targets.append({"node": mark, "kind": Kind.PING, "tint": mark.colour()})
 
 
 ## Where each arrow stands and which way it points, for everything off the
@@ -124,7 +130,8 @@ func pointers() -> Array[Dictionary]:
 		var reach_x: float = (room.size.x * 0.5) / maxf(absf(toward.x), 0.001)
 		var reach_y: float = (room.size.y * 0.5) / maxf(absf(toward.y), 0.001)
 		var at: Vector2 = centre + toward * minf(reach_x, reach_y)
-		out.append({"kind": int(target["kind"]), "at": at, "facing": toward.normalized()})
+		out.append({"kind": int(target["kind"]), "at": at, "facing": toward.normalized(),
+			"tint": target.get("tint", null)})
 	return out
 
 
@@ -134,6 +141,8 @@ func _draw_measured() -> void:
 		var kind: int = int(pointer["kind"])
 		var tint: Color = Balance.THREAT_POINTER_COLOURS[clampi(kind, 0,
 			Balance.THREAT_POINTER_COLOURS.size() - 1)]
+		if pointer.get("tint", null) is Color:
+			tint = pointer["tint"] as Color
 		var at: Vector2 = pointer["at"] as Vector2
 		var facing: Vector2 = pointer["facing"] as Vector2
 		var size: float = Balance.THREAT_POINTER_SIZE * (1.0 + 0.12 * beat)

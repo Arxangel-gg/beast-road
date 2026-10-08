@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+line = "{who}: here."
+colour = Color(0.62, 0.92, 1.0, 1)
+icon = "ping_here"
+alert = false
+heed = 1
+context = 1
+id = "here"
+display_name = "Here"
+description = "A place to look at or go to."

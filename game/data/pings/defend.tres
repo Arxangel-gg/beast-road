@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 2
+line = "{who}: hold this."
+colour = Color(0.45, 0.72, 1.0, 1)
+icon = "ping_defend"
+alert = false
+heed = 1
+context = 3
+id = "defend"
+display_name = "Defend"
+description = "Something to stand by and keep."

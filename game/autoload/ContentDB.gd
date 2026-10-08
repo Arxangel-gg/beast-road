@@ -112,6 +112,8 @@ var wayside_encounters: Dictionary = {}
 var wayside_choices: Dictionary = {}
 ## What a mercenary says, by moment (2026-10-07).
 var merc_lines: Dictionary = {}
+## The party's pings (2026-10-07), by id.
+var pings: Dictionary = {}
 ## The harmful plants, by id (2026-10-07, `HazardPlantData`).
 var hazard_plants: Dictionary = {}
 
@@ -176,6 +178,7 @@ func _ready() -> void:
 	wayside_encounters = _load_dir("res://data/wayside")
 	wayside_choices = _load_dir("res://data/wayside_choices")
 	merc_lines = _load_dir("res://data/merc_lines")
+	pings = _load_dir("res://data/pings")
 	hazard_plants = _load_dir("res://data/hazard_plants")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
@@ -247,6 +250,21 @@ func wayside(id: String) -> WaysideData:
 
 func wayside_choice(id: String) -> WaysideChoiceData:
 	return wayside_choices.get(id, null) as WaysideChoiceData
+
+
+func ping(id: String) -> PingData:
+	return pings.get(id, null) as PingData
+
+
+## The pings in wheel order, clockwise from the top.
+func ping_list() -> Array[PingData]:
+	var out: Array[PingData] = []
+	for value: Variant in pings.values():
+		var data := value as PingData
+		if data != null:
+			out.append(data)
+	out.sort_custom(func(a: PingData, b: PingData) -> bool: return a.slot < b.slot)
+	return out
 
 
 func merc_line(id: String) -> MercLineData:

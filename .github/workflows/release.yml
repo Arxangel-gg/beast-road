@@ -431,6 +431,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/procedural_warden_check.tscn
           run_godot_clean --headless --path game res://tools/frost_check.tscn
           run_godot_clean --headless --path game res://tools/cairn_check.tscn
+          run_godot_clean --headless --path game res://tools/ping_check.tscn
           run_godot_clean --headless --path game res://tools/craft_talent_check.tscn
           run_godot_clean --headless --path game res://tools/spell_strike_check.tscn
           run_godot_clean --headless --path game res://tools/spirit_trait_check.tscn

@@ -2513,6 +2513,7 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_distance.png` · `ui_city_health.png` · `ui_pressure_arrow.png` ·
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` · `ui_save_slot.png` · `ui_pen.png` ·
+`ui_ping_here.png` · `ui_ping_attack.png` · `ui_ping_defend.png` · `ui_ping_loot.png` · `ui_ping_retreat.png` · `ui_ping_help.png` · `ui_ping_coming.png` · `ui_ping_danger.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_gravebell_maul.png` · `ui_ratcatchers_awl.png` · `ui_oathkeeper_spear.png` · `ui_slagplate_cuirass.png` ·
 `ui_stillwater_mail.png` · `ui_thornweave_jack.png` · `ui_ashbone_totem.png` · `ui_drowned_bell.png` ·
@@ -4081,6 +4082,7 @@ resolution, and re-taken whenever a screen changes.
 | `hazard_plants.png` | 1280×720 | O | `#1E2E33` |
 | `the_dead.png` | 1280×720 | O | `#1E2E33` |
 | `insects.png` | 1280×720 | O | `#1E2E33` |
+| `pings.png` | 1280×720 | O | `#1E2E33` |
 | `sandbox.png` | 1280×720 | O | `#1E2E33` |
 | `hardcore.png` | 1280×720 | O | `#1E2E33` |
 | `arsenal.png` | 1280×720 | O | `#1E2E33` |

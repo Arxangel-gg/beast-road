@@ -73,6 +73,7 @@ const _STAGE_OF: Dictionary = {
 	"meteor": 0.55, "stash": 0.5, "gear": 0.55, "trading": 0.58, "account": 0.62,
 	"sandbox": 0.72, "mercenaries": 0.5, "hazard_plants": 0.05, "the_dead": 0.16,
 	"insects": 0.04,
+	"pings": 0.45,
 }
 
 ## How many towers this run has put up, so each picture draws a different one.
@@ -761,6 +762,8 @@ func _ready() -> void:
 		Vector2(130.0, 120.0), 1.1)
 	await _made_subject_shot("insects", func() -> Vector2: return _call_the_insects(),
 		Vector2(120.0, 100.0), 1.2)
+	await _made_subject_shot("pings", func() -> Vector2: return _ping_the_road(),
+		Vector2(0.0, 60.0), 1.0)
 
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])
@@ -2093,6 +2096,31 @@ func _call_the_insects() -> Vector2:
 			break
 	if called == 0:
 		print("[guide-shots] warning: no insects belong to act %d" % RunState.act)
+	return at
+
+
+## **A party's pings round the Warden** (2026-10-07): four marks in four
+## seats' colours, and the wheel open with the pointer leaning toward a spoke -
+## the two things the page explains.
+func _ping_the_road() -> Vector2:
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero
+	DayNight.call("_apply", 0.3)
+	_apt_post("pings")
+	var at: Vector2 = hero.global_position
+	var pings: PingField = field.ping_field()
+	if pings == null:
+		return at
+	for mark: PingMark in pings.marks():
+		mark.queue_free()
+	EventBus.pinged.emit(2, "attack", at + Vector2(230.0, -150.0))
+	EventBus.pinged.emit(3, "danger", at + Vector2(260.0, 140.0))
+	EventBus.pinged.emit(4, "help", at + Vector2(-240.0, 150.0))
+	EventBus.pinged.emit(1, "here", at + Vector2(-250.0, -120.0))
+	var middle: Vector2 = get_viewport().get_visible_rect().size * Vector2(0.5, 0.56)
+	pings.begin_hold(middle, at, false)
+	var lean: Vector2 = pings.wheel.centre() + Vector2(80.0, -60.0)
+	pings.wheel.pointer = func() -> Vector2: return lean
 	return at
 
 

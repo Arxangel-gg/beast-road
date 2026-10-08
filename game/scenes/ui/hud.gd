@@ -1838,12 +1838,20 @@ func _build_nav_bar() -> void:
 	# to talk to - which is exactly when the speed square is not, so the column
 	# never holds both. A press opens the box (and the phone's keyboard with
 	# it); a second press sends what is in it.
-	_chat_nav = _add_icon_button(bar, "", "Chat with the party  (Enter)",
+	_chat_nav = _add_icon_button(bar, "", "Chat with the party  (Enter)  -  hold to ping",
 		func() -> void:
+			# A hold that became a ping is not also a tap on the chat.
+			if _say_pinging or _say_ate_press:
+				_say_ate_press = false
+				return
 			if _chat != null:
 				_chat.toggle())
 	_chat_nav.name = "ChatSquare"
 	_chat_nav.text = "Say"
+	# **Held, it is the ping wheel** (2026-10-07): a thumb has no key to hold, and
+	# this square is shown exactly when there is a party to ping.
+	_chat_nav.button_down.connect(_on_say_down)
+	_chat_nav.button_up.connect(_on_say_up)
 	_nav_buttons.append(_chat_nav)
 
 	# Escape is the only other way to reach the pause menu, and a phone browser
@@ -7784,4 +7792,46 @@ func _place_spirit_panel() -> void:
 func _process(delta: float) -> void:
 	var started: int = Time.get_ticks_usec()
 	_process_measured(delta)
+	_tick_say_hold()
 	FrameProfile.add(&"hud", started)
+
+
+## The Say square held down, by the clock that turns a tap into a ping.
+var _say_down_at: int = -1
+var _say_pinging: bool = false
+var _say_ate_press: bool = false
+
+
+func _on_say_down() -> void:
+	_say_down_at = Time.get_ticks_msec()
+	_say_ate_press = false
+
+
+func _on_say_up() -> void:
+	_say_down_at = -1
+	if not _say_pinging:
+		return
+	_say_pinging = false
+	_say_ate_press = true
+	var pings: PingField = battlefield.ping_field() if battlefield != null else null
+	if pings != null:
+		pings.release_hold()
+
+
+## Held past the wheel's moment, the square opens the wheel at itself; the ping
+## goes where the Warden stands, because a thumb on the glass is not pointing at
+## the field. A finger lifted anywhere lets it go.
+func _tick_say_hold() -> void:
+	if _say_pinging and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_on_say_up()
+		return
+	if _say_down_at < 0 or _say_pinging or _chat_nav == null or not _chat_nav.visible:
+		return
+	if Time.get_ticks_msec() - _say_down_at < int(Balance.PING_WHEEL_HOLD * 1000.0):
+		return
+	var pings: PingField = battlefield.ping_field() if battlefield != null else null
+	var warden: Hero = battlefield.hero if battlefield != null else null
+	if pings == null or warden == null:
+		return
+	_say_pinging = true
+	pings.begin_hold(_chat_nav.get_global_rect().get_center(), warden.global_position, false)

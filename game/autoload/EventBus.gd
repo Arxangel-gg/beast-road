@@ -452,6 +452,10 @@ signal coop_company_state(rows: Array)
 signal coop_company_carried(uid: String, master_slot: int)
 ## A mercenary's line, by seat, for the guests' screens.
 signal coop_company_said(slot: int, text: String, alert: bool)
+## **A ping** (2026-10-07): a seat put a word on the field at a point. Said by
+## the host (or alone) and relayed as `Fact.PING`; a guest asks for one with
+## `Request.PING` and draws the host's answer. Every machine draws from this.
+signal pinged(slot: int, ping_id: String, at: Vector2)
 ## A thief's sack and cover, decided by the host: whether it carries anything
 ## now and whether it is lying low. The guest dresses its puppet to match.
 signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)

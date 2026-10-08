@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 7
+line = "{who}: danger here!"
+colour = Color(1.0, 0.26, 0.24, 1)
+icon = "ping_danger"
+alert = true
+heed = 0
+context = 0
+id = "danger"
+display_name = "Danger"
+description = "Something here will hurt you."

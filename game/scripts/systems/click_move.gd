@@ -92,6 +92,9 @@ func live() -> bool:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
+	# Alt and a click is a ping (2026-10-07), never an order.
+	if click != null and click.alt_pressed:
+		return
 	if click != null and click.button_index == MOUSE_BUTTON_LEFT:
 		if not click.pressed:
 			_dragging = false

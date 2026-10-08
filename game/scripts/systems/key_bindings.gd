@@ -79,6 +79,9 @@ const FIXED: Array[Dictionary] = [
 	# still with one instead.
 	{"action": &"guard", "label": "Raise a shield (hold) - standing still raises it too"},
 	{"key": "P", "label": "Fast forward (alone)"},
+	# The party's pings (2026-10-07). Fixed for the pad's reason above; a thumb
+	# holds the Say square instead.
+	{"action": &"ping", "label": "Ping: tap for what is under the cursor, hold for the wheel (Alt+click pings too)"},
 	{"key": "Wheel", "label": "Zoom, and the Town and Yuri past its ends"},
 ]
 

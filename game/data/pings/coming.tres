@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 6
+line = "{who} is on the way."
+colour = Color(0.88, 0.86, 0.78, 1)
+icon = "ping_coming"
+alert = false
+heed = 0
+context = 0
+id = "coming"
+display_name = "On my way"
+description = "Whoever said it is coming here."

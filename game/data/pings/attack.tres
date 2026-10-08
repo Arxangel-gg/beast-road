@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 1
+line = "{who}: take this one down."
+colour = Color(1.0, 0.45, 0.32, 1)
+icon = "ping_attack"
+alert = false
+heed = 2
+context = 2
+id = "attack"
+display_name = "Attack"
+description = "Something to go and kill."

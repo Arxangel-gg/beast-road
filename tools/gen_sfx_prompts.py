@@ -1040,6 +1040,10 @@ ROWS = [
     # ---------------- warnings and the edge of death (2026-09-30, 2026-10-07) ----------------
     ("sfx_telegraph_rise", "sfx", "sfx", "0.72s", "ElevenLabs",
      "a short swelling riser that ends on a hit point: a breathy rush of air and a rising low tone that grows over three quarters of a second and stops dead, no impact, no music - keep it exactly 0.72s, the length is the timing - record 3 takes, saved as _1.._3; they rotate"),
+    ("sfx_ping", "sfx", "sfx", "0.42s", "ElevenLabs",
+     "a short clean two-note chime for a team ping in a game interface: a soft struck bell note and a brighter one a fifth above a twelfth of a second later, rising, clear and friendly, dry, no reverb tail, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
+    ("sfx_ping_alert", "sfx", "sfx", "0.46s", "ElevenLabs",
+     "a short urgent three-note warning chime for a danger ping in a game interface: three quick bright struck bell notes falling, sharper and louder than a friendly chime but never harsh, dry, no reverb tail, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
     ("sfx_heartbeat", "sfx", "sfx", "0.46s", "ElevenLabs",
      "one human heartbeat heard from inside the chest: a low soft lub and a slightly higher dub a sixth of a second later, muffled and close, no reverb, no music, nothing else - record 3 takes, saved as _1.._3; they rotate"),
 ]
@@ -1068,6 +1072,8 @@ PLACEHOLDER_IDS = {
     "sfx_fire_douse",
     # 2026-10-07: the riser was synthesised on 2026-09-30 and never listed here
     "sfx_telegraph_rise", "sfx_heartbeat",
+    # 2026-10-07: the party's pings
+    "sfx_ping", "sfx_ping_alert",
 }
 
 

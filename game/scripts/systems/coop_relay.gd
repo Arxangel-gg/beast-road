@@ -223,6 +223,9 @@ enum Fact {
 	COMPANY_CARRIED = 91,
 	## A line a mercenary said, by seat - presentation only.
 	COMPANY_SAID = 92,
+	## **A ping** (2026-10-07): a seat, a ping id and a point - a word on the
+	## field. Host-authored: a guest asks with `Request.PING`.
+	PING = 93,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -364,6 +367,9 @@ enum Request {
 	## the rules a save is read under - and seated within that guest's share of
 	## the party's free seats. Restated until the guest sees them standing. 45.
 	MY_COMPANY = 45,
+	## **A guest pings** (2026-10-07): a ping id and a point. The seat is the
+	## peer it arrived on, never one named in the packet. 46.
+	PING = 46,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -575,6 +581,7 @@ func _fact_bindings() -> Array:
 		["coop_company_state", _on_coop_company_state],
 		["coop_company_carried", _on_coop_company_carried],
 		["coop_company_said", _on_coop_company_said],
+		["pinged", _on_pinged],
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_wildlife_family", _on_coop_wildlife_family],
 		["coop_wildlife_born", _on_coop_wildlife_born],
@@ -761,6 +768,10 @@ func _on_coop_company_carried(uid: String, master_slot: int) -> void:
 
 func _on_coop_company_said(slot: int, text: String, alert: bool) -> void:
 	_relay(Fact.COMPANY_SAID, [slot, text, alert])
+
+
+func _on_pinged(slot: int, ping_id: String, at: Vector2) -> void:
+	_relay(Fact.PING, [slot, ping_id, at])
 
 
 func _on_coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool) -> void:
@@ -1295,6 +1306,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.COMPANY_SAID:
 			if args.size() == 3:
 				bus.coop_company_said.emit(int(args[0]), String(args[1]), bool(args[2]))
+		Fact.PING:
+			if args.size() == 3 and args[2] is Vector2:
+				bus.pinged.emit(int(args[0]), String(args[1]), args[2] as Vector2)
 		Fact.WILDLIFE_SACK:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))

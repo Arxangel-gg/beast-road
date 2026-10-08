@@ -7162,6 +7162,8 @@ const THREAT_POINTER_PULSE_HZ: float = 1.1
 const THREAT_POINTER_COLOURS: Array[Color] = [
 	Color(0.96, 0.36, 0.30), Color(0.98, 0.2, 0.2), Color(1.0, 0.62, 0.18),
 	Color(0.78, 0.45, 1.0), Color(1.0, 0.8, 0.28), Color(1.0, 0.3, 0.42),
+	# A ping: drawn in the ping's own colour, which overrides this.
+	Color(0.62, 0.92, 1.0),
 ]
 ## **A tower under attack** (owner, 2026-10-01): its alarm lasts this long after
 ## the last blow that took something, pulses a ring this wide at its foot this
@@ -9403,6 +9405,31 @@ const CHAT_MAX_LENGTH: int = 140
 const CHAT_BURST: int = 4
 const CHAT_BURST_SECONDS: float = 5.0
 const CHAT_HISTORY: int = 20
+
+## **The party's pings** (triage of 2026-10-07, item 63). How long a mark stands
+## on the field, how many one Warden may keep standing at once (the oldest goes),
+## and the burst a Warden may ping before being told to wait - a party of four
+## spamming marks is a party reading nothing. The host holds the same burst per
+## seat, because a guest's own count is the guest's to forge.
+const PING_SECONDS: float = 4.5
+const PING_LIVE_PER_SEAT: int = 3
+const PING_BURST: int = 3
+const PING_BURST_SECONDS: float = 4.0
+## A key held this long opens the wheel; let go sooner and it is a quick ping,
+## chosen by what is under the cursor.
+const PING_WHEEL_HOLD: float = 0.18
+## The wheel on the screen: its reach, and the middle where letting go sends
+## nothing.
+const PING_WHEEL_RADIUS: float = 118.0
+const PING_WHEEL_DEAD: float = 28.0
+## How near the cursor a body, a tower or a drop must be for a quick ping to be
+## about it.
+const PING_PICK_RADIUS: float = 90.0
+## How long a pinging Warden's own mercenaries heed a ping before going back to
+## their order, and how far they will go to answer one: an attack on a body
+## further than this from them is a walk, not an answer.
+const PING_HEED_SECONDS: float = 9.0
+const PING_HEED_REACH: float = 1400.0
 const CHAT_OPEN_LINES: int = 10
 
 ## How many friends may be kept, and how often the list is refreshed.

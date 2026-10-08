@@ -86,6 +86,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click == null or click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
 		return
+	# Alt and a click is a ping (2026-10-07), never a sheet.
+	if click.alt_pressed:
+		return
 
 	# On release, not on press, and that is what makes touch work.
 	#

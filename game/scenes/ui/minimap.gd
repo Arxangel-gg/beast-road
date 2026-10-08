@@ -302,6 +302,19 @@ func _draw_marks() -> void:
 				Color(Balance.TOWER_STRUCK_COLOUR, 0.65 + 0.35 * beat))
 			_marks.draw_arc(at, reach * (1.4 + 2.2 * wave), 0.0, TAU, 20,
 				Color(Balance.TOWER_STRUCK_COLOUR, 0.9 * (1.0 - wave)), 1.5)
+	# **The party's pings** (2026-10-07), over the fog: somebody asked everybody
+	# to look there, so the map says where in the ping's own colour.
+	var pings: PingField = battlefield.call("ping_field") as PingField \
+		if battlefield.has_method("ping_field") else null
+	if pings != null:
+		var throb: float = fmod(float(Time.get_ticks_msec()) * 0.001 * 1.4, 1.0)
+		for mark: PingMark in pings.marks():
+			var at: Vector2 = _to_map(mark.global_position)
+			var reach: float = maxf(size.x / 60.0, 2.5)
+			_marks.draw_circle(at, reach + 1.5, Balance.MINIMAP_FRAME_OUTLINE)
+			_marks.draw_circle(at, reach, mark.colour())
+			_marks.draw_arc(at, reach * (1.4 + 2.4 * throb), 0.0, TAU, 20,
+				Color(mark.colour(), 0.9 * (1.0 - throb)), 1.5)
 	# Companions, then heroes on top of everything.
 	for node: Node in tree.get_nodes_in_group(Companion.GROUP):
 		var companion: Node2D = node as Node2D

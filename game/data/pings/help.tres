@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 5
+line = "{who} needs help!"
+colour = Color(0.52, 1.0, 0.56, 1)
+icon = "ping_help"
+alert = true
+heed = 3
+context = 0
+id = "help"
+display_name = "Help"
+description = "Whoever said it is in trouble."

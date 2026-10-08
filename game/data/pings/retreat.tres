@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PingData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ping_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 4
+line = "{who}: fall back!"
+colour = Color(0.8, 0.58, 1.0, 1)
+icon = "ping_retreat"
+alert = true
+heed = 3
+context = 0
+id = "retreat"
+display_name = "Fall back"
+description = "Get away from here, toward whoever said it."

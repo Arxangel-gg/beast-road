@@ -1341,6 +1341,12 @@ const SOUNDS: Dictionary = {
 	"sfx_fire_douse_1": "res://audio/sfx/sfx_fire_douse_1.ogg",
 	"sfx_fire_douse_2": "res://audio/sfx/sfx_fire_douse_2.ogg",
 	"sfx_fire_douse_3": "res://audio/sfx/sfx_fire_douse_3.ogg",
+	"sfx_ping_1": "res://audio/sfx/sfx_ping_1.ogg",
+	"sfx_ping_2": "res://audio/sfx/sfx_ping_2.ogg",
+	"sfx_ping_3": "res://audio/sfx/sfx_ping_3.ogg",
+	"sfx_ping_alert_1": "res://audio/sfx/sfx_ping_alert_1.ogg",
+	"sfx_ping_alert_2": "res://audio/sfx/sfx_ping_alert_2.ogg",
+	"sfx_ping_alert_3": "res://audio/sfx/sfx_ping_alert_3.ogg",
 	"sfx_ui_click_1": "res://audio/sfx/sfx_ui_click_1.ogg",
 	"sfx_ui_click_2": "res://audio/sfx/sfx_ui_click_2.ogg",
 	"sfx_ui_click_3": "res://audio/sfx/sfx_ui_click_3.ogg",
@@ -1586,6 +1592,10 @@ const MIX: Dictionary = {
 	# Near death (`Vfx`): one beat at a time, never crowded, a little drift so a
 	# run of them is a pulse rather than a loop.
 	"sfx_heartbeat":            {"db": -7.0, "pitch": 0.03, "limit": 1, "gap": 0.25},
+	# A ping is a person speaking, so it is flat and it cuts through: one at a
+	# time, and a burst of them from a party of four is heard as the first.
+	"sfx_ping":                 {"db": -6.0, "pitch": 0.02, "limit": 1, "gap": 0.12},
+	"sfx_ping_alert":           {"db": -4.0, "pitch": 0.02, "limit": 1, "gap": 0.12},
 	"sfx_fish_miss":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
 	"sfx_camp_razed":           {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
 	"sfx_fork_open":            {"db": -5.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
@@ -1793,6 +1803,8 @@ const GROUPS: Dictionary = {
 	"sfx_hero_winded_f": ["sfx_hero_winded_f_1", "sfx_hero_winded_f_2", "sfx_hero_winded_f_3", "sfx_hero_winded_f_4", "sfx_hero_winded_f_5", "sfx_hero_winded_f_6", "sfx_hero_winded_f_7", "sfx_hero_winded_f_8", "sfx_hero_winded_f_9"],
 	"sfx_water_bite_f": ["sfx_water_bite_f_1", "sfx_water_bite_f_2", "sfx_water_bite_f_3", "sfx_water_bite_f_4", "sfx_water_bite_f_5", "sfx_water_bite_f_6", "sfx_water_bite_f_7", "sfx_water_bite_f_8", "sfx_water_bite_f_9", "sfx_water_bite_f_10", "sfx_water_bite_f_11", "sfx_water_bite_f_12"],
 	"sfx_fire_douse": ["sfx_fire_douse_1", "sfx_fire_douse_2", "sfx_fire_douse_3"],
+	"sfx_ping": ["sfx_ping_1", "sfx_ping_2", "sfx_ping_3"],
+	"sfx_ping_alert": ["sfx_ping_alert_1", "sfx_ping_alert_2", "sfx_ping_alert_3"],
 	"sfx_ui_click": ["sfx_ui_click_1", "sfx_ui_click_2", "sfx_ui_click_3"],
 	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3", "sfx_ui_hover_4", "sfx_ui_hover_5"],
 	"sfx_ui_move": ["sfx_ui_move_1", "sfx_ui_move_2", "sfx_ui_move_3"],

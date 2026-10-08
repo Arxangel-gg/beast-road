@@ -15115,6 +15115,60 @@ station over 15% of its picture (`HoldYard.station_picture`,
 cottages are added after the stations). Run against the old cells it named all
 three.
 
+**The party pings, as of 2026-10-07** (the triage's item 63, "eight pings,
+relayed as facts"). Here, attack, defend, loot, fall back, help, on my way and
+danger - each a `PingData` in `data/pings/` with its spoke on the wheel, its
+line for the feed (`{who}`), its colour, its glyph and what it asks of a
+company. A ping stands over its point for `PING_SECONDS` as a glyph on a stalk
+in its own colour with the speaker's name, rings leaving the ground, a line in
+the party's feed, a chime, a blinking mark on the map and an arrow at the
+screen's edge in its colour while it is off the screen.
+
+**Every machine draws from one signal.** `EventBus.pinged(seat, id, at)` is
+said by the host or by a Warden alone and carried as `Fact.PING` (93); a guest
+asks with `Request.PING` (46) - an id and a point - and the host names the seat
+from the peer it arrived on, never from the packet, refuses an id that does not
+exist and a point that is not one, pulls the point inside the field, and holds
+each seat to the burst a Warden is held to at home (`PING_BURST` in
+`PING_BURST_SECONDS`), because a guest's own count is the guest's to forge. A
+seat keeps `PING_LIVE_PER_SEAT` marks and the oldest goes.
+
+**K, tapped, pings whatever is under the cursor** - a body is an attack, a tower
+a defend, a drop loot, anything else here (`PingField.quick_ping_at`, a
+`Context` on each ping, appended-only). Held past `PING_WHEEL_HOLD` it opens the
+wheel round the cursor, and letting go in the middle sends nothing. Alt and a
+click pings at once, and `ClickMove`, `PlacementCursor` and the Warden's swing
+each step aside for it. **K is fixed, not rebindable**, for the pad's reason;
+it is on the Controls page's fixed list. **A thumb holds the Say square** -
+shown exactly when there is a party - and the wheel opens at it and pings where
+the Warden stands; a hold that pinged is not also a tap on the chat.
+
+**A ping moves nothing in a fight, and the one thing that answers it is the
+pinging Warden's own company.** A mercenary whose master made the ping heeds it
+through the verbs its mind already had (`MercenaryInput.heed`): a GO is a post
+for `PING_HEED_SECONDS`, an ATTACK names the body nearest the point as its
+target for as long, and a COME brings it to the pinging Warden. Further than
+`PING_HEED_REACH` is a walk rather than an answer and is let go; a partner's
+ping, and a ping with nothing to heed, move nobody. One of them says so
+(`merc_lines/heeded`). Only the machine that simulates the company listens - a
+guest's puppets decide nothing.
+
+**The art is the chrome's.** `tools/draw_ping_glyphs.py` draws the eight
+glyphs in bone, amber and ink as `draw_save_slot_glyph.py` drew the Wardens'
+and the Pen's; `tools/synth_ping.py` the two chimes, three takes each,
+synthesised placeholders prompted for a recording. `ping_check` (114, both bars)
+holds the data, the wheel's spokes and its dead middle, a ping drawn, said and
+pointed at, the burst and the cap, the quick ping over a body, a tower and a
+drop, the host's admission, the company's heed, and the held square; four
+planted faults were named. `ping_shot` and the Guide's Pings page are the
+pictures - the first photograph had the marks too small to read at play zoom,
+which no gate could see.
+
+**One trap, again.** Three Python patches written through a heredoc came out
+with their line continuations eaten - the recorded lesson - and each was put
+back with `chr(92)`. Write a continuation with the Edit tool, or build the
+backslash, never type it into a heredoc.
+
 ### The three escape hatches - and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -79,6 +79,7 @@ var _footfalls: Footfalls = null
 var _tells: CombatTells = null
 ## Points at the last bodies of a wave. A drawing; see `Stragglers`.
 var _stragglers: Stragglers = null
+var _pings: PingField = null
 var _settling: Settling = null
 var _kill_streak: KillStreak = null
 
@@ -3477,6 +3478,7 @@ func _build_fog() -> void:
 	# for reading a function before appending to it.
 	_build_death_markers()
 	_build_stragglers()
+	_build_pings()
 	_build_withdrawal()
 	_build_footfalls()
 	_build_combat_tells()
@@ -3699,6 +3701,19 @@ func _build_stragglers() -> void:
 
 func stragglers() -> Stragglers:
 	return _stragglers
+
+
+## **The party's pings** (2026-10-07): a word put on this field for everybody
+## on it. Under the field so a raid's freeze holds the marks with it.
+func _build_pings() -> void:
+	_pings = PingField.new()
+	_pings.name = "Pings"
+	_pings.field = self
+	add_child(_pings)
+
+
+func ping_field() -> PingField:
+	return _pings
 
 
 ## **The road closing behind a return.**
