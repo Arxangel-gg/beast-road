@@ -162,3 +162,40 @@ The arc without the aiming is an afternoon and is most of the gain: lay the
 cluster, move DASH and RIDE into it, draw the primary, photograph. Hold-to-aim
 is the second commit, gated by `touch_check`, and the cancel zone comes with it.
 The draft chip is last and optional.
+
+## 9. Measured before it was built, 2026-10-08: the arc does not fit
+
+Stage one was built on the design's own answers to §7 and photographed, and it
+is **not shipped**. The arc itself worked - a solver (`ThumbCluster.lay`, kept
+in the session's scratch) laid four slots round a drawn primary clear of
+everything the HUD had drawn, and the picture read as an arc. What broke it is
+the space §5 assumed.
+
+§5 says the column's lowest button ends near 380 on the landscape canvas. It
+ends at **498**, and that is the smaller half: with a spirit bonded, the spirit
+readout stands left of the column at 108-261 and the minimap hangs under the
+readout down to about 421. The top right is taken to the middle of a 777-tall
+canvas whenever a spirit is out.
+
+Three ways round it were measured and each is worse than the row:
+
+- **Solve against what is showing.** The slots fit with no spirit out and moved
+  the moment one was called - a slot that jumps under the thumb when the state
+  changes is the one thing a thumb cluster must never do.
+- **Solve against what *can* show** (the readout and minimap reserved). The only
+  arc that clears them has a radius of 580-630 units: slot one 50 mm from the
+  corner, which is the reach the design exists to shorten.
+- **Move the minimap beside the readout on a thumb.** It frees the band, and
+  lands on the top-centre banners (the message, the Chronicle goal, the boss
+  track) - `layout_check` named all three at both phone shapes.
+
+**What does fit**, for whoever takes this up with the owner: a two-by-two *fan*
+rather than an arc - two slots at radius 200 (175° and 145°) and two at 320
+(178° and 155°) round a primary in the corner, every slot under y 448 and left
+of the column - with DASH in the 85-unit gap between the column's foot (498) and
+the primary's top (591). The bow's trigger and the conditional buttons then have
+no home under the column and want one decided. That is a layout decision with a
+real cost to the bow, so it is the owner's, and nothing about it is built.
+
+Found on the way and fixed: the spirit readout's order button (2026-10-07) had
+pushed the readout to 291 of its 240 at both phone shapes, over the column.

@@ -21,6 +21,20 @@ three-line guard/release/neither diff in CLAUDE.md. Tag with
 
 ---
 
+## 0n. Where things stand (2026-10-08)
+
+Everything in 0m, 0l and the owner's lists of 2026-10-07 is built; the ideas
+triage of 2026-10-07 is closed (its status table says where each row stands).
+Since v0.76.0 on `next`: uniques, the spirit's orders, their Guide pages, a
+Codex Uniques page, and the spirit readout fitted to its column on a thumb.
+
+**The thumb cluster (item 25) was built, photographed and not shipped**: the arc
+does not fit a landscape phone once the spirit readout and minimap are counted.
+`docs/MOBILE_HUD_WILD_RIFT_2026-10-06.md` §9 has the measurements and the one
+arrangement that does fit; it needs an owner decision about the bow's trigger.
+
+Next: the release sweep and v0.77.0.
+
 ## 0m. Where things stand (2026-10-07, late)
 
 Both of the owner's lists of 2026-10-07 are built and committed, each with its
