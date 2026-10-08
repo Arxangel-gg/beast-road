@@ -368,6 +368,17 @@ func _test_every_way_out() -> void:
 	var presses: Array[Dictionary] = [
 		{"name": "Escape", "event": _key(KEY_ESCAPE), "after": 0.3},
 		{"name": "Enter", "event": _key(KEY_ENTER), "after": 2.5},
+		# **Enter once the road is standing** (2026-10-08): the road is the
+		# player's descendant and hears `_input` first, and its chat answers
+		# Enter. Pressed on a timer, the sweep's load decided whether the road
+		# was up yet - the one run it was, Enter opened the chat instead.
+		{"name": "Enter on a standing road", "event": _key(KEY_ENTER), "after": 0.0,
+			"road": true},
+		# **And with something in the tree that eats Enter**: a node added to the
+		# root after the trailer began hears `_input` before the player would.
+		# The trailer's catcher must still hear it first, whatever stands below.
+		{"name": "Enter past a node that eats it", "event": _key(KEY_ENTER), "after": 1.0,
+			"hostile": true},
 		{"name": "Space", "event": _key(KEY_SPACE), "after": 0.8},
 		{"name": "a pad's A", "event": _pad(JOY_BUTTON_A), "after": 1.6},
 		{"name": "a pad's B", "event": _pad(JOY_BUTTON_B), "after": 0.4},
@@ -378,8 +389,25 @@ func _test_every_way_out() -> void:
 		var held_before: int = int(MetaState.get("_saves_held"))
 		var player: TrailerPlayer = _player(77 + presses.find(press))
 		await _wait(float(press["after"]))
+		if bool(press.get("road", false)):
+			var waited: float = 0.0
+			while waited < 20.0 and get_tree().root.find_children("*", "Run", true, false).is_empty():
+				await _wait(0.1)
+				waited += 0.1
+			_check(not get_tree().root.find_children("*", "Run", true, false).is_empty(),
+				"the trailer stood no road up to press Enter over")
+			await _wait(0.5)
+		var eater: EnterEater = null
+		if bool(press.get("hostile", false)):
+			eater = EnterEater.new()
+			eater.name = "EnterEater"
+			get_tree().root.add_child(eater)
+			await get_tree().process_frame
 		get_viewport().push_input(press["event"] as InputEvent)
 		await get_tree().process_frame
+		if eater != null:
+			_check(not eater.ate, "a node that eats Enter heard it before the trailer did")
+			eater.queue_free()
 		_check(player.reason == "skipped", "%s did not skip the trailer (%s)"
 			% [press["name"], player.reason if not player.reason.is_empty() else "still playing"])
 		_given_back(before, held_before, "a trailer skipped by %s" % press["name"])
@@ -461,3 +489,16 @@ func _wipe_the_fixture() -> void:
 		return
 	for name: String in dir.get_files():
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(FIXTURE_DIR.path_join(name)))
+
+
+## A node that swallows Enter in `_input`, standing where a road's chat or an
+## overlay would: added to the root after the trailer, so it is called before
+## anything that came earlier.
+class EnterEater extends Node:
+	var ate: bool = false
+
+	func _input(event: InputEvent) -> void:
+		var key := event as InputEventKey
+		if key != null and key.pressed and key.keycode == KEY_ENTER:
+			ate = true
+			get_viewport().set_input_as_handled()

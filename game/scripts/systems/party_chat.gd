@@ -107,7 +107,10 @@ func _is_chat_key(event: InputEvent) -> bool:
 
 
 func may_open() -> bool:
-	return box != null and is_inside_tree() and is_visible_in_tree() and bool(available.call())
+	# Never under a trailer: its road is a stage, not a road anybody types on,
+	# and Enter there is the trailer's skip key (`TrailerPlayer.KeyCatcher`).
+	return box != null and is_inside_tree() and is_visible_in_tree() \
+		and TrailerPlayer.showing == 0 and bool(available.call())
 
 
 ## Opens the box over the log's history.

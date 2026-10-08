@@ -34,6 +34,13 @@ extends Control
 ## runs every card and moment that many times faster in real time; `plan_seed`
 ## deals a chosen trailer rather than one from the clock.
 static var play_in_tests: bool = false
+## **How many trailers are on the screen**, read by anything on the road below
+## that answers a skip key of its own (2026-10-08). The road a trailer films is
+## the player's own descendant, and `_input` reaches descendants first - so the
+## road's chat heard Enter before the player did, opened, and swallowed it, and
+## a trailer the player asked to leave went on filming with the saves held. The
+## release sweep caught it under load, when the road stood up before the press.
+static var showing: int = 0
 var leaves: bool = true
 var pace: float = 1.0
 var plan_seed: int = 0
@@ -47,6 +54,13 @@ var plan: Dictionary = {}
 var filmed: Array[String] = []
 
 var _stage: TrailerStage = null
+## **First refusal on every key** (2026-10-08). `_input` is called in reverse
+## tree order, so the road this player films - its own descendant - and anything
+## added to the root after it hears a key before the player does; the release
+## sweep caught Enter swallowed that way under load, with the trailer left
+## filming and the saves held. One catcher kept as the root's last child is
+## called before everything else in the tree, whatever stands up below.
+var _keys: KeyCatcher = null
 var _layer: CanvasLayer = null
 var _cover: ColorRect = null
 var _flash: ColorRect = null
@@ -96,6 +110,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	MetaState.hold_saves()
 	_held = true
+	showing += 1
 	_phase_was = DayNight.phase
 	# The clock's owner at one, so every give-back below (`GameSpeed.restore`)
 	# returns to the world's own pace rather than to a fast-forward left on.
@@ -108,6 +123,11 @@ func _ready() -> void:
 	_stage = TrailerStage.new()
 	_stage.name = "Stage"
 	add_child(_stage)
+	_keys = KeyCatcher.new()
+	_keys.name = "TrailerKeys"
+	_keys.player = self
+	_keys.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child.call_deferred(_keys)
 	_build_overlay()
 	EventBus.camera_impact.connect(_on_impact)
 	var dealt: int = plan_seed if plan_seed != 0 else int(Time.get_unix_time_from_system() * 1000.0) ^ Time.get_ticks_usec()
@@ -288,6 +308,7 @@ func _on_impact(_at: Vector2, power: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_keep_the_keys()
 	if _done:
 		return
 	var real: float = delta / maxf(Engine.time_scale, 0.01)
@@ -330,9 +351,10 @@ func skip() -> void:
 	_end("skipped")
 
 
-## `_input`, not `_unhandled_input`: the road below is the player's child and
-## hears an unhandled key first - its Escape is the pause menu.
-func _input(event: InputEvent) -> void:
+## A key, read before anything else in the tree hears it (`KeyCatcher`). Not
+## the player's own `_input`: the road below is its descendant and `_input`
+## reaches a descendant first - and the road answers Enter and Escape of its own.
+func read_key(event: InputEvent) -> void:
 	if _done:
 		return
 	var key := event as InputEventKey
@@ -411,6 +433,10 @@ func _restore() -> void:
 
 
 func _exit_tree() -> void:
+	showing = maxi(showing - 1, 0)
+	if _keys != null and is_instance_valid(_keys):
+		_keys.queue_free()
+	_keys = null
 	# A scene change that did not come through `_end` (a gate freeing the
 	# player) still gives everything back.
 	if not _done:
@@ -598,3 +624,23 @@ func _act_title(act: int) -> String:
 func _region(act: int) -> String:
 	var terrain: TerrainData = ContentDB.terrain_for_act(act)
 	return terrain.display_name if terrain != null else ""
+
+
+## Keeps the catcher the root's last child, so it is called first: anything
+## added to the root after the trailer began - an overlay, a road's own layer -
+## would otherwise hear a key before it.
+func _keep_the_keys() -> void:
+	if _keys == null or not is_instance_valid(_keys) or not _keys.is_inside_tree():
+		return
+	var parent: Node = _keys.get_parent()
+	if parent != null and _keys.get_index() != parent.get_child_count() - 1:
+		parent.move_child(_keys, -1)
+
+
+## The trailer's ears: one node that does nothing but hand the player every key.
+class KeyCatcher extends Node:
+	var player: Node = null
+
+	func _input(event: InputEvent) -> void:
+		if player != null and is_instance_valid(player):
+			player.call("read_key", event)
