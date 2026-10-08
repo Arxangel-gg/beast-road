@@ -533,7 +533,11 @@ func _test_it_sweeps_and_rampages() -> void:
 		body.global_position = origin + Vector2.from_angle(angle) * 300.0
 		var id: int = body.get_instance_id()
 		struck[id] = 0
-		body.health.damaged.connect(func(_amount: float, _from: Vector2) -> void: struck[id] = int(struck[id]) + 1)
+		# Only the breath's own blows, which come from where it was breathed:
+		# the road's animals and its sky may land others on a live field.
+		body.health.damaged.connect(func(_amount: float, from: Vector2) -> void:
+			if from.distance_to(origin) < 1.0:
+				struck[id] = int(struck[id]) + 1)
 		bodies.append(body)
 	await get_tree().process_frame
 	var sweep: Vector2 = DragonBreath.plan_sweep(DragonBreath.wild_marks(get_tree(), field,
@@ -628,7 +632,10 @@ func _test_it_sweeps_and_rampages() -> void:
 		walked = walked or wyrm.is_rampaging()
 		side_on = side_on or wyrm.walking_side_on()
 		if was_landed and not wyrm.is_landed():
-			jump = wyrm.global_position.distance_to(at)
+			# The step that lifts it holds still; the leg starts on the next.
+			wyrm.advance(0.05, 1)
+			if is_instance_valid(wyrm):
+				jump = wyrm.global_position.distance_to(at)
 			break
 	_check(landed_seen, "the rampaging dragon did not land")
 	_check(walked, "the landed dragon never walked its rampage")
