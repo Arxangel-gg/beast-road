@@ -720,6 +720,7 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_pref_toggle_row("Map overlay", Graphics.KEY_MINIMAP_OVERLAY,
 		Graphics.minimap_overlay_shown(),
 		"The whole field laid big and faint over the middle of the screen."))
+	column.add_child(_overlay_opacity_row())
 	column.add_child(_pref_toggle_row("Tower ranges", Graphics.KEY_RANGE_TOWERS,
 		Graphics.tower_rings_shown(), "A tower's reach is ringed for a moment each time it fires."))
 	column.add_child(_pref_toggle_row("Enemy ranges", Graphics.KEY_RANGE_ENEMIES,
@@ -895,6 +896,15 @@ func _display_toggle_row(text: String, key: String, hint: String) -> HBoxContain
 		button.text = "On" if button.button_pressed else "Off")
 	row.add_child(button)
 	return row
+
+
+## How solid the map overlay is (owner, 2026-10-08). Read out as a share, since
+## that is what a player is choosing: how much of the road shows through.
+func _overlay_opacity_row() -> HBoxContainer:
+	return _slider_row("  Overlay opacity", Balance.MINIMAP_OVERLAY_OPACITY_MIN,
+		Balance.MINIMAP_OVERLAY_OPACITY_MAX, 0.01, Graphics.minimap_overlay_opacity(),
+		func(v: float) -> String: return "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY_OPACITY, v))
 
 
 func _brightness_row() -> HBoxContainer:

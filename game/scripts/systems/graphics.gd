@@ -81,6 +81,9 @@ const KEY_MINIMAP: String = "minimap"
 ## The same map laid big and faint over the middle of the field (owner,
 ## 2026-10-07). M cycles neither, the minimap, the overlay, and both.
 const KEY_MINIMAP_OVERLAY: String = "minimap_overlay"
+## How solid the overlay is, chosen on a slider (owner, 2026-10-08). A display
+## preference, read every frame by the HUD, so it moves while the map shows.
+const KEY_MINIMAP_OVERLAY_OPACITY: String = "minimap_overlay_opacity"
 ## **Attack range rings, each kind its own switch** (owner, 2026-09-22): the
 ## ring a tower draws when it fires and the one an enemy draws after it attacks.
 const KEY_RANGE_TOWERS: String = "range_rings_towers"
@@ -854,6 +857,12 @@ static func minimap_shown() -> bool:
 ## Whether the map is laid over the field as well. Off until chosen.
 static func minimap_overlay_shown() -> bool:
 	return bool(_chosen.get(KEY_MINIMAP_OVERLAY, false))
+
+
+## How solid the overlay is drawn, inside the bounds a save may not move it past.
+static func minimap_overlay_opacity() -> float:
+	return clampf(float(_chosen.get(KEY_MINIMAP_OVERLAY_OPACITY, Balance.MINIMAP_OVERLAY_OPACITY)),
+		Balance.MINIMAP_OVERLAY_OPACITY_MIN, Balance.MINIMAP_OVERLAY_OPACITY_MAX)
 
 
 ## The next of the four the M key cycles through: neither, the minimap, the

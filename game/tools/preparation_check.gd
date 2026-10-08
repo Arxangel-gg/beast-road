@@ -235,6 +235,25 @@ func _test_the_map_cycles_four_ways() -> void:
 	# press: it is a backdrop, never in front of a button.
 	_check(big.get_index() == 0, "the overlay is drawn over part of the interface")
 	_check(big.mouse_filter == Control.MOUSE_FILTER_IGNORE, "the overlay swallows presses")
+	# **Its opacity is the player's** (owner, 2026-10-08): the slider's value is
+	# what the overlay wears while it shows, inside the bounds a save cannot pass.
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY, true)
+	_hud.call("_refresh_minimap_visible")
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY_OPACITY, 0.7)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(is_equal_approx(big.modulate.a, 0.7), "the overlay wears %.2f with its slider at 0.70"
+		% big.modulate.a)
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY_OPACITY, 5.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(is_equal_approx(big.modulate.a, Balance.MINIMAP_OVERLAY_OPACITY_MAX),
+		"a saved opacity of 5.0 drew the overlay at %.2f" % big.modulate.a)
+	var panel_source: String = FileAccess.get_file_as_string("res://scenes/ui/settings_panel.gd")
+	_check(panel_source.contains("Graphics.KEY_MINIMAP_OVERLAY_OPACITY"),
+		"the settings offer no slider for the overlay's opacity")
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY_OPACITY, Balance.MINIMAP_OVERLAY_OPACITY)
+	Graphics.set_display(Graphics.KEY_MINIMAP_OVERLAY, false)
 	Graphics.set_display(Graphics.KEY_MINIMAP, true)
 	_hud.call("_refresh_minimap_visible")
 

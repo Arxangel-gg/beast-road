@@ -13033,6 +13033,12 @@ const MINIMAP_OPACITY: float = 0.82
 ## is still the fight. [TUNE]
 const MINIMAP_OVERLAY_SHARE: float = 0.66
 const MINIMAP_OVERLAY_OPACITY: float = 0.42
+## **How faint the overlay may be set** (owner, 2026-10-08: "a slider to toggle
+## the map overlay transparency"). The default above is the authored look; the
+## floor keeps a map that is on from vanishing, and the ceiling keeps the fight
+## under it the fight. [TUNE]
+const MINIMAP_OVERLAY_OPACITY_MIN: float = 0.10
+const MINIMAP_OVERLAY_OPACITY_MAX: float = 0.85
 const MINIMAP_FRAME_THICK: float = 3.0
 const MINIMAP_FRAME_INNER: Color = Color(0.34, 0.29, 0.2, 0.9)
 const MINIMAP_CORNER: Color = Color(0.78, 0.68, 0.46, 0.95)

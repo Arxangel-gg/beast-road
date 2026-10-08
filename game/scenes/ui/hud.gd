@@ -934,6 +934,12 @@ func _process_measured(delta: float) -> void:
 		_refresh_minimap_visible()
 		if not sheet_open:
 			_clear_offer_preview()
+	# The overlay follows its slider while it shows, so moving the slider over a
+	# paused road changes the map behind the settings at once.
+	if _minimap_overlay != null and _minimap_overlay.visible:
+		var solid: float = Graphics.minimap_overlay_opacity()
+		if not is_equal_approx(_minimap_overlay.modulate.a, solid):
+			_minimap_overlay.modulate.a = solid
 	if _nav_bar != null:
 		_live_nav_rect = _nav_bar.get_global_rect() if _nav_bar.is_visible_in_tree() else Rect2()
 		_live_nav_columns = _nav_bar.columns
@@ -7424,7 +7430,7 @@ func _build_minimap() -> void:
 	_minimap_overlay.overlay = true
 	_minimap_overlay.battlefield = battlefield
 	_minimap_overlay.set_anchors_preset(Control.PRESET_CENTER)
-	_minimap_overlay.modulate.a = Balance.MINIMAP_OVERLAY_OPACITY
+	_minimap_overlay.modulate.a = Graphics.minimap_overlay_opacity()
 	# First among the HUD's children, so every readout and button is drawn
 	# over it: it is a backdrop to the interface, never in front of it.
 	add_child(_minimap_overlay)
