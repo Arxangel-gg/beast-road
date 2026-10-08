@@ -264,6 +264,20 @@ func _test_the_controls_page_names_it() -> void:
 	_check(KeyBindings.label_for(&"chat") == "Enter", "the chat's key reads '%s'" % KeyBindings.label_for(&"chat"))
 	var page: String = FileAccess.get_file_as_string("res://scenes/ui/settings_panel.gd")
 	_check(page.contains("KeyBindings.FIXED"), "the Controls page never lists the fixed keys")
+	# **Every action is on the page** (owner, 2026-10-08: Tab, which switches
+	# build and fight modes, was on none). A key a player cannot read about is a
+	# key they do not have, whichever list it belongs on.
+	var listed: Dictionary = {}
+	for entry: Dictionary in KeyBindings.REBINDABLE + KeyBindings.FIXED:
+		listed[StringName(entry.get("action", &""))] = true
+	var missing: PackedStringArray = []
+	for action: StringName in InputMap.get_actions():
+		if String(action).begins_with("ui_") or KeyBindings.DEVELOPER.has(action) or listed.has(action):
+			continue
+		missing.append(String(action))
+	_check(missing.is_empty(), "the Controls page names no key for: %s" % ", ".join(missing))
+	_check(KeyBindings.label_for(&"toggle_build_mode") == "Tab",
+		"build mode reads '%s' on the Controls page" % KeyBindings.label_for(&"toggle_build_mode"))
 	_finished += 1
 
 

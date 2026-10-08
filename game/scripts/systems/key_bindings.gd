@@ -83,7 +83,20 @@ const FIXED: Array[Dictionary] = [
 	# holds the Say square instead.
 	{"action": &"ping", "label": "Ping: tap for what is under the cursor, hold for the wheel (Alt+click pings too)"},
 	{"key": "Wheel", "label": "Zoom, and the Town and Yuri past its ends"},
+	# **Bound since they were written and on no page** (owner, 2026-10-08:
+	# "Controls settings do not mention tab key to change between build/fight
+	# modes"). Fixed for the pad's reason: Tab is the HUD's own build button on
+	# a thumb, and a raid, an item and a revive each have their own button or
+	# prompt there.
+	{"action": &"toggle_build_mode", "label": "Build mode / fight mode"},
+	{"action": &"enter_raid", "label": "Enter a raid camp you stand at"},
+	{"action": &"use_item", "label": "Use the held item"},
+	{"action": &"revive", "label": "Revive a fallen partner (hold)"},
 ]
+
+## **Keys only a developer wants**, kept off the page on purpose: every other
+## action in the input map is on it, which `chat_check` holds.
+const DEVELOPER: Array[StringName] = [&"toggle_climate_debug"]
 
 
 ## Controller bindings, added on top of the shipped keyboard ones.
