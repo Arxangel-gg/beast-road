@@ -41,6 +41,12 @@ var _height: float = 0.0
 var _heading: Vector2 = Vector2.RIGHT
 
 var _left: float = 0.0
+## **How long this one's warning and crossing take.** The world's own pass is
+## the authored pair; the trailer's is quicker and closer (`hurry`), because a
+## dragon that arrives seven seconds into a six-second moment was never seen
+## (owner, 2026-10-08: "Trailer dragons missing").
+var warning_seconds: float = Balance.DRAGON_WARNING_SECONDS
+var pass_seconds: float = Balance.DRAGON_PASS_SECONDS
 var _flying: bool = false
 var _since_fire: float = 0.0
 var _mirror: bool = false
@@ -137,14 +143,14 @@ func _process_measured(delta: float) -> void:
 	if not _flying:
 		if _left <= 0.0:
 			_flying = true
-			_left = Balance.DRAGON_PASS_SECONDS
+			_left = pass_seconds
 			# Said once, as it comes over: the walk draws a shadow crossing the
 			# sky above the carried town, because the one view whose subject is
 			# the world should be the view that sees the biggest thing in it.
-			EventBus.dragon_overhead.emit(Balance.DRAGON_PASS_SECONDS)
+			EventBus.dragon_overhead.emit(pass_seconds)
 		queue_redraw()
 		return
-	var travelled: float = 1.0 - clampf(_left / maxf(Balance.DRAGON_PASS_SECONDS,
+	var travelled: float = 1.0 - clampf(_left / maxf(pass_seconds,
 		0.01), 0.0, 1.0)
 	var before: Vector2 = global_position
 	# Two curved legs meet at a checked landing point, with a smooth descent.
@@ -159,7 +165,7 @@ func _process_measured(delta: float) -> void:
 			_has_landed = true
 			_landed = true
 			_land_left = Balance.DRAGON_LAND_SECONDS
-			_left = Balance.DRAGON_PASS_SECONDS * 0.5
+			_left = pass_seconds * 0.5
 			global_position = _landing
 			_height = 0.0
 			_touch_down()
@@ -237,7 +243,7 @@ func _draw_measured() -> void:
 	if not _flying:
 		# The warning: the shadow alone, growing in as it comes out of the sun.
 		var coming: float = 1.0 - clampf(_left / maxf(
-			Balance.DRAGON_WARNING_SECONDS, 0.01), 0.0, 1.0)
+			warning_seconds, 0.01), 0.0, 1.0)
 		_shadow(size, turn, coming * 0.55)
 		return
 	_shadow(size * shadow_scale(), turn, 0.55)
@@ -375,6 +381,16 @@ func _take_off() -> void:
 	if field != null:
 		tone = field.ground_colour(_landing)
 	Vfx.dust(global_position, tone.lightened(0.1), 10, landed_size().x * 0.5)
+
+
+## **Come now, and cross quicker** (the trailer, 2026-10-08): the warning cut
+## to `warning` and the crossing to `crossing`. Only before it is flying.
+func hurry(warning: float, crossing: float) -> void:
+	if _flying:
+		return
+	warning_seconds = maxf(warning, 0.05)
+	pass_seconds = maxf(crossing, 0.5)
+	_left = minf(_left, warning_seconds)
 
 
 func has_touched_down() -> bool:

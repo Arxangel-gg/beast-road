@@ -5608,6 +5608,14 @@ const TRAIL_PLACEMENT_TRIES: int = 60
 ## [TUNE]
 const DRAGON_WARNING_SECONDS: float = 3.2
 const DRAGON_PASS_SECONDS: float = 7.5
+## **The trailer's dragon** (2026-10-08): it starts `REACH` from the pack it
+## lands on, is warned for `WARNING`, crosses in `CROSSING` and lands on
+## `LAND_CHANCE` of trailers - so it is over the pack inside three seconds of a
+## seven-second moment. [TUNE]
+const TRAILER_DRAGON_REACH: float = 1250.0
+const TRAILER_DRAGON_WARNING: float = 0.3
+const TRAILER_DRAGON_CROSSING: float = 5.0
+const TRAILER_DRAGON_LAND_CHANCE: float = 0.7
 ## How often it breathes on the way over, how far that reaches, and how likely
 ## a plant under it catches. Sparse on purpose: a solid line of fire across the
 ## map is a wildfire nobody can answer.

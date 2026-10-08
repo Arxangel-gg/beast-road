@@ -97,16 +97,22 @@ static func _deal(rng: RandomNumberGenerator, road: int, act: int, used: Array[S
 static func _pick(rng: RandomNumberGenerator, place: int, act: int, used: Array[String]) -> TrailerMomentData:
 	var fits: Array[TrailerMomentData] = []
 	var weights: Array[float] = []
+	var always: Array[TrailerMomentData] = []
 	for value: Variant in ContentDB.trailer_moments.values():
 		var moment := value as TrailerMomentData
 		if moment == null or int(moment.place) != place or used.has(moment.id):
 			continue
 		if act < moment.first_act or act > moment.last_act:
 			continue
+		if moment.always:
+			always.append(moment)
 		fits.append(moment)
 		weights.append(maxf(moment.weight, 0.0))
 	if fits.is_empty():
 		return null
+	if not always.is_empty():
+		always.sort_custom(func(a: TrailerMomentData, b: TrailerMomentData) -> bool: return a.id < b.id)
+		return always[0]
 	fits_sort(fits, weights)
 	var total: float = 0.0
 	for weight: float in weights:

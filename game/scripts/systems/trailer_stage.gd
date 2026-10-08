@@ -615,24 +615,47 @@ func _stage_tornado() -> void:
 ## camera rides with it, and the Warden on the ground looks up.
 func _stage_dragon() -> void:
 	var centre: Vector2 = _send_a_pack(_pack_size(), _a_stretch_of_road())
-	_stand(centre + _from_side(_dice.randf_range(200.0, 300.0)))
+	_stand(centre + _from_side(_dice.randf_range(220.0, 320.0)))
 	var sky: WeatherSky = field.sky()
 	var wyrm: DragonPass = null
 	if sky != null:
 		var across: Vector2 = Vector2(1.0, _dice.randf_range(-0.35, 0.35)).normalized()
 		if _dice.randf() < 0.5:
 			across = -across
-		wyrm = sky.send_dragon(centre - across * 1500.0, centre + across * 1500.0)
-	await _wait(_dice.randf_range(0.6, 1.2))
-	if _gone():
-		return
+		# **Close, quick and onto the pack** (owner, 2026-10-08: "Trailer dragons
+		# missing"): the world's pass starts fifteen hundred units off, warns for
+		# three seconds and crosses in seven and a half, so in a six-second
+		# moment the camera followed empty sky. This one comes in from the edge
+		# of the frame, lands on the pack most of the time and breathes there.
+		var reach: float = Balance.TRAILER_DRAGON_REACH
+		var plan: Dictionary = {
+			"variant": _a_dragon(),
+			"rarity": 1 if _dice.randf() < 0.3 else 0,
+			"landing": centre,
+			"land": _dice.randf() < Balance.TRAILER_DRAGON_LAND_CHANCE,
+			"fury": 1.25,
+			"curve": across.orthogonal() * _dice.randf_range(-120.0, 120.0),
+		}
+		wyrm = sky.send_dragon(centre - across * reach, centre + across * reach, plan)
+		if wyrm != null:
+			wyrm.hurry(Balance.TRAILER_DRAGON_WARNING, Balance.TRAILER_DRAGON_CROSSING)
 	_mode = &"watch"
 	_watch_point = centre
 	_watched = wyrm
-	if wyrm != null and is_instance_valid(wyrm):
-		_follow_with(wyrm, Vector2.ZERO)
-	else:
-		_camera(centre, centre, float(moment["zoom_from"]), float(moment["zoom_to"]))
+	_camera(centre, centre + Vector2(0.0, -40.0), float(moment["zoom_from"]), float(moment["zoom_to"]))
+
+
+## A dragon the road's own sky could send, by the trailer's dice.
+func _a_dragon() -> String:
+	var ids: Array[String] = []
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.dragon_event_weight > 0.0:
+			ids.append(kind.id)
+	if ids.is_empty():
+		return ""
+	ids.sort()
+	return ids[_dice.randi_range(0, ids.size() - 1)]
 
 
 ## An act's boss on the road, and the Warden going to meet it.

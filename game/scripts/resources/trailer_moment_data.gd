@@ -19,6 +19,10 @@ extends GameData
 enum Place { OPEN, EARLY, MIDDLE, LATE, CLOSE }
 
 @export var place: Place = Place.MIDDLE
+## **Always in the cut** (owner, 2026-10-08: "Trailer dragons missing"): dealt
+## in the first slot of its place on a road whose act it suits, before any
+## moment is drawn for that slot.
+@export var always: bool = false
 ## How often it is dealt among the moments that fit its place.
 @export var weight: float = 1.0
 ## The acts it may be filmed in - a boss of the summit is not an Act I picture.

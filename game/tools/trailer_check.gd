@@ -42,6 +42,7 @@ func _ready() -> void:
 	_saved_slot = MetaState.slot()
 	_test_the_plans()
 	_test_the_moments_are_data()
+	_test_the_dragon_comes_quickly()
 	_test_a_slow_machine_gets_a_lighter_trailer()
 	_test_it_opens_only_when_welcome()
 	_test_out_of_the_splash_and_nowhere_else()
@@ -138,6 +139,13 @@ func _test_the_plans() -> void:
 				last_place = int(data.place)
 				summary.append("%d:%s" % [act, id])
 		_check(last_place == TrailerMomentData.Place.LATE, "a trailer did not end on a climax (%s)" % ", ".join(summary))
+		# **A moment marked always is in every cut** (owner, 2026-10-08:
+		# "Trailer dragons missing").
+		for value: Variant in ContentDB.trailer_moments.values():
+			var always := value as TrailerMomentData
+			if always != null and always.always:
+				_check(used.has(always.id), "a trailer was dealt without '%s' (%s)"
+					% [always.id, ", ".join(summary)])
 		closers[summary[summary.size() - 1] if not summary.is_empty() else ""] = true
 		if rarities.size() == 3 and rarities[2] >= rarities[0]:
 			climbs += 1
@@ -150,6 +158,48 @@ func _test_the_plans() -> void:
 	_check(closers.size() >= 6, "the trailers end on only %d different moments" % closers.size())
 	_check(climbs >= PLANS * 3 / 4, "the Warden's gear climbed from the first road to the last in only %d of %d" % [climbs, PLANS])
 	_reached["plans"] = true
+
+
+## **The trailer's dragon is over the pack in time to be seen** (owner,
+## 2026-10-08). Staged the way the stage stages it - an authored plan and a
+## hurried pass - and driven by hand: flying inside half a second, over the
+## landing point well inside the shortest dragon moment, and on the ground there
+## when the plan says it lands. The world's own pass is unhurried and is held to
+## what it was.
+func _test_the_dragon_comes_quickly() -> void:
+	var data: TrailerMomentData = ContentDB.trailer_moments.get("dragon", null) as TrailerMomentData
+	_check(data != null and data.always, "the dragon moment is not always dealt")
+	if data == null:
+		return
+	var variant: String = ""
+	for value: Variant in ContentDB.enemies.values():
+		var kind := value as EnemyData
+		if kind != null and kind.dragon_event_weight > 0.0:
+			variant = kind.id
+			break
+	var centre := Vector2(200.0, -150.0)
+	var reach: float = Balance.TRAILER_DRAGON_REACH
+	var wyrm := DragonPass.new()
+	wyrm.from = centre - Vector2.RIGHT * reach
+	wyrm.to = centre + Vector2.RIGHT * reach
+	wyrm.authored_plan = {"variant": variant, "rarity": 0, "landing": centre, "land": true,
+		"fury": 1.25, "curve": Vector2.ZERO}
+	add_child(wyrm)
+	wyrm.set_process(false)
+	_check(is_equal_approx(wyrm.pass_seconds, Balance.DRAGON_PASS_SECONDS)
+			and is_equal_approx(wyrm.warning_seconds, Balance.DRAGON_WARNING_SECONDS),
+		"the world's own pass is no longer the authored warning and crossing")
+	wyrm.hurry(Balance.TRAILER_DRAGON_WARNING, Balance.TRAILER_DRAGON_CROSSING)
+	var arrives: float = Balance.TRAILER_DRAGON_WARNING + Balance.TRAILER_DRAGON_CROSSING * 0.5
+	_check(arrives < data.seconds_min * 0.5,
+		"the trailer's dragon reaches the pack %.1f s into a moment of %.1f" % [arrives, data.seconds_min])
+	wyrm.advance(Balance.TRAILER_DRAGON_WARNING + 0.05, 4)
+	_check(bool(wyrm.get("_flying")), "the hurried dragon is not flying after its warning")
+	wyrm.advance(Balance.TRAILER_DRAGON_CROSSING * 0.5, 40)
+	_check(wyrm.is_landed() and wyrm.global_position.distance_to(centre) < 1.0,
+		"the trailer's dragon did not land on the pack (%s, landed %s)"
+			% [wyrm.global_position, wyrm.is_landed()])
+	wyrm.queue_free()
 
 
 func _test_the_moments_are_data() -> void:
